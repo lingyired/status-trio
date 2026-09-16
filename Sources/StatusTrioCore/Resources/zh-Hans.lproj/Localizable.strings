@@ -9,6 +9,8 @@
 "menu.closeWindow" = "关闭窗口";
 "menu.checkForUpdates" = "检查更新…";
 "settings.title" = "设置";
+"settings.page.appearance" = "外观";
+"settings.page.general" = "通用";
 "settings.language" = "语言";
 "settings.language.followSystem" = "跟随系统";
 "settings.language.description" = "更改后立即应用。";
@@ -23,7 +25,7 @@
 "settings.appIconPlacement.dock" = "程序坞";
 "settings.appIconPlacement.both" = "两处";
 "settings.dockIconBackground" = "Dock 图标背景";
-"settings.dockIconBackground.description" = "仅影响程序坞中显示的实时图标。「跟随系统」读取「系统设置 › 外观 › 图标与小组件样式」（macOS 26 及以上）。";
+"settings.dockIconBackground.description" = "仅影响程序坞中显示的实时图标。「跟随系统」读取「系统设置 › 外观 › 图标与小组件样式」（macOS 15 及以上）。";
 "settings.dockIconBackground.system" = "跟随系统";
 "settings.dockIconBackground.dark" = "深色";
 "settings.dockIconBackground.light" = "浅色";
@@ -57,6 +59,7 @@
 "settings.about.author" = "作者";
 "settings.about.authorRole" = "作者与维护者";
 "settings.about.website" = "作者主页";
+"settings.about.starOnGitHub" = "在 GitHub 上标星";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "电池显示";
 "settings.battery.showPercentage" = "显示电量数字";
@@ -209,3 +212,11 @@
 "bluetooth.authorizationNotDetermined" = "Bluetooth permission has not been decided yet.";
 "bluetooth.authorizationDenied" = "Bluetooth permission is denied. Open Bluetooth Settings.";
 "bluetooth.authorizationRestricted" = "Bluetooth permission is restricted.";
+
+"settings.preview.hint" = "菜单栏实时预览 · 调节下方各项参数即刻在上方呈现";
+"settings.preview.dark" = "深色底色";
+"settings.preview.light" = "浅色底色";
+"settings.preview.toggleHelp" = "切换菜单栏深色/浅色底色预览";
+"settings.audio.displayRules" = "显示规则";
+"settings.audio.activeDeviceFootnote" = "当前活跃的音频输出设备将优先以主题色高亮显示。";
+"settings.audio.inUse" = "正在使用";

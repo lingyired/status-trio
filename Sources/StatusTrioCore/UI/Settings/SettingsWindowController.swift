@@ -9,7 +9,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let localization: Localization
     private let activationPolicy: AppActivationPolicy
     private var localizationCancellable: AnyCancellable?
-    private var tabController: SettingsTabViewController?
     private var ownsActivationPolicy = false
 
     init(
@@ -42,41 +41,40 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         applyLocalization()
         enterActivationPolicyIfNeeded()
         window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
     }
 
     func windowWillClose(_ notification: Notification) {
         leaveActivationPolicyIfNeeded()
         window = nil
-        tabController = nil
     }
 
     private func makeWindow() -> NSWindow {
-        let tabController = SettingsTabViewController(
-            store: store,
-            statusStore: statusStore,
-            localization: localization
-        )
-        self.tabController = tabController
-
-        _ = tabController.view
-        let contentSize = tabController.desiredContentSize
+        let contentSize = NSSize(width: SettingsView.width, height: SettingsView.height)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: contentSize),
-            styleMask: [.titled, .closable],
+            styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
 
-        window.contentViewController = tabController
+        let rootView = LocalizedRootView(localization: localization) {
+            SettingsView(
+                store: store,
+                statusStore: statusStore,
+                localization: localization
+            )
+        }
+
+        window.contentView = NSHostingView(rootView: rootView)
         window.delegate = self
         window.isReleasedWhenClosed = true
         window.isMovableByWindowBackground = true
-        window.titleVisibility = .visible
+        window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.toolbarStyle = .preference
         window.titlebarSeparatorStyle = .none
-        window.setFrameAutosaveName("SettingsWindow.ToolbarTabs.v2")
+        window.setFrameAutosaveName("SettingsWindow.Sidebar.v1")
         window.center()
         window.setContentSize(contentSize)
         return window
@@ -86,7 +84,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         let language = language ?? localization.resolvedLanguage
         window?.title = localization.string(.settingsTitle, language: language)
         window?.contentView?.userInterfaceLayoutDirection = language.nsLayoutDirection
-        tabController?.applyLocalization(language)
     }
 
     private func enterActivationPolicyIfNeeded() {

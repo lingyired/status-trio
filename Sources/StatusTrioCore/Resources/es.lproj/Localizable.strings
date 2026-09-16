@@ -9,6 +9,8 @@
 "menu.closeWindow" = "Cerrar ventana";
 "menu.checkForUpdates" = "Buscar actualizaciones…";
 "settings.title" = "Ajustes";
+"settings.page.appearance" = "Aspecto";
+"settings.page.general" = "General";
 "settings.language" = "Idioma";
 "settings.language.followSystem" = "Seguir el sistema";
 "settings.language.description" = "Los cambios se aplican inmediatamente.";
@@ -23,7 +25,7 @@
 "settings.appIconPlacement.dock" = "Dock";
 "settings.appIconPlacement.both" = "Ambos";
 "settings.dockIconBackground" = "Fondo del icono del Dock";
-"settings.dockIconBackground.description" = "Se aplica al icono dinámico del Dock. «Seguir el sistema» lee «Estilo de iconos y widgets» en Ajustes del Sistema › Apariencia (macOS 26 o posterior).";
+"settings.dockIconBackground.description" = "Se aplica al icono dinámico del Dock. «Seguir el sistema» lee «Estilo de iconos y widgets» en Ajustes del Sistema › Apariencia (macOS 15 o posterior).";
 "settings.dockIconBackground.system" = "Seguir el sistema";
 "settings.dockIconBackground.dark" = "Oscuro";
 "settings.dockIconBackground.light" = "Claro";
@@ -57,6 +59,7 @@
 "settings.about.author" = "Autor";
 "settings.about.authorRole" = "Creador y responsable";
 "settings.about.website" = "Sitio web";
+"settings.about.starOnGitHub" = "Destacar en GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Visualización de la batería";
 "settings.battery.showPercentage" = "Mostrar porcentaje de batería";
@@ -209,3 +212,11 @@
 "bluetooth.authorizationNotDetermined" = "Bluetooth permission has not been decided yet.";
 "bluetooth.authorizationDenied" = "Bluetooth permission is denied. Open Bluetooth Settings.";
 "bluetooth.authorizationRestricted" = "Bluetooth permission is restricted.";
+
+"settings.preview.hint" = "Vista previa en directo de la barra de menús · Modifique los ajustes siguientes para ver los cambios de inmediato";
+"settings.preview.dark" = "Fondo oscuro";
+"settings.preview.light" = "Fondo claro";
+"settings.preview.toggleHelp" = "Alternar vista previa oscura/clara de la barra de menús";
+"settings.audio.displayRules" = "Reglas de visualización";
+"settings.audio.activeDeviceFootnote" = "El dispositivo de salida de audio activo se resalta con el color de énfasis.";
+"settings.audio.inUse" = "En uso";

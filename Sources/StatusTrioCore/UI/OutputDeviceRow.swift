@@ -14,8 +14,8 @@ struct OutputDeviceRow: View {
                     Circle()
                         .fill(device.isCurrent ? Color.accentColor : Color.secondary.opacity(0.14))
 
-                    Image(systemName: device.isCurrent ? "hifispeaker.fill" : "hifispeaker")
-                        .font(.body.weight(.semibold))
+                    Image(systemName: deviceSymbolName)
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(device.isCurrent ? Color.white : Color.secondary)
                 }
                 .frame(width: 28, height: 28)
@@ -53,5 +53,25 @@ struct OutputDeviceRow: View {
 
     private var displayName: String {
         device.name ?? localization.string(.volumeOutputUnknownDevice)
+    }
+
+    private var deviceSymbolName: String {
+        let name = (device.name ?? "").lowercased()
+        if name.contains("airpods pro") {
+            return "airpodspro"
+        } else if name.contains("airpods max") {
+            return "airpodsmax"
+        } else if name.contains("airpods") {
+            return "airpods"
+        } else if name.contains("headphone") || name.contains("耳机") {
+            return "headphones"
+        } else if name.contains("display") || name.contains("monitor") || name.contains("显示器") || name.contains("hdmi") {
+            return "display"
+        } else if name.contains("tv") || name.contains("television") {
+            return "tv"
+        } else if name.contains("macbook") || name.contains("internal") || name.contains("内置") {
+            return "laptopcomputer"
+        }
+        return device.isCurrent ? "hifispeaker.fill" : "hifispeaker"
     }
 }

@@ -9,6 +9,8 @@
 "menu.closeWindow" = "Close Window";
 "menu.checkForUpdates" = "Check for Updates…";
 "settings.title" = "Settings";
+"settings.page.appearance" = "Appearance";
+"settings.page.general" = "General";
 "settings.language" = "Language";
 "settings.language.followSystem" = "Follow System";
 "settings.language.description" = "Changes apply immediately.";
@@ -23,7 +25,7 @@
 "settings.appIconPlacement.dock" = "Dock";
 "settings.appIconPlacement.both" = "Both";
 "settings.dockIconBackground" = "Dock Icon Background";
-"settings.dockIconBackground.description" = "Applies to the live icon shown in the Dock. “Follow System” reads Icon & Widget Style in System Settings › Appearance (macOS 26 or later).";
+"settings.dockIconBackground.description" = "Applies to the live icon shown in the Dock. “Follow System” reads Icon & Widget Style in System Settings › Appearance (macOS 15 or later).";
 "settings.dockIconBackground.system" = "Follow System";
 "settings.dockIconBackground.dark" = "Dark";
 "settings.dockIconBackground.light" = "Light";
@@ -57,6 +59,7 @@
 "settings.about.author" = "Author";
 "settings.about.authorRole" = "Creator and maintainer";
 "settings.about.website" = "Website";
+"settings.about.starOnGitHub" = "Star on GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Battery Display";
 "settings.battery.showPercentage" = "Show battery percentage";
@@ -209,3 +212,11 @@
 "bluetooth.authorizationNotDetermined" = "Bluetooth permission has not been decided yet.";
 "bluetooth.authorizationDenied" = "Bluetooth permission is denied. Open Bluetooth Settings.";
 "bluetooth.authorizationRestricted" = "Bluetooth permission is restricted.";
+
+"settings.preview.hint" = "Live Menu Bar Preview · Adjust settings below to see changes immediately";
+"settings.preview.dark" = "Dark Background";
+"settings.preview.light" = "Light Background";
+"settings.preview.toggleHelp" = "Toggle menu bar dark/light preview";
+"settings.audio.displayRules" = "Display Rules";
+"settings.audio.activeDeviceFootnote" = "The active audio output device is highlighted with the accent color.";
+"settings.audio.inUse" = "In Use";

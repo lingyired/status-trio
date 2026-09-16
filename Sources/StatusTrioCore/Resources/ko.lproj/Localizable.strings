@@ -9,6 +9,8 @@
 "menu.closeWindow" = "윈도우 닫기";
 "menu.checkForUpdates" = "업데이트 확인…";
 "settings.title" = "설정";
+"settings.page.appearance" = "모양";
+"settings.page.general" = "일반";
 "settings.language" = "언어";
 "settings.language.followSystem" = "시스템 설정 따르기";
 "settings.language.description" = "변경 사항은 즉시 적용됩니다.";
@@ -23,7 +25,7 @@
 "settings.appIconPlacement.dock" = "Dock";
 "settings.appIconPlacement.both" = "둘 다";
 "settings.dockIconBackground" = "Dock 아이콘 배경";
-"settings.dockIconBackground.description" = "Dock에 표시되는 실시간 아이콘에 적용됩니다. '시스템 설정 따르기'는 '시스템 설정 › 모양 › 아이콘 및 위젯 스타일'을 읽습니다(macOS 26 이상).";
+"settings.dockIconBackground.description" = "Dock에 표시되는 실시간 아이콘에 적용됩니다. '시스템 설정 따르기'는 '시스템 설정 › 모양 › 아이콘 및 위젯 스타일'을 읽습니다(macOS 15 이상).";
 "settings.dockIconBackground.system" = "시스템 설정 따르기";
 "settings.dockIconBackground.dark" = "어두운 색";
 "settings.dockIconBackground.light" = "밝은 색";
@@ -57,6 +59,7 @@
 "settings.about.author" = "작성자";
 "settings.about.authorRole" = "제작자 및 유지관리자";
 "settings.about.website" = "웹사이트";
+"settings.about.starOnGitHub" = "GitHub에서 별표 주기";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "배터리 표시";
 "settings.battery.showPercentage" = "배터리 잔량 표시";
@@ -209,3 +212,11 @@
 "bluetooth.authorizationNotDetermined" = "Bluetooth permission has not been decided yet.";
 "bluetooth.authorizationDenied" = "Bluetooth permission is denied. Open Bluetooth Settings.";
 "bluetooth.authorizationRestricted" = "Bluetooth permission is restricted.";
+
+"settings.preview.hint" = "메뉴 막대 실시간 미리보기 · 아래 설정을 변경하면 즉시 반영됩니다";
+"settings.preview.dark" = "다크 배경";
+"settings.preview.light" = "라이트 배경";
+"settings.preview.toggleHelp" = "메뉴 막대 다크/라이트 배경 미리보기 전환";
+"settings.audio.displayRules" = "표시 규칙";
+"settings.audio.activeDeviceFootnote" = "현재 활성화된 오디오 출력 기기는 강조 색상으로 표시됩니다.";
+"settings.audio.inUse" = "사용 중";

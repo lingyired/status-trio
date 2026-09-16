@@ -394,12 +394,6 @@ final class SettingsStoreTests: XCTestCase {
         )
     }
 
-    func testStatusPanelTabIsAvailableAfterBasics() {
-        XCTAssertEqual(Array(SettingsTab.allCases.prefix(2)), [.basics, .panel])
-        XCTAssertEqual(SettingsTab.panel.titleKey, .settingsTabPanel)
-        XCTAssertEqual(SettingsTab.panel.systemImage, "rectangle.on.rectangle")
-        XCTAssertEqual(SettingsTab.panel.tint, .purple)
-    }
 
     func testEveryConfigurableSizeRendersAtThatSize() throws {
 

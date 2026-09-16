@@ -9,6 +9,8 @@
 "menu.closeWindow" = "Fenster schließen";
 "menu.checkForUpdates" = "Nach Updates suchen…";
 "settings.title" = "Einstellungen";
+"settings.page.appearance" = "Erscheinungsbild";
+"settings.page.general" = "Allgemein";
 "settings.language" = "Sprache";
 "settings.language.followSystem" = "Systemeinstellung folgen";
 "settings.language.description" = "Änderungen werden sofort übernommen.";
@@ -23,7 +25,7 @@
 "settings.appIconPlacement.dock" = "Dock";
 "settings.appIconPlacement.both" = "Beide";
 "settings.dockIconBackground" = "Dock-Symbol Hintergrund";
-"settings.dockIconBackground.description" = "Gilt für das Live-Symbol im Dock. „Systemeinstellung folgen“ liest „Symbol- und Widgetstil“ in Systemeinstellungen › Erscheinungsbild (macOS 26 oder neuer).";
+"settings.dockIconBackground.description" = "Gilt für das Live-Symbol im Dock. „Systemeinstellung folgen“ liest „Symbol- und Widgetstil“ in Systemeinstellungen › Erscheinungsbild (macOS 15 oder neuer).";
 "settings.dockIconBackground.system" = "Systemeinstellung folgen";
 "settings.dockIconBackground.dark" = "Dunkel";
 "settings.dockIconBackground.light" = "Hell";
@@ -57,6 +59,7 @@
 "settings.about.author" = "Autor";
 "settings.about.authorRole" = "Entwickler und Maintainer";
 "settings.about.website" = "Website";
+"settings.about.starOnGitHub" = "Auf GitHub markieren";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Batterieanzeige";
 "settings.battery.showPercentage" = "Batterieprozentsatz anzeigen";
@@ -209,3 +212,11 @@
 "bluetooth.authorizationNotDetermined" = "Bluetooth permission has not been decided yet.";
 "bluetooth.authorizationDenied" = "Bluetooth permission is denied. Open Bluetooth Settings.";
 "bluetooth.authorizationRestricted" = "Bluetooth permission is restricted.";
+
+"settings.preview.hint" = "Live-Menüleistenvorschau · Passen Sie die Einstellungen unten an, um Änderungen sofort zu sehen";
+"settings.preview.dark" = "Dunkler Hintergrund";
+"settings.preview.light" = "Heller Hintergrund";
+"settings.preview.toggleHelp" = "Menüleistenvorschau zwischen dunkel und hell umschalten";
+"settings.audio.displayRules" = "Anzeigeregeln";
+"settings.audio.activeDeviceFootnote" = "Das aktive Audioausgabegerät wird in der Akzentfarbe hervorgehoben.";
+"settings.audio.inUse" = "In Verwendung";

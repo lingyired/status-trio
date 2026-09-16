@@ -9,6 +9,8 @@
 "menu.closeWindow" = "ウインドウを閉じる";
 "menu.checkForUpdates" = "アップデートを確認…";
 "settings.title" = "設定";
+"settings.page.appearance" = "外観";
+"settings.page.general" = "一般";
 "settings.language" = "言語";
 "settings.language.followSystem" = "システム設定を使用";
 "settings.language.description" = "変更はすぐに反映されます。";
@@ -23,7 +25,7 @@
 "settings.appIconPlacement.dock" = "Dock";
 "settings.appIconPlacement.both" = "両方";
 "settings.dockIconBackground" = "Dock アイコンの背景";
-"settings.dockIconBackground.description" = "Dock に表示されるライブアイコンに適用されます。「システム設定を使用」は「システム設定 › 外観 › アイコンとウィジェットのスタイル」を参照します（macOS 26 以降）。";
+"settings.dockIconBackground.description" = "Dock に表示されるライブアイコンに適用されます。「システム設定を使用」は「システム設定 › 外観 › アイコンとウィジェットのスタイル」を参照します（macOS 15 以降）。";
 "settings.dockIconBackground.system" = "システム設定を使用";
 "settings.dockIconBackground.dark" = "ダーク";
 "settings.dockIconBackground.light" = "ライト";
@@ -57,6 +59,7 @@
 "settings.about.author" = "作者";
 "settings.about.authorRole" = "作者・メンテナー";
 "settings.about.website" = "ウェブサイト";
+"settings.about.starOnGitHub" = "GitHub でスターを付ける";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "バッテリー表示";
 "settings.battery.showPercentage" = "バッテリー残量を表示";
@@ -209,3 +212,11 @@
 "bluetooth.authorizationNotDetermined" = "Bluetooth permission has not been decided yet.";
 "bluetooth.authorizationDenied" = "Bluetooth permission is denied. Open Bluetooth Settings.";
 "bluetooth.authorizationRestricted" = "Bluetooth permission is restricted.";
+
+"settings.preview.hint" = "メニューバーリアルタイムプレビュー · 下の設定を変更するとすぐに反映されます";
+"settings.preview.dark" = "ダーク背景";
+"settings.preview.light" = "ライト背景";
+"settings.preview.toggleHelp" = "メニューバーのダーク/ライト背景プレビューを切り替え";
+"settings.audio.displayRules" = "表示ルール";
+"settings.audio.activeDeviceFootnote" = "現在アクティブな音声出力デバイスはアクセントカラーでハイライトされます。";
+"settings.audio.inUse" = "使用中";

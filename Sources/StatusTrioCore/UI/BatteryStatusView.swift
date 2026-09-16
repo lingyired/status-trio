@@ -6,18 +6,19 @@ struct BatteryStatusView: View {
     let onOpenBatterySettings: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "battery.100")
-                .frame(width: 24)
-                .foregroundStyle(.secondary)
+        HStack(spacing: 12) {
+            Image(systemName: batterySymbolName)
+                .font(.system(size: 20, weight: .regular))
+                .foregroundStyle(batterySymbolColor)
+                .frame(width: 26, height: 26)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(StatusPresentation.batteryTitle(battery, localization: localization))
-                    .font(.headline)
+                    .font(.system(size: 13.5, weight: .semibold))
                     .monospacedDigit()
                 Text(StatusPresentation.batterySubtitle(battery, localization: localization))
-                    .font(.caption)
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -26,18 +27,45 @@ struct BatteryStatusView: View {
             Spacer()
 
             if battery.isPresent {
-                Button(
-                    localization.string(.batteryActionOpenSettings),
-                    systemImage: "gearshape",
-                    action: onOpenBatterySettings
-                )
-                .labelStyle(.iconOnly)
+                Button(action: onOpenBatterySettings) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
                 .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
                 .help(localization.string(.batteryActionOpenSettings))
                 .accessibilityLabel(localization.string(.batteryActionOpenSettings))
-                .frame(width: 24, height: 24)
             }
         }
+    }
+
+    private var batterySymbolName: String {
+        guard battery.isPresent else { return "battery.slash" }
+        if battery.isCharging || battery.isConnectedToPower {
+            return "battery.100.bolt"
+        }
+        switch battery.percentage {
+        case 88...100: return "battery.100"
+        case 63..<88:  return "battery.75"
+        case 38..<63:  return "battery.50"
+        case 13..<38:  return "battery.25"
+        default:       return "battery.0"
+        }
+    }
+
+    private var batterySymbolColor: Color {
+        guard battery.isPresent else { return .secondary }
+        if battery.isCharging || battery.isConnectedToPower {
+            return .green
+        }
+        if battery.isLowPowerMode {
+            return .yellow
+        }
+        if battery.percentage <= 20 {
+            return .red
+        }
+        return .primary
     }
 }

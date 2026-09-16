@@ -9,6 +9,8 @@
 "menu.closeWindow" = "Chiudi finestra";
 "menu.checkForUpdates" = "Controlla aggiornamenti…";
 "settings.title" = "Impostazioni";
+"settings.page.appearance" = "Aspetto";
+"settings.page.general" = "Generali";
 "settings.language" = "Lingua";
 "settings.language.followSystem" = "Segui il sistema";
 "settings.language.description" = "Le modifiche vengono applicate immediatamente.";
@@ -23,7 +25,7 @@
 "settings.appIconPlacement.dock" = "Dock";
 "settings.appIconPlacement.both" = "Entrambi";
 "settings.dockIconBackground" = "Sfondo icona Dock";
-"settings.dockIconBackground.description" = "Si applica all’icona dinamica nel Dock. “Segui il sistema” legge “Stile icone e widget” in Impostazioni di Sistema › Aspetto (macOS 26 o successivo).";
+"settings.dockIconBackground.description" = "Si applica all’icona dinamica nel Dock. “Segui il sistema” legge “Stile icone e widget” in Impostazioni di Sistema › Aspetto (macOS 15 o successivo).";
 "settings.dockIconBackground.system" = "Segui il sistema";
 "settings.dockIconBackground.dark" = "Scuro";
 "settings.dockIconBackground.light" = "Chiaro";
@@ -57,6 +59,7 @@
 "settings.about.author" = "Autore";
 "settings.about.authorRole" = "Creatore e maintainer";
 "settings.about.website" = "Sito web";
+"settings.about.starOnGitHub" = "Aggiungi una stella su GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Visualizzazione batteria";
 "settings.battery.showPercentage" = "Mostra percentuale batteria";
@@ -209,3 +212,11 @@
 "bluetooth.authorizationNotDetermined" = "Bluetooth permission has not been decided yet.";
 "bluetooth.authorizationDenied" = "Bluetooth permission is denied. Open Bluetooth Settings.";
 "bluetooth.authorizationRestricted" = "Bluetooth permission is restricted.";
+
+"settings.preview.hint" = "Anteprima in tempo reale della barra dei menu · Modifica le impostazioni sottostanti per visualizzare subito le modifiche";
+"settings.preview.dark" = "Sfondo scuro";
+"settings.preview.light" = "Sfondo chiaro";
+"settings.preview.toggleHelp" = "Alterna anteprima scura/chiara della barra dei menu";
+"settings.audio.displayRules" = "Regole di visualizzazione";
+"settings.audio.activeDeviceFootnote" = "Il dispositivo di uscita audio attivo è evidenziato con il colore di contrasto.";
+"settings.audio.inUse" = "In uso";

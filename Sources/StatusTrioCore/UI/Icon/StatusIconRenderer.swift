@@ -11,6 +11,9 @@ enum StatusIconRenderer {
         height: 56
     )
 
+    /// Unified optical alpha for all inactive tracks (battery groove, Wi-Fi muted signal, volume hidden dots).
+    private static let inactiveTrackAlpha: CGFloat = 0.22
+
     static func image(
         snapshot: StatusSnapshot,
         size: CGFloat,
@@ -240,7 +243,7 @@ enum StatusIconRenderer {
             : StatusIconGeometry.batteryValueTopGapWidth
 
         context.setLineWidth(8)
-        context.setStrokeColor(foreground.copy(alpha: 0.22) ?? foreground)
+        context.setStrokeColor(foreground.copy(alpha: inactiveTrackAlpha) ?? foreground)
         context.addPath(StatusIconGeometry.batteryTrack(
             hasTopGap: hasTopGap,
             topGapWidth: topGapWidth
@@ -419,7 +422,7 @@ enum StatusIconRenderer {
         in context: CGContext,
         foreground: CGColor
     ) {
-        let mutedColor = foreground.copy(alpha: 0.30) ?? foreground
+        let mutedColor = foreground.copy(alpha: inactiveTrackAlpha) ?? foreground
 
         context.setLineWidth(7)
 
@@ -497,7 +500,7 @@ enum StatusIconRenderer {
     ) {
         context.setLineWidth(7)
         let bars = StatusMappings.wifiBars(rssi: wifi.rssi)
-        let mutedColor = foreground.copy(alpha: 0.30) ?? foreground
+        let mutedColor = foreground.copy(alpha: inactiveTrackAlpha) ?? foreground
 
         // Always draw the complete 3-bar signal track in muted color so the icon geometry
         // remains balanced even when signal is low, matching battery and volume tracks.
@@ -533,7 +536,7 @@ enum StatusIconRenderer {
         foreground: CGColor
     ) {
         let level = StatusMappings.volumeSteps(scalar: volume.scalar, isMuted: volume.isMuted) ?? 0
-        let hiddenColor = foreground.copy(alpha: 0.22) ?? foreground
+        let hiddenColor = foreground.copy(alpha: inactiveTrackAlpha) ?? foreground
 
         for (index, point) in StatusIconGeometry.volumeDots().enumerated() {
             context.setFillColor(index < level ? foreground : hiddenColor)

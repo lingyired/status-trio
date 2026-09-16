@@ -9,6 +9,8 @@
 "menu.closeWindow" = "Fermer la fenêtre";
 "menu.checkForUpdates" = "Rechercher les mises à jour…";
 "settings.title" = "Réglages";
+"settings.page.appearance" = "Apparence";
+"settings.page.general" = "Général";
 "settings.language" = "Langue";
 "settings.language.followSystem" = "Suivre le système";
 "settings.language.description" = "Les modifications s’appliquent immédiatement.";
@@ -23,7 +25,7 @@
 "settings.appIconPlacement.dock" = "Dock";
 "settings.appIconPlacement.both" = "Les deux";
 "settings.dockIconBackground" = "Fond de l’icône du Dock";
-"settings.dockIconBackground.description" = "S’applique à l’icône dynamique du Dock. « Suivre le système » lit « Style des icônes et widgets » dans Réglages du système › Apparence (macOS 26 ou ultérieur).";
+"settings.dockIconBackground.description" = "S’applique à l’icône dynamique du Dock. « Suivre le système » lit « Style des icônes et widgets » dans Réglages du système › Apparence (macOS 15 ou ultérieur).";
 "settings.dockIconBackground.system" = "Suivre le système";
 "settings.dockIconBackground.dark" = "Sombre";
 "settings.dockIconBackground.light" = "Clair";
@@ -57,6 +59,7 @@
 "settings.about.author" = "Auteur";
 "settings.about.authorRole" = "Créateur et mainteneur";
 "settings.about.website" = "Site web";
+"settings.about.starOnGitHub" = "Étoile sur GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Affichage de la batterie";
 "settings.battery.showPercentage" = "Afficher le pourcentage de batterie";
@@ -209,3 +212,11 @@
 "bluetooth.authorizationNotDetermined" = "Bluetooth permission has not been decided yet.";
 "bluetooth.authorizationDenied" = "Bluetooth permission is denied. Open Bluetooth Settings.";
 "bluetooth.authorizationRestricted" = "Bluetooth permission is restricted.";
+
+"settings.preview.hint" = "Aperçu en direct de la barre des menus · Ajustez les paramètres ci-dessous pour voir les changements immédiatement";
+"settings.preview.dark" = "Fond sombre";
+"settings.preview.light" = "Fond clair";
+"settings.preview.toggleHelp" = "Basculer l'aperçu de la barre des menus en sombre/clair";
+"settings.audio.displayRules" = "Règles d'affichage";
+"settings.audio.activeDeviceFootnote" = "Le périphérique de sortie audio actif est mis en évidence avec la couleur d'accentuation.";
+"settings.audio.inUse" = "En cours d'utilisation";

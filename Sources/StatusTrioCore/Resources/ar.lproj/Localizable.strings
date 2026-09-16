@@ -9,6 +9,8 @@
 "menu.closeWindow" = "إغلاق النافذة";
 "menu.checkForUpdates" = "التحقق من وجود تحديثات…";
 "settings.title" = "الإعدادات";
+"settings.page.appearance" = "المظهر";
+"settings.page.general" = "عام";
 "settings.language" = "اللغة";
 "settings.language.followSystem" = "اتباع النظام";
 "settings.language.description" = "تُطبَّق التغييرات فورًا.";
@@ -42,6 +44,7 @@
 "settings.about.author" = "المؤلف";
 "settings.about.authorRole" = "المنشئ والمشرف";
 "settings.about.website" = "الموقع";
+"settings.about.starOnGitHub" = "نجمة على GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "عرض البطارية";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
@@ -82,7 +85,7 @@
 "settings.appIconPlacement.dock" = "Dock";
 "settings.appIconPlacement.both" = "كلاهما";
 "settings.dockIconBackground" = "خلفية أيقونة Dock";
-"settings.dockIconBackground.description" = "ينطبق على الأيقونة المباشرة في Dock. يقرأ «اتباع النظام» إعداد «نمط الرموز والودجات» في إعدادات النظام › المظهر (macOS 26 أو أحدث).";
+"settings.dockIconBackground.description" = "ينطبق على الأيقونة المباشرة في Dock. يقرأ «اتباع النظام» إعداد «نمط الرموز والودجات» في إعدادات النظام › المظهر (macOS 15 أو أحدث).";
 "settings.dockIconBackground.system" = "اتباع النظام";
 "settings.dockIconBackground.dark" = "داكن";
 "settings.dockIconBackground.light" = "فاتح";
@@ -209,3 +212,11 @@
 "bluetooth.authorizationNotDetermined" = "Bluetooth permission has not been decided yet.";
 "bluetooth.authorizationDenied" = "Bluetooth permission is denied. Open Bluetooth Settings.";
 "bluetooth.authorizationRestricted" = "Bluetooth permission is restricted.";
+
+"settings.preview.hint" = "معاينة مباشرة لشريط القوائم · اضبط الإعدادات أدناه لرؤية التغييرات فورًا";
+"settings.preview.dark" = "خلفية داكنة";
+"settings.preview.light" = "خلفية فاتحة";
+"settings.preview.toggleHelp" = "تبديل معاينة شريط القوائم بين الداكن والفاتح";
+"settings.audio.displayRules" = "قواعد العرض";
+"settings.audio.activeDeviceFootnote" = "يتم تمييز جهاز إخراج الصوت النشط بلون التمييز.";
+"settings.audio.inUse" = "قيد الاستخدام";
