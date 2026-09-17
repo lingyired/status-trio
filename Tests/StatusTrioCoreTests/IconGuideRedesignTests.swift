@@ -45,6 +45,27 @@ final class IconGuideRedesignTests: XCTestCase {
         )
     }
 
+    func testAnatomyPreviewUsesGreenChargingArcWithPercentage() {
+        let battery = IconGuideView.example.battery
+        let options = IconGuideView.demoBatteryOptions(
+            configured: .standard
+        )
+
+        XCTAssertTrue(battery.isCharging)
+        XCTAssertTrue(battery.isConnectedToPower)
+        XCTAssertEqual(
+            StatusMappings.batteryGapContent(battery, options: options),
+            .percentage
+        )
+        XCTAssertEqual(
+            StatusMappings.batteryColorRole(
+                battery,
+                criticalThreshold: options.criticalThreshold
+            ),
+            .charging
+        )
+    }
+
     func testStateGalleryCoversLightAndDarkDockAppearances() throws {
         XCTAssertFalse(IconGuidePreviewAppearance.light.isDarkBackground)
         XCTAssertTrue(IconGuidePreviewAppearance.dark.isDarkBackground)
@@ -110,7 +131,7 @@ final class IconGuideRedesignTests: XCTestCase {
         XCTAssertNotNil(hostingView.subviews)
     }
 
-    func testOnboardingHeightTracksEachPageContent() {
+    func testOnboardingHeightStaysEqualAcrossPages() {
         let name = "IconGuideRedesignTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!
         defer { defaults.removePersistentDomain(forName: name) }
@@ -119,6 +140,7 @@ final class IconGuideRedesignTests: XCTestCase {
             defaults: defaults,
             preferredLanguages: ["en"]
         )
+        var preferredHeights: [CGFloat] = []
 
         for page in [IconGuidePage.anatomy, .states] {
             let view = IconGuideOnboardingView(
@@ -147,6 +169,13 @@ final class IconGuideRedesignTests: XCTestCase {
             )
             XCTAssertGreaterThanOrEqual(preferredSize.height, 420)
             XCTAssertLessThan(preferredSize.height, 560)
+            preferredHeights.append(preferredSize.height)
         }
+
+        XCTAssertEqual(
+            preferredHeights[0],
+            preferredHeights[1],
+            accuracy: 0.5
+        )
     }
 }

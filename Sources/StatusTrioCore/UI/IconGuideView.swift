@@ -226,7 +226,7 @@ struct IconGuideView: View {
                 MenuBarPreviewBar(
                     status: Self.example,
                     iconSize: 32,
-                    batteryOptions: settings.batteryIconOptions,
+                    batteryOptions: demoBatteryOptions,
                     connectionOptions: settings.connectionIconOptions,
                     volumeOptions: settings.volumeIconOptions,
                     isDarkBackground: true,
@@ -242,7 +242,7 @@ struct IconGuideView: View {
 
                 DockPreviewBar(
                     status: Self.example,
-                    batteryOptions: settings.batteryIconOptions,
+                    batteryOptions: demoBatteryOptions,
                     connectionOptions: settings.connectionIconOptions,
                     volumeOptions: settings.volumeIconOptions,
                     backgroundStyle: resolvedDockBackgroundStyle,
@@ -323,6 +323,23 @@ struct IconGuideView: View {
         )
     }
 
+    private var demoBatteryOptions: BatteryIconOptions {
+        Self.demoBatteryOptions(configured: settings.batteryIconOptions)
+    }
+
+    static func demoBatteryOptions(
+        configured: BatteryIconOptions
+    ) -> BatteryIconOptions {
+        BatteryIconOptions(
+            showsPercentage: true,
+            showsChargingIndicator: false,
+            usesStatusColors: true,
+            criticalThreshold: configured.criticalThreshold,
+            showsPercentageWhenConnected: true,
+            textScale: configured.textScale
+        )
+    }
+
     private func restartPulse() {
         pulse = false
         guard !reduceMotion else { return }
@@ -335,8 +352,8 @@ struct IconGuideView: View {
     }
 
     static let example = MenuBarStatus(
-        battery: BatteryStatus(rawPercentage: 75, isPresent: true, isCharging: false,
-                               isLowPowerMode: false, isConnectedToPower: false),
+        battery: BatteryStatus(rawPercentage: 75, isPresent: true, isCharging: true,
+                               isLowPowerMode: false, isConnectedToPower: true),
         wifi: WiFiStatus(state: .connected, rssi: -55),
         connection: .wifi,
         volume: MenuBarVolumeStatus(scalar: 0.5, isMuted: false, deviceName: nil)

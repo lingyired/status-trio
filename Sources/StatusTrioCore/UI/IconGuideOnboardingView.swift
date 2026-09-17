@@ -35,13 +35,16 @@ struct IconGuideOnboardingView: View {
             .padding(.horizontal, 28)
             .padding(.top, 24)
 
-            Group {
-                switch page {
-                case .anatomy:
-                    IconGuideView(settings: settings)
-                case .states:
-                    IconGuideStateGalleryView(settings: settings)
-                }
+            ZStack(alignment: .topLeading) {
+                IconGuideView(settings: settings)
+                    .opacity(page == .anatomy ? 1 : 0)
+                    .allowsHitTesting(page == .anatomy)
+                    .accessibilityHidden(page != .anatomy)
+
+                IconGuideStateGalleryView(settings: settings)
+                    .opacity(page == .states ? 1 : 0)
+                    .allowsHitTesting(page == .states)
+                    .accessibilityHidden(page != .states)
             }
             .padding(.horizontal, 28)
             .padding(.top, 18)
