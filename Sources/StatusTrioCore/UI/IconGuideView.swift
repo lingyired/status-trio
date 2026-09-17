@@ -408,25 +408,14 @@ private struct IconGuideStateCard: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                MenuBarIconTile(
-                    status: state.status,
-                    batteryOptions: settings.batteryIconOptions,
-                    connectionOptions: settings.connectionIconOptions,
-                    volumeOptions: volumeOptions,
-                    isDarkBackground: previewAppearance.isDarkBackground,
-                    size: 40
-                )
-
-                DockIconTile(
-                    status: state.status,
-                    batteryOptions: settings.batteryIconOptions,
-                    connectionOptions: settings.connectionIconOptions,
-                    volumeOptions: volumeOptions,
-                    backgroundStyle: previewAppearance.dockBackgroundStyle,
-                    size: 48
-                )
-            }
+            DockIconTile(
+                status: state.status,
+                batteryOptions: settings.batteryIconOptions,
+                connectionOptions: settings.connectionIconOptions,
+                volumeOptions: volumeOptions,
+                backgroundStyle: previewAppearance.dockBackgroundStyle,
+                size: 56
+            )
 
             Text(localization.string(state.titleKey))
                 .font(.system(size: 11.5, weight: .medium))

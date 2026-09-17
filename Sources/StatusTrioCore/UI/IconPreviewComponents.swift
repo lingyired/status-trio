@@ -119,50 +119,8 @@ struct MenuBarPreviewBar: View {
     }
 }
 
-/// Real menu bar artwork on a compact, appearance-specific surface.
-struct MenuBarIconTile: View {
-    let status: MenuBarStatus
-    var batteryOptions: BatteryIconOptions = .standard
-    var connectionOptions: ConnectionIconOptions = .standard
-    var volumeOptions: VolumeIconOptions = .standard
-    var isDarkBackground = true
-    var size: CGFloat = 40
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
-                .fill(
-                    isDarkBackground
-                        ? Color(red: 0.13, green: 0.13, blue: 0.15)
-                        : Color(red: 0.96, green: 0.96, blue: 0.98)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
-                        .strokeBorder(
-                            isDarkBackground
-                                ? Color.white.opacity(0.12)
-                                : Color.black.opacity(0.08),
-                            lineWidth: 1
-                        )
-                )
-
-            Image(nsImage: StatusIconRenderer.image(
-                menuBarStatus: status,
-                size: size,
-                options: batteryOptions,
-                connectionOptions: connectionOptions,
-                volumeOptions: volumeOptions,
-                appearance: NSAppearance(
-                    named: isDarkBackground ? .darkAqua : .aqua
-                )
-            ))
-        }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
-    }
-}
-
-/// Reusable Dock simulation with the real Dock icon artwork as its final tile.
+/// Reusable Dock simulation with the real Dock icon artwork centered among
+/// native macOS app icons.
 struct DockPreviewBar: View {
     let status: MenuBarStatus
     var batteryOptions: BatteryIconOptions = .standard
@@ -176,19 +134,16 @@ struct DockPreviewBar: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            DockAppGlyph(symbol: "face.smiling.fill", tint: .blue)
-            DockAppGlyph(symbol: "square.grid.3x3.fill", tint: .indigo)
-            DockAppGlyph(symbol: "safari.fill", tint: .cyan)
-            DockAppGlyph(symbol: "message.fill", tint: .green)
-            DockAppGlyph(symbol: "envelope.fill", tint: .blue)
-
-            Capsule()
-                .fill(
-                    isDarkBackground
-                        ? Color.white.opacity(0.16)
-                        : Color.black.opacity(0.12)
-                )
-                .frame(width: 1, height: statusIconSize * 0.68)
+            MacAppIcon(
+                bundleIdentifier: "com.apple.finder",
+                fallbackSymbol: "face.smiling.fill",
+                size: statusIconSize * 0.64
+            )
+            MacAppIcon(
+                bundleIdentifier: "com.apple.Safari",
+                fallbackSymbol: "safari.fill",
+                size: statusIconSize * 0.64
+            )
 
             DockIconTile(
                 status: status,
@@ -199,6 +154,17 @@ struct DockPreviewBar: View {
                 size: statusIconSize,
                 highlightedPart: highlightedPart,
                 highlightOpacity: highlightOpacity
+            )
+
+            MacAppIcon(
+                bundleIdentifier: "com.apple.MobileSMS",
+                fallbackSymbol: "message.fill",
+                size: statusIconSize * 0.64
+            )
+            MacAppIcon(
+                bundleIdentifier: "com.apple.mail",
+                fallbackSymbol: "envelope.fill",
+                size: statusIconSize * 0.64
             )
         }
         .padding(.horizontal, 15)
@@ -221,6 +187,50 @@ struct DockPreviewBar: View {
                 )
         )
         .shadow(color: Color.black.opacity(0.16), radius: 8, x: 0, y: 3)
+    }
+}
+
+private struct MacAppIcon: View {
+    let bundleIdentifier: String
+    let fallbackSymbol: String
+    let size: CGFloat
+
+    var body: some View {
+        Group {
+            if let icon {
+                Image(nsImage: icon)
+                    .resizable()
+                    .interpolation(.high)
+            } else {
+                Image(systemName: fallbackSymbol)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(size * 0.18)
+                    .foregroundStyle(.white)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color.accentColor,
+                                Color.accentColor.opacity(0.62)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+        }
+        .frame(width: size, height: size)
+        .shadow(color: Color.black.opacity(0.18), radius: 2, x: 0, y: 1)
+        .accessibilityHidden(true)
+    }
+
+    private var icon: NSImage? {
+        guard let url = NSWorkspace.shared.urlForApplication(
+            withBundleIdentifier: bundleIdentifier
+        ) else {
+            return nil
+        }
+        return NSWorkspace.shared.icon(forFile: url.path)
     }
 }
 
@@ -351,29 +361,5 @@ private struct StatusIconPartShape: Shape {
             }
             return path
         }
-    }
-}
-
-private struct DockAppGlyph: View {
-    let symbol: String
-    let tint: Color
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [tint.opacity(0.95), tint.opacity(0.62)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .overlay(
-                Image(systemName: symbol)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
-            )
-            .frame(width: 38, height: 38)
-            .shadow(color: Color.black.opacity(0.18), radius: 2, x: 0, y: 1)
-            .accessibilityHidden(true)
     }
 }

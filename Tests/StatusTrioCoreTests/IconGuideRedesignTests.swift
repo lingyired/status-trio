@@ -45,7 +45,7 @@ final class IconGuideRedesignTests: XCTestCase {
         )
     }
 
-    func testStateGalleryCoversLightAndDarkMenuBarAndDockAppearances() throws {
+    func testStateGalleryCoversLightAndDarkDockAppearances() throws {
         XCTAssertFalse(IconGuidePreviewAppearance.light.isDarkBackground)
         XCTAssertTrue(IconGuidePreviewAppearance.dark.isDarkBackground)
         XCTAssertEqual(
@@ -58,15 +58,6 @@ final class IconGuideRedesignTests: XCTestCase {
         )
 
         for appearance in IconGuidePreviewAppearance.allCases {
-            let menuBarImage = StatusIconRenderer.image(
-                menuBarStatus: IconGuideState.charging.status,
-                size: 40,
-                appearance: NSAppearance(
-                    named: appearance.isDarkBackground ? .darkAqua : .aqua
-                )
-            )
-            XCTAssertGreaterThan(menuBarImage.size.width, 0)
-
             let dockImage = try XCTUnwrap(
                 DockIconRenderer.image(
                     status: IconGuideState.charging.status,
