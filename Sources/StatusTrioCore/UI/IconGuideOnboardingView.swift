@@ -32,8 +32,8 @@ struct IconGuideOnboardingView: View {
 
                 pageIndicator
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 22)
+            .padding(.horizontal, 28)
+            .padding(.top, 24)
 
             Group {
                 switch page {
@@ -43,15 +43,17 @@ struct IconGuideOnboardingView: View {
                     IconGuideStateGalleryView(settings: settings)
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
+            .padding(.horizontal, 28)
+            .padding(.top, 18)
+            .padding(.bottom, 20)
             .frame(maxWidth: .infinity, alignment: .topLeading)
 
             Divider()
 
             footer
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
+                .padding(.horizontal, 28)
+                .padding(.top, 18)
+                .padding(.bottom, 22)
         }
         .frame(width: Self.contentWidth)
     }
