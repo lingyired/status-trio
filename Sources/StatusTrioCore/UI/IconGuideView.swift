@@ -41,6 +41,25 @@ enum IconGuidePage: Equatable {
     }
 }
 
+enum IconGuidePreviewAppearance: String, CaseIterable, Identifiable {
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    var isDarkBackground: Bool {
+        self == .dark
+    }
+
+    var dockBackgroundStyle: DockIconBackgroundStyle {
+        self == .dark ? .dark : .light
+    }
+
+    var titleKey: LocalizationKey {
+        self == .dark ? .settingsPreviewDark : .settingsPreviewLight
+    }
+}
+
 enum IconGuideState: String, CaseIterable, Identifiable, Sendable {
     case charging
     case lowBattery
@@ -52,6 +71,14 @@ enum IconGuideState: String, CaseIterable, Identifiable, Sendable {
     static var all: [Self] { allCases }
 
     var id: String { rawValue }
+
+    var volumeDisplayStyleOverride: VolumeDisplayStyle? {
+        switch self {
+        case .charging: .dots
+        case .weakWiFi: .arc
+        default: nil
+        }
+    }
 
     var titleKey: LocalizationKey {
         switch self {
@@ -319,6 +346,7 @@ struct IconGuideView: View {
 struct IconGuideStateGalleryView: View {
     @ObservedObject var settings: SettingsStore
     @EnvironmentObject private var localization: Localization
+    @State private var previewAppearance: IconGuidePreviewAppearance = .dark
 
     private let columns = Array(
         repeating: GridItem(.flexible(), spacing: 12),
@@ -330,16 +358,41 @@ struct IconGuideStateGalleryView: View {
             Text(localization.string(.guideStatesTitle))
                 .font(.title3.weight(.semibold))
 
-            Text(localization.string(.guideStatesDescription))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                Text(localization.string(.guideStatesDescription))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Picker(
+                    localization.string(.settingsPreviewToggleHelp),
+                    selection: $previewAppearance
+                ) {
+                    ForEach(IconGuidePreviewAppearance.allCases) { appearance in
+                        Label(
+                            localization.string(appearance.titleKey),
+                            systemImage: appearance == .dark
+                                ? "moon.fill"
+                                : "sun.max.fill"
+                        )
+                        .tag(appearance)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 176)
+                .accessibilityLabel(
+                    localization.string(.settingsPreviewToggleHelp)
+                )
+            }
 
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(IconGuideState.all) { state in
                     IconGuideStateCard(
                         state: state,
-                        settings: settings
+                        settings: settings,
+                        previewAppearance: previewAppearance
                     )
                 }
             }
@@ -350,27 +403,27 @@ struct IconGuideStateGalleryView: View {
 private struct IconGuideStateCard: View {
     let state: IconGuideState
     @ObservedObject var settings: SettingsStore
+    let previewAppearance: IconGuidePreviewAppearance
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                Image(nsImage: StatusIconRenderer.image(
-                    menuBarStatus: state.status,
-                    size: 40,
-                    options: settings.batteryIconOptions,
+                MenuBarIconTile(
+                    status: state.status,
+                    batteryOptions: settings.batteryIconOptions,
                     connectionOptions: settings.connectionIconOptions,
-                    volumeOptions: settings.volumeIconOptions,
-                    appearance: NSAppearance(named: .darkAqua)
-                ))
-                .frame(width: 40, height: 40)
+                    volumeOptions: volumeOptions,
+                    isDarkBackground: previewAppearance.isDarkBackground,
+                    size: 40
+                )
 
                 DockIconTile(
                     status: state.status,
                     batteryOptions: settings.batteryIconOptions,
                     connectionOptions: settings.connectionIconOptions,
-                    volumeOptions: settings.volumeIconOptions,
-                    backgroundStyle: resolvedDockBackgroundStyle,
+                    volumeOptions: volumeOptions,
+                    backgroundStyle: previewAppearance.dockBackgroundStyle,
                     size: 48
                 )
             }
@@ -395,12 +448,10 @@ private struct IconGuideStateCard: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var resolvedDockBackgroundStyle: DockIconBackgroundStyle {
-        DockIconBackgroundResolver.style(
-            for: settings.dockIconBackgroundPreference,
-            theme: SystemIconAppearanceReader.current(),
-            isDarkAppearance: NSApplication.shared.effectiveAppearance
-                .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+    private var volumeOptions: VolumeIconOptions {
+        VolumeIconOptions(
+            displayStyle: state.volumeDisplayStyleOverride
+                ?? settings.volumeDisplayStyle
         )
     }
 }

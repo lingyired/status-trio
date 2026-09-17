@@ -34,6 +34,49 @@ final class IconGuideRedesignTests: XCTestCase {
         }
     }
 
+    func testStateGalleryIncludesDotsAndArcVolumeExamples() {
+        XCTAssertEqual(
+            IconGuideState.charging.volumeDisplayStyleOverride,
+            .dots
+        )
+        XCTAssertEqual(
+            IconGuideState.weakWiFi.volumeDisplayStyleOverride,
+            .arc
+        )
+    }
+
+    func testStateGalleryCoversLightAndDarkMenuBarAndDockAppearances() throws {
+        XCTAssertFalse(IconGuidePreviewAppearance.light.isDarkBackground)
+        XCTAssertTrue(IconGuidePreviewAppearance.dark.isDarkBackground)
+        XCTAssertEqual(
+            IconGuidePreviewAppearance.light.dockBackgroundStyle,
+            .light
+        )
+        XCTAssertEqual(
+            IconGuidePreviewAppearance.dark.dockBackgroundStyle,
+            .dark
+        )
+
+        for appearance in IconGuidePreviewAppearance.allCases {
+            let menuBarImage = StatusIconRenderer.image(
+                menuBarStatus: IconGuideState.charging.status,
+                size: 40,
+                appearance: NSAppearance(
+                    named: appearance.isDarkBackground ? .darkAqua : .aqua
+                )
+            )
+            XCTAssertGreaterThan(menuBarImage.size.width, 0)
+
+            let dockImage = try XCTUnwrap(
+                DockIconRenderer.image(
+                    status: IconGuideState.charging.status,
+                    backgroundStyle: appearance.dockBackgroundStyle
+                )
+            )
+            XCTAssertEqual(dockImage.size, NSSize(width: 256, height: 256))
+        }
+    }
+
     func testDockGlyphFrameMatchesRendererLayout() {
         let frame = DockIconGlyphLayout.frame(
             in: CGRect(x: 0, y: 0, width: 256, height: 256)

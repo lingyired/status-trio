@@ -119,6 +119,49 @@ struct MenuBarPreviewBar: View {
     }
 }
 
+/// Real menu bar artwork on a compact, appearance-specific surface.
+struct MenuBarIconTile: View {
+    let status: MenuBarStatus
+    var batteryOptions: BatteryIconOptions = .standard
+    var connectionOptions: ConnectionIconOptions = .standard
+    var volumeOptions: VolumeIconOptions = .standard
+    var isDarkBackground = true
+    var size: CGFloat = 40
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
+                .fill(
+                    isDarkBackground
+                        ? Color(red: 0.13, green: 0.13, blue: 0.15)
+                        : Color(red: 0.96, green: 0.96, blue: 0.98)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
+                        .strokeBorder(
+                            isDarkBackground
+                                ? Color.white.opacity(0.12)
+                                : Color.black.opacity(0.08),
+                            lineWidth: 1
+                        )
+                )
+
+            Image(nsImage: StatusIconRenderer.image(
+                menuBarStatus: status,
+                size: size,
+                options: batteryOptions,
+                connectionOptions: connectionOptions,
+                volumeOptions: volumeOptions,
+                appearance: NSAppearance(
+                    named: isDarkBackground ? .darkAqua : .aqua
+                )
+            ))
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+}
+
 /// Reusable Dock simulation with the real Dock icon artwork as its final tile.
 struct DockPreviewBar: View {
     let status: MenuBarStatus
