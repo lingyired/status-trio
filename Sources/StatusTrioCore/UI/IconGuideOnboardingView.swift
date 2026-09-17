@@ -2,6 +2,7 @@ import SwiftUI
 
 struct IconGuideOnboardingView: View {
     static let contentWidth: CGFloat = 640
+    static let footerHeight: CGFloat = 32
 
     @ObservedObject var settings: SettingsStore
     @EnvironmentObject private var localization: Localization
@@ -81,17 +82,19 @@ struct IconGuideOnboardingView: View {
 
     private var footer: some View {
         HStack(spacing: 10) {
-            if page == .states {
-                Button(localization.string(.commonBack)) {
-                    show(.anatomy)
-                }
+            Button(localization.string(.commonBack)) {
+                show(.anatomy)
             }
+            .opacity(page == .states ? 1 : 0)
+            .disabled(page != .states)
+            .accessibilityHidden(page != .states)
 
             Spacer(minLength: 8)
 
-            if page == .states {
-                Button(localization.string(.guideCustomize), action: onCustomize)
-            }
+            Button(localization.string(.guideCustomize), action: onCustomize)
+                .opacity(page == .states ? 1 : 0)
+                .disabled(page != .states)
+                .accessibilityHidden(page != .states)
 
             Button(
                 localization.string(page == .anatomy ? .guideNext : .guideDone)
@@ -105,6 +108,7 @@ struct IconGuideOnboardingView: View {
             .keyboardShortcut(.defaultAction)
             .buttonStyle(.borderedProminent)
         }
+        .frame(height: Self.footerHeight)
     }
 
     private func show(_ destination: IconGuidePage) {
