@@ -54,7 +54,10 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func makeWindow() -> NSWindow {
-        let contentSize = NSSize(width: 640, height: 560)
+        let contentSize = NSSize(
+            width: IconGuideOnboardingView.contentWidth,
+            height: 560
+        )
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: contentSize),
             styleMask: [.titled, .closable, .fullSizeContentView],
@@ -69,15 +72,24 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
             )
         }
 
-        window.contentView = NSHostingView(rootView: rootView)
+        let hostingController = NSHostingController(rootView: rootView)
+        hostingController.sizingOptions = [.preferredContentSize]
+        window.contentViewController = hostingController
+        hostingController.view.layoutSubtreeIfNeeded()
+        if hostingController.preferredContentSize.height > 0 {
+            window.setContentSize(hostingController.preferredContentSize)
+        }
         window.delegate = self
         window.isReleasedWhenClosed = true
+        window.contentMinSize = NSSize(
+            width: IconGuideOnboardingView.contentWidth,
+            height: 420
+        )
         window.isMovableByWindowBackground = true
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
         window.center()
-        window.setContentSize(contentSize)
         return window
     }
 

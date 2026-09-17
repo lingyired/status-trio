@@ -1,12 +1,26 @@
 import SwiftUI
 
 struct IconGuideOnboardingView: View {
+    static let contentWidth: CGFloat = 640
+
     @ObservedObject var settings: SettingsStore
     @EnvironmentObject private var localization: Localization
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var page: IconGuidePage = .anatomy
     let onCustomize: () -> Void
     let onDone: () -> Void
+
+    init(
+        settings: SettingsStore,
+        initialPage: IconGuidePage = .anatomy,
+        onCustomize: @escaping () -> Void,
+        onDone: @escaping () -> Void
+    ) {
+        self.settings = settings
+        _page = State(initialValue: initialPage)
+        self.onCustomize = onCustomize
+        self.onDone = onDone
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,7 +45,7 @@ struct IconGuideOnboardingView: View {
             }
             .padding(.horizontal, 24)
             .padding(.top, 16)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
 
             Divider()
 
@@ -39,7 +53,7 @@ struct IconGuideOnboardingView: View {
                 .padding(.horizontal, 24)
                 .padding(.vertical, 16)
         }
-        .frame(width: 640, height: 560)
+        .frame(width: Self.contentWidth)
     }
 
     private var pageIndicator: some View {

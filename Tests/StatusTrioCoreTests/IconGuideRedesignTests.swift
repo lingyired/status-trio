@@ -109,4 +109,44 @@ final class IconGuideRedesignTests: XCTestCase {
 
         XCTAssertNotNil(hostingView.subviews)
     }
+
+    func testOnboardingHeightTracksEachPageContent() {
+        let name = "IconGuideRedesignTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = SettingsStore(defaults: defaults)
+        let localization = Localization(
+            defaults: defaults,
+            preferredLanguages: ["en"]
+        )
+
+        for page in [IconGuidePage.anatomy, .states] {
+            let view = IconGuideOnboardingView(
+                settings: settings,
+                initialPage: page,
+                onCustomize: {},
+                onDone: {}
+            )
+            .environmentObject(localization)
+
+            let hostingController = NSHostingController(rootView: view)
+            hostingController.sizingOptions = [.preferredContentSize]
+            hostingController.view.frame = NSRect(
+                x: 0,
+                y: 0,
+                width: IconGuideOnboardingView.contentWidth,
+                height: 560
+            )
+            hostingController.view.layoutSubtreeIfNeeded()
+
+            let preferredSize = hostingController.preferredContentSize
+            XCTAssertEqual(
+                preferredSize.width,
+                IconGuideOnboardingView.contentWidth,
+                accuracy: 0.5
+            )
+            XCTAssertGreaterThanOrEqual(preferredSize.height, 420)
+            XCTAssertLessThan(preferredSize.height, 560)
+        }
+    }
 }
