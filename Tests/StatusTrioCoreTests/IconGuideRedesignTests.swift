@@ -204,14 +204,13 @@ final class IconGuideRedesignTests: XCTestCase {
             hostingView.layoutSubtreeIfNeeded()
 
             let trailingEdge = IconGuideOnboardingView.contentWidth - 28
+            let subviewFrames: [CGRect] = hostingView.subviews.map(\.frame)
+            let trailingFrames: [CGRect] = subviewFrames.filter { frame in
+                frame.height > 0
+                    && abs(frame.maxX - trailingEdge) < 0.5
+            }
             let primaryFrame = try XCTUnwrap(
-                hostingView.subviews
-                    .map(\.frame)
-                    .filter {
-                        $0.height > 0
-                            && abs($0.maxX - trailingEdge) < 0.5
-                    }
-                    .max(by: { $0.minX < $1.minX })
+                trailingFrames.max { $0.minX < $1.minX }
             )
             frames.append(primaryFrame)
         }
