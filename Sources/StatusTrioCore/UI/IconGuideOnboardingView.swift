@@ -96,19 +96,32 @@ struct IconGuideOnboardingView: View {
                 .disabled(page != .states)
                 .accessibilityHidden(page != .states)
 
-            Button(
-                localization.string(page == .anatomy ? .guideNext : .guideDone)
-            ) {
-                if page == .anatomy {
-                    show(.states)
-                } else {
-                    onDone()
-                }
-            }
-            .keyboardShortcut(.defaultAction)
-            .buttonStyle(.borderedProminent)
+            primaryButton
         }
         .frame(height: Self.footerHeight)
+    }
+
+    private var primaryButton: some View {
+        Button {
+            if page == .anatomy {
+                show(.states)
+            } else {
+                onDone()
+            }
+        } label: {
+            ZStack {
+                Text(localization.string(.guideNext))
+                    .opacity(page == .anatomy ? 1 : 0)
+
+                Text(localization.string(.guideDone))
+                    .opacity(page == .states ? 1 : 0)
+            }
+        }
+        .accessibilityLabel(
+            localization.string(page == .anatomy ? .guideNext : .guideDone)
+        )
+        .keyboardShortcut(.defaultAction)
+        .buttonStyle(.borderedProminent)
     }
 
     private func show(_ destination: IconGuidePage) {

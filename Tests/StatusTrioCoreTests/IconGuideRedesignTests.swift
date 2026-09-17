@@ -178,4 +178,44 @@ final class IconGuideRedesignTests: XCTestCase {
             accuracy: 0.5
         )
     }
+
+    func testFooterPrimaryActionStaysFixedAcrossPages() throws {
+        let name = "IconGuideRedesignTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = SettingsStore(defaults: defaults)
+        let localization = Localization(
+            defaults: defaults,
+            preferredLanguages: ["zh-Hans"]
+        )
+        var frames: [CGRect] = []
+
+        for page in [IconGuidePage.anatomy, .states] {
+            let view = IconGuideOnboardingView(
+                settings: settings,
+                initialPage: page,
+                onCustomize: {},
+                onDone: {}
+            )
+            .environmentObject(localization)
+
+            let hostingView = NSHostingView(rootView: view)
+            hostingView.frame = NSRect(x: 0, y: 0, width: 640, height: 560)
+            hostingView.layoutSubtreeIfNeeded()
+
+            let trailingEdge = IconGuideOnboardingView.contentWidth - 28
+            let primaryFrame = try XCTUnwrap(
+                hostingView.subviews
+                    .map(\.frame)
+                    .filter {
+                        $0.height > 0
+                            && abs($0.maxX - trailingEdge) < 0.5
+                    }
+                    .max(by: { $0.minX < $1.minX })
+            )
+            frames.append(primaryFrame)
+        }
+
+        XCTAssertEqual(frames[0], frames[1])
+    }
 }
