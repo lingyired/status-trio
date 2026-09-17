@@ -6,6 +6,7 @@ struct SettingsView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @ObservedObject var localization: Localization
+    let onShowIconGuide: () -> Void
 
     @State private var selectedSection: Section = .appIcon
     @State private var previewIsDark: Bool = true
@@ -122,7 +123,8 @@ struct SettingsView: View {
             AppIconSectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark
+                previewIsDark: $previewIsDark,
+                onShowIconGuide: onShowIconGuide
             )
         case .battery:
             BatterySectionView(

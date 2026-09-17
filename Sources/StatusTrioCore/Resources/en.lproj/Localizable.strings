@@ -246,3 +246,14 @@
 
 /* Compact popover controls. */
 "menu.more" = "More actions";
+
+/* Optional icon guide. */
+"guide.title" = "Meet your icon";
+"guide.open" = "Open Guide";
+"guide.customize" = "Customize…";
+"guide.done" = "Done";
+"guide.example" = "Example with your icon settings. Select a part to learn more.";
+"guide.battery" = "The outer battery arc shows charge level. Percentage and charging symbols can be adjusted in Settings.";
+"guide.network" = "The center shows network status. Its symbol can change with the connection type and your settings.";
+"guide.volumeDots" = "The dots below show volume, not cellular signal. More filled dots mean louder audio. Change the style in Audio settings.";
+"guide.volumeArc" = "The lower arc shows volume, not cellular signal. A longer arc means louder audio. Change the style in Audio settings.";

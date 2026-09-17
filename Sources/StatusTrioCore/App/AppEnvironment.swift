@@ -7,6 +7,7 @@ final class AppEnvironment {
     let localization: Localization
     let statusBarController: StatusBarController
     let settingsWindowController: SettingsWindowController
+    let onboardingWindowController: OnboardingWindowController
     let activationPolicy: AppActivationPolicy
     let appIconController: AppIconController
     let mainMenuController: MainMenuController
@@ -17,6 +18,7 @@ final class AppEnvironment {
         localization: Localization,
         statusBarController: StatusBarController,
         settingsWindowController: SettingsWindowController,
+        onboardingWindowController: OnboardingWindowController,
         activationPolicy: AppActivationPolicy,
         appIconController: AppIconController,
         mainMenuController: MainMenuController
@@ -26,12 +28,14 @@ final class AppEnvironment {
         self.localization = localization
         self.statusBarController = statusBarController
         self.settingsWindowController = settingsWindowController
+        self.onboardingWindowController = onboardingWindowController
         self.activationPolicy = activationPolicy
         self.appIconController = appIconController
         self.mainMenuController = mainMenuController
     }
 
     func start() {
+        onboardingWindowController.showIfNeeded()
         mainMenuController.start()
         appIconController.start()
         store.start()
@@ -70,12 +74,23 @@ final class AppEnvironment {
         )
         let localization = Localization()
         let activationPolicy = AppActivationPolicy()
+        let onboardingWindowController = OnboardingWindowController(
+            settings: settings,
+            localization: localization,
+            activationPolicy: activationPolicy
+        )
         let settingsWindowController = SettingsWindowController(
             store: settings,
             statusStore: store,
             localization: localization,
-            activationPolicy: activationPolicy
+            activationPolicy: activationPolicy,
+            showIconGuide: { [weak onboardingWindowController] in
+                onboardingWindowController?.show()
+            }
         )
+        onboardingWindowController.openSettings = { [weak settingsWindowController] in
+            settingsWindowController?.show()
+        }
         let controller = StatusBarController(
             store: store,
             settings: settings,
@@ -112,6 +127,7 @@ final class AppEnvironment {
             localization: localization,
             statusBarController: controller,
             settingsWindowController: settingsWindowController,
+            onboardingWindowController: onboardingWindowController,
             activationPolicy: activationPolicy,
             appIconController: appIconController,
             mainMenuController: mainMenuController

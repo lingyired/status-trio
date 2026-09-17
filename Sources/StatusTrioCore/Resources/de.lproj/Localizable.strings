@@ -246,3 +246,14 @@
 
 /* Compact popover controls. */
 "menu.more" = "Weitere Aktionen";
+
+/* Optional icon guide. */
+"guide.title" = "Dein Symbol kennenlernen";
+"guide.open" = "Anleitung öffnen";
+"guide.customize" = "Anpassen…";
+"guide.done" = "Fertig";
+"guide.example" = "Beispiel mit deinen Symboleinstellungen. Wähle einen Teil aus.";
+"guide.battery" = "Der äußere Batterie-Bogen zeigt den Ladestand. Prozentanzeige und Ladesymbole sind in den Einstellungen anpassbar.";
+"guide.network" = "Die Mitte zeigt den Netzwerkstatus. Das Symbol hängt von der Verbindung und deinen Einstellungen ab.";
+"guide.volumeDots" = "Die Punkte unten zeigen die Lautstärke, nicht den Mobilfunkempfang. Mehr gefüllte Punkte bedeuten lauteren Ton. Den Stil änderst du in den Audioeinstellungen.";
+"guide.volumeArc" = "Der untere Bogen zeigt die Lautstärke, nicht den Mobilfunkempfang. Ein längerer Bogen bedeutet lauteren Ton. Den Stil änderst du in den Audioeinstellungen.";

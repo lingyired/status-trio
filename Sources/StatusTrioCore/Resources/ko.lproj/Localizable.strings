@@ -246,3 +246,14 @@
 
 /* Compact popover controls. */
 "menu.more" = "추가 작업";
+
+/* Optional icon guide. */
+"guide.title" = "아이콘 알아보기";
+"guide.open" = "가이드 열기";
+"guide.customize" = "사용자화…";
+"guide.done" = "완료";
+"guide.example" = "현재 아이콘 설정을 사용한 예시입니다. 각 부분을 선택해 알아보세요.";
+"guide.battery" = "바깥쪽 배터리 호는 충전 잔량을 나타냅니다. 백분율과 충전 기호는 설정에서 변경할 수 있습니다.";
+"guide.network" = "가운데는 네트워크 상태를 나타냅니다. 연결 유형과 설정에 따라 기호가 바뀔 수 있습니다.";
+"guide.volumeDots" = "아래 점은 이동통신 신호가 아닌 음량입니다. 채워진 점이 많을수록 소리가 큽니다. 오디오 설정에서 스타일을 변경하세요.";
+"guide.volumeArc" = "아래 호는 이동통신 신호가 아닌 음량입니다. 호가 길수록 소리가 큽니다. 오디오 설정에서 스타일을 변경하세요.";

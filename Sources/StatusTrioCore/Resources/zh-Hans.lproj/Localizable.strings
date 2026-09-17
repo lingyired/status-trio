@@ -246,3 +246,14 @@
 
 /* Compact popover controls. */
 "menu.more" = "更多操作";
+
+/* Optional icon guide. */
+"guide.title" = "认识你的图标";
+"guide.open" = "打开指引";
+"guide.customize" = "调整外观…";
+"guide.done" = "完成";
+"guide.example" = "示例使用当前图标设置。选择一个部分了解含义。";
+"guide.battery" = "外侧电池弧线表示电量。可在设置中调整百分比和充电符号。";
+"guide.network" = "中间表示网络状态。符号会随连接类型及你的设置变化。";
+"guide.volumeDots" = "下方圆点表示音量，不是蜂窝信号。填充越多，音量越大。可在声音设置中切换样式。";
+"guide.volumeArc" = "下方弧线表示音量，不是蜂窝信号。弧线越长，音量越大。可在声音设置中切换样式。";

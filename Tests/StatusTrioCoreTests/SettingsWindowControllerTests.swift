@@ -16,7 +16,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             store: SettingsStore(defaults: defaults),
             statusStore: makeStatusStore(),
             localization: localization,
-            activationPolicy: AppActivationPolicy(application: activationApplication)
+            activationPolicy: AppActivationPolicy(application: activationApplication),
+            showIconGuide: {}
         )
         XCTAssertNil(controller.window)
 
@@ -47,7 +48,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             store: SettingsStore(defaults: defaults),
             statusStore: makeStatusStore(),
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
-            activationPolicy: AppActivationPolicy(application: activationApplication)
+            activationPolicy: AppActivationPolicy(application: activationApplication),
+            showIconGuide: {}
         )
 
         controller.show()
@@ -74,7 +76,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             store: SettingsStore(defaults: defaults),
             statusStore: makeStatusStore(),
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
-            activationPolicy: policy
+            activationPolicy: policy,
+            showIconGuide: {}
         )
 
         controller.show()
@@ -99,7 +102,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             store: SettingsStore(defaults: defaults),
             statusStore: statusStore,
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
-            activationPolicy: AppActivationPolicy(application: activationApplication)
+            activationPolicy: AppActivationPolicy(application: activationApplication),
+            showIconGuide: {}
         )
 
         controller.show()

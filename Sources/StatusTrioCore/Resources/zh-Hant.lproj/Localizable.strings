@@ -246,3 +246,14 @@
 
 /* Compact popover controls. */
 "menu.more" = "更多操作";
+
+/* Optional icon guide. */
+"guide.title" = "認識你的圖示";
+"guide.open" = "打開指引";
+"guide.customize" = "調整外觀…";
+"guide.done" = "完成";
+"guide.example" = "範例使用目前的圖示設定。選擇一個部分了解含義。";
+"guide.battery" = "外側電池弧線表示電量。可在設定中調整百分比和充電符號。";
+"guide.network" = "中間表示網路狀態。符號會隨連線類型及你的設定變化。";
+"guide.volumeDots" = "下方圓點表示音量，不是行動網路訊號。填滿越多，音量越大。可在音訊設定中切換樣式。";
+"guide.volumeArc" = "下方弧線表示音量，不是行動網路訊號。弧線越長，音量越大。可在音訊設定中切換樣式。";

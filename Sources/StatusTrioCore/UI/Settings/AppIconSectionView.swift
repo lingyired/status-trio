@@ -5,6 +5,7 @@ struct AppIconSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @Binding var previewIsDark: Bool
+    let onShowIconGuide: () -> Void
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
@@ -15,6 +16,21 @@ struct AppIconSectionView: View {
                 statusStore: statusStore,
                 isDarkBackground: $previewIsDark
             )
+
+            SettingsGroup {
+                SettingsRow(
+                    "questionmark.circle",
+                    tint: .indigo,
+                    title: localization.string(.guideTitle)
+                ) {
+                    Button(action: onShowIconGuide) {
+                        Label(
+                            localization.string(.guideOpen),
+                            systemImage: "macwindow"
+                        )
+                    }
+                }
+            }
 
             // 2. Where the icon lives
             placementGroup

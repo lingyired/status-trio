@@ -246,3 +246,14 @@
 
 /* Compact popover controls. */
 "menu.more" = "Más acciones";
+
+/* Optional icon guide. */
+"guide.title" = "Conoce tu icono";
+"guide.open" = "Abrir guía";
+"guide.customize" = "Personalizar…";
+"guide.done" = "Listo";
+"guide.example" = "Ejemplo con tus ajustes del icono. Selecciona una parte.";
+"guide.battery" = "El arco exterior de batería indica la carga. Puedes ajustar el porcentaje y los símbolos de carga en Ajustes.";
+"guide.network" = "El centro indica el estado de la red. Su símbolo puede cambiar según la conexión y tus ajustes.";
+"guide.volumeDots" = "Los puntos inferiores indican el volumen, no la señal móvil. Más puntos llenos significan mayor volumen. Cambia el estilo en los ajustes de audio.";
+"guide.volumeArc" = "El arco inferior indica el volumen, no la señal móvil. Un arco más largo significa mayor volumen. Cambia el estilo en los ajustes de audio.";

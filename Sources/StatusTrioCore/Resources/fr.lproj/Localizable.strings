@@ -246,3 +246,14 @@
 
 /* Compact popover controls. */
 "menu.more" = "Autres actions";
+
+/* Optional icon guide. */
+"guide.title" = "Découvrez votre icône";
+"guide.open" = "Ouvrir le guide";
+"guide.customize" = "Personnaliser…";
+"guide.done" = "Terminé";
+"guide.example" = "Exemple avec vos réglages d’icône. Sélectionnez une partie.";
+"guide.battery" = "L’arc extérieur de batterie indique la charge. Le pourcentage et les symboles de charge se règlent dans Réglages.";
+"guide.network" = "Le centre indique l’état du réseau. Son symbole peut varier selon la connexion et vos réglages.";
+"guide.volumeDots" = "Les points du bas indiquent le volume, pas le signal mobile. Plus de points remplis signifie un son plus fort. Modifiez le style dans les réglages audio.";
+"guide.volumeArc" = "L’arc du bas indique le volume, pas le signal mobile. Un arc plus long signifie un son plus fort. Modifiez le style dans les réglages audio.";

@@ -33,7 +33,8 @@ final class SettingsViewTests: XCTestCase {
             ("appIcon", AnyView(AppIconSectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: isDark
+                previewIsDark: isDark,
+                onShowIconGuide: {}
             ))),
             ("battery", AnyView(BatterySectionView(
                 store: store,
@@ -88,7 +89,8 @@ final class SettingsViewTests: XCTestCase {
         let view = SettingsView(
             store: store,
             statusStore: statusStore,
-            localization: localization
+            localization: localization,
+            onShowIconGuide: {}
         )
 
         let hostingView = NSHostingView(rootView: view)

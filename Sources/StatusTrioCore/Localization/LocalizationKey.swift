@@ -1,4 +1,14 @@
 enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
+    case guideTitle = "guide.title"
+    case guideOpen = "guide.open"
+    case guideCustomize = "guide.customize"
+    case guideDone = "guide.done"
+    case guideExample = "guide.example"
+    case guideBattery = "guide.battery"
+    case guideNetwork = "guide.network"
+    case guideVolumeDots = "guide.volumeDots"
+    case guideVolumeArc = "guide.volumeArc"
+
     case menuVersion = "menu.version"
     case menuCheckForUpdates = "menu.checkForUpdates"
     case menuSettings = "menu.settings"
