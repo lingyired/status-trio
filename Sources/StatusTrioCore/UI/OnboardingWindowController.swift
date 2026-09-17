@@ -54,7 +54,7 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func makeWindow() -> NSWindow {
-        let contentSize = NSSize(width: 480, height: 360)
+        let contentSize = NSSize(width: 640, height: 560)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: contentSize),
             styleMask: [.titled, .closable, .fullSizeContentView],

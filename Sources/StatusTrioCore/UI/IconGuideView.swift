@@ -22,56 +22,289 @@ enum IconGuidePart: CaseIterable, Identifiable {
     }
 }
 
-/// A clearly labeled example shares the production renderer and current icon options.
+enum IconGuidePage: Equatable {
+    case anatomy
+    case states
+
+    var next: Self {
+        switch self {
+        case .anatomy: .states
+        case .states: .states
+        }
+    }
+
+    var previous: Self {
+        switch self {
+        case .anatomy: .anatomy
+        case .states: .anatomy
+        }
+    }
+}
+
+enum IconGuideState: String, CaseIterable, Identifiable, Sendable {
+    case charging
+    case lowBattery
+    case ethernet
+    case noInternetMuted
+    case hotspotLowPower
+    case weakWiFi
+
+    static var all: [Self] { allCases }
+
+    var id: String { rawValue }
+
+    var titleKey: LocalizationKey {
+        switch self {
+        case .charging: .guideStateCharging
+        case .lowBattery: .guideStateLowBattery
+        case .ethernet: .guideStateEthernet
+        case .noInternetMuted: .guideStateNoInternetMuted
+        case .hotspotLowPower: .guideStateHotspotLowPower
+        case .weakWiFi: .guideStateWeakWiFi
+        }
+    }
+
+    var status: MenuBarStatus {
+        switch self {
+        case .charging:
+            MenuBarStatus(
+                battery: BatteryStatus(
+                    rawPercentage: 68,
+                    isPresent: true,
+                    isCharging: true,
+                    isLowPowerMode: false,
+                    isConnectedToPower: true
+                ),
+                wifi: WiFiStatus(state: .connected, rssi: -52),
+                connection: .wifi,
+                volume: MenuBarVolumeStatus(
+                    scalar: 0.62,
+                    isMuted: false,
+                    deviceName: nil
+                )
+            )
+        case .lowBattery:
+            MenuBarStatus(
+                battery: BatteryStatus(
+                    rawPercentage: 12,
+                    isPresent: true,
+                    isCharging: false,
+                    isLowPowerMode: false,
+                    isConnectedToPower: false
+                ),
+                wifi: WiFiStatus(state: .connected, rssi: -58),
+                connection: .wifi,
+                volume: MenuBarVolumeStatus(
+                    scalar: 0.5,
+                    isMuted: false,
+                    deviceName: nil
+                )
+            )
+        case .ethernet:
+            MenuBarStatus(
+                battery: BatteryStatus(
+                    rawPercentage: 100,
+                    isPresent: true,
+                    isCharging: false,
+                    isCharged: true,
+                    isLowPowerMode: false,
+                    isConnectedToPower: true
+                ),
+                wifi: WiFiStatus(state: .off, rssi: nil),
+                connection: .ethernet,
+                volume: MenuBarVolumeStatus(
+                    scalar: 0.75,
+                    isMuted: false,
+                    deviceName: nil
+                )
+            )
+        case .noInternetMuted:
+            MenuBarStatus(
+                battery: BatteryStatus(
+                    rawPercentage: 74,
+                    isPresent: true,
+                    isCharging: false,
+                    isLowPowerMode: false,
+                    isConnectedToPower: false
+                ),
+                wifi: WiFiStatus(state: .noInternet, rssi: -62),
+                connection: .wifi,
+                volume: MenuBarVolumeStatus(
+                    scalar: 0.35,
+                    isMuted: true,
+                    deviceName: nil
+                )
+            )
+        case .hotspotLowPower:
+            MenuBarStatus(
+                battery: BatteryStatus(
+                    rawPercentage: 54,
+                    isPresent: true,
+                    isCharging: false,
+                    isLowPowerMode: true,
+                    isConnectedToPower: false
+                ),
+                wifi: WiFiStatus(state: .hotspot, rssi: -48),
+                connection: .wifi,
+                volume: MenuBarVolumeStatus(
+                    scalar: 0.45,
+                    isMuted: false,
+                    deviceName: nil
+                )
+            )
+        case .weakWiFi:
+            MenuBarStatus(
+                battery: BatteryStatus(
+                    rawPercentage: 78,
+                    isPresent: true,
+                    isCharging: false,
+                    isLowPowerMode: false,
+                    isConnectedToPower: false
+                ),
+                wifi: WiFiStatus(state: .connected, rssi: -86),
+                connection: .wifi,
+                volume: MenuBarVolumeStatus(
+                    scalar: 0.25,
+                    isMuted: false,
+                    deviceName: nil
+                )
+            )
+        }
+    }
+}
+
+/// Two live previews that share one selected part and one pulse.
 struct IconGuideView: View {
     @ObservedObject var settings: SettingsStore
     @EnvironmentObject private var localization: Localization
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State var selectedPart: IconGuidePart = .battery
-    @FocusState private var focusedPart: IconGuidePart?
+    @State private var pulse = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                Image(nsImage: StatusIconRenderer.image(
-                    menuBarStatus: Self.example,
-                    size: 56,
-                    options: settings.batteryIconOptions,
+        VStack(alignment: .leading, spacing: 14) {
+            Text(localization.string(.guideAnatomyTitle))
+                .font(.title3.weight(.semibold))
+
+            Text(localization.string(.guideAnatomyDescription))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(localization.string(.settingsMenuBarTitle))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+
+                MenuBarPreviewBar(
+                    status: Self.example,
+                    iconSize: 32,
+                    batteryOptions: settings.batteryIconOptions,
                     connectionOptions: settings.connectionIconOptions,
                     volumeOptions: settings.volumeIconOptions,
-                    appearance: NSAppearance(named: colorScheme == .dark ? .darkAqua : .aqua)
-                ))
-                .accessibilityHidden(true)
-
-                Text(localization.string(.guideExample))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    isDarkBackground: true,
+                    highlightedPart: selectedPart,
+                    highlightOpacity: highlightOpacity
+                )
             }
 
-            HStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(localization.string(.settingsAppIconDockGroup))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+
+                DockPreviewBar(
+                    status: Self.example,
+                    batteryOptions: settings.batteryIconOptions,
+                    connectionOptions: settings.connectionIconOptions,
+                    volumeOptions: settings.volumeIconOptions,
+                    backgroundStyle: resolvedDockBackgroundStyle,
+                    isDarkBackground: true,
+                    statusIconSize: 56,
+                    highlightedPart: selectedPart,
+                    highlightOpacity: highlightOpacity
+                )
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+
+            HStack(spacing: 8) {
                 ForEach(IconGuidePart.allCases) { part in
-                    Button(localization.string(part.titleKey)) {
+                    Button {
                         selectedPart = part
+                    } label: {
+                        Text(localization.string(part.titleKey))
+                            .font(.system(size: 12, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                    .fill(
+                                        selectedPart == part
+                                            ? Color.accentColor.opacity(0.18)
+                                            : Color.secondary.opacity(0.10)
+                                    )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                    .strokeBorder(
+                                        selectedPart == part
+                                            ? Color.accentColor.opacity(0.75)
+                                            : Color.clear,
+                                        lineWidth: 1
+                                    )
+                            )
                     }
+                    .buttonStyle(.plain)
                     .accessibilityHint(localization.string(part.explanationKey(volumeStyle: settings.volumeDisplayStyle)))
-                    .focused($focusedPart, equals: part)
-                    .tint(selectedPart == part ? Color.accentColor : Color.secondary)
                     .accessibilityAddTraits(selectedPart == part ? .isSelected : [])
                 }
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .onChange(of: focusedPart) { _, newValue in
-                if let newValue { selectedPart = newValue }
             }
 
             Text(localization.string(selectedPart.explanationKey(volumeStyle: settings.volumeDisplayStyle)))
                 .font(.caption)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(minHeight: 40, alignment: .topLeading)
+
+            Label(
+                localization.string(.guidePlacement),
+                systemImage: "arrow.left.arrow.right"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
         }
-        // No animated selection or forced focus: Reduce Motion and keyboard users
-        // get the same explanation without requiring a pointer or timed steps.
+        .onAppear(perform: restartPulse)
+        .onChange(of: selectedPart) { _, _ in
+            restartPulse()
+        }
+        .onChange(of: reduceMotion) { _, _ in
+            restartPulse()
+        }
+    }
+
+    private var highlightOpacity: Double {
+        guard !reduceMotion else { return 0.88 }
+        return pulse ? 0.18 : 0.95
+    }
+
+    private var resolvedDockBackgroundStyle: DockIconBackgroundStyle {
+        DockIconBackgroundResolver.style(
+            for: settings.dockIconBackgroundPreference,
+            theme: SystemIconAppearanceReader.current(),
+            isDarkAppearance: NSApplication.shared.effectiveAppearance
+                .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        )
+    }
+
+    private func restartPulse() {
+        pulse = false
+        guard !reduceMotion else { return }
+        withAnimation(
+            .easeInOut(duration: 0.72)
+                .repeatForever(autoreverses: true)
+        ) {
+            pulse = true
+        }
     }
 
     static let example = MenuBarStatus(
@@ -81,4 +314,93 @@ struct IconGuideView: View {
         connection: .wifi,
         volume: MenuBarVolumeStatus(scalar: 0.5, isMuted: false, deviceName: nil)
     )
+}
+
+struct IconGuideStateGalleryView: View {
+    @ObservedObject var settings: SettingsStore
+    @EnvironmentObject private var localization: Localization
+
+    private let columns = Array(
+        repeating: GridItem(.flexible(), spacing: 12),
+        count: 3
+    )
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(localization.string(.guideStatesTitle))
+                .font(.title3.weight(.semibold))
+
+            Text(localization.string(.guideStatesDescription))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(IconGuideState.all) { state in
+                    IconGuideStateCard(
+                        state: state,
+                        settings: settings
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct IconGuideStateCard: View {
+    let state: IconGuideState
+    @ObservedObject var settings: SettingsStore
+    @EnvironmentObject private var localization: Localization
+
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                Image(nsImage: StatusIconRenderer.image(
+                    menuBarStatus: state.status,
+                    size: 40,
+                    options: settings.batteryIconOptions,
+                    connectionOptions: settings.connectionIconOptions,
+                    volumeOptions: settings.volumeIconOptions,
+                    appearance: NSAppearance(named: .darkAqua)
+                ))
+                .frame(width: 40, height: 40)
+
+                DockIconTile(
+                    status: state.status,
+                    batteryOptions: settings.batteryIconOptions,
+                    connectionOptions: settings.connectionIconOptions,
+                    volumeOptions: settings.volumeIconOptions,
+                    backgroundStyle: resolvedDockBackgroundStyle,
+                    size: 48
+                )
+            }
+
+            Text(localization.string(state.titleKey))
+                .font(.system(size: 11.5, weight: .medium))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, minHeight: 30, alignment: .center)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color.secondary.opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .strokeBorder(Color.secondary.opacity(0.12), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    private var resolvedDockBackgroundStyle: DockIconBackgroundStyle {
+        DockIconBackgroundResolver.style(
+            for: settings.dockIconBackgroundPreference,
+            theme: SystemIconAppearanceReader.current(),
+            isDarkAppearance: NSApplication.shared.effectiveAppearance
+                .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        )
+    }
 }

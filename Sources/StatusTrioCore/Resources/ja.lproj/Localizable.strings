@@ -257,3 +257,15 @@
 "guide.network" = "中央はネットワークの状態を示します。接続の種類や設定によって記号が変わります。";
 "guide.volumeDots" = "下の点は携帯電話の電波ではなく音量です。塗られた点が多いほど音が大きくなります。オーディオ設定で表示を変更できます。";
 "guide.volumeArc" = "下の弧は携帯電話の電波ではなく音量です。弧が長いほど音が大きくなります。オーディオ設定で表示を変更できます。";
+"guide.next" = "次へ";
+"guide.anatomy.title" = "1つのアイコン、3つの情報";
+"guide.anatomy.description" = "部分を選ぶと、メニューバーと Dock の対応する領域が同時にハイライトされます。";
+"guide.placement" = "表示位置は設定でメニューバー、Dock、または両方から自由に選べ、いつでも変更できます。";
+"guide.states.title" = "状態の組み合わせ";
+"guide.states.description" = "よくあるバッテリー、ネットワーク、音量の組み合わせを確認できます。";
+"guide.state.charging" = "充電中 + Wi-Fi";
+"guide.state.lowBattery" = "低バッテリー + Wi-Fi";
+"guide.state.ethernet" = "満充電 + Ethernet";
+"guide.state.noInternetMuted" = "インターネットなし + ミュート";
+"guide.state.hotspotLowPower" = "ホットスポット + 低電力モード";
+"guide.state.weakWiFi" = "弱い Wi-Fi + 音量25%";

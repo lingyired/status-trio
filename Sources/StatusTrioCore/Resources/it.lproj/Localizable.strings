@@ -257,3 +257,15 @@
 "guide.network" = "Il centro indica lo stato della rete. Il simbolo può cambiare in base alla connessione e alle tue impostazioni.";
 "guide.volumeDots" = "I punti in basso indicano il volume, non il segnale cellulare. Più punti pieni significano audio più forte. Cambia stile nelle impostazioni audio.";
 "guide.volumeArc" = "L’arco inferiore indica il volume, non il segnale cellulare. Un arco più lungo significa audio più forte. Cambia stile nelle impostazioni audio.";
+"guide.next" = "Avanti";
+"guide.anatomy.title" = "Un’icona, tre informazioni";
+"guide.anatomy.description" = "Seleziona una parte per evidenziarla contemporaneamente nella barra dei menu e nel Dock.";
+"guide.placement" = "Nelle Impostazioni puoi mostrare l’icona nella barra dei menu, nel Dock o in entrambi e cambiare posizione quando vuoi.";
+"guide.states.title" = "Combinazioni di stato";
+"guide.states.description" = "Una panoramica rapida delle combinazioni più comuni di batteria, rete e volume.";
+"guide.state.charging" = "In carica + Wi-Fi";
+"guide.state.lowBattery" = "Batteria scarica + Wi-Fi";
+"guide.state.ethernet" = "Carica + Ethernet";
+"guide.state.noInternetMuted" = "Nessun Internet + Muto";
+"guide.state.hotspotLowPower" = "Hotspot + Risparmio energia";
+"guide.state.weakWiFi" = "Wi-Fi debole + Volume al 25%";

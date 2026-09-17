@@ -257,3 +257,15 @@
 "guide.network" = "The center shows network status. Its symbol can change with the connection type and your settings.";
 "guide.volumeDots" = "The dots below show volume, not cellular signal. More filled dots mean louder audio. Change the style in Audio settings.";
 "guide.volumeArc" = "The lower arc shows volume, not cellular signal. A longer arc means louder audio. Change the style in Audio settings.";
+"guide.next" = "Next";
+"guide.anatomy.title" = "One icon, three signals";
+"guide.anatomy.description" = "Select a part to highlight it in the menu bar and Dock at the same time.";
+"guide.placement" = "Choose Menu Bar, Dock, or both in Settings, and switch the position whenever you like.";
+"guide.states.title" = "State combinations";
+"guide.states.description" = "A quick look at common battery, network, and volume combinations.";
+"guide.state.charging" = "Charging + Wi-Fi";
+"guide.state.lowBattery" = "Low battery + Wi-Fi";
+"guide.state.ethernet" = "Charged + Ethernet";
+"guide.state.noInternetMuted" = "No Internet + Muted";
+"guide.state.hotspotLowPower" = "Hotspot + Low Power Mode";
+"guide.state.weakWiFi" = "Weak Wi-Fi + 25% volume";

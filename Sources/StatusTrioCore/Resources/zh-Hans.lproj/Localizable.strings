@@ -257,3 +257,15 @@
 "guide.network" = "中间表示网络状态。符号会随连接类型及你的设置变化。";
 "guide.volumeDots" = "下方圆点表示音量，不是蜂窝信号。填充越多，音量越大。可在声音设置中切换样式。";
 "guide.volumeArc" = "下方弧线表示音量，不是蜂窝信号。弧线越长，音量越大。可在声音设置中切换样式。";
+"guide.next" = "下一页";
+"guide.anatomy.title" = "一个图标，三种信息";
+"guide.anatomy.description" = "选择任意部分，菜单栏和 Dock 预览会同时高亮对应区域。";
+"guide.placement" = "你可以在设置中自由选择只显示在菜单栏、只显示在 Dock，或两处同时显示。";
+"guide.states.title" = "状态组合一览";
+"guide.states.description" = "快速查看常见的电池、网络和音量组合。";
+"guide.state.charging" = "充电 + Wi-Fi";
+"guide.state.lowBattery" = "低电量 + Wi-Fi";
+"guide.state.ethernet" = "已充满 + 以太网";
+"guide.state.noInternetMuted" = "无互联网 + 静音";
+"guide.state.hotspotLowPower" = "热点 + 低电量模式";
+"guide.state.weakWiFi" = "弱 Wi-Fi + 25% 音量";

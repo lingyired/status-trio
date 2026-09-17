@@ -257,3 +257,15 @@
 "guide.network" = "Die Mitte zeigt den Netzwerkstatus. Das Symbol hängt von der Verbindung und deinen Einstellungen ab.";
 "guide.volumeDots" = "Die Punkte unten zeigen die Lautstärke, nicht den Mobilfunkempfang. Mehr gefüllte Punkte bedeuten lauteren Ton. Den Stil änderst du in den Audioeinstellungen.";
 "guide.volumeArc" = "Der untere Bogen zeigt die Lautstärke, nicht den Mobilfunkempfang. Ein längerer Bogen bedeutet lauteren Ton. Den Stil änderst du in den Audioeinstellungen.";
+"guide.next" = "Weiter";
+"guide.anatomy.title" = "Ein Symbol, drei Signale";
+"guide.anatomy.description" = "Wähle einen Bereich aus, um ihn gleichzeitig in der Menüleiste und im Dock hervorzuheben.";
+"guide.placement" = "In den Einstellungen kannst du das Symbol in der Menüleiste, im Dock oder an beiden Orten anzeigen und die Position jederzeit ändern.";
+"guide.states.title" = "Statuskombinationen";
+"guide.states.description" = "Ein schneller Überblick über häufige Kombinationen aus Batterie, Netzwerk und Lautstärke.";
+"guide.state.charging" = "Wird geladen + WLAN";
+"guide.state.lowBattery" = "Niedriger Batteriestand + WLAN";
+"guide.state.ethernet" = "Voll geladen + Ethernet";
+"guide.state.noInternetMuted" = "Kein Internet + Stumm";
+"guide.state.hotspotLowPower" = "Hotspot + Energiesparmodus";
+"guide.state.weakWiFi" = "Schwaches WLAN + 25 % Lautstärke";

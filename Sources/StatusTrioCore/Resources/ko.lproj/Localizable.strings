@@ -257,3 +257,15 @@
 "guide.network" = "가운데는 네트워크 상태를 나타냅니다. 연결 유형과 설정에 따라 기호가 바뀔 수 있습니다.";
 "guide.volumeDots" = "아래 점은 이동통신 신호가 아닌 음량입니다. 채워진 점이 많을수록 소리가 큽니다. 오디오 설정에서 스타일을 변경하세요.";
 "guide.volumeArc" = "아래 호는 이동통신 신호가 아닌 음량입니다. 호가 길수록 소리가 큽니다. 오디오 설정에서 스타일을 변경하세요.";
+"guide.next" = "다음";
+"guide.anatomy.title" = "하나의 아이콘, 세 가지 정보";
+"guide.anatomy.description" = "부분을 선택하면 메뉴 막대와 Dock에서 해당 영역이 동시에 강조됩니다.";
+"guide.placement" = "설정에서 메뉴 막대, Dock 또는 둘 다 표시하도록 자유롭게 선택하고 언제든 변경할 수 있습니다.";
+"guide.states.title" = "상태 조합";
+"guide.states.description" = "자주 쓰는 배터리, 네트워크 및 음량 조합을 한눈에 확인하세요.";
+"guide.state.charging" = "충전 중 + Wi-Fi";
+"guide.state.lowBattery" = "배터리 부족 + Wi-Fi";
+"guide.state.ethernet" = "충전 완료 + Ethernet";
+"guide.state.noInternetMuted" = "인터넷 없음 + 음소거";
+"guide.state.hotspotLowPower" = "핫스팟 + 저전력 모드";
+"guide.state.weakWiFi" = "약한 Wi-Fi + 25% 음량";

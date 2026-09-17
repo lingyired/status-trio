@@ -257,3 +257,15 @@
 "guide.network" = "中間表示網路狀態。符號會隨連線類型及你的設定變化。";
 "guide.volumeDots" = "下方圓點表示音量，不是行動網路訊號。填滿越多，音量越大。可在音訊設定中切換樣式。";
 "guide.volumeArc" = "下方弧線表示音量，不是行動網路訊號。弧線越長，音量越大。可在音訊設定中切換樣式。";
+"guide.next" = "下一頁";
+"guide.anatomy.title" = "一個圖示，三種資訊";
+"guide.anatomy.description" = "選擇任一部位，選單列和 Dock 預覽會同時突顯對應區域。";
+"guide.placement" = "你可以在設定中自由選擇只顯示在選單列、只顯示在 Dock，或兩處同時顯示。";
+"guide.states.title" = "狀態組合一覽";
+"guide.states.description" = "快速查看常見的電池、網路和音量組合。";
+"guide.state.charging" = "充電 + Wi-Fi";
+"guide.state.lowBattery" = "低電量 + Wi-Fi";
+"guide.state.ethernet" = "已充滿 + 乙太網路";
+"guide.state.noInternetMuted" = "無網際網路 + 靜音";
+"guide.state.hotspotLowPower" = "熱點 + 低耗電模式";
+"guide.state.weakWiFi" = "弱 Wi-Fi + 25% 音量";

@@ -1,24 +1,36 @@
 import AppKit
 import CoreGraphics
 
+enum DockIconGlyphLayout {
+    static let designLength: CGFloat = 1024
+    static let glyphSVGOrigin = CGPoint(x: 194.8, y: 171.84)
+    static let glyphSVGSize: CGFloat = 672
+
+    static func frame(in bounds: CGRect) -> CGRect {
+        guard bounds.width > 0, bounds.height > 0 else { return .zero }
+
+        return CGRect(
+            x: bounds.minX + glyphSVGOrigin.x / designLength * bounds.width,
+            y: bounds.minY
+                + (designLength - glyphSVGOrigin.y - glyphSVGSize)
+                / designLength
+                * bounds.height,
+            width: glyphSVGSize / designLength * bounds.width,
+            height: glyphSVGSize / designLength * bounds.height
+        )
+    }
+}
+
 @MainActor
 enum DockIconRenderer {
     static let logicalSize: CGFloat = 256
     static let pixelSize = 512
-
-    /// All geometry below is expressed in the AppIcon.svg 1024 pt design space
-    /// and scaled down when the bitmap is rendered.
-    private static let designLength: CGFloat = 1024
 
     // Geometry mirrors Support/AppIcon.svg.
     private static let bodyRect = CGRect(x: 64, y: 64, width: 896, height: 896)
     private static let bodyCornerRadius: CGFloat = 210
     private static let borderRect = CGRect(x: 65, y: 65, width: 894, height: 894)
     private static let borderCornerRadius: CGFloat = 209
-
-    // SVG coordinates use a top-left origin; AppKit bitmaps use a bottom-left one.
-    private static let glyphSVGOrigin = CGPoint(x: 194.8, y: 171.84)
-    private static let glyphSVGSize: CGFloat = 672
 
     // Build colors in the bitmap's own space so AppIcon.svg's hex values survive
     // without a Generic RGB to Device RGB conversion.
@@ -86,7 +98,10 @@ enum DockIconRenderer {
         defer { context.restoreGState() }
         context.clear(CGRect(x: 0, y: 0, width: canvasLength, height: canvasLength))
 
-        context.scaleBy(x: canvasLength / designLength, y: canvasLength / designLength)
+        context.scaleBy(
+            x: canvasLength / DockIconGlyphLayout.designLength,
+            y: canvasLength / DockIconGlyphLayout.designLength
+        )
 
         context.addPath(roundedRect(
             bodyRect,
@@ -111,10 +126,12 @@ enum DockIconRenderer {
             foreground: palette.foreground,
             in: context,
             origin: CGPoint(
-                x: glyphSVGOrigin.x,
-                y: designLength - glyphSVGOrigin.y - glyphSVGSize
+                x: DockIconGlyphLayout.glyphSVGOrigin.x,
+                y: DockIconGlyphLayout.designLength
+                    - DockIconGlyphLayout.glyphSVGOrigin.y
+                    - DockIconGlyphLayout.glyphSVGSize
             ),
-            size: glyphSVGSize
+            size: DockIconGlyphLayout.glyphSVGSize
         )
 
         guard let output = context.makeImage() else { return nil }
