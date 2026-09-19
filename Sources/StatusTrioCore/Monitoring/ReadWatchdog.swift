@@ -5,9 +5,17 @@ import Foundation
 ///
 /// A CoreAudio or CoreWLAN property read runs synchronous IPC that cannot be
 /// cancelled. Once a read is stuck the only way forward is to abandon it and try
-/// again, so successive timeouts back off up to a cap. A permanently wedged
-/// driver then costs one abandoned worker thread per capped interval instead of
-/// one per read, while a transient stall is retried promptly.
+/// again, so successive timeouts back off up to a cap. A transient stall is
+/// retried promptly, while a permanently wedged driver costs one abandoned
+/// worker thread per capped interval instead of one per read.
+///
+/// The backed-off interval is also the timeout applied to the retried read, so a
+/// read that legitimately takes longer than the base timeout has its result
+/// dropped once and then succeeds on a retry with a longer budget.
+///
+/// Note the cap bounds the *rate* of abandoned threads, not the total: a driver
+/// that stays wedged for hours keeps accumulating them, because unbounded
+/// recovery and a bounded thread count cannot both hold.
 @MainActor
 final class ReadWatchdog {
     private let baseTimeout: Duration
@@ -34,7 +42,7 @@ final class ReadWatchdog {
 
     /// The wait the next armed watchdog will use.
     var nextTimeout: Duration {
-        var interval = baseTimeout
+        var interval = min(baseTimeout, maxTimeout)
         for _ in 0..<consecutiveTimeouts {
             interval = min(interval * 2, maxTimeout)
         }

@@ -262,7 +262,8 @@ final class VolumeMonitorAsyncTests: XCTestCase {
         // otherwise the monitor stays latched and never publishes again.
         let retry = expectation(description: "retry read starts")
         reader.onRead = { retry.fulfill() }
-        await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        let watchdogArmed = await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        XCTAssertTrue(watchdogArmed, "The monitor must arm the read watchdog")
         timeoutSleeper.releaseAll()
         await fulfillment(of: [retry], timeout: 5)
         reader.onRead = nil
@@ -284,7 +285,8 @@ final class VolumeMonitorAsyncTests: XCTestCase {
 
         let retry = expectation(description: "retry read starts")
         reader.onRead = { retry.fulfill() }
-        await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        let watchdogArmed = await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        XCTAssertTrue(watchdogArmed, "The monitor must arm the read watchdog")
         timeoutSleeper.releaseAll()
         await fulfillment(of: [retry], timeout: 5)
         reader.onRead = nil

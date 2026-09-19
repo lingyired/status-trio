@@ -946,7 +946,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         readToken &+= 1
         readInFlight = false
         readGeneration &+= 1
-        performRefresh(includeOutputDevices: detailsVisible || !outputDevicesCacheValid)
+        refresh()
     }
 
     private func receive(_ result: AudioStatusReading) {

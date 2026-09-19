@@ -14,7 +14,8 @@ final class ReadWatchdogTests: XCTestCase {
         for index in 0..<5 {
             let fired = expectation(description: "watchdog \(index) fired")
             watchdog.arm { fired.fulfill() }
-            await sleeper.waitForCallCount(index + 1, timeout: .seconds(5))
+            let armed = await sleeper.waitForCallCount(index + 1, timeout: .seconds(5))
+            XCTAssertTrue(armed, "The watchdog must arm a timer for read \(index)")
             sleeper.releaseAll()
             await fulfillment(of: [fired], timeout: 5)
         }
@@ -37,7 +38,8 @@ final class ReadWatchdogTests: XCTestCase {
         for index in 0..<3 {
             let fired = expectation(description: "watchdog \(index) fired")
             watchdog.arm { fired.fulfill() }
-            await sleeper.waitForCallCount(index + 1, timeout: .seconds(5))
+            let armed = await sleeper.waitForCallCount(index + 1, timeout: .seconds(5))
+            XCTAssertTrue(armed, "The watchdog must arm a timer for read \(index)")
             sleeper.releaseAll()
             await fulfillment(of: [fired], timeout: 5)
         }
@@ -46,7 +48,8 @@ final class ReadWatchdogTests: XCTestCase {
 
         let afterReset = expectation(description: "watchdog after reset fired")
         watchdog.arm { afterReset.fulfill() }
-        await sleeper.waitForCallCount(4, timeout: .seconds(5))
+        let armedAfterReset = await sleeper.waitForCallCount(4, timeout: .seconds(5))
+        XCTAssertTrue(armedAfterReset, "The watchdog must arm a timer after a successful read")
         sleeper.releaseAll()
         await fulfillment(of: [afterReset], timeout: 5)
 
@@ -68,7 +71,8 @@ final class ReadWatchdogTests: XCTestCase {
         notFired.isInverted = true
 
         watchdog.arm { notFired.fulfill() }
-        await sleeper.waitForCallCount(1, timeout: .seconds(5))
+        let armed = await sleeper.waitForCallCount(1, timeout: .seconds(5))
+        XCTAssertTrue(armed, "The watchdog must arm a timer, otherwise this test proves nothing")
         watchdog.cancel()
         sleeper.releaseAll()
 

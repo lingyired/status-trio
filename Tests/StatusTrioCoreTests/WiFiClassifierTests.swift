@@ -858,6 +858,54 @@ final class WiFiClassifierTests: XCTestCase {
         release.signal()
     }
 
+    func testALateCompletionFromARetiredQueueDoesNotStopTheNextRetirement() async {
+        let firstReadStarted = expectation(description: "first read started")
+        let firstReadReturned = expectation(description: "first read returned late")
+        let secondReadFinished = expectation(description: "second read completed")
+        let thirdReadStarted = expectation(description: "third read started")
+        let fourthReadFinished = expectation(description: "fourth read completed")
+        let releaseFirst = DispatchSemaphore(value: 0)
+        let releaseThird = DispatchSemaphore(value: 0)
+        let calls = ReadCounter()
+        let reader = CoreWLANStatusReader { _ in
+            switch calls.increment() {
+            case 1:
+                firstReadStarted.fulfill()
+                _ = releaseFirst.wait(timeout: .now() + 10)
+            case 3:
+                thirdReadStarted.fulfill()
+                _ = releaseThird.wait(timeout: .now() + 10)
+            default:
+                break
+            }
+            return WiFiStatusReading(interface: nil, sharingActive: false)
+        }
+
+        // Read 1 wedges the original queue.
+        reader.read(includeSSID: false) { _ in firstReadReturned.fulfill() }
+        await fulfillment(of: [firstReadStarted], timeout: 5)
+
+        // Read 2 retires that queue and completes on the replacement.
+        reader.read(includeSSID: false) { _ in secondReadFinished.fulfill() }
+        await fulfillment(of: [secondReadFinished], timeout: 5)
+
+        // Read 3 wedges the replacement queue.
+        reader.read(includeSSID: false) { _ in }
+        await fulfillment(of: [thirdReadStarted], timeout: 5)
+
+        // Read 1 finally returns. Its completion belongs to the retired queue, so
+        // it must not clear the flag that now describes read 3 — otherwise read 4
+        // would be queued behind the wedged read 3 instead of retiring again.
+        releaseFirst.signal()
+        await fulfillment(of: [firstReadReturned], timeout: 5)
+
+        reader.read(includeSSID: false) { _ in fourthReadFinished.fulfill() }
+        await fulfillment(of: [fourthReadFinished], timeout: 5)
+
+        XCTAssertEqual(calls.calls, 4)
+        releaseThird.signal()
+    }
+
     func testAStuckReadIsAbandonedAndTheNextAttemptPublishes() async {
         let reader = DeferredWiFiStatusReader()
         let timeoutSleeper = ManualEventSleeper()
@@ -871,7 +919,8 @@ final class WiFiClassifierTests: XCTestCase {
 
         let retry = expectation(description: "retry read starts")
         reader.onRead = { retry.fulfill() }
-        await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        let watchdogArmed = await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        XCTAssertTrue(watchdogArmed, "The monitor must arm the read watchdog")
         timeoutSleeper.releaseAll()
         await fulfillment(of: [retry], timeout: 5)
         reader.onRead = nil
@@ -895,7 +944,8 @@ final class WiFiClassifierTests: XCTestCase {
 
         let retry = expectation(description: "retry read starts")
         reader.onRead = { retry.fulfill() }
-        await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        let watchdogArmed = await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        XCTAssertTrue(watchdogArmed, "The monitor must arm the read watchdog")
         timeoutSleeper.releaseAll()
         await fulfillment(of: [retry], timeout: 5)
         reader.onRead = nil

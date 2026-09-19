@@ -99,4 +99,55 @@ final class AudioStatusReaderTests: XCTestCase {
         XCTAssertEqual(calls.calls, 2)
         release.signal()
     }
+
+    func testALateCompletionFromARetiredQueueDoesNotStopTheNextRetirement() async {
+        let firstReadStarted = expectation(description: "first read started")
+        let firstReadReturned = expectation(description: "first read returned late")
+        let secondReadFinished = expectation(description: "second read completed")
+        let thirdReadStarted = expectation(description: "third read started")
+        let fourthReadFinished = expectation(description: "fourth read completed")
+        let releaseFirst = DispatchSemaphore(value: 0)
+        let releaseThird = DispatchSemaphore(value: 0)
+        let calls = ReadCounter()
+        let reader = CoreAudioStatusReader { _ in
+            switch calls.increment() {
+            case 1:
+                firstReadStarted.fulfill()
+                _ = releaseFirst.wait(timeout: .now() + 10)
+            case 3:
+                thirdReadStarted.fulfill()
+                _ = releaseThird.wait(timeout: .now() + 10)
+            default:
+                break
+            }
+            return AudioStatusReading(
+                volume: VolumeReading(scalar: 0.5, isMuted: false, deviceName: "Speakers"),
+                outputDevices: nil
+            )
+        }
+
+        // Read 1 wedges the original queue.
+        reader.read(includeOutputDevices: false) { _ in firstReadReturned.fulfill() }
+        await fulfillment(of: [firstReadStarted], timeout: 5)
+
+        // Read 2 retires that queue and completes on the replacement.
+        reader.read(includeOutputDevices: false) { _ in secondReadFinished.fulfill() }
+        await fulfillment(of: [secondReadFinished], timeout: 5)
+
+        // Read 3 wedges the replacement queue.
+        reader.read(includeOutputDevices: false) { _ in }
+        await fulfillment(of: [thirdReadStarted], timeout: 5)
+
+        // Read 1 finally returns. Its completion belongs to the retired queue, so
+        // it must not clear the flag that now describes read 3 — otherwise read 4
+        // would be queued behind the wedged read 3 instead of retiring again.
+        releaseFirst.signal()
+        await fulfillment(of: [firstReadReturned], timeout: 5)
+
+        reader.read(includeOutputDevices: false) { _ in fourthReadFinished.fulfill() }
+        await fulfillment(of: [fourthReadFinished], timeout: 5)
+
+        XCTAssertEqual(calls.calls, 4)
+        releaseThird.signal()
+    }
 }
