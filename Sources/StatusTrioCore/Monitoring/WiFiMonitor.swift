@@ -320,6 +320,8 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
     private var readInFlight = false
     private var refreshPending = false
     private var readGeneration: UInt64 = 0
+    private var readToken: UInt64 = 0
+    private let readWatchdog: ReadWatchdog
 
     private var latestPath: WiFiPathSnapshot?
     private var latestPathSequence: UInt64?
@@ -340,6 +342,10 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         refreshDebounceInterval: Duration = .milliseconds(150),
         refreshDebounceSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
+        },
+        readTimeout: Duration = .seconds(5),
+        readTimeoutSleep: @escaping @Sendable (Duration) async throws -> Void = {
+            try await Task.sleep(for: $0)
         }
     ) {
         self.statusReader = statusReader
@@ -351,6 +357,11 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         self.now = now
         self.refreshDebounceInterval = refreshDebounceInterval
         self.refreshDebounceSleep = refreshDebounceSleep
+        readWatchdog = ReadWatchdog(
+            baseTimeout: readTimeout,
+            maxTimeout: .seconds(60),
+            sleep: readTimeoutSleep
+        )
         (updates, continuation) = MonitorStream.make(of: WiFiStatus.self)
         super.init()
         nameAuthorizer.onAccessChange = { [weak self] in
@@ -422,6 +433,7 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         lifecycle = .stopped
         scheduledRefreshTask?.cancel()
         scheduledRefreshTask = nil
+        readWatchdog.cancel()
         teardown()
     }
 
@@ -434,9 +446,19 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
             return
         }
         readInFlight = true
+        readToken &+= 1
+        let token = readToken
         let generation = readGeneration
+        readWatchdog.arm { [weak self] in
+            self?.abandonTimedOutRead(token: token)
+        }
         statusReader.read(includeSSID: detailsVisible) { [weak self] result in
-            guard let self, self.lifecycle != .stopped else { return }
+            // A completion that arrives after the read was declared stuck must not
+            // release the latch of the read that replaced it.
+            guard let self, token == self.readToken else { return }
+            self.readWatchdog.cancel()
+            guard self.lifecycle != .stopped else { return }
+            self.readWatchdog.recordSuccess()
             self.readInFlight = false
             let needsRefresh = self.refreshPending || generation != self.readGeneration
             self.refreshPending = false
@@ -448,6 +470,17 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
             // let that timer enqueue another read while this follow-up is in flight.
             if needsRefresh, self.scheduledRefreshTask == nil { self.refresh() }
         }
+    }
+
+    /// A system read never returned. Ignore its late completion, release the
+    /// single-read latch so the monitor is not stuck forever, and try again so a
+    /// transient stall can recover. The reader moves the retry to a fresh queue.
+    private func abandonTimedOutRead(token: UInt64) {
+        guard token == readToken else { return }
+        readToken &+= 1
+        readInFlight = false
+        readGeneration &+= 1
+        refresh()
     }
 
     private func receive(_ result: WiFiStatusReading) {

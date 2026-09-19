@@ -251,6 +251,62 @@ final class VolumeMonitorAsyncTests: XCTestCase {
         monitor.stop()
     }
 
+    func testAStuckReadIsAbandonedAndTheNextAttemptPublishes() async {
+        let reader = DeferredAudioStatusReader()
+        let timeoutSleeper = ManualEventSleeper()
+        let monitor = makeMonitor(reader: reader, timeoutSleeper: timeoutSleeper)
+        monitor.start()
+        XCTAssertEqual(reader.requests, [true])
+
+        // The first read never returns. The watchdog must abandon it and retry,
+        // otherwise the monitor stays latched and never publishes again.
+        let retry = expectation(description: "retry read starts")
+        reader.onRead = { retry.fulfill() }
+        await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        timeoutSleeper.releaseAll()
+        await fulfillment(of: [retry], timeout: 5)
+        reader.onRead = nil
+        XCTAssertEqual(reader.requests, [true, true], "A stuck read must be retried")
+
+        reader.completeNewest(reading(scalar: 0.42))
+        var iterator = monitor.updates.makeAsyncIterator()
+        let status = await iterator.next()
+        XCTAssertEqual(status?.scalar, 0.42, "The retry must publish after the stuck read was abandoned")
+        monitor.stop()
+    }
+
+    func testLateCompletionFromAnAbandonedReadDoesNotReleaseTheNewReadLatch() async {
+        let reader = DeferredAudioStatusReader()
+        let timeoutSleeper = ManualEventSleeper()
+        let monitor = makeMonitor(reader: reader, timeoutSleeper: timeoutSleeper)
+        monitor.start()
+        XCTAssertEqual(reader.requests, [true])
+
+        let retry = expectation(description: "retry read starts")
+        reader.onRead = { retry.fulfill() }
+        await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        timeoutSleeper.releaseAll()
+        await fulfillment(of: [retry], timeout: 5)
+        reader.onRead = nil
+        XCTAssertEqual(reader.requests, [true, true])
+
+        // The abandoned read finally returns while the retry is still outstanding.
+        reader.complete(reading(scalar: 0.2))
+
+        // A refresh must not start a third read: one read is still in flight.
+        monitor.refresh()
+        XCTAssertEqual(
+            reader.requests, [true, true],
+            "A late completion from an abandoned read must not release the newer read's latch"
+        )
+
+        reader.completeNewest(reading(scalar: 0.7))
+        var iterator = monitor.updates.makeAsyncIterator()
+        let status = await iterator.next()
+        XCTAssertEqual(status?.scalar, 0.7)
+        monitor.stop()
+    }
+
     private var device: AudioOutputDevice {
         AudioOutputDevice(id: 42, name: "AirPods Pro", uid: "airpods", isCurrent: true, transport: .bluetooth)
     }
@@ -266,13 +322,17 @@ final class VolumeMonitorAsyncTests: XCTestCase {
         reader: DeferredAudioStatusReader,
         events: AsyncVolumeEvents = AsyncVolumeEvents(),
         controller: RecordingAudioCommands? = nil,
-        sleeper: ManualEventSleeper = ManualEventSleeper()
+        sleeper: ManualEventSleeper = ManualEventSleeper(),
+        timeoutSleeper: ManualEventSleeper = ManualEventSleeper(),
+        readTimeout: Duration = .seconds(5)
     ) -> VolumeMonitor {
         VolumeMonitor(
             statusReader: reader,
             eventMonitor: events,
             outputController: controller,
-            refreshDebounceSleep: { duration in await sleeper.sleep(duration) }
+            refreshDebounceSleep: { duration in await sleeper.sleep(duration) },
+            readTimeout: readTimeout,
+            readTimeoutSleep: { duration in await timeoutSleeper.sleep(duration) }
         )
     }
 }
@@ -298,6 +358,16 @@ private final class DeferredAudioStatusReader: AudioStatusReadingProviding {
             return
         }
         completions.removeFirst()(reading)
+    }
+
+    /// Completes the newest outstanding read, leaving older ones pending. Used
+    /// when an abandoned read is still outstanding next to its retry.
+    func completeNewest(_ reading: AudioStatusReading) {
+        guard let completion = completions.last else {
+            XCTFail("completeNewest() called with no read in flight")
+            return
+        }
+        completion(reading)
     }
 }
 

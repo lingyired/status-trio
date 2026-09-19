@@ -831,6 +831,90 @@ final class WiFiClassifierTests: XCTestCase {
         await fulfillment(of: [completed], timeout: 1)
     }
 
+    func testReadAfterAStuckReadStillRuns() async {
+        let firstReadStarted = expectation(description: "first read started")
+        let secondReadFinished = expectation(description: "second read completed")
+        let release = DispatchSemaphore(value: 0)
+        let calls = ReadCounter()
+        let reader = CoreWLANStatusReader { _ in
+            if calls.increment() == 1 {
+                firstReadStarted.fulfill()
+                // Models a CoreWLAN call that stays blocked; the test frees it
+                // only after the follow-up read has already run.
+                _ = release.wait(timeout: .now() + 10)
+            }
+            return WiFiStatusReading(interface: nil, sharingActive: false)
+        }
+
+        reader.read(includeSSID: false) { _ in }
+        await fulfillment(of: [firstReadStarted], timeout: 5)
+        XCTAssertEqual(calls.calls, 1)
+
+        // The first read never returned. This one must not queue behind it.
+        reader.read(includeSSID: false) { _ in secondReadFinished.fulfill() }
+        await fulfillment(of: [secondReadFinished], timeout: 5)
+
+        XCTAssertEqual(calls.calls, 2)
+        release.signal()
+    }
+
+    func testAStuckReadIsAbandonedAndTheNextAttemptPublishes() async {
+        let reader = DeferredWiFiStatusReader()
+        let timeoutSleeper = ManualEventSleeper()
+        let monitor = makeMonitor(
+            statusReader: reader,
+            readTimeoutSleep: { duration in await timeoutSleeper.sleep(duration) }
+        )
+        var iterator = monitor.updates.makeAsyncIterator()
+        monitor.start()
+        XCTAssertEqual(reader.includeSSIDRequests.count, 1)
+
+        let retry = expectation(description: "retry read starts")
+        reader.onRead = { retry.fulfill() }
+        await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        timeoutSleeper.releaseAll()
+        await fulfillment(of: [retry], timeout: 5)
+        reader.onRead = nil
+        XCTAssertEqual(reader.includeSSIDRequests.count, 2, "A stuck read must be retried")
+
+        reader.completeNewest(makeReading(rssi: -52))
+        let first = await iterator.next()
+        XCTAssertEqual(first?.rssi, -52, "The retry must publish after the stuck read was abandoned")
+        monitor.stop()
+    }
+
+    func testLateCompletionFromAnAbandonedReadDoesNotReleaseTheNewReadLatch() async {
+        let reader = DeferredWiFiStatusReader()
+        let timeoutSleeper = ManualEventSleeper()
+        let monitor = makeMonitor(
+            statusReader: reader,
+            readTimeoutSleep: { duration in await timeoutSleeper.sleep(duration) }
+        )
+        var iterator = monitor.updates.makeAsyncIterator()
+        monitor.start()
+
+        let retry = expectation(description: "retry read starts")
+        reader.onRead = { retry.fulfill() }
+        await timeoutSleeper.waitForCallCount(1, timeout: .seconds(5))
+        timeoutSleeper.releaseAll()
+        await fulfillment(of: [retry], timeout: 5)
+        reader.onRead = nil
+        XCTAssertEqual(reader.includeSSIDRequests.count, 2)
+
+        // The abandoned read finally returns while the retry is still outstanding.
+        reader.complete(makeReading(rssi: -40))
+        monitor.refresh()
+        XCTAssertEqual(
+            reader.includeSSIDRequests.count, 2,
+            "A late completion from an abandoned read must not release the newer read's latch"
+        )
+
+        reader.completeNewest(makeReading(rssi: -70))
+        let first = await iterator.next()
+        XCTAssertEqual(first?.rssi, -70)
+        monitor.stop()
+    }
+
     func testSlowReadsCoalesceRepeatedRefreshesIntoOneFollowUp() async {
         let reader = DeferredWiFiStatusReader()
         let monitor = makeMonitor(statusReader: reader)
@@ -1129,6 +1213,10 @@ final class WiFiClassifierTests: XCTestCase {
         clock: ManualWiFiClock = ManualWiFiClock(),
         refreshDebounceSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
+        },
+        readTimeout: Duration = .seconds(5),
+        readTimeoutSleep: @escaping @Sendable (Duration) async throws -> Void = {
+            try await Task.sleep(for: $0)
         }
     ) -> WiFiMonitor {
         WiFiMonitor(
@@ -1139,7 +1227,9 @@ final class WiFiClassifierTests: XCTestCase {
             staleInterval: staleInterval,
             initialPath: initialPath,
             now: { clock.now },
-            refreshDebounceSleep: refreshDebounceSleep
+            refreshDebounceSleep: refreshDebounceSleep,
+            readTimeout: readTimeout,
+            readTimeoutSleep: readTimeoutSleep
         )
     }
 }
@@ -1161,6 +1251,16 @@ private final class DeferredWiFiStatusReader: WiFiStatusReadingProviding {
 
     func complete(_ reading: WiFiSystemReading?) {
         completions.removeFirst()(WiFiStatusReading(interface: reading, sharingActive: false))
+    }
+
+    /// Completes the newest outstanding read, leaving older ones pending. Used
+    /// when an abandoned read is still outstanding next to its retry.
+    func completeNewest(_ reading: WiFiSystemReading?) {
+        guard let completion = completions.last else {
+            XCTFail("completeNewest() called with no read in flight")
+            return
+        }
+        completion(WiFiStatusReading(interface: reading, sharingActive: false))
     }
 }
 

@@ -69,12 +69,34 @@ final class AudioStatusReaderTests: XCTestCase {
 
         XCTAssertEqual(result.outputDevices, [], "An empty array is a valid enumeration result")
     }
-}
 
-private final class ReadCounter: @unchecked Sendable {
-    private let lock = NSLock()
-    private var count = 0
+    func testReadAfterAStuckReadStillRuns() async {
+        let firstReadStarted = expectation(description: "first read started")
+        let secondReadFinished = expectation(description: "second read completed")
+        let release = DispatchSemaphore(value: 0)
+        let calls = ReadCounter()
+        let reader = CoreAudioStatusReader { _ in
+            if calls.increment() == 1 {
+                firstReadStarted.fulfill()
+                // Models a CoreAudio call that stays blocked; the test frees it
+                // only after the follow-up read has already run.
+                _ = release.wait(timeout: .now() + 10)
+            }
+            return AudioStatusReading(
+                volume: VolumeReading(scalar: 0.5, isMuted: false, deviceName: "Speakers"),
+                outputDevices: nil
+            )
+        }
 
-    func increment() { lock.withLock { count += 1 } }
-    var calls: Int { lock.withLock { count } }
+        reader.read(includeOutputDevices: false) { _ in }
+        await fulfillment(of: [firstReadStarted], timeout: 5)
+        XCTAssertEqual(calls.calls, 1)
+
+        // The first read never returned. This one must not queue behind it.
+        reader.read(includeOutputDevices: false) { _ in secondReadFinished.fulfill() }
+        await fulfillment(of: [secondReadFinished], timeout: 5)
+
+        XCTAssertEqual(calls.calls, 2)
+        release.signal()
+    }
 }

@@ -748,6 +748,8 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     private var refreshPending = false
     private var pendingRefreshIncludesOutputDevices = false
     private var readGeneration: UInt64 = 0
+    private var readToken: UInt64 = 0
+    private let readWatchdog: ReadWatchdog
     private var lifecycle = Lifecycle.idle
 
     init(
@@ -757,6 +759,10 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         refreshDebounceInterval: Duration = .milliseconds(150),
         refreshDebounceSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
+        },
+        readTimeout: Duration = .seconds(5),
+        readTimeoutSleep: @escaping @Sendable (Duration) async throws -> Void = {
+            try await Task.sleep(for: $0)
         }
     ) {
         self.statusReader = statusReader
@@ -764,6 +770,11 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         self.outputController = outputController
         self.refreshDebounceInterval = refreshDebounceInterval
         self.refreshDebounceSleep = refreshDebounceSleep
+        readWatchdog = ReadWatchdog(
+            baseTimeout: readTimeout,
+            maxTimeout: .seconds(60),
+            sleep: readTimeoutSleep
+        )
         (updates, continuation) = MonitorStream.make(of: VolumeStatus.self)
     }
 
@@ -798,6 +809,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         scheduledRefreshTask?.cancel()
         scheduledRefreshTask = nil
         scheduledRefreshIncludesOutputDevices = false
+        readWatchdog.cancel()
         teardown()
     }
 
@@ -890,10 +902,20 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
 
         eventMonitor.reconcile()
         readInFlight = true
+        readToken &+= 1
+        let token = readToken
         let generation = readGeneration
         let enumerateDevices = detailsVisible && (includeOutputDevices || !outputDevicesCacheValid)
+        readWatchdog.arm { [weak self] in
+            self?.abandonTimedOutRead(token: token)
+        }
         statusReader.read(includeOutputDevices: enumerateDevices) { [weak self] result in
-            guard let self, self.lifecycle != .stopped else { return }
+            // A completion that arrives after the read was declared stuck must not
+            // release the latch of the read that replaced it.
+            guard let self, token == self.readToken else { return }
+            self.readWatchdog.cancel()
+            guard self.lifecycle != .stopped else { return }
+            self.readWatchdog.recordSuccess()
             self.readInFlight = false
             let needsRefresh = self.refreshPending || generation != self.readGeneration
             let includeDevices = self.pendingRefreshIncludesOutputDevices
@@ -914,6 +936,17 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
                 }
             }
         }
+    }
+
+    /// A system read never returned. Ignore its late completion, release the
+    /// single-read latch so the monitor is not stuck forever, and try again so a
+    /// transient stall can recover. The reader moves the retry to a fresh queue.
+    private func abandonTimedOutRead(token: UInt64) {
+        guard token == readToken else { return }
+        readToken &+= 1
+        readInFlight = false
+        readGeneration &+= 1
+        performRefresh(includeOutputDevices: detailsVisible || !outputDevicesCacheValid)
     }
 
     private func receive(_ result: AudioStatusReading) {

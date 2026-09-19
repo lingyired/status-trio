@@ -1,5 +1,7 @@
 import Foundation
 
+private let audioStatusReaderQueueLabel = "StatusTrio.AudioStatusReader"
+
 struct AudioStatusReading: Sendable {
     let volume: VolumeReading?
     /// `nil` means enumeration was not requested; an empty array is a valid result.
@@ -18,7 +20,9 @@ protocol AudioStatusReadingProviding: AnyObject {
 /// Use one serial queue, outside both MainActor and the cooperative executor.
 @MainActor
 final class CoreAudioStatusReader: AudioStatusReadingProviding {
-    private let queue = DispatchQueue(label: "StatusTrio.AudioStatusReader", qos: .utility)
+    private var queue = DispatchQueue(label: audioStatusReaderQueueLabel, qos: .utility)
+    private var queueGeneration: UInt64 = 0
+    private var hasOutstandingRead = false
     private let readSystem: @Sendable (Bool) -> AudioStatusReading
 
     /// The device-enumeration policy of the production read, split out so it can
@@ -49,10 +53,28 @@ final class CoreAudioStatusReader: AudioStatusReadingProviding {
         includeOutputDevices: Bool,
         completion: @escaping @MainActor @Sendable (AudioStatusReading) -> Void
     ) {
+        // A read that never returned would block this one behind it on the same
+        // serial queue for the lifetime of the process, so retire that queue and
+        // give this read a fresh one. The abandoned block keeps the old queue
+        // alive until it eventually returns.
+        if hasOutstandingRead {
+            queueGeneration &+= 1
+            queue = DispatchQueue(label: audioStatusReaderQueueLabel, qos: .utility)
+        }
+        hasOutstandingRead = true
+        let generation = queueGeneration
+        let currentQueue = queue
         let readSystem = readSystem
-        queue.async {
+        currentQueue.async { [weak self] in
             let reading = readSystem(includeOutputDevices)
-            Task { @MainActor in completion(reading) }
+            Task { @MainActor in
+                // Only the read on the current queue may clear the flag; a late
+                // completion from a retired queue must not.
+                if let self, generation == self.queueGeneration {
+                    self.hasOutstandingRead = false
+                }
+                completion(reading)
+            }
         }
     }
 }
