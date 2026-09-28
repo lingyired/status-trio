@@ -3,6 +3,24 @@ import Testing
 @testable import StatusTrioCore
 
 struct ChargingEffectPaletteTests {
+    @Test func chargingBoltHighlightLightensEachStatusColorPalette() throws {
+        let colors = [
+            CGColor(red: 52.0 / 255, green: 199.0 / 255, blue: 89.0 / 255, alpha: 1),
+            CGColor(red: 31.0 / 255, green: 143.0 / 255, blue: 61.0 / 255, alpha: 1),
+            CGColor(red: 255.0 / 255, green: 59.0 / 255, blue: 48.0 / 255, alpha: 1),
+            CGColor(red: 242.0 / 255, green: 185.0 / 255, blue: 0, alpha: 1),
+            CGColor(red: 201.0 / 255, green: 151.0 / 255, blue: 0, alpha: 1)
+        ]
+
+        for color in colors {
+            let highlight = ChargingEffectPalette.chargingBoltHighlight(
+                for: color,
+                using: ChargingEffectPalette.automaticHighlight(for: color)
+            )
+            #expect(try relativeLuminance(highlight) > relativeLuminance(color))
+        }
+    }
+
     @Test func automaticHighlightMaintainsContrastAcrossBatteryColorRoles() throws {
         let fills = [
             CGColor(red: 52.0 / 255, green: 199.0 / 255, blue: 89.0 / 255, alpha: 1),

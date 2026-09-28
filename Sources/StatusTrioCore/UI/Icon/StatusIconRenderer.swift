@@ -437,10 +437,13 @@ enum StatusIconRenderer {
                 topGapWidth: topGapWidth
             )
         }()
-        if let chargingEffectFrame {
+        let effectHighlight = chargingEffectFrame.map { _ in
+            ChargingEffectPalette.automaticHighlight(for: arcColor)
+        }
+        if let chargingEffectFrame, let effectHighlight {
             drawChargingEffect(
                 chargingEffectFrame,
-                fillColor: arcColor,
+                highlightColor: effectHighlight,
                 lineWidth: 8 * CGFloat(options.ringStrokeScale),
                 hasTopGap: hasTopGap,
                 topGapWidth: topGapWidth,
@@ -464,9 +467,20 @@ enum StatusIconRenderer {
                 scale: indicatorScale * CGFloat(chargingEffectFrame?.boltScale ?? 1)
             )
             let boltColor = chargingEffectFrame.map { frame in
-                ChargingEffectPalette.blend(
+                let highlightColor: CGColor
+                if options.usesStatusColors,
+                   role != .foreground,
+                   let effectHighlight {
+                    highlightColor = ChargingEffectPalette.chargingBoltHighlight(
+                        for: arcColor,
+                        using: effectHighlight
+                    )
+                } else {
+                    highlightColor = foreground
+                }
+                return ChargingEffectPalette.blend(
                     foreground,
-                    with: arcColor,
+                    with: highlightColor,
                     amount: frame.boltArcColorAmount
                 )
             } ?? foreground
@@ -493,14 +507,12 @@ enum StatusIconRenderer {
 
     private static func drawChargingEffect(
         _ frame: ChargingEffectFrame,
-        fillColor: CGColor,
+        highlightColor: CGColor,
         lineWidth: CGFloat,
         hasTopGap: Bool,
         topGapWidth: CGFloat,
         in context: CGContext
     ) {
-        let highlight = ChargingEffectPalette.automaticHighlight(for: fillColor)
-
         if let tailRange = frame.tailRange {
             let tailPath = StatusIconGeometry.batteryHighlight(
                 from: tailRange.lowerBound,
@@ -514,8 +526,8 @@ enum StatusIconRenderer {
                 lineJoin: .round,
                 miterLimit: 10
             )
-            let transparent = highlight.copy(alpha: 0) ?? highlight
-            let bright = highlight.copy(alpha: min(1, max(0, frame.tailAlpha))) ?? highlight
+            let transparent = highlightColor.copy(alpha: 0) ?? highlightColor
+            let bright = highlightColor.copy(alpha: min(1, max(0, frame.tailAlpha))) ?? highlightColor
             if let gradient = CGGradient(
                 colorsSpace: CGColorSpaceCreateDeviceRGB(),
                 colors: [transparent, bright, transparent] as CFArray,
@@ -537,7 +549,7 @@ enum StatusIconRenderer {
         if frame.headIsVisible, frame.beadAlpha > 0 {
             let center = StatusIconGeometry.batteryPoint(forProgress: frame.headProgress)
             let radius = lineWidth * 0.5 * 1.18
-            context.setFillColor(highlight.copy(alpha: min(1, frame.beadAlpha)) ?? highlight)
+            context.setFillColor(highlightColor.copy(alpha: min(1, frame.beadAlpha)) ?? highlightColor)
             context.fillEllipse(in: CGRect(
                 x: center.x - radius,
                 y: center.y - radius,
@@ -549,7 +561,7 @@ enum StatusIconRenderer {
         if frame.headIsVisible, frame.heartbeatAlpha > 0 {
             let center = StatusIconGeometry.batteryPoint(forProgress: frame.headProgress)
             let radius = lineWidth * 0.95 * frame.heartbeatScale
-            context.setFillColor(highlight.copy(alpha: min(1, frame.heartbeatAlpha)) ?? highlight)
+            context.setFillColor(highlightColor.copy(alpha: min(1, frame.heartbeatAlpha)) ?? highlightColor)
             context.fillEllipse(in: CGRect(
                 x: center.x - radius,
                 y: center.y - radius,

@@ -133,21 +133,46 @@ struct ChargingEffectRenderingTests {
             blue: UInt8(255),
             alpha: UInt8(255)
         )
-        let arcColor = try renderPixels(snapshot: chargingSnapshot, phase: nil)
-            .rgba(atSVGPoint: StatusIconGeometry.batteryPoint(forProgress: 0.2), size: 20, scale: 2)
         let entryColor = try boltColor(at: firstCrossingStep - 1)
         let transitionColor = try boltColor(at: peakStep - 2)
         let peakColor = try boltColor(at: peakStep)
         let exitColor = try boltColor(at: lastCrossingStep + 1)
         let settledColor = try boltColor(at: lastCrossingStep + 2)
-
         #expect(rgbDistance(entryColor, foregroundColor) < 0.12)
-        #expect(rgbDistance(transitionColor, arcColor) < rgbDistance(transitionColor, foregroundColor))
-        #expect(rgbDistance(transitionColor, arcColor) > 0.02)
         #expect(rgbDistance(transitionColor, foregroundColor) > 0.02)
-        #expect(rgbDistance(peakColor, arcColor) < 0.12)
+        #expect(rgbDistance(transitionColor, foregroundColor) < rgbDistance(peakColor, foregroundColor))
         #expect(rgbDistance(exitColor, foregroundColor) < 0.12)
         #expect(rgbDistance(settledColor, foregroundColor) < 0.12)
+
+        let darkForeground = CGColor(gray: 0, alpha: 1)
+        let darkMenuBarPixels = try renderPixels(
+            snapshot: chargingSnapshot,
+            foreground: darkForeground,
+            phase: .init(step: peakStep, stepsPerCycle: 36, kind: .steady)
+        )
+        let darkPeakColor = darkMenuBarPixels.rgba(
+            atSVGPoint: CGPoint(x: 61, y: 11),
+            size: 20,
+            scale: 2
+        )
+        let darkBaselineColor = try renderPixels(
+            snapshot: chargingSnapshot,
+            foreground: darkForeground,
+            phase: nil
+        ).rgba(atSVGPoint: CGPoint(x: 61, y: 11), size: 20, scale: 2)
+        #expect(relativeLuminance(darkPeakColor) > relativeLuminance(darkBaselineColor) + 0.1)
+
+        let monochromePixels = try renderPixels(
+            snapshot: chargingSnapshot,
+            options: BatteryIconOptions(usesStatusColors: false),
+            phase: .init(step: peakStep, stepsPerCycle: 36, kind: .steady)
+        )
+        let monochromePeakColor = monochromePixels.rgba(
+            atSVGPoint: CGPoint(x: 61, y: 11),
+            size: 20,
+            scale: 2
+        )
+        #expect(rgbDistance(monochromePeakColor, foregroundColor) < 0.12)
 
         #expect(scales[firstCrossingStep - 1] == 1)
         #expect(scales[lastCrossingStep + 1] == 1)
@@ -242,13 +267,14 @@ struct ChargingEffectRenderingTests {
     private func renderPixels(
         snapshot: StatusSnapshot,
         options: BatteryIconOptions = .standard,
+        foreground: CGColor = CGColor(gray: 1, alpha: 1),
         phase: ChargingEffectPhase?
     ) throws -> PixelBuffer {
         let image = try #require(StatusIconRenderer.render(
             snapshot: snapshot,
             size: 20,
             scale: 2,
-            foreground: CGColor(gray: 1, alpha: 1),
+            foreground: foreground,
             options: options,
             phase: phase
         ))
@@ -283,4 +309,22 @@ struct ChargingEffectRenderingTests {
         let blue = left.2 - right.2
         return sqrt(red * red + green * green + blue * blue)
     }
+
+    private func relativeLuminance(
+        _ color: (red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8)
+    ) -> Double {
+        func linearize(_ component: Double) -> Double {
+            component <= 0.04045
+                ? component / 12.92
+                : pow((component + 0.055) / 1.055, 2.4)
+        }
+        let alpha = max(1, Double(color.alpha))
+        let red = min(255, Double(color.red) * 255 / alpha) / 255
+        let green = min(255, Double(color.green) * 255 / alpha) / 255
+        let blue = min(255, Double(color.blue) * 255 / alpha) / 255
+        return 0.2126 * linearize(red)
+            + 0.7152 * linearize(green)
+            + 0.0722 * linearize(blue)
+    }
+
 }
