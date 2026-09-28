@@ -36,16 +36,15 @@ struct BatteryActionSettingsView: View {
                         }
                     }
                 } label: {
-                    HStack(spacing: 5) {
-                        Text(currentSelectionName)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                    }
+                    BatteryActionTargetSelectorLabel(
+                        selectionName: currentSelectionName,
+                        changeTargetLabel: localization.string(.batteryActionChangeTarget)
+                    )
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 .accessibilityLabel(localization.string(.batteryActionChangeTarget))
+                .accessibilityValue(currentSelectionName)
             }
 
             if case .customURL = store.batteryActionTarget {
@@ -198,8 +197,7 @@ struct BatteryActionSettingsView: View {
     }
 
     static func invalidURLMessage(for value: String, localization: Localization) -> String? {
-        guard !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              BatteryActionLauncher.validatedURL(value) == nil else {
+        guard BatteryActionLauncher.validatedURL(value) == nil else {
             return nil
         }
         return localization.string(.batteryActionInvalidURL)
@@ -236,5 +234,29 @@ struct BatteryActionSettingsView: View {
             bundleIdentifier: bundle?.bundleIdentifier,
             fallbackPath: url.path
         ))
+    }
+}
+
+struct BatteryActionTargetSelectorLabel: View {
+    let selectionName: String
+    let changeTargetLabel: String
+
+    static let maximumSelectionNameWidth: CGFloat = 184
+
+    var accessibilityValue: String { selectionName }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Text(selectionName)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: Self.maximumSelectionNameWidth, alignment: .leading)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(changeTargetLabel)
+        .accessibilityValue(accessibilityValue)
     }
 }

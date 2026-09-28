@@ -206,6 +206,41 @@ final class BatteryActionLauncherTests: XCTestCase {
         ])
     }
 
+    func testSuspendedLaunchWaitsForRemovedAppThenTriesSavedFallback() async {
+        let workspace = FakeBatteryWorkspace()
+        let resolvedURL = appURL("/Applications/Moved Tool.app")
+        let fallbackURL = appURL("/Applications/Saved Tool.app")
+        workspace.applicationURLs["com.example.Tool"] = resolvedURL
+        workspace.existingApplicationPaths = [resolvedURL.path, fallbackURL.path]
+        workspace.suspendedLaunchPath = resolvedURL.path
+        let launchStarted = expectation(description: "resolved app launch suspended")
+        workspace.onSuspendedLaunch = { launchStarted.fulfill() }
+        var systemFallbackCount = 0
+
+        let launch = Task {
+            await BatteryActionLauncher(workspace: workspace)
+                .open(target: .customApp(.init(
+                    displayName: "Tool",
+                    bundleIdentifier: "com.example.Tool",
+                    fallbackPath: fallbackURL.path
+                ))) { systemFallbackCount += 1 }
+        }
+
+        await fulfillment(of: [launchStarted], timeout: 5)
+        XCTAssertEqual(workspace.openedApplications, [resolvedURL])
+        XCTAssertEqual(systemFallbackCount, 0, "do not route to Settings before launch resolves")
+
+        workspace.removeSuspendedApplicationAndFailLaunch()
+        await launch.value
+
+        XCTAssertEqual(workspace.openedApplications, [resolvedURL, fallbackURL])
+        XCTAssertEqual(workspace.events.filter { $0.hasPrefix("launch:") }, [
+            "launch:\(resolvedURL.path)",
+            "launch:\(fallbackURL.path)"
+        ])
+        XCTAssertEqual(systemFallbackCount, 0, "the distinct saved app opened successfully")
+    }
+
     func testURLValidationTrimsOuterWhitespaceAndRequiresAScheme() throws {
         let url = try XCTUnwrap(BatteryActionLauncher.validatedURL("  raycast://battery/open?name=two%20words \n"))
 
@@ -249,6 +284,9 @@ private final class FakeBatteryWorkspace: BatteryWorkspace {
     var applicationURLs: [String: URL] = [:]
     var existingApplicationPaths: Set<String> = []
     var failedApplicationPaths: Set<String> = []
+    var suspendedLaunchPath: String?
+    var onSuspendedLaunch: (() -> Void)?
+    private var pendingLaunch: CheckedContinuation<Void, any Error>?
     var urlOpenResults: [URL: Bool] = [:]
     private(set) var openedApplications: [URL] = []
     private(set) var openedURLs: [URL] = []
@@ -273,9 +311,24 @@ private final class FakeBatteryWorkspace: BatteryWorkspace {
     func openApplication(_ url: URL) async throws {
         events.append("launch:\(url.standardizedFileURL.path)")
         openedApplications.append(url)
+        if url.standardizedFileURL.path == suspendedLaunchPath {
+            try await withCheckedThrowingContinuation { continuation in
+                pendingLaunch = continuation
+                onSuspendedLaunch?()
+            }
+        }
         if failedApplicationPaths.contains(url.standardizedFileURL.path) {
             throw TestLaunchError.failed
         }
+    }
+
+    func removeSuspendedApplicationAndFailLaunch() {
+        if let suspendedLaunchPath {
+            existingApplicationPaths.remove(suspendedLaunchPath)
+        }
+        let continuation = pendingLaunch
+        pendingLaunch = nil
+        continuation?.resume(throwing: TestLaunchError.failed)
     }
 
     private enum TestLaunchError: Error {

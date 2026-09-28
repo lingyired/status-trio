@@ -179,12 +179,19 @@ final class SettingsViewTests: XCTestCase {
         }
     }
 
-    func testBatteryActionURLValidationMessageOnlyAppearsForNonemptyInvalidInput() {
+    func testBatteryActionURLValidationMessageAppearsForEmptyAndInvalidInput() {
         let suite = makeSuite()
         defer { clear(suite) }
 
         let localization = Localization(defaults: suite.defaults, preferredLanguages: ["en"])
-        XCTAssertNil(BatteryActionSettingsView.invalidURLMessage(for: "", localization: localization))
+        XCTAssertEqual(
+            BatteryActionSettingsView.invalidURLMessage(for: "", localization: localization),
+            localization.string(.batteryActionInvalidURL)
+        )
+        XCTAssertEqual(
+            BatteryActionSettingsView.invalidURLMessage(for: " \n\t ", localization: localization),
+            localization.string(.batteryActionInvalidURL)
+        )
         XCTAssertNil(
             BatteryActionSettingsView.invalidURLMessage(
                 for: "raycast://battery/open",
@@ -198,6 +205,39 @@ final class SettingsViewTests: XCTestCase {
             ),
             localization.string(.batteryActionInvalidURL)
         )
+    }
+
+    func testLongBatteryActionSelectorNameFitsAndKeepsItsFullAccessibilityValue() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let longName = "An Extremely Long Battery Charging Utility Name"
+        let target = BatteryActionTarget.customApp(.init(
+            displayName: longName,
+            bundleIdentifier: nil,
+            fallbackPath: nil
+        ))
+
+        for language in ["en", "zh-Hans"] {
+            let localization = Localization(
+                defaults: suite.defaults,
+                preferredLanguages: [language]
+            )
+            let selectionName = BatteryActionPresentation.selectionName(
+                for: target,
+                localization: localization
+            )
+            let label = BatteryActionTargetSelectorLabel(
+                selectionName: selectionName,
+                changeTargetLabel: localization.string(.batteryActionChangeTarget)
+            )
+            let hostingView = NSHostingView(rootView: label)
+            hostingView.frame = NSRect(x: 0, y: 0, width: 530, height: 50)
+            hostingView.layoutSubtreeIfNeeded()
+
+            XCTAssertLessThanOrEqual(hostingView.fittingSize.width, 230, language)
+            XCTAssertEqual(label.accessibilityValue, longName, language)
+        }
     }
 
     /// The order list is only reachable when the pane can read paired devices.
