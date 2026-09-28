@@ -9,6 +9,7 @@ struct ChargingEffectFrame: Equatable, Sendable {
     let heartbeatAlpha: Double
     let heartbeatScale: Double
     let boltScale: Double
+    let boltArcColorAmount: Double
 }
 
 enum ChargingEffectPolicy {
@@ -99,6 +100,7 @@ enum ChargingEffectPolicy {
         ) < 1e-9
 
         let boltScale: Double
+        let boltArcColorAmount: Double
         if hasTopGap {
             let gapStart = StatusIconGeometry.lastVisibleProgress(
                 forProgress: 0.5,
@@ -109,11 +111,14 @@ enum ChargingEffectPolicy {
             if endpoint >= gapEnd, head > gapStart, head < gapEnd {
                 let pulse = boltGapPulse(at: (head - gapStart) / (gapEnd - gapStart))
                 boltScale = 1 + 0.2 * pulse
+                boltArcColorAmount = pulse
             } else {
                 boltScale = 1
+                boltArcColorAmount = 0
             }
         } else {
             boltScale = 1
+            boltArcColorAmount = 0
         }
 
         let minimumTailFill = minimumVisibleFillRatio * visibleArcLength
@@ -153,7 +158,8 @@ enum ChargingEffectPolicy {
                 : 0,
             heartbeatAlpha: heartbeatAlpha,
             heartbeatScale: heartbeatScale,
-            boltScale: boltScale
+            boltScale: boltScale,
+            boltArcColorAmount: boltArcColorAmount
         )
     }
 

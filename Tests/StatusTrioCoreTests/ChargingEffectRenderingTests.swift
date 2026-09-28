@@ -97,9 +97,22 @@ struct ChargingEffectRenderingTests {
             ).alphaSum(inSVGRect: boltRegion, size: 20, scale: 2)
         }
 
-        let entry = try boltInk(at: 15)
-        let center = try boltInk(at: 20)
-        let exit = try boltInk(at: 23)
+        let frames = (0..<36).compactMap { step in
+            ChargingEffectPolicy.frame(
+                progress: 0.76,
+                phase: .init(step: step, stepsPerCycle: 36, kind: .steady),
+                hasTopGap: true
+            )
+        }
+        let scales = frames.map(\.boltScale)
+        let crossingSteps = scales.indices.filter { scales[$0] > 1 }
+        let firstCrossingStep = try #require(crossingSteps.first)
+        let lastCrossingStep = try #require(crossingSteps.last)
+        let peakStep = try #require(crossingSteps.max { scales[$0] < scales[$1] })
+
+        let entry = try boltInk(at: firstCrossingStep - 1)
+        let center = try boltInk(at: peakStep)
+        let exit = try boltInk(at: lastCrossingStep + 1)
         #expect(center > entry)
         #expect(center > exit)
 
@@ -120,30 +133,24 @@ struct ChargingEffectRenderingTests {
             blue: UInt8(255),
             alpha: UInt8(255)
         )
-        let entryColor = try boltColor(at: 15)
-        let peakColor = try boltColor(at: 20)
-        let exitColor = try boltColor(at: 23)
-        let settledColor = try boltColor(at: 24)
+        let arcColor = try renderPixels(snapshot: chargingSnapshot, phase: nil)
+            .rgba(atSVGPoint: StatusIconGeometry.batteryPoint(forProgress: 0.2), size: 20, scale: 2)
+        let entryColor = try boltColor(at: firstCrossingStep - 1)
+        let transitionColor = try boltColor(at: peakStep - 2)
+        let peakColor = try boltColor(at: peakStep)
+        let exitColor = try boltColor(at: lastCrossingStep + 1)
+        let settledColor = try boltColor(at: lastCrossingStep + 2)
 
         #expect(rgbDistance(entryColor, foregroundColor) < 0.12)
-        #expect(rgbDistance(peakColor, foregroundColor) < 0.12)
+        #expect(rgbDistance(transitionColor, arcColor) < rgbDistance(transitionColor, foregroundColor))
+        #expect(rgbDistance(transitionColor, arcColor) > 0.02)
+        #expect(rgbDistance(transitionColor, foregroundColor) > 0.02)
+        #expect(rgbDistance(peakColor, arcColor) < 0.12)
         #expect(rgbDistance(exitColor, foregroundColor) < 0.12)
         #expect(rgbDistance(settledColor, foregroundColor) < 0.12)
 
-        let frames = (0..<36).compactMap { step in
-            ChargingEffectPolicy.frame(
-                progress: 0.76,
-                phase: .init(step: step, stepsPerCycle: 36, kind: .steady),
-                hasTopGap: true
-            )
-        }
-        let scales = frames.map(\.boltScale)
-        let crossingSteps = scales.indices.filter { scales[$0] > 1 }
-        let firstCrossingStep = try #require(crossingSteps.first)
-        let lastCrossingStep = try #require(crossingSteps.last)
         #expect(scales[firstCrossingStep - 1] == 1)
         #expect(scales[lastCrossingStep + 1] == 1)
-        let peakStep = try #require(crossingSteps.max { scales[$0] < scales[$1] })
         let maximumScale = scales[peakStep]
         #expect(maximumScale > 1.18)
         #expect(maximumScale <= 1.2)

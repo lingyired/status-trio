@@ -463,7 +463,14 @@ enum StatusIconRenderer {
             let bolt = StatusIconGeometry.batteryChargingBolt(
                 scale: indicatorScale * CGFloat(chargingEffectFrame?.boltScale ?? 1)
             )
-            context.setFillColor(foreground)
+            let boltColor = chargingEffectFrame.map { frame in
+                ChargingEffectPalette.blend(
+                    foreground,
+                    with: arcColor,
+                    amount: frame.boltArcColorAmount
+                )
+            } ?? foreground
+            context.setFillColor(boltColor)
             context.addPath(bolt)
             context.fillPath()
         case .plug:
