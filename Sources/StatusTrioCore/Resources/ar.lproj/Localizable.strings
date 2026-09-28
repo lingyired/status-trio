@@ -91,6 +91,8 @@
 "settings.battery.chargingDescription" = "عند التفعيل، تتحول النسبة إلى رمز برق أو قابس أثناء الشحن أو الاتصال بالطاقة.";
 "settings.battery.chargingEffect" = "تأثير الشحن";
 "settings.battery.chargingEffectDescription" = "تحريك الإبراز أثناء الشحن فقط. يتوقف عند تفعيل «تقليل الحركة».";
+"settings.battery.chargingBoltHeartbeat" = "نبض صاعقة الشحن";
+"settings.battery.chargingBoltHeartbeatDescription" = "أوقفه لإبقاء الصاعقة بحجمها ولونها المعتادين؛ يستمر تأثير قوس الشحن.";
 "settings.battery.chargingEffectTest" = "اختبار تأثير الشحن";
 "settings.battery.chargingEffectTestDescription" = "نسخة التطوير: شغّل التأثير دون شحن. يتوقف وضع الاختبار بعد إعادة التشغيل.";
 "settings.battery.percentageWhenConnected" = "إظهار النسبة عند الاتصال بالطاقة دون شحن";

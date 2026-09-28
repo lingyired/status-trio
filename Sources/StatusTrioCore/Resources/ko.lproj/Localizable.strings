@@ -108,6 +108,8 @@
 "settings.battery.chargingDescription" = "활성화하면 충전 중이거나 전원에 연결되었을 때 잔량이 번개 또는 플러그로 바뀝니다. 비활성화하면 잔량을 계속 표시합니다.";
 "settings.battery.chargingEffect" = "충전 효과";
 "settings.battery.chargingEffectDescription" = "충전 중에만 강조 표시를 애니메이션으로 표시합니다. ‘동작 줄이기’가 켜져 있으면 중지합니다.";
+"settings.battery.chargingBoltHeartbeat" = "충전 번개 박동";
+"settings.battery.chargingBoltHeartbeatDescription" = "끄면 번개가 기본 크기와 색상으로 유지되고 충전 아크 효과는 계속됩니다.";
 "settings.battery.chargingEffectTest" = "충전 애니메이션 테스트";
 "settings.battery.chargingEffectTestDescription" = "개발 빌드: 충전하지 않아도 재생합니다. 다시 시작하면 테스트 모드가 꺼집니다.";
 "settings.battery.percentageWhenConnected" = "전원 연결 상태에서 충전하지 않을 때 잔량 표시";

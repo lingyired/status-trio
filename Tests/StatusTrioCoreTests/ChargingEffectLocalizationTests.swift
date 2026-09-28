@@ -3,10 +3,12 @@ import Testing
 
 @MainActor
 struct ChargingEffectLocalizationTests {
-    @Test func everyLocaleHasChargingEffectTitleAndMotionDescription() throws {
+    @Test func everyLocaleHasChargingEffectAndBoltHeartbeatStrings() throws {
         let keys: [LocalizationKey] = [
             .settingsBatteryChargingEffect,
             .settingsBatteryChargingEffectDescription,
+            .settingsBatteryChargingBoltHeartbeat,
+            .settingsBatteryChargingBoltHeartbeatDescription,
             .settingsBatteryChargingEffectTest,
             .settingsBatteryChargingEffectTestDescription
         ]

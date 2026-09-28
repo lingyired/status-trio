@@ -108,6 +108,8 @@
 "settings.battery.chargingDescription" = "開啟後，正在充電或已連接電源時，電量數字會替換為閃電或插頭圖示；關閉則繼續顯示數字。";
 "settings.battery.chargingEffect" = "充電效果";
 "settings.battery.chargingEffectDescription" = "僅在充電時顯示動態高光；開啟「減少動態效果」時停止。";
+"settings.battery.chargingBoltHeartbeat" = "閃電脈動";
+"settings.battery.chargingBoltHeartbeatDescription" = "關閉後，閃電會維持原有大小和顏色；充電圓弧效果仍會繼續。";
 "settings.battery.chargingEffectTest" = "測試充電動畫";
 "settings.battery.chargingEffectTestDescription" = "開發版：無需充電即可播放；重新啟動後測試模式自動關閉。";
 "settings.battery.percentageWhenConnected" = "已連接電源但未充電時顯示電量數字";

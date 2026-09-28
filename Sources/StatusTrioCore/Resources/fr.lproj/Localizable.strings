@@ -108,6 +108,8 @@
 "settings.battery.chargingDescription" = "Lorsque cette option est activée, le pourcentage devient un éclair ou une prise pendant la charge ou sur secteur.";
 "settings.battery.chargingEffect" = "Effet de charge";
 "settings.battery.chargingEffectDescription" = "Anime la surbrillance uniquement pendant la charge. L’animation s’arrête si « Réduire les animations » est activé.";
+"settings.battery.chargingBoltHeartbeat" = "Pulsation de l’éclair de charge";
+"settings.battery.chargingBoltHeartbeatDescription" = "Désactivez cette option pour conserver la taille et la couleur habituelles de l’éclair ; l’effet de l’arc de charge continue.";
 "settings.battery.chargingEffectTest" = "Tester l’animation de charge";
 "settings.battery.chargingEffectTestDescription" = "Version de développement : animation sans charge. Le mode test s’arrête après redémarrage.";
 "settings.battery.percentageWhenConnected" = "Afficher le pourcentage sur secteur sans charge";

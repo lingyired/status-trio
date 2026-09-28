@@ -108,6 +108,8 @@
 "settings.battery.chargingDescription" = "有効にすると、充電中または電源接続時に残量が稲妻またはプラグに変わります。無効の場合は残量を表示します。";
 "settings.battery.chargingEffect" = "充電エフェクト";
 "settings.battery.chargingEffectDescription" = "充電中のみハイライトをアニメーション表示します。「視差効果を減らす」がオンの場合は停止します。";
+"settings.battery.chargingBoltHeartbeat" = "充電ボルトの鼓動";
+"settings.battery.chargingBoltHeartbeatDescription" = "オフにすると、ボルトは通常のサイズと色のままになり、充電アークのエフェクトは続きます。";
 "settings.battery.chargingEffectTest" = "充電アニメーションをテスト";
 "settings.battery.chargingEffectTestDescription" = "開発版：充電していなくても再生します。再起動するとテストモードはオフになります。";
 "settings.battery.percentageWhenConnected" = "電源接続中で充電していないときに残量を表示";

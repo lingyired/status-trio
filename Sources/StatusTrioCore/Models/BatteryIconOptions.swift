@@ -4,6 +4,7 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
     let showsPercentage: Bool
     let showsChargingIndicator: Bool
     let showsChargingEffect: Bool
+    let showsChargingBoltHeartbeat: Bool
     let usesStatusColors: Bool
     let showsPercentageWhenConnected: Bool
     let criticalThreshold: Int
@@ -19,6 +20,7 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         showsPercentage: true,
         showsChargingIndicator: true,
         showsChargingEffect: true,
+        showsChargingBoltHeartbeat: true,
         usesStatusColors: true,
         criticalThreshold: 20,
         showsPercentageWhenConnected: false,
@@ -30,6 +32,7 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         showsPercentage: Bool = true,
         showsChargingIndicator: Bool = true,
         showsChargingEffect: Bool = true,
+        showsChargingBoltHeartbeat: Bool = true,
         usesStatusColors: Bool = true,
         criticalThreshold: Int = 20,
         showsPercentageWhenConnected: Bool = false,
@@ -39,6 +42,7 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         self.showsPercentage = showsPercentage
         self.showsChargingIndicator = showsChargingIndicator
         self.showsChargingEffect = showsChargingEffect
+        self.showsChargingBoltHeartbeat = showsChargingBoltHeartbeat
         self.usesStatusColors = usesStatusColors
         self.showsPercentageWhenConnected = showsPercentageWhenConnected
         self.criticalThreshold = min(100, max(0, criticalThreshold))

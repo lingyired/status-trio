@@ -171,6 +171,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBatteryChargingDescription = "settings.battery.chargingDescription"
     case settingsBatteryChargingEffect = "settings.battery.chargingEffect"
     case settingsBatteryChargingEffectDescription = "settings.battery.chargingEffectDescription"
+    case settingsBatteryChargingBoltHeartbeat = "settings.battery.chargingBoltHeartbeat"
+    case settingsBatteryChargingBoltHeartbeatDescription = "settings.battery.chargingBoltHeartbeatDescription"
     case settingsBatteryChargingEffectTest = "settings.battery.chargingEffectTest"
     case settingsBatteryChargingEffectTestDescription = "settings.battery.chargingEffectTestDescription"
     case settingsBatteryPercentageWhenConnected = "settings.battery.percentageWhenConnected"

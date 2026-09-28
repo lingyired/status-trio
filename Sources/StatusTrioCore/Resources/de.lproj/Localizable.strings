@@ -108,6 +108,8 @@
 "settings.battery.chargingDescription" = "Wenn aktiviert, wird der Prozentsatz beim Laden oder Netzbetrieb durch ein Blitz- oder Steckersymbol ersetzt.";
 "settings.battery.chargingEffect" = "Ladeeffekt";
 "settings.battery.chargingEffectDescription" = "Hebt den Ladestand nur während des Ladevorgangs animiert hervor. Wird bei aktivierter Option „Bewegung reduzieren“ gestoppt.";
+"settings.battery.chargingBoltHeartbeat" = "Ladeblitz-Puls";
+"settings.battery.chargingBoltHeartbeatDescription" = "Deaktivieren, damit der Blitz seine gewohnte Größe und Farbe behält; der Ladeeffekt läuft weiter.";
 "settings.battery.chargingEffectTest" = "Ladeanimation testen";
 "settings.battery.chargingEffectTestDescription" = "Entwicklerversion: Animation ohne Ladevorgang abspielen. Der Testmodus endet nach dem Neustart.";
 "settings.battery.percentageWhenConnected" = "Prozentsatz bei Netzbetrieb ohne Laden anzeigen";

@@ -108,6 +108,8 @@
 "settings.battery.chargingDescription" = "When enabled, the percentage becomes a bolt or plug while charging or connected to power.";
 "settings.battery.chargingEffect" = "Charging effect";
 "settings.battery.chargingEffectDescription" = "Animate the highlight only while charging. Stops when Reduce Motion is on.";
+"settings.battery.chargingBoltHeartbeat" = "Charging bolt pulse";
+"settings.battery.chargingBoltHeartbeatDescription" = "Turn off to keep the bolt at its usual size and color; the charging arc effect continues.";
 "settings.battery.chargingEffectTest" = "Test charging animation";
 "settings.battery.chargingEffectTestDescription" = "Development build: play without charging. Test mode turns off after restart.";
 "settings.battery.percentageWhenConnected" = "Show the percentage while connected without charging";

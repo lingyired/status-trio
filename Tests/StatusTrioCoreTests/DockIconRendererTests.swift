@@ -53,6 +53,20 @@ final class DockIconRendererTests: XCTestCase {
         ))
     }
 
+    func testBoltHeartbeatSettingDoesNotChangeTheStaticDockIcon() throws {
+        let status = chargingStatus()
+        let enabled = try pixels(
+            for: status,
+            options: BatteryIconOptions(showsChargingBoltHeartbeat: true)
+        )
+        let disabled = try pixels(
+            for: status,
+            options: BatteryIconOptions(showsChargingBoltHeartbeat: false)
+        )
+
+        XCTAssertEqual(enabled.bytes, disabled.bytes)
+    }
+
     func testLightStyleUsesWhiteBody() throws {
         let pixels = try pixels(for: .placeholder, backgroundStyle: .light)
         let margin = pixels.rgba(x: pixels.width / 2, y: pixels.height / 50)

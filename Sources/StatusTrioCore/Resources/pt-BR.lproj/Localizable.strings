@@ -108,6 +108,8 @@
 "settings.battery.chargingDescription" = "Quando ativado, a porcentagem vira um raio ou um plugue durante o carregamento ou com energia conectada.";
 "settings.battery.chargingEffect" = "Efeito de carregamento";
 "settings.battery.chargingEffectDescription" = "Anima o destaque somente durante o carregamento. Para quando Reduzir Movimento está ativado.";
+"settings.battery.chargingBoltHeartbeat" = "Pulso do raio de carregamento";
+"settings.battery.chargingBoltHeartbeatDescription" = "Desative para manter o raio no tamanho e na cor habituais; o efeito do arco de carregamento continua.";
 "settings.battery.chargingEffectTest" = "Testar animação de carregamento";
 "settings.battery.chargingEffectTestDescription" = "Versão de desenvolvimento: reproduz sem carregar. O modo de teste desliga ao reiniciar.";
 "settings.battery.percentageWhenConnected" = "Mostrar a porcentagem ao estar conectado sem carregar";

@@ -50,6 +50,17 @@ struct BatterySectionView: View {
                 isOn: $store.showsChargingEffect
             )
 
+            SettingsDivider()
+
+            SettingsToggleRow(
+                symbol: "bolt.fill",
+                tint: .yellow,
+                title: localization.string(.settingsBatteryChargingBoltHeartbeat),
+                subtitle: localization.string(.settingsBatteryChargingBoltHeartbeatDescription),
+                isOn: $store.showsChargingBoltHeartbeat
+            )
+            .disabled(!store.showsChargingEffect || !store.showsChargingIndicator)
+
             if ChargingEffectTestMode.isAvailable() {
                 SettingsDivider()
 

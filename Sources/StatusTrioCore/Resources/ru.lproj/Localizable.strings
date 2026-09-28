@@ -108,6 +108,8 @@
 "settings.battery.chargingDescription" = "Если включено, процент заменяется молнией или вилкой во время зарядки или при питании от сети.";
 "settings.battery.chargingEffect" = "Эффект зарядки";
 "settings.battery.chargingEffectDescription" = "Анимирует подсветку только во время зарядки. Останавливается при включённом параметре «Уменьшение движения».";
+"settings.battery.chargingBoltHeartbeat" = "Пульсация молнии зарядки";
+"settings.battery.chargingBoltHeartbeatDescription" = "Отключите, чтобы молния сохранила обычный размер и цвет; эффект дуги зарядки продолжит работать.";
 "settings.battery.chargingEffectTest" = "Проверить анимацию зарядки";
 "settings.battery.chargingEffectTestDescription" = "Сборка для разработки: работает без зарядки. Режим проверки выключится после перезапуска.";
 "settings.battery.percentageWhenConnected" = "Показывать процент при питании от сети без зарядки";

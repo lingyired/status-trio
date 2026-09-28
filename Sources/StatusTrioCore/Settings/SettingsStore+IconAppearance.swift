@@ -49,10 +49,11 @@ extension SettingsStore {
             $batteryCriticalThreshold
         )
         .combineLatest(
-            Publishers.CombineLatest3(
+            Publishers.CombineLatest4(
                 $showsPercentageWhenConnected,
                 $batterySymbolScale,
-                $showsChargingEffect
+                $showsChargingEffect,
+                $showsChargingBoltHeartbeat
             )
         ) { values, additionalInputs in
             BatteryAppearanceInputs(
@@ -62,7 +63,8 @@ extension SettingsStore {
                 criticalThreshold: values.3,
                 showsPercentageWhenConnected: additionalInputs.0,
                 symbolScale: additionalInputs.1,
-                showsChargingEffect: additionalInputs.2
+                showsChargingEffect: additionalInputs.2,
+                showsChargingBoltHeartbeat: additionalInputs.3
             )
         }
         .eraseToAnyPublisher()
@@ -118,12 +120,14 @@ private struct BatteryAppearanceInputs {
     var showsPercentageWhenConnected: Bool
     var symbolScale: Double
     var showsChargingEffect: Bool
+    var showsChargingBoltHeartbeat: Bool
 
     func options(ringStrokeScale: Double) -> BatteryIconOptions {
         BatteryIconOptions(
             showsPercentage: showsPercentage,
             showsChargingIndicator: showsChargingIndicator,
             showsChargingEffect: showsChargingEffect,
+            showsChargingBoltHeartbeat: showsChargingBoltHeartbeat,
             usesStatusColors: usesStatusColors,
             criticalThreshold: Int(criticalThreshold.rounded()),
             showsPercentageWhenConnected: showsPercentageWhenConnected,

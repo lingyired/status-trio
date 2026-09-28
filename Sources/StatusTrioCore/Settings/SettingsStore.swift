@@ -18,6 +18,7 @@ final class SettingsStore: ObservableObject {
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
     static let showsChargingIndicatorDefaultsKey = "showsChargingIndicator"
     static let showsChargingEffectDefaultsKey = "showsChargingEffect"
+    static let showsChargingBoltHeartbeatDefaultsKey = "showsChargingBoltHeartbeat"
     static let showsPercentageWhenConnectedDefaultsKey = "showsPercentageWhenConnected"
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
     static let batteryCriticalThresholdDefaultsKey = "batteryCriticalThreshold"
@@ -143,6 +144,15 @@ final class SettingsStore: ObservableObject {
             if !showsChargingEffect {
                 testsChargingEffect = false
             }
+        }
+    }
+
+    @Published var showsChargingBoltHeartbeat: Bool {
+        didSet {
+            defaults.set(
+                showsChargingBoltHeartbeat,
+                forKey: Self.showsChargingBoltHeartbeatDefaultsKey
+            )
         }
     }
 
@@ -625,6 +635,7 @@ final class SettingsStore: ObservableObject {
             showsPercentage: showsBatteryPercentage,
             showsChargingIndicator: showsChargingIndicator,
             showsChargingEffect: showsChargingEffect,
+            showsChargingBoltHeartbeat: showsChargingBoltHeartbeat,
             usesStatusColors: usesBatteryStatusColors,
             criticalThreshold: Int(batteryCriticalThreshold.rounded()),
             showsPercentageWhenConnected: showsPercentageWhenConnected,
@@ -744,6 +755,9 @@ final class SettingsStore: ObservableObject {
         self.showsChargingIndicator = defaults.object(forKey: Self.showsChargingIndicatorDefaultsKey) as? Bool ?? true
         self.showsChargingEffect = defaults.object(
             forKey: Self.showsChargingEffectDefaultsKey
+        ) as? Bool ?? true
+        self.showsChargingBoltHeartbeat = defaults.object(
+            forKey: Self.showsChargingBoltHeartbeatDefaultsKey
         ) as? Bool ?? true
         self.showsPercentageWhenConnected = defaults.object(
             forKey: Self.showsPercentageWhenConnectedDefaultsKey

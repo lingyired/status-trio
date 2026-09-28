@@ -24,6 +24,29 @@ struct ChargingEffectSettingsTests {
         #expect(SettingsStore(defaults: defaults).batteryIconOptions.showsChargingEffect)
     }
 
+    @Test func chargingBoltHeartbeatDefaultsOnAndPersistsThroughIconOptions() throws {
+        let domain = "ChargingBoltHeartbeatSettingsTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+
+        #expect(defaults.object(forKey: SettingsStore.showsChargingBoltHeartbeatDefaultsKey) == nil)
+        let first = SettingsStore(defaults: defaults)
+        #expect(first.showsChargingBoltHeartbeat)
+        #expect(first.batteryIconOptions.showsChargingBoltHeartbeat)
+
+        first.showsChargingBoltHeartbeat = false
+        #expect(defaults.object(forKey: SettingsStore.showsChargingBoltHeartbeatDefaultsKey) as? Bool == false)
+        let restored = SettingsStore(defaults: defaults)
+        #expect(!restored.showsChargingBoltHeartbeat)
+        #expect(!restored.batteryIconOptions.showsChargingBoltHeartbeat)
+
+        restored.showsChargingEffect = false
+        #expect(!restored.showsChargingBoltHeartbeat)
+        restored.showsChargingEffect = true
+        restored.showsChargingIndicator = false
+        #expect(!restored.showsChargingBoltHeartbeat)
+    }
+
     @Test func testAnimationSwitchStartsTheEffectWithoutPersistingTestMode() throws {
         let domain = "ChargingEffectTestMode.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: domain))

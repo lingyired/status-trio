@@ -464,14 +464,17 @@ enum StatusIconRenderer {
         switch gapContent {
         case .bolt:
             let baseBolt = StatusIconGeometry.batteryChargingBolt(scale: indicatorScale)
-            let bolt = chargingEffectFrame.map { frame in
+            let boltHeartbeatFrame = options.showsChargingBoltHeartbeat
+                ? chargingEffectFrame
+                : nil
+            let bolt = boltHeartbeatFrame.map { frame in
                 StatusIconGeometry.batteryChargingBolt(
                     basePath: baseBolt,
                     centeredScale: CGFloat(frame.boltScale),
                     fitting: StatusIconGeometry.canvas
                 )
             } ?? baseBolt
-            let boltColor = chargingEffectFrame.map { frame in
+            let boltColor = boltHeartbeatFrame.map { frame in
                 let highlightColor: CGColor
                 if options.usesStatusColors,
                    role != .foreground,

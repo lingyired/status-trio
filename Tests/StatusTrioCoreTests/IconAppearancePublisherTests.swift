@@ -134,6 +134,7 @@ final class IconAppearancePublisherTests: XCTestCase {
         IconMutation(name: menuBarOnlyMutationName) { $0.iconSize = 32 },
         IconMutation(name: "showsBatteryPercentage") { $0.showsBatteryPercentage = false },
         IconMutation(name: "showsChargingIndicator") { $0.showsChargingIndicator = false },
+        IconMutation(name: "showsChargingBoltHeartbeat") { $0.showsChargingBoltHeartbeat = false },
         IconMutation(name: "usesBatteryStatusColors") { $0.usesBatteryStatusColors = false },
         IconMutation(name: "batteryCriticalThreshold") { $0.batteryCriticalThreshold = 35 },
         IconMutation(name: "showsPercentageWhenConnected") {

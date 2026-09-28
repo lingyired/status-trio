@@ -184,6 +184,36 @@ struct ChargingEffectRenderingTests {
         #expect((peakStep...lastCrossingStep).allSatisfy { $0 == lastCrossingStep || scales[$0] >= scales[$0 + 1] })
     }
 
+    @Test func disablingBoltHeartbeatKeepsArcAnimationAndStaticForegroundBolt() throws {
+        let stationaryOptions = BatteryIconOptions(
+            showsChargingEffect: false,
+            showsChargingBoltHeartbeat: false
+        )
+        let arcEffectOptions = BatteryIconOptions(showsChargingBoltHeartbeat: false)
+        let staticPixels = try renderPixels(
+            snapshot: chargingSnapshot,
+            options: stationaryOptions,
+            phase: nil
+        )
+        let animatedPixels = try renderPixels(
+            snapshot: chargingSnapshot,
+            options: arcEffectOptions,
+            phase: .init(step: 24, stepsPerCycle: 36, kind: .steady)
+        )
+        let boltPoint = CGPoint(x: 61, y: 11)
+        let boltBounds = CGRect(x: 51.3, y: 2.1, width: 15.9, height: 19.9)
+
+        #expect(animatedPixels.bytes != staticPixels.bytes)
+        #expect(
+            animatedPixels.alphaSum(inSVGRect: boltBounds, size: 20, scale: 2)
+                == staticPixels.alphaSum(inSVGRect: boltBounds, size: 20, scale: 2)
+        )
+        #expect(rgbDistance(
+            animatedPixels.rgba(atSVGPoint: boltPoint, size: 20, scale: 2),
+            staticPixels.rgba(atSVGPoint: boltPoint, size: 20, scale: 2)
+        ) < 0.03)
+    }
+
     @Test func chargingBoltHeartbeatReachesTheRevisedTwentyPercentScale() throws {
         let frames = (0..<36).compactMap { step in
             ChargingEffectPolicy.frame(
