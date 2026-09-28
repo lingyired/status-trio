@@ -1,10 +1,12 @@
 import SwiftUI
 
 /// Settings for how the battery indicator is drawn in the status icon.
+@MainActor
 struct BatterySectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @Binding var previewIsDark: Bool
+    var launcher = BatteryActionLauncher()
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
@@ -16,6 +18,7 @@ struct BatterySectionView: View {
             )
         }) {
             batteryGroup
+            BatteryActionSettingsView(store: store, launcher: launcher)
         }
     }
 

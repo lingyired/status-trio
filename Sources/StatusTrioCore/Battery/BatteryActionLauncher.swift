@@ -52,6 +52,10 @@ final class BatteryActionLauncher {
         firstExistingApplicationURL(bundleIdentifiers: definition.bundleIdentifiers) != nil
     }
 
+    func isAvailable(application: ExternalApplicationTarget) -> Bool {
+        !applicationCandidates(for: application).isEmpty
+    }
+
     static func validatedURL(_ raw: String) -> URL? {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty,

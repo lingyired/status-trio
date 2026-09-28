@@ -81,6 +81,125 @@ final class SettingsViewTests: XCTestCase {
         }
     }
 
+    func testBatteryActionChoiceModelIncludesInstalledAndSelectedUnavailableApps() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let localization = Localization(defaults: suite.defaults, preferredLanguages: ["en"])
+        let selectedMissing = BatteryActionSettingsView.choices(
+            current: .knownApp(.alDente),
+            installed: []
+        )
+        XCTAssertTrue(selectedMissing.contains(.systemSettings))
+        XCTAssertTrue(selectedMissing.contains(.knownApp(.alDente)))
+        XCTAssertFalse(selectedMissing.contains(.knownApp(.batFi)))
+        XCTAssertTrue(selectedMissing.contains(.customApplication))
+        XCTAssertTrue(selectedMissing.contains(.customURL))
+
+        let availableAlDente = BatteryActionSettingsView.choices(
+            current: .systemSettings,
+            installed: [.alDente]
+        )
+        XCTAssertTrue(availableAlDente.contains(.knownApp(.alDente)))
+        XCTAssertFalse(availableAlDente.contains(.knownApp(.batFi)))
+
+        XCTAssertEqual(
+            BatteryActionSettingsView.unavailableMessage(
+                for: .knownApp(.alDente),
+                installed: [],
+                customApplicationAvailable: true,
+                localization: localization
+            ),
+            "AlDente: \(localization.string(.batteryActionUnavailable))"
+        )
+    }
+
+    func testBatteryActionSettingsPreserveUnavailableCustomNameAndIgnorePanelCancellation() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let localization = Localization(defaults: suite.defaults, preferredLanguages: ["en"])
+        let store = SettingsStore(defaults: suite.defaults)
+        let target = BatteryActionTarget.customApp(.init(
+            displayName: "Saved Charging Tool",
+            bundleIdentifier: nil,
+            fallbackPath: nil
+        ))
+        store.batteryActionTarget = target
+
+        XCTAssertEqual(
+            BatteryActionPresentation.selectionName(for: target, localization: localization),
+            "Saved Charging Tool"
+        )
+        XCTAssertEqual(
+            BatteryActionSettingsView.unavailableMessage(
+                for: target,
+                installed: [],
+                customApplicationAvailable: false,
+                localization: localization
+            ),
+            "Saved Charging Tool: \(localization.string(.batteryActionUnavailable))"
+        )
+
+        BatteryActionSettingsView.applySelectedApplication(nil, to: store)
+
+        XCTAssertEqual(store.batteryActionTarget, target)
+    }
+
+    func testBatteryActionSettingsRenderInEnglishAndSimplifiedChinese() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        for language in ["en", "zh-Hans"] {
+            let localization = Localization(
+                defaults: suite.defaults,
+                preferredLanguages: [language]
+            )
+            let store = SettingsStore(defaults: suite.defaults)
+            let view = BatterySectionView(
+                store: store,
+                statusStore: makeStatusStore(),
+                previewIsDark: .constant(true),
+                launcher: BatteryActionLauncher(workspace: SettingsBatteryWorkspace())
+            )
+            let hostingView = NSHostingView(
+                rootView: view
+                    .environmentObject(localization)
+                    .environmentObject(ChargingEffectClock())
+            )
+            hostingView.frame = NSRect(x: 0, y: 0, width: 530, height: 530)
+            hostingView.layoutSubtreeIfNeeded()
+
+            XCTAssertNotNil(hostingView.subviews, "Battery settings should render for \(language)")
+            XCTAssertFalse(localization.string(.settingsBatteryActionTitle).isEmpty)
+            XCTAssertEqual(
+                localization.string(.settingsBatteryActionTitle),
+                language == "en" ? "Battery action" : "电池动作"
+            )
+        }
+    }
+
+    func testBatteryActionURLValidationMessageOnlyAppearsForNonemptyInvalidInput() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let localization = Localization(defaults: suite.defaults, preferredLanguages: ["en"])
+        XCTAssertNil(BatteryActionSettingsView.invalidURLMessage(for: "", localization: localization))
+        XCTAssertNil(
+            BatteryActionSettingsView.invalidURLMessage(
+                for: "raycast://battery/open",
+                localization: localization
+            )
+        )
+        XCTAssertEqual(
+            BatteryActionSettingsView.invalidURLMessage(
+                for: "example.com/path",
+                localization: localization
+            ),
+            localization.string(.batteryActionInvalidURL)
+        )
+    }
+
     /// The order list is only reachable when the pane can read paired devices.
     /// The pane used to read `statusStore.bluetoothDevices.devices` without
     /// observing the controller and without activating it, so a fresh launch
@@ -250,6 +369,14 @@ private func makeStatusStore() -> SystemStatusStore {
         wifiMonitor: DummyWiFiMonitor(),
         volumeMonitor: DummyVolumeMonitor()
     )
+}
+
+@MainActor
+private final class SettingsBatteryWorkspace: BatteryWorkspace {
+    func applicationURL(bundleIdentifier: String) -> URL? { nil }
+    func fileExists(at url: URL) -> Bool { false }
+    func openURL(_ url: URL) -> Bool { false }
+    func openApplication(_ url: URL) async throws {}
 }
 
 /// A `BluetoothDeviceController` whose paired-device read answers with the

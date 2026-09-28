@@ -28,6 +28,26 @@ final class BatteryActionLauncherTests: XCTestCase {
         XCTAssertFalse(launcher.isInstalled(KnownBatteryApps.definition(for: .batFi)))
     }
 
+    func testCustomApplicationAvailabilityChecksResolvedAndSavedPaths() {
+        let workspace = FakeBatteryWorkspace()
+        let relocatedURL = appURL("/Users/tester/Applications/Tool.app")
+        let missingURL = appURL("/Applications/Missing Tool.app")
+        workspace.applicationURLs["com.example.Tool"] = relocatedURL
+        workspace.existingApplicationPaths = [relocatedURL.path]
+        let launcher = BatteryActionLauncher(workspace: workspace)
+
+        XCTAssertTrue(launcher.isAvailable(application: .init(
+            displayName: "Tool",
+            bundleIdentifier: "com.example.Tool",
+            fallbackPath: "/Applications/Old Tool.app"
+        )))
+        XCTAssertFalse(launcher.isAvailable(application: .init(
+            displayName: "Missing Tool",
+            bundleIdentifier: "com.example.MissingTool",
+            fallbackPath: missingURL.path
+        )))
+    }
+
     func testKnownAppOpensInstalledDeepLinkBeforeLaunchingApplication() async throws {
         let deepLink = try XCTUnwrap(URL(string: "aldente-test://open"))
         let definition = KnownBatteryAppDefinition(
