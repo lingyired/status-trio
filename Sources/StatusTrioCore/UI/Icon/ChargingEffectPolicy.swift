@@ -9,6 +9,7 @@ struct ChargingEffectFrame: Equatable, Sendable {
     let heartbeatAlpha: Double
     let heartbeatScale: Double
     let boltScale: Double
+    let boltUsesArcColor: Bool
 }
 
 enum ChargingEffectPolicy {
@@ -99,6 +100,7 @@ enum ChargingEffectPolicy {
         ) < 1e-9
 
         let boltScale: Double
+        let boltUsesArcColor: Bool
         if hasTopGap {
             let gapStart = StatusIconGeometry.lastVisibleProgress(
                 forProgress: 0.5,
@@ -107,14 +109,16 @@ enum ChargingEffectPolicy {
             )
             let gapEnd = 1 - gapStart
             if endpoint >= gapEnd, head > gapStart, head < gapEnd {
-                boltScale = boltHeartbeatScale(
-                    at: (head - gapStart) / (gapEnd - gapStart)
-                )
+                let pulse = boltHeartbeatPulse(at: (head - gapStart) / (gapEnd - gapStart))
+                boltScale = 1 + 0.3 * pulse
+                boltUsesArcColor = pulse >= 0.75
             } else {
                 boltScale = 1
+                boltUsesArcColor = false
             }
         } else {
             boltScale = 1
+            boltUsesArcColor = false
         }
 
         let minimumTailFill = minimumVisibleFillRatio * visibleArcLength
@@ -154,16 +158,17 @@ enum ChargingEffectPolicy {
                 : 0,
             heartbeatAlpha: heartbeatAlpha,
             heartbeatScale: heartbeatScale,
-            boltScale: boltScale
+            boltScale: boltScale,
+            boltUsesArcColor: boltUsesArcColor
         )
     }
 
-    private static func boltHeartbeatScale(at progress: Double) -> Double {
-        // Two small peaks follow Animate.css heartBeat's 14/28/42/70% rhythm.
-        if progress < 0.14 { return 1 + 0.1 * progress / 0.14 }
-        if progress < 0.28 { return 1 + 0.1 * (0.28 - progress) / 0.14 }
-        if progress < 0.42 { return 1 + 0.1 * (progress - 0.28) / 0.14 }
-        if progress < 0.70 { return 1 + 0.1 * (0.70 - progress) / 0.28 }
-        return 1
+    private static func boltHeartbeatPulse(at progress: Double) -> Double {
+        // Two peaks follow Animate.css heartBeat's 14/28/42/70% rhythm.
+        if progress < 0.14 { return progress / 0.14 }
+        if progress < 0.28 { return (0.28 - progress) / 0.14 }
+        if progress < 0.42 { return (progress - 0.28) / 0.14 }
+        if progress < 0.70 { return (0.70 - progress) / 0.28 }
+        return 0
     }
 }

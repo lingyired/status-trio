@@ -422,21 +422,24 @@ enum StatusIconRenderer {
         ))
         context.strokePath()
 
-        var boltHeartbeatScale: CGFloat = 1
-        if options.showsChargingEffect,
-           battery.isPresent,
-           battery.isCharging,
-           !battery.isCharged,
-           let phase,
-           let frame = ChargingEffectPolicy.frame(
+        let chargingEffectFrame: ChargingEffectFrame? = {
+            guard options.showsChargingEffect,
+                  battery.isPresent,
+                  battery.isCharging,
+                  !battery.isCharged,
+                  let phase else {
+                return nil
+            }
+            return ChargingEffectPolicy.frame(
                 progress: StatusMappings.batteryProgress(battery),
                 phase: phase,
                 hasTopGap: hasTopGap,
                 topGapWidth: topGapWidth
-           ) {
-            boltHeartbeatScale = CGFloat(frame.boltScale)
+            )
+        }()
+        if let chargingEffectFrame {
             drawChargingEffect(
-                frame,
+                chargingEffectFrame,
                 fillColor: arcColor,
                 lineWidth: 8 * CGFloat(options.ringStrokeScale),
                 hasTopGap: hasTopGap,
@@ -457,20 +460,12 @@ enum StatusIconRenderer {
 
         switch gapContent {
         case .bolt:
-            var bolt = StatusIconGeometry.batteryChargingBolt(scale: indicatorScale)
-            if boltHeartbeatScale != 1 {
-                let bounds = bolt.boundingBoxOfPath
-                var transform = CGAffineTransform(
-                    a: boltHeartbeatScale,
-                    b: 0,
-                    c: 0,
-                    d: boltHeartbeatScale,
-                    tx: bounds.midX * (1 - boltHeartbeatScale),
-                    ty: bounds.midY * (1 - boltHeartbeatScale)
-                )
-                bolt = bolt.copy(using: &transform) ?? bolt
-            }
-            context.setFillColor(foreground)
+            let bolt = StatusIconGeometry.batteryChargingBolt(
+                scale: indicatorScale * CGFloat(chargingEffectFrame?.boltScale ?? 1)
+            )
+            context.setFillColor(
+                chargingEffectFrame?.boltUsesArcColor == true ? arcColor : foreground
+            )
             context.addPath(bolt)
             context.fillPath()
         case .plug:

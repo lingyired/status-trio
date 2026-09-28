@@ -107,6 +107,58 @@ struct ChargingEffectRenderingTests {
         #expect(firstBeat > pause)
         #expect(secondBeat > pause)
         #expect(settled == resting)
+
+        func boltColor(at step: Int) throws -> (
+            red: UInt8,
+            green: UInt8,
+            blue: UInt8,
+            alpha: UInt8
+        ) {
+            try renderPixels(
+                snapshot: chargingSnapshot,
+                phase: .init(step: step, stepsPerCycle: 36, kind: .steady)
+            ).rgba(atSVGPoint: CGPoint(x: 61, y: 11), size: 20, scale: 2)
+        }
+        let arcColor = try renderPixels(snapshot: chargingSnapshot, phase: nil)
+            .rgba(atSVGPoint: StatusIconGeometry.batteryPoint(forProgress: 0.2), size: 20, scale: 2)
+        let foregroundColor = (
+            red: UInt8(255),
+            green: UInt8(255),
+            blue: UInt8(255),
+            alpha: UInt8(255)
+        )
+        let firstPeakColor = try boltColor(at: 17)
+        let betweenPeaksColor = try boltColor(at: 18)
+        let secondPeakColor = try boltColor(at: 20)
+        let settledColor = try boltColor(at: 24)
+
+        #expect(rgbDistance(firstPeakColor, arcColor) < 0.12)
+        #expect(rgbDistance(secondPeakColor, arcColor) < 0.12)
+        #expect(rgbDistance(betweenPeaksColor, foregroundColor) < 0.12)
+        #expect(rgbDistance(settledColor, foregroundColor) < 0.12)
+    }
+
+    @Test func chargingBoltHeartbeatReachesTheRevisedThirtyPercentScale() throws {
+        let frames = (0..<36).compactMap { step in
+            ChargingEffectPolicy.frame(
+                progress: 0.76,
+                phase: .init(step: step, stepsPerCycle: 36, kind: .steady),
+                hasTopGap: true
+            )
+        }
+
+        let maximumScale = try #require(frames.map(\.boltScale).max())
+        #expect(maximumScale > 1.25)
+        #expect(maximumScale <= 1.3)
+    }
+
+    @Test func enlargedBoltKeepsItsTopTipInsideTheIconCanvas() {
+        let normal = StatusIconGeometry.batteryChargingBolt().boundingBoxOfPath
+        let enlarged = StatusIconGeometry.batteryChargingBolt(scale: 1.3).boundingBoxOfPath
+
+        #expect(enlarged.minY >= normal.minY)
+        #expect(enlarged.minY > StatusIconGeometry.canvas.minY)
+        #expect(enlarged.maxY < StatusIconGeometry.canvas.maxY)
     }
 
     @MainActor @Test func dockRendererProducesStaticChargingArtwork() throws {
@@ -187,5 +239,27 @@ struct ChargingEffectRenderingTests {
             guard lhs[byteIndex] != rhs[byteIndex] else { return nil }
             return byteIndex / 4
         })
+    }
+
+    private func rgbDistance(
+        _ lhs: (red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8),
+        _ rhs: (red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8)
+    ) -> Double {
+        func straightColor(
+            _ color: (red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8)
+        ) -> (Double, Double, Double) {
+            let alpha = max(1, Double(color.alpha))
+            return (
+                min(255, Double(color.red) * 255 / alpha) / 255,
+                min(255, Double(color.green) * 255 / alpha) / 255,
+                min(255, Double(color.blue) * 255 / alpha) / 255
+            )
+        }
+        let left = straightColor(lhs)
+        let right = straightColor(rhs)
+        let red = left.0 - right.0
+        let green = left.1 - right.1
+        let blue = left.2 - right.2
+        return sqrt(red * red + green * green + blue * blue)
     }
 }
