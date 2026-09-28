@@ -18,6 +18,45 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         }
     }
 
+    func testActionTargetLabelsKeepTheBatteryPageAtPopoverWidth() async throws {
+        let longApplication = ExternalApplicationTarget(
+            displayName: "An Extremely Long Battery Charging Utility Name",
+            bundleIdentifier: nil,
+            fallbackPath: nil
+        )
+
+        for language in [AppLanguage.english, .simplifiedChinese] {
+            let suite = "StatusTrioCoreTests.BatteryActionLayout.\(UUID().uuidString)"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+            defer { defaults.removeTestSuite(named: suite) }
+            let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+            localization.setPreference(.language(language))
+
+            let targets: [BatteryActionTarget] = [
+                .systemSettings,
+                .knownApp(.alDente),
+                .customApp(longApplication)
+            ]
+            var sizes: [NSSize] = []
+            for target in targets {
+                let label = BatteryActionPresentation.openLabel(
+                    for: target,
+                    localization: localization
+                )
+                sizes.append(try await render(
+                    language: language,
+                    available: true,
+                    actionLabel: label
+                ))
+            }
+
+            for size in sizes {
+                XCTAssertEqual(size.width, 330, accuracy: 0.5)
+            }
+            XCTAssertEqual(sizes[2].height, sizes[0].height, accuracy: 1)
+        }
+    }
+
     func testConnectedPageFitsEveryLanguageWithAndWithoutSystemTelemetry() async throws {
         for language in AppLanguage.allCases {
             let connected = try await render(language: language, available: true, connected: true)
@@ -77,7 +116,8 @@ final class BatteryDetailsLayoutTests: XCTestCase {
 
     private func render(language: AppLanguage, available: Bool,
                         collecting: Bool = false, connected: Bool = false,
-                        systemAvailable: Bool = true, charging: Bool = false) async throws -> NSSize {
+                        systemAvailable: Bool = true, charging: Bool = false,
+                        actionLabel: String? = nil) async throws -> NSSize {
         let suite = "StatusTrioCoreTests.BatteryDetails.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removeTestSuite(named: suite) }
@@ -95,7 +135,7 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
                                     isLowPowerMode: false, isConnectedToPower: connected)
         let view = BatteryDetailsView(
-            controller: controller, battery: battery,
+            controller: controller, battery: battery, actionLabel: actionLabel,
             onBack: {}, onOpenBatterySettings: {})
             .padding(14)
             .frame(width: 330)

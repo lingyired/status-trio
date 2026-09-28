@@ -6,8 +6,23 @@ struct BatteryDetailsView: View {
     @EnvironmentObject private var localization: Localization
     @ObservedObject var controller: BatteryDetailsController
     let battery: BatteryStatus
+    let actionLabel: String?
     let onBack: () -> Void
     let onOpenBatterySettings: () -> Void
+
+    init(
+        controller: BatteryDetailsController,
+        battery: BatteryStatus,
+        actionLabel: String? = nil,
+        onBack: @escaping () -> Void,
+        onOpenBatterySettings: @escaping () -> Void
+    ) {
+        self.controller = controller
+        self.battery = battery
+        self.actionLabel = actionLabel
+        self.onBack = onBack
+        self.onOpenBatterySettings = onOpenBatterySettings
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -21,8 +36,14 @@ struct BatteryDetailsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Divider()
-            Button(localization.string(.batteryActionOpenSettings), action: onOpenBatterySettings)
+            Button(action: onOpenBatterySettings) {
+                Text(settingsActionLabel)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
                 .buttonStyle(.plain)
+                .accessibilityLabel(settingsActionLabel)
         }
         .task(id: BatteryPowerState(battery)) {
             controller.activate(state: BatteryPowerState(battery))
@@ -30,6 +51,10 @@ struct BatteryDetailsView: View {
         // A panel can also disappear because the popover closed; the store
         // deactivates collection there too, so this is the in-popover path.
         .onDisappear { controller.deactivate() }
+    }
+
+    var settingsActionLabel: String {
+        actionLabel ?? localization.string(.batteryActionOpenSettings)
     }
 
     @ViewBuilder

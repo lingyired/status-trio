@@ -5,8 +5,21 @@ import SwiftUI
 struct BatteryStatusView: View {
     @EnvironmentObject private var localization: Localization
     let battery: BatteryStatus
+    let actionLabel: String?
     let onOpenBatteryDetails: () -> Void
     let onOpenBatterySettings: () -> Void
+
+    init(
+        battery: BatteryStatus,
+        actionLabel: String? = nil,
+        onOpenBatteryDetails: @escaping () -> Void,
+        onOpenBatterySettings: @escaping () -> Void
+    ) {
+        self.battery = battery
+        self.actionLabel = actionLabel
+        self.onOpenBatteryDetails = onOpenBatteryDetails
+        self.onOpenBatterySettings = onOpenBatterySettings
+    }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -46,14 +59,15 @@ struct BatteryStatusView: View {
 
             if battery.isPresent {
                 Button(
-                    localization.string(.batteryActionOpenSettings),
+                    settingsActionLabel,
                     systemImage: "gearshape",
                     action: onOpenBatterySettings
                 )
                 .labelStyle(.iconOnly)
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
-                .help(localization.string(.batteryActionOpenSettings))
+                .help(settingsActionLabel)
+                .accessibilityLabel(settingsActionLabel)
                 .frame(width: 24, height: 24)
             }
         }
@@ -62,6 +76,10 @@ struct BatteryStatusView: View {
     /// A Mac without a battery has no details to open, so the row stays inert
     /// and shows no chevron — the same shape as an unavailable Bluetooth radio.
     var showsDetailAffordance: Bool { battery.isPresent }
+
+    var settingsActionLabel: String {
+        actionLabel ?? localization.string(.batteryActionOpenSettings)
+    }
 
     private var batterySymbolName: String {
         guard battery.isPresent else { return "battery.slash" }

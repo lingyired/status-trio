@@ -11,8 +11,16 @@ final class BatteryPopoverPanelTests: XCTestCase {
                       isLowPowerMode: false, isConnectedToPower: false)
     }
 
-    private func summary(_ battery: BatteryStatus) -> BatteryStatusView {
-        BatteryStatusView(battery: battery, onOpenBatteryDetails: {}, onOpenBatterySettings: {})
+    private func summary(
+        _ battery: BatteryStatus,
+        actionLabel: String? = nil
+    ) -> BatteryStatusView {
+        BatteryStatusView(
+            battery: battery,
+            actionLabel: actionLabel,
+            onOpenBatteryDetails: {},
+            onOpenBatterySettings: {}
+        )
     }
 
     /// A Mac without a battery has nothing to show, so the row stays inert —
@@ -20,6 +28,33 @@ final class BatteryPopoverPanelTests: XCTestCase {
     func testBatterySummaryOnlyOffersDetailsWhenTheBatteryIsPresent() {
         XCTAssertTrue(summary(battery(isPresent: true)).showsDetailAffordance)
         XCTAssertFalse(summary(battery(isPresent: false, percentage: nil)).showsDetailAffordance)
+    }
+
+    func testSummaryAndDetailsUseTheSameLocalizedActionLabel() throws {
+        let name = "StatusTrioCoreTests.BatteryActionPopover.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        defer { defaults.removeTestSuite(named: name) }
+
+        for language in [AppLanguage.english, .simplifiedChinese] {
+            let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+            localization.setPreference(.language(language))
+            let label = BatteryActionPresentation.openLabel(
+                for: .knownApp(.alDente),
+                localization: localization
+            )
+            let summaryView = summary(battery(isPresent: true), actionLabel: label)
+            let detailsView = BatteryDetailsView(
+                controller: BatteryDetailsController { _, _ in BatteryDetails() },
+                battery: battery(isPresent: true),
+                actionLabel: label,
+                onBack: {},
+                onOpenBatterySettings: {}
+            )
+
+            XCTAssertEqual(summaryView.settingsActionLabel, label)
+            XCTAssertEqual(detailsView.settingsActionLabel, label)
+            XCTAssertEqual(label, language == .english ? "Open AlDente" : "打开AlDente")
+        }
     }
 
     /// `StatusBarController.popoverDidClose` discards the retained popover

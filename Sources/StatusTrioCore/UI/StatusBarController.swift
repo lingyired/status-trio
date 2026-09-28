@@ -27,6 +27,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     private let store: SystemStatusStore
     private let settings: SettingsStore
     private let localization: Localization
+    private let batteryActionLauncher = BatteryActionLauncher()
     let chargingEffectClock: ChargingEffectClock
     private var cancellable: AnyCancellable?
     private var localizationCancellable: AnyCancellable?
@@ -674,7 +675,12 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
 
     @objc private func handleOpenBatterySettings() {
         popover.performClose(nil)
-        Self.openSystemSettings(Self.batterySettingsURLs)
+        let target = settings.batteryActionTarget
+        Task { @MainActor in
+            await batteryActionLauncher.open(target: target) {
+                Self.openSystemSettings(Self.batterySettingsURLs)
+            }
+        }
     }
 
     @objc private func handleOpenWiFiSettings() {

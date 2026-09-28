@@ -315,6 +315,7 @@ struct StatusPopoverView: View {
                 BatteryDetailsView(
                     controller: store.batteryDetails,
                     battery: store.popupSnapshot.battery,
+                    actionLabel: batteryActionLabel,
                     onBack: {
                         store.closeBatteryDetails()
                         panel = .summary
@@ -369,12 +370,20 @@ struct StatusPopoverView: View {
         }
     }
 
+    private var batteryActionLabel: String {
+        BatteryActionPresentation.openLabel(
+            for: settings.batteryActionTarget,
+            localization: localization
+        )
+    }
+
     @ViewBuilder
     private func popupSection(_ section: PopupSection) -> some View {
         switch section {
         case .battery:
             BatteryStatusView(
                 battery: store.popupSnapshot.battery,
+                actionLabel: batteryActionLabel,
                 onOpenBatteryDetails: { panel = .battery },
                 onOpenBatterySettings: openBatterySettings
             )
