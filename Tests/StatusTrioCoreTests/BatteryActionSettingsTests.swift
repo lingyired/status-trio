@@ -3,6 +3,7 @@ import XCTest
 
 @testable import StatusTrioCore
 
+@MainActor
 final class BatteryActionSettingsTests: XCTestCase {
     func testTargetCodableCasesUseStableDiscriminatorsAndKeys() throws {
         let application = ExternalApplicationTarget(
@@ -46,5 +47,49 @@ final class BatteryActionSettingsTests: XCTestCase {
     func testUnknownTargetDiscriminatorThrows() {
         let data = Data(#"{"type":"alien"}"#.utf8)
         XCTAssertThrowsError(try JSONDecoder().decode(BatteryActionTarget.self, from: data))
+    }
+
+    func testBatteryActionTargetDefaultsToSystemAndPersistsEveryCase() throws {
+        let domain = "BatteryActionSettingsTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+
+        XCTAssertEqual(SettingsStore.batteryActionTargetDefaultsKey, "batteryActionTarget.v1")
+        let first = SettingsStore(defaults: defaults)
+        XCTAssertEqual(first.batteryActionTarget, .systemSettings)
+
+        let targets: [BatteryActionTarget] = [
+            .systemSettings,
+            .knownApp(.alDente),
+            .knownApp(.batFi),
+            .customApp(.init(
+                displayName: "Tool",
+                bundleIdentifier: "com.example.Tool",
+                fallbackPath: "/Applications/Tool.app"
+            )),
+            .customURL("raycast://battery")
+        ]
+
+        for target in targets {
+            first.batteryActionTarget = target
+            XCTAssertEqual(SettingsStore(defaults: defaults).batteryActionTarget, target)
+        }
+    }
+
+    func testBatteryActionTargetCorruptDataFallsBackToSystemSettings() throws {
+        let domain = "BatteryActionSettingsTests.Corrupt.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+
+        let corruptValues = [
+            Data("not JSON".utf8),
+            Data(#"{"type":"alien"}"#.utf8),
+            Data(#"{"type":"knownApp","knownAppID":"missing"}"#.utf8)
+        ]
+
+        for value in corruptValues {
+            defaults.set(value, forKey: SettingsStore.batteryActionTargetDefaultsKey)
+            XCTAssertEqual(SettingsStore(defaults: defaults).batteryActionTarget, .systemSettings)
+        }
     }
 }

@@ -18,6 +18,7 @@ final class SettingsStore: ObservableObject {
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
     static let showsChargingIndicatorDefaultsKey = "showsChargingIndicator"
     static let showsChargingEffectDefaultsKey = "showsChargingEffect"
+    static let batteryActionTargetDefaultsKey = "batteryActionTarget.v1"
     static let showsPercentageWhenConnectedDefaultsKey = "showsPercentageWhenConnected"
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
     static let batteryCriticalThresholdDefaultsKey = "batteryCriticalThreshold"
@@ -143,6 +144,13 @@ final class SettingsStore: ObservableObject {
             if !showsChargingEffect {
                 testsChargingEffect = false
             }
+        }
+    }
+
+    @Published var batteryActionTarget: BatteryActionTarget {
+        didSet {
+            guard let data = try? JSONEncoder().encode(batteryActionTarget) else { return }
+            defaults.set(data, forKey: Self.batteryActionTargetDefaultsKey)
         }
     }
 
@@ -675,6 +683,9 @@ final class SettingsStore: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        let storedBatteryActionTarget = defaults.data(forKey: Self.batteryActionTargetDefaultsKey)
+            .flatMap { try? JSONDecoder().decode(BatteryActionTarget.self, from: $0) }
+        self.batteryActionTarget = storedBatteryActionTarget ?? .systemSettings
         if defaults.object(forKey: Self.hasCompletedIconGuideOnboardingDefaultsKey) != nil {
             self.hasCompletedIconGuideOnboarding = defaults.bool(
                 forKey: Self.hasCompletedIconGuideOnboardingDefaultsKey
