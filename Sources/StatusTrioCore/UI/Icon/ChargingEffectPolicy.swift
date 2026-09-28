@@ -108,7 +108,7 @@ enum ChargingEffectPolicy {
             let gapEnd = 1 - gapStart
             if endpoint >= gapEnd, head > gapStart, head < gapEnd {
                 let pulse = boltGapPulse(at: (head - gapStart) / (gapEnd - gapStart))
-                boltScale = 1 + 0.3 * pulse
+                boltScale = 1 + 0.2 * pulse
             } else {
                 boltScale = 1
             }

@@ -145,14 +145,14 @@ struct ChargingEffectRenderingTests {
         #expect(scales[lastCrossingStep + 1] == 1)
         let peakStep = try #require(crossingSteps.max { scales[$0] < scales[$1] })
         let maximumScale = scales[peakStep]
-        #expect(maximumScale > 1.25)
-        #expect(maximumScale <= 1.3)
+        #expect(maximumScale > 1.18)
+        #expect(maximumScale <= 1.2)
         #expect(crossingSteps.filter { scales[$0] == maximumScale }.count <= 2)
         #expect((firstCrossingStep...peakStep).allSatisfy { $0 == firstCrossingStep || scales[$0] >= scales[$0 - 1] })
         #expect((peakStep...lastCrossingStep).allSatisfy { $0 == lastCrossingStep || scales[$0] >= scales[$0 + 1] })
     }
 
-    @Test func chargingBoltHeartbeatReachesTheRevisedThirtyPercentScale() throws {
+    @Test func chargingBoltHeartbeatReachesTheRevisedTwentyPercentScale() throws {
         let frames = (0..<36).compactMap { step in
             ChargingEffectPolicy.frame(
                 progress: 0.76,
@@ -162,13 +162,13 @@ struct ChargingEffectRenderingTests {
         }
 
         let maximumScale = try #require(frames.map(\.boltScale).max())
-        #expect(maximumScale > 1.25)
-        #expect(maximumScale <= 1.3)
+        #expect(maximumScale > 1.18)
+        #expect(maximumScale <= 1.2)
     }
 
     @Test func enlargedBoltKeepsItsTopTipInsideTheIconCanvas() {
         let normal = StatusIconGeometry.batteryChargingBolt().boundingBoxOfPath
-        let enlarged = StatusIconGeometry.batteryChargingBolt(scale: 1.3).boundingBoxOfPath
+        let enlarged = StatusIconGeometry.batteryChargingBolt(scale: 1.2).boundingBoxOfPath
 
         #expect(enlarged.minY >= normal.minY)
         #expect(enlarged.minY > StatusIconGeometry.canvas.minY)
