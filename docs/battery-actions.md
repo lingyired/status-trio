@@ -12,3 +12,5 @@ For a custom application, Status Trio saves its display name, bundle identifier,
 Typing a custom URL does not open it. Empty or invalid input shows a nonmodal hint. When the battery action is used, an invalid URL, an unavailable app, or a failed open falls back to macOS Battery Settings.
 
 Status Trio only opens the selected destination. It does not install, configure, or control AlDente, BatFi, or other third-party apps. A known app can use a deep link only after that link is publicly verified; this release configures no deep links for AlDente or BatFi.
+
+Choosing AlDente starts or activates it but does not open its Dashboard window. See the [AlDente Dashboard investigation](aldente-dashboard-investigation.md) for the verified behavior and the conditions for revisiting a direct link.
