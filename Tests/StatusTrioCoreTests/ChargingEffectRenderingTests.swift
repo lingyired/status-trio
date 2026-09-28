@@ -88,6 +88,27 @@ struct ChargingEffectRenderingTests {
         #expect(phasePixels.bytes != staticPixels.bytes)
     }
 
+    @Test func chargingBoltBeatsTwiceWhileTheEffectCrossesItsGap() throws {
+        let boltRegion = CGRect(x: 45, y: 0, width: 29, height: 35)
+        func boltInk(at step: Int) throws -> Int {
+            try renderPixels(
+                snapshot: chargingSnapshot,
+                phase: .init(step: step, stepsPerCycle: 36, kind: .steady)
+            ).alphaSum(inSVGRect: boltRegion, size: 20, scale: 2)
+        }
+
+        let resting = try boltInk(at: 12)
+        let firstBeat = try boltInk(at: 17)
+        let pause = try boltInk(at: 18)
+        let secondBeat = try boltInk(at: 20)
+        let settled = try boltInk(at: 24)
+
+        #expect(firstBeat > resting)
+        #expect(firstBeat > pause)
+        #expect(secondBeat > pause)
+        #expect(settled == resting)
+    }
+
     @MainActor @Test func dockRendererProducesStaticChargingArtwork() throws {
         let status = MenuBarStatus(snapshot: chargingSnapshot)
         let image = try #require(DockIconRenderer.image(status: status))

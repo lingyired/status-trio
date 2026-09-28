@@ -8,6 +8,7 @@ struct ChargingEffectFrame: Equatable, Sendable {
     let beadAlpha: Double
     let heartbeatAlpha: Double
     let heartbeatScale: Double
+    let boltScale: Double
 }
 
 enum ChargingEffectPolicy {
@@ -97,6 +98,25 @@ enum ChargingEffectPolicy {
             ) - head
         ) < 1e-9
 
+        let boltScale: Double
+        if hasTopGap {
+            let gapStart = StatusIconGeometry.lastVisibleProgress(
+                forProgress: 0.5,
+                hasTopGap: true,
+                topGapWidth: topGapWidth
+            )
+            let gapEnd = 1 - gapStart
+            if endpoint >= gapEnd, head > gapStart, head < gapEnd {
+                boltScale = boltHeartbeatScale(
+                    at: (head - gapStart) / (gapEnd - gapStart)
+                )
+            } else {
+                boltScale = 1
+            }
+        } else {
+            boltScale = 1
+        }
+
         let minimumTailFill = minimumVisibleFillRatio * visibleArcLength
         let tailLength = min(
             tailRatio * visibleArcLength,
@@ -133,7 +153,17 @@ enum ChargingEffectPolicy {
                 ? (isHeartbeatStep ? max(0, 1 - boundedHeartbeatProgress) : 1)
                 : 0,
             heartbeatAlpha: heartbeatAlpha,
-            heartbeatScale: heartbeatScale
+            heartbeatScale: heartbeatScale,
+            boltScale: boltScale
         )
+    }
+
+    private static func boltHeartbeatScale(at progress: Double) -> Double {
+        // Two small peaks follow Animate.css heartBeat's 14/28/42/70% rhythm.
+        if progress < 0.14 { return 1 + 0.1 * progress / 0.14 }
+        if progress < 0.28 { return 1 + 0.1 * (0.28 - progress) / 0.14 }
+        if progress < 0.42 { return 1 + 0.1 * (progress - 0.28) / 0.14 }
+        if progress < 0.70 { return 1 + 0.1 * (0.70 - progress) / 0.28 }
+        return 1
     }
 }

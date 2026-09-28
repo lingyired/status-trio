@@ -422,6 +422,7 @@ enum StatusIconRenderer {
         ))
         context.strokePath()
 
+        var boltHeartbeatScale: CGFloat = 1
         if options.showsChargingEffect,
            battery.isPresent,
            battery.isCharging,
@@ -433,6 +434,7 @@ enum StatusIconRenderer {
                 hasTopGap: hasTopGap,
                 topGapWidth: topGapWidth
            ) {
+            boltHeartbeatScale = CGFloat(frame.boltScale)
             drawChargingEffect(
                 frame,
                 fillColor: arcColor,
@@ -455,10 +457,21 @@ enum StatusIconRenderer {
 
         switch gapContent {
         case .bolt:
+            var bolt = StatusIconGeometry.batteryChargingBolt(scale: indicatorScale)
+            if boltHeartbeatScale != 1 {
+                let bounds = bolt.boundingBoxOfPath
+                var transform = CGAffineTransform(
+                    a: boltHeartbeatScale,
+                    b: 0,
+                    c: 0,
+                    d: boltHeartbeatScale,
+                    tx: bounds.midX * (1 - boltHeartbeatScale),
+                    ty: bounds.midY * (1 - boltHeartbeatScale)
+                )
+                bolt = bolt.copy(using: &transform) ?? bolt
+            }
             context.setFillColor(foreground)
-            context.addPath(StatusIconGeometry.batteryChargingBolt(
-                scale: indicatorScale
-            ))
+            context.addPath(bolt)
             context.fillPath()
         case .plug:
             drawBatteryPlug(

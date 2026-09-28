@@ -2,7 +2,7 @@
 
 ## Decision
 
-Dock charging animation is disabled, including steady playback and short plug-in or level-change bursts. The 10 fps implementation averaged 16.60% Status Trio CPU across three runs. The 5 fps fallback averaged 7.78% in its 60-second run. Both exceed the 3% limit, so Dock animation controls and phase rendering were removed. The Dock icon stays static and reflects actual battery status. Menu bar charging animation and its development test switch remain available.
+Dock charging animation is disabled, including steady playback and short plug-in or level-change bursts. The 10 fps implementation averaged 16.60% Status Trio CPU across three runs. The 5 fps fallback averaged 7.78% in its 60-second run. Both exceed the 3% limit, so Dock animation controls and phase rendering were removed. The Dock icon stays static and reflects actual battery status, including while the menu bar's charging bolt plays its heartbeat response. Menu bar charging animation and its development test switch remain available.
 
 The current `applicationIconImage` approach does not meet the CPU budget. Any future attempt should first prototype `NSDockTile.contentView` with explicit `display()` and compare app and Dock CPU; no claim is made that this approach will be cheaper.
 
