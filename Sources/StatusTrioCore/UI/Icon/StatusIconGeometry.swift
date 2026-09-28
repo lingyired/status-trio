@@ -244,6 +244,32 @@ enum StatusIconGeometry {
         return path.copy(using: &transform) ?? path
     }
 
+    static func batteryChargingBolt(
+        basePath: CGPath,
+        centeredScale scale: CGFloat,
+        fitting canvas: CGRect
+    ) -> CGPath {
+        guard scale.isFinite, scale > 0, scale != 1 else { return basePath }
+        let bounds = basePath.boundingBoxOfPath
+        let center = CGPoint(x: bounds.midX, y: bounds.midY)
+        let verticalScale = min(
+            scale,
+            min(
+                (center.y - canvas.minY) / (center.y - bounds.minY),
+                (canvas.maxY - center.y) / (bounds.maxY - center.y)
+            )
+        )
+        var transform = CGAffineTransform(
+            a: scale,
+            b: 0,
+            c: 0,
+            d: verticalScale,
+            tx: center.x * (1 - scale),
+            ty: center.y * (1 - verticalScale)
+        )
+        return basePath.copy(using: &transform) ?? basePath
+    }
+
     static let batteryChargingBoltPivot = CGPoint(x: artworkCenterX, y: 2.1)
 
     static func wifiArcs(level: Int) -> [CGPath] {

@@ -463,9 +463,14 @@ enum StatusIconRenderer {
 
         switch gapContent {
         case .bolt:
-            let bolt = StatusIconGeometry.batteryChargingBolt(
-                scale: indicatorScale * CGFloat(chargingEffectFrame?.boltScale ?? 1)
-            )
+            let baseBolt = StatusIconGeometry.batteryChargingBolt(scale: indicatorScale)
+            let bolt = chargingEffectFrame.map { frame in
+                StatusIconGeometry.batteryChargingBolt(
+                    basePath: baseBolt,
+                    centeredScale: CGFloat(frame.boltScale),
+                    fitting: StatusIconGeometry.canvas
+                )
+            } ?? baseBolt
             let boltColor = chargingEffectFrame.map { frame in
                 let highlightColor: CGColor
                 if options.usesStatusColors,
@@ -660,7 +665,7 @@ enum StatusIconRenderer {
         StatusIconGeometry.batteryValueBaseFontSize * CGFloat(scale)
     }
 
-    private static func batteryChargingBoltScale(textScale: Double) -> CGFloat {
+    static func batteryChargingBoltScale(textScale: Double) -> CGFloat {
         let boltHeight = StatusIconGeometry.batteryChargingBolt().boundingBoxOfPath.height
         let targetHeight = batteryTopIndicatorHeight(textScale: textScale)
         guard boltHeight.isFinite, boltHeight > 0, targetHeight > 0 else {

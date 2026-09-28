@@ -207,6 +207,43 @@ struct ChargingEffectRenderingTests {
         #expect(enlarged.maxY < StatusIconGeometry.canvas.maxY)
     }
 
+    @Test func animatedBoltZoomStaysCenteredAndInsideTheCanvasAtMaximumSize() {
+        let defaultScale = StatusIconRenderer.batteryChargingBoltScale(
+            textScale: BatteryIconOptions.defaultTextScale
+        )
+        let defaultBase = StatusIconGeometry.batteryChargingBolt(scale: defaultScale).boundingBoxOfPath
+        let defaultPeak = StatusIconGeometry.batteryChargingBolt(
+            basePath: StatusIconGeometry.batteryChargingBolt(scale: defaultScale),
+            centeredScale: 1.2,
+            fitting: StatusIconGeometry.canvas
+        ).boundingBoxOfPath
+        let maximumScale = StatusIconRenderer.batteryChargingBoltScale(textScale: 3)
+        let base = StatusIconGeometry.batteryChargingBolt(scale: maximumScale)
+        let baseBounds = base.boundingBoxOfPath
+        let verticalScale = min(
+            1.2,
+            min(
+                baseBounds.midY / (baseBounds.midY - baseBounds.minY),
+                (StatusIconGeometry.canvas.maxY - baseBounds.midY)
+                    / (baseBounds.maxY - baseBounds.midY)
+            )
+        )
+        let enlargedBounds = StatusIconGeometry.batteryChargingBolt(
+            basePath: base,
+            centeredScale: 1.2,
+            fitting: StatusIconGeometry.canvas
+        ).boundingBoxOfPath
+
+        #expect(defaultPeak.minY >= StatusIconGeometry.canvas.minY - 0.01)
+        #expect(abs(defaultPeak.midY - defaultBase.midY) < 0.01)
+        #expect(enlargedBounds.minY >= StatusIconGeometry.canvas.minY - 0.01)
+        #expect(enlargedBounds.maxY <= StatusIconGeometry.canvas.maxY)
+        #expect(abs(enlargedBounds.width - baseBounds.width * 1.2) < 0.01)
+        #expect(abs(enlargedBounds.height - baseBounds.height * verticalScale) < 0.01)
+        #expect(abs(enlargedBounds.midX - baseBounds.midX) < 0.01)
+        #expect(abs(enlargedBounds.midY - baseBounds.midY) < 0.01)
+    }
+
     @MainActor @Test func dockRendererProducesStaticChargingArtwork() throws {
         let status = MenuBarStatus(snapshot: chargingSnapshot)
         let image = try #require(DockIconRenderer.image(status: status))
