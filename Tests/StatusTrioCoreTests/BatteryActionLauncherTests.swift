@@ -227,6 +227,18 @@ final class BatteryActionLauncherTests: XCTestCase {
         XCTAssertEqual(fallbackCount, 1)
     }
 
+    func testInvalidCustomURLFallsBackWithoutOpeningIt() async {
+        let workspace = FakeBatteryWorkspace()
+        var fallbackCount = 0
+
+        await BatteryActionLauncher(workspace: workspace)
+            .open(target: .customURL("example.com/path")) { fallbackCount += 1 }
+
+        XCTAssertEqual(workspace.events, [])
+        XCTAssertEqual(workspace.openedURLs, [])
+        XCTAssertEqual(fallbackCount, 1)
+    }
+
     private func appURL(_ path: String) -> URL {
         URL(fileURLWithPath: path)
     }

@@ -3,6 +3,7 @@
 ### New Features
 
 - Added an opt-in Nearby section that reads battery levels from nearby BLE devices providing the standard Battery Service.
+- Added a battery panel action setting to open Battery Settings, AlDente, BatFi, a selected app, or a custom URL. Unavailable targets fall back to Battery Settings.
 
 ### Improvements & Fixes
 
