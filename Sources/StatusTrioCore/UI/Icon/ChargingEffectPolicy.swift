@@ -107,7 +107,7 @@ enum ChargingEffectPolicy {
             )
             let gapEnd = 1 - gapStart
             if endpoint >= gapEnd, head > gapStart, head < gapEnd {
-                let pulse = boltHeartbeatPulse(at: (head - gapStart) / (gapEnd - gapStart))
+                let pulse = boltGapPulse(at: (head - gapStart) / (gapEnd - gapStart))
                 boltScale = 1 + 0.3 * pulse
             } else {
                 boltScale = 1
@@ -157,12 +157,7 @@ enum ChargingEffectPolicy {
         )
     }
 
-    private static func boltHeartbeatPulse(at progress: Double) -> Double {
-        // Two peaks follow Animate.css heartBeat's 14/28/42/70% rhythm.
-        if progress < 0.14 { return progress / 0.14 }
-        if progress < 0.28 { return (0.28 - progress) / 0.14 }
-        if progress < 0.42 { return (progress - 0.28) / 0.14 }
-        if progress < 0.70 { return (0.70 - progress) / 0.28 }
-        return 0
+    private static func boltGapPulse(at progress: Double) -> Double {
+        sin(.pi * min(1, max(0, progress)))
     }
 }

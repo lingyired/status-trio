@@ -88,7 +88,7 @@ struct ChargingEffectRenderingTests {
         #expect(phasePixels.bytes != staticPixels.bytes)
     }
 
-    @Test func chargingBoltBeatsTwiceWhileTheEffectCrossesItsGap() throws {
+    @Test func chargingBoltMakesOnePulseWhileTheEffectCrossesItsGap() throws {
         let boltRegion = CGRect(x: 45, y: 0, width: 29, height: 35)
         func boltInk(at step: Int) throws -> Int {
             try renderPixels(
@@ -97,16 +97,11 @@ struct ChargingEffectRenderingTests {
             ).alphaSum(inSVGRect: boltRegion, size: 20, scale: 2)
         }
 
-        let resting = try boltInk(at: 12)
-        let firstBeat = try boltInk(at: 17)
-        let pause = try boltInk(at: 18)
-        let secondBeat = try boltInk(at: 20)
-        let settled = try boltInk(at: 24)
-
-        #expect(firstBeat > resting)
-        #expect(firstBeat > pause)
-        #expect(secondBeat > pause)
-        #expect(settled == resting)
+        let entry = try boltInk(at: 15)
+        let center = try boltInk(at: 20)
+        let exit = try boltInk(at: 23)
+        #expect(center > entry)
+        #expect(center > exit)
 
         func boltColor(at step: Int) throws -> (
             red: UInt8,
@@ -125,15 +120,36 @@ struct ChargingEffectRenderingTests {
             blue: UInt8(255),
             alpha: UInt8(255)
         )
-        let firstPeakColor = try boltColor(at: 17)
-        let betweenPeaksColor = try boltColor(at: 18)
-        let secondPeakColor = try boltColor(at: 20)
+        let entryColor = try boltColor(at: 15)
+        let peakColor = try boltColor(at: 20)
+        let exitColor = try boltColor(at: 23)
         let settledColor = try boltColor(at: 24)
 
-        #expect(rgbDistance(firstPeakColor, foregroundColor) < 0.12)
-        #expect(rgbDistance(secondPeakColor, foregroundColor) < 0.12)
-        #expect(rgbDistance(betweenPeaksColor, foregroundColor) < 0.12)
+        #expect(rgbDistance(entryColor, foregroundColor) < 0.12)
+        #expect(rgbDistance(peakColor, foregroundColor) < 0.12)
+        #expect(rgbDistance(exitColor, foregroundColor) < 0.12)
         #expect(rgbDistance(settledColor, foregroundColor) < 0.12)
+
+        let frames = (0..<36).compactMap { step in
+            ChargingEffectPolicy.frame(
+                progress: 0.76,
+                phase: .init(step: step, stepsPerCycle: 36, kind: .steady),
+                hasTopGap: true
+            )
+        }
+        let scales = frames.map(\.boltScale)
+        let crossingSteps = scales.indices.filter { scales[$0] > 1 }
+        let firstCrossingStep = try #require(crossingSteps.first)
+        let lastCrossingStep = try #require(crossingSteps.last)
+        #expect(scales[firstCrossingStep - 1] == 1)
+        #expect(scales[lastCrossingStep + 1] == 1)
+        let peakStep = try #require(crossingSteps.max { scales[$0] < scales[$1] })
+        let maximumScale = scales[peakStep]
+        #expect(maximumScale > 1.25)
+        #expect(maximumScale <= 1.3)
+        #expect(crossingSteps.filter { scales[$0] == maximumScale }.count <= 2)
+        #expect((firstCrossingStep...peakStep).allSatisfy { $0 == firstCrossingStep || scales[$0] >= scales[$0 - 1] })
+        #expect((peakStep...lastCrossingStep).allSatisfy { $0 == lastCrossingStep || scales[$0] >= scales[$0 + 1] })
     }
 
     @Test func chargingBoltHeartbeatReachesTheRevisedThirtyPercentScale() throws {
