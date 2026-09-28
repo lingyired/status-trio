@@ -133,6 +133,17 @@
 "battery.state.connectedToPower" = "Питание от сети";
 "battery.state.onBattery" = "От батареи";
 "battery.action.openSettings" = "Открыть настройки батареи";
+"settings.battery.action.title" = "Действие батареи";
+"settings.battery.action.description" = "Выберите, что открывать из панели батареи. Если цель не удастся открыть, откроются настройки батареи.";
+"battery.action.systemSettings" = "Настройки батареи";
+"battery.action.customApplication" = "Другое приложение";
+"battery.action.customURL" = "Другой URL";
+"battery.action.chooseTarget" = "Цель открытия";
+"battery.action.changeTarget" = "Изменить";
+"battery.action.unavailable" = "Не установлено";
+"battery.action.invalidURL" = "Введите корректную ссылку со схемой.";
+"battery.action.openTarget" = "Открыть %@";
+"battery.action.customLink" = "Пользовательская ссылка";
 "battery.accessibility.value" = "Батарея %d%%";
 "common.parenthetical" = "%@ (%@)";
 "common.labelValue" = "%@, %@";

@@ -133,6 +133,17 @@
 "battery.state.connectedToPower" = "已連接電源";
 "battery.state.onBattery" = "電池供電";
 "battery.action.openSettings" = "打開電池設定";
+"settings.battery.action.title" = "電池動作";
+"settings.battery.action.description" = "選擇從電池面板開啟的項目。如果無法開啟，將改為開啟電池設定。";
+"battery.action.systemSettings" = "電池設定";
+"battery.action.customApplication" = "自選應用程式";
+"battery.action.customURL" = "自訂 URL";
+"battery.action.chooseTarget" = "開啟目標";
+"battery.action.changeTarget" = "更改";
+"battery.action.unavailable" = "未安裝";
+"battery.action.invalidURL" = "請輸入包含 scheme 的有效連結。";
+"battery.action.openTarget" = "開啟%@";
+"battery.action.customLink" = "自訂連結";
 "battery.accessibility.value" = "電池 %d%%";
 "common.parenthetical" = "%@（%@）";
 "common.labelValue" = "%@ %@";

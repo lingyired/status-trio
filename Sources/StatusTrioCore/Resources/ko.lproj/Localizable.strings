@@ -133,6 +133,17 @@
 "battery.state.connectedToPower" = "전원 연결됨";
 "battery.state.onBattery" = "배터리 사용 중";
 "battery.action.openSettings" = "배터리 설정 열기";
+"settings.battery.action.title" = "배터리 동작";
+"settings.battery.action.description" = "배터리 패널에서 열 항목을 선택하세요. 열 수 없으면 배터리 설정을 엽니다.";
+"battery.action.systemSettings" = "배터리 설정";
+"battery.action.customApplication" = "사용자 지정 앱";
+"battery.action.customURL" = "사용자 지정 URL";
+"battery.action.chooseTarget" = "열기 대상";
+"battery.action.changeTarget" = "변경";
+"battery.action.unavailable" = "설치되지 않음";
+"battery.action.invalidURL" = "스킴이 포함된 유효한 링크를 입력하세요.";
+"battery.action.openTarget" = "%@ 열기";
+"battery.action.customLink" = "사용자 지정 링크";
 "battery.accessibility.value" = "배터리 %d%%";
 "common.parenthetical" = "%@(%@)";
 "common.labelValue" = "%@ %@";

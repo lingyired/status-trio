@@ -133,6 +133,17 @@
 "battery.state.connectedToPower" = "Conectado a la corriente";
 "battery.state.onBattery" = "Con batería";
 "battery.action.openSettings" = "Abrir ajustes de batería";
+"settings.battery.action.title" = "Acción de batería";
+"settings.battery.action.description" = "Elige qué se abre desde el panel de batería. Si no se puede abrir, se abrirán los ajustes de batería.";
+"battery.action.systemSettings" = "Ajustes de batería";
+"battery.action.customApplication" = "Aplicación personalizada";
+"battery.action.customURL" = "URL personalizada";
+"battery.action.chooseTarget" = "Destino de apertura";
+"battery.action.changeTarget" = "Cambiar";
+"battery.action.unavailable" = "No instalada";
+"battery.action.invalidURL" = "Introduce un enlace válido con un esquema.";
+"battery.action.openTarget" = "Abrir %@";
+"battery.action.customLink" = "Enlace personalizado";
 "battery.accessibility.value" = "Batería %d%%";
 "common.parenthetical" = "%@ (%@)";
 "common.labelValue" = "%@, %@";

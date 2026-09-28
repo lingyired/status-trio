@@ -133,6 +133,17 @@
 "battery.state.connectedToPower" = "Mit Netzstrom verbunden";
 "battery.state.onBattery" = "Im Batteriebetrieb";
 "battery.action.openSettings" = "Batterieeinstellungen öffnen";
+"settings.battery.action.title" = "Aktion für Batterie";
+"settings.battery.action.description" = "Wähle, was im Batteriefenster geöffnet wird. Wenn das Ziel nicht geöffnet werden kann, werden stattdessen die Batterieeinstellungen geöffnet.";
+"battery.action.systemSettings" = "Batterieeinstellungen";
+"battery.action.customApplication" = "Eigene App";
+"battery.action.customURL" = "Eigene URL";
+"battery.action.chooseTarget" = "Öffnungsziel";
+"battery.action.changeTarget" = "Ändern";
+"battery.action.unavailable" = "Nicht installiert";
+"battery.action.invalidURL" = "Gib einen gültigen Link mit Schema ein.";
+"battery.action.openTarget" = "Öffnen: %@";
+"battery.action.customLink" = "Eigener Link";
 "battery.accessibility.value" = "Batterie %d%%";
 "common.parenthetical" = "%@ (%@)";
 "common.labelValue" = "%@, %@";

@@ -133,6 +133,17 @@
 "battery.state.connectedToPower" = "電源に接続";
 "battery.state.onBattery" = "バッテリー駆動";
 "battery.action.openSettings" = "バッテリー設定を開く";
+"settings.battery.action.title" = "バッテリーアクション";
+"settings.battery.action.description" = "バッテリーパネルから開く項目を選択します。開けない場合はバッテリー設定を開きます。";
+"battery.action.systemSettings" = "バッテリー設定";
+"battery.action.customApplication" = "カスタムアプリケーション";
+"battery.action.customURL" = "カスタムURL";
+"battery.action.chooseTarget" = "開く対象";
+"battery.action.changeTarget" = "変更";
+"battery.action.unavailable" = "未インストール";
+"battery.action.invalidURL" = "スキームを含む有効なリンクを入力してください。";
+"battery.action.openTarget" = "%@を開く";
+"battery.action.customLink" = "カスタムリンク";
 "battery.accessibility.value" = "バッテリー %d%%";
 "common.parenthetical" = "%@（%@）";
 "common.labelValue" = "%@ %@";

@@ -116,6 +116,17 @@
 "battery.state.connectedToPower" = "متصل بالطاقة";
 "battery.state.onBattery" = "على البطارية";
 "battery.action.openSettings" = "فتح إعدادات البطارية";
+"settings.battery.action.title" = "إجراء البطارية";
+"settings.battery.action.description" = "اختر ما تريد فتحه من لوحة البطارية. إذا تعذّر فتحه، فسيتم فتح إعدادات البطارية.";
+"battery.action.systemSettings" = "إعدادات البطارية";
+"battery.action.customApplication" = "تطبيق مخصّص";
+"battery.action.customURL" = "عنوان URL مخصّص";
+"battery.action.chooseTarget" = "الهدف المراد فتحه";
+"battery.action.changeTarget" = "تغيير";
+"battery.action.unavailable" = "غير مثبّت";
+"battery.action.invalidURL" = "أدخل رابطًا صالحًا يتضمن مخططًا.";
+"battery.action.openTarget" = "فتح %@";
+"battery.action.customLink" = "رابط مخصّص";
 "battery.accessibility.value" = "البطارية %d%%";
 "common.parenthetical" = "%@ (%@)";
 "common.labelValue" = "%@، %@";

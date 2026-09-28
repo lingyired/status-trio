@@ -133,6 +133,17 @@
 "battery.state.connectedToPower" = "已连接电源";
 "battery.state.onBattery" = "电池供电";
 "battery.action.openSettings" = "打开电源设置";
+"settings.battery.action.title" = "电池动作";
+"settings.battery.action.description" = "选择从电池面板打开的项目。如果无法打开，将改为打开电池设置。";
+"battery.action.systemSettings" = "电池设置";
+"battery.action.customApplication" = "自选应用";
+"battery.action.customURL" = "自定义 URL";
+"battery.action.chooseTarget" = "打开目标";
+"battery.action.changeTarget" = "更改";
+"battery.action.unavailable" = "未安装";
+"battery.action.invalidURL" = "请输入包含 scheme 的有效链接。";
+"battery.action.openTarget" = "打开%@";
+"battery.action.customLink" = "自定义链接";
 "battery.accessibility.value" = "电池 %d%%";
 "common.parenthetical" = "%@（%@）";
 "common.labelValue" = "%@ %@";
