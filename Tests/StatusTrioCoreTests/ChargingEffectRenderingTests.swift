@@ -119,8 +119,6 @@ struct ChargingEffectRenderingTests {
                 phase: .init(step: step, stepsPerCycle: 36, kind: .steady)
             ).rgba(atSVGPoint: CGPoint(x: 61, y: 11), size: 20, scale: 2)
         }
-        let arcColor = try renderPixels(snapshot: chargingSnapshot, phase: nil)
-            .rgba(atSVGPoint: StatusIconGeometry.batteryPoint(forProgress: 0.2), size: 20, scale: 2)
         let foregroundColor = (
             red: UInt8(255),
             green: UInt8(255),
@@ -132,8 +130,8 @@ struct ChargingEffectRenderingTests {
         let secondPeakColor = try boltColor(at: 20)
         let settledColor = try boltColor(at: 24)
 
-        #expect(rgbDistance(firstPeakColor, arcColor) < 0.12)
-        #expect(rgbDistance(secondPeakColor, arcColor) < 0.12)
+        #expect(rgbDistance(firstPeakColor, foregroundColor) < 0.12)
+        #expect(rgbDistance(secondPeakColor, foregroundColor) < 0.12)
         #expect(rgbDistance(betweenPeaksColor, foregroundColor) < 0.12)
         #expect(rgbDistance(settledColor, foregroundColor) < 0.12)
     }
