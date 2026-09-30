@@ -83,11 +83,15 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
     /// A controller whose HAL writes through a scripted backend and settles the
     /// read-back instantly, with a short failure linger so rollback tests can
     /// observe the failure before it clears.
+    ///
+    /// The listener seam defaults to a fresh fake so a test can drive it directly;
+    /// passing `nil` for `listenerBackend` opts out and installs a bare fake.
     private func makeController(
         endpoints: [BluetoothListeningModeEndpoint],
         backend: FakeListeningModeBackend = FakeListeningModeBackend(),
+        listenerBackend: FakeListeningModeListenerBackend = FakeListeningModeListenerBackend(),
         attempts: Int = 16
-    ) -> (BluetoothListeningModeController, FakeEndpointProvider) {
+    ) -> (BluetoothListeningModeController, FakeEndpointProvider, FakeListeningModeListenerBackend) {
         let hal = BluetoothListeningModeHAL(
             backend: backend,
             sleeper: ImmediateListeningModeSleeper(),
@@ -98,9 +102,10 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         let controller = BluetoothListeningModeController(
             hal: hal,
             endpointProvider: provider,
+            listenerBackend: listenerBackend,
             failureClearDelay: .milliseconds(30)
         )
-        return (controller, provider)
+        return (controller, provider, listenerBackend)
     }
 
     /// Polls the main actor until `condition` holds, so a spawned write task gets a
@@ -120,7 +125,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
     // MARK: - Resolution
 
     func testRefreshPublishesPresentationForResolvedEndpoint() {
-        let (controller, _) = makeController(endpoints: [endpoint()])
+        let (controller, _, _) = makeController(endpoints: [endpoint()])
         controller.refresh(devices: [device()])
 
         let presentation = controller.presentations[key]
@@ -130,7 +135,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
     }
 
     func testRefreshIgnoresDisconnectedAndNonAirPods() {
-        let (controller, provider) = makeController(endpoints: [endpoint()])
+        let (controller, provider, _) = makeController(endpoints: [endpoint()])
         controller.refresh(devices: [device(connected: false), device(airPods: false)])
 
         XCTAssertTrue(controller.presentations.isEmpty, "nothing to control")
@@ -140,7 +145,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
     func testRefreshUsesConservativeFallbackWhenEndpointCarriesNoAddress() {
         // §6's accepted fallback path end-to-end: a single connected AirPods, a single
         // controllable endpoint that is the default output, no address evidence.
-        let (controller, _) = makeController(endpoints: [endpoint(address: nil, isDefault: true)])
+        let (controller, _, _) = makeController(endpoints: [endpoint(address: nil, isDefault: true)])
         controller.refresh(devices: [device()])
         XCTAssertNotNil(controller.presentations[key])
     }
@@ -148,7 +153,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
     func testRefreshSkipsAmbiguousIdentityAndPublishesNothing() {
         // Two connected AirPods sharing no address evidence is ambiguous, so neither
         // resolves and no button appears — the safe outcome.
-        let (controller, _) = makeController(endpoints: [endpoint(address: nil, isDefault: true)])
+        let (controller, _, _) = makeController(endpoints: [endpoint(address: nil, isDefault: true)])
         let other = BluetoothDevice(
             id: "11:22:33:44:55:66",
             name: "Other AirPods",
@@ -160,7 +165,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
     }
 
     func testRefreshDropsPresentationWhenDeviceGoesAway() async {
-        let (controller, _) = makeController(endpoints: [endpoint()])
+        let (controller, _, _) = makeController(endpoints: [endpoint()])
         controller.refresh(devices: [device()])
         XCTAssertNotNil(controller.presentations[key])
 
@@ -179,7 +184,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         // and the controller reports it confirmed.
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 2 // NC
-        let (controller, _) = makeController(endpoints: [endpoint()], backend: backend)
+        let (controller, _, _) = makeController(endpoints: [endpoint()], backend: backend)
         controller.refresh(devices: [device()])
 
         controller.setMode(.transparency, for: device())
@@ -199,7 +204,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 3 // already Transparency, and the capability highlights it
         let cap = capability(current: .transparency)
-        let (controller, _) = makeController(
+        let (controller, _, _) = makeController(
             endpoints: [endpoint(capability: cap)],
             backend: backend
         )
@@ -217,7 +222,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 2
         backend.lstmReadScript = [2, 2, 2] // never confirms, so the first write lingers
-        let (controller, _) = makeController(
+        let (controller, _, _) = makeController(
             endpoints: [endpoint()],
             backend: backend,
             attempts: 4
@@ -241,7 +246,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 2
         backend.lstmReadScript = [2, 2, 2] // the setter accepted it but the device stays on NC
-        let (controller, _) = makeController(
+        let (controller, _, _) = makeController(
             endpoints: [endpoint()],
             backend: backend,
             attempts: 3
@@ -265,7 +270,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 2
         backend.writeStatus = kAudioHardwareBadObjectError
-        let (controller, _) = makeController(endpoints: [endpoint()], backend: backend)
+        let (controller, _, _) = makeController(endpoints: [endpoint()], backend: backend)
         controller.refresh(devices: [device()])
 
         controller.setMode(.transparency, for: device())
@@ -282,7 +287,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 2
         backend.lstmReadScript = [2, 2, 2]
-        let (controller, _) = makeController(endpoints: [endpoint()], backend: backend, attempts: 8)
+        let (controller, _, _) = makeController(endpoints: [endpoint()], backend: backend, attempts: 8)
         controller.refresh(devices: [device()])
         controller.setMode(.transparency, for: device())
 
@@ -300,7 +305,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 2
         backend.lstmReadScript = [2, 2, 2]
-        let (controller, _) = makeController(endpoints: [endpoint()], backend: backend, attempts: 8)
+        let (controller, _, _) = makeController(endpoints: [endpoint()], backend: backend, attempts: 8)
         controller.refresh(devices: [device()])
         controller.setMode(.transparency, for: device())
 
@@ -311,13 +316,153 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
     }
 
     func testDiscoveryRunsOncePerRefreshNotOnATimer() async {
-        let (controller, provider) = makeController(endpoints: [endpoint()])
+        let (controller, provider, _) = makeController(endpoints: [endpoint()])
         controller.refresh(devices: [device()])
         XCTAssertEqual(provider.callCount, 1)
 
         // No background task re-reads it: left alone, the count never climbs.
         try? await Task.sleep(for: .milliseconds(100))
         XCTAssertEqual(provider.callCount, 1, "there is no polling")
+    }
+
+    // MARK: - External `lstm` change
+
+    func testRefreshSubscribesListeningModeListenerPerEndpoint() {
+        let (controller, _, listener) = makeController(endpoints: [endpoint()])
+        controller.refresh(devices: [device()])
+
+        XCTAssertTrue(listener.hasRegistration(for: endpointID))
+        XCTAssertEqual(listener.addCount, 1)
+    }
+
+    func testPreviewModeSubscribesNothing() {
+        let (controller, _, listener) = makeController(endpoints: [endpoint()])
+        controller.previewMode = true
+        controller.refresh(devices: [device()])
+
+        XCTAssertEqual(listener.addCount, 0, "preview has no real device to listen to")
+        XCTAssertFalse(listener.hasRegistration(for: endpointID))
+    }
+
+    func testExternalChangeRepublishesSelectedMode() async {
+        let backend = FakeListeningModeBackend()
+        backend.lstm.value = 2 // NC at refresh time
+        let (controller, _, listener) = makeController(endpoints: [endpoint()], backend: backend)
+        controller.refresh(devices: [device()])
+        XCTAssertEqual(controller.presentations[key]?.selectedMode, .noiseCancellation)
+
+        // The stem (or Control Center) moves the device to Transparency. Our scripted
+        // backend stores the value; `handleExternalChange` re-reads `lstm` on the
+        // MainActor hop and settles the presentation on what the device reports.
+        backend.lstm.value = 3
+        listener.trigger(deviceID: endpointID)
+
+        await waitUntil { self.controllerHasMode(controller, mode: .transparency) }
+        XCTAssertEqual(controller.presentations[key]?.actionState, .idle)
+    }
+
+    func testExternalChangeIsIgnoredWhileOurWriteIsInFlight() async {
+        // A "stalled" sleeper keeps the write's read-back parked in `await sleep`,
+        // so the presentation stays `.changing(to:)` while we fire the external
+        // signal. This proves `handleExternalChange` never overwrites an in-flight
+        // write — if it did, the tap's spinner would disappear under the finger.
+        //
+        // Sequencing matters: `hal.setMode` shortcuts to `.confirmed` when the
+        // device already reads the target, which would skip the parked await and
+        // settle the presentation. We let the write task start first, then flip
+        // the stored value; `writeUInt32` in the fake already moves `lstm.value`
+        // to the target before `confirmWrite` parks, so the flip is a no-op for
+        // the read-back — it only represents that "the device is now on the
+        // target for reasons beyond our write", the case the guard must ignore.
+        struct StalledSleeper: BluetoothListeningModeSleeping {
+            func sleep(for duration: Duration) async {
+                try? await Task.sleep(for: .seconds(60))
+            }
+        }
+
+        let backend = FakeListeningModeBackend()
+        backend.lstm.value = 2 // NC at refresh
+        let listener = FakeListeningModeListenerBackend()
+        let hal = BluetoothListeningModeHAL(
+            backend: backend,
+            sleeper: StalledSleeper(),
+            retryAttempts: 4,
+            retryDelay: .seconds(1)
+        )
+        let controller = BluetoothListeningModeController(
+            hal: hal,
+            endpointProvider: FakeEndpointProvider(endpoints: [endpoint()]),
+            listenerBackend: listener,
+            failureClearDelay: .milliseconds(30)
+        )
+        controller.refresh(devices: [device()])
+        controller.setMode(.transparency, for: device())
+        XCTAssertEqual(controller.presentations[key]?.actionState, .changing(to: .transparency))
+
+        // Let the write task's `hal.setMode` complete its synchronous prefix (initial
+        // read reports NC, write succeeds) and park inside `confirmWrite`'s first
+        // `await sleeper.sleep`. From this point the presentation is genuinely in
+        // flight until the 60-second sleep expires.
+        try? await Task.sleep(for: .milliseconds(20))
+        XCTAssertEqual(
+            controller.presentations[key]?.actionState,
+            .changing(to: .transparency),
+            "write task parked in the sleeper, presentation still in flight"
+        )
+
+        // Fire the "external" signal. A naive handler would publish `.settled(on:
+        // .transparency)` — matching the value the device now reports — and clear
+        // the spinner. The correct behavior is to drop the signal and let the write
+        // path settle when CoreAudio confirms.
+        listener.trigger(deviceID: endpointID)
+        try? await Task.sleep(for: .milliseconds(20))
+        XCTAssertEqual(
+            controller.presentations[key]?.actionState,
+            .changing(to: .transparency),
+            "an external signal never overwrites a write still reconciling"
+        )
+
+        controller.stop() // release the stalled write task
+    }
+
+    func testEndpointDropUnsubscribes() {
+        let (controller, _, listener) = makeController(endpoints: [endpoint()])
+        controller.refresh(devices: [device()])
+        XCTAssertTrue(listener.hasRegistration(for: endpointID))
+
+        controller.refresh(devices: []) // AirPods disconnected
+        XCTAssertFalse(listener.hasRegistration(for: endpointID))
+        XCTAssertEqual(listener.removeCount, 1)
+    }
+
+    func testStopRemovesEverySubscription() {
+        let (controller, _, listener) = makeController(endpoints: [endpoint()])
+        controller.refresh(devices: [device()])
+        XCTAssertEqual(listener.addCount, 1)
+
+        controller.stop()
+        XCTAssertFalse(listener.hasRegistration(for: endpointID), "panel close leaves no residual listener")
+        XCTAssertEqual(listener.removeCount, 1)
+    }
+
+    func testRealToPreviewTransitionUnsubscribes() {
+        let (controller, _, listener) = makeController(endpoints: [endpoint()])
+        controller.refresh(devices: [device()])
+        XCTAssertTrue(listener.hasRegistration(for: endpointID))
+
+        controller.previewMode = true
+        controller.refresh(devices: [device()])
+        XCTAssertFalse(
+            listener.hasRegistration(for: endpointID),
+            "preview takes over — the real endpoint's subscription must go away"
+        )
+    }
+
+    private func controllerHasMode(
+        _ controller: BluetoothListeningModeController,
+        mode: BluetoothListeningMode
+    ) -> Bool {
+        controller.presentations[key]?.selectedMode == mode
     }
 
     private func isFailed(_ state: BluetoothListeningModeActionState?) -> Bool {

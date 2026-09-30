@@ -90,14 +90,37 @@ final class BluetoothListeningModeController: ObservableObject {
     /// cannot touch the presentation the next refresh published.
     private var generations: [String: UInt64] = [:]
 
+    /// The `lstm` property listener seam. The controller subscribes per resolved
+    /// endpoint in `refresh` and clears them in `stop`, so an external mode change
+    /// (the stem, Control Center, another Mac, Siri) reflects here without waiting
+    /// for the panel to reopen or for the user to tap. Preview mode never touches
+    /// the seam — synthetic rows have no device to listen to.
+    private let listenerBackend: any BluetoothListeningModePropertyListening
+
+    /// The queue CoreAudio dispatches `lstm` signals on. Serial so a burst of
+    /// notifications does not fan out; the block body only hops to MainActor, so
+    /// the queue itself is not where the presentation is mutated.
+    private let listenerQueue = DispatchQueue(
+        label: "com.lingsmbp.StatusTrio.bluetooth.listeningMode.listener"
+    )
+
+    /// The active subscription per endpoint we are listening on. Keeping the exact
+    /// block reference here is what lets `AudioObjectRemovePropertyListenerBlock`
+    /// match the same registration — a fresh closure would leave the CoreAudio
+    /// side subscribed and the callback firing into a controller that already
+    /// dropped the presentation.
+    private var subscriptions: [AudioDeviceID: BluetoothListeningModeSubscription] = [:]
+
     init(
         hal: BluetoothListeningModeHAL = BluetoothListeningModeHAL(),
         endpointProvider: any CoreAudioBluetoothEndpointProviding = CoreAudioBluetoothListeningModeEndpointProvider(),
+        listenerBackend: any BluetoothListeningModePropertyListening = CoreAudioBluetoothListeningModeListenerBackend(),
         failureClearDelay: Duration = .seconds(2),
         previewSettleDelay: Duration = .milliseconds(400)
     ) {
         self.hal = hal
         self.endpointProvider = endpointProvider
+        self.listenerBackend = listenerBackend
         self.failureClearDelay = failureClearDelay
         self.previewSettleDelay = previewSettleDelay
     }
@@ -159,6 +182,11 @@ final class BluetoothListeningModeController: ObservableObject {
         // A real refresh invalidates every preview selection: preview state must
         // never leak back onto the live control surface after the toggle is off.
         previewSelectedModes.removeAll()
+        // Reconcile the `lstm` listeners against the freshly-resolved endpoint set:
+        // a new subscription catches a mode change on a just-connected AirPods, an
+        // unsubscribe stops a change on a disconnected one from firing into a
+        // controller that already dropped the presentation.
+        syncSubscriptions(to: Set(nextResolved.values))
     }
 
     /// The preview-side refresh. No HAL, no endpoint provider, no identity mapper.
@@ -207,6 +235,10 @@ final class BluetoothListeningModeController: ObservableObject {
 
         presentations = next
         resolvedEndpoints = nextEndpoints
+        // Preview has no real device to subscribe to. Any subscription the previous
+        // real refresh left behind must go away, or a live AirPods would keep
+        // firing signals into a controller that is only rendering synthetic rows.
+        syncSubscriptions(to: [])
     }
 
     /// Asks a device to switch to `mode`, publishing the in-flight state and
@@ -308,6 +340,86 @@ final class BluetoothListeningModeController: ObservableObject {
         failureClearTasks.removeAll()
         presentations = [:]
         resolvedEndpoints = [:]
+        // The panel is going away; the plan's "no residual timer or task once the
+        // panel closes" applies to CoreAudio subscriptions too. `syncSubscriptions`
+        // with an empty set removes every registered block.
+        syncSubscriptions(to: [])
+    }
+
+    // MARK: - External `lstm` changes
+
+    /// Reconciles the active subscription set with the freshly resolved endpoints.
+    /// Called at the tail of every real `refresh`, and with an empty set when
+    /// preview takes over or when the panel stops.
+    ///
+    /// A stable endpoint keeps its existing subscription — `AudioObjectAddPropertyListenerBlock`
+    /// on the same (deviceID, queue, block) triple is not idempotent, so we never
+    /// re-subscribe unless the endpoint genuinely disappears and comes back.
+    private func syncSubscriptions(to endpoints: Set<AudioDeviceID>) {
+        for endpointID in endpoints where subscriptions[endpointID] == nil {
+            subscribe(endpointID: endpointID)
+        }
+        for endpointID in subscriptions.keys where !endpoints.contains(endpointID) {
+            unsubscribe(endpointID: endpointID)
+        }
+    }
+
+    private func subscribe(endpointID: AudioDeviceID) {
+        let address = BluetoothListeningModeProperty.address(
+            BluetoothListeningModeProperty.listeningMode
+        )
+        let queue = listenerQueue
+        // The block only hops to the MainActor — the presentation is mutated there,
+        // so nothing else is captured. `weak self` keeps CoreAudio from holding the
+        // controller alive past the panel's lifetime; a nil self simply no-ops.
+        let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            Task { @MainActor [weak self] in
+                self?.handleExternalChange(endpointID: endpointID)
+            }
+        }
+        let status = listenerBackend.addListener(
+            deviceID: endpointID,
+            address: address,
+            queue: queue,
+            block: block
+        )
+        guard status == noErr else { return }
+        subscriptions[endpointID] = BluetoothListeningModeSubscription(
+            deviceID: endpointID,
+            address: address,
+            queue: queue,
+            block: block
+        )
+    }
+
+    private func unsubscribe(endpointID: AudioDeviceID) {
+        guard let subscription = subscriptions.removeValue(forKey: endpointID) else { return }
+        _ = listenerBackend.removeListener(
+            deviceID: subscription.deviceID,
+            address: subscription.address,
+            queue: subscription.queue,
+            block: subscription.block
+        )
+    }
+
+    /// Publishes the device's current `lstm` value after a signal from CoreAudio.
+    ///
+    /// Guards on `previewMode` (preview never subscribes, but the seam could fire
+    /// during a real→preview flip that races the unsubscribe), on the endpoint
+    /// still mapping to a live address, and on the presentation not being in-flight
+    /// — while our own write is still reconciling, the read-back path owns the
+    /// state and an external signal must not overwrite it.
+    private func handleExternalChange(endpointID: AudioDeviceID) {
+        if previewMode { return }
+        guard let address = address(forEndpoint: endpointID),
+              let presentation = presentations[address] else {
+            return
+        }
+        if presentation.isChanging { return }
+
+        let observed = hal.currentMode(for: endpointID)
+        let resolved = observed.flatMap { presentation.availableModes.contains($0) ? $0 : nil }
+        presentations[address] = presentation.settled(on: resolved)
     }
 
     // MARK: - Reconciliation
