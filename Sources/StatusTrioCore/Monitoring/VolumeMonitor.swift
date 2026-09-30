@@ -822,6 +822,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     let updates: AsyncStream<VolumeStatus>
     private let continuation: AsyncStream<VolumeStatus>.Continuation
     private let statusReader: any AudioStatusReadingProviding
+    private let appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter
     private let eventMonitor: any VolumeEventMonitoring
     private let outputController: (any AudioOutputControlling)?
     private let ddcTransport: any DDCVolumeTransport
@@ -852,6 +853,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
 
     init(
         statusReader: any AudioStatusReadingProviding = CoreAudioStatusReader(),
+        appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter = AppleBluetoothAudioDiagnosticReporter(),
         eventMonitor: any VolumeEventMonitoring = CoreAudioVolumeEventMonitor(),
         outputController: (any AudioOutputControlling)? = nil,
         ddcTransport: any DDCVolumeTransport = DDCDisplayTransport(),
@@ -866,6 +868,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         }
     ) {
         self.statusReader = statusReader
+        self.appleBluetoothAudioDiagnosticReporter = appleBluetoothAudioDiagnosticReporter
         self.eventMonitor = eventMonitor
         self.outputController = outputController
         self.ddcTransport = ddcTransport
@@ -1101,6 +1104,15 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
 
     private func receive(_ result: AudioStatusReading) {
         if let reading = result.volume {
+            if let device = reading.currentDevice,
+               let record = AppleBluetoothAudioDiagnosticRecord.coreAudio(
+                   name: device.name,
+                   transport: device.transport,
+                   modelUID: device.modelUID,
+                   deviceUID: device.uid
+               ) {
+                appleBluetoothAudioDiagnosticReporter.report(record)
+            }
             let devices: [AudioOutputDevice]
             if !detailsVisible {
                 cachedOutputDevices = []

@@ -25,6 +25,7 @@ enum AirPodsModel: Equatable, Sendable {
     case airPods
     case airPodsGen3
     case airPodsGen4
+    case airPodsGen5
     case airPodsPro
     case airPodsProGen1
     case airPodsProGen3
@@ -75,6 +76,8 @@ enum AirPodsModel: Equatable, Sendable {
             .airPodsGen3
         case .airPodsGen4:
             .airPodsGen4
+        case .airPodsGen5:
+            .airPodsGen5
         case .airPodsPro:
             .airPodsPro
         case .airPodsProGen1:
@@ -90,21 +93,28 @@ enum AirPodsModel: Equatable, Sendable {
     ///
     /// The 1st and 2nd generation, 3rd generation, Pro, and Max rows are the
     /// `public.bluetooth-vendor-product-id` tags macOS 26 ships. The 4th
-    /// generation and Pro 3 rows follow Apple's own
-    /// `Device1,<decimal product ID>` identifiers, which an older
-    /// `CoreTypes.bundle` does not declare yet; a product ID this table misses
-    /// falls back to the device name.
+    /// Later rows are confirmed by the matching nested CoreTypes bundle, with
+    /// an independent catalog cross-check recorded in
+    /// `docs/superpowers/plans/2026-09-30-airpods-5-identification.md`.
     private static let modelsByProductID: [Int: AirPodsModel] = [
         0x2002: .airPods,      // AirPods (1st generation)
         0x200F: .airPods,      // AirPods (2nd generation), A2031/A2032
         0x2013: .airPodsGen3,  // AirPods (3rd generation)
         0x2019: .airPodsGen4,  // AirPods 4
         0x201B: .airPodsGen4,  // AirPods 4 with Active Noise Cancellation
+        0x201C: .airPodsGen4,
+        0x201E: .airPodsGen4,
+        0x2020: .airPodsGen4,
+        0x2030: .airPodsGen5,  // AirPods 5
+        0x2036: .airPodsGen5,
         0x200E: .airPodsProGen1,
         0x2014: .airPodsPro,   // AirPods Pro (2nd generation)
+        0x2024: .airPodsPro,   // AirPods Pro 2 USB-C
         0x2027: .airPodsProGen3,
         0x2028: .airPodsProGen3,
-        0x200A: .airPodsMax
+        0x200A: .airPodsMax,
+        0x201F: .airPodsMax,   // AirPods Max USB-C
+        0x202D: .airPodsMax    // AirPods Max (2nd generation)
     ]
 
     /// Reads one hexadecimal token, with or without the `0x` prefix the

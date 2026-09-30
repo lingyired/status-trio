@@ -186,6 +186,7 @@ enum AudioOutputDeviceKind: CaseIterable, Equatable, Sendable {
     case airPods
     case airPodsGen3
     case airPodsGen4
+    case airPodsGen5
     case airPodsMax
     case beatsPill
     case beatsSoloBuds
@@ -248,7 +249,7 @@ struct AudioDeviceIdentity: Equatable, Sendable {
         // Every other transport reports a free-form model name instead, or
         // nothing at all.
         if transport == nil || transport?.isBluetooth == true {
-            airPodsModel = AirPodsModel(modelUID: modelUID)
+            airPodsModel = AppleBluetoothAudioResolver.airPodsModel(modelUID: modelUID)
         } else {
             airPodsModel = nil
         }
@@ -293,10 +294,18 @@ enum AudioOutputDeviceIcon {
     }
 
     static func symbolName(for kind: AudioOutputDeviceKind, host: HostMacKind = .current) -> String {
+        symbolName(for: kind, host: host, isSymbolAvailable: { symbol in
+            NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
+        })
+    }
+
+    static func symbolName(
+        for kind: AudioOutputDeviceKind,
+        host: HostMacKind = .current,
+        isSymbolAvailable: (String) -> Bool
+    ) -> String {
         let candidates = symbolCandidates(for: kind, host: host)
-        return candidates.first {
-            NSImage(systemSymbolName: $0, accessibilityDescription: nil) != nil
-        } ?? candidates.last ?? "hifispeaker.fill"
+        return candidates.first(where: isSymbolAvailable) ?? candidates.last ?? "hifispeaker.fill"
     }
 
     /// The SF Symbol names for a device class, most faithful to the system
@@ -319,6 +328,8 @@ enum AudioOutputDeviceIcon {
             ["airpods.gen3", "airpods", "headphones"]
         case .airPodsGen4:
             ["airpods.gen4", "airpods", "headphones"]
+        case .airPodsGen5:
+            ["airpods.gen5", "airpods.gen4", "airpods", "headphones"]
         case .airPodsMax:
             ["airpodsmax", "airpods.max", "headphones"]
         case .beatsPill:
@@ -372,6 +383,9 @@ enum AudioOutputDeviceIcon {
         // it, and a rename erases the guess.
         if let airPodsModel = identity.airPodsModel {
             return airPodsModel.kind
+        }
+        if let namedAirPodsModel = AppleBluetoothAudioResolver.airPodsModel(name: identity.name) {
+            return namedAirPodsModel.kind
         }
         return kind(
             forName: identity.name,
@@ -445,29 +459,6 @@ enum AudioOutputDeviceIcon {
     }
 
     private static func appleOrBeatsFamily(in name: String) -> AudioOutputDeviceKind? {
-        if name.contains("airpods max") {
-            return .airPodsMax
-        }
-        if name.contains("airpods pro") {
-            switch airPodsGeneration(in: name) {
-            case 1:
-                return .airPodsProGen1
-            case 3:
-                return .airPodsProGen3
-            default:
-                return .airPodsPro
-            }
-        }
-        if name.contains("airpods") {
-            switch airPodsGeneration(in: name) {
-            case 4:
-                return .airPodsGen4
-            case 3:
-                return .airPodsGen3
-            default:
-                return .airPods
-            }
-        }
         if name.contains("homepod mini") || name.contains("homepodmini") {
             return .homePodMini
         }
@@ -516,61 +507,6 @@ enum AudioOutputDeviceIcon {
         }
         return .beatsHeadphones
     }
-
-    private static func matchesGeneration(_ name: String, generation: Int) -> Bool {
-        let suffixes = ["th", "st", "nd", "rd"]
-        var keywords = [
-            "gen\(generation)",
-            "gen \(generation)",
-            "generation \(generation)",
-            "\(generation)代",
-            "第\(generation)代"
-        ]
-        for suffix in suffixes {
-            keywords.append("\(generation)\(suffix) generation")
-        }
-        keywords.append(contentsOf: chineseNumerals.compactMap { numeral, value in
-            value == generation ? numeral : nil
-        })
-
-        for keyword in keywords where name.contains(keyword) {
-            return true
-        }
-        return false
-    }
-
-    /// Reads the AirPods generation from explicit wording ("3rd generation",
-    /// "第三代") or from the marketing number in a device name such as
-    /// "AirPods Pro 3".
-    private static func airPodsGeneration(in name: String) -> Int? {
-        for generation in 1...6 where matchesGeneration(name, generation: generation) {
-            return generation
-        }
-
-        for generation in 1...6 {
-            let modelNumbers = [
-                "airpods pro \(generation)",
-                "airpods pro\(generation)",
-                "airpods \(generation)",
-                "airpods\(generation)"
-            ]
-            if modelNumbers.contains(where: { name.contains($0) }) {
-                return generation
-            }
-        }
-        return nil
-    }
-
-    private static let chineseNumerals: [(numeral: String, generation: Int)] = [
-        ("第一代", 1),
-        ("第二代", 2),
-        ("第三代", 3),
-        ("第四代", 4),
-        ("一代", 1),
-        ("二代", 2),
-        ("三代", 3),
-        ("四代", 4)
-    ]
 
     private static func isHeadphoneName(_ name: String) -> Bool {
         for keyword in ["headphone", "headset", "earbud", "earphone", "earpods"] where name.contains(keyword) {

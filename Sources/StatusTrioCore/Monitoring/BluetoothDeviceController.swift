@@ -198,14 +198,32 @@ enum BluetoothPairedDeviceReader {
                         from: properties["device_vendorID"] as? String
                     )
                     let isUnpairedGhost = Self.isGhost(properties: properties)
+                    let deviceKind = Self.kind(properties: properties)
+                    let diagnosticRecord = AppleBluetoothAudioDiagnosticRecord.bluetooth(
+                        name: entry.name,
+                        address: address,
+                        kind: deviceKind,
+                        vendorID: vendorID,
+                        productID: productID,
+                        majorType: BluetoothDeviceKindResolver.majorTypeKeys
+                            .compactMap { properties[$0] as? String }
+                            .first,
+                        minorType: BluetoothDeviceKindResolver.minorTypeKeys
+                            .compactMap { properties[$0] as? String }
+                            .first
+                    )
                     devices.append(BluetoothDevice(
                         id: address,
                         name: entry.name,
-                        kind: kind(properties: properties),
+                        kind: deviceKind,
                         isConnected: isConnected,
-                        airPodsModel: AirPodsModel(productID: productID, vendorID: vendorID),
+                        airPodsModel: AppleBluetoothAudioResolver.airPodsModel(
+                            productID: productID,
+                            vendorID: vendorID
+                        ),
                         vendorID: vendorID,
                         productID: productID,
+                        appleBluetoothAudioDiagnostic: diagnosticRecord,
                         isUnpairedGhost: isUnpairedGhost
                     ))
                 }
@@ -322,6 +340,7 @@ final class BluetoothDeviceController: ObservableObject {
     @Published private(set) var batteryLevelsReadFailed = false
 
     private let worker: any BluetoothPairedDeviceReading
+    private let appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter
     /// The state monitor is teardown-owned storage: `deinit` is nonisolated, so
     /// it is held `nonisolated(unsafe)` for that one read. `BluetoothStateMonitoring`
     /// is `@MainActor`, and `stop()` runs on the main actor through the hop in
@@ -443,6 +462,7 @@ final class BluetoothDeviceController: ObservableObject {
 
     init(
         worker: any BluetoothPairedDeviceReading = SystemProfilerBluetoothPairedDeviceWorker(),
+        appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter = AppleBluetoothAudioDiagnosticReporter(),
         stateMonitor: any BluetoothStateMonitoring = CoreBluetoothStateMonitor(),
         batteryReader: any BluetoothBatteryReading = SystemProfilerBluetoothBatteryWorker(),
         accessoryBatteryReader: (any BluetoothAccessoryBatteryReading)? = nil,
@@ -480,6 +500,7 @@ final class BluetoothDeviceController: ObservableObject {
         nearbyBatteryCacheLifetime: TimeInterval = BluetoothLEBatteryScanPolicy.resultLifetime
     ) {
         self.worker = worker
+        self.appleBluetoothAudioDiagnosticReporter = appleBluetoothAudioDiagnosticReporter
         self.stateMonitor = stateMonitor
         self.batteryReader = batteryReader
         self.nearbyBatteryScanner = nearbyBatteryScanner
@@ -647,6 +668,9 @@ final class BluetoothDeviceController: ObservableObject {
                 guard self.isActive else { return }
                 switch result {
                 case let .success(devices):
+                    devices.compactMap(\.appleBluetoothAudioDiagnostic).forEach {
+                        self.appleBluetoothAudioDiagnosticReporter.report($0)
+                    }
                     self.devices = devices
                     self.reconcileDeviceActions()
                     self.availability = .available

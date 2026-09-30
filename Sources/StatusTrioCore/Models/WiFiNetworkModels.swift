@@ -316,6 +316,9 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
     let name: String
     let kind: BluetoothDeviceKind
     let isConnected: Bool
+    /// A conservative diagnostic captured from the same profiler row. The
+    /// controller reports it after a successful read; it does not affect UI.
+    let appleBluetoothAudioDiagnostic: AppleBluetoothAudioDiagnosticRecord?
     /// The AirPods model the device's own Bluetooth product ID names, read from
     /// the profiler's `device_productID` / `device_vendorID` pair. It survives a
     /// rename, which the name cannot.
@@ -343,12 +346,14 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
         airPodsModel: AirPodsModel? = nil,
         vendorID: Int? = nil,
         productID: Int? = nil,
+        appleBluetoothAudioDiagnostic: AppleBluetoothAudioDiagnosticRecord? = nil,
         isUnpairedGhost: Bool = false
     ) {
         self.id = id
         self.name = name
         self.kind = kind
         self.isConnected = isConnected
+        self.appleBluetoothAudioDiagnostic = appleBluetoothAudioDiagnostic
         self.airPodsModel = airPodsModel
         self.vendorID = vendorID
         self.productID = productID
@@ -369,6 +374,7 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
             airPodsModel: airPodsModel,
             vendorID: vendorID,
             productID: productID,
+            appleBluetoothAudioDiagnostic: appleBluetoothAudioDiagnostic,
             isUnpairedGhost: isUnpairedGhost
         )
     }

@@ -32,11 +32,19 @@ struct AirPodsModelTests {
             (0x2013, .airPodsGen3, .airPodsGen3),      // AirPods (3rd generation)
             (0x2019, .airPodsGen4, .airPodsGen4),      // AirPods 4
             (0x201B, .airPodsGen4, .airPodsGen4),      // AirPods 4 with ANC
+            (0x201C, .airPodsGen4, .airPodsGen4),
+            (0x201E, .airPodsGen4, .airPodsGen4),
+            (0x2020, .airPodsGen4, .airPodsGen4),
+            (0x2030, .airPodsGen5, .airPodsGen5),      // AirPods 5
+            (0x2036, .airPodsGen5, .airPodsGen5),
             (0x200E, .airPodsProGen1, .airPodsProGen1),// AirPods Pro
             (0x2014, .airPodsPro, .airPodsPro),        // AirPods Pro (2nd generation)
+            (0x2024, .airPodsPro, .airPodsPro),        // AirPods Pro 2 USB-C
             (0x2027, .airPodsProGen3, .airPodsProGen3),// AirPods Pro 3
             (0x2028, .airPodsProGen3, .airPodsProGen3),
-            (0x200A, .airPodsMax, .airPodsMax)         // AirPods Max
+            (0x200A, .airPodsMax, .airPodsMax),        // AirPods Max
+            (0x201F, .airPodsMax, .airPodsMax),        // AirPods Max USB-C
+            (0x202D, .airPodsMax, .airPodsMax)         // AirPods Max 2
         ]
 
         for entry in declared {
@@ -63,7 +71,7 @@ struct AirPodsModelTests {
         #expect(AirPodsModel(modelUID: "Digital Mic") == nil)
         #expect(AirPodsModel(modelUID: "") == nil)
         #expect(AirPodsModel(modelUID: nil) == nil)
-        #expect(AirPodsModel(modelUID: "201f 4c") == nil)
+        #expect(AirPodsModel(modelUID: "2042 4c") == nil)
         #expect(AirPodsModel(productID: nil) == nil)
         #expect(AirPodsModel(productID: 0) == nil)
         #expect(AirPodsModel(productIDText: nil, vendorIDText: nil) == nil)

@@ -86,6 +86,10 @@ struct AudioOutputDeviceIconTests {
         #expect(candidates(name: "AirPods (3rd generation)", transport: .bluetooth).first == "airpods.gen3")
         #expect(candidates(name: "AirPods (4th generation)", transport: .bluetooth).first == "airpods.gen4")
         #expect(candidates(name: "AirPods 第四代", transport: .bluetooth).first == "airpods.gen4")
+        #expect(candidates(name: "AirPods 5", transport: .bluetooth).first == "airpods.gen5")
+        #expect(candidates(name: "Ling's AirPods 5", transport: .bluetooth).first == "airpods.gen5")
+        #expect(candidates(name: "AirPods gen5", transport: .bluetooth).first == "airpods.gen5")
+        #expect(candidates(name: "AirPods 第5代", transport: .bluetooth).first == "airpods.gen5")
     }
 
     @Test("An AirPods keeps its glyph when the name is not an AirPods name")
@@ -102,12 +106,13 @@ struct AudioOutputDeviceIconTests {
         #expect(candidates(name: "AirPods", transport: .bluetooth, modelUID: "200e 4c").first == "airpods.pro.gen1")
         #expect(candidates(name: "AirPods", transport: .bluetooth, modelUID: "200a 4c").first == "airpodsmax")
         #expect(candidates(name: "AirPods", transport: .bluetooth, modelUID: "2013 4c").first == "airpods.gen3")
+        #expect(candidates(name: "My Earbuds", transport: .bluetooth, modelUID: "2030 4c").first == "airpods.gen5")
     }
 
     @Test("A product ID the table does not know still falls back to the name")
     func unknownProductIDFallsBackToTheName() {
-        #expect(candidates(name: "小王的耳机", transport: .bluetooth, modelUID: "201f 4c").first == "headphones")
-        #expect(candidates(name: "AirPods Pro", transport: .bluetooth, modelUID: "201f 4c").first == "airpods.pro")
+        #expect(candidates(name: "小王的耳机", transport: .bluetooth, modelUID: "2042 4c").first == "headphones")
+        #expect(candidates(name: "AirPods Pro", transport: .bluetooth, modelUID: "2042 4c").first == "airpods.pro")
         #expect(candidates(name: "AirPods", transport: .bluetooth, modelUID: "Speaker").first == "airpods")
     }
 
@@ -204,6 +209,16 @@ struct AudioOutputDeviceIconTests {
 
     @Test("Newer symbols fall back to one that older releases ship")
     func newerSymbolsFallBackToOlderOnes() {
+        let availableSymbols: Set<String> = ["airpods", "headphones"]
+        #expect(
+            AudioOutputDeviceIcon.symbolName(for: .airPodsGen5, isSymbolAvailable: availableSymbols.contains) == "airpods"
+        )
+        #expect(
+            AudioOutputDeviceIcon.symbolName(for: .airPodsGen5, isSymbolAvailable: { _ in false }) == "headphones"
+        )
+        #expect(AudioOutputDeviceIcon.symbolCandidates(for: .airPodsGen5) == [
+            "airpods.gen5", "airpods.gen4", "airpods", "headphones"
+        ])
         #expect(AudioOutputDeviceIcon.symbolCandidates(for: .airPodsPro).last == "headphones")
         #expect(AudioOutputDeviceIcon.symbolCandidates(for: .airPodsProGen3).last == "headphones")
         #expect(AudioOutputDeviceIcon.symbolCandidates(for: .homePodMini).last == "hifispeaker.fill")

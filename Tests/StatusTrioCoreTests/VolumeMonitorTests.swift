@@ -50,6 +50,43 @@ final class VolumeMonitorTests: XCTestCase {
         monitor.stop()
     }
 
+    func testUnknownCoreAudioAppleDeviceIsReportedOncePerMonitor() async {
+        let reporter = AppleBluetoothAudioDiagnosticReporter()
+        let device = AudioOutputDevice(
+            id: 42,
+            name: "Renamed Headphones",
+            uid: "unknown-device",
+            isCurrent: true,
+            transport: .bluetooth,
+            modelUID: "2042 4c"
+        )
+        let monitor = VolumeMonitor(
+            statusReader: CoreAudioStatusReader { _ in
+                AudioStatusReading(
+                    volume: VolumeReading(
+                        scalar: 0.5,
+                        isMuted: false,
+                        deviceName: device.name,
+                        currentDevice: device
+                    ),
+                    outputDevices: nil
+                )
+            },
+            appleBluetoothAudioDiagnosticReporter: reporter,
+            eventMonitor: FakeVolumeEventMonitor()
+        )
+        var updates = monitor.updates.makeAsyncIterator()
+
+        monitor.refresh()
+        _ = await updates.next()
+        XCTAssertEqual(reporter.retainedFingerprintCount, 1)
+
+        monitor.refresh()
+        _ = await updates.next()
+        XCTAssertEqual(reporter.retainedFingerprintCount, 1)
+        monitor.stop()
+    }
+
     func testSlowDeviceEnumerationDoesNotBlockMainActorAndKeepsTheSnapshotDevice() async {
         let started = expectation(description: "device enumeration started")
         let blockedEnumeration = BlockingAudioRead(onStart: { started.fulfill() })
