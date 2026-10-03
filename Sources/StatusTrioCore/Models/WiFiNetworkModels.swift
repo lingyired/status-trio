@@ -337,18 +337,15 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
     /// option off. A device the stack has classified always carries one of those
     /// two keys, so their joint absence is the signal.
     let isUnpairedGhost: Bool
-    /// Whether this row exists because of a battery reading this app took over
-    /// the air, rather than because the paired-device report described a device
-    /// the user has.
+    /// Whether this row exists because an external read supplied device
+    /// information, rather than because the paired-device report described a
+    /// device the user has. This covers both nearby Bluetooth reads and devices
+    /// observed through a trusted phone.
     ///
-    /// Such a row is one the report could not describe: either it carries no
-    /// entry for the device at all, or it carries one with no class, which is a
-    /// ghost the panel hides. Two things follow, and they are the same thing
-    /// seen twice. Its connection state cannot be reported, because connecting
-    /// to read a level is what makes the system call it connected in the first
-    /// place. And it cannot be acted on, because there is no paired connection
-    /// for this app to make or break — the device is known here by a
-    /// CoreBluetooth identifier, which is not a Bluetooth address.
+    /// Such a row is read-only: an external reading can report a battery level,
+    /// but it cannot supply the Mac's connection state or a paired Bluetooth
+    /// address for this app to connect or disconnect. The provider identity may
+    /// come from a Bluetooth peripheral or from a trusted phone.
     let isReadOverTheAir: Bool
 
     init(

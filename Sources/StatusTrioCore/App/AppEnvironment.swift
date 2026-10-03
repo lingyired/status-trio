@@ -58,6 +58,7 @@ final class AppEnvironment {
             settings: settings
         )
         store.bindInputSettings(settings)
+        store.bindMobileBatterySettings(settings)
         store.start()
     }
 

@@ -53,9 +53,9 @@ enum BluetoothDeviceRowStatus: Equatable, Sendable {
 enum BluetoothDeviceActionPolicy {
     /// Whether a tap on this row has anything to ask the system for.
     ///
-    /// A row a reading created is not a paired device: the app knows it by a
-    /// CoreBluetooth identifier, which is not a Bluetooth address, so an action
-    /// attempted against it cannot find the device at all. Its row is read-only.
+    /// A row supplied only by an external reading has no paired connection for
+    /// this app to control. Its provider ID is not a Bluetooth address, so the
+    /// row is read-only.
     static func isActionable(_ device: BluetoothDevice) -> Bool {
         !device.isReadOverTheAir
     }

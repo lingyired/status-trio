@@ -289,6 +289,7 @@
 "bluetooth.openDetails" = "打開詳細資訊以查看裝置狀態";
 "bluetooth.title" = "藍牙";
 "bluetooth.pairedDevices.title" = "已配對";
+"bluetooth.devices.title" = "藍牙裝置";
 "bluetooth.nearbyBattery.title" = "附近裝置";
 "bluetooth.nearbyDevice.fallback" = "藍牙裝置";
 "bluetooth.action.openSettings" = "打開藍牙設定";
@@ -402,3 +403,12 @@
 "bluetooth.listeningMode.off" = "關閉";
 "bluetooth.listeningMode.changeFailed" = "無法變更聆聽模式。";
 "bluetooth.listeningMode.accessibility" = "聆聽模式";
+
+"settings.bluetooth.mobileBatteryDevices" = "iPhone 與 Apple Watch 電量";
+"settings.bluetooth.mobileBatteryDevicesDescription" = "透過已信任的 iPhone，以 USB 或 Wi-Fi 讀取。首次請以連接線連接 iPhone 並點一下「信任」；無線讀取需要已設定 Wi-Fi 同步。";
+"mobileBattery.watchFallbackName" = "Apple Watch";
+"mobileBattery.watchSource" = "透過 iPhone 讀取";
+"mobileBattery.updatedAt" = "更新於 %@";
+"mobileBattery.charging" = "正在充電";
+"mobileBattery.trustRequired" = "請以連接線連接 iPhone 並點一下「信任」，以讀取已配對 Apple Watch 的電量。";
+"mobileBattery.unavailable" = "無法重新整理 iPhone 與 Apple Watch 電量。";

@@ -122,6 +122,38 @@ fi
 
 ditto "$SPARKLE_FRAMEWORK_SOURCE" "$CONTENTS/Frameworks/Sparkle.framework"
 
+# The mobile-device helper is built from exact upstream commits. Its runtime
+# dependency graph is packaged into the app so users do not need Homebrew.
+bash "$ROOT/scripts/build-mobile-battery-helper.sh"
+MOBILE_BATTERY_PACKAGE="$ROOT/.build/mobile-battery/package"
+mkdir -p "$CONTENTS/Helpers" "$CONTENTS/Frameworks/MobileBattery" "$CONTENTS/Resources/MobileBatteryLicenses"
+ditto "$MOBILE_BATTERY_PACKAGE/Helpers/StatusTrioMobileBatteryHelper" "$CONTENTS/Helpers/StatusTrioMobileBatteryHelper"
+ditto "$MOBILE_BATTERY_PACKAGE/Frameworks/MobileBattery" "$CONTENTS/Frameworks/MobileBattery"
+ditto "$MOBILE_BATTERY_PACKAGE/Resources/MobileBatteryLicenses" "$CONTENTS/Resources/MobileBatteryLicenses"
+
+rewrite_mobile_battery_binary() {
+    local binary="$1"
+    local old_id
+    if [[ "$binary" == *.dylib* ]]; then
+        old_id="$(otool -D "$binary" | sed -n '2p' | xargs)"
+        if [[ -n "$old_id" ]]; then
+            install_name_tool -id "@rpath/$(basename "$old_id")" "$binary"
+        fi
+    fi
+    while IFS= read -r dependency; do
+        case "$dependency" in
+            "$ROOT"/.build/mobile-battery/*)
+                install_name_tool -change "$dependency" "@rpath/$(basename "$dependency")" "$binary"
+                ;;
+        esac
+    done < <(otool -L "$binary" | sed -n '2,$s/^[[:space:]]*\([^[:space:]]*\)[[:space:]]*(.*/\1/p')
+}
+
+while IFS= read -r -d '' mobile_library; do
+    rewrite_mobile_battery_binary "$mobile_library"
+done < <(find "$CONTENTS/Frameworks/MobileBattery" -maxdepth 1 -type f -name '*.dylib*' -print0)
+rewrite_mobile_battery_binary "$CONTENTS/Helpers/StatusTrioMobileBatteryHelper"
+
 if ! otool -l "$CONTENTS/MacOS/StatusTrio" | grep -Fq 'path @executable_path/../Frameworks'; then
     install_name_tool -add_rpath '@executable_path/../Frameworks' "$CONTENTS/MacOS/StatusTrio"
 fi
@@ -219,8 +251,13 @@ if [[ "$SIGNING_IDENTITY" != "-" ]]; then
 fi
 
 codesign "${SIGNING_ARGS[@]}" "$CONTENTS/Frameworks/Sparkle.framework"
+while IFS= read -r -d '' mobile_library; do
+    codesign "${SIGNING_ARGS[@]}" "$mobile_library"
+done < <(find "$CONTENTS/Frameworks/MobileBattery" -maxdepth 1 -type f -name '*.dylib*' -print0)
+codesign "${SIGNING_ARGS[@]}" "$CONTENTS/Helpers/StatusTrioMobileBatteryHelper"
 codesign "${SIGNING_ARGS[@]}" "$APP_DIR"
 codesign --verify --deep --strict --verbose=2 "$APP_DIR"
+bash "$ROOT/scripts/verify-mobile-battery-bundle.sh" "$APP_DIR"
 
 echo "Built $APP_DIR (bundle id: $BUNDLE_ID)"
 

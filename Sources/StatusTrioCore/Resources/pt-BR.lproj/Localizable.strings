@@ -289,6 +289,7 @@
 "bluetooth.openDetails" = "Abrir detalhes para ver o status do dispositivo";
 "bluetooth.title" = "Bluetooth";
 "bluetooth.pairedDevices.title" = "Emparelhados";
+"bluetooth.devices.title" = "Dispositivos Bluetooth";
 "bluetooth.nearbyBattery.title" = "Próximos";
 "bluetooth.nearbyDevice.fallback" = "Dispositivo Bluetooth";
 "bluetooth.action.openSettings" = "Abrir Ajustes de Bluetooth";
@@ -402,3 +403,12 @@
 "bluetooth.listeningMode.off" = "Desativado";
 "bluetooth.listeningMode.changeFailed" = "Não foi possível alterar o modo de audição.";
 "bluetooth.listeningMode.accessibility" = "Modo de audição";
+
+"settings.bluetooth.mobileBatteryDevices" = "Bateria do iPhone e do Apple Watch";
+"settings.bluetooth.mobileBatteryDevicesDescription" = "Leitura por um iPhone confiável via USB ou Wi‑Fi. Conecte o iPhone por cabo uma vez e toque em Confiar. O uso sem fio requer a sincronização por Wi‑Fi já configurada.";
+"mobileBattery.watchFallbackName" = "Apple Watch";
+"mobileBattery.watchSource" = "Via iPhone";
+"mobileBattery.updatedAt" = "Atualizado %@";
+"mobileBattery.charging" = "Carregando";
+"mobileBattery.trustRequired" = "Conecte o iPhone por cabo e toque em Confiar para ler a bateria do Apple Watch emparelhado.";
+"mobileBattery.unavailable" = "Não foi possível atualizar a bateria do iPhone e do Apple Watch.";

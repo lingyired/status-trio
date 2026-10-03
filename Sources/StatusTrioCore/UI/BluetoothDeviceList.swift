@@ -10,6 +10,7 @@ struct BluetoothDeviceList: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let devices: [BluetoothDevice]
     let batteryLevels: [String: BluetoothBatteryLevel]
+    var mobileMetadataByDeviceID: [String: MobileBatterySnapshot] = [:]
     let actionStates: [String: BluetoothDeviceActionState]
     /// The device whose disconnect is waiting for confirmation, by normalized
     /// address. The controller owns it so that closing the panel cancels it even
@@ -105,7 +106,8 @@ struct BluetoothDeviceList: View {
         let rowHeights = visibleDevices.reduce(CGFloat(0)) { total, device in
             total + BluetoothDeviceRowMetrics.estimatedHeight(
                 for: device,
-                batteryLevels: batteryLevels
+                batteryLevels: batteryLevels,
+                hasMobileDetails: mobileMetadataByDeviceID[device.id] != nil
             )
         }
         return rowHeights + Self.rowSpacing * CGFloat(visibleDevices.count - 1)
@@ -118,6 +120,7 @@ struct BluetoothDeviceList: View {
                 BluetoothDeviceRow(
                     device: device,
                     batteryLevels: batteryLevels,
+                    mobileMetadataByDeviceID: mobileMetadataByDeviceID,
                     actionState: actionStates[address],
                     isConfirmingDisconnect: confirmingAddress == address
                         && BluetoothDeviceActionPolicy.requiresConfirmation(for: device),

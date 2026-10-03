@@ -33,6 +33,7 @@ final class SettingsStore: ObservableObject {
     static let prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey = "prioritizesNetworkErrorsOverBluetoothAudio"
     static let showsBluetoothBatteryLevelsDefaultsKey = "showsBluetoothBatteryLevels"
     static let showsNearbyBluetoothBatteryDevicesDefaultsKey = "showsNearbyBluetoothBatteryDevices"
+    static let showsMobileDeviceBatteryLevelsDefaultsKey = "showsMobileDeviceBatteryLevels"
     static let previewsBluetoothListeningModeDefaultsKey = "previewsBluetoothListeningMode"
     static let bluetoothListeningModePreviewDeviceNameDefaultsKey = "bluetoothListeningModePreviewDeviceName"
     static let bluetoothListeningModePreviewDeviceCountDefaultsKey = "bluetoothListeningModePreviewDeviceCount"
@@ -295,6 +296,15 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 showsNearbyBluetoothBatteryDevices,
                 forKey: Self.showsNearbyBluetoothBatteryDevicesDefaultsKey
+            )
+        }
+    }
+
+    @Published var showsMobileDeviceBatteryLevels: Bool {
+        didSet {
+            defaults.set(
+                showsMobileDeviceBatteryLevels,
+                forKey: Self.showsMobileDeviceBatteryLevelsDefaultsKey
             )
         }
     }
@@ -878,6 +888,9 @@ final class SettingsStore: ObservableObject {
         ) as? Bool ?? true
         self.showsNearbyBluetoothBatteryDevices = defaults.object(
             forKey: Self.showsNearbyBluetoothBatteryDevicesDefaultsKey
+        ) as? Bool ?? false
+        self.showsMobileDeviceBatteryLevels = defaults.object(
+            forKey: Self.showsMobileDeviceBatteryLevelsDefaultsKey
         ) as? Bool ?? false
         self.previewsBluetoothListeningMode = defaults.object(
             forKey: Self.previewsBluetoothListeningModeDefaultsKey

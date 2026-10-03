@@ -171,3 +171,46 @@ enum BluetoothPanelListVisibility {
         return !BluetoothDevicePresentation.grouped(visible).connected.isEmpty
     }
 }
+
+/// Mobile helper readings are independently available while Bluetooth is off
+/// or denied, but they still obey the user's device-list setting and filters.
+enum BluetoothMobileBatteryPanelVisibility {
+    static func shouldClaim(
+        showsBatteryLevels: Bool,
+        showsMobileBatteryLevels: Bool,
+        options: BluetoothDeviceListOptions
+    ) -> Bool {
+        showsBatteryLevels && showsMobileBatteryLevels && options.showsList
+    }
+
+    static func showsList(
+        availability: BluetoothAvailability,
+        devices: [BluetoothDevice],
+        pairedDevices: [BluetoothDevice],
+        mobileDeviceIDs: Set<String>,
+        showsMobileBatteryLevels: Bool,
+        options: BluetoothDeviceListOptions
+    ) -> Bool {
+        guard options.showsList else { return false }
+        if BluetoothPanelListVisibility.showsList(
+            availability: availability,
+            devices: pairedDevices,
+            options: options
+        ) {
+            return true
+        }
+        guard showsMobileBatteryLevels else { return false }
+        return BluetoothDeviceListPresentation.filteredDevices(devices, options: options)
+            .contains { mobileDeviceIDs.contains($0.id) }
+    }
+}
+
+enum BluetoothDeviceListHeading {
+    static func title(
+        hasNearbyDevices: Bool,
+        hasExternalMobileDevices: Bool
+    ) -> LocalizationKey? {
+        guard hasNearbyDevices else { return nil }
+        return hasExternalMobileDevices ? .bluetoothDevicesTitle : .bluetoothPairedDevicesTitle
+    }
+}

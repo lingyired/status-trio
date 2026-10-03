@@ -656,6 +656,7 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
 
         let view = BluetoothStatusView(
             controller: controller,
+            mobileBatteryController: MobileBatteryController(),
             showsBatteryLevels: showsBatteryLevels,
             showsNearbyBatteryDevices: showsNearbyBatteryDevices,
             listOptions: listOptions,

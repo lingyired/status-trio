@@ -185,6 +185,29 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(SettingsStore(defaults: suite.defaults).showsNearbyBluetoothBatteryDevices)
     }
 
+    func testMobileBatteryDeviceChoiceDefaultsOffAndIsIndependentOfNearbyOptIn() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+
+        XCTAssertFalse(store.showsMobileDeviceBatteryLevels)
+        XCTAssertFalse(store.showsNearbyBluetoothBatteryDevices)
+        store.showsNearbyBluetoothBatteryDevices = true
+        XCTAssertFalse(store.showsMobileDeviceBatteryLevels)
+    }
+
+    func testMobileBatteryDeviceChoicePersistsAcrossStoreInstances() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(first.showsMobileDeviceBatteryLevels)
+        first.showsMobileDeviceBatteryLevels = true
+
+        XCTAssertTrue(SettingsStore(defaults: suite.defaults).showsMobileDeviceBatteryLevels)
+    }
+
     func testBluetoothAudioDisplaySettingsPersistAcrossStoreInstances() {
         let suite = makeSuite()
         defer { clear(suite) }

@@ -289,6 +289,7 @@
 "bluetooth.openDetails" = "Откройте сведения, чтобы увидеть состояние устройств";
 "bluetooth.title" = "Bluetooth";
 "bluetooth.pairedDevices.title" = "Сопряжённые";
+"bluetooth.devices.title" = "Устройства Bluetooth";
 "bluetooth.nearbyBattery.title" = "Рядом";
 "bluetooth.nearbyDevice.fallback" = "Устройство Bluetooth";
 "bluetooth.action.openSettings" = "Открыть настройки Bluetooth";
@@ -402,3 +403,12 @@
 "bluetooth.listeningMode.off" = "Выкл.";
 "bluetooth.listeningMode.changeFailed" = "Не удалось изменить режим прослушивания.";
 "bluetooth.listeningMode.accessibility" = "Режим прослушивания";
+
+"settings.bluetooth.mobileBatteryDevices" = "Заряд iPhone и Apple Watch";
+"settings.bluetooth.mobileBatteryDevicesDescription" = "Данные считываются через доверенный iPhone по USB или Wi‑Fi. Один раз подключите iPhone кабелем и нажмите «Доверять». Для беспроводного чтения должна быть настроена синхронизация по Wi‑Fi.";
+"mobileBattery.watchFallbackName" = "Apple Watch";
+"mobileBattery.watchSource" = "Через iPhone";
+"mobileBattery.updatedAt" = "Обновлено %@";
+"mobileBattery.charging" = "Заряжается";
+"mobileBattery.trustRequired" = "Подключите iPhone кабелем и нажмите «Доверять», чтобы считать заряд сопряжённых Apple Watch.";
+"mobileBattery.unavailable" = "Не удалось обновить заряд iPhone и Apple Watch.";

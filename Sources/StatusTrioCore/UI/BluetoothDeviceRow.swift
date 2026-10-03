@@ -17,6 +17,7 @@ struct BluetoothDeviceRow: View {
     @EnvironmentObject private var localization: Localization
     let device: BluetoothDevice
     let batteryLevels: [String: BluetoothBatteryLevel]
+    var mobileMetadataByDeviceID: [String: MobileBatterySnapshot] = [:]
     let actionState: BluetoothDeviceActionState?
     let isConfirmingDisconnect: Bool
     let onPerformAction: () -> Void
@@ -89,7 +90,10 @@ struct BluetoothDeviceRow: View {
     private func inlineContent(_ status: BluetoothDeviceRowStatus) -> some View {
         HStack(spacing: BluetoothPanelMetrics.iconTextSpacing) {
             badge
-            name
+            VStack(alignment: .leading, spacing: 2) {
+                name
+                mobileDetails
+            }
 
             Spacer(minLength: 8)
 
@@ -113,6 +117,7 @@ struct BluetoothDeviceRow: View {
             VStack(alignment: .leading, spacing: BluetoothPanelMetrics.componentBatteryLineSpacing) {
                 name
                 batteryText
+                mobileDetails
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -164,6 +169,13 @@ struct BluetoothDeviceRow: View {
             .font(.body.weight(device.isConnected ? .semibold : .regular))
             .lineLimit(1)
             .truncationMode(.tail)
+    }
+
+    @ViewBuilder
+    private var mobileDetails: some View {
+        if let snapshot = mobileMetadataByDeviceID[device.id] {
+            MobileBatteryDeviceRows(snapshot: snapshot)
+        }
     }
 
     /// The level as the report's pieces. The charging case is drawn as its glyph

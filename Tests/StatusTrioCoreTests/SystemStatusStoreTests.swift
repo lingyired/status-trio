@@ -81,6 +81,97 @@ final class SystemStatusStoreTests: XCTestCase {
         XCTAssertEqual(vpn.stopCount, 2)
     }
 
+    func testPopoverCloseCancelsMobileBatteryReadWhileViewIsRetained() async {
+        let reader = ControlledMobileBatteryReader()
+        let mobile = MobileBatteryController(reader: reader)
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            mobileBattery: mobile
+        )
+        mobile.request("summary")
+        store.setPopoverVisible(true)
+        await waitForMobileReader { await reader.readCount == 1 }
+
+        store.setPopoverVisible(false)
+        await waitForMobileReader { await reader.cancellationCount == 1 }
+        store.stop()
+        await reader.finishAll()
+    }
+
+    func testDisablingMobileBatteryWhileBluetoothViewIsAbsentClearsCacheAndReenableReadsFreshData() async {
+        let reader = ControlledMobileBatteryReader()
+        let mobile = MobileBatteryController(reader: reader)
+        let suite = makeSuite()
+        defer { suite.defaults.removeTestSuite(named: suite.name) }
+        let settings = SettingsStore(defaults: suite.defaults)
+        settings.showsBluetoothBatteryLevels = true
+        settings.showsMobileDeviceBatteryLevels = true
+        settings.showsBluetoothDeviceList = true
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            mobileBattery: mobile
+        )
+
+        store.bindMobileBatterySettings(settings)
+        store.setPopoverVisible(true)
+        mobile.request("summary")
+        await waitForMobileReader { await reader.readCount == 1 }
+        await reader.complete(0, with: MobileBatteryReadResult(snapshots: [MobileBatterySnapshot(
+            id: "phone-1", parentID: nil, name: "Phone", model: "iPhone14,3",
+            batteryLevel: 71, isCharging: nil, transport: .usb, observedAt: Date()
+        )]))
+        await waitForMobileReader { mobile.snapshots.count == 1 }
+
+        // The status row has disappeared, so it releases while preserving the
+        // ordinary short-lived cache. The settings pane then disables the
+        // feature without that view mounted to receive an onChange.
+        mobile.release("summary", keepingResults: true)
+        XCTAssertEqual(mobile.snapshots.map(\.batteryLevel), [71])
+        settings.showsMobileDeviceBatteryLevels = false
+        XCTAssertTrue(mobile.snapshots.isEmpty)
+
+        // Returning while disabled cannot restart reads or restore cached data.
+        store.setPopoverVisible(false)
+        store.setPopoverVisible(true)
+        mobile.request("summary")
+        await Task.yield()
+        XCTAssertTrue(mobile.snapshots.isEmpty)
+        let disabledReadCount = await reader.readCount
+        XCTAssertEqual(disabledReadCount, 1)
+
+        // Re-enabling opens a fresh generation through the normal active claim.
+        settings.showsMobileDeviceBatteryLevels = true
+        await waitForMobileReader { await reader.readCount == 2 }
+        store.stop()
+        await reader.finishAll()
+    }
+
+    func testMobileUSBReadStartsWhileBluetoothIsNotActivated() async {
+        let reader = ControlledMobileBatteryReader()
+        let mobile = MobileBatteryController(reader: reader)
+        let bluetooth = BluetoothDeviceController(stateMonitor: DeniedBluetoothStateMonitor())
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            bluetoothDevices: bluetooth,
+            mobileBattery: mobile
+        )
+        mobile.request("summary")
+        store.setPopoverVisible(true)
+
+        XCTAssertEqual(store.bluetoothDevices.authorization, .denied)
+        XCTAssertFalse(store.bluetoothDevices.isActive)
+        await waitForMobileReader { await reader.readCount == 1 }
+        store.stop()
+        await waitForMobileReader { await reader.cancellationCount == 1 }
+        await reader.finishAll()
+    }
+
     func testInputMonitorFollowsOptInSettingAndPopoverVisibility() async {
         let battery = FakeBatteryMonitor()
         let wifi = FakeWiFiMonitor()
@@ -1885,6 +1976,15 @@ final class SystemStatusStoreTests: XCTestCase {
             try? await Task.sleep(for: .milliseconds(1))
         }
     }
+
+    private func waitForMobileReader(_ condition: () async -> Bool) async {
+        let deadline = ContinuousClock.now + .seconds(2)
+        while !(await condition()), ContinuousClock.now < deadline {
+            await Task.yield()
+        }
+        let reached = await condition()
+        XCTAssertTrue(reached, "mobile reader state did not settle")
+    }
 }
 
 @MainActor
@@ -2052,6 +2152,15 @@ private struct StubWiredInterfaces: WiredInterfaceProviding {
     let names: [String]
 
     func wiredInterfaces() -> [WiredInterface] { names.map { WiredInterface(name: $0) } }
+}
+
+@MainActor
+private final class DeniedBluetoothStateMonitor: BluetoothStateMonitoring {
+    var onStateChange: ((BluetoothAuthorizationStatus, BluetoothManagerState) -> Void)?
+    let authorization: BluetoothAuthorizationStatus = .denied
+
+    func start() { onStateChange?(.denied, .unknown) }
+    func stop() {}
 }
 
 @MainActor

@@ -289,6 +289,7 @@
 "bluetooth.openDetails" = "詳細を開いてデバイスの状態を表示";
 "bluetooth.title" = "Bluetooth";
 "bluetooth.pairedDevices.title" = "ペアリング済み";
+"bluetooth.devices.title" = "Bluetooth デバイス";
 "bluetooth.nearbyBattery.title" = "近くのデバイス";
 "bluetooth.nearbyDevice.fallback" = "Bluetooth デバイス";
 "bluetooth.action.openSettings" = "Bluetooth 設定を開く";
@@ -402,3 +403,12 @@
 "bluetooth.listeningMode.off" = "オフ";
 "bluetooth.listeningMode.changeFailed" = "ヒアリングモードを変更できませんでした。";
 "bluetooth.listeningMode.accessibility" = "ヒアリングモード";
+
+"settings.bluetooth.mobileBatteryDevices" = "iPhone と Apple Watch のバッテリー";
+"settings.bluetooth.mobileBatteryDevicesDescription" = "信頼済みの iPhone から USB または Wi‑Fi 経由で読み取ります。初回は iPhone をケーブルで接続し、「信頼」をタップしてください。ワイヤレスで使うには Wi‑Fi 同期の設定が必要です。";
+"mobileBattery.watchFallbackName" = "Apple Watch";
+"mobileBattery.watchSource" = "iPhone 経由";
+"mobileBattery.updatedAt" = "更新 %@";
+"mobileBattery.charging" = "充電中";
+"mobileBattery.trustRequired" = "iPhone をケーブルで接続して「信頼」をタップすると、ペアリング済み Apple Watch のバッテリーを読み取れます。";
+"mobileBattery.unavailable" = "iPhone と Apple Watch のバッテリーを更新できませんでした。";

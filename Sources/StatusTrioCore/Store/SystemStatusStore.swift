@@ -58,6 +58,7 @@ final class SystemStatusStore: ObservableObject {
     /// row never shows the address of a link the user has left.
     let primaryLink: PrimaryLinkController
     let bluetoothDevices: BluetoothDeviceController
+    let mobileBattery: MobileBatteryController
     /// The AirPods listening-mode surface. A separate owner from `bluetoothDevices`
     /// (the plan's Option B): its own discovery/write lifecycle, so the delicate
     /// paired-device controller is not widened by it. The Bluetooth view drives it
@@ -82,6 +83,7 @@ final class SystemStatusStore: ObservableObject {
     private var isVPNActiveForPopover = false
     private var inputUpdateTask: Task<Void, Never>?
     private var inputSettingsCancellable: AnyCancellable?
+    private var mobileBatterySettingsCancellable: AnyCancellable?
     private var inputSettingEnabled = false
     private var isInputEnabled = false
     private var refreshTask: Task<Void, Never>?
@@ -145,6 +147,7 @@ final class SystemStatusStore: ObservableObject {
         wifiNetworks: WiFiNetworkController = WiFiNetworkController(),
         primaryLink: PrimaryLinkController = PrimaryLinkController(),
         bluetoothDevices: BluetoothDeviceController = BluetoothDeviceController(),
+        mobileBattery: MobileBatteryController = MobileBatteryController(),
         bluetoothListeningModes: BluetoothListeningModeController = BluetoothListeningModeController(),
         initialSnapshot: StatusSnapshot = .placeholder
     ) {
@@ -165,6 +168,7 @@ final class SystemStatusStore: ObservableObject {
         self.wifiNetworks = wifiNetworks
         self.primaryLink = primaryLink
         self.bluetoothDevices = bluetoothDevices
+        self.mobileBattery = mobileBattery
         self.bluetoothListeningModes = bluetoothListeningModes
         self.snapshot = initialSnapshot
         self.popupSnapshot = initialSnapshot
@@ -316,6 +320,8 @@ final class SystemStatusStore: ObservableObject {
         isInputEnabled = false
         inputSettingsCancellable?.cancel()
         inputSettingsCancellable = nil
+        mobileBatterySettingsCancellable?.cancel()
+        mobileBatterySettingsCancellable = nil
         inputUpdateTask?.cancel()
         inputUpdateTask = nil
         inputMonitor?.stop()
@@ -335,6 +341,7 @@ final class SystemStatusStore: ObservableObject {
         }
 
         batteryDetails.deactivate()
+        mobileBattery.stop()
         batteryMonitor.stop()
         wifiMonitor.stop()
         connectionMonitor?.stop()
@@ -481,6 +488,7 @@ final class SystemStatusStore: ObservableObject {
     func setPopoverVisible(_ visible: Bool) {
         guard !hasStopped else { return }
         isPopoverVisible = visible
+        mobileBattery.setSurfaceVisible(visible)
         inputMonitor?.setVisible(visible)
         if !visible { batteryDetails.deactivate() }
         updateDetailsVisibility()
@@ -643,6 +651,20 @@ final class SystemStatusStore: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] enabled in
                 self?.setInputEnabled(enabled)
+            }
+    }
+
+    func bindMobileBatterySettings(_ settings: SettingsStore) {
+        guard !hasStopped else { return }
+        mobileBatterySettingsCancellable = settings.$showsBluetoothBatteryLevels
+            .combineLatest(
+                settings.$showsMobileDeviceBatteryLevels,
+                settings.$showsBluetoothDeviceList
+            )
+            .map { $0.0 && $0.1 && $0.2 }
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                self?.mobileBattery.setReadingEnabled(enabled)
             }
     }
 

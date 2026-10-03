@@ -132,6 +132,16 @@ struct BluetoothSectionView: View {
                 SettingsDivider()
 
                 SettingsToggleRow(
+                    symbol: "iphone.gen3.radiowaves.left.and.right",
+                    tint: .teal,
+                    title: localization.string(.settingsBluetoothMobileBatteryDevices),
+                    subtitle: localization.string(.settingsBluetoothMobileBatteryDevicesDescription),
+                    isOn: $store.showsMobileDeviceBatteryLevels
+                )
+
+                SettingsDivider()
+
+                SettingsToggleRow(
                     symbol: "eyeglasses",
                     tint: .purple,
                     title: localization.string(.settingsBluetoothListeningModePreview),

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The Bluetooth summary row. It reports live device state — a permission
 /// request while the grant is undecided, then the states only the row can
-/// explain — and lists the paired devices under it. A connected device is marked
+/// explain — and lists available device readings under it. A connected device is marked
 /// the way the volume output list marks the device in use, and a device the
 /// report carries a level for shows it.
 ///
@@ -13,9 +13,11 @@ import SwiftUI
 /// a level read that failed.
 struct BluetoothStatusView: View {
     @ObservedObject var controller: BluetoothDeviceController
+    @ObservedObject var mobileBatteryController: MobileBatteryController
     @EnvironmentObject private var localization: Localization
     let showsBatteryLevels: Bool
     var showsNearbyBatteryDevices = false
+    var showsMobileBatteryLevels = false
     var listOptions: BluetoothDeviceListOptions = .standard
     let onRequestAuthorization: () -> Void
     let onOpenBluetoothSettings: () -> Void
@@ -23,15 +25,17 @@ struct BluetoothStatusView: View {
 
     /// The paired-device list with the iOS devices the BLE scan found folded
     /// into it, derived once per body evaluation.
-    private var mergedDeviceList: BluetoothNearbyDeviceMerge.Result {
+    private var mergedDeviceList: MobileBatteryDeviceMerge.Result {
         let scanResults = BluetoothNearbyBatteryListPresentation.visibleDevices(
             from: controller.nearbyBatteryDevices,
             enabled: showsNearbyBatteryLevels
         )
-        return BluetoothNearbyDeviceMerge.merged(
+        return MobileBatteryDeviceMerge.merged(
             devices: controller.devices,
             batteryLevels: controller.batteryLevels,
-            nearbyDevices: scanResults
+            nearbyDevices: scanResults,
+            mobileSnapshots: showsMobileBatteryFeature ? mobileBatteryController.snapshots : [],
+            fallbackWatchName: localization.string(.mobileBatteryWatchFallbackName)
         )
     }
 
@@ -43,7 +47,10 @@ struct BluetoothStatusView: View {
             HStack(spacing: 10) {
                 titleBlock
 
-                Button(action: { controller.refreshFromUser() }) {
+                Button(action: {
+                    controller.refreshFromUser()
+                    mobileBatteryController.refresh()
+                }) {
                     // Trailing-aligned inside the button's own box: the other
                     // rows end on their disclosure chevron itself, so its right
                     // edge is what sits ten points before the gear. A glyph
@@ -70,17 +77,22 @@ struct BluetoothStatusView: View {
                     .frame(width: 24, height: 24)
             }
 
-            if showsDeviceList {
-                if !nearbyDevices.isEmpty {
-                    Text(localization.string(.bluetoothPairedDevicesTitle))
+            if showsDeviceList(for: merged) {
+                let pairedIDs = Set(controller.devices.map(\.id))
+                if let heading = BluetoothDeviceListHeading.title(
+                    hasNearbyDevices: !nearbyDevices.isEmpty,
+                    hasExternalMobileDevices: merged.mobileDeviceIDs.contains { !pairedIDs.contains($0) }
+                ) {
+                    Text(localization.string(heading))
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .accessibilityAddTraits(.isHeader)
                 }
 
                 BluetoothDeviceList(
-                    devices: merged.devices,
+                    devices: visibleDeviceRows(from: merged),
                     batteryLevels: merged.batteryLevels,
+                    mobileMetadataByDeviceID: merged.mobileMetadataByDeviceID,
                     actionStates: controller.deviceActionStates,
                     confirmingAddress: controller.pendingDisconnectConfirmation,
                     options: listOptions,
@@ -102,6 +114,12 @@ struct BluetoothStatusView: View {
             if !nearbyDevices.isEmpty {
                 NearbyBluetoothBatteryList(devices: nearbyDevices)
             }
+
+            if let message = mobileFailureMessage {
+                Text(localization.string(message))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .onAppear {
             controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
@@ -113,7 +131,6 @@ struct BluetoothStatusView: View {
             // not only in `onDisappear`: otherwise switching the setting off
             // leaves the read running and the level it published on screen until
             // the row disappears and comes back. A claim rather than a toggle
-            // keeps this correct whichever order SwiftUI runs it in.
             guard showsBatteryLevels, summaryPresentation.hasConnectedDevices else {
                 controller.releaseBatteryLevels(Self.summaryBatteryLevelsToken)
                 return
@@ -133,6 +150,17 @@ struct BluetoothStatusView: View {
             // scanner immediately when the popover closes.
             controller.requestNearbyBatteryDevices(Self.nearbyBatteryDevicesToken)
         }
+        .task(id: mobileBatteryClaimTaskID) {
+            guard BluetoothMobileBatteryPanelVisibility.shouldClaim(
+                showsBatteryLevels: showsBatteryLevels,
+                showsMobileBatteryLevels: showsMobileBatteryLevels,
+                options: listOptions
+            ) else {
+                mobileBatteryController.release(Self.mobileBatteryToken)
+                return
+            }
+            mobileBatteryController.request(Self.mobileBatteryToken)
+        }
         .onDisappear {
             controller.releaseVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
             controller.releaseBatteryLevels(Self.summaryBatteryLevelsToken)
@@ -145,6 +173,14 @@ struct BluetoothStatusView: View {
             controller.releaseNearbyBatteryDevices(
                 Self.nearbyBatteryDevicesToken,
                 keepingResults: true
+            )
+            mobileBatteryController.release(
+                Self.mobileBatteryToken,
+                keepingResults: BluetoothMobileBatteryPanelVisibility.shouldClaim(
+                    showsBatteryLevels: showsBatteryLevels,
+                    showsMobileBatteryLevels: showsMobileBatteryLevels,
+                    options: listOptions
+                )
             )
         }
     }
@@ -191,17 +227,62 @@ struct BluetoothStatusView: View {
 
     private static let summaryBatteryLevelsToken = "bluetooth.summary"
     private static let nearbyBatteryDevicesToken = "bluetooth.summary.nearbyBatteryDevices"
+    private static let mobileBatteryToken = "bluetooth.summary.mobileBatteryDevices"
 
     private var showsNearbyBatteryLevels: Bool {
         showsBatteryLevels && showsNearbyBatteryDevices
     }
 
-    private var showsDeviceList: Bool {
-        BluetoothPanelListVisibility.showsList(
+    private func showsDeviceList(for merged: MobileBatteryDeviceMerge.Result) -> Bool {
+        BluetoothMobileBatteryPanelVisibility.showsList(
+            availability: controller.availability,
+            devices: merged.devices,
+            pairedDevices: controller.devices,
+            mobileDeviceIDs: merged.mobileDeviceIDs,
+            showsMobileBatteryLevels: showsMobileBatteryFeature,
+            options: listOptions
+        )
+    }
+
+    private var mobileBatteryClaimTaskID: String {
+        "\(showsBatteryLevels)-\(showsMobileBatteryLevels)-\(listOptions.showsList)"
+    }
+
+    private var showsMobileBatteryFeature: Bool {
+        showsBatteryLevels && showsMobileBatteryLevels && listOptions.showsList
+    }
+
+    private var mobileFailureMessage: LocalizationKey? {
+        guard showsMobileBatteryFeature,
+              mobileBatteryController.snapshots.isEmpty,
+              !mobileBatteryController.isRefreshing else { return nil }
+        return mobileBatteryController.failures.contains(where: { $0.category == "trust-required" })
+            ? .mobileBatteryTrustRequired
+            : .mobileBatteryUnavailable
+    }
+
+    private func visibleDeviceRows(from merged: MobileBatteryDeviceMerge.Result) -> [BluetoothDevice] {
+        guard !BluetoothPanelListVisibility.showsList(
             availability: controller.availability,
             devices: controller.devices,
             options: listOptions
-        )
+        ) else {
+            return merged.devices
+        }
+
+        // When Bluetooth is unavailable, only show rows identified by the
+        // trusted phone. They remain read-only and still pass
+        // through BluetoothDeviceList's hidden/order/limit rules.
+        return merged.devices.compactMap { device in
+            guard merged.mobileDeviceIDs.contains(device.id) else { return nil }
+            return BluetoothDevice(
+                id: device.id,
+                name: device.name,
+                kind: device.kind,
+                isConnected: false,
+                isReadOverTheAir: true
+            )
+        }
     }
 
     private var hidesSubtitle: Bool {

@@ -172,6 +172,7 @@ private struct HandoffRoot: View {
             } else {
                 BluetoothStatusView(
                     controller: controller,
+                    mobileBatteryController: MobileBatteryController(),
                     showsBatteryLevels: model.showsBatteryLevels,
                     // These tests pin the pre-list summary shape and the level
                     // claim it makes, so the list is explicitly off. Leaving it

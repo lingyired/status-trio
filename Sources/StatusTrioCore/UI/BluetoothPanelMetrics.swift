@@ -37,6 +37,9 @@ enum BluetoothDeviceRowMetrics {
     /// `componentBatteryLineSpacing`.
     static let componentContentHeight: CGFloat = 31
 
+    /// The extra source/time line shown for trusted-phone observations.
+    static let mobileObservationLineHeight: CGFloat = 15
+
     /// The full height a component row contributes: its two lines plus the extra
     /// bottom breathing room the row actually draws. Derived from the shared
     /// spacing metrics so the row and this estimate can never drift apart.
@@ -48,13 +51,15 @@ enum BluetoothDeviceRowMetrics {
     /// the row itself draws with.
     static func estimatedHeight(
         for device: BluetoothDevice,
-        batteryLevels: [String: BluetoothBatteryLevel]
+        batteryLevels: [String: BluetoothBatteryLevel],
+        hasMobileDetails: Bool = false
     ) -> CGFloat {
-        BluetoothDevicePresentation.batteryLayout(
+        let baseHeight = BluetoothDevicePresentation.batteryLayout(
             for: device,
             batteryLevels: batteryLevels
         ) == .components
             ? componentHeight
             : inlineHeight
+        return hasMobileDetails ? baseHeight + mobileObservationLineHeight : baseHeight
     }
 }

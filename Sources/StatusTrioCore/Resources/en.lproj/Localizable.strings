@@ -289,6 +289,7 @@
 "bluetooth.openDetails" = "Open details to view device status";
 "bluetooth.title" = "Bluetooth";
 "bluetooth.pairedDevices.title" = "Paired";
+"bluetooth.devices.title" = "Devices";
 "bluetooth.nearbyBattery.title" = "Nearby";
 "bluetooth.nearbyDevice.fallback" = "Bluetooth device";
 "bluetooth.action.openSettings" = "Open Bluetooth Settings";
@@ -402,3 +403,12 @@
 "bluetooth.listeningMode.off" = "Off";
 "bluetooth.listeningMode.changeFailed" = "Couldn't change the listening mode.";
 "bluetooth.listeningMode.accessibility" = "Listening Mode";
+
+"settings.bluetooth.mobileBatteryDevices" = "iPhone and Apple Watch battery";
+"settings.bluetooth.mobileBatteryDevicesDescription" = "Read through a trusted iPhone over USB or Wi-Fi. Connect the iPhone by cable once and tap Trust. Wireless use requires existing Wi-Fi syncing.";
+"mobileBattery.watchFallbackName" = "Apple Watch";
+"mobileBattery.watchSource" = "Via iPhone";
+"mobileBattery.updatedAt" = "Updated %@";
+"mobileBattery.charging" = "Charging";
+"mobileBattery.trustRequired" = "Connect your iPhone by cable and tap Trust to read its Apple Watch battery.";
+"mobileBattery.unavailable" = "iPhone and Apple Watch battery could not be refreshed.";

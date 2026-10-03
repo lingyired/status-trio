@@ -289,6 +289,7 @@
 "bluetooth.openDetails" = "افتح التفاصيل لعرض حالة الجهاز";
 "bluetooth.title" = "Bluetooth";
 "bluetooth.pairedDevices.title" = "مقترنة";
+"bluetooth.devices.title" = "أجهزة Bluetooth";
 "bluetooth.nearbyBattery.title" = "قريبة";
 "bluetooth.nearbyDevice.fallback" = "جهاز Bluetooth";
 "bluetooth.action.openSettings" = "فتح إعدادات Bluetooth";
@@ -402,3 +403,12 @@
 "bluetooth.listeningMode.off" = "إيقاف";
 "bluetooth.listeningMode.changeFailed" = "تعذّر تغيير وضع السمع.";
 "bluetooth.listeningMode.accessibility" = "وضع السمع";
+
+"settings.bluetooth.mobileBatteryDevices" = "بطارية iPhone وApple Watch";
+"settings.bluetooth.mobileBatteryDevicesDescription" = "اقرأها عبر iPhone موثوق باستخدام USB أو Wi‑Fi. صِل iPhone بالكابل مرة واحدة واضغط على «الوثوق». يتطلب الاستخدام اللاسلكي مزامنة Wi‑Fi مُعدّة مسبقًا.";
+"mobileBattery.watchFallbackName" = "Apple Watch";
+"mobileBattery.watchSource" = "عبر iPhone";
+"mobileBattery.updatedAt" = "تم التحديث %@";
+"mobileBattery.charging" = "قيد الشحن";
+"mobileBattery.trustRequired" = "صِل iPhone بالكابل واضغط على «الوثوق» لقراءة بطارية Apple Watch المقترنة.";
+"mobileBattery.unavailable" = "تعذّر تحديث بطارية iPhone وApple Watch.";
