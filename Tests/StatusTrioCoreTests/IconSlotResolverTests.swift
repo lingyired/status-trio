@@ -119,11 +119,29 @@ final class IconSlotResolverTests: XCTestCase {
         )))
     }
 
+    func testBluetoothSourceWithoutCurrentOutputFallsBackToNetwork() {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .bluetoothAudioOutput, fallback: .network)
+        let snapshot = StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -55),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output")
+        )
+
+        let output = resolve(snapshot, configuration: configuration)
+
+        XCTAssertEqual(output.trace.center.selectedSourceID, CenterSource.network.rawValue)
+        XCTAssertEqual(output.trace.center.role, .fallback)
+        XCTAssertEqual(output.trace.center.primaryFailure, .disconnected)
+    }
+
     func testNetworkErrorOverrideOnlyAppliesToExplicitBluetoothPrimary() {
         var configuration = IconConfigurationV1.classic
         configuration.composition.center = SlotSelection(primary: .bluetoothAudioOutput, fallback: .network)
         configuration.composition.centerOverride.networkProblemOverridesPrimary = true
         configuration.behaviors.bluetoothAudioCenter.replacesNetworkIcon = true
+        configuration.behaviors.networkCenter.showsBatteryPercentageInConnectionSlot = true
         let snapshot = StatusSnapshot(
             battery: .placeholder, wifi: WiFiStatus(state: .noInternet, rssi: -45),
             connection: .wifi,
@@ -144,8 +162,64 @@ final class IconSlotResolverTests: XCTestCase {
         XCTAssertEqual(legacy.trace.center.selectedSourceID, CenterSource.automaticLegacy.rawValue)
         XCTAssertEqual(legacy.scene.center, IconPresentationMapper.scene(
             inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
-            configuration: .standard
+            configuration: configuration.legacyPresentationConfiguration
         ).center)
+    }
+
+    func testMissingBatteryPercentageUsesNetworkFallback() {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .systemBatteryPercentage, fallback: .network)
+        let snapshot = StatusSnapshot(
+            battery: BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: false),
+            wifi: WiFiStatus(state: .connected, rssi: -55),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output")
+        )
+
+        let output = resolve(snapshot, configuration: configuration)
+
+        XCTAssertEqual(output.trace.center.selectedSourceID, CenterSource.network.rawValue)
+        XCTAssertEqual(output.trace.center.role, .fallback)
+        XCTAssertEqual(output.trace.center.primaryFailure, .unavailable)
+    }
+
+    func testPinnedBluetoothGlyphUsesSavedSymbolWithoutAudioOutput() {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .pinnedBluetoothGlyph)
+        configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = "airpods.pro"
+        let snapshot = StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -55),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output")
+        )
+
+        let output = resolve(snapshot, configuration: configuration)
+
+        XCTAssertEqual(output.scene.center, .symbol(IconSymbolState(
+            source: .symbol(name: "airpods.pro", variableValue: nil, fallback: "dot.radiowaves.left.and.right"),
+            color: .bluetooth, scale: configuration.behaviors.bluetoothAudioCenter.symbolScale
+        )))
+        XCTAssertEqual(output.trace.center.selectedSourceID, CenterSource.pinnedBluetoothGlyph.rawValue)
+    }
+
+    func testExplicitNetworkSourceDoesNotUseLegacyBatteryPercentagePrecedence() {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .network)
+        configuration.behaviors.networkCenter.showsBatteryPercentageInConnectionSlot = true
+        let snapshot = StatusSnapshot(
+            battery: BatteryStatus(rawPercentage: 45, isPresent: true, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: false),
+            wifi: WiFiStatus(state: .connected, rssi: -55),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output")
+        )
+
+        let output = resolve(snapshot, configuration: configuration)
+
+        XCTAssertNotEqual(output.scene.center, .text(IconTextState(text: "45", color: .primary, scale: 1)))
+        XCTAssertEqual(output.trace.center.selectedSourceID, CenterSource.network.rawValue)
     }
 
     private func resolve(

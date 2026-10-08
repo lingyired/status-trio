@@ -15,16 +15,24 @@ enum CenterResolver {
         }
         let selected: SourceSelectionResult<CenterSource> = chooseSource(selection, none: .none) { source -> SourceResult<Bool> in
             switch source {
-            case .none: .unavailable(.unavailable)
-            case .automaticLegacy: .available(true)
-            case .network: inputs.sources.result(for: source.rawValue, default: .available(true))
+            case .none:
+                return .unavailable(.unavailable)
+            case .automaticLegacy:
+                return .available(true)
+            case .network:
+                return inputs.sources.result(for: source.rawValue, default: .available(true))
             case .bluetoothAudioOutput:
-                inputs.sources.result(for: source.rawValue,
-                    default: .available(inputs.system.snapshot.volume.currentDevice?.isBluetoothAudio == true))
-            case .pinnedBluetoothGlyph: inputs.sources.result(for: source.rawValue, default: .available(true))
-            case .connectedBluetoothDevice: inputs.sources.result(for: source.rawValue, default: .available(false))
+                let connected = inputs.system.snapshot.volume.currentDevice?.isBluetoothAudio == true
+                return inputs.sources.result(for: source.rawValue,
+                    default: connected ? .available(true) : .unavailable(.disconnected))
+            case .pinnedBluetoothGlyph:
+                return inputs.sources.result(for: source.rawValue, default: .available(true))
+            case .connectedBluetoothDevice:
+                return inputs.sources.result(for: source.rawValue, default: .unavailable(.disconnected))
             case .systemBatteryPercentage:
-                inputs.sources.result(for: source.rawValue, default: .available(inputs.system.snapshot.battery.isPresent))
+                let present = inputs.system.snapshot.battery.isPresent
+                return inputs.sources.result(for: source.rawValue,
+                    default: present ? .available(true) : .unavailable(.unavailable))
             }
         }
         guard let source = selected.source else { return (nil, trace(selected, source: nil)) }
@@ -45,8 +53,15 @@ enum CenterResolver {
             state = IconPresentationMapper.scene(inputs: inputs.system, configuration: legacy).center
         case .network:
             state = networkState(inputs: inputs, configuration: configuration, legacy: legacy)
-        case .bluetoothAudioOutput, .pinnedBluetoothGlyph, .connectedBluetoothDevice:
+        case .bluetoothAudioOutput, .connectedBluetoothDevice:
             let icon = inputs.system.audioIcon ?? .symbol(name: "headphones", variableValue: nil, fallback: nil)
+            state = .symbol(IconSymbolState(source: icon, color: .bluetooth,
+                scale: configuration.behaviors.bluetoothAudioCenter.symbolScale))
+        case .pinnedBluetoothGlyph:
+            let savedSymbol = configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride
+            let icon = savedSymbol.map {
+                IconSymbolSource.symbol(name: $0, variableValue: nil, fallback: "dot.radiowaves.left.and.right")
+            } ?? .symbol(name: "headphones", variableValue: nil, fallback: nil)
             state = .symbol(IconSymbolState(source: icon, color: .bluetooth,
                 scale: configuration.behaviors.bluetoothAudioCenter.symbolScale))
         case .systemBatteryPercentage:
@@ -74,8 +89,20 @@ enum CenterResolver {
         legacy: IconPresentationConfiguration
     ) -> CenterState? {
         // The explicit network source never lets Bluetooth behavior preempt network state.
-        let options = IconPresentationConfiguration(battery: legacy.battery,
-            connection: legacy.connection, volume: legacy.volume, bluetooth: .standard)
+        let legacyConnection = legacy.connection
+        let options = IconPresentationConfiguration(
+            battery: legacy.battery,
+            connection: ConnectionIconOptions(
+                showsWiFiIconForEthernet: legacyConnection.showsWiFiIconForEthernet,
+                showsWiFiIconForHotspot: legacyConnection.showsWiFiIconForHotspot,
+                showsWiFiIconForTemporaryConnection: legacyConnection.showsWiFiIconForTemporaryConnection,
+                showsWiFiIconForInternetSharing: legacyConnection.showsWiFiIconForInternetSharing,
+                showsBatteryPercentageInConnectionSlot: false,
+                wifiScale: legacyConnection.wifiScale
+            ),
+            volume: legacy.volume,
+            bluetooth: .standard
+        )
         return IconPresentationMapper.scene(inputs: inputs.system, configuration: options).center
     }
 
