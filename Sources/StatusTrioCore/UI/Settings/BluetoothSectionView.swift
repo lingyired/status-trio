@@ -12,6 +12,7 @@ struct BluetoothSectionView: View {
     @ObservedObject var bluetoothDevices: BluetoothDeviceController
     @ObservedObject var appleDeviceDiscovery: AppleDeviceDiscoveryController
     @Binding var previewIsDark: Bool
+    var onOpenIconDesigner: () -> Void = {}
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
@@ -28,6 +29,10 @@ struct BluetoothSectionView: View {
             }
 
             SettingsGroup(localization.string(.settingsBluetoothTitle)) {
+                IconDesignerEntryRow(onOpen: onOpenIconDesigner)
+
+                SettingsDivider()
+
                 SettingsToggleRow(
                     symbol: "list.bullet.rectangle",
                     tint: .purple,
@@ -38,77 +43,9 @@ struct BluetoothSectionView: View {
 
                 SettingsDivider()
 
-                SettingsRow(
-                    "wave.3.right.circle.fill",
-                    tint: .blue,
-                    title: localization.string(.settingsBluetoothSymbolScale),
-                    subtitle: localization.string(.settingsBluetoothSymbolScaleDescription)
-                ) {
-                    HStack(spacing: 8) {
-                        Slider(
-                            value: Binding(
-                                get: { store.bluetoothSymbolScale },
-                                set: { store.bluetoothSymbolScale = (round($0 * 20) / 20) }
-                            ),
-                            in: SettingsStore.bluetoothSymbolScaleRange
-                        )
-                        .frame(width: 130)
-                        .controlSize(.small)
-                        .accessibilityLabel(localization.string(.settingsBluetoothSymbolScale))
-                        .accessibilityValue(
-                            "\(Int(round(store.bluetoothSymbolScale * 100)))%"
-                        )
-
-                        Text("\(Int(round(store.bluetoothSymbolScale * 100)))%")
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 44, alignment: .trailing)
-                    }
-                }
-
                 SettingsDivider()
 
-                SettingsToggleRow(
-                    symbol: "wave.3.right.circle.fill",
-                    tint: .blue,
-                    title: localization.string(.settingsBluetoothReplaceNetworkIcon),
-                    subtitle: localization.string(.settingsBluetoothReplaceNetworkIconDescription),
-                    isOn: $store.replacesNetworkIconWithBluetoothAudio
-                )
-
-                if store.replacesNetworkIconWithBluetoothAudio {
-                    SettingsDivider()
-
-                    networkIconSourceRow
-
-                    if !sourceOptionsOffersDevices {
-                        SettingsDivider()
-
-                        SettingsHintRow(
-                            text: localization.string(.settingsBluetoothNetworkIconSourceDevicesEmpty)
-                        )
-                    }
-                }
-
                 SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "speaker.wave.2.fill",
-                    tint: .cyan,
-                    title: localization.string(.settingsBluetoothVolumeColor),
-                    subtitle: localization.string(.settingsBluetoothVolumeColorDescription),
-                    isOn: $store.usesBluetoothAudioVolumeColor
-                )
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "wifi.exclamationmark",
-                    tint: .orange,
-                    title: localization.string(.settingsBluetoothNetworkErrorPriority),
-                    subtitle: localization.string(.settingsBluetoothNetworkErrorPriorityDescription),
-                    isOn: $store.prioritizesNetworkErrorsOverBluetoothAudio
-                )
 
                 SettingsDivider()
 
@@ -266,89 +203,6 @@ struct BluetoothSectionView: View {
     }
 
     private static let orderSurfaceToken = "bluetooth.settings.order.surface"
-
-    /// Which glyph replaces the network icon, as one flat pop-up menu: the audio
-    /// device leads, and every classified paired device follows.
-    ///
-    /// The menu is deliberately flat. A `Section` inside the picker's content
-    /// was dropped when the menu opened on macOS, which left the user with the
-    /// audio entry alone and no way to pick a device; the contents are built and
-    /// tested in `BluetoothNetworkIconSourceOption` instead.
-    ///
-    /// The row draws the choice's own glyph, so it reads like the menu bar will.
-    private var networkIconSourceRow: some View {
-        SettingsRow(
-            title: localization.string(.settingsBluetoothNetworkIconSourceGroup),
-            subtitle: localization.string(.settingsBluetoothNetworkIconSourceAudioDescription),
-            leading: { SettingsIcon(symbol: selectedOption.symbolName, tint: .blue) }
-        ) {
-            Picker(
-                localization.string(.settingsBluetoothNetworkIconSourceGroup),
-                selection: networkIconSourceBinding
-            ) {
-                ForEach(sourceOptions) { option in
-                    Label(
-                        option.title
-                            ?? localization.string(.settingsBluetoothNetworkIconSourceAudio),
-                        systemImage: option.symbolName
-                    )
-                    .tag(option.source)
-                }
-            }
-            .labelsHidden()
-            .fixedSize()
-            .accessibilityIdentifier("bluetooth.networkIconSource")
-        }
-    }
-
-    private var networkIconSourceBinding: Binding<BluetoothNetworkIconSource> {
-        Binding(
-            get: { selectedOption.source },
-            set: { source in
-                switch source {
-                case .audioDevices:
-                    store.setBluetoothNetworkIconDevice(address: nil, symbolName: nil)
-                case let .device(address):
-                    guard let option = sourceOptions.first(where: { $0.source == source }) else {
-                        return
-                    }
-                    store.setBluetoothNetworkIconDevice(
-                        address: address,
-                        symbolName: option.symbolName
-                    )
-                }
-            }
-        )
-    }
-
-    /// The menu's contents, and the row's own glyph with them.
-    private var sourceOptions: [BluetoothNetworkIconSourceOption] {
-        BluetoothNetworkIconSourceOption.options(
-            devices: bluetoothDevices.devices,
-            order: store.bluetoothDeviceOrder
-        )
-    }
-
-    /// Whether the menu has anything to offer besides the audio entry. When it
-    /// does not, the pane says why — a grant that has not been given yet and a
-    /// Mac with nothing paired both leave the menu with one row, and without
-    /// the hint that reads as a broken menu.
-    private var sourceOptionsOffersDevices: Bool {
-        BluetoothNetworkIconSourceOption.listsDevices(devices: bluetoothDevices.devices)
-    }
-
-    /// The choice the menu shows as selected. A saved address whose device is
-    /// gone from the paired list falls back to the audio entry, which is the
-    /// only entry the menu still offers.
-    private var selectedOption: BluetoothNetworkIconSourceOption {
-        let options = sourceOptions
-        guard let address = store.bluetoothNetworkIconDeviceAddress,
-              let picked = options.first(where: { $0.source == .device(address: address) })
-        else {
-            return options[0]
-        }
-        return picked
-    }
 
     /// The pane shows paired devices, so it needs the same monitor the popover
     /// uses — otherwise a fresh launch that opens Settings shows "No paired

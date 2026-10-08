@@ -4,6 +4,7 @@ struct AudioSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @Binding var previewIsDark: Bool
+    var onOpenIconDesigner: () -> Void = {}
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
@@ -14,40 +15,12 @@ struct AudioSectionView: View {
                 isDarkBackground: $previewIsDark
             )
         }) {
-            indicatorStyleGroup
+            IconDesignerEntryRow(onOpen: onOpenIconDesigner)
             displayRulesGroup
             deviceOrderGroup
         }
         .onAppear {
             statusStore.refreshAll()
-        }
-    }
-
-    private var indicatorStyleGroup: some View {
-        SettingsGroup(localization.string(.settingsAudioIndicatorStyleTitle)) {
-            SettingsPictureRow(
-                "waveform",
-                tint: .indigo,
-                title: localization.string(.settingsAudioIndicatorStyle),
-                subtitle: localization.string(.settingsAudioIndicatorStyleDescription),
-                selection: $store.volumeDisplayStyle,
-                options: [VolumeDisplayStyle.dots, .arc],
-                previewSize: CGSize(width: 68, height: 44),
-                caption: { style in
-                    switch style {
-                    case .dots: return localization.string(.settingsAudioIndicatorStyleDots)
-                    case .arc: return localization.string(.settingsAudioIndicatorStyleArc)
-                    }
-                },
-                preview: { style in
-                    VolumeIndicatorPreview(
-                        style: style,
-                        isDarkBackground: previewIsDark,
-                        store: store,
-                        statusStore: statusStore
-                    )
-                }
-            )
         }
     }
 

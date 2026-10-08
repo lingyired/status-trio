@@ -102,13 +102,15 @@ struct SettingsView: View {
             BatterySectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark
+                previewIsDark: $previewIsDark,
+                onOpenIconDesigner: { selectedSection = .iconDesigner }
             )
         case .network:
             NetworkSectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark
+                previewIsDark: $previewIsDark,
+                onOpenIconDesigner: { selectedSection = .iconDesigner }
             )
         case .bluetooth:
             BluetoothSectionView(
@@ -116,13 +118,15 @@ struct SettingsView: View {
                 statusStore: statusStore,
                 bluetoothDevices: statusStore.bluetoothDevices,
                 appleDeviceDiscovery: statusStore.appleDeviceDiscovery,
-                previewIsDark: $previewIsDark
+                previewIsDark: $previewIsDark,
+                onOpenIconDesigner: { selectedSection = .iconDesigner }
             )
         case .audio:
             AudioSectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark
+                previewIsDark: $previewIsDark,
+                onOpenIconDesigner: { selectedSection = .iconDesigner }
             )
         case .popover:
             PopoverSectionView(store: store, statusStore: statusStore)

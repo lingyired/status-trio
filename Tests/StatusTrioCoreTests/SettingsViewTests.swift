@@ -133,7 +133,7 @@ final class SettingsViewTests: XCTestCase {
     /// The picker under the replace-network-icon toggle: off hides it, on
     /// draws the audio-device row and every classified paired device, and
     /// picking a device records its address and resolved symbol in the store.
-    func testBluetoothNetworkIconSourcePickerRendersAndPicksADevice() async {
+    func testBluetoothPaneDoesNotDuplicateIconCenterControls() async {
         let suite = makeSuite()
         defer { clear(suite) }
 
@@ -172,22 +172,14 @@ final class SettingsViewTests: XCTestCase {
             localization: localization
         )
 
-        XCTAssertGreaterThan(
+        XCTAssertEqual(
             withToggleOn.height,
-            withToggleOff.height + 40,
-            "the picker must render the audio-device row and two classified devices "
-                + "(on \(withToggleOn.height), off \(withToggleOff.height))"
+            withToggleOff.height,
+            "legacy Bluetooth icon preferences must not add controls to the device page"
         )
 
-        // Picking the keyboard device records both halves of the choice; the
-        // ghost device never made it into the picker to be picked instead.
-        store.setBluetoothNetworkIconDevice(address: "d36d6c40a32e", symbolName: "keyboard")
-        XCTAssertEqual(store.bluetoothNetworkIconDeviceAddress, "d36d6c40a32e")
-        XCTAssertEqual(store.bluetoothNetworkIconSymbolName, "keyboard")
-        XCTAssertEqual(
-            store.bluetoothAudioIconOptions.networkIconSymbolOverride,
-            "keyboard"
-        )
+        XCTAssertEqual(store.bluetoothNetworkIconDeviceAddress, nil)
+
     }
 
     func testSettingsViewHostingViewRendersWithoutCrashing() {
