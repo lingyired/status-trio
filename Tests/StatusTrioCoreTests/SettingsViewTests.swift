@@ -15,9 +15,9 @@ final class SettingsViewTests: XCTestCase {
     func testSidebarListsEveryStatusElementBeforeTheAppWidePanes() {
         XCTAssertEqual(
             SettingsView.Section.allCases,
-            [.appIcon, .battery, .network, .bluetooth, .audio, .popover, .general, .about]
+            [.iconDesigner, .battery, .network, .bluetooth, .audio, .popover, .general, .about]
         )
-        XCTAssertEqual(SettingsView.Section.allCases.first, .appIcon)
+        XCTAssertEqual(SettingsView.Section.allCases.first, .iconDesigner)
     }
 
     func testStatusElementPanesRenderWithoutCrashing() {
@@ -30,7 +30,7 @@ final class SettingsViewTests: XCTestCase {
         let isDark = Binding.constant(true)
 
         let panes: [(String, AnyView)] = [
-            ("appIcon", AnyView(AppIconSectionView(
+            ("iconDesigner", AnyView(IconDesignerView(
                 store: store,
                 statusStore: statusStore,
                 previewIsDark: isDark,
