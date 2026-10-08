@@ -900,6 +900,8 @@ extension StatusIconRenderer {
             }
         case .bluetooth:
             bluetoothColor(foreground: foreground)
+        case let .custom(color):
+            CGColor(red: CGFloat(color.red), green: CGFloat(color.green), blue: CGFloat(color.blue), alpha: CGFloat(color.alpha))
         }
     }
 

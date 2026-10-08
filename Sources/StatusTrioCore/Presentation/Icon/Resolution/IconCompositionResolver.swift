@@ -46,7 +46,10 @@ enum IconCompositionResolver {
         let center = CenterResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy)
         let footer = FooterResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy)
         return IconResolutionOutput(
-            scene: IconSceneState(outerRing: ring.state, center: center.state, footer: footer.state),
+            scene: IconPaletteResolver.apply(
+                IconSceneState(outerRing: ring.state, center: center.state, footer: footer.state),
+                appearance: configuration.appearance
+            ),
             trace: IconResolutionTrace(outerRing: ring.trace, center: center.trace, footer: footer.trace)
         )
     }

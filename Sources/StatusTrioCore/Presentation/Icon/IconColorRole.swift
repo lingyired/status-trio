@@ -1,3 +1,5 @@
+import Foundation
+
 enum IconColorRole: Equatable, Hashable, Sendable {
     case primary
     case inactive
@@ -5,4 +7,5 @@ enum IconColorRole: Equatable, Hashable, Sendable {
     case lowPower
     case powered
     case bluetooth
+    case custom(IconRGBA)
 }
