@@ -25,17 +25,21 @@ enum AirPodsRingMapper {
             )
         }
 
-        let value: Int?
+        let value: Double?
         if let main = valid(snapshot.main) {
-            value = main
+            value = Double(main)
         } else if let left = valid(snapshot.left), let right = valid(snapshot.right) {
-            value = (left + right) / 2
+            value = Double(left + right) / 2
+        } else if let left = valid(snapshot.left) {
+            value = Double(left)
+        } else if let right = valid(snapshot.right) {
+            value = Double(right)
         } else {
-            value = valid(snapshot.left) ?? valid(snapshot.right)
+            value = nil
         }
         guard let value else { return nil }
         return OuterRingState(
-            segments: [RingSegmentState(progress: Double(value) / 100, color: .primary)],
+            segments: [RingSegmentState(progress: value / 100, color: .primary)],
             gap: .closed,
             isPartial: behavior == .dual && ((valid(snapshot.left) == nil) != (valid(snapshot.right) == nil))
         )

@@ -11,6 +11,7 @@ final class AirPodsRingGeometryTests: XCTestCase {
         let main = try state(main: 42, left: 80, right: 60)
         XCTAssertEqual(main.segments.map(\.progress), [0.42])
         XCTAssertEqual(try state(main: nil, left: 80, right: 60).segments.map(\.progress), [0.7])
+        XCTAssertEqual(try state(main: nil, left: 80, right: 61).segments.map(\.progress), [0.705])
         XCTAssertEqual(try state(main: nil, left: 0, right: nil).segments.map(\.progress), [0])
         XCTAssertEqual(try state(main: 0, left: 80, right: 60).segments.map(\.progress), [0])
     }
