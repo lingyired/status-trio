@@ -3,9 +3,9 @@
 - Worktree: `/Users/lingsmbp/.codex/worktrees/v2-icon-designer-plan/status-trio`
 - Branch: `codex/v2-settings-icon-designer`
 - Required base: `2ec5b81ce1f4731dca4d1f2ed61bfdbbb53e426e`
-- Task 11 scoped commit: `974942e`; Task 9 review-fix scoped commit: `53bb07f`.
-- Continue only in this worktree. Do not merge `main`, publish a release/appcast, alter permissions/secrets, or modify other checkouts.
-- Current continuation authorization is bounded to Task 9 review fixes and Task 11 verification/repair/scoped commits. Do not start Task 12, CI/packaging, push, create a PR, merge, or publish; return the commits to the parent for independent review and Task 12.
+- Task 11 feature commit: `974942e5e98d38555447f250a4023ca8a74386c5`; Task 9 review-fix commit: `53bb07f8a23b7162a98fd76ca857b3951fcb3ae8`.
+- Continue only in this shared worktree. Preserve the untracked plan/spec and release-note files. Do not modify the main checkout, push, create a PR, merge, publish, run live app, or trigger CI/packaging; the parent assigns final CI/artifacts to a separate fresh agent.
+- Current bounded authorization: Task 12 AirPods ring implementation, the agreed Task 11 review-fix cherry-picks, and parent-requested review repairs only. Return the fixed Task 12 SHA for parent review and final gate.
 
 ## Task status
 
@@ -20,10 +20,10 @@
 | 6 — Production-pipeline state simulation | Core complete | Deterministic value scenarios + resolver parity tests in `cab9bd8f5802be86f6d87d89cafe1e1387c53e8`, with muted Bluetooth metadata regression fixed in `1076542513e56a07904dda1999d470e71f5557e6`. Scenario picker/localized explanations belong to Task 9; no monitor/store mutation or additional requests. |
 | 7 — Settings navigation and feature reachability | Complete | Navigation defaults to Icon Designer; all four device pages and other legacy pages remain reachable. Existing pinned-preview/scroll page reused as the Designer shell; slot editors follow in Task 8. Window close visibility cleanup remains covered by existing controller tests. Commit `ac903aa4547274adcd90af99fa4a73a90bf40887`. |
 | 8 — Source/Behavior/Appearance editor and Classic | Complete; review follow-up fixed | Source-aware editing remains. Four independent-review P2s were fixed test-first with Task 9 regressions: production-resolved Scene parity for Menu Bar/Dock/Designer previews; primary/fallback behavior targeting and pinned-glyph editing; hide unimplemented connected-device source; legacy-only behavior switches only in automaticLegacy. Independent re-review is still required. |
-| 9 — Diagnostics, localization, accessibility, preview lifecycle | Complete locally; committed; independent review pending | Three P2 regressions have coverage: fallback editor selection revalidates to primary after fallback removal/Classic reset; mocked charging Live/test-mode scene resolves through production configuration and preserves effect; pinned-symbol scale plus all six semantic color-role labels are localized across 12 locales. Full local gate: 1528 XCTest (7 skipped, 0 failures), Swift Testing 582 tests / 92 suites, release build, 12 resource lints, and diff check passed. No UI/VoiceOver manual claim. Commit `53bb07f`. |
+| 9 — Diagnostics, localization, accessibility, preview lifecycle | Complete locally; committed; scoped review resolved | Three P2 regressions have coverage: fallback editor selection revalidates to primary after fallback removal/Classic reset; mocked charging Live/test-mode scene resolves through production configuration and preserves effect; pinned-symbol scale plus all six semantic color-role labels are localized across 12 locales. Full local gate at implementation: 1528 XCTest (7 skipped, 0 failures), Swift Testing 582 tests / 92 suites, release build, 12 resource lints, and diff check passed. Parent reports the three P2 findings on `53bb07f8a23b7162a98fd76ca857b3951fcb3ae8` independently re-reviewed resolved. No UI/VoiceOver manual claim. |
 | 10 — Phase 4 core delivery gate | Not started | |
-| 11 — AirPods source adapter and owner-aware demand | Complete locally; committed; independent review pending | Commit `974942e`. Exact-address AirPods snapshot/source resolution, connected-device source UI, source-demand owner bridge, and lifecycle claims. Background battery reads require explicit opt-in and one connected unambiguous AirPods selection; disconnect releases detailed reads while retaining configured lightweight connection monitoring. Full local gate: 1528 XCTest (7 skipped, 0 failures), Swift Testing 582 tests / 92 suites, release build, 12 resource lints, and diff check passed. No physical AirPods/device QA. |
-| 12 — AirPods ring geometry, preview, final gate | Not started | |
+| 11 — AirPods source adapter and owner-aware demand | Complete locally; original review findings and follow-up independently resolved | Feature commit `974942e5e98d38555447f250a4023ca8a74386c5`. Parent reports all four P1/P2 root-cause fixes in `adf0d5f64019d59f1f7d6fbfc81c9870c9c5b135` independently re-reviewed resolved. Harvey follow-up `6cb73f1e32e723dc4fc948592bb1972ca3d899b3` fixes deferred-settings stale tuple/canceled queued source IO; parent reports this P2 independently re-reviewed resolved. Integrated in this worktree as `d662afc967c6f8d84dee439ec55080174c19778c` (original fixes) then `61dd77740808018708ac23a57c566c96ef9bc194` (follow-up). No physical AirPods/device QA. |
+| 12 — AirPods ring geometry, preview, final gate | Implementation and local gate complete; parent fixed-SHA review/final external gate pending | Feature commit `df67cbf8fef8a2b43535a97addd92ab05f2b6d69`; precision correction `bc3003bd79e2b9acfbc3d313a506b35300fa7ba8`. See completion record below. |
 
 ## Verified decisions and review record
 
@@ -38,12 +38,9 @@
 
 ## Next actions
 
-1. Before each task and heavy review, call `get_usage_limits`; stop starting model-heavy work if the 5-hour remaining allowance is below 3%, update this ledger, and report the Unix reset time. Latest observed reading: used 33%, remaining 67%, `resetsAt=1791502308`.
-2. Continue Task 9 next, test-first. Preserve the two untracked user files. Stage explicit paths only; never use `git add .`.
-3. After Tasks 7–12, run the final full test/release, localization/plist lint, SDK/package validation, appcast-note validation, non-publishing CI, and local acceptance build/DMG. Recheck the live appcast before choosing the preflight build; user-provided prior read was published build 17 and local baseline build 18, candidate 19. Never publish or merge.
-4. Prepare the authorized push and draft PR, attach it after creation, and retain the CI run ID/result. Record every failed CI run with stage/root cause/fix/verification in `docs/swift-ci-compatibility.md`.
-5. Write a tomorrow acceptance checklist. Clearly label UI, VoiceOver, macOS 13, device, sleep/wake, CPU/wakeup, and real AirPods checks as unverified unless actually performed.
-
+1. Parent reviews the fixed Task 12 commit range, including `bc3003bd79e2b9acfbc3d313a506b35300fa7ba8`.
+2. A separate fresh agent runs the final CI/toolchain and package/artifact gate after integrating both Task 11 fixes.
+3. Keep manual/device validation explicitly pending; preserve user-owned untracked plan/spec and release-note files.
 
 ## Latest review and Task 7 continuation
 
@@ -78,3 +75,14 @@
 - Task 11 scoped commit: `974942e` (`feat: adapt AirPods battery source demand`). Task 9 review-fix scoped commit SHA will be recorded after creation.
 - Final verified local gates use Swift 6.4 / macOS SDK 27.0, not CI Swift 6.3.3: 1528 XCTest (7 skipped, 0 failures), Swift Testing 582 tests / 92 suites, `swift build -c release`, all 12 `Localizable.strings` `plutil -lint` checks, and `git diff --check`. No CI, packaging, physical device, visual UI, or VoiceOver claim.
 - Latest pre-commit account usage snapshot: 59% used in the 5-hour window and 83% weekly; stop condition not met.
+
+
+## 2026-10-09 Task 12 completion and handoff
+
+- Task 12 AirPods ring behavior is implemented: Single selects main first, otherwise averages both ears without integer truncation, then uses the one valid ear; case-only is unavailable. Dual fixes left/right segments in place, degrades to one known ear with `isPartial`, uses main-only as a single ring, and does not synthesize a segment. Stale/disconnected AirPods data can resolve through configured Mac battery fallback.
+- Rendering carries explicit standard/left-right layout through scene state, Menu Bar and Dock renderer/cache/static-scene paths. Geometry clamps unsafe gap widths, bounds arcs, and preserves the legacy standard single-ring scene. Production resolver powers value-only connected/disconnected scenarios and AirPods Focus; previews do not acquire live demand. Existing AirPods source contract and either-slot source demand are reused.
+- Regression coverage includes fractional mean (`80%` + `61%` → `70.5%`), 0%, main priority, only-left/right, dual partial, case-only, stale fallback, fixed geometry/gap, independent segment colors, Menu Bar/Dock pixel parity, cache identity, Classic compatibility, configuration migration, scenario production parity, Focus and preview lifecycle. The fractional-mean test was observed failing before the Double fix and passing afterward.
+- Final local gate after both Task 11 review fixes and Task 12 precision correction: `swift test` passed 1546 XCTest (7 skipped, 0 failures) plus 583 Swift Testing tests in 92 suites; `swift build -c release` passed; all 12 `Localizable.strings` passed `plutil -lint`; `git diff --check` passed. Local evidence is Swift 6.4 / SDK 27, not CI Swift 6.3.3.
+- No physical AirPods, disconnect/reconnect/closed-case, sleep/wake, multi-owner hardware behavior, visual UI, VoiceOver, macOS 13 runtime, live app, CI, or package artifact was tested. Parent will run fixed-SHA review and assign final CI/package gate to an independent fresh agent.
+- Current code order: `df67cbf8fef8a2b43535a97addd92ab05f2b6d69` (Task 12), `d662afc967c6f8d84dee439ec55080174c19778c` (Task 11 original review fixes), `61dd77740808018708ac23a57c566c96ef9bc194` (Task 11 follow-up), `bc3003bd79e2b9acfbc3d313a506b35300fa7ba8` (fractional-average correction). All four original findings and the deferred-settings stale-tuple follow-up are parent-reported independently resolved.
+- Usage snapshot before the final code commit: 15% used in the 5-hour window (85% remaining), 87% weekly; no low-quota stop condition. No push, merge, publish, CI, or app launch was performed.
