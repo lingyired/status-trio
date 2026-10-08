@@ -5,7 +5,8 @@ import Testing
 @MainActor
 struct DockIconRendererPixelLengthTests {
     @Test func keepsTheDockRasterByDefault() throws {
-        let image = try #require(DockIconRenderer.image(status: .placeholder))
+        let image = try #require(renderDockFixture(
+                status: .placeholder))
         let representation = try #require(
             image.representations.first as? NSBitmapImageRep
         )
@@ -23,7 +24,8 @@ struct DockIconRendererPixelLengthTests {
 
     @Test func rendersAPreviewAtTheRequestedPixelLength() throws {
         let image = try #require(
-            DockIconRenderer.image(status: .placeholder, pixelLength: 112)
+            renderDockFixture(
+                status: .placeholder, pixelLength: 112)
         )
         let representation = try #require(
             image.representations.first as? NSBitmapImageRep
@@ -35,9 +37,10 @@ struct DockIconRendererPixelLengthTests {
     }
 
     @Test func explicitDockPixelLengthMatchesTheDefaultRaster() throws {
-        let legacy = try #require(DockIconRenderer.image(status: .placeholder))
+        let legacy = try #require(renderDockFixture(
+                status: .placeholder))
         let explicit = try #require(
-            DockIconRenderer.image(
+            renderDockFixture(
                 status: .placeholder,
                 pixelLength: DockIconRenderer.pixelSize
             )
@@ -51,7 +54,8 @@ struct DockIconRendererPixelLengthTests {
     @Test func aPreviewRasterKeepsTheSameArtwork() throws {
         let preview = try pixels(
             of: try #require(
-                DockIconRenderer.image(status: .placeholder, pixelLength: 128)
+                renderDockFixture(
+                status: .placeholder, pixelLength: 128)
             )
         )
         let body = preview.rgba(
@@ -69,15 +73,18 @@ struct DockIconRendererPixelLengthTests {
     @Test func reusesTheBufferAcrossLengths() throws {
         let firstPass = try pixels(
             of: try #require(
-                DockIconRenderer.image(status: .placeholder, pixelLength: 64)
+                renderDockFixture(
+                status: .placeholder, pixelLength: 64)
             )
         )
         _ = try #require(
-            DockIconRenderer.image(status: .placeholder, pixelLength: 512)
+            renderDockFixture(
+                status: .placeholder, pixelLength: 512)
         )
         let secondPass = try pixels(
             of: try #require(
-                DockIconRenderer.image(status: .placeholder, pixelLength: 64)
+                renderDockFixture(
+                status: .placeholder, pixelLength: 64)
             )
         )
 
@@ -85,9 +92,12 @@ struct DockIconRendererPixelLengthTests {
     }
 
     @Test func rejectsANonsensicalPixelLength() {
-        #expect(DockIconRenderer.image(status: .placeholder, pixelLength: 0) == nil)
-        #expect(DockIconRenderer.image(status: .placeholder, pixelLength: -8) == nil)
-        #expect(DockIconRenderer.image(status: .placeholder, pixelLength: 4096) == nil)
+        #expect(renderDockFixture(
+                status: .placeholder, pixelLength: 0) == nil)
+        #expect(renderDockFixture(
+                status: .placeholder, pixelLength: -8) == nil)
+        #expect(renderDockFixture(
+                status: .placeholder, pixelLength: 4096) == nil)
     }
 
     private func pixels(of image: NSImage) throws -> PixelBuffer {

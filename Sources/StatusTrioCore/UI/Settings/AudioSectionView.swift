@@ -110,7 +110,7 @@ struct AudioSectionView: View {
                     List {
                         ForEach(orderedDevices) { device in
                             HStack(spacing: 10) {
-                                AudioOutputDeviceIconView(device: device)
+                                AudioOutputDeviceIconView(source: AudioPanelMapper.iconSource(for: device))
                                     .foregroundStyle(device.isCurrent ? Color.accentColor : Color.secondary)
                                     .frame(width: 18)
 

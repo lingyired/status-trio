@@ -12,10 +12,11 @@ long-term trends survive. The workflow is
 [.github/workflows/analytics-snapshot.yml](../.github/workflows/analytics-snapshot.yml),
 scheduled daily at 03:17 UTC.
 
-This is repository bookkeeping, **not app telemetry**. Status Trio ships no
-telemetry, nothing runs on a user's machine, and every field archived here is
-data GitHub already holds about this repository. The privacy statement in
-[README.md](../README.md#L178-L180) stays true.
+This is GitHub repository bookkeeping, separate from Status Trio's optional
+first-party app telemetry. The snapshot contains repository traffic and release
+download counters already held by GitHub; it does not include heartbeat data.
+The app telemetry choices and payload are documented in
+[Status Trio telemetry and privacy](privacy-telemetry.md).
 
 ## What this can and cannot answer
 
@@ -23,19 +24,18 @@ It can answer: how many people look at the repository, where they come from,
 which releases they download, and how the install base spreads across versions
 (roughly, and including repeat downloads).
 
-It **cannot** answer per-language app usage. The app's language only exists in
-the request that an update check or a DMG download makes, and that request goes
-to `raw.githubusercontent.com` / `github.com`, which expose no request logs.
-Measuring real per-language usage needs a receiving endpoint (a Worker or a
-hosted analytics service), which this project deliberately does not run yet.
+It **cannot** answer per-language app usage or count active installations. The
+app's language in an update check or DMG download is not a reliable measure of
+the language people use in the app. Those questions belong to the separate
+opt-in heartbeat described in [the privacy notice](privacy-telemetry.md).
 
-The closest zero-deployment language signal is the per-language README landing
-page. `traffic/popular/paths` reports `/blob/main/README.zh-CN.md` separately,
-so **when a new language ships, add `README.<lang>.md` and link it from the
-README language switcher** — that path then appears in every future snapshot as
-a free, per-language visitor count. English has no separate path (the
-repository root renders `README.md`), so its baseline is "the total minus the
-other languages".
+When app telemetry is off, the per-language README landing page remains a
+separate repository-interest signal. `traffic/popular/paths` reports
+`/blob/main/README.zh-CN.md` separately, so **when a new documentation language
+ships, add `README.<lang>.md` and link it from the README language switcher**.
+That path then appears in future GitHub snapshots. It counts repository page
+views, not app users or installations. English has no separate path because
+the repository root renders `README.md`.
 
 ## Files
 

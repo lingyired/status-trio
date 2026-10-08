@@ -91,3 +91,12 @@ The accessory battery notifications the levels refresh on are `notify(3)` keys
 public half of the mechanism; the key names belong to `powerd`, and a key that goes
 away only means those notifications stop arriving, which leaves the safety-net poll
 as the only trigger, exactly as before.
+
+## Telemetry cannot identify uninstalls
+
+When anonymous usage statistics are enabled, the app sends a small heartbeat
+through the first-party service. Turning statistics off stops future heartbeats,
+but does not delete data already received. The service also cannot distinguish
+an uninstalled app from one that is still installed with telemetry disabled or
+that has not been used recently. See [telemetry and privacy](privacy-telemetry.md)
+for the fields, consent choices, and retention details.

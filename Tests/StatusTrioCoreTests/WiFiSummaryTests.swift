@@ -117,14 +117,24 @@ final class WiFiSummaryTests: XCTestCase {
         subscription.cancel()
 
         XCTAssertEqual(
-            StatusBarRenderKey(status: firstIcon, iconSize: 28, options: .standard,
-                               connectionOptions: .standard, appearanceName: "aqua"),
-            StatusBarRenderKey(status: secondIcon, iconSize: 28, options: .standard,
-                               connectionOptions: .standard, appearanceName: "aqua")
+            StatusBarRenderKey(
+                scene: makeIconPresentationScene(status: firstIcon), iconSize: 28,
+                backingScale: 2, appearanceName: "aqua", phase: nil
+            ),
+            StatusBarRenderKey(
+                scene: makeIconPresentationScene(status: secondIcon), iconSize: 28,
+                backingScale: 2, appearanceName: "aqua", phase: nil
+            )
         )
         XCTAssertEqual(
-            DockIconRenderKey(status: firstIcon, options: .standard, connectionOptions: .standard, backgroundStyle: .dark),
-            DockIconRenderKey(status: secondIcon, options: .standard, connectionOptions: .standard, backgroundStyle: .dark)
+            DockIconRenderKey(
+                scene: makeIconPresentationScene(status: firstIcon),
+                backgroundStyle: .dark, pixelLength: DockIconRenderer.pixelSize
+            ),
+            DockIconRenderKey(
+                scene: makeIconPresentationScene(status: secondIcon),
+                backgroundStyle: .dark, pixelLength: DockIconRenderer.pixelSize
+            )
         )
     }
 }

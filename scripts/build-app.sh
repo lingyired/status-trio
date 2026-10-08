@@ -11,6 +11,7 @@ BUILD_NUMBER="${BUILD_NUMBER:-}"
 SU_FEED_URL="${SU_FEED_URL:-}"
 DEVELOPMENT_CODENAME="${DEVELOPMENT_CODENAME:-}"
 UNIVERSAL_BUILD="${UNIVERSAL_BUILD:-0}"
+TELEMETRY_PRODUCTION="${TELEMETRY_PRODUCTION:-0}"
 
 case "$OPEN_APP" in
     open|no-open) ;;
@@ -44,6 +45,14 @@ if [[ -n "$SU_FEED_URL" && "$SU_FEED_URL" != https://* ]]; then
     echo "Error: SU_FEED_URL must use HTTPS." >&2
     exit 2
 fi
+
+case "$TELEMETRY_PRODUCTION" in
+    0|1) ;;
+    *)
+        echo "Error: TELEMETRY_PRODUCTION must be 0 or 1." >&2
+        exit 2
+        ;;
+esac
 
 case "$UNIVERSAL_BUILD" in
     0|1) ;;
@@ -159,6 +168,9 @@ if ! otool -l "$CONTENTS/MacOS/StatusTrio" | grep -Fq 'path @executable_path/../
 fi
 
 cp "$ROOT/Support/Info.plist" "$CONTENTS/Info.plist"
+if [[ "$TELEMETRY_PRODUCTION" == "1" ]]; then
+    /usr/libexec/PlistBuddy -c "Set :STTelemetryProduction true" "$CONTENTS/Info.plist"
+fi
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$CONTENTS/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $APP_NAME" "$CONTENTS/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleName $APP_NAME" "$CONTENTS/Info.plist"

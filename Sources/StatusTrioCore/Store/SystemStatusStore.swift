@@ -1022,11 +1022,13 @@ private extension VolumeStatus {
     }
 }
 
-private extension StatusSnapshot {
+extension StatusSnapshot {
     func replacingBattery(_ value: BatteryStatus) -> StatusSnapshot {
         StatusSnapshot(battery: value, wifi: wifi, connection: connection, volume: volume)
     }
+}
 
+private extension StatusSnapshot {
     func replacingWiFi(_ value: WiFiStatus) -> StatusSnapshot {
         StatusSnapshot(battery: battery, wifi: value, connection: connection, volume: volume)
     }

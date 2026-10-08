@@ -80,10 +80,6 @@ final class StatusMenuBuilderTests: XCTestCase {
         @objc func openSettings() {}
     }
 
-    func testStatusBarUpdateCadence() {
-        XCTAssertEqual(StatusBarController.iconSnapshotDebounceInterval, 0.5)
-    }
-
     func testClickClassification() {
         XCTAssertEqual(StatusBarController.clickKind(eventType: .leftMouseUp, modifiers: []), .left)
         XCTAssertEqual(StatusBarController.clickKind(eventType: .rightMouseUp, modifiers: []), .right)

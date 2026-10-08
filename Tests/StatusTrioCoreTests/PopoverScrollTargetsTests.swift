@@ -12,14 +12,22 @@ final class PopoverScrollTargetsTests: XCTestCase {
 
         let window = makeWindow()
         let targets = PopoverScrollTargets()
+        let settings = SettingsStore(defaults: defaults)
+        let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+        let store = SystemStatusStore(
+            batteryMonitor: MarkerBatteryMonitor(),
+            wifiMonitor: MarkerWiFiMonitor(),
+            volumeMonitor: MarkerVolumeMonitor()
+        )
+        let panel = StatusPanelViewModel(
+            store: store,
+            settings: settings,
+            localization: localization,
+            actions: StatusPanelActions(store: store, settings: settings)
+        )
         let hostingView = NSHostingView(
             rootView: StatusPopoverView(
-                store: SystemStatusStore(
-                    batteryMonitor: MarkerBatteryMonitor(),
-                    wifiMonitor: MarkerWiFiMonitor(),
-                    volumeMonitor: MarkerVolumeMonitor()
-                ),
-                settings: SettingsStore(defaults: defaults),
+                panel: panel,
                 scrollTargets: targets,
                 requestWiFiNameAccess: {},
                 requestBluetoothAuthorization: {},
@@ -33,9 +41,7 @@ final class PopoverScrollTargetsTests: XCTestCase {
                 openSoundSettings: {},
                 quit: {}
             )
-            .environmentObject(
-                Localization(defaults: defaults, preferredLanguages: ["en"])
-            )
+            .environmentObject(localization)
         )
         hostingView.frame = NSRect(x: 0, y: 0, width: 330, height: 480)
         window.contentView?.addSubview(hostingView)

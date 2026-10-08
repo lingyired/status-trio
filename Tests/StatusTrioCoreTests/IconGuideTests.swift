@@ -49,6 +49,52 @@ final class IconGuideTests: XCTestCase {
         XCTAssertFalse(IconGuideOnboardingPolicy.consumeIfNeeded(settings: settings))
     }
 
+    func testPendingTelemetryConsentKeepsGuideEligibleAfterGuideDismissal() {
+        let name = "IconGuideTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removeTestSuite(named: name) }
+        let settings = SettingsStore(defaults: defaults)
+
+        XCTAssertTrue(IconGuideOnboardingPolicy.shouldPresentGuide(settings: settings))
+        XCTAssertTrue(settings.hasCompletedIconGuideOnboarding)
+        XCTAssertEqual(settings.telemetryConsentVersion, 0)
+
+        let relaunched = SettingsStore(defaults: defaults)
+        XCTAssertTrue(IconGuideOnboardingPolicy.shouldPresentGuide(settings: relaunched))
+        XCTAssertEqual(relaunched.telemetryConsentVersion, 0)
+
+        relaunched.completeTelemetryConsent(sharesAnalytics: false)
+        let completed = SettingsStore(defaults: defaults)
+        XCTAssertFalse(IconGuideOnboardingPolicy.shouldPresentGuide(settings: completed))
+    }
+
+    func testTelemetryConsentDraftIsPersistedOnlyWhenAcknowledged() {
+        let name = "IconGuideTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removeTestSuite(named: name) }
+        let settings = SettingsStore(defaults: defaults)
+        var draft = TelemetryConsentDraft()
+
+        draft.sharesAnalytics = false
+        XCTAssertEqual(settings.telemetryConsentVersion, 0)
+        XCTAssertFalse(settings.sharesAnonymousAnalytics)
+
+        draft.sharesAnalytics = true
+        draft.acknowledge(settings: settings)
+        XCTAssertEqual(settings.telemetryConsentVersion, TelemetryConsent.currentVersion)
+        XCTAssertTrue(settings.sharesAnonymousAnalytics)
+
+        let optOutName = "IconGuideTests.\(UUID().uuidString)"
+        let optOutDefaults = UserDefaults(suiteName: optOutName)!
+        defer { optOutDefaults.removeTestSuite(named: optOutName) }
+        let optOutSettings = SettingsStore(defaults: optOutDefaults)
+        var optOutDraft = TelemetryConsentDraft()
+        optOutDraft.sharesAnalytics = false
+        optOutDraft.acknowledge(settings: optOutSettings)
+        XCTAssertEqual(optOutSettings.telemetryConsentVersion, TelemetryConsent.currentVersion)
+        XCTAssertFalse(optOutSettings.sharesAnonymousAnalytics)
+    }
+
     func testOnboardingViewRendersWithoutCrashing() {
         let name = "IconGuideTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!

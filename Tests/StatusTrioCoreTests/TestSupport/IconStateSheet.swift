@@ -9,6 +9,7 @@ import UniformTypeIdentifiers
 ///
 /// Every glyph comes from `StatusIconRenderer`, so the sheet can never drift
 /// from what the app draws.
+@MainActor
 enum IconStateSheet {
     struct Entry {
         let zh: String
@@ -520,8 +521,8 @@ enum IconStateSheet {
         ))
         context.fillPath()
 
-        guard let icon = StatusIconRenderer.render(
-            menuBarStatus: entry.status,
+        guard let icon = renderMenuBarFixture(
+                menuBarStatus: entry.status,
             size: iconSize,
             scale: 2,
             foreground: palette.glyph,

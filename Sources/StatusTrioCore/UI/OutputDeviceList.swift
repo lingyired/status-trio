@@ -3,34 +3,25 @@ import SwiftUI
 struct OutputDeviceList: View {
     @EnvironmentObject private var localization: Localization
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ObservedObject var settings: SettingsStore
-    let devices: [AudioOutputDevice]
-    let onSelect: (AudioOutputDevice) -> Void
-    /// Synthetic AirPods output rows the preview injects below the real list. They
-    /// render like any other row but bypass ordering and the expansion control,
-    /// because they only exist to exercise the listening-mode control's layout.
-    var previewDevices: [AudioOutputDevice] = []
-    /// A language override applied only to the preview rows, so one preview can show
-    /// a different locale's mode names than the panel around it. `nil` leaves them on
-    /// the panel's own localization.
-    var previewLocalization: Localization? = nil
-    /// Resolves the listening-mode control for a row's endpoint, or `nil`. Defaults
-    /// to no control so a plain list is byte-for-byte what it was before.
-    var controlProvider: (AudioOutputDevice) -> BluetoothListeningModePresentation? = { _ in nil }
-    /// Where a row's mode tap is forwarded. Defaults to a no-op.
-    var onSelectListeningMode: (AudioOutputDevice, BluetoothListeningMode) -> Void = { _, _ in }
+    let rows: [PanelAudioDeviceRow]
+    let previewRows: [PanelAudioDeviceRow]
+    let visibleLimit: Int?
+    let expandLabel: String
+    let collapseLabel: String
+    let previewLanguageCode: String
+    let onSelect: (PanelAudioDeviceID) -> Void
+    let onSelectListeningMode: (String, BluetoothListeningMode) -> Void
 
     @State private var isExpanded = false
 
     var body: some View {
-        let model = OutputDeviceListModel.make(
-            devices: devices,
-            order: settings.outputDeviceOrder,
-            limit: settings.visibleOutputDeviceLimit,
+        let visibleRows = OutputDeviceListPresentation.visibleDevices(
+            from: rows,
+            limit: visibleLimit,
             isExpanded: isExpanded
         )
 
-        if devices.isEmpty && previewDevices.isEmpty {
+        if rows.isEmpty && previewRows.isEmpty {
             Label(localization.string(.volumeOutputEmpty), systemImage: "questionmark.circle")
                 .font(.body)
                 .foregroundStyle(.secondary)
@@ -38,18 +29,13 @@ struct OutputDeviceList: View {
                 .padding(.vertical, 4)
         } else {
             VStack(spacing: 2) {
-                deviceRows(model.visibleDevices)
-
-                // Preview rows sit under the real ones, outside the ordering and the
-                // expansion control — they are display scaffolding, not devices. The
-                // language override, when set, is scoped to just this subtree so the
-                // synthetic capsules show that locale while the real rows above do not.
-                ForEach(previewDevices) { device in
-                    row(device)
+                deviceRows(visibleRows)
+                ForEach(previewRows) { row in
+                    deviceRow(row)
                 }
-                .environmentObject(previewLocalization ?? localization)
+                .environmentObject(PreviewLocalization.forCode(previewLanguageCode) ?? localization)
 
-                if model.canToggleExpansion {
+                if OutputDeviceListPresentation.canToggleExpansion(for: rows, limit: visibleLimit) {
                     Button {
                         withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) {
                             isExpanded.toggle()
@@ -59,15 +45,8 @@ struct OutputDeviceList: View {
                             Image(systemName: "chevron.down")
                                 .font(.caption.weight(.semibold))
                                 .rotationEffect(.degrees(isExpanded ? 180 : 0))
-
-                            Text(
-                                localization.string(
-                                    isExpanded
-                                        ? .volumeOutputCollapse
-                                        : .volumeOutputExpand
-                                )
-                            )
-                            .font(.callout)
+                            Text(isExpanded ? collapseLabel : expandLabel)
+                                .font(.callout)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
                         .foregroundStyle(.secondary)
@@ -80,20 +59,20 @@ struct OutputDeviceList: View {
         }
     }
 
-    private func deviceRows(_ devices: [AudioOutputDevice]) -> some View {
+    private func deviceRows(_ rows: [PanelAudioDeviceRow]) -> some View {
         LazyVStack(spacing: 2) {
-            ForEach(devices) { device in
-                row(device)
-            }
+            ForEach(rows) { row in deviceRow(row) }
         }
     }
 
-    private func row(_ device: AudioOutputDevice) -> some View {
+    private func deviceRow(_ row: PanelAudioDeviceRow) -> some View {
         OutputDeviceRow(
-            device: device,
-            onSelect: onSelect,
-            listeningMode: device.isCurrent ? controlProvider(device) : nil,
-            onSelectListeningMode: { mode in onSelectListeningMode(device, mode) }
+            state: row,
+            onSelect: { onSelect(row.key) },
+            onSelectListeningMode: { mode in
+                guard let address = row.listeningModeAddress else { return }
+                onSelectListeningMode(address, mode)
+            }
         )
     }
 }

@@ -1,95 +1,56 @@
-/// Identifies what a Dock-icon raster actually contains, so signal noise that
-/// cannot change a pixel (a different RSSI inside the same bar count, a
-/// different volume inside the same dot count) does not trigger another render.
-///
-/// The raster's pixel length is part of the identity: the Dock icon and a
-/// preview tile of the same state are different bitmaps, and serving one for the
-/// other would either blur the Dock or waste a megabyte on a 30 pt tile.
-struct DockIconRenderKey: Equatable, Hashable {
-    let batteryPercentage: Int
-    let gapContent: BatteryGapContent
-    let batteryColorRole: BatteryColorRole
-    let connection: NetworkConnection
-    let wifiState: WiFiState
-    let wifiBars: Int
-    let volumeSteps: Int
-    let options: BatteryIconOptions
-    let connectionOptions: ConnectionIconOptions
-    let volumeOptions: VolumeIconOptions
-    let volumeArcProgress: Double?
-    let bluetoothAudioOptions: BluetoothAudioIconOptions
-    let bluetoothAudioDeviceIcon: AudioOutputDeviceIconSource?
+import AppKit
+
+/// Identifies only the scene and Dock inputs that affect its raster.
+struct DockIconRenderKey: Hashable {
+    let scene: IconSceneState
     let backgroundStyle: DockIconBackgroundStyle
     let pixelLength: Int
 
-    init(
-        status: MenuBarStatus,
-        options: BatteryIconOptions,
-        connectionOptions: ConnectionIconOptions,
-        volumeOptions: VolumeIconOptions = .standard,
-        bluetoothAudioOptions: BluetoothAudioIconOptions = .standard,
-        backgroundStyle: DockIconBackgroundStyle,
-        pixelLength: Int = DockIconRenderer.pixelSize
-    ) {
-        self.batteryPercentage = status.battery.percentage
-        self.gapContent = StatusMappings.batteryGapContent(
-            status.battery,
-            options: options
+    private var staticScene: IconSceneState {
+        guard let ring = scene.outerRing, ring.effect != nil else { return scene }
+        return IconSceneState(
+            outerRing: OuterRingState(
+                segments: ring.segments,
+                gap: ring.gap,
+                accessory: ring.accessory,
+                effect: nil,
+                strokeScale: ring.strokeScale
+            ),
+            center: scene.center,
+            footer: scene.footer
         )
-        self.batteryColorRole = options.usesStatusColors
-            ? StatusMappings.batteryColorRole(
-                status.battery,
-                criticalThreshold: options.criticalThreshold
-            )
-            : .foreground
-        self.connection = status.connection
-        self.wifiState = status.wifi.state
-        self.wifiBars = StatusMappings.wifiBars(rssi: status.wifi.rssi)
-        self.volumeSteps = StatusMappings.volumeSteps(
-            scalar: status.volume.scalar,
-            isMuted: status.volume.isMuted
-        ) ?? 0
-        self.options = options
-        self.connectionOptions = connectionOptions
-        self.volumeOptions = volumeOptions
-        self.volumeArcProgress = volumeOptions.displayStyle == .arc
-            ? status.volume.scalar.flatMap(Self.clampedVolume)
-            : nil
-        self.bluetoothAudioOptions = bluetoothAudioOptions
-        // A picked device's symbol replaces the classified audio glyph; without
-        // one, the current Bluetooth audio output draws as before.
-        self.bluetoothAudioDeviceIcon = bluetoothAudioOptions.networkIconSymbolOverride
-            .map { AudioOutputDeviceIconSource.symbol($0) }
-            ?? (status.volume.currentDevice?.isBluetoothAudio == true
-                ? status.volume.currentDevice.map { AudioOutputDeviceIcon.source(for: $0) }
-                : nil)
-        self.backgroundStyle = backgroundStyle
-        self.pixelLength = pixelLength
     }
 
-    private static func clampedVolume(_ scalar: Double) -> Double? {
-        guard scalar.isFinite else { return nil }
-        return min(1, max(0, scalar))
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.staticScene == rhs.staticScene
+            && lhs.backgroundStyle == rhs.backgroundStyle
+            && lhs.pixelLength == rhs.pixelLength
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(staticScene)
+        hasher.combine(backgroundStyle)
+        hasher.combine(pixelLength)
     }
 }
 
 struct DockIconRenderCache {
-    private(set) var lastKey: DockIconRenderKey?
+    private(set) var successfulKey: DockIconRenderKey?
 
-    mutating func shouldRender(_ key: DockIconRenderKey) -> Bool {
-        guard key != lastKey else { return false }
-        lastKey = key
-        return true
+    func needsRender(_ key: DockIconRenderKey) -> Bool {
+        key != successfulKey
+    }
+
+    mutating func recordSuccessfulRender(_ key: DockIconRenderKey) {
+        successfulKey = key
     }
 
     mutating func reset() {
-        lastKey = nil
+        successfulKey = nil
     }
 }
 
-/// Keeps the images that were rendered for recent states, so recurring states
-/// (the same volume steps, battery percentage, or Wi-Fi bars) reuse an image
-/// instead of allocating another one.
+/// Keeps recent successfully rendered images so recurring scenes reuse a raster.
 @MainActor
 final class DockIconImageCache {
     private let limit: Int
@@ -126,4 +87,3 @@ final class DockIconImageCache {
         order.append(key)
     }
 }
-import AppKit

@@ -14,6 +14,12 @@
 "settings.language" = "Language";
 "settings.language.followSystem" = "Follow System";
 "settings.language.description" = "Changes apply immediately.";
+"settings.analytics.title" = "Anonymous analytics";
+"settings.analytics.description" = "Share a random install ID, app and macOS versions, language, and icon placement. No names, account data, or network details are sent.";
+"settings.analytics.privacyDetails" = "Privacy details";
+"onboarding.analytics.title" = "Privacy and analytics";
+"onboarding.analytics.description" = "Sends a random install ID, app and macOS versions, language, and icon placement. No names, account data, or network details are sent.";
+"onboarding.analytics.toggle" = "Share anonymous usage data";
 "settings.launchAtLogin" = "Launch at login";
 "settings.launchAtLogin.description" = "Start Status Trio automatically when you log in.";
 "settings.launchAtLogin.requiresApproval" = "Waiting for approval. Allow Status Trio in System Settings › General › Login Items.";

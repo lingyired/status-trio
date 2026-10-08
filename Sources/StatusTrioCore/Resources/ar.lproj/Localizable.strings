@@ -14,6 +14,12 @@
 "settings.language" = "اللغة";
 "settings.language.followSystem" = "اتباع النظام";
 "settings.language.description" = "تُطبَّق التغييرات فورًا.";
+"settings.analytics.title" = "التحليلات المجهولة";
+"settings.analytics.description" = "أرسل معرّف تثبيت عشوائيًا وإصدار التطبيق وmacOS واللغة وموضع الأيقونة. لا تُرسل أسماء أو بيانات حساب أو تفاصيل الشبكة.";
+"settings.analytics.privacyDetails" = "التفاصيل";
+"onboarding.analytics.title" = "الخصوصية والتحليلات";
+"onboarding.analytics.description" = "أرسل معرّف تثبيت عشوائيًا وإصدار التطبيق وmacOS واللغة وموضع الأيقونة فقط. لا تُرسل أسماء أو بيانات حساب أو تفاصيل الشبكة.";
+"onboarding.analytics.toggle" = "مشاركة بيانات الاستخدام المجهولة";
 "settings.iconSize" = "حجم الرمز";
 "settings.iconSize.accessibilityValue" = "%d نقطة";
 "settings.iconSize.description" = "يضبط حجم عرض رمز شريط القوائم بين 16 و36 نقطة. يحتفظ رمز Dock بحجم التصميم الثابت.";

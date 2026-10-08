@@ -4,12 +4,18 @@ import Testing
 
 @MainActor
 struct DockIconRenderKeyPixelLengthTests {
+    private var placeholderScene: IconSceneState {
+        IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(snapshot: .placeholder, audioIcon: nil),
+            configuration: .standard
+        )
+    }
+
     @Test func defaultsToTheDockRasterLength() {
         let key = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
+            scene: placeholderScene,
+            backgroundStyle: .dark,
+            pixelLength: DockIconRenderer.pixelSize
         )
 
         #expect(key.pixelLength == DockIconRenderer.pixelSize)
@@ -17,15 +23,12 @@ struct DockIconRenderKeyPixelLengthTests {
 
     @Test func distinguishesTheSameStateAtAPreviewLength() {
         let dock = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
+            scene: placeholderScene,
+            backgroundStyle: .dark,
+            pixelLength: DockIconRenderer.pixelSize
         )
         let preview = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
+            scene: placeholderScene,
             backgroundStyle: .dark,
             pixelLength: 112
         )
@@ -37,23 +40,22 @@ struct DockIconRenderKeyPixelLengthTests {
     @Test func keepsTheDockDeduplicationBehaviour() {
         var cache = DockIconRenderCache()
         let dock = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
+            scene: placeholderScene,
+            backgroundStyle: .dark,
+            pixelLength: DockIconRenderer.pixelSize
         )
         let preview = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
+            scene: placeholderScene,
             backgroundStyle: .dark,
             pixelLength: 112
         )
 
-        let firstDockRender = cache.shouldRender(dock)
-        let duplicateDockRender = cache.shouldRender(dock)
-        let firstPreviewRender = cache.shouldRender(preview)
-        let duplicatePreviewRender = cache.shouldRender(preview)
+        let firstDockRender = cache.needsRender(dock)
+        cache.recordSuccessfulRender(dock)
+        let duplicateDockRender = cache.needsRender(dock)
+        let firstPreviewRender = cache.needsRender(preview)
+        cache.recordSuccessfulRender(preview)
+        let duplicatePreviewRender = cache.needsRender(preview)
 
         #expect(firstDockRender)
         #expect(duplicateDockRender == false)
@@ -179,11 +181,12 @@ struct DockIconPreviewCacheTests {
         let cache = DockIconPreviewCache(limit: 2)
         let status = MenuBarStatus.placeholder
         let key = previewKey(pixelLength: DockIconRenderer.pixelSize)
-        let dock = try #require(DockIconRenderer.image(status: status))
+        let dock = try #require(renderDockFixture(
+                status: status))
         let throughTheCache = try #require(
             cache.image(for: key) {
-                DockIconRenderer.image(
-                    status: status,
+                renderDockFixture(
+                status: status,
                     pixelLength: DockIconRenderer.pixelSize
                 )
             }
@@ -194,11 +197,16 @@ struct DockIconPreviewCacheTests {
         #expect(dockPixels.bytes == cachedPixels.bytes)
     }
 
+    private var placeholderScene: IconSceneState {
+        IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(snapshot: .placeholder, audioIcon: nil),
+            configuration: .standard
+        )
+    }
+
     private func previewKey(pixelLength: Int) -> DockIconRenderKey {
         DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
+            scene: placeholderScene,
             backgroundStyle: .dark,
             pixelLength: pixelLength
         )

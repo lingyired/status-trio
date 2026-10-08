@@ -107,6 +107,29 @@ final class AudioInputPresentationTests: XCTestCase {
         XCTAssertEqual(label, "Unknown input device, Input device 2, Current")
     }
 
+    func testSharedNameDisambiguationAlsoFindsDuplicateOutputDeviceNames() {
+        let duplicate = AudioInputPresentation.needsDevicePosition(
+            name: "Studio Speaker",
+            id: AudioDeviceID(1),
+            among: [
+                (id: AudioDeviceID(1), name: "Studio Speaker"),
+                (id: AudioDeviceID(2), name: " studio speaker ")
+            ],
+            unknownName: "Unknown output device",
+            locale: Locale(identifier: "en_US")
+        )
+        let unnamed = AudioInputPresentation.needsDevicePosition(
+            name: nil,
+            id: AudioDeviceID(3),
+            among: [(id: AudioDeviceID(3), name: nil)],
+            unknownName: "Unknown output device",
+            locale: Locale(identifier: "en_US")
+        )
+
+        XCTAssertTrue(duplicate)
+        XCTAssertTrue(unnamed)
+    }
+
     func testDeviceListShowsWithoutDefaultAndForASingleDevice() {
         let device = AudioInputDevice(id: AudioDeviceID(7), uid: "built-in", name: "Built-in Microphone")
         let noDefault = makeStatus(devices: [device])
@@ -255,6 +278,45 @@ final class AudioInputPresentationTests: XCTestCase {
         draft.setSliderValue(0.8, systemScalar: 0.4) { requests.append($0) }
         XCTAssertEqual(draft.value, 0.4, accuracy: 0.0001)
         XCTAssertEqual(requests, [0.8])
+    }
+
+    func testVolumeDraftResetsWhenInputDeviceChangesAtTheSameScalar() {
+        var draft = AudioInputVolumeDraft()
+        let firstDevice = PanelAudioInputIdentity(rawValue: 11)
+        let secondDevice = PanelAudioInputIdentity(rawValue: 22)
+        draft.receiveSystemState(deviceIdentity: firstDevice, scalar: 0.55)
+        draft.setEditing(true)
+        draft.setSliderValue(0.9, systemScalar: 0.55) { _ in }
+
+        draft.receiveSystemState(deviceIdentity: secondDevice, scalar: 0.55)
+
+        XCTAssertFalse(draft.isEditing)
+        XCTAssertEqual(draft.value, 0.55, accuracy: 0.0001)
+    }
+
+    func testVolumeDraftResetsToNewInputScalarWhenDeviceChangesDuringEditing() {
+        var draft = AudioInputVolumeDraft()
+        draft.receiveSystemState(deviceIdentity: PanelAudioInputIdentity(rawValue: 11), scalar: 0.55)
+        draft.setEditing(true)
+        draft.setSliderValue(0.9, systemScalar: 0.55) { _ in }
+
+        draft.receiveSystemState(deviceIdentity: PanelAudioInputIdentity(rawValue: 22), scalar: 0.31)
+
+        XCTAssertFalse(draft.isEditing)
+        XCTAssertEqual(draft.value, 0.31, accuracy: 0.0001)
+    }
+
+    func testVolumeDraftKeepsActiveDraftForSameInputIdentityScalarUpdates() {
+        var draft = AudioInputVolumeDraft()
+        let device = PanelAudioInputIdentity(rawValue: 11)
+        draft.receiveSystemState(deviceIdentity: device, scalar: 0.55)
+        draft.setEditing(true)
+        draft.setSliderValue(0.9, systemScalar: 0.55) { _ in }
+
+        draft.receiveSystemState(deviceIdentity: device, scalar: 0.31)
+
+        XCTAssertTrue(draft.isEditing)
+        XCTAssertEqual(draft.value, 0.9, accuracy: 0.0001)
     }
 
     private func makeStatus(

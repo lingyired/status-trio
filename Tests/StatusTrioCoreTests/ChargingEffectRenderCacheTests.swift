@@ -7,12 +7,11 @@ struct ChargingEffectRenderCacheTests {
         let first = menuBarKey(phase: .init(step: 2, stepsPerCycle: 36, kind: .steady))
         let second = menuBarKey(phase: .init(step: 3, stepsPerCycle: 36, kind: .steady))
 
-        let rendersFirst = cache.shouldRender(first)
-        let rendersSecond = cache.shouldRender(second)
-        let suppressesRepeatedSecond = cache.shouldRender(second)
-        #expect(rendersFirst)
-        #expect(rendersSecond)
-        #expect(suppressesRepeatedSecond == false)
+        #expect(cache.needsRender(first))
+        cache.recordSuccessfulRender(first)
+        #expect(cache.needsRender(second))
+        cache.recordSuccessfulRender(second)
+        #expect(cache.needsRender(second) == false)
     }
 
     @Test func nilMenuBarPhasePreservesStaticKeyDeduplication() {
@@ -20,8 +19,9 @@ struct ChargingEffectRenderCacheTests {
         let omittedPhase = menuBarKey()
         let explicitNilPhase = menuBarKey(phase: nil)
 
-        let rendersStaticKey = cache.shouldRender(omittedPhase)
-        let suppressesDuplicateStaticKey = cache.shouldRender(explicitNilPhase)
+        let rendersStaticKey = cache.needsRender(omittedPhase)
+        cache.recordSuccessfulRender(omittedPhase)
+        let suppressesDuplicateStaticKey = cache.needsRender(explicitNilPhase)
         #expect(omittedPhase == explicitNilPhase)
         #expect(rendersStaticKey)
         #expect(suppressesDuplicateStaticKey == false)
@@ -32,18 +32,21 @@ struct ChargingEffectRenderCacheTests {
         let first = dockKey()
         let second = dockKey()
 
-        let rendersFirst = cache.shouldRender(first)
-        let suppressesDuplicate = cache.shouldRender(second)
+        let rendersFirst = cache.needsRender(first)
+        cache.recordSuccessfulRender(first)
+        let suppressesDuplicate = cache.needsRender(second)
         #expect(rendersFirst)
         #expect(!suppressesDuplicate)
     }
 
     private func menuBarKey(phase: ChargingEffectPhase? = nil) -> StatusBarRenderKey {
         StatusBarRenderKey(
-            status: .placeholder,
+            scene: IconPresentationMapper.scene(
+                inputs: IconPresentationInputs(snapshot: .placeholder, audioIcon: nil),
+                configuration: .standard
+            ),
             iconSize: 28,
-            options: .standard,
-            connectionOptions: .standard,
+            backingScale: 2,
             appearanceName: "darkAqua",
             phase: phase
         )
@@ -51,10 +54,12 @@ struct ChargingEffectRenderCacheTests {
 
     private func dockKey() -> DockIconRenderKey {
         DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
+            scene: IconPresentationMapper.scene(
+                inputs: IconPresentationInputs(snapshot: .placeholder, audioIcon: nil),
+                configuration: .standard
+            ),
+            backgroundStyle: .dark,
+            pixelLength: 512
         )
     }
 }

@@ -13,9 +13,14 @@ final class SettingsRowHitAreaTests: XCTestCase {
             wifiMonitor: EmptyWiFiMonitor(),
             volumeMonitor: EmptyVolumeMonitor()
         )
-        let view = StatusPopoverView(
+        let panel = StatusPanelViewModel(
             store: store,
             settings: settings,
+            localization: localization,
+            actions: StatusPanelActions(store: store, settings: settings)
+        )
+        let view = StatusPopoverView(
+            panel: panel,
             scrollTargets: PopoverScrollTargets(),
             requestWiFiNameAccess: {},
             requestBluetoothAuthorization: {},

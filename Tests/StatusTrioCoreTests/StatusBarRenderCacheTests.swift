@@ -3,138 +3,179 @@ import XCTest
 @testable import StatusTrioCore
 
 final class StatusBarRenderCacheTests: XCTestCase {
-    func testSameRenderKeyIsSuppressed() {
+    func testFailedRasterDoesNotBecomeSuccessfulKey() {
         var cache = StatusBarRenderCache()
-        let key = makeKey(volumeScalar: 0.5, appearance: "darkAqua")
+        let key = makeKey()
 
-        XCTAssertTrue(cache.shouldRender(key))
-        XCTAssertFalse(cache.shouldRender(key))
+        XCTAssertTrue(cache.needsRender(key))
+        XCTAssertTrue(cache.needsRender(key))
+        cache.recordSuccessfulRender(key)
+        XCTAssertFalse(cache.needsRender(key))
     }
 
-    func testAppearanceChangeRendersAgain() {
+    func testBackingScaleAndAppearanceArePartOfMenuBarRasterIdentity() {
         var cache = StatusBarRenderCache()
-        let aquaKey = makeKey(appearance: "aqua")
-        let darkAquaKey = makeKey(appearance: "darkAqua")
+        let scene = makeScene()
+        let oneXAqua = StatusBarRenderKey(
+            scene: scene, iconSize: 28, backingScale: 1,
+            appearanceName: "NSAppearanceNameAqua", phase: nil
+        )
+        let twoXAqua = StatusBarRenderKey(
+            scene: scene, iconSize: 28, backingScale: 2,
+            appearanceName: "NSAppearanceNameAqua", phase: nil
+        )
+        let twoXDark = StatusBarRenderKey(
+            scene: scene, iconSize: 28, backingScale: 2,
+            appearanceName: "NSAppearanceNameDarkAqua", phase: nil
+        )
 
-        XCTAssertTrue(cache.shouldRender(aquaKey))
-        XCTAssertTrue(cache.shouldRender(darkAquaKey))
-        XCTAssertFalse(cache.shouldRender(darkAquaKey))
+        XCTAssertTrue(cache.needsRender(oneXAqua))
+        cache.recordSuccessfulRender(oneXAqua)
+        XCTAssertTrue(cache.needsRender(twoXAqua))
+        cache.recordSuccessfulRender(twoXAqua)
+        XCTAssertTrue(cache.needsRender(twoXDark))
     }
 
-    func testBluetoothAudioOptionsChangeRendersAgain() {
+    func testSceneAndFramePhaseArePartOfMenuBarRasterIdentity() {
         var cache = StatusBarRenderCache()
-        let standard = makeKey(
-            appearance: "darkAqua",
-            bluetoothAudioOptions: .standard
-        )
-        let replacementEnabled = makeKey(
-            appearance: "darkAqua",
-            bluetoothAudioOptions: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true
-            )
-        )
+        let scene = makeScene(rssi: -50)
+        let otherScene = makeScene(rssi: -80)
+        let steadyFrame = ChargingEffectPhase(step: 0, stepsPerCycle: 36, kind: .steady)
+        let nextSteadyFrame = ChargingEffectPhase(step: 1, stepsPerCycle: 36, kind: .steady)
+        let first = makeKey(scene: scene, phase: steadyFrame)
 
-        XCTAssertTrue(cache.shouldRender(standard))
-        XCTAssertTrue(cache.shouldRender(replacementEnabled))
-        XCTAssertFalse(cache.shouldRender(replacementEnabled))
+        cache.recordSuccessfulRender(first)
+
+        XCTAssertFalse(cache.needsRender(first))
+        XCTAssertTrue(cache.needsRender(makeKey(scene: scene, phase: nextSteadyFrame)))
+        XCTAssertTrue(cache.needsRender(makeKey(scene: otherScene, phase: steadyFrame)))
     }
 
-    func testAppleWatchDeviceOverrideRendersInTheMenuBarCache() {
-        var cache = StatusBarRenderCache()
-        let withoutDeviceGlyph = makeKey(
-            appearance: "darkAqua",
-            bluetoothAudioOptions: BluetoothAudioIconOptions(replacesNetworkIcon: true)
-        )
-        let appleWatchGlyph = makeKey(
-            appearance: "darkAqua",
-            bluetoothAudioOptions: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true,
-                networkIconSymbolOverride: "applewatch"
-            )
-        )
-
-        XCTAssertTrue(cache.shouldRender(withoutDeviceGlyph))
-        XCTAssertTrue(cache.shouldRender(appleWatchGlyph))
-        XCTAssertFalse(cache.shouldRender(appleWatchGlyph))
-    }
-
-    func testBluetoothSymbolScaleChangeRendersAgain() {
-        var cache = StatusBarRenderCache()
-        let standard = makeKey(
-            appearance: "darkAqua",
-            bluetoothAudioOptions: .standard
-        )
-        let scaled = makeKey(
-            appearance: "darkAqua",
-            bluetoothAudioOptions: BluetoothAudioIconOptions(
-                symbolScale: 1.45
-            )
-        )
-
-        XCTAssertTrue(cache.shouldRender(standard))
-        XCTAssertTrue(cache.shouldRender(scaled))
-        XCTAssertFalse(cache.shouldRender(scaled))
-    }
-
-    func testOutputDevicesDoNotInvalidateMenuBarStatus() {
-        let first = makeSnapshot(outputDevices: [makeDevice(id: 1, uid: "one")])
-        let second = makeSnapshot(outputDevices: [makeDevice(id: 2, uid: "two")])
-
-        XCTAssertNotEqual(first.volume, second.volume)
-        XCTAssertEqual(MenuBarStatus(snapshot: first), MenuBarStatus(snapshot: second))
-    }
-
-    /// The ring stroke width is part of both option structs, so the menu bar
-    /// cache must treat it as a change and redraw instead of keeping a stale
-    /// image.
-    func testRingStrokeWidthChangeRendersAgain() {
-        var cache = StatusBarRenderCache()
-        let light = makeKey(
-            appearance: "darkAqua",
-            options: BatteryIconOptions(ringStrokeScale: RingStrokeStyle.light.scale)
-        )
-        let bold = makeKey(
-            appearance: "darkAqua",
-            options: BatteryIconOptions(ringStrokeScale: RingStrokeStyle.bold.scale)
-        )
-
-        XCTAssertTrue(cache.shouldRender(light))
-        XCTAssertTrue(cache.shouldRender(bold))
-        XCTAssertFalse(cache.shouldRender(bold))
-    }
-
-    private func makeKey(
-        volumeScalar: Double = 0.5,
-        appearance: String,
-        options: BatteryIconOptions = .standard,
-        bluetoothAudioOptions: BluetoothAudioIconOptions = .standard
-    ) -> StatusBarRenderKey {
-        StatusBarRenderKey(
-            status: MenuBarStatus(
-                snapshot: makeSnapshot(volumeScalar: volumeScalar)
-            ),
-            iconSize: 28,
-            options: options,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: bluetoothAudioOptions,
-            appearanceName: appearance
-        )
-    }
-
-    private func makeSnapshot(
-        volumeScalar: Double = 0.5,
-        outputDevices: [AudioOutputDevice] = []
-    ) -> StatusSnapshot {
-        StatusSnapshot(
+    func testOutputDeviceMetadataDoesNotChangeScene() {
+        let first = StatusSnapshot(
             battery: .placeholder,
             wifi: .placeholder,
             connection: .wifi,
             volume: VolumeStatus(
-                scalar: volumeScalar,
-                isMuted: false,
-                deviceName: "Speakers",
-                outputDevices: outputDevices
+                scalar: 0.5, isMuted: false, deviceName: "Speakers",
+                outputDevices: [makeDevice(id: 1, uid: "one")]
             )
+        )
+        let second = StatusSnapshot(
+            battery: .placeholder,
+            wifi: .placeholder,
+            connection: .wifi,
+            volume: VolumeStatus(
+                scalar: 0.5, isMuted: false, deviceName: "Speakers",
+                outputDevices: [makeDevice(id: 2, uid: "two")]
+            )
+        )
+
+        XCTAssertNotEqual(first.volume, second.volume)
+        XCTAssertEqual(makeScene(snapshot: first), makeScene(snapshot: second))
+    }
+
+    func testRingStrokeWidthChangeChangesSceneIdentity() {
+        let light = IconPresentationConfiguration(
+            battery: BatteryIconOptions(ringStrokeScale: RingStrokeStyle.light.scale),
+            connection: .standard, volume: .standard, bluetooth: .standard
+        )
+        let bold = IconPresentationConfiguration(
+            battery: BatteryIconOptions(ringStrokeScale: RingStrokeStyle.bold.scale),
+            connection: .standard, volume: .standard, bluetooth: .standard
+        )
+
+        XCTAssertNotEqual(makeScene(configuration: light), makeScene(configuration: bold))
+    }
+
+    /// Main added the Apple device glyph override after the presentation
+    /// refactor branched, so the scene it feeds into must still notice it.
+    func testAppleWatchDeviceOverrideChangesSceneIdentity() {
+        let snapshot = bluetoothSnapshot()
+        let withoutGlyph = makeScene(
+            configuration: configuration(bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true)),
+            snapshot: snapshot
+        )
+        let appleWatchGlyph = makeScene(
+            configuration: configuration(
+                bluetooth: BluetoothAudioIconOptions(
+                    replacesNetworkIcon: true,
+                    networkIconSymbolOverride: "applewatch"
+                )
+            ),
+            snapshot: snapshot
+        )
+
+        XCTAssertNotEqual(withoutGlyph, appleWatchGlyph)
+    }
+
+    /// Main let the user scale the Bluetooth glyph; the scale is part of the
+    /// symbol state, so two scales must not share one cached raster.
+    func testBluetoothSymbolScaleChangeChangesSceneIdentity() {
+        let snapshot = bluetoothSnapshot()
+        let standard = makeScene(
+            configuration: configuration(bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true)),
+            snapshot: snapshot
+        )
+        let scaled = makeScene(
+            configuration: configuration(
+                bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true, symbolScale: 1.45)
+            ),
+            snapshot: snapshot
+        )
+
+        XCTAssertNotEqual(standard, scaled)
+    }
+
+    private func configuration(
+        bluetooth: BluetoothAudioIconOptions
+    ) -> IconPresentationConfiguration {
+        IconPresentationConfiguration(
+            battery: .standard,
+            connection: .standard,
+            volume: .standard,
+            bluetooth: bluetooth
+        )
+    }
+
+    private func bluetoothSnapshot() -> StatusSnapshot {
+        StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -61),
+            connection: .wifi,
+            volume: VolumeStatus(
+                scalar: 0.5,
+                isMuted: false,
+                deviceName: SheetFixtures.bluetoothDevice.name,
+                currentDevice: SheetFixtures.bluetoothDevice
+            )
+        )
+    }
+
+    private func makeKey(
+        scene: IconSceneState? = nil,
+        phase: ChargingEffectPhase? = nil
+    ) -> StatusBarRenderKey {
+        StatusBarRenderKey(
+            scene: scene ?? makeScene(),
+            iconSize: 28,
+            backingScale: 2,
+            appearanceName: "NSAppearanceNameAqua",
+            phase: phase
+        )
+    }
+
+    private func makeScene(
+        rssi: Int = -50,
+        configuration: IconPresentationConfiguration = .standard,
+        snapshot: StatusSnapshot? = nil
+    ) -> IconSceneState {
+        IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: snapshot ?? PresentationFixtures.snapshot(rssi: rssi),
+                audioIcon: nil
+            ),
+            configuration: configuration
         )
     }
 

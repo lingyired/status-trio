@@ -93,16 +93,30 @@ struct Issue13IconParityTests {
         _ state: WiFiState,
         minimumAlpha: UInt8
     ) throws {
-        let image = StatusIconRenderer.wifiImage(
+        let snapshot = StatusSnapshot(
+            battery: .placeholder,
             wifi: WiFiStatus(state: state, rssi: nil),
-            size: 16
+            volume: .placeholder
         )
-        let pixels = try pixels(from: image)
+        let canonicalScene = IconPreviewScene.make(snapshot: snapshot, configuration: .standard)
+        let image = try #require(render(scene: IconSceneState(center: canonicalScene.center)))
+        let pixels = try PixelBuffer(image: image)
 
-        // SF Symbol hierarchical rendering and anti-aliasing vary by toolchain.
-        // These floors stay above the muted-alpha range without encoding an
-        // exact rasterization value from one Xcode version.
-        #expect(maximumAlpha(in: pixels) > minimumAlpha, "\(state)")
+        #expect(centerPassesForegroundFloor(pixels, minimumAlpha: minimumAlpha), "\(state)")
+    }
+
+    @Test("Wi-Fi foreground floor rejects a missing or muted center")
+    func wifiForegroundFloorRejectsMissingOrMutedCenter() throws {
+        let missingPixels = try PixelBuffer(image: #require(render(scene: IconSceneState())))
+        let mutedCenter = IconSceneState(center: .symbol(IconSymbolState(
+            source: .symbol(name: "wifi", variableValue: 0, fallback: nil),
+            color: .inactive,
+            scale: 1
+        )))
+        let mutedPixels = try PixelBuffer(image: #require(render(scene: mutedCenter)))
+
+        #expect(!centerPassesForegroundFloor(missingPixels, minimumAlpha: 120))
+        #expect(!centerPassesForegroundFloor(mutedPixels, minimumAlpha: 120))
     }
 
     private func renderedPixels(
@@ -114,8 +128,8 @@ struct Issue13IconParityTests {
             wifi: WiFiStatus(state: state, rssi: -50),
             volume: .placeholder
         )
-        let image = try #require(StatusIconRenderer.render(
-            snapshot: snapshot,
+        let image = try #require(renderMenuBarFixture(
+                snapshot: snapshot,
             size: 20,
             scale: 8,
             foreground: CGColor(gray: 1, alpha: 1),
@@ -129,8 +143,8 @@ struct Issue13IconParityTests {
         volumeOptions: VolumeIconOptions = .standard,
         backgroundStyle: DockIconBackgroundStyle = .dark
     ) throws -> PixelBuffer {
-        let image = try #require(DockIconRenderer.image(
-            status: status,
+        let image = try #require(renderDockFixture(
+                status: status,
             volumeOptions: volumeOptions,
             backgroundStyle: backgroundStyle
         ))
@@ -164,5 +178,32 @@ struct Issue13IconParityTests {
         stride(from: 3, to: pixels.bytes.count, by: 4)
             .map { pixels.bytes[$0] }
             .max() ?? 0
+    }
+
+    private func centerPassesForegroundFloor(_ pixels: PixelBuffer, minimumAlpha: UInt8) -> Bool {
+        var maximum: UInt8 = 0
+        for y in 0..<pixels.height {
+            for x in 0..<pixels.width {
+                let point = CGPoint(
+                    x: (CGFloat(x) + 0.5) * 120 / CGFloat(pixels.width),
+                    y: (CGFloat(y) + 0.5) * 120 / CGFloat(pixels.height)
+                )
+                guard CGRect(x: 30, y: 40, width: 60, height: 50).contains(point) else { continue }
+                maximum = max(maximum, pixels.rgba(x: x, y: y).alpha)
+            }
+        }
+        return maximum > minimumAlpha
+    }
+
+    private func render(scene: IconSceneState) -> CGImage? {
+        StatusIconRenderer.render(
+            scene: scene,
+            environment: StatusIconRenderEnvironment(
+                size: 16,
+                scale: 2,
+                foreground: CGColor(gray: 1, alpha: 1),
+                criticalColor: StatusIconRenderer.defaultCriticalColor
+            )
+        )
     }
 }

@@ -67,6 +67,23 @@ final class OutputDeviceListPresentationTests: XCTestCase {
         XCTAssertTrue(model.canToggleExpansion)
     }
 
+    func testOrderKeepsDuplicateAndMissingUIDsStableAfterConfiguredDevices() {
+        let devices = [
+            AudioOutputDevice(id: 1, name: "One", uid: nil, isCurrent: false),
+            AudioOutputDevice(id: 2, name: "Two A", uid: "shared", isCurrent: false),
+            AudioOutputDevice(id: 3, name: "Three", uid: "other", isCurrent: false),
+            AudioOutputDevice(id: 4, name: "Two B", uid: "shared", isCurrent: true),
+            AudioOutputDevice(id: 5, name: "Five", uid: nil, isCurrent: false)
+        ]
+
+        let ordered = OutputDeviceListPresentation.orderedDevices(
+            devices,
+            using: ["shared", "shared"]
+        )
+
+        XCTAssertEqual(ordered.map(\.id), [2, 4, 1, 3, 5])
+    }
+
     private func makeDevices(count: Int) -> [AudioOutputDevice] {
         (1...count).map { index in
             AudioOutputDevice(

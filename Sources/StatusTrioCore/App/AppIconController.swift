@@ -15,18 +15,13 @@ extension NSApplication: ApplicationDockIconApplying {
 @MainActor
 final class AppIconController {
     typealias DockRenderer = (
-        _ status: MenuBarStatus,
-        _ options: BatteryIconOptions,
-        _ connectionOptions: ConnectionIconOptions,
-        _ volumeOptions: VolumeIconOptions,
-        _ bluetoothAudioOptions: BluetoothAudioIconOptions,
-        _ backgroundStyle: DockIconBackgroundStyle
+        _ scene: IconSceneState,
+        _ backgroundStyle: DockIconBackgroundStyle,
+        _ pixelLength: Int
     ) -> NSImage?
 
-    static let snapshotDebounceInterval: TimeInterval = 0.5
-
-    private let store: SystemStatusStore
     private let settings: SettingsStore
+    private let iconPresentation: IconPresentationViewModel
     private let activationPolicy: AppActivationPolicy
     private let application: any ApplicationDockIconApplying
     private let setMenuBarVisible: (Bool) -> Void
@@ -40,14 +35,14 @@ final class AppIconController {
     private let renderCoalescer = IconRenderCoalescer()
     private var hasRenderedDockIcon = false
     private var currentPlacement: AppIconPlacement
-    private var currentAppearance: StatusIconAppearance
     private var currentBackgroundPreference: DockIconBackgroundPreference
+    private var latestIconOutput: IconPresentationOutput
     private var isDockTileVisible: Bool
     private var isStarted = false
 
     init(
-        store: SystemStatusStore,
         settings: SettingsStore,
+        iconPresentation: IconPresentationViewModel,
         activationPolicy: AppActivationPolicy,
         application: any ApplicationDockIconApplying = NSApplication.shared,
         setMenuBarVisible: @escaping (Bool) -> Void,
@@ -61,8 +56,8 @@ final class AppIconController {
         },
         notificationCenter: NotificationCenter = .default
     ) {
-        self.store = store
         self.settings = settings
+        self.iconPresentation = iconPresentation
         self.activationPolicy = activationPolicy
         self.application = application
         self.setMenuBarVisible = setMenuBarVisible
@@ -74,8 +69,8 @@ final class AppIconController {
             notificationCenter: notificationCenter
         )
         self.currentPlacement = settings.appIconPlacement
-        self.currentAppearance = StatusIconAppearance(settings: settings)
         self.currentBackgroundPreference = settings.dockIconBackgroundPreference
+        self.latestIconOutput = iconPresentation.output
         self.isDockTileVisible = activationPolicy.isRegularApp
     }
 
@@ -86,8 +81,8 @@ final class AppIconController {
         // Adopt whatever the settings hold now: they can change between
         // construction and the first start.
         currentPlacement = settings.appIconPlacement
-        currentAppearance = StatusIconAppearance(settings: settings)
         currentBackgroundPreference = settings.dockIconBackgroundPreference
+        latestIconOutput = iconPresentation.output
         apply(currentPlacement)
         activationPolicy.$isRegularApp
             .removeDuplicates()
@@ -105,8 +100,7 @@ final class AppIconController {
         }
         monitor.start()
         subscribeToPlacement()
-        subscribeToSnapshot()
-        subscribeToIconAppearance()
+        subscribeToIconPresentation()
         subscribeToBackgroundStyle()
     }
 
@@ -118,6 +112,14 @@ final class AppIconController {
         monitor.onChange = nil
         monitor.stop()
         clearDockIcon()
+    }
+
+    func refreshCurrentPresentation() {
+        renderLatestDockIcon()
+    }
+
+    func flushPendingPresentationForTesting() {
+        renderCoalescer.flushPending()
     }
 
     private func dockTileVisibilityChanged() {
@@ -145,17 +147,16 @@ final class AppIconController {
             .store(in: &cancellables)
     }
 
-    private func subscribeToSnapshot() {
-        store.$snapshot
-            .map { MenuBarStatus(snapshot: $0) }
+    private func subscribeToIconPresentation() {
+        iconPresentation.$output
             .removeDuplicates()
             .dropFirst()
-            .debounce(
-                for: .seconds(Self.snapshotDebounceInterval),
-                scheduler: RunLoop.main
-            )
-            .sink { [weak self] _ in
-                self?.renderLatestDockIcon()
+            .sink { [weak self] output in
+                guard let self else { return }
+                latestIconOutput = output
+                renderCoalescer.submit { [weak self] in
+                    self?.renderLatestDockIcon()
+                }
             }
             .store(in: &cancellables)
     }
@@ -168,24 +169,6 @@ final class AppIconController {
                 guard let self else { return }
                 currentBackgroundPreference = preference
                 renderLatestDockIcon()
-            }
-            .store(in: &cancellables)
-    }
-
-    private func subscribeToIconAppearance() {
-        // One subscription carries every icon option, for the Dock and the menu
-        // bar alike; `SettingsStore.iconAppearancePublisher` lists them once.
-        //
-        // @Published emits before the stored value changes, so the delivered
-        // value is used instead of reading SettingsStore back.
-        settings.iconAppearancePublisher
-            .dropFirst()
-            .sink { [weak self] appearance in
-                guard let self else { return }
-                currentAppearance = appearance
-                renderCoalescer.submit { [weak self] in
-                    self?.renderLatestDockIcon()
-                }
             }
             .store(in: &cancellables)
     }
@@ -218,31 +201,21 @@ final class AppIconController {
             theme: theme(),
             isDarkAppearance: isDarkAppearance()
         )
-        let status = MenuBarStatus(snapshot: store.snapshot)
         let key = DockIconRenderKey(
-            status: status,
-            options: currentAppearance.batteryOptions,
-            connectionOptions: currentAppearance.connectionOptions,
-            volumeOptions: currentAppearance.volumeOptions,
-            bluetoothAudioOptions: currentAppearance.bluetoothAudioOptions,
-            backgroundStyle: backgroundStyle
+            scene: latestIconOutput.scene,
+            backgroundStyle: backgroundStyle,
+            pixelLength: DockIconRenderer.pixelSize
         )
-        guard renderCache.shouldRender(key) else { return }
+        guard renderCache.needsRender(key) else { return }
 
         if let cached = imageCache.image(for: key) {
             application.setApplicationIconImage(cached)
+            renderCache.recordSuccessfulRender(key)
             hasRenderedDockIcon = true
             return
         }
 
-        guard let image = renderDockIcon(
-            status,
-            currentAppearance.batteryOptions,
-            currentAppearance.connectionOptions,
-            currentAppearance.volumeOptions,
-            currentAppearance.bluetoothAudioOptions,
-            backgroundStyle
-        ) else {
+        guard let image = renderDockIcon(latestIconOutput.scene, backgroundStyle, key.pixelLength) else {
             if !hasRenderedDockIcon {
                 application.setApplicationIconImage(nil)
             }
@@ -250,6 +223,7 @@ final class AppIconController {
         }
 
         imageCache.store(image, for: key)
+        renderCache.recordSuccessfulRender(key)
         application.setApplicationIconImage(image)
         hasRenderedDockIcon = true
     }

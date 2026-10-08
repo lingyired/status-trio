@@ -14,6 +14,12 @@
 "settings.language" = "언어";
 "settings.language.followSystem" = "시스템 설정 따르기";
 "settings.language.description" = "변경 사항은 즉시 적용됩니다.";
+"settings.analytics.title" = "익명 분석";
+"settings.analytics.description" = "무작위 설치 ID, 앱 및 macOS 버전, 언어, 아이콘 위치를 전송합니다. 이름, 계정 정보, 네트워크 세부 정보는 전송하지 않습니다.";
+"settings.analytics.privacyDetails" = "개인정보 세부 정보";
+"onboarding.analytics.title" = "개인정보 및 분석";
+"onboarding.analytics.description" = "무작위 설치 ID, 앱 및 macOS 버전, 언어, 아이콘 위치만 전송합니다. 이름, 계정 정보, 네트워크 세부 정보는 전송하지 않습니다.";
+"onboarding.analytics.toggle" = "익명 사용 데이터 공유";
 "settings.launchAtLogin" = "로그인 시 실행";
 "settings.launchAtLogin.description" = "로그인할 때 Status Trio를 자동으로 실행합니다.";
 "settings.launchAtLogin.requiresApproval" = "승인 대기 중입니다. '시스템 설정 › 일반 › 로그인 항목'에서 Status Trio를 허용하세요.";

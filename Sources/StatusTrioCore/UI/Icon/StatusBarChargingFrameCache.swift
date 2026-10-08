@@ -15,13 +15,11 @@ final class StatusBarChargingFrameCache {
             heartbeatMultiplier: Double
         ) {
             self.renderKey = StatusBarRenderKey(
-                status: renderKey.status,
+                scene: renderKey.scene,
                 iconSize: renderKey.iconSize,
-                options: renderKey.options,
-                connectionOptions: renderKey.connectionOptions,
-                volumeOptions: renderKey.volumeOptions,
-                bluetoothAudioOptions: renderKey.bluetoothAudioOptions,
-                appearanceName: renderKey.appearanceName
+                backingScale: renderKey.backingScale,
+                appearanceName: renderKey.appearanceName,
+                phase: nil
             )
             self.backingScale = backingScale
             self.heartbeatMultiplier = heartbeatMultiplier

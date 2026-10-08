@@ -14,6 +14,12 @@
 "settings.language" = "語言";
 "settings.language.followSystem" = "跟隨系統";
 "settings.language.description" = "變更會立即套用。";
+"settings.analytics.title" = "匿名使用狀況";
+"settings.analytics.description" = "傳送隨機安裝 ID、App 和 macOS 版本、語言及圖示位置。不會傳送姓名、帳戶資訊或網路詳細資料。";
+"settings.analytics.privacyDetails" = "隱私權詳細資料";
+"onboarding.analytics.title" = "隱私權與使用狀況";
+"onboarding.analytics.description" = "僅傳送隨機安裝 ID、App 和 macOS 版本、語言及圖示位置。不會傳送姓名、帳戶資訊或網路詳細資料。";
+"onboarding.analytics.toggle" = "分享匿名使用資料";
 "settings.launchAtLogin" = "開機時啟動";
 "settings.launchAtLogin.description" = "登入系統後自動啟動 Status Trio。";
 "settings.launchAtLogin.requiresApproval" = "等待授權。請在「系統設定 › 一般 › 登入項目」中允許 Status Trio。";

@@ -5,7 +5,8 @@ import XCTest
 @MainActor
 final class DockIconRendererTests: XCTestCase {
     func testDockIconHasExpectedLogicalAndPixelSize() throws {
-        let image = try XCTUnwrap(DockIconRenderer.image(status: .placeholder))
+        let image = try XCTUnwrap(renderDockFixture(
+                status: .placeholder))
         let representation = try XCTUnwrap(
             image.representations.first as? NSBitmapImageRep
         )
@@ -14,6 +15,20 @@ final class DockIconRendererTests: XCTestCase {
         XCTAssertEqual(representation.pixelsWide, 512)
         XCTAssertEqual(representation.pixelsHigh, 512)
         XCTAssertFalse(image.isTemplate)
+    }
+
+    func testSceneRendererHonorsPixelLengthAndRejectsOversize() throws {
+        let scene = IconSceneState(outerRing: OuterRingState(
+            segments: [RingSegmentState(progress: 0.5, color: .primary)],
+            gap: .closed
+        ))
+        let image = try XCTUnwrap(DockIconRenderer.image(scene: scene, pixelLength: 128))
+        let representation = try XCTUnwrap(image.representations.first as? NSBitmapImageRep)
+
+        XCTAssertEqual(representation.pixelsWide, 128)
+        XCTAssertEqual(representation.pixelsHigh, 128)
+        XCTAssertNil(DockIconRenderer.image(scene: scene, pixelLength: 0))
+        XCTAssertNil(DockIconRenderer.image(scene: scene, pixelLength: 513))
     }
 
     func testDockIconKeepsTransparentMarginAndDarkBody() throws {
@@ -211,7 +226,8 @@ final class DockIconRendererTests: XCTestCase {
     }
 
     func testRendererProducesImageForEveryPlacementPreviewState() throws {
-        XCTAssertNotNil(DockIconRenderer.image(status: .placeholder))
+        XCTAssertNotNil(renderDockFixture(
+                status: .placeholder))
     }
 
     /// The Dock tile follows the menu bar: AirPods (2nd generation,
@@ -288,8 +304,8 @@ final class DockIconRendererTests: XCTestCase {
         bluetoothAudioOptions: BluetoothAudioIconOptions = .standard,
         backgroundStyle: DockIconBackgroundStyle = .dark
     ) throws -> PixelBuffer {
-        let image = try XCTUnwrap(DockIconRenderer.image(
-            status: status,
+        let image = try XCTUnwrap(renderDockFixture(
+                status: status,
             options: options,
             connectionOptions: connectionOptions,
             volumeOptions: volumeOptions,

@@ -8,6 +8,7 @@ struct IconGuideOnboardingView: View {
     @EnvironmentObject private var localization: Localization
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var page: IconGuidePage = .anatomy
+    @State private var telemetryConsentDraft = TelemetryConsentDraft()
     let onCustomize: () -> Void
     let onDone: () -> Void
 
@@ -36,16 +37,25 @@ struct IconGuideOnboardingView: View {
             .padding(.horizontal, 28)
             .padding(.top, 24)
 
-            ZStack(alignment: .topLeading) {
-                IconGuideView(settings: settings)
-                    .opacity(page == .anatomy ? 1 : 0)
-                    .allowsHitTesting(page == .anatomy)
-                    .accessibilityHidden(page != .anatomy)
+            VStack(alignment: .leading, spacing: 16) {
+                ZStack(alignment: .topLeading) {
+                    IconGuideView(settings: settings)
+                        .opacity(page == .anatomy ? 1 : 0)
+                        .allowsHitTesting(page == .anatomy)
+                        .accessibilityHidden(page != .anatomy)
 
-                IconGuideStateGalleryView(settings: settings)
-                    .opacity(page == .states ? 1 : 0)
-                    .allowsHitTesting(page == .states)
-                    .accessibilityHidden(page != .states)
+                    IconGuideStateGalleryView(settings: settings)
+                        .opacity(page == .states ? 1 : 0)
+                        .allowsHitTesting(page == .states)
+                        .accessibilityHidden(page != .states)
+                }
+
+                if settings.telemetryConsentVersion == 0 {
+                    telemetryDisclosure
+                        .opacity(page == .states ? 1 : 0)
+                        .allowsHitTesting(page == .states)
+                        .accessibilityHidden(page != .states)
+                }
             }
             .padding(.horizontal, 28)
             .padding(.top, 18)
@@ -91,7 +101,9 @@ struct IconGuideOnboardingView: View {
 
             Spacer(minLength: 8)
 
-            Button(localization.string(.guideCustomize), action: onCustomize)
+            Button(localization.string(.guideCustomize)) {
+                completeOnboarding(onCustomize)
+            }
                 .opacity(page == .states ? 1 : 0)
                 .disabled(page != .states)
                 .accessibilityHidden(page != .states)
@@ -106,7 +118,7 @@ struct IconGuideOnboardingView: View {
             if page == .anatomy {
                 show(.states)
             } else {
-                onDone()
+                completeOnboarding(onDone)
             }
         } label: {
             ZStack {
@@ -132,5 +144,39 @@ struct IconGuideOnboardingView: View {
         ) {
             page = destination
         }
+    }
+
+    private var telemetryDisclosure: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(localization.string(.onboardingAnalyticsTitle))
+                .font(.system(size: 13, weight: .semibold))
+
+            Text(localization.string(.onboardingAnalyticsDescription))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Toggle(
+                localization.string(.onboardingAnalyticsToggle),
+                isOn: $telemetryConsentDraft.sharesAnalytics
+            )
+            .font(.system(size: 12))
+            .toggleStyle(.checkbox)
+
+            Link(
+                localization.string(.settingsAnalyticsPrivacyDetails),
+                destination: URL(string: "https://github.com/lingyired/status-trio/blob/main/docs/privacy-telemetry.md")!
+            )
+            .font(.system(size: 11))
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+
+    private func completeOnboarding(_ action: () -> Void) {
+        telemetryConsentDraft.acknowledge(settings: settings)
+        action()
     }
 }

@@ -27,4 +27,9 @@ enum ChargingEffectTestMode {
             volume: status.volume
         )
     }
+
+    static func snapshot(_ snapshot: StatusSnapshot, enabled: Bool) -> StatusSnapshot {
+        guard enabled else { return snapshot }
+        return snapshot.replacingBattery(battery(snapshot.battery, enabled: true))
+    }
 }

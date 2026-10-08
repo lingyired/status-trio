@@ -74,4 +74,14 @@ final class IconRenderCoalescer {
         pendingRender = nil
         lastRunDate = nil
     }
+
+    /// Runs queued presentation work at a deterministic drain boundary.
+    func flushPending() {
+        pendingTask?.cancel()
+        pendingTask = nil
+        guard let render = pendingRender else { return }
+        pendingRender = nil
+        lastRunDate = now()
+        render()
+    }
 }

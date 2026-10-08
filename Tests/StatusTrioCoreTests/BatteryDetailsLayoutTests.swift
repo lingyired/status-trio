@@ -41,8 +41,12 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         let battery = BatteryStatus(rawPercentage: isPresent ? 80 : nil, isPresent: isPresent,
                                     isCharging: false, isLowPowerMode: false,
                                     isConnectedToPower: false)
-        let view = BatteryStatusView(battery: battery, onOpenBatteryDetails: {},
-                                     onOpenBatterySettings: {})
+        let view = BatteryStatusView(
+            state: PanelPresentationMapper.battery(battery, localization: localization),
+            cautionColor: .yellow,
+            onOpenBatteryDetails: {},
+            onOpenBatterySettings: {}
+        )
             .padding(14)
             .frame(width: 330)
             .background(Color(white: 0.96))
@@ -90,13 +94,20 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             power: available ? BatteryPowerSample(volts: 12.279, amps: connected ? (charging ? 1.528 : 0) : -1.528, updatedAt: Date()) : nil,
             powerAvailability: collecting ? .collecting : .unavailable,
             systemPower: connected && systemAvailable ? SystemPowerSample(watts: 17.25, readAt: Date()) : nil)
-        let controller = BatteryDetailsController { _, _ in fixture }
-        defer { controller.deactivate() }
         let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
                                     isLowPowerMode: false, isConnectedToPower: connected)
+        let panelState = PanelDetailMapper.battery(
+            status: battery,
+            details: fixture,
+            localization: localization
+        )
         let view = BatteryDetailsView(
-            controller: controller, battery: battery,
-            onBack: {}, onOpenBatterySettings: {})
+            state: panelState,
+            onBack: {},
+            onOpenBatterySettings: {},
+            onCopyValue: { _ in },
+            onAppear: {}
+        )
             .padding(14)
             .frame(width: 330)
             .background(Color(white: 0.96))

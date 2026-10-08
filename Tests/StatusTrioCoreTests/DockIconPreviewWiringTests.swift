@@ -100,19 +100,24 @@ struct DockIconPreviewWiringTests {
         )
         let previewLength = DockIconPreviewMetrics.pixelLength(forPointSize: 30)
         let dockKey = DockIconRenderKey(
-            status: status,
-            options: appearance.batteryOptions,
-            connectionOptions: appearance.connectionOptions,
-            volumeOptions: appearance.volumeOptions,
-            bluetoothAudioOptions: appearance.bluetoothAudioOptions,
-            backgroundStyle: backgroundStyle
+            scene: makeIconPresentationScene(
+                status: status,
+                battery: appearance.batteryOptions,
+                connection: appearance.connectionOptions,
+                volume: appearance.volumeOptions,
+                bluetooth: appearance.bluetoothAudioOptions
+            ),
+            backgroundStyle: backgroundStyle,
+            pixelLength: DockIconRenderer.pixelSize
         )
         let dockKeyAtPreviewLength = DockIconRenderKey(
-            status: status,
-            options: appearance.batteryOptions,
-            connectionOptions: appearance.connectionOptions,
-            volumeOptions: appearance.volumeOptions,
-            bluetoothAudioOptions: appearance.bluetoothAudioOptions,
+            scene: makeIconPresentationScene(
+                status: status,
+                battery: appearance.batteryOptions,
+                connection: appearance.connectionOptions,
+                volume: appearance.volumeOptions,
+                bluetooth: appearance.bluetoothAudioOptions
+            ),
             backgroundStyle: backgroundStyle,
             pixelLength: previewLength
         )

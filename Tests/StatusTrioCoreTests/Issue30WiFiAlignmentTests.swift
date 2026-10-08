@@ -17,6 +17,7 @@ import XCTest
 /// offset — the Wi-Fi dot and the arcs dominate any band the symbol also
 /// occupies. The tests below therefore assert the geometry contract directly,
 /// and use rasterisation only for the coarse "is it in the middle" check.
+@MainActor
 final class Issue30WiFiAlignmentTests: XCTestCase {
     /// The shipped default scale, plus both ends of the range users can pick.
     private let scales: [Double] = [1.0, 1.6, 1.8]
@@ -80,7 +81,7 @@ final class Issue30WiFiAlignmentTests: XCTestCase {
                 wifi: WiFiStatus(state: .connected, rssi: -50),
                 volume: .placeholder
             )
-            let image = try XCTUnwrap(StatusIconRenderer.render(
+            let image = try XCTUnwrap(renderMenuBarFixture(
                 snapshot: snapshot,
                 size: 120,
                 scale: 4,

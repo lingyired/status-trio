@@ -45,8 +45,8 @@ enum AppIconPreview {
         let context = try SheetCanvas.makeContext(width: canvasSize, height: canvasSize, scale: 1)
         context.clear(CGRect(x: 0, y: 0, width: canvasSize, height: canvasSize))
 
-        guard let image = DockIconRenderer.image(
-            status: state.status,
+        guard let image = renderDockFixture(
+                status: state.status,
             bluetoothAudioOptions: state.bluetoothAudioOptions,
             backgroundStyle: state.backgroundStyle
         ) else {

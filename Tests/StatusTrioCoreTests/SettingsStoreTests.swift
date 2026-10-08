@@ -1019,10 +1019,10 @@ final class SettingsStoreTests: XCTestCase {
             through: SettingsStore.iconSizeRange.upperBound,
             by: 1
         ) {
-            let image = StatusIconRenderer.image(
+            let image = try XCTUnwrap(menuBarFixtureImage(
                 snapshot: .placeholder,
                 size: value
-            )
+            ))
 
             XCTAssertEqual(image.size.width, value, accuracy: 0.01, "width at \(value) pt")
             XCTAssertEqual(image.size.height, value, accuracy: 0.01, "height at \(value) pt")

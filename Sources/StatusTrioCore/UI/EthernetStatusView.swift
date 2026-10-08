@@ -1,13 +1,8 @@
 import SwiftUI
 
-/// The network row while the primary connection is a cable.
-///
-/// The wired counterpart of `WiFiStatusView`: same slot, same affordances, and
-/// the same shape of heading — what the link is on top, the technical
-/// particular underneath. The port's name heads it and the BSD name follows,
-/// because the address this row used to show is the reader's own business and
-/// belongs in the panel. A restricted path adds one clause to the subtitle and
-/// nothing else.
+/// The wired network row: the port's name heads it and the BSD name follows,
+/// while the address belongs in the details panel. A restricted path adds one
+/// clause to the subtitle.
 struct EthernetStatusView: View {
     @EnvironmentObject private var localization: Localization
     @ObservedObject var primaryLink: PrimaryLinkController
@@ -76,7 +71,7 @@ struct EthernetStatusView: View {
     }
 }
 
-/// The wired counterpart of `WiFiStatusIcon`, sized for the same slot.
+/// The cable glyph used by the wired summary row.
 struct EthernetStatusIcon: View {
     var body: some View {
         Image(systemName: "cable.connector")

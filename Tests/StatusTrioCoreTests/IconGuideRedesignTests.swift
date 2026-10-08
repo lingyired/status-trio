@@ -136,8 +136,8 @@ final class IconGuideRedesignTests: XCTestCase {
     func testBluetoothGuideStatesRequestTheirOwnVolumeExample() throws {
         for state in Self.bluetoothStates {
             let dockImage = try XCTUnwrap(
-                DockIconRenderer.image(
-                    status: state.status,
+                renderDockFixture(
+                status: state.status,
                     volumeOptions: VolumeIconOptions(
                         displayStyle: try XCTUnwrap(state.volumeDisplayStyleOverride),
                         ringStrokeScale: RingStrokeStyle.regular.scale
@@ -153,14 +153,15 @@ final class IconGuideRedesignTests: XCTestCase {
 
     func testEveryGuideStateRendersInMenuBarAndDock() throws {
         for state in IconGuideState.all {
-            let menuBarImage = StatusIconRenderer.image(
+            let menuBarImage = try XCTUnwrap(menuBarFixtureImage(
                 menuBarStatus: state.status,
                 size: 56
-            )
+            ))
             XCTAssertGreaterThan(menuBarImage.size.width, 0)
 
             let dockImage = try XCTUnwrap(
-                DockIconRenderer.image(status: state.status)
+                renderDockFixture(
+                status: state.status)
             )
             XCTAssertEqual(dockImage.size, NSSize(width: 256, height: 256))
         }
@@ -223,8 +224,8 @@ final class IconGuideRedesignTests: XCTestCase {
 
         for appearance in IconGuidePreviewAppearance.allCases {
             let dockImage = try XCTUnwrap(
-                DockIconRenderer.image(
-                    status: IconGuideState.charging.status,
+                renderDockFixture(
+                status: IconGuideState.charging.status,
                     backgroundStyle: appearance.dockBackgroundStyle
                 )
             )
@@ -311,7 +312,7 @@ final class IconGuideRedesignTests: XCTestCase {
                 accuracy: 0.5
             )
             XCTAssertGreaterThanOrEqual(preferredSize.height, 420)
-            XCTAssertLessThan(preferredSize.height, 560)
+            XCTAssertLessThan(preferredSize.height, 680)
             preferredHeights.append(preferredSize.height)
         }
 
@@ -323,41 +324,43 @@ final class IconGuideRedesignTests: XCTestCase {
     }
 
     func testFooterPrimaryActionStaysFixedAcrossPages() throws {
-        let name = "IconGuideRedesignTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: name)!
-        defer { defaults.removeTestSuite(named: name) }
-        let settings = SettingsStore(defaults: defaults)
-        let localization = Localization(
-            defaults: defaults,
-            preferredLanguages: ["zh-Hans"]
-        )
-        var frames: [CGRect] = []
-
-        for page in [IconGuidePage.anatomy, .states] {
-            let view = IconGuideOnboardingView(
-                settings: settings,
-                initialPage: page,
-                onCustomize: {},
-                onDone: {}
+        for language in ["en", "zh-Hans", "ar"] {
+            let name = "IconGuideRedesignTests.\(UUID().uuidString)"
+            let defaults = UserDefaults(suiteName: name)!
+            defer { defaults.removeTestSuite(named: name) }
+            let settings = SettingsStore(defaults: defaults)
+            let localization = Localization(
+                defaults: defaults,
+                preferredLanguages: [language]
             )
-            .environmentObject(localization)
+            var frames: [CGRect] = []
 
-            let hostingView = NSHostingView(rootView: view)
-            hostingView.frame = NSRect(x: 0, y: 0, width: 640, height: 560)
-            hostingView.layoutSubtreeIfNeeded()
+            for page in [IconGuidePage.anatomy, .states] {
+                let view = IconGuideOnboardingView(
+                    settings: settings,
+                    initialPage: page,
+                    onCustomize: {},
+                    onDone: {}
+                )
+                .environmentObject(localization)
 
-            let trailingEdge = IconGuideOnboardingView.contentWidth - 28
-            let subviewFrames: [CGRect] = hostingView.subviews.map(\.frame)
-            let trailingFrames: [CGRect] = subviewFrames.filter { frame in
-                frame.height > 0
-                    && abs(frame.maxX - trailingEdge) < 0.5
+                let hostingView = NSHostingView(rootView: view)
+                hostingView.frame = NSRect(x: 0, y: 0, width: 640, height: 560)
+                hostingView.layoutSubtreeIfNeeded()
+
+                let trailingEdge = IconGuideOnboardingView.contentWidth - 28
+                let subviewFrames: [CGRect] = hostingView.subviews.map(\.frame)
+                let trailingFrames = subviewFrames.filter { frame in
+                    frame.height > 0
+                        && abs(frame.maxX - trailingEdge) < 0.5
+                }
+                let primaryFrame = try XCTUnwrap(
+                    trailingFrames.max { $0.minX < $1.minX }
+                )
+                frames.append(primaryFrame)
             }
-            let primaryFrame = try XCTUnwrap(
-                trailingFrames.max { $0.minX < $1.minX }
-            )
-            frames.append(primaryFrame)
-        }
 
-        XCTAssertEqual(frames[0], frames[1])
+            XCTAssertEqual(frames[0], frames[1], "Footer moved in \(language)")
+        }
     }
 }

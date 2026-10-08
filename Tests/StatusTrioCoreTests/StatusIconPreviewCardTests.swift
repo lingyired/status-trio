@@ -77,6 +77,58 @@ final class StatusIconPreviewCardTests: XCTestCase {
         XCTAssertGreaterThan(hostingView.fittingSize.width, 0)
     }
 
+    func testVisualOptionCardsIgnorePickedSymbolWhileMainPreviewUsesIt() throws {
+        let suiteName = "StatusTrioCoreTests.VisualOptionCards.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { TestUserDefaults.removeSuite(named: suiteName) }
+        let store = SettingsStore(defaults: defaults)
+        store.replacesNetworkIconWithBluetoothAudio = true
+        store.prioritizesNetworkErrorsOverBluetoothAudio = false
+        store.bluetoothNetworkIconSymbolName = "person.crop.circle"
+        let statusStore = SystemStatusStore(
+            batteryMonitor: EmptyBatteryMonitor(),
+            wifiMonitor: EmptyWiFiMonitor(),
+            volumeMonitor: EmptyVolumeMonitor()
+        )
+
+        let expectedNetwork = CenterState.symbol(IconSymbolState(
+            source: .symbol(name: "wifi.slash", variableValue: 1, fallback: nil),
+            color: .primary,
+            scale: store.connectionIconOptions.wifiScale
+        ))
+        let volumeCard = VolumeIndicatorPreview(
+            style: .dots,
+            isDarkBackground: true,
+            store: store,
+            statusStore: statusStore
+        )
+        let ringCard = RingStrokeStylePreview(
+            style: .bold,
+            isDarkBackground: true,
+            store: store,
+            statusStore: statusStore
+        )
+        XCTAssertEqual(volumeCard.previewScene.center, expectedNetwork)
+        XCTAssertEqual(ringCard.previewScene.center, expectedNetwork)
+
+        let mainPreview = MenuBarPreviewBar(
+            status: IconGuideView.example,
+            batteryOptions: store.batteryIconOptions,
+            connectionOptions: store.connectionIconOptions,
+            volumeOptions: store.volumeIconOptions,
+            bluetoothAudioOptions: store.bluetoothAudioIconOptions,
+            isDarkBackground: true
+        ) {}
+        XCTAssertEqual(
+            mainPreview.scene.center,
+            CenterState.symbol(IconSymbolState(
+                source: .symbol(name: "person.crop.circle", variableValue: nil, fallback: "dot.radiowaves.left.and.right"),
+                color: .bluetooth,
+                scale: store.bluetoothAudioIconOptions.symbolScale
+            ))
+        )
+    }
+
     private func previewBar() -> MenuBarPreviewBar<EmptyView> {
         MenuBarPreviewBar(
             status: IconGuideView.example,

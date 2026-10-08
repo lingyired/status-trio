@@ -7,10 +7,18 @@ struct IconSizePreview: View {
 
     var body: some View {
         Image(nsImage: StatusIconRenderer.image(
-            menuBarStatus: .placeholder,
+            scene: IconPreviewScene.make(
+                status: .placeholder,
+                configuration: IconPresentationConfiguration(
+                    battery: options,
+                    connection: .standard,
+                    volume: .standard,
+                    bluetooth: .standard
+                )
+            ),
             size: size,
-            options: options
-        ))
+            scale: NSScreen.main?.backingScaleFactor ?? 2
+        ) ?? NSImage(size: NSSize(width: size, height: size)))
         .frame(width: CGFloat(SettingsStore.iconSizeRange.upperBound))
         .accessibilityHidden(true)
     }

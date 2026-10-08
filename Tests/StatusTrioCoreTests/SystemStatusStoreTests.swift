@@ -2367,11 +2367,12 @@ final class SystemStatusStoreTests: XCTestCase {
 
     private func makeDockIconKey(for status: MenuBarStatus) -> DockIconRenderKey {
         DockIconRenderKey(
-            status: status,
-            options: .standard,
-            connectionOptions: .standard,
-            volumeOptions: VolumeIconOptions(displayStyle: .arc),
-            backgroundStyle: .light
+            scene: makeIconPresentationScene(
+                status: status,
+                volume: VolumeIconOptions(displayStyle: .arc)
+            ),
+            backgroundStyle: .light,
+            pixelLength: DockIconRenderer.pixelSize
         )
     }
 

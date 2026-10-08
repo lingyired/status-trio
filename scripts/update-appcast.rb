@@ -15,6 +15,20 @@ def xml_escape(value)
   CGI.escapeHTML(value.to_s)
 end
 
+def notes_line_to_html(value)
+  pattern = /\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/
+  html = +""
+  cursor = 0
+  value.to_enum(:scan, pattern).each do
+    match = Regexp.last_match
+    html << xml_escape(value[cursor...match.begin(0)])
+    html << %(<a href="#{xml_escape(match[2])}">#{xml_escape(match[1])}</a>)
+    cursor = match.end(0)
+  end
+  html << xml_escape(value[cursor..])
+  html
+end
+
 def cdata_escape(value)
   value.to_s.gsub("]]>", "]]]]><![CDATA[>")
 end
@@ -39,9 +53,9 @@ def notes_to_html(lines)
       level = heading[1].length
       html << "<h#{level}>#{xml_escape(heading[2])}</h#{level}>"
     elsif (item = line.match(/\A(?:[-*+]|\d+\.)\s+(.+)\z/))
-      list_items << "<li>#{xml_escape(item[1])}</li>"
+      list_items << "<li>#{notes_line_to_html(item[1])}</li>"
     else
-      list_items << "<li>#{xml_escape(line)}</li>"
+      list_items << "<li>#{notes_line_to_html(line)}</li>"
     end
   end
 

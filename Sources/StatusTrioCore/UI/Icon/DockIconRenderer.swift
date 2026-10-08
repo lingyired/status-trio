@@ -82,71 +82,52 @@ enum DockIconRenderer {
     }
 
     static func image(
-        status: MenuBarStatus,
-        options: BatteryIconOptions = .standard,
-        connectionOptions: ConnectionIconOptions = .standard,
-        volumeOptions: VolumeIconOptions = .standard,
-        bluetoothAudioOptions: BluetoothAudioIconOptions = .standard,
+        scene: IconSceneState,
         backgroundStyle: DockIconBackgroundStyle = .dark,
         pixelLength: Int = DockIconRenderer.pixelSize
     ) -> NSImage? {
         guard pixelLength > 0, pixelLength <= pixelSize else { return nil }
 
         let palette = palette(for: backgroundStyle)
-
         let canvasLength = CGFloat(pixelLength)
         guard let context = scratchContext(pixelLength: pixelLength) else { return nil }
 
-        // Reuse one bitmap buffer across renders: the Dock icon is redrawn on
-        // every status change, and allocating a fresh bitmap each time leaves the
-        // freed pages in the process.
         context.saveGState()
         defer { context.restoreGState() }
         context.clear(CGRect(x: 0, y: 0, width: canvasLength, height: canvasLength))
-
         context.scaleBy(
             x: canvasLength / DockIconGlyphLayout.designLength,
             y: canvasLength / DockIconGlyphLayout.designLength
         )
-
-        context.addPath(roundedRect(
-            bodyRect,
-            cornerRadius: bodyCornerRadius
-        ))
+        context.addPath(roundedRect(bodyRect, cornerRadius: bodyCornerRadius))
         context.setFillColor(palette.body)
         context.fillPath()
-
-        context.addPath(roundedRect(
-            borderRect,
-            cornerRadius: borderCornerRadius
-        ))
+        context.addPath(roundedRect(borderRect, cornerRadius: borderCornerRadius))
         context.setStrokeColor(palette.border)
         context.setLineWidth(2)
         context.strokePath()
 
-        StatusIconRenderer.draw(
-            menuBarStatus: status,
-            options: options,
-            connectionOptions: connectionOptions,
-            volumeOptions: volumeOptions,
-            bluetoothAudioOptions: bluetoothAudioOptions,
-            foreground: palette.foreground,
-            in: context,
-            origin: CGPoint(
-                x: DockIconGlyphLayout.glyphSVGOrigin.x,
-                y: DockIconGlyphLayout.designLength
-                    - DockIconGlyphLayout.glyphSVGOrigin.y
-                    - DockIconGlyphLayout.glyphSVGSize
-            ),
-            size: DockIconGlyphLayout.glyphSVGSize
+        context.saveGState()
+        context.translateBy(
+            x: DockIconGlyphLayout.glyphSVGOrigin.x,
+            y: DockIconGlyphLayout.designLength
+                - DockIconGlyphLayout.glyphSVGOrigin.y
+                - DockIconGlyphLayout.glyphSVGSize
         )
-
-        guard let output = context.makeImage() else { return nil }
+        let didDraw = StatusIconRenderer.draw(
+            scene: scene,
+            in: context,
+            size: DockIconGlyphLayout.glyphSVGSize,
+            foreground: palette.foreground,
+            criticalColor: StatusIconRenderer.defaultCriticalColor,
+            phase: nil
+        )
+        context.restoreGState()
+        guard didDraw, let output = context.makeImage() else { return nil }
 
         let logicalLength = CGFloat(pixelLength) / Self.scale
         let representation = NSBitmapImageRep(cgImage: output)
         representation.size = NSSize(width: logicalLength, height: logicalLength)
-
         let image = NSImage(size: NSSize(width: logicalLength, height: logicalLength))
         image.addRepresentation(representation)
         image.isTemplate = false

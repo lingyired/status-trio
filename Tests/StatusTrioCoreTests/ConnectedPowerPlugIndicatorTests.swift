@@ -107,20 +107,27 @@ final class ConnectedPowerPlugIndicatorTests: XCTestCase {
 
     func testDockRenderKeyDistinguishesChargingFromConnectedPower() {
         let charging = DockIconRenderKey(
-            status: MenuBarStatus(snapshot: snapshot(for: chargingBattery())),
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
+            scene: makeIconPresentationScene(
+                status: MenuBarStatus(snapshot: snapshot(for: chargingBattery()))
+            ),
+            backgroundStyle: .dark,
+            pixelLength: DockIconRenderer.pixelSize
         )
         let connected = DockIconRenderKey(
-            status: MenuBarStatus(snapshot: snapshot(for: connectedBattery())),
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
+            scene: makeIconPresentationScene(
+                status: MenuBarStatus(snapshot: snapshot(for: connectedBattery()))
+            ),
+            backgroundStyle: .dark,
+            pixelLength: DockIconRenderer.pixelSize
         )
 
-        XCTAssertEqual(charging.gapContent, .bolt)
-        XCTAssertEqual(connected.gapContent, .plug)
+        guard case let .symbol(chargingSymbol)? = charging.scene.outerRing?.accessory,
+              case let .symbol(connectedSymbol)? = connected.scene.outerRing?.accessory else {
+            XCTFail("Expected charging accessories in both scenes.")
+            return
+        }
+        XCTAssertEqual(chargingSymbol.source, .primitive(.bolt))
+        XCTAssertEqual(connectedSymbol.source, .primitive(.plug))
     }
 
     private func connectedBattery() -> BatteryStatus {
@@ -194,8 +201,8 @@ final class ConnectedPowerPlugIndicatorTests: XCTestCase {
         for battery: BatteryStatus,
         options: BatteryIconOptions = .standard
     ) throws -> PixelBuffer {
-        let image = try XCTUnwrap(StatusIconRenderer.render(
-            snapshot: snapshot(for: battery),
+        let image = try XCTUnwrap(renderMenuBarFixture(
+                snapshot: snapshot(for: battery),
             size: 20,
             scale: 8,
             foreground: CGColor(gray: 1, alpha: 1),
@@ -208,8 +215,8 @@ final class ConnectedPowerPlugIndicatorTests: XCTestCase {
         for status: MenuBarStatus,
         options: BatteryIconOptions = .standard
     ) throws -> PixelBuffer {
-        let image = try XCTUnwrap(DockIconRenderer.image(
-            status: status,
+        let image = try XCTUnwrap(renderDockFixture(
+                status: status,
             options: options,
             backgroundStyle: .dark
         ))

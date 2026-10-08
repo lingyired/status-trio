@@ -14,6 +14,12 @@
 "settings.language" = "Langue";
 "settings.language.followSystem" = "Suivre le système";
 "settings.language.description" = "Les modifications s’appliquent immédiatement.";
+"settings.analytics.title" = "Analyses anonymes";
+"settings.analytics.description" = "Un identifiant d’installation aléatoire, les versions de l’app et de macOS, la langue et l’emplacement de l’icône sont envoyés. Aucun nom, compte ni détail réseau.";
+"settings.analytics.privacyDetails" = "Détails sur la confidentialité";
+"onboarding.analytics.title" = "Confidentialité et analyses";
+"onboarding.analytics.description" = "Un identifiant d’installation aléatoire, les versions de l’app et de macOS, la langue et l’emplacement de l’icône sont envoyés. Aucun nom, compte ni détail réseau.";
+"onboarding.analytics.toggle" = "Partager des données d’utilisation anonymes";
 "settings.launchAtLogin" = "Lancer à l’ouverture de session";
 "settings.launchAtLogin.description" = "Démarre Status Trio automatiquement à l’ouverture de session.";
 "settings.launchAtLogin.requiresApproval" = "En attente d’approbation. Autorisez Status Trio dans Réglages Système › Général › Ouverture.";

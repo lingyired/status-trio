@@ -131,5 +131,14 @@ for language in "${present[@]}"; do
     fi
 done
 
+PRIVACY_URL="https://github.com/lingyired/status-trio/blob/main/docs/privacy-telemetry.md"
+if grep -qF "$PRIVACY_URL" "$NOTES_DIR"/*.md; then
+    privacy_link_count="$( (grep -oF "<a href=\"$PRIVACY_URL\">" "$ITEM" || true) | wc -l | tr -d ' ')"
+    if [[ "$privacy_link_count" -ne "$expected" ]]; then
+        echo "::error::Expected a clickable privacy link in each localized description, found $privacy_link_count of $expected."
+        fail=1
+    fi
+fi
+
 [[ "$fail" -eq 0 ]] || exit 1
 echo "Appcast notes OK: $titles titles and $descriptions descriptions, en first."

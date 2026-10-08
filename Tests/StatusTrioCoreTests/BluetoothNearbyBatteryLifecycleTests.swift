@@ -301,6 +301,29 @@ final class BluetoothNearbyBatteryLifecycleTests: XCTestCase {
         return controller
     }
 
+    private func actions(for controller: BluetoothDeviceController) -> StatusPanelActions {
+        StatusPanelActions(
+            requestNearbyBatteryDevices: { controller.requestNearbyBatteryDevices($0) },
+            releaseNearbyBatteryDevices: { controller.releaseNearbyBatteryDevices($0, keepingResults: $1) },
+            holdBluetoothSummary: {
+                controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+            },
+            releaseBluetoothSummary: {
+                controller.releaseVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+            }
+        )
+    }
+
+    private func makeSettings() -> SettingsStore {
+        let name = "BluetoothNearbyBatteryLifecycleTests.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: name) else {
+            fatalError("could not create isolated user defaults suite")
+        }
+        defaults.removeTestSuite(named: name)
+        addTeardownBlock { TestUserDefaults.removeSuite(named: name) }
+        return SettingsStore(defaults: defaults)
+    }
+
     private func makeController(
         scanner: NearbyBatteryScannerSpy,
         monitor: NearbyBatteryStateMonitorSpy,

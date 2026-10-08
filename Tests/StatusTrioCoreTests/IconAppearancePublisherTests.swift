@@ -29,27 +29,26 @@ final class IconAppearancePublisherTests: XCTestCase {
             )
 
             var menuBarCache = StatusBarRenderCache()
-            XCTAssertTrue(menuBarCache.shouldRender(menuBarKey(baseline)))
-            XCTAssertTrue(
-                menuBarCache.shouldRender(menuBarKey(updated)),
-                "\(mutation.name) must invalidate the cached menu bar image"
+            let baselineMenuKey = menuBarKey(baseline)
+            let updatedMenuKey = menuBarKey(updated)
+            XCTAssertTrue(menuBarCache.needsRender(baselineMenuKey))
+            menuBarCache.recordSuccessfulRender(baselineMenuKey)
+            XCTAssertEqual(
+                menuBarCache.needsRender(updatedMenuKey),
+                updatedMenuKey != baselineMenuKey,
+                "\(mutation.name) redraws only when its mapped scene or menu-bar size changes"
             )
 
             var dockCache = DockIconRenderCache()
-            XCTAssertTrue(dockCache.shouldRender(dockKey(baseline)))
-            if mutation.name == Self.menuBarOnlyMutationName {
-                // Documented limitation: the icon size slider is menu bar only,
-                // so it must not disturb the Dock tile.
-                XCTAssertFalse(
-                    dockCache.shouldRender(dockKey(updated)),
-                    "\(mutation.name) must not invalidate the cached Dock image"
-                )
-            } else {
-                XCTAssertTrue(
-                    dockCache.shouldRender(dockKey(updated)),
-                    "\(mutation.name) must invalidate the cached Dock image"
-                )
-            }
+            let baselineDockKey = dockKey(baseline)
+            let updatedDockKey = dockKey(updated)
+            XCTAssertTrue(dockCache.needsRender(baselineDockKey))
+            dockCache.recordSuccessfulRender(baselineDockKey)
+            XCTAssertEqual(
+                dockCache.needsRender(updatedDockKey),
+                updatedDockKey != baselineDockKey,
+                "\(mutation.name) invalidates Dock only when its mapped scene changes"
+            )
         }
     }
 
@@ -121,6 +120,39 @@ final class IconAppearancePublisherTests: XCTestCase {
         XCTAssertEqual(appearance?.volumeOptions.ringStrokeScale, RingStrokeStyle.bold.scale)
     }
 
+    func testIconPresentationPublisherIncludesEveryAppearanceSettingAndTestMode() throws {
+        let settings = makeSettings()
+        var values: [IconPresentationSettings] = []
+        let cancellable = settings.iconPresentationPublisher.sink { values.append($0) }
+        defer { cancellable.cancel() }
+
+        for mutation in Self.iconMutations {
+            let previousCount = values.count
+            mutation.apply(settings)
+            XCTAssertEqual(values.count, previousCount + 1, "\(mutation.name) publishes once")
+            let value = try XCTUnwrap(values.last)
+            let appearance = StatusIconAppearance(settings: settings)
+            XCTAssertEqual(value.menuBarSize, appearance.iconSize)
+            XCTAssertEqual(value.configuration.battery, appearance.batteryOptions)
+            XCTAssertEqual(value.configuration.connection, appearance.connectionOptions)
+            XCTAssertEqual(value.configuration.volume, appearance.volumeOptions)
+            XCTAssertEqual(value.configuration.bluetooth, appearance.bluetoothAudioOptions)
+        }
+
+        settings.showsChargingEffect = true
+        let previousCount = values.count
+        settings.setChargingEffectTestEnabled(true)
+        XCTAssertEqual(values.count, previousCount + 1)
+        XCTAssertEqual(values.last?.testsChargingEffect, true)
+
+        let afterIconSettingCount = values.count
+        settings.refreshIntervalSeconds = 30
+        settings.showsBluetoothBatteryLevels = true
+        settings.hasCompletedIconGuideOnboarding = true
+        settings.dockIconBackgroundPreference = .dark
+        XCTAssertEqual(values.count, afterIconSettingCount)
+    }
+
     // MARK: - Helpers
 
     private static let menuBarOnlyMutationName = "iconSize"
@@ -134,11 +166,15 @@ final class IconAppearancePublisherTests: XCTestCase {
         IconMutation(name: menuBarOnlyMutationName) { $0.iconSize = 32 },
         IconMutation(name: "showsBatteryPercentage") { $0.showsBatteryPercentage = false },
         IconMutation(name: "showsChargingIndicator") { $0.showsChargingIndicator = false },
+        IconMutation(name: "showsChargingEffect") { $0.showsChargingEffect = false },
         IconMutation(name: "showsChargingBoltHeartbeat") { $0.showsChargingBoltHeartbeat = false },
         IconMutation(name: "usesBatteryStatusColors") { $0.usesBatteryStatusColors = false },
         IconMutation(name: "batteryCriticalThreshold") { $0.batteryCriticalThreshold = 35 },
         IconMutation(name: "showsPercentageWhenConnected") {
             $0.showsPercentageWhenConnected = true
+        },
+        IconMutation(name: "showsBatteryPercentageInConnectionSlot") {
+            $0.showsBatteryPercentageInConnectionSlot = true
         },
         IconMutation(name: "batterySymbolScale") { $0.batterySymbolScale = 1.05 },
         IconMutation(name: "showsWiFiIconForEthernet") { $0.showsWiFiIconForEthernet = true },
@@ -184,24 +220,42 @@ final class IconAppearancePublisherTests: XCTestCase {
 
     private func menuBarKey(_ appearance: StatusIconAppearance) -> StatusBarRenderKey {
         StatusBarRenderKey(
-            status: status,
+            scene: scene(appearance),
             iconSize: appearance.iconSize,
-            options: appearance.batteryOptions,
-            connectionOptions: appearance.connectionOptions,
-            volumeOptions: appearance.volumeOptions,
-            bluetoothAudioOptions: appearance.bluetoothAudioOptions,
-            appearanceName: "darkAqua"
+            backingScale: 2,
+            appearanceName: "darkAqua",
+            phase: nil
         )
     }
 
     private func dockKey(_ appearance: StatusIconAppearance) -> DockIconRenderKey {
         DockIconRenderKey(
-            status: status,
-            options: appearance.batteryOptions,
-            connectionOptions: appearance.connectionOptions,
-            volumeOptions: appearance.volumeOptions,
-            bluetoothAudioOptions: appearance.bluetoothAudioOptions,
-            backgroundStyle: .dark
+            scene: scene(appearance),
+            backgroundStyle: .dark,
+            pixelLength: DockIconRenderer.pixelSize
+        )
+    }
+
+    private func scene(_ appearance: StatusIconAppearance) -> IconSceneState {
+        let snapshot = StatusSnapshot(
+            battery: status.battery,
+            wifi: status.wifi,
+            connection: status.connection,
+            volume: VolumeStatus(
+                scalar: status.volume.scalar,
+                isMuted: status.volume.isMuted,
+                deviceName: status.volume.deviceName,
+                currentDevice: status.volume.currentDevice
+            )
+        )
+        return IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+            configuration: IconPresentationConfiguration(
+                battery: appearance.batteryOptions,
+                connection: appearance.connectionOptions,
+                volume: appearance.volumeOptions,
+                bluetooth: appearance.bluetoothAudioOptions
+            )
         )
     }
 

@@ -11,12 +11,8 @@ final class AudioInputControlsViewTests: XCTestCase {
         let controls = String(source[controlsStart.lowerBound..<controlsEnd.lowerBound])
 
         XCTAssertTrue(controls.contains("Slider("), "volume control layout must contain the slider")
-        XCTAssertFalse(
-            controls.contains("if status.scalar?.isFinite == true"),
-            "unreadable gain must not remove the slider from the layout"
-        )
-        XCTAssertTrue(controls.contains(".disabled(!presentation.volumeEnabled)"))
-        XCTAssertTrue(controls.contains("if !presentation.hasReadableVolume"))
+        XCTAssertTrue(controls.contains(".disabled(!state.canAdjust)"))
+        XCTAssertTrue(controls.contains("if state.scalar == nil"))
         XCTAssertTrue(controls.contains("Text(\"—\")"))
         XCTAssertTrue(controls.contains(".accessibilityValue(sliderAccessibilityValue)"))
         XCTAssertTrue(controls.contains(".audioInputVolumeUnavailable"))
@@ -32,7 +28,7 @@ final class AudioInputControlsViewTests: XCTestCase {
 
         XCTAssertTrue(accessibilityValue.contains("volumeDraft.accessibilityValue("))
         XCTAssertTrue(
-            accessibilityValue.contains("systemScalar: status.scalar"),
+            accessibilityValue.contains("systemScalar: state.scalar"),
             "the drag draft must not bypass current system readback availability"
         )
     }

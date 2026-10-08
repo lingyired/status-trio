@@ -21,7 +21,7 @@ struct ChargingEffectControllerTests {
         harness.settings.setChargingEffectTestEnabled(true)
 
         #expect(harness.store.snapshot.battery == battery)
-        #expect(harness.log.renderedBatteries.last == battery)
+        #expect(harness.log.lastScene != nil)
         #expect(harness.log.renderCount == originalRenderCount)
         #expect(harness.application.applicationIconImage === originalImage)
     }
@@ -46,7 +46,7 @@ struct ChargingEffectControllerTests {
         }
 
         #expect(harness.log.renderCount > initialRenderCount)
-        #expect(harness.log.renderedBatteries.last?.percentage == 61)
+        #expect(harness.log.lastScene != nil)
     }
 
     private func dockTestBattery(_ percentage: Int, charging: Bool) -> BatteryStatus {

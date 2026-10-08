@@ -4,395 +4,250 @@ import Testing
 
 @MainActor
 struct DockIconRenderCacheTests {
-    @Test func skipsEqualKeysAndRendersAfterReset() {
+    @Test func commitsOnlySuccessfulSceneAndSurfaceIdentity() {
         var cache = DockIconRenderCache()
-        let key = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
+        let baseScene = makeScene(rssi: -50)
+        let dark = DockIconRenderKey(scene: baseScene, backgroundStyle: .dark, pixelLength: 512)
+        let light = DockIconRenderKey(scene: baseScene, backgroundStyle: .light, pixelLength: 512)
+        let preview = DockIconRenderKey(scene: baseScene, backgroundStyle: .dark, pixelLength: 256)
+        let changedScene = DockIconRenderKey(
+            scene: makeScene(rssi: -80), backgroundStyle: .dark, pixelLength: 512
         )
 
-        let rendersFirstTime = cache.shouldRender(key)
-        let rendersSameStatusAgain = cache.shouldRender(key)
-        #expect(rendersFirstTime)
-        #expect(rendersSameStatusAgain == false)
+        #expect(cache.needsRender(dark))
+        #expect(cache.needsRender(dark))
+        cache.recordSuccessfulRender(dark)
+        #expect(cache.needsRender(dark) == false)
+        #expect(cache.needsRender(light))
+        #expect(cache.needsRender(preview))
+        #expect(cache.needsRender(changedScene))
+    }
+
+    @Test func resetAllowsTheSameSceneToRenderAgain() {
+        var cache = DockIconRenderCache()
+        let key = DockIconRenderKey(scene: makeScene(), backgroundStyle: .dark, pixelLength: 512)
+        cache.recordSuccessfulRender(key)
+
         cache.reset()
-        let rendersAfterReset = cache.shouldRender(key)
-        #expect(rendersAfterReset)
+
+        #expect(cache.needsRender(key))
     }
 
-    @Test func rendersAgainWhenStatusChanges() {
-        var cache = DockIconRenderCache()
-        let first = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
-        )
-        let second = DockIconRenderKey(
-            status: MenuBarStatus(snapshot: StatusSnapshot(
-                battery: .placeholder,
-                wifi: WiFiStatus(state: .connected, rssi: -50),
-                volume: .placeholder
-            )),
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
-        )
-
-        let rendersFirst = cache.shouldRender(first)
-        let rendersSecond = cache.shouldRender(second)
-        let rendersSecondAgain = cache.shouldRender(second)
-        #expect(rendersFirst)
-        #expect(rendersSecond)
-        #expect(rendersSecondAgain == false)
-    }
-
-    @Test func rendersAgainWhenOptionsChange() {
-        var cache = DockIconRenderCache()
-        let base = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
-        )
-        let changedOptions = DockIconRenderKey(
-            status: .placeholder,
-            options: BatteryIconOptions(
-                showsPercentage: false,
-                showsChargingIndicator: false,
-                usesStatusColors: false,
-                criticalThreshold: 30
-            ),
-            connectionOptions: .standard,
-            backgroundStyle: .dark
-        )
-
-        let rendersBase = cache.shouldRender(base)
-        let rendersChangedOptions = cache.shouldRender(changedOptions)
-        #expect(rendersBase)
-        #expect(rendersChangedOptions)
-    }
-
-    @Test func rendersAgainWhenVolumeDisplayStyleChanges() {
-        var cache = DockIconRenderCache()
-        let dots = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            volumeOptions: VolumeIconOptions(displayStyle: .dots),
-            backgroundStyle: .dark
-        )
-        let arc = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            volumeOptions: VolumeIconOptions(displayStyle: .arc),
-            backgroundStyle: .dark
-        )
-
-        let rendersDots = cache.shouldRender(dots)
-        let rendersArc = cache.shouldRender(arc)
-        #expect(rendersDots)
-        #expect(rendersArc)
-    }
-
-    @Test func rendersAgainWhenBluetoothAudioOptionsChange() {
-        var cache = DockIconRenderCache()
-        let standard = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: .standard,
-            backgroundStyle: .dark
-        )
-        let replacementEnabled = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true
-            ),
-            backgroundStyle: .dark
-        )
-
-        let rendersStandard = cache.shouldRender(standard)
-        let rendersReplacementEnabled = cache.shouldRender(replacementEnabled)
-        let rendersReplacementEnabledAgain = cache.shouldRender(replacementEnabled)
-        #expect(rendersStandard)
-        #expect(rendersReplacementEnabled)
-        #expect(rendersReplacementEnabledAgain == false)
-    }
-
-    @Test func rendersAgainWhenBluetoothSymbolScaleChanges() {
-        var cache = DockIconRenderCache()
-        let standard = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: .standard,
-            backgroundStyle: .dark
-        )
-        let scaled = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: BluetoothAudioIconOptions(
-                symbolScale: 1.45
-            ),
-            backgroundStyle: .dark
-        )
-
-        let rendersStandard = cache.shouldRender(standard)
-        let rendersScaled = cache.shouldRender(scaled)
-        let rendersScaledAgain = cache.shouldRender(scaled)
-        #expect(rendersStandard)
-        #expect(rendersScaled)
-        #expect(rendersScaledAgain == false)
-    }
-
-    @Test func rendersAgainWhenTheBluetoothOutputDeviceChanges() {
-        var cache = DockIconRenderCache()
-        let speakers = DockIconRenderKey(
-            status: outputDeviceStatus(
-                name: "MacBook Speakers",
-                transport: .builtIn
-            ),
-            options: .standard,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true
-            ),
-            backgroundStyle: .dark
-        )
-        let airPods = DockIconRenderKey(
-            status: outputDeviceStatus(
-                name: "AirPods Pro",
-                transport: .bluetooth
-            ),
-            options: .standard,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true
-            ),
-            backgroundStyle: .dark
-        )
-
-        let rendersSpeakers = cache.shouldRender(speakers)
-        let rendersAirPods = cache.shouldRender(airPods)
-        let rendersAirPodsAgain = cache.shouldRender(airPods)
-        #expect(rendersSpeakers)
-        #expect(rendersAirPods)
-        #expect(rendersAirPodsAgain == false)
-    }
-
-    @Test func rendersAgainWhenContinuousVolumeChangesWithinSameStep() {
-        var cache = DockIconRenderCache()
-        let lower = DockIconRenderKey(
-            status: volumeStatus(0.1),
-            options: .standard,
-            connectionOptions: .standard,
-            volumeOptions: VolumeIconOptions(displayStyle: .arc),
-            backgroundStyle: .dark
-        )
-        let higher = DockIconRenderKey(
-            status: volumeStatus(0.2),
-            options: .standard,
-            connectionOptions: .standard,
-            volumeOptions: VolumeIconOptions(displayStyle: .arc),
-            backgroundStyle: .dark
-        )
-
-        #expect(StatusMappings.volumeSteps(scalar: 0.1, isMuted: false) == 1)
-        #expect(StatusMappings.volumeSteps(scalar: 0.2, isMuted: false) == 1)
-        let rendersLower = cache.shouldRender(lower)
-        let rendersHigher = cache.shouldRender(higher)
-        #expect(rendersLower)
-        #expect(rendersHigher)
-    }
-
-    @Test func rendersAgainWhenBackgroundStyleChanges() {
-        var cache = DockIconRenderCache()
-        let darkKey = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
-        )
-        let lightKey = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .light
-        )
-
-        let rendersDark = cache.shouldRender(darkKey)
-        let rendersLight = cache.shouldRender(lightKey)
-        let rendersDarkAgain = cache.shouldRender(darkKey)
-
-        #expect(rendersDark)
-        #expect(rendersLight)
-        #expect(rendersDarkAgain)
-    }
-
-    @Test func reusesTheImageForARepeatedState() {
-        let cache = DockIconImageCache()
-        let key = DockIconRenderKey(
-            status: .placeholder,
-            options: .standard,
-            connectionOptions: .standard,
-            backgroundStyle: .dark
-        )
-        let image = NSImage(size: NSSize(width: 256, height: 256))
-
-        #expect(cache.image(for: key) == nil)
-        cache.store(image, for: key)
-        #expect(cache.image(for: key) === image)
-    }
-
-    @Test func evictsTheOldestImageWhenFull() {
+    @Test func imageCacheReusesAndEvictsLeastRecentlyUsedRaster() {
         let cache = DockIconImageCache(limit: 2)
-        let keys = [0, 1, 2].map { percentage in
-            DockIconRenderKey(
-                status: MenuBarStatus(snapshot: StatusSnapshot(
-                    battery: BatteryStatus(
-                        rawPercentage: percentage,
-                        isPresent: true,
-                        isCharging: false,
-                        isLowPowerMode: false,
-                        isConnectedToPower: false
-                    ),
-                    wifi: .placeholder,
-                    volume: .placeholder
-                )),
-                options: .standard,
-                connectionOptions: .standard,
-                backgroundStyle: .dark
-            )
-        }
+        let first = key(rssi: -50)
+        let second = key(rssi: -65)
+        let third = key(rssi: -80)
+        let firstImage = NSImage(size: NSSize(width: 512, height: 512))
+        let secondImage = NSImage(size: NSSize(width: 512, height: 512))
+        let thirdImage = NSImage(size: NSSize(width: 512, height: 512))
 
-        for key in keys {
-            cache.store(NSImage(size: NSSize(width: 256, height: 256)), for: key)
-        }
+        cache.store(firstImage, for: first)
+        cache.store(secondImage, for: second)
+        #expect(cache.image(for: first) === firstImage)
+        cache.store(thirdImage, for: third)
 
-        #expect(cache.image(for: keys[0]) == nil)
-        #expect(cache.image(for: keys[1]) != nil)
-        #expect(cache.image(for: keys[2]) != nil)
+        #expect(cache.image(for: second) == nil)
+        #expect(cache.image(for: first) === firstImage)
+        #expect(cache.image(for: third) === thirdImage)
     }
 
-    private func volumeStatus(_ scalar: Double) -> MenuBarStatus {
-        MenuBarStatus(snapshot: StatusSnapshot(
-            battery: .placeholder,
-            wifi: .placeholder,
-            volume: VolumeStatus(scalar: scalar, isMuted: false, deviceName: nil)
+    @Test func dockIdentityIgnoresChargingEffectButRetainsCanonicalSceneAndStaticInputs() {
+        let charging = chargingScene(options: .standard)
+        let heartbeatDisabled = chargingScene(options: BatteryIconOptions(
+            showsChargingBoltHeartbeat: false
         ))
+        let effectDisabled = chargingScene(options: BatteryIconOptions(
+            showsChargingEffect: false
+        ))
+        let regularStroke = chargingScene(options: BatteryIconOptions(
+            ringStrokeScale: RingStrokeStyle.regular.scale
+        ))
+        let boldStroke = chargingScene(options: BatteryIconOptions(
+            ringStrokeScale: RingStrokeStyle.bold.scale
+        ))
+        let chargingKey = DockIconRenderKey(scene: charging, backgroundStyle: .dark, pixelLength: 512)
+        let heartbeatKey = DockIconRenderKey(scene: heartbeatDisabled, backgroundStyle: .dark, pixelLength: 512)
+        let effectKey = DockIconRenderKey(scene: effectDisabled, backgroundStyle: .dark, pixelLength: 512)
+        let boldKey = DockIconRenderKey(scene: boldStroke, backgroundStyle: .dark, pixelLength: 512)
+
+        #expect(charging.outerRing?.effect?.pulsesAccessory == true)
+        #expect(heartbeatDisabled.outerRing?.effect?.pulsesAccessory == false)
+        #expect(effectDisabled.outerRing?.effect == nil)
+        #expect(charging != heartbeatDisabled)
+        #expect(charging != effectDisabled)
+        #expect(chargingKey.scene == charging, "the key exposes the canonical shared scene")
+        #expect(chargingKey == heartbeatKey)
+        #expect(chargingKey == effectKey)
+        #expect(Set([chargingKey, heartbeatKey, effectKey]).count == 1)
+        #expect(DockIconRenderKey(scene: regularStroke, backgroundStyle: .dark, pixelLength: 512) != boldKey)
+        #expect(DockIconRenderKey(scene: charging, backgroundStyle: .light, pixelLength: 512) != chargingKey)
+        #expect(DockIconRenderKey(scene: charging, backgroundStyle: .dark, pixelLength: 256) != chargingKey)
+
+        let imageCache = DockIconImageCache()
+        let cachedImage = NSImage(size: NSSize(width: 512, height: 512))
+        imageCache.store(cachedImage, for: chargingKey)
+        #expect(imageCache.image(for: heartbeatKey) === cachedImage)
+
+        let previewCache = DockIconPreviewCache()
+        var previewRenders = 0
+        let previewImage = previewCache.image(for: chargingKey) {
+            previewRenders += 1
+            return NSImage(size: NSSize(width: 512, height: 512))
+        }
+        let reusedPreview = previewCache.image(for: effectKey) {
+            previewRenders += 1
+            return NSImage(size: NSSize(width: 512, height: 512))
+        }
+        #expect(previewRenders == 1)
+        #expect(reusedPreview === previewImage)
     }
 
-    /// The Dock key carries the classified device icon, so identifying an
-    /// AirPods from its product ID has to invalidate the tile, not only the
-    /// popover row.
-    @Test func rendersAgainWhenTheAirPodsProductIDChangesTheGlyph() {
-        var cache = DockIconRenderCache()
-        let namedOnly = DockIconRenderKey(
-            status: outputDeviceStatus(name: "小王的耳机", transport: .bluetooth),
-            options: .standard,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: BluetoothAudioIconOptions(replacesNetworkIcon: true),
-            backgroundStyle: .dark
-        )
-        let productIdentified = DockIconRenderKey(
-            status: outputDeviceStatus(
-                name: "小王的耳机",
-                transport: .bluetooth,
-                modelUID: "200f 4c"
+    /// The Dock tile renders the same scene as the menu bar, so the dock key
+    /// carries the classified output glyph: two classifications must not share
+    /// one raster. The snapshot keeps Wi-Fi connected so the replacement is not
+    /// suppressed by the network-error priority.
+    @Test func rendersAgainWhenTheClassifiedGlyphChanges() {
+        let snapshot = bluetoothSnapshot()
+        let headphones = makeScene(
+            inputs: IconPresentationInputs(
+                snapshot: snapshot,
+                audioIcon: .symbol(name: "headphones", variableValue: nil, fallback: nil)
             ),
-            options: .standard,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: BluetoothAudioIconOptions(replacesNetworkIcon: true),
-            backgroundStyle: .dark
+            configuration: bluetoothReplacementConfiguration()
+        )
+        let airPods = makeScene(
+            inputs: IconPresentationInputs(
+                snapshot: snapshot,
+                audioIcon: .symbol(name: "airpods", variableValue: nil, fallback: nil)
+            ),
+            configuration: bluetoothReplacementConfiguration()
         )
 
-        let rendersHeadphones = cache.shouldRender(namedOnly)
-        let rendersAirPods = cache.shouldRender(productIdentified)
-        let rendersAirPodsAgain = cache.shouldRender(productIdentified)
-        #expect(rendersHeadphones)
-        #expect(rendersAirPods)
-        #expect(rendersAirPodsAgain == false)
+        #expect(headphones != airPods)
     }
 
     /// A picked device's symbol overrides the classified audio glyph, so the
     /// key must differ from the same status rendered with the audio-device
-    /// behavior — including when there is no current audio output at all.
+    /// behavior.
     @Test func carriesTheNetworkIconOverrideInTheKey() {
-        var cache = DockIconRenderCache()
-        let audioDevice = DockIconRenderKey(
-            status: outputDeviceStatus(name: "小王的耳机", transport: .bluetooth),
-            options: .standard,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: BluetoothAudioIconOptions(replacesNetworkIcon: true),
-            backgroundStyle: .dark
+        let snapshot = bluetoothSnapshot()
+        let audioDevice = makeScene(
+            inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+            configuration: bluetoothReplacementConfiguration()
         )
-        let overridden = DockIconRenderKey(
-            status: outputDeviceStatus(name: "小王的耳机", transport: .bluetooth),
-            options: .standard,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true,
-                networkIconSymbolOverride: "applewatch"
-            ),
-            backgroundStyle: .dark
+        let overridden = makeScene(
+            inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+            configuration: bluetoothReplacementConfiguration(override: "applewatch")
         )
 
-        let rendersAudioGlyph = cache.shouldRender(audioDevice)
-        let rendersOverrideGlyph = cache.shouldRender(overridden)
-        let rendersOverrideAgain = cache.shouldRender(overridden)
-        #expect(rendersAudioGlyph)
-        #expect(rendersOverrideGlyph)
-        #expect(rendersOverrideAgain == false)
-        #expect(overridden.bluetoothAudioDeviceIcon == .symbol("applewatch"))
+        #expect(audioDevice != overridden)
     }
 
     /// The override stands in for the current output's glyph: the key carries
     /// it even when no audio device is current, which is the state the picker
     /// mode mostly runs in.
     @Test func carriesTheOverrideEvenWithoutACurrentAudioDevice() {
-        let overridden = DockIconRenderKey(
-            status: volumeStatus(0.5),
-            options: .standard,
-            connectionOptions: .standard,
-            bluetoothAudioOptions: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true,
-                networkIconSymbolOverride: "gamecontroller"
-            ),
-            backgroundStyle: .dark
+        let snapshot = volumeSnapshot()
+        let overridden = makeScene(
+            inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+            configuration: bluetoothReplacementConfiguration(override: "gamecontroller")
+        )
+        let untouched = makeScene(
+            inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+            configuration: bluetoothReplacementConfiguration()
         )
 
-        #expect(overridden.bluetoothAudioDeviceIcon == .symbol("gamecontroller"))
+        #expect(overridden != untouched)
     }
 
-    private func outputDeviceStatus(
-        name: String,
-        transport: AudioOutputTransport,
-        modelUID: String? = nil
-    ) -> MenuBarStatus {
-        let device = AudioOutputDevice(
-            id: 42,
-            name: name,
-            isCurrent: true,
-            volume: 0.5,
-            transport: transport,
-            modelUID: modelUID
+    private func makeScene(
+        inputs: IconPresentationInputs,
+        configuration: IconPresentationConfiguration
+    ) -> IconSceneState {
+        IconPresentationMapper.scene(inputs: inputs, configuration: configuration)
+    }
+
+    private func bluetoothReplacementConfiguration(
+        override: String? = nil
+    ) -> IconPresentationConfiguration {
+        IconPresentationConfiguration(
+            battery: .standard,
+            connection: .standard,
+            volume: .standard,
+            bluetooth: BluetoothAudioIconOptions(
+                replacesNetworkIcon: true,
+                networkIconSymbolOverride: override
+            )
         )
-        return MenuBarStatus(snapshot: StatusSnapshot(
+    }
+
+    private func bluetoothSnapshot() -> StatusSnapshot {
+        StatusSnapshot(
             battery: .placeholder,
-            wifi: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -45),
+            connection: .wifi,
             volume: VolumeStatus(
                 scalar: 0.5,
                 isMuted: false,
-                deviceName: name,
-                currentDevice: device
+                deviceName: "小王的耳机",
+                currentDevice: AudioOutputDevice(
+                    id: 42,
+                    name: "小王的耳机",
+                    isCurrent: true,
+                    volume: 0.5,
+                    transport: .bluetooth,
+                    modelUID: "200f 4c"
+                )
             )
-        ))
+        )
+    }
+
+    private func volumeSnapshot() -> StatusSnapshot {
+        StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -45),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output")
+        )
+    }
+
+    private func key(rssi: Int = -50) -> DockIconRenderKey {
+        DockIconRenderKey(scene: makeScene(rssi: rssi), backgroundStyle: .dark, pixelLength: 512)
+    }
+
+    private func makeScene(rssi: Int = -50) -> IconSceneState {
+        IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: PresentationFixtures.snapshot(rssi: rssi),
+                audioIcon: nil
+            ),
+            configuration: .standard
+        )
+    }
+
+    private func chargingScene(options: BatteryIconOptions) -> IconSceneState {
+        var snapshot = PresentationFixtures.snapshot()
+        snapshot = StatusSnapshot(
+            battery: BatteryStatus(
+                rawPercentage: 62,
+                isPresent: true,
+                isCharging: true,
+                isLowPowerMode: false,
+                isConnectedToPower: true
+            ),
+            wifi: snapshot.wifi,
+            connection: snapshot.connection,
+            volume: snapshot.volume
+        )
+        return IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+            configuration: IconPresentationConfiguration(
+                battery: options,
+                connection: .standard,
+                volume: .standard,
+                bluetooth: .standard
+            )
+        )
     }
 }

@@ -2,19 +2,19 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class StatusPresentationTests: XCTestCase {
+final class PresentationTextMapperTests: XCTestCase {
     func testBatteryTitleAndSubtitlePriority() {
         let localization = makeLocalization(.simplifiedChinese)
 
         XCTAssertEqual(
-            StatusPresentation.batteryTitle(
+            PanelPresentationMapper.batteryTitle(
                 makeBattery(percentage: 68),
                 localization: localization
             ),
             "电池 · 68%"
         )
         XCTAssertEqual(
-            StatusPresentation.batterySubtitle(
+            PanelPresentationMapper.batterySubtitle(
                 makeBattery(
                     isPresent: false,
                     isCharging: true,
@@ -27,7 +27,7 @@ final class StatusPresentationTests: XCTestCase {
             "无电池设备"
         )
         XCTAssertEqual(
-            StatusPresentation.batterySubtitle(
+            PanelPresentationMapper.batterySubtitle(
                 makeBattery(
                     isCharging: true,
                     isCharged: true,
@@ -39,7 +39,7 @@ final class StatusPresentationTests: XCTestCase {
             "已充满"
         )
         XCTAssertEqual(
-            StatusPresentation.batterySubtitle(
+            PanelPresentationMapper.batterySubtitle(
                 makeBattery(
                     isCharging: true,
                     isLowPowerMode: true,
@@ -51,28 +51,28 @@ final class StatusPresentationTests: XCTestCase {
             "预计 1 小时 25 分钟充满"
         )
         XCTAssertEqual(
-            StatusPresentation.batterySubtitle(
+            PanelPresentationMapper.batterySubtitle(
                 makeBattery(isCharging: true, isConnectedToPower: true),
                 localization: localization
             ),
             "正在计算充满时间"
         )
         XCTAssertEqual(
-            StatusPresentation.batterySubtitle(
+            PanelPresentationMapper.batterySubtitle(
                 makeBattery(isLowPowerMode: true, isConnectedToPower: true),
                 localization: localization
             ),
             "低电量模式"
         )
         XCTAssertEqual(
-            StatusPresentation.batterySubtitle(
+            PanelPresentationMapper.batterySubtitle(
                 makeBattery(isConnectedToPower: true),
                 localization: localization
             ),
             "已连接电源"
         )
         XCTAssertEqual(
-            StatusPresentation.batterySubtitle(
+            PanelPresentationMapper.batterySubtitle(
                 makeBattery(),
                 localization: localization
             ),
@@ -95,7 +95,7 @@ final class StatusPresentationTests: XCTestCase {
 
         for (minutes, expected) in cases {
             XCTAssertEqual(
-                StatusPresentation.batteryTimeToFullText(
+                PanelPresentationMapper.batteryTimeToFullText(
                     minutes: minutes,
                     localization: localization
                 ),
@@ -120,12 +120,12 @@ final class StatusPresentationTests: XCTestCase {
 
         for (wifi, expectedValue, expectedSubtitle) in cases {
             XCTAssertEqual(
-                StatusPresentation.wifiValue(wifi, localization: localization),
+                PanelPresentationMapper.wifiValue(wifi, localization: localization),
                 expectedValue,
                 "value for \(wifi.state)"
             )
             XCTAssertEqual(
-                StatusPresentation.wifiSubtitle(wifi, localization: localization),
+                PanelPresentationMapper.wifiSubtitle(wifi, localization: localization),
                 expectedSubtitle,
                 "subtitle for \(wifi.state)"
             )
@@ -147,7 +147,7 @@ final class StatusPresentationTests: XCTestCase {
         let localization = makeLocalization(.simplifiedChinese)
 
         XCTAssertEqual(
-            StatusPresentation.wifiSubtitle(
+            PanelPresentationMapper.wifiSubtitle(
                 WiFiStatus(
                     state: .connected,
                     rssi: -55,
@@ -178,7 +178,7 @@ final class StatusPresentationTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            StatusPresentation.statusItemAccessibilityValue(
+            AccessibilityPresentation.statusItemValue(
                 snapshot,
                 localization: localization
             ),
@@ -204,7 +204,7 @@ final class StatusPresentationTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            StatusPresentation.statusItemAccessibilityValue(
+            AccessibilityPresentation.statusItemValue(
                 snapshot,
                 localization: localization
             ),
@@ -226,7 +226,7 @@ final class StatusPresentationTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            StatusPresentation.statusItemAccessibilityValue(
+            AccessibilityPresentation.statusItemValue(
                 snapshot,
                 localization: localization
             ),
@@ -234,18 +234,18 @@ final class StatusPresentationTests: XCTestCase {
         )
     }
 
-    func testEnglishStatusPresentation() {
+    func testEnglishPanelAndAccessibilityText() {
         let localization = makeLocalization(.english)
 
         XCTAssertEqual(
-            StatusPresentation.batteryTitle(
+            PanelPresentationMapper.batteryTitle(
                 makeBattery(percentage: 68),
                 localization: localization
             ),
             "Battery · 68%"
         )
         XCTAssertEqual(
-            StatusPresentation.volumeValue(
+            AccessibilityPresentation.volumeValue(
                 VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Speaker"),
                 localization: localization
             ),
@@ -253,58 +253,32 @@ final class StatusPresentationTests: XCTestCase {
         )
     }
 
-    func testVolumeTitleUsesClampedPercentage() {
-        let localization = makeLocalization(.simplifiedChinese)
-
-        XCTAssertEqual(
-            StatusPresentation.volumeTitle(
-                VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Speaker"),
-                localization: localization
-            ),
-            "音量 · 50%"
-        )
-        XCTAssertEqual(
-            StatusPresentation.volumeTitle(
-                VolumeStatus(scalar: 0.62, isMuted: true, deviceName: "Speaker"),
-                localization: localization
-            ),
-            "音量 · 62%"
-        )
-        XCTAssertEqual(
-            StatusPresentation.volumeTitle(
-                VolumeStatus(scalar: nil, isMuted: false, deviceName: nil),
-                localization: localization
-            ),
-            "音量 · —"
-        )
-    }
-
     func testVolumeValueForNilMutedAndNormalStates() {
         let localization = makeLocalization(.simplifiedChinese)
 
         XCTAssertEqual(
-            StatusPresentation.volumeValue(
+            AccessibilityPresentation.volumeValue(
                 VolumeStatus(scalar: nil, isMuted: false, deviceName: nil),
                 localization: localization
             ),
             "—"
         )
         XCTAssertEqual(
-            StatusPresentation.volumeValue(
+            AccessibilityPresentation.volumeValue(
                 VolumeStatus(scalar: 0.62, isMuted: true, deviceName: "Speaker"),
                 localization: localization
             ),
             "静音"
         )
         XCTAssertEqual(
-            StatusPresentation.volumeValue(
+            AccessibilityPresentation.volumeValue(
                 VolumeStatus(scalar: 0.62, isMuted: false, deviceName: "Speaker"),
                 localization: localization
             ),
             "62% · 3 格"
         )
         XCTAssertEqual(
-            StatusPresentation.volumeValue(
+            AccessibilityPresentation.volumeValue(
                 VolumeStatus(scalar: 0.625, isMuted: false, deviceName: "Speaker"),
                 localization: localization
             ),
@@ -317,7 +291,7 @@ final class StatusPresentationTests: XCTestCase {
 
         for scalar in [Double.nan, .infinity, -.infinity] {
             XCTAssertEqual(
-                StatusPresentation.volumeValue(
+                AccessibilityPresentation.volumeValue(
                     VolumeStatus(scalar: scalar, isMuted: false, deviceName: "Speaker"),
                     localization: localization
                 ),
@@ -331,14 +305,14 @@ final class StatusPresentationTests: XCTestCase {
         let localization = makeLocalization(.simplifiedChinese)
 
         XCTAssertEqual(
-            StatusPresentation.volumeValue(
+            AccessibilityPresentation.volumeValue(
                 VolumeStatus(scalar: -0.5, isMuted: false, deviceName: "Speaker"),
                 localization: localization
             ),
             "0% · 0 格"
         )
         XCTAssertEqual(
-            StatusPresentation.volumeValue(
+            AccessibilityPresentation.volumeValue(
                 VolumeStatus(scalar: 1.5, isMuted: false, deviceName: "Speaker"),
                 localization: localization
             ),
@@ -362,7 +336,7 @@ final class StatusPresentationTests: XCTestCase {
 
         for (scalar, steps) in cases {
             XCTAssertEqual(
-                StatusPresentation.volumeValue(
+                AccessibilityPresentation.volumeValue(
                     VolumeStatus(scalar: scalar, isMuted: false, deviceName: "Speaker"),
                     localization: localization
                 ),
@@ -371,23 +345,23 @@ final class StatusPresentationTests: XCTestCase {
         }
     }
 
-    func testVolumeSubtitleUsesDeviceNameOrFallback() {
+    func testVolumeSummaryUsesDeviceNameFallbackAndPercentSubtitle() {
         let localization = makeLocalization(.simplifiedChinese)
+        let named = AudioPanelMapper.volume(
+            VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "MacBook Speakers"),
+            controllerAvailable: true,
+            localization: localization
+        )
+        let unnamed = AudioPanelMapper.volume(
+            VolumeStatus(scalar: 0.5, isMuted: false, deviceName: nil),
+            controllerAvailable: true,
+            localization: localization
+        )
 
-        XCTAssertEqual(
-            StatusPresentation.volumeSubtitle(
-                VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "MacBook Speakers"),
-                localization: localization
-            ),
-            "MacBook Speakers"
-        )
-        XCTAssertEqual(
-            StatusPresentation.volumeSubtitle(
-                VolumeStatus(scalar: 0.5, isMuted: false, deviceName: nil),
-                localization: localization
-            ),
-            "无默认输出设备"
-        )
+        XCTAssertEqual(named.summary.title, "MacBook Speakers")
+        XCTAssertEqual(named.summary.subtitle, "音量 · 50%")
+        XCTAssertEqual(unnamed.summary.title, "无默认输出设备")
+        XCTAssertEqual(unnamed.summary.subtitle, "音量 · 50%")
     }
 
     /// The VPN row leads with the service name when the system has one, falls
@@ -402,11 +376,11 @@ final class StatusPresentationTests: XCTestCase {
             proxy: nil
         )
         XCTAssertEqual(
-            StatusPresentation.vpnTitle(named, localization: localization),
+            PanelPresentationMapper.vpnTitle(named, localization: localization),
             "工作 VPN"
         )
         XCTAssertEqual(
-            StatusPresentation.vpnSubtitle(named, localization: localization),
+            PanelPresentationMapper.vpnSubtitle(named, localization: localization),
             "已连接"
         )
 
@@ -416,11 +390,11 @@ final class StatusPresentationTests: XCTestCase {
             proxy: nil
         )
         XCTAssertEqual(
-            StatusPresentation.vpnTitle(bareTunnel, localization: localization),
+            PanelPresentationMapper.vpnTitle(bareTunnel, localization: localization),
             "VPN"
         )
         XCTAssertEqual(
-            StatusPresentation.vpnSubtitle(bareTunnel, localization: localization),
+            PanelPresentationMapper.vpnSubtitle(bareTunnel, localization: localization),
             "已连接"
         )
     }
@@ -434,11 +408,11 @@ final class StatusPresentationTests: XCTestCase {
             proxy: VPNProxyStatus(kind: .http, host: "127.0.0.1", port: 10808)
         )
         XCTAssertEqual(
-            StatusPresentation.vpnTitle(proxyOnly, localization: localization),
+            PanelPresentationMapper.vpnTitle(proxyOnly, localization: localization),
             "系统代理"
         )
         XCTAssertEqual(
-            StatusPresentation.vpnSubtitle(proxyOnly, localization: localization),
+            PanelPresentationMapper.vpnSubtitle(proxyOnly, localization: localization),
             "127.0.0.1:10808"
         )
     }
@@ -453,7 +427,7 @@ final class StatusPresentationTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            StatusPresentation.vpnSubtitle(both, localization: localization),
+            PanelPresentationMapper.vpnSubtitle(both, localization: localization),
             "已连接 · 代理 127.0.0.1:7891"
         )
     }
@@ -463,11 +437,11 @@ final class StatusPresentationTests: XCTestCase {
         let off = VPNStatus(tunnelInterfaces: [], serviceName: nil, proxy: nil)
 
         XCTAssertEqual(
-            StatusPresentation.vpnTitle(off, localization: localization),
+            PanelPresentationMapper.vpnTitle(off, localization: localization),
             "VPN"
         )
         XCTAssertEqual(
-            StatusPresentation.vpnSubtitle(off, localization: localization),
+            PanelPresentationMapper.vpnSubtitle(off, localization: localization),
             "未连接"
         )
     }
@@ -487,17 +461,17 @@ final class StatusPresentationTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            StatusPresentation.vpnTitle(pac, localization: localization),
+            PanelPresentationMapper.vpnTitle(pac, localization: localization),
             "系统代理"
         )
         XCTAssertEqual(
-            StatusPresentation.vpnSubtitle(pac, localization: localization),
+            PanelPresentationMapper.vpnSubtitle(pac, localization: localization),
             "自动配置"
         )
     }
 
     private func makeLocalization(_ language: AppLanguage) -> Localization {
-        let suiteName = "StatusTrioCoreTests.StatusPresentation.\(UUID().uuidString)"
+        let suiteName = "StatusTrioCoreTests.PresentationTextMapper.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removeTestSuite(named: suiteName)
         addTeardownBlock { TestUserDefaults.removeSuite(named: suiteName) }

@@ -193,7 +193,7 @@ Status Trio follows the macOS preferred language by default and includes English
 
 ## Privacy
 
-Status Trio reads status through public macOS frameworks. It does not use App Sandbox or require a network entitlement, and it does not include telemetry or analytics. It does not read or store Wi-Fi passwords and never asks for Keychain access. Location access is optional and requested only when you choose to display the current Wi-Fi network name or open Wi-Fi details. Bluetooth access is requested only when the Bluetooth panel is shown, and it exists to show paired-device connection status.
+Status Trio reads system status through public macOS frameworks. Optional anonymous usage statistics send a small heartbeat to the first-party service only after you enable them; upgrades start with statistics off, and new installs ask for a choice during onboarding. The heartbeat contains a random installation ID, app and macOS versions, language, and icon placement. It contains no names, account details, network details, or hardware identifiers. See [telemetry and privacy](docs/privacy-telemetry.md) for the full payload, consent, and retention details. Status Trio does not read or store Wi-Fi passwords and never asks for Keychain access. Location access is optional and requested only when you choose to display the current Wi-Fi network name or open Wi-Fi details. Bluetooth access is requested only when the Bluetooth panel is shown, and it exists to show paired-device connection status.
 
 ## Development
 
@@ -224,6 +224,10 @@ bash scripts/build-worktree.sh release
 ```
 
 The single-instance lock is scoped by bundle identifier, so differently identified builds can run at the same time.
+
+### Icon presentation API
+
+For the three icon regions, update timing, Swift examples, and extension boundaries, see [三图形展示与更新 API](docs/api/icon-presentation.md). This documents the current internal API; an external plugin SDK is not implemented.
 
 ## Technical baseline
 

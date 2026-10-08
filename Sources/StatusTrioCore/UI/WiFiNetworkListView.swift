@@ -1,46 +1,38 @@
-import AppKit
 import SwiftUI
 
 struct WiFiNetworkListView: View {
-    @ObservedObject var controller: WiFiNetworkController
     @EnvironmentObject private var localization: Localization
-    let wifi: WiFiStatus
+    let state: WiFiPanelState
     let onBack: () -> Void
     let onRequestNameAccess: () -> Void
     let onOpenWiFiSettings: () -> Void
     let onOpenLocationSettings: () -> Void
+    let onSetPower: (Bool) -> Void
+    let onRefresh: () -> Void
+    let onCopyValue: (String) -> Void
     let showsDetailsInitially: Bool
 
     @State private var showsDetails = false
+    @State private var showsMore = false
 
     var body: some View {
-        let grouped = WiFiNetworkPresentation.grouped(controller.networks, wifiState: wifi.state)
         VStack(alignment: .leading, spacing: 12) {
             header
             Toggle(
                 localization.string(.wifiPower),
-                isOn: Binding(
-                    get: { controller.state != .poweredOff && wifi.state != .off },
-                    set: { controller.setPower($0) }
-                )
+                isOn: Binding(get: { state.powerIsOn }, set: { onSetPower($0) })
             )
-            .disabled(controller.state == .noInterface)
+            .disabled(!state.canSetPower)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
-                    personalHotspotSection(
-                        grouped.personalHotspot,
-                        ownsConnectionDetails: WiFiNetworkPresentation.detailsSection(for: wifi.state) == .personalHotspot
-                    )
-                    knownNetworksSection(
-                        grouped.known,
-                        ownsConnectionDetails: WiFiNetworkPresentation.detailsSection(for: wifi.state) == .known
-                    )
-                    otherNetworksSection(grouped.other)
+                    personalHotspotSection
+                    knownNetworksSection
+                    otherNetworksSection
                     stateMessage(
-                        hasVisibleNetworks: !grouped.personalHotspot.isEmpty
-                            || !grouped.known.isEmpty
-                            || !grouped.other.isEmpty
+                        hasVisibleNetworks: !state.personalHotspotRows.isEmpty
+                            || !state.knownRows.isEmpty
+                            || !state.otherRows.isEmpty
                     )
                 }
             }
@@ -56,7 +48,6 @@ struct WiFiNetworkListView: View {
                 .accessibilityLabel(localization.string(.wifiActionOpenSettings))
         }
         .onAppear {
-            controller.activate(nameAccess: wifi.nameAccess)
             showsDetails = showsDetails || showsDetailsInitially
         }
     }
@@ -68,141 +59,130 @@ struct WiFiNetworkListView: View {
                 title: localization.string(.wifiTitle),
                 action: onBack
             )
-            Button(action: { controller.refreshNow(nameAccess: wifi.nameAccess) }) {
+            Button(action: onRefresh) {
                 Image(systemName: "arrow.clockwise")
             }
             .buttonStyle(.plain)
-            .disabled(!controller.state.allowsRefresh)
+            .disabled(!state.canRefresh)
             .accessibilityLabel(localization.string(.wifiRefresh))
         }
     }
 
     @ViewBuilder
-    private func personalHotspotSection(
-        _ networks: [WiFiNetwork],
-        ownsConnectionDetails: Bool
-    ) -> some View {
-        if !networks.isEmpty || (ownsConnectionDetails && controller.details.ssid != nil) {
-            Text(localization.string(.wifiPersonalHotspot))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            ForEach(networks) { network in
-                networkRow(network)
+    private var personalHotspotSection: some View {
+        if !state.personalHotspotRows.isEmpty {
+            sectionTitle(localization.string(.wifiPersonalHotspot))
+            ForEach(state.personalHotspotRows, id: \.key) { row in
+                networkRow(row)
             }
-
-            if networks.contains(where: \.isConnected) || (ownsConnectionDetails && controller.details.ssid != nil) {
-                WiFiDetailsToggleRow(isExpanded: $showsDetails)
-
-                if showsDetails {
-                    WiFiDetailsView(details: controller.details)
-                }
+            if state.personalHotspotRows.contains(where: \.selected), state.showsConnectionDetails {
+                detailsToggle
             }
         }
     }
 
     @ViewBuilder
-    private func knownNetworksSection(
-        _ networks: [WiFiNetwork],
-        ownsConnectionDetails: Bool
-    ) -> some View {
-        if !networks.isEmpty || (ownsConnectionDetails && controller.details.ssid != nil) {
-            Text(localization.string(.wifiKnownNetworks))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            ForEach(networks) { network in
-                networkRow(network)
+    private var knownNetworksSection: some View {
+        if !state.knownRows.isEmpty || state.showsConnectionDetails {
+            sectionTitle(localization.string(.wifiKnownNetworks))
+            ForEach(state.knownRows, id: \.key) { row in
+                networkRow(row)
             }
-
-            if ownsConnectionDetails && (networks.contains(where: \.isConnected) || controller.details.ssid != nil) {
-                WiFiDetailsToggleRow(isExpanded: $showsDetails)
-
-                if showsDetails {
-                    WiFiDetailsView(details: controller.details)
-                }
+            if state.showsConnectionDetails {
+                detailsToggle
             }
         }
     }
 
     @ViewBuilder
-    private func otherNetworksSection(_ networks: [WiFiNetwork]) -> some View {
-        if !networks.isEmpty {
-            Text(localization.string(.wifiOtherNetworks))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            ForEach(networks) { network in
-                networkRow(network)
+    private var otherNetworksSection: some View {
+        if !state.otherRows.isEmpty {
+            sectionTitle(localization.string(.wifiOtherNetworks))
+            ForEach(state.otherRows, id: \.key) { row in
+                networkRow(row)
             }
         }
     }
 
     @ViewBuilder
-    private func stateMessage(hasVisibleNetworks: Bool) -> some View {
-        switch controller.state {
-        case .scanning:
-            HStack(spacing: 8) {
-                ProgressView()
-                    .controlSize(.small)
-                Text(localization.string(.wifiScanning))
-            }
-            .font(.caption)
+    private var detailsToggle: some View {
+        WiFiDetailsToggleRow(isExpanded: $showsDetails)
+
+        if showsDetails {
+            WiFiDetailsView(
+                state: state,
+                showsMore: $showsMore,
+                onCopyValue: onCopyValue
+            )
+        }
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
-        case .ready where !hasVisibleNetworks:
-            Text(localization.string(.wifiNoNetworks))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        case .poweredOff:
-            Text(localization.string(.wifiPanelOff))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        case .noInterface:
-            Text(localization.string(.wifiNoInterface))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        case .permissionDenied:
-            Button(localization.string(.wifiPermissionDenied), action: onOpenLocationSettings)
-                .buttonStyle(.plain)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        case .failed:
-            Text(localization.string(.wifiScanFailed))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        case .idle, .ready:
-            if wifi.nameAccess == .notDetermined {
-                Button(localization.string(.wifiActionRequestNameAccess), action: onRequestNameAccess)
+    }
+
+    @ViewBuilder
+    private var stateMessage: some View {
+        EmptyView()
+    }
+
+    @ViewBuilder
+    private func stateMessage(hasVisibleNetworks _: Bool) -> some View {
+        if let message = state.message {
+            switch state.messageIntent {
+            case .requestWiFiNameAccess:
+                Button(message, action: onRequestNameAccess)
                     .buttonStyle(.plain)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            case .locationSettings:
+                Button(message, action: onOpenLocationSettings)
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            default:
+                HStack(spacing: 8) {
+                    if state.isScanning { ProgressView().controlSize(.small) }
+                    Text(message)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
         }
     }
 
-    private func networkRow(_ network: WiFiNetwork) -> some View {
+    private func networkRow(_ row: PanelWiFiNetworkRow) -> some View {
         Button {
-            if WiFiNetworkPresentation.action(for: network) == .openSettings {
-                onOpenWiFiSettings()
-            }
+            if row.opensSettings { onOpenWiFiSettings() }
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: network.isConnected ? "checkmark" : "wifi")
-                    .frame(width: 16)
-                    .foregroundStyle(network.isConnected ? Color.accentColor : Color.secondary)
-                Text(displaySSID(network.ssid))
+                if row.selected {
+                    Image(systemName: "checkmark")
+                        .frame(width: 16)
+                        .foregroundStyle(Color.accentColor)
+                } else {
+                    Image(systemName: "wifi")
+                        .frame(width: 16)
+                        .foregroundStyle(.secondary)
+                }
+                Text(row.name)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: 8)
-                if network.security.requiresPassword {
-                    Image(systemName: "lock.fill")
+                if let marker = row.securityMarker {
+                    Image(systemName: marker)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
                 }
-                if let symbol = WiFiNetworkPresentation.trailingSymbol(for: network, wifiState: wifi.state) {
-                    Image(systemName: symbol)
+                if let systemImage = row.signalSystemImage {
+                    Image(systemName: systemImage)
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
                 } else {
-                    networkSignalIcon(for: network.rssi)
+                    PanelSymbolView(source: row.signalSymbol, size: 14, weight: .regular)
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
                 }
@@ -210,53 +190,23 @@ struct WiFiNetworkListView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(networkAccessibilityLabel(network))
-    }
-
-    private func displaySSID(_ ssid: String) -> String {
-        ssid.isEmpty ? localization.string(.wifiHiddenNetwork) : ssid
-    }
-
-    @ViewBuilder
-    private func networkSignalIcon(for rssi: Int?) -> some View {
-        if let rssi {
-            let bars = StatusMappings.wifiBars(rssi: rssi)
-            if bars == 0 {
-                Image(systemName: "wifi.exclamationmark")
-            } else {
-                Image(systemName: "wifi", variableValue: max(0.25, Double(bars) / 3.0))
-            }
-        } else {
-            Image(systemName: "wifi.exclamationmark")
-        }
-    }
-
-    private func networkAccessibilityLabel(_ network: WiFiNetwork) -> String {
-        let name = displaySSID(network.ssid)
-        let connection = network.isConnected
-            ? localization.string(.wifiConnected)
-            : localization.string(.wifiNotConnected)
-        guard !network.isConnected else { return "\(name), \(connection)" }
-        return "\(name), \(connection), \(localization.string(.wifiActionOpenSettings))"
+        .disabled(!row.opensSettings)
+        .accessibilityLabel(row.accessibilityLabel)
     }
 }
 
 private struct WiFiDetailsView: View {
-    @EnvironmentObject private var localization: Localization
-    let details: WiFiConnectionDetails
+    let state: WiFiPanelState
+    @Binding var showsMore: Bool
+    let onCopyValue: (String) -> Void
 
     var body: some View {
         VStack(spacing: 5) {
-            // The rows live in `LinkDetailPresentation` because the wired panel
-            // draws five of the same ones; only the radio rows are this panel's.
-            LinkDetailsList(
-                rows: LinkDetailPresentation.wirelessRows(
-                    details,
-                    expanded: showsMore,
-                    localization: localization
-                )
+            PanelDetailRowsView(
+                detailRows: state.visibleDetailRows(expanded: showsMore),
+                onCopyValue: onCopyValue
             )
-            Button(showsMore ? localization.string(.wifiDetailsLess) : localization.string(.wifiDetailsMore)) {
+            Button(showsMore ? state.showLessTitle : state.showMoreTitle) {
                 showsMore.toggle()
             }
             .buttonStyle(.plain)
@@ -264,6 +214,4 @@ private struct WiFiDetailsView: View {
         .padding(.leading, 26)
         .font(.caption)
     }
-
-    @State private var showsMore = false
 }

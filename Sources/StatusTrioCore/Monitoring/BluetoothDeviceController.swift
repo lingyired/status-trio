@@ -803,6 +803,29 @@ final class BluetoothDeviceController: ObservableObject {
         updateNearbyBatteryScanner()
     }
 
+    /// Compatibility with the 1.5 presentation-state path: a surface that
+    /// explicitly opted into Nearby readings claims the scanner. The actual
+    /// read permit still comes from visible rows, so this cannot widen reads.
+    func requestNearbyBatteryDevices(_ token: String) {
+        requestNearbyBLEDiscovery(token)
+    }
+
+    /// Compatibility with the 1.5 presentation-state path. Releasing a scan
+    /// claim keeps cached readings only when the caller says the surface may
+    /// come back; an opt-out still clears them.
+    func releaseNearbyBatteryDevices(_ token: String, keepingResults: Bool = false) {
+        let wasClaimed = nearbyBLEDiscoveryRequests.remove(token) != nil
+        releaseVisibleNearbyBLEDevices(token)
+        if wasClaimed || !keepingResults {
+            updateNearbyBatteryScanner()
+        }
+        if !keepingResults, nearbyBLEDiscoveryRequests.isEmpty {
+            nearbyBatteryDevices = []
+            nearbyBLEReadFailures = []
+            nearbyBLECandidates = []
+        }
+    }
+
     /// Requests a bounded discovery scan. Discovery does not add UUIDs to the
     /// GATT read permit.
     func requestNearbyBLEDiscovery(_ token: String) {

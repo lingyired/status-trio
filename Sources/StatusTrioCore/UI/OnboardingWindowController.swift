@@ -34,7 +34,7 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func showIfNeeded() {
-        guard IconGuideOnboardingPolicy.consumeIfNeeded(settings: settings) else { return }
+        guard IconGuideOnboardingPolicy.shouldPresentGuide(settings: settings) else { return }
         show()
     }
 

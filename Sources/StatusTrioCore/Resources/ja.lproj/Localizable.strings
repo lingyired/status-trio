@@ -14,6 +14,12 @@
 "settings.language" = "言語";
 "settings.language.followSystem" = "システム設定を使用";
 "settings.language.description" = "変更はすぐに反映されます。";
+"settings.analytics.title" = "匿名の利用状況データ";
+"settings.analytics.description" = "ランダムなインストールID、アプリとmacOSのバージョン、言語、アイコンの表示場所を送信します。名前、アカウント情報、ネットワーク情報は送信しません。";
+"settings.analytics.privacyDetails" = "プライバシーの詳細";
+"onboarding.analytics.title" = "プライバシーと利用状況データ";
+"onboarding.analytics.description" = "ランダムなインストールID、アプリとmacOSのバージョン、言語、アイコンの表示場所のみを送信します。名前、アカウント情報、ネットワーク情報は送信しません。";
+"onboarding.analytics.toggle" = "匿名の利用状況データを共有";
 "settings.launchAtLogin" = "ログイン時に起動";
 "settings.launchAtLogin.description" = "ログイン時に Status Trio を自動で起動します。";
 "settings.launchAtLogin.requiresApproval" = "承認待ちです。「システム設定 › 一般 › ログイン項目」で Status Trio を許可してください。";

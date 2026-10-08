@@ -1,28 +1,28 @@
 import SwiftUI
 
-/// The battery summary row. Like the Wi-Fi and Bluetooth rows, the row itself
-/// is the affordance: activating it switches the popover to the battery page.
 struct BatteryStatusView: View {
     @EnvironmentObject private var localization: Localization
-    let battery: BatteryStatus
+    let state: PanelSummaryState
+    var cautionColor: Color = .yellow
     let onOpenBatteryDetails: () -> Void
     let onOpenBatterySettings: () -> Void
+
+    private var hasDetails: Bool { state.intent == .batteryDetails }
 
     var body: some View {
         HStack(spacing: 10) {
             Button(action: onOpenBatteryDetails) {
                 HStack(spacing: 10) {
-                    Image(systemName: batterySymbolName)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(batterySymbolColor)
+                    PanelSymbolView(source: state.symbol)
+                        .foregroundStyle(state.tint.color(caution: cautionColor))
                         .frame(width: 24, height: 24)
                         .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(StatusPresentation.batteryTitle(battery, localization: localization))
+                        Text(state.title)
                             .font(.headline)
                             .monospacedDigit()
-                        Text(StatusPresentation.batterySubtitle(battery, localization: localization))
+                        Text(state.subtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -31,7 +31,7 @@ struct BatteryStatusView: View {
 
                     Spacer()
 
-                    if showsDetailAffordance {
+                    if hasDetails {
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.tertiary)
@@ -40,11 +40,11 @@ struct BatteryStatusView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .disabled(!showsDetailAffordance)
-            .accessibilityLabel(StatusPresentation.batteryTitle(battery, localization: localization))
-            .accessibilityValue(StatusPresentation.batterySubtitle(battery, localization: localization))
+            .disabled(!hasDetails)
+            .accessibilityLabel(state.accessibilityLabel)
+            .accessibilityValue(state.accessibilityValue)
 
-            if battery.isPresent {
+            if state.showsSettings {
                 Button(
                     localization.string(.batteryActionOpenSettings),
                     systemImage: "gearshape",
@@ -59,35 +59,5 @@ struct BatteryStatusView: View {
         }
     }
 
-    /// A Mac without a battery has no details to open, so the row stays inert
-    /// and shows no chevron — the same shape as an unavailable Bluetooth radio.
-    var showsDetailAffordance: Bool { battery.isPresent }
-
-    private var batterySymbolName: String {
-        guard battery.isPresent else { return "battery.slash" }
-        if battery.isCharging || battery.isConnectedToPower {
-            return "battery.100.bolt"
-        }
-        switch battery.percentage {
-        case 88...100: return "battery.100"
-        case 63..<88:  return "battery.75"
-        case 38..<63:  return "battery.50"
-        case 13..<38:  return "battery.25"
-        default:       return "battery.0"
-        }
-    }
-
-    private var batterySymbolColor: Color {
-        guard battery.isPresent else { return .secondary }
-        if battery.isCharging || battery.isConnectedToPower {
-            return .green
-        }
-        if battery.isLowPowerMode {
-            return .yellow
-        }
-        if battery.percentage <= 20 {
-            return .red
-        }
-        return .primary
-    }
+    var showsDetailAffordance: Bool { hasDetails }
 }

@@ -148,7 +148,7 @@ enum DockIconStateStrip {
 
         let y = verticalMargin
         for (index, state) in renderStates.enumerated() {
-            guard let image = DockIconRenderer.image(
+            guard let image = renderDockFixture(
                 status: state.status,
                 options: state.batteryOptions,
                 connectionOptions: state.connectionOptions,

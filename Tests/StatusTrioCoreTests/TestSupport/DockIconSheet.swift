@@ -248,8 +248,8 @@ enum DockIconSheet {
         context.addPath(SheetCanvas.roundedRect(panel.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 18))
         context.strokePath()
 
-        guard let image = DockIconRenderer.image(
-            status: row.status,
+        guard let image = renderDockFixture(
+                status: row.status,
             bluetoothAudioOptions: row.bluetoothAudioOptions,
             backgroundStyle: variant.style
         ) else {

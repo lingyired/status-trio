@@ -12,7 +12,15 @@ final class BatteryPopoverPanelTests: XCTestCase {
     }
 
     private func summary(_ battery: BatteryStatus) -> BatteryStatusView {
-        BatteryStatusView(battery: battery, onOpenBatteryDetails: {}, onOpenBatterySettings: {})
+        BatteryStatusView(
+            state: PanelPresentationMapper.battery(
+                battery,
+                localization: Localization(preferredLanguages: ["en"])
+            ),
+            cautionColor: .yellow,
+            onOpenBatteryDetails: {},
+            onOpenBatterySettings: {}
+        )
     }
 
     /// A Mac without a battery has nothing to show, so the row stays inert —

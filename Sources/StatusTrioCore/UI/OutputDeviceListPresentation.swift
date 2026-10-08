@@ -52,17 +52,17 @@ enum OutputDeviceListPresentation {
             .map(\.element)
     }
 
-    static func visibleDevices(
-        from devices: [AudioOutputDevice],
+    static func visibleDevices<Device>(
+        from devices: [Device],
         limit: Int?,
         isExpanded: Bool
-    ) -> [AudioOutputDevice] {
+    ) -> [Device] {
         guard !isExpanded, let limit else { return devices }
         return Array(devices.prefix(max(0, limit)))
     }
 
-    static func canToggleExpansion(
-        for devices: [AudioOutputDevice],
+    static func canToggleExpansion<Device>(
+        for devices: [Device],
         limit: Int?
     ) -> Bool {
         guard let limit else { return false }

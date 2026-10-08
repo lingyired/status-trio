@@ -43,8 +43,9 @@ final class BluetoothAudioIconOverrideLifecycleTests: XCTestCase {
 
         var dockCache = DockIconRenderCache()
         let dockKeyForAirPodsFive = dockKey(try XCTUnwrap(appearances.last))
-        XCTAssertTrue(dockCache.shouldRender(dockKeyForAirPodsFive))
-        XCTAssertEqual(dockKeyForAirPodsFive.bluetoothAudioDeviceIcon, .symbol(generationFiveSymbol))
+        XCTAssertTrue(dockCache.needsRender(dockKeyForAirPodsFive))
+        dockCache.recordSuccessfulRender(dockKeyForAirPodsFive)
+        XCTAssertEqual(symbolName(dockKeyForAirPodsFive.scene), generationFiveSymbol)
 
         worker.setResult(.failed)
         controller.refresh()
@@ -68,7 +69,7 @@ final class BluetoothAudioIconOverrideLifecycleTests: XCTestCase {
         XCTAssertEqual(settings.bluetoothNetworkIconSymbolName, keyboardSymbol)
         let dockKeyForKeyboard = dockKey(try XCTUnwrap(appearances.last))
         XCTAssertNotEqual(dockKeyForKeyboard, dockKeyForAirPodsFive)
-        XCTAssertTrue(dockCache.shouldRender(dockKeyForKeyboard))
+        XCTAssertTrue(dockCache.needsRender(dockKeyForKeyboard))
 
         settings.setBluetoothNetworkIconDevice(address: nil, symbolName: nil)
         XCTAssertNil(settings.bluetoothNetworkIconSymbolName)
@@ -99,14 +100,29 @@ final class BluetoothAudioIconOverrideLifecycleTests: XCTestCase {
     }
 
     private func dockKey(_ appearance: StatusIconAppearance) -> DockIconRenderKey {
-        DockIconRenderKey(
-            status: .placeholder,
-            options: appearance.batteryOptions,
-            connectionOptions: appearance.connectionOptions,
-            volumeOptions: appearance.volumeOptions,
-            bluetoothAudioOptions: appearance.bluetoothAudioOptions,
-            backgroundStyle: .dark
+        let status = MenuBarStatus(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -50),
+            connection: .wifi,
+            volume: MenuBarVolumeStatus(scalar: 0.5, isMuted: false, deviceName: "AirPods")
         )
+        return DockIconRenderKey(
+            scene: makeIconPresentationScene(
+                status: status,
+                battery: appearance.batteryOptions,
+                connection: appearance.connectionOptions,
+                volume: appearance.volumeOptions,
+                bluetooth: appearance.bluetoothAudioOptions
+            ),
+            backgroundStyle: .dark,
+            pixelLength: DockIconRenderer.pixelSize
+        )
+    }
+
+    private func symbolName(_ scene: IconSceneState) -> String? {
+        guard case let .symbol(symbol) = scene.center,
+              case let .symbol(name, _, _) = symbol.source else { return nil }
+        return name
     }
 
     private func waitUntil(

@@ -115,7 +115,8 @@ enum SocialCoverSheet {
 
     private static func drawBrandBlock(in context: CGContext, flip: (CGFloat) -> CGFloat) throws {
         let iconSide: CGFloat = 176
-        guard let icon = DockIconRenderer.image(status: status, backgroundStyle: .light) else {
+        guard let icon = renderDockFixture(
+                status: status, backgroundStyle: .light) else {
             throw SheetError.iconUnavailable
         }
         var proposed = CGRect(origin: .zero, size: icon.size)
@@ -274,7 +275,8 @@ enum SocialCoverSheet {
         let tileTop = cardTop + (cardHeight - tileSide) / 2
 
         for (index, entry) in styles.enumerated() {
-            guard let icon = DockIconRenderer.image(status: status, backgroundStyle: entry.0) else {
+            guard let icon = renderDockFixture(
+                status: status, backgroundStyle: entry.0) else {
                 throw SheetError.iconUnavailable
             }
             var proposed = CGRect(origin: .zero, size: icon.size)

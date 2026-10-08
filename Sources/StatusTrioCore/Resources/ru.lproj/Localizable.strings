@@ -14,6 +14,12 @@
 "settings.language" = "Язык";
 "settings.language.followSystem" = "Как в системе";
 "settings.language.description" = "Изменения применяются сразу.";
+"settings.analytics.title" = "Анонимная аналитика";
+"settings.analytics.description" = "Отправляются случайный ID установки, версии приложения и macOS, язык и расположение значка. Имена, данные учётной записи и сведения о сети не отправляются.";
+"settings.analytics.privacyDetails" = "Подробнее о конфиденциальности";
+"onboarding.analytics.title" = "Конфиденциальность и аналитика";
+"onboarding.analytics.description" = "Отправляются случайный ID установки, версии приложения и macOS, язык и расположение значка. Имена, данные учётной записи и сведения о сети не отправляются.";
+"onboarding.analytics.toggle" = "Делиться анонимными данными об использовании";
 "settings.launchAtLogin" = "Запускать при входе";
 "settings.launchAtLogin.description" = "Автоматически запускать Status Trio при входе в систему.";
 "settings.launchAtLogin.requiresApproval" = "Ожидается подтверждение. Разрешите Status Trio в «Системные настройки › Основные › Объекты входа».";

@@ -1,20 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// The network section of the popover.
-///
-/// One row whose subject is whatever carries the primary connection: the Wi-Fi
-/// row while Wi-Fi is primary, the wired link's row while Ethernet is. Both open
-/// a panel with the link's technical details, so the section answers "what am I
-/// connected through, and with which address" for either cable.
 struct NetworkStatusView: View {
-    @ObservedObject var primaryLink: PrimaryLinkController
-    let connection: NetworkConnection
-    /// A property of the path rather than of either port, and currently only the
-    /// wired row has a place to put it.
-    let isConstrained: Bool
-    let wifi: WiFiStatus
-    let isResolvingName: Bool
+    @EnvironmentObject private var localization: Localization
+    let state: PanelSummaryState
     let onOpenWiFiDetails: (Bool) -> Void
     let onOpenWiredDetails: () -> Void
     let onRequestNameAccess: () -> Void
@@ -22,24 +11,78 @@ struct NetworkStatusView: View {
     let onOpenNetworkSettings: () -> Void
     let onOpenLocationSettings: () -> Void
 
+    private var isWired: Bool { state.intent == .wiredDetails }
+    private var hasWiFiDetails: Bool { state.intent == .wifiDetails }
+
     var body: some View {
-        if connection == .ethernet {
-            EthernetStatusView(
-                primaryLink: primaryLink,
-                isConstrained: isConstrained,
-                onOpenDetails: onOpenWiredDetails,
-                onOpenNetworkSettings: onOpenNetworkSettings
-            )
+        HStack(spacing: 10) {
+            Button(action: { activateRow() }) {
+                HStack(spacing: 10) {
+                    PanelSymbolView(source: state.symbol)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 24)
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(state.title)
+                            .font(.headline)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        subtitle
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(state.accessibilityLabel)
+            .accessibilityValue(state.accessibilityValue)
+
+            if state.showsSettings {
+                Button(
+                    localization.string(isWired ? .ethernetActionOpenSettings : .wifiActionOpenSettings),
+                    systemImage: "gearshape",
+                    action: isWired ? onOpenNetworkSettings : onOpenWiFiSettings
+                )
+                .labelStyle(.iconOnly)
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help(localization.string(isWired ? .ethernetActionOpenSettings : .wifiActionOpenSettings))
+                .frame(width: 24, height: 24)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var subtitle: some View {
+        if state.subtitle == " " {
+            Text(verbatim: " ")
+                .font(.caption)
+                .accessibilityHidden(true)
         } else {
-            WiFiStatusView(
-                wifi: wifi,
-                connection: connection,
-                isResolvingName: isResolvingName,
-                onOpenDetails: onOpenWiFiDetails,
-                onRequestNameAccess: onRequestNameAccess,
-                onOpenWiFiSettings: onOpenWiFiSettings,
-                onOpenLocationSettings: onOpenLocationSettings
-            )
+            Text(state.subtitle)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(isWired ? .middle : .tail)
+        }
+    }
+
+    private func activateRow() {
+        switch state.intent {
+        case .wifiDetails:
+            onOpenWiFiDetails(NSEvent.modifierFlags.contains(.option))
+        case .wiredDetails:
+            onOpenWiredDetails()
+        case .requestWiFiNameAccess:
+            onRequestNameAccess()
+        case .locationSettings:
+            onOpenLocationSettings()
+        case .none, .batteryDetails, .requestBluetoothAuthorization, .openBluetoothPermissionSettings:
+            break
         }
     }
 }

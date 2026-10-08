@@ -3,9 +3,10 @@ import CoreGraphics
 import XCTest
 @testable import StatusTrioCore
 
+@MainActor
 final class StatusIconRendererTests: XCTestCase {
     func testRendererProducesExpectedPixelSize() throws {
-        let image = try XCTUnwrap(StatusIconRenderer.render(
+        let image = try XCTUnwrap(renderMenuBarFixture(
             snapshot: .placeholder,
             size: 20,
             scale: 2,
@@ -16,29 +17,55 @@ final class StatusIconRendererTests: XCTestCase {
         XCTAssertEqual(image.height, 40)
     }
 
+    func testSceneRendererUsesLogicalSizeAndBackingScale() throws {
+        let scene = IconSceneState(outerRing: OuterRingState(
+            segments: [RingSegmentState(progress: 0.5, color: .primary)],
+            gap: .closed
+        ))
+        let image = try XCTUnwrap(StatusIconRenderer.render(
+            scene: scene,
+            environment: StatusIconRenderEnvironment(
+                size: 20,
+                scale: 2,
+                foreground: CGColor(gray: 1, alpha: 1),
+                criticalColor: StatusIconRenderer.defaultCriticalColor
+            )
+        ))
+
+        XCTAssertEqual(image.width, 40)
+        XCTAssertEqual(image.height, 40)
+        let nsImage = try XCTUnwrap(StatusIconRenderer.image(
+            scene: scene,
+            size: 20,
+            scale: 2,
+            appearance: nil
+        ))
+        XCTAssertEqual(nsImage.size, NSSize(width: 20, height: 20))
+    }
+
     func testRendererRejectsNonPositiveSizeOrScale() {
         let snapshot = StatusSnapshot.placeholder
         let foreground = CGColor(gray: 1, alpha: 1)
 
-        XCTAssertNil(StatusIconRenderer.render(
+        XCTAssertNil(renderMenuBarFixture(
             snapshot: snapshot,
             size: 0,
             scale: 2,
             foreground: foreground
         ))
-        XCTAssertNil(StatusIconRenderer.render(
+        XCTAssertNil(renderMenuBarFixture(
             snapshot: snapshot,
             size: -1,
             scale: 2,
             foreground: foreground
         ))
-        XCTAssertNil(StatusIconRenderer.render(
+        XCTAssertNil(renderMenuBarFixture(
             snapshot: snapshot,
             size: 20,
             scale: 0,
             foreground: foreground
         ))
-        XCTAssertNil(StatusIconRenderer.render(
+        XCTAssertNil(renderMenuBarFixture(
             snapshot: snapshot,
             size: 20,
             scale: -1,
@@ -52,8 +79,8 @@ final class StatusIconRendererTests: XCTestCase {
             components: [1, 0, 0, 1]
         ))
         let pixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: .placeholder,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: .placeholder,
                 size: 20,
                 scale: 2,
                 foreground: red
@@ -83,8 +110,8 @@ final class StatusIconRendererTests: XCTestCase {
         )
 
         let pixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 2,
                 foreground: CGColor(gray: 1, alpha: 1)
@@ -107,8 +134,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let pixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 0, alpha: 1)
@@ -141,24 +168,24 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let offPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: offSnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: offSnapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
             ))
         )
         let unavailablePixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: unavailableSnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: unavailableSnapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
             ))
         )
         let notAssociatedPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: notAssociatedSnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: notAssociatedSnapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
@@ -180,16 +207,16 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let noInternetPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: noInternetSnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: noInternetSnapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
             ))
         )
         let notAssociatedPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: notAssociatedSnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: notAssociatedSnapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
@@ -212,8 +239,8 @@ final class StatusIconRendererTests: XCTestCase {
         )
 
         let pixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 2,
                 foreground: CGColor(gray: 1, alpha: 1)
@@ -236,8 +263,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let pixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 0, alpha: 1)
@@ -261,8 +288,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let visible = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -275,8 +302,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let hidden = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -305,8 +332,8 @@ final class StatusIconRendererTests: XCTestCase {
 
         for battery in batteries {
             let pixels = try PixelBuffer(
-                image: try XCTUnwrap(StatusIconRenderer.render(
-                    snapshot: StatusSnapshot(
+                image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: StatusSnapshot(
                         battery: battery,
                         wifi: .placeholder,
                         volume: .placeholder
@@ -341,8 +368,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let visible = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -355,8 +382,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let hidden = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -383,8 +410,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let small = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -398,8 +425,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let large = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -431,8 +458,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let withBolt = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -445,8 +472,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let withoutBolt = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -476,8 +503,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let small = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -491,8 +518,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let large = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -520,8 +547,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let pixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 0, alpha: 1),
@@ -557,8 +584,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let colored = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 4,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -571,8 +598,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let monochrome = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 4,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -602,7 +629,7 @@ final class StatusIconRendererTests: XCTestCase {
     }
 
     func testAppKitWrapperProducesBitmapRepresentation() throws {
-        let image = StatusIconRenderer.image(
+        let image = menuBarFixtureImage(
             snapshot: .placeholder,
             size: 28
         )
@@ -616,23 +643,33 @@ final class StatusIconRendererTests: XCTestCase {
         XCTAssertGreaterThan(bitmap.pixelsHigh, 0)
     }
 
-    func testWiFiStatusImageUsesRequestedSizeAndTemplateRendering() {
-        let image = StatusIconRenderer.wifiImage(
-            wifi: WiFiStatus(state: .connected, rssi: -55),
+    func testSceneBackedWiFiPreviewUsesRequestedSizeAndRasterRepresentation() throws {
+        let image = menuBarFixtureImage(
+            snapshot: StatusSnapshot(
+                battery: .placeholder,
+                wifi: WiFiStatus(state: .connected, rssi: -55),
+                volume: .placeholder
+            ),
             size: 22
         )
 
         XCTAssertEqual(image.size.width, 22, accuracy: 0.01)
         XCTAssertEqual(image.size.height, 22, accuracy: 0.01)
-        XCTAssertTrue(image.isTemplate)
+        XCTAssertFalse(image.isTemplate)
         XCTAssertNotNil(image.tiffRepresentation)
     }
 
-    func testWiFiStatusImageKeepsTransparentBorderAroundStrokes() throws {
-        let image = StatusIconRenderer.wifiImage(
-            wifi: WiFiStatus(state: .connected, rssi: -55),
-            size: 16
-        )
+    func testSceneBackedWiFiPreviewKeepsTransparentBorderAroundStrokes() throws {
+        let centerOnlyWiFiScene = IconSceneState(center: .symbol(IconSymbolState(
+            source: .symbol(name: "wifi", variableValue: 1, fallback: nil),
+            color: .primary,
+            scale: 1
+        )))
+        let image = try XCTUnwrap(StatusIconRenderer.image(
+            scene: centerOnlyWiFiScene,
+            size: 16,
+            scale: 2
+        ))
         let pixels = try renderPixels(image: image)
 
         // SF Symbols releases vary by a few anti-aliased alpha levels at the bitmap edge.
@@ -722,7 +759,7 @@ final class StatusIconRendererTests: XCTestCase {
         )
         let aqua = try XCTUnwrap(NSAppearance(named: .aqua))
         let darkAqua = try XCTUnwrap(NSAppearance(named: .darkAqua))
-        let image = StatusIconRenderer.image(
+        let image = menuBarFixtureImage(
             snapshot: snapshot,
             size: 20
         )
@@ -748,16 +785,16 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let hotspotPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: hotspotSnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: hotspotSnapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
             ))
         )
         let connectedPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: connectedSnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: connectedSnapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
@@ -779,8 +816,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let pixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 16,
                 foreground: CGColor(gray: 1, alpha: 1)
@@ -907,13 +944,13 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
 
-        let temporaryImage = try XCTUnwrap(StatusIconRenderer.render(
+        let temporaryImage = try XCTUnwrap(renderMenuBarFixture(
             snapshot: temporarySnapshot,
             size: 20,
             scale: 2,
             foreground: CGColor(gray: 1, alpha: 1)
         ))
-        let sharedImage = try XCTUnwrap(StatusIconRenderer.render(
+        let sharedImage = try XCTUnwrap(renderMenuBarFixture(
             snapshot: sharedSnapshot,
             size: 20,
             scale: 2,
@@ -927,24 +964,24 @@ final class StatusIconRendererTests: XCTestCase {
 
         let pixelScale: CGFloat = 16
         let temporaryPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: temporarySnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: temporarySnapshot,
                 size: 20,
                 scale: pixelScale,
                 foreground: CGColor(gray: 1, alpha: 1)
             ))
         )
         let sharedPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: sharedSnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: sharedSnapshot,
                 size: 20,
                 scale: pixelScale,
                 foreground: CGColor(gray: 1, alpha: 1)
             ))
         )
         let connectedPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: connectedSnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: connectedSnapshot,
                 size: 20,
                 scale: pixelScale,
                 foreground: CGColor(gray: 1, alpha: 1)
@@ -1034,8 +1071,8 @@ final class StatusIconRendererTests: XCTestCase {
                 )
             )
             let pixels = try PixelBuffer(
-                image: try XCTUnwrap(StatusIconRenderer.render(
-                    snapshot: snapshot,
+                image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                     size: 20,
                     scale: 8,
                     foreground: CGColor(gray: 1, alpha: 1)
@@ -1071,8 +1108,8 @@ final class StatusIconRendererTests: XCTestCase {
                 )
             )
             let pixels = try PixelBuffer(
-                image: try XCTUnwrap(StatusIconRenderer.render(
-                    snapshot: snapshot,
+                image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                     size: 20,
                     scale: 8,
                     foreground: CGColor(gray: 1, alpha: 1),
@@ -1098,8 +1135,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: nil)
         )
         let dotsPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1107,8 +1144,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let arcPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1125,8 +1162,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
         let normalPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1134,8 +1171,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let scaledPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1180,16 +1217,16 @@ final class StatusIconRendererTests: XCTestCase {
             volume: VolumeStatus(scalar: 0.8, isMuted: true, deviceName: nil)
         )
         let zeroPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: zeroSnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: zeroSnapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
             ))
         )
         let mutedPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: mutedSnapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: mutedSnapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
@@ -1202,16 +1239,16 @@ final class StatusIconRendererTests: XCTestCase {
     func testBluetoothOutputReplacesNetworkIconWithBluePixels() throws {
         let snapshot = bluetoothAudioSnapshot(volumeScalar: 0.5)
         let standard = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
             ))
         )
         let bluetooth = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1242,16 +1279,16 @@ final class StatusIconRendererTests: XCTestCase {
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: nil)
         )
         let standard = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
             ))
         )
         let overridden = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1282,8 +1319,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: nil)
         )
         let known = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1294,8 +1331,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let unknown = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1396,8 +1433,8 @@ final class StatusIconRendererTests: XCTestCase {
         )
 
         let symbolOnly = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1405,8 +1442,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let withSlotPercentage = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1439,8 +1476,8 @@ final class StatusIconRendererTests: XCTestCase {
     func testBluetoothOutputUsesDarkerBlueForLightMenuBar() throws {
         let snapshot = bluetoothAudioSnapshot(volumeScalar: 0.5)
         let bluetooth = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 0, alpha: 1),
@@ -1472,8 +1509,8 @@ final class StatusIconRendererTests: XCTestCase {
             )
         )
         let standard = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1484,8 +1521,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let networkPriority = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1509,8 +1546,8 @@ final class StatusIconRendererTests: XCTestCase {
     func testBluetoothOutputColorsActiveVolumeDotsBlue() throws {
         let snapshot = bluetoothAudioSnapshot(volumeScalar: 0.25)
         let pixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1537,8 +1574,8 @@ final class StatusIconRendererTests: XCTestCase {
     func testBluetoothOutputColorsActiveVolumeArcBlue() throws {
         let snapshot = bluetoothAudioSnapshot(volumeScalar: 0.75)
         let pixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1561,8 +1598,8 @@ final class StatusIconRendererTests: XCTestCase {
     func testBluetoothSymbolScaleChangesRenderedPixels() throws {
         let snapshot = bluetoothAudioSnapshot(volumeScalar: 0.5)
         let normalPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1573,8 +1610,8 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
         let scaledPixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
@@ -1607,8 +1644,8 @@ final class StatusIconRendererTests: XCTestCase {
             volume: VolumeStatus(scalar: 0, isMuted: false, deviceName: nil)
         )
         let pixels = try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1)
@@ -1722,8 +1759,8 @@ final class StatusIconRendererTests: XCTestCase {
         volumeOptions: VolumeIconOptions
     ) throws -> PixelBuffer {
         try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 2,
                 foreground: foreground,
@@ -1762,9 +1799,7 @@ final class StatusIconRendererTests: XCTestCase {
     }
 
     private func bluetoothPixels(deviceName: String, modelUID: String?) throws -> PixelBuffer {
-        try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: StatusSnapshot(
+        let snapshot = StatusSnapshot(
                     battery: .placeholder,
                     wifi: WiFiStatus(state: .connected, rssi: -55),
                     connection: .wifi,
@@ -1777,11 +1812,16 @@ final class StatusIconRendererTests: XCTestCase {
                             modelUID: modelUID
                         )
                     )
-                ),
+                )
+        let audioIcon = IconPresentationResourceResolver.inputs(snapshot: snapshot).audioIcon
+        return try PixelBuffer(
+            image: try XCTUnwrap(renderMenuBarFixture(
+                snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(replacesNetworkIcon: true)
+                bluetoothAudioOptions: BluetoothAudioIconOptions(replacesNetworkIcon: true),
+                inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: audioIcon)
             ))
         )
     }
@@ -1821,8 +1861,8 @@ final class StatusIconRendererTests: XCTestCase {
         connectionOptions: ConnectionIconOptions
     ) throws -> PixelBuffer {
         try PixelBuffer(
-            image: try XCTUnwrap(StatusIconRenderer.render(
-                snapshot: snapshot,
+            image: try XCTUnwrap(renderMenuBarFixture(
+            snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),

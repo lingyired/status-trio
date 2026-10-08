@@ -9,6 +9,7 @@ struct GeneralSectionView: View {
     var body: some View {
         SettingsPage {
             systemGroup
+            analyticsGroup
             if updaterManager.canCheckForUpdates {
                 updatesGroup
             }
@@ -137,6 +138,31 @@ struct GeneralSectionView: View {
                 title: localization.string(.settingsUpdatesAutomatic),
                 isOn: updaterManager.automaticallyChecksForUpdatesBinding
             )
+        }
+    }
+
+    private var analyticsGroup: some View {
+        SettingsGroup(localization.string(.settingsAnalyticsTitle)) {
+            SettingsToggleRow(
+                symbol: "chart.bar.xaxis",
+                tint: .purple,
+                title: localization.string(.onboardingAnalyticsToggle),
+                subtitle: localization.string(.settingsAnalyticsDescription),
+                isOn: Binding(
+                    get: { store.sharesAnonymousAnalytics },
+                    set: { store.setSharesAnonymousAnalytics($0) }
+                )
+            )
+
+            SettingsDivider()
+
+            Link(
+                localization.string(.settingsAnalyticsPrivacyDetails),
+                destination: URL(string: "https://github.com/lingyired/status-trio/blob/main/docs/privacy-telemetry.md")!
+            )
+            .font(.system(size: 11))
+            .padding(.horizontal, SettingsMetrics.rowPaddingH)
+            .padding(.vertical, 9)
         }
     }
 }

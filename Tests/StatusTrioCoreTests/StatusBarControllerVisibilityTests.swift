@@ -18,6 +18,7 @@ struct StatusBarControllerVisibilityTests {
         )
         let settings = SettingsStore(defaults: defaults)
         settings.setChargingEffectTestEnabled(true)
+        settings.iconSize = 28
         let start = Date(timeIntervalSince1970: 1_000)
         var firstTimeRead = true
         let clock = ChargingEffectClock(
@@ -41,13 +42,28 @@ struct StatusBarControllerVisibilityTests {
             volumeMonitor: IdleVolumeMonitor(),
             initialSnapshot: StatusSnapshot(battery: battery, wifi: .placeholder, volume: .placeholder)
         )
+        let iconPresentation = makeTestIconPresentation(store: store, settings: settings)
+        iconPresentation.start()
+        defer { iconPresentation.stop() }
+        let rasterFailure = RasterFailureSwitch()
         let controller = StatusBarController(
             store: store,
             settings: settings,
+            iconPresentation: iconPresentation,
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            chargingEffectClock: clock
+            chargingEffectClock: clock,
+            renderMenuBarIcon: { scene, size, scale, appearance, phase in
+                guard !rasterFailure.isEnabled else { return nil }
+                return StatusIconRenderer.image(
+                    scene: scene,
+                    size: CGFloat(size),
+                    scale: scale,
+                    appearance: appearance,
+                    phase: phase
+                )
+            }
         )
         defer { controller.setVisible(false) }
         await Task.yield()
@@ -56,11 +72,24 @@ struct StatusBarControllerVisibilityTests {
         #expect(clock.isRunning)
         #expect(controller.cachedChargingFrameCount == 36)
         #expect(controller.hasLayerBackedAnimation)
+        #expect(controller.presentedImageForTesting?.size.width == 28)
+
+        settings.iconSize = 32
+        controller.flushPendingPresentationForTesting()
+        #expect(controller.hasLayerBackedAnimation)
+        #expect(controller.presentedImageForTesting?.size.width == 32)
 
         settings.setChargingEffectTestEnabled(false)
+        rasterFailure.isEnabled = true
         clock.update(battery: battery, enabled: true, reduceMotion: false, displayAsleep: false)
         #expect(!clock.isRunning)
+        #expect(controller.cachedChargingFrameCount == 36)
+        #expect(controller.hasLayerBackedAnimation)
+
+        rasterFailure.isEnabled = false
+        controller.refreshCurrentPresentation()
         #expect(controller.cachedChargingFrameCount == 0)
+        #expect(controller.hasLayerBackedAnimation == false)
     }
 
     @Test func hiddenStatusItemReleasesAnimationResourcesWhenChargingStops() async throws {
@@ -99,9 +128,14 @@ struct StatusBarControllerVisibilityTests {
                 volume: .placeholder
             )
         )
+        let settings = SettingsStore(defaults: defaults)
+        let iconPresentation = makeTestIconPresentation(store: store, settings: settings)
+        iconPresentation.start()
+        defer { iconPresentation.stop() }
         let controller = StatusBarController(
             store: store,
-            settings: SettingsStore(defaults: defaults),
+            settings: settings,
+            iconPresentation: iconPresentation,
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
@@ -131,6 +165,11 @@ struct StatusBarControllerVisibilityTests {
         #expect(controller.cachedChargingFrameCount == 0)
         #expect(controller.hasLayerBackedAnimation == false)
     }
+}
+
+@MainActor
+private final class RasterFailureSwitch {
+    var isEnabled = false
 }
 
 @MainActor

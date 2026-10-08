@@ -111,6 +111,51 @@ final class LocalizationParityTests: XCTestCase {
         }
     }
 
+    func testTelemetryConsentTranslationsArePresentInEveryLanguage() throws {
+        let keys = [
+            "settings.analytics.title",
+            "settings.analytics.description",
+            "settings.analytics.privacyDetails",
+            "onboarding.analytics.title",
+            "onboarding.analytics.description",
+            "onboarding.analytics.toggle"
+        ]
+
+        for language in AppLanguage.allCases {
+            let values = Dictionary(uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) })
+            for key in keys {
+                XCTAssertFalse(
+                    (values[key] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    "\(language.rawValue).lproj: \(key) is missing or empty"
+                )
+            }
+        }
+    }
+
+    func testTelemetryConsentControlAndPrivacyLinkUseTheirOwnCopy() throws {
+        let expected: [String: (toggle: String, privacy: String)] = [
+            "ar": ("مشاركة بيانات الاستخدام المجهولة", "التفاصيل"),
+            "de": ("Anonyme Nutzungsdaten teilen", "Datenschutzhinweise"),
+            "en": ("Share anonymous usage data", "Privacy details"),
+            "es": ("Compartir datos de uso anónimos", "Detalles de privacidad"),
+            "fr": ("Partager des données d’utilisation anonymes", "Détails sur la confidentialité"),
+            "it": ("Condividi dati di utilizzo anonimi", "Dettagli sulla privacy"),
+            "ja": ("匿名の利用状況データを共有", "プライバシーの詳細"),
+            "ko": ("익명 사용 데이터 공유", "개인정보 세부 정보"),
+            "pt-BR": ("Compartilhar dados de uso anônimos", "Detalhes de privacidade"),
+            "ru": ("Делиться анонимными данными об использовании", "Подробнее о конфиденциальности"),
+            "zh-Hans": ("分享匿名使用数据", "隐私详情"),
+            "zh-Hant": ("分享匿名使用資料", "隱私權詳細資料")
+        ]
+
+        for language in AppLanguage.allCases {
+            let values = Dictionary(uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) })
+            let copy = try XCTUnwrap(expected[language.rawValue])
+            XCTAssertEqual(values["onboarding.analytics.toggle"], copy.toggle, "\(language.rawValue) toggle copy")
+            XCTAssertEqual(values["settings.analytics.privacyDetails"], copy.privacy, "\(language.rawValue) privacy link copy")
+        }
+    }
+
     func testEveryLocalizedValueDiffersFromItsKeyPlaceholder() throws {
         for language in AppLanguage.allCases {
             for entry in try entries(for: language) {

@@ -6,6 +6,7 @@ final class AppEnvironment {
     let store: SystemStatusStore
     let settings: SettingsStore
     let localization: Localization
+    let iconPresentation: IconPresentationViewModel
     let statusBarController: StatusBarController
     let settingsWindowController: SettingsWindowController
     let onboardingWindowController: OnboardingWindowController
@@ -14,7 +15,9 @@ final class AppEnvironment {
     let mainMenuController: MainMenuController
     let chargingEffectClock: ChargingEffectClock
     let chargingEffectMotionMonitor: ChargingEffectMotionMonitor
+    let telemetryReporter: any TelemetryReporting
     let bluetoothAudioIconOverrideSynchronizer = BluetoothAudioIconOverrideSynchronizer()
+    private let bluetoothNearbyBatteryOptOutSynchronizer = BluetoothNearbyBatteryOptOutSynchronizer()
 
     private var chargingEffectCancellables = Set<AnyCancellable>()
 
@@ -22,6 +25,7 @@ final class AppEnvironment {
         store: SystemStatusStore,
         settings: SettingsStore,
         localization: Localization,
+        iconPresentation: IconPresentationViewModel,
         statusBarController: StatusBarController,
         settingsWindowController: SettingsWindowController,
         onboardingWindowController: OnboardingWindowController,
@@ -29,11 +33,13 @@ final class AppEnvironment {
         appIconController: AppIconController,
         mainMenuController: MainMenuController,
         chargingEffectClock: ChargingEffectClock,
-        chargingEffectMotionMonitor: ChargingEffectMotionMonitor
+        chargingEffectMotionMonitor: ChargingEffectMotionMonitor,
+        telemetryReporter: any TelemetryReporting
     ) {
         self.store = store
         self.settings = settings
         self.localization = localization
+        self.iconPresentation = iconPresentation
         self.statusBarController = statusBarController
         self.settingsWindowController = settingsWindowController
         self.onboardingWindowController = onboardingWindowController
@@ -42,9 +48,11 @@ final class AppEnvironment {
         self.mainMenuController = mainMenuController
         self.chargingEffectClock = chargingEffectClock
         self.chargingEffectMotionMonitor = chargingEffectMotionMonitor
+        self.telemetryReporter = telemetryReporter
     }
 
     func start() {
+        iconPresentation.start()
         onboardingWindowController.showIfNeeded()
         chargingEffectMotionMonitor.onChange = { [weak self] _ in
             self?.updateChargingEffectClock()
@@ -57,20 +65,28 @@ final class AppEnvironment {
             devices: store.bluetoothDevices,
             settings: settings
         )
+        bluetoothNearbyBatteryOptOutSynchronizer.start(
+            settings: settings,
+            actions: StatusPanelActions(store: store, settings: settings)
+        )
         store.bindInputSettings(settings)
         store.bindMobileBatterySettings(settings)
         store.start()
+        telemetryReporter.start()
     }
 
     func stop() {
+        telemetryReporter.stop()
         chargingEffectClock.stop()
         chargingEffectMotionMonitor.onChange = nil
         chargingEffectMotionMonitor.stop()
         chargingEffectCancellables.removeAll()
         bluetoothAudioIconOverrideSynchronizer.stop()
+        bluetoothNearbyBatteryOptOutSynchronizer.stop()
         appIconController.stop()
         mainMenuController.stop()
         store.stop()
+        iconPresentation.stop()
     }
 
     private func subscribeToChargingEffectInputs() {
@@ -150,6 +166,25 @@ final class AppEnvironment {
             refreshInterval: settings.refreshInterval
         )
         let localization = Localization()
+        let appearance = StatusIconAppearance(settings: settings)
+        let iconPresentation = IconPresentationViewModel(
+            snapshot: store.snapshot,
+            settings: IconPresentationSettings(
+                configuration: IconPresentationConfiguration(
+                    battery: appearance.batteryOptions,
+                    connection: appearance.connectionOptions,
+                    volume: appearance.volumeOptions,
+                    bluetooth: appearance.bluetoothAudioOptions
+                ),
+                menuBarSize: appearance.iconSize,
+                testsChargingEffect: settings.testsChargingEffect
+            ),
+            snapshots: store.$snapshot.eraseToAnyPublisher(),
+            preferences: settings.iconPresentationPublisher,
+            resolveInputs: { snapshot in
+                IconPresentationResourceResolver.inputs(snapshot: snapshot)
+            }
+        )
         let chargingEffectClock = ChargingEffectClock()
         let chargingEffectMotionMonitor = ChargingEffectMotionMonitor()
         let activationPolicy = AppActivationPolicy()
@@ -174,6 +209,7 @@ final class AppEnvironment {
         let controller = StatusBarController(
             store: store,
             settings: settings,
+            iconPresentation: iconPresentation,
             localization: localization,
             isVisible: settings.appIconPlacement.showsMenuBarIcon,
             openSettings: { settingsWindowController.show() },
@@ -181,26 +217,20 @@ final class AppEnvironment {
             chargingEffectClock: chargingEffectClock
         )
         let appIconController = AppIconController(
-            store: store,
             settings: settings,
+            iconPresentation: iconPresentation,
             activationPolicy: activationPolicy,
             setMenuBarVisible: { isVisible in
                 controller.setVisible(isVisible)
             },
             renderDockIcon: {
-                status,
-                options,
-                connectionOptions,
-                volumeOptions,
-                bluetoothAudioOptions,
-                backgroundStyle in
+                scene,
+                backgroundStyle,
+                pixelLength in
                 DockIconRenderer.image(
-                    status: status,
-                    options: options,
-                    connectionOptions: connectionOptions,
-                    volumeOptions: volumeOptions,
-                    bluetoothAudioOptions: bluetoothAudioOptions,
-                    backgroundStyle: backgroundStyle
+                    scene: scene,
+                    backgroundStyle: backgroundStyle,
+                    pixelLength: pixelLength
                 )
             }
         )
@@ -209,10 +239,38 @@ final class AppEnvironment {
             localization: localization,
             openSettings: { settingsWindowController.show() }
         )
+        let telemetryConfiguration = TelemetryConfiguration()
+        let telemetryTransport = URLSessionTelemetryTransport(configuration: telemetryConfiguration)
+        let telemetryClient = TelemetryClient(
+            transport: telemetryTransport,
+            configuration: telemetryConfiguration
+        )
+        let telemetryReporter = TelemetryReporter(
+            settings: settings,
+            localization: localization,
+            client: telemetryClient,
+            eligibilityContext: TelemetryEligibilityContext(
+                bundleIdentifier: Bundle.main.bundleIdentifier,
+                productionMarker: Bundle.main.object(forInfoDictionaryKey: "STTelemetryProduction") as? Bool ?? false,
+                isDebugBuild: Self.isDebugBuild
+            ),
+            configuration: telemetryConfiguration,
+            snapshotContext: { language, placement in
+                TelemetryAppMetadata.snapshot(
+                    appVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+                    build: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
+                    osVersion: TelemetryAppMetadata.currentOSVersion,
+                    preferredLanguages: Locale.preferredLanguages,
+                    appLanguage: language,
+                    appIconPlacement: placement
+                )
+            }
+        )
         return AppEnvironment(
             store: store,
             settings: settings,
             localization: localization,
+            iconPresentation: iconPresentation,
             statusBarController: controller,
             settingsWindowController: settingsWindowController,
             onboardingWindowController: onboardingWindowController,
@@ -220,7 +278,16 @@ final class AppEnvironment {
             appIconController: appIconController,
             mainMenuController: mainMenuController,
             chargingEffectClock: chargingEffectClock,
-            chargingEffectMotionMonitor: chargingEffectMotionMonitor
+            chargingEffectMotionMonitor: chargingEffectMotionMonitor,
+            telemetryReporter: telemetryReporter
         )
+    }
+
+    private static var isDebugBuild: Bool {
+        #if DEBUG
+        true
+        #else
+        false
+        #endif
     }
 }

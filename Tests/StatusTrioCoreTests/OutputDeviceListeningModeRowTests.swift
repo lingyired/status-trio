@@ -122,11 +122,20 @@ final class OutputDeviceListeningModeRowTests: XCTestCase {
         let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
         localization.setPreference(.language(.english))
 
+        let rowState = PanelAudioDeviceRow(
+            key: PanelAudioDeviceID(id: device.id, uid: device.uid),
+            name: device.name ?? "AirPods Pro",
+            symbol: AudioPanelMapper.iconSource(for: device),
+            selected: device.isCurrent,
+            enabled: true,
+            accessibilityLabel: device.name ?? "AirPods Pro",
+            listeningModeAddress: listeningMode == nil ? nil : device.uid,
+            listeningMode: listeningMode
+        )
         let row = OutputDeviceRow(
-            device: device,
-            onSelect: { _ in },
-            listeningMode: listeningMode,
-            onSelectListeningMode: listeningMode == nil ? nil : { _ in }
+            state: rowState,
+            onSelect: {},
+            onSelectListeningMode: { _ in }
         )
         .padding(14)
         .frame(width: 330)

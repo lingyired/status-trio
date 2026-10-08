@@ -23,16 +23,27 @@ final class CompactAudioLayoutTests: XCTestCase {
     func testSummaryNameFallbackAndCachedIconConsistency() {
         let named = AudioOutputDevice(id: 1, name: "Studio AirPods Pro", isCurrent: true)
         let unnamed = AudioOutputDevice(id: 1, name: nil, isCurrent: true)
-        func summary(_ liveName: String?, _ devices: [AudioOutputDevice]) -> VolumeOutputSummaryView {
-            VolumeOutputSummaryView(volume: VolumeStatus(scalar: 0.2, isMuted: false, deviceName: liveName, outputDevices: devices))
+        let defaults = UserDefaults(suiteName: "StatusTrioCoreTests.CompactAudio.Summary")!
+        defer { defaults.removeTestSuite(named: "StatusTrioCoreTests.CompactAudio.Summary") }
+        let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+        func summary(_ liveName: String?, _ devices: [AudioOutputDevice]) -> VolumePanelState {
+            AudioPanelMapper.volume(
+                VolumeStatus(scalar: 0.2, isMuted: false, deviceName: liveName, outputDevices: devices),
+                controllerAvailable: true,
+                localization: localization
+            )
         }
-        XCTAssertEqual(summary(nil, [named]).displayDeviceName, named.name)
-        XCTAssertEqual(summary("Live output", []).displayDeviceName, "Live output")
-        XCTAssertEqual(summary("Live output", [unnamed]).displayDeviceName, "Live output")
-        XCTAssertEqual(summary(named.name, [named]).iconDevice, named)
-        XCTAssertEqual(summary("New live output", [named]).displayDeviceName, "New live output")
-        XCTAssertNil(summary("New live output", [named]).iconDevice, "Do not label a new output with the cached previous device's icon")
-        XCTAssertNil(summary(nil, []).displayDeviceName)
+        XCTAssertEqual(summary(nil, [named]).summary.title, named.name)
+        XCTAssertEqual(summary("Live output", []).summary.title, "Live output")
+        XCTAssertEqual(summary("Live output", [unnamed]).summary.title, "Live output")
+        XCTAssertEqual(summary(named.name, [named]).summary.symbol, AudioPanelMapper.iconSource(for: named))
+        XCTAssertEqual(summary("New live output", [named]).summary.title, "New live output")
+        XCTAssertEqual(
+            summary("New live output", [named]).summary.symbol,
+            .symbol(name: "speaker.wave.2.fill", variableValue: nil, fallback: nil),
+            "Do not label a new output with the cached previous device's icon"
+        )
+        XCTAssertEqual(summary(nil, []).summary.title, localization.string(.volumeNoDefaultDevice))
     }
 
     private func render(alwaysShowAll: Bool, language: AppLanguage, dark: Bool) throws -> (size: NSSize, descendantCount: Int) {
@@ -74,13 +85,18 @@ final class CompactAudioLayoutTests: XCTestCase {
         let view = AnyView(
             VStack(alignment: .leading, spacing: 12) {
                 VolumeControlsView(
-                    settings: settings,
-                    bluetoothController: BluetoothDeviceController(),
-                    listeningModes: BluetoothListeningModeController.emptyForTesting(),
+                    state: AudioPanelMapper.volume(
+                        VolumeStatus(scalar: 0.19, isMuted: false, deviceName: devices[0].name, outputDevices: devices),
+                        controllerAvailable: true,
+                        deviceList: AudioOutputListPreferences(
+                            order: settings.outputDeviceOrder,
+                            visibleLimit: settings.visibleOutputDeviceLimit
+                        ),
+                        localization: localization
+                    ),
+                    actions: StatusPanelActions(),
                     scrollTargets: PopoverScrollTargets(),
-                    volume: VolumeStatus(scalar: 0.19, isMuted: false, deviceName: devices[0].name, outputDevices: devices),
-                    isControllerAvailable: true,
-                    onVolumeChange: { _ in }, onToggleMute: {}, onSelectOutputDevice: { _ in }, onOpenSoundSettings: {}
+                    onOpenSoundSettings: {}
                 )
                 Divider()
                 PopoverFooterView(openSettings: {}, quit: {})

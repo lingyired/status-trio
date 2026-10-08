@@ -6,7 +6,7 @@ extension SettingsStore {
     ///
     /// The menu bar and the Dock both subscribe to it, so adding an icon setting
     /// means adding it here once instead of another subscription on each
-    /// controller. That is what used to go wrong: a setting no subscription
+    /// surface. That is what used to go wrong: a setting no subscription
     /// watched did not redraw the icon until the next status poll arrived, which
     /// the refresh interval spaces seconds apart.
     ///

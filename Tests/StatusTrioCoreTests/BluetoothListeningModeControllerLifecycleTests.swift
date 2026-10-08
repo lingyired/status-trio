@@ -1,4 +1,5 @@
 import CoreAudio
+import Combine
 import Foundation
 import XCTest
 
@@ -268,17 +269,38 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         )
         controller.refresh(devices: [device()])
 
-        controller.setMode(.transparency, for: device())
-        await waitUntil { self.isFailed(controller.presentations[key]?.actionState) }
+        let failurePublished = expectation(description: "the unconfirmed rollback presentation is delivered")
+        let failureCleared = expectation(description: "the unconfirmed failure returns to idle")
+        var deliveredFailure: BluetoothListeningModePresentation?
+        var deliveredIdle: BluetoothListeningModePresentation?
+        var hasSeenFailure = false
+        var cancellables: Set<AnyCancellable> = []
+        controller.$presentations
+            .dropFirst()
+            .sink { presentations in
+                guard let presentation = presentations[self.key] else { return }
+                if case .failed = presentation.actionState {
+                    deliveredFailure = presentation
+                    hasSeenFailure = true
+                    failurePublished.fulfill()
+                } else if hasSeenFailure, presentation.actionState == .idle {
+                    deliveredIdle = presentation
+                    failureCleared.fulfill()
+                }
+            }
+            .store(in: &cancellables)
 
-        let presentation = controller.presentations[key]
-        XCTAssertEqual(presentation?.selectedMode, .noiseCancellation, "rolls back to the observed mode")
-        XCTAssertNotEqual(presentation?.selectedMode, .transparency, "never shows the mode that failed to land")
-        XCTAssertTrue(isFailed(presentation?.actionState))
+        controller.setMode(.transparency, for: device())
+        await fulfillment(of: [failurePublished], timeout: 1)
+
+        XCTAssertEqual(deliveredFailure?.selectedMode, .noiseCancellation, "rolls back to the observed mode")
+        XCTAssertNotEqual(deliveredFailure?.selectedMode, .transparency, "never shows the mode that failed to land")
+        XCTAssertTrue(isFailed(deliveredFailure?.actionState))
 
         // The failure then clears itself back to idle without changing the selection.
-        await waitUntil { controller.presentations[key]?.actionState == .idle }
-        XCTAssertEqual(controller.presentations[key]?.selectedMode, .noiseCancellation)
+        await fulfillment(of: [failureCleared], timeout: 3)
+        XCTAssertEqual(deliveredIdle?.selectedMode, .noiseCancellation)
+        XCTAssertEqual(deliveredIdle?.actionState, .idle)
     }
 
     func testFailedWriteRollsBackThroughAReRead() async {
@@ -288,12 +310,38 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         let (controller, _, _) = makeController(endpoints: [endpoint()], backend: backend)
         controller.refresh(devices: [device()])
 
-        controller.setMode(.transparency, for: device())
-        await waitUntil { self.isFailed(controller.presentations[key]?.actionState) }
+        let failurePublished = expectation(description: "the failed rollback presentation is delivered")
+        let failureCleared = expectation(description: "the failed presentation returns to idle")
+        var deliveredFailure: BluetoothListeningModePresentation?
+        var deliveredIdle: BluetoothListeningModePresentation?
+        var hasSeenFailure = false
+        var cancellables: Set<AnyCancellable> = []
+        controller.$presentations
+            .dropFirst()
+            .sink { presentations in
+                guard let presentation = presentations[self.key] else { return }
+                if case .failed = presentation.actionState {
+                    deliveredFailure = presentation
+                    hasSeenFailure = true
+                    failurePublished.fulfill()
+                } else if hasSeenFailure, presentation.actionState == .idle {
+                    deliveredIdle = presentation
+                    failureCleared.fulfill()
+                }
+            }
+            .store(in: &cancellables)
 
-        // The `.failed` path re-reads the live mode, which still reads NC.
-        XCTAssertEqual(controller.presentations[key]?.selectedMode, .noiseCancellation)
-        XCTAssertTrue(isFailed(controller.presentations[key]?.actionState))
+        controller.setMode(.transparency, for: device())
+        await fulfillment(of: [failurePublished], timeout: 1)
+
+        // Observe the emitted value rather than polling a 30 ms transient state.
+        // The failed branch re-reads the live mode, which still reads NC.
+        XCTAssertEqual(deliveredFailure?.selectedMode, .noiseCancellation)
+        XCTAssertTrue(isFailed(deliveredFailure?.actionState))
+
+        await fulfillment(of: [failureCleared], timeout: 3)
+        XCTAssertEqual(deliveredIdle?.selectedMode, .noiseCancellation)
+        XCTAssertEqual(deliveredIdle?.actionState, .idle)
     }
 
     // MARK: - Cancellation & teardown

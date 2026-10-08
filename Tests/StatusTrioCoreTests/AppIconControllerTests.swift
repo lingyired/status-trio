@@ -179,11 +179,14 @@ struct AppIconControllerTests {
         harness.settings.wifiSymbolScale = 1.5
 
         #expect(harness.log.renderCount == 1)
-        #expect(harness.log.connectionOptions.last?.wifiScale == 1.5)
+        #expect(harness.log.lastCenterScale == 1.5)
     }
 
     @Test func connectionOptionChangeKeepsConfiguredWiFiSymbolScale() async throws {
-        let harness = try AppIconControllerHarness(initialPlacement: .dock)
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            initialWiFi: WiFiStatus(state: .hotspot, rssi: -51)
+        )
         defer { harness.cleanUp() }
         harness.controller.start()
         harness.settings.wifiSymbolScale = 1.5
@@ -193,7 +196,7 @@ struct AppIconControllerTests {
         try await waitForCoalescedRenders { harness.log.renderCount == 1 }
 
         #expect(harness.log.renderCount == 1)
-        #expect(harness.log.connectionOptions.last?.wifiScale == 1.5)
+        #expect(harness.log.lastCenterScale == 1.5)
     }
 
     @Test func changingVolumeDisplayStyleRendersWithUpdatedOptions() throws {
@@ -205,10 +208,7 @@ struct AppIconControllerTests {
         harness.settings.volumeDisplayStyle = .arc
 
         #expect(harness.log.renderCount == 1)
-        #expect(
-            harness.log.volumeOptions.last
-                == VolumeIconOptions(displayStyle: .arc, ringStrokeScale: harness.settings.ringStrokeStyle.scale)
-        )
+        guard case .arc = harness.log.lastScene?.footer else { Issue.record("Expected the arc footer."); return }
     }
 
     @Test func changingRingStrokeStyleRendersWithUpdatedOptions() throws {
@@ -220,8 +220,8 @@ struct AppIconControllerTests {
         harness.settings.ringStrokeStyle = .bold
 
         #expect(harness.log.renderCount == 1)
-        #expect(harness.log.batteryOptions.last?.ringStrokeScale == RingStrokeStyle.bold.scale)
-        #expect(harness.log.volumeOptions.last?.ringStrokeScale == RingStrokeStyle.bold.scale)
+        #expect(harness.log.lastScene?.outerRing?.strokeScale == RingStrokeStyle.bold.scale)
+        #expect(harness.log.lastFooterStrokeScale == RingStrokeStyle.bold.scale)
     }
 
     /// The stroke width has to survive every other icon option change, on the
@@ -238,12 +238,19 @@ struct AppIconControllerTests {
         try await waitForCoalescedRenders { harness.log.renderCount > 0 }
 
         #expect(harness.log.renderCount > 0)
-        #expect(harness.log.batteryOptions.last?.ringStrokeScale == RingStrokeStyle.bold.scale)
-        #expect(harness.log.volumeOptions.last?.ringStrokeScale == RingStrokeStyle.bold.scale)
+        #expect(harness.log.lastScene?.outerRing?.strokeScale == RingStrokeStyle.bold.scale)
+        #expect(harness.log.lastFooterStrokeScale == RingStrokeStyle.bold.scale)
     }
 
     @Test func changingBluetoothAudioOptionsRendersWithUpdatedOptions() async throws {
-        let harness = try AppIconControllerHarness(initialPlacement: .dock)
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            initialWiFi: WiFiStatus(state: .noInternet, rssi: nil),
+            initialVolume: VolumeStatus(
+                scalar: 0.5, isMuted: false, deviceName: "AirPods",
+                currentDevice: PresentationFixtures.bluetoothDevice
+            )
+        )
         defer { harness.cleanUp() }
         harness.controller.start()
         harness.log.reset()
@@ -251,35 +258,45 @@ struct AppIconControllerTests {
         harness.settings.replacesNetworkIconWithBluetoothAudio = true
         harness.settings.usesBluetoothAudioVolumeColor = true
         harness.settings.prioritizesNetworkErrorsOverBluetoothAudio = false
-        try await waitForCoalescedRenders { harness.log.renderCount == 2 }
+        try await waitForCoalescedRenders { harness.log.renderCount == 1 }
 
         // The first change redraws at once; the two that follow within the
         // coalescing interval collapse into one trailing redraw.
-        #expect(harness.log.renderCount == 2)
-        #expect(harness.log.bluetoothAudioOptions.last == BluetoothAudioIconOptions(
-            replacesNetworkIcon: true,
-            usesVolumeColor: true,
-            prioritizesNetworkErrors: false
-        ))
+        #expect(harness.log.renderCount == 1)
     }
 
-    @Test func changingBluetoothSymbolScaleRendersWithUpdatedScale() throws {
-        let harness = try AppIconControllerHarness(initialPlacement: .dock)
+    @Test func changingBluetoothSymbolScaleRendersWithUpdatedScale() async throws {
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            initialWiFi: WiFiStatus(state: .connected, rssi: -50),
+            initialVolume: VolumeStatus(
+                scalar: 0.5, isMuted: false, deviceName: "AirPods",
+                currentDevice: PresentationFixtures.bluetoothDevice
+            ),
+            initialReplacesNetworkIcon: true
+        )
         defer { harness.cleanUp() }
         harness.controller.start()
         harness.log.reset()
 
         harness.settings.bluetoothSymbolScale = 1.45
+        try await waitForCoalescedRenders { harness.log.renderCount == 1 }
 
         #expect(harness.log.renderCount == 1)
-        #expect(harness.log.bluetoothAudioOptions.last?.symbolScale == 1.45)
+        #expect(harness.log.lastCenterScale == 1.45)
     }
 
     /// A slider drag publishes a value per frame. The burst has to collapse into
     /// one trailing redraw that carries the newest options, instead of
     /// allocating one bitmap per frame.
     @Test func sliderBurstRepaintsTheDockIconOnce() async throws {
-        let harness = try AppIconControllerHarness(initialPlacement: .dock)
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            initialBattery: BatteryStatus(
+                rawPercentage: 35, isPresent: true, isCharging: false,
+                isLowPowerMode: false, isConnectedToPower: false
+            )
+        )
         defer { harness.cleanUp() }
         harness.controller.start()
         harness.settings.ringStrokeStyle = .bold
@@ -293,7 +310,7 @@ struct AppIconControllerTests {
         try await waitForCoalescedRenders { harness.log.renderCount == 1 }
 
         #expect(harness.log.renderCount == 1)
-        #expect(harness.log.batteryOptions.last?.criticalThreshold == 40)
+        #expect(harness.log.lastScene?.outerRing?.segments.first?.color == .critical)
     }
 
     /// The icon size slider lives in the App Icon pane and is documented as
@@ -436,10 +453,13 @@ final class AppIconControllerHarness {
     let settings: SettingsStore
     let store: SystemStatusStore
     let controller: AppIconController
+    let iconPresentation: IconPresentationViewModel
 
     private let suiteName: String
     private let defaults: UserDefaults
     private let battery = ControllableBatteryMonitor()
+    private let wifi = AppIconControllableWiFiMonitor()
+    private let volume = AppIconControllableVolumeMonitor()
 
     init(
         initialPlacement: AppIconPlacement = .menuBar,
@@ -448,7 +468,11 @@ final class AppIconControllerHarness {
         isDarkAppearance: Bool = false,
         notificationCenter: NotificationCenter = .default,
         initialBattery: BatteryStatus = .placeholder,
-        initialShowsChargingEffect: Bool = true
+        initialShowsChargingEffect: Bool = true,
+        initialWiFi: WiFiStatus = .placeholder,
+        initialVolume: VolumeStatus = .placeholder,
+        initialReplacesNetworkIcon: Bool = false,
+        snapshotScheduler: any IconPresentationScheduling = TestTaskIconPresentationScheduler()
     ) throws {
         suiteName = "StatusTrioCoreTests.AppIconController.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suiteName) else {
@@ -469,46 +493,53 @@ final class AppIconControllerHarness {
         if !initialShowsChargingEffect {
             settings.showsChargingEffect = false
         }
+        settings.replacesNetworkIconWithBluetoothAudio = initialReplacesNetworkIcon
         self.settings = settings
 
         let store = SystemStatusStore(
             batteryMonitor: battery,
-            wifiMonitor: AppIconNoopWiFiMonitor(),
-            volumeMonitor: AppIconNoopVolumeMonitor(),
+            wifiMonitor: wifi,
+            volumeMonitor: volume,
             refreshInterval: .seconds(60),
             initialSnapshot: StatusSnapshot(
                 battery: initialBattery,
-                wifi: .placeholder,
-                volume: .placeholder
+                wifi: initialWiFi,
+                volume: initialVolume
             )
         )
         self.store = store
+        let iconPresentation = makeTestIconPresentation(
+            store: store,
+            settings: settings,
+            snapshotScheduler: snapshotScheduler
+        )
+        iconPresentation.start()
+        self.iconPresentation = iconPresentation
 
         let activationPolicy = AppActivationPolicy(application: application)
         self.activationPolicy = activationPolicy
 
         controller = AppIconController(
-            store: store,
             settings: settings,
+            iconPresentation: iconPresentation,
             activationPolicy: activationPolicy,
             application: application,
             setMenuBarVisible: { isVisible in
                 log.events.append(isVisible ? "menu:true" : "menu:false")
             },
             renderDockIcon: {
-                status,
-                batteryOptions,
-                connectionOptions,
-                volumeOptions,
-                bluetoothAudioOptions,
-                backgroundStyle in
+                scene,
+                backgroundStyle,
+                pixelLength in
                 log.renderCount += 1
-                log.renderedBatteries.append(status.battery)
+                log.scenes.append(scene)
                 log.backgroundStyles.append(backgroundStyle)
-                log.batteryOptions.append(batteryOptions)
-                log.connectionOptions.append(connectionOptions)
-                log.volumeOptions.append(volumeOptions)
-                log.bluetoothAudioOptions.append(bluetoothAudioOptions)
+                log.dockRenderKeys.append(DockRenderSurfaceKey(
+                    scene: scene,
+                    backgroundStyle: backgroundStyle,
+                    pixelLength: pixelLength
+                ))
+                guard !log.failDockRenders else { return nil }
                 return NSImage(size: NSSize(width: 512, height: 512))
             },
             theme: systemTheme,
@@ -523,6 +554,14 @@ final class AppIconControllerHarness {
         battery.send(status)
     }
 
+    func publishWiFi(_ status: WiFiStatus) {
+        wifi.send(status)
+    }
+
+    func publishVolume(_ status: VolumeStatus) {
+        volume.send(status)
+    }
+
     func publishDifferentSnapshot() {
         battery.send(BatteryStatus(
             rawPercentage: 42,
@@ -534,6 +573,7 @@ final class AppIconControllerHarness {
     }
 
     func cleanUp() {
+        iconPresentation.stop()
         store.stop()
         defaults.removeTestSuite(named: suiteName)
     }
@@ -548,22 +588,35 @@ final class AppIconEventLog {
     var events: [String] = []
     var renderCount = 0
     var backgroundStyles: [DockIconBackgroundStyle] = []
-    var batteryOptions: [BatteryIconOptions] = []
-    var connectionOptions: [ConnectionIconOptions] = []
-    var volumeOptions: [VolumeIconOptions] = []
-    var bluetoothAudioOptions: [BluetoothAudioIconOptions] = []
-    var renderedBatteries: [BatteryStatus] = []
+    var dockRenderKeys: [DockRenderSurfaceKey] = []
+    var scenes: [IconSceneState] = []
+    var failDockRenders = false
+    var lastScene: IconSceneState? { scenes.last }
+    var lastCenterScale: Double? {
+        guard case let .symbol(symbol) = lastScene?.center else { return nil }
+        return symbol.scale
+    }
+    var lastFooterStrokeScale: Double? {
+        switch lastScene?.footer {
+        case .dots(let dots): dots.strokeScale
+        case .arc(let arc): arc.strokeScale
+        case nil: nil
+        }
+    }
 
     func reset() {
         events.removeAll()
         renderCount = 0
         backgroundStyles.removeAll()
-        batteryOptions.removeAll()
-        connectionOptions.removeAll()
-        volumeOptions.removeAll()
-        bluetoothAudioOptions.removeAll()
-        renderedBatteries.removeAll()
+        dockRenderKeys.removeAll()
+        scenes.removeAll()
     }
+}
+
+struct DockRenderSurfaceKey: Equatable {
+    let scene: IconSceneState
+    let backgroundStyle: DockIconBackgroundStyle
+    let pixelLength: Int
 }
 
 @MainActor
@@ -628,13 +681,15 @@ final class ControllableBatteryMonitor: BatteryMonitoring {
 }
 
 @MainActor
-final class AppIconNoopWiFiMonitor: WiFiMonitoring {
+final class AppIconControllableWiFiMonitor: WiFiMonitoring {
     let updates: AsyncStream<WiFiStatus>
+    private let continuation: AsyncStream<WiFiStatus>.Continuation
 
     init() {
-        (updates, _) = AsyncStream.makeStream()
+        (updates, continuation) = AsyncStream.makeStream()
     }
 
+    func send(_ value: WiFiStatus) { continuation.yield(value) }
     func start() {}
     func stop() {}
     func refresh() {}
@@ -643,13 +698,15 @@ final class AppIconNoopWiFiMonitor: WiFiMonitoring {
 }
 
 @MainActor
-final class AppIconNoopVolumeMonitor: VolumeMonitoring {
+final class AppIconControllableVolumeMonitor: VolumeMonitoring {
     let updates: AsyncStream<VolumeStatus>
+    private let continuation: AsyncStream<VolumeStatus>.Continuation
 
     init() {
-        (updates, _) = AsyncStream.makeStream()
+        (updates, continuation) = AsyncStream.makeStream()
     }
 
+    func send(_ value: VolumeStatus) { continuation.yield(value) }
     func start() {}
     func stop() {}
     func refresh() {}
