@@ -4,26 +4,27 @@ struct IconAppearanceEditor: View {
     @ObservedObject var store: SettingsStore
     let slot: IconSlot
     @State private var role: IconSemanticColorRole = .primary
+    @EnvironmentObject private var localization: Localization
 
     var body: some View {
-        SettingsGroup("Appearance") {
-            Picker("Color style", selection: styleBinding) {
-                Text("Automatic").tag(StyleChoice.automatic)
-                Text("Fixed color").tag(StyleChoice.fixed)
-                Text("By state").tag(StyleChoice.semantic)
+        SettingsGroup(localization.string(.iconDesignerAppearanceTitle)) {
+            Picker(localization.string(.iconDesignerControlColorStyle), selection: styleBinding) {
+                Text(localization.string(.iconDesignerControlAutomatic)).tag(StyleChoice.automatic)
+                Text(localization.string(.iconDesignerControlFixedColor)).tag(StyleChoice.fixed)
+                Text(localization.string(.iconDesignerControlByState)).tag(StyleChoice.semantic)
             }
             if slot != .center {
                 Slider(value: scaleBinding, in: 0.5...2.5, step: 0.05) {
-                    Text("Stroke scale")
+                    Text(localization.string(.iconDesignerControlStrokeScale))
                 }
             } else {
                 Slider(value: scaleBinding, in: 1...3, step: 0.05) {
-                    Text("Symbol scale")
+                    Text(localization.string(.iconDesignerControlSymbolScale))
                 }
             }
             if styleBinding.wrappedValue != .automatic {
                 if styleBinding.wrappedValue == .semantic {
-                    Picker("State", selection: $role) {
+                    Picker(localization.string(.iconDesignerControlState), selection: $role) {
                         ForEach(IconSemanticColorRole.allCases, id: \.self) { value in
                             Text(value.rawValue.capitalized).tag(value)
                         }
@@ -37,10 +38,10 @@ struct IconAppearanceEditor: View {
     private var colorControls: some View {
         let color = currentColor
         return Group {
-            componentSlider("Red", value: color.red, keyPath: \.red)
-            componentSlider("Green", value: color.green, keyPath: \.green)
-            componentSlider("Blue", value: color.blue, keyPath: \.blue)
-            componentSlider("Opacity", value: color.alpha, keyPath: \.alpha)
+            componentSlider(localization.string(.iconDesignerControlRed), value: color.red, keyPath: \.red)
+            componentSlider(localization.string(.iconDesignerControlGreen), value: color.green, keyPath: \.green)
+            componentSlider(localization.string(.iconDesignerControlBlue), value: color.blue, keyPath: \.blue)
+            componentSlider(localization.string(.iconDesignerControlOpacity), value: color.alpha, keyPath: \.alpha)
         }
     }
 

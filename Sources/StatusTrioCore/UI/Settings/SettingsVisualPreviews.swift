@@ -181,6 +181,17 @@ struct DockBackgroundPreview: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
 
+    private var designerScene: IconSceneState {
+        let snapshot = statusStore.snapshot
+        return IconDesignerPreviewResolver.resolve(
+            inputs: IconResolutionInputs(
+                system: IconPresentationResourceResolver.inputs(snapshot: snapshot),
+                sources: IconPresentationResourceResolver.sourceSnapshot(snapshot: snapshot)
+            ),
+            configuration: store.iconConfiguration
+        ).scene
+    }
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -200,14 +211,16 @@ struct DockBackgroundPreview: View {
                         store: store,
                         statusStore: statusStore,
                         size: 30,
-                        overrideStyle: .light
+                        overrideStyle: .light,
+                        resolvedScene: designerScene
                     )
 
                     DockIconPreviewTile(
                         store: store,
                         statusStore: statusStore,
                         size: 30,
-                        overrideStyle: .dark
+                        overrideStyle: .dark,
+                        resolvedScene: designerScene
                     )
                     .clipShape(HalfSplitShape())
 
@@ -224,7 +237,8 @@ struct DockBackgroundPreview: View {
                     store: store,
                     statusStore: statusStore,
                     size: 30,
-                    overrideStyle: .dark
+                    overrideStyle: .dark,
+                    resolvedScene: designerScene
                 )
                 .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
 
@@ -233,7 +247,8 @@ struct DockBackgroundPreview: View {
                     store: store,
                     statusStore: statusStore,
                     size: 30,
-                    overrideStyle: .light
+                    overrideStyle: .light,
+                    resolvedScene: designerScene
                 )
                 .shadow(color: .black.opacity(0.10), radius: 2, y: 1)
             }

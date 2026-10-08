@@ -156,6 +156,20 @@ final class LocalizationParityTests: XCTestCase {
         }
     }
 
+    func testIconDesignerControlTranslationsArePresentInEveryLanguage() throws {
+        let keys = LocalizationKey.allCases.map(\.rawValue).filter { $0.hasPrefix("iconDesigner.control.") }
+        XCTAssertGreaterThanOrEqual(keys.count, 30, "Designer control labels must be explicitly catalogued")
+        for language in AppLanguage.allCases {
+            let values = Dictionary(uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) })
+            for key in keys {
+                XCTAssertFalse(
+                    (values[key] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    "\(language.rawValue).lproj: \(key) is missing or empty"
+                )
+            }
+        }
+    }
+
     func testEveryLocalizedValueDiffersFromItsKeyPlaceholder() throws {
         for language in AppLanguage.allCases {
             for entry in try entries(for: language) {

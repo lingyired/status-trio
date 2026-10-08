@@ -59,6 +59,24 @@ struct DockIconPreviewWiringTests {
         #expect(images.allSatisfy { $0 === images[0] })
     }
 
+    @Test func aResolvedDesignerSceneFeedsMenuBarAndDockPreviewKeys() {
+        let resolvedScene = IconSceneState()
+        let dockTile = DockIconTile(
+            status: .placeholder,
+            backgroundStyle: .dark,
+            size: 44,
+            resolvedScene: resolvedScene,
+            previewCache: DockIconPreviewCache(limit: 2)
+        )
+        let menuBar = MenuBarPreviewBar(
+            status: .placeholder,
+            resolvedScene: resolvedScene
+        ) { EmptyView() }
+
+        #expect(dockTile.renderKey.scene == resolvedScene)
+        #expect(menuBar.scene == resolvedScene)
+    }
+
     @Test func theTileStillLaysOutAtItsRequestedSize() {
         let tile = DockIconTile(
             status: .placeholder,

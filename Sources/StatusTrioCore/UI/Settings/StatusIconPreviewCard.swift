@@ -10,10 +10,12 @@ struct StatusIconPreviewCard: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @Binding var isDarkBackground: Bool
+    var scenario: IconPreviewScenario = .live
+    var showsResolutionExplanation = false
     @EnvironmentObject private var localization: Localization
     @EnvironmentObject private var chargingEffectClock: ChargingEffectClock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var previewPlayback = ChargingEffectPreviewPlayback()
+    @State private var previewState = IconDesignerPreviewState()
 
     var body: some View {
         VStack(spacing: 8) {
@@ -22,34 +24,46 @@ struct StatusIconPreviewCard: View {
             Text(localization.string(.settingsPreviewHint))
                 .font(.system(size: 11))
                 .foregroundStyle(.tertiary)
+            if showsResolutionExplanation { explanation }
+        }
+        .onAppear {
+            previewState.setVisible(true)
+            previewState.setReduceMotion(reduceMotion)
+            previewState.setScenario(scenario)
+            if store.showsChargingEffect { startPreviewIfAllowed() }
         }
         .onChange(of: store.showsChargingEffect) { isEnabled in
             if isEnabled {
                 startPreviewIfAllowed()
             } else {
-                previewPlayback.stop()
+                previewState.stop()
+            }
+        }
+        .onChange(of: scenario) { newScenario in
+            previewState.setScenario(newScenario)
+            if newScenario == .batteryCharging && store.showsChargingEffect {
+                startPreviewIfAllowed()
             }
         }
         .onChange(of: isLiveChargingActive) { isActive in
-            if isActive { previewPlayback.stop() }
+            if isActive { previewState.stop() }
         }
         .onChange(of: reduceMotion) { isEnabled in
-            if isEnabled {
-                previewPlayback.stop()
-            }
+            previewState.setReduceMotion(isEnabled)
+            if !isEnabled && store.showsChargingEffect { startPreviewIfAllowed() }
         }
         .onDisappear {
-            previewPlayback.stop()
+            previewState.setVisible(false)
         }
-        .task(id: previewPlayback.startedAt) {
-            guard let startedAt = previewPlayback.startedAt else { return }
+        .task(id: previewState.playback.startedAt) {
+            guard let startedAt = previewState.playback.startedAt else { return }
             let elapsed = Date().timeIntervalSince(startedAt)
             let remaining = max(0, ChargingEffectPreviewPlayback.duration - elapsed)
             if remaining > 0 {
                 try? await Task.sleep(for: .seconds(remaining))
             }
             guard !Task.isCancelled else { return }
-            previewPlayback.stop()
+            previewState.stop()
         }
     }
 
@@ -57,12 +71,12 @@ struct StatusIconPreviewCard: View {
     private var menuBarPreview: some View {
         if let phase = liveChargingPhase {
             previewBar(status: currentStatus, phase: phase)
-        } else if previewPlayback.isPlaying {
+        } else if previewState.playback.isPlaying {
             TimelineView(.animation(
                 minimumInterval: 1 / Double(ChargingEffectTimeline.framesPerSecond),
                 paused: false
             )) { timeline in
-                let phase = previewPlayback.phase(at: timeline.date)
+                let phase = previewState.playback.phase(at: timeline.date)
                 previewBar(
                     status: phase == nil ? currentStatus : chargingPreviewStatus,
                     phase: phase
@@ -73,6 +87,29 @@ struct StatusIconPreviewCard: View {
         }
     }
 
+    private var designerResolution: IconResolutionOutput {
+        let live = IconResolutionInputs(
+            system: IconPresentationResourceResolver.inputs(snapshot: statusStore.snapshot),
+            sources: IconPresentationResourceResolver.sourceSnapshot(snapshot: statusStore.snapshot)
+        )
+        return IconDesignerPreviewResolver.resolve(liveInputs: live, configuration: store.iconConfiguration,
+                                                   scenario: scenario)
+    }
+
+    private var explanation: some View {
+        let entries = IconResolutionExplanation.entries(for: designerResolution.trace)
+        return VStack(alignment: .leading, spacing: 2) {
+            ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
+                let role = localization.string(entry.slotName)
+                let reason = entry.reasonKeys.map { localization.string($0) }.joined(separator: " · ")
+                Text(localization.format(.iconDesignerPreviewReasonFormat, role, reason))
+                    .accessibilityLabel(localization.format(.iconDesignerPreviewReasonFormat, role, reason))
+            }
+        }
+        .font(.system(size: 10))
+        .foregroundStyle(.secondary)
+    }
+
     private var currentStatus: MenuBarStatus {
         ChargingEffectTestMode.status(
             MenuBarStatus(snapshot: statusStore.snapshot),
@@ -81,7 +118,8 @@ struct StatusIconPreviewCard: View {
     }
 
     private var liveChargingPhase: ChargingEffectPhase? {
-        Self.livePhase(
+        guard scenario == .live else { return nil }
+        return Self.livePhase(
             battery: ChargingEffectTestMode.battery(
                 statusStore.snapshot.battery,
                 enabled: store.testsChargingEffect
@@ -135,7 +173,8 @@ struct StatusIconPreviewCard: View {
             volumeOptions: store.volumeIconOptions,
             bluetoothAudioOptions: store.bluetoothAudioIconOptions,
             isDarkBackground: isDarkBackground,
-            phase: phase
+            phase: phase,
+            resolvedScene: designerResolution.scene
         ) {
             appearanceToggle
         }
@@ -147,8 +186,9 @@ struct StatusIconPreviewCard: View {
     }
 
     private func startPreviewIfAllowed() {
-        guard !reduceMotion, !isLiveChargingActive else { return }
-        previewPlayback.start(at: Date())
+        guard !reduceMotion, !isLiveChargingActive,
+              scenario == .live || scenario == .batteryCharging else { return }
+        previewState.start(at: Date())
     }
 
     private var appearanceToggle: some View {
@@ -184,6 +224,7 @@ struct DockIconPreviewTile: View {
     var size: CGFloat = 44
     var overrideStyle: DockIconBackgroundStyle? = nil
     var previewCache: DockIconPreviewCache? = nil
+    var resolvedScene: IconSceneState? = nil
 
     var body: some View {
         tile
@@ -210,6 +251,7 @@ struct DockIconPreviewTile: View {
             bluetoothAudioOptions: store.bluetoothAudioIconOptions,
             backgroundStyle: resolvedBackgroundStyle,
             size: size,
+            resolvedScene: resolvedScene,
             previewCache: previewCache
         )
     }

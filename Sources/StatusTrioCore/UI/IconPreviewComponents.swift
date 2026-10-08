@@ -46,6 +46,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
     var bluetoothAudioOptions: BluetoothAudioIconOptions = .standard
     var isDarkBackground = true
     var phase: ChargingEffectPhase?
+    var resolvedScene: IconSceneState?
     var highlightedPart: IconGuidePart?
     var highlightOpacity: Double = 1
     /// Rendered after `rightContext` inside the same `HStack`, so a caller's
@@ -54,7 +55,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
     var trailingAccessory: () -> TrailingAccessory
 
     var scene: IconSceneState {
-        IconPreviewScene.make(
+        resolvedScene ?? IconPreviewScene.make(
             status: status,
             configuration: IconPresentationConfiguration(
                 battery: batteryOptions,
@@ -76,6 +77,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         highlightedPart: IconGuidePart? = nil,
         highlightOpacity: Double = 1,
         phase: ChargingEffectPhase? = nil,
+        resolvedScene: IconSceneState? = nil,
         @ViewBuilder trailingAccessory: @escaping () -> TrailingAccessory
     ) {
         self.status = status
@@ -88,6 +90,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         self.highlightedPart = highlightedPart
         self.highlightOpacity = highlightOpacity
         self.phase = phase
+        self.resolvedScene = resolvedScene
         self.trailingAccessory = trailingAccessory
     }
 
@@ -340,6 +343,7 @@ struct DockIconTile: View {
     var size: CGFloat = 44
     var highlightedPart: IconGuidePart?
     var highlightOpacity: Double = 1
+    var resolvedScene: IconSceneState?
     /// Injected by tests; the app shares one bounded cache.
     var previewCache: DockIconPreviewCache? = nil
 
@@ -361,7 +365,7 @@ struct DockIconTile: View {
 
     @MainActor
     private var previewScene: IconSceneState {
-        IconPreviewScene.make(
+        resolvedScene ?? IconPreviewScene.make(
             status: status,
             configuration: IconPresentationConfiguration(
                 battery: batteryOptions,

@@ -4,6 +4,7 @@ struct IconSourceEditor: View {
     @ObservedObject var store: SettingsStore
     let slot: IconSlot
     var phaseFiveEnabled = false
+    @EnvironmentObject private var localization: Localization
 
     private var sources: [IconDesignerSource] {
         IconDesignerEditingModel.selectableSources(for: slot, phaseFiveEnabled: phaseFiveEnabled)
@@ -13,40 +14,51 @@ struct IconSourceEditor: View {
     }
 
     var body: some View {
-        SettingsGroup("Sources") {
-            Picker("Primary source", selection: primaryBinding) {
+        SettingsGroup(localization.string(.iconDesignerSourcesTitle)) {
+            Picker(localization.string(.iconDesignerPrimarySource), selection: primaryBinding) {
                 ForEach(sources, id: \.self) { source in
-                    Text(source.title).tag(source)
+                    Text(localization.string(source.localizationKey)).tag(source)
                 }
             }
-            .accessibilityLabel("Primary source for \(slot.title)")
+            .accessibilityLabel(localization.string(.iconDesignerPrimarySource) + " — " + localizedSlotTitle)
 
             if !current.isSelectable {
-                Label("Current source (not available in this version): \(current.id)", systemImage: "exclamationmark.triangle")
+                Label(localization.format(.iconDesignerCurrentSourceUnavailableFormat,
+                                          localization.string(localizationKey(for: current.id))),
+                      systemImage: "exclamationmark.triangle")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else if current.isLegacy {
-                Text("Compatible with current configuration")
+                Text(localization.string(.iconDesignerCompatible))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Picker("Fallback source", selection: fallbackBinding) {
-                Text("None").tag(IconDesignerSource?.none)
+            Picker(localization.string(.iconDesignerFallbackSource), selection: fallbackBinding) {
+                Text(localization.string(.iconDesignerNone)).tag(IconDesignerSource?.none)
                 ForEach(sources.filter { $0 != primary }, id: \.self) { source in
-                    Text(source.title).tag(Optional(source))
+                    Text(localization.string(source.localizationKey)).tag(Optional(source))
                 }
             }
-            .accessibilityLabel("Fallback source for \(slot.title)")
+            .accessibilityLabel(localization.string(.iconDesignerFallbackSource) + " — " + localizedSlotTitle)
             if fallbackBinding.wrappedValue != nil {
-                Button("Swap primary and fallback") {
+                Button(localization.string(.iconDesignerSwapPrimaryFallback)) {
                     store.updateIconConfiguration { configuration in
                         _ = IconDesignerEditingModel.swapPrimaryAndFallback(for: slot, in: &configuration)
                     }
                 }
-                .accessibilityLabel("Swap primary and fallback for \(slot.title)")
+                .accessibilityLabel(localization.string(.iconDesignerSwapPrimaryFallback) + " — " + localizedSlotTitle)
             }
         }
+    }
+
+    private var localizedSlotTitle: String {
+        let key: LocalizationKey = switch slot {
+        case .outerRing: .iconDesignerSlotOuterRing
+        case .center: .iconDesignerSlotCenter
+        case .footer: .iconDesignerSlotFooter
+        }
+        return localization.string(key)
     }
 
     private var primary: IconDesignerSource {
@@ -84,14 +96,34 @@ struct IconSourceEditor: View {
 }
 
 private extension IconDesignerSource {
-    var title: String {
-        let words = rawValue.replacingOccurrences(of: "([a-z])([A-Z])", with: "$1 $2", options: .regularExpression)
-        return words == "automaticLegacy" ? "Compatible with current configuration" : words.capitalized
+    var localizationKey: LocalizationKey {
+        switch self {
+        case .ring(.automaticLegacy), .center(.automaticLegacy): .iconDesignerSourceLegacy
+        case .ring(.systemBattery): .iconDesignerSourceSystemBattery
+        case .ring(.airPodsBattery): .iconDesignerSourceAirPodsBattery
+        case .ring(.none), .center(.none), .footer(.none): .iconDesignerSourceNone
+        case .center(.network): .iconDesignerSourceNetwork
+        case .center(.bluetoothAudioOutput): .iconDesignerSourceBluetoothAudio
+        case .center(.pinnedBluetoothGlyph): .iconDesignerSourcePinnedBluetooth
+        case .center(.connectedBluetoothDevice): .iconDesignerSourceConnectedBluetooth
+        case .center(.systemBatteryPercentage): .iconDesignerSourceBatteryPercentage
+        case .footer(.systemVolume): .iconDesignerSourceSystemVolume
+        }
     }
 }
 
-private extension IconSlot {
-    var title: String {
-        switch self { case .outerRing: "outer ring"; case .center: "center"; case .footer: "footer" }
+private func localizationKey(for sourceID: String) -> LocalizationKey {
+    switch sourceID {
+    case "automaticLegacy": .iconDesignerSourceLegacy
+    case "systemBattery": .iconDesignerSourceSystemBattery
+    case "airPodsBattery": .iconDesignerSourceAirPodsBattery
+    case "network": .iconDesignerSourceNetwork
+    case "bluetoothAudioOutput": .iconDesignerSourceBluetoothAudio
+    case "pinnedBluetoothGlyph": .iconDesignerSourcePinnedBluetooth
+    case "connectedBluetoothDevice": .iconDesignerSourceConnectedBluetooth
+    case "systemBatteryPercentage": .iconDesignerSourceBatteryPercentage
+    case "systemVolume": .iconDesignerSourceSystemVolume
+    case "none": .iconDesignerSourceNone
+    default: .iconDesignerSourceNone
     }
 }

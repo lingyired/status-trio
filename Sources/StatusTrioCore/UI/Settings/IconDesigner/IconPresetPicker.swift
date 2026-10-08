@@ -4,25 +4,26 @@ struct IconPresetPicker: View {
     @ObservedObject var store: SettingsStore
     let slot: IconSlot
     @State private var confirmation: Confirmation?
+    @EnvironmentObject private var localization: Localization
 
     var body: some View {
         HStack {
-            Button("Restore this slot…") { confirmation = .slot }
+            Button(localization.string(.iconDesignerControlRestoreSlot)) { confirmation = .slot }
             Spacer()
-            Button("Classic…") { confirmation = .classic }
+            Button(localization.string(.iconDesignerControlClassicPreset)) { confirmation = .classic }
         }
         .alert(item: $confirmation) { choice in
             switch choice {
             case .slot:
-                Alert(title: Text("Restore \(slot.title) to Classic?"),
-                      message: Text("Other icon slots, Dock background, and permissions will be unchanged."),
-                      primaryButton: .destructive(Text("Restore")) {
+                Alert(title: Text(localization.format(.iconDesignerControlRestoreSlotQuestionFormat, localization.string(slot.localizationKey))),
+                      message: Text(localization.string(.iconDesignerControlSlotRestoreMessage)),
+                      primaryButton: .destructive(Text(localization.string(.iconDesignerControlRestoreAction))) {
                           store.updateIconConfiguration { $0 = $0.resetting(slot) }
                       }, secondaryButton: .cancel())
             case .classic:
-                Alert(title: Text("Restore Classic icon configuration?"),
-                      message: Text("Only icon configuration will be restored. Dock background and permissions will be unchanged."),
-                      primaryButton: .destructive(Text("Restore")) { store.resetIconConfiguration() },
+                Alert(title: Text(localization.string(.iconDesignerControlRestoreClassicConfirmation)),
+                      message: Text(localization.string(.iconDesignerControlClassicRestoreMessage)),
+                      primaryButton: .destructive(Text(localization.string(.iconDesignerControlRestoreAction))) { store.resetIconConfiguration() },
                       secondaryButton: .cancel())
             }
         }
@@ -35,7 +36,11 @@ private enum Confirmation: Identifiable {
 }
 
 private extension IconSlot {
-    var title: String {
-        switch self { case .outerRing: "outer ring"; case .center: "center"; case .footer: "footer" }
+    var localizationKey: LocalizationKey {
+        switch self {
+        case .outerRing: .iconDesignerSlotOuterRing
+        case .center: .iconDesignerSlotCenter
+        case .footer: .iconDesignerSlotFooter
+        }
     }
 }

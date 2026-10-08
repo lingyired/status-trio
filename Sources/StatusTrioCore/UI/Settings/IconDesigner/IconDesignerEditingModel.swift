@@ -28,7 +28,58 @@ struct IconDesignerCurrentSource: Equatable {
     let isLegacy: Bool
 }
 
+enum IconDesignerBehaviorTarget: String, CaseIterable, Hashable, Sendable {
+    case primary
+    case fallback
+}
+
+enum IconDesignerBehaviorCapability: Hashable, Sendable {
+    case legacyBatteryPercentageInCenter
+    case networkRepresentation
+    case bluetoothOutputAppearance
+    case pinnedBluetoothGlyph
+    case systemBattery
+    case systemVolume
+}
+
 enum IconDesignerEditingModel {
+    static func behaviorTargets(for slot: IconSlot, in configuration: IconConfigurationV1) -> [IconDesignerBehaviorTarget] {
+        let fallbackExists: Bool = switch slot {
+        case .outerRing: configuration.composition.outerRing.fallback != nil
+        case .center: configuration.composition.center.fallback != nil
+        case .footer: configuration.composition.footer.fallback != nil
+        }
+        return fallbackExists ? [.primary, .fallback] : [.primary]
+    }
+
+    static func source(for target: IconDesignerBehaviorTarget, slot: IconSlot, in configuration: IconConfigurationV1) -> IconDesignerSource? {
+        switch (slot, target) {
+        case (.outerRing, .primary): .ring(configuration.composition.outerRing.primary)
+        case (.outerRing, .fallback): configuration.composition.outerRing.fallback.map(IconDesignerSource.ring)
+        case (.center, .primary): .center(configuration.composition.center.primary)
+        case (.center, .fallback): configuration.composition.center.fallback.map(IconDesignerSource.center)
+        case (.footer, .primary): .footer(configuration.composition.footer.primary)
+        case (.footer, .fallback): configuration.composition.footer.fallback.map(IconDesignerSource.footer)
+        }
+    }
+
+    static func behaviors(for slot: IconSlot, source: IconDesignerSource) -> Set<IconDesignerBehaviorCapability> {
+        switch (slot, source) {
+        case (.center, .center(.automaticLegacy)):
+            [.legacyBatteryPercentageInCenter, .networkRepresentation, .bluetoothOutputAppearance]
+        case (.center, .center(.network)):
+            [.networkRepresentation]
+        case (.center, .center(.bluetoothAudioOutput)):
+            [.bluetoothOutputAppearance]
+        case (.center, .center(.pinnedBluetoothGlyph)):
+            [.pinnedBluetoothGlyph]
+        case (.outerRing, .ring(.systemBattery)), (.outerRing, .ring(.automaticLegacy)):
+            [.systemBattery]
+        case (.footer, .footer(.systemVolume)):
+            [.systemVolume]
+        default: []
+        }
+    }
     static func selectableSources(for slot: IconSlot, phaseFiveEnabled: Bool = false) -> [IconDesignerSource] {
         switch slot {
         case .outerRing:
@@ -36,11 +87,12 @@ enum IconDesignerEditingModel {
             if phaseFiveEnabled { sources.insert(.ring(.airPodsBattery), at: 2) }
             return sources
         case .center:
-            return [
+            var sources: [IconDesignerSource] = [
                 .center(.automaticLegacy), .center(.network), .center(.bluetoothAudioOutput),
-                .center(.pinnedBluetoothGlyph), .center(.connectedBluetoothDevice),
-                .center(.systemBatteryPercentage), .center(.none)
+                .center(.pinnedBluetoothGlyph), .center(.systemBatteryPercentage), .center(.none)
             ]
+            if phaseFiveEnabled { sources.append(.center(.connectedBluetoothDevice)) }
+            return sources
         case .footer:
             return [.footer(.systemVolume), .footer(.none)]
         }
@@ -118,8 +170,14 @@ enum IconDesignerEditingModel {
     }
 
     @discardableResult
-    static func setBluetoothSymbolOverride(_ symbol: String?, in configuration: inout IconConfigurationV1) -> Bool {
-        guard configuration.composition.center.primary == .bluetoothAudioOutput else { return false }
+    static func setBluetoothSymbolOverride(
+        _ symbol: String?, for target: IconDesignerBehaviorTarget = .primary,
+        in configuration: inout IconConfigurationV1
+    ) -> Bool {
+        let selected = source(for: target, slot: .center, in: configuration)
+        guard selected == .center(.bluetoothAudioOutput) || selected == .center(.pinnedBluetoothGlyph) else {
+            return false
+        }
         configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = symbol
         configuration = configuration.normalized()
         return true
