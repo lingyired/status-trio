@@ -107,12 +107,14 @@ final class AppEnvironment {
             settings.$connectedBluetoothIconDeviceAddress.removeDuplicates()
         )
         .receive(on: DispatchQueue.main)
-        .sink { [weak self] configuration, batteryOptIn, selectedAirPodsAddress, _ in
+        .sink { [weak self] _, _, _, _ in
             guard let self else { return }
+            // Deferred publications invalidate demand; historical tuples must
+            // not replay an opt-in that was revoked before the queue drained.
             self.reconcileIconSourceDemand(
-                configuration: configuration,
-                batteryOptIn: batteryOptIn,
-                selectedAirPodsAddress: selectedAirPodsAddress
+                configuration: self.settings.iconConfiguration,
+                batteryOptIn: self.settings.refreshesAirPodsBatteryForIcon,
+                selectedAirPodsAddress: self.settings.airPodsIconDeviceAddress
             )
             self.iconPresentation.refreshSourceState()
         }
