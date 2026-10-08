@@ -144,6 +144,108 @@ final class IconPaletteResolverTests: XCTestCase {
         XCTAssertNotEqual(try rgbaBytes(light), try rgbaBytes(dark))
     }
 
+    @MainActor
+    func testChargingRasterEffectsRespectCustomAlphaForActiveArcAndBolt() throws {
+        let environment = StatusIconRenderEnvironment(
+            size: 48, scale: 2,
+            foreground: CGColor(gray: 1, alpha: 1),
+            criticalColor: StatusIconRenderer.defaultCriticalColor
+        )
+        let phase = ChargingEffectPhase(step: 34, stepsPerCycle: 36, kind: .steady)
+
+        for includesBolt in [false, true] {
+            var rendersByAlpha: [Double: ([UInt8], [UInt8])] = [:]
+            for alpha in [0.0, 0.4, 1.0] {
+                let color = IconRGBA(red: 0.15, green: 0.55, blue: 0.9, alpha: alpha)
+                let ring = OuterRingState(
+                    segments: [RingSegmentState(progress: 1, color: .custom(color))],
+                    gap: .indicator,
+                    accessory: includesBolt
+                        ? .symbol(IconSymbolState(source: .primitive(.bolt), color: .custom(color), scale: 1))
+                        : nil,
+                    effect: RingEffectState(pulsesAccessory: true, tintsAccessory: true)
+                )
+                let scene = IconSceneState(outerRing: ring)
+                let staticImage = try XCTUnwrap(StatusIconRenderer.render(scene: scene, environment: environment))
+                let chargingImage = try XCTUnwrap(StatusIconRenderer.render(scene: scene, environment: environment, phase: phase))
+                rendersByAlpha[alpha] = (try rgbaBytes(staticImage), try rgbaBytes(chargingImage))
+            }
+
+            let transparent = try XCTUnwrap(rendersByAlpha[0])
+            XCTAssertFalse(pixelsDiffer(transparent.0, transparent.1),
+                           "Charging animation must not make a transparent active arc or bolt visible; static track is unchanged.")
+            let translucent = try XCTUnwrap(rendersByAlpha[0.4])
+            XCTAssertTrue(pixelsDiffer(translucent.0, translucent.1),
+                          "Charging phase should still animate a visible alpha-0.4 active arc/bolt.")
+            let opaque = try XCTUnwrap(rendersByAlpha[1.0])
+            XCTAssertNotEqual(opaque.0, opaque.1)
+            XCTAssertLessThan(maxAlpha(translucent.1), maxAlpha(opaque.1),
+                              "Translucent custom color must remain less opaque than the opaque color during animation.")
+        }
+    }
+
+    @MainActor
+    func testInactiveSemanticOverrideChangesZeroVolumeDotsInMenuBarAndDock() throws {
+        let scene = IconSceneState(footer: .dots(DotsState(count: 4, activeCount: 0, color: .primary)))
+        var appearance = IconAppearanceConfiguration.classic
+        appearance.footer.color = .semanticOverrides([
+            .inactive: IconRGBA(red: 0.1, green: 0.9, blue: 0.35, alpha: 1)
+        ])
+        let defaultScene = IconPaletteResolver.apply(scene, appearance: .classic)
+        let overriddenScene = IconPaletteResolver.apply(scene, appearance: appearance)
+        XCTAssertNotEqual(defaultScene, overriddenScene, "Resolved inactive dot colors must be part of the scene identity.")
+        try assertMenuBarAndDockDiffer(defaultScene, overriddenScene)
+    }
+
+    @MainActor
+    func testInactiveSemanticOverrideChangesBatteryAndVolumeArcTracksInMenuBarAndDock() throws {
+        let scene = IconSceneState(
+            outerRing: OuterRingState(
+                segments: [RingSegmentState(progress: 0.55, color: .primary)], gap: .closed
+            ),
+            footer: .arc(ArcState(progress: 0, color: .primary))
+        )
+        var appearance = IconAppearanceConfiguration.classic
+        appearance.outerRing.color = .semanticOverrides([
+            .inactive: IconRGBA(red: 0.95, green: 0.15, blue: 0.2, alpha: 1)
+        ])
+        appearance.footer.color = .semanticOverrides([
+            .inactive: IconRGBA(red: 0.1, green: 0.35, blue: 1, alpha: 1)
+        ])
+        let defaultScene = IconPaletteResolver.apply(scene, appearance: .classic)
+        let overriddenScene = IconPaletteResolver.apply(scene, appearance: appearance)
+        XCTAssertNotEqual(defaultScene, overriddenScene, "Resolved inactive ring/arc colors must participate in scene identity.")
+        try assertMenuBarAndDockDiffer(defaultScene, overriddenScene)
+    }
+
+    @MainActor
+    private func assertMenuBarAndDockDiffer(_ lhs: IconSceneState, _ rhs: IconSceneState) throws {
+        let environment = StatusIconRenderEnvironment(
+            size: 28, scale: 2,
+            foreground: CGColor(gray: 1, alpha: 1),
+            criticalColor: StatusIconRenderer.defaultCriticalColor
+        )
+        let menuBar = [lhs, rhs].map { StatusIconRenderer.render(scene: $0, environment: environment) }
+        let dock = [lhs, rhs].map { DockIconRenderer.image(scene: $0, backgroundStyle: .dark, pixelLength: 96) }
+        let menuBarBytes = try menuBar.map { try rgbaBytes(try XCTUnwrap($0)) }
+        let dockBytes = try dock.map { try rgbaBytes(try XCTUnwrap($0)) }
+        XCTAssertTrue(pixelsDiffer(menuBarBytes[0], menuBarBytes[1]), "Menu Bar inactive pixels should use the override.")
+        XCTAssertTrue(pixelsDiffer(dockBytes[0], dockBytes[1]), "Dock inactive pixels should use the override.")
+        XCTAssertNotEqual(
+            DockIconRenderKey(scene: lhs, backgroundStyle: .dark, pixelLength: 96),
+            DockIconRenderKey(scene: rhs, backgroundStyle: .dark, pixelLength: 96),
+            "Static Dock cache identity must retain resolved inactive colors."
+        )
+    }
+
+    private func pixelsDiffer(_ lhs: [UInt8], _ rhs: [UInt8]) -> Bool {
+        lhs != rhs
+    }
+
+    private func maxAlpha(_ bytes: [UInt8]) -> UInt8 {
+        bytes.enumerated().compactMap { index, byte in index % 4 == 3 ? byte : nil }.max() ?? 0
+    }
+
     func testNonFiniteRGBAComponentsUseOpaqueWhiteFallbackAndClampFiniteComponents() {
         let normalized = IconRGBA(red: .nan, green: .infinity, blue: -2, alpha: 0.4).normalized()
         XCTAssertEqual(normalized, IconRGBA(red: 1, green: 1, blue: 0, alpha: 0.4))

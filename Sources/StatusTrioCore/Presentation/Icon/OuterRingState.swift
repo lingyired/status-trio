@@ -35,19 +35,22 @@ struct OuterRingState: Equatable, Hashable, Sendable {
     let accessory: RingAccessoryState?
     let effect: RingEffectState?
     let strokeScale: Double
+    let inactiveColor: IconColorRole
 
     init(
         segments: [RingSegmentState],
         gap: RingGapStyle,
         accessory: RingAccessoryState? = nil,
         effect: RingEffectState? = nil,
-        strokeScale: Double = 1.25
+        strokeScale: Double = 1.25,
+        inactiveColor: IconColorRole = .inactive
     ) {
         self.segments = segments
         self.gap = gap
         self.accessory = accessory
         self.effect = effect
         self.strokeScale = Self.normalizedStrokeScale(strokeScale)
+        self.inactiveColor = inactiveColor
     }
 
     static func normalizedStrokeScale(_ scale: Double) -> Double {

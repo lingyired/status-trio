@@ -94,7 +94,7 @@ enum StatusIconRenderer {
                 miterLimit: 10
             )
             let transparent = highlightColor.copy(alpha: 0) ?? highlightColor
-            let bright = highlightColor.copy(alpha: min(1, max(0, frame.tailAlpha))) ?? highlightColor
+            let bright = highlightColor.copy(alpha: min(1, max(0, highlightColor.alpha * frame.tailAlpha))) ?? highlightColor
             if let gradient = CGGradient(
                 colorsSpace: CGColorSpaceCreateDeviceRGB(),
                 colors: [transparent, bright, transparent] as CFArray,
@@ -116,7 +116,7 @@ enum StatusIconRenderer {
         if frame.headIsVisible, frame.beadAlpha > 0 {
             let center = StatusIconGeometry.batteryPoint(forProgress: frame.headProgress)
             let radius = lineWidth * 0.5 * 1.18
-            context.setFillColor(highlightColor.copy(alpha: min(1, frame.beadAlpha)) ?? highlightColor)
+            context.setFillColor(highlightColor.copy(alpha: min(1, highlightColor.alpha * frame.beadAlpha)) ?? highlightColor)
             context.fillEllipse(in: CGRect(
                 x: center.x - radius,
                 y: center.y - radius,
@@ -128,7 +128,7 @@ enum StatusIconRenderer {
         if frame.headIsVisible, frame.heartbeatAlpha > 0 {
             let center = StatusIconGeometry.batteryPoint(forProgress: frame.headProgress)
             let radius = lineWidth * 0.95 * frame.heartbeatScale
-            context.setFillColor(highlightColor.copy(alpha: min(1, frame.heartbeatAlpha)) ?? highlightColor)
+            context.setFillColor(highlightColor.copy(alpha: min(1, highlightColor.alpha * frame.heartbeatAlpha)) ?? highlightColor)
             context.fillEllipse(in: CGRect(
                 x: center.x - radius,
                 y: center.y - radius,
@@ -653,7 +653,7 @@ extension StatusIconRenderer {
         let lineWidth = 8 * CGFloat(ring.strokeScale)
 
         context.setLineWidth(lineWidth)
-        context.setStrokeColor(foreground.copy(alpha: inactiveTrackAlpha) ?? foreground)
+        context.setStrokeColor(sceneColor(for: ring.inactiveColor, foreground: foreground, criticalColor: criticalColor))
         context.addPath(StatusIconGeometry.batteryTrack(hasTopGap: hasTopGap, topGapWidth: topGapWidth))
         context.strokePath()
 
@@ -849,7 +849,7 @@ extension StatusIconRenderer {
             let dotRadiusScale = 1 + (dots.strokeScale - 1) * 0.5
             let radius = StatusIconGeometry.volumeDotRadius * CGFloat(dotRadiusScale)
             let active = sceneColor(for: dots.color, foreground: foreground, criticalColor: criticalColor)
-            let inactive = foreground.copy(alpha: inactiveTrackAlpha) ?? foreground
+            let inactive = sceneColor(for: dots.inactiveColor, foreground: foreground, criticalColor: criticalColor)
             for (index, point) in points.prefix(dots.count).enumerated() {
                 context.setFillColor(index < dots.activeCount ? active : inactive)
                 context.fillEllipse(in: CGRect(
@@ -860,7 +860,7 @@ extension StatusIconRenderer {
                 ))
             }
         case let .arc(arc):
-            let hidden = foreground.copy(alpha: inactiveTrackAlpha) ?? foreground
+            let hidden = sceneColor(for: arc.inactiveColor, foreground: foreground, criticalColor: criticalColor)
             let active = sceneColor(for: arc.color, foreground: foreground, criticalColor: criticalColor)
             context.setLineWidth(7 * CGFloat(arc.strokeScale))
             context.setLineCap(.round)

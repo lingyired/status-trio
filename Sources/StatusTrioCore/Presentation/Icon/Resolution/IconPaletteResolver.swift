@@ -30,7 +30,8 @@ enum IconPaletteResolver {
                     }
                 },
                 effect: ring.effect,
-                strokeScale: appearance.outerRing.strokeScale
+                strokeScale: appearance.outerRing.strokeScale,
+                inactiveColor: resolve(role: ring.inactiveColor, style: appearance.outerRing.color)
             )
         }
         let centerScaleFactor = appearance.center.symbolScale / CenterAppearance.classic.symbolScale
@@ -45,9 +46,14 @@ enum IconPaletteResolver {
         let footer: FooterState? = scene.footer.map { state in
             switch state {
             case let .dots(dots):
-                .dots(DotsState(count: dots.count, activeCount: dots.activeCount, color: resolve(role: dots.color, style: appearance.footer.color), strokeScale: appearance.footer.strokeScale))
+                .dots(DotsState(count: dots.count, activeCount: dots.activeCount,
+                                color: resolve(role: dots.color, style: appearance.footer.color),
+                                strokeScale: appearance.footer.strokeScale,
+                                inactiveColor: resolve(role: dots.inactiveColor, style: appearance.footer.color)))
             case let .arc(arc):
-                .arc(ArcState(progress: arc.progress, color: resolve(role: arc.color, style: appearance.footer.color), strokeScale: appearance.footer.strokeScale))
+                .arc(ArcState(progress: arc.progress, color: resolve(role: arc.color, style: appearance.footer.color),
+                              strokeScale: appearance.footer.strokeScale,
+                              inactiveColor: resolve(role: arc.inactiveColor, style: appearance.footer.color)))
             }
         }
         return IconSceneState(outerRing: outerRing, center: center, footer: footer)
