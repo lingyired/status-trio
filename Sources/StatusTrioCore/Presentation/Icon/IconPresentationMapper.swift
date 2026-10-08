@@ -1,6 +1,13 @@
 import Foundation
 
 enum IconPresentationMapper {
+    static func resolve(
+        inputs: IconResolutionInputs,
+        configuration: IconConfigurationV1
+    ) -> IconResolutionOutput {
+        IconCompositionResolver.resolve(inputs: inputs, configuration: configuration)
+    }
+
     static func scene(
         inputs: IconPresentationInputs,
         configuration: IconPresentationConfiguration
