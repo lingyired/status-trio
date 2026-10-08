@@ -11,7 +11,7 @@ struct IconBehaviorEditor: View {
     var body: some View {
         SettingsGroup(localization.string(.iconDesignerBehaviorTitle)) {
             if IconDesignerEditingModel.behaviorTargets(for: slot, in: store.iconConfiguration).count > 1 {
-                Picker(localization.string(.iconDesignerBehaviorTitle), selection: $behaviorTarget) {
+                Picker(localization.string(.iconDesignerBehaviorTitle), selection: behaviorTargetBinding) {
                     Text(localization.string(.iconDesignerPrimary)).tag(IconDesignerBehaviorTarget.primary)
                     Text(localization.string(.iconDesignerFallback)).tag(IconDesignerBehaviorTarget.fallback)
                 }
@@ -32,6 +32,29 @@ struct IconBehaviorEditor: View {
                 }
             }
         }
+        .onChange(of: store.iconConfiguration) { configuration in
+            behaviorTarget = IconDesignerEditingModel.validatedBehaviorTarget(
+                behaviorTarget, slot: slot, in: configuration
+            )
+        }
+    }
+
+    /// Resolve the stored picker state against the live composition at read time.
+    /// This prevents a hidden fallback selection from editing primary behavior
+    /// in the render before SwiftUI delivers the configuration onChange.
+    private var effectiveBehaviorTarget: IconDesignerBehaviorTarget {
+        IconDesignerEditingModel.effectiveBehaviorTarget(
+            behaviorTarget, slot: slot, in: store.iconConfiguration
+        )
+    }
+
+    private var behaviorTargetBinding: Binding<IconDesignerBehaviorTarget> {
+        Binding(
+            get: { effectiveBehaviorTarget },
+            set: { behaviorTarget = IconDesignerEditingModel.validatedBehaviorTarget(
+                $0, slot: slot, in: store.iconConfiguration
+            ) }
+        )
     }
 
     private var batteryBehavior: some View {
@@ -61,7 +84,7 @@ struct IconBehaviorEditor: View {
 
     private var centerBehavior: some View {
         Group {
-            switch IconDesignerEditingModel.source(for: behaviorTarget, slot: .center, in: store.iconConfiguration) {
+            switch IconDesignerEditingModel.source(for: effectiveBehaviorTarget, slot: .center, in: store.iconConfiguration) {
             case .center(.automaticLegacy):
                 networkBehavior(includeLegacyPercentage: true)
                 legacyBluetoothBehavior
@@ -70,7 +93,7 @@ struct IconBehaviorEditor: View {
             case .center(.bluetoothAudioOutput):
                 bluetoothOutputBehavior
             case .center(.pinnedBluetoothGlyph):
-                doubleSlider("Pinned Bluetooth symbol scale", value: Binding(
+                doubleSlider(localization.string(.iconDesignerControlPinnedBluetoothSymbolScale), value: Binding(
                     get: { store.iconConfiguration.behaviors.bluetoothAudioCenter.symbolScale },
                     set: { value in store.updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.symbolScale = value } }
                 ), range: 1...3)
@@ -117,7 +140,7 @@ struct IconBehaviorEditor: View {
                 get: { store.iconConfiguration.behaviors.bluetoothAudioCenter.symbolScale },
                 set: { value in store.updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.symbolScale = value } }
             ), range: 1...3)
-            if behaviorTarget == .primary,
+            if effectiveBehaviorTarget == .primary,
                store.iconConfiguration.composition.center.primary == .bluetoothAudioOutput {
                 toggle(localization.string(.iconDesignerControlNetworkProblemsOverrideBluetooth), get: { $0.composition.centerOverride.networkProblemOverridesPrimary }, set: { $0.composition.centerOverride.networkProblemOverridesPrimary = $1 })
             }
@@ -132,7 +155,7 @@ struct IconBehaviorEditor: View {
             set: { value in
                 store.updateIconConfiguration { configuration in
                     _ = IconDesignerEditingModel.setBluetoothSymbolOverride(
-                        value, for: behaviorTarget, in: &configuration
+                        value, for: effectiveBehaviorTarget, in: &configuration
                     )
                 }
             }

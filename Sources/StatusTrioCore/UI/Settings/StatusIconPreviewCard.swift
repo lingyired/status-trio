@@ -78,7 +78,7 @@ struct StatusIconPreviewCard: View {
             )) { timeline in
                 let phase = previewState.playback.phase(at: timeline.date)
                 previewBar(
-                    status: phase == nil ? currentStatus : chargingPreviewStatus,
+                    status: phase == nil ? currentStatus : Self.chargingPreviewStatus(for: statusStore.snapshot),
                     phase: phase
                 )
             }
@@ -88,12 +88,83 @@ struct StatusIconPreviewCard: View {
     }
 
     private var designerResolution: IconResolutionOutput {
-        let live = IconResolutionInputs(
-            system: IconPresentationResourceResolver.inputs(snapshot: statusStore.snapshot),
-            sources: IconPresentationResourceResolver.sourceSnapshot(snapshot: statusStore.snapshot)
+        Self.resolveDesignerScene(
+            for: statusStore.snapshot.replacingBattery(currentStatus.battery),
+            bluetoothDevices: statusStore.bluetoothDevices.devices,
+            batteryLevels: statusStore.bluetoothDevices.batteryLevels,
+            batteryLevelsUpdatedAt: statusStore.bluetoothDevices.batteryLevelsUpdatedAt,
+            selectedAirPodsAddress: store.airPodsIconDeviceAddress,
+            selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress,
+            configuration: store.iconConfiguration,
+            scenario: scenario
         )
-        return IconDesignerPreviewResolver.resolve(liveInputs: live, configuration: store.iconConfiguration,
-                                                   scenario: scenario)
+    }
+
+    @MainActor
+    static func resolveDisplayedPreviewScene(
+        status: MenuBarStatus,
+        basedOn snapshot: StatusSnapshot,
+        bluetoothDevices: [BluetoothDevice],
+        batteryLevels: [String: BluetoothBatteryLevel],
+        batteryLevelsUpdatedAt: Date?,
+        selectedAirPodsAddress: String?,
+        selectedConnectedDeviceAddress: String?,
+        configuration: IconConfigurationV1,
+        scenario: IconPreviewScenario
+    ) -> IconResolutionOutput {
+        resolveDesignerScene(
+            for: snapshot.replacingBattery(status.battery),
+            bluetoothDevices: bluetoothDevices,
+            batteryLevels: batteryLevels,
+            batteryLevelsUpdatedAt: batteryLevelsUpdatedAt,
+            selectedAirPodsAddress: selectedAirPodsAddress,
+            selectedConnectedDeviceAddress: selectedConnectedDeviceAddress,
+            configuration: configuration,
+            scenario: scenario
+        )
+    }
+
+    @MainActor
+    static func resolveDesignerScene(
+        for snapshot: StatusSnapshot,
+        bluetoothDevices: [BluetoothDevice],
+        batteryLevels: [String: BluetoothBatteryLevel],
+        batteryLevelsUpdatedAt: Date?,
+        selectedAirPodsAddress: String?,
+        selectedConnectedDeviceAddress: String?,
+        configuration: IconConfigurationV1,
+        scenario: IconPreviewScenario
+    ) -> IconResolutionOutput {
+        let inputs = IconResolutionInputs(
+            system: IconPresentationResourceResolver.inputs(snapshot: snapshot),
+            sources: IconPresentationResourceResolver.sourceSnapshot(
+                snapshot: snapshot,
+                bluetoothDevices: bluetoothDevices,
+                batteryLevels: batteryLevels,
+                batteryLevelsUpdatedAt: batteryLevelsUpdatedAt,
+                selectedAirPodsAddress: selectedAirPodsAddress,
+                selectedConnectedDeviceAddress: selectedConnectedDeviceAddress
+            )
+        )
+        return IconDesignerPreviewResolver.resolve(
+            liveInputs: inputs, configuration: configuration, scenario: scenario
+        )
+    }
+
+    static func chargingPreviewStatus(for current: StatusSnapshot) -> MenuBarStatus {
+        let battery = BatteryStatus(
+            rawPercentage: 62,
+            isPresent: true,
+            isCharging: true,
+            isLowPowerMode: current.battery.isLowPowerMode,
+            isConnectedToPower: true
+        )
+        return MenuBarStatus(snapshot: StatusSnapshot(
+            battery: battery,
+            wifi: current.wifi,
+            connection: current.connection,
+            volume: current.volume
+        ))
     }
 
     private var explanation: some View {
@@ -144,22 +215,6 @@ struct StatusIconPreviewCard: View {
         return phase
     }
 
-    private var chargingPreviewStatus: MenuBarStatus {
-        let current = statusStore.snapshot
-        let battery = BatteryStatus(
-            rawPercentage: 62,
-            isPresent: true,
-            isCharging: true,
-            isLowPowerMode: current.battery.isLowPowerMode,
-            isConnectedToPower: true
-        )
-        return MenuBarStatus(snapshot: StatusSnapshot(
-            battery: battery,
-            wifi: current.wifi,
-            connection: current.connection,
-            volume: current.volume
-        ))
-    }
 
     private func previewBar(
         status: MenuBarStatus,
@@ -174,7 +229,17 @@ struct StatusIconPreviewCard: View {
             bluetoothAudioOptions: store.bluetoothAudioIconOptions,
             isDarkBackground: isDarkBackground,
             phase: phase,
-            resolvedScene: designerResolution.scene
+            resolvedScene: Self.resolveDisplayedPreviewScene(
+                status: status,
+                basedOn: statusStore.snapshot,
+                bluetoothDevices: statusStore.bluetoothDevices.devices,
+                batteryLevels: statusStore.bluetoothDevices.batteryLevels,
+                batteryLevelsUpdatedAt: statusStore.bluetoothDevices.batteryLevelsUpdatedAt,
+                selectedAirPodsAddress: store.airPodsIconDeviceAddress,
+                selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress,
+                configuration: store.iconConfiguration,
+                scenario: scenario
+            ).scene
         ) {
             appearanceToggle
         }

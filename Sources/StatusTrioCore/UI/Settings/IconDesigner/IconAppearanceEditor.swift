@@ -26,7 +26,7 @@ struct IconAppearanceEditor: View {
                 if styleBinding.wrappedValue == .semantic {
                     Picker(localization.string(.iconDesignerControlState), selection: $role) {
                         ForEach(IconSemanticColorRole.allCases, id: \.self) { value in
-                            Text(value.rawValue.capitalized).tag(value)
+                            Text(localization.string(value.iconDesignerLocalizationKey)).tag(value)
                         }
                     }
                 }
@@ -132,3 +132,23 @@ struct IconAppearanceEditor: View {
 }
 
 private enum StyleChoice { case automatic, fixed, semantic }
+
+
+enum IconDesignerRoleLabel {
+    static func localizationKey(for role: IconSemanticColorRole) -> LocalizationKey {
+        switch role {
+        case .primary: .iconDesignerColorRolePrimary
+        case .inactive: .iconDesignerColorRoleInactive
+        case .critical: .iconDesignerColorRoleCritical
+        case .lowPower: .iconDesignerColorRoleLowPower
+        case .powered: .iconDesignerColorRolePowered
+        case .bluetooth: .iconDesignerColorRoleBluetooth
+        }
+    }
+}
+
+extension IconSemanticColorRole {
+    var iconDesignerLocalizationKey: LocalizationKey {
+        IconDesignerRoleLabel.localizationKey(for: self)
+    }
+}

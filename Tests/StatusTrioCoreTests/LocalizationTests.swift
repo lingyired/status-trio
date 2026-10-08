@@ -70,6 +70,38 @@ final class LocalizationTests: XCTestCase {
         }
     }
 
+    func testIconAppearanceRoleAndPinnedGlyphLabelsResolveThroughLocalizedUIKeys() throws {
+        let expected: [(IconSemanticColorRole, LocalizationKey)] = [
+            (.primary, .iconDesignerColorRolePrimary),
+            (.inactive, .iconDesignerColorRoleInactive),
+            (.critical, .iconDesignerColorRoleCritical),
+            (.lowPower, .iconDesignerColorRoleLowPower),
+            (.powered, .iconDesignerColorRolePowered),
+            (.bluetooth, .iconDesignerColorRoleBluetooth)
+        ]
+        for (role, key) in expected {
+            XCTAssertEqual(role.iconDesignerLocalizationKey, key)
+            XCTAssertEqual(IconDesignerRoleLabel.localizationKey(for: role), key)
+        }
+        let uiKeys = expected.map(\.1) + [.iconDesignerControlPinnedBluetoothSymbolScale]
+        for language in AppLanguage.allCases {
+            let bundle = try XCTUnwrap(Localization.resourceBundle(for: language))
+            for key in uiKeys {
+                let label = bundle.localizedString(forKey: key.rawValue, value: nil, table: nil)
+                XCTAssertFalse(label.isEmpty)
+                XCTAssertNotEqual(label, key.rawValue, "\(language.rawValue): \(key.rawValue)")
+                if language == .simplifiedChinese || language == .traditionalChinese {
+                    XCTAssertFalse(label.localizedCaseInsensitiveContains("primary"),
+                                   "\(language.rawValue) should render a translated semantic role")
+                    XCTAssertFalse(label.localizedCaseInsensitiveContains("inactive"),
+                                   "\(language.rawValue) should render a translated semantic role")
+                    XCTAssertFalse(label.localizedCaseInsensitiveContains("lowpower"),
+                                   "\(language.rawValue) should render a translated semantic role")
+                }
+            }
+        }
+    }
+
     func testAppleDeviceBatteryCopyDescribesNearbyNamedRowsWithoutConsentInEveryLanguage() throws {
         let english = try XCTUnwrap(Localization.resourceBundle(for: .english))
         let description = english.localizedString(

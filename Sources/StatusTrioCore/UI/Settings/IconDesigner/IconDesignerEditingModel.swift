@@ -52,6 +52,22 @@ enum IconDesignerEditingModel {
         return fallbackExists ? [.primary, .fallback] : [.primary]
     }
 
+    static func validatedBehaviorTarget(
+        _ target: IconDesignerBehaviorTarget,
+        slot: IconSlot,
+        in configuration: IconConfigurationV1
+    ) -> IconDesignerBehaviorTarget {
+        behaviorTargets(for: slot, in: configuration).contains(target) ? target : .primary
+    }
+
+    static func effectiveBehaviorTarget(
+        _ target: IconDesignerBehaviorTarget,
+        slot: IconSlot,
+        in configuration: IconConfigurationV1
+    ) -> IconDesignerBehaviorTarget {
+        validatedBehaviorTarget(target, slot: slot, in: configuration)
+    }
+
     static func source(for target: IconDesignerBehaviorTarget, slot: IconSlot, in configuration: IconConfigurationV1) -> IconDesignerSource? {
         switch (slot, target) {
         case (.outerRing, .primary): .ring(configuration.composition.outerRing.primary)
