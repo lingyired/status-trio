@@ -4,7 +4,8 @@ enum IconSourceUnavailableReason: String, Codable, Equatable, Hashable, Sendable
     case disconnected
     case permissionDenied
     case unavailable
-    case stale
+    case unknown
+    case temporarilyStale
 }
 
 enum SourceResult<Value: Equatable & Sendable>: Equatable, Sendable {

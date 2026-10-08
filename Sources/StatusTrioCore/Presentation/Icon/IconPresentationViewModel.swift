@@ -6,6 +6,12 @@ typealias IconSceneMapper = @MainActor (
     IconPresentationConfiguration
 ) -> IconSceneState
 
+typealias IconResolutionMapper = @MainActor @Sendable (
+    IconPresentationInputs,
+    IconConfigurationV1,
+    IconSourceSnapshot
+) -> IconResolutionOutput
+
 @MainActor
 protocol IconPresentationScheduling: AnyObject {
     func schedule(after delay: Duration, action: @escaping @MainActor () -> Void)
@@ -40,12 +46,14 @@ struct IconPresentationSettings: Equatable, Sendable {
     let configuration: IconPresentationConfiguration
     let menuBarSize: Double
     let testsChargingEffect: Bool
+    var designerConfiguration: IconConfigurationV1? = nil
 }
 
 struct IconPresentationOutput: Equatable, Sendable {
     let scene: IconSceneState
     var menuBarTestScene: IconSceneState? = nil
     let menuBarSize: Double
+    var trace: IconResolutionTrace = .empty
 }
 
 @MainActor
@@ -58,7 +66,11 @@ final class IconPresentationViewModel: ObservableObject {
     private let preferences: AnyPublisher<IconPresentationSettings, Never>
     private let resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs
     private let mapScene: IconSceneMapper
+    private let mapResolution: IconResolutionMapper?
+    private let resolveSourceSnapshot: @MainActor @Sendable (StatusSnapshot) -> IconSourceSnapshot
+    private let now: @MainActor @Sendable () -> Date
     private let snapshotScheduler: any IconPresentationScheduling
+    private let holdExpiryScheduler: any IconPresentationScheduling
     private var snapshotSubscription: AnyCancellable?
     private var preferencesSubscription: AnyCancellable?
     private var latestSnapshot: StatusSnapshot
@@ -66,6 +78,8 @@ final class IconPresentationViewModel: ObservableObject {
     private var receivedSnapshotForStart = false
     private var receivedSettingsForStart = false
     private var synchronizedStart = false
+    private var holdPolicies: [String: IconSourceHoldPolicy<Bool>] = [:]
+    private var holdGeneration = 0
 
     init(
         snapshot: StatusSnapshot,
@@ -76,20 +90,30 @@ final class IconPresentationViewModel: ObservableObject {
         mapScene: @escaping IconSceneMapper = { inputs, configuration in
             IconPresentationMapper.scene(inputs: inputs, configuration: configuration)
         },
-        snapshotScheduler: any IconPresentationScheduling = TaskIconPresentationScheduler()
+        mapResolution: IconResolutionMapper? = nil,
+        resolveSourceSnapshot: @escaping @MainActor @Sendable (StatusSnapshot) -> IconSourceSnapshot = { _ in .empty },
+        now: @escaping @MainActor @Sendable () -> Date = Date.init,
+        snapshotScheduler: any IconPresentationScheduling = TaskIconPresentationScheduler(),
+        holdExpiryScheduler: any IconPresentationScheduling = TaskIconPresentationScheduler()
     ) {
         self.snapshots = snapshots
         self.preferences = preferences
         self.resolveInputs = resolveInputs
         self.mapScene = mapScene
+        self.mapResolution = mapResolution
+        self.resolveSourceSnapshot = resolveSourceSnapshot
+        self.now = now
         self.snapshotScheduler = snapshotScheduler
+        self.holdExpiryScheduler = holdExpiryScheduler
         self.latestSnapshot = snapshot
         self.latestSettings = settings
         self.output = Self.output(
             snapshot: snapshot,
             settings: settings,
             resolveInputs: resolveInputs,
-            mapScene: mapScene
+            mapScene: mapScene,
+            mapResolution: mapResolution,
+            sources: resolveSourceSnapshot(snapshot)
         )
     }
 
@@ -113,6 +137,7 @@ final class IconPresentationViewModel: ObservableObject {
 
     func stop() {
         snapshotScheduler.cancel()
+        cancelHoldExpiryAndResetPolicies()
         snapshotSubscription?.cancel()
         preferencesSubscription?.cancel()
         snapshotSubscription = nil
@@ -137,6 +162,9 @@ final class IconPresentationViewModel: ObservableObject {
     }
 
     private func receive(_ settings: IconPresentationSettings) {
+        if latestSettings.designerConfiguration?.composition != settings.designerConfiguration?.composition {
+            resetHoldPolicies()
+        }
         latestSettings = settings
         if !receivedSettingsForStart {
             receivedSettingsForStart = true
@@ -157,34 +185,95 @@ final class IconPresentationViewModel: ObservableObject {
     }
 
     private func publishLatestOutput() {
+        let sources = heldSourceSnapshot(for: latestSnapshot, at: now())
         let next = Self.output(
             snapshot: latestSnapshot,
             settings: latestSettings,
             resolveInputs: resolveInputs,
-            mapScene: mapScene
+            mapScene: mapScene,
+            mapResolution: mapResolution,
+            sources: sources
         )
+        scheduleHoldExpiry()
         guard output != next else { return }
         output = next
+    }
+
+    private func heldSourceSnapshot(for snapshot: StatusSnapshot, at date: Date) -> IconSourceSnapshot {
+        let raw = resolveSourceSnapshot(snapshot)
+        holdPolicies = holdPolicies.filter { raw.availability[$0.key] != nil }
+        var held: [String: IconSourceAvailability] = [:]
+        for (sourceID, availability) in raw.availability {
+            var policy = holdPolicies[sourceID] ?? IconSourceHoldPolicy<Bool>()
+            let result: SourceResult<Bool> = switch availability {
+            case .available: .available(true)
+            case let .unavailable(reason): .unavailable(reason)
+            }
+            let value = policy.update(result, sourceID: sourceID, at: date)
+            holdPolicies[sourceID] = policy
+            switch value {
+            case .available: held[sourceID] = .available
+            case let .unavailable(reason): held[sourceID] = .unavailable(reason)
+            }
+        }
+        return IconSourceSnapshot(availability: held)
+    }
+
+    private func scheduleHoldExpiry() {
+        holdExpiryScheduler.cancel()
+        holdGeneration &+= 1
+        guard let expiry = holdPolicies.values.compactMap(\.expirationDate).min() else { return }
+        let generation = holdGeneration
+        let milliseconds = max(0, Int((expiry.timeIntervalSince(now()) * 1_000).rounded(.up)))
+        holdExpiryScheduler.schedule(after: .milliseconds(milliseconds)) { [weak self] in
+            guard let self, self.holdGeneration == generation else { return }
+            self.publishLatestOutput()
+        }
+    }
+
+    private func resetHoldPolicies() {
+        holdPolicies.removeAll(keepingCapacity: true)
+        holdGeneration &+= 1
+        holdExpiryScheduler.cancel()
+    }
+
+    private func cancelHoldExpiryAndResetPolicies() {
+        holdExpiryScheduler.cancel()
+        resetHoldPolicies()
     }
 
     private static func output(
         snapshot: StatusSnapshot,
         settings: IconPresentationSettings,
         resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs,
-        mapScene: IconSceneMapper
+        mapScene: IconSceneMapper,
+        mapResolution: IconResolutionMapper?,
+        sources: IconSourceSnapshot
     ) -> IconPresentationOutput {
-        let scene = mapScene(resolveInputs(snapshot), settings.configuration)
+        func resolve(_ snapshot: StatusSnapshot) -> IconResolutionOutput {
+            let inputs = resolveInputs(snapshot)
+            if let designerConfiguration = settings.designerConfiguration, let mapResolution {
+                return mapResolution(inputs, designerConfiguration, sources)
+            }
+            return IconResolutionOutput(
+                scene: mapScene(inputs, settings.configuration),
+                trace: .empty
+            )
+        }
+
+        let resolution = resolve(snapshot)
         let menuBarTestScene: IconSceneState?
         if settings.testsChargingEffect {
             let projected = ChargingEffectTestMode.snapshot(snapshot, enabled: true)
-            menuBarTestScene = mapScene(resolveInputs(projected), settings.configuration)
+            menuBarTestScene = resolve(projected).scene
         } else {
             menuBarTestScene = nil
         }
         return IconPresentationOutput(
-            scene: scene,
+            scene: resolution.scene,
             menuBarTestScene: menuBarTestScene,
-            menuBarSize: settings.menuBarSize
+            menuBarSize: settings.menuBarSize,
+            trace: resolution.trace
         )
     }
 }

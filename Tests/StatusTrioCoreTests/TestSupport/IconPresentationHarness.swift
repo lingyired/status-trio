@@ -10,18 +10,20 @@ func makeTestIconPresentation(
     return IconPresentationViewModel(
         snapshot: store.snapshot,
         settings: IconPresentationSettings(
-            configuration: IconPresentationConfiguration(
-                battery: appearance.batteryOptions,
-                connection: appearance.connectionOptions,
-                volume: appearance.volumeOptions,
-                bluetooth: appearance.bluetoothAudioOptions
-            ),
+            configuration: settings.iconConfiguration.legacyPresentationConfiguration,
             menuBarSize: appearance.iconSize,
-            testsChargingEffect: settings.testsChargingEffect
+            testsChargingEffect: settings.testsChargingEffect,
+            designerConfiguration: settings.iconConfiguration
         ),
         snapshots: store.$snapshot.eraseToAnyPublisher(),
         preferences: settings.iconPresentationPublisher,
         resolveInputs: { IconPresentationResourceResolver.inputs(snapshot: $0) },
+        mapResolution: { inputs, configuration, sources in
+            IconCompositionResolver.resolve(
+                inputs: IconResolutionInputs(system: inputs, sources: sources),
+                configuration: configuration
+            )
+        },
         snapshotScheduler: snapshotScheduler
     )
 }

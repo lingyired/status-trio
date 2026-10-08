@@ -3,6 +3,36 @@ import Foundation
 
 @MainActor
 enum IconPresentationResourceResolver {
+    static func sourceSnapshot(snapshot: StatusSnapshot) -> IconSourceSnapshot {
+        let networkAvailability: IconSourceAvailability = switch snapshot.wifi.state {
+        case .connected, .noInternet, .hotspot, .temporary, .shared:
+            .available
+        case .notAssociated, .off:
+            .unavailable(.disconnected)
+        case .unavailable:
+            .unavailable(.unknown)
+        }
+        let bluetoothAvailability: IconSourceAvailability =
+            snapshot.volume.currentDevice?.isBluetoothAudio == true
+                ? .available
+                : .unavailable(.disconnected)
+        let volumeAvailability: IconSourceAvailability = snapshot.volume.scalar != nil
+            ? .available
+            : .unavailable(.unknown)
+        let batteryAvailability: IconSourceAvailability = snapshot.battery.isPresent
+            ? .available
+            : .unavailable(.disconnected)
+
+        return IconSourceSnapshot(availability: [
+            CenterSource.network.rawValue: networkAvailability,
+            CenterSource.bluetoothAudioOutput.rawValue: bluetoothAvailability,
+            CenterSource.systemBatteryPercentage.rawValue: batteryAvailability,
+            RingSource.systemBattery.rawValue: batteryAvailability,
+            RingSource.airPodsBattery.rawValue: .unavailable(.unavailable),
+            FooterSource.systemVolume.rawValue: volumeAvailability
+        ])
+    }
+
     static func inputs(
         snapshot: StatusSnapshot,
         fileExists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) },

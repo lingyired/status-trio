@@ -170,19 +170,24 @@ final class AppEnvironment {
         let iconPresentation = IconPresentationViewModel(
             snapshot: store.snapshot,
             settings: IconPresentationSettings(
-                configuration: IconPresentationConfiguration(
-                    battery: appearance.batteryOptions,
-                    connection: appearance.connectionOptions,
-                    volume: appearance.volumeOptions,
-                    bluetooth: appearance.bluetoothAudioOptions
-                ),
+                configuration: settings.iconConfiguration.legacyPresentationConfiguration,
                 menuBarSize: appearance.iconSize,
-                testsChargingEffect: settings.testsChargingEffect
+                testsChargingEffect: settings.testsChargingEffect,
+                designerConfiguration: settings.iconConfiguration
             ),
             snapshots: store.$snapshot.eraseToAnyPublisher(),
             preferences: settings.iconPresentationPublisher,
             resolveInputs: { snapshot in
                 IconPresentationResourceResolver.inputs(snapshot: snapshot)
+            },
+            mapResolution: { inputs, configuration, sources in
+                IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(system: inputs, sources: sources),
+                    configuration: configuration
+                )
+            },
+            resolveSourceSnapshot: { snapshot in
+                IconPresentationResourceResolver.sourceSnapshot(snapshot: snapshot)
             }
         )
         let chargingEffectClock = ChargingEffectClock()

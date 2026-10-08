@@ -60,6 +60,200 @@ final class IconPresentationViewModelTests: XCTestCase {
         model.stop()
     }
 
+    func testResolutionTracePublishesIndependentlyFromRenderedScene() {
+        let initial = PresentationFixtures.snapshot(rssi: -40)
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(initial)
+        let settings = IconPresentationSettings(
+            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
+            designerConfiguration: .classic
+        )
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let scheduler = ManualIconPresentationScheduler()
+        let scene = IconSceneState(center: .symbol(IconSymbolState(
+            source: .symbol(name: "wifi", variableValue: nil, fallback: nil), color: .primary, scale: 1
+        )))
+        let model = IconPresentationViewModel(
+            snapshot: initial, settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            mapResolution: { inputs, _, _ in
+                let sourceID = inputs.snapshot.wifi.rssi == -40 ? "network" : "bluetoothAudioOutput"
+                return IconResolutionOutput(
+                    scene: scene,
+                    trace: IconResolutionTrace(
+                        outerRing: .empty,
+                        center: SlotResolutionTrace(
+                            selectedSourceID: sourceID, role: .primary, primaryFailure: nil, reason: .primary
+                        ),
+                        footer: .empty
+                    )
+                )
+            },
+            snapshotScheduler: scheduler
+        )
+
+        XCTAssertEqual(model.output.scene, scene)
+        XCTAssertEqual(model.output.trace.center.selectedSourceID, "network")
+        let menuBarKeyBefore = StatusBarRenderKey(
+            scene: model.output.scene, iconSize: model.output.menuBarSize, backingScale: 2,
+            appearanceName: "aqua", phase: nil
+        )
+        let dockKeyBefore = DockIconRenderKey(scene: model.output.scene, backgroundStyle: .dark, pixelLength: 1024)
+        model.start()
+        snapshots.send(PresentationFixtures.snapshot(rssi: -80))
+        scheduler.runScheduled()
+
+        XCTAssertEqual(model.output.scene, scene)
+        XCTAssertEqual(model.output.trace.center.selectedSourceID, "bluetoothAudioOutput")
+        XCTAssertEqual(StatusBarRenderKey(
+            scene: model.output.scene, iconSize: model.output.menuBarSize, backingScale: 2,
+            appearanceName: "aqua", phase: nil
+        ), menuBarKeyBefore, "Resolution-only trace changes do not alter the Menu Bar raster key.")
+        XCTAssertEqual(DockIconRenderKey(
+            scene: model.output.scene, backgroundStyle: .dark, pixelLength: 1024
+        ), dockKeyBefore, "Resolution-only trace changes do not alter the Dock raster key.")
+        model.stop()
+    }
+
+    func testTemporarilyUnknownSourcePublishesExpiryWithoutWaitingForAnotherSnapshot() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        var now = start
+        let initial = PresentationFixtures.snapshot(rssi: -40)
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(initial)
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .network)
+        let settings = IconPresentationSettings(
+            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
+            designerConfiguration: configuration
+        )
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let debounceScheduler = ManualIconPresentationScheduler()
+        let expiryScheduler = ManualIconPresentationScheduler()
+        let model = IconPresentationViewModel(
+            snapshot: initial, settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            mapResolution: { inputs, configuration, sources in
+                IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(system: inputs, sources: sources),
+                    configuration: configuration
+                )
+            },
+            resolveSourceSnapshot: { snapshot in
+                IconSourceSnapshot(availability: [
+                    CenterSource.network.rawValue: snapshot.wifi.rssi == -40
+                        ? .available : .unavailable(.unknown)
+                ])
+            },
+            now: { now },
+            snapshotScheduler: debounceScheduler,
+            holdExpiryScheduler: expiryScheduler
+        )
+
+        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.network.rawValue)
+        model.start()
+        snapshots.send(PresentationFixtures.snapshot(rssi: -80))
+        debounceScheduler.runScheduled()
+        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.network.rawValue, "The last-good source is held during transient unknown state.")
+        XCTAssertEqual(expiryScheduler.scheduledDelays.last, .seconds(2))
+
+        now = start.addingTimeInterval(2)
+        expiryScheduler.runScheduled()
+        XCTAssertNil(model.output.trace.center.selectedSourceID, "Expiry must republish even if no new snapshot arrives.")
+        model.stop()
+    }
+
+    func testStopStartClearsLastGoodSourceValue() {
+        let now = Date(timeIntervalSince1970: 2_000)
+        let connected = PresentationFixtures.snapshot(rssi: -40)
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(connected)
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .network)
+        let settings = IconPresentationSettings(
+            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
+            designerConfiguration: configuration
+        )
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let debounceScheduler = ManualIconPresentationScheduler()
+        let expiryScheduler = ManualIconPresentationScheduler()
+        let model = IconPresentationViewModel(
+            snapshot: connected, settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            mapResolution: { inputs, configuration, sources in
+                IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(system: inputs, sources: sources),
+                    configuration: configuration
+                )
+            },
+            resolveSourceSnapshot: { snapshot in
+                IconSourceSnapshot(availability: [
+                    CenterSource.network.rawValue: snapshot.wifi.state == .unavailable
+                        ? .unavailable(.unknown) : .available
+                ])
+            },
+            now: { now },
+            snapshotScheduler: debounceScheduler,
+            holdExpiryScheduler: expiryScheduler
+        )
+
+        model.start()
+        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.network.rawValue)
+        let unknown = StatusSnapshot(
+            battery: connected.battery,
+            wifi: .placeholder,
+            connection: .offline,
+            volume: connected.volume
+        )
+        snapshots.send(unknown)
+        debounceScheduler.runScheduled()
+        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.network.rawValue)
+        XCTAssertTrue(expiryScheduler.hasPendingAction)
+
+        model.stop()
+        XCTAssertFalse(expiryScheduler.hasPendingAction)
+        model.start()
+        XCTAssertNil(model.output.trace.center.selectedSourceID)
+        model.stop()
+    }
+
+    func testDesignerConfigurationPublishesImmediatelyWithoutWaitingForSnapshotDebounce() {
+        let initial = PresentationFixtures.snapshot(rssi: -40)
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(initial)
+        let initialConfiguration = IconConfigurationV1.classic
+        let initialSettings = IconPresentationSettings(
+            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
+            designerConfiguration: initialConfiguration
+        )
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(initialSettings)
+        let scheduler = ManualIconPresentationScheduler()
+        let model = IconPresentationViewModel(
+            snapshot: initial, settings: initialSettings,
+            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            mapResolution: { inputs, configuration, sources in
+                IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(system: inputs, sources: sources),
+                    configuration: configuration
+                )
+            },
+            snapshotScheduler: scheduler
+        )
+        model.start()
+        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.automaticLegacy.rawValue)
+
+        var changedConfiguration = initialConfiguration
+        changedConfiguration.composition.center = SlotSelection(primary: .network)
+        preferences.send(IconPresentationSettings(
+            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
+            designerConfiguration: changedConfiguration
+        ))
+
+        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.network.rawValue)
+        XCTAssertFalse(scheduler.hasPendingAction, "Configuration changes map immediately rather than waiting for the snapshot debounce.")
+        model.stop()
+    }
+
     func testInjectedMapperBuildsCanonicalAndChargingTestScenesFromProjectedSnapshot() {
         let original = PresentationFixtures.snapshot()
         XCTAssertFalse(original.battery.isCharging)

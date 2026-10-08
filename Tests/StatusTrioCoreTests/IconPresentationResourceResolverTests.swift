@@ -29,6 +29,47 @@ final class IconPresentationResourceResolverTests: XCTestCase {
         XCTAssertNil(inputs.audioIcon)
     }
 
+    func testAvailabilityDistinguishesConnectedDisconnectedAndUnknownSources() {
+        let bluetooth = AudioOutputDevice(
+            id: 1, name: "Bluetooth Output", isCurrent: true, transport: .bluetooth, iconURL: nil
+        )
+        let connected = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: StatusSnapshot(
+                battery: .placeholder,
+                wifi: WiFiStatus(state: .connected, rssi: -40),
+                connection: .wifi,
+                volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: bluetooth.name, currentDevice: bluetooth)
+            )
+        )
+        XCTAssertEqual(connected.availability["network"], .available)
+        XCTAssertEqual(connected.availability["systemBattery"], .available)
+        XCTAssertEqual(connected.availability["systemVolume"], .available)
+        XCTAssertEqual(connected.availability["bluetoothAudioOutput"], .available)
+
+        let disconnected = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: StatusSnapshot(
+                battery: BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                        isLowPowerMode: false, isConnectedToPower: false),
+                wifi: WiFiStatus(state: .off, rssi: nil),
+                connection: .offline,
+                volume: .placeholder
+            )
+        )
+        XCTAssertEqual(disconnected.availability["network"], .unavailable(.disconnected))
+        XCTAssertEqual(disconnected.availability["systemBattery"], .unavailable(.disconnected))
+        XCTAssertEqual(disconnected.availability["bluetoothAudioOutput"], .unavailable(.disconnected))
+
+        let unknown = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: StatusSnapshot(
+                battery: .placeholder,
+                wifi: .placeholder,
+                connection: .offline,
+                volume: .placeholder
+            )
+        )
+        XCTAssertEqual(unknown.availability["network"], .unavailable(.unknown))
+    }
+
     private func snapshot(device: AudioOutputDevice?) -> StatusSnapshot {
         StatusSnapshot(battery: .placeholder, wifi: .placeholder, connection: .wifi,
                       volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: device?.name, currentDevice: device))
