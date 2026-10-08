@@ -530,3 +530,12 @@
 "iconDesigner.colorRole.lowPower" = "طاقة منخفضة";
 "iconDesigner.colorRole.powered" = "موصول بالطاقة";
 "iconDesigner.colorRole.bluetooth" = "Bluetooth";
+"icon.preview.scenario.airPodsConnected" = "AirPods متصلة";
+"icon.preview.scenario.airPodsDisconnected" = "AirPods غير متصلة";
+"icon.designer.airPods.ringBehavior" = "تخطيط حلقة AirPods";
+"icon.designer.airPods.ring.single" = "حلقة واحدة";
+"icon.designer.airPods.ring.dual" = "حلقتان لليسرى واليمنى";
+"icon.designer.airPods.singleExplanation" = "حلقة واحدة: تُستخدم البطارية الرئيسية أولاً، وإلا فمتوسط الجانبين أو الجانب المتاح. لا تتوفر بيانات العلبة وحدها.";
+"icon.designer.airPods.dualExplanation" = "حلقتان: يظهر كل جانب في قوس ثابت. عند غياب أحدهما يُعرض الجانب المعروف فقط؛ ولا تحل العلبة محله.";
+"icon.designer.airPods.partialExplanation" = "أحد الجانبين غير متاح؛ يُعرض الجانب المتاح فقط.";
+"icon.designer.airPods.focusPreset" = "تركيز AirPods";

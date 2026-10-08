@@ -46,8 +46,9 @@ final class IconDesignerLifecycleTests: XCTestCase {
         XCTAssertFalse(preview.playback.isPlaying)
     }
 
-    func testOnlyPhaseFourCompleteScenariosAreExposed() {
+    func testAirPodsPreviewScenariosAreExposedAfterPhaseFive() {
         XCTAssertEqual(IconDesignerPreviewState.availableScenarios, IconPreviewScenario.allCases)
-        XCTAssertFalse(IconDesignerPreviewState.availableScenarios.contains { $0.rawValue.lowercased().contains("airpods") })
+        XCTAssertTrue(IconDesignerPreviewState.availableScenarios.contains(.airPodsConnected))
+        XCTAssertTrue(IconDesignerPreviewState.availableScenarios.contains(.airPodsDisconnected))
     }
 }

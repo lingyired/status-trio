@@ -38,11 +38,12 @@ func chooseSource<Source: Codable & Hashable & Sendable>(
 }
 
 enum IconCompositionResolver {
-    static func resolve(inputs: IconResolutionInputs, configuration rawConfiguration: IconConfigurationV1) -> IconResolutionOutput {
+    static func resolve(inputs: IconResolutionInputs, configuration rawConfiguration: IconConfigurationV1, now: Date = .now) -> IconResolutionOutput {
         let configuration = rawConfiguration.normalized()
         let legacy = configuration.legacyPresentationConfiguration
 
-        let ring = OuterRingResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy)
+        let ring = OuterRingResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy,
+                                             behavior: configuration.behaviors.airPodsRing, now: now)
         let center = CenterResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy)
         let footer = FooterResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy)
         return IconResolutionOutput(

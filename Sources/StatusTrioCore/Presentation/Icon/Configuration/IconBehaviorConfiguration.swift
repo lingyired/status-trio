@@ -5,12 +5,50 @@ struct IconBehaviorConfiguration: Codable, Equatable, Sendable {
     var networkCenter: NetworkCenterBehavior
     var bluetoothAudioCenter: BluetoothAudioCenterBehavior
     var systemVolumeFooter: SystemVolumeFooterBehavior
+    var airPodsRing: AirPodsRingBehavior
+
+    enum CodingKeys: String, CodingKey {
+        case systemBatteryRing, networkCenter, bluetoothAudioCenter, systemVolumeFooter, airPodsRing
+    }
+
+    init(
+        systemBatteryRing: SystemBatteryRingBehavior,
+        networkCenter: NetworkCenterBehavior,
+        bluetoothAudioCenter: BluetoothAudioCenterBehavior,
+        systemVolumeFooter: SystemVolumeFooterBehavior,
+        airPodsRing: AirPodsRingBehavior = .single
+    ) {
+        self.systemBatteryRing = systemBatteryRing
+        self.networkCenter = networkCenter
+        self.bluetoothAudioCenter = bluetoothAudioCenter
+        self.systemVolumeFooter = systemVolumeFooter
+        self.airPodsRing = airPodsRing
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        systemBatteryRing = try container.decode(SystemBatteryRingBehavior.self, forKey: .systemBatteryRing)
+        networkCenter = try container.decode(NetworkCenterBehavior.self, forKey: .networkCenter)
+        bluetoothAudioCenter = try container.decode(BluetoothAudioCenterBehavior.self, forKey: .bluetoothAudioCenter)
+        systemVolumeFooter = try container.decode(SystemVolumeFooterBehavior.self, forKey: .systemVolumeFooter)
+        airPodsRing = try container.decodeIfPresent(AirPodsRingBehavior.self, forKey: .airPodsRing) ?? .single
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(systemBatteryRing, forKey: .systemBatteryRing)
+        try container.encode(networkCenter, forKey: .networkCenter)
+        try container.encode(bluetoothAudioCenter, forKey: .bluetoothAudioCenter)
+        try container.encode(systemVolumeFooter, forKey: .systemVolumeFooter)
+        try container.encode(airPodsRing, forKey: .airPodsRing)
+    }
 
     static let classic = Self(
         systemBatteryRing: .classic,
         networkCenter: .classic,
         bluetoothAudioCenter: .classic,
-        systemVolumeFooter: .classic
+        systemVolumeFooter: .classic,
+        airPodsRing: .single
     )
 }
 

@@ -2,6 +2,24 @@ import XCTest
 @testable import StatusTrioCore
 
 final class IconDesignerEditingTests: XCTestCase {
+    func testAirPodsFocusPresetConfiguresDualBatteryRingWithoutChangingOtherSlotsOrAppearance() {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .network, fallback: .bluetoothAudioOutput)
+        configuration.composition.footer = SlotSelection(primary: .none)
+        configuration.appearance.outerRing.strokeScale = 1.6
+        let center = configuration.composition.center
+        let footer = configuration.composition.footer
+        let appearance = configuration.appearance
+
+        let focused = IconDesignerEditingModel.applyingAirPodsFocus(to: configuration)
+
+        XCTAssertEqual(focused.composition.outerRing, SlotSelection(primary: .airPodsBattery, fallback: .systemBattery))
+        XCTAssertEqual(focused.behaviors.airPodsRing, .dual)
+        XCTAssertEqual(focused.composition.center, center)
+        XCTAssertEqual(focused.composition.footer, footer)
+        XCTAssertEqual(focused.appearance, appearance)
+    }
+
     func testEditingFallbackDoesNotChangePrimary() {
         var configuration = IconConfigurationV1.classic
         configuration.composition.center = SlotSelection(primary: .network)

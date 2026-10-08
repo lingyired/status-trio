@@ -1,3 +1,5 @@
+import Foundation
+
 import Testing
 @testable import StatusTrioCore
 
@@ -85,6 +87,25 @@ struct IconPreviewScenarioTests {
         let restored = IconPreviewScenario.live.makeInputs(basedOn: latest)
         #expect(restored == latest)
         #expect(IconCompositionResolver.resolve(inputs: restored, configuration: configuration).scene.center == liveOutput.scene.center)
+    }
+
+    @Test func airPodsScenariosReachProductionResolverWithoutClaimingLiveAvailability() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery, fallback: .systemBattery)
+        configuration.behaviors.airPodsRing = .dual
+
+        let connected = IconPreviewScenario.airPodsConnected.makeInputs(basedOn: liveInput, now: now)
+        let connectedOutput = IconCompositionResolver.resolve(inputs: connected, configuration: configuration, now: now)
+        #expect(connected.sources.airPodsBattery != nil)
+        #expect(connectedOutput.trace.outerRing.selectedSourceID == RingSource.airPodsBattery.rawValue)
+        #expect(connectedOutput.scene.outerRing?.layout == .leftRight)
+
+        let disconnected = IconPreviewScenario.airPodsDisconnected.makeInputs(basedOn: connected, now: now)
+        let disconnectedOutput = IconCompositionResolver.resolve(inputs: disconnected, configuration: configuration, now: now)
+        #expect(disconnected.sources.airPodsBattery == nil)
+        #expect(disconnectedOutput.trace.outerRing.selectedSourceID == RingSource.systemBattery.rawValue)
+        #expect(disconnectedOutput.trace.outerRing.role == .fallback)
     }
 
     @Test func wiredScenarioUsesExistingConnectionValueWithoutReachabilityState() {

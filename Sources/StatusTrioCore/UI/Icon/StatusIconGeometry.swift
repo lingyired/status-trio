@@ -548,6 +548,41 @@ enum StatusIconGeometry {
         return path
     }
 
+    static let airPodsMinimumGapWidth: CGFloat = 16
+    static let airPodsMaximumGapWidth: CGFloat = 24
+    static let airPodsGapWidth: CGFloat = 18
+
+    static func airPodsTrack(position: RingSegmentPosition, gapWidth: CGFloat = airPodsGapWidth) -> CGPath {
+        airPodsArc(position: position, progress: 1, gapWidth: gapWidth)
+    }
+
+    static func airPodsArc(
+        position: RingSegmentPosition,
+        progress: Double,
+        gapWidth: CGFloat = airPodsGapWidth
+    ) -> CGPath {
+        guard progress.isFinite else { return CGMutablePath() }
+        let fraction = min(1, max(0, progress))
+        guard fraction > 0 else { return CGMutablePath() }
+
+        let safeGap = gapWidth.isFinite
+            ? min(airPodsMaximumGapWidth, max(airPodsMinimumGapWidth, gapWidth))
+            : 10
+        let gapAngle = safeGap / batteryRadius
+        let halfSweep = (batterySweep - gapAngle) / 2
+        let start: CGFloat
+        let end: CGFloat
+        switch position {
+        case .left:
+            start = batteryStart
+            end = batteryStart + halfSweep * CGFloat(fraction)
+        case .right:
+            start = batteryStart + halfSweep + gapAngle
+            end = start + halfSweep * CGFloat(fraction)
+        }
+        return arc(center: batteryCenter, radius: batteryRadius, start: start, end: end)
+    }
+
     private static func arc(
         center: CGPoint,
         radius: CGFloat,

@@ -25,9 +25,11 @@ enum IconPaletteResolver {
         let outerRing = scene.outerRing.map { ring in
             OuterRingState(
                 segments: ring.segments.map {
-                    RingSegmentState(progress: $0.progress, color: resolve(role: $0.color, style: appearance.outerRing.color))
+                    RingSegmentState(progress: $0.progress, color: resolve(role: $0.color, style: appearance.outerRing.color), position: $0.position)
                 },
                 gap: ring.gap,
+                layout: ring.layout,
+                isPartial: ring.isPartial,
                 accessory: ring.accessory.map { accessory in
                     switch accessory {
                     case let .symbol(symbol):

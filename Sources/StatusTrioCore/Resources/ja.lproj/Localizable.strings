@@ -530,3 +530,12 @@
 "iconDesigner.colorRole.lowPower" = "低電力";
 "iconDesigner.colorRole.powered" = "給電中";
 "iconDesigner.colorRole.bluetooth" = "Bluetooth";
+"icon.preview.scenario.airPodsConnected" = "AirPods 接続中";
+"icon.preview.scenario.airPodsDisconnected" = "AirPods 未接続";
+"icon.designer.airPods.ringBehavior" = "AirPods リングレイアウト";
+"icon.designer.airPods.ring.single" = "シングルリング";
+"icon.designer.airPods.ring.dual" = "左右デュアルリング";
+"icon.designer.airPods.singleExplanation" = "シングルリング：メインの電池残量を優先し、なければ両耳の平均、または取得できる片耳を表示します。ケースのみの場合は利用できません。";
+"icon.designer.airPods.dualExplanation" = "デュアルリング：左右のイヤホンを固定された左右の弧に表示します。片耳が不明な場合は取得できる側だけを表示し、ケースで代用しません。";
+"icon.designer.airPods.partialExplanation" = "片耳の残量を取得できません。取得できる側のみ表示します。";
+"icon.designer.airPods.focusPreset" = "AirPods フォーカス";

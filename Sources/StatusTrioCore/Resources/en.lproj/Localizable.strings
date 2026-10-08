@@ -530,3 +530,12 @@
 "iconDesigner.colorRole.lowPower" = "Low Power";
 "iconDesigner.colorRole.powered" = "Powered";
 "iconDesigner.colorRole.bluetooth" = "Bluetooth";
+"icon.preview.scenario.airPodsConnected" = "AirPods connected";
+"icon.preview.scenario.airPodsDisconnected" = "AirPods disconnected";
+"icon.designer.airPods.ringBehavior" = "AirPods ring layout";
+"icon.designer.airPods.ring.single" = "Single ring";
+"icon.designer.airPods.ring.dual" = "Left / right dual rings";
+"icon.designer.airPods.singleExplanation" = "Single ring: use the main battery value; otherwise average both ears, or show the one available ear. Case-only data is unavailable.";
+"icon.designer.airPods.dualExplanation" = "Dual rings: left and right ears use fixed separate arcs. If one ear is missing, the available ear is shown alone; the case never substitutes.";
+"icon.designer.airPods.partialExplanation" = "One ear is unavailable; showing the available ear only.";
+"icon.designer.airPods.focusPreset" = "AirPods Focus";

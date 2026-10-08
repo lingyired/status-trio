@@ -530,3 +530,12 @@
 "iconDesigner.colorRole.lowPower" = "Bajo consumo";
 "iconDesigner.colorRole.powered" = "Con alimentación";
 "iconDesigner.colorRole.bluetooth" = "Bluetooth";
+"icon.preview.scenario.airPodsConnected" = "AirPods conectados";
+"icon.preview.scenario.airPodsDisconnected" = "AirPods desconectados";
+"icon.designer.airPods.ringBehavior" = "Diseño del anillo de AirPods";
+"icon.designer.airPods.ring.single" = "Anillo único";
+"icon.designer.airPods.ring.dual" = "Anillos dobles izquierdo/derecho";
+"icon.designer.airPods.singleExplanation" = "Anillo único: prioriza el valor principal; si no existe, usa la media de ambos auriculares o muestra el disponible. Solo el estuche no está disponible.";
+"icon.designer.airPods.dualExplanation" = "Anillos dobles: cada auricular ocupa un arco fijo a izquierda o derecha. Si falta uno, solo se muestra el conocido; el estuche no lo sustituye.";
+"icon.designer.airPods.partialExplanation" = "Un auricular no está disponible; se muestra solo el disponible.";
+"icon.designer.airPods.focusPreset" = "Enfoque AirPods";

@@ -530,3 +530,12 @@
 "iconDesigner.colorRole.lowPower" = "저전력";
 "iconDesigner.colorRole.powered" = "전원 연결";
 "iconDesigner.colorRole.bluetooth" = "Bluetooth";
+"icon.preview.scenario.airPodsConnected" = "AirPods 연결됨";
+"icon.preview.scenario.airPodsDisconnected" = "AirPods 연결 해제됨";
+"icon.designer.airPods.ringBehavior" = "AirPods 링 레이아웃";
+"icon.designer.airPods.ring.single" = "단일 링";
+"icon.designer.airPods.ring.dual" = "좌우 듀얼 링";
+"icon.designer.airPods.singleExplanation" = "단일 링: 메인 배터리를 우선 사용하고, 없으면 양쪽 평균 또는 사용 가능한 한쪽을 표시합니다. 케이스만 있으면 사용할 수 없습니다.";
+"icon.designer.airPods.dualExplanation" = "듀얼 링: 왼쪽과 오른쪽 이어버드를 고정된 좌우 호에 표시합니다. 한쪽이 없으면 확인된 쪽만 표시하고 케이스로 대체하지 않습니다.";
+"icon.designer.airPods.partialExplanation" = "한쪽 배터리를 사용할 수 없어 확인된 쪽만 표시합니다.";
+"icon.designer.airPods.focusPreset" = "AirPods 집중";

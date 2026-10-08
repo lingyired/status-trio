@@ -43,6 +43,18 @@ enum IconDesignerBehaviorCapability: Hashable, Sendable {
 }
 
 enum IconDesignerEditingModel {
+    static func requiresAirPodsBattery(in configuration: IconConfigurationV1) -> Bool {
+        configuration.composition.outerRing.primary == .airPodsBattery
+            || configuration.composition.outerRing.fallback == .airPodsBattery
+    }
+
+    static func applyingAirPodsFocus(to configuration: IconConfigurationV1) -> IconConfigurationV1 {
+        var copy = configuration
+        copy.composition.outerRing = SlotSelection(primary: .airPodsBattery, fallback: .systemBattery)
+        copy.behaviors.airPodsRing = .dual
+        return copy.normalized()
+    }
+
     static func behaviorTargets(for slot: IconSlot, in configuration: IconConfigurationV1) -> [IconDesignerBehaviorTarget] {
         let fallbackExists: Bool = switch slot {
         case .outerRing: configuration.composition.outerRing.fallback != nil

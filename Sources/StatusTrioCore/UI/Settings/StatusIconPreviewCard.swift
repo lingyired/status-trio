@@ -176,6 +176,10 @@ struct StatusIconPreviewCard: View {
                 Text(localization.format(.iconDesignerPreviewReasonFormat, role, reason))
                     .accessibilityLabel(localization.format(.iconDesignerPreviewReasonFormat, role, reason))
             }
+            if designerResolution.scene.outerRing?.isPartial == true {
+                Text(localization.string(.iconDesignerAirPodsPartialExplanation))
+                    .accessibilityLabel(localization.string(.iconDesignerAirPodsPartialExplanation))
+            }
         }
         .font(.system(size: 10))
         .foregroundStyle(.secondary)

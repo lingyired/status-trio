@@ -530,3 +530,12 @@
 "iconDesigner.colorRole.lowPower" = "Низкое энергопотребление";
 "iconDesigner.colorRole.powered" = "Питание подключено";
 "iconDesigner.colorRole.bluetooth" = "Bluetooth";
+"icon.preview.scenario.airPodsConnected" = "AirPods подключены";
+"icon.preview.scenario.airPodsDisconnected" = "AirPods отключены";
+"icon.designer.airPods.ringBehavior" = "Вид кольца AirPods";
+"icon.designer.airPods.ring.single" = "Одно кольцо";
+"icon.designer.airPods.ring.dual" = "Два кольца: левое/правое";
+"icon.designer.airPods.singleExplanation" = "Одно кольцо: сначала используется основное значение, иначе среднее двух наушников или заряд доступного наушника. Только заряд кейса недоступен.";
+"icon.designer.airPods.dualExplanation" = "Два кольца: левый и правый наушники занимают фиксированные дуги. Если одного нет, показывается только известный; кейс его не заменяет.";
+"icon.designer.airPods.partialExplanation" = "Один наушник недоступен; показывается только доступный.";
+"icon.designer.airPods.focusPreset" = "Фокус AirPods";

@@ -10,8 +10,10 @@ enum IconPreviewScenario: String, CaseIterable, Hashable, Sendable {
     case batteryCharging
     case batteryCriticallyLow
     case volumeMuted
+    case airPodsConnected
+    case airPodsDisconnected
 
-    func makeInputs(basedOn liveInputs: IconResolutionInputs) -> IconResolutionInputs {
+    func makeInputs(basedOn liveInputs: IconResolutionInputs, now: Date = .now) -> IconResolutionInputs {
         guard self != .live else { return liveInputs }
 
         let current = liveInputs.system.snapshot
@@ -63,6 +65,11 @@ enum IconPreviewScenario: String, CaseIterable, Hashable, Sendable {
                 canSetVolume: current.volume.canSetVolume,
                 canMute: current.volume.canMute
             )
+        case .airPodsConnected, .airPodsDisconnected:
+            battery = current.battery
+            wifi = current.wifi
+            connection = current.connection
+            volume = current.volume
         }
 
         let snapshot = StatusSnapshot(battery: battery, wifi: wifi, connection: connection, volume: volume)
@@ -81,9 +88,34 @@ enum IconPreviewScenario: String, CaseIterable, Hashable, Sendable {
             ? .available
             : .unavailable(.unknown)
 
+        var airPodsBattery = liveInputs.sources.airPodsBattery
+        switch self {
+        case .airPodsConnected:
+            airPodsBattery = AirPodsBatteryIconSnapshot(
+                deviceAddress: "PREVIEW-AIRPODS",
+                model: .airPodsPro,
+                main: nil,
+                left: 73,
+                right: 68,
+                caseLevel: 81,
+                observedAt: now
+            )
+            availability[RingSource.airPodsBattery.rawValue] = .available
+        case .airPodsDisconnected:
+            airPodsBattery = nil
+            availability[RingSource.airPodsBattery.rawValue] = .unavailable(.disconnected)
+        case .live, .networkHealthy, .networkNoInternet, .wifiOffEthernetConnected,
+             .batteryCharging, .batteryCriticallyLow, .volumeMuted:
+            break
+        }
+
         return IconResolutionInputs(
             system: IconPresentationInputs(snapshot: snapshot, audioIcon: liveInputs.system.audioIcon),
-            sources: IconSourceSnapshot(availability: availability)
+            sources: IconSourceSnapshot(
+                availability: availability,
+                airPodsBattery: airPodsBattery,
+                connectedBluetoothDeviceSymbol: liveInputs.sources.connectedBluetoothDeviceSymbol
+            )
         )
     }
 

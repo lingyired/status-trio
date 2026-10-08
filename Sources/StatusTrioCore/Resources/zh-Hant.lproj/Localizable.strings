@@ -529,3 +529,12 @@
 "iconDesigner.colorRole.lowPower" = "低耗電";
 "iconDesigner.colorRole.powered" = "已供電";
 "iconDesigner.colorRole.bluetooth" = "藍牙";
+"icon.preview.scenario.airPodsConnected" = "AirPods 已連線";
+"icon.preview.scenario.airPodsDisconnected" = "AirPods 已中斷連線";
+"icon.designer.airPods.ringBehavior" = "AirPods 圓環配置";
+"icon.designer.airPods.ring.single" = "單圓環";
+"icon.designer.airPods.ring.dual" = "左右雙圓環";
+"icon.designer.airPods.singleExplanation" = "單圓環：優先使用總電量；否則取左右耳平均值，或顯示有資料的一側。僅有充電盒電量時不可用。";
+"icon.designer.airPods.dualExplanation" = "雙圓環：左右耳分別固定顯示在左右弧段。缺少一側時只顯示已知耳機電量；充電盒不會替代耳機。";
+"icon.designer.airPods.partialExplanation" = "一側無法使用；僅顯示有電量的一側。";
+"icon.designer.airPods.focusPreset" = "AirPods 專注";

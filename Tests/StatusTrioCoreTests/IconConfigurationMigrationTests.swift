@@ -4,6 +4,22 @@ import XCTest
 
 @MainActor
 final class IconConfigurationMigrationTests: XCTestCase {
+    func testOlderV1PayloadWithoutAirPodsBehaviorDecodesAsSingleRingAndRoundTripsDual() throws {
+        let encoded = try JSONEncoder().encode(IconConfigurationV1.classic)
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        var behaviors = try XCTUnwrap(object["behaviors"] as? [String: Any])
+        behaviors.removeValue(forKey: "airPodsRing")
+        object["behaviors"] = behaviors
+        let olderPayload = try JSONSerialization.data(withJSONObject: object)
+
+        let decoded = try JSONDecoder().decode(IconConfigurationV1.self, from: olderPayload)
+        XCTAssertEqual(decoded.behaviors.airPodsRing, .single)
+
+        var dual = decoded
+        dual.behaviors.airPodsRing = .dual
+        XCTAssertEqual(try JSONDecoder().decode(IconConfigurationV1.self, from: JSONEncoder().encode(dual)), dual)
+    }
+
     func testStandardMigrationKeepsScene() {
         let inputs = IconPresentationInputs(snapshot: PresentationFixtures.snapshot(), audioIcon: nil)
         let migrated = IconConfigurationMigration.makeConfiguration(from: .standard)

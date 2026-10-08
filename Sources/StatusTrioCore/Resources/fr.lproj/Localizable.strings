@@ -530,3 +530,12 @@
 "iconDesigner.colorRole.lowPower" = "Faible énergie";
 "iconDesigner.colorRole.powered" = "Alimenté";
 "iconDesigner.colorRole.bluetooth" = "Bluetooth";
+"icon.preview.scenario.airPodsConnected" = "AirPods connectés";
+"icon.preview.scenario.airPodsDisconnected" = "AirPods déconnectés";
+"icon.designer.airPods.ringBehavior" = "Disposition de l’anneau AirPods";
+"icon.designer.airPods.ring.single" = "Anneau simple";
+"icon.designer.airPods.ring.dual" = "Doubles anneaux gauche/droite";
+"icon.designer.airPods.singleExplanation" = "Anneau simple : utiliser d’abord la valeur principale, sinon la moyenne des deux écouteurs ou celui qui est disponible. Le boîtier seul ne suffit pas.";
+"icon.designer.airPods.dualExplanation" = "Doubles anneaux : chaque écouteur occupe un arc fixe à gauche ou à droite. Si l’un manque, seul celui connu s’affiche ; le boîtier ne le remplace pas.";
+"icon.designer.airPods.partialExplanation" = "Un écouteur est indisponible ; seul celui disponible est affiché.";
+"icon.designer.airPods.focusPreset" = "Focus AirPods";

@@ -12,6 +12,8 @@ struct DockIconRenderKey: Hashable {
             outerRing: OuterRingState(
                 segments: ring.segments,
                 gap: ring.gap,
+                layout: ring.layout,
+                isPartial: ring.isPartial,
                 accessory: ring.accessory,
                 effect: nil,
                 strokeScale: ring.strokeScale,

@@ -628,7 +628,19 @@ extension StatusIconRenderer {
     }
 
     private static func supports(_ scene: IconSceneState) -> Bool {
-        if let ring = scene.outerRing, ring.segments.count != 1 { return false }
+        if let ring = scene.outerRing {
+            switch ring.layout {
+            case .standard:
+                guard ring.segments.count == 1 else { return false }
+            case .leftRight:
+                let positions = ring.segments.compactMap(\.position)
+                guard ring.segments.count == 2,
+                      positions.count == 2,
+                      Set(positions) == Set([.left, .right]) else {
+                    return false
+                }
+            }
+        }
         if case let .dots(dots) = scene.footer,
            dots.count > StatusIconGeometry.volumeDots().count {
             return false
@@ -643,6 +655,10 @@ extension StatusIconRenderer {
         criticalColor: CGColor,
         phase: ChargingEffectPhase?
     ) {
+        if ring.layout == .leftRight {
+            drawAirPodsRing(ring, in: context, foreground: foreground, criticalColor: criticalColor)
+            return
+        }
         guard let segment = ring.segments.first else { return }
         let hasTopGap = ring.gap != .closed
         let topGapWidth = ring.gap == .indicator
@@ -747,6 +763,28 @@ extension StatusIconRenderer {
                     in: context
                 )
             }
+        }
+    }
+
+    private static func drawAirPodsRing(
+        _ ring: OuterRingState,
+        in context: CGContext,
+        foreground: CGColor,
+        criticalColor: CGColor
+    ) {
+        let lineWidth = min(12, 8 * CGFloat(ring.strokeScale))
+        context.setLineWidth(lineWidth)
+        context.setStrokeColor(sceneColor(for: ring.inactiveColor, foreground: foreground, criticalColor: criticalColor))
+        for position in [RingSegmentPosition.left, .right] {
+            context.addPath(StatusIconGeometry.airPodsTrack(position: position))
+        }
+        context.strokePath()
+
+        for segment in ring.segments {
+            guard let position = segment.position else { continue }
+            context.setStrokeColor(sceneColor(for: segment.color, foreground: foreground, criticalColor: criticalColor))
+            context.addPath(StatusIconGeometry.airPodsArc(position: position, progress: segment.progress))
+            context.strokePath()
         }
     }
 

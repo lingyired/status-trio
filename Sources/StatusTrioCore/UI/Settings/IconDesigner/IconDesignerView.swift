@@ -19,6 +19,8 @@ struct IconDesignerView: View {
         case .batteryCharging: .iconPreviewScenarioBatteryCharging
         case .batteryCriticallyLow: .iconPreviewScenarioBatteryLow
         case .volumeMuted: .iconPreviewScenarioVolumeMuted
+        case .airPodsConnected: .iconPreviewScenarioAirPodsConnected
+        case .airPodsDisconnected: .iconPreviewScenarioAirPodsDisconnected
         }
         return localization.string(key)
     }

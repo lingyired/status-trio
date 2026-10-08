@@ -59,6 +59,9 @@ struct IconBehaviorEditor: View {
 
     private var batteryBehavior: some View {
         Group {
+            if IconDesignerEditingModel.requiresAirPodsBattery(in: store.iconConfiguration) {
+                airPodsRingBehavior
+            }
             toggle(localization.string(.iconDesignerControlShowPercentage), get: { $0.behaviors.systemBatteryRing.showsPercentage }, set: { $0.behaviors.systemBatteryRing.showsPercentage = $1 })
             toggle(localization.string(.iconDesignerControlShowChargingIndicator), get: { $0.behaviors.systemBatteryRing.showsChargingIndicator }, set: { $0.behaviors.systemBatteryRing.showsChargingIndicator = $1 })
             toggle(localization.string(.iconDesignerControlChargingAnimation), get: { $0.behaviors.systemBatteryRing.showsChargingEffect }, set: { $0.behaviors.systemBatteryRing.showsChargingEffect = $1 })
@@ -131,6 +134,24 @@ struct IconBehaviorEditor: View {
                 get: { store.iconConfiguration.behaviors.bluetoothAudioCenter.symbolScale },
                 set: { value in store.updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.symbolScale = value } }
             ), range: 1...3)
+        }
+    }
+
+    private var airPodsRingBehavior: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Picker(localization.string(.iconDesignerAirPodsRingBehavior), selection: Binding(
+                get: { store.iconConfiguration.behaviors.airPodsRing },
+                set: { value in store.updateIconConfiguration { $0.behaviors.airPodsRing = value } }
+            )) {
+                Text(localization.string(.iconDesignerAirPodsRingSingle)).tag(AirPodsRingBehavior.single)
+                Text(localization.string(.iconDesignerAirPodsRingDual)).tag(AirPodsRingBehavior.dual)
+            }
+            Text(localization.string(store.iconConfiguration.behaviors.airPodsRing == .single
+                                     ? .iconDesignerAirPodsSingleExplanation
+                                     : .iconDesignerAirPodsDualExplanation))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
