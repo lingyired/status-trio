@@ -75,7 +75,7 @@ final class IconConfigurationValidationTests: XCTestCase {
     }
 
     func testClassicIsPureValueAndDoesNotConstructMonitoring() {
-        XCTAssertEqual(IconConfigurationV1.classic.composition.outerRing.primary, .systemBattery)
+        XCTAssertEqual(IconConfigurationV1.classic.composition.outerRing.primary, .automaticLegacy)
         XCTAssertEqual(IconConfigurationV1.classic.composition.center.primary, .automaticLegacy)
         XCTAssertEqual(IconConfigurationV1.classic.composition.footer.primary, .systemVolume)
     }

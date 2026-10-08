@@ -7,6 +7,7 @@ enum IconSlot: String, Codable, CaseIterable, Sendable {
 }
 
 enum RingSource: String, Codable, CaseIterable, Sendable {
+    case automaticLegacy
     case systemBattery
     case airPodsBattery
     case none
@@ -44,7 +45,7 @@ struct IconCompositionConfiguration: Codable, Equatable, Sendable {
     var centerOverride: CenterOverridePolicy
 
     static let classic = Self(
-        outerRing: SlotSelection(primary: .systemBattery),
+        outerRing: SlotSelection(primary: .automaticLegacy),
         center: SlotSelection(primary: .automaticLegacy),
         footer: SlotSelection(primary: .systemVolume),
         centerOverride: CenterOverridePolicy(networkProblemOverridesPrimary: false)

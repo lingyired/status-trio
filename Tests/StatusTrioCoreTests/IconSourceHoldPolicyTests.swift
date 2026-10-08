@@ -60,11 +60,13 @@ final class IconSourceHoldPolicyTests: XCTestCase {
         XCTAssertNil(policy.expirationDate)
     }
 
-    func testExpiryDeadlineIsBoundedAndAbsentWithoutHistory() {
+    func testExpiryDeadlineIsCreatedOnlyAfterUnknownBeginsAHold() {
         let now = Date(timeIntervalSince1970: 100)
         var policy = IconSourceHoldPolicy<Int>()
         XCTAssertNil(policy.expirationDate)
         _ = policy.update(.available(5), sourceID: "network", at: now)
+        XCTAssertNil(policy.expirationDate, "Healthy values must not schedule a hold-expiry wake.")
+        _ = policy.update(.unavailable(.unknown), sourceID: "network", at: now.addingTimeInterval(0.5))
         XCTAssertEqual(policy.expirationDate, now.addingTimeInterval(2))
     }
 }

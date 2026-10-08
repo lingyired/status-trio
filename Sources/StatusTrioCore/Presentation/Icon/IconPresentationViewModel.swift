@@ -56,6 +56,12 @@ struct IconPresentationOutput: Equatable, Sendable {
     var trace: IconResolutionTrace = .empty
 }
 
+private enum IconHeldSlotState: Sendable {
+    case outerRing(OuterRingState)
+    case center(CenterState)
+    case footer(FooterState)
+}
+
 @MainActor
 final class IconPresentationViewModel: ObservableObject {
     static let snapshotDebounceInterval: Duration = .milliseconds(500)
@@ -79,6 +85,7 @@ final class IconPresentationViewModel: ObservableObject {
     private var receivedSettingsForStart = false
     private var synchronizedStart = false
     private var holdPolicies: [String: IconSourceHoldPolicy<Bool>] = [:]
+    private var lastGoodSlotStates: [String: IconHeldSlotState] = [:]
     private var holdGeneration = 0
 
     init(
@@ -185,24 +192,30 @@ final class IconPresentationViewModel: ObservableObject {
     }
 
     private func publishLatestOutput() {
-        let sources = heldSourceSnapshot(for: latestSnapshot, at: now())
-        let next = Self.output(
+        let heldSources = heldSourceSnapshot(for: latestSnapshot, at: now())
+        let resolved = Self.output(
             snapshot: latestSnapshot,
             settings: latestSettings,
             resolveInputs: resolveInputs,
             mapScene: mapScene,
             mapResolution: mapResolution,
-            sources: sources
+            sources: heldSources.snapshot
         )
+        updateLastGoodSlotStates(from: resolved, rawAvailability: heldSources.rawSnapshot)
+        let next = applyingHeldSlotStates(resolved, sourceIDs: heldSources.holdingSourceIDs)
         scheduleHoldExpiry()
         guard output != next else { return }
         output = next
     }
 
-    private func heldSourceSnapshot(for snapshot: StatusSnapshot, at date: Date) -> IconSourceSnapshot {
+    private func heldSourceSnapshot(
+        for snapshot: StatusSnapshot,
+        at date: Date
+    ) -> (snapshot: IconSourceSnapshot, rawSnapshot: IconSourceSnapshot, holdingSourceIDs: Set<String>) {
         let raw = resolveSourceSnapshot(snapshot)
         holdPolicies = holdPolicies.filter { raw.availability[$0.key] != nil }
         var held: [String: IconSourceAvailability] = [:]
+        var holdingSourceIDs: Set<String> = []
         for (sourceID, availability) in raw.availability {
             var policy = holdPolicies[sourceID] ?? IconSourceHoldPolicy<Bool>()
             let result: SourceResult<Bool> = switch availability {
@@ -210,13 +223,67 @@ final class IconPresentationViewModel: ObservableObject {
             case let .unavailable(reason): .unavailable(reason)
             }
             let value = policy.update(result, sourceID: sourceID, at: date)
+            if policy.isHolding { holdingSourceIDs.insert(sourceID) }
             holdPolicies[sourceID] = policy
             switch value {
             case .available: held[sourceID] = .available
             case let .unavailable(reason): held[sourceID] = .unavailable(reason)
             }
         }
-        return IconSourceSnapshot(availability: held)
+        let retainedSourceIDs = Set(raw.availability.compactMap { sourceID, availability in
+            if case .available = availability { return sourceID }
+            return holdingSourceIDs.contains(sourceID) ? sourceID : nil
+        })
+        lastGoodSlotStates = lastGoodSlotStates.filter { retainedSourceIDs.contains($0.key) }
+        return (IconSourceSnapshot(availability: held), raw, holdingSourceIDs)
+    }
+
+    private func updateLastGoodSlotStates(
+        from output: IconPresentationOutput,
+        rawAvailability: IconSourceSnapshot
+    ) {
+        for (sourceID, availability) in rawAvailability.availability {
+            guard case .available = availability else { continue }
+            if output.trace.outerRing.selectedSourceID == sourceID, let state = output.scene.outerRing {
+                lastGoodSlotStates[sourceID] = .outerRing(state)
+            } else if output.trace.center.selectedSourceID == sourceID, let state = output.scene.center {
+                lastGoodSlotStates[sourceID] = .center(state)
+            } else if output.trace.footer.selectedSourceID == sourceID, let state = output.scene.footer {
+                lastGoodSlotStates[sourceID] = .footer(state)
+            }
+        }
+    }
+
+    private func applyingHeldSlotStates(
+        _ output: IconPresentationOutput,
+        sourceIDs: Set<String>
+    ) -> IconPresentationOutput {
+        var outerRing = output.scene.outerRing
+        var center = output.scene.center
+        var footer = output.scene.footer
+        for sourceID in sourceIDs {
+            guard let heldState = lastGoodSlotStates[sourceID] else { continue }
+            switch heldState {
+            case let .outerRing(state) where output.trace.outerRing.selectedSourceID == sourceID:
+                outerRing = state
+            case let .center(state) where output.trace.center.selectedSourceID == sourceID:
+                center = state
+            case let .footer(state) where output.trace.footer.selectedSourceID == sourceID:
+                footer = state
+            default:
+                continue
+            }
+        }
+        let scene = IconSceneState(outerRing: outerRing, center: center, footer: footer)
+        let testScene = output.menuBarTestScene.map {
+            IconSceneState(
+                outerRing: outerRing == output.scene.outerRing ? $0.outerRing : outerRing,
+                center: center == output.scene.center ? $0.center : center,
+                footer: footer == output.scene.footer ? $0.footer : footer
+            )
+        }
+        return IconPresentationOutput(scene: scene, menuBarTestScene: testScene,
+                                      menuBarSize: output.menuBarSize, trace: output.trace)
     }
 
     private func scheduleHoldExpiry() {
@@ -233,6 +300,7 @@ final class IconPresentationViewModel: ObservableObject {
 
     private func resetHoldPolicies() {
         holdPolicies.removeAll(keepingCapacity: true)
+        lastGoodSlotStates.removeAll(keepingCapacity: true)
         holdGeneration &+= 1
         holdExpiryScheduler.cancel()
     }

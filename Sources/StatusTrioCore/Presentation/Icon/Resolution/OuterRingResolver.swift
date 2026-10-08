@@ -10,12 +10,15 @@ enum OuterRingResolver {
         let selected: SourceSelectionResult<RingSource> = chooseSource(selection, none: .none) { source -> SourceResult<Bool> in
             switch source {
             case .none: .unavailable(.unavailable)
+            case .automaticLegacy: .available(true)
             case .systemBattery: inputs.sources.result(for: source.rawValue, default: .available(true))
             case .airPodsBattery: inputs.sources.result(for: source.rawValue, default: .available(false))
             }
         }
         guard let source = selected.source else { return (nil, trace(selected, source: nil)) }
-        guard source == .systemBattery else { return (nil, trace(selected, source: source)) }
+        guard source == .systemBattery || source == .automaticLegacy else {
+            return (nil, trace(selected, source: source))
+        }
         return (IconPresentationMapper.scene(inputs: inputs.system, configuration: legacy).outerRing,
                 trace(selected, source: source))
     }

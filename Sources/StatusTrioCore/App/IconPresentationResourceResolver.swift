@@ -4,13 +4,18 @@ import Foundation
 @MainActor
 enum IconPresentationResourceResolver {
     static func sourceSnapshot(snapshot: StatusSnapshot) -> IconSourceSnapshot {
-        let networkAvailability: IconSourceAvailability = switch snapshot.wifi.state {
-        case .connected, .noInternet, .hotspot, .temporary, .shared:
-            .available
-        case .notAssociated, .off:
-            .unavailable(.disconnected)
-        case .unavailable:
-            .unavailable(.unknown)
+        let networkAvailability: IconSourceAvailability
+        if snapshot.connection == .ethernet {
+            networkAvailability = .available
+        } else {
+            networkAvailability = switch snapshot.wifi.state {
+            case .connected, .noInternet, .hotspot, .temporary, .shared:
+                .available
+            case .notAssociated, .off:
+                .unavailable(.disconnected)
+            case .unavailable:
+                .unavailable(.unknown)
+            }
         }
         let bluetoothAvailability: IconSourceAvailability =
             snapshot.volume.currentDevice?.isBluetoothAudio == true

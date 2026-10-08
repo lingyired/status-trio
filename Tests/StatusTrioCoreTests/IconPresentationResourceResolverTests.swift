@@ -70,6 +70,49 @@ final class IconPresentationResourceResolverTests: XCTestCase {
         XCTAssertEqual(unknown.availability["network"], .unavailable(.unknown))
     }
 
+    func testWiredConnectionKeepsNetworkSourceAvailableWhenWiFiIsOff() {
+        let wired = StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .off, rssi: nil),
+            connection: .ethernet,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output")
+        )
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .network)
+        let output = IconCompositionResolver.resolve(
+            inputs: IconResolutionInputs(
+                system: IconPresentationInputs(snapshot: wired, audioIcon: nil),
+                sources: IconPresentationResourceResolver.sourceSnapshot(snapshot: wired)
+            ),
+            configuration: configuration
+        )
+
+        XCTAssertEqual(output.trace.center.selectedSourceID, CenterSource.network.rawValue)
+        XCTAssertEqual(output.scene.center, .symbol(IconSymbolState(source: .primitive(.wiredPort), color: .primary, scale: 1)))
+    }
+
+    func testClassicNoBatteryCompositionMatchesLegacyRingThroughProductionAvailability() {
+        let wiredWithoutBattery = StatusSnapshot(
+            battery: BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: false),
+            wifi: WiFiStatus(state: .off, rssi: nil),
+            connection: .ethernet,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output")
+        )
+        let inputs = IconPresentationInputs(snapshot: wiredWithoutBattery, audioIcon: nil)
+        let output = IconCompositionResolver.resolve(
+            inputs: IconResolutionInputs(system: inputs,
+                                         sources: IconPresentationResourceResolver.sourceSnapshot(snapshot: wiredWithoutBattery)),
+            configuration: .classic
+        )
+        let legacy = IconPresentationMapper.scene(inputs: inputs, configuration: IconPresentationConfiguration.standard)
+
+        XCTAssertEqual(output.scene.outerRing, legacy.outerRing)
+        XCTAssertEqual(output.scene.outerRing?.segments.first?.progress, 1)
+        XCTAssertEqual(output.scene.outerRing?.gap, .value)
+        XCTAssertEqual(output.scene.outerRing?.accessory, .text(IconTextState(text: "100", color: .primary, scale: 1.8)))
+    }
+
     private func snapshot(device: AudioOutputDevice?) -> StatusSnapshot {
         StatusSnapshot(battery: .placeholder, wifi: .placeholder, connection: .wifi,
                       volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: device?.name, currentDevice: device))

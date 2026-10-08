@@ -160,6 +160,88 @@ final class IconPresentationViewModelTests: XCTestCase {
         now = start.addingTimeInterval(2)
         expiryScheduler.runScheduled()
         XCTAssertNil(model.output.trace.center.selectedSourceID, "Expiry must republish even if no new snapshot arrives.")
+        XCTAssertEqual(expiryScheduler.scheduledDelays, [.seconds(2)], "An expired hold must not schedule itself again.")
+        XCTAssertFalse(expiryScheduler.hasPendingAction)
+        now = start.addingTimeInterval(6)
+        snapshots.send(PresentationFixtures.snapshot(rssi: -80))
+        debounceScheduler.runScheduled()
+        XCTAssertEqual(expiryScheduler.scheduledDelays, [.seconds(2)])
+        XCTAssertFalse(expiryScheduler.hasPendingAction)
+        model.stop()
+    }
+
+    func testHealthySourcesDoNotScheduleExpiryAtTwoFourOrSixSeconds() {
+        let start = Date(timeIntervalSince1970: 3_000)
+        var now = start
+        let healthy = PresentationFixtures.snapshot(rssi: -40)
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(healthy)
+        let configuration = IconConfigurationV1.classic
+        let settings = IconPresentationSettings(configuration: .standard, menuBarSize: 28,
+                                                testsChargingEffect: false, designerConfiguration: configuration)
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let debounce = ManualIconPresentationScheduler()
+        let expiry = ManualIconPresentationScheduler()
+        let model = IconPresentationViewModel(
+            snapshot: healthy, settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            mapResolution: { inputs, configuration, sources in
+                IconCompositionResolver.resolve(inputs: IconResolutionInputs(system: inputs, sources: sources),
+                                                 configuration: configuration)
+            },
+            resolveSourceSnapshot: { IconPresentationResourceResolver.sourceSnapshot(snapshot: $0) },
+            now: { now }, snapshotScheduler: debounce, holdExpiryScheduler: expiry
+        )
+        model.start()
+        XCTAssertTrue(expiry.scheduledDelays.isEmpty)
+        for seconds in [2.0, 4.0, 6.0] {
+            now = start.addingTimeInterval(seconds)
+            snapshots.send(healthy)
+            debounce.runScheduled()
+            XCTAssertTrue(expiry.scheduledDelays.isEmpty, "Healthy source at +\(seconds)s must not cause an expiry timer.")
+            XCTAssertFalse(expiry.hasPendingAction)
+        }
+        model.stop()
+    }
+
+    func testTransientPayloadLossHoldsOnlyAffectedSlotStatesUntilExpiry() {
+        let start = Date(timeIntervalSince1970: 4_000)
+        var now = start
+        let healthy = PresentationFixtures.snapshot(rssi: -40, scalar: 0.7, muted: false)
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(healthy)
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .network)
+        let settings = IconPresentationSettings(configuration: .standard, menuBarSize: 28,
+                                                testsChargingEffect: false, designerConfiguration: configuration)
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let debounce = ManualIconPresentationScheduler()
+        let expiry = ManualIconPresentationScheduler()
+        let model = IconPresentationViewModel(
+            snapshot: healthy, settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            mapResolution: { inputs, configuration, sources in
+                IconCompositionResolver.resolve(inputs: IconResolutionInputs(system: inputs, sources: sources),
+                                                 configuration: configuration)
+            },
+            resolveSourceSnapshot: { IconPresentationResourceResolver.sourceSnapshot(snapshot: $0) },
+            now: { now }, snapshotScheduler: debounce, holdExpiryScheduler: expiry
+        )
+        let lastGoodScene = model.output.scene
+        model.start()
+        let unavailable = StatusSnapshot(
+            battery: healthy.battery,
+            wifi: WiFiStatus(state: .unavailable, rssi: nil),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: nil, isMuted: false, deviceName: "Output")
+        )
+        snapshots.send(unavailable)
+        debounce.runScheduled()
+        XCTAssertEqual(model.output.scene, lastGoodScene, "Unknown payloads must preserve the previous center and footer scenes, not map slash/zero.")
+        now = start.addingTimeInterval(2)
+        expiry.runScheduled()
+        XCTAssertNil(model.output.scene.center)
+        XCTAssertNil(model.output.scene.footer)
         model.stop()
     }
 
