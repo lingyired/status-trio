@@ -6,8 +6,15 @@ enum IconPaletteResolver {
         switch style {
         case .automatic:
             return role
-        case let .fixed(color):
-            return .custom(color.normalized())
+        case let .fixed(rawColor):
+            let color = rawColor.normalized()
+            guard semanticRole == .inactive else { return .custom(color) }
+            return .custom(IconRGBA(
+                red: color.red,
+                green: color.green,
+                blue: color.blue,
+                alpha: color.alpha * IconColorRole.inactiveTrackOpacity
+            ))
         case let .semanticOverrides(colors):
             guard let semanticRole, let color = colors[semanticRole] else { return role }
             return .custom(color.normalized())

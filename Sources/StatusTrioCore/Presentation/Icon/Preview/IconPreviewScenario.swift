@@ -54,7 +54,15 @@ enum IconPreviewScenario: String, CaseIterable, Hashable, Sendable {
             battery = current.battery
             wifi = current.wifi
             connection = current.connection
-            volume = VolumeStatus(scalar: 0, isMuted: true, deviceName: "Preview output")
+            volume = VolumeStatus(
+                scalar: 0,
+                isMuted: true,
+                deviceName: current.volume.deviceName,
+                currentDevice: current.volume.currentDevice,
+                outputDevices: current.volume.outputDevices,
+                canSetVolume: current.volume.canSetVolume,
+                canMute: current.volume.canMute
+            )
         }
 
         let snapshot = StatusSnapshot(battery: battery, wifi: wifi, connection: connection, volume: volume)

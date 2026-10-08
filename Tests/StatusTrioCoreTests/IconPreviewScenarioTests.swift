@@ -39,6 +39,54 @@ struct IconPreviewScenarioTests {
         #expect(scenario != .live)
     }
 
+    @Test func mutedScenarioPreservesBluetoothPrimaryAndReturningToLiveUsesLatestInput() {
+        let snapshot = StatusSnapshot(
+            battery: BatteryStatus(rawPercentage: 63, isPresent: true, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: false),
+            wifi: WiFiStatus(state: .connected, rssi: -52),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.72, isMuted: false, deviceName: "AirPods",
+                                 currentDevice: PresentationFixtures.bluetoothDevice)
+        )
+        let live = IconResolutionInputs(
+            system: IconPresentationInputs(
+                snapshot: snapshot,
+                audioIcon: .symbol(name: "airpodspro", variableValue: nil, fallback: "headphones")
+            ),
+            sources: .empty
+        )
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .bluetoothAudioOutput, fallback: .network)
+
+        let liveOutput = IconCompositionResolver.resolve(inputs: live, configuration: configuration)
+        let mutedInput = IconPreviewScenario.volumeMuted.makeInputs(basedOn: live)
+        let mutedOutput = IconCompositionResolver.resolve(inputs: mutedInput, configuration: configuration)
+        #expect(mutedInput.system.snapshot.volume == VolumeStatus(
+            scalar: 0, isMuted: true, deviceName: snapshot.volume.deviceName,
+            currentDevice: snapshot.volume.currentDevice,
+            outputDevices: snapshot.volume.outputDevices,
+            canSetVolume: snapshot.volume.canSetVolume,
+            canMute: snapshot.volume.canMute
+        ))
+        #expect(mutedInput.system.audioIcon == live.system.audioIcon)
+        #expect(mutedOutput.scene.center == liveOutput.scene.center)
+        #expect(mutedOutput.scene.footer != liveOutput.scene.footer)
+
+        let latestSnapshot = StatusSnapshot(
+            battery: snapshot.battery,
+            wifi: snapshot.wifi,
+            connection: snapshot.connection,
+            volume: VolumeStatus(scalar: 0.38, isMuted: false, deviceName: "AirPods",
+                                 currentDevice: PresentationFixtures.bluetoothDevice)
+        )
+        let latest = IconResolutionInputs(system: IconPresentationInputs(
+            snapshot: latestSnapshot, audioIcon: live.system.audioIcon
+        ), sources: .empty)
+        let restored = IconPreviewScenario.live.makeInputs(basedOn: latest)
+        #expect(restored == latest)
+        #expect(IconCompositionResolver.resolve(inputs: restored, configuration: configuration).scene.center == liveOutput.scene.center)
+    }
+
     @Test func wiredScenarioUsesExistingConnectionValueWithoutReachabilityState() {
         let result = IconPreviewScenario.wifiOffEthernetConnected.makeInputs(basedOn: liveInput)
         #expect(result.system.snapshot.wifi.state == .off)

@@ -14,8 +14,6 @@ enum StatusIconRenderer {
         y: 64.0
     )
 
-    /// Unified optical alpha for all inactive tracks (battery groove, Wi-Fi muted signal, volume hidden dots).
-    private static let inactiveTrackAlpha: CGFloat = 0.22
     private static let bluetoothBlueOnLightBackground = CGColor(
         red: 0,
         green: 102.0 / 255.0,
@@ -883,7 +881,7 @@ extension StatusIconRenderer {
         case .primary:
             foreground
         case .inactive:
-            foreground.copy(alpha: inactiveTrackAlpha) ?? foreground
+            foreground.copy(alpha: IconColorRole.inactiveTrackOpacity) ?? foreground
         case .critical:
             criticalColor
         case .lowPower:

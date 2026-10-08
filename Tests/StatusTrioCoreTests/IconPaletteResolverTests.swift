@@ -185,6 +185,63 @@ final class IconPaletteResolverTests: XCTestCase {
     }
 
     @MainActor
+    func testFixedPaletteKeepsInactiveTrackDistinctAtVolumeAndRingExtremes() throws {
+        let custom = IconRGBA(red: 0.2, green: 0.75, blue: 0.95, alpha: 1)
+        var appearance = IconAppearanceConfiguration.classic
+        appearance.footer.color = .fixed(custom)
+        appearance.outerRing.color = .fixed(custom)
+
+        let zeroVolume = IconPaletteResolver.apply(
+            IconSceneState(footer: .dots(DotsState(count: 4, activeCount: 0, color: .primary))),
+            appearance: appearance
+        )
+        let fullVolume = IconPaletteResolver.apply(
+            IconSceneState(footer: .dots(DotsState(count: 4, activeCount: 4, color: .primary))),
+            appearance: appearance
+        )
+        let emptyRing = IconPaletteResolver.apply(
+            IconSceneState(outerRing: OuterRingState(
+                segments: [RingSegmentState(progress: 0, color: .primary)], gap: .closed
+            )),
+            appearance: appearance
+        )
+        let fullRing = IconPaletteResolver.apply(
+            IconSceneState(outerRing: OuterRingState(
+                segments: [RingSegmentState(progress: 1, color: .primary)], gap: .closed
+            )),
+            appearance: appearance
+        )
+
+        XCTAssertEqual(
+            IconPaletteResolver.resolve(role: .inactive, style: .fixed(custom)),
+            .custom(IconRGBA(red: custom.red, green: custom.green, blue: custom.blue,
+                             alpha: custom.alpha * IconColorRole.inactiveTrackOpacity))
+        )
+        XCTAssertEqual(
+            IconPaletteResolver.resolve(role: .inactive, style: .semanticOverrides([.inactive: custom])),
+            .custom(custom),
+            "An explicit semantic inactive override must use the exact chosen color."
+        )
+        XCTAssertNotEqual(zeroVolume, fullVolume)
+        XCTAssertNotEqual(emptyRing, fullRing)
+        let environment = StatusIconRenderEnvironment(
+            size: 28, scale: 2,
+            foreground: CGColor(gray: 1, alpha: 1),
+            criticalColor: StatusIconRenderer.defaultCriticalColor
+        )
+        for (lower, upper) in [(zeroVolume, fullVolume), (emptyRing, fullRing)] {
+            XCTAssertTrue(pixelsDiffer(
+                try rgbaBytes(XCTUnwrap(StatusIconRenderer.render(scene: lower, environment: environment))),
+                try rgbaBytes(XCTUnwrap(StatusIconRenderer.render(scene: upper, environment: environment)))
+            ))
+            XCTAssertTrue(pixelsDiffer(
+                try rgbaBytes(XCTUnwrap(DockIconRenderer.image(scene: lower, backgroundStyle: .dark, pixelLength: 96))),
+                try rgbaBytes(XCTUnwrap(DockIconRenderer.image(scene: upper, backgroundStyle: .dark, pixelLength: 96)))
+            ))
+        }
+    }
+
+    @MainActor
     func testInactiveSemanticOverrideChangesZeroVolumeDotsInMenuBarAndDock() throws {
         let scene = IconSceneState(footer: .dots(DotsState(count: 4, activeCount: 0, color: .primary)))
         var appearance = IconAppearanceConfiguration.classic
