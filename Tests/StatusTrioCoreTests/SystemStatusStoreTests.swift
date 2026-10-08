@@ -1222,6 +1222,52 @@ final class SystemStatusStoreTests: XCTestCase {
         store.stop()
     }
 
+    func testPopoverAlwaysOwnsActivationAlongsideExistingOwners() {
+        let first = makeBluetoothStoreForActivationLifetime()
+        let settingsOwned = first.bluetoothDevices
+        XCTAssertTrue(settingsOwned.requestActivation(BluetoothDeviceController.settingsActivationToken))
+        first.setPopoverVisible(true)
+        settingsOwned.releaseActivation(BluetoothDeviceController.settingsActivationToken)
+        XCTAssertTrue(settingsOwned.isActive, "the open popover must keep its own activation claim")
+        first.setPopoverVisible(false)
+        XCTAssertFalse(settingsOwned.isActive)
+        first.stop()
+
+        let second = makeBluetoothStoreForActivationLifetime()
+        let iconOwned = second.bluetoothDevices
+        second.setPopoverVisible(true)
+        second.setBluetoothEnabled(true)
+        second.setBluetoothEnabled(false)
+        XCTAssertTrue(iconOwned.isActive, "Settings closing must preserve the visible popover owner")
+        second.setPopoverVisible(false)
+        XCTAssertFalse(iconOwned.isActive, "closing the final popover owner must stop monitoring")
+        second.stop()
+
+        let third = makeBluetoothStoreForActivationLifetime()
+        let popoverAndIconOwned = third.bluetoothDevices
+        third.setPopoverVisible(true)
+        XCTAssertTrue(popoverAndIconOwned.requestActivation("icon.test"))
+        third.setPopoverVisible(false)
+        XCTAssertTrue(popoverAndIconOwned.isActive, "closing the popover must preserve the icon owner")
+        popoverAndIconOwned.releaseActivation("icon.test")
+        XCTAssertFalse(popoverAndIconOwned.isActive)
+        third.stop()
+    }
+
+    private func makeBluetoothStoreForActivationLifetime() -> SystemStatusStore {
+        SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            bluetoothDevices: BluetoothDeviceController(
+                worker: StoreBluetoothPairedDeviceReader(),
+                stateMonitor: StoreBluetoothStateMonitorSpy(),
+                notificationCenter: NotificationCenter(),
+                workspaceNotificationCenter: NotificationCenter()
+            )
+        )
+    }
+
     func testSettingsVisibilityKeepsVolumeDetailsAvailableOutsidePopover() {
         let volume = FakeVolumeMonitor()
         let store = makeStore(
@@ -2560,6 +2606,12 @@ private final class StoreIntervalScannerSpy: BluetoothLEBatteryScanning {
     func start() { isRunning = true }
     func refresh() {}
     func stop() { isRunning = false; isScanning = false }
+}
+
+private final class StoreBluetoothPairedDeviceReader: BluetoothPairedDeviceReading {
+    func read(completion: @escaping @Sendable (BluetoothWorkerResult) -> Void) {
+        completion(.success([]))
+    }
 }
 
 @MainActor

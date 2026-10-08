@@ -225,6 +225,46 @@ final class BluetoothAccessoryBatteryEventTests: XCTestCase {
         controller.deactivate()
     }
 
+    func testAccessoryFallbackPublishesFreshnessAndExpiresFromObservationTime() async throws {
+        let accessoryReader = StubAccessoryBatteryReader(levels: [
+            BluetoothAccessoryBatteryLevel(
+                name: "机灵的耳机", vendorID: 76, productID: 8207,
+                part: nil, percentage: 55
+            )
+        ])
+        let controller = BluetoothDeviceController(
+            worker: CountingBluetoothDeviceReader(devices: [pairedDevice]),
+            stateMonitor: AccessoryEventStateMonitor(),
+            batteryReader: StubBatteryReader(levels: nil),
+            accessoryBatteryReader: accessoryReader,
+            notificationCenter: NotificationCenter(),
+            workspaceNotificationCenter: NotificationCenter()
+        )
+        let device = BluetoothDevice(
+            id: address, name: "AirPods", kind: .audio,
+            isConnected: true, airPodsModel: .airPodsPro
+        )
+        controller.activate()
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.requestBatteryLevels("bluetooth.summary")
+        await waitUntil { controller.batteryLevels[normalizedAddress]?.main == 55 }
+
+        let observedAt = try XCTUnwrap(controller.batteryLevelsUpdatedAt)
+        XCTAssertLessThanOrEqual(
+            Date().timeIntervalSince(observedAt),
+            AirPodsBatteryIconSnapshot.freshnessInterval
+        )
+        let expired = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: .placeholder,
+            bluetoothDevices: [device],
+            batteryLevels: controller.batteryLevels,
+            batteryLevelsUpdatedAt: observedAt,
+            now: observedAt.addingTimeInterval(AirPodsBatteryIconSnapshot.freshnessInterval + 1)
+        )
+        XCTAssertEqual(expired.availability[RingSource.airPodsBattery.rawValue], .unavailable(.temporarilyStale))
+        controller.deactivate()
+    }
+
     /// A failed primary read that the second source does fill has something to
     /// show, so the failure line goes with it.
     func testAFailedReportLiftsItsLineWhenTheSecondSourceFillsIt() async {

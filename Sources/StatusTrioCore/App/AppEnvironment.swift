@@ -106,6 +106,7 @@ final class AppEnvironment {
             settings.$airPodsIconDeviceAddress.removeDuplicates(),
             settings.$connectedBluetoothIconDeviceAddress.removeDuplicates()
         )
+        .receive(on: DispatchQueue.main)
         .sink { [weak self] configuration, batteryOptIn, selectedAirPodsAddress, _ in
             guard let self else { return }
             self.reconcileIconSourceDemand(
@@ -122,6 +123,7 @@ final class AppEnvironment {
             store.bluetoothDevices.$batteryLevels.removeDuplicates(),
             store.bluetoothDevices.$batteryLevelsUpdatedAt.removeDuplicates()
         )
+        .receive(on: DispatchQueue.main)
         .sink { [weak self] _, _, _ in
             guard let self else { return }
             self.reconcileIconSourceDemand(
@@ -135,6 +137,7 @@ final class AppEnvironment {
 
         store.bluetoothDevices.$availability
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else { return }
                 self.reconcileIconSourceDemand(

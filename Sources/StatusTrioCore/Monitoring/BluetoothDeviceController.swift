@@ -1147,6 +1147,11 @@ final class BluetoothDeviceController: ObservableObject {
                     devices: devices
                 )
                 self.batteryLevels = merged
+                if !merged.isEmpty {
+                    // The merged values were observed by the accessory read,
+                    // even when the primary report failed and supplied no date.
+                    self.batteryLevelsUpdatedAt = Date()
+                }
                 // The report's failure is cleared exactly when the second source
                 // gave the list something to show. A failed report that still
                 // leaves every row silent keeps its line, so the panel never goes

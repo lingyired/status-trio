@@ -472,7 +472,6 @@ final class SystemStatusStore: ObservableObject {
     func setBluetoothEnabled(_ enabled: Bool) {
         guard !hasStopped else { return }
         isBluetoothEnabled = enabled
-        isBluetoothActivatedForPopover = false
         if enabled {
             _ = bluetoothDevices.requestExplicitActivation(BluetoothDeviceController.settingsActivationToken)
         } else {
@@ -495,13 +494,9 @@ final class SystemStatusStore: ObservableObject {
             authorization: bluetoothDevices.authorization
         ) else { return }
         let monitorWasAlreadyActive = bluetoothDevices.isActive
-        if !isBluetoothEnabled {
-            if !monitorWasAlreadyActive {
-                isBluetoothActivatedForPopover = bluetoothDevices.requestActivation(
-                    BluetoothDeviceController.popoverActivationToken
-                )
-            }
-        }
+        isBluetoothActivatedForPopover = bluetoothDevices.requestActivation(
+            BluetoothDeviceController.popoverActivationToken
+        )
         if monitorWasAlreadyActive {
             // An already-running Settings-owned monitor will not report its
             // current state again just because the popover opened.
