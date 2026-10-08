@@ -4,6 +4,7 @@ struct IconSourceEditor: View {
     @ObservedObject var store: SettingsStore
     let slot: IconSlot
     var phaseFiveEnabled = false
+    var bluetoothDevices: [BluetoothDevice] = []
     @EnvironmentObject private var localization: Localization
 
     private var sources: [IconDesignerSource] {
@@ -49,7 +50,47 @@ struct IconSourceEditor: View {
                 }
                 .accessibilityLabel(localization.string(.iconDesignerSwapPrimaryFallback) + " — " + localizedSlotTitle)
             }
+            if airPodsSourceIsConfigured {
+                airPodsSourceSettings
+            }
         }
+    }
+
+    private var airPodsSourceIsConfigured: Bool {
+        guard slot == .outerRing else { return false }
+        let selection = store.iconConfiguration.composition.outerRing
+        return selection.primary == .airPodsBattery || selection.fallback == .airPodsBattery
+    }
+
+    private var airPodsSourceSettings: some View {
+        Group {
+            let devices = bluetoothDevices.filter { $0.airPodsModel != nil }
+            if devices.isEmpty {
+                Text(localization.string(.iconDesignerControlNoBluetoothDevices))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Picker(localization.string(.iconDesignerControlSelectAirPodsDevice), selection: airPodsDeviceBinding) {
+                    Text(localization.string(.iconDesignerControlChooseBluetoothDevice)).tag(String?.none)
+                    ForEach(devices, id: \.id) { device in
+                        let address = BluetoothBatteryReader.normalizedAddress(device.id)
+                        Text(device.name).tag(Optional(address))
+                    }
+                }
+                .accessibilityLabel(localization.string(.iconDesignerControlSelectAirPodsDevice))
+            }
+            Toggle(localization.string(.iconDesignerControlAirPodsBackgroundReads), isOn: Binding(
+                get: { store.refreshesAirPodsBatteryForIcon },
+                set: { store.refreshesAirPodsBatteryForIcon = $0 }
+            ))
+        }
+    }
+
+    private var airPodsDeviceBinding: Binding<String?> {
+        Binding(
+            get: { store.airPodsIconDeviceAddress.map { BluetoothBatteryReader.normalizedAddress($0) } },
+            set: { store.airPodsIconDeviceAddress = $0 }
+        )
     }
 
     private var localizedSlotTitle: String {

@@ -32,6 +32,20 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(second.batteryIconOptions.showsPercentageWhenConnected)
     }
 
+    func testAirPodsBackgroundBatteryReadsDefaultOffAndSelectionPersistsByAddress() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let first = SettingsStore(defaults: suite.defaults)
+
+        XCTAssertFalse(first.refreshesAirPodsBatteryForIcon)
+        first.airPodsIconDeviceAddress = "AABBCCDDEE01"
+        first.refreshesAirPodsBatteryForIcon = true
+
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(second.airPodsIconDeviceAddress, "AABBCCDDEE01")
+        XCTAssertTrue(second.refreshesAirPodsBatteryForIcon)
+    }
+
     func testRefreshIntervalDefaultsAndRange() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 

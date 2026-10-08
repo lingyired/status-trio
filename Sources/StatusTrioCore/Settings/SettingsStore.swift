@@ -36,6 +36,9 @@ final class SettingsStore: ObservableObject {
     static let prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey = "prioritizesNetworkErrorsOverBluetoothAudio"
     static let showsBluetoothBatteryLevelsDefaultsKey = "showsBluetoothBatteryLevels"
     static let showsNearbyBluetoothBatteryDevicesDefaultsKey = "showsNearbyBluetoothBatteryDevices"
+    static let refreshesAirPodsBatteryForIconDefaultsKey = "refreshesAirPodsBatteryForIcon"
+    static let airPodsIconDeviceAddressDefaultsKey = "airPodsIconDeviceAddress"
+    static let connectedBluetoothIconDeviceAddressDefaultsKey = "connectedBluetoothIconDeviceAddress"
     static let showsMobileDeviceBatteryLevelsDefaultsKey = "showsMobileDeviceBatteryLevels"
     static let showsAppleDevicesAndBatteryDefaultsKey = "showsAppleDevicesAndBattery"
     static let refreshesAppleBatteriesInBackgroundDefaultsKey = "refreshesAppleBatteriesInBackground"
@@ -301,6 +304,20 @@ final class SettingsStore: ObservableObject {
                 forKey: Self.showsBluetoothBatteryLevelsDefaultsKey
             )
         }
+    }
+
+    @Published var refreshesAirPodsBatteryForIcon: Bool {
+        didSet { defaults.set(refreshesAirPodsBatteryForIcon, forKey: Self.refreshesAirPodsBatteryForIconDefaultsKey) }
+    }
+
+    /// Explicit user selections are stored by Bluetooth identity, never by the
+    /// mutable display name.
+    @Published var airPodsIconDeviceAddress: String? {
+        didSet { defaults.set(airPodsIconDeviceAddress, forKey: Self.airPodsIconDeviceAddressDefaultsKey) }
+    }
+
+    @Published var connectedBluetoothIconDeviceAddress: String? {
+        didSet { defaults.set(connectedBluetoothIconDeviceAddress, forKey: Self.connectedBluetoothIconDeviceAddressDefaultsKey) }
     }
 
     @Published var showsNearbyBluetoothBatteryDevices: Bool {
@@ -1032,6 +1049,11 @@ final class SettingsStore: ObservableObject {
         self.showsNearbyBluetoothBatteryDevices = defaults.object(
             forKey: Self.showsNearbyBluetoothBatteryDevicesDefaultsKey
         ) as? Bool ?? false
+        self.refreshesAirPodsBatteryForIcon = defaults.object(
+            forKey: Self.refreshesAirPodsBatteryForIconDefaultsKey
+        ) as? Bool ?? false
+        self.airPodsIconDeviceAddress = defaults.string(forKey: Self.airPodsIconDeviceAddressDefaultsKey)
+        self.connectedBluetoothIconDeviceAddress = defaults.string(forKey: Self.connectedBluetoothIconDeviceAddressDefaultsKey)
         self.showsMobileDeviceBatteryLevels = defaults.object(
             forKey: Self.showsMobileDeviceBatteryLevelsDefaultsKey
         ) as? Bool ?? false

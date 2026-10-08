@@ -517,3 +517,16 @@
 "iconDesigner.control.restoreSlotQuestionFormat" = "Restaurer %@ à la configuration classique ?";
 "iconDesigner.control.audioOutputFormat" = "Sortie audio — %@";
 "iconDesigner.control.savedSymbolFormat" = "Symbole enregistré — %@";
+
+"iconDesigner.control.airPodsBackgroundReads" = "Autoriser la lecture de la batterie des AirPods en arrière-plan";
+"iconDesigner.control.selectAirPodsDevice" = "Choisir les AirPods";
+"iconDesigner.control.selectConnectedBluetoothDevice" = "Choisir un appareil Bluetooth connecté";
+"iconDesigner.control.chooseBluetoothDevice" = "Choisir un appareil Bluetooth";
+"iconDesigner.control.noBluetoothDevices" = "Aucun appareil Bluetooth disponible";
+"iconDesigner.control.pinnedBluetoothSymbolScale" = "Échelle du symbole Bluetooth épinglé";
+"iconDesigner.colorRole.primary" = "Principal";
+"iconDesigner.colorRole.inactive" = "Inactif";
+"iconDesigner.colorRole.critical" = "Critique";
+"iconDesigner.colorRole.lowPower" = "Faible énergie";
+"iconDesigner.colorRole.powered" = "Alimenté";
+"iconDesigner.colorRole.bluetooth" = "Bluetooth";

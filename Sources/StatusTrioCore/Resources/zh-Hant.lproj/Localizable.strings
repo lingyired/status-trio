@@ -516,3 +516,16 @@
 "iconDesigner.control.restoreSlotQuestionFormat" = "將 %@ 還原為經典設定？";
 "iconDesigner.control.audioOutputFormat" = "音訊輸出 — %@";
 "iconDesigner.control.savedSymbolFormat" = "已儲存的符號 — %@";
+
+"iconDesigner.control.airPodsBackgroundReads" = "允許在背景讀取 AirPods 電池";
+"iconDesigner.control.selectAirPodsDevice" = "選擇 AirPods 裝置";
+"iconDesigner.control.selectConnectedBluetoothDevice" = "選擇已連線的藍牙裝置";
+"iconDesigner.control.chooseBluetoothDevice" = "選擇藍牙裝置";
+"iconDesigner.control.noBluetoothDevices" = "沒有可用的藍牙裝置";
+"iconDesigner.control.pinnedBluetoothSymbolScale" = "固定藍牙符號大小";
+"iconDesigner.colorRole.primary" = "主要";
+"iconDesigner.colorRole.inactive" = "非作用中";
+"iconDesigner.colorRole.critical" = "臨界";
+"iconDesigner.colorRole.lowPower" = "低耗電";
+"iconDesigner.colorRole.powered" = "已供電";
+"iconDesigner.colorRole.bluetooth" = "藍牙";

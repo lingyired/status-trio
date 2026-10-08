@@ -41,7 +41,12 @@ struct IconDesignerView: View {
                     }
                 }
                 IconSlotPicker(selection: $selectedSlot, configuration: store.iconConfiguration)
-                IconSourceEditor(store: store, slot: selectedSlot)
+                IconSourceEditor(
+                    store: store,
+                    slot: selectedSlot,
+                    phaseFiveEnabled: selectedSlot == .outerRing,
+                    bluetoothDevices: statusStore.bluetoothDevices.devices
+                )
                 IconBehaviorEditor(
                     store: store,
                     slot: selectedSlot,

@@ -124,6 +124,12 @@ final class IconPresentationViewModel: ObservableObject {
         )
     }
 
+    func refreshSourceState() {
+        guard synchronizedStart else { return }
+        snapshotScheduler.cancel()
+        publishLatestOutput()
+    }
+
     func start() {
         guard snapshotSubscription == nil, preferencesSubscription == nil else { return }
         receivedSnapshotForStart = false

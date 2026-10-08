@@ -53,10 +53,18 @@ enum CenterResolver {
             state = IconPresentationMapper.scene(inputs: inputs.system, configuration: legacy).center
         case .network:
             state = networkState(inputs: inputs, configuration: configuration, legacy: legacy)
-        case .bluetoothAudioOutput, .connectedBluetoothDevice:
+        case .bluetoothAudioOutput:
             let icon = inputs.system.audioIcon ?? .symbol(name: "headphones", variableValue: nil, fallback: nil)
             state = .symbol(IconSymbolState(source: icon, color: .bluetooth,
                 scale: configuration.behaviors.bluetoothAudioCenter.symbolScale))
+        case .connectedBluetoothDevice:
+            state = inputs.sources.connectedBluetoothDeviceSymbol.map {
+                .symbol(IconSymbolState(
+                    source: .symbol(name: $0, variableValue: nil, fallback: BluetoothDeviceRowIcon.genericSymbol),
+                    color: .bluetooth,
+                    scale: configuration.behaviors.bluetoothAudioCenter.symbolScale
+                ))
+            }
         case .pinnedBluetoothGlyph:
             let savedSymbol = configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride
             let icon = savedSymbol.map {

@@ -3,7 +3,15 @@ import Foundation
 
 @MainActor
 enum IconPresentationResourceResolver {
-    static func sourceSnapshot(snapshot: StatusSnapshot) -> IconSourceSnapshot {
+    static func sourceSnapshot(
+        snapshot: StatusSnapshot,
+        bluetoothDevices: [BluetoothDevice] = [],
+        batteryLevels: [String: BluetoothBatteryLevel] = [:],
+        batteryLevelsUpdatedAt: Date? = nil,
+        selectedAirPodsAddress: String? = nil,
+        selectedConnectedDeviceAddress: String? = nil,
+        now: Date = .now
+    ) -> IconSourceSnapshot {
         let networkAvailability: IconSourceAvailability
         if snapshot.connection == .ethernet {
             networkAvailability = .available
@@ -28,14 +36,48 @@ enum IconPresentationResourceResolver {
             ? .available
             : .unavailable(.disconnected)
 
+        let airPodsSelection = AirPodsBatteryIconSnapshot.selection(
+            devices: bluetoothDevices,
+            levels: batteryLevels,
+            selectedAddress: selectedAirPodsAddress,
+            observedAt: batteryLevelsUpdatedAt ?? .distantPast
+        )
+        let airPodsBattery: AirPodsBatteryIconSnapshot?
+        let airPodsAvailability: IconSourceAvailability
+        switch airPodsSelection {
+        case let .selected(value):
+            let age = now.timeIntervalSince(value.observedAt)
+            let isFresh = (0...AirPodsBatteryIconSnapshot.freshnessInterval).contains(age)
+            airPodsBattery = isFresh ? value : nil
+            airPodsAvailability = isFresh ? .available : .unavailable(.temporarilyStale)
+        case .needsSelection:
+            airPodsBattery = nil
+            airPodsAvailability = .unavailable(.unknown)
+        case let .unavailable(reason):
+            airPodsBattery = nil
+            airPodsAvailability = .unavailable(reason)
+        }
+
+        let selectedConnectedKey = selectedConnectedDeviceAddress.map { BluetoothBatteryReader.normalizedAddress($0) }
+        let connectedDevice = selectedConnectedKey.flatMap { selectedKey in
+            bluetoothDevices.first {
+                BluetoothBatteryReader.normalizedAddress($0.id) == selectedKey && $0.isConnected
+            }
+        }
+        let connectedDeviceSymbol = connectedDevice.map { BluetoothDeviceRowIcon.symbolName(for: $0) }
+        let connectedDeviceAvailability: IconSourceAvailability = connectedDevice == nil
+            ? .unavailable(selectedConnectedDeviceAddress == nil ? .unknown : .disconnected)
+            : .available
+
         return IconSourceSnapshot(availability: [
             CenterSource.network.rawValue: networkAvailability,
             CenterSource.bluetoothAudioOutput.rawValue: bluetoothAvailability,
             CenterSource.systemBatteryPercentage.rawValue: batteryAvailability,
+            CenterSource.connectedBluetoothDevice.rawValue: connectedDeviceAvailability,
             RingSource.systemBattery.rawValue: batteryAvailability,
-            RingSource.airPodsBattery.rawValue: .unavailable(.unavailable),
+            RingSource.airPodsBattery.rawValue: airPodsAvailability,
             FooterSource.systemVolume.rawValue: volumeAvailability
-        ])
+        ], airPodsBattery: airPodsBattery, connectedBluetoothDeviceSymbol: connectedDeviceSymbol)
     }
 
     static func inputs(

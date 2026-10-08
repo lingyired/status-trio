@@ -517,3 +517,16 @@
 "iconDesigner.control.restoreSlotQuestionFormat" = "%@을(를) 클래식으로 복원할까요?";
 "iconDesigner.control.audioOutputFormat" = "오디오 출력 — %@";
 "iconDesigner.control.savedSymbolFormat" = "저장된 기호 — %@";
+
+"iconDesigner.control.airPodsBackgroundReads" = "백그라운드에서 AirPods 배터리 읽기 허용";
+"iconDesigner.control.selectAirPodsDevice" = "AirPods 기기 선택";
+"iconDesigner.control.selectConnectedBluetoothDevice" = "연결된 Bluetooth 기기 선택";
+"iconDesigner.control.chooseBluetoothDevice" = "Bluetooth 기기 선택";
+"iconDesigner.control.noBluetoothDevices" = "사용할 수 있는 Bluetooth 기기가 없습니다";
+"iconDesigner.control.pinnedBluetoothSymbolScale" = "고정 Bluetooth 기호 크기";
+"iconDesigner.colorRole.primary" = "기본";
+"iconDesigner.colorRole.inactive" = "비활성";
+"iconDesigner.colorRole.critical" = "위험";
+"iconDesigner.colorRole.lowPower" = "저전력";
+"iconDesigner.colorRole.powered" = "전원 연결";
+"iconDesigner.colorRole.bluetooth" = "Bluetooth";

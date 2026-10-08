@@ -2,6 +2,8 @@ import Foundation
 
 struct IconSourceSnapshot: Equatable, Sendable {
     var availability: [String: IconSourceAvailability]
+    var airPodsBattery: AirPodsBatteryIconSnapshot? = nil
+    var connectedBluetoothDeviceSymbol: String? = nil
 
     static let empty = Self(availability: [:])
 

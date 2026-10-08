@@ -332,6 +332,7 @@ final class BluetoothDeviceController: ObservableObject {
     @Published private(set) var devices: [BluetoothDevice] = []
     @Published private(set) var availability: BluetoothAvailability = .idle
     @Published private(set) var batteryLevels: [String: BluetoothBatteryLevel] = [:]
+    @Published private(set) var batteryLevelsUpdatedAt: Date?
     @Published private(set) var nearbyBatteryDevices: [NearbyBluetoothBatteryDevice] = []
     /// Whether the last level read failed outright.
     ///
@@ -390,6 +391,7 @@ final class BluetoothDeviceController: ObservableObject {
     /// Set from the registration result, so "monitoring" means the system
     /// accepted the registration rather than that it was merely attempted.
     private var isMonitoringConnectionEventNotifications = false
+    private var connectionEventRegistrationAttempted = false
     /// The accessory battery debounce latch and gate, shaped exactly like the
     /// connect-event pair above: one read per burst, and a late completion from a
     /// superseded debounce cannot start a read the next registration did not ask
@@ -633,7 +635,61 @@ final class BluetoothDeviceController: ObservableObject {
         authorizationStatus = stateMonitor.authorization
     }
 
+    static let legacyActivationToken = "bluetooth.legacy.activation"
+    static let settingsActivationToken = "bluetooth.settings.activation"
+    static let popoverActivationToken = "bluetooth.popover.activation"
+    static let settingsPaneActivationToken = "bluetooth.settingsPane.activation"
+
+    private var activationRequests: Set<String> = []
+
+    /// Claims controller activation for one owner. Permission is never requested
+    /// here; callers must already have an allowed grant.
+    @discardableResult
+    func requestActivation(_ token: String) -> Bool {
+        guard BluetoothPanelActivation.shouldActivate(authorization: authorization) else { return false }
+        activationRequests.insert(token)
+        startMonitoringIfNeeded()
+        if availability == .available { updateConnectionEventMonitoring() }
+        return true
+    }
+
+    /// Explicit user-requested activation is the only path that may start the
+    /// authorization flow from `.notDetermined`. Source-demand claims must use
+    /// `requestActivation`, which never raises a permission prompt.
+    @discardableResult
+    func requestExplicitActivation(_ token: String) -> Bool {
+        guard authorization == .notDetermined
+                || BluetoothPanelActivation.shouldActivate(authorization: authorization) else { return false }
+        activationRequests.insert(token)
+        startMonitoringIfNeeded()
+        if availability == .available { updateConnectionEventMonitoring() }
+        return true
+    }
+
+    func releaseActivation(_ token: String) {
+        guard activationRequests.remove(token) != nil else { return }
+        if activationRequests.isEmpty { stopMonitoring() }
+        else { updateConnectionEventMonitoring() }
+    }
+
+    /// Compatibility owner for existing standalone callers and tests.
     func activate() {
+        activationRequests.insert(Self.legacyActivationToken)
+        startMonitoringIfNeeded()
+    }
+
+    func deactivate() {
+        releaseActivation(Self.legacyActivationToken)
+    }
+
+    /// Process teardown releases every claim; ordinary surfaces must release
+    /// only their own token so another owner remains active.
+    func shutdown() {
+        activationRequests.removeAll()
+        stopMonitoring()
+    }
+
+    private func startMonitoringIfNeeded() {
         guard !isActive else { return }
         isActive = true
         systemObservers.install(
@@ -648,12 +704,13 @@ final class BluetoothDeviceController: ObservableObject {
         schedulePeriodicRefresh()
     }
 
-    func deactivate() {
+    private func stopMonitoring() {
         guard isActive else { return }
         isActive = false
         invalidateDeviceRead()
         stopNearbyBatteryScanner(clearResults: true)
         batteryLevelRequests.removeAll()
+        backgroundBatteryLevelRequests.removeAll()
         updateBatteryLevelRequests()
         stopAccessoryBatteryEvents()
         stopPeriodicRefresh()
@@ -770,6 +827,7 @@ final class BluetoothDeviceController: ObservableObject {
     /// the outcome independent of that order, where a single boolean let the
     /// last writer win and left the detail page reading nothing.
     private var batteryLevelRequests: Set<String> = []
+    private var backgroundBatteryLevelRequests: Set<String> = []
 
     /// Applies the Apple-device feature and persisted UUID metadata. UUIDs are
     /// identities, not a read allowlist; a read still requires a visible row.
@@ -901,6 +959,21 @@ final class BluetoothDeviceController: ObservableObject {
         updateBatteryLevelRequests()
     }
 
+    /// Claims event-driven accessory battery updates while the app is in the
+    /// background. Callers must have an explicit user opt-in; this does not
+    /// start a periodic timer or BLE discovery.
+    func requestBackgroundBatteryLevels(_ token: String) {
+        backgroundBatteryLevelRequests.insert(token)
+        requestBatteryLevels(token)
+        updateAccessoryBatteryEvents()
+    }
+
+    func releaseBackgroundBatteryLevels(_ token: String) {
+        backgroundBatteryLevelRequests.remove(token)
+        releaseBatteryLevels(token)
+        updateAccessoryBatteryEvents()
+    }
+
     /// Releases a surface's claim, whatever the order it arrives in.
     func releaseBatteryLevels(_ token: String) {
         guard batteryLevelRequests.remove(token) != nil else { return }
@@ -1000,6 +1073,8 @@ final class BluetoothDeviceController: ObservableObject {
 
         if mappedAvailability == .available {
             schedulePeriodicRefresh()
+            updateConnectionEventMonitoring()
+            updateAccessoryBatteryEvents()
             refresh()
             updateNearbyBatteryScanner()
         } else {
@@ -1027,6 +1102,7 @@ final class BluetoothDeviceController: ObservableObject {
                 // panel reports it once instead of staying silent.
                 self.batteryLevelsReadFailed = levels == nil
                 self.batteryLevels = levels ?? [:]
+                self.batteryLevelsUpdatedAt = levels == nil ? nil : Date()
                 // The primary source is published first and on its own. The
                 // second source is an addition to it, never a precondition for
                 // it, so a read that never answers cannot hold the list back.
@@ -1086,6 +1162,7 @@ final class BluetoothDeviceController: ObservableObject {
         _ = batteryRequestGate.advance()
         batteryLevelsReadFailed = false
         batteryLevels = [:]
+        batteryLevelsUpdatedAt = nil
     }
 
     private var currentNearbyBLEReadPermit: Set<UUID> {
@@ -1357,7 +1434,7 @@ final class BluetoothDeviceController: ObservableObject {
 
     private func schedulePeriodicRefresh() {
         guard isActive, hasVisibleSurface, availability == .available else { return }
-        startConnectionEvents()
+        updateConnectionEventMonitoring()
         updateAccessoryBatteryEvents()
         guard periodicRefreshTask == nil else { return }
         let interval = safetyNetInterval
@@ -1395,15 +1472,24 @@ final class BluetoothDeviceController: ObservableObject {
         periodicRefreshGeneration &+= 1
         periodicRefreshTask?.cancel()
         periodicRefreshTask = nil
-        stopConnectionEvents()
-        stopAccessoryBatteryEvents()
+        updateConnectionEventMonitoring()
+        updateAccessoryBatteryEvents()
     }
 
-    /// Connection notifications only matter while a Bluetooth surface is on
-    /// screen: nothing else displays device state, and the registration is a
-    /// system resource the app should not hold for its whole lifetime.
+    /// Connection events are needed by a visible Bluetooth surface, or by the
+    /// icon source's lightweight background monitor claim. They replace a
+    /// background polling timer for the always-present menu bar icon.
+    private func updateConnectionEventMonitoring() {
+        let shouldListen = isActive
+            && availability == .available
+            && (hasVisibleSurface || activationRequests.contains(IconSourceDemandBridge.batteryLevelsToken))
+        if shouldListen { startConnectionEvents() }
+        else { stopConnectionEvents() }
+    }
+
     private func startConnectionEvents() {
-        guard !isMonitoringConnectionEventNotifications, let connectionEvents else { return }
+        guard !connectionEventRegistrationAttempted, let connectionEvents else { return }
+        connectionEventRegistrationAttempted = true
         // The handler arrives on IOBluetooth's own thread, so it hops to the
         // main actor before touching controller state.
         isMonitoringConnectionEventNotifications = connectionEvents.start { [weak self] in
@@ -1412,6 +1498,8 @@ final class BluetoothDeviceController: ObservableObject {
     }
 
     private func stopConnectionEvents() {
+        guard connectionEventRegistrationAttempted else { return }
+        connectionEventRegistrationAttempted = false
         _ = connectionEventGate.advance()
         isConnectionEventReadScheduled = false
         // Unconditional: a refused registration (`start` returned `false`) can
@@ -1428,7 +1516,9 @@ final class BluetoothDeviceController: ObservableObject {
     /// follows the battery claim and the visible surface together, where the
     /// connect registration follows the surface alone.
     private func updateAccessoryBatteryEvents() {
-        guard isActive, batteryLevelsEnabled, hasVisibleSurface, availability == .available else {
+        guard isActive, batteryLevelsEnabled,
+              (hasVisibleSurface || !backgroundBatteryLevelRequests.isEmpty),
+              availability == .available else {
             stopAccessoryBatteryEvents()
             return
         }

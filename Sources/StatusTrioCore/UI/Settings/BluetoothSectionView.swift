@@ -199,6 +199,7 @@ struct BluetoothSectionView: View {
         }
         .onDisappear {
             bluetoothDevices.releaseVisibleSurface(Self.orderSurfaceToken)
+            bluetoothDevices.releaseActivation(BluetoothDeviceController.settingsPaneActivationToken)
         }
     }
 
@@ -216,7 +217,7 @@ struct BluetoothSectionView: View {
         guard BluetoothPanelActivation.shouldActivate(
             authorization: bluetoothDevices.authorization
         ) else { return }
-        bluetoothDevices.activate()
+        guard bluetoothDevices.requestActivation(BluetoothDeviceController.settingsPaneActivationToken) else { return }
         bluetoothDevices.holdVisibleSurface(Self.orderSurfaceToken)
     }
 

@@ -517,3 +517,16 @@
 "iconDesigner.control.restoreSlotQuestionFormat" = "Восстановить классическую настройку для %@?";
 "iconDesigner.control.audioOutputFormat" = "Аудиовыход — %@";
 "iconDesigner.control.savedSymbolFormat" = "Сохранённый символ — %@";
+
+"iconDesigner.control.airPodsBackgroundReads" = "Разрешить чтение заряда AirPods в фоновом режиме";
+"iconDesigner.control.selectAirPodsDevice" = "Выбрать AirPods";
+"iconDesigner.control.selectConnectedBluetoothDevice" = "Выбрать подключённое устройство Bluetooth";
+"iconDesigner.control.chooseBluetoothDevice" = "Выбрать устройство Bluetooth";
+"iconDesigner.control.noBluetoothDevices" = "Устройства Bluetooth недоступны";
+"iconDesigner.control.pinnedBluetoothSymbolScale" = "Масштаб закрепленного символа Bluetooth";
+"iconDesigner.colorRole.primary" = "Основной";
+"iconDesigner.colorRole.inactive" = "Неактивный";
+"iconDesigner.colorRole.critical" = "Критический";
+"iconDesigner.colorRole.lowPower" = "Низкое энергопотребление";
+"iconDesigner.colorRole.powered" = "Питание подключено";
+"iconDesigner.colorRole.bluetooth" = "Bluetooth";

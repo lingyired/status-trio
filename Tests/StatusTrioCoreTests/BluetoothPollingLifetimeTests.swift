@@ -13,6 +13,7 @@ final class BluetoothPollingLifetimeTests: XCTestCase {
         reader: any BluetoothPairedDeviceReading,
         stateMonitor: AvailableBluetoothStateMonitor = AvailableBluetoothStateMonitor(),
         connectionEvents: (any BluetoothConnectionEventMonitoring)? = nil,
+        accessoryBatteryEvents: (any BluetoothAccessoryBatteryEventMonitoring)? = nil,
         safetyNetSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
         },
@@ -28,8 +29,51 @@ final class BluetoothPollingLifetimeTests: XCTestCase {
             workspaceNotificationCenter: NotificationCenter(),
             safetyNetSleep: safetyNetSleep,
             connectionEvents: connectionEvents,
+            accessoryBatteryEvents: accessoryBatteryEvents,
             readTimeoutSleep: readTimeoutSleep
         )
+    }
+
+    func testPopoverReleaseDoesNotDeactivateIconOwnerOrDropBatteryClaim() async {
+        let reader = DeferredBluetoothDeviceReader()
+        let controller = makeController(reader: reader)
+        controller.requestBatteryLevels(IconSourceDemandBridge.batteryLevelsToken)
+        controller.requestActivation(BluetoothDeviceController.popoverActivationToken)
+        controller.requestActivation(IconSourceDemandBridge.batteryLevelsToken)
+        await waitUntil { reader.readCount == 1 }
+
+        controller.releaseActivation(BluetoothDeviceController.popoverActivationToken)
+
+        XCTAssertTrue(controller.isActive)
+        XCTAssertTrue(controller.isBatteryLevelsRequested)
+        XCTAssertEqual(reader.readCount, 1)
+        controller.releaseActivation(IconSourceDemandBridge.batteryLevelsToken)
+        XCTAssertFalse(controller.isActive)
+        XCTAssertFalse(controller.isBatteryLevelsRequested)
+    }
+
+    func testIconOwnerUsesEventDrivenBackgroundDemandWithoutPolling() async {
+        let reader = DeferredBluetoothDeviceReader()
+        let connections = StoppableBluetoothConnectionEventMonitor()
+        let batteryEvents = StoppableBluetoothConnectionEventMonitor()
+        let controller = makeController(
+            reader: reader,
+            connectionEvents: connections,
+            accessoryBatteryEvents: batteryEvents
+        )
+
+        XCTAssertTrue(controller.requestActivation(IconSourceDemandBridge.batteryLevelsToken))
+        controller.requestBackgroundBatteryLevels(IconSourceDemandBridge.batteryLevelsToken)
+        await waitUntil { reader.readCount == 1 }
+        reader.complete(.success([]))
+        await waitUntil { controller.availability == .available }
+        await waitUntil { connections.startCount == 1 && batteryEvents.startCount == 1 }
+
+        XCTAssertFalse(controller.isSafetyNetPolling)
+        controller.releaseActivation(IconSourceDemandBridge.batteryLevelsToken)
+        controller.releaseBackgroundBatteryLevels(IconSourceDemandBridge.batteryLevelsToken)
+        XCTAssertFalse(connections.isRegistered)
+        XCTAssertFalse(batteryEvents.isRegistered)
     }
 
     /// Declares the outstanding read stuck: waits for the injected watchdog
@@ -943,7 +987,7 @@ private final class CountingStopBluetoothStateMonitor: BluetoothStateMonitoring 
     func stop() { stopCount += 1 }
 }
 
-private final class StoppableBluetoothConnectionEventMonitor: BluetoothConnectionEventMonitoring, @unchecked Sendable {
+private final class StoppableBluetoothConnectionEventMonitor: BluetoothConnectionEventMonitoring, BluetoothAccessoryBatteryEventMonitoring, @unchecked Sendable {
     private let lock = NSLock()
     private let isAccepted: Bool
     private var handler: (@Sendable () -> Void)?
@@ -956,6 +1000,7 @@ private final class StoppableBluetoothConnectionEventMonitor: BluetoothConnectio
 
     var startCount: Int { lock.withLock { starts } }
     var stopCount: Int { lock.withLock { stops } }
+    var isRegistered: Bool { lock.withLock { handler != nil } }
 
     @discardableResult
     func start(handler: @escaping @Sendable () -> Void) -> Bool {

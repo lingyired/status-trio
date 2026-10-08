@@ -391,7 +391,7 @@ final class SystemStatusStore: ObservableObject {
         clearWiFiNameResolution()
         wifiNetworks.deactivate()
         primaryLink.deactivate()
-        bluetoothDevices.deactivate()
+        bluetoothDevices.shutdown()
         bluetoothListeningModes.stop()
     }
 
@@ -474,9 +474,9 @@ final class SystemStatusStore: ObservableObject {
         isBluetoothEnabled = enabled
         isBluetoothActivatedForPopover = false
         if enabled {
-            bluetoothDevices.activate()
+            _ = bluetoothDevices.requestExplicitActivation(BluetoothDeviceController.settingsActivationToken)
         } else {
-            bluetoothDevices.deactivate()
+            bluetoothDevices.releaseActivation(BluetoothDeviceController.settingsActivationToken)
         }
     }
 
@@ -497,8 +497,9 @@ final class SystemStatusStore: ObservableObject {
         let monitorWasAlreadyActive = bluetoothDevices.isActive
         if !isBluetoothEnabled {
             if !monitorWasAlreadyActive {
-                isBluetoothActivatedForPopover = true
-                bluetoothDevices.activate()
+                isBluetoothActivatedForPopover = bluetoothDevices.requestActivation(
+                    BluetoothDeviceController.popoverActivationToken
+                )
             }
         }
         if monitorWasAlreadyActive {
@@ -537,7 +538,7 @@ final class SystemStatusStore: ObservableObject {
             bluetoothDevices.releaseVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
             if isBluetoothActivatedForPopover {
                 isBluetoothActivatedForPopover = false
-                bluetoothDevices.deactivate()
+                bluetoothDevices.releaseActivation(BluetoothDeviceController.popoverActivationToken)
             }
             // A confirmation is answered inside the panel, so closing the panel
             // cancels an unanswered one. The popover retains its content view

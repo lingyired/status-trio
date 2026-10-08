@@ -517,3 +517,16 @@
 "iconDesigner.control.restoreSlotQuestionFormat" = "%@ をクラシックに戻しますか？";
 "iconDesigner.control.audioOutputFormat" = "オーディオ出力 — %@";
 "iconDesigner.control.savedSymbolFormat" = "保存済みの記号 — %@";
+
+"iconDesigner.control.airPodsBackgroundReads" = "AirPodsのバッテリーをバックグラウンドで読み取る";
+"iconDesigner.control.selectAirPodsDevice" = "AirPodsデバイスを選択";
+"iconDesigner.control.selectConnectedBluetoothDevice" = "接続中のBluetoothデバイスを選択";
+"iconDesigner.control.chooseBluetoothDevice" = "Bluetoothデバイスを選択";
+"iconDesigner.control.noBluetoothDevices" = "利用できるBluetoothデバイスはありません";
+"iconDesigner.control.pinnedBluetoothSymbolScale" = "固定 Bluetooth 記号の大きさ";
+"iconDesigner.colorRole.primary" = "プライマリ";
+"iconDesigner.colorRole.inactive" = "非アクティブ";
+"iconDesigner.colorRole.critical" = "重大";
+"iconDesigner.colorRole.lowPower" = "低電力";
+"iconDesigner.colorRole.powered" = "給電中";
+"iconDesigner.colorRole.bluetooth" = "Bluetooth";

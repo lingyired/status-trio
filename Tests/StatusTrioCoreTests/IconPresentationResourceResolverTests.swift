@@ -70,6 +70,78 @@ final class IconPresentationResourceResolverTests: XCTestCase {
         XCTAssertEqual(unknown.availability["network"], .unavailable(.unknown))
     }
 
+    func testAirPodsSourceSnapshotUsesAUniqueDeviceWithoutUsingCoreAudioUID() {
+        let device = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:09", name: "Renamed", kind: .audio, isConnected: true, airPodsModel: .airPodsPro
+        )
+        let levels = ["AABBCCDDEE09": BluetoothBatteryLevel(
+            deviceAddress: device.id, main: 0, left: 0, right: nil, caseLevel: 88
+        )]
+        let status = StatusSnapshot(
+            battery: .placeholder, wifi: .placeholder, connection: .offline,
+            volume: VolumeStatus(scalar: 0.2, isMuted: false, deviceName: "Renamed", currentDevice: AudioOutputDevice(
+                id: 42, name: "Renamed", uid: "not-a-bluetooth-address", isCurrent: true, transport: .bluetooth
+            ))
+        )
+
+        let sources = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: status, bluetoothDevices: [device], batteryLevels: levels,
+            batteryLevelsUpdatedAt: Date(timeIntervalSince1970: 100), now: Date(timeIntervalSince1970: 101)
+        )
+
+        XCTAssertEqual(sources.availability[RingSource.airPodsBattery.rawValue], .available)
+        XCTAssertEqual(sources.airPodsBattery?.main, 0)
+        XCTAssertEqual(sources.airPodsBattery?.left, 0)
+        XCTAssertEqual(sources.airPodsBattery?.caseLevel, 88)
+    }
+
+    func testFutureAirPodsBatteryTimestampIsUnavailable() {
+        let device = BluetoothDevice(id: "AA:00:00:00:00:03", name: "AirPods Pro", kind: .audio,
+                                     isConnected: true, airPodsModel: .airPodsPro)
+        let levels = [BluetoothBatteryReader.normalizedAddress(device.id): BluetoothBatteryLevel(
+            deviceAddress: device.id, main: 50, left: 49, right: 51, caseLevel: nil
+        )]
+        let status = StatusSnapshot(battery: .placeholder, wifi: .placeholder,
+                                    connection: .offline, volume: .placeholder)
+        let sources = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: status, bluetoothDevices: [device], batteryLevels: levels,
+            batteryLevelsUpdatedAt: Date(timeIntervalSince1970: 202), now: Date(timeIntervalSince1970: 201)
+        )
+        XCTAssertEqual(sources.availability[RingSource.airPodsBattery.rawValue], .unavailable(.temporarilyStale))
+        XCTAssertNil(sources.airPodsBattery)
+    }
+
+    func testAmbiguousAirPodsSourceNeedsExplicitDeviceSelection() {
+        let devices = ["AA:00:00:00:00:01", "AA:00:00:00:00:02"].map {
+            BluetoothDevice(id: $0, name: "Same display name", kind: .audio, isConnected: true, airPodsModel: .airPodsPro)
+        }
+        let status = StatusSnapshot(battery: .placeholder, wifi: .placeholder, connection: .offline, volume: .placeholder)
+        let levels = Dictionary(uniqueKeysWithValues: devices.map {
+            (BluetoothBatteryReader.normalizedAddress($0.id), BluetoothBatteryLevel(
+                deviceAddress: $0.id, main: 50, left: nil, right: nil, caseLevel: nil
+            ))
+        })
+
+        let sources = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: status, bluetoothDevices: devices, batteryLevels: levels,
+            batteryLevelsUpdatedAt: Date(), now: Date()
+        )
+
+        XCTAssertEqual(sources.availability[RingSource.airPodsBattery.rawValue], .unavailable(.unknown))
+        XCTAssertNil(sources.airPodsBattery)
+    }
+
+    func testConnectedBluetoothDeviceRequiresAnExplicitSelection() {
+        let device = BluetoothDevice(id: "AA:BB:CC:DD:EE:01", name: "Headphones", kind: .audio, isConnected: true)
+        let sources = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: StatusSnapshot(battery: .placeholder, wifi: .placeholder, connection: .offline, volume: .placeholder),
+            bluetoothDevices: [device], selectedConnectedDeviceAddress: nil
+        )
+
+        XCTAssertEqual(sources.availability[CenterSource.connectedBluetoothDevice.rawValue], .unavailable(.unknown))
+        XCTAssertNil(sources.connectedBluetoothDeviceSymbol)
+    }
+
     func testWiredConnectionKeepsNetworkSourceAvailableWhenWiFiIsOff() {
         let wired = StatusSnapshot(
             battery: .placeholder,

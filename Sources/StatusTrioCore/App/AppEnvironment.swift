@@ -20,6 +20,7 @@ final class AppEnvironment {
     private let bluetoothNearbyBatteryOptOutSynchronizer = BluetoothNearbyBatteryOptOutSynchronizer()
 
     private var chargingEffectCancellables = Set<AnyCancellable>()
+    private var iconSourceDemandBridge = IconSourceDemandBridge()
 
     init(
         store: SystemStatusStore,
@@ -72,6 +73,7 @@ final class AppEnvironment {
         store.bindInputSettings(settings)
         store.bindMobileBatterySettings(settings)
         store.start()
+        subscribeToIconSourceDemand()
         telemetryReporter.start()
     }
 
@@ -81,12 +83,86 @@ final class AppEnvironment {
         chargingEffectMotionMonitor.onChange = nil
         chargingEffectMotionMonitor.stop()
         chargingEffectCancellables.removeAll()
+        iconSourceDemandBridge.releaseAll(
+            releaseActivation: { [bluetoothDevices = store.bluetoothDevices] token in
+                bluetoothDevices.releaseActivation(token)
+            },
+            releaseBatteryLevels: { [bluetoothDevices = store.bluetoothDevices] token in
+                bluetoothDevices.releaseBackgroundBatteryLevels(token)
+            }
+        )
         bluetoothAudioIconOverrideSynchronizer.stop()
         bluetoothNearbyBatteryOptOutSynchronizer.stop()
         appIconController.stop()
         mainMenuController.stop()
         store.stop()
         iconPresentation.stop()
+    }
+
+    private func subscribeToIconSourceDemand() {
+        Publishers.CombineLatest4(
+            settings.$iconConfiguration.removeDuplicates(),
+            settings.$refreshesAirPodsBatteryForIcon.removeDuplicates(),
+            settings.$airPodsIconDeviceAddress.removeDuplicates(),
+            settings.$connectedBluetoothIconDeviceAddress.removeDuplicates()
+        )
+        .sink { [weak self] configuration, batteryOptIn, selectedAirPodsAddress, _ in
+            guard let self else { return }
+            self.reconcileIconSourceDemand(
+                configuration: configuration,
+                batteryOptIn: batteryOptIn,
+                selectedAirPodsAddress: selectedAirPodsAddress
+            )
+            self.iconPresentation.refreshSourceState()
+        }
+        .store(in: &chargingEffectCancellables)
+
+        Publishers.CombineLatest3(
+            store.bluetoothDevices.$devices.removeDuplicates(),
+            store.bluetoothDevices.$batteryLevels.removeDuplicates(),
+            store.bluetoothDevices.$batteryLevelsUpdatedAt.removeDuplicates()
+        )
+        .sink { [weak self] _, _, _ in
+            guard let self else { return }
+            self.reconcileIconSourceDemand(
+                configuration: self.settings.iconConfiguration,
+                batteryOptIn: self.settings.refreshesAirPodsBatteryForIcon,
+                selectedAirPodsAddress: self.settings.airPodsIconDeviceAddress
+            )
+            self.iconPresentation.refreshSourceState()
+        }
+        .store(in: &chargingEffectCancellables)
+
+        store.bluetoothDevices.$availability
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.reconcileIconSourceDemand(
+                    configuration: self.settings.iconConfiguration,
+                    batteryOptIn: self.settings.refreshesAirPodsBatteryForIcon,
+                    selectedAirPodsAddress: self.settings.airPodsIconDeviceAddress
+                )
+                self.iconPresentation.refreshSourceState()
+            }
+            .store(in: &chargingEffectCancellables)
+    }
+
+    private func reconcileIconSourceDemand(
+        configuration: IconConfigurationV1,
+        batteryOptIn: Bool,
+        selectedAirPodsAddress: String?
+    ) {
+        let bluetoothDevices = store.bluetoothDevices
+        iconSourceDemandBridge.reconcile(
+            configuration: configuration,
+            userOptedInToBackgroundBattery: batteryOptIn,
+            bluetoothDevices: bluetoothDevices.devices,
+            selectedAirPodsAddress: selectedAirPodsAddress,
+            requestActivation: { bluetoothDevices.requestActivation($0) },
+            releaseActivation: { bluetoothDevices.releaseActivation($0) },
+            requestBatteryLevels: { bluetoothDevices.requestBackgroundBatteryLevels($0) },
+            releaseBatteryLevels: { bluetoothDevices.releaseBackgroundBatteryLevels($0) }
+        )
     }
 
     private func subscribeToChargingEffectInputs() {
@@ -187,7 +263,14 @@ final class AppEnvironment {
                 )
             },
             resolveSourceSnapshot: { snapshot in
-                IconPresentationResourceResolver.sourceSnapshot(snapshot: snapshot)
+                IconPresentationResourceResolver.sourceSnapshot(
+                    snapshot: snapshot,
+                    bluetoothDevices: store.bluetoothDevices.devices,
+                    batteryLevels: store.bluetoothDevices.batteryLevels,
+                    batteryLevelsUpdatedAt: store.bluetoothDevices.batteryLevelsUpdatedAt,
+                    selectedAirPodsAddress: settings.airPodsIconDeviceAddress,
+                    selectedConnectedDeviceAddress: settings.connectedBluetoothIconDeviceAddress
+                )
             }
         )
         let chargingEffectClock = ChargingEffectClock()

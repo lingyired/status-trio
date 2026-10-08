@@ -517,3 +517,16 @@
 "iconDesigner.control.restoreSlotQuestionFormat" = "استعادة %@ إلى الوضع الكلاسيكي؟";
 "iconDesigner.control.audioOutputFormat" = "مخرج الصوت — %@";
 "iconDesigner.control.savedSymbolFormat" = "رمز محفوظ — %@";
+
+"iconDesigner.control.airPodsBackgroundReads" = "السماح بقراءة بطارية AirPods في الخلفية";
+"iconDesigner.control.selectAirPodsDevice" = "اختيار جهاز AirPods";
+"iconDesigner.control.selectConnectedBluetoothDevice" = "اختيار جهاز Bluetooth متصل";
+"iconDesigner.control.chooseBluetoothDevice" = "اختيار جهاز";
+"iconDesigner.control.noBluetoothDevices" = "لا توجد أجهزة Bluetooth";
+"iconDesigner.control.pinnedBluetoothSymbolScale" = "مقياس رمز Bluetooth المثبّت";
+"iconDesigner.colorRole.primary" = "أساسي";
+"iconDesigner.colorRole.inactive" = "غير نشط";
+"iconDesigner.colorRole.critical" = "حرج";
+"iconDesigner.colorRole.lowPower" = "طاقة منخفضة";
+"iconDesigner.colorRole.powered" = "موصول بالطاقة";
+"iconDesigner.colorRole.bluetooth" = "Bluetooth";
