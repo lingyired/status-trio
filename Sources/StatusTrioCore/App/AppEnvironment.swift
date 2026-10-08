@@ -93,7 +93,7 @@ final class AppEnvironment {
         guard chargingEffectCancellables.isEmpty else { return }
         Publishers.CombineLatest4(
             store.$snapshot.map(\.battery).removeDuplicates(),
-            settings.$showsChargingEffect.removeDuplicates(),
+            settings.$iconConfiguration.map(\.behaviors.systemBatteryRing.showsChargingEffect).removeDuplicates(),
             store.$isDisplayAsleep.removeDuplicates(),
             settings.$testsChargingEffect.removeDuplicates()
         )

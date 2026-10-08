@@ -15,7 +15,9 @@ struct ChargingEffectSettingsTests {
         #expect(first.batteryIconOptions.showsChargingEffect)
 
         first.showsChargingEffect = false
-        #expect(defaults.object(forKey: SettingsStore.showsChargingEffectDefaultsKey) as? Bool == false)
+        #expect(defaults.object(forKey: SettingsStore.showsChargingEffectDefaultsKey) == nil)
+        let saved = try #require(defaults.data(forKey: SettingsStore.iconConfigurationDefaultsKey))
+        #expect(try IconConfigurationCodec.decode(saved).behaviors.systemBatteryRing.showsChargingEffect == false)
         let restored = SettingsStore(defaults: defaults)
         #expect(restored.showsChargingEffect == false)
         #expect(restored.batteryIconOptions.showsChargingEffect == false)
@@ -35,7 +37,9 @@ struct ChargingEffectSettingsTests {
         #expect(first.batteryIconOptions.showsChargingBoltHeartbeat)
 
         first.showsChargingBoltHeartbeat = false
-        #expect(defaults.object(forKey: SettingsStore.showsChargingBoltHeartbeatDefaultsKey) as? Bool == false)
+        #expect(defaults.object(forKey: SettingsStore.showsChargingBoltHeartbeatDefaultsKey) == nil)
+        let saved = try #require(defaults.data(forKey: SettingsStore.iconConfigurationDefaultsKey))
+        #expect(try IconConfigurationCodec.decode(saved).behaviors.systemBatteryRing.showsChargingBoltHeartbeat == false)
         let restored = SettingsStore(defaults: defaults)
         #expect(!restored.showsChargingBoltHeartbeat)
         #expect(!restored.batteryIconOptions.showsChargingBoltHeartbeat)

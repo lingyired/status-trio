@@ -12,6 +12,7 @@ final class SettingsStore: ObservableObject {
     static let iconSizeRange: ClosedRange<Double> = 16...36
     static let defaultIconSize: Double = 24
     static let iconSizeDefaultsKey = "menuBarIconSize"
+    static let iconConfigurationDefaultsKey = "iconConfigurationV1"
 
     static let batteryCriticalThresholdRange: ClosedRange<Double> = 0...100
     static let defaultBatteryCriticalThreshold: Double = 20
@@ -183,152 +184,114 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var showsBatteryPercentage: Bool {
+    @Published private(set) var iconConfiguration: IconConfigurationV1 {
         didSet {
-            defaults.set(showsBatteryPercentage, forKey: Self.showsBatteryPercentageDefaultsKey)
+            guard canPersistIconConfiguration,
+                  let data = try? IconConfigurationCodec.encode(iconConfiguration) else { return }
+            defaults.set(data, forKey: Self.iconConfigurationDefaultsKey)
         }
     }
-
-    @Published var showsChargingIndicator: Bool {
-        didSet {
-            defaults.set(showsChargingIndicator, forKey: Self.showsChargingIndicatorDefaultsKey)
-        }
-    }
-
-    @Published var showsChargingEffect: Bool {
-        didSet {
-            defaults.set(showsChargingEffect, forKey: Self.showsChargingEffectDefaultsKey)
-            if !showsChargingEffect {
-                testsChargingEffect = false
-            }
-        }
-    }
-
-    @Published var showsChargingBoltHeartbeat: Bool {
-        didSet {
-            defaults.set(
-                showsChargingBoltHeartbeat,
-                forKey: Self.showsChargingBoltHeartbeatDefaultsKey
-            )
-        }
-    }
+    @Published private(set) var iconConfigurationLoadError: IconConfigurationCodecError?
+    private var canPersistIconConfiguration = false
 
     @Published private(set) var testsChargingEffect = false
 
-    func setChargingEffectTestEnabled(_ enabled: Bool) {
-        if enabled {
-            showsChargingEffect = true
+    var showsBatteryPercentage: Bool {
+        get { iconConfiguration.behaviors.systemBatteryRing.showsPercentage }
+        set { updateIconConfiguration { $0.behaviors.systemBatteryRing.showsPercentage = newValue } }
+    }
+    var showsChargingIndicator: Bool {
+        get { iconConfiguration.behaviors.systemBatteryRing.showsChargingIndicator }
+        set { updateIconConfiguration { $0.behaviors.systemBatteryRing.showsChargingIndicator = newValue } }
+    }
+    var showsChargingEffect: Bool {
+        get { iconConfiguration.behaviors.systemBatteryRing.showsChargingEffect }
+        set {
+            updateIconConfiguration { $0.behaviors.systemBatteryRing.showsChargingEffect = newValue }
+            if !newValue { testsChargingEffect = false }
         }
+    }
+    var showsChargingBoltHeartbeat: Bool {
+        get { iconConfiguration.behaviors.systemBatteryRing.showsChargingBoltHeartbeat }
+        set { updateIconConfiguration { $0.behaviors.systemBatteryRing.showsChargingBoltHeartbeat = newValue } }
+    }
+    var showsPercentageWhenConnected: Bool {
+        get { iconConfiguration.behaviors.systemBatteryRing.showsPercentageWhenConnected }
+        set { updateIconConfiguration { $0.behaviors.systemBatteryRing.showsPercentageWhenConnected = newValue } }
+    }
+    var usesBatteryStatusColors: Bool {
+        get { iconConfiguration.behaviors.systemBatteryRing.usesStatusColors }
+        set { updateIconConfiguration { $0.behaviors.systemBatteryRing.usesStatusColors = newValue } }
+    }
+    var batterySymbolScale: Double {
+        get { iconConfiguration.behaviors.systemBatteryRing.textScale / BatteryIconOptions.defaultTextScale }
+        set {
+            let value = Self.clampedBatterySymbolScale(newValue) * BatteryIconOptions.defaultTextScale
+            updateIconConfiguration { $0.behaviors.systemBatteryRing.textScale = value }
+        }
+    }
+    var batteryCriticalThreshold: Double {
+        get { Double(iconConfiguration.behaviors.systemBatteryRing.criticalThreshold) }
+        set {
+            let value = Int(Self.clampedBatteryCriticalThreshold(newValue))
+            updateIconConfiguration { $0.behaviors.systemBatteryRing.criticalThreshold = value }
+        }
+    }
+    var showsWiFiIconForEthernet: Bool {
+        get { iconConfiguration.behaviors.networkCenter.showsWiFiIconForEthernet }
+        set { updateIconConfiguration { $0.behaviors.networkCenter.showsWiFiIconForEthernet = newValue } }
+    }
+    var showsWiFiIconForHotspot: Bool {
+        get { iconConfiguration.behaviors.networkCenter.showsWiFiIconForHotspot }
+        set { updateIconConfiguration { $0.behaviors.networkCenter.showsWiFiIconForHotspot = newValue } }
+    }
+    var showsWiFiIconForTemporaryConnection: Bool {
+        get { iconConfiguration.behaviors.networkCenter.showsWiFiIconForTemporaryConnection }
+        set { updateIconConfiguration { $0.behaviors.networkCenter.showsWiFiIconForTemporaryConnection = newValue } }
+    }
+    var showsWiFiIconForInternetSharing: Bool {
+        get { iconConfiguration.behaviors.networkCenter.showsWiFiIconForInternetSharing }
+        set { updateIconConfiguration { $0.behaviors.networkCenter.showsWiFiIconForInternetSharing = newValue } }
+    }
+    var showsBatteryPercentageInConnectionSlot: Bool {
+        get { iconConfiguration.behaviors.networkCenter.showsBatteryPercentageInConnectionSlot }
+        set { updateIconConfiguration { $0.behaviors.networkCenter.showsBatteryPercentageInConnectionSlot = newValue } }
+    }
+    var replacesNetworkIconWithBluetoothAudio: Bool {
+        get { iconConfiguration.behaviors.bluetoothAudioCenter.replacesNetworkIcon }
+        set { updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.replacesNetworkIcon = newValue } }
+    }
+    var usesBluetoothAudioVolumeColor: Bool {
+        get { iconConfiguration.behaviors.bluetoothAudioCenter.usesVolumeColor }
+        set { updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.usesVolumeColor = newValue } }
+    }
+    var prioritizesNetworkErrorsOverBluetoothAudio: Bool {
+        get { iconConfiguration.behaviors.bluetoothAudioCenter.prioritizesNetworkErrors }
+        set { updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.prioritizesNetworkErrors = newValue } }
+    }
+    var bluetoothNetworkIconSymbolName: String? {
+        get { iconConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride }
+        set { updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = newValue } }
+    }
+
+    func setChargingEffectTestEnabled(_ enabled: Bool) {
+        if enabled { showsChargingEffect = true }
         testsChargingEffect = enabled
     }
 
-    @Published var showsPercentageWhenConnected: Bool {
-        didSet {
-            defaults.set(
-                showsPercentageWhenConnected,
-                forKey: Self.showsPercentageWhenConnectedDefaultsKey
-            )
-        }
+    func updateIconConfiguration(_ edit: (inout IconConfigurationV1) -> Void) {
+        guard iconConfigurationLoadError == nil else { return }
+        var updated = iconConfiguration
+        edit(&updated)
+        updated = updated.normalized()
+        guard updated != iconConfiguration else { return }
+        iconConfiguration = updated
     }
 
-    @Published var usesBatteryStatusColors: Bool {
-        didSet {
-            defaults.set(usesBatteryStatusColors, forKey: Self.usesBatteryStatusColorsDefaultsKey)
-        }
-    }
-
-    @Published var batterySymbolScale: Double {
-        didSet {
-            let clamped = Self.clampedBatterySymbolScale(batterySymbolScale)
-            guard clamped == batterySymbolScale else {
-                batterySymbolScale = clamped
-                return
-            }
-            defaults.set(clamped, forKey: Self.batterySymbolScaleDefaultsKey)
-        }
-    }
-
-    @Published var batteryCriticalThreshold: Double {
-        didSet {
-            let clamped = Self.clampedBatteryCriticalThreshold(batteryCriticalThreshold)
-            guard clamped == batteryCriticalThreshold else {
-                batteryCriticalThreshold = clamped
-                return
-            }
-            defaults.set(clamped, forKey: Self.batteryCriticalThresholdDefaultsKey)
-        }
-    }
-
-    @Published var showsWiFiIconForEthernet: Bool {
-        didSet {
-            defaults.set(
-                showsWiFiIconForEthernet,
-                forKey: Self.showsWiFiIconForEthernetDefaultsKey
-            )
-        }
-    }
-
-    @Published var showsWiFiIconForHotspot: Bool {
-        didSet {
-            defaults.set(
-                showsWiFiIconForHotspot,
-                forKey: Self.showsWiFiIconForHotspotDefaultsKey
-            )
-        }
-    }
-
-    @Published var showsWiFiIconForTemporaryConnection: Bool {
-        didSet {
-            defaults.set(
-                showsWiFiIconForTemporaryConnection,
-                forKey: Self.showsWiFiIconForTemporaryConnectionDefaultsKey
-            )
-        }
-    }
-
-    @Published var showsWiFiIconForInternetSharing: Bool {
-        didSet {
-            defaults.set(
-                showsWiFiIconForInternetSharing,
-                forKey: Self.showsWiFiIconForInternetSharingDefaultsKey
-            )
-        }
-    }
-
-    @Published var showsBatteryPercentageInConnectionSlot: Bool {
-        didSet {
-            defaults.set(
-                showsBatteryPercentageInConnectionSlot,
-                forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey
-            )
-        }
-    }
-
-    @Published var replacesNetworkIconWithBluetoothAudio: Bool {
-        didSet {
-            defaults.set(
-                replacesNetworkIconWithBluetoothAudio,
-                forKey: Self.replacesNetworkIconWithBluetoothAudioDefaultsKey
-            )
-        }
-    }
-
-    @Published var usesBluetoothAudioVolumeColor: Bool {
-        didSet {
-            defaults.set(
-                usesBluetoothAudioVolumeColor,
-                forKey: Self.usesBluetoothAudioVolumeColorDefaultsKey
-            )
-        }
-    }
-
-    @Published var prioritizesNetworkErrorsOverBluetoothAudio: Bool {
-        didSet {
-            defaults.set(
-                prioritizesNetworkErrorsOverBluetoothAudio,
-                forKey: Self.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey
-            )
-        }
+    func resetIconConfiguration() {
+        canPersistIconConfiguration = true
+        iconConfigurationLoadError = nil
+        iconConfiguration = .classic
     }
 
     @Published var showsBluetoothBatteryLevels: Bool {
@@ -454,37 +417,36 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var bluetoothSymbolScale: Double {
-        didSet {
-            let clamped = Self.clampedBluetoothSymbolScale(bluetoothSymbolScale)
-            guard clamped == bluetoothSymbolScale else {
-                bluetoothSymbolScale = clamped
-                return
+    var bluetoothSymbolScale: Double {
+        get { iconConfiguration.behaviors.bluetoothAudioCenter.symbolScale }
+        set {
+            let value = Self.clampedBluetoothSymbolScale(newValue)
+            updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.symbolScale = value }
+        }
+    }
+    var wifiSymbolScale: Double {
+        get { iconConfiguration.behaviors.networkCenter.wifiScale }
+        set {
+            let value = Self.clampedWifiSymbolScale(newValue)
+            updateIconConfiguration { $0.behaviors.networkCenter.wifiScale = value }
+        }
+    }
+    var volumeDisplayStyle: VolumeDisplayStyle {
+        get { iconConfiguration.behaviors.systemVolumeFooter.displayStyle }
+        set { updateIconConfiguration { $0.behaviors.systemVolumeFooter.displayStyle = newValue } }
+    }
+    var ringStrokeStyle: RingStrokeStyle {
+        get {
+            RingStrokeStyle.allCases.min {
+                abs($0.scale - iconConfiguration.appearance.outerRing.strokeScale)
+                    < abs($1.scale - iconConfiguration.appearance.outerRing.strokeScale)
+            } ?? Self.defaultRingStrokeStyle
+        }
+        set {
+            updateIconConfiguration {
+                $0.appearance.outerRing.strokeScale = newValue.scale
+                $0.appearance.footer.strokeScale = newValue.scale
             }
-            defaults.set(clamped, forKey: Self.bluetoothSymbolScaleDefaultsKey)
-        }
-    }
-
-    @Published var wifiSymbolScale: Double {
-        didSet {
-            let clamped = Self.clampedWifiSymbolScale(wifiSymbolScale)
-            guard clamped == wifiSymbolScale else {
-                wifiSymbolScale = clamped
-                return
-            }
-            defaults.set(clamped, forKey: Self.wifiSymbolScaleDefaultsKey)
-        }
-    }
-
-    @Published var volumeDisplayStyle: VolumeDisplayStyle {
-        didSet {
-            defaults.set(volumeDisplayStyle.rawValue, forKey: Self.volumeDisplayStyleDefaultsKey)
-        }
-    }
-
-    @Published var ringStrokeStyle: RingStrokeStyle {
-        didSet {
-            defaults.set(ringStrokeStyle.rawValue, forKey: Self.ringStrokeStyleDefaultsKey)
         }
     }
 
@@ -592,20 +554,6 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 bluetoothNetworkIconDeviceAddress,
                 forKey: Self.bluetoothNetworkIconDeviceAddressDefaultsKey
-            )
-        }
-    }
-
-    /// The SF Symbol the picked device resolved to when it was chosen, stored
-    /// so the icon pipeline needs no live device list: `iconAppearancePublisher`
-    /// stays settings-only, and the menu bar and the Dock draw what the picker
-    /// showed. Set together with the address through
-    /// `setBluetoothNetworkIconDevice(address:symbolName:)`.
-    @Published var bluetoothNetworkIconSymbolName: String? {
-        didSet {
-            defaults.set(
-                bluetoothNetworkIconSymbolName,
-                forKey: Self.bluetoothNetworkIconSymbolNameDefaultsKey
             )
         }
     }
@@ -867,6 +815,10 @@ final class SettingsStore: ObservableObject {
         showsBatteryPercentage || showsChargingIndicator
     }
 
+    var iconPresentationConfiguration: IconPresentationConfiguration {
+        iconConfiguration.legacyPresentationConfiguration
+    }
+
     var batteryIconOptions: BatteryIconOptions {
         BatteryIconOptions(
             showsPercentage: showsBatteryPercentage,
@@ -951,6 +903,38 @@ final class SettingsStore: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        let legacyConfiguration = IconConfigurationMigration.legacyConfiguration(defaults: defaults)
+        let storedConfiguration = defaults.data(forKey: Self.iconConfigurationDefaultsKey)
+        let migratedConfiguration = IconConfigurationMigration.makeConfiguration(from: legacyConfiguration)
+        let resolvedConfiguration: IconConfigurationV1
+        let configurationError: IconConfigurationCodecError?
+        let shouldPersistConfiguration: Bool
+        if let storedConfiguration {
+            do {
+                resolvedConfiguration = try IconConfigurationCodec.decode(storedConfiguration)
+                configurationError = nil
+                shouldPersistConfiguration = true
+            } catch let error as IconConfigurationCodecError {
+                resolvedConfiguration = migratedConfiguration
+                configurationError = error
+                shouldPersistConfiguration = false
+            } catch {
+                resolvedConfiguration = migratedConfiguration
+                configurationError = .malformedData
+                shouldPersistConfiguration = false
+            }
+        } else {
+            resolvedConfiguration = migratedConfiguration
+            configurationError = nil
+            shouldPersistConfiguration = true
+        }
+        self.iconConfiguration = resolvedConfiguration
+        self.iconConfigurationLoadError = configurationError
+        self.canPersistIconConfiguration = shouldPersistConfiguration
+        if storedConfiguration == nil,
+           let data = try? IconConfigurationCodec.encode(resolvedConfiguration) {
+            defaults.set(data, forKey: Self.iconConfigurationDefaultsKey)
+        }
         let appleMigration = AppleDeviceSettingsMigration.migrate(defaults: defaults)
         let hadLegacyInstallMarker =
             defaults.bool(forKey: Self.sparkleHasLaunchedBeforeDefaultsKey)
@@ -997,8 +981,6 @@ final class SettingsStore: ObservableObject {
             )
         }
         let storedIconSize = (defaults.object(forKey: Self.iconSizeDefaultsKey) as? NSNumber)?.doubleValue
-        let storedCriticalThreshold = (defaults.object(forKey: Self.batteryCriticalThresholdDefaultsKey) as? NSNumber)?.doubleValue
-        let storedBatterySymbolScale = (defaults.object(forKey: Self.batterySymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
         let storedOutputDeviceLimit = (defaults.object(forKey: Self.maxVisibleOutputDevicesDefaultsKey) as? NSNumber)?.intValue
         let storedBluetoothDeviceLimit = (defaults.object(
             forKey: Self.maxVisibleBluetoothDevicesDefaultsKey
@@ -1019,10 +1001,6 @@ final class SettingsStore: ObservableObject {
             defaults.stringArray(forKey: Self.revealedGhostBluetoothDeviceAddressesDefaultsKey) ?? []
         )
         let storedRefreshInterval = (defaults.object(forKey: Self.refreshIntervalDefaultsKey) as? NSNumber)?.doubleValue
-        let storedBluetoothSymbolScale = (defaults.object(forKey: Self.bluetoothSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
-        let storedWifiSymbolScale = (defaults.object(forKey: Self.wifiSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
-        let storedVolumeDisplayStyle = defaults.string(forKey: Self.volumeDisplayStyleDefaultsKey)
-        let storedRingStrokeStyle = defaults.string(forKey: Self.ringStrokeStyleDefaultsKey)
         let storedOutputDeviceOrder = defaults.stringArray(forKey: Self.outputDeviceOrderDefaultsKey) ?? []
         let storedPopupSectionOrder = defaults.stringArray(
             forKey: Self.popupSectionOrderDefaultsKey
@@ -1048,48 +1026,6 @@ final class SettingsStore: ObservableObject {
             .flatMap(DockIconBackgroundPreference.init(rawValue:))
             ?? .system
         self.iconSize = Self.clampedIconSize(storedIconSize ?? Self.defaultIconSize)
-        self.showsBatteryPercentage = defaults.object(forKey: Self.showsBatteryPercentageDefaultsKey) as? Bool ?? true
-        self.showsChargingIndicator = defaults.object(forKey: Self.showsChargingIndicatorDefaultsKey) as? Bool ?? true
-        self.showsChargingEffect = defaults.object(
-            forKey: Self.showsChargingEffectDefaultsKey
-        ) as? Bool ?? true
-        self.showsChargingBoltHeartbeat = defaults.object(
-            forKey: Self.showsChargingBoltHeartbeatDefaultsKey
-        ) as? Bool ?? true
-        self.showsPercentageWhenConnected = defaults.object(
-            forKey: Self.showsPercentageWhenConnectedDefaultsKey
-        ) as? Bool ?? false
-        self.usesBatteryStatusColors = defaults.object(forKey: Self.usesBatteryStatusColorsDefaultsKey) as? Bool ?? true
-        self.batterySymbolScale = Self.clampedBatterySymbolScale(
-            storedBatterySymbolScale ?? Self.defaultBatterySymbolScale
-        )
-        self.batteryCriticalThreshold = Self.clampedBatteryCriticalThreshold(
-            storedCriticalThreshold ?? Self.defaultBatteryCriticalThreshold
-        )
-        self.showsWiFiIconForEthernet = defaults.object(
-            forKey: Self.showsWiFiIconForEthernetDefaultsKey
-        ) as? Bool ?? false
-        self.showsWiFiIconForHotspot = defaults.object(
-            forKey: Self.showsWiFiIconForHotspotDefaultsKey
-        ) as? Bool ?? false
-        self.showsWiFiIconForTemporaryConnection = defaults.object(
-            forKey: Self.showsWiFiIconForTemporaryConnectionDefaultsKey
-        ) as? Bool ?? false
-        self.showsWiFiIconForInternetSharing = defaults.object(
-            forKey: Self.showsWiFiIconForInternetSharingDefaultsKey
-        ) as? Bool ?? false
-        self.showsBatteryPercentageInConnectionSlot = defaults.object(
-            forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey
-        ) as? Bool ?? false
-        self.replacesNetworkIconWithBluetoothAudio = defaults.object(
-            forKey: Self.replacesNetworkIconWithBluetoothAudioDefaultsKey
-        ) as? Bool ?? false
-        self.usesBluetoothAudioVolumeColor = defaults.object(
-            forKey: Self.usesBluetoothAudioVolumeColorDefaultsKey
-        ) as? Bool ?? false
-        self.prioritizesNetworkErrorsOverBluetoothAudio = defaults.object(
-            forKey: Self.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey
-        ) as? Bool ?? true
         self.showsBluetoothBatteryLevels = defaults.object(
             forKey: Self.showsBluetoothBatteryLevelsDefaultsKey
         ) as? Bool ?? true
@@ -1127,18 +1063,6 @@ final class SettingsStore: ObservableObject {
         self.bluetoothListeningModePreviewLanguage = defaults.string(
             forKey: Self.bluetoothListeningModePreviewLanguageDefaultsKey
         ) ?? ""
-        self.bluetoothSymbolScale = Self.clampedBluetoothSymbolScale(
-            storedBluetoothSymbolScale ?? Self.defaultBluetoothSymbolScale
-        )
-        self.wifiSymbolScale = Self.clampedWifiSymbolScale(
-            storedWifiSymbolScale ?? Self.defaultWifiSymbolScale
-        )
-        self.volumeDisplayStyle = storedVolumeDisplayStyle
-            .flatMap(VolumeDisplayStyle.init(rawValue:))
-            ?? Self.defaultVolumeDisplayStyle
-        self.ringStrokeStyle = storedRingStrokeStyle
-            .flatMap(RingStrokeStyle.init(rawValue:))
-            ?? Self.defaultRingStrokeStyle
         self.refreshIntervalSeconds = Self.clampedRefreshInterval(
             storedRefreshInterval ?? Self.defaultRefreshIntervalSeconds
         )
@@ -1158,9 +1082,6 @@ final class SettingsStore: ObservableObject {
         self.revealedGhostBluetoothDeviceAddresses = storedRevealedGhostBluetoothDeviceAddresses
         self.bluetoothNetworkIconDeviceAddress = defaults.string(
             forKey: Self.bluetoothNetworkIconDeviceAddressDefaultsKey
-        )
-        self.bluetoothNetworkIconSymbolName = defaults.string(
-            forKey: Self.bluetoothNetworkIconSymbolNameDefaultsKey
         )
         self.alwaysShowsAllOutputDevices = defaults.object(
             forKey: Self.alwaysShowsAllOutputDevicesDefaultsKey

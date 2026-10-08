@@ -1160,16 +1160,18 @@ final class SettingsStoreTests: XCTestCase {
         defer { clear(suite) }
 
         let store = SettingsStore(defaults: suite.defaults)
-        var published: [RingStrokeStyle] = []
-        let cancellable = store.$ringStrokeStyle.dropFirst().sink {
-            published.append($0)
+        var published: [(Double, Double)] = []
+        let cancellable = store.$iconConfiguration.dropFirst().sink { configuration in
+            published.append((configuration.appearance.outerRing.strokeScale,
+                              configuration.appearance.footer.strokeScale))
         }
         defer { cancellable.cancel() }
 
         store.ringStrokeStyle = .light
         store.ringStrokeStyle = .bold
 
-        XCTAssertEqual(published, [.light, .bold])
+        XCTAssertEqual(published.map(\.0), [RingStrokeStyle.light.scale, RingStrokeStyle.bold.scale])
+        XCTAssertEqual(published.map(\.1), [RingStrokeStyle.light.scale, RingStrokeStyle.bold.scale])
     }
 
     func testRingStrokeStyleAcceptsDescriptiveSynonyms() {
