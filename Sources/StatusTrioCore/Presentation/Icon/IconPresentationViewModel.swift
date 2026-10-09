@@ -57,9 +57,9 @@ struct IconPresentationOutput: Equatable, Sendable {
 }
 
 private enum IconHeldSlotState: Sendable {
-    case outerRing(OuterRingState, SlotResolutionTrace)
-    case center(CenterState, SlotResolutionTrace)
-    case footer(FooterState, SlotResolutionTrace)
+    case outerRing(OuterRingState)
+    case center(CenterState)
+    case footer(FooterState)
 }
 
 private enum IconHeldSourcePayload: Sendable {
@@ -284,7 +284,8 @@ final class IconPresentationViewModel: ObservableObject {
         }
         return (
             IconSourceSnapshot(availability: held, airPodsBattery: airPodsPayload,
-                               connectedBluetoothDeviceSymbol: connectedDevicePayload),
+                               connectedBluetoothDeviceSymbol: connectedDevicePayload,
+                               holdingSourceIDs: holdingSourceIDs),
             raw,
             holdingSourceIDs
         )
@@ -297,11 +298,11 @@ final class IconPresentationViewModel: ObservableObject {
         for (sourceID, availability) in rawAvailability.availability {
             guard case .available = availability else { continue }
             if output.trace.outerRing.selectedSourceID == sourceID, let state = output.scene.outerRing {
-                lastGoodSlotStates[sourceID] = .outerRing(state, output.trace.outerRing)
+                lastGoodSlotStates[sourceID] = .outerRing(state)
             } else if output.trace.center.selectedSourceID == sourceID, let state = output.scene.center {
-                lastGoodSlotStates[sourceID] = .center(state, output.trace.center)
+                lastGoodSlotStates[sourceID] = .center(state)
             } else if output.trace.footer.selectedSourceID == sourceID, let state = output.scene.footer {
-                lastGoodSlotStates[sourceID] = .footer(state, output.trace.footer)
+                lastGoodSlotStates[sourceID] = .footer(state)
             }
         }
     }
@@ -313,19 +314,19 @@ final class IconPresentationViewModel: ObservableObject {
         var outerRing = output.scene.outerRing
         var center = output.scene.center
         var footer = output.scene.footer
-        var trace = output.trace
+        let trace = output.trace
         for sourceID in sourceIDs {
             guard let heldState = lastGoodSlotStates[sourceID] else { continue }
             switch heldState {
-            case let .outerRing(state, slotTrace):
+            case let .outerRing(state):
+                guard trace.outerRing.selectedSourceID == sourceID else { continue }
                 outerRing = state
-                trace.outerRing = slotTrace
-            case let .center(state, slotTrace):
+            case let .center(state):
+                guard trace.center.selectedSourceID == sourceID else { continue }
                 center = state
-                trace.center = slotTrace
-            case let .footer(state, slotTrace):
+            case let .footer(state):
+                guard trace.footer.selectedSourceID == sourceID else { continue }
                 footer = state
-                trace.footer = slotTrace
             }
         }
         let scene = IconSceneState(outerRing: outerRing, center: center, footer: footer)

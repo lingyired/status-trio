@@ -9,10 +9,10 @@ enum AirPodsRingMapper {
     static func resolve(
         snapshot: AirPodsBatteryIconSnapshot,
         behavior: AirPodsRingBehavior,
-        now: Date = .now
+        now: Date = .now,
+        isHeld: Bool = false
     ) -> OuterRingState? {
-        let age = now.timeIntervalSince(snapshot.observedAt)
-        guard age >= 0, age <= AirPodsBatteryIconSnapshot.freshnessInterval else { return nil }
+        guard isHeld || isFresh(snapshot, at: now), hasRenderableBattery(snapshot) else { return nil }
 
         if behavior == .dual, let left = valid(snapshot.left), let right = valid(snapshot.right) {
             return OuterRingState(
@@ -48,6 +48,15 @@ enum AirPodsRingMapper {
             gap: .closed,
             isPartial: behavior == .dual && ((valid(snapshot.left) == nil) != (valid(snapshot.right) == nil))
         )
+    }
+
+    static func isFresh(_ snapshot: AirPodsBatteryIconSnapshot, at now: Date) -> Bool {
+        let age = now.timeIntervalSince(snapshot.observedAt)
+        return age >= 0 && age <= AirPodsBatteryIconSnapshot.freshnessInterval
+    }
+
+    static func hasRenderableBattery(_ snapshot: AirPodsBatteryIconSnapshot) -> Bool {
+        valid(snapshot.main) != nil || valid(snapshot.left) != nil || valid(snapshot.right) != nil
     }
 
     private static func valid(_ value: Int?) -> Int? {

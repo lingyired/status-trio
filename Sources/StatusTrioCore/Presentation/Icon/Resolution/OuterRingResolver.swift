@@ -18,7 +18,9 @@ enum OuterRingResolver {
                 switch inputs.sources.availability[source.rawValue] {
                 case .available:
                     if let snapshot = inputs.sources.airPodsBattery,
-                       AirPodsRingMapper.resolve(snapshot: snapshot, behavior: behavior, now: now) != nil {
+                       (inputs.sources.holdingSourceIDs.contains(source.rawValue)
+                           || AirPodsRingMapper.isFresh(snapshot, at: now)),
+                       AirPodsRingMapper.hasRenderableBattery(snapshot) {
                         .available(true)
                     } else {
                         .unavailable(.temporarilyStale)
@@ -31,7 +33,10 @@ enum OuterRingResolver {
         guard let source = selected.source else { return (nil, trace(selected, source: nil)) }
         if source == .airPodsBattery {
             let ring = inputs.sources.airPodsBattery.flatMap {
-                AirPodsRingMapper.resolve(snapshot: $0, behavior: behavior, now: now)
+                AirPodsRingMapper.resolve(
+                    snapshot: $0, behavior: behavior, now: now,
+                    isHeld: inputs.sources.holdingSourceIDs.contains(source.rawValue)
+                )
             }
             return (ring, trace(selected, source: source))
         }

@@ -4,6 +4,7 @@ struct IconSourceSnapshot: Equatable, Sendable {
     var availability: [String: IconSourceAvailability]
     var airPodsBattery: AirPodsBatteryIconSnapshot? = nil
     var connectedBluetoothDeviceSymbol: String? = nil
+    var holdingSourceIDs: Set<String> = []
 
     static let empty = Self(availability: [:])
 

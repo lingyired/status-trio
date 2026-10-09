@@ -204,6 +204,120 @@ final class IconPresentationViewModelTests: XCTestCase {
         model.stop()
     }
 
+    func testExpiredAirPodsFallbackCannotOverrideRecoveredSystemPrimary() throws {
+        let start = Date(timeIntervalSince1970: 6_000)
+        let base = PresentationFixtures.snapshot(rssi: -40)
+        let initial = replacingBatteryPresence(in: base, isPresent: false)
+        let fixture = MutableIconSourcePayloadFixture(now: start)
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.outerRing = SlotSelection(primary: .systemBattery, fallback: .airPodsBattery)
+        let harness = makeProductionModel(initial: initial, configuration: configuration, fixture: fixture)
+        harness.model.start()
+        XCTAssertEqual(harness.model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
+        XCTAssertEqual(harness.model.output.trace.outerRing.role, .fallback)
+        let heldFallbackScene = try XCTUnwrap(harness.model.output.scene.outerRing)
+        XCTAssertEqual(heldFallbackScene.segments.map(\.progress), [0.7])
+
+        fixture.now = start.addingTimeInterval(59)
+        harness.model.refreshSourceState()
+        XCTAssertEqual(harness.model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
+        XCTAssertEqual(harness.model.output.trace.outerRing.role, .fallback)
+
+        fixture.now = start.addingTimeInterval(60.1)
+        let recoveredSystemBattery = replacingBatteryPresence(in: initial, isPresent: true)
+        harness.snapshots.send(recoveredSystemBattery)
+        harness.snapshotScheduler.runScheduled()
+
+        XCTAssertEqual(harness.model.output.trace.outerRing.selectedSourceID, RingSource.systemBattery.rawValue,
+                       "A currently available primary must outrank a held fallback payload.")
+        XCTAssertEqual(harness.model.output.trace.outerRing.role, .primary)
+        XCTAssertNotEqual(harness.model.output.scene.outerRing, heldFallbackScene,
+                          "A held fallback scene must not replace the current primary's mapped scene.")
+        XCTAssertEqual(harness.model.output.scene.outerRing?.segments.map(\.progress), [0.68])
+        harness.model.stop()
+    }
+
+    func testExplicitDisconnectAndPermissionDenialClearAirPodsHold() throws {
+        for reason in [IconSourceUnavailableReason.disconnected, .permissionDenied] {
+            let start = Date(timeIntervalSince1970: reason == .disconnected ? 7_000 : 8_000)
+            let initial = PresentationFixtures.snapshot(rssi: -40)
+            let fixture = MutableIconSourcePayloadFixture(now: start)
+            var configuration = IconConfigurationV1.classic
+            configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery, fallback: .systemBattery)
+            let harness = makeProductionModel(initial: initial, configuration: configuration, fixture: fixture)
+            harness.model.start()
+            let lastAirPodsScene = try XCTUnwrap(harness.model.output.scene.outerRing)
+            fixture.airPodsAvailabilityOverride = .unavailable(reason)
+            fixture.now = start.addingTimeInterval(1)
+            harness.model.refreshSourceState()
+            XCTAssertEqual(harness.model.output.trace.outerRing.selectedSourceID, RingSource.systemBattery.rawValue)
+            XCTAssertEqual(harness.model.output.trace.outerRing.role, .fallback)
+            XCTAssertNotEqual(harness.model.output.scene.outerRing, lastAirPodsScene,
+                              "Explicit \(reason) must discard, not restore, the stale AirPods slot.")
+            harness.model.stop()
+        }
+    }
+
+    func testSelectingNoneClearsHeldAirPodsSlotAndTrace() throws {
+        let start = Date(timeIntervalSince1970: 9_000)
+        let initial = PresentationFixtures.snapshot(rssi: -40)
+        let fixture = MutableIconSourcePayloadFixture(now: start)
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery, fallback: .systemBattery)
+        let harness = makeProductionModel(initial: initial, configuration: configuration, fixture: fixture)
+        harness.model.start()
+        fixture.now = start.addingTimeInterval(59)
+        harness.model.refreshSourceState()
+        fixture.now = start.addingTimeInterval(60.1)
+        harness.model.refreshSourceState()
+        XCTAssertEqual(harness.model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
+        XCTAssertEqual(harness.model.output.trace.outerRing.role, .primary)
+
+        configuration.composition.outerRing = SlotSelection(primary: .none)
+        harness.preferences.send(IconPresentationSettings(
+            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
+            designerConfiguration: configuration
+        ))
+        XCTAssertNil(harness.model.output.scene.outerRing)
+        XCTAssertNil(harness.model.output.trace.outerRing.selectedSourceID)
+        XCTAssertEqual(harness.model.output.trace.outerRing.role, .none)
+        harness.model.stop()
+    }
+
+    func testHeldBluetoothCenterCannotOverrideCurrentNetworkProblemOverride() throws {
+        let start = Date(timeIntervalSince1970: 10_000)
+        let bluetooth = PresentationFixtures.bluetoothDevice
+        let healthy = StatusSnapshot(
+            battery: PresentationFixtures.snapshot().battery,
+            wifi: WiFiStatus(state: .connected, rssi: -40), connection: .wifi,
+            volume: VolumeStatus(scalar: 0.7, isMuted: false, deviceName: bluetooth.name,
+                                 currentDevice: bluetooth)
+        )
+        let fixture = MutableIconSourcePayloadFixture(now: start)
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .bluetoothAudioOutput, fallback: .network)
+        configuration.composition.centerOverride.networkProblemOverridesPrimary = true
+        let harness = makeProductionModel(initial: healthy, configuration: configuration, fixture: fixture)
+        harness.model.start()
+        XCTAssertEqual(harness.model.output.trace.center.selectedSourceID, CenterSource.bluetoothAudioOutput.rawValue)
+        let bluetoothCenter = try XCTUnwrap(harness.model.output.scene.center)
+
+        fixture.sourceAvailabilityOverrides[CenterSource.bluetoothAudioOutput.rawValue] = .unavailable(.temporarilyStale)
+        fixture.now = start.addingTimeInterval(1)
+        let networkProblem = StatusSnapshot(
+            battery: healthy.battery, wifi: WiFiStatus(state: .noInternet, rssi: -40), connection: .wifi,
+            volume: healthy.volume
+        )
+        harness.snapshots.send(networkProblem)
+        harness.snapshotScheduler.runScheduled()
+
+        XCTAssertEqual(harness.model.output.trace.center.selectedSourceID, CenterSource.network.rawValue)
+        XCTAssertEqual(harness.model.output.trace.center.reason, .overridden(.networkProblem))
+        XCTAssertNotEqual(harness.model.output.scene.center, bluetoothCenter,
+                          "The current legal override must not be replaced by the previously held Bluetooth center.")
+        harness.model.stop()
+    }
+
     func testExpiredAirPodsPayloadKeepsLastValidSlotAndTraceOnlyThroughBoundedHold() throws {
         let start = Date(timeIntervalSince1970: 5_000)
         let initial = PresentationFixtures.snapshot(rssi: -40)
@@ -875,6 +989,41 @@ final class IconPresentationViewModelTests: XCTestCase {
             menuBarSize: settings.menuBarSize
         )
     }
+
+    private func makeProductionModel(
+        initial: StatusSnapshot,
+        configuration: IconConfigurationV1,
+        fixture: MutableIconSourcePayloadFixture
+    ) -> (
+        model: IconPresentationViewModel,
+        snapshots: CurrentValueSubject<StatusSnapshot, Never>,
+        preferences: CurrentValueSubject<IconPresentationSettings, Never>,
+        snapshotScheduler: ManualIconPresentationScheduler,
+        expiryScheduler: ManualIconPresentationScheduler
+    ) {
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(initial)
+        let settings = IconPresentationSettings(configuration: .standard, menuBarSize: 28,
+                                                testsChargingEffect: false, designerConfiguration: configuration)
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let snapshotScheduler = ManualIconPresentationScheduler()
+        let expiryScheduler = ManualIconPresentationScheduler()
+        let model = IconPresentationViewModel(
+            snapshot: initial, settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationResourceResolver.inputs(snapshot: $0) },
+            mapResolution: { inputs, configuration, sources in
+                IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(system: inputs, sources: sources),
+                    configuration: configuration,
+                    now: fixture.now
+                )
+            },
+            resolveSourceSnapshot: { snapshot in fixture.resolve(snapshot: snapshot) },
+            now: { fixture.now }, snapshotScheduler: snapshotScheduler, holdExpiryScheduler: expiryScheduler
+        )
+        return (model, snapshots, preferences, snapshotScheduler, expiryScheduler)
+    }
+
 }
 
 @MainActor
@@ -884,6 +1033,8 @@ private final class MutableIconSourcePayloadFixture {
     var batteryLevels: [String: BluetoothBatteryLevel]
     var batteryLevelsUpdatedAt: Date
     var now: Date
+    var airPodsAvailabilityOverride: IconSourceAvailability?
+    var sourceAvailabilityOverrides: [String: IconSourceAvailability] = [:]
 
     init(now: Date) {
         self.now = now
@@ -896,10 +1047,35 @@ private final class MutableIconSourcePayloadFixture {
     }
 
     func resolve(snapshot: StatusSnapshot) -> IconSourceSnapshot {
-        IconPresentationResourceResolver.sourceSnapshot(
+        var sources = IconPresentationResourceResolver.sourceSnapshot(
             snapshot: snapshot, bluetoothDevices: [airPods, headphones], batteryLevels: batteryLevels,
             batteryLevelsUpdatedAt: batteryLevelsUpdatedAt, selectedAirPodsAddress: airPods.id,
             selectedConnectedDeviceAddress: headphones.id, now: now
         )
+        if let airPodsAvailabilityOverride {
+            sources.availability[RingSource.airPodsBattery.rawValue] = airPodsAvailabilityOverride
+        }
+        for (sourceID, availability) in sourceAvailabilityOverrides {
+            sources.availability[sourceID] = availability
+        }
+        return sources
     }
+}
+
+
+private func replacingBatteryPresence(in snapshot: StatusSnapshot, isPresent: Bool) -> StatusSnapshot {
+    StatusSnapshot(
+        battery: BatteryStatus(
+            rawPercentage: snapshot.battery.rawPercentage,
+            isPresent: isPresent,
+            isCharging: snapshot.battery.isCharging,
+            isCharged: snapshot.battery.isCharged,
+            timeToFullChargeMinutes: snapshot.battery.timeToFullChargeMinutes,
+            isLowPowerMode: snapshot.battery.isLowPowerMode,
+            isConnectedToPower: snapshot.battery.isConnectedToPower
+        ),
+        wifi: snapshot.wifi,
+        connection: snapshot.connection,
+        volume: snapshot.volume
+    )
 }
