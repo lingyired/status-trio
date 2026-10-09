@@ -145,6 +145,37 @@ struct BluetoothDeviceKindRefinementTests {
         }
     }
 
+    /// Issue #88: a mouse whose macro keys make macOS order its keyboard
+    /// collection first. The device presents a pointer usage too — the reader
+    /// reads every usage pair, so the refinement sees it and the declared mouse
+    /// survives instead of being read as a keyboard.
+    @Test func aDeclaredMouseWithItsKeyboardCollectionFirstStaysMouse() {
+        let usages = BluetoothHIDUsageReader.readUsages(from: 17) { _, key -> Any? in
+            switch key as String {
+            case "Transport": "Bluetooth Low Energy"
+            case "DeviceAddress": "e3-3d-b6-e4-74-73"
+            case "DeviceUsagePairs": [
+                ["DeviceUsagePage": 1, "DeviceUsage": 6],   // keyboard/macro collection first
+                ["DeviceUsagePage": 1, "DeviceUsage": 2],   // pointer usage the mouse needs
+            ] as [[String: Any]]
+            default: Optional<Any>.none
+            }
+        }
+        let hidUsages = Dictionary(
+            uniqueKeysWithValues: [usages].compactMap { value -> (String, [BluetoothHIDUsage])? in
+                guard let value else { return nil }
+                return (BluetoothBatteryReader.normalizedAddress(value.address), value.usages)
+            }
+        )
+
+        let refined = BluetoothDeviceKindRefinement.apply(
+            to: [device(address: "e3:3d:b6:e4:74:73", name: "HECATE G3M Pro", kind: .peripheral(.mouse))],
+            hidUsages: hidUsages
+        )
+
+        #expect(refined.first?.kind == .peripheral(.mouse))
+    }
+
     @Test func anUnknownKindStaysUnknownWhenMouseAndKeyboardAreAmbiguous() {
         let refined = BluetoothDeviceKindRefinement.apply(
             to: [device(kind: .unknown)],
@@ -364,12 +395,37 @@ private final class CallCounter: @unchecked Sendable {
     }
 }
 
-/// The I/O Registry lookup stays limited to the four values needed to join
+/// The I/O Registry lookup stays limited to the values needed to join
 /// Bluetooth HID interfaces to paired devices and classify their usage.
 struct BluetoothHIDRegistryPropertyReadTests {
-    @Test func bluetoothUsageReadsOnlyItsRequiredProperties() {
+    @Test func bluetoothUsageReadsEveryTopLevelPair() {
         var lookedUp: [String] = []
-        let result = BluetoothHIDUsageReader.readUsage(from: 17) { _, key -> Any? in
+        let result = BluetoothHIDUsageReader.readUsages(from: 17) { _, key -> Any? in
+            lookedUp.append(key as String)
+            return switch key as String {
+            case "Transport": "Bluetooth Low Energy"
+            case "DeviceAddress": "d3-6d-6c-40-a3-2e"
+            case "DeviceUsagePairs": [
+                ["DeviceUsagePage": 1, "DeviceUsage": 6],   // keyboard first
+                ["DeviceUsagePage": 1, "DeviceUsage": 2],   // mouse too
+            ] as [[String: Any]]
+            default: Optional<Any>.none
+            }
+        }
+
+        #expect(lookedUp == ["Transport", "DeviceAddress", "DeviceUsagePairs"])
+        #expect(result?.address == "d3-6d-6c-40-a3-2e")
+        #expect(result?.usages == [
+            BluetoothHIDUsage(usagePage: 1, usage: 6),
+            BluetoothHIDUsage(usagePage: 1, usage: 2),
+        ])
+    }
+
+    /// Without usage pairs the primary usage is the device's one interface, and
+    /// the fallback still reads it.
+    @Test func thePrimaryUsageStandsInWhenNoPairsArePresent() {
+        var lookedUp: [String] = []
+        let result = BluetoothHIDUsageReader.readUsages(from: 17) { _, key -> Any? in
             lookedUp.append(key as String)
             return switch key as String {
             case "Transport": "Bluetooth Low Energy"
@@ -380,14 +436,13 @@ struct BluetoothHIDRegistryPropertyReadTests {
             }
         }
 
-        #expect(lookedUp == ["Transport", "DeviceAddress", "PrimaryUsagePage", "PrimaryUsage"])
-        #expect(result?.address == "d3-6d-6c-40-a3-2e")
-        #expect(result?.usage == BluetoothHIDUsage(usagePage: 1, usage: 6))
+        #expect(lookedUp == ["Transport", "DeviceAddress", "DeviceUsagePairs", "PrimaryUsagePage", "PrimaryUsage"])
+        #expect(result?.usages == [BluetoothHIDUsage(usagePage: 1, usage: 6)])
     }
 
     @Test func nonBluetoothHIDServicesOnlyReadTransport() {
         var lookedUp: [String] = []
-        let result = BluetoothHIDUsageReader.readUsage(from: 18) { _, key -> Any? in
+        let result = BluetoothHIDUsageReader.readUsages(from: 18) { _, key -> Any? in
             lookedUp.append(key as String)
             return "USB"
         }

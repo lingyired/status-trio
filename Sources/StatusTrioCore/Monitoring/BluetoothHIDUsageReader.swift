@@ -46,32 +46,56 @@ enum BluetoothHIDUsageReader {
         while case let service = IOIteratorNext(iterator), service != 0 {
             defer { IOObjectRelease(service) }
 
-            guard let value = readUsage(from: service, using: registryProperty) else {
+            guard let value = readUsages(from: service, using: registryProperty) else {
                 continue
             }
 
             let key = BluetoothBatteryReader.normalizedAddress(value.address)
             guard !key.isEmpty else { continue }
-            usages[key, default: []].append(value.usage)
+            usages[key, default: []].append(contentsOf: value.usages)
         }
         return usages
     }
 
-    /// Reads only the four Registry values used to filter and classify a
-    /// Bluetooth HID service. Transport is checked first so built-in and USB
-    /// services avoid the other property lookups entirely.
-    static func readUsage(
+    /// Reads the Registry values used to filter and classify a Bluetooth HID
+    /// service: the address to join on, plus every top-level usage the device
+    /// presents. Transport is checked first so built-in and USB services avoid
+    /// the other property lookups entirely.
+    ///
+    /// A Bluetooth HID device is a single `IOHIDDevice` node whose primary usage
+    /// is only the first collection in its report descriptor. `DeviceUsagePairs`
+    /// lists them all, so a composite mouse that declares its keyboard or macro
+    /// collection first would otherwise be read as a keyboard. Only when the
+    /// pairs are absent does the primary usage stand in for the device's one
+    /// interface.
+    static func readUsages(
         from service: io_registry_entry_t,
         using readProperty: (io_registry_entry_t, CFString) -> Any?
-    ) -> (address: String, usage: BluetoothHIDUsage)? {
+    ) -> (address: String, usages: [BluetoothHIDUsage])? {
         guard let transport = readProperty(service, "Transport" as CFString) as? String,
               transport.lowercased().contains("bluetooth"),
-              let address = readProperty(service, "DeviceAddress" as CFString) as? String,
-              let usagePage = readProperty(service, "PrimaryUsagePage" as CFString) as? Int,
+              let address = readProperty(service, "DeviceAddress" as CFString) as? String else {
+            return nil
+        }
+
+        if let pairs = readProperty(service, "DeviceUsagePairs" as CFString) as? [[String: Any]] {
+            let usages = pairs.compactMap { pair -> BluetoothHIDUsage? in
+                guard let page = pair["DeviceUsagePage"] as? Int,
+                      let usage = pair["DeviceUsage"] as? Int else {
+                    return nil
+                }
+                return BluetoothHIDUsage(usagePage: page, usage: usage)
+            }
+            if !usages.isEmpty {
+                return (address, usages)
+            }
+        }
+
+        guard let usagePage = readProperty(service, "PrimaryUsagePage" as CFString) as? Int,
               let usage = readProperty(service, "PrimaryUsage" as CFString) as? Int else {
             return nil
         }
-        return (address, BluetoothHIDUsage(usagePage: usagePage, usage: usage))
+        return (address, [BluetoothHIDUsage(usagePage: usagePage, usage: usage)])
     }
 
     private static func registryProperty(_ service: io_registry_entry_t, _ key: CFString) -> Any? {

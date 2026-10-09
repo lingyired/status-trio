@@ -143,6 +143,14 @@ preserved. When only one of those capabilities is present, it can correct a
 wrong declaration. If both are present and neither resolves the ambiguity, the
 original kind is left unchanged.
 
+The capabilities come from every usage pair the device declares, not only its
+primary usage. A Bluetooth HID device is one `IOHIDDevice` node whose primary
+usage is just the first collection in its report descriptor, so a mouse with
+macro keys — one whose descriptor orders the keyboard collection first — would
+otherwise present as a keyboard and lose the pointer usage that identifies it.
+`DeviceUsagePairs` carries the whole list, and the primary usage is only the
+fallback for a device that declares no pairs.
+
 Three bounds keep the correction from overreaching:
 
 - **Only `peripheral` and `unknown` accept it.** An audio device, a phone or a
