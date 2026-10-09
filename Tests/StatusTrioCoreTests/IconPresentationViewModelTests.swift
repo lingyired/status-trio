@@ -204,6 +204,62 @@ final class IconPresentationViewModelTests: XCTestCase {
         model.stop()
     }
 
+    func testExpiredAirPodsPayloadKeepsLastValidSlotAndTraceOnlyThroughBoundedHold() throws {
+        let start = Date(timeIntervalSince1970: 5_000)
+        let initial = PresentationFixtures.snapshot(rssi: -40)
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(initial)
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery, fallback: .systemBattery)
+        configuration.behaviors.airPodsRing = .dual
+        let settings = IconPresentationSettings(configuration: .standard, menuBarSize: 28,
+                                                testsChargingEffect: false, designerConfiguration: configuration)
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let fixture = MutableIconSourcePayloadFixture(now: start)
+        let debounce = ManualIconPresentationScheduler()
+        let expiry = ManualIconPresentationScheduler()
+        let model = IconPresentationViewModel(
+            snapshot: initial, settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationResourceResolver.inputs(snapshot: $0) },
+            mapResolution: { inputs, configuration, sources in
+                IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(system: inputs, sources: sources),
+                    configuration: configuration,
+                    now: fixture.now
+                )
+            },
+            resolveSourceSnapshot: { snapshot in fixture.resolve(snapshot: snapshot) },
+            now: { fixture.now }, snapshotScheduler: debounce, holdExpiryScheduler: expiry
+        )
+
+        model.start()
+        XCTAssertEqual(model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
+        let lastFreshScene = try XCTUnwrap(model.output.scene.outerRing)
+        let lastFreshTrace = model.output.trace.outerRing
+        XCTAssertEqual(fixture.batteryLevelsUpdatedAt, start, "The source observation time stays at t0.")
+
+        fixture.now = start.addingTimeInterval(59)
+        model.refreshSourceState()
+        XCTAssertEqual(model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
+        XCTAssertEqual(model.output.scene.outerRing, lastFreshScene)
+
+        fixture.now = start.addingTimeInterval(60.1)
+        model.refreshSourceState()
+        XCTAssertEqual(model.output.scene.outerRing, lastFreshScene,
+                       "Temporarily stale data must retain the last valid AirPods ring until the hold expires.")
+        XCTAssertEqual(model.output.trace.outerRing, lastFreshTrace,
+                       "The held scene and trace must continue to identify the last valid AirPods source.")
+        XCTAssertEqual(expiry.scheduledDelays.last, .milliseconds(900))
+
+        fixture.now = start.addingTimeInterval(61)
+        expiry.runScheduled()
+        XCTAssertEqual(model.output.trace.outerRing.selectedSourceID, RingSource.systemBattery.rawValue)
+        XCTAssertEqual(model.output.trace.outerRing.role, .fallback)
+        XCTAssertNotEqual(model.output.scene.outerRing, lastFreshScene,
+                          "The stale AirPods scene must be discarded after the bounded hold expires.")
+        model.stop()
+    }
+
     func testStartedViewModelPreservesProductionAirPodsAndConnectedDevicePayloadThroughHoldExpiry() throws {
         let start = Date()
         let initial = PresentationFixtures.snapshot(rssi: -40)

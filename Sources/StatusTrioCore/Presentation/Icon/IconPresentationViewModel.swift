@@ -57,9 +57,9 @@ struct IconPresentationOutput: Equatable, Sendable {
 }
 
 private enum IconHeldSlotState: Sendable {
-    case outerRing(OuterRingState)
-    case center(CenterState)
-    case footer(FooterState)
+    case outerRing(OuterRingState, SlotResolutionTrace)
+    case center(CenterState, SlotResolutionTrace)
+    case footer(FooterState, SlotResolutionTrace)
 }
 
 private enum IconHeldSourcePayload: Sendable {
@@ -297,11 +297,11 @@ final class IconPresentationViewModel: ObservableObject {
         for (sourceID, availability) in rawAvailability.availability {
             guard case .available = availability else { continue }
             if output.trace.outerRing.selectedSourceID == sourceID, let state = output.scene.outerRing {
-                lastGoodSlotStates[sourceID] = .outerRing(state)
+                lastGoodSlotStates[sourceID] = .outerRing(state, output.trace.outerRing)
             } else if output.trace.center.selectedSourceID == sourceID, let state = output.scene.center {
-                lastGoodSlotStates[sourceID] = .center(state)
+                lastGoodSlotStates[sourceID] = .center(state, output.trace.center)
             } else if output.trace.footer.selectedSourceID == sourceID, let state = output.scene.footer {
-                lastGoodSlotStates[sourceID] = .footer(state)
+                lastGoodSlotStates[sourceID] = .footer(state, output.trace.footer)
             }
         }
     }
@@ -313,17 +313,19 @@ final class IconPresentationViewModel: ObservableObject {
         var outerRing = output.scene.outerRing
         var center = output.scene.center
         var footer = output.scene.footer
+        var trace = output.trace
         for sourceID in sourceIDs {
             guard let heldState = lastGoodSlotStates[sourceID] else { continue }
             switch heldState {
-            case let .outerRing(state) where output.trace.outerRing.selectedSourceID == sourceID:
+            case let .outerRing(state, slotTrace):
                 outerRing = state
-            case let .center(state) where output.trace.center.selectedSourceID == sourceID:
+                trace.outerRing = slotTrace
+            case let .center(state, slotTrace):
                 center = state
-            case let .footer(state) where output.trace.footer.selectedSourceID == sourceID:
+                trace.center = slotTrace
+            case let .footer(state, slotTrace):
                 footer = state
-            default:
-                continue
+                trace.footer = slotTrace
             }
         }
         let scene = IconSceneState(outerRing: outerRing, center: center, footer: footer)
@@ -335,7 +337,7 @@ final class IconPresentationViewModel: ObservableObject {
             )
         }
         return IconPresentationOutput(scene: scene, menuBarTestScene: testScene,
-                                      menuBarSize: output.menuBarSize, trace: output.trace)
+                                      menuBarSize: output.menuBarSize, trace: trace)
     }
 
     private func scheduleHoldExpiry() {
