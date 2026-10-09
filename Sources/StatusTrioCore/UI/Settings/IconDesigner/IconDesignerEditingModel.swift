@@ -43,6 +43,15 @@ enum IconDesignerBehaviorCapability: Hashable, Sendable {
 }
 
 enum IconDesignerEditingModel {
+    static func supportsImplementedSources(for slot: IconSlot) -> Bool {
+        slot == .outerRing || slot == .center
+    }
+
+    static func requiresConnectedBluetoothDevice(in configuration: IconConfigurationV1) -> Bool {
+        let selection = configuration.composition.center
+        return selection.primary == .connectedBluetoothDevice || selection.fallback == .connectedBluetoothDevice
+    }
+
     static func requiresAirPodsBattery(in configuration: IconConfigurationV1) -> Bool {
         configuration.composition.outerRing.primary == .airPodsBattery
             || configuration.composition.outerRing.fallback == .airPodsBattery

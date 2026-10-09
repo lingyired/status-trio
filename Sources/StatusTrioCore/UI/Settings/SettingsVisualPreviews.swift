@@ -182,14 +182,39 @@ struct DockBackgroundPreview: View {
     @ObservedObject var statusStore: SystemStatusStore
 
     private var designerScene: IconSceneState {
-        let snapshot = statusStore.snapshot
-        return IconDesignerPreviewResolver.resolve(
-            inputs: IconResolutionInputs(
-                system: IconPresentationResourceResolver.inputs(snapshot: snapshot),
-                sources: IconPresentationResourceResolver.sourceSnapshot(snapshot: snapshot)
-            ),
+        Self.resolveDesignerScene(
+            preference: preference,
+            snapshot: statusStore.snapshot,
+            bluetoothDevices: statusStore.bluetoothDevices.devices,
+            batteryLevels: statusStore.bluetoothDevices.batteryLevels,
+            batteryLevelsUpdatedAt: statusStore.bluetoothDevices.batteryLevelsUpdatedAt,
+            selectedAirPodsAddress: store.airPodsIconDeviceAddress,
+            selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress,
             configuration: store.iconConfiguration
-        ).scene
+        )
+    }
+
+    @MainActor
+    static func resolveDesignerScene(
+        preference: DockIconBackgroundPreference,
+        snapshot: StatusSnapshot,
+        bluetoothDevices: [BluetoothDevice],
+        batteryLevels: [String: BluetoothBatteryLevel],
+        batteryLevelsUpdatedAt: Date?,
+        selectedAirPodsAddress: String?,
+        selectedConnectedDeviceAddress: String?,
+        configuration: IconConfigurationV1
+    ) -> IconSceneState {
+        _ = preference // All three background choices show the same live icon scene.
+        let inputs = IconResolutionInputs(
+            system: IconPresentationResourceResolver.inputs(snapshot: snapshot),
+            sources: IconPresentationResourceResolver.sourceSnapshot(
+                snapshot: snapshot, bluetoothDevices: bluetoothDevices, batteryLevels: batteryLevels,
+                batteryLevelsUpdatedAt: batteryLevelsUpdatedAt, selectedAirPodsAddress: selectedAirPodsAddress,
+                selectedConnectedDeviceAddress: selectedConnectedDeviceAddress
+            )
+        )
+        return IconDesignerPreviewResolver.resolve(inputs: inputs, configuration: configuration).scene
     }
 
     var body: some View {

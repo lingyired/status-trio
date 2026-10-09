@@ -53,6 +53,9 @@ struct IconSourceEditor: View {
             if airPodsSourceIsConfigured {
                 airPodsSourceSettings
             }
+            if connectedBluetoothSourceIsConfigured {
+                connectedBluetoothSourceSettings
+            }
         }
     }
 
@@ -60,6 +63,37 @@ struct IconSourceEditor: View {
         guard slot == .outerRing else { return false }
         let selection = store.iconConfiguration.composition.outerRing
         return selection.primary == .airPodsBattery || selection.fallback == .airPodsBattery
+    }
+
+    private var connectedBluetoothSourceIsConfigured: Bool {
+        slot == .center && IconDesignerEditingModel.requiresConnectedBluetoothDevice(in: store.iconConfiguration)
+    }
+
+    private var connectedBluetoothSourceSettings: some View {
+        Group {
+            if bluetoothDevices.isEmpty {
+                Text(localization.string(.iconDesignerControlNoBluetoothDevices))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Picker(localization.string(.iconDesignerControlSelectConnectedBluetoothDevice),
+                       selection: connectedBluetoothDeviceBinding) {
+                    Text(localization.string(.iconDesignerControlChooseBluetoothDevice)).tag(String?.none)
+                    ForEach(bluetoothDevices, id: \.id) { device in
+                        let address = BluetoothBatteryReader.normalizedAddress(device.id)
+                        Text(device.name).tag(Optional(address))
+                    }
+                }
+                .accessibilityLabel(localization.string(.iconDesignerControlSelectConnectedBluetoothDevice))
+            }
+        }
+    }
+
+    private var connectedBluetoothDeviceBinding: Binding<String?> {
+        Binding(
+            get: { store.connectedBluetoothIconDeviceAddress.map { BluetoothBatteryReader.normalizedAddress($0) } },
+            set: { store.connectedBluetoothIconDeviceAddress = $0 }
+        )
     }
 
     private var airPodsSourceSettings: some View {

@@ -62,6 +62,11 @@ private enum IconHeldSlotState: Sendable {
     case footer(FooterState)
 }
 
+private enum IconHeldSourcePayload: Sendable {
+    case airPodsBattery(AirPodsBatteryIconSnapshot)
+    case connectedBluetoothDeviceSymbol(String)
+}
+
 @MainActor
 final class IconPresentationViewModel: ObservableObject {
     static let snapshotDebounceInterval: Duration = .milliseconds(500)
@@ -86,6 +91,7 @@ final class IconPresentationViewModel: ObservableObject {
     private var synchronizedStart = false
     private var holdPolicies: [String: IconSourceHoldPolicy<Bool>] = [:]
     private var lastGoodSlotStates: [String: IconHeldSlotState] = [:]
+    private var lastGoodSourcePayloads: [String: IconHeldSourcePayload] = [:]
     private var holdGeneration = 0
 
     init(
@@ -240,8 +246,48 @@ final class IconPresentationViewModel: ObservableObject {
             if case .available = availability { return sourceID }
             return holdingSourceIDs.contains(sourceID) ? sourceID : nil
         })
+        for (sourceID, availability) in raw.availability {
+            guard case .available = availability else { continue }
+            switch sourceID {
+            case RingSource.airPodsBattery.rawValue:
+                if let payload = raw.airPodsBattery {
+                    lastGoodSourcePayloads[sourceID] = .airPodsBattery(payload)
+                } else {
+                    lastGoodSourcePayloads.removeValue(forKey: sourceID)
+                }
+            case CenterSource.connectedBluetoothDevice.rawValue:
+                if let payload = raw.connectedBluetoothDeviceSymbol {
+                    lastGoodSourcePayloads[sourceID] = .connectedBluetoothDeviceSymbol(payload)
+                } else {
+                    lastGoodSourcePayloads.removeValue(forKey: sourceID)
+                }
+            default:
+                break
+            }
+        }
         lastGoodSlotStates = lastGoodSlotStates.filter { retainedSourceIDs.contains($0.key) }
-        return (IconSourceSnapshot(availability: held), raw, holdingSourceIDs)
+        lastGoodSourcePayloads = lastGoodSourcePayloads.filter { retainedSourceIDs.contains($0.key) }
+
+        let airPodsPayload: AirPodsBatteryIconSnapshot?
+        if holdingSourceIDs.contains(RingSource.airPodsBattery.rawValue),
+           case let .airPodsBattery(payload)? = lastGoodSourcePayloads[RingSource.airPodsBattery.rawValue] {
+            airPodsPayload = payload
+        } else {
+            airPodsPayload = raw.airPodsBattery
+        }
+        let connectedDevicePayload: String?
+        if holdingSourceIDs.contains(CenterSource.connectedBluetoothDevice.rawValue),
+           case let .connectedBluetoothDeviceSymbol(payload)? = lastGoodSourcePayloads[CenterSource.connectedBluetoothDevice.rawValue] {
+            connectedDevicePayload = payload
+        } else {
+            connectedDevicePayload = raw.connectedBluetoothDeviceSymbol
+        }
+        return (
+            IconSourceSnapshot(availability: held, airPodsBattery: airPodsPayload,
+                               connectedBluetoothDeviceSymbol: connectedDevicePayload),
+            raw,
+            holdingSourceIDs
+        )
     }
 
     private func updateLastGoodSlotStates(
@@ -307,6 +353,7 @@ final class IconPresentationViewModel: ObservableObject {
     private func resetHoldPolicies() {
         holdPolicies.removeAll(keepingCapacity: true)
         lastGoodSlotStates.removeAll(keepingCapacity: true)
+        lastGoodSourcePayloads.removeAll(keepingCapacity: true)
         holdGeneration &+= 1
         holdExpiryScheduler.cancel()
     }

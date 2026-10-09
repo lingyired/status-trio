@@ -47,6 +47,7 @@ struct IconConfigurationV1: Codable, Equatable, Sendable {
         case .outerRing:
             copy.composition.outerRing = classic.composition.outerRing
             copy.behaviors.systemBatteryRing = classic.behaviors.systemBatteryRing
+            copy.behaviors.airPodsRing = classic.behaviors.airPodsRing
             copy.appearance.outerRing = classic.appearance.outerRing
         case .center:
             copy.composition.center = classic.composition.center

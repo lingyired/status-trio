@@ -98,6 +98,34 @@ struct DockIconPreviewWiringTests {
     /// (`Sources/StatusTrioCore/App/AppIconController.swift:216-229`). The only
     /// intentional difference between that key and a preview's key is the raster
     /// length, so everything else has to match.
+    @Test func dockBackgroundDesignerScenesUseSelectedAirPodsPayloadForEveryBackdrop() throws {
+        let status = StatusSnapshot(
+            battery: BatteryStatus(rawPercentage: 68, isPresent: true, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: false),
+            wifi: .placeholder, connection: .offline, volume: .placeholder
+        )
+        let airPods = BluetoothDevice(id: "AA:BB:CC:DD:EE:30", name: "AirPods Pro", kind: .audio,
+                                      isConnected: true, airPodsModel: .airPodsPro)
+        let key = BluetoothBatteryReader.normalizedAddress(airPods.id)
+        let levels = [key: BluetoothBatteryLevel(deviceAddress: airPods.id, main: 80, left: 35, right: 70, caseLevel: nil)]
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery, fallback: .systemBattery)
+        configuration.behaviors.airPodsRing = .dual
+
+        let scenes = DockIconBackgroundPreference.allCases.map { preference in
+            DockBackgroundPreview.resolveDesignerScene(
+                preference: preference, snapshot: status, bluetoothDevices: [airPods], batteryLevels: levels,
+                batteryLevelsUpdatedAt: Date(), selectedAirPodsAddress: airPods.id,
+                selectedConnectedDeviceAddress: nil, configuration: configuration
+            )
+        }
+
+        #expect(scenes.count == 3)
+        #expect(scenes.allSatisfy { $0.outerRing?.layout == .leftRight })
+        #expect(scenes.allSatisfy { $0.outerRing?.segments.map(\.progress) == [0.35, 0.7] })
+        #expect(scenes.dropFirst().allSatisfy { $0 == scenes[0] })
+    }
+
     @Test func thePreviewKeyCarriesTheSameIconInputsAsTheDockKey() throws {
         let harness = try PreviewWiringHarness()
         defer { harness.cleanUp() }

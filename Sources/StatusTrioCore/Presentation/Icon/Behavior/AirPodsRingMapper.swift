@@ -25,14 +25,19 @@ enum AirPodsRingMapper {
             )
         }
 
+        let validLeft = valid(snapshot.left)
+        let validRight = valid(snapshot.right)
         let value: Double?
-        if let main = valid(snapshot.main) {
+        if behavior == .dual, let onlyKnownEar = validLeft ?? validRight,
+           (validLeft == nil) != (validRight == nil) {
+            value = Double(onlyKnownEar)
+        } else if let main = valid(snapshot.main) {
             value = Double(main)
-        } else if let left = valid(snapshot.left), let right = valid(snapshot.right) {
+        } else if let left = validLeft, let right = validRight {
             value = Double(left + right) / 2
-        } else if let left = valid(snapshot.left) {
+        } else if let left = validLeft {
             value = Double(left)
-        } else if let right = valid(snapshot.right) {
+        } else if let right = validRight {
             value = Double(right)
         } else {
             value = nil

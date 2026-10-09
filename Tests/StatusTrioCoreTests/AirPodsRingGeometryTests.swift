@@ -25,6 +25,14 @@ final class AirPodsRingGeometryTests: XCTestCase {
         let mainOnly = try state(main: 31, left: nil, right: nil, behavior: .dual)
         XCTAssertEqual(mainOnly.segments.map(\.progress), [0.31])
         XCTAssertFalse(mainOnly.isPartial)
+        let leftPlusMain = try state(main: 80, left: 35, right: nil, behavior: .dual)
+        XCTAssertEqual(leftPlusMain.segments.map(\.progress), [0.35], "Dual partial must show the known ear, not the combined main value.")
+        XCTAssertTrue(leftPlusMain.isPartial)
+        let rightPlusMain = try state(main: 80, left: nil, right: 42, behavior: .dual)
+        XCTAssertEqual(rightPlusMain.segments.map(\.progress), [0.42], "The missing-left case must be symmetric.")
+        XCTAssertTrue(rightPlusMain.isPartial)
+        XCTAssertEqual(try state(main: 80, left: 35, right: nil).segments.map(\.progress), [0.8],
+                       "Single mode must preserve main-battery priority.")
     }
 
     func testDualKeepsLeftAndRightInFixedPositionsWithIndependentColors() throws {

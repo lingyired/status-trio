@@ -94,6 +94,8 @@ final class IconDesignerEditingTests: XCTestCase {
         XCTAssertEqual(reset.composition.outerRing, configuration.composition.outerRing)
         XCTAssertEqual(reset.composition.footer, configuration.composition.footer)
         XCTAssertEqual(reset.behaviors.systemVolumeFooter, configuration.behaviors.systemVolumeFooter)
+        XCTAssertEqual(reset.behaviors.airPodsRing, configuration.behaviors.airPodsRing,
+                       "Resetting a different slot must preserve the AirPods ring behavior.")
         XCTAssertEqual(reset.appearance.center, IconConfigurationV1.classic.appearance.center)
         XCTAssertEqual(reset.composition.center, IconConfigurationV1.classic.composition.center)
     }
@@ -109,6 +111,38 @@ final class IconDesignerEditingTests: XCTestCase {
 
 @MainActor
 extension IconDesignerEditingTests {
+    func testOuterRingResetRestoresAirPodsRingBehaviorWithoutChangingOtherSlots() {
+        var configuration = IconConfigurationV1.classic
+        configuration.behaviors.airPodsRing = .dual
+        configuration.composition.center.primary = .network
+        configuration.composition.footer.primary = .systemVolume
+
+        let reset = configuration.resetting(.outerRing)
+
+        XCTAssertEqual(reset.behaviors.airPodsRing, .single)
+        XCTAssertEqual(reset.composition.center.primary, .network)
+        XCTAssertEqual(reset.composition.footer.primary, .systemVolume)
+    }
+
+    func testOuterRingSlotResetLeavesDockAndAirPodsReadPreferencesUntouched() throws {
+        let suiteName = "StatusTrioCoreTests.IconDesignerEditing.OuterRingReset.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { TestUserDefaults.removeSuite(named: suiteName) }
+        let store = SettingsStore(defaults: defaults)
+        store.dockIconBackgroundPreference = .light
+        store.refreshesAirPodsBatteryForIcon = true
+        store.updateIconConfiguration { configuration in
+            configuration.behaviors.airPodsRing = .dual
+            configuration.composition.outerRing.primary = .airPodsBattery
+        }
+
+        store.updateIconConfiguration { $0 = $0.resetting(.outerRing) }
+
+        XCTAssertEqual(store.iconConfiguration.behaviors.airPodsRing, .single)
+        XCTAssertEqual(store.dockIconBackgroundPreference, .light)
+        XCTAssertTrue(store.refreshesAirPodsBatteryForIcon)
+    }
+
     func testClassicResetPreservesDockBackgroundAndBackgroundPermission() {
         let suiteName = "StatusTrioCoreTests.IconDesignerEditing.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

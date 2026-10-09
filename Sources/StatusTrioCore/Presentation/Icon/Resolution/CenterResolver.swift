@@ -28,7 +28,11 @@ enum CenterResolver {
             case .pinnedBluetoothGlyph:
                 return inputs.sources.result(for: source.rawValue, default: .available(true))
             case .connectedBluetoothDevice:
-                return inputs.sources.result(for: source.rawValue, default: .unavailable(.disconnected))
+                switch inputs.sources.availability[source.rawValue] {
+                case .available: return .available(true)
+                case let .unavailable(reason): return .unavailable(reason)
+                case nil: return .unavailable(.disconnected)
+                }
             case .systemBatteryPercentage:
                 let present = inputs.system.snapshot.battery.isPresent
                 return inputs.sources.result(for: source.rawValue,

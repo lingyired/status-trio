@@ -2,11 +2,53 @@ import XCTest
 @testable import StatusTrioCore
 
 final class IconDesignerReviewRegressionTests: XCTestCase {
-    func testConnectedBluetoothSourceStaysHiddenUntilItsProviderIsImplemented() {
-        XCTAssertFalse(IconDesignerEditingModel.selectableSources(for: .center, phaseFiveEnabled: false)
-            .contains(.center(.connectedBluetoothDevice)))
+    func testImplementedConnectedBluetoothSourceIsSelectableAndItsPickerStaysConfigured() {
+        XCTAssertTrue(IconDesignerEditingModel.supportsImplementedSources(for: .center))
         XCTAssertTrue(IconDesignerEditingModel.selectableSources(for: .center, phaseFiveEnabled: true)
             .contains(.center(.connectedBluetoothDevice)))
+
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .connectedBluetoothDevice, fallback: .network)
+        XCTAssertTrue(IconDesignerEditingModel.requiresConnectedBluetoothDevice(in: configuration))
+        configuration.composition.center = SlotSelection(primary: .network, fallback: .connectedBluetoothDevice)
+        XCTAssertTrue(IconDesignerEditingModel.requiresConnectedBluetoothDevice(in: configuration),
+                      "The configured connected-device fallback must keep its picker available.")
+    }
+
+    @MainActor
+    func testConnectedBluetoothAddressPersistsIntoProductionResolverAndDisconnectKeepsSelection() throws {
+        let suiteName = "StatusTrioCoreTests.ConnectedBluetoothIconSource.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { TestUserDefaults.removeSuite(named: suiteName) }
+        let store = SettingsStore(defaults: defaults)
+        let address = "AA:BB:CC:DD:EE:40"
+        store.connectedBluetoothIconDeviceAddress = address
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .connectedBluetoothDevice, fallback: .network)
+
+        let device = BluetoothDevice(id: address, name: "Keyboard", kind: .peripheral(.keyboard), isConnected: true)
+        let status = PresentationFixtures.snapshot(rssi: -40)
+        let freshSources = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: status, bluetoothDevices: [device], selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress
+        )
+        let fresh = IconCompositionResolver.resolve(
+            inputs: IconResolutionInputs(system: IconPresentationResourceResolver.inputs(snapshot: status), sources: freshSources),
+            configuration: configuration
+        )
+        XCTAssertEqual(fresh.trace.center.selectedSourceID, CenterSource.connectedBluetoothDevice.rawValue)
+        XCTAssertNotNil(fresh.scene.center)
+
+        let disconnected = BluetoothDevice(id: address, name: "Keyboard", kind: .peripheral(.keyboard), isConnected: false)
+        let disconnectedSources = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: status, bluetoothDevices: [disconnected], selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress
+        )
+        let unavailable = IconCompositionResolver.resolve(
+            inputs: IconResolutionInputs(system: IconPresentationResourceResolver.inputs(snapshot: status), sources: disconnectedSources),
+            configuration: configuration
+        )
+        XCTAssertEqual(store.connectedBluetoothIconDeviceAddress, address)
+        XCTAssertEqual(unavailable.trace.center.selectedSourceID, CenterSource.network.rawValue)
+        XCTAssertEqual(unavailable.trace.center.role, SlotResolutionRole.fallback)
     }
 
     func testBehaviorEditorOffersConfiguredPrimaryAndFallbackAsTargets() {

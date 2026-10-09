@@ -46,7 +46,7 @@ struct IconDesignerView: View {
                 IconSourceEditor(
                     store: store,
                     slot: selectedSlot,
-                    phaseFiveEnabled: selectedSlot == .outerRing,
+                    phaseFiveEnabled: IconDesignerEditingModel.supportsImplementedSources(for: selectedSlot),
                     bluetoothDevices: statusStore.bluetoothDevices.devices
                 )
                 IconBehaviorEditor(
