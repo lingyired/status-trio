@@ -1,14 +1,9 @@
 import Foundation
 
-/// What a paired device is, as finely as the sources let the app tell.
-///
-/// The class a device declares is its manufacturer's claim about the product,
-/// not an observation of what it does. Those two disagree in practice: a
-/// Logitech keyboard reports `Mouse` in `device_minorType` while the system
-/// enumerates the Generic Desktop keyboard usage for it, which is the interface
-/// macOS actually loads a keyboard driver for. So this is the *declared* class,
-/// and `BluetoothDeviceKindRefinement` may correct it for a connected HID
-/// device.
+/// Device class declared by the system profiler. Paired-device icons use
+/// the minor class first and the major class only as a fallback. Connected HID
+/// interfaces do not override this class, keeping connection-state changes
+/// from changing the device glyph.
 enum BluetoothDeviceKind: Equatable, Sendable {
     case computer(ComputerForm)
     case mobile(MobileForm)
@@ -74,19 +69,6 @@ extension BluetoothDeviceKind {
         return false
     }
 
-    /// Whether a HID usage the system enumerates for this device is allowed to
-    /// overrule the class the report declared.
-    ///
-    /// Only the two classes the report cannot be trusted on. An audio device, a
-    /// phone or a computer never declares a peripheral class, so a stray HID
-    /// interface on one of them must not reclassify it into the peripheral
-    /// family.
-    var acceptsHIDRefinement: Bool {
-        switch self {
-        case .peripheral, .unknown: true
-        case .computer, .mobile, .audio, .imaging, .toy, .health: false
-        }
-    }
 }
 
 /// Classifies a device from the class wording the report carries.
@@ -149,6 +131,10 @@ enum BluetoothDeviceKindResolver {
     private static func minorKind(_ wording: String) -> BluetoothDeviceKind? {
         let key = normalized(wording)
         if let kind = minorKindsByWording[key] { return kind }
+        // A combined keyboard/pointer claim must not arbitrarily pick one icon.
+        if key.contains("keyboard") && (key.contains("pointing") || key.contains("mouse")) {
+            return .peripheral(.unclassified)
+        }
         return containsRules.first { key.contains($0.token) }?.kind
     }
 
@@ -226,8 +212,8 @@ enum BluetoothDeviceKindResolver {
         // Peripheral
         "keyboard": .peripheral(.keyboard),
         "keypad": .peripheral(.keyboard),
-        "combinedkeyboardpointing": .peripheral(.keyboard),
-        "keyboardpointingdevice": .peripheral(.keyboard),
+        "combinedkeyboardpointing": .peripheral(.unclassified),
+        "keyboardpointingdevice": .peripheral(.unclassified),
         "mouse": .peripheral(.mouse),
         "pointingdevice": .peripheral(.mouse),
         "pointer": .peripheral(.mouse),
@@ -376,37 +362,4 @@ enum BluetoothDeviceKindResolver {
         ("toy", .toy),
         ("health", .health),
     ]
-}
-
-/// Corrects the class a connected HID device declared.
-///
-/// `BluetoothHIDUsageClassifier` combines the interfaces with the declared
-/// peripheral form; this decides whether that answer may be used. The report's
-/// wording stays authoritative for unsupported kinds and disconnected devices.
-enum BluetoothDeviceKindRefinement {
-    static func apply(
-        to devices: [BluetoothDevice],
-        hidUsages: [String: [BluetoothHIDUsage]]
-    ) -> [BluetoothDevice] {
-        devices.map { device in
-            guard device.isConnected, device.kind.acceptsHIDRefinement else {
-                return device
-            }
-
-            let declared: PeripheralForm?
-            if case .peripheral(let form) = device.kind {
-                declared = form
-            } else {
-                declared = nil
-            }
-
-            guard let form = BluetoothHIDUsageClassifier.peripheralForm(
-                from: hidUsages[BluetoothBatteryReader.normalizedAddress(device.id)] ?? [],
-                declared: declared
-            ) else {
-                return device
-            }
-            return device.replacingKind(with: .peripheral(form))
-        }
-    }
 }
