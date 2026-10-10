@@ -113,11 +113,8 @@ struct BluetoothPairedDeviceListTests {
         )
     }
 
-    /// A device that is paired but not connected keeps the class the report
-    /// declared, even when that class is wrong. `MX Keys` is a keyboard and
-    /// this report calls it a mouse, which is what the real machine reports for
-    /// it; only the Registry can tell, and a disconnected device has no node
-    /// there, so the declared class is the honest answer.
+    /// Paired devices keep the profiler's declared minor type regardless of
+    /// connection state, even when the manufacturer mislabels them.
     @Test func keepsPairedButDisconnectedDevices() throws {
         let devices = try #require(
             BluetoothPairedDeviceReader.parse(json: Data(connectedAndPaired.utf8))
