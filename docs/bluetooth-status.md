@@ -124,44 +124,27 @@ to be named like a Mac can never be drawn as one, and a name the app has no
 model glyph for — an iMac or a Mac Pro, which Apple ships no symbol for —
 changes nothing. The class list stays behind the named one as the fallback.
 
-### Correcting a class the report got wrong
+### Stable icon classes from the system profiler
 
-The declared class is a manufacturer's claim about its product, not an
-observation of what it does, and the two disagree in practice: a Logitech
-`MX Keys` reports `Mouse` in `device_minorType` while the system enumerates
-Generic Desktop keyboard for it — the interface macOS actually loads a keyboard
-driver for. Trusting the report alone draws a mouse glyph on the keyboard the
-user is typing on.
+Paired Bluetooth devices resolve their icon class only from the profiler's
+`device_minorType` (or the equivalent minor-class wording). A recognized minor
+type determines the same class whether connected or disconnected. If the minor
+class is absent or unrecognized, a major class is a coarse fallback. A combined
+keyboard/pointing minor type is rendered as an unclassified peripheral rather
+than guessing one role.
 
-So a connected device whose class the report cannot be trusted on is corrected
-from the I/O Registry (`BluetoothHIDUsageReader`, `BluetoothHIDUsageClassifier`,
-`BluetoothDeviceKindRefinement`). HID usages describe the input capabilities a
-device offers; they do not by themselves determine its identity. A touch pad
-still outranks the pointer usage the same trackpad also presents. When both mouse
-and keyboard usages are present, the supported declared mouse or keyboard kind is
-preserved. When only one of those capabilities is present, it can correct a
-wrong declaration. If both are present and neither resolves the ambiguity, the
-original kind is left unchanged.
+HID `PrimaryUsage` is no longer used to change the displayed class. Previously,
+connected-only I/O Registry refinement made devices with misdeclared classes,
+such as MX Keys reporting `Mouse`, switch glyphs when they connected and
+disconnected. Mice with auxiliary keyboard interfaces could also be misread.
+The stable declared-class policy removes the extra Registry walk and the
+connection-dependent change, at the cost of keeping some manufacturer's incorrect
+class declarations. No per-device manual override is implemented.
 
-Three bounds keep the correction from overreaching:
-
-- **Only `peripheral` and `unknown` accept it.** An audio device, a phone or a
-  computer never declares a peripheral class, so a stray HID interface on one of
-  them must not move it into that family.
-- **Only connected devices.** A paired but disconnected device has no Registry
-  node and keeps the class the report declared.
-- **The Registry is only walked when something could use it.** A Mac whose
-  paired devices are all headphones and phones never pays for the read — the
-  same rule that keeps `pmset` from running when the report already carries
-  every battery level.
-
-The walk runs inside the process (`IOServiceGetMatchingServices` /
-`IORegistryEntryCreateCFProperties` over `IOHIDDevice`). There is no `ioreg` or
-`hidutil` subprocess to hang the way `/usr/sbin/system_profiler` can, no
-Bluetooth grant is involved, and the app is not sandboxed, so the Registry is
-readable without a permission of any kind. `IOBluetoothDevice.pairedDevices()`
-is not an alternative: a probe compiled against it aborts with `SIGABRT` in a
-plain command-line process.
+AirPods and other audio product-model symbols, and known Apple computer/mobile
+variants, keep their existing within-class icon selection. The profiler itself
+may still report different class wordings on different reads; this change does
+not override the system's reported class.
 
 ## Which levels the row reports
 
