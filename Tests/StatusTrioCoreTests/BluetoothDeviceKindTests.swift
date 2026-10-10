@@ -161,4 +161,28 @@ struct BluetoothDeviceKindTests {
         #expect(corrected.vendorID == 0x046D)
         #expect(corrected.productID == 0xB35B)
     }
+
+    /// The display classification is a separate field from the class, and a
+    /// copy that changes one keeps the other: a device seeded as generic keeps
+    /// its generic glyph when its class is later replaced, and vice versa.
+    @Test func theDisplayClassificationAndTheKindAreIndependentFields() {
+        let device = BluetoothDevice(
+            id: "E3:3D:B6:E4:74:73",
+            name: "HECATE G3M Pro",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            inputIconClassification: .genericInput
+        )
+
+        let reclassified = device.replacingInputIconClassification(with: .mouse)
+        #expect(reclassified.inputIconClassification == .mouse)
+        #expect(reclassified.kind == .peripheral(.mouse))
+
+        let kindChanged = device.replacingKind(with: .peripheral(.keyboard))
+        #expect(kindChanged.kind == .peripheral(.keyboard))
+        #expect(kindChanged.inputIconClassification == .genericInput)
+
+        let modelRecorded = device.identifiedByModel(.mobile(.phone), model: "iPhone18,1")
+        #expect(modelRecorded.inputIconClassification == .genericInput)
+    }
 }

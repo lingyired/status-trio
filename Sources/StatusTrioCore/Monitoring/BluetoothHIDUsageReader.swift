@@ -106,35 +106,6 @@ enum BluetoothHIDUsageReader {
     }
 }
 
-/// Turns the usages a device presents into the peripheral it is.
-///
-/// Pure, so role selection is unit-tested rather than inferred from a live
-/// Mac's device list. Specialized roles take precedence, while a device with
-/// both mouse and keyboard capabilities needs its declared kind to disambiguate.
-enum BluetoothHIDUsageClassifier {
-    /// `nil` when nothing here describes the device or a mouse/keyboard
-    /// combination has no declared kind to resolve the ambiguity.
-    static func peripheralForm(
-        from usages: [BluetoothHIDUsage],
-        declared: PeripheralForm?
-    ) -> PeripheralForm? {
-        let capabilities = BluetoothHIDCapabilities(usages: usages)
-
-        if capabilities.hasTrackpad { return .trackpad }
-        if capabilities.hasGamepad { return .gamepad }
-
-        if capabilities.hasMouse && capabilities.hasKeyboard {
-            if declared == .mouse || declared == .keyboard {
-                return declared
-            }
-            return nil
-        }
-        if capabilities.hasKeyboard { return .keyboard }
-        if capabilities.hasMouse { return .mouse }
-        return nil
-    }
-}
-
 /// Input roles observed across a device's HID interfaces.
 struct BluetoothHIDCapabilities: Equatable, Sendable {
     let hasMouse: Bool

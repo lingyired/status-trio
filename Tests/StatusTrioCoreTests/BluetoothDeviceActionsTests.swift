@@ -436,7 +436,7 @@ final class BluetoothDeviceActionsTests: XCTestCase {
     }
 
     func testAmbiguousUnknownHIDDeviceRequiresDisconnectConfirmation() {
-        let refined = BluetoothDeviceKindRefinement.apply(
+        let seeded = BluetoothInputIconSeed.apply(
             to: [makeDevice(isConnected: true, name: "Combo Input", kind: .unknown)],
             hidUsages: [
                 BluetoothBatteryReader.normalizedAddress(airPodsAddress): [
@@ -446,8 +446,11 @@ final class BluetoothDeviceActionsTests: XCTestCase {
             ]
         )
 
-        XCTAssertEqual(refined.first?.kind, .unknown)
-        XCTAssertTrue(BluetoothDeviceActionPolicy.requiresConfirmation(for: refined[0]))
+        // The class stays unknown; only the drawn glyph is refined. An unknown
+        // connected device still confirms before disconnecting.
+        XCTAssertEqual(seeded.first?.kind, .unknown)
+        XCTAssertEqual(seeded.first?.inputIconClassification, .genericInput)
+        XCTAssertTrue(BluetoothDeviceActionPolicy.requiresConfirmation(for: seeded[0]))
     }
 
     func testTheActionFollowsTheConnectionState() {

@@ -37,6 +37,41 @@ struct BluetoothDeviceRowIconTests {
         #expect(BluetoothDeviceRowIcon.symbolName(for: .unknown) == BluetoothDeviceRowIcon.genericSymbol)
     }
 
+    /// A display classification outranks the declared class: a keyboard/mouse
+    /// composite the app cannot name draws the generic radio, whatever its
+    /// declared class says.
+    @Test func aGenericInputClassificationDrawsTheGenericRadio() {
+        #expect(BluetoothDeviceRowIcon.symbolName(for: .genericInput) == BluetoothDeviceRowIcon.genericSymbol)
+
+        let composite = BluetoothDevice(
+            id: "E3:3D:B6:E4:74:73",
+            name: "HECATE G3M Pro",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            inputIconClassification: .genericInput
+        )
+        #expect(BluetoothDeviceRowIcon.symbolName(for: composite) == BluetoothDeviceRowIcon.genericSymbol)
+
+        let named = BluetoothDevice(
+            id: "E3:3D:B6:E4:74:73",
+            name: "HECATE G3M Pro",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            inputIconClassification: .keyboard
+        )
+        #expect(BluetoothDeviceRowIcon.symbolName(for: named) == "keyboard")
+    }
+
+    @Test func aDeviceWithNoClassificationUsesItsClass() {
+        let device = BluetoothDevice(
+            id: "E3:3D:B6:E4:74:73",
+            name: "M585/M590",
+            kind: .peripheral(.mouse),
+            isConnected: false
+        )
+        #expect(BluetoothDeviceRowIcon.symbolName(for: device) == "computermouse")
+    }
+
     @Test func appleSelectionIconsRequireTrustedModelEvidence() {
         #expect(BluetoothDeviceRowIcon.symbolName(forAppleModel: "iPhone18,1") == "smartphone")
         #expect(BluetoothDeviceRowIcon.symbolName(forAppleModel: "iPad17,1") == "ipad.landscape")

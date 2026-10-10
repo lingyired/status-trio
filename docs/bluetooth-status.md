@@ -124,7 +124,7 @@ to be named like a Mac can never be drawn as one, and a name the app has no
 model glyph for — an iMac or a Mac Pro, which Apple ships no symbol for —
 changes nothing. The class list stays behind the named one as the fallback.
 
-### Correcting a class the report got wrong
+### Drawing an input device whose class cannot be trusted
 
 The declared class is a manufacturer's claim about its product, not an
 observation of what it does, and the two disagree in practice: a Logitech
@@ -133,15 +133,32 @@ Generic Desktop keyboard for it — the interface macOS actually loads a keyboar
 driver for. Trusting the report alone draws a mouse glyph on the keyboard the
 user is typing on.
 
-So a connected device whose class the report cannot be trusted on is corrected
-from the I/O Registry (`BluetoothHIDUsageReader`, `BluetoothHIDUsageClassifier`,
-`BluetoothDeviceKindRefinement`). HID usages describe the input capabilities a
-device offers; they do not by themselves determine its identity. A touch pad
-still outranks the pointer usage the same trackpad also presents. When both mouse
-and keyboard usages are present, the supported declared mouse or keyboard kind is
-preserved. When only one of those capabilities is present, it can correct a
-wrong declaration. If both are present and neither resolves the ambiguity, the
-original kind is left unchanged.
+The I/O Registry describes the interfaces a device presents
+(`BluetoothHIDUsageReader`), but for a keyboard/mouse composite that evidence is
+itself ambiguous: a macro mouse and a keyboard both enumerate mouse *and*
+keyboard interfaces, and nothing in the descriptor says which one the device
+"is". Measured on one Mac, an MX Keys, a M585/M590 and a HECATE G3M Pro were
+each a single `IOHIDDevice` node presenting both a mouse and a keyboard
+collection — they differed only in the order the collections appeared.
+
+So the app does not guess. `BluetoothInputIconClassifier` turns the declared
+class and the observed capabilities into a *display* classification
+(`BluetoothInputIconClassification`), and the row draws that — never a definite
+mouse or keyboard glyph it cannot back up:
+
+- The declared class and the observed interfaces agree → that glyph
+  (`mouse`, `keyboard`, or a specialized `trackpad`/`gamepad` when the Digitizer
+  or Gamepad usage is present).
+- Both mouse and keyboard interfaces are present → **the generic input glyph**.
+- The declared class and the only interface present conflict (a `Mouse` that
+  presents only a keyboard, or the reverse) → **the generic input glyph**.
+- A device the report did not classify, with exactly one interface → that glyph.
+- Nothing recognizable observed → the declared class.
+
+The generic input glyph is the same radio the unclassified class draws. Once a
+device is classified generic it stays generic across reads
+(`BluetoothInputIconStabilizer`), so a read that happens to enumerate only one
+of the two interfaces cannot flicker the row back to a definite glyph.
 
 The capabilities come from every usage pair the device declares, not only its
 primary usage. A Bluetooth HID device is one `IOHIDDevice` node whose primary
@@ -151,11 +168,15 @@ otherwise present as a keyboard and lose the pointer usage that identifies it.
 `DeviceUsagePairs` carries the whole list, and the primary usage is only the
 fallback for a device that declares no pairs.
 
-Three bounds keep the correction from overreaching:
+This classification is display-only. It never changes `BluetoothDevice.kind`,
+which stays the class the report declared, so connection, disconnect
+confirmation, ordering, battery handling and audio eligibility are unaffected.
 
-- **Only `peripheral` and `unknown` accept it.** An audio device, a phone or a
-  computer never declares a peripheral class, so a stray HID interface on one of
-  them must not move it into that family.
+Three bounds keep it from overreaching:
+
+- **Only `peripheral` and `unknown` are classified.** An audio device, a phone
+  or a computer never declares a peripheral class, so a stray HID interface on
+  one of them must not move it into that family.
 - **Only connected devices.** A paired but disconnected device has no Registry
   node and keeps the class the report declared.
 - **The Registry is only walked when something could use it.** A Mac whose

@@ -13,6 +13,13 @@ import AppKit
 /// `AudioOutputDeviceIcon.symbolCandidates` follows.
 enum BluetoothDeviceRowIcon {
     static func symbolName(for device: BluetoothDevice) -> String {
+        // A display classification, when one was resolved, outranks the class
+        // the report declared: it is the one place the app records that a
+        // keyboard/mouse composite cannot be told apart, and draws the generic
+        // input glyph instead of guessing.
+        if let classification = device.inputIconClassification {
+            return symbolName(for: classification)
+        }
         switch device.kind {
         case .audio:
             return AudioOutputDeviceIcon.symbolName(
@@ -43,6 +50,24 @@ enum BluetoothDeviceRowIcon {
     static func symbolName(for kind: BluetoothDeviceKind, name: String) -> String {
         let candidates = candidateSymbols(for: kind, name: name)
         return availableSymbol(from: candidates)
+    }
+
+    /// The glyph for a resolved display classification. The definite forms
+    /// reuse the class table so the two can never drift; `genericInput` draws
+    /// the same non-committal radio as an unclassified device, which is the
+    /// honest glyph for a device whose keyboard/mouse identity is unknown.
+    static func symbolName(for classification: BluetoothInputIconClassification) -> String {
+        availableSymbol(from: candidateSymbols(for: classification))
+    }
+
+    static func candidateSymbols(for classification: BluetoothInputIconClassification) -> [String] {
+        switch classification {
+        case .mouse: classCandidates(for: .peripheral(.mouse))
+        case .keyboard: classCandidates(for: .peripheral(.keyboard))
+        case .trackpad: classCandidates(for: .peripheral(.trackpad))
+        case .gamepad: classCandidates(for: .peripheral(.gamepad))
+        case .genericInput: [genericSymbol]
+        }
     }
 
     private static func availableSymbol(from candidates: [String]) -> String {

@@ -339,6 +339,14 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
     let id: String
     let name: String
     let kind: BluetoothDeviceKind
+    /// The glyph this row should draw, when the declared class alone is not
+    /// honest enough. Display-only: no action policy, ordering, battery or
+    /// audio logic reads it. `nil` means "draw the declared class".
+    ///
+    /// Seeded by the paired-device worker from the HID interfaces a connected
+    /// device presents, then finalized (and made sticky) by
+    /// `BluetoothInputIconStabilizer` on the main actor.
+    let inputIconClassification: BluetoothInputIconClassification?
     let isConnected: Bool
     /// A conservative diagnostic captured from the same profiler row. The
     /// controller reports it after a successful read; it does not affect UI.
@@ -386,11 +394,13 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
         productID: Int? = nil,
         appleBluetoothAudioDiagnostic: AppleBluetoothAudioDiagnosticRecord? = nil,
         isUnpairedGhost: Bool = false,
-        isReadOverTheAir: Bool = false
+        isReadOverTheAir: Bool = false,
+        inputIconClassification: BluetoothInputIconClassification? = nil
     ) {
         self.id = id
         self.name = name
         self.kind = kind
+        self.inputIconClassification = inputIconClassification
         self.isConnected = isConnected
         self.appleBluetoothAudioDiagnostic = appleBluetoothAudioDiagnostic
         self.airPodsModel = airPodsModel
@@ -418,7 +428,30 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
             productID: productID,
             appleBluetoothAudioDiagnostic: appleBluetoothAudioDiagnostic,
             isUnpairedGhost: isUnpairedGhost,
-            isReadOverTheAir: isReadOverTheAir
+            isReadOverTheAir: isReadOverTheAir,
+            inputIconClassification: inputIconClassification
+        )
+    }
+
+    /// A copy of the device with the glyph the row should draw. Only the
+    /// display classification changes; every other field keeps coming from the
+    /// source it came from.
+    func replacingInputIconClassification(
+        with classification: BluetoothInputIconClassification?
+    ) -> BluetoothDevice {
+        BluetoothDevice(
+            id: id,
+            name: name,
+            kind: kind,
+            isConnected: isConnected,
+            airPodsModel: airPodsModel,
+            appleMobileModel: appleMobileModel,
+            vendorID: vendorID,
+            productID: productID,
+            appleBluetoothAudioDiagnostic: appleBluetoothAudioDiagnostic,
+            isUnpairedGhost: isUnpairedGhost,
+            isReadOverTheAir: isReadOverTheAir,
+            inputIconClassification: classification
         )
     }
 
@@ -450,7 +483,8 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
             productID: productID,
             appleBluetoothAudioDiagnostic: appleBluetoothAudioDiagnostic,
             isUnpairedGhost: false,
-            isReadOverTheAir: true
+            isReadOverTheAir: true,
+            inputIconClassification: inputIconClassification
         )
     }
 
@@ -468,7 +502,8 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
             productID: productID,
             appleBluetoothAudioDiagnostic: appleBluetoothAudioDiagnostic,
             isUnpairedGhost: isUnpairedGhost,
-            isReadOverTheAir: isReadOverTheAir
+            isReadOverTheAir: isReadOverTheAir,
+            inputIconClassification: inputIconClassification
         )
     }
 

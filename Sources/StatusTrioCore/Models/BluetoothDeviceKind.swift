@@ -6,9 +6,9 @@ import Foundation
 /// not an observation of what it does. Those two disagree in practice: a
 /// Logitech keyboard reports `Mouse` in `device_minorType` while the system
 /// enumerates the Generic Desktop keyboard usage for it, which is the interface
-/// macOS actually loads a keyboard driver for. So this is the *declared* class,
-/// and `BluetoothDeviceKindRefinement` may correct it for a connected HID
-/// device.
+/// macOS actually loads a keyboard driver for. So this is the *declared* class
+/// and stays it: `BluetoothInputIconClassifier` decides only the glyph the row
+/// draws, without changing this class.
 enum BluetoothDeviceKind: Equatable, Sendable {
     case computer(ComputerForm)
     case mobile(MobileForm)
@@ -74,13 +74,13 @@ extension BluetoothDeviceKind {
         return false
     }
 
-    /// Whether a HID usage the system enumerates for this device is allowed to
-    /// overrule the class the report declared.
+    /// Whether a HID usage the system enumerates for this device may refine how
+    /// its row is drawn.
     ///
     /// Only the two classes the report cannot be trusted on. An audio device, a
     /// phone or a computer never declares a peripheral class, so a stray HID
-    /// interface on one of them must not reclassify it into the peripheral
-    /// family.
+    /// interface on one of them must not move it into the input family. This
+    /// gates the display classification; it no longer changes `kind` itself.
     var acceptsHIDRefinement: Bool {
         switch self {
         case .peripheral, .unknown: true
@@ -378,12 +378,15 @@ enum BluetoothDeviceKindResolver {
     ]
 }
 
-/// Corrects the class a connected HID device declared.
+/// Seeds each connected input device's display classification from the HID
+/// interfaces the system enumerates for it.
 ///
-/// `BluetoothHIDUsageClassifier` combines the interfaces with the declared
-/// peripheral form; this decides whether that answer may be used. The report's
-/// wording stays authoritative for unsupported kinds and disconnected devices.
-enum BluetoothDeviceKindRefinement {
+/// The declared class stays authoritative on the device itself: this only sets
+/// `inputIconClassification`, the glyph the row draws. A device that presents
+/// both mouse and keyboard interfaces — or whose declared class conflicts with
+/// what it enumerates — is left to draw the generic input glyph rather than a
+/// definite but possibly wrong one.
+enum BluetoothInputIconSeed {
     static func apply(
         to devices: [BluetoothDevice],
         hidUsages: [String: [BluetoothHIDUsage]]
@@ -393,20 +396,14 @@ enum BluetoothDeviceKindRefinement {
                 return device
             }
 
-            let declared: PeripheralForm?
-            if case .peripheral(let form) = device.kind {
-                declared = form
-            } else {
-                declared = nil
-            }
-
-            guard let form = BluetoothHIDUsageClassifier.peripheralForm(
-                from: hidUsages[BluetoothBatteryReader.normalizedAddress(device.id)] ?? [],
-                declared: declared
-            ) else {
-                return device
-            }
-            return device.replacingKind(with: .peripheral(form))
+            let capabilities = BluetoothHIDCapabilities(
+                usages: hidUsages[BluetoothBatteryReader.normalizedAddress(device.id)] ?? []
+            )
+            let classification = BluetoothInputIconClassifier.classify(
+                declared: device.kind,
+                capabilities: capabilities
+            )
+            return device.replacingInputIconClassification(with: classification)
         }
     }
 }
