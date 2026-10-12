@@ -523,6 +523,110 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(reloaded.batteryIconOptions.fullThreshold, 85)
     }
 
+    /// Issue #105, use-the-system-value path. The macOS charge limit lives in a
+    /// private plist no public API exposes, so the test records one instead of
+    /// depending on what this particular Mac happens to be set to.
+    func testUsingTheSystemValueFillsTheSliderIn() throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let url = try makeChargeLimitPlist(limit: 80)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        store.chargeLimitURLForTesting = url
+        store.batteryFullThreshold = 100
+
+        store.applySystemChargeLimit()
+
+        XCTAssertEqual(store.batteryFullThreshold, 80, accuracy: 0.001)
+        XCTAssertEqual(store.batteryIconOptions.fullThreshold, 80)
+    }
+
+    /// The value is a one-shot fill, not a mode: the slider keeps working
+    /// afterwards and nothing re-reads the plist behind the user's back.
+    func testTheSliderStaysEditableAfterUsingTheSystemValue() throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let url = try makeChargeLimitPlist(limit: 80)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        store.chargeLimitURLForTesting = url
+        store.applySystemChargeLimit()
+        XCTAssertEqual(store.batteryFullThreshold, 80, accuracy: 0.001)
+
+        store.batteryFullThreshold = 90
+
+        XCTAssertEqual(store.batteryFullThreshold, 90, accuracy: 0.001)
+        XCTAssertEqual(
+            suite.defaults.double(forKey: SettingsStore.batteryFullThresholdDefaultsKey),
+            90,
+            accuracy: 0.001
+        )
+    }
+
+    /// A plist the reader cannot parse must leave the level where it was, so a
+    /// press that reads nothing is a no-op rather than a reset.
+    func testUnreadableChargeLimitKeepsTheManualLevel() throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("plist")
+        try Data("not a plist".utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        store.chargeLimitURLForTesting = url
+        store.batteryFullThreshold = 75
+
+        store.applySystemChargeLimit()
+
+        XCTAssertEqual(store.batteryFullThreshold, 75, accuracy: 0.001)
+        XCTAssertFalse(store.canReadSystemChargeLimit)
+    }
+
+    func testSystemValueIsReportedUnavailableWhenNoLimitIsStored() throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let data = try PropertyListSerialization.data(
+            fromPropertyList: ["bootSessionUUID": UUID().uuidString],
+            format: .binary,
+            options: 0
+        )
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("plist")
+        try data.write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        store.chargeLimitURLForTesting = url
+
+        XCTAssertFalse(store.canReadSystemChargeLimit)
+    }
+
+    /// Builds the same shape the live plist has: a binary plist whose
+    /// `policies` entry is an `NSKeyedArchiver` array of `ChargeCtrlPolicy`.
+    private func makeChargeLimitPlist(limit: Int, reason: String = "manualChargeLimit") throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("plist")
+        let policy = ChargeCtrlPolicyPlaceholder(limit: limit, reason: reason)
+        let policies = try NSKeyedArchiver.archivedData(
+            withRootObject: [policy],
+            requiringSecureCoding: false
+        )
+        let body: [String: Any] = ["bootSessionUUID": UUID().uuidString, "policies": policies]
+        let data = try PropertyListSerialization.data(
+            fromPropertyList: body,
+            format: .binary,
+            options: 0
+        )
+        try data.write(to: url)
+        return url
+    }
+
     func testIconSizeAboveRangeIsClampedToUpperBound() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 

@@ -147,6 +147,8 @@
 "settings.battery.criticalThresholdDescription" = "Les niveaux inférieurs à ce seuil sont considérés comme faibles et affichés en rouge.";
 "settings.battery.fullThreshold" = "Niveau d'anneau plein";
 "settings.battery.fullThresholdDescription" = "L'anneau de batterie est considéré comme plein à ce niveau. Utile lorsque la limitation de charge maintient la batterie sous 100%.";
+"settings.battery.fullThresholdUseChargeLimit" = "Utiliser la limite de charge";
+"settings.battery.fullThresholdSystemUnavailable" = "Ce Mac ne remonte pas de limite de charge : la valeur est donc illisible.";
 "settings.updates.title" = "Mises à jour";
 "settings.updates.automatic" = "Rechercher automatiquement les mises à jour";
 "settings.updates.check" = "Rechercher les mises à jour…";

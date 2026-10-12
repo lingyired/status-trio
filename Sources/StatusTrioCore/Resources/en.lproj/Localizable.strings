@@ -147,6 +147,8 @@
 "settings.battery.criticalThresholdDescription" = "Battery levels below this threshold are treated as low and shown in red.";
 "settings.battery.fullThreshold" = "Full ring level";
 "settings.battery.fullThresholdDescription" = "The battery ring counts as full at this level. Useful when charge limiting holds the battery below 100%.";
+"settings.battery.fullThresholdUseChargeLimit" = "Use the charge limit";
+"settings.battery.fullThresholdSystemUnavailable" = "This Mac does not report its charge limit, so the value cannot be read.";
 "settings.updates.title" = "Updates";
 "settings.updates.automatic" = "Automatically check for updates";
 "settings.updates.check" = "Check for Updates…";

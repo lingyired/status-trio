@@ -122,6 +122,16 @@ struct SettingsRow<Leading: View, Trailing: View>: View {
     var subtitle: String? = nil
     @ViewBuilder var leading: Leading
     @ViewBuilder var trailing: Trailing
+    /// A link that is concatenated onto the end of the description.
+    ///
+    /// Rendered inside the description's own `Text` so it wraps with the
+    /// sentence instead of claiming a column of its own, which would leave a
+    /// gap beside every line that does not reach it.
+    var subtitleLink: Text? = nil
+
+    /// What `subtitleLink` does when tapped. Without this the link is plain
+    /// text, which would read as clickable and do nothing.
+    var subtitleLinkAction: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -132,10 +142,16 @@ struct SettingsRow<Leading: View, Trailing: View>: View {
                 Text(title)
                     .font(.system(size: 13, weight: .regular))
                 if let subtitle {
-                    Text(subtitle)
+                    // The link is concatenated onto the description rather than
+                    // stacked beside it, so it flows with the sentence and
+                    // wraps with it instead of claiming its own column.
+                    (Text(subtitle) + (subtitleLink.map { Text(" ") + $0 } ?? Text("")))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .onTapGesture {
+                            subtitleLinkAction?()
+                        }
                 }
             }
 
@@ -154,13 +170,17 @@ extension SettingsRow where Leading == SettingsIcon {
         tint: Color = .accentColor,
         title: String,
         subtitle: String? = nil,
+        subtitleLink: Text? = nil,
+        subtitleLinkAction: (() -> Void)? = nil,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.init(
             title: title,
             subtitle: subtitle,
             leading: { SettingsIcon(symbol: symbol, tint: tint) },
-            trailing: trailing
+            trailing: trailing,
+            subtitleLink: subtitleLink,
+            subtitleLinkAction: subtitleLinkAction
         )
     }
 }
@@ -169,13 +189,17 @@ extension SettingsRow where Leading == EmptyView {
     init(
         title: String,
         subtitle: String? = nil,
+        subtitleLink: Text? = nil,
+        subtitleLinkAction: (() -> Void)? = nil,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.init(
             title: title,
             subtitle: subtitle,
             leading: { EmptyView() },
-            trailing: trailing
+            trailing: trailing,
+            subtitleLink: subtitleLink,
+            subtitleLinkAction: subtitleLinkAction
         )
     }
 }

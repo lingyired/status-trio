@@ -147,6 +147,8 @@
 "settings.battery.criticalThresholdDescription" = "低於此門檻時視為低電量，並以紅色顯示。";
 "settings.battery.fullThreshold" = "圓環滿格電量";
 "settings.battery.fullThresholdDescription" = "電量達到該值時圓環即視為滿格。適合充電上限設定在 100% 以下的場景。";
+"settings.battery.fullThresholdUseChargeLimit" = "使用充電上限";
+"settings.battery.fullThresholdSystemUnavailable" = "這台 Mac 未上報充電上限，無法讀取該值。";
 "settings.updates.title" = "更新";
 "settings.updates.automatic" = "自動檢查更新";
 "settings.updates.check" = "檢查更新…";

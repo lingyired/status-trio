@@ -213,6 +213,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBatteryCriticalThresholdDescription = "settings.battery.criticalThresholdDescription"
     case settingsBatteryFullThreshold = "settings.battery.fullThreshold"
     case settingsBatteryFullThresholdDescription = "settings.battery.fullThresholdDescription"
+    case settingsBatteryFullThresholdUseChargeLimit = "settings.battery.fullThresholdUseChargeLimit"
+    case settingsBatteryFullThresholdSystemUnavailable = "settings.battery.fullThresholdSystemUnavailable"
     case settingsAboutVersion = "settings.about.version"
     case settingsAboutDescription = "settings.about.description"
     case settingsAboutProject = "settings.about.project"

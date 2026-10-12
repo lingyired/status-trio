@@ -147,6 +147,8 @@
 "settings.battery.criticalThresholdDescription" = "この値未満を低残量として赤で表示します。";
 "settings.battery.fullThreshold" = "リング満充電の基準";
 "settings.battery.fullThresholdDescription" = "この电量に達した時点でリングを満充電として表示します。充電上限が100%未満に設定されている場合に便利です。";
+"settings.battery.fullThresholdUseChargeLimit" = "充電上限を使用";
+"settings.battery.fullThresholdSystemUnavailable" = "この Mac は充電上限を報告しないため、その値を読み取れません。";
 "settings.updates.title" = "アップデート";
 "settings.updates.automatic" = "自動的にアップデートを確認";
 "settings.updates.check" = "アップデートを確認…";

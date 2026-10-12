@@ -147,6 +147,8 @@
 "settings.battery.criticalThresholdDescription" = "이 값 미만은 배터리 부족으로 간주하여 빨간색으로 표시합니다.";
 "settings.battery.fullThreshold" = "링 full 충전 기준";
 "settings.battery.fullThresholdDescription" = "배터리 링이 이 수준에 도달하면 가득 찬 것으로 표시합니다. 충전 상한이 100% 미만으로 설정된 경우에 유용합니다.";
+"settings.battery.fullThresholdUseChargeLimit" = "충전 상한 사용";
+"settings.battery.fullThresholdSystemUnavailable" = "이 Mac은 충전 상한을 보고하지 않으므로 해당 값을 읽을 수 없습니다.";
 "settings.updates.title" = "업데이트";
 "settings.updates.automatic" = "자동으로 업데이트 확인";
 "settings.updates.check" = "업데이트 확인…";

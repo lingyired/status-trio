@@ -181,13 +181,37 @@ struct BatterySectionView: View {
 
             SettingsDivider()
 
-            // Full Ring Threshold (Inline compact slider)
+            // Full Ring Level (#105)
+            //
+            // The slider row is byte-for-byte the low-battery threshold row
+            // above it, so the percentage lands on the same baseline as every
+            // other slider on the pane.
+            //
+            // The "use the system value" action is a link in the description
+            // rather than a button of its own: it is a one-shot convenience, not
+            // a setting, and a second row for it would spend a whole row on an
+            // action nobody looks for. As a link it reads as part of the
+            // explanation — "here is when you would want this, and here is how
+            // to fill it in".
             SettingsRow(
                 "battery100.bolt",
                 tint: .green,
                 title: localization.string(.settingsBatteryFullThreshold),
-                subtitle: localization.string(.settingsBatteryFullThresholdDescription)
-            ) {
+                subtitle: localization.string(.settingsBatteryFullThresholdDescription),
+                subtitleLink: Text(
+                    localization.string(.settingsBatteryFullThresholdUseChargeLimit)
+                )
+                .foregroundColor(Color.accentColor),
+                // Fills the slider in from the system. A one-shot action, not a
+                // mode: the level stays editable afterwards, and nothing
+                // re-reads the plist behind the user's back.
+                //
+                // Accent colour rather than `.link`, which is macOS 14+ and
+                // this app still ships macOS 13.
+                subtitleLinkAction: {
+                    store.applySystemChargeLimit()
+                },
+                trailing: {
                 HStack(spacing: 8) {
                     Slider(
                         value: Binding(
@@ -208,6 +232,21 @@ struct BatterySectionView: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 44, alignment: .trailing)
                 }
+            }
+            )
+
+            if !store.canReadSystemChargeLimit {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                    Text(localization.string(
+                        .settingsBatteryFullThresholdSystemUnavailable
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                .padding(.bottom, 6)
             }
         }
     }

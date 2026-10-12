@@ -130,6 +130,8 @@
 "settings.battery.criticalThresholdDescription" = "تُعتبر المستويات الأقل من هذا الحد منخفضة وتُعرض باللون الأحمر.";
 "settings.battery.fullThreshold" = "مستوى اكتمال الحلقة";
 "settings.battery.fullThresholdDescription" = "تُعتبر حلقة البطارية ممتلئة عند هذا المستوى. مفيد عندما يحد تحديد الشحن من البطارية دون 100%.";
+"settings.battery.fullThresholdUseChargeLimit" = "استخدام حد الشحن";
+"settings.battery.fullThresholdSystemUnavailable" = "لا يُفصح هذا الجهاز عن حد الشحن، لذا لا يمكن قراءة القيمة.";
 "settings.updates.title" = "التحديثات";
 "settings.updates.automatic" = "التحقق تلقائيًا من وجود تحديثات";
 "settings.updates.check" = "التحقق من وجود تحديثات…";

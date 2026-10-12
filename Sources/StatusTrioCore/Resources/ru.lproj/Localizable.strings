@@ -147,6 +147,8 @@
 "settings.battery.criticalThresholdDescription" = "Уровни ниже этого порога считаются низкими и отображаются красным.";
 "settings.battery.fullThreshold" = "Уровень полного кольца";
 "settings.battery.fullThresholdDescription" = "Кольцо батареи считается заполненным на этом уровне. Полезно, когда ограничение заряда удерживает батарею ниже 100%.";
+"settings.battery.fullThresholdUseChargeLimit" = "Взять ограничение заряда";
+"settings.battery.fullThresholdSystemUnavailable" = "Этот Mac не сообщает ограничение заряда, поэтому значение прочитать нельзя.";
 "settings.updates.title" = "Обновления";
 "settings.updates.automatic" = "Автоматически проверять обновления";
 "settings.updates.check" = "Проверить обновления…";

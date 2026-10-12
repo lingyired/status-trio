@@ -147,6 +147,8 @@
 "settings.battery.criticalThresholdDescription" = "Werte unterhalb dieses Schwellenwerts gelten als niedrig und werden rot angezeigt.";
 "settings.battery.fullThreshold" = "Ladestand für vollen Ring";
 "settings.battery.fullThresholdDescription" = "Ab diesem Ladestand gilt der Batteriering als voll. Nützlich, wenn die Ladebegrenzung die Batterie unter 100% hält.";
+"settings.battery.fullThresholdUseChargeLimit" = "Ladebegrenzung übernehmen";
+"settings.battery.fullThresholdSystemUnavailable" = "Dieser Mac meldet keine Ladebegrenzung, daher kann der Wert nicht gelesen werden.";
 "settings.updates.title" = "Updates";
 "settings.updates.automatic" = "Automatisch nach Updates suchen";
 "settings.updates.check" = "Nach Updates suchen…";

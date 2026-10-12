@@ -282,6 +282,24 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Test seam: a recorded plist to read instead of the live one, so the
+    /// follow path is tested against a known limit rather than whatever this
+    /// Mac happens to be set to. `nil` in the app, which reads the real file.
+    var chargeLimitURLForTesting: URL?
+
+    /// Whether the macOS charge limit can be read at all (#105).
+    ///
+    /// The value lives in a private, root-owned plist that no public API
+    /// exposes. It is readable on an unsandboxed build, but it is not guaranteed
+    /// to be there, so the button that fills the slider in from it is hidden
+    /// behind this rather than failing silently when pressed.
+    var canReadSystemChargeLimit: Bool {
+        if let url = chargeLimitURLForTesting {
+            return SystemChargeLimitReader.chargeLimit(from: url) != nil
+        }
+        return SystemChargeLimitReader.chargeLimit() != nil
+    }
+
     @Published var showsWiFiIconForEthernet: Bool {
         didSet {
             defaults.set(
@@ -901,6 +919,26 @@ final class SettingsStore: ObservableObject {
 
     var isBatterySymbolSizeEnabled: Bool {
         showsBatteryPercentage || showsChargingIndicator
+    }
+
+    /// Re-reads the macOS charge limit into the full-ring level.
+    ///
+    /// Called on launch and whenever the follow toggle is switched on. A limit
+    /// the plist does not carry, or a plist that no longer parses, leaves the
+    /// level exactly where it was: the setting follows the system when it can
+    /// and silently stays manual when it cannot, rather than resetting the
+    /// user's level on a read failure.
+    ///
+    /// - Parameter url: The plist to read. Injectable so tests can record one
+    ///   instead of depending on what this Mac happens to be set to.
+    func applySystemChargeLimit(from url: URL? = nil) {
+        // The test seam wins when it is set, so a test never reads whatever
+        // limit the machine running it happens to be set to.
+        let url = url ?? chargeLimitURLForTesting
+        let limit = url.map { SystemChargeLimitReader.chargeLimit(from: $0) }
+            ?? SystemChargeLimitReader.chargeLimit()
+        guard let limit else { return }
+        batteryFullThreshold = Double(limit)
     }
 
     var batteryIconOptions: BatteryIconOptions {
