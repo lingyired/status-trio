@@ -145,6 +145,8 @@
 "settings.battery.statusColorsDescription" = "Niedriger Ladestand rot, Energiesparmodus gelb und Laden bzw. Netzbetrieb grün.";
 "settings.battery.criticalThreshold" = "Schwellenwert für niedrigen Ladestand";
 "settings.battery.criticalThresholdDescription" = "Werte unterhalb dieses Schwellenwerts gelten als niedrig und werden rot angezeigt.";
+"settings.battery.fullThreshold" = "Ladestand für vollen Ring";
+"settings.battery.fullThresholdDescription" = "Ab diesem Ladestand gilt der Batteriering als voll. Nützlich, wenn die Ladebegrenzung die Batterie unter 100% hält.";
 "settings.updates.title" = "Updates";
 "settings.updates.automatic" = "Automatisch nach Updates suchen";
 "settings.updates.check" = "Nach Updates suchen…";

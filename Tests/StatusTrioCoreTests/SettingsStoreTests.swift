@@ -467,6 +467,62 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.batteryCriticalThreshold, 100, accuracy: 0.001)
     }
 
+    /// Issue #105. The default keeps the raw percentage, so an existing install
+    /// draws exactly the ring it drew before this setting existed.
+    func testBatteryFullThresholdDefaultsToRawPercentage() {
+        let store = SettingsStore(defaults: makeSuite().defaults)
+
+        XCTAssertEqual(store.batteryFullThreshold, 100, accuracy: 0.001)
+        XCTAssertEqual(store.batteryIconOptions.fullThreshold, 100)
+    }
+
+    func testBatteryFullThresholdIsClamped() {
+        let store = SettingsStore(defaults: makeSuite().defaults)
+
+        store.batteryFullThreshold = 140
+        XCTAssertEqual(store.batteryFullThreshold, 100, accuracy: 0.001)
+
+        store.batteryFullThreshold = 10
+        XCTAssertEqual(store.batteryFullThreshold, 50, accuracy: 0.001)
+
+        store.batteryFullThreshold = 10
+        store.batteryFullThreshold = .nan
+        XCTAssertEqual(
+            store.batteryFullThreshold,
+            SettingsStore.defaultBatteryFullThreshold,
+            accuracy: 0.001
+        )
+    }
+
+    func testBatteryFullThresholdReachesTheIconOptions() {
+        let store = SettingsStore(defaults: makeSuite().defaults)
+
+        store.batteryFullThreshold = 80
+
+        XCTAssertEqual(store.batteryIconOptions.fullThreshold, 80)
+    }
+
+    func testStoredBatteryFullThresholdIsClampedOnLoadAndPersisted() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(150, forKey: SettingsStore.batteryFullThresholdDefaultsKey)
+
+        let store = SettingsStore(defaults: suite.defaults)
+
+        XCTAssertEqual(store.batteryFullThreshold, 100, accuracy: 0.001)
+
+        store.batteryFullThreshold = 85
+        XCTAssertEqual(
+            suite.defaults.double(forKey: SettingsStore.batteryFullThresholdDefaultsKey),
+            85,
+            accuracy: 0.001
+        )
+
+        let reloaded = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(reloaded.batteryFullThreshold, 85, accuracy: 0.001)
+        XCTAssertEqual(reloaded.batteryIconOptions.fullThreshold, 85)
+    }
+
     func testIconSizeAboveRangeIsClampedToUpperBound() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 

@@ -145,6 +145,8 @@
 "settings.battery.statusColorsDescription" = "Batería baja en rojo, modo de bajo consumo en amarillo y carga o corriente conectada en verde.";
 "settings.battery.criticalThreshold" = "Umbral de batería baja";
 "settings.battery.criticalThresholdDescription" = "Los niveles por debajo de este umbral se consideran bajos y se muestran en rojo.";
+"settings.battery.fullThreshold" = "Nivel de anillo lleno";
+"settings.battery.fullThresholdDescription" = "El anillo de batería se considera lleno a este nivel. Útil cuando la limitación de carga mantiene la batería por debajo del 100%.";
 "settings.updates.title" = "Actualizaciones";
 "settings.updates.automatic" = "Buscar actualizaciones automáticamente";
 "settings.updates.check" = "Buscar actualizaciones…";

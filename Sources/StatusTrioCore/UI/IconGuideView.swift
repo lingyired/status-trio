@@ -449,6 +449,7 @@ struct IconGuideView: View {
             usesStatusColors: true,
             criticalThreshold: configured.criticalThreshold,
             showsPercentageWhenConnected: true,
+            fullThreshold: configured.fullThreshold,
             textScale: configured.textScale,
             ringStrokeScale: configured.ringStrokeScale
         )

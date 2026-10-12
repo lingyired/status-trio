@@ -60,7 +60,15 @@ enum IconPresentationMapper {
             : nil
 
         return OuterRingState(
-            segments: [RingSegmentState(progress: StatusMappings.batteryProgress(battery), color: color)],
+            segments: [
+                RingSegmentState(
+                    progress: StatusMappings.batteryProgress(
+                        battery,
+                        fullThreshold: options.fullThreshold
+                    ),
+                    color: color
+                )
+            ],
             gap: gap,
             accessory: accessory,
             effect: effect,

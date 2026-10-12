@@ -65,8 +65,14 @@ extension SettingsStore {
                 showsPercentageWhenConnected: additionalInputs.0,
                 symbolScale: additionalInputs.1,
                 showsChargingEffect: additionalInputs.2,
-                showsChargingBoltHeartbeat: additionalInputs.3
+                showsChargingBoltHeartbeat: additionalInputs.3,
+                fullThreshold: Self.defaultBatteryFullThreshold
             )
+        }
+        .combineLatest($batteryFullThreshold) { inputs, fullThreshold in
+            var updated = inputs
+            updated.fullThreshold = fullThreshold
+            return updated
         }
         .eraseToAnyPublisher()
     }
@@ -138,6 +144,7 @@ private struct BatteryAppearanceInputs {
     var symbolScale: Double
     var showsChargingEffect: Bool
     var showsChargingBoltHeartbeat: Bool
+    var fullThreshold: Double
 
     func options(ringStrokeScale: Double) -> BatteryIconOptions {
         BatteryIconOptions(
@@ -148,6 +155,7 @@ private struct BatteryAppearanceInputs {
             usesStatusColors: usesStatusColors,
             criticalThreshold: Int(criticalThreshold.rounded()),
             showsPercentageWhenConnected: showsPercentageWhenConnected,
+            fullThreshold: Int(fullThreshold.rounded()),
             textScale: symbolScale * BatteryIconOptions.defaultTextScale,
             ringStrokeScale: ringStrokeScale
         )

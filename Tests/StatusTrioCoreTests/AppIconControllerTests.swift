@@ -324,6 +324,29 @@ struct AppIconControllerTests {
         #expect(harness.log.lastScene?.outerRing?.segments.first?.color == .critical)
     }
 
+    /// Issue #105. Charge limiting holds the battery below 100%, so the user
+    /// picks the level that closes the ring. The Dock draws the same scene as
+    /// the menu bar, so a threshold that only reached one surface would leave
+    /// the other stale.
+    @Test func fullRingThresholdRedrawsTheDockIconWithAClosedRing() async throws {
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            initialBattery: BatteryStatus(
+                rawPercentage: 80, isPresent: true, isCharging: true,
+                isLowPowerMode: false, isConnectedToPower: true
+            )
+        )
+        defer { harness.cleanUp() }
+        harness.controller.start()
+        try await waitForCoalescedRenders { harness.log.renderCount > 0 }
+        harness.log.reset()
+
+        harness.settings.batteryFullThreshold = 80
+
+        try await waitForCoalescedRenders { harness.log.renderCount > 0 }
+        #expect(harness.log.lastScene?.outerRing?.segments.first?.progress == 1.0)
+    }
+
     /// The icon size slider lives in the App Icon pane and is documented as
     /// menu-bar only: the Dock icon keeps the fixed design size.
     @Test func menuBarIconSizeDoesNotChangeTheDockIcon() throws {

@@ -145,6 +145,8 @@
 "settings.battery.statusColorsDescription" = "Низкий заряд — красный, режим энергосбережения — жёлтый, зарядка или питание от сети — зелёный.";
 "settings.battery.criticalThreshold" = "Порог низкого заряда";
 "settings.battery.criticalThresholdDescription" = "Уровни ниже этого порога считаются низкими и отображаются красным.";
+"settings.battery.fullThreshold" = "Уровень полного кольца";
+"settings.battery.fullThresholdDescription" = "Кольцо батареи считается заполненным на этом уровне. Полезно, когда ограничение заряда удерживает батарею ниже 100%.";
 "settings.updates.title" = "Обновления";
 "settings.updates.automatic" = "Автоматически проверять обновления";
 "settings.updates.check" = "Проверить обновления…";

@@ -145,6 +145,8 @@
 "settings.battery.statusColorsDescription" = "低電量顯示紅色，省電模式顯示黃色，連接電源或正在充電顯示綠色。關閉後圓弧使用一般前景色。";
 "settings.battery.criticalThreshold" = "低電量門檻";
 "settings.battery.criticalThresholdDescription" = "低於此門檻時視為低電量，並以紅色顯示。";
+"settings.battery.fullThreshold" = "圓環滿格電量";
+"settings.battery.fullThresholdDescription" = "電量達到該值時圓環即視為滿格。適合充電上限設定在 100% 以下的場景。";
 "settings.updates.title" = "更新";
 "settings.updates.automatic" = "自動檢查更新";
 "settings.updates.check" = "檢查更新…";

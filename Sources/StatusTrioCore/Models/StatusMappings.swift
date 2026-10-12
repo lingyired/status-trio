@@ -95,8 +95,18 @@ enum StatusMappings {
         return options.showsPercentage ? .percentage : .empty
     }
 
-    static func batteryProgress(_ battery: BatteryStatus) -> Double {
-        Double(battery.percentage) / 100.0
+    /// How far around the ring the battery arc is drawn.
+    ///
+    /// The arc is measured against `fullThreshold`, not against a fixed 100%,
+    /// so a level-limited battery can close the ring at the level the user
+    /// picked (#105). `fullThreshold` defaults to 100 and therefore keeps the
+    /// raw-percentage behaviour for every caller with no opinion of its own.
+    static func batteryProgress(
+        _ battery: BatteryStatus,
+        fullThreshold: Int = BatteryIconOptions.defaultFullThreshold
+    ) -> Double {
+        let threshold = min(100, max(1, fullThreshold))
+        return min(1, max(0, Double(battery.percentage) / Double(threshold)))
     }
 
     static func shouldReplaceNetworkIcon(

@@ -178,6 +178,37 @@ struct BatterySectionView: View {
                     }
                 }
             }
+
+            SettingsDivider()
+
+            // Full Ring Threshold (Inline compact slider)
+            SettingsRow(
+                "battery100.bolt",
+                tint: .green,
+                title: localization.string(.settingsBatteryFullThreshold),
+                subtitle: localization.string(.settingsBatteryFullThresholdDescription)
+            ) {
+                HStack(spacing: 8) {
+                    Slider(
+                        value: Binding(
+                            get: { store.batteryFullThreshold },
+                            set: { store.batteryFullThreshold = $0.rounded() }
+                        ),
+                        in: SettingsStore.batteryFullThresholdRange
+                    )
+                    .frame(width: 130)
+                    .controlSize(.small)
+                    .accessibilityLabel(
+                        localization.string(.settingsBatteryFullThreshold)
+                    )
+                    .accessibilityValue("\(Int(store.batteryFullThreshold))%")
+
+                    Text("\(Int(store.batteryFullThreshold))%")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, alignment: .trailing)
+                }
+            }
         }
     }
 }

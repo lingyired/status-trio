@@ -139,6 +139,25 @@ final class IconPresentationMapperTests: XCTestCase {
         XCTAssertEqual(emptyRing?.effect, RingEffectState(pulsesAccessory: false, tintsAccessory: false))
     }
 
+    /// Issue #105: the ring has to close at the level the user calls full, and
+    /// the same scene feeds the menu bar and the Dock, so one assertion covers
+    /// both surfaces.
+    func testBatteryRingClosesAtTheConfiguredFullThreshold() {
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: true,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+
+        let raw = scene(snapshot: snapshot(battery: battery), batteryOptions: .standard)
+        XCTAssertEqual(raw.outerRing?.segments.first?.progress ?? -1, 0.8, accuracy: 0.0001)
+
+        let capped = scene(snapshot: snapshot(battery: battery),
+                           batteryOptions: BatteryIconOptions(fullThreshold: 80))
+        XCTAssertEqual(capped.outerRing?.segments.first?.progress ?? -1, 1.0, accuracy: 0.0001)
+
+        let halfway = scene(snapshot: snapshot(battery: battery),
+                            batteryOptions: BatteryIconOptions(fullThreshold: 40))
+        XCTAssertEqual(halfway.outerRing?.segments.first?.progress ?? -1, 1.0, accuracy: 0.0001)
+    }
+
     func testBatteryColorPriorityAndThresholdBoundary() {
         let cases: [(Int, Int, Bool, Bool, IconColorRole)] = [
             (19, 20, false, false, .critical),

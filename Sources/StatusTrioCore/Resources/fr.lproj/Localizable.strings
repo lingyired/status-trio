@@ -145,6 +145,8 @@
 "settings.battery.statusColorsDescription" = "Batterie faible en rouge, mode économie d’énergie en jaune, charge ou secteur en vert.";
 "settings.battery.criticalThreshold" = "Seuil de batterie faible";
 "settings.battery.criticalThresholdDescription" = "Les niveaux inférieurs à ce seuil sont considérés comme faibles et affichés en rouge.";
+"settings.battery.fullThreshold" = "Niveau d'anneau plein";
+"settings.battery.fullThresholdDescription" = "L'anneau de batterie est considéré comme plein à ce niveau. Utile lorsque la limitation de charge maintient la batterie sous 100%.";
 "settings.updates.title" = "Mises à jour";
 "settings.updates.automatic" = "Rechercher automatiquement les mises à jour";
 "settings.updates.check" = "Rechercher les mises à jour…";

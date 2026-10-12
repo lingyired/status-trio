@@ -145,6 +145,8 @@
 "settings.battery.statusColorsDescription" = "Bateria fraca em vermelho, modo de baixo consumo em amarelo e carregamento ou energia conectada em verde.";
 "settings.battery.criticalThreshold" = "Limite de bateria fraca";
 "settings.battery.criticalThresholdDescription" = "Níveis abaixo deste limite são considerados baixos e exibidos em vermelho.";
+"settings.battery.fullThreshold" = "Nível de anel cheio";
+"settings.battery.fullThresholdDescription" = "O anel da bateria é considerado cheio neste nível. Útil quando a limitação de carga mantém a bateria abaixo de 100%.";
 "settings.updates.title" = "Atualizações";
 "settings.updates.automatic" = "Verificar atualizações automaticamente";
 "settings.updates.check" = "Verificar atualizações…";
