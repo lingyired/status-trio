@@ -20,6 +20,31 @@ final class IconConfigurationMigrationTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(IconConfigurationV1.self, from: JSONEncoder().encode(dual)), dual)
     }
 
+    func testLegacyConfigurationMigrationDefaultsToDualWithoutChangingLegacySceneSelection() {
+        let migrated = IconConfigurationMigration.makeConfiguration(from: .standard)
+
+        XCTAssertEqual(migrated.behaviors.airPodsRing, .dual)
+        XCTAssertEqual(migrated.composition.outerRing.primary, .automaticLegacy)
+        XCTAssertEqual(migrated.composition.center.primary, .automaticLegacy)
+    }
+
+    func testStoreKeepsStoredSingleAirPodsBehavior() throws {
+        let (defaults, name) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: name) }
+        let encoded = try JSONEncoder().encode(IconConfigurationV1.classic)
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        var behaviors = try XCTUnwrap(object["behaviors"] as? [String: Any])
+        behaviors["airPodsRing"] = AirPodsRingBehavior.single.rawValue
+        object["behaviors"] = behaviors
+        defaults.set(try JSONSerialization.data(withJSONObject: object), forKey: SettingsStore.iconConfigurationDefaultsKey)
+
+        let store = SettingsStore(defaults: defaults)
+
+        XCTAssertEqual(store.iconConfiguration.behaviors.airPodsRing, .single)
+        let persisted = try XCTUnwrap(defaults.data(forKey: SettingsStore.iconConfigurationDefaultsKey))
+        XCTAssertEqual(try IconConfigurationCodec.decode(persisted).behaviors.airPodsRing, .single)
+    }
+
     func testStandardMigrationKeepsScene() {
         let inputs = IconPresentationInputs(snapshot: PresentationFixtures.snapshot(), audioIcon: nil)
         let migrated = IconConfigurationMigration.makeConfiguration(from: .standard)
@@ -51,7 +76,21 @@ final class IconConfigurationMigrationTests: XCTestCase {
         )
         let migrated = IconConfigurationMigration.makeConfiguration(from: legacy)
 
-        XCTAssertEqual(migrated.legacyPresentationConfiguration, legacy)
+        let migratedLegacy = migrated.legacyPresentationConfiguration
+        XCTAssertEqual(migratedLegacy.battery, legacy.battery)
+        XCTAssertEqual(migratedLegacy.connection.showsWiFiIconForEthernet,
+                       legacy.connection.showsWiFiIconForEthernet)
+        XCTAssertEqual(migratedLegacy.connection.showsWiFiIconForHotspot,
+                       legacy.connection.showsWiFiIconForHotspot)
+        XCTAssertEqual(migratedLegacy.connection.showsWiFiIconForTemporaryConnection,
+                       legacy.connection.showsWiFiIconForTemporaryConnection)
+        XCTAssertEqual(migratedLegacy.connection.showsWiFiIconForInternetSharing,
+                       legacy.connection.showsWiFiIconForInternetSharing)
+        XCTAssertEqual(migratedLegacy.connection.showsBatteryPercentageInConnectionSlot,
+                       legacy.connection.showsBatteryPercentageInConnectionSlot)
+        XCTAssertEqual(migratedLegacy.connection.wifiScale, 1.4, accuracy: 0.001)
+        XCTAssertEqual(migratedLegacy.volume, legacy.volume)
+        XCTAssertEqual(migratedLegacy.bluetooth, legacy.bluetooth)
         XCTAssertEqual(migrated.appearance.outerRing.strokeScale, 1.5)
         XCTAssertEqual(migrated.appearance.footer.strokeScale, 1.5)
     }
@@ -78,6 +117,28 @@ final class IconConfigurationMigrationTests: XCTestCase {
         XCTAssertEqual(migrated.legacyPresentationConfiguration, store.iconPresentationConfiguration)
         XCTAssertEqual(defaults.object(forKey: SettingsStore.showsBatteryPercentageDefaultsKey) as? Bool, false)
         XCTAssertEqual(defaults.string(forKey: SettingsStore.volumeDisplayStyleDefaultsKey), VolumeDisplayStyle.arc.rawValue)
+    }
+
+    func testStorePersistsV1WiFiScaleMigrationOnLoad() throws {
+        let (defaults, name) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: name) }
+        var oldConfiguration = IconConfigurationV1.classic
+        oldConfiguration.behaviors.networkCenter.wifiScale = 2.1
+        oldConfiguration.appearance.center.symbolScale = 1.2
+        let encoded = try JSONEncoder().encode(oldConfiguration)
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        object.removeValue(forKey: "wifiScaleMigrationVersion")
+        defaults.set(try JSONSerialization.data(withJSONObject: object),
+                     forKey: SettingsStore.iconConfigurationDefaultsKey)
+
+        let store = SettingsStore(defaults: defaults)
+        let saved = try XCTUnwrap(defaults.data(forKey: SettingsStore.iconConfigurationDefaultsKey))
+        let reloaded = try IconConfigurationCodec.decode(saved)
+
+        XCTAssertEqual(store.iconConfiguration.appearance.center.symbolScale, 2.52, accuracy: 0.001)
+        XCTAssertEqual(reloaded.appearance.center.symbolScale, 2.52, accuracy: 0.001)
+        XCTAssertEqual(reloaded.behaviors.networkCenter.wifiScale, 1, accuracy: 0.001)
+        XCTAssertNotEqual(saved, try JSONSerialization.data(withJSONObject: object))
     }
 
     func testSecondLaunchDoesNotRemigrateOrOverwriteCurrentConfiguration() throws {

@@ -2,10 +2,16 @@ import XCTest
 @testable import StatusTrioCore
 
 final class IconDesignerReviewRegressionTests: XCTestCase {
-    func testImplementedConnectedBluetoothSourceIsSelectableAndItsPickerStaysConfigured() {
+    func testConnectedBluetoothDeviceUsesUnifiedBluetoothChoiceAndKeepsItsPickerConfigured() {
         XCTAssertTrue(IconDesignerEditingModel.supportsImplementedSources(for: .center))
-        XCTAssertTrue(IconDesignerEditingModel.selectableSources(for: .center, phaseFiveEnabled: true)
-            .contains(.center(.connectedBluetoothDevice)))
+        let selectable = IconDesignerEditingModel.selectableSources(for: .center, phaseFiveEnabled: true)
+        XCTAssertTrue(selectable.contains(.center(.bluetoothAudioOutput)))
+        XCTAssertFalse(selectable.contains(.center(.connectedBluetoothDevice)))
+        XCTAssertEqual(
+            IconDesignerSourceSelection.choice(for: .connectedBluetoothDevice),
+            .bluetoothDevice,
+            "A configured device target belongs to the unified Bluetooth choice."
+        )
 
         var configuration = IconConfigurationV1.classic
         configuration.composition.center = SlotSelection(primary: .connectedBluetoothDevice, fallback: .network)

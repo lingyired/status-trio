@@ -57,11 +57,13 @@
 "settings.menuBar.title" = "メニューバーアイコン";
 "settings.network.connectionIcons" = "接続アイコンのスタイル";
 "settings.network.connectionIcons.description" = "有効にすると、選択した状態は専用マークではなく標準の Wi-Fi シグナルアイコンで表示されます。";
+"settings.network.designerEntry" = "アイコンデザイナーでネットワークソースをカスタマイズ";
 "settings.network.wifiIconForEthernet" = "Ethernet に Wi-Fi アイコンを使用";
 "settings.network.wifiIconForHotspot" = "個人用ホットスポットに Wi-Fi アイコンを使用";
 "settings.network.wifiIconForTemporaryConnection" = "一時接続に Wi-Fi アイコンを使用";
 "settings.network.wifiIconForInternetSharing" = "インターネット共有に Wi-Fi アイコンを使用";
 "settings.bluetooth.title" = "Bluetooth オーディオ";
+"settings.bluetooth.designerEntry" = "アイコンデザイナーで Bluetooth ソースをカスタマイズ";
 "settings.bluetooth.replaceNetworkIcon" = "ネットワークアイコンを Bluetooth デバイスのアイコンに置き換える";
 "settings.bluetooth.replaceNetworkIconDescription" = "選択した Bluetooth デバイスの青いアイコンを Wi-Fi アイコンの代わりに表示します。";
 "settings.bluetooth.networkIconSourceGroup" = "Bluetooth デバイスのアイコンを使用";
@@ -114,6 +116,9 @@
 "settings.about.starOnGitHub" = "GitHub でスターを付ける";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "バッテリー表示";
+"settings.battery.designerEntry" = "アイコンデザイナーでバッテリーソースをカスタマイズ";
+"settings.battery.macBehaviorDescription" = "これらのオプションは Mac のバッテリーをソースとして使う場合に適用されます。外側のリングに選択した AirPods のソースは置き換えません。";
+"settings.battery.macBehavior" = "Mac のバッテリー動作";
 "settings.battery.showPercentage" = "バッテリー残量を表示";
 "settings.battery.showPercentageInConnectionSlot" = "接続位置にバッテリー残量を表示";
 "settings.battery.showPercentageInConnectionSlotDescription" = "Wi-Fi または接続記号の代わりに表示します。上部のバッテリー表示とは別に設定できます。";
@@ -328,6 +333,7 @@
 "settings.preview.light" = "ライト";
 "settings.preview.toggleHelp" = "メニューバーのダーク/ライト背景プレビューを切り替え";
 "settings.audio.displayRules" = "表示ルール";
+"settings.audio.designerEntry" = "アイコンデザイナーでオーディオソースをカスタマイズ";
 "settings.audio.activeDeviceFootnote" = "現在アクティブな音声出力デバイスはアクセントカラーでハイライトされます。";
 "settings.audio.inUse" = "使用中";
 "settings.wifi.symbolScale" = "Wi-Fiアイコンサイズ";
@@ -467,6 +473,7 @@
 "icon.designer.swapPrimaryFallback" = "優先ソースと代替ソースを入れ替え";
 "icon.designer.currentSourceUnavailableFormat" = "現在のソース（このバージョンでは利用不可）：%@";
 "icon.designer.compatible" = "現在の設定と互換";
+"icon.designer.legacySourcePreserved" = "新しいソースを選ぶまで、現在の表示ルールが保持されます。";
 
 
 
@@ -482,7 +489,8 @@
 "iconDesigner.control.showPercentageWhileConnected" = "接続中も割合を表示";
 "iconDesigner.control.previewChargingAnimation" = "充電アニメーションをプレビュー";
 "iconDesigner.control.criticalThreshold" = "危険しきい値";
-"iconDesigner.control.textScale" = "テキストの大きさ";
+"iconDesigner.control.textScale" = "上部のバッテリー表示サイズ";
+"iconDesigner.control.textScale.help" = "外周リング上部のバッテリー残量表示、充電中の稲妻、電源プラグのサイズを調整します。";
 "iconDesigner.control.noEditableBehavior" = "このソースには編集可能な動作がありません。";
 "iconDesigner.control.wifiForEthernet" = "EthernetでWi-Fi記号を表示";
 "iconDesigner.control.wifiForHotspot" = "ホットスポットでWi-Fi記号を表示";
@@ -536,6 +544,74 @@
 "icon.designer.airPods.ring.single" = "シングルリング";
 "icon.designer.airPods.ring.dual" = "左右デュアルリング";
 "icon.designer.airPods.singleExplanation" = "シングルリング：メインの電池残量を優先し、なければ両耳の平均、または取得できる片耳を表示します。ケースのみの場合は利用できません。";
-"icon.designer.airPods.dualExplanation" = "デュアルリング：左右のイヤホンを固定された左右の弧に表示します。片耳が不明な場合は取得できる側だけを表示し、ケースで代用しません。";
-"icon.designer.airPods.partialExplanation" = "片耳の残量を取得できません。取得できる側のみ表示します。";
+"icon.designer.airPods.dualExplanation" = "デュアルリング：左右のイヤホンをそれぞれ固定の弧に表示します。片耳分のバッテリー情報のみ取得できる場合は、左右の弧に同じ残量を表示し、色はそれぞれ元のままです。ケースで代用することはありません。";
+"icon.designer.airPods.partialExplanation" = "片耳分のバッテリー情報のみ取得できる場合、左右の弧に同じ残量を表示し、色はそれぞれ元のままです。";
 "icon.designer.airPods.focusPreset" = "AirPods フォーカス";
+"icon.preview.scenario.airPodsCustom" = "カスタムAirPodsバッテリー";
+"icon.designer.airPods.test.title" = "AirPodsテストバッテリー";
+"icon.designer.airPods.test.simulatedData" = "シミュレーションデータ・設定のプレビューのみ。メニューバーとDockには実際のデータが表示されます。";
+"icon.designer.airPods.test.leftAvailable" = "左耳のバッテリーデータあり";
+"icon.designer.airPods.test.rightAvailable" = "右耳のバッテリーデータあり";
+"icon.designer.airPods.test.leftBattery" = "左耳のバッテリー";
+"icon.designer.airPods.test.rightBattery" = "右耳のバッテリー";
+"icon.designer.airPods.test.both" = "左右両方";
+"icon.designer.airPods.test.leftOnly" = "左耳のみ";
+"icon.designer.airPods.test.rightOnly" = "右耳のみ";
+"icon.designer.airPods.test.unavailable" = "バッテリーデータなし";
+
+"iconPreviewData.edit" = "サンプルデータを編集…";
+
+"iconPreviewData.simulatedNotice" = "下のサンプル値はこのプレビューのみに反映されます。ライブデータに戻しても保持されます。";
+"iconPreviewData.liveNotice" = "ライブ状態は読み取り専用です。サンプルを編集するには「シミュレーション」に切り替えてください。";
+"iconPreviewData.title" = "プレビューデータ";
+"iconPreviewData.modeSelector" = "プレビューモード";
+"iconPreviewData.mode.liveShort" = "ライブデータ";
+"iconPreviewData.mode.simulatedShort" = "シミュレーション";
+"iconPreviewData.quickFill" = "クイック入力";
+"iconPreviewData.network.connectionState" = "接続状態";
+"iconPreviewData.systemVolume.source" = "システム音量";
+"iconPreviewData.live.notMuted" = "ミュート解除";
+"iconPreviewData.battery.notCharging" = "充電していません";
+"iconPreviewData.macBattery.percentage" = "バッテリー残量";
+"iconPreviewData.systemVolume.percentage" = "音量レベル";
+"iconPreviewData.source.macBattery" = "Macのバッテリー";
+"iconPreviewData.source.airPodsBattery" = "AirPodsのバッテリー";
+"iconPreviewData.source.bluetoothDevices" = "Bluetoothデバイス";
+"iconPreviewData.network.ethernetConnected" = "Ethernetに接続済み";
+"iconPreviewData.mode.live" = "ライブデータを使用中";
+"iconPreviewData.mode.simulated" = "シミュレーションデータを使用中 — プレビュー専用";
+"iconPreviewData.useSimulatedData" = "シミュレーションデータを使用…";
+"iconPreviewData.editData" = "プレビューデータを編集…";
+"iconPreviewData.macBatteryPresent" = "Macのバッテリーが存在";
+"iconPreviewData.bluetoothTargetOnline" = "Bluetoothの対象デバイスがオンライン";
+"iconPreviewData.bluetoothTargetAudio" = "対象はオーディオデバイス";
+"iconPreviewData.bluetoothSampleSymbol" = "デバイスのサンプル記号";
+"iconPreviewData.volumeAvailable" = "音量データを利用可能";
+"icon.designer.undo" = "取り消す";
+"icon.designer.externalChangeNotice" = "別の場所でアイコン設定が変更されたため、取り消し履歴を消去しました。";
+"iconPreviewData.useLiveData" = "ライブデータを使用";
+"icon.designer.moreActions" = "その他の操作";
+
+/* Source-aware center color roles */
+"iconDesigner.centerColorMeaning.networkPrimary" = "ネットワークアイコン";
+"iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi 信号 0 本";
+"iconDesigner.centerColorMeaning.bluetoothGlyph" = "Bluetooth アイコン";
+"iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "音量が 0 より大きい";
+"iconDesigner.centerColorMeaning.bluetoothMutedZeroOrUnavailable" = "消音または音量なし";
+"iconDesigner.centerColorMeaning.batteryPercentage" = "Mac のバッテリー残量";
+"iconDesigner.centerColorMeaning.legacyPrimary" = "従来の中央アイコン";
+"iconDesigner.centerColorMeaning.legacyWiFiZeroBars" = "Wi‑Fi 信号 0 本";
+"iconDesigner.centerColorMeaning.legacyBluetoothGlyph" = "Bluetooth アイコン";
+"iconDesigner.centerColorContext.fallbackFormat" = "予備：%@";
+"iconDesigner.centerColorContext.networkOverrideFormat" = "ネットワーク優先：%@";
+
+"iconDesigner.centerColor.rolePicker" = "色の適用状態";
+"iconDesigner.centerColorHelp.networkPrimary" = "通常のネットワークアイコンに適用します。Wi-Fi オフ、未接続、インターネットなし、有線接続が含まれます。";
+"iconDesigner.centerColorHelp.wifiZeroBars" = "接続中の Wi-Fi の信号が 0 本の場合に適用します。信号強度を取得できない場合にも使用します。";
+"iconDesigner.centerColorHelp.bluetoothGlyph" = "音量に関係なく、Bluetooth アイコンに常に使用します。";
+"iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "音量に応じた色を有効にすると、消音されておらず音量が 0 より大きい場合に使用します。";
+"iconDesigner.centerColorHelp.bluetoothMutedZeroOrUnavailable" = "音量に応じた色を有効にすると、消音中、音量が 0、または音量を取得できない場合に使用します。";
+"iconDesigner.centerColorHelp.batteryPercentage" = "中央に表示する Mac のバッテリー残量に適用します。";
+"iconDesigner.centerColorHelp.legacyPrimary" = "従来の中央表示の通常のネットワークアイコンまたは Mac のバッテリー残量に適用します。";
+"iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "従来の中央表示で、接続中 Wi-Fi の信号が 0 本の場合に適用します。";
+"iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "従来の中央表示の Bluetooth アイコンに適用します。";

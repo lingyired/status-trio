@@ -4,6 +4,117 @@ import Testing
 
 @MainActor
 struct IconSurfaceIntegrationTests {
+    @Test func effectiveDesignerScaleEditUpdatesMenuBarAndDockScenesTogether() async throws {
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .both,
+            initialWiFi: WiFiStatus(state: .connected, rssi: -48)
+        )
+        defer { harness.cleanUp() }
+        harness.settings.updateIconConfiguration { configuration in
+            configuration.composition.center = SlotSelection(primary: .network)
+            IconDesignerEditingModel.settingEffectiveCenterScale(2.35, in: &configuration)
+        }
+
+        var menuBarScenes: [IconSceneState] = []
+        let menuBar = StatusBarController(
+            store: harness.store,
+            settings: harness.settings,
+            iconPresentation: harness.iconPresentation,
+            localization: Localization(preferredLanguages: ["en"]),
+            openSettings: {},
+            quitAction: {},
+            renderMenuBarIcon: { scene, _, _, _, _ in
+                menuBarScenes.append(scene)
+                return NSImage(size: NSSize(width: 32, height: 32))
+            }
+        )
+        defer { menuBar.setVisible(false) }
+        harness.controller.start()
+
+        try await waitUntil {
+            guard case let .symbol(symbol)? = harness.iconPresentation.output.scene.center else { return false }
+            return abs(symbol.scale - 2.35) < 1e-12
+                && menuBarScenes.last == harness.iconPresentation.output.scene
+                && harness.log.lastScene == harness.iconPresentation.output.scene
+        }
+        #expect(harness.settings.iconConfiguration.appearance.center.effectiveSymbolScale == 2.35)
+        #expect(menuBarScenes.last == harness.log.lastScene)
+    }
+
+    @Test func specifiedBluetoothAudioUsesLiveResolverAcrossMenuBarAndDock() async throws {
+        let target = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:31", name: "Designated headset", kind: .audio, isConnected: true
+        )
+        let builtInOutput = AudioOutputDevice(
+            id: 1, name: "Built-in Output", isCurrent: true, transport: .builtIn
+        )
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .both,
+            initialWiFi: WiFiStatus(state: .connected, rssi: -48),
+            initialVolume: VolumeStatus(
+                scalar: 0, isMuted: false, deviceName: builtInOutput.name, currentDevice: builtInOutput
+            ),
+            resolveSourceSnapshot: { snapshot in
+                IconPresentationResourceResolver.sourceSnapshot(
+                    snapshot: snapshot,
+                    bluetoothDevices: [target],
+                    selectedConnectedDeviceAddress: "aa-bb-cc-dd-ee-31"
+                )
+            }
+        )
+        defer { harness.cleanUp() }
+        harness.settings.updateIconConfiguration {
+            $0.composition.center = SlotSelection(primary: .connectedBluetoothDevice, fallback: .network)
+            $0.composition.centerOverride.networkProblemOverridesPrimary = true
+            $0.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = "airpods.pro"
+            $0.behaviors.bluetoothAudioCenter.usesVolumeColor = true
+        }
+
+        var menuBarScenes: [IconSceneState] = []
+        let menuBar = StatusBarController(
+            store: harness.store,
+            settings: harness.settings,
+            iconPresentation: harness.iconPresentation,
+            localization: Localization(preferredLanguages: ["en"]),
+            openSettings: {},
+            quitAction: {},
+            renderMenuBarIcon: { scene, _, _, _, _ in
+                menuBarScenes.append(scene)
+                return NSImage(size: NSSize(width: 32, height: 32))
+            }
+        )
+        defer { menuBar.setVisible(false) }
+        harness.controller.start()
+        try await waitUntil {
+            guard case let .symbol(symbol)? = harness.iconPresentation.output.scene.center else { return false }
+            return symbol.source == .symbol(
+                name: "airpods.pro", variableValue: nil, fallback: BluetoothDeviceRowIcon.genericSymbol
+            ) && symbol.color == .primary
+                && menuBarScenes.last == harness.iconPresentation.output.scene
+                && harness.log.lastScene == harness.iconPresentation.output.scene
+        }
+
+        // The designated headset is not the current output: tint follows the
+        // built-in system output's live scalar, and both surfaces consume one scene.
+        harness.publishVolume(VolumeStatus(
+            scalar: 0.5, isMuted: false, deviceName: builtInOutput.name, currentDevice: builtInOutput
+        ))
+        try await waitUntil {
+            guard case let .symbol(symbol)? = harness.iconPresentation.output.scene.center else { return false }
+            return symbol.color == .bluetooth
+                && menuBarScenes.last == harness.iconPresentation.output.scene
+                && harness.log.dockRenderKeys.last?.scene == harness.iconPresentation.output.scene
+        }
+
+        harness.publishWiFi(WiFiStatus(state: .noInternet, rssi: -48))
+        try await waitUntil {
+            harness.iconPresentation.output.trace.center.reason == .overridden(.networkProblem)
+                && menuBarScenes.last == harness.iconPresentation.output.scene
+                && harness.log.dockRenderKeys.last?.scene == harness.iconPresentation.output.scene
+        }
+        #expect(harness.iconPresentation.output.trace.center.selectedSourceID == CenterSource.network.rawValue)
+    }
+
     @Test func bothSurfacesRenderTheSameDeliveredScene() async throws {
         let harness = try AppIconControllerHarness(initialPlacement: .both)
         defer { harness.cleanUp() }
@@ -92,6 +203,8 @@ struct IconSurfaceIntegrationTests {
         defer { harness.cleanUp() }
         let rasterSpy = MenuBarRasterSpy()
         rasterSpy.allowSuccess = true
+        let stableAppearance = try #require(NSAppearance(named: .aqua))
+        var renderedAppearances: [NSAppearance.Name] = []
         let menuBar = StatusBarController(
             store: harness.store,
             settings: harness.settings,
@@ -99,7 +212,11 @@ struct IconSurfaceIntegrationTests {
             localization: Localization(preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            renderMenuBarIcon: { scene, size, _, _, _ in rasterSpy.render(scene, size: size) }
+            appearanceForRendering: { _ in stableAppearance },
+            renderMenuBarIcon: { scene, size, _, appearance, _ in
+                renderedAppearances.append(appearance.name)
+                return rasterSpy.render(scene, size: size)
+            }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
@@ -113,6 +230,8 @@ struct IconSurfaceIntegrationTests {
         let sceneA = harness.iconPresentation.output.scene
         let imageA = try #require(rasterSpy.successfulImage)
         let dockImageA = try #require(harness.application.applicationIconImage)
+        #expect(!renderedAppearances.isEmpty)
+        #expect(renderedAppearances.allSatisfy { $0 == stableAppearance.name })
         let menuCallsBeforeB = rasterSpy.calls
         let dockCallsBeforeB = harness.log.renderCount
 
@@ -143,16 +262,28 @@ struct IconSurfaceIntegrationTests {
         #expect(menuBar.presentedImageForTesting === imageA)
         #expect(harness.application.applicationIconImage === dockImageA)
 
-        harness.log.failDockRenders = false
-        rasterSpy.allowSuccess = true
+        // The failed B render deliberately left image A installed, so image
+        // identity alone can satisfy a restore wait before A's queued request
+        // has been consumed. Keep failures enabled until both presentation
+        // queues are drained; then a delayed appearance callback cannot turn
+        // that stale retained image into a false success.
         harness.settings.ringStrokeStyle = .regular
-        try await waitUntil {
-            harness.iconPresentation.output.scene == sceneA
-                && menuBar.presentedImageForTesting === imageA
-                && harness.application.applicationIconImage === dockImageA
-        }
+        try await waitUntil { harness.iconPresentation.output.scene == sceneA }
+        #expect(menuBar.presentedImageForTesting === imageA)
+        #expect(harness.application.applicationIconImage === dockImageA)
         menuBar.flushPendingPresentationForTesting()
         harness.controller.flushPendingPresentationForTesting()
+        await Task.yield()
+        menuBar.flushPendingPresentationForTesting()
+        harness.controller.flushPendingPresentationForTesting()
+        #expect(rasterSpy.calls == menuCallsAfterB + 1)
+        #expect(menuBar.presentedImageForTesting === imageA)
+        #expect(harness.application.applicationIconImage === dockImageA)
+
+        harness.log.failDockRenders = false
+        rasterSpy.allowSuccess = true
+        menuBar.refreshCurrentPresentation()
+        harness.controller.refreshCurrentPresentation()
         #expect(rasterSpy.calls == menuCallsAfterB + 1)
         #expect(menuBar.presentedImageForTesting === imageA)
         #expect(harness.application.applicationIconImage === dockImageA)
@@ -281,16 +412,22 @@ struct IconSurfaceIntegrationTests {
         #expect(menuBarScenes.last == harness.iconPresentation.output.scene)
         #expect(harness.log.lastScene == harness.iconPresentation.output.scene)
 
+        // The earlier Wi-Fi size edit changed shared center Appearance. Bluetooth
+        // retains its source control and is rendered through that same slot size.
+        let centerAppearance = harness.settings.iconConfiguration.appearance.center
+        let expectedBluetoothScale = 1.4 * centerAppearance.symbolScale / CenterAppearance.classic.symbolScale
         try await verifySetting(
             "Bluetooth scale",
             { harness.settings.bluetoothSymbolScale = 1.4 },
             matches: { scene in
                 guard case let .symbol(symbol) = scene.center else { return false }
-                return symbol.scale == 1.4
+                return abs(symbol.scale - expectedBluetoothScale) < 1e-12
             },
             latestMenuBarScene: { menuBarScenes.last },
             harness: harness
         )
+        #expect(harness.settings.bluetoothSymbolScale == 1.4)
+        #expect(harness.settings.iconConfiguration.appearance.center == centerAppearance)
         harness.publishBattery(BatteryStatus(
             rawPercentage: 62,
             isPresent: true,

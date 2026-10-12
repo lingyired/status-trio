@@ -57,11 +57,13 @@
 "settings.menuBar.title" = "選單列圖示";
 "settings.network.connectionIcons" = "連線圖示樣式";
 "settings.network.connectionIcons.description" = "啟用後，對應狀態會改用一般 Wi‑Fi 訊號圖示，不再顯示專用標記。";
+"settings.network.designerEntry" = "在圖示設計器中自訂網路來源";
 "settings.network.wifiIconForEthernet" = "有線連線使用 Wi‑Fi 圖示";
 "settings.network.wifiIconForHotspot" = "個人熱點使用 Wi‑Fi 圖示";
 "settings.network.wifiIconForTemporaryConnection" = "臨時連線使用 Wi‑Fi 圖示";
 "settings.network.wifiIconForInternetSharing" = "網際網路共享使用 Wi‑Fi 圖示";
 "settings.bluetooth.title" = "藍牙音訊";
+"settings.bluetooth.designerEntry" = "在圖示設計器中自訂藍牙來源";
 "settings.bluetooth.replaceNetworkIcon" = "使用藍牙裝置圖示取代網路圖示";
 "settings.bluetooth.replaceNetworkIconDescription" = "以所選藍牙裝置的藍色圖示取代 Wi‑Fi 圖示。";
 "settings.bluetooth.networkIconSourceGroup" = "使用藍牙裝置圖示";
@@ -114,6 +116,9 @@
 "settings.about.starOnGitHub" = "在 GitHub 上標星";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "電池顯示";
+"settings.battery.designerEntry" = "在圖示設計器中自訂電池來源";
+"settings.battery.macBehaviorDescription" = "這些選項只會在使用 Mac 電池作為來源時生效；不會取代外環已選的 AirPods 來源。";
+"settings.battery.macBehavior" = "Mac 電池行為";
 "settings.battery.showPercentage" = "顯示電量數字";
 "settings.battery.showPercentageInConnectionSlot" = "在連線位置顯示電量數字";
 "settings.battery.showPercentageInConnectionSlotDescription" = "取代 Wi-Fi 或連線圖示；此選項可與頂端電池指示器分別開啟。";
@@ -328,6 +333,7 @@
 "settings.preview.light" = "淺色";
 "settings.preview.toggleHelp" = "切換選單列深色/淺色底色預覽";
 "settings.audio.displayRules" = "顯示規則";
+"settings.audio.designerEntry" = "在圖示設計器中自訂音訊來源";
 "settings.audio.activeDeviceFootnote" = "目前活躍的音訊輸出裝置將優先以主題色強調顯示。";
 "settings.audio.inUse" = "使用中";
 "settings.wifi.symbolScale" = "Wi-Fi 圖示大小";
@@ -467,6 +473,7 @@
 "icon.designer.swapPrimaryFallback" = "交換偏好與備用來源";
 "icon.designer.currentSourceUnavailableFormat" = "目前來源（此版本無法使用）：%@";
 "icon.designer.compatible" = "與目前設定相容";
+"icon.designer.legacySourcePreserved" = "目前的顯示規則會保留，直到你選擇新的來源。";
 
 
 
@@ -481,7 +488,8 @@
 "iconDesigner.control.showPercentageWhileConnected" = "連線時顯示百分比";
 "iconDesigner.control.previewChargingAnimation" = "預覽充電動畫";
 "iconDesigner.control.criticalThreshold" = "臨界閾值";
-"iconDesigner.control.textScale" = "文字大小";
+"iconDesigner.control.textScale" = "頂部電量指示大小";
+"iconDesigner.control.textScale.help" = "調整外環頂部的電量數字、充電閃電和電源插頭的大小。";
 "iconDesigner.control.noEditableBehavior" = "此來源目前沒有可編輯的行為。";
 "iconDesigner.control.wifiForEthernet" = "乙太網路使用 Wi-Fi 符號";
 "iconDesigner.control.wifiForHotspot" = "熱點使用 Wi-Fi 符號";
@@ -535,6 +543,74 @@
 "icon.designer.airPods.ring.single" = "單圓環";
 "icon.designer.airPods.ring.dual" = "左右雙圓環";
 "icon.designer.airPods.singleExplanation" = "單圓環：優先使用總電量；否則取左右耳平均值，或顯示有資料的一側。僅有充電盒電量時不可用。";
-"icon.designer.airPods.dualExplanation" = "雙圓環：左右耳分別固定顯示在左右弧段。缺少一側時只顯示已知耳機電量；充電盒不會替代耳機。";
-"icon.designer.airPods.partialExplanation" = "一側無法使用；僅顯示有電量的一側。";
+"icon.designer.airPods.dualExplanation" = "雙圓環：左右耳分別顯示在左右弧段。僅一側電量可用時，兩側圓環共用該側電量；充電盒不會替代耳機。";
+"icon.designer.airPods.partialExplanation" = "僅一側電量可用，左右圓環共用該側電量。";
 "icon.designer.airPods.focusPreset" = "AirPods 專注";
+"icon.preview.scenario.airPodsCustom" = "自訂 AirPods 電池";
+"icon.designer.airPods.test.title" = "AirPods 測試電池";
+"icon.designer.airPods.test.simulatedData" = "模擬資料 · 僅供「設定」預覽；選單列與 Dock 仍顯示即時資料。";
+"icon.designer.airPods.test.leftAvailable" = "左耳電池資料可用";
+"icon.designer.airPods.test.rightAvailable" = "右耳電池資料可用";
+"icon.designer.airPods.test.leftBattery" = "左耳電池";
+"icon.designer.airPods.test.rightBattery" = "右耳電池";
+"icon.designer.airPods.test.both" = "左右兩耳";
+"icon.designer.airPods.test.leftOnly" = "僅左耳";
+"icon.designer.airPods.test.rightOnly" = "僅右耳";
+"icon.designer.airPods.test.unavailable" = "沒有電池資料";
+
+"iconPreviewData.edit" = "編輯樣本資料…";
+
+"iconPreviewData.simulatedNotice" = "編輯下方樣例只會影響此預覽；切回即時資料後，樣例仍會保留。";
+"iconPreviewData.liveNotice" = "即時狀態為唯讀。切換至「模擬資料」後即可編輯樣例。";
+"iconPreviewData.title" = "預覽資料";
+"iconPreviewData.modeSelector" = "預覽模式";
+"iconPreviewData.mode.liveShort" = "即時資料";
+"iconPreviewData.mode.simulatedShort" = "模擬資料";
+"iconPreviewData.quickFill" = "快速填入";
+"iconPreviewData.network.connectionState" = "連線狀態";
+"iconPreviewData.systemVolume.source" = "系統音量";
+"iconPreviewData.live.notMuted" = "未靜音";
+"iconPreviewData.battery.notCharging" = "未充電";
+"iconPreviewData.macBattery.percentage" = "電池百分比";
+"iconPreviewData.systemVolume.percentage" = "音量百分比";
+"iconPreviewData.source.macBattery" = "Mac 電池";
+"iconPreviewData.source.airPodsBattery" = "AirPods 電池";
+"iconPreviewData.source.bluetoothDevices" = "藍牙裝置";
+"iconPreviewData.network.ethernetConnected" = "已連接乙太網路";
+"iconPreviewData.mode.live" = "正在使用即時資料";
+"iconPreviewData.mode.simulated" = "正在使用模擬資料 — 僅供預覽";
+"iconPreviewData.useSimulatedData" = "使用模擬資料…";
+"iconPreviewData.editData" = "編輯預覽資料…";
+"iconPreviewData.macBatteryPresent" = "Mac 電池存在";
+"iconPreviewData.bluetoothTargetOnline" = "藍牙目標裝置在線";
+"iconPreviewData.bluetoothTargetAudio" = "目標是音訊裝置";
+"iconPreviewData.bluetoothSampleSymbol" = "範例裝置符號";
+"iconPreviewData.volumeAvailable" = "音量資料可用";
+"icon.designer.undo" = "復原";
+"icon.designer.externalChangeNotice" = "圖示設定已在其他位置變更，復原記錄已清除。";
+"iconPreviewData.useLiveData" = "使用即時資料";
+"icon.designer.moreActions" = "更多動作";
+
+/* Source-aware center color roles */
+"iconDesigner.centerColorMeaning.networkPrimary" = "網路圖示";
+"iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi 訊號為 0 格";
+"iconDesigner.centerColorMeaning.bluetoothGlyph" = "藍牙圖示";
+"iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "音量大於零";
+"iconDesigner.centerColorMeaning.bluetoothMutedZeroOrUnavailable" = "靜音或無音量";
+"iconDesigner.centerColorMeaning.batteryPercentage" = "Mac 電量百分比";
+"iconDesigner.centerColorMeaning.legacyPrimary" = "舊版中心圖示";
+"iconDesigner.centerColorMeaning.legacyWiFiZeroBars" = "Wi‑Fi 訊號為 0 格";
+"iconDesigner.centerColorMeaning.legacyBluetoothGlyph" = "藍牙圖示";
+"iconDesigner.centerColorContext.fallbackFormat" = "備用：%@";
+"iconDesigner.centerColorContext.networkOverrideFormat" = "異常覆蓋：%@";
+
+"iconDesigner.centerColor.rolePicker" = "顏色適用狀態";
+"iconDesigner.centerColorHelp.networkPrimary" = "適用於一般網路圖示，包括 Wi-Fi 關閉、未連線、無網際網路和有線連線。";
+"iconDesigner.centerColorHelp.wifiZeroBars" = "適用於已連線但訊號為 0 格的 Wi-Fi；無法讀取訊號強度時也會使用此顏色。";
+"iconDesigner.centerColorHelp.bluetoothGlyph" = "藍牙圖示一律使用此顏色，不受音量影響。";
+"iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "啟用隨音量變色後，未靜音且音量大於零時使用此顏色。";
+"iconDesigner.centerColorHelp.bluetoothMutedZeroOrUnavailable" = "啟用隨音量變色後，靜音、音量為零或無法讀取音量時使用此顏色。";
+"iconDesigner.centerColorHelp.batteryPercentage" = "適用於中心顯示的 Mac 電量百分比。";
+"iconDesigner.centerColorHelp.legacyPrimary" = "適用於舊版中心的一般網路圖示或 Mac 電量百分比。";
+"iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "適用於舊版中心中已連線但訊號為 0 格的 Wi-Fi；無法讀取訊號強度時也會使用此顏色。";
+"iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "適用於舊版中心顯示的藍牙圖示。";

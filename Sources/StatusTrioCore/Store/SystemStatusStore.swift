@@ -122,7 +122,7 @@ final class SystemStatusStore: ObservableObject {
     /// True while the display is asleep. The fallback poll skips its work then,
     /// because no menu bar or Dock tile is on screen to keep fresh.
     @Published private(set) var isDisplayAsleep = false
-    private var isSettingsVisible = false
+    private var settingsSurfaceVisibility = SettingsSurfaceVisibility()
     private var isBluetoothEnabled = false
     private var isBluetoothActivatedForPopover = false
     /// Whether the wired link panel is the open detail panel. The controller
@@ -555,11 +555,17 @@ final class SystemStatusStore: ObservableObject {
     }
 
     func setSettingsVisible(_ visible: Bool) {
-        guard !hasStopped, isSettingsVisible != visible else { return }
-        isSettingsVisible = visible
+        setSettingsVisible(visible, owner: SettingsSurfaceVisibility.legacyOwner)
+    }
+
+    func setSettingsVisible(_ visible: Bool, owner: String) {
+        guard !hasStopped else { return }
+        let wasVisible = settingsSurfaceVisibility.isVisible
+        guard settingsSurfaceVisibility.owners.contains(owner) != visible else { return }
+        settingsSurfaceVisibility.setVisible(visible, owner: owner)
         updateDetailsVisibility()
 
-        if visible {
+        if !wasVisible && settingsSurfaceVisibility.isVisible {
             refreshAll()
         }
     }
@@ -633,7 +639,7 @@ final class SystemStatusStore: ObservableObject {
         fallbackTickCount &+= 1
         batteryMonitor.refresh()
 
-        let showsStatusUI = isPopoverVisible || isSettingsVisible
+        let showsStatusUI = isPopoverVisible || settingsSurfaceVisibility.isVisible
         guard showsStatusUI || fallbackTickCount % Self.hiddenFallbackTickStride == 0 else { return }
         wifiMonitor.refresh()
         volumeMonitor.refresh()
@@ -672,7 +678,7 @@ final class SystemStatusStore: ObservableObject {
     }
 
     private func updateDetailsVisibility() {
-        let detailsVisible = isPopoverVisible || isSettingsVisible
+        let detailsVisible = isPopoverVisible || settingsSurfaceVisibility.isVisible
         wifiMonitor.setDetailsVisible(isPopoverVisible)
         volumeMonitor.setDetailsVisible(detailsVisible)
     }

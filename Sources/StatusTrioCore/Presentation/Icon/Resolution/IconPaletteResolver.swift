@@ -21,7 +21,11 @@ enum IconPaletteResolver {
         }
     }
 
-    static func apply(_ scene: IconSceneState, appearance: IconAppearanceConfiguration) -> IconSceneState {
+    static func apply(
+        _ scene: IconSceneState,
+        appearance: IconAppearanceConfiguration,
+        centerSource: CenterSource? = nil
+    ) -> IconSceneState {
         let outerRing = scene.outerRing.map { ring in
             OuterRingState(
                 segments: ring.segments.map {
@@ -44,12 +48,35 @@ enum IconPaletteResolver {
             )
         }
         let centerScaleFactor = appearance.center.symbolScale / CenterAppearance.classic.symbolScale
+        let effectiveCenterScale = appearance.center.effectiveSymbolScale
+        let normalizedPercentageScale = appearance.center.normalizedPercentageScale
+        let normalizedSizePercentage = appearance.center.normalizedSizePercentage
         let center: CenterState? = scene.center.map { state in
             switch state {
             case let .symbol(symbol):
-                .symbol(IconSymbolState(source: symbol.source, color: resolve(role: symbol.color, style: appearance.center.color), scale: symbol.scale * centerScaleFactor))
+                let normalizedScale = centerSource == .network
+                    ? normalizedPercentageScale.map { $0 * CenterPercentageScaleCalibration.wifiScaleForCommonPercentageSize }
+                    : nil
+                return .symbol(IconSymbolState(
+                    source: symbol.source,
+                    color: resolve(role: symbol.color, style: appearance.center.color),
+                    scale: normalizedSizePercentage == nil
+                        ? (normalizedScale ?? effectiveCenterScale ?? symbol.scale * centerScaleFactor)
+                        : symbol.scale,
+                    normalizedSizePercentage: normalizedSizePercentage
+                ))
             case let .text(text):
-                .text(IconTextState(text: text.text, color: resolve(role: text.color, style: appearance.center.color), scale: text.scale * centerScaleFactor))
+                let normalizedScale = centerSource == .systemBatteryPercentage
+                    ? normalizedPercentageScale.map { $0 * CenterPercentageScaleCalibration.percentageScaleForCommonSize }
+                    : nil
+                return .text(IconTextState(
+                    text: text.text,
+                    color: resolve(role: text.color, style: appearance.center.color),
+                    scale: normalizedSizePercentage == nil
+                        ? (normalizedScale ?? effectiveCenterScale ?? text.scale * centerScaleFactor)
+                        : text.scale,
+                    normalizedSizePercentage: normalizedSizePercentage
+                ))
             }
         }
         let footer: FooterState? = scene.footer.map { state in

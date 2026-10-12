@@ -41,7 +41,8 @@ final class IconPaletteResolverTests: XCTestCase {
         let ringColor = IconRGBA(red: 0.2, green: 0.7, blue: 0.3, alpha: 1)
         configuration.appearance.outerRing.color = .fixed(ringColor)
         configuration.appearance.outerRing.strokeScale = 1.8
-        configuration.behaviors.networkCenter.wifiScale = 1.5
+        configuration.composition.center.primary = .network
+        configuration.appearance.center.symbolScale = 2.4
         let snapshot = StatusSnapshot(
             battery: BatteryStatus(rawPercentage: 42, isPresent: true, isCharging: false,
                                    isLowPowerMode: false, isConnectedToPower: false),
@@ -57,9 +58,25 @@ final class IconPaletteResolverTests: XCTestCase {
         XCTAssertEqual(output.scene.outerRing?.segments.first?.color, .custom(ringColor))
         XCTAssertEqual(try XCTUnwrap(output.scene.outerRing).strokeScale, 1.8, accuracy: 0.0001)
         XCTAssertEqual(output.scene.center?.colorRole, .primary)
-        XCTAssertEqual(try XCTUnwrap(output.scene.center?.symbolScaleValue), 1.5)
+        XCTAssertEqual(try XCTUnwrap(output.scene.center?.symbolScaleValue), 1.5, accuracy: 1e-12)
         XCTAssertEqual(output.scene.footer?.colorRole, .primary)
         XCTAssertEqual(try XCTUnwrap(output.scene.footer?.strokeScaleValue), FooterAppearance.classic.strokeScale, accuracy: 0.0001)
+    }
+
+    func testEffectiveCenterScaleIsAbsoluteAndAppliesToSymbolsAndText() throws {
+        let symbolScene = IconSceneState(center: .symbol(IconSymbolState(
+            source: .symbol(name: "headphones", variableValue: nil, fallback: nil),
+            color: .primary,
+            scale: 2.8
+        )))
+        let textScene = IconSceneState(center: .text(IconTextState(text: "42", color: .primary, scale: 2.8)))
+        var appearance = IconAppearanceConfiguration.classic
+        appearance.center.effectiveSymbolScale = 2.25
+
+        let symbol = IconPaletteResolver.apply(symbolScene, appearance: appearance)
+        let text = IconPaletteResolver.apply(textScene, appearance: appearance)
+        XCTAssertEqual(try XCTUnwrap(symbol.center?.symbolScaleValue), 2.25, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(text.center?.symbolScaleValue), 2.25, accuracy: 0.0001)
     }
 
     func testFallbackSelectionRetainsTheSlotsConfiguredAppearance() {

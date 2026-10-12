@@ -10,6 +10,7 @@ enum IconPresentationResourceResolver {
         batteryLevelsUpdatedAt: Date? = nil,
         selectedAirPodsAddress: String? = nil,
         selectedConnectedDeviceAddress: String? = nil,
+        bluetoothAvailability: BluetoothAvailability? = nil,
         now: Date = .now
     ) -> IconSourceSnapshot {
         let networkAvailability: IconSourceAvailability
@@ -25,7 +26,7 @@ enum IconPresentationResourceResolver {
                 .unavailable(.unknown)
             }
         }
-        let bluetoothAvailability: IconSourceAvailability =
+        let currentAudioOutputAvailability: IconSourceAvailability =
             snapshot.volume.currentDevice?.isBluetoothAudio == true
                 ? .available
                 : .unavailable(.disconnected)
@@ -59,25 +60,48 @@ enum IconPresentationResourceResolver {
         }
 
         let selectedConnectedKey = selectedConnectedDeviceAddress.map { BluetoothBatteryReader.normalizedAddress($0) }
-        let connectedDevice = selectedConnectedKey.flatMap { selectedKey in
-            bluetoothDevices.first {
-                BluetoothBatteryReader.normalizedAddress($0.id) == selectedKey && $0.isConnected
+        let bluetoothDirectoryIsAuthoritative = bluetoothAvailability == nil || bluetoothAvailability == .available
+        let connectedDevice = bluetoothDirectoryIsAuthoritative
+            ? selectedConnectedKey.flatMap { selectedKey in
+                bluetoothDevices.first {
+                    BluetoothBatteryReader.normalizedAddress($0.id) == selectedKey
+                        && $0.isConnected && !$0.isUnpairedGhost && !$0.isReadOverTheAir
+                }
             }
-        }
+            : nil
         let connectedDeviceSymbol = connectedDevice.map { BluetoothDeviceRowIcon.symbolName(for: $0) }
-        let connectedDeviceAvailability: IconSourceAvailability = connectedDevice == nil
-            ? .unavailable(selectedConnectedDeviceAddress == nil ? .unknown : .disconnected)
-            : .available
+        let connectedDeviceIsAudio = connectedDevice.map { $0.kind.isAudio }
+        let connectedDeviceAvailability: IconSourceAvailability
+        if connectedDevice != nil {
+            connectedDeviceAvailability = .available
+        } else if selectedConnectedDeviceAddress == nil {
+            connectedDeviceAvailability = .unavailable(.unknown)
+        } else {
+            let reason: IconSourceUnavailableReason = switch bluetoothAvailability {
+            case .authorizationDenied, .authorizationRestricted:
+                .permissionDenied
+            case .poweredOff:
+                .disconnected
+            case .unavailable, .failed:
+                .unavailable
+            case .idle, .initializing, .authorizationNotDetermined:
+                .unknown
+            case .available, nil:
+                .disconnected
+            }
+            connectedDeviceAvailability = .unavailable(reason)
+        }
 
         return IconSourceSnapshot(availability: [
             CenterSource.network.rawValue: networkAvailability,
-            CenterSource.bluetoothAudioOutput.rawValue: bluetoothAvailability,
+            CenterSource.bluetoothAudioOutput.rawValue: currentAudioOutputAvailability,
             CenterSource.systemBatteryPercentage.rawValue: batteryAvailability,
             CenterSource.connectedBluetoothDevice.rawValue: connectedDeviceAvailability,
             RingSource.systemBattery.rawValue: batteryAvailability,
             RingSource.airPodsBattery.rawValue: airPodsAvailability,
             FooterSource.systemVolume.rawValue: volumeAvailability
-        ], airPodsBattery: airPodsBattery, connectedBluetoothDeviceSymbol: connectedDeviceSymbol)
+        ], airPodsBattery: airPodsBattery, connectedBluetoothDeviceSymbol: connectedDeviceSymbol,
+           connectedBluetoothDeviceIsAudio: connectedDeviceIsAudio)
     }
 
     static func inputs(

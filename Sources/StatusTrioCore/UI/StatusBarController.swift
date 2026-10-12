@@ -38,6 +38,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     private let iconPresentation: IconPresentationViewModel
     private let localization: Localization
     private let renderMenuBarIcon: MenuBarRenderer
+    private let appearanceForRendering: @MainActor (NSStatusBarButton) -> NSAppearance
     private let accessibilityValueDidChange: @MainActor (String) -> Void
     let chargingEffectClock: ChargingEffectClock
     private var iconPresentationCancellable: AnyCancellable?
@@ -83,6 +84,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         quitAction: @escaping () -> Void,
         chargingEffectClock: ChargingEffectClock = ChargingEffectClock(),
         accessibilityValueDidChange: @escaping @MainActor (String) -> Void = { _ in },
+        appearanceForRendering: @escaping @MainActor (NSStatusBarButton) -> NSAppearance = { $0.effectiveAppearance },
         renderMenuBarIcon: @escaping MenuBarRenderer = { scene, size, scale, appearance, phase in
             StatusIconRenderer.image(
                 scene: scene,
@@ -106,6 +108,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         self.iconPresentation = iconPresentation
         self.localization = localization
         self.renderMenuBarIcon = renderMenuBarIcon
+        self.appearanceForRendering = appearanceForRendering
         self.accessibilityValueDidChange = accessibilityValueDidChange
         self.chargingEffectClock = chargingEffectClock
         self.openSettings = openSettings
@@ -517,11 +520,12 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             button.window?.backingScaleFactor
             ?? NSScreen.main?.backingScaleFactor
             ?? 1
+        let appearance = appearanceForRendering(button)
         let key = StatusBarRenderKey(
             scene: scene,
             iconSize: iconSize,
             backingScale: backingScale,
-            appearanceName: button.effectiveAppearance.name.rawValue,
+            appearanceName: appearance.name.rawValue,
             phase: phase
         )
         guard renderCache.needsRender(key) else { return }
@@ -537,7 +541,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
                         scene: scene,
                         size: CGFloat(iconSize),
                         scale: backingScale,
-                        appearance: button.effectiveAppearance,
+                        appearance: appearance,
                         phase: framePhase
                     )
                 }
@@ -555,7 +559,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
                 scene,
                 iconSize,
                 backingScale,
-                button.effectiveAppearance,
+                appearance,
                 phase
             )
             if let renderedImage {

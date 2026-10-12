@@ -30,11 +30,12 @@ final class SettingsViewTests: XCTestCase {
         let isDark = Binding.constant(true)
 
         let panes: [(String, AnyView)] = [
-            ("iconDesigner", AnyView(IconDesignerView(
+            ("iconDesigner", AnyView(IconDesignerLaunchSectionView(
                 store: store,
                 statusStore: statusStore,
                 previewIsDark: isDark,
-                onShowIconGuide: {}
+                onShowIconGuide: {},
+                onOpenIconDesigner: { _ in }
             ))),
             ("battery", AnyView(BatterySectionView(
                 store: store,
@@ -199,7 +200,8 @@ final class SettingsViewTests: XCTestCase {
             store: store,
             statusStore: statusStore,
             localization: localization,
-            onShowIconGuide: {}
+            onShowIconGuide: {},
+            previewSession: IconDesignerPreviewSession()
         )
 
         let hostingView = NSHostingView(rootView: view.environmentObject(ChargingEffectClock()))

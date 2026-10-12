@@ -4,6 +4,10 @@ import Foundation
 enum IconConfigurationMigration {
     static func makeConfiguration(from legacy: IconPresentationConfiguration) -> IconConfigurationV1 {
         var value = IconConfigurationV1.classic
+        // Legacy icon settings had no AirPods source or ring mode. The new
+        // designer default is dual; existing encoded V1 payloads still decode
+        // a missing airPodsRing field as single in IconBehaviorConfiguration.
+        value.behaviors.airPodsRing = .dual
         value.behaviors.systemBatteryRing = SystemBatteryRingBehavior(
             showsPercentage: legacy.battery.showsPercentage,
             showsChargingIndicator: legacy.battery.showsChargingIndicator,
@@ -14,6 +18,7 @@ enum IconConfigurationMigration {
             criticalThreshold: legacy.battery.criticalThreshold,
             textScale: legacy.battery.textScale
         )
+        value.wifiScaleMigrationVersion = nil
         value.behaviors.networkCenter = NetworkCenterBehavior(
             showsWiFiIconForEthernet: legacy.connection.showsWiFiIconForEthernet,
             showsWiFiIconForHotspot: legacy.connection.showsWiFiIconForHotspot,
@@ -86,7 +91,19 @@ enum IconConfigurationMigration {
 }
 
 extension IconConfigurationV1 {
+    /// Compatibility projection for callers that render these options without
+    /// the center Appearance pass.
     var legacyPresentationConfiguration: IconPresentationConfiguration {
+        makePresentationConfiguration(wifiScale: appearance.center.symbolScale / CenterAppearance.classic.symbolScale)
+    }
+
+    /// The composition resolver applies center Appearance after mapping, so
+    /// source-level Wi-Fi scaling must be neutral to avoid applying it twice.
+    var compositionLegacyPresentationConfiguration: IconPresentationConfiguration {
+        makePresentationConfiguration(wifiScale: NetworkCenterBehavior.classic.wifiScale)
+    }
+
+    private func makePresentationConfiguration(wifiScale: Double) -> IconPresentationConfiguration {
         IconPresentationConfiguration(
             battery: BatteryIconOptions(
                 showsPercentage: behaviors.systemBatteryRing.showsPercentage,
@@ -105,7 +122,7 @@ extension IconConfigurationV1 {
                 showsWiFiIconForTemporaryConnection: behaviors.networkCenter.showsWiFiIconForTemporaryConnection,
                 showsWiFiIconForInternetSharing: behaviors.networkCenter.showsWiFiIconForInternetSharing,
                 showsBatteryPercentageInConnectionSlot: behaviors.networkCenter.showsBatteryPercentageInConnectionSlot,
-                wifiScale: behaviors.networkCenter.wifiScale
+                wifiScale: wifiScale
             ),
             volume: VolumeIconOptions(
                 displayStyle: behaviors.systemVolumeFooter.displayStyle,

@@ -5,52 +5,37 @@ struct IconSlotPicker: View {
     var configuration: IconConfigurationV1 = .classic
     @EnvironmentObject private var localization: Localization
 
+    @ViewBuilder
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                ForEach(IconSlot.allCases, id: \.self) { slot in
-                    let accessibility = accessibilityValue(for: slot)
-                    Button {
-                        selection = slot
-                    } label: {
-                        Label(localization.string(accessibility.slotName), systemImage: slot.symbol)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 7)
-                            .background(selection == slot ? Color.accentColor.opacity(0.16) : Color.clear,
-                                        in: RoundedRectangle(cornerRadius: 7))
-                    }
-                    .buttonStyle(.plain)
-                    .contentShape(Rectangle())
-                    .accessibilityLabel(localization.string(accessibility.slotName))
-                    .accessibilityValue(localization.format(
-                        .iconDesignerAccessibilityValueFormat,
-                        localizedSourceName(for: slot),
-                        localization.string(selection == slot ? .iconDesignerAccessibilitySelected : .iconDesignerAccessibilityNotSelected)
-                    ))
-                    .accessibilityAddTraits(selection == slot ? .isSelected : [])
-                }
-            }
-            Picker(localization.string(.iconDesignerControlIconSlot), selection: $selection) {
-                ForEach(IconSlot.allCases, id: \.self) { slot in
-                    Text(localization.string(accessibilityValue(for: slot).slotName)).tag(slot)
-                }
-            }
-            .labelsHidden()
-            .pickerStyle(.segmented)
+        if #available(macOS 26.0, *) {
+            picker.buttonSizing(.flexible)
+        } else {
+            picker
         }
     }
 
-    private func accessibilityValue(for slot: IconSlot) -> IconDesignerSlotAccessibilityValue {
-        IconDesignerAccessibility.slotValue(
-            slot: slot,
-            currentSource: localizedSourceName(for: slot),
-            isSelected: selection == slot
-        )
+    private var picker: some View {
+        Picker(localization.string(.iconDesignerControlIconSlot), selection: $selection) {
+            ForEach(IconSlot.allCases, id: \.self) { slot in
+                Text(localization.string(slotNameKey(for: slot)))
+                    .help(localization.string(slotNameKey(for: slot)))
+                    .accessibilityLabel(localization.string(slotNameKey(for: slot)))
+                    .tag(slot)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .controlSize(.small)
+        .frame(minWidth: 0, maxWidth: .infinity)
+        .accessibilityLabel(localization.string(.iconDesignerControlIconSlot))
+        .accessibilityValue(localizedSelectionValue)
+        .accessibilityIdentifier("iconDesigner.slotSelector")
     }
 
-    private func localizedSourceName(for slot: IconSlot) -> String {
-        let source = IconDesignerEditingModel.currentSource(for: slot, in: configuration).id
-        let key: LocalizationKey = switch source {
+    private var localizedSelectionValue: String {
+        let slot = selection
+        let sourceID = IconDesignerEditingModel.currentSource(for: slot, in: configuration).id
+        let sourceKey: LocalizationKey = switch sourceID {
         case "automaticLegacy": .iconDesignerSourceLegacy
         case "systemBattery": .iconDesignerSourceSystemBattery
         case "airPodsBattery": .iconDesignerSourceAirPodsBattery
@@ -63,12 +48,18 @@ struct IconSlotPicker: View {
         case "none": .iconDesignerSourceNone
         default: .iconDesignerSourceNone
         }
-        return localization.string(key)
+        return localization.format(
+            .iconDesignerAccessibilityValueFormat,
+            localization.string(sourceKey),
+            localization.string(.iconDesignerAccessibilitySelected)
+        )
     }
-}
 
-private extension IconSlot {
-    var symbol: String {
-        switch self { case .outerRing: "circle.dashed"; case .center: "circle.inset.filled"; case .footer: "circle.bottomhalf.filled" }
+    private func slotNameKey(for slot: IconSlot) -> LocalizationKey {
+        switch slot {
+        case .outerRing: .iconDesignerSlotOuterRing
+        case .center: .iconDesignerSlotCenter
+        case .footer: .iconDesignerSlotFooter
+        }
     }
 }

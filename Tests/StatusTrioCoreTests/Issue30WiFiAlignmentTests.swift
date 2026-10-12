@@ -35,6 +35,82 @@ final class Issue30WiFiAlignmentTests: XCTestCase {
         )
     }
 
+    /// Measure only the Wi-Fi symbol's rasterized alpha bounds. The existing
+    /// full-composite test remains separate so the hand-drawn dot/arcs cannot
+    /// mask a half-unit symbol-bearing regression.
+    func testCenterSymbolInkLandsOnTheArtworkCenterLine() throws {
+        let scales: [Double] = [0.75, 1.0, 1.6, 2.8]
+        let foreground = CGColor(gray: 1, alpha: 1)
+        let menuSize: CGFloat = 120
+        let menuScale: CGFloat = 8
+        let pixelsPerMenuSVGUnit = menuSize * menuScale / StatusIconGeometry.canvas.width
+
+        for wifiScale in scales {
+            let menuImage = try XCTUnwrap(StatusIconRenderer.render(
+                scene: IconSceneState(center: .symbol(IconSymbolState(
+                    source: .symbol(name: "wifi", variableValue: nil, fallback: nil),
+                    color: .primary,
+                    scale: wifiScale
+                ))),
+                environment: StatusIconRenderEnvironment(
+                    size: menuSize,
+                    scale: menuScale,
+                    foreground: foreground,
+                    criticalColor: StatusIconRenderer.defaultCriticalColor
+                )
+            ))
+            let menuPixels = try PixelBuffer(image: menuImage)
+            let menuCenter = try XCTUnwrap(menuPixels.alphaBoundsCenterX(minimumAlpha: 1))
+                / pixelsPerMenuSVGUnit
+            XCTAssertEqual(menuCenter, StatusIconGeometry.artworkCenterX, accuracy: 0.49,
+                           "menu bar isolated Wi-Fi ink at scale \(wifiScale)")
+
+            let dockPixelLength = 2_048
+            let dockContext = try XCTUnwrap(CGContext(
+                data: nil,
+                width: dockPixelLength,
+                height: dockPixelLength,
+                bitsPerComponent: 8,
+                bytesPerRow: dockPixelLength * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            dockContext.clear(CGRect(x: 0, y: 0, width: dockPixelLength, height: dockPixelLength))
+            dockContext.scaleBy(
+                x: CGFloat(dockPixelLength) / DockIconGlyphLayout.designLength,
+                y: CGFloat(dockPixelLength) / DockIconGlyphLayout.designLength
+            )
+            dockContext.translateBy(
+                x: DockIconGlyphLayout.glyphSVGOrigin.x,
+                y: DockIconGlyphLayout.designLength
+                    - DockIconGlyphLayout.glyphSVGOrigin.y
+                    - DockIconGlyphLayout.glyphSVGSize
+            )
+            XCTAssertTrue(StatusIconRenderer.draw(
+                scene: IconSceneState(center: .symbol(IconSymbolState(
+                    source: .symbol(name: "wifi", variableValue: nil, fallback: nil),
+                    color: .primary,
+                    scale: wifiScale
+                ))),
+                in: dockContext,
+                size: DockIconGlyphLayout.glyphSVGSize,
+                foreground: foreground,
+                criticalColor: StatusIconRenderer.defaultCriticalColor,
+                phase: nil
+            ))
+            let dockPixels = try PixelBuffer(image: XCTUnwrap(dockContext.makeImage()))
+            let dockCenter = try XCTUnwrap(dockPixels.alphaBoundsCenterX(minimumAlpha: 1))
+            let dockPixelsPerDesignUnit = CGFloat(dockPixelLength) / DockIconGlyphLayout.designLength
+            let dockPixelsPerSceneUnit = dockPixelsPerDesignUnit
+                * DockIconGlyphLayout.glyphSVGSize / StatusIconGeometry.canvas.width
+            let dockCenterInSceneUnits = (
+                dockCenter / dockPixelsPerDesignUnit - DockIconGlyphLayout.glyphSVGOrigin.x
+            ) * StatusIconGeometry.canvas.width / DockIconGlyphLayout.glyphSVGSize
+            XCTAssertEqual(dockCenterInSceneUnits, StatusIconGeometry.artworkCenterX, accuracy: 0.49,
+                           "Dock-geometry isolated Wi-Fi ink at scale \(wifiScale); \(dockPixelsPerSceneUnit) pixels per SVG unit")
+        }
+    }
+
     /// Every hand-drawn element must share the one centre line. This is the
     /// contract the first fix broke, and it is exact rather than rasterised.
     func testHandDrawnElementsShareTheArtworkCenterLine() {
@@ -109,6 +185,20 @@ final class Issue30WiFiAlignmentTests: XCTestCase {
 }
 
 private extension PixelBuffer {
+    func alphaBoundsCenterX(minimumAlpha: UInt8) -> CGFloat? {
+        var minimumX = width
+        var maximumX = -1
+        for y in 0..<height {
+            for x in 0..<width where rgba(x: x, y: y).alpha >= minimumAlpha {
+                minimumX = min(minimumX, x)
+                maximumX = max(maximumX, x)
+            }
+        }
+        guard maximumX >= minimumX else { return nil }
+        return (CGFloat(minimumX) + CGFloat(maximumX) + 1) / 2
+    }
+
+
     func horizontalAlphaCenter(
         inSVGRect rect: CGRect,
         size: CGFloat,

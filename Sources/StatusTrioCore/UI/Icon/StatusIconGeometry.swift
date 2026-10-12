@@ -577,20 +577,27 @@ enum StatusIconGeometry {
             start = batteryStart
             end = batteryStart + halfSweep * CGFloat(fraction)
         case .right:
-            start = batteryStart + halfSweep + gapAngle
-            end = start + halfSweep * CGFloat(fraction)
+            start = batteryStart + batterySweep
+            end = start - halfSweep * CGFloat(fraction)
         }
-        return arc(center: batteryCenter, radius: batteryRadius, start: start, end: end)
+        return arc(
+            center: batteryCenter,
+            radius: batteryRadius,
+            start: start,
+            end: end,
+            clockwise: position == .right
+        )
     }
 
     private static func arc(
         center: CGPoint,
         radius: CGFloat,
         start: CGFloat,
-        end: CGFloat
+        end: CGFloat,
+        clockwise: Bool = false
     ) -> CGPath {
         let path = CGMutablePath()
-        path.addArc(center: center, radius: radius, startAngle: start, endAngle: end, clockwise: false)
+        path.addArc(center: center, radius: radius, startAngle: start, endAngle: end, clockwise: clockwise)
         return path
     }
 }

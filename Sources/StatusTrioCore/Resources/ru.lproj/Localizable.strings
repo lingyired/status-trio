@@ -57,11 +57,13 @@
 "settings.menuBar.title" = "Значок в строке меню";
 "settings.network.connectionIcons" = "Стиль значков подключения";
 "settings.network.connectionIcons.description" = "Если включено, выбранное состояние отображается стандартным значком сигнала Wi-Fi вместо специального обозначения.";
+"settings.network.designerEntry" = "Настроить источник сети в редакторе значков";
 "settings.network.wifiIconForEthernet" = "Использовать значок Wi-Fi для Ethernet";
 "settings.network.wifiIconForHotspot" = "Использовать значок Wi-Fi для точки доступа";
 "settings.network.wifiIconForTemporaryConnection" = "Использовать значок Wi-Fi для временного подключения";
 "settings.network.wifiIconForInternetSharing" = "Использовать значок Wi-Fi для общего доступа к интернету";
 "settings.bluetooth.title" = "Звук Bluetooth";
+"settings.bluetooth.designerEntry" = "Настроить источник Bluetooth в редакторе значков";
 "settings.bluetooth.replaceNetworkIcon" = "Заменять значок сети значком устройства Bluetooth";
 "settings.bluetooth.replaceNetworkIconDescription" = "Заменяет значок Wi-Fi синим значком выбранного устройства Bluetooth.";
 "settings.bluetooth.networkIconSourceGroup" = "Использовать значок устройства Bluetooth";
@@ -114,6 +116,9 @@
 "settings.about.starOnGitHub" = "Поставить звезду на GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Отображение батареи";
+"settings.battery.designerEntry" = "Настроить источник аккумулятора в редакторе значков";
+"settings.battery.macBehaviorDescription" = "Эти параметры применяются к аккумулятору Mac, когда он используется как источник, и не заменяют выбранный для внешнего кольца источник AirPods.";
+"settings.battery.macBehavior" = "Поведение аккумулятора Mac";
 "settings.battery.showPercentage" = "Показывать процент заряда";
 "settings.battery.showPercentageInConnectionSlot" = "Показывать процент заряда на месте подключения";
 "settings.battery.showPercentageInConnectionSlotDescription" = "Заменяет значок Wi-Fi или подключения. Эта настройка не зависит от верхнего индикатора батареи.";
@@ -328,6 +333,7 @@
 "settings.preview.light" = "Светлый";
 "settings.preview.toggleHelp" = "Переключить темный/светлый фон строки меню";
 "settings.audio.displayRules" = "Правила отображения";
+"settings.audio.designerEntry" = "Настроить источник аудио в редакторе значков";
 "settings.audio.activeDeviceFootnote" = "Активное устройство вывода звука выделяется цветом темы.";
 "settings.audio.inUse" = "Используется";
 "settings.wifi.symbolScale" = "Размер значка Wi-Fi";
@@ -467,6 +473,7 @@
 "icon.designer.swapPrimaryFallback" = "Поменять основной и резервный источники";
 "icon.designer.currentSourceUnavailableFormat" = "Текущий источник (недоступен в этой версии): %@";
 "icon.designer.compatible" = "Совместимо с текущими настройками";
+"icon.designer.legacySourcePreserved" = "Текущее правило отображения сохраняется, пока вы не выберете новый источник.";
 
 
 
@@ -482,7 +489,8 @@
 "iconDesigner.control.showPercentageWhileConnected" = "Показывать процент при подключении";
 "iconDesigner.control.previewChargingAnimation" = "Предпросмотр анимации зарядки";
 "iconDesigner.control.criticalThreshold" = "Критический порог";
-"iconDesigner.control.textScale" = "Масштаб текста";
+"iconDesigner.control.textScale" = "Размер верхнего индикатора заряда";
+"iconDesigner.control.textScale.help" = "Настраивает размер значения заряда в верхней части внешнего кольца, значка молнии при зарядке и значка вилки.";
 "iconDesigner.control.noEditableBehavior" = "Для этого источника пока нет настраиваемого поведения.";
 "iconDesigner.control.wifiForEthernet" = "Символ Wi-Fi для Ethernet";
 "iconDesigner.control.wifiForHotspot" = "Символ Wi-Fi для точки доступа";
@@ -536,6 +544,74 @@
 "icon.designer.airPods.ring.single" = "Одно кольцо";
 "icon.designer.airPods.ring.dual" = "Два кольца: левое/правое";
 "icon.designer.airPods.singleExplanation" = "Одно кольцо: сначала используется основное значение, иначе среднее двух наушников или заряд доступного наушника. Только заряд кейса недоступен.";
-"icon.designer.airPods.dualExplanation" = "Два кольца: левый и правый наушники занимают фиксированные дуги. Если одного нет, показывается только известный; кейс его не заменяет.";
-"icon.designer.airPods.partialExplanation" = "Один наушник недоступен; показывается только доступный.";
+"icon.designer.airPods.dualExplanation" = "Два кольца: для левого и правого наушников предусмотрены отдельные дуги. Если данные о заряде есть только для одного, обе дуги показывают этот уровень, сохраняя исходные цвета; кейс не заменяет наушники.";
+"icon.designer.airPods.partialExplanation" = "Данные о заряде доступны только для одного наушника; обе дуги показывают этот уровень, сохраняя исходные цвета.";
 "icon.designer.airPods.focusPreset" = "Фокус AirPods";
+"icon.preview.scenario.airPodsCustom" = "Пользовательский заряд AirPods";
+"icon.designer.airPods.test.title" = "Тестовый заряд AirPods";
+"icon.designer.airPods.test.simulatedData" = "Симуляция данных · только для предпросмотра в настройках; строка меню и Dock по-прежнему показывают актуальные данные.";
+"icon.designer.airPods.test.leftAvailable" = "Данные о заряде левого наушника доступны";
+"icon.designer.airPods.test.rightAvailable" = "Данные о заряде правого наушника доступны";
+"icon.designer.airPods.test.leftBattery" = "Заряд левого наушника";
+"icon.designer.airPods.test.rightBattery" = "Заряд правого наушника";
+"icon.designer.airPods.test.both" = "Оба наушника";
+"icon.designer.airPods.test.leftOnly" = "Только левый";
+"icon.designer.airPods.test.rightOnly" = "Только правый";
+"icon.designer.airPods.test.unavailable" = "Нет данных о заряде";
+
+"iconPreviewData.edit" = "Изменить демонстрационные данные…";
+
+"iconPreviewData.simulatedNotice" = "Примеры ниже влияют только на предпросмотр и сохраняются при возврате к актуальным данным.";
+"iconPreviewData.liveNotice" = "Актуальные данные доступны только для чтения. Переключитесь на симуляцию, чтобы изменить примеры.";
+"iconPreviewData.title" = "Данные предпросмотра";
+"iconPreviewData.modeSelector" = "Режим предпросмотра";
+"iconPreviewData.mode.liveShort" = "Актуальные данные";
+"iconPreviewData.mode.simulatedShort" = "Симуляция";
+"iconPreviewData.quickFill" = "Быстрое заполнение";
+"iconPreviewData.network.connectionState" = "Состояние подключения";
+"iconPreviewData.systemVolume.source" = "Системная громкость";
+"iconPreviewData.live.notMuted" = "Звук включён";
+"iconPreviewData.battery.notCharging" = "Не заряжается";
+"iconPreviewData.macBattery.percentage" = "Уровень заряда";
+"iconPreviewData.systemVolume.percentage" = "Уровень громкости";
+"iconPreviewData.source.macBattery" = "Аккумулятор Mac";
+"iconPreviewData.source.airPodsBattery" = "Аккумулятор AirPods";
+"iconPreviewData.source.bluetoothDevices" = "Устройства Bluetooth";
+"iconPreviewData.network.ethernetConnected" = "Подключён Ethernet";
+"iconPreviewData.mode.live" = "Используются актуальные данные";
+"iconPreviewData.mode.simulated" = "Используются тестовые данные — только для предпросмотра";
+"iconPreviewData.useSimulatedData" = "Использовать тестовые данные…";
+"iconPreviewData.editData" = "Изменить данные предпросмотра…";
+"iconPreviewData.macBatteryPresent" = "Аккумулятор Mac установлен";
+"iconPreviewData.bluetoothTargetOnline" = "Целевое Bluetooth-устройство в сети";
+"iconPreviewData.bluetoothTargetAudio" = "Целевое устройство — аудиоустройство";
+"iconPreviewData.bluetoothSampleSymbol" = "Пример значка устройства";
+"iconPreviewData.volumeAvailable" = "Данные громкости доступны";
+"icon.designer.undo" = "Отменить";
+"icon.designer.externalChangeNotice" = "История отмены очищена: настройки значка изменились в другом месте.";
+"iconPreviewData.useLiveData" = "Использовать актуальные данные";
+"icon.designer.moreActions" = "Другие действия";
+
+/* Source-aware center color roles */
+"iconDesigner.centerColorMeaning.networkPrimary" = "Значок сети";
+"iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi: 0 делений";
+"iconDesigner.centerColorMeaning.bluetoothGlyph" = "Значок Bluetooth";
+"iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "Громкость выше нуля";
+"iconDesigner.centerColorMeaning.bluetoothMutedZeroOrUnavailable" = "Без звука или громкости";
+"iconDesigner.centerColorMeaning.batteryPercentage" = "Заряд аккумулятора Mac";
+"iconDesigner.centerColorMeaning.legacyPrimary" = "Старый центральный значок";
+"iconDesigner.centerColorMeaning.legacyWiFiZeroBars" = "Wi‑Fi: 0 делений";
+"iconDesigner.centerColorMeaning.legacyBluetoothGlyph" = "Значок Bluetooth";
+"iconDesigner.centerColorContext.fallbackFormat" = "Резерв: %@";
+"iconDesigner.centerColorContext.networkOverrideFormat" = "Приоритет сети: %@";
+
+"iconDesigner.centerColor.rolePicker" = "Цвет применяется к";
+"iconDesigner.centerColorHelp.networkPrimary" = "Для обычного значка сети: Wi-Fi выключен, не подключён, без интернета или проводное подключение.";
+"iconDesigner.centerColorHelp.wifiZeroBars" = "Для подключённого Wi-Fi без делений сигнала. Также используется, если уровень сигнала недоступен.";
+"iconDesigner.centerColorHelp.bluetoothGlyph" = "Всегда используется для значка Bluetooth независимо от громкости.";
+"iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "При включённой смене цвета по громкости, если звук не выключен и громкость выше нуля.";
+"iconDesigner.centerColorHelp.bluetoothMutedZeroOrUnavailable" = "При включённой смене цвета по громкости, если звук выключен, громкость равна нулю или её уровень недоступен.";
+"iconDesigner.centerColorHelp.batteryPercentage" = "Для процента заряда Mac, показанного в центре.";
+"iconDesigner.centerColorHelp.legacyPrimary" = "Для обычного значка сети или процента заряда Mac в старом центральном оформлении.";
+"iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "Для подключённого Wi-Fi без делений сигнала в старом центральном оформлении.";
+"iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "Для значка Bluetooth в старом центральном оформлении.";

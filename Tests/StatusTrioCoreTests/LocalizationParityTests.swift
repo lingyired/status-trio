@@ -38,6 +38,29 @@ final class LocalizationParityTests: XCTestCase {
 
     // MARK: - Tests
 
+    func testPreviewDataEditActionIsModeNeutralInEveryLanguage() throws {
+        let expectedByLanguage = [
+            "ar": "تعديل بيانات المعاينة…",
+            "de": "Vorschaudaten bearbeiten…",
+            "en": "Edit Preview Data…",
+            "es": "Editar datos de vista previa…",
+            "fr": "Modifier les données de l’aperçu…",
+            "it": "Modifica dati di anteprima…",
+            "ja": "プレビューデータを編集…",
+            "ko": "미리보기 데이터 편집…",
+            "pt-BR": "Editar dados da prévia…",
+            "ru": "Изменить данные предпросмотра…",
+            "zh-Hans": "编辑预览数据…",
+            "zh-Hant": "編輯預覽資料…"
+        ]
+        XCTAssertEqual(Set(expectedByLanguage.keys), Set(AppLanguage.allCases.map(\.rawValue)))
+        for language in AppLanguage.allCases {
+            let values = Dictionary(uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) })
+            XCTAssertEqual(values[LocalizationKey.iconPreviewEditData.rawValue], expectedByLanguage[language.rawValue],
+                           "The panel launcher must describe preview data without implying a switch to simulated mode.")
+        }
+    }
+
     func testEveryLanguageDeclaresExactlyTheEnglishKeys() throws {
         let baseKeys = try entries(for: .english).map(\.key)
         XCTAssertFalse(baseKeys.isEmpty, "en.lproj must define the base key list")
@@ -166,6 +189,26 @@ final class LocalizationParityTests: XCTestCase {
                     (values[key] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                     "\(language.rawValue).lproj: \(key) is missing or empty"
                 )
+            }
+        }
+    }
+
+    func testDeviceSettingsDesignerEntriesAndMacBatteryClarificationAreLocalized() throws {
+        let keys = [
+            LocalizationKey.settingsBatteryMacBehavior.rawValue,
+            LocalizationKey.settingsBatteryMacBehaviorDescription.rawValue,
+            LocalizationKey.settingsBatteryDesignerEntry.rawValue,
+            LocalizationKey.settingsNetworkDesignerEntry.rawValue,
+            LocalizationKey.settingsBluetoothDesignerEntry.rawValue,
+            LocalizationKey.settingsAudioDesignerEntry.rawValue
+        ]
+
+        for language in AppLanguage.allCases {
+            let values = Dictionary(uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) })
+            for key in keys {
+                let value = try XCTUnwrap(values[key], "\(language.rawValue).lproj is missing \(key)")
+                XCTAssertFalse(value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                XCTAssertNotEqual(value, key)
             }
         }
     }

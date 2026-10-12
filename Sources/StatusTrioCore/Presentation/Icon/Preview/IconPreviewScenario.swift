@@ -12,8 +12,13 @@ enum IconPreviewScenario: String, CaseIterable, Hashable, Sendable {
     case volumeMuted
     case airPodsConnected
     case airPodsDisconnected
+    case airPodsCustom
 
-    func makeInputs(basedOn liveInputs: IconResolutionInputs, now: Date = .now) -> IconResolutionInputs {
+    func makeInputs(
+        basedOn liveInputs: IconResolutionInputs,
+        customAirPodsSample: CustomAirPodsPreviewSample = CustomAirPodsPreviewSample(),
+        now: Date = .now
+    ) -> IconResolutionInputs {
         guard self != .live else { return liveInputs }
 
         let current = liveInputs.system.snapshot
@@ -65,7 +70,7 @@ enum IconPreviewScenario: String, CaseIterable, Hashable, Sendable {
                 canSetVolume: current.volume.canSetVolume,
                 canMute: current.volume.canMute
             )
-        case .airPodsConnected, .airPodsDisconnected:
+        case .airPodsConnected, .airPodsDisconnected, .airPodsCustom:
             battery = current.battery
             wifi = current.wifi
             connection = current.connection
@@ -104,6 +109,9 @@ enum IconPreviewScenario: String, CaseIterable, Hashable, Sendable {
         case .airPodsDisconnected:
             airPodsBattery = nil
             availability[RingSource.airPodsBattery.rawValue] = .unavailable(.disconnected)
+        case .airPodsCustom:
+            airPodsBattery = customAirPodsSample.batterySnapshot(now: now)
+            availability[RingSource.airPodsBattery.rawValue] = customAirPodsSample.sourceAvailability
         case .live, .networkHealthy, .networkNoInternet, .wifiOffEthernetConnected,
              .batteryCharging, .batteryCriticallyLow, .volumeMuted:
             break

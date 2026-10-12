@@ -4,59 +4,87 @@ struct IconSourceEditor: View {
     @ObservedObject var store: SettingsStore
     let slot: IconSlot
     var phaseFiveEnabled = false
-    var bluetoothDevices: [BluetoothDevice] = []
+    @ObservedObject var bluetoothDevices: BluetoothDeviceController
+    @ObservedObject var statusStore: SystemStatusStore
     @EnvironmentObject private var localization: Localization
+    @EnvironmentObject private var editorModel: IconDesignerEditorModel
 
     private var sources: [IconDesignerSource] {
         IconDesignerEditingModel.selectableSources(for: slot, phaseFiveEnabled: phaseFiveEnabled)
     }
+
     private var current: IconDesignerCurrentSource {
         IconDesignerEditingModel.currentSource(for: slot, in: store.iconConfiguration, phaseFiveEnabled: phaseFiveEnabled)
     }
 
     var body: some View {
         SettingsGroup(localization.string(.iconDesignerSourcesTitle)) {
-            Picker(localization.string(.iconDesignerPrimarySource), selection: primaryBinding) {
-                ForEach(sources, id: \.self) { source in
-                    Text(localization.string(source.localizationKey)).tag(source)
-                }
-            }
-            .accessibilityLabel(localization.string(.iconDesignerPrimarySource) + " — " + localizedSlotTitle)
-
-            if !current.isSelectable {
-                Label(localization.format(.iconDesignerCurrentSourceUnavailableFormat,
-                                          localization.string(localizationKey(for: current.id))),
-                      systemImage: "exclamationmark.triangle")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else if current.isLegacy {
-                Text(localization.string(.iconDesignerCompatible))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Picker(localization.string(.iconDesignerFallbackSource), selection: fallbackBinding) {
-                Text(localization.string(.iconDesignerNone)).tag(IconDesignerSource?.none)
-                ForEach(sources.filter { $0 != primary }, id: \.self) { source in
-                    Text(localization.string(source.localizationKey)).tag(Optional(source))
-                }
-            }
-            .accessibilityLabel(localization.string(.iconDesignerFallbackSource) + " — " + localizedSlotTitle)
-            if fallbackBinding.wrappedValue != nil {
-                Button(localization.string(.iconDesignerSwapPrimaryFallback)) {
-                    store.updateIconConfiguration { configuration in
-                        _ = IconDesignerEditingModel.swapPrimaryAndFallback(for: slot, in: &configuration)
+            IconDesignerControlRow(
+                localization.string(.iconDesignerPrimarySource),
+                identifier: "iconDesigner.source.primary"
+            ) {
+                Picker("", selection: primaryBinding) {
+                    ForEach(sources, id: \.self) { source in
+                        Text(localization.string(source.localizationKey)).tag(source)
+                    }
+                    if !current.isSelectable {
+                        Text(localization.string(primary.localizationKey)).tag(primary)
                     }
                 }
-                .accessibilityLabel(localization.string(.iconDesignerSwapPrimaryFallback) + " — " + localizedSlotTitle)
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+                .accessibilityLabel(localization.string(.iconDesignerPrimarySource) + " — " + localizedSlotTitle)
+                .accessibilityIdentifier("iconDesigner.source.primaryPicker")
             }
+
+            if current.isLegacy {
+                SettingsHintRow(text: localization.string(.iconDesignerLegacySourcePreserved))
+            } else if !current.isSelectable {
+                SettingsHintRow(
+                    text: localization.format(
+                        .iconDesignerCurrentSourceUnavailableFormat,
+                        localization.string(localizationKey(for: current.id))
+                    )
+                )
+            }
+
+            IconDesignerControlRow(
+                localization.string(.iconDesignerFallbackSource),
+                identifier: "iconDesigner.source.fallback"
+            ) {
+                Picker("", selection: fallbackBinding) {
+                    Text(localization.string(.iconDesignerNone)).tag(IconDesignerSource?.none)
+                    ForEach(sources.filter { $0 != primary }, id: \.self) { source in
+                        Text(localization.string(source.localizationKey)).tag(Optional(source))
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+                .accessibilityLabel(localization.string(.iconDesignerFallbackSource) + " — " + localizedSlotTitle)
+                .accessibilityIdentifier("iconDesigner.source.fallbackPicker")
+            }
+
+            if fallbackBinding.wrappedValue != nil {
+                IconDesignerControlRow(localization.string(.iconDesignerSwapPrimaryFallback), showsDivider: false) {
+                    Button(localization.string(.iconDesignerSwapPrimaryFallback)) {
+                        editorModel.updateIconConfiguration { configuration in
+                            _ = IconDesignerEditingModel.swapPrimaryAndFallback(for: slot, in: &configuration)
+                        }
+                    }
+                    .accessibilityLabel(localization.string(.iconDesignerSwapPrimaryFallback) + " — " + localizedSlotTitle)
+                }
+            }
+
             if airPodsSourceIsConfigured {
                 airPodsSourceSettings
             }
             if connectedBluetoothSourceIsConfigured {
-                connectedBluetoothSourceSettings
+                IconDesignerBluetoothEditor(store: store, bluetoothDevices: bluetoothDevices, statusStore: statusStore)
             }
         }
+        .accessibilityIdentifier("iconDesigner.sourceCard")
     }
 
     private var airPodsSourceIsConfigured: Bool {
@@ -69,61 +97,46 @@ struct IconSourceEditor: View {
         slot == .center && IconDesignerEditingModel.requiresConnectedBluetoothDevice(in: store.iconConfiguration)
     }
 
-    private var connectedBluetoothSourceSettings: some View {
-        Group {
-            if bluetoothDevices.isEmpty {
-                Text(localization.string(.iconDesignerControlNoBluetoothDevices))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                Picker(localization.string(.iconDesignerControlSelectConnectedBluetoothDevice),
-                       selection: connectedBluetoothDeviceBinding) {
-                    Text(localization.string(.iconDesignerControlChooseBluetoothDevice)).tag(String?.none)
-                    ForEach(bluetoothDevices, id: \.id) { device in
-                        let address = BluetoothBatteryReader.normalizedAddress(device.id)
-                        Text(device.name).tag(Optional(address))
-                    }
-                }
-                .accessibilityLabel(localization.string(.iconDesignerControlSelectConnectedBluetoothDevice))
-            }
-        }
-    }
-
-    private var connectedBluetoothDeviceBinding: Binding<String?> {
-        Binding(
-            get: { store.connectedBluetoothIconDeviceAddress.map { BluetoothBatteryReader.normalizedAddress($0) } },
-            set: { store.connectedBluetoothIconDeviceAddress = $0 }
-        )
-    }
-
     private var airPodsSourceSettings: some View {
         Group {
-            let devices = bluetoothDevices.filter { $0.airPodsModel != nil }
-            if devices.isEmpty {
-                Text(localization.string(.iconDesignerControlNoBluetoothDevices))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            let devices = bluetoothDevices.devices.filter { $0.airPodsModel != nil }
+            if bluetoothDevices.authorization != .allowed {
+                BluetoothPermissionNoticeRow(bluetoothDevices: bluetoothDevices, statusStore: statusStore)
+            } else if devices.isEmpty {
+                SettingsHintRow(text: localization.string(.iconDesignerControlNoBluetoothDevices))
             } else {
-                Picker(localization.string(.iconDesignerControlSelectAirPodsDevice), selection: airPodsDeviceBinding) {
-                    Text(localization.string(.iconDesignerControlChooseBluetoothDevice)).tag(String?.none)
-                    ForEach(devices, id: \.id) { device in
-                        let address = BluetoothBatteryReader.normalizedAddress(device.id)
-                        Text(device.name).tag(Optional(address))
+                IconDesignerControlRow(localization.string(.iconDesignerControlSelectAirPodsDevice)) {
+                    Picker("", selection: airPodsDeviceBinding) {
+                        Text(localization.string(.iconDesignerControlChooseBluetoothDevice)).tag(String?.none)
+                        ForEach(devices, id: \.id) { device in
+                            let address = BluetoothBatteryReader.normalizedAddress(device.id)
+                            Text(device.name).tag(Optional(address))
+                        }
                     }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .fixedSize()
+                    .accessibilityLabel(localization.string(.iconDesignerControlSelectAirPodsDevice))
                 }
-                .accessibilityLabel(localization.string(.iconDesignerControlSelectAirPodsDevice))
             }
-            Toggle(localization.string(.iconDesignerControlAirPodsBackgroundReads), isOn: Binding(
-                get: { store.refreshesAirPodsBatteryForIcon },
-                set: { store.refreshesAirPodsBatteryForIcon = $0 }
-            ))
+
+            IconDesignerControlRow(localization.string(.iconDesignerControlAirPodsBackgroundReads), showsDivider: false) {
+                Toggle("", isOn: Binding(
+                    get: { store.refreshesAirPodsBatteryForIcon },
+                    set: { value in editorModel.perform { store.refreshesAirPodsBatteryForIcon = value } }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .accessibilityLabel(localization.string(.iconDesignerControlAirPodsBackgroundReads))
+            }
         }
     }
 
     private var airPodsDeviceBinding: Binding<String?> {
         Binding(
             get: { store.airPodsIconDeviceAddress.map { BluetoothBatteryReader.normalizedAddress($0) } },
-            set: { store.airPodsIconDeviceAddress = $0 }
+            set: { value in editorModel.perform { store.airPodsIconDeviceAddress = value } }
         )
     }
 
@@ -139,17 +152,19 @@ struct IconSourceEditor: View {
     private var primary: IconDesignerSource {
         switch slot {
         case .outerRing: .ring(store.iconConfiguration.composition.outerRing.primary)
-        case .center: .center(store.iconConfiguration.composition.center.primary)
+        case .center:
+            .center(IconDesignerBluetoothTargetModel.displaySource(for: store.iconConfiguration.composition.center.primary))
         case .footer: .footer(store.iconConfiguration.composition.footer.primary)
         }
     }
 
     private var primaryBinding: Binding<IconDesignerSource> {
-        Binding(get: { primary }, set: { value in
-            store.updateIconConfiguration { configuration in
-                _ = IconDesignerEditingModel.setPrimary(value, for: slot, in: &configuration, phaseFiveEnabled: phaseFiveEnabled)
-            }
-        })
+        Binding(
+            get: { primary },
+            set: { value in editorModel.updateIconConfiguration { configuration in
+                _ = IconDesignerEditingModel.setPrimary(resolvedSource(value), for: slot, in: &configuration, phaseFiveEnabled: phaseFiveEnabled)
+            } }
+        )
     }
 
     private var fallbackBinding: Binding<IconDesignerSource?> {
@@ -158,15 +173,45 @@ struct IconSourceEditor: View {
             case .outerRing:
                 if let value = store.iconConfiguration.composition.outerRing.fallback { .ring(value) } else { nil }
             case .center:
-                if let value = store.iconConfiguration.composition.center.fallback { .center(value) } else { nil }
+                if let value = store.iconConfiguration.composition.center.fallback {
+                    .center(IconDesignerBluetoothTargetModel.displaySource(for: value))
+                } else { nil }
             case .footer:
                 if let value = store.iconConfiguration.composition.footer.fallback { .footer(value) } else { nil }
             }
         }, set: { value in
-            store.updateIconConfiguration { configuration in
-                _ = IconDesignerEditingModel.setFallback(value, for: slot, in: &configuration, phaseFiveEnabled: phaseFiveEnabled)
+            editorModel.updateIconConfiguration { configuration in
+                let source = value.map { resolvedSource($0) }
+                _ = IconDesignerEditingModel.setFallback(source, for: slot, in: &configuration, phaseFiveEnabled: phaseFiveEnabled)
             }
         })
+    }
+
+
+    private func resolvedSource(_ source: IconDesignerSource) -> IconDesignerSource {
+        guard slot == .center, source == .center(.bluetoothAudioOutput) else { return source }
+        let target: IconDesignerBluetoothTarget
+        if let address = store.connectedBluetoothIconDeviceAddress {
+            target = .connectedDevice(address: BluetoothBatteryReader.normalizedAddress(address))
+        } else {
+            target = .currentAudioOutput
+        }
+        return .center(IconDesignerBluetoothTargetModel.source(for: target))
+    }
+
+    private func localizationKey(for source: String) -> LocalizationKey {
+        switch source {
+        case "automaticLegacy": .iconDesignerSourceLegacy
+        case "systemBattery": .iconDesignerSourceSystemBattery
+        case "airPodsBattery": .iconDesignerSourceAirPodsBattery
+        case "network": .iconDesignerSourceNetwork
+        case "bluetoothAudioOutput": .iconDesignerSourceBluetoothAudio
+        case "pinnedBluetoothGlyph": .iconDesignerSourcePinnedBluetooth
+        case "connectedBluetoothDevice": .iconDesignerSourceConnectedBluetooth
+        case "systemBatteryPercentage": .iconDesignerSourceBatteryPercentage
+        case "systemVolume": .iconDesignerSourceSystemVolume
+        default: .iconDesignerSourceNone
+        }
     }
 }
 
@@ -184,21 +229,5 @@ private extension IconDesignerSource {
         case .center(.systemBatteryPercentage): .iconDesignerSourceBatteryPercentage
         case .footer(.systemVolume): .iconDesignerSourceSystemVolume
         }
-    }
-}
-
-private func localizationKey(for sourceID: String) -> LocalizationKey {
-    switch sourceID {
-    case "automaticLegacy": .iconDesignerSourceLegacy
-    case "systemBattery": .iconDesignerSourceSystemBattery
-    case "airPodsBattery": .iconDesignerSourceAirPodsBattery
-    case "network": .iconDesignerSourceNetwork
-    case "bluetoothAudioOutput": .iconDesignerSourceBluetoothAudio
-    case "pinnedBluetoothGlyph": .iconDesignerSourcePinnedBluetooth
-    case "connectedBluetoothDevice": .iconDesignerSourceConnectedBluetooth
-    case "systemBatteryPercentage": .iconDesignerSourceBatteryPercentage
-    case "systemVolume": .iconDesignerSourceSystemVolume
-    case "none": .iconDesignerSourceNone
-    default: .iconDesignerSourceNone
     }
 }

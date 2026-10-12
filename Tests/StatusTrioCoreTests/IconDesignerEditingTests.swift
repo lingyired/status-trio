@@ -2,6 +2,18 @@ import XCTest
 @testable import StatusTrioCore
 
 final class IconDesignerEditingTests: XCTestCase {
+    func testEffectiveCenterScaleBindingPreservesLegacyNilUntilExplicitEdit() {
+        var configuration = IconDesignerDefaults.configuration()
+        XCTAssertNil(configuration.appearance.center.effectiveSymbolScale)
+        let legacyScale = IconDesignerEditingModel.effectiveCenterScale(in: configuration)
+        XCTAssertEqual(legacyScale, configuration.legacyPresentationConfiguration.connection.wifiScale, accuracy: 0.001)
+
+        IconDesignerEditingModel.settingEffectiveCenterScale(5.5, in: &configuration)
+        XCTAssertEqual(configuration.appearance.center.effectiveSymbolScale, 5.5)
+        IconDesignerEditingModel.settingEffectiveCenterScale(20, in: &configuration)
+        XCTAssertEqual(configuration.appearance.center.effectiveSymbolScale, 6)
+    }
+
     func testAirPodsFocusPresetConfiguresDualBatteryRingWithoutChangingOtherSlotsOrAppearance() {
         var configuration = IconConfigurationV1.classic
         configuration.composition.center = SlotSelection(primary: .network, fallback: .bluetoothAudioOutput)
@@ -33,7 +45,7 @@ final class IconDesignerEditingTests: XCTestCase {
     func testChangingPrimaryRetainsBehaviorForBothConfiguredSources() {
         var configuration = IconConfigurationV1.classic
         configuration.composition.center = SlotSelection(primary: .network, fallback: .bluetoothAudioOutput)
-        configuration.behaviors.networkCenter.wifiScale = 1.7
+        configuration.appearance.center.symbolScale = 2.72
         configuration.behaviors.bluetoothAudioCenter.symbolScale = 2.1
         let behaviors = configuration.behaviors
 
@@ -43,13 +55,14 @@ final class IconDesignerEditingTests: XCTestCase {
         XCTAssertNil(configuration.composition.center.fallback)
         XCTAssertEqual(configuration.behaviors, behaviors)
         XCTAssertEqual(configuration.behaviors.bluetoothAudioCenter.symbolScale, 2.1)
-        XCTAssertEqual(configuration.behaviors.networkCenter.wifiScale, 1.7)
+        XCTAssertEqual(configuration.behaviors.networkCenter.wifiScale, 1)
+        XCTAssertEqual(configuration.appearance.center.symbolScale, 2.72)
     }
 
     func testSwappingPrimaryAndFallbackRetainsBothSourcesAndBehaviors() {
         var configuration = IconConfigurationV1.classic
         configuration.composition.center = SlotSelection(primary: .network, fallback: .bluetoothAudioOutput)
-        configuration.behaviors.networkCenter.wifiScale = 1.7
+        configuration.appearance.center.symbolScale = 2.72
         configuration.behaviors.bluetoothAudioCenter.symbolScale = 2.1
         let behaviors = configuration.behaviors
 
@@ -57,6 +70,7 @@ final class IconDesignerEditingTests: XCTestCase {
 
         XCTAssertEqual(configuration.composition.center, SlotSelection(primary: .bluetoothAudioOutput, fallback: .network))
         XCTAssertEqual(configuration.behaviors, behaviors)
+        XCTAssertEqual(configuration.appearance.center.symbolScale, 2.72)
     }
 
     func testBluetoothSymbolOverrideCanOnlyBeEditedForBluetoothPrimary() {
@@ -68,19 +82,55 @@ final class IconDesignerEditingTests: XCTestCase {
         XCTAssertEqual(configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride, "headphones")
     }
 
-    func testUnsupportedAirPodsSourceIsNotSelectableBeforePhaseFive() {
-        XCTAssertFalse(IconDesignerEditingModel.selectableSources(for: .outerRing, phaseFiveEnabled: false)
+    func testSpecifiedOnlineAudioTargetAllowsBluetoothSymbolAndNetworkOverride() {
+        let airPods = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:FF", name: "AirPods", kind: .audio, isConnected: true
+        )
+        let target = IconDesignerBluetoothTarget.connectedDevice(address: "aa-bb-cc-dd-ee-ff")
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center.primary = .connectedBluetoothDevice
+
+        XCTAssertTrue(IconDesignerEditingModel.setBluetoothSymbolOverride(
+            "airpods.pro", for: .primary, in: &configuration,
+            bluetoothTarget: target, devices: [airPods]
+        ))
+        XCTAssertTrue(IconDesignerEditingModel.allowsNetworkProblemOverride(
+            in: configuration, bluetoothTarget: target, devices: [airPods]
+        ))
+        XCTAssertEqual(configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride, "airpods.pro")
+    }
+
+    func testSpecifiedNonAudioBluetoothTargetDoesNotExposeAudioOverrides() {
+        let keyboard = BluetoothDevice(
+            id: "11:22:33:44:55:66", name: "Keyboard", kind: .peripheral(.keyboard), isConnected: true
+        )
+        let target = IconDesignerBluetoothTarget.connectedDevice(address: keyboard.id)
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center.primary = .connectedBluetoothDevice
+
+        XCTAssertFalse(IconDesignerEditingModel.setBluetoothSymbolOverride(
+            "keyboard", for: .primary, in: &configuration,
+            bluetoothTarget: target, devices: [keyboard]
+        ))
+        XCTAssertFalse(IconDesignerEditingModel.allowsNetworkProblemOverride(
+            in: configuration, bluetoothTarget: target, devices: [keyboard]
+        ))
+        XCTAssertNil(configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride)
+    }
+
+    func testAirPodsIsAnAvailableRingChoiceInTheDesigner() {
+        XCTAssertTrue(IconDesignerEditingModel.selectableSources(for: .outerRing, phaseFiveEnabled: false)
             .contains(.ring(.airPodsBattery)))
     }
 
-    func testConfiguredButUnsupportedSourceRemainsVisibleAsCurrentSelection() {
+    func testConfiguredAirPodsSourceRemainsVisibleAsCurrentSelection() {
         var configuration = IconConfigurationV1.classic
         configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery)
 
         let current = IconDesignerEditingModel.currentSource(for: .outerRing, in: configuration)
 
         XCTAssertEqual(current.id, "airPodsBattery")
-        XCTAssertFalse(current.isSelectable)
+        XCTAssertTrue(current.isSelectable)
     }
 
     func testSlotResetPreservesOtherSlotsAndOnlyChangesIconConfiguration() {
@@ -96,8 +146,8 @@ final class IconDesignerEditingTests: XCTestCase {
         XCTAssertEqual(reset.behaviors.systemVolumeFooter, configuration.behaviors.systemVolumeFooter)
         XCTAssertEqual(reset.behaviors.airPodsRing, configuration.behaviors.airPodsRing,
                        "Resetting a different slot must preserve the AirPods ring behavior.")
-        XCTAssertEqual(reset.appearance.center, IconConfigurationV1.classic.appearance.center)
-        XCTAssertEqual(reset.composition.center, IconConfigurationV1.classic.composition.center)
+        XCTAssertEqual(reset.appearance.center, IconDesignerDefaults.configuration().appearance.center)
+        XCTAssertEqual(reset.composition.center, SlotSelection(primary: .network))
     }
 
     func testDuplicatePrimaryCannotBeCommittedAsFallback() {
@@ -113,13 +163,13 @@ final class IconDesignerEditingTests: XCTestCase {
 extension IconDesignerEditingTests {
     func testOuterRingResetRestoresAirPodsRingBehaviorWithoutChangingOtherSlots() {
         var configuration = IconConfigurationV1.classic
-        configuration.behaviors.airPodsRing = .dual
+        configuration.behaviors.airPodsRing = .single
         configuration.composition.center.primary = .network
         configuration.composition.footer.primary = .systemVolume
 
         let reset = configuration.resetting(.outerRing)
 
-        XCTAssertEqual(reset.behaviors.airPodsRing, .single)
+        XCTAssertEqual(reset.behaviors.airPodsRing, .dual)
         XCTAssertEqual(reset.composition.center.primary, .network)
         XCTAssertEqual(reset.composition.footer.primary, .systemVolume)
     }
@@ -132,13 +182,13 @@ extension IconDesignerEditingTests {
         store.dockIconBackgroundPreference = .light
         store.refreshesAirPodsBatteryForIcon = true
         store.updateIconConfiguration { configuration in
-            configuration.behaviors.airPodsRing = .dual
+            configuration.behaviors.airPodsRing = .single
             configuration.composition.outerRing.primary = .airPodsBattery
         }
 
         store.updateIconConfiguration { $0 = $0.resetting(.outerRing) }
 
-        XCTAssertEqual(store.iconConfiguration.behaviors.airPodsRing, .single)
+        XCTAssertEqual(store.iconConfiguration.behaviors.airPodsRing, .dual)
         XCTAssertEqual(store.dockIconBackgroundPreference, .light)
         XCTAssertTrue(store.refreshesAirPodsBatteryForIcon)
     }

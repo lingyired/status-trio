@@ -58,6 +58,7 @@ run ID, failed stage, root cause, fix, and verification result.
 - Every change to a menu bar icon's rendering or icon-related settings must be mirrored in the Dock icon in the same change. Do not leave the Dock on a default or stale representation.
 - When adding or changing an icon option, update both paths end-to-end as applicable: `SettingsStore` option derivation, `StatusBarController` subscriptions, `AppIconController` subscriptions/state, `DockIconRenderKey` cache inputs, `DockIconRenderer` rendering, and tests covering both menu bar and Dock output.
 - If a setting is intentionally menu-bar-only, the issue or specification must say so explicitly, and the limitation must be documented and covered by a test.
+- Icon Designer dimension controls and rendering must follow [Icon Designer sizing standard](docs/icon-sizing-standard.md): one measured 100–180% center-size scale for every primary/fallback source, shared 80–120% outer/footer stroke scale, and the existing outer battery text percentage baseline. Keep legacy storage/rendering unchanged until explicit user edits; never reintroduce per-source UI ranges.
 
 ## System Settings Pane Routes
 

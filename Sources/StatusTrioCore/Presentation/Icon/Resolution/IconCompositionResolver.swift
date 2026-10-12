@@ -40,7 +40,7 @@ func chooseSource<Source: Codable & Hashable & Sendable>(
 enum IconCompositionResolver {
     static func resolve(inputs: IconResolutionInputs, configuration rawConfiguration: IconConfigurationV1, now: Date = .now) -> IconResolutionOutput {
         let configuration = rawConfiguration.normalized()
-        let legacy = configuration.legacyPresentationConfiguration
+        let legacy = configuration.compositionLegacyPresentationConfiguration
 
         let ring = OuterRingResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy,
                                              behavior: configuration.behaviors.airPodsRing, now: now)
@@ -49,7 +49,8 @@ enum IconCompositionResolver {
         return IconResolutionOutput(
             scene: IconPaletteResolver.apply(
                 IconSceneState(outerRing: ring.state, center: center.state, footer: footer.state),
-                appearance: configuration.appearance
+                appearance: configuration.appearance,
+                centerSource: center.source
             ),
             trace: IconResolutionTrace(outerRing: ring.trace, center: center.trace, footer: footer.trace)
         )

@@ -39,10 +39,111 @@ enum IconDesignerBehaviorCapability: Hashable, Sendable {
     case bluetoothOutputAppearance
     case pinnedBluetoothGlyph
     case systemBattery
+    case airPodsBattery
     case systemVolume
 }
 
 enum IconDesignerEditingModel {
+
+    static var wifiScaleForCommonPercentageSize: Double {
+        CenterPercentageScaleCalibration.wifiScaleForCommonPercentageSize
+    }
+
+    static var commonPercentageScaleRange: ClosedRange<Double> {
+        IconCenterSizingPolicy.percentageRange
+    }
+
+    @MainActor
+    static var batteryTextScaleRange: ClosedRange<Double> {
+        SettingsStore.batterySymbolScaleRange
+    }
+
+    @MainActor
+    static func batteryTextScaleSliderValue(for rawTextScale: Double) -> Double {
+        guard rawTextScale.isFinite else { return SettingsStore.defaultBatterySymbolScale }
+        return min(batteryTextScaleRange.upperBound, max(
+            batteryTextScaleRange.lowerBound,
+            rawTextScale / BatteryIconOptions.defaultTextScale
+        ))
+    }
+
+    static func batteryTextScaleLabel(for rawTextScale: Double) -> String {
+        guard rawTextScale.isFinite else { return "100%" }
+        return String(format: "%.0f%%", rawTextScale / BatteryIconOptions.defaultTextScale * 100)
+    }
+
+    @MainActor
+    static func batteryTextScale(forSliderValue value: Double) -> Double {
+        SettingsStore.clampedBatterySymbolScale(value) * BatteryIconOptions.defaultTextScale
+    }
+
+    @MainActor
+    static func settingBatteryTextScale(_ sliderValue: Double, in configuration: inout IconConfigurationV1) {
+        guard sliderValue.isFinite else { return }
+        configuration.behaviors.systemBatteryRing.textScale = batteryTextScale(forSliderValue: sliderValue)
+    }
+
+    static func effectiveCenterScale(for source: CenterSource, in configuration: IconConfigurationV1) -> Double {
+        if let explicit = configuration.appearance.center.effectiveSymbolScale { return explicit }
+        let legacyAppearanceFactor = configuration.appearance.center.symbolScale / CenterAppearance.classic.symbolScale
+        switch source {
+        case .systemBatteryPercentage:
+            return min(6, max(0.5, configuration.behaviors.systemBatteryRing.textScale * legacyAppearanceFactor))
+        case .network:
+            return min(6, max(0.5, configuration.legacyPresentationConfiguration.connection.wifiScale * legacyAppearanceFactor))
+        case .bluetoothAudioOutput, .connectedBluetoothDevice, .pinnedBluetoothGlyph:
+            return min(6, max(0.5, configuration.behaviors.bluetoothAudioCenter.symbolScale * legacyAppearanceFactor))
+        case .automaticLegacy, .none:
+            return configuration.appearance.center.symbolScale / CenterAppearance.classic.symbolScale
+        }
+    }
+
+    static func effectiveCenterScale(in configuration: IconConfigurationV1) -> Double {
+        if let explicit = configuration.appearance.center.effectiveSymbolScale { return explicit }
+        return effectiveCenterScale(for: configuration.composition.center.primary, in: configuration)
+    }
+
+    static func commonPercentageScale(for source: CenterSource, in configuration: IconConfigurationV1) -> Double {
+        if let normalized = configuration.appearance.center.normalizedSizePercentage { return normalized }
+        let legacyScale = effectiveCenterScale(for: source, in: configuration)
+        switch source {
+        case .network:
+            if let legacyPercentage = configuration.appearance.center.normalizedPercentageScale { return legacyPercentage }
+            return legacyScale / wifiScaleForCommonPercentageSize
+        case .systemBatteryPercentage:
+            if let legacyPercentage = configuration.appearance.center.normalizedPercentageScale { return legacyPercentage }
+            return legacyScale / CenterPercentageScaleCalibration.percentageScaleForCommonSize
+        default:
+            return legacyScale
+        }
+    }
+
+    static func commonPercentageScale(in configuration: IconConfigurationV1) -> Double {
+        let source = configuration.composition.center.primary
+        if source == .none { return configuration.appearance.center.normalizedSizePercentage ?? 1 }
+        return commonPercentageScale(for: source, in: configuration)
+    }
+
+    static func commonPercentageScaleLabel(for value: Double) -> String {
+        String(format: "%.0f%%", value * 100)
+    }
+
+    static func commonPercentageScaleSliderValue(for value: Double) -> Double {
+        guard value.isFinite else { return 1 }
+        return min(commonPercentageScaleRange.upperBound, max(commonPercentageScaleRange.lowerBound, value))
+    }
+
+    static func settingCommonPercentageScale(_ value: Double, in configuration: inout IconConfigurationV1) {
+        guard value.isFinite else { return }
+        // Keep historical fields intact for rollback/decoding. This field takes over only after an explicit edit.
+        configuration.appearance.center.normalizedSizePercentage = IconCenterSizingPolicy.normalizedPercentage(value)
+    }
+
+    static func settingEffectiveCenterScale(_ value: Double, in configuration: inout IconConfigurationV1) {
+        guard value.isFinite else { return }
+        configuration.appearance.center.effectiveSymbolScale = min(6, max(0.5, value))
+    }
+
     static func supportsImplementedSources(for slot: IconSlot) -> Bool {
         slot == .outerRing || slot == .center
     }
@@ -100,6 +201,21 @@ enum IconDesignerEditingModel {
         }
     }
 
+    static func behaviors(
+        for slot: IconSlot,
+        source: IconDesignerSource,
+        bluetoothTarget: IconDesignerBluetoothTarget,
+        devices: [BluetoothDevice]
+    ) -> Set<IconDesignerBehaviorCapability> {
+        var capabilities = behaviors(for: slot, source: source)
+        guard slot == .center, source == .center(.connectedBluetoothDevice) else { return capabilities }
+        capabilities.remove(.bluetoothOutputAppearance)
+        if IconDesignerBluetoothTargetModel.isAudioTarget(bluetoothTarget, devices: devices) {
+            capabilities.insert(.bluetoothOutputAppearance)
+        }
+        return capabilities
+    }
+
     static func behaviors(for slot: IconSlot, source: IconDesignerSource) -> Set<IconDesignerBehaviorCapability> {
         switch (slot, source) {
         case (.center, .center(.automaticLegacy)):
@@ -112,26 +228,23 @@ enum IconDesignerEditingModel {
             [.pinnedBluetoothGlyph]
         case (.outerRing, .ring(.systemBattery)), (.outerRing, .ring(.automaticLegacy)):
             [.systemBattery]
+        case (.outerRing, .ring(.airPodsBattery)):
+            [.airPodsBattery]
         case (.footer, .footer(.systemVolume)):
             [.systemVolume]
         default: []
         }
     }
-    static func selectableSources(for slot: IconSlot, phaseFiveEnabled: Bool = false) -> [IconDesignerSource] {
+    static func selectableSources(for slot: IconSlot, phaseFiveEnabled: Bool = true) -> [IconDesignerSource] {
         switch slot {
         case .outerRing:
-            var sources: [IconDesignerSource] = [.ring(.automaticLegacy), .ring(.systemBattery), .ring(.none)]
-            if phaseFiveEnabled { sources.insert(.ring(.airPodsBattery), at: 2) }
-            return sources
+            [.ring(.systemBattery), .ring(.airPodsBattery), .ring(.none)]
         case .center:
-            var sources: [IconDesignerSource] = [
-                .center(.automaticLegacy), .center(.network), .center(.bluetoothAudioOutput),
-                .center(.pinnedBluetoothGlyph), .center(.systemBatteryPercentage), .center(.none)
-            ]
-            if phaseFiveEnabled { sources.append(.center(.connectedBluetoothDevice)) }
-            return sources
+            IconDesignerSourceSelection.centerChoices.map {
+                .center(IconDesignerSourceSelection.source(for: $0))
+            }
         case .footer:
-            return [.footer(.systemVolume), .footer(.none)]
+            [.footer(.systemVolume), .footer(.none)]
         }
     }
 
@@ -155,6 +268,7 @@ enum IconDesignerEditingModel {
                            in configuration: inout IconConfigurationV1,
                            phaseFiveEnabled: Bool = false) -> Bool {
         guard selectableSources(for: slot, phaseFiveEnabled: phaseFiveEnabled).contains(source) else { return false }
+        let previousOuterRingPrimary = configuration.composition.outerRing.primary
         switch (slot, source) {
         case let (.outerRing, .ring(value)): configuration.composition.outerRing.primary = value
         case let (.center, .center(value)): configuration.composition.center.primary = value
@@ -162,6 +276,11 @@ enum IconDesignerEditingModel {
         default: return false
         }
         configuration = configuration.normalized()
+        if case .ring(.airPodsBattery) = source,
+           previousOuterRingPrimary != .airPodsBattery,
+           configuration.composition.outerRing.fallback == nil {
+            configuration.composition.outerRing.fallback = .systemBattery
+        }
         return true
     }
 
@@ -209,10 +328,21 @@ enum IconDesignerEditingModel {
     @discardableResult
     static func setBluetoothSymbolOverride(
         _ symbol: String?, for target: IconDesignerBehaviorTarget = .primary,
-        in configuration: inout IconConfigurationV1
+        in configuration: inout IconConfigurationV1,
+        bluetoothTarget: IconDesignerBluetoothTarget = .currentAudioOutput,
+        devices: [BluetoothDevice] = []
     ) -> Bool {
         let selected = source(for: target, slot: .center, in: configuration)
-        guard selected == .center(.bluetoothAudioOutput) || selected == .center(.pinnedBluetoothGlyph) else {
+        let supportsSymbol: Bool
+        switch selected {
+        case .center(.bluetoothAudioOutput), .center(.pinnedBluetoothGlyph):
+            supportsSymbol = true
+        case .center(.connectedBluetoothDevice):
+            supportsSymbol = IconDesignerBluetoothTargetModel.isAudioTarget(bluetoothTarget, devices: devices)
+        default:
+            supportsSymbol = false
+        }
+        guard supportsSymbol else {
             return false
         }
         configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = symbol
@@ -220,7 +350,18 @@ enum IconDesignerEditingModel {
         return true
     }
 
-    static func allowsNetworkProblemOverride(in configuration: IconConfigurationV1) -> Bool {
-        configuration.composition.center.primary == .bluetoothAudioOutput
+    static func allowsNetworkProblemOverride(
+        in configuration: IconConfigurationV1,
+        bluetoothTarget: IconDesignerBluetoothTarget = .currentAudioOutput,
+        devices: [BluetoothDevice] = []
+    ) -> Bool {
+        switch configuration.composition.center.primary {
+        case .bluetoothAudioOutput:
+            true
+        case .connectedBluetoothDevice:
+            IconDesignerBluetoothTargetModel.isAudioTarget(bluetoothTarget, devices: devices)
+        default:
+            false
+        }
     }
 }

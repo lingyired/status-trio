@@ -3,70 +3,247 @@ import SwiftUI
 struct IconDesignerView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
-    @Binding var previewIsDark: Bool
-    let onShowIconGuide: () -> Void
-    @State private var selectedSlot: IconSlot = .outerRing
-    @State private var previewScenario: IconPreviewScenario = .live
+    var onEditSamples: () -> Void = {}
+    @ObservedObject var previewSession: IconDesignerPreviewSession
+    @StateObject private var editorModel: IconDesignerEditorModel
+
+    init(
+        store: SettingsStore,
+        statusStore: SystemStatusStore,
+        onEditSamples: @escaping () -> Void = {},
+        previewSession: IconDesignerPreviewSession
+    ) {
+        self.store = store
+        self.statusStore = statusStore
+        self.onEditSamples = onEditSamples
+        self.previewSession = previewSession
+        self._editorModel = StateObject(wrappedValue: IconDesignerEditorModel(store: store))
+    }
+
+    var previewIsDarkBackground: Binding<Bool> {
+        Binding(
+            get: { previewSession.isDarkBackground },
+            set: { previewSession.isDarkBackground = $0 }
+        )
+    }
+
+    private var selectedSlot: Binding<IconSlot> {
+        Binding(get: { previewSession.selectedSlot }, set: { previewSession.selectedSlot = $0 })
+    }
+    private var previewScenario: IconPreviewScenario { .live }
+    private var customAirPodsSample: CustomAirPodsPreviewSample { previewSession.samples.airPods }
 
     @EnvironmentObject private var localization: Localization
 
-    private func scenarioTitle(_ scenario: IconPreviewScenario) -> String {
-        let key: LocalizationKey = switch scenario {
-        case .live: .iconPreviewScenarioLive
-        case .networkHealthy: .iconPreviewScenarioNetworkHealthy
-        case .networkNoInternet: .iconPreviewScenarioNetworkNoInternet
-        case .wifiOffEthernetConnected: .iconPreviewScenarioWifiOffEthernet
-        case .batteryCharging: .iconPreviewScenarioBatteryCharging
-        case .batteryCriticallyLow: .iconPreviewScenarioBatteryLow
-        case .volumeMuted: .iconPreviewScenarioVolumeMuted
-        case .airPodsConnected: .iconPreviewScenarioAirPodsConnected
-        case .airPodsDisconnected: .iconPreviewScenarioAirPodsDisconnected
+    var body: some View {
+        GeometryReader { geometry in
+            let columns = IconDesignerLayout.columns(for: geometry.size.width)
+            HStack(alignment: .top, spacing: 18) {
+                previewPane(width: columns.preview)
+                    .frame(width: columns.preview)
+                VStack(alignment: .leading, spacing: 10) {
+                    ScrollView {
+                        inspector
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: .infinity)
+                    .accessibilityIdentifier("iconDesigner.inspectorScrollView")
+
+                    inspectorActions
+                }
+                .frame(width: columns.inspector)
+                .frame(maxHeight: .infinity)
+            }
+            .padding(.horizontal, IconDesignerLayout.horizontalPadding)
+            .padding(.vertical, 20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        return localization.string(key)
+        .environmentObject(editorModel)
     }
 
-    var body: some View {
-        SettingsPage(pinnedHeader: {
-            StatusIconPreviewCard(
-                store: store,
-                statusStore: statusStore,
-                isDarkBackground: $previewIsDark,
-                scenario: previewScenario,
-                showsResolutionExplanation: true
-            )
-        }) {
-            IconSurfaceSettings(store: store, statusStore: statusStore, previewIsDark: $previewIsDark)
-            SettingsGroup(localization.string(.iconDesignerTitle)) {
-                Picker(localization.string(.iconDesignerPreviewScenario), selection: $previewScenario) {
-                    ForEach(IconDesignerPreviewState.availableScenarios, id: \.self) { scenario in
-                        Text(scenarioTitle(scenario)).tag(scenario)
-                    }
-                }
-                IconSlotPicker(selection: $selectedSlot, configuration: store.iconConfiguration)
-                IconSourceEditor(
-                    store: store,
-                    slot: selectedSlot,
-                    phaseFiveEnabled: IconDesignerEditingModel.supportsImplementedSources(for: selectedSlot),
-                    bluetoothDevices: statusStore.bluetoothDevices.devices
-                )
-                IconBehaviorEditor(
-                    store: store,
-                    slot: selectedSlot,
-                    bluetoothDevices: statusStore.bluetoothDevices.devices,
-                    bluetoothDeviceOrder: store.bluetoothDeviceOrder
-                )
-                IconAppearanceEditor(store: store, slot: selectedSlot)
-                IconPresetPicker(store: store, slot: selectedSlot)
+    private func previewPane(width: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(localization.string(previewSession.mode == .simulated ? .iconPreviewModeSimulated : .iconPreviewModeLive))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                Button(localization.string(.iconPreviewEditData), action: onEditSamples)
+                    .buttonStyle(.borderless)
             }
+            previewCard(content: .menuBarOnly, iconPointSize: IconDesignerLayout.menuBarPreviewPointSize)
+                .accessibilityIdentifier("iconDesigner.menuBarSizePreview")
+            previewCard(content: .designerLarge, largePreviewWidth: width)
+            previewCard(content: .dockDetails)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .accessibilityIdentifier("iconDesigner.previewPane")
+    }
 
-            SettingsGroup(localization.string(.iconDesignerLearnMore)) {
-                Button(action: onShowIconGuide) {
-                    Label(localization.string(.iconDesignerGuide), systemImage: "questionmark.circle")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+    private var inspector: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(
+                IconDesignerLayout.sectionOrder.filter { $0 != .presets }
+            ) { section in
+                sectionContent(for: section)
             }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var inspectorActions: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Button(localization.string(.iconDesignerUndo)) { editorModel.undo() }
+                    .disabled(!editorModel.canUndo)
+                    .keyboardShortcut("z", modifiers: .command)
+                    .accessibilityIdentifier("iconDesigner.undo")
+                if editorModel.hasExternalChangeNotice {
+                    Text(localization.string(.iconDesignerExternalChangeNotice))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("iconDesigner.externalChangeNotice")
+                }
+                Spacer(minLength: 0)
+            }
+            IconPresetPicker(store: store, slot: selectedSlot.wrappedValue)
+        }
+        .padding(.top, 8)
+        .background(alignment: .top) { Divider() }
+        .accessibilityIdentifier("iconDesigner.inspectorActions")
+    }
+
+    private func previewCard(
+        content: StatusIconPreviewCardContent,
+        largePreviewWidth: CGFloat? = nil,
+        iconPointSize: CGFloat? = nil
+    ) -> some View {
+        StatusIconPreviewCard(
+            store: store,
+            statusStore: statusStore,
+            isDarkBackground: previewIsDarkBackground,
+            scenario: previewScenario,
+            customAirPodsSample: customAirPodsSample,
+            previewSession: previewSession,
+            largeIconPointSize: largePreviewWidth.map { IconDesignerLayout.largePreviewPointSize(for: $0) } ?? iconPointSize,
+            showsResolutionExplanation: true,
+            selectedSlot: selectedSlot.wrappedValue,
+            onSelectSlot: { previewSession.selectedSlot = $0 },
+            content: content
+        )
+    }
+
+    private func isLargePreview(_ content: StatusIconPreviewCardContent) -> Bool {
+        if case .designerLarge = content { return true }
+        return false
+    }
+
+
+    private var customAirPodsControls: some View {
+        SettingsGroup(localization.string(.iconDesignerAirPodsTestTitle)) {
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsHintRow(text: localization.string(.iconDesignerAirPodsTestSimulatedData))
+                Toggle(localization.string(.iconDesignerAirPodsTestLeftAvailable), isOn: Binding(
+                    get: { previewSession.samples.airPods.leftAvailable },
+                    set: { previewSession.setAirPodsAvailability(.left, isAvailable: $0) }
+                ))
+                .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                Toggle(localization.string(.iconDesignerAirPodsTestRightAvailable), isOn: Binding(
+                    get: { previewSession.samples.airPods.rightAvailable },
+                    set: { previewSession.setAirPodsAvailability(.right, isAvailable: $0) }
+                ))
+                .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                batterySlider(
+                    title: .iconDesignerAirPodsTestLeftBattery,
+                    value: customAirPodsSample.leftBattery,
+                    setValue: { previewSession.setAirPodsBattery(.left, $0) }
+                )
+                batterySlider(
+                    title: .iconDesignerAirPodsTestRightBattery,
+                    value: customAirPodsSample.rightBattery,
+                    setValue: { previewSession.setAirPodsBattery(.right, $0) }
+                )
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
+                    presetButton(.both, title: .iconDesignerAirPodsTestBoth)
+                    presetButton(.leftOnly, title: .iconDesignerAirPodsTestLeftOnly)
+                    presetButton(.rightOnly, title: .iconDesignerAirPodsTestRightOnly)
+                    presetButton(.unavailable, title: .iconDesignerAirPodsTestUnavailable)
+                }
+                .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                .padding(.bottom, 10)
+            }
+        }
+        .accessibilityIdentifier("iconDesigner.customAirPodsControls")
+    }
+
+    private func batterySlider(
+        title: LocalizationKey,
+        value: Int,
+        setValue: @escaping (Double) -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(localization.string(title))
+                Spacer()
+                Text("\(value)%")
+                    .monospacedDigit()
+                    .accessibilityLabel("\(localization.string(title)), \(value)%")
+            }
+            Slider(value: Binding(
+                get: { Double(value) },
+                set: { newValue in setValue(newValue) }
+            ), in: 0...100, step: 1)
+            .accessibilityLabel(localization.string(title))
+            .accessibilityValue("\(value)%")
+        }
+        .font(.system(size: 11))
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+    }
+
+    private func presetButton(_ preset: CustomAirPodsPreviewPreset, title: LocalizationKey) -> some View {
+        Button(localization.string(title)) {
+            previewSession.applyAirPodsPreset(preset)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func sectionContent(for section: IconDesignerSection) -> some View {
+        switch section {
+        case .slot:
+            SettingsGroup(localization.string(.iconDesignerTitle)) {
+                IconSlotPicker(selection: selectedSlot, configuration: store.iconConfiguration)
+                    .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                    .padding(.vertical, 8)
+            }
+            .accessibilityIdentifier("iconDesigner.slotCard")
+        case .source:
+            IconSourceEditor(
+                store: store,
+                slot: selectedSlot.wrappedValue,
+                phaseFiveEnabled: IconDesignerEditingModel.supportsImplementedSources(for: selectedSlot.wrappedValue),
+                bluetoothDevices: statusStore.bluetoothDevices,
+                statusStore: statusStore
+            )
+        case .behavior:
+            IconBehaviorEditor(
+                store: store,
+                slot: selectedSlot.wrappedValue,
+                bluetoothDevices: statusStore.bluetoothDevices.devices,
+                bluetoothAvailability: statusStore.bluetoothDevices.availability,
+                bluetoothDeviceOrder: store.bluetoothDeviceOrder
+            )
+        case .appearance:
+            IconAppearanceEditor(
+                store: store,
+                slot: selectedSlot.wrappedValue,
+                bluetoothDevices: statusStore.bluetoothDevices.devices
+            )
+        case .presets:
+            EmptyView()
         }
     }
 }

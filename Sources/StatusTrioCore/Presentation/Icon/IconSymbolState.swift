@@ -18,13 +18,15 @@ struct IconSymbolState: Equatable, Hashable, Sendable {
     let source: IconSymbolSource
     let color: IconColorRole
     let scale: Double
+    let normalizedSizePercentage: Double?
 
     /// Keeps supplied, context-validated scales intact and replaces unusable
     /// values with the context-neutral symbol scale used by current defaults.
-    init(source: IconSymbolSource, color: IconColorRole, scale: Double) {
+    init(source: IconSymbolSource, color: IconColorRole, scale: Double, normalizedSizePercentage: Double? = nil) {
         self.source = Self.normalized(source)
         self.color = color
         self.scale = Self.normalizedScale(scale)
+        self.normalizedSizePercentage = normalizedSizePercentage.map { IconCenterSizingPolicy.normalizedPercentage($0) }
     }
 
     static func normalizedScale(_ scale: Double) -> Double {
@@ -54,12 +56,14 @@ struct IconTextState: Equatable, Hashable, Sendable {
     let text: String
     let color: IconColorRole
     let scale: Double
+    let normalizedSizePercentage: Double?
 
     /// Mapper supplies the relevant option value; invalid values fall back to
     /// the context-neutral text scale of 1.0.
-    init(text: String, color: IconColorRole, scale: Double) {
+    init(text: String, color: IconColorRole, scale: Double, normalizedSizePercentage: Double? = nil) {
         self.text = text
         self.color = color
         self.scale = IconSymbolState.normalizedScale(scale)
+        self.normalizedSizePercentage = normalizedSizePercentage.map { IconCenterSizingPolicy.normalizedPercentage($0) }
     }
 }

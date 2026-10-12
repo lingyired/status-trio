@@ -40,11 +40,13 @@
 "settings.menuBar.title" = "رمز شريط القوائم";
 "settings.network.connectionIcons" = "نمط أيقونات الاتصال";
 "settings.network.connectionIcons.description" = "عند التمكين، تستخدم الحالة المحددة أيقونة إشارة Wi-Fi القياسية بدلًا من علامتها الخاصة.";
+"settings.network.designerEntry" = "تخصيص مصدر الشبكة في مصمم الأيقونات";
 "settings.network.wifiIconForEthernet" = "استخدام أيقونة Wi-Fi لإيثرنت";
 "settings.network.wifiIconForHotspot" = "استخدام أيقونة Wi-Fi لنقطة الاتصال الشخصية";
 "settings.network.wifiIconForTemporaryConnection" = "استخدام أيقونة Wi-Fi للاتصال المؤقت";
 "settings.network.wifiIconForInternetSharing" = "استخدام أيقونة Wi-Fi لمشاركة الإنترنت";
 "settings.bluetooth.title" = "صوت Bluetooth";
+"settings.bluetooth.designerEntry" = "تخصيص مصدر Bluetooth في مصمم الأيقونات";
 "settings.bluetooth.replaceNetworkIcon" = "استبدال أيقونة الشبكة بأيقونة جهاز Bluetooth";
 "settings.bluetooth.replaceNetworkIconDescription" = "تستبدل أيقونة Wi-Fi بأيقونة جهاز Bluetooth المزرقة المختارة.";
 "settings.bluetooth.networkIconSourceGroup" = "استخدام أيقونة جهاز Bluetooth";
@@ -97,6 +99,9 @@
 "settings.about.starOnGitHub" = "نجمة على GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "عرض البطارية";
+"settings.battery.designerEntry" = "تخصيص مصدر البطارية في مصمم الأيقونات";
+"settings.battery.macBehaviorDescription" = "تؤثر هذه الخيارات في مصدر بطارية Mac عند استخدامه؛ ولا تستبدل مصدر AirPods المحدد للحلقة الخارجية.";
+"settings.battery.macBehavior" = "سلوك بطارية Mac";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
 "settings.battery.showPercentageInConnectionSlot" = "إظهار نسبة البطارية في موضع الاتصال";
 "settings.battery.showPercentageInConnectionSlotDescription" = "يستبدل رمز Wi-Fi أو الاتصال، وهو مستقل عن مؤشر البطارية العلوي.";
@@ -328,6 +333,7 @@
 "settings.preview.light" = "فاتح";
 "settings.preview.toggleHelp" = "تبديل معاينة شريط القوائم بين الداكن والفاتح";
 "settings.audio.displayRules" = "قواعد العرض";
+"settings.audio.designerEntry" = "تخصيص مصدر الصوت في مصمم الأيقونات";
 "settings.audio.activeDeviceFootnote" = "يتم تمييز جهاز إخراج الصوت النشط بلون التمييز.";
 "settings.audio.inUse" = "قيد الاستخدام";
 "settings.wifi.symbolScale" = "حجم أيقونة Wi-Fi";
@@ -467,6 +473,7 @@
 "icon.designer.swapPrimaryFallback" = "تبديل المصدر الأساسي والاحتياطي";
 "icon.designer.currentSourceUnavailableFormat" = "المصدر الحالي (غير متاح في هذا الإصدار): %@";
 "icon.designer.compatible" = "متوافق مع الإعدادات الحالية";
+"icon.designer.legacySourcePreserved" = "تم الإبقاء على قاعدة العرض الحالية. اختر مصدرًا جديدًا لاستبدالها.";
 
 
 
@@ -482,7 +489,8 @@
 "iconDesigner.control.showPercentageWhileConnected" = "إظهار النسبة أثناء الاتصال";
 "iconDesigner.control.previewChargingAnimation" = "معاينة رسوم الشحن";
 "iconDesigner.control.criticalThreshold" = "الحد الحرج";
-"iconDesigner.control.textScale" = "مقياس النص";
+"iconDesigner.control.textScale" = "حجم مؤشر البطارية العلوي";
+"iconDesigner.control.textScale.help" = "يضبط حجم رقم البطارية أعلى الحلقة الخارجية، ورمز البرق أثناء الشحن، ورمز القابس.";
 "iconDesigner.control.noEditableBehavior" = "لا يتوفر لهذا المصدر سلوك قابل للتعديل بعد.";
 "iconDesigner.control.wifiForEthernet" = "رمز Wi‑Fi لشبكة Ethernet";
 "iconDesigner.control.wifiForHotspot" = "رمز Wi‑Fi لنقطة الاتصال";
@@ -536,6 +544,74 @@
 "icon.designer.airPods.ring.single" = "حلقة واحدة";
 "icon.designer.airPods.ring.dual" = "حلقتان لليسرى واليمنى";
 "icon.designer.airPods.singleExplanation" = "حلقة واحدة: تُستخدم البطارية الرئيسية أولاً، وإلا فمتوسط الجانبين أو الجانب المتاح. لا تتوفر بيانات العلبة وحدها.";
-"icon.designer.airPods.dualExplanation" = "حلقتان: يظهر كل جانب في قوس ثابت. عند غياب أحدهما يُعرض الجانب المعروف فقط؛ ولا تحل العلبة محله.";
-"icon.designer.airPods.partialExplanation" = "أحد الجانبين غير متاح؛ يُعرض الجانب المتاح فقط.";
+"icon.designer.airPods.dualExplanation" = "حلقتان: لكل جانب قوس ثابت. إذا توفرت بيانات بطارية جانب واحد فقط، يُستخدم المستوى نفسه في القوسين مع الحفاظ على اللونين الأصليين؛ ولا تحل العلبة محل السماعتين.";
+"icon.designer.airPods.partialExplanation" = "تتوفر بيانات بطارية جانب واحد فقط؛ ويُستخدم المستوى نفسه في القوسين مع الحفاظ على اللونين الأصليين.";
 "icon.designer.airPods.focusPreset" = "تركيز AirPods";
+"icon.preview.scenario.airPodsCustom" = "بطارية AirPods مخصّصة";
+"icon.designer.airPods.test.title" = "بطارية اختبار AirPods";
+"icon.designer.airPods.test.simulatedData" = "بيانات محاكاة · لمعاينة الإعدادات فقط؛ يظل شريط القوائم وDock يعرضان البيانات المباشرة.";
+"icon.designer.airPods.test.leftAvailable" = "بيانات بطارية السماعة اليسرى متاحة";
+"icon.designer.airPods.test.rightAvailable" = "بيانات بطارية السماعة اليمنى متاحة";
+"icon.designer.airPods.test.leftBattery" = "بطارية السماعة اليسرى";
+"icon.designer.airPods.test.rightBattery" = "بطارية السماعة اليمنى";
+"icon.designer.airPods.test.both" = "كلتا السماعتين";
+"icon.designer.airPods.test.leftOnly" = "السماعة اليسرى فقط";
+"icon.designer.airPods.test.rightOnly" = "السماعة اليمنى فقط";
+"icon.designer.airPods.test.unavailable" = "لا تتوفر بيانات البطارية";
+
+"iconPreviewData.edit" = "تحرير بيانات العينة…";
+
+"iconPreviewData.simulatedNotice" = "تؤثر قيم العينات أدناه على هذه المعاينة فقط، وتظل محفوظة عند الرجوع إلى البيانات المباشرة.";
+"iconPreviewData.liveNotice" = "حالة البيانات المباشرة للقراءة فقط. بدّل إلى المحاكاة لتعديل العينات.";
+"iconPreviewData.title" = "بيانات المعاينة";
+"iconPreviewData.modeSelector" = "وضع المعاينة";
+"iconPreviewData.mode.liveShort" = "البيانات المباشرة";
+"iconPreviewData.mode.simulatedShort" = "محاكاة";
+"iconPreviewData.quickFill" = "تعبئة سريعة";
+"iconPreviewData.network.connectionState" = "حالة الاتصال";
+"iconPreviewData.systemVolume.source" = "صوت النظام";
+"iconPreviewData.live.notMuted" = "غير مكتوم";
+"iconPreviewData.battery.notCharging" = "غير قيد الشحن";
+"iconPreviewData.macBattery.percentage" = "نسبة البطارية";
+"iconPreviewData.systemVolume.percentage" = "مستوى الصوت";
+"iconPreviewData.source.macBattery" = "بطارية Mac";
+"iconPreviewData.source.airPodsBattery" = "بطارية AirPods";
+"iconPreviewData.source.bluetoothDevices" = "أجهزة Bluetooth";
+"iconPreviewData.network.ethernetConnected" = "اتصال Ethernet";
+"iconPreviewData.mode.live" = "البيانات المباشرة مفعّلة";
+"iconPreviewData.mode.simulated" = "البيانات المحاكاة مفعّلة — للمعاينة فقط";
+"iconPreviewData.useSimulatedData" = "استخدام بيانات محاكاة…";
+"iconPreviewData.editData" = "تعديل بيانات المعاينة…";
+"iconPreviewData.macBatteryPresent" = "بطارية Mac موجودة";
+"iconPreviewData.bluetoothTargetOnline" = "جهاز Bluetooth الهدف متصل";
+"iconPreviewData.bluetoothTargetAudio" = "الجهاز الهدف جهاز صوتي";
+"iconPreviewData.bluetoothSampleSymbol" = "رمز الجهاز التجريبي";
+"iconPreviewData.volumeAvailable" = "بيانات مستوى الصوت متاحة";
+"icon.designer.undo" = "تراجع";
+"icon.designer.externalChangeNotice" = "تم مسح سجل التراجع لأن إعدادات الأيقونة تغيرت في مكان آخر.";
+"iconPreviewData.useLiveData" = "استخدام البيانات المباشرة";
+"icon.designer.moreActions" = "مزيد من الإجراءات";
+
+/* Source-aware center color roles */
+"iconDesigner.centerColorMeaning.networkPrimary" = "أيقونة الشبكة";
+"iconDesigner.centerColorMeaning.wifiZeroBars" = "إشارة Wi‑Fi: 0 أشرطة";
+"iconDesigner.centerColorMeaning.bluetoothGlyph" = "رمز Bluetooth";
+"iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "مستوى الصوت أعلى من صفر";
+"iconDesigner.centerColorMeaning.bluetoothMutedZeroOrUnavailable" = "مكتوم أو بلا مستوى صوت";
+"iconDesigner.centerColorMeaning.batteryPercentage" = "نسبة بطارية Mac";
+"iconDesigner.centerColorMeaning.legacyPrimary" = "أيقونة الوسط القديمة";
+"iconDesigner.centerColorMeaning.legacyWiFiZeroBars" = "إشارة Wi‑Fi: 0 أشرطة";
+"iconDesigner.centerColorMeaning.legacyBluetoothGlyph" = "رمز Bluetooth";
+"iconDesigner.centerColorContext.fallbackFormat" = "احتياطي: %@";
+"iconDesigner.centerColorContext.networkOverrideFormat" = "أولوية الشبكة: %@";
+
+"iconDesigner.centerColor.rolePicker" = "ينطبق اللون على";
+"iconDesigner.centerColorHelp.networkPrimary" = "لأيقونة الشبكة المعتادة، بما في ذلك إيقاف Wi-Fi وعدم الاتصال وانقطاع الإنترنت والاتصال السلكي.";
+"iconDesigner.centerColorHelp.wifiZeroBars" = "لشبكة Wi-Fi المتصلة دون أشرطة إشارة. ويُستخدم أيضًا عند تعذّر قراءة قوة الإشارة.";
+"iconDesigner.centerColorHelp.bluetoothGlyph" = "يُستخدم دائمًا لأيقونة Bluetooth بصرف النظر عن مستوى الصوت.";
+"iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "عند تفعيل تغيير اللون حسب مستوى الصوت، يُستخدم عندما لا يكون الصوت مكتومًا ومستوى الصوت أعلى من الصفر.";
+"iconDesigner.centerColorHelp.bluetoothMutedZeroOrUnavailable" = "عند تفعيل تغيير اللون حسب مستوى الصوت، يُستخدم عند كتم الصوت أو وصوله إلى الصفر أو تعذّر قراءة مستواه.";
+"iconDesigner.centerColorHelp.batteryPercentage" = "لنسبة بطارية Mac المعروضة في الوسط.";
+"iconDesigner.centerColorHelp.legacyPrimary" = "لأيقونة الشبكة المعتادة أو نسبة بطارية Mac في العرض الأوسط القديم.";
+"iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "لشبكة Wi-Fi المتصلة دون أشرطة إشارة في العرض الأوسط القديم.";
+"iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "لأيقونة Bluetooth في العرض الأوسط القديم.";

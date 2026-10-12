@@ -24,14 +24,14 @@ struct ChargingEffectRenderingTests {
         // supported macOS 26 CI runner and the macOS 27 local toolchain. Keep
         // both observed static baselines so other pixel changes still fail.
         //
-        // These baselines were re-recorded for the #30 fix, which moved the
-        // Wi-Fi symbol from `canvas.midX` (60.0) to `artworkCenterX` (59.5).
-        // `staticSnapshot` reports `.off`, so it draws `wifi.slash` through the
-        // same anchor and its pixels change too — that is the expected effect
-        // of the fix, not a regression.
+        // The #30 ink-bearing correction moves the visible `wifi.slash` ink
+        // (not just its NSImage box) onto artworkCenterX. `staticSnapshot`
+        // reports `.off`, so this intentional subpixel shift changes its
+        // static fingerprint. The macOS 27 value below was re-recorded after
+        // validating the isolated alpha-bounds and full-composite regressions.
         let knownPlatformFingerprints = [
             "9f0c892e2602f4d4f9c541be1d93963e14d46e76f3ef24b46cd2dfbc25a22d1d", // macOS 26 CI, artworkCenterX anchor
-            "0ef6d483e344f6056fa3799f9f33bac0092246e3dbfbb3619a4666d7e9e9c190", // macOS 27 local, artworkCenterX anchor
+            "62c208567574bf0e0a7581fc4bb7340d98ef4eb4f0949b64cfdde7f2c01cd27c", // macOS 27.0.1 local, measured ink center
         ]
         #expect(knownPlatformFingerprints.contains(fingerprint))
     }

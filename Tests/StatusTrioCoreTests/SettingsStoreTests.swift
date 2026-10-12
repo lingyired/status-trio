@@ -11,6 +11,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let store = SettingsStore(defaults: makeSuite().defaults)
         XCTAssertEqual(store.iconSize, 24, accuracy: 0.001)
+        XCTAssertEqual(store.iconConfiguration.behaviors.airPodsRing, .dual)
     }
 
     func testConnectedPowerPercentageDefaultsOffAndFeedsTheIconOptions() {
@@ -156,8 +157,9 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertFalse(store.showsWiFiIconForTemporaryConnection)
         XCTAssertFalse(store.showsWiFiIconForInternetSharing)
         XCTAssertEqual(
-            store.connectionIconOptions,
-            ConnectionIconOptions(wifiScale: SettingsStore.defaultWifiSymbolScale)
+            store.connectionIconOptions.wifiScale,
+            SettingsStore.defaultWifiSymbolScale,
+            accuracy: 0.001
         )
     }
 

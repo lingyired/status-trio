@@ -1,6 +1,166 @@
 import AppKit
 import CoreGraphics
 import CoreText
+import CoreFoundation
+
+/// The cache is read and written only while holding its lock. Symbol rendering
+/// can occur from both menu-bar and Dock image pipelines, so it is not actor-bound.
+private final class SymbolInkCenterCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var centers: [String: CGFloat] = [:]
+    private var insertionOrder: [String] = []
+    private let limit = 128
+
+    func cachedInkCenter(for key: String) -> CGFloat? {
+        lock.lock()
+        defer { lock.unlock() }
+        return centers[key]
+    }
+
+    func insert(_ center: CGFloat, for key: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard centers[key] == nil else {
+            centers[key] = center
+            return
+        }
+        centers[key] = center
+        insertionOrder.append(key)
+        while insertionOrder.count > limit {
+            let expiredKey = insertionOrder.removeFirst()
+            centers[expiredKey] = nil
+        }
+    }
+}
+
+private final class CenterSizingMetricsCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var heights: [String: CGFloat] = [:]
+    private var insertionOrder: [String] = []
+    private let limit = 256
+
+    func value(for key: String) -> CGFloat? {
+        lock.lock()
+        defer { lock.unlock() }
+        return heights[key]
+    }
+
+    func insert(_ height: CGFloat, for key: String) {
+        guard height.isFinite, height > 0 else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        guard heights[key] == nil else { return }
+        heights[key] = height
+        insertionOrder.append(key)
+        while insertionOrder.count > limit {
+            heights[insertionOrder.removeFirst()] = nil
+        }
+    }
+}
+
+private struct ResolvedCenterImage {
+    let image: NSImage
+    let visibleHeightFraction: CGFloat
+}
+
+private final class CenterArtworkCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var images: [String: MeasuredCenterArtwork] = [:]
+    private var insertionOrder: [String] = []
+    private let limit = 64
+
+    func image(for key: String, create: () -> MeasuredCenterArtwork?) -> MeasuredCenterArtwork? {
+        lock.lock()
+        if let cached = images[key] {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+
+        guard let artwork = create() else { return nil }
+        lock.lock()
+        defer { lock.unlock() }
+        if let cached = images[key] { return cached }
+        images[key] = artwork
+        insertionOrder.append(key)
+        while insertionOrder.count > limit {
+            images[insertionOrder.removeFirst()] = nil
+        }
+        return artwork
+    }
+}
+
+private final class OutputCenterScaleCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [String: CGFloat] = [:]
+    private var keys: [String] = []
+    private let limit = 256
+
+    func value(for key: String, create: () -> CGFloat?) -> CGFloat? {
+        lock.lock()
+        if let value = values[key] { lock.unlock(); return value }
+        lock.unlock()
+        guard let value = create(), value.isFinite, value > 0 else { return nil }
+        lock.lock()
+        defer { lock.unlock() }
+        if let cached = values[key] { return cached }
+        values[key] = value
+        keys.append(key)
+        while keys.count > limit { values[keys.removeFirst()] = nil }
+        return value
+    }
+}
+
+private struct MeasuredCenterArtwork {
+    let image: CGImage
+    let width: CGFloat
+    let height: CGFloat
+    let offsetFromAnchor: CGPoint
+}
+
+/// Reuses both decoded image data and its alpha measurement between the sizing
+/// pass and draw pass. File metadata participates in identity so edited assets
+/// naturally invalidate the cached entry.
+private final class CenterImageCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [String: ResolvedCenterImage] = [:]
+    private var insertionOrder: [String] = []
+    private let limit = 64
+
+    func image(for url: URL) -> ResolvedCenterImage? {
+        let standardizedURL = url.standardizedFileURL
+        let attributes = try? standardizedURL.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+        let modified = attributes?.contentModificationDate?.timeIntervalSince1970 ?? 0
+        let fileSize = attributes?.fileSize ?? 0
+        let key = "\(standardizedURL.path)|\(String(modified.bitPattern, radix: 16))|\(fileSize)"
+
+        lock.lock()
+        if let cached = values[key] {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+
+        guard let image = NSImage(contentsOf: standardizedURL) else { return nil }
+        let visibleHeightFraction: CGFloat
+        if image.size.height > 0, let bounds = StatusIconRenderer.visibleAlphaBoundsForCache(of: image) {
+            visibleHeightFraction = bounds.height / image.size.height
+        } else {
+            visibleHeightFraction = 1
+        }
+        let resolved = ResolvedCenterImage(image: image, visibleHeightFraction: visibleHeightFraction)
+
+        lock.lock()
+        defer { lock.unlock() }
+        if let cached = values[key] { return cached }
+        values[key] = resolved
+        insertionOrder.append(key)
+        while insertionOrder.count > limit {
+            values[insertionOrder.removeFirst()] = nil
+        }
+        return resolved
+    }
+}
 
 enum StatusIconRenderer {
     static let centerSymbolBasePointSize: CGFloat = 38
@@ -13,6 +173,14 @@ enum StatusIconRenderer {
         x: StatusIconGeometry.artworkCenterX,
         y: 64.0
     )
+
+    private static let symbolInkCenters = SymbolInkCenterCache()
+    private static let centerSizingMetrics = CenterSizingMetricsCache()
+    private static let centerImages = CenterImageCache()
+    private static let normalizedCenterArtwork = CenterArtworkCache()
+    private static let outputCenterScales = OutputCenterScaleCache()
+    private static let normalizedArtworkRasterScale: CGFloat = 8
+    private static let normalizedArtworkRasterDimension = 512
 
     private static let bluetoothBlueOnLightBackground = CGColor(
         red: 0,
@@ -173,16 +341,10 @@ enum StatusIconRenderer {
 
 
 
-    /// Centre of the middle connection slot, which the Wi-Fi, Ethernet and
-    /// Bluetooth glyphs all share.
-    ///
-    /// `y` is not `wifiSymbolCenter.y`: the Wi-Fi glyph's dense strokes sit
-    /// below the geometric middle of the slot, so text drawn from a centred
-    /// baseline reads low against them.
-    private static let connectionSlotCenter = CGPoint(
-        x: StatusIconGeometry.artworkCenterX,
-        y: 87
-    )
+    /// Text ink shares the Wi-Fi symbol's visual centre in the middle slot.
+    /// CoreText bounds are y-up, while the text matrix flips glyphs; compensate
+    /// the baseline with the transformed bounds' positive midpoint below.
+    private static let centerTextCenter = wifiSymbolCenter
 
     /// Uses the middle connection position for a large, label-free percentage.
 
@@ -436,13 +598,101 @@ enum StatusIconRenderer {
 
         context.scaleBy(x: 1, y: -1)
 
+        let inkCenterX = horizontalInkCenterX(
+            of: symbol,
+            name: name,
+            variableValue: variableValue,
+            pointSize: pointSize
+        )
         let targetRect = CGRect(
-            x: center.x - symbol.size.width / 2,
+            x: center.x - inkCenterX,
             y: -(center.y + symbol.size.height / 2),
             width: symbol.size.width,
             height: symbol.size.height
         )
         symbol.draw(in: targetRect)
+    }
+
+    /// Returns the symbol's visible alpha-bounds midpoint in NSImage points.
+    /// SF Symbols carry asymmetric side bearings inside their reported image
+    /// size, so centering that box does not necessarily centre the rendered ink.
+    private static func horizontalInkCenterX(
+        of symbol: NSImage,
+        name: String,
+        variableValue: Double,
+        pointSize: CGFloat
+    ) -> CGFloat {
+        let variableKey = String(variableValue.bitPattern, radix: 16)
+        let pointSizeKey = String(Double(pointSize).bitPattern, radix: 16)
+        let cacheKey = "\(name)|\(variableKey)|\(pointSizeKey)|semibold"
+        if let cachedCenter = symbolInkCenters.cachedInkCenter(for: cacheKey) {
+            return cachedCenter
+        }
+
+        let fallbackCenter = symbol.size.width / 2
+        guard let measurementSymbol = configuredSymbol(
+            name: name,
+            variableValue: variableValue,
+            pointSize: pointSize,
+            foreground: .white
+        ) else {
+            return fallbackCenter
+        }
+
+        // Rasterize the vector symbol at a fixed supersampling factor instead
+        // of inspecting NSImage's native 1x/2x representation. This keeps the
+        // measured bearing precise and independent of the actual tint/alpha.
+        let maximumMeasurementDimension: CGFloat = 1_024
+        let measurementScale = min(
+            32,
+            maximumMeasurementDimension / max(measurementSymbol.size.width, measurementSymbol.size.height)
+        )
+        let pixelWidthValue = (measurementSymbol.size.width * measurementScale).rounded(.up)
+        let pixelHeightValue = (measurementSymbol.size.height * measurementScale).rounded(.up)
+        guard pixelWidthValue.isFinite,
+              pixelHeightValue.isFinite,
+              let pixelWidth = Int(exactly: pixelWidthValue),
+              let pixelHeight = Int(exactly: pixelHeightValue),
+              pixelWidth > 0,
+              pixelHeight > 0,
+              pixelWidth <= Int.max / 4,
+              let context = CGContext(
+                  data: nil,
+                  width: pixelWidth,
+                  height: pixelHeight,
+                  bitsPerComponent: 8,
+                  bytesPerRow: pixelWidth * 4,
+                  space: CGColorSpaceCreateDeviceRGB(),
+                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              )
+        else {
+            return fallbackCenter
+        }
+
+        context.clear(CGRect(x: 0, y: 0, width: pixelWidth, height: pixelHeight))
+        context.scaleBy(x: measurementScale, y: measurementScale)
+        let graphicsContext = NSGraphicsContext(cgContext: context, flipped: false)
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        NSGraphicsContext.current = graphicsContext
+        measurementSymbol.draw(in: CGRect(origin: .zero, size: measurementSymbol.size))
+
+        guard let pixelData = context.data?.assumingMemoryBound(to: UInt8.self) else {
+            return fallbackCenter
+        }
+        var minimumX = pixelWidth
+        var maximumX = -1
+        for y in 0..<pixelHeight {
+            for x in 0..<pixelWidth where pixelData[(y * pixelWidth + x) * 4 + 3] > 0 {
+                minimumX = min(minimumX, x)
+                maximumX = max(maximumX, x)
+            }
+        }
+        guard maximumX >= minimumX else { return fallbackCenter }
+
+        let inkCenter = (CGFloat(minimumX) + CGFloat(maximumX) + 1) / (2 * measurementScale)
+        symbolInkCenters.insert(inkCenter, for: cacheKey)
+        return inkCenter
     }
 
     private static func configuredSymbol(
@@ -788,23 +1038,293 @@ extension StatusIconRenderer {
         }
     }
 
+    private static func drawNormalizedCenterArtwork(
+        _ center: CenterState,
+        percentage: Double,
+        in context: CGContext,
+        foreground: CGColor,
+        criticalColor: CGColor
+    ) {
+        let referenceCenter = referenceCenterState(center)
+        guard let reference = normalizedCenterArtwork(for: referenceCenter),
+              let artwork = normalizedCenterArtwork(for: rawSizedCenterState(center)) else {
+            drawSceneCenter(rawSizedCenterState(center), in: context,
+                            foreground: foreground, criticalColor: criticalColor)
+            return
+        }
+
+        let multiplier = resolveNormalizedCenterCalibration(
+            referenceCenter: referenceCenter, reference: reference, percentage: percentage, in: context
+        )?.multiplier ?? CGFloat(IconCenterSizingPolicy.drawingMultiplier(
+            percentage: percentage, referenceVisibleHeight: Double(reference.height)
+        ))
+
+        // Only the stable reference is measured. Draw the live text/symbol and
+        // its real color at the shared calibrated multiplier.
+        drawNormalizedArtwork(artwork, center: center,
+                              multiplier: multiplier, in: context,
+                              foreground: foreground, criticalColor: criticalColor)
+    }
+
+    private static func resolveNormalizedCenterCalibration(
+        referenceCenter: CenterState,
+        reference: MeasuredCenterArtwork,
+        percentage: Double,
+        in context: CGContext
+    ) -> (identity: String, multiplier: CGFloat)? {
+        let legacyReference = CenterState.symbol(IconSymbolState(
+            source: .symbol(name: "wifi", variableValue: nil, fallback: nil),
+            color: .primary, scale: percentage
+        ))
+        let anchor = centerArtworkAnchor(for: referenceCenter)
+        let transform = context.ctm
+        let deviceAnchor = anchor.applying(transform)
+        let calibrationKey = [
+            normalizedArtworkCacheKey(for: referenceCenter), String(percentage.bitPattern, radix: 16),
+            "\(context.width)x\(context.height)",
+            String(transform.a.bitPattern, radix: 16), String(transform.b.bitPattern, radix: 16),
+            String(transform.c.bitPattern, radix: 16), String(transform.d.bitPattern, radix: 16),
+            String(Double(deviceAnchor.x - floor(deviceAnchor.x)).bitPattern, radix: 16),
+            String(Double(deviceAnchor.y - floor(deviceAnchor.y)).bitPattern, radix: 16)
+        ].joined(separator: "|")
+        let initialMultiplier = CGFloat(IconCenterSizingPolicy.drawingMultiplier(
+            percentage: percentage, referenceVisibleHeight: Double(reference.height)
+        ))
+        let multiplier = outputCenterScales.value(for: calibrationKey) {
+            guard let targetHeight = outputRasterHeight(of: legacyReference, matching: context) else { return nil }
+            var candidate = initialMultiplier
+            var bestCandidate = candidate
+            var bestHeightError = CGFloat.greatestFiniteMagnitude
+            // Calibrate the stable text=100 / variable-symbol=1 reference, in
+            // opaque white, at this exact output CTM and anchor pixel phase.
+            for _ in 0..<7 {
+                guard let probe = outputRasterImage(matching: context, drawing: { probeContext in
+                    drawNormalizedArtwork(reference, center: referenceCenter, multiplier: candidate,
+                                          in: probeContext, foreground: CGColor(gray: 1, alpha: 1),
+                                          criticalColor: CGColor(gray: 1, alpha: 1))
+                }),
+                let measured = visibleAlphaBounds(of: probe, threshold: IconCenterSizingPolicy.visibleInkAlphaThreshold)
+                else { return nil }
+                if measured.height == targetHeight { return candidate }
+                let heightError = abs(targetHeight - measured.height)
+                if heightError < bestHeightError {
+                    bestCandidate = candidate
+                    bestHeightError = heightError
+                }
+                candidate *= CGFloat(targetHeight) / measured.height
+            }
+            return bestCandidate
+        } ?? initialMultiplier
+        return (calibrationKey, multiplier)
+    }
+
+    /// Internal test seam for verifying that live variable-symbol values share
+    /// the production reference calibration without flattening their artwork.
+    static func normalizedCenterCalibration(
+        for center: CenterState,
+        percentage: Double,
+        environment: StatusIconRenderEnvironment
+    ) -> (identity: String, multiplier: CGFloat)? {
+        let pixelLength = (environment.size * environment.scale).rounded(.up)
+        guard pixelLength.isFinite,
+              let pixelDimension = Int(exactly: pixelLength), pixelDimension > 0,
+              pixelDimension <= Int.max / 4,
+              let context = CGContext(data: nil, width: pixelDimension, height: pixelDimension,
+                                      bitsPerComponent: 8, bytesPerRow: pixelDimension * 4,
+                                      space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+              let reference = normalizedCenterArtwork(for: referenceCenterState(center)) else { return nil }
+        context.scaleBy(x: environment.scale, y: environment.scale)
+        context.translateBy(x: 0, y: environment.size)
+        let iconScale = environment.size / StatusIconGeometry.canvas.width
+        context.scaleBy(x: iconScale, y: -iconScale)
+        return resolveNormalizedCenterCalibration(
+            referenceCenter: referenceCenterState(center), reference: reference,
+            percentage: percentage, in: context
+        )
+    }
+
+    private static func drawNormalizedArtwork(
+        _ artwork: MeasuredCenterArtwork,
+        center: CenterState,
+        multiplier: CGFloat,
+        in context: CGContext,
+        foreground: CGColor,
+        criticalColor: CGColor
+    ) {
+        let height = artwork.height * multiplier
+        let width = artwork.width * multiplier
+        guard width.isFinite, height.isFinite, width > 0, height > 0 else { return }
+        let anchor = centerArtworkAnchor(for: center)
+        let midpoint = CGPoint(x: anchor.x + artwork.offsetFromAnchor.x * multiplier,
+                               y: anchor.y + artwork.offsetFromAnchor.y * multiplier)
+        let rect = CGRect(x: midpoint.x - width / 2, y: midpoint.y - height / 2,
+                          width: width, height: height)
+        let tint = centerColor(for: center, foreground: foreground, criticalColor: criticalColor)
+        context.saveGState()
+        context.beginTransparencyLayer(auxiliaryInfo: nil)
+        context.setFillColor(tint)
+        context.fill(rect)
+        context.setBlendMode(.destinationIn)
+        context.draw(artwork.image, in: rect)
+        context.endTransparencyLayer()
+        context.restoreGState()
+    }
+
+    private static func outputRasterHeight(of center: CenterState, matching context: CGContext) -> CGFloat? {
+        guard let image = outputRasterImage(matching: context, drawing: { probeContext in
+            drawSceneCenter(center, in: probeContext,
+                            foreground: CGColor(gray: 1, alpha: 1),
+                            criticalColor: CGColor(gray: 1, alpha: 1))
+        }),
+        let bounds = visibleAlphaBounds(of: image, threshold: IconCenterSizingPolicy.visibleInkAlphaThreshold)
+        else { return nil }
+        return bounds.height
+    }
+
+    private static func outputRasterImage(matching context: CGContext, drawing: (CGContext) -> Void) -> CGImage? {
+        let width = context.width
+        let height = context.height
+        guard width > 0, height > 0, width <= Int.max / 4,
+              let probe = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                    bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        probe.concatenate(context.ctm)
+        drawing(probe)
+        return probe.makeImage()
+    }
+
+    private static func referenceCenterState(_ center: CenterState) -> CenterState {
+        switch center {
+        case .text:
+            return .text(IconTextState(text: "100", color: .primary, scale: 1))
+        case let .symbol(symbol):
+            let source: IconSymbolSource
+            switch symbol.source {
+            case let .symbol(name, _, fallback):
+                source = .symbol(name: name, variableValue: 1, fallback: fallback)
+            case let .image(url, fallback):
+                source = .image(url: url, fallbackSymbol: fallback)
+            case let .primitive(primitive):
+                source = .primitive(primitive)
+            }
+            return .symbol(IconSymbolState(source: source, color: .primary, scale: 1))
+        }
+    }
+
+    private static func rawSizedCenterState(_ center: CenterState) -> CenterState {
+        switch center {
+        case let .text(text):
+            return .text(IconTextState(text: text.text, color: .primary, scale: 1))
+        case let .symbol(symbol):
+            let source: IconSymbolSource
+            switch symbol.source {
+            case let .symbol(name, variableValue, fallback):
+                source = .symbol(name: name, variableValue: variableValue, fallback: fallback)
+            case let .image(url, fallback):
+                source = .image(url: url, fallbackSymbol: fallback)
+            case let .primitive(primitive):
+                source = .primitive(primitive)
+            }
+            return .symbol(IconSymbolState(source: source, color: .primary, scale: 1))
+        }
+    }
+
+    private static func centerArtworkAnchor(for center: CenterState) -> CGPoint {
+        switch center {
+        case .text, .symbol:
+            return wifiSymbolCenter
+        }
+    }
+
+    private static func normalizedCenterArtwork(for state: CenterState) -> MeasuredCenterArtwork? {
+        let key = normalizedArtworkCacheKey(for: state)
+        return normalizedCenterArtwork.image(for: key) {
+            rasterizedCenterArtwork(for: state)
+        }
+    }
+
+    private static func normalizedArtworkCacheKey(for state: CenterState) -> String {
+        var assetIdentity = ""
+        if case let .symbol(symbol) = state,
+           case let .image(url, _) = symbol.source {
+            let fileURL = url.standardizedFileURL
+            let attributes = try? fileURL.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+            let modified = attributes?.contentModificationDate?.timeIntervalSince1970 ?? 0
+            let fileSize = attributes?.fileSize ?? -1
+            assetIdentity = "|asset=\(fileURL.path)|mtime=\(String(modified.bitPattern, radix: 16))|bytes=\(fileSize)"
+        }
+        return "\(String(describing: state))\(assetIdentity)"
+    }
+
+    private static func centerColor(for center: CenterState, foreground: CGColor, criticalColor: CGColor) -> CGColor {
+        switch center {
+        case let .text(text):
+            return sceneColor(for: text.color, foreground: foreground, criticalColor: criticalColor)
+        case let .symbol(symbol):
+            return sceneColor(for: symbol.color, foreground: foreground, criticalColor: criticalColor)
+        }
+    }
+
+    private static func rasterizedCenterArtwork(for center: CenterState) -> MeasuredCenterArtwork? {
+        let dimension = normalizedArtworkRasterDimension
+        let scale = normalizedArtworkRasterScale
+        guard let bitmap = CGContext(data: nil, width: dimension, height: dimension, bitsPerComponent: 8,
+                                     bytesPerRow: dimension * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                     bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        bitmap.clear(CGRect(x: 0, y: 0, width: dimension, height: dimension))
+        bitmap.translateBy(x: CGFloat(dimension) / 2 - wifiSymbolCenter.x * scale,
+                           y: CGFloat(dimension) / 2 - wifiSymbolCenter.y * scale)
+        bitmap.scaleBy(x: scale, y: scale)
+        drawSceneCenter(center, in: bitmap, foreground: CGColor(gray: 1, alpha: 1),
+                        criticalColor: CGColor(gray: 1, alpha: 1))
+        guard let fullImage = bitmap.makeImage(),
+              let bounds = visibleAlphaBounds(of: fullImage, threshold: IconCenterSizingPolicy.visibleInkAlphaThreshold),
+              let cropped = fullImage.cropping(to: bounds.integral) else { return nil }
+        let anchor = CGFloat(dimension) / 2
+        return MeasuredCenterArtwork(
+            image: cropped,
+            width: CGFloat(cropped.width) / scale,
+            height: CGFloat(cropped.height) / scale,
+            offsetFromAnchor: CGPoint(x: (bounds.midX - anchor) / scale,
+                                      y: (bounds.midY - anchor) / scale)
+        )
+    }
+
     private static func drawSceneCenter(
         _ center: CenterState,
         in context: CGContext,
         foreground: CGColor,
         criticalColor: CGColor
     ) {
+        if let percentage = center.normalizedSizePercentageValue {
+            drawNormalizedCenterArtwork(center, percentage: percentage, in: context,
+                                        foreground: foreground, criticalColor: criticalColor)
+            return
+        }
         switch center {
         case let .text(text):
-            let fontSize = centerSymbolBasePointSize * CGFloat(text.scale)
+            let legacyScale = text.normalizedSizePercentage == nil ? text.scale : 1
+            let fontSize = centerSymbolBasePointSize * CGFloat(legacyScale)
             let color = sceneColor(for: text.color, foreground: foreground, criticalColor: criticalColor)
+            let referenceLine = sceneTextLine("100", color: color, fontSize: fontSize)
+            let referenceHeight = CTLineGetBoundsWithOptions(referenceLine, [.useGlyphPathBounds]).height
+            let multiplier = text.normalizedSizePercentage.map {
+                CGFloat(IconCenterSizingPolicy.drawingMultiplier(
+                    percentage: $0, referenceVisibleHeight: Double(referenceHeight)
+                ))
+            } ?? 1
+            context.saveGState()
+            defer { context.restoreGState() }
+            applyCenteredScale(multiplier, center: centerTextCenter, in: context)
+
             let line = sceneTextLine(text.text, color: color, fontSize: fontSize)
             let bounds = CTLineGetBoundsWithOptions(line, [.useGlyphPathBounds])
             context.setFillColor(color)
             context.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
             context.textPosition = CGPoint(
-                x: connectionSlotCenter.x - bounds.midX,
-                y: connectionSlotCenter.y - bounds.midY
+                x: centerTextCenter.x - bounds.midX,
+                y: centerTextCenter.y + bounds.midY
             )
             CTLineDraw(line, context)
         case let .symbol(symbol):
@@ -826,47 +1346,202 @@ extension StatusIconRenderer {
         in context: CGContext
     ) {
         let tint = sceneColor(for: symbol.color, foreground: foreground, criticalColor: criticalColor)
-        let pointSize = centerSymbolPointSize(for: symbol.scale)
+        let legacyScale = symbol.normalizedSizePercentage == nil ? symbol.scale : 1
+        let pointSize = centerSymbolPointSize(for: legacyScale)
+        let multiplier = symbol.normalizedSizePercentage.map {
+            CGFloat(IconCenterSizingPolicy.drawingMultiplier(
+                percentage: $0,
+                referenceVisibleHeight: Double(centerReferenceVisibleHeight(for: symbol, pointSize: pointSize))
+            ))
+        } ?? 1
+        context.saveGState()
+        defer { context.restoreGState() }
+        applyCenteredScale(multiplier, center: center, in: context)
+
         switch symbol.source {
         case let .primitive(primitive):
             switch primitive {
             case .wiredPort:
                 drawEthernet(in: context, foreground: tint)
             case .screenWedge:
-                drawTemporaryConnectionMark(wifiScale: symbol.scale, in: context, foreground: tint)
+                drawTemporaryConnectionMark(wifiScale: legacyScale, in: context, foreground: tint)
             case .arrowWedge:
-                drawSharedConnectionMark(wifiScale: symbol.scale, in: context, foreground: tint)
+                drawSharedConnectionMark(wifiScale: legacyScale, in: context, foreground: tint)
             case .bolt:
-                let path = StatusIconGeometry.batteryChargingBolt(scale: CGFloat(symbol.scale))
+                let path = StatusIconGeometry.batteryChargingBolt(scale: CGFloat(legacyScale))
                 context.setFillColor(tint)
                 context.addPath(path)
                 context.fillPath()
             case .plug:
-                drawBatteryPlug(boltScale: CGFloat(symbol.scale), foreground: tint, in: context)
+                drawBatteryPlug(boltScale: CGFloat(legacyScale), foreground: tint, in: context)
             }
         case let .symbol(name, variableValue, fallback):
-            let chosen = availableSymbol(name) ? name : fallback.flatMap { availableSymbol($0) ? $0 : nil }
-            let resolved = chosen ?? (symbol.color == .bluetooth ? BluetoothDeviceRowIcon.genericSymbol : "wifi")
+            let resolved = resolvedCenterSymbolName(name: name, fallback: fallback, color: symbol.color)
+            let usesFallback = !availableSymbol(name)
             drawOfficialSymbol(
                 name: resolved,
-                variableValue: chosen == nil ? 1 : (variableValue ?? 1),
+                variableValue: usesFallback ? 1 : (variableValue ?? 1),
                 pointSize: pointSize,
                 center: center,
                 foreground: tint,
                 in: context
             )
         case let .image(url, fallbackSymbol):
-            if let image = NSImage(contentsOf: url) {
-                drawTintedImage(image, maxDimension: 42 * (pointSize / centerSymbolBasePointSize),
+            if let resolvedImage = centerImages.image(for: url) {
+                drawTintedImage(resolvedImage.image, maxDimension: 42 * (pointSize / centerSymbolBasePointSize),
                                 center: center, tint: tint, in: context)
             } else {
-                let fallback = availableSymbol(fallbackSymbol)
-                    ? fallbackSymbol
-                    : BluetoothDeviceRowIcon.genericSymbol
+                let fallback = resolvedImageFallbackSymbol(fallbackSymbol)
                 drawOfficialSymbol(name: fallback, pointSize: pointSize, center: center,
                                    foreground: tint, in: context)
             }
         }
+    }
+
+    private static func applyCenteredScale(_ scale: CGFloat, center: CGPoint, in context: CGContext) {
+        guard scale.isFinite, scale > 0, scale != 1 else { return }
+        context.translateBy(x: center.x, y: center.y)
+        context.scaleBy(x: scale, y: scale)
+        context.translateBy(x: -center.x, y: -center.y)
+    }
+
+    private static func resolvedImageFallbackSymbol(_ fallback: String) -> String {
+        availableSymbol(fallback) ? fallback : BluetoothDeviceRowIcon.genericSymbol
+    }
+
+    private static func resolvedCenterSymbolName(name: String, fallback: String?, color: IconColorRole) -> String {
+        if availableSymbol(name) { return name }
+        if let fallback, availableSymbol(fallback) { return fallback }
+        return color == .bluetooth ? BluetoothDeviceRowIcon.genericSymbol : "wifi"
+    }
+
+    /// Uses full/reference glyph metrics at variable value 1.0 so RSSI-driven
+    /// variable symbols change their appearance without changing their size.
+    private static func centerReferenceVisibleHeight(for state: IconSymbolState, pointSize: CGFloat) -> CGFloat {
+        switch state.source {
+        case let .symbol(name, _, fallback):
+            let resolved = resolvedCenterSymbolName(name: name, fallback: fallback, color: state.color)
+            let pointSizeKey = String(Double(pointSize).bitPattern, radix: 16)
+            let key = "sf|\(resolved)|semibold|reference=1|pointSize=\(pointSizeKey)"
+            let referenceHeight = cachedCenterMetric(for: key) {
+                guard let image = configuredSymbol(
+                    name: resolved, variableValue: 1, pointSize: pointSize, foreground: .white
+                ) else { return nil }
+                return visibleAlphaBoundsHeight(of: image)
+            }
+            return referenceHeight ?? pointSize * 0.7
+        case let .image(url, fallbackSymbol):
+            guard let resolvedImage = centerImages.image(for: url) else {
+                let fallback = resolvedImageFallbackSymbol(fallbackSymbol)
+                return centerReferenceVisibleHeight(for: IconSymbolState(
+                    source: .symbol(name: fallback, variableValue: nil, fallback: nil),
+                    color: state.color,
+                    scale: state.normalizedSizePercentage == nil ? state.scale : 1
+                ), pointSize: pointSize)
+            }
+            let image = resolvedImage.image
+            guard image.size.width > 0, image.size.height > 0 else { return pointSize * 0.7 }
+            let maxDimension = 42 * (pointSize / centerSymbolBasePointSize)
+            let displayedHeight = min(maxDimension / image.size.width, maxDimension / image.size.height) * image.size.height
+            return displayedHeight * resolvedImage.visibleHeightFraction
+        case let .primitive(primitive):
+            let legacyScale = state.normalizedSizePercentage == nil ? state.scale : 1
+            let scaleKey = String(legacyScale.bitPattern, radix: 16)
+            let key = "primitive|\(primitive)|\(scaleKey)|geometry-v1"
+            return cachedCenterMetric(for: key) {
+                switch primitive {
+                case .wiredPort:
+                    let paths = StatusIconGeometry.ethernetChevrons()
+                    let pathBounds = paths.reduce(CGRect.null) { partial, path in
+                        partial.union(path.copy(strokingWithWidth: StatusIconGeometry.ethernetStrokeWidth,
+                                                lineCap: .butt, lineJoin: .miter, miterLimit: 10).boundingBoxOfPath)
+                    }
+                    let dotBounds = StatusIconGeometry.ethernetDots().reduce(CGRect.null) { partial, point in
+                        let radius = StatusIconGeometry.ethernetDotRadius
+                        return partial.union(CGRect(x: point.x - radius, y: point.y - radius,
+                                                    width: radius * 2, height: radius * 2))
+                    }
+                    return pathBounds.union(dotBounds).height
+                case .screenWedge:
+                    return (StatusIconGeometry.temporaryWedge().boundingBoxOfPath.height + 7) * CGFloat(legacyScale)
+                case .arrowWedge:
+                    return (StatusIconGeometry.sharedWedge().boundingBoxOfPath.height + 7) * CGFloat(legacyScale)
+                case .bolt:
+                    return StatusIconGeometry.batteryChargingBolt().boundingBoxOfPath.height * CGFloat(legacyScale)
+                case .plug:
+                    let boltHeight = StatusIconGeometry.batteryChargingBolt().boundingBoxOfPath.height
+                    return boltHeight * CGFloat(legacyScale) * StatusIconGeometry.batteryPlugHeightScale
+                }
+            } ?? (pointSize * 0.7)
+        }
+    }
+
+    private static func cachedCenterMetric(for key: String, calculate: () -> CGFloat?) -> CGFloat? {
+        if let cached = centerSizingMetrics.value(for: key) { return cached }
+        guard let value = calculate(), value.isFinite, value > 0 else { return nil }
+        centerSizingMetrics.insert(value, for: key)
+        return value
+    }
+
+    private static func visibleAlphaBounds(of image: CGImage, threshold: UInt8) -> CGRect? {
+        let width = image.width
+        let height = image.height
+        guard width > 0, height > 0,
+              let data = image.dataProvider?.data,
+              let bytes = CFDataGetBytePtr(data) else { return nil }
+        let bytesPerPixel = image.bitsPerPixel / 8
+        guard bytesPerPixel >= 4 else { return nil }
+        let bytesPerRow = image.bytesPerRow
+        var minX = width, maxX = -1, minY = height, maxY = -1
+        for y in 0..<height {
+            for x in 0..<width where bytes[y * bytesPerRow + x * bytesPerPixel + 3] >= threshold {
+                minX = min(minX, x); maxX = max(maxX, x)
+                minY = min(minY, y); maxY = max(maxY, y)
+            }
+        }
+        guard maxX >= minX, maxY >= minY else { return nil }
+        return CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
+    }
+
+    private static func visibleAlphaBoundsHeight(of image: NSImage) -> CGFloat {
+        visibleAlphaBounds(of: image)?.height ?? image.size.height
+    }
+
+    fileprivate static func visibleAlphaBoundsForCache(of image: NSImage) -> CGRect? {
+        visibleAlphaBounds(of: image)
+    }
+
+    private static func visibleAlphaBounds(of image: NSImage) -> CGRect? {
+        let size = image.size
+        guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else { return nil }
+        let measurementScale = min(24, 1_024 / max(size.width, size.height))
+        let widthValue = (size.width * measurementScale).rounded(.up)
+        let heightValue = (size.height * measurementScale).rounded(.up)
+        guard let width = Int(exactly: widthValue), let height = Int(exactly: heightValue),
+              width > 0, height > 0, width <= Int.max / 4,
+              let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                      bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        context.clear(CGRect(x: 0, y: 0, width: width, height: height))
+        context.scaleBy(x: measurementScale, y: measurementScale)
+        let graphicsContext = NSGraphicsContext(cgContext: context, flipped: false)
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        NSGraphicsContext.current = graphicsContext
+        image.draw(in: CGRect(origin: .zero, size: size))
+        guard let data = context.data?.assumingMemoryBound(to: UInt8.self) else { return nil }
+        var minX = width, maxX = -1, minY = height, maxY = -1
+        let visibleInkAlphaThreshold = IconCenterSizingPolicy.visibleInkAlphaThreshold
+        for y in 0..<height {
+            for x in 0..<width where data[(y * width + x) * 4 + 3] >= visibleInkAlphaThreshold {
+                minX = min(minX, x); maxX = max(maxX, x)
+                minY = min(minY, y); maxY = max(maxY, y)
+            }
+        }
+        guard maxX >= minX, maxY >= minY else { return nil }
+        return CGRect(x: CGFloat(minX) / measurementScale, y: CGFloat(minY) / measurementScale,
+                      width: CGFloat(maxX - minX + 1) / measurementScale,
+                      height: CGFloat(maxY - minY + 1) / measurementScale)
     }
 
     private static func availableSymbol(_ name: String) -> Bool {

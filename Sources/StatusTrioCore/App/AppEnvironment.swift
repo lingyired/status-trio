@@ -9,6 +9,7 @@ final class AppEnvironment {
     let iconPresentation: IconPresentationViewModel
     let statusBarController: StatusBarController
     let settingsWindowController: SettingsWindowController
+    let iconDesignerWindowController: IconDesignerWindowController
     let onboardingWindowController: OnboardingWindowController
     let activationPolicy: AppActivationPolicy
     let appIconController: AppIconController
@@ -29,6 +30,7 @@ final class AppEnvironment {
         iconPresentation: IconPresentationViewModel,
         statusBarController: StatusBarController,
         settingsWindowController: SettingsWindowController,
+        iconDesignerWindowController: IconDesignerWindowController,
         onboardingWindowController: OnboardingWindowController,
         activationPolicy: AppActivationPolicy,
         appIconController: AppIconController,
@@ -43,6 +45,7 @@ final class AppEnvironment {
         self.iconPresentation = iconPresentation
         self.statusBarController = statusBarController
         self.settingsWindowController = settingsWindowController
+        self.iconDesignerWindowController = iconDesignerWindowController
         self.onboardingWindowController = onboardingWindowController
         self.activationPolicy = activationPolicy
         self.appIconController = appIconController
@@ -274,7 +277,8 @@ final class AppEnvironment {
                     batteryLevels: store.bluetoothDevices.batteryLevels,
                     batteryLevelsUpdatedAt: store.bluetoothDevices.batteryLevelsUpdatedAt,
                     selectedAirPodsAddress: settings.airPodsIconDeviceAddress,
-                    selectedConnectedDeviceAddress: settings.connectedBluetoothIconDeviceAddress
+                    selectedConnectedDeviceAddress: settings.connectedBluetoothIconDeviceAddress,
+                    bluetoothAvailability: store.bluetoothDevices.availability
                 )
             }
         )
@@ -286,6 +290,15 @@ final class AppEnvironment {
             localization: localization,
             activationPolicy: activationPolicy
         )
+        let iconDesignerPreviewSession = IconDesignerPreviewSession()
+        let iconDesignerWindowController = IconDesignerWindowController(
+            store: settings,
+            statusStore: store,
+            localization: localization,
+            activationPolicy: activationPolicy,
+            chargingEffectClock: chargingEffectClock,
+            previewSession: iconDesignerPreviewSession
+        )
         let settingsWindowController = SettingsWindowController(
             store: settings,
             statusStore: store,
@@ -294,7 +307,11 @@ final class AppEnvironment {
             showIconGuide: { [weak onboardingWindowController] in
                 onboardingWindowController?.show()
             },
-            chargingEffectClock: chargingEffectClock
+            openIconDesigner: { [weak iconDesignerWindowController] slot in
+                iconDesignerWindowController?.show(slot: slot)
+            },
+            chargingEffectClock: chargingEffectClock,
+            previewSession: iconDesignerPreviewSession
         )
         onboardingWindowController.openSettings = { [weak settingsWindowController] in
             settingsWindowController?.show()
@@ -366,6 +383,7 @@ final class AppEnvironment {
             iconPresentation: iconPresentation,
             statusBarController: controller,
             settingsWindowController: settingsWindowController,
+            iconDesignerWindowController: iconDesignerWindowController,
             onboardingWindowController: onboardingWindowController,
             activationPolicy: activationPolicy,
             appIconController: appIconController,

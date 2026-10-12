@@ -121,7 +121,7 @@ func chooseSource<S: Codable & Hashable & Sendable>(
 | 7–9 | `SettingsNavigationModel`（纯值导航及可见来源列表）；`IconDesignerView` 只消费 store/configuration/liveInputs/localization；预览选择状态不持久化。 |
 | 11–12 | `IconSourceDemandPolicy.requiresAirPods(_ configuration: IconConfigurationV1) -> Bool`；bridge `reconcile(configuration:)` / `stop()`；`AirPodsRingMapper.resolve(_ snapshot: AirPodsBatteryIconSnapshot, layout: AirPodsRingLayout) -> SourceResult<OuterRingState>`。 |
 
-Behavior 不直接存现有非 Codable Options：定义有限 Codable DTO，逐字段投影成 Options。Battery 的充电指示/阈值、Network 的符号策略、Pinned glyph、Volume 的 dots/arc 各保存一份；槽位交换 primary/fallback 不复制行为。Ring/Footer strokeScale 初始由同一个旧 RingStrokeStyle 迁移，后续可独立编辑。Appearance 取值范围优先沿用已有 normalized helpers（stroke 0.5...2.5）；其他 scale 以现有 Options 构造器范围为准，在 Task 1 写明确边界测试后冻结。
+Behavior 不直接存现有非 Codable Options：定义有限 Codable DTO，逐字段投影成 Options。Battery 的充电指示/阈值、Network 的符号策略、Pinned glyph、Volume 的 dots/arc 各保存一份；槽位交换 primary/fallback 不复制行为。尺寸控制范围已由后续统一标准取代本计划早期的“沿用 Options 范围”建议：所有中心主/备用来源共用按可见墨迹校准的 100–180% 元素尺寸；外环与 Footer 共用以旧 regular 1.25 为 100%、对应旧 light/bold 端点的 80–120% 连续笔画百分比；外侧电池文本继续使用 90–110% 原基线。旧字段与 0.5–2.5 笔画存储范围保持兼容，直到用户明确编辑。执行和扩展规则见 [Icon Designer sizing standard](../../icon-sizing-standard.md)。
 
 ## 4. Review Focus
 

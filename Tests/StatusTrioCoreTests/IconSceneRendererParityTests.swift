@@ -5,11 +5,198 @@ import XCTest
 
 @MainActor
 final class IconSceneRendererParityTests: XCTestCase {
+    func testAirPodsDualRingFromResolvedSceneReachesMenuBarAndDock() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let inputs = IconResolutionInputs(
+            system: IconPresentationInputs(snapshot: makeSnapshot(), audioIcon: nil),
+            sources: IconSourceSnapshot(
+                availability: ["airPodsBattery": .available],
+                airPodsBattery: AirPodsBatteryIconSnapshot(
+                    deviceAddress: "AA:BB:CC:DD:EE:FF", model: .airPodsPro,
+                    main: 70, left: 73, right: 68, caseLevel: 80, observedAt: now
+                )
+            )
+        )
+        var configuration = IconDesignerDefaults.configuration()
+        configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery)
+        let dualScene = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration, now: now).scene
+        XCTAssertEqual(dualScene.outerRing?.segments.count, 2)
+        configuration.behaviors.airPodsRing = .single
+        let singleScene = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration, now: now).scene
+
+        let foreground = CGColor(gray: 1, alpha: 1)
+        let dualMenu = try menuBarPixels(scene: dualScene, foreground: foreground, size: 28, scale: 2)
+        let singleMenu = try menuBarPixels(scene: singleScene, foreground: foreground, size: 28, scale: 2)
+        XCTAssertFalse(dualMenu.bytes.elementsEqual(singleMenu.bytes), "Menu bar must render the resolved dual scene.")
+        let dualDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+            scene: dualScene, backgroundStyle: .dark, pixelLength: 256
+        )))
+        let singleDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+            scene: singleScene, backgroundStyle: .dark, pixelLength: 256
+        )))
+        XCTAssertFalse(dualDock.bytes.elementsEqual(singleDock.bytes), "Dock must render the same resolved dual scene.")
+    }
+
+    func testAirPodsMacBatteryFallbackUsesOneResolvedSceneForMenuBarAndDock() throws {
+        let snapshot = makeSnapshot(battery: battery(percentage: 52))
+        let inputs = IconResolutionInputs(
+            system: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+            sources: IconSourceSnapshot(availability: [
+                "airPodsBattery": .unavailable(.disconnected),
+                "systemBattery": .available
+            ])
+        )
+        var fallbackConfiguration = IconDesignerDefaults.configuration()
+        fallbackConfiguration.composition.outerRing = SlotSelection(
+            primary: .airPodsBattery, fallback: .systemBattery
+        )
+        let fallbackOutput = IconCompositionResolver.resolve(inputs: inputs, configuration: fallbackConfiguration)
+        XCTAssertEqual(fallbackOutput.trace.outerRing.selectedSourceID, RingSource.systemBattery.rawValue)
+
+        var directConfiguration = fallbackConfiguration
+        directConfiguration.composition.outerRing = SlotSelection(primary: .systemBattery)
+        let directScene = IconCompositionResolver.resolve(inputs: inputs, configuration: directConfiguration).scene
+        XCTAssertEqual(fallbackOutput.scene, directScene)
+
+        let foreground = CGColor(gray: 1, alpha: 1)
+        let fallbackMenu = try menuBarPixels(scene: fallbackOutput.scene, foreground: foreground, size: 28, scale: 2)
+        let directMenu = try menuBarPixels(scene: directScene, foreground: foreground, size: 28, scale: 2)
+        XCTAssertTrue(fallbackMenu.bytes.elementsEqual(directMenu.bytes))
+        let fallbackDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+            scene: fallbackOutput.scene, backgroundStyle: .dark, pixelLength: 256
+        )))
+        let directDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+            scene: directScene, backgroundStyle: .dark, pixelLength: 256
+        )))
+        XCTAssertTrue(fallbackDock.bytes.elementsEqual(directDock.bytes))
+    }
+
+    func testUnifiedCenterSizePercentageChangesMenuBarAndDockRenderedPixels() throws {
+        let inputs = IconResolutionInputs(
+            system: IconPresentationInputs(
+                snapshot: makeSnapshot(wifi: WiFiStatus(state: .connected, rssi: -54), connection: .wifi),
+                audioIcon: nil
+            ),
+            sources: .empty
+        )
+        var configuration = IconDesignerDefaults.configuration()
+        configuration.appearance.center.normalizedSizePercentage = 1.0
+        let small = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration).scene
+        configuration.appearance.center.normalizedSizePercentage = 1.8
+        let large = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration).scene
+        XCTAssertNotEqual(small.center, large.center)
+
+        let foreground = CGColor(gray: 1, alpha: 1)
+        let smallMenu = try menuBarPixels(scene: small, foreground: foreground, size: 28, scale: 2)
+        let largeMenu = try menuBarPixels(scene: large, foreground: foreground, size: 28, scale: 2)
+        XCTAssertFalse(smallMenu.bytes.elementsEqual(largeMenu.bytes))
+
+        let smallDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(scene: small, backgroundStyle: .dark, pixelLength: 256)))
+        let largeDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(scene: large, backgroundStyle: .dark, pixelLength: 256)))
+        XCTAssertFalse(smallDock.bytes.elementsEqual(largeDock.bytes))
+    }
+
+    func testCenterSemanticColorOverrideReachesMenuBarAndDockRenderers() throws {
+        let snapshot = PresentationFixtures.snapshot(rssi: -55)
+        var configuration = IconDesignerDefaults.configuration()
+        configuration.composition.center.primary = .network
+        let accent = IconRGBA(red: 1, green: 0.05, blue: 0.35, alpha: 1)
+        configuration.appearance.center.color = .semanticOverrides([.primary: accent])
+        let scene = IconCompositionResolver.resolve(
+            inputs: IconResolutionInputs(
+                system: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+                sources: .empty
+            ),
+            configuration: configuration
+        ).scene
+
+        guard case let .symbol(center)? = scene.center else {
+            XCTFail("Expected a network symbol")
+            return
+        }
+        XCTAssertEqual(center.color, .custom(accent))
+
+        var automaticConfiguration = configuration
+        automaticConfiguration.appearance.center.color = .automatic
+        let automaticScene = IconCompositionResolver.resolve(
+            inputs: IconResolutionInputs(
+                system: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+                sources: .empty
+            ),
+            configuration: automaticConfiguration
+        ).scene
+
+        let menu = try menuBarPixels(scene: scene, foreground: CGColor(gray: 1, alpha: 1), size: 28, scale: 2)
+        let automaticMenu = try menuBarPixels(scene: automaticScene, foreground: CGColor(gray: 1, alpha: 1), size: 28, scale: 2)
+        XCTAssertNotEqual(menu.bytes, automaticMenu.bytes, "Menu bar rendering must use the configured semantic override")
+        for background in DockIconBackgroundStyle.allCases {
+            let dock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+                scene: scene, backgroundStyle: background, pixelLength: 96
+            )))
+            let automaticDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+                scene: automaticScene, backgroundStyle: background, pixelLength: 96
+            )))
+            XCTAssertNotEqual(dock.bytes, automaticDock.bytes, "Dock (\(background)) must use the configured semantic override")
+        }
+    }
+
     func testOrdinarySceneKeepsIndependentCanvasAndRegionConventions() throws {
         let scene = mappedScene(for: PresentationFixtures.snapshot())
         for foreground in [CGColor(gray: 1, alpha: 1), CGColor(gray: 0, alpha: 1)] {
             let pixels = try menuBarPixels(scene: scene, foreground: foreground, size: 28, scale: 2)
             assertMenuBarPixelConventions(pixels, size: 28, scale: 2, label: "ordinary")
+        }
+    }
+
+    func testMigratedWiFiScaleMatchesMenuBarAndDockForConnectedErrorAndEthernet() throws {
+        var oldConfiguration = IconConfigurationV1.classic
+        oldConfiguration.composition.outerRing.primary = .none
+        oldConfiguration.composition.center.primary = .network
+        oldConfiguration.composition.footer.primary = .none
+        oldConfiguration.behaviors.networkCenter.wifiScale = 2.1
+        oldConfiguration.behaviors.networkCenter.showsWiFiIconForEthernet = true
+        oldConfiguration.appearance.center.symbolScale = 1.2
+        let encoded = try JSONEncoder().encode(oldConfiguration)
+        var payloadObject = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        payloadObject.removeValue(forKey: "wifiScaleMigrationVersion")
+        let configuration = try IconConfigurationCodec.decode(JSONSerialization.data(withJSONObject: payloadObject))
+        let cases: [(String, WiFiStatus, NetworkConnection)] = [
+            ("connected", WiFiStatus(state: .connected, rssi: -54), .wifi),
+            ("error", WiFiStatus(state: .noInternet, rssi: -54), .wifi),
+            ("ethernet", WiFiStatus(state: .off, rssi: nil), .ethernet)
+        ]
+
+        for (name, wifi, connection) in cases {
+            let inputs = IconResolutionInputs(
+                system: IconPresentationInputs(
+                    snapshot: makeSnapshot(wifi: wifi, connection: connection), audioIcon: nil
+                ),
+                sources: .empty
+            )
+            let resolved = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration).scene
+            guard case let .symbol(actualCenter)? = resolved.center else {
+                XCTFail("Expected the center Wi-Fi symbol for \(name)")
+                continue
+            }
+            XCTAssertEqual(actualCenter.scale, 1.575, accuracy: 0.001, name)
+            let expected = IconSceneState(center: .symbol(IconSymbolState(
+                source: actualCenter.source, color: actualCenter.color, scale: 1.575
+            )))
+
+            for foreground in [CGColor(gray: 1, alpha: 1), CGColor(gray: 0, alpha: 1)] {
+                let actualMenu = try menuBarPixels(scene: resolved, foreground: foreground, size: 28, scale: 2)
+                let expectedMenu = try menuBarPixels(scene: expected, foreground: foreground, size: 28, scale: 2)
+                XCTAssertTrue(actualMenu.bytes.elementsEqual(expectedMenu.bytes), "menu bar: \(name)")
+            }
+            for style in DockIconBackgroundStyle.allCases {
+                let actualDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+                    scene: resolved, backgroundStyle: style, pixelLength: 256
+                )))
+                let expectedDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+                    scene: expected, backgroundStyle: style, pixelLength: 256
+                )))
+                XCTAssertTrue(actualDock.bytes.elementsEqual(expectedDock.bytes), "Dock \(style): \(name)")
+            }
         }
     }
 

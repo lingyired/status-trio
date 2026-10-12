@@ -2,15 +2,15 @@ import AppKit
 
 /// Maps an on-screen preview size to the pixel length its raster needs.
 ///
-/// Preview tiles are drawn at 30-56 pt, so at 2x they need 60-112 px. The Dock's
+/// Preview tiles are drawn at 30-128 pt, so at 2x they need 60-256 px. The Dock's
 /// 512 px raster is ~1 MiB, and rendering it for a 30 pt tile is the allocation
 /// this type exists to prevent. Sizes are quantized up into 4 px buckets so a
 /// fractional layout size cannot churn the cache with a new raster per frame.
 enum DockIconPreviewMetrics {
     static let deviceScale: CGFloat = 2
-    /// A preview never needs more than this; it also keeps a runaway call site
-    /// from reaching the Dock raster length by accident.
-    static let maximumPixelLength = 128
+    /// Covers the 128 pt designer tile at 2x while keeping a runaway call site
+    /// below the real Dock raster length.
+    static let maximumPixelLength = 256
     private static let bucket = 4
 
     static func pixelLength(forPointSize pointSize: CGFloat) -> Int {

@@ -3,57 +3,217 @@ import SwiftUI
 struct IconAppearanceEditor: View {
     @ObservedObject var store: SettingsStore
     let slot: IconSlot
+    var bluetoothDevices: [BluetoothDevice] = []
     @State private var role: IconSemanticColorRole = .primary
     @EnvironmentObject private var localization: Localization
+    @EnvironmentObject private var editorModel: IconDesignerEditorModel
 
     var body: some View {
         SettingsGroup(localization.string(.iconDesignerAppearanceTitle)) {
-            Picker(localization.string(.iconDesignerControlColorStyle), selection: styleBinding) {
-                Text(localization.string(.iconDesignerControlAutomatic)).tag(StyleChoice.automatic)
-                Text(localization.string(.iconDesignerControlFixedColor)).tag(StyleChoice.fixed)
-                Text(localization.string(.iconDesignerControlByState)).tag(StyleChoice.semantic)
-            }
-            if slot != .center {
-                Slider(value: scaleBinding, in: 0.5...2.5, step: 0.05) {
-                    Text(localization.string(.iconDesignerControlStrokeScale))
+            if showsColorStyle {
+                IconDesignerControlRow(localization.string(.iconDesignerControlColorStyle)) {
+                    Picker("", selection: styleBinding) {
+                        Text(localization.string(.iconDesignerControlAutomatic)).tag(StyleChoice.automatic)
+                        Text(localization.string(.iconDesignerControlFixedColor)).tag(StyleChoice.fixed)
+                        Text(localization.string(.iconDesignerControlByState)).tag(StyleChoice.semantic)
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .fixedSize()
+                    .accessibilityLabel(localization.string(.iconDesignerControlColorStyle))
                 }
-            } else {
-                Slider(value: scaleBinding, in: 1...3, step: 0.05) {
-                    Text(localization.string(.iconDesignerControlSymbolScale))
-                }
             }
-            if styleBinding.wrappedValue != .automatic {
-                if styleBinding.wrappedValue == .semantic {
-                    Picker(localization.string(.iconDesignerControlState), selection: $role) {
-                        ForEach(IconSemanticColorRole.allCases, id: \.self) { value in
-                            Text(localization.string(value.iconDesignerLocalizationKey)).tag(value)
+
+            if showsScaleControl {
+                scaleControl
+            }
+
+            if styleBinding.wrappedValue == .semantic, showsRolePicker {
+                IconDesignerControlRow(
+                    localization.string(slot == .center ? .iconDesignerCenterColorRolePicker : .iconDesignerControlState),
+                    subtitle: slot == .center ? effectiveCenterRoleHelp : nil
+                ) {
+                    Picker("", selection: roleBinding) {
+                        ForEach(roleOptions) { option in
+                            Text(roleTitle(for: option)).tag(option.role)
                         }
                     }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .fixedSize(horizontal: slot != .center, vertical: true)
+                    .accessibilityLabel(localization.string(
+                        slot == .center ? .iconDesignerCenterColorRolePicker : .iconDesignerControlState
+                    ))
                 }
+            }
+
+            if showsColorStyle, styleBinding.wrappedValue != .automatic {
                 colorControls
             }
         }
-    }
-
-    private var colorControls: some View {
-        let color = currentColor
-        return Group {
-            componentSlider(localization.string(.iconDesignerControlRed), value: color.red, keyPath: \.red)
-            componentSlider(localization.string(.iconDesignerControlGreen), value: color.green, keyPath: \.green)
-            componentSlider(localization.string(.iconDesignerControlBlue), value: color.blue, keyPath: \.blue)
-            componentSlider(localization.string(.iconDesignerControlOpacity), value: color.alpha, keyPath: \.alpha)
+        .accessibilityIdentifier("iconDesigner.appearanceCard")
+        .onChange(of: centerColorRoleOptions) { _ in
+            guard slot == .center else { return }
+            if let effectiveRole = IconDesignerCenterColorRoleModel.effectiveRole(role, options: centerColorRoleOptions) {
+                role = effectiveRole
+            }
         }
     }
 
-    private func componentSlider(_ title: String, value: Double, keyPath: WritableKeyPath<IconRGBA, Double>) -> some View {
-        Slider(value: Binding(
-            get: { value },
-            set: { component in
-                var updated = currentColor
-                updated[keyPath: keyPath] = component
-                setCurrentColor(updated)
+    private var showsColorStyle: Bool {
+        slot != .center || !centerColorRoleOptions.isEmpty
+    }
+
+    private var showsRolePicker: Bool {
+        slot != .center || centerColorRoleOptions.count > 1
+    }
+
+    private var roleOptions: [IconDesignerCenterColorRoleOption] {
+        if slot == .center {
+            return centerColorRoleOptions
+        }
+        return IconSemanticColorRole.allCases.map { role in
+            IconDesignerCenterColorRoleOption(
+                role: role,
+                meanings: [.init(
+                    scope: .primary,
+                    localizationKey: role.iconDesignerLocalizationKey,
+                    helpLocalizationKey: .iconDesignerCenterColorHelpNetworkPrimary
+                )]
+            )
+        }
+    }
+
+    private var centerColorRoleOptions: [IconDesignerCenterColorRoleOption] {
+        let isConnectedBluetoothDeviceAudio = store.connectedBluetoothIconDeviceAddress.map { address in
+            IconDesignerBluetoothTargetModel.isAudioTarget(
+                .connectedDevice(address: address),
+                devices: bluetoothDevices
+            )
+        } ?? false
+        return IconDesignerCenterColorRoleModel.options(
+            in: store.iconConfiguration,
+            connectedBluetoothDeviceIsAudio: isConnectedBluetoothDeviceAudio
+        )
+    }
+
+    /// Resolve stale picker state synchronously so reads and writes always use
+    /// a role that the current center configuration can actually render.
+    private var effectiveRole: IconSemanticColorRole {
+        guard slot == .center else { return role }
+        return IconDesignerCenterColorRoleModel.effectiveRole(role, options: centerColorRoleOptions) ?? role
+    }
+
+    private var roleBinding: Binding<IconSemanticColorRole> {
+        Binding(
+            get: { effectiveRole },
+            set: { role = slot == .center
+                ? (IconDesignerCenterColorRoleModel.effectiveRole($0, options: centerColorRoleOptions) ?? role)
+                : $0
             }
-        ), in: 0...1) { Text(title) }
+        )
+    }
+
+    private func roleTitle(for option: IconDesignerCenterColorRoleOption) -> String {
+        guard slot == .center else {
+            return localization.string(option.role.iconDesignerLocalizationKey)
+        }
+        return option.meanings.map { meaning in
+            let text = localization.string(meaning.localizationKey)
+            return switch meaning.scope {
+            case .primary:
+                text
+            case .fallback:
+                localization.format(.iconDesignerCenterColorContextFallbackFormat, text)
+            case .networkOverride:
+                localization.format(.iconDesignerCenterColorContextNetworkOverrideFormat, text)
+            }
+        }.joined(separator: " · ")
+    }
+
+    private func roleHelp(for option: IconDesignerCenterColorRoleOption) -> String {
+        option.meanings.map { meaning in
+            let text = localization.string(meaning.helpLocalizationKey)
+            switch meaning.scope {
+            case .primary:
+                return text
+            case .fallback:
+                return localization.format(.iconDesignerCenterColorContextFallbackFormat, text)
+            case .networkOverride:
+                return localization.format(.iconDesignerCenterColorContextNetworkOverrideFormat, text)
+            }
+        }.joined(separator: " · ")
+    }
+
+    private var effectiveCenterRoleHelp: String? {
+        guard slot == .center, styleBinding.wrappedValue == .semantic else { return nil }
+        guard let option = centerColorRoleOptions.first(where: { $0.role == effectiveRole }) else { return nil }
+        return roleHelp(for: option)
+    }
+
+    private var showsScaleControl: Bool {
+        slot != .center || store.iconConfiguration.composition.center.primary != .none
+    }
+
+    private var scaleControl: some View {
+        let isCenter = slot == .center
+        let scale = scaleBinding.wrappedValue
+        let group = "appearance.scale.\(slot)"
+        let range = isCenter
+            ? IconDesignerEditingModel.commonPercentageScaleRange
+            : IconStrokeSizingPolicy.interactiveScaleRange
+        return IconDesignerScaleControl(
+            title: localization.string(isCenter ? .iconDesignerControlSymbolScale : .iconDesignerControlStrokeScale),
+            value: sliderBinding,
+            formattedValue: isCenter
+                ? IconDesignerEditingModel.commonPercentageScaleLabel(for: scale)
+                : IconStrokeSizingPolicy.label(for: scale),
+            range: range,
+            step: isCenter ? IconCenterSizingPolicy.percentageStep : IconStrokeSizingPolicy.percentageStep,
+            showsDivider: styleBinding.wrappedValue != .automatic,
+            onEditingChanged: { editing in
+                if editing { editorModel.beginCoalescingGroup(group) }
+                else { editorModel.endCoalescingGroup(group) }
+            }
+        )
+    }
+
+    private var colorControls: some View {
+        IconDesignerControlRow(colorPickerTitle, subtitle: effectiveCenterRoleHelp, showsDivider: true) {
+            let group = "appearance.color.\(slot).\(effectiveRole)"
+            IconDesignerColorWell(selection: colorBinding, onEditingChanged: { editing in
+                if editing { editorModel.beginCoalescingGroup(group) }
+                else { editorModel.endCoalescingGroup(group) }
+            })
+                .accessibilityLabel(colorPickerLabel)
+                .accessibilityIdentifier("iconDesigner.appearance.colorPicker")
+        }
+    }
+
+    private var colorPickerLabelKey: LocalizationKey {
+        switch colorStyle {
+        case .automatic, .fixed:
+            .iconDesignerControlFixedColor
+        case .semanticOverrides:
+            effectiveRole.iconDesignerLocalizationKey
+        }
+    }
+
+    private var colorPickerTitle: String {
+        if slot == .center, styleBinding.wrappedValue == .semantic,
+           let option = centerColorRoleOptions.first(where: { $0.role == effectiveRole }) {
+            return roleTitle(for: option)
+        }
+        return localization.string(colorPickerLabelKey)
+    }
+
+    private var colorPickerLabel: String { colorPickerTitle }
+
+    private var colorBinding: Binding<Color> {
+        Binding(
+            get: { IconAppearanceColorConversion.color(from: currentColor) },
+            set: { setCurrentColor(IconAppearanceColorConversion.iconRGBA(from: $0)) }
+        )
     }
 
     private var styleBinding: Binding<StyleChoice> {
@@ -64,12 +224,20 @@ struct IconAppearanceEditor: View {
             case .semanticOverrides: .semantic
             }
         }, set: { choice in
-            store.updateIconConfiguration { configuration in
-                let oldColor = currentColor
+            editorModel.updateIconConfiguration { configuration in
+                let previousStyle = Self.colorStyle(for: slot, in: configuration)
+                let oldColor = IconAppearanceColorEditing.color(for: previousStyle, role: effectiveRole)
                 let style: SlotColorStyle = switch choice {
-                case .automatic: .automatic
-                case .fixed: .fixed(oldColor)
-                case .semantic: .semanticOverrides([role: oldColor])
+                case .automatic:
+                    .automatic
+                case .fixed:
+                    if case .fixed = previousStyle { previousStyle } else { .fixed(oldColor) }
+                case .semantic:
+                    if case .semanticOverrides = previousStyle {
+                        previousStyle
+                    } else {
+                        .semanticOverrides([effectiveRole: oldColor])
+                    }
                 }
                 Self.set(style, slot: slot, in: &configuration)
             }
@@ -77,48 +245,59 @@ struct IconAppearanceEditor: View {
     }
 
     private var colorStyle: SlotColorStyle {
+        Self.colorStyle(for: slot, in: store.iconConfiguration)
+    }
+
+    private static func colorStyle(for slot: IconSlot, in configuration: IconConfigurationV1) -> SlotColorStyle {
         switch slot {
-        case .outerRing: store.iconConfiguration.appearance.outerRing.color
-        case .center: store.iconConfiguration.appearance.center.color
-        case .footer: store.iconConfiguration.appearance.footer.color
+        case .outerRing: configuration.appearance.outerRing.color
+        case .center: configuration.appearance.center.color
+        case .footer: configuration.appearance.footer.color
         }
     }
 
     private var currentColor: IconRGBA {
-        switch colorStyle {
-        case .automatic: .white
-        case let .fixed(color): color
-        case let .semanticOverrides(colors): colors[role] ?? colors[.primary] ?? .white
-        }
+        IconAppearanceColorEditing.color(for: colorStyle, role: effectiveRole)
+    }
+
+    private var sliderBinding: Binding<Double> {
+        Binding(
+            get: {
+                let rawValue = scaleBinding.wrappedValue
+                if slot == .center {
+                    return IconDesignerEditingModel.commonPercentageScaleSliderValue(for: rawValue)
+                }
+                return IconStrokeSizingPolicy.sliderValue(for: rawValue)
+            },
+            set: { scaleBinding.wrappedValue = $0 }
+        )
     }
 
     private var scaleBinding: Binding<Double> {
         Binding(get: {
-            switch slot {
-            case .outerRing: store.iconConfiguration.appearance.outerRing.strokeScale
-            case .center: store.iconConfiguration.appearance.center.symbolScale
-            case .footer: store.iconConfiguration.appearance.footer.strokeScale
+            let configuration = store.iconConfiguration
+            return switch slot {
+            case .outerRing: configuration.appearance.outerRing.strokeScale
+            case .center: IconDesignerEditingModel.commonPercentageScale(in: configuration)
+            case .footer: configuration.appearance.footer.strokeScale
             }
         }, set: { value in
-            store.updateIconConfiguration { configuration in
+            editorModel.updateIconConfiguration(coalescingKey: "appearance.scale.\(slot)") { configuration in
                 switch slot {
-                case .outerRing: configuration.appearance.outerRing.strokeScale = value
-                case .center: configuration.appearance.center.symbolScale = value
-                case .footer: configuration.appearance.footer.strokeScale = value
+                case .outerRing:
+                    configuration.appearance.outerRing.strokeScale = IconStrokeSizingPolicy.strokeScale(for: value)
+                case .center:
+                    IconDesignerEditingModel.settingCommonPercentageScale(value, in: &configuration)
+                case .footer:
+                    configuration.appearance.footer.strokeScale = IconStrokeSizingPolicy.strokeScale(for: value)
                 }
             }
         })
     }
 
     private func setCurrentColor(_ color: IconRGBA) {
-        store.updateIconConfiguration { configuration in
-            let style: SlotColorStyle
-            switch colorStyle {
-            case .automatic: style = .fixed(color)
-            case .fixed: style = .fixed(color)
-            case var .semanticOverrides(colors): colors[role] = color; style = .semanticOverrides(colors)
-            }
-            Self.set(style, slot: slot, in: &configuration)
+        editorModel.updateIconConfiguration(coalescingKey: "appearance.color.\(slot).\(effectiveRole)") { configuration in
+            IconAppearanceColorEditing.setColor(color, role: effectiveRole, slot: slot, in: &configuration)
         }
     }
 

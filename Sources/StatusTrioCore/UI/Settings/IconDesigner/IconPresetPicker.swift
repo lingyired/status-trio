@@ -5,6 +5,7 @@ struct IconPresetPicker: View {
     let slot: IconSlot
     @State private var confirmation: Confirmation?
     @EnvironmentObject private var localization: Localization
+    @EnvironmentObject private var editorModel: IconDesignerEditorModel
 
     var body: some View {
         HStack {
@@ -13,7 +14,13 @@ struct IconPresetPicker: View {
             if slot == .outerRing {
                 Button(localization.string(.iconDesignerAirPodsFocusPreset)) { confirmation = .airPodsFocus }
             }
-            Button(localization.string(.iconDesignerControlClassicPreset)) { confirmation = .classic }
+            Menu {
+                Button(localization.string(.iconDesignerControlClassicPreset)) { confirmation = .classic }
+            } label: {
+                Image(systemName: "ellipsis")
+            }
+            .menuStyle(.borderlessButton)
+            .accessibilityLabel(localization.string(.iconDesignerMoreActions))
         }
         .alert(item: $confirmation) { choice in
             switch choice {
@@ -21,18 +28,18 @@ struct IconPresetPicker: View {
                 Alert(title: Text(localization.format(.iconDesignerControlRestoreSlotQuestionFormat, localization.string(slot.localizationKey))),
                       message: Text(localization.string(.iconDesignerControlSlotRestoreMessage)),
                       primaryButton: .destructive(Text(localization.string(.iconDesignerControlRestoreAction))) {
-                          store.updateIconConfiguration { $0 = $0.resetting(slot) }
+                          editorModel.reset(slot)
                       }, secondaryButton: .cancel())
             case .airPodsFocus:
                 Alert(title: Text(localization.string(.iconDesignerAirPodsFocusPreset)),
                       message: Text(localization.string(.iconDesignerAirPodsDualExplanation)),
                       primaryButton: .default(Text(localization.string(.iconDesignerAirPodsFocusPreset))) {
-                          store.updateIconConfiguration { $0 = IconDesignerEditingModel.applyingAirPodsFocus(to: $0) }
+                          editorModel.updateIconConfiguration { $0 = IconDesignerEditingModel.applyingAirPodsFocus(to: $0) }
                       }, secondaryButton: .cancel())
             case .classic:
                 Alert(title: Text(localization.string(.iconDesignerControlRestoreClassicConfirmation)),
                       message: Text(localization.string(.iconDesignerControlClassicRestoreMessage)),
-                      primaryButton: .destructive(Text(localization.string(.iconDesignerControlRestoreAction))) { store.resetIconConfiguration() },
+                      primaryButton: .destructive(Text(localization.string(.iconDesignerControlRestoreAction))) { editorModel.resetAll() },
                       secondaryButton: .cancel())
             }
         }

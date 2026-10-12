@@ -69,15 +69,26 @@ final class IconConfigurationValidationTests: XCTestCase {
         XCTAssertEqual(reset.appearance.footer, value.appearance.footer)
         XCTAssertEqual(reset.behaviors.systemBatteryRing, value.behaviors.systemBatteryRing)
         XCTAssertEqual(reset.behaviors.systemVolumeFooter, value.behaviors.systemVolumeFooter)
-        XCTAssertEqual(reset.composition.center, IconConfigurationV1.classic.composition.center)
-        XCTAssertEqual(reset.appearance.center, IconConfigurationV1.classic.appearance.center)
-        XCTAssertEqual(reset.behaviors.networkCenter, IconConfigurationV1.classic.behaviors.networkCenter)
+        XCTAssertEqual(reset.composition.center, IconDesignerDefaults.configuration().composition.center)
+        XCTAssertEqual(reset.appearance.center, IconDesignerDefaults.configuration().appearance.center)
+        XCTAssertEqual(reset.behaviors.networkCenter, IconDesignerDefaults.configuration().behaviors.networkCenter)
     }
 
     func testClassicIsPureValueAndDoesNotConstructMonitoring() {
         XCTAssertEqual(IconConfigurationV1.classic.composition.outerRing.primary, .automaticLegacy)
         XCTAssertEqual(IconConfigurationV1.classic.composition.center.primary, .automaticLegacy)
         XCTAssertEqual(IconConfigurationV1.classic.composition.footer.primary, .systemVolume)
+    }
+
+    func testEffectiveCenterScaleClampsOnlyWhenExplicitlyConfigured() {
+        var value = IconConfigurationV1.classic
+        XCTAssertNil(value.appearance.center.effectiveSymbolScale)
+        value.appearance.center.effectiveSymbolScale = 99
+        XCTAssertEqual(value.normalized().appearance.center.effectiveSymbolScale, 6)
+        value.appearance.center.effectiveSymbolScale = .infinity
+        XCTAssertEqual(value.normalized().appearance.center.effectiveSymbolScale, 1.6)
+        value.appearance.center.effectiveSymbolScale = 0.1
+        XCTAssertEqual(value.normalized().appearance.center.effectiveSymbolScale, 0.5)
     }
 
     func testNormalizationBoundsAppearanceScales() {

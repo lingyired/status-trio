@@ -4,7 +4,8 @@
 func makeTestIconPresentation(
     store: SystemStatusStore,
     settings: SettingsStore,
-    snapshotScheduler: any IconPresentationScheduling = TestTaskIconPresentationScheduler()
+    snapshotScheduler: any IconPresentationScheduling = TestTaskIconPresentationScheduler(),
+    resolveSourceSnapshot: @escaping @MainActor @Sendable (StatusSnapshot) -> IconSourceSnapshot = { _ in .empty }
 ) -> IconPresentationViewModel {
     let appearance = StatusIconAppearance(settings: settings)
     return IconPresentationViewModel(
@@ -24,6 +25,7 @@ func makeTestIconPresentation(
                 configuration: configuration
             )
         },
+        resolveSourceSnapshot: resolveSourceSnapshot,
         snapshotScheduler: snapshotScheduler
     )
 }

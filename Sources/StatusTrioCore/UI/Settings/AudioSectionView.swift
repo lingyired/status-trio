@@ -4,7 +4,7 @@ struct AudioSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @Binding var previewIsDark: Bool
-    var onOpenIconDesigner: () -> Void = {}
+    var onOpenIconDesigner: (IconSlot) -> Void = { _ in }
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
@@ -12,10 +12,13 @@ struct AudioSectionView: View {
             StatusIconPreviewCard(
                 store: store,
                 statusStore: statusStore,
-                isDarkBackground: $previewIsDark
+                isDarkBackground: $previewIsDark,
+                content: .menuBarOnly
             )
         }) {
-            IconDesignerEntryRow(onOpen: onOpenIconDesigner)
+            IconDesignerEntryRow(title: localization.string(.settingsAudioDesignerEntry)) {
+                onOpenIconDesigner(.footer)
+            }
             displayRulesGroup
             deviceOrderGroup
         }
@@ -26,6 +29,23 @@ struct AudioSectionView: View {
 
     private var displayRulesGroup: some View {
         SettingsGroup(localization.string(.settingsAudioDisplayRules)) {
+            SettingsRow(
+                "speaker.wave.2",
+                tint: .cyan,
+                title: localization.string(.settingsAudioIndicatorStyle),
+                subtitle: localization.string(.settingsAudioIndicatorStyleDescription)
+            ) {
+                Picker(localization.string(.settingsAudioIndicatorStyle), selection: $store.volumeDisplayStyle) {
+                    Text(localization.string(.settingsAudioIndicatorStyleDots)).tag(VolumeDisplayStyle.dots)
+                    Text(localization.string(.settingsAudioIndicatorStyleArc)).tag(VolumeDisplayStyle.arc)
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+            }
+
+            SettingsDivider()
+
             SettingsToggleRow(
                 symbol: "speaker.wave.3.fill",
                 tint: .cyan,

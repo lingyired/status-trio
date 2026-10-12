@@ -4,10 +4,19 @@ import Foundation
 struct IconDesignerPreviewState: Equatable, Sendable {
     static let availableScenarios = IconPreviewScenario.allCases
 
+    static func simulatedChargingEffectIsEligible(
+        mode: IconPreviewDataMode,
+        animationEnabled: Bool,
+        resolvedScene: IconSceneState
+    ) -> Bool {
+        mode == .simulated && animationEnabled && resolvedScene.outerRing?.effect != nil
+    }
+
     private(set) var playback = ChargingEffectPreviewPlayback()
     private(set) var isVisible = true
     private(set) var reduceMotion = false
     private(set) var scenario: IconPreviewScenario = .live
+    private(set) var isResolvedSimulatedChargingEffectEligible = false
 
     mutating func start(at date: Date) {
         guard isVisible, !reduceMotion,
@@ -20,7 +29,11 @@ struct IconDesignerPreviewState: Equatable, Sendable {
 
     mutating func setScenario(_ scenario: IconPreviewScenario) {
         self.scenario = scenario
-        if scenario != .live && scenario != .batteryCharging { playback.stop() }
+        if scenario != .live && scenario != .batteryCharging {
+            playback.stop()
+        } else if isResolvedSimulatedChargingEffectEligible {
+            start(at: .now)
+        }
     }
 
     mutating func stop() {
@@ -29,11 +42,29 @@ struct IconDesignerPreviewState: Equatable, Sendable {
 
     mutating func setVisible(_ visible: Bool) {
         isVisible = visible
-        if !visible { playback.stop() }
+        if !visible {
+            playback.stop()
+        } else if isResolvedSimulatedChargingEffectEligible {
+            start(at: .now)
+        }
     }
 
     mutating func setReduceMotion(_ enabled: Bool) {
         reduceMotion = enabled
-        if enabled { playback.stop() }
+        if enabled {
+            playback.stop()
+        } else if isResolvedSimulatedChargingEffectEligible {
+            start(at: .now)
+        }
+    }
+
+    mutating func setResolvedSimulatedChargingEffect(isEligible: Bool, at date: Date) {
+        guard isResolvedSimulatedChargingEffectEligible != isEligible else { return }
+        isResolvedSimulatedChargingEffectEligible = isEligible
+        if isEligible {
+            start(at: date)
+        } else {
+            playback.stop()
+        }
     }
 }

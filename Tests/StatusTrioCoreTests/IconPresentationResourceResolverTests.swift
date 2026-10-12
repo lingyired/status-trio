@@ -142,6 +142,88 @@ final class IconPresentationResourceResolverTests: XCTestCase {
         XCTAssertNil(sources.connectedBluetoothDeviceSymbol)
     }
 
+    func testConnectedDeviceSnapshotCarriesAudioCapabilityAndRejectsNonLocalRows() {
+        let audio = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:01", name: "AirPods", kind: .audio, isConnected: true
+        )
+        let keyboard = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:02", name: "Keyboard", kind: .peripheral(.keyboard), isConnected: true
+        )
+        let ghost = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:03", name: "Ghost", kind: .audio,
+            isConnected: true, isUnpairedGhost: true
+        )
+        let remote = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:04", name: "Remote", kind: .audio,
+            isConnected: true, isReadOverTheAir: true
+        )
+        let snapshot = StatusSnapshot(
+            battery: .placeholder, wifi: .placeholder,
+            connection: .offline, volume: .placeholder
+        )
+
+        let audioSource = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: snapshot, bluetoothDevices: [audio], selectedConnectedDeviceAddress: audio.id
+        )
+        XCTAssertEqual(audioSource.connectedBluetoothDeviceIsAudio, true)
+        XCTAssertEqual(audioSource.availability[CenterSource.connectedBluetoothDevice.rawValue], .available)
+
+        let keyboardSource = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: snapshot, bluetoothDevices: [keyboard], selectedConnectedDeviceAddress: keyboard.id
+        )
+        XCTAssertEqual(keyboardSource.connectedBluetoothDeviceIsAudio, false)
+        XCTAssertEqual(keyboardSource.availability[CenterSource.connectedBluetoothDevice.rawValue], .available)
+
+        for rejected in [ghost, remote] {
+            let source = IconPresentationResourceResolver.sourceSnapshot(
+                snapshot: snapshot, bluetoothDevices: [rejected], selectedConnectedDeviceAddress: rejected.id
+            )
+            XCTAssertNil(source.connectedBluetoothDeviceIsAudio)
+            XCTAssertNil(source.connectedBluetoothDeviceSymbol)
+            XCTAssertEqual(source.availability[CenterSource.connectedBluetoothDevice.rawValue], .unavailable(.disconnected))
+        }
+    }
+
+    func testPermissionDeniedCachedBluetoothTargetFallsBackInsteadOfRemainingOnline() {
+        let staleAudioDevice = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:41", name: "Previously connected headset", kind: .audio, isConnected: true
+        )
+        let snapshot = StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -40),
+            connection: .wifi,
+            volume: .placeholder
+        )
+        let sources = IconPresentationResourceResolver.sourceSnapshot(
+            snapshot: snapshot,
+            bluetoothDevices: [staleAudioDevice],
+            selectedConnectedDeviceAddress: staleAudioDevice.id,
+            bluetoothAvailability: .authorizationDenied
+        )
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(
+            primary: .connectedBluetoothDevice,
+            fallback: .network
+        )
+        let output = IconCompositionResolver.resolve(
+            inputs: IconResolutionInputs(
+                system: IconPresentationResourceResolver.inputs(snapshot: snapshot),
+                sources: sources
+            ),
+            configuration: configuration
+        )
+
+        XCTAssertEqual(
+            sources.availability[CenterSource.connectedBluetoothDevice.rawValue],
+            .unavailable(.permissionDenied)
+        )
+        XCTAssertNil(sources.connectedBluetoothDeviceSymbol)
+        XCTAssertNil(sources.connectedBluetoothDeviceIsAudio)
+        XCTAssertEqual(output.trace.center.role, .fallback)
+        XCTAssertEqual(output.trace.center.primaryFailure, .permissionDenied)
+        XCTAssertEqual(output.trace.center.selectedSourceID, CenterSource.network.rawValue)
+    }
+
     func testWiredConnectionKeepsNetworkSourceAvailableWhenWiFiIsOff() {
         let wired = StatusSnapshot(
             battery: .placeholder,

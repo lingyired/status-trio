@@ -8,6 +8,8 @@ struct SettingsView: View {
     @ObservedObject var statusStore: SystemStatusStore
     @ObservedObject var localization: Localization
     let onShowIconGuide: () -> Void
+    var onOpenIconDesigner: (IconSlot) -> Void = { _ in }
+    @ObservedObject var previewSession = IconDesignerPreviewSession()
 
     @State private var navigation = SettingsNavigationModel()
     @State private var previewIsDark: Bool = true
@@ -92,25 +94,26 @@ struct SettingsView: View {
     private var detail: some View {
         switch selectedSection {
         case .iconDesigner:
-            IconDesignerView(
+            IconDesignerLaunchSectionView(
                 store: store,
                 statusStore: statusStore,
                 previewIsDark: $previewIsDark,
-                onShowIconGuide: onShowIconGuide
+                onShowIconGuide: onShowIconGuide,
+                onOpenIconDesigner: onOpenIconDesigner
             )
         case .battery:
             BatterySectionView(
                 store: store,
                 statusStore: statusStore,
                 previewIsDark: $previewIsDark,
-                onOpenIconDesigner: { selectedSection = .iconDesigner }
+                onOpenIconDesigner: onOpenIconDesigner
             )
         case .network:
             NetworkSectionView(
                 store: store,
                 statusStore: statusStore,
                 previewIsDark: $previewIsDark,
-                onOpenIconDesigner: { selectedSection = .iconDesigner }
+                onOpenIconDesigner: onOpenIconDesigner
             )
         case .bluetooth:
             BluetoothSectionView(
@@ -119,14 +122,14 @@ struct SettingsView: View {
                 bluetoothDevices: statusStore.bluetoothDevices,
                 appleDeviceDiscovery: statusStore.appleDeviceDiscovery,
                 previewIsDark: $previewIsDark,
-                onOpenIconDesigner: { selectedSection = .iconDesigner }
+                onOpenIconDesigner: onOpenIconDesigner
             )
         case .audio:
             AudioSectionView(
                 store: store,
                 statusStore: statusStore,
                 previewIsDark: $previewIsDark,
-                onOpenIconDesigner: { selectedSection = .iconDesigner }
+                onOpenIconDesigner: onOpenIconDesigner
             )
         case .popover:
             PopoverSectionView(store: store, statusStore: statusStore)

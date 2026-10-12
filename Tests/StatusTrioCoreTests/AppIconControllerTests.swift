@@ -179,7 +179,7 @@ struct AppIconControllerTests {
         harness.settings.wifiSymbolScale = 1.5
 
         #expect(harness.log.renderCount == 1)
-        #expect(harness.log.lastCenterScale == 1.5)
+        #expect(abs(try #require(harness.log.lastCenterScale) - 1.5) < 1e-12)
     }
 
     @Test func connectionOptionChangeKeepsConfiguredWiFiSymbolScale() async throws {
@@ -196,7 +196,7 @@ struct AppIconControllerTests {
         try await waitForCoalescedRenders { harness.log.renderCount == 1 }
 
         #expect(harness.log.renderCount == 1)
-        #expect(harness.log.lastCenterScale == 1.5)
+        #expect(abs(try #require(harness.log.lastCenterScale) - 1.5) < 1e-12)
     }
 
     @Test func changingVolumeDisplayStyleRendersWithUpdatedOptions() throws {
@@ -279,11 +279,41 @@ struct AppIconControllerTests {
         harness.controller.start()
         harness.log.reset()
 
+        // automaticLegacy shares the migrated center Appearance size with Wi-Fi.
+        // The Bluetooth source control must not overwrite that Appearance value.
+        let appearance = harness.settings.iconConfiguration.appearance.center
+        let expectedScale = 1.45 * appearance.symbolScale / CenterAppearance.classic.symbolScale
         harness.settings.bluetoothSymbolScale = 1.45
         try await waitForCoalescedRenders { harness.log.renderCount == 1 }
 
         #expect(harness.log.renderCount == 1)
-        #expect(harness.log.lastCenterScale == 1.45)
+        #expect(harness.settings.bluetoothSymbolScale == 1.45)
+        #expect(harness.settings.iconConfiguration.appearance.center == appearance)
+        #expect(abs(try #require(harness.log.lastCenterScale) - expectedScale) < 1e-12)
+    }
+
+    @Test func migratingUnusedWiFiScalePreservesExplicitBluetoothPrimarySize() throws {
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            initialVolume: VolumeStatus(
+                scalar: 0.5, isMuted: false, deviceName: "AirPods",
+                currentDevice: PresentationFixtures.bluetoothDevice
+            )
+        )
+        defer { harness.cleanUp() }
+        harness.settings.updateIconConfiguration {
+            $0.wifiScaleMigrationVersion = nil
+            $0.composition.center = SlotSelection(primary: .bluetoothAudioOutput, fallback: .network)
+            $0.behaviors.networkCenter.wifiScale = 2.1
+            $0.behaviors.bluetoothAudioCenter.symbolScale = 1.45
+            $0.appearance.center.symbolScale = 1.2
+        }
+        harness.controller.start()
+
+        #expect(harness.settings.iconConfiguration.appearance.center.symbolScale == 1.2)
+        #expect(harness.settings.iconConfiguration.behaviors.networkCenter.wifiScale == 1)
+        // Old Bluetooth output was 1.45 * (1.2 / 1.6), independently of Wi-Fi.
+        #expect(abs(try #require(harness.log.lastCenterScale) - 1.0875) < 1e-12)
     }
 
     /// A slider drag publishes a value per frame. The burst has to collapse into
@@ -484,7 +514,8 @@ final class AppIconControllerHarness {
         initialVolume: VolumeStatus = .placeholder,
         initialReplacesNetworkIcon: Bool = false,
         snapshotScheduler: any IconPresentationScheduling = TestTaskIconPresentationScheduler(),
-        renderCoalescer: IconRenderCoalescer? = nil
+        renderCoalescer: IconRenderCoalescer? = nil,
+        resolveSourceSnapshot: @escaping @MainActor @Sendable (StatusSnapshot) -> IconSourceSnapshot = { _ in .empty }
     ) throws {
         suiteName = "StatusTrioCoreTests.AppIconController.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suiteName) else {
@@ -523,7 +554,8 @@ final class AppIconControllerHarness {
         let iconPresentation = makeTestIconPresentation(
             store: store,
             settings: settings,
-            snapshotScheduler: snapshotScheduler
+            snapshotScheduler: snapshotScheduler,
+            resolveSourceSnapshot: resolveSourceSnapshot
         )
         iconPresentation.start()
         self.iconPresentation = iconPresentation

@@ -64,7 +64,7 @@ private enum IconHeldSlotState: Sendable {
 
 private enum IconHeldSourcePayload: Sendable {
     case airPodsBattery(AirPodsBatteryIconSnapshot)
-    case connectedBluetoothDeviceSymbol(String)
+    case connectedBluetoothDevice(symbol: String, isAudio: Bool?)
 }
 
 @MainActor
@@ -257,7 +257,10 @@ final class IconPresentationViewModel: ObservableObject {
                 }
             case CenterSource.connectedBluetoothDevice.rawValue:
                 if let payload = raw.connectedBluetoothDeviceSymbol {
-                    lastGoodSourcePayloads[sourceID] = .connectedBluetoothDeviceSymbol(payload)
+                    lastGoodSourcePayloads[sourceID] = .connectedBluetoothDevice(
+                        symbol: payload,
+                        isAudio: raw.connectedBluetoothDeviceIsAudio
+                    )
                 } else {
                     lastGoodSourcePayloads.removeValue(forKey: sourceID)
                 }
@@ -276,15 +279,19 @@ final class IconPresentationViewModel: ObservableObject {
             airPodsPayload = raw.airPodsBattery
         }
         let connectedDevicePayload: String?
+        let connectedDeviceIsAudio: Bool?
         if holdingSourceIDs.contains(CenterSource.connectedBluetoothDevice.rawValue),
-           case let .connectedBluetoothDeviceSymbol(payload)? = lastGoodSourcePayloads[CenterSource.connectedBluetoothDevice.rawValue] {
-            connectedDevicePayload = payload
+           case let .connectedBluetoothDevice(symbol, isAudio)? = lastGoodSourcePayloads[CenterSource.connectedBluetoothDevice.rawValue] {
+            connectedDevicePayload = symbol
+            connectedDeviceIsAudio = isAudio
         } else {
             connectedDevicePayload = raw.connectedBluetoothDeviceSymbol
+            connectedDeviceIsAudio = raw.connectedBluetoothDeviceIsAudio
         }
         return (
             IconSourceSnapshot(availability: held, airPodsBattery: airPodsPayload,
                                connectedBluetoothDeviceSymbol: connectedDevicePayload,
+                               connectedBluetoothDeviceIsAudio: connectedDeviceIsAudio,
                                holdingSourceIDs: holdingSourceIDs),
             raw,
             holdingSourceIDs

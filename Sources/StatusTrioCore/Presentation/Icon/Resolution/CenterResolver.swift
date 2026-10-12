@@ -5,13 +5,14 @@ enum CenterResolver {
         inputs: IconResolutionInputs,
         configuration: IconConfigurationV1,
         legacy: IconPresentationConfiguration
-    ) -> (state: CenterState?, trace: SlotResolutionTrace) {
-        let selection = configuration.composition.center
+    ) -> (state: CenterState?, trace: SlotResolutionTrace, source: CenterSource?) {
+        let renderConfiguration = configuration
+        let selection = renderConfiguration.composition.center
         let primary = selection.primary
         if primary == .automaticLegacy {
             return (IconPresentationMapper.scene(inputs: inputs.system, configuration: legacy).center,
                     SlotResolutionTrace(selectedSourceID: primary.rawValue, role: .primary,
-                                        primaryFailure: nil, reason: .primary))
+                                        primaryFailure: nil, reason: .primary), source: primary)
         }
         let selected: SourceSelectionResult<CenterSource> = chooseSource(selection, none: .none) { source -> SourceResult<Bool> in
             switch source {
@@ -39,16 +40,24 @@ enum CenterResolver {
                     default: present ? .available(true) : .unavailable(.unavailable))
             }
         }
-        guard let source = selected.source else { return (nil, trace(selected, source: nil)) }
+        guard let source = selected.source else { return (nil, trace(selected, source: nil), source: nil) }
 
         let snapshot = inputs.system.snapshot
+        let selectedBluetoothIsAudio: Bool = switch source {
+        case .bluetoothAudioOutput:
+            true
+        case .connectedBluetoothDevice:
+            inputs.sources.connectedBluetoothDeviceIsAudio == true
+        default:
+            false
+        }
         if configuration.composition.centerOverride.networkProblemOverridesPrimary,
-           primary == .bluetoothAudioOutput,
-           source == .bluetoothAudioOutput,
+           primary == source,
+           selectedBluetoothIsAudio,
            hasNetworkProblem(snapshot) {
             let network = networkState(inputs: inputs, configuration: configuration, legacy: legacy)
             return (network, SlotResolutionTrace(selectedSourceID: CenterSource.network.rawValue, role: .primary,
-                primaryFailure: selected.primaryFailure, reason: .overridden(.networkProblem)))
+                primaryFailure: selected.primaryFailure, reason: .overridden(.networkProblem)), source: .network)
         }
 
         let state: CenterState?
@@ -59,23 +68,30 @@ enum CenterResolver {
             state = networkState(inputs: inputs, configuration: configuration, legacy: legacy)
         case .bluetoothAudioOutput:
             let icon = inputs.system.audioIcon ?? .symbol(name: "headphones", variableValue: nil, fallback: nil)
-            state = .symbol(IconSymbolState(source: icon, color: .bluetooth,
-                scale: configuration.behaviors.bluetoothAudioCenter.symbolScale))
+            state = .symbol(IconSymbolState(source: icon, color: bluetoothColor(
+                inputs: inputs, configuration: renderConfiguration, isAudioTarget: true
+            ),
+                scale: renderConfiguration.behaviors.bluetoothAudioCenter.symbolScale))
         case .connectedBluetoothDevice:
-            state = inputs.sources.connectedBluetoothDeviceSymbol.map {
+            let isAudioTarget = inputs.sources.connectedBluetoothDeviceIsAudio == true
+            let symbol = isAudioTarget
+                ? (renderConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride
+                    ?? inputs.sources.connectedBluetoothDeviceSymbol)
+                : inputs.sources.connectedBluetoothDeviceSymbol
+            state = symbol.map {
                 .symbol(IconSymbolState(
                     source: .symbol(name: $0, variableValue: nil, fallback: BluetoothDeviceRowIcon.genericSymbol),
-                    color: .bluetooth,
-                    scale: configuration.behaviors.bluetoothAudioCenter.symbolScale
+                    color: bluetoothColor(inputs: inputs, configuration: renderConfiguration, isAudioTarget: isAudioTarget),
+                    scale: renderConfiguration.behaviors.bluetoothAudioCenter.symbolScale
                 ))
             }
         case .pinnedBluetoothGlyph:
-            let savedSymbol = configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride
+            let savedSymbol = renderConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride
             let icon = savedSymbol.map {
                 IconSymbolSource.symbol(name: $0, variableValue: nil, fallback: "dot.radiowaves.left.and.right")
             } ?? .symbol(name: "headphones", variableValue: nil, fallback: nil)
             state = .symbol(IconSymbolState(source: icon, color: .bluetooth,
-                scale: configuration.behaviors.bluetoothAudioCenter.symbolScale))
+                scale: renderConfiguration.behaviors.bluetoothAudioCenter.symbolScale))
         case .systemBatteryPercentage:
             let battery = snapshot.battery
             state = battery.isPresent
@@ -84,7 +100,7 @@ enum CenterResolver {
                 : nil
         case .none: state = nil
         }
-        return (state, trace(selected, source: source))
+        return (state, trace(selected, source: source), source)
     }
 
     private static func hasNetworkProblem(_ snapshot: StatusSnapshot) -> Bool {
@@ -93,6 +109,21 @@ enum CenterResolver {
         case .notAssociated, .noInternet, .off, .unavailable: true
         case .connected, .hotspot, .temporary, .shared: false
         }
+    }
+
+    private static func bluetoothColor(
+        inputs: IconResolutionInputs,
+        configuration: IconConfigurationV1,
+        isAudioTarget: Bool
+    ) -> IconColorRole {
+        guard isAudioTarget,
+              configuration.behaviors.bluetoothAudioCenter.usesVolumeColor else {
+            return .bluetooth
+        }
+        let volume = inputs.system.snapshot.volume
+        return StatusMappings.volumeSteps(scalar: volume.scalar, isMuted: volume.isMuted).map { $0 > 0 } == true
+            ? .bluetooth
+            : .primary
     }
 
     private static func networkState(

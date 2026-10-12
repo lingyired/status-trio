@@ -57,11 +57,13 @@
 "settings.menuBar.title" = "메뉴 막대 아이콘";
 "settings.network.connectionIcons" = "연결 아이콘 스타일";
 "settings.network.connectionIcons.description" = "활성화하면 선택한 상태가 전용 표시 대신 표준 Wi-Fi 신호 아이콘으로 표시됩니다.";
+"settings.network.designerEntry" = "아이콘 디자이너에서 네트워크 소스 사용자화";
 "settings.network.wifiIconForEthernet" = "Ethernet에 Wi-Fi 아이콘 사용";
 "settings.network.wifiIconForHotspot" = "개인 핫스팟에 Wi-Fi 아이콘 사용";
 "settings.network.wifiIconForTemporaryConnection" = "임시 연결에 Wi-Fi 아이콘 사용";
 "settings.network.wifiIconForInternetSharing" = "인터넷 공유에 Wi-Fi 아이콘 사용";
 "settings.bluetooth.title" = "Bluetooth 오디오";
+"settings.bluetooth.designerEntry" = "아이콘 디자이너에서 Bluetooth 소스 사용자화";
 "settings.bluetooth.replaceNetworkIcon" = "네트워크 아이콘을 Bluetooth 기기 아이콘으로 교체";
 "settings.bluetooth.replaceNetworkIconDescription" = "선택한 Bluetooth 기기의 파란색 아이콘을 Wi-Fi 아이콘 대신 표시합니다.";
 "settings.bluetooth.networkIconSourceGroup" = "Bluetooth 기기 아이콘 사용";
@@ -114,6 +116,9 @@
 "settings.about.starOnGitHub" = "GitHub에서 별표 주기";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "배터리 표시";
+"settings.battery.designerEntry" = "아이콘 디자이너에서 배터리 소스 사용자화";
+"settings.battery.macBehaviorDescription" = "이 옵션은 Mac 배터리를 소스로 사용할 때 적용되며, 외부 링에 선택된 AirPods 소스를 대체하지 않습니다.";
+"settings.battery.macBehavior" = "Mac 배터리 동작";
 "settings.battery.showPercentage" = "배터리 잔량 표시";
 "settings.battery.showPercentageInConnectionSlot" = "연결 위치에 배터리 잔량 표시";
 "settings.battery.showPercentageInConnectionSlotDescription" = "Wi-Fi 또는 연결 기호를 대체합니다. 상단 배터리 표시와 별도로 설정할 수 있습니다.";
@@ -328,6 +333,7 @@
 "settings.preview.light" = "라이트";
 "settings.preview.toggleHelp" = "메뉴 막대 다크/라이트 배경 미리보기 전환";
 "settings.audio.displayRules" = "표시 규칙";
+"settings.audio.designerEntry" = "아이콘 디자이너에서 오디오 소스 사용자화";
 "settings.audio.activeDeviceFootnote" = "현재 활성화된 오디오 출력 기기는 강조 색상으로 표시됩니다.";
 "settings.audio.inUse" = "사용 중";
 "settings.wifi.symbolScale" = "Wi-Fi 아이콘 크기";
@@ -467,6 +473,7 @@
 "icon.designer.swapPrimaryFallback" = "기본 소스와 대체 소스 바꾸기";
 "icon.designer.currentSourceUnavailableFormat" = "현재 소스(이 버전에서 사용할 수 없음): %@";
 "icon.designer.compatible" = "현재 설정과 호환";
+"icon.designer.legacySourcePreserved" = "새 소스를 선택할 때까지 현재 표시 규칙이 유지됩니다.";
 
 
 
@@ -482,7 +489,8 @@
 "iconDesigner.control.showPercentageWhileConnected" = "연결 중 백분율 표시";
 "iconDesigner.control.previewChargingAnimation" = "충전 애니메이션 미리보기";
 "iconDesigner.control.criticalThreshold" = "위험 임계값";
-"iconDesigner.control.textScale" = "텍스트 크기";
+"iconDesigner.control.textScale" = "상단 배터리 표시 크기";
+"iconDesigner.control.textScale.help" = "바깥쪽 링 상단의 배터리 잔량 표시, 충전 번개, 전원 플러그 크기를 조절합니다.";
 "iconDesigner.control.noEditableBehavior" = "이 소스에는 편집 가능한 동작이 없습니다.";
 "iconDesigner.control.wifiForEthernet" = "이더넷에 Wi-Fi 기호 표시";
 "iconDesigner.control.wifiForHotspot" = "핫스팟에 Wi-Fi 기호 표시";
@@ -536,6 +544,74 @@
 "icon.designer.airPods.ring.single" = "단일 링";
 "icon.designer.airPods.ring.dual" = "좌우 듀얼 링";
 "icon.designer.airPods.singleExplanation" = "단일 링: 메인 배터리를 우선 사용하고, 없으면 양쪽 평균 또는 사용 가능한 한쪽을 표시합니다. 케이스만 있으면 사용할 수 없습니다.";
-"icon.designer.airPods.dualExplanation" = "듀얼 링: 왼쪽과 오른쪽 이어버드를 고정된 좌우 호에 표시합니다. 한쪽이 없으면 확인된 쪽만 표시하고 케이스로 대체하지 않습니다.";
-"icon.designer.airPods.partialExplanation" = "한쪽 배터리를 사용할 수 없어 확인된 쪽만 표시합니다.";
+"icon.designer.airPods.dualExplanation" = "듀얼 링: 왼쪽과 오른쪽 이어버드에 각각 고정된 호를 사용합니다. 한쪽 배터리 정보만 제공되면 양쪽 호에 같은 잔량을 표시하고 각 호의 원래 색상은 유지합니다. 케이스로 대체하지 않습니다.";
+"icon.designer.airPods.partialExplanation" = "한쪽 배터리 정보만 제공되면 양쪽 호에 같은 잔량을 표시하고 각 호의 원래 색상은 유지합니다.";
 "icon.designer.airPods.focusPreset" = "AirPods 집중";
+"icon.preview.scenario.airPodsCustom" = "사용자 설정 AirPods 배터리";
+"icon.designer.airPods.test.title" = "AirPods 테스트 배터리";
+"icon.designer.airPods.test.simulatedData" = "시뮬레이션 데이터 · 설정 미리보기 전용이며 메뉴 막대와 Dock에는 실시간 데이터가 표시됩니다.";
+"icon.designer.airPods.test.leftAvailable" = "왼쪽 이어버드 배터리 데이터 사용 가능";
+"icon.designer.airPods.test.rightAvailable" = "오른쪽 이어버드 배터리 데이터 사용 가능";
+"icon.designer.airPods.test.leftBattery" = "왼쪽 이어버드 배터리";
+"icon.designer.airPods.test.rightBattery" = "오른쪽 이어버드 배터리";
+"icon.designer.airPods.test.both" = "양쪽 이어버드";
+"icon.designer.airPods.test.leftOnly" = "왼쪽만";
+"icon.designer.airPods.test.rightOnly" = "오른쪽만";
+"icon.designer.airPods.test.unavailable" = "배터리 데이터 없음";
+
+"iconPreviewData.edit" = "샘플 데이터 편집…";
+
+"iconPreviewData.simulatedNotice" = "아래 샘플 값은 이 미리보기에만 적용되며 실시간 데이터로 돌아가도 유지됩니다.";
+"iconPreviewData.liveNotice" = "실시간 상태는 읽기 전용입니다. 샘플을 편집하려면 시뮬레이션으로 전환하세요.";
+"iconPreviewData.title" = "미리보기 데이터";
+"iconPreviewData.modeSelector" = "미리보기 모드";
+"iconPreviewData.mode.liveShort" = "실시간 데이터";
+"iconPreviewData.mode.simulatedShort" = "시뮬레이션";
+"iconPreviewData.quickFill" = "빠른 입력";
+"iconPreviewData.network.connectionState" = "연결 상태";
+"iconPreviewData.systemVolume.source" = "시스템 음량";
+"iconPreviewData.live.notMuted" = "음소거 해제";
+"iconPreviewData.battery.notCharging" = "충전 중 아님";
+"iconPreviewData.macBattery.percentage" = "배터리 잔량";
+"iconPreviewData.systemVolume.percentage" = "음량";
+"iconPreviewData.source.macBattery" = "Mac 배터리";
+"iconPreviewData.source.airPodsBattery" = "AirPods 배터리";
+"iconPreviewData.source.bluetoothDevices" = "Bluetooth 기기";
+"iconPreviewData.network.ethernetConnected" = "이더넷 연결됨";
+"iconPreviewData.mode.live" = "실시간 데이터 사용 중";
+"iconPreviewData.mode.simulated" = "시뮬레이션 데이터 사용 중 — 미리보기 전용";
+"iconPreviewData.useSimulatedData" = "시뮬레이션 데이터 사용…";
+"iconPreviewData.editData" = "미리보기 데이터 편집…";
+"iconPreviewData.macBatteryPresent" = "Mac 배터리 있음";
+"iconPreviewData.bluetoothTargetOnline" = "Bluetooth 대상 기기 온라인";
+"iconPreviewData.bluetoothTargetAudio" = "대상이 오디오 기기임";
+"iconPreviewData.bluetoothSampleSymbol" = "기기 예시 기호";
+"iconPreviewData.volumeAvailable" = "음량 데이터 사용 가능";
+"icon.designer.undo" = "실행 취소";
+"icon.designer.externalChangeNotice" = "다른 곳에서 아이콘 설정이 변경되어 실행 취소 기록을 지웠습니다.";
+"iconPreviewData.useLiveData" = "실시간 데이터 사용";
+"icon.designer.moreActions" = "추가 동작";
+
+/* Source-aware center color roles */
+"iconDesigner.centerColorMeaning.networkPrimary" = "네트워크 아이콘";
+"iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi 신호 0칸";
+"iconDesigner.centerColorMeaning.bluetoothGlyph" = "Bluetooth 아이콘";
+"iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "볼륨이 0보다 큼";
+"iconDesigner.centerColorMeaning.bluetoothMutedZeroOrUnavailable" = "음소거 또는 볼륨 없음";
+"iconDesigner.centerColorMeaning.batteryPercentage" = "Mac 배터리 퍼센트";
+"iconDesigner.centerColorMeaning.legacyPrimary" = "기존 중앙 아이콘";
+"iconDesigner.centerColorMeaning.legacyWiFiZeroBars" = "Wi‑Fi 신호 0칸";
+"iconDesigner.centerColorMeaning.legacyBluetoothGlyph" = "Bluetooth 아이콘";
+"iconDesigner.centerColorContext.fallbackFormat" = "대체: %@";
+"iconDesigner.centerColorContext.networkOverrideFormat" = "네트워크 우선: %@";
+
+"iconDesigner.centerColor.rolePicker" = "색상 적용 상태";
+"iconDesigner.centerColorHelp.networkPrimary" = "일반 네트워크 아이콘에 적용됩니다. Wi-Fi 끔, 연결 안 됨, 인터넷 없음, 유선 연결을 포함합니다.";
+"iconDesigner.centerColorHelp.wifiZeroBars" = "연결된 Wi-Fi의 신호가 0칸일 때 적용됩니다. 신호 세기를 확인할 수 없을 때도 사용됩니다.";
+"iconDesigner.centerColorHelp.bluetoothGlyph" = "볼륨과 관계없이 Bluetooth 아이콘에 항상 사용됩니다.";
+"iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "볼륨에 따라 색상 변경을 켜면 음소거되지 않고 볼륨이 0보다 클 때 사용됩니다.";
+"iconDesigner.centerColorHelp.bluetoothMutedZeroOrUnavailable" = "볼륨에 따라 색상 변경을 켜면 음소거, 볼륨 0 또는 볼륨 정보를 확인할 수 없을 때 사용됩니다.";
+"iconDesigner.centerColorHelp.batteryPercentage" = "중앙에 표시되는 Mac 배터리 퍼센트에 적용됩니다.";
+"iconDesigner.centerColorHelp.legacyPrimary" = "기존 중앙 표시의 일반 네트워크 아이콘 또는 Mac 배터리 퍼센트에 적용됩니다.";
+"iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "기존 중앙 표시에서 연결된 Wi-Fi의 신호가 0칸일 때 적용됩니다.";
+"iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "기존 중앙 표시의 Bluetooth 아이콘에 적용됩니다.";

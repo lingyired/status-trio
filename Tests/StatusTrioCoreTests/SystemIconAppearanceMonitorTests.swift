@@ -60,13 +60,18 @@ struct SystemIconAppearanceMonitorTests {
         #expect(reported.isEmpty)
     }
 
-    @Test func pollsUntilStopped() async throws {
+    @Test func pollsUntilStopped() {
         let center = NotificationCenter()
         var theme = SystemIconAppearanceTheme.default
+        let pollingInterval: TimeInterval = 0.05
+        var readCount = 0
         let monitor = SystemIconAppearanceMonitor(
-            readTheme: { theme },
+            readTheme: {
+                readCount += 1
+                return theme
+            },
             notificationCenter: center,
-            pollingInterval: 0.05
+            pollingInterval: pollingInterval
         )
         var reported: [SystemIconAppearanceTheme] = []
         monitor.onChange = { reported.append($0) }
@@ -74,13 +79,29 @@ struct SystemIconAppearanceMonitorTests {
 
         let clearTheme = SystemIconAppearanceTheme(style: .clear, appearance: .dark)
         theme = clearTheme
-        try await Task.sleep(for: .milliseconds(600))
+        let changeDeadline = Date().addingTimeInterval(2)
+        while reported.isEmpty, Date() < changeDeadline {
+            _ = RunLoop.main.run(
+                mode: .default,
+                before: min(changeDeadline, Date().addingTimeInterval(0.01))
+            )
+        }
 
         #expect(reported == [clearTheme])
 
         monitor.stop()
+        let readsAfterStop = readCount
         theme = SystemIconAppearanceTheme(style: .tinted, appearance: .dark)
-        try await Task.sleep(for: .milliseconds(300))
+        center.post(name: SystemIconAppearanceMonitor.didChangeNotificationName, object: nil)
+        let stoppedPollingDeadline = Date().addingTimeInterval(pollingInterval * 2 + 0.05)
+        while Date() < stoppedPollingDeadline {
+            _ = RunLoop.main.run(
+                mode: .default,
+                before: min(stoppedPollingDeadline, Date().addingTimeInterval(0.01))
+            )
+        }
+
+        #expect(readCount == readsAfterStop)
         #expect(reported == [clearTheme])
     }
 }

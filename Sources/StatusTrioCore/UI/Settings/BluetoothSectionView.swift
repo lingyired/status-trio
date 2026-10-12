@@ -12,7 +12,7 @@ struct BluetoothSectionView: View {
     @ObservedObject var bluetoothDevices: BluetoothDeviceController
     @ObservedObject var appleDeviceDiscovery: AppleDeviceDiscoveryController
     @Binding var previewIsDark: Bool
-    var onOpenIconDesigner: () -> Void = {}
+    var onOpenIconDesigner: (IconSlot) -> Void = { _ in }
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
@@ -20,7 +20,8 @@ struct BluetoothSectionView: View {
             StatusIconPreviewCard(
                 store: store,
                 statusStore: statusStore,
-                isDarkBackground: $previewIsDark
+                isDarkBackground: $previewIsDark,
+                content: .menuBarOnly
             )
         }) {
             if bluetoothDevices.authorization != .allowed {
@@ -28,11 +29,11 @@ struct BluetoothSectionView: View {
                 SettingsDivider()
             }
 
+            IconDesignerEntryRow(title: localization.string(.settingsBluetoothDesignerEntry)) {
+                onOpenIconDesigner(.center)
+            }
+
             SettingsGroup(localization.string(.settingsBluetoothTitle)) {
-                IconDesignerEntryRow(onOpen: onOpenIconDesigner)
-
-                SettingsDivider()
-
                 SettingsToggleRow(
                     symbol: "list.bullet.rectangle",
                     tint: .purple,
@@ -189,6 +190,10 @@ struct BluetoothSectionView: View {
                 }
             }
 
+            let primary = store.iconConfiguration.composition.center.primary
+            if primary == .automaticLegacy || primary == .bluetoothAudioOutput {
+                sourceBehaviorGroup
+            }
             deviceListGroup
             deviceOrderGroup
         }
@@ -204,6 +209,61 @@ struct BluetoothSectionView: View {
     }
 
     private static let orderSurfaceToken = "bluetooth.settings.order.surface"
+
+    private var sourceBehaviorGroup: some View {
+        SettingsGroup(localization.string(.settingsBluetoothNetworkIconSourceGroup)) {
+            if store.iconConfiguration.composition.center.primary == .automaticLegacy {
+                SettingsToggleRow(
+                    symbol: "wave.3.right",
+                    tint: .blue,
+                    title: localization.string(.settingsBluetoothReplaceNetworkIcon),
+                    subtitle: localization.string(.settingsBluetoothReplaceNetworkIconDescription),
+                    isOn: $store.replacesNetworkIconWithBluetoothAudio
+                )
+
+                SettingsDivider()
+            }
+
+            SettingsToggleRow(
+                symbol: "exclamationmark.triangle",
+                tint: .orange,
+                title: localization.string(.settingsBluetoothNetworkErrorPriority),
+                subtitle: localization.string(.settingsBluetoothNetworkErrorPriorityDescription),
+                isOn: Self.networkErrorPriorityBinding(store: store)
+            )
+        }
+    }
+
+    /// Explicit Bluetooth audio uses composition policy; only legacy mode reads
+    /// the old behavior flag. Re-check the primary on writes so a stale control
+    /// cannot edit an unrelated source after the selection changes.
+    @MainActor
+    static func networkErrorPriorityBinding(store: SettingsStore) -> Binding<Bool> {
+        Binding(
+            get: {
+                switch store.iconConfiguration.composition.center.primary {
+                case .automaticLegacy:
+                    store.prioritizesNetworkErrorsOverBluetoothAudio
+                case .bluetoothAudioOutput:
+                    store.iconConfiguration.composition.centerOverride.networkProblemOverridesPrimary
+                default:
+                    false
+                }
+            },
+            set: { value in
+                switch store.iconConfiguration.composition.center.primary {
+                case .automaticLegacy:
+                    store.prioritizesNetworkErrorsOverBluetoothAudio = value
+                case .bluetoothAudioOutput:
+                    store.updateIconConfiguration {
+                        $0.composition.centerOverride.networkProblemOverridesPrimary = value
+                    }
+                default:
+                    break
+                }
+            }
+        )
+    }
 
     /// The pane shows paired devices, so it needs the same monitor the popover
     /// uses — otherwise a fresh launch that opens Settings shows "No paired
@@ -336,45 +396,15 @@ struct BluetoothSectionView: View {
         }
     }
 
-    /// Shown at the top of the pane whenever Bluetooth access is not granted, so
-    /// the user sees why the device list is empty and can resolve it from here
-    /// instead of hunting for a prompt. `.notDetermined` offers to raise the
-    /// system prompt; `.denied`/`.restricted` send the user to the pane that
-    /// gives a refused grant back. Hidden once `.allowed`.
+    /// Shown when Bluetooth access is not granted so the user can request or restore it.
     @ViewBuilder
     private var bluetoothPermissionBanner: some View {
-        switch bluetoothDevices.authorization {
-        case .allowed:
-            EmptyView()
-        case .notDetermined:
-            permissionNotice(
-                description: .settingsBluetoothPermissionNotDeterminedDescription,
-                buttonKey: .bluetoothActionRequestAuthorization,
-                action: { statusStore.requestBluetoothAuthorization() }
-            )
-        case .denied, .restricted:
-            permissionNotice(
-                description: .settingsBluetoothPermissionDeniedDescription,
-                buttonKey: .bluetoothActionOpenPermissionSettings,
-                action: { statusStore.openBluetoothPermissionSettings() }
-            )
-        }
-    }
-
-    private func permissionNotice(
-        description: LocalizationKey,
-        buttonKey: LocalizationKey,
-        action: @escaping () -> Void
-    ) -> some View {
-        SettingsGroup {
-            SettingsRow(
-                "exclamationmark.triangle.fill",
-                tint: .orange,
-                title: localization.string(.settingsBluetoothPermissionRequired),
-                subtitle: localization.string(description)
-            ) {
-                Button(localization.string(buttonKey), action: action)
-                    .controlSize(.small)
+        if bluetoothDevices.authorization != .allowed {
+            SettingsGroup {
+                BluetoothPermissionNoticeRow(
+                    bluetoothDevices: bluetoothDevices,
+                    statusStore: statusStore
+                )
             }
         }
     }

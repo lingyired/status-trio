@@ -10,6 +10,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let localization: Localization
     private let activationPolicy: AppActivationPolicy
     private let showIconGuide: () -> Void
+    private let openIconDesigner: (IconSlot) -> Void
+    private let previewSession: IconDesignerPreviewSession
     private var localizationCancellable: AnyCancellable?
     private var authorizationCancellable: AnyCancellable?
     private var ownsActivationPolicy = false
@@ -23,7 +25,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         localization: Localization,
         activationPolicy: AppActivationPolicy,
         showIconGuide: @escaping () -> Void,
-        chargingEffectClock: ChargingEffectClock = ChargingEffectClock()
+        openIconDesigner: @escaping (IconSlot) -> Void = { _ in },
+        chargingEffectClock: ChargingEffectClock = ChargingEffectClock(),
+        previewSession: IconDesignerPreviewSession = IconDesignerPreviewSession()
     ) {
         self.store = store
         self.statusStore = statusStore
@@ -31,6 +35,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         self.localization = localization
         self.activationPolicy = activationPolicy
         self.showIconGuide = showIconGuide
+        self.openIconDesigner = openIconDesigner
+        self.previewSession = previewSession
         self.lastBluetoothAuthorization = statusStore.bluetoothDevices.authorizationStatus
         super.init(window: nil)
 
@@ -63,7 +69,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     func show() {
         let window = window ?? makeWindow()
         self.window = window
-        statusStore.setSettingsVisible(true)
+        statusStore.setSettingsVisible(true, owner: SettingsSurfaceVisibility.settingsOwner)
         applyLocalization()
         enterActivationPolicyIfNeeded()
         window.makeKeyAndOrderFront(nil)
@@ -72,7 +78,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        statusStore.setSettingsVisible(false)
+        statusStore.setSettingsVisible(false, owner: SettingsSurfaceVisibility.settingsOwner)
         leaveActivationPolicyIfNeeded()
         window = nil
     }
@@ -102,7 +108,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 store: store,
                 statusStore: statusStore,
                 localization: localization,
-                onShowIconGuide: showIconGuide
+                onShowIconGuide: showIconGuide,
+                onOpenIconDesigner: openIconDesigner,
+                previewSession: previewSession
             )
             .environmentObject(chargingEffectClock)
         }

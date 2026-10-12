@@ -1,6 +1,13 @@
 import AppKit
 import SwiftUI
 
+enum StatusIconPreviewCardContent {
+    case standard
+    case menuBarOnly
+    case designerLarge
+    case dockDetails
+}
+
 /// Live status icon preview shown at the top of the icon-related settings panes.
 ///
 /// The card renders the real menu bar artwork through `StatusIconRenderer`, so
@@ -9,62 +16,288 @@ import SwiftUI
 struct StatusIconPreviewCard: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
+    @ObservedObject private var bluetoothDevices: BluetoothDeviceController
     @Binding var isDarkBackground: Bool
     var scenario: IconPreviewScenario = .live
+    var customAirPodsSample = CustomAirPodsPreviewSample()
+    var previewSession: IconDesignerPreviewSession? = nil
+    var largeIconPointSize: CGFloat? = nil
     var showsResolutionExplanation = false
+    var selectedSlot: IconSlot? = nil
+    var onSelectSlot: ((IconSlot) -> Void)? = nil
+    var content: StatusIconPreviewCardContent = .standard
     @EnvironmentObject private var localization: Localization
     @EnvironmentObject private var chargingEffectClock: ChargingEffectClock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var previewState = IconDesignerPreviewState()
 
-    var body: some View {
-        VStack(spacing: 8) {
-            menuBarPreview
+    init(
+        store: SettingsStore,
+        statusStore: SystemStatusStore,
+        isDarkBackground: Binding<Bool>,
+        scenario: IconPreviewScenario = .live,
+        customAirPodsSample: CustomAirPodsPreviewSample = CustomAirPodsPreviewSample(),
+        previewSession: IconDesignerPreviewSession? = nil,
+        largeIconPointSize: CGFloat? = nil,
+        showsResolutionExplanation: Bool = false,
+        selectedSlot: IconSlot? = nil,
+        onSelectSlot: ((IconSlot) -> Void)? = nil,
+        content: StatusIconPreviewCardContent = .standard
+    ) {
+        self.store = store
+        self.statusStore = statusStore
+        self._bluetoothDevices = ObservedObject(wrappedValue: statusStore.bluetoothDevices)
+        self._isDarkBackground = isDarkBackground
+        self.scenario = scenario
+        self.customAirPodsSample = customAirPodsSample
+        self.previewSession = previewSession
+        self.largeIconPointSize = largeIconPointSize
+        self.showsResolutionExplanation = showsResolutionExplanation
+        self.selectedSlot = selectedSlot
+        self.onSelectSlot = onSelectSlot
+        self.content = content
+    }
 
+    @ViewBuilder
+    var body: some View {
+        switch content {
+        case .standard:
+            VStack(spacing: 8) {
+                menuBarPreviewWithLifecycle
+                previewGuidance
+            }
+        case .menuBarOnly:
+            menuBarPreviewWithLifecycle
+        case .designerLarge:
+            VStack(spacing: 8) {
+                largeDesignerPreviewWithLifecycle
+                previewGuidance
+            }
+        case .dockDetails:
+            dockPreviewDetails
+        }
+    }
+
+    private func slotTitleKey(_ slot: IconSlot) -> LocalizationKey {
+        switch slot {
+        case .outerRing: .iconDesignerSlotOuterRing
+        case .center: .iconDesignerSlotCenter
+        case .footer: .iconDesignerSlotFooter
+        }
+    }
+
+    private var largeDesignerPreviewWithLifecycle: some View {
+        largeDesignerPreview
+            .onAppear {
+                previewState.setVisible(true)
+                previewState.setReduceMotion(reduceMotion)
+                previewState.setScenario(scenario)
+                if previewSession?.mode == .simulated {
+                    updateResolvedSimulatedChargingEffect()
+                } else if store.showsChargingEffect {
+                    startPreviewIfAllowed()
+                }
+            }
+            .onChange(of: store.showsChargingEffect) { isEnabled in
+                if !isEnabled {
+                    previewState.stop()
+                } else if previewSession?.mode == .simulated {
+                    updateResolvedSimulatedChargingEffect()
+                } else {
+                    startPreviewIfAllowed()
+                }
+            }
+            .onChange(of: resolvedSimulatedChargingEffectEligible) { isEligible in
+                previewState.setResolvedSimulatedChargingEffect(isEligible: isEligible, at: Date())
+            }
+            .onChange(of: scenario) { newScenario in
+                previewState.setScenario(newScenario)
+                if previewSession?.mode == .simulated {
+                    updateResolvedSimulatedChargingEffect()
+                } else if newScenario == .batteryCharging && store.showsChargingEffect {
+                    startPreviewIfAllowed()
+                }
+            }
+            .onChange(of: isLiveChargingActive) { isActive in
+                if isActive { previewState.stop() }
+            }
+            .onChange(of: reduceMotion) { isEnabled in
+                previewState.setReduceMotion(isEnabled)
+                if !isEnabled && store.showsChargingEffect && previewSession?.mode != .simulated {
+                    startPreviewIfAllowed()
+                }
+            }
+            .onDisappear {
+                previewState.setVisible(false)
+            }
+            .task(id: previewState.playback.startedAt) {
+                guard let startedAt = previewState.playback.startedAt else { return }
+                let elapsed = Date().timeIntervalSince(startedAt)
+                let remaining = max(0, ChargingEffectPreviewPlayback.duration - elapsed)
+                if remaining > 0 {
+                    try? await Task.sleep(for: .seconds(remaining))
+                }
+                guard !Task.isCancelled else { return }
+                previewState.stop()
+            }
+    }
+
+    @ViewBuilder
+    private var largeDesignerPreview: some View {
+        if previewState.playback.isPlaying {
+            TimelineView(.animation(
+                minimumInterval: 1 / Double(ChargingEffectTimeline.framesPerSecond),
+                paused: false
+            )) { timeline in
+                largeDesignerPreviewContent(playbackPhase: previewState.playback.phase(at: timeline.date))
+            }
+        } else {
+            largeDesignerPreviewContent(playbackPhase: nil)
+        }
+    }
+
+    private func largeDesignerPreviewContent(playbackPhase: ChargingEffectPhase?) -> some View {
+        let size = largeIconPointSize ?? IconDesignerLayout.minimumLargePreviewPointSize
+        let displayStatus = liveChargingPhase == nil && playbackPhase != nil
+            ? Self.chargingPreviewStatus(for: statusStore.snapshot)
+            : currentStatus
+        let output = displayedResolution(status: displayStatus)
+        let scene = output.scene
+        let identity = IconPreviewCenterIdentity.make(
+            configuration: store.iconConfiguration,
+            selectedBluetoothAddress: store.connectedBluetoothIconDeviceAddress
+        )
+        let phase = Self.largePreviewChargingPhase(
+            scenario: scenario,
+            livePhase: liveChargingPhase,
+            playbackPhase: playbackPhase
+        )
+        return VStack(spacing: 0) {
+            IconAnimatedCenterPreview(
+                scene: scene,
+                size: size,
+                appearance: NSAppearance(named: isDarkBackground ? .darkAqua : .aqua),
+                centerIdentity: identity,
+                chargingPhase: phase
+            )
+            .overlay {
+                ZStack {
+                    if let selectedSlot {
+                        IconDesignerSelectionPulseOverlay(
+                            slot: selectedSlot,
+                            volumeDisplayStyle: store.volumeIconOptions.displayStyle,
+                            size: size,
+                            lineWidth: max(3, size * 0.025)
+                        )
+                    }
+
+                    VStack(spacing: 0) {
+                        ForEach(IconDesignerPreviewHitRegion.allCases) { region in
+                            Button {
+                                onSelectSlot?(region.slot)
+                            } label: {
+                                Rectangle().fill(Color.clear).contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: size / 3)
+                            .accessibilityLabel(localization.string(slotTitleKey(region.slot)))
+                            .accessibilityIdentifier("iconDesigner.previewSlot.\(region.slot.rawValue)")
+                            .accessibilityAddTraits(selectedSlot == region.slot ? .isSelected : [])
+                        }
+                    }
+                }
+            }
+            appearanceToggle
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(MenuBarPreviewBackdrop(isDarkBackground: isDarkBackground, cornerRadius: 12))
+        .accessibilityIdentifier("iconDesigner.largeRealRendererPreview")
+    }
+
+    private var menuBarPreviewWithLifecycle: some View {
+        menuBarPreview
+            .onAppear {
+                previewState.setVisible(true)
+                previewState.setReduceMotion(reduceMotion)
+                previewState.setScenario(scenario)
+                if previewSession?.mode == .simulated {
+                    updateResolvedSimulatedChargingEffect()
+                } else if store.showsChargingEffect {
+                    startPreviewIfAllowed()
+                }
+            }
+            .onChange(of: store.showsChargingEffect) { isEnabled in
+                if !isEnabled {
+                    previewState.stop()
+                } else if previewSession?.mode == .simulated {
+                    updateResolvedSimulatedChargingEffect()
+                } else {
+                    startPreviewIfAllowed()
+                }
+            }
+            .onChange(of: resolvedSimulatedChargingEffectEligible) { isEligible in
+                previewState.setResolvedSimulatedChargingEffect(isEligible: isEligible, at: Date())
+            }
+            .onChange(of: scenario) { newScenario in
+                previewState.setScenario(newScenario)
+                if previewSession?.mode == .simulated {
+                    updateResolvedSimulatedChargingEffect()
+                } else if newScenario == .batteryCharging && store.showsChargingEffect {
+                    startPreviewIfAllowed()
+                }
+            }
+            .onChange(of: isLiveChargingActive) { isActive in
+                if isActive { previewState.stop() }
+            }
+            .onChange(of: reduceMotion) { isEnabled in
+                previewState.setReduceMotion(isEnabled)
+                if !isEnabled && store.showsChargingEffect && previewSession?.mode != .simulated {
+                    startPreviewIfAllowed()
+                }
+            }
+            .onDisappear {
+                previewState.setVisible(false)
+            }
+            .task(id: previewState.playback.startedAt) {
+                guard let startedAt = previewState.playback.startedAt else { return }
+                let elapsed = Date().timeIntervalSince(startedAt)
+                let remaining = max(0, ChargingEffectPreviewPlayback.duration - elapsed)
+                if remaining > 0 {
+                    try? await Task.sleep(for: .seconds(remaining))
+                }
+                guard !Task.isCancelled else { return }
+                previewState.stop()
+            }
+    }
+
+    /// Scrolls with the designer controls so the fixed header remains compact.
+    /// Resolution, explanation, and sample data all come from this card's inputs.
+    private var dockPreviewDetails: some View {
+        VStack(spacing: 8) {
+            previewGuidance
+            DockIconPreviewTile(
+                store: store,
+                statusStore: statusStore,
+                size: IconDesignerLayout.dockPreviewPointSize,
+                resolvedScene: displayedResolution(status: currentStatus).scene
+            )
+            .accessibilityIdentifier("iconDesigner.dockPreviewTile")
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityIdentifier("iconDesigner.dockPreviewDetails")
+    }
+
+    private var previewGuidance: some View {
+        VStack(alignment: .leading, spacing: 4) {
             Text(localization.string(.settingsPreviewHint))
                 .font(.system(size: 11))
                 .foregroundStyle(.tertiary)
             if showsResolutionExplanation { explanation }
         }
-        .onAppear {
-            previewState.setVisible(true)
-            previewState.setReduceMotion(reduceMotion)
-            previewState.setScenario(scenario)
-            if store.showsChargingEffect { startPreviewIfAllowed() }
-        }
-        .onChange(of: store.showsChargingEffect) { isEnabled in
-            if isEnabled {
-                startPreviewIfAllowed()
-            } else {
-                previewState.stop()
-            }
-        }
-        .onChange(of: scenario) { newScenario in
-            previewState.setScenario(newScenario)
-            if newScenario == .batteryCharging && store.showsChargingEffect {
-                startPreviewIfAllowed()
-            }
-        }
-        .onChange(of: isLiveChargingActive) { isActive in
-            if isActive { previewState.stop() }
-        }
-        .onChange(of: reduceMotion) { isEnabled in
-            previewState.setReduceMotion(isEnabled)
-            if !isEnabled && store.showsChargingEffect { startPreviewIfAllowed() }
-        }
-        .onDisappear {
-            previewState.setVisible(false)
-        }
-        .task(id: previewState.playback.startedAt) {
-            guard let startedAt = previewState.playback.startedAt else { return }
-            let elapsed = Date().timeIntervalSince(startedAt)
-            let remaining = max(0, ChargingEffectPreviewPlayback.duration - elapsed)
-            if remaining > 0 {
-                try? await Task.sleep(for: .seconds(remaining))
-            }
-            guard !Task.isCancelled else { return }
-            previewState.stop()
-        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -88,15 +321,44 @@ struct StatusIconPreviewCard: View {
     }
 
     private var designerResolution: IconResolutionOutput {
-        Self.resolveDesignerScene(
-            for: statusStore.snapshot.replacingBattery(currentStatus.battery),
-            bluetoothDevices: statusStore.bluetoothDevices.devices,
-            batteryLevels: statusStore.bluetoothDevices.batteryLevels,
-            batteryLevelsUpdatedAt: statusStore.bluetoothDevices.batteryLevelsUpdatedAt,
+        designerResolution(for: statusStore.snapshot)
+    }
+
+    private func designerResolution(for snapshot: StatusSnapshot) -> IconResolutionOutput {
+        if let previewSession {
+            let liveInputs = IconResolutionInputs(
+                system: IconPresentationResourceResolver.inputs(snapshot: snapshot),
+                sources: IconPresentationResourceResolver.sourceSnapshot(
+                    snapshot: snapshot,
+                    bluetoothDevices: bluetoothDevices.devices,
+                    batteryLevels: bluetoothDevices.batteryLevels,
+                    batteryLevelsUpdatedAt: bluetoothDevices.batteryLevelsUpdatedAt,
+                    selectedAirPodsAddress: store.airPodsIconDeviceAddress,
+                    selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress
+                )
+            )
+            let target = store.connectedBluetoothIconDeviceAddress.map {
+                IconDesignerBluetoothTarget.connectedDevice(address: BluetoothBatteryReader.normalizedAddress($0))
+            } ?? .currentAudioOutput
+            return IconDesignerPreviewResolver.resolve(
+                liveInputs: liveInputs,
+                configuration: store.iconConfiguration,
+                mode: previewSession.mode,
+                samples: previewSession.samples,
+                target: target,
+                now: Date()
+            )
+        }
+        return Self.resolveDesignerScene(
+            for: snapshot.replacingBattery(currentStatus.battery),
+            bluetoothDevices: bluetoothDevices.devices,
+            batteryLevels: bluetoothDevices.batteryLevels,
+            batteryLevelsUpdatedAt: bluetoothDevices.batteryLevelsUpdatedAt,
             selectedAirPodsAddress: store.airPodsIconDeviceAddress,
             selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress,
             configuration: store.iconConfiguration,
-            scenario: scenario
+            scenario: scenario,
+            customAirPodsSample: customAirPodsSample
         )
     }
 
@@ -110,7 +372,8 @@ struct StatusIconPreviewCard: View {
         selectedAirPodsAddress: String?,
         selectedConnectedDeviceAddress: String?,
         configuration: IconConfigurationV1,
-        scenario: IconPreviewScenario
+        scenario: IconPreviewScenario,
+        customAirPodsSample: CustomAirPodsPreviewSample = CustomAirPodsPreviewSample()
     ) -> IconResolutionOutput {
         resolveDesignerScene(
             for: snapshot.replacingBattery(status.battery),
@@ -120,7 +383,8 @@ struct StatusIconPreviewCard: View {
             selectedAirPodsAddress: selectedAirPodsAddress,
             selectedConnectedDeviceAddress: selectedConnectedDeviceAddress,
             configuration: configuration,
-            scenario: scenario
+            scenario: scenario,
+            customAirPodsSample: customAirPodsSample
         )
     }
 
@@ -133,7 +397,8 @@ struct StatusIconPreviewCard: View {
         selectedAirPodsAddress: String?,
         selectedConnectedDeviceAddress: String?,
         configuration: IconConfigurationV1,
-        scenario: IconPreviewScenario
+        scenario: IconPreviewScenario,
+        customAirPodsSample: CustomAirPodsPreviewSample = CustomAirPodsPreviewSample()
     ) -> IconResolutionOutput {
         let inputs = IconResolutionInputs(
             system: IconPresentationResourceResolver.inputs(snapshot: snapshot),
@@ -147,7 +412,8 @@ struct StatusIconPreviewCard: View {
             )
         )
         return IconDesignerPreviewResolver.resolve(
-            liveInputs: inputs, configuration: configuration, scenario: scenario
+            liveInputs: inputs, configuration: configuration, scenario: scenario,
+            customAirPodsSample: customAirPodsSample
         )
     }
 
@@ -168,17 +434,35 @@ struct StatusIconPreviewCard: View {
     }
 
     private var explanation: some View {
-        let entries = IconResolutionExplanation.entries(for: designerResolution.trace)
+        let permissionBlockedSlots = IconResolutionExplanation.permissionBlockedBluetoothFallbackSlots(
+            configuration: store.iconConfiguration,
+            trace: designerResolution.trace,
+            authorization: bluetoothDevices.authorization,
+            scenario: scenario
+        )
+        let entries = IconResolutionExplanation.entries(
+            for: designerResolution.trace,
+            permissionBlockedSlots: permissionBlockedSlots,
+            bluetoothAuthorization: bluetoothDevices.authorization
+        )
+        let selectedIndex = selectedSlot.flatMap { IconSlot.allCases.firstIndex(of: $0) }
+        let visibleEntries = selectedIndex.map { [entries[$0]] } ?? entries
+        let partialExplanation = selectedSlot == nil || selectedSlot == .outerRing
+            ? designerResolution.scene.outerRing?.isPartial == true
+                ? localization.string(.iconDesignerAirPodsPartialExplanation)
+                : nil
+            : nil
+
         return VStack(alignment: .leading, spacing: 2) {
-            ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
+            ForEach(Array(visibleEntries.enumerated()), id: \.offset) { _, entry in
                 let role = localization.string(entry.slotName)
                 let reason = entry.reasonKeys.map { localization.string($0) }.joined(separator: " · ")
-                Text(localization.format(.iconDesignerPreviewReasonFormat, role, reason))
-                    .accessibilityLabel(localization.format(.iconDesignerPreviewReasonFormat, role, reason))
-            }
-            if designerResolution.scene.outerRing?.isPartial == true {
-                Text(localization.string(.iconDesignerAirPodsPartialExplanation))
-                    .accessibilityLabel(localization.string(.iconDesignerAirPodsPartialExplanation))
+                let explanation = localization.format(.iconDesignerPreviewReasonFormat, role, reason)
+                let fullExplanation = [explanation, partialExplanation].compactMap { $0 }.joined(separator: " · ")
+                Text(fullExplanation)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .accessibilityLabel(fullExplanation)
             }
         }
         .font(.system(size: 10))
@@ -193,7 +477,7 @@ struct StatusIconPreviewCard: View {
     }
 
     private var liveChargingPhase: ChargingEffectPhase? {
-        guard scenario == .live else { return nil }
+        guard scenario == .live, previewSession?.mode != .simulated else { return nil }
         return Self.livePhase(
             battery: ChargingEffectTestMode.battery(
                 statusStore.snapshot.battery,
@@ -207,6 +491,31 @@ struct StatusIconPreviewCard: View {
 
     private var isLiveChargingActive: Bool {
         liveChargingPhase != nil
+    }
+
+    private var resolvedSimulatedChargingEffectEligible: Bool {
+        guard let previewSession else { return false }
+        return IconDesignerPreviewState.simulatedChargingEffectIsEligible(
+            mode: previewSession.mode,
+            animationEnabled: store.showsChargingEffect,
+            resolvedScene: displayedResolution(status: currentStatus).scene
+        )
+    }
+
+    private func updateResolvedSimulatedChargingEffect() {
+        previewState.setResolvedSimulatedChargingEffect(
+            isEligible: resolvedSimulatedChargingEffectEligible,
+            at: Date()
+        )
+    }
+
+    static func largePreviewChargingPhase(
+        scenario: IconPreviewScenario,
+        livePhase: ChargingEffectPhase?,
+        playbackPhase: ChargingEffectPhase?
+    ) -> ChargingEffectPhase? {
+        guard scenario == .live || scenario == .batteryCharging else { return nil }
+        return livePhase ?? playbackPhase
     }
 
     static func livePhase(
@@ -226,24 +535,16 @@ struct StatusIconPreviewCard: View {
     ) -> some View {
         MenuBarPreviewBar(
             status: status,
-            iconSize: store.iconSize,
+            iconSize: largeIconPointSize ?? store.iconSize,
             batteryOptions: store.batteryIconOptions,
             connectionOptions: store.connectionIconOptions,
             volumeOptions: store.volumeIconOptions,
             bluetoothAudioOptions: store.bluetoothAudioIconOptions,
             isDarkBackground: isDarkBackground,
+            selectedSlot: selectedSlot,
+            onSelectSlot: onSelectSlot,
             phase: phase,
-            resolvedScene: Self.resolveDisplayedPreviewScene(
-                status: status,
-                basedOn: statusStore.snapshot,
-                bluetoothDevices: statusStore.bluetoothDevices.devices,
-                batteryLevels: statusStore.bluetoothDevices.batteryLevels,
-                batteryLevelsUpdatedAt: statusStore.bluetoothDevices.batteryLevelsUpdatedAt,
-                selectedAirPodsAddress: store.airPodsIconDeviceAddress,
-                selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress,
-                configuration: store.iconConfiguration,
-                scenario: scenario
-            ).scene
+            resolvedScene: displayedResolution(status: status).scene
         ) {
             appearanceToggle
         }
@@ -258,6 +559,27 @@ struct StatusIconPreviewCard: View {
         guard !reduceMotion, !isLiveChargingActive,
               scenario == .live || scenario == .batteryCharging else { return }
         previewState.start(at: Date())
+    }
+
+
+    private func displayedResolution(status: MenuBarStatus) -> IconResolutionOutput {
+        if previewSession != nil { return designerResolution(for: statusStore.snapshot.replacingBattery(status.battery)) }
+        if scenario == .airPodsCustom {
+            // Keep the icon and its explanation on this exact resolved sample.
+            return designerResolution
+        }
+        return Self.resolveDisplayedPreviewScene(
+            status: status,
+            basedOn: statusStore.snapshot,
+            bluetoothDevices: bluetoothDevices.devices,
+            batteryLevels: bluetoothDevices.batteryLevels,
+            batteryLevelsUpdatedAt: bluetoothDevices.batteryLevelsUpdatedAt,
+            selectedAirPodsAddress: store.airPodsIconDeviceAddress,
+            selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress,
+            configuration: store.iconConfiguration,
+            scenario: scenario,
+            customAirPodsSample: customAirPodsSample
+        )
     }
 
     private var appearanceToggle: some View {

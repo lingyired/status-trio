@@ -292,9 +292,13 @@ final class SettingsStore: ObservableObject {
     }
 
     func resetIconConfiguration() {
+        resetIconConfiguration(to: .classic)
+    }
+
+    func resetIconConfiguration(to configuration: IconConfigurationV1) {
         canPersistIconConfiguration = true
         iconConfigurationLoadError = nil
-        iconConfiguration = .classic
+        iconConfiguration = configuration.normalized()
     }
 
     @Published var showsBluetoothBatteryLevels: Bool {
@@ -442,10 +446,12 @@ final class SettingsStore: ObservableObject {
         }
     }
     var wifiSymbolScale: Double {
-        get { iconConfiguration.behaviors.networkCenter.wifiScale }
+        get { iconConfiguration.appearance.center.symbolScale / CenterAppearance.classic.symbolScale }
         set {
             let value = Self.clampedWifiSymbolScale(newValue)
-            updateIconConfiguration { $0.behaviors.networkCenter.wifiScale = value }
+            updateIconConfiguration {
+                $0.appearance.center.symbolScale = value * CenterAppearance.classic.symbolScale
+            }
         }
     }
     var volumeDisplayStyle: VolumeDisplayStyle {
@@ -948,8 +954,9 @@ final class SettingsStore: ObservableObject {
         self.iconConfiguration = resolvedConfiguration
         self.iconConfigurationLoadError = configurationError
         self.canPersistIconConfiguration = shouldPersistConfiguration
-        if storedConfiguration == nil,
-           let data = try? IconConfigurationCodec.encode(resolvedConfiguration) {
+        if shouldPersistConfiguration,
+           let data = try? IconConfigurationCodec.encode(resolvedConfiguration),
+           data != storedConfiguration {
             defaults.set(data, forKey: Self.iconConfigurationDefaultsKey)
         }
         let appleMigration = AppleDeviceSettingsMigration.migrate(defaults: defaults)

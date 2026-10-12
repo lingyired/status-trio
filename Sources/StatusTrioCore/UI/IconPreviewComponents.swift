@@ -48,7 +48,12 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
     var phase: ChargingEffectPhase?
     var resolvedScene: IconSceneState?
     var highlightedPart: IconGuidePart?
+    var selectedSlot: IconSlot?
+    var onSelectSlot: ((IconSlot) -> Void)?
     var highlightOpacity: Double = 1
+    @EnvironmentObject private var localization: Localization
+
+    private var hasSlotTargets: Bool { onSelectSlot != nil }
     /// Rendered after `rightContext` inside the same `HStack`, so a caller's
     /// control takes part in the bar's standard 14 pt element spacing instead of
     /// needing a reserved trailing inset that its localized width cannot match.
@@ -75,6 +80,8 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         bluetoothAudioOptions: BluetoothAudioIconOptions = .standard,
         isDarkBackground: Bool = true,
         highlightedPart: IconGuidePart? = nil,
+        selectedSlot: IconSlot? = nil,
+        onSelectSlot: ((IconSlot) -> Void)? = nil,
         highlightOpacity: Double = 1,
         phase: ChargingEffectPhase? = nil,
         resolvedScene: IconSceneState? = nil,
@@ -88,6 +95,8 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         self.bluetoothAudioOptions = bluetoothAudioOptions
         self.isDarkBackground = isDarkBackground
         self.highlightedPart = highlightedPart
+        self.selectedSlot = selectedSlot
+        self.onSelectSlot = onSelectSlot
         self.highlightOpacity = highlightOpacity
         self.phase = phase
         self.resolvedScene = resolvedScene
@@ -113,19 +122,53 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
                         ),
                         phase: phase
                     ) ?? NSImage(size: NSSize(width: iconSize, height: iconSize)))
+                    .accessibilityHidden(true)
 
-                    if let highlightedPart {
+                    if let part = highlightedPart {
                         StatusIconPartHighlight(
-                            part: highlightedPart,
+                            part: part,
                             volumeDisplayStyle: volumeOptions.displayStyle,
                             lineWidth: max(2.5, iconSize * 0.075)
                         )
                         .frame(width: iconSize, height: iconSize)
                         .opacity(highlightOpacity)
                     }
+
+                    if onSelectSlot != nil, let selectedSlot {
+                        IconDesignerSelectionPulseOverlay(
+                            slot: selectedSlot,
+                            volumeDisplayStyle: volumeOptions.displayStyle,
+                            size: iconSize,
+                            lineWidth: max(2.5, iconSize * 0.075)
+                        )
+                    }
+
+                    if let onSelectSlot {
+                        VStack(spacing: 0) {
+                            ForEach(IconDesignerPreviewHitRegion.allCases) { region in
+                                Button {
+                                    onSelectSlot(region.slot)
+                                } label: {
+                                    Rectangle()
+                                        .fill(Color.clear)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .frame(
+                                    width: IconDesignerLayout.previewHitRegionWidth,
+                                    height: IconDesignerLayout.previewHitRegionHeight(forIconSize: iconSize)
+                                )
+                                .accessibilityLabel(localization.string(region.slot.localizationKey))
+                                .accessibilityIdentifier("iconDesigner.previewSlot.\(region.slot.rawValue)")
+                                .accessibilityAddTraits(selectedSlot == region.slot ? .isSelected : [])
+                            }
+                        }
+                    }
                 }
-                .frame(width: iconSize, height: iconSize)
-                .accessibilityHidden(true)
+                .frame(
+                    width: hasSlotTargets ? IconDesignerLayout.previewHitRegionWidth : iconSize,
+                    height: hasSlotTargets ? max(48, iconSize) : iconSize
+                )
 
                 rightContext
 
@@ -139,7 +182,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
             }
             .padding(.horizontal, 14)
         }
-        .frame(height: 40)
+        .frame(height: hasSlotTargets ? 48 : 40)
     }
 
     private var backdrop: some View {
@@ -185,6 +228,24 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
     }
 }
 
+private extension IconSlot {
+    var guidePart: IconGuidePart {
+        switch self {
+        case .outerRing: .battery
+        case .center: .network
+        case .footer: .volume
+        }
+    }
+
+    var localizationKey: LocalizationKey {
+        switch self {
+        case .outerRing: .iconDesignerSlotOuterRing
+        case .center: .iconDesignerSlotCenter
+        case .footer: .iconDesignerSlotFooter
+        }
+    }
+}
+
 /// A bar with no trailing accessory, for callers such as the icon guide that
 /// only simulate the menu bar itself.
 extension MenuBarPreviewBar where TrailingAccessory == EmptyView {
@@ -197,6 +258,8 @@ extension MenuBarPreviewBar where TrailingAccessory == EmptyView {
         bluetoothAudioOptions: BluetoothAudioIconOptions = .standard,
         isDarkBackground: Bool = true,
         highlightedPart: IconGuidePart? = nil,
+        selectedSlot: IconSlot? = nil,
+        onSelectSlot: ((IconSlot) -> Void)? = nil,
         highlightOpacity: Double = 1,
         phase: ChargingEffectPhase? = nil
     ) {
@@ -209,6 +272,8 @@ extension MenuBarPreviewBar where TrailingAccessory == EmptyView {
             bluetoothAudioOptions: bluetoothAudioOptions,
             isDarkBackground: isDarkBackground,
             highlightedPart: highlightedPart,
+            selectedSlot: selectedSlot,
+            onSelectSlot: onSelectSlot,
             highlightOpacity: highlightOpacity,
             phase: phase,
             trailingAccessory: { EmptyView() }
@@ -424,6 +489,7 @@ struct StatusIconPartHighlight: View {
     let part: IconGuidePart
     let volumeDisplayStyle: VolumeDisplayStyle
     var lineWidth: CGFloat
+    var tint: Color = .accentColor
 
     var body: some View {
         StatusIconPartShape(
@@ -431,7 +497,7 @@ struct StatusIconPartHighlight: View {
             volumeDisplayStyle: volumeDisplayStyle
         )
         .stroke(
-            Color.accentColor,
+            tint,
             style: StrokeStyle(
                 lineWidth: lineWidth,
                 lineCap: .round,
@@ -439,7 +505,7 @@ struct StatusIconPartHighlight: View {
             )
         )
         .shadow(
-            color: Color.accentColor.opacity(0.75),
+            color: tint.opacity(0.75),
             radius: lineWidth * 0.9
         )
         .allowsHitTesting(false)

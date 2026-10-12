@@ -64,13 +64,30 @@ struct RingAppearance: Codable, Equatable, Sendable {
 
 struct CenterAppearance: Codable, Equatable, Sendable {
     var symbolScale: Double
+    var effectiveSymbolScale: Double? = nil
+    var normalizedPercentageScale: Double? = nil
+    /// Explicit, source-independent visible-size percentage. Nil preserves legacy rendering.
+    var normalizedSizePercentage: Double? = nil
     var color: SlotColorStyle
 
     static let classic = Self(symbolScale: BluetoothAudioIconOptions.defaultSymbolScale, color: .automatic)
 
     func normalized() -> Self {
-        Self(
+        let normalizedEffectiveScale = effectiveSymbolScale.map { value in
+            value.isFinite ? min(6, max(0.5, value)) : BluetoothAudioIconOptions.defaultSymbolScale
+        }
+        let normalizedPercentageScale = normalizedPercentageScale.map { value in
+            value.isFinite
+                ? min(IconCenterSizingPolicy.legacyPersistedPercentageRange.upperBound,
+                      max(IconCenterSizingPolicy.legacyPersistedPercentageRange.lowerBound, value))
+                : 1
+        }
+        let normalizedSizePercentage = normalizedSizePercentage.map { IconCenterSizingPolicy.normalizedPercentage($0) }
+        return Self(
             symbolScale: symbolScale.isFinite ? min(3, max(1, symbolScale)) : Self.classic.symbolScale,
+            effectiveSymbolScale: normalizedEffectiveScale,
+            normalizedPercentageScale: normalizedPercentageScale,
+            normalizedSizePercentage: normalizedSizePercentage,
             color: color.normalized()
         )
     }
@@ -84,7 +101,7 @@ struct FooterAppearance: Codable, Equatable, Sendable {
 
     func normalized() -> Self {
         Self(
-            strokeScale: strokeScale.isFinite ? min(2.5, max(0.5, strokeScale)) : Self.classic.strokeScale,
+            strokeScale: strokeScale.isFinite ? min(IconStrokeSizingPolicy.persistedScaleRange.upperBound, max(IconStrokeSizingPolicy.persistedScaleRange.lowerBound, strokeScale)) : Self.classic.strokeScale,
             color: color.normalized()
         )
     }

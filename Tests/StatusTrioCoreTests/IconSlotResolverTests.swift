@@ -204,6 +204,125 @@ final class IconSlotResolverTests: XCTestCase {
         XCTAssertEqual(output.trace.center.selectedSourceID, CenterSource.pinnedBluetoothGlyph.rawValue)
     }
 
+    func testSpecifiedAudioDeviceUsesCustomSymbolAndNetworkFailureOverride() {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .connectedBluetoothDevice)
+        configuration.composition.centerOverride.networkProblemOverridesPrimary = true
+        configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = "airpods.pro"
+        let snapshot = StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .noInternet, rssi: -45),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Built-in")
+        )
+        let output = resolve(snapshot, configuration: configuration, sources: IconSourceSnapshot(
+            availability: [CenterSource.connectedBluetoothDevice.rawValue: .available],
+            connectedBluetoothDeviceSymbol: "headphones",
+            connectedBluetoothDeviceIsAudio: true
+        ))
+
+        XCTAssertEqual(output.trace.center.reason, .overridden(.networkProblem))
+        XCTAssertEqual(output.scene.center, .symbol(IconSymbolState(
+            source: .symbol(name: "wifi.exclamationmark", variableValue: 1, fallback: nil),
+            color: .primary,
+            scale: 1
+        )))
+    }
+
+    func testSpecifiedAudioDeviceUsesCustomGlyphAndSystemVolumeColorWhenNoNetworkError() {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .connectedBluetoothDevice)
+        configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = "airpods.pro"
+        configuration.behaviors.bluetoothAudioCenter.usesVolumeColor = true
+        let snapshot = StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -45),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Built-in")
+        )
+        let sources = IconSourceSnapshot(
+            availability: [CenterSource.connectedBluetoothDevice.rawValue: .available],
+            connectedBluetoothDeviceSymbol: "headphones",
+            connectedBluetoothDeviceIsAudio: true
+        )
+
+        let audible = resolve(snapshot, configuration: configuration, sources: sources)
+        XCTAssertEqual(audible.scene.center, .symbol(IconSymbolState(
+            source: .symbol(name: "airpods.pro", variableValue: nil, fallback: BluetoothDeviceRowIcon.genericSymbol),
+            color: .bluetooth,
+            scale: configuration.behaviors.bluetoothAudioCenter.symbolScale
+        )))
+
+        let mutedSnapshot = StatusSnapshot(
+            battery: snapshot.battery, wifi: snapshot.wifi, connection: snapshot.connection,
+            volume: VolumeStatus(scalar: 0.5, isMuted: true, deviceName: "Built-in")
+        )
+        let muted = resolve(mutedSnapshot, configuration: configuration, sources: sources)
+        XCTAssertEqual(muted.scene.center, .symbol(IconSymbolState(
+            source: .symbol(name: "airpods.pro", variableValue: nil, fallback: BluetoothDeviceRowIcon.genericSymbol),
+            color: .primary,
+            scale: configuration.behaviors.bluetoothAudioCenter.symbolScale
+        )))
+    }
+
+    func testNonAudioConnectedDeviceDoesNotReceiveAudioOverrideOrVolumeColor() {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .connectedBluetoothDevice)
+        configuration.composition.centerOverride.networkProblemOverridesPrimary = true
+        configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = "airpods.pro"
+        let snapshot = StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .noInternet, rssi: -45),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Built-in")
+        )
+        let sources = IconSourceSnapshot(
+            availability: [CenterSource.connectedBluetoothDevice.rawValue: .available],
+            connectedBluetoothDeviceSymbol: "keyboard",
+            connectedBluetoothDeviceIsAudio: false
+        )
+
+        var uncolored = resolve(snapshot, configuration: configuration, sources: sources)
+        XCTAssertEqual(uncolored.trace.center.reason, .primary)
+        XCTAssertEqual(uncolored.scene.center, .symbol(IconSymbolState(
+            source: .symbol(name: "keyboard", variableValue: nil, fallback: BluetoothDeviceRowIcon.genericSymbol),
+            color: .bluetooth,
+            scale: configuration.behaviors.bluetoothAudioCenter.symbolScale
+        )))
+
+        configuration.behaviors.bluetoothAudioCenter.usesVolumeColor = true
+        let volumeColoredSetting = resolve(snapshot, configuration: configuration, sources: sources)
+        XCTAssertEqual(volumeColoredSetting.scene.center, uncolored.scene.center)
+
+        let muted = StatusSnapshot(
+            battery: snapshot.battery, wifi: snapshot.wifi, connection: snapshot.connection,
+            volume: VolumeStatus(scalar: 0.5, isMuted: true, deviceName: "Built-in")
+        )
+        let mutedOutput = resolve(muted, configuration: configuration, sources: sources)
+        XCTAssertEqual(mutedOutput.scene.center, uncolored.scene.center)
+        // Keep the mutable binding explicit: these comparisons pin non-audio
+        // semantics against both system-volume states and the preference toggle.
+        uncolored = volumeColoredSetting
+        XCTAssertEqual(uncolored.scene.center, mutedOutput.scene.center)
+    }
+
+    func testUnavailableSpecifiedAudioDeviceUsesConfiguredFallback() {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .connectedBluetoothDevice, fallback: .network)
+        let snapshot = StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -40),
+            connection: .wifi,
+            volume: .placeholder
+        )
+        let output = resolve(snapshot, configuration: configuration, sources: IconSourceSnapshot(
+            availability: [CenterSource.connectedBluetoothDevice.rawValue: .unavailable(.disconnected)]
+        ))
+
+        XCTAssertEqual(output.trace.center.role, .fallback)
+        XCTAssertEqual(output.trace.center.selectedSourceID, CenterSource.network.rawValue)
+    }
+
     func testExplicitNetworkSourceDoesNotUseLegacyBatteryPercentagePrecedence() {
         var configuration = IconConfigurationV1.classic
         configuration.composition.center = SlotSelection(primary: .network)

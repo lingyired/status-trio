@@ -57,11 +57,13 @@
 "settings.menuBar.title" = "Menüleistensymbol";
 "settings.network.connectionIcons" = "Stil der Verbindungssymbole";
 "settings.network.connectionIcons.description" = "Wenn aktiviert, verwendet der ausgewählte Status das standardmäßige WLAN-Signal-Symbol anstelle seiner speziellen Markierung.";
+"settings.network.designerEntry" = "Netzwerkquelle im Icon-Designer anpassen";
 "settings.network.wifiIconForEthernet" = "WLAN-Symbol für Ethernet verwenden";
 "settings.network.wifiIconForHotspot" = "WLAN-Symbol für persönlichen Hotspot verwenden";
 "settings.network.wifiIconForTemporaryConnection" = "WLAN-Symbol für temporäre Verbindung verwenden";
 "settings.network.wifiIconForInternetSharing" = "WLAN-Symbol für Internetfreigabe verwenden";
 "settings.bluetooth.title" = "Bluetooth-Audio";
+"settings.bluetooth.designerEntry" = "Bluetooth-Quelle im Icon-Designer anpassen";
 "settings.bluetooth.replaceNetworkIcon" = "Netzwerksymbol durch ein Bluetooth-Gerätesymbol ersetzen";
 "settings.bluetooth.replaceNetworkIconDescription" = "Ersetzt das WLAN-Symbol durch das blaue Symbol des gewählten Bluetooth-Geräts.";
 "settings.bluetooth.networkIconSourceGroup" = "Bluetooth-Gerätesymbol verwenden";
@@ -114,6 +116,9 @@
 "settings.about.starOnGitHub" = "Auf GitHub markieren";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Batterieanzeige";
+"settings.battery.designerEntry" = "Batteriequelle im Icon-Designer anpassen";
+"settings.battery.macBehaviorDescription" = "Diese Optionen gelten für die Mac-Batterie, wenn sie als Quelle verwendet wird. Sie ersetzen nicht die ausgewählte AirPods-Quelle für den äußeren Ring.";
+"settings.battery.macBehavior" = "Mac-Batterieverhalten";
 "settings.battery.showPercentage" = "Batterieprozentsatz anzeigen";
 "settings.battery.showPercentageInConnectionSlot" = "Batterieprozentsatz an der Verbindungsposition anzeigen";
 "settings.battery.showPercentageInConnectionSlotDescription" = "Ersetzt das WLAN- oder Verbindungssymbol und ist unabhängig von der oberen Batterieanzeige.";
@@ -328,6 +333,7 @@
 "settings.preview.light" = "Hell";
 "settings.preview.toggleHelp" = "Menüleistenvorschau zwischen dunkel und hell umschalten";
 "settings.audio.displayRules" = "Anzeigeregeln";
+"settings.audio.designerEntry" = "Audioquelle im Icon-Designer anpassen";
 "settings.audio.activeDeviceFootnote" = "Das aktive Audioausgabegerät wird in der Akzentfarbe hervorgehoben.";
 "settings.audio.inUse" = "In Verwendung";
 "settings.wifi.symbolScale" = "WLAN-Symbolgröße";
@@ -467,6 +473,7 @@
 "icon.designer.swapPrimaryFallback" = "Primäre und Ersatzquelle tauschen";
 "icon.designer.currentSourceUnavailableFormat" = "Aktuelle Quelle (in dieser Version nicht verfügbar): %@";
 "icon.designer.compatible" = "Mit den aktuellen Einstellungen kompatibel";
+"icon.designer.legacySourcePreserved" = "Die bisherige Anzeigeregel bleibt erhalten, bis du eine neue Quelle auswählst.";
 
 
 
@@ -482,7 +489,8 @@
 "iconDesigner.control.showPercentageWhileConnected" = "Prozent bei Verbindung anzeigen";
 "iconDesigner.control.previewChargingAnimation" = "Ladeanimation ansehen";
 "iconDesigner.control.criticalThreshold" = "Kritischer Schwellenwert";
-"iconDesigner.control.textScale" = "Textgröße";
+"iconDesigner.control.textScale" = "Größe der oberen Batterieanzeige";
+"iconDesigner.control.textScale.help" = "Passt die Größe der Akkuanzeige oben am Außenring, des Ladeblitzes und des Steckers an.";
 "iconDesigner.control.noEditableBehavior" = "Für diese Quelle ist noch kein Verhalten bearbeitbar.";
 "iconDesigner.control.wifiForEthernet" = "WLAN-Symbol für Ethernet";
 "iconDesigner.control.wifiForHotspot" = "WLAN-Symbol für Hotspot";
@@ -536,6 +544,74 @@
 "icon.designer.airPods.ring.single" = "Einzelring";
 "icon.designer.airPods.ring.dual" = "Linker/rechter Doppelring";
 "icon.designer.airPods.singleExplanation" = "Einzelring: zuerst den Hauptwert verwenden, sonst den Mittelwert beider Ohrhörer oder den verfügbaren Ohrhörer anzeigen. Nur der Case-Wert ist nicht verfügbar.";
-"icon.designer.airPods.dualExplanation" = "Doppelring: linker und rechter Ohrhörer erscheinen in festen Bögen. Fehlt ein Ohrhörer, wird nur der bekannte angezeigt; das Case ersetzt keinen Ohrhörer.";
-"icon.designer.airPods.partialExplanation" = "Ein Ohrhörer ist nicht verfügbar; nur der verfügbare wird angezeigt.";
+"icon.designer.airPods.dualExplanation" = "Doppelring: Linker und rechter Ohrhörer haben feste Bögen. Sind nur für einen Ohrhörer Akkudaten verfügbar, zeigen beide Bögen diesen Wert in ihren ursprünglichen Farben; das Case ersetzt keinen Ohrhörer.";
+"icon.designer.airPods.partialExplanation" = "Nur für einen Ohrhörer sind Akkudaten verfügbar; beide Bögen zeigen diesen Wert in ihren ursprünglichen Farben.";
 "icon.designer.airPods.focusPreset" = "AirPods-Fokus";
+"icon.preview.scenario.airPodsCustom" = "Eigener AirPods-Akku";
+"icon.designer.airPods.test.title" = "AirPods-Testakku";
+"icon.designer.airPods.test.simulatedData" = "Simulierte Daten · nur Vorschau in den Einstellungen; Menüleiste und Dock zeigen weiterhin Live-Daten.";
+"icon.designer.airPods.test.leftAvailable" = "Akkudaten für den linken Ohrhörer verfügbar";
+"icon.designer.airPods.test.rightAvailable" = "Akkudaten für den rechten Ohrhörer verfügbar";
+"icon.designer.airPods.test.leftBattery" = "Akku des linken Ohrhörers";
+"icon.designer.airPods.test.rightBattery" = "Akku des rechten Ohrhörers";
+"icon.designer.airPods.test.both" = "Beide Ohrhörer";
+"icon.designer.airPods.test.leftOnly" = "Nur links";
+"icon.designer.airPods.test.rightOnly" = "Nur rechts";
+"icon.designer.airPods.test.unavailable" = "Keine Akkudaten";
+
+"iconPreviewData.edit" = "Beispieldaten bearbeiten …";
+
+"iconPreviewData.simulatedNotice" = "Die Beispielwerte unten gelten nur für diese Vorschau und bleiben beim Wechsel zu Live-Daten erhalten.";
+"iconPreviewData.liveNotice" = "Live-Status ist schreibgeschützt. Wechsle zur Simulation, um Beispiele zu bearbeiten.";
+"iconPreviewData.title" = "Vorschaudaten";
+"iconPreviewData.modeSelector" = "Vorschaumodus";
+"iconPreviewData.mode.liveShort" = "Live-Daten";
+"iconPreviewData.mode.simulatedShort" = "Simulation";
+"iconPreviewData.quickFill" = "Schnellauswahl";
+"iconPreviewData.network.connectionState" = "Verbindungsstatus";
+"iconPreviewData.systemVolume.source" = "Systemlautstärke";
+"iconPreviewData.live.notMuted" = "Nicht stummgeschaltet";
+"iconPreviewData.battery.notCharging" = "Lädt nicht";
+"iconPreviewData.macBattery.percentage" = "Batteriestand";
+"iconPreviewData.systemVolume.percentage" = "Lautstärke";
+"iconPreviewData.source.macBattery" = "Mac-Batterie";
+"iconPreviewData.source.airPodsBattery" = "AirPods-Batterie";
+"iconPreviewData.source.bluetoothDevices" = "Bluetooth-Geräte";
+"iconPreviewData.network.ethernetConnected" = "Ethernet verbunden";
+"iconPreviewData.mode.live" = "Live-Daten aktiv";
+"iconPreviewData.mode.simulated" = "Simulationsdaten aktiv — nur Vorschau";
+"iconPreviewData.useSimulatedData" = "Simulationsdaten verwenden…";
+"iconPreviewData.editData" = "Vorschaudaten bearbeiten…";
+"iconPreviewData.macBatteryPresent" = "Mac-Batterie vorhanden";
+"iconPreviewData.bluetoothTargetOnline" = "Bluetooth-Zielgerät online";
+"iconPreviewData.bluetoothTargetAudio" = "Ziel ist ein Audiogerät";
+"iconPreviewData.bluetoothSampleSymbol" = "Beispielsymbol des Geräts";
+"iconPreviewData.volumeAvailable" = "Lautstärkedaten verfügbar";
+"icon.designer.undo" = "Widerrufen";
+"icon.designer.externalChangeNotice" = "Der Verlauf wurde gelöscht, weil die Symboleinstellungen an anderer Stelle geändert wurden.";
+"iconPreviewData.useLiveData" = "Live-Daten verwenden";
+"icon.designer.moreActions" = "Weitere Aktionen";
+
+/* Source-aware center color roles */
+"iconDesigner.centerColorMeaning.networkPrimary" = "Netzwerksymbol";
+"iconDesigner.centerColorMeaning.wifiZeroBars" = "WLAN-Signal mit 0 Balken";
+"iconDesigner.centerColorMeaning.bluetoothGlyph" = "Bluetooth-Symbol";
+"iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "Lautstärke über null";
+"iconDesigner.centerColorMeaning.bluetoothMutedZeroOrUnavailable" = "Stumm oder keine Lautstärke";
+"iconDesigner.centerColorMeaning.batteryPercentage" = "Mac-Batterieprozentsatz";
+"iconDesigner.centerColorMeaning.legacyPrimary" = "Altes Mittensymbol";
+"iconDesigner.centerColorMeaning.legacyWiFiZeroBars" = "WLAN-Signal mit 0 Balken";
+"iconDesigner.centerColorMeaning.legacyBluetoothGlyph" = "Bluetooth-Symbol";
+"iconDesigner.centerColorContext.fallbackFormat" = "Fallback: %@";
+"iconDesigner.centerColorContext.networkOverrideFormat" = "Netzwerkvorrang: %@";
+
+"iconDesigner.centerColor.rolePicker" = "Farbe gilt für";
+"iconDesigner.centerColorHelp.networkPrimary" = "Für das übliche Netzwerksymbol, etwa bei ausgeschaltetem WLAN, ohne Verbindung, ohne Internet oder bei einer Kabelverbindung.";
+"iconDesigner.centerColorHelp.wifiZeroBars" = "Für verbundenes WLAN ohne Signalbalken. Wird auch verwendet, wenn die Signalstärke nicht verfügbar ist.";
+"iconDesigner.centerColorHelp.bluetoothGlyph" = "Wird immer für das Bluetooth-Symbol verwendet, unabhängig von der Lautstärke.";
+"iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "Bei aktivierter Lautstärkefarbe, wenn der Ton nicht stummgeschaltet und die Lautstärke größer als null ist.";
+"iconDesigner.centerColorHelp.bluetoothMutedZeroOrUnavailable" = "Bei aktivierter Lautstärkefarbe, wenn der Ton stumm, die Lautstärke null oder nicht verfügbar ist.";
+"iconDesigner.centerColorHelp.batteryPercentage" = "Für den Mac-Batteriestand, der in der Mitte angezeigt wird.";
+"iconDesigner.centerColorHelp.legacyPrimary" = "Für das übliche Netzwerksymbol oder den Mac-Batteriestand im alten Zentrum.";
+"iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "Für verbundenes WLAN ohne Signalbalken im alten Zentrum.";
+"iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "Für das Bluetooth-Symbol im alten Zentrum.";
