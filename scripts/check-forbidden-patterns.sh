@@ -247,8 +247,11 @@ has_func_declaration() {
 is_forwarded_closure() {
     local name="$1" path="$2"
     [[ -f "$path" ]] || return 1
+    # Do not use grep -q here: with pipefail, its early exit can SIGPIPE sed
+    # when a matching declaration is followed by enough source to fill the
+    # pipe, making a successful match look like a miss.
     sed -E 's://.*::' "$path" \
-        | grep -qE "(^|[^A-Za-z0-9_.])(let|var)[[:space:]]+${name}[[:space:]]*:[^=]*->|(^|[^A-Za-z0-9_.])[A-Za-z_][A-Za-z0-9_]*[[:space:]]+${name}[[:space:]]*:[^=]*->"
+        | grep -E "(^|[^A-Za-z0-9_.])(let|var)[[:space:]]+${name}[[:space:]]*:[^=]*->|(^|[^A-Za-z0-9_.])[A-Za-z_][A-Za-z0-9_]*[[:space:]]+${name}[[:space:]]*:[^=]*->" >/dev/null
 }
 
 is_allowlisted() {
@@ -763,6 +766,40 @@ SWIFT
     echo "self-test: ${violations}/${expected_violations} violations detected"
     if [[ "$violations" != "$expected_violations" ]]; then
         echo "  expected ${expected_violations} synthetic methods to be flagged, got ${violations}" >&2
+        failed=1
+    fi
+
+    # 8. A forwarded callback near the start of a source file must remain safe
+    #    even when grep exits early and the declaration lookup has more than a
+    #    pipe buffer of input left to consume. Under `set -o pipefail`, grep -q
+    #    used to make sed receive SIGPIPE and turn the safe match into a miss.
+    local large_root="$tmp/large-forwarded-closure"
+    mkdir -p "$large_root/Sources"
+    cat >"$large_root/Sources/LargeForwardedClosure.swift" <<'SWIFT'
+func read() {}
+
+func consume(using read: () -> Void) {
+    Consumer(using: read)
+}
+SWIFT
+    # Keep more than a megabyte in the post-sed stream too; comment bodies are
+    # stripped by the matcher, leaving only one newline per comment line.
+    printf 'let padding = "%1048576s"\n' '' \
+        >>"$large_root/Sources/LargeForwardedClosure.swift"
+    for (( i = 0; i < 20000; i++ )); do
+        printf '// padding to exceed the pipe buffer: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\n' \
+            >>"$large_root/Sources/LargeForwardedClosure.swift"
+    done
+    local forwarded_report
+    MODE="list"
+    forwarded_report="$(report "$large_root" 2>/dev/null)" || true
+    MODE="self-test"
+    if ! grep -qE '^.*/LargeForwardedClosure\.swift:[0-9]+:external:read$' <<<"$forwarded_report"; then
+        echo "  large forwarded closure fixture did not remain external" >&2
+        failed=1
+    fi
+    if grep -qE '^.*/LargeForwardedClosure\.swift:[0-9]+:violation:read$' <<<"$forwarded_report"; then
+        echo "  large forwarded closure fixture was misclassified as a violation" >&2
         failed=1
     fi
 

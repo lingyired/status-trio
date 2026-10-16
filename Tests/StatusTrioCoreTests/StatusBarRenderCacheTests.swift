@@ -51,6 +51,24 @@ final class StatusBarRenderCacheTests: XCTestCase {
         XCTAssertTrue(cache.needsRender(makeKey(scene: otherScene, phase: steadyFrame)))
     }
 
+    /// The menu bar hands a monochrome scene to the system as a template image
+    /// and keeps a custom raster for a status-colour scene (issue #112). The
+    /// render key already carries the scene, so moving between the two must
+    /// always redraw instead of reusing the wrong bitmap.
+    func testTemplateAndStatusColourScenesDoNotShareACachedRaster() {
+        var cache = StatusBarRenderCache()
+        let monochrome = makeScene()
+        let chromatic = makeScene(snapshot: pluggedInSnapshot())
+
+        XCTAssertTrue(monochrome.usesOnlyMonochromeRoles)
+        XCTAssertFalse(chromatic.usesOnlyMonochromeRoles)
+        XCTAssertNotEqual(monochrome, chromatic)
+
+        cache.recordSuccessfulRender(makeKey(scene: monochrome))
+        XCTAssertTrue(cache.needsRender(makeKey(scene: chromatic)))
+        XCTAssertFalse(cache.needsRender(makeKey(scene: monochrome)))
+    }
+
     func testOutputDeviceMetadataDoesNotChangeScene() {
         let first = StatusSnapshot(
             battery: .placeholder,
@@ -186,6 +204,21 @@ final class StatusBarRenderCacheTests: XCTestCase {
             uid: uid,
             isCurrent: id == 1,
             volume: 0.5
+        )
+    }
+
+    private func pluggedInSnapshot() -> StatusSnapshot {
+        StatusSnapshot(
+            battery: BatteryStatus(
+                rawPercentage: 80,
+                isPresent: true,
+                isCharging: false,
+                isLowPowerMode: false,
+                isConnectedToPower: true
+            ),
+            wifi: WiFiStatus(state: .connected, rssi: -61),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output")
         )
     }
 }

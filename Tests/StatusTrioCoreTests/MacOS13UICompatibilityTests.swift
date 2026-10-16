@@ -157,9 +157,11 @@ final class MacOS13UICompatibilityTests: XCTestCase {
     ///
     /// The audio and paired-device tables resolve their rows at runtime, so the
     /// newer names live inside candidate lists that end on a symbol Ventura
-    /// ships. `left`, `right`, `headset` and `microphone` are parse and class
-    /// values, never drawn. `translate` is the one row the resolver still
-    /// downgrades, to `character.bubble`.
+    /// ships, or in the Bluetooth picker where AppKit availability filtering
+    /// hides unsupported choices. `left`, `right`, and `microphone` are parse
+    /// and class values, never drawn. `headset` is also a picker choice when
+    /// available. `translate` is the one row the resolver still downgrades, to
+    /// `character.bubble`.
     private static let auditedPostVenturaSymbols: Set<String> = [
         "airpods.gen4",
         "airpods.max",
@@ -175,6 +177,7 @@ final class MacOS13UICompatibilityTests: XCTestCase {
         "beats.solobuds",
         "beats.studiobuds.plus",
         "flask.fill",
+        "headphones.over.ear",
         "headset",
         "homepod.mini",
         "left",

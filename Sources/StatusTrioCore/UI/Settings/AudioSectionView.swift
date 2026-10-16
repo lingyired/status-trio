@@ -3,6 +3,7 @@ import SwiftUI
 struct AudioSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
+    var inputSourceController: InputSourceController? = nil
     @Binding var previewIsDark: Bool
     var onOpenIconDesigner: (IconSlot) -> Void = { _ in }
     @EnvironmentObject private var localization: Localization
@@ -13,6 +14,7 @@ struct AudioSectionView: View {
                 store: store,
                 statusStore: statusStore,
                 isDarkBackground: $previewIsDark,
+                inputSourceController: inputSourceController,
                 content: .menuBarOnly
             )
         }) {

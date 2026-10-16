@@ -6,10 +6,15 @@ private enum PopoverPanel {
     case battery
     case wifi(showDetails: Bool)
     case ethernet
+    case inputSource
 }
 
 struct StatusPopoverView: View {
     @ObservedObject var panel: StatusPanelViewModel
+    /// Observed so the Low Power Mode control appears the moment the helper is
+    /// approved — reading `.isReady` off the shared manager without observing
+    /// it left the control invisible until the popover was recreated.
+    @ObservedObject private var helper: PrivilegedHelperManager = .shared
     let scrollTargets: PopoverScrollTargets
     @EnvironmentObject private var localization: Localization
     let requestWiFiNameAccess: () -> Void
@@ -17,11 +22,13 @@ struct StatusPopoverView: View {
     let openBatterySettings: () -> Void
     let openWiFiSettings: () -> Void
     let openNetworkSettings: () -> Void
+    let openSharingSettings: () -> Void
     let openLocationSettings: () -> Void
     let openBluetoothSettings: () -> Void
     let openBluetoothPermissionSettings: () -> Void
     let openSettings: () -> Void
     let openSoundSettings: () -> Void
+    let openKeyboardSettings: () -> Void
     let quit: () -> Void
     @State private var currentPanel: PopoverPanel = .summary
 
@@ -39,7 +46,10 @@ struct StatusPopoverView: View {
                     },
                     onOpenBatterySettings: openBatterySettings,
                     onCopyValue: { copyValue($0) },
-                    onAppear: { panel.actions.batteryDetailsAppeared() }
+                    onAppear: { panel.actions.batteryDetailsAppeared() },
+                    lowPowerMode: panel.store.lowPowerMode,
+                    showsLowPowerControl: panel.settings.controlsLowPowerMode
+                        && helper.isReady
                 )
             case .wifi(let showDetails):
                 WiFiNetworkListView(
@@ -53,6 +63,7 @@ struct StatusPopoverView: View {
                     onOpenLocationSettings: openLocationSettings,
                     onSetPower: { panel.actions.setWiFiPower($0) },
                     onRefresh: { panel.actions.refreshWiFi() },
+                    onOpenSharingSettings: openSharingSettings,
                     onCopyValue: { copyValue($0) },
                     showsDetailsInitially: showDetails
                 )
@@ -64,7 +75,15 @@ struct StatusPopoverView: View {
                         currentPanel = .summary
                     },
                     onOpenNetworkSettings: openNetworkSettings,
+                    onOpenSharingSettings: openSharingSettings,
                     onCopyValue: { copyValue($0) }
+                )
+            case .inputSource:
+                InputSourceListView(
+                    state: panel.inputSource,
+                    onBack: { currentPanel = .summary },
+                    onSelect: { panel.actions.selectInputSource($0) },
+                    onOpenKeyboardSettings: openKeyboardSettings
                 )
             }
         }
@@ -102,7 +121,10 @@ struct StatusPopoverView: View {
                 onOpenBatteryDetails: {
                     currentPanel = .battery
                 },
-                onOpenBatterySettings: openBatterySettings
+                onOpenBatterySettings: openBatterySettings,
+                lowPowerMode: panel.store.lowPowerMode,
+                showsLowPowerToggle: panel.settings.controlsLowPowerMode
+                    && helper.isReady
             )
         case .network:
             NetworkStatusView(
@@ -141,14 +163,19 @@ struct StatusPopoverView: View {
             VolumeControlsView(
                 state: panel.volume,
                 actions: panel.actions,
-                scrollTargets: scrollTargets,
-                onOpenSoundSettings: openSoundSettings
+                scrollTargets: scrollTargets
             )
         case .audioInput:
             AudioInputControlsView(
                 state: panel.audioInput,
                 actions: panel.actions,
                 onOpenSoundSettings: openSoundSettings
+            )
+        case .inputSource:
+            InputSourceStatusView(
+                state: panel.inputSource,
+                onOpen: { currentPanel = .inputSource },
+                onOpenKeyboardSettings: openKeyboardSettings
             )
         }
     }

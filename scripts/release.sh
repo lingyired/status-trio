@@ -40,6 +40,7 @@ TAG="${TAG:-v$VERSION}"
 PUBLISH="${PUBLISH:-true}"
 NOTARIZE="${NOTARIZE:-false}"
 UNIVERSAL_BUILD="${UNIVERSAL_BUILD:-1}"
+PRIVILEGED_HELPER="${PRIVILEGED_HELPER:-1}"
 OUTPUT_DIR="${OUTPUT_DIR:-$ROOT/dist}"
 SU_FEED_URL="${SU_FEED_URL:-https://raw.githubusercontent.com/$RELEASE_REPO/$RELEASE_BRANCH/$APPCAST_FILE}"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
@@ -171,6 +172,7 @@ env -u GH_TOKEN -u SPARKLE_PRIVATE_KEY \
     BUILD_NUMBER="$BUILD" \
     SU_FEED_URL="$SU_FEED_URL" \
     UNIVERSAL_BUILD="$UNIVERSAL_BUILD" \
+    PRIVILEGED_HELPER="$PRIVILEGED_HELPER" \
     TELEMETRY_PRODUCTION=1 \
     BUNDLE_ID="$BUNDLE_ID" \
     APP_NAME="$APP_NAME" \
@@ -181,6 +183,7 @@ env -u GH_TOKEN -u SPARKLE_PRIVATE_KEY \
 APP_DIR="$ROOT/dist/StatusTrio.app"
 bash "$ROOT/scripts/verify-platform-version.sh" "$APP_DIR/Contents/MacOS/StatusTrio" "$MINIMUM_SYSTEM_VERSION" 26
 UNIVERSAL_BUILD="$UNIVERSAL_BUILD" bash "$ROOT/scripts/verify-mobile-battery-bundle.sh" "$APP_DIR"
+UNIVERSAL_BUILD="$UNIVERSAL_BUILD" bash "$ROOT/scripts/verify-privileged-helper-bundle.sh" "$APP_DIR"
 bash "$ROOT/scripts/test-macos13-sparkle-metadata.sh" "$APP_DIR"
 
 STAGING_DIR="$TEMP_ROOT/dmg"

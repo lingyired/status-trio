@@ -368,8 +368,9 @@ final class WiFiClassifierTests: XCTestCase {
     }
 
     func testRSSINormalization() async {
+        let clock = ManualWiFiClock(now: Date(timeIntervalSinceReferenceDate: 3_000))
         let reader = FakeWiFiSystemReader(result: nil)
-        let monitor = makeMonitor(reader: reader)
+        let monitor = makeMonitor(reader: reader, clock: clock)
         var iterator = monitor.updates.makeAsyncIterator()
         let cases: [(input: Int?, expected: Int?)] = [
             (0, nil),
@@ -378,11 +379,152 @@ final class WiFiClassifierTests: XCTestCase {
         ]
 
         for testCase in cases {
+            // Advance past the RSSI cache window so a valid reading from a
+            // previous case cannot bridge into the next one.
+            clock.advance(by: 31)
             reader.result = makeReading(rssi: testCase.input)
             monitor.refresh()
             let status = await iterator.next()
             XCTAssertEqual(status?.rssi, testCase.expected)
         }
+    }
+
+    func testTransientInvalidRSSIReusesTheLastKnownReadingWithinTheCacheWindow() async {
+        let clock = ManualWiFiClock(now: Date(timeIntervalSinceReferenceDate: 5_000))
+        let reader = FakeWiFiSystemReader(result: makeReading(mode: .station, rssi: -52))
+        let monitor = makeMonitor(reader: reader, clock: clock)
+        var iterator = monitor.updates.makeAsyncIterator()
+
+        monitor.refresh()
+        let known = await iterator.next()
+
+        // Still associated, but the interface momentarily reports an invalid RSSI.
+        reader.result = makeReading(mode: .station, rssi: 0)
+        clock.advance(by: 10)
+        monitor.refresh()
+        let bridged = await iterator.next()
+
+        XCTAssertEqual(known, WiFiStatus(state: .connected, rssi: -52))
+        XCTAssertEqual(bridged, WiFiStatus(state: .connected, rssi: -52))
+    }
+
+    func testInvalidRSSIStopsReusingOnceTheCacheWindowExpires() async {
+        let clock = ManualWiFiClock(now: Date(timeIntervalSinceReferenceDate: 5_000))
+        let reader = FakeWiFiSystemReader(result: makeReading(mode: .station, rssi: -52))
+        let monitor = makeMonitor(reader: reader, rssiCacheInterval: 30, clock: clock)
+        var iterator = monitor.updates.makeAsyncIterator()
+
+        monitor.refresh()
+        _ = await iterator.next()
+
+        reader.result = makeReading(mode: .station, rssi: 0)
+        clock.advance(by: 30.001)
+        monitor.refresh()
+        let expired = await iterator.next()
+
+        XCTAssertEqual(expired, WiFiStatus(state: .connected, rssi: nil))
+    }
+
+    func testReusingTheCachedRSSIDoesNotExtendItsWindow() async {
+        let clock = ManualWiFiClock(now: Date(timeIntervalSinceReferenceDate: 5_000))
+        let reader = FakeWiFiSystemReader(result: makeReading(mode: .station, rssi: -52))
+        let monitor = makeMonitor(reader: reader, rssiCacheInterval: 30, clock: clock)
+        var iterator = monitor.updates.makeAsyncIterator()
+
+        monitor.refresh()
+        _ = await iterator.next()
+
+        reader.result = makeReading(mode: .station, rssi: 0)
+        clock.advance(by: 20)
+        monitor.refresh()
+        let firstReuse = await iterator.next()
+
+        // The value was used at 20s but reuse must not reset its age, so it is
+        // gone 40s after the real reading.
+        clock.advance(by: 20)
+        monitor.refresh()
+        let afterWindow = await iterator.next()
+
+        XCTAssertEqual(firstReuse?.rssi, -52)
+        XCTAssertNil(afterWindow?.rssi)
+    }
+
+    func testARealWeakerReadingReplacesTheCachedSignal() async {
+        let clock = ManualWiFiClock(now: Date(timeIntervalSinceReferenceDate: 5_000))
+        let reader = FakeWiFiSystemReader(result: makeReading(mode: .station, rssi: -52))
+        let monitor = makeMonitor(reader: reader, clock: clock)
+        var iterator = monitor.updates.makeAsyncIterator()
+
+        monitor.refresh()
+        _ = await iterator.next()
+
+        reader.result = makeReading(mode: .station, rssi: -85)
+        clock.advance(by: 5)
+        monitor.refresh()
+        let weaker = await iterator.next()
+
+        XCTAssertEqual(weaker, WiFiStatus(state: .connected, rssi: -85))
+    }
+
+    func testAssociationChangeDropsTheCachedRSSI() async {
+        let reader = FakeWiFiSystemReader(result: makeReading(mode: .station, rssi: -52))
+        let eventMonitor = FakeWiFiEventMonitor()
+        let monitor = makeMonitor(reader: reader, eventMonitor: eventMonitor)
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        reader.result = makeReading(mode: .station, rssi: 0)
+        eventMonitor.delegate?.bssidDidChangeForWiFiInterface?(withName: "en0")
+        let afterChange = await iterator.next()
+
+        XCTAssertEqual(afterChange?.rssi, nil)
+        monitor.stop()
+    }
+
+    func testDisconnectingDropsTheCachedRSSI() async {
+        let clock = ManualWiFiClock(now: Date(timeIntervalSinceReferenceDate: 5_000))
+        let reader = FakeWiFiSystemReader(result: makeReading(mode: .station, rssi: -52))
+        let monitor = makeMonitor(reader: reader, clock: clock)
+        var iterator = monitor.updates.makeAsyncIterator()
+
+        monitor.refresh()
+        _ = await iterator.next()
+
+        // Radio still on, service inactive: the association is gone.
+        reader.result = WiFiSystemReading(
+            powerOn: true,
+            serviceActive: false,
+            mode: .station,
+            rssi: nil,
+            ssid: nil
+        )
+        clock.advance(by: 5)
+        monitor.refresh()
+        let notAssociated = await iterator.next()
+        XCTAssertEqual(notAssociated?.state, .notAssociated)
+
+        // A later invalid read must not resurrect the old network's signal.
+        reader.result = makeReading(mode: .station, rssi: 0)
+        monitor.refresh()
+        let reconnected = await iterator.next()
+        XCTAssertEqual(reconnected?.rssi, nil)
+    }
+
+    func testLinkQualityEventSeedsTheFallbackCache() async {
+        let reader = FakeWiFiSystemReader(result: makeReading(mode: .station, rssi: 0))
+        let eventMonitor = FakeWiFiEventMonitor()
+        let monitor = makeMonitor(reader: reader, eventMonitor: eventMonitor)
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+
+        let unknown = await iterator.next()
+        XCTAssertEqual(unknown?.rssi, nil)
+
+        monitor.linkQualityDidChangeForWiFiInterface(withName: "en0", rssi: -60, transmitRate: 0)
+        let bridged = await iterator.next()
+        XCTAssertEqual(bridged?.rssi, -60)
+        monitor.stop()
     }
 
     func testUnavailableReadingPublishesUnavailable() async {
@@ -1465,6 +1607,7 @@ final class WiFiClassifierTests: XCTestCase {
         eventMonitor: FakeWiFiEventMonitor = FakeWiFiEventMonitor(),
         pathMonitor: FakeWiFiPathMonitor = FakeWiFiPathMonitor(),
         staleInterval: TimeInterval = 30,
+        rssiCacheInterval: TimeInterval = 30,
         initialPath: WiFiPathSnapshot? = nil,
         clock: ManualWiFiClock = ManualWiFiClock(),
         noInterfaceRecoveryLimit: Int = 3,
@@ -1482,6 +1625,7 @@ final class WiFiClassifierTests: XCTestCase {
             eventMonitor: eventMonitor,
             pathMonitor: pathMonitor,
             staleInterval: staleInterval,
+            rssiCacheInterval: rssiCacheInterval,
             initialPath: initialPath,
             now: { clock.now },
             refreshDebounceSleep: refreshDebounceSleep,

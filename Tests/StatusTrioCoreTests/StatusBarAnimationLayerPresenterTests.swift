@@ -11,14 +11,24 @@ struct StatusBarAnimationLayerPresenterTests {
         let firstImage = try solidCGImage(color: CGColor(red: 1, green: 0, blue: 0, alpha: 1))
         let secondImage = try solidCGImage(color: CGColor(red: 0, green: 1, blue: 0, alpha: 1))
 
-        let firstResult = presenter.display(firstImage, in: view, backingScale: 2)
+        let firstResult = presenter.display(
+            firstImage,
+            in: view,
+            contentSize: CGSize(width: 22, height: 22),
+            backingScale: 2
+        )
         #expect(firstResult == .installed)
         let contentsLayer = try #require(view.layer?.sublayers?.first)
         #expect(contentsLayer.frame == view.bounds)
         #expect(contentsLayer.contentsScale == 2)
         #expect((contentsLayer.contents as AnyObject?) === (firstImage as AnyObject))
 
-        let secondResult = presenter.display(secondImage, in: view, backingScale: 2)
+        let secondResult = presenter.display(
+            secondImage,
+            in: view,
+            contentSize: CGSize(width: 22, height: 22),
+            backingScale: 2
+        )
         #expect(secondResult == .updated)
         #expect(view.layer?.sublayers?.count == 1)
         #expect(view.layer?.sublayers?.first === contentsLayer)
@@ -29,22 +39,48 @@ struct StatusBarAnimationLayerPresenterTests {
         #expect(view.wantsLayer == false)
     }
 
-    @Test func existingLayerTracksButtonBoundsAndBackingScale() throws {
+    @Test func existingLayerTracksTheContentRectAndBackingScale() throws {
         let view = NSView(frame: NSRect(x: 0, y: 0, width: 22, height: 22))
         let presenter = StatusBarAnimationLayerPresenter()
         let firstImage = try solidCGImage(color: CGColor(gray: 1, alpha: 1))
         let resizedImage = try solidCGImage(color: CGColor(gray: 0.5, alpha: 1))
 
-        _ = presenter.display(firstImage, in: view, backingScale: 2)
+        _ = presenter.display(
+            firstImage,
+            in: view,
+            contentSize: CGSize(width: 22, height: 22),
+            backingScale: 2
+        )
         let contentsLayer = try #require(view.layer?.sublayers?.first)
         view.frame = NSRect(x: 0, y: 0, width: 26, height: 20)
 
-        let result = presenter.display(resizedImage, in: view, backingScale: 1)
+        let result = presenter.display(
+            resizedImage,
+            in: view,
+            contentSize: CGSize(width: 22, height: 22),
+            backingScale: 1
+        )
 
         #expect(result == .updated)
-        #expect(contentsLayer.frame == view.bounds)
+        // The status item centres its image, so the overlay is centred on the
+        // icon's own size rather than stretched to the button's bounds.
+        #expect(contentsLayer.frame == CGRect(x: 2, y: -1, width: 22, height: 22))
         #expect(contentsLayer.contentsScale == 1)
         #expect((contentsLayer.contents as AnyObject?) === (resizedImage as AnyObject))
+    }
+
+    @Test func rejectsANonPositiveContentSize() throws {
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 22, height: 22))
+        let presenter = StatusBarAnimationLayerPresenter()
+        let image = try solidCGImage(color: CGColor(gray: 1, alpha: 1))
+
+        #expect(presenter.display(
+            image,
+            in: view,
+            contentSize: CGSize(width: 0, height: 22),
+            backingScale: 2
+        ) == nil)
+        #expect(view.layer?.sublayers?.isEmpty != false)
     }
 
     @Test func transparentPlaceholderPreservesSizeWithoutDoubleCompositing() throws {

@@ -47,8 +47,10 @@ closes its own AppleSMC connection and sends only read-key-info (9) and
 read-bytes (5) commands for `PSTR`. Supported encodings are `flt `, `fpe2`, and
 `sp78`. Missing keys, failed IPC/firmware replies, unexpected sizes/types,
 non-finite, nonpositive, and implausible (>1,000 W) readings stay unavailable.
-There is no privileged helper, sensor enumeration, persistent connection, or
-additional polling loop.
+Battery *reading* uses no privileged helper, sensor enumeration, persistent
+connection, or additional polling loop. Writing Low Power Mode does: it is
+handled by a separate opt-in privileged helper (see
+[privileged helper](privileged-helper.md)), which is unrelated to this read path.
 
 The timestamp follows the selected source: **System read at** records when the
 SMC read started (SMC provides no hardware timestamp); **Battery sampled at**

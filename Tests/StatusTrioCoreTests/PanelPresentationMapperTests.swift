@@ -91,6 +91,83 @@ final class PanelPresentationMapperTests: XCTestCase {
         XCTAssertEqual(denied.intent, .locationSettings)
     }
 
+    /// The address rides at the front of the second line, and the Wi-Fi band and
+    /// signal keep the slot they already had, so the row reads as the address
+    /// first and then the network's own details.
+    func testLocalIPLeadsTheWiFiSecondLine() {
+        let localization = makeLocalization(.english)
+        let wifi = WiFiStatus(
+            state: .connected,
+            rssi: -58,
+            ssid: "Example Network",
+            nameAccess: .authorized,
+            band: .fiveGHz
+        )
+
+        let row = PanelPresentationMapper.network(
+            wifi: wifi,
+            connection: .wifi,
+            wired: nil,
+            isConstrained: false,
+            isResolvingName: false,
+            localIPAddress: "192.168.1.20",
+            localization: localization
+        )
+
+        XCTAssertEqual(row.subtitle, "192.168.1.20 · 5 GHz · -58 dBm")
+        XCTAssertEqual(row.measurements, "192.168.1.20 · 5 GHz · -58 dBm")
+        XCTAssertEqual(row.accessibilityValue, "192.168.1.20 · 5 GHz · -58 dBm")
+    }
+
+    func testLocalIPIsAbsentWhenTheRowIsNotGivenOne() {
+        let localization = makeLocalization(.english)
+        let wifi = WiFiStatus(
+            state: .connected,
+            rssi: -58,
+            ssid: "Example Network",
+            nameAccess: .authorized,
+            band: .fiveGHz
+        )
+
+        let row = PanelPresentationMapper.network(
+            wifi: wifi,
+            connection: .wifi,
+            wired: nil,
+            isConstrained: false,
+            isResolvingName: false,
+            localization: localization
+        )
+
+        XCTAssertEqual(row.subtitle, "5 GHz · -58 dBm")
+        XCTAssertEqual(row.measurements, "5 GHz · -58 dBm")
+    }
+
+    func testLocalIPLeadsTheWiredSecondLine() {
+        let localization = makeLocalization(.english)
+        let details = PrimaryLinkDetails(
+            interfaceName: "en9",
+            interfaceDisplayName: "iPhone USB",
+            ipv4Addresses: ["172.20.10.8"],
+            ipv6Addresses: [],
+            router: nil,
+            dnsServers: []
+        )
+
+        let row = PanelPresentationMapper.network(
+            wifi: .placeholder,
+            connection: .ethernet,
+            wired: details,
+            isConstrained: false,
+            isResolvingName: false,
+            localIPAddress: "192.168.1.20",
+            localization: localization
+        )
+
+        XCTAssertEqual(row.title, "iPhone USB")
+        XCTAssertEqual(row.subtitle, "192.168.1.20 · en9")
+        XCTAssertEqual(row.accessibilityValue, "192.168.1.20 · en9")
+    }
+
     func testNetworkSummaryUsesNamedWiFiOnlyWhenTheWiFiPathIsSelected() {
         let localization = makeLocalization(.english)
         let wifi = WiFiStatus(

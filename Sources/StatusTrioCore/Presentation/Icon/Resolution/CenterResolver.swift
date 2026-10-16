@@ -65,9 +65,20 @@ enum CenterResolver {
         case .automaticLegacy:
             state = IconPresentationMapper.scene(inputs: inputs.system, configuration: legacy).center
         case .network:
-            state = networkState(inputs: inputs, configuration: configuration, legacy: legacy)
+            if inputs.system.runtimeOptions?.connectionCenterSource == .inputSource {
+                // The main input-source setting augments legacy/Network V1
+                // centers only. The old mapper owns its priority and automatic
+                // fallback rules, including network warnings and Bluetooth.
+                state = IconPresentationMapper.scene(inputs: inputs.system, configuration: legacy).center
+            } else {
+                state = networkState(inputs: inputs, configuration: configuration, legacy: legacy)
+            }
         case .bluetoothAudioOutput:
-            let icon = inputs.system.audioIcon ?? .symbol(name: "headphones", variableValue: nil, fallback: nil)
+            let configuredSymbol = renderConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride
+                ?? inputs.system.runtimeOptions?.bluetoothAudioIconChoice.symbolName
+            let icon = configuredSymbol.map {
+                IconSymbolSource.symbol(name: $0, variableValue: nil, fallback: "headphones")
+            } ?? inputs.system.audioIcon ?? .symbol(name: "headphones", variableValue: nil, fallback: nil)
             state = .symbol(IconSymbolState(source: icon, color: bluetoothColor(
                 inputs: inputs, configuration: renderConfiguration, isAudioTarget: true
             ),

@@ -9,6 +9,7 @@ struct WiFiNetworkListView: View {
     let onOpenLocationSettings: () -> Void
     let onSetPower: (Bool) -> Void
     let onRefresh: () -> Void
+    let onOpenSharingSettings: () -> Void
     let onCopyValue: (String) -> Void
     let showsDetailsInitially: Bool
 
@@ -46,6 +47,11 @@ struct WiFiNetworkListView: View {
             Button(localization.string(.wifiActionOpenSettings), action: onOpenWiFiSettings)
                 .buttonStyle(.plain)
                 .accessibilityLabel(localization.string(.wifiActionOpenSettings))
+            // Internet Sharing can share from the Wi-Fi connection too, so this
+            // is offered here and not only on the wired details page.
+            Button(localization.string(.networkActionShareInternet), action: onOpenSharingSettings)
+                .buttonStyle(.plain)
+                .help(localization.string(.networkActionShareInternetHelp))
         }
         .onAppear {
             showsDetails = showsDetails || showsDetailsInitially

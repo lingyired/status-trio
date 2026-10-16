@@ -7,6 +7,9 @@ struct SettingsView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @ObservedObject var localization: Localization
+    /// Drives the live centre-slot source in the previews. `nil` in tests and
+    /// guides that do not carry the app's controller.
+    var inputSourceController: InputSourceController? = nil
     let onShowIconGuide: () -> Void
     var onOpenIconDesigner: (IconSlot) -> Void = { _ in }
     @ObservedObject var previewSession = IconDesignerPreviewSession()
@@ -97,6 +100,7 @@ struct SettingsView: View {
             IconDesignerLaunchSectionView(
                 store: store,
                 statusStore: statusStore,
+                inputSourceController: inputSourceController,
                 previewIsDark: $previewIsDark,
                 onShowIconGuide: onShowIconGuide,
                 onOpenIconDesigner: onOpenIconDesigner
@@ -105,6 +109,7 @@ struct SettingsView: View {
             BatterySectionView(
                 store: store,
                 statusStore: statusStore,
+                inputSourceController: inputSourceController,
                 previewIsDark: $previewIsDark,
                 onOpenIconDesigner: onOpenIconDesigner
             )
@@ -112,6 +117,7 @@ struct SettingsView: View {
             NetworkSectionView(
                 store: store,
                 statusStore: statusStore,
+                inputSourceController: inputSourceController,
                 previewIsDark: $previewIsDark,
                 onOpenIconDesigner: onOpenIconDesigner
             )
@@ -121,6 +127,7 @@ struct SettingsView: View {
                 statusStore: statusStore,
                 bluetoothDevices: statusStore.bluetoothDevices,
                 appleDeviceDiscovery: statusStore.appleDeviceDiscovery,
+                inputSourceController: inputSourceController,
                 previewIsDark: $previewIsDark,
                 onOpenIconDesigner: onOpenIconDesigner
             )
@@ -128,6 +135,7 @@ struct SettingsView: View {
             AudioSectionView(
                 store: store,
                 statusStore: statusStore,
+                inputSourceController: inputSourceController,
                 previewIsDark: $previewIsDark,
                 onOpenIconDesigner: onOpenIconDesigner
             )

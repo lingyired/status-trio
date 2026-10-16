@@ -96,6 +96,46 @@ artwork rather than the bitmap:
   contains the hand-drawn dot), and cover the shipped default scale 1.6 as well
   as the range endpoints.
 
+## 2026-10-09 recurrence after the icon-presentation refactor
+
+The issue reopened on v1.5.1. The `artworkCenterX` fix was still in the source,
+so the earlier 59.5-vs-60 analysis was not the whole cause.
+
+The remaining error is inside the SF Symbol itself. `NSImage.size` reports a
+layout box, and the glyph's visible ink is not centred in that box:
+
+| symbol | point size | layout box | ink bbox centre vs box centre |
+| --- | --- | --- | --- |
+| `wifi` | 38.0 | 50x39 | **-0.438** |
+| `wifi` | 60.8 (default) | 81x62 | **-0.344** |
+| `wifi` | 68.4 | 91x69 | **-0.375** |
+| `wifi.slash` | 60.8 | 81x75 | **-0.344** |
+| `wifi.exclamationmark` | 60.8 | 81x74 | **-0.344** |
+| `headphones` | 60.8 | 78x76 | **-0.344** |
+
+Anchoring that box at 59.5 therefore put the visible `wifi` ink at about
+59.16, still left of the hand-drawn ring. The 2.0 scene renderer kept the same
+box-centring call, so the UI refactor did not introduce a new anchor; it carried
+the incomplete fix forward.
+
+`StatusIconRenderer.drawOfficialSymbol` now measures the alpha bbox of the
+configured symbol and applies the horizontal bearing before drawing. The
+measurement is cached per symbol name, variable value, and point size, so
+animation frames do not re-rasterise it. On the local macOS 27 toolchain the
+reported ink centre moves from 59.125 to 59.500 for `wifi`, `wifi.slash`,
+`wifi.exclamationmark`, and `headphones`.
+
+Regression coverage:
+
+- `Issue30WiFiAlignmentTests.testCenterSymbolInkLandsOnTheArtworkCenterLine`
+  renders only the centre symbol and pins its alpha bbox against
+  `artworkCenterX`; removing the compensation fails all six cases.
+- `Issue30WiFiAlignmentTests.testWiFiGlyphIsHorizontallyCenteredInMenuBarIcon`
+  keeps the full-composite check.
+- `ChargingEffectRenderingTests.nilPhaseKeepsThePreEffectStaticPixelFingerprint`
+  is re-recorded because `staticSnapshot` draws `wifi.slash` through the same
+  compensation.
+
 ## Toolchain note
 
 Shipped v1.3.3 is built with `sdk 26.0`, `minos 15.0`, satisfying the macOS 26

@@ -3,6 +3,7 @@ import SwiftUI
 struct IconDesignerView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
+    var inputSourceController: InputSourceController? = nil
     var onEditSamples: () -> Void = {}
     @ObservedObject var previewSession: IconDesignerPreviewSession
     @StateObject private var editorModel: IconDesignerEditorModel
@@ -10,11 +11,13 @@ struct IconDesignerView: View {
     init(
         store: SettingsStore,
         statusStore: SystemStatusStore,
+        inputSourceController: InputSourceController? = nil,
         onEditSamples: @escaping () -> Void = {},
         previewSession: IconDesignerPreviewSession
     ) {
         self.store = store
         self.statusStore = statusStore
+        self.inputSourceController = inputSourceController
         self.onEditSamples = onEditSamples
         self.previewSession = previewSession
         self._editorModel = StateObject(wrappedValue: IconDesignerEditorModel(store: store))
@@ -123,6 +126,7 @@ struct IconDesignerView: View {
             store: store,
             statusStore: statusStore,
             isDarkBackground: previewIsDarkBackground,
+            inputSourceController: inputSourceController,
             scenario: previewScenario,
             customAirPodsSample: customAirPodsSample,
             previewSession: previewSession,

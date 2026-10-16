@@ -14,14 +14,17 @@ final class AppEnvironment {
     let activationPolicy: AppActivationPolicy
     let appIconController: AppIconController
     let mainMenuController: MainMenuController
+    let inputSourceController: InputSourceController
     let chargingEffectClock: ChargingEffectClock
     let chargingEffectMotionMonitor: ChargingEffectMotionMonitor
     let telemetryReporter: any TelemetryReporting
     let bluetoothAudioIconOverrideSynchronizer = BluetoothAudioIconOverrideSynchronizer()
     private let bluetoothNearbyBatteryOptOutSynchronizer = BluetoothNearbyBatteryOptOutSynchronizer()
+    private let lowPowerModeControlSynchronizer = LowPowerModeControlSynchronizer()
 
     private var chargingEffectCancellables = Set<AnyCancellable>()
     private var iconSourceDemandBridge = IconSourceDemandBridge()
+    private var inputSourceLifecycleCancellables = Set<AnyCancellable>()
 
     init(
         store: SystemStatusStore,
@@ -35,6 +38,7 @@ final class AppEnvironment {
         activationPolicy: AppActivationPolicy,
         appIconController: AppIconController,
         mainMenuController: MainMenuController,
+        inputSourceController: InputSourceController,
         chargingEffectClock: ChargingEffectClock,
         chargingEffectMotionMonitor: ChargingEffectMotionMonitor,
         telemetryReporter: any TelemetryReporting
@@ -50,6 +54,7 @@ final class AppEnvironment {
         self.activationPolicy = activationPolicy
         self.appIconController = appIconController
         self.mainMenuController = mainMenuController
+        self.inputSourceController = inputSourceController
         self.chargingEffectClock = chargingEffectClock
         self.chargingEffectMotionMonitor = chargingEffectMotionMonitor
         self.telemetryReporter = telemetryReporter
@@ -57,6 +62,7 @@ final class AppEnvironment {
 
     func start() {
         iconPresentation.start()
+        startInputSourceMonitoringIfNeeded()
         onboardingWindowController.showIfNeeded()
         chargingEffectMotionMonitor.onChange = { [weak self] _ in
             self?.updateChargingEffectClock()
@@ -73,8 +79,14 @@ final class AppEnvironment {
             settings: settings,
             actions: StatusPanelActions(store: store, settings: settings)
         )
+        lowPowerModeControlSynchronizer.start(
+            settings: settings,
+            helper: PrivilegedHelperManager.shared
+        )
         store.bindInputSettings(settings)
+        store.bindLocalIPSettings(settings)
         store.bindMobileBatterySettings(settings)
+        store.bindLowPowerModeSettings(settings)
         store.start()
         subscribeToIconSourceDemand()
         telemetryReporter.start()
@@ -96,6 +108,9 @@ final class AppEnvironment {
         )
         bluetoothAudioIconOverrideSynchronizer.stop()
         bluetoothNearbyBatteryOptOutSynchronizer.stop()
+        lowPowerModeControlSynchronizer.stop()
+        inputSourceLifecycleCancellables.removeAll()
+        inputSourceController.stop()
         appIconController.stop()
         mainMenuController.stop()
         store.stop()
@@ -171,6 +186,27 @@ final class AppEnvironment {
             requestBatteryLevels: { bluetoothDevices.requestBackgroundBatteryLevels($0) },
             releaseBatteryLevels: { bluetoothDevices.releaseBackgroundBatteryLevels($0) }
         )
+    }
+
+    /// Input-source observers exist only while a feature that draws them is
+    /// on: the centre-slot source or the panel section. Both off — the shipped
+    /// default — means no TIS reads and no distributed observers at all.
+    private func startInputSourceMonitoringIfNeeded() {
+        guard inputSourceLifecycleCancellables.isEmpty else { return }
+        Publishers.CombineLatest(
+            settings.$connectionCenterSource.removeDuplicates(),
+            settings.$enabledPopupSections.removeDuplicates()
+        )
+        .sink { [weak self] centerSource, enabledSections in
+            guard let self else { return }
+            let isNeeded = centerSource == .inputSource || enabledSections.contains(.inputSource)
+            if isNeeded {
+                inputSourceController.start()
+            } else {
+                inputSourceController.stop()
+            }
+        }
+        .store(in: &inputSourceLifecycleCancellables)
     }
 
     private func subscribeToChargingEffectInputs() {
@@ -250,17 +286,23 @@ final class AppEnvironment {
             refreshInterval: settings.refreshInterval
         )
         let localization = Localization()
+        let inputSourceController = InputSourceController()
         let appearance = StatusIconAppearance(settings: settings)
         let iconPresentation = IconPresentationViewModel(
             snapshot: store.snapshot,
             settings: IconPresentationSettings(
-                configuration: settings.iconConfiguration.legacyPresentationConfiguration,
+                configuration: settings.iconPresentationConfiguration,
                 menuBarSize: appearance.iconSize,
                 testsChargingEffect: settings.testsChargingEffect,
-                designerConfiguration: settings.iconConfiguration
+                designerConfiguration: settings.iconConfiguration,
+                runtimeOptions: settings.iconRuntimePresentationOptions
             ),
             snapshots: store.$snapshot.eraseToAnyPublisher(),
             preferences: settings.iconPresentationPublisher,
+            inputSources: inputSourceController.$state
+                .map(\.selectedDescriptor)
+                .removeDuplicates()
+                .eraseToAnyPublisher(),
             resolveInputs: { snapshot in
                 IconPresentationResourceResolver.inputs(snapshot: snapshot)
             },
@@ -297,7 +339,8 @@ final class AppEnvironment {
             localization: localization,
             activationPolicy: activationPolicy,
             chargingEffectClock: chargingEffectClock,
-            previewSession: iconDesignerPreviewSession
+            previewSession: iconDesignerPreviewSession,
+            inputSourceController: inputSourceController
         )
         let settingsWindowController = SettingsWindowController(
             store: settings,
@@ -311,7 +354,8 @@ final class AppEnvironment {
                 iconDesignerWindowController?.show(slot: slot)
             },
             chargingEffectClock: chargingEffectClock,
-            previewSession: iconDesignerPreviewSession
+            previewSession: iconDesignerPreviewSession,
+            inputSourceController: inputSourceController
         )
         onboardingWindowController.openSettings = { [weak settingsWindowController] in
             settingsWindowController?.show()
@@ -324,7 +368,8 @@ final class AppEnvironment {
             isVisible: settings.appIconPlacement.showsMenuBarIcon,
             openSettings: { settingsWindowController.show() },
             quitAction: { NSApplication.shared.terminate(nil) },
-            chargingEffectClock: chargingEffectClock
+            chargingEffectClock: chargingEffectClock,
+            inputSourceController: inputSourceController
         )
         let appIconController = AppIconController(
             settings: settings,
@@ -388,6 +433,7 @@ final class AppEnvironment {
             activationPolicy: activationPolicy,
             appIconController: appIconController,
             mainMenuController: mainMenuController,
+            inputSourceController: inputSourceController,
             chargingEffectClock: chargingEffectClock,
             chargingEffectMotionMonitor: chargingEffectMotionMonitor,
             telemetryReporter: telemetryReporter

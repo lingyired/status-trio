@@ -312,6 +312,9 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
     nonisolated(unsafe) private let pathMonitor: any WiFiPathMonitoring
     private let pathQueue = DispatchQueue(label: "StatusTrio.WiFiPath")
     private let staleInterval: TimeInterval
+    /// How long a known-good RSSI stays usable while the interface is still
+    /// associated but a fresh `rssiValue()` read comes back invalid (0/absent).
+    private let rssiCacheInterval: TimeInterval
     private let now: () -> Date
     private let refreshDebounceInterval: Duration
     private let refreshDebounceSleep: @Sendable (Duration) async throws -> Void
@@ -327,6 +330,11 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
     private var latestPathSequence: UInt64?
     private var lastValidStatus: WiFiStatus?
     private var lastValidDate: Date?
+    /// Last known-good signal strength for the current association. Reused (never
+    /// extended) while a read is momentarily invalid, and dropped whenever the
+    /// association changes so a previous network's strength is never shown.
+    private var cachedRSSI: Int?
+    private var cachedRSSIDate: Date?
     private var lastRecoveryAttempt: Date?
     private var isPersistentReadFailure = false
     /// Rebuilds performed while reads reported no interface at all, which is what
@@ -344,6 +352,7 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         eventMonitor: any WiFiEventMonitoring = CoreWLANWiFiEventMonitor(),
         pathMonitor: any WiFiPathMonitoring = NetworkWiFiPathMonitor(),
         staleInterval: TimeInterval = 30,
+        rssiCacheInterval: TimeInterval = 30,
         initialPath: WiFiPathSnapshot? = nil,
         now: @escaping () -> Date = Date.init,
         refreshDebounceInterval: Duration = .milliseconds(150),
@@ -361,6 +370,7 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         self.eventMonitor = eventMonitor
         self.pathMonitor = pathMonitor
         self.staleInterval = staleInterval
+        self.rssiCacheInterval = rssiCacheInterval
         self.latestPath = initialPath
         self.now = now
         self.refreshDebounceInterval = refreshDebounceInterval
@@ -518,9 +528,10 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         )
         let nameAccess = nameAuthorizer.access
         let state = WiFiClassifier.classify(input)
+        let currentDate = now()
         publish(
             state,
-            rssi: normalizedRSSI(reading.rssi),
+            rssi: resolveRSSI(normalizedRSSI(reading.rssi), state: state, at: currentDate),
             ssid: detailsVisible && nameAccess == .authorized ? normalizedSSID(reading.ssid) : nil,
             nameAccess: nameAccess,
             band: detailsVisible && (state == .connected || state == .hotspot) ? reading.band : nil
@@ -544,25 +555,25 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
 
     nonisolated func powerStateDidChangeForWiFiInterface(withName interfaceName: String) {
         Task { @MainActor [weak self] in
-            self?.scheduleRefresh()
+            self?.handleAssociationChange()
         }
     }
 
     nonisolated func ssidDidChangeForWiFiInterface(withName interfaceName: String) {
         Task { @MainActor [weak self] in
-            self?.scheduleRefresh()
+            self?.handleAssociationChange()
         }
     }
 
     nonisolated func bssidDidChangeForWiFiInterface(withName interfaceName: String) {
         Task { @MainActor [weak self] in
-            self?.scheduleRefresh()
+            self?.handleAssociationChange()
         }
     }
 
     nonisolated func linkDidChangeForWiFiInterface(withName interfaceName: String) {
         Task { @MainActor [weak self] in
-            self?.scheduleRefresh()
+            self?.handleAssociationChange()
         }
     }
 
@@ -572,7 +583,11 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         transmitRate: Double
     ) {
         Task { @MainActor [weak self] in
-            self?.scheduleRefresh()
+            guard let self, self.lifecycle == .running else { return }
+            // The event carries the associated network's signal strength; keep it
+            // as a fallback for a poll that comes back invalid before the refresh.
+            self.noteEventRSSI(rssi)
+            self.scheduleRefresh()
         }
     }
 
@@ -580,6 +595,22 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         Task { @MainActor [weak self] in
             self?.scheduleRefresh()
         }
+    }
+
+    /// An association identity change (roam, join, leave, radio toggle). The
+    /// last network's signal must never be reused for the next one, so the
+    /// cached RSSI is dropped before the fresh read is scheduled.
+    private func handleAssociationChange() {
+        clearCachedRSSI()
+        scheduleRefresh()
+    }
+
+    /// Records a known-good signal strength delivered by a link-quality event so
+    /// a poll that momentarily returns an invalid value can still show a number.
+    private func noteEventRSSI(_ rssi: Int) {
+        guard rssi < 0 else { return }
+        cachedRSSI = rssi
+        cachedRSSIDate = now()
     }
 
     private func scheduleRefresh() {
@@ -612,6 +643,7 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         latestPathSequence = nil
         lastValidStatus = nil
         lastValidDate = nil
+        clearCachedRSSI()
         lastRecoveryAttempt = nil
         isPersistentReadFailure = false
         continuation.finish()
@@ -624,6 +656,12 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         nameAccess: WiFiNameAccess,
         band: WiFiFrequencyBand? = nil
     ) {
+        // A non-associated state is a disconnect or radio-off; the cached signal
+        // belongs to a network that is no longer current.
+        if !state.isNetworkAssociated {
+            clearCachedRSSI()
+        }
+
         let candidate = WiFiStatus(
             state: state,
             rssi: rssi,
@@ -691,6 +729,39 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         eventMonitor.restart(delegate: self, events: Self.monitoredEvents)
         pathMonitor.cancel()
         startPathMonitoring()
+    }
+
+    /// Resolves the signal strength to publish for an associated interface.
+    ///
+    /// A fresh valid reading wins and refreshes the cache. When the read is
+    /// invalid (`rssiValue()` returns 0/absent while still associated, which is
+    /// what issue #110 sees intermittently) the last known-good value is reused
+    /// unchanged for up to `rssiCacheInterval`. Reuse never extends that window,
+    /// and the cache is dropped on any association change, so a stale value
+    /// cannot survive into a different network.
+    private func resolveRSSI(_ raw: Int?, state: WiFiState, at date: Date) -> Int? {
+        guard state.isNetworkAssociated else { return raw }
+
+        if let raw {
+            cachedRSSI = raw
+            cachedRSSIDate = date
+            return raw
+        }
+
+        if
+            let cachedRSSI,
+            let cachedRSSIDate,
+            date.timeIntervalSince(cachedRSSIDate) <= rssiCacheInterval
+        {
+            return cachedRSSI
+        }
+
+        return nil
+    }
+
+    private func clearCachedRSSI() {
+        cachedRSSI = nil
+        cachedRSSIDate = nil
     }
 
     private func normalizedRSSI(_ rssi: Int?) -> Int? {

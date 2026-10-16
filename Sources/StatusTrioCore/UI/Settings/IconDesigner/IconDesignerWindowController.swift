@@ -12,6 +12,7 @@ final class IconDesignerWindowController: NSWindowController, NSWindowDelegate {
     private let localization: Localization
     private let activationPolicy: AppActivationPolicy
     private let chargingEffectClock: ChargingEffectClock
+    private let inputSourceController: InputSourceController?
     let previewSession: IconDesignerPreviewSession
     private lazy var previewDataWindowController = IconPreviewDataWindowController(
         store: store, statusStore: statusStore, localization: localization, previewSession: previewSession
@@ -27,13 +28,15 @@ final class IconDesignerWindowController: NSWindowController, NSWindowDelegate {
         localization: Localization,
         activationPolicy: AppActivationPolicy,
         chargingEffectClock: ChargingEffectClock,
-        previewSession: IconDesignerPreviewSession = IconDesignerPreviewSession()
+        previewSession: IconDesignerPreviewSession = IconDesignerPreviewSession(),
+        inputSourceController: InputSourceController? = nil
     ) {
         self.store = store
         self.statusStore = statusStore
         self.localization = localization
         self.activationPolicy = activationPolicy
         self.chargingEffectClock = chargingEffectClock
+        self.inputSourceController = inputSourceController
         self.previewSession = previewSession
         self.lastBluetoothAuthorization = statusStore.bluetoothDevices.authorizationStatus
         super.init(window: nil)
@@ -89,6 +92,7 @@ final class IconDesignerWindowController: NSWindowController, NSWindowDelegate {
         IconDesignerView(
             store: store,
             statusStore: statusStore,
+            inputSourceController: inputSourceController,
             onEditSamples: { [weak self] in
                 guard let self, let parent = self.window else { return }
                 self.previewDataWindowController.show(relativeTo: parent)

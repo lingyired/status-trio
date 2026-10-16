@@ -969,6 +969,79 @@ final class IconPresentationViewModelTests: XCTestCase {
         XCTAssertFalse(model.output.menuBarTestScene?.outerRing?.accessory == nil)
     }
 
+    /// The live menu bar and Dock take the input source from its own publisher,
+    /// while the settings previews resolve theirs through the resource
+    /// resolver. Both have to degrade a missing icon file the same way, to the
+    /// source's short label, and both have to land without the domain debounce.
+    func testInputSourcePublisherLandsImmediatelyAndDegradesAMissingIconFile() throws {
+        let snapshot = PresentationFixtures.snapshot()
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(snapshot)
+        let settings = IconPresentationSettings(
+            configuration: IconPresentationConfiguration(
+                battery: .standard,
+                connection: ConnectionIconOptions(centerSource: .inputSource),
+                volume: .standard,
+                bluetooth: .standard
+            ),
+            menuBarSize: 28,
+            testsChargingEffect: false
+        )
+        let inputSources = CurrentValueSubject<InputSourceDescriptor?, Never>(nil)
+        let scheduler = ManualIconPresentationScheduler()
+        let model = IconPresentationViewModel(
+            snapshot: snapshot,
+            settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(),
+            preferences: Just(settings).eraseToAnyPublisher(),
+            inputSources: inputSources.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            snapshotScheduler: scheduler
+        )
+        model.start()
+        defer { model.stop() }
+
+        let missingURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("status-trio-missing-\(UUID().uuidString).pdf")
+        inputSources.send(InputSourceDescriptor(
+            id: "com.example.pinyin",
+            localizedName: "Example 拼音",
+            primaryLanguage: "zh-Hans",
+            iconURL: missingURL,
+            shortLabel: "拼"
+        ))
+        XCTAssertEqual(
+            model.output.scene.center,
+            .text(IconTextState(text: "拼", color: .primary, scale: 1))
+        )
+        XCTAssertFalse(
+            scheduler.hasPendingAction,
+            "an input-source change is the user's own action and must not wait for the debounce"
+        )
+
+        let iconURL = try InputSourceIconFixtures.writeIcon(
+            pixelWidth: 64,
+            pixelHeight: 64,
+            inkRect: CGRect(x: 36, y: 12, width: 20, height: 30)
+        )
+        defer { try? FileManager.default.removeItem(at: iconURL) }
+
+        inputSources.send(InputSourceDescriptor(
+            id: "com.example.pinyin",
+            localizedName: "Example 拼音",
+            primaryLanguage: "zh-Hans",
+            iconURL: iconURL,
+            shortLabel: "拼"
+        ))
+        XCTAssertEqual(
+            model.output.scene.center,
+            .symbol(IconSymbolState(
+                source: .image(url: iconURL, fallbackSymbol: "keyboard"),
+                color: .primary,
+                scale: 1
+            ))
+        )
+    }
+
     private func expectedOutput(
         snapshot: StatusSnapshot,
         settings: IconPresentationSettings

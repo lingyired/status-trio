@@ -17,7 +17,13 @@ Internet servers, or change the polling interval. RSSI already comes from this
 reader. Neither measurement is Internet speed or a test of Internet reachability.
 
 Closing details, a disconnected/off state, or a failed fresh reading drops the
-frequency band. The existing short-lived RSSI/status fallback is unchanged.
+frequency band. A momentarily invalid RSSI (CoreWLAN `rssiValue()` returns `0`
+or nothing while the interface is still associated, as reported in issue #110)
+is bridged: the last known-good value is reused for up to 30 seconds, reuse
+never extends that window, and any association change (join, roam, leave, radio
+toggle) drops the cache so a previous network's strength is never shown. A
+link-quality event's RSSI seeds the same cache. An associated interface with no
+known reading renders at full contrast instead of a faded, disabled glyph.
 The enhanced title and measurements require the primary path to be Wi-Fi,
 a connected/hotspot radio, and a nonempty SSID. They are suppressed while the
 primary path is Ethernet, offline, other, or unknown. VoiceOver shares the same

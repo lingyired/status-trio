@@ -8,6 +8,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let statusStore: SystemStatusStore
     private let chargingEffectClock: ChargingEffectClock
     private let localization: Localization
+    private let inputSourceController: InputSourceController
     private let activationPolicy: AppActivationPolicy
     private let showIconGuide: () -> Void
     private let openIconDesigner: (IconSlot) -> Void
@@ -27,12 +28,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         showIconGuide: @escaping () -> Void,
         openIconDesigner: @escaping (IconSlot) -> Void = { _ in },
         chargingEffectClock: ChargingEffectClock = ChargingEffectClock(),
-        previewSession: IconDesignerPreviewSession = IconDesignerPreviewSession()
+        previewSession: IconDesignerPreviewSession = IconDesignerPreviewSession(),
+        inputSourceController: InputSourceController? = nil
     ) {
         self.store = store
         self.statusStore = statusStore
         self.chargingEffectClock = chargingEffectClock
         self.localization = localization
+        self.inputSourceController = inputSourceController ?? InputSourceController()
         self.activationPolicy = activationPolicy
         self.showIconGuide = showIconGuide
         self.openIconDesigner = openIconDesigner
@@ -72,6 +75,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         statusStore.setSettingsVisible(true, owner: SettingsSurfaceVisibility.settingsOwner)
         applyLocalization()
         enterActivationPolicyIfNeeded()
+        // The user may have approved the power helper in System Settings since
+        // the last look; refresh so the toggle and its approval note are current.
+        PrivilegedHelperManager.shared.refresh()
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
@@ -108,6 +114,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 store: store,
                 statusStore: statusStore,
                 localization: localization,
+                inputSourceController: inputSourceController,
                 onShowIconGuide: showIconGuide,
                 onOpenIconDesigner: openIconDesigner,
                 previewSession: previewSession

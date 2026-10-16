@@ -309,6 +309,7 @@ struct RingStrokeStylePreview: View {
                     usesStatusColors: store.usesBatteryStatusColors,
                     criticalThreshold: Int(store.batteryCriticalThreshold.rounded()),
                     showsPercentageWhenConnected: store.showsPercentageWhenConnected,
+                    fullThreshold: Int(store.batteryFullThreshold.rounded()),
                     textScale: store.batterySymbolScale * BatteryIconOptions.defaultTextScale,
                     ringStrokeScale: style.scale
                 ),

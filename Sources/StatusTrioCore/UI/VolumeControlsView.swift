@@ -5,24 +5,12 @@ struct VolumeControlsView: View {
     let state: VolumePanelState
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
-    let onOpenSoundSettings: () -> Void
 
     @State private var draftVolume = 0.0
     @State private var isAdjusting = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 10) {
-                VolumeOutputSummaryView(state: state)
-                Button(localization.string(.volumeActionOpenSettings), systemImage: "gearshape", action: onOpenSoundSettings)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .help(localization.string(.volumeActionOpenSettings))
-                    .accessibilityLabel(localization.string(.volumeActionOpenSettings))
-                    .frame(width: 24, height: 24)
-            }
-
             HStack(spacing: 10) {
                 Button(action: { actions.toggleMute() }) {
                     Image(systemName: state.muteSymbol)

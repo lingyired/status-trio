@@ -15,6 +15,13 @@ enum BluetoothNetworkIconSource: Hashable, Identifiable {
     /// output, and it ships on every release the app supports.
     static let audioDeviceSymbol = "airpodspro"
 
+    static func shouldShowAudioIconChoice(
+        replacingNetworkIcon: Bool,
+        selectedSource: Self
+    ) -> Bool {
+        replacingNetworkIcon && selectedSource == .audioDevices
+    }
+
     var id: String {
         switch self {
         case .audioDevices:

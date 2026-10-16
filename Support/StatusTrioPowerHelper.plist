@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.lingsmbp.StatusTrio.PowerHelper</string>
+	<key>BundleProgram</key>
+	<string>Contents/Helpers/StatusTrioPowerHelper</string>
+	<key>MachServices</key>
+	<dict>
+		<key>com.lingsmbp.StatusTrio.PowerHelper</key>
+		<true/>
+	</dict>
+	<key>AssociatedBundleIdentifiers</key>
+	<array>
+		<string>com.lingsmbp.StatusTrio</string>
+	</array>
+	<!-- The job exits itself as soon as the app is done with it, so allow
+	     launchd to start it again immediately; the 10-second default would make
+	     the next toggle wait out the throttle. -->
+	<key>ThrottleInterval</key>
+	<integer>1</integer>
+</dict>
+</plist>

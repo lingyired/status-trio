@@ -40,6 +40,9 @@ require_exact "helper build minimum" \
 require_exact "bundle verifier minimum" \
     "$(sed -n 's/^EXPECTED_MINOS=\"\([^\"]*\)\"$/\1/p' scripts/verify-mobile-battery-bundle.sh)" \
     "13.0"
+require_exact "privileged helper verifier minimum" \
+    "$(sed -n 's/^EXPECTED_MINOS=\"\([^\"]*\)\"$/\1/p' scripts/verify-privileged-helper-bundle.sh)" \
+    "13.0"
 require_exact "appcast notes default minimum" \
     "$(sed -n 's/^MINIMUM_SYSTEM_VERSION=\"\${MINIMUM_SYSTEM_VERSION:-\([^\"]*\)}\"$/\1/p' scripts/validate-appcast-notes.sh)" \
     "13.0"

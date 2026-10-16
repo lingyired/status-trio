@@ -6,7 +6,8 @@ let package = Package(
     defaultLocalization: "en",
     platforms: [.macOS(.v13)],
     products: [
-        .executable(name: "StatusTrio", targets: ["StatusTrio"])
+        .executable(name: "StatusTrio", targets: ["StatusTrio"]),
+        .executable(name: "StatusTrioPowerHelper", targets: ["StatusTrioPowerHelper"])
     ],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.0.0")
@@ -16,7 +17,8 @@ let package = Package(
             name: "StatusTrioCore",
             dependencies: [
                 .product(name: "Sparkle", package: "Sparkle"),
-                "DDCPrivateAPI"
+                "DDCPrivateAPI",
+                "PowerHelperProtocol"
             ],
             path: "Sources/StatusTrioCore",
             resources: [.process("Resources")],
@@ -24,6 +26,7 @@ let package = Package(
                 .linkedFramework("AppKit"),
                 .linkedFramework("SwiftUI"),
                 .linkedFramework("IOKit"),
+                .linkedFramework("Carbon"),
                 .linkedFramework("CoreWLAN"),
                 .linkedFramework("CoreLocation"),
                 .linkedFramework("CoreAudio"),
@@ -34,6 +37,20 @@ let package = Package(
                 .linkedFramework("Security"),
                 .linkedFramework("ServiceManagement"),
                 .linkedFramework("SystemConfiguration")
+            ]
+        ),
+        // Shared between the app and the privileged daemon so the daemon does
+        // not link AppKit, SwiftUI, or Sparkle just to name the XPC protocol.
+        .target(
+            name: "PowerHelperProtocol",
+            path: "Sources/PowerHelperProtocol"
+        ),
+        .executableTarget(
+            name: "StatusTrioPowerHelper",
+            dependencies: ["PowerHelperProtocol"],
+            path: "Sources/StatusTrioPowerHelper",
+            linkerSettings: [
+                .linkedFramework("Security")
             ]
         ),
         .target(
@@ -48,8 +65,16 @@ let package = Package(
         ),
         .testTarget(
             name: "StatusTrioCoreTests",
-            dependencies: ["StatusTrioCore"],
+            dependencies: ["StatusTrioCore", "PowerHelperProtocol"],
             path: "Tests/StatusTrioCoreTests"
+        ),
+        // The daemon owns its own lifetime, so its idle policy is exercised
+        // directly: the executable target is linked into this bundle, and the
+        // top-level code in main.swift never runs here.
+        .testTarget(
+            name: "StatusTrioPowerHelperTests",
+            dependencies: ["StatusTrioPowerHelper"],
+            path: "Tests/StatusTrioPowerHelperTests"
         )
     ]
 )

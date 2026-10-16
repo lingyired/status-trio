@@ -5,6 +5,7 @@ import SwiftUI
 struct IconDesignerLaunchSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
+    var inputSourceController: InputSourceController? = nil
     @Binding var previewIsDark: Bool
     let onShowIconGuide: () -> Void
     let onOpenIconDesigner: (IconSlot) -> Void
@@ -13,7 +14,12 @@ struct IconDesignerLaunchSectionView: View {
 
     var body: some View {
         SettingsPage(pinnedHeader: {
-            StatusIconPreviewCard(store: store, statusStore: statusStore, isDarkBackground: $previewIsDark)
+            StatusIconPreviewCard(
+                store: store,
+                statusStore: statusStore,
+                isDarkBackground: $previewIsDark,
+                inputSourceController: inputSourceController
+            )
         }) {
             IconDesignerEntryRow(title: localization.string(.iconDesignerTitle)) {
                 onOpenIconDesigner(.outerRing)

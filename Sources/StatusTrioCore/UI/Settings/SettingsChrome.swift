@@ -122,6 +122,23 @@ struct SettingsRow<Leading: View, Trailing: View>: View {
     var subtitle: String? = nil
     @ViewBuilder var leading: Leading
     @ViewBuilder var trailing: Trailing
+    /// A link that is concatenated onto the end of the description.
+    ///
+    /// Rendered inside the description's own `Text` so it wraps with the
+    /// sentence instead of claiming a column of its own, which would leave a
+    /// gap beside every line that does not reach it.
+    var subtitleLink: Text? = nil
+
+    /// What `subtitleLink` does when tapped. Without this the link is plain
+    /// text, which would read as clickable and do nothing.
+    var subtitleLinkAction: (() -> Void)? = nil
+
+    /// Live status text concatenated onto the end of the description.
+    ///
+    /// Same wrapping as `subtitleLink` — it is part of the sentence, not a
+    /// second line — but it is not interactive and carries its own colour, so a
+    /// row can report state without spending a row on it.
+    var subtitleStatus: Text? = nil
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -132,10 +149,20 @@ struct SettingsRow<Leading: View, Trailing: View>: View {
                 Text(title)
                     .font(.system(size: 13, weight: .regular))
                 if let subtitle {
-                    Text(subtitle)
+                    // The link is concatenated onto the description rather than
+                    // stacked beside it, so it flows with the sentence and
+                    // wraps with it instead of claiming its own column.
+                    (
+                        Text(subtitle)
+                            + (subtitleStatus.map { Text(" ") + $0 } ?? Text(""))
+                            + (subtitleLink.map { Text(" ") + $0 } ?? Text(""))
+                    )
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .onTapGesture {
+                            subtitleLinkAction?()
+                        }
                 }
             }
 
@@ -154,13 +181,19 @@ extension SettingsRow where Leading == SettingsIcon {
         tint: Color = .accentColor,
         title: String,
         subtitle: String? = nil,
+        subtitleStatus: Text? = nil,
+        subtitleLink: Text? = nil,
+        subtitleLinkAction: (() -> Void)? = nil,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.init(
             title: title,
             subtitle: subtitle,
             leading: { SettingsIcon(symbol: symbol, tint: tint) },
-            trailing: trailing
+            trailing: trailing,
+            subtitleLink: subtitleLink,
+            subtitleLinkAction: subtitleLinkAction,
+            subtitleStatus: subtitleStatus
         )
     }
 }
@@ -169,13 +202,19 @@ extension SettingsRow where Leading == EmptyView {
     init(
         title: String,
         subtitle: String? = nil,
+        subtitleStatus: Text? = nil,
+        subtitleLink: Text? = nil,
+        subtitleLinkAction: (() -> Void)? = nil,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.init(
             title: title,
             subtitle: subtitle,
             leading: { EmptyView() },
-            trailing: trailing
+            trailing: trailing,
+            subtitleLink: subtitleLink,
+            subtitleLinkAction: subtitleLinkAction,
+            subtitleStatus: subtitleStatus
         )
     }
 }
@@ -186,10 +225,17 @@ struct SettingsToggleRow: View {
     var tint: Color = .accentColor
     let title: String
     var subtitle: String? = nil
+    var subtitleStatus: Text? = nil
     @Binding var isOn: Bool
 
     var body: some View {
-        SettingsRow(symbol, tint: tint, title: title, subtitle: subtitle) {
+        SettingsRow(
+            symbol,
+            tint: tint,
+            title: title,
+            subtitle: subtitle,
+            subtitleStatus: subtitleStatus
+        ) {
             Toggle("", isOn: $isOn)
                 .toggleStyle(.switch)
                 .controlSize(.small)

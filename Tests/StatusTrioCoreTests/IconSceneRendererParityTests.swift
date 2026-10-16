@@ -723,7 +723,7 @@ final class IconSceneRendererParityTests: XCTestCase {
             ("connected full signal", WiFiStatus(state: .connected, rssi: -60), .wifi, .standard, symbol("wifi", value: 1)),
             ("connected medium signal", WiFiStatus(state: .connected, rssi: -70), .wifi, .standard, mediumWiFi),
             ("connected weak signal", WiFiStatus(state: .connected, rssi: -85), .wifi, .standard, symbol("wifi", value: 0.33)),
-            ("connected no signal", WiFiStatus(state: .connected, rssi: nil), .wifi, .standard, symbol("wifi", value: 0, color: .inactive)),
+            ("connected no signal", WiFiStatus(state: .connected, rssi: nil), .wifi, .standard, symbol("wifi", value: 0)),
             ("not associated", WiFiStatus(state: .notAssociated, rssi: nil), .wifi, .standard, symbol("wifi", value: 0)),
             ("wifi off", WiFiStatus(state: .off, rssi: nil), .wifi, .standard, slash),
             ("wifi unavailable", WiFiStatus(state: .unavailable, rssi: nil), .wifi, .standard, slash),

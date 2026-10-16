@@ -277,13 +277,19 @@ final class AudioInputMonitorTests: XCTestCase {
     let log = AudioInputStatusLog(monitor.updates)
     defer { monitor.stop() }
 
-    let initial = log.expectStatus("initial refresh") { $0.defaultDeviceID == 11 }
+    let initial = log.expectStatus("initial refresh") {
+      $0.defaultDeviceID == 11 && !$0.isRefreshing
+    }
     monitor.setEnabled(true)
     monitor.setVisible(true)
     await fulfillment(of: [initial], timeout: 5)
     let observation = try XCTUnwrap(hardware.waitForObservation(timeout: 5))
 
-    let recovered = log.expectStatus("sleep recovery refresh") { $0.defaultDeviceID == 11 }
+    // A cached status announcing the refresh must not satisfy this wait.
+    hardware.setReading(reading(defaultID: 22))
+    let recovered = log.expectStatus("sleep recovery refresh") {
+      $0.defaultDeviceID == 22 && !$0.isRefreshing
+    }
     monitor.recover()
     await fulfillment(of: [recovered], timeout: 5)
     XCTAssertEqual(hardware.fullReadCount, 2)

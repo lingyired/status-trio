@@ -43,6 +43,7 @@ final class StatusPanelActions {
     private let releaseBluetoothSummary: () -> Void
     private let refreshVolumeListeningModes: () -> Void
     private let stopVolumeListeningModes: () -> Void
+    private let selectInputSourceCommand: (String) -> Void
 
     private static let summaryBatteryLevelsToken = "bluetooth.summary"
     private static let nearbyBatteryDevicesToken = "bluetooth.summary.nearbyBatteryDevices"
@@ -93,7 +94,8 @@ final class StatusPanelActions {
         holdBluetoothSummary: @escaping () -> Void = {},
         releaseBluetoothSummary: @escaping () -> Void = {},
         refreshVolumeListeningModes: @escaping () -> Void = {},
-        stopVolumeListeningModes: @escaping () -> Void = {}
+        stopVolumeListeningModes: @escaping () -> Void = {},
+        selectInputSource: @escaping (String) -> Void = { _ in }
     ) {
         self.outputDevices = outputDevices
         self.selectOutputDevice = selectOutput
@@ -135,9 +137,14 @@ final class StatusPanelActions {
         self.releaseBluetoothSummary = releaseBluetoothSummary
         self.refreshVolumeListeningModes = refreshVolumeListeningModes
         self.stopVolumeListeningModes = stopVolumeListeningModes
+        self.selectInputSourceCommand = selectInputSource
     }
 
-    convenience init(store: SystemStatusStore, settings: SettingsStore) {
+    convenience init(
+        store: SystemStatusStore,
+        settings: SettingsStore,
+        inputSourceController: InputSourceController? = nil
+    ) {
         self.init(
             outputDevices: { store.liveVolume.outputDevices },
             selectOutput: { device in store.selectOutputDevice(device) },
@@ -202,7 +209,10 @@ final class StatusPanelActions {
                     devices: store.bluetoothDevices.devices + ListeningModePreview.devices(for: config)
                 )
             },
-            stopVolumeListeningModes: { store.bluetoothListeningModes.stop() }
+            stopVolumeListeningModes: { store.bluetoothListeningModes.stop() },
+            selectInputSource: { [weak inputSourceController] id in
+                inputSourceController?.select(id: id)
+            }
         )
     }
 
@@ -245,6 +255,7 @@ final class StatusPanelActions {
     func refreshBluetooth() { refreshBluetoothCommand() }
     func requestBluetoothAuthorization() { requestBluetoothAuthorizationCommand() }
     func openBluetoothPermissionSettings() { openBluetoothPermissionSettingsCommand() }
+    func selectInputSource(_ id: String) { selectInputSourceCommand(id) }
 
     func performBluetoothAction(address: String) {
         guard let device = bluetoothDevice(address: address),

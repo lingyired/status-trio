@@ -185,7 +185,7 @@ Do not disable Gatekeeper globally. Subsequent Sparkle updates are authenticated
 Two boundaries macOS and this project draw deliberately. Both are explained in [Known limitations](docs/known-limitations.md).
 
 - **Switching networks happens in System Settings.** Choosing a network in the popover opens the Wi-Fi pane; Status Trio never reads or stores Wi-Fi passwords, because macOS offers no public API to connect with a saved password and every alternative ends with the app holding them.
-- **"Charge to Full Now" stays in macOS.** When optimized battery charging or a charge limit pauses charging, the popover reports the paused state and links to the Battery pane; no public API lets an app resume charging past the limit, and Status Trio does not write to the SMC or ship a privileged helper to do it.
+- **"Charge to Full Now" stays in macOS.** When optimized battery charging or a charge limit pauses charging, the popover reports the paused state and links to the Battery pane; no public API lets an app resume charging past the limit, and Status Trio does not write to the SMC to do it. Low Power Mode is different: an opt-in privileged helper toggles it, and only it — see [privileged helper](docs/privileged-helper.md).
 
 ## Languages
 

@@ -31,6 +31,21 @@ enum AppMetadata {
         validName(infoDictionary[developmentCodenameKey])
     }
 
+    /// Whether this build bundled the privileged power helper.
+    ///
+    /// `build-app.sh` writes this from the `PRIVILEGED_HELPER` switch, so an
+    /// App-Store-style build sets it false and the app hides the feature rather
+    /// than offering a toggle that cannot work. Missing key reads as false.
+    private static let includesPrivilegedHelperKey = "STIncludesPrivilegedHelper"
+
+    static var includesPrivilegedHelper: Bool {
+        includesPrivilegedHelper(from: Bundle.main.infoDictionary ?? [:])
+    }
+
+    static func includesPrivilegedHelper(from infoDictionary: [String: Any]) -> Bool {
+        infoDictionary[includesPrivilegedHelperKey] as? Bool ?? false
+    }
+
     private static func validName(_ value: Any?) -> String? {
         guard let value = value as? String else { return nil }
         return value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : value

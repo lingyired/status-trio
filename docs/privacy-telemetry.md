@@ -8,10 +8,10 @@ are in use. It does not record clicks, pages, popover openings, or other behavio
 ## Your choice
 
 On a new installation, the onboarding guide offers anonymous usage statistics,
-with the switch on by default. No request is sent until you finish the guide or
-choose **Customize**. Closing the guide leaves the choice undecided; it will be
-shown again at the next launch. You can change the choice in **Settings →
-General → Privacy and analytics**.
+with the switch off by default. No request is sent unless you turn the switch on
+and finish the guide or choose **Customize**. Closing the guide leaves the
+choice undecided; it will be shown again at the next launch. You can change the
+choice in **Settings → General → Privacy and analytics**.
 
 An upgrade from an earlier version starts with statistics off. Opening the guide
 again does not turn them on. Ineligible builds also do not send telemetry:

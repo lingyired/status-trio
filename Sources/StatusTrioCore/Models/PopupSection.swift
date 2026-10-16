@@ -7,6 +7,7 @@ enum PopupSection: String, CaseIterable, Identifiable, Sendable {
     case bluetooth
     case volume
     case audioInput
+    case inputSource
 
     var id: Self { self }
 
@@ -18,6 +19,7 @@ enum PopupSection: String, CaseIterable, Identifiable, Sendable {
         case .bluetooth: .bluetoothTitle
         case .volume: .settingsPopupOrderVolume
         case .audioInput: .settingsPopupOrderAudioInput
+        case .inputSource: .settingsPopupOrderInputSource
         }
     }
 
@@ -29,6 +31,7 @@ enum PopupSection: String, CaseIterable, Identifiable, Sendable {
         case .bluetooth: "antenna.radiowaves.left.and.right"
         case .volume: "speaker.wave.2"
         case .audioInput: "mic"
+        case .inputSource: "keyboard"
         }
     }
 }

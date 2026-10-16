@@ -25,23 +25,27 @@ enum PanelPresentationMapper {
         wired: PrimaryLinkDetails?,
         isConstrained: Bool,
         isResolvingName: Bool,
+        localIPAddress: String? = nil,
         localization: Localization
     ) -> PanelSummaryState {
+        let address = nonEmpty(localIPAddress)
         guard connection == .ethernet else {
             return wifiSummary(
                 wifi,
                 connection: connection,
                 isResolvingName: isResolvingName,
+                localIPAddress: address,
                 localization: localization
             )
         }
 
         let title = WiredLinkPresentation.title(wired, localization: localization)
-        let subtitle = WiredLinkPresentation.subtitle(
+        let linkSubtitle = WiredLinkPresentation.subtitle(
             wired,
             isConstrained: isConstrained,
             localization: localization
         )
+        let subtitle = NetworkRowSubtitle.prepending(address, to: linkSubtitle) ?? linkSubtitle
         return PanelSummaryState(
             title: title,
             subtitle: subtitle,
@@ -53,6 +57,11 @@ enum PanelPresentationMapper {
             showsSettings: true,
             intent: .wiredDetails
         )
+    }
+
+    private static func nonEmpty(_ value: String?) -> String? {
+        guard let value, !value.isEmpty else { return nil }
+        return value
     }
 
     static func vpn(_ status: VPNStatus, localization: Localization) -> PanelSummaryState {
@@ -193,17 +202,18 @@ enum PanelPresentationMapper {
         _ wifi: WiFiStatus,
         connection: NetworkConnection,
         isResolvingName: Bool,
+        localIPAddress: String?,
         localization: Localization
     ) -> PanelSummaryState {
         let summarySSID = WiFiSummaryPresentation.summarySSID(wifi, connection: connection)
-        let measurements = WiFiSummaryPresentation.measurements(
+        let linkSubtitle = WiFiSummaryPresentation.measurements(
             wifi,
             connection: connection,
             localization: localization
         )
         let subtitle: String
         if summarySSID != nil {
-            subtitle = measurements ?? localization.string(
+            subtitle = linkSubtitle ?? localization.string(
                 wifi.state == .hotspot ? .wifiSubtitleHotspot : .wifiSubtitleConnected
             )
         } else if let ssid = wifi.ssid, !ssid.isEmpty {
@@ -217,6 +227,19 @@ enum PanelPresentationMapper {
             subtitle = localization.string(.wifiActionOpenLocationSettings)
         } else {
             subtitle = wifiSubtitle(wifi, localization: localization)
+        }
+
+        // The address leads the second line, ahead of the band and signal, so a
+        // reader finds it where the network's own details already live.
+        let measurements = NetworkRowSubtitle.prepending(localIPAddress, to: linkSubtitle)
+        // The single-space subtitle is the row holding its line height while the
+        // Wi-Fi name resolves. An address fills that line on its own rather than
+        // trailing the placeholder's blank.
+        let displayedSubtitle: String
+        if subtitle == " " {
+            displayedSubtitle = localIPAddress ?? subtitle
+        } else {
+            displayedSubtitle = NetworkRowSubtitle.prepending(localIPAddress, to: subtitle) ?? subtitle
         }
 
         let action = StatusMappings.wifiSummaryAction(for: wifi)
@@ -248,7 +271,7 @@ enum PanelPresentationMapper {
 
         return PanelSummaryState(
             title: title,
-            subtitle: subtitle,
+            subtitle: displayedSubtitle,
             measurements: measurements,
             symbol: wifiSymbol(wifi),
             tint: .secondary,

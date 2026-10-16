@@ -77,6 +77,15 @@ final class LaunchAtLoginManager: ObservableObject {
 
     private let service: LaunchAtLoginServicing
 
+    /// The opt-in value whose last attempt failed.
+    ///
+    /// Approval happens in System Settings, so the state the failed call wanted
+    /// can arrive later without any further action in the app. Remembering what
+    /// was attempted lets `refresh()` drop the error once the system catches up
+    /// instead of leaving the failure banner on screen until the user happens to
+    /// touch the toggle again.
+    private var failedOperationTarget: Bool?
+
     init(service: LaunchAtLoginServicing = SystemLaunchAtLoginService()) {
         self.service = service
         self.status = service.status
@@ -103,6 +112,7 @@ final class LaunchAtLoginManager: ObservableObject {
     func setEnabled(_ enabled: Bool) {
         guard isAvailable else { return }
         didFailLastOperation = false
+        failedOperationTarget = nil
 
         do {
             if enabled {
@@ -114,13 +124,26 @@ final class LaunchAtLoginManager: ObservableObject {
             }
         } catch {
             didFailLastOperation = true
+            failedOperationTarget = enabled
         }
 
         refresh()
     }
 
+    /// Re-reads the system state and retires a failure the system has since
+    /// satisfied. `requiresApproval` is not enough to retire a failed
+    /// registration: a rejected `register()` leaves the item in exactly that
+    /// state, so the banner stays until the item is really `.enabled`. A failed
+    /// unregister is settled by the item disappearing.
     func refresh() {
         status = service.status
+
+        guard let target = failedOperationTarget else { return }
+        let satisfied = target ? status == .enabled : status == .notRegistered
+        guard satisfied else { return }
+
+        failedOperationTarget = nil
+        didFailLastOperation = false
     }
 
     func openLoginItemsSettings() {

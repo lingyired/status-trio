@@ -303,20 +303,6 @@ jobs:
           } > "${RELEASE_BODY_PATH}"
 
           {
-            printf '\n## First launch / 首次启动\n\n'
-            printf 'If macOS blocks the first launch, run:\n\n'
-            printf '```bash\n'
-            printf 'xattr -dr com.apple.quarantine "/Applications/Status Trio.app"\n'
-            printf 'open "/Applications/Status Trio.app"\n'
-            printf '```\n\n'
-            printf '如果 macOS 阻止首次启动，请运行：\n\n'
-            printf '```bash\n'
-            printf 'xattr -dr com.apple.quarantine "/Applications/Status Trio.app"\n'
-            printf 'open "/Applications/Status Trio.app"\n'
-            printf '```\n'
-          } >> "${RELEASE_BODY_PATH}"
-
-          {
             echo "RELEASE_NOTES_DIR=${NOTES_DIR}"
             echo "RELEASE_BODY_FILE=${RELEASE_BODY_PATH}"
           } >> "${GITHUB_ENV}"
@@ -343,6 +329,7 @@ jobs:
           bash scripts/test-macos13-deployment-contract.sh
           bash scripts/test-appcast-minimum-system-version.sh
           bash scripts/test-macos13-bundle-contract.sh
+          bash scripts/test-privileged-helper-bundle-contract.sh
           bash scripts/test-mobile-battery-helper.sh
           bash scripts/test-mobile-battery-rpaths.sh
           bash scripts/test-otool-dependencies.sh

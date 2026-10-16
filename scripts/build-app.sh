@@ -14,6 +14,7 @@ UNIVERSAL_BUILD="${UNIVERSAL_BUILD:-0}"
 TELEMETRY_PRODUCTION="${TELEMETRY_PRODUCTION:-0}"
 DISABLE_PRODUCTION_UPDATES="${DISABLE_PRODUCTION_UPDATES:-0}"
 APP_OUTPUT_PATH="${APP_OUTPUT_PATH:-$ROOT/dist/StatusTrio.app}"
+PRIVILEGED_HELPER="${PRIVILEGED_HELPER:-1}"
 
 case "$OPEN_APP" in
     open|no-open) ;;
@@ -68,6 +69,18 @@ case "$DISABLE_PRODUCTION_UPDATES" in
     0|1) ;;
     *)
         echo "Error: DISABLE_PRODUCTION_UPDATES must be 0 or 1." >&2
+        exit 2
+        ;;
+esac
+
+# 0 excludes the privileged power helper and its LaunchDaemon property list from
+# the bundle, which is what an App-Store-style build needs: a root LaunchDaemon
+# cannot ship there. The app reads STIncludesPrivilegedHelper at runtime and
+# hides the Low Power Mode control when the helper is absent.
+case "$PRIVILEGED_HELPER" in
+    0|1) ;;
+    *)
+        echo "Error: PRIVILEGED_HELPER must be 0 or 1." >&2
         exit 2
         ;;
 esac
@@ -177,9 +190,44 @@ if ! otool -l "$CONTENTS/MacOS/StatusTrio" | grep -Fq 'path @executable_path/../
     install_name_tool -add_rpath '@executable_path/../Frameworks' "$CONTENTS/MacOS/StatusTrio"
 fi
 
+# The privileged power helper is a SwiftPM executable target copied next to the
+# app binary. Its LaunchDaemon property list goes into Contents/Library/LaunchDaemons
+# so SMAppService can register it and System Settings can attribute it to the app.
+# PRIVILEGED_HELPER=0 skips both so an App-Store-style build ships neither.
+if [[ "$PRIVILEGED_HELPER" == "1" ]]; then
+    if [[ ! -x "$BIN_PATH/StatusTrioPowerHelper" ]]; then
+        echo "Error: missing privileged helper at $BIN_PATH/StatusTrioPowerHelper." >&2
+        exit 1
+    fi
+    mkdir -p "$CONTENTS/Helpers" "$CONTENTS/Library/LaunchDaemons"
+    cp "$BIN_PATH/StatusTrioPowerHelper" "$CONTENTS/Helpers/StatusTrioPowerHelper"
+    chmod +x "$CONTENTS/Helpers/StatusTrioPowerHelper"
+    # SwiftPM records the deployment target in LC_BUILD_VERSION's `sdk` field,
+    # so the daemon needs the same correction the app binary gets: declare the
+    # macOS 26 design language while keeping the real deployment target.
+    HELPER_MINOS="$(vtool -show-build "$CONTENTS/Helpers/StatusTrioPowerHelper" | awk '/^[[:space:]]*minos[[:space:]]/ {print $2; exit}')"
+    if [[ -z "$HELPER_MINOS" ]]; then
+        echo "Error: unable to read the deployment target from the built privileged helper." >&2
+        exit 1
+    fi
+    HELPER_VTMP="$(mktemp "${TMPDIR:-/tmp}/StatusTrioPowerHelper.vtool.XXXXXX")"
+    xcrun vtool -set-build-version macos "$HELPER_MINOS" 26.0 -replace -output "$HELPER_VTMP" "$CONTENTS/Helpers/StatusTrioPowerHelper"
+    mv "$HELPER_VTMP" "$CONTENTS/Helpers/StatusTrioPowerHelper"
+    chmod +x "$CONTENTS/Helpers/StatusTrioPowerHelper"
+    cp "$ROOT/Support/StatusTrioPowerHelper.plist" \
+        "$CONTENTS/Library/LaunchDaemons/com.lingsmbp.StatusTrio.PowerHelper.plist"
+    /usr/libexec/PlistBuddy -c "Set :AssociatedBundleIdentifiers:0 $BUNDLE_ID" \
+        "$CONTENTS/Library/LaunchDaemons/com.lingsmbp.StatusTrio.PowerHelper.plist"
+fi
+
 cp "$ROOT/Support/Info.plist" "$CONTENTS/Info.plist"
 if [[ "$TELEMETRY_PRODUCTION" == "1" ]]; then
     /usr/libexec/PlistBuddy -c "Set :STTelemetryProduction true" "$CONTENTS/Info.plist"
+fi
+if [[ "$PRIVILEGED_HELPER" == "1" ]]; then
+    /usr/libexec/PlistBuddy -c "Set :STIncludesPrivilegedHelper true" "$CONTENTS/Info.plist"
+else
+    /usr/libexec/PlistBuddy -c "Set :STIncludesPrivilegedHelper false" "$CONTENTS/Info.plist"
 fi
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$CONTENTS/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $APP_NAME" "$CONTENTS/Info.plist"
@@ -275,14 +323,26 @@ if [[ "$SIGNING_IDENTITY" != "-" ]]; then
     fi
 fi
 
+# The daemon only accepts an Apple-anchored client, so an Ad-hoc build's helper
+# can never be registered or talked to. The bundle still ships it (the static
+# contract holds), but the feature will not work until it is signed with a
+# Developer ID identity — warn rather than ship a silently dead toggle.
+if [[ "$PRIVILEGED_HELPER" == "1" && "$SIGNING_IDENTITY" == "-" ]]; then
+    echo "Warning: the privileged helper is bundled but Ad-hoc signed; Low Power Mode control will not work until it is signed with a Developer ID identity." >&2
+fi
+
 codesign "${SIGNING_ARGS[@]}" "$CONTENTS/Frameworks/Sparkle.framework"
 while IFS= read -r -d '' mobile_library; do
     codesign "${SIGNING_ARGS[@]}" "$mobile_library"
 done < <(find "$CONTENTS/Frameworks/MobileBattery" -maxdepth 1 -type f -name '*.dylib*' -print0)
 codesign "${SIGNING_ARGS[@]}" "$CONTENTS/Helpers/StatusTrioMobileBatteryHelper"
+if [[ "$PRIVILEGED_HELPER" == "1" ]]; then
+    codesign "${SIGNING_ARGS[@]}" "$CONTENTS/Helpers/StatusTrioPowerHelper"
+fi
 codesign "${SIGNING_ARGS[@]}" "$APP_DIR"
 codesign --verify --deep --strict --verbose=2 "$APP_DIR"
 bash "$ROOT/scripts/verify-mobile-battery-bundle.sh" "$APP_DIR"
+bash "$ROOT/scripts/verify-privileged-helper-bundle.sh" "$APP_DIR"
 
 echo "Built $APP_DIR (bundle id: $BUNDLE_ID)"
 

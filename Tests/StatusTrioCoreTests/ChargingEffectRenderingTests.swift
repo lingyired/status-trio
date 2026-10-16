@@ -24,14 +24,16 @@ struct ChargingEffectRenderingTests {
         // supported macOS 26 CI runner and the macOS 27 local toolchain. Keep
         // both observed static baselines so other pixel changes still fail.
         //
-        // The #30 ink-bearing correction moves the visible `wifi.slash` ink
-        // (not just its NSImage box) onto artworkCenterX. `staticSnapshot`
-        // reports `.off`, so this intentional subpixel shift changes its
-        // static fingerprint. The macOS 27 value below was re-recorded after
-        // validating the isolated alpha-bounds and full-composite regressions.
+        // These baselines were re-recorded for the 2026-10-09 recurrence of
+        // #30, which centred the measured SF Symbol ink instead of its layout
+        // box. `staticSnapshot` reports `.off`, so it draws `wifi.slash`
+        // through the same compensation and its pixels change too — that is
+        // the expected effect of the fix, not a regression. Replace the old
+        // pair rather than appending: keeping pre-fix hashes would let the
+        // defect back in unnoticed.
         let knownPlatformFingerprints = [
-            "9f0c892e2602f4d4f9c541be1d93963e14d46e76f3ef24b46cd2dfbc25a22d1d", // macOS 26 CI, artworkCenterX anchor
-            "62c208567574bf0e0a7581fc4bb7340d98ef4eb4f0949b64cfdde7f2c01cd27c", // macOS 27.0.1 local, measured ink center
+            "9dcba3184f0953f8c173cc2f846977f01b84510a8505166bd6a8048f44d8fd97", // macOS 26 CI, measured ink centering
+            "1930db19c8a2f14400b25cf8f9228320b3d2bb9eb3f3360f93cc1e9ae8b1bf52", // macOS 27 local, measured ink centering
         ]
         #expect(knownPlatformFingerprints.contains(fingerprint))
     }

@@ -25,6 +25,8 @@ struct BluetoothDeviceKindTests {
         ("Joystick", .peripheral(.gamepad)),
         ("Digitizer Tablet", .peripheral(.trackpad)),
         ("Remote Control", .peripheral(.unclassified)),
+        ("Combined Keyboard Pointing", .peripheral(.unclassified)),
+        ("Keyboard Pointing Device", .peripheral(.unclassified)),
         ("Headphones", .audio),
         ("Headset", .audio),
         ("Loudspeaker", .audio),
@@ -50,6 +52,7 @@ struct BluetoothDeviceKindTests {
         ("Notebook", .computer(.laptop)),
         ("Pointing Device", .peripheral(.mouse)),
         ("Wireless Keyboard", .peripheral(.keyboard)),
+        ("Keyboard and Mouse", .peripheral(.unclassified)),
         ("Bluetooth Headphones", .audio),
         ("Portable Speaker", .audio),
         ("Home Printer", .imaging(.printer)),
@@ -112,18 +115,6 @@ struct BluetoothDeviceKindTests {
         #expect(BluetoothDeviceKindResolver.kind(minorTypes: [], majorTypes: []) == .unknown)
     }
 
-    /// Only the classes the report cannot be trusted on accept a HID
-    /// correction, so a stray HID interface on an audio device, a phone or a
-    /// computer cannot reclassify it into the peripheral family.
-    @Test func onlyPeripheralAndUnknownAcceptAHIDCorrection() {
-        #expect(BluetoothDeviceKind.peripheral(.unclassified).acceptsHIDRefinement)
-        #expect(BluetoothDeviceKind.unknown.acceptsHIDRefinement)
-        #expect(!BluetoothDeviceKind.audio.acceptsHIDRefinement)
-        #expect(!BluetoothDeviceKind.computer(.laptop).acceptsHIDRefinement)
-        #expect(!BluetoothDeviceKind.mobile(.tablet).acceptsHIDRefinement)
-        #expect(!BluetoothDeviceKind.imaging(.printer).acceptsHIDRefinement)
-    }
-
     /// The confirmation gate follows the family, including the peripherals the
     /// wording did not narrow down.
     @Test func theInputGateFollowsTheFamily() {
@@ -136,15 +127,13 @@ struct BluetoothDeviceKindTests {
         #expect(!BluetoothDeviceKind.peripheral(.keyboard).isAudio)
     }
 
-    /// A correction replaces the class and nothing else: the name, the
-    /// connection state and the identity a battery reading is joined by all
-    /// keep coming from the report.
+    /// Other presentation merging code can replace a kind without modifying
+    /// the identity, connection state or battery lookup fields.
     @Test func replacingTheKindKeepsEveryOtherField() {
         let device = BluetoothDevice(
             id: "D3:6D:6C:40:A3:2E",
             name: "MX Keys",
-            // Declared wrong on purpose: the report calls this keyboard a
-            // mouse, which is the state a correction has to be able to leave.
+            // Start with a mouse class so a presentation replacement is observable.
             kind: .peripheral(.mouse),
             isConnected: true,
             airPodsModel: nil,

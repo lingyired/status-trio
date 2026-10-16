@@ -5,6 +5,7 @@ struct EthernetLinkView: View {
     let state: PanelDetailState
     let onBack: () -> Void
     let onOpenNetworkSettings: () -> Void
+    let onOpenSharingSettings: () -> Void
     let onCopyValue: (String) -> Void
 
     var body: some View {
@@ -23,8 +24,17 @@ struct EthernetLinkView: View {
             .font(.caption)
 
             Divider()
-            Button(localization.string(.ethernetActionOpenSettings), action: onOpenNetworkSettings)
-                .buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 6) {
+                Button(localization.string(.ethernetActionOpenSettings), action: onOpenNetworkSettings)
+                    .buttonStyle(.plain)
+
+                // Internet Sharing needs root to toggle and has no public API, so
+                // this hands the user to the Sharing pane rather than writing the
+                // system's network configuration from the app.
+                Button(localization.string(.networkActionShareInternet), action: onOpenSharingSettings)
+                    .buttonStyle(.plain)
+                    .help(localization.string(.networkActionShareInternetHelp))
+            }
         }
     }
 }

@@ -6,6 +6,10 @@ struct BatteryStatusView: View {
     var cautionColor: Color = .yellow
     let onOpenBatteryDetails: () -> Void
     let onOpenBatterySettings: () -> Void
+    /// The Low Power Mode write path, shown as a quick toggle beside the gear.
+    /// Nil in previews and layout tests, where the row stays read-only.
+    var lowPowerMode: LowPowerModeController?
+    var showsLowPowerToggle: Bool = false
 
     private var hasDetails: Bool { state.intent == .batteryDetails }
 
@@ -30,12 +34,6 @@ struct BatteryStatusView: View {
                     }
 
                     Spacer()
-
-                    if hasDetails {
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
                 }
                 .contentShape(Rectangle())
             }
@@ -43,6 +41,20 @@ struct BatteryStatusView: View {
             .disabled(!hasDetails)
             .accessibilityLabel(state.accessibilityLabel)
             .accessibilityValue(state.accessibilityValue)
+
+            if showsLowPowerToggle, let lowPowerMode {
+                lowPowerToggleButton(lowPowerMode)
+            }
+
+            // The chevron sits immediately left of the gear so its right edge
+            // lines up with the same affordance in the rows below; the leaf would
+            // otherwise push it one slot to the left.
+            if hasDetails {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
+            }
 
             if state.showsSettings {
                 Button(
@@ -59,5 +71,39 @@ struct BatteryStatusView: View {
         }
     }
 
+    /// A one-click Low Power Mode switch, mirroring the system battery menu's
+    /// quick toggle. Filled when on, outlined when off.
+    private func lowPowerToggleButton(_ controller: LowPowerModeController) -> some View {
+        // A dedicated observing subview: the row itself holds the controller as a
+        // plain value, so reading `isLowPowerMode` here would not re-render the
+        // leaf when the state changes.
+        LowPowerModeToggleButton(controller: controller, localization: localization)
+    }
+
     var showsDetailAffordance: Bool { hasDetails }
+}
+
+/// The leaf switch, split out so it observes the controller and re-renders when
+/// the Low Power Mode state changes.
+private struct LowPowerModeToggleButton: View {
+    @ObservedObject var controller: LowPowerModeController
+    let localization: Localization
+
+    var body: some View {
+        Button {
+            controller.setLowPowerMode(!controller.isLowPowerMode)
+        } label: {
+            Image(systemName: controller.isLowPowerMode ? "leaf.fill" : "leaf")
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.plain)
+        .foregroundStyle(controller.isLowPowerMode ? Color.green : Color.secondary)
+        .help(localization.string(.lowPowerModeToggleDescription))
+        .disabled(controller.isApplying)
+        .accessibilityLabel(localization.string(.lowPowerModeToggle))
+        .accessibilityValue(
+            localization.string(controller.isLowPowerMode ? .batteryDetailsOn : .batteryDetailsOff)
+        )
+        .frame(width: 24, height: 24)
+    }
 }

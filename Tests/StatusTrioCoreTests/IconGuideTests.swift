@@ -75,6 +75,8 @@ final class IconGuideTests: XCTestCase {
         let settings = SettingsStore(defaults: defaults)
         var draft = TelemetryConsentDraft()
 
+        XCTAssertFalse(draft.sharesAnalytics)
+
         draft.sharesAnalytics = false
         XCTAssertEqual(settings.telemetryConsentVersion, 0)
         XCTAssertFalse(settings.sharesAnonymousAnalytics)

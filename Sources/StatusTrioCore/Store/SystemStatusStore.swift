@@ -57,6 +57,9 @@ final class SystemStatusStore: ObservableObject {
     /// an Ethernet connection and dropped when either stops being true, so the
     /// row never shows the address of a link the user has left.
     let primaryLink: PrimaryLinkController
+    /// The private LAN address. Popover-only state like `primaryLink`, and read
+    /// only while the popover is open with the Local IP row switched on.
+    let localIP: LocalIPController
     let bluetoothDevices: BluetoothDeviceController
     let mobileBattery: MobileBatteryController
     let appleDeviceDiscovery: AppleDeviceDiscoveryController
@@ -65,6 +68,9 @@ final class SystemStatusStore: ObservableObject {
     /// paired-device controller is not widened by it. The Bluetooth view drives it
     /// from the same appear/disappear and refresh hooks the device list uses.
     let bluetoothListeningModes: BluetoothListeningModeController
+    /// The Low Power Mode write path. Dormant until the opt-in enables it, so
+    /// the privileged helper is never contacted while the feature is off.
+    let lowPowerMode: LowPowerModeController
 
     private let batteryMonitor: any BatteryMonitoring
     private let wifiMonitor: any WiFiMonitoring
@@ -84,7 +90,10 @@ final class SystemStatusStore: ObservableObject {
     private var isVPNActiveForPopover = false
     private var inputUpdateTask: Task<Void, Never>?
     private var inputSettingsCancellable: AnyCancellable?
+    private var localIPSettingsCancellable: AnyCancellable?
     private var mobileBatterySettingsCancellable: AnyCancellable?
+    private var lowPowerModeSettingsCancellable: AnyCancellable?
+    private var lowPowerModeSnapshotCancellable: AnyCancellable?
     private var appleDeviceSettingsCancellable: AnyCancellable?
     private var appleBackgroundSettingsCancellable: AnyCancellable?
     private var appleEligibilitySettingsCancellable: AnyCancellable?
@@ -130,6 +139,10 @@ final class SystemStatusStore: ObservableObject {
     /// screen, which is what decides whether the built popover content can be
     /// kept for a rapid reopen.
     private var isPrimaryLinkPanelOpen = false
+    /// Whether the Local IP row is switched on. The controller itself follows
+    /// the popover's own visibility; this is the settings half of its
+    /// activation, so the read runs only while the row is actually drawn.
+    private var isLocalIPEnabled = false
 
     init(
         batteryMonitor: any BatteryMonitoring,
@@ -154,10 +167,12 @@ final class SystemStatusStore: ObservableObject {
         batteryDetails: BatteryDetailsController = BatteryDetailsController(),
         wifiNetworks: WiFiNetworkController = WiFiNetworkController(),
         primaryLink: PrimaryLinkController = PrimaryLinkController(),
+        localIP: LocalIPController = LocalIPController(),
         bluetoothDevices: BluetoothDeviceController = BluetoothDeviceController(),
         mobileBattery: MobileBatteryController = MobileBatteryController(),
         appleDeviceDiscovery: AppleDeviceDiscoveryController = AppleDeviceDiscoveryController(),
         bluetoothListeningModes: BluetoothListeningModeController = BluetoothListeningModeController(),
+        lowPowerMode: LowPowerModeController = LowPowerModeController(),
         initialSnapshot: StatusSnapshot = .placeholder
     ) {
         self.batteryMonitor = batteryMonitor
@@ -176,10 +191,12 @@ final class SystemStatusStore: ObservableObject {
         self.batteryDetails = batteryDetails
         self.wifiNetworks = wifiNetworks
         self.primaryLink = primaryLink
+        self.localIP = localIP
         self.bluetoothDevices = bluetoothDevices
         self.mobileBattery = mobileBattery
         self.appleDeviceDiscovery = appleDeviceDiscovery
         self.bluetoothListeningModes = bluetoothListeningModes
+        self.lowPowerMode = lowPowerMode
         self.snapshot = initialSnapshot
         self.popupSnapshot = initialSnapshot
         self.vpnStatus = .placeholder
@@ -346,6 +363,10 @@ final class SystemStatusStore: ObservableObject {
         inputSettingsCancellable = nil
         mobileBatterySettingsCancellable?.cancel()
         mobileBatterySettingsCancellable = nil
+        lowPowerModeSettingsCancellable?.cancel()
+        lowPowerModeSettingsCancellable = nil
+        lowPowerModeSnapshotCancellable?.cancel()
+        lowPowerModeSnapshotCancellable = nil
         appleDeviceSettingsCancellable?.cancel()
         appleDeviceSettingsCancellable = nil
         appleBackgroundSettingsCancellable?.cancel()
@@ -377,6 +398,7 @@ final class SystemStatusStore: ObservableObject {
 
         batteryDetails.deactivate()
         mobileBattery.stop()
+        lowPowerMode.stop()
         appleDeviceDiscovery.stop()
         batteryMonitor.stop()
         wifiMonitor.stop()
@@ -392,6 +414,7 @@ final class SystemStatusStore: ObservableObject {
         wifiNetworks.deactivate()
         primaryLink.deactivate()
         bluetoothDevices.shutdown()
+        localIP.deactivate()
         bluetoothListeningModes.stop()
     }
 
@@ -520,12 +543,17 @@ final class SystemStatusStore: ObservableObject {
     func setPopoverVisible(_ visible: Bool) {
         guard !hasStopped else { return }
         isPopoverVisible = visible
+        // The system's own state may have changed while the popover was closed
+        // (Control Center, the battery menu), so re-read it through the helper
+        // before the battery row shows a stale Low Power Mode value.
+        if visible { lowPowerMode.refresh() }
         mobileBattery.setSurfaceVisible(visible)
         updateAppleRefreshDemand()
         inputMonitor?.setVisible(visible)
         if !visible { batteryDetails.deactivate() }
         updateDetailsVisibility()
         updatePrimaryLinkActivation()
+        updateLocalIPActivation()
 
         guard visible else {
             stopVPNMonitoringForPopover()
@@ -693,6 +721,22 @@ final class SystemStatusStore: ObservableObject {
             }
     }
 
+    /// Binds the Local IP address read to its Settings toggle.
+    ///
+    /// The read only runs while the toggle is on, so the address is not looked
+    /// up for a user who never enabled it, and switching it on while the
+    /// popover is already open fills the row without a reopen.
+    func bindLocalIPSettings(_ settings: SettingsStore) {
+        guard !hasStopped else { return }
+        localIPSettingsCancellable = settings.$showsLocalIPAddress
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                self.isLocalIPEnabled = enabled
+                self.updateLocalIPActivation()
+            }
+    }
+
     func bindMobileBatterySettings(_ settings: SettingsStore) {
         guard !hasStopped else { return }
         nearbyBLESettingsCancellables.removeAll()
@@ -782,6 +826,23 @@ final class SystemStatusStore: ObservableObject {
     }
 
     private weak var boundAppleRefreshSettings: SettingsStore?
+
+    /// Binds the Low Power Mode opt-in to the write controller and seeds its
+    /// displayed value from the battery snapshot the app already reads.
+    func bindLowPowerModeSettings(_ settings: SettingsStore) {
+        guard !hasStopped else { return }
+        lowPowerModeSettingsCancellable = settings.$controlsLowPowerMode
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                self?.lowPowerMode.setEnabled(enabled)
+            }
+        lowPowerModeSnapshotCancellable = $snapshot
+            .map(\.battery.isLowPowerMode)
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                self?.lowPowerMode.updateFromSystemRead(enabled)
+            }
+    }
 
     private func updateAppleRefreshDemand() {
         guard let settings = boundAppleRefreshSettings else { return }
@@ -894,6 +955,21 @@ final class SystemStatusStore: ObservableObject {
             primaryLink.deactivate()
         }
     }
+
+    /// Starts and stops the LAN address read.
+    ///
+    /// It runs only while both conditions hold: the popover is open, and the
+    /// Local IP row is switched on. Nothing draws the address in any other
+    /// state, and the read walks the interface list, which is not a cost to pay
+    /// for a row the user has not enabled.
+    private func updateLocalIPActivation() {
+        guard !hasStopped else { return }
+        if isPopoverVisible, isLocalIPEnabled {
+            localIP.activate()
+        } else {
+            localIP.deactivate()
+        }
+    }
     private func applyBattery(_ value: BatteryStatus) {
         publish(snapshot.replacingBattery(value))
     }
@@ -912,6 +988,10 @@ final class SystemStatusStore: ObservableObject {
         }
         publish(snapshot.replacingConnection(path.connection))
         updatePrimaryLinkActivation()
+        // The LAN address follows the primary link even when the connection
+        // kind does not change — a cable swap, or a VPN taking the default
+        // route — so a fresh read is asked for on every path update.
+        localIP.refresh()
     }
 
     private func applyVPN(_ value: VPNStatus) {

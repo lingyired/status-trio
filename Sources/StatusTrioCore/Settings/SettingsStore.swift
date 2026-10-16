@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 
@@ -16,6 +17,10 @@ final class SettingsStore: ObservableObject {
 
     static let batteryCriticalThresholdRange: ClosedRange<Double> = 0...100
     static let defaultBatteryCriticalThreshold: Double = 20
+    /// The ring closes at the level the user picks. The floor keeps the arc a
+    /// usable fraction of the circle instead of a hairline at 1%.
+    static let batteryFullThresholdRange: ClosedRange<Double> = 50...100
+    static let defaultBatteryFullThreshold: Double = Double(BatteryIconOptions.defaultFullThreshold)
     static let batterySymbolScaleRange: ClosedRange<Double> = 0.9...1.1
     static let defaultBatterySymbolScale: Double = 1
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
@@ -25,16 +30,26 @@ final class SettingsStore: ObservableObject {
     static let showsPercentageWhenConnectedDefaultsKey = "showsPercentageWhenConnected"
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
     static let batteryCriticalThresholdDefaultsKey = "batteryCriticalThreshold"
+    static let batteryFullThresholdDefaultsKey = "batteryFullThreshold"
     static let batterySymbolScaleDefaultsKey = "batterySymbolScale"
     static let showsWiFiIconForEthernetDefaultsKey = "showsWiFiIconForEthernet"
     static let showsWiFiIconForHotspotDefaultsKey = "showsWiFiIconForHotspot"
     static let showsWiFiIconForTemporaryConnectionDefaultsKey = "showsWiFiIconForTemporaryConnection"
     static let showsWiFiIconForInternetSharingDefaultsKey = "showsWiFiIconForInternetSharing"
+    /// Draws the private LAN address on the network row's second line. Off by
+    /// default: the address is a diagnostic, not something every panel needs.
+    static let showsLocalIPAddressDefaultsKey = "showsLocalIPAddress"
     static let showsBatteryPercentageInConnectionSlotDefaultsKey = "showsBatteryPercentageInConnectionSlot"
+    /// Raw value of `ConnectionCenterSource`. Missing or unknown values decode
+    /// to `.automatic`, so a downgrade or corrupted default never changes the
+    /// shipped icon behaviour.
+    static let connectionCenterSourceDefaultsKey = "connectionCenterSource"
+    static let prioritizesNetworkErrorsOverInputSourceDefaultsKey = "prioritizesNetworkErrorsOverInputSource"
     static let replacesNetworkIconWithBluetoothAudioDefaultsKey = "replacesNetworkIconWithBluetoothAudio"
     static let usesBluetoothAudioVolumeColorDefaultsKey = "usesBluetoothAudioVolumeColor"
     static let prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey = "prioritizesNetworkErrorsOverBluetoothAudio"
     static let showsBluetoothBatteryLevelsDefaultsKey = "showsBluetoothBatteryLevels"
+    static let controlsLowPowerModeDefaultsKey = "controlsLowPowerMode"
     static let showsNearbyBluetoothBatteryDevicesDefaultsKey = "showsNearbyBluetoothBatteryDevices"
     static let refreshesAirPodsBatteryForIconDefaultsKey = "refreshesAirPodsBatteryForIcon"
     static let airPodsIconDeviceAddressDefaultsKey = "airPodsIconDeviceAddress"
@@ -60,6 +75,7 @@ final class SettingsStore: ObservableObject {
     static let bluetoothSymbolScaleRange = statusCenterSymbolScaleRange
     static let defaultBluetoothSymbolScale = defaultStatusCenterSymbolScale
     static let bluetoothSymbolScaleDefaultsKey = "bluetoothSymbolScale"
+    static let bluetoothAudioIconChoiceDefaultsKey = "bluetoothAudioIconChoice"
     static let wifiSymbolScaleRange = statusCenterSymbolScaleRange
     static let defaultWifiSymbolScale = defaultStatusCenterSymbolScale
     static let wifiSymbolScaleDefaultsKey = "wifiSymbolScale"
@@ -301,6 +317,38 @@ final class SettingsStore: ObservableObject {
         iconConfiguration = configuration.normalized()
     }
 
+    @Published var batteryFullThreshold: Double {
+        didSet {
+            let clamped = Self.clampedBatteryFullThreshold(batteryFullThreshold)
+            guard clamped == batteryFullThreshold else {
+                batteryFullThreshold = clamped
+                return
+            }
+            defaults.set(clamped, forKey: Self.batteryFullThresholdDefaultsKey)
+        }
+    }
+
+    var chargeLimitURLForTesting: URL?
+
+    var canReadSystemChargeLimit: Bool {
+        if let url = chargeLimitURLForTesting {
+            return SystemChargeLimitReader.chargeLimit(from: url) != nil
+        }
+        return SystemChargeLimitReader.chargeLimit() != nil
+    }
+
+    @Published var showsLocalIPAddress: Bool {
+        didSet { defaults.set(showsLocalIPAddress, forKey: Self.showsLocalIPAddressDefaultsKey) }
+    }
+
+    @Published var connectionCenterSource: ConnectionCenterSource {
+        didSet { defaults.set(connectionCenterSource.rawValue, forKey: Self.connectionCenterSourceDefaultsKey) }
+    }
+
+    @Published var prioritizesNetworkErrorsOverInputSource: Bool {
+        didSet { defaults.set(prioritizesNetworkErrorsOverInputSource, forKey: Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey) }
+    }
+
     @Published var showsBluetoothBatteryLevels: Bool {
         didSet {
             defaults.set(
@@ -322,6 +370,14 @@ final class SettingsStore: ObservableObject {
 
     @Published var connectedBluetoothIconDeviceAddress: String? {
         didSet { defaults.set(connectedBluetoothIconDeviceAddress, forKey: Self.connectedBluetoothIconDeviceAddressDefaultsKey) }
+    }
+
+    var savedLowPowerModeControlPreference: Bool? {
+        defaults.object(forKey: Self.controlsLowPowerModeDefaultsKey) as? Bool
+    }
+
+    @Published var controlsLowPowerMode: Bool {
+        didSet { defaults.set(controlsLowPowerMode, forKey: Self.controlsLowPowerModeDefaultsKey) }
     }
 
     @Published var showsNearbyBluetoothBatteryDevices: Bool {
@@ -471,6 +527,19 @@ final class SettingsStore: ObservableObject {
                 $0.appearance.footer.strokeScale = newValue.scale
             }
         }
+    }
+
+    @Published var bluetoothAudioIconChoiceRawValue: String {
+        didSet { defaults.set(bluetoothAudioIconChoiceRawValue, forKey: Self.bluetoothAudioIconChoiceDefaultsKey) }
+    }
+
+    var bluetoothAudioIconChoice: BluetoothAudioIconChoice {
+        get {
+            BluetoothAudioIconChoice.persisted(bluetoothAudioIconChoiceRawValue) { symbol in
+                NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
+            }
+        }
+        set { bluetoothAudioIconChoiceRawValue = newValue.rawValue }
     }
 
     @Published var refreshIntervalSeconds: Double {
@@ -839,7 +908,24 @@ final class SettingsStore: ObservableObject {
     }
 
     var iconPresentationConfiguration: IconPresentationConfiguration {
-        iconConfiguration.legacyPresentationConfiguration
+        iconRuntimePresentationOptions.applying(to: iconConfiguration.legacyPresentationConfiguration)
+    }
+
+    var iconRuntimePresentationOptions: IconPresentationRuntimeOptions {
+        IconPresentationRuntimeOptions(
+            connectionCenterSource: connectionCenterSource,
+            prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrorsOverInputSource,
+            batteryFullThreshold: Int(batteryFullThreshold.rounded()),
+            bluetoothAudioIconChoice: bluetoothAudioIconChoice
+        )
+    }
+
+    func applySystemChargeLimit(from url: URL? = nil) {
+        let url = url ?? chargeLimitURLForTesting
+        let limit = url.map { SystemChargeLimitReader.chargeLimit(from: $0) }
+            ?? SystemChargeLimitReader.chargeLimit()
+        guard let limit else { return }
+        batteryFullThreshold = Double(limit)
     }
 
     var batteryIconOptions: BatteryIconOptions {
@@ -851,6 +937,7 @@ final class SettingsStore: ObservableObject {
             usesStatusColors: usesBatteryStatusColors,
             criticalThreshold: Int(batteryCriticalThreshold.rounded()),
             showsPercentageWhenConnected: showsPercentageWhenConnected,
+            fullThreshold: Int(batteryFullThreshold.rounded()),
             textScale: batterySymbolScale * BatteryIconOptions.defaultTextScale,
             ringStrokeScale: ringStrokeStyle.scale
         )
@@ -863,6 +950,8 @@ final class SettingsStore: ObservableObject {
             showsWiFiIconForTemporaryConnection: showsWiFiIconForTemporaryConnection,
             showsWiFiIconForInternetSharing: showsWiFiIconForInternetSharing,
             showsBatteryPercentageInConnectionSlot: showsBatteryPercentageInConnectionSlot,
+            centerSource: connectionCenterSource,
+            prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrorsOverInputSource,
             wifiScale: wifiSymbolScale
         )
     }
@@ -873,7 +962,8 @@ final class SettingsStore: ObservableObject {
             usesVolumeColor: usesBluetoothAudioVolumeColor,
             prioritizesNetworkErrors: prioritizesNetworkErrorsOverBluetoothAudio,
             symbolScale: bluetoothSymbolScale,
-            networkIconSymbolOverride: bluetoothNetworkIconSymbolName
+            networkIconSymbolOverride: bluetoothNetworkIconSymbolName,
+            iconChoice: bluetoothAudioIconChoice
         )
     }
 
@@ -1005,6 +1095,7 @@ final class SettingsStore: ObservableObject {
             )
         }
         let storedIconSize = (defaults.object(forKey: Self.iconSizeDefaultsKey) as? NSNumber)?.doubleValue
+        let storedFullThreshold = (defaults.object(forKey: Self.batteryFullThresholdDefaultsKey) as? NSNumber)?.doubleValue
         let storedOutputDeviceLimit = (defaults.object(forKey: Self.maxVisibleOutputDevicesDefaultsKey) as? NSNumber)?.intValue
         let storedBluetoothDeviceLimit = (defaults.object(
             forKey: Self.maxVisibleBluetoothDevicesDefaultsKey
@@ -1050,9 +1141,24 @@ final class SettingsStore: ObservableObject {
             .flatMap(DockIconBackgroundPreference.init(rawValue:))
             ?? .system
         self.iconSize = Self.clampedIconSize(storedIconSize ?? Self.defaultIconSize)
+        self.batteryFullThreshold = Self.clampedBatteryFullThreshold(
+            storedFullThreshold ?? Self.defaultBatteryFullThreshold
+        )
+        self.showsLocalIPAddress = defaults.object(
+            forKey: Self.showsLocalIPAddressDefaultsKey
+        ) as? Bool ?? false
+        self.connectionCenterSource = defaults.string(
+            forKey: Self.connectionCenterSourceDefaultsKey
+        ).flatMap(ConnectionCenterSource.init(rawValue:)) ?? .automatic
+        self.prioritizesNetworkErrorsOverInputSource = defaults.object(
+            forKey: Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey
+        ) as? Bool ?? true
         self.showsBluetoothBatteryLevels = defaults.object(
             forKey: Self.showsBluetoothBatteryLevelsDefaultsKey
         ) as? Bool ?? true
+        self.controlsLowPowerMode = defaults.object(
+            forKey: Self.controlsLowPowerModeDefaultsKey
+        ) as? Bool ?? false
         self.showsNearbyBluetoothBatteryDevices = defaults.object(
             forKey: Self.showsNearbyBluetoothBatteryDevicesDefaultsKey
         ) as? Bool ?? false
@@ -1112,6 +1218,9 @@ final class SettingsStore: ObservableObject {
         self.bluetoothNetworkIconDeviceAddress = defaults.string(
             forKey: Self.bluetoothNetworkIconDeviceAddressDefaultsKey
         )
+        self.bluetoothAudioIconChoiceRawValue = defaults.string(
+            forKey: Self.bluetoothAudioIconChoiceDefaultsKey
+        ) ?? BluetoothAudioIconChoice.automatic.rawValue
         self.alwaysShowsAllOutputDevices = defaults.object(
             forKey: Self.alwaysShowsAllOutputDevicesDefaultsKey
         ) as? Bool ?? false
@@ -1209,6 +1318,14 @@ final class SettingsStore: ObservableObject {
         return min(
             batteryCriticalThresholdRange.upperBound,
             max(batteryCriticalThresholdRange.lowerBound, value)
+        ).rounded()
+    }
+
+    static func clampedBatteryFullThreshold(_ value: Double) -> Double {
+        guard value.isFinite else { return defaultBatteryFullThreshold }
+        return min(
+            batteryFullThresholdRange.upperBound,
+            max(batteryFullThresholdRange.lowerBound, value)
         ).rounded()
     }
 

@@ -26,6 +26,7 @@ final class StatusPanelViewModel: ObservableObject {
         static let bluetooth = Self(rawValue: 1 << 3)
         static let all = Self(rawValue: 1 << 4)
         static let volume = Self(rawValue: 1 << 5)
+        static let localIP = Self(rawValue: 1 << 6)
     }
     @Published private(set) var battery: PanelSummaryState
     @Published private(set) var network: PanelSummaryState
@@ -33,6 +34,7 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var bluetooth: BluetoothPanelState
     @Published private(set) var volume: VolumePanelState
     @Published private(set) var audioInput: AudioInputPanelState
+    @Published private(set) var inputSource: InputSourcePanelState
     @Published private(set) var batteryDetails: PanelDetailState
     @Published private(set) var wifiDetails: WiFiPanelState
     @Published private(set) var wiredDetails: PanelDetailState
@@ -41,6 +43,7 @@ final class StatusPanelViewModel: ObservableObject {
     let store: SystemStatusStore
     let settings: SettingsStore
     private let localization: Localization
+    private let inputSourceController: InputSourceController
     private let updateScheduler: any PanelPresentationUpdateScheduling
     let actions: StatusPanelActions
     private var cancellables: Set<AnyCancellable> = []
@@ -54,11 +57,14 @@ final class StatusPanelViewModel: ObservableObject {
         settings: SettingsStore,
         localization: Localization,
         actions: StatusPanelActions,
-        updateScheduler: any PanelPresentationUpdateScheduling = YieldingPanelPresentationUpdateScheduler()
+        updateScheduler: any PanelPresentationUpdateScheduling = YieldingPanelPresentationUpdateScheduler(),
+        inputSourceController: InputSourceController? = nil
     ) {
+        let resolvedInputSourceController = inputSourceController ?? InputSourceController()
         self.store = store
         self.settings = settings
         self.localization = localization
+        self.inputSourceController = resolvedInputSourceController
         self.updateScheduler = updateScheduler
         self.actions = actions
         visiblePopupSections = settings.visiblePopupSections
@@ -69,6 +75,9 @@ final class StatusPanelViewModel: ObservableObject {
             wired: store.primaryLink.details,
             isConstrained: store.isNetworkConstrained,
             isResolvingName: store.isResolvingWiFiName,
+            // Read inline: `self`'s computed accessor is not available until
+            // every stored property below is initialized.
+            localIPAddress: settings.showsLocalIPAddress ? store.localIP.details.address : nil,
             localization: localization
         )
         vpn = PanelPresentationMapper.vpn(store.vpnStatus, localization: localization)
@@ -83,6 +92,11 @@ final class StatusPanelViewModel: ObservableObject {
             localization: localization
         )
         audioInput = AudioPanelMapper.input(store.liveInput, localization: localization)
+        inputSource = InputSourcePanelMapper.map(
+            state: resolvedInputSourceController.state,
+            failure: resolvedInputSourceController.selectionFailure,
+            localization: localization
+        )
         batteryDetails = PanelDetailMapper.battery(
             status: store.popupSnapshot.battery,
             details: store.batteryDetails.details,
@@ -142,6 +156,15 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] in self?.publishAudioInput($0) }
             .store(in: &cancellables)
 
+        Publishers.CombineLatest(
+            inputSourceController.$state,
+            inputSourceController.$selectionFailure
+        )
+        .sink { [weak self] state, failure in
+            self?.publishInputSource(state: state, failure: failure)
+        }
+        .store(in: &cancellables)
+
         store.batteryDetails.$details
             .dropFirst()
             .sink { [weak self] _ in self?.coalesceControllerUpdate(.batteryDetails) }
@@ -152,6 +175,10 @@ final class StatusPanelViewModel: ObservableObject {
         store.primaryLink.$details
             .dropFirst()
             .sink { [weak self] _ in self?.coalesceControllerUpdate(.wiredDetailsAndNetwork) }
+            .store(in: &cancellables)
+        store.localIP.$details
+            .dropFirst()
+            .sink { [weak self] _ in self?.coalesceControllerUpdate(.localIP) }
             .store(in: &cancellables)
         store.bluetoothDevices.objectWillChange
             .sink { [weak self] in self?.coalesceControllerUpdate([.bluetooth, .volume]) }
@@ -201,6 +228,14 @@ final class StatusPanelViewModel: ObservableObject {
             localization: localization
         )
         if bluetooth != state { bluetooth = state }
+    }
+
+    /// The address the network row shows, or `nil` while the setting is off or
+    /// nothing has been read yet. Read through one place so the row cannot show
+    /// an address a user has since switched off.
+    private var resolvedLocalIPAddress: String? {
+        guard settings.showsLocalIPAddress else { return nil }
+        return store.localIP.details.address
     }
 
     private var outputPreferences: AudioOutputListPreferences {
@@ -268,6 +303,10 @@ final class StatusPanelViewModel: ObservableObject {
         refreshBluetooth()
         publishVolume(mapVolume(store.liveVolume))
         publishAudioInput(AudioPanelMapper.input(store.liveInput, localization: localization))
+        publishInputSource(
+            state: inputSourceController.state,
+            failure: inputSourceController.selectionFailure
+        )
         refreshBatteryDetails()
         refreshWiFiDetails()
         refreshWiredDetailsAndNetwork()
@@ -289,6 +328,7 @@ final class StatusPanelViewModel: ObservableObject {
             wired: store.primaryLink.details,
             isConstrained: isConstrained,
             isResolvingName: isResolvingName,
+            localIPAddress: resolvedLocalIPAddress,
             localization: localization
         )
         if network != networkState { network = networkState }
@@ -331,10 +371,12 @@ final class StatusPanelViewModel: ObservableObject {
             wired: store.primaryLink.details,
             isConstrained: store.isNetworkConstrained,
             isResolvingName: store.isResolvingWiFiName,
+            localIPAddress: resolvedLocalIPAddress,
             localization: localization
         )
         if network != networkState { network = networkState }
     }
+
 
     private func coalesceControllerUpdate(_ regions: RefreshRegions) {
         guard isStarted else { return }
@@ -356,6 +398,7 @@ final class StatusPanelViewModel: ObservableObject {
             if regions.contains(.wiredDetailsAndNetwork) { refreshWiredDetailsAndNetwork() }
             if regions.contains(.bluetooth) { refreshBluetooth() }
             if regions.contains(.volume) { publishVolume(mapVolume(store.liveVolume)) }
+            if regions.contains(.localIP) { refreshWiredDetailsAndNetwork() }
         }
     }
 
@@ -372,6 +415,15 @@ final class StatusPanelViewModel: ObservableObject {
     private func publishAudioInput(_ state: AudioInputPanelState) {
         guard audioInput != state else { return }
         audioInput = state
+    }
+
+    private func publishInputSource(
+        state: InputSourceState,
+        failure: InputSourceController.SelectionFailure?
+    ) {
+        let next = InputSourcePanelMapper.map(state: state, failure: failure, localization: localization)
+        guard inputSource != next else { return }
+        inputSource = next
     }
 }
 

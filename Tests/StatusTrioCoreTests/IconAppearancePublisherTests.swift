@@ -137,6 +137,7 @@ final class IconAppearancePublisherTests: XCTestCase {
             XCTAssertEqual(value.configuration.connection, appearance.connectionOptions)
             XCTAssertEqual(value.configuration.volume, appearance.volumeOptions)
             XCTAssertEqual(value.configuration.bluetooth, appearance.bluetoothAudioOptions)
+            XCTAssertEqual(value.runtimeOptions, settings.iconRuntimePresentationOptions)
         }
 
         settings.showsChargingEffect = true
@@ -170,6 +171,7 @@ final class IconAppearancePublisherTests: XCTestCase {
         IconMutation(name: "showsChargingBoltHeartbeat") { $0.showsChargingBoltHeartbeat = false },
         IconMutation(name: "usesBatteryStatusColors") { $0.usesBatteryStatusColors = false },
         IconMutation(name: "batteryCriticalThreshold") { $0.batteryCriticalThreshold = 35 },
+        IconMutation(name: "batteryFullThreshold") { $0.batteryFullThreshold = 80 },
         IconMutation(name: "showsPercentageWhenConnected") {
             $0.showsPercentageWhenConnected = true
         },
@@ -195,7 +197,14 @@ final class IconAppearancePublisherTests: XCTestCase {
         IconMutation(name: "prioritizesNetworkErrorsOverBluetoothAudio") {
             $0.prioritizesNetworkErrorsOverBluetoothAudio = false
         },
+        IconMutation(name: "connectionCenterSource") {
+            $0.connectionCenterSource = .inputSource
+        },
+        IconMutation(name: "prioritizesNetworkErrorsOverInputSource") {
+            $0.prioritizesNetworkErrorsOverInputSource = false
+        },
         IconMutation(name: "bluetoothSymbolScale") { $0.bluetoothSymbolScale = 1.4 },
+        IconMutation(name: "bluetoothAudioIconChoice") { $0.bluetoothAudioIconChoice = .airpods },
         IconMutation(name: "bluetoothNetworkIconDevice") {
             $0.setBluetoothNetworkIconDevice(address: "aa-bb-cc-dd-ee-ff", symbolName: "keyboard")
         },

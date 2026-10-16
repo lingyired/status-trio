@@ -27,11 +27,13 @@ final class SettingsRowHitAreaTests: XCTestCase {
             openBatterySettings: {},
             openWiFiSettings: {},
             openNetworkSettings: {},
+            openSharingSettings: {},
             openLocationSettings: {},
             openBluetoothSettings: {},
             openBluetoothPermissionSettings: {},
             openSettings: {},
             openSoundSettings: {},
+            openKeyboardSettings: {},
             quit: {}
         )
         .environmentObject(localization)

@@ -202,6 +202,25 @@ struct IconBehaviorEditor: View {
     private var legacyBluetoothBehavior: some View {
         Group {
             toggle(localization.string(.iconDesignerControlReplaceNetworkWithBluetooth), get: { $0.behaviors.bluetoothAudioCenter.replacesNetworkIcon }, set: { $0.behaviors.bluetoothAudioCenter.replacesNetworkIcon = $1 })
+            IconDesignerControlRow(localization.string(.settingsBluetoothIconChoice), showsDivider: false) {
+                Picker(localization.string(.settingsBluetoothIconChoice), selection: Binding(
+                    get: { store.bluetoothAudioIconChoice },
+                    set: { store.bluetoothAudioIconChoice = $0 }
+                )) {
+                    ForEach(IconPresentationResourceResolver.availableBluetoothAudioIconChoices) { choice in
+                        Label(
+                            choice.displayName(using: localization),
+                            systemImage: choice.symbolName ?? "arrow.clockwise"
+                        )
+                        .tag(choice)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+                .accessibilityLabel(localization.string(.settingsBluetoothIconChoice))
+                .accessibilityIdentifier("iconDesigner.bluetoothAudioIconChoice")
+            }
             toggle(localization.string(.iconDesignerControlPrioritizeNetworkErrors), get: { $0.behaviors.bluetoothAudioCenter.prioritizesNetworkErrors }, set: { $0.behaviors.bluetoothAudioCenter.prioritizesNetworkErrors = $1 })
             toggle(localization.string(.iconDesignerControlUseVolumeColor), get: { $0.behaviors.bluetoothAudioCenter.usesVolumeColor }, set: { $0.behaviors.bluetoothAudioCenter.usesVolumeColor = $1 })
         }

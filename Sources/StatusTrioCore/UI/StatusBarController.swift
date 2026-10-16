@@ -22,7 +22,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         _ scale: CGFloat,
         _ appearance: NSAppearance,
         _ phase: ChargingEffectPhase?
-    ) -> NSImage?
+    ) -> StatusIconRenderer.MenuBarLayers?
 
     enum ClickKind: Equatable {
         case left
@@ -73,6 +73,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         releaseDelay: StatusBarController.popoverContentReleaseDelay
     )
     private var popoverContentReleaseTask: Task<Void, Never>?
+    private let inputSourceController: InputSourceController
 
     init(
         store: SystemStatusStore,
@@ -86,24 +87,32 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         accessibilityValueDidChange: @escaping @MainActor (String) -> Void = { _ in },
         appearanceForRendering: @escaping @MainActor (NSStatusBarButton) -> NSAppearance = { $0.effectiveAppearance },
         renderMenuBarIcon: @escaping MenuBarRenderer = { scene, size, scale, appearance, phase in
-            StatusIconRenderer.image(
+            StatusIconRenderer.menuBarLayers(
                 scene: scene,
                 size: CGFloat(size),
                 scale: scale,
                 appearance: appearance,
                 phase: phase
             )
-        }
+        },
+        inputSourceController: InputSourceController? = nil
     ) {
         self.store = store
         self.settings = settings
-        let panelActions = StatusPanelActions(store: store, settings: settings)
+        let resolvedInputSourceController = inputSourceController ?? InputSourceController()
+        self.inputSourceController = resolvedInputSourceController
+        let panelActions = StatusPanelActions(
+            store: store,
+            settings: settings,
+            inputSourceController: resolvedInputSourceController
+        )
         self.panelActions = panelActions
         self.panelViewModel = StatusPanelViewModel(
             store: store,
             settings: settings,
             localization: localization,
-            actions: panelActions
+            actions: panelActions,
+            inputSourceController: resolvedInputSourceController
         )
         self.iconPresentation = iconPresentation
         self.localization = localization
@@ -255,11 +264,13 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
                 openBatterySettings: { self.handleOpenBatterySettings() },
                 openWiFiSettings: { self.handleOpenWiFiSettings() },
                 openNetworkSettings: { self.handleOpenNetworkSettings() },
+                openSharingSettings: { self.handleOpenSharingSettings() },
                 openLocationSettings: { self.handleOpenLocationSettings() },
                 openBluetoothSettings: { self.handleOpenBluetoothSettings() },
                 openBluetoothPermissionSettings: { self.handleOpenBluetoothPermissionSettings() },
                 openSettings: { self.handleOpenSettings() },
                 openSoundSettings: { self.handleOpenSoundSettings() },
+                openKeyboardSettings: { self.handleOpenKeyboardSettings() },
                 quit: quitAction
             )
         }
@@ -313,6 +324,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         popoverContentRetention.markOpened()
         store.setPopoverVisible(true)
         installPopoverContentIfNeeded()
+        // One bounded refresh per open covers a lost distributed notification
+        // without any polling while the popover is closed.
+        refreshInputSourceIfNeeded()
         // Activate first: a transient popover shown while the app is still
         // inactive can be dismissed again straight away.
         // Status-item clicks come from the system menu bar process, so the
@@ -530,47 +544,52 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         )
         guard renderCache.needsRender(key) else { return }
 
-        let renderedImage: NSImage?
-        if let phase, phase.kind == .steady,
-            let cachedImage = chargingFrameCache.image(
-                for: phase,
-                key: key,
-                backingScale: backingScale,
-                renderFrame: { framePhase in
-                    StatusIconRenderer.preRenderedMenuBarImage(
-                        scene: scene,
-                        size: CGFloat(iconSize),
-                        scale: backingScale,
-                        appearance: appearance,
-                        phase: framePhase
-                    )
-                }
-            )
-        {
-            presentCachedAnimationFrame(
-                cachedImage,
+        guard let layers = renderMenuBarIcon(
+            scene,
+            iconSize,
+            backingScale,
+            appearance,
+            phase
+        ) else { return }
+
+        // Keep the system-tinted template image on the button so Space changes
+        // continue to retint monochrome artwork while the chromatic overlay animates.
+        button.image = layers.base
+
+        guard let overlay = layers.overlay else {
+            clearAnimationPresentation()
+            renderCache.recordSuccessfulRender(key)
+            return
+        }
+
+        if let frame = overlayFrame(
+            overlay: overlay,
+            scene: scene,
+            phase: phase,
+            key: key,
+            iconSize: CGFloat(iconSize),
+            backingScale: backingScale,
+            appearance: appearance
+        ) {
+            presentOverlayFrame(
+                frame,
                 button: button,
                 iconSize: CGFloat(iconSize),
                 backingScale: backingScale
             )
-            renderedImage = cachedImage
+            if phase == nil { chargingFrameCache.reset() }
         } else {
-            renderedImage = renderMenuBarIcon(
-                scene,
-                iconSize,
-                backingScale,
-                appearance,
-                phase
+            // Keep the full-raster fallback if the layer presentation cannot be drawn.
+            animationLayerPresenter.clear()
+            button.image = StatusIconRenderer.image(
+                scene: scene,
+                size: CGFloat(iconSize),
+                scale: backingScale,
+                appearance: appearance,
+                phase: phase
             )
-            if let renderedImage {
-                animationLayerPresenter.clear()
-                button.image = renderedImage
-            }
         }
-        if renderedImage != nil {
-            if phase == nil { clearAnimationPresentation() }
-            renderCache.recordSuccessfulRender(key)
-        }
+        renderCache.recordSuccessfulRender(key)
     }
 
     private func clearAnimationPresentation() {
@@ -578,54 +597,52 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         animationLayerPresenter.clear()
     }
 
-    private func presentCachedAnimationFrame(
-        _ image: NSImage,
+    /// Steady animation frames are pre-rendered once per icon state, so a 20 fps
+    /// tick reuses one bitmap; every other phase renders a single overlay frame.
+    private func overlayFrame(
+        overlay: CGImage,
+        scene: IconSceneState,
+        phase: ChargingEffectPhase?,
+        key: StatusBarRenderKey,
+        iconSize: CGFloat,
+        backingScale: CGFloat,
+        appearance: NSAppearance
+    ) -> CGImage? {
+        guard let phase, phase.kind == .steady else { return overlay }
+        let image = chargingFrameCache.image(
+            for: phase,
+            key: key,
+            backingScale: backingScale,
+            renderFrame: { framePhase in
+                StatusIconRenderer.preRenderedMenuBarImage(
+                    scene: scene,
+                    size: iconSize,
+                    scale: backingScale,
+                    appearance: appearance,
+                    phase: framePhase,
+                    regions: scene.chromaticRegions
+                )
+            }
+        )
+        return image?.cgImage(forProposedRect: nil, context: nil, hints: nil)
+    }
+
+    /// Draws the chromatic overlay in a layer above the button's template image.
+    private func presentOverlayFrame(
+        _ image: CGImage,
         button: NSStatusBarButton,
         iconSize: CGFloat,
         backingScale: CGFloat
     ) {
-        guard
-            let cgImage = image.cgImage(
-                forProposedRect: nil,
-                context: nil,
-                hints: nil
-            )
-        else {
-            animationLayerPresenter.clear()
-            button.image = image
-            return
-        }
-
-        let targetImageSize = NSSize(width: iconSize, height: iconSize)
-        if button.image?.size != targetImageSize {
-            // The frame set has already rendered successfully. Update AppKit's
-            // button allocation before reinstalling the layer into its bounds.
-            animationLayerPresenter.clear()
-            button.image = image
-        }
-
-        guard let result = animationLayerPresenter.display(
-            cgImage,
+        guard animationLayerPresenter.display(
+            image,
             in: button,
+            contentSize: CGSize(width: iconSize, height: iconSize),
             backingScale: backingScale
-        ) else {
+        ) != nil else {
             animationLayerPresenter.clear()
-            button.image = image
             return
         }
-
-        guard result == .installed else { return }
-        guard
-            let placeholder = StatusIconRenderer.transparentMenuBarImage(
-                size: iconSize,
-                scale: backingScale
-            )
-        else {
-            animationLayerPresenter.clear()
-            button.image = image
-            return
-        }
-        button.image = placeholder
     }
 
     /// Clock-driven frames bypass the status/setting coalescer; the menu-bar key
@@ -711,9 +728,29 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         Self.openSystemSettings(Self.locationSettingsURLs)
     }
 
+    /// Where the wired row's Internet Sharing action goes. Status Trio does not
+    /// toggle Internet Sharing itself — that needs an undocumented write to
+    /// `com.apple.nat.plist` and the NetworkSharing daemon — so it opens the
+    /// Sharing pane, where the switch lives.
+    @objc private func handleOpenSharingSettings() {
+        popover.performClose(nil)
+        Self.openSystemSettings(Self.sharingSettingsURLs)
+    }
+
     @objc private func handleOpenSoundSettings() {
         popover.performClose(nil)
         Self.openSystemSoundSettings()
+    }
+
+    private func handleOpenKeyboardSettings() {
+        popover.performClose(nil)
+        Self.openSystemSettings(Self.keyboardSettingsURLs)
+    }
+
+    private func refreshInputSourceIfNeeded() {
+        guard settings.connectionCenterSource == .inputSource
+            || settings.enabledPopupSections.contains(.inputSource) else { return }
+        inputSourceController.refresh()
     }
 
     private func handleOpenBluetoothSettings() {
@@ -765,9 +802,29 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     ]
     .compactMap(URL.init(string:))
 
+    /// The Sharing pane is where Internet Sharing lives. Its own Settings
+    /// extension declares `com.apple.Sharing-Settings.extension` (legacy bundle
+    /// id `com.apple.preferences.sharing`), so the first route goes straight
+    /// there rather than through General or Network.
+    static let sharingSettingsURLs = [
+        "x-apple.systempreferences:com.apple.Sharing-Settings.extension",
+        "x-apple.systempreferences:com.apple.preferences.sharing"
+    ]
+    .compactMap(URL.init(string:))
+
     static let bluetoothSettingsURLs = [
         "x-apple.systempreferences:com.apple.BluetoothSettings",
         "x-apple.systempreferences:com.apple.preference.bluetooth"
+    ]
+    .compactMap(URL.init(string:))
+
+    /// The Keyboard pane owns the input-source list this section manages, so
+    /// its own Settings extension identifier comes first. Verified by the pane
+    /// the URL actually loads (`pgrep -fl ExtensionKit/Extensions`), not by
+    /// `open`'s exit status.
+    static let keyboardSettingsURLs = [
+        "x-apple.systempreferences:com.apple.Keyboard-Settings.extension",
+        "x-apple.systempreferences:com.apple.preference.keyboard"
     ]
     .compactMap(URL.init(string:))
 

@@ -17,6 +17,9 @@ struct StatusIconPreviewCard: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @ObservedObject private var bluetoothDevices: BluetoothDeviceController
+    /// The live source the centre slot draws. The card re-renders when
+    /// the controller publishes; `nil` in previews with no live controller.
+    var inputSourceController: InputSourceController? = nil
     @Binding var isDarkBackground: Bool
     var scenario: IconPreviewScenario = .live
     var customAirPodsSample = CustomAirPodsPreviewSample()
@@ -35,6 +38,7 @@ struct StatusIconPreviewCard: View {
         store: SettingsStore,
         statusStore: SystemStatusStore,
         isDarkBackground: Binding<Bool>,
+        inputSourceController: InputSourceController? = nil,
         scenario: IconPreviewScenario = .live,
         customAirPodsSample: CustomAirPodsPreviewSample = CustomAirPodsPreviewSample(),
         previewSession: IconDesignerPreviewSession? = nil,
@@ -47,6 +51,7 @@ struct StatusIconPreviewCard: View {
         self.store = store
         self.statusStore = statusStore
         self._bluetoothDevices = ObservedObject(wrappedValue: statusStore.bluetoothDevices)
+        self.inputSourceController = inputSourceController
         self._isDarkBackground = isDarkBackground
         self.scenario = scenario
         self.customAirPodsSample = customAirPodsSample
@@ -60,6 +65,8 @@ struct StatusIconPreviewCard: View {
 
     @ViewBuilder
     var body: some View {
+        InputSourceLivePreview(controller: inputSourceController) {
+          Group {
         switch content {
         case .standard:
             VStack(spacing: 8) {
@@ -75,6 +82,8 @@ struct StatusIconPreviewCard: View {
             }
         case .dockDetails:
             dockPreviewDetails
+        }
+          }
         }
     }
 
@@ -327,7 +336,11 @@ struct StatusIconPreviewCard: View {
     private func designerResolution(for snapshot: StatusSnapshot) -> IconResolutionOutput {
         if let previewSession {
             let liveInputs = IconResolutionInputs(
-                system: IconPresentationResourceResolver.inputs(snapshot: snapshot),
+                system: Self.presentationInputs(
+                    snapshot: snapshot,
+                    inputSource: inputSourceController?.selectedDescriptor,
+                    runtimeOptions: store.iconRuntimePresentationOptions
+                ),
                 sources: IconPresentationResourceResolver.sourceSnapshot(
                     snapshot: snapshot,
                     bluetoothDevices: bluetoothDevices.devices,
@@ -358,7 +371,9 @@ struct StatusIconPreviewCard: View {
             selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress,
             configuration: store.iconConfiguration,
             scenario: scenario,
-            customAirPodsSample: customAirPodsSample
+            customAirPodsSample: customAirPodsSample,
+            inputSource: inputSourceController?.selectedDescriptor,
+            runtimeOptions: store.iconRuntimePresentationOptions
         )
     }
 
@@ -373,7 +388,9 @@ struct StatusIconPreviewCard: View {
         selectedConnectedDeviceAddress: String?,
         configuration: IconConfigurationV1,
         scenario: IconPreviewScenario,
-        customAirPodsSample: CustomAirPodsPreviewSample = CustomAirPodsPreviewSample()
+        customAirPodsSample: CustomAirPodsPreviewSample = CustomAirPodsPreviewSample(),
+        inputSource: InputSourceDescriptor? = nil,
+        runtimeOptions: IconPresentationRuntimeOptions? = nil
     ) -> IconResolutionOutput {
         resolveDesignerScene(
             for: snapshot.replacingBattery(status.battery),
@@ -384,7 +401,9 @@ struct StatusIconPreviewCard: View {
             selectedConnectedDeviceAddress: selectedConnectedDeviceAddress,
             configuration: configuration,
             scenario: scenario,
-            customAirPodsSample: customAirPodsSample
+            customAirPodsSample: customAirPodsSample,
+            inputSource: inputSource,
+            runtimeOptions: runtimeOptions
         )
     }
 
@@ -398,10 +417,16 @@ struct StatusIconPreviewCard: View {
         selectedConnectedDeviceAddress: String?,
         configuration: IconConfigurationV1,
         scenario: IconPreviewScenario,
-        customAirPodsSample: CustomAirPodsPreviewSample = CustomAirPodsPreviewSample()
+        customAirPodsSample: CustomAirPodsPreviewSample = CustomAirPodsPreviewSample(),
+        inputSource: InputSourceDescriptor? = nil,
+        runtimeOptions: IconPresentationRuntimeOptions? = nil
     ) -> IconResolutionOutput {
         let inputs = IconResolutionInputs(
-            system: IconPresentationResourceResolver.inputs(snapshot: snapshot),
+            system: presentationInputs(
+                snapshot: snapshot,
+                inputSource: inputSource,
+                runtimeOptions: runtimeOptions
+            ),
             sources: IconPresentationResourceResolver.sourceSnapshot(
                 snapshot: snapshot,
                 bluetoothDevices: bluetoothDevices,
@@ -414,6 +439,21 @@ struct StatusIconPreviewCard: View {
         return IconDesignerPreviewResolver.resolve(
             liveInputs: inputs, configuration: configuration, scenario: scenario,
             customAirPodsSample: customAirPodsSample
+        )
+    }
+
+    @MainActor
+    private static func presentationInputs(
+        snapshot: StatusSnapshot,
+        inputSource: InputSourceDescriptor?,
+        runtimeOptions: IconPresentationRuntimeOptions?
+    ) -> IconPresentationInputs {
+        let resolved = IconPresentationResourceResolver.inputs(snapshot: snapshot, inputSource: inputSource)
+        return IconPresentationInputs(
+            snapshot: resolved.snapshot,
+            audioIcon: resolved.audioIcon,
+            inputSource: resolved.inputSource,
+            runtimeOptions: runtimeOptions
         )
     }
 
@@ -544,7 +584,8 @@ struct StatusIconPreviewCard: View {
             selectedSlot: selectedSlot,
             onSelectSlot: onSelectSlot,
             phase: phase,
-            resolvedScene: displayedResolution(status: status).scene
+            resolvedScene: displayedResolution(status: status).scene,
+            inputSource: inputSourceController?.selectedDescriptor
         ) {
             appearanceToggle
         }
@@ -578,7 +619,9 @@ struct StatusIconPreviewCard: View {
             selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress,
             configuration: store.iconConfiguration,
             scenario: scenario,
-            customAirPodsSample: customAirPodsSample
+            customAirPodsSample: customAirPodsSample,
+            inputSource: inputSourceController?.selectedDescriptor,
+            runtimeOptions: store.iconRuntimePresentationOptions
         )
     }
 
@@ -612,18 +655,21 @@ struct DockIconPreviewTile: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
+    var inputSourceController: InputSourceController? = nil
     var size: CGFloat = 44
     var overrideStyle: DockIconBackgroundStyle? = nil
     var previewCache: DockIconPreviewCache? = nil
     var resolvedScene: IconSceneState? = nil
 
     var body: some View {
-        tile
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: store.batteryIconOptions)
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: store.connectionIconOptions)
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: store.volumeIconOptions)
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: store.bluetoothAudioIconOptions)
-            .accessibilityHidden(true)
+        InputSourceLivePreview(controller: inputSourceController) {
+            tile
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: store.batteryIconOptions)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: store.connectionIconOptions)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: store.volumeIconOptions)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: store.bluetoothAudioIconOptions)
+                .accessibilityHidden(true)
+        }
     }
 
     @MainActor
@@ -643,6 +689,7 @@ struct DockIconPreviewTile: View {
             backgroundStyle: resolvedBackgroundStyle,
             size: size,
             resolvedScene: resolvedScene,
+            inputSource: inputSourceController?.selectedDescriptor,
             previewCache: previewCache
         )
     }

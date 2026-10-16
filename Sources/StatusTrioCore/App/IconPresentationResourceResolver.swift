@@ -104,15 +104,27 @@ enum IconPresentationResourceResolver {
            connectedBluetoothDeviceIsAudio: connectedDeviceIsAudio)
     }
 
+    static let availableBluetoothAudioIconChoices = BluetoothAudioIconChoice.availableChoices(
+        isSymbolAvailable: { symbol in
+            NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
+        }
+    )
+
     static func inputs(
         snapshot: StatusSnapshot,
+        inputSource: InputSourceDescriptor? = nil,
         fileExists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) },
         isSymbolAvailable: (String) -> Bool = { symbol in
             NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
         }
     ) -> IconPresentationInputs {
+        let resolvedInputSource = inputSource?.resolvedForDrawing(fileExists: fileExists)
         guard let device = snapshot.volume.currentDevice else {
-            return IconPresentationInputs(snapshot: snapshot, audioIcon: nil)
+            return IconPresentationInputs(
+                snapshot: snapshot,
+                audioIcon: nil,
+                inputSource: resolvedInputSource
+            )
         }
 
         let source: IconSymbolSource
@@ -124,6 +136,10 @@ enum IconPresentationResourceResolver {
             let symbol = AudioOutputDeviceIcon.symbolName(for: kind, host: host, isSymbolAvailable: isSymbolAvailable)
             source = .symbol(name: symbol, variableValue: nil, fallback: "headphones")
         }
-        return IconPresentationInputs(snapshot: snapshot, audioIcon: source)
+        return IconPresentationInputs(
+            snapshot: snapshot,
+            audioIcon: source,
+            inputSource: resolvedInputSource
+        )
     }
 }

@@ -47,6 +47,21 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(second.refreshesAirPodsBatteryForIcon)
     }
 
+    func testBluetoothAudioIconChoiceDefaultsToAutomaticAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(first.bluetoothAudioIconChoice, .automatic)
+        XCTAssertEqual(first.bluetoothAudioIconOptions.iconChoice, .automatic)
+
+        first.bluetoothAudioIconChoice = .airpods
+
+        let reopened = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(reopened.bluetoothAudioIconChoice, .airpods)
+        XCTAssertEqual(reopened.bluetoothAudioIconOptions.iconChoice, .airpods)
+    }
+
     func testRefreshIntervalDefaultsAndRange() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
@@ -270,6 +285,23 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(SettingsStore(defaults: suite.defaults).showsMobileDeviceBatteryLevels)
     }
 
+    func testLowPowerModeControlDefaultsOff() {
+        let store = SettingsStore(defaults: makeSuite().defaults)
+
+        XCTAssertFalse(store.controlsLowPowerMode)
+    }
+
+    func testLowPowerModeControlPersistsAcrossStoreInstances() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(first.controlsLowPowerMode)
+        first.controlsLowPowerMode = true
+
+        XCTAssertTrue(SettingsStore(defaults: suite.defaults).controlsLowPowerMode)
+    }
+
     func testBluetoothAudioDisplaySettingsPersistAcrossStoreInstances() {
         let suite = makeSuite()
         defer { clear(suite) }
@@ -466,6 +498,166 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: suite.defaults)
 
         XCTAssertEqual(store.batteryCriticalThreshold, 100, accuracy: 0.001)
+    }
+
+    /// Issue #105. The default keeps the raw percentage, so an existing install
+    /// draws exactly the ring it drew before this setting existed.
+    func testBatteryFullThresholdDefaultsToRawPercentage() {
+        let store = SettingsStore(defaults: makeSuite().defaults)
+
+        XCTAssertEqual(store.batteryFullThreshold, 100, accuracy: 0.001)
+        XCTAssertEqual(store.batteryIconOptions.fullThreshold, 100)
+    }
+
+    func testBatteryFullThresholdIsClamped() {
+        let store = SettingsStore(defaults: makeSuite().defaults)
+
+        store.batteryFullThreshold = 140
+        XCTAssertEqual(store.batteryFullThreshold, 100, accuracy: 0.001)
+
+        store.batteryFullThreshold = 10
+        XCTAssertEqual(store.batteryFullThreshold, 50, accuracy: 0.001)
+
+        store.batteryFullThreshold = 10
+        store.batteryFullThreshold = .nan
+        XCTAssertEqual(
+            store.batteryFullThreshold,
+            SettingsStore.defaultBatteryFullThreshold,
+            accuracy: 0.001
+        )
+    }
+
+    func testBatteryFullThresholdReachesTheIconOptions() {
+        let store = SettingsStore(defaults: makeSuite().defaults)
+
+        store.batteryFullThreshold = 80
+
+        XCTAssertEqual(store.batteryIconOptions.fullThreshold, 80)
+    }
+
+    func testStoredBatteryFullThresholdIsClampedOnLoadAndPersisted() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(150, forKey: SettingsStore.batteryFullThresholdDefaultsKey)
+
+        let store = SettingsStore(defaults: suite.defaults)
+
+        XCTAssertEqual(store.batteryFullThreshold, 100, accuracy: 0.001)
+
+        store.batteryFullThreshold = 85
+        XCTAssertEqual(
+            suite.defaults.double(forKey: SettingsStore.batteryFullThresholdDefaultsKey),
+            85,
+            accuracy: 0.001
+        )
+
+        let reloaded = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(reloaded.batteryFullThreshold, 85, accuracy: 0.001)
+        XCTAssertEqual(reloaded.batteryIconOptions.fullThreshold, 85)
+    }
+
+    /// Issue #105, use-the-system-value path. The macOS charge limit lives in a
+    /// private plist no public API exposes, so the test records one instead of
+    /// depending on what this particular Mac happens to be set to.
+    func testUsingTheSystemValueFillsTheSliderIn() throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let url = try makeChargeLimitPlist(limit: 80)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        store.chargeLimitURLForTesting = url
+        store.batteryFullThreshold = 100
+
+        store.applySystemChargeLimit()
+
+        XCTAssertEqual(store.batteryFullThreshold, 80, accuracy: 0.001)
+        XCTAssertEqual(store.batteryIconOptions.fullThreshold, 80)
+    }
+
+    /// The value is a one-shot fill, not a mode: the slider keeps working
+    /// afterwards and nothing re-reads the plist behind the user's back.
+    func testTheSliderStaysEditableAfterUsingTheSystemValue() throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let url = try makeChargeLimitPlist(limit: 80)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        store.chargeLimitURLForTesting = url
+        store.applySystemChargeLimit()
+        XCTAssertEqual(store.batteryFullThreshold, 80, accuracy: 0.001)
+
+        store.batteryFullThreshold = 90
+
+        XCTAssertEqual(store.batteryFullThreshold, 90, accuracy: 0.001)
+        XCTAssertEqual(
+            suite.defaults.double(forKey: SettingsStore.batteryFullThresholdDefaultsKey),
+            90,
+            accuracy: 0.001
+        )
+    }
+
+    /// A plist the reader cannot parse must leave the level where it was, so a
+    /// press that reads nothing is a no-op rather than a reset.
+    func testUnreadableChargeLimitKeepsTheManualLevel() throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("plist")
+        try Data("not a plist".utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        store.chargeLimitURLForTesting = url
+        store.batteryFullThreshold = 75
+
+        store.applySystemChargeLimit()
+
+        XCTAssertEqual(store.batteryFullThreshold, 75, accuracy: 0.001)
+        XCTAssertFalse(store.canReadSystemChargeLimit)
+    }
+
+    func testSystemValueIsReportedUnavailableWhenNoLimitIsStored() throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let data = try PropertyListSerialization.data(
+            fromPropertyList: ["bootSessionUUID": UUID().uuidString],
+            format: .binary,
+            options: 0
+        )
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("plist")
+        try data.write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        store.chargeLimitURLForTesting = url
+
+        XCTAssertFalse(store.canReadSystemChargeLimit)
+    }
+
+    /// Builds the same shape the live plist has: a binary plist whose
+    /// `policies` entry is an `NSKeyedArchiver` array of `ChargeCtrlPolicy`.
+    private func makeChargeLimitPlist(limit: Int, reason: String = "manualChargeLimit") throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("plist")
+        let policy = ChargeCtrlPolicyPlaceholder(limit: limit, reason: reason)
+        let policies = try NSKeyedArchiver.archivedData(
+            withRootObject: [policy],
+            requiringSecureCoding: false
+        )
+        let body: [String: Any] = ["bootSessionUUID": UUID().uuidString, "policies": policies]
+        let data = try PropertyListSerialization.data(
+            fromPropertyList: body,
+            format: .binary,
+            options: 0
+        )
+        try data.write(to: url)
+        return url
     }
 
     func testIconSizeAboveRangeIsClampedToUpperBound() {
@@ -779,12 +971,12 @@ final class SettingsStoreTests: XCTestCase {
         )
     }
 
-    func testPopupSectionOrderDefaultsToBatteryNetworkVPNBluetoothVolumeAudioInput() {
+    func testPopupSectionOrderDefaultsToAllSectionsWithInputSourceLast() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput]
+            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .inputSource]
         )
     }
 
@@ -875,7 +1067,7 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput]
+            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .inputSource]
         )
         XCTAssertFalse(store.enabledPopupSections.contains(.audioInput))
         store.setPopupSection(.audioInput, enabled: true)
@@ -907,7 +1099,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             first.popupSectionOrder,
-            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput]
+            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .inputSource]
         )
         XCTAssertEqual(
             first.visiblePopupSections,
@@ -933,11 +1125,11 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput]
+            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .inputSource]
         )
         XCTAssertEqual(
             SettingsStore(defaults: suite.defaults).popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput]
+            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .inputSource]
         )
     }
 
@@ -954,7 +1146,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .network, .battery, .vpn, .bluetooth, .audioInput]
+            [.volume, .network, .battery, .vpn, .bluetooth, .audioInput, .inputSource]
         )
     }
 

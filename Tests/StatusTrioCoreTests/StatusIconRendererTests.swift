@@ -676,8 +676,8 @@ final class StatusIconRendererTests: XCTestCase {
         XCTAssertLessThanOrEqual(pixels.maximumAlphaOnEdges, 4)
     }
 
-    func testConnectedZeroBarsUsesMutedSignalWhileNotAssociatedUsesFullForeground() throws {
-        let zeroBars = StatusSnapshot(
+    func testConnectedUnknownSignalStaysFullForegroundWhileKnownWeakSignalIsMuted() throws {
+        let unknownSignal = StatusSnapshot(
             battery: .placeholder,
             wifi: WiFiStatus(state: .connected, rssi: nil),
             volume: .placeholder
@@ -685,6 +685,11 @@ final class StatusIconRendererTests: XCTestCase {
         let notAssociated = StatusSnapshot(
             battery: .placeholder,
             wifi: WiFiStatus(state: .notAssociated, rssi: nil),
+            volume: .placeholder
+        )
+        let knownWeakZeroBars = StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -90),
             volume: .placeholder
         )
         let oneBar = StatusSnapshot(
@@ -703,11 +708,16 @@ final class StatusIconRendererTests: XCTestCase {
             volume: .placeholder
         )
 
-        let zeroPixels = try renderPixels(zeroBars)
-        XCTAssertNotEqual(zeroPixels.bytes, try renderPixels(notAssociated).bytes)
-        XCTAssertNotEqual(zeroPixels.bytes, try renderPixels(oneBar).bytes)
-        XCTAssertNotEqual(zeroPixels.bytes, try renderPixels(twoBars).bytes)
-        XCTAssertNotEqual(zeroPixels.bytes, try renderPixels(threeBars).bytes)
+        let unknownPixels = try renderPixels(unknownSignal)
+        // An unknown reading must not look disabled: it keeps the full foreground
+        // tint, exactly like an unassociated zero-bar glyph (issue #110).
+        XCTAssertEqual(unknownPixels.bytes, try renderPixels(notAssociated).bytes)
+        // A known-but-weak zero-bar reading still renders the muted track, so
+        // "unknown" and "weak" stay visually distinct.
+        XCTAssertNotEqual(unknownPixels.bytes, try renderPixels(knownWeakZeroBars).bytes)
+        XCTAssertNotEqual(unknownPixels.bytes, try renderPixels(oneBar).bytes)
+        XCTAssertNotEqual(unknownPixels.bytes, try renderPixels(twoBars).bytes)
+        XCTAssertNotEqual(unknownPixels.bytes, try renderPixels(threeBars).bytes)
     }
 
     func testConnectedNonzeroSignalAlphaSumIncreasesWithBars() throws {

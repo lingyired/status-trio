@@ -935,6 +935,40 @@ final class SystemStatusStoreTests: XCTestCase {
         )
     }
 
+    func testReadsTheLocalIPOnlyWhileThePopoverIsOpenAndTheToggleIsOn() {
+        let suite = makeSuite()
+        defer { suite.defaults.removeTestSuite(named: suite.name) }
+        let settings = SettingsStore(defaults: suite.defaults)
+        let localIP = LocalIPController(
+            reader: StubLocalIPReader(),
+            periodicRefreshInterval: .seconds(600)
+        )
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            localIP: localIP
+        )
+        store.bindLocalIPSettings(settings)
+
+        store.start()
+        store.setPopoverVisible(true)
+        XCTAssertFalse(localIP.isActive, "The toggle is off by default, so nothing reads behind it")
+
+        settings.showsLocalIPAddress = true
+        XCTAssertTrue(localIP.isActive)
+
+        settings.showsLocalIPAddress = false
+        XCTAssertFalse(localIP.isActive)
+
+        settings.showsLocalIPAddress = true
+        XCTAssertTrue(localIP.isActive)
+        store.setPopoverVisible(false)
+        XCTAssertFalse(localIP.isActive, "Closing the popover drops the address")
+
+        store.stop()
+    }
+
     /// Sends a connection change and waits until the store has applied it, so
     /// the assertion that follows observes the activation rule rather than the
     /// send.
@@ -2822,4 +2856,8 @@ private final class FakeVolumeMonitor: VolumeMonitoring, VolumeControlling {
         detailsVisibility.append(visible)
     }
     func send(_ value: VolumeStatus) { continuation.yield(value) }
+}
+
+private final class StubLocalIPReader: LocalIPReading {
+    func read(completion: @escaping @Sendable (LocalIPDetails) -> Void) {}
 }

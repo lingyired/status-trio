@@ -60,6 +60,13 @@ run ID, failed stage, root cause, fix, and verification result.
 - If a setting is intentionally menu-bar-only, the issue or specification must say so explicitly, and the limitation must be documented and covered by a test.
 - Icon Designer dimension controls and rendering must follow [Icon Designer sizing standard](docs/icon-sizing-standard.md): one measured 100–180% center-size scale for every primary/fallback source, shared 80–120% outer/footer stroke scale, and the existing outer battery text percentage baseline. Keep legacy storage/rendering unchanged until explicit user edits; never reintroduce per-source UI ranges.
 
+## Issue #30 Icon Centering
+
+- Run `swift test --filter Issue30WiFiAlignmentTests` after any change to `StatusIconRenderer`, `StatusIconGeometry`, `IconPresentationMapper`, `IconSceneState`, `StatusBarController` icon rendering, or the Dock icon renderer.
+- SF Symbols are not centred inside the layout box `NSImage.size` reports. The visible ink carries side bearings; anchor the measured ink centre, not the box centre, whenever a symbol is placed against the hand-drawn ring. `StatusIconRenderer.drawOfficialSymbol` owns that compensation and caches it per symbol configuration.
+- Keep the full-composite regression (`testWiFiGlyphIsHorizontallyCenteredInMenuBarIcon`) and the isolated ink regression (`testCenterSymbolInkLandsOnTheArtworkCenterLine`) in `Issue30WiFiAlignmentTests`. Do not replace either with a tolerance that can hide a half-unit shift. Re-record `ChargingEffectRenderingTests` fingerprints only when the intentional pixel change is explained in the commit and `docs/swift-ci-compatibility.md`.
+- A UI or icon-presentation refactor must prove the rendered menu bar ink still lands on `StatusIconGeometry.artworkCenterX`; unit tests that assert the 59.5 constant alone are not enough. See `docs/issue-30-wifi-centering-analysis.md`.
+
 ## System Settings Pane Routes
 
 - Every settings control must open the pane it promises, with that pane's own extension identifier first: the Wi-Fi gear goes to the Wi-Fi pane, and a wired row's gear goes to the Network pane, which is where a cable's own settings live. The Network pane lists services (Wi-Fi, Ethernet, VPNs) rather than networks, so routing the Wi-Fi gear through it lands users on the wrong list.
@@ -74,12 +81,12 @@ run ID, failed stage, root cause, fix, and verification result.
 - GitHub Release notes must use a top-level `# Version X.Y.Z （English + 中文， 中文在下方）` heading, followed by English notes and then Chinese notes, taken from `release-notes/<version>/en.md` and `release-notes/<version>/zh-Hans.md`; the release workflow combines them.
 - Sparkle appcast items are localized per language: emit one `<title xml:lang="…">` and one `<description xml:lang="…">` for every language present in `release-notes/<version>/`, give every variant an explicit `xml:lang`, and keep `en` first because Sparkle falls back to the first node in document order when the user's preferred languages match nothing. Never stack two languages inside one `<description>`.
 - User-facing release notes live in `release-notes/<version>/<language>.md`, one file per language the app ships (`Sources/StatusTrioCore/Resources/*.lproj` names, case-sensitive). `en.md` and `zh-Hans.md` are always required and also form the GitHub Release body; `publish=true` additionally requires all 12 languages. Every file starts with a `# <title>` line containing the `%VERSION%` and `%BUILD%` placeholders. Terminology must match the language's existing `.lproj` strings. `bash scripts/validate-appcast-notes.sh` checks coverage and the generated appcast XML, and the release workflow runs it on every dispatch, including `publish=false` preflights.
-- GitHub Release bodies must append the first-launch commands `xattr -dr com.apple.quarantine "/Applications/Status Trio.app"` and `open "/Applications/Status Trio.app"` after the bilingual notes. Do not include these commands in the Sparkle appcast.
+- Notarized GitHub Release bodies must not include first-launch `xattr` / quarantine instructions; Developer ID signing plus Apple notarization makes them unnecessary. Append those commands (never in the Sparkle appcast) only when a release is Ad-hoc signed because the signing and notarization secrets were unavailable.
 - Release announcements remain in English.
 - Release through `.github/workflows/release.yml`; do not publish manually unless the workflow is unavailable and the user explicitly asks for a manual fallback.
 - Version and build numbers must be explicit and must increase the published build number.
 - Confirm tests, DMG creation, Release upload, and appcast publication in the workflow result.
-- The current repository has no Developer ID certificate or notarization secrets. Releases are Ad-hoc signed; document this limitation rather than claiming notarization.
+- Releases with the `distribution` Environment secrets present are Developer ID signed and notarized; verify notarization and stapling in the workflow result rather than claiming it from configuration alone. Ad-hoc signing is the fallback only when those secrets are missing.
 
 ## Project Skills
 

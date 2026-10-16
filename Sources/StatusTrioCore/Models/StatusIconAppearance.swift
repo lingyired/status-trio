@@ -13,19 +13,22 @@ struct StatusIconAppearance: Equatable, Sendable {
     var connectionOptions: ConnectionIconOptions
     var volumeOptions: VolumeIconOptions
     var bluetoothAudioOptions: BluetoothAudioIconOptions
+    var runtimeOptions: IconPresentationRuntimeOptions?
 
     init(
         iconSize: Double,
         batteryOptions: BatteryIconOptions,
         connectionOptions: ConnectionIconOptions,
         volumeOptions: VolumeIconOptions,
-        bluetoothAudioOptions: BluetoothAudioIconOptions
+        bluetoothAudioOptions: BluetoothAudioIconOptions,
+        runtimeOptions: IconPresentationRuntimeOptions? = nil
     ) {
         self.iconSize = iconSize
         self.batteryOptions = batteryOptions
         self.connectionOptions = connectionOptions
         self.volumeOptions = volumeOptions
         self.bluetoothAudioOptions = bluetoothAudioOptions
+        self.runtimeOptions = runtimeOptions
     }
 
     /// Reads every icon input straight from the store. Main-actor isolated
@@ -37,7 +40,8 @@ struct StatusIconAppearance: Equatable, Sendable {
             batteryOptions: settings.batteryIconOptions,
             connectionOptions: settings.connectionIconOptions,
             volumeOptions: settings.volumeIconOptions,
-            bluetoothAudioOptions: settings.bluetoothAudioIconOptions
+            bluetoothAudioOptions: settings.bluetoothAudioIconOptions,
+            runtimeOptions: settings.iconRuntimePresentationOptions
         )
     }
 }

@@ -56,7 +56,7 @@ struct StatusBarControllerVisibilityTests {
             chargingEffectClock: clock,
             renderMenuBarIcon: { scene, size, scale, appearance, phase in
                 guard !rasterFailure.isEnabled else { return nil }
-                return StatusIconRenderer.image(
+                return StatusIconRenderer.menuBarLayers(
                     scene: scene,
                     size: CGFloat(size),
                     scale: scale,

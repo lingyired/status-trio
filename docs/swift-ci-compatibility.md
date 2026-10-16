@@ -8,10 +8,58 @@
 
 下表中 2026-09-19 之前的记录都发生在旧 CI 工具链（`macos-15` / Xcode 16.4 / Swift 6.1.2）上：`isolated deinit`、`weak let`、`Bundle.module` 资源布局、IRGen 崩溃这些具体症状属于那个编译器，而由它们归纳出的规则至今有效。
 
+## 新子系统的预检证据
+
+首个特权 helper（issue #72 低电量模式）加入了一个新的 SwiftPM executable target
+（`StatusTrioPowerHelper`）、一个 LaunchDaemon property list，以及构建变体开关
+`PRIVILEGED_HELPER`。非发布预检
+[`38067773966`](https://github.com/lingyired/status-trio/actions/runs/38067773966)
+（head `4c3daf00`、`version=1.6.0`、`build=25`、`publish=false`、`notarize=false`）在
+CI 工具链（`macos-26` / Xcode 26.6 / Swift 6.3.3）上全绿，耗时 15m27s：
+
+- `Run tests` 通过（1,439 XCTest、7 skipped、0 failures；554 Swift Testing / 88 suites）。
+- `Run native compatibility tests` 通过，含新增的
+  `scripts/test-privileged-helper-bundle-contract.sh`（`privileged helper bundle-contract regressions passed`）。
+- Universal release 构建产出 `StatusTrioPowerHelper` 的 `x86_64 arm64` 双架构切片，
+  `LC_BUILD_VERSION` 为 `minos 13.0 / sdk 26.0`，`Privileged helper bundle verified: x86_64 arm64`。
+- 该预检 `publish=false` 且 `notarize=false`，因此走 Ad-hoc 签名，构建打印了预期警告
+  （“bundled but Ad-hoc signed”）；Apple 锚定的客户端 requirement 在 Ad-hoc 下无法满足，
+  运行时 XPC 往返与真实 `pmset` 写入必须在 Developer ID 签名并安装到 `/Applications` 后手工验证，
+  见 [privileged helper](privileged-helper.md)。未创建 GitHub Release，也未更新 appcast。
+
+本机同一 head 上 `swift test` 与 `swift build -c release` 均通过；
+`PRIVILEGED_HELPER=0` 变体构建验证了 helper 与 LaunchDaemon plist 被排除且
+`STIncludesPrivilegedHelper=false`。
+
+#72 的后续修复（helper 在 app 退出后不退出：daemon 现在自己管生命周期，见
+[privileged helper](privileged-helper.md) 的 Idle exit）走了同一条预检路径。非发布预检
+[`38328318162`](https://github.com/lingyired/status-trio/actions/runs/38328318162)
+（head `85247588`、`version=1.6.0`、`build=26`、`publish=false`、`notarize=false`）在 CI
+工具链（`macos-26` / Xcode 26.6 / Swift 6.3.3）上全绿，耗时 11m40s：
+
+- `Run tests` 通过（1,471 XCTest、7 skipped、0 failures；563 Swift Testing / 89 suites）。新增的
+  测试 target `StatusTrioPowerHelperTests` 在 CI 上正常编译并参与运行：SwiftPM 会把
+  executable target 链进测试 bundle，`main.swift` 的顶层代码不会执行，因此 `swift test`
+  里 daemon 不会真的启动（本机与 CI 同样的行为，日志可见 `Emitting module
+  StatusTrioPowerHelperTests`）。
+- `Run native compatibility tests` 通过，含更新后的
+  `scripts/test-privileged-helper-bundle-contract.sh`（新增“缺少 `ThrottleInterval` 的 plist
+  必须被拒绝”的负例）。
+- Universal release 构建产出 `x86_64 arm64` 双架构切片，`Privileged helper bundle verified: x86_64 arm64`；
+  新增的 `ThrottleInterval=1` 断言随 `verify-privileged-helper-bundle.sh` 一起通过。
+- 该预检 `publish=false` 且 `notarize=false`，仍走 Ad-hoc 签名（构建打印 “the privileged helper is
+  bundled but Ad-hoc signed”）。未创建 GitHub Release，也未更新 appcast。
+
+本机同一 head 上 `swift test`（1,461 XCTest、7 skipped、0 failures；563 Swift Testing / 89 suites）
+和 `swift build -c release` 均通过。helper 的运行时行为不在 CI：daemon 的退出时序在 macOS 27 上用
+等价的 user LaunchAgent 手工测量（`MachServices` job 空闲时 launchd 不会停它，加
+`EnableTransactions` 也不会），测量方法与结果记在 [privileged helper](privileged-helper.md)。
+
 ## 失败记录
 
 | Run | 失败阶段 | 根因 | 修复方式 |
 | --- | --- | --- | --- |
+| [`37816211317`](https://github.com/lingyired/status-trio/actions/runs/37816211317)（head `5c4e6fc`，`1.5.1` / build 23，`publish=false`） | `Run tests` | `ForbiddenPatternGuardTests.testSourcesContainNoActorIsolatedMethodReferences` 把 `Sources/StatusTrioCore/Monitoring/VolumeMonitor.swift:390` 的 `using: read` 转发闭包参数误报为方法引用；该源文件未在失败提交中改动。`is_forwarded_closure` 使用 `sed | grep -qE`，命中后 `grep -q` 提前退出，在 `set -o pipefail` 下可能让仍在输出大文件的 `sed` 收到 SIGPIPE（141），使真实声明查找返回假阴性。| 将 `grep -qE` 改成会完整消费输入的 `grep -E … >/dev/null`，保留 `pipefail` 和原匹配语义；`--self-test` 新增超过 2 MB 的早期匹配 forwarded-closure fixture，验证其仍为 `external`。本地红测在修复前稳定误报；修复后 `bash scripts/check-forbidden-patterns.sh --self-test`、正常扫描及 `swift test --filter ForbiddenPatternGuardTests` 均通过（2 tests、0 failures）。后续非发布预检 [`37819064891`](https://github.com/lingyired/status-trio/actions/runs/37819064891)（head `7bc0aa9`、`version=1.5.1`、`build=23`、`publish=false`、`notarize=false`）全绿：测试、原生兼容性检查、Universal release 构建、Ad-hoc 签名、DMG 打包与 artifact 上传全部通过。未创建 GitHub Release，也未更新 appcast。 |
 | [`37768863227`](https://github.com/lingyired/status-trio/actions/runs/37768863227)（job `113283127466`，main `25555649a76dd6e3138c0548556eeae95a87577e`） | `Build, sign, notarize, and publish`，exit `141`（SIGPIPE） | **CI 观察（2026-10-08）：** early signing smoke 与全部测试通过；最后日志是 arm64 libimobiledevice `make install` 成功，之后没有 helper package 或 `LC_BUILD_VERSION` 消息，build/sign stage 以 `141` 退出，而非 identity error。**本地确定性证据：** `scripts/build-mobile-battery-helper.sh` 在每个 architecture iteration 的 build-key probe 中用 `clang --version \| head -n 1`；Bash 3.2 的 `set -euo pipefail` 下，synthetic clang 输出超过 pipe capacity 的多行文本，稳定使原 production probe 因 reader 提前关闭而以 `141` 退出。该测试证明此代码有 SIGPIPE 缺陷；CI 没有逐命令 trace，不能断言本次退出一定发生在第二个 architecture 的该行。 | 仅将 version probe 改为完整捕获 producer stdout，再用 shell parameter expansion 提取首行；不关闭 pipefail，不用 `\|\| true`，保留真实 compiler failure。新增 `scripts/test-mobile-battery-clang-version.sh`：原 probe red exit `141`，修复后保留首行并成功，producer exit `23` 仍传播。early smoke 成功只证明 disposable binary 可签署，**不证明 actual bundled component 签署、notarization 或 artifact 产出成功**。后续 runner 验证仍需经人工批准的 `publish=false, notarize=true` run；本次未触发 CI。 |
 | [`37765619584`](https://github.com/lingyired/status-trio/actions/runs/37765619584)（job `113272443035`，`codex/ci-notarized-test-build`） | `Build, sign, notarize, and publish`，首次签署 bundled component | **CI 观察：** 测试、native helper、universal build 均通过；Developer ID signing 配置从显式临时 keychain 找到 identity，Apple notarization 配置也成功；首次 bundled component 签署时报 `Developer ID Application: …: no identity found`。本次证据不能单独证明缺少 user search-list registration 就是该错误的根因。**有依据的排查假设：** workflow 创建并导入临时 keychain，但此前未将它加入 user search list；`codesign --keychain` 指定 identity lookup keychain，并不替代证书链查找所需的 search-list 配置。GitHub 的 [Xcode signing 指南](https://docs.github.com/en/actions/how-tos/deploy/deploy-to-third-party-platforms/sign-xcode-applications)也显式将临时 keychain 加入该列表。 | workflow 保存原 user search list，将临时 keychain 加到首位并保留原 entries；build 前复制 `/usr/bin/true` 到 runner temp，用默认 search-list 路径执行 codesign 与 verify，失败即停止。always-run cleanup 独立尝试还原原列表与删除临时 keychain，即使还原失败也不会跳过删除。新增 fixture 覆盖列表保留、smoke sign 顺序/失败关闭、凭据日志脱敏及 restore 失败时仍删除。`scripts/test-release-notarization.sh` 本地通过；修复是否解决 CI 签署错误仍待新的 `publish=false, notarize=true` runner 验证，未触发该 run。 |
 | [`37760229583`](https://github.com/lingyired/status-trio/actions/runs/37760229583) attempt 1（`codex/ci-notarized-test-build`，head `387ac294198ea0c5729e10982c2d2d86443c3977`） | `Run tests` | **CI 观察：** Swift Testing 570 tests、1 issue：`AppIconControllerTests.sliderBurstRepaintsTheDockIconOnce` 在原第 309 行读到 `renderCount == 1`，期望 `0`；Developer ID signing / Apple notarization 配置步骤成功跳过。**本地确定性证据：** 测试用 ring-style 变更预热 coalescer 后只清空日志，隐含假定 threshold 循环耗时小于 50 ms；coalescer 使用真实 `Date()`，超过间隔时按设计立即重绘。在 threshold 35 前加入 60 ms 同步暂停可稳定复现同一断言，未改变生产逻辑。CI 没有该循环的耗时日志，因此不声称已量出本次 CI 的具体调度时序。原 workflow 提交未改动 `Sources` 或 `Tests`，这一事实本身不证明 flaky。 | `AppIconController` 仅增加可选 coalescer 注入，默认仍使用原实现；该测试使用固定时钟和受控 sleeper，保留 release 前 `0`、release 后恰好 `1` 及 final critical scene 断言，并要求确实调度了尾部重绘。本地 red/green 日志见下文；完整本地测试与 release build 已通过（见下文）；CI 验证仍待进行。没有再重跑 CI，不声称 CI 已修复或已发布。 |
@@ -38,6 +86,7 @@
 | （本地，非失败记录） | 本机 `swift test` | 新加的 `VolumeFeedbackTests.preferenceTreatsAMissingKeyAsEnabled` 想用 suites 断言「键不存在时按开启处理」，而 `UserDefaults(suiteName:)` 的搜索链在 suite 域之后仍会落到 `NSGlobalDomain`：全新 suite 读到的是本机 `com.apple.sound.beep.feedback`。开发机把这个开关关成 `0`（0 = 关）之后该测试即失败，CI runner 上（该键缺失）却一直是绿的——失效的是测试对「suite 隔离」的假设，不是产品行为 | 把判断拆成纯函数 `SystemVolumeFeedbackPreference.isEnabled(storedValue:)`，「缺失按开启」由它覆盖，suite 只留给显式写值的用例；顺带给两个未注入 feedback 播放器的既有 store 测试补上假播放器，免得在开关打开的机器上跑测试时真的出声。后续预检 `35851597428` 全绿 |
 | `36396172842` | `Run tests` | #30 的 Wi-Fi 居中修复把 SF Symbol 的锚点从 `canvas.midX`（60.0）改为 `artworkCenterX`（59.5），`ChargingEffectRenderingTests.nilPhaseKeepsThePreEffectStaticPixelFingerprint` 记录的静态像素基线随之改变。该用例的 `staticSnapshot` 是 `wifi.state = .off`，走 `drawOfficialSymbol(name: "wifi.slash")` 的默认 `center: wifiSymbolCenter` 分支，因此像素必然变化。本机 macOS 27 的实测新指纹为 `0ef6d48…`，但 macOS 26 CI runner 的对应值无法在本地推导，预检如实报出 `9f0c892…` | 按平台分别把基线更新为实测值：macOS 26 CI 用 `9f0c892e2602f4d4f9c541be1d93963e14d46e76f3ef24b46cd2dfbc25a22d1d`，macOS 27 本地用 `0ef6d483e344f6056fa3799f9f33bac0092246e3dbfbb3619a4666d7e9e9c190`（**替换**而非追加旧值，否则旧缺陷像素仍会被接受，守卫失效）。该失败是修复的预期效果，不是回归；同一次 run 中 380 个用例里只有这一项失败，说明新的 #30 断言在 CI 工具链上全部通过 |
 | （2026-10-10，本机 macOS 27.0.1 build 26A434） | `swift test --filter ChargingEffectRenderingTests` | Issue #30 的 `drawOfficialSymbol` 现按同一符号配置测量白色不透明高分辨率 alpha bbox，并把可见 ink 中点锚定到 artwork center；这会有意移动 `wifi.slash` 的可见像素。旧静态 fingerprint `0ef6d48…` 因而失效，新实测值为 `62c208567574bf0e0a7581fc4bb7340d98ef4eb4f0949b64cfdde7f2c01cd27c`。这不是 charging 绘制变化；active/static charging 专项中的其余 11 项通过 | 用新 macOS 27 指纹替换旧本机值，不接受旧像素。macOS 26 的新值尚未由 CI runner 实测，保留旧 runner 值但明确标记需由父会话最终 CI 验证；Issue30 isolated ink 与 0.45 full-composite 回归均 exit 0 |
+| `37936045929` | `Run tests` | #30 在 2026-10-09 于 v1.5.1 复发：此前只把 SF Symbol 的锚点从 `canvas.midX`（60.0）改到 `artworkCenterX`（59.5），但对齐的是 `NSImage.size` 的布局框。`wifi` 的可见墨迹并不在布局框中心，默认 60.8pt 时墨迹 bbox 中心比框中心左偏约 0.344pt；框居中后墨迹仍落在约 59.16，用户看到的还是偏左。修复改为测量并补偿符号墨迹的横向 side bearing，`ChargingEffectRenderingTests.nilPhaseKeepsThePreEffectStaticPixelFingerprint` 的静态像素随之变化。本机 macOS 27 实测新指纹为 `1930db1…`，macOS 26 CI runner 的对应值无法在本地推导，预检如实报出 `9dcba31…` | 按平台分别替换静态基线：macOS 26 CI 用 `9dcba3184f0953f8c173cc2f846977f01b84510a8505166bd6a8048f44d8fd97`，macOS 27 本地用 `1930db19c8a2f14400b25cf8f9228320b3d2bb9eb3f3360f93cc1e9ae8b1bf52`；旧值不能追加保留，否则修复前的偏左像素仍会被接受。该失败是预期像素变化，不是回归。同一次 run 的其他用例全绿；随后以同分支 head `4b255e5`、`version=1.5.1`、`build=25`、`publish=false` 重跑预检 [`37936688902`](https://github.com/lingyired/status-trio/actions/runs/37936688902)：`Run tests`、`Run native compatibility tests`、`Build, sign, notarize, and publish`（`publish=false`，未创建 GitHub Release、未更新 appcast）与 `Upload release artifacts` 全绿，耗时 14m48s；本机同 head `swift test` 为 583 tests / 91 suites 通过、`swift build -c release` 通过（见 `docs/issue-30-wifi-centering-analysis.md`） |
 | `36649829624`（#79 听音模式非发布预检） | `Run tests` | `OutputDeviceListeningModeRowTests.testInFlightCapsuleDrawsASpinnerNormally` 断言 `("0") != ("1")`：它数 `NSHostingView` 里的 `NSProgressIndicator`，期望被点选、正在写入的那颗胶囊画出转圈。`BluetoothListeningModeControl.busyMark` 读 `@Environment(\.accessibilityReduceMotion)`——开启时画静态 `Circle`（无 `NSProgressIndicator`），关闭时才是 `ProgressView`。该环境键只读，测试 harness 无法注入，只能继承宿主设置：CI runner 默认开着 Reduce Motion（0 个 spinner），开发机没开（1 个），于是本地 `swift test` 397/0 全绿而 CI 失败。失效的是断言对宿主无障碍设置的依赖，不是产品行为 | 让断言与无障碍设置无关：用例改名 `testInFlightCapsuleRemainsItsOwnButton`，去掉 `row.spinners == 1` 这条环境相关断言，只保留「正在写入的胶囊仍是一个独立按钮」`row.controls.count == 4`；Reduce Motion 分支改由代码审查保证（同 `.accessibilityReduceMotion` 只读、无注入修饰符的既有约定）。同一次 run 其余用例全绿，无产品回归。后续以 `version=1.3.3`、递增 `build=18`、`publish=false` 重跑非发布预检验证 |
 | `36681666541`、`36687697162`（#78 iPhone 电量非发布预检） | `Run tests` | 两次都是 `BluetoothListeningModeControllerLifecycleTests` 里等 `.failed` 的用例失败：第一次只有 `testFailedWriteRollsBackThroughAReRead`（2 秒期限，`BluetoothListeningModeControllerLifecycleTests.swift:117`），把期限放宽到 5 秒后第二次反而多了一个 `testUnconfirmedWriteRollsBackToObservedMode`（`…Tests.swift:125`，两条 `XCTAssertTrue(isFailed(...))` 也一并失败）。两次失败与期限长短无关，因为失效的从来不是等待时间，而是**能看见该状态的窗口**：`.failed` 会按 `failureClearDelay` 自动清除，而这个测试 helper 把它从产品默认的 2 秒压到 30 毫秒，`waitUntil` 却每 5 毫秒才轮询一次——runner 的主 actor 只要一次延迟超过 30 毫秒，整段 `.failed` 就被跳过，5 秒期限再长也等不到。`testUnconfirmedWriteRollsBackToObservedMode` 完全不涉及 OS 错误（后端接受写入、回读仍停在 NC），纯 Swift 逻辑必然发布过 `.failed`，所以只可能是没被观察到，不是产品行为改变。第一次的「期限不够」结论由此被推翻 | 把测试 helper 的 `failureClearDelay` 改成产品默认的 2 秒（新增 `Self.failureClearDelay`），使「状态存活多久」与「轮询多久看一次」不再互相错位；`waitUntil` 的 5 秒期限保留，但注释改回真实原因（它只是卡死写入的上界）。`swift test --filter BluetoothListeningModeControllerLifecycleTests` 13 项通过（2.24 秒，两条失败用例各等满 2 秒 linger）。后续以 `version=1.3.4`、`build=21`、`publish=false` 重跑非发布预检验证 |
 
@@ -813,3 +862,167 @@ macOS 13 review-fix 分支的三个 `publish=false` 预检
 DMG 打包与 artifact 上传全部通过；`publish=false` 未创建 GitHub Release，也未更新 appcast。
 本机同一 head 上 `swift test` 为 573 Swift Testing / 90 suites 通过、`swift build -c release` 通过。
 这条记录本身的提交只补充验证说明，不改变已通过预检的产品代码。
+
+## 38262423399 / 38278475902 / 38279498535：低电量模式控制器测试的时间竞态
+
+`LowPowerModeControllerTests.testDisablingClearsErrorAndStopsContact` 在 CI 上间歇失败。主干预检
+[`38262423399`](https://github.com/lingyired/status-trio/actions/runs/38262423399)
+（head 为 `test/72-103-combined`）与 issue #110 分支的首次非发布预检
+[`38278475902`](https://github.com/lingyired/status-trio/actions/runs/38278475902)
+（head `14b050e3`、`version=1.6.0`、`build=25`、`publish=false`、`notarize=false`）
+都停在 `Run tests` 阶段、第 95 行 `XCTAssertNotNil(controller.lastError)`，同一行号，其余步骤未执行。
+#110 的改动只涉及 Wi-Fi，与低电量模式无关。
+
+- **失败阶段**：`Run tests`（XCTest；同一次 run 的 563 项 Swift Testing 已全部通过）。
+- **根因**：该断言靠 `settle()` 里固定 10 次 `Task.yield()` 等控制器写路径完成。写路径在 nonisolated 的
+  `await client.setLowPowerMode(...)` 上挂起后再回到 main actor，这个跨执行器的往返不是 yield 计数能保证的；
+  CI 负载高时十次 yield 覆盖不到，`lastError` 尚未写入即断言。这是测试等待逻辑的缺陷，不是
+  `LowPowerModeController` 的行为回归。
+- **修复**：只改测试 helper。新增带 5 秒 deadline 的 `waitUntil { ... }` 条件等待（与 main 上 `e9ab294`
+  已确立的 throwing/deadline 约定一致），把依赖异步完成的断言改为等待具体条件；只在“断言没有异步工作发生”的
+  用例保留一个有时限的 `settle()` 排空。生产代码不变。
+- **后续验证**：修复后 head `907624ad` 的非发布预检
+  [`38279498535`](https://github.com/lingyired/status-trio/actions/runs/38279498535)
+  （`version=1.6.0`、`build=25`、`publish=false`、`notarize=false`）全绿，耗时 15m6s：
+  `Run tests` 通过（1,461 XCTest、7 skipped、0 failures；563 Swift Testing / 89 suites），
+  `Run native compatibility tests` 通过，appcast 说明 12/12 语言校验通过，Universal release 构建产出
+  `StatusTrio-1.6.0.dmg`（`LC_BUILD_VERSION` 检查对主程序、两个 helper 与 MobileBattery 动态库全部通过），
+  Ad-hoc 签名与 artifact 上传通过；`publish=false` 未创建 GitHub Release，也未更新 appcast。本机同一 head 上
+  `swift test` 563 项、`swift build -c release` 均通过，且 `LowPowerModeControllerTests` 单独连续三次运行 0 失败。
+  本条记录本身的提交只补充说明，不改变已验证的产品代码。
+
+## 38558727357：输入音频恢复测试匹配到旧状态
+
+helper 生命周期分支的非发布预检
+[`38558727357`](https://github.com/lingyired/status-trio/actions/runs/38558727357)
+（head `5757b420`、`version=1.6.0`、`build=29`、`publish=false`）在 `Run tests` 失败。
+
+- **失败位置**：`AudioInputMonitorTests.testRecoverRefreshesAndStoppedObservationCallbackIsIgnored`
+  第 289 行；`fullReadCount` 为 `1`，期望 `2`。
+- **根因**：恢复等待只匹配 `defaultDeviceID == 11`。`recover()` 先发布仍携带旧设备 ID 的
+  `isRefreshing` 状态，新的硬件读取尚未完成就能满足该等待，导致提前断言。这不是 helper
+  生命周期改动或 Swift 编译失败。
+- **修复**：仅调整该测试。初次读取等待终态；恢复前把假硬件的默认设备改为 `22`，等待
+  `defaultDeviceID == 22 && !isRefreshing`，让旧状态无法满足恢复期望。保留读取次数和停用后
+  回调无效的断言，不延长超时，也不改生产音频代码。
+- **本机验证**：修复后 `swift test` 通过 1502 项 XCTest（7 项跳过）与 587 项
+  Swift Testing，0 失败；`swift build -c release` 通过。修复后的非发布预检
+  [`38560578171`](https://github.com/lingyired/status-trio/actions/runs/38560578171)
+  （head `03c424d1`、`version=1.6.0`、`build=29`、`publish=false`）全部通过。
+  该 CI 结果不代表系统审批切换的实机验证通过：同一构建的手动复测仍出现 native
+  待批准与实际 XPC 可用不一致，后续就绪判定改动需另行验证。
+
+## 38541853330：helper 审批恢复预检中的 Dock 测试失败
+
+非发布预检 [`38541853330`](https://github.com/lingyired/status-trio/actions/runs/38541853330)
+（head `5fd71618`、`version=1.6.0`、`build=27`、`publish=false`）在 `Run tests` 阶段失败。
+
+- **失败位置**：`ChargingEffectControllerTests.batteryLevelChangesStillUpdateStaticDockArtwork`，
+  第 48 行；等待 5 秒后 `renderCount` 仍为 `1`，未超过初始值 `1`。helper 测试通过。
+- **根因状态**：尚未确认。该用例已经使用有界条件等待，不能归因于固定 `Task.yield()` 次数，
+  也没有 Swift 编译错误的证据。本机完整测试通过；单次 CI 失败不足以证明这是偶发调度问题。
+- **处理**：保留原测试与断言，不增加超时或绕过用例。先核对后续预检的同一测试结果；
+  若再次失败，继续检查电池更新、presentation 调度和 Dock 重绘之间的路径。
+- **验证**：包含最后一项审批错误修复的 head `2135e0eb` 本机 `swift test` 通过
+  （1497 XCTest、7 skipped、0 failures；587 Swift Testing / 91 suites），
+  `swift build -c release` 通过。后续非发布预检
+  [`38542541814`](https://github.com/lingyired/status-trio/actions/runs/38542541814)
+  （同一产品代码 head `2135e0eb`、`version=1.6.0`、`build=28`、`publish=false`）全绿：
+  `Run tests`、原生兼容检查、Universal release 构建、DMG 打包和 artifact 上传全部通过。
+  原 Dock 测试未修改，后续运行通过，但首次失败的具体根因仍未确认。
+  CI 使用 Ad-hoc 签名；本机安装版单独通过 Developer ID 签名、公证与 stapler 验证。
+  用户按“系统关闭 → App 开启 → 系统开启”的流程确认等待提示自动消失、绿叶可用，
+  本机日志也记录自动 `register()` 返回成功、状态从 `2` 转为 `1`。没有发布 Release 或修改 appcast。
+
+## 38741027089：预检用了还没写发布说明的版本号
+
+输入法中间图标分支的第一个非发布预检
+[`38741027089`](https://github.com/lingyired/status-trio/actions/runs/38741027089)
+（head `2b693eb3`、`version=1.6.1`、`build=38`、`publish=false`）在 `Build, sign, notarize, and publish`
+阶段失败：
+
+```
+Error: release notes directory does not exist: …/release-notes/1.6.1
+```
+
+- **失败位置**：`bash scripts/release.sh` 第 163 行的发布说明目录检查，测试与原生兼容检查已经在
+  这一步之前通过。
+- **根因**：`publish=false` 只跳过 appcast 发布，不跳过发布说明；`scripts/release.sh` 要求
+  `release-notes/<version>/` 存在。预检不是发布，随便挑一个「下一个」版本号就会在这一步中止。
+- **修复**：改用已有发布说明的 `version=1.6.0` 重跑，代码未改动。
+- **验证**：同一 head 的非发布预检
+  [`38741878250`](https://github.com/lingyired/status-trio/actions/runs/38741878250)
+  （`version=1.6.0`、`build=38`、`publish=false`、`notarize=false`）在 CI 工具链
+  （`macos-26` / Xcode 26.6 / Swift 6.3.3）上全绿：`Run tests`、`Run native compatibility tests`、
+  Universal release 构建、DMG 打包和 artifact 上传全部通过。该次预检走 Ad-hoc 签名，
+  未创建 GitHub Release，也未修改 appcast。
+
+**规则**：新子系统的非发布预检要复用当前版本号（`release-notes/<version>/` 已存在），
+除非同一次改动里已经写好新版本的发布说明。`scripts/validate-appcast-notes.sh` 在
+`publish=false` 时会对缺失目录只发 `::notice::`，而 `scripts/release.sh` 会直接报错，
+这个差异正是这次失败的位置。
+
+## 38741878250：输入法中间图标加入新子系统的预检
+
+非发布预检 [`38741878250`](https://github.com/lingyired/status-trio/actions/runs/38741878250)
+（head `2b693eb3`、`version=1.6.0`、`build=38`、`publish=false`）在 CI 工具链上全绿，
+耗时约 17 分钟：
+
+- `Run tests` 通过（1,595 XCTest、7 skipped、0 failures；587 Swift Testing / 91 suites 也通过）。
+  本机的 1,585 与 CI 的 1,595 差 10 个用例，全部是 `#available(macOS 26/27)` 门控的用例：
+  CI 运行在 macOS 26 上，本机是 macOS 27。输入法相关的新用例在两个版本上都运行。
+- `Run native compatibility tests` 通过，含 macOS 13 bundle/Sparkle 契约检查。
+- Universal release 构建产出 `x86_64 arm64` 双架构切片，`LC_BUILD_VERSION` 为
+  `minos 13.0 / sdk 26.0`；`StatusTrioPowerHelper` 与 MobileBattery 框架的签名与
+  designated requirement 校验通过。
+- 该预检 `publish=false` 且 `notarize=false`，因此走 Ad-hoc 签名。未创建 GitHub Release，
+  也未更新 appcast。
+
+本机同一 head（Xcode 27.0 / Swift 6.4）上 `swift test`（1,585 tests、7 skipped、0 failures）、
+`swift build -c release` 和 `swift test --filter Issue30WiFiAlignmentTests`（5/5）均通过。
+`@MainActor` / SwiftUI / `Bundle.module` 相关改动的 CI 编译兼容性由此确认；
+真实前台输入切换、候选框行为与 macOS 13/15/26 设备验证不在 CI 覆盖范围，
+见 [输入法中间图标](input-source-center-slot.md)。
+
+## 38754577081：输入法图标尺寸与面板行改动的预检
+
+第二轮输入法反馈（中间图标跟随 Wi-Fi 图标大小、状态面板改为行 + 切换列表、
+行列图标的单色处理）的非发布预检
+[`38754577081`](https://github.com/lingyired/status-trio/actions/runs/38754577081)
+（head `60c8db89`、`version=1.6.0`、`build=38`、`publish=false`、`notarize=false`）
+在 CI 工具链上全绿，耗时约 20 分钟：
+
+- `Run tests` 通过（1,603 XCTest、7 skipped、0 failures；587 Swift Testing / 91 suites 也通过）。
+  本机 1,593 与 CI 1,603 的差仍是 `#available(macOS 26/27)` 门控的用例。
+  本轮新增的 `InputSourceIconMaskTests`、`InputSourcePanelLayoutTests` 和缓存用例在两个
+  macOS 版本上都运行。
+- `Run native compatibility tests` 通过，含 macOS 13 bundle/Sparkle 契约检查。
+- Universal release 构建、DMG 打包与 artifact 上传通过；该次预检 `publish=false` 且
+  `notarize=false`，走 Ad-hoc 签名，未创建 GitHub Release，也未更新 appcast。
+
+本机同一 head（Xcode 27.0 / Swift 6.4）上 `swift test`（1,593 tests、7 skipped、0 failures）、
+`swift build -c release` 和 `swift test --filter Issue30WiFiAlignmentTests`（5/5）均通过；
+面板行、图标掩膜与菜单栏尺寸条通过测试内渲染的截图人工核对。真实前台输入切换、
+候选框行为与 macOS 13/15/26 设备验证仍不在 CI 覆盖范围。
+
+## 38770589762：中间槽文字锚点修复的预检
+
+用户第二轮反馈的第三个问题（160% 的输入法短标签 `A` 压到外环充电闪电）修好后，
+非发布预检
+[`38770589762`](https://github.com/lingyired/status-trio/actions/runs/38770589762)
+（head `7bef0428`、`version=1.6.0`、`build=38`、`publish=false`、`notarize=false`）
+在 CI 工具链上全绿，耗时约 13 分钟：
+
+- `Run tests` 通过（1,604 XCTest、7 skipped、0 failures；587 Swift Testing / 91 suites 也通过）。
+  本机 1,594 与 CI 1,604 的差仍是 `#available(macOS 26/27)` 门控的用例。
+  本轮新增的 `Issue30WiFiAlignmentTests.testInputSourceLabelInkKeepsTheSlotCentreAtEveryScale`
+  在两个 macOS 版本上都运行，并且在旧算法下会失败（160% 实测 21.6，期望 64.25），
+  证明它确实守住了这次的缺陷。
+- `Run native compatibility tests` 通过，含 macOS 13 bundle/Sparkle 契约检查。
+- Universal release 构建、DMG 打包与 artifact 上传通过；该次预检 `publish=false` 且
+  `notarize=false`，走 Ad-hoc 签名，未创建 GitHub Release，也未更新 appcast。
+
+本机同一 head（Xcode 27.0 / Swift 6.4）上 `swift test`（1,594 tests、7 skipped、0 failures）、
+`swift build -c release` 和 `swift test --filter Issue30WiFiAlignmentTests`（6/6）均通过；
+修复前后的菜单栏条带、以及"槽内电量百分比"受同一路径影响的对比条，都通过测试内渲染截图人工核对。
+真实前台输入切换、候选框行为与 macOS 13/15/26 设备验证仍不在 CI 覆盖范围。

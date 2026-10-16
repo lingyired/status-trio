@@ -169,6 +169,56 @@ final class LaunchAtLoginManagerTests: XCTestCase {
         XCTAssertEqual(manager.status, .enabled)
     }
 
+    func testRefreshKeepsTheFailureWhileTheItemOnlyAwaitsApproval() {
+        // `requiresApproval` is where a rejected `register()` lands too, so it
+        // cannot be read as "the system caught up"; only `.enabled` retires the
+        // failure banner.
+        let service = FakeLaunchAtLoginService(status: .notRegistered)
+        service.registerError = TestFailure.registration
+        let manager = LaunchAtLoginManager(service: service)
+        manager.setEnabled(true)
+        XCTAssertTrue(manager.didFailLastOperation)
+
+        service.status = .requiresApproval
+        manager.refresh()
+
+        XCTAssertTrue(manager.didFailLastOperation)
+        XCTAssertTrue(manager.isEnabled)
+
+        service.status = .enabled
+        manager.refresh()
+
+        XCTAssertFalse(manager.didFailLastOperation)
+        XCTAssertTrue(manager.isEnabled)
+    }
+
+    func testRefreshKeepsAFailureThatIsStillUnsettled() {
+        let service = FakeLaunchAtLoginService(status: .notRegistered)
+        service.registerError = TestFailure.registration
+        let manager = LaunchAtLoginManager(service: service)
+        manager.setEnabled(true)
+        XCTAssertTrue(manager.didFailLastOperation)
+
+        manager.refresh()
+
+        XCTAssertTrue(manager.didFailLastOperation)
+        XCTAssertEqual(manager.status, .notRegistered)
+    }
+
+    func testFailedUnregistrationIsClearedOnceTheItemIsGone() {
+        let service = FakeLaunchAtLoginService(status: .enabled)
+        service.unregisterError = TestFailure.unregistration
+        let manager = LaunchAtLoginManager(service: service)
+        manager.setEnabled(false)
+        XCTAssertTrue(manager.didFailLastOperation)
+
+        service.status = .notRegistered
+        manager.refresh()
+
+        XCTAssertFalse(manager.didFailLastOperation)
+        XCTAssertFalse(manager.isEnabled)
+    }
+
     func testEnabledBindingReadsAndWritesManagerState() {
         let service = FakeLaunchAtLoginService(status: .notRegistered)
         let manager = LaunchAtLoginManager(service: service)

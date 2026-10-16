@@ -32,6 +32,18 @@ final class AppMetadataTests: XCTestCase {
         XCTAssertNil(AppMetadata.developmentCodename(from: [:]))
     }
 
+    func testIncludesPrivilegedHelperReadsTheInfoFlag() {
+        XCTAssertTrue(
+            AppMetadata.includesPrivilegedHelper(from: ["STIncludesPrivilegedHelper": true])
+        )
+        XCTAssertFalse(
+            AppMetadata.includesPrivilegedHelper(from: ["STIncludesPrivilegedHelper": false])
+        )
+        // A build that predates the flag, or one that stripped it, must read as
+        // "no helper" so the UI never offers a control it cannot honour.
+        XCTAssertFalse(AppMetadata.includesPrivilegedHelper(from: [:]))
+    }
+
     func testVersionDisplayStringCombinesVersionAndBuild() {
         XCTAssertEqual(
             AppMetadata.versionDisplayString(from: [

@@ -13,7 +13,7 @@ enum IconGuideOnboardingPolicy {
 }
 
 struct TelemetryConsentDraft {
-    var sharesAnalytics = true
+    var sharesAnalytics = false
 
     @MainActor func acknowledge(settings: SettingsStore) {
         guard settings.telemetryConsentVersion == 0 else { return }

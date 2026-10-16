@@ -10,6 +10,25 @@ import Testing
 /// a `Section` inside the picker's content was dropped on macOS, which left the
 /// menu showing the audio entry alone.
 struct BluetoothNetworkIconSourceOptionTests {
+    @Test func audioIconChoiceIsShownOnlyWhenAudioIsTheEffectiveNetworkSource() {
+        #expect(BluetoothNetworkIconSource.shouldShowAudioIconChoice(
+            replacingNetworkIcon: true,
+            selectedSource: .audioDevices
+        ))
+        #expect(!BluetoothNetworkIconSource.shouldShowAudioIconChoice(
+            replacingNetworkIcon: false,
+            selectedSource: .audioDevices
+        ))
+        #expect(!BluetoothNetworkIconSource.shouldShowAudioIconChoice(
+            replacingNetworkIcon: true,
+            selectedSource: .device(address: "AABB")
+        ))
+        #expect(!BluetoothNetworkIconSource.shouldShowAudioIconChoice(
+            replacingNetworkIcon: false,
+            selectedSource: .device(address: "AABB")
+        ))
+    }
+
     @Test func optionsLeadWithTheAudioDevice() {
         let options = BluetoothNetworkIconSourceOption.options(
             devices: [device("MX Keys", kind: .peripheral(.keyboard), isConnected: false)],

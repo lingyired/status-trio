@@ -87,14 +87,7 @@ GitHub Release 正文必须包含英文和中文，英文在上、中文在下�
 
 Sparkle `appcast.xml` 使用分语言说明：每个新条目为文案目录中每种语言写入一组带显式 `xml:lang` 的 `<title>` 与 `<description>`，`en` 必须排第一——Sparkle 的 `-bestNodeInNodes:name:` 在用户偏好语言都匹配不到时取**文档顺序第一个节点**作为兜底。把两种语言堆进同一个 `<description>` 会让所有用户都看到双语。`publish=true` 要求 12 种语言齐全，`publish=false` 只警告不阻断。GitHub Release 正文始终是英文 + 简体双语。
 
-GitHub Release 正文会在双语说明后自动追加首次启动提示：
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/Status Trio.app"
-open "/Applications/Status Trio.app"
-```
-
-这些首次启动命令只写入 GitHub Release，不写入 Sparkle appcast。
+GitHub Release 正文只包含双语说明。配置了 Developer ID 与公证之后，正文不再追加首次启动的 `xattr -dr com.apple.quarantine` / `open` 提示——公证过的构建不需要这一步。只有退回 Ad-hoc 签名的版本才需要该提示，而 Sparkle appcast 永远不包含它。
 
 ## 预检产物与更新验证
 
