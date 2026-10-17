@@ -47,6 +47,74 @@ final class DDCVolumeReplyTests: XCTestCase {
         XCTAssertEqual(reply.targetValue(for: 1.1), 100)
     }
 
+    // MARK: - Classification (issue #115 diagnostics)
+
+    func testClassifiesValidReply() {
+        XCTAssertEqual(DDCVolumeReply.classify(valid), .valid(DDCVolumeReply(current: 100, maximum: 100)))
+    }
+
+    func testClassifiesAnAllZeroBufferAsZeros() {
+        XCTAssertEqual(DDCVolumeReply.classify([UInt8](repeating: 0, count: 11)), .zeros)
+    }
+
+    func testClassifiesAnUnwrittenFFBufferAsUntouched() {
+        XCTAssertEqual(DDCVolumeReply.classify([UInt8](repeating: 0xFF, count: 11)), .untouched)
+    }
+
+    func testShortBuffersStillDistinguishZerosAndUntouched() {
+        XCTAssertEqual(DDCVolumeReply.classify([0, 0, 0, 0]), .zeros)
+        XCTAssertEqual(DDCVolumeReply.classify([0xFF, 0xFF]), .untouched)
+        XCTAssertEqual(DDCVolumeReply.classify([0x6E, 0x88]), .wrongLength)
+        XCTAssertEqual(DDCVolumeReply.classify([]), .wrongLength)
+    }
+
+    func testClassifiesWrongHeader() {
+        XCTAssertEqual(DDCVolumeReply.classify(reply(changing: 0, to: 0x51)), .wrongHeader)
+    }
+
+    func testClassifiesExplicitVCPRefusalSeparatelyFromOtherFailures() {
+        // Result code 1 is the monitor answering "I do not support this VCP".
+        // It must never be confused with a timeout or accepted as data.
+        XCTAssertEqual(DDCVolumeReply.classify(reply(changing: 3, to: 1)), .vcpRefused)
+    }
+
+    func testClassifiesWrongVCP() {
+        XCTAssertEqual(DDCVolumeReply.classify(reply(changing: 4, to: 0x8D)), .wrongVCP)
+    }
+
+    func testClassifiesBadChecksum() {
+        var malformed = valid
+        malformed[10] ^= 1
+
+        XCTAssertEqual(DDCVolumeReply.classify(malformed), .badChecksum)
+    }
+
+    func testClassifiesInvalidRange() {
+        XCTAssertEqual(
+            DDCVolumeReply.classify(reply(changing: 6, to: 0, and: 7, to: 0)),
+            .invalidRange
+        )
+        XCTAssertEqual(DDCVolumeReply.classify(reply(changing: 9, to: 101)), .invalidRange)
+    }
+
+    func testDiagnosticNamesAreIdentifierFreeAndDistinct() {
+        let names = [
+            DDCVolumeReplyKind.valid(DDCVolumeReply(current: 1, maximum: 1)).diagnosticName,
+            DDCVolumeReplyKind.zeros.diagnosticName,
+            DDCVolumeReplyKind.untouched.diagnosticName,
+            DDCVolumeReplyKind.wrongLength.diagnosticName,
+            DDCVolumeReplyKind.wrongHeader.diagnosticName,
+            DDCVolumeReplyKind.wrongVCP.diagnosticName,
+            DDCVolumeReplyKind.vcpRefused.diagnosticName,
+            DDCVolumeReplyKind.badChecksum.diagnosticName,
+            DDCVolumeReplyKind.invalidRange.diagnosticName
+        ]
+
+        XCTAssertEqual(Set(names).count, names.count, "Every failure shape needs its own diagnostic name")
+        XCTAssertEqual(DDCVolumeReplyKind.zeros.diagnosticName, "zeros")
+        XCTAssertEqual(DDCVolumeReplyKind.vcpRefused.diagnosticName, "vcpRefused")
+    }
+
     private func reply(changing index: Int, to value: UInt8) -> [UInt8] {
         reply(changing: index, to: value, and: nil, to: nil)
     }

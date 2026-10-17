@@ -174,6 +174,83 @@ final class DDCVolumeCoordinatorTests: XCTestCase {
         }
     }
 
+    func testSelectionAlternatingABAUsesAFreshlyResolvedTargetEachTime() async {
+        let transport = FakeDDCTransport()
+        transport.reply = DDCVolumeReply(current: 50, maximum: 100)
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("A read") { transport.readServiceTags.count >= 1 }
+        coordinator.select(outputID: 94, uid: "DISPLAY-B")
+        await waitUntil("B read") { transport.readServiceTags.count >= 2 }
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("A re-read") { transport.readServiceTags.count >= 3 }
+
+        XCTAssertEqual(transport.resolveCount, 3, "Each selection must resolve its own target")
+        XCTAssertEqual(
+            Set(transport.readServiceTags.prefix(3)).count, 3,
+            "A→B→A must re-resolve instead of reusing a stale service"
+        )
+        XCTAssertEqual(updates.last?.uid, "DISPLAY-A")
+        coordinator.stop()
+    }
+
+    func testSameUIDTopologyChangeResolvesAFreshService() async {
+        let transport = FakeDDCTransport()
+        transport.reply = DDCVolumeReply(current: 50, maximum: 100)
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("initial read") { transport.readServiceTags.count == 1 }
+        coordinator.topologyChanged()
+        await waitUntil("post-topology read") { transport.readServiceTags.count >= 2 }
+
+        XCTAssertEqual(transport.resolveCount, 2, "A same-UID topology change must re-resolve, not reuse the cached service")
+        XCTAssertEqual(
+            Array(transport.readServiceTags.prefix(2)), [0, 1],
+            "The post-topology read must run against the freshly resolved service"
+        )
+        coordinator.stop()
+    }
+
+    func testUnresolvableTargetNeverWritesAndReportsUnavailable() async {
+        let transport = FakeDDCTransport()
+        transport.failResolve = true
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("unavailable read") { updates.contains { $0.scalar == nil } }
+        coordinator.setVolume(0.8)
+        coordinator.flushPendingVolume()
+        await coordinator.waitForWorkerIdle()
+
+        XCTAssertTrue(transport.writeValues.isEmpty, "An unresolvable target must never be written to")
+        XCTAssertEqual(transport.readServiceTags, [], "No physical read may run without a resolved service")
+        coordinator.stop()
+    }
+
+    func testProtocolFailureWithoutAValidatedReplyNeverWrites() async {
+        // The service resolves, but no read ever returns a validated reply
+        // (all profiles failed). The slider must stay unavailable and no
+        // Set VCP may be attempted.
+        let transport = FakeDDCTransport()
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("failed read reports unavailable") { updates.contains { $0.scalar == nil } }
+        coordinator.setVolume(0.8)
+        coordinator.flushPendingVolume()
+        await coordinator.waitForWorkerIdle()
+
+        XCTAssertTrue(transport.writeValues.isEmpty, "No write may run without a validated read reply")
+        XCTAssertFalse(updates.contains { $0.scalar != nil }, "No percentage may be published without a validated reply")
+        coordinator.stop()
+    }
+
     func testSleepCancelsDebouncedWriteBeforeWake() async {
         let clock = ManualDDCClock()
         let transport = FakeDDCTransport()
@@ -322,6 +399,10 @@ private final class FakeDDCTransport: DDCVolumeTransport, @unchecked Sendable {
     private var gateNextRead = false
     private var blockedReadCountStorage = 0
     private let blockedRead = DispatchSemaphore(value: 0)
+    private var storedFailResolve = false
+    private var storedNextServiceTag = 0
+    private var serviceTagByTarget: [ObjectIdentifier: Int] = [:]
+    private var storedReadServiceTags: [Int] = []
 
     var reply: DDCVolumeReply? { get { lock.withLock { storedReply } } set { lock.withLock { storedReply = newValue } } }
     var failReads: Int { get { lock.withLock { storedFailReads } } set { lock.withLock { storedFailReads = newValue } } }
@@ -331,13 +412,22 @@ private final class FakeDDCTransport: DDCVolumeTransport, @unchecked Sendable {
     var resolveCount: Int { lock.withLock { storedResolveCount } }
     var maximumConcurrentReads: Int { lock.withLock { storedMaximumConcurrentReads } }
     var blockedReadCount: Int { lock.withLock { blockedReadCountStorage } }
+    var failResolve: Bool { get { lock.withLock { storedFailResolve } } set { lock.withLock { storedFailResolve = newValue } } }
+    var readServiceTags: [Int] { lock.withLock { storedReadServiceTags } }
 
     func blockNextRead() { lock.withLock { gateNextRead = true } }
     func releaseBlockedRead() { blockedRead.signal() }
 
     func resolve(uid: String) -> DDCDisplayTarget? {
-        lock.withLock { storedOperations.append("resolve"); storedResolveCount += 1 }
-        return DDCDisplayTarget(uid: uid, service: nil)
+        lock.withLock {
+            storedOperations.append("resolve")
+            storedResolveCount += 1
+            guard !storedFailResolve else { return nil }
+            let target = DDCDisplayTarget(uid: uid, service: nil)
+            serviceTagByTarget[ObjectIdentifier(target)] = storedNextServiceTag
+            storedNextServiceTag += 1
+            return target
+        }
     }
 
     func read(_ target: DDCDisplayTarget) -> DDCVolumeReply? {
@@ -346,6 +436,7 @@ private final class FakeDDCTransport: DDCVolumeTransport, @unchecked Sendable {
             storedReadCount += 1
             activeReads += 1
             storedMaximumConcurrentReads = max(storedMaximumConcurrentReads, activeReads)
+            storedReadServiceTags.append(serviceTagByTarget[ObjectIdentifier(target)] ?? -1)
             if gateNextRead { gateNextRead = false; blockedReadCountStorage += 1; return true }
             return false
         }

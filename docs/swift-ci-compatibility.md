@@ -1025,3 +1025,95 @@ Error: release notes directory does not exist: …/release-notes/1.6.1
 `swift build -c release` 和 `swift test --filter Issue30WiFiAlignmentTests`（6/6）均通过；
 修复前后的菜单栏条带、以及"槽内电量百分比"受同一路径影响的对比条，都通过测试内渲染截图人工核对。
 真实前台输入切换、候选框行为与 macOS 13/15/26 设备验证仍不在 CI 覆盖范围。
+
+## 38867314730 与 38868054372：Issue #115 DDC 匹配的预检
+
+Issue #115（当前默认音频输出 → 唯一 DDC Service 匹配）新增了一个泛型函数
+（`DDCTargetResolver.openResolvedTarget<Handle, Opened>`）和 IOKit 侧的 resolve 改写，
+因此按规则走非发布预检。
+
+第一次派发
+[`38867314730`](https://github.com/lingyired/status-trio/actions/runs/38867314730)
+（head `107d5493`、`version=1.6.1`、`build=38`、`publish=false`）**失败**，失败阶段是
+`Build, sign, notarize, and publish`，根因是 `version=1.6.1` 没有对应的
+`release-notes/1.6.1` 目录，`scripts/release.sh` 在打包前直接报
+`release notes directory does not exist` 并退出 1——不是工具链或代码编译问题
+（同一 run 的 `Run tests`、`Run native compatibility tests` 都已通过）。
+
+修复方式是改用已存在的版本号并只抬高 build：重新派发
+[`38868054372`](https://github.com/lingyired/status-trio/actions/runs/38868054372)
+（head `107d5493`、`version=1.6.0`、`build=38`、`publish=false`、`notarize=false`），
+在 CI 工具链（`macos-26` / Xcode 26.6 / Swift 6.3.3）上全绿，耗时约 15 分钟：
+
+- `Run tests` 通过（1,627 XCTest、7 skipped、0 failures；587 Swift Testing / 91 suites）。
+  本机 1,620 与 CI 1,627 的差仍是 `#available(macOS 26/27)` 门控的用例；
+  两边的 skipped 数（本机 10 / CI 7）同样只反映这些平台门控。
+- `Run native compatibility tests` 通过，含 macOS 13 bundle/Sparkle 契约检查与
+  `privileged helper bundle-contract regressions passed`。
+- Universal release 构建产出 `StatusTrio-1.6.0.dmg`，输出 `Built … without publishing.`；
+  该次预检 `publish=false` 且 `notarize=false`，走 Ad-hoc 签名，未创建 GitHub Release，
+  也未更新 appcast。
+
+本机同一 head（Xcode 27.0 / Swift 6.4）上 `swift test`（1,620 XCTest、10 skipped、
+0 failures；587 Swift Testing / 91 suites）与 `swift build -c release` 均通过。
+DDC 只有单台 XV272U 实机证据；双外接屏分别作为默认输出的场景未在真机验证，
+见 [issue-115-ddc-targeting](verification/issue-115-ddc-targeting.md)。
+
+## 38885873584 与 38885964515：Issue #115 DDC 读协议预检与测试 DMG
+
+第二轮（Get VCP 校验和显式化 + 受控只读 profile 探测 + `ddc.*` 诊断）同样按规则
+走非发布预检，并额外产出一次可供报障用户安装的测试 DMG。
+
+第一次派发
+[`38885873584`](https://github.com/lingyired/status-trio/actions/runs/38885873584)
+（head `fbf8baf7`、`version=1.6.0`、`build=39`、`publish=false`、`notarize=true`）
+**失败**，失败阶段是 job `release` 本身（2 秒内结束，没有任何步骤运行），根因是
+`distribution` environment 的 protection rule：
+
+```
+Branch "codex/issue-115-ddc-output-matching" is not allowed to deploy to
+distribution due to environment protection rules.
+```
+
+这不是证书/密钥缺失，也不是代码或编译失败——该 environment 只允许受保护分支部署。
+修复方式是按 Plan 的降级路径改用 Ad-hoc：
+[`38885964515`](https://github.com/lingyired/status-trio/actions/runs/38885964515)
+（head `fbf8baf7`、`version=1.6.0`、`build=39`、`publish=false`、`notarize=false`）
+在 CI 工具链（`macos-26` / Xcode 26.6 / Swift 6.3.3）上全绿，耗时约 15 分钟：
+
+- `Run tests` 通过（1,653 XCTest、7 skipped、0 failures；587 Swift Testing / 91 suites）。
+- `Run native compatibility tests` 通过，含 macOS 13 bundle/Sparkle 契约与
+  `privileged helper bundle-contract regressions passed`。
+- `Built …/StatusTrio-1.6.0.dmg without publishing.`；artifact 名为
+  `StatusTrio-306`，内含 `StatusTrio-1.6.0.dmg`、`StatusTrio-1.6.0.dmg.sha256`、
+  `release.env`。挂载后确认 `CFBundleShortVersionString=1.6.0`、
+  `CFBundleVersion=39`、签名为 Ad-hoc；未创建 GitHub Release，也未更新 appcast。
+- 该 artifact 的 `release.env` 中 `DMG_URL` 指向
+  `releases/download/v1.6.0/...`，`publish=false` 下**并不存在**，不能当作下载地址。
+
+本机同一 head（Xcode 27.0 / Swift 6.4）上 `swift test` 1,646 XCTest（10 skipped、
+0 failures；587 Swift Testing / 91 suites）与 `swift build -c release` 均通过；
+另外用真实 XV272U 跑了一次只读探针，确认 P1（standard `82 01 62 DE`）可读出当前值，
+且 `ddc.resolve` / `ddc.probe` / `ddc.selectedProfile` 能被
+`log show --info` 取出。BenQ 真机与 P3/P4 回退路径仍未验证。
+
+## 38893936661 与 38893992336：1.6.1 测试 DMG
+
+同一分支改用 `version=1.6.1` 重新出包时，`release.sh` 需要
+`release-notes/1.6.1/` 存在，因此先补了 `en.md`、`zh-Hans.md`
+（`publish=false` 只要求目录存在；`publish=true` 仍要求全部 12 种语言）。
+
+- [`38893936661`](https://github.com/lingyired/status-trio/actions/runs/38893936661)
+  （head `ca3b832f`、`version=1.6.1`、`build=40`、`publish=false`、`notarize=true`）
+  **失败**，仍是 `distribution` environment 的 protection rule：
+  `Branch "codex/issue-115-ddc-output-matching" is not allowed to deploy to distribution`。
+  与 `38885873584` 同因，说明该 environment 的分支限制没有变化，不是证书或代码问题。
+- [`38893992336`](https://github.com/lingyired/status-trio/actions/runs/38893992336)
+  （同 head、`notarize=false`）在 CI 工具链上全绿，耗时约 15 分钟：
+  `Run tests` 1,653 XCTest（7 skipped、0 failures）+ 587 Swift Testing / 91 suites；
+  native compatibility tests 通过；`Built …/StatusTrio-1.6.1.dmg without publishing.`。
+  artifact `StatusTrio-308` 内含 `StatusTrio-1.6.1.dmg`（`CFBundleVersion=40`、
+  Ad-hoc 签名、无公证 ticket）与 `.sha256`；未创建 Release、未更新 appcast。
+
+要在该分支拿到**公证版**，需要把 `distribution` environment 的 deployment branch
+规则放开（或改由受保护分支/标签触发）；管理该设置属于仓库权限变更，未擅自执行。
