@@ -139,6 +139,56 @@ final class IconDesignerEditorModelTests: XCTestCase {
         XCTAssertEqual(store.iconConfiguration.appearance.center.effectiveSymbolScale, 4.25)
     }
 
+    func testGlobalNetworkOverrideEditIsOneUndoAndSurvivesSourceSwitch() {
+        let name = "IconDesignerEditorModelTests.GlobalOverride.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let store = SettingsStore(defaults: defaults)
+        store.updateIconConfiguration { $0.composition.center = SlotSelection(primary: .network) }
+        // Start the designer editing session after the setup source change.
+        let editingModel = IconDesignerEditorModel(store: store)
+
+        editingModel.updateIconConfiguration {
+            $0.composition.centerOverride.networkProblemOverridesPrimary = true
+        }
+        XCTAssertEqual(editingModel.historyCountForTesting, 1)
+        XCTAssertTrue(store.iconConfiguration.composition.centerOverride.networkProblemOverridesPrimary)
+
+        // Switching the source inside the designer keeps the global rule.
+        editingModel.updateIconConfiguration {
+            $0.composition.center = SlotSelection(primary: .systemBatteryPercentage)
+        }
+        XCTAssertTrue(store.iconConfiguration.composition.centerOverride.networkProblemOverridesPrimary)
+
+        // One undo reverses the source switch; the global rule is a separate entry.
+        editingModel.undo()
+        XCTAssertEqual(store.iconConfiguration.composition.center.primary, .network)
+        XCTAssertTrue(store.iconConfiguration.composition.centerOverride.networkProblemOverridesPrimary)
+        editingModel.undo()
+        XCTAssertFalse(store.iconConfiguration.composition.centerOverride.networkProblemOverridesPrimary)
+    }
+
+    func testBluetoothIconChoiceIsUndoableAndResetRevertsToAutomatic() {
+        let name = "IconDesignerEditorModelTests.IconChoice.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let store = SettingsStore(defaults: defaults)
+        let model = IconDesignerEditorModel(store: store)
+        store.updateIconConfiguration { $0.composition.center = SlotSelection(primary: .bluetoothAudioOutput) }
+
+        model.perform { store.bluetoothAudioIconChoice = .airpods }
+        XCTAssertEqual(store.bluetoothAudioIconChoice, .airpods)
+
+        model.undo()
+        XCTAssertEqual(store.bluetoothAudioIconChoice, .automatic)
+
+        model.perform { store.bluetoothAudioIconChoice = .headphones }
+        model.reset(.center)
+        XCTAssertEqual(store.bluetoothAudioIconChoice, .automatic)
+        model.undo()
+        XCTAssertEqual(store.bluetoothAudioIconChoice, .headphones)
+    }
+
     func testResetIsUndoableAndPreviewSessionSamplesNeverEnterHistory() {
         let name = "IconDesignerEditorModelTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!
@@ -163,6 +213,25 @@ final class IconDesignerEditorModelTests: XCTestCase {
         model.undo()
         XCTAssertEqual(store.iconConfiguration.appearance.center.effectiveSymbolScale, 2)
         XCTAssertNil(store.iconConfiguration.appearance.center.normalizedSizePercentage)
+    }
+
+    func testAirPodsTopSymbolEditAndOuterRingResetAreUndoable() {
+        let name = "IconDesignerEditorModelTests.AirPodsTopSymbol.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let store = SettingsStore(defaults: defaults)
+        let model = IconDesignerEditorModel(store: store)
+
+        model.updateIconConfiguration { $0.behaviors.showsAirPodsTopSymbol = true }
+        XCTAssertTrue(store.iconConfiguration.behaviors.showsAirPodsTopSymbol)
+        model.undo()
+        XCTAssertFalse(store.iconConfiguration.behaviors.showsAirPodsTopSymbol)
+
+        model.updateIconConfiguration { $0.behaviors.showsAirPodsTopSymbol = true }
+        model.reset(.outerRing)
+        XCTAssertFalse(store.iconConfiguration.behaviors.showsAirPodsTopSymbol)
+        model.undo()
+        XCTAssertTrue(store.iconConfiguration.behaviors.showsAirPodsTopSymbol)
     }
 
 }

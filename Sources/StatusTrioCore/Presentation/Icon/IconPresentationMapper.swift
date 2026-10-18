@@ -149,7 +149,7 @@ enum IconPresentationMapper {
     /// the slot the Wi-Fi glyph sits in, so it follows the same control from
     /// the same base — the Wi-Fi symbol's point size and the image's 42-unit
     /// box are calibrated to each other, so both grow together.
-    private static func inputSourceCenterState(
+    static func inputSourceCenterState(
         _ source: InputSourceDescriptor,
         scale: Double
     ) -> CenterState {

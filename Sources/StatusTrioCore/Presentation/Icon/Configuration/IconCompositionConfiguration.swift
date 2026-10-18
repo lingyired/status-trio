@@ -16,6 +16,10 @@ enum RingSource: String, Codable, CaseIterable, Sendable {
 enum CenterSource: String, Codable, CaseIterable, Sendable {
     case automaticLegacy
     case network
+    /// The currently selected macOS input source (input method / keyboard
+    /// layout). Explicitly selectable so the centre no longer has to borrow the
+    /// legacy `.network` slot through a runtime flag.
+    case inputSource
     case bluetoothAudioOutput
     case pinnedBluetoothGlyph
     case connectedBluetoothDevice

@@ -35,19 +35,8 @@ struct IconSlotPicker: View {
     private var localizedSelectionValue: String {
         let slot = selection
         let sourceID = IconDesignerEditingModel.currentSource(for: slot, in: configuration).id
-        let sourceKey: LocalizationKey = switch sourceID {
-        case "automaticLegacy": .iconDesignerSourceLegacy
-        case "systemBattery": .iconDesignerSourceSystemBattery
-        case "airPodsBattery": .iconDesignerSourceAirPodsBattery
-        case "network": .iconDesignerSourceNetwork
-        case "bluetoothAudioOutput": .iconDesignerSourceBluetoothAudio
-        case "pinnedBluetoothGlyph": .iconDesignerSourcePinnedBluetooth
-        case "connectedBluetoothDevice": .iconDesignerSourceConnectedBluetooth
-        case "systemBatteryPercentage": .iconDesignerSourceBatteryPercentage
-        case "systemVolume": .iconDesignerSourceSystemVolume
-        case "none": .iconDesignerSourceNone
-        default: .iconDesignerSourceNone
-        }
+        let sourceKey = IconDesignerSourceSelection.localizationKey(forRawSourceID: sourceID)
+            ?? .iconDesignerSourceNone
         return localization.format(
             .iconDesignerAccessibilityValueFormat,
             localization.string(sourceKey),

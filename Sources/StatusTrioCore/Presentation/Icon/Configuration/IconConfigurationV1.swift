@@ -7,6 +7,9 @@ struct IconConfigurationV1: Codable, Equatable, Sendable {
     var appearance: IconAppearanceConfiguration
     /// Nil only in pre-consolidation V1 payloads that stored Wi-Fi scale twice.
     var wifiScaleMigrationVersion: Int? = 1
+    /// Nil until the one-time centre-source compatibility migration has folded
+    /// legacy input-source preferences into the explicit `.inputSource` source.
+    var centerSourceMigrationVersion: Int? = 1
 
     static let classic = Self(
         schemaVersion: 1,

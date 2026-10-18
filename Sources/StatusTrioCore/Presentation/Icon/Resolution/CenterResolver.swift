@@ -9,6 +9,19 @@ enum CenterResolver {
         let renderConfiguration = configuration
         let selection = renderConfiguration.composition.center
         let primary = selection.primary
+        let snapshot = inputs.system.snapshot
+
+        // The global policy is checked before the legacy early return and before
+        // `chooseSource` can resolve to `nil` (none primary or a failed
+        // primary+fallback). It covers every centre source, including `.none`,
+        // and a healthy wired connection never counts as a network problem.
+        if configuration.composition.centerOverride.networkProblemOverridesPrimary,
+           StatusMappings.isNetworkOffline(wifi: snapshot.wifi, connection: snapshot.connection) {
+            let network = networkState(inputs: inputs, configuration: configuration, legacy: legacy)
+            return (network, SlotResolutionTrace(selectedSourceID: CenterSource.network.rawValue, role: .primary,
+                primaryFailure: nil, reason: .overridden(.networkProblem)), source: .network)
+        }
+
         if primary == .automaticLegacy {
             return (IconPresentationMapper.scene(inputs: inputs.system, configuration: legacy).center,
                     SlotResolutionTrace(selectedSourceID: primary.rawValue, role: .primary,
@@ -20,6 +33,8 @@ enum CenterResolver {
                 return .unavailable(.unavailable)
             case .automaticLegacy:
                 return .available(true)
+            case .inputSource:
+                return inputs.system.inputSource != nil ? .available(true) : .unavailable(.unavailable)
             case .network:
                 return inputs.sources.result(for: source.rawValue, default: .available(true))
             case .bluetoothAudioOutput:
@@ -42,37 +57,16 @@ enum CenterResolver {
         }
         guard let source = selected.source else { return (nil, trace(selected, source: nil), source: nil) }
 
-        let snapshot = inputs.system.snapshot
-        let selectedBluetoothIsAudio: Bool = switch source {
-        case .bluetoothAudioOutput:
-            true
-        case .connectedBluetoothDevice:
-            inputs.sources.connectedBluetoothDeviceIsAudio == true
-        default:
-            false
-        }
-        if configuration.composition.centerOverride.networkProblemOverridesPrimary,
-           primary == source,
-           selectedBluetoothIsAudio,
-           hasNetworkProblem(snapshot) {
-            let network = networkState(inputs: inputs, configuration: configuration, legacy: legacy)
-            return (network, SlotResolutionTrace(selectedSourceID: CenterSource.network.rawValue, role: .primary,
-                primaryFailure: selected.primaryFailure, reason: .overridden(.networkProblem)), source: .network)
-        }
-
         let state: CenterState?
         switch source {
         case .automaticLegacy:
             state = IconPresentationMapper.scene(inputs: inputs.system, configuration: legacy).center
-        case .network:
-            if inputs.system.runtimeOptions?.connectionCenterSource == .inputSource {
-                // The main input-source setting augments legacy/Network V1
-                // centers only. The old mapper owns its priority and automatic
-                // fallback rules, including network warnings and Bluetooth.
-                state = IconPresentationMapper.scene(inputs: inputs.system, configuration: legacy).center
-            } else {
-                state = networkState(inputs: inputs, configuration: configuration, legacy: legacy)
+        case .inputSource:
+            state = inputs.system.inputSource.map {
+                IconPresentationMapper.inputSourceCenterState($0, scale: legacy.connection.wifiScale)
             }
+        case .network:
+            state = networkState(inputs: inputs, configuration: configuration, legacy: legacy)
         case .bluetoothAudioOutput:
             let configuredSymbol = renderConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride
                 ?? inputs.system.runtimeOptions?.bluetoothAudioIconChoice.symbolName
@@ -112,14 +106,6 @@ enum CenterResolver {
         case .none: state = nil
         }
         return (state, trace(selected, source: source), source)
-    }
-
-    private static func hasNetworkProblem(_ snapshot: StatusSnapshot) -> Bool {
-        guard snapshot.connection != .offline else { return false }
-        return switch snapshot.wifi.state {
-        case .notAssociated, .noInternet, .off, .unavailable: true
-        case .connected, .hotspot, .temporary, .shared: false
-        }
     }
 
     private static func bluetoothColor(

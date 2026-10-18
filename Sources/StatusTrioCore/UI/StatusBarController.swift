@@ -748,7 +748,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     }
 
     private func refreshInputSourceIfNeeded() {
-        guard settings.connectionCenterSource == .inputSource
+        let center = settings.iconConfiguration.composition.center
+        guard center.primary == .inputSource
+            || center.fallback == .inputSource
             || settings.enabledPopupSections.contains(.inputSource) else { return }
         inputSourceController.refresh()
     }

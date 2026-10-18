@@ -47,7 +47,6 @@ struct IconPresentationSettings: Equatable, Sendable {
     let menuBarSize: Double
     let testsChargingEffect: Bool
     var designerConfiguration: IconConfigurationV1? = nil
-    var usesInputSourceInCenter: Bool = false
     var runtimeOptions: IconPresentationRuntimeOptions? = nil
 }
 

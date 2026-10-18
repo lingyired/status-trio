@@ -495,6 +495,7 @@
 "icon.designer.source.systemBattery" = "Mac のバッテリー";
 "icon.designer.source.airPodsBattery" = "AirPods のバッテリー";
 "icon.designer.source.network" = "ネットワーク";
+"icon.designer.source.inputSource" = "入力ソース";
 "icon.designer.source.bluetoothAudio" = "Bluetooth オーディオ出力";
 "icon.designer.source.pinnedBluetooth" = "固定 Bluetooth グリフ";
 "icon.designer.source.connectedBluetooth" = "接続済み Bluetooth デバイス";
@@ -535,6 +536,7 @@
 "iconDesigner.control.textScale" = "上部のバッテリー表示サイズ";
 "iconDesigner.control.textScale.help" = "外周リング上部のバッテリー残量表示、充電中の稲妻、電源プラグのサイズを調整します。";
 "iconDesigner.control.noEditableBehavior" = "このソースには編集可能な動作がありません。";
+"iconDesigner.control.inputSourceBehavior" = "現在の入力ソースのアイコン、短いラベル、キーボード記号の順に描画します。";
 "iconDesigner.control.wifiForEthernet" = "EthernetでWi-Fi記号を表示";
 "iconDesigner.control.wifiForHotspot" = "ホットスポットでWi-Fi記号を表示";
 "iconDesigner.control.wifiForTemporaryConnection" = "一時接続でWi-Fi記号を表示";
@@ -545,7 +547,8 @@
 "iconDesigner.control.prioritizeNetworkErrors" = "ネットワークエラーを優先";
 "iconDesigner.control.useVolumeColor" = "音量の色を使用";
 "iconDesigner.control.bluetoothSymbolScale" = "Bluetooth記号の大きさ";
-"iconDesigner.control.networkProblemsOverrideBluetooth" = "ネットワーク問題をBluetoothより優先";
+"iconDesigner.control.networkProblemsOverride" = "ネットワーク異常時にネットワークアイコンを優先";
+"iconDesigner.control.networkProblemsOverride.help" = "ネットワーク異常時は、選択中のソースではなくネットワークアイコンを中央に表示します。ネットワーク復旧後は元のアイコンに戻ります。";
 "iconDesigner.control.bluetoothSymbol" = "Bluetooth記号";
 "iconDesigner.control.automatic" = "自動";
 "iconDesigner.control.colorStyle" = "色のスタイル";
@@ -630,6 +633,9 @@
 "iconPreviewData.bluetoothTargetAudio" = "対象はオーディオデバイス";
 "iconPreviewData.bluetoothSampleSymbol" = "デバイスのサンプル記号";
 "iconPreviewData.volumeAvailable" = "音量データを利用可能";
+"iconPreviewData.inputSource.available" = "入力ソースを利用可能";
+"iconPreviewData.inputSource.shortLabel" = "サンプルの短いラベル";
+"iconPreviewData.inputSource.liveNotice" = "ライブの入力ソースは macOS から取得します。シミュレーション値が実際の入力ソースを変更することはありません。";
 "icon.designer.undo" = "取り消す";
 "icon.designer.externalChangeNotice" = "別の場所でアイコン設定が変更されたため、取り消し履歴を消去しました。";
 "iconPreviewData.useLiveData" = "ライブデータを使用";
@@ -637,6 +643,7 @@
 
 /* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "ネットワークアイコン";
+"iconDesigner.centerColorMeaning.inputSource" = "入力ソースのアイコン";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi 信号 0 本";
 "iconDesigner.centerColorMeaning.bluetoothGlyph" = "Bluetooth アイコン";
 "iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "音量が 0 より大きい";
@@ -650,6 +657,7 @@
 
 "iconDesigner.centerColor.rolePicker" = "色の適用状態";
 "iconDesigner.centerColorHelp.networkPrimary" = "通常のネットワークアイコンに適用します。Wi-Fi オフ、未接続、インターネットなし、有線接続が含まれます。";
+"iconDesigner.centerColorHelp.inputSource" = "中央に描画されるときの、現在の入力ソースのアイコンまたは短いラベルに適用します。";
 "iconDesigner.centerColorHelp.wifiZeroBars" = "接続中の Wi-Fi の信号が 0 本の場合に適用します。信号強度を取得できない場合にも使用します。";
 "iconDesigner.centerColorHelp.bluetoothGlyph" = "音量に関係なく、Bluetooth アイコンに常に使用します。";
 "iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "音量に応じた色を有効にすると、消音されておらず音量が 0 より大きい場合に使用します。";
@@ -658,3 +666,4 @@
 "iconDesigner.centerColorHelp.legacyPrimary" = "従来の中央表示の通常のネットワークアイコンまたは Mac のバッテリー残量に適用します。";
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "従来の中央表示で、接続中 Wi-Fi の信号が 0 本の場合に適用します。";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "従来の中央表示の Bluetooth アイコンに適用します。";
+"icon.designer.airPods.showTopSymbol" = "上部にAirPodsアイコンを表示";

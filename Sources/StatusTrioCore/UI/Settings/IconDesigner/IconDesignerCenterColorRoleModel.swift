@@ -44,6 +44,8 @@ enum IconDesignerCenterColorRoleModel {
 
         func addSource(_ source: CenterSource, scope: IconDesignerCenterColorRoleScope) {
             switch source {
+            case .inputSource:
+                add(.primary, .iconDesignerCenterColorMeaningInputSource, .iconDesignerCenterColorHelpInputSource, scope)
             case .network:
                 add(.primary, .iconDesignerCenterColorMeaningNetworkPrimary, .iconDesignerCenterColorHelpNetworkPrimary, scope)
                 add(.inactive, .iconDesignerCenterColorMeaningWiFiZeroBars, .iconDesignerCenterColorHelpWiFiZeroBars, scope)
@@ -74,10 +76,9 @@ enum IconDesignerCenterColorRoleModel {
             addSource(fallback, scope: .fallback)
         }
 
-        let primaryIsAudioBluetooth = center.primary == .bluetoothAudioOutput
-            || (center.primary == .connectedBluetoothDevice && connectedBluetoothDeviceIsAudio)
-        if primaryIsAudioBluetooth,
-           configuration.composition.centerOverride.networkProblemOverridesPrimary {
+        // The global network override can replace any centre source (including
+        // none), so expose the reachable network primary role whenever it is on.
+        if configuration.composition.centerOverride.networkProblemOverridesPrimary {
             add(.primary, .iconDesignerCenterColorMeaningNetworkPrimary, .iconDesignerCenterColorHelpNetworkPrimary, .networkOverride)
         }
 

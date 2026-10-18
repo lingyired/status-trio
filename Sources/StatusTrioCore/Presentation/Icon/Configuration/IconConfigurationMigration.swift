@@ -2,6 +2,64 @@ import Foundation
 
 /// Converts the pre-v1 icon options into the versioned slot configuration.
 enum IconConfigurationMigration {
+    /// Explicit, persisted pre-V1 centre preferences. A `nil` field means the
+    /// key was never written, so the shipped default must NOT be treated as a
+    /// user choice (that would silently switch a clean install on).
+    struct LegacyCenterPreferences: Equatable, Sendable {
+        var connectionCenterSource: ConnectionCenterSource?
+        var prioritizesNetworkErrorsOverInputSource: Bool?
+        var prioritizesNetworkErrorsOverBluetoothAudio: Bool?
+
+        @MainActor
+        static func read(from defaults: UserDefaults) -> Self {
+            Self(
+                connectionCenterSource: defaults
+                    .string(forKey: SettingsStore.connectionCenterSourceDefaultsKey)
+                    .flatMap(ConnectionCenterSource.init(rawValue:)),
+                prioritizesNetworkErrorsOverInputSource: defaults
+                    .object(forKey: SettingsStore.prioritizesNetworkErrorsOverInputSourceDefaultsKey) as? Bool,
+                prioritizesNetworkErrorsOverBluetoothAudio: defaults
+                    .object(forKey: SettingsStore.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey) as? Bool
+            )
+        }
+
+        /// The legacy centre slot actually drew the input source.
+        var choosesInputSource: Bool { connectionCenterSource == .inputSource }
+    }
+
+    /// One-time compatibility fold, run only at the storage read boundary.
+    ///
+    /// - With a stored V1 payload the V1 centre and the V1 global policy are
+    ///   authoritative: only `.network`/`.automaticLegacy` fold to
+    ///   `.inputSource`, and an existing `centerOverride` (even `false`) is
+    ///   never re-enabled by a legacy default.
+    /// - Without a stored V1 payload the explicit legacy flags seed the global
+    ///   policy once; missing keys keep the shipped default (off).
+    static func applyingCenterCompatibility(
+        _ preferences: LegacyCenterPreferences,
+        to configuration: IconConfigurationV1,
+        hadStoredV1: Bool
+    ) -> IconConfigurationV1 {
+        guard (configuration.centerSourceMigrationVersion ?? 0) < 1 else { return configuration }
+        var copy = configuration
+        if preferences.choosesInputSource {
+            switch copy.composition.center.primary {
+            case .network, .automaticLegacy:
+                copy.composition.center.primary = .inputSource
+            case .inputSource, .bluetoothAudioOutput, .pinnedBluetoothGlyph,
+                 .connectedBluetoothDevice, .systemBatteryPercentage, .none:
+                break
+            }
+        }
+        if !hadStoredV1 {
+            copy.composition.centerOverride.networkProblemOverridesPrimary =
+                preferences.prioritizesNetworkErrorsOverInputSource == true
+                    || preferences.prioritizesNetworkErrorsOverBluetoothAudio == true
+        }
+        copy.centerSourceMigrationVersion = 1
+        return copy.normalized()
+    }
+
     static func makeConfiguration(from legacy: IconPresentationConfiguration) -> IconConfigurationV1 {
         var value = IconConfigurationV1.classic
         // Legacy icon settings had no AirPods source or ring mode. The new
@@ -19,6 +77,7 @@ enum IconConfigurationMigration {
             textScale: legacy.battery.textScale
         )
         value.wifiScaleMigrationVersion = nil
+        value.centerSourceMigrationVersion = nil
         value.behaviors.networkCenter = NetworkCenterBehavior(
             showsWiFiIconForEthernet: legacy.connection.showsWiFiIconForEthernet,
             showsWiFiIconForHotspot: legacy.connection.showsWiFiIconForHotspot,

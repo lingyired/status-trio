@@ -35,6 +35,7 @@ struct IconPreviewInputBuilderTests {
         configuration.composition.center = SlotSelection(primary: .none)
         configuration.composition.footer = SlotSelection(primary: .none)
         configuration.behaviors.airPodsRing = .dual
+        configuration.behaviors.showsAirPodsTopSymbol = true
 
         let inputs = IconPreviewInputBuilder.simulated(
             samples: samples, configuration: configuration, target: .currentAudioOutput, now: now
@@ -45,6 +46,7 @@ struct IconPreviewInputBuilderTests {
 
         #expect(ring.isPartial)
         #expect(ring.segments.map(\.progress) == [0.73, 0.73])
+        #expect(ring.accessory != nil)
     }
 
     @Test func testBothEarsUnavailableUsesFallback() throws {
@@ -53,6 +55,8 @@ struct IconPreviewInputBuilderTests {
         samples.macBattery.percentage = 55
         var configuration = IconConfigurationV1.classic
         configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery, fallback: .systemBattery)
+        configuration.behaviors.airPodsRing = .dual
+        configuration.behaviors.showsAirPodsTopSymbol = true
 
         let inputs = IconPreviewInputBuilder.simulated(
             samples: samples, configuration: configuration, target: .currentAudioOutput, now: now
@@ -61,6 +65,12 @@ struct IconPreviewInputBuilderTests {
 
         #expect(output.trace.outerRing.role == .fallback)
         #expect(try #require(output.scene.outerRing?.segments.first?.progress) == 0.55)
+        var directMacConfiguration = configuration
+        directMacConfiguration.composition.outerRing = SlotSelection(primary: .systemBattery)
+        let directMacOutput = IconCompositionResolver.resolve(
+            inputs: inputs, configuration: directMacConfiguration, now: now
+        )
+        #expect(output.scene == directMacOutput.scene)
     }
 
     @Test func testUnavailableBluetoothSampleDoesNotRequestPermission() {
@@ -80,5 +90,73 @@ struct IconPreviewInputBuilderTests {
 
         #expect(inputs.sources.availability[CenterSource.connectedBluetoothDevice.rawValue] == .unavailable(.disconnected))
         #expect(inputs.sources.connectedBluetoothDeviceSymbol == nil)
+    }
+
+    @Test func testInputSourceSampleDrawsShortLabelWithoutReadingTheSystem() throws {
+        var samples = IconPreviewSampleValues()
+        samples.inputSource.isAvailable = true
+        samples.inputSource.shortLabel = "拼"
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .inputSource)
+        configuration.composition.outerRing = SlotSelection(primary: .none)
+        configuration.composition.footer = SlotSelection(primary: .none)
+
+        let inputs = IconPreviewInputBuilder.simulated(
+            samples: samples, configuration: configuration, target: .currentAudioOutput, now: now
+        )
+        let output = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration, now: now)
+
+        guard case let .text(center)? = output.scene.center else {
+            Issue.record("The simulated input source should draw its short label")
+            return
+        }
+        #expect(center.text == "拼")
+        #expect(inputs.sources.availability[CenterSource.inputSource.rawValue] == .available)
+    }
+
+    @Test func testUnavailableInputSourceFallsBackEvenWhenSampleExistsButDisabled() throws {
+        var samples = IconPreviewSampleValues()
+        samples.inputSource.isAvailable = false
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .inputSource, fallback: .network)
+        configuration.composition.outerRing = SlotSelection(primary: .none)
+        configuration.composition.footer = SlotSelection(primary: .none)
+
+        let inputs = IconPreviewInputBuilder.simulated(
+            samples: samples, configuration: configuration, target: .currentAudioOutput, now: now
+        )
+        let output = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration, now: now)
+
+        #expect(output.trace.center.role == .fallback)
+        #expect(output.trace.center.selectedSourceID == CenterSource.network.rawValue)
+    }
+
+    @Test func testGlobalRuleOverridesNoneCentreWithSimulatedNetworkErrorThenRecovers() throws {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .none)
+        configuration.composition.centerOverride.networkProblemOverridesPrimary = true
+        configuration.composition.outerRing = SlotSelection(primary: .none)
+        configuration.composition.footer = SlotSelection(primary: .none)
+
+        var broken = IconPreviewSampleValues()
+        broken.network.kind = .noInternet
+        let brokenOutput = IconCompositionResolver.resolve(
+            inputs: IconPreviewInputBuilder.simulated(
+                samples: broken, configuration: configuration, target: .currentAudioOutput, now: now
+            ),
+            configuration: configuration, now: now
+        )
+        #expect(brokenOutput.trace.center.reason == .overridden(.networkProblem))
+        #expect(brokenOutput.scene.center != nil)
+
+        var recovered = IconPreviewSampleValues()
+        recovered.network.kind = .wifi
+        let recoveredOutput = IconCompositionResolver.resolve(
+            inputs: IconPreviewInputBuilder.simulated(
+                samples: recovered, configuration: configuration, target: .currentAudioOutput, now: now
+            ),
+            configuration: configuration, now: now
+        )
+        #expect(recoveredOutput.scene.center == nil, "A none centre recovers to empty once the network is healthy")
     }
 }

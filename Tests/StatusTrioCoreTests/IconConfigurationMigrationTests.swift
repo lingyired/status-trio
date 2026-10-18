@@ -20,6 +20,21 @@ final class IconConfigurationMigrationTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(IconConfigurationV1.self, from: JSONEncoder().encode(dual)), dual)
     }
 
+    func testOlderV1PayloadWithoutAirPodsTopSymbolDecodesDisabledAndPersistsEdits() throws {
+        let encoded = try JSONEncoder().encode(IconConfigurationV1.classic)
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        var behaviors = try XCTUnwrap(object["behaviors"] as? [String: Any])
+        behaviors.removeValue(forKey: "showsAirPodsTopSymbol")
+        object["behaviors"] = behaviors
+        let olderPayload = try JSONSerialization.data(withJSONObject: object)
+
+        var decoded = try JSONDecoder().decode(IconConfigurationV1.self, from: olderPayload)
+        XCTAssertFalse(decoded.behaviors.showsAirPodsTopSymbol)
+        decoded.behaviors.showsAirPodsTopSymbol = true
+        XCTAssertTrue(try JSONDecoder().decode(IconConfigurationV1.self, from: JSONEncoder().encode(decoded))
+            .behaviors.showsAirPodsTopSymbol)
+    }
+
     func testLegacyConfigurationMigrationDefaultsToDualWithoutChangingLegacySceneSelection() {
         let migrated = IconConfigurationMigration.makeConfiguration(from: .standard)
 
@@ -189,6 +204,155 @@ final class IconConfigurationMigrationTests: XCTestCase {
 
         store.updateIconConfiguration { $0.appearance.outerRing.strokeScale = 1.5 }
         XCTAssertEqual(snapshots.count, count + 1)
+    }
+
+    // MARK: - Explicit input-source centre + global network policy
+
+    func testInputSourceCenterSourceRoundTrips() throws {
+        var value = IconConfigurationV1.classic
+        value.composition.center = SlotSelection(primary: .inputSource, fallback: .systemBatteryPercentage)
+
+        let decoded = try IconConfigurationCodec.decode(IconConfigurationCodec.encode(value))
+
+        XCTAssertEqual(decoded.composition.center.primary, .inputSource)
+        XCTAssertEqual(decoded.composition.center.fallback, .systemBatteryPercentage)
+    }
+
+    func testOlderV1PayloadWithoutCenterMigrationVersionPreservesExplicitCenter() throws {
+        var value = IconConfigurationV1.classic
+        value.composition.center = SlotSelection(primary: .bluetoothAudioOutput)
+        let encoded = try JSONEncoder().encode(value)
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        object.removeValue(forKey: "centerSourceMigrationVersion")
+
+        let decoded = try IconConfigurationCodec.decode(try JSONSerialization.data(withJSONObject: object))
+
+        XCTAssertNil(decoded.centerSourceMigrationVersion)
+        XCTAssertEqual(decoded.composition.center.primary, .bluetoothAudioOutput)
+    }
+
+    func testCenterCompatibilityFoldsOnlyNetworkAndAutomaticLegacy() {
+        let inputSourceLegacy = IconConfigurationMigration.LegacyCenterPreferences(
+            connectionCenterSource: .inputSource,
+            prioritizesNetworkErrorsOverInputSource: nil,
+            prioritizesNetworkErrorsOverBluetoothAudio: nil
+        )
+        let cases: [(CenterSource, CenterSource)] = [
+            (.network, .inputSource),
+            (.automaticLegacy, .inputSource),
+            (.bluetoothAudioOutput, .bluetoothAudioOutput),
+            (.systemBatteryPercentage, .systemBatteryPercentage),
+            (.none, .none),
+        ]
+
+        for (stored, expected) in cases {
+            var value = IconConfigurationV1.classic
+            value.centerSourceMigrationVersion = nil
+            value.composition.center = SlotSelection(primary: stored)
+
+            let migrated = IconConfigurationMigration.applyingCenterCompatibility(
+                inputSourceLegacy, to: value, hadStoredV1: true
+            )
+
+            XCTAssertEqual(migrated.composition.center.primary, expected, "stored \(stored)")
+            XCTAssertEqual(migrated.centerSourceMigrationVersion, 1)
+        }
+    }
+
+    func testCenterCompatibilityLeavesAlreadyMigratedConfigurationUntouched() {
+        var value = IconConfigurationV1.classic
+        value.composition.center = SlotSelection(primary: .network)
+        value.composition.centerOverride.networkProblemOverridesPrimary = false
+        // Migration marker already present: a later explicit user choice must survive.
+        value.centerSourceMigrationVersion = 1
+        let legacy = IconConfigurationMigration.LegacyCenterPreferences(
+            connectionCenterSource: .inputSource,
+            prioritizesNetworkErrorsOverInputSource: true,
+            prioritizesNetworkErrorsOverBluetoothAudio: true
+        )
+
+        let migrated = IconConfigurationMigration.applyingCenterCompatibility(legacy, to: value, hadStoredV1: true)
+
+        XCTAssertEqual(migrated.composition.center.primary, .network)
+        XCTAssertFalse(migrated.composition.centerOverride.networkProblemOverridesPrimary)
+    }
+
+    func testStoredV1CenterOverrideFalseIsNeverReenabledByLegacyDefaults() {
+        var value = IconConfigurationV1.classic
+        value.composition.centerOverride.networkProblemOverridesPrimary = false
+        value.centerSourceMigrationVersion = nil
+        let legacyDefaults = IconConfigurationMigration.LegacyCenterPreferences(
+            connectionCenterSource: nil,
+            prioritizesNetworkErrorsOverInputSource: true,
+            prioritizesNetworkErrorsOverBluetoothAudio: true
+        )
+
+        let migrated = IconConfigurationMigration.applyingCenterCompatibility(
+            legacyDefaults, to: value, hadStoredV1: true
+        )
+
+        XCTAssertFalse(migrated.composition.centerOverride.networkProblemOverridesPrimary)
+    }
+
+    func testFreshMigrationSeedsGlobalPolicyOnlyFromExplicitLegacyFlags() {
+        var value = IconConfigurationV1.classic
+        value.centerSourceMigrationVersion = nil
+        let explicitOn = IconConfigurationMigration.LegacyCenterPreferences(
+            connectionCenterSource: nil,
+            prioritizesNetworkErrorsOverInputSource: true,
+            prioritizesNetworkErrorsOverBluetoothAudio: nil
+        )
+        let inventedDefaults = IconConfigurationMigration.LegacyCenterPreferences(
+            connectionCenterSource: nil,
+            prioritizesNetworkErrorsOverInputSource: nil,
+            prioritizesNetworkErrorsOverBluetoothAudio: nil
+        )
+
+        XCTAssertTrue(IconConfigurationMigration.applyingCenterCompatibility(
+            explicitOn, to: value, hadStoredV1: false
+        ).composition.centerOverride.networkProblemOverridesPrimary)
+        XCTAssertFalse(IconConfigurationMigration.applyingCenterCompatibility(
+            inventedDefaults, to: value, hadStoredV1: false
+        ).composition.centerOverride.networkProblemOverridesPrimary)
+    }
+
+    func testLegacyPreferencesReadDoesNotInventUnpersistedDefaults() throws {
+        let (defaults, name) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: name) }
+
+        let preferences = IconConfigurationMigration.LegacyCenterPreferences.read(from: defaults)
+
+        XCTAssertNil(preferences.connectionCenterSource)
+        XCTAssertNil(preferences.prioritizesNetworkErrorsOverInputSource)
+        XCTAssertNil(preferences.prioritizesNetworkErrorsOverBluetoothAudio)
+    }
+
+    func testStoreMigratesStoredV1NetworkToInputSourceOnceFromExplicitLegacy() throws {
+        let (defaults, name) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: name) }
+        var value = IconConfigurationV1.classic
+        value.composition.center = SlotSelection(primary: .network)
+        value.centerSourceMigrationVersion = nil
+        defaults.set(try JSONEncoder().encode(value), forKey: SettingsStore.iconConfigurationDefaultsKey)
+        defaults.set(ConnectionCenterSource.inputSource.rawValue, forKey: SettingsStore.connectionCenterSourceDefaultsKey)
+
+        let store = SettingsStore(defaults: defaults)
+
+        XCTAssertEqual(store.iconConfiguration.composition.center.primary, .inputSource)
+        XCTAssertEqual(store.iconConfiguration.centerSourceMigrationVersion, 1)
+
+        let second = SettingsStore(defaults: defaults)
+        XCTAssertEqual(second.iconConfiguration.composition.center.primary, .inputSource)
+    }
+
+    func testFreshInstallDoesNotEnableGlobalPolicyOrInputSourceWithoutStoredKeys() throws {
+        let (defaults, name) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: name) }
+
+        let store = SettingsStore(defaults: defaults)
+
+        XCTAssertNotEqual(store.iconConfiguration.composition.center.primary, .inputSource)
+        XCTAssertFalse(store.iconConfiguration.composition.centerOverride.networkProblemOverridesPrimary)
     }
 
     private func makeDefaults() -> (UserDefaults, String) {

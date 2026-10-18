@@ -55,6 +55,19 @@ enum IconPreviewInputBuilder {
             volume: volume
         )
 
+        // The sample never reads the system input source; it reuses a fixed
+        // descriptor so the preview can draw a keyboard layout without TIS.
+        let inputSample = samples.inputSource
+        let inputSourceDescriptor: InputSourceDescriptor? = inputSample.isAvailable
+            ? InputSourceDescriptor(
+                id: "com.status-trio.preview.input-source",
+                localizedName: inputSample.shortLabel,
+                primaryLanguage: nil,
+                iconURL: nil,
+                shortLabel: inputSample.shortLabel
+            )
+            : nil
+
         var availability: [String: IconSourceAvailability] = [
             RingSource.systemBattery.rawValue: samples.macBattery.isPresent
                 ? .available
@@ -73,6 +86,9 @@ enum IconPreviewInputBuilder {
             CenterSource.systemBatteryPercentage.rawValue: samples.macBattery.isPresent
                 ? .available
                 : .unavailable(.disconnected),
+            CenterSource.inputSource.rawValue: inputSample.isAvailable
+                ? .available
+                : .unavailable(.unavailable),
             FooterSource.systemVolume.rawValue: samples.systemVolume.isAvailable
                 ? .available
                 : .unavailable(.unknown)
@@ -99,7 +115,11 @@ enum IconPreviewInputBuilder {
         }
 
         return IconResolutionInputs(
-            system: IconPresentationInputs(snapshot: snapshot, audioIcon: audioIcon),
+            system: IconPresentationInputs(
+                snapshot: snapshot,
+                audioIcon: audioIcon,
+                inputSource: inputSourceDescriptor
+            ),
             sources: IconSourceSnapshot(
                 availability: availability,
                 airPodsBattery: samples.airPods.batterySnapshot(now: now),

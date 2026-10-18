@@ -495,6 +495,7 @@
 "icon.designer.source.systemBattery" = "Mac 電池";
 "icon.designer.source.airPodsBattery" = "AirPods 電池";
 "icon.designer.source.network" = "網路";
+"icon.designer.source.inputSource" = "輸入法";
 "icon.designer.source.bluetoothAudio" = "藍牙音訊輸出";
 "icon.designer.source.pinnedBluetooth" = "固定藍牙圖像";
 "icon.designer.source.connectedBluetooth" = "已連線的藍牙裝置";
@@ -534,6 +535,7 @@
 "iconDesigner.control.textScale" = "頂部電量指示大小";
 "iconDesigner.control.textScale.help" = "調整外環頂部的電量數字、充電閃電和電源插頭的大小。";
 "iconDesigner.control.noEditableBehavior" = "此來源目前沒有可編輯的行為。";
+"iconDesigner.control.inputSourceBehavior" = "依目前輸入法本身的圖示、短標籤、鍵盤符號的順序繪製。";
 "iconDesigner.control.wifiForEthernet" = "乙太網路使用 Wi-Fi 符號";
 "iconDesigner.control.wifiForHotspot" = "熱點使用 Wi-Fi 符號";
 "iconDesigner.control.wifiForTemporaryConnection" = "暫時連線使用 Wi-Fi 符號";
@@ -544,7 +546,8 @@
 "iconDesigner.control.prioritizeNetworkErrors" = "優先顯示網路錯誤";
 "iconDesigner.control.useVolumeColor" = "使用音量顏色";
 "iconDesigner.control.bluetoothSymbolScale" = "藍牙符號大小";
-"iconDesigner.control.networkProblemsOverrideBluetooth" = "網路問題覆蓋藍牙";
+"iconDesigner.control.networkProblemsOverride" = "網路異常時優先顯示網路圖示";
+"iconDesigner.control.networkProblemsOverride.help" = "網路異常時，中央位置顯示網路圖示而非所選來源；網路恢復後重新顯示原本的圖示。";
 "iconDesigner.control.bluetoothSymbol" = "藍牙符號";
 "iconDesigner.control.automatic" = "自動";
 "iconDesigner.control.colorStyle" = "顏色樣式";
@@ -629,6 +632,9 @@
 "iconPreviewData.bluetoothTargetAudio" = "目標是音訊裝置";
 "iconPreviewData.bluetoothSampleSymbol" = "範例裝置符號";
 "iconPreviewData.volumeAvailable" = "音量資料可用";
+"iconPreviewData.inputSource.available" = "輸入法可用";
+"iconPreviewData.inputSource.shortLabel" = "範例短標籤";
+"iconPreviewData.inputSource.liveNotice" = "即時輸入法來自 macOS；模擬值不會變更真實輸入法。";
 "icon.designer.undo" = "復原";
 "icon.designer.externalChangeNotice" = "圖示設定已在其他位置變更，復原記錄已清除。";
 "iconPreviewData.useLiveData" = "使用即時資料";
@@ -636,6 +642,7 @@
 
 /* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "網路圖示";
+"iconDesigner.centerColorMeaning.inputSource" = "輸入法圖示";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi 訊號為 0 格";
 "iconDesigner.centerColorMeaning.bluetoothGlyph" = "藍牙圖示";
 "iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "音量大於零";
@@ -649,6 +656,7 @@
 
 "iconDesigner.centerColor.rolePicker" = "顏色適用狀態";
 "iconDesigner.centerColorHelp.networkPrimary" = "適用於一般網路圖示，包括 Wi-Fi 關閉、未連線、無網際網路和有線連線。";
+"iconDesigner.centerColorHelp.inputSource" = "中央位置繪製目前輸入法的圖示或短標籤時使用。";
 "iconDesigner.centerColorHelp.wifiZeroBars" = "適用於已連線但訊號為 0 格的 Wi-Fi；無法讀取訊號強度時也會使用此顏色。";
 "iconDesigner.centerColorHelp.bluetoothGlyph" = "藍牙圖示一律使用此顏色，不受音量影響。";
 "iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "啟用隨音量變色後，未靜音且音量大於零時使用此顏色。";
@@ -657,3 +665,4 @@
 "iconDesigner.centerColorHelp.legacyPrimary" = "適用於舊版中心的一般網路圖示或 Mac 電量百分比。";
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "適用於舊版中心中已連線但訊號為 0 格的 Wi-Fi；無法讀取訊號強度時也會使用此顏色。";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "適用於舊版中心顯示的藍牙圖示。";
+"icon.designer.airPods.showTopSymbol" = "在頂部顯示 AirPods 圖示";

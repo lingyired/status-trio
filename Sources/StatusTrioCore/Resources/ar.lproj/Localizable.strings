@@ -495,6 +495,7 @@
 "icon.designer.source.systemBattery" = "بطارية Mac";
 "icon.designer.source.airPodsBattery" = "بطارية AirPods";
 "icon.designer.source.network" = "الشبكة";
+"icon.designer.source.inputSource" = "مصدر الإدخال";
 "icon.designer.source.bluetoothAudio" = "إخراج صوت Bluetooth";
 "icon.designer.source.pinnedBluetooth" = "رمز Bluetooth مثبت";
 "icon.designer.source.connectedBluetooth" = "جهاز Bluetooth متصل";
@@ -535,6 +536,7 @@
 "iconDesigner.control.textScale" = "حجم مؤشر البطارية العلوي";
 "iconDesigner.control.textScale.help" = "يضبط حجم رقم البطارية أعلى الحلقة الخارجية، ورمز البرق أثناء الشحن، ورمز القابس.";
 "iconDesigner.control.noEditableBehavior" = "لا يتوفر لهذا المصدر سلوك قابل للتعديل بعد.";
+"iconDesigner.control.inputSourceBehavior" = "يُعرض كأيقونة مصدر الإدخال الحالي، ثم التسمية القصيرة، ثم رمز لوحة المفاتيح.";
 "iconDesigner.control.wifiForEthernet" = "رمز Wi‑Fi لشبكة Ethernet";
 "iconDesigner.control.wifiForHotspot" = "رمز Wi‑Fi لنقطة الاتصال";
 "iconDesigner.control.wifiForTemporaryConnection" = "رمز Wi‑Fi للاتصال المؤقت";
@@ -545,7 +547,8 @@
 "iconDesigner.control.prioritizeNetworkErrors" = "إعطاء الأولوية لأخطاء الشبكة";
 "iconDesigner.control.useVolumeColor" = "استخدام لون مستوى الصوت";
 "iconDesigner.control.bluetoothSymbolScale" = "مقياس رمز Bluetooth";
-"iconDesigner.control.networkProblemsOverrideBluetooth" = "مشكلات الشبكة تتقدم على Bluetooth";
+"iconDesigner.control.networkProblemsOverride" = "إعطاء الأولوية لأيقونة الشبكة عند تعذّر الشبكة";
+"iconDesigner.control.networkProblemsOverride.help" = "عند تعذّر الشبكة، يعرض الوسط أيقونة الشبكة بدل المصدر المحدد، ثم يعود إلى الأيقونة الأصلية بعد استعادة الشبكة.";
 "iconDesigner.control.bluetoothSymbol" = "رمز Bluetooth";
 "iconDesigner.control.automatic" = "تلقائي";
 "iconDesigner.control.colorStyle" = "نمط اللون";
@@ -630,6 +633,9 @@
 "iconPreviewData.bluetoothTargetAudio" = "الجهاز الهدف جهاز صوتي";
 "iconPreviewData.bluetoothSampleSymbol" = "رمز الجهاز التجريبي";
 "iconPreviewData.volumeAvailable" = "بيانات مستوى الصوت متاحة";
+"iconPreviewData.inputSource.available" = "مصدر الإدخال متاح";
+"iconPreviewData.inputSource.shortLabel" = "تسمية قصيرة تجريبية";
+"iconPreviewData.inputSource.liveNotice" = "يأتي مصدر الإدخال المباشر من macOS؛ القيم التجريبية لا تغيّر مصدر الإدخال الحقيقي.";
 "icon.designer.undo" = "تراجع";
 "icon.designer.externalChangeNotice" = "تم مسح سجل التراجع لأن إعدادات الأيقونة تغيرت في مكان آخر.";
 "iconPreviewData.useLiveData" = "استخدام البيانات المباشرة";
@@ -637,6 +643,7 @@
 
 /* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "أيقونة الشبكة";
+"iconDesigner.centerColorMeaning.inputSource" = "أيقونة مصدر الإدخال";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "إشارة Wi‑Fi: 0 أشرطة";
 "iconDesigner.centerColorMeaning.bluetoothGlyph" = "رمز Bluetooth";
 "iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "مستوى الصوت أعلى من صفر";
@@ -650,6 +657,7 @@
 
 "iconDesigner.centerColor.rolePicker" = "ينطبق اللون على";
 "iconDesigner.centerColorHelp.networkPrimary" = "لأيقونة الشبكة المعتادة، بما في ذلك إيقاف Wi-Fi وعدم الاتصال وانقطاع الإنترنت والاتصال السلكي.";
+"iconDesigner.centerColorHelp.inputSource" = "لأيقونة أو التسمية القصيرة لمصدر الإدخال الحالي عند عرضه في الوسط.";
 "iconDesigner.centerColorHelp.wifiZeroBars" = "لشبكة Wi-Fi المتصلة دون أشرطة إشارة. ويُستخدم أيضًا عند تعذّر قراءة قوة الإشارة.";
 "iconDesigner.centerColorHelp.bluetoothGlyph" = "يُستخدم دائمًا لأيقونة Bluetooth بصرف النظر عن مستوى الصوت.";
 "iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "عند تفعيل تغيير اللون حسب مستوى الصوت، يُستخدم عندما لا يكون الصوت مكتومًا ومستوى الصوت أعلى من الصفر.";
@@ -658,3 +666,4 @@
 "iconDesigner.centerColorHelp.legacyPrimary" = "لأيقونة الشبكة المعتادة أو نسبة بطارية Mac في العرض الأوسط القديم.";
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "لشبكة Wi-Fi المتصلة دون أشرطة إشارة في العرض الأوسط القديم.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "لأيقونة Bluetooth في العرض الأوسط القديم.";
+"icon.designer.airPods.showTopSymbol" = "إظهار أيقونة AirPods في الأعلى";

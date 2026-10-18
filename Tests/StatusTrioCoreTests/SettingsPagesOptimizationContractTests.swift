@@ -36,7 +36,8 @@ final class SettingsPagesOptimizationContractTests: XCTestCase {
         XCTAssertFalse(network.contains("wifiSymbolScale"), "Wi-Fi scale must remain a single control in Appearance.")
         XCTAssertTrue(appearance.contains(".iconDesignerControlSymbolScale"), "The Wi-Fi scale remains part of the designer Appearance controls.")
 
-        XCTAssertTrue(bluetooth.contains("store.prioritizesNetworkErrorsOverBluetoothAudio"))
+        XCTAssertFalse(bluetooth.contains("prioritizesNetworkErrorsOverBluetoothAudio"),
+                       "The duplicated Bluetooth network-priority switch moved to the designer's global rule.")
         XCTAssertTrue(audio.contains("$store.volumeDisplayStyle"))
         XCTAssertTrue(bluetooth.contains("deviceOrderGroup"), "Bluetooth device management must remain available.")
         XCTAssertTrue(audio.contains("deviceOrderGroup"), "Audio output ordering must remain available.")
@@ -48,7 +49,8 @@ final class SettingsPagesOptimizationContractTests: XCTestCase {
         XCTAssertTrue(network.contains("if store.iconConfiguration.composition.center.primary == .automaticLegacy {"))
         XCTAssertTrue(bluetooth.contains("if primary == .automaticLegacy || primary == .bluetoothAudioOutput {"))
         XCTAssertTrue(bluetooth.contains("if store.iconConfiguration.composition.center.primary == .automaticLegacy {"))
-        XCTAssertTrue(bluetooth.contains("networkProblemOverridesPrimary = value"))
+        XCTAssertFalse(bluetooth.contains("networkErrorPriorityBinding"),
+                       "The centre network-priority switch must not be duplicated on the Bluetooth page.")
     }
 
     func testEachDevicePageRoutesToItsDesignerSlotWithoutEditingStoredConfiguration() throws {
@@ -124,7 +126,7 @@ final class SettingsPagesOptimizationContractTests: XCTestCase {
     }
 
     @MainActor
-    func testBluetoothPriorityBindingEditsOnlyRelevantCanonicalPolicyWithoutChangingSources() {
+    func testGlobalCenterOverrideToggleIsAvailableForEveryCenterSourceWithoutChangingSources() {
         let suiteName = "SettingsPagesPriorityTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
@@ -133,27 +135,18 @@ final class SettingsPagesOptimizationContractTests: XCTestCase {
         for primary in CenterSource.allCases {
             store.updateIconConfiguration {
                 $0.composition.center.primary = primary
-                $0.behaviors.bluetoothAudioCenter.prioritizesNetworkErrors = false
                 $0.composition.centerOverride.networkProblemOverridesPrimary = false
             }
-            let before = store.iconConfiguration
-            let binding = BluetoothSectionView.networkErrorPriorityBinding(store: store)
-            XCTAssertFalse(binding.wrappedValue)
-            binding.wrappedValue = true
+            let compositionBefore = store.iconConfiguration.composition
 
-            var expected = before
-            switch primary {
-            case .automaticLegacy:
-                expected.behaviors.bluetoothAudioCenter.prioritizesNetworkErrors = true
-            case .bluetoothAudioOutput:
-                expected.composition.centerOverride.networkProblemOverridesPrimary = true
-            default:
-                break
-            }
-            XCTAssertEqual(store.iconConfiguration, expected, "Wrong priority mapping for \(primary)")
-            XCTAssertEqual(store.iconConfiguration.composition.center, before.composition.center)
-            XCTAssertEqual(binding.wrappedValue, primary == .automaticLegacy || primary == .bluetoothAudioOutput)
-            XCTAssertEqual(SettingsStore(defaults: defaults).iconConfiguration, expected)
+            store.updateIconConfiguration { $0.composition.centerOverride.networkProblemOverridesPrimary = true }
+
+            XCTAssertTrue(store.iconConfiguration.composition.centerOverride.networkProblemOverridesPrimary,
+                          "The global rule must be editable for \(primary)")
+            XCTAssertEqual(store.iconConfiguration.composition.center, compositionBefore.center,
+                           "Editing the global rule must not change the centre sources for \(primary)")
+            XCTAssertEqual(SettingsStore(defaults: defaults).iconConfiguration.composition.centerOverride
+                .networkProblemOverridesPrimary, true)
         }
     }
 

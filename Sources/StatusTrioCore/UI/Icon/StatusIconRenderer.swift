@@ -1070,6 +1070,9 @@ extension StatusIconRenderer {
                 criticalColor: criticalColor,
                 regions: regions
             )
+            if regions.contains(.ringAccessory), case let .symbol(symbol)? = ring.accessory {
+                drawAirPodsTopSymbol(symbol, foreground: foreground, criticalColor: criticalColor, in: context)
+            }
             return
         }
         guard let segment = ring.segments.first else { return }
@@ -1196,12 +1199,18 @@ extension StatusIconRenderer {
         criticalColor: CGColor,
         regions: IconSceneRegion
     ) {
+        let sharedTopGapWidth: CGFloat? = ring.accessory == nil
+            ? nil
+            : StatusIconGeometry.batteryValueTopGapWidth
         let lineWidth = min(12, 8 * CGFloat(ring.strokeScale))
         if regions.contains(.ringTrack) {
             context.setLineWidth(lineWidth)
             context.setStrokeColor(sceneColor(for: ring.inactiveColor, foreground: foreground, criticalColor: criticalColor))
             for position in [RingSegmentPosition.left, .right] {
-                context.addPath(StatusIconGeometry.airPodsTrack(position: position))
+                context.addPath(StatusIconGeometry.airPodsTrack(
+                    position: position,
+                    topGapWidth: sharedTopGapWidth
+                ))
             }
             context.strokePath()
         }
@@ -1211,10 +1220,63 @@ extension StatusIconRenderer {
                 guard let position = segment.position else { continue }
                 context.setLineWidth(lineWidth)
                 context.setStrokeColor(sceneColor(for: segment.color, foreground: foreground, criticalColor: criticalColor))
-                context.addPath(StatusIconGeometry.airPodsArc(position: position, progress: segment.progress))
+                context.addPath(StatusIconGeometry.airPodsArc(
+                    position: position,
+                    progress: segment.progress,
+                    topGapWidth: sharedTopGapWidth
+                ))
                 context.strokePath()
             }
         }
+    }
+
+    /// AirPods dual-ring markers share the existing battery top-indicator
+    /// optical size and anchor. They deliberately do not use center-slot size
+    /// normalization or the 38-point center-symbol baseline.
+    private static func drawAirPodsTopSymbol(
+        _ symbol: IconSymbolState,
+        foreground: CGColor,
+        criticalColor: CGColor,
+        in context: CGContext
+    ) {
+        guard case let .symbol(name, variableValue, fallback) = symbol.source else { return }
+        let resolvedName = resolvedCenterSymbolName(name: name, fallback: fallback, color: symbol.color)
+        let usesFallback = !availableSymbol(name)
+        let indicatorTextScale = symbol.scale
+        let center = StatusIconGeometry.batteryTopIndicatorCenter(
+            boltScale: batteryChargingBoltScale(textScale: indicatorTextScale)
+        )
+        let calibratedHeight = batteryTopIndicatorHeight(textScale: indicatorTextScale)
+        let availableHeight = max(1, center.y * 2 - 2)
+        let pointSize = airPodsTopSymbolPointSize(
+            name: resolvedName,
+            targetHeight: min(calibratedHeight, availableHeight)
+        )
+        drawOfficialSymbol(
+            name: resolvedName,
+            variableValue: usesFallback ? 1 : (variableValue ?? 1),
+            pointSize: pointSize,
+            center: center,
+            foreground: sceneColor(for: symbol.color, foreground: foreground, criticalColor: criticalColor),
+            in: context
+        )
+    }
+
+    private static let airPodsTopSymbolHeightsPerPoint: [String: CGFloat] = {
+        ["airpods", "headphones"].reduce(into: [:]) { heights, name in
+            let referencePointSize: CGFloat = 200
+            if let height = configuredSymbol(
+                name: name, pointSize: referencePointSize, foreground: .labelColor
+            )?.image.size.height, height.isFinite, height > 0 {
+                heights[name] = height / referencePointSize
+            }
+        }
+    }()
+
+    private static func airPodsTopSymbolPointSize(name: String, targetHeight: CGFloat) -> CGFloat {
+        let heightPerPoint = airPodsTopSymbolHeightsPerPoint[name] ?? 1.34
+        let pointSize = targetHeight / heightPerPoint
+        return pointSize.isFinite && pointSize > 0 ? pointSize : 18
     }
 
     private static func drawNormalizedCenterArtwork(
@@ -1271,28 +1333,47 @@ extension StatusIconRenderer {
         ))
         let multiplier = outputCenterScales.value(for: calibrationKey) {
             guard let targetHeight = outputRasterHeight(of: legacyReference, matching: context) else { return nil }
-            var candidate = initialMultiplier
-            var bestCandidate = candidate
-            var bestHeightError = CGFloat.greatestFiniteMagnitude
             // Calibrate the stable text=100 / variable-symbol=1 reference, in
             // opaque white, at this exact output CTM and anchor pixel phase.
-            for _ in 0..<7 {
+            //
+            // The measured height is a step function of the multiplier, so the
+            // old multiplicative update could not reach an odd target: 125%
+            // asks for 39 output pixels and the probes step 38 -> 40, the 1-pixel
+            // errors tie, and the loop fell back to the initial candidate. That
+            // left 125% a pixel short of its own target while 100% hit it
+            // exactly, which collapsed the 100% <-> 125% size ratio. Bisect a
+            // bounded bracket for the smallest multiplier that reaches the
+            // target instead, so no percentage silently undershoots the size it
+            // asked for. The target itself is unchanged.
+            func measuredHeight(at candidate: CGFloat) -> CGFloat? {
                 guard let probe = outputRasterImage(matching: context, drawing: { probeContext in
                     drawNormalizedArtwork(reference, center: referenceCenter, multiplier: candidate,
                                           in: probeContext, foreground: CGColor(gray: 1, alpha: 1),
                                           criticalColor: CGColor(gray: 1, alpha: 1))
-                }),
-                let measured = visibleAlphaBounds(of: probe, threshold: IconCenterSizingPolicy.visibleInkAlphaThreshold)
-                else { return nil }
-                if measured.height == targetHeight { return candidate }
-                let heightError = abs(targetHeight - measured.height)
-                if heightError < bestHeightError {
-                    bestCandidate = candidate
-                    bestHeightError = heightError
-                }
-                candidate *= CGFloat(targetHeight) / measured.height
+                }) else { return nil }
+                return visibleAlphaBounds(of: probe, threshold: IconCenterSizingPolicy.visibleInkAlphaThreshold)?.height
             }
-            return bestCandidate
+
+            var lower = initialMultiplier * 0.25
+            var upper = initialMultiplier * 4
+            var smallestReaching: CGFloat?
+            var largestBelow: CGFloat?
+            for _ in 0..<12 {
+                let candidate = (lower + upper) / 2
+                guard let height = measuredHeight(at: candidate) else { return nil }
+                if height >= targetHeight {
+                    if smallestReaching == nil || candidate < smallestReaching! {
+                        smallestReaching = candidate
+                    }
+                    upper = candidate
+                } else {
+                    if largestBelow == nil || candidate > largestBelow! {
+                        largestBelow = candidate
+                    }
+                    lower = candidate
+                }
+            }
+            return smallestReaching ?? largestBelow ?? initialMultiplier
         } ?? initialMultiplier
         return (calibrationKey, multiplier)
     }
@@ -1341,12 +1422,16 @@ extension StatusIconRenderer {
                           width: width, height: height)
         let tint = centerColor(for: center, foreground: foreground, criticalColor: criticalColor)
         context.saveGState()
-        context.beginTransparencyLayer(auxiliaryInfo: nil)
+        // Tint the artwork through its own alpha as a clip mask. Filling `rect`
+        // and masking the artwork over it with `destinationIn` used to leave a
+        // one-pixel rectangle outline on the artwork's bounding box: the fill's
+        // antialiased edge and the image draw's edge coverage are both partial
+        // at the same fractional rect, and their product survived even on rows
+        // the artwork does not ink. A clip mask draws no shape of its own, so
+        // only the artwork's own alpha decides what receives the tint.
+        context.clip(to: rect, mask: artwork.image)
         context.setFillColor(tint)
         context.fill(rect)
-        context.setBlendMode(.destinationIn)
-        context.draw(artwork.image, in: rect)
-        context.endTransparencyLayer()
         context.restoreGState()
     }
 

@@ -200,18 +200,7 @@ struct IconSourceEditor: View {
     }
 
     private func localizationKey(for source: String) -> LocalizationKey {
-        switch source {
-        case "automaticLegacy": .iconDesignerSourceLegacy
-        case "systemBattery": .iconDesignerSourceSystemBattery
-        case "airPodsBattery": .iconDesignerSourceAirPodsBattery
-        case "network": .iconDesignerSourceNetwork
-        case "bluetoothAudioOutput": .iconDesignerSourceBluetoothAudio
-        case "pinnedBluetoothGlyph": .iconDesignerSourcePinnedBluetooth
-        case "connectedBluetoothDevice": .iconDesignerSourceConnectedBluetooth
-        case "systemBatteryPercentage": .iconDesignerSourceBatteryPercentage
-        case "systemVolume": .iconDesignerSourceSystemVolume
-        default: .iconDesignerSourceNone
-        }
+        IconDesignerSourceSelection.localizationKey(forRawSourceID: source) ?? .iconDesignerSourceNone
     }
 }
 
@@ -223,6 +212,7 @@ private extension IconDesignerSource {
         case .ring(.airPodsBattery): .iconDesignerSourceAirPodsBattery
         case .ring(.none), .center(.none), .footer(.none): .iconDesignerSourceNone
         case .center(.network): .iconDesignerSourceNetwork
+        case .center(.inputSource): .iconDesignerSourceInputSource
         case .center(.bluetoothAudioOutput): .iconDesignerSourceBluetoothAudio
         case .center(.pinnedBluetoothGlyph): .iconDesignerSourcePinnedBluetooth
         case .center(.connectedBluetoothDevice): .iconDesignerSourceConnectedBluetooth

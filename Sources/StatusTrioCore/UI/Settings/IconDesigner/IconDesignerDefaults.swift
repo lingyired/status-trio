@@ -19,6 +19,7 @@ enum IconDesignerDefaults {
             value.composition.outerRing = defaults.composition.outerRing
             value.behaviors.systemBatteryRing = defaults.behaviors.systemBatteryRing
             value.behaviors.airPodsRing = defaults.behaviors.airPodsRing
+            value.behaviors.showsAirPodsTopSymbol = defaults.behaviors.showsAirPodsTopSymbol
             value.appearance.outerRing = defaults.appearance.outerRing
         case .center:
             value.composition.center = defaults.composition.center

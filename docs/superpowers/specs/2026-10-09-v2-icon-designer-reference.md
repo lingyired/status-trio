@@ -567,6 +567,7 @@ struct AirPodsBatteryIconSnapshot: Equatable, Sendable {
 
 - **Single ring**：Mac Battery、AirPods main 或明确文档化的综合电量（不得默默合成缺失渠道）。
 - **Dual segment ring**：仅 AirPods Left/Right；分段角度固定且有可见间隙，保持当前 ring stroke、top gap 和 accessory 的可读性。
+- AirPods 双圆环可选在顶部现有 accessory 位置显示 AirPods SF Symbol（默认关闭）；仅真实选择并解析为 `.leftRight` 时渲染，单环保持隐藏但保留设置值。该 glyph 使用电池顶部 accessory 的可见高度与锚点，并通过官方 SF Symbol（不可用时回退 `headphones`）及既有可见墨迹水平居中补偿绘制；不改变圆环/中心，也不新增顶部尺寸或耦合中心尺寸设置。菜单栏、Dock 与设计器模拟共用 scene。
 - **Case**：可在顶部 accessory 展示（如果能在 16–36 pt 的菜单栏尺寸清晰读出）；否则暂留 Status Panel；不要强塞第三个分段。
 
 当前 `StatusIconRenderer.supports(_:)` 只允许 `ring.segments.count == 1`：

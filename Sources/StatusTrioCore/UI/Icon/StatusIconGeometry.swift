@@ -552,22 +552,35 @@ enum StatusIconGeometry {
     static let airPodsMaximumGapWidth: CGFloat = 24
     static let airPodsGapWidth: CGFloat = 18
 
-    static func airPodsTrack(position: RingSegmentPosition, gapWidth: CGFloat = airPodsGapWidth) -> CGPath {
-        airPodsArc(position: position, progress: 1, gapWidth: gapWidth)
+    static func airPodsTrack(
+        position: RingSegmentPosition,
+        gapWidth: CGFloat = airPodsGapWidth,
+        topGapWidth: CGFloat? = nil
+    ) -> CGPath {
+        airPodsArc(position: position, progress: 1, gapWidth: gapWidth, topGapWidth: topGapWidth)
     }
 
     static func airPodsArc(
         position: RingSegmentPosition,
         progress: Double,
-        gapWidth: CGFloat = airPodsGapWidth
+        gapWidth: CGFloat = airPodsGapWidth,
+        topGapWidth: CGFloat? = nil
     ) -> CGPath {
         guard progress.isFinite else { return CGMutablePath() }
         let fraction = min(1, max(0, progress))
         guard fraction > 0 else { return CGMutablePath() }
 
-        let safeGap = gapWidth.isFinite
-            ? min(airPodsMaximumGapWidth, max(airPodsMinimumGapWidth, gapWidth))
-            : 10
+        let safeGap: CGFloat
+        if let topGapWidth {
+            let maximumArcLength = batteryRadius * batterySweep
+            safeGap = topGapWidth.isFinite
+                ? min(maximumArcLength, max(0, topGapWidth))
+                : 0
+        } else {
+            safeGap = gapWidth.isFinite
+                ? min(airPodsMaximumGapWidth, max(airPodsMinimumGapWidth, gapWidth))
+                : 10
+        }
         let gapAngle = safeGap / batteryRadius
         let halfSweep = (batterySweep - gapAngle) / 2
         let start: CGFloat

@@ -343,7 +343,10 @@ struct IconSurfaceIntegrationTests {
         )
         defer { harness.cleanUp() }
         harness.settings.showsBatteryPercentage = true
-        try await waitUntil {
+        try await waitUntil(
+            failureMessage: "model did not map the battery percentage accessory",
+            diagnostics: { "accessory=\(String(describing: harness.iconPresentation.output.scene.outerRing?.accessory))" }
+        ) {
             if case .text = harness.iconPresentation.output.scene.outerRing?.accessory { return true }
             return false
         }
@@ -362,7 +365,13 @@ struct IconSurfaceIntegrationTests {
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
-        try await waitUntil { !menuBarScenes.isEmpty && harness.log.renderCount > 0 }
+        try await waitUntil(
+            failureMessage: "initial menu-bar and Dock surface did not render",
+            diagnostics: {
+                "menuBarScenes=\(menuBarScenes.count), dockRenders=\(harness.log.renderCount), "
+                    + "centre=\(describe(harness.iconPresentation.output.scene.center))"
+            }
+        ) { !menuBarScenes.isEmpty && harness.log.renderCount > 0 }
 
         try await verifySetting(
             "battery scale",
@@ -400,15 +409,42 @@ struct IconSurfaceIntegrationTests {
             harness: harness
         )
 
+        // The V1 global rule is the single network-failure authority now, so the
+        // regression is global ON -> OFF for an automaticLegacy centre that also
+        // asks Bluetooth to replace the network icon. The legacy per-source
+        // priority flag is neutralized on the projection and is no longer the
+        // control under test.
         harness.settings.replacesNetworkIconWithBluetoothAudio = true
-        let beforePriorityChange = harness.iconPresentation.output.scene
-        harness.settings.prioritizesNetworkErrorsOverBluetoothAudio = false
-        try await waitUntil {
-            guard case let .symbol(symbol) = harness.iconPresentation.output.scene.center else { return false }
-            return symbol.color == .bluetooth && harness.iconPresentation.output.scene != beforePriorityChange
+        harness.settings.updateIconConfiguration {
+            $0.composition.centerOverride.networkProblemOverridesPrimary = true
         }
-        try await waitUntil {
-            menuBarScenes.last == harness.iconPresentation.output.scene
+        try await waitUntil(
+            failureMessage: "global network rule did not raise the network warning",
+            diagnostics: { "centre=\(describe(harness.iconPresentation.output.scene.center))" }
+        ) {
+            harness.iconPresentation.output.trace.center.reason == .overridden(.networkProblem)
+                && harness.iconPresentation.output.trace.center.selectedSourceID == CenterSource.network.rawValue
+                && menuBarScenes.last == harness.iconPresentation.output.scene
+                && harness.log.lastScene == harness.iconPresentation.output.scene
+        }
+        let beforePriorityChange = harness.iconPresentation.output.scene
+        #expect(beforePriorityChange == menuBarScenes.last)
+        #expect(beforePriorityChange == harness.log.lastScene)
+
+        harness.settings.updateIconConfiguration {
+            $0.composition.centerOverride.networkProblemOverridesPrimary = false
+        }
+        try await waitUntil(
+            failureMessage: "turning the global rule off did not restore the Bluetooth replacement",
+            diagnostics: {
+                "centre=\(describe(harness.iconPresentation.output.scene.center)), "
+                    + "menu=\(describe(menuBarScenes.last?.center)), dock=\(describe(harness.log.lastScene?.center))"
+            }
+        ) {
+            guard case let .symbol(symbol) = harness.iconPresentation.output.scene.center else { return false }
+            return symbol.color == .bluetooth
+                && harness.iconPresentation.output.scene != beforePriorityChange
+                && menuBarScenes.last == harness.iconPresentation.output.scene
                 && harness.log.lastScene == harness.iconPresentation.output.scene
         }
         #expect(menuBarScenes.last == harness.iconPresentation.output.scene)
@@ -674,6 +710,7 @@ struct IconSurfaceIntegrationTests {
     private func waitUntil(
         timeout: Duration = .seconds(5),
         failureMessage: String = "The surface update did not arrive.",
+        diagnostics: @escaping @MainActor () -> String = { "" },
         condition: @escaping @MainActor () -> Bool
     ) async throws {
         let deadline = ContinuousClock.now + timeout
@@ -681,7 +718,18 @@ struct IconSurfaceIntegrationTests {
             if condition() { return }
             try await Task.sleep(for: .milliseconds(10))
         }
-        Issue.record("\(failureMessage) Timeout: \(timeout).")
+        let detail = diagnostics()
+        Issue.record("\(failureMessage) Timeout: \(timeout).\(detail.isEmpty ? "" : " \(detail)")")
+    }
+
+    /// Short, stable description of a centre payload so a timeout record names
+    /// what actually rendered instead of only the missing condition.
+    private func describe(_ center: CenterState?) -> String {
+        switch center {
+        case .none: "none"
+        case .text(let text): "text(\(text.text))"
+        case .symbol(let symbol): "symbol(\(symbol.source))"
+        }
     }
 
     private func verifySetting(

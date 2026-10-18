@@ -194,12 +194,17 @@ final class AppEnvironment {
     private func startInputSourceMonitoringIfNeeded() {
         guard inputSourceLifecycleCancellables.isEmpty else { return }
         Publishers.CombineLatest(
-            settings.$connectionCenterSource.removeDuplicates(),
+            settings.$iconConfiguration
+                .map { configuration in
+                    let selection = configuration.composition.center
+                    return selection.primary == .inputSource || selection.fallback == .inputSource
+                }
+                .removeDuplicates(),
             settings.$enabledPopupSections.removeDuplicates()
         )
         .sink { [weak self] centerSource, enabledSections in
             guard let self else { return }
-            let isNeeded = centerSource == .inputSource || enabledSections.contains(.inputSource)
+            let isNeeded = centerSource || enabledSections.contains(.inputSource)
             if isNeeded {
                 inputSourceController.start()
             } else {

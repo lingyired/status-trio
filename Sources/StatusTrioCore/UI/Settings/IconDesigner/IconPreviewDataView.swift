@@ -49,7 +49,7 @@ struct IconPreviewDataView: View {
     }
 
     private var orderedUsedSources: [IconPreviewSampleSource] {
-        [.macBattery, .airPods, .network, .bluetoothTarget, .systemVolume].filter(usedSources.contains)
+        [.macBattery, .airPods, .inputSource, .network, .bluetoothTarget, .systemVolume].filter(usedSources.contains)
     }
 
     private var usedSources: Set<IconPreviewSampleSource> {
@@ -113,6 +113,9 @@ struct IconPreviewDataView: View {
             Toggle(localization.string(.iconPreviewScenarioVolumeMuted), isOn: sampleBinding(\.systemVolume.isMuted))
                 .disabled(!session.samples.systemVolume.isAvailable)
             Toggle(localization.string(.iconPreviewVolumeAvailable), isOn: sampleBinding(\.systemVolume.isAvailable))
+        case .inputSource:
+            Toggle(localization.string(.iconPreviewInputSourceAvailable), isOn: sampleBinding(\.inputSource.isAvailable))
+            TextField(localization.string(.iconPreviewInputSourceShortLabel), text: sampleBinding(\.inputSource.shortLabel))
         }
     }
 
@@ -147,6 +150,9 @@ struct IconPreviewDataView: View {
                 Text(localization.string(.volumeTitleUnavailable))
                     .accessibilityIdentifier("iconPreviewData.live.volumeUnavailable")
             }
+        case .inputSource:
+            Text(localization.string(.iconPreviewInputSourceLiveNotice))
+                .accessibilityIdentifier("iconPreviewData.live.inputSource")
         }
     }
 
@@ -219,6 +225,7 @@ struct IconPreviewDataView: View {
         case .network: .iconDesignerSourceNetwork
         case .bluetoothTarget: .iconPreviewBluetoothDevicesSource
         case .systemVolume: .iconPreviewSystemVolumeSource
+        case .inputSource: .iconDesignerSourceInputSource
         }
         return localization.string(key)
     }
@@ -294,6 +301,7 @@ private extension IconPreviewSampleSource {
         case .network: "network"
         case .bluetoothTarget: "bluetooth"
         case .systemVolume: "volume"
+        case .inputSource: "inputSource"
         }
     }
 }

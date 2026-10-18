@@ -495,6 +495,7 @@
 "icon.designer.source.systemBattery" = "Mac battery";
 "icon.designer.source.airPodsBattery" = "AirPods battery";
 "icon.designer.source.network" = "Network";
+"icon.designer.source.inputSource" = "Input source";
 "icon.designer.source.bluetoothAudio" = "Bluetooth audio output";
 "icon.designer.source.pinnedBluetooth" = "Pinned Bluetooth glyph";
 "icon.designer.source.connectedBluetooth" = "Connected Bluetooth device";
@@ -535,6 +536,7 @@
 "iconDesigner.control.textScale" = "Top battery indicator size";
 "iconDesigner.control.textScale.help" = "Adjusts the size of the battery percentage at the top of the outer ring, the charging bolt, and the power plug.";
 "iconDesigner.control.noEditableBehavior" = "This source has no editable behavior yet.";
+"iconDesigner.control.inputSourceBehavior" = "Drawn as the current input source's own icon, then its short label, then a keyboard symbol.";
 "iconDesigner.control.wifiForEthernet" = "Wi-Fi symbol for Ethernet";
 "iconDesigner.control.wifiForHotspot" = "Wi-Fi symbol for hotspot";
 "iconDesigner.control.wifiForTemporaryConnection" = "Wi-Fi symbol for temporary connection";
@@ -545,7 +547,8 @@
 "iconDesigner.control.prioritizeNetworkErrors" = "Prioritize network errors";
 "iconDesigner.control.useVolumeColor" = "Use volume color";
 "iconDesigner.control.bluetoothSymbolScale" = "Bluetooth symbol scale";
-"iconDesigner.control.networkProblemsOverrideBluetooth" = "Network problems override Bluetooth";
+"iconDesigner.control.networkProblemsOverride" = "Prioritize the network icon when the network is down";
+"iconDesigner.control.networkProblemsOverride.help" = "While the network is down, the centre shows the network icon instead of the selected source. The original icon returns once the network recovers.";
 "iconDesigner.control.bluetoothSymbol" = "Bluetooth symbol";
 "iconDesigner.control.automatic" = "Automatic";
 "iconDesigner.control.colorStyle" = "Color style";
@@ -630,6 +633,9 @@
 "iconPreviewData.bluetoothTargetAudio" = "Target is an audio device";
 "iconPreviewData.bluetoothSampleSymbol" = "Example device symbol";
 "iconPreviewData.volumeAvailable" = "Volume data available";
+"iconPreviewData.inputSource.available" = "Input source available";
+"iconPreviewData.inputSource.shortLabel" = "Sample short label";
+"iconPreviewData.inputSource.liveNotice" = "Live input source comes from macOS; simulated values never change the real input source.";
 "icon.designer.undo" = "Undo";
 "icon.designer.externalChangeNotice" = "Undo history cleared because icon settings changed elsewhere.";
 "iconPreviewData.useLiveData" = "Use live data";
@@ -637,6 +643,7 @@
 
 /* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "Network icon";
+"iconDesigner.centerColorMeaning.inputSource" = "Input-source icon";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi-Fi signal at 0 bars";
 "iconDesigner.centerColorMeaning.bluetoothGlyph" = "Bluetooth glyph";
 "iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "Volume above zero";
@@ -650,6 +657,7 @@
 
 "iconDesigner.centerColor.rolePicker" = "Color applies to";
 "iconDesigner.centerColorHelp.networkPrimary" = "For the usual network icon, including Wi-Fi off, not connected, no internet, and wired connections.";
+"iconDesigner.centerColorHelp.inputSource" = "For the current input source's icon or short label when the centre slot draws it.";
 "iconDesigner.centerColorHelp.wifiZeroBars" = "For connected Wi-Fi with no signal bars. Also used when signal strength is unavailable.";
 "iconDesigner.centerColorHelp.bluetoothGlyph" = "Always used for the Bluetooth icon, regardless of volume.";
 "iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "With volume-based color enabled, used when audio is not muted and volume is above zero.";
@@ -658,3 +666,4 @@
 "iconDesigner.centerColorHelp.legacyPrimary" = "For the usual network icon or Mac battery percentage in the legacy center.";
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "For connected Wi-Fi with no signal bars in the legacy center.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "For the Bluetooth icon in the legacy center.";
+"icon.designer.airPods.showTopSymbol" = "Show AirPods icon at the top";

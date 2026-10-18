@@ -144,20 +144,24 @@ struct IconBehaviorEditor: View {
 
     private var centerBehavior: some View {
         Group {
+            globalNetworkOverrideControl
             switch IconDesignerEditingModel.source(for: effectiveBehaviorTarget, slot: .center, in: store.iconConfiguration) {
             case .center(.automaticLegacy):
                 networkBehavior(includeLegacyPercentage: true)
                 legacyBluetoothBehavior
             case .center(.network):
                 networkBehavior(includeLegacyPercentage: false)
+            case .center(.inputSource):
+                SettingsHintRow(text: localization.string(.iconDesignerControlInputSourceBehavior))
             case .center(.bluetoothAudioOutput):
                 bluetoothOutputBehavior
+                bluetoothIconSourcePicker
             case .center(.pinnedBluetoothGlyph):
                 bluetoothSymbolPicker
             case .center(.connectedBluetoothDevice):
                 if connectedBluetoothCapabilities.contains(.bluetoothOutputAppearance) {
                     bluetoothOutputBehavior
-                    bluetoothSymbolPicker
+                    bluetoothIconSourcePicker
                 } else {
                     SettingsHintRow(text: localization.string(.iconDesignerControlNoEditableBehavior))
                 }
@@ -166,6 +170,32 @@ struct IconBehaviorEditor: View {
             case .center(.none), .none, .some(.ring), .some(.footer):
                 SettingsHintRow(text: localization.string(.iconDesignerControlNoEditableBehavior))
             }
+        }
+    }
+
+    /// The global network-failure rule. It is deliberately outside the
+    /// per-source switch above so it stays visible and editable for every centre
+    /// source (input method, battery percentage, Bluetooth, network, legacy and
+    /// none), and its value does not change when the primary/fallback tab flips.
+    private var globalNetworkOverrideControl: some View {
+        IconDesignerControlRow(
+            localization.string(.iconDesignerControlNetworkProblemsOverride),
+            subtitle: localization.string(.iconDesignerControlNetworkProblemsOverrideHelp),
+            identifier: "iconDesigner.centerNetworkOverride"
+        ) {
+            Toggle("", isOn: Binding(
+                get: { store.iconConfiguration.composition.centerOverride.networkProblemOverridesPrimary },
+                set: { value in
+                    editorModel.updateIconConfiguration {
+                        $0.composition.centerOverride.networkProblemOverridesPrimary = value
+                    }
+                }
+            ))
+            .labelsHidden()
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .accessibilityLabel(localization.string(.iconDesignerControlNetworkProblemsOverride))
+            .accessibilityIdentifier("iconDesigner.centerNetworkOverride.toggle")
         }
     }
 
@@ -221,7 +251,6 @@ struct IconBehaviorEditor: View {
                 .accessibilityLabel(localization.string(.settingsBluetoothIconChoice))
                 .accessibilityIdentifier("iconDesigner.bluetoothAudioIconChoice")
             }
-            toggle(localization.string(.iconDesignerControlPrioritizeNetworkErrors), get: { $0.behaviors.bluetoothAudioCenter.prioritizesNetworkErrors }, set: { $0.behaviors.bluetoothAudioCenter.prioritizesNetworkErrors = $1 })
             toggle(localization.string(.iconDesignerControlUseVolumeColor), get: { $0.behaviors.bluetoothAudioCenter.usesVolumeColor }, set: { $0.behaviors.bluetoothAudioCenter.usesVolumeColor = $1 })
         }
     }
@@ -245,25 +274,74 @@ struct IconBehaviorEditor: View {
                     ? .iconDesignerAirPodsSingleExplanation
                     : .iconDesignerAirPodsDualExplanation
             ))
-        }
-    }
-
-    private var bluetoothOutputBehavior: some View {
-        Group {
-            if effectiveBehaviorTarget == .primary,
-               IconDesignerEditingModel.allowsNetworkProblemOverride(
-                   in: store.iconConfiguration,
-                   bluetoothTarget: selectedBluetoothTarget,
-                   devices: effectiveBluetoothDevices
-               ) {
-                toggle(localization.string(.iconDesignerControlNetworkProblemsOverrideBluetooth), get: { $0.composition.centerOverride.networkProblemOverridesPrimary }, set: { $0.composition.centerOverride.networkProblemOverridesPrimary = $1 })
+            if store.iconConfiguration.behaviors.airPodsRing == .dual {
+                toggle(
+                    localization.string(.iconDesignerShowAirPodsTopSymbol),
+                    get: { $0.behaviors.showsAirPodsTopSymbol },
+                    set: { $0.behaviors.showsAirPodsTopSymbol = $1 }
+                )
             }
         }
     }
 
+    /// Volume-based tinting only makes sense for a real audio target; non-audio
+    /// devices never show this switch.
+    private var bluetoothOutputBehavior: some View {
+        toggle(
+            localization.string(.iconDesignerControlUseVolumeColor),
+            get: { $0.behaviors.bluetoothAudioCenter.usesVolumeColor },
+            set: { $0.behaviors.bluetoothAudioCenter.usesVolumeColor = $1 }
+        )
+    }
+
+    /// One glyph control for both Bluetooth audio sources. A specific choice is
+    /// stored as the shared symbol override so it wins over the legacy
+    /// `bluetoothAudioIconChoice`; picking Automatic clears both, restoring true
+    /// device-type auto detection. Both edits run in one undoable transaction,
+    /// so the two preferences can never mask each other.
+    private var bluetoothIconSourcePicker: some View {
+        let savedSymbol = store.iconConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride
+            ?? store.bluetoothAudioIconChoice.symbolName
+        let options = BluetoothNetworkIconSourceOption.glyphOptions(
+            devices: effectiveBluetoothDevices, order: bluetoothDeviceOrder, savedSymbol: savedSymbol
+        )
+        return IconDesignerControlRow(localization.string(.iconDesignerControlBluetoothSymbol), showsDivider: false) {
+            Picker("", selection: Binding(
+                get: { savedSymbol },
+                set: { value in editorModel.perform {
+                    store.updateIconConfiguration { configuration in
+                        _ = IconDesignerEditingModel.setBluetoothSymbolOverride(
+                            value,
+                            for: effectiveBehaviorTarget,
+                            in: &configuration,
+                            bluetoothTarget: selectedBluetoothTarget,
+                            devices: effectiveBluetoothDevices
+                        )
+                    }
+                    // A specific glyph owns the icon; dropping the legacy choice
+                    // keeps Automatic from being masked by a stale preference.
+                    store.bluetoothAudioIconChoice = .automatic
+                } }
+            )) {
+                Text(localization.string(.iconDesignerControlAutomatic)).tag(String?.none)
+                ForEach(options) { option in
+                    Text(label(for: option))
+                        .tag(Optional(option.symbolName))
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .fixedSize()
+            .accessibilityLabel(localization.string(.iconDesignerControlBluetoothSymbol))
+            .accessibilityIdentifier("iconDesigner.bluetoothIconSource")
+        }
+    }
+
     private var bluetoothSymbolPicker: some View {
-        let options = BluetoothNetworkIconSourceOption.options(devices: effectiveBluetoothDevices, order: bluetoothDeviceOrder)
         let selected = store.iconConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride
+        let options = BluetoothNetworkIconSourceOption.glyphOptions(
+            devices: effectiveBluetoothDevices, order: bluetoothDeviceOrder, savedSymbol: selected
+        )
         return IconDesignerControlRow(localization.string(.iconDesignerControlBluetoothSymbol), showsDivider: false) {
             Picker("", selection: Binding(
             get: { store.iconConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride },
@@ -281,10 +359,7 @@ struct IconBehaviorEditor: View {
         )) {
             Text(localization.string(.iconDesignerControlAutomatic)).tag(String?.none)
             ForEach(options) { option in
-                Text(option.title ?? localization.format(.iconDesignerControlAudioOutputFormat, option.symbolName)).tag(Optional(option.symbolName))
-            }
-            if let selected, !options.contains(where: { $0.symbolName == selected }) {
-                Text(localization.format(.iconDesignerControlSavedSymbolFormat, selected)).tag(Optional(selected))
+                Text(label(for: option)).tag(Optional(option.symbolName))
             }
         }
             .labelsHidden()
@@ -292,6 +367,22 @@ struct IconBehaviorEditor: View {
             .fixedSize()
             .accessibilityLabel(localization.string(.iconDesignerControlBluetoothSymbol))
         }
+    }
+
+    /// Product glyphs draw their localized product name; device rows draw the
+    /// device name; anything else (an unknown saved symbol) keeps the explicit
+    /// saved-symbol format so it is still selectable.
+    private func label(for option: BluetoothNetworkIconSourceOption.GlyphOption) -> String {
+        if let choice = option.choice {
+            return choice.displayName(using: localization)
+        }
+        if let title = option.title {
+            return title
+        }
+        if option.isSavedUnsupportedSymbol {
+            return localization.format(.iconDesignerControlSavedSymbolFormat, option.symbolName)
+        }
+        return localization.format(.iconDesignerControlAudioOutputFormat, option.symbolName)
     }
 
     private func toggle(_ title: String, get: @escaping (IconConfigurationV1) -> Bool,

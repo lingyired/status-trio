@@ -6,4 +6,5 @@ struct IconDesignerEditSnapshot: Equatable {
     var connectedBluetoothAddress: String?
     var bluetoothNetworkAddress: String?
     var refreshesAirPodsBatteryForIcon: Bool
+    var bluetoothAudioIconChoice: BluetoothAudioIconChoice
 }

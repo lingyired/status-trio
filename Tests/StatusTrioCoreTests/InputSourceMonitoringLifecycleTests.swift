@@ -26,18 +26,26 @@ final class InputSourceMonitoringLifecycleTests: XCTestCase {
         environment.start()
         XCTAssertEqual(reader.readCount, 0, "the shipped defaults must not read TIS")
 
-        settings.connectionCenterSource = .inputSource
+        settings.updateIconConfiguration { $0.composition.center = SlotSelection(primary: .inputSource) }
         XCTAssertEqual(reader.readCount, 1)
         XCTAssertEqual(controller.state.selectedID, CountingInputSourceReader.abcID)
 
-        settings.connectionCenterSource = .automatic
+        settings.updateIconConfiguration { $0.composition.center = SlotSelection(primary: .network) }
         XCTAssertEqual(reader.readCount, 1, "turning the centre slot off stops the reader")
 
+        settings.updateIconConfiguration {
+            $0.composition.center = SlotSelection(primary: .network, fallback: .inputSource)
+        }
+        XCTAssertEqual(reader.readCount, 2, "an input-source fallback also keeps the reader alive")
+
+        settings.updateIconConfiguration { $0.composition.center = SlotSelection(primary: .network) }
+        XCTAssertEqual(reader.readCount, 2, "removing the input-source fallback stops the reader again")
+
         settings.setPopupSection(.inputSource, enabled: true)
-        XCTAssertEqual(reader.readCount, 2, "the panel section starts it again")
+        XCTAssertEqual(reader.readCount, 3, "the panel section starts it again")
 
         settings.setPopupSection(.inputSource, enabled: false)
-        XCTAssertEqual(reader.readCount, 2, "turning the panel section off stops it again")
+        XCTAssertEqual(reader.readCount, 3, "turning the panel section off stops it again")
     }
 
     private func makeEnvironment(

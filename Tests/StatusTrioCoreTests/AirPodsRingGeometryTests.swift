@@ -69,6 +69,37 @@ final class AirPodsRingGeometryTests: XCTestCase {
         XCTAssertNil(ring.effect, "AirPods rings remain static and do not inherit Mac charging effects.")
     }
 
+    func testTopAirPodsSymbolAppearsOnlyOnActualDualLayout() throws {
+        let bothEars = try XCTUnwrap(AirPodsRingMapper.resolve(
+            snapshot: snapshot(main: 70, left: 72, right: 68), behavior: .dual,
+            now: now, showsTopSymbol: true
+        ))
+        XCTAssertEqual(bothEars.layout, .leftRight)
+        XCTAssertNotNil(bothEars.accessory)
+
+        let oneEar = try XCTUnwrap(AirPodsRingMapper.resolve(
+            snapshot: snapshot(main: nil, left: 72, right: nil), behavior: .dual,
+            now: now, showsTopSymbol: true
+        ))
+        XCTAssertEqual(oneEar.layout, .leftRight)
+        XCTAssertTrue(oneEar.isPartial)
+        XCTAssertNotNil(oneEar.accessory)
+
+        let mainOnly = try XCTUnwrap(AirPodsRingMapper.resolve(
+            snapshot: snapshot(main: 70, left: nil, right: nil), behavior: .dual,
+            now: now, showsTopSymbol: true
+        ))
+        XCTAssertEqual(mainOnly.layout, .standard)
+        XCTAssertNil(mainOnly.accessory)
+
+        let single = try XCTUnwrap(AirPodsRingMapper.resolve(
+            snapshot: snapshot(main: 70, left: 72, right: 68), behavior: .single,
+            now: now, showsTopSymbol: true
+        ))
+        XCTAssertEqual(single.layout, .standard)
+        XCTAssertNil(single.accessory)
+    }
+
     func testExpiredAirPodsSnapshotIsUnavailableForResolverFallback() throws {
         let stale = snapshot(main: 50, left: 50, right: 50, observedAt: now.addingTimeInterval(-AirPodsBatteryIconSnapshot.freshnessInterval - 1))
         var inputs = IconResolutionInputs(system: IconPresentationInputs(snapshot: .placeholder, audioIcon: nil), sources: IconSourceSnapshot(availability: [:], airPodsBattery: stale))
@@ -91,6 +122,40 @@ final class AirPodsRingGeometryTests: XCTestCase {
         XCTAssertLessThanOrEqual(left.boundingBox.maxX, StatusIconGeometry.canvas.maxX)
         XCTAssertLessThanOrEqual(right.boundingBox.maxX, StatusIconGeometry.canvas.maxX)
         XCTAssertNotEqual(left.boundingBox, right.boundingBox)
+    }
+
+    func testAirPodsTopGapMatchesBatteryValueArcLengthWhenAccessoryIsShown() {
+        let legacy = StatusIconGeometry.airPodsArc(position: .left, progress: 1)
+        let withAccessory = StatusIconGeometry.airPodsArc(
+            position: .left, progress: 1, topGapWidth: StatusIconGeometry.batteryValueTopGapWidth
+        )
+        let rightWithAccessory = StatusIconGeometry.airPodsArc(
+            position: .right, progress: 1, topGapWidth: StatusIconGeometry.batteryValueTopGapWidth
+        )
+        let disabledGap = StatusIconGeometry.airPodsArc(
+            position: .left, progress: 1, topGapWidth: StatusIconGeometry.airPodsGapWidth
+        )
+
+        XCTAssertEqual(inferredAirPodsGapAngle(left: withAccessory, right: rightWithAccessory),
+                       StatusIconGeometry.batteryValueTopGapWidth / batteryRingRadius(), accuracy: 0.0001)
+        XCTAssertEqual(inferredAirPodsGapAngle(left: legacy) * 2,
+                       StatusIconGeometry.airPodsGapWidth / batteryRingRadius(), accuracy: 0.0001)
+        XCTAssertEqual(inferredAirPodsGapAngle(left: disabledGap) * 2,
+                       StatusIconGeometry.airPodsGapWidth / batteryRingRadius(), accuracy: 0.0001)
+        XCTAssertGreaterThan(inferredAirPodsGapAngle(left: withAccessory), inferredAirPodsGapAngle(left: legacy))
+        XCTAssertEqual(firstPoint(in: withAccessory), firstPoint(in: legacy),
+                       "Changing the top gap must preserve the lower arc anchor.")
+        let partialLegacy = StatusIconGeometry.airPodsArc(position: .right, progress: 0.35)
+        let partialWide = StatusIconGeometry.airPodsArc(
+            position: .right, progress: 0.35, topGapWidth: StatusIconGeometry.batteryValueTopGapWidth
+        )
+        XCTAssertEqual(firstPoint(in: partialWide), firstPoint(in: partialLegacy))
+        XCTAssertTrue(StatusIconGeometry.airPodsArc(
+            position: .left, progress: 0, topGapWidth: StatusIconGeometry.batteryValueTopGapWidth
+        ).isEmpty)
+        XCTAssertFalse(StatusIconGeometry.airPodsArc(
+            position: .left, progress: 1, topGapWidth: StatusIconGeometry.batteryValueTopGapWidth
+        ).isEmpty)
     }
 
     func testMenuBarAndDockBothRenderTheExplicitDualLayout() throws {
@@ -230,6 +295,53 @@ final class AirPodsRingGeometryTests: XCTestCase {
     private func state(main: Int?, left: Int?, right: Int?, behavior: AirPodsRingBehavior = .single) throws -> OuterRingState {
         try XCTUnwrap(AirPodsRingMapper.resolve(snapshot: snapshot(main: main, left: left, right: right), behavior: behavior, now: now))
     }
+
+    private func inferredAirPodsGapAngle(left: CGPath) -> CGFloat {
+        let endpoint = lastArcEndpoint(in: left)
+        let angle = positiveAngle(atan2(endpoint.y - 61.48715261785473, endpoint.x - StatusIconGeometry.artworkCenterX))
+        return (3 * .pi / 2) - angle
+    }
+
+    private func firstPoint(in path: CGPath) -> CGPoint {
+        var point = CGPoint.zero
+        path.applyWithBlock { element in
+            guard point == .zero else { return }
+            if element.pointee.type == .moveToPoint {
+                point = element.pointee.points[0]
+            }
+        }
+        return point
+    }
+
+    private func inferredAirPodsGapAngle(left: CGPath, right: CGPath) -> CGFloat {
+        inferredAirPodsGapAngle(left: left) + inferredRightGapAngle(right: right)
+    }
+
+    private func inferredRightGapAngle(right: CGPath) -> CGFloat {
+        let endpoint = lastArcEndpoint(in: right)
+        let angle = positiveAngle(atan2(endpoint.y - 61.48715261785473, endpoint.x - StatusIconGeometry.artworkCenterX))
+        return angle - (3 * .pi / 2)
+    }
+
+    private func positiveAngle(_ angle: CGFloat) -> CGFloat {
+        angle >= 0 ? angle : angle + 2 * .pi
+    }
+
+    private func lastArcEndpoint(in path: CGPath) -> CGPoint {
+        var point = CGPoint.zero
+        path.applyWithBlock { element in
+            switch element.pointee.type {
+            case .moveToPoint, .addLineToPoint: point = element.pointee.points[0]
+            case .addQuadCurveToPoint: point = element.pointee.points[1]
+            case .addCurveToPoint: point = element.pointee.points[2]
+            case .closeSubpath: break
+            @unknown default: break
+            }
+        }
+        return point
+    }
+
+    private func batteryRingRadius() -> CGFloat { 51.5 }
 
     private func snapshot(main: Int?, left: Int?, right: Int?, caseLevel: Int? = nil, observedAt: Date? = nil) -> AirPodsBatteryIconSnapshot {
         AirPodsBatteryIconSnapshot(deviceAddress: "AA:BB:CC:DD:EE:FF", model: .airPodsPro, main: main, left: left, right: right, caseLevel: caseLevel, observedAt: observedAt ?? now)

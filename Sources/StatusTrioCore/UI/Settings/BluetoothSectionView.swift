@@ -229,14 +229,6 @@ struct BluetoothSectionView: View {
                 SettingsDivider()
                 SettingsHintRow(text: localization.string(.settingsBluetoothNetworkIconSourceDevicesEmpty))
             }
-            SettingsDivider()
-            SettingsToggleRow(
-                symbol: "exclamationmark.triangle",
-                tint: .orange,
-                title: localization.string(.settingsBluetoothNetworkErrorPriority),
-                subtitle: localization.string(.settingsBluetoothNetworkErrorPriorityDescription),
-                isOn: Self.networkErrorPriorityBinding(store: store)
-            )
         }
     }
 
@@ -321,37 +313,6 @@ struct BluetoothSectionView: View {
             return options[0]
         }
         return picked
-    }
-
-    /// Explicit Bluetooth audio uses composition policy; only legacy mode reads
-    /// the old behavior flag. Re-check the primary on writes so a stale control
-    /// cannot edit an unrelated source after the selection changes.
-    @MainActor
-    static func networkErrorPriorityBinding(store: SettingsStore) -> Binding<Bool> {
-        Binding(
-            get: {
-                switch store.iconConfiguration.composition.center.primary {
-                case .automaticLegacy:
-                    store.prioritizesNetworkErrorsOverBluetoothAudio
-                case .bluetoothAudioOutput:
-                    store.iconConfiguration.composition.centerOverride.networkProblemOverridesPrimary
-                default:
-                    false
-                }
-            },
-            set: { value in
-                switch store.iconConfiguration.composition.center.primary {
-                case .automaticLegacy:
-                    store.prioritizesNetworkErrorsOverBluetoothAudio = value
-                case .bluetoothAudioOutput:
-                    store.updateIconConfiguration {
-                        $0.composition.centerOverride.networkProblemOverridesPrimary = value
-                    }
-                default:
-                    break
-                }
-            }
-        )
     }
 
     /// The pane shows paired devices, so it needs the same monitor the popover

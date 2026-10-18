@@ -19,8 +19,10 @@ final class IconSceneRendererParityTests: XCTestCase {
         )
         var configuration = IconDesignerDefaults.configuration()
         configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery)
+        configuration.behaviors.showsAirPodsTopSymbol = true
         let dualScene = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration, now: now).scene
         XCTAssertEqual(dualScene.outerRing?.segments.count, 2)
+        XCTAssertNotNil(dualScene.outerRing?.accessory)
         configuration.behaviors.airPodsRing = .single
         let singleScene = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration, now: now).scene
 
@@ -37,6 +39,178 @@ final class IconSceneRendererParityTests: XCTestCase {
         XCTAssertFalse(dualDock.bytes.elementsEqual(singleDock.bytes), "Dock must render the same resolved dual scene.")
     }
 
+    func testLayeredAirPodsRingKeepsTopMarkerInItsOwnTemplateRegion() throws {
+        let blue = IconColorRole.custom(IconRGBA(red: 0, green: 0, blue: 1, alpha: 1))
+        let scene = IconSceneState(outerRing: OuterRingState(
+            segments: [
+                RingSegmentState(progress: 1, color: blue, position: .left),
+                RingSegmentState(progress: 1, color: blue, position: .right)
+            ],
+            gap: .closed,
+            layout: .leftRight,
+            accessory: .symbol(IconSymbolState(
+                source: .symbol(name: "airpods", variableValue: nil, fallback: "headphones"),
+                color: .primary,
+                scale: 1.8
+            ))
+        ))
+        XCTAssertEqual(scene.chromaticRegions, [.ringFill])
+        XCTAssertTrue(scene.templateRegions.contains(.ringAccessory))
+
+        let environment = StatusIconRenderEnvironment(
+            size: 120,
+            scale: 1,
+            foreground: CGColor(gray: 1, alpha: 1),
+            criticalColor: StatusIconRenderer.defaultCriticalColor
+        )
+        let whole = try XCTUnwrap(StatusIconRenderer.render(scene: scene, environment: environment))
+        let template = try XCTUnwrap(StatusIconRenderer.render(
+            scene: scene, environment: environment, regions: scene.templateRegions
+        ))
+        let chromatic = try XCTUnwrap(StatusIconRenderer.render(
+            scene: scene, environment: environment, regions: scene.chromaticRegions
+        ))
+        let accessory = try XCTUnwrap(StatusIconRenderer.render(
+            scene: scene, environment: environment, regions: .ringAccessory
+        ))
+
+        let wholePixels = try PixelBuffer(image: whole)
+        let templatePixels = try PixelBuffer(image: template)
+        let chromaticPixels = try PixelBuffer(image: chromatic)
+        let accessoryPixels = try PixelBuffer(image: accessory)
+        let layered = try composite(base: template, overlay: chromatic, environment: environment)
+        XCTAssertLessThanOrEqual(
+            maximumChannelDelta(try PixelBuffer(image: layered).bytes, wholePixels.bytes),
+            1,
+            "The template and blue AirPods ring overlay must reproduce the one-pass render."
+        )
+        XCTAssertGreaterThan(
+            accessoryPixels.alphaSum(inSVGRect: CGRect(x: 43, y: 2, width: 34, height: 34), size: 120, scale: 1),
+            0,
+            "The ringAccessory region must draw the top marker."
+        )
+        XCTAssertEqual(
+            accessoryPixels.alphaSum(inSVGRect: StatusIconGeometry.canvas, size: 120, scale: 1),
+            accessoryPixels.alphaSum(inSVGRect: CGRect(x: 43, y: 2, width: 34, height: 34), size: 120, scale: 1),
+            "The ringAccessory region must not redraw either ring layer."
+        )
+        XCTAssertGreaterThan(
+            chromaticPixels.alphaSum(inSVGRect: CGRect(x: 18, y: 15, width: 84, height: 78), size: 120, scale: 1),
+            0,
+            "Both blue progress arcs must remain in the chromatic overlay."
+        )
+        XCTAssertGreaterThan(
+            templatePixels.alphaSum(inSVGRect: CGRect(x: 43, y: 2, width: 34, height: 34), size: 120, scale: 1),
+            0,
+            "The monochrome AirPods marker must remain in the re-tintable template."
+        )
+    }
+
+    func testDualRingTopAccessoryChangesRealTopGapPixelsInMenuBarAndDock() throws {
+        let segments = [
+            RingSegmentState(progress: 0.73, color: .bluetooth, position: .left),
+            RingSegmentState(progress: 0.68, color: .primary, position: .right)
+        ]
+        let symbol = RingAccessoryState.symbol(IconSymbolState(
+            source: .symbol(name: "airpods", variableValue: nil, fallback: "headphones"),
+            color: .primary,
+            scale: 1.8
+        ))
+        let withoutAccessory = IconSceneState(outerRing: OuterRingState(
+            segments: segments, gap: .closed, layout: .leftRight
+        ))
+        let withAccessory = IconSceneState(outerRing: OuterRingState(
+            segments: segments, gap: .closed, layout: .leftRight, accessory: symbol
+        ))
+        let foreground = CGColor(gray: 1, alpha: 1)
+
+        let plainMenu = try menuBarPixels(scene: withoutAccessory, foreground: foreground, size: 28, scale: 2)
+        let markedMenu = try menuBarPixels(scene: withAccessory, foreground: foreground, size: 28, scale: 2)
+        let menuAccessoryPixels = changedPixels(
+            plainMenu, markedMenu, inSVGRect: CGRect(x: 43, y: 2, width: 34, height: 34), size: 28, scale: 2
+        )
+        let allMenuDifferences = changedPixels(
+            plainMenu, markedMenu, inSVGRect: StatusIconGeometry.canvas, size: 28, scale: 2
+        )
+        XCTAssertGreaterThan(menuAccessoryPixels.count, 0,
+                             "A scene accessory must draw visible ink in the existing top-gap region.")
+        XCTAssertTrue(allMenuDifferences.allSatisfy {
+            $0.x > 0 && $0.y > 0 && $0.x < markedMenu.width - 1 && $0.y < markedMenu.height - 1
+        }, "The top glyph must remain fully inside the menu-bar canvas.")
+
+        let plainDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+            scene: withoutAccessory, backgroundStyle: .dark, pixelLength: 256
+        )))
+        let markedDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+            scene: withAccessory, backgroundStyle: .dark, pixelLength: 256
+        )))
+        let dockAccessoryPixels = changedPixels(
+            plainDock, markedDock, inSVGRect: CGRect(x: 43, y: 2, width: 34, height: 34), size: 120, scale: 256.0 / 120.0
+        )
+        let allDockDifferences = changedPixels(
+            plainDock, markedDock, inSVGRect: StatusIconGeometry.canvas, size: 120, scale: 256.0 / 120.0
+        )
+        XCTAssertGreaterThan(dockAccessoryPixels.count, 0,
+                             "Dock must render the same scene accessory in the top-gap region.")
+        XCTAssertTrue(allDockDifferences.allSatisfy {
+            $0.x > 0 && $0.y > 0 && $0.x < markedDock.width - 1 && $0.y < markedDock.height - 1
+        }, "The top glyph must remain fully inside the Dock canvas.")
+    }
+
+    func testSharedAirPodsTopGapChangesMenuBarAndDockTrackPixelsAroundTopMarker() throws {
+        let leftColor = IconColorRole.custom(IconRGBA(red: 0, green: 0, blue: 1, alpha: 1))
+        let rightColor = IconColorRole.custom(IconRGBA(red: 1, green: 0, blue: 0, alpha: 1))
+        let left = RingSegmentState(progress: 1, color: leftColor, position: .left)
+        let right = RingSegmentState(progress: 1, color: rightColor, position: .right)
+        let legacy = IconSceneState(outerRing: OuterRingState(
+            segments: [left, right], gap: .closed, layout: .leftRight
+        ))
+        let marked = IconSceneState(outerRing: OuterRingState(
+            segments: [left, right], gap: .closed, layout: .leftRight,
+            accessory: .symbol(IconSymbolState(
+                source: .symbol(name: "airpods", variableValue: nil, fallback: "headphones"),
+                color: .primary, scale: 1.8
+            ))
+        ))
+        let foreground = CGColor(gray: 1, alpha: 1)
+        let legacyMenu = try menuBarPixels(scene: legacy, foreground: foreground, size: 28, scale: 2)
+        let markedMenu = try menuBarPixels(scene: marked, foreground: foreground, size: 28, scale: 2)
+        let menuGapFlanks = [CGRect(x: 40, y: 4, width: 10, height: 21),
+                             CGRect(x: 69, y: 4, width: 10, height: 21)]
+        XCTAssertGreaterThan(menuGapFlanks.reduce(0) { total, region in
+            total + changedPixelCount(legacyMenu, markedMenu, inSVGRect: region, size: 28, scale: 2)
+        }, 0, "Accessory mode must widen the track cutout outside the glyph ink on the menu bar.")
+        let markerRegion = scaledPixelRect(
+            CGRect(x: 47, y: 3, width: 25, height: 21), size: 28, scale: 2
+        )
+        XCTAssertFalse(containsColor(markedMenu, inPixelRect: markerRegion,
+                                      red: 0, green: 0, blue: 1, tolerance: 0.1),
+                        "Left ring ink must not overlap the AirPods glyph area.")
+        XCTAssertFalse(containsColor(markedMenu, inPixelRect: markerRegion,
+                                      red: 1, green: 0, blue: 0, tolerance: 0.1),
+                        "Right ring ink must not overlap the AirPods glyph area.")
+
+        let legacyDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+            scene: legacy, backgroundStyle: .dark, pixelLength: 256
+        )))
+        let markedDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+            scene: marked, backgroundStyle: .dark, pixelLength: 256
+        )))
+        XCTAssertGreaterThan(menuGapFlanks.reduce(0) { total, region in
+            total + changedPixelCount(legacyDock, markedDock, inSVGRect: region, size: 120,
+                                      scale: 256.0 / 120.0)
+        }, 0, "Accessory mode must widen the same Dock track cutout outside the glyph ink.")
+        let dockMarkerRegion = scaledPixelRect(
+            CGRect(x: 47, y: 3, width: 25, height: 21), size: 120, scale: 256.0 / 120.0
+        )
+        XCTAssertFalse(containsColor(markedDock, inPixelRect: dockMarkerRegion,
+                                      red: 0, green: 0, blue: 1, tolerance: 0.1),
+                        "Dock left ring ink must not overlap the AirPods glyph area.")
+        XCTAssertFalse(containsColor(markedDock, inPixelRect: dockMarkerRegion,
+                                      red: 1, green: 0, blue: 0, tolerance: 0.1),
+                        "Dock right ring ink must not overlap the AirPods glyph area.")
+    }
+
     func testAirPodsMacBatteryFallbackUsesOneResolvedSceneForMenuBarAndDock() throws {
         let snapshot = makeSnapshot(battery: battery(percentage: 52))
         let inputs = IconResolutionInputs(
@@ -47,6 +221,7 @@ final class IconSceneRendererParityTests: XCTestCase {
             ])
         )
         var fallbackConfiguration = IconDesignerDefaults.configuration()
+        fallbackConfiguration.behaviors.showsAirPodsTopSymbol = true
         fallbackConfiguration.composition.outerRing = SlotSelection(
             primary: .airPodsBattery, fallback: .systemBattery
         )
@@ -138,6 +313,132 @@ final class IconSceneRendererParityTests: XCTestCase {
             )))
             XCTAssertNotEqual(dock.bytes, automaticDock.bytes, "Dock (\(background)) must use the configured semantic override")
         }
+    }
+
+    func testInputSourceShortLabelUsesTheFixedCenterSlotOnBothSurfaces() throws {
+        let descriptor = InputSourceDescriptor(
+            id: "com.status-trio.preview.input-source",
+            localizedName: "拼音",
+            primaryLanguage: nil,
+            iconURL: nil,
+            shortLabel: "拼"
+        )
+        let inputs = IconResolutionInputs(
+            system: IconPresentationInputs(
+                snapshot: makeSnapshot(wifi: WiFiStatus(state: .connected, rssi: -60), connection: .wifi),
+                audioIcon: nil,
+                inputSource: descriptor
+            ),
+            sources: .empty
+        )
+        var configuration = IconDesignerDefaults.configuration()
+        configuration.composition.outerRing = SlotSelection(primary: .none)
+        configuration.composition.center = SlotSelection(primary: .inputSource)
+        configuration.composition.footer = SlotSelection(primary: .none)
+        let scene = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration).scene
+
+        guard case let .text(center)? = scene.center else {
+            return XCTFail("The selected input source should draw its short label")
+        }
+        XCTAssertEqual(center.text, "拼")
+
+        let centerSlot = CGRect(x: 37, y: 48, width: 45, height: 43)
+        let menu = try menuBarPixels(scene: scene, foreground: CGColor(gray: 1, alpha: 1), size: 28, scale: 2)
+        XCTAssertGreaterThan(
+            menu.alphaSum(inSVGRect: centerSlot, size: 28, scale: 2),
+            100,
+            "The input-source label must leave measurable ink in the fixed menu-bar centre slot"
+        )
+        for style in [DockIconBackgroundStyle.dark, .light] {
+            let dock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+                scene: scene, backgroundStyle: style, pixelLength: 96
+            )))
+            XCTAssertGreaterThan(
+                alphaSum(dock, inPixelRect: CGRect(x: 34, y: 33, width: 34, height: 32)),
+                100,
+                "The input-source label must draw in the Dock centre slot: \(style)"
+            )
+        }
+    }
+
+    func testGlobalNetworkOverrideChangesOnlyTheCenterSlotAndRecoversOnBothSurfaces() throws {
+        let snapshot = makeSnapshot(
+            battery: battery(percentage: 68),
+            wifi: WiFiStatus(state: .noInternet, rssi: -50),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output")
+        )
+        let inputs = IconResolutionInputs(
+            system: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+            sources: .empty
+        )
+        var configuration = IconDesignerDefaults.configuration()
+        configuration.composition.outerRing = SlotSelection(primary: .systemBattery)
+        configuration.composition.center = SlotSelection(primary: .none)
+        configuration.composition.footer = SlotSelection(primary: .systemVolume)
+        let baseScene = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration).scene
+        XCTAssertNil(baseScene.center, "A none centre stays empty while the global rule is off")
+
+        var overrideConfiguration = configuration
+        overrideConfiguration.composition.centerOverride.networkProblemOverridesPrimary = true
+        let overrideOutput = IconCompositionResolver.resolve(inputs: inputs, configuration: overrideConfiguration)
+        XCTAssertEqual(overrideOutput.trace.center.reason, .overridden(.networkProblem))
+        XCTAssertEqual(overrideOutput.trace.center.selectedSourceID, CenterSource.network.rawValue)
+        XCTAssertNotNil(overrideOutput.scene.center, "A down network must fill a none centre when the rule is on")
+
+        // A left strip of the battery ring that never overlaps the centre slot
+        // (x 37...82), so the assertion proves the rule is centre-local.
+        let ringRegion = CGRect(x: 0, y: 0, width: 36, height: 100)
+        let footerRegion = CGRect(x: 25, y: 98, width: 70, height: 22)
+        let foreground = CGColor(gray: 1, alpha: 1)
+        let baseMenu = try menuBarPixels(scene: baseScene, foreground: foreground, size: 28, scale: 2)
+        let overrideMenu = try menuBarPixels(scene: overrideOutput.scene, foreground: foreground, size: 28, scale: 2)
+        XCTAssertFalse(
+            pixelsDiffer(baseMenu, overrideMenu, inSVGRect: ringRegion, size: 28, scale: 2),
+            "The global network rule must not change the outer-ring pixels"
+        )
+        XCTAssertFalse(
+            pixelsDiffer(baseMenu, overrideMenu, inSVGRect: footerRegion, size: 28, scale: 2),
+            "The global network rule must not change the footer pixels"
+        )
+
+        let baseDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+            scene: baseScene, backgroundStyle: .dark, pixelLength: 256
+        )))
+        let overrideDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+            scene: overrideOutput.scene, backgroundStyle: .dark, pixelLength: 256
+        )))
+        XCTAssertFalse(
+            baseDock.bytes.elementsEqual(overrideDock.bytes),
+            "The Dock icon must redraw when the global rule fills the centre"
+        )
+
+        let recovered = StatusSnapshot(
+            battery: snapshot.battery,
+            wifi: WiFiStatus(state: .connected, rssi: -55),
+            connection: .wifi,
+            volume: snapshot.volume
+        )
+        let recoveredOutput = IconCompositionResolver.resolve(
+            inputs: IconResolutionInputs(
+                system: IconPresentationInputs(snapshot: recovered, audioIcon: nil),
+                sources: .empty
+            ),
+            configuration: overrideConfiguration
+        )
+        XCTAssertNil(recoveredOutput.scene.center, "A healthy network restores the configured none centre")
+        let recoveredMenu = try menuBarPixels(scene: recoveredOutput.scene, foreground: foreground, size: 28, scale: 2)
+        XCTAssertTrue(
+            recoveredMenu.bytes.elementsEqual(baseMenu.bytes),
+            "Recovery must return to the exact pre-override menu-bar pixels"
+        )
+        let recoveredDock = try cgPixels(from: XCTUnwrap(DockIconRenderer.image(
+            scene: recoveredOutput.scene, backgroundStyle: .dark, pixelLength: 256
+        )))
+        XCTAssertTrue(
+            recoveredDock.bytes.elementsEqual(baseDock.bytes),
+            "Recovery must return to the exact pre-override Dock pixels"
+        )
     }
 
     func testOrdinarySceneKeepsIndependentCanvasAndRegionConventions() throws {
@@ -858,6 +1159,31 @@ final class IconSceneRendererParityTests: XCTestCase {
         )))
     }
 
+    private func composite(
+        base: CGImage,
+        overlay: CGImage,
+        environment: StatusIconRenderEnvironment
+    ) throws -> CGImage {
+        let pixelLength = Int((environment.size * environment.scale).rounded(.up))
+        let context = try XCTUnwrap(CGContext(
+            data: nil,
+            width: pixelLength,
+            height: pixelLength,
+            bitsPerComponent: 8,
+            bytesPerRow: pixelLength * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        let rect = CGRect(x: 0, y: 0, width: pixelLength, height: pixelLength)
+        context.draw(base, in: rect)
+        context.draw(overlay, in: rect)
+        return try XCTUnwrap(context.makeImage())
+    }
+
+    private func maximumChannelDelta(_ lhs: [UInt8], _ rhs: [UInt8]) -> Int {
+        zip(lhs, rhs).reduce(0) { max($0, abs(Int($1.0) - Int($1.1))) }
+    }
+
     private func cgPixels(from image: NSImage) throws -> PixelBuffer {
         try PixelBuffer(image: XCTUnwrap(XCTUnwrap(image.representations.first as? NSBitmapImageRep).cgImage))
     }
@@ -899,6 +1225,60 @@ final class IconSceneRendererParityTests: XCTestCase {
         return (minY..<maxY).reduce(0) { row, y in
             row + (minX..<maxX).reduce(0) { row, x in
                 row + Int(pixels.rgba(x: x, y: y).alpha)
+            }
+        }
+    }
+
+    private func changedPixelCount(
+        _ lhs: PixelBuffer,
+        _ rhs: PixelBuffer,
+        inSVGRect rect: CGRect,
+        size: CGFloat,
+        scale: CGFloat
+    ) -> Int {
+        let factor = size * scale / StatusIconGeometry.canvas.width
+        let minX = max(0, Int((rect.minX * factor).rounded(.down)))
+        let maxX = min(lhs.width, Int((rect.maxX * factor).rounded(.up)))
+        let minY = max(0, Int((rect.minY * factor).rounded(.down)))
+        let maxY = min(lhs.height, Int((rect.maxY * factor).rounded(.up)))
+        guard lhs.width == rhs.width, lhs.height == rhs.height, minX < maxX, minY < maxY else { return 0 }
+        return (minY..<maxY).reduce(0) { count, y in
+            count + (minX..<maxX).reduce(0) { rowCount, x in
+                let left = lhs.rgba(x: x, y: y)
+                let right = rhs.rgba(x: x, y: y)
+                return rowCount + (left.red == right.red && left.green == right.green
+                    && left.blue == right.blue && left.alpha == right.alpha ? 0 : 1)
+            }
+        }
+    }
+
+    private func scaledPixelRect(_ rect: CGRect, size: CGFloat, scale: CGFloat) -> CGRect {
+        rect.applying(CGAffineTransform(
+            scaleX: size * scale / StatusIconGeometry.canvas.width,
+            y: size * scale / StatusIconGeometry.canvas.height
+        ))
+    }
+
+    private func changedPixels(
+        _ lhs: PixelBuffer,
+        _ rhs: PixelBuffer,
+        inSVGRect rect: CGRect,
+        size: CGFloat,
+        scale: CGFloat
+    ) -> [(x: Int, y: Int)] {
+        let factor = size * scale / StatusIconGeometry.canvas.width
+        let minX = max(0, Int((rect.minX * factor).rounded(.down)))
+        let maxX = min(lhs.width, Int((rect.maxX * factor).rounded(.up)))
+        let minY = max(0, Int((rect.minY * factor).rounded(.down)))
+        let maxY = min(lhs.height, Int((rect.maxY * factor).rounded(.up)))
+        guard lhs.width == rhs.width, lhs.height == rhs.height, minX < maxX, minY < maxY else { return [] }
+        return (minY..<maxY).flatMap { y in
+            (minX..<maxX).compactMap { x in
+                let left = lhs.rgba(x: x, y: y)
+                let right = rhs.rgba(x: x, y: y)
+                guard left.red != right.red || left.green != right.green
+                    || left.blue != right.blue || left.alpha != right.alpha else { return nil }
+                return (x: x, y: y)
             }
         }
     }

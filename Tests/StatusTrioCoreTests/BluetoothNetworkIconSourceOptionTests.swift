@@ -124,6 +124,62 @@ struct BluetoothNetworkIconSourceOptionTests {
         )
     }
 
+    // MARK: - Merged centre glyph picker
+
+    private static let productChoices: [BluetoothAudioIconChoice] = [.automatic, .airpods, .airpodsPro, .beatsPill, .homePod]
+
+    @Test func glyphOptionsLeadWithTheFullProductSymbolSet() {
+        let options = BluetoothNetworkIconSourceOption.glyphOptions(
+            devices: [], order: [], audioChoices: Self.productChoices
+        )
+        let symbols = options.map(\.symbolName)
+
+        // Automatic carries no symbol; every product glyph is present, then the
+        // featured current-audio-output glyph, which is a device type too.
+        #expect(symbols == ["airpods", "airpods.pro", "beats.pill", "homepod", "airpodspro"])
+        let productSymbols = options.filter { $0.choice != nil }.map(\.symbolName)
+        #expect(productSymbols == ["airpods", "airpods.pro", "beats.pill", "homepod"],
+                "product rows keep their choice for localization")
+        #expect(symbols.first == "airpods", "the full product set leads, not the featured audio glyph")
+    }
+
+    @Test func glyphOptionsMergeDeviceTypesWithoutDuplicatingSymbols() {
+        let airPods = device("AirPods Pro", kind: .audio, isConnected: true, id: "AA:BB:CC:DD:EE:01")
+        let keyboard = device("MX Keys", kind: .peripheral(.keyboard), isConnected: false, id: "AA:BB:CC:DD:EE:02")
+        let options = BluetoothNetworkIconSourceOption.glyphOptions(
+            devices: [airPods, keyboard], order: [], audioChoices: Self.productChoices
+        )
+        let symbols = options.map(\.symbolName)
+
+        #expect(Set(symbols).count == symbols.count, "no glyph may appear twice: \(symbols)")
+        #expect(symbols.contains("keyboard"), "the device-type glyph stays reachable in the merged picker")
+        #expect(options.contains { $0.title == "MX Keys" && $0.symbolName == "keyboard" })
+    }
+
+    @Test func glyphOptionsKeepASavedUnsupportedSymbolSelectable() {
+        let options = BluetoothNetworkIconSourceOption.glyphOptions(
+            devices: [], order: [], audioChoices: Self.productChoices,
+            savedSymbol: "future.symbol.from.a.later.os"
+        )
+
+        let saved = options.last
+        #expect(saved?.symbolName == "future.symbol.from.a.later.os")
+        #expect(saved?.isSavedUnsupportedSymbol == true)
+        #expect(saved?.title == nil)
+    }
+
+    @Test func glyphOptionsDoNotRelabelADeviceAsASavedUnsupportedSymbol() {
+        let keyboard = device("MX Keys", kind: .peripheral(.keyboard), isConnected: false, id: "AA:BB:CC:DD:EE:03")
+        let options = BluetoothNetworkIconSourceOption.glyphOptions(
+            devices: [keyboard], order: [], audioChoices: [.automatic], savedSymbol: "keyboard"
+        )
+
+        let row = try? #require(options.first { $0.symbolName == "keyboard" })
+        #expect(row?.title == "MX Keys")
+        #expect(row?.isSavedUnsupportedSymbol == false)
+        #expect(options.filter { $0.symbolName == "keyboard" }.count == 1)
+    }
+
     private func device(
         _ name: String,
         kind: BluetoothDeviceKind,

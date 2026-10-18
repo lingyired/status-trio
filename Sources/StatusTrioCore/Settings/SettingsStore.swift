@@ -1017,6 +1017,7 @@ final class SettingsStore: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let legacyConfiguration = IconConfigurationMigration.legacyConfiguration(defaults: defaults)
+        let legacyCenterPreferences = IconConfigurationMigration.LegacyCenterPreferences.read(from: defaults)
         let storedConfiguration = defaults.data(forKey: Self.iconConfigurationDefaultsKey)
         let migratedConfiguration = IconConfigurationMigration.makeConfiguration(from: legacyConfiguration)
         let resolvedConfiguration: IconConfigurationV1
@@ -1024,20 +1025,36 @@ final class SettingsStore: ObservableObject {
         let shouldPersistConfiguration: Bool
         if let storedConfiguration {
             do {
-                resolvedConfiguration = try IconConfigurationCodec.decode(storedConfiguration)
+                resolvedConfiguration = IconConfigurationMigration.applyingCenterCompatibility(
+                    legacyCenterPreferences,
+                    to: try IconConfigurationCodec.decode(storedConfiguration),
+                    hadStoredV1: true
+                )
                 configurationError = nil
                 shouldPersistConfiguration = true
             } catch let error as IconConfigurationCodecError {
-                resolvedConfiguration = migratedConfiguration
+                resolvedConfiguration = IconConfigurationMigration.applyingCenterCompatibility(
+                    legacyCenterPreferences,
+                    to: migratedConfiguration,
+                    hadStoredV1: false
+                )
                 configurationError = error
                 shouldPersistConfiguration = false
             } catch {
-                resolvedConfiguration = migratedConfiguration
+                resolvedConfiguration = IconConfigurationMigration.applyingCenterCompatibility(
+                    legacyCenterPreferences,
+                    to: migratedConfiguration,
+                    hadStoredV1: false
+                )
                 configurationError = .malformedData
                 shouldPersistConfiguration = false
             }
         } else {
-            resolvedConfiguration = migratedConfiguration
+            resolvedConfiguration = IconConfigurationMigration.applyingCenterCompatibility(
+                legacyCenterPreferences,
+                to: migratedConfiguration,
+                hadStoredV1: false
+            )
             configurationError = nil
             shouldPersistConfiguration = true
         }

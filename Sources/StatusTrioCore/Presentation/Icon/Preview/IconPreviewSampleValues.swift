@@ -11,6 +11,7 @@ enum IconPreviewSampleSource: Hashable, Sendable {
     case network
     case bluetoothTarget
     case systemVolume
+    case inputSource
 }
 
 enum IconPreviewEar: Sendable {
@@ -56,12 +57,18 @@ struct VolumePreviewSample: Equatable, Sendable {
     var isAvailable = true
 }
 
+struct InputSourcePreviewSample: Equatable, Sendable {
+    var isAvailable = true
+    var shortLabel = "A"
+}
+
 struct IconPreviewSampleValues: Equatable, Sendable {
     var macBattery = MacBatteryPreviewSample()
     var airPods = CustomAirPodsPreviewSample()
     var network = NetworkPreviewSample()
     var bluetoothTarget = BluetoothTargetPreviewSample()
     var systemVolume = VolumePreviewSample()
+    var inputSource = InputSourcePreviewSample()
 }
 
 

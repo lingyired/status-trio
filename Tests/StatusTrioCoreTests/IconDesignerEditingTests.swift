@@ -82,6 +82,51 @@ final class IconDesignerEditingTests: XCTestCase {
         XCTAssertEqual(configuration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride, "headphones")
     }
 
+    @MainActor
+    func testUnifiedBluetoothGlyphAutomationRestoresTrueAutoDetection() throws {
+        let suiteName = "StatusTrioCoreTests.IconDesignerEditing.BluetoothGlyph.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { TestUserDefaults.removeSuite(named: suiteName) }
+        let store = SettingsStore(defaults: defaults)
+        let model = IconDesignerEditorModel(store: store)
+        store.updateIconConfiguration { $0.composition.center.primary = .bluetoothAudioOutput }
+        store.bluetoothAudioIconChoice = .airpods
+        store.updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = "headphones" }
+        let editingModel = IconDesignerEditorModel(store: store)
+
+        editingModel.perform {
+            store.updateIconConfiguration { configuration in
+                _ = IconDesignerEditingModel.setBluetoothSymbolOverride(
+                    nil, for: .primary, in: &configuration,
+                    bluetoothTarget: .currentAudioOutput, devices: []
+                )
+            }
+            store.bluetoothAudioIconChoice = .automatic
+        }
+
+        XCTAssertNil(store.iconConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride)
+        XCTAssertEqual(store.bluetoothAudioIconChoice, .automatic)
+
+        editingModel.undo()
+        XCTAssertEqual(store.iconConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride, "headphones")
+        XCTAssertEqual(store.bluetoothAudioIconChoice, .airpods)
+        _ = model
+    }
+
+    func testNonAudioBluetoothTargetDoesNotExposeVolumeColor() {
+        let keyboard = BluetoothDevice(
+            id: "11:22:33:44:55:66", name: "Keyboard", kind: .peripheral(.keyboard), isConnected: true
+        )
+        let target = IconDesignerBluetoothTarget.connectedDevice(address: keyboard.id)
+
+        let capabilities = IconDesignerEditingModel.behaviors(
+            for: .center, source: .center(.connectedBluetoothDevice),
+            bluetoothTarget: target, devices: [keyboard]
+        )
+
+        XCTAssertFalse(capabilities.contains(.bluetoothOutputAppearance))
+    }
+
     func testSpecifiedOnlineAudioTargetAllowsBluetoothSymbolAndNetworkOverride() {
         let airPods = BluetoothDevice(
             id: "AA:BB:CC:DD:EE:FF", name: "AirPods", kind: .audio, isConnected: true

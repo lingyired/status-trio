@@ -113,6 +113,8 @@ final class IconDesignerPreviewSession: ObservableObject {
         let centerSources = [configuration.composition.center.primary, configuration.composition.center.fallback].compactMap { $0 }
         for source in centerSources {
             switch source {
+            case .inputSource:
+                used.insert(.inputSource)
             case .network:
                 used.insert(.network)
             case .systemBatteryPercentage:
@@ -124,12 +126,11 @@ final class IconDesignerPreviewSession: ObservableObject {
             }
         }
 
-        // CenterResolver can replace a Bluetooth audio primary with the
-        // network-error scene without declaring `.network` as either the
-        // primary or fallback source. Keep that implicit resolver dependency
-        // visible in the simulated-data editor as well.
-        if configuration.composition.center.primary == .bluetoothAudioOutput,
-           configuration.composition.centerOverride.networkProblemOverridesPrimary {
+        // The global network-failure rule can replace ANY centre source
+        // (input method, battery, Bluetooth, network, legacy and none) with the
+        // network scene, so the simulated-data editor always keeps the network
+        // sample reachable while it is on.
+        if configuration.composition.centerOverride.networkProblemOverridesPrimary {
             used.insert(.network)
         }
 

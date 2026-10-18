@@ -6,6 +6,7 @@ enum OuterRingResolver {
         configuration: IconConfigurationV1,
         legacy: IconPresentationConfiguration,
         behavior: AirPodsRingBehavior = .single,
+        showsAirPodsTopSymbol: Bool = false,
         now: Date = .now
     ) -> (state: OuterRingState?, trace: SlotResolutionTrace) {
         let selection = configuration.composition.outerRing
@@ -35,7 +36,8 @@ enum OuterRingResolver {
             let ring = inputs.sources.airPodsBattery.flatMap {
                 AirPodsRingMapper.resolve(
                     snapshot: $0, behavior: behavior, now: now,
-                    isHeld: inputs.sources.holdingSourceIDs.contains(source.rawValue)
+                    isHeld: inputs.sources.holdingSourceIDs.contains(source.rawValue),
+                    showsTopSymbol: showsAirPodsTopSymbol
                 )
             }
             return (ring, trace(selected, source: source))

@@ -495,6 +495,7 @@
 "icon.designer.source.systemBattery" = "Аккумулятор Mac";
 "icon.designer.source.airPodsBattery" = "Аккумулятор AirPods";
 "icon.designer.source.network" = "Сеть";
+"icon.designer.source.inputSource" = "Источник ввода";
 "icon.designer.source.bluetoothAudio" = "Аудиовыход Bluetooth";
 "icon.designer.source.pinnedBluetooth" = "Закреплённый значок Bluetooth";
 "icon.designer.source.connectedBluetooth" = "Подключённое устройство Bluetooth";
@@ -535,6 +536,7 @@
 "iconDesigner.control.textScale" = "Размер верхнего индикатора заряда";
 "iconDesigner.control.textScale.help" = "Настраивает размер значения заряда в верхней части внешнего кольца, значка молнии при зарядке и значка вилки.";
 "iconDesigner.control.noEditableBehavior" = "Для этого источника пока нет настраиваемого поведения.";
+"iconDesigner.control.inputSourceBehavior" = "Отображается как значок текущего источника ввода, затем его краткая метка, затем символ клавиатуры.";
 "iconDesigner.control.wifiForEthernet" = "Символ Wi-Fi для Ethernet";
 "iconDesigner.control.wifiForHotspot" = "Символ Wi-Fi для точки доступа";
 "iconDesigner.control.wifiForTemporaryConnection" = "Символ Wi-Fi для временного подключения";
@@ -545,7 +547,8 @@
 "iconDesigner.control.prioritizeNetworkErrors" = "Приоритет сетевых ошибок";
 "iconDesigner.control.useVolumeColor" = "Использовать цвет громкости";
 "iconDesigner.control.bluetoothSymbolScale" = "Масштаб символа Bluetooth";
-"iconDesigner.control.networkProblemsOverrideBluetooth" = "Сетевые проблемы важнее Bluetooth";
+"iconDesigner.control.networkProblemsOverride" = "Показывать значок сети при сбое сети";
+"iconDesigner.control.networkProblemsOverride.help" = "При сбое сети в центре показывается значок сети вместо выбранного источника. После восстановления сети возвращается исходный значок.";
 "iconDesigner.control.bluetoothSymbol" = "Символ Bluetooth";
 "iconDesigner.control.automatic" = "Автоматически";
 "iconDesigner.control.colorStyle" = "Стиль цвета";
@@ -630,6 +633,9 @@
 "iconPreviewData.bluetoothTargetAudio" = "Целевое устройство — аудиоустройство";
 "iconPreviewData.bluetoothSampleSymbol" = "Пример значка устройства";
 "iconPreviewData.volumeAvailable" = "Данные громкости доступны";
+"iconPreviewData.inputSource.available" = "Источник ввода доступен";
+"iconPreviewData.inputSource.shortLabel" = "Пример краткой метки";
+"iconPreviewData.inputSource.liveNotice" = "Актуальный источник ввода берётся из macOS; смоделированные значения никогда не меняют реальный источник ввода.";
 "icon.designer.undo" = "Отменить";
 "icon.designer.externalChangeNotice" = "История отмены очищена: настройки значка изменились в другом месте.";
 "iconPreviewData.useLiveData" = "Использовать актуальные данные";
@@ -637,6 +643,7 @@
 
 /* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "Значок сети";
+"iconDesigner.centerColorMeaning.inputSource" = "Значок источника ввода";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi: 0 делений";
 "iconDesigner.centerColorMeaning.bluetoothGlyph" = "Значок Bluetooth";
 "iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "Громкость выше нуля";
@@ -650,6 +657,7 @@
 
 "iconDesigner.centerColor.rolePicker" = "Цвет применяется к";
 "iconDesigner.centerColorHelp.networkPrimary" = "Для обычного значка сети: Wi-Fi выключен, не подключён, без интернета или проводное подключение.";
+"iconDesigner.centerColorHelp.inputSource" = "Для значка или краткой метки текущего источника ввода, когда он отображается в центре.";
 "iconDesigner.centerColorHelp.wifiZeroBars" = "Для подключённого Wi-Fi без делений сигнала. Также используется, если уровень сигнала недоступен.";
 "iconDesigner.centerColorHelp.bluetoothGlyph" = "Всегда используется для значка Bluetooth независимо от громкости.";
 "iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "При включённой смене цвета по громкости, если звук не выключен и громкость выше нуля.";
@@ -658,3 +666,4 @@
 "iconDesigner.centerColorHelp.legacyPrimary" = "Для обычного значка сети или процента заряда Mac в старом центральном оформлении.";
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "Для подключённого Wi-Fi без делений сигнала в старом центральном оформлении.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "Для значка Bluetooth в старом центральном оформлении.";
+"icon.designer.airPods.showTopSymbol" = "Показывать значок AirPods сверху";

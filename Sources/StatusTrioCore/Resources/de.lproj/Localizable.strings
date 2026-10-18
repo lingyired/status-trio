@@ -495,6 +495,7 @@
 "icon.designer.source.systemBattery" = "Mac-Batterie";
 "icon.designer.source.airPodsBattery" = "AirPods-Batterie";
 "icon.designer.source.network" = "Netzwerk";
+"icon.designer.source.inputSource" = "Eingabequelle";
 "icon.designer.source.bluetoothAudio" = "Bluetooth-Audioausgabe";
 "icon.designer.source.pinnedBluetooth" = "Fixiertes Bluetooth-Symbol";
 "icon.designer.source.connectedBluetooth" = "Verbundenes Bluetooth-Gerät";
@@ -535,6 +536,7 @@
 "iconDesigner.control.textScale" = "Größe der oberen Batterieanzeige";
 "iconDesigner.control.textScale.help" = "Passt die Größe der Akkuanzeige oben am Außenring, des Ladeblitzes und des Steckers an.";
 "iconDesigner.control.noEditableBehavior" = "Für diese Quelle ist noch kein Verhalten bearbeitbar.";
+"iconDesigner.control.inputSourceBehavior" = "Wird als Symbol der aktuellen Eingabequelle, dann als Kurzbezeichnung und dann als Tastatursymbol gezeichnet.";
 "iconDesigner.control.wifiForEthernet" = "WLAN-Symbol für Ethernet";
 "iconDesigner.control.wifiForHotspot" = "WLAN-Symbol für Hotspot";
 "iconDesigner.control.wifiForTemporaryConnection" = "WLAN-Symbol für temporäre Verbindung";
@@ -545,7 +547,8 @@
 "iconDesigner.control.prioritizeNetworkErrors" = "Netzwerkfehler priorisieren";
 "iconDesigner.control.useVolumeColor" = "Lautstärkefarbe verwenden";
 "iconDesigner.control.bluetoothSymbolScale" = "Bluetooth-Symbolgröße";
-"iconDesigner.control.networkProblemsOverrideBluetooth" = "Netzwerkprobleme haben Vorrang vor Bluetooth";
+"iconDesigner.control.networkProblemsOverride" = "Netzwerksymbol bei Netzwerkausfall bevorzugen";
+"iconDesigner.control.networkProblemsOverride.help" = "Bei einem Netzwerkausfall zeigt die Mitte das Netzwerksymbol statt der gewählten Quelle. Nach der Wiederherstellung erscheint wieder das ursprüngliche Symbol.";
 "iconDesigner.control.bluetoothSymbol" = "Bluetooth-Symbol";
 "iconDesigner.control.automatic" = "Automatisch";
 "iconDesigner.control.colorStyle" = "Farbstil";
@@ -630,6 +633,9 @@
 "iconPreviewData.bluetoothTargetAudio" = "Ziel ist ein Audiogerät";
 "iconPreviewData.bluetoothSampleSymbol" = "Beispielsymbol des Geräts";
 "iconPreviewData.volumeAvailable" = "Lautstärkedaten verfügbar";
+"iconPreviewData.inputSource.available" = "Eingabequelle verfügbar";
+"iconPreviewData.inputSource.shortLabel" = "Kurzes Beispielkürzel";
+"iconPreviewData.inputSource.liveNotice" = "Die Live-Eingabequelle kommt von macOS; simulierte Werte ändern die echte Eingabequelle nie.";
 "icon.designer.undo" = "Widerrufen";
 "icon.designer.externalChangeNotice" = "Der Verlauf wurde gelöscht, weil die Symboleinstellungen an anderer Stelle geändert wurden.";
 "iconPreviewData.useLiveData" = "Live-Daten verwenden";
@@ -637,6 +643,7 @@
 
 /* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "Netzwerksymbol";
+"iconDesigner.centerColorMeaning.inputSource" = "Eingabequellen-Symbol";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "WLAN-Signal mit 0 Balken";
 "iconDesigner.centerColorMeaning.bluetoothGlyph" = "Bluetooth-Symbol";
 "iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "Lautstärke über null";
@@ -650,6 +657,7 @@
 
 "iconDesigner.centerColor.rolePicker" = "Farbe gilt für";
 "iconDesigner.centerColorHelp.networkPrimary" = "Für das übliche Netzwerksymbol, etwa bei ausgeschaltetem WLAN, ohne Verbindung, ohne Internet oder bei einer Kabelverbindung.";
+"iconDesigner.centerColorHelp.inputSource" = "Für Symbol oder Kurzbezeichnung der aktuellen Eingabequelle, wenn sie in der Mitte gezeichnet wird.";
 "iconDesigner.centerColorHelp.wifiZeroBars" = "Für verbundenes WLAN ohne Signalbalken. Wird auch verwendet, wenn die Signalstärke nicht verfügbar ist.";
 "iconDesigner.centerColorHelp.bluetoothGlyph" = "Wird immer für das Bluetooth-Symbol verwendet, unabhängig von der Lautstärke.";
 "iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "Bei aktivierter Lautstärkefarbe, wenn der Ton nicht stummgeschaltet und die Lautstärke größer als null ist.";
@@ -658,3 +666,4 @@
 "iconDesigner.centerColorHelp.legacyPrimary" = "Für das übliche Netzwerksymbol oder den Mac-Batteriestand im alten Zentrum.";
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "Für verbundenes WLAN ohne Signalbalken im alten Zentrum.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "Für das Bluetooth-Symbol im alten Zentrum.";
+"icon.designer.airPods.showTopSymbol" = "AirPods-Symbol oben anzeigen";

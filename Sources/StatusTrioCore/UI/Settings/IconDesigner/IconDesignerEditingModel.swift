@@ -89,7 +89,7 @@ enum IconDesignerEditingModel {
         switch source {
         case .systemBatteryPercentage:
             return min(6, max(0.5, configuration.behaviors.systemBatteryRing.textScale * legacyAppearanceFactor))
-        case .network:
+        case .network, .inputSource:
             return min(6, max(0.5, configuration.legacyPresentationConfiguration.connection.wifiScale * legacyAppearanceFactor))
         case .bluetoothAudioOutput, .connectedBluetoothDevice, .pinnedBluetoothGlyph:
             return min(6, max(0.5, configuration.behaviors.bluetoothAudioCenter.symbolScale * legacyAppearanceFactor))
@@ -107,7 +107,7 @@ enum IconDesignerEditingModel {
         if let normalized = configuration.appearance.center.normalizedSizePercentage { return normalized }
         let legacyScale = effectiveCenterScale(for: source, in: configuration)
         switch source {
-        case .network:
+        case .network, .inputSource:
             if let legacyPercentage = configuration.appearance.center.normalizedPercentageScale { return legacyPercentage }
             return legacyScale / wifiScaleForCommonPercentageSize
         case .systemBatteryPercentage:
@@ -156,6 +156,11 @@ enum IconDesignerEditingModel {
     static func requiresAirPodsBattery(in configuration: IconConfigurationV1) -> Bool {
         configuration.composition.outerRing.primary == .airPodsBattery
             || configuration.composition.outerRing.fallback == .airPodsBattery
+    }
+
+    static func requiresInputSource(in configuration: IconConfigurationV1) -> Bool {
+        let selection = configuration.composition.center
+        return selection.primary == .inputSource || selection.fallback == .inputSource
     }
 
     static func applyingAirPodsFocus(to configuration: IconConfigurationV1) -> IconConfigurationV1 {

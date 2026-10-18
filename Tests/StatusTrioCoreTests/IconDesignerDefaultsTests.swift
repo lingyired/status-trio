@@ -10,6 +10,7 @@ final class IconDesignerDefaultsTests: XCTestCase {
         XCTAssertEqual(value.composition.center.primary, .network)
         XCTAssertEqual(value.composition.footer.primary, .systemVolume)
         XCTAssertEqual(value.behaviors.airPodsRing, .dual)
+        XCTAssertFalse(value.behaviors.showsAirPodsTopSymbol)
         XCTAssertNil(value.composition.outerRing.fallback)
         XCTAssertNil(value.composition.center.fallback)
         XCTAssertNil(value.composition.footer.fallback)
@@ -62,6 +63,15 @@ final class IconDesignerDefaultsTests: XCTestCase {
         XCTAssertEqual(reset.behaviors.airPodsRing, .dual)
     }
 
+    func testResetOuterRingRestoresAirPodsTopSymbolToOff() {
+        var value = IconDesignerDefaults.configuration()
+        value.behaviors.showsAirPodsTopSymbol = true
+
+        let reset = IconDesignerDefaults.resetting(.outerRing, in: value)
+
+        XCTAssertFalse(reset.behaviors.showsAirPodsTopSymbol)
+    }
+
     func testChoosingAirPodsSourcePreservesAnExplicitSingleRingChoice() {
         var value = IconDesignerDefaults.configuration()
         value.behaviors.airPodsRing = .single
@@ -99,13 +109,43 @@ final class IconDesignerDefaultsTests: XCTestCase {
         value.composition.outerRing = SlotSelection(primary: .automaticLegacy)
         value.composition.center = SlotSelection(primary: .automaticLegacy)
 
+        // The explicit input-source centre source joined the offered list; the
+        // legacy sources still stay preserved-but-unoffered below.
         XCTAssertEqual(IconDesignerSourceSelection.centerChoices,
-                       [.network, .bluetoothDevice, .macBatteryPercentage, .none])
+                       [.inputSource, .network, .bluetoothDevice, .macBatteryPercentage, .none])
         XCTAssertNil(IconDesignerSourceSelection.choice(for: .automaticLegacy))
+        XCTAssertNil(IconDesignerSourceSelection.choice(for: .pinnedBluetoothGlyph))
+        XCTAssertEqual(IconDesignerSourceSelection.centerChoices.count, 5,
+                       "Only the real centre sources are offered; the legacy sources stay off the list.")
         XCTAssertFalse(IconDesignerEditingModel.currentSource(for: .center, in: value).isSelectable)
         XCTAssertTrue(IconDesignerEditingModel.currentSource(for: .center, in: value).isLegacy)
         XCTAssertEqual(value.composition.center.primary, .automaticLegacy)
         XCTAssertEqual(value.composition.outerRing.primary, .automaticLegacy)
+    }
+
+    /// The slot selector's accessibility value and the source editor's label
+    /// both read the shared raw-id → label map. A newly added centre source
+    /// (here `.inputSource`) must resolve to its own name, never fall through to
+    /// the "None" label the user saw in the GUI.
+    func testEverySelectableCenterSourceMapsToItsOwnLocalizedName() throws {
+        for source in CenterSource.allCases {
+            let key = IconDesignerSourceSelection.localizationKey(forRawSourceID: source.rawValue)
+            let resolved = try XCTUnwrap(key, "\(source.rawValue) must have a localized name")
+            if source != .none {
+                XCTAssertNotEqual(resolved, .iconDesignerSourceNone,
+                                  "\(source.rawValue) must not be labeled as None")
+            }
+        }
+        let keys = CenterSource.allCases.map {
+            IconDesignerSourceSelection.localizationKey(forRawSourceID: $0.rawValue)?.rawValue
+        }
+        XCTAssertEqual(Set(keys.compactMap { $0 }).count, CenterSource.allCases.count,
+                       "each centre source needs its own label: \(keys)")
+        XCTAssertEqual(
+            IconDesignerSourceSelection.localizationKey(forRawSourceID: CenterSource.inputSource.rawValue),
+            .iconDesignerSourceInputSource
+        )
+        XCTAssertNil(IconDesignerSourceSelection.localizationKey(forRawSourceID: "notARealSource"))
     }
 
     @MainActor

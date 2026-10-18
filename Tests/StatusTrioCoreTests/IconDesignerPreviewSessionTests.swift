@@ -129,6 +129,50 @@ struct IconDesignerPreviewSessionTests {
 
         #expect(used == [.bluetoothTarget, .network])
     }
+
+    @Test func inputSourceSampleIsUsedForAnInputSourceCentre() {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.outerRing = SlotSelection(primary: .none)
+        configuration.composition.center = SlotSelection(primary: .inputSource)
+        configuration.composition.footer = SlotSelection(primary: .none)
+
+        let used = IconDesignerPreviewSession.usedSources(
+            configuration: configuration,
+            target: .currentAudioOutput,
+            devices: []
+        )
+
+        #expect(used == [.inputSource])
+    }
+
+    @Test func globalNetworkOverrideKeepsNetworkSampleReachableForEveryCentreSource() {
+        for primary in CenterSource.allCases {
+            var configuration = IconConfigurationV1.classic
+            configuration.composition.outerRing = SlotSelection(primary: .none)
+            configuration.composition.center = SlotSelection(primary: primary)
+            configuration.composition.centerOverride.networkProblemOverridesPrimary = true
+            configuration.composition.footer = SlotSelection(primary: .none)
+
+            let used = IconDesignerPreviewSession.usedSources(
+                configuration: configuration,
+                target: .currentAudioOutput,
+                devices: []
+            )
+
+            #expect(used.contains(.network), "Global rule must expose the network sample for \(primary)")
+        }
+    }
+
+    @Test func switchingUsedSourcesHidesButKeepsSampleValues() {
+        let session = IconDesignerPreviewSession()
+        session.setMacBatteryPercentage(41)
+        session.updateSamples { $0.inputSource.shortLabel = "拼" }
+        session.updateSamples { $0.inputSource.isAvailable = false }
+
+        #expect(session.samples.macBattery.percentage == 41)
+        #expect(session.samples.inputSource.shortLabel == "拼")
+        #expect(!session.samples.inputSource.isAvailable)
+    }
 }
 
 @Suite("Icon preview live data gating")

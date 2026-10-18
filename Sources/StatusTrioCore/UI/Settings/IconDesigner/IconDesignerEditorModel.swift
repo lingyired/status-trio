@@ -21,7 +21,8 @@ final class IconDesignerEditorModel: ObservableObject {
             store.$airPodsIconDeviceAddress.map { _ in () }.eraseToAnyPublisher(),
             store.$connectedBluetoothIconDeviceAddress.map { _ in () }.eraseToAnyPublisher(),
             store.$bluetoothNetworkIconDeviceAddress.map { _ in () }.eraseToAnyPublisher(),
-            store.$refreshesAirPodsBatteryForIcon.map { _ in () }.eraseToAnyPublisher()
+            store.$refreshesAirPodsBatteryForIcon.map { _ in () }.eraseToAnyPublisher(),
+            store.$bluetoothAudioIconChoiceRawValue.map { _ in () }.eraseToAnyPublisher()
         )
         cancellable = relevantChanges.dropFirst().sink { [weak self] _ in
             guard let self, !self.isPerformingTransaction else { return }
@@ -82,6 +83,7 @@ final class IconDesignerEditorModel: ObservableObject {
         store.connectedBluetoothIconDeviceAddress = restored.connectedBluetoothAddress
         store.bluetoothNetworkIconDeviceAddress = restored.bluetoothNetworkAddress
         store.refreshesAirPodsBatteryForIcon = restored.refreshesAirPodsBatteryForIcon
+        store.bluetoothAudioIconChoice = restored.bluetoothAudioIconChoice
         isPerformingTransaction = false
         lastCoalescingKey = nil
         activeCoalescingKey = nil
@@ -98,6 +100,7 @@ final class IconDesignerEditorModel: ObservableObject {
             case .center:
                 store.connectedBluetoothIconDeviceAddress = nil
                 store.bluetoothNetworkIconDeviceAddress = nil
+                store.bluetoothAudioIconChoice = .automatic
             case .footer:
                 break
             }
@@ -111,6 +114,7 @@ final class IconDesignerEditorModel: ObservableObject {
             store.connectedBluetoothIconDeviceAddress = nil
             store.bluetoothNetworkIconDeviceAddress = nil
             store.refreshesAirPodsBatteryForIcon = false
+            store.bluetoothAudioIconChoice = .automatic
         }
     }
 
@@ -126,7 +130,8 @@ final class IconDesignerEditorModel: ObservableObject {
             airPodsAddress: store.airPodsIconDeviceAddress,
             connectedBluetoothAddress: store.connectedBluetoothIconDeviceAddress,
             bluetoothNetworkAddress: store.bluetoothNetworkIconDeviceAddress,
-            refreshesAirPodsBatteryForIcon: store.refreshesAirPodsBatteryForIcon
+            refreshesAirPodsBatteryForIcon: store.refreshesAirPodsBatteryForIcon,
+            bluetoothAudioIconChoice: store.bluetoothAudioIconChoice
         )
     }
 }

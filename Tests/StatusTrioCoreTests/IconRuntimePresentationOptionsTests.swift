@@ -8,7 +8,7 @@ final class IconRuntimePresentationOptionsTests: XCTestCase {
         let snapshot = Self.snapshot(percentage: 80)
         let descriptor = inputSource
         let runtimeOptions = Self.runtimeOptions
-        let configuration = Self.v1Configuration(center: .network)
+        let configuration = Self.v1Configuration(center: .inputSource)
         let snapshots = CurrentValueSubject<StatusSnapshot, Never>(snapshot)
         let inputSources = CurrentValueSubject<InputSourceDescriptor?, Never>(descriptor)
         let settings = IconPresentationSettings(
@@ -16,7 +16,6 @@ final class IconRuntimePresentationOptionsTests: XCTestCase {
             menuBarSize: 28,
             testsChargingEffect: false,
             designerConfiguration: configuration,
-            usesInputSourceInCenter: true,
             runtimeOptions: runtimeOptions
         )
         let model = IconPresentationViewModel(
@@ -52,14 +51,49 @@ final class IconRuntimePresentationOptionsTests: XCTestCase {
         for scene in [model.output.scene, preview.scene] {
             XCTAssertEqual(scene.outerRing?.segments.first?.progress, 1)
             guard case let .text(center)? = scene.center else {
-                return XCTFail("The V1 network center should draw the current input source")
+                return XCTFail("The explicit V1 input-source center should draw the current input source")
             }
             XCTAssertEqual(center.text, "E")
         }
     }
 
-    func testInputSourceFailureAndNetworkWarningsUseAutomaticNetworkFallback() {
-        let configuration = Self.v1Configuration(center: .network)
+    func testInputSourceCenterFallsBackToNetworkWhenDescriptorIsUnavailable() {
+        var configuration = Self.v1Configuration(center: .inputSource)
+        configuration.composition.center.fallback = .network
+        let runtimeOptions = Self.runtimeOptions
+        let available = IconResolutionInputs(
+            system: IconPresentationInputs(
+                snapshot: Self.snapshot(percentage: 80),
+                audioIcon: nil,
+                inputSource: inputSource,
+                runtimeOptions: runtimeOptions
+            ),
+            sources: .empty
+        )
+
+        let output = IconCompositionResolver.resolve(inputs: available, configuration: configuration)
+        XCTAssertEqual(output.scene.center, .text(IconTextState(text: "E", color: .primary, scale: 1)))
+
+        let fallbackInputs = IconResolutionInputs(
+            system: IconPresentationInputs(
+                snapshot: Self.snapshot(percentage: 80),
+                audioIcon: nil,
+                inputSource: nil,
+                runtimeOptions: runtimeOptions
+            ),
+            sources: .empty
+        )
+        let fallback = IconCompositionResolver.resolve(inputs: fallbackInputs, configuration: configuration)
+        XCTAssertNotEqual(fallback.scene.center, output.scene.center)
+        XCTAssertEqual(fallback.scene.center, IconPresentationMapper.scene(
+            inputs: fallbackInputs.system,
+            configuration: runtimeOptions.applying(to: configuration.compositionLegacyPresentationConfiguration)
+        ).center)
+    }
+
+    func testGlobalNetworkOverrideInV1ConfigurationReplacesInputSource() {
+        var configuration = Self.v1Configuration(center: .inputSource)
+        configuration.composition.centerOverride.networkProblemOverridesPrimary = true
         let runtimeOptions = Self.runtimeOptions
         let offline = Self.snapshot(percentage: 80, wifi: .noInternet)
         let inputs = IconResolutionInputs(
@@ -73,25 +107,42 @@ final class IconRuntimePresentationOptionsTests: XCTestCase {
         )
 
         let output = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration)
-
+        XCTAssertEqual(output.trace.center.reason, .overridden(.networkProblem))
         guard case let .symbol(center)? = output.scene.center else {
-            return XCTFail("A network warning must replace input source when priority is enabled")
+            return XCTFail("A network warning must replace the input source when the global policy is on")
         }
         XCTAssertEqual(center.source, .symbol(name: "wifi.exclamationmark", variableValue: 1, fallback: nil))
 
-        var unavailable = inputs
-        unavailable.system = IconPresentationInputs(
-            snapshot: Self.snapshot(percentage: 80),
-            audioIcon: nil,
-            inputSource: nil,
-            runtimeOptions: runtimeOptions
+        let recovered = IconResolutionInputs(
+            system: IconPresentationInputs(
+                snapshot: Self.snapshot(percentage: 80),
+                audioIcon: nil,
+                inputSource: inputSource,
+                runtimeOptions: runtimeOptions
+            ),
+            sources: .empty
         )
-        let fallback = IconCompositionResolver.resolve(inputs: unavailable, configuration: configuration)
-        XCTAssertNotEqual(fallback.scene.center, output.scene.center)
-        XCTAssertEqual(fallback.scene.center, IconPresentationMapper.scene(
-            inputs: unavailable.system,
-            configuration: runtimeOptions.applying(to: configuration.compositionLegacyPresentationConfiguration)
-        ).center)
+        let recoveredOutput = IconCompositionResolver.resolve(inputs: recovered, configuration: configuration)
+        XCTAssertEqual(recoveredOutput.scene.center, .text(IconTextState(text: "E", color: .primary, scale: 1)))
+    }
+
+    func testStaleRuntimeNetworkCentreNoLongerDrawsInputSource() {
+        let configuration = Self.v1Configuration(center: .network)
+        let runtimeOptions = Self.runtimeOptions
+        let inputs = IconResolutionInputs(
+            system: IconPresentationInputs(
+                snapshot: Self.snapshot(percentage: 80),
+                audioIcon: nil,
+                inputSource: inputSource,
+                runtimeOptions: runtimeOptions
+            ),
+            sources: .empty
+        )
+
+        let output = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration)
+
+        XCTAssertNotEqual(output.scene.center, .text(IconTextState(text: "E", color: .primary, scale: 1)))
+        XCTAssertEqual(output.trace.center.selectedSourceID, CenterSource.network.rawValue)
     }
 
     func testSupplementalInputSourceDoesNotReplaceOtherExplicitV1Centers() {

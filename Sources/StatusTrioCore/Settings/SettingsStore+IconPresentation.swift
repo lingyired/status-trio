@@ -17,7 +17,6 @@ extension SettingsStore {
                     menuBarSize: appearance.iconSize,
                     testsChargingEffect: testsChargingEffect,
                     designerConfiguration: configuration,
-                    usesInputSourceInCenter: runtimeOptions.connectionCenterSource == .inputSource,
                     runtimeOptions: runtimeOptions
                 )
             }

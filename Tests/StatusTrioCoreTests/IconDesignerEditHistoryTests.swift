@@ -53,6 +53,7 @@ final class IconDesignerEditHistoryTests: XCTestCase {
     private func snapshot() -> IconDesignerEditSnapshot {
         IconDesignerEditSnapshot(configuration: .classic, airPodsAddress: nil,
                                  connectedBluetoothAddress: nil, bluetoothNetworkAddress: nil,
-                                 refreshesAirPodsBatteryForIcon: false)
+                                 refreshesAirPodsBatteryForIcon: false,
+                                 bluetoothAudioIconChoice: .automatic)
     }
 }

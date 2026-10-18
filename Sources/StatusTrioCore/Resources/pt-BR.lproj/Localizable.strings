@@ -495,6 +495,7 @@
 "icon.designer.source.systemBattery" = "Bateria do Mac";
 "icon.designer.source.airPodsBattery" = "Bateria dos AirPods";
 "icon.designer.source.network" = "Rede";
+"icon.designer.source.inputSource" = "Fonte de entrada";
 "icon.designer.source.bluetoothAudio" = "Saída de áudio Bluetooth";
 "icon.designer.source.pinnedBluetooth" = "Glifo Bluetooth fixado";
 "icon.designer.source.connectedBluetooth" = "Dispositivo Bluetooth conectado";
@@ -535,6 +536,7 @@
 "iconDesigner.control.textScale" = "Tamanho do indicador de bateria superior";
 "iconDesigner.control.textScale.help" = "Ajusta o tamanho da porcentagem da bateria no topo do anel externo, do raio de carregamento e do plugue.";
 "iconDesigner.control.noEditableBehavior" = "Esta fonte ainda não tem comportamento editável.";
+"iconDesigner.control.inputSourceBehavior" = "É desenhado com o ícone da fonte de entrada atual, depois seu rótulo curto e, em seguida, um símbolo de teclado.";
 "iconDesigner.control.wifiForEthernet" = "Símbolo Wi-Fi para Ethernet";
 "iconDesigner.control.wifiForHotspot" = "Símbolo Wi-Fi para hotspot";
 "iconDesigner.control.wifiForTemporaryConnection" = "Símbolo Wi-Fi para conexão temporária";
@@ -545,7 +547,8 @@
 "iconDesigner.control.prioritizeNetworkErrors" = "Priorizar erros de rede";
 "iconDesigner.control.useVolumeColor" = "Usar cor do volume";
 "iconDesigner.control.bluetoothSymbolScale" = "Escala do símbolo Bluetooth";
-"iconDesigner.control.networkProblemsOverrideBluetooth" = "Problemas de rede têm prioridade sobre Bluetooth";
+"iconDesigner.control.networkProblemsOverride" = "Priorizar o ícone de rede quando a rede estiver indisponível";
+"iconDesigner.control.networkProblemsOverride.help" = "Quando a rede estiver indisponível, o centro mostra o ícone de rede em vez da fonte selecionada. O ícone original retorna assim que a rede se recupera.";
 "iconDesigner.control.bluetoothSymbol" = "Símbolo Bluetooth";
 "iconDesigner.control.automatic" = "Automático";
 "iconDesigner.control.colorStyle" = "Estilo de cor";
@@ -630,6 +633,9 @@
 "iconPreviewData.bluetoothTargetAudio" = "O destino é um dispositivo de áudio";
 "iconPreviewData.bluetoothSampleSymbol" = "Símbolo de exemplo do dispositivo";
 "iconPreviewData.volumeAvailable" = "Dados de volume disponíveis";
+"iconPreviewData.inputSource.available" = "Fonte de entrada disponível";
+"iconPreviewData.inputSource.shortLabel" = "Rótulo curto de exemplo";
+"iconPreviewData.inputSource.liveNotice" = "A fonte de entrada ao vivo vem do macOS; valores simulados nunca alteram a fonte de entrada real.";
 "icon.designer.undo" = "Desfazer";
 "icon.designer.externalChangeNotice" = "O histórico foi apagado porque os ajustes do ícone foram alterados em outro lugar.";
 "iconPreviewData.useLiveData" = "Usar dados em tempo real";
@@ -637,6 +643,7 @@
 
 /* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "Ícone de rede";
+"iconDesigner.centerColorMeaning.inputSource" = "Ícone da fonte de entrada";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi com 0 barras";
 "iconDesigner.centerColorMeaning.bluetoothGlyph" = "Ícone Bluetooth";
 "iconDesigner.centerColorMeaning.bluetoothVolumeAboveZero" = "Volume acima de zero";
@@ -650,6 +657,7 @@
 
 "iconDesigner.centerColor.rolePicker" = "A cor se aplica a";
 "iconDesigner.centerColorHelp.networkPrimary" = "Para o ícone de rede habitual, incluindo Wi-Fi desligado, sem conexão, sem internet e conexão com fio.";
+"iconDesigner.centerColorHelp.inputSource" = "Para o ícone ou rótulo curto da fonte de entrada atual quando o centro o desenha.";
 "iconDesigner.centerColorHelp.wifiZeroBars" = "Para Wi-Fi conectado sem barras de sinal. Também é usado quando não é possível obter a intensidade do sinal.";
 "iconDesigner.centerColorHelp.bluetoothGlyph" = "Sempre usado no ícone Bluetooth, independentemente do volume.";
 "iconDesigner.centerColorHelp.bluetoothVolumeAboveZero" = "Com a cor conforme o volume ativada, usado quando o áudio não está no mudo e o volume é maior que zero.";
@@ -658,3 +666,4 @@
 "iconDesigner.centerColorHelp.legacyPrimary" = "Para o ícone de rede habitual ou o percentual da bateria do Mac no centro clássico.";
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "Para Wi-Fi conectado sem barras de sinal no centro clássico.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "Para o ícone Bluetooth no centro clássico.";
+"icon.designer.airPods.showTopSymbol" = "Mostrar o ícone dos AirPods na parte superior";
