@@ -80,9 +80,8 @@
 #      `//` comments are stripped before the exemption is matched.
 #   5. Anything under Tests/. The scan walks `$ROOT/Sources` only, so a clean
 #      run says nothing about method references in the test target.
-# The CI preflight (AGENTS.md: `swift test`, `swift build -c release`, and a
-# non-publishing release workflow run), not this guard, is the authority for
-# compiler-level behaviour.
+# The test suite, Release build, and formal release CI are the authority for
+# compiler-level behaviour; this guard is only a source-shape heuristic.
 #
 # False-positive policy: the rule errs strict on purpose. Nonisolated methods
 # declared in this repo are flagged too — bare and dotted alike — so each one

@@ -147,7 +147,7 @@ appcast 改动。
 
 ## 失败记录规则
 
-每次 GitHub Actions 失败都必须追加到上表，至少包含：
+每次正式发布或经批准的诊断 GitHub Actions 失败都应追加到上表，至少包含：
 
 - workflow run ID
 - 失败阶段或 job
@@ -155,7 +155,8 @@ appcast 改动。
 - 修复方式
 - 后续 CI 预检验证结果
 
-不能只记录“重跑后通过”。如果不能确认根因，先记录已知证据和下一步排查方向，确认后再补充。
+不能只记录“重跑后通过”。同一根因造成的重复 run 关联到已有记录，不复制长报告。
+日常本机验证失败不需要在本文建档；如果暴露了发布工具链兼容问题，再记录。
 
 ## 35293247382：测试同步竞态
 
@@ -243,55 +244,34 @@ SwiftUI 的时序。
 修复后的非发布预检 `35332232060` 的 `Run tests`、release 构建、签名和产出上传
 全部通过。
 
-## 强制开发规则
+## 开发与发布验证
 
-### 1. 以 CI 工具链为准
+日常开发不强制运行 GitHub Actions。按风险使用
+`bash scripts/verify-local.sh quick <filter>` 或
+`bash scripts/verify-local.sh full`；前者只证明定向范围，后者证明完整本机
+Swift 测试、Release 编译和原生契约，不证明 DMG、签名、公证或运行时兼容性。
 
-发布环境的基准是：
+正式发布前必须在同一冻结 SHA 上完成一次完整 CI。非发布的诊断 run 只用于
+维护者明确批准的高风险专项验证，不是每个 PR 或合并前的必选项。
 
-- `macos-26`
-- Xcode `26.6`
-- Swift `6.3.3`
+### 1. 发布工具链
 
-本机 Xcode 27 / Swift 6.4 的通过结果只能作为辅助验证，不能替代 CI。
+发布环境的实际 runner 与 Xcode 版本以
+`.github/workflows/release.yml` 为准，并在 workflow 日志中输出
+`xcodebuild -version`、`swift --version` 和 macOS SDK 版本。本机通过结果只能
+作为开发证据，不能替代正式发布 CI。
 
-### 2. 修改 Swift 代码后的最低验证
-
-```bash
-swift test
-swift build -c release
-```
-
-涉及以下内容时，必须额外触发一次 `publish=false` 的发布预检：
-
-- actor isolation、`@MainActor`、`Sendable`
-- `deinit` 和生命周期清理
-- SwiftUI `Binding`、方法引用和闭包
-- 泛型、可选值和复杂类型转换
-- `Bundle.module`、本地化资源或 SwiftPM 资源布局
-
-```bash
-gh workflow run release.yml \
-  --repo lingyired/status-trio \
-  --ref <branch> \
-  -f version=<next-version> \
-  -f build=<next-build> \
-  -f publish=false
-```
-
-等待并确认该 run 成功后再合并或发布。
-
-### 3. 禁止使用仅在新工具链可用的写法
+### 2. 禁止使用仅在新工具链可用的写法
 
 - 不使用 `isolated deinit`
 - 不启用 `IsolatedDeinit` 或其他实验性编译器特性来绕过发布问题
 - 不把 actor-isolated 方法直接当作闭包/函数值传递
 - 不使用 `weak let`，weak 绑定必须是 `var`
   - 如果编译器因此报 `weak variable ... was never mutated`，不要照它的建议改成 `weak let`。用测试目标里的 `DeinitProbe.track(_:)`，把弱引用放进 `weak var` 存储属性。
-  - 要推翻这条规则，必须同时提供 CI 工具链（`macos-26` / Xcode 26.6 / Swift 6.3.3）接受 `weak let` 的运行记录，然后才改 `AGENTS.md`。
+- 要推翻这条规则，必须提供正式发布工具链接受 `weak let` 的运行记录，然后才改 `AGENTS.md`。
 - 不假设本地和 CI 的 `Bundle.module` 资源目录大小写或布局一致
 
-### 4. 遇到编译器崩溃时的处理方式
+### 3. 遇到编译器崩溃时的处理方式
 
 以下症状表示应该缩小或改写触发表达式，而不是重试或改变发布参数：
 
@@ -305,16 +285,17 @@ gh workflow run release.yml \
 1. 从堆栈中的 `While evaluating request IRGenRequest` 找到源文件。
 2. 检查该文件最近新增的方法引用、闭包转换、actor isolation 和复杂泛型表达式。
 3. 用显式闭包或拆分局部变量改写最小表达式。
-4. 重新运行本地测试和 CI 预检。
-5. 只有 CI 预检成功后，才允许触发 `publish=true`。
+4. 重新运行受影响的本地验证。
+5. 正式发布前在冻结 SHA 上重新运行完整 CI。
 
 ## 发布检查清单
 
 - [ ] 版本号已明确，构建号大于线上 appcast 的最大构建号。
-- [ ] `swift test` 通过。
-- [ ] `swift build -c release` 通过。
-- [ ] 涉及兼容性敏感代码时，`publish=false` 的 GitHub Actions 预检通过。
-- [ ] `publish=true` 的发布 workflow 成功。
+- [ ] `bash scripts/verify-local.sh full` 通过，或记录了未运行项。
+- [ ] 完整 Release CI 在冻结的候选 SHA 上通过，并保存该 SHA。
+- [ ] package 与 publish 使用同一个 artifact，未重新构建、签名或 DMG。
+- [ ] Tag、manifest、DMG SHA-256 和 GitHub Release 均指向同一 SHA。
+- [ ] `publish=true` 的发布 workflow 成功，且人工批准边界生效。
 - [ ] GitHub Release 有 DMG 和 `.sha256` 文件。
 - [ ] 线上 `appcast.xml` 的版本、构建号、长度和 EdDSA 签名已更新。
 - [ ] 未配置 Developer ID / notarization 时，明确说明 Ad-hoc 签名和首次安装限制。

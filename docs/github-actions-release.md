@@ -8,7 +8,26 @@
 4. 创建 GitHub Release 并上传 DMG
 5. 更新并发布 `appcast.xml`
 
-> 开发前请先阅读 [Swift 工具链 CI 兼容性规则](swift-ci-compatibility.md)。CI 使用 `macos-26` / Xcode 26.6 / Swift 6.3.3，本机较新的 Swift 工具链不能替代 CI 验证。
+> 开发前请先阅读 [Swift 工具链 CI 兼容性规则](swift-ci-compatibility.md)。
+> 日常开发使用本机验证；正式发布前才在冻结 SHA 上运行完整 CI。
+> workflow 的实际 runner、Xcode 和 SDK 版本以文件本身及 run 日志为准。
+
+## 日常开发与正式发布
+
+`AGENTS.md` 的 Local-First 流程优先：普通 commit、PR 和合并使用
+`bash scripts/verify-local.sh quick <filter>` 或
+`bash scripts/verify-local.sh full`。本机结果不会创建 Tag、Release、DMG 或
+appcast 变更。
+
+正式发布必须额外满足：
+
+- 候选 commit SHA 已冻结并记录。
+- 完整 Release CI 在该 SHA 上通过。
+- package 阶段的 DMG、manifest 与 SHA-256 被 publish 阶段原样复用。
+- 人工批准 `distribution` Environment 后才创建并发布公开产物。
+
+`merged`、`built` 和 `released` 不是同义词；只有公开 Release 与 appcast 都
+核验完成，才可称为 `released`。
 
 ## 触发方式
 
@@ -18,7 +37,7 @@
 
 - `version`：例如 `1.2.0`；留空时读取 `Support/Info.plist`
 - `build`：显式的数字构建号，必须大于 appcast 中已发布的最大构建号
-- `publish=false`：只构建 DMG，并上传为 Actions artifact
+- `publish=false`：只构建和打包，并上传为 Actions artifact；不是日常 PR 门槛
 - `publish=true`：创建 Release、创建 tag，并更新 Sparkle appcast
 - `notarize=true`：仅与 `publish=false` 一起使用；要求 Developer ID 签名和 Apple 公证，生成可在 CI 中验证的通用构建 artifact，不创建 Release、tag 或 appcast
 
@@ -31,7 +50,7 @@ gh workflow run release.yml --repo lingyired/status-trio --ref <branch> \
 
 `notarize=true` 必须配置 `DEVELOPER_ID_CERTIFICATE_P12`、`DEVELOPER_ID_CERTIFICATE_PASSWORD`、`APPSTORE_CONNECT_API_KEY_ID`、`APPSTORE_CONNECT_API_ISSUER_ID` 和 `APPSTORE_CONNECT_API_PRIVATE_KEY`；缺少任一项时 workflow 会失败，不会退回 Ad-hoc 签名。
 
-发布或公证测试使用 GitHub Actions 的 `distribution` Environment。该 Environment 要求 reviewer `lingyired` 批准，没有管理员绕过，并且仅允许 `main` 分支和 `v*` tags。普通 `publish=false`、`notarize=false` 运行选择无 Apple secrets 的 `ci` Environment；因此普通分支测试不需要签名凭据。受保护的公证测试只能在改动集成到 `main` 后，以 `--ref main` 启动，并在 reviewer 批准后继续；从其他分支请求时会被 Environment 分支限制拦截。
+发布或公证测试使用 GitHub Actions 的 `distribution` Environment。该 Environment 要求 reviewer `lingyired` 批准，没有管理员绕过，并且仅允许 `main` 分支和 `v*` tags。普通 `publish=false`、`notarize=false` 运行选择无 Apple secrets 的 `ci` Environment；这是维护者明确发起的高风险诊断例外，不是每个 PR 的必选流程。受保护的公证测试只能在改动集成到 `main` 后，以 `--ref main` 启动，并在 reviewer 批准后继续；从其他分支请求时会被 Environment 分支限制拦截。
 
 将签名和公证凭据配置为 `distribution` Environment secrets（通过标准输入传入，不要把值写进命令或仓库）：
 
@@ -45,9 +64,9 @@ gh secret set APPSTORE_CONNECT_API_PRIVATE_KEY --env distribution --repo lingyir
 
 在最后一条命令中，`AuthKey_XXXXXXXXXX.p8` 是本机私钥文件路径，不是 secret 值。不要读取或打印私钥来验证配置。GitHub Environment 审批控制 job 何时获得 Environment secrets，不会让它们在 runner 中保持加密：获批后，工作流及同一 job 中执行的 action/code 可以使用它们，日志脱敏也不能防止所有泄漏。只允许可信的 `main` 与版本 tag 工作流使用该 Environment，并审查会改动这些工作流的变更。
 
-文案不再通过输入传入，改为读取仓库内的 `release-notes/<version>/`。每个 dispatch（含 `publish=false` 预检）都会运行 `scripts/validate-appcast-notes.sh`，打印语言覆盖表，并把生成的 appcast 条目干跑到临时文件后断言 XML 合法、变体齐全、`en` 排第一、无未替换占位符。
+文案不再通过输入传入，改为读取仓库内的 `release-notes/<version>/`。正式发布 dispatch 会运行 `scripts/validate-appcast-notes.sh`，打印语言覆盖表，并把生成的 appcast 条目干跑到临时文件后断言 XML 合法、变体齐全、`en` 排第一、无未替换占位符。没有新版本文案的本机非发布检查不应被迫先造目录。
 
-正式发布统一使用手动 workflow。workflow 会在 GitHub Release 不存在对应 tag 时自动从 `main` 创建 tag。
+正式发布统一使用手动 workflow。workflow 必须将 checkout、构建 artifact、manifest 和 Release Tag 绑定到同一个冻结 SHA；Tag 已存在但 SHA 不同必须失败。
 
 ## 文案目录
 

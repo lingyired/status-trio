@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Validates release note coverage and the appcast item those notes generate.
 #
-# Runs on every release dispatch, including publish=false preflights, which is
-# what gives this path CI coverage: the appcast is only written when publishing.
+# Runs on formal release dispatches. A publish=false run is an explicit
+# maintainer-approved diagnostic, not a per-PR gate; the appcast is only written
+# when publishing.
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"

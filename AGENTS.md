@@ -1,98 +1,209 @@
 # Status Trio Agent Rules
 
-## Highest Priority: Match the CI Toolchain
+## Local-First Change Flow
 
-The release workflow is the acceptance environment:
+Ordinary development does not require GitHub Actions. Use focused local tests
+while developing, then run the verification profile sized to the risk before
+delivery and merge.
 
-- Runner: `macos-26`
-- Xcode: `26.6`
-- Swift: `6.3.3`
+Pick one bounded profile with `bash scripts/verify-local.sh <quick|full>
+[swift-test-filter]`:
 
-A newer local toolchain is useful, but it is not proof that CI will compile. Swift code must remain buildable with the CI toolchain.
+- `quick`: shell syntax, forbidden patterns, and focused Swift tests. This is
+  the default for documentation, localization, and small isolated changes.
+- `full`: the full Swift suite, Release build, and native compatibility and
+  dependency contracts. Use this for state, concurrency, rendering, Helper,
+  build-pipeline, or other high-risk changes.
 
-The app must be built with the macOS 26 SDK or newer. macOS reads the `LC_BUILD_VERSION` `sdk` field to decide whether an app adopts the current design language, so building with an older SDK silently ships the pre-Tahoe popover appearance (issue #40). `scripts/build-app.sh` fails when the SDK is older than 26, and `scripts/verify-platform-version.sh` asserts the result; do not remove either.
+The script reports the tested SHA, branch, tracked working-tree state, toolchain,
+commands, exit status, scope, and unverified items. A filter is evidence for
+that filter only, not for the full suite. Local verification is not a runtime,
+signing, notarization, DMG, or release pass.
 
-Before committing Swift changes:
+Small follow-up changes may commit directly to `main` or use a short-lived
+branch and fast-forward it. Use a pull request for larger, multi-subsystem, or
+review-worthy work. No pull request is required for every task, and no GitHub
+Actions run is required for ordinary development, commits, pull requests, or
+merges.
 
-```bash
-swift test
-swift build -c release
-```
+Before delivery:
 
-If a change touches actor isolation, `@MainActor`, `deinit`, SwiftUI bindings, generics, or `Bundle.module` resources, also run a non-publishing release workflow before merging or publishing:
+1. Fetch and compare with the latest `origin/main`; record the branch base.
+2. Run the risk-sized local profile on the final integrated tree.
+3. Check for shared-file and public-file conflicts; coordinate ordering for
+   shared state or renderer edits instead of overwriting another agent.
+4. Merge in completion order. If `main` advanced during the merge, recheck the
+   diff and re-run the affected verification scope.
 
-```bash
-gh workflow run release.yml \
-  --repo lingyired/status-trio \
-  --ref <branch> \
-  -f version=<next-version> \
-  -f build=<next-build> \
-  -f publish=false
+Do not force-push `main`, rewrite another agent's branch, or treat a remote CI
+run as a replacement for local evidence.
 
-gh run watch <run-id> --repo lingyired/status-trio --exit-status
-```
+### High-risk optional remote check
 
-Do not create a release if that preflight has not passed.
+A high-risk change may use a non-publishing diagnostic GitHub Actions run when
+a maintainer explicitly approves it. This is an exception, not a routine
+pre-merge requirement. It must not create a Release, tag, appcast update, or
+other public side effect.
 
-Every failed GitHub Actions run must be added to
-[Swift toolchain CI compatibility](docs/swift-ci-compatibility.md), including the
-run ID, failed stage, root cause, fix, and verification result.
+### State vocabulary
 
-## Swift Toolchain Compatibility Rules
+- `merged`: the change is in `main`.
+- `built`: an artifact was produced from a known SHA; it is not yet public.
+- `released`: a published artifact was verified from the same frozen SHA and
+  its public metadata matches the signed/notarized package.
 
-- Do not use `isolated deinit` or enable the `IsolatedDeinit` experimental feature. Use `deinit` with explicit cleanup; use `nonisolated(unsafe)` only for teardown-owned storage and explain why it is safe.
-- Do not pass actor-isolated methods directly as function values. Use an explicit closure instead.
-- Do not write `weak let`; weak reference bindings must be `var` (when the compiler asks for `weak let` to silence a never-mutated warning, use the test target's `DeinitProbe` instead and see [Swift toolchain CI compatibility](docs/swift-ci-compatibility.md)).
-- Do not assume SwiftPM `Bundle.module` resource names or directory casing match local builds. For localized resources, try the canonical and lowercase `lproj` names and load with `Bundle(path:)`.
-- If the Swift compiler crashes with `IRGenRequest`, `SmallVector unable to grow`, or a signal 6, reduce the code pattern that causes the crash. Do not treat it as a flaky failure and do not hide it with experimental compiler flags.
+Do not use these words interchangeably.
 
-## Change Flow
+## Risk-Based Verification
 
-- Small, low-risk changes — especially your own follow-up tweaks — go straight to `main`: commit directly, or use a short-lived branch and fast-forward it into `main`. No pull request is required.
-- Use a pull request when a change is large, touches several subsystems, or when a review/discussion record is worth keeping.
-- Whichever route is taken, the verification rules above still apply: `swift test` and `swift build -c release`, plus a non-publishing release workflow run when the change touches actor isolation, `@MainActor`, `deinit`, SwiftUI bindings, generics, or `Bundle.module` resources.
-- The release workflow only runs on tags and manual dispatches, so a pull request does not add CI coverage on its own.
+The following table is the minimum for local work. Read the mapped rule under
+`.agents/rules/` before editing the listed paths; these files are not loaded
+automatically by Codex.
+
+| Change | Read | Minimum local profile |
+| --- | --- | --- |
+| Documentation, copy, localization, translations | `.agents/rules/release.md` only for release copy; otherwise the affected UI rule | `quick` with the matching localization tests; release-note coverage when applicable |
+| Ordinary isolated feature or unit test | Rule for its subsystem | Focused `quick` tests; add the subsystem regression filter |
+| State/store, `@MainActor`, `Sendable`, actor isolation, concurrency, `deinit`, SwiftUI bindings, generic/resource plumbing | `.agents/rules/performance.md`, `.agents/rules/macos-compatibility.md` | `full` |
+| Icon scene, renderer, `StatusIconRenderer`, `StatusIconGeometry`, `IconPresentationMapper`, `IconSceneState`, `StatusBarController` icon path, `AppIconController`, `DockIconRenderKey`, `DockIconRenderer` | `.agents/rules/rendering.md` | `full`, plus `Issue30WiFiAlignmentTests` and Dock/Menu Bar parity tests |
+| Bluetooth, nearby BLE, audio, battery, permission or privacy behavior | `.agents/rules/bluetooth.md` or the matching device rule | Affected focused tests; `full` for lifecycle or permission changes |
+| Wi-Fi, Ethernet, VPN, SSID/location, Settings pane route | `.agents/rules/network.md` | Focused network tests and `StatusMenuBuilderTests` for route changes |
+| Helper, XPC, LaunchDaemon, signing or privileged behavior | `.agents/rules/release-validation.md` | `full`; manual Developer ID and XPC checks remain `NOT RUN` until performed |
+| Build script, SDK/deployment metadata, `Package.swift`, `Info.plist` | `.agents/rules/macos-compatibility.md` | `full` |
+| Release workflow, appcast, versioning, signing, notarization | `.agents/rules/release.md` and `.agents/rules/release-validation.md` | `full` plus offline release simulations; no real publish |
+
+`bash scripts/test.sh [filter]` remains the single Swift test entry point. It
+always runs `scripts/check-forbidden-patterns.sh`, including when a filter is
+provided. Do not duplicate its test or filter logic in a second wrapper.
+
+For any icon work, use the existing isolated-ink and full-composite
+`Issue30WiFiAlignmentTests`; never replace them with a tolerance that hides a
+half-unit shift. Keep `ChargingEffectRenderingTests` fingerprints honest.
+
+## Non-Negotiable Invariants
+
+- The app runs on macOS 13 and later. The local macOS 13 static contract does
+  not prove runtime compatibility; record real Ventura and current-macOS checks
+  separately as PASS, FAIL, BLOCKED, or NOT RUN.
+- Formal builds use the macOS 26 SDK or newer. Building with an older SDK ships
+  the pre-Tahoe appearance. Keep the guard in `scripts/build-app.sh` and the
+  assertion in `scripts/verify-platform-version.sh`.
+- Menu Bar and Dock rendering and settings stay on the same scene source. A
+  menu-bar-only setting needs an explicit product decision, documentation, and
+  a test.
+- Preserve Universal `arm64 + x86_64` release requirements, Main App and Helper
+  minimum versions, MobileBattery dependency bounds, Sparkle, and the existing
+  Developer ID plus Ad-hoc fallback branches.
+- Preserve permission boundaries and low-power idle behavior. Do not add
+  polling, animation, logging, caches, or background work without an owner and
+  a stop path.
+- Never weaken, skip, or silently retry a test to make a local or release run
+  green. A failing test is a finding until its root cause is addressed.
+
+## Swift Toolchain Compatibility
+
+The formal release runner and its Xcode version are defined by
+`.github/workflows/release.yml`; verify them when that workflow changes. Local
+Xcode 27 / Swift 6.4 is useful for development but is not proof that the release
+toolchain compiles. The Swift rules below are compatibility requirements, not a
+reason to run a remote preflight for every edit:
+
+- Do not use `isolated deinit` or enable experimental `IsolatedDeinit`.
+- Do not pass actor-isolated methods directly as function values; use an
+  explicit closure.
+- Do not write `weak let`; weak bindings are `var`. Use the test target's
+  `DeinitProbe` for teardown-owned observations.
+- Do not assume `Bundle.module` resource names or directory casing match
+  between local and release builds. Load localized resources with
+  `Bundle(path:)` and the canonical/lowercase `lproj` fallback.
+- If the compiler crashes with `IRGenRequest`, `SmallVector unable to grow`, or
+  signal 6, reduce the triggering code shape. Do not hide it with compiler
+  flags.
+
+Historical failures and their evidence are in
+`docs/swift-ci-compatibility.md`. Failed release diagnostics should be added
+there by root cause, with the run ID, failed stage, fix, and re-verification;
+do not copy long reports for repeated runs.
 
 ## Menu Bar and Dock Icon Parity
 
-- Every change to a menu bar icon's rendering or icon-related settings must be mirrored in the Dock icon in the same change. Do not leave the Dock on a default or stale representation.
-- When adding or changing an icon option, update both paths end-to-end as applicable: `SettingsStore` option derivation, `StatusBarController` subscriptions, `AppIconController` subscriptions/state, `DockIconRenderKey` cache inputs, `DockIconRenderer` rendering, and tests covering both menu bar and Dock output.
-- If a setting is intentionally menu-bar-only, the issue or specification must say so explicitly, and the limitation must be documented and covered by a test.
+- Every icon-rendering or icon-setting change updates both the Menu Bar and
+  Dock paths in the same change.
+- Where applicable, update `SettingsStore` option derivation,
+  `StatusBarController` subscriptions, `AppIconController`
+  subscriptions/state, `DockIconRenderKey` cache inputs,
+  `DockIconRenderer` rendering, and tests for both surfaces.
+- If a setting is intentionally menu-bar-only, state that in the issue/spec,
+  document the limitation, and add a test.
 
-## Issue #30 Icon Centering
-
-- Run `swift test --filter Issue30WiFiAlignmentTests` after any change to `StatusIconRenderer`, `StatusIconGeometry`, `IconPresentationMapper`, `IconSceneState`, `StatusBarController` icon rendering, or the Dock icon renderer.
-- SF Symbols are not centred inside the layout box `NSImage.size` reports. The visible ink carries side bearings; anchor the measured ink centre, not the box centre, whenever a symbol is placed against the hand-drawn ring. `StatusIconRenderer.drawOfficialSymbol` owns that compensation and caches it per symbol configuration.
-- Keep the full-composite regression (`testWiFiGlyphIsHorizontallyCenteredInMenuBarIcon`) and the isolated ink regression (`testCenterSymbolInkLandsOnTheArtworkCenterLine`) in `Issue30WiFiAlignmentTests`. Do not replace either with a tolerance that can hide a half-unit shift. Re-record `ChargingEffectRenderingTests` fingerprints only when the intentional pixel change is explained in the commit and `docs/swift-ci-compatibility.md`.
-- A UI or icon-presentation refactor must prove the rendered menu bar ink still lands on `StatusIconGeometry.artworkCenterX`; unit tests that assert the 59.5 constant alone are not enough. See `docs/issue-30-wifi-centering-analysis.md`.
+See `.agents/rules/rendering.md` and
+`docs/issue-30-wifi-centering-analysis.md`.
 
 ## System Settings Pane Routes
 
-- Every settings control must open the pane it promises, with that pane's own extension identifier first: the Wi-Fi gear goes to the Wi-Fi pane, and a wired row's gear goes to the Network pane, which is where a cable's own settings live. The Network pane lists services (Wi-Fi, Ethernet, VPNs) rather than networks, so routing the Wi-Fi gear through it lands users on the wrong list.
-- Never make a pane route depend on the running macOS version. Wi-Fi has its own Settings extension on every release the app supports, and the `majorVersion >= 27` guard that shipped in 1.2.0 and 1.3.0 sent macOS 15 through 26 to the Network pane. See [System Settings pane routes](docs/settings-pane-routes.md).
-- The first route decides the destination: System Settings launches even for an unknown pane identifier and `open` still reports success, so a wrong first route is never corrected by the entries after it — the later entries only cover the URL scheme itself failing to open.
-- Verify a route by the Settings extension it loads, not by `open`'s exit status: `pgrep -fl "ExtensionKit/Extensions"` right after opening the URL names the pane, and needs neither a screen-recording nor an accessibility grant.
-- `StatusMenuBuilderTests.testSystemSettingsURLFallbackOrder` pins the Wi-Fi route order. Update it with the route, never around it.
-- A merged fix is not a shipped fix. When a pane-route report comes in, read the route order out of the shipped binary (`strings` on the app executable) before assuming the fix is in the build.
+- The Wi-Fi gear opens the Wi-Fi pane with
+  `com.apple.wifi-settings-extension` first; a wired row opens the Network pane
+  with its own extension first.
+- Do not make a pane route depend on the running macOS version.
+- The first route decides the destination. `open` success is not proof of the
+  pane; verify the loaded Settings extension, as documented in
+  `docs/settings-pane-routes.md`.
+- Keep `StatusMenuBuilderTests.testSystemSettingsURLFallbackOrder` aligned with
+  the route order.
 
-## Release Rules
+## Release Boundaries
 
-- GitHub Release notes must use a top-level `# Version X.Y.Z （English + 中文， 中文在下方）` heading, followed by English notes and then Chinese notes, taken from `release-notes/<version>/en.md` and `release-notes/<version>/zh-Hans.md`; the release workflow combines them.
-- Sparkle appcast items are localized per language: emit one `<title xml:lang="…">` and one `<description xml:lang="…">` for every language present in `release-notes/<version>/`, give every variant an explicit `xml:lang`, and keep `en` first because Sparkle falls back to the first node in document order when the user's preferred languages match nothing. Never stack two languages inside one `<description>`.
-- User-facing release notes live in `release-notes/<version>/<language>.md`, one file per language the app ships (`Sources/StatusTrioCore/Resources/*.lproj` names, case-sensitive). `en.md` and `zh-Hans.md` are always required and also form the GitHub Release body; `publish=true` additionally requires all 12 languages. Every file starts with a `# <title>` line containing the `%VERSION%` and `%BUILD%` placeholders. Terminology must match the language's existing `.lproj` strings. `bash scripts/validate-appcast-notes.sh` checks coverage and the generated appcast XML, and the release workflow runs it on every dispatch, including `publish=false` preflights.
-- Notarized GitHub Release bodies must not include first-launch `xattr` / quarantine instructions; Developer ID signing plus Apple notarization makes them unnecessary. Append those commands (never in the Sparkle appcast) only when a release is Ad-hoc signed because the signing and notarization secrets were unavailable.
-- Release announcements remain in English.
-- Release through `.github/workflows/release.yml`; do not publish manually unless the workflow is unavailable and the user explicitly asks for a manual fallback.
-- Version and build numbers must be explicit and must increase the published build number.
-- Confirm tests, DMG creation, Release upload, and appcast publication in the workflow result.
-- Releases with the `distribution` Environment secrets present are Developer ID signed and notarized; verify notarization and stapling in the workflow result rather than claiming it from configuration alone. Ad-hoc signing is the fallback only when those secrets are missing.
+- Release CI is required only before a formal release, not for ordinary commits,
+  pull requests, or merges. The release workflow must verify a frozen SHA once,
+  then package from that SHA and publish the exact verified artifact.
+- Never publish a different SHA, rebuild during publish, or let a tag point at
+  a commit that differs from the package manifest.
+- Never create a real Release, tag, DMG, or online appcast change while
+  validating workflow logic. Use offline fixtures and fake external tools.
+- Keep the `distribution` Environment and manual approval boundary. Do not
+  read, print, or commit signing keys, API keys, or notarization credentials.
+- Version and build numbers are explicit and must increase over the published
+  build number.
+- Release notes require `en.md` and `zh-Hans.md`; `publish=true` requires every
+  shipped language. Keep localized appcast variants explicit, with `en` first.
+- A Developer ID/notarized release must not include first-launch `xattr`
+  instructions. Only an Ad-hoc fallback may append them, and never inside the
+  Sparkle appcast.
+- Report `Ad-hoc` honestly when credentials are unavailable. Do not claim
+  notarization, Universal packaging, or runtime Helper behavior without
+  evidence.
+
+Use `.agents/rules/release.md` and `.agents/rules/release-validation.md` for the
+detailed release and recovery rules.
+
+## Worktree Safety
+
+- Reuse an existing isolated worktree when possible. Create one only when
+  concurrent writes or branch isolation require it.
+- `bash scripts/build-worktree.sh release [no-open]` derives an independent dev
+  bundle ID from the branch; use it instead of installing a preflight build
+  over the production app.
+- Before removing a worktree, verify there are no uncommitted changes and no
+  running app/process from it. Never use destructive bulk deletion.
+- Do not alter another agent's worktree, shared branch, or uncommitted files.
 
 ## Project Skills
 
-- Skills live in `.agents/skills/<skill-name>/`, and the directory name must match the skill's frontmatter `name`. `skills-lock.json` at the repository root records the upstream GitHub source of each vendored skill.
-- Update them from the repository root with `npx skills update -p -y`. The project path re-installs from source instead of diffing hashes, so the run is idempotent but always rewrites files — review with `git diff` before committing. The lock covers 24 of the 25 skills; `ui-ux-pro-max` is intentionally excluded.
-- Do not add `ui-ux-pro-max` to `skills-lock.json`. `npx skills add nextlevelbuilder/ui-ux-pro-max-skill` resolves to the repository's own `.claude/skills/ui-ux-pro-max` variant — a thin orchestrator that delegates to six sub-skills this project does not vendor — whereas the copy here is the render of `src/ui-ux-pro-max/templates/base/skill-content.md` for the `.agents` layout, produced by the vendor's `uipro` CLI. To update it, re-render that template and take `src/ui-ux-pro-max/{data,scripts}`; never sync `.claude/skills/`.
-- `npx skills update -p` skips `swiftui-pro` and `swift-testing-pro` because both upstream repositories ship two skills under the same name (`<skill>/SKILL.md` and `<skill>/skills/<skill>/SKILL.md`), which makes the target path ambiguous. Update those two by hand.
-- When re-vendoring by hand, sync each whole upstream skill folder rather than `SKILL.md` alone, and delete files the upstream removed.
+- Skills live in `.agents/skills/<skill-name>/`; the directory name must match
+  the frontmatter `name`.
+- `skills-lock.json` records upstream sources. Update with
+  `npx skills update -p -y` from the repository root, then review `git diff`.
+- `ui-ux-pro-max` is intentionally excluded from the lock and must be updated
+  by re-rendering its upstream template, not by syncing `.claude/skills/`.
+- `swiftui-pro` and `swift-testing-pro` are updated by hand because their
+  upstream folders contain two same-named skills.
 
-See [Swift toolchain CI compatibility](docs/swift-ci-compatibility.md) for the incident history and examples, and [System Settings pane routes](docs/settings-pane-routes.md) for how a settings-pane route is verified.
+## References
+
+- [Swift toolchain CI compatibility](docs/swift-ci-compatibility.md)
+- [macOS 13 compatibility verification](docs/macos13-compatibility-verification.md)
+- [GitHub Actions release](docs/github-actions-release.md)
+- [Local-first workflow and merge protocol](docs/local-first-workflow.md)
+- [System Settings pane routes](docs/settings-pane-routes.md)
+- [Issue #30 analysis](docs/issue-30-wifi-centering-analysis.md)
+- [Privileged Helper](docs/privileged-helper.md)
