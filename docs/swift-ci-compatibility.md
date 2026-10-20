@@ -1173,3 +1173,54 @@ distribution due to environment protection rules.
   未创建 Release 或更新 appcast。
   运行间结果有差异，但仍未获得首次失败的精确阶段根因；
   不把首次失败解释为编译器问题，也不以复验通过抹去首次失败。
+
+## 39441930496 至 39447874014：异步图标测试与部署契约假通过
+
+同一 SHA 的结果差异把测试稳定性问题与工具链兼容性区分开了：
+
+- [`39441930496`](https://github.com/lingyired/status-trio/actions/runs/39441930496)
+  成功；
+  [`39441995782`](https://github.com/lingyired/status-trio/actions/runs/39441995782)
+  对同一 head `c8c49315` 失败，失败阶段均为 `Run tests`。
+- 后续
+  [`39443852308`](https://github.com/lingyired/status-trio/actions/runs/39443852308)
+  （head `68282826`）、
+  [`39444905968`](https://github.com/lingyired/status-trio/actions/runs/39444905968)
+  （head `099baec0`）和
+  [`39447874014`](https://github.com/lingyired/status-trio/actions/runs/39447874014)
+  （head `d8a3b97c`）连续失败，Swift Testing 分别在约 6.44、6.85、6.30 秒
+  汇总失败；XCTest 已完成。失败集中在
+  `AppIconControllerTests.visibleDockRendersStatusChanges`、
+  `IconSurfaceIntegrationTests` 的多条 surface 等待、
+  `ChargingEffectControllerTests.batteryLevelChangesStillUpdateStaticDockArtwork`
+  和 `DockChargingEnvironmentTests` 的 restore/steady-phase 断言。
+- 根因不是编译器或产品渲染差异。原测试把 500 ms presentation debounce、
+  50 ms render coalescer、20 Hz charging clock 和 AsyncStream 消费绑定成一个
+  5 秒 wall-clock 等待；整套 Swift Testing 在主 actor 上并发启动时，固定窗口内
+  实际到达哪一级并不确定。失败 Run 的日志也显示多个 suite 在同一时刻启动并
+  在一个 5 秒窗口后一起报错。
+- 修复只为测试注入既有的 `ManualIconPresentationScheduler`、`IconRenderCoalescer`、
+  `ManualEventSleeper` 和受控 charging clock，先等待 store/debounce 等确定事件，
+  再显式执行 debounce、coalescer drain 和时钟帧。没有延长 timeout、删除断言、
+  skip 测试或修改产品节流逻辑；超时现在抛出包含 snapshot、store 场景、
+  pending debounce、render count 和最后渲染 scene 的错误。
+- 定向验证：最终清理后
+  `swift test --filter 'AppIconControllerTests|IconSurfaceIntegrationTests|ChargingEffectControllerTests|DockChargingEnvironmentTests'`
+  通过 66 tests / 4 suites；默认调度 10/10 轮、四个 suite 分别单独执行 3/3 轮、
+  `--parallel` 10/10 轮均通过。第一次默认 10 轮在第 8 轮捕获到
+  `mappedSettingsStayInParityAcrossMenuBarAndDock` 的真实竞态：充电场景已到
+  model，但菜单栏与 Dock 的异步交付尚未同时收敛，测试立即断言失败。修复后
+  先等待两个 surface 都交付同一 scene，再保留严格相等断言；随后 10/10 通过。
+  最终 `swift test` 连续 3 轮通过：每轮 XCTest 1719（7 skipped、0 failures）
+  和 Swift Testing 697 tests / 103 suites；`swift build -c release` 通过。
+
+同时修复了 `scripts/test-macos13-deployment-contract.sh` 的已证实假阳性：
+旧脚本在缺少 `rg` 时让 `if rg ...` 进入 false 分支，然后无条件打印
+`macOS 13 deployment contract passed` 并退出 0。用受控 fixture 在
+`PATH` 中没有 `rg`、但存在 `grep` 的环境复现了这一行为
+（旧脚本 `rg: command not found` 后仍退出 0）。新实现优先用 `rg`，不可用时
+自动回退到 `grep -E -R`，并把扫描器的 0（找到禁止常量）、1（未找到）与
+其他退出码严格区分；工具缺失和执行错误都会 fail closed。新增
+`scripts/test-macos13-deployment-contract-regressions.sh` 覆盖正常 13.0、
+禁止 15.0、显式 grep、自动 grep fallback、工具缺失和 scanner exit 2，
+并接入 release workflow 的 native compatibility step。

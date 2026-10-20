@@ -38,11 +38,25 @@
 - `swift build -c release`: passed after the deployment target was lowered to 13.0.
 - `swift test --filter MacOS13UICompatibilityTests`: passed.
 - `swift test --filter BluetoothBatteryLevelTextFallbackTests`: passed.
-- `scripts/test-macos13-deployment-contract.sh` and
-  `scripts/test-appcast-minimum-system-version.sh`: passed.
+- `scripts/test-macos13-deployment-contract-regressions.sh`,
+  `scripts/test-macos13-deployment-contract.sh`, and
+  `scripts/test-appcast-minimum-system-version.sh`: passed. The regression
+  fixture covers the automatic `grep` fallback and scanner failures; the
+  deployment contract is also part of the release workflow's native checks.
 - `scripts/test-macos13-bundle-contract.sh`: passed.
 - `scripts/test-mobile-battery-helper.sh`, `scripts/test-mobile-battery-rpaths.sh`, and
   `scripts/test-otool-dependencies.sh`: passed.
+
+## Verification status update (2026-10-21)
+
+- Local toolchain: Xcode 27.0, Swift 6.4, macOS SDK 27.0, arm64 host.
+- `swift test` passed three consecutive full runs (XCTest 1719, 7 skipped;
+  Swift Testing 697 tests / 103 suites each run).
+- `swift build -c release` passed. The native compatibility suite, including the
+  deployment-contract regression script, passed locally.
+- These are local automated checks only. The runtime matrix below still governs
+  macOS 13 support; do not mark Ventura or Liquid Glass behavior as runtime-verified
+  from this evidence.
 
 ## Runtime matrix
 

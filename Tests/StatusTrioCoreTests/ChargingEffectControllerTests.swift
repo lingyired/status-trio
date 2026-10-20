@@ -42,8 +42,7 @@ struct ChargingEffectControllerTests {
         let increasedBattery = dockTestBattery(61, charging: true)
         let initialRenderCount = harness.log.renderCount
         harness.publishBattery(increasedBattery)
-        let didReachStore = try await waitForStoreBattery(increasedBattery, in: harness)
-        try #require(didReachStore, "The battery update must reach the status store.")
+        try await waitForStoreBattery(increasedBattery, in: harness)
         try #require(
             snapshotScheduler.hasPendingAction,
             "The battery update must schedule the presentation debounce."
@@ -59,13 +58,21 @@ struct ChargingEffectControllerTests {
     private func waitForStoreBattery(
         _ battery: BatteryStatus,
         in harness: AppIconControllerHarness
-    ) async throws -> Bool {
+    ) async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while ContinuousClock.now < deadline {
-            if harness.store.snapshot.battery == battery { return true }
+            if harness.store.snapshot.battery == battery { return }
             try await Task.sleep(for: .milliseconds(10))
         }
-        return false
+        throw ChargingEffectControllerTestFailure.batteryDidNotReachStore(
+            expected: battery,
+            actual: harness.store.snapshot.battery,
+            snapshot: harness.store.snapshot,
+            batteryProgressInModel: harness.iconPresentation.output.scene.outerRing?.segments.first?.progress,
+            latestScene: harness.iconPresentation.output.scene,
+            renderCount: harness.log.renderCount,
+            lastRenderedScene: harness.log.lastScene
+        )
     }
 
     private func dockTestBattery(_ percentage: Int, charging: Bool) -> BatteryStatus {
@@ -76,5 +83,42 @@ struct ChargingEffectControllerTests {
             isLowPowerMode: false,
             isConnectedToPower: charging
         )
+    }
+}
+
+private enum ChargingEffectControllerTestFailure: Error, CustomStringConvertible {
+    case batteryDidNotReachStore(
+        expected: BatteryStatus,
+        actual: BatteryStatus,
+        snapshot: StatusSnapshot,
+        batteryProgressInModel: Double?,
+        latestScene: IconSceneState,
+        renderCount: Int,
+        lastRenderedScene: IconSceneState?
+    )
+
+    var description: String {
+        switch self {
+        case let .batteryDidNotReachStore(
+            expected,
+            actual,
+            snapshot,
+            batteryProgressInModel,
+            latestScene,
+            renderCount,
+            lastRenderedScene
+        ):
+            """
+            The battery update did not reach the status store.
+              expected battery: \(expected)
+              actual battery: \(actual)
+              snapshot: \(snapshot)
+              battery progress in model: \(batteryProgressInModel.map { String($0) } ?? "none")
+              latest model scene: \(latestScene)
+              delivered scene: \(String(describing: lastRenderedScene))
+              render count: \(renderCount)
+              elapsed: 5.0s
+            """
+        }
     }
 }

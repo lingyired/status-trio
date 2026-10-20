@@ -133,27 +133,60 @@ struct AppIconControllerTests {
     }
 
     @Test func hiddenDockDoesNotRenderStatusChanges() async throws {
-        let harness = try AppIconControllerHarness(initialPlacement: .menuBar)
-        defer { harness.cleanUp() }
-        harness.controller.start()
-        harness.log.reset()
+        let visibleScheduler = ManualIconPresentationScheduler()
+        let visibleHarness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            snapshotScheduler: visibleScheduler
+        )
+        defer { visibleHarness.cleanUp() }
+        let hiddenScheduler = ManualIconPresentationScheduler()
+        let hiddenHarness = try AppIconControllerHarness(
+            initialPlacement: .menuBar,
+            snapshotScheduler: hiddenScheduler
+        )
+        defer { hiddenHarness.cleanUp() }
+        visibleHarness.controller.start()
+        hiddenHarness.controller.start()
+        visibleHarness.log.reset()
+        hiddenHarness.log.reset()
 
-        harness.publishDifferentSnapshot()
-        // Let the snapshot debounce and the monitor's AsyncStream consumer
-        // settle before asserting that a hidden Dock produced no render.
-        try await Task.sleep(for: .seconds(2))
+        visibleHarness.publishDifferentSnapshot()
+        hiddenHarness.publishDifferentSnapshot()
+        let updatesReachedStore = await waitForStoresToReceiveSnapshots(
+            [visibleHarness, hiddenHarness]
+        )
+        try #require(updatesReachedStore, "Both status updates must reach their stores.")
+        try #require(
+            visibleScheduler.hasPendingAction && hiddenScheduler.hasPendingAction,
+            "Both status updates must schedule the controlled presentation debounce."
+        )
+        visibleScheduler.runScheduled()
+        hiddenScheduler.runScheduled()
+        visibleHarness.controller.flushPendingPresentationForTesting()
+        hiddenHarness.controller.flushPendingPresentationForTesting()
 
-        #expect(harness.log.renderCount == 0)
+        #expect(visibleHarness.log.renderCount == 1)
+        #expect(hiddenHarness.log.renderCount == 0)
     }
 
     @Test func visibleDockRendersStatusChanges() async throws {
-        let harness = try AppIconControllerHarness(initialPlacement: .dock)
+        let scheduler = ManualIconPresentationScheduler()
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            snapshotScheduler: scheduler
+        )
         defer { harness.cleanUp() }
         harness.controller.start()
         harness.log.reset()
 
         harness.publishDifferentSnapshot()
-        try await waitForCoalescedRenders { harness.log.renderCount == 1 }
+        try await waitUntil(
+            "The status update must schedule the controlled presentation debounce."
+        ) {
+            scheduler.hasPendingAction
+        }
+        scheduler.runScheduled()
+        harness.controller.flushPendingPresentationForTesting()
 
         #expect(harness.log.renderCount == 1)
     }
@@ -193,7 +226,7 @@ struct AppIconControllerTests {
         harness.log.reset()
 
         harness.settings.showsWiFiIconForHotspot = true
-        try await waitForCoalescedRenders { harness.log.renderCount == 1 }
+        harness.controller.flushPendingPresentationForTesting()
 
         #expect(harness.log.renderCount == 1)
         #expect(harness.log.lastCenterScale == 1.5)
@@ -235,7 +268,7 @@ struct AppIconControllerTests {
 
         harness.settings.showsBatteryPercentage = false
         harness.settings.volumeDisplayStyle = .arc
-        try await waitForCoalescedRenders { harness.log.renderCount > 0 }
+        harness.controller.flushPendingPresentationForTesting()
 
         #expect(harness.log.renderCount > 0)
         #expect(harness.log.lastScene?.outerRing?.strokeScale == RingStrokeStyle.bold.scale)
@@ -243,25 +276,35 @@ struct AppIconControllerTests {
     }
 
     @Test func changingBluetoothAudioOptionsRendersWithUpdatedOptions() async throws {
+        let sleeper = ManualEventSleeper()
+        let fixedDate = Date()
+        let coalescer = IconRenderCoalescer(
+            now: { fixedDate },
+            sleep: { duration in await sleeper.sleep(duration) }
+        )
         let harness = try AppIconControllerHarness(
             initialPlacement: .dock,
             initialWiFi: WiFiStatus(state: .noInternet, rssi: nil),
             initialVolume: VolumeStatus(
                 scalar: 0.5, isMuted: false, deviceName: "AirPods",
                 currentDevice: PresentationFixtures.bluetoothDevice
-            )
+            ),
+            renderCoalescer: coalescer
         )
         defer { harness.cleanUp() }
         harness.controller.start()
+        harness.settings.ringStrokeStyle = .bold
+        harness.controller.flushPendingPresentationForTesting()
         harness.log.reset()
 
         harness.settings.replacesNetworkIconWithBluetoothAudio = true
         harness.settings.usesBluetoothAudioVolumeColor = true
         harness.settings.prioritizesNetworkErrorsOverBluetoothAudio = false
-        try await waitForCoalescedRenders { harness.log.renderCount == 1 }
+        #expect(harness.log.renderCount == 0, "The burst must wait for the controlled drain.")
+        harness.controller.flushPendingPresentationForTesting()
 
-        // The first change redraws at once; the two that follow within the
-        // coalescing interval collapse into one trailing redraw.
+        // All three changes land inside one coalescing window and collapse
+        // into one trailing redraw with the newest options.
         #expect(harness.log.renderCount == 1)
     }
 
@@ -338,12 +381,12 @@ struct AppIconControllerTests {
         )
         defer { harness.cleanUp() }
         harness.controller.start()
-        try await waitForCoalescedRenders { harness.log.renderCount > 0 }
         harness.log.reset()
 
         harness.settings.batteryFullThreshold = 80
+        harness.controller.flushPendingPresentationForTesting()
 
-        try await waitForCoalescedRenders { harness.log.renderCount > 0 }
+        #expect(harness.log.renderCount > 0)
         #expect(harness.log.lastScene?.outerRing?.segments.first?.progress == 1.0)
     }
 
@@ -666,14 +709,21 @@ struct AppIconControllerTests {
     /// `applicationIconImage` would replace it with a static image, so the
     /// static path has to stay quiet until the animation releases the surface.
     @Test func animatedDockTileSuppressesStaticImageWrites() async throws {
-        let harness = try AppIconControllerHarness(initialPlacement: .dock)
+        let scheduler = ManualIconPresentationScheduler()
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            snapshotScheduler: scheduler
+        )
         defer { harness.cleanUp() }
         harness.controller.start()
         harness.controller.setDockChargingAnimationActive(true)
         harness.log.reset()
 
         harness.publishDifferentSnapshot()
-        try await Task.sleep(for: .seconds(2))
+        let updateReachedStore = await waitForStoreSnapshot(harness)
+        try #require(updateReachedStore, "The status update must reach the store.")
+        scheduler.runScheduled()
+        harness.controller.flushPendingPresentationForTesting()
 
         #expect(harness.log.renderCount == 0)
         #expect(harness.log.events.isEmpty)
@@ -716,12 +766,34 @@ struct AppIconControllerTests {
         until condition: () -> Bool,
         timeout: TimeInterval = 5
     ) async throws {
-        let deadline = Date().addingTimeInterval(timeout)
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
         while Date() < deadline {
             if condition() { return }
             try await Task.sleep(for: .milliseconds(5))
         }
-        Issue.record("The coalesced redraw did not run within \(timeout) seconds.")
+        throw AppIconTestFailure.coalescedRedrawTimeout(
+            timeout: timeout,
+            elapsed: Date().timeIntervalSince(startedAt)
+        )
+    }
+
+    private func waitUntil(
+        _ failureMessage: String,
+        timeout: TimeInterval = 5,
+        condition: () -> Bool
+    ) async throws {
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() { return }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        throw AppIconTestFailure.conditionNotMet(
+            message: failureMessage,
+            timeout: timeout,
+            elapsed: Date().timeIntervalSince(startedAt)
+        )
     }
 
     private func makeControllerBitmapImage(width: Int, height: Int) -> NSImage {
@@ -740,6 +812,42 @@ struct AppIconControllerTests {
         let image = NSImage(size: NSSize(width: width, height: height))
         image.addRepresentation(representation)
         return image
+    }
+
+    private func waitForStoreSnapshot(_ harness: AppIconControllerHarness) async -> Bool {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while ContinuousClock.now < deadline {
+            if harness.store.snapshot.battery.rawPercentage == 42 { return true }
+            await Task.yield()
+        }
+        return false
+    }
+
+    private func waitForStoresToReceiveSnapshots(
+        _ harnesses: [AppIconControllerHarness]
+    ) async -> Bool {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while ContinuousClock.now < deadline {
+            if harnesses.allSatisfy({ $0.store.snapshot.battery.rawPercentage == 42 }) {
+                return true
+            }
+            await Task.yield()
+        }
+        return false
+    }
+}
+
+private enum AppIconTestFailure: Error, CustomStringConvertible {
+    case coalescedRedrawTimeout(timeout: TimeInterval, elapsed: TimeInterval)
+    case conditionNotMet(message: String, timeout: TimeInterval, elapsed: TimeInterval)
+
+    var description: String {
+        switch self {
+        case let .coalescedRedrawTimeout(timeout, elapsed):
+            "The coalesced redraw did not run within \(timeout) seconds (elapsed \(elapsed))."
+        case let .conditionNotMet(message, timeout, elapsed):
+            "\(message) Timeout: \(timeout)s. Elapsed: \(elapsed)s."
+        }
     }
 }
 

@@ -326,6 +326,7 @@ jobs:
       - name: Run native compatibility tests
         run: |
           set -euo pipefail
+          bash scripts/test-macos13-deployment-contract-regressions.sh
           bash scripts/test-macos13-deployment-contract.sh
           bash scripts/test-appcast-minimum-system-version.sh
           bash scripts/test-macos13-bundle-contract.sh
