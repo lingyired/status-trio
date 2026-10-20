@@ -6,19 +6,23 @@ Ordinary development does not require GitHub Actions. Use focused local tests
 while developing, then run the verification profile sized to the risk before
 delivery and merge.
 
-Pick one bounded profile with `bash scripts/verify-local.sh <quick|full>
-[swift-test-filter]`:
+Pick one bounded profile with
+`bash scripts/verify-local.sh <quick|docs|full> [swift-test-filter]`:
 
 - `quick`: shell syntax, forbidden patterns, and focused Swift tests. This is
-  the default for documentation, localization, and small isolated changes.
-- `full`: the full Swift suite, Release build, and native compatibility and
-  dependency contracts. Use this for state, concurrency, rendering, Helper,
+  the default for a small isolated code change.
+- `docs`: shell syntax, forbidden patterns, the localization regression
+  filters, and workflow-policy checks. Use this for documentation or
+  localization-only changes.
+- `full`: the full Swift suite, Release build, a non-Universal local app
+  bundle, its platform/SDK and Helper contracts, and the native compatibility
+  and dependency checks. Use this for state, concurrency, rendering, Helper,
   build-pipeline, or other high-risk changes.
 
-The script reports the tested SHA, branch, tracked working-tree state, toolchain,
-commands, exit status, scope, and unverified items. A filter is evidence for
-that filter only, not for the full suite. Local verification is not a runtime,
-signing, notarization, DMG, or release pass.
+The script reports the tested SHA, branch, tracked and untracked working-tree
+changes, toolchain, commands, exit status, scope, and unverified items. A filter
+is evidence for that filter only, not for the full suite. Local verification is
+not a runtime, signing, notarization, DMG, Universal-package, or release pass.
 
 Small follow-up changes may commit directly to `main` or use a short-lived
 branch and fast-forward it. Use a pull request for larger, multi-subsystem, or
@@ -62,7 +66,7 @@ automatically by Codex.
 
 | Change | Read | Minimum local profile |
 | --- | --- | --- |
-| Documentation, copy, localization, translations | `.agents/rules/release.md` only for release copy; otherwise the affected UI rule | `quick` with the matching localization tests; release-note coverage when applicable |
+| Documentation, copy, localization, translations | `.agents/rules/release.md` only for release copy; otherwise the affected UI rule | `docs`; release-note coverage when applicable |
 | Ordinary isolated feature or unit test | Rule for its subsystem | Focused `quick` tests; add the subsystem regression filter |
 | State/store, `@MainActor`, `Sendable`, actor isolation, concurrency, `deinit`, SwiftUI bindings, generic/resource plumbing | `.agents/rules/performance.md`, `.agents/rules/macos-compatibility.md` | `full` |
 | Icon scene, renderer, `StatusIconRenderer`, `StatusIconGeometry`, `IconPresentationMapper`, `IconSceneState`, `StatusBarController` icon path, `AppIconController`, `DockIconRenderKey`, `DockIconRenderer` | `.agents/rules/rendering.md` | `full`, plus `Issue30WiFiAlignmentTests` and Dock/Menu Bar parity tests |
@@ -154,8 +158,11 @@ See `.agents/rules/rendering.md` and
 ## Release Boundaries
 
 - Release CI is required only before a formal release, not for ordinary commits,
-  pull requests, or merges. The release workflow must verify a frozen SHA once,
-  then package from that SHA and publish the exact verified artifact.
+  pull requests, or merges.
+- PR 3 owns enforcement of a frozen SHA, one verified package, artifact reuse
+  during publish, and the Tag/manifest SHA equality check. PR 2 only establishes
+  the local-first workflow and does not change `release.yml` or claim those
+  controls are implemented.
 - Never publish a different SHA, rebuild during publish, or let a tag point at
   a commit that differs from the package manifest.
 - Never create a real Release, tag, DMG, or online appcast change while

@@ -6,8 +6,15 @@ generation, signing, notarization, or versioning.
 
 - Merged, built, and released are different states. A merge is not a release,
   and a successful build is not notarization or runtime acceptance.
-- Formal release CI runs only when a maintainer prepares a release. It must
-  pass on the exact frozen commit and publish that commit's packaged artifact.
+- Local `full` verification produces a non-Universal development app bundle;
+  it is not a Universal release package.
+- The PR 2 local-first workflow does not change `release.yml`. PR 3 owns
+  release-only gating, frozen-SHA enforcement, same-artifact reuse during
+  publish, and Tag/manifest SHA validation.
+- The formal-release target is that CI runs only when a maintainer prepares a
+  release, passes on the exact frozen commit, and publishes that commit's
+  packaged artifact. Do not describe that target as current behavior before
+  PR 3 lands.
 - Do not create tags, releases, DMGs, or appcast changes during ordinary
   development verification.
 - Developer ID plus notarization is the signed path; Ad-hoc is a fallback and

@@ -201,8 +201,14 @@ Run the risk-sized local verification (no GitHub Actions, signing, or release):
 
 ```bash
 bash scripts/verify-local.sh quick BatteryMonitorTests
+bash scripts/verify-local.sh docs
 bash scripts/verify-local.sh full
 ```
+
+Use `quick` for an isolated code change, `docs` for documentation or
+localization-only work, and `full` for state, concurrency, rendering, Helper,
+or build-pipeline changes. `full` builds a non-Universal development app bundle;
+it does not produce the release package.
 
 When you need only a focused Swift test, keep using the existing test helper:
 

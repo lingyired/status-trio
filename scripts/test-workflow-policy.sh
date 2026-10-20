@@ -73,4 +73,16 @@ make_fixture "$invalid"
 printf '\nRelease CI is not required before publishing.\n' >> "$invalid/AGENTS.md"
 expect_failure "release CI bypass" run_policy "$invalid"
 
+invalid="$WORK/invalid-mode-contract"
+make_fixture "$invalid"
+ruby -e '
+  path = ARGV[0]
+  source = File.read(path)
+  needle = "`bash scripts/verify-local.sh <quick|docs|full> [swift-test-filter]`"
+  replacement = "`bash scripts/verify-local.sh <quick|full> [swift-test-filter]`"
+  source.sub!(needle, replacement) or abort "missing verification mode contract"
+  File.write(path, source)
+' "$invalid/AGENTS.md"
+expect_failure "verification mode contract without docs" run_policy "$invalid"
+
 echo "workflow policy contract passed"

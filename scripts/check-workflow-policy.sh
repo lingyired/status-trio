@@ -50,6 +50,8 @@ for required in \
     require_text "$AGENTS" "$required"
 done
 
+require_text "$AGENTS" 'bash scripts/verify-local.sh <quick|docs|full>'
+
 for rule in rendering bluetooth network macos-compatibility performance release release-validation; do
     require_text "$AGENTS" ".agents/rules/$rule.md"
     [[ -f "$ROOT/.agents/rules/$rule.md" ]] || fail "mapped rule is missing: .agents/rules/$rule.md"

@@ -9,8 +9,8 @@ work independent of GitHub Actions without weakening the formal release gate.
 2. Work in a short branch or an existing isolated worktree. A separate worktree
    is required only when concurrent writes or branch isolation demand it.
 3. Run focused tests while developing. Before delivery, run
-   `bash scripts/verify-local.sh quick <filter>` or `full` according to the risk
-   table in `AGENTS.md`.
+   `bash scripts/verify-local.sh quick <filter>`, `docs`, or `full` according
+   to the risk table in `AGENTS.md`.
 4. Compare the branch with `origin/main`, then merge in completion order. If
    `main` moved, re-check the diff and re-run the affected scope on the final
    integrated tree.
@@ -34,8 +34,10 @@ git switch main
 git merge --ff-only codex/parallel-a
 
 # Worktree B, after A has landed
+git switch main
 git fetch origin main
-git switch -c codex/parallel-b origin/main
+git merge --ff-only origin/main
+git switch -c codex/parallel-b
 bash scripts/verify-local.sh quick BatteryMonitorTests
 git commit -am "test: worktree B fixture"
 git switch main
@@ -45,6 +47,11 @@ git merge --ff-only codex/parallel-b
 Replace the fixture commit with the actual task change. If `main` moved between
 the branch's verified SHA and the merge, the affected verification is rerun on
 the merged result. The merge does not call `release.yml`.
+
+Branch B must update the local `main` before branching. If local `main` has
+unpushed commits, `git merge --ff-only origin/main` must stop; inspect and
+resolve that divergence instead of branching from a stale or silently rewritten
+base.
 
 ## Worktree app builds
 
@@ -67,7 +74,10 @@ and must not be converted into a mandatory per-PR gate.
 
 ## Formal release handoff
 
-Freeze the candidate SHA before asking for a formal release. The release
-workflow must checkout that SHA, verify and package it once, and publish the
-same artifact. Local verification and all README/PR evidence should name the
-tested SHA so the handoff cannot accidentally use a moving branch.
+Freeze the candidate SHA before asking for a formal release. Local verification
+and all README/PR evidence should name the tested SHA so the handoff cannot
+accidentally use a moving branch.
+
+PR 3 owns enforcement of frozen-SHA checkout, one verified package, publishing
+that same artifact, and rejecting a Tag whose SHA differs from the manifest.
+PR 2 does not change `release.yml` or claim those controls are implemented.

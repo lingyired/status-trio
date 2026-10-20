@@ -7,6 +7,7 @@
 | Commands | Result |
 | --- | --- |
 | `bash scripts/verify-local.sh quick <Filter>` | |
+| `bash scripts/verify-local.sh docs` | |
 | `bash scripts/verify-local.sh full` | |
 
 - Verified SHA:

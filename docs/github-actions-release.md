@@ -8,6 +8,10 @@
 4. 创建 GitHub Release 并上传 DMG
 5. 更新并发布 `appcast.xml`
 
+> **PR 2 边界：** 本 PR 不修改 `.github/workflows/release.yml`。冻结 SHA、
+> 验证产物原样复用、Tag 与 manifest SHA 一致性目前尚未由 workflow 强制，
+> 这些是 PR 3 的实施范围。以下发布目标是整改目标，不应被当作已生效的保证。
+
 > 开发前请先阅读 [Swift 工具链 CI 兼容性规则](swift-ci-compatibility.md)。
 > 日常开发使用本机验证；正式发布前才在冻结 SHA 上运行完整 CI。
 > workflow 的实际 runner、Xcode 和 SDK 版本以文件本身及 run 日志为准。
@@ -15,16 +19,19 @@
 ## 日常开发与正式发布
 
 `AGENTS.md` 的 Local-First 流程优先：普通 commit、PR 和合并使用
-`bash scripts/verify-local.sh quick <filter>` 或
-`bash scripts/verify-local.sh full`。本机结果不会创建 Tag、Release、DMG 或
-appcast 变更。
+`bash scripts/verify-local.sh quick <filter>`、`docs` 或 `full`。本机结果不会
+创建 Tag、Release、DMG 或 appcast 变更。`full` 生成的是非 Universal 的
+本地开发 bundle；Universal 打包仍属于正式发布。
 
-正式发布必须额外满足：
+PR 3 完成后，正式发布必须额外满足：
 
 - 候选 commit SHA 已冻结并记录。
 - 完整 Release CI 在该 SHA 上通过。
 - package 阶段的 DMG、manifest 与 SHA-256 被 publish 阶段原样复用。
 - 人工批准 `distribution` Environment 后才创建并发布公开产物。
+
+当前仓库尚未实施这些保证。PR 2 只调整日常开发与验证流程，不改变现有
+`release.yml` 的触发方式、构建/发布边界或 appcast 写入顺序。
 
 `merged`、`built` 和 `released` 不是同义词；只有公开 Release 与 appcast 都
 核验完成，才可称为 `released`。
@@ -64,7 +71,7 @@ gh secret set APPSTORE_CONNECT_API_PRIVATE_KEY --env distribution --repo lingyir
 
 在最后一条命令中，`AuthKey_XXXXXXXXXX.p8` 是本机私钥文件路径，不是 secret 值。不要读取或打印私钥来验证配置。GitHub Environment 审批控制 job 何时获得 Environment secrets，不会让它们在 runner 中保持加密：获批后，工作流及同一 job 中执行的 action/code 可以使用它们，日志脱敏也不能防止所有泄漏。只允许可信的 `main` 与版本 tag 工作流使用该 Environment，并审查会改动这些工作流的变更。
 
-文案不再通过输入传入，改为读取仓库内的 `release-notes/<version>/`。正式发布 dispatch 会运行 `scripts/validate-appcast-notes.sh`，打印语言覆盖表，并把生成的 appcast 条目干跑到临时文件后断言 XML 合法、变体齐全、`en` 排第一、无未替换占位符。没有新版本文案的本机非发布检查不应被迫先造目录。
+文案不再通过输入传入，改为读取仓库内的 `release-notes/<version>/`。正式发布 dispatch 会运行 `scripts/validate-appcast-notes.sh`，打印语言覆盖表，并把生成的 appcast 条目干跑到临时文件后断言 XML 合法、变体齐全、`en` 排第一、无未替换占位符。当前 validator 对 `publish=false` 且目录缺失的情况会跳过，而 `scripts/release.sh` 仍会拒绝缺失目录；这一行为不一致由 PR 3 统一处理，PR 2 不改变发布文案行为。
 
 正式发布统一使用手动 workflow。workflow 必须将 checkout、构建 artifact、manifest 和 Release Tag 绑定到同一个冻结 SHA；Tag 已存在但 SHA 不同必须失败。
 
