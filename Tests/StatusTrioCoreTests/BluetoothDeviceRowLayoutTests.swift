@@ -18,6 +18,24 @@ import XCTest
 /// row's `ProgressView`.
 @MainActor
 final class BluetoothDeviceRowLayoutTests: XCTestCase {
+    func testHuaweiModesRemainSeparateFromTheDisconnectButton() async throws {
+        let row = try await renderRow(
+            language: .english,
+            device: BluetoothDevice(
+                id: "A8:37:59:F1:77:3D",
+                name: "HUAWEI FreeBuds 6i",
+                kind: .audio,
+                isConnected: true
+            ),
+            listeningMode: BluetoothListeningModePresentation(
+                availableModes: [.noiseCancellation, .transparency, .off],
+                selectedMode: .off
+            ),
+            fixtureName: "huawei-listening-modes"
+        )
+        XCTAssertEqual(row.controls.count, 4, "device action plus three independently reachable mode buttons")
+    }
+
     func testSupportedDeviceKindsDoNotReserveEmptySubtitleSpace() async throws {
         let fixtures: [(name: String, kind: BluetoothDeviceKind, model: String?)] = [
             ("iPhone", .mobile(.phone), "iPhone18,1"),
@@ -738,6 +756,7 @@ final class BluetoothDeviceRowLayoutTests: XCTestCase {
         mobileMetadataByDeviceID: [String: MobileBatterySnapshot] = [:],
         nearbyMetadataByDeviceID: [String: NearbyBLEPanelRow] = [:],
         appleStatusByDeviceID: [String: NearbyBLEPanelRowStatus] = [:],
+        listeningMode: BluetoothListeningModePresentation? = nil,
         actionState: BluetoothDeviceActionState? = nil,
         isConfirmingDisconnect: Bool = false,
         fixtureName: String? = nil
@@ -754,6 +773,7 @@ final class BluetoothDeviceRowLayoutTests: XCTestCase {
             mobileMetadataByDeviceID: mobileMetadataByDeviceID,
             nearbyMetadataByDeviceID: nearbyMetadataByDeviceID,
             appleStatusByDeviceID: appleStatusByDeviceID,
+            listeningMode: listeningMode,
             actionState: actionState,
             isConfirmingDisconnect: isConfirmingDisconnect,
             onPerformAction: {},

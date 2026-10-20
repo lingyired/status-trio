@@ -91,6 +91,8 @@ CI 工具链（`macos-26` / Xcode 26.6 / Swift 6.3.3）上全绿，耗时 15m27s
 | `36681666541`、`36687697162`（#78 iPhone 电量非发布预检） | `Run tests` | 两次都是 `BluetoothListeningModeControllerLifecycleTests` 里等 `.failed` 的用例失败：第一次只有 `testFailedWriteRollsBackThroughAReRead`（2 秒期限，`BluetoothListeningModeControllerLifecycleTests.swift:117`），把期限放宽到 5 秒后第二次反而多了一个 `testUnconfirmedWriteRollsBackToObservedMode`（`…Tests.swift:125`，两条 `XCTAssertTrue(isFailed(...))` 也一并失败）。两次失败与期限长短无关，因为失效的从来不是等待时间，而是**能看见该状态的窗口**：`.failed` 会按 `failureClearDelay` 自动清除，而这个测试 helper 把它从产品默认的 2 秒压到 30 毫秒，`waitUntil` 却每 5 毫秒才轮询一次——runner 的主 actor 只要一次延迟超过 30 毫秒，整段 `.failed` 就被跳过，5 秒期限再长也等不到。`testUnconfirmedWriteRollsBackToObservedMode` 完全不涉及 OS 错误（后端接受写入、回读仍停在 NC），纯 Swift 逻辑必然发布过 `.failed`，所以只可能是没被观察到，不是产品行为改变。第一次的「期限不够」结论由此被推翻 | 把测试 helper 的 `failureClearDelay` 改成产品默认的 2 秒（新增 `Self.failureClearDelay`），使「状态存活多久」与「轮询多久看一次」不再互相错位；`waitUntil` 的 5 秒期限保留，但注释改回真实原因（它只是卡死写入的上界）。`swift test --filter BluetoothListeningModeControllerLifecycleTests` 13 项通过（2.24 秒，两条失败用例各等满 2 秒 linger）。后续以 `version=1.3.4`、`build=21`、`publish=false` 重跑非发布预检验证 |
 
 | `36727668293`（#78 iPad 横版图标非发布预检） | `Run tests` | `AppIconControllerTests.sliderBurstRepaintsTheDockIconOnce` 再次偶发失败：`harness.log.renderCount → 1` 期望 `0`，且 `harness.log.batteryOptions.last?.criticalThreshold → 38` 期望 `40`。同一 run 里 1124 个 XCTest（6 跳过）与其余 438 个 Swift Testing 用例全绿，只此一项失败。与 `35876435136` 同根同症：该用例用同步循环连续发射 16 次阈值，假设尾部重绘必然读到终值 40，而 runner 负载高时尾部重绘会先于 `currentAppearance` 落地，抓到中间值 38。失效的是断言对发射顺序的假设，不是产品行为——失败提交 `5075e85` 只改 iPad 横版图标，不触碰 `AppIconController` / `IconRenderCoalescer` / 电池 publisher | 不改产品代码：该提交随后并入 `8a8157f`，同一工作流非发布预检 [`36728153620`](https://github.com/lingyired/status-trio/actions/runs/36728153620) 全绿。该用例属时序敏感家族（另见 `35316867111`、`35447521372`、`35876435136`），至此已在四个不同提交上偶发；若日后根治，需让突发写入在 MainActor 上落地后再断言，不要据此误判蓝牙改动 |
+| [`39427610464`](https://github.com/lingyired/status-trio/actions/runs/39427610464)（head `d299548`，蓝牙 radio 开关非发布预检） | `Run tests` | `AppIconControllerTests.visibleDockRendersStatusChanges` 偶发失败：`renderCount → 0` 期望 `1`，5 秒内没有等到合并后的 Dock 重绘。此前 XCTest 与其余 Swift Testing 用例均通过；失败提交只改蓝牙 radio 开关，不触碰 `AppIconController`、`IconPresentationViewModel` 或 `IconRenderCoalescer`。该用例和 `35447521372` 同属依赖真实 `Task.sleep` 与主 actor 排程的时序敏感家族，不能据此判定蓝牙回归 | 不改产品代码；测试改用 `ManualIconPresentationScheduler` 明确推进快照 debounce，再调用 `flushPendingPresentationForTesting()` 排空 render coalescer，断言仍为“一次可见 Dock 重绘”；定向 `swift test --filter AppIconControllerTests.visibleDockRendersStatusChanges` 通过（0.096s）。随后重跑完整本地测试、release 构建与同一非发布预检，未创建 Release 或更新 appcast |
+| [`39457652321`](https://github.com/lingyired/status-trio/actions/runs/39457652321)（head `be93f4de`，PR #124 HUAWEI 非发布预检） | `Run tests` | 4 个 Swift Testing 图标用例失败：`ChargingEffectControllerTests.batteryLevelChangesStillUpdateStaticDockArtwork`、`AppIconControllerTests.visibleDockRendersStatusChanges`、`AppIconControllerTests.ringStrokeStyleSurvivesOtherOptionChanges`、`AppIconControllerTests.connectionOptionChangeKeepsConfiguredWiFiSymbolScale`。同一 run 的 XCTest 1,769 项、7 skipped、0 failure，Swift Testing 697 项 / 103 suites 中为这 4 issues。旧测试依赖主 actor 上的真实调度和统一 5 秒 wall-clock deadline；runner 负载下快照 debounce、coalescer 尾部重绘或推进后的静态 artwork 未在期限内落地，不能判定 HUAWEI 传输逻辑回归 | 合并 main 的 #129 修复，在测试注入 `ManualIconPresentationScheduler`、`ManualEventSleeper` 和受控 charging clock，显式推进并排空待处理重绘；断言强度未降低，产品节流与 HUAWEI 写入/read-back 逻辑未修改。当前 head 本地 `swift test` 全绿（XCTest 1,759、7 skipped、0 failure；Swift Testing 697 / 103 suites），图标定向测试 66 项、`HuaweiTransportLifecycleTests` 15 项及 `Issue30WiFiAlignmentTests` 6 项均通过，`swift build -c release` 通过；仍需本节 head 的 `macos-26` / Xcode 26.6 / Swift 6.3.3 非发布预检验证 |
 | （1.4.0 正式发布，`build=17`） | — | 非失败记录。发布前先补 `release-notes/1.4.0/` 全部 12 种语言（即 `36332229393` 的缺失目录门槛），本地 `scripts/validate-appcast-notes.sh` 在 `publish=false` 与 `publish=true` 下均通过（12 titles / 12 descriptions，en 首位） | 发布工作流 [`36739480903`](https://github.com/lingyired/status-trio/actions/runs/36739480903)（`version=1.4.0`、`build=17`、`publish=true`，head `2137675`）全绿：`Validate appcast notes`、`Run tests`（1124 个 XCTest（6 跳过，0 失败）与 438 个 Swift Testing / 72 suites 全绿）、`Build, sign, notarize, and publish`、`Upload release artifacts`。Release `v1.4.0`、tag `v1.4.0`、资产 `StatusTrio-1.4.0.dmg`（5520444 字节）与远端 appcast 的 build 17 条目（12 titles + 12 descriptions、en 首位、edSignature 与 DMG 长度一致）均已核验。本仓库仍无 Developer ID 证书与公证密钥，实际为 Ad-hoc 签名 |
 
 > **本轮结束时构建不是零警告：** 上面的修复只清掉了 `weak var` 那 4 条 `WeakMutability` 和 Task 1 的 1 条 `String(cString:)`，共 5 条；剩下 **2 条**警告是 `WiFiPasswordStore.swift` 的 `kSecUseAuthenticationUIFail` / `kSecUseAuthenticationUIAllow` 弃用，属于 R-12（Keychain 加固）计划，class B，尚未开始。不要把本轮记录读成「构建已经干净」。
@@ -1205,3 +1207,26 @@ distribution due to environment protection rules.
 `scripts/test-macos13-deployment-contract-regressions.sh` 覆盖正常 13.0、
 禁止 15.0、显式 grep、自动 grep fallback、工具缺失和 scanner exit 2，
 并接入 release workflow 的 native compatibility step。
+
+## PR #124：华为传输发现、连接所有权与充电图层并发
+
+- DeepSeek 子任务基于 `group/auto-deepseek-v4-1-flash` 完成了独立功能审查。审查确认
+  HUAWEI 噪声控制已接入实时设备、面板行、写入与 read-back；同时发现首次状态读取失败后
+  不会重试，以及 transport 打开的 Bluetooth 连接在部分失败路径未释放。后续审查还发现
+  明确的非 HUAWEI vendor ID 会被 `FreeBuds` 名称兜底错误识别，以及取消发生在 RFCOMM
+  通道打开后时只关闭连接而未关闭通道。
+- 修复保持原有功能断言：首次无已确认状态时最多使用 150 ms、450 ms 两次有界重试；
+  已有确认模式的后续读取失败继续保留该模式。Transport 只关闭自己成功打开的设备连接，
+  并覆盖连接超时、SDP、RFCOMM、读写、取消、过期连接、`closeAll()` 与会话关闭路径；
+  预存连接保持原所有者。明确 vendor ID 优先于名称兜底。
+- 定向验证通过：华为协议、控制器、首用并发启动和生命周期共 30 项；
+  `Issue30WiFiAlignmentTests`、输出设备听音控制行、面板 task ID 与 Dock 充电恢复
+  定向测试也通过，且 `git diff --check` 通过。
+- 本轮全量 `swift test` 暴露 4 个 issue，集中在既有
+  `StatusBarChargingAnimationTickTests.steadyTicksReuseTheTemplateBaseAndThePreRenderedFrames`：
+  测试快照前观察到基础层被处理两次，从而连带有 4 个计数/对象身份断言失败。6 项充电
+  tick suite 再次运行时有 1 个同类 issue，随后单独复跑通过，说明该测试的初始呈现
+  handoff 仍与实际 `Task.sleep` 调度竞争。重试的 39 个 HUAWEI 定向测试全部通过，
+  证明本次华为代码没有引入这些计数失败。按本条记录的测试调度原则，后续以已有可控
+  presentation 调度器替换固定 sleep，保留“静止呈现只栅格化一次、稳态 tick 不重建基础层”
+  的全部计数与对象身份断言，再运行完整本地测试和非发布 CI 预检。

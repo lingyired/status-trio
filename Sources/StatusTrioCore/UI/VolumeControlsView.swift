@@ -57,8 +57,6 @@ struct VolumeControlsView: View {
             guard !isAdjusting else { return }
             draftVolume = newValue ?? 0
         }
-        .task(id: state.listeningModeTaskID) { actions.volumeListChanged() }
-        .onDisappear { actions.volumeListDisappeared() }
     }
 
     private var percentageText: String {

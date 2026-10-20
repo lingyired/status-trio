@@ -2,8 +2,15 @@ import Combine
 import CoreAudio
 import Foundation
 
-/// Owns the AirPods listening-mode surface for the Bluetooth panel's visible
+/// Owns the Bluetooth listening-mode surface for the Bluetooth panel's visible
 /// lifetime.
+///
+/// AirPods expose their modes through CoreAudio's private `lstm`/`lsms`
+/// properties; HUAWEI FreeBuds-family devices expose the same three states
+/// (off, cancellation, transparency) over a vendor SPP channel. The CoreAudio
+/// path keeps its original discovery/write/read-back rules; the HUAWEI path adds
+/// a transport and an endpoint resolver behind separate seams, so neither
+/// device family changes the other's guarantees.
 ///
 /// It is deliberately a separate object from `BluetoothDeviceController` (the plan's
 /// Option B): the paired-device controller is a large, carefully-synchronised
@@ -32,14 +39,12 @@ final class BluetoothListeningModeController: ObservableObject {
     /// waiting on anything.
     private let previewSettleDelay: Duration
 
-    /// Interface-preview mode. When true, `refresh` publishes a synthetic
-    /// three-capsule presentation for every connected AirPods without consulting
-    /// the HAL, the endpoint provider, or the identity mapper, and `setMode`
-    /// walks the same `.changing` → `.settled` path but never issues a real
-    /// write. The UI and the tap feedback look identical to a working device —
-    /// that is the whole point. This is the only way a preview presentation can
-    /// exist; it is set from a Settings toggle and cleared again on the next
-    /// `refresh` once the toggle is off.
+    /// Interface-preview mode. When true, `refresh` publishes synthetic
+    /// presentations for connected AirPods without consulting the HAL or
+    /// endpoint mapper. HUAWEI devices remain live and continue through SPP;
+    /// preview toggles never redirect vendor writes to an in-memory selection.
+    /// Preview is set from Settings and cleared on the next refresh after the
+    /// toggle is turned off.
     var previewMode: Bool = false
 
     /// Preview's authoritative selection per normalized address. Real writes go
@@ -111,31 +116,48 @@ final class BluetoothListeningModeController: ObservableObject {
     /// dropped the presentation.
     private var subscriptions: [AudioDeviceID: BluetoothListeningModeSubscription] = [:]
 
+    /// HUAWEI devices do not expose the CoreAudio `lstm` property; their noise
+    /// control lives on a vendor SPP channel. The transport and endpoint resolver
+    /// are separate seams so the CoreAudio path keeps its existing guarantees.
+    private let huaweiTransport: any HuaweiListeningModeTransporting
+    private let huaweiEndpointProvider: any HuaweiAudioEndpointProviding
+    private let huaweiFirstReadRetryDelays: [Duration]
+    /// Addresses whose controls are backed by the HUAWEI transport. `setMode`
+    /// branches on this rather than re-reading the device.
+    private var huaweiAddresses: Set<String> = []
+    /// One in-flight state read per device, so repeated panel refreshes do not
+    /// stack queries on the same channel. The token identifies the task that owns
+    /// the dictionary slot, so a cancelled read cannot clear a newer one, and it
+    /// invalidates the read it replaced, so a superseded read cannot publish.
+    private var huaweiRefreshTasks: [String: Task<Void, Never>] = [:]
+    private var huaweiReadTokens: [String: DeviceOperationToken] = [:]
+
     init(
         hal: BluetoothListeningModeHAL = BluetoothListeningModeHAL(),
         endpointProvider: any CoreAudioBluetoothEndpointProviding = CoreAudioBluetoothListeningModeEndpointProvider(),
         listenerBackend: any BluetoothListeningModePropertyListening = CoreAudioBluetoothListeningModeListenerBackend(),
+        huaweiTransport: any HuaweiListeningModeTransporting = HuaweiRFCOMMTransport(),
+        huaweiEndpointProvider: any HuaweiAudioEndpointProviding = CoreAudioHuaweiAudioEndpointProvider(),
+        huaweiReadRetryDelays: [Duration] = [.milliseconds(150), .milliseconds(450)],
         failureClearDelay: Duration = .seconds(2),
         previewSettleDelay: Duration = .milliseconds(400)
     ) {
         self.hal = hal
         self.endpointProvider = endpointProvider
         self.listenerBackend = listenerBackend
+        self.huaweiTransport = huaweiTransport
+        self.huaweiEndpointProvider = huaweiEndpointProvider
+        self.huaweiFirstReadRetryDelays = huaweiReadRetryDelays
         self.failureClearDelay = failureClearDelay
         self.previewSettleDelay = previewSettleDelay
     }
 
-    /// Discovers and publishes the controls for the currently connected AirPods.
-    ///
-    /// Called when the panel becomes visible and again on a user refresh — never on
-    /// a timer. Each connected AirPods candidate is resolved to an endpoint by the
-    /// identity mapper; anything the mapper is not certain about simply gets no
-    /// entry, so the row keeps its existing appearance and writes nothing.
-    ///
-    /// In `previewMode`, discovery is bypassed entirely: every connected AirPods
-    /// gets a synthetic three-capsule presentation and no CoreAudio call is made.
-    /// Turning preview off re-runs the real path, so any presentation that the real
-    /// subsystem would not have published disappears on the next refresh.
+    /// Discovers controls for connected devices while a panel surface is visible.
+    /// AirPods require a resolved CoreAudio endpoint. HUAWEI devices use their
+    /// Bluetooth address and SPP transport, so their control remains available
+    /// in the paired-device row when macOS has not opened an audio route.
+    /// Preview mode substitutes only the AirPods surface; live HUAWEI discovery
+    /// and writes remain active while previews are enabled.
     func refresh(devices: [BluetoothDevice]) {
         if previewMode {
             refreshPreview(devices: devices)
@@ -170,9 +192,13 @@ final class BluetoothListeningModeController: ObservableObject {
             nextResolved[address] = endpointID
         }
 
+        let airPodsEndpointIDs = Set(nextResolved.values)
+        preserveHuaweiPresentations(in: &next, endpoints: &nextResolved, devices: devices)
+
         // Anything no longer resolved has its tasks cancelled and its token
-        // bumped, so a late completion cannot resurrect it.
-        for address in presentations.keys where next[address] == nil {
+        // retired, so a late completion cannot resurrect it. HUAWEI addresses are
+        // handled by `refreshHuawei` below, which owns their tasks.
+        for address in presentations.keys where next[address] == nil && !huaweiAddresses.contains(address) {
             cancelTasks(for: address)
             retireChangeToken(for: address)
         }
@@ -182,23 +208,114 @@ final class BluetoothListeningModeController: ObservableObject {
         // A real refresh invalidates every preview selection: preview state must
         // never leak back onto the live control surface after the toggle is off.
         previewSelectedModes.removeAll()
-        // Reconcile the `lstm` listeners against the freshly-resolved endpoint set:
-        // a new subscription catches a mode change on a just-connected AirPods, an
-        // unsubscribe stops a change on a disconnected one from firing into a
-        // controller that already dropped the presentation.
-        syncSubscriptions(to: Set(nextResolved.values))
+        syncSubscriptions(to: airPodsEndpointIDs)
+        refreshHuawei(devices: devices)
     }
 
-    /// The preview-side refresh. No HAL, no endpoint provider, no identity mapper.
-    /// Selection rides on `previewSelectedModes` so a re-open of the panel keeps
-    /// whatever the user last tapped; a mode that was mid-write before this refresh
-    /// keeps its changing state so the spinner does not disappear under the finger.
-    ///
-    /// Eligibility is `isConnected && (isAirPods || preview-prefixed address)`.
-    /// The prefix branch lets the UI inject synthetic rows that exercise the
-    /// composed layout even when the operator picks a display name that would not
-    /// match the "AirPods" heuristic — a preview row the user renamed to
-    /// "Long-Name-Test" should still render.
+    /// Discovers HUAWEI controls by Bluetooth address and reads their current
+    /// mode over SPP. CoreAudio output endpoint resolution is optional: it only
+    /// chooses whether the capsules appear on the volume row or as a fallback on
+    /// the connected Bluetooth-device row.
+    private func refreshHuawei(devices: [BluetoothDevice]) {
+        let eligible = devices.filter {
+            $0.isConnected && $0.isHuaweiAudio && !$0.id.hasPrefix(Self.previewAddressPrefix)
+        }
+        let addresses = Set(eligible.map { BluetoothBatteryReader.normalizedAddress($0.id) })
+            .filter { !$0.isEmpty }
+        let removed = huaweiAddresses.subtracting(addresses)
+
+        for address in removed {
+            huaweiRefreshTasks[address]?.cancel()
+            huaweiRefreshTasks[address] = nil
+            huaweiReadTokens[address] = nil
+            cancelTasks(for: address)
+            retireChangeToken(for: address)
+            presentations[address] = nil
+            resolvedEndpoints[address] = nil
+        }
+        huaweiAddresses = addresses
+
+        for device in eligible {
+            let address = BluetoothBatteryReader.normalizedAddress(device.id)
+            guard !address.isEmpty else { continue }
+            let endpointID = huaweiEndpointProvider.endpointID(for: device)
+            resolvedEndpoints[address] = endpointID
+
+            // A write owns the presentation until its read-back settles; a
+            // concurrent discovery read would race that result.
+            if presentations[address]?.isChanging == true { continue }
+            if huaweiRefreshTasks[address] != nil { continue }
+
+            let token = DeviceOperationToken()
+            huaweiReadTokens[address] = token
+            huaweiRefreshTasks[address] = Task { [weak self] in
+                guard let self else { return }
+                defer {
+                    if self.huaweiReadTokens[address] == token {
+                        self.huaweiRefreshTasks[address] = nil
+                        self.huaweiReadTokens[address] = nil
+                    }
+                }
+                let delays = self.presentations[address] == nil
+                    ? self.huaweiFirstReadRetryDelays
+                    : []
+                for attempt in 0...delays.count {
+                    do {
+                        let state = try await self.huaweiTransport.state(address: address)
+                        guard !Task.isCancelled,
+                              self.huaweiReadTokens[address] == token,
+                              self.huaweiAddresses.contains(address),
+                              self.presentations[address]?.isChanging != true else {
+                            return
+                        }
+                        self.presentations[address] = BluetoothListeningModePresentation(
+                            availableModes: HuaweiNoiseState.selectableListeningModes,
+                            selectedMode: state.listeningMode
+                        )
+                        return
+                    } catch {
+                        guard attempt < delays.count else { return }
+                        do {
+                            try await Task.sleep(for: delays[attempt])
+                        } catch {
+                            return
+                        }
+                        guard !Task.isCancelled,
+                              self.huaweiReadTokens[address] == token,
+                              self.huaweiAddresses.contains(address),
+                              self.presentations[address]?.isChanging != true else {
+                            return
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Keeps an existing HUAWEI presentation while AirPods or preview rows are
+    /// rebuilt. HUAWEI mode state is keyed by Bluetooth address, independent of
+    /// whether CoreAudio currently exposes an output endpoint.
+    private func preserveHuaweiPresentations(
+        in next: inout [String: BluetoothListeningModePresentation],
+        endpoints nextEndpoints: inout [String: AudioDeviceID],
+        devices: [BluetoothDevice]
+    ) {
+        for device in devices where device.isConnected && device.isHuaweiAudio
+            && !device.id.hasPrefix(Self.previewAddressPrefix) {
+            let address = BluetoothBatteryReader.normalizedAddress(device.id)
+            guard !address.isEmpty, huaweiAddresses.contains(address) else { continue }
+            if let presentation = presentations[address] {
+                next[address] = presentation
+            }
+            if let endpointID = resolvedEndpoints[address] {
+                nextEndpoints[address] = endpointID
+            }
+        }
+    }
+
+
+    /// The preview-side refresh. AirPods and synthetic rows get in-memory
+    /// presentations; HUAWEI devices stay on the real SPP path.
     private func refreshPreview(devices: [BluetoothDevice]) {
         let eligible = devices.filter { device in
             device.isConnected && (
@@ -219,44 +336,41 @@ final class BluetoothListeningModeController: ObservableObject {
                     selectedMode: previewSelectedModes[address] ?? .noiseCancellation
                 )
             }
-            // Mint the same synthetic endpoint the preview output row is built
-            // with, so `control(forEndpoint:)` resolves a preview capsule exactly
-            // as a real one — the control now lives on the output list, not the
-            // Bluetooth row, and it needs an endpoint to hang off.
             if let endpoint = Self.syntheticEndpoint(for: device.id) {
                 nextEndpoints[address] = endpoint
             }
         }
 
-        for address in presentations.keys where next[address] == nil {
+        preserveHuaweiPresentations(in: &next, endpoints: &nextEndpoints, devices: devices)
+        // HUAWEI addresses are owned by `refreshHuawei` below, exactly as they
+        // are in the live path: a preview refresh must not cancel a vendor write
+        // whose SPP frame has already gone out.
+        for address in presentations.keys where next[address] == nil
+            && !huaweiAddresses.contains(address) {
             cancelTasks(for: address)
             retireChangeToken(for: address)
         }
 
         presentations = next
         resolvedEndpoints = nextEndpoints
-        // Preview has no real device to subscribe to. Any subscription the previous
-        // real refresh left behind must go away, or a live AirPods would keep
-        // firing signals into a controller that is only rendering synthetic rows.
         syncSubscriptions(to: [])
+        refreshHuawei(devices: devices)
     }
 
     /// Asks a device to switch to `mode`, publishing the in-flight state and
-    /// reconciling the result against the read-back.
-    ///
-    /// In `previewMode`, the write is not issued. The state machine still publishes
-    /// `.changing(to:)` and later `.settled(on:)`, and the guard rules — no re-tap
-    /// on the selected mode, no stacking a second write on a changing capsule — are
-    /// identical, so the row's tap feedback matches what a real device produces.
+    /// reconciling the result against the read-back. Preview writes stay in memory;
+    /// live HUAWEI writes always use SPP, including while AirPods preview is enabled.
     func setMode(_ mode: BluetoothListeningMode, for device: BluetoothDevice) {
         setMode(mode, forAddress: BluetoothBatteryReader.normalizedAddress(device.id))
     }
 
-    /// The address-driven entry point. The audio output list resolves a row to a
-    /// control via `control(forEndpoint:)`, then hands the resolved address back
-    /// here — the same target `refresh` chose, so a write never needs the original
-    /// `BluetoothDevice`.
+    /// The address-driven entry point. The originating row identifies the device;
+    /// the controller keeps vendor writes and CoreAudio writes on their own paths.
     func setMode(_ mode: BluetoothListeningMode, forAddress address: String) {
+        if huaweiAddresses.contains(address) {
+            setHuaweiMode(mode, forAddress: address)
+            return
+        }
         if previewMode {
             setModePreview(mode, forAddress: address)
             return
@@ -266,8 +380,6 @@ final class BluetoothListeningModeController: ObservableObject {
               presentation.availableModes.contains(mode) else {
             return
         }
-        // Already switching, or already on that mode: never stack a second write, and
-        // never write to re-select the highlighted button (§21).
         guard !presentation.isChanging, presentation.selectedMode != mode else { return }
 
         presentation = presentation.changing(to: mode)
@@ -278,6 +390,41 @@ final class BluetoothListeningModeController: ObservableObject {
             let result = await hal.setMode(mode, for: endpointID)
             guard let self, !Task.isCancelled, self.changeTokens[address] == token else { return }
             self.apply(result, of: mode, to: presentation, at: address, endpointID: endpointID)
+        }
+    }
+
+    /// The HUAWEI branch of `setMode`. It mirrors the CoreAudio state machine:
+    /// publish the spinner, write over SPP, and settle on the state read back by
+    /// the transport — never on the requested mode alone. A transport error rolls
+    /// back to the last confirmed selection and shows the same failure mark.
+    private func setHuaweiMode(_ mode: BluetoothListeningMode, forAddress address: String) {
+        guard var presentation = presentations[address],
+              presentation.availableModes.contains(mode),
+              let noiseMode = HuaweiNoiseState.noiseMode(for: mode) else {
+            return
+        }
+        guard !presentation.isChanging, presentation.selectedMode != mode else { return }
+
+        presentation = presentation.changing(to: mode)
+        presentations[address] = presentation
+        let token = issueChangeToken(for: address)
+
+        changeTasks[address] = Task { [weak self, transport = self.huaweiTransport] in
+            do {
+                let state = try await transport.setMode(noiseMode, address: address)
+                guard let self, !Task.isCancelled, self.changeTokens[address] == token else { return }
+                self.changeTasks[address] = nil
+                if state.listeningMode == mode {
+                    self.retireChangeToken(for: address)
+                    self.presentations[address] = presentation.settled(on: mode)
+                } else {
+                    self.showFailure(state.listeningMode, previous: presentation, at: address)
+                }
+            } catch {
+                guard let self, !Task.isCancelled, self.changeTokens[address] == token else { return }
+                self.changeTasks[address] = nil
+                self.showFailure(presentation.selectedMode, previous: presentation, at: address)
+            }
         }
     }
 
@@ -296,6 +443,36 @@ final class BluetoothListeningModeController: ObservableObject {
         return (address, presentation)
     }
 
+
+    /// Presentation for the Bluetooth row, used only when no CoreAudio output
+    /// endpoint exists. If there is an endpoint, the volume row remains the sole
+    /// visible owner of the listening-mode control.
+    func control(
+        forBluetoothAddress address: String
+    ) -> BluetoothListeningModePresentation? {
+        let key = BluetoothBatteryReader.normalizedAddress(address)
+        guard huaweiAddresses.contains(key),
+              resolvedEndpoints[key] == nil,
+              let presentation = presentations[key],
+              presentation.isControllable else {
+            return nil
+        }
+        return presentation
+    }
+
+
+    /// HUAWEI presentations with no audio endpoint; render these under the
+    /// corresponding connected Bluetooth row instead of hiding them.
+    var huaweiBluetoothRowPresentations: [String: BluetoothListeningModePresentation] {
+        huaweiAddresses.reduce(into: [:]) { result, address in
+            guard resolvedEndpoints[address] == nil,
+                  let presentation = presentations[address],
+                  presentation.isControllable else {
+                return
+            }
+            result[address] = presentation
+        }
+    }
     /// Which address, if any, the last refresh resolved to this endpoint. Only the
     /// resolved endpoints carry a control, so the reverse lookup is exactly the set
     /// the output list may light up.
@@ -335,6 +512,13 @@ final class BluetoothListeningModeController: ObservableObject {
             cancelTasks(for: address)
             retireChangeToken(for: address)
         }
+        for address in huaweiAddresses {
+            huaweiRefreshTasks[address]?.cancel()
+            huaweiReadTokens[address] = nil
+        }
+        huaweiRefreshTasks.removeAll()
+        huaweiReadTokens.removeAll()
+        huaweiAddresses.removeAll()
         changeTasks.removeAll()
         failureClearTasks.removeAll()
         presentations = [:]
@@ -343,6 +527,7 @@ final class BluetoothListeningModeController: ObservableObject {
         // panel closes" applies to CoreAudio subscriptions too. `syncSubscriptions`
         // with an empty set removes every registered block.
         syncSubscriptions(to: [])
+        huaweiTransport.closeAll()
     }
 
     // MARK: - External `lstm` changes

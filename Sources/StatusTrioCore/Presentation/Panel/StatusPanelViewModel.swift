@@ -32,6 +32,7 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var network: PanelSummaryState
     @Published private(set) var vpn: PanelSummaryState
     @Published private(set) var bluetooth: BluetoothPanelState
+    @Published private(set) var bluetoothListeningModeRows: [String: BluetoothListeningModePresentation] = [:]
     @Published private(set) var volume: VolumePanelState
     @Published private(set) var audioInput: AudioInputPanelState
     @Published private(set) var inputSource: InputSourcePanelState
@@ -228,6 +229,8 @@ final class StatusPanelViewModel: ObservableObject {
             localization: localization
         )
         if bluetooth != state { bluetooth = state }
+        let modeRows = store.bluetoothListeningModes.huaweiBluetoothRowPresentations
+        if bluetoothListeningModeRows != modeRows { bluetoothListeningModeRows = modeRows }
     }
 
     /// The address the network row shows, or `nil` while the setting is off or
@@ -256,7 +259,7 @@ final class StatusPanelViewModel: ObservableObject {
             controllerAvailable: store.isVolumeControllerAvailable,
             deviceList: outputPreferences,
             listeningModes: store.bluetoothListeningModes,
-            listeningModeTaskID: currentListeningModeTaskID,
+            listeningModeTaskID: listeningModeTaskID(outputDevices: status.outputDevices),
             previewDevices: ListeningModePreview.outputRows(for: previewConfiguration, volume: status.scalar),
             previewLanguageCode: previewConfiguration.languageCode,
             previewLocalization: PreviewLocalization.forCode(previewConfiguration.languageCode),
@@ -273,7 +276,7 @@ final class StatusPanelViewModel: ObservableObject {
         )
     }
 
-    private var currentListeningModeTaskID: String {
+    private func listeningModeTaskID(outputDevices: [AudioOutputDevice]) -> String {
         let configuration = ListeningModePreview.Configuration(
             isEnabled: settings.previewsBluetoothListeningMode,
             deviceName: settings.bluetoothListeningModePreviewDeviceName,
@@ -281,14 +284,15 @@ final class StatusPanelViewModel: ObservableObject {
             languageCode: settings.bluetoothListeningModePreviewLanguage
         )
         let connected = BluetoothDevicePresentation.grouped(store.bluetoothDevices.devices).connected
-            .filter(\.isAirPods)
+            .filter { $0.isAirPods || $0.isHuaweiAudio }
             .map { BluetoothBatteryReader.normalizedAddress($0.id) }
             .joined(separator: ",")
         let preview = configuration.isEnabled ? "|preview" : ""
         let synthetic = ListeningModePreview.devices(for: configuration)
             .map { BluetoothBatteryReader.normalizedAddress($0.id) }
             .joined(separator: ",")
-        return connected + preview + (synthetic.isEmpty ? "" : "|\(synthetic)")
+        let outputs = outputDevices.map { String($0.id) }.joined(separator: ",")
+        return connected + preview + (synthetic.isEmpty ? "" : "|\(synthetic)") + "|outputs:\(outputs)"
     }
 
     private func mapInput(_ status: AudioInputStatus) -> AudioInputPanelState? {

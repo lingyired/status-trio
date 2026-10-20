@@ -25,7 +25,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Shows Bluetooth connection status and reads battery/model metadata only for devices explicitly authorized by BLE UUID or already trusted by this Mac.</string>
+	<string>Shows Bluetooth connection status, reads battery/model metadata for nearby named devices and devices already trusted by this Mac, and switches noise-control mode on supported headphones; nearby devices are read only when explicitly authorized by BLE UUID.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSLocationUsageDescription</key>

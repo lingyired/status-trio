@@ -161,7 +161,7 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertTrue(firstDeviceDelivered)
         XCTAssertEqual(fixture.updateScheduler.pendingCount, 1)
         fixture.updateScheduler.runScheduled()
-        XCTAssertEqual(panel.volume.listeningModeTaskID, "AABBCCDDEE01")
+        XCTAssertEqual(panel.volume.listeningModeTaskID, "AABBCCDDEE01|outputs:1,\(previewEndpoint)")
 
         fixture.bluetoothWorker.devices = [latestDevice]
         fixture.bluetoothDevices.refresh()
@@ -191,7 +191,7 @@ final class StatusPanelViewModelTests: XCTestCase {
         fixture.updateScheduler.runScheduled()
 
         let changingRow = try! XCTUnwrap(panel.volume.rows.first { $0.key.id == previewEndpoint })
-        XCTAssertEqual(panel.volume.listeningModeTaskID, "AABBCCDDEE02")
+        XCTAssertEqual(panel.volume.listeningModeTaskID, "AABBCCDDEE02|outputs:1,\(previewEndpoint)")
         XCTAssertEqual(deliveredMode?.selectedMode, .transparency)
         XCTAssertEqual(changingRow.listeningMode?.selectedMode, .transparency)
         XCTAssertEqual(changingRow.listeningMode?.actionState, .idle)
@@ -204,8 +204,83 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertEqual(unchangedWhileStopped.listeningMode?.selectedMode, .transparency)
 
         panel.start()
-        XCTAssertEqual(panel.volume.listeningModeTaskID, "AABBCCDDEE02")
+        XCTAssertEqual(panel.volume.listeningModeTaskID, "AABBCCDDEE02|outputs:1,\(previewEndpoint)")
         XCTAssertNil(panel.volume.rows.first { $0.key.id == previewEndpoint }?.listeningMode)
+    }
+
+    /// The listening-mode task id is the `.task(id:)` identity that restarts
+    /// discovery, so a connected HUAWEI device has to reach it — the vendor's
+    /// controls are discovered by address, not by the CoreAudio endpoint the
+    /// AirPods path uses. An audio device that is neither must stay out.
+    func testListeningModeTaskIDIncludesConnectedHuaweiDevicesOnly() async throws {
+        let huawei = BluetoothDevice(
+            id: "BB:CC:DD:EE:FF:01",
+            name: "HUAWEI Buds",
+            kind: .audio,
+            isConnected: true,
+            vendorID: 0x027D
+        )
+        let speaker = BluetoothDevice(
+            id: "CC:DD:EE:FF:00:01",
+            name: "Studio Speaker",
+            kind: .audio,
+            isConnected: true,
+            vendorID: 0x046D
+        )
+        let fixture = PanelStoreFixture(pairedDevices: [huawei, speaker])
+        let panel = fixture.makePanel()
+        panel.start()
+        defer {
+            panel.stop()
+            fixture.bluetoothDevices.deactivate()
+            fixture.bluetoothListeningModes.stop()
+            fixture.store.stop()
+        }
+
+        fixture.bluetoothDevices.activate()
+        let devicesDelivered = await waitForYields { fixture.bluetoothDevices.devices == [huawei, speaker] }
+        XCTAssertTrue(devicesDelivered)
+        XCTAssertEqual(fixture.updateScheduler.pendingCount, 1)
+        fixture.updateScheduler.runScheduled()
+
+        XCTAssertEqual(panel.volume.listeningModeTaskID, "BBCCDDEEFF01|outputs:")
+    }
+
+    func testReviewPR124OutputListIdentityUsesDeliveredVolume() async {
+        let original = AudioOutputDevice(id: 1, name: "Built-in", uid: "builtin", isCurrent: true)
+        let added = AudioOutputDevice(id: 42, name: "FreeBuds", uid: "buds", isCurrent: false)
+        func deliveredVolume(outputDevices: [AudioOutputDevice]) -> VolumeStatus {
+            VolumeStatus(
+                scalar: 0.4,
+                isMuted: false,
+                deviceName: "Desk speakers",
+                currentDevice: original,
+                outputDevices: outputDevices
+            )
+        }
+        let fixture = PanelStoreFixture(outputDevices: [original])
+        let panel = fixture.makePanel()
+        panel.start()
+        fixture.store.start()
+        defer { panel.stop(); fixture.store.stop() }
+        XCTAssertEqual(panel.volume.listeningModeTaskID, "|outputs:1")
+        fixture.volume.send(deliveredVolume(outputDevices: [original, added]))
+        for _ in 0..<1000 {
+            if fixture.store.liveVolume.outputDevices.count == 2 { break }
+            await Task.yield()
+        }
+        XCTAssertEqual(fixture.store.liveVolume.outputDevices.count, 2)
+        XCTAssertEqual(panel.volume.rows.map { $0.key.id }, [1, 42])
+        XCTAssertEqual(panel.volume.listeningModeTaskID, "|outputs:1,42", "Output-only changes must restart discovery with the delivered output list")
+
+        fixture.volume.send(deliveredVolume(outputDevices: [original]))
+        for _ in 0..<1000 {
+            if fixture.store.liveVolume.outputDevices.count == 1 { break }
+            await Task.yield()
+        }
+        XCTAssertEqual(fixture.store.liveVolume.outputDevices.count, 1)
+        XCTAssertEqual(panel.volume.rows.map { $0.key.id }, [1])
+        XCTAssertEqual(panel.volume.listeningModeTaskID, "|outputs:1", "Output removal must map rows and task identity from the same delivered volume")
     }
 
     func testLiveInputUpdatesOnlyTheInputRegion() async throws {

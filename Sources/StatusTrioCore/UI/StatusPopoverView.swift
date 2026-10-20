@@ -109,6 +109,18 @@ struct StatusPopoverView: View {
 
             PopoverFooterView(openSettings: openSettings, quit: quit)
         }
+        .task(id: [
+            panel.volume.listeningModeTaskID,
+            String(panel.visiblePopupSections.contains(.bluetooth)),
+            String(panel.visiblePopupSections.contains(.volume))
+        ]) {
+            if panel.visiblePopupSections.contains(.bluetooth) || panel.visiblePopupSections.contains(.volume) {
+                panel.actions.volumeListChanged()
+            } else {
+                panel.actions.volumeListDisappeared()
+            }
+        }
+        .onDisappear { panel.actions.volumeListDisappeared() }
     }
 
     @ViewBuilder
@@ -155,6 +167,8 @@ struct StatusPopoverView: View {
                 currentTrustedAppleCandidates: panel.store.trustedAppleDeviceCandidates,
                 trustedDiscoveryGeneration: panel.store.trustedAppleDeviceDiscoveryGeneration,
                 listOptions: panel.settings.bluetoothDeviceListOptions,
+                listeningModePresentations: panel.bluetoothListeningModeRows,
+                onSelectListeningMode: { panel.actions.setListeningMode(address: $0, mode: $1) },
                 onRequestAuthorization: requestBluetoothAuthorization,
                 onOpenBluetoothSettings: openBluetoothSettings,
                 onOpenBluetoothPermissionSettings: openBluetoothPermissionSettings
