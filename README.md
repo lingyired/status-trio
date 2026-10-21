@@ -122,9 +122,10 @@ The same states rendered for a dark menu bar:
 ## Requirements
 
 - macOS 13 deployment target; Ventura runtime validation pending
-- Swift 6 toolchain with the macOS 26 SDK (Xcode 26 or later) to build it. Building against an
-  older SDK silently produces the pre-Tahoe popover appearance, so `scripts/build-app.sh` fails
-  when the SDK is older than 26.
+- Swift 6 toolchain with the macOS 26 SDK or newer to build it; the formal
+  release workflow uses the `xcode-27` runner and Xcode 27. Building against an
+  older SDK silently produces the pre-Tahoe popover appearance, so
+  `scripts/build-app.sh` fails when the SDK is older than 26.
 
 ## Run from source
 

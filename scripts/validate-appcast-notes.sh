@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Validates release note coverage and the appcast item those notes generate.
 #
-# Validates the caller-supplied release mode and notes coverage. This script is
-# also reachable from a non-publishing diagnostic dispatch; PR 3 owns moving the
-# release-only gate and notes-consistency decision into the release workflow.
+# Validates the caller-supplied release mode and notes coverage. Publish mode is
+# strict; diagnostic package mode may deliberately omit future-version notes.
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -11,20 +10,37 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="${VERSION:?VERSION is required}"
 BUILD="${BUILD:?BUILD is required}"
 PUBLISH="${PUBLISH:-false}"
+NOTES_MODE="${NOTES_MODE:-}"
 MINIMUM_SYSTEM_VERSION="${MINIMUM_SYSTEM_VERSION:-13.0}"
 NOTES_DIR="${RELEASE_NOTES_DIR:-$ROOT/release-notes/$VERSION}"
 APPCAST_FILE="${APPCAST_FILE:-appcast.xml}"
 APPCAST_PATH="$ROOT/$APPCAST_FILE"
 
+if [[ -z "$NOTES_MODE" ]]; then
+    if [[ "$PUBLISH" == "true" ]]; then
+        NOTES_MODE="publish"
+    else
+        NOTES_MODE="package"
+    fi
+fi
+
+case "$NOTES_MODE" in
+    publish|package) ;;
+    *)
+        echo "::error::NOTES_MODE must be publish or package." >&2
+        exit 2
+        ;;
+esac
+
 SUPPORTED=(en ar de es fr it ja ko pt-BR ru zh-Hans zh-Hant)
 REQUIRED=(en zh-Hans)
 
 if [[ ! -d "$NOTES_DIR" ]]; then
-    if [[ "$PUBLISH" == "true" ]]; then
+    if [[ "$NOTES_MODE" == "publish" ]]; then
         echo "::error::Release notes directory does not exist: $NOTES_DIR"
         exit 1
     fi
-    echo "::notice::Release notes directory does not exist yet: $NOTES_DIR — skipping validation."
+    echo "::notice::Package-only run has no release notes for $VERSION; appcast notes validation is skipped."
     exit 0
 fi
 
@@ -43,7 +59,7 @@ printf '  present: %s\n' "${present[*]}"
 printf '  missing: %s\n' "${missing[*]:-none}"
 
 fail=0
-if [[ "$PUBLISH" == "true" ]]; then
+if [[ "$NOTES_MODE" == "publish" ]]; then
     for language in "${REQUIRED[@]}"; do
         if [[ ! -f "$NOTES_DIR/$language.md" ]]; then
             echo "::error::Required release notes missing: $NOTES_DIR/$language.md"
@@ -55,6 +71,9 @@ if [[ "$PUBLISH" == "true" ]]; then
         fail=1
     fi
     [[ "$fail" -eq 0 ]] || exit 1
+elif [[ ! -f "$APPCAST_PATH" ]]; then
+    echo "::notice::Package-only run has no appcast yet; skipping appcast note validation."
+    exit 0
 fi
 
 TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/StatusTrioNotes.XXXXXX")"

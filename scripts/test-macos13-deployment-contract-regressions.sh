@@ -59,6 +59,8 @@ RUBY
 if [[ "${SDK_VERSION%%.*}" -lt 26 ]]; then
     exit 1
 fi
+xcrun vtool -set-build-version macos "$HELPER_MINOS" "$SDK_VERSION"
+xcrun vtool -set-build-version macos "$BUILT_MINOS" "$SDK_VERSION"
 SH
     cat > "$fixture/scripts/verify-platform-version.sh" <<'SH'
 echo 'requires SDK ${MINIMUM_SDK_MAJOR} or newer'

@@ -52,6 +52,11 @@ require_exact "appcast generator default minimum" \
 
 require_file_text scripts/build-app.sh 'if [[ "${SDK_VERSION%%.*}" -lt 26 ]]; then'
 require_file_text scripts/verify-platform-version.sh 'requires SDK ${MINIMUM_SDK_MAJOR} or newer'
+require_file_text scripts/build-app.sh 'xcrun vtool -set-build-version macos "$HELPER_MINOS" "$SDK_VERSION"'
+require_file_text scripts/build-app.sh 'xcrun vtool -set-build-version macos "$BUILT_MINOS" "$SDK_VERSION"'
+if grep -Eq 'xcrun vtool -set-build-version macos "[^"]+" 26\.0' scripts/build-app.sh; then
+    fail "build-app.sh hardcodes the design-language SDK instead of the build SDK"
+fi
 
 DEPLOYMENT_PATTERN='options\[:minimum\] \|\|= "15\.0"|MINIMUM_MACOS="15\.0"|EXPECTED_MINOS="15\.0"|"min_system_version": "15\.0"|"minimumMacOS": "15\.0"|platforms: \[\.macOS\(\.v15\)\]'
 SCANNER_SELECTOR="${STATUS_TRIO_DEPLOYMENT_SCANNER:-auto}"

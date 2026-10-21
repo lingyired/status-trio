@@ -70,6 +70,26 @@ SH
 set -euo pipefail
 printf 'sparkle\n' >> "${VERIFY_TRACE:?}"
 SH
+    cat > "$fixture/scripts/test-mobile-battery-source-cache.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'mobile-source-cache\n' >> "${VERIFY_TRACE:?}"
+SH
+    cat > "$fixture/scripts/test-release-workflow-policy.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'release-policy\n' >> "${VERIFY_TRACE:?}"
+SH
+    cat > "$fixture/scripts/test-release-pipeline.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'release-pipeline\n' >> "${VERIFY_TRACE:?}"
+SH
+    cat > "$fixture/scripts/test-release-notarization.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'release-notarization\n' >> "${VERIFY_TRACE:?}"
+SH
     cat > "$fixture/scripts/test-mobile-battery-clang-version.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -276,7 +296,8 @@ grep -Fq "mode: docs" "$WORK/docs.log" ||
 bash "$WORK/repo/scripts/verify-local.sh" full >"$WORK/full.log" 2>&1 ||
     fail "full verification failed"
 for expected in forbidden "swift test" "swift build -c release" deployment deployment-regressions \
-    appcast helper-contract mobile-helper mobile-rpaths otool sparkle clang self-test \
+    appcast helper-contract mobile-helper mobile-rpaths otool sparkle mobile-source-cache release-policy \
+    release-pipeline release-notarization clang self-test \
     workflow-policy bundle-self-test bundle "build-app release no-open" \
     "BUNDLE_ID=com.lingsmbp.StatusTrio.dev.verify-local" \
     "APP_NAME=Status Trio (Verify Local)" "UNIVERSAL_BUILD=0" \

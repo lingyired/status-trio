@@ -4,9 +4,17 @@
 
 ## 结论
 
-本机是 Xcode 27 / Swift 6.4，CI（`macos-26`）是 Xcode 26.6 / Swift 6.3.3，两者的语法支持、诊断和代码生成行为仍可能不同，不能只用本机 `swift test` 证明代码可以发布。CI 工具链必须作为最低兼容标准。
+正式发布工具链已迁移到 `xcode-27` runner / Xcode 27 / 匹配 SDK。本机当前也是
+Xcode 27 / Swift 6.4，但本机工具链、release runner 和 GitHub Actions 的实际
+安装仍须分别核验，不能只用本机 `swift test` 证明 release workflow 可发布。
 
-下表中 2026-09-19 之前的记录都发生在旧 CI 工具链（`macos-15` / Xcode 16.4 / Swift 6.1.2）上：`isolated deinit`、`weak let`、`Bundle.module` 资源布局、IRGen 崩溃这些具体症状属于那个编译器，而由它们归纳出的规则至今有效。
+下文 2026-09-19 之后、迁移前的记录发生在 `macos-26` / Xcode 26.6 /
+Swift 6.3.3 上；它们保留为历史兼容证据，不代表当前 release runner。
+2026-09-19 之前的记录则发生在更旧的 `macos-15` / Xcode 16.4 /
+Swift 6.1.2 上。
+
+`isolated deinit`、`weak let`、`Bundle.module` 资源布局、IRGen 崩溃这些具体
+症状属于旧编译器，而由它们归纳出的规则至今有效。
 
 ## 新子系统的预检证据
 

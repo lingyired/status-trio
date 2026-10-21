@@ -40,6 +40,7 @@ private final class ProcessInvocation: @unchecked Sendable {
     private static let streamLimit = 1_048_576
 
     private let queue = DispatchQueue(label: "StatusTrio.MobileBattery.Process")
+    private let ioQueue = DispatchQueue(label: "StatusTrio.MobileBattery.Process.IO")
     private let executableURL: URL
     private let arguments: [String]
     private var process: Process?
@@ -49,6 +50,8 @@ private final class ProcessInvocation: @unchecked Sendable {
     private var stderrCount = 0
     private var stdoutEnded = false
     private var stderrEnded = false
+    private var stdoutIOEnded = false
+    private var stderrIOEnded = false
     private var processEnded = false
     private var hasStarted = false
     private var cancelled = false
@@ -84,14 +87,16 @@ private final class ProcessInvocation: @unchecked Sendable {
             self.stderrPipe = stderrPipe
 
             stdoutPipe.fileHandleForReading.readabilityHandler = { [weak invocation = self] handle in
-                let data = handle.availableData
                 guard let invocation else { return }
-                invocation.queue.async { [invocation] in invocation.received(data, stream: .stdout) }
+                invocation.ioQueue.async { [invocation] in
+                    invocation.readAvailableData(handle, stream: .stdout)
+                }
             }
             stderrPipe.fileHandleForReading.readabilityHandler = { [weak invocation = self] handle in
-                let data = handle.availableData
                 guard let invocation else { return }
-                invocation.queue.async { [invocation] in invocation.received(data, stream: .stderr) }
+                invocation.ioQueue.async { [invocation] in
+                    invocation.readAvailableData(handle, stream: .stderr)
+                }
             }
             child.terminationHandler = { [weak invocation = self] terminated in
                 guard let invocation else { return }
@@ -99,6 +104,9 @@ private final class ProcessInvocation: @unchecked Sendable {
                     invocation.processEnded = true
                     if terminated.terminationReason != .exit || terminated.terminationStatus != 0 {
                         invocation.failure = invocation.failure ?? .processFailed
+                    }
+                    invocation.ioQueue.async { [invocation] in
+                        invocation.drainPipesAfterProcessExit()
                     }
                     invocation.completeIfReady()
                 }
@@ -140,6 +148,54 @@ private final class ProcessInvocation: @unchecked Sendable {
     }
 
     private enum Stream { case stdout, stderr }
+
+    private func readAvailableData(_ handle: FileHandle, stream: Stream) {
+        switch stream {
+        case .stdout:
+            guard !stdoutIOEnded else { return }
+        case .stderr:
+            guard !stderrIOEnded else { return }
+        }
+        let data = handle.availableData
+        if data.isEmpty {
+            markIOStreamEnded(stream)
+            queue.async { [self] in received(Data(), stream: stream) }
+        } else {
+            queue.async { [self] in received(data, stream: stream) }
+        }
+    }
+
+    private func drainPipesAfterProcessExit() {
+        stdoutPipe?.fileHandleForReading.readabilityHandler = nil
+        stderrPipe?.fileHandleForReading.readabilityHandler = nil
+        if !stdoutIOEnded, let handle = stdoutPipe?.fileHandleForReading {
+            let data = handle.readDataToEndOfFile()
+            markIOStreamEnded(.stdout)
+            queue.async { [self] in
+                if !data.isEmpty {
+                    received(data, stream: .stdout)
+                }
+                received(Data(), stream: .stdout)
+            }
+        }
+        if !stderrIOEnded, let handle = stderrPipe?.fileHandleForReading {
+            let data = handle.readDataToEndOfFile()
+            markIOStreamEnded(.stderr)
+            queue.async { [self] in
+                if !data.isEmpty {
+                    received(data, stream: .stderr)
+                }
+                received(Data(), stream: .stderr)
+            }
+        }
+    }
+
+    private func markIOStreamEnded(_ stream: Stream) {
+        switch stream {
+        case .stdout: stdoutIOEnded = true
+        case .stderr: stderrIOEnded = true
+        }
+    }
 
     private func received(_ data: Data, stream: Stream) {
         if data.isEmpty {

@@ -1,20 +1,19 @@
-# GitHub Actions 自动发布
+# GitHub Actions 正式发布
 
-`.github/workflows/release.yml` 会在 macOS runner 上完成：
+`.github/workflows/release.yml` 只有 `workflow_dispatch` 入口，不再由
+`v*` Tag push、PR 或 `main` push 自动触发。正式发布分三步：
 
-1. 构建 `arm64 + x86_64` 通用应用
-2. 生成 DMG 和 SHA-256 校验文件
-3. 使用 Sparkle EdDSA 私钥签名 DMG
-4. 创建 GitHub Release 并上传 DMG
-5. 更新并发布 `appcast.xml`
+1. `verify`：检出冻结的 `candidate_sha`，运行完整 Swift 测试、Native
+   契约测试和离线发布回归；此 Job 不接收签名或公证 secrets。
+2. `package`：在 `xcode-27` 上对同一 SHA 做一次 Universal 构建，完成
+   Helper/MobileBattery 验证、签名、可选公证、DMG、Sparkle EdDSA 签名和
+   manifest。
+3. `publish`：只下载上一步的 Actions artifact，校验 SHA-256、manifest、
+   Tag、appcast 和公开 URL，然后发布；不得再次编译、打包、签名或公证。
 
-> **PR 2 边界：** 本 PR 不修改 `.github/workflows/release.yml`。冻结 SHA、
-> 验证产物原样复用、Tag 与 manifest SHA 一致性目前尚未由 workflow 强制，
-> 这些是 PR 3 的实施范围。以下发布目标是整改目标，不应被当作已生效的保证。
-
-> 开发前请先阅读 [Swift 工具链 CI 兼容性规则](swift-ci-compatibility.md)。
-> 日常开发使用本机验证；正式发布前才在冻结 SHA 上运行完整 CI。
-> workflow 的实际 runner、Xcode 和 SDK 版本以文件本身及 run 日志为准。
+正式工具链是 `xcode-27` runner、Xcode 27 及其 SDK。历史文档中的
+`macos-26` / Xcode 26.6 结果是该工具链的历史证据，不代表当前发布环境。
+开发前请先阅读 [Swift 工具链 CI 兼容性规则](swift-ci-compatibility.md)。
 
 ## 日常开发与正式发布
 
@@ -23,41 +22,59 @@
 创建 Tag、Release、DMG 或 appcast 变更。`full` 生成的是非 Universal 的
 本地开发 bundle；Universal 打包仍属于正式发布。
 
-PR 3 完成后，正式发布必须额外满足：
+正式发布必须满足：
 
 - 候选 commit SHA 已冻结并记录。
 - 完整 Release CI 在该 SHA 上通过。
 - package 阶段的 DMG、manifest 与 SHA-256 被 publish 阶段原样复用。
 - 人工批准 `distribution` Environment 后才创建并发布公开产物。
 
-当前仓库尚未实施这些保证。PR 2 只调整日常开发与验证流程，不改变现有
-`release.yml` 的触发方式、构建/发布边界或 appcast 写入顺序。
-
 `merged`、`built` 和 `released` 不是同义词；只有公开 Release 与 appcast 都
 核验完成，才可称为 `released`。
 
 ## 触发方式
 
-### 手动运行正式发布
+### Formal release dispatch
 
-在 GitHub Actions 页面选择 **Build and Release macOS**：
-
-- `version`：例如 `1.2.0`；留空时读取 `Support/Info.plist`
-- `build`：显式的数字构建号，必须大于 appcast 中已发布的最大构建号
-- `publish=false`：只构建和打包，并上传为 Actions artifact；不是日常 PR 门槛
-- `publish=true`：创建 Release、创建 tag，并更新 Sparkle appcast
-- `notarize=true`：仅与 `publish=false` 一起使用；要求 Developer ID 签名和 Apple 公证，生成可在 CI 中验证的通用构建 artifact，不创建 Release、tag 或 appcast
-
-从命令行启动一次公证测试构建（替换分支、版本和构建号；不会自动启动）：
+从 GitHub Actions 页面选择 **Build and Release macOS**，或在已认证的
+本机显式派发。`candidate_sha` 必须是小写 40 位 commit SHA，并已包含在
+`origin/main` 中：
 
 ```bash
-gh workflow run release.yml --repo lingyired/status-trio --ref <branch> \
-  -f version=1.2.0 -f build=99 -f publish=false -f notarize=true
+CANDIDATE_SHA="$(git rev-parse origin/main)"
+gh workflow run release.yml \
+  --repo lingyired/status-trio \
+  --ref main \
+  -f candidate_sha="$CANDIDATE_SHA" \
+  -f version=1.2.0 \
+  -f build=99 \
+  -f publish=true \
+  -f notarize=false
 ```
 
-`notarize=true` 必须配置 `DEVELOPER_ID_CERTIFICATE_P12`、`DEVELOPER_ID_CERTIFICATE_PASSWORD`、`APPSTORE_CONNECT_API_KEY_ID`、`APPSTORE_CONNECT_API_ISSUER_ID` 和 `APPSTORE_CONNECT_API_PRIVATE_KEY`；缺少任一项时 workflow 会失败，不会退回 Ad-hoc 签名。
+输入语义：
 
-发布或公证测试使用 GitHub Actions 的 `distribution` Environment。该 Environment 要求 reviewer `lingyired` 批准，没有管理员绕过，并且仅允许 `main` 分支和 `v*` tags。普通 `publish=false`、`notarize=false` 运行选择无 Apple secrets 的 `ci` Environment；这是维护者明确发起的高风险诊断例外，不是每个 PR 的必选流程。受保护的公证测试只能在改动集成到 `main` 后，以 `--ref main` 启动，并在 reviewer 批准后继续；从其他分支请求时会被 Environment 分支限制拦截。
+- `candidate_sha`：必填；workflow checkout、manifest、验证和 Tag 都绑定到此 SHA。
+- `version`：例如 `1.2.0`；留空时读取 `Support/Info.plist`。
+- `build`：显式数字构建号，必须大于当前公开 appcast 的最大构建号。
+- `publish=true`：完整验证和打包后创建/恢复 Draft Release、写入 appcast，
+  最后才转为公开 Release。
+- `publish=false`：只验证、打包并上传 Actions artifact；没有未来版本的
+  Release Notes 时应成功跳过文案校验。这是维护者显式发起的诊断入口，
+  不是日常 PR 门槛，也不能被自动发布。
+- `notarize=true`：强制 Developer ID 签名和公证；可用于 `publish=false`
+  的集成验证，也可与 `publish=true` 一起使用。缺少任一凭据时直接失败，
+  不回退 Ad-hoc。
+
+Developer ID 凭据存在时，`publish=true` 必须成功完成公证；若 Developer ID
+未配置，则只允许如实生成 Ad-hoc fallback。`notarize=true` 必须配置
+`DEVELOPER_ID_CERTIFICATE_P12`、`DEVELOPER_ID_CERTIFICATE_PASSWORD`、
+`APPSTORE_CONNECT_API_KEY_ID`、`APPSTORE_CONNECT_API_ISSUER_ID` 和
+`APPSTORE_CONNECT_API_PRIVATE_KEY`。
+
+`package` 和 `publish` 都使用受保护的 `distribution` Environment；Environment
+应只允许 `main` 并配置 reviewer。`verify` 在无签名 secrets 的独立 Job 中运行。
+Environment 审批不能替代 SHA 冻结和 artifact 校验。
 
 将签名和公证凭据配置为 `distribution` Environment secrets（通过标准输入传入，不要把值写进命令或仓库）：
 
@@ -69,11 +86,31 @@ gh secret set APPSTORE_CONNECT_API_ISSUER_ID --env distribution --repo lingyired
 gh secret set APPSTORE_CONNECT_API_PRIVATE_KEY --env distribution --repo lingyired/status-trio < AuthKey_XXXXXXXXXX.p8
 ```
 
-在最后一条命令中，`AuthKey_XXXXXXXXXX.p8` 是本机私钥文件路径，不是 secret 值。不要读取或打印私钥来验证配置。GitHub Environment 审批控制 job 何时获得 Environment secrets，不会让它们在 runner 中保持加密：获批后，工作流及同一 job 中执行的 action/code 可以使用它们，日志脱敏也不能防止所有泄漏。只允许可信的 `main` 与版本 tag 工作流使用该 Environment，并审查会改动这些工作流的变更。
+在最后一条命令中，`AuthKey_XXXXXXXXXX.p8` 是本机私钥文件路径，不是 secret 值。不要读取或打印私钥来验证配置。GitHub Environment 审批控制 job 何时获得 Environment secrets，不会让它们在 runner 中保持加密：获批后，工作流及同一 job 中执行的 action/code 可以使用它们，日志脱敏也不能防止所有泄漏。只允许可信的 `main` 工作流使用该 Environment，并审查会改动这些工作流的变更。
 
-文案不再通过输入传入，改为读取仓库内的 `release-notes/<version>/`。正式发布 dispatch 会运行 `scripts/validate-appcast-notes.sh`，打印语言覆盖表，并把生成的 appcast 条目干跑到临时文件后断言 XML 合法、变体齐全、`en` 排第一、无未替换占位符。当前 validator 对 `publish=false` 且目录缺失的情况会跳过，而 `scripts/release.sh` 仍会拒绝缺失目录；这一行为不一致由 PR 3 统一处理，PR 2 不改变发布文案行为。
+文案不再通过输入传入，改为读取仓库内的 `release-notes/<version>/`。正式发布
+dispatch 会运行 `scripts/validate-appcast-notes.sh`，打印语言覆盖表，并把
+生成的 appcast 条目干跑到临时文件后断言 XML 合法、变体齐全、`en` 排第一、
+无未替换占位符。`publish=true` 要求 12 种语言齐全；`publish=false` 在没有
+未来版本目录时明确跳过，不再错误验证最新旧版本。
 
 正式发布统一使用手动 workflow。workflow 必须将 checkout、构建 artifact、manifest 和 Release Tag 绑定到同一个冻结 SHA；Tag 已存在但 SHA 不同必须失败。
+
+## 发布恢复
+
+所有重试必须复用同一次 `package` 产生的 artifact：
+
+- Draft 已存在但上传失败：重新上传 DMG、`.sha256` 和
+  `release-manifest.json`，校验 digest/size 后再继续。
+- Appcast 写入失败：保留 Draft，重新运行同一 artifact；已有正确 appcast
+  item 时只核验，不重复写入。
+- Release 已公开：只核验 Release assets、公开 DMG SHA-256 和 raw appcast，
+  不得重新上传、编辑公开 metadata 或改写 feed。
+- Tag 已存在但指向其他 SHA、manifest 与 artifact 不一致、公开下载或 appcast
+  不匹配：立即失败并保留现场，不得用新构建覆盖。
+
+发布脚本只做有限次公开传播核验；失败时报告尝试次数和最终错误，不使用
+无限重试。
 
 ## 文案目录
 
@@ -202,7 +239,7 @@ gh secret set RELEASE_TOKEN
 xattr -dr com.apple.quarantine "/Applications/Status Trio.app"
 ```
 
-配置 Developer ID 后无需这一步。签名和公证 secrets 必须放在有 reviewer 保护的 `distribution` Environment 中，不要配置到 `ci` Environment 或 repository secrets。`distribution` 的审批人、绕过和分支/tag 限制见上文。Environment secrets 名称为：
+配置 Developer ID 后无需这一步。签名和公证 secrets 必须放在有 reviewer 保护的 `distribution` Environment 中，不要配置到 repository secrets。`distribution` 的审批人、绕过和 `main` 分支限制见上文。Environment secrets 名称为：
 
 | Secret | 内容 |
 | --- | --- |
@@ -222,20 +259,22 @@ gh secret set APPSTORE_CONNECT_API_ISSUER_ID --env distribution --repo lingyired
 gh secret set APPSTORE_CONNECT_API_PRIVATE_KEY --env distribution --repo lingyired/status-trio < AuthKey_XXXXXXXXXX.p8
 ```
 
-这些 Apple credentials 属于 `distribution` Environment，不属于 `ci` 或 repository secrets。不要在本地通过读取 keychain、打印 secret 或检查私钥内容来确认它们。
+这些 Apple credentials 属于 `distribution` Environment，不属于 repository secrets。不要在本地通过读取 keychain、打印 secret 或检查私钥内容来确认它们。
 
-`SPARKLE_PRIVATE_KEY` 是既有的 repository secret，未迁移到 `distribution` Environment。workflow 只向 `Build, sign, notarize, and publish` 步骤传入该值（否则传空值），并且该步骤在普通测试构建中仍会运行。Environment 对 Apple secrets 的隔离不改变此 repository secret 的作用域，也不证明仓库中恶意或被篡改的 workflow 代码无法访问 repository secrets；审查仓库 workflow 变更及其权限仍然必要。
+`SPARKLE_PRIVATE_KEY` 只传入 `package` Job 的 `Build, sign, notarize, and package once` 步骤；`publish` Job 不接收它。`publish=true` 没有该 secret 会失败，`publish=false` 且未提供时只生成带诊断标记、不可发布的 package。Environment 对 Apple secrets 的隔离不改变 repository secret 的作用域，审查仓库 workflow 变更及其权限仍然必要。
 
 ## 本地验证
 
-只构建 DMG，不连接 GitHub：
+只构建诊断 package，不连接 GitHub。要求工作树干净：
 
 ```bash
-PUBLISH=false UNIVERSAL_BUILD=1 bash scripts/release.sh
+PUBLISH=false bash scripts/release.sh
 ```
 
-本地发布需要本机 Keychain 中有 Sparkle 私钥，并且 `gh` 已登录：
+兼容入口始终产出 Universal package；不接受降低为单架构的诊断构建。
+入口默认 `PUBLISH=false`；手工 fallback 必须显式设置 `PUBLISH=true`。
 
-```bash
-PUBLISH=true UNIVERSAL_BUILD=1 bash scripts/release.sh
-```
+正式发布不要从本机执行 `PUBLISH=true bash scripts/release.sh`；请使用上面的
+workflow dispatch，确保同一 SHA 的验证、Universal package、签名/公证和发布
+记录都在 Actions 中完成。只有在 workflow 不可用且维护者明确要求手动 fallback
+时，才允许使用本地兼容入口。

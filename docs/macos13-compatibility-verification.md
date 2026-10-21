@@ -3,6 +3,7 @@
 ## Scope and status
 
 - Goal: one Universal app for macOS 13 Ventura and later, built with SDK 26+.
+- Current release toolchain: `xcode-27` runner, Xcode 27 and its SDK.
 - Code baseline before implementation: `be80a4ce12d691cb9696127eacd94c0040694965`.
 - Preflight code head: `c2ea2ccaef546ffa61377cfc718e44cbcc039865`.
 - Superseded first successful preflight: `8ee4b6d042d3b6d386274d54093c42de342fe722`.
@@ -12,6 +13,12 @@
   fully supported on Ventura from the CI result alone.
 
 ## Automated evidence
+
+### Historical Xcode 26.6 preflight
+
+The evidence below records a historical run on the former `macos-26` /
+Xcode 26.6 / Swift 6.3.3 toolchain. It remains useful compatibility evidence,
+but it is not a run of the current `xcode-27` release environment.
 
 - CI toolchain: macOS 26 runner, Xcode 26.6, Apple Swift 6.3.3.
 - `Run tests`: passed; XCTest executed 1390 tests with 7 skipped and 0 failures, and Swift Testing
@@ -50,6 +57,8 @@
 ## Verification status update (2026-10-21)
 
 - Local toolchain: Xcode 27.0, Swift 6.4, macOS SDK 27.0, arm64 host.
+- Current release workflow target: `xcode-27` runner, Xcode 27, matching SDK;
+  no non-publishing run of that workflow has been performed for this branch yet.
 - `swift test` passed three consecutive full runs (XCTest 1719, 7 skipped;
   Swift Testing 697 tests / 103 suites each run).
 - `swift build -c release` passed. The native compatibility suite, including the

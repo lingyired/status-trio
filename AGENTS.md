@@ -16,8 +16,9 @@ Pick one bounded profile with
   localization-only changes.
 - `full`: the full Swift suite, Release build, a non-Universal local app
   bundle, its platform/SDK and Helper contracts, and the native compatibility
-  and dependency checks. Use this for state, concurrency, rendering, Helper,
-  build-pipeline, or other high-risk changes.
+  and dependency checks, plus offline release-pipeline simulations. Use this
+  for state, concurrency, rendering, Helper, build-pipeline, or other high-risk
+  changes.
 
 The script reports the tested SHA, branch, tracked and untracked working-tree
 changes, toolchain, commands, exit status, scope, and unverified items. A filter
@@ -89,8 +90,9 @@ half-unit shift. Keep `ChargingEffectRenderingTests` fingerprints honest.
 - The app runs on macOS 13 and later. The local macOS 13 static contract does
   not prove runtime compatibility; record real Ventura and current-macOS checks
   separately as PASS, FAIL, BLOCKED, or NOT RUN.
-- Formal builds use the macOS 26 SDK or newer. Building with an older SDK ships
-  the pre-Tahoe appearance. Keep the guard in `scripts/build-app.sh` and the
+- Formal releases use the `xcode-27` runner, Xcode 27, and the SDK it provides.
+  The build must still use the macOS 26 SDK or newer; an older SDK ships the
+  pre-Tahoe appearance. Keep the guard in `scripts/build-app.sh` and the
   assertion in `scripts/verify-platform-version.sh`.
 - Menu Bar and Dock rendering and settings stay on the same scene source. A
   menu-bar-only setting needs an explicit product decision, documentation, and
@@ -107,10 +109,12 @@ half-unit shift. Keep `ChargingEffectRenderingTests` fingerprints honest.
 ## Swift Toolchain Compatibility
 
 The formal release runner and its Xcode version are defined by
-`.github/workflows/release.yml`; verify them when that workflow changes. Local
-Xcode 27 / Swift 6.4 is useful for development but is not proof that the release
-toolchain compiles. The Swift rules below are compatibility requirements, not a
-reason to run a remote preflight for every edit:
+`.github/workflows/release.yml`: `xcode-27`, Xcode 27, and its matching SDK.
+The floor remains SDK 26 for Liquid Glass behavior. Historical Xcode 26.6 runs
+remain evidence only for that toolchain; they are not the current release
+environment. Local Xcode 27 / Swift 6.4 is useful for development but is not
+proof that the release runner compiles. The Swift rules below are compatibility
+requirements, not a reason to run a remote preflight for every edit:
 
 - Do not use `isolated deinit` or enable experimental `IsolatedDeinit`.
 - Do not pass actor-isolated methods directly as function values; use an
@@ -159,10 +163,18 @@ See `.agents/rules/rendering.md` and
 
 - Release CI is required only before a formal release, not for ordinary commits,
   pull requests, or merges.
-- PR 3 owns enforcement of a frozen SHA, one verified package, artifact reuse
-  during publish, and the Tag/manifest SHA equality check. PR 2 only establishes
-  the local-first workflow and does not change `release.yml` or claim those
-  controls are implemented.
+- The only release entry point is a maintainer-dispatched manual
+  `release.yml` run. A `v*` tag push must never publish automatically.
+- Dispatch from `main` with a frozen lowercase 40-character `candidate_sha`.
+  The verify job runs the full suite and native contracts on that exact commit;
+  package builds one Universal artifact; publish downloads that artifact
+  without rebuilding, repackaging, signing, or notarizing.
+- The verify job must not receive signing or notarization secrets. `package`
+  and `publish` use the protected `distribution` Environment, and publication
+  is allowed only when the candidate SHA, manifest SHA, Release Tag, appcast,
+  DMG digest, and public URLs all agree.
+- A failed Appcast or upload may be retried only with the same verified artifact.
+  A retry must not create a second Release or rewrite a public appcast item.
 - Never publish a different SHA, rebuild during publish, or let a tag point at
   a commit that differs from the package manifest.
 - Never create a real Release, tag, DMG, or online appcast change while

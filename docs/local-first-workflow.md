@@ -78,6 +78,9 @@ Freeze the candidate SHA before asking for a formal release. Local verification
 and all README/PR evidence should name the tested SHA so the handoff cannot
 accidentally use a moving branch.
 
-PR 3 owns enforcement of frozen-SHA checkout, one verified package, publishing
-that same artifact, and rejecting a Tag whose SHA differs from the manifest.
-PR 2 does not change `release.yml` or claim those controls are implemented.
+The formal workflow checks out the exact lowercase 40-character `candidate_sha`,
+runs the full suite and native contracts, builds one Universal package, and
+publishes that downloaded artifact without rebuilding. A Tag or manifest whose
+SHA differs from the candidate is rejected. See
+[GitHub Actions release](github-actions-release.md#formal-release-dispatch) for
+the dispatch command and recovery rules.

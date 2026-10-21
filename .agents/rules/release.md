@@ -8,13 +8,15 @@ generation, signing, notarization, or versioning.
   and a successful build is not notarization or runtime acceptance.
 - Local `full` verification produces a non-Universal development app bundle;
   it is not a Universal release package.
-- The PR 2 local-first workflow does not change `release.yml`. PR 3 owns
-  release-only gating, frozen-SHA enforcement, same-artifact reuse during
-  publish, and Tag/manifest SHA validation.
-- The formal-release target is that CI runs only when a maintainer prepares a
-  release, passes on the exact frozen commit, and publishes that commit's
-  packaged artifact. Do not describe that target as current behavior before
-  PR 3 lands.
+- Release CI runs only when a maintainer explicitly dispatches `release.yml`
+  for a frozen lowercase 40-character `candidate_sha` from `main`. Ordinary
+  commits, pull requests, and merges do not run it.
+- The verify job runs the full tests and native contracts on that SHA. The
+  package job builds one Universal artifact on `xcode-27`; the publish job
+  downloads that artifact and must not rebuild, repackage, sign, or notarize.
+- The candidate SHA, manifest `source_sha`, Release Tag, DMG SHA-256, appcast
+  enclosure, and public download must all refer to the same artifact. Tag
+  mismatch or a lower-than-current build number fails closed.
 - Do not create tags, releases, DMGs, or appcast changes during ordinary
   development verification.
 - Developer ID plus notarization is the signed path; Ad-hoc is a fallback and

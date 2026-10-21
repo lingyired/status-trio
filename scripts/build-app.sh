@@ -164,7 +164,7 @@ rewrite_mobile_battery_binary() {
     fi
     while IFS= read -r dependency; do
         case "$dependency" in
-            "$ROOT"/.build/mobile-battery/*)
+            */.build/mobile-battery/*)
                 install_name_tool -change "$dependency" "@rpath/$(basename "$dependency")" "$binary"
                 ;;
         esac
@@ -201,7 +201,7 @@ if [[ "$PRIVILEGED_HELPER" == "1" ]]; then
         exit 1
     fi
     HELPER_VTMP="$(mktemp "${TMPDIR:-/tmp}/StatusTrioPowerHelper.vtool.XXXXXX")"
-    xcrun vtool -set-build-version macos "$HELPER_MINOS" 26.0 -replace -output "$HELPER_VTMP" "$CONTENTS/Helpers/StatusTrioPowerHelper"
+    xcrun vtool -set-build-version macos "$HELPER_MINOS" "$SDK_VERSION" -replace -output "$HELPER_VTMP" "$CONTENTS/Helpers/StatusTrioPowerHelper"
     mv "$HELPER_VTMP" "$CONTENTS/Helpers/StatusTrioPowerHelper"
     chmod +x "$CONTENTS/Helpers/StatusTrioPowerHelper"
     cp "$ROOT/Support/StatusTrioPowerHelper.plist" \
@@ -293,7 +293,7 @@ if [[ "$BUILT_MINOS" != "$DECLARED_MINOS" ]]; then
 fi
 
 VTMP_BINARY="$(mktemp "${TMPDIR:-/tmp}/StatusTrio.vtool.XXXXXX")"
-xcrun vtool -set-build-version macos "$BUILT_MINOS" 26.0 -replace -output "$VTMP_BINARY" "$CONTENTS/MacOS/StatusTrio"
+xcrun vtool -set-build-version macos "$BUILT_MINOS" "$SDK_VERSION" -replace -output "$VTMP_BINARY" "$CONTENTS/MacOS/StatusTrio"
 mv "$VTMP_BINARY" "$CONTENTS/MacOS/StatusTrio"
 chmod +x "$CONTENTS/MacOS/StatusTrio"
 

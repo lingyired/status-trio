@@ -59,7 +59,9 @@ SH
         test-macos13-deployment-contract.sh test-appcast-minimum-system-version.sh \
         test-macos13-bundle-contract.sh test-privileged-helper-bundle-contract.sh \
         test-mobile-battery-helper.sh test-mobile-battery-rpaths.sh test-otool-dependencies.sh \
-        test-macos13-sparkle-contract.sh test-mobile-battery-clang-version.sh \
+        test-macos13-sparkle-contract.sh test-mobile-battery-source-cache.sh \
+        test-mobile-battery-clang-version.sh test-release-workflow-policy.sh \
+        test-release-pipeline.sh test-release-notarization.sh \
         test-verify-local.sh test-verify-local-bundle.sh; do
         cat > "$fixture/scripts/$script" <<SH
 #!/usr/bin/env bash
