@@ -155,14 +155,16 @@ protocol BluetoothLEBatteryScanning: AnyObject {
     var onCandidatesChanged: (([NearbyBLEDeviceCandidate]) -> Void)? { get set }
     var onReadFailures: ((Set<UUID>) -> Void)? { get set }
     var onIsScanningChanged: ((Bool) -> Void)? { get set }
-    var onInitialReadCandidateCompleted: ((UUID, Bool) -> Void)? { get set }
+    var onInitialReadCandidateCompleted: ((UUID, Bool, DeviceOperationToken?) -> Void)? { get set }
     var isRunning: Bool { get }
     var isScanning: Bool { get }
     var discoveredCandidates: [NearbyBLEDeviceCandidate] { get }
 
-    func setAllowedReadDeviceIDs(_ ids: Set<UUID>)
+    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken]
     func revokeReadDeviceIDs(_ ids: Set<UUID>)
-    func setInitialReadCandidateIDs(_ ids: Set<UUID>)
+    func setInitialReadCandidateIDs(
+        _ ids: Set<UUID>
+    ) -> [UUID: DeviceOperationToken]
     func setBackgroundRefreshInterval(_ interval: Duration?)
     func start()
     func refresh()
@@ -171,11 +173,20 @@ protocol BluetoothLEBatteryScanning: AnyObject {
 
 extension BluetoothLEBatteryScanning {
     var discoveredCandidates: [NearbyBLEDeviceCandidate] { [] }
-    var onInitialReadCandidateCompleted: ((UUID, Bool) -> Void)? {
+    var onInitialReadCandidateCompleted: ((UUID, Bool, DeviceOperationToken?) -> Void)? {
         get { nil }
         set { }
     }
-    func setInitialReadCandidateIDs(_ ids: Set<UUID>) {}
+    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
+        _ = ids
+        return [:]
+    }
+    func setInitialReadCandidateIDs(
+        _ ids: Set<UUID>
+    ) -> [UUID: DeviceOperationToken] {
+        _ = ids
+        return [:]
+    }
     func revokeReadDeviceIDs(_ ids: Set<UUID>) { _ = ids }
     func setBackgroundRefreshInterval(_ interval: Duration?) { _ = interval }
 }
@@ -233,7 +244,8 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
         let peripheral: CBPeripheral
         let delegate: NearbyBLEPeripheralSessionDelegate
         let generation: UInt64
-        let authorizationRevision: UInt64
+        let authorizationToken: DeviceOperationToken?
+        let initialReadToken: DeviceOperationToken?
         let advertisedName: String?
         var timeoutTask: Task<Void, Never>?
         var pendingCharacteristicDiscoveries = 0
@@ -263,7 +275,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
     private(set) var isRunning = false
     private(set) var isScanning = false
     var discoveredCandidates: [NearbyBLEDeviceCandidate] { candidateCache.candidates }
-    var onInitialReadCandidateCompleted: ((UUID, Bool) -> Void)?
+    var onInitialReadCandidateCompleted: ((UUID, Bool, DeviceOperationToken?) -> Void)?
 
     /// These references are mutated only on the main actor. `deinit` is
     /// nonisolated, so it reads them only to cancel tasks and hand CoreBluetooth
@@ -276,6 +288,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
 
     private var policy = BluetoothLEBatteryScanPolicy()
     private var readAuthorization = NearbyBLEReadAuthorization()
+    private var initialReadAuthorization = NearbyBLEReadAuthorization()
     private var initialReadCandidateIDs: Set<UUID> = []
     private var sessionCancellationGate = NearbyBLESessionCancellationGate()
     private var candidatePeripherals: [UUID: CBPeripheral] = [:]
@@ -322,11 +335,14 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
         }
     }
 
-    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) {
+    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
         let previousIDs = readAuthorization.allowedIDs
         let changed = readAuthorization.allowedIDs != ids
-        let revokedIDs = readAuthorization.update(ids)
-        guard changed else { return }
+        let migratedTokens = initialReadAuthorization.currentTokens.filter {
+            ids.contains($0.key) && !previousIDs.contains($0.key)
+        }
+        let revokedIDs = readAuthorization.migrate(to: ids, preserving: migratedTokens)
+        guard changed else { return readAuthorization.currentTokens }
 
         if isRunning, automaticRefreshTask == nil {
             scheduleAutomaticRefresh()
@@ -361,9 +377,13 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
             startScanWindow(manual: true)
         }
         startQueuedConnections()
+        return readAuthorization.currentTokens
     }
 
     func revokeReadDeviceIDs(_ ids: Set<UUID>) {
+        _ = readAuthorization.update(readAuthorization.allowedIDs.subtracting(ids))
+        initialReadCandidateIDs.subtract(ids)
+        _ = initialReadAuthorization.update(initialReadAuthorization.allowedIDs.subtracting(ids))
         nearbyDevices = nearbyDevices.filter { !ids.contains($0.key) }
         readFailures.subtract(ids)
         policy.removeCandidates(ids)
@@ -386,12 +406,20 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
         onReadFailures?(readFailures)
     }
 
-    func setInitialReadCandidateIDs(_ ids: Set<UUID>) {
+    func setInitialReadCandidateIDs(
+        _ ids: Set<UUID>
+    ) -> [UUID: DeviceOperationToken] {
         let old = initialReadCandidateIDs
-        initialReadCandidateIDs = ids.subtracting(readAuthorization.allowedIDs)
-        let removed = old.subtracting(initialReadCandidateIDs)
-        policy.removeCandidates(removed)
-        for id in removed {
+        let permitted = ids.subtracting(readAuthorization.allowedIDs)
+        let migratedTokens = initialReadAuthorization.currentTokens.filter {
+            old.subtracting(permitted).contains($0.key)
+                && readAuthorization.accepts($0.key, token: $0.value)
+        }
+        let removed = initialReadAuthorization.update(permitted)
+        initialReadCandidateIDs = permitted
+        let cancelled = removed.subtracting(migratedTokens.keys)
+        policy.removeCandidates(cancelled)
+        for id in cancelled {
             candidatePeripherals.removeValue(forKey: id)
             candidateNames.removeValue(forKey: id)
             if let session = sessions.removeValue(forKey: id),
@@ -414,6 +442,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
             startScanWindow(manual: true)
         }
         startQueuedConnections()
+        return initialReadAuthorization.currentTokens
     }
 
     func setBackgroundRefreshInterval(_ interval: Duration?) {
@@ -433,6 +462,9 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
     func stop() {
         isRunning = false
         stopActiveWork(clearResults: true)
+        _ = readAuthorization.update([])
+        initialReadCandidateIDs = []
+        _ = initialReadAuthorization.update([])
         releaseCentralIfIdle()
     }
 
@@ -787,12 +819,17 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
             }
 
             let sessionID = UUID()
+            let explicitToken = readAuthorization.token(for: identifier)
+            let initialReadToken = explicitToken == nil
+                ? initialReadAuthorization.token(for: identifier)
+                : nil
             var session = PeripheralSession(
                 sessionID: sessionID,
                 peripheral: peripheral,
                 delegate: NearbyBLEPeripheralSessionDelegate(scanner: self, sessionID: sessionID),
                 generation: policy.generation,
-                authorizationRevision: readAuthorization.revision(for: identifier),
+                authorizationToken: explicitToken ?? initialReadToken,
+                initialReadToken: initialReadToken,
                 advertisedName: candidateNames.removeValue(forKey: identifier) ?? peripheral.name,
                 timeoutTask: nil
             )
@@ -875,8 +912,18 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
         candidatePeripherals.removeValue(forKey: identifier)
         candidateNames.removeValue(forKey: identifier)
         policy.completeConnection(identifier, succeeded: succeeded, at: Date())
-        if initialReadCandidateIDs.remove(identifier) != nil {
-            onInitialReadCandidateCompleted?(identifier, succeeded && session.batteryLevel != nil)
+        let completedInitialRead = session.initialReadToken.map {
+            readAuthorization.accepts(identifier, token: $0)
+                || initialReadAuthorization.accepts(identifier, token: $0)
+        } ?? false
+        initialReadCandidateIDs.remove(identifier)
+        _ = initialReadAuthorization.update(initialReadCandidateIDs)
+        if completedInitialRead {
+            onInitialReadCandidateCompleted?(
+                identifier,
+                succeeded && session.batteryLevel != nil,
+                session.initialReadToken
+            )
         }
         startQueuedConnections()
     }
@@ -920,11 +967,38 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
     }
 
     private func isReadPermitted(_ identifier: UUID, session: PeripheralSession? = nil) -> Bool {
-        let allowedIDs = readAuthorization.allowedIDs.union(initialReadCandidateIDs)
-        guard allowedIDs.contains(identifier) else { return false }
-        guard let session else { return true }
-        return session.peripheral.identifier == identifier
-            && readAuthorization.revision(for: identifier) == session.authorizationRevision
+        guard let session else {
+            return readAuthorization.token(for: identifier) != nil
+                || initialReadAuthorization.token(for: identifier) != nil
+        }
+        guard let token = session.authorizationToken,
+              session.peripheral.identifier == identifier else { return false }
+        return readAuthorization.accepts(identifier, token: token)
+            || initialReadAuthorization.accepts(identifier, token: token)
+    }
+
+    func initialReadToken(for id: UUID) -> DeviceOperationToken? {
+        initialReadAuthorization.token(for: id)
+    }
+
+    func acceptsInitialRead(_ id: UUID, token: DeviceOperationToken?) -> Bool {
+        initialReadAuthorization.permits(id, token: token)
+    }
+
+    func currentReadToken(for id: UUID) -> DeviceOperationToken? {
+        readAuthorization.token(for: id)
+    }
+
+    var initialReadGrantCount: Int {
+        initialReadAuthorization.grantCount
+    }
+
+    var sessionAuthorizationCheckCount: Int {
+        sessions.count + cancellingPeripherals.count
+    }
+
+    var readGrantCount: Int {
+        readAuthorization.grantCount
     }
 
     private func setScanning(_ scanning: Bool) {

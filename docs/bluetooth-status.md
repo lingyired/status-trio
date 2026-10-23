@@ -468,9 +468,14 @@ decision the row should make.
 
 Discovery and the mode write are governed by the `BluetoothListeningModeController`,
 kept separate from `BluetoothDeviceController` so neither the delicate 1300-line
-device controller nor its timings are disturbed. There is no polling: endpoints are
-probed only when the panel becomes visible or the user refreshes, one pass per
-`refresh(devices:)`, keyed by the joined addresses of connected AirPods. A mode tap
+device controller nor its timings are disturbed. Discovery runs when the panel
+opens, connected-device membership changes, or the output list or current output
+changes. If one connected AirPods has no resolvable control yet, CoreAudio is
+rechecked after 150 ms, another 450 ms, and another 1 second, stopping as soon as
+the endpoint is ready. These finite readiness retries do not write a mode, repeat
+HUAWEI queries, or relax endpoint matching. There is no recurring discovery poll.
+Closing the popover cancels discovery and subscriptions even when its SwiftUI
+content stays cached; reopening it starts a fresh discovery. A mode tap
 issues exactly one write. That write is not trusted blindly — the controller reads
 `lstm` back within a bounded window, and only a read-back that equals the requested
 mode counts as confirmed. An accepted-but-unverified write rolls the highlight back

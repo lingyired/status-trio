@@ -3,6 +3,30 @@ import AudioToolbox
 import Combine
 import Foundation
 
+private struct BluetoothDemandSettingsSnapshot: Equatable {
+    var enabledPopupSections: Set<PopupSection> = []
+    var replacesNetworkIconWithBluetoothAudio = false
+    var bluetoothNetworkIconDeviceAddress: String?
+    var showsAppleDevicesAndBattery = false
+    var refreshesAppleBatteriesInBackground = false
+    var showsBluetoothBatteryLevels = false
+    var showsBluetoothDeviceList = false
+}
+
+private enum BluetoothDemandSource: Hashable {
+    case popover
+    case settings
+    case selectedDeviceIcon
+    case backgroundRefresh
+    case audioListeningModes
+    case legacyToggle
+    case authorizationRequest
+}
+
+struct BluetoothSettingsDemandToken: Hashable, Sendable {
+    fileprivate let id = UUID()
+}
+
 @MainActor
 final class SystemStatusStore: ObservableObject {
     static let popupDebounceInterval: Duration = .milliseconds(500)
@@ -61,6 +85,7 @@ final class SystemStatusStore: ObservableObject {
     /// only while the popover is open with the Local IP row switched on.
     let localIP: LocalIPController
     let bluetoothDevices: BluetoothDeviceController
+    let bluetoothPower: BluetoothRadioPowerController
     let mobileBattery: MobileBatteryController
     let appleDeviceDiscovery: AppleDeviceDiscoveryController
     /// The AirPods listening-mode surface. A separate owner from `bluetoothDevices`
@@ -80,6 +105,7 @@ final class SystemStatusStore: ObservableObject {
     private let inputMonitor: (any AudioInputMonitoring)?
     private let volumeController: (any VolumeControlling)?
     private let volumeFeedback: (any VolumeFeedbackPlaying)?
+    private let bluetoothProfilerCache: BluetoothProfilerReportCache
     private var refreshInterval: Duration
     private let nameResolutionTimeout: Duration
     private let sleep: @Sendable (Duration) async throws -> Void
@@ -98,6 +124,8 @@ final class SystemStatusStore: ObservableObject {
     private var appleBackgroundSettingsCancellable: AnyCancellable?
     private var appleEligibilitySettingsCancellable: AnyCancellable?
     private var nearbyBLESettingsCancellables: Set<AnyCancellable> = []
+    private var bluetoothSettingsCancellables: Set<AnyCancellable> = []
+    private var bluetoothAuthorizationCancellable: AnyCancellable?
     private var inputSettingEnabled = false
     private var isInputEnabled = false
     private var refreshTask: Task<Void, Never>?
@@ -126,14 +154,25 @@ final class SystemStatusStore: ObservableObject {
     private var hasStarted = false
     private var hasStopped = false
     @Published private(set) var isPopoverVisible = false
+    private(set) var popoverOpenGeneration: UInt64 = 0
     @Published private(set) var trustedAppleDeviceCandidates: [AppleDeviceCandidate] = []
     @Published private(set) var trustedAppleDeviceDiscoveryGeneration: UInt64 = 0
     /// True while the display is asleep. The fallback poll skips its work then,
     /// because no menu bar or Dock tile is on screen to keep fresh.
     @Published private(set) var isDisplayAsleep = false
     private var settingsSurfaceVisibility = SettingsSurfaceVisibility()
-    private var isBluetoothEnabled = false
-    private var isBluetoothActivatedForPopover = false
+    private var isBluetoothMonitoringSuspendedForPower = false
+    private weak var boundBluetoothSettings: SettingsStore?
+    private var hasBluetoothSettingsBinding = false
+    private var bluetoothSettingsSnapshot = BluetoothDemandSettingsSnapshot()
+    private var bluetoothSettingsDemandTokens: Set<BluetoothSettingsDemandToken> = []
+    private var legacyBluetoothSettingsDemandClaimCount = 0
+    private var isLegacyBluetoothDemandEnabled = false
+    private var isBluetoothAuthorizationRequestPending = false
+    private var isReconcilingBluetoothDemand = false
+    private var needsBluetoothDemandReconciliation = false
+    private var appliedBluetoothDemandSources: Set<BluetoothDemandSource> = []
+    private var bluetoothProfilerReaderToken: BluetoothProfilerReportCache.ReaderToken?
     /// Whether the wired link panel is the open detail panel. The controller
     /// itself follows the connection; this only records that the panel is on
     /// screen, which is what decides whether the built popover content can be
@@ -169,6 +208,8 @@ final class SystemStatusStore: ObservableObject {
         primaryLink: PrimaryLinkController = PrimaryLinkController(),
         localIP: LocalIPController = LocalIPController(),
         bluetoothDevices: BluetoothDeviceController = BluetoothDeviceController(),
+        bluetoothPower: BluetoothRadioPowerController = BluetoothRadioPowerController(),
+        bluetoothProfilerCache: BluetoothProfilerReportCache = .shared,
         mobileBattery: MobileBatteryController = MobileBatteryController(),
         appleDeviceDiscovery: AppleDeviceDiscoveryController = AppleDeviceDiscoveryController(),
         bluetoothListeningModes: BluetoothListeningModeController = BluetoothListeningModeController(),
@@ -193,6 +234,8 @@ final class SystemStatusStore: ObservableObject {
         self.primaryLink = primaryLink
         self.localIP = localIP
         self.bluetoothDevices = bluetoothDevices
+        self.bluetoothPower = bluetoothPower
+        self.bluetoothProfilerCache = bluetoothProfilerCache
         self.mobileBattery = mobileBattery
         self.appleDeviceDiscovery = appleDeviceDiscovery
         self.bluetoothListeningModes = bluetoothListeningModes
@@ -201,6 +244,11 @@ final class SystemStatusStore: ObservableObject {
         self.popupSnapshot = initialSnapshot
         self.vpnStatus = .placeholder
         self.liveVolume = initialSnapshot.volume
+        bluetoothAuthorizationCancellable = bluetoothDevices.$authorizationStatus
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.reconcileBluetoothDemand()
+            }
     }
 
     deinit {
@@ -246,6 +294,7 @@ final class SystemStatusStore: ObservableObject {
                 self.bluetoothDevices.setSystemSleeping(false)
                 self.volumeMonitor.setDisplayAsleep(false)
                 self.displayAsleepSkipCount = 0
+                self.reconcileBluetoothDemand()
                 self.recoverAll()
                 self.refreshAll()
             }
@@ -258,6 +307,7 @@ final class SystemStatusStore: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.bluetoothDevices.setSystemSleeping(true)
+                self?.reconcileBluetoothDemand()
             }
         }
 
@@ -282,6 +332,7 @@ final class SystemStatusStore: ObservableObject {
                 self.isDisplayAsleep = false
                 self.volumeMonitor.setDisplayAsleep(false)
                 self.displayAsleepSkipCount = 0
+                self.reconcileBluetoothDemand()
                 self.recoverAll()
                 self.refreshAll()
             }
@@ -340,6 +391,7 @@ final class SystemStatusStore: ObservableObject {
             })
         }
         monitorTasks = tasks
+        reconcileBluetoothDemand()
 
         refreshTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
@@ -374,6 +426,12 @@ final class SystemStatusStore: ObservableObject {
         appleEligibilitySettingsCancellable?.cancel()
         appleEligibilitySettingsCancellable = nil
         nearbyBLESettingsCancellables.removeAll()
+        bluetoothSettingsCancellables.removeAll()
+        bluetoothAuthorizationCancellable?.cancel()
+        bluetoothAuthorizationCancellable = nil
+        bluetoothSettingsDemandTokens.removeAll()
+        legacyBluetoothSettingsDemandClaimCount = 0
+        boundBluetoothSettings = nil
         inputUpdateTask?.cancel()
         inputUpdateTask = nil
         inputMonitor?.stop()
@@ -415,6 +473,8 @@ final class SystemStatusStore: ObservableObject {
         primaryLink.deactivate()
         bluetoothDevices.shutdown()
         localIP.deactivate()
+        bluetoothDevices.releaseTransientState()
+        releaseBluetoothProfilerReader()
         bluetoothListeningModes.stop()
     }
 
@@ -470,7 +530,10 @@ final class SystemStatusStore: ObservableObject {
     }
 
     func requestBluetoothAuthorization() {
-        setBluetoothEnabled(true)
+        guard !hasStopped else { return }
+        isBluetoothAuthorizationRequestPending = true
+        bluetoothDevices.prepareForPresentation()
+        reconcileBluetoothDemand()
     }
 
     /// The route where a refused Bluetooth grant is restored. This is not the
@@ -492,39 +555,271 @@ final class SystemStatusStore: ObservableObject {
         }
     }
 
-    func setBluetoothEnabled(_ enabled: Bool) {
+    func setBluetoothDeviceMonitoringEnabled(_ enabled: Bool) {
         guard !hasStopped else { return }
-        isBluetoothEnabled = enabled
+        isLegacyBluetoothDemandEnabled = enabled
+        isBluetoothMonitoringSuspendedForPower = false
         if enabled {
-            _ = bluetoothDevices.requestExplicitActivation(BluetoothDeviceController.settingsActivationToken)
-        } else {
-            bluetoothDevices.releaseActivation(BluetoothDeviceController.settingsActivationToken)
+            bluetoothDevices.prepareForPresentation()
+        }
+        reconcileBluetoothDemand()
+    }
+
+    /// The Bluetooth page owns a consumer only while it is actually visible.
+    /// Merely opening Settings on another page must not start CoreBluetooth.
+    func setBluetoothSettingsVisible(_ visible: Bool) {
+        guard !hasStopped else { return }
+        if visible, hasStarted {
+            bluetoothDevices.prepareForPresentation()
+            legacyBluetoothSettingsDemandClaimCount += 1
+            reconcileBluetoothDemand()
+        } else if !visible, legacyBluetoothSettingsDemandClaimCount > 0 {
+            legacyBluetoothSettingsDemandClaimCount -= 1
+            reconcileBluetoothDemand()
         }
     }
 
-    // The popover's Bluetooth surface claim is spelled once, next to the type
-    // that owns the gate: `BluetoothDeviceController.popoverSurfaceToken`. A
-    // second literal here would let a rename silently stop the poll forever
-    // with no compile error.
+    func setBluetoothPower(_ enabled: Bool) async {
+        guard !hasStopped else { return }
+        guard bluetoothDevices.authorization == .allowed else { return }
+        guard await bluetoothPower.setPower(enabled), !hasStopped else { return }
+        isBluetoothMonitoringSuspendedForPower = !enabled
+        reconcileBluetoothDemand()
+    }
 
-    /// Temporarily enables Bluetooth monitoring while the popover is open, so
-    /// the row can report device names. Starting the monitor is what raises the
-    /// system permission prompt, so this only runs for an app that already
-    /// holds the grant. An explicit Settings toggle owns the monitor beyond the
-    /// popover lifetime; this activation does not.
-    private func activateBluetoothForPopover() {
-        guard BluetoothPanelActivation.shouldActivate(
-            authorization: bluetoothDevices.authorization
-        ) else { return }
-        let monitorWasAlreadyActive = bluetoothDevices.isActive
-        isBluetoothActivatedForPopover = bluetoothDevices.requestActivation(
-            BluetoothDeviceController.popoverActivationToken
-        )
-        if monitorWasAlreadyActive {
-            // An already-running Settings-owned monitor will not report its
-            // current state again just because the popover opened.
-            bluetoothDevices.refresh()
+    func beginBluetoothSettingsDemand() -> BluetoothSettingsDemandToken? {
+        guard !hasStopped, hasStarted else { return nil }
+        // Called only when the page is about to be shown, but the canonical
+        // authorization value is always safe to publish without starting
+        // CoreBluetooth.
+        bluetoothDevices.prepareForPresentation()
+        let token = BluetoothSettingsDemandToken()
+        bluetoothSettingsDemandTokens.insert(token)
+        reconcileBluetoothDemand()
+        return token
+    }
+
+    func endBluetoothSettingsDemand(_ token: BluetoothSettingsDemandToken) {
+        guard !hasStopped,
+              bluetoothSettingsDemandTokens.remove(token) != nil else {
+            return
         }
+        reconcileBluetoothDemand()
+    }
+
+    /// Binds demand inputs without retaining the settings object itself. Every
+    /// consumer uses the value delivered by Combine: `@Published` publishes from
+    /// `willSet`, so reading `settings` inside the sink would observe the prior
+    /// value during a same-turn toggle.
+    func bindBluetoothSettings(_ settings: SettingsStore) {
+        guard !hasStopped else { return }
+        let previouslyNeededVolumeDetails = needsVolumeDetails
+        boundBluetoothSettings = settings
+        hasBluetoothSettingsBinding = true
+        bluetoothSettingsSnapshot = Self.bluetoothDemandSettingsSnapshot(settings)
+        bluetoothSettingsCancellables.removeAll()
+
+        let panelAndDisplay = Publishers.CombineLatest4(
+            settings.$enabledPopupSections,
+            settings.$iconConfiguration
+                .map(\.behaviors.bluetoothAudioCenter.replacesNetworkIcon)
+                .removeDuplicates(),
+            settings.$bluetoothNetworkIconDeviceAddress,
+            settings.$showsAppleDevicesAndBattery
+        )
+        let backgroundAndRows = Publishers.CombineLatest3(
+            settings.$refreshesAppleBatteriesInBackground,
+            settings.$showsBluetoothBatteryLevels,
+            settings.$showsBluetoothDeviceList
+        )
+
+        Publishers.CombineLatest(panelAndDisplay, backgroundAndRows)
+            .sink { [weak self] panelAndDisplay, backgroundAndRows in
+                guard let self else { return }
+                let previouslyNeededVolumeDetails = self.needsVolumeDetails
+                self.bluetoothSettingsSnapshot = BluetoothDemandSettingsSnapshot(
+                    enabledPopupSections: panelAndDisplay.0,
+                    replacesNetworkIconWithBluetoothAudio: panelAndDisplay.1,
+                    bluetoothNetworkIconDeviceAddress: panelAndDisplay.2,
+                    showsAppleDevicesAndBattery: panelAndDisplay.3,
+                    refreshesAppleBatteriesInBackground: backgroundAndRows.0,
+                    showsBluetoothBatteryLevels: backgroundAndRows.1,
+                    showsBluetoothDeviceList: backgroundAndRows.2
+                )
+                self.updateVolumeDetailsAfterSettingsChange(
+                    previouslyNeeded: previouslyNeededVolumeDetails
+                )
+                self.reconcileBluetoothDemand()
+            }
+            .store(in: &bluetoothSettingsCancellables)
+
+        updateVolumeDetailsAfterSettingsChange(
+            previouslyNeeded: previouslyNeededVolumeDetails
+        )
+        reconcileBluetoothDemand()
+    }
+
+    private static func bluetoothDemandSettingsSnapshot(
+        _ settings: SettingsStore
+    ) -> BluetoothDemandSettingsSnapshot {
+        BluetoothDemandSettingsSnapshot(
+            enabledPopupSections: settings.enabledPopupSections,
+            replacesNetworkIconWithBluetoothAudio: settings.replacesNetworkIconWithBluetoothAudio,
+            bluetoothNetworkIconDeviceAddress: settings.bluetoothNetworkIconDeviceAddress,
+            showsAppleDevicesAndBattery: settings.showsAppleDevicesAndBattery,
+            refreshesAppleBatteriesInBackground: settings.refreshesAppleBatteriesInBackground,
+            showsBluetoothBatteryLevels: settings.showsBluetoothBatteryLevels,
+            showsBluetoothDeviceList: settings.showsBluetoothDeviceList
+        )
+    }
+
+    private func currentBluetoothDemandSources() -> Set<BluetoothDemandSource> {
+        var sources: Set<BluetoothDemandSource> = []
+
+        let isPopoverBluetoothVisible: Bool
+        if hasBluetoothSettingsBinding {
+            isPopoverBluetoothVisible = isPopoverVisible
+                && bluetoothSettingsSnapshot.enabledPopupSections.contains(.bluetooth)
+            if !bluetoothSettingsDemandTokens.isEmpty
+                || legacyBluetoothSettingsDemandClaimCount > 0 {
+                sources.insert(.settings)
+            }
+            if bluetoothSettingsSnapshot.replacesNetworkIconWithBluetoothAudio,
+               bluetoothSettingsSnapshot.bluetoothNetworkIconDeviceAddress?.isEmpty == false {
+                sources.insert(.selectedDeviceIcon)
+            }
+            let backgroundEligible = bluetoothSettingsSnapshot.showsAppleDevicesAndBattery
+                && bluetoothSettingsSnapshot.showsBluetoothBatteryLevels
+                && bluetoothSettingsSnapshot.showsBluetoothDeviceList
+            if backgroundEligible,
+               bluetoothSettingsSnapshot.refreshesAppleBatteriesInBackground {
+                sources.insert(.backgroundRefresh)
+            }
+            if isPopoverVisible,
+               bluetoothSettingsSnapshot.enabledPopupSections.contains(.volume),
+               (
+                   liveVolume.currentDevice?.isBluetoothAudio == true
+                       || liveVolume.outputDevices.contains(where: \.isBluetoothAudio)
+               ) {
+                sources.insert(.audioListeningModes)
+            }
+        } else {
+            // The pre-binding API is kept for tests and embedders. Production
+            // binds settings before start and is gated by the snapshot above.
+            isPopoverBluetoothVisible = isPopoverVisible
+        }
+
+        if isPopoverBluetoothVisible {
+            sources.insert(.popover)
+        }
+        if isLegacyBluetoothDemandEnabled {
+            sources.insert(.legacyToggle)
+        }
+        if isBluetoothAuthorizationRequestPending {
+            sources.insert(.authorizationRequest)
+        }
+        return sources
+    }
+
+    private func reconcileBluetoothDemand() {
+        guard !hasStopped else { return }
+        if hasBluetoothSettingsBinding && !hasStarted {
+            return
+        }
+        if isReconcilingBluetoothDemand {
+            needsBluetoothDemandReconciliation = true
+            return
+        }
+        isReconcilingBluetoothDemand = true
+        while !hasStopped {
+            needsBluetoothDemandReconciliation = false
+            reconcileBluetoothDemandOnce()
+            if !needsBluetoothDemandReconciliation {
+                break
+            }
+        }
+        if !hasStopped {
+            isReconcilingBluetoothDemand = false
+        }
+    }
+
+    private func reconcileBluetoothDemandOnce() {
+        let previousSources = appliedBluetoothDemandSources
+        let sources = currentBluetoothDemandSources()
+        appliedBluetoothDemandSources = sources
+        let popoverNeedsBluetooth = sources.contains(.popover)
+
+        if popoverNeedsBluetooth {
+            bluetoothDevices.prepareForPresentation()
+            bluetoothDevices.holdVisibleSurface(
+                BluetoothDeviceController.popoverSurfaceToken
+            )
+        } else {
+            bluetoothDevices.releaseVisibleSurface(
+                BluetoothDeviceController.popoverSurfaceToken
+            )
+        }
+
+        let canActivateWithoutExplicitIntent = BluetoothPanelActivation.shouldActivate(
+            authorization: bluetoothDevices.authorization
+        )
+        let explicitAuthorizationRequest = sources.contains(.authorizationRequest)
+        let explicitActivation = sources.contains(.legacyToggle) || explicitAuthorizationRequest
+        let shouldRead = !isBluetoothMonitoringSuspendedForPower
+            && !sources.isEmpty
+            && (canActivateWithoutExplicitIntent || explicitActivation)
+
+        if shouldRead {
+            let wasActive = bluetoothDevices.isActive
+            bluetoothDevices.activate()
+            if !wasActive {
+                acquireBluetoothProfilerReader()
+            } else if popoverNeedsBluetooth,
+                      !previousSources.contains(.popover),
+                      bluetoothDevices.availability == .available {
+                // The state monitor reports its value only when it starts. A
+                // panel opened while a background or Settings demand is already
+                // active needs an explicit fresh read.
+                bluetoothDevices.refresh()
+            }
+            if explicitAuthorizationRequest,
+               bluetoothDevices.authorization != .notDetermined {
+                // An explicit permission action is one-shot once the system
+                // grant is already decided. A not-determined grant remains the
+                // owner until the prompt resolves, so deactivation cannot cancel
+                // an in-flight decision.
+                isBluetoothAuthorizationRequestPending = false
+                needsBluetoothDemandReconciliation = true
+            }
+            return
+        }
+
+        if bluetoothDevices.isActive {
+            bluetoothDevices.deactivate()
+        }
+        if !bluetoothDevices.hasActivationOwnerOtherThanLegacy {
+            bluetoothDevices.releaseTransientState()
+        }
+        releaseBluetoothProfilerReader()
+        if popoverNeedsBluetooth {
+            // The read is intentionally idle without authorization, but the row
+            // still needs to explain why and offer its explicit permission action.
+            bluetoothDevices.prepareForPresentation()
+        }
+        if sources.isEmpty {
+            bluetoothProfilerCache.resetIfUnused()
+        }
+    }
+
+    private func acquireBluetoothProfilerReader() {
+        guard bluetoothProfilerReaderToken == nil else { return }
+        bluetoothProfilerReaderToken = bluetoothProfilerCache.acquireReader()
+    }
+
+    private func releaseBluetoothProfilerReader() {
+        guard let token = bluetoothProfilerReaderToken else { return }
+        bluetoothProfilerReaderToken = nil
+        bluetoothProfilerCache.releaseReader(token)
     }
 
     func closeBatteryDetails() {
@@ -542,6 +837,9 @@ final class SystemStatusStore: ObservableObject {
 
     func setPopoverVisible(_ visible: Bool) {
         guard !hasStopped else { return }
+        // Preserve reopen events even when presentation updates coalesce a close
+        // and an open into a single visible snapshot.
+        if visible && !isPopoverVisible { popoverOpenGeneration &+= 1 }
         isPopoverVisible = visible
         // The system's own state may have changed while the popover was closed
         // (Control Center, the battery menu), so re-read it through the helper
@@ -556,13 +854,10 @@ final class SystemStatusStore: ObservableObject {
         updateLocalIPActivation()
 
         guard visible else {
+            bluetoothListeningModes.stop()
             stopVPNMonitoringForPopover()
             clearWiFiNameResolution()
-            bluetoothDevices.releaseVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
-            if isBluetoothActivatedForPopover {
-                isBluetoothActivatedForPopover = false
-                bluetoothDevices.releaseActivation(BluetoothDeviceController.popoverActivationToken)
-            }
+            reconcileBluetoothDemand()
             // A confirmation is answered inside the panel, so closing the panel
             // cancels an unanswered one. The popover retains its content view
             // controller after a close, which is why this belongs here rather
@@ -575,9 +870,7 @@ final class SystemStatusStore: ObservableObject {
         startVPNMonitoringForPopover()
         popupSnapshot = snapshot
         startWiFiNameResolutionIfNeeded()
-        bluetoothDevices.prepareForPresentation()
-        bluetoothDevices.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
-        activateBluetoothForPopover()
+        reconcileBluetoothDemand()
         refreshAll()
         wifiNetworks.refresh(nameAccess: popupSnapshot.wifi.nameAccess)
     }
@@ -705,10 +998,25 @@ final class SystemStatusStore: ObservableObject {
         vpnMonitor?.stop()
     }
 
+    private var needsVolumeDetails: Bool {
+        let popoverNeedsDetails = !hasBluetoothSettingsBinding
+            || bluetoothSettingsSnapshot.enabledPopupSections.contains(.volume)
+            || bluetoothSettingsSnapshot.enabledPopupSections.contains(.bluetooth)
+        return settingsSurfaceVisibility.isVisible || (isPopoverVisible && popoverNeedsDetails)
+    }
+
+    private func updateVolumeDetailsAfterSettingsChange(previouslyNeeded: Bool) {
+        let needed = needsVolumeDetails
+        guard needed != previouslyNeeded else { return }
+        volumeMonitor.setDetailsVisible(needed)
+        // Visibility entry points already call refreshAll(). A section enabled
+        // inside an open popover has no such entry point, so fill its list now.
+        if needed { volumeMonitor.refresh() }
+    }
+
     private func updateDetailsVisibility() {
-        let detailsVisible = isPopoverVisible || settingsSurfaceVisibility.isVisible
         wifiMonitor.setDetailsVisible(isPopoverVisible)
-        volumeMonitor.setDetailsVisible(detailsVisible)
+        volumeMonitor.setDetailsVisible(needsVolumeDetails)
     }
 
     func bindInputSettings(_ settings: SettingsStore) {
@@ -912,9 +1220,9 @@ final class SystemStatusStore: ObservableObject {
         inputMonitor?.select(id)
     }
 
-    func setInputScalar(_ value: Double) {
+    func setInputScalar(_ value: Double, requestID: UUID = UUID()) {
         guard !hasStopped else { return }
-        inputMonitor?.setScalar(value)
+        inputMonitor?.setScalar(value, requestID: requestID)
     }
 
     func toggleInputMute() {
@@ -1011,6 +1319,7 @@ final class SystemStatusStore: ObservableObject {
             liveVolume = value
         }
         publish(snapshot.replacingVolume(value))
+        reconcileBluetoothDemand()
     }
 
     private func publish(_ next: StatusSnapshot) {

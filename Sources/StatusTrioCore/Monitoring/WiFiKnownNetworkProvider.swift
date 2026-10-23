@@ -36,29 +36,35 @@ protocol WiFiKnownNetworkProviding: Sendable {
 
 /// Reads the system's preferred-network names without accessing their stored
 /// passwords. The process runs on the CoreWLAN worker's serial queue.
+///
+/// The wait is bounded: `networksetup` can stall behind a wedged network stack,
+/// and a synchronous read with no deadline would hold the CoreWLAN queue for the
+/// rest of the process, stalling every later Wi-Fi read behind it. A timeout
+/// degrades to "no known networks", the same answer an unreadable list already
+/// gives the caller.
 final class NetworksetupWiFiKnownNetworkProvider: WiFiKnownNetworkProviding, @unchecked Sendable {
     private static let executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
 
+    /// Comfortably under the monitor's five-second read watchdog, so a stalled
+    /// command ends the read itself instead of having the watchdog abandon the
+    /// worker thread.
+    static let defaultTimeout: Duration = .seconds(3)
+
+    private let timeout: Duration
+
+    init(timeout: Duration = NetworksetupWiFiKnownNetworkProvider.defaultTimeout) {
+        self.timeout = timeout
+    }
+
     func preferredNetworkSSIDs(interface: String) -> Set<String> {
-        let process = Process()
-        process.executableURL = Self.executableURL
-        process.arguments = WiFiNetworkSetupCommand
-            .listPreferredNetworks(interface: interface)
-            .arguments
-
-        let outputPipe = Pipe()
-        process.standardOutput = outputPipe
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-        } catch {
-            return []
-        }
-
-        let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return [] }
+        let outcome = BoundedProcessInvocation.runSync(
+            executableURL: Self.executableURL,
+            arguments: WiFiNetworkSetupCommand
+                .listPreferredNetworks(interface: interface)
+                .arguments,
+            timeout: timeout
+        )
+        guard case .exited(let outputData) = outcome else { return [] }
         return WiFiPreferredNetworkOutputParser.parse(
             String(data: outputData, encoding: .utf8) ?? ""
         )

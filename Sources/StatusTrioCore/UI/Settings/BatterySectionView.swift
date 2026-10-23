@@ -55,11 +55,25 @@ struct BatterySectionView: View {
             SettingsDivider()
 
             SettingsToggleRow(
-                symbol: "sparkles",
+                symbol: "menubar.rectangle",
                 tint: .green,
-                title: localization.string(.settingsBatteryChargingEffect),
-                subtitle: localization.string(.settingsBatteryChargingEffectDescription),
-                isOn: $store.showsChargingEffect
+                title: localization.string(.settingsBatteryMenuBarChargingEffect),
+                subtitle: localization.string(
+                    .settingsBatteryMenuBarChargingEffectDescription
+                ),
+                isOn: $store.showsMenuBarChargingEffect
+            )
+
+            SettingsDivider()
+
+            SettingsToggleRow(
+                symbol: "dock.rectangle",
+                tint: .green,
+                title: localization.string(.settingsBatteryDockChargingEffect),
+                subtitle: localization.string(
+                    .settingsBatteryDockChargingEffectDescription
+                ),
+                isOn: $store.showsDockChargingEffect
             )
 
 
@@ -76,6 +90,7 @@ struct BatterySectionView: View {
                         set: { store.setChargingEffectTestEnabled($0) }
                     )
                 )
+                .disabled(!store.showsChargingEffect)
             }
 
             if store.showsChargingIndicator && store.showsBatteryPercentage {

@@ -21,10 +21,12 @@ struct AudioInputPanelState: Equatable, Sendable {
     let muteState: AudioInputMuteState?
     let canAdjust: Bool
     let canMute: Bool
+    /// A blocking command that should disable controls and show progress.
     let isBusy: Bool
     let errorText: String?
     let showsDeviceList: Bool
     let rows: [PanelAudioDeviceRow]
     let sliderLabel: String
     let usageText: String?
+    let completedScalarRequestID: UUID?
 }

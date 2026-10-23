@@ -151,6 +151,31 @@ final class TelemetryReporterTests: XCTestCase {
         await assertSendCount(2, from: fixture.sender)
     }
 
+    func testWithdrawingConsentTellsTheClientToDropTheStoredIdentity() async throws {
+        let fixture = makeFixture(accepted: true)
+        defer { fixture.stopAndClear() }
+        fixture.reporter.start()
+        await fixture.sender.waitForSendCount(1)
+
+        fixture.settings.setSharesAnonymousAnalytics(false)
+
+        await fixture.sender.waitForDiscardCount(1)
+        let discards = await fixture.sender.discardCountValue()
+        XCTAssertEqual(discards, 1)
+    }
+
+    func testStartingWithoutConsentClearsWhateverAnEarlierGrantLeftBehind() async throws {
+        let fixture = makeFixture(accepted: false)
+        defer { fixture.stopAndClear() }
+
+        fixture.reporter.start()
+
+        await fixture.sender.waitForDiscardCount(1)
+        let discards = await fixture.sender.discardCountValue()
+        XCTAssertEqual(discards, 1)
+        await assertSendCount(0, from: fixture.sender)
+    }
+
     private func assertSendCount(
         _ expected: Int,
         from sender: RecordingTelemetrySender,
@@ -222,6 +247,8 @@ private struct Fixture {
 private actor RecordingTelemetrySender: TelemetrySending {
     private var recordedContexts: [TelemetryContext] = []
     private var waiters: [(Int, CheckedContinuation<Void, Never>)] = []
+    private var discardCount = 0
+    private var discardWaiters: [(Int, CheckedContinuation<Void, Never>)] = []
     private var cancellationWaiters: [CheckedContinuation<Void, Never>] = []
     private var continuation: CheckedContinuation<Void, Never>?
     private var cancelled = false
@@ -237,6 +264,20 @@ private actor RecordingTelemetrySender: TelemetrySending {
         cancelled = Task.isCancelled
         for waiter in cancellationWaiters { waiter.resume() }
         cancellationWaiters.removeAll()
+    }
+
+    func discardStoredIdentity() async {
+        discardCount += 1
+        let ready = discardWaiters.filter { discardCount >= $0.0 }
+        discardWaiters.removeAll { discardCount >= $0.0 }
+        for (_, waiter) in ready { waiter.resume() }
+    }
+
+    func discardCountValue() -> Int { discardCount }
+
+    func waitForDiscardCount(_ count: Int) async {
+        if discardCount >= count { return }
+        await withCheckedContinuation { discardWaiters.append((count, $0)) }
     }
 
     func sendCount() -> Int { recordedContexts.count }

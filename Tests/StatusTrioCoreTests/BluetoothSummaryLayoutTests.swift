@@ -58,6 +58,119 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
         }
     }
 
+    func testPowerPrecedesRefreshAndSettings() {
+        XCTAssertEqual(
+            BluetoothSummaryActionLayout.trailingActions(
+                showsPowerControl: true,
+                showsPowerButton: true
+            ),
+            [.radioPower, .refresh, .settings],
+            "power must lead the trailing action cluster, followed by refresh and Settings"
+        )
+    }
+
+    func testBluetoothActionGlyphsShareTheSummaryVisualCenter() async throws {
+        let (hosting, controller) = try await makeHosting(
+            language: .english,
+            authorization: .allowed,
+            devices: [],
+            batteryLevels: [:],
+            listOptions: BluetoothDeviceListOptions(
+                showsList: false,
+                maxVisibleDevices: 5,
+                order: []
+            )
+        )
+        defer { controller.deactivate() }
+
+        let probe = try XCTUnwrap(SummaryActionAlignmentProbe(hosting))
+        let actions = probe.trailingGlyphRects(count: 3, minimumX: 200)
+        XCTAssertEqual(actions.count, 3, "power, refresh, and Settings glyphs must render")
+        guard actions.count == 3 else { return }
+
+        let contentStart = 14
+            + BluetoothPanelMetrics.iconColumnWidth
+            + BluetoothPanelMetrics.iconTextSpacing
+        let contentCenter = try XCTUnwrap(
+            probe.glyphCenterY(from: contentStart, to: actions[0].minX - 10),
+            "the Bluetooth title and subtitle must render"
+        )
+
+        for (index, name) in ["power", "refresh", "settings"].enumerated() {
+            let center = try XCTUnwrap(probe.glyphCenterY(in: actions[index]))
+            XCTAssertEqual(
+                center,
+                contentCenter,
+                accuracy: 1,
+                "\(name) center \(center) must match the row content center \(contentCenter)"
+            )
+        }
+    }
+
+    func testPowerToggleIsHiddenWhenItsSettingIsOff() {
+        XCTAssertEqual(
+            BluetoothSummaryActionLayout.trailingActions(
+                showsPowerControl: false,
+                showsPowerButton: true
+            ),
+            [.refresh, .settings]
+        )
+        XCTAssertEqual(
+            BluetoothSummaryActionLayout.trailingActions(
+                showsPowerControl: true,
+                showsPowerButton: false
+            ),
+            [.refresh, .settings],
+            "an unavailable private symbol hides only the power button"
+        )
+    }
+
+    func testRefreshIsDisabledUnlessBluetoothCanReadDevices() {
+        for availability in [
+            BluetoothAvailability.idle,
+            .initializing,
+            .authorizationNotDetermined,
+            .authorizationDenied,
+            .authorizationRestricted,
+            .poweredOff,
+            .unavailable,
+            .failed
+        ] {
+            XCTAssertFalse(
+                BluetoothSummaryActionAvailability.isRefreshEnabled(
+                    availability: availability,
+                    radioPowerIsChanging: false
+                ),
+                "\(availability) must not offer a refresh that cannot read devices"
+            )
+        }
+
+        XCTAssertTrue(
+            BluetoothSummaryActionAvailability.isRefreshEnabled(
+                availability: .available,
+                radioPowerIsChanging: false
+            )
+        )
+        XCTAssertFalse(
+            BluetoothSummaryActionAvailability.isRefreshEnabled(
+                availability: .available,
+                radioPowerIsChanging: true
+            )
+        )
+    }
+
+    func testRefreshStillRunsTheDeviceAndMobileBatteryActions() {
+        var calls: [String] = []
+        let refresh = BluetoothSummaryActionAvailability.refreshAction(
+            refreshDevices: { calls.append("devices") },
+            refreshMobileBatteries: { calls.append("mobile") }
+        )
+
+        refresh()
+
+        XCTAssertEqual(calls, ["devices", "mobile"])
+    }
+
     /// A component-battery device moves its levels onto a second line, while an
     /// ordinary whole-device level stays inline. The charging case is still drawn
     /// as a single glyph, so the second line is one caption line tall and no
@@ -530,7 +643,9 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
         listOptions: BluetoothDeviceListOptions,
         nearbyDevices: [NearbyBluetoothBatteryDevice] = [],
         showsBatteryLevels: Bool = true,
-        showsAppleDevicesAndBattery: Bool = false
+        showsAppleDevicesAndBattery: Bool = false,
+        showsPowerControl: Bool = true,
+        radioPower: BluetoothRadioPower = .on
     ) async throws -> (NSView, BluetoothDeviceController) {
         let suite = "StatusTrioCoreTests.BluetoothSummary.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -562,14 +677,19 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
 
         let view = BluetoothStatusView(
             controller: controller,
+            radioPower: BluetoothRadioPowerController(
+                backend: SummaryBluetoothRadioPowerBackend(power: radioPower)
+            ),
             mobileBatteryController: MobileBatteryController(),
             showsBatteryLevels: showsBatteryLevels,
             showsAppleDevicesAndBattery: showsAppleDevicesAndBattery,
             trustedAppleDeviceMetadata: [],
             listOptions: listOptions,
+            showsRadioPowerControl: showsPowerControl,
             onRequestAuthorization: {},
             onOpenBluetoothSettings: {},
-            onOpenBluetoothPermissionSettings: {}
+            onOpenBluetoothPermissionSettings: {},
+            onSetRadioPower: { _ in }
         )
         .padding(14)
         .frame(width: 330)
@@ -701,8 +821,14 @@ private final class SummaryNearbyBatteryScanner: BluetoothLEBatteryScanning {
     private(set) var isRunning = false
     private(set) var isScanning = false
 
-    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) {}
-    func setInitialReadCandidateIDs(_ ids: Set<UUID>) {}
+    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
+        _ = ids
+        return [:]
+    }
+    func setInitialReadCandidateIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
+        _ = ids
+        return [:]
+    }
 
     func start() { isRunning = true }
     func refresh() {}
@@ -732,4 +858,18 @@ private final class SummaryBluetoothStateMonitor: BluetoothStateMonitoring {
     }
 
     func stop() {}
+}
+
+@MainActor
+private final class SummaryBluetoothRadioPowerBackend: BluetoothRadioPowerBacking {
+    var isAvailable: Bool { true }
+    let power: BluetoothRadioPower
+
+    init(power: BluetoothRadioPower = .on) {
+        self.power = power
+    }
+
+    func readPower() -> BluetoothRadioPower { power }
+
+    func setPower(_ enabled: Bool) async -> Bool { true }
 }

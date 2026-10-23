@@ -455,6 +455,52 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         XCTAssertEqual(service.recoveryUnregisterCallCount, 1)
     }
 
+    func testEnabledHelperIsRecheckedWithoutAUserAction() async {
+        // A helper that crashes after a successful verification used to stay
+        // "ready" until the user touched the switch: nothing ever read it again.
+        let service = FakePrivilegedHelperService(status: .enabled)
+        let manager = PrivilegedHelperManager(
+            service: service,
+            pollInterval: .milliseconds(5),
+            enabledHealthCheckInterval: .milliseconds(30)
+        )
+        await waitUntil { manager.isReady }
+        let readsAfterReady = service.verificationCallCount
+
+        try? await Task.sleep(for: .milliseconds(150))
+
+        XCTAssertGreaterThanOrEqual(service.verificationCallCount, readsAfterReady + 2)
+        XCTAssertTrue(manager.isReady)
+        XCTAssertFalse(manager.didFailLastOperation)
+        // Re-probing must not churn the registration of a healthy helper.
+        XCTAssertEqual(service.recoveryUnregisterCallCount, 0)
+        XCTAssertEqual(service.registerCallCount, 0)
+    }
+
+    func testSuccessfulRecoveryRestoresTheRecoveryBudget() async {
+        // Two unrelated transient failures used to spend the whole budget: every
+        // later recovery was refused for the rest of the session because the
+        // counter only reset when the user flipped the switch.
+        let service = FakePrivilegedHelperService(status: .enabled)
+        let manager = PrivilegedHelperManager(
+            service: service,
+            pollInterval: .milliseconds(5),
+            enabledHealthCheckInterval: .milliseconds(20)
+        )
+        await waitUntil { manager.isReady }
+
+        for expected in 1...3 {
+            service.verificationFailuresRemaining = 1
+            await waitUntil { service.recoveryUnregisterCallCount == expected }
+            service.verificationFailuresRemaining = 0
+            await waitUntil { manager.isReady }
+        }
+
+        XCTAssertEqual(service.recoveryUnregisterCallCount, 3)
+        XCTAssertFalse(manager.didFailLastOperation)
+        XCTAssertTrue(manager.isReady)
+    }
+
     private func waitUntil(_ predicate: () -> Bool) async {
         let deadline = Date().addingTimeInterval(1)
         while !predicate(), Date() < deadline {

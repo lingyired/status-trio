@@ -95,6 +95,62 @@ struct DockIconPreviewMetricsTests {
 
 @MainActor
 struct DockIconPreviewCacheTests {
+    @Test func productionLimitsAreIndependentFromTheDockCacheLimits() {
+        #expect(DockIconPreviewCache.defaultLimit == 32)
+        #expect(DockIconPreviewCache.defaultMaximumResidentBytes == 2 * 1024 * 1024)
+    }
+
+    @Test func usesThirtyTwoEntriesAndTwoMiBForRealBitmaps() {
+        let cache = DockIconPreviewCache()
+        let dockCache = DockIconImageCache()
+
+        for style in [DockIconBackgroundStyle.light, .dark, .clear] {
+            let key = previewKey(backgroundStyle: style)
+            let image = makeBitmapImage(width: 64, height: 64)
+            _ = cache.image(for: key) { image }
+            dockCache.store(image, for: key)
+        }
+
+        #expect(cache.entryCount == 3)
+        #expect(dockCache.entryCount == 3)
+        #expect(cache.residentByteCount <= 2 * 1024 * 1024)
+    }
+
+    @Test func retainsThirtyTwoRealBitmapsBeforeEvicting() {
+        let cache = DockIconPreviewCache()
+        let keys = (0..<36).map(previewKey(index:))
+
+        for (index, key) in keys.enumerated() {
+            _ = cache.image(for: key) {
+                makeBitmapImage(width: 60 + index, height: 64)
+            }
+        }
+
+        #expect(cache.entryCount == 32)
+        #expect(cache.residentByteCount <= 2 * 1024 * 1024)
+        var misses: [Int] = []
+        for (index, key) in keys.enumerated() {
+            if cache.image(for: key, render: {
+                misses.append(index)
+                return nil
+            }) == nil {}
+        }
+        #expect(misses == [0, 1, 2, 3])
+    }
+
+    @Test func resetReleasesEveryAccountedPreviewByte() {
+        let cache = DockIconPreviewCache()
+        _ = cache.image(for: previewKey(pixelLength: 64)) {
+            makeBitmapImage(width: 64, height: 64)
+        }
+        #expect(cache.residentByteCount > 0)
+
+        cache.reset()
+
+        #expect(cache.entryCount == 0)
+        #expect(cache.residentByteCount == 0)
+    }
+
     @Test func reusesOneRasterForARepeatedKey() {
         var observedLengths: [Int] = []
         let cache = DockIconPreviewCache(limit: 4) {
@@ -214,10 +270,51 @@ struct DockIconPreviewCacheTests {
         )
     }
 
+    private func previewKey(index: Int) -> DockIconRenderKey {
+        let scene = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: PresentationFixtures.snapshot(rssi: -40 - index),
+                audioIcon: nil
+            ),
+            configuration: .standard
+        )
+        return DockIconRenderKey(
+            scene: scene,
+            backgroundStyle: .dark,
+            pixelLength: 64 + index * 4
+        )
+    }
+
+    private func previewKey(backgroundStyle: DockIconBackgroundStyle) -> DockIconRenderKey {
+        DockIconRenderKey(
+            scene: placeholderScene,
+            backgroundStyle: backgroundStyle,
+            pixelLength: 64
+        )
+    }
+
     private func pixels(of image: NSImage) throws -> PixelBuffer {
         let representation = try #require(
             image.representations.first as? NSBitmapImageRep
         )
         return try PixelBuffer(image: try #require(representation.cgImage))
+    }
+
+    private func makeBitmapImage(width: Int, height: Int) -> NSImage {
+        let representation = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: width,
+            pixelsHigh: height,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        )!
+        let image = NSImage(size: NSSize(width: width, height: height))
+        image.addRepresentation(representation)
+        return image
     }
 }

@@ -239,6 +239,93 @@ final class NearbyBLEControllerDemandTests: XCTestCase {
         controller.deactivate()
     }
 
+    func testRevokingOneDeviceRejectsItsCallbackWithoutInvalidatingTheOther() async {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        let first = UUID()
+        let second = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [first, second], hiddenIDs: [])
+        monitor.emit(.poweredOn)
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+        controller.setVisibleNearbyBLEDevices([first, second], for: "panel")
+
+        let inFlight = scanner.capturedDevicesCallback([device(first), device(second)])
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [first, second], hiddenIDs: [second])
+        inFlight()
+        await Task.yield()
+
+        XCTAssertEqual(controller.nearbyBatteryDevices.map(\.id), [first])
+        controller.deactivate()
+    }
+
+    func testUnchangedAuthorizationKeepsAnotherDevicesInFlightCallback() async {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        let first = UUID()
+        let second = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [first, second], hiddenIDs: [])
+        monitor.emit(.poweredOn)
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+        controller.setVisibleNearbyBLEDevices([first], for: "first")
+        controller.setVisibleNearbyBLEDevices([second], for: "second")
+
+        let inFlight = scanner.capturedDevicesCallback([device(second)])
+        controller.setVisibleNearbyBLEDevices([first], for: "first")
+        inFlight()
+        await Task.yield()
+
+        XCTAssertEqual(controller.nearbyBatteryDevices.map(\.id), [second])
+        controller.deactivate()
+    }
+
+    func testUnchangedAuthorizationSnapshotRejectsRetiredDeviceFromCombinedCallback() async {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        let first = UUID()
+        let second = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [first, second], hiddenIDs: [])
+        monitor.emit(.poweredOn)
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+        controller.setVisibleNearbyBLEDevices([first], for: "first")
+        controller.setVisibleNearbyBLEDevices([second], for: "second")
+
+        let inFlight = scanner.capturedDevicesCallback([device(first), device(second)])
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [first, second], hiddenIDs: [second])
+        inFlight()
+        await Task.yield()
+
+        XCTAssertEqual(
+            Set(controller.nearbyBatteryDevices.map(\.id)),
+            [first],
+            "the current grant survives while only the retired device is rejected"
+        )
+        controller.deactivate()
+    }
+
+    func testControllerTokenMapsTrackOnlyCurrentGrants() {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        let current = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [current], hiddenIDs: [])
+        monitor.emit(.poweredOn)
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+        for _ in 0..<10_000 {
+            let id = UUID()
+            controller.configureNearbyBLEDevices(enabled: true, knownIDs: [id], hiddenIDs: [])
+            controller.setVisibleNearbyBLEDevices([id], for: "panel")
+        }
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [current], hiddenIDs: [])
+        controller.setVisibleNearbyBLEDevices([current], for: "panel")
+
+        XCTAssertEqual(controller.nearbyAuthorizationTokenCount, 1)
+        XCTAssertEqual(scanner.allowedReadDeviceIDs, [current])
+        controller.deactivate()
+    }
+
     func testSettingsDiscoveryNeverAddsUUIDToReadPermit() {
         let (controller, scanner, monitor) = makeController()
         controller.activate()
@@ -311,6 +398,191 @@ final class NearbyBLEControllerDemandTests: XCTestCase {
         controller.deactivate()
     }
 
+    func testInitialReadGrantIssuesTokenAndRevocationRetiresIt() {
+        let scanner = CoreBluetoothLEBatteryScanner()
+        let candidateID = UUID()
+        _ = scanner.setInitialReadCandidateIDs([candidateID])
+        let token = scanner.initialReadToken(for: candidateID)
+
+        XCTAssertNotNil(token)
+        _ = scanner.setInitialReadCandidateIDs([])
+
+        XCTAssertFalse(scanner.acceptsInitialRead(candidateID, token: token))
+        XCTAssertNil(scanner.initialReadToken(for: candidateID))
+    }
+
+    func testInitialReadSurvivesExplicitAuthorizationOfTheSameID() {
+        let scanner = CoreBluetoothLEBatteryScanner()
+        let id = UUID()
+        _ = scanner.setInitialReadCandidateIDs([id])
+        let initialToken = scanner.initialReadToken(for: id)
+
+        _ = scanner.setAllowedReadDeviceIDs([id])
+        _ = scanner.setInitialReadCandidateIDs([])
+
+        XCTAssertNotNil(initialToken)
+        XCTAssertEqual(scanner.currentReadToken(for: id), initialToken)
+        XCTAssertEqual(scanner.initialReadGrantCount, 0)
+        XCTAssertEqual(scanner.readGrantCount, 1)
+    }
+
+    func testExplicitReadRevocationStillWinsWhenTheIDMovesToInitial() {
+        let scanner = CoreBluetoothLEBatteryScanner()
+        let id = UUID()
+        _ = scanner.setAllowedReadDeviceIDs([id])
+        let explicitToken = scanner.currentReadToken(for: id)
+
+        _ = scanner.setAllowedReadDeviceIDs([])
+        _ = scanner.setInitialReadCandidateIDs([id])
+
+        XCTAssertNotNil(explicitToken)
+        XCTAssertNotEqual(scanner.initialReadToken(for: id), explicitToken)
+        XCTAssertNil(scanner.currentReadToken(for: id))
+    }
+
+    func testInitialToExplicitMigrationKeepsTheCurrentReadCompletionAuthorized() async {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        let id = UUID()
+        let candidate = NearbyBLEDeviceCandidate(
+            id: id,
+            name: "Phone",
+            vendor: .apple,
+            lastSeen: Date()
+        )
+        scanner.discoveredCandidates = [candidate]
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [], hiddenIDs: [])
+        monitor.emit(.poweredOn)
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+        scanner.onCandidatesChanged?([candidate])
+        let initialToken = scanner.initialReadToken(for: id)
+
+        controller.setVisibleNearbyBLEDevices([id], for: "panel")
+        scanner.onInitialReadCandidateCompleted?(id, false, initialToken)
+        await Task.yield()
+        XCTAssertTrue(controller.nearbyBLEReadFailures.contains(id))
+        scanner.publish([device(id)])
+        await Task.yield()
+
+        XCTAssertEqual(controller.nearbyBatteryDevices.map(\.id), [id])
+        controller.deactivate()
+    }
+
+    func testInitialReadCandidateTokensRemainBoundedToCurrentCandidates() {
+        let scanner = CoreBluetoothLEBatteryScanner()
+        var priorID: UUID?
+        for _ in 0..<10_000 {
+            let current = UUID()
+            _ = scanner.setInitialReadCandidateIDs([current])
+            if let priorID {
+                XCTAssertNil(scanner.initialReadToken(for: priorID))
+            }
+            priorID = current
+        }
+        let current = UUID()
+        _ = scanner.setInitialReadCandidateIDs([current])
+
+        XCTAssertEqual(scanner.initialReadGrantCount, 1)
+        XCTAssertNotNil(scanner.initialReadToken(for: current))
+    }
+
+    func testOldInitialReadCallbackCannotDeliverAfterStopAndRestart() async {
+        let scanner = CoreBluetoothLEBatteryScanner()
+        let id = UUID()
+        _ = scanner.setInitialReadCandidateIDs([id])
+        let oldToken = scanner.initialReadToken(for: id)
+        scanner.stop()
+        _ = scanner.setInitialReadCandidateIDs([id])
+        let newToken = scanner.initialReadToken(for: id)
+
+        XCTAssertFalse(scanner.acceptsInitialRead(id, token: oldToken))
+        XCTAssertNotEqual(oldToken, newToken)
+        await Task.yield()
+        scanner.stop()
+    }
+
+    func testOldInitialReadCompletionCannotUpdateTheRestartedControllerSession() async {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        let candidate = NearbyBLEDeviceCandidate(
+            id: UUID(),
+            name: "Phone",
+            vendor: .apple,
+            lastSeen: Date()
+        )
+        scanner.discoveredCandidates = [candidate]
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [], hiddenIDs: [])
+        monitor.emit(.poweredOn)
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+        scanner.onCandidatesChanged?([candidate])
+        let oldCompletion = scanner.onInitialReadCandidateCompleted
+        let oldToken = scanner.initialReadToken(for: candidate.id)
+
+        controller.deactivate()
+        controller.activate()
+        monitor.emit(.poweredOn)
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+        oldCompletion?(candidate.id, false, oldToken)
+        await Task.yield()
+
+        XCTAssertFalse(controller.nearbyBLEReadFailures.contains(candidate.id))
+        controller.deactivate()
+    }
+
+    func testCurrentScannerInitialReadCompletionIsAccepted() async {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        let candidate = NearbyBLEDeviceCandidate(
+            id: UUID(),
+            name: "Phone",
+            vendor: .apple,
+            lastSeen: Date()
+        )
+        scanner.discoveredCandidates = [candidate]
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [], hiddenIDs: [])
+        monitor.emit(.poweredOn)
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+        scanner.onCandidatesChanged?([candidate])
+        let token = scanner.initialReadToken(for: candidate.id)
+
+        scanner.onInitialReadCandidateCompleted?(candidate.id, false, token)
+        await Task.yield()
+
+        XCTAssertTrue(controller.nearbyBLEReadFailures.contains(candidate.id))
+        controller.deactivate()
+    }
+
+    func testOldInitialReadCallbackCannotCompleteTheNewScannerGrant() {
+        let scanner = CoreBluetoothLEBatteryScanner()
+        let id = UUID()
+        _ = scanner.setInitialReadCandidateIDs([id])
+        let oldToken = scanner.initialReadToken(for: id)
+        scanner.stop()
+        _ = scanner.setInitialReadCandidateIDs([id])
+        let newToken = scanner.initialReadToken(for: id)
+
+        XCTAssertNotNil(oldToken)
+        XCTAssertNotNil(newToken)
+        XCTAssertFalse(scanner.acceptsInitialRead(id, token: oldToken))
+        XCTAssertTrue(scanner.acceptsInitialRead(id, token: newToken))
+        scanner.stop()
+    }
+
+    func testRetiredNilTokenCannotAuthorizeAnInitialRead() {
+        let scanner = CoreBluetoothLEBatteryScanner()
+        let id = UUID()
+        _ = scanner.setInitialReadCandidateIDs([id])
+
+        XCTAssertFalse(scanner.acceptsInitialRead(UUID(), token: nil))
+        _ = scanner.setInitialReadCandidateIDs([])
+        XCTAssertFalse(scanner.acceptsInitialRead(id, token: nil))
+        scanner.stop()
+    }
+
     private func makeController() -> (BluetoothDeviceController, DemandScannerSpy, DemandStateMonitorSpy) {
         let scanner = DemandScannerSpy()
         let monitor = DemandStateMonitorSpy()
@@ -339,15 +611,65 @@ private final class DemandScannerSpy: BluetoothLEBatteryScanning {
     private(set) var isRunning = false
     private(set) var isScanning = false
     private(set) var allowedReadDeviceIDs: Set<UUID> = []
+    private var explicitReadTokenByID: [UUID: DeviceOperationToken] = [:]
     private(set) var initialReadDeviceIDs: Set<UUID> = []
+    private(set) var initialReadTokens: [UUID: DeviceOperationToken] = [:]
+    var onInitialReadCandidateCompleted: ((UUID, Bool, DeviceOperationToken?) -> Void)?
     var discoveredCandidates: [NearbyBLEDeviceCandidate] = []
 
-    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) { allowedReadDeviceIDs = ids }
-    func setInitialReadCandidateIDs(_ ids: Set<UUID>) { initialReadDeviceIDs = ids }
+    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
+        allowedReadDeviceIDs = ids
+        explicitReadTokenByID = currentExplicitTokens(ids)
+        return explicitReadTokenByID
+    }
+    func setInitialReadCandidateIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
+        initialReadDeviceIDs = ids
+        initialReadTokens = initialReadTokens.filter { id, token in
+            ids.contains(id) && explicitReadTokenByID[id] != token
+        }
+        for id in ids where initialReadTokens[id] == nil {
+            if let migrated = explicitReadTokenByID.removeValue(forKey: id) {
+                initialReadTokens[id] = migrated
+            } else {
+                initialReadTokens[id] = DeviceOperationToken()
+            }
+        }
+        return initialReadTokens
+    }
+    func initialReadToken(for id: UUID) -> DeviceOperationToken? {
+        initialReadTokens[id]
+    }
+    private func currentExplicitTokens(
+        _ ids: Set<UUID>
+    ) -> [UUID: DeviceOperationToken] {
+        var result: [UUID: DeviceOperationToken] = [:]
+        for id in ids {
+            result[id] = explicitReadTokenByID[id]
+                ?? initialReadTokens[id]
+                ?? DeviceOperationToken()
+        }
+        return result
+    }
     func start() { isRunning = true }
     func refresh() {}
-    func stop() { isRunning = false; isScanning = false }
+    func stop() {
+        isRunning = false
+        isScanning = false
+        allowedReadDeviceIDs = []
+        explicitReadTokenByID = [:]
+        initialReadDeviceIDs = []
+        initialReadTokens = [:]
+    }
     func publish(_ devices: [NearbyBluetoothBatteryDevice]) { onDevicesChanged?(devices) }
+    func capturedDevicesCallback(
+        _ devices: [NearbyBluetoothBatteryDevice]
+    ) -> () -> Void {
+        guard let callback = onDevicesChanged else {
+            XCTFail("scanner callback was not installed")
+            return {}
+        }
+        return { callback(devices) }
+    }
 }
 
 @MainActor

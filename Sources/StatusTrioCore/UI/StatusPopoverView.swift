@@ -28,6 +28,7 @@ struct StatusPopoverView: View {
     let openBluetoothPermissionSettings: () -> Void
     let openSettings: () -> Void
     let openSoundSettings: () -> Void
+    let openSoundInputSettings: () -> Void
     let openKeyboardSettings: () -> Void
     let quit: () -> Void
     @State private var currentPanel: PopoverPanel = .summary
@@ -109,6 +110,19 @@ struct StatusPopoverView: View {
 
             PopoverFooterView(openSettings: openSettings, quit: quit)
         }
+        .task(id: [
+            panel.listeningModeTaskID,
+            String(panel.visiblePopupSections.contains(.bluetooth)),
+            String(panel.visiblePopupSections.contains(.volume))
+        ]) {
+            if panel.store.isPopoverVisible,
+               panel.visiblePopupSections.contains(.bluetooth) || panel.visiblePopupSections.contains(.volume) {
+                panel.actions.volumeListChanged()
+            } else {
+                panel.actions.volumeListDisappeared()
+            }
+        }
+        .onDisappear { panel.actions.volumeListDisappeared() }
     }
 
     @ViewBuilder
@@ -147,6 +161,7 @@ struct StatusPopoverView: View {
         case .bluetooth:
             BluetoothStatusView(
                 controller: panel.store.bluetoothDevices,
+                radioPower: panel.store.bluetoothPower,
                 mobileBatteryController: panel.store.mobileBattery,
                 showsBatteryLevels: panel.settings.showsBluetoothBatteryLevels,
                 showsAppleDevicesAndBattery: panel.settings.showsAppleDevicesAndBattery,
@@ -155,21 +170,29 @@ struct StatusPopoverView: View {
                 currentTrustedAppleCandidates: panel.store.trustedAppleDeviceCandidates,
                 trustedDiscoveryGeneration: panel.store.trustedAppleDeviceDiscoveryGeneration,
                 listOptions: panel.settings.bluetoothDeviceListOptions,
+                showsRadioPowerControl: panel.settings.showsBluetoothPowerControl,
+                showsBluetoothInStatusPanel: panel.settings.enabledPopupSections.contains(.bluetooth),
+                listeningModePresentations: panel.store.bluetoothListeningModes.huaweiBluetoothRowPresentations,
+                onSelectListeningMode: { panel.actions.setListeningMode(address: $0, mode: $1) },
                 onRequestAuthorization: requestBluetoothAuthorization,
                 onOpenBluetoothSettings: openBluetoothSettings,
-                onOpenBluetoothPermissionSettings: openBluetoothPermissionSettings
+                onOpenBluetoothPermissionSettings: openBluetoothPermissionSettings,
+                onSetRadioPower: { enabled in
+                    panel.actions.setBluetoothPower(enabled)
+                }
             )
         case .volume:
             VolumeControlsView(
                 state: panel.volume,
                 actions: panel.actions,
-                scrollTargets: scrollTargets
+                scrollTargets: scrollTargets,
+                onOpenSoundSettings: openSoundSettings
             )
         case .audioInput:
             AudioInputControlsView(
                 state: panel.audioInput,
                 actions: panel.actions,
-                onOpenSoundSettings: openSoundSettings
+                onOpenSoundSettings: openSoundInputSettings
             )
         case .inputSource:
             InputSourceStatusView(

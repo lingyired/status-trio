@@ -21,7 +21,15 @@ final class DDCVolumeCoordinatorTests: XCTestCase {
         let transport = FakeDDCTransport()
         transport.reply = DDCVolumeReply(current: 70, maximum: 100)
         var updates: [DDCVolumeUpdate] = []
-        let coordinator = DDCVolumeCoordinator(transport: transport, sleep: { try await clock.sleep($0) }) { updates.append($0) }
+        // The default 2 s read watchdog sleeps on this same clock, so it would
+        // share a duration with the first backoff interval and a duration-keyed
+        // release could resume the watchdog instead of the poll timer. Keep it
+        // out of the way here; watchdog behaviour has its own tests.
+        let coordinator = DDCVolumeCoordinator(
+            transport: transport,
+            readWatchdog: .seconds(600),
+            sleep: { try await clock.sleep($0) }
+        ) { updates.append($0) }
         coordinator.select(outputID: 93, uid: "DISPLAY-A")
         await waitUntil("initial read callback") { updates.contains { $0.scalar == 0.7 } }
         await waitForClock(clock, .seconds(10), "closed poll timer")
@@ -48,7 +56,15 @@ final class DDCVolumeCoordinatorTests: XCTestCase {
         let clock = ManualDDCClock()
         let transport = FakeDDCTransport()
         transport.failReads = 8
-        let coordinator = DDCVolumeCoordinator(transport: transport, sleep: { try await clock.sleep($0) }) { _ in }
+        // The default 2 s read watchdog sleeps on this same clock, so it would
+        // share a duration with the first backoff interval and a duration-keyed
+        // release could resume the watchdog instead of the poll timer. Keep it
+        // out of the way here; watchdog behaviour has its own tests.
+        let coordinator = DDCVolumeCoordinator(
+            transport: transport,
+            readWatchdog: .seconds(600),
+            sleep: { try await clock.sleep($0) }
+        ) { _ in }
         coordinator.select(outputID: 93, uid: "DISPLAY-A")
         for interval in [Duration.seconds(2), .seconds(4), .seconds(8), .seconds(16), .seconds(32), .seconds(60), .seconds(60)] {
             await waitForClock(clock, interval, "failed-read poll at \(interval)")
@@ -64,7 +80,15 @@ final class DDCVolumeCoordinatorTests: XCTestCase {
         let clock = ManualDDCClock()
         let transport = FakeDDCTransport()
         transport.failReads = 3
-        let coordinator = DDCVolumeCoordinator(transport: transport, sleep: { try await clock.sleep($0) }) { _ in }
+        // The default 2 s read watchdog sleeps on this same clock, so it would
+        // share a duration with the first backoff interval and a duration-keyed
+        // release could resume the watchdog instead of the poll timer. Keep it
+        // out of the way here; watchdog behaviour has its own tests.
+        let coordinator = DDCVolumeCoordinator(
+            transport: transport,
+            readWatchdog: .seconds(600),
+            sleep: { try await clock.sleep($0) }
+        ) { _ in }
         coordinator.select(outputID: 93, uid: "DISPLAY-A")
         for interval in [Duration.seconds(2), .seconds(4)] {
             await waitForClock(clock, interval, "failed poll at \(interval)")
@@ -174,6 +198,168 @@ final class DDCVolumeCoordinatorTests: XCTestCase {
         }
     }
 
+    func testSelectionAlternatingABAUsesAFreshlyResolvedTargetEachTime() async {
+        let transport = FakeDDCTransport()
+        transport.reply = DDCVolumeReply(current: 50, maximum: 100)
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("A read") { transport.readServiceTags.count >= 1 }
+        coordinator.select(outputID: 94, uid: "DISPLAY-B")
+        await waitUntil("B read") { transport.readServiceTags.count >= 2 }
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        // Wait for the matching emission, not just for the transport to be hit:
+        // `readServiceTags` grows on the worker queue, so the main-actor publish
+        // for this generation can still be in flight when the wait returns.
+        await waitUntil("A re-read emitted for the current generation") {
+            transport.readServiceTags.count >= 3 && updates.last?.generation == coordinator.generation
+        }
+
+        XCTAssertEqual(transport.resolveCount, 3, "Each selection must resolve its own target")
+        XCTAssertEqual(
+            Set(transport.readServiceTags.prefix(3)).count, 3,
+            "A→B→A must re-resolve instead of reusing a stale service"
+        )
+        XCTAssertEqual(updates.last?.uid, "DISPLAY-A")
+        coordinator.stop()
+    }
+
+    func testSameUIDTopologyChangeResolvesAFreshService() async {
+        let transport = FakeDDCTransport()
+        transport.reply = DDCVolumeReply(current: 50, maximum: 100)
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("initial read") { transport.readServiceTags.count == 1 }
+        coordinator.topologyChanged()
+        await waitUntil("post-topology read") { transport.readServiceTags.count >= 2 }
+
+        XCTAssertEqual(transport.resolveCount, 2, "A same-UID topology change must re-resolve, not reuse the cached service")
+        XCTAssertEqual(
+            Array(transport.readServiceTags.prefix(2)), [0, 1],
+            "The post-topology read must run against the freshly resolved service"
+        )
+        coordinator.stop()
+    }
+
+    func testUnresolvableTargetNeverWritesAndReportsUnavailable() async {
+        let transport = FakeDDCTransport()
+        transport.failResolve = true
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("unavailable read") { updates.contains { $0.scalar == nil } }
+        coordinator.setVolume(0.8)
+        coordinator.flushPendingVolume()
+        await coordinator.waitForWorkerIdle()
+
+        XCTAssertTrue(transport.writeValues.isEmpty, "An unresolvable target must never be written to")
+        XCTAssertEqual(transport.readServiceTags, [], "No physical read may run without a resolved service")
+        coordinator.stop()
+    }
+
+    func testProtocolFailureWithoutAValidatedReplyNeverWrites() async {
+        // The service resolves, but no read ever returns a validated reply
+        // (all profiles failed). The slider must stay unavailable and no
+        // Set VCP may be attempted.
+        let transport = FakeDDCTransport()
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("failed read reports unavailable") { updates.contains { $0.scalar == nil } }
+        coordinator.setVolume(0.8)
+        coordinator.flushPendingVolume()
+        await coordinator.waitForWorkerIdle()
+
+        XCTAssertTrue(transport.writeValues.isEmpty, "No write may run without a validated read reply")
+        XCTAssertFalse(updates.contains { $0.scalar != nil }, "No percentage may be published without a validated reply")
+        XCTAssertEqual(updates.last?.capability, .unavailable(.replyReadFailed))
+        coordinator.stop()
+    }
+
+    func testWriteAcknowledgementAndReadBackVerificationAreSeparateStates() async {
+        let transport = FakeDDCTransport()
+        transport.reply = DDCVolumeReply(current: 50, maximum: 100)
+        transport.writeEchoesValue = true
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("initial read") { updates.contains { $0.capability == .readable(DDCVolumeReply(current: 50, maximum: 100)) } }
+
+        coordinator.setVolume(0.8)
+        coordinator.flushPendingVolume()
+        await waitUntil("verified read-back") {
+            updates.contains { $0.capability == .writeVerified(DDCVolumeReply(current: 80, maximum: 100)) }
+        }
+        XCTAssertEqual(transport.writeValues, [80])
+        coordinator.stop()
+    }
+
+    func testAcknowledgedWriteThatTheDisplayDidNotApplyIsNotReportedAsVerified() async {
+        // I2C acceptance is not evidence that the register changed: the
+        // read-back is what decides, and a mismatch must not be called success.
+        let transport = FakeDDCTransport()
+        transport.reply = DDCVolumeReply(current: 50, maximum: 100)
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("initial read") { updates.contains { $0.scalar == 0.5 } }
+
+        coordinator.setVolume(0.8)
+        coordinator.flushPendingVolume()
+        await waitUntil("mismatching read-back") {
+            updates.contains { $0.capability == .writeUnverified(DDCVolumeReply(current: 50, maximum: 100)) }
+        }
+
+        XCTAssertEqual(transport.writeValues, [80], "The write was acknowledged, so it must have been attempted exactly once")
+        XCTAssertFalse(
+            updates.contains { $0.capability == .writeVerified(DDCVolumeReply(current: 50, maximum: 100)) },
+            "A display that stayed at 50 must never be reported as a verified write"
+        )
+        coordinator.stop()
+    }
+
+    func testFailedWriteStopsPublishingAValueInsteadOfKeepingTheOptimisticScalar() async {
+        let transport = FakeDDCTransport()
+        transport.reply = DDCVolumeReply(current: 50, maximum: 100)
+        transport.failWrites = true
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("initial read") { updates.contains { $0.scalar == 0.5 } }
+
+        coordinator.setVolume(0.8)
+        coordinator.flushPendingVolume()
+        await waitUntil("failed write publishes unavailable") {
+            updates.contains { $0.capability == .unavailable(.requestWriteFailed) }
+        }
+
+        XCTAssertNil(updates.last?.scalar)
+        coordinator.stop()
+    }
+
+    func testWatchdogPublishesATimeoutInsteadOfAGenericUnavailable() async {
+        let transport = FakeDDCTransport()
+        transport.reply = DDCVolumeReply(current: 35, maximum: 100)
+        transport.blockNextRead()
+        var updates: [DDCVolumeUpdate] = []
+        let coordinator = DDCVolumeCoordinator(transport: transport, readWatchdog: .milliseconds(20)) { updates.append($0) }
+
+        coordinator.select(outputID: 93, uid: "DISPLAY-A")
+        await waitUntil("watchdog reports a timeout") {
+            updates.contains { $0.capability == .unavailable(.timeout) }
+        }
+        transport.releaseBlockedRead()
+        coordinator.stop()
+    }
+
     func testSleepCancelsDebouncedWriteBeforeWake() async {
         let clock = ManualDDCClock()
         let transport = FakeDDCTransport()
@@ -278,9 +464,22 @@ final class DDCVolumeCoordinatorTests: XCTestCase {
         await clock.cancelAll()
     }
 
+    /// Waits for a predicate on coordinator state.
+    ///
+    /// The budget is wall clock, not a number of attempts. It used to be
+    /// `200 × 5 ms`, which is only a second when the machine is idle: on a loaded
+    /// runner each `Task.sleep(5ms)` can take tens of milliseconds and the budget
+    /// was gone before the coordinator's work was scheduled, so a correct
+    /// implementation failed the test. The timeout here is a hang guard; a slow
+    /// machine makes the wait longer, never the assertion false.
     private func waitUntil(_ description: String, file: StaticString = #filePath, line: UInt = #line, _ predicate: @escaping @MainActor () -> Bool) async {
-        for _ in 0..<200 where !predicate() { try? await Task.sleep(for: .milliseconds(5)) }
-        XCTAssertTrue(predicate(), "Timed out waiting for \(description)", file: file, line: line)
+        let started = ContinuousClock.now
+        let deadline = started.advanced(by: .seconds(10))
+        while !predicate(), ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(2))
+        }
+        let waited = ContinuousClock.now - started
+        XCTAssertTrue(predicate(), "Timed out waiting for \(description) after \(waited)", file: file, line: line)
     }
 
     private func waitForClock(_ clock: ManualDDCClock, _ duration: Duration, _ description: String, file: StaticString = #filePath, line: UInt = #line) async {
@@ -322,6 +521,12 @@ private final class FakeDDCTransport: DDCVolumeTransport, @unchecked Sendable {
     private var gateNextRead = false
     private var blockedReadCountStorage = 0
     private let blockedRead = DispatchSemaphore(value: 0)
+    private var storedFailResolve = false
+    private var storedFailWrites = false
+    private var storedWriteEchoesValue = false
+    private var storedNextServiceTag = 0
+    private var serviceTagByTarget: [ObjectIdentifier: Int] = [:]
+    private var storedReadServiceTags: [Int] = []
 
     var reply: DDCVolumeReply? { get { lock.withLock { storedReply } } set { lock.withLock { storedReply = newValue } } }
     var failReads: Int { get { lock.withLock { storedFailReads } } set { lock.withLock { storedFailReads = newValue } } }
@@ -331,36 +536,81 @@ private final class FakeDDCTransport: DDCVolumeTransport, @unchecked Sendable {
     var resolveCount: Int { lock.withLock { storedResolveCount } }
     var maximumConcurrentReads: Int { lock.withLock { storedMaximumConcurrentReads } }
     var blockedReadCount: Int { lock.withLock { blockedReadCountStorage } }
+    var failResolve: Bool { get { lock.withLock { storedFailResolve } } set { lock.withLock { storedFailResolve = newValue } } }
+    var failWrites: Bool { get { lock.withLock { storedFailWrites } } set { lock.withLock { storedFailWrites = newValue } } }
+    /// Simulates a display that applies what it was sent, so the read-back can
+    /// agree with the requested register value.
+    var writeEchoesValue: Bool { get { lock.withLock { storedWriteEchoesValue } } set { lock.withLock { storedWriteEchoesValue = newValue } } }
+    var readServiceTags: [Int] { lock.withLock { storedReadServiceTags } }
 
     func blockNextRead() { lock.withLock { gateNextRead = true } }
     func releaseBlockedRead() { blockedRead.signal() }
 
     func resolve(uid: String) -> DDCDisplayTarget? {
-        lock.withLock { storedOperations.append("resolve"); storedResolveCount += 1 }
-        return DDCDisplayTarget(uid: uid, service: nil)
+        lock.withLock {
+            storedOperations.append("resolve")
+            storedResolveCount += 1
+            guard !storedFailResolve else { return nil }
+            let target = DDCDisplayTarget(uid: uid, service: nil)
+            serviceTagByTarget[ObjectIdentifier(target)] = storedNextServiceTag
+            storedNextServiceTag += 1
+            return target
+        }
     }
 
-    func read(_ target: DDCDisplayTarget) -> DDCVolumeReply? {
+    func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult {
         let shouldBlock = lock.withLock { () -> Bool in
             storedOperations.append("read")
             storedReadCount += 1
             activeReads += 1
             storedMaximumConcurrentReads = max(storedMaximumConcurrentReads, activeReads)
+            storedReadServiceTags.append(serviceTagByTarget[ObjectIdentifier(target)] ?? -1)
             if gateNextRead { gateNextRead = false; blockedReadCountStorage += 1; return true }
             return false
         }
         if shouldBlock { blockedRead.wait() }
         return lock.withLock {
             activeReads -= 1
-            if storedFailReads > 0 { storedFailReads -= 1; return nil }
-            return storedReply
+            if storedFailReads > 0 { storedFailReads -= 1; return .failure(.replyReadFailed) }
+            guard let storedReply else { return .failure(.replyReadFailed) }
+            return .reply(storedReply)
         }
     }
 
     func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool {
-        lock.withLock { storedOperations.append("write"); storedWriteValues.append(value) }
-        return true
+        lock.withLock {
+            storedOperations.append("write")
+            storedWriteValues.append(value)
+            guard !storedFailWrites else { return false }
+            if storedWriteEchoesValue, let current = storedReply {
+                storedReply = DDCVolumeReply(current: value, maximum: current.maximum)
+            }
+            return true
+        }
     }
+}
+
+/// Records cancellations synchronously, so a cancelled sleep can never satisfy a
+/// wait or absorb a release.
+///
+/// `onCancel` runs on whatever thread cancels the task and cannot touch actor
+/// state, so the actor-side reap is always a hop behind: `timerTask?.cancel()`
+/// marks the id here immediately, while the entry is still in `entries`.
+/// `release(_:)` matches by duration, so without the mark it could resume an
+/// entry nobody is waiting on and leave the live timer parked for the rest of
+/// the test.
+///
+/// This is hardening of the double, not the fix for the reported failure: the
+/// suite stays green for 15 solo runs and 10 loaded runs with the box removed.
+/// The load-bearing fixes are the wall-clock deadline in `waitUntil` and keeping
+/// the default 2 s read watchdog off this clock in the backoff tests.
+private final class CancellationBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var ids = Set<UUID>()
+
+    func mark(_ id: UUID) { lock.withLock { _ = ids.insert(id) } }
+    func consume(_ id: UUID) -> Bool { lock.withLock { ids.remove(id) != nil } }
+    func contains(_ id: UUID) -> Bool { lock.withLock { ids.contains(id) } }
 }
 
 private actor ManualDDCClock {
@@ -372,41 +622,84 @@ private actor ManualDDCClock {
     private var entries: [Entry] = []
     private var cancelledBeforeRegistration = Set<UUID>()
     private var recordedDurations: [Duration] = []
+    /// One stream per waiter. `sleep` signals here instead of the waiter polling a
+    /// snapshot, so a registration wakes it directly.
+    private var waiters: [UUID: AsyncStream<Void>.Continuation] = [:]
+    private let cancellation = CancellationBox()
+
+    /// Entries a cancelling thread has already given up on. They stay in
+    /// `entries` until the actor hop reaps them and must never satisfy a wait or
+    /// absorb a release.
+    private var liveEntries: [Entry] { entries.filter { !cancellation.contains($0.id) } }
+
+    private func signal() {
+        for continuation in waiters.values { continuation.yield() }
+    }
+
+    /// Waits for a condition over the clock's own state, woken by `signal`.
+    ///
+    /// The deadline is a hang guard, not the condition: if the coordinator's task
+    /// is starved the wait simply takes longer. Polling a snapshot could not tell
+    /// those two cases apart, which is exactly how a loaded machine turned a
+    /// correct implementation into a failing test.
+    private func wait(within limit: Duration, until condition: () -> Bool) async -> Bool {
+        if condition() { return true }
+        let deadline = ContinuousClock.now.advanced(by: limit)
+        while ContinuousClock.now < deadline {
+            let (stream, continuation) = AsyncStream<Void>.makeStream()
+            let id = UUID()
+            waiters[id] = continuation
+            let remaining = ContinuousClock.now.duration(to: deadline)
+            _ = await withTaskGroup(of: Bool.self) { group in
+                group.addTask {
+                    var iterator = stream.makeAsyncIterator()
+                    _ = await iterator.next()
+                    return true
+                }
+                group.addTask {
+                    try? await Task.sleep(for: remaining)
+                    return false
+                }
+                let first = await group.next() ?? false
+                group.cancelAll()
+                return first
+            }
+            waiters[id] = nil
+            if condition() { return true }
+        }
+        return condition()
+    }
 
     func sleep(_ duration: Duration) async throws {
         let id = UUID()
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 recordedDurations.append(duration)
-                if Task.isCancelled || cancelledBeforeRegistration.remove(id) != nil {
+                if Task.isCancelled || cancellation.consume(id) || cancelledBeforeRegistration.remove(id) != nil {
                     continuation.resume(throwing: CancellationError())
                 } else {
                     entries.append(Entry(id: id, duration: duration, continuation: continuation))
                 }
+                signal()
             }
         } onCancel: {
+            // Synchronous, so a release on the test side cannot pick this entry
+            // in the window before the hop below reaps it.
+            cancellation.mark(id)
             Task { await self.cancel(id) }
         }
     }
 
-    func hasPending(_ duration: Duration) -> Bool { entries.contains(where: { $0.duration == duration }) }
+    func hasPending(_ duration: Duration) -> Bool { liveEntries.contains(where: { $0.duration == duration }) }
 
     func waitForPending(_ duration: Duration) async -> Bool {
-        for _ in 0..<200 {
-            if entries.contains(where: { $0.duration == duration }) { return true }
-            try? await Task.sleep(for: .milliseconds(5))
-        }
-        return entries.contains(where: { $0.duration == duration })
+        await wait(within: .seconds(30)) { self.liveEntries.contains { $0.duration == duration } }
     }
 
-    var pendingDurations: [Duration] { entries.map(\.duration) }
+    var pendingDurations: [Duration] { liveEntries.map(\.duration) }
     var durations: [Duration] { recordedDurations }
     func waitForRecorded(_ duration: Duration) async -> Bool {
-        for _ in 0..<200 {
-            if recordedDurations.contains(duration) { return true }
-            try? await Task.sleep(for: .milliseconds(5))
-        }
-        return recordedDurations.contains(duration)
+        await wait(within: .seconds(60)) { self.recordedDurations.contains(duration) }
     }
 
     func advance(by duration: Duration) {
@@ -414,7 +707,7 @@ private actor ManualDDCClock {
     }
 
     func release(_ duration: Duration) {
-        guard let index = entries.firstIndex(where: { $0.duration == duration }) else { return }
+        guard let index = entries.firstIndex(where: { $0.duration == duration && !cancellation.contains($0.id) }) else { return }
         entries.remove(at: index).continuation.resume()
     }
 

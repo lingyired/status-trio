@@ -8,9 +8,15 @@ protocol AudioInputMonitoring: AnyObject {
   func setVisible(_ visible: Bool)
   func recover()
   func select(_ id: AudioDeviceID)
-  func setScalar(_ value: Double)
+  func setScalar(_ value: Double, requestID: UUID)
   func toggleMute()
   func stop()
+}
+
+extension AudioInputMonitoring {
+  func setScalar(_ value: Double) {
+    setScalar(value, requestID: UUID())
+  }
 }
 
 private struct AudioInputVisibilitySnapshot: Sendable {
@@ -92,6 +98,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
     let readGeneration: UInt64
     let deviceID: AudioDeviceID
     let command: AudioInputMonitorCommand
+    let scalarRequestID: UUID?
     var timedOut = false
   }
 
@@ -103,6 +110,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
   private struct PendingScalar {
     let value: Double
     let deviceID: AudioDeviceID
+    let requestID: UUID
   }
 
   let updates: AsyncStream<AudioInputStatus>
@@ -129,6 +137,8 @@ final class AudioInputMonitor: AudioInputMonitoring {
   private var activeCommand: ActiveCommand?
   private var queuedCommands: [QueuedCommand] = []
   private var pendingScalar: PendingScalar?
+  private var latestScalarRequestID: UUID?
+  private var scalarConfirmationID: UUID?
   private var scalarDebounceToken: UUID?
   private var scalarDebounceReady = false
   private var scalarDebounceTask: Task<Void, Never>?
@@ -181,6 +191,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
     activeCommand = nil
     queuedCommands.removeAll()
     clearPendingScalar()
+    finishLatestScalarRequest()
     commandTimeoutTask?.cancel()
     commandTimeoutTask = nil
     clearError()
@@ -262,18 +273,22 @@ final class AudioInputMonitor: AudioInputMonitoring {
       showError(.switchFailed)
       return
     }
-    clearPendingScalar()
+    cancelPendingScalar()
     enqueueOrStart(QueuedCommand(command: .select(id), deviceID: id))
   }
 
-  func setScalar(_ value: Double) {
+  func setScalar(_ value: Double, requestID: UUID = UUID()) {
     beginUserAction()
     guard isEnabled, !isStopped else { return }
     guard value.isFinite, status.canSetVolume, let deviceID = status.defaultDeviceID else {
       showError(.volumeFailed)
       return
     }
-    pendingScalar = PendingScalar(value: min(max(value, 0), 1), deviceID: deviceID)
+    latestScalarRequestID = requestID
+    scalarConfirmationID = nil
+    pendingScalar = PendingScalar(
+      value: min(max(value, 0), 1), deviceID: deviceID, requestID: requestID
+    )
     scalarDebounceReady = false
     let token = UUID()
     scalarDebounceToken = token
@@ -300,7 +315,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
       return
     }
     let target = muteState != .muted
-    clearPendingScalar()
+    cancelPendingScalar()
     enqueueOrStart(QueuedCommand(command: .mute(target), deviceID: deviceID))
   }
 
@@ -424,6 +439,9 @@ final class AudioInputMonitor: AudioInputMonitoring {
     switch result {
     case let .success(refresh):
       apply(refresh.reading)
+      if let scalarConfirmationID {
+        finishScalarRequest(scalarConfirmationID)
+      }
       isDirty = false
       observationDegraded = refresh.observationError != nil
       if observationDegraded {
@@ -452,6 +470,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
 
     queuedCommands.removeAll()
     clearPendingScalar()
+    finishLatestScalarRequest()
     refreshPending = false
   }
 
@@ -471,6 +490,8 @@ final class AudioInputMonitor: AudioInputMonitoring {
     scalarDebounceTask = nil
     guard activeCommand?.timedOut != true else {
       clearPendingScalar()
+      finishLatestScalarRequest()
+      publish()
       return
     }
     if activeCommand == nil, readInFlight == false, queuedCommands.isEmpty {
@@ -482,11 +503,12 @@ final class AudioInputMonitor: AudioInputMonitoring {
     guard scalarDebounceReady, let scalar = pendingScalar else { return }
     clearPendingScalar()
     guard status.defaultDeviceID == scalar.deviceID, status.canSetVolume else {
+      finishScalarRequest(scalar.requestID)
       showError(.volumeFailed)
       startNextWorkIfPossible()
       return
     }
-    start(.scalar(scalar.value), deviceID: scalar.deviceID)
+    start(.scalar(scalar.value), deviceID: scalar.deviceID, scalarRequestID: scalar.requestID)
   }
 
   private func startNextWorkIfPossible() {
@@ -503,7 +525,11 @@ final class AudioInputMonitor: AudioInputMonitoring {
     startPendingRefreshIfPossible()
   }
 
-  private func start(_ command: AudioInputMonitorCommand, deviceID: AudioDeviceID) {
+  private func start(
+    _ command: AudioInputMonitorCommand,
+    deviceID: AudioDeviceID,
+    scalarRequestID: UUID? = nil
+  ) {
     guard isEnabled, !isStopped, activeCommand == nil else { return }
     if case .select = command {
       guard status.devices.contains(where: { $0.id == deviceID }) else {
@@ -522,7 +548,8 @@ final class AudioInputMonitor: AudioInputMonitoring {
       sessionGeneration: sessionGeneration,
       readGeneration: readGeneration,
       deviceID: deviceID,
-      command: command
+      command: command,
+      scalarRequestID: scalarRequestID
     )
     guard let sessionGate, sessionGate.isActive else { return }
     activeCommand = active
@@ -556,6 +583,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
     active.timedOut = true
     activeCommand = active
     clearPendingScalar()
+    finishLatestScalarRequest()
     queuedCommands.removeAll()
     showError(.timedOut)
   }
@@ -610,6 +638,15 @@ final class AudioInputMonitor: AudioInputMonitoring {
       expectedDeviceID: active.deviceID,
       result: result
     )
+    if let requestID = active.scalarRequestID, requestID == latestScalarRequestID {
+      if commandError != nil || (isCurrent && result.reading?.defaultDeviceID == active.deviceID) {
+        finishScalarRequest(requestID)
+      } else {
+        // A HAL notification can invalidate the command readback. Only the
+        // replacement refresh can then confirm this request, not busy -> idle.
+        scalarConfirmationID = requestID
+      }
+    }
     let failure = commandError ?? (observationDegraded ? .refreshFailed : nil)
     status.error = failure
     status.isBusy = false
@@ -800,8 +837,34 @@ final class AudioInputMonitor: AudioInputMonitoring {
     scalarDebounceTask = nil
   }
 
+  private func cancelPendingScalar() {
+    let requestID = pendingScalar?.requestID
+    clearPendingScalar()
+    if let requestID {
+      finishScalarRequest(requestID)
+    }
+  }
+
+  private func finishScalarRequest(_ requestID: UUID) {
+    guard requestID == latestScalarRequestID else { return }
+    status.completedScalarRequestID = requestID
+    latestScalarRequestID = nil
+    scalarConfirmationID = nil
+  }
+
+  private func finishLatestScalarRequest() {
+    if let requestID = latestScalarRequestID {
+      finishScalarRequest(requestID)
+    }
+  }
+
   private func publish() {
     guard !isStopped else { return }
+    if let activeCommand, case .scalar = activeCommand.command {
+      status.isAdjustingScalar = !activeCommand.timedOut && queuedCommands.isEmpty
+    } else {
+      status.isAdjustingScalar = false
+    }
     continuation.yield(status)
   }
 }

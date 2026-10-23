@@ -205,11 +205,12 @@ final class SystemProfilerBluetoothBatteryWorker: @unchecked Sendable, Bluetooth
                 // the device worker stored in the meantime.
                 data = cached
             } else {
+                let cacheEpoch = self.reportCache.currentEpoch
                 data = self.outputProvider()
                 if let fetched = data {
                     // This read genuinely fetched, so it may seed the cache for
                     // a read that happens moments later.
-                    self.reportCache.store(fetched)
+                    self.reportCache.store(fetched, ifCurrent: cacheEpoch)
                 }
             }
             guard let data else {
@@ -221,22 +222,9 @@ final class SystemProfilerBluetoothBatteryWorker: @unchecked Sendable, Bluetooth
         }
     }
 
+    /// The battery and device readers want the same report; share the bounded
+    /// read so there is one deadline and one place that reaps the child.
     static func readSystemProfilerOutput() -> Data? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
-        process.arguments = ["-json", "SPBluetoothDataType"]
-
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-            let data = output.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            return process.terminationStatus == 0 ? data : nil
-        } catch {
-            return nil
-        }
+        SystemProfilerBluetoothPairedDeviceWorker.readSystemProfilerOutput()
     }
 }

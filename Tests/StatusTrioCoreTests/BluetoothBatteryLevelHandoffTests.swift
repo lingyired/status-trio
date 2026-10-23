@@ -172,6 +172,9 @@ private struct HandoffRoot: View {
             } else {
                 BluetoothStatusView(
                     controller: controller,
+                    radioPower: BluetoothRadioPowerController(
+                        backend: HandoffBluetoothRadioPowerBackend()
+                    ),
                     mobileBatteryController: MobileBatteryController(),
                     showsBatteryLevels: model.showsBatteryLevels,
                     // These tests pin the pre-list summary shape and the level
@@ -185,7 +188,8 @@ private struct HandoffRoot: View {
                         order: []
                     ),
                     onRequestAuthorization: {}, onOpenBluetoothSettings: {},
-                    onOpenBluetoothPermissionSettings: {}
+                    onOpenBluetoothPermissionSettings: {},
+                    onSetRadioPower: { _ in }
                 )
                 .id("summary")
             }
@@ -205,6 +209,15 @@ private struct HandoffSecondSurface: View {
             .onAppear { controller.requestBatteryLevels("bluetooth.detail") }
             .onDisappear { controller.releaseBatteryLevels("bluetooth.detail") }
     }
+}
+
+@MainActor
+private final class HandoffBluetoothRadioPowerBackend: BluetoothRadioPowerBacking {
+    var isAvailable: Bool { true }
+
+    func readPower() -> BluetoothRadioPower { .on }
+
+    func setPower(_ enabled: Bool) async -> Bool { true }
 }
 
 @MainActor

@@ -53,16 +53,20 @@ if MOCK_ARCHS="arm64" MOCK_ARCH=arm64 MOCK_MINOS=13.0 run_check missing-slice >/
     exit 1
 fi
 
-# The release script must verify the built bundle before it creates a DMG or
-# calls any publishing command.
-python3 - "$ROOT/scripts/release.sh" <<'PY'
+# The package script must verify the built bundle before it creates a DMG. The
+# publisher must not contain a build or package path at all.
+python3 - "$ROOT/scripts/package-release.sh" "$ROOT/scripts/publish-release.sh" <<'PY'
 import pathlib
 import sys
 
-source = pathlib.Path(sys.argv[1]).read_text()
-verify = source.index('scripts/verify-platform-version.sh')
-publish = source.index('gh release create')
-assert verify < publish, "release metadata verification must precede gh release create"
+package = pathlib.Path(sys.argv[1]).read_text()
+verify = package.index('scripts/verify-platform-version.sh')
+create_dmg = package.index('hdiutil create')
+assert verify < create_dmg, "release metadata verification must precede DMG creation"
+
+publisher = pathlib.Path(sys.argv[2]).read_text()
+for forbidden in ("swift build", "scripts/build-app.sh", "hdiutil create", "notarytool submit"):
+    assert forbidden not in publisher, f"publisher must not contain {forbidden}"
 PY
 
 echo "macOS 13 Sparkle metadata contract passed"

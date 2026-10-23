@@ -53,7 +53,7 @@ struct InputSourceListView: View {
                 Button {
                     onSelect(row.id)
                 } label: {
-                    HStack(spacing: 8) {
+                    HStack(alignment: .center, spacing: 8) {
                         rowMarker(row)
                             .frame(width: 20, height: 16)
                             .accessibilityHidden(true)
@@ -67,8 +67,11 @@ struct InputSourceListView: View {
                         Spacer(minLength: 0)
 
                         if row.isCurrent {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 11, weight: .semibold))
+                            PanelActionGlyph(
+                                systemName: "checkmark",
+                                font: .system(size: 11, weight: .semibold),
+                                size: 16
+                            )
                                 .foregroundStyle(.secondary)
                                 .accessibilityHidden(true)
                         }
@@ -91,7 +94,10 @@ struct InputSourceListView: View {
     @ViewBuilder
     private func rowMarker(_ row: InputSourcePanelState.Row) -> some View {
         if let iconURL = row.iconURL,
-           let image = IconImageDecodeCache.shared.monochromeInputSourceIcon(for: iconURL) {
+           let image = IconImageDecodeCache.shared.monochromeInputSourceIcon(
+               for: iconURL,
+               maximumPixelLength: 128
+           ) {
             Image(nsImage: image)
                 .renderingMode(.template)
                 .resizable()

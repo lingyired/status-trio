@@ -57,7 +57,6 @@
 "settings.menuBar.title" = "Значок в строке меню";
 "settings.network.connectionIcons" = "Стиль значков подключения";
 "settings.network.connectionIcons.description" = "Если включено, выбранное состояние отображается стандартным значком сигнала Wi-Fi вместо специального обозначения.";
-"settings.network.designerEntry" = "Настроить источник сети в редакторе значков";
 "settings.network.wifiIconForEthernet" = "Использовать значок Wi-Fi для Ethernet";
 "settings.network.wifiIconForHotspot" = "Использовать значок Wi-Fi для точки доступа";
 "settings.network.wifiIconForTemporaryConnection" = "Использовать значок Wi-Fi для временного подключения";
@@ -70,7 +69,6 @@
 "settings.network.centerSource.networkWarnings" = "Сначала проблемы сети";
 "settings.network.centerSource.networkWarnings.description" = "Когда Mac действительно офлайн, в центре показывается состояние сети вместо источника ввода.";
 "settings.bluetooth.title" = "Звук Bluetooth";
-"settings.bluetooth.designerEntry" = "Настроить источник Bluetooth в редакторе значков";
 "settings.bluetooth.replaceNetworkIcon" = "Заменять значок сети значком устройства Bluetooth";
 "settings.bluetooth.replaceNetworkIconDescription" = "Заменяет значок Wi-Fi синим значком выбранного устройства Bluetooth.";
 "settings.bluetooth.networkIconSourceGroup" = "Использовать значок устройства Bluetooth";
@@ -94,6 +92,8 @@
 "settings.bluetooth.listeningModePreviewLanguageDescription" = "Отображать названия режимов в тестовых строках на выбранном языке, оставляя остальную панель на системном. Полезно для сравнения переноса длинного немецкого или арабского текста справа налево.";
 "settings.bluetooth.showInStatusPanel" = "Показывать Bluetooth на панели состояния";
 "settings.bluetooth.showInStatusPanelDescription" = "Управляет элементом Bluetooth на панели состояния и синхронизируется с настройками панели состояния.";
+"settings.bluetooth.powerControl" = "Показывать кнопку питания Bluetooth";
+"settings.bluetooth.powerControlDescription" = "Добавляет кнопку питания Bluetooth на панель состояния. Дополнительные разрешения не требуются.";
 "settings.bluetooth.symbolScale" = "Размер значка Bluetooth";
 "settings.bluetooth.symbolScaleDescription" = "Масштаб значка устройства Bluetooth внутри кольца состояния от 100% до 180%.";
 "settings.bluetooth.iconChoice" = "Значок аудио Bluetooth";
@@ -134,9 +134,6 @@
 "settings.about.starOnGitHub" = "Поставить звезду на GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Отображение батареи";
-"settings.battery.designerEntry" = "Настроить источник аккумулятора в редакторе значков";
-"settings.battery.macBehaviorDescription" = "Эти параметры применяются к аккумулятору Mac, когда он используется как источник, и не заменяют выбранный для внешнего кольца источник AirPods.";
-"settings.battery.macBehavior" = "Поведение аккумулятора Mac";
 "settings.battery.showPercentage" = "Показывать процент заряда";
 "settings.battery.showPercentageInConnectionSlot" = "Показывать процент заряда на месте подключения";
 "settings.battery.showPercentageInConnectionSlotDescription" = "Заменяет значок Wi-Fi или подключения. Эта настройка не зависит от верхнего индикатора батареи.";
@@ -144,6 +141,10 @@
 "settings.battery.chargingDescription" = "Если включено, процент заменяется молнией или вилкой во время зарядки или при питании от сети.";
 "settings.battery.chargingEffect" = "Эффект зарядки";
 "settings.battery.chargingEffectDescription" = "Анимирует подсветку только во время зарядки. Останавливается при включённом параметре «Уменьшение движения».";
+"settings.battery.menuBarChargingEffect" = "Эффект зарядки в строке меню";
+"settings.battery.menuBarChargingEffectDescription" = "Анимирует подсветку зарядки только в строке меню. Dock управляется отдельно; при включённом «Уменьшении движения» останавливаются оба.";
+"settings.battery.dockChargingEffect" = "Эффект зарядки в Dock";
+"settings.battery.dockChargingEffectDescription" = "Анимирует подсветку зарядки только в значке Dock. Строка меню управляется отдельно; при включённом «Уменьшении движения» останавливаются оба.";
 "settings.battery.chargingBoltHeartbeat" = "Пульсация молнии зарядки";
 "settings.battery.chargingBoltHeartbeatDescription" = "Отключите, чтобы молния сохранила обычный размер и цвет; эффект дуги зарядки продолжит работать.";
 "settings.battery.chargingEffectTest" = "Проверить анимацию зарядки";
@@ -340,6 +341,13 @@
 "wifi.security.enterprise" = "Корпоративная";
 "bluetooth.openDetails" = "Откройте сведения, чтобы увидеть состояние устройств";
 "bluetooth.title" = "Bluetooth";
+"bluetooth.power.turnOn" = "Включить Bluetooth";
+"bluetooth.power.turnOff" = "Выключить Bluetooth";
+"bluetooth.power.unknown" = "Состояние Bluetooth недоступно.";
+"bluetooth.power.changeFailed" = "Состояние Bluetooth не изменилось.";
+"bluetooth.power.offConfirmTitle" = "Выключить Bluetooth?";
+"bluetooth.power.offConfirmMessage" = "Подключённые клавиатуры, мыши, трекпады или геймпады могут отключиться. Вы можете снова включить Bluetooth в этой панели или в Системных настройках.";
+"bluetooth.power.offConfirmAction" = "Выключить";
 "bluetooth.pairedDevices.title" = "Сопряжённые";
 "bluetooth.devices.title" = "Устройства Bluetooth";
 "bluetooth.nearbyBattery.title" = "Рядом";
@@ -376,7 +384,6 @@
 "settings.preview.light" = "Светлый";
 "settings.preview.toggleHelp" = "Переключить темный/светлый фон строки меню";
 "settings.audio.displayRules" = "Правила отображения";
-"settings.audio.designerEntry" = "Настроить источник аудио в редакторе значков";
 "settings.audio.activeDeviceFootnote" = "Активное устройство вывода звука выделяется цветом темы.";
 "settings.audio.inUse" = "Используется";
 "settings.wifi.symbolScale" = "Размер значка Wi-Fi";
@@ -424,6 +431,20 @@
 "guide.anatomy.title" = "Один значок, три сигнала";
 "guide.anatomy.description" = "Выберите часть, чтобы одновременно подсветить её в строке меню и Dock.";
 "guide.placement" = "В настройках можно показывать значок в строке меню, в Dock или в обоих местах и менять положение в любое время.";
+"guide.menuBarHelp.prompt" = "Status Trio находится в правом верхнем углу экрана.";
+"guide.menuBarHelp.open" = "Не удаётся найти значок в строке меню?";
+"guide.menuBarHelp.title" = "Не удаётся найти Status Trio?";
+"guide.menuBarHelp.reason" = "Когда строка меню заполнена, вырез может временно скрывать значок. Status Trio продолжает работать.";
+"guide.menuBarHelp.overflowStep" = "Нажмите кнопку переполнения строки меню (двойные стрелки), чтобы увидеть скрытые значки.";
+"guide.menuBarHelp.menuBarSettingsStep" = "Откройте «Системные настройки» › «Строка меню» и скройте ненужные элементы, например Wi‑Fi, аккумулятор или звук.";
+"guide.menuBarHelp.controlCenterStep" = "Откройте «Системные настройки» › «Пункт управления» и отключите «Показывать в строке меню» для ненужных элементов, например Wi‑Fi, аккумулятора или звука.";
+"guide.menuBarHelp.findStatusTrioStep" = "Status Trio объединяет эти состояния, поэтому повторяющиеся значки можно убрать. Системные элементы управления по-прежнему доступны в Пункте управления.";
+"guide.menuBarHelp.moveStep" = "Когда значок появится, удерживайте ⌘ и перетащите его в правую часть строки меню.";
+"guide.menuBarHelp.openMenuBarSettings" = "Открыть настройки строки меню";
+"guide.menuBarHelp.openSystemSettings" = "Открыть Системные настройки";
+"guide.menuBarHelp.reopen" = "Если Status Trio снова потеряется, откройте его из папки «Программы», Finder или Spotlight, чтобы вернуться в настройки.";
+"guide.menuBarHelp.learnMore" = "Руководство Apple по строке меню";
+"guide.menuBarHelp.close" = "Закрыть";
 "guide.states.title" = "Сочетания состояний";
 "guide.states.description" = "Краткий обзор распространённых сочетаний состояния батареи, сети и громкости.";
 "guide.state.charging" = "Зарядка + Wi-Fi";
@@ -468,6 +489,29 @@
 "settings.appleBackgroundRefresh.description" = "Обновляет заряд выбранных устройств Apple, когда панель закрыта.";
 "settings.appleBackgroundRefresh.interval" = "Интервал фонового обновления заряда";
 "settings.appleBackgroundRefresh.intervalValue" = "%d мин.";
+
+"settings.shortcut.title" = "Открыть панель состояния";
+"settings.shortcut.description" = "Используйте глобальное сочетание клавиш, чтобы открывать эту панель из любого приложения. Некоторые сочетания могут перехватываться методом ввода или другим приложением.";
+"settings.shortcut.record" = "Записать";
+"settings.shortcut.change" = "Изменить сочетание";
+"settings.shortcut.notSet" = "Не задано";
+"settings.shortcut.clear" = "Очистить";
+"settings.shortcut.recording" = "Нажмите сочетание клавиш…";
+"settings.shortcut.invalid" = "Используйте клавишу вместе с Command, Control или Option.";
+"settings.shortcut.inputMethodConflict" = "Метод ввода может перехватить это сочетание. Выберите другое, например Option с буквой.";
+"settings.shortcut.unavailable" = "Сочетание недоступно. Возможно, его уже использует другое приложение.";
+"settings.shortcut.registrationFailed" = "Не удалось зарегистрировать это сочетание.";
+"settings.shortcut.restorationFailed" = "Не удалось восстановить предыдущее сочетание.";
+"settings.shortcut.accessibility.current" = "Текущее глобальное сочетание: %@";
+"settings.shortcut.accessibility.unassigned" = "Глобальное сочетание не назначено.";
+
+/* Icon Designer and built-in plugin additions. */
+"settings.network.designerEntry" = "Настроить источник сети в редакторе значков";
+"settings.bluetooth.designerEntry" = "Настроить источник Bluetooth в редакторе значков";
+"settings.battery.designerEntry" = "Настроить источник аккумулятора в редакторе значков";
+"settings.battery.macBehaviorDescription" = "Эти параметры применяются к аккумулятору Mac, когда он используется как источник, и не заменяют выбранный для внешнего кольца источник AirPods.";
+"settings.battery.macBehavior" = "Поведение аккумулятора Mac";
+"settings.audio.designerEntry" = "Настроить источник аудио в редакторе значков";
 "icon.resolution.primary" = "Показывается основной источник";
 "icon.resolution.fallback" = "Показывается резервный источник";
 "icon.resolution.none" = "Источник не отображается";
@@ -518,10 +562,6 @@
 "icon.designer.currentSourceUnavailableFormat" = "Текущий источник (недоступен в этой версии): %@";
 "icon.designer.compatible" = "Совместимо с текущими настройками";
 "icon.designer.legacySourcePreserved" = "Текущее правило отображения сохраняется, пока вы не выберете новый источник.";
-
-
-
-
 "iconDesigner.control.volumeDisplay" = "Отображение громкости";
 "iconDesigner.control.dots" = "Точки";
 "iconDesigner.control.arc" = "Дуга";
@@ -571,7 +611,6 @@
 "iconDesigner.control.restoreSlotQuestionFormat" = "Восстановить классическую настройку для %@?";
 "iconDesigner.control.audioOutputFormat" = "Аудиовыход — %@";
 "iconDesigner.control.savedSymbolFormat" = "Сохранённый символ — %@";
-
 "iconDesigner.control.airPodsBackgroundReads" = "Разрешить чтение заряда AirPods в фоновом режиме";
 "iconDesigner.control.selectAirPodsDevice" = "Выбрать AirPods";
 "iconDesigner.control.selectConnectedBluetoothDevice" = "Выбрать подключённое устройство Bluetooth";
@@ -604,12 +643,9 @@
 "icon.designer.airPods.test.leftOnly" = "Только левый";
 "icon.designer.airPods.test.rightOnly" = "Только правый";
 "icon.designer.airPods.test.unavailable" = "Нет данных о заряде";
-
 "iconPreviewData.edit" = "Изменить демонстрационные данные…";
-
 "iconPreviewData.simulatedNotice" = "Примеры ниже влияют только на предпросмотр и сохраняются при возврате к актуальным данным.";
 "iconPreviewData.liveNotice" = "Актуальные данные доступны только для чтения. Переключитесь на симуляцию, чтобы изменить примеры.";
-
 "iconPreviewData.applyToRealIcons" = "Применить к настоящим строке меню и Dock";
 "iconPreviewData.applyToRealIconsNotice" = "Смоделированные данные теперь отображаются в настоящей строке меню и Dock. Отключите этот параметр или вернитесь к реальным данным, чтобы восстановить фактическое состояние.";
 "iconPreviewData.title" = "Данные предпросмотра";
@@ -644,8 +680,6 @@
 "icon.designer.externalChangeNotice" = "История отмены очищена: настройки значка изменились в другом месте.";
 "iconPreviewData.useLiveData" = "Использовать актуальные данные";
 "icon.designer.moreActions" = "Другие действия";
-
-/* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "Значок сети";
 "iconDesigner.centerColorMeaning.inputSource" = "Значок источника ввода";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi: 0 делений";
@@ -658,7 +692,6 @@
 "iconDesigner.centerColorMeaning.legacyBluetoothGlyph" = "Значок Bluetooth";
 "iconDesigner.centerColorContext.fallbackFormat" = "Резерв: %@";
 "iconDesigner.centerColorContext.networkOverrideFormat" = "Приоритет сети: %@";
-
 "iconDesigner.centerColor.rolePicker" = "Цвет применяется к";
 "iconDesigner.centerColorHelp.networkPrimary" = "Для обычного значка сети: Wi-Fi выключен, не подключён, без интернета или проводное подключение.";
 "iconDesigner.centerColorHelp.inputSource" = "Для значка или краткой метки текущего источника ввода, когда он отображается в центре.";
@@ -671,8 +704,6 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "Для подключённого Wi-Fi без делений сигнала в старом центральном оформлении.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "Для значка Bluetooth в старом центральном оформлении.";
 "icon.designer.airPods.showTopSymbol" = "Показывать значок AirPods сверху";
-
-/* Icon content editor */
 "iconDesigner.editor.editingElementFormat" = "Изменить %@";
 "iconDesigner.editor.contentTitle" = "Содержимое";
 "iconDesigner.editor.unavailableTitle" = "Если недоступно";

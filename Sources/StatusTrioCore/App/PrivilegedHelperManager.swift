@@ -47,12 +47,18 @@ final class SystemPrivilegedHelperService: PrivilegedHelperServicing {
     }
 
     /// The daemon must be present in the bundle for registration to mean
-    /// anything; an Ad-hoc build cannot satisfy the daemon's signing
-    /// requirement, so the feature is offered only when the build declared it.
+    /// anything, and this process must carry the identity that daemon accepts:
+    /// an Ad-hoc build has no team, and a worktree build with a rewritten
+    /// `BUNDLE_ID` fails the requirement's `identifier` clause. Both would
+    /// register a helper whose every connection is rejected, so neither may
+    /// offer the toggle.
     var isSupported: Bool {
         guard Bundle.main.bundleURL.pathExtension == "app" else { return false }
         guard AppMetadata.includesPrivilegedHelper else { return false }
-        return FileManager.default.isExecutableFile(atPath: Self.daemonURL.path)
+        guard FileManager.default.isExecutableFile(atPath: Self.daemonURL.path) else { return false }
+        guard let identity = AppSigningIdentity.current() else { return false }
+        return identity.bundleIdentifier == PowerHelperConstants.clientBundleIdentifier
+            && identity.teamIdentifier == PowerHelperConstants.clientTeamIdentifier
     }
 
     private static var daemonURL: URL {
@@ -129,7 +135,19 @@ final class PrivilegedHelperManager: ObservableObject {
     /// revoked grant surfaces as an error on the next real operation, so the
     /// timer only needs to keep the status line from going stale for long.
     private let healthCheckInterval: Duration
+    /// How often a helper the system reports as enabled is re-probed. Long
+    /// enough that the daemon's idle-exit cycle is not restarted for a healthy
+    /// helper, short enough that a crashed one surfaces within a session.
+    private let enabledHealthCheckInterval: Duration
     private var nextPendingHealthCheck: ContinuousClock.Instant?
+    /// Due time for the low-frequency re-probe of a helper the system already
+    /// reports as enabled.
+    ///
+    /// Without one, a single successful verification was the last thing the app
+    /// ever learned: a helper that crashed afterwards stayed "ready" until the
+    /// user touched the switch, and its `recoveryAttempts` budget was never
+    /// exercised again.
+    private var nextEnabledHealthCheck: ContinuousClock.Instant?
     /// Offsets used to re-probe after a user-initiated read fails. See
     /// `defaultPendingProbeBackoff`.
     private let pendingProbeBackoff: [Duration]
@@ -148,6 +166,8 @@ final class PrivilegedHelperManager: ObservableObject {
     /// check starts the root daemon again, so a machine whose native status
     /// stays pending would spawn it continuously at a tighter cadence.
     static let defaultPendingHealthCheckInterval: Duration = .seconds(60)
+    /// Re-probe cadence for a helper the system reports as enabled.
+    static let defaultEnabledHealthCheckInterval: Duration = .seconds(300)
     /// Extra probes after a user-initiated read fails while the native status
     /// is still pending.
     ///
@@ -168,6 +188,7 @@ final class PrivilegedHelperManager: ObservableObject {
         service: PrivilegedHelperServicing = SystemPrivilegedHelperService(),
         pollInterval: Duration = .seconds(2),
         healthCheckInterval: Duration = PrivilegedHelperManager.defaultPendingHealthCheckInterval,
+        enabledHealthCheckInterval: Duration = PrivilegedHelperManager.defaultEnabledHealthCheckInterval,
         pendingProbeBackoff: [Duration] = PrivilegedHelperManager.defaultPendingProbeBackoff
     ) {
         self.service = service
@@ -176,6 +197,7 @@ final class PrivilegedHelperManager: ObservableObject {
         self.isEnabled = initialStatus != .notRegistered
         self.pollInterval = pollInterval
         self.healthCheckInterval = healthCheckInterval
+        self.enabledHealthCheckInterval = enabledHealthCheckInterval
         self.pendingProbeBackoff = pendingProbeBackoff
         // A previous session may have quit while the registration was still
         // waiting for approval, so start watching for the system to accept it.
@@ -244,7 +266,7 @@ final class PrivilegedHelperManager: ObservableObject {
     func refresh() {
         publishSystemState()
         updateStatusPolling()
-        checkHelperIfNeeded(forceRead: pendingProbeIsDue())
+        checkHelperIfNeeded(forceRead: pendingProbeIsDue() || enabledProbeIsDue())
     }
 
     /// Returning from approval can precede the system's permission update.
@@ -266,6 +288,14 @@ final class PrivilegedHelperManager: ObservableObject {
     ) -> Bool {
         guard status == .requiresApproval else { return false }
         guard let due = nextPendingHealthCheck else { return true }
+        return now >= due
+    }
+
+    private func enabledProbeIsDue(
+        now: ContinuousClock.Instant = ContinuousClock.now
+    ) -> Bool {
+        guard status == .enabled else { return false }
+        guard let due = nextEnabledHealthCheck else { return true }
         return now >= due
     }
 
@@ -368,6 +398,7 @@ final class PrivilegedHelperManager: ObservableObject {
         verificationTask = nil
         isHelperResponsive = false
         nextPendingHealthCheck = nil
+        nextEnabledHealthCheck = nil
         pendingProbeAttempts = 0
     }
 
@@ -449,6 +480,11 @@ final class PrivilegedHelperManager: ObservableObject {
                 } else {
                     self.nextPendingHealthCheck = nil
                     self.pendingProbeAttempts = 0
+                    // Throttle the retry of an enabled helper to the same
+                    // cadence: the recovery above is capped, and after the cap
+                    // every poll would otherwise read-fail and re-register.
+                    self.nextEnabledHealthCheck = ContinuousClock.now
+                        .advanced(by: self.enabledHealthCheckInterval)
                 }
                 guard observed == .enabled else { return }
                 guard self.recoveryAttempts < Self.maximumRecoveryAttempts else {
@@ -487,10 +523,20 @@ final class PrivilegedHelperManager: ObservableObject {
                   self.isEnabled, self.service.status != .notRegistered else { return }
             self.isHelperResponsive = true
             self.pendingProbeAttempts = 0
+            // A completed round trip is proof the recovery budget can start
+            // over; otherwise two unrelated transient failures would disable
+            // recovery for the rest of the session.
+            self.recoveryAttempts = 0
             if self.service.status == .requiresApproval {
                 self.nextPendingHealthCheck = ContinuousClock.now.advanced(by: self.healthCheckInterval)
             } else {
                 self.nextPendingHealthCheck = nil
+            }
+            if self.service.status == .enabled {
+                self.nextEnabledHealthCheck = ContinuousClock.now
+                    .advanced(by: self.enabledHealthCheckInterval)
+            } else {
+                self.nextEnabledHealthCheck = nil
             }
             self.cancelRegistrationRetry()
             powerHelperLogger.debug("helper verified by XPC")

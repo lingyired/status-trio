@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import SwiftUI
+import os
 
 @MainActor
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
@@ -9,6 +10,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let chargingEffectClock: ChargingEffectClock
     private let localization: Localization
     private let inputSourceController: InputSourceController
+    private let globalShortcutController: GlobalShortcutController?
     private let activationPolicy: AppActivationPolicy
     private let showIconGuide: () -> Void
     private let openIconDesigner: (IconSlot) -> Void
@@ -16,6 +18,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var localizationCancellable: AnyCancellable?
     private var authorizationCancellable: AnyCancellable?
     private var ownsActivationPolicy = false
+    private var previewVisibilityObserver: ((Bool) -> Void)?
+    private var isPreviewWindowVisible = false
     /// Track the published initial state as well as subsequent updates, so a
     /// refresh of an already-known grant is not mistaken for a permission decision.
     private var lastBluetoothAuthorization: BluetoothAuthorizationStatus
@@ -29,13 +33,15 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         openIconDesigner: @escaping (IconSlot) -> Void = { _ in },
         chargingEffectClock: ChargingEffectClock = ChargingEffectClock(),
         previewSession: IconDesignerPreviewSession = IconDesignerPreviewSession(),
-        inputSourceController: InputSourceController? = nil
+        inputSourceController: InputSourceController? = nil,
+        globalShortcutController: GlobalShortcutController? = nil
     ) {
         self.store = store
         self.statusStore = statusStore
         self.chargingEffectClock = chargingEffectClock
         self.localization = localization
         self.inputSourceController = inputSourceController ?? InputSourceController()
+        self.globalShortcutController = globalShortcutController
         self.activationPolicy = activationPolicy
         self.showIconGuide = showIconGuide
         self.openIconDesigner = openIconDesigner
@@ -69,7 +75,19 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         fatalError("init(coder:) has not been implemented")
     }
 
+    func startPreviewResourceObservation(_ observer: @escaping (Bool) -> Void) {
+        guard previewVisibilityObserver == nil else { return }
+        previewVisibilityObserver = observer
+        observer(isPreviewWindowVisible)
+    }
+
+    func stopPreviewResourceObservation() {
+        guard previewVisibilityObserver != nil else { return }
+        previewVisibilityObserver = nil
+    }
+
     func show() {
+        dockActivationLogger.notice("Settings.show existing=\(self.window != nil)")
         let window = window ?? makeWindow()
         self.window = window
         statusStore.setSettingsVisible(true, owner: SettingsSurfaceVisibility.settingsOwner)
@@ -81,11 +99,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
+        setPreviewWindowVisible(true)
     }
 
     func windowWillClose(_ notification: Notification) {
+        globalShortcutController?.endRecording()
         statusStore.setSettingsVisible(false, owner: SettingsSurfaceVisibility.settingsOwner)
         leaveActivationPolicyIfNeeded()
+        setPreviewWindowVisible(false)
         window = nil
     }
 
@@ -95,9 +116,35 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     /// or reopen one the user has closed.
     func resurface() {
         guard let window else { return }
+        // Opening the status panel can publish the first authorization read.
+        // Settings must not steal that user interaction or dismiss its panel.
+        guard !statusStore.isPopoverVisible else {
+            dockActivationLogger.notice("Settings.resurface suppressed while status popover is visible")
+            return
+        }
+        dockActivationLogger.notice("Settings.resurface existing=true")
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
+        setPreviewWindowVisible(true)
+    }
+
+    func windowDidBecomeKey(_ notification: Notification) {
+        dockActivationLogger.notice(
+            """
+            Settings became key popoverVisible=\(self.statusStore.isPopoverVisible) \
+            \(dockActivationFocusSnapshot(window: self.window), privacy: .public)
+            """
+        )
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        dockActivationLogger.notice(
+            """
+            Settings resigned key popoverVisible=\(self.statusStore.isPopoverVisible) \
+            \(dockActivationFocusSnapshot(window: self.window), privacy: .public)
+            """
+        )
     }
 
     private func makeWindow() -> NSWindow {
@@ -115,6 +162,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 statusStore: statusStore,
                 localization: localization,
                 inputSourceController: inputSourceController,
+                globalShortcutController: globalShortcutController,
                 onShowIconGuide: showIconGuide,
                 onOpenIconDesigner: openIconDesigner,
                 previewSession: previewSession
@@ -151,5 +199,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         guard ownsActivationPolicy else { return }
         ownsActivationPolicy = false
         activationPolicy.leaveTemporaryRegularMode()
+    }
+
+    private func setPreviewWindowVisible(_ visible: Bool) {
+        guard isPreviewWindowVisible != visible else { return }
+        isPreviewWindowVisible = visible
+        previewVisibilityObserver?(visible)
     }
 }

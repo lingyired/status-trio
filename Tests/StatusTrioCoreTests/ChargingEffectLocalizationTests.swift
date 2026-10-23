@@ -5,8 +5,10 @@ import Testing
 struct ChargingEffectLocalizationTests {
     @Test func everyLocaleHasChargingEffectAndBoltHeartbeatStrings() throws {
         let keys: [LocalizationKey] = [
-            .settingsBatteryChargingEffect,
-            .settingsBatteryChargingEffectDescription,
+            .settingsBatteryMenuBarChargingEffect,
+            .settingsBatteryMenuBarChargingEffectDescription,
+            .settingsBatteryDockChargingEffect,
+            .settingsBatteryDockChargingEffectDescription,
             .settingsBatteryChargingBoltHeartbeat,
             .settingsBatteryChargingBoltHeartbeatDescription,
             .settingsBatteryChargingEffectTest,

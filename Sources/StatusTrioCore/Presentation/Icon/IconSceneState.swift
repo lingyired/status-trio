@@ -15,6 +15,23 @@ struct IconSceneState: Equatable, Hashable, Sendable {
 }
 
 extension IconSceneState {
+    /// Removes the shared charging-effect metadata for a surface whose own
+    /// switch is off. Every other part of the scene is preserved.
+    func withChargingEffectEnabled(_ enabled: Bool) -> IconSceneState {
+        guard !enabled, let ring = outerRing, ring.effect != nil else { return self }
+        return IconSceneState(
+            outerRing: OuterRingState(
+                segments: ring.segments,
+                gap: ring.gap,
+                accessory: ring.accessory,
+                effect: nil,
+                strokeScale: ring.strokeScale
+            ),
+            center: center,
+            footer: footer
+        )
+    }
+
     /// Every colour role the scene draws with, in draw order. The renderer
     /// resolves each role against the menu bar appearance, so this list is the
     /// single source of truth for whether the artwork needs more than one colour.

@@ -32,6 +32,38 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         }
     }
 
+    func testBatteryActionGlyphsShareTheSummaryVisualCenter() async throws {
+        let probe = try await renderSummaryActionProbe()
+        let actions = probe.trailingGlyphRects(count: 3, minimumX: 200)
+        XCTAssertEqual(actions.count, 3, "leaf, chevron, and Settings glyphs must render")
+        guard actions.count == 3 else { return }
+
+        let leaf = actions[0]
+        let chevron = actions[1]
+        let settings = actions[2]
+        let contentStart: CGFloat = 14 + 24 + 10
+        let contentCenter = try XCTUnwrap(
+            probe.glyphCenterY(from: contentStart, to: leaf.minX - 10),
+            "the battery title and subtitle must render"
+        )
+        let leafCenter = try XCTUnwrap(probe.glyphCenterY(in: leaf))
+        let chevronCenter = try XCTUnwrap(probe.glyphCenterY(in: chevron))
+        let settingsCenter = try XCTUnwrap(probe.glyphCenterY(in: settings))
+
+        for (name, center) in [
+            ("leaf", leafCenter),
+            ("chevron", chevronCenter),
+            ("settings", settingsCenter)
+        ] {
+            XCTAssertEqual(
+                center,
+                contentCenter,
+                accuracy: 0.25,
+                "\(name) center \(center) must match the two-line content center \(contentCenter)"
+            )
+        }
+    }
+
     private func renderSummary(language: AppLanguage, isPresent: Bool) async throws -> NSSize {
         let suite = "StatusTrioCoreTests.BatterySummary.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -53,6 +85,46 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             .environmentObject(localization)
             .environment(\.colorScheme, .light)
         return try await capture(view, named: "battery-\(language.rawValue)-row-\(isPresent ? "present" : "absent")")
+    }
+
+    private func renderSummaryActionProbe() async throws -> SummaryActionAlignmentProbe {
+        let suite = "StatusTrioCoreTests.BatteryActionAlignment.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removeTestSuite(named: suite) }
+        let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+        let battery = BatteryStatus(
+            rawPercentage: 80,
+            isPresent: true,
+            isCharging: false,
+            isLowPowerMode: true,
+            isConnectedToPower: true
+        )
+        let controller = LowPowerModeController(initialIsLowPowerMode: true)
+        let view = BatteryStatusView(
+            state: PanelPresentationMapper.battery(battery, localization: localization),
+            cautionColor: .yellow,
+            onOpenBatteryDetails: {},
+            onOpenBatterySettings: {},
+            lowPowerMode: controller,
+            showsLowPowerToggle: true
+        )
+        .padding(14)
+        .frame(width: 330)
+        .background(Color(white: 0.96))
+        .environmentObject(localization)
+        .environment(\.colorScheme, .light)
+        .environment(\.displayScale, 2)
+
+        let hosting = NSHostingView(rootView: AnyView(view))
+        hosting.appearance = NSAppearance(named: .aqua)
+        hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
+        hosting.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(50))
+        hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
+        hosting.layoutSubtreeIfNeeded()
+        // A 1x screen quantizes ink centers to half points, coarser than the
+        // quarter-point assertion. Pin the capture density on headless CI too.
+        return try XCTUnwrap(SummaryActionAlignmentProbe(hosting, pixelScale: 2))
     }
 
     /// Mounts the view, waits for SwiftUI's appearance task to deliver the

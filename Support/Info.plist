@@ -17,15 +17,15 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.6.0</string>
+	<string>1.7.0</string>
 	<key>CFBundleVersion</key>
-	<string>37</string>
+	<string>38</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Shows Bluetooth connection status and reads battery/model metadata only for devices explicitly authorized by BLE UUID or already trusted by this Mac.</string>
+	<string>Shows Bluetooth connection status, reads battery/model metadata for nearby named devices and devices already trusted by this Mac, and switches noise-control mode on supported headphones; nearby devices are read only when explicitly authorized by BLE UUID.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSLocationUsageDescription</key>

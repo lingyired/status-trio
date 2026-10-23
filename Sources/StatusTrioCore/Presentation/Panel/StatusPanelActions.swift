@@ -10,7 +10,7 @@ final class StatusPanelActions {
     private let setVolumeCommand: (Double) -> Void
     private let finishVolumeCommand: () -> Void
     private let toggleMuteCommand: () -> Void
-    private let setInputScalarCommand: (Double) -> Void
+    private let setInputScalarCommand: (Double, UUID) -> Void
     private let toggleInputMuteCommand: () -> Void
     private let outputPreferences: () -> AudioOutputListPreferences
     private let bluetoothDevices: () -> [BluetoothDevice]
@@ -18,6 +18,7 @@ final class StatusPanelActions {
     private let refreshBluetoothCommand: () -> Void
     private let requestBluetoothAuthorizationCommand: () -> Void
     private let openBluetoothPermissionSettingsCommand: () -> Void
+    private let setBluetoothPowerCommand: (Bool) -> Void
     private let performBluetoothActionCommand: (BluetoothDevice) -> Void
     private let requestDisconnectCommand: (BluetoothDevice) -> Void
     private let disconnectConfirmationAddress: () -> String?
@@ -62,7 +63,7 @@ final class StatusPanelActions {
         setVolume: @escaping (Double) -> Void = { _ in },
         finishVolumeAdjustment: @escaping () -> Void = {},
         toggleMute: @escaping () -> Void = {},
-        setInputScalar: @escaping (Double) -> Void = { _ in },
+        setInputScalar: @escaping (Double, UUID) -> Void = { _, _ in },
         toggleInputMute: @escaping () -> Void = {},
         outputPreferences: @escaping () -> AudioOutputListPreferences = { .default },
         bluetoothDevices: @escaping () -> [BluetoothDevice] = { [] },
@@ -70,6 +71,7 @@ final class StatusPanelActions {
         refreshBluetooth: @escaping () -> Void = {},
         requestBluetoothAuthorization: @escaping () -> Void = {},
         openBluetoothPermissionSettings: @escaping () -> Void = {},
+        setBluetoothPower: @escaping (Bool) -> Void = { _ in },
         performBluetoothAction: @escaping (BluetoothDevice) -> Void = { _ in },
         requestDisconnect: @escaping (BluetoothDevice) -> Void = { _ in },
         disconnectConfirmationAddress: @escaping () -> String? = { nil },
@@ -112,6 +114,7 @@ final class StatusPanelActions {
         self.refreshBluetoothCommand = refreshBluetooth
         self.requestBluetoothAuthorizationCommand = requestBluetoothAuthorization
         self.openBluetoothPermissionSettingsCommand = openBluetoothPermissionSettings
+        self.setBluetoothPowerCommand = setBluetoothPower
         self.performBluetoothActionCommand = performBluetoothAction
         self.requestDisconnectCommand = requestDisconnect
         self.disconnectConfirmationAddress = disconnectConfirmationAddress
@@ -153,7 +156,7 @@ final class StatusPanelActions {
             setVolume: { scalar in store.setVolume(scalar) },
             finishVolumeAdjustment: { store.finishVolumeAdjustment() },
             toggleMute: { store.toggleMute() },
-            setInputScalar: { scalar in store.setInputScalar(scalar) },
+            setInputScalar: { scalar, requestID in store.setInputScalar(scalar, requestID: requestID) },
             toggleInputMute: { store.toggleInputMute() },
             outputPreferences: {
                 AudioOutputListPreferences(
@@ -166,6 +169,9 @@ final class StatusPanelActions {
             refreshBluetooth: { store.bluetoothDevices.refreshFromUser() },
             requestBluetoothAuthorization: { store.requestBluetoothAuthorization() },
             openBluetoothPermissionSettings: { store.openBluetoothPermissionSettings() },
+            setBluetoothPower: { enabled in
+                Task { await store.setBluetoothPower(enabled) }
+            },
             performBluetoothAction: { store.bluetoothDevices.performDeviceAction(for: $0) },
             requestDisconnect: { store.bluetoothDevices.requestDisconnectConfirmation(for: $0) },
             disconnectConfirmationAddress: { store.bluetoothDevices.pendingDisconnectConfirmation },
@@ -198,6 +204,7 @@ final class StatusPanelActions {
             holdBluetoothSummary: { store.bluetoothDevices.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken) },
             releaseBluetoothSummary: { store.bluetoothDevices.releaseVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken) },
             refreshVolumeListeningModes: {
+                guard store.isPopoverVisible else { return }
                 let config = ListeningModePreview.Configuration(
                     isEnabled: settings.previewsBluetoothListeningMode,
                     deviceName: settings.bluetoothListeningModePreviewDeviceName,
@@ -236,9 +243,9 @@ final class StatusPanelActions {
         selectOutputDevice(device)
     }
 
-    func setInputScalar(_ scalar: Double) {
+    func setInputScalar(_ scalar: Double, requestID: UUID = UUID()) {
         guard scalar.isFinite else { return }
-        setInputScalarCommand(min(1, max(0, scalar)))
+        setInputScalarCommand(min(1, max(0, scalar)), requestID)
     }
 
     func toggleInputMute() {
@@ -255,6 +262,11 @@ final class StatusPanelActions {
     func refreshBluetooth() { refreshBluetoothCommand() }
     func requestBluetoothAuthorization() { requestBluetoothAuthorizationCommand() }
     func openBluetoothPermissionSettings() { openBluetoothPermissionSettingsCommand() }
+    func setBluetoothPower(_ enabled: Bool) { setBluetoothPowerCommand(enabled) }
+
+    func bluetoothPowerNeedsConfirmation(_ enabled: Bool) -> Bool {
+        !enabled && BluetoothRadioPowerPolicy.requiresConfirmation(beforeTurningOff: bluetoothDevices())
+    }
     func selectInputSource(_ id: String) { selectInputSourceCommand(id) }
 
     func performBluetoothAction(address: String) {
@@ -342,8 +354,8 @@ final class StatusPanelActions {
 
     func volumeListAppeared() { refreshVolumeListeningModes() }
 
-    /// Called by the list task when connected-device membership or preview
-    /// configuration changes; listening-mode discovery has no timer.
+    /// Called by the visible summary task on reopen, output-route changes, or
+    /// device/preview changes. The controller owns finite readiness retries.
     func volumeListChanged() { refreshVolumeListeningModes() }
     func volumeListDisappeared() { stopVolumeListeningModes() }
     func setWiFiPower(_ enabled: Bool) { setWiFiPowerCommand(enabled) }

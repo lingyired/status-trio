@@ -4,21 +4,33 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d)"
 trap 'rm -rf "$TEST_ROOT"' EXIT
+# Always exercise the launcher's adverse signal state, including local runs.
+trap '' PIPE
 
-cat > "$TEST_ROOT/clang" <<'CLANG'
-#!/bin/bash
-set -euo pipefail
-trap - PIPE
-printf 'Apple clang version fixture\n'
-if [[ "${PRODUCER_STATUS:-0}" != 0 ]]; then
-    exit "$PRODUCER_STATUS"
-fi
-payload="$(printf '%4096s' '')"
-for ((line = 0; line < 1024; line++)); do
-    printf '%s\n' "$payload"
-done
+# Non-interactive Bash cannot reset a signal ignored when it starts. Use a
+# native producer that owns SIGPIPE even when the CI launcher ignores it.
+cat > "$TEST_ROOT/clang.c" <<'CLANG'
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+int main(void) {
+    if (signal(SIGPIPE, SIG_DFL) == SIG_ERR) return 70;
+    const char header[] = "Apple clang version fixture\n";
+    if (write(STDOUT_FILENO, header, sizeof(header) - 1) != sizeof(header) - 1) return 71;
+    const char *status = getenv("PRODUCER_STATUS");
+    if (status && atoi(status) != 0) return atoi(status);
+    char payload[4097];
+    memset(payload, ' ', sizeof(payload));
+    payload[sizeof(payload) - 1] = '\n';
+    for (int line = 0; line < 1024; ++line) {
+        if (write(STDOUT_FILENO, payload, sizeof(payload)) != sizeof(payload)) return 72;
+    }
+    return 0;
+}
 CLANG
-chmod +x "$TEST_ROOT/clang"
+xcrun clang "$TEST_ROOT/clang.c" -o "$TEST_ROOT/clang"
 
 # Keep the old pipeline as a control: output exceeds pipe capacity, so head
 # closes the read end while the producer is still writing.
@@ -28,6 +40,7 @@ CLANG="$TEST_ROOT/clang" /bin/bash -euo pipefail -c \
     > "$TEST_ROOT/legacy.log" 2>&1 || status=$?
 if [[ "$status" != 141 ]]; then
     echo "FAIL: legacy truncating pipeline exited $status instead of SIGPIPE (141)." >&2
+    cat "$TEST_ROOT/legacy.log" >&2
     exit 1
 fi
 

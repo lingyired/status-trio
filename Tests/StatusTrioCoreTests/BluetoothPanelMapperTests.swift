@@ -217,6 +217,100 @@ final class BluetoothPanelMapperTests: XCTestCase {
         XCTAssertEqual(ordinary.summary.subtitle, localization.string(.bluetoothOff))
     }
 
+    func testPowerControlPresentationKeepsDistinctPowerStatesForTheUI() {
+        let localization = makeLocalization()
+
+        let unavailable = BluetoothRadioPowerPresentation.make(
+            power: .unavailable,
+            isChanging: false,
+            failure: nil,
+            localization: localization
+        )
+        XCTAssertFalse(unavailable.showsToggle)
+        XCTAssertNil(unavailable.subtitle)
+        XCTAssertEqual(unavailable.iconState, .unavailable)
+        XCTAssertEqual(unavailable.symbolName, "power")
+        XCTAssertEqual(
+            unavailable.accessibilityValue,
+            localization.string(.bluetoothPowerUnknown)
+        )
+
+        let off = BluetoothRadioPowerPresentation.make(
+            power: .off,
+            isChanging: false,
+            failure: nil,
+            localization: localization
+        )
+        XCTAssertTrue(off.showsToggle)
+        XCTAssertFalse(off.isOn)
+        XCTAssertEqual(off.iconState, .off)
+        XCTAssertEqual(off.symbolName, "power")
+        XCTAssertEqual(off.subtitle, localization.string(.bluetoothOff))
+        XCTAssertEqual(off.accessibilityValue, localization.string(.batteryDetailsOff))
+
+        let unknown = BluetoothRadioPowerPresentation.make(
+            power: .unknown,
+            isChanging: false,
+            failure: nil,
+            localization: localization
+        )
+        XCTAssertTrue(unknown.showsToggle)
+        XCTAssertFalse(unknown.isOn)
+        XCTAssertEqual(unknown.iconState, .unknown)
+        XCTAssertEqual(unknown.symbolName, "power")
+        XCTAssertEqual(
+            unknown.accessibilityValue,
+            localization.string(.bluetoothPowerUnknown)
+        )
+
+        let on = BluetoothRadioPowerPresentation.make(
+            power: .on,
+            isChanging: false,
+            failure: nil,
+            localization: localization
+        )
+        XCTAssertTrue(on.isOn)
+        XCTAssertEqual(on.iconState, .on)
+        XCTAssertEqual(on.symbolName, "power")
+        XCTAssertEqual(on.accessibilityValue, localization.string(.batteryDetailsOn))
+
+        let changing = BluetoothRadioPowerPresentation.make(
+            power: .on,
+            isChanging: true,
+            failure: nil,
+            localization: localization
+        )
+        XCTAssertTrue(changing.showsToggle)
+        XCTAssertEqual(changing.isOn, true)
+        XCTAssertFalse(changing.toggleEnabled)
+        XCTAssertEqual(changing.iconState, .on)
+        XCTAssertEqual(changing.symbolName, "power")
+
+        let failed = BluetoothRadioPowerPresentation.make(
+            power: .on,
+            isChanging: false,
+            failure: .stateDidNotChange,
+            localization: localization
+        )
+        XCTAssertEqual(failed.subtitle, localization.string(.bluetoothPowerChangeFailed))
+    }
+
+    func testUnavailablePowerControlDoesNotRewriteBluetoothStatus() {
+        let localization = makeLocalization()
+        let unavailable = BluetoothRadioPowerPresentation.make(
+            power: .unavailable,
+            isChanging: false,
+            failure: nil,
+            localization: localization
+        )
+
+        XCTAssertFalse(unavailable.showsToggle)
+        XCTAssertNil(
+            unavailable.subtitle,
+            "a missing private symbol must hide only the power button, not report Bluetooth as unavailable"
+        )
+    }
+
     func testPairedRowsKeepConnectedBatteryLayoutSegmentsFailureTintAndTapPolicy() {
         let localization = makeLocalization()
         let keyboard = device(

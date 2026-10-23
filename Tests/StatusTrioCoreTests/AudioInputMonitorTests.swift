@@ -600,6 +600,197 @@ final class AudioInputMonitorTests: XCTestCase {
     XCTAssertEqual(hardware.maximumConcurrentWrites, 1)
   }
 
+  func testScalarClickDoesNotRestoreOldValueWhileControlEventRefreshIsPending() async throws {
+    let writeGate = ManualAudioGate()
+    let readbackGate = ManualAudioGate()
+    let refreshGate = ManualAudioGate()
+    let writeStarted = expectation(description: "scalar write started")
+    let readbackStarted = expectation(description: "command readback started")
+    let refreshStarted = expectation(description: "follow-up refresh started")
+    writeGate.onEnter = { writeStarted.fulfill() }
+    readbackGate.onEnter = { readbackStarted.fulfill() }
+    refreshGate.onEnter = { refreshStarted.fulfill() }
+    let sleeper = ManualAudioSleeper()
+    let hardware = FakeAudioInputHardware(reading: reading(defaultID: 11, scalar: 0.4))
+    let monitor = AudioInputMonitor(hardware: hardware, sleep: { try await sleeper.sleep(for: $0) })
+    let log = AudioInputStatusLog(monitor.updates)
+    defer {
+      monitor.stop()
+      sleeper.releaseAll()
+      writeGate.release()
+      readbackGate.release()
+      refreshGate.release()
+    }
+
+    let initial = log.expectStatus("initial 40% readback") {
+      $0.defaultDeviceID == 11 && !$0.isRefreshing
+    }
+    monitor.setEnabled(true)
+    monitor.setVisible(true)
+    await fulfillment(of: [initial], timeout: 5)
+    let observation = try XCTUnwrap(hardware.waitForObservation(timeout: 5))
+    var draft = AudioInputVolumeDraft()
+    draft.receiveSystemState(deviceIdentity: .init(rawValue: 11), scalar: 0.4)
+    let statusOffset = log.values.count
+    draft.setEditing(true)
+    draft.setSliderValue(0.71, systemScalar: 0.4) { value, requestID in monitor.setScalar(value, requestID: requestID) }
+    draft.setEditing(false)
+
+    hardware.blockNextScalarWrite(with: writeGate)
+    hardware.blockNextRead(with: readbackGate)
+    let debounce = sleeper.expectCall(.milliseconds(80), count: 1)
+    await fulfillment(of: [debounce], timeout: 5)
+    XCTAssertTrue(sleeper.releaseNext(.milliseconds(80)))
+    await fulfillment(of: [writeStarted], timeout: 5)
+    writeGate.release()
+    await fulfillment(of: [readbackStarted], timeout: 5)
+
+    let refreshing = log.expectStatus("control event invalidates command readback") {
+      $0.isBusy && $0.isRefreshing
+    }
+    observation.emit(.controlsChanged)
+    await fulfillment(of: [refreshing], timeout: 5)
+    hardware.blockNextRead(with: refreshGate)
+    let waitingForRefresh = log.expectStatus("command ends before fresh scalar arrives") {
+      !$0.isBusy && $0.isRefreshing
+    }
+    readbackGate.release()
+    await fulfillment(of: [waitingForRefresh, refreshStarted], timeout: 5)
+
+    let suite = "AudioInputMonitorTests.\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let localization = Localization(defaults: defaults)
+    for status in log.values.dropFirst(statusOffset) {
+      let panel = AudioPanelMapper.input(status, localization: localization)
+      draft.receiveSystemState(
+        deviceIdentity: panel.selectedDeviceIdentity,
+        scalar: panel.scalar,
+        canAdjust: panel.canAdjust,
+        isBusy: panel.isBusy,
+        hasError: panel.errorText != nil,
+        completedScalarRequestID: panel.completedScalarRequestID
+      )
+      XCTAssertEqual(draft.value, 0.71, accuracy: 0.0001, "stale status: \(status)")
+    }
+
+    let confirmed = log.expectStatus("final 71% readback") {
+      $0.scalar == 0.71 && !$0.isRefreshing && !$0.isBusy
+    }
+    refreshGate.release()
+    await fulfillment(of: [confirmed], timeout: 5)
+    let final = try XCTUnwrap(log.values.last)
+    draft.receiveSystemState(
+      deviceIdentity: .init(rawValue: 11),
+      scalar: final.scalar,
+      completedScalarRequestID: final.completedScalarRequestID
+    )
+    XCTAssertEqual(draft.value, 0.71, accuracy: 0.0001)
+    XCTAssertNotNil(final.completedScalarRequestID)
+    XCTAssertEqual(hardware.scalarWrites, [0.71])
+  }
+
+  func testScalarWriteKeepsPanelControlsEnabledUntilTimeout() async throws {
+    let writeGate = ManualAudioGate()
+    let writeStarted = expectation(description: "scalar write started")
+    writeGate.onEnter = { writeStarted.fulfill() }
+    let sleeper = ManualAudioSleeper()
+    let hardware = FakeAudioInputHardware(reading: reading(defaultID: 11, scalar: 0.4))
+    hardware.blockNextScalarWrite(with: writeGate)
+    let monitor = AudioInputMonitor(
+      hardware: hardware,
+      commandTimeout: .seconds(1),
+      sleep: { try await sleeper.sleep(for: $0) }
+    )
+    let log = AudioInputStatusLog(monitor.updates)
+    defer {
+      monitor.stop()
+      sleeper.releaseAll()
+      writeGate.release()
+    }
+    let suite = "AudioInputMonitorTests.\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+    defer { defaults.removeTestSuite(named: suite) }
+    let localization = Localization(defaults: defaults)
+
+    let initial = log.expectStatus("initial controls read") {
+      $0.defaultDeviceID == 11 && !$0.isRefreshing
+    }
+    monitor.setEnabled(true)
+    monitor.setVisible(true)
+    await fulfillment(of: [initial], timeout: 5)
+    let idle = AudioPanelMapper.input(try XCTUnwrap(log.values.last), localization: localization)
+
+    let debounce = sleeper.expectCall(.milliseconds(80), count: 1)
+    let busy = log.expectStatus("write starts") { $0.isBusy }
+    monitor.setScalar(0.71)
+    await fulfillment(of: [debounce], timeout: 5)
+    XCTAssertTrue(sleeper.releaseNext(.milliseconds(80)))
+    let timeoutScheduled = sleeper.expectCall(.seconds(1), count: 1)
+    await fulfillment(of: [busy, writeStarted, timeoutScheduled], timeout: 5)
+
+    let writing = AudioPanelMapper.input(try XCTUnwrap(log.values.last), localization: localization)
+    XCTAssertEqual(writing.canAdjust, idle.canAdjust, "a scalar write must not dim the slider")
+    XCTAssertEqual(writing.canMute, idle.canMute, "a scalar write must not dim the microphone")
+    XCTAssertEqual(writing.rows.map(\.enabled), idle.rows.map(\.enabled), "device rows must not flash")
+    XCTAssertFalse(writing.isBusy, "ordinary scalar writes keep the settings gear visible")
+    XCTAssertEqual(writing, idle, "write progress alone must not change the displayed panel")
+
+    let timedOut = log.expectStatus("timeout blocks controls") { $0.error == .timedOut }
+    XCTAssertTrue(sleeper.releaseNext(.seconds(1)))
+    await fulfillment(of: [timedOut], timeout: 5)
+    let failed = AudioPanelMapper.input(try XCTUnwrap(log.values.last), localization: localization)
+    XCTAssertFalse(failed.canAdjust)
+    XCTAssertFalse(failed.canMute)
+    XCTAssertTrue(failed.rows.allSatisfy { !$0.enabled })
+    XCTAssertTrue(failed.isBusy)
+  }
+
+  func testMuteQueuedDuringScalarWriteDoesNotConfirmOldScalar() async throws {
+    let writeGate = ManualAudioGate()
+    let writeStarted = expectation(description: "scalar write started")
+    writeGate.onEnter = { writeStarted.fulfill() }
+    let sleeper = ManualAudioSleeper()
+    let hardware = FakeAudioInputHardware(reading: reading(defaultID: 11, scalar: 0.4))
+    hardware.blockNextScalarWrite(with: writeGate)
+    let monitor = AudioInputMonitor(hardware: hardware, sleep: { try await sleeper.sleep(for: $0) })
+    let log = AudioInputStatusLog(monitor.updates)
+    defer {
+      monitor.stop()
+      sleeper.releaseAll()
+      writeGate.release()
+    }
+    let initial = log.expectStatus("initial controls read") {
+      $0.defaultDeviceID == 11 && !$0.isRefreshing
+    }
+    monitor.setEnabled(true)
+    monitor.setVisible(true)
+    await fulfillment(of: [initial], timeout: 5)
+    let requestID = UUID()
+    let debounce = sleeper.expectCall(.milliseconds(80), count: 1)
+    monitor.setScalar(0.71, requestID: requestID)
+    await fulfillment(of: [debounce], timeout: 5)
+    XCTAssertTrue(sleeper.releaseNext(.milliseconds(80)))
+    await fulfillment(of: [writeStarted], timeout: 5)
+
+    let queued = log.expectStatus("mute blocks further input while queued") {
+      $0.isBusy && !$0.isAdjustingScalar
+    }
+    monitor.toggleMute()
+    await fulfillment(of: [queued], timeout: 5)
+    let waiting = try XCTUnwrap(log.values.last)
+    XCTAssertNotEqual(waiting.completedScalarRequestID, requestID)
+    XCTAssertEqual(waiting.scalar, 0.4)
+
+    let finished = log.expectStatus("both writes finish with actual scalar and mute readback") {
+      $0.scalar == 0.71 && $0.muteState == .muted && !$0.isBusy
+    }
+    writeGate.release()
+    await fulfillment(of: [finished], timeout: 5)
+    XCTAssertEqual(log.values.last?.completedScalarRequestID, requestID)
+    XCTAssertEqual(hardware.maximumConcurrentWrites, 1)
+  }
+
   func testTimedOutWriteDoesNotReenterUntilBlockedHALCallReturns() async throws {
     let writeGate = ManualAudioGate()
     let writeStarted = expectation(description: "HAL scalar write started")
@@ -636,9 +827,14 @@ final class AudioInputMonitorTests: XCTestCase {
     await fulfillment(of: [timedOut], timeout: 5)
 
     let nextCoalesce = sleeper.expectCall(.milliseconds(80), count: 2)
-    monitor.setScalar(0.9)
+    let cancelledRequestID = UUID()
+    let cancelled = log.expectStatus("discarded retry resolves its draft") {
+      $0.completedScalarRequestID == cancelledRequestID
+    }
+    monitor.setScalar(0.9, requestID: cancelledRequestID)
     await fulfillment(of: [nextCoalesce], timeout: 5)
     XCTAssertTrue(sleeper.releaseNext(.milliseconds(80)))
+    await fulfillment(of: [cancelled], timeout: 5)
     XCTAssertEqual(hardware.scalarWriteCount, 1, "A timed-out synchronous write still owns the sole writer")
     let refreshed = log.expectStatus("late completion refreshes actual hardware state") {
       $0.scalar == 0.3 && !$0.isRefreshing

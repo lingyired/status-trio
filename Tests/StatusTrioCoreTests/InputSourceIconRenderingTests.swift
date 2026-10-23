@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 import XCTest
 @testable import StatusTrioCore
 
@@ -130,6 +131,213 @@ final class InputSourceIconRenderingTests: XCTestCase {
             StatusIconGeometry.artworkCenterX,
             accuracy: 0.5
         )
+    }
+
+    func testPDFIconKeepsItsEvenOddInkVisibleOnMenuBarAndDock() throws {
+        let url = try InputSourceIconFixtures.writeEvenOddPDFIcon()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let scene = centerScene(url: url, scale: SettingsStore.defaultWifiSymbolScale)
+
+        let menuBar = try renderedCenterPixels(for: scene)
+        let menuBarBounds = try XCTUnwrap(menuBar.alphaBounds(
+            inSVGRect: StatusIconGeometry.canvas,
+            size: menuBarSize,
+            scale: menuBarScale
+        ))
+        XCTAssertGreaterThan(
+            menuBarBounds.maxX - menuBarBounds.minX,
+            20,
+            "the PDF glyph must occupy the menu-bar slot instead of shrinking to its 16 pt page"
+        )
+        XCTAssertGreaterThan(
+            menuBarBounds.maxY - menuBarBounds.minY,
+            20,
+            "the PDF glyph must keep its full vertical size in the menu bar"
+        )
+
+        for style in [DockIconBackgroundStyle.dark, .light] {
+            let withIcon = try dockPixels(scene: scene, style: style)
+            let bare = try dockPixels(scene: IconSceneState(), style: style)
+            var minX = withIcon.width
+            var maxX = -1
+            for y in 0..<withIcon.height {
+                for x in 0..<withIcon.width
+                    where withIcon.rgba(x: x, y: y) != bare.rgba(x: x, y: y) {
+                    minX = min(minX, x)
+                    maxX = max(maxX, x)
+                }
+            }
+            XCTAssertGreaterThan(
+                maxX - minX + 1,
+                100,
+                "the PDF glyph must keep its full size in the \(style) Dock tile"
+            )
+        }
+    }
+
+    func testSameURLRewriteRemeasuresInkAfterDecodedImageIsEvicted() throws {
+        IconImageDecodeCache.shared.reset()
+        StatusIconRenderer.resetInkOffsetCaches()
+        defer {
+            IconImageDecodeCache.shared.reset()
+            StatusIconRenderer.resetInkOffsetCaches()
+        }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("status-trio-rewritten-\(UUID().uuidString).png")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        _ = try InputSourceIconFixtures.writeIcon(
+            pixelWidth: 96,
+            pixelHeight: 48,
+            inkRect: CGRect(x: 8, y: 8, width: 16, height: 32),
+            at: url
+        )
+        let scene = centerScene(url: url, scale: SettingsStore.defaultWifiSymbolScale)
+        let first = try renderedCenterPixels(for: scene)
+        XCTAssertEqual(
+            try XCTUnwrap(first.horizontalAlphaMidpoint(size: menuBarSize, scale: menuBarScale)),
+            StatusIconGeometry.artworkCenterX,
+            accuracy: 0.5
+        )
+
+        _ = try InputSourceIconFixtures.writeIcon(
+            pixelWidth: 96,
+            pixelHeight: 48,
+            inkRect: CGRect(x: 72, y: 8, width: 16, height: 32),
+            at: url
+        )
+        IconImageDecodeCache.shared.reset()
+
+        let second = try renderedCenterPixels(for: scene)
+        XCTAssertEqual(
+            try XCTUnwrap(second.horizontalAlphaMidpoint(size: menuBarSize, scale: menuBarScale)),
+            StatusIconGeometry.artworkCenterX,
+            accuracy: 0.5,
+            "the same URL and dimensions must not reuse an offset from a different decoded image"
+        )
+    }
+
+    func testOversizedTransparentIconUsesBoundedGeometryForInkCentring() throws {
+        let url = try InputSourceIconFixtures.writePNG(
+            pixelWidth: 4096,
+            pixelHeight: 1024,
+            inkRect: CGRect(x: 3600, y: 256, width: 400, height: 500)
+        )
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let scene = centerScene(url: url, scale: SettingsStore.defaultWifiSymbolScale)
+        let menuBar = try renderedCenterPixels(for: scene)
+
+        XCTAssertEqual(
+            try XCTUnwrap(menuBar.horizontalAlphaMidpoint(size: menuBarSize, scale: menuBarScale)),
+            StatusIconGeometry.artworkCenterX,
+            accuracy: 0.5
+        )
+        for style in [DockIconBackgroundStyle.dark, .light] {
+            XCTAssertEqual(
+                try dockCenterMidpoint(scene: scene, style: style),
+                StatusIconGeometry.artworkCenterX,
+                accuracy: 0.5
+            )
+        }
+    }
+
+    func testMenuAndDockInkShareNormalizedImagePixelCoordinates() throws {
+        let url = try InputSourceIconFixtures.writePNG(
+            pixelWidth: 4096,
+            pixelHeight: 1024,
+            inkRect: CGRect(x: 3600, y: 256, width: 400, height: 500)
+        )
+        defer { try? FileManager.default.removeItem(at: url) }
+        let image = try XCTUnwrap(IconImageDecodeCache.shared.decodedImage(for: url))
+        let source = try XCTUnwrap(CGImageSourceCreateWithURL(url as CFURL, nil))
+        let originalProperties = try XCTUnwrap(
+            CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        )
+        let originalWidth = try XCTUnwrap(originalProperties[kCGImagePropertyPixelWidth] as? Int)
+        let normalizedProperties = image.representations.first.map {
+            [
+                kCGImagePropertyPixelWidth: $0.pixelsWide,
+                kCGImagePropertyPixelHeight: $0.pixelsHigh
+            ] as [CFString: Int]
+        }
+        let normalizedWidth = try XCTUnwrap(
+            normalizedProperties?[kCGImagePropertyPixelWidth]
+        )
+
+        XCTAssertLessThan(normalizedWidth, originalWidth)
+
+        let scene = centerScene(url: url, scale: SettingsStore.defaultWifiSymbolScale)
+        let menuBar = try renderedCenterPixels(for: scene)
+        XCTAssertEqual(
+            try XCTUnwrap(menuBar.horizontalAlphaMidpoint(size: menuBarSize, scale: menuBarScale)),
+            StatusIconGeometry.artworkCenterX,
+            accuracy: 0.5
+        )
+        for style in [DockIconBackgroundStyle.dark, .light, .clear] {
+            XCTAssertEqual(
+                try dockCenterMidpoint(scene: scene, style: style),
+                StatusIconGeometry.artworkCenterX,
+                accuracy: 0.5
+            )
+        }
+    }
+
+    func testDPILogicalSizeKeepsMenuAndDockInkCentred() throws {
+        let url = try InputSourceIconFixtures.writePNGWithPointSize(
+            pixelWidth: 96,
+            pixelHeight: 48,
+            pointWidth: 48,
+            pointHeight: 24,
+            inkRect: CGRect(x: 72, y: 8, width: 16, height: 32)
+        )
+        defer { try? FileManager.default.removeItem(at: url) }
+        let scene = centerScene(url: url, scale: SettingsStore.defaultWifiSymbolScale)
+
+        let menuBar = try renderedCenterPixels(for: scene)
+        XCTAssertEqual(
+            try XCTUnwrap(menuBar.horizontalAlphaMidpoint(size: menuBarSize, scale: menuBarScale)),
+            StatusIconGeometry.artworkCenterX,
+            accuracy: 0.5
+        )
+        for style in [DockIconBackgroundStyle.dark, .light] {
+            XCTAssertEqual(
+                try dockCenterMidpoint(scene: scene, style: style),
+                StatusIconGeometry.artworkCenterX,
+                accuracy: 0.5
+            )
+        }
+    }
+
+    func testLargeLogicalPointSizeKeepsMenuAndDockInkCentred() throws {
+        let url = try InputSourceIconFixtures.writePNGWithPointSize(
+            pixelWidth: 4096,
+            pixelHeight: 2048,
+            pointWidth: 2048,
+            pointHeight: 1024,
+            inkRect: CGRect(
+                x: 3000,
+                y: 300,
+                width: 700,
+                height: 1200
+            )
+        )
+        defer { try? FileManager.default.removeItem(at: url) }
+        let scene = centerScene(url: url, scale: SettingsStore.defaultWifiSymbolScale)
+
+        let menuBar = try renderedCenterPixels(for: scene)
+        XCTAssertEqual(
+            try XCTUnwrap(menuBar.horizontalAlphaMidpoint(size: menuBarSize, scale: menuBarScale)),
+            StatusIconGeometry.artworkCenterX,
+            accuracy: 0.5
+        )
+        for style in [DockIconBackgroundStyle.dark, .light] {
+            XCTAssertEqual(
+                try dockCenterMidpoint(scene: scene, style: style),
+                StatusIconGeometry.artworkCenterX,
+                accuracy: 0.5
+            )
+        }
     }
 
     /// Menu bar / Dock parity: the Dock tile draws the same scene through the

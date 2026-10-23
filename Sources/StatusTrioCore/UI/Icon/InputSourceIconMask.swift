@@ -12,9 +12,19 @@ import AppKit
 /// the icon is drawn on. The icon's own average tone decides which direction
 /// that is, so a light-on-dark logo keeps working too.
 enum InputSourceIconMask {
-    /// Rasterises `image` and rewrites every pixel as white with the ink it
-    /// carries as its alpha, preserving the original point size.
-    static func make(from image: NSImage, pixelScale: CGFloat = 4) -> NSImage? {
+    static let defaultMaximumPixelLength = 128
+
+    /// Rasterises `image` to a bounded bitmap and rewrites every pixel as white
+    /// with the ink it carries as its alpha.
+    ///
+    /// The result keeps the source's logical aspect ratio, so the renderer and
+    /// ink measurement can use one coordinate space for both the decoded image
+    /// and this mask.
+    static func make(
+        from image: NSImage,
+        pixelScale: CGFloat = 4,
+        maximumPixelLength: Int = defaultMaximumPixelLength
+    ) -> NSImage? {
         let size = image.size
         guard size.width.isFinite, size.height.isFinite,
               size.width > 0, size.height > 0,
@@ -22,9 +32,25 @@ enum InputSourceIconMask {
             return nil
         }
 
-        let width = Int((size.width * pixelScale).rounded())
-        let height = Int((size.height * pixelScale).rounded())
-        guard width > 0, height > 0, width <= 1024, height <= 1024 else { return nil }
+        let requestedWidthValue = (size.width * pixelScale).rounded()
+        let requestedHeightValue = (size.height * pixelScale).rounded()
+        guard requestedWidthValue.isFinite, requestedHeightValue.isFinite,
+              requestedWidthValue <= CGFloat(Int.max),
+              requestedHeightValue <= CGFloat(Int.max) else {
+            return nil
+        }
+        let requestedWidth = Int(requestedWidthValue)
+        let requestedHeight = Int(requestedHeightValue)
+        let maximumPixelLength = max(1, maximumPixelLength)
+        let requestedMaximum = max(requestedWidth, requestedHeight)
+        guard requestedMaximum > 0 else { return nil }
+        let downsampleScale = min(
+            1,
+            CGFloat(maximumPixelLength) / CGFloat(requestedMaximum)
+        )
+        let width = max(1, Int((CGFloat(requestedWidth) * downsampleScale).rounded()))
+        let height = max(1, Int((CGFloat(requestedHeight) * downsampleScale).rounded()))
+        guard width <= 1024, height <= 1024 else { return nil }
 
         var source = [UInt8](repeating: 0, count: width * height * 4)
         guard let sourceContext = CGContext(
@@ -39,7 +65,10 @@ enum InputSourceIconMask {
             return nil
         }
         // The context is measured in pixels; the icon keeps drawing in points.
-        sourceContext.scaleBy(x: pixelScale, y: pixelScale)
+        sourceContext.scaleBy(
+            x: CGFloat(width) / size.width,
+            y: CGFloat(height) / size.height
+        )
         let graphics = NSGraphicsContext(cgContext: sourceContext, flipped: false)
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = graphics
@@ -55,7 +84,9 @@ enum InputSourceIconMask {
         var coverage = 0.0
         for index in stride(from: 0, to: source.count, by: 4) {
             let alpha = Double(source[index + 3]) / 255
-            guard alpha > 0.02 else { continue }
+            guard alpha > 0.02 else {
+                continue
+            }
             weightedLuminance += luminance(ofPremultipliedPixelAt: index, in: source) * alpha
             coverage += alpha
         }
@@ -93,7 +124,11 @@ enum InputSourceIconMask {
             return nil
         }
 
-        let result = NSImage(cgImage: masked, size: size)
+        let representation = NSBitmapImageRep(cgImage: masked)
+        representation.size = size
+        let result = NSImage(size: size)
+        result.addRepresentation(representation)
+        result.cacheMode = .never
         result.isTemplate = true
         return result
     }
@@ -107,4 +142,5 @@ enum InputSourceIconMask {
         let blue = Double(bytes[index + 2]) / 255 / alpha
         return 0.2126 * red + 0.7152 * green + 0.0722 * blue
     }
+
 }

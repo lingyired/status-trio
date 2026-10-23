@@ -252,6 +252,92 @@ final class IconGuideRedesignTests: XCTestCase {
         XCTAssertEqual(IconGuidePage.states.next, .states)
     }
 
+    func testAnatomyGuideKeepsItsHighlightStatic() throws {
+        let packageRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourceURL = packageRoot.appendingPathComponent(
+            "Sources/StatusTrioCore/UI/IconGuideView.swift"
+        )
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+        let guideStart = try XCTUnwrap(source.range(of: "struct IconGuideView: View"))
+        let galleryStart = try XCTUnwrap(
+            source.range(
+                of: "struct IconGuideStateGalleryView: View",
+                range: guideStart.upperBound..<source.endIndex
+            )
+        )
+        let guideSource = source[guideStart.lowerBound..<galleryStart.lowerBound]
+
+        XCTAssertFalse(
+            guideSource.contains(".repeatForever"),
+            "The anatomy guide must not animate its highlight forever."
+        )
+        XCTAssertFalse(
+            guideSource.contains("restartPulse"),
+            "The guide highlight should remain static while the window is visible."
+        )
+    }
+
+    func testMenuBarHelpDefaultsToClosedWhenTheGuideIsReopened() {
+        let name = "IconGuideRedesignTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removeTestSuite(named: name) }
+        let settings = SettingsStore(defaults: defaults)
+        let localization = Localization(
+            defaults: defaults,
+            preferredLanguages: ["en"]
+        )
+
+        for _ in 0..<2 {
+            let view = IconGuideOnboardingView(
+                settings: settings,
+                onCustomize: {},
+                onDone: {}
+            )
+            .environmentObject(localization)
+
+            let hostingView = NSHostingView(rootView: view)
+            hostingView.frame = NSRect(x: 0, y: 0, width: 640, height: 560)
+            hostingView.layoutSubtreeIfNeeded()
+
+            XCTAssertNotNil(hostingView.subviews)
+        }
+    }
+
+    func testHelpEntryHasAnAccessibleLabelAndThePopoverCanBeClosed() {
+        let name = "IconGuideRedesignTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removeTestSuite(named: name) }
+        let localization = Localization(
+            defaults: defaults,
+            preferredLanguages: ["en"]
+        )
+        let policy = MenuBarHelpPolicy(majorVersion: 26)
+        var didClose = false
+        let view = MenuBarVisibilityHelpView(
+            policy: policy,
+            onClose: { didClose = true },
+            openSettings: { _ in }
+        )
+        .environmentObject(localization)
+
+        let hostingView = NSHostingView(rootView: view)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 480, height: 372)
+        hostingView.layoutSubtreeIfNeeded()
+
+        XCTAssertEqual(
+            localization.string(.guideMenuBarHelpOpen),
+            "Can’t find the menu bar icon?"
+        )
+        XCTAssertEqual(
+            localization.string(.guideMenuBarHelpPrompt),
+            "Find Status Trio at the top-right of the screen."
+        )
+        XCTAssertFalse(didClose)
+    }
+
     func testRedesignedOnboardingRendersWideLayout() {
         let name = "IconGuideRedesignTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!
@@ -280,58 +366,70 @@ final class IconGuideRedesignTests: XCTestCase {
         let defaults = UserDefaults(suiteName: name)!
         defer { defaults.removeTestSuite(named: name) }
         let settings = SettingsStore(defaults: defaults)
-        let localization = Localization(
-            defaults: defaults,
-            preferredLanguages: ["en"]
-        )
-        var preferredHeights: [CGFloat] = []
-
-        for page in [IconGuidePage.anatomy, .states] {
-            let view = IconGuideOnboardingView(
-                settings: settings,
-                initialPage: page,
-                onCustomize: {},
-                onDone: {}
+        for language in AppLanguage.allCases {
+            let localization = Localization(
+                defaults: defaults,
+                preferredLanguages: [language.rawValue]
             )
-            .environmentObject(localization)
+            var preferredHeights: [CGFloat] = []
 
-            let hostingController = NSHostingController(rootView: view)
-            hostingController.sizingOptions = [.preferredContentSize]
-            hostingController.view.frame = NSRect(
-                x: 0,
-                y: 0,
-                width: IconGuideOnboardingView.contentWidth,
-                height: 560
-            )
-            hostingController.view.layoutSubtreeIfNeeded()
+            for page in [IconGuidePage.anatomy, .states] {
+                let view = IconGuideOnboardingView(
+                    settings: settings,
+                    initialPage: page,
+                    onCustomize: {},
+                    onDone: {}
+                )
+                .environmentObject(localization)
 
-            let preferredSize = hostingController.preferredContentSize
+                let hostingController = NSHostingController(rootView: view)
+                hostingController.sizingOptions = [.preferredContentSize]
+                hostingController.view.frame = NSRect(
+                    x: 0,
+                    y: 0,
+                    width: IconGuideOnboardingView.contentWidth,
+                    height: 560
+                )
+                hostingController.view.layoutSubtreeIfNeeded()
+
+                let preferredSize = hostingController.preferredContentSize
+                XCTAssertEqual(
+                    preferredSize.width,
+                    IconGuideOnboardingView.contentWidth,
+                    accuracy: 0.5,
+                    language.rawValue
+                )
+                XCTAssertGreaterThanOrEqual(
+                    preferredSize.height,
+                    420,
+                    language.rawValue
+                )
+                XCTAssertLessThan(
+                    preferredSize.height,
+                    680,
+                    language.rawValue
+                )
+                preferredHeights.append(preferredSize.height)
+            }
+
             XCTAssertEqual(
-                preferredSize.width,
-                IconGuideOnboardingView.contentWidth,
-                accuracy: 0.5
+                preferredHeights[0],
+                preferredHeights[1],
+                accuracy: 0.5,
+                "Page heights differ in \(language.rawValue)"
             )
-            XCTAssertGreaterThanOrEqual(preferredSize.height, 420)
-            XCTAssertLessThan(preferredSize.height, 680)
-            preferredHeights.append(preferredSize.height)
         }
-
-        XCTAssertEqual(
-            preferredHeights[0],
-            preferredHeights[1],
-            accuracy: 0.5
-        )
     }
 
     func testFooterPrimaryActionStaysFixedAcrossPages() throws {
-        for language in ["en", "zh-Hans", "ar"] {
+        for language in AppLanguage.allCases {
             let name = "IconGuideRedesignTests.\(UUID().uuidString)"
             let defaults = UserDefaults(suiteName: name)!
             defer { defaults.removeTestSuite(named: name) }
             let settings = SettingsStore(defaults: defaults)
             let localization = Localization(
                 defaults: defaults,
-                preferredLanguages: [language]
+                preferredLanguages: [language.rawValue]
             )
             var frames: [CGRect] = []
 
@@ -360,7 +458,11 @@ final class IconGuideRedesignTests: XCTestCase {
                 frames.append(primaryFrame)
             }
 
-            XCTAssertEqual(frames[0], frames[1], "Footer moved in \(language)")
+            XCTAssertEqual(
+                frames[0],
+                frames[1],
+                "Footer moved in \(language.rawValue)"
+            )
         }
     }
 }

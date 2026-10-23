@@ -20,16 +20,18 @@ final class CoreLocationWiFiNameAuthorizer: NSObject, WiFiNameAuthorizing {
     private let manager: CLLocationManager
     private var hasRequestedAuthorization = false
 
+    /// The status Core Location last reported to the delegate. Every Wi-Fi reading
+    /// checks this on the main actor, and `manager.authorizationStatus` can block
+    /// on a synchronous reply from locationd that never comes while locationd is
+    /// stuck. Until the first report, the network name is treated as undetermined.
+    private(set) var access: WiFiNameAccess = .notDetermined
+
     var onAccessChange: (() -> Void)?
 
     init(manager: CLLocationManager = CLLocationManager()) {
         self.manager = manager
         super.init()
         manager.delegate = self
-    }
-
-    var access: WiFiNameAccess {
-        Self.map(manager.authorizationStatus)
     }
 
     @discardableResult
@@ -68,8 +70,13 @@ final class CoreLocationWiFiNameAuthorizer: NSObject, WiFiNameAuthorizing {
 
 extension CoreLocationWiFiNameAuthorizer: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        // Core Location calls this once it holds locationd's report, so the
+        // status read here is answered from that report.
+        let status = manager.authorizationStatus
         Task { @MainActor [weak self] in
-            self?.onAccessChange?()
+            guard let self else { return }
+            self.access = Self.map(status)
+            self.onAccessChange?()
         }
     }
 }

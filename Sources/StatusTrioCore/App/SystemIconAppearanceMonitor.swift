@@ -3,6 +3,8 @@ import Foundation
 
 @MainActor
 final class SystemIconAppearanceMonitor {
+    static let defaultPollingInterval: TimeInterval = 1
+
     /// Undocumented but exported by AppKit; registered by name so the app never
     /// links against a private symbol.
     static let didChangeNotificationName = Notification.Name(
@@ -17,13 +19,16 @@ final class SystemIconAppearanceMonitor {
     private var pollTimer: Timer?
 
     var onChange: ((SystemIconAppearanceTheme) -> Void)?
+    /// Runs on every poll before the cheap theme comparison so callers can
+    /// reuse this cadence without starting another timer.
+    var onPoll: (() -> Void)?
 
     init(
         readTheme: @escaping () -> SystemIconAppearanceTheme = {
             SystemIconAppearanceReader.current()
         },
         notificationCenter: NotificationCenter = .default,
-        pollingInterval: TimeInterval = 2
+        pollingInterval: TimeInterval = SystemIconAppearanceMonitor.defaultPollingInterval
     ) {
         self.readTheme = readTheme
         self.notificationCenter = notificationCenter
@@ -44,6 +49,7 @@ final class SystemIconAppearanceMonitor {
             repeats: true
         ) { [weak self] _ in
             MainActor.assumeIsolated {
+                self?.onPoll?()
                 self?.refresh()
             }
         }

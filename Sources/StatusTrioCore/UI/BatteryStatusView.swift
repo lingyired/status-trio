@@ -14,12 +14,15 @@ struct BatteryStatusView: View {
     private var hasDetails: Bool { state.intent == .batteryDetails }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Button(action: onOpenBatteryDetails) {
                 HStack(spacing: 10) {
                     PanelSymbolView(source: state.symbol)
                         .foregroundStyle(state.tint.color(caution: cautionColor))
-                        .frame(width: 24, height: 24)
+                        .frame(
+                            width: PanelSummaryActionMetrics.hitTarget,
+                            height: PanelSummaryActionMetrics.hitTarget
+                        )
                         .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 2) {
@@ -50,23 +53,26 @@ struct BatteryStatusView: View {
             // lines up with the same affordance in the rows below; the leaf would
             // otherwise push it one slot to the left.
             if hasDetails {
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+                PanelActionGlyph(
+                    systemName: "chevron.right",
+                    font: .caption.weight(.semibold)
+                )
                     .foregroundStyle(.tertiary)
                     .accessibilityHidden(true)
             }
 
             if state.showsSettings {
-                Button(
-                    localization.string(.batteryActionOpenSettings),
-                    systemImage: "gearshape",
-                    action: onOpenBatterySettings
-                )
+                Button(action: onOpenBatterySettings) {
+                    PanelActionGlyph(
+                        systemName: "gearshape",
+                        verticalOpticalOffset: 0
+                    )
+                }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .help(localization.string(.batteryActionOpenSettings))
-                .frame(width: 24, height: 24)
+                .accessibilityLabel(localization.string(.batteryActionOpenSettings))
             }
         }
     }
@@ -93,7 +99,9 @@ private struct LowPowerModeToggleButton: View {
         Button {
             controller.setLowPowerMode(!controller.isLowPowerMode)
         } label: {
-            Image(systemName: controller.isLowPowerMode ? "leaf.fill" : "leaf")
+            PanelActionGlyph(
+                systemName: controller.isLowPowerMode ? "leaf.fill" : "leaf"
+            )
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.plain)
@@ -104,6 +112,9 @@ private struct LowPowerModeToggleButton: View {
         .accessibilityValue(
             localization.string(controller.isLowPowerMode ? .batteryDetailsOn : .batteryDetailsOff)
         )
-        .frame(width: 24, height: 24)
+        .frame(
+            width: PanelSummaryActionMetrics.hitTarget,
+            height: PanelSummaryActionMetrics.hitTarget
+        )
     }
 }

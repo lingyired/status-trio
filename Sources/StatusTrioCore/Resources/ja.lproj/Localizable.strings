@@ -57,7 +57,6 @@
 "settings.menuBar.title" = "メニューバーアイコン";
 "settings.network.connectionIcons" = "接続アイコンのスタイル";
 "settings.network.connectionIcons.description" = "有効にすると、選択した状態は専用マークではなく標準の Wi-Fi シグナルアイコンで表示されます。";
-"settings.network.designerEntry" = "アイコンデザイナーでネットワークソースをカスタマイズ";
 "settings.network.wifiIconForEthernet" = "Ethernet に Wi-Fi アイコンを使用";
 "settings.network.wifiIconForHotspot" = "個人用ホットスポットに Wi-Fi アイコンを使用";
 "settings.network.wifiIconForTemporaryConnection" = "一時接続に Wi-Fi アイコンを使用";
@@ -70,7 +69,6 @@
 "settings.network.centerSource.networkWarnings" = "ネットワークの問題を優先";
 "settings.network.centerSource.networkWarnings.description" = "Mac が実際にオフラインのときは、入力ソースの代わりにネットワークの状態を表示します。";
 "settings.bluetooth.title" = "Bluetooth オーディオ";
-"settings.bluetooth.designerEntry" = "アイコンデザイナーで Bluetooth ソースをカスタマイズ";
 "settings.bluetooth.replaceNetworkIcon" = "ネットワークアイコンを Bluetooth デバイスのアイコンに置き換える";
 "settings.bluetooth.replaceNetworkIconDescription" = "選択した Bluetooth デバイスの青いアイコンを Wi-Fi アイコンの代わりに表示します。";
 "settings.bluetooth.networkIconSourceGroup" = "Bluetooth デバイスのアイコンを使用";
@@ -94,6 +92,8 @@
 "settings.bluetooth.listeningModePreviewLanguageDescription" = "プレビュー行のモード名だけを選択言語で表示します。パネルの他部分はシステム言語のまま。ドイツ語の長い単語やアラビア語の RTL 表示でカプセルがどう折り返されるかの比較に便利です。";
 "settings.bluetooth.showInStatusPanel" = "ステータスパネルに Bluetooth を表示";
 "settings.bluetooth.showInStatusPanelDescription" = "ステータスパネルの Bluetooth 項目を切り替え、ステータスパネル設定と同期します。";
+"settings.bluetooth.powerControl" = "Bluetooth 電源ボタンを表示";
+"settings.bluetooth.powerControlDescription" = "ステータスパネルに Bluetooth の電源ボタンを表示します。追加の権限は必要ありません。";
 "settings.bluetooth.symbolScale" = "Bluetooth アイコンサイズ";
 "settings.bluetooth.symbolScaleDescription" = "ステータスリング内の Bluetooth 機器アイコンのサイズを 100% 〜 180% で調整します。";
 "settings.bluetooth.iconChoice" = "Bluetoothオーディオアイコン";
@@ -134,9 +134,6 @@
 "settings.about.starOnGitHub" = "GitHub でスターを付ける";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "バッテリー表示";
-"settings.battery.designerEntry" = "アイコンデザイナーでバッテリーソースをカスタマイズ";
-"settings.battery.macBehaviorDescription" = "これらのオプションは Mac のバッテリーをソースとして使う場合に適用されます。外側のリングに選択した AirPods のソースは置き換えません。";
-"settings.battery.macBehavior" = "Mac のバッテリー動作";
 "settings.battery.showPercentage" = "バッテリー残量を表示";
 "settings.battery.showPercentageInConnectionSlot" = "接続位置にバッテリー残量を表示";
 "settings.battery.showPercentageInConnectionSlotDescription" = "Wi-Fi または接続記号の代わりに表示します。上部のバッテリー表示とは別に設定できます。";
@@ -144,6 +141,10 @@
 "settings.battery.chargingDescription" = "有効にすると、充電中または電源接続時に残量が稲妻またはプラグに変わります。無効の場合は残量を表示します。";
 "settings.battery.chargingEffect" = "充電エフェクト";
 "settings.battery.chargingEffectDescription" = "充電中のみハイライトをアニメーション表示します。「視差効果を減らす」がオンの場合は停止します。";
+"settings.battery.menuBarChargingEffect" = "メニューバーの充電エフェクト";
+"settings.battery.menuBarChargingEffectDescription" = "メニューバーのアイコンだけで充電ハイライトをアニメーション表示します。Dock は個別に制御され、「視差効果を減らす」がオンの場合は両方とも停止します。";
+"settings.battery.dockChargingEffect" = "Dock の充電エフェクト";
+"settings.battery.dockChargingEffectDescription" = "Dock アイコンだけで充電ハイライトをアニメーション表示します。メニューバーは個別に制御され、「視差効果を減らす」がオンの場合は両方とも停止します。";
 "settings.battery.chargingBoltHeartbeat" = "充電ボルトの鼓動";
 "settings.battery.chargingBoltHeartbeatDescription" = "オフにすると、ボルトは通常のサイズと色のままになり、充電アークのエフェクトは続きます。";
 "settings.battery.chargingEffectTest" = "充電アニメーションをテスト";
@@ -340,6 +341,13 @@
 "wifi.security.enterprise" = "エンタープライズ";
 "bluetooth.openDetails" = "詳細を開いてデバイスの状態を表示";
 "bluetooth.title" = "Bluetooth";
+"bluetooth.power.turnOn" = "Bluetoothをオンにする";
+"bluetooth.power.turnOff" = "Bluetoothをオフにする";
+"bluetooth.power.unknown" = "Bluetoothの状態を取得できません。";
+"bluetooth.power.changeFailed" = "Bluetoothの状態が変わりませんでした。";
+"bluetooth.power.offConfirmTitle" = "Bluetoothをオフにしますか？";
+"bluetooth.power.offConfirmMessage" = "接続中のキーボード、マウス、トラックパッド、ゲームコントローラが切断される可能性があります。このパネルまたはシステム設定からBluetoothを再度オンにできます。";
+"bluetooth.power.offConfirmAction" = "オフにする";
 "bluetooth.pairedDevices.title" = "ペアリング済み";
 "bluetooth.devices.title" = "Bluetooth デバイス";
 "bluetooth.nearbyBattery.title" = "近くのデバイス";
@@ -376,7 +384,6 @@
 "settings.preview.light" = "ライト";
 "settings.preview.toggleHelp" = "メニューバーのダーク/ライト背景プレビューを切り替え";
 "settings.audio.displayRules" = "表示ルール";
-"settings.audio.designerEntry" = "アイコンデザイナーでオーディオソースをカスタマイズ";
 "settings.audio.activeDeviceFootnote" = "現在アクティブな音声出力デバイスはアクセントカラーでハイライトされます。";
 "settings.audio.inUse" = "使用中";
 "settings.wifi.symbolScale" = "Wi-Fiアイコンサイズ";
@@ -424,6 +431,20 @@
 "guide.anatomy.title" = "1つのアイコン、3つの情報";
 "guide.anatomy.description" = "部分を選ぶと、メニューバーと Dock の対応する領域が同時にハイライトされます。";
 "guide.placement" = "表示位置は設定でメニューバー、Dock、または両方から自由に選べ、いつでも変更できます。";
+"guide.menuBarHelp.prompt" = "Status Trio は画面右上にあります。";
+"guide.menuBarHelp.open" = "メニューバーのアイコンが見つかりませんか？";
+"guide.menuBarHelp.title" = "Status Trio が見つかりませんか？";
+"guide.menuBarHelp.reason" = "メニューバーが混み合うと、ノッチによってアイコンが一時的に隠れることがあります。Status Trio は実行中です。";
+"guide.menuBarHelp.overflowStep" = "メニューバーのオーバーフローボタン（二重矢印）をクリックすると、隠れているアイコンを表示できます。";
+"guide.menuBarHelp.menuBarSettingsStep" = "「システム設定 > メニューバー」を開き、Wi‑Fi、バッテリー、サウンドなど不要な項目を非表示にします。";
+"guide.menuBarHelp.controlCenterStep" = "「システム設定 > コントロールセンター」を開き、Wi‑Fi、バッテリー、サウンドなど不要な項目の「メニューバーに表示」をオフにします。";
+"guide.menuBarHelp.findStatusTrioStep" = "Status Trio はこれらの状態をまとめて表示するため、重複するアイコンを減らせます。システムの操作機能はコントロールセンターから引き続き利用できます。";
+"guide.menuBarHelp.moveStep" = "アイコンが表示されたら、⌘ を押したままメニューバーの右側へドラッグします。";
+"guide.menuBarHelp.openMenuBarSettings" = "メニューバー設定を開く";
+"guide.menuBarHelp.openSystemSettings" = "システム設定を開く";
+"guide.menuBarHelp.reopen" = "Status Trio を再び見失った場合は、「アプリケーション」、Finder、または Spotlight から開くと設定画面を表示できます。";
+"guide.menuBarHelp.learnMore" = "Apple メニューバーガイド";
+"guide.menuBarHelp.close" = "閉じる";
 "guide.states.title" = "状態の組み合わせ";
 "guide.states.description" = "よくあるバッテリー、ネットワーク、音量の組み合わせを確認できます。";
 "guide.state.charging" = "充電中 + Wi-Fi";
@@ -468,6 +489,29 @@
 "settings.appleBackgroundRefresh.description" = "ステータスパネルを閉じている間も、選択した Apple デバイスの電池残量を更新します。";
 "settings.appleBackgroundRefresh.interval" = "バックグラウンドでのバッテリー残量更新間隔";
 "settings.appleBackgroundRefresh.intervalValue" = "%d 分";
+
+"settings.shortcut.title" = "ステータスパネルを開く";
+"settings.shortcut.description" = "どのアプリからでも、同じステータスパネルを開くグローバルショートカットを設定します。一部のショートカットは入力方式や他のアプリに横取りされる場合があります。";
+"settings.shortcut.record" = "記録";
+"settings.shortcut.change" = "ショートカットを変更";
+"settings.shortcut.notSet" = "未設定";
+"settings.shortcut.clear" = "消去";
+"settings.shortcut.recording" = "ショートカットを入力…";
+"settings.shortcut.invalid" = "Command、Control、Option のいずれかとキーを組み合わせてください。";
+"settings.shortcut.inputMethodConflict" = "この組み合わせは入力方式に横取りされる可能性があります。Option＋文字など別の組み合わせを選んでください。";
+"settings.shortcut.unavailable" = "このショートカットは使用できません。別のアプリが使用している可能性があります。";
+"settings.shortcut.registrationFailed" = "このショートカットを登録できませんでした。";
+"settings.shortcut.restorationFailed" = "以前のショートカットを復元できませんでした。";
+"settings.shortcut.accessibility.current" = "現在のグローバルショートカット：%@";
+"settings.shortcut.accessibility.unassigned" = "グローバルショートカットは未設定です。";
+
+/* Icon Designer and built-in plugin additions. */
+"settings.network.designerEntry" = "アイコンデザイナーでネットワークソースをカスタマイズ";
+"settings.bluetooth.designerEntry" = "アイコンデザイナーで Bluetooth ソースをカスタマイズ";
+"settings.battery.designerEntry" = "アイコンデザイナーでバッテリーソースをカスタマイズ";
+"settings.battery.macBehaviorDescription" = "これらのオプションは Mac のバッテリーをソースとして使う場合に適用されます。外側のリングに選択した AirPods のソースは置き換えません。";
+"settings.battery.macBehavior" = "Mac のバッテリー動作";
+"settings.audio.designerEntry" = "アイコンデザイナーでオーディオソースをカスタマイズ";
 "icon.resolution.primary" = "優先ソースを表示中";
 "icon.resolution.fallback" = "代替ソースを表示中";
 "icon.resolution.none" = "現在表示中のソースはありません";
@@ -518,10 +562,6 @@
 "icon.designer.currentSourceUnavailableFormat" = "現在のソース（このバージョンでは利用不可）：%@";
 "icon.designer.compatible" = "現在の設定と互換";
 "icon.designer.legacySourcePreserved" = "新しいソースを選ぶまで、現在の表示ルールが保持されます。";
-
-
-
-
 "iconDesigner.control.volumeDisplay" = "音量表示";
 "iconDesigner.control.dots" = "ドット";
 "iconDesigner.control.arc" = "弧";
@@ -571,7 +611,6 @@
 "iconDesigner.control.restoreSlotQuestionFormat" = "%@ をクラシックに戻しますか？";
 "iconDesigner.control.audioOutputFormat" = "オーディオ出力 — %@";
 "iconDesigner.control.savedSymbolFormat" = "保存済みの記号 — %@";
-
 "iconDesigner.control.airPodsBackgroundReads" = "AirPodsのバッテリーをバックグラウンドで読み取る";
 "iconDesigner.control.selectAirPodsDevice" = "AirPodsデバイスを選択";
 "iconDesigner.control.selectConnectedBluetoothDevice" = "接続中のBluetoothデバイスを選択";
@@ -604,12 +643,9 @@
 "icon.designer.airPods.test.leftOnly" = "左耳のみ";
 "icon.designer.airPods.test.rightOnly" = "右耳のみ";
 "icon.designer.airPods.test.unavailable" = "バッテリーデータなし";
-
 "iconPreviewData.edit" = "サンプルデータを編集…";
-
 "iconPreviewData.simulatedNotice" = "下のサンプル値はこのプレビューのみに反映されます。ライブデータに戻しても保持されます。";
 "iconPreviewData.liveNotice" = "ライブ状態は読み取り専用です。サンプルを編集するには「シミュレーション」に切り替えてください。";
-
 "iconPreviewData.applyToRealIcons" = "実際のメニューバーとDockに適用";
 "iconPreviewData.applyToRealIconsNotice" = "シミュレーションデータが実際のメニューバーとDockを表示しています。このオプションをオフにするかライブに戻すと、実際の状態に復元されます。";
 "iconPreviewData.title" = "プレビューデータ";
@@ -644,8 +680,6 @@
 "icon.designer.externalChangeNotice" = "別の場所でアイコン設定が変更されたため、取り消し履歴を消去しました。";
 "iconPreviewData.useLiveData" = "ライブデータを使用";
 "icon.designer.moreActions" = "その他の操作";
-
-/* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "ネットワークアイコン";
 "iconDesigner.centerColorMeaning.inputSource" = "入力ソースのアイコン";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi 信号 0 本";
@@ -658,7 +692,6 @@
 "iconDesigner.centerColorMeaning.legacyBluetoothGlyph" = "Bluetooth アイコン";
 "iconDesigner.centerColorContext.fallbackFormat" = "予備：%@";
 "iconDesigner.centerColorContext.networkOverrideFormat" = "ネットワーク優先：%@";
-
 "iconDesigner.centerColor.rolePicker" = "色の適用状態";
 "iconDesigner.centerColorHelp.networkPrimary" = "通常のネットワークアイコンに適用します。Wi-Fi オフ、未接続、インターネットなし、有線接続が含まれます。";
 "iconDesigner.centerColorHelp.inputSource" = "中央に描画されるときの、現在の入力ソースのアイコンまたは短いラベルに適用します。";
@@ -671,8 +704,6 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "従来の中央表示で、接続中 Wi-Fi の信号が 0 本の場合に適用します。";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "従来の中央表示の Bluetooth アイコンに適用します。";
 "icon.designer.airPods.showTopSymbol" = "上部にAirPodsアイコンを表示";
-
-/* Icon content editor */
 "iconDesigner.editor.editingElementFormat" = "%@を編集";
 "iconDesigner.editor.contentTitle" = "内容";
 "iconDesigner.editor.unavailableTitle" = "利用できない場合";

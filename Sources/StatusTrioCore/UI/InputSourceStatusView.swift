@@ -13,9 +13,9 @@ struct InputSourceStatusView: View {
     let onOpenKeyboardSettings: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Button(action: onOpen) {
-                HStack(spacing: 10) {
+                HStack(alignment: .center, spacing: 10) {
                     PanelSymbolView(
                         source: .symbol(name: "keyboard", variableValue: nil, fallback: nil)
                     )
@@ -32,8 +32,10 @@ struct InputSourceStatusView: View {
 
                     Spacer(minLength: 0)
 
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
+                    PanelActionGlyph(
+                        systemName: "chevron.right",
+                        font: .caption.weight(.semibold)
+                    )
                         .foregroundStyle(.tertiary)
                         .accessibilityHidden(true)
                 }
@@ -44,9 +46,8 @@ struct InputSourceStatusView: View {
             .accessibilityValue(state.currentName ?? "")
 
             Button(action: onOpenKeyboardSettings) {
-                Image(systemName: "gearshape")
+                PanelActionGlyph(systemName: "gearshape")
                     .foregroundStyle(.secondary)
-                    .frame(width: 24, height: 24)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

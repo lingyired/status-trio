@@ -83,6 +83,54 @@ struct StatusBarAnimationLayerPresenterTests {
         #expect(view.layer?.sublayers?.isEmpty != false)
     }
 
+    /// A 20-Hz tick that lands on a frame identical to the one on screen must not
+    /// write the layer again; only a changed bitmap may cost a contents update.
+    @Test func repeatingTheSameFrameDoesNotWriteTheLayerAgain() throws {
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 22, height: 22))
+        let presenter = StatusBarAnimationLayerPresenter()
+        let image = try solidCGImage(color: CGColor(gray: 1, alpha: 1))
+        let contentSize = CGSize(width: 22, height: 22)
+
+        #expect(presenter.display(image, in: view, contentSize: contentSize, backingScale: 2) == .installed)
+        let contentsLayer = try #require(view.layer?.sublayers?.first)
+        #expect(presenter.contentsUpdateCount == 1)
+        #expect(presenter.geometryUpdateCount == 2)
+
+        #expect(presenter.display(image, in: view, contentSize: contentSize, backingScale: 2) == .unchanged)
+        #expect(presenter.contentsUpdateCount == 1)
+        #expect(presenter.geometryUpdateCount == 2)
+        #expect((contentsLayer.contents as AnyObject?) === (image as AnyObject?))
+    }
+
+    /// The geometry follows the host button and the display scale, without
+    /// re-committing an unchanged bitmap.
+    @Test func hostResizeAndScaleChangesKeepTheGeometryInSync() throws {
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 22, height: 22))
+        let presenter = StatusBarAnimationLayerPresenter()
+        let image = try solidCGImage(color: CGColor(gray: 1, alpha: 1))
+        let contentSize = CGSize(width: 22, height: 22)
+
+        _ = presenter.display(image, in: view, contentSize: contentSize, backingScale: 2)
+        let contentsLayer = try #require(view.layer?.sublayers?.first)
+        #expect(presenter.contentsUpdateCount == 1)
+        #expect(presenter.geometryUpdateCount == 2)
+
+        view.frame = NSRect(x: 0, y: 0, width: 26, height: 20)
+        #expect(presenter.display(image, in: view, contentSize: contentSize, backingScale: 2) == .updated)
+        #expect(contentsLayer.frame == CGRect(x: 2, y: -1, width: 22, height: 22))
+        #expect(presenter.geometryUpdateCount == 3)
+        #expect(presenter.contentsUpdateCount == 1)
+
+        #expect(presenter.display(image, in: view, contentSize: contentSize, backingScale: 1) == .updated)
+        #expect(contentsLayer.contentsScale == 1)
+        #expect(presenter.geometryUpdateCount == 4)
+        #expect(presenter.contentsUpdateCount == 1)
+
+        #expect(presenter.display(image, in: view, contentSize: contentSize, backingScale: 1) == .unchanged)
+        #expect(presenter.geometryUpdateCount == 4)
+        #expect(presenter.contentsUpdateCount == 1)
+    }
+
     @Test func transparentPlaceholderPreservesSizeWithoutDoubleCompositing() throws {
         let placeholder = try #require(
             StatusIconRenderer.transparentMenuBarImage(size: 22, scale: 2)

@@ -33,6 +33,9 @@ struct StatusIconPreviewCard: View {
     @EnvironmentObject private var chargingEffectClock: ChargingEffectClock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var previewState = IconDesignerPreviewState()
+    /// Identifies this card's claim on the shared clock, so a Dock-only menu bar
+    /// still animates the preview while it is visible.
+    @State private var clockConsumerToken = UUID()
 
     init(
         store: SettingsStore,
@@ -307,6 +310,39 @@ struct StatusIconPreviewCard: View {
             if showsResolutionExplanation { explanation }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .onAppear {
+            setClockClaim(enabled: store.showsMenuBarChargingEffect)
+        }
+        .onChange(of: store.showsMenuBarChargingEffect) { isEnabled in
+            setClockClaim(enabled: isEnabled)
+            if isEnabled {
+                startPreviewIfAllowed()
+            } else {
+                previewState.stop()
+            }
+        }
+        .onChange(of: isLiveChargingActive) { isActive in
+            if isActive { previewState.stop() }
+        }
+        .onChange(of: reduceMotion) { isEnabled in
+            if isEnabled {
+                previewState.stop()
+            }
+        }
+        .onDisappear {
+            chargingEffectClock.endAnimationPreview(clockConsumerToken)
+            previewState.stop()
+        }
+        .task(id: previewState.playback.startedAt) {
+            guard let startedAt = previewState.playback.startedAt else { return }
+            let elapsed = Date().timeIntervalSince(startedAt)
+            let remaining = max(0, ChargingEffectPreviewPlayback.duration - elapsed)
+            if remaining > 0 {
+                try? await Task.sleep(for: .seconds(remaining))
+            }
+            guard !Task.isCancelled else { return }
+            previewState.stop()
+        }
     }
 
     @ViewBuilder
@@ -437,7 +473,9 @@ struct StatusIconPreviewCard: View {
             )
         )
         return IconDesignerPreviewResolver.resolve(
-            liveInputs: inputs, configuration: configuration, scenario: scenario,
+            liveInputs: inputs,
+            configuration: configuration,
+            scenario: scenario,
             customAirPodsSample: customAirPodsSample
         )
     }
@@ -511,7 +549,7 @@ struct StatusIconPreviewCard: View {
                 statusStore.snapshot.battery,
                 enabled: store.testsChargingEffect
             ),
-            enabled: store.showsChargingEffect,
+            enabled: store.showsMenuBarChargingEffect,
             reduceMotion: reduceMotion,
             phase: chargingEffectClock.phase
         )
@@ -573,6 +611,7 @@ struct StatusIconPreviewCard: View {
             onSelectSlot: onSelectSlot,
             phase: phase,
             resolvedScene: displayedResolution(status: status).scene,
+            showsChargingEffect: store.showsMenuBarChargingEffect,
             inputSource: inputSourceController?.selectedDescriptor
         ) {
             appearanceToggle
@@ -585,7 +624,8 @@ struct StatusIconPreviewCard: View {
     }
 
     private func startPreviewIfAllowed() {
-        guard !reduceMotion, !isLiveChargingActive,
+        guard store.showsMenuBarChargingEffect,
+              !reduceMotion, !isLiveChargingActive,
               scenario == .live || scenario == .batteryCharging else { return }
         previewState.start(at: Date())
     }
@@ -611,6 +651,14 @@ struct StatusIconPreviewCard: View {
             inputSource: inputSourceController?.selectedDescriptor,
             runtimeOptions: store.iconRuntimePresentationOptions
         )
+    }
+
+    private func setClockClaim(enabled: Bool) {
+        if enabled {
+            chargingEffectClock.beginAnimationPreview(clockConsumerToken)
+        } else {
+            chargingEffectClock.endAnimationPreview(clockConsumerToken)
+        }
     }
 
     private var appearanceToggle: some View {

@@ -153,6 +153,20 @@ final class StatusMenuBuilderTests: XCTestCase {
                 "x-apple.systempreferences:com.apple.preference.keyboard"
             ]
         )
+        XCTAssertEqual(
+            StatusBarController.soundOutputSettingsURLs.map(\.absoluteString),
+            [
+                "x-apple.systempreferences:com.apple.Sound-Settings.extension?output",
+                "x-apple.systempreferences:com.apple.preference.sound?output"
+            ]
+        )
+        XCTAssertEqual(
+            StatusBarController.soundInputSettingsURLs.map(\.absoluteString),
+            [
+                "x-apple.systempreferences:com.apple.Sound-Settings.extension?input",
+                "x-apple.systempreferences:com.apple.preference.sound?input"
+            ]
+        )
     }
 
     private func makeLocalization(_ language: AppLanguage) -> Localization {

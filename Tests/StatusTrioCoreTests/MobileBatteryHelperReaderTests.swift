@@ -289,6 +289,7 @@ struct MobileBatteryHelperReaderTests {
         let processTask = Task {
             try await ProcessMobileBatteryHelperExecutor(helperURL: script).run(arguments: [], timeout: .seconds(1))
         }
+        defer { processTask.cancel() }
         try await waitForPIDFile(pidFile)
         do {
             _ = try await processTask.value
@@ -313,6 +314,7 @@ struct MobileBatteryHelperReaderTests {
         let task = Task {
             try await ProcessMobileBatteryHelperExecutor(helperURL: script).run(arguments: [], timeout: .seconds(10))
         }
+        defer { task.cancel() }
         try await waitForPIDFile(pidFile)
         task.cancel()
         do {
@@ -328,12 +330,39 @@ struct MobileBatteryHelperReaderTests {
         }
     }
 
+    @Test func processExecutorFinishesWhenADescendantHoldsThePipes() async throws {
+        // The helper exits immediately but leaves a child holding the inherited
+        // stdout/stderr, so the stream-ended flags never arrive. The invocation
+        // must still finish at its deadline instead of waiting for that child.
+        let script = try makeScript("sleep 5 & exit 0")
+        defer { try? FileManager.default.removeItem(at: script) }
+        let clock = ContinuousClock()
+        let started = clock.now
+
+        do {
+            _ = try await ProcessMobileBatteryHelperExecutor(helperURL: script)
+                .run(arguments: [], timeout: .milliseconds(500))
+            Issue.record("an invocation whose pipes are held must time out")
+        } catch {
+            #expect(error as? MobileBatteryHelperError == .timedOut)
+            #expect(clock.now - started < .seconds(3))
+        }
+    }
+
     private func makeIgnoringTerminationScript(pidFile: URL) throws -> URL {
-        let script = try makeScript(
-            "import os, signal, time\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)\nwith open(\(String(reflecting: pidFile.path)), 'w') as f: f.write(str(os.getpid()))\nprint('ready', flush=True)\nwhile True: time.sleep(0.01)",
-            interpreter: "/usr/bin/python3"
+        // Cold Python startup can exhaust the deadline before the signal handler
+        // and PID handshake exist. The shell installs both before starting work.
+        let quotedPIDPath = "'" + pidFile.path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+        return try makeScript(
+            """
+            trap '' TERM
+            printf '%s\\n' "$$" > \(quotedPIDPath)
+            printf 'ready\\n'
+            while :; do
+                /bin/sleep 0.01
+            done
+            """
         )
-        return script
     }
 
     private func waitForPIDFile(_ url: URL) async throws {
@@ -341,7 +370,10 @@ struct MobileBatteryHelperReaderTests {
             if FileManager.default.fileExists(atPath: url.path) { return }
             try await Task.sleep(for: .milliseconds(10))
         }
-        Issue.record("child process did not reach its ready signal")
+        try #require(
+            FileManager.default.fileExists(atPath: url.path),
+            "child process did not reach its ready signal"
+        )
     }
 
     private func makeScript(_ body: String, interpreter: String = "/bin/sh") throws -> URL {

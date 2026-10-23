@@ -1,0 +1,51 @@
+== baseline ==
+total sampled CPU 1996000 ms across 15 s; main thread 1950000 ms
+Top self time (ms):
+  1313000.0  start
+  560000.0  ?
+Top inclusive frames containing Status Trio menu-bar work (ms):
+  755000.0  -[NSImage _usingBestRepresentationForRect:context:hints:body:]
+  718000.0  -[NSStatusBarButtonCell drawWithFrame:inView:]
+  660000.0  -[NSImage _drawInRect:withState:backgroundStyle:tintColor:operation:fraction:flip:hints:]
+  603000.0  -[NSImageRep CGImageForProposedRect:context:hints:]
+  602000.0  -[NSImage CGImageForProposedRect:context:hints:]
+  564000.0  __48-[NSImage CGImageForProposedRect:context:hints:]_block_invoke
+  557000.0  -[NSImageRep drawInRect:]
+  532000.0  closure #1 in static StatusIconRenderer.image(scene:size:scale:appearance:phase:regions:)
+  531000.0  closure #1 in closure #1 in static StatusIconRenderer.image(scene:size:scale:appearance:phase:regions:)
+  477000.0  static StatusIconRenderer.render(scene:environment:phase:regions:)
+  465000.0  specialized static StatusIconRenderer.drawSceneSymbol(_:center:foreground:criticalColor:in:)
+  427000.0  -[CALayer renderInContext:]
+  422000.0  -[CALayer _renderSublayersInContext:]
+  410000.0  -[NSImage drawInRect:fromRect:operation:fraction:respectFlipped:hints:]
+  404000.0  static StatusIconRenderer.drawOfficialSymbol(name:variableValue:pointSize:center:foreground:in:)
+  404000.0  -[NSImage drawInRect:]
+  384000.0  -[CUINamedVectorGlyph hierarchicalLayerGroup]
+  378000.0  +[CUIVectorGlyphLayer createLayerGroupWithLayerNames:delegate:]
+  320000.0  -[CUINamedVectorGlyph pathForLayerNamed:]
+  291000.0  -[NSImage bestRepresentationForRect:context:hints:]
+
+== optimized ==
+total sampled CPU 92000 ms across 15 s; main thread 56000 ms
+Top self time (ms):
+  40000.0  ?
+   7000.0  start
+Top inclusive frames containing Status Trio menu-bar work (ms):
+  38000.0  ChargingEffectClock.phase.setter
+  38000.0  partial apply for closure #1 in ChargingEffectClock.start()
+  38000.0  closure #1 in ChargingEffectClock.start()
+  28000.0  StatusBarController.presentMenuBar(phase:)
+  28000.0  closure #2 in StatusBarController.init(store:settings:iconPresentation:localization:isVisible:openSettings:quitAction:chargingEffectClock:accessibilit
+  28000.0  StatusBarController.renderAnimationPhase(_:)
+  22000.0  StatusBarController.presentAnimationPhase(_:in:)
+  20000.0  StatusBarController.presentOverlayFrame(_:in:)
+   5000.0  CA::Layer::prepare_contents(CALayer*, CA::Transaction*)
+   3000.0  CA::Render::prepare_image(CGImage*, CGColorSpace*, unsigned int, double)
+   2000.0  CGImageGetColorSpace
+   2000.0  CA::Render::copy_image(CGImage*, CGColorSpace*, unsigned int, double, double)
+   1000.0  -[CALayer(CALayerPrivate) _copyRenderLayer:layerFlags:commitFlags:]
+   1000.0  -[CALayer contentsScaling]
+   1000.0  -[CALayer setContents:]
+   1000.0  -[CALayer minificationFilter]
+   1000.0  -[CALayer contents]
+   1000.0  -[CALayer(CALayerPrivate) separatedOptions]

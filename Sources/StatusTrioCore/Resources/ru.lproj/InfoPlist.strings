@@ -1,3 +1,3 @@
 "NSLocationUsageDescription" = "Used to show the current Wi-Fi network name in the popover and, when you open Wi-Fi details, to read network names, scan results, and connection information.";
 "NSLocationWhenInUseUsageDescription" = "Used to show the current Wi-Fi network name in the popover and, when you open Wi-Fi details, to read network names, scan results, and connection information.";
-"NSBluetoothAlwaysUsageDescription" = "Показывает состояние Bluetooth и ближайшие устройства Apple с именами; батарея читается только для видимых строк.";
+"NSBluetoothAlwaysUsageDescription" = "Показывает состояние подключения Bluetooth, считывает сведения о батарее и модели для ближайших именованных устройств и устройств, которым уже доверяет этот Mac, и переключает режим шумоподавления на поддерживаемых наушниках; для ближайших устройств используются только явно разрешённые BLE UUID.";

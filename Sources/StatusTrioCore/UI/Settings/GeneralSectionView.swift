@@ -3,6 +3,7 @@ import SwiftUI
 struct GeneralSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var localization: Localization
+    var globalShortcutController: GlobalShortcutController? = nil
     @ObservedObject private var launchAtLogin: LaunchAtLoginManager = .shared
     @ObservedObject private var updaterManager: UpdaterManager = .shared
 
@@ -90,6 +91,16 @@ struct GeneralSectionView: View {
             }
 
             SettingsDivider()
+
+            if let globalShortcutController {
+                ShortcutSettingsRow(
+                    store: store,
+                    controller: globalShortcutController,
+                    localization: localization
+                )
+
+                SettingsDivider()
+            }
 
             // Status refresh interval
             SettingsRow(

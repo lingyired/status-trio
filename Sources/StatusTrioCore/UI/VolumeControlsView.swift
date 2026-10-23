@@ -5,18 +5,20 @@ struct VolumeControlsView: View {
     let state: VolumePanelState
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
+    let onOpenSoundSettings: () -> Void
 
     @State private var draftVolume = 0.0
     @State private var isAdjusting = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
                 Button(action: { actions.toggleMute() }) {
-                    Image(systemName: state.muteSymbol)
-                        .font(.system(size: 15, weight: .medium))
+                    PanelActionGlyph(
+                        systemName: state.muteSymbol,
+                        font: .system(size: 15, weight: .medium)
+                    )
                         .foregroundStyle(state.muted ? Color.red : Color.secondary)
-                        .frame(width: 24, height: 24)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -32,9 +34,20 @@ struct VolumeControlsView: View {
                     .padding(.horizontal, 2)
                     .background(VolumeControlScrollTarget(targets: scrollTargets))
 
-                Image(systemName: "speaker.wave.3.fill")
+                Text(percentageText)
+                    .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
+                    .frame(minWidth: 34, alignment: .trailing)
                     .accessibilityHidden(true)
+
+                Button(action: onOpenSoundSettings) {
+                    PanelActionGlyph(systemName: "gearshape")
+                        .foregroundStyle(.secondary)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(localization.string(.volumeActionOpenSettings))
+                .accessibilityLabel(localization.string(.volumeActionOpenSettings))
             }
 
             if state.showsDeviceList {
@@ -57,12 +70,10 @@ struct VolumeControlsView: View {
             guard !isAdjusting else { return }
             draftVolume = newValue ?? 0
         }
-        .task(id: state.listeningModeTaskID) { actions.volumeListChanged() }
-        .onDisappear { actions.volumeListDisappeared() }
     }
 
     private var percentageText: String {
-        guard draftVolume.isFinite else { return "—" }
+        guard state.scalar != nil, draftVolume.isFinite else { return "—" }
         return min(1, max(0, draftVolume)).formatted(
             .percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale)
         )

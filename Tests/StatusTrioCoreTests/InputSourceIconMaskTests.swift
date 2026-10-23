@@ -77,6 +77,24 @@ final class InputSourceIconMaskTests: XCTestCase {
         XCTAssertNil(InputSourceIconMask.make(from: icon))
     }
 
+    func testMaskPixelLengthIsBoundedWithoutChangingLogicalGeometry() throws {
+        let icon = makeIcon(size: NSSize(width: 512, height: 256)) { context in
+            context.setFillColor(CGColor(gray: 0, alpha: 1))
+            context.fill(CGRect(x: 320, y: 64, width: 96, height: 112))
+        }
+
+        let mask = try XCTUnwrap(InputSourceIconMask.make(
+            from: icon,
+            pixelScale: 4,
+            maximumPixelLength: 128
+        ))
+        let pixels = try rasterize(mask)
+
+        XCTAssertEqual(max(pixels.width, pixels.height), 128)
+        XCTAssertEqual(pixels.width / pixels.height, 2)
+        XCTAssertEqual(mask.size, icon.size)
+    }
+
     // MARK: - Fixtures
 
     private func makeIcon(

@@ -2,6 +2,10 @@ import Foundation
 
 protocol TelemetrySending: Sendable {
     func sendIfNeeded(context: TelemetryContext) async
+    /// Forgets the stored installation identifier and the request timestamps.
+    /// Called once consent is withdrawn, so nothing on disk links this install
+    /// to a heartbeat it sent while consent was still granted.
+    func discardStoredIdentity() async
 }
 
 actor TelemetryClient: TelemetrySending {
@@ -80,6 +84,12 @@ actor TelemetryClient: TelemetrySending {
         } catch {
             // Best effort by design. Do not log request identifiers or values.
         }
+    }
+
+    func discardStoredIdentity() {
+        defaults.removeObject(forKey: Self.installationIDKey)
+        defaults.removeObject(forKey: Self.lastAttemptAtKey)
+        defaults.removeObject(forKey: Self.lastSuccessfulAtKey)
     }
 
     private func storedDate(forKey key: String) -> Date? {

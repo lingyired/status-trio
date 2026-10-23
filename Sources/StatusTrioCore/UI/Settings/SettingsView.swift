@@ -10,6 +10,7 @@ struct SettingsView: View {
     /// Drives the live centre-slot source in the previews. `nil` in tests and
     /// guides that do not carry the app's controller.
     var inputSourceController: InputSourceController? = nil
+    var globalShortcutController: GlobalShortcutController? = nil
     let onShowIconGuide: () -> Void
     var onOpenIconDesigner: (IconSlot) -> Void = { _ in }
     @ObservedObject var previewSession = IconDesignerPreviewSession()
@@ -142,7 +143,11 @@ struct SettingsView: View {
         case .popover:
             PopoverSectionView(store: store, statusStore: statusStore)
         case .general:
-            GeneralSectionView(store: store, localization: localization)
+            GeneralSectionView(
+                store: store,
+                localization: localization,
+                globalShortcutController: globalShortcutController
+            )
         case .about:
             AboutSectionView()
         }

@@ -61,8 +61,11 @@ struct SettingsDisclosureRow: View {
     var body: some View {
         Button(action: { toggle() }) {
             SettingsRow(symbol, tint: tint, title: title, subtitle: subtitle) {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .medium))
+                PanelActionGlyph(
+                    systemName: "chevron.down",
+                    font: .system(size: 11, weight: .medium),
+                    size: 16
+                )
                     .foregroundStyle(.secondary)
                     .rotationEffect(
                         .degrees(

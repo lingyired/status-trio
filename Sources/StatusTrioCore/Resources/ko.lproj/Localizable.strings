@@ -57,7 +57,6 @@
 "settings.menuBar.title" = "메뉴 막대 아이콘";
 "settings.network.connectionIcons" = "연결 아이콘 스타일";
 "settings.network.connectionIcons.description" = "활성화하면 선택한 상태가 전용 표시 대신 표준 Wi-Fi 신호 아이콘으로 표시됩니다.";
-"settings.network.designerEntry" = "아이콘 디자이너에서 네트워크 소스 사용자화";
 "settings.network.wifiIconForEthernet" = "Ethernet에 Wi-Fi 아이콘 사용";
 "settings.network.wifiIconForHotspot" = "개인 핫스팟에 Wi-Fi 아이콘 사용";
 "settings.network.wifiIconForTemporaryConnection" = "임시 연결에 Wi-Fi 아이콘 사용";
@@ -70,7 +69,6 @@
 "settings.network.centerSource.networkWarnings" = "네트워크 문제 우선 표시";
 "settings.network.centerSource.networkWarnings.description" = "Mac이 실제로 오프라인일 때 중앙에 입력 소스 대신 네트워크 상태를 표시합니다.";
 "settings.bluetooth.title" = "Bluetooth 오디오";
-"settings.bluetooth.designerEntry" = "아이콘 디자이너에서 Bluetooth 소스 사용자화";
 "settings.bluetooth.replaceNetworkIcon" = "네트워크 아이콘을 Bluetooth 기기 아이콘으로 교체";
 "settings.bluetooth.replaceNetworkIconDescription" = "선택한 Bluetooth 기기의 파란색 아이콘을 Wi-Fi 아이콘 대신 표시합니다.";
 "settings.bluetooth.networkIconSourceGroup" = "Bluetooth 기기 아이콘 사용";
@@ -94,6 +92,8 @@
 "settings.bluetooth.listeningModePreviewLanguageDescription" = "미리보기 행의 모드 이름만 선택한 언어로 렌더링하고, 나머지 패널은 시스템 언어를 유지합니다. 독일어의 긴 단어 또는 아라비아어의 RTL 배치에서 캡슐이 어떻게 줄바꿈되는지 비교하기에 좋습니다.";
 "settings.bluetooth.showInStatusPanel" = "상태 패널에 Bluetooth 표시";
 "settings.bluetooth.showInStatusPanelDescription" = "상태 패널의 Bluetooth 항목을 전환하며 상태 패널 설정과 동기화됩니다.";
+"settings.bluetooth.powerControl" = "Bluetooth 전원 버튼 표시";
+"settings.bluetooth.powerControlDescription" = "상태 패널에 Bluetooth 전원 버튼을 표시합니다. 추가 권한이 필요하지 않습니다.";
 "settings.bluetooth.symbolScale" = "Bluetooth 아이콘 크기";
 "settings.bluetooth.symbolScaleDescription" = "상태 링 안의 Bluetooth 기기 아이콘 크기를 100% ~ 180%로 조절합니다.";
 "settings.bluetooth.iconChoice" = "Bluetooth 오디오 아이콘";
@@ -134,9 +134,6 @@
 "settings.about.starOnGitHub" = "GitHub에서 별표 주기";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "배터리 표시";
-"settings.battery.designerEntry" = "아이콘 디자이너에서 배터리 소스 사용자화";
-"settings.battery.macBehaviorDescription" = "이 옵션은 Mac 배터리를 소스로 사용할 때 적용되며, 외부 링에 선택된 AirPods 소스를 대체하지 않습니다.";
-"settings.battery.macBehavior" = "Mac 배터리 동작";
 "settings.battery.showPercentage" = "배터리 잔량 표시";
 "settings.battery.showPercentageInConnectionSlot" = "연결 위치에 배터리 잔량 표시";
 "settings.battery.showPercentageInConnectionSlotDescription" = "Wi-Fi 또는 연결 기호를 대체합니다. 상단 배터리 표시와 별도로 설정할 수 있습니다.";
@@ -144,6 +141,10 @@
 "settings.battery.chargingDescription" = "활성화하면 충전 중이거나 전원에 연결되었을 때 잔량이 번개 또는 플러그로 바뀝니다. 비활성화하면 잔량을 계속 표시합니다.";
 "settings.battery.chargingEffect" = "충전 효과";
 "settings.battery.chargingEffectDescription" = "충전 중에만 강조 표시를 애니메이션으로 표시합니다. ‘동작 줄이기’가 켜져 있으면 중지합니다.";
+"settings.battery.menuBarChargingEffect" = "메뉴 막대 충전 효과";
+"settings.battery.menuBarChargingEffectDescription" = "메뉴 막대 아이콘에서만 충전 강조 표시를 애니메이션으로 표시합니다. Dock은 별도로 제어되며 ‘동작 줄이기’가 켜져 있으면 둘 다 중지합니다.";
+"settings.battery.dockChargingEffect" = "Dock 충전 효과";
+"settings.battery.dockChargingEffectDescription" = "Dock 아이콘에서만 충전 강조 표시를 애니메이션으로 표시합니다. 메뉴 막대는 별도로 제어되며 ‘동작 줄이기’가 켜져 있으면 둘 다 중지합니다.";
 "settings.battery.chargingBoltHeartbeat" = "충전 번개 박동";
 "settings.battery.chargingBoltHeartbeatDescription" = "끄면 번개가 기본 크기와 색상으로 유지되고 충전 아크 효과는 계속됩니다.";
 "settings.battery.chargingEffectTest" = "충전 애니메이션 테스트";
@@ -340,6 +341,13 @@
 "wifi.security.enterprise" = "엔터프라이즈";
 "bluetooth.openDetails" = "세부 정보를 열어 기기 상태를 확인하십시오.";
 "bluetooth.title" = "Bluetooth";
+"bluetooth.power.turnOn" = "Bluetooth 켜기";
+"bluetooth.power.turnOff" = "Bluetooth 끄기";
+"bluetooth.power.unknown" = "Bluetooth 상태를 사용할 수 없습니다.";
+"bluetooth.power.changeFailed" = "Bluetooth 상태가 변경되지 않았습니다.";
+"bluetooth.power.offConfirmTitle" = "Bluetooth를 끄시겠습니까?";
+"bluetooth.power.offConfirmMessage" = "연결된 키보드, 마우스, 트랙패드 또는 게임 컨트롤러가 연결 해제될 수 있습니다. 이 패널이나 시스템 설정에서 Bluetooth를 다시 켤 수 있습니다.";
+"bluetooth.power.offConfirmAction" = "끄기";
 "bluetooth.pairedDevices.title" = "페어링된 기기";
 "bluetooth.devices.title" = "Bluetooth 기기";
 "bluetooth.nearbyBattery.title" = "주변 기기";
@@ -376,7 +384,6 @@
 "settings.preview.light" = "라이트";
 "settings.preview.toggleHelp" = "메뉴 막대 다크/라이트 배경 미리보기 전환";
 "settings.audio.displayRules" = "표시 규칙";
-"settings.audio.designerEntry" = "아이콘 디자이너에서 오디오 소스 사용자화";
 "settings.audio.activeDeviceFootnote" = "현재 활성화된 오디오 출력 기기는 강조 색상으로 표시됩니다.";
 "settings.audio.inUse" = "사용 중";
 "settings.wifi.symbolScale" = "Wi-Fi 아이콘 크기";
@@ -424,6 +431,20 @@
 "guide.anatomy.title" = "하나의 아이콘, 세 가지 정보";
 "guide.anatomy.description" = "부분을 선택하면 메뉴 막대와 Dock에서 해당 영역이 동시에 강조됩니다.";
 "guide.placement" = "설정에서 메뉴 막대, Dock 또는 둘 다 표시하도록 자유롭게 선택하고 언제든 변경할 수 있습니다.";
+"guide.menuBarHelp.prompt" = "Status Trio는 화면 오른쪽 위에 있습니다.";
+"guide.menuBarHelp.open" = "메뉴 막대 아이콘을 찾을 수 없나요?";
+"guide.menuBarHelp.title" = "Status Trio를 찾을 수 없나요?";
+"guide.menuBarHelp.reason" = "메뉴 막대가 복잡하면 노치 때문에 아이콘이 일시적으로 가려질 수 있습니다. Status Trio는 계속 실행 중입니다.";
+"guide.menuBarHelp.overflowStep" = "메뉴 막대의 오버플로 버튼(겹화살표)을 클릭하면 숨겨진 아이콘을 볼 수 있습니다.";
+"guide.menuBarHelp.menuBarSettingsStep" = "시스템 설정 > 메뉴 막대를 열고 Wi‑Fi, 배터리, 사운드 등 필요 없는 메뉴 막대 항목을 숨기십시오.";
+"guide.menuBarHelp.controlCenterStep" = "시스템 설정 > 제어 센터를 열고 Wi‑Fi, 배터리, 사운드 등 필요 없는 항목의 '메뉴 막대에 표시'를 끄십시오.";
+"guide.menuBarHelp.findStatusTrioStep" = "Status Trio는 이러한 상태를 한곳에 모아 중복 아이콘을 줄일 수 있습니다. 시스템 제어 기능은 제어 센터에서 계속 사용할 수 있습니다.";
+"guide.menuBarHelp.moveStep" = "아이콘이 보이면 ⌘를 누른 채 메뉴 막대 오른쪽으로 드래그하십시오.";
+"guide.menuBarHelp.openMenuBarSettings" = "메뉴 막대 설정 열기";
+"guide.menuBarHelp.openSystemSettings" = "시스템 설정 열기";
+"guide.menuBarHelp.reopen" = "다시 Status Trio를 찾지 못하면 응용 프로그램, Finder 또는 Spotlight에서 앱을 열어 설정으로 돌아갈 수 있습니다.";
+"guide.menuBarHelp.learnMore" = "Apple 메뉴 막대 가이드";
+"guide.menuBarHelp.close" = "닫기";
 "guide.states.title" = "상태 조합";
 "guide.states.description" = "자주 쓰는 배터리, 네트워크 및 음량 조합을 한눈에 확인하세요.";
 "guide.state.charging" = "충전 중 + Wi-Fi";
@@ -468,6 +489,29 @@
 "settings.appleBackgroundRefresh.description" = "상태 패널이 닫혀 있어도 선택한 Apple 기기의 배터리를 업데이트합니다.";
 "settings.appleBackgroundRefresh.interval" = "백그라운드 배터리 잔량 업데이트 간격";
 "settings.appleBackgroundRefresh.intervalValue" = "%d분";
+
+"settings.shortcut.title" = "상태 패널 열기";
+"settings.shortcut.description" = "어떤 앱에서든 같은 상태 패널을 여는 전역 단축키를 사용합니다. 일부 단축키는 입력기나 다른 앱에서 가로챌 수 있습니다.";
+"settings.shortcut.record" = "기록";
+"settings.shortcut.change" = "단축키 변경";
+"settings.shortcut.notSet" = "설정 안 됨";
+"settings.shortcut.clear" = "지우기";
+"settings.shortcut.recording" = "단축키를 입력하십시오…";
+"settings.shortcut.invalid" = "Command, Control 또는 Option 키와 다른 키를 함께 사용하십시오.";
+"settings.shortcut.inputMethodConflict" = "입력기가 이 조합을 가로챌 수 있습니다. Option과 글자처럼 다른 조합을 선택하십시오.";
+"settings.shortcut.unavailable" = "이 단축키를 사용할 수 없습니다. 다른 앱에서 사용 중일 수 있습니다.";
+"settings.shortcut.registrationFailed" = "이 단축키를 등록하지 못했습니다.";
+"settings.shortcut.restorationFailed" = "이전 단축키를 복원하지 못했습니다.";
+"settings.shortcut.accessibility.current" = "현재 전역 단축키: %@";
+"settings.shortcut.accessibility.unassigned" = "지정된 전역 단축키가 없습니다.";
+
+/* Icon Designer and built-in plugin additions. */
+"settings.network.designerEntry" = "아이콘 디자이너에서 네트워크 소스 사용자화";
+"settings.bluetooth.designerEntry" = "아이콘 디자이너에서 Bluetooth 소스 사용자화";
+"settings.battery.designerEntry" = "아이콘 디자이너에서 배터리 소스 사용자화";
+"settings.battery.macBehaviorDescription" = "이 옵션은 Mac 배터리를 소스로 사용할 때 적용되며, 외부 링에 선택된 AirPods 소스를 대체하지 않습니다.";
+"settings.battery.macBehavior" = "Mac 배터리 동작";
+"settings.audio.designerEntry" = "아이콘 디자이너에서 오디오 소스 사용자화";
 "icon.resolution.primary" = "기본 소스를 표시하는 중";
 "icon.resolution.fallback" = "대체 소스를 표시하는 중";
 "icon.resolution.none" = "현재 표시 중인 소스가 없습니다";
@@ -518,10 +562,6 @@
 "icon.designer.currentSourceUnavailableFormat" = "현재 소스(이 버전에서 사용할 수 없음): %@";
 "icon.designer.compatible" = "현재 설정과 호환";
 "icon.designer.legacySourcePreserved" = "새 소스를 선택할 때까지 현재 표시 규칙이 유지됩니다.";
-
-
-
-
 "iconDesigner.control.volumeDisplay" = "음량 표시";
 "iconDesigner.control.dots" = "점";
 "iconDesigner.control.arc" = "호";
@@ -571,7 +611,6 @@
 "iconDesigner.control.restoreSlotQuestionFormat" = "%@을(를) 클래식으로 복원할까요?";
 "iconDesigner.control.audioOutputFormat" = "오디오 출력 — %@";
 "iconDesigner.control.savedSymbolFormat" = "저장된 기호 — %@";
-
 "iconDesigner.control.airPodsBackgroundReads" = "백그라운드에서 AirPods 배터리 읽기 허용";
 "iconDesigner.control.selectAirPodsDevice" = "AirPods 기기 선택";
 "iconDesigner.control.selectConnectedBluetoothDevice" = "연결된 Bluetooth 기기 선택";
@@ -604,12 +643,9 @@
 "icon.designer.airPods.test.leftOnly" = "왼쪽만";
 "icon.designer.airPods.test.rightOnly" = "오른쪽만";
 "icon.designer.airPods.test.unavailable" = "배터리 데이터 없음";
-
 "iconPreviewData.edit" = "샘플 데이터 편집…";
-
 "iconPreviewData.simulatedNotice" = "아래 샘플 값은 이 미리보기에만 적용되며 실시간 데이터로 돌아가도 유지됩니다.";
 "iconPreviewData.liveNotice" = "실시간 상태는 읽기 전용입니다. 샘플을 편집하려면 시뮬레이션으로 전환하세요.";
-
 "iconPreviewData.applyToRealIcons" = "실제 메뉴 막대와 Dock에 적용";
 "iconPreviewData.applyToRealIconsNotice" = "시뮬레이션 데이터가 실제 메뉴 막대와 Dock을 표시하고 있습니다. 이 옵션을 끄거나 실시간 모드로 돌아가면 실제 상태로 복원됩니다.";
 "iconPreviewData.title" = "미리보기 데이터";
@@ -644,8 +680,6 @@
 "icon.designer.externalChangeNotice" = "다른 곳에서 아이콘 설정이 변경되어 실행 취소 기록을 지웠습니다.";
 "iconPreviewData.useLiveData" = "실시간 데이터 사용";
 "icon.designer.moreActions" = "추가 동작";
-
-/* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "네트워크 아이콘";
 "iconDesigner.centerColorMeaning.inputSource" = "입력 소스 아이콘";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi 신호 0칸";
@@ -658,7 +692,6 @@
 "iconDesigner.centerColorMeaning.legacyBluetoothGlyph" = "Bluetooth 아이콘";
 "iconDesigner.centerColorContext.fallbackFormat" = "대체: %@";
 "iconDesigner.centerColorContext.networkOverrideFormat" = "네트워크 우선: %@";
-
 "iconDesigner.centerColor.rolePicker" = "색상 적용 상태";
 "iconDesigner.centerColorHelp.networkPrimary" = "일반 네트워크 아이콘에 적용됩니다. Wi-Fi 끔, 연결 안 됨, 인터넷 없음, 유선 연결을 포함합니다.";
 "iconDesigner.centerColorHelp.inputSource" = "가운데에 그려질 때 현재 입력 소스의 아이콘 또는 짧은 레이블에 적용됩니다.";
@@ -671,8 +704,6 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "기존 중앙 표시에서 연결된 Wi-Fi의 신호가 0칸일 때 적용됩니다.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "기존 중앙 표시의 Bluetooth 아이콘에 적용됩니다.";
 "icon.designer.airPods.showTopSymbol" = "상단에 AirPods 아이콘 표시";
-
-/* Icon content editor */
 "iconDesigner.editor.editingElementFormat" = "%@ 편집";
 "iconDesigner.editor.contentTitle" = "콘텐츠";
 "iconDesigner.editor.unavailableTitle" = "사용할 수 없을 때";

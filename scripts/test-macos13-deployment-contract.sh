@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="${STATUS_TRIO_DEPLOYMENT_CONTRACT_ROOT:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}"
 cd "$ROOT"
 
 fail() {
@@ -52,9 +52,57 @@ require_exact "appcast generator default minimum" \
 
 require_file_text scripts/build-app.sh 'if [[ "${SDK_VERSION%%.*}" -lt 26 ]]; then'
 require_file_text scripts/verify-platform-version.sh 'requires SDK ${MINIMUM_SDK_MAJOR} or newer'
-if rg -n 'options\[:minimum\] \|\|= "15\.0"|MINIMUM_MACOS="15\.0"|EXPECTED_MINOS="15\.0"|"min_system_version": "15\.0"|"minimumMacOS": "15\.0"|platforms: \[\.macOS\(\.v15\)\]' \
-    Package.swift Support release.json scripts >/dev/null; then
-    fail "a known deployment constant still targets 15.0"
+require_file_text scripts/build-app.sh 'xcrun vtool -set-build-version macos "$HELPER_MINOS" "$SDK_VERSION"'
+require_file_text scripts/build-app.sh 'xcrun vtool -set-build-version macos "$BUILT_MINOS" "$SDK_VERSION"'
+if grep -Eq 'xcrun vtool -set-build-version macos "[^"]+" 26\.0' scripts/build-app.sh; then
+    fail "build-app.sh hardcodes the design-language SDK instead of the build SDK"
 fi
+
+DEPLOYMENT_PATTERN='options\[:minimum\] \|\|= "15\.0"|MINIMUM_MACOS="15\.0"|EXPECTED_MINOS="15\.0"|"min_system_version": "15\.0"|"minimumMacOS": "15\.0"|platforms: \[\.macOS\(\.v15\)\]'
+SCANNER_SELECTOR="${STATUS_TRIO_DEPLOYMENT_SCANNER:-auto}"
+SCAN_COMMAND=()
+
+case "$SCANNER_SELECTOR" in
+auto)
+    if command -v rg >/dev/null 2>&1; then
+        SCAN_COMMAND=(rg -n --glob '!test-macos13-deployment-contract-regressions.sh')
+    elif command -v grep >/dev/null 2>&1; then
+        SCAN_COMMAND=(grep -E -R -n --exclude='test-macos13-deployment-contract-regressions.sh')
+    else
+        fail "no supported scanner is available (rg or grep)"
+    fi
+    ;;
+rg)
+    SCANNER="$(command -v rg || true)"
+    [[ -n "$SCANNER" ]] || fail "requested scanner rg is not available"
+    SCAN_COMMAND=("$SCANNER" -n --glob '!test-macos13-deployment-contract-regressions.sh')
+    ;;
+grep)
+    SCANNER="$(command -v grep || true)"
+    [[ -n "$SCANNER" ]] || fail "requested scanner grep is not available"
+    SCAN_COMMAND=("$SCANNER" -E -R -n --exclude='test-macos13-deployment-contract-regressions.sh')
+    ;;
+*)
+    SCANNER="$(command -v "$SCANNER_SELECTOR" || true)"
+    [[ -n "$SCANNER" ]] || fail "requested scanner '$SCANNER_SELECTOR' is not available"
+    SCAN_COMMAND=("$SCANNER" -n)
+    ;;
+esac
+
+set +e
+"${SCAN_COMMAND[@]}" "$DEPLOYMENT_PATTERN" Package.swift Support release.json scripts >/dev/null
+SCAN_STATUS=$?
+set -e
+
+case "$SCAN_STATUS" in
+0)
+    fail "a known deployment constant still targets 15.0"
+    ;;
+1)
+    ;;
+*)
+    fail "deployment constant scan failed with exit status $SCAN_STATUS"
+    ;;
+esac
 
 echo "macOS 13 deployment contract passed"

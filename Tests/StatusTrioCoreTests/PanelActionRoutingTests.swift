@@ -43,6 +43,8 @@ final class PanelActionRoutingTests: XCTestCase {
     func testActionsClampFiniteScalarsFlushAndForwardEachCommandOnce() {
         var outputScalars: [Double] = []
         var inputScalars: [Double] = []
+        var inputRequestIDs: [UUID] = []
+        let requestID = UUID()
         var finishes = 0
         var muteToggles = 0
         var inputMuteToggles = 0
@@ -50,7 +52,10 @@ final class PanelActionRoutingTests: XCTestCase {
             setVolume: { outputScalars.append($0) },
             finishVolumeAdjustment: { finishes += 1 },
             toggleMute: { muteToggles += 1 },
-            setInputScalar: { inputScalars.append($0) },
+            setInputScalar: { value, id in
+                inputScalars.append(value)
+                inputRequestIDs.append(id)
+            },
             toggleInputMute: { inputMuteToggles += 1 }
         )
 
@@ -59,15 +64,42 @@ final class PanelActionRoutingTests: XCTestCase {
         actions.setVolume(.infinity)
         actions.finishVolumeAdjustment()
         actions.toggleMute()
-        actions.setInputScalar(-1)
+        actions.setInputScalar(-1, requestID: requestID)
         actions.setInputScalar(.nan)
         actions.toggleInputMute()
 
         XCTAssertEqual(outputScalars, [0.64, 1])
         XCTAssertEqual(inputScalars, [0])
+        XCTAssertEqual(inputRequestIDs, [requestID])
         XCTAssertEqual(finishes, 1)
         XCTAssertEqual(muteToggles, 1)
         XCTAssertEqual(inputMuteToggles, 1)
+    }
+
+    func testBluetoothPowerCommandRoutesOnceAndGuardsInputConfirmation() {
+        var powerRequests: [Bool] = []
+        let keyboard = BluetoothDevice(
+            id: "AA",
+            name: "MX Keys",
+            kind: .peripheral(.keyboard),
+            isConnected: true
+        )
+        let headphones = BluetoothDevice(
+            id: "BB",
+            name: "AirPods",
+            kind: .audio,
+            isConnected: true
+        )
+        let actions = StatusPanelActions(
+            bluetoothDevices: { [keyboard, headphones] },
+            setBluetoothPower: { powerRequests.append($0) }
+        )
+
+        XCTAssertTrue(actions.bluetoothPowerNeedsConfirmation(false))
+        XCTAssertFalse(actions.bluetoothPowerNeedsConfirmation(true))
+        actions.setBluetoothPower(false)
+
+        XCTAssertEqual(powerRequests, [false])
     }
 
     func testBluetoothActionsResolveCurrentAddressesAndRequireExistingListeningControl() {

@@ -15,6 +15,7 @@ struct BluetoothSectionView: View {
     @Binding var previewIsDark: Bool
     var onOpenIconDesigner: (IconSlot) -> Void = { _ in }
     @EnvironmentObject private var localization: Localization
+    @State private var settingsDemandToken: BluetoothSettingsDemandToken?
 
     var body: some View {
         SettingsPage(pinnedHeader: {
@@ -43,6 +44,21 @@ struct BluetoothSectionView: View {
                     subtitle: localization.string(.settingsBluetoothShowInStatusPanelDescription),
                     isOn: showInStatusPanelBinding
                 )
+
+                if BluetoothPowerControlVisibility.canConfigure(
+                    authorization: bluetoothDevices.authorization,
+                    showsInStatusPanel: store.enabledPopupSections.contains(.bluetooth)
+                ) {
+                    SettingsDivider()
+
+                    SettingsToggleRow(
+                        symbol: "power.circle",
+                        tint: .blue,
+                        title: localization.string(.settingsBluetoothPowerControl),
+                        subtitle: localization.string(.settingsBluetoothPowerControlDescription),
+                        isOn: $store.showsBluetoothPowerControl
+                    )
+                }
 
                 SettingsDivider()
 
@@ -195,22 +211,25 @@ struct BluetoothSectionView: View {
             let primary = store.iconConfiguration.composition.center.primary
             if primary == .automaticLegacy || primary == .bluetoothAudioOutput {
                 sourceBehaviorGroup
+                if primary == .automaticLegacy {
+                    legacyBluetoothAudioBehaviorGroup
+                }
             }
             deviceListGroup
             deviceOrderGroup
         }
-        .onAppear { claimDeviceSurface() }
-        .task(id: bluetoothDevices.authorization == .allowed) {
-            if bluetoothDevices.authorization == .allowed { claimDeviceSurface() }
-            else { bluetoothDevices.releaseVisibleSurface(Self.orderSurfaceToken) }
+        .onAppear {
+            if let settingsDemandToken {
+                statusStore.endBluetoothSettingsDemand(settingsDemandToken)
+            }
+            settingsDemandToken = statusStore.beginBluetoothSettingsDemand()
         }
         .onDisappear {
-            bluetoothDevices.releaseVisibleSurface(Self.orderSurfaceToken)
-            bluetoothDevices.releaseActivation(BluetoothDeviceController.settingsPaneActivationToken)
+            guard let settingsDemandToken else { return }
+            statusStore.endBluetoothSettingsDemand(settingsDemandToken)
+            self.settingsDemandToken = nil
         }
     }
-
-    private static let orderSurfaceToken = "bluetooth.settings.order.surface"
 
     private var sourceBehaviorGroup: some View {
         SettingsGroup(localization.string(.settingsBluetoothNetworkIconSourceGroup)) {
@@ -229,6 +248,91 @@ struct BluetoothSectionView: View {
                 SettingsDivider()
                 SettingsHintRow(text: localization.string(.settingsBluetoothNetworkIconSourceDevicesEmpty))
             }
+        }
+    }
+
+    private var bluetoothAudioIconChoiceRow: some View {
+        SettingsRow(
+            "headphones",
+            tint: .blue,
+            title: localization.string(.settingsBluetoothIconChoice),
+            subtitle: localization.string(.settingsBluetoothIconChoiceDescription)
+        ) {
+            Picker(
+                localization.string(.settingsBluetoothIconChoice),
+                selection: Binding(
+                    get: { store.bluetoothAudioIconChoice },
+                    set: { store.bluetoothAudioIconChoice = $0 }
+                )
+            ) {
+                ForEach(IconPresentationResourceResolver.availableBluetoothAudioIconChoices) { choice in
+                    Label(
+                        choice.displayName(using: localization),
+                        systemImage: choice.symbolName ?? "arrow.clockwise"
+                    )
+                    .tag(choice)
+                }
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
+            .labelsHidden()
+            .accessibilityLabel(localization.string(.settingsBluetoothIconChoice))
+            .accessibilityIdentifier("bluetooth.audioIconChoice")
+        }
+    }
+
+    private var legacyBluetoothAudioBehaviorGroup: some View {
+        SettingsGroup(localization.string(.settingsBluetoothTitle)) {
+            SettingsRow(
+                "wave.3.right.circle.fill",
+                tint: .blue,
+                title: localization.string(.settingsBluetoothSymbolScale),
+                subtitle: localization.string(.settingsBluetoothSymbolScaleDescription)
+            ) {
+                HStack(spacing: 8) {
+                    Slider(
+                        value: Binding(
+                            get: { store.bluetoothSymbolScale },
+                            set: { store.bluetoothSymbolScale = (round($0 * 20) / 20) }
+                        ),
+                        in: SettingsStore.bluetoothSymbolScaleRange
+                    )
+                    .frame(width: 130)
+                    .controlSize(.small)
+                    .accessibilityLabel(localization.string(.settingsBluetoothSymbolScale))
+                    .accessibilityValue(
+                        "\(Int(round(store.bluetoothSymbolScale * 100)))%"
+                    )
+
+                    Text("\(Int(round(store.bluetoothSymbolScale * 100)))%")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, alignment: .trailing)
+                }
+            }
+            if BluetoothNetworkIconSource.shouldShowAudioIconChoice(
+                replacingNetworkIcon: true,
+                selectedSource: selectedOption.source
+            ) {
+                SettingsDivider()
+                bluetoothAudioIconChoiceRow
+            }
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "speaker.wave.2.fill",
+                tint: .cyan,
+                title: localization.string(.settingsBluetoothVolumeColor),
+                subtitle: localization.string(.settingsBluetoothVolumeColorDescription),
+                isOn: $store.usesBluetoothAudioVolumeColor
+            )
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "wifi.exclamationmark",
+                tint: .orange,
+                title: localization.string(.settingsBluetoothNetworkErrorPriority),
+                subtitle: localization.string(.settingsBluetoothNetworkErrorPriorityDescription),
+                isOn: $store.prioritizesNetworkErrorsOverBluetoothAudio
+            )
         }
     }
 
@@ -315,22 +419,6 @@ struct BluetoothSectionView: View {
         return picked
     }
 
-    /// The pane shows paired devices, so it needs the same monitor the popover
-    /// uses — otherwise a fresh launch that opens Settings shows "No paired
-    /// devices available" while devices are paired, and drag-to-reorder is
-    /// unreachable. Only an app that already holds the grant may activate the
-    /// monitor, because starting it is what raises the system prompt; the gate
-    /// keeps this pane from ever prompting on its own. The claim stops the
-    /// safety-net poll when the pane goes away, but it never turns the enabled
-    /// flag off: the panel toggle and the popover own that.
-    private func claimDeviceSurface() {
-        guard BluetoothPanelActivation.shouldActivate(
-            authorization: bluetoothDevices.authorization
-        ) else { return }
-        guard bluetoothDevices.requestActivation(BluetoothDeviceController.settingsPaneActivationToken) else { return }
-        bluetoothDevices.holdVisibleSurface(Self.orderSurfaceToken)
-    }
-
     private var deviceListGroup: some View {
         SettingsGroup(localization.string(.settingsBluetoothDeviceListGroup)) {
             SettingsToggleRow(
@@ -394,10 +482,10 @@ struct BluetoothSectionView: View {
                             let isHidden = displayRow.sourceIDs.allSatisfy {
                                 store.hiddenBluetoothDeviceAddresses.contains(BluetoothDeviceIdentity.preferenceKey($0))
                             }
-                            HStack(spacing: 10) {
+                            HStack(alignment: .center, spacing: 10) {
                                 Image(systemName: BluetoothDeviceRowIcon.symbolName(for: device))
                                     .foregroundStyle(device.isConnected ? Color.accentColor : Color.secondary)
-                                    .frame(width: 18)
+                                    .frame(width: 18, height: 18, alignment: .center)
 
                                 Text(device.name)
                                     .font(.system(size: 13))
@@ -409,9 +497,11 @@ struct BluetoothSectionView: View {
                                         store.setBluetoothDeviceHidden(sourceID, hidden: !isHidden)
                                     }
                                 } label: {
-                                    Image(systemName: isHidden ? "eye.slash" : "eye")
-                                        .font(.system(size: 13))
-                                        .frame(width: 22, height: 22)
+                                    PanelActionGlyph(
+                                        systemName: isHidden ? "eye.slash" : "eye",
+                                        font: .system(size: 13),
+                                        size: 22
+                                    )
                                 }
                                 .buttonStyle(.plain)
                                 .help(isHidden
@@ -422,11 +512,13 @@ struct BluetoothSectionView: View {
                                       : localization.string(.settingsBluetoothHideDevice))
                                 .frame(width: 26)
 
-                                Image(systemName: "line.3.horizontal")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                                    .accessibilityHidden(true)
-                                    .frame(width: 18)
+                                PanelActionGlyph(
+                                    systemName: "line.3.horizontal",
+                                    font: .caption,
+                                    size: 18
+                                )
+                                .foregroundStyle(.tertiary)
+                                .accessibilityHidden(true)
                             }
                             .frame(height: 30)
                             .opacity(isHidden ? 0.45 : 1)
@@ -521,8 +613,8 @@ struct BluetoothSectionView: View {
                 guard enabled != wasEnabled else { return }
                 if enabled {
                     NSApp.activate(ignoringOtherApps: true)
+                    statusStore.requestBluetoothAuthorization()
                 }
-                statusStore.setBluetoothEnabled(enabled)
             }
         )
     }

@@ -67,6 +67,10 @@ final class TelemetryReporter {
         if consent.canShareAnonymousAnalytics {
             startPeriodicChecks()
             sendIfNeeded()
+        } else {
+            // Consent is already withdrawn: clear whatever an earlier grant left
+            // behind, so "off" also means no installation identifier on disk.
+            discardStoredIdentity()
         }
     }
 
@@ -110,6 +114,14 @@ final class TelemetryReporter {
     private func receiveConsent(_ updatedConsent: TelemetryConsent) {
         let wasEnabled = consent.canShareAnonymousAnalytics
         consent = updatedConsent
+        if wasEnabled, !consent.canShareAnonymousAnalytics {
+            // A withdrawal is not a scheduling question: stop the work and drop
+            // the identifier even in a build that would never send.
+            cancelAttempt()
+            cancelPeriodicChecks()
+            discardStoredIdentity()
+            return
+        }
         guard isStarted, isEligible else { return }
         if !consent.canShareAnonymousAnalytics {
             cancelAttempt()
@@ -145,6 +157,11 @@ final class TelemetryReporter {
                 self.sendIfNeeded()
             }
         }
+    }
+
+    private func discardStoredIdentity() {
+        let client = self.client
+        Task { await client.discardStoredIdentity() }
     }
 
     private func cancelAttempt() {

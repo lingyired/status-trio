@@ -1,5 +1,42 @@
 import SwiftUI
 
+enum BluetoothSummaryAction: CaseIterable, Equatable {
+    case refresh
+    case radioPower
+    case settings
+}
+
+enum BluetoothSummaryActionLayout {
+    static func trailingActions(
+        showsPowerControl: Bool,
+        showsPowerButton: Bool
+    ) -> [BluetoothSummaryAction] {
+        if showsPowerControl && showsPowerButton {
+            return [.radioPower, .refresh, .settings]
+        }
+        return [.refresh, .settings]
+    }
+}
+
+enum BluetoothSummaryActionAvailability {
+    static func isRefreshEnabled(
+        availability: BluetoothAvailability,
+        radioPowerIsChanging: Bool
+    ) -> Bool {
+        availability == .available && !radioPowerIsChanging
+    }
+
+    static func refreshAction(
+        refreshDevices: @escaping () -> Void,
+        refreshMobileBatteries: @escaping () -> Void
+    ) -> () -> Void {
+        {
+            refreshDevices()
+            refreshMobileBatteries()
+        }
+    }
+}
+
 /// The Bluetooth summary row. It reports live device state — a permission
 /// request while the grant is undecided, then the states only the row can
 /// explain — and lists available device readings under it. A connected device is marked
@@ -13,6 +50,7 @@ import SwiftUI
 /// a level read that failed.
 struct BluetoothStatusView: View {
     @ObservedObject var controller: BluetoothDeviceController
+    @ObservedObject var radioPower: BluetoothRadioPowerController
     @ObservedObject var mobileBatteryController: MobileBatteryController
     @EnvironmentObject private var localization: Localization
     let showsBatteryLevels: Bool
@@ -22,12 +60,18 @@ struct BluetoothStatusView: View {
     var currentTrustedAppleCandidates: [AppleDeviceCandidate] = []
     var trustedDiscoveryGeneration: UInt64 = 0
     var listOptions: BluetoothDeviceListOptions = .standard
+    var showsRadioPowerControl = true
+    var showsBluetoothInStatusPanel = true
+    var listeningModePresentations: [String: BluetoothListeningModePresentation] = [:]
+    var onSelectListeningMode: (String, BluetoothListeningMode) -> Void = { _, _ in }
     let onRequestAuthorization: () -> Void
     let onOpenBluetoothSettings: () -> Void
     let onOpenBluetoothPermissionSettings: () -> Void
+    let onSetRadioPower: (Bool) -> Void
 
     @State private var visibleTrustedAppleIDs = Set<AppleDeviceID>()
     @State private var visibleNearbyBLEIDs = Set<UUID>()
+    @State private var confirmingPowerOff = false
 
     private var unhiddenListOptions: BluetoothDeviceListOptions {
         BluetoothDeviceListOptions(
@@ -82,6 +126,14 @@ struct BluetoothStatusView: View {
         )
     }
 
+    private var resolvesRadioPowerControl: Bool {
+        BluetoothPowerControlVisibility.showsPanelControl(
+            authorization: controller.authorization,
+            showsInStatusPanel: showsBluetoothInStatusPanel,
+            isEnabled: showsRadioPowerControl
+        )
+    }
+
     private var appleProjection: AppleDeviceCatalog.Projection {
         let candidates = showsAppleDevicesAndBattery
             ? AppleDeviceCatalog.candidates(trusted: trustedAppleDeviceMetadata)
@@ -117,37 +169,31 @@ struct BluetoothStatusView: View {
         )
 
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
                 titleBlock
 
-                Button(action: {
-                    controller.refreshFromUser()
-                    mobileBatteryController.refresh()
-                }) {
-                    // Trailing-aligned inside the button's own box: the other
-                    // rows end on their disclosure chevron itself, so its right
-                    // edge is what sits ten points before the gear. A glyph
-                    // centred in this 24-point box would land about seven points
-                    // to the left of that column. The whole box stays clickable.
-                    Image(systemName: "arrow.clockwise")
-                        .frame(width: 24, height: 24, alignment: .trailing)
-                        .contentShape(Rectangle())
+                let powerPresentation = BluetoothRadioPowerPresentation.make(
+                    power: radioPower.power,
+                    isChanging: radioPower.isChanging,
+                    failure: radioPower.failure,
+                    localization: localization
+                )
+                ForEach(
+                    BluetoothSummaryActionLayout.trailingActions(
+                        showsPowerControl: resolvesRadioPowerControl,
+                        showsPowerButton: powerPresentation.showsToggle
+                    ),
+                    id: \.self
+                ) { action in
+                    switch action {
+                    case .refresh:
+                        refreshButton
+                    case .radioPower:
+                        radioPowerToggle(presentation: powerPresentation)
+                    case .settings:
+                        settingsButton
+                    }
                 }
-                .buttonStyle(.plain)
-                // The same weight as the disclosure chevron the other rows end
-                // on, so the panel's trailing column reads as one thing. The gear
-                // beside it stays `secondary`, exactly as it does next to that
-                // chevron in the Wi-Fi and battery rows.
-                .foregroundStyle(.tertiary)
-                .help(localization.string(.bluetoothRefresh))
-                .accessibilityLabel(localization.string(.bluetoothRefresh))
-
-                Button(localization.string(.bluetoothActionOpenSettings), systemImage: "gearshape", action: onOpenBluetoothSettings)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .help(localization.string(.bluetoothActionOpenSettings))
-                    .frame(width: 24, height: 24)
             }
 
             if listOptions.showsList && (BluetoothPanelListVisibility.showsList(availability: controller.availability, devices: controller.devices, options: listOptions) || !appleRows.isEmpty || !nearbyRows.isEmpty) {
@@ -171,6 +217,8 @@ struct BluetoothStatusView: View {
                     actionStates: controller.deviceActionStates,
                     confirmingAddress: controller.pendingDisconnectConfirmation,
                     options: effectiveListOptions,
+                    listeningModePresentations: listeningModePresentations,
+                    onSelectListeningMode: onSelectListeningMode,
                     onPerformAction: { controller.performDeviceAction(for: $0) },
                     onRequestDisconnect: { controller.requestDisconnectConfirmation(for: $0) },
                     onCancelDisconnect: { controller.cancelDisconnectConfirmation() }
@@ -208,6 +256,10 @@ struct BluetoothStatusView: View {
             }
             controller.requestBatteryLevels(Self.summaryBatteryLevelsToken)
         }
+        .task(id: resolvesRadioPowerControl) {
+            guard resolvesRadioPowerControl else { return }
+            radioPower.refresh()
+        }
         .task(id: mobileBatteryClaimTaskID) {
             guard showsMobileBatteryFeature else {
                 mobileBatteryController.release(Self.mobileBatteryToken)
@@ -230,6 +282,87 @@ struct BluetoothStatusView: View {
                 keepingResults: showsMobileBatteryFeature
             )
             mobileBatteryController.setAuthorizedDeviceIDs([])
+        }
+        .alert(
+            localization.string(.bluetoothPowerOffConfirmTitle),
+            isPresented: $confirmingPowerOff
+        ) {
+            Button(localization.string(.commonCancel), role: .cancel) {}
+            Button(localization.string(.bluetoothPowerOffConfirmAction), role: .destructive) {
+                onSetRadioPower(false)
+            }
+        } message: {
+            Text(localization.string(.bluetoothPowerOffConfirmMessage))
+        }
+    }
+
+    private var refreshButton: some View {
+        Button(action: BluetoothSummaryActionAvailability.refreshAction(
+            refreshDevices: { controller.refreshFromUser() },
+            refreshMobileBatteries: { mobileBatteryController.refresh() }
+        )) {
+            PanelActionGlyph(systemName: "arrow.clockwise")
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .disabled(!BluetoothSummaryActionAvailability.isRefreshEnabled(
+            availability: controller.availability,
+            radioPowerIsChanging: radioPower.isChanging
+        ))
+        .help(localization.string(.bluetoothRefresh))
+        .accessibilityLabel(localization.string(.bluetoothRefresh))
+    }
+
+    private var settingsButton: some View {
+        Button(action: onOpenBluetoothSettings) {
+            PanelActionGlyph(systemName: "gearshape")
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .help(localization.string(.bluetoothActionOpenSettings))
+        .accessibilityLabel(localization.string(.bluetoothActionOpenSettings))
+    }
+
+    private func radioPowerToggle(
+        presentation: BluetoothRadioPowerPresentation
+    ) -> some View {
+        Button {
+            let enabled = !presentation.isOn
+            if !enabled && BluetoothRadioPowerPolicy.requiresConfirmation(
+                beforeTurningOff: controller.devices
+            ) {
+                confirmingPowerOff = true
+            } else {
+                onSetRadioPower(enabled)
+            }
+        } label: {
+            PanelActionGlyph(systemName: presentation.symbolName)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(powerIconColor(for: presentation.iconState))
+        .disabled(!presentation.toggleEnabled)
+        .help(
+            localization.string(
+                presentation.isOn ? .bluetoothPowerTurnOff : .bluetoothPowerTurnOn
+            )
+        )
+        .accessibilityLabel(
+            localization.string(
+                presentation.isOn ? .bluetoothPowerTurnOff : .bluetoothPowerTurnOn
+            )
+        )
+        .accessibilityValue(presentation.accessibilityValue)
+    }
+
+    private func powerIconColor(for state: BluetoothRadioPowerIconState) -> Color {
+        switch state {
+        case .on:
+            .accentColor
+        case .off:
+            .secondary
+        case .unknown, .unavailable:
+            .secondary.opacity(0.65)
         }
     }
 
@@ -416,6 +549,15 @@ struct BluetoothStatusView: View {
     }
 
     private var summaryText: String {
+        let radioPresentation = BluetoothRadioPowerPresentation.make(
+            power: radioPower.power,
+            isChanging: radioPower.isChanging,
+            failure: radioPower.failure,
+            localization: localization
+        )
+        if let failureText = radioPresentation.subtitle {
+            return failureText
+        }
         switch summaryPresentation {
         case .requestAuthorization:
             return localization.string(.bluetoothAuthorizationNotDetermined)

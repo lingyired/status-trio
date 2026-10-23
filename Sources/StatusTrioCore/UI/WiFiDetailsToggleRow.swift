@@ -18,12 +18,17 @@ struct WiFiDetailsToggleRow: View {
         Button {
             isExpanded.toggle()
         } label: {
-            Label(
-                localization.string(
-                    WiFiNetworkPresentation.detailsToggleTitleKey(isExpanded: isExpanded)
-                ),
-                systemImage: WiFiNetworkPresentation.detailsToggleSymbol(isExpanded: isExpanded)
-            )
+            HStack(alignment: .center, spacing: 6) {
+                PanelActionGlyph(
+                    systemName: WiFiNetworkPresentation.detailsToggleSymbol(isExpanded: isExpanded),
+                    size: 16
+                )
+                Text(
+                    localization.string(
+                        WiFiNetworkPresentation.detailsToggleTitleKey(isExpanded: isExpanded)
+                    )
+                )
+            }
             // The row is the hit target across the whole list width, not just
             // the glyphs it draws.
             .frame(maxWidth: .infinity, alignment: .leading)

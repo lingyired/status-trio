@@ -54,14 +54,13 @@ struct StatusBarControllerVisibilityTests {
             openSettings: {},
             quitAction: {},
             chargingEffectClock: clock,
-            renderMenuBarIcon: { scene, size, scale, appearance, phase in
+            renderMenuBarBase: { scene, size, scale, appearance in
                 guard !rasterFailure.isEnabled else { return nil }
-                return StatusIconRenderer.menuBarLayers(
+                return StatusIconRenderer.menuBarTemplateBase(
                     scene: scene,
                     size: CGFloat(size),
                     scale: scale,
-                    appearance: appearance,
-                    phase: phase
+                    appearance: appearance
                 )
             }
         )
@@ -79,8 +78,11 @@ struct StatusBarControllerVisibilityTests {
         #expect(controller.hasLayerBackedAnimation)
         #expect(controller.presentedImageForTesting?.size.width == 32)
 
-        settings.setChargingEffectTestEnabled(false)
+        // Publishing the setting can render synchronously after the coalescing
+        // interval. Arm the failure first so both immediate and queued draws fail.
         rasterFailure.isEnabled = true
+        settings.setChargingEffectTestEnabled(false)
+        controller.flushPendingPresentationForTesting()
         clock.update(battery: battery, enabled: true, reduceMotion: false, displayAsleep: false)
         #expect(!clock.isRunning)
         #expect(controller.cachedChargingFrameCount == 36)

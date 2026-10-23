@@ -403,7 +403,7 @@ private final class PresentationVolumeEvents: VolumeEventMonitoring {
 
 private final class PresentationDDCTransport: DDCVolumeTransport {
     func resolve(uid: String) -> DDCDisplayTarget? { DDCDisplayTarget(uid: uid, service: nil) }
-    func read(_ target: DDCDisplayTarget) -> DDCVolumeReply? { DDCVolumeReply(current: 75, maximum: 100) }
+    func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult { .reply(DDCVolumeReply(current: 75, maximum: 100)) }
     func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool { true }
 }
 
@@ -469,7 +469,7 @@ private final class PendingDDCCommandHistory {
 
 private final class FailingWritePresentationDDCTransport: DDCVolumeTransport {
     func resolve(uid: String) -> DDCDisplayTarget? { DDCDisplayTarget(uid: uid, service: nil) }
-    func read(_ target: DDCDisplayTarget) -> DDCVolumeReply? { DDCVolumeReply(current: 75, maximum: 100) }
+    func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult { .reply(DDCVolumeReply(current: 75, maximum: 100)) }
     func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool { false }
 }
 
@@ -480,7 +480,7 @@ private final class SlowFirstReadPresentationDDCTransport: DDCVolumeTransport, @
 
     func resolve(uid: String) -> DDCDisplayTarget? { DDCDisplayTarget(uid: uid, service: nil) }
 
-    func read(_ target: DDCDisplayTarget) -> DDCVolumeReply? {
+    func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult {
         lock.lock()
         readCount += 1
         let isFirstRead = readCount == 1
@@ -488,7 +488,7 @@ private final class SlowFirstReadPresentationDDCTransport: DDCVolumeTransport, @
         lock.unlock()
 
         if isFirstRead { Thread.sleep(forTimeInterval: 2.2) }
-        return DDCVolumeReply(current: isFirstRead ? initialValue : currentValueSnapshot(), maximum: 100)
+        return .reply(DDCVolumeReply(current: isFirstRead ? initialValue : currentValueSnapshot(), maximum: 100))
     }
 
     func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool {
@@ -512,9 +512,9 @@ private final class TrackingPresentationDDCTransport: DDCVolumeTransport {
     var writeCount: Int { lock.lock(); defer { lock.unlock() }; return writes }
     var readCount: Int { lock.lock(); defer { lock.unlock() }; return reads }
     func resolve(uid: String) -> DDCDisplayTarget? { DDCDisplayTarget(uid: uid, service: nil) }
-    func read(_ target: DDCDisplayTarget) -> DDCVolumeReply? {
+    func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult {
         lock.lock(); reads += 1; lock.unlock()
-        return DDCVolumeReply(current: 75, maximum: 100)
+        return .reply(DDCVolumeReply(current: 75, maximum: 100))
     }
     func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool {
         lock.lock(); writes += 1; lock.unlock()

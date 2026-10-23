@@ -44,13 +44,28 @@ struct BluetoothDeviceRow: View {
     var nearbyMetadataByDeviceID: [String: NearbyBLEPanelRow] = [:]
     var appleStatusByDeviceID: [String: NearbyBLEPanelRowStatus] = [:]
     var canonicalStatusByDeviceID: [String: NearbyBLEPanelRowStatus] = [:]
+    var listeningMode: BluetoothListeningModePresentation? = nil
+    var onSelectListeningMode: (BluetoothListeningMode) -> Void = { _ in }
     let actionState: BluetoothDeviceActionState?
     let isConfirmingDisconnect: Bool
     let onPerformAction: () -> Void
     let onRequestDisconnect: () -> Void
     let onCancelDisconnect: () -> Void
-
     var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            deviceRow
+            if device.isHuaweiAudio, let listeningMode, listeningMode.isControllable {
+                BluetoothListeningModeControl(
+                    presentation: listeningMode,
+                    onSelect: onSelectListeningMode
+                )
+                .padding(.leading, BluetoothPanelMetrics.iconColumnWidth + BluetoothPanelMetrics.iconTextSpacing)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var deviceRow: some View {
         let status = BluetoothDeviceActionPolicy.status(for: device, actionState: actionState)
         if isConfirmingDisconnect {
             HStack(spacing: BluetoothPanelMetrics.iconTextSpacing) {
@@ -81,14 +96,9 @@ struct BluetoothDeviceRow: View {
             .disabled(isActionInFlight)
             .help(actionHelp)
             .accessibilityElement(children: .combine)
-            // The word is gone from the row, so the state lives here instead: a
-            // screen reader still hears whether the device is connected.
             .accessibilityValue(rowAccessibilityValue)
             .accessibilityHint(actionHelp)
         } else {
-            // Read-only: a row a reading created has no paired connection to
-            // make or break, so it is not a button and offers no action. The
-            // level it carries is the whole of what it has to say.
             rowContent(status)
                 .accessibilityElement(children: .combine)
                 .accessibilityValue(rowAccessibilityValue)

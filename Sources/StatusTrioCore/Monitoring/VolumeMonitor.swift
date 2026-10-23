@@ -811,6 +811,16 @@ final class CoreAudioVolumeEventMonitor: VolumeEventMonitoring {
     }
 }
 
+/// Carries a main-actor value into the queue hop used by `deinit`, where no
+/// isolation is available to prove the hand-off.
+private final class MainActorBox<Value>: @unchecked Sendable {
+    let value: Value
+
+    init(_ value: Value) {
+        self.value = value
+    }
+}
+
 @MainActor
 final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     private enum Lifecycle {
@@ -823,7 +833,9 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     private let continuation: AsyncStream<VolumeStatus>.Continuation
     private let statusReader: any AudioStatusReadingProviding
     private let appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter
-    private let eventMonitor: any VolumeEventMonitoring
+    /// `nonisolated(unsafe)` so the nonisolated `deinit` can hand its teardown
+    /// to the main queue; every other access is on the main actor.
+    nonisolated(unsafe) private let eventMonitor: any VolumeEventMonitoring
     private let outputController: (any AudioOutputControlling)?
     private let ddcTransport: any DDCVolumeTransport
     private let suppliedDDCCoordinator: DDCVolumeCoordinator?
@@ -844,10 +856,16 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     private var readToken: UInt64 = 0
     private let readWatchdog: ReadWatchdog
     private var lifecycle = Lifecycle.idle
-    private var screenObserver: NSObjectProtocol?
+    /// `nonisolated(unsafe)` so the nonisolated `deinit` can drop it: the token
+    /// is only written on the main actor, and removal from NotificationCenter is
+    /// thread-safe.
+    nonisolated(unsafe) private var screenObserver: NSObjectProtocol?
     private var selectedDDCOutputID: AudioDeviceID?
     private var selectedDDCUID: String?
     private var ddcStatusGeneration: UInt64?
+    /// What the DDC path currently knows. `.unknown` after any invalidation, so
+    /// a failed read can never leave the previous device's percentage on screen.
+    private var ddcCapability: DDCVolumeCapability = .unknown
     private var pendingDDCVolume: (commandID: UInt64, scalar: Double)?
     private var displayAsleep = false
 
@@ -884,14 +902,34 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     }
 
     deinit {
-        MainActor.assumeIsolated {
-            scheduledRefreshTask?.cancel()
-            if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }
-            if lifecycle != .stopped {
-                eventMonitor.stop()
-            }
+        // `deinit` is nonisolated, and the last reference can be released from
+        // any thread, so asserting the main actor here trapped instead of
+        // cleaning up. Cancel the scheduled work and drop the observer, which
+        // are safe from any thread; the main-actor teardown belongs to `stop()`,
+        // and the event monitor unregisters its own CoreAudio listeners from its
+        // `deinit` when `stop()` never ran.
+        scheduledRefreshTask?.cancel()
+        if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }
+        if lifecycle != .stopped {
+            // The monitor's `stop()` is main-actor code. Run it inline here when
+            // the last reference is released on the main thread, which is the
+            // normal case, and otherwise hand it to the main queue: asserting
+            // the actor instead trapped in any background release.
+            Self.stopEventMonitor(eventMonitor)
         }
         continuation.finish()
+    }
+
+    /// Runs the event monitor's main-actor teardown from a nonisolated context.
+    private nonisolated static func stopEventMonitor(_ monitor: any VolumeEventMonitoring) {
+        let monitor = MainActorBox(monitor)
+        if Thread.isMainThread {
+            MainActor.assumeIsolated { monitor.value.stop() }
+        } else {
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { monitor.value.stop() }
+            }
+        }
     }
 
     func start() {
@@ -1133,10 +1171,11 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
                     selectedDDCOutputID = current.id
                     selectedDDCUID = current.uid
                     ddcStatusGeneration = nil
+                    ddcCapability = .unknown
                     pendingDDCVolume = nil
                     ddcCoordinator.select(outputID: current.id, uid: current.uid)
                 } else if ddcStatusGeneration == ddcCoordinator.generation {
-                    retainedDDCScalar = latestStatus.scalar
+                    retainedDDCScalar = ddcCapability.scalar
                 }
             } else {
                 invalidateDDCSelection()
@@ -1176,7 +1215,11 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
             guard update.commandID == pendingDDCVolume.commandID else { return }
             self.pendingDDCVolume = nil
         }
-        ddcStatusGeneration = update.scalar == nil ? nil : update.generation
+        // The capability is the single source of truth for the DDC value: an
+        // unavailable read publishes no percentage at all, so the slider goes
+        // back to disabled instead of keeping the optimistic drag value.
+        ddcCapability = update.capability
+        ddcStatusGeneration = update.capability.scalar == nil ? nil : update.generation
         var devices = latestStatus.outputDevices
         if let index = devices.firstIndex(where: { $0.isCurrent && $0.id == update.outputID }) {
             devices[index] = devices[index].replacingVolume(update.scalar)
@@ -1187,7 +1230,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
             deviceName: latestStatus.deviceName,
             currentDevice: latestStatus.currentDevice?.replacingVolume(update.scalar),
             outputDevices: devices,
-            canSetVolume: update.scalar != nil,
+            canSetVolume: update.capability.isWritable,
             canMute: false
         )
         continuation.yield(latestStatus)
@@ -1210,12 +1253,14 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         selectedDDCOutputID = nil
         selectedDDCUID = nil
         ddcStatusGeneration = nil
+        ddcCapability = .unknown
         pendingDDCVolume = nil
     }
 
     private func clearDDCStatus() {
         guard selectedDDCUID != nil else { return }
         ddcStatusGeneration = nil
+        ddcCapability = .unknown
         pendingDDCVolume = nil
         var devices = latestStatus.outputDevices
         if let id = selectedDDCOutputID,

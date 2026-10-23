@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import SwiftUI
 import XCTest
 @testable import StatusTrioCore
@@ -211,6 +212,64 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertNotNil(hostingView.subviews)
     }
 
+    func testGeneralPaneRendersTheShortcutRecorderAndClearAction() throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let settings = SettingsStore(defaults: suite.defaults)
+        settings.statusPanelShortcut = StatusPanelShortcut(
+            keyCode: 36,
+            modifiers: UInt32(cmdKey)
+        )
+        let localization = Localization(
+            defaults: suite.defaults,
+            preferredLanguages: ["en"]
+        )
+        let backend = ShortcutSettingsBackend()
+        let shortcutController = GlobalShortcutController(
+            settings: settings,
+            backend: backend,
+            action: {}
+        )
+        shortcutController.start()
+        defer { shortcutController.stop() }
+
+        let view = GeneralSectionView(
+            store: settings,
+            localization: localization,
+            globalShortcutController: shortcutController
+        )
+        let hostingView = NSHostingView(rootView: view)
+        hostingView.frame = NSRect(
+            x: 0,
+            y: 0,
+            width: SettingsView.width - SettingsView.sidebarWidth,
+            height: SettingsView.height
+        )
+        hostingView.layoutSubtreeIfNeeded()
+
+        let views = hostingView.descendantsForTesting()
+        let recorder = try XCTUnwrap(
+            views.compactMap { $0 as? ShortcutRecorderButton }.first
+        )
+        XCTAssertEqual(recorder.title, "⌘↩")
+
+        let clearButton = try XCTUnwrap(
+            views
+                .compactMap { $0 as? NSButton }
+                .first {
+                    $0.title == localization.string(.settingsShortcutClear)
+                        || $0.accessibilityLabel()
+                            == localization.string(.settingsShortcutClear)
+                },
+            views.compactMap { view -> String? in
+                guard let button = view as? NSButton else { return nil }
+                return "\(button.title) / \(button.accessibilityLabel() ?? "nil")"
+            }.joined(separator: "\n")
+        )
+        clearButton.performClick(nil)
+        XCTAssertNil(settings.statusPanelShortcut)
+    }
+
     func testSectionTitlesLocalizedForAllLanguages() {
         let name = "StatusTrioCoreTests.SettingsViewTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name) ?? .standard
@@ -236,6 +295,34 @@ private func makeSuite() -> (defaults: UserDefaults, name: String) {
 
 private func clear(_ suite: (defaults: UserDefaults, name: String)) {
     suite.defaults.removeTestSuite(named: suite.name)
+}
+
+private extension NSView {
+    func descendantsForTesting() -> [NSView] {
+        subviews + subviews.flatMap { $0.descendantsForTesting() }
+    }
+}
+
+@MainActor
+private final class ShortcutSettingsBackend: GlobalShortcutRegistering {
+    private var tokens: Set<UUID> = []
+
+    func register(
+        _ shortcut: StatusPanelShortcut,
+        action: @escaping @MainActor () -> Void
+    ) throws -> UUID {
+        let token = UUID()
+        tokens.insert(token)
+        return token
+    }
+
+    func unregister(_ token: UUID) {
+        tokens.remove(token)
+    }
+
+    func stop() {
+        tokens.removeAll()
+    }
 }
 
 @MainActor

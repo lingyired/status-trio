@@ -33,6 +33,7 @@ final class SettingsRowHitAreaTests: XCTestCase {
             openBluetoothPermissionSettings: {},
             openSettings: {},
             openSoundSettings: {},
+            openSoundInputSettings: {},
             openKeyboardSettings: {},
             quit: {}
         )

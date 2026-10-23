@@ -57,7 +57,6 @@
 "settings.menuBar.title" = "Icona della barra dei menu";
 "settings.network.connectionIcons" = "Stile delle icone di connessione";
 "settings.network.connectionIcons.description" = "Se attivato, lo stato selezionato usa l’icona standard del segnale Wi-Fi invece del simbolo dedicato.";
-"settings.network.designerEntry" = "Personalizza la sorgente di rete in Icon Designer";
 "settings.network.wifiIconForEthernet" = "Usa l’icona Wi-Fi per Ethernet";
 "settings.network.wifiIconForHotspot" = "Usa l’icona Wi-Fi per hotspot personale";
 "settings.network.wifiIconForTemporaryConnection" = "Usa l’icona Wi-Fi per connessione temporanea";
@@ -70,7 +69,6 @@
 "settings.network.centerSource.networkWarnings" = "Dai priorità ai problemi di rete";
 "settings.network.centerSource.networkWarnings.description" = "Quando il Mac è davvero offline, al centro viene mostrato lo stato della rete invece della sorgente di input.";
 "settings.bluetooth.title" = "Audio Bluetooth";
-"settings.bluetooth.designerEntry" = "Personalizza la sorgente Bluetooth in Icon Designer";
 "settings.bluetooth.replaceNetworkIcon" = "Sostituisci l’icona di rete con l’icona di un dispositivo Bluetooth";
 "settings.bluetooth.replaceNetworkIconDescription" = "Sostituisce l’icona Wi‑Fi con l’icona blu del dispositivo Bluetooth scelto.";
 "settings.bluetooth.networkIconSourceGroup" = "Usa l’icona di un dispositivo Bluetooth";
@@ -94,6 +92,8 @@
 "settings.bluetooth.listeningModePreviewLanguageDescription" = "Mostra i nomi delle capsule nelle righe di anteprima in una lingua scelta, lasciando il resto del pannello nella lingua di sistema. Utile per confrontare il capo di una parola lunga in tedesco o una scrittura da destra a sinistra in arabo.";
 "settings.bluetooth.showInStatusPanel" = "Mostra Bluetooth nel pannello di stato";
 "settings.bluetooth.showInStatusPanelDescription" = "Controlla l’elemento Bluetooth nel pannello di stato e resta sincronizzato con le impostazioni del pannello di stato.";
+"settings.bluetooth.powerControl" = "Mostra il controllo di accensione Bluetooth";
+"settings.bluetooth.powerControlDescription" = "Aggiunge un pulsante di accensione Bluetooth al pannello di stato. Non richiede autorizzazioni aggiuntive.";
 "settings.bluetooth.symbolScale" = "Dimensione icona Bluetooth";
 "settings.bluetooth.symbolScaleDescription" = "Regola la scala dell’icona del dispositivo Bluetooth nell’anello di stato dal 100% al 180%.";
 "settings.bluetooth.iconChoice" = "Icona audio Bluetooth";
@@ -134,9 +134,6 @@
 "settings.about.starOnGitHub" = "Aggiungi una stella su GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Visualizzazione batteria";
-"settings.battery.designerEntry" = "Personalizza la sorgente batteria in Icon Designer";
-"settings.battery.macBehaviorDescription" = "Queste opzioni si applicano alla batteria del Mac quando viene usata come sorgente; non sostituiscono gli AirPods selezionati per l’anello esterno.";
-"settings.battery.macBehavior" = "Comportamento della batteria del Mac";
 "settings.battery.showPercentage" = "Mostra percentuale batteria";
 "settings.battery.showPercentageInConnectionSlot" = "Mostra la percentuale della batteria nella posizione della connessione";
 "settings.battery.showPercentageInConnectionSlotDescription" = "Sostituisce il simbolo Wi-Fi o di connessione. È indipendente dall’indicatore della batteria in alto.";
@@ -144,6 +141,10 @@
 "settings.battery.chargingDescription" = "Se attivato, la percentuale diventa un fulmine o una spina durante la carica o con alimentazione collegata.";
 "settings.battery.chargingEffect" = "Effetto di ricarica";
 "settings.battery.chargingEffectDescription" = "Anima l’evidenziazione solo durante la ricarica. Si interrompe quando «Riduci movimento» è attivo.";
+"settings.battery.menuBarChargingEffect" = "Effetto di ricarica nella barra dei menu";
+"settings.battery.menuBarChargingEffectDescription" = "Anima l’evidenziazione di ricarica solo nella barra dei menu. Il Dock è controllato separatamente; entrambi si fermano con «Riduci movimento».";
+"settings.battery.dockChargingEffect" = "Effetto di ricarica nel Dock";
+"settings.battery.dockChargingEffectDescription" = "Anima l’evidenziazione di ricarica solo nell’icona del Dock. La barra dei menu è controllata separatamente; entrambi si fermano con «Riduci movimento».";
 "settings.battery.chargingBoltHeartbeat" = "Pulsazione del fulmine di ricarica";
 "settings.battery.chargingBoltHeartbeatDescription" = "Disattivala per mantenere il fulmine alle dimensioni e al colore abituali; l’effetto dell’arco di ricarica continua.";
 "settings.battery.chargingEffectTest" = "Prova animazione di ricarica";
@@ -340,6 +341,13 @@
 "wifi.security.enterprise" = "Enterprise";
 "bluetooth.openDetails" = "Apri i dettagli per visualizzare lo stato del dispositivo";
 "bluetooth.title" = "Bluetooth";
+"bluetooth.power.turnOn" = "Attiva Bluetooth";
+"bluetooth.power.turnOff" = "Disattiva Bluetooth";
+"bluetooth.power.unknown" = "Lo stato del Bluetooth non è disponibile.";
+"bluetooth.power.changeFailed" = "Bluetooth non ha cambiato stato.";
+"bluetooth.power.offConfirmTitle" = "Disattivare Bluetooth?";
+"bluetooth.power.offConfirmMessage" = "Le tastiere, i mouse, i trackpad o i controller collegati potrebbero disconnettersi. Puoi riattivare Bluetooth da questo pannello o dalle Impostazioni di Sistema.";
+"bluetooth.power.offConfirmAction" = "Disattiva";
 "bluetooth.pairedDevices.title" = "Abbinati";
 "bluetooth.devices.title" = "Dispositivi Bluetooth";
 "bluetooth.nearbyBattery.title" = "Nelle vicinanze";
@@ -376,7 +384,6 @@
 "settings.preview.light" = "Chiaro";
 "settings.preview.toggleHelp" = "Alterna anteprima scura/chiara della barra dei menu";
 "settings.audio.displayRules" = "Regole di visualizzazione";
-"settings.audio.designerEntry" = "Personalizza la sorgente audio in Icon Designer";
 "settings.audio.activeDeviceFootnote" = "Il dispositivo di uscita audio attivo è evidenziato con il colore di contrasto.";
 "settings.audio.inUse" = "In uso";
 "settings.wifi.symbolScale" = "Dimensioni icona Wi-Fi";
@@ -424,6 +431,20 @@
 "guide.anatomy.title" = "Un’icona, tre informazioni";
 "guide.anatomy.description" = "Seleziona una parte per evidenziarla contemporaneamente nella barra dei menu e nel Dock.";
 "guide.placement" = "Nelle Impostazioni puoi mostrare l’icona nella barra dei menu, nel Dock o in entrambi e cambiare posizione quando vuoi.";
+"guide.menuBarHelp.prompt" = "Status Trio si trova in alto a destra sullo schermo.";
+"guide.menuBarHelp.open" = "Non trovi l’icona nella barra dei menu?";
+"guide.menuBarHelp.title" = "Non trovi Status Trio?";
+"guide.menuBarHelp.reason" = "Quando la barra dei menu è affollata, il notch può nascondere temporaneamente l’icona. Status Trio è ancora in esecuzione.";
+"guide.menuBarHelp.overflowStep" = "Fai clic sul pulsante di overflow della barra dei menu (le doppie frecce) per mostrare le icone nascoste.";
+"guide.menuBarHelp.menuBarSettingsStep" = "Apri Impostazioni di Sistema › Barra dei menu, poi nascondi gli elementi che non ti servono, come Wi‑Fi, Batteria o Suono.";
+"guide.menuBarHelp.controlCenterStep" = "Apri Impostazioni di Sistema › Centro di Controllo, poi disattiva “Mostra nella barra dei menu” per gli elementi che non ti servono, come Wi‑Fi, Batteria o Suono.";
+"guide.menuBarHelp.findStatusTrioStep" = "Status Trio riunisce questi stati, quindi puoi ridurre le icone duplicate. I controlli di sistema restano disponibili nel Centro di Controllo.";
+"guide.menuBarHelp.moveStep" = "Quando l’icona è visibile, tieni premuto ⌘ e trascinala sul lato destro della barra dei menu.";
+"guide.menuBarHelp.openMenuBarSettings" = "Apri impostazioni Barra dei menu";
+"guide.menuBarHelp.openSystemSettings" = "Apri Impostazioni di Sistema";
+"guide.menuBarHelp.reopen" = "Se perdi di nuovo Status Trio, aprilo da Applicazioni, Finder o Spotlight per tornare alle Impostazioni.";
+"guide.menuBarHelp.learnMore" = "Guida Apple alla barra dei menu";
+"guide.menuBarHelp.close" = "Chiudi";
 "guide.states.title" = "Combinazioni di stato";
 "guide.states.description" = "Una panoramica rapida delle combinazioni più comuni di batteria, rete e volume.";
 "guide.state.charging" = "In carica + Wi-Fi";
@@ -468,6 +489,29 @@
 "settings.appleBackgroundRefresh.description" = "Aggiorna le batterie dei dispositivi Apple selezionati quando il pannello è chiuso.";
 "settings.appleBackgroundRefresh.interval" = "Intervallo di aggiornamento della batteria in background";
 "settings.appleBackgroundRefresh.intervalValue" = "%d minuto/i";
+
+"settings.shortcut.title" = "Apri il pannello di stato";
+"settings.shortcut.description" = "Usa una scorciatoia globale per aprire lo stesso pannello di stato da qualsiasi app. Alcune scorciatoie possono essere intercettate dal metodo di input o da un’altra app.";
+"settings.shortcut.record" = "Registra";
+"settings.shortcut.change" = "Cambia scorciatoia";
+"settings.shortcut.notSet" = "Non impostata";
+"settings.shortcut.clear" = "Cancella";
+"settings.shortcut.recording" = "Digita la scorciatoia…";
+"settings.shortcut.invalid" = "Usa un tasto con Comando, Controllo o Opzione.";
+"settings.shortcut.inputMethodConflict" = "Questa combinazione può essere intercettata dal metodo di input. Scegline un’altra, ad esempio Opzione con una lettera.";
+"settings.shortcut.unavailable" = "Scorciatoia non disponibile. Un’altra app potrebbe già usarla.";
+"settings.shortcut.registrationFailed" = "Impossibile registrare questa scorciatoia.";
+"settings.shortcut.restorationFailed" = "Impossibile ripristinare la scorciatoia precedente.";
+"settings.shortcut.accessibility.current" = "Scorciatoia globale attuale: %@";
+"settings.shortcut.accessibility.unassigned" = "Nessuna scorciatoia globale assegnata.";
+
+/* Icon Designer and built-in plugin additions. */
+"settings.network.designerEntry" = "Personalizza la sorgente di rete in Icon Designer";
+"settings.bluetooth.designerEntry" = "Personalizza la sorgente Bluetooth in Icon Designer";
+"settings.battery.designerEntry" = "Personalizza la sorgente batteria in Icon Designer";
+"settings.battery.macBehaviorDescription" = "Queste opzioni si applicano alla batteria del Mac quando viene usata come sorgente; non sostituiscono gli AirPods selezionati per l’anello esterno.";
+"settings.battery.macBehavior" = "Comportamento della batteria del Mac";
+"settings.audio.designerEntry" = "Personalizza la sorgente audio in Icon Designer";
 "icon.resolution.primary" = "Visualizzazione della fonte preferita";
 "icon.resolution.fallback" = "Visualizzazione della fonte di riserva";
 "icon.resolution.none" = "Nessuna fonte visualizzata";
@@ -518,10 +562,6 @@
 "icon.designer.currentSourceUnavailableFormat" = "Fonte attuale (non disponibile in questa versione): %@";
 "icon.designer.compatible" = "Compatibile con le impostazioni attuali";
 "icon.designer.legacySourcePreserved" = "La regola di visualizzazione attuale resta invariata finché non scegli una nuova fonte.";
-
-
-
-
 "iconDesigner.control.volumeDisplay" = "Visualizzazione volume";
 "iconDesigner.control.dots" = "Punti";
 "iconDesigner.control.arc" = "Arco";
@@ -571,7 +611,6 @@
 "iconDesigner.control.restoreSlotQuestionFormat" = "Ripristinare %@ alla configurazione classica?";
 "iconDesigner.control.audioOutputFormat" = "Uscita audio — %@";
 "iconDesigner.control.savedSymbolFormat" = "Simbolo salvato — %@";
-
 "iconDesigner.control.airPodsBackgroundReads" = "Consenti letture batteria AirPods in background";
 "iconDesigner.control.selectAirPodsDevice" = "Seleziona AirPods";
 "iconDesigner.control.selectConnectedBluetoothDevice" = "Seleziona dispositivo Bluetooth connesso";
@@ -604,12 +643,9 @@
 "icon.designer.airPods.test.leftOnly" = "Solo sinistro";
 "icon.designer.airPods.test.rightOnly" = "Solo destro";
 "icon.designer.airPods.test.unavailable" = "Dati batteria non disponibili";
-
 "iconPreviewData.edit" = "Modifica dati di esempio…";
-
 "iconPreviewData.simulatedNotice" = "I valori di esempio influiscono solo su questa anteprima e vengono conservati quando torni ai dati in tempo reale.";
 "iconPreviewData.liveNotice" = "Lo stato in tempo reale è di sola lettura. Passa a Simulati per modificare gli esempi.";
-
 "iconPreviewData.applyToRealIcons" = "Applica alla barra dei menu e al Dock reali";
 "iconPreviewData.applyToRealIconsNotice" = "I dati simulati controllano ora la barra dei menu e il Dock reali. Disattiva questa opzione o torna ai dati in tempo reale per ripristinare lo stato reale.";
 "iconPreviewData.title" = "Dati anteprima";
@@ -644,8 +680,6 @@
 "icon.designer.externalChangeNotice" = "La cronologia è stata cancellata perché le impostazioni dell’icona sono state modificate altrove.";
 "iconPreviewData.useLiveData" = "Usa dati in tempo reale";
 "icon.designer.moreActions" = "Altre azioni";
-
-/* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "Icona di rete";
 "iconDesigner.centerColorMeaning.inputSource" = "Icona della sorgente di input";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi a 0 tacche";
@@ -658,7 +692,6 @@
 "iconDesigner.centerColorMeaning.legacyBluetoothGlyph" = "Icona Bluetooth";
 "iconDesigner.centerColorContext.fallbackFormat" = "Fallback: %@";
 "iconDesigner.centerColorContext.networkOverrideFormat" = "Priorità rete: %@";
-
 "iconDesigner.centerColor.rolePicker" = "Il colore si applica a";
 "iconDesigner.centerColorHelp.networkPrimary" = "Per la normale icona di rete, ad esempio con Wi-Fi spento, non connesso, senza Internet o con una connessione cablata.";
 "iconDesigner.centerColorHelp.inputSource" = "Per l’icona o l’etichetta breve della sorgente di input attuale quando viene disegnata al centro.";
@@ -671,8 +704,6 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "Per il Wi-Fi connesso senza tacche di segnale nel centro precedente.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "Per l’icona Bluetooth nel centro precedente.";
 "icon.designer.airPods.showTopSymbol" = "Mostra l’icona AirPods in alto";
-
-/* Icon content editor */
 "iconDesigner.editor.editingElementFormat" = "Modifica %@";
 "iconDesigner.editor.contentTitle" = "Contenuto";
 "iconDesigner.editor.unavailableTitle" = "Se non disponibile";

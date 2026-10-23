@@ -4,6 +4,18 @@ import XCTest
 
 @MainActor
 final class VolumeMonitorTests: XCTestCase {
+    func testReleasingTheMonitorOffTheMainThreadDoesNotTrap() async {
+        // `deinit` used `MainActor.assumeIsolated`, which traps when the last
+        // reference is released from a background thread (a test teardown, a
+        // detached task, or a cache eviction).
+        // No local strong reference: the assignment below releases the last one.
+        let box = VolumeMonitorBox(VolumeMonitor())
+
+        await Task.detached { box.monitor = nil }.value
+
+        XCTAssertNil(box.monitor)
+    }
+
     func testFakeCoreAudioClientReportsConfiguredOutputChannelCount() {
         let client = FakeCoreAudioClient()
         client.configureDevice(
@@ -1445,5 +1457,15 @@ private extension ListenerOperation {
             scope: scope,
             element: element
         )
+    }
+}
+
+/// Carries the monitor across the concurrency boundary so the test can drop the
+/// last reference on a background thread.
+private final class VolumeMonitorBox: @unchecked Sendable {
+    var monitor: VolumeMonitor?
+
+    init(_ monitor: VolumeMonitor) {
+        self.monitor = monitor
     }
 }

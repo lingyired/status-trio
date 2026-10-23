@@ -1,4 +1,5 @@
 import Foundation
+import PowerHelperProtocol
 import Security
 
 /// The code-signing requirement the daemon demands of every connecting client.
@@ -8,13 +9,14 @@ import Security
 /// pins the signing team. All three are required: an Ad-hoc or differently
 /// signed process fails this, which is the point — a root daemon that accepted
 /// any client could be driven by any local process.
+///
+/// The identity comes from `PowerHelperConstants`, which the app also reads to
+/// decide whether this build can satisfy it: one literal, two callers.
 enum ClientRequirement {
-    static let teamIdentifier = "HCB7JKMQ2F"
-    static let bundleIdentifier = "com.lingsmbp.StatusTrio"
+    static let teamIdentifier = PowerHelperConstants.clientTeamIdentifier
+    static let bundleIdentifier = PowerHelperConstants.clientBundleIdentifier
 
-    static let string =
-        "anchor apple generic and identifier \"\(bundleIdentifier)\" "
-        + "and certificate leaf[subject.OU] = \"\(teamIdentifier)\""
+    static let string = PowerHelperConstants.clientRequirement
 }
 
 /// Second-opinion authorization check run inside the listener delegate.

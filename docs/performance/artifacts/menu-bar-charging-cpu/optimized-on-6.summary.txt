@@ -1,0 +1,7 @@
+mode=on
+samples=61
+cpu_mean=0.32
+cpu_peak=0.50
+cpu_median=0.30
+rss_min_mb=21.0
+rss_max_mb=21.0

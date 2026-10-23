@@ -56,6 +56,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
     var isDarkBackground = true
     var phase: ChargingEffectPhase?
     var resolvedScene: IconSceneState?
+    var showsChargingEffect = true
     var highlightedPart: IconGuidePart?
     var selectedSlot: IconSlot?
     var onSelectSlot: ((IconSlot) -> Void)?
@@ -82,6 +83,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
             ),
             inputSource: inputSource
         )
+        .withChargingEffectEnabled(showsChargingEffect)
     }
 
     init(
@@ -98,6 +100,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         highlightOpacity: Double = 1,
         phase: ChargingEffectPhase? = nil,
         resolvedScene: IconSceneState? = nil,
+        showsChargingEffect: Bool = true,
         inputSource: InputSourceDescriptor? = nil,
         @ViewBuilder trailingAccessory: @escaping () -> TrailingAccessory
     ) {
@@ -114,6 +117,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         self.highlightOpacity = highlightOpacity
         self.phase = phase
         self.resolvedScene = resolvedScene
+        self.showsChargingEffect = showsChargingEffect
         self.inputSource = inputSource
         self.trailingAccessory = trailingAccessory
     }
@@ -277,6 +281,7 @@ extension MenuBarPreviewBar where TrailingAccessory == EmptyView {
         onSelectSlot: ((IconSlot) -> Void)? = nil,
         highlightOpacity: Double = 1,
         phase: ChargingEffectPhase? = nil,
+        showsChargingEffect: Bool = true,
         inputSource: InputSourceDescriptor? = nil
     ) {
         self.init(
@@ -292,6 +297,7 @@ extension MenuBarPreviewBar where TrailingAccessory == EmptyView {
             onSelectSlot: onSelectSlot,
             highlightOpacity: highlightOpacity,
             phase: phase,
+            showsChargingEffect: showsChargingEffect,
             inputSource: inputSource,
             trailingAccessory: { EmptyView() }
         )

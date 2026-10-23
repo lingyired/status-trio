@@ -122,9 +122,10 @@ The same states rendered for a dark menu bar:
 ## Requirements
 
 - macOS 13 deployment target; Ventura runtime validation pending
-- Swift 6 toolchain with the macOS 26 SDK (Xcode 26 or later) to build it. Building against an
-  older SDK silently produces the pre-Tahoe popover appearance, so `scripts/build-app.sh` fails
-  when the SDK is older than 26.
+- Swift 6 toolchain with the macOS 26 SDK or newer to build it; the formal
+  release workflow uses the `xcode-27` runner and Xcode 27. Building against an
+  older SDK silently produces the pre-Tahoe popover appearance, so
+  `scripts/build-app.sh` fails when the SDK is older than 26.
 
 ## Run from source
 
@@ -197,17 +198,27 @@ Status Trio reads system status through public macOS frameworks. Optional anonym
 
 ## Development
 
-Run the test suite:
+Run the risk-sized local verification (no GitHub Actions, signing, or release):
 
 ```bash
-swift test
+bash scripts/verify-local.sh quick BatteryMonitorTests
+bash scripts/verify-local.sh docs
+bash scripts/verify-local.sh full
 ```
 
-Run a focused XCTest filter through the helper:
+Use `quick` for an isolated code change, `docs` for documentation or
+localization-only work, and `full` for state, concurrency, rendering, Helper,
+or build-pipeline changes. `full` builds a non-Universal development app bundle;
+it does not produce the release package.
+
+When you need only a focused Swift test, keep using the existing test helper:
 
 ```bash
 bash scripts/test.sh BatteryMonitorTests
 ```
+
+Formal release verification is separate from daily development. A merged change
+is not a built artifact, and a built artifact is not a released version.
 
 To build a worktree app alongside the main installation:
 

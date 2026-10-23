@@ -213,6 +213,19 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.bluetoothAudioIconOptions, .standard)
     }
 
+    func testBluetoothPowerControlDefaultsOnAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertTrue(first.showsBluetoothPowerControl)
+
+        first.showsBluetoothPowerControl = false
+
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(second.showsBluetoothPowerControl)
+    }
+
     func testBluetoothNetworkIconDeviceDefaultsToTheAudioDevice() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 

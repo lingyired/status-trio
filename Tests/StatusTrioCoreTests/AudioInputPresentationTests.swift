@@ -226,7 +226,7 @@ final class AudioInputPresentationTests: XCTestCase {
         var draft = AudioInputVolumeDraft()
         draft.receiveSystemScalar(0.4)
         draft.setEditing(true)
-        draft.setSliderValue(0.8, systemScalar: 0.4) { _ in }
+        draft.setSliderValue(0.8, systemScalar: 0.4) { _, _ in }
 
         XCTAssertEqual(
             draft.accessibilityValue(systemScalar: 0.4, locale: locale),
@@ -247,7 +247,7 @@ final class AudioInputPresentationTests: XCTestCase {
         var draft = AudioInputVolumeDraft()
         draft.receiveSystemScalar(0.2)
         draft.setEditing(true)
-        draft.setSliderValue(0.8, systemScalar: 0.2) { _ in }
+        draft.setSliderValue(0.8, systemScalar: 0.2) { _, _ in }
 
         draft.receiveSystemScalar(0.4)
         XCTAssertEqual(draft.value, 0.8, accuracy: 0.0001)
@@ -257,7 +257,7 @@ final class AudioInputPresentationTests: XCTestCase {
         XCTAssertEqual(draft.value, 0.4, accuracy: 0.0001)
 
         // A delayed slider setter after mouse-up must not restore the rejected draft.
-        draft.setSliderValue(0.8, systemScalar: 0.4) { _ in }
+        draft.setSliderValue(0.8, systemScalar: 0.4) { _, _ in }
         XCTAssertEqual(draft.value, 0.4, accuracy: 0.0001)
     }
 
@@ -267,7 +267,7 @@ final class AudioInputPresentationTests: XCTestCase {
         draft.receiveSystemScalar(0.2)
         draft.setEditing(true)
 
-        draft.setSliderValue(0.8, systemScalar: 0.2) { requests.append($0) }
+        draft.setSliderValue(0.8, systemScalar: 0.2) { value, _ in requests.append(value) }
         XCTAssertEqual(requests, [0.8])
 
         draft.receiveSystemScalar(0.4)
@@ -275,7 +275,7 @@ final class AudioInputPresentationTests: XCTestCase {
         XCTAssertEqual(draft.value, 0.4, accuracy: 0.0001)
 
         // The same callback path used by the Binding must not re-submit a stale value.
-        draft.setSliderValue(0.8, systemScalar: 0.4) { requests.append($0) }
+        draft.setSliderValue(0.8, systemScalar: 0.4) { value, _ in requests.append(value) }
         XCTAssertEqual(draft.value, 0.4, accuracy: 0.0001)
         XCTAssertEqual(requests, [0.8])
     }
@@ -286,7 +286,7 @@ final class AudioInputPresentationTests: XCTestCase {
         let secondDevice = PanelAudioInputIdentity(rawValue: 22)
         draft.receiveSystemState(deviceIdentity: firstDevice, scalar: 0.55)
         draft.setEditing(true)
-        draft.setSliderValue(0.9, systemScalar: 0.55) { _ in }
+        draft.setSliderValue(0.9, systemScalar: 0.55) { _, _ in }
 
         draft.receiveSystemState(deviceIdentity: secondDevice, scalar: 0.55)
 
@@ -298,7 +298,7 @@ final class AudioInputPresentationTests: XCTestCase {
         var draft = AudioInputVolumeDraft()
         draft.receiveSystemState(deviceIdentity: PanelAudioInputIdentity(rawValue: 11), scalar: 0.55)
         draft.setEditing(true)
-        draft.setSliderValue(0.9, systemScalar: 0.55) { _ in }
+        draft.setSliderValue(0.9, systemScalar: 0.55) { _, _ in }
 
         draft.receiveSystemState(deviceIdentity: PanelAudioInputIdentity(rawValue: 22), scalar: 0.31)
 
@@ -312,9 +312,9 @@ final class AudioInputPresentationTests: XCTestCase {
         draft.setEditing(true)
 
         var writeCount = 0
-        draft.setSliderValue(0.8, systemScalar: nil) { _ in writeCount += 1 }
-        draft.setSliderValue(0.8, systemScalar: -0.1) { _ in writeCount += 1 }
-        draft.setSliderValue(0.8, systemScalar: 1.1) { _ in writeCount += 1 }
+        draft.setSliderValue(0.8, systemScalar: nil) { _, _ in writeCount += 1 }
+        draft.setSliderValue(0.8, systemScalar: -0.1) { _, _ in writeCount += 1 }
+        draft.setSliderValue(0.8, systemScalar: 1.1) { _, _ in writeCount += 1 }
 
         XCTAssertEqual(writeCount, 0)
         XCTAssertEqual(draft.value, 0.4, accuracy: 0.0001)
@@ -325,7 +325,7 @@ final class AudioInputPresentationTests: XCTestCase {
         let device = PanelAudioInputIdentity(rawValue: 11)
         draft.receiveSystemState(deviceIdentity: device, scalar: 0.55)
         draft.setEditing(true)
-        draft.setSliderValue(0.9, systemScalar: 0.55) { _ in }
+        draft.setSliderValue(0.9, systemScalar: 0.55) { _, _ in }
 
         draft.receiveSystemState(deviceIdentity: device, scalar: 0.31)
 

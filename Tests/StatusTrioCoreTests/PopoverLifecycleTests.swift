@@ -32,29 +32,9 @@ struct PopoverToggleGateTests {
     }
 }
 
+@MainActor
 struct PopoverContentRetentionTests {
-    @Test func keepsContentWhileThePopoverIsOpen() {
-        var retention = PopoverContentRetention(releaseDelay: 60)
-        retention.markOpened()
-
-        #expect(retention.shouldRelease(at: Date().addingTimeInterval(3600)) == false)
-    }
-
-    @Test func releasesOnlyAfterTheDelay() {
-        var retention = PopoverContentRetention(releaseDelay: 60)
-        let closed = Date()
-        retention.markClosed(at: closed)
-
-        #expect(retention.shouldRelease(at: closed.addingTimeInterval(59)) == false)
-        #expect(retention.shouldRelease(at: closed.addingTimeInterval(60)))
-    }
-
-    @Test func reopeningCancelsThePendingRelease() {
-        var retention = PopoverContentRetention(releaseDelay: 60)
-        let closed = Date()
-        retention.markClosed(at: closed)
-        retention.markOpened()
-
-        #expect(retention.shouldRelease(at: closed.addingTimeInterval(120)) == false)
+    @Test func usesOneDeterministicFiveSecondReleaseContract() {
+        #expect(StatusBarController.popoverContentReleaseDelay == 5)
     }
 }

@@ -8,6 +8,7 @@ final class SettingsStore: ObservableObject {
     static let hasSeenIconGuideDefaultsKey = "hasSeenIconGuide"
     static let sharesAnonymousAnalyticsDefaultsKey = "sharesAnonymousAnalytics"
     static let telemetryConsentVersionDefaultsKey = "telemetryConsentVersion"
+    static let statusPanelShortcutDefaultsKey = "statusPanelShortcut.v1"
     private static let sparkleHasLaunchedBeforeDefaultsKey = "SUHasLaunchedBefore"
 
     static let iconSizeRange: ClosedRange<Double> = 16...36
@@ -25,7 +26,10 @@ final class SettingsStore: ObservableObject {
     static let defaultBatterySymbolScale: Double = 1
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
     static let showsChargingIndicatorDefaultsKey = "showsChargingIndicator"
+    /// Legacy single-surface preference retained only for migration.
     static let showsChargingEffectDefaultsKey = "showsChargingEffect"
+    static let showsMenuBarChargingEffectDefaultsKey = "showsMenuBarChargingEffect"
+    static let showsDockChargingEffectDefaultsKey = "showsDockChargingEffect"
     static let showsChargingBoltHeartbeatDefaultsKey = "showsChargingBoltHeartbeat"
     static let showsPercentageWhenConnectedDefaultsKey = "showsPercentageWhenConnected"
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
@@ -49,6 +53,7 @@ final class SettingsStore: ObservableObject {
     static let usesBluetoothAudioVolumeColorDefaultsKey = "usesBluetoothAudioVolumeColor"
     static let prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey = "prioritizesNetworkErrorsOverBluetoothAudio"
     static let showsBluetoothBatteryLevelsDefaultsKey = "showsBluetoothBatteryLevels"
+    static let showsBluetoothPowerControlDefaultsKey = "showsBluetoothPowerControl"
     static let controlsLowPowerModeDefaultsKey = "controlsLowPowerMode"
     static let showsNearbyBluetoothBatteryDevicesDefaultsKey = "showsNearbyBluetoothBatteryDevices"
     static let refreshesAirPodsBatteryForIconDefaultsKey = "refreshesAirPodsBatteryForIcon"
@@ -134,6 +139,16 @@ final class SettingsStore: ObservableObject {
 
     @Published private(set) var sharesAnonymousAnalytics: Bool
     @Published private(set) var telemetryConsentVersion: Int
+    @Published var statusPanelShortcut: StatusPanelShortcut? {
+        didSet {
+            guard let statusPanelShortcut,
+                  let data = try? JSONEncoder().encode(statusPanelShortcut) else {
+                defaults.removeObject(forKey: Self.statusPanelShortcutDefaultsKey)
+                return
+            }
+            defaults.set(data, forKey: Self.statusPanelShortcutDefaultsKey)
+        }
+    }
     private let telemetryConsentSubject = PassthroughSubject<TelemetryConsent, Never>()
 
     var canShareAnonymousAnalytics: Bool {
@@ -152,15 +167,31 @@ final class SettingsStore: ObservableObject {
     }
 
     func completeTelemetryConsent(sharesAnalytics: Bool) {
-        guard telemetryConsentVersion <= TelemetryConsent.currentVersion else { return }
+        guard let recordedVersion = consentVersionToRecord(grants: sharesAnalytics) else { return }
 
         // Persist both values before emitting one coherent snapshot. @Published
         // emits before didSet, so observers must use this explicit publisher.
         defaults.set(sharesAnalytics, forKey: Self.sharesAnonymousAnalyticsDefaultsKey)
-        defaults.set(TelemetryConsent.currentVersion, forKey: Self.telemetryConsentVersionDefaultsKey)
+        defaults.set(recordedVersion, forKey: Self.telemetryConsentVersionDefaultsKey)
         sharesAnonymousAnalytics = sharesAnalytics
-        telemetryConsentVersion = TelemetryConsent.currentVersion
+        telemetryConsentVersion = recordedVersion
         telemetryConsentSubject.send(telemetryConsentSnapshot)
+    }
+
+    /// The version to store alongside a new analytics answer, or `nil` when the
+    /// answer must be dropped.
+    ///
+    /// A stored version newer than this build means the user answered a newer
+    /// prompt and then went back to an older build. Granting is refused then —
+    /// this build cannot speak for a prompt it never showed — but withdrawing
+    /// is not: consent has to stay revocable, otherwise the analytics toggle
+    /// silently refuses to move. A withdrawal keeps the stored version, so the
+    /// newer build still sees the answer it recorded together with `false`.
+    private func consentVersionToRecord(grants: Bool) -> Int? {
+        if telemetryConsentVersion > TelemetryConsent.currentVersion {
+            return grants ? nil : telemetryConsentVersion
+        }
+        return TelemetryConsent.currentVersion
     }
 
     func setSharesAnonymousAnalytics(_ enabled: Bool) {
@@ -213,8 +244,6 @@ final class SettingsStore: ObservableObject {
     @Published private(set) var iconConfigurationLoadError: IconConfigurationCodecError?
     private var canPersistIconConfiguration = false
 
-    @Published private(set) var testsChargingEffect = false
-
     var showsBatteryPercentage: Bool {
         get { iconConfiguration.behaviors.systemBatteryRing.showsPercentage }
         set { updateIconConfiguration { $0.behaviors.systemBatteryRing.showsPercentage = newValue } }
@@ -222,13 +251,6 @@ final class SettingsStore: ObservableObject {
     var showsChargingIndicator: Bool {
         get { iconConfiguration.behaviors.systemBatteryRing.showsChargingIndicator }
         set { updateIconConfiguration { $0.behaviors.systemBatteryRing.showsChargingIndicator = newValue } }
-    }
-    var showsChargingEffect: Bool {
-        get { iconConfiguration.behaviors.systemBatteryRing.showsChargingEffect }
-        set {
-            updateIconConfiguration { $0.behaviors.systemBatteryRing.showsChargingEffect = newValue }
-            if !newValue { testsChargingEffect = false }
-        }
     }
     var showsChargingBoltHeartbeat: Bool {
         get { iconConfiguration.behaviors.systemBatteryRing.showsChargingBoltHeartbeat }
@@ -291,11 +313,6 @@ final class SettingsStore: ObservableObject {
     var bluetoothNetworkIconSymbolName: String? {
         get { iconConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride }
         set { updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = newValue } }
-    }
-
-    func setChargingEffectTestEnabled(_ enabled: Bool) {
-        if enabled { showsChargingEffect = true }
-        testsChargingEffect = enabled
     }
 
     func updateIconConfiguration(_ edit: (inout IconConfigurationV1) -> Void) {
@@ -372,6 +389,19 @@ final class SettingsStore: ObservableObject {
         didSet { defaults.set(connectedBluetoothIconDeviceAddress, forKey: Self.connectedBluetoothIconDeviceAddressDefaultsKey) }
     }
 
+    /// The Bluetooth radio switch uses private IOBluetooth symbols, but needs
+    /// no helper or additional permission. It is on by default and only hides
+    /// the panel affordance when explicitly turned off.
+    @Published var showsBluetoothPowerControl: Bool {
+        didSet {
+            defaults.set(
+                showsBluetoothPowerControl,
+                forKey: Self.showsBluetoothPowerControlDefaultsKey
+            )
+        }
+    }
+
+    /// Nil on first launch, allowing adoption of an existing helper registration.
     var savedLowPowerModeControlPreference: Bool? {
         defaults.object(forKey: Self.controlsLowPowerModeDefaultsKey) as? Bool
     }
@@ -985,6 +1015,58 @@ final class SettingsStore: ObservableObject {
         )
     }
 
+    @Published var showsMenuBarChargingEffect: Bool {
+        didSet {
+            defaults.set(
+                showsMenuBarChargingEffect,
+                forKey: Self.showsMenuBarChargingEffectDefaultsKey
+            )
+            if !showsMenuBarChargingEffect && !showsDockChargingEffect {
+                testsChargingEffect = false
+            }
+        }
+    }
+
+    @Published var showsDockChargingEffect: Bool {
+        didSet {
+            defaults.set(
+                showsDockChargingEffect,
+                forKey: Self.showsDockChargingEffectDefaultsKey
+            )
+            if !showsMenuBarChargingEffect && !showsDockChargingEffect {
+                testsChargingEffect = false
+            }
+        }
+    }
+
+    /// Compatibility for callers that previously treated charging as a single
+    /// scene option. The two surface switches remain the source of truth.
+    var showsChargingEffect: Bool {
+        get { showsMenuBarChargingEffect || showsDockChargingEffect }
+        set {
+            showsMenuBarChargingEffect = newValue
+            showsDockChargingEffect = newValue
+            updateIconConfiguration {
+                $0.behaviors.systemBatteryRing.showsChargingEffect = newValue
+            }
+        }
+    }
+
+    @Published private(set) var testsChargingEffect = false
+
+    func setChargingEffectTestEnabled(_ enabled: Bool) {
+        if enabled { showsChargingEffect = true }
+        testsChargingEffect = enabled
+    }
+
+    /// Development-only: turns on the synthetic charging input without touching
+    /// the animation preference, so a measurement run can compare the animation
+    /// on and off against the same charging state. See
+    /// `ChargingEffectTestMode.forceChargingInputEnvironmentKey`.
+    func setChargingEffectTestInputEnabled(_ enabled: Bool) {
+        testsChargingEffect = enabled
+    }
+
     private let defaults: UserDefaults
 
     func updateTrustedAppleDeviceMetadata(_ candidates: [AppleDeviceCandidate]) {
@@ -1016,6 +1098,9 @@ final class SettingsStore: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.statusPanelShortcut = defaults
+            .data(forKey: Self.statusPanelShortcutDefaultsKey)
+            .flatMap { try? JSONDecoder().decode(StatusPanelShortcut.self, from: $0) }
         let legacyConfiguration = IconConfigurationMigration.legacyConfiguration(defaults: defaults)
         let legacyCenterPreferences = IconConfigurationMigration.LegacyCenterPreferences.read(from: defaults)
         let storedConfiguration = defaults.data(forKey: Self.iconConfigurationDefaultsKey)
@@ -1158,6 +1243,33 @@ final class SettingsStore: ObservableObject {
             .flatMap(DockIconBackgroundPreference.init(rawValue:))
             ?? .system
         self.iconSize = Self.clampedIconSize(storedIconSize ?? Self.defaultIconSize)
+        let legacyChargingEffect = defaults.object(
+            forKey: Self.showsChargingEffectDefaultsKey
+        ) as? Bool
+        let storedMenuBarChargingEffect = defaults.object(
+            forKey: Self.showsMenuBarChargingEffectDefaultsKey
+        ) as? Bool
+        let storedDockChargingEffect = defaults.object(
+            forKey: Self.showsDockChargingEffectDefaultsKey
+        ) as? Bool
+        let resolvedMenuBarChargingEffect =
+            storedMenuBarChargingEffect ?? legacyChargingEffect ?? true
+        let resolvedDockChargingEffect =
+            storedDockChargingEffect ?? legacyChargingEffect ?? true
+        self.showsMenuBarChargingEffect = resolvedMenuBarChargingEffect
+        self.showsDockChargingEffect = resolvedDockChargingEffect
+        if storedMenuBarChargingEffect == nil {
+            defaults.set(
+                resolvedMenuBarChargingEffect,
+                forKey: Self.showsMenuBarChargingEffectDefaultsKey
+            )
+        }
+        if storedDockChargingEffect == nil {
+            defaults.set(
+                resolvedDockChargingEffect,
+                forKey: Self.showsDockChargingEffectDefaultsKey
+            )
+        }
         self.batteryFullThreshold = Self.clampedBatteryFullThreshold(
             storedFullThreshold ?? Self.defaultBatteryFullThreshold
         )
@@ -1172,6 +1284,9 @@ final class SettingsStore: ObservableObject {
         ) as? Bool ?? true
         self.showsBluetoothBatteryLevels = defaults.object(
             forKey: Self.showsBluetoothBatteryLevelsDefaultsKey
+        ) as? Bool ?? true
+        self.showsBluetoothPowerControl = defaults.object(
+            forKey: Self.showsBluetoothPowerControlDefaultsKey
         ) as? Bool ?? true
         self.controlsLowPowerMode = defaults.object(
             forKey: Self.controlsLowPowerModeDefaultsKey

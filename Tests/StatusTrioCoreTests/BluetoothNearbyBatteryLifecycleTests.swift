@@ -253,6 +253,49 @@ final class BluetoothNearbyBatteryLifecycleTests: XCTestCase {
         controller.deactivate()
     }
 
+    func testReleaseTransientStateCancelsNearbyExpiryWork() async {
+        let scanner = NearbyBatteryScannerSpy()
+        let monitor = NearbyBatteryStateMonitorSpy()
+        let controller = makeReadyController(scanner: scanner, monitor: monitor)
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [], hiddenIDs: [])
+        controller.requestNearbyBLEDiscovery("settings")
+        let device = NearbyBluetoothBatteryDevice(
+            id: UUID(),
+            name: "Sensor",
+            batteryLevel: 73,
+            model: nil,
+            manufacturer: nil,
+            lastUpdated: Date().addingTimeInterval(-30)
+        )
+        controller.setVisibleNearbyBLEDevices([device.id], for: "panel")
+        scanner.publish([device])
+        await Task.yield()
+        XCTAssertEqual(controller.nearbyBatteryDevices, [device])
+
+        controller.releaseTransientState()
+
+        XCTAssertTrue(controller.nearbyBatteryDevices.isEmpty)
+        XCTAssertEqual(scanner.stopCount, 1)
+        XCTAssertTrue(scanner.allowedReadDeviceIDs.isEmpty)
+
+        controller.activate()
+        monitor.emit(authorization: .allowed, state: .poweredOn)
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+        XCTAssertEqual(
+            scanner.startCount,
+            2,
+            "fresh visible surfaces may restart discovery after transient state is released"
+        )
+        XCTAssertTrue(
+            scanner.allowedReadDeviceIDs.isEmpty,
+            "released row claims must not survive into the fresh scanner session"
+        )
+        controller.deactivate()
+        try? await Task.sleep(for: .milliseconds(30))
+        XCTAssertTrue(controller.nearbyBatteryDevices.isEmpty)
+    }
+
     func testDeinitWithoutDeactivateStopsNearbyScanner() async {
         let scanner = NearbyBatteryScannerSpy()
         let monitor = NearbyBatteryStateMonitorSpy()
@@ -378,20 +421,38 @@ final class NearbyBatteryScannerSpy: BluetoothLEBatteryScanning {
     var onCandidatesChanged: (([NearbyBLEDeviceCandidate]) -> Void)?
     var onReadFailures: ((Set<UUID>) -> Void)?
     var onIsScanningChanged: ((Bool) -> Void)?
+    var onInitialReadCandidateCompleted: ((UUID, Bool, DeviceOperationToken?) -> Void)?
+    var discoveredCandidates: [NearbyBLEDeviceCandidate] = []
     private(set) var allowedReadDeviceIDs: Set<UUID> = []
     private(set) var initialReadDeviceIDs: Set<UUID> = []
-    var discoveredCandidates: [NearbyBLEDeviceCandidate] = []
+    private var allowedReadTokens: [UUID: DeviceOperationToken] = [:]
+    private var initialReadTokens: [UUID: DeviceOperationToken] = [:]
     private(set) var isRunning = false
     private(set) var isScanning = false
     private(set) var startCount = 0
     private(set) var refreshCount = 0
     private(set) var stopCount = 0
 
-    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) {
+    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
         allowedReadDeviceIDs = ids
+        allowedReadTokens = currentTokens(for: ids, retaining: allowedReadTokens)
+        return allowedReadTokens
     }
-    func setInitialReadCandidateIDs(_ ids: Set<UUID>) {
+    func setInitialReadCandidateIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
         initialReadDeviceIDs = ids
+        initialReadTokens = currentTokens(for: ids, retaining: initialReadTokens)
+        return initialReadTokens
+    }
+
+    private func currentTokens(
+        for ids: Set<UUID>,
+        retaining tokens: [UUID: DeviceOperationToken]
+    ) -> [UUID: DeviceOperationToken] {
+        var current = tokens.filter { ids.contains($0.key) }
+        for id in ids where current[id] == nil {
+            current[id] = DeviceOperationToken()
+        }
+        return current
     }
 
     func start() {
@@ -407,6 +468,10 @@ final class NearbyBatteryScannerSpy: BluetoothLEBatteryScanning {
         stopCount += 1
         isRunning = false
         isScanning = false
+        allowedReadDeviceIDs = []
+        initialReadDeviceIDs = []
+        allowedReadTokens = [:]
+        initialReadTokens = [:]
     }
 
     func publish(_ devices: [NearbyBluetoothBatteryDevice]) {

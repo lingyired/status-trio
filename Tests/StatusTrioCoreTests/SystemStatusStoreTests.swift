@@ -416,9 +416,10 @@ final class SystemStatusStoreTests: XCTestCase {
             volumeMonitor: FakeVolumeMonitor(), bluetoothDevices: bluetooth
         )
         store.bindMobileBatterySettings(settings)
-        bluetooth.activate()
-        stateMonitor.emit(authorization: .allowed, state: .poweredOn)
+        store.bindBluetoothSettings(settings)
+        store.start()
         store.setPopoverVisible(true)
+        stateMonitor.emit(authorization: .allowed, state: .poweredOn)
         bluetooth.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
         bluetooth.requestNearbyBLEDiscovery("foreground-summary")
         bluetooth.setVisibleNearbyBLEDevices([bleID], for: "bluetooth.summary.ble")
@@ -696,11 +697,13 @@ final class SystemStatusStoreTests: XCTestCase {
         )
 
         store.selectInputDevice(AudioDeviceID(42))
-        store.setInputScalar(0.45)
+        let requestID = UUID()
+        store.setInputScalar(0.45, requestID: requestID)
         store.toggleInputMute()
 
         XCTAssertEqual(input.selectedDeviceIDs, [AudioDeviceID(42)])
         XCTAssertEqual(input.scalarValues, [0.45])
+        XCTAssertEqual(input.scalarRequestIDs, [requestID])
         XCTAssertEqual(input.toggleMuteCount, 1)
         store.stop()
     }
@@ -856,10 +859,10 @@ final class SystemStatusStoreTests: XCTestCase {
         store.closePopoverDetails()
         XCTAssertFalse(store.hasOpenPopoverPanel)
 
-        store.setBluetoothEnabled(true)
+        store.setBluetoothDeviceMonitoringEnabled(true)
         XCTAssertFalse(store.hasOpenPopoverPanel)
 
-        store.setBluetoothEnabled(false)
+        store.setBluetoothDeviceMonitoringEnabled(false)
         XCTAssertFalse(store.hasOpenPopoverPanel)
     }
 
@@ -1270,8 +1273,8 @@ final class SystemStatusStoreTests: XCTestCase {
         let second = makeBluetoothStoreForActivationLifetime()
         let iconOwned = second.bluetoothDevices
         second.setPopoverVisible(true)
-        second.setBluetoothEnabled(true)
-        second.setBluetoothEnabled(false)
+        second.setBluetoothDeviceMonitoringEnabled(true)
+        second.setBluetoothDeviceMonitoringEnabled(false)
         XCTAssertTrue(iconOwned.isActive, "Settings closing must preserve the visible popover owner")
         second.setPopoverVisible(false)
         XCTAssertFalse(iconOwned.isActive, "closing the final popover owner must stop monitoring")
@@ -2633,9 +2636,15 @@ private final class StoreIntervalScannerSpy: BluetoothLEBatteryScanning {
     private(set) var isScanning = false
     private(set) var backgroundRefreshIntervals: [Duration?] = []
 
-    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) { allowedReadDeviceIDs = ids }
+    func setAllowedReadDeviceIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
+        allowedReadDeviceIDs = ids
+        return [:]
+    }
     func revokeReadDeviceIDs(_ ids: Set<UUID>) { allowedReadDeviceIDs.subtract(ids) }
-    func setInitialReadCandidateIDs(_ ids: Set<UUID>) { _ = ids }
+    func setInitialReadCandidateIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
+        _ = ids
+        return [:]
+    }
     func setBackgroundRefreshInterval(_ interval: Duration?) { backgroundRefreshIntervals.append(interval) }
     func start() { isRunning = true }
     func refresh() {}
@@ -2797,6 +2806,7 @@ private final class FakeAudioInputMonitor: AudioInputMonitoring {
     private(set) var stopCount = 0
     private(set) var selectedDeviceIDs: [AudioDeviceID] = []
     private(set) var scalarValues: [Double] = []
+    private(set) var scalarRequestIDs: [UUID] = []
     private(set) var toggleMuteCount = 0
 
     init() {
@@ -2807,7 +2817,10 @@ private final class FakeAudioInputMonitor: AudioInputMonitoring {
     func setVisible(_ visible: Bool) { visibleValues.append(visible) }
     func recover() { recoverCount += 1 }
     func select(_ id: AudioDeviceID) { selectedDeviceIDs.append(id) }
-    func setScalar(_ value: Double) { scalarValues.append(value) }
+    func setScalar(_ value: Double, requestID: UUID) {
+        scalarValues.append(value)
+        scalarRequestIDs.append(requestID)
+    }
     func toggleMute() { toggleMuteCount += 1 }
     func stop() { stopCount += 1 }
     func send(_ value: AudioInputStatus) { continuation.yield(value) }

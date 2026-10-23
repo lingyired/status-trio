@@ -41,9 +41,12 @@ struct OutputDeviceList: View {
                             isExpanded.toggle()
                         }
                     } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "chevron.down")
-                                .font(.caption.weight(.semibold))
+                        HStack(alignment: .center, spacing: 8) {
+                            PanelActionGlyph(
+                                systemName: "chevron.down",
+                                font: .caption.weight(.semibold),
+                                size: 16
+                            )
                                 .rotationEffect(.degrees(isExpanded ? 180 : 0))
                             Text(isExpanded ? collapseLabel : expandLabel)
                                 .font(.callout)

@@ -1,17 +1,18 @@
 name: Build and Release macOS
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
+      candidate_sha:
+        description: "Frozen 40-character commit SHA to verify and publish."
+        required: true
+        type: string
       version:
-        description: "Marketing version, for example 1.2.0. Defaults to Support/Info.plist."
+        description: "Marketing version. Defaults to Support/Info.plist."
         required: false
         type: string
       build:
-        description: "Numeric CFBundleVersion. Defaults to the GitHub run number for manual runs."
+        description: "Numeric CFBundleVersion. Defaults to the workflow run number."
         required: false
         type: string
       tag:
@@ -19,140 +20,234 @@ on:
         required: false
         type: string
       publish:
-        description: "Create a GitHub Release and publish appcast.xml."
+        description: "Publish the frozen package. Leave off for a diagnostic package."
         required: true
         default: false
         type: boolean
       notarize:
-        description: "Require Developer ID signing and Apple notarization, including non-publishing test builds."
+        description: "Require Developer ID signing and notarization. Valid with publish=false too."
         required: true
         default: false
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: macos-release-${{ github.ref }}
+  group: status-trio-release-publish
   cancel-in-progress: false
 
 jobs:
-  release:
-    runs-on: macos-26
-    timeout-minutes: 90
-    environment:
-      name: ${{ (github.event_name == 'push' || inputs.publish || inputs.notarize) && 'distribution' || 'ci' }}
+  verify:
+    runs-on: xcode-27
+    timeout-minutes: 45
+    outputs:
+      candidate_sha: ${{ steps.release.outputs.candidate_sha }}
+      version: ${{ steps.release.outputs.version }}
+      build: ${{ steps.release.outputs.build }}
+      tag: ${{ steps.release.outputs.tag }}
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
-      RELEASE_REPO: ${{ vars.RELEASE_REPO }}
-      RELEASE_BRANCH: ${{ vars.RELEASE_BRANCH }}
-      PUBLISH: ${{ github.event_name == 'push' || inputs.publish }}
-      NOTARIZE: ${{ inputs.notarize || false }}
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+      CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      PUBLISH_MODE: ${{ inputs.publish }}
+      VERSION_INPUT: ${{ inputs.version }}
+      BUILD_INPUT: ${{ inputs.build }}
+      TAG_INPUT: ${{ inputs.tag }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ inputs.candidate_sha }}
 
       - name: Show toolchain
         run: |
+          set -euo pipefail
           swift --version
           xcodebuild -version
+          printf 'macOS SDK: %s\n' "$(xcrun --sdk macosx --show-sdk-version)"
 
-      - name: Resolve release version
-        env:
-          VERSION_INPUT: ${{ inputs.version }}
-          BUILD_INPUT: ${{ inputs.build }}
-          TAG_INPUT: ${{ inputs.tag }}
+      - name: Validate frozen candidate and resolve release
+        id: release
         run: |
           set -euo pipefail
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "::error::release.yml must be dispatched from main, not ${GITHUB_REF}."
+            exit 1
+          fi
+          if [[ ! "${CANDIDATE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::candidate_sha must be a lowercase 40-character commit SHA."
+            exit 1
+          fi
+
+          CHECKED_OUT_SHA="$(git rev-parse HEAD)"
+          if [[ "${CHECKED_OUT_SHA}" != "${CANDIDATE_SHA}" ]]; then
+            echo "::error::Checked-out ${CHECKED_OUT_SHA} does not equal frozen candidate ${CANDIDATE_SHA}."
+            exit 1
+          fi
+
+          git fetch --quiet origin main
+          if ! git merge-base --is-ancestor "${CANDIDATE_SHA}" origin/main; then
+            echo "::error::Candidate ${CANDIDATE_SHA} is not part of origin/main."
+            exit 1
+          fi
 
           PLIST_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Support/Info.plist)"
-          PLIST_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Support/Info.plist)"
+          VERSION="${VERSION_INPUT:-${PLIST_VERSION}}"
+          BUILD="${BUILD_INPUT:-${GITHUB_RUN_NUMBER}}"
+          TAG="${TAG_INPUT:-v${VERSION}}"
 
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            TAG="${GITHUB_REF_NAME}"
-            VERSION="${TAG#v}"
-            BUILD="${PLIST_BUILD}"
-
-            if [[ "${VERSION}" != "${PLIST_VERSION}" ]]; then
-              echo "::error::Tag ${TAG} does not match CFBundleShortVersionString ${PLIST_VERSION}."
-              exit 1
-            fi
-          else
-            VERSION="${VERSION_INPUT:-${PLIST_VERSION}}"
-            BUILD="${BUILD_INPUT:-${GITHUB_RUN_NUMBER}}"
-            TAG="${TAG_INPUT:-v${VERSION}}"
-          fi
-
-          if [[ ! "${VERSION}" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
-            echo "::error::VERSION must contain dot-separated numbers."
-            exit 1
-          fi
-
-          if [[ ! "${BUILD}" =~ ^[0-9]+$ ]]; then
-            echo "::error::BUILD must contain only digits."
-            exit 1
-          fi
+          [[ "${VERSION}" =~ ^[0-9]+(\.[0-9]+)*$ ]] ||
+            { echo "::error::VERSION must contain dot-separated numbers."; exit 1; }
+          [[ "${BUILD}" =~ ^[0-9]+$ ]] ||
+            { echo "::error::BUILD must contain only digits."; exit 1; }
+          [[ "${TAG}" == "v${VERSION}" ]] ||
+            { echo "::error::TAG must equal vVERSION."; exit 1; }
 
           {
+            echo "CANDIDATE_SHA=${CANDIDATE_SHA}"
             echo "VERSION=${VERSION}"
             echo "BUILD=${BUILD}"
             echo "TAG=${TAG}"
           } >> "${GITHUB_ENV}"
+          {
+            echo "candidate_sha=${CANDIDATE_SHA}"
+            echo "version=${VERSION}"
+            echo "build=${BUILD}"
+            echo "tag=${TAG}"
+          } >> "${GITHUB_OUTPUT}"
 
-          echo "Resolved release ${TAG}: ${VERSION} (${BUILD})"
+          echo "Resolved ${TAG}: ${VERSION} (${BUILD}) at ${CANDIDATE_SHA}"
 
-      - name: Validate notarization test mode
+      - name: Run tests
+        run: |
+          set +e
+          bash scripts/test.sh
+          TEST_EXIT_CODE=$?
+          set -e
+
+          if [[ "${TEST_EXIT_CODE}" -ne 0 ]]; then
+            echo "SwiftPM resource bundle diagnostics:"
+            find .build -name 'StatusTrio_StatusTrioCore.bundle' -type d -print
+            find .build -name 'StatusTrio_StatusTrioCore.bundle' -type d -exec find {} -maxdepth 4 -print \;
+            find .build -name 'Localizable.strings' -print | head -n 50
+          fi
+          exit "${TEST_EXIT_CODE}"
+
+      - name: Run native and release-contract tests
         run: |
           set -euo pipefail
-          if [[ "${NOTARIZE}" == "true" && "${PUBLISH}" == "true" ]]; then
-            echo "::error::notarize=true requires publish=false; notarized CI test builds never publish releases or appcasts."
-            exit 1
+          if [[ "${PUBLISH_MODE}" == "true" ]]; then
+            VERSION="$VERSION" BUILD="$BUILD" PUBLISH=true NOTES_MODE=publish \
+              RELEASE_NOTES_DIR="$GITHUB_WORKSPACE/release-notes/$VERSION" \
+              bash scripts/validate-appcast-notes.sh
+          else
+            VERSION="$VERSION" BUILD="$BUILD" PUBLISH=false NOTES_MODE=package \
+              RELEASE_NOTES_DIR="$GITHUB_WORKSPACE/release-notes/$VERSION" \
+              bash scripts/validate-appcast-notes.sh
           fi
+          bash scripts/test-macos13-deployment-contract-regressions.sh
+          bash scripts/test-macos13-deployment-contract.sh
+          bash scripts/test-appcast-minimum-system-version.sh
+          bash scripts/test-macos13-bundle-contract.sh
+          bash scripts/test-privileged-helper-bundle-contract.sh
+          bash scripts/test-mobile-battery-helper.sh
+          bash scripts/test-mobile-battery-rpaths.sh
+          bash scripts/test-otool-dependencies.sh
+          bash scripts/test-macos13-sparkle-contract.sh
+          bash scripts/test-mobile-battery-source-cache.sh
+          bash scripts/test-release-workflow-policy.sh
+          bash scripts/test-release-pipeline.sh
+          bash scripts/test-release-notarization.sh
+          bash scripts/test-mobile-battery-clang-version.sh
+          bash scripts/test-verify-local.sh
+          bash scripts/test-verify-local-bundle.sh
+          bash scripts/test-workflow-policy.sh
 
-      - name: Validate appcast notes
-        run: bash scripts/validate-appcast-notes.sh
+  package:
+    needs: verify
+    runs-on: xcode-27
+    timeout-minutes: 75
+    environment:
+      name: distribution
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+      CANDIDATE_SHA: ${{ needs.verify.outputs.candidate_sha || inputs.candidate_sha }}
+      VERSION: ${{ needs.verify.outputs.version }}
+      BUILD: ${{ needs.verify.outputs.build }}
+      TAG: ${{ needs.verify.outputs.tag }}
+      PUBLISH_MODE: ${{ inputs.publish }}
+      NOTARIZE: ${{ inputs.notarize }}
+      RESOLVED_RELEASE_REPO: ${{ vars.RELEASE_REPO || 'lingyired/status-trio' }}
+      RESOLVED_RELEASE_BRANCH: ${{ vars.RELEASE_BRANCH || 'main' }}
 
-      - name: Validate Sparkle signing secret
-        if: ${{ env.PUBLISH == 'true' }}
+    steps:
+      - name: Check out the frozen candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.candidate_sha }}
+
+      - name: Reassert frozen candidate
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          [[ "${ACTUAL_SHA}" == "${CANDIDATE_SHA}" ]] || {
+            echo "::error::package checkout ${ACTUAL_SHA} differs from ${CANDIDATE_SHA}."
+            exit 1
+          }
+          swift --version
+          xcodebuild -version
+          printf 'macOS SDK: %s\n' "$(xcrun --sdk macosx --show-sdk-version)"
+
+      - name: Validate publishing secrets and notarization mode
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          DEVELOPER_ID_CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+          NOTARY_API_KEY_ID: ${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}
+          NOTARY_API_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_API_ISSUER_ID }}
+          NOTARY_API_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_API_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-          if [[ -z "${SPARKLE_PRIVATE_KEY}" ]]; then
-            echo "::error::Set the SPARKLE_PRIVATE_KEY repository secret before publishing updates."
+          if [[ "${PUBLISH_MODE}" == "true" && -z "${SPARKLE_PRIVATE_KEY}" ]]; then
+            echo "::error::SPARKLE_PRIVATE_KEY is required to publish."
             exit 1
+          fi
+          if [[ "${NOTARIZE}" == "true" ]]; then
+            for pair in \
+              "DEVELOPER_ID_CERTIFICATE_P12:${DEVELOPER_ID_CERTIFICATE_P12:-}" \
+              "CERTIFICATE_PASSWORD:${CERTIFICATE_PASSWORD:-}" \
+              "NOTARY_API_KEY_ID:${NOTARY_API_KEY_ID:-}" \
+              "NOTARY_API_ISSUER_ID:${NOTARY_API_ISSUER_ID:-}" \
+              "NOTARY_API_PRIVATE_KEY:${NOTARY_API_PRIVATE_KEY:-}"; do
+              [[ -n "${pair#*:}" ]] || {
+                echo "::error::notarize=true requires ${pair%%:*}."
+                exit 1
+              }
+            done
           fi
 
       - name: Configure Developer ID signing
-        if: ${{ env.PUBLISH == 'true' || env.NOTARIZE == 'true' }}
+        if: ${{ inputs.publish || inputs.notarize }}
         env:
           DEVELOPER_ID_CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_CERTIFICATE_P12 }}
           CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
         run: |
           set -euo pipefail
-
-          if [[ "${NOTARIZE}" == "true" && -z "${DEVELOPER_ID_CERTIFICATE_P12}" ]]; then
-            echo "::error::DEVELOPER_ID_CERTIFICATE_P12 is required when notarize=true."
-            exit 1
-          fi
-
-          if [[ "${NOTARIZE}" == "true" && -z "${CERTIFICATE_PASSWORD}" ]]; then
-            echo "::error::DEVELOPER_ID_CERTIFICATE_PASSWORD is required when notarize=true."
-            exit 1
-          fi
-
-          if [[ "${PUBLISH}" != "true" && "${NOTARIZE}" != "true" ]] || [[ -z "${DEVELOPER_ID_CERTIFICATE_P12}" ]]; then
-            echo "Developer ID signing is not configured; using Ad-hoc signing."
+          if [[ -z "${DEVELOPER_ID_CERTIFICATE_P12}" ]]; then
+            if [[ "${NOTARIZE}" == "true" ]]; then
+              echo "::error::DEVELOPER_ID_CERTIFICATE_P12 is required when notarize=true."
+              exit 1
+            fi
+            echo "Developer ID signing is not configured; package will be Ad-hoc signed."
             exit 0
           fi
-
-          if [[ -z "${CERTIFICATE_PASSWORD}" ]]; then
-            echo "::error::DEVELOPER_ID_CERTIFICATE_PASSWORD is required when a certificate is provided."
+          [[ -n "${CERTIFICATE_PASSWORD:-}" ]] || {
+            echo "::error::DEVELOPER_ID_CERTIFICATE_PASSWORD is required with a certificate."
             exit 1
-          fi
+          }
 
           CERT_PATH="${RUNNER_TEMP}/developer-id.p12"
           KEYCHAIN_PATH="${RUNNER_TEMP}/app-signing.keychain-db"
@@ -161,7 +256,6 @@ jobs:
           KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
           SMOKE_PATH="${RUNNER_TEMP}/codesign-smoke"
           trap 'rm -f "${CERT_PATH:-}" "${SMOKE_PATH:-}" "${KEYCHAIN_LIST_PARSED:-}"' EXIT
-          # The always-run cleanup step also handles partial keychain setup.
           echo "KEYCHAIN_PATH=${KEYCHAIN_PATH}" >> "${GITHUB_ENV}"
 
           security list-keychains -d user > "${KEYCHAIN_LIST_BACKUP}"
@@ -172,43 +266,29 @@ jobs:
           while IFS= read -r -d '' keychain; do
             ORIGINAL_KEYCHAINS+=("${keychain}")
           done < "${KEYCHAIN_LIST_PARSED}"
-          if [[ "${#ORIGINAL_KEYCHAINS[@]}" -eq 0 ]]; then
-            echo "::error::Could not read the existing user keychain search list; refusing to replace it."
+          [[ "${#ORIGINAL_KEYCHAINS[@]}" -gt 0 ]] || {
+            echo "::error::Could not read the existing user keychain search list."
             exit 1
-          fi
+          }
           echo "KEYCHAIN_LIST_BACKUP=${KEYCHAIN_LIST_BACKUP}" >> "${GITHUB_ENV}"
 
           printf '%s' "${DEVELOPER_ID_CERTIFICATE_P12}" | base64 -D > "${CERT_PATH}"
-
           security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
           security set-keychain-settings -lut 21600 "${KEYCHAIN_PATH}"
           security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
-          security import "${CERT_PATH}" \
-            -P "${CERTIFICATE_PASSWORD}" \
-            -A \
-            -t cert \
-            -f pkcs12 \
-            -k "${KEYCHAIN_PATH}"
+          security import "${CERT_PATH}" -P "${CERTIFICATE_PASSWORD}" -A -t cert -f pkcs12 -k "${KEYCHAIN_PATH}"
           rm -f "${CERT_PATH}"
-          security set-key-partition-list \
-            -S apple-tool:,apple: \
-            -s \
-            -k "${KEYCHAIN_PASSWORD}" \
-            "${KEYCHAIN_PATH}" >/dev/null
-
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}" >/dev/null
           IDENTITY="$(
-            security find-identity -v -p codesigning "${KEYCHAIN_PATH}" \
-              | sed -n 's/.*"\(Developer ID Application: .*\)"/\1/p' \
-              | head -n 1
+            security find-identity -v -p codesigning "${KEYCHAIN_PATH}" |
+              sed -n 's/.*"\(Developer ID Application: .*\)"/\1/p' |
+              head -n 1
           )"
-
-          if [[ -z "${IDENTITY}" ]]; then
-            echo "::error::No Developer ID Application identity was found in the imported certificate."
+          [[ -n "${IDENTITY}" ]] || {
+            echo "::error::No Developer ID Application identity was found."
             exit 1
-          fi
-
+          }
           security list-keychains -d user -s "${KEYCHAIN_PATH}" "${ORIGINAL_KEYCHAINS[@]}"
-
           cp /usr/bin/true "${SMOKE_PATH}"
           if ! /usr/bin/codesign --force --sign "${IDENTITY}" "${SMOKE_PATH}"; then
             echo "::error::Developer ID identity could not sign the disposable codesign smoke-test binary."
@@ -219,141 +299,66 @@ jobs:
             exit 1
           fi
           rm -f "${SMOKE_PATH}"
-
-          {
-            echo "CODE_SIGN_IDENTITY=${IDENTITY}"
-          } >> "${GITHUB_ENV}"
+          echo "CODE_SIGN_IDENTITY=${IDENTITY}" >> "${GITHUB_ENV}"
 
       - name: Configure Apple notarization
-        if: ${{ env.PUBLISH == 'true' || env.NOTARIZE == 'true' }}
+        if: ${{ inputs.publish || inputs.notarize }}
         env:
           NOTARY_API_KEY_ID: ${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}
           NOTARY_API_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_API_ISSUER_ID }}
           NOTARY_API_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_API_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-
-          if [[ "${NOTARIZE}" == "true" && -z "${NOTARY_API_PRIVATE_KEY}" ]]; then
-            echo "::error::APPSTORE_CONNECT_API_PRIVATE_KEY is required when notarize=true."
-            exit 1
-          fi
-
-          if [[ "${NOTARIZE}" == "true" && -z "${NOTARY_API_KEY_ID}" ]]; then
-            echo "::error::APPSTORE_CONNECT_API_KEY_ID is required when notarize=true."
-            exit 1
-          fi
-
-          if [[ "${NOTARIZE}" == "true" && -z "${NOTARY_API_ISSUER_ID}" ]]; then
-            echo "::error::APPSTORE_CONNECT_API_ISSUER_ID is required when notarize=true."
-            exit 1
-          fi
-
-          if [[ "${PUBLISH}" != "true" && "${NOTARIZE}" != "true" ]] || [[ -z "${NOTARY_API_PRIVATE_KEY}" ]]; then
+          if [[ -z "${NOTARY_API_PRIVATE_KEY}" ]]; then
+            if [[ "${NOTARIZE}" == "true" ]]; then
+              echo "::error::APPSTORE_CONNECT_API_PRIVATE_KEY is required when notarize=true."
+              exit 1
+            fi
             echo "Apple notarization is not configured."
             exit 0
           fi
-
-          if [[ -z "${NOTARY_API_KEY_ID}" || -z "${NOTARY_API_ISSUER_ID}" ]]; then
-            echo "::error::App Store Connect API key ID and issuer ID are required for notarization."
+          [[ -n "${NOTARY_API_KEY_ID}" && -n "${NOTARY_API_ISSUER_ID}" ]] || {
+            echo "::error::App Store Connect API key ID and issuer ID are required."
             exit 1
-          fi
-
+          }
           KEY_PATH="${RUNNER_TEMP}/AuthKey_${NOTARY_API_KEY_ID}.p8"
           trap 'rm -f "${KEY_PATH:-}"' EXIT
           printf '%s' "${NOTARY_API_PRIVATE_KEY}" > "${KEY_PATH}"
-
           if [[ -n "${KEYCHAIN_PATH:-}" ]]; then
-            xcrun notarytool store-credentials "status-trio-notary" \
-              --key "${KEY_PATH}" \
-              --key-id "${NOTARY_API_KEY_ID}" \
-              --issuer "${NOTARY_API_ISSUER_ID}" \
-              --keychain "${KEYCHAIN_PATH}"
+            xcrun notarytool store-credentials status-trio-notary \
+              --key "${KEY_PATH}" --key-id "${NOTARY_API_KEY_ID}" \
+              --issuer "${NOTARY_API_ISSUER_ID}" --keychain "${KEYCHAIN_PATH}"
           else
-            xcrun notarytool store-credentials "status-trio-notary" \
-              --key "${KEY_PATH}" \
-              --key-id "${NOTARY_API_KEY_ID}" \
+            xcrun notarytool store-credentials status-trio-notary \
+              --key "${KEY_PATH}" --key-id "${NOTARY_API_KEY_ID}" \
               --issuer "${NOTARY_API_ISSUER_ID}"
           fi
           rm -f "${KEY_PATH}"
-
           echo "NOTARY_PROFILE=status-trio-notary" >> "${GITHUB_ENV}"
-
-      - name: Prepare release notes
-        if: ${{ env.PUBLISH == 'true' }}
-        run: |
-          set -euo pipefail
-          NOTES_DIR="${GITHUB_WORKSPACE}/release-notes/${VERSION}"
-          RELEASE_BODY_PATH="${RUNNER_TEMP}/github-release-notes.md"
-
-          for language in en zh-Hans; do
-            if [[ ! -f "${NOTES_DIR}/${language}.md" ]]; then
-              echo "::error::Release notes file does not exist: ${NOTES_DIR}/${language}.md"
-              exit 1
-            fi
-          done
-
-          # The body carries its own H1, so each language's '# <title>' line is
-          # dropped; '## section' headings are preserved.
-          {
-            printf '# Version %s （English + 中文， 中文在下方）\n\n' "${VERSION}"
-            printf '## English\n\n'
-            grep -v '^# ' "${NOTES_DIR}/en.md"
-            printf '\n## 中文\n\n'
-            grep -v '^# ' "${NOTES_DIR}/zh-Hans.md"
-          } > "${RELEASE_BODY_PATH}"
-
-          {
-            echo "RELEASE_NOTES_DIR=${NOTES_DIR}"
-            echo "RELEASE_BODY_FILE=${RELEASE_BODY_PATH}"
-          } >> "${GITHUB_ENV}"
-
-      - name: Run tests
-        run: |
-          set +e
-          swift test
-          TEST_EXIT_CODE=$?
-          set -e
-
-          if [[ "${TEST_EXIT_CODE}" -ne 0 ]]; then
-            echo "SwiftPM resource bundle diagnostics:"
-            find .build -name 'StatusTrio_StatusTrioCore.bundle' -type d -print
-            find .build -name 'StatusTrio_StatusTrioCore.bundle' -type d -exec find {} -maxdepth 4 -print \;
-            find .build -name 'Localizable.strings' -print | head -n 50
-          fi
-
-          exit "${TEST_EXIT_CODE}"
-
-      - name: Run native compatibility tests
-        run: |
-          set -euo pipefail
-          bash scripts/test-macos13-deployment-contract.sh
-          bash scripts/test-appcast-minimum-system-version.sh
-          bash scripts/test-macos13-bundle-contract.sh
-          bash scripts/test-privileged-helper-bundle-contract.sh
-          bash scripts/test-mobile-battery-helper.sh
-          bash scripts/test-mobile-battery-rpaths.sh
-          bash scripts/test-otool-dependencies.sh
-          bash scripts/test-macos13-sparkle-contract.sh
 
       - name: Install mobile helper build tools
         run: brew install autoconf automake libtool pkg-config
 
-      - name: Build, sign, notarize, and publish
+      - name: Build, sign, notarize, and package once
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
-          SPARKLE_PRIVATE_KEY: ${{ env.PUBLISH == 'true' && secrets.SPARKLE_PRIVATE_KEY || '' }}
-        run: bash scripts/release.sh
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          SOURCE_SHA: ${{ inputs.candidate_sha }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          BUILD: ${{ needs.verify.outputs.build }}
+          TAG: ${{ needs.verify.outputs.tag }}
+          RELEASE_REPO: ${{ env.RESOLVED_RELEASE_REPO }}
+          RELEASE_BRANCH: ${{ env.RESOLVED_RELEASE_BRANCH }}
+          OUTPUT_DIR: ${{ github.workspace }}/dist/release-package
+          RELEASE_NOTES_DIR: release-notes/${{ needs.verify.outputs.version }}
+        run: bash scripts/package-release.sh
 
-      - name: Upload release artifacts
-        if: always()
+      - name: Upload verified package
         uses: actions/upload-artifact@v4
         with:
-          name: StatusTrio-${{ github.run_number }}
-          path: |
-            dist/*.dmg
-            dist/*.dmg.sha256
-            dist/release.env
-          if-no-files-found: ignore
+          name: status-trio-release-package
+          path: dist/release-package/
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Clean up signing keychain
         if: always() && env.KEYCHAIN_PATH != ''
@@ -369,7 +374,8 @@ jobs:
               while IFS= read -r -d '' keychain; do
                 ORIGINAL_KEYCHAINS+=("${keychain}")
               done < "${KEYCHAIN_LIST_PARSED}"
-              if [[ "${#ORIGINAL_KEYCHAINS[@]}" -gt 0 ]] && security list-keychains -d user -s "${ORIGINAL_KEYCHAINS[@]}"; then
+              if [[ "${#ORIGINAL_KEYCHAINS[@]}" -gt 0 ]] &&
+                security list-keychains -d user -s "${ORIGINAL_KEYCHAINS[@]}"; then
                 rm -f "${KEYCHAIN_LIST_BACKUP}"
               else
                 echo "::error::Could not restore the original user keychain search list."
@@ -382,9 +388,52 @@ jobs:
             rm -f "${KEYCHAIN_LIST_PARSED}"
           fi
           if [[ -n "${KEYCHAIN_PATH}" && -f "${KEYCHAIN_PATH}" ]]; then
-            if ! security delete-keychain "${KEYCHAIN_PATH}"; then
+            security delete-keychain "${KEYCHAIN_PATH}" || {
               echo "::error::Could not delete the temporary signing keychain."
               CLEANUP_STATUS=1
-            fi
+            }
           fi
           exit "${CLEANUP_STATUS}"
+
+  publish:
+    if: ${{ inputs.publish }}
+    needs: [verify, package]
+    runs-on: xcode-27
+    timeout-minutes: 30
+    environment:
+      name: distribution
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+      CANDIDATE_SHA: ${{ needs.verify.outputs.candidate_sha || inputs.candidate_sha }}
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+
+    steps:
+      - name: Check out the frozen candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.candidate_sha }}
+
+      - name: Download the verified package
+        uses: actions/download-artifact@v4
+        with:
+          name: status-trio-release-package
+          path: dist/release-package
+
+      - name: Reassert frozen candidate
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          [[ "${ACTUAL_SHA}" == "${CANDIDATE_SHA}" ]] || {
+            echo "::error::publish checkout ${ACTUAL_SHA} differs from ${CANDIDATE_SHA}."
+            exit 1
+          }
+
+      - name: Publish the verified package without rebuilding
+        env:
+          MANIFEST_PATH: ${{ github.workspace }}/dist/release-package/release-manifest.json
+          PACKAGE_DIR: ${{ github.workspace }}/dist/release-package
+          GITHUB_SHA: ${{ inputs.candidate_sha }}
+        run: bash scripts/publish-release.sh

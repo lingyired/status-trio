@@ -59,14 +59,14 @@ struct WiFiNetworkListView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
             NavigationBackRow(
                 accessibilityLabel: localization.string(.commonBack),
                 title: localization.string(.wifiTitle),
                 action: onBack
             )
             Button(action: onRefresh) {
-                Image(systemName: "arrow.clockwise")
+                PanelActionGlyph(systemName: "arrow.clockwise")
             }
             .buttonStyle(.plain)
             .disabled(!state.canRefresh)
@@ -163,14 +163,14 @@ struct WiFiNetworkListView: View {
         Button {
             if row.opensSettings { onOpenWiFiSettings() }
         } label: {
-            HStack(spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
                 if row.selected {
                     Image(systemName: "checkmark")
-                        .frame(width: 16)
+                        .frame(width: 16, height: 16, alignment: .center)
                         .foregroundStyle(Color.accentColor)
                 } else {
                     Image(systemName: "wifi")
-                        .frame(width: 16)
+                        .frame(width: 16, height: 16, alignment: .center)
                         .foregroundStyle(.secondary)
                 }
                 Text(row.name)
@@ -181,15 +181,18 @@ struct WiFiNetworkListView: View {
                     Image(systemName: marker)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .frame(width: 16, height: 16, alignment: .center)
                         .accessibilityHidden(true)
                 }
                 if let systemImage = row.signalSystemImage {
                     Image(systemName: systemImage)
                         .foregroundStyle(.secondary)
+                        .frame(width: 16, height: 16, alignment: .center)
                         .accessibilityHidden(true)
                 } else {
                     PanelSymbolView(source: row.signalSymbol, size: 14, weight: .regular)
                         .foregroundStyle(.secondary)
+                        .frame(width: 16, height: 16, alignment: .center)
                         .accessibilityHidden(true)
                 }
             }

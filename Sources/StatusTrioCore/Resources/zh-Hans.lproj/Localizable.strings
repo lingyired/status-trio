@@ -57,7 +57,6 @@
 "settings.menuBar.title" = "菜单栏图标";
 "settings.network.connectionIcons" = "连接图标样式";
 "settings.network.connectionIcons.description" = "启用后，对应状态改用普通 Wi‑Fi 信号图标，不再显示其专用标记。";
-"settings.network.designerEntry" = "在图标设计器中自定义网络来源";
 "settings.network.wifiIconForEthernet" = "有线连接使用 Wi‑Fi 图标";
 "settings.network.wifiIconForHotspot" = "个人热点使用 Wi‑Fi 图标";
 "settings.network.wifiIconForTemporaryConnection" = "临时连接使用 Wi‑Fi 图标";
@@ -70,7 +69,6 @@
 "settings.network.centerSource.networkWarnings" = "优先显示网络异常";
 "settings.network.centerSource.networkWarnings.description" = "当 Mac 确实离线时，中间位置改为显示网络状态而不是输入法。";
 "settings.bluetooth.title" = "蓝牙音频";
-"settings.bluetooth.designerEntry" = "在图标设计器中自定义蓝牙来源";
 "settings.bluetooth.replaceNetworkIcon" = "使用蓝牙设备图标代替网络图标";
 "settings.bluetooth.replaceNetworkIconDescription" = "用所选蓝牙设备的蓝色图标替代 Wi‑Fi 图标。";
 "settings.bluetooth.networkIconSourceGroup" = "使用蓝牙设备图标";
@@ -94,6 +92,8 @@
 "settings.bluetooth.listeningModePreviewLanguageDescription" = "只让预览行的模式名用指定语言渲染，面板其他部分保持系统语言。方便比较德语长词或阿拉伯语从右往左时胶囊如何换行。";
 "settings.bluetooth.showInStatusPanel" = "在状态面板中显示蓝牙";
 "settings.bluetooth.showInStatusPanelDescription" = "控制状态面板里的蓝牙项目，并与状态面板设置保持同步。";
+"settings.bluetooth.powerControl" = "显示蓝牙电源开关";
+"settings.bluetooth.powerControlDescription" = "在状态面板的蓝牙标题行显示电源开关，不会额外请求权限。";
 "settings.bluetooth.symbolScale" = "蓝牙图标大小";
 "settings.bluetooth.symbolScaleDescription" = "调节状态环内蓝牙设备图标的缩放比例（100% - 180%）。";
 "settings.bluetooth.iconChoice" = "蓝牙音频图标";
@@ -134,9 +134,6 @@
 "settings.about.starOnGitHub" = "在 GitHub 上标星";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "电池显示";
-"settings.battery.designerEntry" = "在图标设计器中自定义电池来源";
-"settings.battery.macBehaviorDescription" = "这些选项仅在使用 Mac 电池作为来源时生效；不会替换外环已选的 AirPods 来源。";
-"settings.battery.macBehavior" = "Mac 电池行为";
 "settings.battery.showPercentage" = "显示电量数字";
 "settings.battery.showPercentageInConnectionSlot" = "在连接位置显示电量数字";
 "settings.battery.showPercentageInConnectionSlotDescription" = "替换 Wi-Fi 或连接图标；此选项与顶部电池指示器可分别开启。";
@@ -144,6 +141,10 @@
 "settings.battery.chargingDescription" = "开启后，正在充电或已连接电源时，电量数字会替换为闪电或插头图标；关闭则继续显示数字。";
 "settings.battery.chargingEffect" = "充电动效";
 "settings.battery.chargingEffectDescription" = "仅在充电时显示动态高光；开启“减弱动态效果”时停止。";
+"settings.battery.menuBarChargingEffect" = "菜单栏充电动效";
+"settings.battery.menuBarChargingEffectDescription" = "仅在菜单栏图标中播放充电动效。程序坞单独控制；开启“减弱动态效果”时两者都会停止。";
+"settings.battery.dockChargingEffect" = "程序坞充电动效";
+"settings.battery.dockChargingEffectDescription" = "仅在程序坞图标中播放充电动效。菜单栏单独控制；开启“减弱动态效果”时两者都会停止。";
 "settings.battery.chargingBoltHeartbeat" = "闪电心跳";
 "settings.battery.chargingBoltHeartbeatDescription" = "关闭后闪电保持原有大小和颜色；充电圆弧动效仍会继续。";
 "settings.battery.chargingEffectTest" = "测试充电动画";
@@ -340,6 +341,13 @@
 "wifi.security.enterprise" = "企业网络";
 "bluetooth.openDetails" = "打开详情查看设备状态";
 "bluetooth.title" = "蓝牙";
+"bluetooth.power.turnOn" = "打开蓝牙";
+"bluetooth.power.turnOff" = "关闭蓝牙";
+"bluetooth.power.unknown" = "无法读取蓝牙状态。";
+"bluetooth.power.changeFailed" = "蓝牙状态未发生变化。";
+"bluetooth.power.offConfirmTitle" = "要关闭蓝牙吗？";
+"bluetooth.power.offConfirmMessage" = "已连接的键盘、鼠标、触控板或游戏手柄可能会断开。你可以从此面板或系统设置重新打开蓝牙。";
+"bluetooth.power.offConfirmAction" = "关闭";
 "bluetooth.pairedDevices.title" = "已配对";
 "bluetooth.devices.title" = "蓝牙设备";
 "bluetooth.nearbyBattery.title" = "附近设备";
@@ -376,7 +384,6 @@
 "settings.preview.light" = "浅色";
 "settings.preview.toggleHelp" = "切换菜单栏深色/浅色底色预览";
 "settings.audio.displayRules" = "显示规则";
-"settings.audio.designerEntry" = "在图标设计器中自定义音频来源";
 "settings.audio.activeDeviceFootnote" = "当前活跃的音频输出设备将优先以主题色高亮显示。";
 "settings.audio.inUse" = "正在使用";
 "settings.wifi.symbolScale" = "Wi-Fi 图标大小";
@@ -424,6 +431,20 @@
 "guide.anatomy.title" = "一个图标，三种信息";
 "guide.anatomy.description" = "选择任意部分，菜单栏和 Dock 预览会同时高亮对应区域。";
 "guide.placement" = "你可以在设置中自由选择只显示在菜单栏、只显示在 Dock，或两处同时显示。";
+"guide.menuBarHelp.prompt" = "Status Trio 位于屏幕右上角。";
+"guide.menuBarHelp.open" = "找不到菜单栏图标？";
+"guide.menuBarHelp.title" = "找不到 Status Trio？";
+"guide.menuBarHelp.reason" = "菜单栏项目过多时，图标可能暂时被刘海遮挡；Status Trio 仍在运行。";
+"guide.menuBarHelp.overflowStep" = "点击菜单栏的溢出按钮（双箭头），查看被收起的图标。";
+"guide.menuBarHelp.menuBarSettingsStep" = "打开“系统设置 → 菜单栏”，隐藏不需要的菜单栏项目，例如 Wi-Fi、电池或声音。";
+"guide.menuBarHelp.controlCenterStep" = "打开“系统设置 → 控制中心”，关闭不需要的 Wi-Fi、电池或声音的菜单栏显示选项。";
+"guide.menuBarHelp.findStatusTrioStep" = "Status Trio 已集中显示这些状态，可以减少重复图标；系统控制功能仍可从控制中心使用。";
+"guide.menuBarHelp.moveStep" = "图标出现后，按住 ⌘ 拖动到菜单栏右侧。";
+"guide.menuBarHelp.openMenuBarSettings" = "打开菜单栏设置";
+"guide.menuBarHelp.openSystemSettings" = "打开系统设置";
+"guide.menuBarHelp.reopen" = "以后如果找不到 Status Trio，直接从“应用程序”、Finder 或 Spotlight 再次打开它，就可以进入设置。";
+"guide.menuBarHelp.learnMore" = "Apple 菜单栏使用指南";
+"guide.menuBarHelp.close" = "关闭";
 "guide.states.title" = "状态组合一览";
 "guide.states.description" = "快速查看常见的电池、网络和音量组合。";
 "guide.state.charging" = "充电 + Wi-Fi";
@@ -468,6 +489,29 @@
 "settings.appleBackgroundRefresh.description" = "状态面板关闭时，继续更新已选 Apple 设备的电量。";
 "settings.appleBackgroundRefresh.interval" = "后台更新电量的时间间隔";
 "settings.appleBackgroundRefresh.intervalValue" = "%d 分钟";
+
+"settings.shortcut.title" = "打开状态面板";
+"settings.shortcut.description" = "使用全局快捷键，在任意应用中打开同一个状态面板。部分快捷键可能被输入法或其他 App 占用。";
+"settings.shortcut.record" = "录制";
+"settings.shortcut.change" = "更改快捷键";
+"settings.shortcut.notSet" = "未设置";
+"settings.shortcut.clear" = "清除";
+"settings.shortcut.recording" = "请按下快捷键…";
+"settings.shortcut.invalid" = "请使用 Command、Control 或 Option 加一个按键。";
+"settings.shortcut.inputMethodConflict" = "该组合可能被输入法占用。请换一个组合，例如 Option 加字母。";
+"settings.shortcut.unavailable" = "该快捷键不可用，可能已被其他应用占用。";
+"settings.shortcut.registrationFailed" = "无法注册此快捷键。";
+"settings.shortcut.restorationFailed" = "无法恢复之前的快捷键。";
+"settings.shortcut.accessibility.current" = "当前全局快捷键：%@";
+"settings.shortcut.accessibility.unassigned" = "尚未设置全局快捷键。";
+
+/* Icon Designer and built-in plugin additions. */
+"settings.network.designerEntry" = "在图标设计器中自定义网络来源";
+"settings.bluetooth.designerEntry" = "在图标设计器中自定义蓝牙来源";
+"settings.battery.designerEntry" = "在图标设计器中自定义电池来源";
+"settings.battery.macBehaviorDescription" = "这些选项仅在使用 Mac 电池作为来源时生效；不会替换外环已选的 AirPods 来源。";
+"settings.battery.macBehavior" = "Mac 电池行为";
+"settings.audio.designerEntry" = "在图标设计器中自定义音频来源";
 "icon.resolution.primary" = "正在显示首选来源";
 "icon.resolution.fallback" = "正在显示备用来源";
 "icon.resolution.none" = "当前未显示来源";
@@ -518,9 +562,6 @@
 "icon.designer.currentSourceUnavailableFormat" = "当前来源（此版本不可用）：%@";
 "icon.designer.compatible" = "兼容当前设置";
 "icon.designer.legacySourcePreserved" = "原有显示规则已保留；选择新内容后替换。";
-
-
-
 "iconDesigner.control.volumeDisplay" = "音量显示";
 "iconDesigner.control.dots" = "圆点";
 "iconDesigner.control.arc" = "弧形";
@@ -570,7 +611,6 @@
 "iconDesigner.control.restoreSlotQuestionFormat" = "将 %@ 还原为经典配置？";
 "iconDesigner.control.audioOutputFormat" = "音频输出 — %@";
 "iconDesigner.control.savedSymbolFormat" = "已保存的符号 — %@";
-
 "iconDesigner.control.airPodsBackgroundReads" = "允许在后台读取 AirPods 电池";
 "iconDesigner.control.selectAirPodsDevice" = "选择 AirPods 设备";
 "iconDesigner.control.selectConnectedBluetoothDevice" = "选择已连接的蓝牙设备";
@@ -603,12 +643,9 @@
 "icon.designer.airPods.dualExplanation" = "双圆环：左右耳分别显示在左右弧段。仅一侧电量可用时，两侧圆环共用该侧电量；充电盒不会替代耳机。";
 "icon.designer.airPods.partialExplanation" = "仅一侧电量可用，左右圆环共用该侧电量。";
 "icon.designer.airPods.focusPreset" = "AirPods 专注";
-
 "iconPreviewData.edit" = "编辑样例数据…";
-
 "iconPreviewData.simulatedNotice" = "编辑下方样例仅影响此预览；切回实时数据后，样例仍会保留。";
 "iconPreviewData.liveNotice" = "实时状态为只读。切换到“模拟数据”后可编辑样例。";
-
 "iconPreviewData.applyToRealIcons" = "应用到真实菜单栏和 Dock";
 "iconPreviewData.applyToRealIconsNotice" = "模拟数据正在控制真实菜单栏和 Dock。关闭此选项或切回“实时数据”即可恢复实时状态。";
 "iconPreviewData.title" = "预览数据";
@@ -643,8 +680,6 @@
 "icon.designer.externalChangeNotice" = "图标设置已在其他位置更改，撤销记录已清除。";
 "iconPreviewData.useLiveData" = "使用实时数据";
 "icon.designer.moreActions" = "更多操作";
-
-/* Source-aware center color roles */
 "iconDesigner.centerColorMeaning.networkPrimary" = "网络图标";
 "iconDesigner.centerColorMeaning.inputSource" = "输入法图标";
 "iconDesigner.centerColorMeaning.wifiZeroBars" = "Wi‑Fi 信号为 0 格";
@@ -657,7 +692,6 @@
 "iconDesigner.centerColorMeaning.legacyBluetoothGlyph" = "蓝牙图标";
 "iconDesigner.centerColorContext.fallbackFormat" = "备用：%@";
 "iconDesigner.centerColorContext.networkOverrideFormat" = "异常覆盖：%@";
-
 "iconDesigner.centerColor.rolePicker" = "颜色适用状态";
 "iconDesigner.centerColorHelp.networkPrimary" = "适用于常规网络图标，包括 Wi-Fi 关闭、未连接、无互联网和有线连接。";
 "iconDesigner.centerColorHelp.inputSource" = "中心位置绘制当前输入法的图标或短标签时使用。";
@@ -670,8 +704,6 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "适用于旧版中心中已连接但信号为 0 格的 Wi-Fi；无法读取信号强度时也使用该颜色。";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "适用于旧版中心显示的蓝牙图标。";
 "icon.designer.airPods.showTopSymbol" = "顶部显示 AirPods 图标";
-
-/* Icon content editor */
 "iconDesigner.editor.editingElementFormat" = "编辑%@";
 "iconDesigner.editor.contentTitle" = "内容";
 "iconDesigner.editor.unavailableTitle" = "不可用时";

@@ -21,6 +21,8 @@ struct BluetoothDeviceList: View {
     /// though the popover keeps this view alive.
     let confirmingAddress: String?
     let options: BluetoothDeviceListOptions
+    var listeningModePresentations: [String: BluetoothListeningModePresentation] = [:]
+    var onSelectListeningMode: (String, BluetoothListeningMode) -> Void = { _, _ in }
     let onPerformAction: (BluetoothDevice) -> Void
     let onRequestDisconnect: (BluetoothDevice) -> Void
     let onCancelDisconnect: () -> Void
@@ -107,9 +109,12 @@ struct BluetoothDeviceList: View {
                         isExpanded.toggle()
                     }
                 } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "chevron.down")
-                            .font(.caption.weight(.semibold))
+                    HStack(alignment: .center, spacing: 8) {
+                        PanelActionGlyph(
+                            systemName: "chevron.down",
+                            font: .caption.weight(.semibold),
+                            size: 16
+                        )
                             .rotationEffect(.degrees(isExpanded ? 180 : 0))
 
                         Text(
@@ -187,7 +192,10 @@ struct BluetoothDeviceList: View {
                     charging: localization.string(.mobileBatteryCharging)
                 ) != nil
             } ?? false
-            return total + BluetoothDeviceRowMetrics.estimatedHeight(
+            let address = BluetoothBatteryReader.normalizedAddress(device.id)
+            let modeHeight: CGFloat = device.isHuaweiAudio
+                && listeningModePresentations[address]?.isControllable == true ? 23 : 0
+            return total + modeHeight + BluetoothDeviceRowMetrics.estimatedHeight(
                 for: device,
                 batteryLevels: batteryLevels,
                 hasMobileDetailLine: hasMobileDetailLine
@@ -207,6 +215,8 @@ struct BluetoothDeviceList: View {
                     nearbyMetadataByDeviceID: nearbyMetadata(for: device),
                     appleStatusByDeviceID: appleStatus(for: device),
                     canonicalStatusByDeviceID: canonicalStatus(for: device),
+                    listeningMode: listeningModePresentations[address],
+                    onSelectListeningMode: { onSelectListeningMode(address, $0) },
                     actionState: actionStates[address],
                     isConfirmingDisconnect: confirmingAddress == address
                         && BluetoothDeviceActionPolicy.requiresConfirmation(for: device),

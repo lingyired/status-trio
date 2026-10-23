@@ -1,23 +1,22 @@
-enum DockActivationAction: Equatable {
-    case showPopover
-    case openSettings
-    case none
+enum DockActivationAction: String, Equatable {
+    case showPopover = "Popover"
+    case openSettings = "Settings"
+    case none = "None"
 
-    /// Decides what a Dock activation should do.
-    ///
-    /// Clicking the Dock icon of a running app delivers a reopen event, so that
-    /// is what opens the status popover. A cold launch also arrives here on some
-    /// launch paths (and at login), and must not pop anything open.
-    ///
-    /// Launchpad, Finder and Spotlight send the same reopen event, so the pointer
-    /// position decides between "clicked the Dock icon" and "opened the app".
+    /// Prefer the user's persistent Dock choice when the sender is ambiguous.
+    /// Some launchers share Dock's sender process and cannot be distinguished
+    /// from a tile click using public Apple Event metadata.
     static func resolve(
         isReopenEvent: Bool,
-        hasDockTile: Bool,
-        isPointerInDockArea: Bool
+        sender: AppleEventSender,
+        showsPersistentDockIcon: Bool
     ) -> DockActivationAction {
         guard isReopenEvent else { return .none }
-        guard hasDockTile else { return .openSettings }
-        return isPointerInDockArea ? .showPopover : .openSettings
+        switch sender {
+        case .finder, .spotlight, .launcher:
+            return .openSettings
+        case .dock, .other, .unknown:
+            return showsPersistentDockIcon ? .showPopover : .openSettings
+        }
     }
 }

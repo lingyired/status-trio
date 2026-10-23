@@ -21,7 +21,7 @@ struct PopoverSectionView: View {
             SettingsCustomRow {
                 List {
                     ForEach(store.popupSectionOrder) { section in
-                        HStack(spacing: 8) {
+                        HStack(alignment: .center, spacing: 8) {
                             Toggle("", isOn: visibilityBinding(for: section))
                                 .labelsHidden()
                                 .toggleStyle(.checkbox)
@@ -29,16 +29,19 @@ struct PopoverSectionView: View {
 
                             popupSectionIcon(section)
                                 .foregroundStyle(.secondary)
-                                .frame(width: 18)
+                                .frame(width: 18, height: 18, alignment: .center)
 
                             Text(localization.string(section.titleKey))
                                 .font(.system(size: 13))
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                            Image(systemName: "line.3.horizontal")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                                .accessibilityHidden(true)
+                            PanelActionGlyph(
+                                systemName: "line.3.horizontal",
+                                font: .caption,
+                                size: 18
+                            )
+                            .foregroundStyle(.tertiary)
+                            .accessibilityHidden(true)
                         }
                         .padding(.vertical, 3)
                     }
@@ -62,8 +65,8 @@ struct PopoverSectionView: View {
                 guard section == .bluetooth, enabled != wasEnabled else { return }
                 if enabled {
                     NSApp.activate(ignoringOtherApps: true)
+                    statusStore.requestBluetoothAuthorization()
                 }
-                statusStore.setBluetoothEnabled(enabled)
             }
         )
     }

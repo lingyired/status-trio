@@ -1,12 +1,16 @@
 import CoreAudio
 import Foundation
+import os
 
 struct DDCVolumeUpdate: Sendable {
     let outputID: AudioDeviceID
     let uid: String
     let generation: UInt64
-    let scalar: Double?
+    let capability: DDCVolumeCapability
     let commandID: UInt64?
+
+    /// The display's current value, or nil while the capability is unknown.
+    var scalar: Double? { capability.scalar }
 }
 
 /// Serializes all display discovery and I2C operations away from the main actor.
@@ -37,6 +41,7 @@ final class DDCVolumeCoordinator {
     private var readInFlight = false
     private var refreshQueued = false
     private var refreshQueuedCommandID: UInt64?
+    private var refreshQueuedRequestedValue: UInt16?
     private var readToken: UInt64 = 0
 
     init(
@@ -67,9 +72,10 @@ final class DDCVolumeCoordinator {
         pendingVolumeCommandID = nil
         debounceTask?.cancel()
         refreshQueuedCommandID = nil
+        refreshQueuedRequestedValue = nil
         worker.setIdentity(outputID: outputID, uid: uid, generation: generation)
         timerTask?.cancel()
-        guard let uid, !uid.isEmpty, !displayAsleep else { emit(nil); return }
+        guard let uid, !uid.isEmpty, !displayAsleep else { emit(.unknown); return }
         refresh()
     }
 
@@ -80,10 +86,11 @@ final class DDCVolumeCoordinator {
         pendingVolumeCommandID = nil
         debounceTask?.cancel()
         refreshQueuedCommandID = nil
+        refreshQueuedRequestedValue = nil
         worker.setIdentity(outputID: outputID, uid: uid, generation: generation)
         worker.invalidateTarget()
         timerTask?.cancel()
-        guard uid != nil, !displayAsleep else { emit(nil); return }
+        guard uid != nil, !displayAsleep else { emit(.unknown); return }
         refresh()
     }
 
@@ -105,10 +112,11 @@ final class DDCVolumeCoordinator {
         watchdogTask?.cancel()
         refreshQueued = false
         refreshQueuedCommandID = nil
+        refreshQueuedRequestedValue = nil
         worker.setIdentity(outputID: asleep ? nil : outputID, uid: asleep ? nil : uid, generation: generation)
         if asleep {
             worker.invalidateTarget()
-            emit(nil)
+            emit(.unknown)
         } else if outputID != nil, uid != nil {
             refresh()
         }
@@ -147,30 +155,40 @@ final class DDCVolumeCoordinator {
         pendingVolumeCommandID = nil
         debounceTask?.cancel()
         let token = generation
-        worker.write(scalar: scalar, outputID: outputID, uid: uid, generation: token) { [weak self] succeeded in
+        worker.write(scalar: scalar, outputID: outputID, uid: uid, generation: token) { [weak self] result in
             guard let self else { return }
             guard self.accepts(outputID: outputID, uid: uid, generation: token) else { return }
-            if succeeded { self.refresh(confirming: commandID) }
-            else { self.emit(nil, commandID: commandID); self.schedulePoll(after: self.nextFailureInterval()) }
+            switch result {
+            case .acknowledged(let value):
+                // One read-back decides whether the write landed. There is no
+                // retry loop: the optimistic value is never trusted on its own.
+                self.refresh(confirming: commandID, requested: value)
+            case .failed(let failure):
+                self.emit(.unavailable(failure), commandID: commandID)
+                self.schedulePoll(after: self.nextFailureInterval())
+            }
         }
     }
 
     func refresh() { refresh(confirming: nil) }
 
-    private func refresh(confirming commandID: UInt64?) {
+    private func refresh(confirming commandID: UInt64?, requested: UInt16? = nil) {
         guard !stopped, !displayAsleep, let outputID, let uid, !uid.isEmpty else { return }
         timerTask?.cancel()
         guard !readInFlight else {
             refreshQueued = true
-            if let commandID { refreshQueuedCommandID = commandID }
+            if let commandID {
+                refreshQueuedCommandID = commandID
+                refreshQueuedRequestedValue = requested
+            }
             scheduleWatchdog(request: readToken, outputID: outputID, uid: uid, generation: generation,
                              commandID: commandID)
             return
         }
-        startRead(outputID: outputID, uid: uid, confirming: commandID)
+        startRead(outputID: outputID, uid: uid, confirming: commandID, requested: requested)
     }
 
-    private func startRead(outputID: AudioDeviceID, uid: String, confirming commandID: UInt64?) {
+    private func startRead(outputID: AudioDeviceID, uid: String, confirming commandID: UInt64?, requested: UInt16?) {
         readInFlight = true
         refreshQueued = false
         readToken &+= 1
@@ -178,7 +196,7 @@ final class DDCVolumeCoordinator {
         let token = generation
         scheduleWatchdog(request: request, outputID: outputID, uid: uid, generation: token,
                          commandID: commandID)
-        worker.read(outputID: outputID, uid: uid, generation: token) { [weak self] reply in
+        worker.read(outputID: outputID, uid: uid, generation: token) { [weak self] result in
             guard let self else { return }
             self.onReadCompletion(outputID, uid, token)
             guard self.readToken == request else { return }
@@ -188,20 +206,47 @@ final class DDCVolumeCoordinator {
                 self.refreshQueued = false
                 let confirmingCommandID = self.refreshQueuedCommandID
                 self.refreshQueuedCommandID = nil
+                let confirmingValue = self.refreshQueuedRequestedValue
+                self.refreshQueuedRequestedValue = nil
                 guard let currentOutputID = self.outputID, let currentUID = self.uid else { return }
-                self.startRead(outputID: currentOutputID, uid: currentUID, confirming: confirmingCommandID)
+                self.startRead(outputID: currentOutputID, uid: currentUID,
+                               confirming: confirmingCommandID, requested: confirmingValue)
                 return
             }
             guard self.accepts(outputID: outputID, uid: uid, generation: token) else { return }
-            if let reply {
+            switch result {
+            case .reply(let reply):
                 self.failures = 0
-                self.onUpdate(DDCVolumeUpdate(outputID: outputID, uid: uid, generation: token, scalar: reply.scalar, commandID: commandID))
+                let resolvedCapability = self.resolveCapability(for: reply, requested: requested)
+                self.onUpdate(DDCVolumeUpdate(
+                    outputID: outputID,
+                    uid: uid,
+                    generation: token,
+                    capability: resolvedCapability,
+                    commandID: commandID
+                ))
                 self.schedulePoll(after: self.detailsVisible ? .seconds(2) : .seconds(10))
-            } else {
-                self.emit(nil, commandID: commandID)
+            case .failure(let failure):
+                if let requested {
+                    ddcTargetLogger.info(
+                        "ddc.readback stage=readback result=failed reason=\(failure.diagnosticName, privacy: .public) requested=\(requested, privacy: .public) session=\(DDCLogSession.id, privacy: .public)"
+                    )
+                }
+                self.emit(.unavailable(failure), commandID: commandID)
                 self.schedulePoll(after: self.nextFailureInterval())
             }
         }
+    }
+
+    /// A read-back only counts as verified when the display reports exactly the
+    /// register value that was written. Audible output is never inferred here.
+    private func resolveCapability(for reply: DDCVolumeReply, requested: UInt16?) -> DDCVolumeCapability {
+        guard let requested else { return .readable(reply) }
+        let verified = reply.current == requested
+        ddcTargetLogger.info(
+            "ddc.readback stage=readback result=\(verified ? "verified" : "mismatch", privacy: .public) requested=\(requested, privacy: .public) readBack=\(reply.current, privacy: .public) session=\(DDCLogSession.id, privacy: .public)"
+        )
+        return verified ? .writeVerified(reply) : .writeUnverified(reply)
     }
 
     func waitForWorkerIdle() async {
@@ -221,6 +266,7 @@ final class DDCVolumeCoordinator {
         pendingVolumeCommandID = nil
         refreshQueued = false
         refreshQueuedCommandID = nil
+        refreshQueuedRequestedValue = nil
         worker.setIdentity(outputID: nil, uid: nil, generation: generation)
     }
 
@@ -233,7 +279,7 @@ final class DDCVolumeCoordinator {
             do { try await sleep(interval) } catch { return }
             guard !Task.isCancelled, let self, self.readToken == request,
                   self.readInFlight, self.accepts(outputID: outputID, uid: uid, generation: generation) else { return }
-            self.emit(nil, commandID: commandID)
+            self.emit(.unavailable(.timeout), commandID: commandID)
         }
     }
 
@@ -258,9 +304,9 @@ final class DDCVolumeCoordinator {
         !stopped && !displayAsleep && self.outputID == outputID && self.uid == uid && self.generation == generation
     }
 
-    private func emit(_ scalar: Double?, commandID: UInt64? = nil) {
+    private func emit(_ capability: DDCVolumeCapability, commandID: UInt64? = nil) {
         guard let outputID, let uid else { return }
-        onUpdate(DDCVolumeUpdate(outputID: outputID, uid: uid, generation: generation, scalar: scalar, commandID: commandID))
+        onUpdate(DDCVolumeUpdate(outputID: outputID, uid: uid, generation: generation, capability: capability, commandID: commandID))
     }
 }
 
@@ -300,36 +346,51 @@ private final class DDCWorker: @unchecked Sendable {
         queue.async { [self] in target = nil; lastReply = nil }
     }
 
-    func read(outputID: AudioDeviceID, uid: String, generation: UInt64, completion: @escaping @MainActor (DDCVolumeReply?) -> Void) {
+    func read(outputID: AudioDeviceID, uid: String, generation: UInt64, completion: @escaping @MainActor (DDCVolumeReadResult) -> Void) {
         queue.async { [self] in
             beforeReadValidation()
             guard matches(outputID: outputID, uid: uid, generation: generation) else {
-                Task { @MainActor in completion(nil) }
+                Task { @MainActor in completion(.failure(.serviceUnavailable)) }
                 return
             }
             if target?.uid != uid { target = transport.resolve(uid: uid) }
-            let reply = target.flatMap { transport.read($0) }
-            lastReply = reply
-            Task { @MainActor in completion(reply) }
+            guard let target else {
+                lastReply = nil
+                Task { @MainActor in completion(.failure(.serviceUnavailable)) }
+                return
+            }
+            let result = transport.read(target)
+            lastReply = result.replyValue
+            Task { @MainActor in completion(result) }
         }
     }
 
-    func write(scalar: Double, outputID: AudioDeviceID, uid: String, generation: UInt64, completion: @escaping @MainActor (Bool) -> Void) {
+    func write(scalar: Double, outputID: AudioDeviceID, uid: String, generation: UInt64, completion: @escaping @MainActor (DDCWriteResult) -> Void) {
         queue.async { [self] in
             guard matches(outputID: outputID, uid: uid, generation: generation) else { return }
             if target?.uid != uid { target = transport.resolve(uid: uid) }
             guard let target else {
-                Task { @MainActor in completion(false) }
+                Task { @MainActor in completion(.failed(.serviceUnavailable)) }
                 return
             }
             let reply: DDCVolumeReply
             if let lastReply { reply = lastReply }
-            else if let freshReply = transport.read(target) { reply = freshReply; lastReply = freshReply }
-            else { Task { @MainActor in completion(false) }; return }
+            else {
+                let freshResult = transport.read(target)
+                guard let freshReply = freshResult.replyValue else {
+                    Task { @MainActor in completion(.failed(freshResult.failureReason ?? .replyReadFailed)) }
+                    return
+                }
+                reply = freshReply
+                lastReply = freshReply
+            }
             guard matches(outputID: outputID, uid: uid, generation: generation) else { return }
-            let result = transport.write(target, value: reply.targetValue(for: scalar))
+            let value = reply.targetValue(for: scalar)
+            let acknowledged = transport.write(target, value: value)
             lastReply = nil
-            Task { @MainActor in completion(result) }
+            Task { @MainActor in
+                completion(acknowledged ? .acknowledged(value: value) : .failed(.requestWriteFailed))
+            }
         }
     }
 

@@ -26,7 +26,7 @@ struct PopoverFooterView: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
             Button(action: openSettings) {
                 Label(settingsTitle, systemImage: "gearshape")
                     .lineLimit(1)
@@ -47,9 +47,8 @@ struct PopoverFooterView: View {
                 Button(localization.string(.menuQuit), action: quit)
                     .keyboardShortcut("q", modifiers: .command)
             } label: {
-                Label(localization.string(.menuMore), systemImage: "ellipsis.circle")
-                    .labelStyle(.iconOnly)
-                    .frame(width: 24, height: 24)
+                PanelActionGlyph(systemName: "ellipsis.circle")
+                    .accessibilityLabel(localization.string(.menuMore))
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)

@@ -378,6 +378,56 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         XCTAssertNil(controller.presentations[key], "a stale completion is discarded")
     }
 
+    func testDropAndReconnectReplacesChangeToken() async {
+        let backend = FakeListeningModeBackend()
+        backend.lstm.value = 2
+        backend.lstmReadScript = [2, 2, 2]
+        let (controller, _, _) = makeController(
+            endpoints: [endpoint()],
+            backend: backend,
+            attempts: 8
+        )
+        controller.refresh(devices: [device()])
+        controller.setMode(.transparency, for: device())
+        let oldToken = controller.activeChangeTokenSnapshot(forAddress: deviceAddress)
+
+        controller.refresh(devices: [])
+        controller.refresh(devices: [device()])
+        controller.setMode(.adaptive, for: device())
+        let newToken = controller.activeChangeTokenSnapshot(forAddress: deviceAddress)
+
+        XCTAssertNotNil(oldToken)
+        XCTAssertNotNil(newToken)
+        XCTAssertNotEqual(oldToken, newToken)
+        controller.stop()
+        XCTAssertEqual(controller.activeChangeTokenCount, 0)
+    }
+
+    func testCancelledFailureRetirementIsBoundedToCurrentOperations() async {
+        let (controller, _, _) = makeController(endpoints: [endpoint()])
+        controller.refresh(devices: [device()])
+
+        for _ in 0..<100 {
+            controller.setMode(.transparency, for: device())
+            controller.stop()
+            controller.refresh(devices: [device()])
+        }
+        controller.stop()
+
+        XCTAssertEqual(controller.activeChangeTokenCount, 0)
+    }
+
+    func testCurrentOperationRetainsOnlyOneTokenPerAddress() async {
+        let (controller, _, _) = makeController(endpoints: [endpoint()])
+        controller.refresh(devices: [device()])
+
+        controller.setMode(.transparency, for: device())
+
+        XCTAssertEqual(controller.activeChangeTokenCount, 1)
+        controller.stop()
+        XCTAssertEqual(controller.activeChangeTokenCount, 0)
+    }
+
     func testDiscoveryRunsOncePerRefreshNotOnATimer() async {
         let (controller, provider, _) = makeController(endpoints: [endpoint()])
         controller.refresh(devices: [device()])

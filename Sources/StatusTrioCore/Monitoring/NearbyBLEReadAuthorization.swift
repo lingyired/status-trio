@@ -57,22 +57,54 @@ enum BluetoothLEInitialReadPolicy {
 /// Re-adding the UUID does not revive a pending read from the previous grant.
 struct NearbyBLEReadAuthorization {
     private(set) var allowedIDs: Set<UUID> = []
-    private var revisions: [UUID: UInt64] = [:]
+    private var tokens: [UUID: DeviceOperationToken] = [:]
+
+    var grantCount: Int { tokens.count }
+
+    var currentTokens: [UUID: DeviceOperationToken] { tokens }
 
     mutating func update(_ ids: Set<UUID>) -> Set<UUID> {
         let removedIDs = allowedIDs.subtracting(ids)
         for id in removedIDs {
-            revisions[id, default: 0] &+= 1
+            tokens.removeValue(forKey: id)
+        }
+        for id in ids where tokens[id] == nil {
+            tokens[id] = DeviceOperationToken()
         }
         allowedIDs = ids
         return removedIDs
     }
 
-    func revision(for id: UUID) -> UInt64 {
-        revisions[id, default: 0]
+    func token(for id: UUID) -> DeviceOperationToken? {
+        tokens[id]
     }
 
-    func accepts(_ id: UUID, revision: UInt64) -> Bool {
-        allowedIDs.contains(id) && revisions[id, default: 0] == revision
+    func accepts(_ id: UUID, token: DeviceOperationToken) -> Bool {
+        allowedIDs.contains(id) && tokens[id] == token
+    }
+
+    func permits(_ id: UUID, token: DeviceOperationToken?) -> Bool {
+        guard let token else { return false }
+        return accepts(id, token: token)
+    }
+}
+
+extension NearbyBLEReadAuthorization {
+    /// Moves current grants into a new authorization set while preserving their
+    /// identity. This is used only when the same physical read demand changes
+    /// source; removing an ID still retires its token.
+    mutating func migrate(
+        to ids: Set<UUID>,
+        preserving preserved: [UUID: DeviceOperationToken]
+    ) -> Set<UUID> {
+        let removedIDs = allowedIDs.subtracting(ids)
+        for id in removedIDs {
+            tokens.removeValue(forKey: id)
+        }
+        for id in ids where tokens[id] == nil {
+            tokens[id] = preserved[id] ?? DeviceOperationToken()
+        }
+        allowedIDs = ids
+        return removedIDs
     }
 }

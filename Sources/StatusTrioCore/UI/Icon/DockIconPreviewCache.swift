@@ -32,6 +32,7 @@ final class DockIconPreviewCache {
 
     static let shared = DockIconPreviewCache()
     static let defaultLimit = 32
+    static let defaultMaximumResidentBytes = 2 * 1024 * 1024
 
     private let images: DockIconImageCache
     /// Optional test instrumentation. The shared production cache has no
@@ -40,11 +41,18 @@ final class DockIconPreviewCache {
 
     init(
         limit: Int = DockIconPreviewCache.defaultLimit,
+        maximumResidentBytes: Int = DockIconPreviewCache.defaultMaximumResidentBytes,
         onRender: RenderObserver? = nil
     ) {
-        images = DockIconImageCache(limit: limit)
+        images = DockIconImageCache(
+            limit: limit,
+            maximumResidentBytes: maximumResidentBytes
+        )
         renderObserver = onRender
     }
+
+    var entryCount: Int { images.entryCount }
+    var residentByteCount: Int { images.residentByteCount }
 
     func image(for key: DockIconRenderKey, render: () -> NSImage?) -> NSImage? {
         if let cached = images.image(for: key) { return cached }

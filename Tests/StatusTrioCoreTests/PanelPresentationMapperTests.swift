@@ -47,6 +47,35 @@ final class PanelPresentationMapperTests: XCTestCase {
         )
     }
 
+    func testLowPowerModeStaysYellowWhileConnectedWithoutCharging() {
+        let localization = makeLocalization(.english)
+        let row = PanelPresentationMapper.battery(
+            makeBattery(
+                percentage: 80,
+                isLowPowerMode: true,
+                isConnectedToPower: true
+            ),
+            localization: localization
+        )
+
+        XCTAssertEqual(row.tint, .caution)
+    }
+
+    func testChargingKeepsGreenPriorityOverLowPowerMode() {
+        let localization = makeLocalization(.english)
+        let row = PanelPresentationMapper.battery(
+            makeBattery(
+                percentage: 80,
+                isCharging: true,
+                isLowPowerMode: true,
+                isConnectedToPower: true
+            ),
+            localization: localization
+        )
+
+        XCTAssertEqual(row.tint, .positive)
+    }
+
     func testNetworkWaitsForFreshWiFiNameAndPreservesPermissionAction() {
         let localization = makeLocalization(.english)
         let awaitingName = WiFiStatus(
@@ -117,6 +146,51 @@ final class PanelPresentationMapperTests: XCTestCase {
         XCTAssertEqual(row.subtitle, "192.168.1.20 · 5 GHz · -58 dBm")
         XCTAssertEqual(row.measurements, "192.168.1.20 · 5 GHz · -58 dBm")
         XCTAssertEqual(row.accessibilityValue, "192.168.1.20 · 5 GHz · -58 dBm")
+    }
+
+    func testWiFiNamePermissionLeadsTheLocalIPAddress() {
+        let localization = makeLocalization(.english)
+        let row = PanelPresentationMapper.network(
+            wifi: WiFiStatus(
+                state: .connected,
+                rssi: -58,
+                nameAccess: .notDetermined,
+                band: .fiveGHz
+            ),
+            connection: .wifi,
+            wired: nil,
+            isConstrained: false,
+            isResolvingName: false,
+            localIPAddress: "192.168.1.20",
+            localization: localization
+        )
+
+        XCTAssertEqual(row.subtitle, "Allow location to show Wi-Fi name · 192.168.1.20")
+        XCTAssertEqual(row.intent, .requestWiFiNameAccess)
+    }
+
+    func testWiFiLocationSettingsActionLeadsTheLocalIPAddress() {
+        let localization = makeLocalization(.english)
+        let row = PanelPresentationMapper.network(
+            wifi: WiFiStatus(
+                state: .connected,
+                rssi: -58,
+                nameAccess: .denied,
+                band: .fiveGHz
+            ),
+            connection: .wifi,
+            wired: nil,
+            isConstrained: false,
+            isResolvingName: false,
+            localIPAddress: "192.168.1.20",
+            localization: localization
+        )
+
+        XCTAssertEqual(
+            row.subtitle,
+            "\(localization.string(.wifiActionOpenLocationSettings)) · 192.168.1.20"
+        )
+        XCTAssertEqual(row.intent, .locationSettings)
     }
 
     func testLocalIPIsAbsentWhenTheRowIsNotGivenOne() {
@@ -314,14 +388,15 @@ final class PanelPresentationMapperTests: XCTestCase {
     private func makeBattery(
         percentage: Int,
         isCharging: Bool = false,
-        isLowPowerMode: Bool = false
+        isLowPowerMode: Bool = false,
+        isConnectedToPower: Bool? = nil
     ) -> BatteryStatus {
         BatteryStatus(
             rawPercentage: percentage,
             isPresent: true,
             isCharging: isCharging,
             isLowPowerMode: isLowPowerMode,
-            isConnectedToPower: isCharging
+            isConnectedToPower: isConnectedToPower ?? isCharging
         )
     }
 }

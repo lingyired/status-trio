@@ -3,8 +3,24 @@ import Foundation
 /// Keeps the temporary CPU test local to icon rendering. Monitoring and the
 /// status shown in the popover continue to use the actual battery reading.
 enum ChargingEffectTestMode {
+    /// Launch-time switch for performance runs. The settings toggle is not
+    /// persisted, and a machine that holds its charge while on AC cannot be made
+    /// to charge on demand, so a measurement launch needs the synthetic charging
+    /// input without clicking the settings switch first. The variable is ignored
+    /// outside development bundles; see
+    /// `docs/performance/menu-bar-charging-cpu-optimization.md`.
+    static let forceChargingInputEnvironmentKey = "STATUS_TRIO_FORCE_CHARGING_INPUT"
+
     static func isAvailable(bundleIdentifier: String? = Bundle.main.bundleIdentifier) -> Bool {
         bundleIdentifier?.contains(".dev.") == true
+    }
+
+    static func shouldForceChargingInput(
+        bundleIdentifier: String? = Bundle.main.bundleIdentifier,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> Bool {
+        isAvailable(bundleIdentifier: bundleIdentifier)
+            && environment[forceChargingInputEnvironmentKey] == "1"
     }
 
     static func battery(_ battery: BatteryStatus, enabled: Bool) -> BatteryStatus {

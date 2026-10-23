@@ -13,11 +13,11 @@ struct EthernetStatusView: View {
     let onOpenNetworkSettings: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Button {
                 onOpenDetails()
             } label: {
-                HStack(spacing: 10) {
+                HStack(alignment: .center, spacing: 10) {
                     EthernetStatusIcon()
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title)
@@ -31,8 +31,10 @@ struct EthernetStatusView: View {
                             .truncationMode(.middle)
                     }
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
+                    PanelActionGlyph(
+                        systemName: "chevron.right",
+                        font: .caption.weight(.semibold)
+                    )
                         .foregroundStyle(.tertiary)
                 }
                 .contentShape(Rectangle())
@@ -41,16 +43,14 @@ struct EthernetStatusView: View {
             .accessibilityLabel(title)
             .accessibilityValue(subtitle)
 
-            Button(
-                localization.string(.ethernetActionOpenSettings),
-                systemImage: "gearshape",
-                action: onOpenNetworkSettings
-            )
+            Button(action: onOpenNetworkSettings) {
+                PanelActionGlyph(systemName: "gearshape")
+            }
             .labelStyle(.iconOnly)
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .help(localization.string(.ethernetActionOpenSettings))
-            .frame(width: 24, height: 24)
+            .accessibilityLabel(localization.string(.ethernetActionOpenSettings))
         }
     }
 
@@ -77,7 +77,10 @@ struct EthernetStatusIcon: View {
         Image(systemName: "cable.connector")
             .font(.system(size: 14, weight: .medium))
             .foregroundStyle(.secondary)
-            .frame(width: 24, height: 24)
+            .frame(
+                width: PanelSummaryActionMetrics.hitTarget,
+                height: PanelSummaryActionMetrics.hitTarget
+            )
             .accessibilityHidden(true)
     }
 }

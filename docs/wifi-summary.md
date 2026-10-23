@@ -51,6 +51,12 @@ issuing the same request. Denied or restricted access also routes to Settings;
 if access was granted while the displayed status was stale, the click refreshes
 the Wi-Fi reading. Startup never requests permission automatically.
 
+Every Wi-Fi reading checks name access on the main actor, so that check reads
+the status Core Location last reported to the authorizer's delegate. Asking
+`CLLocationManager.authorizationStatus` directly can wait synchronously for
+`locationd`, and a stuck `locationd` then froze the whole app. Until the first
+report arrives, name access is treated as undetermined.
+
 Native macOS uses `NSLocationUsageDescription`; the app also retains its existing
 `NSLocationWhenInUseUsageDescription`. Both are present in the app plist and all localized
 `InfoPlist.strings`; packaging rejects a missing or empty value in the final

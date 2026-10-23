@@ -119,6 +119,30 @@ final class IconPresentationMapperTests: XCTestCase {
         XCTAssertEqual(tintedOnly, noHeartbeatNoStatusColors)
     }
 
+    func testAChargingEffectCanBeRemovedForOneSurfaceWithoutChangingTheRestOfTheScene() {
+        let battery = BatteryStatus(
+            rawPercentage: 62,
+            isPresent: true,
+            isCharging: true,
+            isLowPowerMode: false,
+            isConnectedToPower: true
+        )
+        let fullScene = scene(
+            snapshot: snapshot(battery: battery),
+            batteryOptions: BatteryIconOptions(showsChargingEffect: true)
+        )
+
+        let staticScene = fullScene.withChargingEffectEnabled(false)
+
+        XCTAssertNotNil(fullScene.outerRing?.effect)
+        XCTAssertNil(staticScene.outerRing?.effect)
+        XCTAssertEqual(staticScene.outerRing?.segments, fullScene.outerRing?.segments)
+        XCTAssertEqual(staticScene.outerRing?.gap, fullScene.outerRing?.gap)
+        XCTAssertEqual(staticScene.outerRing?.accessory, fullScene.outerRing?.accessory)
+        XCTAssertEqual(staticScene.center, fullScene.center)
+        XCTAssertEqual(staticScene.footer, fullScene.footer)
+    }
+
     func testChargingEffectDoesNotTargetPercentageOrMissingAccessory() {
         let active = BatteryStatus(rawPercentage: 68, isPresent: true, isCharging: true,
                                    isLowPowerMode: false, isConnectedToPower: true)

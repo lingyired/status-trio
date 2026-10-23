@@ -9,6 +9,8 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     private let activationPolicy: AppActivationPolicy
     private var localizationCancellable: AnyCancellable?
     private var ownsActivationPolicy = false
+    private var previewVisibilityObserver: ((Bool) -> Void)?
+    private var isPreviewWindowVisible = false
     var openSettings: (() -> Void)?
 
     init(
@@ -33,6 +35,17 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
         fatalError("init(coder:) has not been implemented")
     }
 
+    func startPreviewResourceObservation(_ observer: @escaping (Bool) -> Void) {
+        guard previewVisibilityObserver == nil else { return }
+        previewVisibilityObserver = observer
+        observer(isPreviewWindowVisible)
+    }
+
+    func stopPreviewResourceObservation() {
+        guard previewVisibilityObserver != nil else { return }
+        previewVisibilityObserver = nil
+    }
+
     func showIfNeeded() {
         guard IconGuideOnboardingPolicy.shouldPresentGuide(settings: settings) else { return }
         show()
@@ -46,10 +59,13 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
+        setPreviewWindowVisible(true)
     }
 
     func windowWillClose(_ notification: Notification) {
         leaveActivationPolicyIfNeeded()
+        setPreviewWindowVisible(false)
+        window?.contentViewController = nil
         window = nil
     }
 
@@ -120,5 +136,11 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
         guard ownsActivationPolicy else { return }
         ownsActivationPolicy = false
         activationPolicy.leaveTemporaryRegularMode()
+    }
+
+    private func setPreviewWindowVisible(_ visible: Bool) {
+        guard isPreviewWindowVisible != visible else { return }
+        isPreviewWindowVisible = visible
+        previewVisibilityObserver?(visible)
     }
 }

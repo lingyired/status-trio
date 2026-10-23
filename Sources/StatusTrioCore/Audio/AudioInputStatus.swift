@@ -81,6 +81,10 @@ struct AudioInputStatus: Equatable, Sendable {
   var isBusy: Bool
   var error: AudioInputError?
   var isDefaultInputInUse: Bool? = nil
+  /// Last scalar request whose readback (or terminal failure) has been resolved.
+  var completedScalarRequestID: UUID? = nil
+  /// Scalar writes are serialized and can accept further input without dimming controls.
+  var isAdjustingScalar = false
 
   static let empty = Self(
     devices: [],

@@ -19,6 +19,37 @@ final class TelemetryClientTests: XCTestCase {
         XCTAssertEqual(json["install_id"] as? String, id)
     }
 
+    func testDiscardStoredIdentityClearsTheIDAndBothTimestamps() async throws {
+        let fixture = makeFixture(statusCode: 200)
+        defer { fixture.clear() }
+        await fixture.client.sendIfNeeded(context: context())
+        XCTAssertNotNil(fixture.defaults.string(forKey: "telemetry.installationId"))
+
+        await fixture.client.discardStoredIdentity()
+
+        XCTAssertNil(fixture.defaults.string(forKey: "telemetry.installationId"))
+        XCTAssertNil(fixture.defaults.object(forKey: "telemetry.lastAttemptAt"))
+        XCTAssertNil(fixture.defaults.object(forKey: "telemetry.lastSuccessfulAt"))
+    }
+
+    func testConsentGrantedAgainAfterADiscardSendsUnderAFreshIdentifier() async throws {
+        let fixture = makeFixture(statusCode: 200)
+        defer { fixture.clear() }
+        await fixture.client.sendIfNeeded(context: context())
+        let firstID = try XCTUnwrap(fixture.defaults.string(forKey: "telemetry.installationId"))
+
+        await fixture.client.discardStoredIdentity()
+        fixture.clock.advance(by: 21 * 60 * 60)
+        await fixture.client.sendIfNeeded(context: context())
+
+        let secondID = try XCTUnwrap(fixture.defaults.string(forKey: "telemetry.installationId"))
+        XCTAssertNotEqual(firstID, secondID)
+        let requests = await fixture.transport.recordedRequests()
+        let body = try XCTUnwrap(requests.last?.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["install_id"] as? String, secondID)
+    }
+
     func testRetryAfterFailureReusesInstallIDAndRespectsSixHourBoundary() async throws {
         let fixture = makeFixture(statusCode: 503)
         defer { fixture.clear() }

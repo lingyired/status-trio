@@ -102,7 +102,7 @@ enum AudioPanelMapper {
         let rows = inputRows(
             orderedDevices,
             currentID: status.defaultDeviceID,
-            isBusy: status.isBusy,
+            isBusy: presentation.blocksControls,
             unknownName: unknownName,
             locale: presentation.locale,
             localization: localization
@@ -155,12 +155,13 @@ enum AudioPanelMapper {
             muteState: status.muteState,
             canAdjust: presentation.volumeEnabled,
             canMute: presentation.muteEnabled,
-            isBusy: status.isBusy,
+            isBusy: presentation.blocksControls,
             errorText: errorText,
             showsDeviceList: presentation.showsDeviceList,
             rows: rows,
             sliderLabel: localization.string(.audioInputVolume),
-            usageText: usageText
+            usageText: usageText,
+            completedScalarRequestID: status.completedScalarRequestID
         )
     }
 
@@ -402,11 +403,13 @@ struct AudioInputPresentation {
 
     var showsDeviceList: Bool { !status.devices.isEmpty }
 
+    var blocksControls: Bool { status.isBusy && !status.isAdjustingScalar }
+
     var volumeEnabled: Bool {
         status.defaultDeviceID != nil
             && status.canSetVolume
             && hasReadableVolume
-            && !status.isBusy
+            && !blocksControls
     }
 
     var hasReadableVolume: Bool {
@@ -418,7 +421,7 @@ struct AudioInputPresentation {
         status.defaultDeviceID != nil
             && status.canSetMute
             && status.muteState != nil
-            && !status.isBusy
+            && !blocksControls
     }
 
     var nextMuteValue: Bool { status.muteState != .muted }

@@ -129,6 +129,8 @@ final class AppEnvironmentTelemetryLifecycleTests: XCTestCase {
         settings.updateIconConfiguration { $0 = airPodsConfiguration }
         settings.refreshesAirPodsBatteryForIcon = true
         await drainMainQueue()
+        await drainMainQueue()
+        XCTAssertTrue(bluetooth.isActive, "the icon source must claim connection monitoring")
         XCTAssertGreaterThan(batteryEvents.startCount, claimsBefore)
         XCTAssertGreaterThan(batteryReader.readCount, readsBefore)
         XCTAssertTrue(bluetooth.isBatteryLevelsRequested)
@@ -172,7 +174,8 @@ final class AppEnvironmentTelemetryLifecycleTests: XCTestCase {
             openSettings: {},
             quitAction: {},
             chargingEffectClock: clock,
-            renderMenuBarIcon: { _, _, _, _, _ in nil }
+            renderMenuBarBase: { _, _, _, _ in nil },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )
         let appIcon = AppIconController(
             settings: settings,

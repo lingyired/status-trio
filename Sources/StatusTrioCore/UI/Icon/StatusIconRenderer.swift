@@ -145,44 +145,97 @@ private struct SymbolInkKey: Hashable {
 private final class SymbolInkOffsetCache: @unchecked Sendable {
     private let lock = NSLock()
     private var storage: [SymbolInkKey: CGFloat] = [:]
+    private var order: [SymbolInkKey] = []
 
     func offsetX(for key: SymbolInkKey, measure: () -> CGFloat) -> CGFloat {
         lock.lock()
         defer { lock.unlock() }
-        if let cached = storage[key] { return cached }
+        if let cached = storage[key] {
+            order.removeAll { $0 == key }
+            order.append(key)
+            return cached
+        }
         let measured = measure()
         storage[key] = measured
+        order.append(key)
+        if order.count > 256 { storage[order.removeFirst()] = nil }
         return measured
+    }
+
+    func reset() {
+        lock.lock()
+        defer { lock.unlock() }
+        storage.removeAll(keepingCapacity: false)
+        order.removeAll(keepingCapacity: false)
     }
 }
 
 /// The same ink measurement for an input source's own icon file, which is a
 /// bitmap or PDF whose visible ink is not centred in the box `NSImage.size`
-/// reports. Key by file identity so replacing an icon in place also refreshes
-/// its measured offset.
+/// reports. The normalized pixel dimensions are part of the key because the
+/// same file can be decoded at more than one bounded size; ink measured in one
+/// pixel space must never be reused for another.
 private final class ImageInkOffsetCache: @unchecked Sendable {
-    private let lock = NSLock()
-    private var storage: [IconImageFileIdentity: CGFloat] = [:]
-    private var order: [IconImageFileIdentity] = []
-    private let limit = 64
+    private struct Key: Hashable {
+        let url: URL
+        let pixelWidth: Int
+        let pixelHeight: Int
+    }
 
-    func offsetX(for identity: IconImageFileIdentity, measure: () -> CGFloat) -> CGFloat {
+    private struct Entry {
+        weak var image: NSImage?
+        let offsetX: CGFloat
+    }
+
+    private let lock = NSLock()
+    private var storage: [Key: Entry] = [:]
+    private var order: [Key] = []
+    private let maximumEntries = 64
+
+    func reset() {
         lock.lock()
         defer { lock.unlock() }
-        if let cached = storage[identity] { return cached }
+        storage.removeAll(keepingCapacity: false)
+        order.removeAll(keepingCapacity: false)
+    }
+
+    func offsetX(
+        for url: URL,
+        image: NSImage,
+        pixelWidth: Int,
+        pixelHeight: Int,
+        measure: () -> CGFloat
+    ) -> CGFloat {
+        let key = Key(url: url, pixelWidth: pixelWidth, pixelHeight: pixelHeight)
+        lock.lock()
+        defer { lock.unlock() }
+        if let cached = storage[key], cached.image === image {
+            touch(key)
+            return cached.offsetX
+        }
         let measured = measure()
-        storage[identity] = measured
-        order.append(identity)
-        while order.count > limit {
+        storage[key] = Entry(image: image, offsetX: measured)
+        order.append(key)
+        while order.count > maximumEntries {
             storage[order.removeFirst()] = nil
         }
         return measured
+    }
+
+    private func touch(_ key: Key) {
+        order.removeAll { $0 == key }
+        order.append(key)
     }
 }
 
 enum StatusIconRenderer {
     private static let symbolInkOffsetCache = SymbolInkOffsetCache()
     private static let imageInkOffsetCache = ImageInkOffsetCache()
+
+    static func resetInkOffsetCaches() {
+        symbolInkOffsetCache.reset()
+        imageInkOffsetCache.reset()
+    }
 
     static let centerSymbolBasePointSize: CGFloat = 38
     private static let defaultBatteryValueTextScale = 1.8
@@ -417,16 +470,20 @@ enum StatusIconRenderer {
 
     /// Glyph height per point of symbol size, measured once. SF Symbols report
     /// sizes rounded to whole points, so this reference size stays large enough
-    /// for the rounding to be negligible.
+    /// for the rounding to be negligible. This calibration asks only for the
+    /// symbol's layout height; measuring ink here would rasterize a 200-point
+    /// glyph at the previous path's 8x sampling and retain millions of bytes
+    /// for an offset this path never reads.
     private static let batteryPlugHeightPerPoint: CGFloat = {
         let referencePointSize: CGFloat = 200
-        guard let height = configuredSymbol(
+        let image = configuredSymbolImage(
             name: StatusIconGeometry.batteryPlugSymbolName,
             pointSize: referencePointSize,
             foreground: .labelColor
-        )?.image.size.height, height.isFinite, height > 0 else {
-            return 1.34
-        }
+        )
+        guard let image else { return 1.34 }
+        let height = image.size.height
+        guard height.isFinite, height > 0 else { return 1.34 }
         return height / referencePointSize
     }()
 
@@ -661,16 +718,12 @@ enum StatusIconRenderer {
         pointSize: CGFloat,
         foreground: NSColor
     ) -> ConfiguredSymbol? {
-        let config = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .semibold)
-            .applying(.init(hierarchicalColor: foreground))
-
-        guard let image = NSImage(
-            systemSymbolName: name,
+        guard let image = configuredSymbolImage(
+            name: name,
             variableValue: variableValue,
-            accessibilityDescription: nil
-        )?.withSymbolConfiguration(config) else {
-            return nil
-        }
+            pointSize: pointSize,
+            foreground: foreground
+        ) else { return nil }
 
         let key = SymbolInkKey(
             name: name,
@@ -683,11 +736,46 @@ enum StatusIconRenderer {
         return ConfiguredSymbol(image: image, inkCenterOffsetX: offset)
     }
 
+    private static func configuredSymbolImage(
+        name: String,
+        variableValue: Double = 1.0,
+        pointSize: CGFloat,
+        foreground: NSColor
+    ) -> NSImage? {
+        let config = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .semibold)
+            .applying(.init(hierarchicalColor: foreground))
+        return NSImage(
+            systemSymbolName: name,
+            variableValue: variableValue,
+            accessibilityDescription: nil
+        )?.withSymbolConfiguration(config)
+    }
+
     /// Horizontal distance from the image's layout-box centre to the centre of
-    /// its visible ink. Rasterising at 8x keeps the measurement well below the
-    /// 0.25-point quantum of the 120-unit icon grid.
-    private static func measureInkCenterOffsetX(of image: NSImage) -> CGFloat {
-        let pixelScale: CGFloat = 8
+    /// its visible ink. Rasterising at 6x keeps the measurement below the
+    /// 0.25-point quantum of the 120-unit icon grid. Imported files cap their
+    /// measurement context independently because their logical point size can
+    /// be much larger than their bounded decoded bitmap.
+    private static func measureInkCenterOffsetX(
+        of image: NSImage,
+        maximumPixelLength: Int? = nil
+    ) -> CGFloat {
+        let defaultPixelScale: CGFloat = 6
+        let pixelScale: CGFloat
+        if let maximumPixelLength {
+            let largestLogicalDimension = max(image.size.width, image.size.height)
+            guard maximumPixelLength > 0,
+                  largestLogicalDimension.isFinite,
+                  largestLogicalDimension > 0 else {
+                return 0
+            }
+            pixelScale = min(
+                defaultPixelScale,
+                CGFloat(maximumPixelLength) / largestLogicalDimension
+            )
+        } else {
+            pixelScale = defaultPixelScale
+        }
         let width = Int((image.size.width * pixelScale).rounded(.up))
         let height = Int((image.size.height * pixelScale).rounded(.up))
         guard width > 0, height > 0,
@@ -766,40 +854,88 @@ extension StatusIconRenderer {
     ) -> MenuBarLayers? {
         guard size.isFinite, scale.isFinite, size > 0, scale > 0 else { return nil }
 
-        let templateRegions = scene.templateRegions
-        let chromaticRegions = scene.chromaticRegions
-
         let base: NSImage
-        if let image = image(
+        if let templateBase = menuBarTemplateBase(
             scene: scene,
             size: size,
             scale: scale,
-            appearance: appearance,
-            phase: nil,
-            regions: templateRegions
+            appearance: appearance
         ) {
-            image.isTemplate = true
-            base = image
-        } else if chromaticRegions.isEmpty {
-            return nil
-        } else if let placeholder = transparentMenuBarImage(size: size, scale: scale) {
+            base = templateBase
+        } else if !scene.chromaticRegions.isEmpty,
+                  let placeholder = transparentMenuBarImage(size: size, scale: scale) {
+            // The monochrome primitives could not be rasterized but the scene
+            // still carries status colours: keep the item's footprint so the
+            // chromatic overlay is still visible.
             placeholder.isTemplate = true
             base = placeholder
         } else {
             return nil
         }
 
-        guard !chromaticRegions.isEmpty else {
-            return MenuBarLayers(base: base, overlay: nil)
-        }
         return MenuBarLayers(
             base: base,
-            overlay: render(
+            overlay: menuBarChromaticImage(
                 scene: scene,
-                environment: renderEnvironment(size: size, scale: scale, appearance: appearance),
-                phase: phase,
-                regions: chromaticRegions
+                size: size,
+                scale: scale,
+                appearance: appearance,
+                phase: phase
             )
+        )
+    }
+
+    /// The template base alone: every monochrome primitive, marked so the system
+    /// re-tints it for the Space that is on top.
+    ///
+    /// This is the half of `menuBarLayers` that changes only when the icon state
+    /// does, so the animation path can leave it installed across ticks and
+    /// rasterize the overlay on its own. `nil` means the primitives could not be
+    /// produced; callers keep the icon they are already showing and retry on the
+    /// next state change.
+    @MainActor
+    static func menuBarTemplateBase(
+        scene: IconSceneState,
+        size: CGFloat,
+        scale: CGFloat,
+        appearance: NSAppearance?
+    ) -> NSImage? {
+        guard size.isFinite, scale.isFinite, size > 0, scale > 0 else { return nil }
+        guard let image = image(
+            scene: scene,
+            size: size,
+            scale: scale,
+            appearance: appearance,
+            phase: nil,
+            regions: scene.templateRegions
+        ) else {
+            return nil
+        }
+        image.isTemplate = true
+        return image
+    }
+
+    /// The custom-colour half of the same split, or `nil` when the scene draws
+    /// with the label colour alone and there is nothing to overlay.
+    ///
+    /// The animated overlay is built through this entry point so a 20-Hz tick
+    /// never re-rasterizes the monochrome primitives.
+    @MainActor
+    static func menuBarChromaticImage(
+        scene: IconSceneState,
+        size: CGFloat,
+        scale: CGFloat,
+        appearance: NSAppearance?,
+        phase: ChargingEffectPhase? = nil
+    ) -> CGImage? {
+        guard size.isFinite, scale.isFinite, size > 0, scale > 0 else { return nil }
+        let regions = scene.chromaticRegions
+        guard !regions.isEmpty else { return nil }
+        return render(
+            scene: scene,
+            environment: renderEnvironment(size: size, scale: scale, appearance: appearance),
+            phase: phase,
+            regions: regions
         )
     }
 
@@ -1650,13 +1786,26 @@ extension StatusIconRenderer {
                 in: context
             )
         case let .image(url, fallbackSymbol):
-            let identity = IconImageFileIdentity(url: url)
-            if let image = IconImageDecodeCache.shared.decodedImage(for: identity) {
-                let inkOffsetX = imageInkOffsetCache.offsetX(for: identity) {
-                    measureInkCenterOffsetX(of: image)
+            if let image = IconImageDecodeCache.shared.decodedImage(
+                for: IconImageFileIdentity(url: url)
+            ) {
+                guard let representation = image.representations.first else { return }
+                let inkOffsetX = imageInkOffsetCache.offsetX(
+                    for: url,
+                    image: image,
+                    pixelWidth: representation.pixelsWide,
+                    pixelHeight: representation.pixelsHigh
+                ) {
+                    measureInkCenterOffsetX(
+                        of: image,
+                        maximumPixelLength: 1024
+                    )
                 }
-                drawTintedImage(image, maxDimension: 42 * (pointSize / centerSymbolBasePointSize),
-                                center: center, tint: tint, inkCenterOffsetX: inkOffsetX,
+                drawTintedImage(image,
+                                maxDimension: 42 * (pointSize / centerSymbolBasePointSize),
+                                center: center,
+                                tint: tint,
+                                inkCenterOffsetX: inkOffsetX,
                                 in: context)
             } else {
                 let fallback = resolvedImageFallbackSymbol(fallbackSymbol)

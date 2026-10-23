@@ -56,10 +56,11 @@ struct IconDesignerRealIconOverrideTests {
             localization: Localization(preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            renderMenuBarIcon: { scene, _, _, _, _ in
+            renderMenuBarBase: { scene, _, _, _ in
                 menuBarScenes.append(scene)
-                return StatusIconRenderer.MenuBarLayers(base: NSImage(size: NSSize(width: 32, height: 32)))
-            }
+                return NSImage(size: NSSize(width: 32, height: 32))
+            },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )
         defer { menuBar.setVisible(false) }
         fixture.appIconController.start()

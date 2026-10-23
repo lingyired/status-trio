@@ -235,14 +235,18 @@ enum PanelPresentationMapper {
         // The single-space subtitle is the row holding its line height while the
         // Wi-Fi name resolves. An address fills that line on its own rather than
         // trailing the placeholder's blank.
+        let action = StatusMappings.wifiSummaryAction(for: wifi)
         let displayedSubtitle: String
         if subtitle == " " {
             displayedSubtitle = localIPAddress ?? subtitle
+        } else if action == .requestNameAccess || action == .openLocationSettings {
+            // The permission action is the row's next step. Keep it visible at
+            // the start of the line instead of letting the address occlude it.
+            displayedSubtitle = NetworkRowSubtitle.prepending(subtitle, to: localIPAddress) ?? subtitle
         } else {
             displayedSubtitle = NetworkRowSubtitle.prepending(localIPAddress, to: subtitle) ?? subtitle
         }
 
-        let action = StatusMappings.wifiSummaryAction(for: wifi)
         let intent: PanelSummaryIntent
         switch action {
         case .openDetails:
@@ -296,8 +300,9 @@ enum PanelPresentationMapper {
 
     private static func batteryTint(_ battery: BatteryStatus) -> PanelTint {
         guard battery.isPresent else { return .secondary }
-        if battery.isCharging || battery.isConnectedToPower { return .positive }
+        if battery.isCharging { return .positive }
         if battery.isLowPowerMode { return .caution }
+        if battery.isConnectedToPower { return .positive }
         if battery.percentage <= 20 { return .critical }
         return .primary
     }

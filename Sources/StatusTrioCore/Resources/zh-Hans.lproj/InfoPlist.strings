@@ -1,3 +1,3 @@
 "NSLocationUsageDescription" = "用于在弹出窗口中显示当前 Wi-Fi 名称，并在打开 Wi-Fi 详情时读取网络名称、扫描结果和连接信息。";
 "NSLocationWhenInUseUsageDescription" = "用于在弹出窗口中显示当前 Wi-Fi 名称，并在打开 Wi-Fi 详情时读取网络名称、扫描结果和连接信息。";
-"NSBluetoothAlwaysUsageDescription" = "用于显示蓝牙状态和附近有名称的 Apple 设备；仅读取状态面板中可见行的电量。";
+"NSBluetoothAlwaysUsageDescription" = "用于显示蓝牙连接状态，为附近有名称的设备及此 Mac 已信任的设备读取电量/型号信息，并在支持的耳机上切换降噪模式；附近读取仅使用你明确授权的 BLE UUID。";

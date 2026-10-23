@@ -1,21 +1,24 @@
 import SwiftUI
 
-/// Holds only the slider's temporary drag value; system readback remains authoritative.
+/// Holds an edit until the readback acknowledges that exact scalar request.
 struct AudioInputVolumeDraft {
     private(set) var value = 0.0
     private(set) var isEditing = false
     private var latestSystemScalar: Double?
+    private var lastSubmittedValue: Double?
+    private var pendingRequestID: UUID?
     private var selectedDeviceIdentity: PanelAudioInputIdentity?
 
     mutating func receiveSystemScalar(_ scalar: Double?) {
         latestSystemScalar = scalar
+        pendingRequestID = nil
         guard !isEditing else { return }
         value = Self.displayValue(for: scalar)
     }
 
     mutating func setEditing(_ editing: Bool) {
         isEditing = editing
-        if !editing {
+        if !editing, pendingRequestID == nil {
             value = Self.displayValue(for: latestSystemScalar)
         }
     }
@@ -23,14 +26,18 @@ struct AudioInputVolumeDraft {
     mutating func setSliderValue(
         _ newValue: Double,
         systemScalar: Double?,
-        onScalarChange: (Double) -> Void
+        onScalarChange: (Double, UUID) -> Void
     ) {
         guard isEditing, newValue.isFinite,
               let systemScalar, systemScalar.isFinite,
               (0...1).contains(systemScalar) else { return }
         value = min(1, max(0, newValue))
-        guard abs(value - Self.displayValue(for: systemScalar)) >= 0.0005 else { return }
-        onScalarChange(value)
+        let previousValue = pendingRequestID != nil ? lastSubmittedValue ?? systemScalar : systemScalar
+        guard abs(value - previousValue) >= 0.0005 else { return }
+        lastSubmittedValue = value
+        let requestID = UUID()
+        pendingRequestID = requestID
+        onScalarChange(value, requestID)
     }
 
     mutating func resetForDevice(_ scalar: Double?) {
@@ -40,13 +47,18 @@ struct AudioInputVolumeDraft {
 
     mutating func receiveSystemState(
         deviceIdentity: PanelAudioInputIdentity?,
-        scalar: Double?
+        scalar: Double?,
+        canAdjust: Bool = true,
+        isBusy: Bool = false,
+        hasError: Bool = false,
+        completedScalarRequestID: UUID? = nil
     ) {
         let deviceChanged = selectedDeviceIdentity != deviceIdentity
+        let hasReadableScalar = scalar.map { $0.isFinite && (0...1).contains($0) } ?? false
         selectedDeviceIdentity = deviceIdentity
-        if deviceChanged {
+        if deviceChanged || hasError || !hasReadableScalar || (!isBusy && !canAdjust) {
             resetForDevice(scalar)
-        } else {
+        } else if pendingRequestID == nil || pendingRequestID == completedScalarRequestID {
             receiveSystemScalar(scalar)
         }
     }
@@ -55,7 +67,7 @@ struct AudioInputVolumeDraft {
         guard let systemScalar, systemScalar.isFinite, (0...1).contains(systemScalar) else {
             return "—"
         }
-        let displayedValue = isEditing ? value : systemScalar
+        let displayedValue = isEditing || pendingRequestID != nil ? value : systemScalar
         return displayedValue.formatted(
             .percent.precision(.fractionLength(0)).locale(locale)
         )
@@ -85,7 +97,6 @@ struct AudioInputControlsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            header
             controls
             deviceList
 
@@ -94,81 +105,39 @@ struct AudioInputControlsView: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .accessibilityElement(children: .combine)
-            } else if state.isBusy {
-                HStack(spacing: 6) {
-                    ProgressView()
-                        .controlSize(.small)
-                        .accessibilityHidden(true)
-                    Text(localization.string(.audioInputRefreshing))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
         }
         .onAppear {
-            volumeDraft.receiveSystemState(
-                deviceIdentity: state.selectedDeviceIdentity,
-                scalar: state.scalar
-            )
+            volumeDraft.resetForDevice(state.scalar)
+            synchronizeDraft(state)
         }
-        .onChange(of: state.selectedDeviceIdentity) { identity in
-            volumeDraft.receiveSystemState(deviceIdentity: identity, scalar: state.scalar)
-        }
-        .onChange(of: state.scalar) { scalar in
-            volumeDraft.receiveSystemScalar(scalar)
+        .onChange(of: state) { newState in
+            synchronizeDraft(newState)
         }
     }
 
-    private var header: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "mic.fill")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(state.usageText == nil ? Color.secondary : Color.white)
-                .frame(width: 24, height: 24)
-                .background {
-                    Capsule()
-                        .fill(state.usageText == nil ? Color.clear : Color.orange)
-                        .frame(width: 32, height: 26)
-                }
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(state.summary.title)
-                    .font(.headline)
-                    .foregroundStyle(state.usageText == nil ? Color.primary : Color.yellow)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-
-                Text(state.summary.subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .help(state.summary.subtitle)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Button(action: onOpenSoundSettings) {
-                Image(systemName: "gearshape")
-                    .foregroundStyle(.secondary)
-                    .frame(width: 24, height: 24)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help(localization.string(.audioInputOpenSettings))
-            .accessibilityLabel(localization.string(.audioInputOpenSettings))
-            .frame(width: 24, height: 24)
-        }
+    private func synchronizeDraft(_ state: AudioInputPanelState) {
+        volumeDraft.receiveSystemState(
+            deviceIdentity: state.selectedDeviceIdentity,
+            scalar: state.scalar,
+            canAdjust: state.canAdjust,
+            isBusy: state.isBusy,
+            hasError: state.errorText != nil,
+            completedScalarRequestID: state.completedScalarRequestID
+        )
     }
 
     private var controls: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Button(action: { actions.toggleInputMute() }) {
-                HStack(spacing: 6) {
+                HStack(alignment: .center, spacing: 6) {
                     muteIcon
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(state.muteTint.color())
-                        .frame(width: 24, height: 24)
+                        .frame(
+                            width: PanelSummaryActionMetrics.hitTarget,
+                            height: PanelSummaryActionMetrics.hitTarget
+                        )
                         .accessibilityHidden(true)
 
                     if state.muteState == .partial {
@@ -195,7 +164,6 @@ struct AudioInputControlsView: View {
                     value: sliderValue,
                     in: 0...1,
                     onEditingChanged: { editing in
-                        if !editing { volumeDraft.receiveSystemScalar(state.scalar) }
                         volumeDraft.setEditing(editing)
                     }
                 )
@@ -221,15 +189,30 @@ struct AudioInputControlsView: View {
             }
             .frame(maxWidth: .infinity)
 
-            Text(state.percentageText)
+            Text(sliderAccessibilityValue)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .frame(minWidth: 34, alignment: .trailing)
                 .accessibilityHidden(true)
 
-            Image(systemName: "waveform")
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
+            Button(action: onOpenSoundSettings) {
+                PanelActionGlyph(systemName: "gearshape")
+                    .foregroundStyle(.secondary)
+                    .contentShape(Rectangle())
+                    .opacity(state.isBusy ? 0 : 1)
+            }
+            .buttonStyle(.plain)
+            .overlay {
+                if state.isBusy {
+                    ProgressView()
+                        .controlSize(.small)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
+            .help(localization.string(.audioInputOpenSettings))
+            .accessibilityLabel(localization.string(.audioInputOpenSettings))
+            .accessibilityValue(state.isBusy ? localization.string(.audioInputRefreshing) : "")
         }
     }
 
@@ -275,6 +258,12 @@ struct AudioInputControlsView: View {
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                                 .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if row.selected, let usageText = state.usageText {
+                                Text(usageText)
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            }
                         }
                         .padding(.vertical, 3)
                         .contentShape(Rectangle())
@@ -283,6 +272,7 @@ struct AudioInputControlsView: View {
                     .disabled(!row.enabled)
                     .help(row.helpText)
                     .accessibilityLabel(row.accessibilityLabel)
+                    .accessibilityValue(row.selected ? state.usageText ?? "" : "")
                     .accessibilityHint(row.selected ? "" : row.helpText)
                 }
             }
@@ -299,8 +289,8 @@ struct AudioInputControlsView: View {
         Binding(
             get: { state.scalar == nil ? 0.5 : volumeDraft.value },
             set: { newValue in
-                volumeDraft.setSliderValue(newValue, systemScalar: state.scalar) {
-                    actions.setInputScalar($0)
+                volumeDraft.setSliderValue(newValue, systemScalar: state.scalar) { value, requestID in
+                    actions.setInputScalar(value, requestID: requestID)
                 }
             }
         )

@@ -71,6 +71,135 @@ struct ChargingEffectClockTests {
         await assertStopsImmediately(enabled: true, reduceMotion: false, displayAsleep: true)
     }
 
+    /// A hidden menu bar with no preview open has nothing to draw the phase, so
+    /// the 20-Hz loop must not run at all — not merely render into the void.
+    @Test func hiddenMenuBarWithoutAPreviewNeverStartsTheTickLoop() async {
+        let time = ManualDateProvider()
+        let sleeper = ManualEventSleeper()
+        let clock = makeClock(time: time, sleeper: sleeper)
+        let battery = batteryStatus(61, charging: true)
+
+        clock.update(
+            battery: battery,
+            enabled: true,
+            reduceMotion: false,
+            displayAsleep: false,
+            menuBarVisible: false
+        )
+
+        #expect(clock.hasAnimationSurface == false)
+        #expect(clock.isRunning == false)
+        #expect(clock.phase == nil)
+        #expect(sleeper.callCount == 0)
+    }
+
+    /// Coming back from a hidden menu bar resumes where the battery is, and must
+    /// not replay the plug-in burst for a charge that is already in progress.
+    @Test func showingTheMenuBarAgainResumesSteadyWithoutARepriseBurst() async {
+        let time = ManualDateProvider()
+        let sleeper = ManualEventSleeper()
+        let clock = makeClock(time: time, sleeper: sleeper)
+        let battery = batteryStatus(61, charging: true)
+
+        clock.update(
+            battery: battery,
+            enabled: true,
+            reduceMotion: false,
+            displayAsleep: false,
+            menuBarVisible: false
+        )
+        #expect(sleeper.callCount == 0)
+
+        clock.update(
+            battery: battery,
+            enabled: true,
+            reduceMotion: false,
+            displayAsleep: false,
+            menuBarVisible: true
+        )
+
+        #expect(clock.isRunning)
+        #expect(clock.phase?.kind == .steady)
+        #expect(clock.phase?.step == 0)
+        await sleeper.waitForCallCount(1)
+
+        clock.stop()
+        sleeper.releaseAll()
+        await sleeper.waitForCompletionCount(1)
+    }
+
+    /// The settings preview draws the same live phase, so it keeps the clock
+    /// alive while the menu bar is hidden and releases it on disappear.
+    @Test func aVisiblePreviewKeepsTheClockAliveWhileTheMenuBarIsHidden() async {
+        let time = ManualDateProvider()
+        let sleeper = ManualEventSleeper()
+        let clock = makeClock(time: time, sleeper: sleeper)
+        let battery = batteryStatus(61, charging: true)
+        let token = UUID()
+
+        clock.update(
+            battery: battery,
+            enabled: true,
+            reduceMotion: false,
+            displayAsleep: false,
+            menuBarVisible: false
+        )
+        #expect(clock.isRunning == false)
+
+        clock.beginAnimationPreview(token)
+        #expect(clock.hasAnimationSurface)
+        #expect(clock.isRunning)
+        #expect(clock.phase?.kind == .steady)
+        await sleeper.waitForCallCount(1)
+
+        clock.endAnimationPreview(token)
+        #expect(clock.hasAnimationSurface == false)
+        #expect(clock.isRunning == false)
+        #expect(clock.phase == nil)
+
+        sleeper.releaseAll()
+        await sleeper.waitForCompletionCount(1)
+        #expect(sleeper.callCount == 1)
+    }
+
+    /// Appearing twice with one token, or disappearing without appearing, must
+    /// not leave a claim behind that would keep the clock running forever.
+    @Test func previewClaimsAreIdempotentAndDoNotLeak() {
+        let time = ManualDateProvider()
+        let sleeper = ManualEventSleeper()
+        let clock = makeClock(time: time, sleeper: sleeper)
+        let battery = batteryStatus(61, charging: true)
+        let token = UUID()
+
+        clock.update(
+            battery: battery,
+            enabled: true,
+            reduceMotion: false,
+            displayAsleep: false,
+            menuBarVisible: false
+        )
+
+        clock.beginAnimationPreview(token)
+        clock.beginAnimationPreview(token)
+        clock.endAnimationPreview(token)
+        clock.endAnimationPreview(token)
+        clock.endAnimationPreview(UUID())
+
+        #expect(clock.hasAnimationSurface == false)
+        #expect(clock.isRunning == false)
+
+        // Two different cards can hold claims at the same time.
+        let firstToken = UUID()
+        let secondToken = UUID()
+        clock.beginAnimationPreview(firstToken)
+        clock.beginAnimationPreview(secondToken)
+        #expect(clock.isRunning)
+        clock.endAnimationPreview(firstToken)
+        #expect(clock.isRunning)
+        clock.endAnimationPreview(secondToken)
+        #expect(clock.isRunning == false)
+    }
+
     @Test func wakingResumesWithAFreshSteadyPhase() async {
         let time = ManualDateProvider()
         let sleeper = ManualEventSleeper()

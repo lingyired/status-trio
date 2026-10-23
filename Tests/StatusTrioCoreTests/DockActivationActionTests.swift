@@ -1,53 +1,68 @@
+import AppKit
 import Testing
 @testable import StatusTrioCore
 
 struct DockActivationActionTests {
-    @Test func dockClickShowsThePopoverWhenTheAppOwnsADockTile() {
-        #expect(
-            DockActivationAction.resolve(
-                isReopenEvent: true,
-                hasDockTile: true,
-                isPointerInDockArea: true
-            ) == .showPopover
-        )
+    @Test func dockAndUnknownReopensRespectPersistentPlacement() {
+        for sender in [AppleEventSender.dock, .unknown, .other] {
+            for (placement, expected) in [
+                (AppIconPlacement.dock, DockActivationAction.showPopover),
+                (.both, .showPopover),
+                (.menuBar, .openSettings)
+            ] {
+                #expect(DockActivationAction.resolve(
+                    isReopenEvent: true,
+                    sender: sender,
+                    showsPersistentDockIcon: placement.showsDockIcon
+                ) == expected)
+            }
+        }
     }
 
-    @Test func dockClickOpensSettingsWhenThereIsNoDockTile() {
-        #expect(
-            DockActivationAction.resolve(
-                isReopenEvent: true,
-                hasDockTile: false,
-                isPointerInDockArea: true
-            ) == .openSettings
-        )
+    @Test func verifiedSettingsEntrypointsWorkWithEveryPlacement() {
+        for sender in [AppleEventSender.finder, .spotlight, .launcher] {
+            for placement in AppIconPlacement.allCases {
+                #expect(DockActivationAction.resolve(
+                    isReopenEvent: true,
+                    sender: sender,
+                    showsPersistentDockIcon: placement.showsDockIcon
+                ) == .openSettings)
+            }
+        }
     }
 
-    @Test func openingTheAppFromLaunchpadOpensSettings() {
-        // Launchpad, Finder and Spotlight deliver the same reopen event as a Dock
-        // click, so the pointer position is what tells them apart.
-        #expect(
-            DockActivationAction.resolve(
-                isReopenEvent: true,
-                hasDockTile: true,
-                isPointerInDockArea: false
-            ) == .openSettings
-        )
+    @Test func coldLaunchAndExplicitNonReopenEventsDoNothing() {
+        for sender in AppleEventSender.allCases {
+            for placement in AppIconPlacement.allCases {
+                #expect(DockActivationAction.resolve(
+                    isReopenEvent: false,
+                    sender: sender,
+                    showsPersistentDockIcon: placement.showsDockIcon
+                ) == .none)
+            }
+        }
     }
 
-    @Test func coldLaunchDoesNothing() {
-        #expect(
-            DockActivationAction.resolve(
-                isReopenEvent: false,
-                hasDockTile: true,
-                isPointerInDockArea: true
-            ) == .none
-        )
-        #expect(
-            DockActivationAction.resolve(
-                isReopenEvent: false,
-                hasDockTile: false,
-                isPointerInDockArea: true
-            ) == .none
-        )
+    @MainActor @Test func temporaryRegularModeDoesNotImplyPersistentDock() {
+        let application = DockRoutingActivationApplication()
+        let policy = AppActivationPolicy(application: application)
+        policy.enterTemporaryRegularMode()
+        #expect(policy.isRegularApp)
+        #expect(DockActivationAction.resolve(
+            isReopenEvent: true,
+            sender: .dock,
+            showsPersistentDockIcon: AppIconPlacement.menuBar.showsDockIcon
+        ) == .openSettings)
+        policy.leaveTemporaryRegularMode()
+    }
+}
+
+@MainActor
+private final class DockRoutingActivationApplication: ApplicationActivationPolicyApplying {
+    var currentActivationPolicy: NSApplication.ActivationPolicy = .accessory
+
+    func setActivationPolicy(_ activationPolicy: NSApplication.ActivationPolicy) -> Bool {
+        currentActivationPolicy = activationPolicy
+        return true
     }
 }

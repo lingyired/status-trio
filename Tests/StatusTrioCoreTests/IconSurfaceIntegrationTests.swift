@@ -2,6 +2,7 @@ import AppKit
 import Testing
 @testable import StatusTrioCore
 
+@Suite(.serialized)
 @MainActor
 struct IconSurfaceIntegrationTests {
     @Test func effectiveDesignerScaleEditUpdatesMenuBarAndDockScenesTogether() async throws {
@@ -23,10 +24,11 @@ struct IconSurfaceIntegrationTests {
             localization: Localization(preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            renderMenuBarIcon: { scene, _, _, _, _ in
+            renderMenuBarBase: { scene, _, _, _ in
                 menuBarScenes.append(scene)
-                return StatusIconRenderer.MenuBarLayers(base: NSImage(size: NSSize(width: 32, height: 32)))
-            }
+                return NSImage(size: NSSize(width: 32, height: 32))
+            },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
@@ -78,10 +80,11 @@ struct IconSurfaceIntegrationTests {
             localization: Localization(preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            renderMenuBarIcon: { scene, _, _, _, _ in
+            renderMenuBarBase: { scene, _, _, _ in
                 menuBarScenes.append(scene)
-                return StatusIconRenderer.MenuBarLayers(base: NSImage(size: NSSize(width: 32, height: 32)))
-            }
+                return NSImage(size: NSSize(width: 32, height: 32))
+            },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
@@ -127,10 +130,11 @@ struct IconSurfaceIntegrationTests {
             localization: localization,
             openSettings: {},
             quitAction: {},
-            renderMenuBarIcon: { scene, _, _, _, _ in
+            renderMenuBarBase: { scene, _, _, _ in
                 menuBarScenes.append(scene)
-                return StatusIconRenderer.MenuBarLayers(base: NSImage(size: NSSize(width: 32, height: 32)))
-            }
+                return NSImage(size: NSSize(width: 32, height: 32))
+            },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
@@ -160,9 +164,10 @@ struct IconSurfaceIntegrationTests {
             localization: Localization(preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            renderMenuBarIcon: { scene, size, _, _, _ in
-                rasterSpy.render(scene, size: size).map { StatusIconRenderer.MenuBarLayers(base: $0) }
-            }
+            renderMenuBarBase: { scene, size, _, _ in
+                rasterSpy.render(scene, size: size)
+            },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
@@ -212,13 +217,12 @@ struct IconSurfaceIntegrationTests {
             localization: Localization(preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            appearanceForRendering: { _ in stableAppearance },
-            renderMenuBarIcon: { scene, size, _, appearance, _ in
+            renderMenuBarBase: { scene, size, _, appearance in
                 renderedAppearances.append(appearance.name)
-                return rasterSpy.render(scene, size: size).map {
-                    StatusIconRenderer.MenuBarLayers(base: $0)
-                }
-            }
+                return rasterSpy.render(scene, size: size)
+            },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil },
+            appearanceProvider: { stableAppearance }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
@@ -358,10 +362,11 @@ struct IconSurfaceIntegrationTests {
             localization: Localization(preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            renderMenuBarIcon: { scene, _, _, _, _ in
+            renderMenuBarBase: { scene, _, _, _ in
                 menuBarScenes.append(scene)
-                return StatusIconRenderer.MenuBarLayers(base: NSImage(size: NSSize(width: 32, height: 32)))
-            }
+                return NSImage(size: NSSize(width: 32, height: 32))
+            },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
@@ -533,7 +538,7 @@ struct IconSurfaceIntegrationTests {
             openSettings: {},
             quitAction: {},
             accessibilityValueDidChange: { spokenValues.append($0) },
-            renderMenuBarIcon: { scene, size, scale, appearance, phase in
+            renderMenuBarBase: { scene, size, scale, appearance in
                 menuBarRenders += 1
                 menuBarScenes.append(scene)
                 menuBarKeys.append(MenuBarRenderSurfaceKey(
@@ -541,10 +546,11 @@ struct IconSurfaceIntegrationTests {
                     size: size,
                     scale: scale,
                     appearanceName: appearance.name.rawValue,
-                    phase: phase
+                    phase: nil
                 ))
-                return StatusIconRenderer.MenuBarLayers(base: NSImage(size: NSSize(width: 32, height: 32)))
-            }
+                return NSImage(size: NSSize(width: 32, height: 32))
+            },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
@@ -612,10 +618,11 @@ struct IconSurfaceIntegrationTests {
             localization: Localization(preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            renderMenuBarIcon: { scene, _, _, _, _ in
+            renderMenuBarBase: { scene, _, _, _ in
                 menuBarScenes.append(scene)
-                return StatusIconRenderer.MenuBarLayers(base: NSImage(size: NSSize(width: 32, height: 32)))
-            }
+                return NSImage(size: NSSize(width: 32, height: 32))
+            },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
@@ -662,10 +669,11 @@ struct IconSurfaceIntegrationTests {
             localization: Localization(preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            renderMenuBarIcon: { scene, _, _, _, _ in
+            renderMenuBarBase: { scene, _, _, _ in
                 menuBarScenes.append(scene)
-                return StatusIconRenderer.MenuBarLayers(base: NSImage(size: NSSize(width: 32, height: 32)))
-            }
+                return NSImage(size: NSSize(width: 32, height: 32))
+            },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()

@@ -95,7 +95,8 @@ final class CompactAudioLayoutTests: XCTestCase {
                         localization: localization
                     ),
                     actions: StatusPanelActions(),
-                    scrollTargets: PopoverScrollTargets()
+                    scrollTargets: PopoverScrollTargets(),
+                    onOpenSoundSettings: {}
                 )
                 Divider()
                 PopoverFooterView(openSettings: {}, quit: {})

@@ -15,12 +15,15 @@ struct NetworkStatusView: View {
     private var hasWiFiDetails: Bool { state.intent == .wifiDetails }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Button(action: { activateRow() }) {
-                HStack(spacing: 10) {
+                HStack(alignment: .center, spacing: 10) {
                     PanelSymbolView(source: state.symbol)
                         .foregroundStyle(.secondary)
-                        .frame(width: 24, height: 24)
+                        .frame(
+                            width: PanelSummaryActionMetrics.hitTarget,
+                            height: PanelSummaryActionMetrics.hitTarget
+                        )
                         .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 2) {
@@ -31,8 +34,10 @@ struct NetworkStatusView: View {
                         subtitle
                     }
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
+                    PanelActionGlyph(
+                        systemName: "chevron.right",
+                        font: .caption.weight(.semibold)
+                    )
                         .foregroundStyle(.tertiary)
                 }
                 .contentShape(Rectangle())
@@ -42,16 +47,16 @@ struct NetworkStatusView: View {
             .accessibilityValue(state.accessibilityValue)
 
             if state.showsSettings {
-                Button(
-                    localization.string(isWired ? .ethernetActionOpenSettings : .wifiActionOpenSettings),
-                    systemImage: "gearshape",
-                    action: isWired ? onOpenNetworkSettings : onOpenWiFiSettings
-                )
+                Button(action: isWired ? onOpenNetworkSettings : onOpenWiFiSettings) {
+                    PanelActionGlyph(systemName: "gearshape")
+                }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .help(localization.string(isWired ? .ethernetActionOpenSettings : .wifiActionOpenSettings))
-                .frame(width: 24, height: 24)
+                .accessibilityLabel(
+                    localization.string(isWired ? .ethernetActionOpenSettings : .wifiActionOpenSettings)
+                )
             }
         }
     }
