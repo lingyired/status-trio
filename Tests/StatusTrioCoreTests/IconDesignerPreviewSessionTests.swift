@@ -6,6 +6,26 @@ import Testing
 @Suite("Icon designer preview session")
 @MainActor
 struct IconDesignerPreviewSessionTests {
+    @Test func wifiSignalEditsClampAndSurviveModeAndConnectionChanges() {
+        let session = IconDesignerPreviewSession()
+        session.setNetworkRSSI(-200)
+        #expect(session.samples.network.rssi == -100)
+        session.setNetworkRSSI(0)
+        #expect(session.samples.network.rssi == -30)
+        session.setNetworkRSSI(.nan)
+        #expect(session.samples.network.rssi == -48)
+        session.setNetworkRSSI(-75.6)
+        session.mode = .simulated
+        session.updateSamples { $0.network.kind = .ethernet }
+        session.applyQuickFill(.networkHealthy)
+        session.mode = .live
+        #expect(session.samples.network.rssi == -76)
+        #expect(session.samples.network.kind == .wifi)
+        #expect(session.samples.macBattery == MacBatteryPreviewSample())
+        session.updateSamples { $0.network.rssi = Int.max }
+        #expect(session.samples.network.rssi == -30)
+    }
+
     @Test func previewBackgroundChangesPublishFromTheInMemorySession() {
         let session = IconDesignerPreviewSession()
         var publishedValues: [Bool] = []
@@ -96,6 +116,21 @@ struct IconDesignerPreviewSessionTests {
         }
 
         #expect(!isEncodable(IconPreviewSampleValues()))
+    }
+
+    @Test func realIconApplicationRequiresSimulatedModeAndAutoRecovers() {
+        let session = IconDesignerPreviewSession()
+
+        #expect(!session.appliesToRealIcons)
+        session.setAppliesToRealIcons(true)
+        #expect(!session.appliesToRealIcons, "Live data must never apply simulated samples to real icons")
+
+        session.mode = .simulated
+        session.setAppliesToRealIcons(true)
+        #expect(session.appliesToRealIcons)
+
+        session.mode = .live
+        #expect(!session.appliesToRealIcons, "Leaving simulated mode must restore real live data")
     }
 
     @Test func usedSourcesIncludeSharedAndRuleDependentSamples() {

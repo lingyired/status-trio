@@ -7,7 +7,8 @@ enum IconPreviewInputBuilder {
         samples: IconPreviewSampleValues,
         configuration: IconConfigurationV1,
         target: IconDesignerBluetoothTarget,
-        now: Date
+        now: Date,
+        runtimeOptions: IconPresentationRuntimeOptions? = nil
     ) -> IconResolutionInputs {
         let batteryPercentage = min(100, max(0, samples.macBattery.percentage))
         let battery = BatteryStatus(
@@ -21,7 +22,7 @@ enum IconPreviewInputBuilder {
         let (wifiState, connection) = networkState(for: samples.network.kind)
         let wifi = WiFiStatus(
             state: wifiState,
-            rssi: wifiState.isNetworkAssociated ? -48 : nil,
+            rssi: wifiState.isNetworkAssociated ? samples.network.clampedRSSI : nil,
             nameAccess: .notDetermined
         )
         let networkAvailability: IconSourceAvailability = samples.network.kind == .off
@@ -118,7 +119,8 @@ enum IconPreviewInputBuilder {
             system: IconPresentationInputs(
                 snapshot: snapshot,
                 audioIcon: audioIcon,
-                inputSource: inputSourceDescriptor
+                inputSource: inputSourceDescriptor,
+                runtimeOptions: runtimeOptions
             ),
             sources: IconSourceSnapshot(
                 availability: availability,

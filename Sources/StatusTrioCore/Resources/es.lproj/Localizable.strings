@@ -609,12 +609,16 @@
 
 "iconPreviewData.simulatedNotice" = "Los valores de ejemplo solo afectan a esta vista previa y se conservan al volver a los datos en directo.";
 "iconPreviewData.liveNotice" = "El estado en directo es de solo lectura. Cambia a Simulados para editar ejemplos.";
+
+"iconPreviewData.applyToRealIcons" = "Aplicar a la barra de menús y el Dock reales";
+"iconPreviewData.applyToRealIconsNotice" = "Los datos simulados ahora controlan la barra de menús y el Dock reales. Desactiva esta opción o vuelve a Datos en vivo para restaurar el estado real.";
 "iconPreviewData.title" = "Datos de vista previa";
 "iconPreviewData.modeSelector" = "Modo de vista previa";
 "iconPreviewData.mode.liveShort" = "Datos en directo";
 "iconPreviewData.mode.simulatedShort" = "Simulados";
 "iconPreviewData.quickFill" = "Relleno rápido";
 "iconPreviewData.network.connectionState" = "Estado de conexión";
+"iconPreviewData.network.signalStrength" = "Intensidad de la señal Wi-Fi";
 "iconPreviewData.systemVolume.source" = "Volumen del sistema";
 "iconPreviewData.live.notMuted" = "Sin silencio";
 "iconPreviewData.battery.notCharging" = "No está cargando";
@@ -667,3 +671,22 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "Para Wi-Fi conectado sin barras de señal en el centro clásico.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "Para el icono Bluetooth del centro clásico.";
 "icon.designer.airPods.showTopSymbol" = "Mostrar el icono de los AirPods en la parte superior";
+
+/* Icon content editor */
+"iconDesigner.editor.editingElementFormat" = "Editar %@";
+"iconDesigner.editor.contentTitle" = "Contenido";
+"iconDesigner.editor.unavailableTitle" = "Si no está disponible";
+"iconDesigner.editor.currentDisplayFormat" = "Se muestra: %@";
+"iconDesigner.editor.fallbackSummaryFormat" = "Mostrar %@";
+"iconDesigner.editor.editingFallbackFormat" = "Editar alternativa: %@";
+"iconDesigner.editor.displayTitle" = "Opciones de visualización";
+"iconDesigner.editor.alertsTitle" = "Alertas y cambios";
+"iconDesigner.editor.hiddenExplanation" = "Este elemento está oculto.";
+"iconDesigner.editor.restoreElementFormat" = "Restablecer %@…";
+"iconDesigner.editor.batterySummary" = "Mostrar el estado de la batería del Mac.";
+"iconDesigner.editor.airPodsSummary" = "Mostrar la batería de los AirPods seleccionados.";
+"iconDesigner.editor.networkSummary" = "Mostrar el estado de la conexión de red.";
+"iconDesigner.editor.inputSourceSummary" = "Mostrar el icono o la etiqueta breve de la fuente de entrada actual.";
+"iconDesigner.editor.bluetoothSummary" = "Mostrar la salida de audio actual o un dispositivo Bluetooth seleccionado.";
+"iconDesigner.editor.volumeSummary" = "Mostrar el volumen de salida del sistema.";
+"iconDesigner.editor.hideElement" = "Ocultar este elemento";

@@ -609,12 +609,16 @@
 
 "iconPreviewData.simulatedNotice" = "Примеры ниже влияют только на предпросмотр и сохраняются при возврате к актуальным данным.";
 "iconPreviewData.liveNotice" = "Актуальные данные доступны только для чтения. Переключитесь на симуляцию, чтобы изменить примеры.";
+
+"iconPreviewData.applyToRealIcons" = "Применить к настоящим строке меню и Dock";
+"iconPreviewData.applyToRealIconsNotice" = "Смоделированные данные теперь отображаются в настоящей строке меню и Dock. Отключите этот параметр или вернитесь к реальным данным, чтобы восстановить фактическое состояние.";
 "iconPreviewData.title" = "Данные предпросмотра";
 "iconPreviewData.modeSelector" = "Режим предпросмотра";
 "iconPreviewData.mode.liveShort" = "Актуальные данные";
 "iconPreviewData.mode.simulatedShort" = "Симуляция";
 "iconPreviewData.quickFill" = "Быстрое заполнение";
 "iconPreviewData.network.connectionState" = "Состояние подключения";
+"iconPreviewData.network.signalStrength" = "Уровень сигнала Wi-Fi";
 "iconPreviewData.systemVolume.source" = "Системная громкость";
 "iconPreviewData.live.notMuted" = "Звук включён";
 "iconPreviewData.battery.notCharging" = "Не заряжается";
@@ -667,3 +671,22 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "Для подключённого Wi-Fi без делений сигнала в старом центральном оформлении.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "Для значка Bluetooth в старом центральном оформлении.";
 "icon.designer.airPods.showTopSymbol" = "Показывать значок AirPods сверху";
+
+/* Icon content editor */
+"iconDesigner.editor.editingElementFormat" = "Изменить %@";
+"iconDesigner.editor.contentTitle" = "Содержимое";
+"iconDesigner.editor.unavailableTitle" = "Если недоступно";
+"iconDesigner.editor.currentDisplayFormat" = "Сейчас отображается: %@";
+"iconDesigner.editor.fallbackSummaryFormat" = "Показывать %@";
+"iconDesigner.editor.editingFallbackFormat" = "Изменение резервного содержимого: %@";
+"iconDesigner.editor.displayTitle" = "Параметры отображения";
+"iconDesigner.editor.alertsTitle" = "Предупреждения и переключение";
+"iconDesigner.editor.hiddenExplanation" = "Этот элемент скрыт.";
+"iconDesigner.editor.restoreElementFormat" = "Сбросить %@…";
+"iconDesigner.editor.batterySummary" = "Показывать состояние аккумулятора Mac.";
+"iconDesigner.editor.airPodsSummary" = "Показывать заряд выбранных AirPods.";
+"iconDesigner.editor.networkSummary" = "Показывать состояние сетевого подключения.";
+"iconDesigner.editor.inputSourceSummary" = "Показывать значок или короткую метку текущего источника ввода.";
+"iconDesigner.editor.bluetoothSummary" = "Показывать текущий аудиовыход или выбранное устройство Bluetooth.";
+"iconDesigner.editor.volumeSummary" = "Показывать громкость системного вывода.";
+"iconDesigner.editor.hideElement" = "Скрыть этот элемент";

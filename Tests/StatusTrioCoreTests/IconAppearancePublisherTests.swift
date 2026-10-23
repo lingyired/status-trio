@@ -120,6 +120,29 @@ final class IconAppearancePublisherTests: XCTestCase {
         XCTAssertEqual(appearance?.volumeOptions.ringStrokeScale, RingStrokeStyle.bold.scale)
     }
 
+    func testDesignerColorPublishesTheCurrentCustomAppearance() throws {
+        let settings = makeSettings()
+        var appearances: [IconPresentationSettings] = []
+        let cancellable = settings.iconPresentationPublisher
+            .sink { appearances.append($0) }
+        defer { cancellable.cancel() }
+
+        let red = IconRGBA(red: 1, green: 0, blue: 0, alpha: 1)
+        settings.updateIconConfiguration {
+            $0.appearance.outerRing.color = .semanticOverrides([.primary: red])
+        }
+
+        let current = try XCTUnwrap(appearances.last)
+        let scene = IconCompositionResolver.resolve(
+            inputs: IconResolutionInputs(
+                system: IconPresentationInputs(snapshot: PresentationFixtures.snapshot(), audioIcon: nil),
+                sources: .empty
+            ),
+            configuration: current.designerConfiguration ?? .classic
+        ).scene
+        XCTAssertEqual(scene.outerRing?.segments.first?.color, IconColorRole.custom(red))
+    }
+
     func testIconPresentationPublisherIncludesEveryAppearanceSettingAndTestMode() throws {
         let settings = makeSettings()
         var values: [IconPresentationSettings] = []

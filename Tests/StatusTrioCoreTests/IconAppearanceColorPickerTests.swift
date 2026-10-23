@@ -25,6 +25,9 @@ final class IconAppearanceColorPickerTests: XCTestCase {
             let colorWells = nativeViews.compactMap { $0 as? NSColorWell }
 
             XCTAssertEqual(colorWells.count, 1, "Fixed and semantic styles should each render one native color well.")
+            let well = try XCTUnwrap(colorWells.first)
+            XCTAssertLessThanOrEqual(well.frame.width, 60, "The swatch must not expand to fill the control column.")
+            XCTAssertLessThanOrEqual(well.frame.height, 32, "Long row descriptions must not stretch the swatch vertically.")
         }
     }
 

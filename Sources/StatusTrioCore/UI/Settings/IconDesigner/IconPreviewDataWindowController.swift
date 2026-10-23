@@ -40,6 +40,7 @@ final class IconPreviewDataWindowController: NSWindowController, NSWindowDelegat
     }
 
     func windowWillClose(_ notification: Notification) {
+        previewSession.setAppliesToRealIcons(false)
         if let panel = notification.object as? NSWindow, let parent = panel.parent {
             parent.removeChildWindow(panel)
         }

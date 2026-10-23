@@ -286,7 +286,7 @@ struct StatusIconPreviewCard: View {
     /// Resolution, explanation, and sample data all come from this card's inputs.
     private var dockPreviewDetails: some View {
         VStack(spacing: 8) {
-            previewGuidance
+            if showsResolutionExplanation { previewGuidance }
             DockIconPreviewTile(
                 store: store,
                 statusStore: statusStore,
@@ -474,39 +474,27 @@ struct StatusIconPreviewCard: View {
     }
 
     private var explanation: some View {
-        let permissionBlockedSlots = IconResolutionExplanation.permissionBlockedBluetoothFallbackSlots(
-            configuration: store.iconConfiguration,
-            trace: designerResolution.trace,
-            authorization: bluetoothDevices.authorization,
-            scenario: scenario
-        )
-        let entries = IconResolutionExplanation.entries(
-            for: designerResolution.trace,
-            permissionBlockedSlots: permissionBlockedSlots,
-            bluetoothAuthorization: bluetoothDevices.authorization
-        )
-        let selectedIndex = selectedSlot.flatMap { IconSlot.allCases.firstIndex(of: $0) }
-        let visibleEntries = selectedIndex.map { [entries[$0]] } ?? entries
-        let partialExplanation = selectedSlot == nil || selectedSlot == .outerRing
-            ? designerResolution.scene.outerRing?.isPartial == true
-                ? localization.string(.iconDesignerAirPodsPartialExplanation)
-                : nil
-            : nil
-
-        return VStack(alignment: .leading, spacing: 2) {
-            ForEach(Array(visibleEntries.enumerated()), id: \.offset) { _, entry in
-                let role = localization.string(entry.slotName)
-                let reason = entry.reasonKeys.map { localization.string($0) }.joined(separator: " · ")
-                let explanation = localization.format(.iconDesignerPreviewReasonFormat, role, reason)
-                let fullExplanation = [explanation, partialExplanation].compactMap { $0 }.joined(separator: " · ")
-                Text(fullExplanation)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .accessibilityLabel(fullExplanation)
+        let resolution = designerResolution
+        let permissionBlockedSlots: Set<IconSlot> = previewSession?.mode == .simulated ? [] : IconResolutionExplanation.permissionBlockedBluetoothFallbackSlots(
+            configuration: store.iconConfiguration, trace: resolution.trace,
+            authorization: bluetoothDevices.authorization, scenario: scenario)
+        let entries = IconResolutionExplanation.entries(for: resolution.trace,
+            permissionBlockedSlots: permissionBlockedSlots, bluetoothAuthorization: bluetoothDevices.authorization)
+        let slots = selectedSlot.map { [$0] } ?? IconSlot.allCases
+        return VStack(alignment: .leading, spacing: 6) {
+            ForEach(slots, id: \.self) { slot in
+                let trace = IconDesignerInspectorModel.trace(for: slot, in: resolution.trace)
+                let index = IconSlot.allCases.firstIndex(of: slot) ?? 0
+                let reasons = trace.role == .primary && trace.reason == .primary
+                    ? [] : entries[index].reasonKeys.map { localization.string($0) }
+                let partial = slot == .outerRing && resolution.scene.outerRing?.isPartial == true
+                    ? localization.string(.iconDesignerAirPodsPartialExplanation) : nil
+                IconDesignerCurrentDisplay(trace: trace,
+                    value: IconDesignerInspectorModel.displayedValue(for: slot, in: resolution.scene),
+                    reason: (reasons + [partial].compactMap { $0 }).joined(separator: " · "))
             }
         }
-        .font(.system(size: 10))
-        .foregroundStyle(.secondary)
+
     }
 
     private var currentStatus: MenuBarStatus {

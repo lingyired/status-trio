@@ -1,6 +1,40 @@
 import Foundation
 
 struct IconDesignerBluetoothTargetModel {
+    static func selectedAddress(for role: IconDesignerBehaviorTarget, in configuration: IconConfigurationV1,
+                                deviceAddress: String?) -> String? {
+        guard IconDesignerEditingModel.source(for: role, slot: .center, in: configuration) == .center(.connectedBluetoothDevice) else { return nil }
+        return deviceAddress.map { BluetoothBatteryReader.normalizedAddress($0) }.flatMap { $0.isEmpty ? nil : $0 }
+    }
+
+    /// V1 stores one device address. Never clear an address another role still
+    /// uses, or normalize a colliding choice by silently deleting its fallback.
+    @discardableResult
+    static func setTarget(_ target: IconDesignerBluetoothTarget, for role: IconDesignerBehaviorTarget,
+                          in configuration: inout IconConfigurationV1, deviceAddress: inout String?) -> Bool {
+        guard case let .center(current) = IconDesignerEditingModel.source(for: role, slot: .center, in: configuration),
+              isBluetoothSource(current) || current == .pinnedBluetoothGlyph else { return false }
+        let candidate = source(for: target)
+        let other = role == .primary ? configuration.composition.center.fallback : configuration.composition.center.primary
+        guard candidate != other else { return false }
+        var address = deviceAddress
+        if case let .connectedDevice(rawAddress) = target {
+            let normalized = BluetoothBatteryReader.normalizedAddress(rawAddress)
+            guard !normalized.isEmpty else { return false }
+            address = normalized
+        }
+        var copy = configuration
+        switch role {
+        case .primary: copy.composition.center.primary = candidate
+        case .fallback: copy.composition.center.fallback = candidate
+        }
+        if copy.composition.center.primary != .connectedBluetoothDevice,
+           copy.composition.center.fallback != .connectedBluetoothDevice { address = nil }
+        configuration = copy.normalized()
+        deviceAddress = address
+        return true
+    }
+
     static func displaySource(for source: CenterSource) -> CenterSource {
         switch source {
         case .connectedBluetoothDevice: .bluetoothAudioOutput

@@ -24,6 +24,7 @@ final class AppEnvironment {
 
     private var chargingEffectCancellables = Set<AnyCancellable>()
     private var iconSourceDemandBridge = IconSourceDemandBridge()
+    private var realIconOverrideBridge: IconDesignerRealIconOverrideBridge?
     private var inputSourceLifecycleCancellables = Set<AnyCancellable>()
 
     init(
@@ -41,7 +42,8 @@ final class AppEnvironment {
         inputSourceController: InputSourceController,
         chargingEffectClock: ChargingEffectClock,
         chargingEffectMotionMonitor: ChargingEffectMotionMonitor,
-        telemetryReporter: any TelemetryReporting
+        telemetryReporter: any TelemetryReporting,
+        realIconOverrideBridge: IconDesignerRealIconOverrideBridge? = nil
     ) {
         self.store = store
         self.settings = settings
@@ -58,10 +60,12 @@ final class AppEnvironment {
         self.chargingEffectClock = chargingEffectClock
         self.chargingEffectMotionMonitor = chargingEffectMotionMonitor
         self.telemetryReporter = telemetryReporter
+        self.realIconOverrideBridge = realIconOverrideBridge
     }
 
     func start() {
         iconPresentation.start()
+        realIconOverrideBridge?.start()
         startInputSourceMonitoringIfNeeded()
         onboardingWindowController.showIfNeeded()
         chargingEffectMotionMonitor.onChange = { [weak self] _ in
@@ -93,6 +97,7 @@ final class AppEnvironment {
     }
 
     func stop() {
+        realIconOverrideBridge?.stop()
         telemetryReporter.stop()
         chargingEffectClock.stop()
         chargingEffectMotionMonitor.onChange = nil
@@ -338,6 +343,11 @@ final class AppEnvironment {
             activationPolicy: activationPolicy
         )
         let iconDesignerPreviewSession = IconDesignerPreviewSession()
+        let realIconOverrideBridge = IconDesignerRealIconOverrideBridge(
+            session: iconDesignerPreviewSession,
+            settings: settings,
+            iconPresentation: iconPresentation
+        )
         let iconDesignerWindowController = IconDesignerWindowController(
             store: settings,
             statusStore: store,
@@ -441,7 +451,8 @@ final class AppEnvironment {
             inputSourceController: inputSourceController,
             chargingEffectClock: chargingEffectClock,
             chargingEffectMotionMonitor: chargingEffectMotionMonitor,
-            telemetryReporter: telemetryReporter
+            telemetryReporter: telemetryReporter,
+            realIconOverrideBridge: realIconOverrideBridge
         )
     }
 

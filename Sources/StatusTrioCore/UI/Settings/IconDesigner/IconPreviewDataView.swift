@@ -20,9 +20,28 @@ struct IconPreviewDataView: View {
             .pickerStyle(.segmented)
             .accessibilityIdentifier("iconPreviewData.mode")
 
-            Text(localization.string(session.mode == .simulated ? .iconPreviewDataSimulatedNotice : .iconPreviewDataLiveNotice))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(localization.string(session.mode == .simulated ? .iconPreviewDataSimulatedNotice : .iconPreviewDataLiveNotice))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
+                Toggle(localization.string(.iconPreviewDataApplyToRealIcons), isOn: Binding(
+                    get: { session.appliesToRealIcons },
+                    set: { session.setAppliesToRealIcons($0) }
+                ))
+                .disabled(!session.canApplyToRealIcons)
+                .accessibilityIdentifier("iconPreviewData.applyToRealIcons")
+
+                if session.appliesToRealIcons {
+                    Label(localization.string(.iconPreviewDataApplyToRealIconsNotice), systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.orange)
+                        .accessibilityIdentifier("iconPreviewData.applyToRealIconsNotice")
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
 
             if session.mode == .simulated {
                 Menu(localization.string(.iconPreviewQuickFill)) {
@@ -101,6 +120,8 @@ struct IconPreviewDataView: View {
                 }
             }
             .accessibilityIdentifier("iconPreviewData.network.connectionState")
+            networkSignalControl
+                .disabled(session.samples.network.kind == .off || session.samples.network.kind == .ethernet)
         case .bluetoothTarget:
             Toggle(localization.string(.iconPreviewBluetoothTargetOnline), isOn: sampleBinding(\.bluetoothTarget.isOnline))
             Toggle(localization.string(.iconPreviewBluetoothTargetAudio), isOn: sampleBinding(\.bluetoothTarget.isAudio))
@@ -139,6 +160,16 @@ struct IconPreviewDataView: View {
             let connection = statusStore.snapshot.connection
             Text(localization.string(connection == .ethernet ? .iconPreviewNetworkEthernetConnected : networkStatusKey(statusStore.snapshot.wifi.state)))
                 .accessibilityIdentifier("iconPreviewData.live.network")
+            if connection != .ethernet, statusStore.snapshot.wifi.state.isNetworkAssociated {
+                HStack {
+                    Text(localization.string(.iconPreviewNetworkSignalStrength))
+                    Spacer(minLength: 8)
+                    Text(statusStore.snapshot.wifi.rssi.map { localization.format(.wifiSummarySignal, $0) }
+                         ?? localization.string(.networkDetailUnavailable))
+                        .monospacedDigit()
+                }
+                .accessibilityIdentifier("iconPreviewData.live.networkSignalStrength")
+            }
         case .bluetoothTarget:
             Text(liveBluetoothSummary)
                 .accessibilityIdentifier("iconPreviewData.live.bluetooth")
@@ -170,6 +201,26 @@ struct IconPreviewDataView: View {
                 bluetoothAvailability: statusStore.bluetoothDevices.availability
             )
         )
+    }
+
+    private var networkSignalControl: some View {
+        let title = localization.string(.iconPreviewNetworkSignalStrength)
+        let value = localization.format(.wifiSummarySignal, session.samples.network.rssi)
+        let range = NetworkPreviewSample.rssiRange
+        return VStack(alignment: .leading) {
+            HStack {
+                Text(title)
+                Spacer(minLength: 8)
+                Text(value).monospacedDigit().fixedSize()
+            }
+            Slider(value: Binding(
+                get: { Double(session.samples.network.rssi) },
+                set: { session.setNetworkRSSI($0) }
+            ), in: Double(range.lowerBound)...Double(range.upperBound), step: 1)
+            .accessibilityLabel(title)
+            .accessibilityValue(value)
+            .accessibilityIdentifier("iconPreviewData.network.signalStrength")
+        }
     }
 
     private var liveBluetoothSummary: String {

@@ -1539,7 +1539,7 @@ extension StatusIconRenderer {
         drawSceneCenter(center, in: bitmap, foreground: CGColor(gray: 1, alpha: 1),
                         criticalColor: CGColor(gray: 1, alpha: 1))
         guard let fullImage = bitmap.makeImage(),
-              let bounds = visibleAlphaBounds(of: fullImage, threshold: IconCenterSizingPolicy.visibleInkAlphaThreshold),
+              let bounds = visibleAlphaBounds(of: fullImage, threshold: IconCenterSizingPolicy.artworkCropAlphaThreshold),
               let cropped = fullImage.cropping(to: bounds.integral) else { return nil }
         let anchor = CGFloat(dimension) / 2
         return MeasuredCenterArtwork(

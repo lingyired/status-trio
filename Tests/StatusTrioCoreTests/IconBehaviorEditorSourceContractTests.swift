@@ -39,7 +39,7 @@ struct IconBehaviorEditorSourceContractTests {
 
     @Test
     func globalNetworkOverrideToggleIsVisibleForEveryCentreSource() throws {
-        let source = try String(contentsOf: behaviorEditorURL, encoding: .utf8)
+        let source = try String(contentsOf: behaviorEditorURL.deletingLastPathComponent().appendingPathComponent("IconDesignerAlertSection.swift"), encoding: .utf8)
         let compactSource = String(source.filter { !$0.isWhitespace })
 
         // One global switch, rendered outside any per-source branch so it shows
@@ -58,11 +58,12 @@ struct IconBehaviorEditorSourceContractTests {
     @Test
     func centreBehaviorSwitchNoLongerPlacesTheToggleInsideTheBluetoothBranch() throws {
         let source = try String(contentsOf: behaviorEditorURL, encoding: .utf8)
-        let toggleIndex = try #require(source.range(of: "iconDesignerControlNetworkProblemsOverride"))
-        let bluetoothBranchIndex = try #require(source.range(of: "private var bluetoothOutputBehavior"))
-        // The global toggle sits before the per-source branches resolve, so it is
-        // not inside the Bluetooth-only output branch.
-        #expect(toggleIndex.lowerBound < bluetoothBranchIndex.lowerBound)
+        let directory = behaviorEditorURL.deletingLastPathComponent()
+        let alert = try String(contentsOf: directory.appendingPathComponent("IconDesignerAlertSection.swift"), encoding: .utf8)
+        let designer = try String(contentsOf: directory.appendingPathComponent("IconDesignerView.swift"), encoding: .utf8)
+        #expect(source.contains("iconDesignerControlNetworkProblemsOverride") == false)
+        #expect(alert.contains("iconDesignerControlNetworkProblemsOverride"))
+        #expect(designer.contains("if selectedSlot.wrappedValue == .center { IconDesignerAlertSection(store: store) }"))
     }
 
     private var scaleControlURL: URL {

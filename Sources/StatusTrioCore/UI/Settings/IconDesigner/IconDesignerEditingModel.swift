@@ -33,16 +33,6 @@ enum IconDesignerBehaviorTarget: String, CaseIterable, Hashable, Sendable {
     case fallback
 }
 
-enum IconDesignerBehaviorCapability: Hashable, Sendable {
-    case legacyBatteryPercentageInCenter
-    case networkRepresentation
-    case bluetoothOutputAppearance
-    case pinnedBluetoothGlyph
-    case systemBattery
-    case airPodsBattery
-    case systemVolume
-}
-
 enum IconDesignerEditingModel {
 
     static var wifiScaleForCommonPercentageSize: Double {
@@ -212,45 +202,38 @@ enum IconDesignerEditingModel {
         bluetoothTarget: IconDesignerBluetoothTarget,
         devices: [BluetoothDevice]
     ) -> Set<IconDesignerBehaviorCapability> {
-        var capabilities = behaviors(for: slot, source: source)
-        guard slot == .center, source == .center(.connectedBluetoothDevice) else { return capabilities }
-        capabilities.remove(.bluetoothOutputAppearance)
-        if IconDesignerBluetoothTargetModel.isAudioTarget(bluetoothTarget, devices: devices) {
-            capabilities.insert(.bluetoothOutputAppearance)
-        }
-        return capabilities
+        guard let binding = source.pluginBinding else { return [] }
+        return BuiltinIconPlugins.makeRegistry().capabilities(for: binding,
+            context: .init(configuration: .classic,
+                targetIsAudio: IconDesignerBluetoothTargetModel.isAudioTarget(bluetoothTarget, devices: devices)))
     }
 
     static func behaviors(for slot: IconSlot, source: IconDesignerSource) -> Set<IconDesignerBehaviorCapability> {
-        switch (slot, source) {
-        case (.center, .center(.automaticLegacy)):
-            [.legacyBatteryPercentageInCenter, .networkRepresentation, .bluetoothOutputAppearance]
-        case (.center, .center(.network)):
-            [.networkRepresentation]
-        case (.center, .center(.bluetoothAudioOutput)):
-            [.bluetoothOutputAppearance]
-        case (.center, .center(.pinnedBluetoothGlyph)):
-            [.pinnedBluetoothGlyph]
-        case (.outerRing, .ring(.systemBattery)), (.outerRing, .ring(.automaticLegacy)):
-            [.systemBattery]
-        case (.outerRing, .ring(.airPodsBattery)):
-            [.airPodsBattery]
-        case (.footer, .footer(.systemVolume)):
-            [.systemVolume]
-        default: []
-        }
+        guard let binding = source.pluginBinding else { return [] }
+        return BuiltinIconPlugins.makeRegistry().capabilities(for: binding,
+            context: .init(configuration: .classic, targetIsAudio: false))
     }
-    static func selectableSources(for slot: IconSlot, phaseFiveEnabled: Bool = true) -> [IconDesignerSource] {
-        switch slot {
-        case .outerRing:
-            [.ring(.systemBattery), .ring(.airPodsBattery), .ring(.none)]
-        case .center:
-            IconDesignerSourceSelection.centerChoices.map {
-                .center(IconDesignerSourceSelection.source(for: $0))
+
+    static func selectableSources(for slot: IconSlot, phaseFiveEnabled: Bool = true,
+                                  registry: IconContentPluginRegistry = BuiltinIconPlugins.makeRegistry()) -> [IconDesignerSource] {
+        var result: [IconDesignerSource] = []
+        for option in registry.presentations(for: slot) {
+            let source: IconDesignerSource?
+            switch slot {
+            case .outerRing: source = IconContentLegacyAdapter.ringSource(for: option.binding).map { .ring($0) }
+            case .center: source = IconContentLegacyAdapter.centerSource(for: option.binding).map {
+                .center(IconDesignerBluetoothTargetModel.displaySource(for: $0))
             }
-        case .footer:
-            [.footer(.systemVolume), .footer(.none)]
+            case .footer: source = IconContentLegacyAdapter.footerSource(for: option.binding).map { .footer($0) }
+            }
+            if let source, !result.contains(source) { result.append(source) }
         }
+        switch slot {
+        case .outerRing: result.append(.ring(.none))
+        case .center: result.append(.center(.none))
+        case .footer: result.append(.footer(.none))
+        }
+        return result
     }
 
     static func currentSource(for slot: IconSlot, in configuration: IconConfigurationV1,
@@ -368,5 +351,20 @@ enum IconDesignerEditingModel {
         default:
             false
         }
+    }
+}
+
+extension IconDesignerSource {
+    var pluginBinding: IconContentBinding? {
+        switch self {
+        case let .ring(source): IconContentLegacyAdapter.binding(for: source)
+        case let .center(source): IconContentLegacyAdapter.binding(for: source)
+        case let .footer(source): IconContentLegacyAdapter.binding(for: source)
+        }
+    }
+
+    var localizationKey: LocalizationKey {
+        guard let pluginBinding else { return .iconDesignerSourceNone }
+        return BuiltinIconPlugins.makeRegistry().presentation(for: pluginBinding)?.title ?? .iconDesignerSourceNone
     }
 }

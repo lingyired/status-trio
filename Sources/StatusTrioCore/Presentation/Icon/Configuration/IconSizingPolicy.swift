@@ -11,6 +11,16 @@ enum IconCenterSizingPolicy {
     static let baselineVisibleHeight = 31.1
     /// Ignore subpixel antialias fringes so different glyph renderers share a stable ink edge.
     static let visibleInkAlphaThreshold: UInt8 = 128
+    /// Alpha floor for the centre artwork's mask crop.
+    ///
+    /// A variable-value SF Symbol paints the part it has not filled yet in a
+    /// muted tint — `wifi` measures 77/255 for its unlit arcs — which sits far
+    /// below `visibleInkAlphaThreshold`. Cropping the mask at the *visible*
+    /// threshold therefore deleted that track and left a weak signal drawing a
+    /// lone dot. The crop keeps every pixel the one-pass drawing paints; only
+    /// the ink measurements that size the centre keep using
+    /// `visibleInkAlphaThreshold`.
+    static let artworkCropAlphaThreshold: UInt8 = 1
     static let legacyPersistedPercentageRange: ClosedRange<Double> = 0.5...1.8
     static let legacyPercentageVisibleHeightAtRendererScaleOne = 31.0
     static let legacyWiFiVisibleHeightAtRendererScaleOne = 34.0

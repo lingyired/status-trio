@@ -42,7 +42,13 @@ enum IconPreviewNetworkKind: CaseIterable, Equatable, Sendable {
 }
 
 struct NetworkPreviewSample: Equatable, Sendable {
+    static let rssiRange = (-100)...(-30)
     var kind = IconPreviewNetworkKind.wifi
+    var rssi = -48
+
+    var clampedRSSI: Int {
+        min(Self.rssiRange.upperBound, max(Self.rssiRange.lowerBound, rssi))
+    }
 }
 
 struct BluetoothTargetPreviewSample: Equatable, Sendable {

@@ -608,12 +608,16 @@
 
 "iconPreviewData.simulatedNotice" = "编辑下方样例仅影响此预览；切回实时数据后，样例仍会保留。";
 "iconPreviewData.liveNotice" = "实时状态为只读。切换到“模拟数据”后可编辑样例。";
+
+"iconPreviewData.applyToRealIcons" = "应用到真实菜单栏和 Dock";
+"iconPreviewData.applyToRealIconsNotice" = "模拟数据正在控制真实菜单栏和 Dock。关闭此选项或切回“实时数据”即可恢复实时状态。";
 "iconPreviewData.title" = "预览数据";
 "iconPreviewData.modeSelector" = "预览模式";
 "iconPreviewData.mode.liveShort" = "实时数据";
 "iconPreviewData.mode.simulatedShort" = "模拟数据";
 "iconPreviewData.quickFill" = "快速填入";
 "iconPreviewData.network.connectionState" = "连接状态";
+"iconPreviewData.network.signalStrength" = "Wi-Fi 信号强度";
 "iconPreviewData.systemVolume.source" = "系统音量";
 "iconPreviewData.live.notMuted" = "未静音";
 "iconPreviewData.battery.notCharging" = "未充电";
@@ -666,3 +670,22 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "适用于旧版中心中已连接但信号为 0 格的 Wi-Fi；无法读取信号强度时也使用该颜色。";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "适用于旧版中心显示的蓝牙图标。";
 "icon.designer.airPods.showTopSymbol" = "顶部显示 AirPods 图标";
+
+/* Icon content editor */
+"iconDesigner.editor.editingElementFormat" = "编辑%@";
+"iconDesigner.editor.contentTitle" = "内容";
+"iconDesigner.editor.unavailableTitle" = "不可用时";
+"iconDesigner.editor.currentDisplayFormat" = "当前显示：%@";
+"iconDesigner.editor.fallbackSummaryFormat" = "显示%@";
+"iconDesigner.editor.editingFallbackFormat" = "编辑备用内容：%@";
+"iconDesigner.editor.displayTitle" = "显示方式";
+"iconDesigner.editor.alertsTitle" = "提醒与切换";
+"iconDesigner.editor.hiddenExplanation" = "此元素已隐藏。";
+"iconDesigner.editor.restoreElementFormat" = "还原%@…";
+"iconDesigner.editor.batterySummary" = "显示 Mac 的电池状态。";
+"iconDesigner.editor.airPodsSummary" = "显示所选 AirPods 的耳机电量。";
+"iconDesigner.editor.networkSummary" = "显示当前网络连接状态。";
+"iconDesigner.editor.inputSourceSummary" = "显示当前输入法的图标或短标签。";
+"iconDesigner.editor.bluetoothSummary" = "显示当前音频输出或指定蓝牙设备。";
+"iconDesigner.editor.volumeSummary" = "显示系统输出音量。";
+"iconDesigner.editor.hideElement" = "隐藏此元素";

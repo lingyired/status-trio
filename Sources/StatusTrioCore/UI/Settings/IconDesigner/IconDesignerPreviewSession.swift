@@ -3,11 +3,37 @@ import Foundation
 
 @MainActor
 final class IconDesignerPreviewSession: ObservableObject {
-    @Published var mode: IconPreviewDataMode = .live
+    @Published var mode: IconPreviewDataMode = .live {
+        didSet {
+            if mode != .simulated, appliesToRealIcons {
+                appliesToRealIcons = false
+            }
+            realIconOverrideChanges.send()
+        }
+    }
+    /// Opt-in only for a temporary, in-memory test of the real Menu Bar and
+    /// Dock icons. This must never be written to settings or restored on launch.
+    @Published private(set) var appliesToRealIcons = false
     @Published var selectedSlot: IconSlot = .outerRing
+    @Published var expandedFallbackSlots: Set<IconSlot> = []
     /// Shared preview-only appearance; it is intentionally outside settings and edit history.
     @Published var isDarkBackground = true
-    @Published private(set) var samples = IconPreviewSampleValues()
+    @Published private(set) var samples = IconPreviewSampleValues() {
+        didSet { realIconOverrideChanges.send() }
+    }
+    /// Emits after the values above have been stored, unlike `@Published`.
+    let realIconOverrideChanges = PassthroughSubject<Void, Never>()
+
+    var canApplyToRealIcons: Bool {
+        mode == .simulated
+    }
+
+    func setAppliesToRealIcons(_ enabled: Bool) {
+        let next = enabled && canApplyToRealIcons
+        guard appliesToRealIcons != next else { return }
+        appliesToRealIcons = next
+        realIconOverrideChanges.send()
+    }
 
     func updateSamples(_ update: (inout IconPreviewSampleValues) -> Void) {
         var updated = samples
@@ -15,6 +41,7 @@ final class IconDesignerPreviewSession: ObservableObject {
         updated.macBattery.percentage = min(100, max(0, updated.macBattery.percentage))
         updated.airPods.setLeftBattery(Double(updated.airPods.leftBattery))
         updated.airPods.setRightBattery(Double(updated.airPods.rightBattery))
+        updated.network.rssi = updated.network.clampedRSSI
         updated.systemVolume.percentage = min(100, max(0, updated.systemVolume.percentage))
         samples = updated
     }
@@ -51,6 +78,14 @@ final class IconDesignerPreviewSession: ObservableObject {
         var updated = samples
         updated.systemVolume.percentage = Self.safePercentage(value)
         samples = updated
+    }
+
+    func setNetworkRSSI(_ value: Double) {
+        updateSamples {
+            let range = NetworkPreviewSample.rssiRange
+            let finiteValue = value.isFinite ? value : -48
+            $0.network.rssi = Int(min(Double(range.upperBound), max(Double(range.lowerBound), finiteValue.rounded())))
+        }
     }
 
     func applyAirPodsPreset(_ preset: CustomAirPodsPreviewPreset) {
@@ -100,53 +135,8 @@ final class IconDesignerPreviewSession: ObservableObject {
         target: IconDesignerBluetoothTarget,
         devices: [BluetoothDevice]
     ) -> Set<IconPreviewSampleSource> {
-        var used = Set<IconPreviewSampleSource>()
-
-        for source in [configuration.composition.outerRing.primary, configuration.composition.outerRing.fallback].compactMap({ $0 }) {
-            switch source {
-            case .systemBattery: used.insert(.macBattery)
-            case .airPodsBattery: used.insert(.airPods)
-            case .automaticLegacy, .none: break
-            }
-        }
-
-        let centerSources = [configuration.composition.center.primary, configuration.composition.center.fallback].compactMap { $0 }
-        for source in centerSources {
-            switch source {
-            case .inputSource:
-                used.insert(.inputSource)
-            case .network:
-                used.insert(.network)
-            case .systemBatteryPercentage:
-                used.insert(.macBattery)
-            case .bluetoothAudioOutput, .pinnedBluetoothGlyph, .connectedBluetoothDevice:
-                used.insert(.bluetoothTarget)
-            case .automaticLegacy, .none:
-                break
-            }
-        }
-
-        // The global network-failure rule can replace ANY centre source
-        // (input method, battery, Bluetooth, network, legacy and none) with the
-        // network scene, so the simulated-data editor always keeps the network
-        // sample reachable while it is on.
-        if configuration.composition.centerOverride.networkProblemOverridesPrimary {
-            used.insert(.network)
-        }
-
-        for source in [configuration.composition.footer.primary, configuration.composition.footer.fallback].compactMap({ $0 }) {
-            if source == .systemVolume { used.insert(.systemVolume) }
-        }
-
-        let centerUsesBluetooth = centerSources.contains {
-            $0 == .bluetoothAudioOutput || $0 == .pinnedBluetoothGlyph || $0 == .connectedBluetoothDevice
-        }
-        if centerUsesBluetooth, configuration.behaviors.bluetoothAudioCenter.usesVolumeColor,
-           Self.isAudioTarget(target, devices: devices) {
-            used.insert(.systemVolume)
-        }
-
-        return used
+        IconContentDependencyResolver.dependencies(configuration: configuration,
+            targetIsAudio: Self.isAudioTarget(target, devices: devices)).samples
     }
 
     static func isAudioTarget(_ target: IconDesignerBluetoothTarget, devices: [BluetoothDevice]) -> Bool {

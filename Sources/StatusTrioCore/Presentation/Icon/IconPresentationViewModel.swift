@@ -57,15 +57,15 @@ struct IconPresentationOutput: Equatable, Sendable {
     var trace: IconResolutionTrace = .empty
 }
 
+private enum IconHeldSourcePayload: Sendable {
+    case airPodsBattery(AirPodsBatteryIconSnapshot)
+    case connectedBluetoothDevice(symbol: String, isAudio: Bool?)
+}
+
 private enum IconHeldSlotState: Sendable {
     case outerRing(OuterRingState)
     case center(CenterState)
     case footer(FooterState)
-}
-
-private enum IconHeldSourcePayload: Sendable {
-    case airPodsBattery(AirPodsBatteryIconSnapshot)
-    case connectedBluetoothDevice(symbol: String, isAudio: Bool?)
 }
 
 @MainActor
@@ -95,9 +95,10 @@ final class IconPresentationViewModel: ObservableObject {
     private var receivedInputSourceForStart = false
     private var synchronizedStart = false
     private var holdPolicies: [String: IconSourceHoldPolicy<Bool>] = [:]
-    private var lastGoodSlotStates: [String: IconHeldSlotState] = [:]
+    private var lastGoodLegacySlotStates: [String: IconHeldSlotState] = [:]
     private var lastGoodSourcePayloads: [String: IconHeldSourcePayload] = [:]
     private var holdGeneration = 0
+    private var realIconOverride: IconPresentationOutput?
 
     init(
         snapshot: StatusSnapshot,
@@ -144,6 +145,22 @@ final class IconPresentationViewModel: ObservableObject {
         publishLatestOutput()
     }
 
+    /// Applies a complete, resolved scene to both Menu Bar and Dock surfaces.
+    /// Live inputs and hold state continue updating underneath, so clearing the
+    /// override immediately restores the latest real presentation.
+    func setRealIconOverride(_ override: IconPresentationOutput) {
+        realIconOverride = override
+        guard output != override else { return }
+        output = override
+    }
+
+    func clearRealIconOverride() {
+        guard realIconOverride != nil else { return }
+        realIconOverride = nil
+        snapshotScheduler.cancel()
+        publishLatestOutput()
+    }
+
     func start() {
         guard snapshotSubscription == nil, preferencesSubscription == nil else { return }
         receivedSnapshotForStart = false
@@ -170,6 +187,7 @@ final class IconPresentationViewModel: ObservableObject {
 
     func stop() {
         snapshotScheduler.cancel()
+        realIconOverride = nil
         cancelHoldExpiryAndResetPolicies()
         snapshotSubscription?.cancel()
         preferencesSubscription?.cancel()
@@ -254,9 +272,10 @@ final class IconPresentationViewModel: ObservableObject {
             mapResolution: mapResolution,
             sources: heldSources.snapshot
         )
-        updateLastGoodSlotStates(from: resolved, rawAvailability: heldSources.rawSnapshot)
+        updateLastGoodLegacySlotStates(from: resolved, rawAvailability: heldSources.rawSnapshot)
         let next = applyingHeldSlotStates(resolved, sourceIDs: heldSources.holdingSourceIDs)
         scheduleHoldExpiry()
+        guard realIconOverride == nil else { return }
         guard output != next else { return }
         output = next
     }
@@ -309,7 +328,7 @@ final class IconPresentationViewModel: ObservableObject {
                 break
             }
         }
-        lastGoodSlotStates = lastGoodSlotStates.filter { retainedSourceIDs.contains($0.key) }
+        lastGoodLegacySlotStates = lastGoodLegacySlotStates.filter { retainedSourceIDs.contains($0.key) }
         lastGoodSourcePayloads = lastGoodSourcePayloads.filter { retainedSourceIDs.contains($0.key) }
 
         let airPodsPayload: AirPodsBatteryIconSnapshot?
@@ -339,18 +358,18 @@ final class IconPresentationViewModel: ObservableObject {
         )
     }
 
-    private func updateLastGoodSlotStates(
+    private func updateLastGoodLegacySlotStates(
         from output: IconPresentationOutput,
         rawAvailability: IconSourceSnapshot
     ) {
         for (sourceID, availability) in rawAvailability.availability {
             guard case .available = availability else { continue }
             if output.trace.outerRing.selectedSourceID == sourceID, let state = output.scene.outerRing {
-                lastGoodSlotStates[sourceID] = .outerRing(state)
+                lastGoodLegacySlotStates[sourceID] = .outerRing(state)
             } else if output.trace.center.selectedSourceID == sourceID, let state = output.scene.center {
-                lastGoodSlotStates[sourceID] = .center(state)
+                lastGoodLegacySlotStates[sourceID] = .center(state)
             } else if output.trace.footer.selectedSourceID == sourceID, let state = output.scene.footer {
-                lastGoodSlotStates[sourceID] = .footer(state)
+                lastGoodLegacySlotStates[sourceID] = .footer(state)
             }
         }
     }
@@ -364,7 +383,11 @@ final class IconPresentationViewModel: ObservableObject {
         var footer = output.scene.footer
         let trace = output.trace
         for sourceID in sourceIDs {
-            guard let heldState = lastGoodSlotStates[sourceID] else { continue }
+            // Payload-backed sources replay their last raw values and resolve
+            // again, so the current appearance is applied. Reusing their old
+            // complete scene would also restore the old designer colours.
+            guard lastGoodSourcePayloads[sourceID] == nil else { continue }
+            guard let heldState = lastGoodLegacySlotStates[sourceID] else { continue }
             switch heldState {
             case let .outerRing(state):
                 guard trace.outerRing.selectedSourceID == sourceID else { continue }
@@ -385,8 +408,12 @@ final class IconPresentationViewModel: ObservableObject {
                 footer: footer == output.scene.footer ? $0.footer : footer
             )
         }
-        return IconPresentationOutput(scene: scene, menuBarTestScene: testScene,
-                                      menuBarSize: output.menuBarSize, trace: trace)
+        return IconPresentationOutput(
+            scene: scene,
+            menuBarTestScene: testScene,
+            menuBarSize: output.menuBarSize,
+            trace: trace
+        )
     }
 
     private func scheduleHoldExpiry() {
@@ -403,7 +430,7 @@ final class IconPresentationViewModel: ObservableObject {
 
     private func resetHoldPolicies() {
         holdPolicies.removeAll(keepingCapacity: true)
-        lastGoodSlotStates.removeAll(keepingCapacity: true)
+        lastGoodLegacySlotStates.removeAll(keepingCapacity: true)
         lastGoodSourcePayloads.removeAll(keepingCapacity: true)
         holdGeneration &+= 1
         holdExpiryScheduler.cancel()

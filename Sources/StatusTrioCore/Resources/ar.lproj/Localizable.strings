@@ -609,12 +609,16 @@
 
 "iconPreviewData.simulatedNotice" = "تؤثر قيم العينات أدناه على هذه المعاينة فقط، وتظل محفوظة عند الرجوع إلى البيانات المباشرة.";
 "iconPreviewData.liveNotice" = "حالة البيانات المباشرة للقراءة فقط. بدّل إلى المحاكاة لتعديل العينات.";
+
+"iconPreviewData.applyToRealIcons" = "تطبيق على شريط القوائم وDock الفعليين";
+"iconPreviewData.applyToRealIconsNotice" = "البيانات المحاكاة تتحكم الآن في شريط القوائم وDock الفعليين. أوقف هذا الخيار أو عد إلى الوضع المباشر لاستعادة الحالة الفعلية.";
 "iconPreviewData.title" = "بيانات المعاينة";
 "iconPreviewData.modeSelector" = "وضع المعاينة";
 "iconPreviewData.mode.liveShort" = "البيانات المباشرة";
 "iconPreviewData.mode.simulatedShort" = "محاكاة";
 "iconPreviewData.quickFill" = "تعبئة سريعة";
 "iconPreviewData.network.connectionState" = "حالة الاتصال";
+"iconPreviewData.network.signalStrength" = "قوة إشارة Wi-Fi";
 "iconPreviewData.systemVolume.source" = "صوت النظام";
 "iconPreviewData.live.notMuted" = "غير مكتوم";
 "iconPreviewData.battery.notCharging" = "غير قيد الشحن";
@@ -667,3 +671,22 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "لشبكة Wi-Fi المتصلة دون أشرطة إشارة في العرض الأوسط القديم.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "لأيقونة Bluetooth في العرض الأوسط القديم.";
 "icon.designer.airPods.showTopSymbol" = "إظهار أيقونة AirPods في الأعلى";
+
+/* Icon content editor */
+"iconDesigner.editor.editingElementFormat" = "تحرير %@";
+"iconDesigner.editor.contentTitle" = "المحتوى";
+"iconDesigner.editor.unavailableTitle" = "عند عدم التوفر";
+"iconDesigner.editor.currentDisplayFormat" = "المعروض حاليًا: %@";
+"iconDesigner.editor.fallbackSummaryFormat" = "عرض %@";
+"iconDesigner.editor.editingFallbackFormat" = "تحرير المحتوى البديل: %@";
+"iconDesigner.editor.displayTitle" = "خيارات العرض";
+"iconDesigner.editor.alertsTitle" = "التنبيهات والتبديل";
+"iconDesigner.editor.hiddenExplanation" = "هذا العنصر مخفي.";
+"iconDesigner.editor.restoreElementFormat" = "إعادة تعيين %@…";
+"iconDesigner.editor.batterySummary" = "عرض حالة بطارية Mac.";
+"iconDesigner.editor.airPodsSummary" = "عرض مستويات بطارية AirPods المحددة.";
+"iconDesigner.editor.networkSummary" = "عرض حالة اتصال الشبكة الحالي.";
+"iconDesigner.editor.inputSourceSummary" = "عرض أيقونة مصدر الإدخال الحالي أو تسميته المختصرة.";
+"iconDesigner.editor.bluetoothSummary" = "عرض مخرج الصوت الحالي أو جهاز Bluetooth محدد.";
+"iconDesigner.editor.volumeSummary" = "عرض مستوى صوت إخراج النظام.";
+"iconDesigner.editor.hideElement" = "إخفاء هذا العنصر";

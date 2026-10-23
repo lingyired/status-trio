@@ -45,6 +45,13 @@ struct IconDesignerView: View {
                 previewPane(width: columns.preview)
                     .frame(width: columns.preview)
                 VStack(alignment: .leading, spacing: 10) {
+                    SettingsGroup(localization.format(.iconDesignerEditingElementFormat,
+                        localization.string(IconDesignerInspectorModel.slotName(selectedSlot.wrappedValue)))) {
+                        IconSlotPicker(selection: selectedSlot, configuration: store.iconConfiguration)
+                            .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                            .padding(.vertical, 8)
+                    }
+                    .accessibilityIdentifier("iconDesigner.slotCard")
                     ScrollView {
                         inspector
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -86,13 +93,67 @@ struct IconDesignerView: View {
 
     private var inspector: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ForEach(
-                IconDesignerLayout.sectionOrder.filter { $0 != .presets }
-            ) { section in
-                sectionContent(for: section)
+            sectionContent(for: .source)
+            if hasEditableBehavior(.primary) { sectionContent(for: .behavior) }
+            if IconDesignerInspectorModel.showsAppearance(slot: selectedSlot.wrappedValue,
+                configuration: store.iconConfiguration, targetIsAudio: false) { sectionContent(for: .appearance) }
+            if selectedSource(.primary)?.pluginBinding != nil {
+                IconDesignerFallbackSection(isExpanded: fallbackExpanded, summary: fallbackSummary, setupNotice: fallbackSetupNotice) {
+                    IconSourceEditor(store: store, slot: selectedSlot.wrappedValue, target: .fallback,
+                        bluetoothDevices: statusStore.bluetoothDevices, statusStore: statusStore)
+                    if let source = selectedSource(.fallback), hasEditableBehavior(.fallback) {
+                        Text(localization.format(.iconDesignerEditingFallbackFormat, localization.string(source.localizationKey)))
+                            .font(.callout.weight(.semibold))
+                        behaviorEditor(target: .fallback)
+                    }
+                }
             }
+            if selectedSlot.wrappedValue == .center { IconDesignerAlertSection(store: store) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var fallbackExpanded: Binding<Bool> {
+        let slot = selectedSlot.wrappedValue
+        return Binding(get: { previewSession.expandedFallbackSlots.contains(slot) }, set: { expanded in
+            if expanded { previewSession.expandedFallbackSlots.insert(slot) }
+            else { previewSession.expandedFallbackSlots.remove(slot) }
+        })
+    }
+
+    private var fallbackSummary: String {
+        guard let source = selectedSource(.fallback), source.pluginBinding != nil else {
+            return localization.string(.iconDesignerHideElement)
+        }
+        return localization.format(.iconDesignerFallbackSummaryFormat, localization.string(source.localizationKey))
+    }
+
+    private var fallbackSetupNotice: String? {
+        IconDesignerInspectorModel.fallbackSetupReason(slot: selectedSlot.wrappedValue,
+            configuration: store.iconConfiguration, bluetoothAuthorized: statusStore.bluetoothDevices.authorization == .allowed,
+            devices: statusStore.bluetoothDevices.availability == .available ? statusStore.bluetoothDevices.devices : [],
+            airPodsAddress: store.airPodsIconDeviceAddress, connectedDeviceAddress: store.connectedBluetoothIconDeviceAddress)
+            .map { localization.string($0) }
+    }
+
+    private func selectedSource(_ target: IconDesignerBehaviorTarget) -> IconDesignerSource? {
+        IconDesignerEditingModel.source(for: target, slot: selectedSlot.wrappedValue, in: store.iconConfiguration)
+    }
+
+    private func hasEditableBehavior(_ target: IconDesignerBehaviorTarget) -> Bool {
+        let deviceTarget = store.connectedBluetoothIconDeviceAddress.map {
+            IconDesignerBluetoothTarget.connectedDevice(address: $0)
+        } ?? .currentAudioOutput
+        return IconDesignerInspectorModel.hasEditableBehavior(slot: selectedSlot.wrappedValue, target: target,
+            configuration: store.iconConfiguration, targetIsAudio: IconDesignerBluetoothTargetModel.isAudioTarget(deviceTarget,
+                devices: statusStore.bluetoothDevices.availability == .available ? statusStore.bluetoothDevices.devices : []))
+    }
+
+    private func behaviorEditor(target: IconDesignerBehaviorTarget) -> some View {
+        IconBehaviorEditor(store: store, slot: selectedSlot.wrappedValue,
+            bluetoothDevices: statusStore.bluetoothDevices.devices,
+            bluetoothAvailability: statusStore.bluetoothDevices.availability,
+            bluetoothDeviceOrder: store.bluetoothDeviceOrder, behaviorTarget: target)
     }
 
     private var inspectorActions: some View {
@@ -131,7 +192,7 @@ struct IconDesignerView: View {
             customAirPodsSample: customAirPodsSample,
             previewSession: previewSession,
             largeIconPointSize: largePreviewWidth.map { IconDesignerLayout.largePreviewPointSize(for: $0) } ?? iconPointSize,
-            showsResolutionExplanation: true,
+            showsResolutionExplanation: isLargePreview(content),
             selectedSlot: selectedSlot.wrappedValue,
             onSelectSlot: { previewSession.selectedSlot = $0 },
             content: content
@@ -218,12 +279,7 @@ struct IconDesignerView: View {
     private func sectionContent(for section: IconDesignerSection) -> some View {
         switch section {
         case .slot:
-            SettingsGroup(localization.string(.iconDesignerTitle)) {
-                IconSlotPicker(selection: selectedSlot, configuration: store.iconConfiguration)
-                    .padding(.horizontal, SettingsMetrics.rowPaddingH)
-                    .padding(.vertical, 8)
-            }
-            .accessibilityIdentifier("iconDesigner.slotCard")
+            EmptyView()
         case .source:
             IconSourceEditor(
                 store: store,
@@ -233,13 +289,7 @@ struct IconDesignerView: View {
                 statusStore: statusStore
             )
         case .behavior:
-            IconBehaviorEditor(
-                store: store,
-                slot: selectedSlot.wrappedValue,
-                bluetoothDevices: statusStore.bluetoothDevices.devices,
-                bluetoothAvailability: statusStore.bluetoothDevices.availability,
-                bluetoothDeviceOrder: store.bluetoothDeviceOrder
-            )
+            behaviorEditor(target: .primary)
         case .appearance:
             IconAppearanceEditor(
                 store: store,

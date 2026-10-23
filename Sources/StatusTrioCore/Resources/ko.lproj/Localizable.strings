@@ -609,12 +609,16 @@
 
 "iconPreviewData.simulatedNotice" = "아래 샘플 값은 이 미리보기에만 적용되며 실시간 데이터로 돌아가도 유지됩니다.";
 "iconPreviewData.liveNotice" = "실시간 상태는 읽기 전용입니다. 샘플을 편집하려면 시뮬레이션으로 전환하세요.";
+
+"iconPreviewData.applyToRealIcons" = "실제 메뉴 막대와 Dock에 적용";
+"iconPreviewData.applyToRealIconsNotice" = "시뮬레이션 데이터가 실제 메뉴 막대와 Dock을 표시하고 있습니다. 이 옵션을 끄거나 실시간 모드로 돌아가면 실제 상태로 복원됩니다.";
 "iconPreviewData.title" = "미리보기 데이터";
 "iconPreviewData.modeSelector" = "미리보기 모드";
 "iconPreviewData.mode.liveShort" = "실시간 데이터";
 "iconPreviewData.mode.simulatedShort" = "시뮬레이션";
 "iconPreviewData.quickFill" = "빠른 입력";
 "iconPreviewData.network.connectionState" = "연결 상태";
+"iconPreviewData.network.signalStrength" = "Wi-Fi 신호 강도";
 "iconPreviewData.systemVolume.source" = "시스템 음량";
 "iconPreviewData.live.notMuted" = "음소거 해제";
 "iconPreviewData.battery.notCharging" = "충전 중 아님";
@@ -667,3 +671,22 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "기존 중앙 표시에서 연결된 Wi-Fi의 신호가 0칸일 때 적용됩니다.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "기존 중앙 표시의 Bluetooth 아이콘에 적용됩니다.";
 "icon.designer.airPods.showTopSymbol" = "상단에 AirPods 아이콘 표시";
+
+/* Icon content editor */
+"iconDesigner.editor.editingElementFormat" = "%@ 편집";
+"iconDesigner.editor.contentTitle" = "콘텐츠";
+"iconDesigner.editor.unavailableTitle" = "사용할 수 없을 때";
+"iconDesigner.editor.currentDisplayFormat" = "현재 표시: %@";
+"iconDesigner.editor.fallbackSummaryFormat" = "%@ 표시";
+"iconDesigner.editor.editingFallbackFormat" = "대체 콘텐츠 편집: %@";
+"iconDesigner.editor.displayTitle" = "표시 방식";
+"iconDesigner.editor.alertsTitle" = "알림 및 전환";
+"iconDesigner.editor.hiddenExplanation" = "이 요소는 숨겨져 있습니다.";
+"iconDesigner.editor.restoreElementFormat" = "%@ 재설정…";
+"iconDesigner.editor.batterySummary" = "Mac 배터리 상태를 표시합니다.";
+"iconDesigner.editor.airPodsSummary" = "선택한 AirPods의 배터리 잔량을 표시합니다.";
+"iconDesigner.editor.networkSummary" = "현재 네트워크 연결 상태를 표시합니다.";
+"iconDesigner.editor.inputSourceSummary" = "현재 입력 소스의 아이콘 또는 짧은 레이블을 표시합니다.";
+"iconDesigner.editor.bluetoothSummary" = "현재 오디오 출력 또는 지정한 Bluetooth 기기를 표시합니다.";
+"iconDesigner.editor.volumeSummary" = "시스템 출력 음량을 표시합니다.";
+"iconDesigner.editor.hideElement" = "이 요소 숨기기";

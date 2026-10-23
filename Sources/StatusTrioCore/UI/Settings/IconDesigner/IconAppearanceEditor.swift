@@ -152,7 +152,7 @@ struct IconAppearanceEditor: View {
     }
 
     private var showsScaleControl: Bool {
-        slot != .center || store.iconConfiguration.composition.center.primary != .none
+        slot != .center || !centerColorRoleOptions.isEmpty
     }
 
     private var scaleControl: some View {
@@ -185,6 +185,7 @@ struct IconAppearanceEditor: View {
                 if editing { editorModel.beginCoalescingGroup(group) }
                 else { editorModel.endCoalescingGroup(group) }
             })
+                .frame(width: 44, height: 24)
                 .accessibilityLabel(colorPickerLabel)
                 .accessibilityIdentifier("iconDesigner.appearance.colorPicker")
         }

@@ -609,12 +609,16 @@
 
 "iconPreviewData.simulatedNotice" = "下のサンプル値はこのプレビューのみに反映されます。ライブデータに戻しても保持されます。";
 "iconPreviewData.liveNotice" = "ライブ状態は読み取り専用です。サンプルを編集するには「シミュレーション」に切り替えてください。";
+
+"iconPreviewData.applyToRealIcons" = "実際のメニューバーとDockに適用";
+"iconPreviewData.applyToRealIconsNotice" = "シミュレーションデータが実際のメニューバーとDockを表示しています。このオプションをオフにするかライブに戻すと、実際の状態に復元されます。";
 "iconPreviewData.title" = "プレビューデータ";
 "iconPreviewData.modeSelector" = "プレビューモード";
 "iconPreviewData.mode.liveShort" = "ライブデータ";
 "iconPreviewData.mode.simulatedShort" = "シミュレーション";
 "iconPreviewData.quickFill" = "クイック入力";
 "iconPreviewData.network.connectionState" = "接続状態";
+"iconPreviewData.network.signalStrength" = "Wi-Fi の信号強度";
 "iconPreviewData.systemVolume.source" = "システム音量";
 "iconPreviewData.live.notMuted" = "ミュート解除";
 "iconPreviewData.battery.notCharging" = "充電していません";
@@ -667,3 +671,22 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "従来の中央表示で、接続中 Wi-Fi の信号が 0 本の場合に適用します。";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "従来の中央表示の Bluetooth アイコンに適用します。";
 "icon.designer.airPods.showTopSymbol" = "上部にAirPodsアイコンを表示";
+
+/* Icon content editor */
+"iconDesigner.editor.editingElementFormat" = "%@を編集";
+"iconDesigner.editor.contentTitle" = "内容";
+"iconDesigner.editor.unavailableTitle" = "利用できない場合";
+"iconDesigner.editor.currentDisplayFormat" = "現在の表示：%@";
+"iconDesigner.editor.fallbackSummaryFormat" = "%@を表示";
+"iconDesigner.editor.editingFallbackFormat" = "代替内容を編集：%@";
+"iconDesigner.editor.displayTitle" = "表示方法";
+"iconDesigner.editor.alertsTitle" = "通知と切り替え";
+"iconDesigner.editor.hiddenExplanation" = "この要素は非表示です。";
+"iconDesigner.editor.restoreElementFormat" = "%@をリセット…";
+"iconDesigner.editor.batterySummary" = "Mac のバッテリー状態を表示します。";
+"iconDesigner.editor.airPodsSummary" = "選択した AirPods のバッテリー残量を表示します。";
+"iconDesigner.editor.networkSummary" = "現在のネットワーク接続状態を表示します。";
+"iconDesigner.editor.inputSourceSummary" = "現在の入力ソースのアイコンまたは短いラベルを表示します。";
+"iconDesigner.editor.bluetoothSummary" = "現在のオーディオ出力または指定した Bluetooth デバイスを表示します。";
+"iconDesigner.editor.volumeSummary" = "システムの出力音量を表示します。";
+"iconDesigner.editor.hideElement" = "この要素を非表示";

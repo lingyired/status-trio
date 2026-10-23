@@ -38,7 +38,8 @@ func chooseSource<Source: Codable & Hashable & Sendable>(
 }
 
 enum IconCompositionResolver {
-    static func resolve(inputs: IconResolutionInputs, configuration rawConfiguration: IconConfigurationV1, now: Date = .now) -> IconResolutionOutput {
+    static func resolve(inputs: IconResolutionInputs, configuration rawConfiguration: IconConfigurationV1, now: Date = .now,
+                        registry: IconContentPluginRegistry = BuiltinIconPlugins.makeRegistry()) -> IconResolutionOutput {
         let configuration = rawConfiguration.normalized()
         let baseLegacy = configuration.compositionLegacyPresentationConfiguration
         let appliedLegacy = inputs.system.runtimeOptions?.applying(to: baseLegacy) ?? baseLegacy
@@ -52,16 +53,20 @@ enum IconCompositionResolver {
         let ring = OuterRingResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy,
                                              behavior: configuration.behaviors.airPodsRing,
                                              showsAirPodsTopSymbol: configuration.behaviors.showsAirPodsTopSymbol,
-                                             now: now)
-        let center = CenterResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy)
-        let footer = FooterResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy)
+                                             now: now, registry: registry)
+        let center = CenterResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy, now: now, registry: registry)
+        let footer = FooterResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy, now: now, registry: registry)
         return IconResolutionOutput(
             scene: IconPaletteResolver.apply(
                 IconSceneState(outerRing: ring.state, center: center.state, footer: footer.state),
                 appearance: configuration.appearance,
                 centerSource: center.source
             ),
-            trace: IconResolutionTrace(outerRing: ring.trace, center: center.trace, footer: footer.trace)
+            trace: IconResolutionTrace(
+                outerRing: ring.trace,
+                center: center.trace,
+                footer: footer.trace
+            )
         )
     }
 

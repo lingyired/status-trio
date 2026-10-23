@@ -6,6 +6,38 @@ import Testing
 struct IconPreviewInputBuilderTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
+    @Test func wifiSignalSampleDrivesTheResolvedSignalBars() throws {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.center = SlotSelection(primary: .network)
+        for (rssi, expectedFill) in [(-100, 0.0), (-88, 0.33), (-70, 0.66), (-48, 1.0)] {
+            var samples = IconPreviewSampleValues()
+            samples.network.rssi = rssi
+            let inputs = IconPreviewInputBuilder.simulated(
+                samples: samples, configuration: configuration, target: .currentAudioOutput, now: now
+            )
+            let output = IconCompositionResolver.resolve(inputs: inputs, configuration: configuration, now: now)
+            #expect(inputs.system.snapshot.wifi.rssi == rssi)
+            let center = try #require(output.scene.center)
+            guard case let .symbol(symbol) = center else {
+                Issue.record("Wi-Fi must resolve to a signal symbol")
+                return
+            }
+            #expect(symbol.source == .symbol(name: "wifi", variableValue: expectedFill, fallback: nil))
+        }
+    }
+
+    @Test func wiredAndDisabledWiFiNeverExposeTheRetainedSignalSample() {
+        var samples = IconPreviewSampleValues()
+        samples.network.rssi = -80
+        for kind in [IconPreviewNetworkKind.off, .ethernet] {
+            samples.network.kind = kind
+            let inputs = IconPreviewInputBuilder.simulated(
+                samples: samples, configuration: .classic, target: .currentAudioOutput, now: now
+            )
+            #expect(inputs.system.snapshot.wifi.rssi == nil)
+        }
+    }
+
     @Test func testSameMacSampleDrivesRingAndCenterPercentage() throws {
         var samples = IconPreviewSampleValues()
         samples.macBattery.percentage = 42

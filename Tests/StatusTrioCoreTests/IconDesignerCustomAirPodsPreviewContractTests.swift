@@ -21,7 +21,8 @@ final class IconDesignerCustomAirPodsPreviewContractTests: XCTestCase {
         XCTAssertTrue(cardSource.contains("customAirPodsSample: customAirPodsSample"))
         XCTAssertTrue(cardSource.contains("if scenario == .airPodsCustom"))
         XCTAssertTrue(cardSource.contains("return designerResolution"))
-        XCTAssertTrue(cardSource.contains("for: designerResolution.trace"))
+        XCTAssertTrue(cardSource.contains("let resolution = designerResolution"))
+        XCTAssertTrue(cardSource.contains("entries(for: resolution.trace"))
     }
 
     func testDesignerSelectionPulseStaysPreviewOnlyAndExplicitGuideHighlightRemains() throws {

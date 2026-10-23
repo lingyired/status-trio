@@ -9,7 +9,7 @@ struct IconPresetPicker: View {
 
     var body: some View {
         HStack {
-            Button(localization.string(.iconDesignerControlRestoreSlot)) { confirmation = .slot }
+            Button(localization.format(.iconDesignerRestoreElementFormat, localization.string(slot.localizationKey))) { confirmation = .slot }
             Spacer()
             if slot == .outerRing {
                 Button(localization.string(.iconDesignerAirPodsFocusPreset)) { confirmation = .airPodsFocus }

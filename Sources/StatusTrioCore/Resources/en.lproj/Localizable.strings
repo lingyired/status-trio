@@ -609,12 +609,16 @@
 
 "iconPreviewData.simulatedNotice" = "Edit sample values below; they affect this preview only and stay available when you switch back.";
 "iconPreviewData.liveNotice" = "Live status is read-only. Switch to Simulated to edit samples.";
+
+"iconPreviewData.applyToRealIcons" = "Apply to the real Menu Bar and Dock";
+"iconPreviewData.applyToRealIconsNotice" = "Simulated data is now controlling the real Menu Bar and Dock. Turn this off or leave Simulated mode to restore live status.";
 "iconPreviewData.title" = "Preview Data";
 "iconPreviewData.modeSelector" = "Preview mode";
 "iconPreviewData.mode.liveShort" = "Live";
 "iconPreviewData.mode.simulatedShort" = "Simulated";
 "iconPreviewData.quickFill" = "Quick fill";
 "iconPreviewData.network.connectionState" = "Connection state";
+"iconPreviewData.network.signalStrength" = "Wi-Fi signal strength";
 "iconPreviewData.systemVolume.source" = "System volume";
 "iconPreviewData.live.notMuted" = "Not muted";
 "iconPreviewData.battery.notCharging" = "Not charging";
@@ -667,3 +671,22 @@
 "iconDesigner.centerColorHelp.legacyWiFiZeroBars" = "For connected Wi-Fi with no signal bars in the legacy center.";
 "iconDesigner.centerColorHelp.legacyBluetoothGlyph" = "For the Bluetooth icon in the legacy center.";
 "icon.designer.airPods.showTopSymbol" = "Show AirPods icon at the top";
+
+/* Icon content editor */
+"iconDesigner.editor.editingElementFormat" = "Edit %@";
+"iconDesigner.editor.contentTitle" = "Content";
+"iconDesigner.editor.unavailableTitle" = "When unavailable";
+"iconDesigner.editor.currentDisplayFormat" = "Currently showing: %@";
+"iconDesigner.editor.fallbackSummaryFormat" = "Show %@";
+"iconDesigner.editor.editingFallbackFormat" = "Editing fallback: %@";
+"iconDesigner.editor.displayTitle" = "Display options";
+"iconDesigner.editor.alertsTitle" = "Alerts and switching";
+"iconDesigner.editor.hiddenExplanation" = "This element is hidden.";
+"iconDesigner.editor.restoreElementFormat" = "Reset %@…";
+"iconDesigner.editor.batterySummary" = "Show the Mac battery state.";
+"iconDesigner.editor.airPodsSummary" = "Show battery levels for the selected AirPods.";
+"iconDesigner.editor.networkSummary" = "Show the current network connection state.";
+"iconDesigner.editor.inputSourceSummary" = "Show the current input source icon or short label.";
+"iconDesigner.editor.bluetoothSummary" = "Show the current audio output or a selected Bluetooth device.";
+"iconDesigner.editor.volumeSummary" = "Show system output volume.";
+"iconDesigner.editor.hideElement" = "Hide this element";

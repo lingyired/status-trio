@@ -9,9 +9,12 @@ enum IconDesignerCenterChoice: CaseIterable, Equatable, Sendable {
 }
 
 enum IconDesignerSourceSelection {
-    static let centerChoices: [IconDesignerCenterChoice] = [
-        .inputSource, .network, .bluetoothDevice, .macBatteryPercentage, .none
-    ]
+    static var centerChoices: [IconDesignerCenterChoice] {
+        IconDesignerEditingModel.selectableSources(for: .center).compactMap { source in
+            guard case let .center(value) = source else { return nil }
+            return choice(for: value)
+        }
+    }
 
     static func choice(for source: CenterSource) -> IconDesignerCenterChoice? {
         switch source {
@@ -48,19 +51,10 @@ enum IconDesignerSourceSelection {
     /// right name on the other. `nil` means the id is not a known source; the
     /// callers render that as None.
     static func localizationKey(forRawSourceID sourceID: String) -> LocalizationKey? {
-        switch sourceID {
-        case "automaticLegacy": .iconDesignerSourceLegacy
-        case "systemBattery": .iconDesignerSourceSystemBattery
-        case "airPodsBattery": .iconDesignerSourceAirPodsBattery
-        case "network": .iconDesignerSourceNetwork
-        case "inputSource": .iconDesignerSourceInputSource
-        case "bluetoothAudioOutput": .iconDesignerSourceBluetoothAudio
-        case "pinnedBluetoothGlyph": .iconDesignerSourcePinnedBluetooth
-        case "connectedBluetoothDevice": .iconDesignerSourceConnectedBluetooth
-        case "systemBatteryPercentage": .iconDesignerSourceBatteryPercentage
-        case "systemVolume": .iconDesignerSourceSystemVolume
-        case "none": .iconDesignerSourceNone
-        default: nil
-        }
+        if sourceID == "none" { return .iconDesignerSourceNone }
+        let binding = RingSource(rawValue: sourceID).flatMap { IconContentLegacyAdapter.binding(for: $0) }
+            ?? CenterSource(rawValue: sourceID).flatMap { IconContentLegacyAdapter.binding(for: $0) }
+            ?? FooterSource(rawValue: sourceID).flatMap { IconContentLegacyAdapter.binding(for: $0) }
+        return binding.flatMap { BuiltinIconPlugins.makeRegistry().presentation(for: $0)?.title }
     }
 }

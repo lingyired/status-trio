@@ -86,7 +86,7 @@ final class IconDesignerLayoutTests: XCTestCase {
         XCTAssertTrue(preview.contains("previewState.playback.phase(at: timeline.date)"))
     }
 
-    func testFallbackSourceIsAlwaysVisibleAndDoesNotMutateConfigurationOnHost() throws {
+    func testCollapsedFallbackPreservesConfigurationAndExpandsOnlyInSession() throws {
         let session = IconDesignerPreviewSession()
         session.selectedSlot = .center
         let hosted = makeHostedDesigner(width: 900, height: 680, previewSession: session) { store in
@@ -96,24 +96,14 @@ final class IconDesignerLayoutTests: XCTestCase {
         }
         defer { hosted.defaults.removeTestSuite(named: hosted.suiteName) }
         let before = hosted.initialConfiguration
-        let source = try String(contentsOf: URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings/IconDesigner/IconSourceEditor.swift"),
-            encoding: .utf8)
-        XCTAssertFalse(source.contains("isFallbackExpanded"))
-        XCTAssertFalse(source.contains("DisclosureGroup"))
-        XCTAssertFalse(source.contains("iconDesigner.source.fallbackDisclosure"))
-        XCTAssertTrue(source.contains("iconDesigner.source.fallbackPicker"))
-        XCTAssertTrue(source.contains("swapPrimaryAndFallback(for: slot"))
+        XCTAssertFalse(session.expandedFallbackSlots.contains(.center))
+        XCTAssertEqual(before.composition.center.fallback, .bluetoothAudioOutput)
+        XCTAssertEqual(hosted.store.iconConfiguration, before)
+        session.expandedFallbackSlots.insert(.center)
+        hosted.view.layoutSubtreeIfNeeded()
+        XCTAssertTrue(session.expandedFallbackSlots.contains(.center))
         XCTAssertEqual(hosted.store.iconConfiguration, before,
-                       "Hosting the always-visible fallback picker must preserve its configured value.")
-        XCTAssertEqual(before.composition.center.fallback, .bluetoothAudioOutput,
-                       "The host fixture must retain its preconfigured fallback.")
-        XCTAssertEqual(
-            source.components(separatedBy: ".iconDesignerFallbackSource").count - 1,
-            2,
-            "Use the localized fallback label for the row and picker accessibility name without a duplicate disclosure heading."
-        )
+                       "Expanding backup settings must not rewrite the configured content.")
         XCTAssertEqual(hosted.view.frame.size, NSSize(width: 900, height: 680))
     }
 
@@ -366,6 +356,14 @@ final class IconDesignerLayoutTests: XCTestCase {
                       "Unavailable AirPods ears must retain, but not edit, their sample battery values.")
         XCTAssertTrue(panel.contains(".disabled(!session.samples.systemVolume.isAvailable)"),
                       "Unavailable volume data must disable its sample controls.")
+        XCTAssertTrue(panel.contains("Toggle(localization.string(.iconPreviewDataApplyToRealIcons)"),
+                      "The data panel must opt in explicitly before simulated data reaches real icons.")
+        XCTAssertTrue(panel.contains(".disabled(!session.canApplyToRealIcons)"),
+                      "Real-icon application must remain unavailable until Simulated mode is selected.")
+        XCTAssertTrue(panel.contains("session.setAppliesToRealIcons"),
+                      "The real-icon opt-in must go through the preview session.")
+        XCTAssertTrue(panel.contains("iconPreviewData.applyToRealIconsNotice"),
+                      "Active real-icon simulation must be visibly disclosed.")
         XCTAssertTrue(panel.contains("bluetoothAvailability: statusStore.bluetoothDevices.availability"),
                       "Live Bluetooth status must honor current permission and availability.")
         XCTAssertTrue(panel.contains("IconPreviewDataLiveStatus.airPodsBattery(from: live)"),

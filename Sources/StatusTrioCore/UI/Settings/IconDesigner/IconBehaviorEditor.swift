@@ -6,24 +6,12 @@ struct IconBehaviorEditor: View {
     var bluetoothDevices: [BluetoothDevice] = []
     var bluetoothAvailability: BluetoothAvailability = .available
     var bluetoothDeviceOrder: [String] = []
-    @State private var behaviorTarget: IconDesignerBehaviorTarget = .primary
+    var behaviorTarget: IconDesignerBehaviorTarget = .primary
     @EnvironmentObject private var localization: Localization
     @EnvironmentObject private var editorModel: IconDesignerEditorModel
 
     var body: some View {
-        SettingsGroup(localization.string(.iconDesignerBehaviorTitle)) {
-            if IconDesignerEditingModel.behaviorTargets(for: slot, in: store.iconConfiguration).count > 1 {
-                IconDesignerControlRow(localization.string(.iconDesignerBehaviorTitle), showsDivider: false) {
-                    Picker("", selection: behaviorTargetBinding) {
-                        Text(localization.string(.iconDesignerPrimary)).tag(IconDesignerBehaviorTarget.primary)
-                        Text(localization.string(.iconDesignerFallback)).tag(IconDesignerBehaviorTarget.fallback)
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .accessibilityLabel(localization.string(.iconDesignerBehaviorTitle))
-                    .accessibilityIdentifier("iconDesigner.behaviorTarget")
-                }
-            }
+        SettingsGroup(localization.string(.iconDesignerDisplayTitle)) {
             switch slot {
             case .outerRing:
                 batteryBehavior
@@ -45,29 +33,10 @@ struct IconBehaviorEditor: View {
             }
         }
         .accessibilityIdentifier("iconDesigner.behaviorCard")
-        .onChange(of: store.iconConfiguration) { configuration in
-            behaviorTarget = IconDesignerEditingModel.validatedBehaviorTarget(
-                behaviorTarget, slot: slot, in: configuration
-            )
-        }
     }
 
-    /// Resolve the stored picker state against the live composition at read time.
-    /// This prevents a hidden fallback selection from editing primary behavior
-    /// in the render before SwiftUI delivers the configuration onChange.
     private var effectiveBehaviorTarget: IconDesignerBehaviorTarget {
-        IconDesignerEditingModel.effectiveBehaviorTarget(
-            behaviorTarget, slot: slot, in: store.iconConfiguration
-        )
-    }
-
-    private var behaviorTargetBinding: Binding<IconDesignerBehaviorTarget> {
-        Binding(
-            get: { effectiveBehaviorTarget },
-            set: { behaviorTarget = IconDesignerEditingModel.validatedBehaviorTarget(
-                $0, slot: slot, in: store.iconConfiguration
-            ) }
-        )
+        IconDesignerInspectorModel.effectiveTarget(behaviorTarget, slot: slot, configuration: store.iconConfiguration)
     }
 
     private var batteryBehavior: some View {
@@ -144,7 +113,6 @@ struct IconBehaviorEditor: View {
 
     private var centerBehavior: some View {
         Group {
-            globalNetworkOverrideControl
             switch IconDesignerEditingModel.source(for: effectiveBehaviorTarget, slot: .center, in: store.iconConfiguration) {
             case .center(.automaticLegacy):
                 networkBehavior(includeLegacyPercentage: true)
@@ -170,32 +138,6 @@ struct IconBehaviorEditor: View {
             case .center(.none), .none, .some(.ring), .some(.footer):
                 SettingsHintRow(text: localization.string(.iconDesignerControlNoEditableBehavior))
             }
-        }
-    }
-
-    /// The global network-failure rule. It is deliberately outside the
-    /// per-source switch above so it stays visible and editable for every centre
-    /// source (input method, battery percentage, Bluetooth, network, legacy and
-    /// none), and its value does not change when the primary/fallback tab flips.
-    private var globalNetworkOverrideControl: some View {
-        IconDesignerControlRow(
-            localization.string(.iconDesignerControlNetworkProblemsOverride),
-            subtitle: localization.string(.iconDesignerControlNetworkProblemsOverrideHelp),
-            identifier: "iconDesigner.centerNetworkOverride"
-        ) {
-            Toggle("", isOn: Binding(
-                get: { store.iconConfiguration.composition.centerOverride.networkProblemOverridesPrimary },
-                set: { value in
-                    editorModel.updateIconConfiguration {
-                        $0.composition.centerOverride.networkProblemOverridesPrimary = value
-                    }
-                }
-            ))
-            .labelsHidden()
-            .toggleStyle(.switch)
-            .controlSize(.small)
-            .accessibilityLabel(localization.string(.iconDesignerControlNetworkProblemsOverride))
-            .accessibilityIdentifier("iconDesigner.centerNetworkOverride.toggle")
         }
     }
 

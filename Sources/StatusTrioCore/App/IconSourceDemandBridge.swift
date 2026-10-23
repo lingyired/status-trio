@@ -53,14 +53,11 @@ struct IconSourceDemandBridge {
 
 enum IconSourceDemandPolicy {
     static func requiresAirPodsBattery(in configuration: IconConfigurationV1) -> Bool {
-        let ring = configuration.composition.outerRing
-        return ring.primary == .airPodsBattery || ring.fallback == .airPodsBattery
+        IconContentDependencyResolver.dependencies(configuration: configuration, targetIsAudio: false).requiresAirPodsBattery
     }
 
     static func requiresBluetoothMonitor(in configuration: IconConfigurationV1) -> Bool {
-        requiresAirPodsBattery(in: configuration)
-            || configuration.composition.center.primary == .connectedBluetoothDevice
-            || configuration.composition.center.fallback == .connectedBluetoothDevice
+        IconContentDependencyResolver.dependencies(configuration: configuration, targetIsAudio: false).requiresBluetoothMonitor
     }
 
     static func shouldReadAirPodsBattery(
