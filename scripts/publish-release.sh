@@ -137,8 +137,11 @@ ACTUAL_CHECKSUM_LINE="$(<"$PACKAGE_DIR/$DMG_FILENAME.sha256")"
     die "DMG checksum file does not match the manifest and artifact."
 
 if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-    [[ "${GITHUB_SHA:-}" == "$SOURCE_SHA" ]] ||
-        die "workflow SHA ${GITHUB_SHA:-<unset>} differs from manifest source_sha $SOURCE_SHA."
+    CI_CANDIDATE_SHA="${CANDIDATE_SHA:-}"
+    [[ "$CI_CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]] ||
+        die "CANDIDATE_SHA must be a lowercase 40-character commit SHA in CI."
+    [[ "$CI_CANDIDATE_SHA" == "$SOURCE_SHA" ]] ||
+        die "candidate SHA $CI_CANDIDATE_SHA differs from manifest source_sha $SOURCE_SHA."
 fi
 
 if [[ -n "${GH_TOKEN:-}" ]]; then
@@ -218,19 +221,119 @@ if [[ -n "$TAG_OBJECT_SHA" ]]; then
     esac
 fi
 
-RELEASE_JSON="$(api_get_or_empty "repos/$RELEASE_REPO/releases/tags/$TAG")"
-RELEASE_EXISTS=false
-RELEASE_DRAFT=""
-if [[ -n "$RELEASE_JSON" ]]; then
+api_get_required() {
+    local endpoint="$1"
+    shift
+    local body output status
+    set +e
+    output="$(gh api "$endpoint" "$@" 2>&1)"
+    status=$?
+    set -e
+    if [[ "$status" -ne 0 ]]; then
+        die "GitHub API read failed for $endpoint (exit $status): $output"
+    fi
+    body="$output"
+    [[ -n "$body" ]] || die "GitHub returned an empty API response for $endpoint."
+    printf '%s' "$body"
+}
+
+set_release_state_from_json() {
+    local release_json="$1"
+    local release_tag
+    RELEASE_JSON="$release_json"
     RELEASE_EXISTS=true
+    RELEASE_ID="$(
+        printf '%s' "$RELEASE_JSON" |
+            ruby -rjson -e 'print JSON.parse(STDIN.read).fetch("id")'
+    )"
     RELEASE_DRAFT="$(
         printf '%s' "$RELEASE_JSON" |
             ruby -rjson -e 'print JSON.parse(STDIN.read).fetch("draft")'
     )"
+    release_tag="$(
+        printf '%s' "$RELEASE_JSON" |
+            ruby -rjson -e 'print JSON.parse(STDIN.read).fetch("tag_name")'
+    )"
+    [[ "$RELEASE_ID" =~ ^[1-9][0-9]*$ ]] ||
+        die "Release $TAG has an invalid id '$RELEASE_ID'."
+    [[ "$release_tag" == "$TAG" ]] ||
+        die "Release id $RELEASE_ID has tag '$release_tag', not '$TAG'."
     [[ "$RELEASE_DRAFT" == "true" || "$RELEASE_DRAFT" == "false" ]] ||
         die "Release $TAG has an invalid draft state '$RELEASE_DRAFT'."
-    [[ -n "$TAG_OBJECT_SHA" ]] ||
-        die "Release $TAG exists but its Tag is missing."
+}
+
+resolve_release_candidate_from_list() {
+    local release_list="$1"
+    local output status
+    set +e
+    output="$(
+        printf '%s' "$release_list" |
+            ruby -rjson -e '
+                tag = ARGV[0]
+                pages = JSON.parse(STDIN.read)
+                pages = [pages] unless pages.is_a?(Array)
+                releases = pages.flat_map do |page|
+                  page.is_a?(Array) ? page : [page]
+                end
+                matches = releases.select do |release|
+                  release.is_a?(Hash) && release["tag_name"] == tag
+                end
+                if matches.length > 1
+                  abort(
+                    "Release list has #{matches.length} entries for #{tag}; " \
+                    "refusing to choose one."
+                  )
+                end
+                print(JSON.generate(matches.first)) unless matches.empty?
+            ' "$TAG"
+    )"
+    status=$?
+    set -e
+    [[ "$status" -eq 0 ]] || die "$output"
+    RELEASE_LIST_CANDIDATE="$output"
+}
+
+discover_release_by_exact_tag() {
+    local release_list expected_id
+    release_list="$(
+        api_get_required "repos/$RELEASE_REPO/releases?per_page=100" \
+            --paginate \
+            --slurp
+    )"
+    resolve_release_candidate_from_list "$release_list"
+    [[ -n "$RELEASE_LIST_CANDIDATE" ]] || return 1
+    expected_id="$(
+        printf '%s' "$RELEASE_LIST_CANDIDATE" |
+            ruby -rjson -e 'print JSON.parse(STDIN.read).fetch("id")'
+    )"
+    [[ "$expected_id" =~ ^[1-9][0-9]*$ ]] ||
+        die "Release list entry for $TAG has an invalid id '$expected_id'."
+    RELEASE_JSON="$(api_get_required "repos/$RELEASE_REPO/releases/$expected_id")"
+    set_release_state_from_json "$RELEASE_JSON"
+    [[ "$RELEASE_ID" == "$expected_id" ]] ||
+        die "Release list id $expected_id changed to $RELEASE_ID during lookup."
+}
+
+RELEASE_JSON="$(api_get_or_empty "repos/$RELEASE_REPO/releases/tags/$TAG")"
+RELEASE_EXISTS=false
+RELEASE_DRAFT=""
+RELEASE_ID=""
+RELEASE_LIST_CANDIDATE=""
+if [[ -n "$RELEASE_JSON" ]]; then
+    set_release_state_from_json "$RELEASE_JSON"
+else
+    # GitHub's by-tag endpoint only resolves published Releases. A 404 can
+    # therefore mean "draft exists"; inspect the authenticated list before
+    # deciding to create anything.
+    if ! discover_release_by_exact_tag; then
+        RELEASE_JSON=""
+        RELEASE_EXISTS=false
+        RELEASE_DRAFT=""
+        RELEASE_ID=""
+    fi
+fi
+if [[ "$RELEASE_EXISTS" == "true" && -z "$TAG_OBJECT_SHA" ]]; then
+    die "Release $TAG exists but its Tag is missing."
 fi
 
 APPCAST_API_PATH="repos/$RELEASE_REPO/contents/$APPCAST_FILE"
@@ -260,8 +363,10 @@ MANIFEST_ASSET_SHA256="$(file_sha256 "$PACKAGE_DIR/$MANIFEST_ASSET_FILENAME")"
 MANIFEST_ASSET_LENGTH="$(stat -f '%z' "$PACKAGE_DIR/$MANIFEST_ASSET_FILENAME")"
 
 refresh_release_json() {
-    RELEASE_JSON="$(gh api "repos/$RELEASE_REPO/releases/tags/$TAG")"
-    [[ -n "$RELEASE_JSON" ]] || die "GitHub returned an empty Release response for $TAG."
+    [[ -n "$RELEASE_ID" ]] ||
+        die "Cannot refresh Release $TAG without its stable id."
+    RELEASE_JSON="$(api_get_required "repos/$RELEASE_REPO/releases/$RELEASE_ID")"
+    set_release_state_from_json "$RELEASE_JSON"
 }
 
 verify_release_assets() {
@@ -350,9 +455,14 @@ ensure_draft_release() {
             --draft \
             --verify-tag \
             --title "$(manifest_value app_name) v$VERSION" \
-            --notes-file "$PACKAGE_DIR/$RELEASE_BODY_FILE"
-        RELEASE_EXISTS=true
-        RELEASE_DRAFT=true
+            --notes-file "$PACKAGE_DIR/$RELEASE_BODY_FILE" >/dev/null
+        # gh release create has no JSON-output flag in the release CLI. Resolve
+        # the draft through the authenticated exact-tag listing, then use its
+        # stable database id for every subsequent read.
+        discover_release_by_exact_tag ||
+            die "Created draft Release $TAG but could not discover it in the release list."
+        [[ "$RELEASE_DRAFT" == "true" ]] ||
+            die "Release $TAG was not a draft after creation."
     fi
     gh release upload "$TAG" \
         "$PACKAGE_DIR/$DMG_FILENAME" \
@@ -416,6 +526,7 @@ fi
 if [[ "$RELEASE_EXISTS" == "true" && "$RELEASE_DRAFT" == "false" ]]; then
     # A retry may only verify the already-public release. It must never edit
     # public metadata or rewrite the feed.
+    refresh_release_json
     verify_release_assets
 else
     ensure_draft_release

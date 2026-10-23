@@ -113,6 +113,10 @@ record_write() {
     printf '%s\n' "$*" >> "$state/writes"
 }
 
+record_read() {
+    printf '%s\n' "$*" >> "$state/reads"
+}
+
 sha256() {
     shasum -a 256 "$1" | awk '{print $1}'
 }
@@ -131,16 +135,21 @@ asset_json() {
 
 release_json() {
     local draft="$1"
+    local id="123"
     local dmg="$package/StatusTrio-1.0.0.dmg"
     local checksum="$package/StatusTrio-1.0.0.dmg.sha256"
     local manifest="$package/release-manifest.json"
     local assets
+    if [[ -f "$state/release-id" ]]; then
+        id="$(<"$state/release-id")"
+    fi
     if [[ -f "$state/assets" ]]; then
         assets="[$(asset_json StatusTrio-1.0.0.dmg "$dmg"),$(asset_json StatusTrio-1.0.0.dmg.sha256 "$checksum"),$(asset_json release-manifest.json "$manifest")]"
     else
         assets="[]"
     fi
-    printf '{"draft":%s,"id":123,"assets":%s}\n' "$draft" "$assets"
+    printf '{"draft":%s,"id":%s,"tag_name":"v1.0.0","assets":%s}\n' \
+        "$draft" "$id" "$assets"
 }
 
 api_response() {
@@ -157,6 +166,8 @@ if [[ "$1" == "api" ]]; then
     method="GET"
     include=false
     input=false
+    paginate=false
+    slurp=false
     endpoint=""
     jq_filter=""
     accept=""
@@ -165,12 +176,15 @@ if [[ "$1" == "api" ]]; then
             --method) method="$2"; shift 2 ;;
             --include) include=true; shift ;;
             --input) input=true; shift ;;
+            --paginate) paginate=true; shift ;;
+            --slurp) slurp=true; shift ;;
             --jq) jq_filter="$2"; shift 2 ;;
             -H) accept="$2"; shift 2 ;;
             -f) shift 2 ;;
             *) [[ -n "$endpoint" ]] || endpoint="$1"; shift ;;
         esac
     done
+    record_read "$method $endpoint paginate=$paginate slurp=$slurp"
 
     if [[ -n "${FAKE_API_FAIL_ENDPOINT:-}" && "$endpoint" == "${FAKE_API_FAIL_ENDPOINT}" ]]; then
         if [[ "$include" == "true" ]]; then
@@ -227,7 +241,8 @@ if [[ "$1" == "api" ]]; then
             body="$(cat "$state/appcast-commit")"
             ;;
         GET:repos/example/status-trio/releases/tags/v1.0.0)
-            if [[ ! -f "$state/release" ]]; then
+            if [[ ! -f "$state/release" ]] ||
+                { [[ -f "$state/draft-by-tag-404" ]] && [[ "$(cat "$state/release-draft")" == "true" ]]; }; then
                 status="404"
                 body='{"message":"Not Found"}'
             else
@@ -242,6 +257,27 @@ if [[ "$1" == "api" ]]; then
                         body=""
                     fi
                 fi
+            fi
+            ;;
+        GET:repos/example/status-trio/releases?per_page=100)
+            if [[ "$paginate" != "true" || "$slurp" != "true" ]]; then
+                printf 'release listing must use --paginate --slurp\n' >&2
+                exit 89
+            fi
+            if [[ -f "$state/releases-pages.json" ]]; then
+                body="$(<"$state/releases-pages.json")"
+            elif [[ -f "$state/release" ]]; then
+                body="[[$(release_json "$(cat "$state/release-draft")")]]"
+            else
+                body='[[]]'
+            fi
+            ;;
+        GET:repos/example/status-trio/releases/[0-9]*)
+            if [[ ! -f "$state/release" ]]; then
+                status="404"
+                body='{"message":"Not Found"}'
+            else
+                body="$(release_json "$(cat "$state/release-draft")")"
             fi
             ;;
         *)
@@ -273,6 +309,7 @@ if [[ "$1" == "release" ]]; then
             record_write "release create $2"
             printf 'draft\n' > "$state/release"
             printf 'true\n' > "$state/release-draft"
+            printf '123\n' > "$state/release-id"
             ;;
         upload)
             record_write "release upload $2"
@@ -339,10 +376,14 @@ reset_state() {
 </rss>
 XML
     : > "$WORK/github/writes"
+    : > "$WORK/github/reads"
 }
 
-run_publish() {
+run_publish_with_env() {
     env -u GITHUB_ACTIONS \
+        -u GITHUB_SHA \
+        -u CANDIDATE_SHA \
+        "$@" \
         MANIFEST_PATH="$PACKAGE/release-manifest.json" \
         PACKAGE_DIR="$PACKAGE" \
         FAKE_PACKAGE_DIR="$PACKAGE" \
@@ -352,6 +393,75 @@ run_publish() {
         PATH="$WORK/bin:$PATH" \
         bash "$ROOT/scripts/publish-release.sh"
 }
+
+run_publish() {
+    run_publish_with_env
+}
+
+run_publish_ci() {
+    local candidate_sha="$1"
+    local workflow_sha="$2"
+    run_publish_with_env \
+        GITHUB_ACTIONS=true \
+        GITHUB_SHA="$workflow_sha" \
+        CANDIDATE_SHA="$candidate_sha"
+}
+
+run_publish_ci_without_candidate() {
+    run_publish_with_env \
+        GITHUB_ACTIONS=true \
+        GITHUB_SHA="$1"
+}
+
+MANIFEST_SHA="$(printf 'a%.0s' {1..40})"
+IGNORED_GITHUB_SHA="$(printf 'b%.0s' {1..40})"
+
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+if ! run_publish_ci "$MANIFEST_SHA" "$IGNORED_GITHUB_SHA" >"$WORK/ci-normal.log" 2>&1; then
+    cat "$WORK/ci-normal.log" >&2
+    fail "valid CI candidate with a different GITHUB_SHA did not publish"
+fi
+[[ "$(cat "$WORK/github/release-draft")" == "false" ]] ||
+    fail "valid CI candidate with a different GITHUB_SHA did not publish"
+
+APPCAST_BEFORE="$(sha256 "$WORK/github/appcast")"
+WRITES_BEFORE="$(<"$WORK/github/writes")"
+if ! run_publish_ci "$MANIFEST_SHA" "$IGNORED_GITHUB_SHA" >"$WORK/ci-public-retry.log" 2>&1; then
+    cat "$WORK/ci-public-retry.log" >&2
+    fail "valid CI public retry failed"
+fi
+[[ "$APPCAST_BEFORE" == "$(sha256 "$WORK/github/appcast")" ]] ||
+    fail "valid CI public retry rewrote the appcast"
+[[ "$WRITES_BEFORE" == "$(<"$WORK/github/writes")" ]] ||
+    fail "valid CI public retry mutated release metadata"
+
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+expect_failure "CI candidate SHA mismatch" \
+    run_publish_ci "$IGNORED_GITHUB_SHA" "$MANIFEST_SHA"
+assert_contains "$WORK/output.log" \
+    "candidate SHA $IGNORED_GITHUB_SHA differs from manifest source_sha $MANIFEST_SHA"
+[[ ! -s "$WORK/github/writes" ]] || fail "CI candidate SHA mismatch wrote to GitHub"
+
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+expect_failure "missing CI candidate SHA" run_publish_ci_without_candidate "$MANIFEST_SHA"
+assert_contains "$WORK/output.log" \
+    "CANDIDATE_SHA must be a lowercase 40-character commit SHA"
+[[ ! -s "$WORK/github/writes" ]] || fail "missing CI candidate SHA wrote to GitHub"
+
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+expect_failure "invalid CI candidate SHA" \
+    run_publish_ci "$(printf 'A%.0s' {1..40})" "$MANIFEST_SHA"
+assert_contains "$WORK/output.log" \
+    "CANDIDATE_SHA must be a lowercase 40-character commit SHA"
+[[ ! -s "$WORK/github/writes" ]] || fail "invalid CI candidate SHA wrote to GitHub"
 
 reset_state
 rm "$PACKAGE/release-manifest.json"
@@ -425,10 +535,14 @@ assert_contains "$WORK/output.log" "not the verified package"
 reset_state
 make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
     "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+touch "$WORK/github/draft-by-tag-404"
 run_publish
 [[ "$(cat "$WORK/github/release-draft")" == "false" ]] || fail "release was not published"
 grep -Fq 'fixture-signature' "$WORK/github/appcast" || fail "appcast omitted signature"
 grep -Fq 'StatusTrio-1.0.0.dmg' "$WORK/github/appcast" || fail "appcast omitted DMG URL"
+assert_contains "$WORK/github/reads" \
+    "GET repos/example/status-trio/releases?per_page=100 paginate=true slurp=true"
+assert_contains "$WORK/github/reads" "GET repos/example/status-trio/releases/123 paginate=false slurp=false"
 ruby -e '
   lines = File.readlines(ARGV[0], chomp: true)
   expected = [
@@ -451,6 +565,84 @@ APPCAST_AFTER="$(sha256 "$WORK/github/appcast")"
 FAKE_PUBLIC_DMG_MODE=invalid PUBLIC_VERIFY_ATTEMPTS=2 expect_failure \
     "public DMG mismatch" run_publish
 assert_contains "$WORK/output.log" "Public DMG or appcast did not match"
+
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+printf '{"object":{"sha":"%s","type":"commit"}}\n' \
+    "$(printf 'a%.0s' {1..40})" > "$WORK/github/tag"
+printf 'existing\n' > "$WORK/github/release"
+printf 'true\n' > "$WORK/github/release-draft"
+printf '421\n' > "$WORK/github/release-id"
+touch "$WORK/github/assets" "$WORK/github/draft-by-tag-404"
+cat > "$WORK/github/releases-pages.json" <<'JSON'
+[
+  [
+    {"id": 17, "tag_name": "v0.9.9", "draft": false, "assets": []}
+  ],
+  [
+    {"id": 421, "tag_name": "v1.0.0", "draft": true, "assets": []}
+  ]
+]
+JSON
+run_publish >"$WORK/paginated-draft.log" 2>&1
+[[ "$(cat "$WORK/github/release-draft")" == "false" ]] ||
+    fail "paginated draft discovery did not publish"
+assert_contains "$WORK/github/reads" \
+    "GET repos/example/status-trio/releases?per_page=100 paginate=true slurp=true"
+assert_contains "$WORK/github/reads" "GET repos/example/status-trio/releases/421 paginate=false slurp=false"
+[[ "$(grep -c '^release create ' "$WORK/github/writes")" -eq 0 ]] ||
+    fail "paginated draft recovery created a duplicate release"
+[[ "$(grep -c '^api POST git/refs' "$WORK/github/writes")" -eq 0 ]] ||
+    fail "paginated draft recovery created a duplicate tag"
+[[ "$(grep -c '^release upload ' "$WORK/github/writes")" -eq 1 ]] ||
+    fail "paginated draft recovery did not reassert the same artifacts"
+
+APPCAST_BEFORE="$(sha256 "$WORK/github/appcast")"
+WRITES_BEFORE="$(<"$WORK/github/writes")"
+run_publish >"$WORK/paginated-public-retry.log" 2>&1
+[[ "$APPCAST_BEFORE" == "$(sha256 "$WORK/github/appcast")" ]] ||
+    fail "paginated draft's public retry rewrote the appcast"
+[[ "$WRITES_BEFORE" == "$(<"$WORK/github/writes")" ]] ||
+    fail "paginated draft's public retry mutated release metadata"
+
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+printf 'existing\n' > "$WORK/github/release"
+printf 'true\n' > "$WORK/github/release-draft"
+printf '421\n' > "$WORK/github/release-id"
+touch "$WORK/github/draft-by-tag-404"
+cat > "$WORK/github/releases-pages.json" <<'JSON'
+[
+  [
+    {"id": 421, "tag_name": "v1.0.0", "draft": true, "assets": []}
+  ]
+]
+JSON
+expect_failure "paginated Draft with missing Tag" run_publish
+assert_contains "$WORK/output.log" "Release v1.0.0 exists but its Tag is missing"
+[[ ! -s "$WORK/github/writes" ]] || fail "Draft missing its Tag wrote to GitHub"
+
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+printf '{"object":{"sha":"%s","type":"commit"}}\n' \
+    "$(printf 'a%.0s' {1..40})" > "$WORK/github/tag"
+printf 'draft\n' > "$WORK/github/release"
+printf 'true\n' > "$WORK/github/release-draft"
+touch "$WORK/github/assets" "$WORK/github/draft-by-tag-404"
+cat > "$WORK/github/releases-pages.json" <<'JSON'
+[
+  [
+    {"id": 421, "tag_name": "v1.0.0", "draft": true, "assets": []},
+    {"id": 422, "tag_name": "v1.0.0", "draft": true, "assets": []}
+  ]
+]
+JSON
+expect_failure "ambiguous matching drafts" run_publish
+assert_contains "$WORK/output.log" "refusing to choose one"
+[[ ! -s "$WORK/github/writes" ]] || fail "ambiguous matching drafts wrote to GitHub"
 
 reset_state
 make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \

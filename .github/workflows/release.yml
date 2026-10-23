@@ -29,8 +29,14 @@ on:
         required: true
         default: false
         type: boolean
+      package_run_id:
+        description: "Recover publication from the verified package artifact of this earlier run. Requires publish=true and notarize=true."
+        required: false
+        default: ""
+        type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -46,13 +52,19 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       build: ${{ steps.release.outputs.build }}
       tag: ${{ steps.release.outputs.tag }}
+      recovery_source_run_id: ${{ steps.recovery.outputs.source_run_id }}
+      recovery_artifact_id: ${{ steps.recovery.outputs.artifact_id }}
+      recovery_artifact_digest: ${{ steps.recovery.outputs.artifact_digest }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
       CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      PACKAGE_RUN_ID: ${{ inputs.package_run_id }}
       PUBLISH_MODE: ${{ inputs.publish }}
+      NOTARIZE_INPUT: ${{ inputs.notarize }}
       VERSION_INPUT: ${{ inputs.version }}
       BUILD_INPUT: ${{ inputs.build }}
       TAG_INPUT: ${{ inputs.tag }}
+      WORKFLOW_SHA: ${{ github.workflow_sha }}
 
     steps:
       - name: Check out repository
@@ -79,6 +91,20 @@ jobs:
           if [[ ! "${CANDIDATE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::candidate_sha must be a lowercase 40-character commit SHA."
             exit 1
+          fi
+          if [[ -n "${PACKAGE_RUN_ID}" ]]; then
+            if [[ "${PUBLISH_MODE}" != "true" || "${NOTARIZE_INPUT}" != "true" ]]; then
+              echo "::error::package_run_id recovery requires publish=true and notarize=true."
+              exit 1
+            fi
+            if [[ -z "${VERSION_INPUT}" || -z "${BUILD_INPUT}" || -z "${TAG_INPUT}" ]]; then
+              echo "::error::package_run_id recovery requires explicit version, build, and tag."
+              exit 1
+            fi
+            if [[ ! "${WORKFLOW_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::Recovery requires a full github.workflow_sha."
+              exit 1
+            fi
           fi
 
           CHECKED_OUT_SHA="$(git rev-parse HEAD)"
@@ -119,6 +145,34 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
           echo "Resolved ${TAG}: ${VERSION} (${BUILD}) at ${CANDIDATE_SHA}"
+
+      - name: Check out trusted release recovery tooling
+        if: ${{ inputs.package_run_id != '' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.workflow_sha }}
+          path: release-tools
+
+      - name: Validate frozen package source run
+        if: ${{ inputs.package_run_id != '' }}
+        id: recovery
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ inputs.package_run_id }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          EXPECTED_VERSION: ${{ steps.release.outputs.version }}
+          EXPECTED_BUILD: ${{ steps.release.outputs.build }}
+          EXPECTED_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          ACTUAL_TOOLING_SHA="$(git -C release-tools rev-parse HEAD)"
+          [[ "${ACTUAL_TOOLING_SHA}" == "${WORKFLOW_SHA}" ]] || {
+            echo "::error::Trusted tooling checkout ${ACTUAL_TOOLING_SHA} differs from ${WORKFLOW_SHA}."
+            exit 1
+          }
+          bash release-tools/scripts/validate-release-recovery.sh
 
       - name: Run tests
         run: |
@@ -165,9 +219,18 @@ jobs:
           bash scripts/test-verify-local-bundle.sh
           bash scripts/test-workflow-policy.sh
 
+      - name: Run trusted release recovery regressions
+        if: ${{ inputs.package_run_id != '' }}
+        run: |
+          set -euo pipefail
+          bash release-tools/scripts/test-release-recovery.sh
+          bash release-tools/scripts/test-release-workflow-policy.sh
+          bash release-tools/scripts/test-release-pipeline.sh
+
   package:
     needs: verify
     runs-on: xcode-27
+    if: ${{ inputs.package_run_id == '' }}
     timeout-minutes: 75
     environment:
       name: distribution
@@ -396,17 +459,22 @@ jobs:
           exit "${CLEANUP_STATUS}"
 
   publish:
-    if: ${{ inputs.publish }}
+    if: ${{ !cancelled() && inputs.publish && needs.verify.result == 'success' && (inputs.package_run_id != '' || needs.package.result == 'success') }}
     needs: [verify, package]
     runs-on: xcode-27
     timeout-minutes: 30
     environment:
       name: distribution
     permissions:
+      actions: read
       contents: write
     env:
       GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
       CANDIDATE_SHA: ${{ needs.verify.outputs.candidate_sha || inputs.candidate_sha }}
+      PACKAGE_RUN_ID: ${{ inputs.package_run_id }}
+      RECOVERY_SOURCE_RUN_ID: ${{ needs.verify.outputs.recovery_source_run_id }}
+      RECOVERY_ARTIFACT_ID: ${{ needs.verify.outputs.recovery_artifact_id }}
+      RECOVERY_ARTIFACT_DIGEST: ${{ needs.verify.outputs.recovery_artifact_digest }}
       DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
 
     steps:
@@ -416,11 +484,33 @@ jobs:
           fetch-depth: 0
           ref: ${{ inputs.candidate_sha }}
 
+      - name: Check out trusted publish tooling
+        if: ${{ inputs.package_run_id != '' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.workflow_sha }}
+          path: release-tools
+
+      - name: Verify trusted publish tooling
+        if: ${{ inputs.package_run_id != '' }}
+        env:
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          ACTUAL_TOOLING_SHA="$(git -C release-tools rev-parse HEAD)"
+          [[ "${ACTUAL_TOOLING_SHA}" == "${WORKFLOW_SHA}" ]] || {
+            echo "::error::Trusted publish tooling ${ACTUAL_TOOLING_SHA} differs from ${WORKFLOW_SHA}."
+            exit 1
+          }
+
       - name: Download the verified package
         uses: actions/download-artifact@v4
         with:
           name: status-trio-release-package
           path: dist/release-package
+          run-id: ${{ needs.verify.outputs.recovery_source_run_id || github.run_id }}
+          github-token: ${{ github.token }}
 
       - name: Reassert frozen candidate
         run: |
@@ -431,9 +521,32 @@ jobs:
             exit 1
           }
 
+      - name: Validate recovered artifact before publication
+        if: ${{ inputs.package_run_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ needs.verify.outputs.recovery_source_run_id }}
+          CANDIDATE_SHA: ${{ needs.verify.outputs.candidate_sha }}
+          EXPECTED_VERSION: ${{ needs.verify.outputs.version }}
+          EXPECTED_BUILD: ${{ needs.verify.outputs.build }}
+          EXPECTED_TAG: ${{ needs.verify.outputs.tag }}
+          EXPECTED_ARTIFACT_ID: ${{ needs.verify.outputs.recovery_artifact_id }}
+          EXPECTED_ARTIFACT_DIGEST: ${{ needs.verify.outputs.recovery_artifact_digest }}
+          MANIFEST_PATH: ${{ github.workspace }}/dist/release-package/release-manifest.json
+        run: bash release-tools/scripts/validate-release-recovery.sh
+
       - name: Publish the verified package without rebuilding
+        if: ${{ inputs.package_run_id == '' }}
         env:
           MANIFEST_PATH: ${{ github.workspace }}/dist/release-package/release-manifest.json
           PACKAGE_DIR: ${{ github.workspace }}/dist/release-package
-          GITHUB_SHA: ${{ inputs.candidate_sha }}
+        run: bash scripts/publish-release.sh
+
+      - name: Recover publication from the verified source artifact
+        if: ${{ inputs.package_run_id != '' }}
+        working-directory: release-tools
+        env:
+          MANIFEST_PATH: ${{ github.workspace }}/dist/release-package/release-manifest.json
+          PACKAGE_DIR: ${{ github.workspace }}/dist/release-package
         run: bash scripts/publish-release.sh
