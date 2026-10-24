@@ -522,7 +522,8 @@ final class AppEnvironment {
             eligibilityContext: TelemetryEligibilityContext(
                 bundleIdentifier: Bundle.main.bundleIdentifier,
                 productionMarker: Bundle.main.object(forInfoDictionaryKey: "STTelemetryProduction") as? Bool ?? false,
-                isDebugBuild: Self.isDebugBuild
+                isDebugBuild: Self.isDebugBuild,
+                channel: .current
             ),
             configuration: telemetryConfiguration,
             snapshotContext: { language, placement in
