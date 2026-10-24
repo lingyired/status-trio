@@ -504,3 +504,12 @@
 "settings.shortcut.restorationFailed" = "تعذرت استعادة الاختصار السابق.";
 "settings.shortcut.accessibility.current" = "الاختصار العام الحالي: %@";
 "settings.shortcut.accessibility.unassigned" = "لم يتم تعيين اختصار عام.";
+
+// Distribution channel and capability availability.
+"settings.distribution.title" = "التوزيع";
+"settings.distribution.description" = "‏Status Trio أداة macOS مفتوحة المصدر. قد يختلف توفر عناصر التحكم في النظام حسب قناة التوزيع وأذونات macOS.";
+"settings.distribution.project" = "المشروع مفتوح المصدر وملاحظات الإصدار";
+"settings.distribution.independentSettings" = "يحتفظ كل إصدار بإعداداته وأذوناته الخاصة.";
+"settings.updates.systemManaged" = "تتم إدارة التحديثات بواسطة Mac App Store.";
+"capability.unavailableDistribution" = "عنصر التحكم هذا غير متاح في هذا الإصدار.";
+"capability.notVerified" = "لم يتم التحقق من التوفر على هذا الـ Mac.";

@@ -1,17 +1,7 @@
 import Foundation
 import IOKit
 
-struct SystemPowerSample: Equatable, Sendable {
-    let watts: Double
-    let readAt: Date
-
-    func isFresh(at now: Date, notBefore: Date? = nil) -> Bool {
-        let age = now.timeIntervalSince(readAt)
-        return (-5...90).contains(age) && (notBefore.map { readAt >= $0 } ?? true)
-    }
-}
-
-struct SystemPowerReader: Sendable {
+struct SystemPowerReader: SystemPowerReading {
     /// Best-effort SMC system-total power (the PSTR sensor used by Stats).
     /// Apple does not publish a cross-model contract for this sensor. Read only;
     /// no helper, privileges, key enumeration, or persistent connection.

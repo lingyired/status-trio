@@ -16,7 +16,6 @@ struct BluetoothAccessoryBatteryLevel: Equatable, Sendable {
     let part: BluetoothAccessoryPart?
     let percentage: Int
 }
-
 /// Which part of an accessory a power source describes.
 enum BluetoothAccessoryPart: Equatable, Sendable {
     case left
@@ -92,88 +91,5 @@ enum BluetoothAccessoryBatteryReader {
         let value = Int((Double(current) / Double(maximum) * 100).rounded())
         guard (0...100).contains(value) else { return nil }
         return value
-    }
-}
-
-/// Reads the accessory power sources out of `/usr/bin/pmset -g accps -xml`.
-///
-/// The XML form is asked for because the plain-text form drops the name of an
-/// accessory it cannot resolve, and the name is one of the two things a reading
-/// is matched to a device by. The subcommand itself is undocumented, so a future
-/// macOS may stop answering it: a failed read reports no accessory rather than
-/// failing anything, which leaves the paired-device report as the only source.
-final class PmsetAccessoryBatteryWorker: @unchecked Sendable, BluetoothAccessoryBatteryReading {
-    typealias OutputProvider = @Sendable () -> String?
-
-    private static let queueLabel = "StatusTrio.PmsetAccessoryBatteryWorker"
-
-    /// Guards `queue`, `queueGeneration` and `hasOutstandingRead`. `read` is
-    /// called from the controller's main-actor context while a retired queue's
-    /// block may still be running, so the retirement state is read and written
-    /// under this lock rather than on whatever thread happens to call in.
-    private let stateLock = NSLock()
-    private var queue = DispatchQueue(label: queueLabel, qos: .utility)
-    private var queueGeneration: UInt64 = 0
-    private var hasOutstandingRead = false
-    private let outputProvider: OutputProvider
-
-    init(
-        outputProvider: @escaping OutputProvider = PmsetAccessoryBatteryWorker.readAccessoryPowerSources
-    ) {
-        self.outputProvider = outputProvider
-    }
-
-    func read(completion: @escaping @Sendable ([BluetoothAccessoryBatteryLevel]?) -> Void) {
-        // A read that never returned would block this one behind it on the same
-        // serial queue for the lifetime of the process, so retire that queue and
-        // give this read a fresh one. `pmset` talks to the power manager and can
-        // hang the same way `/usr/sbin/system_profiler` can, and the abandoned
-        // block keeps the old queue alive until it eventually returns.
-        let generation: UInt64
-        let currentQueue: DispatchQueue
-        (generation, currentQueue) = stateLock.withLock {
-            if hasOutstandingRead {
-                queueGeneration &+= 1
-                queue = DispatchQueue(label: Self.queueLabel, qos: .utility)
-            }
-            hasOutstandingRead = true
-            return (queueGeneration, queue)
-        }
-
-        let outputProvider = self.outputProvider
-        currentQueue.async { [weak self] in
-            let levels = outputProvider().map { BluetoothAccessoryBatteryReader.parse(xml: $0) }
-            if let self {
-                self.stateLock.withLock {
-                    // Only the read on the current queue may clear the flag; a
-                    // late completion from a retired queue must not, or the next
-                    // read would queue behind a block that is still hung.
-                    if generation == self.queueGeneration {
-                        self.hasOutstandingRead = false
-                    }
-                }
-            }
-            completion(levels)
-        }
-    }
-
-    static func readAccessoryPowerSources() -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
-        process.arguments = ["-g", "accps", "-xml"]
-
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-            let data = output.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else { return nil }
-            return String(data: data, encoding: .utf8)
-        } catch {
-            return nil
-        }
     }
 }

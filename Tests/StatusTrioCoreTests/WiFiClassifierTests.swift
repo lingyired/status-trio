@@ -1736,7 +1736,7 @@ private final class FakeWiFiSystemReader: WiFiSystemReadingProviding {
     }
 }
 
-private final class FakeInternetSharingDetector: InternetSharingDetecting {
+private final class FakeInternetSharingDetector: InternetSharingDetecting, @unchecked Sendable {
     var result: Bool?
     private(set) var callCount = 0
 

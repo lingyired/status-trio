@@ -62,6 +62,9 @@ SH
         test-macos13-sparkle-contract.sh test-mobile-battery-source-cache.sh \
         test-mobile-battery-clang-version.sh test-release-workflow-policy.sh \
         test-release-pipeline.sh test-release-notarization.sh \
+        test-app-store-project-contract.sh test-app-store-source-closure.sh \
+        test-app-store-bundle-contract.sh test-app-store-archive-dsyms.sh \
+        test-dual-distribution-workflows.sh \
         test-verify-local.sh test-verify-local-bundle.sh; do
         cat > "$fixture/scripts/$script" <<SH
 #!/usr/bin/env bash

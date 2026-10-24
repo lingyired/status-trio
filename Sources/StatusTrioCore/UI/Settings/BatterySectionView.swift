@@ -6,7 +6,22 @@ struct BatterySectionView: View {
     @ObservedObject var statusStore: SystemStatusStore
     @Binding var previewIsDark: Bool
     @EnvironmentObject private var localization: Localization
-    @ObservedObject private var helper: PrivilegedHelperManager = .shared
+    @ObservedObject var helper: PrivilegedHelperFacade
+    let capabilityPolicy: DistributionCapabilityPolicy
+
+    init(
+        store: SettingsStore,
+        statusStore: SystemStatusStore,
+        previewIsDark: Binding<Bool>,
+        helper: PrivilegedHelperFacade = PrivilegedHelperFacade(service: UnsupportedPrivilegedHelperService()),
+        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
+    ) {
+        self.store = store
+        self.statusStore = statusStore
+        _previewIsDark = previewIsDark
+        self.helper = helper
+        self.capabilityPolicy = capabilityPolicy
+    }
 
     var body: some View {
         SettingsPage(pinnedHeader: {
@@ -25,7 +40,8 @@ struct BatterySectionView: View {
             // Low Power Mode control is offered only when this build bundled the
             // privileged helper, so an App-Store-style build never shows a
             // toggle it cannot honour.
-            if helper.isAvailable {
+            if helper.isAvailable,
+               !capabilityPolicy.blocksControl(.privilegedHelper) {
                 lowPowerModeGroup
 
                 SettingsDivider()
@@ -223,19 +239,23 @@ struct BatterySectionView: View {
                 tint: .green,
                 title: localization.string(.settingsBatteryFullThreshold),
                 subtitle: localization.string(.settingsBatteryFullThresholdDescription),
-                subtitleLink: Text(
-                    localization.string(.settingsBatteryFullThresholdUseChargeLimit)
-                )
-                .foregroundColor(Color.accentColor),
+                subtitleLink: canUseSystemChargeLimit
+                    ? Text(
+                        localization.string(
+                            .settingsBatteryFullThresholdUseChargeLimit
+                        )
+                    )
+                    .foregroundColor(Color.accentColor)
+                    : nil,
                 // Fills the slider in from the system. A one-shot action, not a
                 // mode: the level stays editable afterwards, and nothing
                 // re-reads the plist behind the user's back.
                 //
                 // Accent colour rather than `.link`, which is macOS 14+ and
                 // this app still ships macOS 13.
-                subtitleLinkAction: {
-                    store.applySystemChargeLimit()
-                },
+                subtitleLinkAction: canUseSystemChargeLimit
+                    ? { store.applySystemChargeLimit() }
+                    : nil,
                 trailing: {
                 HStack(spacing: 8) {
                     Slider(
@@ -260,7 +280,11 @@ struct BatterySectionView: View {
             }
             )
 
-            if !store.canReadSystemChargeLimit {
+            if let reasonKey = capabilityPolicy.unavailableReasonKey(
+                for: .privatePowerReaders
+            ) {
+                SettingsHintRow(text: localization.string(reasonKey))
+            } else if !store.canReadSystemChargeLimit {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Image(systemName: "exclamationmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -357,5 +381,10 @@ struct BatterySectionView: View {
             helper.isReady ? .lowPowerModeHelperReady : .lowPowerModeHelperUnavailable
         ))
         .foregroundColor(helper.isReady ? Color.green : Color.secondary)
+    }
+
+    private var canUseSystemChargeLimit: Bool {
+        store.canReadSystemChargeLimit
+            && !capabilityPolicy.blocksControl(.privatePowerReaders)
     }
 }

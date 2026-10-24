@@ -20,6 +20,9 @@ final class AppEnvironment {
     let dockChargingAnimationPresenter: (any DockChargingAnimationPresenting)?
     let dockVisibilityMonitor: (any DockVisibilityMonitoring)?
     let telemetryReporter: any TelemetryReporting
+    let updater: UpdateStateFacade
+    let privilegedHelper: PrivilegedHelperFacade
+    let capabilityPolicy: DistributionCapabilityPolicy
     let bluetoothAudioIconOverrideSynchronizer = BluetoothAudioIconOverrideSynchronizer()
     private let bluetoothProfilerCache: BluetoothProfilerReportCache
     private let bluetoothNearbyBatteryOptOutSynchronizer = BluetoothNearbyBatteryOptOutSynchronizer()
@@ -55,6 +58,10 @@ final class AppEnvironment {
         dockChargingAnimationPresenter: (any DockChargingAnimationPresenting)? = nil,
         dockVisibilityMonitor: (any DockVisibilityMonitoring)? = nil,
         telemetryReporter: any TelemetryReporting,
+        updater: UpdateStateFacade? = nil,
+        privilegedHelper: PrivilegedHelperFacade? = nil,
+        platformCapabilities: [PlatformCapabilityRecord]? = nil,
+        distributionChannel: DistributionChannel = .current,
         memoryPressureMonitor: MemoryPressureMonitor? = nil,
         bluetoothProfilerCache: BluetoothProfilerReportCache = .shared,
         previewResourceLifecycle: PreviewResourceLifecycle? = nil
@@ -76,6 +83,13 @@ final class AppEnvironment {
         self.dockChargingAnimationPresenter = dockChargingAnimationPresenter
         self.dockVisibilityMonitor = dockVisibilityMonitor
         self.telemetryReporter = telemetryReporter
+        self.updater = updater ?? UpdateStateFacade(service: SystemManagedUpdateService())
+        self.privilegedHelper = privilegedHelper
+            ?? PrivilegedHelperFacade(service: UnsupportedPrivilegedHelperService())
+        self.capabilityPolicy = DistributionCapabilityPolicy(
+            channel: distributionChannel,
+            records: platformCapabilities
+        )
         self.memoryPressureMonitor = memoryPressureMonitor ?? MemoryPressureMonitor()
         self.bluetoothProfilerCache = bluetoothProfilerCache
         self.previewResourceLifecycle = previewResourceLifecycle ?? PreviewResourceLifecycle()
@@ -122,12 +136,17 @@ final class AppEnvironment {
         )
         bluetoothNearbyBatteryOptOutSynchronizer.start(
             settings: settings,
-            actions: StatusPanelActions(store: store, settings: settings)
+            actions: StatusPanelActions(
+                store: store,
+                settings: settings,
+                capabilityPolicy: capabilityPolicy
+            )
         )
         lowPowerModeControlSynchronizer.start(
             settings: settings,
-            helper: PrivilegedHelperManager.shared
+            helper: privilegedHelper
         )
+        updater.start()
         store.bindInputSettings(settings)
         store.bindLocalIPSettings(settings)
         store.bindMobileBatterySettings(settings)
@@ -364,55 +383,14 @@ final class AppEnvironment {
         appIconController.setDockChargingAnimationActive(true)
     }
 
-    static func makeStore(
-        batteryMonitor: any BatteryMonitoring,
-        wifiMonitor: any WiFiMonitoring,
-        connectionMonitor: (any NetworkConnectionMonitoring)? = nil,
-        vpnMonitor: (any VPNMonitoring)? = nil,
-        volumeMonitor: any VolumeMonitoring,
-        inputMonitor: (any AudioInputMonitoring)? = nil,
-        refreshInterval: Duration = .seconds(15)
-    ) -> SystemStatusStore {
-        SystemStatusStore(
-            batteryMonitor: batteryMonitor,
-            wifiMonitor: wifiMonitor,
-            connectionMonitor: connectionMonitor,
-            vpnMonitor: vpnMonitor,
-            volumeMonitor: volumeMonitor,
-            inputMonitor: inputMonitor,
-            refreshInterval: refreshInterval,
-            bluetoothDevices: BluetoothDeviceController(
-                // The accessory power sources are the second battery source, read
-                // only for the devices the paired-device report carries no level
-                // for; accessory notifications are what make a level refresh
-                // between the safety-net polls.
-                accessoryBatteryReader: PmsetAccessoryBatteryWorker(),
-                connectionEvents: IOBluetoothConnectionEventMonitor(),
-                accessoryBatteryEvents: AccessoryPowerNotifyEventMonitor(),
-                // Constructing the adapter is inert; its CBCentralManager is
-                // created only when the user has enabled Nearby results and the
-                // authorized Bluetooth popover is visible.
-                nearbyBatteryScanner: CoreBluetoothLEBatteryScanner()
-            )
-        )
-    }
-
-    static func live() -> AppEnvironment {
-        let settings = SettingsStore()
-        // A measurement launch can force the synthetic charging input so the
-        // animation can be compared on and off on a machine that is not charging.
-        if ChargingEffectTestMode.shouldForceChargingInput() {
-            settings.setChargingEffectTestInputEnabled(true)
-        }
-        let store = makeStore(
-            batteryMonitor: BatteryMonitor(),
-            wifiMonitor: WiFiMonitor(),
-            connectionMonitor: NetworkConnectionMonitor(),
-            vpnMonitor: VPNMonitor(),
-            volumeMonitor: VolumeMonitor(outputController: CoreAudioOutputController()),
-            inputMonitor: AudioInputMonitor(hardware: CoreAudioInputHardware()),
-            refreshInterval: settings.refreshInterval
-        )
+    static func makeLive(
+        settings: SettingsStore,
+        store: SystemStatusStore,
+        makeUpdater: @MainActor (AppActivationPolicy) -> UpdateStateFacade,
+        privilegedHelper: PrivilegedHelperFacade,
+        platformCapabilities: [PlatformCapabilityRecord]? = nil,
+        distributionChannel: DistributionChannel = .current
+    ) -> AppEnvironment {
         let localization = Localization()
         let inputSourceController = InputSourceController()
         let appearance = StatusIconAppearance(settings: settings)
@@ -446,6 +424,11 @@ final class AppEnvironment {
                 : DockChargingAnimationPresenter()
         let dockVisibilityMonitor = DockVisibilityMonitor()
         let activationPolicy = AppActivationPolicy()
+        let capabilityPolicy = DistributionCapabilityPolicy(
+            channel: distributionChannel,
+            records: platformCapabilities
+        )
+        let updater = makeUpdater(activationPolicy)
         let onboardingWindowController = OnboardingWindowController(
             settings: settings,
             localization: localization,
@@ -461,7 +444,10 @@ final class AppEnvironment {
             openSettings: { settingsWindowController?.show() },
             quitAction: { NSApplication.shared.terminate(nil) },
             chargingEffectClock: chargingEffectClock,
-            inputSourceController: inputSourceController
+            inputSourceController: inputSourceController,
+            updaterManager: updater,
+            helper: privilegedHelper,
+            capabilityPolicy: capabilityPolicy
         )
         let globalShortcutController = GlobalShortcutController(
             settings: settings,
@@ -480,7 +466,10 @@ final class AppEnvironment {
             },
             chargingEffectClock: chargingEffectClock,
             inputSourceController: inputSourceController,
-            globalShortcutController: globalShortcutController
+            globalShortcutController: globalShortcutController,
+            helper: privilegedHelper,
+            updaterManager: updater,
+            capabilityPolicy: capabilityPolicy
         )
         settingsWindowController = resolvedSettingsWindowController
         onboardingWindowController.openSettings = { [weak resolvedSettingsWindowController] in
@@ -523,7 +512,7 @@ final class AppEnvironment {
                 bundleIdentifier: Bundle.main.bundleIdentifier,
                 productionMarker: Bundle.main.object(forInfoDictionaryKey: "STTelemetryProduction") as? Bool ?? false,
                 isDebugBuild: Self.isDebugBuild,
-                channel: .current
+                channel: distributionChannel
             ),
             configuration: telemetryConfiguration,
             snapshotContext: { language, placement in
@@ -554,7 +543,11 @@ final class AppEnvironment {
             globalShortcutController: globalShortcutController,
             dockChargingAnimationPresenter: dockChargingAnimationPresenter,
             dockVisibilityMonitor: dockVisibilityMonitor,
-            telemetryReporter: telemetryReporter
+            telemetryReporter: telemetryReporter,
+            updater: updater,
+            privilegedHelper: privilegedHelper,
+            platformCapabilities: platformCapabilities,
+            distributionChannel: distributionChannel
         )
     }
 

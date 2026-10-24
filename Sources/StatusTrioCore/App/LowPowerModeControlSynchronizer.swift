@@ -11,7 +11,7 @@ final class LowPowerModeControlSynchronizer {
     private var cancellables = Set<AnyCancellable>()
     private var activationObserver: NSObjectProtocol?
 
-    func start(settings: SettingsStore, helper: PrivilegedHelperManager) {
+    func start(settings: SettingsStore, helper: PrivilegedHelperFacade) {
         guard cancellables.isEmpty, activationObserver == nil else { return }
 
         if let savedPreference = settings.savedLowPowerModeControlPreference {
@@ -22,7 +22,12 @@ final class LowPowerModeControlSynchronizer {
         // switch, not the raw system status: a registration macOS has not
         // approved yet is still what the user asked for, and the switch must not
         // flicker with the status while the app waits for that approval.
-        helper.$isEnabled
+        // Publish the current value immediately instead of waiting for the next
+        // helper state transition: the facade's publisher is a current-value
+        // stream, and an up-to-date opt-out must be mirrored before the first
+        // click.
+        helper.$presentation
+            .map(\.isEnabled)
             .removeDuplicates()
             .sink { [weak settings] isEnabled in
                 guard let settings, settings.controlsLowPowerMode != isEnabled else { return }

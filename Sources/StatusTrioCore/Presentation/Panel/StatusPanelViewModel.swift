@@ -62,6 +62,7 @@ final class StatusPanelViewModel: ObservableObject {
     private let localization: Localization
     private let inputSourceController: InputSourceController
     private let updateScheduler: any PanelPresentationUpdateScheduling
+    private let capabilityPolicy: DistributionCapabilityPolicy
     let actions: StatusPanelActions
     private var cancellables: Set<AnyCancellable> = []
     private var sourceDemandCancellables: Set<AnyCancellable> = []
@@ -82,7 +83,8 @@ final class StatusPanelViewModel: ObservableObject {
         localization: Localization,
         actions: StatusPanelActions,
         updateScheduler: any PanelPresentationUpdateScheduling = YieldingPanelPresentationUpdateScheduler(),
-        inputSourceController: InputSourceController? = nil
+        inputSourceController: InputSourceController? = nil,
+        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
     ) {
         let resolvedInputSourceController = inputSourceController ?? InputSourceController()
         self.store = store
@@ -90,6 +92,7 @@ final class StatusPanelViewModel: ObservableObject {
         self.localization = localization
         self.inputSourceController = resolvedInputSourceController
         self.updateScheduler = updateScheduler
+        self.capabilityPolicy = capabilityPolicy
         self.actions = actions
         visiblePopupSections = settings.visiblePopupSections
         battery = PanelPresentationMapper.battery(store.popupSnapshot.battery, localization: localization)
@@ -291,7 +294,8 @@ final class StatusPanelViewModel: ObservableObject {
 
     private var currentPreviewConfiguration: ListeningModePreview.Configuration {
         ListeningModePreview.Configuration(
-            isEnabled: settings.previewsBluetoothListeningMode,
+            isEnabled: !capabilityPolicy.blocksControl(.appleListeningMode)
+                && settings.previewsBluetoothListeningMode,
             deviceName: settings.bluetoothListeningModePreviewDeviceName,
             deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
             languageCode: settings.bluetoothListeningModePreviewLanguage
@@ -299,12 +303,7 @@ final class StatusPanelViewModel: ObservableObject {
     }
 
     private func makeListeningModeTaskID(outputDevices: [AudioOutputDevice]) -> String {
-        let configuration = ListeningModePreview.Configuration(
-            isEnabled: settings.previewsBluetoothListeningMode,
-            deviceName: settings.bluetoothListeningModePreviewDeviceName,
-            deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
-            languageCode: settings.bluetoothListeningModePreviewLanguage
-        )
+        let configuration = currentPreviewConfiguration
         let connected = BluetoothDevicePresentation.grouped(store.bluetoothDevices.devices).connected
             .filter { $0.isAirPods || $0.isHuaweiAudio }
             .map { BluetoothBatteryReader.normalizedAddress($0.id) }

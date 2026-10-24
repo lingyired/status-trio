@@ -13,6 +13,9 @@ import Foundation
 /// We do not read the address list — the only subscribed selector is `lstm`, so any
 /// signal means "re-read the current mode" — hence the `_` params at every call.
 protocol BluetoothListeningModePropertyListening: Sendable {
+    /// The private selector's address. `nil` for the Store-safe stub.
+    var listeningModeAddress: AudioObjectPropertyAddress? { get }
+
     func addListener(
         deviceID: AudioDeviceID,
         address: AudioObjectPropertyAddress,
@@ -26,35 +29,6 @@ protocol BluetoothListeningModePropertyListening: Sendable {
         queue: DispatchQueue?,
         block: @escaping AudioObjectPropertyListenerBlock
     ) -> OSStatus
-}
-
-/// The production listener backend, delegating to the AudioObject block API.
-///
-/// `AudioObjectAdd/RemovePropertyListenerBlock` are the only calls needed. CoreAudio
-/// owns the retain, so the caller is responsible for keeping the exact block
-/// reference until the removal happens.
-struct CoreAudioBluetoothListeningModeListenerBackend: BluetoothListeningModePropertyListening {
-    init() {}
-
-    func addListener(
-        deviceID: AudioDeviceID,
-        address: AudioObjectPropertyAddress,
-        queue: DispatchQueue?,
-        block: @escaping AudioObjectPropertyListenerBlock
-    ) -> OSStatus {
-        var mutableAddress = address
-        return AudioObjectAddPropertyListenerBlock(deviceID, &mutableAddress, queue, block)
-    }
-
-    func removeListener(
-        deviceID: AudioDeviceID,
-        address: AudioObjectPropertyAddress,
-        queue: DispatchQueue?,
-        block: @escaping AudioObjectPropertyListenerBlock
-    ) -> OSStatus {
-        var mutableAddress = address
-        return AudioObjectRemovePropertyListenerBlock(deviceID, &mutableAddress, queue, block)
-    }
 }
 
 /// The bookkeeping the controller stores per subscribed endpoint so the block

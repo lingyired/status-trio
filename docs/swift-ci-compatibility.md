@@ -41,6 +41,29 @@ Swift 6.1.2 上。
   `50x47` 对应 `e08ab4...`，`51x46` 对应 `377721...`；macOS 26 保留
   `9dcba3...`。未知变体直接失败并输出原始像素及符号边界。各环境不再共享一个
   可任选其一的哈希集合，Issue #30 的独立墨迹与完整合成居中断言保持原样。
+- 后续 macOS 26.6.2 runner 暴露出同一 26 系统的另一个精确变体：38pt
+  `wifi.slash` 布局为 `50x46`，完整图标指纹实测
+  `a89b29044ab04205b8c1c12265bc5ad6e22f8384832436ca48a2d3934f17aaa9`。
+  基线选择改为按系统版本和独立符号尺寸精确匹配该值；该用例在校验前已明确
+  报出原有基线不匹配，未知尺寸仍会失败。
+- 双通道 PR 预检 [`40103971193`](https://github.com/lingyired/status-trio/actions/runs/40103971193)
+  的 Store 通道通过，Direct 通道在 full 套件退出 1。`PanelActionAlignmentTests`
+  测得控件中心 `25.5`，而同一行的 slider 内容中心为 `27.0/27.5`：该测试仍
+  跟随 headless runner 的 1x 捕获，未使用相邻 Battery 布局测试已有的固定 2x
+  采样；现在同时固定 `displayScale` 和 bitmap 倍率。2x 离屏 bitmap 的最外
+  一像素列/行是未绘制边缘，扫描会把它误判为横贯整行的墨迹；探测现在排除该
+  边缘，并只从 Input 行选择窄 action glyph，避免下方无设备行遮盖按钮。
+- 同一 Direct 运行的
+  `processExecutorKillsAChildThatIgnoresTermination` 在 2.595 秒后失败。断言把
+  Task 排队时间算进了“期限后 1 秒内完成”的上界；该测试从 PID 文件出现时开始
+  计上界，同时保留原先至少 1.2 秒的下界，证明 1 秒 deadline 与 kill grace
+  确实经过，而非提前结束。
+- 下一次 Direct 预检 [`40105290055`](https://github.com/lingyired/status-trio/actions/runs/40105290055)
+  的 Store 通道通过，Direct 仍在同一个 volume 行失败。固定 2x 后，断言的 Mute
+  读数实际来自 `minimumX: 200` 截出的 `40%` 文本，而 `controlRowCenterY` 又把
+  slider 轨道和背景并入了行中心，所以它从未比较真正的 Mute/Settings。测试改为
+  选取首尾两个 24 pt action glyph，并以 `VolumeControlScrollTarget` 的 AppKit
+  frame 中心作为 slider 行中心；生产布局未因该测试缺陷而偏移。
 - 本地完整测试另暴露了进程 fixture 的冷 Python 启动可能耗尽就绪期限。改为
   `/bin/sh` 先安装忽略 TERM 的 trap、写 PID，再进入工作循环；取消、超时、
   SIGKILL 和耗时断言保持原样，失败时停止读取不存在的 PID 文件。

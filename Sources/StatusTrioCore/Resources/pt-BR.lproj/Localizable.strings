@@ -504,3 +504,12 @@
 "settings.shortcut.restorationFailed" = "Não foi possível restaurar o atalho anterior.";
 "settings.shortcut.accessibility.current" = "Atalho global atual: %@";
 "settings.shortcut.accessibility.unassigned" = "Nenhum atalho global definido.";
+
+// Distribution channel and capability availability.
+"settings.distribution.title" = "Distribuição";
+"settings.distribution.description" = "O Status Trio é um utilitário macOS de código aberto. A disponibilidade dos controles do sistema pode variar conforme o canal de distribuição e as permissões do macOS.";
+"settings.distribution.project" = "Projeto de código aberto e notas da versão";
+"settings.distribution.independentSettings" = "Cada distribuição mantém suas próprias configurações e permissões.";
+"settings.updates.systemManaged" = "As atualizações são gerenciadas pelo Mac App Store.";
+"capability.unavailableDistribution" = "Este controle não está disponível nesta distribuição.";
+"capability.notVerified" = "A disponibilidade neste Mac não foi verificada.";

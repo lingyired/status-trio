@@ -6,8 +6,10 @@ import Foundation
 func staticSymbolRasterBaselineFingerprint() -> String? {
     guard let size = staticFingerprintSymbol()?.size else { return nil }
     switch (ProcessInfo.processInfo.operatingSystemVersion.majorVersion, size.width, size.height) {
-    case (26, _, _):
+    case (26, 50, 47):
         return "9dcba3184f0953f8c173cc2f846977f01b84510a8505166bd6a8048f44d8fd97"
+    case (26, 50, 46):
+        return "a89b29044ab04205b8c1c12265bc5ad6e22f8384832436ca48a2d3934f17aaa9"
     case (27, 50, 47):
         return "e08ab4aebc69b650e667fb2aa5a2647f9efade4a7941dbd19061134192280cbc"
     case (27, 51, 46):

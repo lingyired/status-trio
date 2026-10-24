@@ -1,0 +1,25 @@
+# Repository-relative Swift sources excluded from the App Store Core target.
+# Shared parsers, protocols, display models, and public-framework readers remain.
+Sources/StatusTrioCore/App/PrivilegedHelperManager.swift
+Sources/StatusTrioCore/App/UpdateFallbackUserDriver.swift
+Sources/StatusTrioCore/App/UpdateSourceFallback.swift
+Sources/StatusTrioCore/App/UpdaterManager.swift
+Sources/StatusTrioCore/Audio/DDCDisplayTransport.swift
+Sources/StatusTrioCore/Audio/DDCReadProfile.swift
+Sources/StatusTrioCore/Audio/DDCTargetResolver.swift
+Sources/StatusTrioCore/Audio/DDCVolumeCoordinator.swift
+Sources/StatusTrioCore/Monitoring/BoundedProcessRunner.swift
+Sources/StatusTrioCore/Monitoring/IOBluetoothRadioPowerBackend.swift
+Sources/StatusTrioCore/Monitoring/MobileBatteryHelperReader.swift
+Sources/StatusTrioCore/Monitoring/SystemChargeLimitReader.swift
+Sources/StatusTrioCore/Monitoring/SystemPowerReader.swift
+Sources/StatusTrioCore/Platform/DirectAccessoryPowerNotifyEventMonitor.swift
+Sources/StatusTrioCore/Platform/DirectAppEnvironment.swift
+Sources/StatusTrioCore/Platform/DirectBluetoothListeningModeBackend.swift
+Sources/StatusTrioCore/Platform/DirectBluetoothListeningModeEndpointProvider.swift
+Sources/StatusTrioCore/Platform/DirectBluetoothListeningModeListenerBackend.swift
+Sources/StatusTrioCore/Platform/DirectDDCFactory.swift
+Sources/StatusTrioCore/Platform/DirectInternetSharingDetector.swift
+Sources/StatusTrioCore/Platform/DirectPrivilegedPowerClient.swift
+Sources/StatusTrioCore/Platform/DirectSettingsStore.swift
+Sources/StatusTrioCore/Platform/DirectSubprocessReaders.swift

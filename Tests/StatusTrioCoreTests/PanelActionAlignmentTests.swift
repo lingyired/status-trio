@@ -15,16 +15,16 @@ final class PanelActionAlignmentTests: XCTestCase {
                 onOpenSoundSettings: {}
             )
         )
-        let actions = probe.trailingGlyphRects(count: 2, minimumX: 200)
+        let actions = probe.leadingAndTrailingGlyphRects(maximumWidth: 24)
         XCTAssertEqual(actions.count, 2, "volume mute and Settings glyphs must render")
         guard actions.count == 2 else { return }
 
-        let rowCenter = probe.controlRowCenterY(excluding: actions)
+        let rowCenter = try XCTUnwrap(probe.sliderControlCenterY)
         for (name, rect) in zip(["mute", "settings"], actions) {
             let center = try XCTUnwrap(probe.glyphCenterY(in: rect))
             XCTAssertEqual(
                 center,
-                try XCTUnwrap(rowCenter),
+                rowCenter,
                 accuracy: 1,
                 "\(name) center must match the volume row's rendered center"
             )
@@ -40,7 +40,14 @@ final class PanelActionAlignmentTests: XCTestCase {
                 onOpenSoundSettings: {}
             )
         )
-        let actions = probe.trailingGlyphRects(count: 2, minimumX: 200, maxX: 340)
+        // The no-device row below the controls starts inside this x-range. Keep
+        // only the narrow action glyphs so the row cannot shadow Mute/Settings.
+        let actions = probe.trailingGlyphRects(
+            count: 2,
+            minimumX: 200,
+            maxX: 340,
+            maximumWidth: 28
+        )
         XCTAssertEqual(actions.count, 2, "input mute and Settings glyphs must render")
         guard actions.count == 2 else { return }
 
@@ -156,13 +163,14 @@ final class PanelActionAlignmentTests: XCTestCase {
                 .background(Color(white: 0.96))
                 .environmentObject(localization)
                 .environment(\.colorScheme, .light)
+                .environment(\.displayScale, 2)
         )
         hosting.appearance = NSAppearance(named: .aqua)
         hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
         hosting.layoutSubtreeIfNeeded()
         hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
         hosting.layoutSubtreeIfNeeded()
-        return try XCTUnwrap(SummaryActionAlignmentProbe(hosting))
+        return try XCTUnwrap(SummaryActionAlignmentProbe(hosting, pixelScale: 2))
     }
 
     private func makeVolumeState() throws -> VolumePanelState {

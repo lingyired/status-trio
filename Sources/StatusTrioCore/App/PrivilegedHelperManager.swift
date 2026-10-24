@@ -111,13 +111,14 @@ final class SystemPrivilegedHelperService: PrivilegedHelperServicing {
 /// registration intact, so the daemon idle-exits without invalidating approval.
 /// System Settings owns background authorization independently of this switch.
 @MainActor
-final class PrivilegedHelperManager: ObservableObject {
+final class PrivilegedHelperManager: ObservableObject, PrivilegedHelperServicingFacade {
     static let shared = PrivilegedHelperManager()
 
     @Published private(set) var status: PrivilegedHelperStatus
     @Published private(set) var didFailLastOperation = false
     @Published private(set) var lastErrorMessage: String?
     @Published private(set) var isHelperResponsive = false
+    @Published private(set) var registrationNeedsApproval = false
 
     private let service: PrivilegedHelperServicing
 
@@ -156,7 +157,6 @@ final class PrivilegedHelperManager: ObservableObject {
     private var verificationTask: Task<Void, Never>?
     private var registrationRetryTask: Task<Void, Never>?
     private var registrationRetryGeneration: UInt64 = 0
-    private var registrationNeedsApproval = false
     private var provisionalRegistrationError: String?
     private var generation: UInt64 = 0
     private var recoveryAttempts = 0
@@ -220,6 +220,77 @@ final class PrivilegedHelperManager: ObservableObject {
     /// False when this build or process cannot offer the helper at all.
     var isAvailable: Bool {
         service.isSupported
+    }
+
+    var presentation: PrivilegedHelperPresentation {
+        Self.presentation(
+            isAvailable: isAvailable,
+            status: status,
+            isEnabled: isEnabled,
+            registrationNeedsApproval: registrationNeedsApproval,
+            isHelperResponsive: isHelperResponsive,
+            didFailLastOperation: didFailLastOperation,
+            lastErrorMessage: lastErrorMessage
+        )
+    }
+
+    var presentationPublisher: AnyPublisher<PrivilegedHelperPresentation, Never> {
+        let isAvailable = isAvailable
+        return $status.combineLatest(
+            $isEnabled,
+            $registrationNeedsApproval,
+            $isHelperResponsive
+        )
+        .combineLatest($didFailLastOperation, $lastErrorMessage)
+        .map {
+            readiness,
+            didFailLastOperation,
+            lastErrorMessage in
+            let (
+                status,
+                isEnabled,
+                registrationNeedsApproval,
+                isHelperResponsive
+            ) = readiness
+            return Self.presentation(
+                isAvailable: isAvailable,
+                status: status,
+                isEnabled: isEnabled,
+                registrationNeedsApproval: registrationNeedsApproval,
+                isHelperResponsive: isHelperResponsive,
+                didFailLastOperation: didFailLastOperation,
+                lastErrorMessage: lastErrorMessage
+            )
+        }
+        .removeDuplicates()
+        .eraseToAnyPublisher()
+    }
+
+    /// Builds a presentation entirely from the values delivered by the
+    /// publisher. Reading `@Published` properties inside the sink would observe
+    /// their pre-assignment value because publication happens in `willSet`.
+    private static func presentation(
+        isAvailable: Bool,
+        status: PrivilegedHelperStatus,
+        isEnabled: Bool,
+        registrationNeedsApproval: Bool,
+        isHelperResponsive: Bool,
+        didFailLastOperation: Bool,
+        lastErrorMessage: String?
+    ) -> PrivilegedHelperPresentation {
+        PrivilegedHelperPresentation(
+            availability: isAvailable
+                ? .available
+                : .unsupported(reason: "The privileged power helper is unavailable in this build."),
+            isEnabled: isEnabled,
+            requiresApproval: isEnabled
+                && (status == .requiresApproval || registrationNeedsApproval),
+            isReady: isEnabled
+                && status != .notRegistered
+                && isHelperResponsive,
+            didFailLastOperation: didFailLastOperation,
+            lastErrorMessage: lastErrorMessage
+        )
     }
 
     var isEnabledBinding: Binding<Bool> {

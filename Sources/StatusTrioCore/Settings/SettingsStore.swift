@@ -9,8 +9,6 @@ final class SettingsStore: ObservableObject {
     static let sharesAnonymousAnalyticsDefaultsKey = "sharesAnonymousAnalytics"
     static let telemetryConsentVersionDefaultsKey = "telemetryConsentVersion"
     static let statusPanelShortcutDefaultsKey = "statusPanelShortcut.v1"
-    private static let sparkleHasLaunchedBeforeDefaultsKey = "SUHasLaunchedBefore"
-
     static let iconSizeRange: ClosedRange<Double> = 16...36
     static let defaultIconSize: Double = 24
     static let iconSizeDefaultsKey = "menuBarIconSize"
@@ -357,6 +355,8 @@ final class SettingsStore: ObservableObject {
     /// Mac happens to be set to. `nil` in the app, which reads the real file.
     var chargeLimitURLForTesting: URL?
 
+    private let chargeLimitProvider: any SystemChargeLimitProviding
+
     /// Whether the macOS charge limit can be read at all (#105).
     ///
     /// The value lives in a private, root-owned plist that no public API
@@ -365,9 +365,9 @@ final class SettingsStore: ObservableObject {
     /// behind this rather than failing silently when pressed.
     var canReadSystemChargeLimit: Bool {
         if let url = chargeLimitURLForTesting {
-            return SystemChargeLimitReader.chargeLimit(from: url) != nil
+            return chargeLimitProvider.chargeLimit(from: url) != nil
         }
-        return SystemChargeLimitReader.chargeLimit() != nil
+        return chargeLimitProvider.chargeLimit(from: nil) != nil
     }
 
     @Published var showsWiFiIconForEthernet: Bool {
@@ -1055,8 +1055,7 @@ final class SettingsStore: ObservableObject {
         // The test seam wins when it is set, so a test never reads whatever
         // limit the machine running it happens to be set to.
         let url = url ?? chargeLimitURLForTesting
-        let limit = url.map { SystemChargeLimitReader.chargeLimit(from: $0) }
-            ?? SystemChargeLimitReader.chargeLimit()
+        let limit = chargeLimitProvider.chargeLimit(from: url)
         guard let limit else { return }
         batteryFullThreshold = Double(limit)
     }
@@ -1147,14 +1146,19 @@ final class SettingsStore: ObservableObject {
         trustedAppleDeviceMetadata = updated
     }
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        chargeLimitProvider: any SystemChargeLimitProviding,
+        legacyInstallationMarker: @escaping (UserDefaults) -> Bool
+    ) {
         self.defaults = defaults
+        self.chargeLimitProvider = chargeLimitProvider
         self.statusPanelShortcut = defaults
             .data(forKey: Self.statusPanelShortcutDefaultsKey)
             .flatMap { try? JSONDecoder().decode(StatusPanelShortcut.self, from: $0) }
         let appleMigration = AppleDeviceSettingsMigration.migrate(defaults: defaults)
         let hadLegacyInstallMarker =
-            defaults.bool(forKey: Self.sparkleHasLaunchedBeforeDefaultsKey)
+            legacyInstallationMarker(defaults)
             || defaults.bool(forKey: Self.hasSeenIconGuideDefaultsKey)
             || defaults.bool(forKey: Self.hasCompletedIconGuideOnboardingDefaultsKey)
         if let storedConsentVersion = defaults.object(
@@ -1186,10 +1190,10 @@ final class SettingsStore: ObservableObject {
                 forKey: Self.hasCompletedIconGuideOnboardingDefaultsKey
             )
         } else {
-            // Sparkle writes this before its first update check. AppDelegate requests
-            // onboarding before starting Sparkle, so its presence identifies upgrades.
+            // Direct's factory treats Sparkle's pre-check marker as an upgrade signal.
+            // Store supplies a channel-specific marker instead.
             let isExistingInstallation =
-                defaults.bool(forKey: Self.sparkleHasLaunchedBeforeDefaultsKey)
+                legacyInstallationMarker(defaults)
                 || defaults.bool(forKey: Self.hasSeenIconGuideDefaultsKey)
             self.hasCompletedIconGuideOnboarding = isExistingInstallation
             defaults.set(

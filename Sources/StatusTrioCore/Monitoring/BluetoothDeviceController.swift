@@ -21,105 +21,6 @@ protocol BluetoothStateMonitoring: AnyObject {
     func stop()
 }
 
-
-/// Reads the operating system's paired-device database from the system
-/// profiler. It deliberately does not perform a Bluetooth inquiry, so nearby
-/// BLE advertisements never appear as paired devices.
-///
-/// The profiler is the only source of device names: `IOBluetoothDevice
-/// .nameOrAddress` returns a cached name that keeps reporting the old value
-/// after the device is renamed, while the profiler reports what the system
-/// currently uses. Battery levels already come from the same report.
-final class SystemProfilerBluetoothPairedDeviceWorker: @unchecked Sendable, BluetoothPairedDeviceReading {
-    typealias OutputProvider = @Sendable () -> Data?
-    private static let queueLabel = "StatusTrio.SystemProfilerBluetoothPairedDeviceWorker"
-
-    /// Guards `queue`, `queueGeneration` and `hasOutstandingRead`. `read` is
-    /// called from the controller's main-actor context while a retired queue's
-    /// block may still be running, so the retirement state is read and written
-    /// under this lock rather than on whatever thread happens to call in.
-    private let stateLock = NSLock()
-    private var queue = DispatchQueue(label: queueLabel, qos: .utility)
-    private var queueGeneration: UInt64 = 0
-    private var hasOutstandingRead = false
-    private let outputProvider: OutputProvider
-    private let reportCache: BluetoothProfilerReportCache
-
-    init(
-        outputProvider: @escaping OutputProvider = SystemProfilerBluetoothPairedDeviceWorker.readSystemProfilerOutput,
-        reportCache: BluetoothProfilerReportCache = .shared
-    ) {
-        self.outputProvider = outputProvider
-        self.reportCache = reportCache
-    }
-
-    func read(completion: @escaping @Sendable (BluetoothWorkerResult) -> Void) {
-        // A read that never returned would block this one behind it on the same
-        // serial queue for the lifetime of the process, so retire that queue and
-        // give this read a fresh one. The abandoned block keeps the old queue
-        // alive until it eventually returns, which is what lets the controller's
-        // watchdog retry a hung `/usr/sbin/system_profiler` at all.
-        let generation: UInt64
-        let currentQueue: DispatchQueue
-        (generation, currentQueue) = stateLock.withLock {
-            if hasOutstandingRead {
-                queueGeneration &+= 1
-                queue = DispatchQueue(label: Self.queueLabel, qos: .utility)
-            }
-            hasOutstandingRead = true
-            return (queueGeneration, queue)
-        }
-
-        let outputProvider = self.outputProvider
-        currentQueue.async { [weak self] in
-            let result: BluetoothWorkerResult
-            let cacheEpoch = self?.reportCache.currentEpoch
-            if let data = outputProvider(),
-               let devices = BluetoothPairedDeviceReader.parse(json: data) {
-                // The battery reader reuses these exact bytes instead of spawning a
-                // second profiler moments later.
-                if let self, let cacheEpoch {
-                    self.reportCache.store(data, ifCurrent: cacheEpoch)
-                }
-                result = .success(devices)
-            } else {
-                result = .failed
-            }
-            if let self {
-                self.stateLock.withLock {
-                    // Only the read on the current queue may clear the flag; a
-                    // late completion from a retired queue must not, or the next
-                    // read would queue behind a block that is still hung.
-                    if generation == self.queueGeneration {
-                        self.hasOutstandingRead = false
-                    }
-                }
-            }
-            completion(result)
-        }
-    }
-
-    /// Comfortably under the controller's five-second read watchdog, so a
-    /// stalled profiler ends the read itself instead of being abandoned.
-    static let readTimeout: Duration = .seconds(4)
-
-    /// The one bounded `system_profiler` read in the app.
-    ///
-    /// `readDataToEndOfFile()` plus `waitUntilExit()` has no deadline: a
-    /// profiler wedged in IOBluetooth, or a descendant holding the inherited
-    /// pipe, would block this worker's serial queue for the rest of the process
-    /// and leave the watchdog to abandon another thread per retry.
-    static func readSystemProfilerOutput() -> Data? {
-        let outcome = BoundedProcessInvocation.runSync(
-            executableURL: URL(fileURLWithPath: "/usr/sbin/system_profiler"),
-            arguments: ["-json", "SPBluetoothDataType"],
-            timeout: readTimeout
-        )
-        guard case .exited(let data) = outcome else { return nil }
-        return data
-    }
-}
-
 enum BluetoothPairedDeviceReader {
     /// `nil` means the report could not be read at all; an empty array means the
     /// machine has no paired devices. The two stay distinct so a read failure is
@@ -466,10 +367,10 @@ final class BluetoothDeviceController: ObservableObject {
     private var deviceActionTokenCounter: UInt64 = 0
 
     init(
-        worker: any BluetoothPairedDeviceReading = SystemProfilerBluetoothPairedDeviceWorker(),
+        worker: any BluetoothPairedDeviceReading = UnavailableBluetoothPairedDeviceReader(),
         appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter = AppleBluetoothAudioDiagnosticReporter(),
         stateMonitor: any BluetoothStateMonitoring = CoreBluetoothStateMonitor(),
-        batteryReader: any BluetoothBatteryReading = SystemProfilerBluetoothBatteryWorker(),
+        batteryReader: any BluetoothBatteryReading = UnavailableBluetoothBatteryReader(),
         accessoryBatteryReader: (any BluetoothAccessoryBatteryReading)? = nil,
         notificationCenter: NotificationCenter = .default,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,

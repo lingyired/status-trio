@@ -1,175 +1,107 @@
-# Status Trio 双渠道发行架构（Phase A）
+# Status Trio 双渠道发行架构
 
-日期：2026-10-23。状态：Phase A foundation only。当前没有可构建或可发布的
-Mac App Store 产品，也没有 `StatusTrioStorePlatform` target。本文记录当前
-Direct 实现、已建立的发行契约、后续必须拆开的边界以及尚未验证的 Store 能力。
-设计约束见 `docs/superpowers/specs/2026-10-23-dual-distribution-design.md`。
+日期：2026-10-24。实现基线：`b9b7961f7eb34ed555ca791f5769883cbf3b1b78`。
+代码在同一仓库、同一条最终 main 演进路径上开发；本轮通过开发分支与依赖顺序
+PR 交付，不自动合并。阶段与验证状态见 `verification/dual-distribution-progress.md`；
+Phase A 的原始逐文件审计保存在 `verification/dual-distribution-baseline-audit.md`。
 
-## 冻结基线
-
-| 项目 | 值 |
-| --- | --- |
-| branch | `codex/dual-distribution-foundation` |
-| HEAD / `origin/main` | `b9b7961f7eb34ed555ca791f5769883cbf3b1b78` |
-| worktree | `/Users/lingsmbp/.codex/worktrees/dual-distribution-foundation/status-trio` |
-| Xcode / Swift | Xcode 27.0 (27A266a) / Swift 6.4 |
-| macOS SDK | 27.0 |
-| `Support/Info.plist` | `1.7.0 (38)` |
-| latest main commit title | `Release v1.7.2 appcast` |
-
-版本 plist 与提交标题不同，不据此推断当前公开版本；Phase A 不修改版本。
-
-## 当前依赖图
+## 构建边界
 
 ```text
-StatusTrio executable
-  -> StatusTrioCore
-       -> Sparkle
-       -> DDCPrivateAPI
-       -> PowerHelperProtocol
-       -> AppKit / SwiftUI / IOKit / Carbon / CoreWLAN / CoreLocation
-       -> CoreAudio / CoreDisplay / CoreBluetooth / IOBluetooth
-       -> Network / Security / ServiceManagement / SystemConfiguration
+Direct / SwiftPM
+  StatusTrio -> StatusTrioCore (shared sources + Direct platform sources)
+                 -> Sparkle / DDCPrivateAPI / PowerHelperProtocol
+                 -> existing public frameworks + Direct CoreDisplay
+  StatusTrioPowerHelper -> PowerHelperProtocol
 
-StatusTrioPowerHelper
-  -> PowerHelperProtocol
+App Store / generated Xcode project
+  StatusTrio -> independently compiled StatusTrioCore.framework
+                 -> shared safe sources
+                 -> AppStore/Platform sources
+                 -> public macOS frameworks
 ```
 
-这是当前唯一可构建的产品图。`Package.swift` 没有 Store target；
-`STATUS_TRIO_APP_STORE` 只选择编译期身份，不改变超集依赖、链接框架或源码闭包。
-Phase A 没有把完整 Direct Core 伪装成 Store package。
+两套 Core 使用同一份 SwiftUI/AppKit、状态管理、监控模型、本地化和图标场景源码。
+Store 独立编译其安全源码集合，不链接 Direct SwiftPM 产品；并非给 Direct 超集
+添加运行时开关后隐藏 UI。保留聚合模块名称，避免为隔离渠道扩大 internal 类型的
+public 面积，也不新增循环 import。`Package.swift` 的 Direct 产品与开发流程不变。
 
-## 启动与默认构造回流
+`AppStore/direct-only-sources.txt` 是显式排除清单。生成器枚举共享 Swift 文件，
+移除清单路径，再加入 Store composition；实际 Xcode SwiftFileList 必须与期望集合
+相等。生成的 Swift 源也需要独立审计。`STATUS_TRIO_APP_STORE` 只表达编译身份，
+不承担源码排除或安全边界的职责。
 
-1. `AppDelegate.applicationDidFinishLaunching` 先获取 `SingleInstanceGuard` 锁，
-   再调用 `AppEnvironment.live()`，并直接启动 `UpdaterManager.shared`。
-2. `AppEnvironment.live()` 创建 Direct 的电池、Wi-Fi、网络、VPN、音量、输入、
-   状态栏、Dock、输入法和快捷键对象；启动阶段还直接引用
-   `PrivilegedHelperManager.shared`。
-3. `AppEnvironment.makeStore()` 只允许主要 monitor 注入；其
-   `BluetoothDeviceController` 仍固定构造 `PmsetAccessoryBatteryWorker`、
-   `IOBluetoothConnectionEventMonitor`、`AccessoryPowerNotifyEventMonitor` 和
-   `CoreBluetoothLEBatteryScanner`。
-4. `SystemStatusStore.init` 的默认参数继续创建
-   `BatteryDetailsController`、`WiFiNetworkController`、`PrimaryLinkController`、
-   `LocalIPController`、`BluetoothDeviceController`、`BluetoothRadioPowerController`、
-   `MobileBatteryController`、`AppleDeviceDiscoveryController`、
-   `BluetoothListeningModeController` 和 `LowPowerModeController`。
-5. `StatusBarController`、`StatusPanelViewModel`、`SettingsWindowController` 和
-   `InputSourceLivePreview` 仍存在创建或读取 singleton 的路径；这些路径必须在
-   composition root 迁移时逐个覆盖，不能只替换 `live()`。
-6. `scripts/build-app.sh` 总是构建并嵌入 Sparkle 与 MobileBattery helper；
-   `PRIVILEGED_HELPER=0` 只排除 root Helper 和 LaunchDaemon plist，不是 Store
-   source closure 或 sandbox 开关。
+## 依赖注入与生命周期
 
-## A1 代码审计分类
+共享 `AppEnvironment.makeLive` 接收已经组装的 settings/store、更新服务、helper
+展示 façade 与能力记录，继续拥有 start/stop、订阅和按需资源生命周期。
+两个渠道分别提供 `AppEnvironment.live` / `makeStore`；应用入口保持既有
+`AppDelegate()` 调用形式。默认共享构造不初始化 Direct 私有对象。
 
-### 已有协议，但仍默认回流到具体实现
+| 边界 | 共享输入 | Direct | Store |
+| --- | --- | --- | --- |
+| 更新 | `UpdateServicing` / `UpdateStateFacade` | 原 Sparkle manager、镜像回退与共享 activation policy | `SystemManagedUpdateService` |
+| 提权 | `PrivilegedHelperFacade` / presentation | 原 manager、批准/注册/readiness/XPC | 无注册或 XPC 的 unsupported service |
+| 外屏音量 | `DDCVolumeCoordinating` | 原私有 transport、重试与读回 | unavailable coordinator；CoreAudio 保留 |
+| Apple 监听模式 | 既有 property/endpoint/listener 协议 | 私有 HAL 具体实现 | 无私有 selector 的实现 |
+| 蓝牙电源写入 | `BluetoothRadioPowerBacking` | 原 IOBluetooth 私有符号实现 | unavailable backend |
+| 高级电源详情 | `SystemPowerReading` / charge-limit provider | 原 AppleSMC / powerd 读取 | unavailable；公开电池状态保留 |
+| 设备枚举 | 既有 Bluetooth reader 协议 | 原 profiler/pmset readers | 公开 IOBluetooth / IOPS readers |
+| 已知 Wi-Fi | `WiFiKnownNetworkProviding` | 原 networksetup enrichment | 公开 CWConfiguration profiles |
 
-| 边界 | 当前接口 | 默认实现 / 回流 |
-| --- | --- | --- |
-| 蓝牙总电源 | `BluetoothRadioPowerBacking` | `BluetoothRadioPowerController` 默认构造 `IOBluetoothRadioPowerBackend` |
-| DDC | `DDCVolumeTransport` | `DDCVolumeCoordinator` 和 `VolumeMonitor` 默认构造 `DDCDisplayTransport` |
-| 监听模式 HAL | `BluetoothListeningModePropertyReading` | `BluetoothListeningModeController` 默认构造私有 4CC HAL |
-| 手机电量 | `MobileBatteryReading` | `MobileBatteryController` 与 `AppleDeviceDiscoveryController` 默认构造 helper reader |
-| 提权服务 | `PrivilegedHelperServicing` | `PrivilegedHelperManager.shared` 默认构造 `SystemPrivilegedHelperService` |
+共享 façade 在 MainActor 上发布值；异步硬件 reader 传递 Sendable 快照，不跨队列
+传递 IOBluetooth/CoreWLAN 对象。Direct 更新展示使用同一 activation policy；
+helper publisher 使用实际交付的新值，避免 `@Published willSet` 读取旧状态。
+未增加轮询间隔、扫描需求或后台常驻任务。
 
-协议存在不等于 Store-safe；只要具体默认值仍在共享构造链中，就必须在 B–E
-显式注入或移出。
+Huawei RFCOMM/SPP 使用公开 IOBluetooth 与厂商协议，独立于 Apple 私有 HAL。
+Store 保留其源码与既有需求生命周期，沙盒/设备行为仍待实测。公开 CoreWLAN、
+CoreBluetooth BLE、CoreAudio、IOKit、Carbon、Network/SystemConfiguration 路径
+不因未完成沙盒测试就删除。
 
-### 实际私有、未文档化或 Direct 专属调用
+Apple 未文档化的 accessory notify keys 及 Internet Sharing detector 属于 Direct
+源码集合；Store 保留公开读取与既有刷新机制。MobileBattery 外部组件本轮未打包
+进 Store，其 USB/usbmuxd、许可、签名和沙盒可用性仍单列待验证。
 
-| 文件 | 调用 / ABI | 发行政策 |
-| --- | --- | --- |
-| `Sources/DDCPrivateAPI/include/DDCPrivateAPI.h` | `IOAVServiceCreateWithService`、`IOAVServiceReadI2C`、`IOAVServiceWriteI2C` | Direct only；Store 编译与链接均排除 |
-| `Sources/StatusTrioCore/Audio/DDCDisplayTransport.swift` | 私有 IORegistry 匹配、`IOAVService*` I2C 读写 | Direct only |
-| `Sources/StatusTrioCore/Monitoring/IOBluetoothRadioPowerBackend.swift` | `dlopen`/`dlsym` 查找 `IOBluetoothPreference*` | Direct only；源码审查与动态字符串审计都需要 |
-| `Sources/StatusTrioCore/Audio/BluetoothListeningModeHAL.swift` | Apple 私有 HAL 选择器 `iaap`/`lstm`/`lsms` 的数值 ABI | Direct only；不与 Huawei SPP 合并 |
-| `Sources/StatusTrioCore/Monitoring/SystemPowerReader.swift` | `AppleSMC` 与 80 字节私有 key-data ABI | Direct only；不能据此删除公开 IOKit 电池读取 |
-| `Sources/StatusTrioCore/Monitoring/SystemChargeLimitReader.swift` | `/Library/Preferences/com.apple.powerd.charging.plist` 和私有归档布局 | Direct only |
-| `Sources/StatusTrioCore/App/PrivilegedHelperManager.swift` | root LaunchDaemon、`SMAppService`、XPC | Direct only；Store 不打包也不注册 |
-| `Sources/StatusTrioCore/App/UpdaterManager.swift` | Sparkle、GitHub appcast、镜像回退 | Direct only；取得系统更新适配器前 Store 不含 Sparkle |
+## 审计与 CI
 
-### 公开 API，但 Store 可用性尚未验证
+`generate-app-store-project.py` 固定 XcodeGen 2.46.0，生成工程、版本、plist、
+资源与源码 membership。`build-app-store.sh` 构建后核对实际编译输入并执行
+递归 bundle audit。审计检查 Mach-O 依赖、symbols、动态字符串、嵌套代码签名、
+entitlements、helper/daemon 组件、Sparkle 元数据和逃逸 symlink；数值型私有
+HAL 选择器另由源码审计证明。已知 token 审计不能替代人工源码/API 审查。
 
-| 能力 | 当前路径 | 风险 / 验收重点 |
-| --- | --- | --- |
-| Wi-Fi 状态、信号、SSID、扫描、电源 | `WiFiMonitor`、`CoreWLANWiFiSystemReader` | 逐项测 sandbox、CoreLocation、allow/deny/revoke；`setPower` 单独判定 |
-| Internet Sharing detector | `SystemInternetSharingDetector` 读取未文档化 `com.apple.nat` | 单独评估或 Store 排除；不得删除公开 CoreWLAN 读取 |
-| 蓝牙枚举与连接 | `BluetoothDeviceController`、`IOBluetoothConnectionEventMonitor` | 还需审计 `system_profiler`/`pmset` 子进程、公开 IOBluetooth 和 sandbox |
-| BLE 附近设备 | `CoreBluetoothLEBatteryScanner` | 测 Bluetooth entitlement、权限撤销和 demand lifecycle |
-| Huawei 监听模式 | `HuaweiRFCOMMTransport` 使用公开 IOBluetooth RFCOMM/SPP + 厂商协议 | 与 Apple 私有 HAL 分开；Store entitlement、设备与协议实测，当前 NOT RUN |
-| CoreAudio 输入输出 | `CoreAudioOutputController`、`AudioInputMonitor` 等 | 测 sandbox 内设备枚举、默认设备、音量/ mute 与权限 |
-| VPN、有线、本地 IP | SystemConfiguration / Network 路径 | 测 sandbox 可见性、VPN 状态和本地网络权限 |
-| 输入法、快捷键 | Carbon TIS 与 Carbon HotKey | 测 sandbox 内选择、快捷键注册和冲突 |
-| 登录启动 | `LaunchAtLoginManager` / `SMAppService` | 测 Store signed bundle 的 Login Item 注册、批准和撤销 |
-| Dock 可见性 | `DockVisibilityMonitor.liveVisibility()` 使用公开 CGWindow metadata | 受限 sandbox 下效果 NOT RUN；已有 fail-open，不增加屏幕录制权限 |
-| 手机电量 helper | `MobileBatteryHelperReader` 启动 bundle 内 helper | 单独审计 usbmuxd、动态库、签名、sandbox、许可和审核风险 |
-| 设置与单实例锁 | Foundation home URL + 按 Bundle ID 的 `flock` | 测 sandbox container home 重定向、不同 defaults、两渠道同装和并发锁 |
+PR 的两个只读 job 固定同一 merge SHA，分别运行 Direct full 与 Store build/audit；
+任何普通文件修改都进入两个渠道检查。独立手动 Store workflow 仅生成 unsigned
+内部 archive，不上传、不送审。Direct `release.yml` 的发布契约保持原样。
+详见 `distribution-ci.md` 与 `distribution-operations.md`。
 
-### 不得混淆的边界
+## 产品、隐私与共存
 
-- Apple AirPods 私有 HAL 控制与 Huawei 公开 `IOBluetooth` + 厂商 RFCOMM/SPP
-  是两条独立路径。前者必须由 Store 编译闭包排除；后者只能标记为待实测，
-  不能因 Apple 分支私有而整项删除或提前判定不可用。
-- `WiFiMonitor` 的 `com.apple.nat` detector 是独立未文档化数据源。Store 政策
-  需单独评估或排除，不应连带删除公开 CoreWLAN 状态读取。
-- `DockVisibilityMonitor` 使用公开 CGWindow 路径，但 Store sandbox 的可见结果
-  尚未验证；不要为了动画新增权限或把 NOT RUN 写成 available。
+Direct ID 保持 `com.lingsmbp.StatusTrio`；Store 候选 ID 为
+`com.lingsmbp.StatusTrio.AppStore`，其 ASC 注册/可用性未核验。版本默认共同读取
+`Support/Info.plist`；当前值 `1.7.0 (38)`，不根据 main 提交标题推断公开版本。
+Store 输出位于 `dist/AppStore/StatusTrio.app`。同目录安装需使用不同文件名；
+不同 Bundle ID 不能防止 Finder 替换同名文件。
 
-## Phase A 发行契约
+锁采用实际 Bundle ID，Store 使用 container-aware Application Support URL，
+无容器路径时 fail closed；Direct 旧锁路径保留。不同 defaults 域和登录启动身份
+独立；真实同装、容器、TCC 与 Login Item 行为需要另外验收。
 
-`DistributionChannel` 是最小编译期身份：
+能力状态区分 available、permissionRequired、unsupported、temporarilyUnavailable
+与 notVerified。公开 API 的硬件验收状态不能冒充 available，也不能当作 SDK
+不支持的结论。About 发行说明、更新文案和不可用控制通过共享 UI 接线；没有
+购买、强制升级或跨渠道自动下载安装链路。
 
-- `direct`：生产候选 Bundle ID `com.lingsmbp.StatusTrio`。
-- `appStore`：生产候选 Bundle ID `com.lingsmbp.StatusTrio.AppStore`，尚未注册核验。
-- `STATUS_TRIO_APP_STORE` 未定义时固定为 `direct`。
-- 开发 Bundle ID、实际 defaults、锁文件和运行身份不由
-  `productionBundleIdentifier` 覆盖。
+Store 遥测资格固定关闭，即使传入 Direct ID/production marker 也不能通过。
+隐私 manifest、系统偏好读取的政策边界及尚待核验事项见 `distribution-privacy.md`。
+编译、签名/entitlement 静态审计、App Sandbox runtime、硬件、Ventura 运行、
+Universal/Developer ID/notarization 和正式发行分别记录，不互相替代。
 
-`CapabilityAvailability` 区分：
+## 固定参考
 
-- `available`
-- `permissionRequired`
-- `unsupported(reason:)`
-- `temporarilyUnavailable(reason:)`
-- `notVerified`
-
-只有 `available.isActionable == true`。未知或未测状态不能折算成 available，
-授权缺失也不能折算成 unsupported。Phase A 尚未把该 enum 接入所有 UI/provider；
-接线属于 B–E。
-
-遥测资格新增 channel 维度：Direct 保留原 Bundle ID + production marker + 非
-Debug 条件，用户同意链不变；Store 无论 Bundle ID 和 marker 如何都 fail closed。
-这不代表 Store analytics 已设计或启用。
-
-## 后续发行路线
-
-| 阶段 | 必须先完成的边界 | 退出证据 |
-| --- | --- | --- |
-| B1 | `UpdateServicing` 与共享更新状态；Direct adapter 保留 Sparkle 回退 | Core/UI 无 Sparkle import 的 source contract、更新回归、full |
-| B2a | DDC、Apple 私有 HAL、蓝牙私有电源移入 DirectPlatform | 每片 source graph、link/symbol audit、Direct 行为回归、full |
-| B2b | root Helper、AppleSMC、powerd 私有读取边界 | Helper/XPC/lifecycle 回归；Store fake 不注册 daemon |
-| B2c | Direct/Store composition root 与无环 DAG | Store-safe Core 独立编译；Direct `swift run` 不退化 |
-| C | 真正 Store app target、sandbox、产物审计、同装身份 | unsigned compile、signed sandbox、artifact audit 分开报告 |
-| D | 公开 Wi-Fi/网络/蓝牙/CoreAudio provider 与真机矩阵 | allow/deny/revoke、OS/硬件、sleep/wake、设备移除证据 |
-| E | capability UI、About 渠道说明、i18n/privacy | 两渠道实际 UI；Menu Bar/Dock 同场景来源 |
-| F | 手动 Store archive workflow、版本合同 | 离线 fixtures；不上传、不送审，Direct release 合同不变 |
-
-## 外部参考
-
-2026-10-23 经 GitHub API 读取固定 SHA，仅借鉴结构，不复制 Team、
-entitlements、私有 IORegistry 假设或硬件结论。
-
-| 项目 / SHA | 实际读取文件 | 采用 / 不采用 |
-| --- | --- | --- |
-| CotEditor `95ac82b213c1a6943e25d8b8176ebeb8000e584e` | `Configurations/CotEditor.xcconfig`、`CotEditor-Sparkle.xcconfig`、`UpdaterManager.swift` | 采用 configuration/source exclusion/更新边界；不采用更高 OS API 假设 |
-| Budsy `dfd512c12aa064d3e9691c6736f9d2c157727eef` | `project.yml`、`Signing/Budsy-AppStore.entitlements` | 采用可提交工程与 Store scheme 思路；不复制 Team、部署目标或 entitlements |
-| NetLights `6b874559621d7245d77a05deb4c0a98ef9eeea65` | `APPSTORE.md`、`Version.xcconfig` | 采用进程内数据源与证据矩阵思路；不复制手建工程或硬件结论 |
-
-## 当前未验证项
-
-整个 Store 硬件与沙盒矩阵为 `NOT RUN`。当前没有 Store target、Store entitlement
-签名、sandbox runtime、App Store Connect 产品、Universal DMG、Developer ID
-Store 签名或审核结果。Ventura/当前 macOS 的真实运行、TCC allow/deny/revoke、
-sleep/wake、设备移除、同装、启动项、更新和 Menu Bar/Dock 实机对齐均未在本轮验证。
+沿用 Phase A 已读取的固定源码证据：CotEditor
+`95ac82b213c1a6943e25d8b8176ebeb8000e584e`、Budsy
+`dfd512c12aa064d3e9691c6736f9d2c157727eef`、NetLights
+`6b874559621d7245d77a05deb4c0a98ef9eeea65`。采用其配置/源码成员隔离、独立
+Store scheme 与进程内 provider 思路；未复制 Team、entitlements 或硬件结论。

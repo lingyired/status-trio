@@ -14,7 +14,8 @@ struct StatusPopoverView: View {
     /// Observed so the Low Power Mode control appears the moment the helper is
     /// approved — reading `.isReady` off the shared manager without observing
     /// it left the control invisible until the popover was recreated.
-    @ObservedObject private var helper: PrivilegedHelperManager = .shared
+    @ObservedObject var helper: PrivilegedHelperFacade
+    let capabilityPolicy: DistributionCapabilityPolicy
     let scrollTargets: PopoverScrollTargets
     @EnvironmentObject private var localization: Localization
     let requestWiFiNameAccess: () -> Void
@@ -33,6 +34,46 @@ struct StatusPopoverView: View {
     let quit: () -> Void
     @State private var currentPanel: PopoverPanel = .summary
 
+    init(
+        panel: StatusPanelViewModel,
+        helper: PrivilegedHelperFacade = PrivilegedHelperFacade(service: UnsupportedPrivilegedHelperService()),
+        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
+        scrollTargets: PopoverScrollTargets,
+        requestWiFiNameAccess: @escaping () -> Void,
+        requestBluetoothAuthorization: @escaping () -> Void,
+        openBatterySettings: @escaping () -> Void,
+        openWiFiSettings: @escaping () -> Void,
+        openNetworkSettings: @escaping () -> Void,
+        openSharingSettings: @escaping () -> Void,
+        openLocationSettings: @escaping () -> Void,
+        openBluetoothSettings: @escaping () -> Void,
+        openBluetoothPermissionSettings: @escaping () -> Void,
+        openSettings: @escaping () -> Void,
+        openSoundSettings: @escaping () -> Void,
+        openSoundInputSettings: @escaping () -> Void,
+        openKeyboardSettings: @escaping () -> Void,
+        quit: @escaping () -> Void
+    ) {
+        self.panel = panel
+        self.helper = helper
+        self.capabilityPolicy = capabilityPolicy
+        self.scrollTargets = scrollTargets
+        self.requestWiFiNameAccess = requestWiFiNameAccess
+        self.requestBluetoothAuthorization = requestBluetoothAuthorization
+        self.openBatterySettings = openBatterySettings
+        self.openWiFiSettings = openWiFiSettings
+        self.openNetworkSettings = openNetworkSettings
+        self.openSharingSettings = openSharingSettings
+        self.openLocationSettings = openLocationSettings
+        self.openBluetoothSettings = openBluetoothSettings
+        self.openBluetoothPermissionSettings = openBluetoothPermissionSettings
+        self.openSettings = openSettings
+        self.openSoundSettings = openSoundSettings
+        self.openSoundInputSettings = openSoundInputSettings
+        self.openKeyboardSettings = openKeyboardSettings
+        self.quit = quit
+    }
+
     var body: some View {
         Group {
             switch currentPanel {
@@ -50,6 +91,7 @@ struct StatusPopoverView: View {
                     onAppear: { panel.actions.batteryDetailsAppeared() },
                     lowPowerMode: panel.store.lowPowerMode,
                     showsLowPowerControl: panel.settings.controlsLowPowerMode
+                        && !capabilityPolicy.blocksControl(.privilegedHelper)
                         && helper.isReady
                 )
             case .wifi(let showDetails):
@@ -138,6 +180,7 @@ struct StatusPopoverView: View {
                 onOpenBatterySettings: openBatterySettings,
                 lowPowerMode: panel.store.lowPowerMode,
                 showsLowPowerToggle: panel.settings.controlsLowPowerMode
+                    && !capabilityPolicy.blocksControl(.privilegedHelper)
                     && helper.isReady
             )
         case .network:
@@ -173,6 +216,7 @@ struct StatusPopoverView: View {
                 showsRadioPowerControl: panel.settings.showsBluetoothPowerControl,
                 showsBluetoothInStatusPanel: panel.settings.enabledPopupSections.contains(.bluetooth),
                 listeningModePresentations: panel.store.bluetoothListeningModes.huaweiBluetoothRowPresentations,
+                capabilityPolicy: capabilityPolicy,
                 onSelectListeningMode: { panel.actions.setListeningMode(address: $0, mode: $1) },
                 onRequestAuthorization: requestBluetoothAuthorization,
                 onOpenBluetoothSettings: openBluetoothSettings,

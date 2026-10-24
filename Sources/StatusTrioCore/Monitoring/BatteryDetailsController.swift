@@ -20,8 +20,14 @@ final class BatteryDetailsController: ObservableObject {
     private var needsRefresh = false
     private var refreshTask: Task<Void, Never>?
 
-    init(reader: @escaping Reader = { BatteryDetailsReader().read(state: $0, notBefore: $1) }) {
-        self.reader = reader
+    init(
+        systemPowerReader: any SystemPowerReading = UnavailableSystemPowerReader(),
+        reader: (@Sendable (BatteryPowerState, Date?) -> BatteryDetails)? = nil
+    ) {
+        self.reader = reader ?? { state, notBefore in
+            BatteryDetailsReader(systemPowerReader: systemPowerReader)
+                .read(state: state, notBefore: notBefore)
+        }
     }
 
     deinit { refreshTask?.cancel() }

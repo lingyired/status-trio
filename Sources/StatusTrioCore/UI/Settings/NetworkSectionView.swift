@@ -1,14 +1,27 @@
 import SwiftUI
 
+struct NetworkSectionPresentation: Equatable, Sendable {
+    let capabilityPolicy: DistributionCapabilityPolicy
+
+    var showsInternetSharingIconOption: Bool {
+        !capabilityPolicy.blocksControl(.internetSharing)
+    }
+}
+
 /// Settings for how the network indicator is drawn in the status icon.
 struct NetworkSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     var inputSourceController: InputSourceController? = nil
     @Binding var previewIsDark: Bool
+    var capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
     @EnvironmentObject private var localization: Localization
 
     @State private var showsNetworkIconOptions: Bool = false
+
+    private var presentation: NetworkSectionPresentation {
+        NetworkSectionPresentation(capabilityPolicy: capabilityPolicy)
+    }
 
     var body: some View {
         SettingsPage(pinnedHeader: {
@@ -136,14 +149,16 @@ struct NetworkSectionView: View {
                         isOn: $store.showsWiFiIconForTemporaryConnection
                     )
 
-                    SettingsDivider()
+                    if presentation.showsInternetSharingIconOption {
+                        SettingsDivider()
 
-                    SettingsToggleRow(
-                        symbol: "antenna.radiowaves.left.and.right",
-                        tint: .indigo,
-                        title: localization.string(.settingsNetworkWiFiIconForInternetSharing),
-                        isOn: $store.showsWiFiIconForInternetSharing
-                    )
+                        SettingsToggleRow(
+                            symbol: "antenna.radiowaves.left.and.right",
+                            tint: .indigo,
+                            title: localization.string(.settingsNetworkWiFiIconForInternetSharing),
+                            isOn: $store.showsWiFiIconForInternetSharing
+                        )
+                    }
                 }
             }
         }

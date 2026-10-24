@@ -63,6 +63,7 @@ struct BluetoothStatusView: View {
     var showsRadioPowerControl = true
     var showsBluetoothInStatusPanel = true
     var listeningModePresentations: [String: BluetoothListeningModePresentation] = [:]
+    var capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
     var onSelectListeningMode: (String, BluetoothListeningMode) -> Void = { _, _ in }
     let onRequestAuthorization: () -> Void
     let onOpenBluetoothSettings: () -> Void
@@ -127,11 +128,12 @@ struct BluetoothStatusView: View {
     }
 
     private var resolvesRadioPowerControl: Bool {
-        BluetoothPowerControlVisibility.showsPanelControl(
-            authorization: controller.authorization,
-            showsInStatusPanel: showsBluetoothInStatusPanel,
-            isEnabled: showsRadioPowerControl
-        )
+        !capabilityPolicy.blocksControl(.bluetoothRadioPower)
+            && BluetoothPowerControlVisibility.showsPanelControl(
+                authorization: controller.authorization,
+                showsInStatusPanel: showsBluetoothInStatusPanel,
+                isEnabled: showsRadioPowerControl
+            )
     }
 
     private var appleProjection: AppleDeviceCatalog.Projection {
@@ -299,7 +301,7 @@ struct BluetoothStatusView: View {
     private var refreshButton: some View {
         Button(action: BluetoothSummaryActionAvailability.refreshAction(
             refreshDevices: { controller.refreshFromUser() },
-            refreshMobileBatteries: { mobileBatteryController.refresh() }
+            refreshMobileBatteries: refreshMobileBatteries
         )) {
             PanelActionGlyph(systemName: "arrow.clockwise")
         }
@@ -447,7 +449,17 @@ struct BluetoothStatusView: View {
     }
 
     private var showsMobileBatteryFeature: Bool {
-        showsBatteryLevels && showsAppleDevicesAndBattery && listOptions.showsList
+        showsBatteryLevels
+            && showsAppleDevicesAndBattery
+            && listOptions.showsList
+            && !capabilityPolicy.blocksControl(.mobileBatteryHelper)
+    }
+
+    private var refreshMobileBatteries: () -> Void {
+        guard !capabilityPolicy.blocksControl(.mobileBatteryHelper) else {
+            return {}
+        }
+        return { mobileBatteryController.refresh() }
     }
 
     private var mobileFailureMessage: LocalizationKey? {

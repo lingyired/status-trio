@@ -1,17 +1,49 @@
 import SwiftUI
 
+struct GeneralSectionPresentation: Equatable, Sendable {
+    let showsAnalyticsGroup: Bool
+
+    init(channel: DistributionChannel) {
+        showsAnalyticsGroup = channel == .direct
+    }
+}
+
 struct GeneralSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var localization: Localization
     var globalShortcutController: GlobalShortcutController? = nil
-    @ObservedObject private var launchAtLogin: LaunchAtLoginManager = .shared
-    @ObservedObject private var updaterManager: UpdaterManager = .shared
+    @ObservedObject var launchAtLogin: LaunchAtLoginManager
+    @ObservedObject var updaterManager: UpdateStateFacade
+    let capabilityPolicy: DistributionCapabilityPolicy
+
+    var presentation: GeneralSectionPresentation {
+        GeneralSectionPresentation(channel: capabilityPolicy.channel)
+    }
+
+    init(
+        store: SettingsStore,
+        localization: Localization,
+        globalShortcutController: GlobalShortcutController? = nil,
+        launchAtLogin: LaunchAtLoginManager = .shared,
+        updaterManager: UpdateStateFacade = UpdateStateFacade(service: SystemManagedUpdateService()),
+        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
+    ) {
+        self.store = store
+        self.localization = localization
+        self.globalShortcutController = globalShortcutController
+        self.launchAtLogin = launchAtLogin
+        self.updaterManager = updaterManager
+        self.capabilityPolicy = capabilityPolicy
+    }
 
     var body: some View {
         SettingsPage {
             systemGroup
-            analyticsGroup
-            if updaterManager.canCheckForUpdates {
+            if presentation.showsAnalyticsGroup {
+                analyticsGroup
+            }
+            if updaterManager.delivery == .systemManaged
+                || updaterManager.canCheckForUpdates {
                 updatesGroup
             }
         }
@@ -143,12 +175,21 @@ struct GeneralSectionView: View {
 
     private var updatesGroup: some View {
         SettingsGroup(localization.string(.settingsUpdatesTitle)) {
-            SettingsToggleRow(
-                symbol: "arrow.triangle.2.circlepath",
-                tint: .green,
-                title: localization.string(.settingsUpdatesAutomatic),
-                isOn: updaterManager.automaticallyChecksForUpdatesBinding
-            )
+            if updaterManager.delivery == .systemManaged {
+                SettingsHintRow(
+                    text: localization.string(.settingsUpdatesSystemManaged)
+                )
+            } else {
+                SettingsToggleRow(
+                    symbol: "arrow.triangle.2.circlepath",
+                    tint: .green,
+                    title: localization.string(.settingsUpdatesAutomatic),
+                    isOn: Binding(
+                        get: { updaterManager.automaticallyChecksForUpdates },
+                        set: { updaterManager.setAutomaticallyChecksForUpdates($0) }
+                    )
+                )
+            }
         }
     }
 
