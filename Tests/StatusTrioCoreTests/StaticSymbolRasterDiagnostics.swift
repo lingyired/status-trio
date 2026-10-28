@@ -3,17 +3,23 @@ import CryptoKit
 import Foundation
 
 @MainActor
-func staticSymbolRasterBaselineFingerprint() -> String? {
+func staticSymbolRasterBaselineFingerprints() -> Set<String>? {
     guard let size = staticFingerprintSymbol()?.size else { return nil }
     switch (ProcessInfo.processInfo.operatingSystemVersion.majorVersion, size.width, size.height) {
     case (26, 50, 47):
-        return "9dcba3184f0953f8c173cc2f846977f01b84510a8505166bd6a8048f44d8fd97"
+        return ["9dcba3184f0953f8c173cc2f846977f01b84510a8505166bd6a8048f44d8fd97"]
     case (26, 50, 46):
-        return "a89b29044ab04205b8c1c12265bc5ad6e22f8384832436ca48a2d3934f17aaa9"
+        return ["a89b29044ab04205b8c1c12265bc5ad6e22f8384832436ca48a2d3934f17aaa9"]
     case (27, 50, 47):
-        return "e08ab4aebc69b650e667fb2aa5a2647f9efade4a7941dbd19061134192280cbc"
+        // macOS 27.0 and 27.2 rasterize the same symbol metrics differently.
+        // Keep both bounded local variants; the committed artwork itself is
+        // still checked against these exact system-produced pixels.
+        return [
+            "e08ab4aebc69b650e667fb2aa5a2647f9efade4a7941dbd19061134192280cbc",
+            "3e0ba302848d3b450504b31fa4dca8afbacb6bc52d0d8f9ba0a91e0a54586918"
+        ]
     case (27, 51, 46):
-        return "377721331486253656c666fdc02ca98650f5d4421d623a54f388fd8389da339e"
+        return ["377721331486253656c666fdc02ca98650f5d4421d623a54f388fd8389da339e"]
     default:
         return nil
     }
