@@ -146,7 +146,9 @@ final class StatusPanelViewModel: ObservableObject {
             details: store.batteryDetails.details,
             localization: localization,
             powerOptions: settings.batteryPowerDisplayOptions,
-            energyApps: settings.showsHighEnergyApps ? store.batteryDetails.energyApps.ranking : nil
+            energyApps: settings.showsHighEnergyApps && !capabilityPolicy.blocksControl(.applicationEnergy)
+                ? store.batteryDetails.energyApps.ranking
+                : nil
         )
         wifiDetails = PanelDetailMapper.wifi(
             status: store.popupSnapshot.wifi,
@@ -801,7 +803,9 @@ final class StatusPanelViewModel: ObservableObject {
             details: store.batteryDetails.details,
             localization: localization,
             powerOptions: settings.batteryPowerDisplayOptions,
-            energyApps: settings.showsHighEnergyApps ? store.batteryDetails.energyApps.ranking : nil
+            energyApps: settings.showsHighEnergyApps && !capabilityPolicy.blocksControl(.applicationEnergy)
+                ? store.batteryDetails.energyApps.ranking
+                : nil
         )
         if batteryDetails != state { batteryDetails = state }
     }

@@ -252,3 +252,23 @@ Implementation continued after midnight on 2026-10-24 (Asia/Shanghai). The
   no tracked files changed during review. Runtime, hardware, signing, sandbox,
   hosted CI for this uncommitted snapshot and publication remain `NOT RUN` as
   recorded in the final verification file.
+
+## 1.8.0 同步（2026-10-30）
+
+- 合并：`merge: sync v1.8.0 into dual-distribution platform`，父提交
+  `v1.8.0` = `171349f8ac0d72627ac3f6152cfe844a0f53f15e`；合并基
+  `b9b7961f7eb34ed555ca791f5769883cbf3b1b78`（v1.7.2）。
+- 冲突语义：保留分支的 `DistributionCapabilityPolicy`、DDC 工厂注入、
+  `SystemPowerReading` 抽象；叠加 1.8.0 的充电到满、BetterDisplay 外部音量、
+  应用能耗、电池功率流、面板路由记忆。
+- Store 边界（保守口径，不进入 Store）：PowerUI 充电到满、BetterDisplay 外部
+  音量后端、应用能耗 reader。共享 UI 通过能力策略隐藏，Store 组合注入 nil /
+  惰性实现，避免死控件。
+- 源码：`BatteryChargeControlling.swift` 拆为共享协议 + Direct-only
+  `PowerUIChargeController.swift`；`BetterDisplayIntegrationError` 移入共享
+  协议文件以避免 Store 引用被排除实现；`SystemPowerReading` 增加
+  `readSensors` 默认实现。
+- 证据：Direct `swift build` PASS；Store Release（Unsigned）`arm64 + x86_64`
+  构建 `BUILD SUCCEEDED`；`verify-app-store-source-closure.py` 89/89；
+  `test-app-store-project-contract.sh` 全 PASS；`test-app-store-source-closure.sh`
+  89/89。Runtime/沙盒/真机仍为 NOT RUN，本同步不新增硬件 PASS。

@@ -14,6 +14,9 @@ enum DistributionCapabilityID: String, CaseIterable, Sendable {
     case mobileBatteryHelper = "mobile-battery.helper"
     case huaweiListeningMode = "bluetooth.huawei-listening-mode"
     case publicBluetoothReaders = "bluetooth.public-readers"
+    case chargeToFullNow = "power.charge-to-full-now"
+    case externalVolume = "audio.external-volume"
+    case applicationEnergy = "power.application-energy"
 }
 
 /// The distribution policy exposed to shared UI and action code.

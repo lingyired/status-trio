@@ -35,7 +35,9 @@ struct BatterySectionView: View {
             )
         }) {
             batteryGroup
-            powerFlowGroup
+            if !capabilityPolicy.blocksControl(.privatePowerReaders) {
+                powerFlowGroup
+            }
         }
     }
 
@@ -52,6 +54,7 @@ struct BatterySectionView: View {
             SettingsToggleRow(symbol: "laptopcomputer", tint: .blue,
                 title: localization.string(.batteryPowerSystem),
                 isOn: $store.showsSystemPower)
+            if !capabilityPolicy.blocksControl(.applicationEnergy) {
             SettingsDivider()
             SettingsToggleRow(symbol: "app", tint: .purple,
                 title: localization.string(.batteryHighEnergyApps),
@@ -96,6 +99,7 @@ struct BatterySectionView: View {
                         .frame(width: 50, alignment: .trailing)
                     }
                 }
+            }
             }
             Text(localization.string(.settingsBatteryPowerFlowDescription))
                 .font(.caption)

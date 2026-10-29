@@ -35,6 +35,12 @@ extension AppEnvironment {
             },
             privilegedHelper: privilegedHelper,
             platformCapabilities: PlatformCapabilities.direct,
+            chargeToFullNow: ChargeToFullNowController(
+                backend: PowerUIChargeController(),
+                sessionStore: UserDefaultsChargeToFullNowSessionStore(
+                    defaults: .standard
+                )
+            ),
             systemIconAppearance: DirectSystemIconAppearanceReader.current
         )
     }

@@ -236,7 +236,8 @@ struct SettingsView: View {
             AudioSectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark
+                previewIsDark: $previewIsDark,
+                capabilityPolicy: capabilityPolicy
             )
         case .popover:
             PopoverSectionView(store: store, statusStore: statusStore)

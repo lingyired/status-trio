@@ -23,3 +23,12 @@ final class UnavailableBetterDisplayClient: BetterDisplayRequesting {
     func request(commands _: [String], parameters _: [String: String?]) async throws -> String? { nil }
     func stop() {}
 }
+
+enum BetterDisplayIntegrationError: Error, Equatable, Sendable {
+    case notStarted
+    case tooManyPendingRequests
+    case timedOut
+    case requestFailed
+    case invalidResponse
+    case stopped
+}

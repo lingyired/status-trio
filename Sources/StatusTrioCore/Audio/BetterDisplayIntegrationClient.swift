@@ -1,14 +1,5 @@
 import Foundation
 
-enum BetterDisplayIntegrationError: Error, Equatable, Sendable {
-    case notStarted
-    case tooManyPendingRequests
-    case timedOut
-    case requestFailed
-    case invalidResponse
-    case stopped
-}
-
 struct BetterDisplayRequestEnvelope: Encodable {
     let uuid: String
     let commands: [String]

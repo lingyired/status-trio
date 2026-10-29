@@ -62,3 +62,22 @@ CoreBluetooth、CoreWLAN、CoreAudio、IOKit 以及 Huawei 厂商 transport 保�
 
 About 使用共享低权重发行说明与开源项目链接；没有付费/完整版 CTA、跨渠道下载器
 或自动安装器。Store 遥测固定关闭，独立可用性不依赖安装 Direct。
+
+## 1.8.0 同步新增（2026-10-30）
+
+基线：`v1.8.0`（`171349f8`，main 仅多一个 appcast 提交）。以下行为 1.8.0
+新增、在同步时按渠道重新判定。
+
+| 功能 | Direct 当前路径 | Store 编译政策 | Store 实测 | 验收步骤 |
+| --- | --- | --- | --- | --- |
+| 充电到满（Charge to Full Now） | `ChargeToFullNowController` + `PowerUIChargeController` + `Sources/PowerUIPrivateAPI` 私有框架 | Direct only（私有 PowerUI） | NOT RUN | 成品审计不含 PowerUI 与 `PowerUIChargeController`；Store 无设置开关与面板按钮（注入 nil 控制器） |
+| BetterDisplay 外部音量 | `BetterDisplayIntegrationClient`（分布式通知私有名字）+ `BetterDisplayFramebufferReader`（IOKit framebuffer） | Direct only（后端实现） | NOT RUN | Store 排除 client/reader，注入惰性 `UnavailableBetterDisplayClient` 与空 framebuffer；`audio.external-volume` 能力 unsupported，隐藏外部音量设置 |
+| 应用能耗 / 高能耗排行 | `ApplicationEnergyReader`（公开 libproc `proc_pid_rusage`） | Direct only（reader） | NOT RUN | Store 无读取器（`ApplicationEnergyController` 使用空快照），`power.application-energy` unsupported；隐藏高能耗开关与排行 |
+| 电池功率流可视化 | 共享 `BatteryPowerFlowView` + `BatteryDetails`（读 `SystemPowerReading`） | 共享 UI；数据来自 Direct-only SMC reader | NOT RUN | Store 无 SMC 数据时整组隐藏，不得显示伪造读数 |
+| 面板详情路由记忆 | 共享 `StatusPanelRoute` / 面板状态 | 共享源码 | NOT RUN | 重开 popover 保持路由；与 Dock/Menu Bar 同源回归 |
+| 菜单栏模板图标分层 | 共享 `StatusBarTemplateImagePresenter` | 共享源码 | NOT RUN | 模板图与彩色层分离，Menu Bar/Dock 一致 |
+
+Store 目标在 1.8.0 同步后额外排除：`Sources/PowerUIPrivateAPI`（私有框架，不进入
+StatusTrioCore 生成目标）、`Battery/PowerUIChargeController.swift`、
+`Audio/BetterDisplayIntegrationClient.swift`、`Audio/BetterDisplayFramebufferReader.swift`、
+`Monitoring/ApplicationEnergyReader.swift`。

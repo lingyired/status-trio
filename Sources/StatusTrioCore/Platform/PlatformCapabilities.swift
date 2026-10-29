@@ -81,6 +81,12 @@ enum PlatformCapabilities {
             capability: "bluetooth.public-readers",
             availability: .notVerified,
             reason: "distribution.public-readers-sandbox-unverified"
-        )
+        ),
+        .unsupported("power.charge-to-full-now", reason:
+            "distribution.private-powerui"),
+        .unsupported("audio.external-volume", reason:
+            "distribution.external-app-integration"),
+        .unsupported("power.application-energy", reason:
+            "distribution.sandbox-unavailable")
     ]
 }

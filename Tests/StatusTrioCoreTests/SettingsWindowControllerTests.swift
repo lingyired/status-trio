@@ -258,7 +258,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: makeStatusStore(),
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: AppActivationPolicy(application: SettingsActivationPolicyApplicationSpy()),
-            showIconGuide: {}
+            showIconGuide: {},
+            launchAtLogin: LaunchAtLoginManager()
         )
         let request = expectation(forNotification: .settingsSelectSection, object: nil)
 

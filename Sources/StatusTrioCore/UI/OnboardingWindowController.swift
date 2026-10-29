@@ -92,7 +92,10 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        let rootView = LocalizedRootView(localization: localization) {
+        let rootView = LocalizedRootView(
+            localization: localization,
+            systemIconAppearance: systemIconAppearance
+        ) {
             IconGuideOnboardingView(
                 settings: settings,
                 allowsTelemetryConsent: IconGuideOnboardingPolicy.showsTelemetryConsent(
@@ -102,7 +105,6 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
                 onCustomize: { [weak self] in self?.handleCustomize() },
                 onDone: { [weak self] in self?.window?.close() }
             )
-            .environment(\.systemIconAppearance, systemIconAppearance)
         }
 
         let hostingView = NSHostingView(rootView: rootView)
