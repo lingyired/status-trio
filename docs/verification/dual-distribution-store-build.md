@@ -84,6 +84,28 @@ Result: exit `0`.
 Log: the parent command output in this session; the earlier archive logs remain
 under `.build/dual-distribution-logs/`.
 
+## 2026-10-29 Local Ad-hoc Build
+
+Command:
+
+```bash
+bash scripts/build-app-store.sh release open
+```
+
+Result: exit `0`. Xcode reported `** BUILD SUCCEEDED **`; the script recorded
+304 compiled Store sources from two actual `SwiftFileList` inputs. Membership
+was 301 shared, 25 excluded Direct-only and 3 Store platform sources. The App
+and Core framework both report arm64+x86_64, `minos 13.0` and SDK `27.0`.
+
+The recursive signed static audit passed with two Mach-O files, four signed
+code items and three symlinks. Signing was local Ad-hoc, not Developer ID or
+Apple Distribution, and the launched app's App Sandbox runtime behavior remains
+`NOT RUN`. Log:
+`.build/dual-distribution-logs/app-store-run-20261029.log`.
+
+The local test-only macOS 27.2 raster compatibility commit was added after this
+app build; it does not change Store app or framework sources.
+
 ## Earlier Builds
 
 The following commands were run after platform integration. All exited `0`;

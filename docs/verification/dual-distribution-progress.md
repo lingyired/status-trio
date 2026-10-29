@@ -25,10 +25,10 @@ Implementation continued after midnight on 2026-10-24 (Asia/Shanghai). The
 | A | complete | Erdos implementation; Curie independent review | `95858e0`; full/docs exit 0; review PASS; draft PR #145 |
 | B | complete | Russell `01a16953-f083-7131-b896-a296175a20d9`; source adapters/DI and Store providers | 294 focused XCTest + 2 Swift Testing; final full PASS |
 | C | complete | Raman `01a16952-8823-7942-8691-b7e346000204`; AppStore project/build scripts | final archive `r2`; app/framework arm64+x86_64, minos 13 / SDK 27; dSYM, source closure and signed static audit PASS |
-| C/D review | complete | Maxwell implementation; Galileo `/ Mill review | final 75 bundle fixtures; source closure 88 fixtures; scoped re-review PASS |
+| C/D review | complete | Maxwell implementation; Galileo `/ Mill review | final 80 bundle fixtures; source closure 89 fixtures; scoped re-review PASS |
 | D | complete for implementation/offline evidence | Curie lock/defaults; Maxwell public providers | coexistence 14 tests; public providers 20 tests / 33 cases; sandbox/hardware NOT RUN |
 | E | complete | Archimedes copy/privacy; Socrates UI/actions | 11 UI integration + 7 composition tests; 12-language copy; final archive/static audit PASS; interactive UI NOT RUN |
-| F | complete | Archimedes `01a16956-2ee5-7531-9ace-cac280899677` | 105 policy / 77 semantic / 28 shell PASS; no workflow dispatched |
+| F | complete | Archimedes `01a16956-2ee5-7531-9ace-cac280899677` | 114 policy / 85 semantic / 29 shell PASS at final fix tree; hosted workflow tracked separately |
 
 ## Coordination rulings
 
@@ -194,12 +194,12 @@ Implementation continued after midnight on 2026-10-24 (Asia/Shanghai). The
 - B source freeze: 2026-10-24 01:01:32 CST. Parent synchronized the final six
   files with recorded SHA-256 values. Its full pass covers Direct source/build
   behavior; integration-owned E/D/C changes still require final full.
-- Actual Store unsigned and ad-hoc signed Release builds succeeded. Actual Xcode
-  inputs: 300 shared sources, 23 exclusions and 3 Store platform sources at that
-  checkpoint. Both app and Core framework contain arm64/x86_64, macOS 13 minimum
-  and SDK 27 metadata. Recursive signed audit verified four code items and three
-  contained symlinks. An unsigned archive also completed; C's final report and
-  engineering review remain pending. No runtime claim follows from these checks.
+- Earlier integrated checkpoint: actual Store unsigned and ad-hoc signed
+  Release builds succeeded with 300 shared sources, 23 exclusions and 3 Store
+  platform sources. Both app and Core framework contain arm64/x86_64, macOS 13
+  minimum and SDK 27 metadata. Recursive signed audit verified four code items
+  and three contained symlinks. The later 304-source archive supersedes this
+  source inventory. No runtime claim follows from either check.
 - The initial resource-root mismatch was resolved by inspecting actual PBX
   references and SRCROOT/PROJECT_DIR, then validating all 40 generated resource
   build entries before the next build. All failed attempts remain logged.
@@ -210,3 +210,45 @@ Implementation continued after midnight on 2026-10-24 (Asia/Shanghai). The
 - F round 2 now validates a unique actual XcodeGen version read, with hard-coded
   and reassignment negative fixtures. E copy is evergreen in all 12 languages,
   without claiming a Store listing is published or under preparation.
+
+## Final local and hosted verification
+
+- Final tested pre-commit tree:
+  `ee5711392f0fb347e0d8a957a33343153962eacd`, containing 64 modified and
+  3 new files for phases B-F and their review fixes.
+- The branch was based on `b9b7961f7eb34ed555ca791f5769883cbf3b1b78`. At the
+  final verification, fetched `origin/main` was
+  `7903d044a763b6232c8ed4c513d7890a675ebc47`; the branch
+  remained 100 commits behind and did not merge that later history.
+- The first final `full` run failed only because the branch predated upstream
+  macOS 27.2 static-raster baselines. `ffae6046` was cherry-picked as
+  `ee571139`; its conflict was resolved while retaining every recorded macOS 26
+  and macOS 27 variant. The complete profile then passed.
+- `bash scripts/verify-local.sh full` passed on that working tree: 1,981 XCTest
+  with 7 skipped and 0 failures, 784 Swift Testing tests in 116 suites, Release
+  build, local ad-hoc app bundle, native contracts and offline workflow audits.
+- `bash scripts/verify-local.sh docs` passed on the same tree: localization
+  filters, workflow policy, 114/114 dual-workflow policy checks, 85/85 semantic
+  fixtures and 29/29 embedded-shell syntax checks.
+- Focused evidence: 49 XCTest cases passed; Store project contract 75/75,
+  source closure 89/89 and bundle contract 80/80.
+- The actual unsigned Store archive compiled 304 Store sources. The app and
+  Core framework are arm64+x86_64 with macOS 13 minimum and SDK 27 metadata;
+  dSYMs, source closure and the recursive bundle audit passed. Sandbox runtime,
+  signing, notarization and App Store Connect remain `NOT RUN`.
+- The first actual Store bundle audit failed because Xcode archived
+  `.lproj/InfoPlist.strings` as UTF-16 LE with a BOM while the auditor required
+  UTF-8. A RED fixture was added, and the auditor now accepts `utf-8-sig` then
+  `utf-16`. Generated Store resources remain UTF-8; the re-audit passed.
+- CI stabilization commits: `c5eb36b7` through `c5288c10` made hosted test
+  geometry/process bounds deterministic, then `d89cb7dd` installed the mobile
+  helper build tools required by the Direct job and `e8d31081` drained both
+  icon presentation coalescers at an explicit test boundary.
+- GitHub dual-channel run `40142748595` applies only to `e8d31081`. The current
+  uncommitted fix snapshot has no hosted run; that evidence is not inferred from
+  local or offline fixtures.
+- Rawls closed findings 1-5 and declared the whole-branch code review clean.
+  The reviewer independently ran 62 focused XCTest cases and `git diff --check`;
+  no tracked files changed during review. Runtime, hardware, signing, sandbox,
+  hosted CI for this uncommitted snapshot and publication remain `NOT RUN` as
+  recorded in the final verification file.
