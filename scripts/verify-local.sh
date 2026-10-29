@@ -97,6 +97,7 @@ elif [[ "$MODE" == "docs" ]]; then
         run_step "Documentation: $filter" bash scripts/test.sh "$filter"
     done
     run_step "Documentation policy" bash scripts/test-workflow-policy.sh
+    run_step "Dual-distribution workflow policy" bash scripts/test-dual-distribution-workflows.sh
 else
     run_step "Swift tests + forbidden patterns" bash scripts/test.sh
     run_step "Release build" swift build -c release
@@ -133,6 +134,11 @@ else
         "scripts/test-verify-local.sh"
         "scripts/test-verify-local-bundle.sh"
         "scripts/test-workflow-policy.sh"
+        "scripts/test-app-store-project-contract.sh"
+        "scripts/test-app-store-source-closure.sh"
+        "scripts/test-app-store-bundle-contract.sh"
+        "scripts/test-app-store-archive-dsyms.sh"
+        "scripts/test-dual-distribution-workflows.sh"
     )
     for check in "${NATIVE_CHECKS[@]}"; do
         run_step "Native check: $(basename "$check")" bash "$check"

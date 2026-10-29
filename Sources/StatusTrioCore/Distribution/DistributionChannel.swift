@@ -13,7 +13,7 @@ enum DistributionChannel: String, CaseIterable, Sendable {
     var productionBundleIdentifier: String {
         switch self {
         case .direct: "com.lingsmbp.StatusTrio"
-        case .appStore: "com.lingsmbp.StatusTrio.AppStore"
+        case .appStore: "com.lingai.StatusTrio"
         }
     }
 }

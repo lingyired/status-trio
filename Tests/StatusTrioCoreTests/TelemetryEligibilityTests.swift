@@ -53,7 +53,7 @@ final class TelemetryEligibilityTests: XCTestCase {
 
     func testAppStoreChannelIsIneligibleWithStoreIdentity() {
         XCTAssertFalse(TelemetryEligibility.isEligible(.init(
-            bundleIdentifier: "com.lingsmbp.StatusTrio.AppStore",
+            bundleIdentifier: "com.lingai.StatusTrio",
             productionMarker: true,
             isDebugBuild: false,
             channel: .appStore

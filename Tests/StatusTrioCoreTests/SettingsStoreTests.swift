@@ -562,7 +562,10 @@ final class SettingsStoreTests: XCTestCase {
         let url = try makeChargeLimitPlist(limit: 80)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let store = SettingsStore(defaults: suite.defaults)
+        let store = SettingsStore(
+            defaults: suite.defaults,
+            chargeLimitProvider: TestChargeLimitProvider()
+        )
         store.chargeLimitURLForTesting = url
         store.batteryFullThreshold = 100
 
@@ -580,7 +583,10 @@ final class SettingsStoreTests: XCTestCase {
         let url = try makeChargeLimitPlist(limit: 80)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let store = SettingsStore(defaults: suite.defaults)
+        let store = SettingsStore(
+            defaults: suite.defaults,
+            chargeLimitProvider: TestChargeLimitProvider()
+        )
         store.chargeLimitURLForTesting = url
         store.applySystemChargeLimit()
         XCTAssertEqual(store.batteryFullThreshold, 80, accuracy: 0.001)
@@ -606,7 +612,10 @@ final class SettingsStoreTests: XCTestCase {
         try Data("not a plist".utf8).write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let store = SettingsStore(defaults: suite.defaults)
+        let store = SettingsStore(
+            defaults: suite.defaults,
+            chargeLimitProvider: TestChargeLimitProvider()
+        )
         store.chargeLimitURLForTesting = url
         store.batteryFullThreshold = 75
 
@@ -630,7 +639,10 @@ final class SettingsStoreTests: XCTestCase {
         try data.write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let store = SettingsStore(defaults: suite.defaults)
+        let store = SettingsStore(
+            defaults: suite.defaults,
+            chargeLimitProvider: TestChargeLimitProvider()
+        )
         store.chargeLimitURLForTesting = url
 
         XCTAssertFalse(store.canReadSystemChargeLimit)
@@ -655,6 +667,13 @@ final class SettingsStoreTests: XCTestCase {
         )
         try data.write(to: url)
         return url
+    }
+
+    private struct TestChargeLimitProvider: SystemChargeLimitProviding {
+        func chargeLimit(from url: URL?) -> Int? {
+            guard let url else { return nil }
+            return SystemChargeLimitReader.chargeLimit(from: url)
+        }
     }
 
     func testIconSizeAboveRangeIsClampedToUpperBound() {

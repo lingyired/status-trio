@@ -14,17 +14,20 @@ struct IconGuideOnboardingView: View {
     @State private var page: IconGuidePage = .anatomy
     @State private var menuBarHelp = MenuBarHelpPresentation()
     @State private var telemetryConsentDraft = TelemetryConsentDraft()
+    var allowsTelemetryConsent = true
     let onCustomize: () -> Void
     let onDone: () -> Void
 
     init(
         settings: SettingsStore,
         initialPage: IconGuidePage = .anatomy,
+        allowsTelemetryConsent: Bool = true,
         onCustomize: @escaping () -> Void,
         onDone: @escaping () -> Void
     ) {
         self.settings = settings
         _page = State(initialValue: initialPage)
+        self.allowsTelemetryConsent = allowsTelemetryConsent
         self.onCustomize = onCustomize
         self.onDone = onDone
     }
@@ -59,7 +62,8 @@ struct IconGuideOnboardingView: View {
                     alignment: .topLeading
                 )
 
-                if settings.telemetryConsentVersion == 0 {
+                if allowsTelemetryConsent,
+                   settings.telemetryConsentVersion == 0 {
                     telemetryDisclosure
                         .opacity(page == .states ? 1 : 0)
                         .allowsHitTesting(page == .states)
@@ -186,7 +190,10 @@ struct IconGuideOnboardingView: View {
     }
 
     private func completeOnboarding(_ action: () -> Void) {
-        telemetryConsentDraft.acknowledge(settings: settings)
+        telemetryConsentDraft.acknowledge(
+            settings: settings,
+            allowsTelemetryConsent: allowsTelemetryConsent
+        )
         action()
     }
 }

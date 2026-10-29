@@ -6,6 +6,7 @@ enum AudioPanelMapper {
     static func volume(
         _ status: VolumeStatus,
         controllerAvailable: Bool,
+        allowsDDC: Bool = true,
         deviceList: AudioOutputListPreferences = .default,
         listeningModes: BluetoothListeningModeController? = nil,
         listeningModeTaskID: String = "",
@@ -62,6 +63,9 @@ enum AudioPanelMapper {
             isPreview: true,
             localization: previewLocalization ?? localization
         )
+        let isUnsupportedDDCOutput = !allowsDDC
+            && scalar == nil
+            && status.currentDevice?.transport?.requiresDDCVolume == true
 
         return VolumePanelState(
             summary: summary,
@@ -80,7 +84,8 @@ enum AudioPanelMapper {
             expandLabel: localization.string(.volumeOutputExpand),
             collapseLabel: localization.string(.volumeOutputCollapse),
             listeningModeTaskID: listeningModeTaskID,
-            previewLanguageCode: previewLanguageCode
+            previewLanguageCode: previewLanguageCode,
+            isUnsupportedDDCOutput: isUnsupportedDDCOutput
         )
     }
 
@@ -295,6 +300,18 @@ enum AudioPanelMapper {
         guard let name else { return nil }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private extension AudioOutputTransport {
+    var requiresDDCVolume: Bool {
+        switch self {
+        case .hdmi, .displayPort, .thunderbolt:
+            true
+        case .builtIn, .bluetooth, .bluetoothLowEnergy, .usb, .airPlay,
+             .aggregate, .virtual, .other:
+            false
+        }
     }
 }
 

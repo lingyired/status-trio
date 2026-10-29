@@ -18,7 +18,6 @@ enum BluetoothBatterySegment: Equatable, Sendable {
     /// forms of one level cannot drift apart.
     case symbol(name: String, label: String)
 }
-
 extension Array where Element == BluetoothBatterySegment {
     /// The pieces as one string, each glyph spelled out by its label.
     var plainText: String {
@@ -178,53 +177,5 @@ enum BluetoothBatteryReader {
             return nil
         }
         return Int(number)
-    }
-}
-
-final class SystemProfilerBluetoothBatteryWorker: @unchecked Sendable, BluetoothBatteryReading {
-    typealias OutputProvider = @Sendable () -> Data?
-    private let queue = DispatchQueue(label: "StatusTrio.SystemProfilerBluetoothBatteryWorker")
-    private let outputProvider: OutputProvider
-    private let reportCache: BluetoothProfilerReportCache
-
-    init(
-        outputProvider: @escaping OutputProvider = SystemProfilerBluetoothBatteryWorker.readSystemProfilerOutput,
-        reportCache: BluetoothProfilerReportCache = .shared
-    ) {
-        self.outputProvider = outputProvider
-        self.reportCache = reportCache
-    }
-
-    func read(completion: @escaping @Sendable ([String: BluetoothBatteryLevel]?) -> Void) {
-        queue.async {
-            let data: Data?
-            if let cached = self.reportCache.freshData() {
-                // Bytes that were only read are never stored back: the freshness
-                // window runs from the last `store`, so re-stamping them would
-                // both extend their life and let them overwrite a newer report
-                // the device worker stored in the meantime.
-                data = cached
-            } else {
-                let cacheEpoch = self.reportCache.currentEpoch
-                data = self.outputProvider()
-                if let fetched = data {
-                    // This read genuinely fetched, so it may seed the cache for
-                    // a read that happens moments later.
-                    self.reportCache.store(fetched, ifCurrent: cacheEpoch)
-                }
-            }
-            guard let data else {
-                // A report that could not be read is not an empty report.
-                completion(nil)
-                return
-            }
-            completion(BluetoothBatteryReader.parse(json: data))
-        }
-    }
-
-    /// The battery and device readers want the same report; share the bounded
-    /// read so there is one deadline and one place that reaps the child.
-    static func readSystemProfilerOutput() -> Data? {
-        SystemProfilerBluetoothPairedDeviceWorker.readSystemProfilerOutput()
     }
 }

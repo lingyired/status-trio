@@ -51,16 +51,24 @@ struct SystemIconAppearanceThemeTests {
 
     @Test func readerUsesTheGlobalPreferenceValue() {
         var requestedKey: String?
-        let theme = SystemIconAppearanceReader.current { key in
-            requestedKey = key
-            return "ClearDark"
-        }
+        let theme = SystemIconAppearanceReader.current(
+            readValue: { key in
+                requestedKey = key
+                return "ClearDark"
+            },
+            key: "TestAppleIconAppearanceTheme"
+        )
 
-        #expect(requestedKey == SystemIconAppearanceReader.themeDefaultsKey)
+        #expect(requestedKey == "TestAppleIconAppearanceTheme")
         #expect(theme == SystemIconAppearanceTheme(style: .clear, appearance: .dark))
     }
 
     @Test func readerFallsBackToDefaultWhenUnavailable() {
-        #expect(SystemIconAppearanceReader.current { _ in nil } == .default)
+        #expect(
+            SystemIconAppearanceReader.current(
+                readValue: { _ in nil },
+                key: "TestAppleIconAppearanceTheme"
+            ) == .default
+        )
     }
 }

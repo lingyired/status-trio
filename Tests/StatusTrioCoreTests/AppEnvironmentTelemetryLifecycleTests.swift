@@ -51,7 +51,8 @@ final class AppEnvironmentTelemetryLifecycleTests: XCTestCase {
             activationPolicy: activationPolicy,
             showIconGuide: {},
             chargingEffectClock: clock,
-            globalShortcutController: shortcutController
+            globalShortcutController: shortcutController,
+            launchAtLogin: LaunchAtLoginManager()
         )
         let statusBar = StatusBarController(
             store: store,

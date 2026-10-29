@@ -48,6 +48,8 @@ struct BluetoothDeviceRow: View {
     var onSelectListeningMode: (BluetoothListeningMode) -> Void = { _ in }
     let actionState: BluetoothDeviceActionState?
     let isConfirmingDisconnect: Bool
+    var allowsDeviceActions = true
+    var hidesUnavailableBatteryStatus = false
     let onPerformAction: () -> Void
     let onRequestDisconnect: () -> Void
     let onCancelDisconnect: () -> Void
@@ -88,7 +90,10 @@ struct BluetoothDeviceRow: View {
                     .lineLimit(1)
             }
             .accessibilityElement(children: .contain)
-        } else if BluetoothDeviceActionPolicy.isActionable(device) {
+        } else if BluetoothDeviceActionPolicy.offersAction(
+            for: device,
+            allowsDeviceActions: allowsDeviceActions
+        ) {
             Button(action: { handleTap() }) {
                 rowContent(status)
             }
@@ -233,7 +238,11 @@ struct BluetoothDeviceRow: View {
     }
 
     private func externalStatusText(for status: NearbyBLEPanelRowStatus) -> String? {
-        BluetoothDeviceRowExternalStatusPresentation.text(
+        guard !hidesUnavailableBatteryStatus else {
+            guard case let .battery(level) = status else { return nil }
+            return "\(level)%"
+        }
+        return BluetoothDeviceRowExternalStatusPresentation.text(
             status,
             unavailable: localization.string(.bluetoothNearbyBLEUnavailable),
             notNearby: localization.string(.bluetoothNearbyBLENotNearby)
@@ -287,11 +296,10 @@ struct BluetoothDeviceRow: View {
     /// announce the case's percentage with nothing saying what it belongs to.
     private var rowAccessibilityValue: String {
         if let externalBatteryStatus {
-            return BluetoothDeviceRowExternalStatusPresentation.accessibilityValue(
-                externalBatteryStatus,
-                unavailable: localization.string(.bluetoothNearbyBLEUnavailable),
-                notNearby: localization.string(.bluetoothNearbyBLENotNearby)
-            )
+            let externalValue = externalStatusText(for: externalBatteryStatus) ?? ""
+            return externalValue.isEmpty
+                ? stateAccessibilityValue
+                : externalValue
         }
         let state = stateAccessibilityValue
         guard let level = BluetoothDevicePresentation.batteryLevelSegments(
@@ -357,7 +365,11 @@ struct BluetoothDeviceRow: View {
     }
 
     private func handleTap() {
-        guard !isActionInFlight else { return }
+        guard !isActionInFlight,
+              BluetoothDeviceActionPolicy.offersAction(
+                  for: device,
+                  allowsDeviceActions: allowsDeviceActions
+              ) else { return }
         if BluetoothDeviceActionPolicy.requiresConfirmation(for: device) {
             onRequestDisconnect()
         } else {

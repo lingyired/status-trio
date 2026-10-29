@@ -504,3 +504,12 @@
 "settings.shortcut.restorationFailed" = "Не удалось восстановить предыдущее сочетание.";
 "settings.shortcut.accessibility.current" = "Текущее глобальное сочетание: %@";
 "settings.shortcut.accessibility.unassigned" = "Глобальное сочетание не назначено.";
+
+// Distribution channel and capability availability.
+"settings.distribution.title" = "Распространение";
+"settings.distribution.description" = "Status Trio — утилита macOS с открытым исходным кодом. Доступность системных элементов управления может зависеть от канала распространения и разрешений macOS.";
+"settings.distribution.project" = "Проект с открытым исходным кодом и примечания к выпуску";
+"settings.distribution.independentSettings" = "Каждый вариант распространения сохраняет собственные настройки и разрешения.";
+"settings.updates.systemManaged" = "Обновлениями управляет Mac App Store.";
+"capability.unavailableDistribution" = "Этот элемент управления недоступен в данном варианте распространения.";
+"capability.notVerified" = "Доступность на этом Mac не проверена.";

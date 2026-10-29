@@ -587,6 +587,7 @@ final class NearbyBLEControllerDemandTests: XCTestCase {
         let scanner = DemandScannerSpy()
         let monitor = DemandStateMonitorSpy()
         let controller = BluetoothDeviceController(
+            worker: AvailableBluetoothPairedDeviceReader(),
             stateMonitor: monitor,
             notificationCenter: NotificationCenter(),
             workspaceNotificationCenter: NotificationCenter(),

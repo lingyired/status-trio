@@ -32,7 +32,7 @@ final class MobileBatteryController: ObservableObject {
     private var nextFullRefreshDate: Date?
 
     init(
-        reader: any MobileBatteryReading = MobileBatteryHelperReader(),
+        reader: any MobileBatteryReading = UnavailableMobileBatteryReader(),
         clock: @escaping @Sendable () -> Date = { Date() },
         sleep: @escaping @Sendable (Duration) async throws -> Void = { duration in
             try await Task.sleep(for: duration)

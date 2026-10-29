@@ -1,0 +1,301 @@
+name: App Store unsigned archive verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: "Frozen lowercase 40-character commit SHA from main."
+        required: true
+        type: string
+      version:
+        description: "Explicit Store candidate marketing version."
+        required: true
+        type: string
+      build:
+        description: "Explicit Store candidate build number; verify it increases against App Store Connect."
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  XCODEGEN_VERSION: "2.46.0"
+  XCODEGEN_ARCHIVE_URL: "https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip"
+  XCODEGEN_ARCHIVE_SHA256: "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806"
+
+concurrency:
+  group: app-store-archive-${{ inputs.candidate_sha }}
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    name: Unsigned Store archive / internal diagnostic
+    runs-on: macos-26
+    timeout-minutes: 75
+    env:
+      CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      VERSION_INPUT: ${{ inputs.version }}
+      BUILD_INPUT: ${{ inputs.build }}
+
+    steps:
+      - name: Check out the frozen candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate the frozen candidate and explicit version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "::error::app-store.yml must be dispatched from main, not ${GITHUB_REF}."
+            exit 1
+          fi
+          if [[ ! "${CANDIDATE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::candidate_sha must be a lowercase 40-character commit SHA."
+            exit 1
+          fi
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [[ "${ACTUAL_SHA}" != "${CANDIDATE_SHA}" ]]; then
+            echo "::error::Checkout ${ACTUAL_SHA} differs from frozen candidate ${CANDIDATE_SHA}."
+            exit 1
+          fi
+          git fetch --quiet origin main
+          if ! git merge-base --is-ancestor "${CANDIDATE_SHA}" origin/main; then
+            echo "::error::Candidate ${CANDIDATE_SHA} is not part of origin/main."
+            exit 1
+          fi
+          if [[ ! "${VERSION_INPUT}" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "::error::version must contain dot-separated numbers."
+            exit 1
+          fi
+          if [[ ! "${BUILD_INPUT}" =~ ^[0-9]+$ ]]; then
+            echo "::error::build must contain only digits."
+            exit 1
+          fi
+          echo "Frozen candidate: ${CANDIDATE_SHA}"
+          echo "Store candidate: ${VERSION_INPUT} (${BUILD_INPUT})"
+          echo "Build number is maintainer-supplied; monotonicity against App Store Connect must be checked manually."
+
+      - name: Select macOS 26+ and Swift 6+ toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          CANDIDATES="$(mktemp "${TMPDIR:-/tmp}/StatusTrioXcodes.XXXXXX")"
+          DEFAULT_DEVELOPER="$(xcode-select -p 2>/dev/null || true)"
+          if [[ -n "${DEFAULT_DEVELOPER}" && -d "${DEFAULT_DEVELOPER}" ]]; then
+            printf '%s\n' "${DEFAULT_DEVELOPER}" >> "${CANDIDATES}"
+          fi
+          for DEVELOPER_CANDIDATE in /Applications/Xcode*.app/Contents/Developer; do
+            if [[ -d "${DEVELOPER_CANDIDATE}" ]]; then
+              printf '%s\n' "${DEVELOPER_CANDIDATE}" >> "${CANDIDATES}"
+            fi
+          done
+          if [[ ! -s "${CANDIDATES}" ]]; then
+            echo "::error::No Xcode installations were found on this runner."
+            exit 1
+          fi
+
+          version_gt() {
+            awk -v left="$1" -v right="$2" '
+              BEGIN {
+                left_count = split(left, left_part, ".")
+                right_count = split(right, right_part, ".")
+                count = left_count > right_count ? left_count : right_count
+                for (i = 1; i <= count; i++) {
+                  l = i <= left_count ? left_part[i] + 0 : 0
+                  r = i <= right_count ? right_part[i] + 0 : 0
+                  if (l > r) exit 0
+                  if (l < r) exit 1
+                }
+                exit 1
+              }
+            '
+          }
+
+          SELECTED=""
+          SELECTED_SDK=""
+          SELECTED_SWIFT=""
+          SEEN=""
+          while IFS= read -r DEVELOPER_CANDIDATE; do
+            [[ -n "${DEVELOPER_CANDIDATE}" ]] || continue
+            case "${SEEN}" in
+              *"|${DEVELOPER_CANDIDATE}|"*) continue ;;
+            esac
+            SEEN="${SEEN}|${DEVELOPER_CANDIDATE}|"
+
+            SDK_VERSION="$(DEVELOPER_DIR="${DEVELOPER_CANDIDATE}" xcrun --sdk macosx --show-sdk-version 2>/dev/null || true)"
+            SDK_MAJOR="${SDK_VERSION%%.*}"
+            echo "Inspecting ${DEVELOPER_CANDIDATE}: macOS SDK '${SDK_VERSION}'."
+            [[ "${SDK_MAJOR}" =~ ^[0-9]+$ ]] || continue
+
+            SWIFT_OUTPUT="$(DEVELOPER_DIR="${DEVELOPER_CANDIDATE}" xcrun --sdk macosx swift --version 2>&1 || true)"
+            SWIFT_VERSION="$(printf '%s\n' "${SWIFT_OUTPUT}" | sed -n 's/.*Swift version \([0-9][0-9.]*\).*/\1/p' | head -n 1)"
+            SWIFT_MAJOR="${SWIFT_VERSION%%.*}"
+            echo "Inspecting ${DEVELOPER_CANDIDATE}: Swift '${SWIFT_VERSION}'."
+            [[ "${SWIFT_MAJOR}" =~ ^[0-9]+$ ]] || continue
+
+            if [[ "${SDK_MAJOR}" -ge 26 && "${SWIFT_MAJOR}" -ge 6 ]]; then
+              if [[ -z "${SELECTED}" ]] ||
+                version_gt "${SDK_VERSION}" "${SELECTED_SDK}" ||
+                { [[ "${SDK_VERSION}" == "${SELECTED_SDK}" ]] && version_gt "${SWIFT_VERSION}" "${SELECTED_SWIFT}"; }; then
+                SELECTED="${DEVELOPER_CANDIDATE}"
+                SELECTED_SDK="${SDK_VERSION}"
+                SELECTED_SWIFT="${SWIFT_VERSION}"
+              fi
+            fi
+          done < "${CANDIDATES}"
+
+          if [[ -z "${SELECTED}" ]]; then
+            echo "::error::No Xcode with macOS SDK >= 26 and Swift >= 6 was found."
+            echo "Inspected Xcode installations:"
+            sed 's/^/  /' "${CANDIDATES}"
+            exit 1
+          fi
+
+          {
+            echo "DEVELOPER_DIR=${SELECTED}"
+            echo "SELECTED_XCODE=${SELECTED}"
+            echo "SELECTED_MACOS_SDK=${SELECTED_SDK}"
+            echo "SELECTED_SWIFT=${SELECTED_SWIFT}"
+          } >> "${GITHUB_ENV}"
+          echo "Selected ${SELECTED} (macOS SDK ${SELECTED_SDK}, Swift ${SELECTED_SWIFT})."
+
+      - name: Install pinned XcodeGen 2.46.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          ARCHIVE="${RUNNER_TEMP}/xcodegen-${XCODEGEN_VERSION}.zip"
+          EXTRACT="${RUNNER_TEMP}/xcodegen-${XCODEGEN_VERSION}-extract"
+          TOOL_ROOT="${GITHUB_WORKSPACE}/.build/tools/xcodegen-${XCODEGEN_VERSION}"
+          rm -rf "${ARCHIVE}" "${EXTRACT}" "${TOOL_ROOT}"
+          mkdir -p "${EXTRACT}"
+          curl -fL --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 180 \
+            -o "${ARCHIVE}" "${XCODEGEN_ARCHIVE_URL}" 2>&1 | tee -a .build/ci-logs/xcodegen-install.log
+          printf '%s  %s\n' "${XCODEGEN_ARCHIVE_SHA256}" "${ARCHIVE}" | shasum -a 256 -c - 2>&1 | tee -a .build/ci-logs/xcodegen-install.log
+          unzip -q "${ARCHIVE}" -d "${EXTRACT}"
+          if [[ ! -f "${EXTRACT}/xcodegen/install.sh" ]]; then
+            echo "::error::Pinned XcodeGen archive did not contain xcodegen/install.sh."
+            exit 1
+          fi
+          mkdir -p "${TOOL_ROOT}"
+          PREFIX="${TOOL_ROOT}" bash "${EXTRACT}/xcodegen/install.sh" 2>&1 | tee -a .build/ci-logs/xcodegen-install.log
+          if [[ ! -x "${TOOL_ROOT}/bin/xcodegen" ]]; then
+            echo "::error::Pinned XcodeGen was not installed at ${TOOL_ROOT}/bin/xcodegen."
+            exit 1
+          fi
+          ACTUAL_XCODEGEN_VERSION="$("${TOOL_ROOT}/bin/xcodegen" --version 2>&1 | head -n 1)"
+          ACTUAL_XCODEGEN_VERSION="${ACTUAL_XCODEGEN_VERSION#Version: }"
+          if [[ "${ACTUAL_XCODEGEN_VERSION}" != "${XCODEGEN_VERSION}" ]]; then
+            echo "::error::Expected XcodeGen ${XCODEGEN_VERSION}, found ${ACTUAL_XCODEGEN_VERSION}."
+            exit 1
+          fi
+          {
+            echo "XCODEGEN=${TOOL_ROOT}/bin/xcodegen"
+          } >> "${GITHUB_ENV}"
+          echo "Installed XcodeGen ${ACTUAL_XCODEGEN_VERSION} from the pinned official archive."
+
+      - name: Test Store project contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/test-app-store-project-contract.sh 2>&1 | tee .build/ci-logs/app-store-project-contract.log
+
+      - name: Test Store bundle audit fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/test-app-store-bundle-contract.sh 2>&1 | tee .build/ci-logs/app-store-bundle-contract.log
+
+      - name: Test Store source closure negative fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/test-app-store-source-closure.sh 2>&1 | tee .build/ci-logs/app-store-source-closure-contract.log
+
+      - name: Build unsigned Store archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          APP_STORE_UNSIGNED=1 \
+            APP_STORE_ARCHIVE_PATH=.build/app-store/StatusTrio.xcarchive \
+            APP_VERSION="${VERSION_INPUT}" \
+            BUILD_NUMBER="${BUILD_INPUT}" \
+            bash scripts/build-app-store.sh release no-open 2>&1 | tee .build/ci-logs/app-store-archive.log
+
+      - name: Verify unsigned Store app statically
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/verify-app-store-bundle.sh dist/AppStore/StatusTrio.app --unsigned 2>&1 | tee .build/ci-logs/app-store-bundle-audit.log
+
+      - name: Verify archived Store dSYMs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/verify-app-store-archive-dsyms.sh .build/app-store/StatusTrio.xcarchive 2>&1 | tee .build/ci-logs/app-store-dsym-audit.log
+
+      - name: Verify Store source closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          python3 scripts/verify-app-store-source-closure.py .build/app-store/source-membership.json 2>&1 | tee .build/ci-logs/app-store-source-closure.log
+
+      - name: Record unsigned archive limits
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "## App Store unsigned archive"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Frozen candidate SHA | \`${CANDIDATE_SHA}\` |"
+            echo "| Candidate version | \`${VERSION_INPUT}\` |"
+            echo "| Candidate build | \`${BUILD_INPUT}\` |"
+            echo "| Runner | \`macos-26\` GitHub-hosted |"
+            echo "| Xcode | \`${SELECTED_XCODE:-not selected}\` |"
+            echo "| macOS SDK | \`${SELECTED_MACOS_SDK:-not selected}\` |"
+            echo "| Distribution state | unsigned internal archive |"
+            echo ""
+            echo "**Needs signing credentials.** This archive is not signed, not notarized,"
+            echo "and not an uploadable or releasable App Store package."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload unsigned archive diagnostic
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-store-unsigned-archive-diagnostic
+          path: |
+            .build/app-store/StatusTrio.xcarchive
+            .build/app-store/source-membership.json
+            dist/AppStore/StatusTrio.app
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload archive diagnostic logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-store-archive-diagnostic-logs
+          path: |
+            .build/ci-logs/
+            .build/app-store/*.log
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7

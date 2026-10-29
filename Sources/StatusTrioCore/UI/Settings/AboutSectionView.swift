@@ -2,8 +2,17 @@ import AppKit
 import SwiftUI
 
 struct AboutSectionView: View {
-    @ObservedObject private var updaterManager: UpdaterManager = .shared
+    @ObservedObject var updaterManager: UpdateStateFacade
+    let capabilityPolicy: DistributionCapabilityPolicy
     @EnvironmentObject private var localization: Localization
+
+    init(
+        updaterManager: UpdateStateFacade = UpdateStateFacade(service: SystemManagedUpdateService()),
+        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
+    ) {
+        self.updaterManager = updaterManager
+        self.capabilityPolicy = capabilityPolicy
+    }
 
     var body: some View {
         SettingsPage {
@@ -52,13 +61,52 @@ struct AboutSectionView: View {
 
                     AboutActionsView(
                         canCheckForUpdates: updaterManager.canCheckForUpdates,
+                        showsProjectHomepage: capabilityPolicy.channel == .direct,
                         onCheckForUpdates: { updaterManager.checkForUpdates() }
                     )
+
+                    SettingsDivider(inset: 0)
+
+                    distributionFooter
                 }
                 .padding(.horizontal, SettingsMetrics.rowPaddingH)
                 .padding(.vertical, 14)
             }
         }
+    }
+
+    private var distributionFooter: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(localization.string(.settingsDistributionTitle))
+                    .fontWeight(.semibold)
+
+                Text(capabilityPolicy.channel.displayIdentity)
+                    .foregroundStyle(.secondary)
+            }
+            .font(.system(size: 10.5))
+            .foregroundStyle(.tertiary)
+
+            Text(localization.string(.settingsDistributionDescription))
+                .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(.tertiary)
+
+            Text(localization.string(.settingsDistributionIndependentSettings))
+                .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(.tertiary)
+
+            Link(destination: AppMetadata.repositoryURL) {
+                Label(
+                    localization.string(.settingsDistributionProject),
+                    systemImage: "arrow.up.right.square"
+                )
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .padding(.top, 1)
+        }
+        .font(.system(size: 10.5))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -66,6 +114,7 @@ struct AboutActionsView: View {
     @EnvironmentObject private var localization: Localization
 
     let canCheckForUpdates: Bool
+    var showsProjectHomepage = true
     let onCheckForUpdates: () -> Void
 
     var body: some View {
@@ -81,17 +130,13 @@ struct AboutActionsView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
-                Link(destination: AppMetadata.projectHomepageURL) {
-                    Label(localization.string(.settingsAboutProject), systemImage: "globe")
+                if showsProjectHomepage {
+                    Link(destination: AppMetadata.projectHomepageURL) {
+                        Label(localization.string(.settingsAboutProject), systemImage: "globe")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-
-                Link(destination: AppMetadata.repositoryURL) {
-                    Label(localization.string(.settingsAboutRepository), systemImage: "link")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
 
                 Link(destination: AppMetadata.authorURL) {
                     Label(AppMetadata.authorName, systemImage: "person.crop.circle")

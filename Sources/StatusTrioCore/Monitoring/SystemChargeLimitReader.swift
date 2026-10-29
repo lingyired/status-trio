@@ -14,20 +14,7 @@ import Foundation
 /// be registered under its archived name first. Every field is read
 /// defensively, because a future macOS is free to rename or drop any of them,
 /// and a reader that force-unwrapped would take the app down with it.
-struct SystemChargeLimitReading: Equatable, Sendable {
-    /// The percentage the system stops charging at.
-    let limit: Int
-    /// Why the limit exists — a user-picked limit, or one `powerd` derived.
-    let reason: String?
-
-    /// Whether the user picked this limit in System Settings, as opposed to a
-    /// policy `powerd` maintains on its own.
-    var isUserPicked: Bool {
-        reason == SystemChargeLimitReader.userPickedReason
-    }
-}
-
-enum SystemChargeLimitReader {
+struct SystemChargeLimitReader: SystemChargeLimitProviding {
     /// The plist `powerd` rewrites when the charge limit changes.
     static let defaultURL = URL(
         fileURLWithPath: "/Library/Preferences/com.apple.powerd.charging.plist"
@@ -37,6 +24,13 @@ enum SystemChargeLimitReader {
     /// derived on its own. `reason` is only advisory: a limit is honoured
     /// whatever it says, and the value is what the setting follows.
     static let userPickedReason = "manualChargeLimit"
+
+    func chargeLimit(from url: URL?) -> Int? {
+        if let url {
+            return Self.chargeLimit(from: url)
+        }
+        return Self.chargeLimit()
+    }
 
     /// - Parameter url: The plist to read. Injectable so the parser can be
     ///   tested against recorded archives instead of the live file.

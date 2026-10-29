@@ -9,14 +9,16 @@ final class LowPowerModeControlSynchronizerTests: XCTestCase {
         let settings = SettingsStore(defaults: suite.defaults)
         let service = FakePrivilegedHelperService(status: .enabled)
         let helper = PrivilegedHelperManager(service: service)
+        let facade = PrivilegedHelperFacade(service: helper)
         let synchronizer = LowPowerModeControlSynchronizer()
-        synchronizer.start(settings: settings, helper: helper)
+        synchronizer.start(settings: settings, helper: facade)
         helper.setEnabled(false)
         synchronizer.stop()
 
         let relaunchedSettings = SettingsStore(defaults: suite.defaults)
         let relaunchedHelper = PrivilegedHelperManager(service: service)
-        synchronizer.start(settings: relaunchedSettings, helper: relaunchedHelper)
+        let relaunchedFacade = PrivilegedHelperFacade(service: relaunchedHelper)
+        synchronizer.start(settings: relaunchedSettings, helper: relaunchedFacade)
 
         XCTAssertFalse(relaunchedHelper.isEnabled)
         XCTAssertFalse(relaunchedSettings.controlsLowPowerMode)
@@ -31,15 +33,17 @@ final class LowPowerModeControlSynchronizerTests: XCTestCase {
         let settings = SettingsStore(defaults: suite.defaults)
         let service = FakePrivilegedHelperService(status: .notRegistered)
         let helper = PrivilegedHelperManager(service: service)
+        let facade = PrivilegedHelperFacade(service: helper)
         let synchronizer = LowPowerModeControlSynchronizer()
-        synchronizer.start(settings: settings, helper: helper)
+        synchronizer.start(settings: settings, helper: facade)
         service.registerError = NSError(domain: "test", code: 1)
         helper.setEnabled(true)
         synchronizer.stop()
 
         let relaunchedSettings = SettingsStore(defaults: suite.defaults)
         let relaunchedHelper = PrivilegedHelperManager(service: service)
-        synchronizer.start(settings: relaunchedSettings, helper: relaunchedHelper)
+        let relaunchedFacade = PrivilegedHelperFacade(service: relaunchedHelper)
+        synchronizer.start(settings: relaunchedSettings, helper: relaunchedFacade)
 
         XCTAssertTrue(relaunchedHelper.isEnabled)
         XCTAssertTrue(relaunchedSettings.controlsLowPowerMode)
@@ -52,9 +56,10 @@ final class LowPowerModeControlSynchronizerTests: XCTestCase {
         defer { clear(suite) }
         let settings = SettingsStore(defaults: suite.defaults)
         let helper = PrivilegedHelperManager(service: FakePrivilegedHelperService(status: .notRegistered))
+        let facade = PrivilegedHelperFacade(service: helper)
         let synchronizer = LowPowerModeControlSynchronizer()
 
-        synchronizer.start(settings: settings, helper: helper)
+        synchronizer.start(settings: settings, helper: facade)
         XCTAssertFalse(settings.controlsLowPowerMode)
 
         helper.setEnabled(true)
@@ -68,12 +73,16 @@ final class LowPowerModeControlSynchronizerTests: XCTestCase {
         let settings = SettingsStore(defaults: suite.defaults)
         let service = FakePrivilegedHelperService(status: .enabled)
         let helper = PrivilegedHelperManager(service: service)
+        let facade = PrivilegedHelperFacade(service: helper)
         let synchronizer = LowPowerModeControlSynchronizer()
-        synchronizer.start(settings: settings, helper: helper)
+        synchronizer.start(settings: settings, helper: facade)
         XCTAssertTrue(settings.controlsLowPowerMode)
+        XCTAssertTrue(helper.isAvailable)
 
         helper.setEnabled(false)
 
+        XCTAssertFalse(helper.isEnabled)
+        XCTAssertFalse(facade.isEnabled)
         XCTAssertFalse(settings.controlsLowPowerMode)
         XCTAssertEqual(service.status, .enabled)
         XCTAssertEqual(service.unregisterCallCount, 0)
@@ -88,8 +97,9 @@ final class LowPowerModeControlSynchronizerTests: XCTestCase {
         let service = FakePrivilegedHelperService(status: .notRegistered)
         service.statusAfterRegister = .requiresApproval
         let helper = PrivilegedHelperManager(service: service)
+        let facade = PrivilegedHelperFacade(service: helper)
         let synchronizer = LowPowerModeControlSynchronizer()
-        synchronizer.start(settings: settings, helper: helper)
+        synchronizer.start(settings: settings, helper: facade)
 
         helper.setEnabled(true)
 
@@ -105,9 +115,10 @@ final class LowPowerModeControlSynchronizerTests: XCTestCase {
         let settings = SettingsStore(defaults: defaults)
         XCTAssertTrue(settings.controlsLowPowerMode)
         let helper = PrivilegedHelperManager(service: FakePrivilegedHelperService(status: .notRegistered))
+        let facade = PrivilegedHelperFacade(service: helper)
 
         let synchronizer = LowPowerModeControlSynchronizer()
-        synchronizer.start(settings: settings, helper: helper)
+        synchronizer.start(settings: settings, helper: facade)
 
         XCTAssertTrue(settings.controlsLowPowerMode)
         XCTAssertTrue(helper.isEnabled)

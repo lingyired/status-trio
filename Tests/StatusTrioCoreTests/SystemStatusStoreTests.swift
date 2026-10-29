@@ -408,6 +408,7 @@ final class SystemStatusStoreTests: XCTestCase {
         let scanner = StoreIntervalScannerSpy()
         let stateMonitor = StoreBluetoothStateMonitorSpy()
         let bluetooth = BluetoothDeviceController(
+            worker: AvailableBluetoothPairedDeviceReader(),
             stateMonitor: stateMonitor,
             nearbyBatteryScanner: scanner
         )

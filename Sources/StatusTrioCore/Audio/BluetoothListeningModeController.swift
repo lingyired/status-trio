@@ -104,7 +104,7 @@ final class BluetoothListeningModeController: ObservableObject {
     /// (the stem, Control Center, another Mac, Siri) reflects here without waiting
     /// for the panel to reopen or for the user to tap. Preview mode never touches
     /// the seam — synthetic rows have no device to listen to.
-    private let listenerBackend: any BluetoothListeningModePropertyListening
+    private let listenerBackend: (any BluetoothListeningModePropertyListening)?
 
     /// The queue CoreAudio dispatches `lstm` signals on. Serial so a burst of
     /// notifications does not fan out; the block body only hops to MainActor, so
@@ -138,8 +138,8 @@ final class BluetoothListeningModeController: ObservableObject {
 
     init(
         hal: BluetoothListeningModeHAL = BluetoothListeningModeHAL(),
-        endpointProvider: any CoreAudioBluetoothEndpointProviding = CoreAudioBluetoothListeningModeEndpointProvider(),
-        listenerBackend: any BluetoothListeningModePropertyListening = CoreAudioBluetoothListeningModeListenerBackend(),
+        endpointProvider: (any CoreAudioBluetoothEndpointProviding)? = nil,
+        listenerBackend: (any BluetoothListeningModePropertyListening)? = nil,
         huaweiTransport: any HuaweiListeningModeTransporting = HuaweiRFCOMMTransport(),
         huaweiEndpointProvider: any HuaweiAudioEndpointProviding = CoreAudioHuaweiAudioEndpointProvider(),
         huaweiReadRetryDelays: [Duration] = [.milliseconds(150), .milliseconds(450)],
@@ -151,7 +151,7 @@ final class BluetoothListeningModeController: ObservableObject {
         previewSettleDelay: Duration = .milliseconds(400)
     ) {
         self.hal = hal
-        self.endpointProvider = endpointProvider
+        self.endpointProvider = endpointProvider ?? UnavailableBluetoothListeningModeEndpointProvider()
         self.listenerBackend = listenerBackend
         self.huaweiTransport = huaweiTransport
         self.huaweiEndpointProvider = huaweiEndpointProvider
@@ -598,9 +598,8 @@ final class BluetoothListeningModeController: ObservableObject {
     }
 
     private func subscribe(endpointID: AudioDeviceID) {
-        let address = BluetoothListeningModeProperty.address(
-            BluetoothListeningModeProperty.listeningMode
-        )
+        guard let listenerBackend,
+              let address = listenerBackend.listeningModeAddress else { return }
         let queue = listenerQueue
         // The block only hops to the MainActor — the presentation is mutated there,
         // so nothing else is captured. `weak self` keeps CoreAudio from holding the
@@ -626,7 +625,8 @@ final class BluetoothListeningModeController: ObservableObject {
     }
 
     private func unsubscribe(endpointID: AudioDeviceID) {
-        guard let subscription = subscriptions.removeValue(forKey: endpointID) else { return }
+        guard let listenerBackend,
+              let subscription = subscriptions.removeValue(forKey: endpointID) else { return }
         _ = listenerBackend.removeListener(
             deviceID: subscription.deviceID,
             address: subscription.address,

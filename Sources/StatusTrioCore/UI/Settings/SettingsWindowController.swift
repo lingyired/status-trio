@@ -11,6 +11,17 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let localization: Localization
     private let inputSourceController: InputSourceController
     private let globalShortcutController: GlobalShortcutController?
+    private let launchAtLogin: LaunchAtLoginManager
+    private let helper: PrivilegedHelperFacade
+    private let updaterManager: UpdateStateFacade
+    var platformServicesForTesting: (updater: UpdateStateFacade, helper: PrivilegedHelperFacade) {
+        (updaterManager, helper)
+    }
+    var distributionCapabilityPolicyForTesting: DistributionCapabilityPolicy {
+        capabilityPolicy
+    }
+    private let capabilityPolicy: DistributionCapabilityPolicy
+    private let systemIconAppearance: () -> SystemIconAppearanceTheme
     private let activationPolicy: AppActivationPolicy
     private let showIconGuide: () -> Void
     private var localizationCancellable: AnyCancellable?
@@ -30,7 +41,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         showIconGuide: @escaping () -> Void,
         chargingEffectClock: ChargingEffectClock = ChargingEffectClock(),
         inputSourceController: InputSourceController? = nil,
-        globalShortcutController: GlobalShortcutController? = nil
+        globalShortcutController: GlobalShortcutController? = nil,
+        launchAtLogin: LaunchAtLoginManager,
+        helper: PrivilegedHelperFacade = PrivilegedHelperFacade(service: UnsupportedPrivilegedHelperService()),
+        updaterManager: UpdateStateFacade = UpdateStateFacade(service: SystemManagedUpdateService()),
+        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
+        systemIconAppearance: @escaping () -> SystemIconAppearanceTheme = {
+            .default
+        }
     ) {
         self.store = store
         self.statusStore = statusStore
@@ -38,6 +56,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         self.localization = localization
         self.inputSourceController = inputSourceController ?? InputSourceController()
         self.globalShortcutController = globalShortcutController
+        self.launchAtLogin = launchAtLogin
+        self.helper = helper
+        self.updaterManager = updaterManager
+        self.capabilityPolicy = capabilityPolicy
+        self.systemIconAppearance = systemIconAppearance
         self.activationPolicy = activationPolicy
         self.showIconGuide = showIconGuide
         self.lastBluetoothAuthorization = statusStore.bluetoothDevices.authorizationStatus
@@ -89,7 +112,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         enterActivationPolicyIfNeeded()
         // The user may have approved the power helper in System Settings since
         // the last look; refresh so the toggle and its approval note are current.
-        PrivilegedHelperManager.shared.refresh()
+        if !capabilityPolicy.blocksControl(.privilegedHelper) {
+            helper.refresh()
+        }
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
@@ -157,9 +182,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 localization: localization,
                 inputSourceController: inputSourceController,
                 globalShortcutController: globalShortcutController,
+                launchAtLogin: launchAtLogin,
+                updaterManager: updaterManager,
+                helper: helper,
+                capabilityPolicy: capabilityPolicy,
                 onShowIconGuide: showIconGuide
             )
             .environmentObject(chargingEffectClock)
+            .environment(\.systemIconAppearance, systemIconAppearance)
         }
 
         window.contentView = NSHostingView(rootView: rootView)

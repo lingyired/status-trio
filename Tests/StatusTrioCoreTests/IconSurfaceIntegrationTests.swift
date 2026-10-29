@@ -238,6 +238,10 @@ struct IconSurfaceIntegrationTests {
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
+        let flushPresentations: @MainActor () -> Void = {
+            menuBar.flushPendingPresentationForTesting()
+            harness.controller.flushPendingPresentationForTesting()
+        }
 
         try await verifySetting(
             "battery scale",
@@ -247,6 +251,7 @@ struct IconSurfaceIntegrationTests {
                 return text.scale == 0.95 * BatteryIconOptions.defaultTextScale
             },
             latestMenuBarScene: { menuBarScenes.last },
+            flushPresentations: flushPresentations,
             harness: harness
         )
 
@@ -255,6 +260,7 @@ struct IconSurfaceIntegrationTests {
             { harness.settings.ringStrokeStyle = .bold },
             matches: { $0.outerRing?.strokeScale == RingStrokeStyle.bold.scale },
             latestMenuBarScene: { menuBarScenes.last },
+            flushPresentations: flushPresentations,
             harness: harness
         )
         try await verifySetting(
@@ -265,6 +271,7 @@ struct IconSurfaceIntegrationTests {
                 return symbol.scale == 1.35
             },
             latestMenuBarScene: { menuBarScenes.last },
+            flushPresentations: flushPresentations,
             harness: harness
         )
         try await verifySetting(
@@ -272,6 +279,7 @@ struct IconSurfaceIntegrationTests {
             { harness.settings.volumeDisplayStyle = .arc },
             matches: { if case .arc = $0.footer { true } else { false } },
             latestMenuBarScene: { menuBarScenes.last },
+            flushPresentations: flushPresentations,
             harness: harness
         )
 
@@ -297,6 +305,7 @@ struct IconSurfaceIntegrationTests {
                 return symbol.scale == 1.4
             },
             latestMenuBarScene: { menuBarScenes.last },
+            flushPresentations: flushPresentations,
             harness: harness
         )
         harness.publishBattery(BatteryStatus(
@@ -321,6 +330,7 @@ struct IconSurfaceIntegrationTests {
             { harness.settings.showsChargingBoltHeartbeat = false },
             matches: { $0.outerRing?.effect?.pulsesAccessory == false },
             latestMenuBarScene: { menuBarScenes.last },
+            flushPresentations: flushPresentations,
             harness: harness,
             expectsDockSceneParity: false
         )
@@ -329,6 +339,7 @@ struct IconSurfaceIntegrationTests {
             { harness.settings.showsChargingEffect = false },
             matches: { $0.outerRing?.effect == nil },
             latestMenuBarScene: { menuBarScenes.last },
+            flushPresentations: flushPresentations,
             harness: harness,
             expectsDockSceneParity: false
         )
@@ -571,6 +582,7 @@ struct IconSurfaceIntegrationTests {
         _ update: @escaping @MainActor () -> Void,
         matches: @escaping @MainActor (IconSceneState) -> Bool,
         latestMenuBarScene: @escaping @MainActor () -> IconSceneState?,
+        flushPresentations: @escaping @MainActor () -> Void,
         harness: AppIconControllerHarness,
         expectsDockSceneParity: Bool = true
     ) async throws {
@@ -579,6 +591,9 @@ struct IconSurfaceIntegrationTests {
         try await waitUntil(failureMessage: "Model did not map \(label).") {
             matches(harness.iconPresentation.output.scene)
         }
+        // Drain both coalescers at an explicit boundary; a loaded test process
+        // must not turn the 50 ms render interval into a presentation timeout.
+        flushPresentations()
         try await waitUntil(failureMessage: "Surface presentation did not update for \(label).") {
             guard let scene = latestMenuBarScene() else { return false }
             guard matches(scene), scene == harness.iconPresentation.output.scene else { return false }

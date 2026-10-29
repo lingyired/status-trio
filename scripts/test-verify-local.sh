@@ -115,6 +115,15 @@ SH
 set -euo pipefail
 printf 'bundle-self-test\n' >> "${VERIFY_TRACE:?}"
 SH
+    local store_check
+    for store_check in app-store-project-contract app-store-source-closure app-store-bundle-contract app-store-archive-dsyms dual-distribution-workflows; do
+        cat > "$fixture/scripts/test-$store_check.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$(basename "$0" .sh)" >> "${VERIFY_TRACE:?}"
+exit "${STORE_CHECK_STATUS:-0}"
+SH
+    done
     cat > "$fixture/scripts/build-app.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -280,7 +289,7 @@ for expected in forbidden "swift test --filter LocalizationTests" \
     "swift test --filter LocalizationParityTests" \
     "swift test --filter ChargingEffectLocalizationTests" \
     "swift test --filter MenuBarHelpLocalizationTests" \
-    "workflow-policy"; do
+    "workflow-policy" "test-dual-distribution-workflows"; do
     grep -Fq "$expected" "$VERIFY_TRACE" ||
         fail "docs verification did not run $expected"
 done
@@ -298,7 +307,10 @@ bash "$WORK/repo/scripts/verify-local.sh" full >"$WORK/full.log" 2>&1 ||
 for expected in forbidden "swift test" "swift build -c release" deployment deployment-regressions \
     appcast helper-contract mobile-helper mobile-rpaths otool sparkle mobile-source-cache release-policy \
     release-pipeline release-notarization clang self-test \
-    workflow-policy bundle-self-test bundle "build-app release no-open" \
+    workflow-policy bundle-self-test bundle \
+    test-app-store-project-contract test-app-store-source-closure \
+    test-app-store-bundle-contract test-app-store-archive-dsyms test-dual-distribution-workflows \
+    "build-app release no-open" \
     "BUNDLE_ID=com.lingsmbp.StatusTrio.dev.verify-local" \
     "APP_NAME=Status Trio (Verify Local)" "UNIVERSAL_BUILD=0" \
     "platform dist/StatusTrio.app/Contents/MacOS/StatusTrio 13.0 26" \
@@ -332,5 +344,17 @@ SWIFT_BUILD_STATUS=9 expect_failure "a failing full build" \
     bash "$WORK/repo/scripts/verify-local.sh" full
 grep -Fq "Release build" "$WORK/repo/.build/local-verification/status.txt" ||
     fail "failed full verification did not record the Release build step"
+
+rm -rf "$WORK/repo/.build/local-verification"
+: > "$VERIFY_TRACE"
+STORE_CHECK_STATUS=12 expect_failure "a failing Store contract" \
+    bash "$WORK/repo/scripts/verify-local.sh" full
+grep -Fq "test-app-store-project-contract.sh" "$WORK/repo/.build/local-verification/status.txt" ||
+    fail "failed full verification did not record the Store contract step"
+grep -Fq "exit=12" "$WORK/repo/.build/local-verification/status.txt" ||
+    fail "failed Store contract exit status was lost"
+if grep -Fq "test-app-store-source-closure" "$VERIFY_TRACE"; then
+    fail "full verification continued after the Store contract failed"
+fi
 
 echo "verify-local contract passed"

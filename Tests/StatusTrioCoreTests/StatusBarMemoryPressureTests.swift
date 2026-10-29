@@ -27,6 +27,9 @@ final class StatusBarMemoryPressureTests: XCTestCase {
     func testShortcutPresentationTogglesAndCleansItsFallbackAnchor() throws {
         let harness = try StatusBarPressureHarness(isVisible: false)
         defer { harness.cleanUp() }
+        // An animated close depends on window-server animation callbacks that
+        // do not complete deterministically in the headless test process.
+        harness.controller.popoverForTesting.animates = false
 
         harness.controller.openPopoverFromShortcut()
         let popover = harness.controller.popoverForTesting

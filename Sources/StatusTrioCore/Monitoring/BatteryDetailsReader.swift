@@ -56,6 +56,12 @@ struct BatteryPowerState: Hashable, Sendable {
 }
 
 struct BatteryDetailsReader: Sendable {
+    private let systemPowerReader: any SystemPowerReading
+
+    init(systemPowerReader: any SystemPowerReading = UnavailableSystemPowerReader()) {
+        self.systemPowerReader = systemPowerReader
+    }
+
     func read(state: BatteryPowerState, notBefore: Date?) -> BatteryDetails {
         let adapter = IOPSCopyExternalPowerAdapterDetails()?.takeRetainedValue() as? [String: Any]
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
@@ -74,7 +80,7 @@ struct BatteryDetailsReader: Sendable {
             state: state,
             now: Date(),
             notBefore: notBefore,
-            systemPower: Self.readsSystemPower(for: state) ? SystemPowerReader().read() : nil
+            systemPower: Self.readsSystemPower(for: state) ? systemPowerReader.read() : nil
         )
     }
 

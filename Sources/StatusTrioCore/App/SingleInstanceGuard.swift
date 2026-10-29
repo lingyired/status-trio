@@ -34,11 +34,68 @@ final class SingleInstanceGuard {
         }
     }
 
-    static var defaultLockPath: String {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/StatusTrio", isDirectory: true)
-            .appendingPathComponent(lockFileName(for: Bundle.main.bundleIdentifier))
+    static var defaultLockPath: String? {
+        defaultLockPath(
+            for: .current,
+            bundleIdentifier: Bundle.main.bundleIdentifier
+        )
+    }
+
+    /// Resolves the default lock directory without probing Bundle IDs or
+    /// receipts at runtime. Direct keeps its historical home-relative path;
+    /// Store uses Foundation's container-aware Application Support root so a
+    /// sandboxed build never falls back to the unsandboxed user directory.
+    /// A missing Store root returns `nil`; it is not replaced with `home`.
+    static func defaultLockPath(
+        for channel: DistributionChannel,
+        bundleIdentifier: String?,
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
+        applicationSupportDirectory: (FileManager.SearchPathDirectory) -> URL? = {
+            FileManager.default.urls(for: $0, in: .userDomainMask).first
+        }
+    ) -> String? {
+        let supportRoot: URL
+        switch channel {
+        case .direct:
+            supportRoot = homeDirectory
+                .appendingPathComponent("Library/Application Support", isDirectory: true)
+        case .appStore:
+            guard let containerRoot =
+                applicationSupportDirectory(.applicationSupportDirectory)
+            else {
+                return nil
+            }
+            supportRoot = containerRoot
+        }
+
+        return supportRoot
+            .appendingPathComponent("StatusTrio", isDirectory: true)
+            .appendingPathComponent(lockFileName(for: bundleIdentifier))
             .path
+    }
+
+    /// Acquires the compiled channel's default lock. Resolution failure is
+    /// reported with the same diagnosable rejection used for I/O failures.
+    static func acquireDefault(
+        for channel: DistributionChannel = .current,
+        bundleIdentifier: String? = Bundle.main.bundleIdentifier,
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
+        applicationSupportDirectory: (FileManager.SearchPathDirectory) -> URL? = {
+            FileManager.default.urls(for: $0, in: .userDomainMask).first
+        }
+    ) -> Acquisition {
+        guard let lockPath = defaultLockPath(
+            for: channel,
+            bundleIdentifier: bundleIdentifier,
+            homeDirectory: homeDirectory,
+            applicationSupportDirectory: applicationSupportDirectory
+        ) else {
+            return .rejected(.lockUnavailable(
+                reason: "cannot resolve Application Support for \(channel.rawValue); "
+                    + "no container-aware lock root is available"
+            ))
+        }
+        return acquire(lockPath: lockPath)
     }
 
     static func lockFileName(for bundleIdentifier: String?) -> String {
@@ -59,7 +116,11 @@ final class SingleInstanceGuard {
 
     /// Takes the single-instance lock, reporting *why* it was refused instead
     /// of collapsing every failure into `nil`.
-    static func acquire(lockPath: String = defaultLockPath) -> Acquisition {
+    static func acquire() -> Acquisition {
+        acquireDefault()
+    }
+
+    static func acquire(lockPath: String) -> Acquisition {
         switch openLockDescriptor(lockPath: lockPath) {
         case .success(let descriptor):
             return .acquired(SingleInstanceGuard(descriptor: descriptor))

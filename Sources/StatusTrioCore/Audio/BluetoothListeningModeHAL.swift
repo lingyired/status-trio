@@ -1,29 +1,13 @@
 import CoreAudio
 import Foundation
 
-/// The undocumented CoreAudio HAL selectors this feature drives.
-///
-/// These are Apple-private property selectors, not public SDK contract: they are
-/// resolved by their four-character-code raw values, and every access is
-/// runtime-gated (see `BluetoothListeningModeHAL`). Treating them as a stable API
-/// would be a mistake — a system update can drop them, and the whole feature then
-/// fails closed rather than assuming they still exist.
+enum BluetoothListeningModePropertyKind: Hashable, Sendable {
+    case appleAudioDevice
+    case listeningMode
+    case listeningModeSupport
+}
+
 enum BluetoothListeningModeProperty {
-    /// `iaap` — the Apple audio device marker. Probed for logging only; the
-    /// capability gate depends on `lstm`/`lsms`, never on this, so an endpoint the
-    /// marker's absence does not silently hide a working control.
-    static let appleAudioDevice: AudioObjectPropertySelector = 0x6961_6170
-    /// `lstm` — the current listening mode, a 4-byte `UInt32`, and the write
-    /// target for a mode change.
-    static let listeningMode: AudioObjectPropertySelector = 0x6C73_746D
-    /// `lsms` — the support bitmask of the modes the device offers.
-    static let listeningModeSupport: AudioObjectPropertySelector = 0x6C73_6D73
-
-    /// The scope/element every one of these selectors is read at.
-    static let scope = AudioObjectPropertyScope(kAudioObjectPropertyScopeGlobal)
-    static let element = AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
-
-    /// The size, in bytes, a `lstm`/`lsms` read must report to be trusted.
     static let expectedSize = UInt32(MemoryLayout<UInt32>.size)
 }
 
@@ -34,11 +18,11 @@ enum BluetoothListeningModeProperty {
 /// small means the adapter's logic — the runtime gate and the bounded read-back —
 /// is testable against a fake that never touches CoreAudio.
 protocol BluetoothListeningModePropertyReading: Sendable {
-    func hasProperty(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> Bool
-    func dataSize(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> UInt32?
-    func readUInt32(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> UInt32?
-    func isSettable(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> Bool
-    func writeUInt32(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector, _ value: UInt32) -> OSStatus
+    func hasProperty(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> Bool
+    func dataSize(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> UInt32?
+    func readUInt32(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> UInt32?
+    func isSettable(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> Bool
+    func writeUInt32(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind, _ value: UInt32) -> OSStatus
 }
 
 /// The delay injected between read-back attempts.
@@ -56,78 +40,16 @@ struct ClockBluetoothListeningModeSleeper: BluetoothListeningModeSleeping {
     }
 }
 
-/// Reads and writes the `lstm`/`lsms` properties through the AudioObject API.
-///
-/// Nonisolated on purpose: each call touches only the passed-in device id and
-/// immutable property addresses, and CoreAudio property access is thread-safe, so
-/// the spike and background discovery can use it without hopping to the main
-/// actor. Failures return `nil`/`false` rather than throwing — an absent property
-/// is the normal case on a non-supporting device, not an exceptional one.
-struct CoreAudioBluetoothListeningModeBackend: BluetoothListeningModePropertyReading {
-    init() {}
-
-    func hasProperty(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> Bool {
-        var address = BluetoothListeningModeProperty.address(selector)
-        return AudioObjectHasProperty(deviceID, &address)
-    }
-
-    func dataSize(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> UInt32? {
-        var address = BluetoothListeningModeProperty.address(selector)
-        var size: UInt32 = 0
-        guard AudioObjectGetPropertyDataSize(deviceID, &address, 0, nil, &size) == noErr else {
-            return nil
-        }
-        return size
-    }
-
-    func readUInt32(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> UInt32? {
-        var address = BluetoothListeningModeProperty.address(selector)
-        guard AudioObjectHasProperty(deviceID, &address) else { return nil }
-
-        var value = UInt32(0)
-        var size = UInt32(MemoryLayout<UInt32>.size)
-        let status = AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &value)
-        return status == noErr ? value : nil
-    }
-
-    func isSettable(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> Bool {
-        var address = BluetoothListeningModeProperty.address(selector)
-        guard AudioObjectHasProperty(deviceID, &address) else { return false }
-
-        var settable = DarwinBoolean(false)
-        return AudioObjectIsPropertySettable(deviceID, &address, &settable) == noErr
-            && settable.boolValue
-    }
-
+struct UnavailableBluetoothListeningModeBackend: BluetoothListeningModePropertyReading {
+    func hasProperty(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> Bool { false }
+    func dataSize(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> UInt32? { nil }
+    func readUInt32(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> UInt32? { nil }
+    func isSettable(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> Bool { false }
     func writeUInt32(
         _ deviceID: AudioDeviceID,
-        _ selector: AudioObjectPropertySelector,
+        _ property: BluetoothListeningModePropertyKind,
         _ value: UInt32
-    ) -> OSStatus {
-        var address = BluetoothListeningModeProperty.address(selector)
-        var mutableValue = value
-        return AudioObjectSetPropertyData(
-            deviceID,
-            &address,
-            0,
-            nil,
-            UInt32(MemoryLayout<UInt32>.size),
-            &mutableValue
-        )
-    }
-}
-
-extension BluetoothListeningModeProperty {
-    /// Builds the global-scope, main-element address these selectors always use.
-    static func address(
-        _ selector: AudioObjectPropertySelector
-    ) -> AudioObjectPropertyAddress {
-        AudioObjectPropertyAddress(
-            mSelector: selector,
-            mScope: scope,
-            mElement: element
-        )
-    }
+    ) -> OSStatus { kAudioHardwareUnspecifiedError }
 }
 
 /// The capability reader and mode writer built on the property seam.
@@ -147,7 +69,7 @@ struct BluetoothListeningModeHAL {
     let retryDelay: Duration
 
     init(
-        backend: any BluetoothListeningModePropertyReading = CoreAudioBluetoothListeningModeBackend(),
+        backend: any BluetoothListeningModePropertyReading = UnavailableBluetoothListeningModeBackend(),
         sleeper: any BluetoothListeningModeSleeping = ClockBluetoothListeningModeSleeper(),
         retryAttempts: Int = 16,
         retryDelay: Duration = .milliseconds(50)
@@ -167,19 +89,19 @@ struct BluetoothListeningModeHAL {
     /// system update that removes the properties simply makes them disappear.
     func capability(for deviceID: AudioDeviceID) -> BluetoothListeningModeCapability? {
         guard
-            backend.hasProperty(deviceID, BluetoothListeningModeProperty.listeningMode),
-            backend.dataSize(deviceID, BluetoothListeningModeProperty.listeningMode)
+            backend.hasProperty(deviceID, .listeningMode),
+            backend.dataSize(deviceID, .listeningMode)
                 == BluetoothListeningModeProperty.expectedSize,
-            let rawMode = backend.readUInt32(deviceID, BluetoothListeningModeProperty.listeningMode),
-            backend.hasProperty(deviceID, BluetoothListeningModeProperty.listeningModeSupport),
-            backend.dataSize(deviceID, BluetoothListeningModeProperty.listeningModeSupport)
+            let rawMode = backend.readUInt32(deviceID, .listeningMode),
+            backend.hasProperty(deviceID, .listeningModeSupport),
+            backend.dataSize(deviceID, .listeningModeSupport)
                 == BluetoothListeningModeProperty.expectedSize,
-            let supportMask = backend.readUInt32(deviceID, BluetoothListeningModeProperty.listeningModeSupport)
+            let supportMask = backend.readUInt32(deviceID, .listeningModeSupport)
         else {
             return nil
         }
 
-        let canSet = backend.isSettable(deviceID, BluetoothListeningModeProperty.listeningMode)
+        let canSet = backend.isSettable(deviceID, .listeningMode)
         return BluetoothListeningModeCapability(
             audioDeviceID: deviceID,
             availableModes: BluetoothListeningModeSupport.availableModes(from: supportMask),
@@ -190,7 +112,7 @@ struct BluetoothListeningModeHAL {
 
     /// The device's current mode, or `nil` for an absent/unreadable/unknown value.
     func currentMode(for deviceID: AudioDeviceID) -> BluetoothListeningMode? {
-        guard let raw = backend.readUInt32(deviceID, BluetoothListeningModeProperty.listeningMode) else {
+        guard let raw = backend.readUInt32(deviceID, .listeningMode) else {
             return nil
         }
         return BluetoothListeningModeRawValue.mode(from: raw)
@@ -201,7 +123,7 @@ struct BluetoothListeningModeHAL {
     func supports(_ mode: BluetoothListeningMode, for deviceID: AudioDeviceID) -> Bool {
         guard mode.isUserSelectable,
               let bit = mode.supportBit,
-              let mask = backend.readUInt32(deviceID, BluetoothListeningModeProperty.listeningModeSupport) else {
+              let mask = backend.readUInt32(deviceID, .listeningModeSupport) else {
             return false
         }
         return mask & bit != 0
@@ -223,14 +145,14 @@ struct BluetoothListeningModeHAL {
         }
 
         // Re-verify the live gate before touching anything.
-        guard backend.hasProperty(deviceID, BluetoothListeningModeProperty.listeningMode),
-              let currentRaw = backend.readUInt32(deviceID, BluetoothListeningModeProperty.listeningMode) else {
+        guard backend.hasProperty(deviceID, .listeningMode),
+              let currentRaw = backend.readUInt32(deviceID, .listeningMode) else {
             return .failed(.propertyUnavailable)
         }
         guard supports(mode, for: deviceID) else {
             return .failed(.modeUnsupported)
         }
-        guard backend.isSettable(deviceID, BluetoothListeningModeProperty.listeningMode) else {
+        guard backend.isSettable(deviceID, .listeningMode) else {
             return .failed(.notSettable)
         }
 
@@ -242,7 +164,7 @@ struct BluetoothListeningModeHAL {
 
         let status = backend.writeUInt32(
             deviceID,
-            BluetoothListeningModeProperty.listeningMode,
+            .listeningMode,
             mode.rawValue
         )
         guard status == noErr else {
@@ -267,7 +189,7 @@ struct BluetoothListeningModeHAL {
         for _ in 0..<max(1, retryAttempts) {
             await sleeper.sleep(for: retryDelay)
 
-            guard let raw = backend.readUInt32(deviceID, BluetoothListeningModeProperty.listeningMode) else {
+            guard let raw = backend.readUInt32(deviceID, .listeningMode) else {
                 // The property disappeared; there is nothing left to confirm against.
                 return .unconfirmed(observed: nil)
             }

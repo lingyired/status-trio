@@ -504,3 +504,12 @@
 "settings.shortcut.restorationFailed" = "以前のショートカットを復元できませんでした。";
 "settings.shortcut.accessibility.current" = "現在のグローバルショートカット：%@";
 "settings.shortcut.accessibility.unassigned" = "グローバルショートカットは未設定です。";
+
+// Distribution channel and capability availability.
+"settings.distribution.title" = "配布";
+"settings.distribution.description" = "Status Trio はオープンソースの macOS ユーティリティです。システム操作の利用可否は、配布チャネルや macOS の権限によって異なる場合があります。";
+"settings.distribution.project" = "オープンソースプロジェクトとリリースノート";
+"settings.distribution.independentSettings" = "各配布版はそれぞれの設定と権限を保持します。";
+"settings.updates.systemManaged" = "アップデートは Mac App Store によって管理されます。";
+"capability.unavailableDistribution" = "このコントロールはこの配布版では利用できません。";
+"capability.notVerified" = "この Mac での利用可否は確認されていません。";

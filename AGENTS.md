@@ -31,6 +31,12 @@ review-worthy work. No pull request is required for every task, and no GitHub
 Actions run is required for ordinary development, commits, pull requests, or
 merges.
 
+Dual-channel pull requests additionally run `.github/workflows/pr-checks.yml`.
+These read-only checks compile Direct and App Store from the same PR merge SHA
+and audit Store source membership and bundle contents. They require no release
+credentials or protected distribution approval. Local verification remains
+required; these source checks do not invoke the formal release workflow.
+
 Before delivery:
 
 1. Fetch and compare with the latest `origin/main`; record the branch base.

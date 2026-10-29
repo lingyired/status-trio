@@ -4,6 +4,69 @@ import XCTest
 
 @MainActor
 final class PrivilegedHelperManagerTests: XCTestCase {
+    func testFacadeMapsAsyncReadinessImmediatelyWhenVerificationCompletes() async {
+        let service = FakePrivilegedHelperService(status: .enabled)
+        service.holdVerification = true
+        let manager = PrivilegedHelperManager(service: service, pollInterval: .milliseconds(20))
+        let facade = PrivilegedHelperFacade(service: manager)
+
+        XCTAssertFalse(facade.isReady)
+        await waitUntil { service.verificationContinuation != nil }
+
+        service.verificationContinuation?.resume()
+        await waitUntil { service.verificationContinuation == nil }
+
+        // The publisher must map the new readiness value in the same delivery;
+        // no later poll or manual facade refresh may be needed.
+        XCTAssertTrue(facade.isReady)
+        XCTAssertFalse(facade.requiresApproval)
+    }
+
+    func testFacadeMapsApprovalChangeFromPublisherValues() {
+        let service = FakePrivilegedHelperService(status: .requiresApproval)
+        let manager = PrivilegedHelperManager(service: service)
+        var presentations: [PrivilegedHelperPresentation] = []
+        let cancellable = manager.presentationPublisher.sink { presentations.append($0) }
+        defer { cancellable.cancel() }
+
+        service.status = .enabled
+        manager.refresh()
+
+        // `@Published` emits before assignment. The presentation must reflect
+        // the new status in the same delivery, not the old one.
+        XCTAssertEqual(presentations.last?.requiresApproval, false)
+        XCTAssertEqual(presentations.last?.isEnabled, true)
+    }
+
+    func testFacadeMapsApprovalFlagImmediatelyWhenRegistrationNeedsApproval() {
+        let service = FakePrivilegedHelperService(status: .notRegistered)
+        service.registerError = NSError(domain: "SMAppServiceErrorDomain", code: 1)
+        let manager = PrivilegedHelperManager(service: service)
+        let facade = PrivilegedHelperFacade(service: manager)
+
+        manager.setEnabled(true)
+
+        XCTAssertTrue(facade.requiresApproval)
+        XCTAssertFalse(facade.didFailLastOperation)
+        XCTAssertNil(facade.lastErrorMessage)
+    }
+
+    func testFacadeMapsOperationFailureImmediately() {
+        let service = FakePrivilegedHelperService(status: .notRegistered)
+        service.registerError = NSError(
+            domain: "RegistrationFailure",
+            code: 7,
+            userInfo: [NSLocalizedDescriptionKey: "Registration was rejected."]
+        )
+        let manager = PrivilegedHelperManager(service: service)
+        let facade = PrivilegedHelperFacade(service: manager)
+
+        manager.setEnabled(true)
+
+        XCTAssertTrue(facade.didFailLastOperation)
+        XCTAssertEqual(facade.lastErrorMessage, "Registration was rejected.")
+    }
+
     func testReachableHelperIsUsableWhileNativeApprovalStillLags() async {
         let service = FakePrivilegedHelperService(status: .requiresApproval)
         service.allowsPendingVerification = true

@@ -21,7 +21,10 @@
 - 不自动 merge、不修改生产 Secrets、不触发正式 release、不建 tag/DMG、不上传 ASC、不提交审核。
 - Direct Bundle ID `com.lingsmbp.StatusTrio` 不变；Store 候选 ID `com.lingsmbp.StatusTrio.AppStore` 未注册核验。
 - macOS >=13；SDK >=26；正式 release runner `xcode-27`；保留 Swift 6 并发约束。
-- SharedCore 最终不依赖 Sparkle、DDCPrivateAPI 或 DirectPlatform；Store 成品不含私有实现、root Helper、Sparkle。
+- Store 编译的共享 Core 不依赖 Sparkle、DDCPrivateAPI 或 DirectPlatform；
+  Direct 保留原 SwiftPM 聚合模块。两个独立目标通过显式 source membership 选择
+  adapter/composition，不为访问控制扩大 internal 类型的 public 面积；Store 成品
+  不含私有实现、root Helper、Sparkle。该选择及成本已记录在 spec 和执行 ledger。
 - 不改图标场景、动画、设备分类、轮询、现有 Direct 权限或默认遥测语义。
 - 全部 Swift 测试统一走 `bash scripts/test.sh [filter]`；最终集成树执行风险对应 profile。
 - 状态/DI/编译边界或 Package 变化最低 `bash scripts/verify-local.sh full`；文案另补 `docs`。
@@ -364,8 +367,9 @@ git diff --stat
 
 ### B2c: 共享安全 composition root
 
-- 实现 `StatusTrioDirectPlatform` 与 `StatusTrioStorePlatform` 的最终无环 DAG；
-  仅必要接口进入 contracts 模块；记录每个新增 public API 的使用者。
+- 实现 Direct/Store 的最终无环逻辑 DAG。按 spec 的同模块组装形式，
+  Direct 聚合目标保留原名，Store 独立编译共享安全源和 Store adapter；
+  不强制新建物理 Platform/contracts 模块，不新增无使用者的 public API。
 - `AppEnvironment.live()`/`makeStore()` 不得继续默认创建 Direct 对象。
   启动/停止、取消、deinit 和按需资源所有权继续由原 owner 管理。
 - Gate：`swift run StatusTrio` 开发路径保持；共享资源 `Bundle.module` 归属明确；

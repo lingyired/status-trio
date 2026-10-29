@@ -504,3 +504,12 @@
 "settings.shortcut.restorationFailed" = "Der vorherige Kurzbefehl konnte nicht wiederhergestellt werden.";
 "settings.shortcut.accessibility.current" = "Aktueller globaler Kurzbefehl: %@";
 "settings.shortcut.accessibility.unassigned" = "Kein globaler Kurzbefehl zugewiesen.";
+
+// Distribution channel and capability availability.
+"settings.distribution.title" = "Verteilung";
+"settings.distribution.description" = "Status Trio ist ein Open-Source-Dienstprogramm für macOS. Die Verfügbarkeit von Systemsteuerungen kann je nach Vertriebskanal und macOS-Berechtigungen variieren.";
+"settings.distribution.project" = "Open-Source-Projekt und Versionshinweise";
+"settings.distribution.independentSettings" = "Jede Vertriebsversion behält ihre eigenen Einstellungen und Berechtigungen.";
+"settings.updates.systemManaged" = "Updates werden vom Mac App Store verwaltet.";
+"capability.unavailableDistribution" = "Dieses Bedienelement ist in dieser Vertriebsversion nicht verfügbar.";
+"capability.notVerified" = "Die Verfügbarkeit auf diesem Mac wurde nicht überprüft.";

@@ -9,7 +9,7 @@ final class DistributionChannelTests: XCTestCase {
         )
         XCTAssertEqual(
             DistributionChannel.appStore.productionBundleIdentifier,
-            "com.lingsmbp.StatusTrio.AppStore"
+            "com.lingai.StatusTrio"
         )
         XCTAssertNotEqual(
             DistributionChannel.direct.productionBundleIdentifier,

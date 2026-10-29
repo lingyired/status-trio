@@ -80,7 +80,8 @@ final class InputSourceMonitoringLifecycleTests: XCTestCase {
                 activationPolicy: activationPolicy,
                 showIconGuide: {},
                 chargingEffectClock: clock,
-                inputSourceController: controller
+                inputSourceController: controller,
+                launchAtLogin: LaunchAtLoginManager()
             ),
             onboardingWindowController: OnboardingWindowController(
                 settings: settings,

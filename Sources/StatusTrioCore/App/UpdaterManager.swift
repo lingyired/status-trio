@@ -4,11 +4,12 @@ import Sparkle
 import SwiftUI
 
 @MainActor
-final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
+final class UpdaterManager: NSObject, UpdateServicing, SPUUpdaterDelegate {
     static let shared = UpdaterManager()
 
     @Published private(set) var canCheckForUpdates = false
     @Published private(set) var automaticallyChecksForUpdates = false
+    private var activationPolicy: AppActivationPolicy?
 
     private lazy var userDriver: UpdateFallbackUserDriver = {
         let driver = UpdateFallbackUserDriver(hostBundle: .main, delegate: nil)
@@ -24,13 +25,34 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
         delegate: self
     )
     private var updateSourceFallback = UpdateSourceFallback()
-    private var manualUpdatePresentation: ManualUpdatePresentation?
+    private(set) var manualUpdatePresentation: ManualUpdatePresentation?
 
     var automaticallyChecksForUpdatesBinding: Binding<Bool> {
         Binding(
             get: { self.automaticallyChecksForUpdates },
-            set: { self.updater.automaticallyChecksForUpdates = $0 }
+            set: { self.setAutomaticallyChecksForUpdates($0) }
         )
+    }
+
+    var state: UpdateControlState {
+        UpdateControlState(
+            delivery: .direct,
+            canCheckForUpdates: canCheckForUpdates,
+            automaticallyChecksForUpdates: automaticallyChecksForUpdates
+        )
+    }
+
+    var statePublisher: AnyPublisher<UpdateControlState, Never> {
+        Publishers.CombineLatest($canCheckForUpdates, $automaticallyChecksForUpdates)
+            .map { canCheckForUpdates, automaticallyChecksForUpdates in
+                UpdateControlState(
+                    delivery: .direct,
+                    canCheckForUpdates: canCheckForUpdates,
+                    automaticallyChecksForUpdates: automaticallyChecksForUpdates
+                )
+            }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
     }
 
     private override init() {
@@ -42,7 +64,11 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
             .assign(to: &$automaticallyChecksForUpdates)
     }
 
-    func start(activationPolicy: AppActivationPolicy) {
+    func start() {
+        guard let activationPolicy else {
+            assertionFailure("UpdaterManager must be configured with the app's shared AppActivationPolicy before start().")
+            return
+        }
         manualUpdatePresentation = ManualUpdatePresentation(
             activationPolicy: activationPolicy
         )
@@ -68,6 +94,21 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
         manualUpdatePresentation?.begin()
         updater.checkForUpdates()
         #endif
+    }
+
+    func setAutomaticallyChecksForUpdates(_ enabled: Bool) {
+        guard automaticallyChecksForUpdates != enabled else { return }
+        updater.automaticallyChecksForUpdates = enabled
+        automaticallyChecksForUpdates = enabled
+    }
+
+    func start(activationPolicy: AppActivationPolicy) {
+        configure(activationPolicy: activationPolicy)
+        start()
+    }
+
+    func configure(activationPolicy: AppActivationPolicy) {
+        self.activationPolicy = activationPolicy
     }
 
     func feedURLString(for updater: SPUUpdater) -> String? {

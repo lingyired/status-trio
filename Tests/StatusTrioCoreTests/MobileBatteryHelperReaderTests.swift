@@ -290,14 +290,19 @@ struct MobileBatteryHelperReaderTests {
             try await ProcessMobileBatteryHelperExecutor(helperURL: script).run(arguments: [], timeout: .seconds(1))
         }
         defer { processTask.cancel() }
-        try await waitForPIDFile(pidFile)
+        let childStartedAt = try await waitForPIDFile(pidFile)
         do {
             _ = try await processTask.value
             Issue.record("timed out process must fail")
         } catch {
             #expect(error as? MobileBatteryHelperError == .timedOut)
+            // Measuring from before the Task starts counts runner scheduling as
+            // part of the upper bound. Measure that bound from the child's PID
+            // write, while retaining the lower bound that proves the 1 s
+            // deadline and kill grace actually elapsed.
             #expect(clock.now - started >= .milliseconds(1_200))
-            #expect(clock.now - started < .seconds(2))
+            let elapsed = ContinuousClock.now - childStartedAt
+            #expect(elapsed < .seconds(2), "timed out child took \(elapsed) after starting")
             let processID = try #require(Int32(String(contentsOf: pidFile, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)))
             errno = 0
             #expect(kill(processID, 0) == -1 && errno == ESRCH)
@@ -315,7 +320,7 @@ struct MobileBatteryHelperReaderTests {
             try await ProcessMobileBatteryHelperExecutor(helperURL: script).run(arguments: [], timeout: .seconds(10))
         }
         defer { task.cancel() }
-        try await waitForPIDFile(pidFile)
+        _ = try await waitForPIDFile(pidFile)
         task.cancel()
         do {
             _ = try await task.value
@@ -365,15 +370,16 @@ struct MobileBatteryHelperReaderTests {
         )
     }
 
-    private func waitForPIDFile(_ url: URL) async throws {
+    private func waitForPIDFile(_ url: URL) async throws -> ContinuousClock.Instant {
         for _ in 0..<100 {
-            if FileManager.default.fileExists(atPath: url.path) { return }
+            if FileManager.default.fileExists(atPath: url.path) { return .now }
             try await Task.sleep(for: .milliseconds(10))
         }
         try #require(
             FileManager.default.fileExists(atPath: url.path),
             "child process did not reach its ready signal"
         )
+        return .now
     }
 
     private func makeScript(_ body: String, interpreter: String = "/bin/sh") throws -> URL {

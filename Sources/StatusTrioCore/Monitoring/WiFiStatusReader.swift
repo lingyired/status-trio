@@ -22,15 +22,27 @@ final class CoreWLANStatusReader: WiFiStatusReadingProviding {
     private var queue = DispatchQueue(label: wiFiStatusReaderQueueLabel, qos: .utility)
     private var queueGeneration: UInt64 = 0
     private var hasOutstandingRead = false
+    private let sharingDetector: (any InternetSharingDetecting)?
     private let readSystem: @Sendable (Bool) -> WiFiStatusReading
 
-    init(readSystem: @escaping @Sendable (Bool) -> WiFiStatusReading = { includeSSID in
-        let reading = CoreWLANWiFiSystemReader().read(includeSSID: includeSSID)
-        let sharing = reading.map { $0.powerOn && $0.serviceActive } == true
-            && SystemInternetSharingDetector().isActive() == true
-        return WiFiStatusReading(interface: reading, sharingActive: sharing)
-    }) {
+    init(
+        sharingDetector: (any InternetSharingDetecting)? = nil,
+        readSystem: (@Sendable (Bool) -> WiFiStatusReading)? = nil
+    ) {
+        self.sharingDetector = sharingDetector
+        let readSystem = readSystem ?? { includeSSID in
+            let reading = CoreWLANWiFiSystemReader().read(includeSSID: includeSSID)
+            let sharing = reading.map { $0.powerOn && $0.serviceActive } == true
+                && sharingDetector?.isActive() == true
+            return WiFiStatusReading(interface: reading, sharingActive: sharing)
+        }
         self.readSystem = readSystem
+    }
+
+    /// The Direct composition test asserts that its reader carries the real
+    /// detector, rather than passing an explicit `nil` in both distributions.
+    var hasInternetSharingDetector: Bool {
+        sharingDetector != nil
     }
 
     func read(

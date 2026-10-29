@@ -26,8 +26,8 @@ struct ChargingEffectRenderingTests {
         // pixels; battery and volume pixels are identical. Select one exact
         // baseline from those independent system metrics, preserving the #30
         // measured-ink correction. Unknown environments must fail explicitly.
-        let baseline = staticSymbolRasterBaselineFingerprint()
-        if fingerprint != baseline
+        let baselines = staticSymbolRasterBaselineFingerprints()
+        if !(baselines?.contains(fingerprint) ?? false)
             || ProcessInfo.processInfo.environment["STATUS_TRIO_STATIC_ICON_DIAGNOSTICS"] == "1" {
             print(
                 "STATIC_ICON_DIAGNOSTIC os=\(ProcessInfo.processInfo.operatingSystemVersionString)"
@@ -37,8 +37,11 @@ struct ChargingEffectRenderingTests {
             )
             printStaticSymbolRasterDiagnostics()
         }
-        let expected = try #require(baseline, "Unrecorded system symbol metrics; inspect raster diagnostics")
-        #expect(fingerprint == expected)
+        let expected = try #require(
+            baselines,
+            "Unrecorded system symbol metrics; inspect raster diagnostics"
+        )
+        #expect(expected.contains(fingerprint))
     }
 
     @Test func nonChargingBatteryIgnoresSuppliedChargingPhase() throws {

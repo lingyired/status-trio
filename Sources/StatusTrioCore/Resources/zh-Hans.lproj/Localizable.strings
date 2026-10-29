@@ -504,3 +504,12 @@
 "settings.shortcut.restorationFailed" = "无法恢复之前的快捷键。";
 "settings.shortcut.accessibility.current" = "当前全局快捷键：%@";
 "settings.shortcut.accessibility.unassigned" = "尚未设置全局快捷键。";
+
+// Distribution channel and capability availability.
+"settings.distribution.title" = "发行版本";
+"settings.distribution.description" = "Status Trio 是开源 macOS 工具。系统控制能力可能因发行渠道和 macOS 权限而有所不同。";
+"settings.distribution.project" = "查看开源项目与版本说明";
+"settings.distribution.independentSettings" = "每个发行版本保留各自的设置和权限。";
+"settings.updates.systemManaged" = "更新由 Mac App Store 管理。";
+"capability.unavailableDistribution" = "此控制项在当前发行版本中不可用。";
+"capability.notVerified" = "尚未验证此 Mac 上的可用性。";

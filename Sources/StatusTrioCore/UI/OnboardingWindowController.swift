@@ -7,6 +7,8 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     private let settings: SettingsStore
     private let localization: Localization
     private let activationPolicy: AppActivationPolicy
+    private let distributionChannel: DistributionChannel
+    private let systemIconAppearance: () -> SystemIconAppearanceTheme
     private var localizationCancellable: AnyCancellable?
     private var ownsActivationPolicy = false
     private var previewVisibilityObserver: ((Bool) -> Void)?
@@ -16,11 +18,17 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     init(
         settings: SettingsStore,
         localization: Localization,
-        activationPolicy: AppActivationPolicy
+        activationPolicy: AppActivationPolicy,
+        distributionChannel: DistributionChannel = .current,
+        systemIconAppearance: @escaping () -> SystemIconAppearanceTheme = {
+            .default
+        }
     ) {
         self.settings = settings
         self.localization = localization
         self.activationPolicy = activationPolicy
+        self.distributionChannel = distributionChannel
+        self.systemIconAppearance = systemIconAppearance
         super.init(window: nil)
 
         localizationCancellable = localization.$resolvedLanguage
@@ -47,7 +55,10 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func showIfNeeded() {
-        guard IconGuideOnboardingPolicy.shouldPresentGuide(settings: settings) else { return }
+        guard IconGuideOnboardingPolicy.shouldPresentGuide(
+            settings: settings,
+            channel: distributionChannel
+        ) else { return }
         show()
     }
 
@@ -83,9 +94,14 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
         let rootView = LocalizedRootView(localization: localization) {
             IconGuideOnboardingView(
                 settings: settings,
+                allowsTelemetryConsent: IconGuideOnboardingPolicy.showsTelemetryConsent(
+                    settings: settings,
+                    channel: distributionChannel
+                ),
                 onCustomize: { [weak self] in self?.handleCustomize() },
                 onDone: { [weak self] in self?.window?.close() }
             )
+            .environment(\.systemIconAppearance, systemIconAppearance)
         }
 
         let hostingController = NSHostingController(rootView: rootView)

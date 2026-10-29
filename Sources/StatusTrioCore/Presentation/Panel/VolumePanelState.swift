@@ -53,6 +53,9 @@ struct VolumePanelState: Equatable, Sendable {
     let collapseLabel: String
     let listeningModeTaskID: String
     let previewLanguageCode: String
+    /// A display whose only volume path is the DDC implementation omitted from
+    /// this distribution. The row has no honest supported control to render.
+    let isUnsupportedDDCOutput: Bool
 
     var hasHiddenRows: Bool {
         OutputDeviceListPresentation.canToggleExpansion(for: rows, limit: visibleLimit)
@@ -64,5 +67,14 @@ struct VolumePanelState: Equatable, Sendable {
             limit: visibleLimit,
             isExpanded: expanded
         )
+    }
+}
+
+enum PopupSectionVisibility {
+    static func visibleSections(
+        _ sections: [PopupSection],
+        volume: VolumePanelState
+    ) -> [PopupSection] {
+        sections.filter { $0 != .volume || !volume.isUnsupportedDDCOutput }
     }
 }

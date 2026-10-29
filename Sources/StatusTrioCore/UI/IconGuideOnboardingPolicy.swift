@@ -6,16 +6,30 @@ enum IconGuideOnboardingPolicy {
         return true
     }
 
-    static func shouldPresentGuide(settings: SettingsStore) -> Bool {
+    static func shouldPresentGuide(
+        settings: SettingsStore,
+        channel: DistributionChannel = .current
+    ) -> Bool {
         let isNewGuide = consumeIfNeeded(settings: settings)
-        return isNewGuide || settings.telemetryConsentVersion == 0
+        return isNewGuide || showsTelemetryConsent(settings: settings, channel: channel)
+    }
+
+    static func showsTelemetryConsent(
+        settings: SettingsStore,
+        channel: DistributionChannel
+    ) -> Bool {
+        channel == .direct && settings.telemetryConsentVersion == 0
     }
 }
 
 struct TelemetryConsentDraft {
     var sharesAnalytics = false
 
-    @MainActor func acknowledge(settings: SettingsStore) {
+    @MainActor func acknowledge(
+        settings: SettingsStore,
+        allowsTelemetryConsent: Bool = true
+    ) {
+        guard allowsTelemetryConsent else { return }
         guard settings.telemetryConsentVersion == 0 else { return }
         settings.completeTelemetryConsent(sharesAnalytics: sharesAnalytics)
     }

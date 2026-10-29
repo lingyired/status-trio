@@ -11,10 +11,38 @@ struct SettingsView: View {
     /// guides that do not carry the app's controller.
     var inputSourceController: InputSourceController? = nil
     var globalShortcutController: GlobalShortcutController? = nil
+    let launchAtLogin: LaunchAtLoginManager
+    @ObservedObject var updaterManager: UpdateStateFacade
+    @ObservedObject var helper: PrivilegedHelperFacade
+    let capabilityPolicy: DistributionCapabilityPolicy
     let onShowIconGuide: () -> Void
 
     @State private var selectedSection: Section = .appIcon
     @State private var previewIsDark: Bool = true
+
+    init(
+        store: SettingsStore,
+        statusStore: SystemStatusStore,
+        localization: Localization,
+        inputSourceController: InputSourceController? = nil,
+        globalShortcutController: GlobalShortcutController? = nil,
+        launchAtLogin: LaunchAtLoginManager,
+        updaterManager: UpdateStateFacade = UpdateStateFacade(service: SystemManagedUpdateService()),
+        helper: PrivilegedHelperFacade = PrivilegedHelperFacade(service: UnsupportedPrivilegedHelperService()),
+        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
+        onShowIconGuide: @escaping () -> Void
+    ) {
+        self.store = store
+        self.statusStore = statusStore
+        self.localization = localization
+        self.inputSourceController = inputSourceController
+        self.globalShortcutController = globalShortcutController
+        self.launchAtLogin = launchAtLogin
+        self.updaterManager = updaterManager
+        self.helper = helper
+        self.capabilityPolicy = capabilityPolicy
+        self.onShowIconGuide = onShowIconGuide
+    }
 
     enum Section: String, CaseIterable, Identifiable {
         case appIcon
@@ -152,14 +180,17 @@ struct SettingsView: View {
             BatterySectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark
+                previewIsDark: $previewIsDark,
+                helper: helper,
+                capabilityPolicy: capabilityPolicy
             )
         case .network:
             NetworkSectionView(
                 store: store,
                 statusStore: statusStore,
                 inputSourceController: inputSourceController,
-                previewIsDark: $previewIsDark
+                previewIsDark: $previewIsDark,
+                capabilityPolicy: capabilityPolicy
             )
         case .bluetooth:
             BluetoothSectionView(
@@ -167,7 +198,8 @@ struct SettingsView: View {
                 statusStore: statusStore,
                 bluetoothDevices: statusStore.bluetoothDevices,
                 appleDeviceDiscovery: statusStore.appleDeviceDiscovery,
-                previewIsDark: $previewIsDark
+                previewIsDark: $previewIsDark,
+                capabilityPolicy: capabilityPolicy
             )
         case .audio:
             AudioSectionView(
@@ -181,10 +213,16 @@ struct SettingsView: View {
             GeneralSectionView(
                 store: store,
                 localization: localization,
-                globalShortcutController: globalShortcutController
+                globalShortcutController: globalShortcutController,
+                launchAtLogin: launchAtLogin,
+                updaterManager: updaterManager,
+                capabilityPolicy: capabilityPolicy
             )
         case .about:
-            AboutSectionView()
+            AboutSectionView(
+                updaterManager: updaterManager,
+                capabilityPolicy: capabilityPolicy
+            )
         }
     }
 

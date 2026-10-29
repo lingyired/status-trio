@@ -66,6 +66,35 @@ final class BluetoothPanelMapperTests: XCTestCase {
         XCTAssertTrue(state.nearbyRows.isEmpty)
     }
 
+    func testMapperHidesBatteryTextAndErrorWhenClientPassesGatedSettings() {
+        let state = BluetoothPanelMapper.map(
+            availability: .available,
+            devices: [device("AA:00:00:00:00:01", "AirPods", connected: true)],
+            batteryLevels: ["AA0000000001": BluetoothBatteryLevel(
+                deviceAddress: "AA:00:00:00:00:01",
+                main: 82,
+                left: nil,
+                right: nil,
+                caseLevel: nil
+            )],
+            actionStates: [:],
+            nearbyDevices: [nearby("Tracker", level: 42)],
+            batteryLevelsReadFailed: true,
+            isExpanded: false,
+            options: .standard,
+            showsBatteryLevels: false,
+            showsNearbyBatteryDevices: false,
+            confirmingAddress: nil,
+            localization: makeLocalization()
+        )
+
+        XCTAssertNil(state.pairedRows.first?.batteryText)
+        XCTAssertNil(state.errorText)
+        XCTAssertTrue(state.nearbyRows.isEmpty)
+        XCTAssertFalse(state.showsBatteryLevels)
+        XCTAssertFalse(state.showsNearbyBatteryDevices)
+    }
+
     func testMapperHidesSummaryDeviceSegmentsWhenVisibleListAlreadyShowsConnectedDevice() {
         let localization = makeLocalization()
         let airPods = device("AA:00:00:00:00:01", "AirPods", connected: true)
@@ -194,6 +223,35 @@ final class BluetoothPanelMapperTests: XCTestCase {
         )
         XCTAssertFalse(busy.pairedRows[0].actionEnabled)
         XCTAssertTrue(busy.pairedRows[0].isBusy)
+    }
+
+    func testMapperMakesRowsReadOnlyWhenDistributionBlocksDeviceActions() {
+        let state = BluetoothPanelMapper.map(
+            availability: .available,
+            devices: [
+                device(
+                    "AA:00:00:00:00:01",
+                    "MX Keys",
+                    connected: true,
+                    kind: .peripheral(.keyboard)
+                )
+            ],
+            batteryLevels: [:],
+            actionStates: [:],
+            nearbyDevices: [],
+            batteryLevelsReadFailed: false,
+            isExpanded: false,
+            options: .standard,
+            showsBatteryLevels: false,
+            showsNearbyBatteryDevices: false,
+            confirmingAddress: nil,
+            localization: makeLocalization(),
+            allowsDeviceActions: false
+        )
+
+        XCTAssertFalse(state.pairedRows[0].isActionable)
+        XCTAssertFalse(state.pairedRows[0].actionEnabled)
+        XCTAssertFalse(state.pairedRows[0].requiresConfirmation)
     }
 
     func testSummaryResolvesPermissionActionsAndKeepsRequestAccessibilityCopyDistinct() {

@@ -28,35 +28,35 @@ final class FakeListeningModeBackend: BluetoothListeningModePropertyReading, @un
 
     private let lock = NSLock()
 
-    func hasProperty(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> Bool {
-        slot(for: selector).exists
+    func hasProperty(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> Bool {
+        slot(for: property).exists
     }
 
-    func dataSize(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> UInt32? {
-        let slot = slot(for: selector)
+    func dataSize(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> UInt32? {
+        let slot = slot(for: property)
         return slot.exists ? slot.size : nil
     }
 
-    func readUInt32(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> UInt32? {
-        if selector == BluetoothListeningModeProperty.listeningMode {
+    func readUInt32(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> UInt32? {
+        if property == .listeningMode {
             return readListeningMode()
         }
-        let slot = slot(for: selector)
+        let slot = slot(for: property)
         return slot.exists ? slot.value : nil
     }
 
-    func isSettable(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> Bool {
-        slot(for: selector).settable
+    func isSettable(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> Bool {
+        slot(for: property).settable
     }
 
     func writeUInt32(
         _ deviceID: AudioDeviceID,
-        _ selector: AudioObjectPropertySelector,
+        _ property: BluetoothListeningModePropertyKind,
         _ value: UInt32
     ) -> OSStatus {
         lock.lock()
         defer { lock.unlock() }
-        guard selector == BluetoothListeningModeProperty.listeningMode, lstm.exists, lstm.settable else {
+        guard property == .listeningMode, lstm.exists, lstm.settable else {
             return kAudioHardwareUnspecifiedError
         }
         writeCount += 1
@@ -86,8 +86,8 @@ final class FakeListeningModeBackend: BluetoothListeningModePropertyReading, @un
 
     private var readCursor = 0
 
-    private func slot(for selector: AudioObjectPropertySelector) -> Slot {
-        selector == BluetoothListeningModeProperty.listeningMode ? lstm : lsms
+    private func slot(for property: BluetoothListeningModePropertyKind) -> Slot {
+        property == .listeningMode ? lstm : lsms
     }
 }
 

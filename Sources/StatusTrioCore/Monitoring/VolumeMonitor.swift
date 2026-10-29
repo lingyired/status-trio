@@ -837,11 +837,11 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     /// to the main queue; every other access is on the main actor.
     nonisolated(unsafe) private let eventMonitor: any VolumeEventMonitoring
     private let outputController: (any AudioOutputControlling)?
-    private let ddcTransport: any DDCVolumeTransport
-    private let suppliedDDCCoordinator: DDCVolumeCoordinator?
-    private lazy var ddcCoordinator = suppliedDDCCoordinator ?? DDCVolumeCoordinator(transport: ddcTransport) { [weak self] update in
-        self?.receiveDDCUpdate(update)
-    }
+    private let ddcCoordinatorFactory: DDCVolumeCoordinatorFactory
+    private lazy var ddcCoordinator: any DDCVolumeCoordinating = ddcCoordinatorFactory(
+        { [weak self] update in self?.receiveDDCUpdate(update) },
+        DDCVolumeCoordinatorConfiguration()
+    )
     private let refreshDebounceInterval: Duration
     private let refreshDebounceSleep: @Sendable (Duration) async throws -> Void
     private var scheduledRefreshTask: Task<Void, Never>?
@@ -874,8 +874,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter = AppleBluetoothAudioDiagnosticReporter(),
         eventMonitor: any VolumeEventMonitoring = CoreAudioVolumeEventMonitor(),
         outputController: (any AudioOutputControlling)? = nil,
-        ddcTransport: any DDCVolumeTransport = DDCDisplayTransport(),
-        ddcCoordinator: DDCVolumeCoordinator? = nil,
+        ddcCoordinatorFactory: @escaping DDCVolumeCoordinatorFactory,
         refreshDebounceInterval: Duration = .milliseconds(150),
         refreshDebounceSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
@@ -889,8 +888,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         self.appleBluetoothAudioDiagnosticReporter = appleBluetoothAudioDiagnosticReporter
         self.eventMonitor = eventMonitor
         self.outputController = outputController
-        self.ddcTransport = ddcTransport
-        suppliedDDCCoordinator = ddcCoordinator
+        self.ddcCoordinatorFactory = ddcCoordinatorFactory
         self.refreshDebounceInterval = refreshDebounceInterval
         self.refreshDebounceSleep = refreshDebounceSleep
         readWatchdog = ReadWatchdog(
@@ -935,6 +933,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     func start() {
         guard lifecycle == .idle else { return }
         lifecycle = .running
+        _ = ddcCoordinator
         ddcCoordinator.setDetailsVisible(detailsVisible)
         screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main

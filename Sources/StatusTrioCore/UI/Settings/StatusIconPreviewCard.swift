@@ -15,6 +15,7 @@ struct StatusIconPreviewCard: View {
     @Binding var isDarkBackground: Bool
     @EnvironmentObject private var localization: Localization
     @EnvironmentObject private var chargingEffectClock: ChargingEffectClock
+    @Environment(\.systemIconAppearance) private var systemIconAppearance
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var previewPlayback = ChargingEffectPreviewPlayback()
     /// Identifies this card's claim on the shared clock, so a Dock-only menu bar
@@ -209,6 +210,7 @@ struct StatusIconPreviewCard: View {
 /// Small Dock tile preview that mirrors the live Dock icon.
 struct DockIconPreviewTile: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.systemIconAppearance) private var systemIconAppearance
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     var inputSourceController: InputSourceController? = nil
@@ -254,7 +256,7 @@ struct DockIconPreviewTile: View {
         }
         return DockIconBackgroundResolver.style(
             for: store.dockIconBackgroundPreference,
-            theme: SystemIconAppearanceReader.current(),
+            theme: systemIconAppearance(),
             isDarkAppearance: NSApplication.shared.effectiveAppearance
                 .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         )

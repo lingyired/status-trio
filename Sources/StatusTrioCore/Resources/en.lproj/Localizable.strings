@@ -504,3 +504,12 @@
 "settings.shortcut.restorationFailed" = "Could not restore the previous shortcut.";
 "settings.shortcut.accessibility.current" = "Current global shortcut: %@";
 "settings.shortcut.accessibility.unassigned" = "No global shortcut assigned.";
+
+// Distribution channel and capability availability.
+"settings.distribution.title" = "Distribution";
+"settings.distribution.description" = "Status Trio is an open-source macOS utility. System control availability may vary by distribution channel and macOS permissions.";
+"settings.distribution.project" = "Open-source project and release notes";
+"settings.distribution.independentSettings" = "Each distribution keeps its own settings and permissions.";
+"settings.updates.systemManaged" = "Updates are managed by the Mac App Store.";
+"capability.unavailableDistribution" = "This control is unavailable in this distribution.";
+"capability.notVerified" = "Availability on this Mac has not been verified.";

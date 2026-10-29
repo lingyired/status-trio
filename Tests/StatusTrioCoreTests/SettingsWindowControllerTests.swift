@@ -18,7 +18,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: makeStatusStore(),
             localization: localization,
             activationPolicy: AppActivationPolicy(application: activationApplication),
-            showIconGuide: {}
+            showIconGuide: {},
+            launchAtLogin: LaunchAtLoginManager()
         )
         XCTAssertNil(controller.window)
 
@@ -50,7 +51,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: makeStatusStore(),
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: AppActivationPolicy(application: activationApplication),
-            showIconGuide: {}
+            showIconGuide: {},
+            launchAtLogin: LaunchAtLoginManager()
         )
 
         controller.show()
@@ -78,7 +80,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: makeStatusStore(),
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: policy,
-            showIconGuide: {}
+            showIconGuide: {},
+            launchAtLogin: LaunchAtLoginManager()
         )
 
         controller.show()
@@ -104,7 +107,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: statusStore,
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: AppActivationPolicy(application: activationApplication),
-            showIconGuide: {}
+            showIconGuide: {},
+            launchAtLogin: LaunchAtLoginManager()
         )
 
         controller.show()
@@ -231,7 +235,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: AppActivationPolicy(application: SettingsActivationPolicyApplicationSpy()),
             showIconGuide: {},
-            globalShortcutController: shortcutController
+            globalShortcutController: shortcutController,
+            launchAtLogin: LaunchAtLoginManager()
         )
 
         controller.show()
@@ -269,7 +274,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: statusStore,
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: AppActivationPolicy(application: application),
-            showIconGuide: {}
+            showIconGuide: {},
+            launchAtLogin: LaunchAtLoginManager()
         )
         try body(controller, statusStore, monitor, application)
     }

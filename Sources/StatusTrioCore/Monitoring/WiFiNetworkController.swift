@@ -52,12 +52,12 @@ protocol WiFiNetworkScanning: AnyObject {
 
 /// CoreWLAN exposes synchronous scan APIs. This worker owns a serial queue so
 /// those calls never run on the main actor and cannot overlap.
-private final class CoreWLANNetworkWorker: @unchecked Sendable, WiFiNetworkScanning {
+final class CoreWLANNetworkWorker: @unchecked Sendable, WiFiNetworkScanning {
     private let queue = DispatchQueue(label: "StatusTrio.CoreWLANNetworkWorker")
     private let knownNetworkProvider: any WiFiKnownNetworkProviding
 
     init(
-        knownNetworkProvider: any WiFiKnownNetworkProviding = NetworksetupWiFiKnownNetworkProvider()
+        knownNetworkProvider: any WiFiKnownNetworkProviding = UnavailableWiFiKnownNetworkProvider()
     ) {
         self.knownNetworkProvider = knownNetworkProvider
     }

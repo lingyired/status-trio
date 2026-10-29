@@ -385,6 +385,30 @@ final class BluetoothDeviceRowLayoutTests: XCTestCase {
         }
     }
 
+    func testStoreWithoutBatteryCapabilityLeavesExternalStatusBlank() async throws {
+        let device = BluetoothDevice(
+            id: "ble:00000000-0000-0000-0000-000000000098",
+            name: "Phone",
+            kind: .mobile(.phone),
+            isConnected: false,
+            appleMobileModel: "iPhone18,1",
+            isReadOverTheAir: true
+        )
+
+        for status in [NearbyBLEPanelRowStatus.unavailable, .notNearby] {
+            let row = try await renderRow(
+                language: .english,
+                device: device,
+                appleStatusByDeviceID: [device.id: status],
+                hidesUnavailableBatteryStatus: true
+            )
+            XCTAssertFalse(
+                row.hasInk(from: 260, to: 315),
+                "a Store row without battery capability must leave \(status) blank"
+            )
+        }
+    }
+
     func testTheConfirmingRowStaysOnOneLine() async throws {
         let device = BluetoothDevice(
             id: "AA:00:00:00:00:01",
@@ -759,6 +783,7 @@ final class BluetoothDeviceRowLayoutTests: XCTestCase {
         listeningMode: BluetoothListeningModePresentation? = nil,
         actionState: BluetoothDeviceActionState? = nil,
         isConfirmingDisconnect: Bool = false,
+        hidesUnavailableBatteryStatus: Bool = false,
         fixtureName: String? = nil
     ) async throws -> RenderedRow {
         let suite = "StatusTrioCoreTests.BluetoothDeviceRow.\(UUID().uuidString)"
@@ -776,6 +801,7 @@ final class BluetoothDeviceRowLayoutTests: XCTestCase {
             listeningMode: listeningMode,
             actionState: actionState,
             isConfirmingDisconnect: isConfirmingDisconnect,
+            hidesUnavailableBatteryStatus: hidesUnavailableBatteryStatus,
             onPerformAction: {},
             onRequestDisconnect: {},
             onCancelDisconnect: {}

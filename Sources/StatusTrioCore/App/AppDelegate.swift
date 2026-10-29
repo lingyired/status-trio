@@ -10,26 +10,39 @@ private let singleInstanceLogger = Logger(
 public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var environment: AppEnvironment?
     private var singleInstanceGuard: SingleInstanceGuard?
-    private let updaterManager = UpdaterManager.shared
+    private let environmentFactory: @MainActor () -> AppEnvironment
+    private let shouldAcquireSingleInstanceGuard: Bool
 
     public override init() {
+        environmentFactory = { AppEnvironment.live() }
+        shouldAcquireSingleInstanceGuard = true
+        super.init()
+    }
+
+    init(
+        environmentFactory: @escaping @MainActor () -> AppEnvironment,
+        acquireSingleInstanceGuard: Bool = true
+    ) {
+        self.environmentFactory = environmentFactory
+        self.shouldAcquireSingleInstanceGuard = acquireSingleInstanceGuard
         super.init()
     }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
-        switch SingleInstanceGuard.acquire() {
-        case .acquired(let guardInstance):
-            self.singleInstanceGuard = guardInstance
-        case .rejected(let rejection):
-            reportSingleInstanceRejection(rejection)
-            NSApplication.shared.terminate(nil)
-            return
+        if shouldAcquireSingleInstanceGuard {
+            switch SingleInstanceGuard.acquire() {
+            case .acquired(let guardInstance):
+                self.singleInstanceGuard = guardInstance
+            case .rejected(let rejection):
+                reportSingleInstanceRejection(rejection)
+                NSApplication.shared.terminate(nil)
+                return
+            }
         }
 
-        let environment = AppEnvironment.live()
+        let environment = environmentFactory()
         self.environment = environment
         environment.start()
-        updaterManager.start(activationPolicy: environment.activationPolicy)
     }
 
     /// Keeps "another copy is running" and "the lock is unusable" apart in the

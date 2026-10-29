@@ -7,7 +7,7 @@ final class AppleDeviceDiscoveryController: ObservableObject {
     @Published private(set) var isDiscovering = false
     @Published private(set) var discoveryGeneration: UInt64 = 0
 
-    private let reader: any MobileBatteryReading
+    let mobileBatteryReader: any MobileBatteryReading
     private var claims: Set<String> = []
     private var isEnabled = false
     private var refreshInterval: Duration = .seconds(60)
@@ -15,8 +15,8 @@ final class AppleDeviceDiscoveryController: ObservableObject {
     private var task: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
 
-    init(reader: any MobileBatteryReading = MobileBatteryHelperReader()) {
-        self.reader = reader
+    init(reader: any MobileBatteryReading = UnavailableMobileBatteryReader()) {
+        self.mobileBatteryReader = reader
     }
 
     deinit {
@@ -77,7 +77,7 @@ final class AppleDeviceDiscoveryController: ObservableObject {
         candidates = []
         task?.cancel()
         isDiscovering = true
-        let reader = self.reader
+        let reader = self.mobileBatteryReader
         task = Task { [weak self, reader] in
             do {
                 let candidates = try await reader.discover()

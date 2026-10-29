@@ -504,3 +504,12 @@
 "settings.shortcut.restorationFailed" = "이전 단축키를 복원하지 못했습니다.";
 "settings.shortcut.accessibility.current" = "현재 전역 단축키: %@";
 "settings.shortcut.accessibility.unassigned" = "지정된 전역 단축키가 없습니다.";
+
+// Distribution channel and capability availability.
+"settings.distribution.title" = "배포";
+"settings.distribution.description" = "Status Trio는 오픈 소스 macOS 유틸리티입니다. 시스템 제어 기능의 사용 가능 여부는 배포 채널과 macOS 권한에 따라 달라질 수 있습니다.";
+"settings.distribution.project" = "오픈 소스 프로젝트 및 릴리스 노트";
+"settings.distribution.independentSettings" = "각 배포판은 자체 설정과 권한을 유지합니다.";
+"settings.updates.systemManaged" = "업데이트는 Mac App Store에서 관리합니다.";
+"capability.unavailableDistribution" = "이 제어는 이 배포판에서 사용할 수 없습니다.";
+"capability.notVerified" = "이 Mac에서의 사용 가능 여부는 확인되지 않았습니다.";

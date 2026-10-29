@@ -24,9 +24,7 @@ final class SystemIconAppearanceMonitor {
     var onPoll: (() -> Void)?
 
     init(
-        readTheme: @escaping () -> SystemIconAppearanceTheme = {
-            SystemIconAppearanceReader.current()
-        },
+        readTheme: @escaping () -> SystemIconAppearanceTheme,
         notificationCenter: NotificationCenter = .default,
         pollingInterval: TimeInterval = SystemIconAppearanceMonitor.defaultPollingInterval
     ) {

@@ -1,0 +1,436 @@
+name: Dual-channel PR checks
+
+on:
+  pull_request:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: dual-channel-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PR_MERGE_SHA: ${{ github.sha }}
+  XCODEGEN_VERSION: "2.46.0"
+  XCODEGEN_ARCHIVE_URL: "https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip"
+  XCODEGEN_ARCHIVE_SHA256: "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806"
+
+jobs:
+  direct:
+    name: Direct channel / frozen merge SHA
+    runs-on: macos-26
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out the PR merge commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Reassert the PR merge commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "${PR_MERGE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::github.sha is not a lowercase 40-character SHA."
+            exit 1
+          fi
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [[ "${ACTUAL_SHA}" != "${PR_MERGE_SHA}" ]]; then
+            echo "::error::Direct checkout ${ACTUAL_SHA} differs from PR merge SHA ${PR_MERGE_SHA}."
+            exit 1
+          fi
+          if [[ "${GITHUB_SHA}" != "${PR_MERGE_SHA}" ]]; then
+            echo "::error::GITHUB_SHA ${GITHUB_SHA} differs from PR merge SHA ${PR_MERGE_SHA}."
+            exit 1
+          fi
+
+      - name: Select macOS 26+ and Swift 6+ toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          CANDIDATES="$(mktemp "${TMPDIR:-/tmp}/StatusTrioXcodes.XXXXXX")"
+          DEFAULT_DEVELOPER="$(xcode-select -p 2>/dev/null || true)"
+          if [[ -n "${DEFAULT_DEVELOPER}" && -d "${DEFAULT_DEVELOPER}" ]]; then
+            printf '%s\n' "${DEFAULT_DEVELOPER}" >> "${CANDIDATES}"
+          fi
+          for DEVELOPER_CANDIDATE in /Applications/Xcode*.app/Contents/Developer; do
+            if [[ -d "${DEVELOPER_CANDIDATE}" ]]; then
+              printf '%s\n' "${DEVELOPER_CANDIDATE}" >> "${CANDIDATES}"
+            fi
+          done
+          if [[ ! -s "${CANDIDATES}" ]]; then
+            echo "::error::No Xcode installations were found on this runner."
+            exit 1
+          fi
+
+          version_gt() {
+            awk -v left="$1" -v right="$2" '
+              BEGIN {
+                left_count = split(left, left_part, ".")
+                right_count = split(right, right_part, ".")
+                count = left_count > right_count ? left_count : right_count
+                for (i = 1; i <= count; i++) {
+                  l = i <= left_count ? left_part[i] + 0 : 0
+                  r = i <= right_count ? right_part[i] + 0 : 0
+                  if (l > r) exit 0
+                  if (l < r) exit 1
+                }
+                exit 1
+              }
+            '
+          }
+
+          SELECTED=""
+          SELECTED_SDK=""
+          SELECTED_SWIFT=""
+          SEEN=""
+          while IFS= read -r DEVELOPER_CANDIDATE; do
+            [[ -n "${DEVELOPER_CANDIDATE}" ]] || continue
+            case "${SEEN}" in
+              *"|${DEVELOPER_CANDIDATE}|"*) continue ;;
+            esac
+            SEEN="${SEEN}|${DEVELOPER_CANDIDATE}|"
+
+            SDK_VERSION="$(DEVELOPER_DIR="${DEVELOPER_CANDIDATE}" xcrun --sdk macosx --show-sdk-version 2>/dev/null || true)"
+            SDK_MAJOR="${SDK_VERSION%%.*}"
+            echo "Inspecting ${DEVELOPER_CANDIDATE}: macOS SDK '${SDK_VERSION}'."
+            [[ "${SDK_MAJOR}" =~ ^[0-9]+$ ]] || continue
+
+            SWIFT_OUTPUT="$(DEVELOPER_DIR="${DEVELOPER_CANDIDATE}" xcrun --sdk macosx swift --version 2>&1 || true)"
+            SWIFT_VERSION="$(printf '%s\n' "${SWIFT_OUTPUT}" | sed -n 's/.*Swift version \([0-9][0-9.]*\).*/\1/p' | head -n 1)"
+            SWIFT_MAJOR="${SWIFT_VERSION%%.*}"
+            echo "Inspecting ${DEVELOPER_CANDIDATE}: Swift '${SWIFT_VERSION}'."
+            [[ "${SWIFT_MAJOR}" =~ ^[0-9]+$ ]] || continue
+
+            if [[ "${SDK_MAJOR}" -ge 26 && "${SWIFT_MAJOR}" -ge 6 ]]; then
+              if [[ -z "${SELECTED}" ]] ||
+                version_gt "${SDK_VERSION}" "${SELECTED_SDK}" ||
+                { [[ "${SDK_VERSION}" == "${SELECTED_SDK}" ]] && version_gt "${SWIFT_VERSION}" "${SELECTED_SWIFT}"; }; then
+                SELECTED="${DEVELOPER_CANDIDATE}"
+                SELECTED_SDK="${SDK_VERSION}"
+                SELECTED_SWIFT="${SWIFT_VERSION}"
+              fi
+            fi
+          done < "${CANDIDATES}"
+
+          if [[ -z "${SELECTED}" ]]; then
+            echo "::error::No Xcode with macOS SDK >= 26 and Swift >= 6 was found."
+            echo "Inspected Xcode installations:"
+            sed 's/^/  /' "${CANDIDATES}"
+            exit 1
+          fi
+
+          {
+            echo "DEVELOPER_DIR=${SELECTED}"
+            echo "SELECTED_XCODE=${SELECTED}"
+            echo "SELECTED_MACOS_SDK=${SELECTED_SDK}"
+            echo "SELECTED_SWIFT=${SELECTED_SWIFT}"
+          } >> "${GITHUB_ENV}"
+          echo "Selected ${SELECTED} (macOS SDK ${SELECTED_SDK}, Swift ${SELECTED_SWIFT})."
+
+      - name: Install pinned XcodeGen 2.46.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          ARCHIVE="${RUNNER_TEMP}/xcodegen-${XCODEGEN_VERSION}.zip"
+          EXTRACT="${RUNNER_TEMP}/xcodegen-${XCODEGEN_VERSION}-extract"
+          TOOL_ROOT="${GITHUB_WORKSPACE}/.build/tools/xcodegen-${XCODEGEN_VERSION}"
+          rm -rf "${ARCHIVE}" "${EXTRACT}" "${TOOL_ROOT}"
+          mkdir -p "${EXTRACT}"
+          curl -fL --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 180 \
+            -o "${ARCHIVE}" "${XCODEGEN_ARCHIVE_URL}" 2>&1 | tee -a .build/ci-logs/xcodegen-install.log
+          printf '%s  %s\n' "${XCODEGEN_ARCHIVE_SHA256}" "${ARCHIVE}" | shasum -a 256 -c - 2>&1 | tee -a .build/ci-logs/xcodegen-install.log
+          unzip -q "${ARCHIVE}" -d "${EXTRACT}"
+          if [[ ! -f "${EXTRACT}/xcodegen/install.sh" ]]; then
+            echo "::error::Pinned XcodeGen archive did not contain xcodegen/install.sh."
+            exit 1
+          fi
+          mkdir -p "${TOOL_ROOT}"
+          PREFIX="${TOOL_ROOT}" bash "${EXTRACT}/xcodegen/install.sh" 2>&1 | tee -a .build/ci-logs/xcodegen-install.log
+          if [[ ! -x "${TOOL_ROOT}/bin/xcodegen" ]]; then
+            echo "::error::Pinned XcodeGen was not installed at ${TOOL_ROOT}/bin/xcodegen."
+            exit 1
+          fi
+          ACTUAL_XCODEGEN_VERSION="$("${TOOL_ROOT}/bin/xcodegen" --version 2>&1 | head -n 1)"
+          ACTUAL_XCODEGEN_VERSION="${ACTUAL_XCODEGEN_VERSION#Version: }"
+          if [[ "${ACTUAL_XCODEGEN_VERSION}" != "${XCODEGEN_VERSION}" ]]; then
+            echo "::error::Expected XcodeGen ${XCODEGEN_VERSION}, found ${ACTUAL_XCODEGEN_VERSION}."
+            exit 1
+          fi
+          {
+            echo "XCODEGEN=${TOOL_ROOT}/bin/xcodegen"
+          } >> "${GITHUB_ENV}"
+          echo "Installed XcodeGen ${ACTUAL_XCODEGEN_VERSION} from the pinned official archive."
+
+      - name: Validate dual-distribution workflow policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/test-dual-distribution-workflows.sh 2>&1 | tee .build/ci-logs/dual-distribution-policy.log
+
+      - name: Install mobile helper build tools
+        shell: bash
+        run: brew install autoconf automake libtool pkg-config
+
+      - name: Run Direct full local verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/verify-local.sh full 2>&1 | tee -a .build/ci-logs/direct-full.log
+
+      - name: Upload Direct diagnostic logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: direct-pr-diagnostic-logs
+          path: |
+            .build/ci-logs/
+            .build/local-verification/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+
+  store:
+    name: App Store channel / frozen merge SHA
+    runs-on: macos-26
+    timeout-minutes: 75
+
+    steps:
+      - name: Check out the PR merge commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Reassert the PR merge commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "${PR_MERGE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::github.sha is not a lowercase 40-character SHA."
+            exit 1
+          fi
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [[ "${ACTUAL_SHA}" != "${PR_MERGE_SHA}" ]]; then
+            echo "::error::Store checkout ${ACTUAL_SHA} differs from PR merge SHA ${PR_MERGE_SHA}."
+            exit 1
+          fi
+          if [[ "${GITHUB_SHA}" != "${PR_MERGE_SHA}" ]]; then
+            echo "::error::GITHUB_SHA ${GITHUB_SHA} differs from PR merge SHA ${PR_MERGE_SHA}."
+            exit 1
+          fi
+
+      - name: Select macOS 26+ and Swift 6+ toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          CANDIDATES="$(mktemp "${TMPDIR:-/tmp}/StatusTrioXcodes.XXXXXX")"
+          DEFAULT_DEVELOPER="$(xcode-select -p 2>/dev/null || true)"
+          if [[ -n "${DEFAULT_DEVELOPER}" && -d "${DEFAULT_DEVELOPER}" ]]; then
+            printf '%s\n' "${DEFAULT_DEVELOPER}" >> "${CANDIDATES}"
+          fi
+          for DEVELOPER_CANDIDATE in /Applications/Xcode*.app/Contents/Developer; do
+            if [[ -d "${DEVELOPER_CANDIDATE}" ]]; then
+              printf '%s\n' "${DEVELOPER_CANDIDATE}" >> "${CANDIDATES}"
+            fi
+          done
+          if [[ ! -s "${CANDIDATES}" ]]; then
+            echo "::error::No Xcode installations were found on this runner."
+            exit 1
+          fi
+
+          version_gt() {
+            awk -v left="$1" -v right="$2" '
+              BEGIN {
+                left_count = split(left, left_part, ".")
+                right_count = split(right, right_part, ".")
+                count = left_count > right_count ? left_count : right_count
+                for (i = 1; i <= count; i++) {
+                  l = i <= left_count ? left_part[i] + 0 : 0
+                  r = i <= right_count ? right_part[i] + 0 : 0
+                  if (l > r) exit 0
+                  if (l < r) exit 1
+                }
+                exit 1
+              }
+            '
+          }
+
+          SELECTED=""
+          SELECTED_SDK=""
+          SELECTED_SWIFT=""
+          SEEN=""
+          while IFS= read -r DEVELOPER_CANDIDATE; do
+            [[ -n "${DEVELOPER_CANDIDATE}" ]] || continue
+            case "${SEEN}" in
+              *"|${DEVELOPER_CANDIDATE}|"*) continue ;;
+            esac
+            SEEN="${SEEN}|${DEVELOPER_CANDIDATE}|"
+
+            SDK_VERSION="$(DEVELOPER_DIR="${DEVELOPER_CANDIDATE}" xcrun --sdk macosx --show-sdk-version 2>/dev/null || true)"
+            SDK_MAJOR="${SDK_VERSION%%.*}"
+            echo "Inspecting ${DEVELOPER_CANDIDATE}: macOS SDK '${SDK_VERSION}'."
+            [[ "${SDK_MAJOR}" =~ ^[0-9]+$ ]] || continue
+
+            SWIFT_OUTPUT="$(DEVELOPER_DIR="${DEVELOPER_CANDIDATE}" xcrun --sdk macosx swift --version 2>&1 || true)"
+            SWIFT_VERSION="$(printf '%s\n' "${SWIFT_OUTPUT}" | sed -n 's/.*Swift version \([0-9][0-9.]*\).*/\1/p' | head -n 1)"
+            SWIFT_MAJOR="${SWIFT_VERSION%%.*}"
+            echo "Inspecting ${DEVELOPER_CANDIDATE}: Swift '${SWIFT_VERSION}'."
+            [[ "${SWIFT_MAJOR}" =~ ^[0-9]+$ ]] || continue
+
+            if [[ "${SDK_MAJOR}" -ge 26 && "${SWIFT_MAJOR}" -ge 6 ]]; then
+              if [[ -z "${SELECTED}" ]] ||
+                version_gt "${SDK_VERSION}" "${SELECTED_SDK}" ||
+                { [[ "${SDK_VERSION}" == "${SELECTED_SDK}" ]] && version_gt "${SWIFT_VERSION}" "${SELECTED_SWIFT}"; }; then
+                SELECTED="${DEVELOPER_CANDIDATE}"
+                SELECTED_SDK="${SDK_VERSION}"
+                SELECTED_SWIFT="${SWIFT_VERSION}"
+              fi
+            fi
+          done < "${CANDIDATES}"
+
+          if [[ -z "${SELECTED}" ]]; then
+            echo "::error::No Xcode with macOS SDK >= 26 and Swift >= 6 was found."
+            echo "Inspected Xcode installations:"
+            sed 's/^/  /' "${CANDIDATES}"
+            exit 1
+          fi
+
+          {
+            echo "DEVELOPER_DIR=${SELECTED}"
+            echo "SELECTED_XCODE=${SELECTED}"
+            echo "SELECTED_MACOS_SDK=${SELECTED_SDK}"
+            echo "SELECTED_SWIFT=${SELECTED_SWIFT}"
+          } >> "${GITHUB_ENV}"
+          echo "Selected ${SELECTED} (macOS SDK ${SELECTED_SDK}, Swift ${SELECTED_SWIFT})."
+
+      - name: Install pinned XcodeGen 2.46.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          ARCHIVE="${RUNNER_TEMP}/xcodegen-${XCODEGEN_VERSION}.zip"
+          EXTRACT="${RUNNER_TEMP}/xcodegen-${XCODEGEN_VERSION}-extract"
+          TOOL_ROOT="${GITHUB_WORKSPACE}/.build/tools/xcodegen-${XCODEGEN_VERSION}"
+          rm -rf "${ARCHIVE}" "${EXTRACT}" "${TOOL_ROOT}"
+          mkdir -p "${EXTRACT}"
+          curl -fL --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 180 \
+            -o "${ARCHIVE}" "${XCODEGEN_ARCHIVE_URL}" 2>&1 | tee -a .build/ci-logs/xcodegen-install.log
+          printf '%s  %s\n' "${XCODEGEN_ARCHIVE_SHA256}" "${ARCHIVE}" | shasum -a 256 -c - 2>&1 | tee -a .build/ci-logs/xcodegen-install.log
+          unzip -q "${ARCHIVE}" -d "${EXTRACT}"
+          if [[ ! -f "${EXTRACT}/xcodegen/install.sh" ]]; then
+            echo "::error::Pinned XcodeGen archive did not contain xcodegen/install.sh."
+            exit 1
+          fi
+          mkdir -p "${TOOL_ROOT}"
+          PREFIX="${TOOL_ROOT}" bash "${EXTRACT}/xcodegen/install.sh" 2>&1 | tee -a .build/ci-logs/xcodegen-install.log
+          if [[ ! -x "${TOOL_ROOT}/bin/xcodegen" ]]; then
+            echo "::error::Pinned XcodeGen was not installed at ${TOOL_ROOT}/bin/xcodegen."
+            exit 1
+          fi
+          ACTUAL_XCODEGEN_VERSION="$("${TOOL_ROOT}/bin/xcodegen" --version 2>&1 | head -n 1)"
+          ACTUAL_XCODEGEN_VERSION="${ACTUAL_XCODEGEN_VERSION#Version: }"
+          if [[ "${ACTUAL_XCODEGEN_VERSION}" != "${XCODEGEN_VERSION}" ]]; then
+            echo "::error::Expected XcodeGen ${XCODEGEN_VERSION}, found ${ACTUAL_XCODEGEN_VERSION}."
+            exit 1
+          fi
+          {
+            echo "XCODEGEN=${TOOL_ROOT}/bin/xcodegen"
+          } >> "${GITHUB_ENV}"
+          echo "Installed XcodeGen ${ACTUAL_XCODEGEN_VERSION} from the pinned official archive."
+
+      - name: Validate dual-distribution workflow policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/test-dual-distribution-workflows.sh 2>&1 | tee .build/ci-logs/dual-distribution-policy.log
+
+      - name: Test Store project contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/test-app-store-project-contract.sh 2>&1 | tee .build/ci-logs/app-store-project-contract.log
+
+      - name: Test Store bundle audit fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/test-app-store-bundle-contract.sh 2>&1 | tee .build/ci-logs/app-store-bundle-contract.log
+
+      - name: Test Store source closure negative fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/test-app-store-source-closure.sh 2>&1 | tee .build/ci-logs/app-store-source-closure-contract.log
+
+      - name: Build unsigned Store archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          APP_STORE_UNSIGNED=1 \
+            APP_STORE_ARCHIVE_PATH=.build/app-store/StatusTrio.xcarchive \
+            bash scripts/build-app-store.sh release no-open 2>&1 | tee .build/ci-logs/app-store-build.log
+
+      - name: Verify unsigned Store bundle statically
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/verify-app-store-bundle.sh dist/AppStore/StatusTrio.app --unsigned 2>&1 | tee .build/ci-logs/app-store-bundle-audit.log
+
+      - name: Verify archived Store dSYMs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          bash scripts/verify-app-store-archive-dsyms.sh .build/app-store/StatusTrio.xcarchive 2>&1 | tee .build/ci-logs/app-store-dsym-audit.log
+
+      - name: Verify Store source closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/ci-logs
+          python3 scripts/verify-app-store-source-closure.py .build/app-store/source-membership.json 2>&1 | tee .build/ci-logs/app-store-source-closure.log
+
+      - name: Record Store verification limits
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "## App Store PR verification"
+            echo ""
+            echo "- Frozen PR merge SHA: \`${PR_MERGE_SHA}\`"
+            echo "- Selected Xcode: \`${SELECTED_XCODE:-not selected}\`"
+            echo "- macOS SDK: \`${SELECTED_MACOS_SDK:-not selected}\`"
+            echo "- Compilation mode: unsigned"
+            echo "- Signing: NOT RUN"
+            echo "- Sandbox runtime: NOT RUN"
+            echo "- App Store uploadability: NOT CLAIMED"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload Store diagnostic logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-store-pr-diagnostic-logs
+          path: |
+            .build/ci-logs/
+            .build/app-store/*.log
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7

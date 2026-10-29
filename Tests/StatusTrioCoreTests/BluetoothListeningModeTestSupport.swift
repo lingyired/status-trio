@@ -24,6 +24,10 @@ struct EmptyListeningModeEndpointProvider: CoreAudioBluetoothEndpointProviding {
 /// unsubscribes rather than leaving CoreAudio firing into a controller that has
 /// already forgotten the presentation.
 final class FakeListeningModeListenerBackend: BluetoothListeningModePropertyListening, @unchecked Sendable {
+    var listeningModeAddress: AudioObjectPropertyAddress? {
+        DirectBluetoothListeningModeProperty.address(.listeningMode)
+    }
+
     struct Registration {
         let address: AudioObjectPropertyAddress
         let queue: DispatchQueue?

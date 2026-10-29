@@ -2,20 +2,9 @@ import CoreAudio
 import Foundation
 import os
 
-struct DDCVolumeUpdate: Sendable {
-    let outputID: AudioDeviceID
-    let uid: String
-    let generation: UInt64
-    let capability: DDCVolumeCapability
-    let commandID: UInt64?
-
-    /// The display's current value, or nil while the capability is unknown.
-    var scalar: Double? { capability.scalar }
-}
-
 /// Serializes all display discovery and I2C operations away from the main actor.
 @MainActor
-final class DDCVolumeCoordinator {
+final class DDCVolumeCoordinator: DDCVolumeCoordinating {
     typealias Sleep = @Sendable (Duration) async throws -> Void
 
     private let worker: DDCWorker
@@ -61,6 +50,22 @@ final class DDCVolumeCoordinator {
         self.onDebounceSettled = onDebounceSettled
         self.sleep = sleep
         self.onUpdate = onUpdate
+    }
+
+    convenience init(
+        onUpdate: @escaping @MainActor (DDCVolumeUpdate) -> Void,
+        configuration: DDCVolumeCoordinatorConfiguration
+    ) {
+        self.init(
+            transport: DDCDisplayTransport(),
+            debounce: configuration.debounce,
+            readWatchdog: configuration.readWatchdog,
+            beforeReadValidation: configuration.beforeReadValidation,
+            onReadCompletion: configuration.onReadCompletion,
+            onDebounceSettled: configuration.onDebounceSettled,
+            sleep: configuration.sleep,
+            onUpdate: onUpdate
+        )
     }
 
     func select(outputID: AudioDeviceID, uid: String?) {

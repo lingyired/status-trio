@@ -145,6 +145,18 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     private var popoverWindowFocusCancellables: Set<AnyCancellable> = []
     private var applicationFocusCancellables: Set<AnyCancellable> = []
     private let inputSourceController: InputSourceController
+    private let updaterManager: UpdateStateFacade
+    private let helper: PrivilegedHelperFacade
+    var platformServicesForTesting: (updater: UpdateStateFacade, helper: PrivilegedHelperFacade) {
+        (updaterManager, helper)
+    }
+    var distributionCapabilityPolicyForTesting: DistributionCapabilityPolicy {
+        capabilityPolicy
+    }
+    var panelCapabilityPolicyForTesting: DistributionCapabilityPolicy {
+        panelActions.distributionCapabilityPolicyForTesting
+    }
+    private let capabilityPolicy: DistributionCapabilityPolicy
     /// How a presentation resolves the appearance it rasterizes in.
     ///
     /// Production reads the button's effective appearance. A test pins it: the
@@ -188,6 +200,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             )
         },
         inputSourceController: InputSourceController? = nil,
+        updaterManager: UpdateStateFacade = UpdateStateFacade(service: SystemManagedUpdateService()),
+        helper: PrivilegedHelperFacade = PrivilegedHelperFacade(service: UnsupportedPrivilegedHelperService()),
+        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
         appearanceProvider: (@MainActor () -> NSAppearance)? = nil
     ) {
         self.appearanceProvider = appearanceProvider
@@ -195,10 +210,14 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         self.settings = settings
         let resolvedInputSourceController = inputSourceController ?? InputSourceController()
         self.inputSourceController = resolvedInputSourceController
+        self.updaterManager = updaterManager
+        self.helper = helper
+        self.capabilityPolicy = capabilityPolicy
         let panelActions = StatusPanelActions(
             store: store,
             settings: settings,
-            inputSourceController: resolvedInputSourceController
+            inputSourceController: resolvedInputSourceController,
+            capabilityPolicy: capabilityPolicy
         )
         self.panelActions = panelActions
         let resolvedPanelUpdateScheduler: any PanelPresentationUpdateScheduling
@@ -213,7 +232,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             localization: localization,
             actions: panelActions,
             updateScheduler: resolvedPanelUpdateScheduler,
-            inputSourceController: resolvedInputSourceController
+            inputSourceController: resolvedInputSourceController,
+            capabilityPolicy: capabilityPolicy
         )
         self.iconPresentation = iconPresentation
         self.localization = localization
@@ -380,6 +400,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         let rootView = LocalizedRootView(localization: localization) {
             StatusPopoverView(
                 panel: panelViewModel,
+                helper: helper,
+                capabilityPolicy: capabilityPolicy,
                 scrollTargets: popoverScrollTargets,
                 requestWiFiNameAccess: { self.handleRequestWiFiNameAccess() },
                 requestBluetoothAuthorization: { self.handleRequestBluetoothAuthorization() },
@@ -1192,7 +1214,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
 
     @objc private func handleCheckForUpdates() {
         popover.performClose(nil)
-        UpdaterManager.shared.checkForUpdates()
+        updaterManager.checkForUpdates()
     }
 
     @objc private func handleRequestWiFiNameAccess() {
@@ -1366,8 +1388,10 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             settingsTarget: self,
             settingsAction: #selector(handleOpenSettings),
             localization: localization,
-            updateTarget: self,
-            updateAction: #selector(handleCheckForUpdates)
+            updateTarget: updaterManager.canCheckForUpdates ? self : nil,
+            updateAction: updaterManager.canCheckForUpdates
+                ? #selector(handleCheckForUpdates)
+                : nil
         )
         guard let button = statusItem.button else { return }
         menu.popUp(
