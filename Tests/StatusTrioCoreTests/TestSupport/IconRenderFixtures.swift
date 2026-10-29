@@ -146,6 +146,26 @@ private func snapshotFromMenuBarStatus(_ status: MenuBarStatus) -> StatusSnapsho
     )
 }
 
+/// The scene the Dock and the bundle-icon artwork both render from.
+@MainActor
+func dockScene(
+    status: MenuBarStatus,
+    options: BatteryIconOptions = .standard,
+    connectionOptions: ConnectionIconOptions = .standard,
+    volumeOptions: VolumeIconOptions = .standard,
+    bluetoothAudioOptions: BluetoothAudioIconOptions = .standard
+) -> IconSceneState {
+    IconPresentationMapper.scene(
+        inputs: IconPresentationResourceResolver.inputs(snapshot: snapshotFromMenuBarStatus(status)),
+        configuration: IconPresentationConfiguration(
+            battery: options,
+            connection: connectionOptions,
+            volume: volumeOptions,
+            bluetooth: bluetoothAudioOptions
+        )
+    )
+}
+
 @MainActor
 func renderDockFixture(
     status: MenuBarStatus,
@@ -156,15 +176,13 @@ func renderDockFixture(
     backgroundStyle: DockIconBackgroundStyle = .dark,
     pixelLength: Int = DockIconRenderer.pixelSize
 ) -> NSImage? {
-        DockIconRenderer.image(
-            scene: IconPresentationMapper.scene(
-                inputs: IconPresentationResourceResolver.inputs(snapshot: snapshotFromMenuBarStatus(status)),
-            configuration: IconPresentationConfiguration(
-                battery: options,
-                connection: connectionOptions,
-                volume: volumeOptions,
-                bluetooth: bluetoothAudioOptions
-            )
+    DockIconRenderer.image(
+        scene: dockScene(
+            status: status,
+            options: options,
+            connectionOptions: connectionOptions,
+            volumeOptions: volumeOptions,
+            bluetoothAudioOptions: bluetoothAudioOptions
         ),
         backgroundStyle: backgroundStyle,
         pixelLength: pixelLength

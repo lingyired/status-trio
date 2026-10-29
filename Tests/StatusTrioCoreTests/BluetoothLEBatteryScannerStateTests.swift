@@ -54,6 +54,117 @@ struct BluetoothLEBatteryScannerStateTests {
         #expect(!retried)
     }
 
+    /// A device that never answers must not be retried on the same minute
+    /// forever: each consecutive failure earns a longer cooldown, and after the
+    /// budget runs out automatic scans leave it alone. This is the course the
+    /// issue `#152` report follows — a declined pairing prompt that kept
+    /// coming back about once a minute.
+    @Test func consecutiveFailuresBackOffAndThenStopAutomaticRetries() {
+        let start = Date(timeIntervalSince1970: 7_000)
+        let id = UUID()
+        var policy = BluetoothLEBatteryScanPolicy()
+
+        let began = policy.beginScan(at: start, manual: true)
+        let queued = policy.enqueueCandidate(id, at: start)
+        let connections = policy.startQueuedConnections()
+        #expect(began)
+        #expect(queued)
+        #expect(connections == [id])
+        policy.completeConnection(id, succeeded: false, at: start)
+        #expect(policy.suspendedRetryIDs.isEmpty)
+
+        // First failure: the original one-minute cooldown still applies.
+        let earlyScan = policy.beginScan(at: start.addingTimeInterval(59), manual: true)
+        let earlyEnqueue = policy.enqueueCandidate(id, at: start.addingTimeInterval(59))
+        #expect(earlyScan)
+        #expect(!earlyEnqueue)
+        let retryScan = policy.beginScan(at: start.addingTimeInterval(61), manual: true)
+        let retryEnqueue = policy.enqueueCandidate(id, at: start.addingTimeInterval(61))
+        #expect(retryScan)
+        #expect(retryEnqueue)
+        #expect(policy.startQueuedConnections() == [id])
+        policy.completeConnection(id, succeeded: false, at: start.addingTimeInterval(61))
+        #expect(policy.suspendedRetryIDs.isEmpty)
+
+        // Second failure: the wait grows instead of repeating the minute.
+        let fiveMinuteScan = policy.beginScan(at: start.addingTimeInterval(300), manual: true)
+        let fiveMinuteEnqueue = policy.enqueueCandidate(id, at: start.addingTimeInterval(300))
+        #expect(fiveMinuteScan)
+        #expect(!fiveMinuteEnqueue)
+        let afterFiveMinutes = policy.beginScan(at: start.addingTimeInterval(362), manual: true)
+        let afterFiveMinuteEnqueue = policy.enqueueCandidate(id, at: start.addingTimeInterval(362))
+        #expect(afterFiveMinutes)
+        #expect(afterFiveMinuteEnqueue)
+        #expect(policy.startQueuedConnections() == [id])
+        policy.completeConnection(id, succeeded: false, at: start.addingTimeInterval(362))
+
+        // Third failure: out of budget. No later scan re-enqueues it.
+        #expect(policy.suspendedRetryIDs == [id])
+        _ = policy.beginScan(at: start.addingTimeInterval(20_000), manual: true)
+        let laterEnqueue = policy.enqueueCandidate(id, at: start.addingTimeInterval(20_000))
+        #expect(!laterEnqueue)
+        _ = policy.beginScan(at: start.addingTimeInterval(200_000), manual: true)
+        let muchLaterEnqueue = policy.enqueueCandidate(id, at: start.addingTimeInterval(200_000))
+        #expect(!muchLaterEnqueue)
+    }
+
+    @Test func oneSuccessfulSessionClearsTheFailureStreak() {
+        let start = Date(timeIntervalSince1970: 8_000)
+        let id = UUID()
+        var policy = BluetoothLEBatteryScanPolicy()
+
+        _ = policy.beginScan(at: start, manual: true)
+        _ = policy.enqueueCandidate(id, at: start)
+        _ = policy.startQueuedConnections()
+        policy.completeConnection(id, succeeded: false, at: start)
+        policy.completeConnection(id, succeeded: false, at: start)
+
+        _ = policy.beginScan(at: start.addingTimeInterval(301), manual: true)
+        let retried = policy.enqueueCandidate(id, at: start.addingTimeInterval(301))
+        #expect(retried)
+        _ = policy.startQueuedConnections()
+        policy.completeConnection(id, succeeded: true, at: start.addingTimeInterval(301))
+
+        // A failure after the success starts the escalation over at one minute.
+        _ = policy.beginScan(at: start.addingTimeInterval(362), manual: true)
+        let failingAgain = policy.enqueueCandidate(id, at: start.addingTimeInterval(362))
+        #expect(failingAgain)
+        _ = policy.startQueuedConnections()
+        policy.completeConnection(id, succeeded: false, at: start.addingTimeInterval(362))
+        #expect(policy.suspendedRetryIDs.isEmpty)
+
+        _ = policy.beginScan(at: start.addingTimeInterval(400), manual: true)
+        let tooSoon = policy.enqueueCandidate(id, at: start.addingTimeInterval(400))
+        #expect(!tooSoon)
+        _ = policy.beginScan(at: start.addingTimeInterval(423), manual: true)
+        let oneMinuteRetry = policy.enqueueCandidate(id, at: start.addingTimeInterval(423))
+        #expect(oneMinuteRetry)
+    }
+
+    @Test func explicitRefreshResumesASuspendedDevice() {
+        let start = Date(timeIntervalSince1970: 9_000)
+        let id = UUID()
+        var policy = BluetoothLEBatteryScanPolicy()
+
+        for offset in 0..<3 {
+            let now = start.addingTimeInterval(Double(offset) * 3_600)
+            _ = policy.beginScan(at: now, manual: true)
+            let queued = policy.enqueueCandidate(id, at: now)
+            #expect(queued)
+            _ = policy.startQueuedConnections()
+            policy.completeConnection(id, succeeded: false, at: now)
+        }
+        #expect(policy.suspendedRetryIDs == [id])
+        _ = policy.beginScan(at: start.addingTimeInterval(30_000), manual: true)
+        let automaticRetry = policy.enqueueCandidate(id, at: start.addingTimeInterval(30_000))
+        #expect(!automaticRetry)
+
+        policy.resumeSuspendedRetries()
+        #expect(policy.suspendedRetryIDs.isEmpty)
+        let afterResume = policy.enqueueCandidate(id, at: start.addingTimeInterval(30_000))
+        #expect(afterResume)
+    }
+
     @Test func staleCancellationCannotRemoveNewSession() {
         let id = UUID(), oldSession = UUID(), current = UUID()
         var gate = NearbyBLESessionCancellationGate()

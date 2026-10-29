@@ -4,6 +4,50 @@ import XCTest
 
 @MainActor
 final class NearbyBLEControllerDemandTests: XCTestCase {
+    func testAppleMasterToggleControlsMobileBluetoothReads() {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        monitor.emit(.poweredOn)
+        let id = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [id], hiddenIDs: [])
+
+        XCTAssertEqual(
+            scanner.appleMobileReadsEnabledValues.last,
+            true,
+            "enabling Apple devices permits the known-device mobile route"
+        )
+
+        controller.configureNearbyBLEDevices(
+            enabled: false, knownIDs: [id], hiddenIDs: []
+        )
+        XCTAssertEqual(scanner.appleMobileReadsEnabledValues.last, false)
+
+        controller.configureNearbyBLEDevices(
+            enabled: true, knownIDs: [id], hiddenIDs: []
+        )
+        XCTAssertEqual(scanner.appleMobileReadsEnabledValues.last, true)
+        controller.deactivate()
+    }
+
+    func testUserRefreshResumesSuspendedNearbyReads() {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        monitor.emit(.poweredOn)
+        let id = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [id], hiddenIDs: [])
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+
+        controller.refreshFromUser()
+
+        XCTAssertGreaterThanOrEqual(
+            scanner.resumeSuspendedReadsCount,
+            1,
+            "an explicit refresh is the only path that may retry a suspended device"
+        )
+        controller.deactivate()
+    }
+
     func testBackgroundScannerStopsDuringSystemSleepAndResumesOnWake() {
         let (controller, scanner, monitor) = makeController()
         controller.activate()
@@ -651,6 +695,12 @@ private final class DemandScannerSpy: BluetoothLEBatteryScanning {
         }
         return result
     }
+    private(set) var appleMobileReadsEnabledValues: [Bool] = []
+    private(set) var resumeSuspendedReadsCount = 0
+    func setAppleMobileBatteryReadsEnabled(_ enabled: Bool) {
+        appleMobileReadsEnabledValues.append(enabled)
+    }
+    func resumeSuspendedReads() { resumeSuspendedReadsCount += 1 }
     func start() { isRunning = true }
     func refresh() {}
     func stop() {

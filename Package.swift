@@ -18,6 +18,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Sparkle", package: "Sparkle"),
                 "DDCPrivateAPI",
+                "PowerUIPrivateAPI",
                 "PowerHelperProtocol"
             ],
             path: "Sources/StatusTrioCore",
@@ -56,6 +57,11 @@ let package = Package(
         .target(
             name: "DDCPrivateAPI",
             path: "Sources/DDCPrivateAPI",
+            publicHeadersPath: "include"
+        ),
+        .target(
+            name: "PowerUIPrivateAPI",
+            path: "Sources/PowerUIPrivateAPI",
             publicHeadersPath: "include"
         ),
         .executableTarget(

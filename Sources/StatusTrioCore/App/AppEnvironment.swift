@@ -149,9 +149,11 @@ final class AppEnvironment {
         updater.start()
         store.bindInputSettings(settings)
         store.bindLocalIPSettings(settings)
+        store.bindApplicationEnergySettings(settings)
         store.bindMobileBatterySettings(settings)
         store.bindLowPowerModeSettings(settings)
         store.bindBluetoothSettings(settings)
+        store.bindExternalVolumeSettings(settings)
         store.start()
         telemetryReporter.start()
     }
@@ -229,6 +231,7 @@ final class AppEnvironment {
         dockChargingAnimationPresenter?.trimForMemoryPressure()
         previewResourceLifecycle.releaseIfIdle()
         IconImageDecodeCache.shared.reset()
+        ApplicationEnergyIconCache.shared.reset()
         DockIconRenderer.resetScratchContexts()
         StatusIconRenderer.resetInkOffsetCaches()
     }
@@ -390,6 +393,7 @@ final class AppEnvironment {
         privilegedHelper: PrivilegedHelperFacade,
         platformCapabilities: [PlatformCapabilityRecord]? = nil,
         distributionChannel: DistributionChannel = .current,
+        chargeToFullNow: ChargeToFullNowController? = nil,
         systemIconAppearance: @escaping () -> SystemIconAppearanceTheme = {
             .default
         }
@@ -448,12 +452,16 @@ final class AppEnvironment {
             localization: localization,
             isVisible: settings.appIconPlacement.showsMenuBarIcon,
             openSettings: { settingsWindowController?.show() },
+            openAppBatterySettings: {
+                settingsWindowController?.show(section: .battery)
+            },
             quitAction: { NSApplication.shared.terminate(nil) },
             chargingEffectClock: chargingEffectClock,
             inputSourceController: inputSourceController,
             updaterManager: updater,
             helper: privilegedHelper,
-            capabilityPolicy: capabilityPolicy
+            capabilityPolicy: capabilityPolicy,
+            chargeToFullNow: chargeToFullNow
         )
         let globalShortcutController = GlobalShortcutController(
             settings: settings,
@@ -477,7 +485,8 @@ final class AppEnvironment {
             helper: privilegedHelper,
             updaterManager: updater,
             capabilityPolicy: capabilityPolicy,
-            systemIconAppearance: systemIconAppearance
+            systemIconAppearance: systemIconAppearance,
+            chargeToFullNow: chargeToFullNow
         )
         settingsWindowController = resolvedSettingsWindowController
         onboardingWindowController.openSettings = { [weak resolvedSettingsWindowController] in

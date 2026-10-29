@@ -4,6 +4,10 @@ import XCTest
 
 @MainActor
 final class DDCVolumePresentationTests: XCTestCase {
+    func testProductionDDCReadWatchdogDefaultIsTwoSeconds() {
+        XCTAssertEqual(VolumeMonitor.defaultDDCReadWatchdog, .seconds(2))
+    }
+
     func testConfirmedDDCUpdateReplacesCoreAudioPlaceholderAndSelectedRowVolume() async {
         let row = AudioOutputDevice(id: 42, name: "XV272U", uid: "DISPLAY-A", isCurrent: true)
         let reader = FixedAudioStatusReader(reading: VolumeReading(

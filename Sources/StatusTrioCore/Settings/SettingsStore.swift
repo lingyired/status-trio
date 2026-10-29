@@ -22,6 +22,14 @@ final class SettingsStore: ObservableObject {
     static let batterySymbolScaleRange: ClosedRange<Double> = 0.9...1.1
     static let defaultBatterySymbolScale: Double = 1
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
+    static let showsChargerInputPowerDefaultsKey = "showsChargerInputPower"
+    static let showsBatteryChargingPowerDefaultsKey = "showsBatteryChargingPower"
+    static let showsSystemPowerDefaultsKey = "showsSystemPower"
+    static let showsHighEnergyAppsDefaultsKey = "showsHighEnergyApps"
+    static let highEnergyAppsRefreshIntervalDefaultsKey = "highEnergyAppsRefreshIntervalSeconds"
+    static let highEnergyAppsRefreshIntervalRange: ClosedRange<Double> = 10...60
+    static let defaultHighEnergyAppsRefreshIntervalSeconds: Double = 10
+    static let showsChargeToFullNowButtonDefaultsKey = "showsChargeToFullNowButton"
     static let showsChargingIndicatorDefaultsKey = "showsChargingIndicator"
     /// Legacy single-surface preference retained only for migration.
     static let showsChargingEffectDefaultsKey = "showsChargingEffect"
@@ -109,6 +117,7 @@ final class SettingsStore: ObservableObject {
     static let bluetoothDeviceLimitRange: ClosedRange<Int> = 1...20
     static let alwaysShowsAllOutputDevicesDefaultsKey = "alwaysShowsAllOutputDevices"
     static let outputDeviceOrderDefaultsKey = "outputDeviceOrder"
+    static let externalVolumeConfigurationsDefaultsKey = "externalVolumeConfigurations.v1"
     static let popupSectionOrderDefaultsKey = "popupSectionOrder"
     static let enabledPopupSectionsDefaultsKey = "enabledPopupSections"
     static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .vpn, .volume]
@@ -231,6 +240,43 @@ final class SettingsStore: ObservableObject {
     @Published var showsBatteryPercentage: Bool {
         didSet {
             defaults.set(showsBatteryPercentage, forKey: Self.showsBatteryPercentageDefaultsKey)
+        }
+    }
+
+    @Published var showsChargerInputPower: Bool {
+        didSet { defaults.set(showsChargerInputPower, forKey: Self.showsChargerInputPowerDefaultsKey) }
+    }
+    @Published var showsBatteryChargingPower: Bool {
+        didSet { defaults.set(showsBatteryChargingPower, forKey: Self.showsBatteryChargingPowerDefaultsKey) }
+    }
+    @Published var showsSystemPower: Bool {
+        didSet { defaults.set(showsSystemPower, forKey: Self.showsSystemPowerDefaultsKey) }
+    }
+    @Published var showsHighEnergyApps: Bool {
+        didSet { defaults.set(showsHighEnergyApps, forKey: Self.showsHighEnergyAppsDefaultsKey) }
+    }
+    @Published var highEnergyAppsRefreshIntervalSeconds: Double {
+        didSet {
+            let clamped = Self.clampedHighEnergyAppsRefreshInterval(highEnergyAppsRefreshIntervalSeconds)
+            guard clamped == highEnergyAppsRefreshIntervalSeconds else {
+                highEnergyAppsRefreshIntervalSeconds = clamped
+                return
+            }
+            defaults.set(clamped, forKey: Self.highEnergyAppsRefreshIntervalDefaultsKey)
+        }
+    }
+
+    var batteryPowerDisplayOptions: BatteryPowerDisplayOptions {
+        BatteryPowerDisplayOptions(showsInput: showsChargerInputPower,
+            showsCharging: showsBatteryChargingPower, showsSystem: showsSystemPower)
+    }
+
+    @Published var showsChargeToFullNowButton: Bool {
+        didSet {
+            defaults.set(
+                showsChargeToFullNowButton,
+                forKey: Self.showsChargeToFullNowButtonDefaultsKey
+            )
         }
     }
 
@@ -699,6 +745,18 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published private(set) var externalVolumeConfigurations: [String: ExternalVolumeConfiguration] {
+        didSet {
+            guard !externalVolumeConfigurations.isEmpty,
+                  let data = try? JSONEncoder().encode(externalVolumeConfigurations)
+            else {
+                defaults.removeObject(forKey: Self.externalVolumeConfigurationsDefaultsKey)
+                return
+            }
+            defaults.set(data, forKey: Self.externalVolumeConfigurationsDefaultsKey)
+        }
+    }
+
     @Published var showsBluetoothDeviceList: Bool {
         didSet {
             defaults.set(
@@ -863,6 +921,29 @@ final class SettingsStore: ObservableObject {
 
     func orderedOutputDevices(_ devices: [AudioOutputDevice]) -> [AudioOutputDevice] {
         OutputDeviceListPresentation.orderedDevices(devices, using: outputDeviceOrder)
+    }
+
+    func externalVolumeConfiguration(for uid: String) -> ExternalVolumeConfiguration {
+        let uid = uid.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !uid.isEmpty else { return .default }
+        return externalVolumeConfigurations[uid] ?? .default
+    }
+
+    func setExternalVolumeConfiguration(
+        _ configuration: ExternalVolumeConfiguration,
+        for uid: String
+    ) {
+        let uid = uid.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !uid.isEmpty else { return }
+
+        var updated = externalVolumeConfigurations
+        if let sanitized = configuration.sanitized(), sanitized != .default {
+            updated[uid] = sanitized
+        } else {
+            updated.removeValue(forKey: uid)
+        }
+        guard updated != externalVolumeConfigurations else { return }
+        externalVolumeConfigurations = updated
     }
 
     func moveOutputDevices(
@@ -1230,6 +1311,9 @@ final class SettingsStore: ObservableObject {
         let storedVolumeDisplayStyle = defaults.string(forKey: Self.volumeDisplayStyleDefaultsKey)
         let storedRingStrokeStyle = defaults.string(forKey: Self.ringStrokeStyleDefaultsKey)
         let storedOutputDeviceOrder = defaults.stringArray(forKey: Self.outputDeviceOrderDefaultsKey) ?? []
+        let storedExternalVolumeConfigurations = Self.decodedExternalVolumeConfigurations(
+            defaults.data(forKey: Self.externalVolumeConfigurationsDefaultsKey)
+        )
         let storedPopupSectionOrder = defaults.stringArray(
             forKey: Self.popupSectionOrderDefaultsKey
         ) ?? []
@@ -1255,6 +1339,17 @@ final class SettingsStore: ObservableObject {
             ?? .system
         self.iconSize = Self.clampedIconSize(storedIconSize ?? Self.defaultIconSize)
         self.showsBatteryPercentage = defaults.object(forKey: Self.showsBatteryPercentageDefaultsKey) as? Bool ?? true
+        self.showsChargerInputPower = defaults.object(forKey: Self.showsChargerInputPowerDefaultsKey) as? Bool ?? false
+        self.showsBatteryChargingPower = defaults.object(forKey: Self.showsBatteryChargingPowerDefaultsKey) as? Bool ?? true
+        self.showsSystemPower = defaults.object(forKey: Self.showsSystemPowerDefaultsKey) as? Bool ?? true
+        self.showsHighEnergyApps = defaults.object(forKey: Self.showsHighEnergyAppsDefaultsKey) as? Bool ?? false
+        self.highEnergyAppsRefreshIntervalSeconds = Self.clampedHighEnergyAppsRefreshInterval(
+            defaults.object(forKey: Self.highEnergyAppsRefreshIntervalDefaultsKey) as? Double
+                ?? Self.defaultHighEnergyAppsRefreshIntervalSeconds
+        )
+        self.showsChargeToFullNowButton = defaults.object(
+            forKey: Self.showsChargeToFullNowButtonDefaultsKey
+        ) as? Bool ?? true
         self.showsChargingIndicator = defaults.object(forKey: Self.showsChargingIndicatorDefaultsKey) as? Bool ?? true
         let legacyChargingEffect = defaults.object(
             forKey: Self.showsChargingEffectDefaultsKey
@@ -1419,6 +1514,7 @@ final class SettingsStore: ObservableObject {
             forKey: Self.alwaysShowsAllOutputDevicesDefaultsKey
         ) as? Bool ?? false
         self.outputDeviceOrder = storedOutputDeviceOrder
+        self.externalVolumeConfigurations = storedExternalVolumeConfigurations
         self.popupSectionOrder = Self.sanitizedPopupSectionOrder(
             storedPopupSectionOrder
         )
@@ -1464,6 +1560,32 @@ final class SettingsStore: ObservableObject {
         }
         var seen: Set<UUID> = []
         return decoded.filter { seen.insert($0.id).inserted }
+    }
+
+    private static func decodedExternalVolumeConfigurations(
+        _ data: Data?
+    ) -> [String: ExternalVolumeConfiguration] {
+        guard let data,
+              let decoded = try? JSONDecoder().decode(
+                  [String: ExternalVolumeConfiguration].self,
+                  from: data
+              )
+        else {
+            return [:]
+        }
+
+        var sanitized: [String: ExternalVolumeConfiguration] = [:]
+        for (rawUID, configuration) in decoded {
+            let uid = rawUID.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !uid.isEmpty,
+                  let configuration = configuration.sanitized(),
+                  configuration != .default
+            else {
+                continue
+            }
+            sanitized[uid] = configuration
+        }
+        return sanitized
     }
 
     private static func decodedTrustedAppleDeviceMetadata(_ data: Data?) -> [AppleDeviceCandidate] {
@@ -1526,6 +1648,15 @@ final class SettingsStore: ObservableObject {
     static func clampedRefreshInterval(_ value: Double) -> Double {
         guard value.isFinite else { return defaultRefreshIntervalSeconds }
         let clamped = min(refreshIntervalRange.upperBound, max(refreshIntervalRange.lowerBound, value))
+        return (clamped / 5).rounded() * 5
+    }
+
+    static func clampedHighEnergyAppsRefreshInterval(_ value: Double) -> Double {
+        guard value.isFinite else { return defaultHighEnergyAppsRefreshIntervalSeconds }
+        let clamped = min(
+            highEnergyAppsRefreshIntervalRange.upperBound,
+            max(highEnergyAppsRefreshIntervalRange.lowerBound, value)
+        )
         return (clamped / 5).rounded() * 5
     }
 

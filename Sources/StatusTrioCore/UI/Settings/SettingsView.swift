@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 /// Human-centered, multi-column settings window matching modern macOS standards.
@@ -15,7 +16,12 @@ struct SettingsView: View {
     @ObservedObject var updaterManager: UpdateStateFacade
     @ObservedObject var helper: PrivilegedHelperFacade
     let capabilityPolicy: DistributionCapabilityPolicy
+    var chargeToFullNow: ChargeToFullNowController? = nil
     let onShowIconGuide: () -> Void
+    /// Returns the tab the window controller wants to reveal, if any. The
+    /// controller stores the request because the first presentation can post
+    /// its notification before SwiftUI has subscribed.
+    var consumePendingSection: () -> Section? = { nil }
 
     @State private var selectedSection: Section = .appIcon
     @State private var previewIsDark: Bool = true
@@ -30,7 +36,9 @@ struct SettingsView: View {
         updaterManager: UpdateStateFacade = UpdateStateFacade(service: SystemManagedUpdateService()),
         helper: PrivilegedHelperFacade = PrivilegedHelperFacade(service: UnsupportedPrivilegedHelperService()),
         capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
-        onShowIconGuide: @escaping () -> Void
+        chargeToFullNow: ChargeToFullNowController? = nil,
+        onShowIconGuide: @escaping () -> Void,
+        consumePendingSection: @escaping () -> Section? = { nil }
     ) {
         self.store = store
         self.statusStore = statusStore
@@ -41,7 +49,9 @@ struct SettingsView: View {
         self.updaterManager = updaterManager
         self.helper = helper
         self.capabilityPolicy = capabilityPolicy
+        self.chargeToFullNow = chargeToFullNow
         self.onShowIconGuide = onShowIconGuide
+        self.consumePendingSection = consumePendingSection
     }
 
     enum Section: String, CaseIterable, Identifiable {
@@ -110,6 +120,21 @@ struct SettingsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
         .environmentObject(localization)
+        .onAppear { applyRequestedSectionIfAvailable() }
+        .onReceive(NotificationCenter.default.publisher(for: .settingsSelectSection)) { _ in
+            applyRequestedSectionIfAvailable()
+        }
+    }
+
+    private func applyRequestedSectionIfAvailable() {
+        guard let section = consumePendingSection() else { return }
+        select(section)
+    }
+
+    private func select(_ section: Section) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+            selectedSection = section
+        }
     }
 
     // MARK: - Sidebar
@@ -121,9 +146,7 @@ struct SettingsView: View {
 
             ForEach(Section.allCases) { section in
                 Button {
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
-                        selectedSection = section
-                    }
+                    select(section)
                 } label: {
                     HStack(alignment: .center, spacing: 10) {
                         SettingsIcon(symbol: section.symbol, tint: section.tint)
@@ -135,13 +158,20 @@ struct SettingsView: View {
                                 .lineLimit(1)
 
                             if section == .about {
-                                Text("v\(AppMetadata.versionDisplayString)")
+                                Text(
+                                    DevelopmentBuildPresentation.aboutSidebarDetail(
+                                        version: AppMetadata.versionDisplayString,
+                                        codename: AppMetadata.developmentCodename
+                                    )
+                                )
                                     .font(.system(size: 9, weight: .regular, design: .rounded))
                                     .foregroundStyle(
                                         selectedSection == section
                                             ? Color.white.opacity(0.72)
                                             : Color.secondary
                                     )
+                                    .lineLimit(2)
+                                    .truncationMode(.tail)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
@@ -182,7 +212,8 @@ struct SettingsView: View {
                 statusStore: statusStore,
                 previewIsDark: $previewIsDark,
                 helper: helper,
-                capabilityPolicy: capabilityPolicy
+                capabilityPolicy: capabilityPolicy,
+                chargeToFullNow: chargeToFullNow
             )
         case .network:
             NetworkSectionView(

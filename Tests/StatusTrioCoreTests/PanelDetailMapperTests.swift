@@ -37,6 +37,65 @@ final class PanelDetailMapperTests: XCTestCase {
         XCTAssertFalse(state.isLoading)
     }
 
+    func testPowerFlowDropsFractionAtThreeDigitWatts() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: 80,
+            isPresent: true,
+            isCharging: true,
+            isLowPowerMode: false,
+            isConnectedToPower: true
+        )
+        var options = BatteryPowerDisplayOptions.default
+        options.showsInput = true
+        let readAt = Date(timeIntervalSince1970: 1_700_000_000)
+
+        func powerFlow(input watts: Double) -> BatteryPowerFlowState? {
+            var details = BatteryDetails(adapterWatts: 140, powerAvailability: .available)
+            details.inputPower = SystemPowerSample(watts: watts, readAt: readAt)
+            details.systemPower = SystemPowerSample(watts: 25.59, readAt: readAt)
+            return PanelDetailMapper.battery(
+                status: battery,
+                details: details,
+                localization: localization,
+                powerOptions: options
+            ).powerFlow
+        }
+
+        XCTAssertEqual(powerFlow(input: 99.9)?.input?.value, "99.90 W")
+        XCTAssertEqual(powerFlow(input: 100)?.input?.value, "100 W")
+        XCTAssertEqual(powerFlow(input: 110.23)?.input?.value, "110 W")
+        XCTAssertEqual(powerFlow(input: 99.996)?.input?.value, "100 W")
+    }
+
+    func testPowerFlowUsesLiveBatterySampleWhenChargingFlagLags() {
+        let localization = makeLocalization()
+        let readAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let battery = BatteryStatus(
+            rawPercentage: 80,
+            isPresent: true,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: true
+        )
+        var options = BatteryPowerDisplayOptions.default
+        options.showsInput = true
+        var details = BatteryDetails(adapterWatts: 140, powerAvailability: .available)
+        details.power = BatteryPowerSample(volts: 12.4, amps: 4.2, updatedAt: readAt)
+        details.inputPower = SystemPowerSample(watts: 61.56, readAt: readAt)
+        details.systemPower = SystemPowerSample(watts: 10.6, readAt: readAt)
+
+        let state = PanelDetailMapper.battery(
+            status: battery,
+            details: details,
+            localization: localization,
+            powerOptions: options
+        )
+
+        XCTAssertEqual(state.powerFlow?.battery?.value, "52.08 W")
+        XCTAssertEqual(state.powerFlow?.battery?.watts ?? 0, 52.08, accuracy: 0.001)
+    }
+
     func testBatteryMapperRepresentsMissingDetailsAsLoadingAndWiredUnavailableKeepsFiveRows() {
         let localization = makeLocalization()
         let battery = BatteryStatus(

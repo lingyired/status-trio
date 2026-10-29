@@ -16,6 +16,7 @@ struct AudioSectionView: View {
         }) {
             indicatorStyleGroup
             displayRulesGroup
+            externalVolumeGroup
             deviceOrderGroup
         }
         .onAppear {
@@ -153,11 +154,208 @@ struct AudioSectionView: View {
         }
     }
 
+    private var externalVolumeGroup: some View {
+        let state = betterDisplaySettingsState
+        return SettingsGroup(
+            localization.string(.settingsAudioExternalVolumeTitle),
+            footnote: localization.string(.settingsAudioExternalVolumeFootnote)
+        ) {
+            SettingsRow(
+                "speaker.wave.2",
+                tint: .cyan,
+                title: localization.string(.settingsAudioExternalVolumeCurrentOutput),
+                subtitle: localization.string(.settingsAudioExternalVolumeCurrentOutputDescription)
+            ) {
+                ExternalVolumeTrailingControl {
+                    Text(currentOutputDevice?.name ?? localization.string(.volumeOutputUnknownDevice))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+
+            SettingsDivider()
+            SettingsRow(
+                "slider.horizontal.3",
+                tint: .orange,
+                title: localization.string(.settingsAudioExternalVolumeControlMethod),
+                subtitle: localization.string(.settingsAudioExternalVolumeControlMethodDescription)
+            ) {
+                ExternalVolumeTrailingControl {
+                    Picker(
+                        localization.string(.settingsAudioExternalVolumeControlMethod),
+                        selection: backendBinding
+                    ) {
+                        Text(localization.string(.settingsAudioExternalVolumeExistingBehavior))
+                            .tag(ExternalVolumeBackend.directDDC)
+                        Text(localization.string(.settingsAudioExternalVolumeBetterDisplay))
+                            .tag(ExternalVolumeBackend.betterDisplay)
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .disabled(!state.canEditConfiguration)
+                    .accessibilityIdentifier("audio.betterDisplay.backend")
+                }
+            }
+
+            if !state.canEditConfiguration {
+                SettingsDivider()
+                SettingsHintRow(
+                    text: localization.string(.settingsAudioExternalVolumeNoStableOutput)
+                )
+            }
+
+            if state.showsDisplayPicker {
+                SettingsDivider()
+
+                SettingsRow(
+                    "display",
+                    tint: .blue,
+                    title: localization.string(.settingsAudioExternalVolumeDisplay),
+                    subtitle: localization.string(.settingsAudioExternalVolumeDisplayDescription)
+                ) {
+                    ExternalVolumeTrailingControl {
+                        Picker(
+                            localization.string(.settingsAudioExternalVolumeDisplay),
+                            selection: displayBinding
+                        ) {
+                            ForEach(state.pickerOptions) { option in
+                                Text(displayOptionLabel(option))
+                                    .help(option.uuid ?? "")
+                                    .tag(option.uuid)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .help(state.selectedDisplayUUID ?? "")
+                        .disabled(!state.canSelectDisplay)
+                        .accessibilityIdentifier("audio.betterDisplay.display")
+                    }
+                }
+            }
+
+            if state.configuration.backend == .betterDisplay {
+                SettingsDivider()
+                SettingsRow(
+                    state.setupStatus == .ready ? "checkmark.circle.fill" : "display",
+                    tint: state.setupStatus == .ready ? .green : .blue,
+                    title: localization.string(.settingsAudioExternalVolumeBetterDisplay),
+                    subtitle: localization.string(state.setupStatus.localizationKey)
+                ) {
+                    if state.showsConnectionControls {
+                        ExternalVolumeTrailingControl {
+                            HStack(spacing: 8) {
+                                if state.setupStatus.isBusy {
+                                    ProgressView().controlSize(.small)
+                                }
+                                Button(localization.string(.settingsAudioExternalVolumeRefresh)) {
+                                    betterDisplaySettingsActions.refreshDevices()
+                                }
+                                .controlSize(.small)
+                                .disabled(state.setupStatus.isBusy)
+                                .accessibilityIdentifier("audio.betterDisplay.refresh")
+                            }
+                        }
+                    }
+                }
+
+                if state.showsConnectionControls {
+                    SettingsDivider()
+                    SettingsHintRow(
+                        text: localization.string(.settingsAudioExternalVolumeRequirements)
+                    )
+                }
+            }
+        }
+    }
+
+    private var betterDisplaySettingsState: BetterDisplayVolumeSettingsState {
+        let outputUID = currentOutputDevice?.uid
+        let configuration: ExternalVolumeConfiguration
+        if let outputUID {
+            configuration = store.externalVolumeConfiguration(for: outputUID)
+        } else {
+            configuration = .default
+        }
+        return BetterDisplayVolumeSettingsState(
+            outputUID: outputUID,
+            configuration: configuration,
+            devices: statusStore.betterDisplayDevices,
+            availability: statusStore.betterDisplayAvailability,
+            runtime: statusStore.betterDisplayState,
+            usesNativeVolumeControl: statusStore.liveVolume.controlSource == .native
+        )
+    }
+
+    private var betterDisplaySettingsActions: BetterDisplayVolumeSettingsActions {
+        BetterDisplayVolumeSettingsActions(
+            state: betterDisplaySettingsState,
+            setConfiguration: { configuration, uid in
+                store.setExternalVolumeConfiguration(configuration, for: uid)
+            },
+            refresh: {
+                statusStore.refreshBetterDisplayDevices()
+            }
+        )
+    }
+
+    private var backendBinding: Binding<ExternalVolumeBackend> {
+        Binding(
+            get: { betterDisplaySettingsState.configuration.backend },
+            set: { betterDisplaySettingsActions.setBackend($0) }
+        )
+    }
+
+    private var displayBinding: Binding<String?> {
+        Binding(
+            get: { betterDisplaySettingsState.selectedDisplayUUID },
+            set: { betterDisplaySettingsActions.selectDisplayUUID($0) }
+        )
+    }
+
+    private func displayOptionLabel(_ option: BetterDisplayDisplayPickerOption) -> String {
+        switch option {
+        case .unassociated:
+            return localization.string(.settingsAudioExternalVolumeUnassociated)
+        case .device(let uuid, let name):
+            return betterDisplaySettingsState.deviceLabel(uuid: uuid, name: name)
+                ?? "\(localization.string(.settingsAudioExternalVolumeUnnamedDisplay)) · \(uuid.prefix(8))"
+        case .unavailable(let uuid):
+            return "\(localization.string(.settingsAudioExternalVolumeUnavailableDisplay)) · \(uuid.prefix(8))"
+        case .saved(let uuid):
+            return "\(localization.string(.settingsAudioExternalVolumeSavedDisplay)) · \(uuid.prefix(8))"
+        }
+    }
+
     private var orderedDevices: [AudioOutputDevice] {
         store.orderedOutputDevices(statusStore.snapshot.volume.outputDevices)
     }
 
+    private var currentOutputDevice: AudioOutputDevice? {
+        statusStore.liveVolume.currentDevice
+            ?? statusStore.liveVolume.outputDevices.first(where: \.isCurrent)
+    }
+
     private var orderListHeight: CGFloat {
         min(max(CGFloat(orderedDevices.count) * 32 + 12, 48), 180)
+    }
+}
+
+/// Keeps every control in External Display Volume on one trailing edge.
+private struct ExternalVolumeTrailingControl<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            content
+        }
+        .frame(width: 180)
+        .layoutPriority(1)
     }
 }

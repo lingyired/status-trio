@@ -271,9 +271,13 @@ final class PrimaryLinkControllerTests: XCTestCase {
         controller.deactivate()
     }
 
-    func testDeactivateDropsTheLinkAndRejectsALateRead() async {
+    func testDeactivateDropsTheLinkAndRejectsALateRead() {
         let reader = FakePrimaryLinkReader()
-        let controller = makeController(reader: reader)
+        let dispatcher = ManualPrimaryLinkCompletionDispatcher()
+        let controller = makeController(
+            reader: reader,
+            completionDispatcher: { action in dispatcher.dispatch(action) }
+        )
 
         controller.activate()
         controller.deactivate()
@@ -284,8 +288,67 @@ final class PrimaryLinkControllerTests: XCTestCase {
         // The answer arrives after the popover closed. It must not paint the
         // address of a link the user has already left.
         reader.complete(with: makeDetails(interface: "en0", ipv4: ["192.168.1.20"]))
-        await waitUntil { false }
+        XCTAssertEqual(dispatcher.pendingCount, 1)
+
+        dispatcher.runNext()
+
+        XCTAssertEqual(dispatcher.pendingCount, 0)
         XCTAssertNil(controller.details)
+    }
+
+    func testReactivationRejectsACompletionQueuedByThePriorSession() {
+        let reader = FakePrimaryLinkReader()
+        let dispatcher = ManualPrimaryLinkCompletionDispatcher()
+        let controller = makeController(
+            reader: reader,
+            completionDispatcher: { action in dispatcher.dispatch(action) }
+        )
+
+        controller.activate()
+        reader.completePending(at: 0, with: makeDetails(interface: "en0", ipv4: ["192.168.1.20"]))
+        XCTAssertEqual(dispatcher.pendingCount, 1)
+
+        controller.deactivate()
+        controller.activate()
+
+        XCTAssertTrue(controller.isActive)
+        dispatcher.runNext()
+        XCTAssertNil(controller.details)
+
+        reader.complete(with: makeDetails(interface: "en0", ipv4: ["192.168.1.21"]))
+        XCTAssertEqual(dispatcher.pendingCount, 1)
+
+        dispatcher.runNext()
+
+        XCTAssertEqual(controller.details?.ipv4Addresses, ["192.168.1.21"])
+        controller.deactivate()
+    }
+
+    func testAnOlderRefreshCompletionCannotReplaceANewerRead() {
+        let reader = FakePrimaryLinkReader()
+        let dispatcher = ManualPrimaryLinkCompletionDispatcher()
+        let controller = makeController(
+            reader: reader,
+            completionDispatcher: { action in dispatcher.dispatch(action) }
+        )
+
+        controller.activate()
+        controller.refresh()
+
+        reader.completePending(at: 0, with: makeDetails(interface: "en0", ipv4: ["192.168.1.20"]))
+        XCTAssertEqual(dispatcher.pendingCount, 1)
+
+        dispatcher.runNext()
+
+        XCTAssertNil(controller.details)
+
+        reader.complete(with: makeDetails(interface: "en0", ipv4: ["192.168.1.21"]))
+        XCTAssertEqual(dispatcher.pendingCount, 1)
+
+        dispatcher.runNext()
+
+        XCTAssertEqual(controller.details?.ipv4Addresses, ["192.168.1.21"])
+        controller.deactivate()
     }
 
     func testRefreshUsesTheCurrentWiredInterfaces() {
@@ -319,13 +382,18 @@ final class PrimaryLinkControllerTests: XCTestCase {
 
     private func makeController(
         reader: FakePrimaryLinkReader,
-        wiredInterfaces: [WiredInterface] = [WiredInterface(name: "en0")]
+        wiredInterfaces: [WiredInterface] = [WiredInterface(name: "en0")],
+        completionDispatcher: PrimaryLinkCompletionDispatcher? = nil
     ) -> PrimaryLinkController {
-        PrimaryLinkController(
+        let controller = PrimaryLinkController(
             reader: reader,
             wiredInterfaces: FakeWiredInterfaces(interfaces: wiredInterfaces),
-            periodicRefreshInterval: .seconds(600)
+            periodicRefreshInterval: .seconds(600),
+            completionDispatcher: completionDispatcher ?? { action in
+                Task { @MainActor in action() }
+            }
         )
+        return controller
     }
 
     private func makeDetails(interface: String, ipv4: [String]) -> PrimaryLinkDetails {
@@ -373,6 +441,36 @@ private final class FakePrimaryLinkReader: PrimaryLinkReading {
         for completion in pending {
             completion(value)
         }
+    }
+
+    func completePending(at index: Int, with value: PrimaryLinkDetails?) {
+        let completion = completions.remove(at: index)
+        completion(value)
+    }
+}
+
+private final class ManualPrimaryLinkCompletionDispatcher: @unchecked Sendable {
+    private let lock = NSLock()
+    private var pending: [@MainActor @Sendable () -> Void] = []
+
+    var pendingCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return pending.count
+    }
+
+    func dispatch(_ action: @escaping @MainActor @Sendable () -> Void) {
+        lock.lock()
+        pending.append(action)
+        lock.unlock()
+    }
+
+    @MainActor
+    func runNext() {
+        lock.lock()
+        let action = pending.isEmpty ? nil : pending.removeFirst()
+        lock.unlock()
+        action?()
     }
 }
 

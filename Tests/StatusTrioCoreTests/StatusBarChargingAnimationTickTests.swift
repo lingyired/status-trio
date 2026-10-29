@@ -14,6 +14,65 @@ import Testing
 /// renderer seams, so these are call-count assertions rather than timings.
 @MainActor
 struct StatusBarChargingAnimationTickTests {
+    @Test func failedShowRetainsReadableTemplateUntilTheNextSuccessfulPresentation() async throws {
+        let fixture = try Fixture()
+        defer { fixture.tearDown() }
+        try await fixture.waitForPresentation()
+
+        fixture.controller.setVisible(false)
+        fixture.baseFails = true
+        fixture.controller.setVisible(true)
+        let image = try #require(fixture.controller.presentedImageForTesting)
+        #expect(image.isTemplate)
+        let cgImage = try #require(image.cgImage(
+            forProposedRect: nil, context: nil, hints: nil
+        ))
+        let pixels = try PixelBuffer(image: cgImage)
+        #expect(pixels.bytes.contains { $0 != 0 })
+        #expect(fixture.controller.hasLayerBackedAnimation == false)
+
+        fixture.baseFails = false
+        fixture.controller.refreshCurrentPresentation()
+        #expect(fixture.controller.presentedImageForTesting?.isTemplate == false)
+        #expect(fixture.controller.hasLayerBackedAnimation)
+    }
+
+    @Test func persistentOverlayFailureDoesNotRestoreTheTemplateBetweenFailedFrames() async throws {
+        let fixture = try Fixture()
+        defer { fixture.tearDown() }
+        try await fixture.waitForPresentation()
+        fixture.overlayFails = true
+        fixture.startClock()
+        let assignments = fixture.controller.renderCounters.buttonImageAssignments
+        let fallbacks = fixture.controller.renderCounters.fallbackRasters
+
+        fixture.advanceTicks(3)
+        #expect(fixture.controller.renderCounters.fallbackRasters == fallbacks + 3)
+        #expect(fixture.controller.renderCounters.buttonImageAssignments == assignments + 3)
+        #expect(fixture.controller.hasLayerBackedAnimation == false)
+
+        fixture.overlayFails = false
+        fixture.advanceTicks(1)
+        #expect(fixture.controller.renderCounters.buttonImageAssignments == assignments + 4)
+        #expect(fixture.controller.hasLayerBackedAnimation)
+    }
+
+    @Test func coloredSceneKeepsTheButtonImageTransparentAndNonTemplate() async throws {
+        let fixture = try Fixture()
+        defer { fixture.tearDown() }
+        try await fixture.waitForPresentation()
+
+        let image = try #require(fixture.controller.presentedImageForTesting)
+        let cgImage = try #require(image.cgImage(
+            forProposedRect: nil, context: nil, hints: nil
+        ))
+        let pixels = try PixelBuffer(image: cgImage)
+        #expect(image.isTemplate == false)
+        #expect(image.size == NSSize(width: 22, height: 22))
+        #expect(pixels.bytes.allSatisfy { $0 == 0 })
+        #expect(fixture.controller.hasLayerBackedAnimation)
+    }
+
     @Test func steadyTicksReuseTheTemplateBaseAndThePreRenderedFrames() async throws {
         let fixture = try Fixture()
         defer { fixture.tearDown() }
@@ -260,7 +319,7 @@ private final class Fixture {
             openSettings: {},
             quitAction: {},
             chargingEffectClock: clock,
-            renderMenuBarBase: { _, _, _, _ in spy.renderBase() },
+            renderMenuBarBase: { _, size, _, _ in spy.renderBase(size: size) },
             renderMenuBarOverlay: { _, _, _, _, phase in spy.renderOverlay(for: phase) },
             appearanceProvider: { pinnedAppearance }
         )
@@ -353,10 +412,16 @@ private final class MenuBarRenderSpy {
     private(set) var overlayRasterCount = 0
     private var overlayImages: [String: CGImage] = [:]
 
-    func renderBase() -> NSImage? {
+    func renderBase(size: Double) -> NSImage? {
         baseRasterCount += 1
         guard !baseFails else { return nil }
-        return NSImage(size: NSSize(width: 32, height: 32))
+        let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
+            NSColor.white.setFill()
+            rect.fill()
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 
     func renderOverlay(for phase: ChargingEffectPhase?) -> CGImage? {

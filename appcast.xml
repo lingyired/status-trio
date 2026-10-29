@@ -6,6 +6,108 @@
     <description>Most recent changes for Status Trio.</description>
     <language>en</language>
     <item>
+      <title xml:lang="en">Version 1.7.5 (Build 43)</title>
+      <title xml:lang="ar">الإصدار 1.7.5 (البناء 43)</title>
+      <title xml:lang="de">Version 1.7.5 (Build 43)</title>
+      <title xml:lang="es">Versión 1.7.5 (Compilación 43)</title>
+      <title xml:lang="fr">Version 1.7.5 (Build 43)</title>
+      <title xml:lang="it">Versione 1.7.5 (Compilazione 43)</title>
+      <title xml:lang="ja">バージョン 1.7.5（ビルド 43）</title>
+      <title xml:lang="ko">버전 1.7.5(빌드 43)</title>
+      <title xml:lang="pt-BR">Versão 1.7.5 (Compilação 43)</title>
+      <title xml:lang="ru">Версия 1.7.5 (сборка 43)</title>
+      <title xml:lang="zh-Hans">版本 1.7.5（构建 43）</title>
+      <title xml:lang="zh-Hant">版本 1.7.5（組建 43）</title>
+      <pubDate>Mon, 26 Oct 2026 15:36:39 +0000</pubDate>
+      <sparkle:version>43</sparkle:version>
+      <sparkle:shortVersionString>1.7.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description xml:lang="en"><![CDATA[<h3>What&#39;s New</h3><ul><li>The app icon now follows the system light and dark appearance in Finder and Launchpad on macOS 26 and later. macOS 13–15 continues to show the light icon.</li><li>Improved Apple device battery reading by matching Bluetooth devices against names already known to macOS and pausing retries after repeated read failures, reducing unwanted pairing prompts.</li><li>Fixed the focused row outline appearing automatically when the status panel opens with keyboard navigation enabled. Tab navigation continues to work.</li></ul>]]></description>
+      <description xml:lang="ar"><![CDATA[<div dir="rtl"><h3>الجديد والتحسينات</h3><ul><li>في macOS 26 والإصدارات الأحدث، يتبع رمز التطبيق في Finder وLaunchpad الآن المظهر الفاتح أو الداكن للنظام. وفي macOS 13–15، يظل الرمز الفاتح معروضًا.</li><li>تم تحسين قراءة بطارية أجهزة Apple: تتم مطابقة أجهزة Bluetooth مع الأسماء المعروفة مسبقًا لدى macOS، وتتوقف المحاولات بعد تكرار فشل القراءة. ويقل بذلك تأثير الأجهزة غير ذات الصلة وطلبات الاقتران المتكررة.</li><li>عند تفعيل التنقل بلوحة المفاتيح، لم يعد إطار التركيز يظهر تلقائيًا على الصف الأول عند فتح لوحة الحالة. ويظل التنقل بمفتاح Tab متاحًا.</li></ul></div>]]></description>
+      <description xml:lang="de"><![CDATA[<h3>Neu und verbessert</h3><ul><li>Unter macOS 26 und neuer folgt das App-Symbol in Finder und Launchpad nun dem hellen oder dunklen Erscheinungsbild des Systems. Unter macOS 13–15 wird weiterhin das helle Symbol angezeigt.</li><li>Das Lesen der Batteriestände von Apple-Geräten wurde verbessert: Bluetooth-Geräte werden anhand der macOS bekannten Gerätenamen abgeglichen, und nach wiederholten Lesefehlern werden weitere Versuche pausiert. Dadurch treten weniger Störungen durch fremde Geräte und wiederholte Kopplungsanfragen auf.</li><li>Wenn die Tastaturnavigation aktiviert ist, wird beim Öffnen des Statusfensters nicht mehr automatisch ein Fokusrahmen um die erste Zeile angezeigt. Die Navigation mit der Tabulatortaste funktioniert weiterhin.</li></ul>]]></description>
+      <description xml:lang="es"><![CDATA[<h3>Novedades y mejoras</h3><ul><li>En macOS 26 y versiones posteriores, el icono de la app en Finder y Launchpad ahora sigue la apariencia clara u oscura del sistema. En macOS 13–15 se sigue mostrando el icono claro.</li><li>Se ha mejorado la lectura de la batería de los dispositivos Apple: los dispositivos Bluetooth se comparan con los nombres que macOS ya conoce, y los reintentos se pausan tras varios fallos de lectura. Esto reduce las molestias causadas por dispositivos no relacionados y las solicitudes de emparejamiento repetidas.</li><li>Cuando la navegación por teclado está activada, al abrir el panel de estado ya no aparece automáticamente un contorno de enfoque en la primera fila. La navegación con la tecla Tab sigue funcionando.</li></ul>]]></description>
+      <description xml:lang="fr"><![CDATA[<h3>Nouveautés et améliorations</h3><ul><li>Sous macOS 26 et versions ultérieures, l’icône de l’app dans le Finder et Launchpad suit désormais l’apparence claire ou sombre du système. Sous macOS 13–15, l’icône claire reste affichée.</li><li>La lecture de la batterie des appareils Apple a été améliorée : les appareils Bluetooth sont comparés aux noms déjà connus de macOS, et les nouvelles tentatives sont suspendues après plusieurs échecs de lecture. Cela réduit les perturbations liées aux appareils non concernés et aux demandes d’appairage répétées.</li><li>Lorsque la navigation au clavier est activée, un cadre de focus n’apparaît plus automatiquement sur la première ligne à l’ouverture du panneau d’état. La navigation avec la touche Tab reste disponible.</li></ul>]]></description>
+      <description xml:lang="it"><![CDATA[<h3>Novità e miglioramenti</h3><ul><li>In macOS 26 e versioni successive, l’icona dell’app in Finder e Launchpad segue ora l’aspetto chiaro o scuro del sistema. In macOS 13–15 viene ancora mostrata l’icona chiara.</li><li>Migliorata la lettura della batteria dei dispositivi Apple: i dispositivi Bluetooth vengono confrontati con i nomi già noti a macOS e i nuovi tentativi vengono sospesi dopo ripetuti errori di lettura. Questo riduce le interferenze dovute a dispositivi non pertinenti e alle ripetute richieste di abbinamento.</li><li>Quando la navigazione da tastiera è attiva, all’apertura del pannello di stato non viene più mostrato automaticamente il contorno del focus sulla prima riga. La navigazione con Tab continua a funzionare.</li></ul>]]></description>
+      <description xml:lang="ja"><![CDATA[<h3>新機能と改善</h3><ul><li>macOS 26 以降では、Finder と Launchpad のアプリアイコンがシステムのライト／ダーク外観に合わせて切り替わるようになりました。macOS 13–15 では引き続きライトアイコンを表示します。</li><li>Apple デバイスのバッテリー読み取りを改善しました。macOS が認識しているデバイス名で Bluetooth デバイスを照合し、読み取りに繰り返し失敗した場合は再試行を一時停止することで、無関係なデバイスや不要なペアリング確認の影響を減らします。</li><li>キーボードナビゲーションを有効にしている場合、ステータスパネルを開いたときに先頭行へ自動でフォーカス枠が表示されないよう修正しました。Tab キーによる操作は引き続き利用できます。</li></ul>]]></description>
+      <description xml:lang="ko"><![CDATA[<h3>새로운 기능 및 개선 사항</h3><ul><li>macOS 26 이상에서 Finder와 Launchpad의 앱 아이콘이 시스템의 라이트/다크 모양을 따릅니다. macOS 13–15에서는 계속 라이트 아이콘이 표시됩니다.</li><li>Apple 기기 배터리 읽기를 개선했습니다. macOS가 인식하는 기기 이름으로 Bluetooth 기기를 확인하고 읽기에 반복해서 실패하면 재시도를 일시 중지하여 관련 없는 기기와 불필요한 페어링 요청의 영향을 줄입니다.</li><li>키보드 탐색이 켜져 있을 때 상태 패널을 열어도 첫 번째 행에 포커스 테두리가 자동으로 표시되지 않도록 수정했습니다. Tab 키 탐색은 계속 정상적으로 작동합니다.</li></ul>]]></description>
+      <description xml:lang="pt-BR"><![CDATA[<h3>Novidades e melhorias</h3><ul><li>No macOS 26 e posteriores, o ícone do app no Finder e no Launchpad agora acompanha a aparência clara ou escura do sistema. No macOS 13–15, o ícone claro continua sendo exibido.</li><li>A leitura da bateria de dispositivos Apple foi aprimorada: os dispositivos Bluetooth são comparados com os nomes já conhecidos pelo macOS, e novas tentativas são pausadas após falhas repetidas de leitura. Isso reduz interferências de dispositivos não relacionados e solicitações de emparelhamento repetidas.</li><li>Com a navegação por teclado ativada, o painel de status não mostra mais automaticamente o contorno de foco na primeira linha ao abrir. A navegação com a tecla Tab continua funcionando.</li></ul>]]></description>
+      <description xml:lang="ru"><![CDATA[<h3>Новое и улучшения</h3><ul><li>В macOS 26 и новее значок приложения в Finder и Launchpad теперь следует светлому или тёмному оформлению системы. В macOS 13–15 по-прежнему отображается светлый значок.</li><li>Улучшено чтение заряда устройств Apple: Bluetooth-устройства сопоставляются с именами, уже известными macOS, а после повторных ошибок чтения новые попытки приостанавливаются. Это уменьшает помехи от посторонних устройств и повторяющихся запросов на сопряжение.</li><li>Если включена навигация с клавиатуры, при открытии панели состояния рамка фокуса больше не появляется автоматически на первой строке. Навигация с помощью Tab продолжает работать.</li></ul>]]></description>
+      <description xml:lang="zh-Hans"><![CDATA[<h3>更新内容</h3><ul><li>在 macOS 26 及更高版本中，Finder 和启动台里的应用图标现在会跟随系统深浅色外观切换；macOS 13–15 继续显示浅色图标。</li><li>优化苹果设备电量读取：通过 macOS 已记录的设备名称筛选蓝牙设备，并在连续读取失败后暂停重试，减少无关设备和重复配对提示的干扰。</li><li>开启键盘导航时，状态面板打开后不再自动为首行显示焦点框；Tab 键导航保持正常。</li></ul>]]></description>
+      <description xml:lang="zh-Hant"><![CDATA[<h3>更新內容</h3><ul><li>在 macOS 26 及更新版本中，Finder 和啟動台裡的應用程式圖示現在會跟隨系統深淺色外觀切換；macOS 13–15 繼續顯示淺色圖示。</li><li>最佳化 Apple 裝置電池電量讀取：透過 macOS 已記錄的裝置名稱篩選藍牙裝置，並在連續讀取失敗後暫停重試，減少無關裝置和重複配對提示的干擾。</li><li>開啟鍵盤導覽時，狀態面板開啟後不再自動為首列顯示焦點框；Tab 鍵導覽維持正常。</li></ul>]]></description>
+      <enclosure url="https://github.com/lingyired/status-trio/releases/download/v1.7.5/StatusTrio-1.7.5.dmg"
+                 type="application/octet-stream"
+                 sparkle:edSignature="9V9uspIZOed1RNSIlSQHAs9j2KttaE0Dsdg+t9LFtbGk5JUT2wKK/itNaaANAbXBhtKaA/Kiei9tDwhXrulSDg=="
+                 length="15477881" />
+    </item>
+    <item>
+      <title xml:lang="en">Version 1.7.4 (Build 42)</title>
+      <title xml:lang="ar">الإصدار 1.7.4 (البناء 42)</title>
+      <title xml:lang="de">Version 1.7.4 (Build 42)</title>
+      <title xml:lang="es">Versión 1.7.4 (Compilación 42)</title>
+      <title xml:lang="fr">Version 1.7.4 (Build 42)</title>
+      <title xml:lang="it">Versione 1.7.4 (Build 42)</title>
+      <title xml:lang="ja">バージョン 1.7.4（ビルド 42）</title>
+      <title xml:lang="ko">버전 1.7.4(빌드 42)</title>
+      <title xml:lang="pt-BR">Versão 1.7.4 (Compilação 42)</title>
+      <title xml:lang="ru">Версия 1.7.4 (сборка 42)</title>
+      <title xml:lang="zh-Hans">版本 1.7.4（构建 42）</title>
+      <title xml:lang="zh-Hant">版本 1.7.4（組建 42）</title>
+      <pubDate>Sat, 24 Oct 2026 16:55:25 +0000</pubDate>
+      <sparkle:version>42</sparkle:version>
+      <sparkle:shortVersionString>1.7.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description xml:lang="en"><![CDATA[<h3>Fixes and Stability</h3><ul><li>Fixed the first-run guide window being too small on a fresh install, which could hide the title and bottom actions.</li></ul>]]></description>
+      <description xml:lang="ar"><![CDATA[<div dir="rtl"><h3>الإصلاحات والاستقرار</h3><ul><li>تم إصلاح مشكلة كانت تجعل نافذة دليل البدء صغيرة جدًا بعد تثبيت جديد، مما قد يحجب العنوان والأزرار السفلية.</li></ul></div>]]></description>
+      <description xml:lang="de"><![CDATA[<h3>Fehlerbehebungen und Stabilität</h3><ul><li>Das Fenster der Anleitung beim ersten Start war nach einer Neuinstallation zu klein, sodass Titel und untere Schaltflächen abgeschnitten werden konnten. Dies wurde behoben.</li></ul>]]></description>
+      <description xml:lang="es"><![CDATA[<h3>Correcciones y estabilidad</h3><ul><li>Se ha corregido un problema por el que la ventana de la guía de inicio era demasiado pequeña tras una instalación nueva y podía ocultar el título y los botones inferiores.</li></ul>]]></description>
+      <description xml:lang="fr"><![CDATA[<h3>Corrections et stabilité</h3><ul><li>La fenêtre du guide de démarrage était trop petite après une nouvelle installation, ce qui pouvait masquer le titre et les boutons du bas. Ce problème est corrigé.</li></ul>]]></description>
+      <description xml:lang="it"><![CDATA[<h3>Correzioni e stabilità</h3><ul><li>Corretto un problema per cui la finestra della guida iniziale era troppo piccola dopo una nuova installazione e poteva nascondere il titolo e i pulsanti in basso.</li></ul>]]></description>
+      <description xml:lang="ja"><![CDATA[<h3>修正と安定性</h3><ul><li>新規インストール後の初回起動時に、初回ガイドのウインドウが小さすぎてタイトルと下部のボタンが表示されない問題を修正しました。</li></ul>]]></description>
+      <description xml:lang="ko"><![CDATA[<h3>수정 및 안정성</h3><ul><li>새로 설치한 뒤 처음 실행할 때 초기 가이드 창이 너무 작아 제목과 하단 버튼이 표시되지 않던 문제를 수정했습니다.</li></ul>]]></description>
+      <description xml:lang="pt-BR"><![CDATA[<h3>Correções e estabilidade</h3><ul><li>Corrigido o problema em que a janela do guia de primeiros passos ficava pequena demais após uma instalação nova e podia ocultar o título e os botões inferiores.</li></ul>]]></description>
+      <description xml:lang="ru"><![CDATA[<h3>Исправления и стабильность</h3><ul><li>Исправлена проблема, из-за которой после новой установки окно руководства первого запуска было слишком маленьким и могло скрывать заголовок и нижние кнопки.</li></ul>]]></description>
+      <description xml:lang="zh-Hans"><![CDATA[<h3>修复与稳定性</h3><ul><li>修复全新安装后首次启动时，引导窗口尺寸过小、导致标题和底部按钮显示不完整的问题。</li></ul>]]></description>
+      <description xml:lang="zh-Hant"><![CDATA[<h3>修正與穩定性</h3><ul><li>修正全新安裝後首次啟動時，引導視窗尺寸過小、導致標題和底部按鈕顯示不完整的問題。</li></ul>]]></description>
+      <enclosure url="https://github.com/lingyired/status-trio/releases/download/v1.7.4/StatusTrio-1.7.4.dmg"
+                 type="application/octet-stream"
+                 sparkle:edSignature="7jbcDdwrcbeA/ReM2ttAWOWeJ/Bj+NYvZvVrCLEdVDJo6vx7dxs7WjTcudJqWcyKBPTyKNpQyt0aplnD3Ig/BA=="
+                 length="14596612" />
+    </item>
+    <item>
+      <title xml:lang="en">Version 1.7.3 (Build 41)</title>
+      <title xml:lang="ar">الإصدار 1.7.3 (البناء 41)</title>
+      <title xml:lang="de">Version 1.7.3 (Build 41)</title>
+      <title xml:lang="es">Versión 1.7.3 (Compilación 41)</title>
+      <title xml:lang="fr">Version 1.7.3 (Build 41)</title>
+      <title xml:lang="it">Versione 1.7.3 (Build 41)</title>
+      <title xml:lang="ja">バージョン 1.7.3（ビルド 41）</title>
+      <title xml:lang="ko">버전 1.7.3(빌드 41)</title>
+      <title xml:lang="pt-BR">Versão 1.7.3 (Compilação 41)</title>
+      <title xml:lang="ru">Версия 1.7.3 (сборка 41)</title>
+      <title xml:lang="zh-Hans">版本 1.7.3（构建 41）</title>
+      <title xml:lang="zh-Hant">版本 1.7.3（組建 41）</title>
+      <pubDate>Sat, 24 Oct 2026 15:30:57 +0000</pubDate>
+      <sparkle:version>41</sparkle:version>
+      <sparkle:shortVersionString>1.7.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description xml:lang="en"><![CDATA[<h3>Fixes and Stability</h3><ul><li>Improved input-source icon updates when switching input methods, including after the app becomes active or the system or display wakes.</li><li>Fixed a possible crash when opening the first-run guide after a fresh install.</li></ul>]]></description>
+      <description xml:lang="ar"><![CDATA[<div dir="rtl"><h3>الإصلاحات والاستقرار</h3><ul><li>تحسّن تحديث أيقونة مصدر الإدخال عند تبديل طريقة الإدخال، بما في ذلك بعد إعادة تنشيط التطبيق أو استيقاظ النظام أو الشاشة.</li><li>تم إصلاح تعطل محتمل عند فتح دليل البدء بعد تثبيت جديد.</li></ul></div>]]></description>
+      <description xml:lang="de"><![CDATA[<h3>Fehlerbehebungen und Stabilität</h3><ul><li>Die Aktualisierung des Eingabequellen-Symbols beim Wechsel der Eingabemethode wurde verbessert; nach erneuter App-Aktivierung sowie nach dem Aufwachen von System oder Display wird die aktuelle Eingabequelle erneut gelesen.</li><li>Ein möglicher Absturz beim Öffnen der Anleitung für den ersten Start nach einer Neuinstallation wurde behoben.</li></ul>]]></description>
+      <description xml:lang="es"><![CDATA[<h3>Correcciones y estabilidad</h3><ul><li>Se ha mejorado la actualización del icono de fuente de entrada al cambiar de método de entrada, incluso después de reactivar la app o de que el sistema o la pantalla se despierten.</li><li>Se ha corregido un posible cierre inesperado al abrir la guía de inicio tras una instalación nueva.</li></ul>]]></description>
+      <description xml:lang="fr"><![CDATA[<h3>Corrections et stabilité</h3><ul><li>L&#39;icône de source de saisie se met désormais plus fiablement à jour lors du changement de méthode de saisie, y compris après la réactivation de l&#39;app ou le réveil du système ou de l&#39;écran.</li><li>Correction d&#39;un plantage possible à l&#39;ouverture du guide de démarrage après une nouvelle installation.</li></ul>]]></description>
+      <description xml:lang="it"><![CDATA[<h3>Correzioni e stabilità</h3><ul><li>Migliorato l&#39;aggiornamento dell&#39;icona della sorgente di input quando si cambia metodo di input, anche dopo la riattivazione dell&#39;app o il risveglio del sistema o dello schermo.</li><li>Corretto un possibile arresto anomalo all&#39;apertura della guida iniziale dopo una nuova installazione.</li></ul>]]></description>
+      <description xml:lang="ja"><![CDATA[<h3>修正と安定性</h3><ul><li>入力方法の切り替え時に中央の入力ソースアイコンが更新されるよう改善しました。App の再アクティブ化、システムのスリープ解除、ディスプレイのスリープ解除後にも再読み込みします。</li><li>新規インストール後の初回起動時に、初回ガイドがクラッシュする可能性がある問題を修正しました。</li></ul>]]></description>
+      <description xml:lang="ko"><![CDATA[<h3>수정 및 안정성</h3><ul><li>입력 방식을 전환할 때 중앙 입력 소스 아이콘이 더 안정적으로 업데이트되며, 앱이 다시 활성화되거나 시스템 또는 디스플레이가 깨어난 후에도 현재 입력 소스를 다시 읽습니다.</li><li>새로 설치한 뒤 처음 실행할 때 초기 가이드가 충돌할 수 있는 문제를 수정했습니다.</li></ul>]]></description>
+      <description xml:lang="pt-BR"><![CDATA[<h3>Correções e estabilidade</h3><ul><li>A atualização do ícone da fonte de entrada ao trocar de método de entrada ficou mais confiável, inclusive após a reativação do app ou o despertar do sistema ou da tela.</li><li>Corrigido um possível encerramento inesperado ao abrir o guia de primeiros passos após uma instalação nova.</li></ul>]]></description>
+      <description xml:lang="ru"><![CDATA[<h3>Исправления и стабильность</h3><ul><li>Повышена надёжность обновления значка источника ввода при переключении способа ввода, в том числе после повторной активации приложения и пробуждения системы или дисплея.</li><li>Исправлено возможное аварийное завершение при открытии руководства первого запуска после новой установки.</li></ul>]]></description>
+      <description xml:lang="zh-Hans"><![CDATA[<h3>修复与稳定性</h3><ul><li>改善切换输入法时中间连接图标的更新，并在应用重新激活、系统唤醒或显示器唤醒后重新读取当前输入源。</li><li>修复全新安装后首次启动时，首次使用引导窗口可能崩溃的问题。</li></ul>]]></description>
+      <description xml:lang="zh-Hant"><![CDATA[<h3>修正與穩定性</h3><ul><li>改善切換輸入法時中間連線圖示的更新，並在 App 重新啟用、系統喚醒或顯示器喚醒後重新讀取目前輸入來源。</li><li>修正全新安裝後首次啟動時，首次使用引導視窗可能當機的問題。</li></ul>]]></description>
+      <enclosure url="https://github.com/lingyired/status-trio/releases/download/v1.7.3/StatusTrio-1.7.3.dmg"
+                 type="application/octet-stream"
+                 sparkle:edSignature="B6EA0M44r/sI5Qez3Bp3UC0R9RphybhtukHChdIbb1aloX5Fgfykg9D5oj2cmh1idteBcWS2HRIGLY6VyFYLBQ=="
+                 length="14596020" />
+    </item>
+    <item>
       <title xml:lang="en">Version 1.7.2 (Build 40)</title>
       <title xml:lang="ar">الإصدار 1.7.2 (البناء 40)</title>
       <title xml:lang="de">Version 1.7.2 (Build 40)</title>

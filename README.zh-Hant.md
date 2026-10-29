@@ -67,6 +67,39 @@ Status Trio 是一款原生 macOS 狀態應用程式，把 Wi-Fi、電池和音�
 - **保持最新** —— 狀態來自系統事件，並以低頻輪詢作為備援；Sparkle 會透過已簽署的更新來源更新應用程式。
 - **還包括** —— 十二種語言，以及可選的開機時啟動。
 
+## 安裝
+
+透過 Homebrew 官方 Cask 安裝：
+
+```bash
+brew install --cask status-trio
+```
+
+更新已透過 Homebrew 安裝的版本：
+
+```bash
+brew upgrade --cask status-trio
+```
+
+也可以從 [GitHub Releases](https://github.com/lingyired/status-trio/releases/latest) 下載最新的 `StatusTrio-*.dmg`，開啟後將 `Status Trio.app` 拖入 `/Applications`。
+
+官方發行版已使用 Developer ID 簽署並通過 Apple 公證。安裝後正常開啟即可，無需執行移除隔離屬性的指令。應用程式內更新由 Sparkle 提供，並驗證 EdDSA 簽章。
+
+## 輸入法、音訊與日常控制
+
+- **輸入法圖示**：選單列和 Dock 的中央圖示可顯示目前輸入法，在**設定 › 網路**中選擇；也可在面板選擇已啟用的輸入法並切換。
+- **全域快捷鍵**：在**設定 › 一般**中設定快捷鍵，即可從其他應用程式開啟或關閉狀態面板，預設未指派。
+- **藍牙控制**：直接開關藍牙、連接或中斷已配對裝置，並切換支援的 AirPods 和 HUAWEI FreeBuds 聆聽模式。可選的 Apple 裝置電量列在**設定 › 藍牙**中設定，讀取能力取決於裝置與連線方式。
+- **音訊輸入與輸出**：選擇揚聲器或麥克風、調整輸出與輸入音量，並透過 DDC 控制相容的外接顯示器揚聲器；支援程度取決於硬體與連線。
+- **充電與外觀**：選單列和 Dock 均可啟用充電特效；macOS 26 及更新版本的 Finder 和啟動台圖示也會跟隨系統深淺色外觀。
+
+## main 分支新功能（尚未發行）
+
+以下功能已合入 `main` 原始碼，尚未包含在目前 GitHub / Homebrew 公開版 **1.7.5** 中：
+
+- **電池功率流向與 CPU 能耗影響**：顯示充電器輸入、電池充電與系統供電的估算功率。選用清單依 CPU 能耗列出最多五個應用程式，計數不可用時改用 CPU 活躍度；並非完整應用程式能耗或 macOS 原生高耗能清單。啟用清單後會定期背景取樣，關閉即停止。詳見[功率與能耗說明](docs/battery-power-flow.md)。
+- **立即完全充電與取消**：支援的 Apple 晶片 Mac、macOS 26.4 及更新版本可選擇啟用按鈕，解除原生充電上限。功能使用私有 PowerUI 介面，預設關閉。**充滿或拔插電源後，上限可能仍為 100%，不會自動恢復。** 請使用取消操作要求恢復，或在系統設定中檢查並恢復上限。可用性與行為取決於 macOS，詳見[行為與驗證](docs/charge-to-full-now-poc.md)。
+
 ## 藍牙音訊
 
 當音訊透過藍牙播放時，**設定 › 藍牙**中的兩個開關會讓中間的符號變成該裝置自己的符號 —— AirPods、耳機、揚聲器與其他裝置會各自提供 —— 並讓音量圓點或圓弧變成藍色。兩者預設都是關閉。預設開啟的**網路異常優先於藍牙圖示**會在連線本身出問題時保留網路圖示：
@@ -150,27 +183,6 @@ bash scripts/build-app.sh release no-open
 
 ad-hoc 簽名的套件適合本機個人使用。如果套件連同隔離標記一起轉移，Gatekeeper 可能會拒絕它。
 
-## 安裝 GitHub Release
-
-從 [GitHub Releases 頁面](https://github.com/lingyired/status-trio/releases)下載最新的 `StatusTrio-*.dmg`，打開後將 `Status Trio.app` 拷貝到 `/Applications`。
-
-目前的公開發行版本使用 ad-hoc 簽名，但未經 Apple 公證。macOS 可能在首次啟動時顯示以下警告：
-
-> Apple 無法驗證「Status Trio」是否含有可能危害你的 Mac 或危及你的隱私的惡意軟體。
-
-這是因為缺少 Developer ID 簽名與 Apple 公證而觸發的 Gatekeeper 警告，本身並不代表應用程式含有惡意軟體。只有在 DMG 是從官方 GitHub Releases 頁面下載，且其公布的 SHA-256 校驗值相符時，才應略過這項警告。
-
-將應用程式拷貝到 `/Applications` 後，移除隔離屬性並開啟它：
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/Status Trio.app"
-open "/Applications/Status Trio.app"
-```
-
-或者，也可以先嘗試開啟應用程式一次，然後前往 **系統設定 → 隱私權與安全性**，選擇 **仍要打開**。
-
-請勿全域停用 Gatekeeper。後續的 Sparkle 更新會以應用程式的 EdDSA 簽名金鑰驗證；`xattr` 指令通常只在第一次手動安裝時需要。
-
 ## 使用方式
 
 - **按左鍵**點擊選單列圖示或 Dock 圖示，即可打開狀態彈出式視窗。
@@ -185,7 +197,7 @@ open "/Applications/Status Trio.app"
 有兩條界線，是 macOS 與本專案各自刻意劃下的。兩者的詳細說明見[已知限制](docs/known-limitations.md)。
 
 - **切換網路在系統設定裡完成。** 在彈出式視窗中選擇網路會打開 Wi-Fi 面板；Status Trio 從不讀取也不儲存 Wi-Fi 密碼——macOS 沒有用已儲存密碼連線的公開 API，而其他做法最後都會讓 app 持有你的密碼。
-- **「立即完全充電」留在 macOS 裡。** 當最佳化電池充電或充電上限暫停充電時，彈出式視窗會如實顯示暫停狀態，並連結到電池面板；沒有公開 API 能讓應用程式越過上限恢復充電，Status Trio 也不會為此寫入 SMC 或附帶特權輔助程式。
+- **充電上限控制取決於版本。** 公開版 1.7.5 透過系統設定操作；`main` 的選用按鈕使用私有介面，需主動取消以要求恢復上限，詳見[行為與限制](docs/charge-to-full-now-poc.md)。低耗電模式由獨立的[選用特權輔助程式](docs/privileged-helper.md)處理。
 
 ## 支援的語言
 
@@ -193,14 +205,16 @@ Status Trio 預設跟隨 macOS 的偏好語言，內建 English、简体中文�
 
 ## 隱私權
 
-Status Trio 透過 macOS 的公開框架讀取狀態。它不使用 App Sandbox，也不需要網路權限，且不包含遙測或分析。不會讀取也不儲存 Wi-Fi 密碼，也不會要求鑰匙圈存取。定位權限為選用，僅在你選擇顯示目前的 Wi-Fi 網路名稱或打開 Wi-Fi 詳細資訊時要求。藍牙權限僅在打開藍牙詳細資訊時要求，用途是顯示已配對裝置的連接狀態。
+Status Trio 在本機讀取系統狀態。匿名使用統計為選用功能，僅在主動啟用後向第一方服務傳送心跳；升級使用者預設關閉，新安裝會在導覽中詢問。內容包括隨機安裝 ID、應用程式和 macOS 版本、語言及圖示位置，不包含姓名、帳戶、網路詳情或硬體識別碼。詳見[遙測與隱私](docs/privacy-telemetry.md)。不讀取或儲存 Wi-Fi 密碼，也不要求鑰匙圈存取。定位權限用於選用的 Wi-Fi 名稱與詳情；啟用藍牙面板時才要求藍牙權限。`main` 中的選用完全充電控制僅在啟用後使用私有 PowerUI 介面，限制見前文。
 
 ## 開發
 
 執行測試套件：
 
 ```bash
-swift test
+bash scripts/verify-local.sh quick BatteryMonitorTests
+bash scripts/verify-local.sh docs
+bash scripts/verify-local.sh full
 ```
 
 透過輔助指令碼執行指定範圍的 XCTest 篩選：

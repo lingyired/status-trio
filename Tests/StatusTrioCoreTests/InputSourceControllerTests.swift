@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import XCTest
 @testable import StatusTrioCore
@@ -43,6 +44,122 @@ final class InputSourceControllerTests: XCTestCase {
 
         XCTAssertEqual(controller.state.selectedID, pinyin.id)
         XCTAssertEqual(controller.selectedDescriptor?.shortLabel, "拼")
+    }
+
+    func testSelectedSourceNotificationRetriesOnceWhenTISHasNotCaughtUp() {
+        let reader = FakeInputSourceReader(current: abc.id, sources: [abc, pinyin])
+        let notifications = FakeInputSourceNotifications()
+        let notificationScheduler = FakeInputSourceConfirmationScheduler()
+        let controller = makeController(
+            reader: reader,
+            notifications: notifications,
+            notificationScheduler: notificationScheduler
+        )
+        controller.start()
+
+        notifications.emit(InputSourceNotifications.selectedSourceChanged)
+        XCTAssertEqual(controller.state.selectedID, abc.id)
+        XCTAssertTrue(notificationScheduler.hasPendingAction)
+
+        // The notification can win the race against TIS's own state update.
+        reader.current = pinyin.id
+        notificationScheduler.runNextPending()
+
+        XCTAssertEqual(controller.state.selectedID, pinyin.id)
+        XCTAssertFalse(notificationScheduler.hasPendingAction)
+    }
+
+    func testNotificationBurstKeepsOnlyOneDelayedReRead() {
+        let notifications = FakeInputSourceNotifications()
+        let notificationScheduler = FakeInputSourceConfirmationScheduler()
+        let controller = makeController(
+            notifications: notifications,
+            notificationScheduler: notificationScheduler
+        )
+        controller.start()
+        XCTAssertEqual(notificationScheduler.scheduledCount, 0, "start must not begin a poll")
+
+        notifications.emit(InputSourceNotifications.selectedSourceChanged)
+        notifications.emit(InputSourceNotifications.selectedSourceChanged)
+        notifications.emit(InputSourceNotifications.enabledSourcesChanged)
+
+        XCTAssertEqual(notificationScheduler.scheduledCount, 3)
+        XCTAssertTrue(notificationScheduler.hasPendingAction)
+        notificationScheduler.runAllPending()
+        XCTAssertFalse(notificationScheduler.hasPendingAction)
+    }
+
+    func testNotificationRetryDoesNotCancelAUserSelectionConfirmation() {
+        let reader = FakeInputSourceReader(current: abc.id, sources: [abc, pinyin])
+        let notifications = FakeInputSourceNotifications()
+        let switcher = FakeInputSourceSwitcher(result: .selected) { [reader] id in
+            reader.current = id
+        }
+        let confirmationScheduler = FakeInputSourceConfirmationScheduler()
+        let notificationScheduler = FakeInputSourceConfirmationScheduler()
+        let controller = makeController(
+            reader: reader,
+            switcher: switcher,
+            notifications: notifications,
+            scheduler: confirmationScheduler,
+            notificationScheduler: notificationScheduler
+        )
+        controller.start()
+
+        controller.select(id: pinyin.id)
+        notifications.emit(InputSourceNotifications.selectedSourceChanged)
+
+        XCTAssertTrue(confirmationScheduler.hasPendingAction)
+        XCTAssertTrue(notificationScheduler.hasPendingAction)
+
+        confirmationScheduler.runAllPending()
+        XCTAssertNil(controller.selectionFailure)
+        XCTAssertTrue(notificationScheduler.hasPendingAction)
+    }
+
+    func testApplicationActivationReReadsTheSelectedSource() async {
+        let reader = FakeInputSourceReader(current: abc.id, sources: [abc, pinyin])
+        let notifications = FakeInputSourceNotifications()
+        let systemEvents = SystemEventObserverBag(
+            notificationCenter: notifications.center,
+            workspaceNotificationCenter: notifications.center
+        )
+        let controller = makeController(
+            reader: reader,
+            notifications: notifications,
+            systemEvents: systemEvents
+        )
+        controller.start()
+
+        reader.current = pinyin.id
+        notifications.center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+        await Task.yield()
+        XCTAssertEqual(controller.state.selectedID, pinyin.id)
+    }
+
+    func testSystemAndDisplayWakeReReadTheSelectedSource() async {
+        let reader = FakeInputSourceReader(current: abc.id, sources: [abc, pinyin])
+        let notifications = FakeInputSourceNotifications()
+        let systemEvents = SystemEventObserverBag(
+            notificationCenter: notifications.center,
+            workspaceNotificationCenter: notifications.center
+        )
+        let controller = makeController(
+            reader: reader,
+            notifications: notifications,
+            systemEvents: systemEvents
+        )
+        controller.start()
+
+        reader.current = pinyin.id
+        notifications.center.post(name: NSWorkspace.didWakeNotification, object: nil)
+        await Task.yield()
+        XCTAssertEqual(controller.state.selectedID, pinyin.id)
+
+        reader.current = abc.id
+        notifications.center.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        await Task.yield()
+        XCTAssertEqual(controller.state.selectedID, abc.id)
     }
 
     func testEnabledSourcesNotificationRefreshesList() {
@@ -173,19 +290,36 @@ final class InputSourceControllerTests: XCTestCase {
     }
 
     func testStopRemovesObserversAndClearsFeedback() {
-        let reader = FakeInputSourceReader(current: abc.id, sources: [abc])
+        let reader = FakeInputSourceReader(current: abc.id, sources: [abc, pinyin])
         let notifications = FakeInputSourceNotifications()
-        let scheduler = FakeInputSourceConfirmationScheduler()
-        let controller = makeController(reader: reader, notifications: notifications, scheduler: scheduler)
+        let confirmationScheduler = FakeInputSourceConfirmationScheduler()
+        let notificationScheduler = FakeInputSourceConfirmationScheduler()
+        let systemEvents = SystemEventObserverBag(
+            notificationCenter: notifications.center,
+            workspaceNotificationCenter: notifications.center
+        )
+        let controller = makeController(
+            reader: reader,
+            notifications: notifications,
+            scheduler: confirmationScheduler,
+            notificationScheduler: notificationScheduler,
+            systemEvents: systemEvents
+        )
         controller.start()
-        controller.select(id: "com.example.missing")
-        XCTAssertNotNil(controller.selectionFailure)
+        controller.select(id: pinyin.id)
+        notifications.emit(InputSourceNotifications.selectedSourceChanged)
+        XCTAssertTrue(confirmationScheduler.hasPendingAction)
+        XCTAssertTrue(notificationScheduler.hasPendingAction)
 
         controller.stop()
 
         XCTAssertEqual(notifications.removedTokens.count, 2)
+        XCTAssertTrue(systemEvents.isEmpty)
+        XCTAssertFalse(confirmationScheduler.hasPendingAction)
+        XCTAssertFalse(notificationScheduler.hasPendingAction)
         XCTAssertNil(controller.selectionFailure)
-        scheduler.runAllPending()
+        confirmationScheduler.runAllPending()
+        notificationScheduler.runAllPending()
     }
 
     func testStoppedControllerIgnoresLateNotifications() {
@@ -207,13 +341,17 @@ final class InputSourceControllerTests: XCTestCase {
         reader: FakeInputSourceReader = FakeInputSourceReader(),
         switcher: FakeInputSourceSwitcher = FakeInputSourceSwitcher(result: .selected) { _ in },
         notifications: FakeInputSourceNotifications = FakeInputSourceNotifications(),
-        scheduler: FakeInputSourceConfirmationScheduler = FakeInputSourceConfirmationScheduler()
+        scheduler: FakeInputSourceConfirmationScheduler = FakeInputSourceConfirmationScheduler(),
+        notificationScheduler: FakeInputSourceConfirmationScheduler = FakeInputSourceConfirmationScheduler(),
+        systemEvents: SystemEventObserverBag? = nil
     ) -> InputSourceController {
         InputSourceController(
             reader: reader,
             switcher: switcher,
             notifications: notifications,
-            confirmationScheduler: scheduler
+            confirmationScheduler: scheduler,
+            notificationRefreshScheduler: notificationScheduler,
+            systemEvents: systemEvents
         )
     }
 }
@@ -259,6 +397,7 @@ private final class FakeInputSourceNotifications: InputSourceNotificationObservi
     private(set) var observeNames: [Notification.Name] = []
     private(set) var removedTokens: [NSObjectProtocol] = []
     private var registrations: [Registration] = []
+    let center = NotificationCenter()
 
     func observe(
         _ name: Notification.Name,
@@ -287,6 +426,8 @@ private final class FakeInputSourceConfirmationScheduler: InputSourceConfirmatio
     private(set) var scheduledCount = 0
     private var pending: [@MainActor () -> Void] = []
 
+    var hasPendingAction: Bool { !pending.isEmpty }
+
     func schedule(after delay: Duration, action: @escaping @MainActor () -> Void) {
         scheduledCount += 1
         pending = [action]
@@ -294,6 +435,11 @@ private final class FakeInputSourceConfirmationScheduler: InputSourceConfirmatio
 
     func cancel() {
         pending = []
+    }
+
+    func runNextPending() {
+        guard !pending.isEmpty else { return }
+        pending.removeFirst()()
     }
 
     /// Runs the pending confirmation, then every confirmation it schedules in

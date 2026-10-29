@@ -32,6 +32,8 @@ struct PanelDetailState: Equatable, Sendable {
     let errorText: String?
     let explanation: String?
     var lifecycleIdentity: String? = nil
+    var powerFlow: BatteryPowerFlowState? = nil
+    var energyApps: ApplicationEnergyRanking? = nil
 }
 
 struct PanelWiFiNetworkRow: Equatable, Sendable {

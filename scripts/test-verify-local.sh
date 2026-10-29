@@ -80,6 +80,15 @@ SH
 set -euo pipefail
 printf 'release-policy\n' >> "${VERIFY_TRACE:?}"
 SH
+    for script in test-mobile-battery-build-cache.sh test-ci-diagnostics.sh \
+        test-ci-workflow.sh test-build-timing.sh; do
+        printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/$script"
+    done
+    cat > "$fixture/scripts/test-powerui-charge-restore.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'powerui-restore\n' >> "${VERIFY_TRACE:?}"
+SH
     cat > "$fixture/scripts/test-release-pipeline.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -109,6 +118,11 @@ SH
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'bundle\n' >> "${VERIFY_TRACE:?}"
+SH
+    cat > "$fixture/scripts/test-app-icon-contract.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'app-icon-contract\n' >> "${VERIFY_TRACE:?}"
 SH
     cat > "$fixture/scripts/test-verify-local-bundle.sh" <<'SH'
 #!/usr/bin/env bash
@@ -205,6 +219,7 @@ SH
         "$fixture/scripts/verify-platform-version.sh" \
         "$fixture/scripts/verify-mobile-battery-bundle.sh" \
         "$fixture/scripts/verify-privileged-helper-bundle.sh" \
+        "$fixture/scripts/test-app-icon-contract.sh" \
         "$fixture/scripts/test-verify-local-bundle.sh"
 }
 
@@ -304,10 +319,10 @@ grep -Fq "mode: docs" "$WORK/docs.log" ||
 : > "$VERIFY_TRACE"
 bash "$WORK/repo/scripts/verify-local.sh" full >"$WORK/full.log" 2>&1 ||
     fail "full verification failed"
-for expected in forbidden "swift test" "swift build -c release" deployment deployment-regressions \
+for expected in forbidden "swift test" "swift build -c release" powerui-restore deployment deployment-regressions \
     appcast helper-contract mobile-helper mobile-rpaths otool sparkle mobile-source-cache release-policy \
     release-pipeline release-notarization clang self-test \
-    workflow-policy bundle-self-test bundle \
+    workflow-policy bundle-self-test bundle app-icon-contract \
     test-app-store-project-contract test-app-store-source-closure \
     test-app-store-bundle-contract test-app-store-archive-dsyms test-dual-distribution-workflows \
     "build-app release no-open" \
@@ -355,6 +370,18 @@ grep -Fq "exit=12" "$WORK/repo/.build/local-verification/status.txt" ||
     fail "failed Store contract exit status was lost"
 if grep -Fq "test-app-store-source-closure" "$VERIFY_TRACE"; then
     fail "full verification continued after the Store contract failed"
+fi
+
+# Bash parses only its first script argument; a later broken script must fail too.
+printf 'if then\n' > "$WORK/repo/scripts/zzzz-invalid-syntax.sh"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$WORK/repo/scripts/zzzzz-valid-syntax.sh"
+: > "$VERIFY_TRACE"
+expect_failure "a syntax error after the first script" \
+    bash "$WORK/repo/scripts/verify-local.sh" quick
+grep -Fq "step=Shell syntax" "$WORK/repo/.build/local-verification/status.txt" ||
+    fail "syntax failure did not record the syntax step"
+if grep -Fq "swift test" "$VERIFY_TRACE"; then
+    fail "Swift tests ran after a shell syntax failure"
 fi
 
 echo "verify-local contract passed"

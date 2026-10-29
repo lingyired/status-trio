@@ -47,6 +47,57 @@ final class PanelPresentationMapperTests: XCTestCase {
         )
     }
 
+    func testChargeToFullNowShowsCalculatingUntilATimeEstimateExists() {
+        let localization = makeLocalization(.simplifiedChinese)
+        let connectedNotYetCharging = makeBattery(
+            percentage: 80,
+            isCharging: false,
+            isConnectedToPower: true
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.battery(connectedNotYetCharging, localization: localization).subtitle,
+            localization.string(.batteryStateConnectedToPower)
+        )
+
+        for action in [ChargeToFullNowPresentation.applying, .chargingToFull] {
+            XCTAssertEqual(
+                PanelPresentationMapper.battery(
+                    connectedNotYetCharging,
+                    localization: localization,
+                    chargeToFullNow: action
+                ).subtitle,
+                localization.string(.batteryStateCalculatingTimeToFull)
+            )
+        }
+
+        let charging = makeBattery(percentage: 80, isCharging: true, isConnectedToPower: true)
+        XCTAssertEqual(
+            PanelPresentationMapper.battery(
+                charging,
+                localization: localization,
+                chargeToFullNow: .chargingToFull
+            ).subtitle,
+            localization.string(.batteryStateCalculatingTimeToFull)
+        )
+
+        let withEstimate = BatteryStatus(
+            rawPercentage: 80,
+            isPresent: true,
+            isCharging: true,
+            timeToFullChargeMinutes: 25,
+            isLowPowerMode: false,
+            isConnectedToPower: true
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.battery(
+                withEstimate,
+                localization: localization,
+                chargeToFullNow: .chargingToFull
+            ).subtitle,
+            "预计 25 分钟充满"
+        )
+    }
+
     func testLowPowerModeStaysYellowWhileConnectedWithoutCharging() {
         let localization = makeLocalization(.english)
         let row = PanelPresentationMapper.battery(

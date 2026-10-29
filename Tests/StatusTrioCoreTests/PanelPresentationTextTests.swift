@@ -139,7 +139,11 @@ final class PresentationTextMapperTests: XCTestCase {
         XCTAssertEqual(localization.string(.wifiActionRequestNameAccess), "允许定位以显示 Wi-Fi 名称")
         XCTAssertEqual(localization.string(.wifiActionOpenLocationSettings), "去设置中允许定位")
         XCTAssertEqual(localization.string(.wifiActionOpenSettings), "打开 Wi-Fi 设置")
-        XCTAssertEqual(localization.string(.batteryActionOpenSettings), "打开电源设置")
+        XCTAssertEqual(localization.string(.batteryActionOpenSettings), "打开系统电源设置")
+        XCTAssertEqual(
+            localization.string(.batteryActionOpenAppBatterySettings),
+            "打开应用电池设置"
+        )
         XCTAssertEqual(localization.string(.volumeActionOpenSettings), "打开声音设置")
     }
 

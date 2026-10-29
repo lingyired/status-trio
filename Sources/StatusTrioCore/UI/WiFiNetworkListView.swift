@@ -11,10 +11,10 @@ struct WiFiNetworkListView: View {
     let onRefresh: () -> Void
     let onOpenSharingSettings: () -> Void
     let onCopyValue: (String) -> Void
-    let showsDetailsInitially: Bool
-
-    @State private var showsDetails = false
-    @State private var showsMore = false
+    let showsDetails: Bool
+    let showsMore: Bool
+    let onSetShowsDetails: (Bool) -> Void
+    let onSetShowsMore: (Bool) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -52,9 +52,6 @@ struct WiFiNetworkListView: View {
             Button(localization.string(.networkActionShareInternet), action: onOpenSharingSettings)
                 .buttonStyle(.plain)
                 .help(localization.string(.networkActionShareInternetHelp))
-        }
-        .onAppear {
-            showsDetails = showsDetails || showsDetailsInitially
         }
     }
 
@@ -112,15 +109,29 @@ struct WiFiNetworkListView: View {
 
     @ViewBuilder
     private var detailsToggle: some View {
-        WiFiDetailsToggleRow(isExpanded: $showsDetails)
+        WiFiDetailsToggleRow(isExpanded: showsDetailsBinding)
 
         if showsDetails {
             WiFiDetailsView(
                 state: state,
-                showsMore: $showsMore,
+                showsMore: showsMoreBinding,
                 onCopyValue: onCopyValue
             )
         }
+    }
+
+    private var showsDetailsBinding: Binding<Bool> {
+        Binding(
+            get: { showsDetails },
+            set: { value in onSetShowsDetails(value) }
+        )
+    }
+
+    private var showsMoreBinding: Binding<Bool> {
+        Binding(
+            get: { showsMore },
+            set: { value in onSetShowsMore(value) }
+        )
     }
 
     private func sectionTitle(_ title: String) -> some View {

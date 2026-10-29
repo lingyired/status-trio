@@ -7,6 +7,7 @@ enum AudioPanelMapper {
         _ status: VolumeStatus,
         controllerAvailable: Bool,
         allowsDDC: Bool = true,
+        externalVolumeConfiguration: ExternalVolumeConfiguration = .default,
         deviceList: AudioOutputListPreferences = .default,
         listeningModes: BluetoothListeningModeController? = nil,
         listeningModeTaskID: String = "",
@@ -18,6 +19,18 @@ enum AudioPanelMapper {
         let scalar = readableScalar(status.scalar)
         let percentageText = percentage(scalar, locale: localization.resolvedLanguage.locale)
         let currentDevice = status.outputDevices.first(where: \.isCurrent)
+        let currentOutput = status.currentDevice ?? currentDevice
+        let outputIdentity = currentOutput.map {
+            PanelAudioDeviceID(id: $0.id, uid: $0.uid)
+        }
+        let interactionIdentity = VolumeControlInteractionIdentity(
+            output: outputIdentity,
+            configuration: externalVolumeConfiguration.sanitized() ?? .default,
+            transitionGeneration: status.externalVolumeTransitionGeneration
+        )
+        let canMute = controllerAvailable
+            && status.canMute
+            && status.muteState != .unknown
         let summaryIconDevice: AudioOutputDevice?
         if let currentDevice,
            let liveName = status.deviceName,
@@ -63,6 +76,7 @@ enum AudioPanelMapper {
             isPreview: true,
             localization: previewLocalization ?? localization
         )
+
         let isUnsupportedDDCOutput = !allowsDDC
             && scalar == nil
             && status.currentDevice?.transport?.requiresDDCVolume == true
@@ -71,11 +85,18 @@ enum AudioPanelMapper {
             summary: summary,
             scalar: scalar,
             percentageText: percentageText,
+            outputIdentity: outputIdentity,
+            interactionIdentity: interactionIdentity,
             muted: status.isMuted,
+            muteState: status.muteState,
             canAdjust: controllerAvailable && status.canSetVolume && scalar != nil,
-            canMute: controllerAvailable && status.canMute,
+            canMute: canMute,
             muteSymbol: volumeSymbol(scalar: scalar, muted: status.isMuted),
-            muteHelp: localization.string(status.isMuted ? .volumeUnmuted : .volumeMuted),
+            muteHelp: localization.string(
+                canMute
+                    ? (status.isMuted ? .volumeUnmuted : .volumeMuted)
+                    : .volumeMuteUnavailable
+            ),
             sliderLabel: localization.string(.volumeAccessibilityLabel),
             showsDeviceList: status.outputDevices.count > 1 || !previewRows.isEmpty,
             rows: rows,

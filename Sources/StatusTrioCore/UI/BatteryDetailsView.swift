@@ -5,32 +5,46 @@ struct BatteryDetailsView: View {
     let state: PanelDetailState
     let onBack: () -> Void
     let onOpenBatterySettings: () -> Void
+    let onOpenAppBatterySettings: () -> Void
     let onCopyValue: (String) -> Void
     let onAppear: () -> Void
     /// The Low Power Mode write path, injected by the popover. Nil in previews
     /// and layout tests, where the read-only row stands in for it.
     private let lowPowerMode: LowPowerModeController?
     private let showsLowPowerControl: Bool
+    private let chargeToFullNow: ChargeToFullNowPresentation
+    private let onChargeToFullNow: () -> Void
 
     init(
         state: PanelDetailState,
         onBack: @escaping () -> Void,
         onOpenBatterySettings: @escaping () -> Void,
+        onOpenAppBatterySettings: @escaping () -> Void = {},
         onCopyValue: @escaping (String) -> Void,
         onAppear: @escaping () -> Void,
         lowPowerMode: LowPowerModeController? = nil,
-        showsLowPowerControl: Bool = false
+        showsLowPowerControl: Bool = false,
+        chargeToFullNow: ChargeToFullNowPresentation = .hidden,
+        onChargeToFullNow: @escaping () -> Void = {}
     ) {
         self.state = state
         self.onBack = onBack
         self.onOpenBatterySettings = onOpenBatterySettings
+        self.onOpenAppBatterySettings = onOpenAppBatterySettings
         self.onCopyValue = onCopyValue
         self.onAppear = onAppear
         self.lowPowerMode = lowPowerMode
         self.showsLowPowerControl = showsLowPowerControl
+        self.chargeToFullNow = chargeToFullNow
+        self.onChargeToFullNow = onChargeToFullNow
     }
 
-    private var detailRows: [PanelDetailRow] { state.rows }
+    private var detailRows: [PanelDetailRow] {
+        guard state.powerFlow != nil else { return state.rows }
+        let diagramKeys: Set<String> = [LocalizationKey.batteryDetailsSystemPower.rawValue,
+            LocalizationKey.batteryDetailsCharging.rawValue]
+        return state.rows.filter { !diagramKeys.contains($0.id) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -41,6 +55,9 @@ struct BatteryDetailsView: View {
             )
 
             VStack(alignment: .leading, spacing: 6) {
+                if let powerFlow = state.powerFlow {
+                    BatteryPowerFlowView(state: powerFlow)
+                }
                 if state.isLoading {
                     Text(localization.string(.batteryDetailsLoading))
                         .foregroundStyle(.secondary)
@@ -57,14 +74,37 @@ struct BatteryDetailsView: View {
             .font(.caption)
             .monospacedDigit()
 
+            if let ranking = state.energyApps {
+                Divider()
+                HighEnergyAppsView(ranking: ranking)
+            }
+
             if showsLowPowerControl, let lowPowerMode {
                 Divider()
                 lowPowerControlRow(lowPowerMode)
             }
 
+            if chargeToFullNow.showsActionArea {
+                Divider()
+                ChargeToFullNowActionView(
+                    presentation: chargeToFullNow,
+                    onAction: onChargeToFullNow
+                )
+            }
+
             Divider()
-            Button(localization.string(.batteryActionOpenSettings), action: onOpenBatterySettings)
+            VStack(alignment: .leading, spacing: 6) {
+                Button(
+                    localization.string(.batteryActionOpenSettings),
+                    action: onOpenBatterySettings
+                )
                 .buttonStyle(.plain)
+                Button(
+                    localization.string(.batteryActionOpenAppBatterySettings),
+                    action: onOpenAppBatterySettings
+                )
+                .buttonStyle(.plain)
+            }
         }
         .task(id: state.lifecycleIdentity) { onAppear() }
     }

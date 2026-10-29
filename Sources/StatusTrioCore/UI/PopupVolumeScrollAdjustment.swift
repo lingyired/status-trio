@@ -25,14 +25,20 @@ struct PopupVolumeScrollAdjustment {
 struct PopupVolumeScrollSession {
     static let timeout: TimeInterval = 0.75
 
+    private var identity: VolumeControlInteractionIdentity?
     private var targetScalar: Double?
     private var lastTimestamp: TimeInterval?
     private var requestedUnmute = false
 
     mutating func scalar(
         at timestamp: TimeInterval,
+        identity: VolumeControlInteractionIdentity,
         fallback: Double?
     ) -> Double? {
+        if self.identity != identity {
+            reset()
+            self.identity = identity
+        }
         if let lastTimestamp,
            timestamp < lastTimestamp
             || timestamp - lastTimestamp > Self.timeout {
@@ -56,13 +62,23 @@ struct PopupVolumeScrollSession {
         return adjustedScalar
     }
 
-    mutating func shouldUnmute(isMuted: Bool, isIncreasing: Bool) -> Bool {
-        guard isMuted, isIncreasing, !requestedUnmute else { return false }
+    mutating func shouldUnmute(
+        in state: VolumePanelState,
+        isIncreasing: Bool
+    ) -> Bool {
+        guard identity == state.interactionIdentity,
+              state.canMute,
+              state.muted,
+              isIncreasing,
+              !requestedUnmute else {
+            return false
+        }
         requestedUnmute = true
         return true
     }
 
     mutating func reset() {
+        identity = nil
         targetScalar = nil
         lastTimestamp = nil
         requestedUnmute = false

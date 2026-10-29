@@ -19,17 +19,56 @@ final class BatteryDetailsLayoutTests: XCTestCase {
     }
 
     func testConnectedPageFitsEveryLanguageWithAndWithoutSystemTelemetry() async throws {
+        // The page now carries a second settings action below the system-power
+        // one. Keep the budget tight enough that another whole row still fails.
+        let heightBudget: CGFloat = 470
         for language in AppLanguage.allCases {
             let connected = try await render(language: language, available: true, connected: true)
-            XCTAssertLessThan(connected.height, 440, language.rawValue)
+            XCTAssertLessThan(connected.height, heightBudget, language.rawValue)
             let charging = try await render(language: language, available: true, connected: true, charging: true)
-            XCTAssertLessThan(charging.height, 440, language.rawValue)
+            XCTAssertLessThan(charging.height, heightBudget, language.rawValue)
             let missing = try await render(language: language, available: true, connected: true, systemAvailable: false)
             // An unavailable system reading drops the timestamp row, not just
             // shortens a value, so the page must lose at least one row of height.
             XCTAssertGreaterThanOrEqual(connected.height - missing.height, 10,
                                         "\(language.rawValue) kept the system timestamp row")
         }
+    }
+
+    func testThreeDigitInputPowerStaysInsideTheFlowCard() async throws {
+        let size = try await render(
+            language: .english,
+            available: true,
+            connected: true,
+            allPower: true,
+            inputWatts: 110.23
+        )
+        XCTAssertEqual(size.width, 330, accuracy: 0.5)
+    }
+
+    func testBatteryDetailsShowChargeToFullAboveTheSettingsActions() async throws {
+        let hidden = try await render(language: .english, available: true, connected: true)
+        let available = try await render(
+            language: .english,
+            available: true,
+            connected: true,
+            chargeToFullNow: .available
+        )
+        let applying = try await render(
+            language: .english,
+            available: true,
+            connected: true,
+            chargeToFullNow: .applying
+        )
+
+        XCTAssertEqual(available.width, 330, accuracy: 0.5)
+        XCTAssertEqual(applying.width, 330, accuracy: 0.5)
+        XCTAssertGreaterThanOrEqual(
+            available.height,
+            hidden.height + 20,
+            "the details page must reserve a row for Charge to Full Now"
+        )
+        XCTAssertEqual(applying.height, available.height, accuracy: 0.5)
     }
 
     func testBatteryActionGlyphsShareTheSummaryVisualCenter() async throws {
@@ -61,6 +100,16 @@ final class BatteryDetailsLayoutTests: XCTestCase {
                 accuracy: 0.25,
                 "\(name) center \(center) must match the two-line content center \(contentCenter)"
             )
+        }
+    }
+
+    func testFullPowerFlowAndApplicationListFitLightAndDarkPanels() async throws {
+        for language in [AppLanguage.english, .simplifiedChinese, .german, .arabic] {
+            for dark in [false, true] {
+                let size = try await render(language: language, available: true, connected: true,
+                    charging: true, allPower: true, dark: dark, energyApps: true)
+                XCTAssertLessThan(size.height, 650, "\(language.rawValue) dark=\(dark)")
+            }
         }
     }
 
@@ -119,7 +168,6 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         hosting.appearance = NSAppearance(named: .aqua)
         hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
         hosting.layoutSubtreeIfNeeded()
-        try await Task.sleep(for: .milliseconds(50))
         hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
         hosting.layoutSubtreeIfNeeded()
         // A 1x screen quantizes ink centers to half points, coarser than the
@@ -127,16 +175,14 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         return try XCTUnwrap(SummaryActionAlignmentProbe(hosting, pixelScale: 2))
     }
 
-    /// Mounts the view, waits for SwiftUI's appearance task to deliver the
-    /// fixture, then records the settled fitting size and an optional snapshot.
+    /// Lays out the mapped fixture synchronously, then records its fitting size
+    /// and an optional snapshot. The injected appearance callback is a no-op.
     @discardableResult
     private func capture<V: View>(_ view: V, named name: String) async throws -> NSSize {
         let hosting = NSHostingView(rootView: view)
         hosting.appearance = NSAppearance(named: .aqua)
         hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
         hosting.layoutSubtreeIfNeeded()
-        // Allow SwiftUI's appearance task and the serial reader to publish the fixture.
-        try await Task.sleep(for: .milliseconds(50))
         let size = hosting.fittingSize
         hosting.frame = NSRect(origin: .zero, size: size)
         hosting.layoutSubtreeIfNeeded()
@@ -153,43 +199,57 @@ final class BatteryDetailsLayoutTests: XCTestCase {
 
     private func render(language: AppLanguage, available: Bool,
                         collecting: Bool = false, connected: Bool = false,
-                        systemAvailable: Bool = true, charging: Bool = false) async throws -> NSSize {
+                        systemAvailable: Bool = true, charging: Bool = false,
+                        allPower: Bool = false, dark: Bool = false, energyApps: Bool = false,
+                        chargeToFullNow: ChargeToFullNowPresentation = .hidden,
+                        inputWatts: Double? = nil) async throws -> NSSize {
         let suite = "StatusTrioCoreTests.BatteryDetails.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removeTestSuite(named: suite) }
         let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
         localization.setPreference(.language(language))
+        let observedAt = Date(timeIntervalSince1970: 1_700_000_000)
         let fixture = BatteryDetails(
             adapterWatts: connected ? 90 : nil,
             remainingMinutes: available ? 121 : nil,
             cycleCount: 43,
-            power: available ? BatteryPowerSample(volts: 12.279, amps: connected ? (charging ? 1.528 : 0) : -1.528, updatedAt: Date()) : nil,
+            power: available ? BatteryPowerSample(volts: allPower ? 12.5 : 12.279,
+                amps: allPower ? 3.2968 : (connected ? (charging ? 1.528 : 0) : -1.528), updatedAt: observedAt) : nil,
             powerAvailability: collecting ? .collecting : .unavailable,
-            systemPower: connected && systemAvailable ? SystemPowerSample(watts: 17.25, readAt: Date()) : nil)
-        let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
+            systemPower: connected && systemAvailable ? SystemPowerSample(watts: 25.59, readAt: observedAt) : nil,
+            inputPower: connected
+                ? SystemPowerSample(watts: inputWatts ?? 67, readAt: observedAt) : nil)
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: charging,
                                     isLowPowerMode: false, isConnectedToPower: connected)
         let panelState = PanelDetailMapper.battery(
             status: battery,
             details: fixture,
-            localization: localization
+            localization: localization,
+            powerOptions: BatteryPowerDisplayOptions(showsInput: allPower),
+            energyApps: energyApps ? ApplicationEnergyRanking(apps: [
+                EnergyApplication(id: "browser", name: "Browser"),
+                EnergyApplication(id: "editor", name: "Code Editor"),
+                EnergyApplication(id: "video", name: "Video Player"),
+                EnergyApplication(id: "chat", name: "Chat"),
+                EnergyApplication(id: "music", name: "Music")], phase: .ready) : nil
         )
         let view = BatteryDetailsView(
             state: panelState,
             onBack: {},
             onOpenBatterySettings: {},
             onCopyValue: { _ in },
-            onAppear: {}
+            onAppear: {},
+            chargeToFullNow: chargeToFullNow
         )
             .padding(14)
             .frame(width: 330)
-            .background(Color(white: 0.96))
+            .background(Color(white: dark ? 0.12 : 0.96))
             .environmentObject(localization)
-            .environment(\.colorScheme, .light)
-        // Allow SwiftUI's appearance task and the serial reader to publish the fixture.
+            .environment(\.colorScheme, dark ? .dark : .light)
         let state = connected
             ? (systemAvailable ? (charging ? "system-charging" : "system") : "system-unavailable")
             : (available ? "power" : (collecting ? "collecting" : "unavailable"))
-        let size = try await capture(view, named: "battery-\(language.rawValue)-page-\(state)")
+        let size = try await capture(view, named: "battery-\(language.rawValue)-page-\(state)-\(allPower ? "flow" : "default")-\(dark ? "dark" : "light")")
         XCTAssertEqual(size.width, 330, accuracy: 0.5)
         return size
     }

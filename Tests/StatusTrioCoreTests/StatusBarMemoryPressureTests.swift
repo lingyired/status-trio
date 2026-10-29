@@ -31,8 +31,9 @@ final class StatusBarMemoryPressureTests: XCTestCase {
         // do not complete deterministically in the headless test process.
         harness.controller.popoverForTesting.animates = false
 
-        harness.controller.openPopoverFromShortcut()
         let popover = harness.controller.popoverForTesting
+        popover.animates = false
+        harness.controller.openPopoverFromShortcut()
         XCTAssertTrue(popover.isShown)
         XCTAssertNotNil(harness.controller.popoverAnchorWindowForTesting)
 

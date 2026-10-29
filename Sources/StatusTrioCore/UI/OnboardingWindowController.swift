@@ -4,6 +4,11 @@ import SwiftUI
 
 @MainActor
 final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
+    static let contentSize = NSSize(
+        width: IconGuideOnboardingView.contentWidth,
+        height: 700
+    )
+
     private let settings: SettingsStore
     private let localization: Localization
     private let activationPolicy: AppActivationPolicy
@@ -76,17 +81,13 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         leaveActivationPolicyIfNeeded()
         setPreviewWindowVisible(false)
-        window?.contentViewController = nil
+        window?.contentView = nil
         window = nil
     }
 
     private func makeWindow() -> NSWindow {
-        let contentSize = NSSize(
-            width: IconGuideOnboardingView.contentWidth,
-            height: 560
-        )
         let window = NSWindow(
-            contentRect: NSRect(origin: .zero, size: contentSize),
+            contentRect: NSRect(origin: .zero, size: Self.contentSize),
             styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -104,19 +105,11 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
             .environment(\.systemIconAppearance, systemIconAppearance)
         }
 
-        let hostingController = NSHostingController(rootView: rootView)
-        if #available(macOS 14.0, *) {
-            // Ventura can recurse through SwiftUI's preferred-content-size
-            // pass while AppKit is installing the hosting view. Keep the
-            // deterministic size below on Ventura and use preferred sizing
-            // only where the hosting controller supports it reliably.
-            hostingController.sizingOptions = [.preferredContentSize]
-        }
-        window.contentViewController = hostingController
-        if #available(macOS 14.0, *),
-           hostingController.preferredContentSize.height > 0 {
-            window.setContentSize(hostingController.preferredContentSize)
-        }
+        let hostingView = NSHostingView(rootView: rootView)
+        hostingView.sizingOptions = []
+        hostingView.frame = NSRect(origin: .zero, size: Self.contentSize)
+        hostingView.autoresizingMask = [.width, .height]
+        window.contentView = hostingView
         window.delegate = self
         window.isReleasedWhenClosed = true
         window.contentMinSize = NSSize(

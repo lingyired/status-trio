@@ -67,6 +67,39 @@ Status Trio es una app de estado nativa de macOS que combina Wi-Fi, batería y v
 - **Siempre al día** — el estado proviene de eventos del sistema, con un sondeo lento como respaldo, y Sparkle actualiza la app mediante un canal firmado.
 - **También incluye** — doce idiomas y la opción de abrir al iniciar sesión.
 
+## Instalación
+
+Instala desde el Cask oficial de Homebrew:
+
+```bash
+brew install --cask status-trio
+```
+
+Para actualizar una instalación de Homebrew:
+
+```bash
+brew upgrade --cask status-trio
+```
+
+O descarga el último `StatusTrio-*.dmg` de [GitHub Releases](https://github.com/lingyired/status-trio/releases/latest), ábrelo y arrastra `Status Trio.app` a `/Applications`.
+
+La versión oficial está firmada con Developer ID y notarizada por Apple. Ábrela normalmente tras instalarla; no hace falta eliminar atributos de cuarentena. Las actualizaciones integradas usan Sparkle y verificación de firmas EdDSA.
+
+## Controles de entrada y audio
+
+- **Icono de entrada**: muestra el método de entrada actual en el centro del icono de la barra de menús y del Dock. Elígelo en **Ajustes › Red**; selecciona una fuente habilitada en el panel para cambiar a ella.
+- **Atajo global**: configura un atajo en **Ajustes › General** para abrir o cerrar el panel desde otra app. No hay ninguno asignado por defecto.
+- **Controles Bluetooth**: activa o desactiva Bluetooth, conecta o desconecta dispositivos y cambia el modo de escucha de AirPods y HUAWEI FreeBuds compatibles. Las filas opcionales de batería de dispositivos Apple se configuran en los ajustes de Bluetooth; dependen del dispositivo y la conexión.
+- **Entrada y salida de audio**: elige altavoces o micrófonos y ajusta sus niveles. Controla altavoces de monitores externos compatibles mediante DDC; la compatibilidad depende del hardware y la conexión.
+- **Carga y apariencia**: efectos de carga en la barra de menús y el Dock. En macOS 26 o posterior, el icono de Finder y Launchpad también sigue la apariencia clara u oscura del sistema.
+
+## Novedades en main (sin publicar)
+
+Estas funciones están en el código de `main`, pero no en la versión pública actual de GitHub / Homebrew, **1.7.5**:
+
+- **Flujo de potencia e impacto energético de CPU**: estimaciones de entrada del cargador, carga de batería y potencia del sistema. Una lista opcional ordena hasta cinco apps por energía de CPU, o actividad de CPU si faltan contadores. No representa el consumo total ni replica la lista de macOS. Activarla inicia un muestreo periódico en segundo plano; desactivarla lo detiene. [Detalles](docs/battery-power-flow.md).
+- **Cargar completamente ahora y cancelar**: opción desactivada por defecto para Mac con chip Apple compatibles y macOS 26.4 o posterior. Usa una interfaz privada de PowerUI para anular el límite. **El límite puede seguir al 100% tras cargar o reconectar la corriente; no se restaura automáticamente.** Usa la cancelación para solicitar restaurarlo, o compruébalo y restáuralo en Ajustes del Sistema. El comportamiento depende de macOS. [Comportamiento y pruebas](docs/charge-to-full-now-poc.md).
+
 ## Audio por Bluetooth
 
 Mientras se reproduce audio por Bluetooth, dos interruptores en **Ajustes › Bluetooth** permiten que el glifo central pase a ser el símbolo propio de ese dispositivo —los AirPods, los auriculares, los altavoces y otros dispositivos aportan el suyo— y que los puntos o el arco del volumen se vuelvan azules. Ambos están desactivados de forma predeterminada. **Dar prioridad a los errores de red**, activado de forma predeterminada, mantiene el icono de red mientras la propia conexión tiene problemas:
@@ -150,27 +183,6 @@ bash scripts/build-app.sh release no-open
 
 El paquete firmado de forma ad-hoc está pensado para uso personal local. Gatekeeper puede rechazarlo si el paquete se transfiere con metadatos de cuarentena.
 
-## Instalar una versión de GitHub
-
-Descarga el último `StatusTrio-*.dmg` desde la [página de versiones de GitHub](https://github.com/lingyired/status-trio/releases), ábrelo y copia `Status Trio.app` en `/Applications`.
-
-La versión pública actual está firmada de forma ad-hoc, pero Apple no la ha notarizado. macOS puede mostrar esta advertencia en el primer inicio:
-
-> Apple no puede verificar que “Status Trio” esté libre de software malicioso que pueda dañar tu Mac o poner en riesgo tu privacidad.
-
-Es una advertencia de Gatekeeper causada por la falta de la firma Developer ID y de la notarización de Apple. No significa por sí sola que la app contenga software malicioso. Omite la advertencia solo cuando el DMG se haya descargado de la página oficial de versiones de GitHub y su suma de verificación SHA-256 publicada coincida.
-
-Después de copiar la app en `/Applications`, elimina el atributo de cuarentena y ábrela:
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/Status Trio.app"
-open "/Applications/Status Trio.app"
-```
-
-Como alternativa, intenta abrir la app una vez y luego ve a **Ajustes del Sistema → Privacidad y seguridad** y elige **Abrir de todos modos**.
-
-No desactives Gatekeeper de forma global. Las actualizaciones posteriores de Sparkle se autentican con la clave de firma EdDSA de la app; el comando `xattr` normalmente solo es necesario para la primera instalación manual.
-
 ## Uso
 
 - **Clic izquierdo** en el icono de la barra de menús o en el icono del Dock para abrir el panel emergente de estado.
@@ -185,7 +197,7 @@ No desactives Gatekeeper de forma global. Las actualizaciones posteriores de Spa
 Dos límites que macOS y este proyecto trazan deliberadamente. Ambos se explican en [Limitaciones conocidas](docs/known-limitations.md).
 
 - **Cambiar de red se hace en Ajustes del Sistema.** Elegir una red en el panel emergente abre el panel de Wi-Fi; Status Trio nunca lee ni guarda las contraseñas de Wi-Fi, porque macOS no ofrece ninguna API pública para conectarse con una contraseña guardada y todas las alternativas acaban con la app guardándolas.
-- **"Cargar completamente ahora" se queda en macOS.** Cuando la carga optimizada de la batería o un límite de carga pausa la carga, el panel emergente informa del estado en pausa y enlaza con el panel de Batería; ninguna API pública permite que una app reanude la carga más allá del límite, y Status Trio no escribe en el SMC ni incluye un ayudante privilegiado para hacerlo.
+- **El control del límite de carga depende de la versión.** La versión 1.7.5 remite a Ajustes del Sistema. La opción de `main` usa una interfaz privada y requiere cancelar explícitamente para solicitar la restauración. [Detalles](docs/charge-to-full-now-poc.md). El modo de bajo consumo usa un [helper privilegiado opcional](docs/privileged-helper.md) independiente.
 
 ## Idiomas
 
@@ -193,14 +205,16 @@ Status Trio sigue el idioma preferido de macOS de forma predeterminada e incluye
 
 ## Privacidad
 
-Status Trio lee el estado mediante frameworks públicos de macOS. No usa App Sandbox ni requiere un permiso de red, y no incluye telemetría ni análisis. No lee ni guarda contraseñas de Wi-Fi y nunca solicita acceso al llavero. El acceso a la ubicación es opcional y solo se solicita cuando eliges mostrar el nombre de la red Wi-Fi actual o abrir los detalles de Wi-Fi. El acceso a Bluetooth solo se solicita cuando abres los detalles de Bluetooth, y existe para mostrar el estado de conexión de los dispositivos emparejados.
+Status Trio lee el estado del sistema localmente. Las estadísticas anónimas solo se envían al servicio propio si las activas; están desactivadas al actualizar y se consultan durante la bienvenida de nuevas instalaciones. Incluyen un ID aleatorio, versiones de la app y macOS, idioma y ubicación del icono, sin nombres, cuentas, detalles de red ni identificadores de hardware. Consulta [telemetría y privacidad](docs/privacy-telemetry.md). No lee ni guarda contraseñas Wi-Fi ni pide acceso al Llavero. La ubicación es opcional para el nombre y los detalles de Wi-Fi; Bluetooth se solicita al activar su panel. En `main`, el control opcional de carga completa usa una interfaz privada de PowerUI solo al habilitarlo; sus límites se explican antes.
 
 ## Desarrollo
 
 Ejecuta la suite de pruebas:
 
 ```bash
-swift test
+bash scripts/verify-local.sh quick BatteryMonitorTests
+bash scripts/verify-local.sh docs
+bash scripts/verify-local.sh full
 ```
 
 Ejecuta un filtro de XCTest concreto mediante el script auxiliar:

@@ -104,14 +104,24 @@ extension WiFiStatus {
     }
 }
 
+enum VolumeControlSource: Equatable, Sendable {
+    case unavailable
+    case native
+    case directDDC
+    case betterDisplay
+}
+
 struct VolumeStatus: Equatable, Sendable {
     let scalar: Double?
     let isMuted: Bool
+    let muteState: VolumeMuteState
     let deviceName: String?
     let currentDevice: AudioOutputDevice?
     let outputDevices: [AudioOutputDevice]
     let canSetVolume: Bool
     let canMute: Bool
+    let controlSource: VolumeControlSource
+    let externalVolumeTransitionGeneration: UInt64
 
     init(
         scalar: Double?,
@@ -120,15 +130,22 @@ struct VolumeStatus: Equatable, Sendable {
         currentDevice: AudioOutputDevice? = nil,
         outputDevices: [AudioOutputDevice] = [],
         canSetVolume: Bool? = nil,
-        canMute: Bool? = nil
+        canMute: Bool? = nil,
+        muteState: VolumeMuteState? = nil,
+        externalVolumeTransitionGeneration: UInt64 = 0,
+        controlSource: VolumeControlSource = .unavailable
     ) {
         self.scalar = scalar
         self.isMuted = isMuted
+        self.muteState = muteState ?? (isMuted ? .muted : .unmuted)
         self.deviceName = deviceName
         self.currentDevice = currentDevice
         self.outputDevices = outputDevices
         self.canSetVolume = canSetVolume ?? (scalar != nil)
         self.canMute = canMute ?? (scalar != nil)
+        self.controlSource = controlSource
+        self.externalVolumeTransitionGeneration =
+            externalVolumeTransitionGeneration
     }
 
     static let placeholder = VolumeStatus(
@@ -136,6 +153,26 @@ struct VolumeStatus: Equatable, Sendable {
         isMuted: false,
         deviceName: nil
     )
+}
+
+extension VolumeStatus {
+    func replacingExternalVolumeTransitionGeneration(
+        _ generation: UInt64,
+        controlSource: VolumeControlSource? = nil
+    ) -> VolumeStatus {
+        VolumeStatus(
+            scalar: scalar,
+            isMuted: isMuted,
+            deviceName: deviceName,
+            currentDevice: currentDevice,
+            outputDevices: outputDevices,
+            canSetVolume: canSetVolume,
+            canMute: canMute,
+            muteState: muteState,
+            externalVolumeTransitionGeneration: generation,
+            controlSource: controlSource ?? self.controlSource
+        )
+    }
 }
 
 struct StatusSnapshot: Equatable, Sendable {

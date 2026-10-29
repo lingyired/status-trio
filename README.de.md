@@ -67,6 +67,39 @@ Status Trio ist eine native macOS-Status-App, die Wi-Fi, Batterie und Lautstärk
 - **Immer aktuell** — der Status stammt aus Systemereignissen, mit einer langsamen Abfrage als Ersatzlösung, und Sparkle aktualisiert die App über einen signierten Feed.
 - **Ebenfalls enthalten** — zwölf Sprachen und die Option „Beim Anmelden starten“.
 
+## Installation
+
+Über das offizielle Homebrew-Cask installieren:
+
+```bash
+brew install --cask status-trio
+```
+
+Eine Homebrew-Installation aktualisieren:
+
+```bash
+brew upgrade --cask status-trio
+```
+
+Oder die aktuelle `StatusTrio-*.dmg` von [GitHub Releases](https://github.com/lingyired/status-trio/releases/latest) herunterladen, öffnen und `Status Trio.app` nach `/Applications` ziehen.
+
+Die offizielle Version ist mit Developer ID signiert und von Apple notarisiert. Nach der Installation normal öffnen; Quarantäneattribute müssen nicht entfernt werden. App-interne Updates verwenden Sparkle mit EdDSA-Signaturprüfung.
+
+## Eingabe- und Audiosteuerung
+
+- **Eingabequellen-Symbol**: Die aktuelle Eingabequelle kann in der Mitte des Menüleisten- und Dock-Symbols erscheinen. Unter **Einstellungen › Netzwerk** auswählen; im Panel lässt sich eine aktivierte Eingabequelle auswählen und wechseln.
+- **Globaler Kurzbefehl**: Unter **Einstellungen › Allgemein** zum Öffnen oder Schließen des Panels aus anderen Apps zuweisen. Standardmäßig nicht zugewiesen.
+- **Bluetooth-Steuerung**: Bluetooth ein- oder ausschalten, Geräte verbinden oder trennen und Hörmodi unterstützter AirPods und HUAWEI FreeBuds wechseln. Optionale Apple-Gerätebatterien werden in den Bluetooth-Einstellungen konfiguriert; die Verfügbarkeit hängt von Gerät und Verbindung ab.
+- **Audioeingabe und -ausgabe**: Lautsprecher oder Mikrofone auswählen und Pegel anpassen. Kompatible externe Monitorlautsprecher lassen sich über DDC steuern; die Unterstützung hängt von Hardware und Verbindung ab.
+- **Laden und Darstellung**: Ladeeffekte in Menüleiste und Dock. Ab macOS 26 folgt auch das App-Symbol in Finder und Launchpad der hellen oder dunklen Systemdarstellung.
+
+## Neu auf main (unveröffentlicht)
+
+Diese Funktionen sind im Quellcode auf `main`, aber nicht in der aktuellen öffentlichen GitHub-/Homebrew-Version **1.7.5** enthalten:
+
+- **Leistungsfluss und CPU-Energieeinfluss**: Schätzwerte für Ladegeräteingang, Batterieladung und Systemleistung. Eine optionale Liste sortiert bis zu fünf Apps nach CPU-Energie oder ersatzweise CPU-Aktivität. Dies ist weder der gesamte App-Verbrauch noch die native macOS-Liste. Aktivieren startet regelmäßige Hintergrundmessungen, Deaktivieren beendet sie. [Details](docs/battery-power-flow.md).
+- **Jetzt vollständig laden und abbrechen**: Standardmäßig ausgeschaltete Option für unterstützte Apple-Silicon-Macs ab macOS 26.4. Sie hebt das Ladelimit über eine private PowerUI-Schnittstelle auf. **Das Limit kann nach dem Laden oder erneutem Anschließen bei 100 % bleiben; es wird nicht automatisch wiederhergestellt.** Über Abbrechen die Wiederherstellung anfordern oder das Limit in den Systemeinstellungen prüfen und wiederherstellen. Das Verhalten hängt von macOS ab. [Verhalten und Prüfung](docs/charge-to-full-now-poc.md).
+
 ## Bluetooth-Audio
 
 Während Audio über Bluetooth wiedergegeben wird, lassen zwei Schalter unter **Einstellungen › Bluetooth** das mittlere Symbol zum eigenen Symbol dieses Geräts werden — AirPods, Kopfhörer, Lautsprecher und andere Geräte bringen ihr eigenes mit — und lassen die Lautstärkepunkte oder den Bogen blau werden. Beide sind standardmäßig aus. **Netzwerkfehler priorisieren**, standardmäßig aktiviert, behält das Netzwerksymbol, solange die Verbindung selbst Probleme hat:
@@ -150,27 +183,6 @@ bash scripts/build-app.sh release no-open
 
 Das ad-hoc-signierte Bundle ist für die lokale persönliche Nutzung gedacht. Gatekeeper kann es ablehnen, wenn das Bundle mit Quarantäne-Metadaten übertragen wird.
 
-## Ein GitHub-Release installieren
-
-Laden Sie die neueste `StatusTrio-*.dmg` von der [GitHub-Releases-Seite](https://github.com/lingyired/status-trio/releases) herunter, öffnen Sie sie und kopieren Sie `Status Trio.app` nach `/Applications`.
-
-Der aktuelle öffentliche Build ist ad-hoc-signiert, aber nicht von Apple notarisiert. macOS zeigt beim ersten Start möglicherweise diese Warnung an:
-
-> Apple kann nicht überprüfen, ob „Status Trio“ frei von Malware ist, die Ihren Mac schädigen oder Ihre Privatsphäre gefährden könnte.
-
-Dies ist eine Gatekeeper-Warnung, die durch die fehlende Developer-ID-Signatur und die fehlende Apple-Notarisierung verursacht wird. Sie bedeutet für sich genommen nicht, dass die App Malware enthält. Umgehen Sie die Warnung nur, wenn die DMG von der offiziellen GitHub-Releases-Seite heruntergeladen wurde und ihre veröffentlichte SHA-256-Prüfsumme übereinstimmt.
-
-Nachdem Sie die App nach `/Applications` kopiert haben, entfernen Sie das Quarantäne-Attribut und öffnen Sie sie:
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/Status Trio.app"
-open "/Applications/Status Trio.app"
-```
-
-Alternativ können Sie die App einmal zu öffnen versuchen, dann zu **Systemeinstellungen → Datenschutz & Sicherheit** gehen und **Trotzdem öffnen** wählen.
-
-Deaktivieren Sie Gatekeeper nicht global. Nachfolgende Sparkle-Updates werden mit dem EdDSA-Signaturschlüssel der App authentifiziert; der Befehl `xattr` ist normalerweise nur für die erste manuelle Installation erforderlich.
-
 ## Verwendung
 
 - **Linksklick** auf das Menüleistensymbol oder das Dock-Symbol öffnet das Status-Popover.
@@ -185,7 +197,7 @@ Deaktivieren Sie Gatekeeper nicht global. Nachfolgende Sparkle-Updates werden mi
 Zwei Grenzen, die macOS und dieses Projekt bewusst ziehen. Beide sind in [Bekannte Einschränkungen](docs/known-limitations.md) erklärt.
 
 - **Der Wechsel zwischen Netzwerken findet in den Systemeinstellungen statt.** Die Auswahl eines Netzwerks im Popover öffnet den Wi-Fi-Bereich; Status Trio liest oder speichert niemals Wi-Fi-Passwörter, denn macOS bietet keine öffentliche API, um sich mit einem gespeicherten Passwort zu verbinden, und jede Alternative endet damit, dass die App sie aufbewahrt.
-- **„Jetzt vollständig laden“ bleibt in macOS.** Wenn optimiertes Batterieladen oder ein Ladelimit das Laden pausiert, meldet das Popover den pausierten Zustand und verweist auf die Batterieeinstellungen; keine öffentliche API erlaubt einer App, das Laden über das Limit hinaus fortzusetzen, und Status Trio schreibt nicht in den SMC und liefert keinen privilegierten Helfer, um das zu tun.
+- **Die Ladelimit-Steuerung hängt von der Version ab.** Version 1.7.5 öffnet die Systemeinstellungen. Die optionale Funktion auf `main` verwendet eine private Schnittstelle und erfordert einen ausdrücklichen Abbruch zur Wiederherstellung. [Details](docs/charge-to-full-now-poc.md). Der Stromsparmodus verwendet einen separaten [optionalen privilegierten Helper](docs/privileged-helper.md).
 
 ## Sprachen
 
@@ -193,14 +205,16 @@ Status Trio folgt standardmäßig der bevorzugten Sprache von macOS und enthält
 
 ## Datenschutz
 
-Status Trio liest den Status über öffentliche macOS-Frameworks. Die App verwendet keine App-Sandbox und benötigt keine Netzwerk-Berechtigung; Telemetrie oder Analysen sind nicht enthalten. Sie liest und speichert keine Wi-Fi-Passwörter und fordert niemals Zugriff auf den Schlüsselbund an. Der Standortzugriff ist optional und wird nur angefordert, wenn Sie den aktuellen Wi-Fi-Netzwerknamen anzeigen oder Wi-Fi-Details öffnen möchten. Der Bluetooth-Zugriff wird nur angefordert, wenn der Bluetooth-Bereich angezeigt wird, und dient dazu, den Verbindungsstatus gekoppelter Geräte anzuzeigen.
+Status Trio liest den Systemstatus lokal. Anonyme Nutzungsstatistiken werden nur nach Aktivierung an den eigenen Dienst gesendet; bei Upgrades sind sie aus, bei Neuinstallationen wird gefragt. Enthalten sind eine zufällige Installations-ID, App- und macOS-Version, Sprache und Symbolposition, ohne Namen, Konten, Netzwerkdetails oder Hardwarekennungen. Siehe [Telemetrie und Datenschutz](docs/privacy-telemetry.md). Die App liest oder speichert keine WLAN-Passwörter und fordert keinen Schlüsselbundzugriff an. Standortzugriff ist für WLAN-Name und Details optional; Bluetooth-Zugriff wird beim Aktivieren des Panels angefordert. Auf `main` nutzt die optionale Vollladefunktion nur bei Aktivierung eine private PowerUI-Schnittstelle; ihre Grenzen stehen oben.
 
 ## Entwicklung
 
 Führen Sie die Testsuite aus:
 
 ```bash
-swift test
+bash scripts/verify-local.sh quick BatteryMonitorTests
+bash scripts/verify-local.sh docs
+bash scripts/verify-local.sh full
 ```
 
 Führen Sie einen gezielten XCTest-Filter über das Hilfsskript aus:

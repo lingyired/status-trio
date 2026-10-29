@@ -55,12 +55,16 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var batteryDetails: PanelDetailState
     @Published private(set) var wifiDetails: WiFiPanelState
     @Published private(set) var wiredDetails: PanelDetailState
+    @Published private(set) var chargeToFullNowPresentation: ChargeToFullNowPresentation = .hidden
     @Published private(set) var visiblePopupSections: [PopupSection]
+    @Published private(set) var route: StatusPanelRoute = .summary
+    @Published private(set) var wifiDisclosure = WiFiPanelDisclosureState()
 
     let store: SystemStatusStore
     let settings: SettingsStore
     private let localization: Localization
     private let inputSourceController: InputSourceController
+    private let chargeToFullNow: ChargeToFullNowController?
     private let updateScheduler: any PanelPresentationUpdateScheduling
     private let capabilityPolicy: DistributionCapabilityPolicy
     let actions: StatusPanelActions
@@ -77,6 +81,8 @@ final class StatusPanelViewModel: ObservableObject {
     /// before scheduler coalescing. Production never assigns this closure.
     var popupSourceEventForTesting: (() -> Void)?
 
+    var isShowingDetailPage: Bool { route != .summary }
+
     init(
         store: SystemStatusStore,
         settings: SettingsStore,
@@ -84,13 +90,15 @@ final class StatusPanelViewModel: ObservableObject {
         actions: StatusPanelActions,
         updateScheduler: any PanelPresentationUpdateScheduling = YieldingPanelPresentationUpdateScheduler(),
         inputSourceController: InputSourceController? = nil,
-        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
+        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
+        chargeToFullNow: ChargeToFullNowController? = nil
     ) {
         let resolvedInputSourceController = inputSourceController ?? InputSourceController()
         self.store = store
         self.settings = settings
         self.localization = localization
         self.inputSourceController = resolvedInputSourceController
+        self.chargeToFullNow = chargeToFullNow
         self.updateScheduler = updateScheduler
         self.capabilityPolicy = capabilityPolicy
         self.actions = actions
@@ -117,6 +125,10 @@ final class StatusPanelViewModel: ObservableObject {
             store.liveVolume,
             controllerAvailable: store.isVolumeControllerAvailable,
             allowsDDC: !capabilityPolicy.blocksControl(.ddc),
+            externalVolumeConfiguration: Self.externalVolumeConfiguration(
+                for: store.liveVolume,
+                settings: settings
+            ),
             deviceList: AudioOutputListPreferences(
                 order: settings.outputDeviceOrder,
                 visibleLimit: settings.visibleOutputDeviceLimit
@@ -132,7 +144,9 @@ final class StatusPanelViewModel: ObservableObject {
         batteryDetails = PanelDetailMapper.battery(
             status: store.popupSnapshot.battery,
             details: store.batteryDetails.details,
-            localization: localization
+            localization: localization,
+            powerOptions: settings.batteryPowerDisplayOptions,
+            energyApps: settings.showsHighEnergyApps ? store.batteryDetails.energyApps.ranking : nil
         )
         wifiDetails = PanelDetailMapper.wifi(
             status: store.popupSnapshot.wifi,
@@ -152,6 +166,7 @@ final class StatusPanelViewModel: ObservableObject {
         let sections = settings.visiblePopupSections
         if visiblePopupSections != sections { visiblePopupSections = sections }
         subscribeToPopupPresentationSources()
+        subscribeToChargeToFullNow()
         reconcileSourceSubscriptions()
         refreshAll()
 
@@ -190,7 +205,95 @@ final class StatusPanelViewModel: ObservableObject {
         pendingRefreshRegions = []
         sourceDemandCancellables.removeAll()
         subscribedSourceDemand = nil
+        chargeToFullNow?.clearDemand()
+        chargeToFullNowPresentation = .hidden
         cancellables.removeAll()
+    }
+
+    func showBatteryPage() {
+        guard settings.visiblePopupSections.contains(.battery),
+              store.popupSnapshot.battery.isPresent else {
+            showSummaryPage()
+            return
+        }
+        transition(to: .battery)
+        actions.batteryDetailsAppeared()
+        refreshBatteryDetails()
+    }
+
+    func showWiFiPage(showsDetailsInitially: Bool) {
+        guard settings.visiblePopupSections.contains(.network) else {
+            showSummaryPage()
+            return
+        }
+        wifiDisclosure = WiFiPanelDisclosureState(
+            showsDetails: showsDetailsInitially,
+            showsMore: false
+        )
+        transition(to: .wifi)
+        actions.wifiDetailsOpened()
+        refreshWiFiDetails()
+    }
+
+    func showWiredPage() {
+        guard settings.visiblePopupSections.contains(.network) else {
+            showSummaryPage()
+            return
+        }
+        transition(to: .ethernet)
+        actions.wiredDetailsOpened()
+        refreshWiredDetailsAndNetwork()
+    }
+
+    func showInputSourcePage() {
+        guard settings.visiblePopupSections.contains(.inputSource) else {
+            showSummaryPage()
+            return
+        }
+        transition(to: .inputSource)
+    }
+
+    func showSummaryPage() {
+        closeCurrentPage()
+    }
+
+    func setWiFiShowsDetails(_ showsDetails: Bool) {
+        guard wifiDisclosure.showsDetails != showsDetails else { return }
+        var next = wifiDisclosure
+        next.showsDetails = showsDetails
+        wifiDisclosure = next
+    }
+
+    func setWiFiShowsMore(_ showsMore: Bool) {
+        guard wifiDisclosure.showsMore != showsMore else { return }
+        var next = wifiDisclosure
+        next.showsMore = showsMore
+        wifiDisclosure = next
+    }
+
+    /// Re-enters the lightweight route after a close released the detail view
+    /// and its collectors. This runs before the popover's first layout pass.
+    func prepareForPresentation() {
+        guard store.isPopoverVisible, route != .summary else { return }
+        guard isRouteAvailable(route) else {
+            closeCurrentPage()
+            return
+        }
+        switch route {
+        case .summary:
+            break
+        case .battery:
+            actions.batteryDetailsAppeared()
+            refreshBatteryDetails()
+        case .wifi:
+            actions.wifiDetailsOpened()
+            refreshWiFiDetails()
+        case .ethernet:
+            actions.wiredDetailsOpened()
+            refreshWiredDetailsAndNetwork()
+        case .inputSource:
+            break
+        }
     }
 
     /// Called by the popover owner after presentation has stopped and while it
@@ -293,6 +396,10 @@ final class StatusPanelViewModel: ObservableObject {
             status,
             controllerAvailable: store.isVolumeControllerAvailable,
             allowsDDC: !capabilityPolicy.blocksControl(.ddc),
+            externalVolumeConfiguration: Self.externalVolumeConfiguration(
+                for: status,
+                settings: settings
+            ),
             deviceList: outputPreferences,
             listeningModes: store.bluetoothListeningModes,
             listeningModeTaskID: makeListeningModeTaskID(outputDevices: status.outputDevices),
@@ -301,6 +408,21 @@ final class StatusPanelViewModel: ObservableObject {
             previewLocalization: PreviewLocalization.forCode(previewConfiguration.languageCode),
             localization: localization
         )
+    }
+
+    private static func externalVolumeConfiguration(
+        for status: VolumeStatus,
+        settings: SettingsStore
+    ) -> ExternalVolumeConfiguration {
+        let currentDevice = status.currentDevice
+            ?? status.outputDevices.first(where: \.isCurrent)
+        guard let uid = currentDevice?.uid?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !uid.isEmpty
+        else {
+            return .default
+        }
+        return settings.externalVolumeConfiguration(for: uid)
     }
 
     private var currentPreviewConfiguration: ListeningModePreview.Configuration {
@@ -360,6 +482,13 @@ final class StatusPanelViewModel: ObservableObject {
                 coalesceControllerUpdate(.batteryDetails)
             }
             .store(in: &cancellables)
+        store.batteryDetails.energyApps.$ranking
+            .dropFirst()
+            .sink { [weak self] _ in
+                guard let self, store.batteryDetails.isActive else { return }
+                coalesceControllerUpdate(.batteryDetails)
+            }
+            .store(in: &cancellables)
         Publishers.CombineLatest3(
             store.wifiNetworks.$details,
             store.wifiNetworks.$networks,
@@ -388,6 +517,79 @@ final class StatusPanelViewModel: ObservableObject {
                 coalesceControllerUpdate(.localIP)
             }
             .store(in: &cancellables)
+    }
+
+    private func subscribeToChargeToFullNow() {
+        guard let chargeToFullNow else {
+            chargeToFullNowPresentation = .hidden
+            return
+        }
+
+        chargeToFullNow.$presentation
+            .removeDuplicates()
+            .sink { [weak self] presentation in
+                guard let self else { return }
+                chargeToFullNowPresentation = presentation
+                refreshBatterySummary()
+            }
+            .store(in: &cancellables)
+
+        Publishers.CombineLatest4(
+            settings.$showsChargeToFullNowButton.removeDuplicates(),
+            Publishers.CombineLatest(
+                settings.$enabledPopupSections,
+                settings.$popupSectionOrder
+            )
+                .map { enabled, order in
+                    enabled.contains(.battery) && order.contains(.battery)
+                }
+                .removeDuplicates(),
+            store.$isPopoverVisible.removeDuplicates(),
+            store.$popupSnapshot
+                .map(\.battery)
+                .removeDuplicates()
+        )
+        .sink { [weak self] settingEnabled, batterySectionVisible, popoverVisible, battery in
+            self?.updateChargeToFullNowDemand(
+                settingEnabled: settingEnabled,
+                batterySectionVisible: batterySectionVisible,
+                popoverVisible: popoverVisible,
+                battery: battery
+            )
+        }
+        .store(in: &cancellables)
+    }
+
+    /// Re-maps the visible battery row when the charge action changes, so the
+    /// subtitle reflects the click before the system's charging flag catches up.
+    private func refreshBatterySummary() {
+        guard isVisible(.battery) else { return }
+        let next = PanelPresentationMapper.battery(
+            store.popupSnapshot.battery,
+            localization: localization,
+            chargeToFullNow: chargeToFullNowPresentation
+        )
+        if battery != next { battery = next }
+    }
+
+    private func updateChargeToFullNowDemand(
+        settingEnabled: Bool,
+        batterySectionVisible: Bool,
+        popoverVisible: Bool,
+        battery: BatteryStatus
+    ) {
+        guard isStarted, let chargeToFullNow else {
+            chargeToFullNowPresentation = .hidden
+            return
+        }
+        chargeToFullNow.update(
+            ChargeToFullNowDemand(
+                settingEnabled: settingEnabled,
+                popoverVisible: popoverVisible,
+                batterySectionVisible: batterySectionVisible,
+                battery: battery
+            )
+        )
     }
 
     private func reconcileSourceSubscriptions(
@@ -547,6 +749,7 @@ final class StatusPanelViewModel: ObservableObject {
         let sections = order.filter { enabled.contains($0) }
         if visiblePopupSections != sections { visiblePopupSections = sections }
         reconcileSourceSubscriptions(deliveredSections: sections)
+        if !isRouteAvailable(route) { closeCurrentPage() }
         coalesceControllerUpdate(.all)
     }
 
@@ -562,7 +765,8 @@ final class StatusPanelViewModel: ObservableObject {
             let batteryState = PanelPresentationMapper.battery(
                 snapshot.battery,
                 allowsDetails: !capabilityPolicy.blocksControl(.privatePowerReaders),
-                localization: localization
+                localization: localization,
+                chargeToFullNow: chargeToFullNowPresentation
             )
             if battery != batteryState { battery = batteryState }
         }
@@ -580,14 +784,24 @@ final class StatusPanelViewModel: ObservableObject {
         }
         if store.batteryDetails.isActive { refreshBatteryDetails(status: snapshot.battery) }
         if store.wifiNetworks.isActive { refreshWiFiDetails(status: snapshot.wifi) }
+        if !isRouteAvailable(route) { closeCurrentPage() }
     }
 
     private func refreshBatteryDetails(status deliveredStatus: BatteryStatus? = nil) {
         guard store.batteryDetails.isActive else { return }
+        store.batteryDetails.configure(options: settings.batteryPowerDisplayOptions,
+            showsHighEnergyApps: settings.showsHighEnergyApps)
+        let status = deliveredStatus ?? store.popupSnapshot.battery
+        // The page can outlive a plugin or a charge-limit pulse. Keep the
+        // collector's context aligned with the latest snapshot so the next
+        // sample is collected for the state the user is actually looking at.
+        store.batteryDetails.update(state: BatteryPowerState(status))
         let state = PanelDetailMapper.battery(
-            status: deliveredStatus ?? store.popupSnapshot.battery,
+            status: status,
             details: store.batteryDetails.details,
-            localization: localization
+            localization: localization,
+            powerOptions: settings.batteryPowerDisplayOptions,
+            energyApps: settings.showsHighEnergyApps ? store.batteryDetails.energyApps.ranking : nil
         )
         if batteryDetails != state { batteryDetails = state }
     }
@@ -624,6 +838,46 @@ final class StatusPanelViewModel: ObservableObject {
                 localization: localization
             )
             if network != networkState { network = networkState }
+        }
+    }
+
+    private func transition(to next: StatusPanelRoute) {
+        guard route != next else { return }
+        if route != .summary { closeCurrentPage() }
+        route = next
+    }
+
+    private func closeCurrentPage() {
+        guard route != .summary else { return }
+        switch route {
+        case .battery:
+            actions.batteryDetailsClosed()
+        case .wifi:
+            actions.wifiDetailsClosed()
+        case .ethernet:
+            actions.wiredDetailsClosed()
+        case .inputSource:
+            break
+        case .summary:
+            return
+        }
+        route = .summary
+    }
+
+    private func isRouteAvailable(_ route: StatusPanelRoute) -> Bool {
+        let sections = settings.visiblePopupSections
+        switch route {
+        case .summary:
+            return true
+        case .battery:
+            return sections.contains(.battery) && store.popupSnapshot.battery.isPresent
+        case .wifi:
+            return sections.contains(.network)
+        case .ethernet:
+            return sections.contains(.network)
+                && store.popupSnapshot.connection == .ethernet
+        case .inputSource:
+            return sections.contains(.inputSource)
         }
     }
 
@@ -741,7 +995,10 @@ private extension VolumePanelState {
             summary: summary,
             scalar: scalar,
             percentageText: percentageText,
+            outputIdentity: outputIdentity,
+            interactionIdentity: interactionIdentity,
             muted: muted,
+            muteState: muteState,
             canAdjust: canAdjust,
             canMute: canMute,
             muteSymbol: muteSymbol,
@@ -764,7 +1021,10 @@ private extension VolumePanelState {
             summary: summary.releasingPresentation(),
             scalar: scalar,
             percentageText: percentageText,
+            outputIdentity: outputIdentity,
+            interactionIdentity: interactionIdentity,
             muted: muted,
+            muteState: muteState,
             canAdjust: false,
             canMute: false,
             muteSymbol: muteSymbol,

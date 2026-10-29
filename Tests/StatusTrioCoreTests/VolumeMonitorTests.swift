@@ -165,7 +165,8 @@ final class VolumeMonitorTests: XCTestCase {
             VolumeStatus(
                 scalar: 0.42,
                 isMuted: true,
-                deviceName: "MacBook Pro Speakers"
+                deviceName: "MacBook Pro Speakers",
+                controlSource: .native
             )
         )
         monitor.stop()

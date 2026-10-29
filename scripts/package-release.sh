@@ -4,6 +4,9 @@
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/scripts/build-timing.sh"
+trap 'build_timing_finish "$?"' EXIT
+build_phase package-preflight
 OUTPUT_DIR="${OUTPUT_DIR:-$ROOT/dist/release-package}"
 SOURCE_SHA="${SOURCE_SHA:?SOURCE_SHA is required}"
 VERSION="${VERSION:?VERSION is required}"
@@ -139,6 +142,7 @@ MINIMUM_SYSTEM_VERSION="$(
 )"
 
 printf 'Building %s %s (%s) at %s...\n' "$APP_NAME" "$VERSION" "$BUILD" "$SOURCE_SHA"
+build_phase app-build-sign-and-verify
 env -u GH_TOKEN -u SPARKLE_PRIVATE_KEY \
     APP_VERSION="$VERSION" \
     BUILD_NUMBER="$BUILD" \
@@ -153,6 +157,7 @@ env -u GH_TOKEN -u SPARKLE_PRIVATE_KEY \
     bash "$ROOT/scripts/build-app.sh" release no-open
 
 APP_DIR="$ROOT/dist/StatusTrio.app"
+build_phase universal-package-contracts
 for binary in \
     "$APP_DIR/Contents/MacOS/StatusTrio" \
     "$APP_DIR/Contents/Helpers/StatusTrioPowerHelper"; do
@@ -168,13 +173,15 @@ UNIVERSAL_BUILD=1 bash "$ROOT/scripts/verify-privileged-helper-bundle.sh" "$APP_
 bash "$ROOT/scripts/test-macos13-sparkle-metadata.sh" "$APP_DIR"
 
 TEMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/StatusTrioPackage.XXXXXX")"
-trap 'rm -rf "$TEMP_ROOT"' EXIT
+trap 'build_timing_finish "$?"; rm -rf "$TEMP_ROOT"' EXIT
+build_phase dmg-staging
 STAGING_DIR="$TEMP_ROOT/dmg"
 mkdir -p "$STAGING_DIR"
 ditto "$APP_DIR" "$STAGING_DIR/$APP_NAME.app"
 ln -s /Applications "$STAGING_DIR/Applications"
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
+    build_phase app-notarization
     if [[ "${CODE_SIGN_IDENTITY:--}" == "-" ]]; then
         die "NOTARY_PROFILE requires a Developer ID signature."
     fi
@@ -196,11 +203,13 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
 fi
 
 DMG_PATH="$OUTPUT_DIR/$DMG_BASENAME-$VERSION.dmg"
+build_phase dmg-creation
 rm -f "$DMG_PATH" "$DMG_PATH.sha256"
 hdiutil create -quiet -volname "$APP_NAME" -srcfolder "$STAGING_DIR" \
     -ov -format UDZO "$DMG_PATH"
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
+    build_phase dmg-codesign
     DMG_SIGN_ARGS=(--force --sign "${CODE_SIGN_IDENTITY:?}" --timestamp)
     if [[ -n "${KEYCHAIN_PATH:-}" ]]; then
         DMG_SIGN_ARGS+=(--keychain "$KEYCHAIN_PATH")
@@ -211,6 +220,7 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     if [[ -n "${KEYCHAIN_PATH:-}" ]]; then
         DMG_NOTARY_ARGS+=(--keychain "$KEYCHAIN_PATH")
     fi
+    build_phase dmg-notarization
     xcrun notarytool submit "$DMG_PATH" "${DMG_NOTARY_ARGS[@]}" \
         --wait --output-format json > "$TEMP_ROOT/dmg-notary.json"
     ruby -rjson -e '
@@ -224,6 +234,7 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
 fi
 
 DMG_FILENAME="$(basename "$DMG_PATH")"
+build_phase sparkle-signature-and-manifest
 ACTUAL_DMG_LENGTH="$(stat -f '%z' "$DMG_PATH")"
 if [[ -n "${SPARKLE_PRIVATE_KEY:-}" ]]; then
     SIGN_UPDATE="$ROOT/.build/artifacts/sparkle/Sparkle/bin/sign_update"

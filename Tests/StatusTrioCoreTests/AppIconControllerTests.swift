@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Testing
 @testable import StatusTrioCore
 
@@ -151,12 +152,10 @@ struct AppIconControllerTests {
         visibleHarness.log.reset()
         hiddenHarness.log.reset()
 
-        visibleHarness.publishDifferentSnapshot()
-        hiddenHarness.publishDifferentSnapshot()
-        let updatesReachedStore = await waitForStoresToReceiveSnapshots(
-            [visibleHarness, hiddenHarness]
-        )
-        try #require(updatesReachedStore, "Both status updates must reach their stores.")
+        try await waitForStoresToReceiveSnapshots([visibleHarness, hiddenHarness]) {
+            visibleHarness.publishDifferentSnapshot()
+            hiddenHarness.publishDifferentSnapshot()
+        }
         try #require(
             visibleScheduler.hasPendingAction && hiddenScheduler.hasPendingAction,
             "Both status updates must schedule the controlled presentation debounce."
@@ -180,16 +179,59 @@ struct AppIconControllerTests {
         harness.controller.start()
         harness.log.reset()
 
-        harness.publishDifferentSnapshot()
-        try await waitUntil(
-            "The status update must schedule the controlled presentation debounce."
-        ) {
-            scheduler.hasPendingAction
+        try await waitForStoreSnapshot(harness) {
+            harness.publishDifferentSnapshot()
         }
+        try #require(
+            scheduler.hasPendingAction,
+            "The status update must schedule the controlled presentation debounce."
+        )
         scheduler.runScheduled()
         harness.controller.flushPendingPresentationForTesting()
 
         #expect(harness.log.renderCount == 1)
+    }
+
+    @Test func storeSnapshotWaiterTimesOutAndCancelsItsSubscription() async throws {
+        let harness = try AppIconControllerHarness(initialPlacement: .dock)
+        defer { harness.cleanUp() }
+        let startedAt = ContinuousClock.now
+
+        let waiter = StoreSnapshotWait.start(
+            [harness],
+            timeout: .milliseconds(20),
+            whilePublishing: {}
+        )
+        await waiter.finished.wait()
+
+        guard case let .timedOut(error) = waiter.outcome,
+              error.isStoreSnapshotTimeout
+        else {
+            Issue.record("The waiter must report a bounded timeout.")
+            return
+        }
+        #expect(waiter.didReleaseTestResources)
+        #expect(startedAt.duration(to: .now) < .seconds(5))
+    }
+
+    @Test func storeSnapshotWaitCompletesWhenInFlightTaskIsCancelled() async throws {
+        let harness = try AppIconControllerHarness(initialPlacement: .dock)
+        defer { harness.cleanUp() }
+
+        let waiter = StoreSnapshotWait.start(
+            [harness],
+            timeout: .seconds(5),
+            whilePublishing: {}
+        )
+        await waiter.ready.wait()
+        await waiter.cancelAndJoin()
+
+        guard case .cancelled = waiter.outcome
+        else {
+            Issue.record("Cancellation must end the in-flight waiter.")
+            return
+        }
+        #expect(waiter.didReleaseTestResources)
     }
 
     @Test func changingBackgroundPreferenceRendersAgain() throws {
@@ -720,9 +762,9 @@ struct AppIconControllerTests {
         harness.controller.setDockChargingAnimationActive(true)
         harness.log.reset()
 
-        harness.publishDifferentSnapshot()
-        let updateReachedStore = await waitForStoreSnapshot(harness)
-        try #require(updateReachedStore, "The status update must reach the store.")
+        try await waitForStoreSnapshot(harness) {
+            harness.publishDifferentSnapshot()
+        }
         scheduler.runScheduled()
         harness.controller.flushPendingPresentationForTesting()
 
@@ -815,32 +857,238 @@ struct AppIconControllerTests {
         return image
     }
 
-    private func waitForStoreSnapshot(_ harness: AppIconControllerHarness) async -> Bool {
-        let deadline = ContinuousClock.now + .seconds(5)
-        while ContinuousClock.now < deadline {
-            if harness.store.snapshot.battery.rawPercentage == 42 { return true }
-            await Task.yield()
-        }
-        return false
+    private func waitForStoreSnapshot(
+        _ harness: AppIconControllerHarness,
+        timeout: Duration = .seconds(5),
+        whilePublishing publish: @escaping () -> Void
+    ) async throws {
+        try await waitForStoreSnapshots([harness], timeout: timeout, whilePublishing: publish)
     }
 
     private func waitForStoresToReceiveSnapshots(
-        _ harnesses: [AppIconControllerHarness]
-    ) async -> Bool {
-        let deadline = ContinuousClock.now + .seconds(5)
-        while ContinuousClock.now < deadline {
-            if harnesses.allSatisfy({ $0.store.snapshot.battery.rawPercentage == 42 }) {
-                return true
-            }
-            await Task.yield()
+        _ harnesses: [AppIconControllerHarness],
+        timeout: Duration = .seconds(5),
+        whilePublishing publish: @escaping () -> Void
+    ) async throws {
+        try await waitForStoreSnapshots(harnesses, timeout: timeout, whilePublishing: publish)
+    }
+
+    /// Subscribes before the monitor update so Combine delivers the resulting
+    /// snapshot even if the store's consumer runs immediately.
+    private func waitForStoreSnapshots(
+        _ harnesses: [AppIconControllerHarness],
+        timeout: Duration,
+        whilePublishing publish: @escaping () -> Void
+    ) async throws {
+        let waiter = StoreSnapshotWait.start(
+            harnesses,
+            timeout: timeout,
+            whilePublishing: publish
+        )
+        await waiter.ready.wait()
+        await waiter.finished.wait()
+
+        if case let .timedOut(error) = waiter.outcome {
+            throw error
         }
-        return false
+        if case .cancelled = waiter.outcome {
+            throw CancellationError()
+        }
+        if case let .failed(error) = waiter.outcome {
+            throw error
+        }
+    }
+}
+
+@MainActor
+private final class StoreSnapshotWait {
+    let ready: StoreSnapshotWaitMarker
+    let finished: StoreSnapshotWaitMarker
+    private(set) var task: Task<Void, Never>
+    private(set) var outcome: StoreSnapshotWaitOutcome
+    private(set) var didReleaseTestResources = false
+
+    private init(
+        ready: StoreSnapshotWaitMarker,
+        finished: StoreSnapshotWaitMarker,
+        outcome: StoreSnapshotWaitOutcome
+    ) {
+        self.ready = ready
+        self.finished = finished
+        self.outcome = outcome
+        task = Task {}
+    }
+
+    static func start(
+        _ harnesses: [AppIconControllerHarness],
+        timeout: Duration,
+        whilePublishing publish: @escaping () -> Void
+    ) -> StoreSnapshotWait {
+        let startedAt = ContinuousClock.now
+        let ready = StoreSnapshotWaitMarker()
+        let finished = StoreSnapshotWaitMarker()
+        let wait = StoreSnapshotWait(
+            ready: ready,
+            finished: finished,
+            outcome: .failed(.conditionNotMet(
+                message: "The snapshot waiter did not publish an outcome.",
+                timeout: 5,
+                elapsed: 5
+            ))
+        )
+        wait.task = Task { @MainActor [weak wait] in
+            guard let wait else { return }
+            guard !Task.isCancelled else {
+                wait.outcome = .cancelled
+                wait.ready.finish()
+                wait.finished.signal()
+                return
+            }
+
+            var streams: [AsyncStream<Int?>] = []
+            var continuations: [AsyncStream<Int?>.Continuation] = []
+            var cancellables: [AnyCancellable] = []
+            defer {
+                for cancellable in cancellables {
+                    cancellable.cancel()
+                }
+                for continuation in continuations {
+                    continuation.finish()
+                }
+                wait.didReleaseTestResources = true
+                wait.finished.signal()
+            }
+
+            for harness in harnesses {
+                let (stream, continuation) = AsyncStream.makeStream(
+                    of: Int?.self,
+                    bufferingPolicy: .bufferingNewest(1)
+                )
+                streams.append(stream)
+                continuations.append(continuation)
+                cancellables.append(
+                    harness.store.$snapshot
+                        .map(\.battery.rawPercentage)
+                        .sink { continuation.yield($0) }
+                )
+            }
+            wait.ready.signal()
+            publish()
+
+            let allReceivedExpectedSnapshot = await withTaskGroup(of: Bool.self) { group in
+                for stream in streams {
+                    group.addTask {
+                        var iterator = stream.makeAsyncIterator()
+                        while let percentage = await iterator.next() {
+                            if percentage == 42 { return true }
+                        }
+                        return false
+                    }
+                }
+                group.addTask {
+                    do {
+                        try await Task.sleep(for: timeout)
+                    } catch {
+                        return false
+                    }
+                    return false
+                }
+
+                var matchedStreamCount = 0
+                while let matched = await group.next() {
+                    guard matched else {
+                        group.cancelAll()
+                        return false
+                    }
+                    matchedStreamCount += 1
+                    if matchedStreamCount == streams.count {
+                        group.cancelAll()
+                        return true
+                    }
+                }
+                return false
+            }
+
+            if allReceivedExpectedSnapshot {
+                wait.outcome = .completed
+            } else if Task.isCancelled {
+                wait.outcome = .cancelled
+            } else {
+                wait.outcome = .timedOut(
+                    .storeSnapshotTimeout(
+                        expectedPercentage: 42,
+                        actualPercentages: harnesses.map {
+                            $0.store.snapshot.battery.rawPercentage
+                        },
+                        timeout: timeout,
+                        elapsed: startedAt.duration(to: .now)
+                    )
+                )
+            }
+        }
+        return wait
+    }
+
+    func cancelAndJoin() async {
+        await ready.wait()
+        task.cancel()
+        await finished.wait()
+        await task.value
+    }
+}
+
+private enum StoreSnapshotWaitOutcome {
+    case completed
+    case timedOut(AppIconTestFailure)
+    case cancelled
+    case failed(AppIconTestFailure)
+}
+
+@MainActor
+private final class StoreSnapshotWaitMarker {
+    private let stream: AsyncStream<Void>
+    private let signalContinuation: AsyncStream<Void>.Continuation
+    private var didSignal = false
+
+    init() {
+        (stream, signalContinuation) = AsyncStream.makeStream(
+            of: Void.self,
+            bufferingPolicy: .bufferingNewest(1)
+        )
+    }
+
+    func signal() {
+        didSignal = true
+        signalContinuation.yield()
+        signalContinuation.finish()
+    }
+
+    func finish() {
+        didSignal = true
+        signalContinuation.finish()
+    }
+
+    func wait() async {
+        if didSignal { return }
+        var iterator = stream.makeAsyncIterator()
+        _ = await iterator.next()
     }
 }
 
 private enum AppIconTestFailure: Error, CustomStringConvertible {
     case coalescedRedrawTimeout(timeout: TimeInterval, elapsed: TimeInterval)
     case conditionNotMet(message: String, timeout: TimeInterval, elapsed: TimeInterval)
+    case storeSnapshotTimeout(
+        expectedPercentage: Int,
+        actualPercentages: [Int?],
+        timeout: Duration,
+        elapsed: Duration
+    )
+
+    var isStoreSnapshotTimeout: Bool {
+        if case .storeSnapshotTimeout = self { return true }
+        return false
+    }
 
     var description: String {
         switch self {
@@ -848,6 +1096,14 @@ private enum AppIconTestFailure: Error, CustomStringConvertible {
             "The coalesced redraw did not run within \(timeout) seconds (elapsed \(elapsed))."
         case let .conditionNotMet(message, timeout, elapsed):
             "\(message) Timeout: \(timeout)s. Elapsed: \(elapsed)s."
+        case let .storeSnapshotTimeout(expectedPercentage, actualPercentages, timeout, elapsed):
+            """
+            The status updates did not reach every store.
+            expected battery percentage: \(expectedPercentage)
+            actual battery percentages: \(actualPercentages)
+            timeout: \(timeout)
+            elapsed: \(elapsed)
+            """
         }
     }
 }

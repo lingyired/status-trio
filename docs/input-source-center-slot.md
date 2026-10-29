@@ -25,6 +25,23 @@ no input monitoring, no automation. There is no key simulation and no private
 symbol — the `FrontAppSelection`-style private workaround used by other input
 switchers is deliberately not ported.
 
+## Refresh and recovery
+
+The controller is event-driven; it has no timer and no polling loop. Each TIS
+notification triggers an immediate read and one cancellable re-read 75 ms later,
+because TIS can post the notification just before it publishes the new selection.
+A burst of notifications coalesces into at most one pending re-read.
+
+The same read also runs when the app becomes active, when the system wakes, and
+when the displays wake. Opening the status panel keeps its existing extra
+refresh. These are fallbacks for a delayed or dropped TIS notification, not a
+per-frame or per-second poll.
+
+All distributed and system observers, plus both the selection-confirmation and
+notification-recovery tasks, exist only between `start()` and `stop()`. Turning
+both input-source surfaces off therefore releases every subscription and task;
+there is no new cache and the delayed work is bounded to one task per scheduler.
+
 ## What is not implemented
 
 - **`kTISPropertyIconRef`.** The icon path reads `kTISPropertyIconImageURL`

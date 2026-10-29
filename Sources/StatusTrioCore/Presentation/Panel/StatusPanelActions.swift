@@ -34,6 +34,7 @@ final class StatusPanelActions {
     private let batteryStatus: () -> BatteryStatus
     private let activateBatteryDetails: (BatteryPowerState) -> Void
     private let closeBatteryDetails: () -> Void
+    private let requestChargeToFullNowCommand: () -> Void
     private let wifiNameAccess: () -> WiFiNameAccess
     private let activateWiFiDetails: (WiFiNameAccess) -> Void
     private let closeWiFiDetails: () -> Void
@@ -92,6 +93,7 @@ final class StatusPanelActions {
         batteryStatus: @escaping () -> BatteryStatus = { .placeholder },
         activateBatteryDetails: @escaping (BatteryPowerState) -> Void = { _ in },
         closeBatteryDetails: @escaping () -> Void = {},
+        requestChargeToFullNow: @escaping () -> Void = {},
         wifiNameAccess: @escaping () -> WiFiNameAccess = { .notDetermined },
         activateWiFiDetails: @escaping (WiFiNameAccess) -> Void = { _ in },
         closeWiFiDetails: @escaping () -> Void = {},
@@ -136,6 +138,7 @@ final class StatusPanelActions {
         self.batteryStatus = batteryStatus
         self.activateBatteryDetails = activateBatteryDetails
         self.closeBatteryDetails = closeBatteryDetails
+        self.requestChargeToFullNowCommand = requestChargeToFullNow
         self.wifiNameAccess = wifiNameAccess
         self.activateWiFiDetails = activateWiFiDetails
         self.closeWiFiDetails = closeWiFiDetails
@@ -154,7 +157,8 @@ final class StatusPanelActions {
         store: SystemStatusStore,
         settings: SettingsStore,
         inputSourceController: InputSourceController? = nil,
-        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
+        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
+        chargeToFullNow: ChargeToFullNowController? = nil
     ) {
         let allowsAppleListeningModePreview = !capabilityPolicy.blocksControl(
             .appleListeningMode
@@ -205,8 +209,15 @@ final class StatusPanelActions {
                 return store.bluetoothDevices.devices + ListeningModePreview.devices(for: config)
             },
             batteryStatus: { store.popupSnapshot.battery },
-            activateBatteryDetails: { store.batteryDetails.activate(state: $0) },
+            activateBatteryDetails: {
+                store.batteryDetails.configure(options: settings.batteryPowerDisplayOptions,
+                    showsHighEnergyApps: settings.showsHighEnergyApps)
+                store.batteryDetails.activate(state: $0)
+            },
             closeBatteryDetails: { store.batteryDetails.deactivate() },
+            requestChargeToFullNow: {
+                chargeToFullNow?.performPrimaryAction()
+            },
             wifiNameAccess: { store.popupSnapshot.wifi.nameAccess },
             activateWiFiDetails: { store.wifiNetworks.activate(nameAccess: $0) },
             closeWiFiDetails: { store.wifiNetworks.deactivate() },
@@ -370,6 +381,7 @@ final class StatusPanelActions {
 
     func batteryDetailsAppeared() { activateBatteryDetails(BatteryPowerState(batteryStatus())) }
     func batteryDetailsClosed() { closeBatteryDetails() }
+    func requestChargeToFullNow() { requestChargeToFullNowCommand() }
     func wifiDetailsOpened() { activateWiFiDetails(wifiNameAccess()) }
     func wifiDetailsClosed() { closeWiFiDetails() }
     func wiredDetailsOpened() { openWiredDetails() }

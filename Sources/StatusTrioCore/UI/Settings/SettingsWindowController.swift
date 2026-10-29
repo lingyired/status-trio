@@ -14,6 +14,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let launchAtLogin: LaunchAtLoginManager
     private let helper: PrivilegedHelperFacade
     private let updaterManager: UpdateStateFacade
+    private let chargeToFullNow: ChargeToFullNowController?
     var platformServicesForTesting: (updater: UpdateStateFacade, helper: PrivilegedHelperFacade) {
         (updaterManager, helper)
     }
@@ -32,6 +33,10 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     /// Track the published initial state as well as subsequent updates, so a
     /// refresh of an already-known grant is not mistaken for a permission decision.
     private var lastBluetoothAuthorization: BluetoothAuthorizationStatus
+    /// The sidebar tab a panel action asked for. Kept until `SettingsView`
+    /// takes it, because the first presentation posts its notification before
+    /// the SwiftUI view necessarily exists.
+    private var pendingSection: SettingsView.Section?
 
     init(
         store: SettingsStore,
@@ -48,7 +53,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
         systemIconAppearance: @escaping () -> SystemIconAppearanceTheme = {
             .default
-        }
+        },
+        chargeToFullNow: ChargeToFullNowController? = nil
     ) {
         self.store = store
         self.statusStore = statusStore
@@ -61,6 +67,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         self.updaterManager = updaterManager
         self.capabilityPolicy = capabilityPolicy
         self.systemIconAppearance = systemIconAppearance
+        self.chargeToFullNow = chargeToFullNow
         self.activationPolicy = activationPolicy
         self.showIconGuide = showIconGuide
         self.lastBluetoothAuthorization = statusStore.bluetoothDevices.authorizationStatus
@@ -104,6 +111,15 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func show() {
+        show(section: nil)
+    }
+
+    /// Shows the window and, when requested, reveals one sidebar tab. The
+    /// status panel uses this to open the app's own battery settings.
+    func show(section: SettingsView.Section?) {
+        if let section {
+            pendingSection = section
+        }
         dockActivationLogger.notice("Settings.show existing=\(self.window != nil)")
         let window = window ?? makeWindow()
         self.window = window
@@ -119,6 +135,15 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
         setPreviewWindowVisible(true)
+        if pendingSection != nil {
+            NotificationCenter.default.post(name: .settingsSelectSection, object: nil)
+        }
+    }
+
+    /// Called by `SettingsView` on appear and when the tab notification fires.
+    func takePendingSection() -> SettingsView.Section? {
+        defer { pendingSection = nil }
+        return pendingSection
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -186,7 +211,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 updaterManager: updaterManager,
                 helper: helper,
                 capabilityPolicy: capabilityPolicy,
-                onShowIconGuide: showIconGuide
+                chargeToFullNow: chargeToFullNow,
+                onShowIconGuide: showIconGuide,
+                consumePendingSection: { [weak self] in self?.takePendingSection() }
             )
             .environmentObject(chargingEffectClock)
             .environment(\.systemIconAppearance, systemIconAppearance)
@@ -228,4 +255,12 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         isPreviewWindowVisible = visible
         previewVisibilityObserver?(visible)
     }
+}
+
+extension Notification.Name {
+    /// Set by the status panel when it needs the Settings window to reveal a
+    /// particular sidebar tab (for example the app's own battery settings).
+    static let settingsSelectSection = Notification.Name(
+        "StatusTrio.settingsSelectSection"
+    )
 }

@@ -27,6 +27,19 @@ enum DockIconRenderer {
     static let scale: CGFloat = 2
     static let logicalSize: CGFloat = 256
     nonisolated static let pixelSize = 512
+    /// The bundle icon's Icon Composer artwork is authored at 1024 px.
+    nonisolated static let appIconArtworkPixelSize = 1024
+
+    /// How the tile draws its own background.
+    ///
+    /// The Dock tile is a rounded body with a hairline border because it is a
+    /// free-standing bitmap. The bundle icon is composed by Icon Composer and
+    /// clipped to the system's icon shape, so its artwork is a square: a
+    /// second rounded edge drawn inside that shape would double the border.
+    private enum TileBody {
+        case rounded
+        case square
+    }
 
     // Geometry mirrors Support/AppIcon.svg.
     private static let bodyRect = CGRect(x: 64, y: 64, width: 896, height: 896)
@@ -119,6 +132,28 @@ enum DockIconRenderer {
             pixelLength: pixelLength,
             crop: nil,
             drawsTileBackground: true
+        )
+    }
+
+    /// The bundle icon's artwork for one appearance.
+    ///
+    /// The Icon Composer document owns the system icon shape, so this variant
+    /// is a full-bleed square without the Dock tile's rounded body and border.
+    /// Only the icon build and its preview test call it.
+    static func appIconArtwork(
+        scene: IconSceneState,
+        backgroundStyle: DockIconBackgroundStyle,
+        pixelLength: Int = DockIconRenderer.appIconArtworkPixelSize
+    ) -> CGImage? {
+        render(
+            scene: scene,
+            backgroundStyle: backgroundStyle,
+            phase: nil,
+            regions: .all,
+            pixelLength: pixelLength,
+            crop: nil,
+            drawsTileBackground: true,
+            body: .square
         )
     }
 
@@ -235,9 +270,11 @@ enum DockIconRenderer {
         regions: IconSceneRegion,
         pixelLength: Int,
         crop: CGRect?,
-        drawsTileBackground: Bool
+        drawsTileBackground: Bool,
+        body: TileBody = .rounded
     ) -> CGImage? {
-        guard pixelLength > 0, pixelLength <= pixelSize else { return nil }
+        let maximumPixelLength = body == .square ? appIconArtworkPixelSize : pixelSize
+        guard pixelLength > 0, pixelLength <= maximumPixelLength else { return nil }
 
         let tileLength = CGFloat(pixelLength)
         let bitmap = crop ?? CGRect(x: 0, y: 0, width: tileLength, height: tileLength)
@@ -262,16 +299,37 @@ enum DockIconRenderer {
         )
 
         if drawsTileBackground {
-            context.addPath(roundedRect(bodyRect, cornerRadius: bodyCornerRadius))
-            context.setFillColor(palette.body)
-            context.fillPath()
-            context.addPath(roundedRect(borderRect, cornerRadius: borderCornerRadius))
-            context.setStrokeColor(palette.border)
-            context.setLineWidth(2)
-            context.strokePath()
+            switch body {
+            case .rounded:
+                context.addPath(roundedRect(bodyRect, cornerRadius: bodyCornerRadius))
+                context.setFillColor(palette.body)
+                context.fillPath()
+                context.addPath(roundedRect(borderRect, cornerRadius: borderCornerRadius))
+                context.setStrokeColor(palette.border)
+                context.setLineWidth(2)
+                context.strokePath()
+            case .square:
+                context.setFillColor(palette.body)
+                context.fill(CGRect(
+                    x: 0,
+                    y: 0,
+                    width: DockIconGlyphLayout.designLength,
+                    height: DockIconGlyphLayout.designLength
+                ))
+            }
         }
 
         context.saveGState()
+        if body == .square {
+            // The Dock tile is 896 of the 1024-unit canvas; the bundle icon's
+            // tile is the whole canvas, so the glyph is scaled about the tile
+            // centre to keep the artwork's proportion to the tile itself.
+            let glyphScale = DockIconGlyphLayout.designLength / bodyRect.width
+            let center = CGPoint(x: bodyRect.midX, y: bodyRect.midY)
+            context.translateBy(x: center.x, y: center.y)
+            context.scaleBy(x: glyphScale, y: glyphScale)
+            context.translateBy(x: -center.x, y: -center.y)
+        }
         context.translateBy(
             x: DockIconGlyphLayout.glyphSVGOrigin.x,
             y: DockIconGlyphLayout.designLength

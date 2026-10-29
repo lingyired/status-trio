@@ -82,16 +82,8 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
     }
 
     /// A controller whose HAL writes through a scripted backend and settles the
-    /// read-back instantly. The failure linger is the app's own, not a shortened
-    /// one: `.failed` is the state this suite asserts on that clears itself, and
-    /// a test can only see it by polling, so the window it lives in and the
-    /// interval the poll runs at must not be able to disagree — at the 30 ms this
-    /// helper used to pass, a runner whose main actor resumes the poll loop less
-    /// often than that never looked inside the window at all (runs `36681666541`
-    /// and `36687697162`).
-    ///
-    /// The listener seam defaults to a fresh fake so a test can drive it directly;
-    /// passing `nil` for `listenerBackend` opts out and installs a bare fake.
+    /// read-back instantly. Failure tests subscribe to both transient states, so
+    /// the test-only linger can clear immediately after `.failed` is delivered.
     private func makeController(
         endpoints: [BluetoothListeningModeEndpoint],
         backend: FakeListeningModeBackend = FakeListeningModeBackend(),
@@ -109,14 +101,10 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
             hal: hal,
             endpointProvider: provider,
             listenerBackend: listenerBackend,
-            failureClearDelay: Self.failureClearDelay
+            failureClearDelay: .milliseconds(1)
         )
         return (controller, provider, listenerBackend)
     }
-
-    /// The linger a failure stays published for. It is what the app uses, and the
-    /// window a poll has to land inside, so the two cannot disagree.
-    private static let failureClearDelay: Duration = .seconds(2)
 
     /// Polls the main actor until `condition` holds, so a spawned write task gets a
     /// chance to run and publish before the assertion. Fails if it never settles.

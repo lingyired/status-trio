@@ -10,10 +10,25 @@ struct BatteryStatusView: View {
     /// Nil in previews and layout tests, where the row stays read-only.
     var lowPowerMode: LowPowerModeController?
     var showsLowPowerToggle: Bool = false
+    var chargeToFullNow: ChargeToFullNowPresentation = .hidden
+    var onChargeToFullNow: () -> Void = {}
 
     private var hasDetails: Bool { state.intent == .batteryDetails }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            summaryRow
+
+            if chargeToFullNow.showsActionArea {
+                ChargeToFullNowActionView(
+                    presentation: chargeToFullNow,
+                    onAction: onChargeToFullNow
+                )
+            }
+        }
+    }
+
+    private var summaryRow: some View {
         HStack(alignment: .center, spacing: 10) {
             Button(action: onOpenBatteryDetails) {
                 HStack(spacing: 10) {
@@ -53,12 +68,17 @@ struct BatteryStatusView: View {
             // lines up with the same affordance in the rows below; the leaf would
             // otherwise push it one slot to the left.
             if hasDetails {
-                PanelActionGlyph(
-                    systemName: "chevron.right",
-                    font: .caption.weight(.semibold)
-                )
-                    .foregroundStyle(.tertiary)
-                    .accessibilityHidden(true)
+                Button(action: onOpenBatteryDetails) {
+                    PanelActionGlyph(
+                        systemName: "chevron.right",
+                        font: .caption.weight(.semibold)
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tertiary)
+                .accessibilityLabel(localization.string(.batteryDetailsTitle))
+                .help(localization.string(.batteryDetailsTitle))
             }
 
             if state.showsSettings {

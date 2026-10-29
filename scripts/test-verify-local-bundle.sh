@@ -55,11 +55,15 @@ SH
     chmod +x "$fixture/swift" "$fixture/xcodebuild" "$fixture/xcrun" "$fixture/git"
 
     local script
-    for script in test.sh test-workflow-policy.sh test-macos13-deployment-contract-regressions.sh \
+    for script in test.sh test-workflow-policy.sh test-powerui-charge-restore.sh \
+        test-macos13-deployment-contract-regressions.sh \
         test-macos13-deployment-contract.sh test-appcast-minimum-system-version.sh \
-        test-macos13-bundle-contract.sh test-privileged-helper-bundle-contract.sh \
+        test-macos13-bundle-contract.sh test-app-icon-contract.sh \
+        test-privileged-helper-bundle-contract.sh \
         test-mobile-battery-helper.sh test-mobile-battery-rpaths.sh test-otool-dependencies.sh \
         test-macos13-sparkle-contract.sh test-mobile-battery-source-cache.sh \
+        test-mobile-battery-build-cache.sh test-ci-diagnostics.sh \
+        test-ci-workflow.sh test-build-timing.sh \
         test-mobile-battery-clang-version.sh test-release-workflow-policy.sh \
         test-release-pipeline.sh test-release-notarization.sh \
         test-app-store-project-contract.sh test-app-store-source-closure.sh \
@@ -120,7 +124,8 @@ for expected in \
     "build-app release no-open com.lingsmbp.StatusTrio.dev.verify-local Status Trio (Verify Local) 0" \
     "platform dist/StatusTrio.app/Contents/MacOS/StatusTrio 13.0 26" \
     "mobile-bundle dist/StatusTrio.app" \
-    "helper-bundle dist/StatusTrio.app"; do
+    "helper-bundle dist/StatusTrio.app" \
+    "test-powerui-charge-restore.sh"; do
     grep -Fq "$expected" "$VERIFY_BUNDLE_TRACE" ||
         fail "full verification did not run $expected"
 done

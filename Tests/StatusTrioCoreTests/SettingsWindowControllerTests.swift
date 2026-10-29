@@ -249,6 +249,27 @@ final class SettingsWindowControllerTests: XCTestCase {
         XCTAssertEqual(backend.liveShortcutCount, 1)
     }
 
+    func testShowWithBatterySectionAnnouncesTabRequest() throws {
+        let suiteName = "StatusTrioCoreTests.SettingsSectionRoute.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removeTestSuite(named: suiteName) }
+        let controller = SettingsWindowController(
+            store: SettingsStore(defaults: defaults),
+            statusStore: makeStatusStore(),
+            localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
+            activationPolicy: AppActivationPolicy(application: SettingsActivationPolicyApplicationSpy()),
+            showIconGuide: {}
+        )
+        let request = expectation(forNotification: .settingsSelectSection, object: nil)
+
+        controller.show(section: .battery)
+        wait(for: [request], timeout: 1)
+
+        let window = try XCTUnwrap(controller.window)
+        defer { window.close() }
+        XCTAssertTrue(window.isVisible)
+    }
+
     private func withAuthorizationFixture(
         initialAuthorization: BluetoothAuthorizationStatus = .notDetermined,
         _ body: (SettingsWindowController, SystemStatusStore,

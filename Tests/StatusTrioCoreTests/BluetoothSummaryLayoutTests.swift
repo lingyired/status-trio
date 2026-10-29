@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import XCTest
 @testable import StatusTrioCore
@@ -666,13 +667,52 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
             workspaceNotificationCenter: notifications,
             nearbyBatteryScanner: nearbyScanner
         )
+        if !nearbyDevices.isEmpty {
+            controller.configureNearbyBLEDevices(
+                enabled: true,
+                knownIDs: Set(nearbyDevices.map(\.id)),
+                hiddenIDs: []
+            )
+            controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+            controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+            controller.setVisibleNearbyBLEDevices(
+                Set(nearbyDevices.map(\.id)),
+                for: "bluetooth.summary.layout.test"
+            )
+        }
+        let devicesWaiter = SummaryPublishedStateWaiter(
+            controller.$devices,
+            description: "devices to publish \(devices.count) fixture device(s)"
+        ) { $0 == devices }
+        let expectedAvailability: BluetoothAvailability = switch authorization {
+        case .allowed: .available
+        case .notDetermined: .authorizationNotDetermined
+        case .denied: .authorizationDenied
+        case .restricted: .authorizationRestricted
+        }
+        let availabilityWaiter = SummaryPublishedStateWaiter(
+            controller.$availability,
+            description: "availability to publish \(expectedAvailability)"
+        ) { $0 == expectedAvailability }
+        let batteryLevelsWaiter = SummaryPublishedStateWaiter(
+            controller.$batteryLevels,
+            description: "batteryLevels to publish \(batteryLevels.count) fixture level(s)"
+        ) { $0 == batteryLevels }
+        let nearbyDevicesWaiter = SummaryPublishedStateWaiter(
+            controller.$nearbyBatteryDevices,
+            description: "nearbyBatteryDevices to publish \(nearbyDevices.count) fixture device(s)"
+        ) { $0 == nearbyDevices }
+
         if authorization == .allowed {
             controller.activate()
         } else {
             controller.prepareForPresentation()
         }
+        try await devicesWaiter.wait()
+        try await availabilityWaiter.wait()
         if !nearbyDevices.isEmpty {
-            controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+            nearbyScanner.publish(nearbyDevices)
+            try await nearbyDevicesWaiter.wait()
         }
 
         let view = BluetoothStatusView(
@@ -701,10 +741,9 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
         hosting.appearance = NSAppearance(named: .aqua)
         hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
         hosting.layoutSubtreeIfNeeded()
-        // Let the controller publish the fixture and the row settle.
-        try await Task.sleep(for: .milliseconds(50))
-        nearbyScanner.publish(nearbyDevices)
-        try await Task.sleep(for: .milliseconds(50))
+        if !batteryLevels.isEmpty {
+            try await batteryLevelsWaiter.wait()
+        }
         let size = hosting.fittingSize
         hosting.frame = NSRect(origin: .zero, size: size)
         hosting.layoutSubtreeIfNeeded()
@@ -787,6 +826,91 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
     }
 }
 
+private enum SummaryPublishedStateError: Error, CustomStringConvertible {
+    case timedOut(description: String, lastValue: String)
+
+    var description: String {
+        switch self {
+        case let .timedOut(description, lastValue):
+            return "Timed out after 2 seconds waiting for \(description); last value: \(lastValue)"
+        }
+    }
+}
+
+@MainActor
+private final class SummaryPublishedStateWaiter<Value: Sendable> {
+    private let description: String
+    private let predicate: @MainActor (Value) -> Bool
+    private let timeout: Duration
+    private var latestValue = "<none published>"
+    private var finished = false
+    private var cancellation: AnyCancellable?
+    private var continuation: CheckedContinuation<Void, any Error>?
+    private var timeoutTask: Task<Void, Never>?
+
+    init(
+        _ publisher: Published<Value>.Publisher,
+        description: String,
+        timeout: Duration = .seconds(2),
+        predicate: @escaping @MainActor (Value) -> Bool
+    ) {
+        self.description = description
+        self.predicate = predicate
+        self.timeout = timeout
+        cancellation = publisher.sink { [weak self] value in
+            Task { @MainActor [weak self] in
+                self?.receive(value)
+            }
+        }
+    }
+
+    func wait() async throws {
+        guard !finished else { return }
+        try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+            timeoutTask = Task { @MainActor [weak self] in
+                guard let self else { return }
+                do {
+                    try await Task.sleep(for: self.timeout)
+                } catch {
+                    return
+                }
+                self.timeOut()
+            }
+        }
+    }
+
+    private func receive(_ value: Value) {
+        guard !finished else { return }
+        latestValue = String(describing: value)
+        guard predicate(value) else { return }
+        finished = true
+        cancellation?.cancel()
+        cancellation = nil
+        timeoutTask?.cancel()
+        timeoutTask = nil
+        let continuation = self.continuation
+        self.continuation = nil
+        continuation?.resume()
+    }
+
+    private func timeOut() {
+        guard !finished else { return }
+        finished = true
+        cancellation?.cancel()
+        cancellation = nil
+        timeoutTask = nil
+        let continuation = self.continuation
+        self.continuation = nil
+        continuation?.resume(
+            throwing: SummaryPublishedStateError.timedOut(
+                description: description,
+                lastValue: latestValue
+            )
+        )
+    }
+}
+
 private final class SummaryBluetoothDeviceReader: BluetoothPairedDeviceReading {
     private let result: BluetoothWorkerResult
 
@@ -820,14 +944,17 @@ private final class SummaryNearbyBatteryScanner: BluetoothLEBatteryScanning {
     var discoveredCandidates: [NearbyBLEDeviceCandidate] = []
     private(set) var isRunning = false
     private(set) var isScanning = false
+    private var readTokens: [UUID: DeviceOperationToken] = [:]
 
     func setAllowedReadDeviceIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
-        _ = ids
-        return [:]
+        readTokens = readTokens.filter { ids.contains($0.key) }
+        for id in ids where readTokens[id] == nil {
+            readTokens[id] = DeviceOperationToken()
+        }
+        return readTokens
     }
     func setInitialReadCandidateIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
-        _ = ids
-        return [:]
+        setAllowedReadDeviceIDs(ids)
     }
 
     func start() { isRunning = true }

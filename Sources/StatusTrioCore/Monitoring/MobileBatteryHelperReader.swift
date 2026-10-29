@@ -16,19 +16,28 @@ enum MobileBatteryHelperError: Error, Equatable {
 
 struct ProcessMobileBatteryHelperExecutor: MobileBatteryHelperExecuting {
     private let helperURL: URL
+    private let onProcessStarted: (@Sendable (Int32) -> Void)?
 
-    init(bundleURL: URL = Bundle.main.bundleURL) {
+    init(
+        bundleURL: URL = Bundle.main.bundleURL,
+        onProcessStarted: (@Sendable (Int32) -> Void)? = nil
+    ) {
         helperURL = bundleURL.appendingPathComponent("Contents/Helpers/StatusTrioMobileBatteryHelper", isDirectory: false)
+        self.onProcessStarted = onProcessStarted
     }
 
-    init(helperURL: URL) { self.helperURL = helperURL }
+    init(helperURL: URL, onProcessStarted: (@Sendable (Int32) -> Void)? = nil) {
+        self.helperURL = helperURL
+        self.onProcessStarted = onProcessStarted
+    }
 
     func run(arguments: [String], timeout: Duration) async throws -> Data {
         guard FileManager.default.isExecutableFile(atPath: helperURL.path) else { throw MobileBatteryHelperError.unavailable }
         let outcome = await BoundedProcessInvocation.run(
             executableURL: helperURL,
             arguments: arguments,
-            timeout: timeout
+            timeout: timeout,
+            onProcessStarted: onProcessStarted
         )
         switch outcome {
         case .exited(let data): return data

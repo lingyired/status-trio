@@ -103,6 +103,11 @@ private final class SystemPrimaryLinkReader: @unchecked Sendable, PrimaryLinkRea
     }
 }
 
+/// Queues a reader completion onto the main actor.
+typealias PrimaryLinkCompletionDispatcher = @Sendable (
+    _ action: @escaping @MainActor @Sendable () -> Void
+) -> Void
+
 /// The wired link the popover reports.
 ///
 /// Held apart from `StatusSnapshot` on purpose: the snapshot is what the menu
@@ -117,6 +122,7 @@ final class PrimaryLinkController: ObservableObject {
     private let wiredInterfaces: any WiredInterfaceProviding
     private let periodicRefreshInterval: Duration
     private let periodicRefreshSleep: @Sendable (Duration) async throws -> Void
+    private let completionDispatcher: PrimaryLinkCompletionDispatcher
     private var refreshGate = AsyncRequestGate()
     private(set) var isActive = false
     private var periodicRefreshTask: Task<Void, Never>?
@@ -127,12 +133,16 @@ final class PrimaryLinkController: ObservableObject {
         periodicRefreshInterval: Duration = .seconds(30),
         periodicRefreshSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
+        },
+        completionDispatcher: @escaping PrimaryLinkCompletionDispatcher = { action in
+            Task { @MainActor in action() }
         }
     ) {
         self.reader = reader
         self.wiredInterfaces = wiredInterfaces
         self.periodicRefreshInterval = periodicRefreshInterval
         self.periodicRefreshSleep = periodicRefreshSleep
+        self.completionDispatcher = completionDispatcher
     }
 
     deinit {
@@ -142,6 +152,10 @@ final class PrimaryLinkController: ObservableObject {
     func activate() {
         guard !isActive else { return }
         isActive = true
+        // A new opening invalidates every completion queued by a prior one.
+        // While the popover is closed, `isActive` keeps those completions from
+        // publishing until this activation advances the gate.
+        _ = refreshGate.advance()
         schedulePeriodicRefresh()
         refresh()
     }
@@ -149,11 +163,11 @@ final class PrimaryLinkController: ObservableObject {
     func deactivate() {
         guard isActive else { return }
         isActive = false
-        // A read already in flight now has a completion this gate rejects, so
-        // its answer cannot land after the popover closed. Dropping the value
-        // as well keeps the next opening from painting the previous link's
-        // address: an unplugged cable must not leave an address on screen.
-        _ = refreshGate.advance()
+        // A read already in flight is rejected by `isActive` while the popover
+        // is closed, then by the gate when the next activation advances it.
+        // Dropping the value as well keeps the next opening from painting the
+        // previous link's address: an unplugged cable must not leave an address
+        // on screen.
         periodicRefreshTask?.cancel()
         periodicRefreshTask = nil
         details = nil
@@ -166,7 +180,8 @@ final class PrimaryLinkController: ObservableObject {
         guard isActive else { return }
         let request = refreshGate.advance()
         reader.read(wiredInterfaces: wiredInterfaces.wiredInterfaces()) { [weak self] value in
-            Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.completionDispatcher { [weak self] in
                 guard let self, self.isActive, self.refreshGate.accepts(request) else { return }
                 if self.details != value {
                     self.details = value

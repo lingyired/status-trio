@@ -11,6 +11,10 @@ extension VolumeMonitor {
         outputController: (any AudioOutputControlling)? = nil,
         ddcTransport: any DDCVolumeTransport = DDCDisplayTransport(),
         ddcCoordinator: DDCVolumeCoordinator? = nil,
+        betterDisplayClient: (any BetterDisplayRequesting)? = BetterDisplayIntegrationClient(),
+        betterDisplayReadFramebuffers: @escaping @Sendable () async -> [BetterDisplayFramebufferIdentity] = {
+            await BetterDisplayFramebufferReader.readInBackground()
+        },
         refreshDebounceInterval: Duration = .milliseconds(150),
         refreshDebounceSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
@@ -44,6 +48,8 @@ extension VolumeMonitor {
             eventMonitor: eventMonitor,
             outputController: outputController,
             ddcCoordinatorFactory: coordinatorFactory,
+            betterDisplayClient: betterDisplayClient,
+            betterDisplayReadFramebuffers: betterDisplayReadFramebuffers,
             refreshDebounceInterval: refreshDebounceInterval,
             refreshDebounceSleep: refreshDebounceSleep,
             readTimeout: readTimeout,

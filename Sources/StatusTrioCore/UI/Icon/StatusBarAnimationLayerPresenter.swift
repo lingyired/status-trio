@@ -51,6 +51,9 @@ final class StatusBarAnimationLayerPresenter {
 
             let layer = CALayer()
             layer.contentsGravity = .resize
+            // The ring fill must cover its monochrome track, including when
+            // AppKit reorders the template image view's backing layer.
+            layer.zPosition = 1
             layer.actions = [
                 "bounds": NSNull(),
                 "contents": NSNull(),

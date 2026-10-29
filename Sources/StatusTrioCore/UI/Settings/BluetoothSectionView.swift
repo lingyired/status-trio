@@ -174,6 +174,16 @@ struct BluetoothSectionView: View {
                 if showsBluetoothBatterySettings {
                     SettingsDivider()
 
+                    SettingsHintRow(
+                        text: localization.string(.settingsAppleBluetoothReadHelp)
+                    )
+
+                    SettingsDivider()
+
+                    SettingsHintRow(text: localization.string(.settingsAppleTrustHelp))
+
+                    SettingsDivider()
+
                     SettingsToggleRow(
                         symbol: SymbolFallback.name("battery.75percent", "battery.75"),
                         tint: .green,

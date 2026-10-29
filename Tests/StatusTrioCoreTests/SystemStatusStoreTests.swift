@@ -101,6 +101,42 @@ final class SystemStatusStoreTests: XCTestCase {
         await reader.finishAll()
     }
 
+    func testAppleMasterControlsBluetoothReadsRegardlessOfLegacyReadPreference() {
+        for legacyReadPreference in [false, true] {
+            let suite = makeSuite()
+            defer { suite.defaults.removeTestSuite(named: suite.name) }
+            suite.defaults.set(legacyReadPreference, forKey: "readsAppleDevicesOverBluetooth")
+            let settings = SettingsStore(defaults: suite.defaults)
+            settings.showsAppleDevicesAndBattery = false
+            let scanner = NearbyBatteryScannerSpy()
+            let bluetooth = BluetoothDeviceController(
+                stateMonitor: DeniedBluetoothStateMonitor(),
+                nearbyBatteryScanner: scanner
+            )
+            let store = SystemStatusStore(
+                batteryMonitor: FakeBatteryMonitor(),
+                wifiMonitor: FakeWiFiMonitor(),
+                volumeMonitor: FakeVolumeMonitor(),
+                bluetoothDevices: bluetooth
+            )
+            store.bindMobileBatterySettings(settings)
+            XCTAssertFalse(scanner.appleMobileReadsEnabled)
+
+            settings.showsAppleDevicesAndBattery = true
+            XCTAssertTrue(scanner.appleMobileReadsEnabled)
+            XCTAssertFalse(scanner.isRunning, "a settings change alone cannot start a scan")
+            XCTAssertTrue(scanner.allowedReadDeviceIDs.isEmpty)
+            XCTAssertTrue(scanner.initialReadDeviceIDs.isEmpty)
+
+            settings.showsAppleDevicesAndBattery = false
+            XCTAssertFalse(scanner.appleMobileReadsEnabled)
+
+            settings.showsAppleDevicesAndBattery = true
+            XCTAssertTrue(scanner.appleMobileReadsEnabled)
+            store.stop()
+        }
+    }
+
     func testSettingsMasterToggleDoesNotStartAppleDiscoveryOrBatteryReads() async {
         let reader = ControlledMobileBatteryReader()
         let discovery = AppleDeviceDiscoveryController(reader: reader)
@@ -1281,6 +1317,36 @@ final class SystemStatusStoreTests: XCTestCase {
         store.setSettingsVisible(false)
         XCTAssertEqual(volume.detailsVisibility, [false, true, true, true, false])
         store.stop()
+    }
+
+    func testOptimisticVolumeAndMutePreserveControlSource() async {
+        for source in [VolumeControlSource.native, .betterDisplay, .directDDC] {
+            let volume = FakeVolumeMonitor()
+            let store = SystemStatusStore(
+                batteryMonitor: FakeBatteryMonitor(), wifiMonitor: FakeWiFiMonitor(),
+                volumeMonitor: volume, volumeFeedback: FakeVolumeFeedbackPlayer(),
+                refreshInterval: .seconds(60)
+            )
+            store.start()
+            volume.send(VolumeStatus(
+                scalar: 0.4, isMuted: false, deviceName: "Speaker",
+                controlSource: source
+            ))
+            await waitUntil { store.liveVolume.scalar == 0.4 }
+
+            store.setVolume(0.7)
+            XCTAssertEqual(store.liveVolume.controlSource, source)
+            XCTAssertEqual(store.snapshot.volume.controlSource, source)
+            XCTAssertEqual(store.liveVolume.scalar, 0.7)
+            XCTAssertEqual(volume.setVolumeValues, [0.7])
+
+            store.toggleMute()
+            XCTAssertEqual(store.liveVolume.controlSource, source)
+            XCTAssertEqual(store.snapshot.volume.controlSource, source)
+            XCTAssertTrue(store.liveVolume.isMuted)
+            XCTAssertEqual(volume.toggleMuteCount, 1)
+            store.stop()
+        }
     }
 
     func testSetVolumeUpdatesVisibleVolumeImmediately() async {

@@ -226,7 +226,8 @@ struct MobileBatteryHelperReaderTests {
     }
 
     @Test func hangingWatchDoesNotErasePhoneOrAnotherWatchesResult() async throws {
-        let executor = ScriptedMobileBatteryExecutor { arguments in
+        let watchGate = TwoStageWatchOrderingGate()
+        let scriptedExecutor = ScriptedMobileBatteryExecutor { arguments in
             if arguments == ["--list"] {
                 return Data(#"{"schemaVersion":1,"phones":[{"id":"p1","transport":"usb"},{"id":"p2","transport":"usb"}]}"#.utf8)
             }
@@ -235,20 +236,30 @@ struct MobileBatteryHelperReaderTests {
                 return Data(#"{"schemaVersion":1,"devices":[{"id":"\#(phoneID)","parentID":null,"name":null,"model":"iPhone17,1","batteryLevel":44,"isCharging":false,"transport":"usb"}],"failures":[],"watchCandidates":[{"id":"w\#(phoneID)","parentID":"\#(phoneID)","transport":"usb"}]}"#.utf8)
             }
             if arguments.contains("wp1") {
-                try await Task.sleep(for: .seconds(5))
+                await watchGate.waitForPostAppendCompletion()
                 throw MobileBatteryHelperError.timedOut
+            }
+            if arguments.contains("wp3") {
+                return Data(#"{"schemaVersion":1,"devices":[],"failures":[],"watchCandidates":[]}"#.utf8)
             }
             let phoneID = arguments[1]
             let watchID = arguments[3]
             return Data(#"{"schemaVersion":1,"devices":[{"id":"\#(watchID)","parentID":"\#(phoneID)","name":null,"model":"Watch7,1","batteryLevel":66,"isCharging":null,"transport":"usb"}],"failures":[],"watchCandidates":[]}"#.utf8)
         }
+        let executor = TwoStageWatchOrderingExecutor(base: scriptedExecutor, gate: watchGate)
         let result = try await MobileBatteryHelperReader(executor: executor).read(selectedIDs: [
             .trustedDevice("p1"), .trustedDevice("p2"),
-            .trustedWatch(parentID: "p1", id: "wp1"), .trustedWatch(parentID: "p2", id: "wp2")
+            .trustedWatch(parentID: "p1", id: "wp1"),
+            .trustedWatch(parentID: "p2", id: "wp2"),
+            .trustedWatch(parentID: "p2", id: "wp3")
         ])
-        #expect(result.snapshots.contains { $0.id == "p1" })
-        #expect(result.snapshots.contains { $0.id == "p2" })
-        #expect(result.snapshots.contains { $0.id == "wp2" })
+        #expect(result.snapshots.map(\.id).sorted() == ["p1", "p2", "wp2"])
+        #expect(await watchGate.observedEvents() == [
+            .wp1Waiting,
+            .wp2Completed,
+            .postAppendSentinelReached,
+            .wp1Resumed
+        ])
     }
 
     @Test func processExecutorReturnsStdoutAndRejectsLargeStreamsAndExitStatus() async throws {
@@ -280,17 +291,21 @@ struct MobileBatteryHelperReaderTests {
     }
 
     @Test func processExecutorKillsAChildThatIgnoresTermination() async throws {
-        let pidFile = FileManager.default.temporaryDirectory.appendingPathComponent("mobile-battery-pid-\(UUID().uuidString)")
-        let script = try makeIgnoringTerminationScript(pidFile: pidFile)
+        let script = try makeIgnoringTerminationScript()
         defer { try? FileManager.default.removeItem(at: script) }
-        defer { try? FileManager.default.removeItem(at: pidFile) }
+        let (startStream, startContinuation) = AsyncStream.makeStream(of: Int32.self)
         let clock = ContinuousClock()
         let started = clock.now
         let processTask = Task {
-            try await ProcessMobileBatteryHelperExecutor(helperURL: script).run(arguments: [], timeout: .seconds(1))
+            try await ProcessMobileBatteryHelperExecutor(
+                helperURL: script,
+                onProcessStarted: { startContinuation.yield($0) }
+            )
+                .run(arguments: [], timeout: .seconds(1))
         }
         defer { processTask.cancel() }
-        let childStartedAt = try await waitForPIDFile(pidFile)
+        var starts = startStream.makeAsyncIterator()
+        let processID = try #require(await starts.next())
         do {
             _ = try await processTask.value
             Issue.record("timed out process must fail")
@@ -301,35 +316,42 @@ struct MobileBatteryHelperReaderTests {
             // write, while retaining the lower bound that proves the 1 s
             // deadline and kill grace actually elapsed.
             #expect(clock.now - started >= .milliseconds(1_200))
-            let elapsed = ContinuousClock.now - childStartedAt
-            #expect(elapsed < .seconds(2), "timed out child took \(elapsed) after starting")
-            let processID = try #require(Int32(String(contentsOf: pidFile, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)))
+            // The runner may spend its 250 ms SIGKILL grace and 500 ms stream
+            // drain grace after the 1 s deadline. Keep the result bounded while
+            // allowing that documented post-deadline work on a loaded runner.
+            #expect(clock.now - started < .seconds(5))
             errno = 0
             #expect(kill(processID, 0) == -1 && errno == ESRCH)
         }
     }
 
     @Test func cancellationTerminatesTheProcessAndCompletesOnce() async throws {
-        let pidFile = FileManager.default.temporaryDirectory.appendingPathComponent("mobile-battery-pid-\(UUID().uuidString)")
-        let script = try makeIgnoringTerminationScript(pidFile: pidFile)
+        let script = try makeIgnoringTerminationScript()
         defer { try? FileManager.default.removeItem(at: script) }
-        defer { try? FileManager.default.removeItem(at: pidFile) }
+        let (startStream, startContinuation) = AsyncStream.makeStream(of: Int32.self)
         let clock = ContinuousClock()
         let started = clock.now
         let task = Task {
-            try await ProcessMobileBatteryHelperExecutor(helperURL: script).run(arguments: [], timeout: .seconds(10))
+            try await ProcessMobileBatteryHelperExecutor(
+                helperURL: script,
+                onProcessStarted: { startContinuation.yield($0) }
+            )
+                .run(arguments: [], timeout: .seconds(10))
         }
         defer { task.cancel() }
-        _ = try await waitForPIDFile(pidFile)
+        var starts = startStream.makeAsyncIterator()
+        let processID = try #require(await starts.next())
         task.cancel()
         do {
             _ = try await task.value
             Issue.record("cancelled process must fail")
         } catch {
             #expect(error as? MobileBatteryHelperError == .cancelled)
-            #expect(clock.now - started >= .milliseconds(250))
-            #expect(clock.now - started < .seconds(2))
-            let processID = try #require(Int32(String(contentsOf: pidFile, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)))
+            // Once launch is reported, cancellation is immediate; there is no
+            // cancellation delay in BoundedProcessInvocation. Only the timeout
+            // path has a 1 s deadline. Bound the operation without inventing a
+            // minimum that contradicts the implementation.
+            #expect(clock.now - started < .seconds(5))
             errno = 0
             #expect(kill(processID, 0) == -1 && errno == ESRCH)
         }
@@ -354,15 +376,10 @@ struct MobileBatteryHelperReaderTests {
         }
     }
 
-    private func makeIgnoringTerminationScript(pidFile: URL) throws -> URL {
-        // Cold Python startup can exhaust the deadline before the signal handler
-        // and PID handshake exist. The shell installs both before starting work.
-        let quotedPIDPath = "'" + pidFile.path.replacingOccurrences(of: "'", with: "'\\''") + "'"
-        return try makeScript(
+    private func makeIgnoringTerminationScript() throws -> URL {
+        try makeScript(
             """
             trap '' TERM
-            printf '%s\\n' "$$" > \(quotedPIDPath)
-            printf 'ready\\n'
             while :; do
                 /bin/sleep 0.01
             done
@@ -370,23 +387,170 @@ struct MobileBatteryHelperReaderTests {
         )
     }
 
-    private func waitForPIDFile(_ url: URL) async throws -> ContinuousClock.Instant {
-        for _ in 0..<100 {
-            if FileManager.default.fileExists(atPath: url.path) { return .now }
-            try await Task.sleep(for: .milliseconds(10))
-        }
-        try #require(
-            FileManager.default.fileExists(atPath: url.path),
-            "child process did not reach its ready signal"
-        )
-        return .now
-    }
-
     private func makeScript(_ body: String, interpreter: String = "/bin/sh") throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("mobile-battery-\(UUID().uuidString).sh")
         try Data("#!\(interpreter)\n\(body)\n".utf8).write(to: url)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
         return url
+    }
+}
+
+private actor TwoStageWatchOrderingExecutor: MobileBatteryHelperExecuting {
+    private let base: ScriptedMobileBatteryExecutor
+    private let gate: TwoStageWatchOrderingGate
+
+    init(base: ScriptedMobileBatteryExecutor, gate: TwoStageWatchOrderingGate) {
+        self.base = base
+        self.gate = gate
+    }
+
+    func run(arguments: [String], timeout: Duration) async throws -> Data {
+        let isWP2 = arguments.contains("wp2")
+        if isWP2 {
+            await gate.waitUntilWP1IsWaiting()
+        }
+        let data = try await base.run(arguments: arguments, timeout: timeout)
+        if isWP2 {
+            await gate.markWP2Completed()
+        } else if arguments.contains("wp3") {
+            await gate.markPostAppendSentinelReached()
+        }
+        return data
+    }
+}
+
+private actor TwoStageWatchOrderingGate {
+    enum Event: Equatable, Sendable {
+        case wp1Waiting
+        case wp2Completed
+        case postAppendSentinelReached
+        case wp1Resumed
+    }
+
+    private enum WaiterKey: Hashable, Sendable {
+        case wp2MayComplete
+        case wp1MayResume
+    }
+
+    private var wp1Waiting = false
+    private var wp2Completed = false
+    private var postAppendSentinelReached = false
+    private var wp1Resumed = false
+    private var events: [Event] = []
+    private var waiters: [WaiterKey: [UUID: CheckedContinuation<Void, Never>]] = [:]
+    private var cancelledWaiterIDs: [WaiterKey: Set<UUID>] = [:]
+
+    func waitUntilWP1IsWaiting() async {
+        guard !wp1Waiting else { return }
+        await park(.wp2MayComplete)
+    }
+
+    func waitForPostAppendCompletion() async {
+        let waiterID = UUID()
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                enqueueWP1Waiter(continuation, id: waiterID)
+            }
+        } onCancel: {
+            Task { await self.cancelWaiter(for: .wp1MayResume, id: waiterID) }
+        }
+        if wp2Completed && postAppendSentinelReached {
+            markWP1Resumed()
+        }
+    }
+
+    func markWP2Completed() {
+        wp2Completed = true
+        events.append(.wp2Completed)
+        resumeWP1IfPostAppendCompleted()
+    }
+
+    func markPostAppendSentinelReached() {
+        postAppendSentinelReached = true
+        events.append(.postAppendSentinelReached)
+        resumeWP1IfPostAppendCompleted()
+    }
+
+    func observedEvents() -> [Event] {
+        events
+    }
+
+    private func park(_ key: WaiterKey) async {
+        let waiterID = UUID()
+        await withTaskCancellationHandler {
+            if conditionSatisfied(for: key) { return }
+            await withCheckedContinuation { continuation in
+                enqueue(continuation, for: key, id: waiterID)
+            }
+        } onCancel: {
+            Task { await self.cancelWaiter(for: key, id: waiterID) }
+        }
+    }
+
+    private func enqueueWP1Waiter(_ continuation: CheckedContinuation<Void, Never>, id: UUID) {
+        if cancelledWaiterIDs[.wp1MayResume]?.remove(id) != nil {
+            continuation.resume()
+            return
+        }
+        if wp2Completed && postAppendSentinelReached {
+            wp1Waiting = true
+            events.append(.wp1Waiting)
+            continuation.resume()
+            return
+        }
+        waiters[.wp1MayResume, default: [:]][id] = continuation
+        guard !wp1Waiting else { return }
+        wp1Waiting = true
+        events.append(.wp1Waiting)
+        resumeWaiters(for: .wp2MayComplete)
+    }
+
+    private func enqueue(
+        _ continuation: CheckedContinuation<Void, Never>,
+        for key: WaiterKey,
+        id: UUID
+    ) {
+        if conditionSatisfied(for: key) || cancelledWaiterIDs[key]?.remove(id) != nil {
+            continuation.resume()
+        } else {
+            waiters[key, default: [:]][id] = continuation
+        }
+    }
+
+    private func cancelWaiter(for key: WaiterKey, id: UUID) {
+        if let continuation = waiters[key]?.removeValue(forKey: id) {
+            continuation.resume()
+        } else if !conditionSatisfied(for: key) {
+            cancelledWaiterIDs[key, default: []].insert(id)
+        }
+    }
+
+    private func conditionSatisfied(for key: WaiterKey) -> Bool {
+        switch key {
+        case .wp2MayComplete:
+            wp1Waiting
+        case .wp1MayResume:
+            wp2Completed && postAppendSentinelReached
+        }
+    }
+
+    private func resumeWP1IfPostAppendCompleted() {
+        guard wp2Completed && postAppendSentinelReached else { return }
+        resumeWaiters(for: .wp1MayResume)
+    }
+
+    private func resumeWaiters(for key: WaiterKey) {
+        let continuations = waiters.removeValue(forKey: key) ?? [:]
+        cancelledWaiterIDs.removeValue(forKey: key)
+        for continuation in continuations.values {
+            continuation.resume()
+        }
+    }
+
+    private func markWP1Resumed() {
+        guard !wp1Resumed else { return }
+        wp1Resumed = true
+        events.append(.wp1Resumed)
     }
 }
 

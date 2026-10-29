@@ -64,4 +64,33 @@ final class SystemPowerReaderTests: XCTestCase {
         }
         XCTAssertNil(read(info: info(type: [0x38, 0x37, 0x70, 0x73], size: 2), value: value([255, 0])))
     }
+
+    func testAdapterAndBatterySensorsUseTheirOwnKeysAndUnits() throws {
+        var keys: [[UInt8]] = []
+        let input = SystemPowerReader.readValue(sensor: .input) { request in
+            keys.append(Array(request.prefix(4)))
+            return request[42] == 9 ? self.info() : self.value([0, 0, 0x86, 0x42]) // 67 W
+        }
+        XCTAssertEqual(input, 67)
+        XCTAssertTrue(keys.allSatisfy { $0 == [0x52, 0x54, 0x44, 0x50] }) // PDTR
+        let current = SystemPowerReader.readValue(sensor: .batteryCurrent) { request in
+            XCTAssertEqual(Array(request.prefix(4)), [0x43, 0x41, 0x30, 0x42]) // B0AC
+            return request[42] == 9 ? self.info(type: [0x36, 0x31, 0x69, 0x73], size: 2)
+                : self.value([0xe8, 0x03]) // 1000 mA
+        }
+        XCTAssertEqual(current, 1)
+        let voltage = SystemPowerReader.readValue(sensor: .batteryVoltage) { request in
+            return request[42] == 9 ? self.info(type: [0x36, 0x31, 0x69, 0x75], size: 2)
+                : self.value([0x48, 0x31]) // 12616 mV, captured Apple Silicon layout
+        }
+        XCTAssertEqual(try XCTUnwrap(voltage), 12.616, accuracy: 0.000001)
+        let negative = SystemPowerReader.readValue(sensor: .batteryCurrent) { request in
+            request[42] == 9 ? self.info(type: [0x36, 0x31, 0x69, 0x73], size: 2)
+                : self.value([0x18, 0xfc]) // -1000 mA
+        }
+        XCTAssertEqual(negative, -1)
+        XCTAssertNil(SystemPowerReader.readValue(sensor: .input) { request in
+            request[42] == 9 ? self.info(type: [0x36, 0x31, 0x69, 0x73], size: 2) : self.value([1, 0])
+        }, "A battery-current type must never be interpreted as adapter watts")
+    }
 }

@@ -12,6 +12,26 @@ struct SystemPowerSample: Equatable, Sendable {
 
 protocol SystemPowerReading: Sendable {
     func read() -> SystemPowerSample?
+
+    /// Single read of the requested AppleSMC sensors. The distribution-specific
+    /// implementation performs one short-lived connection; the unavailable
+    /// reader (and any conformer that only supports the system total) falls back
+    /// to `read()` for the system value and reports no input/battery sample.
+    func readSensors(
+        system: Bool,
+        input: Bool,
+        battery: Bool
+    ) -> (system: SystemPowerSample?, input: SystemPowerSample?, battery: BatteryPowerSample?)
+}
+
+extension SystemPowerReading {
+    func readSensors(
+        system: Bool,
+        input: Bool,
+        battery: Bool
+    ) -> (system: SystemPowerSample?, input: SystemPowerSample?, battery: BatteryPowerSample?) {
+        (system ? read() : nil, nil, nil)
+    }
 }
 
 struct UnavailableSystemPowerReader: SystemPowerReading {

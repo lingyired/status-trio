@@ -67,6 +67,39 @@ Status Trio 是一个原生 macOS 状态应用，将 Wi-Fi、电池和音量整�
 - **保持最新**：状态由系统事件驱动、低频轮询兜底，Sparkle 通过已签名的更新源更新应用。
 - **其他**：十二种语言，以及可选的开机时启动。
 
+## 安装
+
+通过 Homebrew 官方 Cask 安装：
+
+```bash
+brew install --cask status-trio
+```
+
+更新已通过 Homebrew 安装的版本：
+
+```bash
+brew upgrade --cask status-trio
+```
+
+也可以从 [GitHub Releases](https://github.com/lingyired/status-trio/releases/latest) 下载最新的 `StatusTrio-*.dmg`，打开后将 `Status Trio.app` 拖入 `/Applications`。
+
+官方发行版已使用 Developer ID 签名并通过 Apple 公证。安装后正常打开即可，无需执行移除隔离属性的命令。应用内更新由 Sparkle 提供，并验证 EdDSA 签名。
+
+## 输入法、音频与日常控制
+
+- **输入法图标**：菜单栏和程序坞的中部图标可改为显示当前输入法，在**设置 › 网络**中选择；也可以在面板中选择已启用的输入法并切换。
+- **全局快捷键**：在**设置 › 通用**中设置快捷键，即可从其他应用打开或关闭状态面板，默认不绑定。
+- **蓝牙控制**：直接在面板开关蓝牙、连接或断开已配对设备，并切换受支持 AirPods 和 HUAWEI FreeBuds 的聆听模式。可选的苹果设备电量行在**设置 › 蓝牙**中配置，能否读取取决于设备与连接方式。
+- **音频输入与输出**：选择扬声器或麦克风、调节输出与输入音量，并通过 DDC 控制兼容的外接显示器扬声器；显示器音量控制取决于硬件及连接方式。
+- **充电与外观**：菜单栏和程序坞均可开启充电特效；在 macOS 26 及更高版本中，Finder 和启动台里的应用图标也会跟随系统深浅色外观。
+
+## main 分支新功能（尚未发布）
+
+以下功能已合入 `main` 源码，尚未包含在当前 GitHub / Homebrew 公开版 **1.7.5** 中：
+
+- **电池功率流向与 CPU 能耗影响**：电池面板可显示充电器输入、充入电池和系统供电的估算功率。可选列表按 CPU 能耗列出最多五个应用，能耗计数不可用时回退到 CPU 活跃度；它不代表应用全部能耗，也不是 macOS 原生高耗能名单的副本。开启列表后会定期后台采样，关闭即停止。详见[功率流向与 CPU 能耗说明](docs/battery-power-flow.md)。
+- **立即充满电与取消**：在受支持的 Apple 芯片 Mac、macOS 26.4 及更高版本上，可通过按钮解除原生充电上限。该功能使用私有 PowerUI 接口，仅在能力可用时默认开启，可在电池设置中关闭。**充满或拔插电源后，上限可能仍保持 100%，不会自动恢复。** 请使用**取消立即充满**请求恢复，或在系统设置中检查并恢复上限；可用性与行为取决于 macOS。详见[行为与验证记录](docs/charge-to-full-now-poc.md)。
+
 ## 蓝牙音频
 
 播放蓝牙音频时，**设置 › 蓝牙**中的两个开关可以让中部图标变成该设备自身的图标（AirPods、耳机、音箱等设备各自提供自己的图标），并让音量圆点或圆弧变成蓝色。两者默认关闭。默认开启的**网络异常优先于蓝牙图标**会在连接本身异常时保留网络图标：
@@ -122,8 +155,8 @@ Status Trio 是一个原生 macOS 状态应用，将 Wi-Fi、电池和音量整�
 ## 系统要求
 
 - 运行 app 需要 macOS 13 部署目标（Ventura 运行验证待完成）
-- 构建需要带 macOS 26 SDK 的 Swift 6 工具链（Xcode 26 或更高版本）。用更旧的 SDK 构建会静默产出
-  Tahoe 之前的弹出面板观感，因此 `scripts/build-app.sh` 在 SDK 低于 26 时会直接失败。
+- 构建需要 Swift 6 工具链及 macOS 26 或更新的 SDK；正式发布使用 `xcode-27` runner 和 Xcode 27。
+  用更旧的 SDK 构建会静默产出 Tahoe 之前的弹出面板观感，因此 `scripts/build-app.sh` 在 SDK 低于 26 时会直接失败。
 
 ## 从源码运行
 
@@ -149,27 +182,6 @@ bash scripts/build-app.sh release no-open
 
 ad-hoc 签名的应用包适合本地个人使用。如果应用包携带 quarantine 元数据后转移，可能会被 Gatekeeper 拦截。
 
-## 安装 GitHub Release
-
-从 [GitHub Releases](https://github.com/lingyired/status-trio/releases) 下载最新的 `StatusTrio-*.dmg`，打开后将 `Status Trio.app` 拖入 `/Applications`。
-
-当前公开版本使用 ad-hoc 签名，尚未经过 Apple notarization。macOS 首次启动时可能提示：
-
-> Apple 无法验证“Status Trio”是否包含可能危害 Mac 安全或泄漏隐私的恶意软件。
-
-这是 Gatekeeper 因缺少 Developer ID 签名和 Apple 公证而显示的警告，并不代表应用一定包含恶意软件。只有在 DMG 来自官方 GitHub Releases 页面，并且发布的 SHA-256 校验值匹配时，才应绕过此警告。
-
-将应用复制到 `/Applications` 后，移除 quarantine 属性并启动：
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/Status Trio.app"
-open "/Applications/Status Trio.app"
-```
-
-也可以先尝试打开一次应用，然后前往 **系统设置 → 隐私与安全性**，选择 **仍要打开**。
-
-不要全局关闭 Gatekeeper。后续 Sparkle 更新会通过应用的 EdDSA 签名密钥进行验证；通常只有第一次手动安装时需要执行 `xattr` 命令。
-
 ## 使用方法
 
 - **左键点击**菜单栏图标或程序坞图标，打开状态弹层。
@@ -184,7 +196,7 @@ open "/Applications/Status Trio.app"
 有两条边界，是 macOS 与本项目各自有意划下的。详细说明见[已知限制](docs/known-limitations.md)。
 
 - **切换网络在系统设置里完成。** 在弹层里选择网络会打开 Wi-Fi 面板；Status Trio 从不读取也不保存 Wi-Fi 密码——macOS 没有用已保存密码连接的公开 API，而其他做法最后都会让 app 持有你的密码。
-- **「立即充满电」留在 macOS 里。** 当优化电池充电或充电上限使充电暂停时，弹层会如实显示暂停状态并提供跳转到电池面板的入口；没有公开 API 能让应用越过上限恢复充电，Status Trio 也不会为此写 SMC 或附带特权 helper。
+- **充电上限控制取决于版本。** 公开版 1.7.5 通过系统设置操作；`main` 中的可选按钮使用私有接口，需要主动取消来请求恢复上限，详见 [main 分支新功能](#main-分支新功能尚未发布)。低电量模式由独立的[可选特权 Helper](docs/privileged-helper.md)处理。
 
 ## 支持的语言
 
@@ -192,17 +204,22 @@ Status Trio 默认跟随 macOS 首选语言，支持 English、简体中文、�
 
 ## 隐私
 
-Status Trio 通过 macOS 公开框架读取系统状态。匿名使用统计为可选功能，只有你主动开启后才会向第一方服务发送简短心跳；升级用户默认关闭，新安装用户会在引导中选择。心跳包含随机安装 ID、应用和 macOS 版本、语言及图标位置，不包含姓名、账户详情、网络详情或硬件标识符。完整字段、同意方式和保留期限请见[遥测与隐私说明](docs/privacy-telemetry.md)。Status Trio 不会读取或保存 Wi-Fi 密码，也不会请求钥匙串访问。定位权限为可选项，仅在用户选择显示当前 Wi-Fi 网络名称或打开 Wi-Fi 详情时请求。蓝牙权限仅在显示蓝牙面板时请求，用于显示已配对设备的连接状态。
+Status Trio 在本机读取系统状态。匿名使用统计为可选功能，只有主动开启后才会向第一方服务发送简短心跳；升级用户默认关闭，新安装用户会在引导中选择。心跳包含随机安装 ID、应用和 macOS 版本、语言及图标位置，不包含姓名、账户详情、网络详情或硬件标识符。详见[遥测与隐私说明](docs/privacy-telemetry.md)。Status Trio 不读取或保存 Wi-Fi 密码，也不请求钥匙串访问。定位权限仅用于可选的当前 Wi-Fi 名称与详情；蓝牙权限在启用蓝牙面板时请求。`main` 中可选的立即充满电控制仅在启用后使用私有 PowerUI 接口，行为与限制见前文。
 
 ## 开发
 
-运行完整测试：
+按修改风险运行本地验证：
 
 ```bash
-swift test
+bash scripts/verify-local.sh quick BatteryMonitorTests
+bash scripts/verify-local.sh docs
+bash scripts/verify-local.sh full
 ```
 
-通过测试辅助脚本运行指定的 XCTest：
+小范围代码改动使用 `quick`，文档或本地化改动使用 `docs`，状态、并发、渲染、Helper 或构建流程改动使用 `full`。
+`full` 生成非 Universal 的本地开发应用，不代表签名、公证或正式发布验证。
+
+只需运行指定 Swift 测试时，使用统一入口：
 
 ```bash
 bash scripts/test.sh BatteryMonitorTests
@@ -235,6 +252,9 @@ bash scripts/build-worktree.sh release
 ## 文档
 
 - [已知限制](docs/known-limitations.md)
+- [电池功率流向与 CPU 能耗影响](docs/battery-power-flow.md)
+- [立即充满电：行为与验证](docs/charge-to-full-now-poc.md)
+- [全局快捷键](docs/status-panel-global-shortcut.md)
 - [GitHub Actions 自动发布](docs/github-actions-release.md)
 - [Status Trio 设计规格](docs/superpowers/specs/2026-09-12-status-trio-design.md)
 - [菜单栏图标 SVG](status-menubar.svg)

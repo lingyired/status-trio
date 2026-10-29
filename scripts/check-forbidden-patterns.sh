@@ -205,6 +205,37 @@ is_rule2_shape() {
     return 1
 }
 
+# Declaration-name indexes, newline-delimited, loaded once per `report()` call.
+# Matching whole entries preserves the old regex's identifier boundary, so a
+# declaration for `prefixExtra` cannot satisfy a lookup for `prefix`. Bash 3.2
+# has no associative arrays.
+ZERO_ARG_DECLARATIONS=""
+ANY_ARG_DECLARATIONS=""
+
+load_declaration_indexes() {
+    local root="$1" declaration name
+
+    # Reset before every load. `report()` is called repeatedly by the self-test,
+    # including for declaration-free roots; names from an earlier root must not
+    # survive into a later report.
+    ZERO_ARG_DECLARATIONS=""
+    ANY_ARG_DECLARATIONS=""
+
+    while IFS= read -r declaration; do
+        [[ -n "$declaration" ]] || continue
+        name="${declaration#func }"
+        if [[ "$declaration" == *'()' ]]; then
+            name="${name%()}"
+            ZERO_ARG_DECLARATIONS+="${name}"$'\n'
+        else
+            name="${name%(}"
+        fi
+        ANY_ARG_DECLARATIONS+="${name}"$'\n'
+    done < <(grep -rhoE \
+        'func [A-Za-z_][A-Za-z0-9_]*\(\)?' \
+        "$root/Sources" --include='*.swift' || true)
+}
+
 # True when `name` is declared under Sources/ as a method that takes no
 # arguments. The lookup fails closed on overloads: one zero-argument declaration
 # is enough, so `func toggle()` plus `func toggle(_ animated: Bool)` anywhere in
@@ -212,10 +243,11 @@ is_rule2_shape() {
 # declaration to be zero-argument let an unrelated overload silence a real
 # violation.
 has_zero_arg_declaration() {
-    local name="$1" root="$2"
-    local decls
-    decls="$(grep -rhoE "func ${name}\(\)" "$root/Sources" --include='*.swift' || true)"
-    [[ -n "$decls" ]]
+    local name="$1"
+    case $'\n'"$ZERO_ARG_DECLARATIONS" in
+        *$'\n'"$name"$'\n'*) return 0 ;;
+    esac
+    return 1
 }
 
 # True when `name` is declared under Sources/ as a method of any arity. Used for
@@ -223,10 +255,11 @@ has_zero_arg_declaration() {
 # member, so arity carries no information: `set: loc.setPreference` crashed
 # IRGen and takes a value.
 has_func_declaration() {
-    local name="$1" root="$2"
-    local decls
-    decls="$(grep -rhoE "func ${name}\(" "$root/Sources" --include='*.swift' || true)"
-    [[ -n "$decls" ]]
+    local name="$1"
+    case $'\n'"$ANY_ARG_DECLARATIONS" in
+        *$'\n'"$name"$'\n'*) return 0 ;;
+    esac
+    return 1
 }
 
 # True when `name` is a function-typed value declared in the same file as the
@@ -288,6 +321,8 @@ report() {
     local -a violations=()
     local line location path lineno text label name lookup display verdict dotted
 
+    load_declaration_indexes "$root"
+
     while IFS= read -r line; do
         [[ -n "$line" ]] || continue
 
@@ -335,7 +370,7 @@ report() {
                 # so any `func` declaration under Sources/ is enough; arity
                 # carries no information here. This is the recorded crash shape
                 # (`set: loc.setPreference`).
-                if has_func_declaration "$lookup" "$root"; then
+                if has_func_declaration "$lookup"; then
                     verdict="violation"
                 else
                     verdict="external"
@@ -343,12 +378,12 @@ report() {
             elif is_forwarded_closure "$lookup" "$path"; then
                 verdict="external"
             elif label_expects_zero_arg "$label"; then
-                if has_zero_arg_declaration "$lookup" "$root"; then
+                if has_zero_arg_declaration "$lookup"; then
                     verdict="violation"
                 else
                     verdict="external"
                 fi
-            elif has_func_declaration "$lookup" "$root"; then
+            elif has_func_declaration "$lookup"; then
                 verdict="violation"
             else
                 verdict="external"
@@ -410,7 +445,9 @@ scan_shapes() {
 }
 
 self_test() {
-    local tmp
+    local tmp empty_root reset_root prefix_root
+    local prime_status empty_status reset_status prefix_status
+    local prime_report empty_report reset_report prefix_report
     tmp="$(mktemp -d)"
     trap 'rm -rf "$tmp"' RETURN
 
@@ -765,6 +802,98 @@ SWIFT
     echo "self-test: ${violations}/${expected_violations} violations detected"
     if [[ "$violations" != "$expected_violations" ]]; then
         echo "  expected ${expected_violations} synthetic methods to be flagged, got ${violations}" >&2
+        failed=1
+    fi
+
+    # 13. The declaration indexes belong to one report call. Run these reports
+    #     in this shell, not in command substitutions: command substitution
+    #     isolates the index variables and could not detect a removed reset.
+    #     Prime a populated root, cross a declaration-free root, then report a
+    #     root whose only declarations are confusing prefixes.
+    empty_root="$tmp/empty-index-root"
+    mkdir -p "$empty_root/Sources"
+    reset_root="$tmp/index-reset-root"
+    mkdir -p "$reset_root/Sources"
+    cat >"$reset_root/Sources/ResetProbe.swift" <<'SWIFT'
+import SwiftUI
+
+struct ResetProbe: View {
+    var body: some View {
+        Button(action: handleThing) { EmptyView() }
+        Binding(get: { 0 }, set: loc.setPreference)
+    }
+}
+SWIFT
+
+    prefix_root="$tmp/prefix-index-root"
+    mkdir -p "$prefix_root/Sources"
+    cat >"$prefix_root/Sources/PrefixProbe.swift" <<'SWIFT'
+import SwiftUI
+
+struct PrefixProbe: View {
+    var body: some View {
+        Button(action: handleThing) { EmptyView() }
+        Binding(get: { 0 }, set: loc.setPreference)
+    }
+}
+
+struct PrefixDeclarations {
+    func handleThingExtra() {}
+    func setPreferenceExtra(_ value: Int) {}
+}
+SWIFT
+
+    prime_report="$tmp/index-prime.report"
+    empty_report="$tmp/index-empty.report"
+    reset_report="$tmp/index-reset.report"
+    prefix_report="$tmp/index-prefix.report"
+    local prime_stderr="$tmp/index-prime.stderr"
+    local empty_stderr="$tmp/index-empty.stderr"
+    local reset_stderr="$tmp/index-reset.stderr"
+    local prefix_stderr="$tmp/index-prefix.stderr"
+
+    MODE="list"
+    if report "$tmp" >"$prime_report" 2>"$prime_stderr"; then
+        prime_status=0
+    else
+        prime_status=$?
+    fi
+    if report "$empty_root" >"$empty_report" 2>"$empty_stderr"; then
+        empty_status=0
+    else
+        empty_status=$?
+    fi
+    if report "$reset_root" >"$reset_report" 2>"$reset_stderr"; then
+        reset_status=0
+    else
+        reset_status=$?
+    fi
+    if report "$prefix_root" >"$prefix_report" 2>"$prefix_stderr"; then
+        prefix_status=0
+    else
+        prefix_status=$?
+    fi
+    MODE="self-test"
+
+    if (( prime_status != 1 )) || [[ ! -s "$prime_report" ]] || [[ -s "$prime_stderr" ]]; then
+        echo "  priming report did not produce the expected violation listing (status ${prime_status})" >&2
+        failed=1
+    fi
+    if (( empty_status != 0 )) || [[ -s "$empty_report" ]] || [[ -s "$empty_stderr" ]]; then
+        echo "  an empty Sources root unexpectedly reported shapes (status ${empty_status})" >&2
+        failed=1
+    fi
+    if (( reset_status != 0 )) || [[ -s "$reset_stderr" ]] \
+        || ! grep -qE ':external:handleThing$' "$reset_report" \
+        || ! grep -qE ':external:setPreference$' "$reset_report"; then
+        echo "  declaration indexes leaked into a declaration-free root (status ${reset_status})" >&2
+        failed=1
+    fi
+    if (( prefix_status != 0 )) || [[ -s "$prefix_stderr" ]] \
+        || ! grep -qE ':external:handleThing$' "$prefix_report" \
+        || ! grep -qE ':external:setPreference$' "$prefix_report" \
+        || grep -qE ':violation:(handleThing|setPreference)$' "$prefix_report"; then
+        echo "  a suffixed declaration satisfied a prefix lookup (status ${prefix_status})" >&2
         failed=1
     fi
 

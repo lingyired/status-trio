@@ -45,9 +45,9 @@ final class BatteryDetailsTests: XCTestCase {
         values["IsCharging"] = true
         values["Amperage"] = 1000
         let charging = parse(values, state: state(connected: true, charging: true))
-        XCTAssertNil(charging.power)
+        XCTAssertEqual(charging.power?.watts, 12.279)
         XCTAssertEqual(charging.adapterWatts, 90)
-        XCTAssertEqual(charging.powerAvailability, .collecting)
+        XCTAssertEqual(charging.powerAvailability, .available)
         values["IsCharging"] = false
         XCTAssertNil(parse(values, state: state(connected: true)).power, "Positive current without charging is inconsistent")
         values["Amperage"] = -1000
@@ -63,6 +63,27 @@ final class BatteryDetailsTests: XCTestCase {
         XCTAssertNil(beforeTransition.power)
         XCTAssertEqual(beforeTransition.powerAvailability, .collecting)
         XCTAssertNotNil(parse(registry, notBefore: now).power)
+    }
+
+    func testPositiveSMCSampleShowsChargingWhileFlagsStillLag() {
+        var values = registry
+        values["ExternalConnected"] = true
+        values["IsCharging"] = false
+        let sample = BatteryPowerSample(volts: 12.4, amps: 4.2, updatedAt: now)
+
+        let details = BatteryDetailsReader.parse(
+            registry: values,
+            adapterWatts: 140,
+            remainingSeconds: -1,
+            state: state(connected: true, charging: false),
+            now: now,
+            systemPower: SystemPowerSample(watts: 10.6, readAt: now),
+            inputPower: SystemPowerSample(watts: 61.56, readAt: now),
+            batteryPower: sample
+        )
+
+        XCTAssertEqual(try XCTUnwrap(details.power).watts, 52.08, accuracy: 0.001)
+        XCTAssertEqual(details.powerAvailability, .available)
     }
 
     func testConnectedIntelMacUsesSystemPowerWhenBatteryCurrentIsZero() {
@@ -201,6 +222,19 @@ final class BatteryDetailsTests: XCTestCase {
     }
 }
 
+private final class BatteryStateRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var recorded: [BatteryPowerState] = []
+
+    var states: [BatteryPowerState] {
+        lock.withLock { recorded }
+    }
+
+    func record(_ state: BatteryPowerState) {
+        lock.withLock { recorded.append(state) }
+    }
+}
+
 private final class BlockingBatteryDetailsReader: @unchecked Sendable {
     private let lock = NSLock()
     let gate = DispatchSemaphore(value: 0)
@@ -239,17 +273,48 @@ final class BatteryDetailsControllerTests: XCTestCase {
         controller.deactivate()
     }
 
+    func testStateUpdateWhileActiveReachesTheNextRead() async {
+        let recorder = BatteryStateRecorder()
+        let controller = BatteryDetailsController { state, _ in
+            recorder.record(state)
+            return BatteryDetails(cycleCount: 43)
+        }
+        controller.activate(state: recordingState(charging: false))
+        await waitUntil { recorder.states.count == 1 }
+        XCTAssertEqual(recorder.states.last?.isCharging, false)
+
+        controller.update(state: recordingState(charging: true))
+        controller.refresh()
+        await waitUntil { recorder.states.count >= 2 }
+        XCTAssertEqual(recorder.states.last?.isCharging, true)
+        controller.deactivate()
+    }
+
+    private func recordingState(charging: Bool) -> BatteryPowerState {
+        BatteryPowerState(
+            BatteryStatus(
+                rawPercentage: 80,
+                isPresent: true,
+                isCharging: charging,
+                isLowPowerMode: false,
+                isConnectedToPower: true
+            )
+        )
+    }
+
     func testExpiredOrFuturePowerIsNotPublishedWhenBackgroundReadReturns() async {
         for offset in [-91.0, 10] {
             let controller = BatteryDetailsController { _, _ in
                 BatteryDetails(cycleCount: 43, power: BatteryPowerSample(
                     volts: 12, amps: -1, updatedAt: Date().addingTimeInterval(offset)
-                ), systemPower: SystemPowerSample(watts: 17.25, readAt: Date().addingTimeInterval(offset)))
+                ), systemPower: SystemPowerSample(watts: 17.25, readAt: Date().addingTimeInterval(offset)),
+                   inputPower: SystemPowerSample(watts: 67, readAt: Date().addingTimeInterval(offset)))
             }
             controller.activate(state: state)
             await waitUntil { controller.details != nil }
             XCTAssertNil(controller.details?.power)
             XCTAssertNil(controller.details?.systemPower)
+            XCTAssertNil(controller.details?.inputPower)
             XCTAssertEqual(controller.details?.cycleCount, 43)
             controller.deactivate()
         }
@@ -278,7 +343,8 @@ final class BatteryDetailsControllerTests: XCTestCase {
         let sampled = Date()
         let controller = BatteryDetailsController { _, _ in
             _ = reader.read()
-            return BatteryDetails(systemPower: SystemPowerSample(watts: 17.25, readAt: sampled))
+            return BatteryDetails(systemPower: SystemPowerSample(watts: 17.25, readAt: sampled),
+                inputPower: SystemPowerSample(watts: 67, readAt: sampled))
         }
         controller.activate(state: state)
         reader.gate.signal()
@@ -287,6 +353,7 @@ final class BatteryDetailsControllerTests: XCTestCase {
         await waitUntil { reader.count == 2 }
         controller.refresh(now: sampled.addingTimeInterval(91))
         XCTAssertNil(controller.details?.systemPower)
+        XCTAssertNil(controller.details?.inputPower)
         controller.deactivate()
         reader.gate.signal()
     }
@@ -317,6 +384,25 @@ final class BatteryDetailsControllerTests: XCTestCase {
         reader.gate.signal()
         await waitUntil { controller.details != nil }
         controller.deactivate()
+    }
+
+    func testRepeatedActivationWithTheSameStateKeepsTheFirstRead() async {
+        let reader = BlockingBatteryDetailsReader()
+        let controller = BatteryDetailsController { _, _ in reader.read() }
+        defer {
+            controller.deactivate()
+            reader.gate.signal()
+        }
+
+        controller.activate(state: state)
+        await waitUntil { reader.count == 1 }
+
+        controller.activate(state: state)
+        reader.gate.signal()
+        await waitUntil { controller.details != nil }
+
+        XCTAssertEqual(reader.count, 1)
+        XCTAssertTrue(controller.isActive)
     }
 
     func testActiveReflectsWhetherCollectionIsRunning() {

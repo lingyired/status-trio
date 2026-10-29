@@ -58,27 +58,32 @@ between the Sharing preferences pane and InternetSharing" and warns its details
 would be a version-sensitive write to a root-owned file that the system can change
 underneath it, so the popover hands this one job back to the pane that owns it.
 
-## "Charge to Full Now" stays in macOS
+## Charge-limit controls depend on the app version and macOS
 
-When optimized battery charging or a charge limit pauses charging, Status Trio
-reports the state as it is: the icon shows the connected-to-power state, the Battery
-Details page omits the charging row because no power is flowing into the battery, and
-the battery row's gear button opens the Battery pane. The popover deliberately has
-no "charge to full" button.
+The current public GitHub and Homebrew release, **1.7.5**, leaves charge-limit
+overrides to macOS. When charging is paused, it reports the actual state and the
+battery row's gear button opens System Settings.
 
-There is no public API to charge past the limit macOS is holding. An app can only do
-it through the SMC with the firmware's charge-control keys — the approach third-party
-charge limiters take — or through an undocumented PowerUI charging interface. Status
-Trio reads the SMC for the system power estimate only and sends read-key-info and
-read-bytes commands only (see [battery details](battery-details.md)), so charge
-control stays where Apple put it: System Settings › Battery, and the battery section
-of Control Center where macOS offers its own charge-to-full action. The app's one
-privileged helper exists only for Low Power Mode and does not touch charge control;
+The source on `main` adds a **Charge to Full Now** button for supported Apple
+silicon Macs running macOS 26.4 or later. It is enabled by default only when the
+capability is available and can be turned off in Battery settings. It uses the
+same private PowerUI request observed behind the native action. There is no
+public API or cross-version guarantee for this operation. Unsupported systems
+do not offer the action.
+
+**The charge limit may remain at 100% after charging completes or the adapter is
+unplugged and reconnected. Status Trio does not restore it automatically.**
+The implementation saves an operation session and offers **Cancel Charge to
+Full** to request restoration. An ambiguous or restored session can require
+another explicit confirmation. A failed request is not proof of restoration:
+check the charge limit in System Settings and restore it there if needed.
+See [implementation, observed native behavior, and verification
+limits](charge-to-full-now-poc.md).
+
+Battery telemetry continues to use read-only SMC commands; the PowerUI action
+does not add SMC writes or a background charge watcher. Low Power Mode uses a
+separate opt-in privileged helper, which does not control the charge limit;
 see [privileged helper](privileged-helper.md).
-
-macOS 26.4 and later add a native charge limit from 80% through 100% on Apple
-silicon Macs, with its own charge-to-full action, so on those versions the limit and
-the override live in the same system place, and this app duplicates neither.
 
 ## One Bluetooth battery source is undocumented
 
@@ -142,24 +147,22 @@ when the switch completes. This is a menu-bar-only behaviour: the Dock icon is a
 single full-colour render and is unaffected. See
 [issue #112](https://github.com/lingyired/status-trio/issues/112).
 
-## Status colours may stay bright on an unfocused display
+## Status colours on an unfocused display
 
 On multiple displays, macOS dims the menu bar of the display that does not have
-the focused app. Status Trio's template primitives follow that dimming, but the
-status-coloured overlay does not always do so and can stay noticeably brighter
-than the rest of the menu bar.
+the focused app. Attaching a coloured CALayer directly to a status button whose
+image is a template can make that coloured content noticeably brighter.
 
-The two-layer menu bar rendering above is the reason. The template base is a
-system-tinted image, while the coloured primitives are a custom raster in a
-layer attached to the status button. The overlay is not part of the template
-image, so it cannot inherit the system's per-display treatment for free.
+For coloured scenes, the button now holds a transparent non-template footprint.
+The monochrome primitives remain a template in an independent, non-interactive
+image view, and the existing coloured CALayer stays above them. Entirely
+monochrome scenes retain the direct template button image. Scene colours, the
+animation timeline, and the Dock renderer are unchanged.
 
-The normal-display rendering and the Dock icon are unaffected; this limitation
-only concerns the appearance of the coloured primitives on an unfocused
-display's menu bar. Real two-display probing confirmed that layer-backed and
-drawn subviews do not inherit the dimming either. A single non-template
-`button.image` does dim, but updating it per animation frame would take away the
-template path that keeps #112's Space drag in sync and would exceed the existing
-20 fps presentation design. See
-[inactive-display icon dimming](verification/inactive-display-icon-dimming.md)
-for the measured evidence and the remaining system-API question.
+The maintainer tested this separate-template arrangement in a standalone probe
+on two real displays and reported both inactive-display appearance and #112
+Space-drag tinting working. This does not establish acceptance for every macOS
+version or for the complete application's animation and lifecycle. See the
+[integration and verification scope](verification/issue-165-template-image-view.md).
+The [earlier experiments](verification/inactive-display-icon-dimming.md) describe
+the rejected full-raster and template-button arrangements.

@@ -1,19 +1,46 @@
 import SwiftUI
 
 struct VolumeControlsView: View {
+    private struct SynchronizationSnapshot: Equatable {
+        let scalar: Double?
+        let identity: VolumeControlInteractionIdentity
+        let canAdjust: Bool
+    }
+
     @EnvironmentObject private var localization: Localization
     let state: VolumePanelState
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
     let onOpenSoundSettings: () -> Void
 
-    @State private var draftVolume = 0.0
-    @State private var isAdjusting = false
+    @State private var interaction: VolumeControlInteraction
+
+    init(
+        state: VolumePanelState,
+        actions: StatusPanelActions,
+        scrollTargets: PopoverScrollTargets,
+        onOpenSoundSettings: @escaping () -> Void
+    ) {
+        self.state = state
+        self.actions = actions
+        self.scrollTargets = scrollTargets
+        self.onOpenSoundSettings = onOpenSoundSettings
+        _interaction = State(
+            initialValue: VolumeControlInteraction(
+                setVolume: { actions.setVolume($0) },
+                finishVolume: { actions.finishVolumeAdjustment() }
+            )
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 10) {
-                Button(action: { actions.toggleMute() }) {
+                Button(action: {
+                    VolumePanelActionGate.toggleMute(in: state) {
+                        actions.toggleMute()
+                    }
+                }) {
                     PanelActionGlyph(
                         systemName: state.muteSymbol,
                         font: .system(size: 15, weight: .medium)
@@ -26,7 +53,13 @@ struct VolumeControlsView: View {
                 .help(state.muteHelp)
                 .accessibilityLabel(state.muteHelp)
 
-                Slider(value: $draftVolume, in: 0...1, onEditingChanged: { handleVolumeEditing($0) })
+                Slider(
+                    value: volumeBinding,
+                    in: 0...1,
+                    onEditingChanged: { isEditing in
+                        handleVolumeEditing(isEditing)
+                    }
+                )
                     .tint(state.muted ? Color.secondary : Color.accentColor)
                     .disabled(!state.canAdjust)
                     .accessibilityLabel(state.sliderLabel)
@@ -64,37 +97,53 @@ struct VolumeControlsView: View {
                 )
             }
         }
-        .onAppear { synchronizeVolume() }
-        .onChange(of: draftVolume) { newValue in updateVolume(newValue) }
-        .onChange(of: state.scalar) { newValue in
-            guard !isAdjusting else { return }
-            draftVolume = newValue ?? 0
+        .onAppear { synchronizeVolume(synchronizationSnapshot) }
+        .onChange(of: synchronizationSnapshot) { snapshot in
+            synchronizeVolume(snapshot)
         }
     }
 
     private var percentageText: String {
-        guard state.scalar != nil, draftVolume.isFinite else { return "—" }
-        return min(1, max(0, draftVolume)).formatted(
+        guard state.scalar != nil, interaction.value.isFinite else { return "—" }
+        return min(1, max(0, interaction.value)).formatted(
             .percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale)
         )
     }
 
+    private var volumeBinding: Binding<Double> {
+        Binding(
+            get: { interaction.value },
+            set: { newValue in
+                interaction.setSliderValue(
+                    newValue,
+                    identity: state.interactionIdentity,
+                    canAdjust: state.canAdjust
+                )
+            }
+        )
+    }
+
     private func handleVolumeEditing(_ isEditing: Bool) {
-        isAdjusting = isEditing
-        if !isEditing { actions.finishVolumeAdjustment() }
-    }
-
-    private func updateVolume(_ newValue: Double) {
-        let scalar = state.scalar ?? -1
-        guard scalar.isFinite, abs(newValue - min(1, max(0, scalar))) >= 0.0005 else { return }
-        actions.setVolume(newValue)
-    }
-
-    private func synchronizeVolume() {
-        guard let scalar = state.scalar, scalar.isFinite else {
-            draftVolume = 0
-            return
+        if isEditing {
+            interaction.beginEditing()
+        } else {
+            interaction.endEditing(identity: state.interactionIdentity)
         }
-        draftVolume = min(1, max(0, scalar))
+    }
+
+    private var synchronizationSnapshot: SynchronizationSnapshot {
+        SynchronizationSnapshot(
+            scalar: state.scalar,
+            identity: state.interactionIdentity,
+            canAdjust: state.canAdjust
+        )
+    }
+
+    private func synchronizeVolume(_ snapshot: SynchronizationSnapshot) {
+        interaction.receiveSystemState(
+            identity: snapshot.identity,
+            scalar: snapshot.scalar,
+            canAdjust: snapshot.canAdjust
+        )
     }
 }

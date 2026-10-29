@@ -11,6 +11,11 @@ BASE="$WORK/base"
 STATE="$WORK/github"
 OUTPUT="$WORK/output.log"
 GITHUB_OUTPUT_FILE="$WORK/github-output"
+LEGACY_CANDIDATE="$WORK/legacy-candidate"
+CURRENT_CANDIDATE="$WORK/current-candidate"
+LEGACY_WRONG_NEEDS_CANDIDATE="$WORK/legacy-wrong-needs-candidate"
+CURRENT_WRONG_NEEDS_CANDIDATE="$WORK/current-wrong-needs-candidate"
+VALIDATOR_CWD="$LEGACY_CANDIDATE"
 CANDIDATE_SHA="af7f637f186cd611fbc7b0053897ac8a5a17e8ed"
 SOURCE_RUN_ID="39923069756"
 ARTIFACT_ID="12489237102"
@@ -31,6 +36,51 @@ assert_contains() {
 }
 
 mkdir -p "$BASE" "$STATE" "$WORK/bin"
+
+mkdir -p \
+    "$LEGACY_CANDIDATE/.github/workflows" \
+    "$CURRENT_CANDIDATE/.github/workflows" \
+    "$LEGACY_WRONG_NEEDS_CANDIDATE/.github/workflows" \
+    "$CURRENT_WRONG_NEEDS_CANDIDATE/.github/workflows"
+cp "$ROOT/.github/workflows/release.yml" \
+    "$CURRENT_CANDIDATE/.github/workflows/release.yml"
+ruby -ryaml - \
+    "$LEGACY_CANDIDATE/.github/workflows/release.yml" \
+    "$LEGACY_WRONG_NEEDS_CANDIDATE/.github/workflows/release.yml" \
+    "$CURRENT_WRONG_NEEDS_CANDIDATE/.github/workflows/release.yml" <<'RUBY'
+legacy, legacy_wrong_needs, current_wrong_needs = ARGV
+File.write(
+  legacy,
+  YAML.dump(
+    "jobs" => {
+      "verify" => {},
+      "package" => { "needs" => "verify" },
+      "publish" => { "needs" => %w[verify package] }
+    }
+  )
+)
+File.write(
+  legacy_wrong_needs,
+  YAML.dump(
+    "jobs" => {
+      "verify" => {},
+      "package" => { "needs" => %w[verify native] },
+      "publish" => { "needs" => %w[verify package] }
+    }
+  )
+)
+File.write(
+  current_wrong_needs,
+  YAML.dump(
+    "jobs" => {
+      "verify" => {},
+      "native" => {},
+      "package" => { "needs" => "verify" },
+      "publish" => { "needs" => %w[verify native package] }
+    }
+  )
+)
+RUBY
 
 ruby -rjson - "$BASE" "$CANDIDATE_SHA" "$SOURCE_RUN_ID" "$ARTIFACT_ID" \
     "$ARTIFACT_DIGEST" <<'RUBY'
@@ -160,23 +210,27 @@ reset_state() {
 run_validator() {
     local output="$1"
     shift
-    env \
-        PATH="$WORK/bin:$PATH" \
-        FAKE_GH_STATE="$STATE" \
-        GH_TOKEN="fixture-token" \
-        GITHUB_RUN_ID="40000000000" \
-        REPOSITORY="example/status-trio" \
-        SOURCE_RUN_ID="$SOURCE_RUN_ID" \
-        CANDIDATE_SHA="$CANDIDATE_SHA" \
-        EXPECTED_VERSION="1.7.2" \
-        EXPECTED_BUILD="40" \
-        EXPECTED_TAG="v1.7.2" \
-        EXPECTED_ARTIFACT_ID="" \
-        EXPECTED_ARTIFACT_DIGEST="" \
-        MANIFEST_PATH="" \
-        GITHUB_OUTPUT="$GITHUB_OUTPUT_FILE" \
-        "$@" \
-        bash "$ROOT/scripts/validate-release-recovery.sh" >"$output" 2>&1
+    (
+        cd "$VALIDATOR_CWD"
+        env \
+            PATH="$WORK/bin:$PATH" \
+            FAKE_GH_STATE="$STATE" \
+            GH_TOKEN="fixture-token" \
+            GITHUB_RUN_ID="40000000000" \
+            GITHUB_WORKSPACE="" \
+            REPOSITORY="example/status-trio" \
+            SOURCE_RUN_ID="$SOURCE_RUN_ID" \
+            CANDIDATE_SHA="$CANDIDATE_SHA" \
+            EXPECTED_VERSION="1.7.2" \
+            EXPECTED_BUILD="40" \
+            EXPECTED_TAG="v1.7.2" \
+            EXPECTED_ARTIFACT_ID="" \
+            EXPECTED_ARTIFACT_DIGEST="" \
+            MANIFEST_PATH="" \
+            GITHUB_OUTPUT="$GITHUB_OUTPUT_FILE" \
+            "$@" \
+            bash "$ROOT/scripts/validate-release-recovery.sh"
+    ) >"$output" 2>&1
 }
 
 mutate_json() {
@@ -188,6 +242,15 @@ mutate_json() {
         eval(code)
         File.write(path, JSON.generate(data) + "\n")
     ' "$path" "$code"
+}
+
+add_current_native_job() {
+    mutate_json "$STATE/jobs.json" '
+      package_job = data["jobs"].find { |job| job["name"] == "package" }
+      native_job = package_job.merge("id" => package_job["id"] + 1, "name" => "native")
+      data["jobs"].insert(1, native_job)
+      data["total_count"] = data["jobs"].length
+    '
 }
 
 expect_validator_failure() {
@@ -206,13 +269,76 @@ run_validator "$OUTPUT" || {
     cat "$OUTPUT" >&2
     fail "valid source run was rejected"
 }
-assert_contains "$OUTPUT" "Validated source run $SOURCE_RUN_ID"
+assert_contains "$OUTPUT" "Validated failed-publish source run $SOURCE_RUN_ID"
 assert_contains "$GITHUB_OUTPUT_FILE" "source_run_id=$SOURCE_RUN_ID"
 assert_contains "$GITHUB_OUTPUT_FILE" "artifact_id=$ARTIFACT_ID"
 assert_contains "$GITHUB_OUTPUT_FILE" "artifact_digest=$ARTIFACT_DIGEST"
 if grep -Eqv '^api ' "$STATE/calls"; then
     fail "validator invoked a non-read GitHub command"
 fi
+
+reset_state
+add_current_native_job
+VALIDATOR_CWD="$CURRENT_CANDIDATE" run_validator "$OUTPUT" || {
+    cat "$OUTPUT" >&2
+    fail "current four-job source run was rejected"
+}
+assert_contains "$OUTPUT" "Validated failed-publish source run $SOURCE_RUN_ID"
+
+reset_state
+add_current_native_job
+mutate_json "$STATE/run.json" 'data["conclusion"] = "success"'
+mutate_json "$STATE/jobs.json" 'data["jobs"].find { |job| job["name"] == "publish" }["conclusion"] = "skipped"'
+VALIDATOR_CWD="$CURRENT_CANDIDATE" run_validator "$OUTPUT" || {
+    cat "$OUTPUT" >&2
+    fail "current four-job package-only source run was rejected"
+}
+assert_contains "$OUTPUT" "Validated package-only source run $SOURCE_RUN_ID"
+
+reset_state
+add_current_native_job
+mutate_json "$STATE/jobs.json" '
+  data["jobs"].reject! { |job| job["name"] == "native" }
+  data["total_count"] = data["jobs"].length
+'
+VALIDATOR_CWD="$CURRENT_CANDIDATE" expect_validator_failure \
+    "current source run without native job" "job shape does not match"
+
+reset_state
+add_current_native_job
+mutate_json "$STATE/jobs.json" 'data["jobs"].find { |job| job["name"] == "native" }["conclusion"] = "failure"'
+VALIDATOR_CWD="$CURRENT_CANDIDATE" expect_validator_failure \
+    "source run with failed native job" "native job did not succeed"
+
+reset_state
+add_current_native_job
+mutate_json "$STATE/jobs.json" 'data["jobs"].find { |job| job["name"] == "native" }["conclusion"] = "skipped"'
+VALIDATOR_CWD="$CURRENT_CANDIDATE" expect_validator_failure \
+    "source run with skipped native job" "native job did not succeed"
+
+reset_state
+add_current_native_job
+mutate_json "$STATE/jobs.json" '
+  package_job = data["jobs"].find { |job| job["name"] == "package" }
+  data["jobs"] << package_job.merge("id" => package_job["id"] + 100, "name" => "unexpected")
+  data["total_count"] = data["jobs"].length
+'
+VALIDATOR_CWD="$CURRENT_CANDIDATE" expect_validator_failure \
+    "source run with unexpected job shape" "job shape does not match"
+
+reset_state
+add_current_native_job
+VALIDATOR_CWD="$LEGACY_CANDIDATE" expect_validator_failure \
+    "legacy workflow with native metadata" "job shape does not match"
+
+reset_state
+add_current_native_job
+VALIDATOR_CWD="$CURRENT_WRONG_NEEDS_CANDIDATE" expect_validator_failure \
+    "current workflow package without native dependency" "package job needs do not match"
+
+reset_state
+VALIDATOR_CWD="$LEGACY_WRONG_NEEDS_CANDIDATE" expect_validator_failure \
+    "legacy workflow package with unexpected native dependency" "package job needs do not match"
 
 reset_state
 expect_validator_failure "malformed source run ID" "SOURCE_RUN_ID" \
@@ -253,8 +379,29 @@ expect_validator_failure "incomplete source run" "source run is not completed"
 
 reset_state
 mutate_json "$STATE/run.json" 'data["conclusion"] = "success"'
-expect_validator_failure "successful source run" \
-    "did not conclude with the expected publish failure"
+expect_validator_failure "successful source run with failed publish" \
+    "source run succeeded without skipping publication"
+
+reset_state
+mutate_json "$STATE/run.json" 'data["conclusion"] = "success"'
+mutate_json "$STATE/jobs.json" 'data["jobs"].find { |job| job["name"] == "publish" }["conclusion"] = "skipped"'
+run_validator "$OUTPUT" || {
+    cat "$OUTPUT" >&2
+    fail "valid package-only source run was rejected"
+}
+assert_contains "$OUTPUT" "Validated package-only source run $SOURCE_RUN_ID"
+
+reset_state
+mutate_json "$STATE/run.json" 'data["conclusion"] = "failure"'
+mutate_json "$STATE/jobs.json" 'data["jobs"].find { |job| job["name"] == "publish" }["conclusion"] = "skipped"'
+expect_validator_failure "failed source run with skipped publish" \
+    "publish job did not fail"
+
+reset_state
+mutate_json "$STATE/run.json" 'data["conclusion"] = "success"'
+mutate_json "$STATE/jobs.json" 'data["jobs"].find { |job| job["name"] == "publish" }["conclusion"] = "cancelled"'
+expect_validator_failure "successful source run with cancelled publish" \
+    "source run succeeded without skipping publication"
 
 reset_state
 mutate_json "$STATE/jobs.json" 'data["jobs"].find { |job| job["name"] == "package" }["conclusion"] = "failure"'
@@ -358,7 +505,7 @@ checks = {
   "package_run_id input" => "      package_run_id:\n",
   "package skip placement" =>
     "  package:\n" \
-    "    needs: verify\n" \
+    "    needs: [verify, native]\n" \
     "    runs-on: xcode-27\n" \
     "    if: ${{ inputs.package_run_id == '' }}\n",
   "workflow SHA checkout" => "ref: ${{ github.workflow_sha }}",
@@ -368,7 +515,7 @@ checks = {
   "source run download" => "run-id: ${{ needs.verify.outputs.recovery_source_run_id || github.run_id }}",
   "actions read" => "actions: read",
   "trusted recovery test" => "bash release-tools/scripts/test-release-recovery.sh",
-  "trusted policy test" => "bash release-tools/scripts/test-release-workflow-policy.sh",
+  "trusted policy test" => 'bash "$CI_TOOLS_ROOT/scripts/test-release-workflow-policy.sh"',
   "trusted pipeline test" => "bash release-tools/scripts/test-release-pipeline.sh"
 }
 checks.each do |label, needle|
@@ -384,8 +531,18 @@ abort("publish must reassert the explicit candidate checkout") unless source.inc
 
 jobs_section = source[/^jobs:\n(.*)\z/m, 1] || ""
 jobs = jobs_section.scan(/^  ([A-Za-z0-9_-]+):$/).flatten
-abort("release workflow must have exactly verify, package, and publish jobs: #{jobs.inspect}") unless
-  jobs == %w[verify package publish]
+abort("release workflow must have exactly verify, native, package, and publish jobs: #{jobs.inspect}") unless
+  jobs == %w[verify native package publish]
+
+workflow = YAML.safe_load(source, aliases: true)
+package = workflow.fetch("jobs").fetch("package")
+abort("package must wait for verify and native") unless
+  Array(package.fetch("needs")).sort == %w[native verify]
+publish = workflow.fetch("jobs").fetch("publish")
+abort("publish must wait for verify, native, and package") unless
+  Array(publish.fetch("needs")).sort == %w[native package verify]
+abort("publish must require native success") unless
+  publish.fetch("if").include?("needs.native.result == 'success'")
 RUBY
 
 bash -n "$ROOT/scripts/validate-release-recovery.sh" "$ROOT/scripts/test-release-recovery.sh"

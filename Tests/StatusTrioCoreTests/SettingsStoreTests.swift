@@ -73,6 +73,27 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(second.refreshIntervalSeconds, 30, accuracy: 0.001)
     }
 
+    func testHighEnergyAppsRefreshIntervalDefaultsClampsRoundsAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(SettingsStore.highEnergyAppsRefreshIntervalRange, 10...60)
+        XCTAssertEqual(first.highEnergyAppsRefreshIntervalSeconds, 10, accuracy: 0.001)
+
+        first.highEnergyAppsRefreshIntervalSeconds = 7
+        XCTAssertEqual(first.highEnergyAppsRefreshIntervalSeconds, 10, accuracy: 0.001)
+
+        first.highEnergyAppsRefreshIntervalSeconds = 307
+        XCTAssertEqual(first.highEnergyAppsRefreshIntervalSeconds, 60, accuracy: 0.001)
+
+        first.highEnergyAppsRefreshIntervalSeconds = 33
+        XCTAssertEqual(first.highEnergyAppsRefreshIntervalSeconds, 35, accuracy: 0.001)
+
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(second.highEnergyAppsRefreshIntervalSeconds, 35, accuracy: 0.001)
+    }
+
     func testBatteryDisplayDefaults() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
@@ -103,11 +124,39 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(second.batterySymbolScale, 0.95, accuracy: 0.001)
     }
 
+    func testChargeToFullNowDefaultsOnAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertTrue(first.showsChargeToFullNowButton)
+
+        first.showsChargeToFullNowButton = false
+        XCTAssertFalse(SettingsStore(defaults: suite.defaults).showsChargeToFullNowButton)
+
+        first.showsChargeToFullNowButton = true
+        XCTAssertTrue(SettingsStore(defaults: suite.defaults).showsChargeToFullNowButton)
+    }
+
     func testAppleBackgroundRefreshDefaultsOffAndIntervalDefaultsToOneMinute() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
         XCTAssertFalse(store.refreshesAppleBatteriesInBackground)
         XCTAssertEqual(store.appleBatteryRefreshIntervalMinutes, 1)
+    }
+
+    func testAppleDeviceMasterDefaultsOffAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(first.showsAppleDevicesAndBattery)
+
+        first.showsAppleDevicesAndBattery = true
+        XCTAssertTrue(SettingsStore(defaults: suite.defaults).showsAppleDevicesAndBattery)
+
+        first.showsAppleDevicesAndBattery = false
+        XCTAssertFalse(SettingsStore(defaults: suite.defaults).showsAppleDevicesAndBattery)
     }
 
     func testAppleBackgroundRefreshIntervalClampsAndPersistsWhenToggleTurnsOff() {
@@ -1429,6 +1478,109 @@ final class SettingsStoreTests: XCTestCase {
             1.25,
             accuracy: 0.0001
         )
+    }
+
+    func testExternalVolumeConfigurationDefaultsToDirectDDC() {
+        let store = SettingsStore(defaults: makeSuite().defaults)
+
+        XCTAssertEqual(
+            store.externalVolumeConfiguration(for: "audio-benq"),
+            .default
+        )
+        XCTAssertEqual(
+            store.externalVolumeConfiguration(for: "audio-benq").backend,
+            .directDDC
+        )
+    }
+
+    func testExternalVolumeConfigurationRoundTripsPerOutputUID() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let first = SettingsStore(defaults: suite.defaults)
+        first.setExternalVolumeConfiguration(
+            ExternalVolumeConfiguration(
+                backend: .betterDisplay,
+                betterDisplayUUID: "display-a"
+            ),
+            for: "audio-benq"
+        )
+        first.setExternalVolumeConfiguration(
+            ExternalVolumeConfiguration(
+                backend: .betterDisplay,
+                betterDisplayUUID: "display-b"
+            ),
+            for: "audio-lg"
+        )
+
+        let reopened = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(
+            reopened.externalVolumeConfiguration(for: "audio-benq"),
+            ExternalVolumeConfiguration(
+                backend: .betterDisplay,
+                betterDisplayUUID: "display-a"
+            )
+        )
+        XCTAssertEqual(
+            reopened.externalVolumeConfiguration(for: "audio-lg"),
+            ExternalVolumeConfiguration(
+                backend: .betterDisplay,
+                betterDisplayUUID: "display-b"
+            )
+        )
+        XCTAssertEqual(
+            reopened.externalVolumeConfiguration(for: "audio-other"),
+            .default
+        )
+    }
+
+    func testUnboundBetterDisplayConfigurationPersistsUntilAssociationIsChosen() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let first = SettingsStore(defaults: suite.defaults)
+        first.setExternalVolumeConfiguration(
+            ExternalVolumeConfiguration(
+                backend: .betterDisplay,
+                betterDisplayUUID: " display-a "
+            ),
+            for: "audio-benq"
+        )
+        first.setExternalVolumeConfiguration(
+            ExternalVolumeConfiguration(
+                backend: .betterDisplay,
+                betterDisplayUUID: "  "
+            ),
+            for: "audio-benq"
+        )
+
+        let reopened = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(
+            reopened.externalVolumeConfiguration(for: "audio-benq"),
+            ExternalVolumeConfiguration(
+                backend: .betterDisplay,
+                betterDisplayUUID: nil
+            )
+        )
+
+        reopened.setExternalVolumeConfiguration(.default, for: "audio-benq")
+        XCTAssertEqual(
+            SettingsStore(defaults: suite.defaults)
+                .externalVolumeConfiguration(for: "audio-benq"),
+            .default
+        )
+    }
+
+    func testCorruptExternalVolumeConfigurationFallsBackSafely() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(
+            Data("not-json".utf8),
+            forKey: SettingsStore.externalVolumeConfigurationsDefaultsKey
+        )
+
+        let store = SettingsStore(defaults: suite.defaults)
+
+        XCTAssertEqual(store.externalVolumeConfiguration(for: "audio-benq"), .default)
+        XCTAssertTrue(store.externalVolumeConfigurations.isEmpty)
     }
 
     private func makeSuite() -> (defaults: UserDefaults, name: String) {

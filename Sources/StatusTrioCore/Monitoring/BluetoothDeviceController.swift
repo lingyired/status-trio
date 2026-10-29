@@ -324,6 +324,20 @@ final class BluetoothDeviceController: ObservableObject {
     private var nearbyPersistedSelections: [NearbyBLEDeviceSelection] = []
     private var nearbyBLEDiscoveryRequests: Set<String> = []
     private var nearbyBLEListVisible = true
+
+    /// The names the system lists for this Mac, as the paired-device report
+    /// reports them. A phone is only read over BLE when its name matches one of
+    /// these; a stranger's phone broadcasts the same payload but is not listed.
+    private var knownNearbyAppleDeviceNames: Set<String> {
+        Set(devices.map(\.name).filter {
+            !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        })
+    }
+
+    private func updateKnownNearbyAppleNames() {
+        nearbyBatteryScanner?.setKnownAppleMobileDeviceNames(knownNearbyAppleDeviceNames)
+    }
+
     private var nearbyBLEBackgroundRefreshEnabled = false
     private var nearbyBLEBackgroundSelectedIDs: Set<UUID> = []
     private var nearbyBLEBackgroundRefreshInterval: Duration?
@@ -612,6 +626,9 @@ final class BluetoothDeviceController: ObservableObject {
                         self.appleBluetoothAudioDiagnosticReporter.report($0)
                     }
                     self.devices = devices
+                    // The BLE route matches a phone's advertised name against
+                    // this list, so it has to follow the report as it lands.
+                    self.updateKnownNearbyAppleNames()
                     self.reconcileDeviceActions()
                     self.availability = .available
                     self.refreshBatteryLevels()
@@ -646,6 +663,11 @@ final class BluetoothDeviceController: ObservableObject {
     func refreshFromUser() {
         refresh()
         guard isNearbyBLEScannerDemanded else { return }
+        // A user asking for a refresh is the one signal that may retry a device
+        // automatic scans have given up on — for example one whose pairing
+        // prompt was declined. The suspension exists to keep the prompt from
+        // returning on its own; it must not survive the user asking again.
+        nearbyBatteryScanner?.resumeSuspendedReads()
         nearbyBatteryScanner?.refresh()
     }
 
@@ -708,6 +730,8 @@ final class BluetoothDeviceController: ObservableObject {
         nearbyBLEHiddenIDs = hiddenIDs
         nearbyBLEListVisible = listVisible
         nearbyPersistedSelections = persistedSelections
+        nearbyBatteryScanner?.setAppleMobileBatteryReadsEnabled(enabled)
+        updateKnownNearbyAppleNames()
         let newlyHidden = hiddenIDs.subtracting(oldHiddenIDs)
         if !newlyHidden.isEmpty { nearbyBatteryScanner?.revokeReadDeviceIDs(newlyHidden) }
         nearbyBatteryDevices.removeAll { hiddenIDs.contains($0.id) }
@@ -1043,14 +1067,23 @@ final class BluetoothDeviceController: ObservableObject {
         nearbyBLEInitialReadSuppressedUntil = nearbyBLEInitialReadSuppressedUntil.filter {
             BluetoothLEInitialReadPolicy.shouldSuppressInitialRead(until: $0.value, now: now)
         }
+        // Discovery may widen the read to devices the user has never picked, so
+        // it is a foreground-only affordance: the list has to be on screen for
+        // a newly seen Apple device to earn a first read. A background refresh
+        // owns its devices explicitly instead, and never reaches for "whatever
+        // an iPhone in the room happened to advertise" while no panel is open.
+        let discoveredAppleIDs: Set<UUID> = hasVisibleSurface && hasBluetoothSummarySurface
+            ? Set(nearbyBatteryScanner.discoveredCandidates.filter { $0.vendor == .apple }.map(\.id))
+            : []
+        let backgroundIDs: Set<UUID> = nearbyBLEBackgroundRefreshEnabled
+            ? nearbyBLEBackgroundSelectedIDs
+            : []
         return BluetoothLEInitialReadPolicy.permittedCandidateIDs(
             enabled: nearbyBLEEnabled,
             batteryLevelsEnabled: nearbyBatteryLevelsEnabled,
             hasActiveDiscoverySurface: hasActiveNearbyBLEDiscoverySurface,
             showsDeviceList: nearbyBLEListVisible,
-            candidateIDs: nearbyBLEBackgroundRefreshEnabled
-                ? nearbyBLEBackgroundSelectedIDs.union(nearbyBatteryScanner.discoveredCandidates.filter { $0.vendor == .apple }.map(\.id))
-                : Set(nearbyBatteryScanner.discoveredCandidates.filter { $0.vendor == .apple }.map(\.id)),
+            candidateIDs: backgroundIDs.union(discoveredAppleIDs),
             hiddenIDs: nearbyBLEHiddenIDs
         ).subtracting(nearbyBLEReadPermit)
             .subtracting(nearbyBLEBackgroundRefreshEnabled

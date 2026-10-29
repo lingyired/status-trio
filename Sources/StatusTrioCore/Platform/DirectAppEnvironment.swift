@@ -146,7 +146,12 @@ enum DirectPlatformFactory {
     }
 
     static func batteryDetailsController() -> BatteryDetailsController {
-        BatteryDetailsController(systemPowerReader: systemPowerReader())
+        BatteryDetailsController(
+            systemPowerReader: systemPowerReader(),
+            energyApps: ApplicationEnergyController(
+                reader: ApplicationEnergyReader().read(applications:)
+            )
+        )
     }
 
     static func wifiNetworkController() -> WiFiNetworkController {

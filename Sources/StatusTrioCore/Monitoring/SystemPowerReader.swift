@@ -6,16 +6,24 @@ struct SystemPowerReader: SystemPowerReading {
     /// Apple does not publish a cross-model contract for this sensor. Read only;
     /// no helper, privileges, key enumeration, or persistent connection.
     func read() -> SystemPowerSample? {
+        readSensors(system: true, input: false, battery: false).system
+    }
+
+    /// One short-lived connection per refresh; fixed read-only keys, no scanning.
+    func readSensors(system: Bool, input: Bool, battery: Bool) ->
+        (system: SystemPowerSample?, input: SystemPowerSample?, battery: BatteryPowerSample?) {
+        let empty: (SystemPowerSample?, SystemPowerSample?, BatteryPowerSample?) = (nil, nil, nil)
+        guard system || input || battery else { return empty }
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"))
-        guard service != 0 else { return nil }
+        guard service != 0 else { return empty }
         defer { IOObjectRelease(service) }
         var connection: io_connect_t = 0
-        guard IOServiceOpen(service, mach_task_self_, 0, &connection) == KERN_SUCCESS else { return nil }
+        guard IOServiceOpen(service, mach_task_self_, 0, &connection) == KERN_SUCCESS else { return empty }
         defer { IOServiceClose(connection) }
         // SMC supplies no hardware timestamp. Record the start of the read so
         // an IPC call that stalls cannot make an old result appear fresh.
         let readAt = Date()
-        guard let watts = Self.readWatts(exchange: { request in
+        let exchange: ([UInt8]) -> [UInt8]? = { request in
             var response = [UInt8](repeating: 0, count: 80)
             var size = response.count
             let result = request.withUnsafeBytes { input in
@@ -25,8 +33,28 @@ struct SystemPowerReader: SystemPowerReading {
                 }
             }
             return result == KERN_SUCCESS && size == 80 ? response : nil
-        }) else { return nil }
-        return SystemPowerSample(watts: watts, readAt: readAt)
+        }
+        let systemSample = system ? Self.readValue(sensor: .system, exchange: exchange)
+            .map { SystemPowerSample(watts: $0, readAt: readAt) } : nil
+        let inputSample = input ? Self.readValue(sensor: .input, exchange: exchange)
+            .map { SystemPowerSample(watts: $0, readAt: readAt) } : nil
+        var batterySample: BatteryPowerSample?
+        // The captured integer battery-sensor ABI below is Apple Silicon.
+        // Intel keeps the validated AppleSmartBattery voltage/current fallback.
+        #if arch(arm64)
+        if battery, let volts = Self.readValue(sensor: .batteryVoltage, exchange: exchange),
+           let amps = Self.readValue(sensor: .batteryCurrent, exchange: exchange) {
+            batterySample = BatteryPowerSample(volts: volts, amps: amps, updatedAt: readAt)
+        }
+        #endif
+        return (systemSample, inputSample, batterySample)
+    }
+
+    enum Sensor: UInt32 {
+        case system = 0x50535452 // PSTR, system total
+        case input = 0x50445452 // PDTR, adapter input
+        case batteryCurrent = 0x42304143 // B0AC
+        case batteryVoltage = 0x42304156 // B0AV
     }
 
     // AppleSMC's 80-byte key-data ABI: key 0, keyInfo size/type 28/32,
@@ -34,14 +62,20 @@ struct SystemPowerReader: SystemPowerReading {
     // relying on Swift struct padding. Host integers and flt are little-endian
     // on supported Macs; fixed-point sensor payloads are big-endian.
     static func readWatts(exchange: ([UInt8]) -> [UInt8]?) -> Double? {
+        readValue(sensor: .system, exchange: exchange)
+    }
+
+    static func readValue(sensor: Sensor, exchange: ([UInt8]) -> [UInt8]?) -> Double? {
         var request = [UInt8](repeating: 0, count: 80)
-        request.replaceSubrange(0..<4, with: [0x52, 0x54, 0x53, 0x50]) // PSTR
+        for offset in 0..<4 { request[offset] = UInt8(truncatingIfNeeded: sensor.rawValue >> (offset * 8)) }
         request[42] = 9 // read key info
         guard let info = exchange(request), info.count == 80, info[40] == 0 else { return nil }
         let size = littleEndianUInt32(info, at: 28)
         let type = littleEndianUInt32(info, at: 32)
         switch (type, size) {
         case (0x666c7420, 4), (0x66706532, 2), (0x73703738, 2): break // flt , fpe2, sp78
+        case (0x73693136, 2) where sensor == .batteryCurrent: break // si16, mA
+        case (0x75693136, 2) where sensor == .batteryVoltage: break // ui16, mV
         default: return nil
         }
         request.replaceSubrange(28..<32, with: info[28..<32])
@@ -50,13 +84,22 @@ struct SystemPowerReader: SystemPowerReading {
         let watts: Double
         if type == 0x666c7420 {
             watts = Double(Float(bitPattern: littleEndianUInt32(response, at: 48)))
+        } else if type == 0x73693136 || type == 0x75693136 {
+            let raw = UInt16(response[48]) | UInt16(response[49]) << 8
+            watts = (type == 0x73693136 ? Double(Int16(bitPattern: raw)) : Double(raw)) / 1_000
         } else {
             let raw = UInt16(response[48]) << 8 | UInt16(response[49])
             watts = type == 0x66706532 ? Double(raw) / 4 : Double(Int16(bitPattern: raw)) / 256
         }
         // An awake Mac cannot consume zero watts. Missing/invalid telemetry
         // must not masquerade as the valid 0 W of an idle battery.
-        return watts.isFinite && watts > 0 && watts <= 1_000 ? watts : nil
+        guard watts.isFinite else { return nil }
+        switch sensor {
+        case .system: return watts > 0 && watts <= 1_000 ? watts : nil
+        case .input: return (0...1_000).contains(watts) ? watts : nil
+        case .batteryCurrent: return abs(watts) <= 30 ? watts : nil
+        case .batteryVoltage: return (1...30).contains(watts) ? watts : nil
+        }
     }
 
     private static func littleEndianUInt32(_ bytes: [UInt8], at offset: Int) -> UInt32 {

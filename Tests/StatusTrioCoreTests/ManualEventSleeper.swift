@@ -64,6 +64,11 @@ final class ManualEventSleeper {
         continuations.forEach { $0.resume() }
     }
 
+    func releaseOldest() {
+        guard !sleepContinuations.isEmpty else { return }
+        sleepContinuations.removeFirst().resume()
+    }
+
     private func resumeCallWaiters() {
         var remaining: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
         for waiter in callWaiters {

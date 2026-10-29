@@ -129,6 +129,33 @@ final class StatusBarContentLifecycleTests: XCTestCase {
         XCTAssertEqual(harness.contentReleaseCount, 1)
     }
 
+    func testBatteryRouteReopensAfterDetailCloseReleasesContent() async throws {
+        let harness = try ContentLifecycleHarness()
+        defer { harness.cleanUp() }
+
+        harness.open()
+        harness.controller.panelForTesting.showBatteryPage()
+        XCTAssertEqual(harness.controller.panelForTesting.route, .battery)
+        XCTAssertTrue(harness.store.batteryDetails.isActive)
+
+        await closeNativePopover(harness.controller.popoverForTesting)
+
+        XCTAssertNil(harness.controller.popoverForTesting.contentViewController)
+        XCTAssertFalse(harness.store.batteryDetails.isActive)
+        XCTAssertEqual(
+            harness.controller.panelForTesting.route,
+            .battery,
+            "closing the popover keeps only the lightweight route"
+        )
+
+        harness.controller.resetPopoverToggleGateForTesting()
+        harness.open()
+
+        XCTAssertEqual(harness.controller.panelForTesting.route, .battery)
+        XCTAssertTrue(harness.store.batteryDetails.isActive)
+        XCTAssertNotNil(harness.controller.popoverForTesting.contentViewController)
+    }
+
     func testTwentyNativeCloseReopenCyclesKeepLatestValuesWithoutDuplicateSourceSubscriptions() throws {
         let harness = try ContentLifecycleHarness()
         defer { harness.cleanUp() }

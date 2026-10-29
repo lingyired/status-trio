@@ -160,4 +160,31 @@ final class PopupVolumeScrollAdjustmentTests: XCTestCase {
             )
         )
     }
+
+    func testScrollSessionDropsItsDraftWhenTheOutputIdentityChanges() throws {
+        let first = VolumeControlInteractionIdentity(
+            output: PanelAudioDeviceID(id: 1, uid: "output-a"),
+            configuration: .default,
+            transitionGeneration: 4
+        )
+        let second = VolumeControlInteractionIdentity(
+            output: PanelAudioDeviceID(id: 2, uid: "output-b"),
+            configuration: ExternalVolumeConfiguration(
+                backend: .betterDisplay,
+                betterDisplayUUID: "display-b"
+            ),
+            transitionGeneration: 5
+        )
+        var session = PopupVolumeScrollSession()
+
+        let initial = try XCTUnwrap(
+            session.scalar(at: 10, identity: first, fallback: 0.2)
+        )
+        _ = session.applying(delta: 0.3, to: initial)
+        let nextOutput = try XCTUnwrap(
+            session.scalar(at: 10.1, identity: second, fallback: 0.7)
+        )
+
+        XCTAssertEqual(nextOutput, 0.7, accuracy: 0.000_001)
+    }
 }

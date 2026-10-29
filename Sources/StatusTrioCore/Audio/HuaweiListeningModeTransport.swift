@@ -92,6 +92,10 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
     /// Injection points for deterministic lifecycle tests. Production uses no
     /// hooks, so queueing, thread startup, and session cleanup stay in this type.
     struct Hooks: Sendable {
+        var connectionReadyTimeout: TimeInterval = 5
+        var sdpSettlingDuration: TimeInterval = 1
+        var sdpServiceWaitTimeout: TimeInterval = 1
+        var channelOpenTimeout: TimeInterval = 2
         var didStartTransportThread: (@Sendable () -> Void)?
         var didAcquireRunLoop: (@Sendable () -> Void)?
         var didEnqueue: (@Sendable (OperationRequest) -> Void)?
@@ -102,6 +106,10 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
         var didCloseSessions: (@Sendable (UInt64) -> Void)?
 
         init(
+            connectionReadyTimeout: TimeInterval = 5,
+            sdpSettlingDuration: TimeInterval = 1,
+            sdpServiceWaitTimeout: TimeInterval = 1,
+            channelOpenTimeout: TimeInterval = 2,
             didStartTransportThread: (@Sendable () -> Void)? = nil,
             didAcquireRunLoop: (@Sendable () -> Void)? = nil,
             didEnqueue: (@Sendable (OperationRequest) -> Void)? = nil,
@@ -114,6 +122,10 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
             )? = nil,
             didCloseSessions: (@Sendable (UInt64) -> Void)? = nil
         ) {
+            self.connectionReadyTimeout = connectionReadyTimeout
+            self.sdpSettlingDuration = sdpSettlingDuration
+            self.sdpServiceWaitTimeout = sdpServiceWaitTimeout
+            self.channelOpenTimeout = channelOpenTimeout
             self.didStartTransportThread = didStartTransportThread
             self.didAcquireRunLoop = didAcquireRunLoop
             self.didEnqueue = didEnqueue
@@ -743,7 +755,11 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
         do {
             try context.checkpoint()
             if openedConnection {
-                guard try waitUntil(timeout: 5, context: context, { device.isConnected() }) else {
+                guard try waitUntil(
+                    timeout: hooks.connectionReadyTimeout,
+                    context: context,
+                    { device.isConnected() }
+                ) else {
                     throw HuaweiListeningModeError.timeout
                 }
             }
@@ -755,8 +771,8 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
             // cached service list can already contain SPP, so waiting for the service
             // to appear is not enough; give the query a fixed window before opening,
             // the same sequence that works from PyObjC.
-            try pump(1.0, context: context)
-            _ = try waitUntil(timeout: 1.0, context: context) {
+            try pump(hooks.sdpSettlingDuration, context: context)
+            _ = try waitUntil(timeout: hooks.sdpServiceWaitTimeout, context: context) {
                 self.sppChannel(for: device) != nil
             }
             // A resolved SDP record is authoritative. Without one, try the two channel
@@ -779,7 +795,7 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
                     continue
                 }
                 do {
-                    _ = try waitUntil(timeout: 2, context: context) {
+                    _ = try waitUntil(timeout: hooks.channelOpenTimeout, context: context) {
                         delegate.openStatus != nil
                     }
                     if let openStatus = delegate.openStatus, openStatus != kIOReturnSuccess {

@@ -5,6 +5,7 @@ struct BatterySectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @Binding var previewIsDark: Bool
+    var chargeToFullNow: ChargeToFullNowController? = nil
     @EnvironmentObject private var localization: Localization
     @ObservedObject var helper: PrivilegedHelperFacade
     let capabilityPolicy: DistributionCapabilityPolicy
@@ -14,13 +15,15 @@ struct BatterySectionView: View {
         statusStore: SystemStatusStore,
         previewIsDark: Binding<Bool>,
         helper: PrivilegedHelperFacade = PrivilegedHelperFacade(service: UnsupportedPrivilegedHelperService()),
-        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
+        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
+        chargeToFullNow: ChargeToFullNowController? = nil
     ) {
         self.store = store
         self.statusStore = statusStore
         _previewIsDark = previewIsDark
         self.helper = helper
         self.capabilityPolicy = capabilityPolicy
+        self.chargeToFullNow = chargeToFullNow
     }
 
     var body: some View {
@@ -32,6 +35,73 @@ struct BatterySectionView: View {
             )
         }) {
             batteryGroup
+            powerFlowGroup
+        }
+    }
+
+    private var powerFlowGroup: some View {
+        SettingsGroup(localization.string(.settingsBatteryPowerFlow)) {
+            SettingsToggleRow(symbol: "powerplug.fill", tint: .orange,
+                title: localization.string(.batteryPowerInput),
+                isOn: $store.showsChargerInputPower)
+            SettingsDivider()
+            SettingsToggleRow(symbol: "battery.100.bolt", tint: .green,
+                title: localization.string(.batteryPowerCharging),
+                isOn: $store.showsBatteryChargingPower)
+            SettingsDivider()
+            SettingsToggleRow(symbol: "laptopcomputer", tint: .blue,
+                title: localization.string(.batteryPowerSystem),
+                isOn: $store.showsSystemPower)
+            SettingsDivider()
+            SettingsToggleRow(symbol: "app", tint: .purple,
+                title: localization.string(.batteryHighEnergyApps),
+                subtitle: localization.string(.batteryEnergyMonitoringDescription),
+                isOn: $store.showsHighEnergyApps)
+            if store.showsHighEnergyApps {
+                SettingsDivider()
+                SettingsRow(
+                    "timer",
+                    tint: .purple,
+                    title: localization.string(.settingsBatteryEnergyRefreshInterval),
+                    subtitle: localization.string(.settingsBatteryEnergyRefreshIntervalDescription)
+                ) {
+                    HStack(spacing: 8) {
+                        Slider(
+                            value: Binding(
+                                get: { store.highEnergyAppsRefreshIntervalSeconds },
+                                set: { store.highEnergyAppsRefreshIntervalSeconds = ($0 / 5).rounded() * 5 }
+                            ),
+                            in: SettingsStore.highEnergyAppsRefreshIntervalRange
+                        )
+                        .frame(width: 130)
+                        .controlSize(.small)
+                        .accessibilityLabel(
+                            localization.string(.settingsBatteryEnergyRefreshInterval)
+                        )
+                        .accessibilityValue(
+                            localization.format(
+                                .settingsRefreshIntervalValue,
+                                Int(store.highEnergyAppsRefreshIntervalSeconds)
+                            )
+                        )
+
+                        Text(
+                            localization.format(
+                                .settingsRefreshIntervalValue,
+                                Int(store.highEnergyAppsRefreshIntervalSeconds)
+                            )
+                        )
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 50, alignment: .trailing)
+                    }
+                }
+            }
+            Text(localization.string(.settingsBatteryPowerFlowDescription))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(12)
         }
     }
 
@@ -43,6 +113,20 @@ struct BatterySectionView: View {
             if helper.isAvailable,
                !capabilityPolicy.blocksControl(.privilegedHelper) {
                 lowPowerModeGroup
+
+                SettingsDivider()
+            }
+
+            if let chargeToFullNow, chargeToFullNow.isSettingAvailable {
+                SettingsToggleRow(
+                    symbol: "bolt.badge.clock.fill",
+                    tint: .green,
+                    title: localization.string(.settingsBatteryShowChargeToFullNow),
+                    subtitle: localization.string(
+                        .settingsBatteryShowChargeToFullNowDescription
+                    ),
+                    isOn: $store.showsChargeToFullNowButton
+                )
 
                 SettingsDivider()
             }

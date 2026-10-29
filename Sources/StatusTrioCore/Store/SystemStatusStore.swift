@@ -75,6 +75,11 @@ final class SystemStatusStore: ObservableObject {
     @Published private(set) var isNetworkConstrained = false
     @Published private(set) var liveVolume: VolumeStatus
     @Published private(set) var liveInput = AudioInputStatus.empty
+    @Published private(set) var betterDisplayState = BetterDisplayCatalogUpdate(
+        devices: [], availability: .idle
+    )
+    var betterDisplayDevices: [BetterDisplayDevice] { betterDisplayState.devices }
+    var betterDisplayAvailability: BetterDisplayAvailability { betterDisplayState.availability }
     let batteryDetails: BatteryDetailsController
     let wifiNetworks: WiFiNetworkController
     /// The wired link's address configuration. Read while the popover is open on
@@ -116,7 +121,13 @@ final class SystemStatusStore: ObservableObject {
     private var isVPNActiveForPopover = false
     private var inputUpdateTask: Task<Void, Never>?
     private var inputSettingsCancellable: AnyCancellable?
+    private var externalVolumeSettingsCancellable: AnyCancellable?
+    private weak var boundExternalVolumeSettings: SettingsStore?
     private var localIPSettingsCancellable: AnyCancellable?
+    private var applicationEnergySettingsCancellable: AnyCancellable?
+    private var isApplicationEnergyEnabled = false
+    private var isApplicationEnergySystemAsleep = false
+    private var isApplicationEnergyDisplayAsleep = false
     private var mobileBatterySettingsCancellable: AnyCancellable?
     private var lowPowerModeSettingsCancellable: AnyCancellable?
     private var lowPowerModeSnapshotCancellable: AnyCancellable?
@@ -273,6 +284,7 @@ final class SystemStatusStore: ObservableObject {
     func start() {
         guard !hasStarted, !hasStopped else { return }
         hasStarted = true
+        updateApplicationEnergyDemand()
         wifiMonitor.setDetailsVisible(false)
         volumeMonitor.setDetailsVisible(false)
 
@@ -291,6 +303,10 @@ final class SystemStatusStore: ObservableObject {
                 // over-polling is the safe direction, permanent staleness is
                 // not.
                 self.isDisplayAsleep = false
+                // Unlike the icon fallback poll, an energy scan must stay
+                // paused through a dark wake while the display is still off.
+                self.isApplicationEnergySystemAsleep = false
+                self.updateApplicationEnergyDemand()
                 self.bluetoothDevices.setSystemSleeping(false)
                 self.volumeMonitor.setDisplayAsleep(false)
                 self.displayAsleepSkipCount = 0
@@ -306,6 +322,8 @@ final class SystemStatusStore: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
+                self?.isApplicationEnergySystemAsleep = true
+                self?.updateApplicationEnergyDemand()
                 self?.bluetoothDevices.setSystemSleeping(true)
                 self?.reconcileBluetoothDemand()
             }
@@ -318,6 +336,8 @@ final class SystemStatusStore: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.isDisplayAsleep = true
+                self?.isApplicationEnergyDisplayAsleep = true
+                self?.updateApplicationEnergyDemand()
                 self?.volumeMonitor.setDisplayAsleep(true)
             }
         }
@@ -330,6 +350,11 @@ final class SystemStatusStore: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.isDisplayAsleep = false
+                self.isApplicationEnergyDisplayAsleep = false
+                // A display wake also proves that the system is awake, even
+                // when its separate system-wake notification was missed.
+                self.isApplicationEnergySystemAsleep = false
+                self.updateApplicationEnergyDemand()
                 self.volumeMonitor.setDisplayAsleep(false)
                 self.displayAsleepSkipCount = 0
                 self.reconcileBluetoothDemand()
@@ -362,6 +387,7 @@ final class SystemStatusStore: ObservableObject {
         let wifiUpdates = wifiMonitor.updates
         let connectionUpdates = connectionMonitor?.updates
         let volumeUpdates = volumeMonitor.updates
+        let betterDisplayCatalogUpdates = volumeMonitor.betterDisplayCatalogUpdates
         var tasks = [
             Task { [weak self] in
                 for await value in batteryUpdates {
@@ -379,6 +405,12 @@ final class SystemStatusStore: ObservableObject {
                 for await value in volumeUpdates {
                     guard let self else { return }
                     self.applyVolume(value)
+                }
+            },
+            Task { [weak self] in
+                for await value in betterDisplayCatalogUpdates {
+                    guard let self else { return }
+                    self.applyBetterDisplayCatalog(value)
                 }
             }
         ]
@@ -413,6 +445,11 @@ final class SystemStatusStore: ObservableObject {
         isInputEnabled = false
         inputSettingsCancellable?.cancel()
         inputSettingsCancellable = nil
+        externalVolumeSettingsCancellable?.cancel()
+        externalVolumeSettingsCancellable = nil
+        applicationEnergySettingsCancellable?.cancel()
+        applicationEnergySettingsCancellable = nil
+        batteryDetails.energyApps.stop()
         mobileBatterySettingsCancellable?.cancel()
         mobileBatterySettingsCancellable = nil
         lowPowerModeSettingsCancellable?.cancel()
@@ -824,6 +861,31 @@ final class SystemStatusStore: ObservableObject {
         setPopoverVisible(true)
     }
 
+    func bindExternalVolumeSettings(_ settings: SettingsStore) {
+        guard !hasStopped else { return }
+        boundExternalVolumeSettings = settings
+        volumeMonitor.setExternalVolumeConfigurations(
+            settings.externalVolumeConfigurations
+        )
+        externalVolumeSettingsCancellable = settings.$externalVolumeConfigurations
+            .removeDuplicates()
+            .sink { [weak self] configurations in
+                self?.volumeMonitor.setExternalVolumeConfigurations(configurations)
+            }
+    }
+
+    func refreshBetterDisplayDevices() {
+        guard !hasStopped else { return }
+        betterDisplayState = BetterDisplayCatalogUpdate(
+            devices: betterDisplayState.devices,
+            availability: .discovering,
+            isCatalogLoaded: false,
+            outputUID: betterDisplayState.outputUID,
+            displayUUID: betterDisplayState.displayUUID
+        )
+        volumeMonitor.refreshBetterDisplayDevices()
+    }
+
     func setRefreshInterval(_ interval: Duration) {
         guard interval != refreshInterval else { return }
         refreshInterval = interval
@@ -838,7 +900,14 @@ final class SystemStatusStore: ObservableObject {
         // The system's own state may have changed while the popover was closed
         // (Control Center, the battery menu), so re-read it through the helper
         // before the battery row shows a stale Low Power Mode value.
-        if visible { lowPowerMode.refresh() }
+        if visible {
+            // A visible user surface repairs a missed display-wake signal
+            // without resuming background work during network-only wakes.
+            isApplicationEnergySystemAsleep = false
+            isApplicationEnergyDisplayAsleep = false
+            updateApplicationEnergyDemand()
+            lowPowerMode.refresh()
+        }
         mobileBattery.setSurfaceVisible(visible)
         updateAppleRefreshDemand()
         inputMonitor?.setVisible(visible)
@@ -1031,6 +1100,26 @@ final class SystemStatusStore: ObservableObject {
                 self.isLocalIPEnabled = enabled
                 self.updateLocalIPActivation()
             }
+    }
+
+    func bindApplicationEnergySettings(_ settings: SettingsStore) {
+        guard !hasStopped else { return }
+        applicationEnergySettingsCancellable = settings.$showsHighEnergyApps
+            .combineLatest(settings.$highEnergyAppsRefreshIntervalSeconds)
+            .removeDuplicates { $0 == $1 }
+            .sink { [weak self] enabled, intervalSeconds in
+                guard let self else { return }
+                self.isApplicationEnergyEnabled = enabled
+                self.batteryDetails.energyApps.setBackgroundInterval(
+                    .seconds(Int(intervalSeconds.rounded()))
+                )
+                self.updateApplicationEnergyDemand()
+            }
+    }
+
+    private func updateApplicationEnergyDemand() {
+        batteryDetails.energyApps.setSuspended(isApplicationEnergySystemAsleep || isApplicationEnergyDisplayAsleep)
+        batteryDetails.energyApps.setBackgroundMonitoringEnabled(hasStarted && !hasStopped && isApplicationEnergyEnabled)
     }
 
     func bindMobileBatterySettings(_ settings: SettingsStore) {
@@ -1307,7 +1396,32 @@ final class SystemStatusStore: ObservableObject {
             liveVolume = value
         }
         publish(snapshot.replacingVolume(value))
+        associateCurrentBetterDisplayOutputIfNeeded()
         reconcileBluetoothDemand()
+    }
+
+    private func applyBetterDisplayCatalog(_ value: BetterDisplayCatalogUpdate) {
+        guard betterDisplayState != value else { return }
+        betterDisplayState = value
+        associateCurrentBetterDisplayOutputIfNeeded()
+    }
+
+    private func associateCurrentBetterDisplayOutputIfNeeded() {
+        guard !hasStopped, liveVolume.controlSource != .native,
+              let settings = boundExternalVolumeSettings,
+              let uid = liveVolume.currentDevice?.uid,
+              betterDisplayState.outputUID == uid,
+              betterDisplayState.isCatalogLoaded,
+              let uuid = betterDisplayState.automaticDisplayUUID,
+              betterDisplayState.devices.contains(where: { $0.uuid == uuid })
+        else { return }
+        let configuration = settings.externalVolumeConfiguration(for: uid)
+        guard configuration.backend == .betterDisplay,
+              configuration.betterDisplayUUID == nil
+        else { return }
+        settings.setExternalVolumeConfiguration(
+            .init(backend: .betterDisplay, betterDisplayUUID: uuid), for: uid
+        )
     }
 
     private func publish(_ next: StatusSnapshot) {
@@ -1385,7 +1499,11 @@ private extension VolumeStatus {
             deviceName: deviceName,
             currentDevice: currentDevice,
             outputDevices: outputDevices,
-            canSetVolume: canSetVolume, canMute: canMute
+            canSetVolume: canSetVolume, canMute: canMute,
+            muteState: muteState,
+            externalVolumeTransitionGeneration:
+                externalVolumeTransitionGeneration,
+            controlSource: controlSource
         )
     }
 
@@ -1396,7 +1514,11 @@ private extension VolumeStatus {
             deviceName: deviceName,
             currentDevice: currentDevice,
             outputDevices: outputDevices,
-            canSetVolume: canSetVolume, canMute: canMute
+            canSetVolume: canSetVolume, canMute: canMute,
+            muteState: isMuted ? .muted : .unmuted,
+            externalVolumeTransitionGeneration:
+                externalVolumeTransitionGeneration,
+            controlSource: controlSource
         )
     }
 }

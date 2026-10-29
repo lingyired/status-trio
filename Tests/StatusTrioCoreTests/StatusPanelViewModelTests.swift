@@ -751,7 +751,8 @@ final class PanelStoreFixture {
 
     func makePanel(
         actions: StatusPanelActions? = nil,
-        inputSourceController: InputSourceController? = nil
+        inputSourceController: InputSourceController? = nil,
+        chargeToFullNow: ChargeToFullNowController? = nil
     ) -> StatusPanelViewModel {
         StatusPanelViewModel(
             store: store,
@@ -759,7 +760,8 @@ final class PanelStoreFixture {
             localization: localization,
             actions: actions ?? StatusPanelActions(),
             updateScheduler: updateScheduler,
-            inputSourceController: inputSourceController
+            inputSourceController: inputSourceController,
+            chargeToFullNow: chargeToFullNow
         )
     }
 }

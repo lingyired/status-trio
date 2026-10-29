@@ -6,8 +6,27 @@ import XCTest
 
 @MainActor
 final class HuaweiTransportLifecycleTests: XCTestCase {
+    private static let immediateTransportTiming = HuaweiRFCOMMTransport.Hooks(
+        connectionReadyTimeout: 0,
+        sdpSettlingDuration: 0,
+        sdpServiceWaitTimeout: 0,
+        channelOpenTimeout: 0
+    )
+
+    func testProductionTimingDefaultsRemainUnchanged() {
+        let hooks = HuaweiRFCOMMTransport.Hooks()
+
+        XCTAssertEqual(hooks.connectionReadyTimeout, 5)
+        XCTAssertEqual(hooks.sdpSettlingDuration, 1)
+        XCTAssertEqual(hooks.sdpServiceWaitTimeout, 1)
+        XCTAssertEqual(hooks.channelOpenTimeout, 2)
+    }
+
     func testChannelFailureReleasesAnApplicationOpenedBluetoothConnection() async {
-        let probe = ConnectionOwnershipProbe(channelOpenStatus: kIOReturnError)
+        let probe = ConnectionOwnershipProbe(
+            channelOpenStatus: kIOReturnError,
+            timing: Self.immediateTransportTiming
+        )
         let transport = HuaweiRFCOMMTransport(hooks: probe.hooks)
 
         do {
@@ -39,7 +58,10 @@ final class HuaweiTransportLifecycleTests: XCTestCase {
     }
 
     func testOpenThatNeverConnectsIsReleased() async {
-        let probe = ConnectionOwnershipProbe(connectsAfterOpen: false)
+        let probe = ConnectionOwnershipProbe(
+            connectsAfterOpen: false,
+            timing: Self.immediateTransportTiming
+        )
         let transport = HuaweiRFCOMMTransport(hooks: probe.hooks)
 
         do {
@@ -80,7 +102,7 @@ final class HuaweiTransportLifecycleTests: XCTestCase {
     }
 
     func testCloseAllReleasesAnApplicationOpenedBluetoothConnection() async {
-        let probe = ConnectionOwnershipProbe()
+        let probe = ConnectionOwnershipProbe(timing: Self.immediateTransportTiming)
         let transport = HuaweiRFCOMMTransport(hooks: probe.hooks)
         do {
             _ = try await transport.state(address: "AA:BB:CC:DD:EE:FF")
@@ -97,7 +119,10 @@ final class HuaweiTransportLifecycleTests: XCTestCase {
     }
 
     func testCloseAllLeavesAPreExistingBluetoothConnectionOpen() async throws {
-        let probe = ConnectionOwnershipProbe(initiallyConnected: true)
+        let probe = ConnectionOwnershipProbe(
+            initiallyConnected: true,
+            timing: Self.immediateTransportTiming
+        )
         let transport = HuaweiRFCOMMTransport(hooks: probe.hooks)
         _ = try await transport.state(address: "AA:BB:CC:DD:EE:FF")
 
@@ -131,7 +156,8 @@ final class HuaweiTransportLifecycleTests: XCTestCase {
 
     func testExchangeFailureReleasesAnApplicationOpenedBluetoothConnection() async {
         let probe = ConnectionOwnershipProbe(
-            channelWriteStatus: kIOReturnError
+            channelWriteStatus: kIOReturnError,
+            timing: Self.immediateTransportTiming
         )
         let transport = HuaweiRFCOMMTransport(hooks: probe.hooks)
 
@@ -151,7 +177,8 @@ final class HuaweiTransportLifecycleTests: XCTestCase {
     func testExchangeFailureLeavesAPreExistingBluetoothConnectionOpen() async {
         let probe = ConnectionOwnershipProbe(
             initiallyConnected: true,
-            channelWriteStatus: kIOReturnError
+            channelWriteStatus: kIOReturnError,
+            timing: Self.immediateTransportTiming
         )
         let transport = HuaweiRFCOMMTransport(hooks: probe.hooks)
 
@@ -172,7 +199,8 @@ final class HuaweiTransportLifecycleTests: XCTestCase {
         let channelOpened = expectation(description: "RFCOMM channel opened")
         let probe = ConnectionOwnershipProbe(
             channelOpened: channelOpened,
-            holdChannelOpenUntilReleased: true
+            holdChannelOpenUntilReleased: true,
+            timing: Self.immediateTransportTiming
         )
         let transport = HuaweiRFCOMMTransport(hooks: probe.hooks)
         let read = Task.detached {
@@ -479,7 +507,8 @@ private final class ConnectionOwnershipProbe: @unchecked Sendable {
         sdpStarted: XCTestExpectation? = nil,
         holdSDPUntilReleased: Bool = false,
         channelOpened: XCTestExpectation? = nil,
-        holdChannelOpenUntilReleased: Bool = false
+        holdChannelOpenUntilReleased: Bool = false,
+        timing: HuaweiRFCOMMTransport.Hooks? = nil
     ) {
         let sessionsClosed = XCTestExpectation(description: "sessions closed")
         self.sessionsClosed = sessionsClosed
@@ -501,7 +530,12 @@ private final class ConnectionOwnershipProbe: @unchecked Sendable {
         )
         self.state = state
         self.device = device
+        let timing = timing ?? HuaweiRFCOMMTransport.Hooks()
         hooks = HuaweiRFCOMMTransport.Hooks(
+            connectionReadyTimeout: timing.connectionReadyTimeout,
+            sdpSettlingDuration: timing.sdpSettlingDuration,
+            sdpServiceWaitTimeout: timing.sdpServiceWaitTimeout,
+            channelOpenTimeout: timing.channelOpenTimeout,
             pairedDevices: { [device] },
             didCloseSessions: { _ in sessionsClosed.fulfill() }
         )

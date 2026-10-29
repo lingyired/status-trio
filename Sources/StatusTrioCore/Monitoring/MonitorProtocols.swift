@@ -46,6 +46,7 @@ protocol VPNMonitoring: AnyObject {
 @MainActor
 protocol VolumeMonitoring: AnyObject {
     var updates: AsyncStream<VolumeStatus> { get }
+    var betterDisplayCatalogUpdates: AsyncStream<BetterDisplayCatalogUpdate> { get }
     func start()
     func stop()
     func refresh()
@@ -53,11 +54,23 @@ protocol VolumeMonitoring: AnyObject {
     func setDetailsVisible(_ visible: Bool)
     func setDisplayAsleep(_ asleep: Bool)
     func topologyChanged()
+    func setExternalVolumeConfigurations(
+        _ configurations: [String: ExternalVolumeConfiguration]
+    )
+    func refreshBetterDisplayDevices()
 }
 
 @MainActor
 extension VolumeMonitoring {
+    var betterDisplayCatalogUpdates: AsyncStream<BetterDisplayCatalogUpdate> {
+        AsyncStream { $0.finish() }
+    }
+
     func setDetailsVisible(_ visible: Bool) {}
     func setDisplayAsleep(_ asleep: Bool) {}
     func topologyChanged() {}
+    func setExternalVolumeConfigurations(
+        _ configurations: [String: ExternalVolumeConfiguration]
+    ) {}
+    func refreshBetterDisplayDevices() {}
 }

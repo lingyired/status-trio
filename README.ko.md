@@ -67,6 +67,39 @@ Status Trio는 Wi-Fi, 배터리, 볼륨을 하나의 간결하고 설정 가능�
 - **항상 최신 상태 유지** — 상태는 시스템 이벤트에서 가져오고 느린 폴링을 대체 수단으로 사용하며, Sparkle은 서명된 피드를 통해 앱을 업데이트합니다.
 - **함께 제공되는 기능** — 열두 개 언어와 선택적 로그인 시 실행 기능입니다.
 
+## 설치
+
+Homebrew 공식 Cask로 설치:
+
+```bash
+brew install --cask status-trio
+```
+
+Homebrew로 설치한 버전 업데이트:
+
+```bash
+brew upgrade --cask status-trio
+```
+
+또는 [GitHub Releases](https://github.com/lingyired/status-trio/releases/latest)에서 최신 `StatusTrio-*.dmg`를 내려받아 열고 `Status Trio.app`을 `/Applications`로 드래그하세요.
+
+공식 릴리스는 Developer ID로 서명되었으며 Apple 공증을 받았습니다. 설치 후 일반적인 방법으로 열면 됩니다. 격리 속성 제거 명령은 필요하지 않습니다. 앱 내 업데이트는 Sparkle과 EdDSA 서명 검증을 사용합니다.
+
+## 입력 소스와 오디오 제어
+
+- **입력 소스 아이콘**: 메뉴 막대와 Dock 중앙에 현재 입력기를 표시할 수 있습니다. **설정 › 네트워크**에서 선택하며 패널에서 활성화된 입력 소스를 선택하여 전환할 수 있습니다.
+- **전역 단축키**: **설정 › 일반**에서 지정하면 다른 앱에서도 패널을 열고 닫을 수 있습니다. 기본값은 미지정입니다.
+- **Bluetooth 제어**: 패널에서 Bluetooth 켜기/끄기, 기기 연결/해제, 지원되는 AirPods와 HUAWEI FreeBuds의 듣기 모드를 제어합니다. 선택적인 Apple 기기 배터리 행은 Bluetooth 설정에서 구성하며 기기와 연결에 따라 지원 여부가 달라집니다.
+- **오디오 입력과 출력**: 스피커와 마이크를 선택하고 입력·출력 음량을 조절합니다. 호환 외장 디스플레이 스피커는 DDC로 제어하며 하드웨어와 연결에 따라 지원 여부가 달라집니다.
+- **충전과 외관**: 메뉴 막대와 Dock의 충전 효과를 지원합니다. macOS 26 이상에서는 Finder와 Launchpad의 앱 아이콘도 시스템의 밝고 어두운 외관을 따릅니다.
+
+## main의 새 기능 (미출시)
+
+다음 기능은 `main` 소스에 포함되지만 현재 GitHub / Homebrew 공개 버전 **1.7.5**에는 포함되지 않습니다:
+
+- **전력 흐름과 CPU 에너지 영향**: 충전기 입력, 배터리 충전, 시스템 전력의 추정값을 표시합니다. 선택 목록은 CPU 에너지 기준으로 최대 5개 앱을 표시하며 카운터가 없으면 CPU 활동량으로 대체합니다. 전체 앱 에너지나 macOS 기본 고에너지 목록이 아닙니다. 활성화하면 주기적인 백그라운드 샘플링이 시작되고 비활성화하면 중단됩니다. [설명](docs/battery-power-flow.md).
+- **지금 완전히 충전 및 취소**: macOS 26.4 이상을 실행하는 지원 Apple Silicon Mac에서 선택적으로 활성화할 수 있으며 기본값은 꺼짐입니다. 비공개 PowerUI 인터페이스로 충전 한도를 해제합니다. **완충 또는 전원 재연결 후에도 한도가 100%로 남을 수 있으며 자동 복원되지 않습니다.** 취소로 복원을 요청하거나 시스템 설정에서 한도를 확인하고 복원하세요. 동작은 macOS에 따라 달라집니다. [동작과 검증](docs/charge-to-full-now-poc.md).
+
 ## Bluetooth 오디오
 
 Bluetooth로 오디오를 재생하는 동안 **설정 › Bluetooth** 아래의 두 스위치로 가운데 기호를 해당 기기 고유의 심볼로 바꿀 수 있고 — AirPods, 헤드폰, 스피커 및 기타 기기는 각자의 심볼을 제공합니다 — 볼륨 점 또는 호를 파란색으로 표시할 수 있습니다. 둘 다 기본적으로 꺼져 있습니다. 기본적으로 켜져 있는 **네트워크 오류 우선**은 연결 자체에 문제가 있는 동안 네트워크 아이콘을 유지합니다:
@@ -149,27 +182,6 @@ bash scripts/build-app.sh release no-open
 
 Ad-hoc 서명된 번들은 로컬 개인 사용을 위한 것입니다. 번들이 격리 메타데이터와 함께 전송되면 Gatekeeper가 이를 거부할 수 있습니다.
 
-## GitHub 릴리스 설치
-
-[GitHub 릴리스 페이지](https://github.com/lingyired/status-trio/releases)에서 최신 `StatusTrio-*.dmg`를 내려받아 열고 `Status Trio.app`을 `/Applications`에 복사합니다.
-
-현재 공개 빌드는 ad-hoc 서명되어 있지만 Apple의 공증을 받지 않았습니다. macOS는 첫 실행 시 다음 경고를 표시할 수 있습니다:
-
-> Apple은 “Status Trio”에 Mac을 손상시키거나 개인 정보를 침해할 수 있는 악성 코드가 없는지 확인할 수 없습니다.
-
-이것은 Developer ID 서명과 Apple 공증이 없어서 발생하는 Gatekeeper 경고입니다. 그 자체로 앱에 악성 코드가 포함되어 있다는 뜻은 아닙니다. 공식 GitHub 릴리스 페이지에서 DMG를 내려받았고 공개된 SHA-256 체크섬이 일치할 때만 경고를 우회하십시오.
-
-앱을 `/Applications`에 복사한 후 격리 속성을 제거하고 엽니다:
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/Status Trio.app"
-open "/Applications/Status Trio.app"
-```
-
-또는 앱을 한 번 열어 본 다음 **시스템 설정 → 개인정보 보호 및 보안**으로 이동해 **그래도 열기**를 선택하십시오.
-
-Gatekeeper를 전역으로 비활성화하지 마십시오. 이후의 Sparkle 업데이트는 앱의 EdDSA 서명 키로 인증됩니다. `xattr` 명령은 보통 최초 수동 설치에만 필요합니다.
-
 ## 사용 방법
 
 - 메뉴 막대 아이콘이나 Dock 아이콘을 **왼쪽 클릭**하면 상태 팝오버가 열립니다.
@@ -184,7 +196,7 @@ Gatekeeper를 전역으로 비활성화하지 마십시오. 이후의 Sparkle �
 macOS와 이 프로젝트가 의도적으로 그은 두 가지 경계가 있습니다. 둘 다 [알려진 제한 사항](docs/known-limitations.md)에 설명되어 있습니다.
 
 - **네트워크 전환은 시스템 설정에서 이루어집니다.** 팝오버에서 네트워크를 선택하면 Wi-Fi 패널이 열립니다. Status Trio는 Wi-Fi 암호를 읽거나 저장하지 않습니다. macOS가 저장된 암호로 연결할 수 있는 공개 API를 제공하지 않으며, 다른 모든 방법은 결국 앱이 암호를 보관하게 되기 때문입니다.
-- **“지금 완전히 충전”은 macOS에 남아 있습니다.** 최적화된 배터리 충전이나 충전 한도로 인해 충전이 일시 중지되면, 팝오버는 일시 중지된 상태를 그대로 표시하고 배터리 패널로 이동하는 링크를 제공합니다. 앱이 한도를 넘어 충전을 재개할 수 있는 공개 API는 없으며, Status Trio는 이를 위해 SMC에 쓰거나 권한 있는 helper를 함께 제공하지 않습니다.
+- **충전 한도 제어는 버전에 따라 다릅니다.** 공개 버전 1.7.5는 시스템 설정을 사용합니다. `main`의 선택 기능은 비공개 인터페이스를 사용하며 복원을 요청하려면 직접 취소해야 합니다. [설명](docs/charge-to-full-now-poc.md). 저전력 모드는 별도의 [선택적 권한 Helper](docs/privileged-helper.md)를 사용합니다.
 
 ## 언어
 
@@ -192,14 +204,16 @@ Status Trio는 기본적으로 macOS의 선호 언어를 따르며 English, 简�
 
 ## 개인정보 보호
 
-Status Trio는 공개 macOS 프레임워크를 통해 상태를 읽습니다. App Sandbox를 사용하지 않고 네트워크 권한도 필요로 하지 않으며, 원격 측정이나 분석을 포함하지 않습니다. Wi-Fi 암호를 읽거나 저장하지 않으며 키체인 접근을 요청하지도 않습니다. 위치 접근은 선택 사항이며 현재 Wi-Fi 네트워크 이름을 표시하거나 Wi-Fi 세부 정보를 열 때만 요청합니다. Bluetooth 접근은 Bluetooth 세부 정보를 열 때만 요청하며, 페어링된 기기의 연결 상태를 표시하기 위한 것입니다.
+Status Trio는 시스템 상태를 로컬에서 읽습니다. 익명 사용 통계는 사용자가 활성화한 경우에만 자사 서비스로 전송합니다. 업그레이드 시 기본값은 꺼짐이며 새 설치는 온보딩에서 선택합니다. 전송 항목은 무작위 설치 ID, 앱과 macOS 버전, 언어, 아이콘 위치이며 이름, 계정, 네트워크 정보, 하드웨어 식별자는 포함하지 않습니다. [개인정보 설명](docs/privacy-telemetry.md). Wi-Fi 암호를 읽거나 저장하지 않고 키체인 접근을 요청하지 않습니다. 위치 권한은 선택적인 Wi-Fi 이름과 세부 정보에 사용하며 Bluetooth 패널 활성화 시 Bluetooth 권한을 요청합니다. `main`의 완충 제어는 활성화된 경우에만 비공개 PowerUI 인터페이스를 사용합니다. 제한은 앞의 설명을 참조하세요.
 
 ## 개발
 
 테스트 스위트를 실행합니다:
 
 ```bash
-swift test
+bash scripts/verify-local.sh quick BatteryMonitorTests
+bash scripts/verify-local.sh docs
+bash scripts/verify-local.sh full
 ```
 
 헬퍼를 통해 특정 XCTest 필터를 실행합니다:
