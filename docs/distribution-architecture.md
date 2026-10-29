@@ -78,8 +78,8 @@ PR 的两个只读 job 固定同一 merge SHA，分别运行 Direct full 与 Sto
 
 ## 产品、隐私与共存
 
-Direct ID 保持 `com.lingsmbp.StatusTrio`；Store 候选 ID 为
-`com.lingsmbp.StatusTrio.AppStore`，其 ASC 注册/可用性未核验。版本默认共同读取
+Direct ID 保持 `com.lingsmbp.StatusTrio`；Store ID 为
+`com.lingai.StatusTrio`，其 ASC 注册/可用性未核验。版本默认共同读取
 `Support/Info.plist`；当前值 `1.7.0 (38)`，不根据 main 提交标题推断公开版本。
 Store 输出位于 `dist/AppStore/StatusTrio.app`。同目录安装需使用不同文件名；
 不同 Bundle ID 不能防止 Finder 替换同名文件。

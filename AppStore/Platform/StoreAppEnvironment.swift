@@ -27,6 +27,9 @@ extension AppEnvironment {
             inputMonitor: AudioInputMonitor(
                 hardware: CoreAudioInputHardware()
             ),
+            appleDeviceDiscovery: AppleDeviceDiscoveryController(
+                reader: UnavailableMobileBatteryReader()
+            ),
             refreshInterval: settings.refreshInterval
         )
         return makeLive(
@@ -39,7 +42,8 @@ extension AppEnvironment {
                 service: UnsupportedPrivilegedHelperService()
             ),
             platformCapabilities: PlatformCapabilities.appStore,
-            distributionChannel: .appStore
+            distributionChannel: .appStore,
+            systemIconAppearance: { .default }
         )
     }
 
@@ -50,6 +54,7 @@ extension AppEnvironment {
         vpnMonitor: (any VPNMonitoring)? = nil,
         volumeMonitor: any VolumeMonitoring,
         inputMonitor: (any AudioInputMonitoring)? = nil,
+        appleDeviceDiscovery: AppleDeviceDiscoveryController,
         refreshInterval: Duration = .seconds(15),
         batteryDetails: BatteryDetailsController? = nil,
         wifiNetworks: WiFiNetworkController? = nil,
@@ -66,6 +71,7 @@ extension AppEnvironment {
             vpnMonitor: vpnMonitor,
             volumeMonitor: volumeMonitor,
             inputMonitor: inputMonitor,
+            volumeFeedback: nil,
             refreshInterval: refreshInterval,
             batteryDetails: batteryDetails ?? BatteryDetailsController(
                 systemPowerReader: UnavailableSystemPowerReader()
@@ -82,6 +88,7 @@ extension AppEnvironment {
             mobileBattery: mobileBattery ?? MobileBatteryController(
                 reader: UnavailableMobileBatteryReader()
             ),
+            appleDeviceDiscovery: appleDeviceDiscovery,
             bluetoothListeningModes: bluetoothListeningModes ?? storeListeningModeController(),
             lowPowerMode: lowPowerMode ?? LowPowerModeController(
                 client: UnavailableLowPowerModeClient()
@@ -97,6 +104,7 @@ extension AppEnvironment {
             accessoryBatteryReader: PublicAccessoryBatteryReader(),
             connectionEvents: IOBluetoothConnectionEventMonitor(),
             accessoryBatteryEvents: nil,
+            allowsDeviceActions: false,
             nearbyBatteryScanner: CoreBluetoothLEBatteryScanner()
         )
     }

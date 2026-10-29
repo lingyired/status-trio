@@ -109,6 +109,13 @@ PY
     )"
 fi
 
+# BEGIN STORE DEVELOPMENT CODENAME
+DEVELOPMENT_CODENAME="${APP_STORE_DEVELOPMENT_CODENAME-}"
+if [[ -z "$ARCHIVE_PATH" && -z "${APP_STORE_DEVELOPMENT_CODENAME+x}" ]]; then
+    DEVELOPMENT_CODENAME="App Store"
+fi
+# END STORE DEVELOPMENT CODENAME
+
 cd "$ROOT"
 
 [[ -f "$VERIFIER" && -r "$VERIFIER" ]] ||
@@ -257,6 +264,15 @@ ditto "$BUILT_APP" "$STORE_APP"
 if [[ ! -f "$STORE_APP/Contents/Info.plist" ]]; then
     fail "missing Store Info.plist in $STORE_APP."
 fi
+if [[ -n "$DEVELOPMENT_CODENAME" ]]; then
+    /usr/libexec/PlistBuddy \
+        -c "Add :STDevelopmentCodename string $DEVELOPMENT_CODENAME" \
+        "$STORE_APP/Contents/Info.plist"
+else
+    /usr/libexec/PlistBuddy \
+        -c "Delete :STDevelopmentCodename" \
+        "$STORE_APP/Contents/Info.plist" 2>/dev/null || true
+fi
 if [[ ! -f "$STORE_APP/Contents/Frameworks/StatusTrioCore.framework/StatusTrioCore" ]]; then
     fail "missing embedded StatusTrioCore.framework in $STORE_APP."
 fi
@@ -308,7 +324,7 @@ ACTUAL_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$STO
     fail "Store version $ACTUAL_VERSION does not match expected $EXPECTED_VERSION."
 [[ "$ACTUAL_BUILD" == "$EXPECTED_BUILD" ]] ||
     fail "Store build $ACTUAL_BUILD does not match expected $EXPECTED_BUILD."
-[[ "$ACTUAL_BUNDLE_ID" == "com.lingsmbp.StatusTrio.AppStore" ]] ||
+[[ "$ACTUAL_BUNDLE_ID" == "com.lingai.StatusTrio" ]] ||
     fail "Store Bundle ID is $ACTUAL_BUNDLE_ID."
 
 plutil -lint "$STORE_APP/Contents/Info.plist" "$ENTITLEMENTS" >/dev/null

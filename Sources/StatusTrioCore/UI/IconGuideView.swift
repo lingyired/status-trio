@@ -318,6 +318,7 @@ struct IconGuideView: View {
     @ObservedObject var settings: SettingsStore
     @Binding var isMenuBarHelpPresented: Bool
     @EnvironmentObject private var localization: Localization
+    @Environment(\.systemIconAppearance) private var systemIconAppearance
     @State var selectedPart: IconGuidePart = .battery
     private let menuBarHelpPolicy = MenuBarHelpPolicy()
 
@@ -462,7 +463,7 @@ struct IconGuideView: View {
     private var resolvedDockBackgroundStyle: DockIconBackgroundStyle {
         DockIconBackgroundResolver.style(
             for: settings.dockIconBackgroundPreference,
-            theme: SystemIconAppearanceReader.current(),
+            theme: systemIconAppearance(),
             isDarkAppearance: NSApplication.shared.effectiveAppearance
                 .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         )

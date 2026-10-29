@@ -6,6 +6,7 @@ enum DistributionCapabilityID: String, CaseIterable, Sendable {
     case updates
     case ddc
     case appleListeningMode = "bluetooth.apple-listening-mode"
+    case bluetoothBatteryLevels = "bluetooth.battery-levels"
     case bluetoothRadioPower = "bluetooth.radio-power"
     case privilegedHelper = "power.privileged-helper"
     case privatePowerReaders = "power.private-readers"
@@ -20,9 +21,9 @@ enum DistributionCapabilityID: String, CaseIterable, Sendable {
 /// Store records are merged over the canonical Store contract, so an omitted or
 /// partial composition cannot silently permit a private implementation. Direct
 /// has an empty default contract because its existing runtime gates remain
-/// authoritative. Public providers that are still `notVerified` are not
-/// presented as `available`; they are also not globally disabled because
-/// permission and runtime state remain the authoritative gates for them.
+/// authoritative. A `notVerified` provider has no evidence that its real
+/// operation works in this distribution, so it is blocked rather than allowed to
+/// reach a hardware write behind a clickable control.
 struct DistributionCapabilityPolicy: Equatable, Sendable {
     let channel: DistributionChannel
     private let records: [String: PlatformCapabilityRecord]
@@ -60,10 +61,10 @@ struct DistributionCapabilityPolicy: Equatable, Sendable {
     }
 
     /// Returns true only when this build's capability contract must prevent the
-    /// control or action. Public `notVerified` capabilities stay runtime-driven;
-    /// the mobile battery helper is the exception because its implementation is
-    /// known to be absent from the Store bundle. A Store lookup with no record is
-    /// a composition error and stays blocked; Direct keeps its runtime contract.
+    /// control or action. `notVerified` is a composition-time block: runtime
+    /// permission cannot make an unverified implementation safe to write through.
+    /// A Store lookup with no record is a composition error and stays blocked;
+    /// Direct keeps its runtime contract.
     func blocksControl(_ capability: DistributionCapabilityID) -> Bool {
         guard let availability = availability(of: capability) else {
             return channel == .appStore
@@ -72,7 +73,7 @@ struct DistributionCapabilityPolicy: Equatable, Sendable {
         case .unsupported:
             return true
         case .notVerified:
-            return capability.requiresAvailableImplementation
+            return true
         case .available, .permissionRequired, .temporarilyUnavailable:
             return false
         }
@@ -116,11 +117,5 @@ extension DistributionChannel {
         case .appStore:
             "Mac App Store"
         }
-    }
-}
-
-private extension DistributionCapabilityID {
-    var requiresAvailableImplementation: Bool {
-        self == .mobileBatteryHelper
     }
 }

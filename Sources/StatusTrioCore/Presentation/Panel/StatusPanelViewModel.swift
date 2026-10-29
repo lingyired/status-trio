@@ -95,7 +95,11 @@ final class StatusPanelViewModel: ObservableObject {
         self.capabilityPolicy = capabilityPolicy
         self.actions = actions
         visiblePopupSections = settings.visiblePopupSections
-        battery = PanelPresentationMapper.battery(store.popupSnapshot.battery, localization: localization)
+        battery = PanelPresentationMapper.battery(
+            store.popupSnapshot.battery,
+            allowsDetails: !capabilityPolicy.blocksControl(.privatePowerReaders),
+            localization: localization
+        )
         network = PanelPresentationMapper.network(
             wifi: store.popupSnapshot.wifi,
             connection: store.popupSnapshot.connection,
@@ -112,6 +116,7 @@ final class StatusPanelViewModel: ObservableObject {
         volume = AudioPanelMapper.volume(
             store.liveVolume,
             controllerAvailable: store.isVolumeControllerAvailable,
+            allowsDDC: !capabilityPolicy.blocksControl(.ddc),
             deviceList: AudioOutputListPreferences(
                 order: settings.outputDeviceOrder,
                 visibleLimit: settings.visibleOutputDeviceLimit
@@ -246,10 +251,15 @@ final class StatusPanelViewModel: ObservableObject {
             batteryLevelsReadFailed: controller.batteryLevelsReadFailed,
             isExpanded: bluetoothIsExpanded,
             options: settings.bluetoothDeviceListOptions,
-            showsBatteryLevels: settings.showsBluetoothBatteryLevels,
-            showsNearbyBatteryDevices: settings.showsNearbyBluetoothBatteryDevices,
+            showsBatteryLevels: settings.showsBluetoothBatteryLevels
+                && !capabilityPolicy.blocksControl(.bluetoothBatteryLevels),
+            showsNearbyBatteryDevices: settings.showsNearbyBluetoothBatteryDevices
+                && !capabilityPolicy.blocksControl(.mobileBatteryHelper),
             confirmingAddress: controller.pendingDisconnectConfirmation,
-            localization: localization
+            localization: localization,
+            allowsDeviceActions: !capabilityPolicy.blocksControl(
+                .publicBluetoothReaders
+            )
         )
         if bluetooth != state { bluetooth = state }
         // The view reads the controller's row presentations directly. Publish a
@@ -282,6 +292,7 @@ final class StatusPanelViewModel: ObservableObject {
         return AudioPanelMapper.volume(
             status,
             controllerAvailable: store.isVolumeControllerAvailable,
+            allowsDDC: !capabilityPolicy.blocksControl(.ddc),
             deviceList: outputPreferences,
             listeningModes: store.bluetoothListeningModes,
             listeningModeTaskID: makeListeningModeTaskID(outputDevices: status.outputDevices),
@@ -548,7 +559,11 @@ final class StatusPanelViewModel: ObservableObject {
         let isConstrained = deliveredConstraint ?? store.isNetworkConstrained
         let isResolvingName = deliveredResolutionState ?? store.isResolvingWiFiName
         if isVisible(.battery) {
-            let batteryState = PanelPresentationMapper.battery(snapshot.battery, localization: localization)
+            let batteryState = PanelPresentationMapper.battery(
+                snapshot.battery,
+                allowsDetails: !capabilityPolicy.blocksControl(.privatePowerReaders),
+                localization: localization
+            )
             if battery != batteryState { battery = batteryState }
         }
         if isVisible(.network) {
@@ -739,7 +754,8 @@ private extension VolumePanelState {
             expandLabel: expandLabel,
             collapseLabel: collapseLabel,
             listeningModeTaskID: listeningModeTaskID,
-            previewLanguageCode: previewLanguageCode
+            previewLanguageCode: previewLanguageCode,
+            isUnsupportedDDCOutput: isUnsupportedDDCOutput
         )
     }
 
@@ -761,7 +777,8 @@ private extension VolumePanelState {
             expandLabel: expandLabel,
             collapseLabel: collapseLabel,
             listeningModeTaskID: listeningModeTaskID,
-            previewLanguageCode: previewLanguageCode
+            previewLanguageCode: previewLanguageCode,
+            isUnsupportedDDCOutput: isUnsupportedDDCOutput
         )
     }
 }

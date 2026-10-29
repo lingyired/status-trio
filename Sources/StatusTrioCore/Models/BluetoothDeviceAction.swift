@@ -60,6 +60,15 @@ enum BluetoothDeviceActionPolicy {
         !device.isReadOverTheAir
     }
 
+    /// A row offers an action only when both the device can carry one and the
+    /// compiled distribution permits the hardware write.
+    static func offersAction(
+        for device: BluetoothDevice,
+        allowsDeviceActions: Bool
+    ) -> Bool {
+        allowsDeviceActions && isActionable(device)
+    }
+
     /// Which action a tap requests, from the device's current state.
     static func action(for device: BluetoothDevice) -> BluetoothDeviceAction {
         device.isConnected ? .disconnect : .connect

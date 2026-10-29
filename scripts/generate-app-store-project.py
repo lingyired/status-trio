@@ -9,6 +9,7 @@ import json
 import os
 import plistlib
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -38,7 +39,7 @@ APP_LOCALIZATION_DIRECTORIES = (
 DEFAULT_PROJECT_SPEC = "AppStore/project.json"
 DEFAULT_GENERATED_ROOT = ".build/app-store"
 DEFAULT_INFO_PLIST = "Support/Info.plist"
-STORE_BUNDLE_ID = "com.lingsmbp.StatusTrio.AppStore"
+STORE_BUNDLE_ID = "com.lingai.StatusTrio"
 STORE_DISPLAY_NAME = "Status Trio (App Store)"
 STORE_EXECUTABLE = "StatusTrio"
 STORE_MODULE = "StatusTrioCore"
@@ -48,6 +49,7 @@ STORE_VERSION_XCCONFIG = "AppStore/Version.xcconfig"
 STORE_ENTITLEMENTS = "Distribution/AppStore.entitlements"
 STORE_ENTITLEMENTS_TEMPLATE = "Distribution/AppStore.entitlements"
 STORE_PRIVACY_MANIFEST = "AppStore/PrivacyInfo.xcprivacy"
+STORE_GENERATED_RESOURCE_ROOT = ".build/app-store/generated/resources"
 SHARED_RESOURCE_GROUP = "SharedStoreResources"
 SWIFT_VERSION = "6.0"
 MACOS_DEPLOYMENT_TARGET = "13.0"
@@ -101,6 +103,86 @@ FORBIDDEN_SWIFT_IMPORTS = {
 SWIFT_DEFINES = ["STATUS_TRIO_APP_STORE"]
 SOURCE_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 SOURCE_TREE_SHA_RE = re.compile(r"^[0-9a-f]{64}$")
+STORE_INFO_STRING_KEYS = (
+    "NSLocationUsageDescription",
+    "NSLocationWhenInUseUsageDescription",
+    "NSBluetoothAlwaysUsageDescription",
+)
+STORE_BLUETOOTH_PURPOSES = {
+    "ar": (
+        "يعرض حالة اتصال Bluetooth، ويقرأ معلومات البطارية/الطراز للأجهزة "
+        "القريبة المسماة والأجهزة الموثوقة مسبقًا؛ ولا تُستخدم قراءات الأجهزة "
+        "القريبة إلا بمعرّفات BLE UUID التي تمنحها الإذن صراحةً."
+    ),
+    "de": (
+        "Zeigt den Bluetooth-Verbindungsstatus und liest Batterie-/Modellinformationen "
+        "für benannte Geräte in der Nähe und bereits vertrauenswürdige Geräte; "
+        "Nahbereichsdaten werden nur über ausdrücklich autorisierte BLE-UUIDs gelesen."
+    ),
+    "en": (
+        "Shows Bluetooth connection status, reads battery/model metadata for nearby "
+        "named devices and devices already trusted by this Mac; nearby devices are "
+        "read only when explicitly authorized by BLE UUID."
+    ),
+    "es": (
+        "Muestra el estado de conexión Bluetooth y lee información de batería/modelo "
+        "de dispositivos cercanos con nombre y dispositivos ya fiables; las lecturas "
+        "cercanas usan solo UUID de BLE que autorices explícitamente."
+    ),
+    "fr": (
+        "Affiche l’état de connexion Bluetooth et lit les informations de "
+        "batterie/modèle des appareils nommés à proximité et des appareils déjà "
+        "approuvés ; les lectures à proximité utilisent uniquement les UUID BLE "
+        "explicitement autorisés."
+    ),
+    "it": (
+        "Mostra lo stato della connessione Bluetooth e legge informazioni su "
+        "batteria/modello per dispositivi nelle vicinanze con nome e dispositivi già "
+        "attendibili; le letture vicine usano solo UUID BLE autorizzati esplicitamente."
+    ),
+    "ja": (
+        "Bluetooth の接続状態を表示し、近くの名前付きデバイスとこの Mac が信頼済みの"
+        "デバイスのバッテリー/モデル情報を読み取ります。近距離の読み取りは明示的に"
+        "許可した BLE UUID のみを使用します。"
+    ),
+    "ko": (
+        "Bluetooth 연결 상태를 표시하고, 근처의 이름이 있는 기기와 이 Mac이 신뢰하는 "
+        "기기의 배터리/모델 정보를 읽습니다. 근거리 읽기는 명시적으로 승인한 BLE "
+        "UUID만 사용합니다."
+    ),
+    "pt-BR": (
+        "Mostra o estado da conexão Bluetooth e lê informações de bateria/modelo de "
+        "dispositivos próximos com nome e dispositivos já confiáveis; as leituras "
+        "próximas usam apenas UUIDs BLE autorizados explicitamente."
+    ),
+    "ru": (
+        "Показывает состояние подключения Bluetooth и считывает сведения о батарее "
+        "и модели для ближайших именованных устройств и устройств, которым уже "
+        "доверяет этот Mac; для ближайших устройств используются только явно "
+        "разрешённые BLE UUID."
+    ),
+    "zh-Hans": (
+        "用于显示蓝牙连接状态，为附近有名称的设备及此 Mac 已信任的设备读取电量/型号"
+        "信息；附近读取仅使用你明确授权的 BLE UUID。"
+    ),
+    "zh-Hant": (
+        "用於顯示藍牙連線狀態，為附近有名稱的裝置及此 Mac 已信任的裝置讀取電量/型號"
+        "資訊；附近讀取僅使用你明確授權的 BLE UUID。"
+    ),
+}
+STORE_UNSUPPORTED_PURPOSE_PATTERNS = (
+    re.compile(r"(?i)noise[- ]control|noise cancellation|noise reduction"),
+    re.compile(r"(?i)Rauschunterdrückung"),
+    re.compile(r"(?i)cancelación de ruido"),
+    re.compile(r"(?i)réduction de bruit"),
+    re.compile(r"(?i)cancellazione del rumore"),
+    re.compile(r"ノイズコントロール"),
+    re.compile(r"노이즈 컨트롤"),
+    re.compile(r"(?i)cancelamento de ruído"),
+    re.compile(r"(?i)шумоподавления"),
+    re.compile(r"降噪"),
+    re.compile(r"إلغاء الضوضاء"),
+)
 FILE_LIST_RELATIVE_PATH_RE = re.compile(
     r"^Build/Intermediates\.noindex/(?:ArchiveIntermediates/[^/]+/IntermediateBuildFilesPath/)?StatusTrioAppStore\.build/(?P<configuration>Debug|Release)/StatusTrioCore\.build/Objects-normal/(?P<architecture>arm64|x86_64)/StatusTrioCore\.SwiftFileList$"
 )
@@ -245,6 +327,143 @@ def validate_app_resource_inputs(root: Path) -> list[str]:
         raise GenerationError(f"missing Store app icon source: {APP_ICON_SOURCE}")
     validate_privacy_manifest(root, repo_path(root, STORE_PRIVACY_MANIFEST))
     return app_info_plist_resources(root)
+
+
+def parse_info_plist_strings(path: Path) -> dict[str, str]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise GenerationError(f"cannot read localized purpose strings {path}: {exc}") from exc
+    values: dict[str, str] = {}
+    for line_number, raw_line in enumerate(text.splitlines(), 1):
+        line = raw_line.strip()
+        if not line or line.startswith(("//", "/*", "*")):
+            continue
+        if "=" not in line or not line.endswith(";"):
+            raise GenerationError(
+                f"invalid localized purpose string at {path}:{line_number}"
+            )
+        raw_key, raw_value = line.split("=", 1)
+        try:
+            key = json.loads(raw_key.strip())
+            value = json.loads(raw_value.strip()[:-1].strip())
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise GenerationError(
+                f"invalid quoted purpose string at {path}:{line_number}: {exc}"
+            ) from exc
+        if not isinstance(key, str) or not isinstance(value, str):
+            raise GenerationError(
+                f"localized purpose string is not a string pair at {path}:{line_number}"
+            )
+        if key in values:
+            raise GenerationError(f"duplicate purpose key {key} at {path}:{line_number}")
+        values[key] = value
+    missing = sorted(set(STORE_INFO_STRING_KEYS) - set(values))
+    if missing:
+        raise GenerationError(
+            f"{path} is missing Store purpose key(s): {', '.join(missing)}"
+        )
+    return values
+
+
+def validate_store_purpose_text(text: str, label: str) -> None:
+    for pattern in STORE_UNSUPPORTED_PURPOSE_PATTERNS:
+        if pattern.search(text):
+            raise GenerationError(
+                f"{label} claims unsupported noise-control behavior: {pattern.pattern}"
+            )
+
+
+def prepare_store_resources(root: Path) -> list[str]:
+    """Copy shared resources with Store-specific TCC purpose strings."""
+
+    validate_app_resource_inputs(root)
+    if set(STORE_BLUETOOTH_PURPOSES) != {
+        directory.removesuffix(".lproj")
+        for directory in APP_LOCALIZATION_DIRECTORIES
+    }:
+        raise GenerationError(
+            "Store Bluetooth purpose translations do not match the supported locales"
+        )
+    source_root = repo_path(root, SHARED_RESOURCE_ROOT)
+    output_root = repo_path(root, STORE_GENERATED_RESOURCE_ROOT)
+    output_root.parent.mkdir(parents=True, exist_ok=True)
+    temporary_root = output_root.with_name(output_root.name + ".tmp")
+    if temporary_root.exists():
+        shutil.rmtree(temporary_root)
+    try:
+        shutil.copytree(source_root, temporary_root)
+        for directory in APP_LOCALIZATION_DIRECTORIES:
+            locale = directory.removesuffix(".lproj")
+            source = (
+                source_root
+                / directory
+                / "InfoPlist.strings"
+            )
+            values = parse_info_plist_strings(source)
+            values["NSBluetoothAlwaysUsageDescription"] = STORE_BLUETOOTH_PURPOSES[locale]
+            lines = [
+                f"{json.dumps(key, ensure_ascii=False)} = "
+                f"{json.dumps(values[key], ensure_ascii=False)};"
+                for key in STORE_INFO_STRING_KEYS
+            ]
+            generated_text = "\n".join(lines) + "\n"
+            validate_store_purpose_text(
+                generated_text,
+                f"generated {directory}/InfoPlist.strings",
+            )
+            destination = temporary_root / directory / "InfoPlist.strings"
+            destination.write_text(generated_text, encoding="utf-8")
+        if output_root.exists():
+            shutil.rmtree(output_root)
+        temporary_root.replace(output_root)
+    except (OSError, shutil.Error) as exc:
+        raise GenerationError(f"cannot generate Store resources: {exc}") from exc
+    finally:
+        if temporary_root.exists():
+            shutil.rmtree(temporary_root)
+    return generated_shared_resource_files(root)
+
+
+def generated_shared_resource_files(root: Path) -> list[str]:
+    directory = repo_path(root, STORE_GENERATED_RESOURCE_ROOT)
+    if not directory.is_dir():
+        raise GenerationError(
+            f"missing generated Store resource directory: {STORE_GENERATED_RESOURCE_ROOT}"
+        )
+    resources = sorted(
+        repo_relative(root, path)
+        for path in directory.rglob("*")
+        if path.is_file() and path.name != ".DS_Store"
+    )
+    if not resources:
+        raise GenerationError("generated Store resources are empty")
+    return resources
+
+
+def generated_app_info_plist_resources(root: Path) -> list[str]:
+    expected = [
+        f"{STORE_GENERATED_RESOURCE_ROOT}/{directory}/InfoPlist.strings"
+        for directory in APP_LOCALIZATION_DIRECTORIES
+    ]
+    missing = [path for path in expected if not repo_path(root, path).is_file()]
+    if missing:
+        raise GenerationError(
+            "generated Store resources are missing localized purpose strings:\n  "
+            + "\n  ".join(missing)
+        )
+    discovered = sorted(
+        repo_relative(root, path)
+        for path in repo_path(root, STORE_GENERATED_RESOURCE_ROOT).glob(
+            "*.lproj/InfoPlist.strings"
+        )
+        if path.is_file()
+    )
+    if discovered != expected:
+        raise GenerationError(
+            "generated Store purpose-string membership differs from the supported locales"
+        )
+    return expected
 
 
 def shared_resource_files(root: Path) -> list[str]:
@@ -713,8 +932,8 @@ def project_spec(
     # Keep this explicit. XcodeGen's target source membership is the boundary
     # that prevents Direct implementation files from entering Store Core.
     store_core_sources = included + platform
-    app_localizations = validate_app_resource_inputs(root)
-    core_resources = shared_resource_files(root)
+    app_localizations = generated_app_info_plist_resources(root)
+    core_resources = generated_shared_resource_files(root)
     privacy_manifest = STORE_PRIVACY_MANIFEST
     store_icon = store_icon_path(root)
     swift_defines = " ".join(SWIFT_DEFINES)
@@ -731,7 +950,7 @@ def project_spec(
             "Release": STORE_VERSION_XCCONFIG,
         },
         "options": {
-            "bundleIdPrefix": "com.lingsmbp.StatusTrio",
+            "bundleIdPrefix": "com.lingai.StatusTrio",
             "deploymentTarget": {"macOS": MACOS_DEPLOYMENT_TARGET},
             "developmentLanguage": "en",
             "minimumXcodeGenVersion": XCODEGEN_REQUIRED_VERSION_TEXT,
@@ -1521,6 +1740,7 @@ def generate(
             )
 
     write_generated_inputs(root, version, build)
+    prepare_store_resources(root)
     prepare_store_icon(root)
     write_membership_audit(
         output_root,

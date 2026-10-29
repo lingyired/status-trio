@@ -185,6 +185,32 @@ final class DistributionCapabilityUIIntegrationTests: XCTestCase {
         )
     }
 
+    func testStoreOnboardingDoesNotReopenOnlyForPendingTelemetryConsent() {
+        withDefaults { defaults in
+            let settings = SettingsStore(defaults: defaults)
+            settings.hasCompletedIconGuideOnboarding = true
+            let activationPolicy = AppActivationPolicy(
+                application: DistributionActivationPolicyApplicationSpy()
+            )
+            let controller = OnboardingWindowController(
+                settings: settings,
+                localization: Localization(
+                    defaults: defaults,
+                    preferredLanguages: ["en"]
+                ),
+                activationPolicy: activationPolicy,
+                distributionChannel: .appStore
+            )
+
+            controller.showIfNeeded()
+
+            XCTAssertNil(
+                controller.window,
+                "Store onboarding must not reopen only to request ineligible telemetry consent"
+            )
+        }
+    }
+
     func testStoreGeneralSourceHasNoAnalyticsGroupAndDirectKeepsIt() throws {
         let source = try String(
             contentsOf: repositoryRoot.appendingPathComponent(
@@ -202,6 +228,191 @@ final class DistributionCapabilityUIIntegrationTests: XCTestCase {
             source.contains("analyticsGroup.disabled"),
             "a disabled Store toggle would still disclose and persist consent"
         )
+    }
+
+    func testStoreBluetoothSettingsHideUnsupportedBatteryFeaturesWithoutReasonRows() throws {
+        let source = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/StatusTrioCore/UI/Settings/BluetoothSectionView.swift"
+            ),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(
+            source.contains("blocksControl(.bluetoothBatteryLevels)"),
+            "the Bluetooth battery toggle must be removed by capability, not disabled"
+        )
+        XCTAssertTrue(
+            source.contains("blocksControl(.mobileBatteryHelper)"),
+            "Apple device battery settings must disappear when the helper is unavailable"
+        )
+        XCTAssertFalse(
+            source.contains("capabilityPolicy.unavailableReasonKey"),
+            "a hidden Store feature must not leave an unavailable-reason row behind"
+        )
+    }
+
+    func testStoreBluetoothSettingsHideEmptyDeviceStatesButDirectKeepsThem() {
+        let store = BluetoothSectionPresentation(channel: .appStore)
+        let direct = BluetoothSectionPresentation(channel: .direct)
+
+        XCTAssertFalse(
+            store.showsNetworkIconSourceHint(hasDeviceOptions: false),
+            "Store must not render a no-devices hint for a reader it cannot use"
+        )
+        XCTAssertFalse(
+            store.showsDeviceOrderGroup(hasDevices: false),
+            "Store must omit the empty device-order card instead of its no-data label"
+        )
+        XCTAssertTrue(store.showsDeviceOrderGroup(hasDevices: true))
+        XCTAssertTrue(store.showsNetworkIconSourceHint(hasDeviceOptions: true))
+
+        XCTAssertTrue(
+            direct.showsNetworkIconSourceHint(hasDeviceOptions: false),
+            "Direct keeps its explanatory empty state"
+        )
+        XCTAssertTrue(
+            direct.showsDeviceOrderGroup(hasDevices: false),
+            "Direct keeps its device-order card and empty-state label"
+        )
+    }
+
+    func testStoreBatterySettingsKeepThresholdButHidePrivateReaderExplanation() throws {
+        let source = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/StatusTrioCore/UI/Settings/BatterySectionView.swift"
+            ),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(source.contains("settingsBatteryFullThreshold"))
+        XCTAssertFalse(
+            source.contains("capabilityPolicy.unavailableReasonKey"),
+            "Store must hide the private reader instead of explaining that it is unavailable"
+        )
+        XCTAssertTrue(
+            source.contains("if !capabilityPolicy.blocksControl(.privatePowerReaders)"),
+            "the generic system-unavailable hint must be gated with the private reader"
+        )
+    }
+
+    func testStoreBluetoothPanelHidesUnsupportedBatteryReadPlaceholder() throws {
+        let source = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/StatusTrioCore/UI/BluetoothStatusView.swift"
+            ),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(
+            source.contains("blocksControl(.bluetoothBatteryLevels)"),
+            "the panel must not request a reader omitted from the Store build"
+        )
+        XCTAssertTrue(
+            source.contains("resolvedShowsBatteryLevels"),
+            "battery requests and placeholders must use the capability-gated setting"
+        )
+        XCTAssertTrue(
+            source.contains("resolvedShowsAppleDevicesAndBattery"),
+            "Apple device projections must also disappear when the Store build cannot read them"
+        )
+    }
+
+    func testStoreBatterySummaryHidesPrivatePowerDetails() {
+        withDefaults { defaults in
+            let localization = Localization(
+                defaults: defaults,
+                preferredLanguages: ["en"]
+            )
+            let battery = BatteryStatus(
+                rawPercentage: 80,
+                isPresent: true,
+                isCharging: false,
+                isLowPowerMode: false,
+                isConnectedToPower: false
+            )
+            let policy = DistributionCapabilityPolicy.runtimeDefault(for: .appStore)
+            let state = PanelPresentationMapper.battery(
+                battery,
+                allowsDetails: !policy.blocksControl(.privatePowerReaders),
+                localization: localization
+            )
+            let view = BatteryStatusView(
+                state: state,
+                cautionColor: .yellow,
+                onOpenBatteryDetails: {},
+                onOpenBatterySettings: {}
+            )
+
+            XCTAssertEqual(
+                state.intent,
+                .none,
+                "Store must not expose a battery page backed by blocked private power readers"
+            )
+            XCTAssertFalse(
+                view.showsDetailAffordance,
+                "Store battery row must not draw a disabled chevron or detail affordance"
+            )
+        }
+    }
+
+    func testStoreHidesExternalDisplayVolumeWhenDDCIsUnsupported() {
+        withDefaults { defaults in
+            let localization = Localization(
+                defaults: defaults,
+                preferredLanguages: ["en"]
+            )
+            let display = AudioOutputDevice(
+                id: 42,
+                name: "Studio Display",
+                isCurrent: true,
+                transport: .displayPort
+            )
+            let status = VolumeStatus(
+                scalar: nil,
+                isMuted: false,
+                deviceName: display.name,
+                currentDevice: display,
+                outputDevices: [display],
+                canSetVolume: false,
+                canMute: false
+            )
+            let storeVolume = AudioPanelMapper.volume(
+                status,
+                controllerAvailable: true,
+                allowsDDC: false,
+                localization: localization
+            )
+
+            XCTAssertTrue(
+                storeVolume.isUnsupportedDDCOutput,
+                "a Store display with no CoreAudio volume depends on the blocked DDC path"
+            )
+            XCTAssertEqual(
+                PopupSectionVisibility.visibleSections(
+                    [.volume],
+                    volume: storeVolume
+                ),
+                [],
+                "the Store must hide the unavailable volume controls rather than show a disabled slider"
+            )
+
+            let directVolume = AudioPanelMapper.volume(
+                status,
+                controllerAvailable: true,
+                allowsDDC: true,
+                localization: localization
+            )
+            XCTAssertFalse(directVolume.isUnsupportedDDCOutput)
+            XCTAssertEqual(
+                PopupSectionVisibility.visibleSections(
+                    [.volume],
+                    volume: directVolume
+                ),
+                [.volume],
+                "Direct keeps its existing DDC discovery path"
+            )
+        }
     }
 
     func testAboutFooterUsesCardInsetOnlyOnce() throws {
@@ -336,6 +547,7 @@ final class DistributionCapabilityUIIntegrationTests: XCTestCase {
                 application: DistributionActivationPolicyApplicationSpy()
             ),
             showIconGuide: {},
+            launchAtLogin: LaunchAtLoginManager(),
             helper: PrivilegedHelperFacade(service: helperService),
             capabilityPolicy: capabilityPolicy
         )
@@ -394,7 +606,8 @@ final class DistributionCapabilityUIIntegrationTests: XCTestCase {
             localization: localization,
             activationPolicy: activationPolicy,
             showIconGuide: {},
-            chargingEffectClock: clock
+            chargingEffectClock: clock,
+            launchAtLogin: LaunchAtLoginManager()
         )
         let onboarding = OnboardingWindowController(
             settings: settings,

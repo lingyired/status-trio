@@ -8,6 +8,7 @@ Sources/StatusTrioCore/Audio/DDCDisplayTransport.swift
 Sources/StatusTrioCore/Audio/DDCReadProfile.swift
 Sources/StatusTrioCore/Audio/DDCTargetResolver.swift
 Sources/StatusTrioCore/Audio/DDCVolumeCoordinator.swift
+Sources/StatusTrioCore/Audio/VolumeFeedback.swift
 Sources/StatusTrioCore/Monitoring/BoundedProcessRunner.swift
 Sources/StatusTrioCore/Monitoring/IOBluetoothRadioPowerBackend.swift
 Sources/StatusTrioCore/Monitoring/MobileBatteryHelperReader.swift
@@ -23,3 +24,4 @@ Sources/StatusTrioCore/Platform/DirectInternetSharingDetector.swift
 Sources/StatusTrioCore/Platform/DirectPrivilegedPowerClient.swift
 Sources/StatusTrioCore/Platform/DirectSettingsStore.swift
 Sources/StatusTrioCore/Platform/DirectSubprocessReaders.swift
+Sources/StatusTrioCore/Platform/DirectSystemIconAppearanceReader.swift

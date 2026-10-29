@@ -389,7 +389,10 @@ final class AppEnvironment {
         makeUpdater: @MainActor (AppActivationPolicy) -> UpdateStateFacade,
         privilegedHelper: PrivilegedHelperFacade,
         platformCapabilities: [PlatformCapabilityRecord]? = nil,
-        distributionChannel: DistributionChannel = .current
+        distributionChannel: DistributionChannel = .current,
+        systemIconAppearance: @escaping () -> SystemIconAppearanceTheme = {
+            .default
+        }
     ) -> AppEnvironment {
         let localization = Localization()
         let inputSourceController = InputSourceController()
@@ -424,6 +427,7 @@ final class AppEnvironment {
                 : DockChargingAnimationPresenter()
         let dockVisibilityMonitor = DockVisibilityMonitor()
         let activationPolicy = AppActivationPolicy()
+        let launchAtLogin = LaunchAtLoginManager()
         let capabilityPolicy = DistributionCapabilityPolicy(
             channel: distributionChannel,
             records: platformCapabilities
@@ -432,7 +436,9 @@ final class AppEnvironment {
         let onboardingWindowController = OnboardingWindowController(
             settings: settings,
             localization: localization,
-            activationPolicy: activationPolicy
+            activationPolicy: activationPolicy,
+            distributionChannel: distributionChannel,
+            systemIconAppearance: systemIconAppearance
         )
         var settingsWindowController: SettingsWindowController?
         let controller = StatusBarController(
@@ -467,9 +473,11 @@ final class AppEnvironment {
             chargingEffectClock: chargingEffectClock,
             inputSourceController: inputSourceController,
             globalShortcutController: globalShortcutController,
+            launchAtLogin: launchAtLogin,
             helper: privilegedHelper,
             updaterManager: updater,
-            capabilityPolicy: capabilityPolicy
+            capabilityPolicy: capabilityPolicy,
+            systemIconAppearance: systemIconAppearance
         )
         settingsWindowController = resolvedSettingsWindowController
         onboardingWindowController.openSettings = { [weak resolvedSettingsWindowController] in
@@ -491,7 +499,8 @@ final class AppEnvironment {
                     backgroundStyle: backgroundStyle,
                     pixelLength: pixelLength
                 )
-            }
+            },
+            theme: systemIconAppearance
         )
         let mainMenuController = MainMenuController(
             activationPolicy: activationPolicy,

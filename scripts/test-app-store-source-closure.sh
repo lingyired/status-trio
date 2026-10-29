@@ -677,6 +677,17 @@ let nearMatchComponent = "MyStatusTrioMobileBatteryHelper"
 SWIFT
 expect_pass "ordinary public NSXPC connection" run_audit_after_source_change "$WORK/public-nsxpc"
 
+make_fixture "$WORK/global-preferences"
+cat >>"$WORK/global-preferences/Sources/StatusTrioCore/App/Shared.swift" <<'SWIFT'
+
+let globalTheme = CFPreferencesCopyAppValue(
+    "AppleIconAppearanceTheme" as CFString,
+    kCFPreferencesAnyApplication
+)
+SWIFT
+expect_fail_contains "global preference reader" "global preference" \
+    run_audit_after_source_change "$WORK/global-preferences"
+
 make_fixture "$WORK/private-names-in-comments"
 cat >>"$WORK/private-names-in-comments/Sources/StatusTrioCore/App/Shared.swift" <<'SWIFT'
 

@@ -72,9 +72,7 @@ final class AppIconController {
         application: any ApplicationDockIconApplying = NSApplication.shared,
         setMenuBarVisible: @escaping (Bool) -> Void,
         renderDockIcon: @escaping DockRenderer,
-        theme: @escaping () -> SystemIconAppearanceTheme = {
-            SystemIconAppearanceReader.current()
-        },
+        theme: @escaping () -> SystemIconAppearanceTheme,
         isDarkAppearance: @escaping () -> Bool = {
             NSApplication.shared.effectiveAppearance
                 .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua

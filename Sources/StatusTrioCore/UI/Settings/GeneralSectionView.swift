@@ -24,7 +24,7 @@ struct GeneralSectionView: View {
         store: SettingsStore,
         localization: Localization,
         globalShortcutController: GlobalShortcutController? = nil,
-        launchAtLogin: LaunchAtLoginManager = .shared,
+        launchAtLogin: LaunchAtLoginManager,
         updaterManager: UpdateStateFacade = UpdateStateFacade(service: SystemManagedUpdateService()),
         capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
     ) {

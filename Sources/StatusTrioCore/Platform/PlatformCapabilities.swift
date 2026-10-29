@@ -62,6 +62,7 @@ enum PlatformCapabilities {
         ),
         .unsupported("ddc", reason: "distribution.private-ddc"),
         .unsupported("bluetooth.apple-listening-mode", reason: "distribution.private-hal"),
+        .unsupported("bluetooth.battery-levels", reason: "distribution.reader-not-packaged"),
         .unsupported("bluetooth.radio-power", reason: "distribution.private-bluetooth"),
         .unsupported("power.privileged-helper", reason: "distribution.privileged-helper"),
         .unsupported("power.private-readers", reason: "distribution.private-power"),

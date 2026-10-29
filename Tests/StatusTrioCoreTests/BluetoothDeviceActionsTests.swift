@@ -17,7 +17,8 @@ final class BluetoothDeviceActionsTests: XCTestCase {
         device: BluetoothDevice,
         performer: any BluetoothDeviceActionPerforming,
         timeoutSleeper: ManualEventSleeper,
-        failureSleeper: ManualEventSleeper
+        failureSleeper: ManualEventSleeper,
+        allowsDeviceActions: Bool = true
     ) -> (BluetoothDeviceController, MutableBluetoothDeviceReader) {
         let reader = MutableBluetoothDeviceReader(devices: [device])
         let controller = BluetoothDeviceController(
@@ -27,6 +28,7 @@ final class BluetoothDeviceActionsTests: XCTestCase {
             notificationCenter: NotificationCenter(),
             workspaceNotificationCenter: NotificationCenter(),
             actionPerformer: performer,
+            allowsDeviceActions: allowsDeviceActions,
             actionTimeoutSleep: { duration in await timeoutSleeper.sleep(duration) },
             failureVisibleSleep: { duration in await failureSleeper.sleep(duration) }
         )
@@ -56,6 +58,23 @@ final class BluetoothDeviceActionsTests: XCTestCase {
 
         XCTAssertFalse(BluetoothDeviceActionPolicy.isActionable(reading))
         XCTAssertTrue(BluetoothDeviceActionPolicy.isActionable(makeDevice(isConnected: true)))
+    }
+
+    func testDistributionAuthorizationCanRemoveAnOtherwiseActionableRow() {
+        let device = makeDevice(isConnected: false)
+
+        XCTAssertFalse(
+            BluetoothDeviceActionPolicy.offersAction(
+                for: device,
+                allowsDeviceActions: false
+            )
+        )
+        XCTAssertTrue(
+            BluetoothDeviceActionPolicy.offersAction(
+                for: device,
+                allowsDeviceActions: true
+            )
+        )
     }
 
     func testTapOnAnUnconnectedDeviceAsksToConnectAndShowsConnecting() async {
@@ -88,6 +107,45 @@ final class BluetoothDeviceActionsTests: XCTestCase {
             .connecting
         )
         controller.deactivate()
+    }
+
+    func testDisabledDeviceActionsNeverInvokeTheSystemPerformer() async {
+        let device = makeDevice(isConnected: false)
+        let performer = BluetoothActionPerformerStub()
+        let (controller, _) = makeController(
+            device: device,
+            performer: performer,
+            timeoutSleeper: ManualEventSleeper(),
+            failureSleeper: ManualEventSleeper(),
+            allowsDeviceActions: false
+        )
+        controller.activate()
+        await waitUntil { controller.availability == .available }
+
+        controller.performDeviceAction(for: device)
+
+        XCTAssertTrue(performer.requests.isEmpty)
+        XCTAssertTrue(controller.deviceActionStates.isEmpty)
+        controller.deactivate()
+    }
+
+    func testDisabledDeviceActionsDoNotHoldADisconnectConfirmation() {
+        let device = makeDevice(
+            isConnected: true,
+            name: "MX Keys",
+            kind: .peripheral(.keyboard)
+        )
+        let (controller, _) = makeController(
+            device: device,
+            performer: BluetoothActionPerformerStub(),
+            timeoutSleeper: ManualEventSleeper(),
+            failureSleeper: ManualEventSleeper(),
+            allowsDeviceActions: false
+        )
+
+        controller.requestDisconnectConfirmation(for: device)
+
+        XCTAssertNil(controller.pendingDisconnectConfirmation)
     }
 
     func testConnectingClearsOnlyWhenTheReportShowsTheDeviceConnected() async {

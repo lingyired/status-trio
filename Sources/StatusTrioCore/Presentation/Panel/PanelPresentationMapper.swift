@@ -2,9 +2,14 @@ import Foundation
 
 @MainActor
 enum PanelPresentationMapper {
-    static func battery(_ status: BatteryStatus, localization: Localization) -> PanelSummaryState {
+    static func battery(
+        _ status: BatteryStatus,
+        allowsDetails: Bool = true,
+        localization: Localization
+    ) -> PanelSummaryState {
         let title = batteryTitle(status, localization: localization)
         let subtitle = batterySubtitle(status, localization: localization)
+        let showsDetails = status.isPresent && allowsDetails
 
         return PanelSummaryState(
             title: title,
@@ -15,7 +20,7 @@ enum PanelPresentationMapper {
             accessibilityLabel: title,
             accessibilityValue: subtitle,
             showsSettings: status.isPresent,
-            intent: status.isPresent ? .batteryDetails : .none
+            intent: showsDetails ? .batteryDetails : .none
         )
     }
 

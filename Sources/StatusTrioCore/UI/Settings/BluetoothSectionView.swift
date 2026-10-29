@@ -1,6 +1,24 @@
 import AppKit
 import SwiftUI
 
+struct BluetoothSectionPresentation: Equatable, Sendable {
+    let channel: DistributionChannel
+
+    /// Store builds omit empty-state rows instead of leaving a "no data"
+    /// placeholder on a pane whose corresponding reader is unavailable.
+    var hidesEmptyStates: Bool {
+        channel == .appStore
+    }
+
+    func showsNetworkIconSourceHint(hasDeviceOptions: Bool) -> Bool {
+        hasDeviceOptions || !hidesEmptyStates
+    }
+
+    func showsDeviceOrderGroup(hasDevices: Bool) -> Bool {
+        hasDevices || !hidesEmptyStates
+    }
+}
+
 /// Settings for Bluetooth audio icon and panel behavior.
 struct BluetoothSectionView: View {
     @ObservedObject var store: SettingsStore
@@ -15,6 +33,19 @@ struct BluetoothSectionView: View {
     var capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
     @EnvironmentObject private var localization: Localization
     @State private var settingsDemandToken: BluetoothSettingsDemandToken?
+
+    private var showsBluetoothBatterySettings: Bool {
+        !capabilityPolicy.blocksControl(.bluetoothBatteryLevels)
+    }
+
+    private var showsAppleBatterySettings: Bool {
+        showsBluetoothBatterySettings
+            && !capabilityPolicy.blocksControl(.mobileBatteryHelper)
+    }
+
+    private var presentation: BluetoothSectionPresentation {
+        BluetoothSectionPresentation(channel: capabilityPolicy.channel)
+    }
 
     var body: some View {
         SettingsPage(pinnedHeader: {
@@ -107,7 +138,11 @@ struct BluetoothSectionView: View {
                         bluetoothAudioIconChoiceRow
                     }
 
-                    if !sourceOptionsOffersDevices {
+                    if !presentation.showsNetworkIconSourceHint(
+                        hasDeviceOptions: sourceOptionsOffersDevices
+                    ) {
+                        EmptyView()
+                    } else if !sourceOptionsOffersDevices {
                         SettingsDivider()
 
                         SettingsHintRow(
@@ -136,35 +171,32 @@ struct BluetoothSectionView: View {
                     isOn: $store.prioritizesNetworkErrorsOverBluetoothAudio
                 )
 
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: SymbolFallback.name("battery.75percent", "battery.75"),
-                    tint: .green,
-                    title: localization.string(.settingsBluetoothBatteryLevels),
-                    subtitle: localization.string(.settingsBluetoothBatteryLevelsDescription),
-                    isOn: $store.showsBluetoothBatteryLevels
-                )
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "apple.logo",
-                    tint: .blue,
-                    title: localization.string(.settingsAppleDevicesAndBattery),
-                    subtitle: localization.string(.settingsAppleDevicesAndBatteryDescription),
-                    isOn: $store.showsAppleDevicesAndBattery
-                )
-
-                if store.showsAppleDevicesAndBattery {
+                if showsBluetoothBatterySettings {
                     SettingsDivider()
 
-                    if capabilityPolicy.blocksControl(.mobileBatteryHelper) {
-                        let reasonKey = capabilityPolicy.unavailableReasonKey(
-                            for: .mobileBatteryHelper
-                        ) ?? .capabilityNotVerified
-                        SettingsHintRow(text: localization.string(reasonKey))
-                    } else {
+                    SettingsToggleRow(
+                        symbol: SymbolFallback.name("battery.75percent", "battery.75"),
+                        tint: .green,
+                        title: localization.string(.settingsBluetoothBatteryLevels),
+                        subtitle: localization.string(.settingsBluetoothBatteryLevelsDescription),
+                        isOn: $store.showsBluetoothBatteryLevels
+                    )
+                }
+
+                if showsAppleBatterySettings {
+                    SettingsDivider()
+
+                    SettingsToggleRow(
+                        symbol: "apple.logo",
+                        tint: .blue,
+                        title: localization.string(.settingsAppleDevicesAndBattery),
+                        subtitle: localization.string(.settingsAppleDevicesAndBatteryDescription),
+                        isOn: $store.showsAppleDevicesAndBattery
+                    )
+
+                    if store.showsAppleDevicesAndBattery {
+                        SettingsDivider()
+
                         SettingsToggleRow(
                             symbol: "arrow.clockwise.circle",
                             tint: .green,
@@ -452,83 +484,88 @@ struct BluetoothSectionView: View {
         }
     }
 
+    @ViewBuilder
     private var deviceOrderGroup: some View {
-        SettingsGroup(
-            localization.string(.settingsBluetoothOrderTitle),
-            footnote: localization.string(.settingsBluetoothOrderFootnote)
+        if presentation.showsDeviceOrderGroup(
+            hasDevices: !orderedBluetoothDevices.isEmpty
         ) {
-            SettingsCustomRow(
-                "slider.horizontal.3",
-                tint: .blue,
-                title: localization.string(.settingsBluetoothOrderTitle),
-                subtitle: localization.string(.settingsBluetoothOrderDescription)
+            SettingsGroup(
+                localization.string(.settingsBluetoothOrderTitle),
+                footnote: localization.string(.settingsBluetoothOrderFootnote)
             ) {
-                if orderedBluetoothDevices.isEmpty {
-                    Label(
-                        localization.string(.settingsBluetoothOrderEmpty),
-                        systemImage: "questionmark.circle"
-                    )
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
-                } else {
-                    List {
-                        ForEach(orderedBluetoothDisplayRows, id: \.device.id) { displayRow in
-                            let device = displayRow.device
-                            let isHidden = displayRow.sourceIDs.allSatisfy {
-                                store.hiddenBluetoothDeviceAddresses.contains(BluetoothDeviceIdentity.preferenceKey($0))
-                            }
-                            HStack(alignment: .center, spacing: 10) {
-                                Image(systemName: BluetoothDeviceRowIcon.symbolName(for: device))
-                                    .foregroundStyle(device.isConnected ? Color.accentColor : Color.secondary)
-                                    .frame(width: 18, height: 18, alignment: .center)
-
-                                Text(device.name)
-                                    .font(.system(size: 13))
-                                    .lineLimit(1)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                Button {
-                                    for sourceID in displayRow.sourceIDs {
-                                        store.setBluetoothDeviceHidden(sourceID, hidden: !isHidden)
-                                    }
-                                } label: {
-                                    PanelActionGlyph(
-                                        systemName: isHidden ? "eye.slash" : "eye",
-                                        font: .system(size: 13),
-                                        size: 22
-                                    )
+                SettingsCustomRow(
+                    "slider.horizontal.3",
+                    tint: .blue,
+                    title: localization.string(.settingsBluetoothOrderTitle),
+                    subtitle: localization.string(.settingsBluetoothOrderDescription)
+                ) {
+                    if orderedBluetoothDevices.isEmpty {
+                        Label(
+                            localization.string(.settingsBluetoothOrderEmpty),
+                            systemImage: "questionmark.circle"
+                        )
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 8)
+                    } else {
+                        List {
+                            ForEach(orderedBluetoothDisplayRows, id: \.device.id) { displayRow in
+                                let device = displayRow.device
+                                let isHidden = displayRow.sourceIDs.allSatisfy {
+                                    store.hiddenBluetoothDeviceAddresses.contains(BluetoothDeviceIdentity.preferenceKey($0))
                                 }
-                                .buttonStyle(.plain)
-                                .help(isHidden
-                                      ? localization.string(.settingsBluetoothShowDevice)
-                                      : localization.string(.settingsBluetoothHideDevice))
-                                .accessibilityLabel(isHidden
-                                      ? localization.string(.settingsBluetoothShowDevice)
-                                      : localization.string(.settingsBluetoothHideDevice))
-                                .frame(width: 26)
+                                HStack(alignment: .center, spacing: 10) {
+                                    Image(systemName: BluetoothDeviceRowIcon.symbolName(for: device))
+                                        .foregroundStyle(device.isConnected ? Color.accentColor : Color.secondary)
+                                        .frame(width: 18, height: 18, alignment: .center)
 
-                                PanelActionGlyph(
-                                    systemName: "line.3.horizontal",
-                                    font: .caption,
-                                    size: 18
-                                )
-                                .foregroundStyle(.tertiary)
-                                .accessibilityHidden(true)
+                                    Text(device.name)
+                                        .font(.system(size: 13))
+                                        .lineLimit(1)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    Button {
+                                        for sourceID in displayRow.sourceIDs {
+                                            store.setBluetoothDeviceHidden(sourceID, hidden: !isHidden)
+                                        }
+                                    } label: {
+                                        PanelActionGlyph(
+                                            systemName: isHidden ? "eye.slash" : "eye",
+                                            font: .system(size: 13),
+                                            size: 22
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help(isHidden
+                                          ? localization.string(.settingsBluetoothShowDevice)
+                                          : localization.string(.settingsBluetoothHideDevice))
+                                    .accessibilityLabel(isHidden
+                                          ? localization.string(.settingsBluetoothShowDevice)
+                                          : localization.string(.settingsBluetoothHideDevice))
+                                    .frame(width: 26)
+
+                                    PanelActionGlyph(
+                                        systemName: "line.3.horizontal",
+                                        font: .caption,
+                                        size: 18
+                                    )
+                                    .foregroundStyle(.tertiary)
+                                    .accessibilityHidden(true)
+                                }
+                                .frame(height: 30)
+                                .opacity(isHidden ? 0.45 : 1)
                             }
-                            .frame(height: 30)
-                            .opacity(isHidden ? 0.45 : 1)
+                            .onMove { source, destination in
+                                store.moveBluetoothDevices(
+                                    fromOffsets: source,
+                                    toOffset: destination,
+                                    in: orderedBluetoothDisplayRows.map(\.device)
+                                )
+                            }
                         }
-                        .onMove { source, destination in
-                            store.moveBluetoothDevices(
-                                fromOffsets: source,
-                                toOffset: destination,
-                                in: orderedBluetoothDisplayRows.map(\.device)
-                            )
-                        }
+                        .listStyle(.inset)
+                        .frame(height: orderListHeight)
                     }
-                    .listStyle(.inset)
-                    .frame(height: orderListHeight)
                 }
             }
         }
@@ -581,7 +618,7 @@ struct BluetoothSectionView: View {
     /// Settings moves the row the user is looking at. Read from the observed
     /// controller, not the store, so a read that lands later repaints it.
     private var sourceBluetoothDevices: [BluetoothDevice] {
-        let trustedDevices = store.showsAppleDevicesAndBattery
+        let trustedDevices = showsAppleBatterySettings && store.showsAppleDevicesAndBattery
             ? AppleDeviceCatalog.candidates(trusted: store.trustedAppleDeviceMetadata + appleDeviceDiscovery.candidates)
                 .map { candidate in
                     BluetoothDevice(
@@ -621,7 +658,9 @@ struct BluetoothSectionView: View {
     }
 
     private var nearbySettingsCandidates: [NearbyBLEDeviceCandidate] {
-        guard store.showsAppleDevicesAndBattery, bluetoothDevices.authorization == .allowed else { return [] }
+        guard showsAppleBatterySettings,
+              store.showsAppleDevicesAndBattery,
+              bluetoothDevices.authorization == .allowed else { return [] }
         return NearbyBLEDeviceCatalog.settingsCandidates(selections: store.nearbyBLESelections)
     }
 

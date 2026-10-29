@@ -117,7 +117,8 @@ final class PreviewResourceLifecycleTests: XCTestCase {
             activationPolicy: AppActivationPolicy(
                 application: PreviewActivationApplication()
             ),
-            showIconGuide: {}
+            showIconGuide: {},
+            launchAtLogin: LaunchAtLoginManager()
         )
         var visibility: [Bool] = []
 
@@ -201,7 +202,8 @@ final class PreviewResourceLifecycleTests: XCTestCase {
             localization: localization,
             activationPolicy: activationPolicy,
             showIconGuide: {},
-            chargingEffectClock: clock
+            chargingEffectClock: clock,
+            launchAtLogin: LaunchAtLoginManager()
         )
         let statusBar = StatusBarController(
             store: store,

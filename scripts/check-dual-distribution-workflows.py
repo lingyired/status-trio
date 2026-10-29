@@ -16,6 +16,12 @@ TRUSTED_SHA_EXPR = "${{ github.sha }}"
 XCODEGEN_VERSION = "2.46.0"
 XCODEGEN_URL = "https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip"
 XCODEGEN_SHA256 = "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806"
+HOMEBREW_PREREQUISITE_STEP = "Install mobile helper build tools"
+HOMEBREW_PREREQUISITE_COMMAND = "brew install autoconf automake libtool pkg-config"
+NETWORK_COMMAND_RE = re.compile(
+    r"\b(?:curl|wget|gh|brew|git\s+clone|"
+    r"(?:npm|pnpm|yarn)\s+(?:install|ci|add)|pip[3]?\s+install)\b"
+)
 EXPRESSION_RE = re.compile(r"\$\{\{(.*?)\}\}", re.DOTALL)
 BRACKET_KEY_RE = re.compile(r"\[\s*(['\"])(.*?)\1\s*\]")
 SHELL_PIPE_SUFFIX_RE = re.compile(r"\s+2>&1\s*\|\s*tee(?:\s+-a)?\s+\S+\s*")
@@ -366,6 +372,78 @@ def job_steps(job: dict[str, Any], workflow: Workflow, name: str) -> list[Step]:
             raise PolicyError(f"{workflow.path}: job {name!r} has a non-mapping step")
         steps.append(Step(item.values, item.line))
     return steps
+
+
+def check_network_access(
+    steps: list[Step],
+    workflow: Workflow,
+    job_name: str,
+) -> None:
+    prerequisite_steps = [
+        step
+        for step in steps
+        if scalar_text(step.get("name")) == HOMEBREW_PREREQUISITE_STEP
+    ]
+    prerequisite_step: Step | None = None
+    if job_name == "direct":
+        if len(prerequisite_steps) != 1:
+            raise PolicyError(
+                f"{workflow.path}: direct must install the reviewed Homebrew "
+                "prerequisite exactly once"
+            )
+        prerequisite_step = prerequisite_steps[0]
+        lines = normalized_shell_lines(scalar_text(prerequisite_step.get("run")))
+        if (
+            set(prerequisite_step.values) != {"name", "shell", "run"}
+            or scalar_text(prerequisite_step.get("shell")) != "bash"
+            or lines != [HOMEBREW_PREREQUISITE_COMMAND]
+        ):
+            raise PolicyError(
+                f"{workflow.path}: reviewed Homebrew prerequisite step must run "
+                f"exactly {HOMEBREW_PREREQUISITE_COMMAND!r} with shell bash and no "
+                "other fields"
+            )
+        names = [scalar_text(step.get("name")) for step in steps]
+        policy_name = "Validate dual-distribution workflow policy"
+        direct_verify_name = "Run Direct full local verification"
+        try:
+            policy_index = names.index(policy_name)
+            prerequisite_index = names.index(HOMEBREW_PREREQUISITE_STEP)
+            direct_verify_index = names.index(direct_verify_name)
+        except ValueError as error:
+            raise PolicyError(
+                f"{workflow.path}: direct Homebrew prerequisite must sit between "
+                "workflow validation and full verification"
+            ) from error
+        if not (
+            prerequisite_index == policy_index + 1
+            and direct_verify_index == prerequisite_index + 1
+        ):
+            raise PolicyError(
+                f"{workflow.path}: direct Homebrew prerequisite must immediately "
+                "follow workflow validation and immediately precede full verification"
+            )
+    elif prerequisite_steps:
+        raise PolicyError(
+            f"{workflow.path}: store must not install the reviewed Homebrew prerequisite"
+        )
+
+    unexpected_network_steps: list[str] = []
+    for step in steps:
+        text = step_text(step)
+        if not NETWORK_COMMAND_RE.search(text):
+            continue
+        name = scalar_text(step.get("name"))
+        if name == "Install pinned XcodeGen 2.46.0":
+            continue
+        if prerequisite_step is step:
+            continue
+        unexpected_network_steps.append(name)
+    if unexpected_network_steps:
+        raise PolicyError(
+            f"{workflow.path}: {job_name} network access is limited to the pinned "
+            "XcodeGen install and the reviewed Homebrew prerequisite step"
+        )
 
 
 def step_text(step: Step) -> str:
@@ -793,16 +871,7 @@ def check_pr_workflow(workflow: Workflow) -> None:
         if job.get("environment") is not None:
             raise PolicyError(f"{workflow.path}: {job_name} must not use an environment")
         job_mapping = mapping_text(Mapping(job, steps[0].line))
-        network_steps = []
-        for step in steps:
-            name = scalar_text(step.get("name"))
-            text = step_text(step)
-            if re.search(r"\b(curl|wget|gh)\b", text):
-                network_steps.append(name)
-        if network_steps and network_steps != ["Install pinned XcodeGen 2.46.0"]:
-            raise PolicyError(
-                f"{workflow.path}: {job_name} network access is limited to the pinned XcodeGen install"
-            )
+        check_network_access(steps, workflow, job_name)
         if re.search(r"\bgit\s+(?:push|tag)\b", job_mapping):
             raise PolicyError(f"{workflow.path}: {job_name} must not publish, push, or tag")
         for action in action_uses(steps):
@@ -999,8 +1068,11 @@ def check_app_store_workflow(workflow: Workflow) -> None:
     for step in steps:
         name = scalar_text(step.get("name"))
         run = scalar_text(step.get("run"))
-        if re.search(r"\b(curl|wget|gh)\b", step_text(step)) and name != "Install pinned XcodeGen 2.46.0":
-            raise PolicyError(f"{workflow.path}: archive network access is limited to the pinned XcodeGen install")
+        if NETWORK_COMMAND_RE.search(step_text(step)) and name != "Install pinned XcodeGen 2.46.0":
+            raise PolicyError(
+                f"{workflow.path}: archive network access is limited to the pinned "
+                "XcodeGen install and the reviewed Homebrew prerequisite step"
+            )
         if re.search(r"\bgit\s+(?:push|tag)\b", step_text(step)):
             raise PolicyError(f"{workflow.path}: archive must not publish, push, or tag")
         if "APP_STORE_ARCHIVE_PATH" in run and "build-app-store.sh release no-open" not in run:

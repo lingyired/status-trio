@@ -7,6 +7,7 @@ final class DistributionCapabilityPolicyTests: XCTestCase {
 
         XCTAssertTrue(policy.blocksControl(.bluetoothRadioPower))
         XCTAssertTrue(policy.blocksControl(.appleListeningMode))
+        XCTAssertTrue(policy.blocksControl(.bluetoothBatteryLevels))
         XCTAssertTrue(policy.blocksControl(.privilegedHelper))
         XCTAssertTrue(policy.blocksControl(.privatePowerReaders))
         XCTAssertTrue(policy.blocksControl(.mobileBatteryHelper))
@@ -19,8 +20,8 @@ final class DistributionCapabilityPolicyTests: XCTestCase {
             policy.availability(of: .publicBluetoothReaders),
             .notVerified
         )
-        XCTAssertFalse(policy.blocksControl(.publicBluetoothReaders))
-        XCTAssertFalse(policy.blocksControl(.huaweiListeningMode))
+        XCTAssertTrue(policy.blocksControl(.publicBluetoothReaders))
+        XCTAssertTrue(policy.blocksControl(.huaweiListeningMode))
         XCTAssertEqual(policy.channel.displayIdentity, "Mac App Store")
     }
 
@@ -29,6 +30,7 @@ final class DistributionCapabilityPolicyTests: XCTestCase {
 
         XCTAssertTrue(policy.blocksControl(.bluetoothRadioPower))
         XCTAssertTrue(policy.blocksControl(.appleListeningMode))
+        XCTAssertTrue(policy.blocksControl(.bluetoothBatteryLevels))
         XCTAssertTrue(policy.blocksControl(.privilegedHelper))
         XCTAssertTrue(policy.blocksControl(.privatePowerReaders))
         XCTAssertTrue(policy.blocksControl(.mobileBatteryHelper))
@@ -194,6 +196,11 @@ final class DistributionCapabilityActionTests: XCTestCase {
                 .unsupported(
                     DistributionCapabilityID.appleListeningMode.rawValue,
                     reason: "distribution.private-hal"
+                ),
+                PlatformCapabilityRecord(
+                    capability: DistributionCapabilityID.huaweiListeningMode.rawValue,
+                    availability: .available,
+                    reason: nil
                 )
             ]
         )
@@ -238,5 +245,40 @@ final class DistributionCapabilityActionTests: XCTestCase {
             calls.first?.address,
             BluetoothBatteryReader.normalizedAddress(huawei.id)
         )
+    }
+
+    func testStoreNotVerifiedPublicBluetoothBlocksEveryPanelDeviceAction() {
+        let audio = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:01",
+            name: "AirPods Pro",
+            kind: .audio,
+            isConnected: false
+        )
+        let keyboard = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:02",
+            name: "MX Keys",
+            kind: .peripheral(.keyboard),
+            isConnected: true
+        )
+        var performed: [BluetoothDevice] = []
+        var requested: [BluetoothDevice] = []
+        let actions = StatusPanelActions(
+            capabilityPolicy: .runtimeDefault(for: .appStore),
+            bluetoothDevices: { [audio, keyboard] },
+            performBluetoothAction: { performed.append($0) },
+            requestDisconnect: { requested.append($0) },
+            disconnectConfirmationAddress: {
+                BluetoothBatteryReader.normalizedAddress(keyboard.id)
+            }
+        )
+
+        actions.rowTapped(address: audio.id)
+        actions.performBluetoothAction(address: audio.id)
+        actions.rowTapped(address: keyboard.id)
+        actions.requestDisconnect(address: keyboard.id)
+        actions.confirmBluetoothDisconnect(address: keyboard.id)
+
+        XCTAssertTrue(performed.isEmpty)
+        XCTAssertTrue(requested.isEmpty)
     }
 }

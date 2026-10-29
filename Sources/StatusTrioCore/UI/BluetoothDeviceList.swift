@@ -23,6 +23,8 @@ struct BluetoothDeviceList: View {
     let options: BluetoothDeviceListOptions
     var listeningModePresentations: [String: BluetoothListeningModePresentation] = [:]
     var onSelectListeningMode: (String, BluetoothListeningMode) -> Void = { _, _ in }
+    var allowsDeviceActions = true
+    var hidesUnavailableBatteryStatus = false
     let onPerformAction: (BluetoothDevice) -> Void
     let onRequestDisconnect: (BluetoothDevice) -> Void
     let onCancelDisconnect: () -> Void
@@ -219,7 +221,13 @@ struct BluetoothDeviceList: View {
                     onSelectListeningMode: { onSelectListeningMode(address, $0) },
                     actionState: actionStates[address],
                     isConfirmingDisconnect: confirmingAddress == address
+                        && BluetoothDeviceActionPolicy.offersAction(
+                            for: device,
+                            allowsDeviceActions: allowsDeviceActions
+                        )
                         && BluetoothDeviceActionPolicy.requiresConfirmation(for: device),
+                    allowsDeviceActions: allowsDeviceActions,
+                    hidesUnavailableBatteryStatus: hidesUnavailableBatteryStatus,
                     onPerformAction: { onPerformAction(device) },
                     onRequestDisconnect: { onRequestDisconnect(device) },
                     onCancelDisconnect: onCancelDisconnect

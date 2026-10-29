@@ -74,6 +74,17 @@ struct BluetoothStatusView: View {
     @State private var visibleNearbyBLEIDs = Set<UUID>()
     @State private var confirmingPowerOff = false
 
+    private var resolvedShowsBatteryLevels: Bool {
+        showsBatteryLevels
+            && !capabilityPolicy.blocksControl(.bluetoothBatteryLevels)
+    }
+
+    private var resolvedShowsAppleDevicesAndBattery: Bool {
+        showsAppleDevicesAndBattery
+            && !capabilityPolicy.blocksControl(.bluetoothBatteryLevels)
+            && !capabilityPolicy.blocksControl(.mobileBatteryHelper)
+    }
+
     private var unhiddenListOptions: BluetoothDeviceListOptions {
         BluetoothDeviceListOptions(
             showsList: listOptions.showsList,
@@ -92,19 +103,19 @@ struct BluetoothStatusView: View {
     private var visibleNearbyBLESelections: [NearbyBLEDeviceSelection] {
         NearbyBLEDeviceCatalog.revealedSelections(
             nearbyBLESelections,
-            enabled: showsAppleDevicesAndBattery,
+            enabled: resolvedShowsAppleDevicesAndBattery,
             availability: controller.availability
         )
     }
 
     private var sourceRowsForAliasHiding: [BluetoothDevice] {
         let options = unhiddenListOptions
-        let trustedCandidates = showsAppleDevicesAndBattery
+        let trustedCandidates = resolvedShowsAppleDevicesAndBattery
             ? AppleDeviceCatalog.candidates(trusted: trustedAppleDeviceMetadata)
             : []
         let trustedRows = AppleDeviceCatalog.projection(
             candidates: trustedCandidates,
-            trustedSnapshots: showsAppleDevicesAndBattery && showsMobileBatteryFeature
+            trustedSnapshots: resolvedShowsAppleDevicesAndBattery && showsMobileBatteryFeature
                 ? mobileBatteryController.snapshots
                 : [],
             options: options
@@ -115,7 +126,7 @@ struct BluetoothStatusView: View {
             failures: controller.nearbyBLEReadFailures,
             options: options,
             now: Date(),
-            batteryLevelsEnabled: showsBatteryLevels
+            batteryLevelsEnabled: resolvedShowsBatteryLevels
         ).map(\.device)
         return trustedRows + nearbyRows
     }
@@ -136,8 +147,12 @@ struct BluetoothStatusView: View {
             )
     }
 
+    private var allowsDeviceActions: Bool {
+        !capabilityPolicy.blocksControl(.publicBluetoothReaders)
+    }
+
     private var appleProjection: AppleDeviceCatalog.Projection {
-        let candidates = showsAppleDevicesAndBattery
+        let candidates = resolvedShowsAppleDevicesAndBattery
             ? AppleDeviceCatalog.candidates(trusted: trustedAppleDeviceMetadata)
             : []
         let knownIDs = Set(candidates.map(\.id))
@@ -154,7 +169,9 @@ struct BluetoothStatusView: View {
         })
         return AppleDeviceCatalog.projection(
             candidates: candidates,
-            trustedSnapshots: showsAppleDevicesAndBattery && showsMobileBatteryFeature ? mobileBatteryController.snapshots : [],
+            trustedSnapshots: resolvedShowsAppleDevicesAndBattery && showsMobileBatteryFeature
+                ? mobileBatteryController.snapshots
+                : [],
             failures: showsMobileBatteryFeature ? failures : [],
             options: effectiveListOptions
         )
@@ -167,7 +184,7 @@ struct BluetoothStatusView: View {
             selections: visibleNearbyBLESelections,
             readings: controller.nearbyBatteryDevices,
             failures: controller.nearbyBLEReadFailures, options: effectiveListOptions, now: Date(),
-            batteryLevelsEnabled: showsBatteryLevels
+            batteryLevelsEnabled: resolvedShowsBatteryLevels
         )
 
         VStack(alignment: .leading, spacing: 8) {
@@ -221,15 +238,20 @@ struct BluetoothStatusView: View {
                     options: effectiveListOptions,
                     listeningModePresentations: listeningModePresentations,
                     onSelectListeningMode: onSelectListeningMode,
+                    allowsDeviceActions: allowsDeviceActions,
+                    hidesUnavailableBatteryStatus: capabilityPolicy.blocksControl(
+                        .bluetoothBatteryLevels
+                    ),
                     onPerformAction: { controller.performDeviceAction(for: $0) },
                     onRequestDisconnect: { controller.requestDisconnectConfirmation(for: $0) },
                     onCancelDisconnect: { controller.cancelDisconnectConfirmation() }
                 )
 
-                if controller.batteryLevelsReadFailed {
+                if resolvedShowsBatteryLevels && controller.batteryLevelsReadFailed {
                     // The list is where the levels are, so this is where a report
                     // that could not be read is reported: one line for the whole
-                    // list, never a placeholder on every row.
+                    // list, never a placeholder on every row. A distribution
+                    // without the reader never gets this far.
                     Text(localization.string(.bluetoothBatteryUnavailable))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -252,7 +274,7 @@ struct BluetoothStatusView: View {
             // not only in `onDisappear`: otherwise switching the setting off
             // leaves the read running and the level it published on screen until
             // the row disappears and comes back. A claim rather than a toggle
-            guard showsBatteryLevels, summaryPresentation.hasConnectedDevices else {
+            guard resolvedShowsBatteryLevels, summaryPresentation.hasConnectedDevices else {
                 controller.releaseBatteryLevels(Self.summaryBatteryLevelsToken)
                 return
             }
@@ -412,17 +434,17 @@ struct BluetoothStatusView: View {
     private static let mobileBatteryToken = "bluetooth.summary.mobileBatteryDevices"
 
     private var mobileBatteryClaimTaskID: String {
-        "\(showsBatteryLevels)-\(showsAppleDevicesAndBattery)-\(listOptions.showsList)"
+        "\(resolvedShowsBatteryLevels)-\(resolvedShowsAppleDevicesAndBattery)-\(listOptions.showsList)"
     }
 
     private var currentTrustedAppleGeneration: UInt64 {
-        showsAppleDevicesAndBattery ? trustedDiscoveryGeneration : 0
+        resolvedShowsAppleDevicesAndBattery ? trustedDiscoveryGeneration : 0
     }
 
     private var readAuthorizationSnapshot: BluetoothSummaryReadAuthorizationSnapshot {
         BluetoothSummaryReadAuthorizationSnapshot(
-            showsBatteryLevels: showsBatteryLevels,
-            showsAppleDevicesAndBattery: showsAppleDevicesAndBattery,
+            showsBatteryLevels: resolvedShowsBatteryLevels,
+            showsAppleDevicesAndBattery: resolvedShowsAppleDevicesAndBattery,
             showsList: listOptions.showsList,
             currentTrustedAppleCandidates: currentTrustedAppleCandidates
         )
@@ -449,8 +471,8 @@ struct BluetoothStatusView: View {
     }
 
     private var showsMobileBatteryFeature: Bool {
-        showsBatteryLevels
-            && showsAppleDevicesAndBattery
+        resolvedShowsBatteryLevels
+            && resolvedShowsAppleDevicesAndBattery
             && listOptions.showsList
             && !capabilityPolicy.blocksControl(.mobileBatteryHelper)
     }
@@ -486,7 +508,7 @@ struct BluetoothStatusView: View {
         let names = BluetoothDevicePresentation.grouped(controller.devices).connected
             .map(\.name)
             .joined(separator: "、")
-        return "\(showsBatteryLevels)-\(names)"
+        return "\(resolvedShowsBatteryLevels)-\(names)"
     }
 
     private var summaryPresentation: BluetoothSummary {

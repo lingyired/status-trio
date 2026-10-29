@@ -11,6 +11,7 @@ struct SettingsView: View {
     /// guides that do not carry the app's controller.
     var inputSourceController: InputSourceController? = nil
     var globalShortcutController: GlobalShortcutController? = nil
+    let launchAtLogin: LaunchAtLoginManager
     @ObservedObject var updaterManager: UpdateStateFacade
     @ObservedObject var helper: PrivilegedHelperFacade
     let capabilityPolicy: DistributionCapabilityPolicy
@@ -25,6 +26,7 @@ struct SettingsView: View {
         localization: Localization,
         inputSourceController: InputSourceController? = nil,
         globalShortcutController: GlobalShortcutController? = nil,
+        launchAtLogin: LaunchAtLoginManager,
         updaterManager: UpdateStateFacade = UpdateStateFacade(service: SystemManagedUpdateService()),
         helper: PrivilegedHelperFacade = PrivilegedHelperFacade(service: UnsupportedPrivilegedHelperService()),
         capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
@@ -35,6 +37,7 @@ struct SettingsView: View {
         self.localization = localization
         self.inputSourceController = inputSourceController
         self.globalShortcutController = globalShortcutController
+        self.launchAtLogin = launchAtLogin
         self.updaterManager = updaterManager
         self.helper = helper
         self.capabilityPolicy = capabilityPolicy
@@ -211,6 +214,7 @@ struct SettingsView: View {
                 store: store,
                 localization: localization,
                 globalShortcutController: globalShortcutController,
+                launchAtLogin: launchAtLogin,
                 updaterManager: updaterManager,
                 capabilityPolicy: capabilityPolicy
             )

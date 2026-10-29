@@ -4,7 +4,7 @@ import XCTest
 
 final class SingleInstanceGuardTests: XCTestCase {
     private let directBundleIdentifier = "com.lingsmbp.StatusTrio"
-    private let storeBundleIdentifier = "com.lingsmbp.StatusTrio.AppStore"
+    private let storeBundleIdentifier = "com.lingai.StatusTrio"
 
     func testDefaultLockPathKeepsTheDirectHomeLocation() {
         let home = URL(fileURLWithPath: "/tmp/direct-home", isDirectory: true)
@@ -34,7 +34,7 @@ final class SingleInstanceGuardTests: XCTestCase {
         )
         let path = SingleInstanceGuard.defaultLockPath(
             for: .appStore,
-            bundleIdentifier: "com.lingsmbp.StatusTrio.AppStore",
+            bundleIdentifier: "com.lingai.StatusTrio",
             homeDirectory: URL(fileURLWithPath: "/tmp/ignored-home", isDirectory: true),
             applicationSupportDirectory: { directory in
                 XCTAssertEqual(directory, .applicationSupportDirectory)
@@ -46,7 +46,7 @@ final class SingleInstanceGuardTests: XCTestCase {
             path,
             containerRoot
                 .appendingPathComponent("StatusTrio", isDirectory: true)
-                .appendingPathComponent("com.lingsmbp.StatusTrio.AppStore.lock")
+                .appendingPathComponent("com.lingai.StatusTrio.lock")
                 .path
         )
     }
@@ -106,7 +106,7 @@ final class SingleInstanceGuardTests: XCTestCase {
 
         XCTAssertTrue(direct.hasSuffix("/com.example.Dev.Build.lock"))
         XCTAssertTrue(store.hasSuffix("/com.example.Store.Build.lock"))
-        XCTAssertFalse(direct.contains("com.lingsmbp.StatusTrio.AppStore"))
+        XCTAssertFalse(direct.contains("com.lingai.StatusTrio"))
         XCTAssertFalse(store.contains("com.lingsmbp.StatusTrio.dev"))
     }
 

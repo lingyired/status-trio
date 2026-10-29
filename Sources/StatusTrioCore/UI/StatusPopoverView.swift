@@ -135,16 +135,21 @@ struct StatusPopoverView: View {
     }
 
     private var summary: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ForEach(panel.visiblePopupSections) { section in
+        let sections = PopupSectionVisibility.visibleSections(
+            panel.visiblePopupSections,
+            volume: panel.volume
+        )
+
+        return VStack(alignment: .leading, spacing: 12) {
+            ForEach(sections) { section in
                 popupSection(section)
 
-                if section != panel.visiblePopupSections.last {
+                if section != sections.last {
                     Divider()
                 }
             }
 
-            if !panel.visiblePopupSections.isEmpty {
+            if !sections.isEmpty {
                 Divider()
                     .opacity(0.6)
                     .padding(.vertical, 2)
@@ -154,11 +159,11 @@ struct StatusPopoverView: View {
         }
         .task(id: [
             panel.listeningModeTaskID,
-            String(panel.visiblePopupSections.contains(.bluetooth)),
-            String(panel.visiblePopupSections.contains(.volume))
+            String(sections.contains(.bluetooth)),
+            String(sections.contains(.volume))
         ]) {
             if panel.store.isPopoverVisible,
-               panel.visiblePopupSections.contains(.bluetooth) || panel.visiblePopupSections.contains(.volume) {
+               sections.contains(.bluetooth) || sections.contains(.volume) {
                 panel.actions.volumeListChanged()
             } else {
                 panel.actions.volumeListDisappeared()

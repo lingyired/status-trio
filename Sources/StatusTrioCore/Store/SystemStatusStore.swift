@@ -190,7 +190,7 @@ final class SystemStatusStore: ObservableObject {
         vpnMonitor: (any VPNMonitoring)? = nil,
         volumeMonitor: any VolumeMonitoring,
         inputMonitor: (any AudioInputMonitoring)? = nil,
-        volumeFeedback: (any VolumeFeedbackPlaying)? = VolumeFeedbackPlayer(),
+        volumeFeedback: (any VolumeFeedbackPlaying)? = nil,
         refreshInterval: Duration = .seconds(15),
         nameResolutionTimeout: Duration = .milliseconds(1500),
         sleep: @escaping @Sendable (Duration) async throws -> Void = { interval in

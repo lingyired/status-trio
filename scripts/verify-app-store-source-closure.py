@@ -112,6 +112,22 @@ FORBIDDEN_TOKENS = (
     ("DDCPrivateAPI", re.compile(r"\bDDCPrivateAPI\b")),
     ("CoreDisplay", re.compile(r"\bCoreDisplay\b")),
     ("DirectPlatform", re.compile(r"\bDirectPlatform\b")),
+    (
+        "global preference read",
+        re.compile(r"\bCFPreferencesCopy(?:AppValue|Value)\b"),
+    ),
+    (
+        "global preference domain",
+        re.compile(r"\bkCFPreferencesAnyApplication\b"),
+    ),
+    (
+        "system volume feedback preference",
+        re.compile(r"\bcom\.apple\.sound\.beep\.feedback\b"),
+    ),
+    (
+        "system icon appearance preference",
+        re.compile(r"\bAppleIconAppearanceTheme\b"),
+    ),
     ("AppleSMC", re.compile(r"\bAppleSMC\b")),
     (
         "powerd charging plist",

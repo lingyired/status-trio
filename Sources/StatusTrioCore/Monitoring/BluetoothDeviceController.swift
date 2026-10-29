@@ -352,6 +352,7 @@ final class BluetoothDeviceController: ObservableObject {
     @Published private(set) var isDiscoveringNearbyBLEDevices = false
 
     private let actionPerformer: any BluetoothDeviceActionPerforming
+    private let allowsDeviceActions: Bool
     private let actionTimeout: Duration
     private let actionTimeoutSleep: @Sendable (Duration) async throws -> Void
     private let failureVisibleDuration: Duration
@@ -394,6 +395,7 @@ final class BluetoothDeviceController: ObservableObject {
             try await Task.sleep(for: $0)
         },
         actionPerformer: any BluetoothDeviceActionPerforming = IOBluetoothDeviceActionPerformer(),
+        allowsDeviceActions: Bool = true,
         actionTimeout: Duration = .seconds(10),
         actionTimeoutSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
@@ -432,6 +434,7 @@ final class BluetoothDeviceController: ObservableObject {
             sleep: readTimeoutSleep
         )
         self.actionPerformer = actionPerformer
+        self.allowsDeviceActions = allowsDeviceActions
         self.actionTimeout = actionTimeout
         self.actionTimeoutSleep = actionTimeoutSleep
         self.failureVisibleDuration = failureVisibleDuration
@@ -1418,7 +1421,8 @@ final class BluetoothDeviceController: ObservableObject {
     /// input device needs one; anything else is ignored, so a stale view cannot
     /// put a question on screen that the policy would not ask.
     func requestDisconnectConfirmation(for device: BluetoothDevice) {
-        guard BluetoothDeviceActionPolicy.requiresConfirmation(for: device) else { return }
+        guard allowsDeviceActions,
+              BluetoothDeviceActionPolicy.requiresConfirmation(for: device) else { return }
         pendingDisconnectConfirmation = BluetoothBatteryReader.normalizedAddress(device.id)
     }
 
@@ -1432,7 +1436,9 @@ final class BluetoothDeviceController: ObservableObject {
     /// report does, never because this call returned: the request only starts a
     /// wait that ends in the report changing or in a visible failure.
     func performDeviceAction(for device: BluetoothDevice) {
-        guard isActive, availability == .available else { return }
+        guard allowsDeviceActions,
+              isActive,
+              availability == .available else { return }
         let address = BluetoothBatteryReader.normalizedAddress(device.id)
         switch deviceActionStates[address] {
         case .none, .failed:

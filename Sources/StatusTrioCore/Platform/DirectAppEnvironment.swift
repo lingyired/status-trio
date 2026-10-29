@@ -21,6 +21,7 @@ extension AppEnvironment {
             inputMonitor: AudioInputMonitor(
                 hardware: CoreAudioInputHardware()
             ),
+            volumeFeedback: VolumeFeedbackPlayer(),
             refreshInterval: settings.refreshInterval
         )
         let privilegedHelper = DirectPlatformFactory.privilegedHelper()
@@ -33,7 +34,8 @@ extension AppEnvironment {
                 )
             },
             privilegedHelper: privilegedHelper,
-            platformCapabilities: PlatformCapabilities.direct
+            platformCapabilities: PlatformCapabilities.direct,
+            systemIconAppearance: DirectSystemIconAppearanceReader.current
         )
     }
 
@@ -46,6 +48,7 @@ extension AppEnvironment {
         vpnMonitor: (any VPNMonitoring)? = nil,
         volumeMonitor: any VolumeMonitoring,
         inputMonitor: (any AudioInputMonitoring)? = nil,
+        volumeFeedback: (any VolumeFeedbackPlaying)? = nil,
         refreshInterval: Duration = .seconds(15),
         batteryDetails: BatteryDetailsController? = nil,
         wifiNetworks: WiFiNetworkController? = nil,
@@ -63,6 +66,7 @@ extension AppEnvironment {
             vpnMonitor: vpnMonitor,
             volumeMonitor: volumeMonitor,
             inputMonitor: inputMonitor,
+            volumeFeedback: volumeFeedback,
             refreshInterval: refreshInterval,
             batteryDetails: batteryDetails ?? DirectPlatformFactory.batteryDetailsController(),
             wifiNetworks: wifiNetworks ?? DirectPlatformFactory.wifiNetworkController(),

@@ -20,8 +20,8 @@ from typing import Optional
 
 
 STORE_IDS = (
-    re.compile(r"^com\.lingsmbp\.StatusTrio\.AppStore$"),
-    re.compile(r"^com\.lingsmbp\.StatusTrio\.AppStore\.dev\.[A-Za-z0-9][A-Za-z0-9.-]*$"),
+    re.compile(r"^com\.lingai\.StatusTrio$"),
+    re.compile(r"^com\.lingai\.StatusTrio\.dev\.[A-Za-z0-9][A-Za-z0-9.-]*$"),
 )
 
 SU_KEY_PATTERN = re.compile(r"^SU[A-Z][A-Za-z0-9_]*$")
@@ -68,6 +68,10 @@ FORBIDDEN_SYMBOL_PATTERNS = (
     re.compile(r"/Library/Preferences/com\.apple\.powerd\.charging\.plist"),
     re.compile(r"SPUUpdater"),
     re.compile(r"Sparkle"),
+    re.compile(r"(?<![A-Za-z0-9_])_?CFPreferencesCopy(?:AppValue|Value)(?![A-Za-z0-9_])"),
+    re.compile(r"(?<![A-Za-z0-9_])_?kCFPreferencesAnyApplication(?![A-Za-z0-9_])"),
+    re.compile(r"com\.apple\.sound\.beep\.feedback"),
+    re.compile(r"\bAppleIconAppearanceTheme\b"),
 )
 
 FORBIDDEN_TEXT_PATTERNS = (
@@ -80,6 +84,24 @@ FORBIDDEN_TEXT_PATTERNS = (
     re.compile(r"(?:SPUUpdater|Sparkle\.framework|DDCPrivateAPI)"),
     re.compile(r"/Library/Preferences/com\.apple\.powerd\.charging\.plist"),
     re.compile(r"(?<![A-Za-z0-9_.])com\.lingsmbp\.StatusTrio\.PowerHelper(?![A-Za-z0-9_.])"),
+    re.compile(r"\bCFPreferencesCopy(?:AppValue|Value)\b"),
+    re.compile(r"\bkCFPreferencesAnyApplication\b"),
+    re.compile(r"\bcom\.apple\.sound\.beep\.feedback\b"),
+    re.compile(r"\bAppleIconAppearanceTheme\b"),
+)
+
+FORBIDDEN_STORE_PURPOSE_PATTERNS = (
+    re.compile(r"(?i)noise[- ]control|noise cancellation|noise reduction"),
+    re.compile(r"(?i)Rauschunterdrückung"),
+    re.compile(r"(?i)cancelación de ruido"),
+    re.compile(r"(?i)réduction de bruit"),
+    re.compile(r"(?i)cancellazione del rumore"),
+    re.compile(r"ノイズコントロール"),
+    re.compile(r"노이즈 컨트롤"),
+    re.compile(r"(?i)cancelamento de ruído"),
+    re.compile(r"(?i)шумоподавления"),
+    re.compile(r"降噪"),
+    re.compile(r"إلغاء الضوضاء"),
 )
 
 FORBIDDEN_PATH_PATTERNS = (
@@ -501,6 +523,27 @@ def scan_plist(payload: object, where: str) -> None:
                 )
 
 
+def scan_info_plist_strings(path: Path, app: Path) -> None:
+    data = read_bytes(path, f"localized purpose strings {path}")
+    try:
+        text = data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        try:
+            # Xcode compiles `.strings` resources to UTF-16 in an archive.
+            text = data.decode("utf-16")
+        except UnicodeDecodeError as exc:
+            fail(
+                f"localized purpose strings are not UTF-8 or UTF-16 at "
+                f"{normalized_relative(path, app)}: {exc}"
+            )
+    for pattern in FORBIDDEN_STORE_PURPOSE_PATTERNS:
+        if pattern.search(text):
+            fail(
+                "Store purpose strings claim unsupported noise-control behavior "
+                f"({pattern.pattern}) at {normalized_relative(path, app)}"
+            )
+
+
 def scan_macho(path: Path, app: Path) -> None:
     relative = normalized_relative(path, app)
     print(f"Mach-O: {relative}")
@@ -609,6 +652,8 @@ def audit_bundle(app: Path, unsigned: bool) -> None:
         if not stat.S_ISREG(info.st_mode):
             fail(f"unsupported non-regular bundle entry: {relative}")
         read_bytes(path, relative)
+        if path.name == "InfoPlist.strings" and path.parent.suffix == ".lproj":
+            scan_info_plist_strings(path, app)
         classify_file(path)
         if is_macho_file(path):
             machos.append(path)

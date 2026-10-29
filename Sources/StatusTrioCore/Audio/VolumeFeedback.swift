@@ -53,17 +53,6 @@ struct VolumeFeedbackThrottle {
     }
 }
 
-/// Plays the volume-change tick.
-///
-/// The system tick is played by the system, for the volume changes the system
-/// mediates: the volume keys, Control Center, and the slider in Sound settings.
-/// Writing the volume through CoreAudio is not one of those paths, so the
-/// feedback the issue asks for has to be played here.
-@MainActor
-protocol VolumeFeedbackPlaying: AnyObject {
-    func playVolumeChangeFeedback()
-}
-
 /// Plays the tick bundled with the app, gated on the system switch.
 @MainActor
 final class VolumeFeedbackPlayer: VolumeFeedbackPlaying {

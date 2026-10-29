@@ -280,22 +280,20 @@ struct BatterySectionView: View {
             }
             )
 
-            if let reasonKey = capabilityPolicy.unavailableReasonKey(
-                for: .privatePowerReaders
-            ) {
-                SettingsHintRow(text: localization.string(reasonKey))
-            } else if !store.canReadSystemChargeLimit {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Image(systemName: "exclamationmark.circle.fill")
+            if !capabilityPolicy.blocksControl(.privatePowerReaders) {
+                if !store.canReadSystemChargeLimit {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                        Text(localization.string(
+                            .settingsBatteryFullThresholdSystemUnavailable
+                        ))
+                        .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text(localization.string(
-                        .settingsBatteryFullThresholdSystemUnavailable
-                    ))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                    .padding(.bottom, 6)
                 }
-                .padding(.horizontal, SettingsMetrics.rowPaddingH)
-                .padding(.bottom, 6)
             }
         }
     }

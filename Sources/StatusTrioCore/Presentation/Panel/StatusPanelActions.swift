@@ -289,14 +289,16 @@ final class StatusPanelActions {
     func selectInputSource(_ id: String) { selectInputSourceCommand(id) }
 
     func performBluetoothAction(address: String) {
-        guard let device = bluetoothDevice(address: address),
+        guard allowsBluetoothDeviceActions,
+              let device = bluetoothDevice(address: address),
               BluetoothDeviceActionPolicy.isActionable(device),
               !BluetoothDeviceActionPolicy.requiresConfirmation(for: device) else { return }
         performBluetoothActionCommand(device)
     }
 
     func rowTapped(address: String) {
-        guard let device = bluetoothDevice(address: address),
+        guard allowsBluetoothDeviceActions,
+              let device = bluetoothDevice(address: address),
               BluetoothDeviceActionPolicy.isActionable(device) else { return }
         if BluetoothDeviceActionPolicy.requiresConfirmation(for: device) {
             requestDisconnectCommand(device)
@@ -307,7 +309,8 @@ final class StatusPanelActions {
 
     func confirmBluetoothDisconnect(address: String) {
         let key = BluetoothBatteryReader.normalizedAddress(address)
-        guard !key.isEmpty,
+        guard allowsBluetoothDeviceActions,
+              !key.isEmpty,
               BluetoothBatteryReader.normalizedAddress(disconnectConfirmationAddress() ?? "") == key,
               let device = bluetoothDevice(address: key),
               BluetoothDeviceActionPolicy.isActionable(device),
@@ -316,7 +319,8 @@ final class StatusPanelActions {
     }
 
     func requestDisconnect(address: String) {
-        guard let device = bluetoothDevice(address: address),
+        guard allowsBluetoothDeviceActions,
+              let device = bluetoothDevice(address: address),
               BluetoothDeviceActionPolicy.isActionable(device),
               BluetoothDeviceActionPolicy.requiresConfirmation(for: device) else { return }
         requestDisconnectCommand(device)
@@ -326,6 +330,7 @@ final class StatusPanelActions {
 
     func updateBluetoothBatteryLevelsClaim(enabled: Bool) {
         guard enabled,
+              !capabilityPolicy.blocksControl(.bluetoothBatteryLevels),
               BluetoothSummary.presentation(
                 availability: bluetoothAvailability(),
                 devices: bluetoothDevices(),
@@ -338,7 +343,8 @@ final class StatusPanelActions {
     }
 
     func updateBluetoothNearbyBatteryClaim(enabled: Bool) {
-        if enabled {
+        if enabled,
+           !capabilityPolicy.blocksControl(.mobileBatteryHelper) {
             requestNearbyBatteryDevicesCommand(Self.nearbyBatteryDevicesToken)
         } else {
             releaseNearbyBatteryDevicesCommand(Self.nearbyBatteryDevicesToken, false)
@@ -388,5 +394,9 @@ final class StatusPanelActions {
         let key = BluetoothBatteryReader.normalizedAddress(address)
         guard !key.isEmpty else { return nil }
         return bluetoothDevices().first { BluetoothBatteryReader.normalizedAddress($0.id) == key }
+    }
+
+    private var allowsBluetoothDeviceActions: Bool {
+        !capabilityPolicy.blocksControl(.publicBluetoothReaders)
     }
 }

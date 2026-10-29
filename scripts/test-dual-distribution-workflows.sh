@@ -541,7 +541,7 @@ ruby -e '
     abort "PR policy step missing"
   File.write(path, source)
 ' "$fixture/pr-checks.yml"
-expect_failure "unexpected network access in PR workflow" "$fixture/pr-checks.yml" "$fixture/app-store.yml" "network access is limited to the pinned XcodeGen install"
+expect_failure "unexpected network access in PR workflow" "$fixture/pr-checks.yml" "$fixture/app-store.yml" "network access is limited to the pinned XcodeGen install and the reviewed Homebrew prerequisite step"
 
 fixture="$(make_fixture unexpected-store-network)"
 ruby -e '
@@ -551,7 +551,59 @@ ruby -e '
     abort "Store contract step missing"
   File.write(path, source)
 ' "$fixture/app-store.yml"
-expect_failure "unexpected network access in archive workflow" "$fixture/pr-checks.yml" "$fixture/app-store.yml" "archive network access is limited to the pinned XcodeGen install"
+expect_failure "unexpected network access in archive workflow" "$fixture/pr-checks.yml" "$fixture/app-store.yml" "archive network access is limited to the pinned XcodeGen install and the reviewed Homebrew prerequisite step"
+
+fixture="$(make_fixture homebrew-extra-package)"
+ruby -e '
+  path = ARGV[0]
+  source = File.read(path)
+  source.sub!(
+    "        run: brew install autoconf automake libtool pkg-config\n",
+    "        run: brew install autoconf automake libtool pkg-config cmake\n"
+  ) or abort "reviewed Homebrew command missing"
+  File.write(path, source)
+' "$fixture/pr-checks.yml"
+expect_failure "altered Homebrew prerequisite packages" "$fixture/pr-checks.yml" "$fixture/app-store.yml" "reviewed Homebrew prerequisite step must run exactly"
+
+fixture="$(make_fixture homebrew-extra-command)"
+ruby -e '
+  path = ARGV[0]
+  source = File.read(path)
+  source.sub!(
+    "        run: brew install autoconf automake libtool pkg-config\n",
+    "        run: |\n          brew install autoconf automake libtool pkg-config\n          echo extra\n"
+  ) or abort "reviewed Homebrew command missing"
+  File.write(path, source)
+' "$fixture/pr-checks.yml"
+expect_failure "extra command in Homebrew prerequisite step" "$fixture/pr-checks.yml" "$fixture/app-store.yml" "reviewed Homebrew prerequisite step must run exactly"
+
+fixture="$(make_fixture homebrew-renamed)"
+ruby -e '
+  path = ARGV[0]
+  source = File.read(path)
+  source.sub!(
+    "      - name: Install mobile helper build tools\n",
+    "      - name: Install mobile helper dependencies\n"
+  ) or abort "reviewed Homebrew step name missing"
+  File.write(path, source)
+' "$fixture/pr-checks.yml"
+expect_failure "renamed Homebrew prerequisite step" "$fixture/pr-checks.yml" "$fixture/app-store.yml" "direct must install the reviewed Homebrew prerequisite exactly once"
+
+fixture="$(make_fixture homebrew-moved-to-store)"
+ruby -e '
+  path = ARGV[0]
+  source = File.read(path)
+  step = "      - name: Install mobile helper build tools\n" \
+         "        shell: bash\n" \
+         "        run: brew install autoconf automake libtool pkg-config\n"
+  source.sub!(step, "") or abort "reviewed Homebrew step missing"
+  source.sub!(
+    "      - name: Test Store project contract\n",
+    step + "      - name: Test Store project contract\n"
+  ) or abort "Store contract step missing"
+  File.write(path, source)
+' "$fixture/pr-checks.yml"
+expect_failure "Homebrew prerequisite moved to Store job" "$fixture/pr-checks.yml" "$fixture/app-store.yml" "direct must install the reviewed Homebrew prerequisite exactly once"
 
 fixture="$(make_fixture direct-hidden-logs-omitted)"
 ruby -e '

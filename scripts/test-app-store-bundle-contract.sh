@@ -183,7 +183,7 @@ expect_rejected() {
 
 write_info() {
     local root="$1"
-    local bundle_id="${2:-com.lingsmbp.StatusTrio.AppStore}"
+    local bundle_id="${2:-com.lingai.StatusTrio}"
     cat > "$root/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -242,7 +242,7 @@ make_universal_macho() {
 
 make_app() {
     local name="$1"
-    local bundle_id="${2:-com.lingsmbp.StatusTrio.AppStore}"
+    local bundle_id="${2:-com.lingai.StatusTrio}"
     local root="$WORK/$name"
     mkdir -p \
         "$root/Contents/MacOS" \
@@ -389,6 +389,44 @@ printf 'Sparkle is not used in this edition. SUFeedURL is documentation only.\n'
     > "$WORK/sparkle-resource/Contents/Resources/Credits.txt"
 expect_pass "resource text mentions Sparkle" run_audit "$WORK/sparkle-resource"
 
+make_app noise-control-purpose >/dev/null
+write_clean_entitlements "$WORK/noise-control-purpose"
+mkdir -p "$WORK/noise-control-purpose/Contents/Resources/en.lproj"
+cat > "$WORK/noise-control-purpose/Contents/Resources/en.lproj/InfoPlist.strings" <<'STRINGS'
+"NSBluetoothAlwaysUsageDescription" = "Shows Bluetooth status and switches noise-control mode on supported headphones.";
+STRINGS
+expect_rejected "unsupported noise-control purpose string" \
+    run_audit "$WORK/noise-control-purpose"
+
+make_app utf16-purpose >/dev/null
+write_clean_entitlements "$WORK/utf16-purpose"
+mkdir -p "$WORK/utf16-purpose/Contents/Resources/en.lproj"
+printf '"NSBluetoothAlwaysUsageDescription" = "Shows Bluetooth connection status.";\n' \
+    | iconv -f UTF-8 -t UTF-16 \
+    > "$WORK/utf16-purpose/Contents/Resources/en.lproj/InfoPlist.strings"
+expect_pass "UTF-16 purpose strings" run_audit "$WORK/utf16-purpose"
+
+make_app global-preference-symbol >/dev/null
+write_clean_entitlements "$WORK/global-preference-symbol"
+printf '                 U _CFPreferencesCopyAppValue\n' \
+    > "$WORK/global-preference-symbol/Contents/MacOS/StatusTrio.fixture-nm"
+expect_rejected "global preference symbol" \
+    run_audit "$WORK/global-preference-symbol"
+
+make_app global-preference-domain >/dev/null
+write_clean_entitlements "$WORK/global-preference-domain"
+printf 'dlsym\000kCFPreferencesAnyApplication\000' \
+    >> "$WORK/global-preference-domain/Contents/MacOS/StatusTrio"
+expect_rejected "global preference domain string" \
+    run_audit "$WORK/global-preference-domain"
+
+make_app system-preference-keys >/dev/null
+write_clean_entitlements "$WORK/system-preference-keys"
+printf 'com.apple.sound.beep.feedback\000AppleIconAppearanceTheme\000' \
+    >> "$WORK/system-preference-keys/Contents/MacOS/StatusTrio"
+expect_rejected "system preference key string" \
+    run_audit "$WORK/system-preference-keys"
+
 # 7. A property list's data value is still scan-relevant even though arbitrary
 # replacement resources are allowed to contain documentation text.
 make_app plist-sparkle-data >/dev/null
@@ -406,7 +444,7 @@ PLIST
 expect_rejected "Sparkle symbol in plist data value" run_audit "$WORK/plist-sparkle-data"
 
 # 7. Explicit Store development identity is accepted.
-make_app store-dev com.lingsmbp.StatusTrio.AppStore.dev.audit >/dev/null
+make_app store-dev com.lingai.StatusTrio.dev.audit >/dev/null
 write_clean_entitlements "$WORK/store-dev"
 expect_pass "Store development bundle id" run_audit "$WORK/store-dev"
 
@@ -415,7 +453,7 @@ make_app direct-id com.lingsmbp.StatusTrio >/dev/null
 write_clean_entitlements "$WORK/direct-id"
 expect_rejected "Direct bundle id" run_audit "$WORK/direct-id"
 
-make_app unrelated-suffix com.lingsmbp.StatusTrio.AppStore.evil >/dev/null
+make_app unrelated-suffix com.lingai.StatusTrio.evil >/dev/null
 write_clean_entitlements "$WORK/unrelated-suffix"
 expect_rejected "unrelated bundle id suffix" run_audit "$WORK/unrelated-suffix"
 

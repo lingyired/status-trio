@@ -208,6 +208,7 @@ final class SettingsViewTests: XCTestCase {
             store: store,
             statusStore: statusStore,
             localization: localization,
+            launchAtLogin: LaunchAtLoginManager(),
             onShowIconGuide: {}
         )
 
@@ -242,7 +243,8 @@ final class SettingsViewTests: XCTestCase {
         let view = GeneralSectionView(
             store: settings,
             localization: localization,
-            globalShortcutController: shortcutController
+            globalShortcutController: shortcutController,
+            launchAtLogin: LaunchAtLoginManager()
         )
         let hostingView = NSHostingView(rootView: view)
         hostingView.frame = NSRect(

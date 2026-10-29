@@ -68,6 +68,53 @@ final class IconGuideTests: XCTestCase {
         XCTAssertFalse(IconGuideOnboardingPolicy.shouldPresentGuide(settings: completed))
     }
 
+    func testStoreOnboardingDoesNotReopenForIneligibleTelemetryConsent() {
+        let name = "IconGuideTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removeTestSuite(named: name) }
+        let settings = SettingsStore(defaults: defaults)
+        settings.hasCompletedIconGuideOnboarding = true
+
+        XCTAssertFalse(
+            IconGuideOnboardingPolicy.shouldPresentGuide(
+                settings: settings,
+                channel: .appStore
+            )
+        )
+        XCTAssertFalse(
+            IconGuideOnboardingPolicy.showsTelemetryConsent(
+                settings: settings,
+                channel: .appStore
+            )
+        )
+        XCTAssertTrue(
+            IconGuideOnboardingPolicy.shouldPresentGuide(
+                settings: settings,
+                channel: .direct
+            )
+        )
+        XCTAssertTrue(
+            IconGuideOnboardingPolicy.showsTelemetryConsent(
+                settings: settings,
+                channel: .direct
+            )
+        )
+    }
+
+    func testStoreOnboardingCannotPersistTelemetryConsent() {
+        let name = "IconGuideTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removeTestSuite(named: name) }
+        let settings = SettingsStore(defaults: defaults)
+        var draft = TelemetryConsentDraft()
+        draft.sharesAnalytics = true
+
+        draft.acknowledge(settings: settings, allowsTelemetryConsent: false)
+
+        XCTAssertEqual(settings.telemetryConsentVersion, 0)
+        XCTAssertFalse(settings.sharesAnonymousAnalytics)
+    }
+
     func testTelemetryConsentDraftIsPersistedOnlyWhenAcknowledged() {
         let name = "IconGuideTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!

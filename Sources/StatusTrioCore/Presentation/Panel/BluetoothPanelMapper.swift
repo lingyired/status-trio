@@ -14,7 +14,8 @@ enum BluetoothPanelMapper {
         showsBatteryLevels: Bool,
         showsNearbyBatteryDevices: Bool,
         confirmingAddress: String?,
-        localization: Localization
+        localization: Localization,
+        allowsDeviceActions: Bool = true
     ) -> BluetoothPanelState {
         let visibleNearby = BluetoothNearbyBatteryListPresentation.visibleDevices(
             from: nearbyDevices,
@@ -44,7 +45,8 @@ enum BluetoothPanelMapper {
                     $0,
                     batteryLevels: showsBatteryLevels ? merged.batteryLevels : [:],
                     actionStates: actionStates,
-                    localization: localization
+                    localization: localization,
+                    allowsDeviceActions: allowsDeviceActions
                 )
             }
             : []
@@ -90,7 +92,9 @@ enum BluetoothPanelMapper {
             showsSettings: true,
             intent: summaryIntent
         )
-        let normalizedConfirmation = confirmingAddress.map { BluetoothBatteryReader.normalizedAddress($0) }
+        let normalizedConfirmation = allowsDeviceActions
+            ? confirmingAddress.map { BluetoothBatteryReader.normalizedAddress($0) }
+            : nil
 
         return BluetoothPanelState(
             summary: summaryState,
@@ -99,7 +103,9 @@ enum BluetoothPanelMapper {
             batteryReadTaskID: "\(showsBatteryLevels)-" + BluetoothDevicePresentation.grouped(devices).connected.map(\.name).joined(separator: "、"),
             pairedRows: pairedRows,
             nearbyRows: nearbyRows,
-            errorText: listIsVisible && batteryLevelsReadFailed
+            errorText: listIsVisible
+                && showsBatteryLevels
+                && batteryLevelsReadFailed
                 ? localization.string(.bluetoothBatteryUnavailable)
                 : nil,
             showsPairedHeading: !pairedRows.isEmpty && !nearbyRows.isEmpty,
@@ -114,7 +120,8 @@ enum BluetoothPanelMapper {
         _ device: BluetoothDevice,
         batteryLevels: [String: BluetoothBatteryLevel],
         actionStates: [String: BluetoothDeviceActionState],
-        localization: Localization
+        localization: Localization,
+        allowsDeviceActions: Bool
     ) -> PanelBluetoothDeviceRow {
         let address = BluetoothBatteryReader.normalizedAddress(device.id)
         let actionState = actionStates[address]
@@ -133,6 +140,8 @@ enum BluetoothPanelMapper {
         case .disconnectFailed: stateText = localization.string(.bluetoothStateDisconnectFailed)
         }
         let action = BluetoothDeviceActionPolicy.action(for: device)
+        let isActionable =
+            allowsDeviceActions && BluetoothDeviceActionPolicy.isActionable(device)
         let isBusy: Bool
         switch actionState {
         case .connecting, .disconnecting: isBusy = true
@@ -160,13 +169,14 @@ enum BluetoothPanelMapper {
             batteryLayout: BluetoothDevicePresentation.batteryLayout(for: device, batteryLevels: batteryLevels),
             batterySegments: batterySegments,
             isConnected: device.isConnected,
-            isActionable: BluetoothDeviceActionPolicy.isActionable(device),
+            isActionable: isActionable,
             status: status,
             statusText: statusText,
             statusTint: statusTint,
-            requiresConfirmation: BluetoothDeviceActionPolicy.requiresConfirmation(for: device),
+            requiresConfirmation: isActionable
+                && BluetoothDeviceActionPolicy.requiresConfirmation(for: device),
             actionTitle: localization.string(action == .connect ? .bluetoothActionConnect : .bluetoothActionDisconnect),
-            actionEnabled: BluetoothDeviceActionPolicy.isActionable(device) && !isBusy,
+            actionEnabled: isActionable && !isBusy,
             isBusy: isBusy,
             accessibilityLabel: device.name,
             accessibilityValue: [stateText, batterySegments?.plainText].compactMap { $0 }.joined(separator: ", ")

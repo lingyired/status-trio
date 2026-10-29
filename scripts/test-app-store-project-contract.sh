@@ -93,7 +93,7 @@ PLIST
         cat > "$fixture/Sources/StatusTrioCore/Resources/${locale}.lproj/InfoPlist.strings" <<'STRINGS'
 "NSLocationUsageDescription" = "Fixture location purpose.";
 "NSLocationWhenInUseUsageDescription" = "Fixture location purpose.";
-"NSBluetoothAlwaysUsageDescription" = "Fixture Bluetooth purpose.";
+"NSBluetoothAlwaysUsageDescription" = "Fixture Bluetooth purpose with noise-control mode.";
 STRINGS
     done
     printf '"probe" = "probe";\n' \
@@ -254,6 +254,19 @@ assert_generated_files() {
         fail "generated marketing version is wrong"
     grep -Fq "CURRENT_PROJECT_VERSION = $build" "$fixture/AppStore/Version.xcconfig" ||
         fail "generated current project version is wrong"
+    generated_info="$fixture/.build/app-store/generated/resources/en.lproj/InfoPlist.strings"
+    [[ -f "$generated_info" ]] ||
+        fail "generated Store purpose strings are missing"
+    if grep -Eiq 'noise[- ]control|noise reduction|noise cancellation' "$generated_info"; then
+        fail "generated Store purpose strings still claim unsupported noise control"
+    fi
+    for key in \
+        NSLocationUsageDescription \
+        NSLocationWhenInUseUsageDescription \
+        NSBluetoothAlwaysUsageDescription; do
+        plutil -extract "$key" raw -expect string "$generated_info" >/dev/null ||
+            fail "generated Store purpose strings are missing $key"
+    done
     /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
         "$fixture/AppStore/Info.plist" | grep -Fxq "$version" ||
         fail "generated Store Info.plist version is wrong"
@@ -310,15 +323,16 @@ assert "Sources/StatusTrioCore/App/SharedProbe.swift" in sources
 assert "Sources/StatusTrioCore/App/DirectProbe.swift" not in sources
 assert "AppStore/Platform/StoreResourceBundle.swift" in sources
 assert targets["StatusTrioCore"]["settings"]["base"]["PRODUCT_MODULE_NAME"] == "StatusTrioCore"
-assert targets["StatusTrioCore"]["settings"]["base"]["PRODUCT_BUNDLE_IDENTIFIER"] == "com.lingsmbp.StatusTrio.AppStore.Core"
+assert targets["StatusTrioCore"]["settings"]["base"]["PRODUCT_BUNDLE_IDENTIFIER"] == "com.lingai.StatusTrio.Core"
 assert targets["StatusTrioCore"]["settings"]["base"]["SKIP_INSTALL"] is True
 assert targets["StatusTrioCore"]["settings"]["base"]["LD_DYLIB_INSTALL_NAME"] == (
     "@rpath/StatusTrioCore.framework/Versions/A/StatusTrioCore"
 )
 assert targets["StatusTrioCore"]["settings"]["base"]["DYLIB_INSTALL_NAME_BASE"] == "@rpath"
 assert targets["StatusTrio"]["settings"]["base"]["PRODUCT_BUNDLE_IDENTIFIER"] == (
-    "com.lingsmbp.StatusTrio.AppStore"
+    "com.lingai.StatusTrio"
 )
+assert spec["options"]["bundleIdPrefix"] == "com.lingai.StatusTrio"
 assert targets["StatusTrio"]["settings"]["base"]["INFOPLIST_FILE"] == (
     "../../../AppStore/Info.plist"
 )
@@ -339,8 +353,8 @@ localizations = [
 ]
 assert len(localizations) == 12, localizations
 assert all(path.endswith("/InfoPlist.strings") for path in localizations)
-assert "Sources/StatusTrioCore/Resources/en.lproj/InfoPlist.strings" in localizations
-assert "Sources/StatusTrioCore/Resources/zh-Hans.lproj/InfoPlist.strings" in localizations
+assert ".build/app-store/generated/resources/en.lproj/InfoPlist.strings" in localizations
+assert ".build/app-store/generated/resources/zh-Hans.lproj/InfoPlist.strings" in localizations
 app_resources = [
     entry for entry in app_sources if entry.get("buildPhase") == "resources"
 ]
@@ -366,9 +380,9 @@ assert "Sources/StatusTrioCore/Resources" not in {
 assert {
     entry["path"] for entry in core_resources
 } == {
-    "Sources/StatusTrioCore/Resources/en.lproj/Localizable.strings",
+    ".build/app-store/generated/resources/en.lproj/Localizable.strings",
     *{
-        f"Sources/StatusTrioCore/Resources/{locale}.lproj/InfoPlist.strings"
+        f".build/app-store/generated/resources/{locale}.lproj/InfoPlist.strings"
         for locale in (
             "ar", "de", "en", "es", "fr", "it", "ja", "ko",
             "pt-BR", "ru", "zh-Hans", "zh-Hant",
@@ -427,6 +441,44 @@ expect_pass "build CLI signs embedded frameworks first" grep -Fq \
     -- "-depth -type d -name '*.framework'" "$ROOT/scripts/build-app-store.sh"
 expect_pass "build CLI pins exact XcodeGen" grep -Fq \
     -- '2.46.0' "$ROOT/scripts/build-app-store.sh"
+expect_pass "local Store builds add only the temporary App Store codename" python3 - \
+    "$ROOT/scripts/build-app-store.sh" <<'PY'
+import os
+import subprocess
+import sys
+
+text = open(sys.argv[1], encoding="utf-8").read()
+begin = "# BEGIN STORE DEVELOPMENT CODENAME"
+end = "# END STORE DEVELOPMENT CODENAME"
+resolver = text[text.index(begin):text.index(end) + len(end)]
+
+def resolve(archive_path, configured):
+    environment = os.environ.copy()
+    environment.pop("APP_STORE_DEVELOPMENT_CODENAME", None)
+    if configured is not None:
+        environment["APP_STORE_DEVELOPMENT_CODENAME"] = configured
+    script = "\n".join((
+        f"ARCHIVE_PATH={archive_path!r}",
+        resolver,
+        'printf "%s" "$DEVELOPMENT_CODENAME"',
+    ))
+    return subprocess.check_output(
+        ["bash", "-c", script],
+        env=environment,
+        text=True,
+    )
+
+assert resolve("", None) == "App Store"
+assert resolve("", "") == ""
+assert resolve("", "Custom Dev") == "Custom Dev"
+assert resolve("/tmp/StatusTrio.xcarchive", None) == ""
+assert resolve("/tmp/StatusTrio.xcarchive", "Custom Dev") == "Custom Dev"
+
+copy_index = text.index('ditto "$BUILT_APP" "$STORE_APP"')
+plist_index = text.index(":STDevelopmentCodename")
+framework_sign_index = text.index('codesign --force --sign "$SIGNING_IDENTITY" "$framework"')
+assert copy_index < plist_index < framework_sign_index
+PY
 expect_pass "build CLI never overrides target bundle IDs" python3 - \
     "$ROOT/scripts/build-app-store.sh" <<'PY'
 import re

@@ -393,7 +393,8 @@ private final class DockChargingEnvironmentFixture {
             localization: localization,
             activationPolicy: activationPolicy,
             showIconGuide: {},
-            chargingEffectClock: clock
+            chargingEffectClock: clock,
+            launchAtLogin: LaunchAtLoginManager()
         )
         let statusBar = StatusBarController(
             store: store,
