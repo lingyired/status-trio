@@ -447,6 +447,16 @@
 "battery.details.collecting" = "측정 중…";
 "battery.details.loading" = "업데이트 중…";
 "battery.details.explanation" = "전력은 독립 센서의 추정값으로 지연되거나 다를 수 있습니다. 정격 전력은 실제 입력이 아닙니다. 배터리 사용 시 순 방전 전력을 표시합니다. 일부 기종은 배터리 갱신이 약 1분 지연될 수 있습니다.";
+/* Battery health card. */
+"battery.health.title" = "배터리 상태";
+"battery.health.maximumCapacity" = "최대 용량";
+"battery.health.designCapacity" = "설계 용량";
+"battery.health.estimate" = "상태(추정)";
+"battery.health.temperature" = "배터리 온도";
+"battery.health.chargeTime" = "완전 충전까지 남은 시간";
+"battery.health.chargePaused" = "충전 일시 정지됨";
+"battery.health.estimateNote" = "측정된 용량으로 추정한 값이며 시스템 설정의 '배터리 상태'와 다를 수 있습니다.";
+"battery.health.valueUnavailable" = "—";
 /* Compact popover controls. */
 "menu.more" = "추가 작업";
 

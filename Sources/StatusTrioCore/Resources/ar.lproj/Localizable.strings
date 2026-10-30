@@ -447,6 +447,16 @@
 "battery.details.collecting" = "جارٍ القياس…";
 "battery.details.loading" = "جارٍ التحديث…";
 "battery.details.explanation" = "قراءات الطاقة تقديرات من مستشعرات مستقلة وقد تتأخر أو تختلف. القدرة الاسمية ليست الدخل الفعلي. عند استخدام البطارية يظهر صافي التفريغ. قد يتأخر تحديث البطارية نحو دقيقة في بعض الطرازات.";
+/* Battery health card. */
+"battery.health.title" = "حالة البطارية";
+"battery.health.maximumCapacity" = "أقصى سعة";
+"battery.health.designCapacity" = "السعة التصميمية";
+"battery.health.estimate" = "الحالة (تقديرية)";
+"battery.health.temperature" = "درجة حرارة البطارية";
+"battery.health.chargeTime" = "الوقت حتى الامتلاء";
+"battery.health.chargePaused" = "الشحن متوقف مؤقتًا";
+"battery.health.estimateNote" = "مقدّرة من السعة المقاسة؛ قد تختلف عن حالة البطارية في إعدادات النظام.";
+"battery.health.valueUnavailable" = "—";
 /* Compact popover controls. */
 "menu.more" = "إجراءات أخرى";
 

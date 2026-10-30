@@ -10,6 +10,7 @@ enum PanelDetailMapper {
         energyApps: ApplicationEnergyRanking? = nil
     ) -> PanelDetailState {
         var rows: [PanelDetailRow] = []
+        var healthCard: BatteryHealthCardState?
         if let details {
             let reading = BatteryPowerPresentation(details: details, isConnectedToPower: battery.isConnectedToPower)
             let watts = reading.watts.map {
@@ -45,7 +46,10 @@ enum PanelDetailMapper {
                 } ?? localization.string(.batteryDetailsUnavailable)
                 rows.append(row(.batteryDetailsRemaining, value: remaining, localization: localization))
             }
-            if let count = details.cycleCount {
+            healthCard = batteryHealthCard(details: details, localization: localization)
+            // The health card carries the cycle count, so the plain row only
+            // remains on Macs that expose nothing for the card.
+            if healthCard == nil, let count = details.cycleCount {
                 rows.append(row(.batteryDetailsCycles, value: count.formatted(.number.locale(localization.resolvedLanguage.locale)), localization: localization))
             }
         }
@@ -65,7 +69,84 @@ enum PanelDetailMapper {
                 battery.isConnectedToPower && powerOptions.showsAnyPower
                     ? powerFlow(status: battery, details: $0, options: powerOptions, localization: localization) : nil
             },
-            energyApps: energyApps
+            energyApps: energyApps,
+            batteryHealth: healthCard
+        )
+    }
+
+    /// Compact, read-only health summary. Every metric degrades on its own:
+    /// one missing value shows a placeholder instead of hiding the card, and a
+    /// card with nothing readable is not shown at all.
+    private static func batteryHealthCard(
+        details: BatteryDetails,
+        localization: Localization
+    ) -> BatteryHealthCardState? {
+        guard let health = details.health,
+              health.hasMetrics || health.hasDisplayableChargeTime
+        else { return nil }
+        let locale = localization.resolvedLanguage.locale
+        let placeholder = localization.string(.batteryHealthValueUnavailable)
+        let unavailable = localization.string(.batteryDetailsUnavailable)
+        func capacityText(_ mAh: Int?) -> String {
+            guard let mAh else { return placeholder }
+            return mAh.formatted(.number.locale(locale)) + " mAh"
+        }
+        func metric(_ id: String, _ label: LocalizationKey, _ value: String, available: Bool) -> BatteryHealthCardState.Metric {
+            let name = localization.string(label)
+            return BatteryHealthCardState.Metric(
+                id: id,
+                label: name,
+                value: value,
+                accessibilityValue: "\(name), \(available ? value : unavailable)"
+            )
+        }
+        let percentText: String
+        if let percent = health.healthPercent {
+            percentText = (percent / 100)
+                .formatted(.percent.precision(.fractionLength(0)).locale(locale))
+        } else {
+            percentText = placeholder
+        }
+        let temperatureText: String
+        if let celsius = health.temperatureCelsius {
+            temperatureText = celsius
+                .formatted(.number.precision(.fractionLength(1)).locale(locale)) + " °C"
+        } else {
+            temperatureText = placeholder
+        }
+        var metrics: [BatteryHealthCardState.Metric] = [
+            metric("maximum", .batteryHealthMaximumCapacity,
+                   capacityText(health.maximumCapacityMAh), available: health.maximumCapacityMAh != nil),
+            metric("health", .batteryHealthEstimate,
+                   percentText, available: health.healthPercent != nil),
+            metric("design", .batteryHealthDesignCapacity,
+                   capacityText(health.designCapacityMAh), available: health.designCapacityMAh != nil)
+        ]
+        if let count = details.cycleCount {
+            metrics.append(metric("cycles", .batteryDetailsCycles,
+                                  count.formatted(.number.locale(locale)), available: true))
+        }
+        metrics.append(metric("temperature", .batteryHealthTemperature,
+                              temperatureText, available: health.temperatureCelsius != nil))
+        let chargeTimeValue: String
+        switch health.chargeTime {
+        case .estimated(let minutes):
+            chargeTimeValue = PanelPresentationMapper.batteryTimeToFullText(minutes: minutes, localization: localization)
+        case .calculating:
+            chargeTimeValue = localization.string(.batteryStateCalculatingTimeToFull)
+        case .charged:
+            chargeTimeValue = localization.string(.batteryStateCharged)
+        case .paused:
+            chargeTimeValue = localization.string(.batteryHealthChargePaused)
+        case .unavailable:
+            chargeTimeValue = localization.string(.batteryDetailsUnavailable)
+        }
+        return BatteryHealthCardState(
+            title: localization.string(.batteryHealthTitle),
+            metrics: metrics,
+            chargeTimeLabel: localization.string(.batteryHealthChargeTime),
+            chargeTimeValue: chargeTimeValue,
+            footnote: health.healthPercent != nil ? localization.string(.batteryHealthEstimateNote) : nil
         )
     }
 

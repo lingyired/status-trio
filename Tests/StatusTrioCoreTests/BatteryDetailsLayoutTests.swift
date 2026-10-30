@@ -5,12 +5,37 @@ import XCTest
 
 @MainActor
 final class BatteryDetailsLayoutTests: XCTestCase {
+    // A realistic Apple Silicon health snapshot: the card is part of the
+    // normal page, so layout budgets must include it.
+    func testBatteryHealthCardFitsEveryLanguageAndScheme() async throws {
+        for language in AppLanguage.allCases {
+            for dark in [false, true] {
+                let size = try await render(
+                    language: language, available: true, connected: true, charging: true,
+                    dark: dark)
+                XCTAssertEqual(size.width, 330, accuracy: 0.5)
+                XCTAssertLessThan(size.height, 580, "\(language.rawValue) dark=\(dark)")
+            }
+        }
+    }
+
+    func testBatteryHealthCardCanBeAbsentWithoutChangingWidth() async throws {
+        let withCard = try await render(language: .english, available: true, connected: true)
+        let withoutCard = try await render(language: .english, available: true, connected: true,
+                                           health: nil)
+        XCTAssertEqual(withCard.width, 330, accuracy: 0.5)
+        XCTAssertGreaterThanOrEqual(withCard.height, withoutCard.height + 40,
+                                    "the health card must occupy real vertical space")
+    }
+
     func testBatteryPageFitsPopoverInEnglishAndChinese() async throws {
         for language in [AppLanguage.english, .simplifiedChinese] {
             let power = try await render(language: language, available: true)
             let unavailable = try await render(language: language, available: false)
             let collecting = try await render(language: language, available: false, collecting: true)
-            XCTAssertLessThan(power.height, 380)
+            // Budget includes the compact health card that now sits under the
+            // power flow on every battery page.
+            XCTAssertLessThan(power.height, 450)
             XCTAssertLessThan(unavailable.height, power.height)
             XCTAssertLessThan(collecting.height, power.height)
             _ = try await renderSummary(language: language, isPresent: true)
@@ -20,8 +45,9 @@ final class BatteryDetailsLayoutTests: XCTestCase {
 
     func testConnectedPageFitsEveryLanguageWithAndWithoutSystemTelemetry() async throws {
         // The page now carries a second settings action below the system-power
-        // one. Keep the budget tight enough that another whole row still fails.
-        let heightBudget: CGFloat = 470
+        // one, plus the compact health card. Keep the budget tight enough that
+        // another whole row still fails.
+        let heightBudget: CGFloat = 570
         for language in AppLanguage.allCases {
             let connected = try await render(language: language, available: true, connected: true)
             XCTAssertLessThan(connected.height, heightBudget, language.rawValue)
@@ -108,7 +134,10 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             for dark in [false, true] {
                 let size = try await render(language: language, available: true, connected: true,
                     charging: true, allPower: true, dark: dark, energyApps: true)
-                XCTAssertLessThan(size.height, 650, "\(language.rawValue) dark=\(dark)")
+                // Worst case: every power option enabled, five energy apps,
+                // and the health card. Still below the smallest supported
+                // 13-inch display's usable popover height.
+                XCTAssertLessThan(size.height, 760, "\(language.rawValue) dark=\(dark)")
             }
         }
     }
@@ -202,7 +231,8 @@ final class BatteryDetailsLayoutTests: XCTestCase {
                         systemAvailable: Bool = true, charging: Bool = false,
                         allPower: Bool = false, dark: Bool = false, energyApps: Bool = false,
                         chargeToFullNow: ChargeToFullNowPresentation = .hidden,
-                        inputWatts: Double? = nil) async throws -> NSSize {
+                        inputWatts: Double? = nil,
+                        health: BatteryHealthSnapshot? = .layoutFixture) async throws -> NSSize {
         let suite = "StatusTrioCoreTests.BatteryDetails.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removeTestSuite(named: suite) }
@@ -218,7 +248,8 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             powerAvailability: collecting ? .collecting : .unavailable,
             systemPower: connected && systemAvailable ? SystemPowerSample(watts: 25.59, readAt: observedAt) : nil,
             inputPower: connected
-                ? SystemPowerSample(watts: inputWatts ?? 67, readAt: observedAt) : nil)
+                ? SystemPowerSample(watts: inputWatts ?? 67, readAt: observedAt) : nil,
+            health: health)
         let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: charging,
                                     isLowPowerMode: false, isConnectedToPower: connected)
         let panelState = PanelDetailMapper.battery(
@@ -253,4 +284,15 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         XCTAssertEqual(size.width, 330, accuracy: 0.5)
         return size
     }
+}
+
+private extension BatteryHealthSnapshot {
+    /// Stable layout fixture; values are examples, not a measured machine.
+    static let layoutFixture = BatteryHealthSnapshot(
+        designCapacityMAh: 8_579,
+        maximumCapacityMAh: 8_413,
+        healthPercent: 98.065,
+        temperatureCelsius: 36.4,
+        chargeTime: .estimated(minutes: 80)
+    )
 }

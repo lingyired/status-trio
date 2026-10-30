@@ -20,10 +20,12 @@ struct SystemPowerReader: Sendable {
     }
 
     /// One short-lived connection per refresh; fixed read-only keys, no scanning.
-    func readSensors(system: Bool, input: Bool, battery: Bool) ->
-        (system: SystemPowerSample?, input: SystemPowerSample?, battery: BatteryPowerSample?) {
-        let empty: (SystemPowerSample?, SystemPowerSample?, BatteryPowerSample?) = (nil, nil, nil)
-        guard system || input || battery else { return empty }
+    func readSensors(system: Bool, input: Bool, battery: Bool, temperature: Bool = false) ->
+        (system: SystemPowerSample?, input: SystemPowerSample?, battery: BatteryPowerSample?,
+         temperature: Double?) {
+        let empty: (SystemPowerSample?, SystemPowerSample?, BatteryPowerSample?, Double?)
+            = (nil, nil, nil, nil)
+        guard system || input || battery || temperature else { return empty }
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"))
         guard service != 0 else { return empty }
         defer { IOObjectRelease(service) }
@@ -57,7 +59,11 @@ struct SystemPowerReader: Sendable {
             batterySample = BatteryPowerSample(volts: volts, amps: amps, updatedAt: readAt)
         }
         #endif
-        return (systemSample, inputSample, batterySample)
+        // Battery temperature is one more fixed read-only key on the same
+        // short-lived connection; it adds no scan and no sampling loop.
+        let batteryTemperature = temperature
+            ? Self.readValue(sensor: .batteryTemperature, exchange: exchange) : nil
+        return (systemSample, inputSample, batterySample, batteryTemperature)
     }
 
     enum Sensor: UInt32 {
@@ -65,6 +71,7 @@ struct SystemPowerReader: Sendable {
         case input = 0x50445452 // PDTR, adapter input
         case batteryCurrent = 0x42304143 // B0AC
         case batteryVoltage = 0x42304156 // B0AV
+        case batteryTemperature = 0x54423054 // TB0T, battery temperature in °C
     }
 
     // AppleSMC's 80-byte key-data ABI: key 0, keyInfo size/type 28/32,
@@ -91,6 +98,14 @@ struct SystemPowerReader: Sendable {
         request.replaceSubrange(28..<32, with: info[28..<32])
         request[42] = 5 // read bytes (never issue write command 6)
         guard let response = exchange(request), response.count == 80, response[40] == 0 else { return nil }
+        // Temperature keeps its own verified encoding/range rules in the pure
+        // parser instead of reusing the power decode below.
+        if sensor == .batteryTemperature {
+            return BatteryHealthParser.temperatureCelsius(
+                smcType: type,
+                bytes: Array(response[48..<80])
+            )
+        }
         let watts: Double
         if type == 0x666c7420 {
             watts = Double(Float(bitPattern: littleEndianUInt32(response, at: 48)))
@@ -109,6 +124,7 @@ struct SystemPowerReader: Sendable {
         case .input: return (0...1_000).contains(watts) ? watts : nil
         case .batteryCurrent: return abs(watts) <= 30 ? watts : nil
         case .batteryVoltage: return (1...30).contains(watts) ? watts : nil
+        case .batteryTemperature: return nil // handled above
         }
     }
 

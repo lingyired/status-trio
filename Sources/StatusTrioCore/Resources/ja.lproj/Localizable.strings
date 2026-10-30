@@ -447,6 +447,16 @@
 "battery.details.collecting" = "計測中…";
 "battery.details.loading" = "更新中…";
 "battery.details.explanation" = "電力は独立したセンサーの推定値で、遅延や差異があります。定格電力は実際の入力ではありません。バッテリー使用時は正味の放電電力です。機種によってはバッテリーの更新が約1分遅れます。";
+/* Battery health card. */
+"battery.health.title" = "バッテリーの状態";
+"battery.health.maximumCapacity" = "最大容量";
+"battery.health.designCapacity" = "設計容量";
+"battery.health.estimate" = "状態（推定）";
+"battery.health.temperature" = "バッテリー温度";
+"battery.health.chargeTime" = "満充電までの時間";
+"battery.health.chargePaused" = "充電を一時停止中";
+"battery.health.estimateNote" = "計測した容量からの推定値です。システム設定の「バッテリーの状態」とは異なる場合があります。";
+"battery.health.valueUnavailable" = "—";
 /* Compact popover controls. */
 "menu.more" = "その他の操作";
 

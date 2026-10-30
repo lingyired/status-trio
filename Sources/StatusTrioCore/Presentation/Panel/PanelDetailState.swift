@@ -34,6 +34,7 @@ struct PanelDetailState: Equatable, Sendable {
     var lifecycleIdentity: String? = nil
     var powerFlow: BatteryPowerFlowState? = nil
     var energyApps: ApplicationEnergyRanking? = nil
+    var batteryHealth: BatteryHealthCardState? = nil
 }
 
 struct PanelWiFiNetworkRow: Equatable, Sendable {

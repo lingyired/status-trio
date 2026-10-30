@@ -447,6 +447,16 @@
 "battery.details.collecting" = "Измерение…";
 "battery.details.loading" = "Обновление…";
 "battery.details.explanation" = "Мощность оценивается независимыми датчиками; показания могут запаздывать или различаться. Номинал адаптера не равен фактическому входу. При работе от батареи показан чистый разряд. На некоторых моделях задержка обновления батареи — около минуты.";
+/* Battery health card. */
+"battery.health.title" = "Состояние батареи";
+"battery.health.maximumCapacity" = "Максимальная ёмкость";
+"battery.health.designCapacity" = "Проектная ёмкость";
+"battery.health.estimate" = "Состояние (оценка)";
+"battery.health.temperature" = "Температура батареи";
+"battery.health.chargeTime" = "Время до полного заряда";
+"battery.health.chargePaused" = "Зарядка приостановлена";
+"battery.health.estimateNote" = "Оценка по измеренной ёмкости; может отличаться от состояния батареи в Системных настройках.";
+"battery.health.valueUnavailable" = "—";
 /* Compact popover controls. */
 "menu.more" = "Другие действия";
 

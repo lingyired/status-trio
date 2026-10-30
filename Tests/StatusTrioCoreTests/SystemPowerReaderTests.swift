@@ -37,6 +37,34 @@ final class SystemPowerReaderTests: XCTestCase {
         XCTAssertEqual(commands, [9, 5])
     }
 
+    func testBatteryTemperatureUsesTB0TAndVerifiedUnits() throws {
+        var keys: [[UInt8]] = []
+        let celsius = SystemPowerReader.readValue(sensor: .batteryTemperature) { request in
+            keys.append(Array(request.prefix(4)))
+            return request[42] == 9 ? self.info() : self.value([0, 0, 0x10, 0x42]) // 36.0 °C
+        }
+        XCTAssertEqual(try XCTUnwrap(celsius), 36.0, accuracy: 0.000_001)
+        XCTAssertEqual(keys, [[0x54, 0x30, 0x42, 0x54], [0x54, 0x30, 0x42, 0x54]],
+                       "read the fixed TB0T key only")
+
+        // sp78 (signed 8.8 fixed point), 35.5 °C.
+        XCTAssertEqual(try XCTUnwrap(SystemPowerReader.readValue(sensor: .batteryTemperature) { request in
+            request[42] == 9
+                ? self.info(type: [0x38, 0x37, 0x70, 0x73], size: 2)
+                : self.value([0x23, 0x80])
+        }), 35.5, accuracy: 0.000_001)
+
+        // An unverified encoding and an implausible value stay unavailable.
+        XCTAssertNil(SystemPowerReader.readValue(sensor: .batteryTemperature) { request in
+            request[42] == 9
+                ? self.info(type: [0x36, 0x31, 0x69, 0x73], size: 2)
+                : self.value([0x00, 0x64])
+        })
+        XCTAssertNil(SystemPowerReader.readValue(sensor: .batteryTemperature) { request in
+            request[42] == 9 ? self.info() : self.value([0, 0, 0xf0, 0x42]) // 120 °C
+        })
+    }
+
     func testDecodesFixedPointPowerWithoutLosingFractionalWatts() throws {
         XCTAssertEqual(try XCTUnwrap(read(info: info(type: [0x32, 0x65, 0x70, 0x66], size: 2),
                                              value: value([0, 69]))), 17.25) // fpe2

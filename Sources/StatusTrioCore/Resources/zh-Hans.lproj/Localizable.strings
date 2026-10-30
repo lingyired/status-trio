@@ -447,6 +447,16 @@
 "battery.details.collecting" = "采集中…";
 "battery.details.loading" = "更新中…";
 "battery.details.explanation" = "功率为估算值，各传感器读数可能延迟或存在差异，三项功率不一定完全相加。额定功率并非实际输入。拔电后显示电池放电功率；部分机型的电池数据可能延迟约一分钟。";
+/* Battery health card. */
+"battery.health.title" = "电池健康";
+"battery.health.maximumCapacity" = "最大容量";
+"battery.health.designCapacity" = "设计容量";
+"battery.health.estimate" = "健康度（估算）";
+"battery.health.temperature" = "电池温度";
+"battery.health.chargeTime" = "预计充满时间";
+"battery.health.chargePaused" = "充电已暂停";
+"battery.health.estimateNote" = "根据实测容量估算，可能与系统设置中的“电池健康”不同。";
+"battery.health.valueUnavailable" = "—";
 /* Compact popover controls. */
 "menu.more" = "更多操作";
 

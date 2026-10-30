@@ -58,6 +58,9 @@ struct BatteryDetailsView: View {
                 if let powerFlow = state.powerFlow {
                     BatteryPowerFlowView(state: powerFlow)
                 }
+                if let batteryHealth = state.batteryHealth {
+                    BatteryHealthCardView(state: batteryHealth)
+                }
                 if state.isLoading {
                     Text(localization.string(.batteryDetailsLoading))
                         .foregroundStyle(.secondary)

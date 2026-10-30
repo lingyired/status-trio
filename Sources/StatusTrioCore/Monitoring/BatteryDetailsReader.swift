@@ -30,10 +30,14 @@ struct BatteryDetails: Equatable, Sendable {
     var systemPower: SystemPowerSample?
     var inputPower: SystemPowerSample?
     var powerAvailability: PowerAvailability
+    /// Static health telemetry. Independent of the power sample lifecycle so a
+    /// stale or invalid power reading cannot discard capacity diagnostics.
+    var health: BatteryHealthSnapshot?
 
     init(adapterWatts: Int? = nil, remainingMinutes: Int? = nil, cycleCount: Int? = nil,
          power: BatteryPowerSample? = nil, powerAvailability: PowerAvailability = .unavailable,
-         systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil) {
+         systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
+         health: BatteryHealthSnapshot? = nil) {
         self.adapterWatts = adapterWatts
         self.remainingMinutes = remainingMinutes
         self.cycleCount = cycleCount
@@ -41,6 +45,7 @@ struct BatteryDetails: Equatable, Sendable {
         self.systemPower = systemPower
         self.inputPower = inputPower
         self.powerAvailability = powerAvailability
+        self.health = health
     }
 }
 
@@ -76,7 +81,10 @@ struct BatteryDetailsReader: Sendable {
             // power. macOS can keep the IOPS/registry charging flags false for
             // tens of seconds during a short charge pulse, and a stale flag
             // must not hide real current that the hardware is already moving.
-            battery: state.isPresent && state.isConnected && options.showsCharging
+            battery: state.isPresent && state.isConnected && options.showsCharging,
+            // The health card shows battery temperature on battery too, so this
+            // fixed read-only key is part of the same snapshot, not a new loop.
+            temperature: state.isPresent
         )
         var result = Self.parse(
             registry: registry,
@@ -85,7 +93,9 @@ struct BatteryDetailsReader: Sendable {
             state: state,
             now: Date(),
             notBefore: notBefore,
-            systemPower: sensors.system, inputPower: sensors.input, batteryPower: sensors.battery
+            systemPower: sensors.system, inputPower: sensors.input, batteryPower: sensors.battery,
+            temperatureCelsius: sensors.temperature,
+            chargeTime: Self.readChargeTime(isConnected: state.isConnected, isCharging: state.isCharging)
         )
         if !options.showsInput { result.inputPower = nil }
         if state.isConnected && !options.showsCharging { result.power = nil }
@@ -99,13 +109,37 @@ struct BatteryDetailsReader: Sendable {
         state.isPresent && state.isConnected
     }
 
+    /// Reads the internal battery's own IOPS description. The official
+    /// `Time to Full Charge` field is in minutes and -1 while the system is
+    /// still estimating; it is never extrapolated from charge power.
+    static func readChargeTime(isConnected: Bool, isCharging: Bool) ->
+        BatteryHealthSnapshot.ChargeTimeState {
+        guard let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+              let sources = IOPSCopyPowerSourcesList(snapshot)?.takeRetainedValue() as? [CFTypeRef]
+        else { return .unavailable }
+        for source in sources {
+            guard let description = IOPSGetPowerSourceDescription(snapshot, source)?
+                .takeUnretainedValue() as? [String: Any],
+                description[kIOPSTypeKey] as? String == kIOPSInternalBatteryType
+            else { continue }
+            return BatteryHealthParser.parseChargeTime(
+                description: description,
+                isConnectedToPower: isConnected,
+                isCharging: isCharging
+            )
+        }
+        return .unavailable
+    }
+
     /// IORegistry is public, but these AppleSmartBattery properties are best-effort,
     /// not a stable cross-model API. Never combine values from nested telemetry sources.
     static func parse(
         registry: [String: Any], adapterWatts: Int?, remainingSeconds: Double,
         state: BatteryPowerState, now: Date, notBefore: Date? = nil,
         systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
-        batteryPower: BatteryPowerSample? = nil
+        batteryPower: BatteryPowerSample? = nil,
+        temperatureCelsius: Double? = nil,
+        chargeTime: BatteryHealthSnapshot.ChargeTimeState = .unavailable
     ) -> BatteryDetails {
         guard state.isPresent else { return BatteryDetails(powerAvailability: .unavailable) }
         var result = BatteryDetails(
@@ -114,6 +148,17 @@ struct BatteryDetailsReader: Sendable {
                 && remainingSeconds < Double(Int.max) ? Int(remainingSeconds / 60) : nil,
             cycleCount: (registry["CycleCount"] as? Int).flatMap { $0 >= 0 ? $0 : nil },
             systemPower: state.isConnected ? systemPower : nil
+        )
+        // Capacity and temperature diagnostics are deliberately assigned before
+        // the power-sample state machine below, so a stale power reading can
+        // never discard them.
+        let capacity = BatteryHealthParser.parseCapacity(registry: registry)
+        result.health = BatteryHealthSnapshot(
+            designCapacityMAh: capacity.designMAh,
+            maximumCapacityMAh: capacity.maximumMAh,
+            healthPercent: capacity.healthPercent,
+            temperatureCelsius: temperatureCelsius,
+            chargeTime: chargeTime
         )
         let registryMatches = (registry["ExternalConnected"] as? Bool) == state.isConnected
             && (registry["IsCharging"] as? Bool) == state.isCharging

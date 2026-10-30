@@ -38,8 +38,10 @@ The existing battery icon monitoring is unchanged.
   `AppleSmartBattery` registry snapshot. It is not total Mac power consumption.
   It is not used as a fallback for a missing system-power sensor.
 - **Battery voltage**, **battery current**, **sample time**, and **cycle count** are best-effort
-  registry diagnostics. No battery health percentage is inferred from capacity
-  ratios, and no `system_profiler`/`ioreg` subprocess is launched.
+  registry diagnostics. No `system_profiler`/`ioreg` subprocess is launched.
+- **Battery health card** collects the static diagnostics in one compact card under
+  the power flow. It is read-only and reuses the same on-demand snapshot; it adds no
+  permission, helper, background task, or faster sampling. See below.
 
 System power is read only for a Mac with a present battery on external power and
 while the page is open, on the existing serial utility queue. Each read opens and
@@ -82,6 +84,45 @@ The hardware's sampling interval can be about a minute; the interface shows the
 sample time rather than promising live per-second watts. Hardware validation so
 far covers one Apple silicon Mac on battery. Charging transitions and other Mac
 models still need field validation before making broad accuracy claims.
+
+## Battery health card
+
+Static capacity, temperature, and charge-time diagnostics are gathered from the
+same registry snapshot the page already reads, plus one fixed read-only SMC key.
+The card sits below the power flow and moves the cycle count into itself so the
+value is never shown twice. Each metric degrades on its own: a missing value
+renders an em dash placeholder (and an "Unavailable" VoiceOver value), and the
+card is omitted entirely when no capacity, temperature, or charge estimate exists
+so the plain cycle-count row returns.
+
+- **Maximum capacity** prefers the measured `AppleRawMaxCapacity`, then
+  `FullChargeCapacity`, then `NominalChargeCapacity` inside `BatteryData`. The
+  top-level `AppleSmartBattery` dictionary is only a fallback. Maximum and design
+  capacity must come from the same dictionary; a nested value is never divided by
+  an unrelated top-level value. `MaxCapacity` is a percentage and is never read
+  as milliamp hours. Values must be whole milliamp hours in `1...100,000`.
+- **Design capacity** is `DesignCapacity` from that same dictionary.
+- **Health (estimated)** is `maximum / design * 100`, shown only inside a
+  plausible range and labelled as an estimate with a footnote tooltip. It is not
+  the value macOS shows under Battery Health, and nothing is clamped, so a
+  replacement battery that reads above 100% is shown as measured. Derived values
+  never replace the raw capacities.
+- **Battery temperature** comes from the fixed AppleSMC `TB0T` key read on the
+  same short-lived connection as the other sensors. The SMC type decides the
+  encoding (`flt `, `fpe2`, or `sp78`); unknown types and values outside
+  -20...80 °C stay unavailable. IORegistry `Temperature` is deliberately unused
+  because its scale differs by model and cannot be verified on every Mac.
+- **Time to full** uses `kIOPSTimeToFullChargeKey` from the internal battery's
+  IOPS description. It is shown as an estimate only while the system reports
+  charging with a positive minute value; `-1` (still estimating) shows the
+  existing "Calculating time to full" wording, a fully charged battery shows
+  "Fully charged", and connected-but-not-charging shows "Charging paused". It is
+  never extrapolated from `(100% - charge) / current power`.
+
+The card does not increase the refresh rate: capacity and temperature reuse the
+existing detail read, and time to full is one extra IOPS description read per
+refresh. Low Power Mode writes and Charge to Full Now keep their existing
+privileged paths; the health card itself is read-only.
 
 ## Transition wording
 

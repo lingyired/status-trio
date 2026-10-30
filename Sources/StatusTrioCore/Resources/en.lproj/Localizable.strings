@@ -447,6 +447,16 @@
 "battery.details.collecting" = "Sampling…";
 "battery.details.loading" = "Updating…";
 "battery.details.explanation" = "Power readings are estimates from independent sensors and may lag or differ. Adapter rating is not actual input. On battery, power shows net battery discharge. Some models may update battery samples about a minute late.";
+/* Battery health card. */
+"battery.health.title" = "Battery Health";
+"battery.health.maximumCapacity" = "Maximum capacity";
+"battery.health.designCapacity" = "Design capacity";
+"battery.health.estimate" = "Health (estimated)";
+"battery.health.temperature" = "Battery temperature";
+"battery.health.chargeTime" = "Time to full";
+"battery.health.chargePaused" = "Charging paused";
+"battery.health.estimateNote" = "Estimated from measured capacity; it may differ from Battery Health in System Settings.";
+"battery.health.valueUnavailable" = "—";
 /* Compact popover controls. */
 "menu.more" = "More actions";
 

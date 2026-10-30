@@ -447,6 +447,16 @@
 "battery.details.collecting" = "Wird gemessen…";
 "battery.details.loading" = "Wird aktualisiert…";
 "battery.details.explanation" = "Leistungswerte sind Schätzungen unabhängiger Sensoren und können verzögert sein oder abweichen. Die Nennleistung ist nicht die tatsächliche Eingangsleistung. Im Batteriebetrieb wird die Nettoentladung angezeigt. Manche Modelle aktualisieren etwa eine Minute später.";
+/* Battery health card. */
+"battery.health.title" = "Batteriezustand";
+"battery.health.maximumCapacity" = "Maximale Kapazität";
+"battery.health.designCapacity" = "Design-Kapazität";
+"battery.health.estimate" = "Zustand (geschätzt)";
+"battery.health.temperature" = "Batterietemperatur";
+"battery.health.chargeTime" = "Zeit bis voll";
+"battery.health.chargePaused" = "Laden pausiert";
+"battery.health.estimateNote" = "Aus der gemessenen Kapazität geschätzt; kann vom Batteriezustand in den Systemeinstellungen abweichen.";
+"battery.health.valueUnavailable" = "—";
 /* Compact popover controls. */
 "menu.more" = "Weitere Aktionen";
 

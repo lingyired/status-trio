@@ -447,6 +447,16 @@
 "battery.details.collecting" = "Misurazione…";
 "battery.details.loading" = "Aggiornamento…";
 "battery.details.explanation" = "Le potenze sono stime di sensori indipendenti e possono essere ritardate o diverse. La potenza nominale non è l’ingresso reale. A batteria viene mostrata la scarica netta. Alcuni modelli aggiornano la batteria con circa un minuto di ritardo.";
+/* Battery health card. */
+"battery.health.title" = "Stato della batteria";
+"battery.health.maximumCapacity" = "Capacità massima";
+"battery.health.designCapacity" = "Capacità di progetto";
+"battery.health.estimate" = "Stato (stimato)";
+"battery.health.temperature" = "Temperatura della batteria";
+"battery.health.chargeTime" = "Tempo alla carica completa";
+"battery.health.chargePaused" = "Ricarica in pausa";
+"battery.health.estimateNote" = "Stimato dalla capacità misurata; può differire dallo stato della batteria nelle Impostazioni di Sistema.";
+"battery.health.valueUnavailable" = "—";
 /* Compact popover controls. */
 "menu.more" = "Altre azioni";
 
