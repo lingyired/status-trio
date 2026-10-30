@@ -724,6 +724,10 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, WiFiEventReceiving {
         }
         if batch.connectionInvalidated {
             eventClientNeedsReplacement = true
+            // The client is gone, so any read that started before this event
+            // must not publish: CoreWLAN can still complete it during the
+            // recovery backoff, and restartMonitoring() is too late to stop it.
+            readGeneration &+= 1
             scheduleInvalidationRecovery()
             logWiFiDiagnosticsIfNeeded()
             return

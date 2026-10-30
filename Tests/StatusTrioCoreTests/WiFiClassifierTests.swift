@@ -1960,6 +1960,43 @@ final class WiFiClassifierTests: XCTestCase {
         monitor.stop()
     }
 
+    func testRecoveryBackoffWindowDropsTheInvalidatedReadWithoutPublishing() async {
+        // A read that was in flight when the client died can still complete
+        // during the recovery backoff. It must never reach the UI, even though
+        // the debounced follow-up and the recovery Task are both held here.
+        let reader = DeferredWiFiStatusReader()
+        let eventMonitor = FakeWiFiEventMonitor()
+        let debounceSleeper = ManualEventSleeper()
+        let recoverySleeper = ManualEventSleeper()
+        let monitor = makeMonitor(
+            statusReader: reader,
+            eventMonitor: eventMonitor,
+            refreshDebounceSleep: { duration in await debounceSleeper.sleep(duration) },
+            invalidationRecoveryBackoff: [.seconds(5)],
+            invalidationRecoverySleep: { duration in
+                await recoverySleeper.sleep(duration)
+            }
+        )
+        let updates = monitor.updates
+        monitor.start()
+        eventMonitor.deliver(.connectionInvalidated)
+        let recoveryArmed = await recoverySleeper.waitForCallCount(1, timeout: .seconds(1))
+        XCTAssertTrue(recoveryArmed, "The recovery backoff must be held for the whole test")
+
+        let published = expectation(description: "invalidated read must not publish")
+        published.isInverted = true
+        let collector = Task { @MainActor in
+            var iterator = updates.makeAsyncIterator()
+            if let status = await iterator.next(), status.rssi == -40 {
+                published.fulfill()
+            }
+        }
+        reader.complete(makeReading(rssi: -40))
+        await fulfillment(of: [published], timeout: 0.4)
+        collector.cancel()
+        monitor.stop()
+    }
+
     func testStopCancelsScheduledRecoveryWithoutStartingAnotherRead() async {
         let reader = DeferredWiFiStatusReader()
         let eventMonitor = FakeWiFiEventMonitor()
