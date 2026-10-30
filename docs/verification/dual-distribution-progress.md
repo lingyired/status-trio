@@ -268,7 +268,13 @@ Implementation continued after midnight on 2026-10-24 (Asia/Shanghai). The
   `PowerUIChargeController.swift`；`BetterDisplayIntegrationError` 移入共享
   协议文件以避免 Store 引用被排除实现；`SystemPowerReading` 增加
   `readSensors` 默认实现。
-- 证据：Direct `swift build` PASS；Store Release（Unsigned）`arm64 + x86_64`
-  构建 `BUILD SUCCEEDED`；`verify-app-store-source-closure.py` 89/89；
+- 证据：Direct `swift build` PASS；Store Release 本地 ad-hoc 签名
+  （sandbox / 蓝牙 / 出网 / 位置 entitlements，`arm64 + x86_64`）
+  `BUILD SUCCEEDED`；`verify-app-store-source-closure.py` 89/89；
   `test-app-store-project-contract.sh` 全 PASS；`test-app-store-source-closure.sh`
   89/89。Runtime/沙盒/真机仍为 NOT RUN，本同步不新增硬件 PASS。
+- 权限排障（2026-10-30）：`APP_STORE_UNSIGNED=1` 产物未签名，`tccd` 无法建立
+  应用身份，`bluetoothd` 会话为 unauthorized，面板会持续显示“去设置中允许
+  蓝牙”，与系统设置里的开关状态不一致。签名构建后 `tccd` 能记录
+  `com.lingai.StatusTrio` 并弹出授权。权限相关验证必须用签名构建，未签名
+  产物只用于编译/静态闭包检查。

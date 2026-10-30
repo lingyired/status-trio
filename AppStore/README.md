@@ -174,7 +174,13 @@ USB, network-server, or temporary-exception entitlement. These are the
 minimum public capabilities used by the Store Bluetooth/IOBluetooth and
 CoreLocation provider paths. `APP_STORE_UNSIGNED=1` is an explicit
 compile/static mode and does not claim a signature, Developer ID, Apple
-Distribution, notarization, or a sandbox runtime pass.
+Distribution, notarization, or a sandbox runtime pass. It also cannot verify
+TCC-protected behavior: without a signed, Info.plist-bound bundle `tccd`
+cannot attribute the Bluetooth request, `bluetoothd` reports the session as
+unauthorized, and the panel keeps saying "allow Bluetooth in Settings" even
+though the app's own row is not grantable. Use the default signed build (local
+ad-hoc or a real distribution identity) when checking Bluetooth, location, or
+any other permission-driven UI.
 
 The build requires and always executes
 `scripts/verify-app-store-bundle.sh`; execute permission is not required
