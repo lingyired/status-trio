@@ -33,16 +33,20 @@ struct BatteryHealthCardView: View {
             LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
                 ForEach(cells) { cell in
                     VStack(alignment: .leading, spacing: 1) {
+                        // Long shipped translations must wrap, not truncate:
+                        // the label is the only thing that names the value.
                         Text(cell.label)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.75)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text(cell.value)
                             .font(.caption)
                             .monospacedDigit()
-                            .lineLimit(1)
+                            .lineLimit(2)
                             .minimumScaleFactor(0.8)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityElement(children: .ignore)

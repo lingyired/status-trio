@@ -126,6 +126,43 @@ final class BatteryHealthParserTests: XCTestCase {
         XCTAssertNil(capacity.healthPercent)
     }
 
+    func testCapacityRejectsPercentageLikeAndSentinelNumbers() {
+        for value in [1, 100, 499, 65_535, 100_001] {
+            XCTAssertNil(BatteryHealthParser.milliampHours(NSNumber(value: value)), "\(value)")
+        }
+        XCTAssertNil(BatteryHealthParser.integerValue(NSNumber(value: true)))
+        XCTAssertNil(BatteryHealthParser.boolValue(NSNumber(value: 2)))
+        XCTAssertEqual(BatteryHealthParser.integerValue(NSNumber(value: 8_413)), 8_413)
+    }
+
+    func testExtremeTelemetryCannotOverflowIntegerConversion() {
+        let values = [NSNumber(value: Double.greatestFiniteMagnitude), NSNumber(value: UInt64.max),
+                      NSNumber(value: Double.nan), NSNumber(value: Double.infinity)]
+        for value in values {
+            XCTAssertNil(BatteryHealthParser.milliampHours(value))
+            XCTAssertNil(BatteryHealthParser.integerValue(value))
+        }
+    }
+
+    func testChargeTimeRejectsStalePowerContextAndInvalidEstimates() {
+        let ac = chargeDescription(charging: true, charged: false, timeToFull: 30)
+        XCTAssertEqual(BatteryHealthParser.parseChargeTime(
+            description: ac, isConnectedToPower: false, isCharging: false), .unavailable)
+        XCTAssertEqual(BatteryHealthParser.parseChargeTime(
+            description: chargeDescription(charging: true, charged: false, timeToFull: 30, state: "Battery Power"),
+            isConnectedToPower: true, isCharging: true), .unavailable)
+        for value: Any in [-2, 65_535, 10_081, NSNumber(value: true), "20", 30.5] {
+            var description = ac
+            description[kIOPSTimeToFullChargeKey] = value
+            XCTAssertEqual(BatteryHealthParser.parseChargeTime(
+                description: description, isConnectedToPower: true, isCharging: true), .unavailable)
+        }
+        var missing = ac
+        missing.removeValue(forKey: kIOPSTimeToFullChargeKey)
+        XCTAssertEqual(BatteryHealthParser.parseChargeTime(
+            description: missing, isConnectedToPower: true, isCharging: true), .unavailable)
+    }
+
     // MARK: - Temperature
 
     func testSMCBatteryTemperatureDecodesEveryVerifiedEncoding() throws {
@@ -202,13 +239,12 @@ final class BatteryHealthParserTests: XCTestCase {
                                                timeToFull: -1, state: "Battery Power"),
                 isConnectedToPower: false, isCharging: false),
             .unavailable)
-        // A description that omits every state key falls back to the caller's
-        // IOPS-backed state instead of inventing an estimate.
+        // Missing state cannot prove a charging estimate.
         XCTAssertEqual(
             BatteryHealthParser.parseChargeTime(
                 description: [kIOPSTypeKey: kIOPSInternalBatteryType],
                 isConnectedToPower: true, isCharging: true),
-            .calculating)
+            .unavailable)
         XCTAssertEqual(
             BatteryHealthParser.parseChargeTime(
                 description: [kIOPSIsPresentKey: false, kIOPSPowerSourceStateKey: kIOPSACPowerValue,

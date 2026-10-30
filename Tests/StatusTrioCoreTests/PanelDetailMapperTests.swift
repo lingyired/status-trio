@@ -26,9 +26,10 @@ final class PanelDetailMapperTests: XCTestCase {
             LocalizationKey.batteryDetailsVoltage.rawValue,
             LocalizationKey.batteryDetailsCurrent.rawValue,
             LocalizationKey.batteryDetailsAdapter.rawValue,
-            LocalizationKey.batteryDetailsCycles.rawValue,
             LocalizationKey.batteryDetailsLowPower.rawValue
         ])
+        // The cycle count moved into the health card and must not repeat.
+        XCTAssertEqual(state.batteryHealth?.metrics.first { $0.id == "cycles" }?.value, "12")
         XCTAssertEqual(state.rows[0].value, "18.2 W")
         XCTAssertEqual(state.rows[0].tint, .primary)
         XCTAssertTrue(state.rows[1].value.contains(":20"))

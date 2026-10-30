@@ -91,16 +91,19 @@ Static capacity, temperature, and charge-time diagnostics are gathered from the
 same registry snapshot the page already reads, plus one fixed read-only SMC key.
 The card sits below the power flow and moves the cycle count into itself so the
 value is never shown twice. Each metric degrades on its own: a missing value
-renders an em dash placeholder (and an "Unavailable" VoiceOver value), and the
-card is omitted entirely when no capacity, temperature, or charge estimate exists
-so the plain cycle-count row returns.
+renders an em dash placeholder (and an "Unavailable" VoiceOver value), and a Mac
+that exposes no capacity, temperature, or charge estimate keeps the card with an
+explicit "battery health data isn't available" note instead of hiding it or
+showing zeros.
 
 - **Maximum capacity** prefers the measured `AppleRawMaxCapacity`, then
   `FullChargeCapacity`, then `NominalChargeCapacity` inside `BatteryData`. The
   top-level `AppleSmartBattery` dictionary is only a fallback. Maximum and design
   capacity must come from the same dictionary; a nested value is never divided by
   an unrelated top-level value. `MaxCapacity` is a percentage and is never read
-  as milliamp hours. Values must be whole milliamp hours in `1...100,000`.
+  as milliamp hours. Values must be whole milliamp hours in `500...100,000` and
+  must not be the Smart Battery `0xffff` unknown sentinel; booleans, fractional
+  telemetry, and values too large for the conversion are rejected.
 - **Design capacity** is `DesignCapacity` from that same dictionary.
 - **Health (estimated)** is `maximum / design * 100`, shown only inside a
   plausible range and labelled as an estimate with a footnote tooltip. It is not
@@ -116,8 +119,10 @@ so the plain cycle-count row returns.
   IOPS description. It is shown as an estimate only while the system reports
   charging with a positive minute value; `-1` (still estimating) shows the
   existing "Calculating time to full" wording, a fully charged battery shows
-  "Fully charged", and connected-but-not-charging shows "Charging paused". It is
-  never extrapolated from `(100% - charge) / current power`.
+  "Fully charged", and connected-but-not-charging shows "Not charging" because
+  IOPS cannot prove whether a charge limit, optimized charging, or a thermal
+  pause is responsible. It is never extrapolated from
+  `(100% - charge) / current power`.
 
 The card does not increase the refresh rate: capacity and temperature reuse the
 existing detail read, and time to full is one extra IOPS description read per

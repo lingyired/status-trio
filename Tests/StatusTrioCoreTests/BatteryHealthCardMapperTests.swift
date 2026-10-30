@@ -88,15 +88,16 @@ final class BatteryHealthCardMapperTests: XCTestCase {
         XCTAssertTrue(state.rows.contains { $0.id == LocalizationKey.batteryDetailsLowPower.rawValue })
     }
 
-    func testCardIsHiddenWithoutHealthMetricsAndTheCycleRowReturns() throws {
+    func testCardWithoutTelemetryExplainsMissingDataAndKeepsOneCycleCount() throws {
         let localization = localized()
         let state = PanelDetailMapper.battery(
             status: battery(),
             details: details(health: BatteryHealthSnapshot(chargeTime: .paused)),
             localization: localization)
-        XCTAssertNil(state.batteryHealth)
-        let row = try XCTUnwrap(state.rows.first { $0.id == LocalizationKey.batteryDetailsCycles.rawValue })
-        XCTAssertEqual(row.value, "52")
+        let card = try XCTUnwrap(state.batteryHealth)
+        XCTAssertNotNil(card.footnote)
+        XCTAssertEqual(card.metrics.first { $0.id == "cycles" }?.value, "52")
+        XCTAssertFalse(state.rows.contains { $0.id == LocalizationKey.batteryDetailsCycles.rawValue })
     }
 
     func testChargeTimeAloneCanJustifyTheCard() throws {
@@ -110,6 +111,7 @@ final class BatteryHealthCardMapperTests: XCTestCase {
                        localization.string(.batteryStateCalculatingTimeToFull))
         XCTAssertEqual(card.metrics.map(\.id), ["maximum", "health", "design", "temperature"])
         XCTAssertEqual(card.metrics[0].value, localization.string(.batteryHealthValueUnavailable))
+        // An estimate alone is not a capacity measurement, so no estimate note.
         XCTAssertNil(card.footnote)
     }
 

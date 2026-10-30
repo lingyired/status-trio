@@ -454,9 +454,10 @@
 "battery.health.estimate" = "الحالة (تقديرية)";
 "battery.health.temperature" = "درجة حرارة البطارية";
 "battery.health.chargeTime" = "الوقت حتى الامتلاء";
-"battery.health.chargePaused" = "الشحن متوقف مؤقتًا";
+"battery.health.chargePaused" = "لا يتم الشحن";
 "battery.health.estimateNote" = "مقدّرة من السعة المقاسة؛ قد تختلف عن حالة البطارية في إعدادات النظام.";
 "battery.health.valueUnavailable" = "—";
+"battery.health.unavailable" = "بيانات حالة البطارية غير متاحة على هذا الـ Mac.";
 /* Compact popover controls. */
 "menu.more" = "إجراءات أخرى";
 

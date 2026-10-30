@@ -454,9 +454,10 @@
 "battery.health.estimate" = "健康度（估算）";
 "battery.health.temperature" = "電池溫度";
 "battery.health.chargeTime" = "預計充滿時間";
-"battery.health.chargePaused" = "充電已暫停";
+"battery.health.chargePaused" = "未在充電";
 "battery.health.estimateNote" = "根據實測容量估算，可能與系統設定中的「電池健康度」不同。";
 "battery.health.valueUnavailable" = "—";
+"battery.health.unavailable" = "此 Mac 暫未提供電池健康資料。";
 /* Compact popover controls. */
 "menu.more" = "更多操作";
 

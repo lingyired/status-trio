@@ -454,9 +454,10 @@
 "battery.health.estimate" = "状態（推定）";
 "battery.health.temperature" = "バッテリー温度";
 "battery.health.chargeTime" = "満充電までの時間";
-"battery.health.chargePaused" = "充電を一時停止中";
+"battery.health.chargePaused" = "充電していません";
 "battery.health.estimateNote" = "計測した容量からの推定値です。システム設定の「バッテリーの状態」とは異なる場合があります。";
 "battery.health.valueUnavailable" = "—";
+"battery.health.unavailable" = "この Mac ではバッテリーの状態のデータを利用できません。";
 /* Compact popover controls. */
 "menu.more" = "その他の操作";
 

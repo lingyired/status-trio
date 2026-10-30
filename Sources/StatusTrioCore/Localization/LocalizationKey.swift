@@ -355,6 +355,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case batteryHealthChargePaused = "battery.health.chargePaused"
     case batteryHealthEstimateNote = "battery.health.estimateNote"
     case batteryHealthValueUnavailable = "battery.health.valueUnavailable"
+    case batteryHealthUnavailable = "battery.health.unavailable"
     case batteryActionOpenSettings = "battery.action.openSettings"
     case batteryActionOpenAppBatterySettings = "battery.action.openAppBatterySettings"
     case batteryActionChargeToFullNow = "battery.action.chargeToFullNow"

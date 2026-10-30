@@ -454,9 +454,10 @@
 "battery.health.estimate" = "Stato (stimato)";
 "battery.health.temperature" = "Temperatura della batteria";
 "battery.health.chargeTime" = "Tempo alla carica completa";
-"battery.health.chargePaused" = "Ricarica in pausa";
+"battery.health.chargePaused" = "Non in carica";
 "battery.health.estimateNote" = "Stimato dalla capacità misurata; può differire dallo stato della batteria nelle Impostazioni di Sistema.";
 "battery.health.valueUnavailable" = "—";
+"battery.health.unavailable" = "I dati sullo stato della batteria non sono disponibili su questo Mac.";
 /* Compact popover controls. */
 "menu.more" = "Altre azioni";
 

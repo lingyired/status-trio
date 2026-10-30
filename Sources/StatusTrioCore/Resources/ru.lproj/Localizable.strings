@@ -454,9 +454,10 @@
 "battery.health.estimate" = "Состояние (оценка)";
 "battery.health.temperature" = "Температура батареи";
 "battery.health.chargeTime" = "Время до полного заряда";
-"battery.health.chargePaused" = "Зарядка приостановлена";
+"battery.health.chargePaused" = "Не заряжается";
 "battery.health.estimateNote" = "Оценка по измеренной ёмкости; может отличаться от состояния батареи в Системных настройках.";
 "battery.health.valueUnavailable" = "—";
+"battery.health.unavailable" = "Данные о состоянии батареи недоступны на этом Mac.";
 /* Compact popover controls. */
 "menu.more" = "Другие действия";
 

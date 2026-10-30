@@ -111,14 +111,14 @@ enum BatteryHealthParser {
     /// telemetry, and out-of-range values are rejected rather than truncated.
     static func milliampHours(_ value: Any?) -> Int? {
         guard let number = value as? NSNumber else { return nil }
-        let type = String(cString: number.objCType)
-        // CFBoolean bridges to NSNumber with "c"/"B"; 0/1 mAh is never valid.
-        guard type != "c", type != "B" else { return nil }
+        guard CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
         let raw = number.doubleValue
-        guard raw.isFinite, raw == raw.rounded() else { return nil }
-        let capacity = Int(raw)
-        guard (1...100_000).contains(capacity) else { return nil }
-        return capacity
+        // A Mac pack cannot have percentage-sized capacities. 0xffff is the
+        // Smart Battery unknown sentinel, not a 65 Ah battery. Bound the Double
+        // before any integer conversion so hostile NSNumber values cannot trap.
+        guard raw.isFinite, raw == raw.rounded(), (500...100_000).contains(raw), raw != 65_535
+        else { return nil }
+        return Int(exactly: raw)
     }
 
     /// Battery temperature in degrees Celsius from AppleSMC `TB0T`. The SMC
@@ -156,28 +156,34 @@ enum BatteryHealthParser {
         isConnectedToPower: Bool,
         isCharging: Bool?
     ) -> BatteryHealthSnapshot.ChargeTimeState {
-        if boolValue(description[kIOPSIsPresentKey]) == false { return .unavailable }
-        let connected = (description[kIOPSPowerSourceStateKey] as? String == kIOPSACPowerValue)
-            || isConnectedToPower
-        guard connected else { return .unavailable }
-        if boolValue(description[kIOPSIsChargedKey]) == true { return .charged }
-        let charging = boolValue(description[kIOPSIsChargingKey]) ?? isCharging ?? false
+        guard boolValue(description[kIOPSIsPresentKey]) == true,
+              isConnectedToPower,
+              description[kIOPSPowerSourceStateKey] as? String == kIOPSACPowerValue,
+              let charging = boolValue(description[kIOPSIsChargingKey]),
+              let charged = boolValue(description[kIOPSIsChargedKey]),
+              isCharging == charging
+        else { return .unavailable }
+        if charged { return charging ? .unavailable : .charged }
         guard charging else { return .paused }
-        if let minutes = integerValue(description[kIOPSTimeToFullChargeKey]), minutes > 0 {
-            return .estimated(minutes: minutes)
-        }
-        return .calculating
+        guard let minutes = integerValue(description[kIOPSTimeToFullChargeKey]) else { return .unavailable }
+        if minutes == -1 || minutes == 0 { return .calculating }
+        // Reject sentinels and implausible durations before formatting them.
+        guard (1...10_080).contains(minutes) else { return .unavailable }
+        return .estimated(minutes: minutes)
     }
 
     static func boolValue(_ value: Any?) -> Bool? {
         guard let number = value as? NSNumber else { return nil }
-        return number.boolValue
+        switch number.doubleValue {
+        case 0: return false
+        case 1: return true
+        default: return nil
+        }
     }
 
     static func integerValue(_ value: Any?) -> Int? {
-        guard let number = value as? NSNumber else { return nil }
-        let raw = number.doubleValue
-        guard raw.isFinite, raw == raw.rounded() else { return nil }
-        return Int(raw)
+        guard let number = value as? NSNumber,
+              CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
+        return Int(exactly: number.doubleValue)
     }
 }

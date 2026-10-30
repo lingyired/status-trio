@@ -10,7 +10,10 @@ enum PanelDetailMapper {
         energyApps: ApplicationEnergyRanking? = nil
     ) -> PanelDetailState {
         var rows: [PanelDetailRow] = []
-        var healthCard: BatteryHealthCardState?
+        let healthCard = details.map {
+            batteryHealthCard(details: battery.isPresent ? $0 : BatteryDetails(),
+                              isPresent: battery.isPresent, localization: localization)
+        }
         if let details {
             let reading = BatteryPowerPresentation(details: details, isConnectedToPower: battery.isConnectedToPower)
             let watts = reading.watts.map {
@@ -46,12 +49,6 @@ enum PanelDetailMapper {
                 } ?? localization.string(.batteryDetailsUnavailable)
                 rows.append(row(.batteryDetailsRemaining, value: remaining, localization: localization))
             }
-            healthCard = batteryHealthCard(details: details, localization: localization)
-            // The health card carries the cycle count, so the plain row only
-            // remains on Macs that expose nothing for the card.
-            if healthCard == nil, let count = details.cycleCount {
-                rows.append(row(.batteryDetailsCycles, value: count.formatted(.number.locale(localization.resolvedLanguage.locale)), localization: localization))
-            }
         }
         rows.append(row(
             .batteryDetailsLowPower,
@@ -76,14 +73,13 @@ enum PanelDetailMapper {
 
     /// Compact, read-only health summary. Every metric degrades on its own:
     /// one missing value shows a placeholder instead of hiding the card, and a
-    /// card with nothing readable is not shown at all.
+    /// page with no readable value keeps the card with an explicit empty note.
     private static func batteryHealthCard(
         details: BatteryDetails,
+        isPresent: Bool,
         localization: Localization
-    ) -> BatteryHealthCardState? {
-        guard let health = details.health,
-              health.hasMetrics || health.hasDisplayableChargeTime
-        else { return nil }
+    ) -> BatteryHealthCardState {
+        let health = details.health ?? BatteryHealthSnapshot()
         let locale = localization.resolvedLanguage.locale
         let placeholder = localization.string(.batteryHealthValueUnavailable)
         let unavailable = localization.string(.batteryDetailsUnavailable)
@@ -146,7 +142,10 @@ enum PanelDetailMapper {
             metrics: metrics,
             chargeTimeLabel: localization.string(.batteryHealthChargeTime),
             chargeTimeValue: chargeTimeValue,
-            footnote: health.healthPercent != nil ? localization.string(.batteryHealthEstimateNote) : nil
+            footnote: !isPresent ? localization.string(.batteryStateNotPresent)
+                : !health.hasMetrics && !health.hasDisplayableChargeTime
+                    ? localization.string(.batteryHealthUnavailable)
+                    : health.healthPercent != nil ? localization.string(.batteryHealthEstimateNote) : nil
         )
     }
 
