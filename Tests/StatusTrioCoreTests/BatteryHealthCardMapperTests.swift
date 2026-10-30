@@ -88,16 +88,44 @@ final class BatteryHealthCardMapperTests: XCTestCase {
         XCTAssertTrue(state.rows.contains { $0.id == LocalizationKey.batteryDetailsLowPower.rawValue })
     }
 
-    func testCardWithoutTelemetryExplainsMissingDataAndKeepsOneCycleCount() throws {
+    func testCardWithoutTelemetryExplainsMissingData() throws {
         let localization = localized()
         let state = PanelDetailMapper.battery(
             status: battery(),
-            details: details(health: BatteryHealthSnapshot(chargeTime: .paused)),
+            details: details(health: BatteryHealthSnapshot(chargeTime: .paused), cycleCount: nil),
             localization: localization)
         let card = try XCTUnwrap(state.batteryHealth)
-        XCTAssertNotNil(card.footnote)
+        XCTAssertTrue(card.showsEmptyState)
+        XCTAssertEqual(card.unavailableMessage, localization.string(.batteryHealthUnavailable))
+        XCTAssertTrue(card.metrics.isEmpty, "an unknown value must not render as a dash grid")
+        XCTAssertEqual(card.chargeTimeValue, "")
+        XCTAssertFalse(state.rows.contains { $0.id == LocalizationKey.batteryDetailsCycles.rawValue })
+    }
+
+    func testCycleCountAloneStillOpensTheCardWithoutRepeatingTheRow() throws {
+        let localization = localized()
+        let state = PanelDetailMapper.battery(
+            status: battery(),
+            details: details(health: BatteryHealthSnapshot(chargeTime: .unavailable)),
+            localization: localization)
+        let card = try XCTUnwrap(state.batteryHealth)
+        XCTAssertFalse(card.showsEmptyState)
+        XCTAssertEqual(card.metrics.map(\.id), ["maximum", "health", "design", "cycles", "temperature"])
         XCTAssertEqual(card.metrics.first { $0.id == "cycles" }?.value, "52")
         XCTAssertFalse(state.rows.contains { $0.id == LocalizationKey.batteryDetailsCycles.rawValue })
+    }
+
+    func testCardWithoutBatteryExplainsThatThereIsNoBattery() throws {
+        let localization = localized()
+        let noBattery = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                      isLowPowerMode: false, isConnectedToPower: false)
+        let state = PanelDetailMapper.battery(
+            status: noBattery,
+            details: details(health: nil, cycleCount: nil),
+            localization: localization)
+        let card = try XCTUnwrap(state.batteryHealth)
+        XCTAssertTrue(card.showsEmptyState)
+        XCTAssertEqual(card.unavailableMessage, localization.string(.batteryStateNotPresent))
     }
 
     func testChargeTimeAloneCanJustifyTheCard() throws {

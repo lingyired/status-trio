@@ -91,33 +91,41 @@ Static capacity, temperature, and charge-time diagnostics are gathered from the
 same registry snapshot the page already reads, plus one fixed read-only SMC key.
 The card sits below the power flow and moves the cycle count into itself so the
 value is never shown twice. Each metric degrades on its own: a missing value
-renders an em dash placeholder (and an "Unavailable" VoiceOver value), and a Mac
-that exposes no capacity, temperature, or charge estimate keeps the card with an
-explicit "battery health data isn't available" note instead of hiding it or
-showing zeros.
+renders an em dash placeholder (and an "Unavailable" VoiceOver value), while the
+health-estimate caveat is a visible caption, not a tooltip. A Mac that exposes no
+capacity, temperature, or charge estimate keeps the card with a visible
+"battery health data isn't available" note, and a Mac without a battery explains
+that instead of rendering a dash grid. The card's middle region scrolls under a
+screen-derived height cap, so the back row and the Low Power Mode, Charge to Full
+Now, and Settings controls below it always stay on screen on a 13-inch display.
 
 - **Maximum capacity** prefers the measured `AppleRawMaxCapacity`, then
   `FullChargeCapacity`, then `NominalChargeCapacity` inside `BatteryData`. The
   top-level `AppleSmartBattery` dictionary is only a fallback. Maximum and design
   capacity must come from the same dictionary; a nested value is never divided by
   an unrelated top-level value. `MaxCapacity` is a percentage and is never read
-  as milliamp hours. Values must be whole milliamp hours in `500...100,000` and
-  must not be the Smart Battery `0xffff` unknown sentinel; booleans, fractional
-  telemetry, and values too large for the conversion are rejected.
+  as milliamp hours. Values must be whole milliamp hours in `1,000...20,000`;
+  that range already rejects percentages, counters, booleans, fractional
+  telemetry, values too large for the conversion, and the Smart Battery
+  `0xffff` unknown sentinel.
 - **Design capacity** is `DesignCapacity` from that same dictionary.
-- **Health (estimated)** is `maximum / design * 100`, shown only inside a
-  plausible range and labelled as an estimate with a footnote tooltip. It is not
+- **Health (estimated)** is `maximum / design * 100`, shown only inside the
+  plausible `20...150%` range and labelled as an estimate with a visible note. It is not
   the value macOS shows under Battery Health, and nothing is clamped, so a
   replacement battery that reads above 100% is shown as measured. Derived values
   never replace the raw capacities.
 - **Battery temperature** comes from the fixed AppleSMC `TB0T` key read on the
   same short-lived connection as the other sensors. The SMC type decides the
   encoding (`flt `, `fpe2`, or `sp78`); unknown types and values outside
-  -20...80 °C stay unavailable. IORegistry `Temperature` is deliberately unused
+  -20...80 °C stay unavailable. This is one more fixed read-only key inside the
+  same snapshot, not a separate scan; it also runs on battery power so the card
+  has a temperature there. IORegistry `Temperature` is deliberately unused
   because its scale differs by model and cannot be verified on every Mac.
 - **Time to full** uses `kIOPSTimeToFullChargeKey` from the internal battery's
-  IOPS description. It is shown as an estimate only while the system reports
-  charging with a positive minute value; `-1` (still estimating) shows the
+  IOPS description. The fresh description wins over the event-driven cached
+  charging flag, which is documented to trail a short charge pulse by tens of
+  seconds. It is shown as an estimate only while the system reports charging
+  with a positive minute value; `-1` (still estimating) shows the
   existing "Calculating time to full" wording, a fully charged battery shows
   "Fully charged", and connected-but-not-charging shows "Not charging" because
   IOPS cannot prove whether a charge limit, optimized charging, or a thermal

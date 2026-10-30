@@ -5,8 +5,6 @@ import XCTest
 
 @MainActor
 final class BatteryDetailsLayoutTests: XCTestCase {
-    // A realistic Apple Silicon health snapshot: the card is part of the
-    // normal page, so layout budgets must include it.
     func testBatteryHealthCardFitsEveryLanguageAndScheme() async throws {
         for language in AppLanguage.allCases {
             for dark in [false, true] {
@@ -17,6 +15,51 @@ final class BatteryDetailsLayoutTests: XCTestCase {
                 XCTAssertLessThan(size.height, 590, "\(language.rawValue) dark=\(dark)")
             }
         }
+    }
+
+    func testWorstCasePageKeepsControlsOnScreen() async throws {
+        // Every optional section at once: full power flow, five energy apps,
+        // health card, low-power control, and the Charge to Full Now area.
+        for language in [AppLanguage.english, .german, .russian, .arabic] {
+            let size = try await render(
+                language: language, available: true, connected: true, charging: true,
+                allPower: true, energyApps: true,
+                chargeToFullNow: .applying, showsLowPowerControl: true)
+            XCTAssertEqual(size.width, 330, accuracy: 0.5)
+            // 420 pt scroll cap plus the fixed chrome (~300 pt) stays below the
+            // 700 pt usable height of the smallest supported 13-inch display.
+            XCTAssertLessThanOrEqual(size.height, 700, "\(language.rawValue)")
+        }
+    }
+
+    func testScrollCapBoundsTallPageWithoutGrowingPopover() async throws {
+        let capped = try await render(
+            language: .english, available: true, connected: true, charging: true,
+            allPower: true, energyApps: true, maxContentHeight: 300)
+        let roomy = try await render(
+            language: .english, available: true, connected: true, charging: true,
+            allPower: true, energyApps: true, maxContentHeight: 900)
+        XCTAssertLessThan(capped.height, roomy.height,
+                          "a smaller cap must scroll, not grow the page")
+        XCTAssertLessThanOrEqual(capped.height, 620)
+    }
+
+    func testContentHeightLimitLeavesRoomForFixedChrome() {
+        for visibleHeight: CGFloat in [700, 800, 900, 1200] {
+            let limit = BatteryDetailsLayoutPolicy.contentHeightLimit(visibleHeight: visibleHeight)
+            XCTAssertGreaterThanOrEqual(limit, BatteryDetailsLayoutPolicy.minimumContentHeight)
+            XCTAssertLessThanOrEqual(
+                limit + BatteryDetailsLayoutPolicy.fixedChromeHeight,
+                max(visibleHeight, BatteryDetailsLayoutPolicy.minimumContentHeight
+                    + BatteryDetailsLayoutPolicy.fixedChromeHeight))
+        }
+        XCTAssertEqual(
+            BatteryDetailsLayoutPolicy.contentHeightLimit(visibleHeight: 900), 600, accuracy: 0.5)
+        XCTAssertEqual(
+            BatteryDetailsLayoutPolicy.contentHeightLimit(visibleHeight: 700), 400, accuracy: 0.5)
+        XCTAssertEqual(
+            BatteryDetailsLayoutPolicy.contentHeightLimit(visibleHeight: 500),
+            BatteryDetailsLayoutPolicy.minimumContentHeight, accuracy: 0.5)
     }
 
     func testBatteryHealthCardStaysCompactWhenEveryValueIsUnavailable() async throws {
@@ -37,7 +80,7 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             let collecting = try await render(language: language, available: false, collecting: true)
             // Budget includes the compact health card that now sits under the
             // power flow on every battery page.
-            XCTAssertLessThan(power.height, 450)
+            XCTAssertLessThan(power.height, 480)
             XCTAssertLessThan(unavailable.height, power.height)
             XCTAssertLessThan(collecting.height, power.height)
             _ = try await renderSummary(language: language, isPresent: true)
@@ -49,13 +92,16 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         // The page now carries a second settings action below the system-power
         // one, plus the compact health card. Keep the budget tight enough that
         // another whole row still fails.
-        let heightBudget: CGFloat = 600
+        let heightBudget: CGFloat = 640
         for language in AppLanguage.allCases {
-            let connected = try await render(language: language, available: true, connected: true)
+            let connected = try await render(language: language, available: true, connected: true,
+                                             maxContentHeight: 900)
             XCTAssertLessThan(connected.height, heightBudget, language.rawValue)
-            let charging = try await render(language: language, available: true, connected: true, charging: true)
+            let charging = try await render(language: language, available: true, connected: true,
+                                            charging: true, maxContentHeight: 900)
             XCTAssertLessThan(charging.height, heightBudget, language.rawValue)
-            let missing = try await render(language: language, available: true, connected: true, systemAvailable: false)
+            let missing = try await render(language: language, available: true, connected: true,
+                                           systemAvailable: false, maxContentHeight: 900)
             // An unavailable system reading drops the timestamp row, not just
             // shortens a value, so the page must lose at least one row of height.
             XCTAssertGreaterThanOrEqual(connected.height - missing.height, 10,
@@ -234,7 +280,9 @@ final class BatteryDetailsLayoutTests: XCTestCase {
                         allPower: Bool = false, dark: Bool = false, energyApps: Bool = false,
                         chargeToFullNow: ChargeToFullNowPresentation = .hidden,
                         inputWatts: Double? = nil,
-                        health: BatteryHealthSnapshot? = .layoutFixture) async throws -> NSSize {
+                        health: BatteryHealthSnapshot? = .layoutFixture,
+                        maxContentHeight: CGFloat = 420,
+                        showsLowPowerControl: Bool = false) async throws -> NSSize {
         let suite = "StatusTrioCoreTests.BatteryDetails.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removeTestSuite(named: suite) }
@@ -272,7 +320,11 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             onOpenBatterySettings: {},
             onCopyValue: { _ in },
             onAppear: {},
-            chargeToFullNow: chargeToFullNow
+            lowPowerMode: showsLowPowerControl
+                ? LowPowerModeController(initialIsLowPowerMode: true) : nil,
+            showsLowPowerControl: showsLowPowerControl,
+            chargeToFullNow: chargeToFullNow,
+            maxContentHeight: maxContentHeight
         )
             .padding(14)
             .frame(width: 330)

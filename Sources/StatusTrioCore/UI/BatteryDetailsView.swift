@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct BatteryDetailsView: View {
@@ -14,6 +15,9 @@ struct BatteryDetailsView: View {
     private let showsLowPowerControl: Bool
     private let chargeToFullNow: ChargeToFullNowPresentation
     private let onChargeToFullNow: () -> Void
+    /// Height cap for the scrollable middle region. The back row and the action
+    /// controls below it stay fixed, so a tall page never pushes them off screen.
+    private let maxContentHeight: CGFloat
 
     init(
         state: PanelDetailState,
@@ -25,7 +29,8 @@ struct BatteryDetailsView: View {
         lowPowerMode: LowPowerModeController? = nil,
         showsLowPowerControl: Bool = false,
         chargeToFullNow: ChargeToFullNowPresentation = .hidden,
-        onChargeToFullNow: @escaping () -> Void = {}
+        onChargeToFullNow: @escaping () -> Void = {},
+        maxContentHeight: CGFloat? = nil
     ) {
         self.state = state
         self.onBack = onBack
@@ -37,6 +42,9 @@ struct BatteryDetailsView: View {
         self.showsLowPowerControl = showsLowPowerControl
         self.chargeToFullNow = chargeToFullNow
         self.onChargeToFullNow = onChargeToFullNow
+        self.maxContentHeight = maxContentHeight ?? BatteryDetailsLayoutPolicy.contentHeightLimit(
+            visibleHeight: NSScreen.main?.visibleFrame.height ?? 900
+        )
     }
 
     private var detailRows: [PanelDetailRow] {
@@ -54,33 +62,39 @@ struct BatteryDetailsView: View {
                 action: onBack
             )
 
-            VStack(alignment: .leading, spacing: 6) {
-                if let powerFlow = state.powerFlow {
-                    BatteryPowerFlowView(state: powerFlow)
-                }
-                if let batteryHealth = state.batteryHealth {
-                    BatteryHealthCardView(state: batteryHealth)
-                }
-                if state.isLoading {
-                    Text(localization.string(.batteryDetailsLoading))
-                        .foregroundStyle(.secondary)
-                }
-                PanelDetailRowsView(detailRows: detailRows, onCopyValue: onCopyValue)
-                if let explanation = state.explanation {
-                    Text(explanation)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .font(.caption)
-            .monospacedDigit()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let powerFlow = state.powerFlow {
+                            BatteryPowerFlowView(state: powerFlow)
+                        }
+                        if let batteryHealth = state.batteryHealth {
+                            BatteryHealthCardView(state: batteryHealth)
+                        }
+                        if state.isLoading {
+                            Text(localization.string(.batteryDetailsLoading))
+                                .foregroundStyle(.secondary)
+                        }
+                        PanelDetailRowsView(detailRows: detailRows, onCopyValue: onCopyValue)
+                        if let explanation = state.explanation {
+                            Text(explanation)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .font(.caption)
+                    .monospacedDigit()
 
-            if let ranking = state.energyApps {
-                Divider()
-                HighEnergyAppsView(ranking: ranking)
+                    if let ranking = state.energyApps {
+                        Divider()
+                        HighEnergyAppsView(ranking: ranking)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxHeight: maxContentHeight)
 
             if showsLowPowerControl, let lowPowerMode {
                 Divider()

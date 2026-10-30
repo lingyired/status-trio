@@ -116,6 +116,8 @@ final class BatteryHealthParserTests: XCTestCase {
 
     func testImplausibleHealthIsUnavailableWhileCapacitiesRemainValid() {
         XCTAssertNil(BatteryHealthParser.healthPercent(maximumMAh: 20_000, designMAh: 8_579))
+        XCTAssertNil(BatteryHealthParser.healthPercent(maximumMAh: 1_500, designMAh: 10_000),
+                     "A 15% ratio is more likely a different field than a real pack")
         XCTAssertNil(BatteryHealthParser.healthPercent(maximumMAh: 8_413, designMAh: 0))
         XCTAssertNil(BatteryHealthParser.healthPercent(maximumMAh: nil, designMAh: 8_579))
         let capacity = BatteryHealthParser.parseCapacity(registry: [
@@ -127,7 +129,7 @@ final class BatteryHealthParserTests: XCTestCase {
     }
 
     func testCapacityRejectsPercentageLikeAndSentinelNumbers() {
-        for value in [1, 100, 499, 65_535, 100_001] {
+        for value in [1, 100, 499, 999, 20_001, 65_535, 100_001] {
             XCTAssertNil(BatteryHealthParser.milliampHours(NSNumber(value: value)), "\(value)")
         }
         XCTAssertNil(BatteryHealthParser.integerValue(NSNumber(value: true)))
@@ -148,6 +150,9 @@ final class BatteryHealthParserTests: XCTestCase {
         let ac = chargeDescription(charging: true, charged: false, timeToFull: 30)
         XCTAssertEqual(BatteryHealthParser.parseChargeTime(
             description: ac, isConnectedToPower: false, isCharging: false), .unavailable)
+        // The cached flag may lag a short charge pulse; the fresh AC description wins.
+        XCTAssertEqual(BatteryHealthParser.parseChargeTime(
+            description: ac, isConnectedToPower: true, isCharging: false), .estimated(minutes: 30))
         XCTAssertEqual(BatteryHealthParser.parseChargeTime(
             description: chargeDescription(charging: true, charged: false, timeToFull: 30, state: "Battery Power"),
             isConnectedToPower: true, isCharging: true), .unavailable)

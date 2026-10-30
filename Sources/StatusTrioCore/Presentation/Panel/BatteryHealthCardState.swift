@@ -23,5 +23,11 @@ struct BatteryHealthCardState: Equatable, Sendable {
     let metrics: [Metric]
     let chargeTimeLabel: String
     let chargeTimeValue: String
+    /// Visible note under the metrics, e.g. the health-estimate caveat.
     let footnote: String?
+    /// Set when this Mac exposes no readable health value at all. The card then
+    /// explains why instead of rendering a grid of em dashes.
+    let unavailableMessage: String?
+
+    var showsEmptyState: Bool { unavailableMessage != nil }
 }

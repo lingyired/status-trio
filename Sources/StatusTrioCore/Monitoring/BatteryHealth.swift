@@ -103,7 +103,9 @@ enum BatteryHealthParser {
     static func healthPercent(maximumMAh: Int?, designMAh: Int?) -> Double? {
         guard let maximumMAh, let designMAh, designMAh > 0, maximumMAh > 0 else { return nil }
         let percent = Double(maximumMAh) / Double(designMAh) * 100
-        guard percent.isFinite, (1...150).contains(percent) else { return nil }
+        // Below ~20% a "capacity" is almost certainly a different field
+        // wearing the same name; above 150% it is not the same battery.
+        guard percent.isFinite, (20...150).contains(percent) else { return nil }
         return percent
     }
 
@@ -113,11 +115,11 @@ enum BatteryHealthParser {
         guard let number = value as? NSNumber else { return nil }
         guard CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
         let raw = number.doubleValue
-        // A Mac pack cannot have percentage-sized capacities. 0xffff is the
-        // Smart Battery unknown sentinel, not a 65 Ah battery. Bound the Double
-        // before any integer conversion so hostile NSNumber values cannot trap.
-        guard raw.isFinite, raw == raw.rounded(), (500...100_000).contains(raw), raw != 65_535
-        else { return nil }
+        // Apple's shipped Mac battery packs all fall inside this range; smaller
+        // values are percentages or counters, and the Smart Battery 0xffff
+        // unknown sentinel (65,535) is rejected by the upper bound. Bound the
+        // Double before converting so hostile NSNumber values cannot trap.
+        guard raw.isFinite, raw == raw.rounded(), (1_000...20_000).contains(raw) else { return nil }
         return Int(exactly: raw)
     }
 
@@ -156,12 +158,14 @@ enum BatteryHealthParser {
         isConnectedToPower: Bool,
         isCharging: Bool?
     ) -> BatteryHealthSnapshot.ChargeTimeState {
+        // The description is the fresh source: the event-driven cached flag is
+        // documented to trail a short charge pulse by tens of seconds. The AC
+        // power-source check alone rules out a stale snapshot from the battery.
         guard boolValue(description[kIOPSIsPresentKey]) == true,
               isConnectedToPower,
               description[kIOPSPowerSourceStateKey] as? String == kIOPSACPowerValue,
               let charging = boolValue(description[kIOPSIsChargingKey]),
-              let charged = boolValue(description[kIOPSIsChargedKey]),
-              isCharging == charging
+              let charged = boolValue(description[kIOPSIsChargedKey])
         else { return .unavailable }
         if charged { return charging ? .unavailable : .charged }
         guard charging else { return .paused }
