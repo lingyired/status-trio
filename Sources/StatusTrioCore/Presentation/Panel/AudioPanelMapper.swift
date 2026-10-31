@@ -225,7 +225,9 @@ enum AudioPanelMapper {
                 },
                 listeningModeAddress: listeningModes?.control(forEndpoint: device.id)?.address,
                 listeningMode: listeningModes?.control(forEndpoint: device.id)?.presentation,
-                isPreview: isPreview
+                isPreview: isPreview,
+                supportsAirPodsSystemControls: !isPreview && device.isCurrent && device.isBluetoothAudio
+                    && AirPodsModel(modelUID: device.modelUID) != nil && device.uid != nil
             )
         }
     }

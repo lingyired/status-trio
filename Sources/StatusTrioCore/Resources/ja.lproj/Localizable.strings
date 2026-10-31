@@ -569,3 +569,20 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "%d%% への設定を確認";
 "battery.action.cancelChargeToFullNowConfirmation" = "システムの充電状態が変更された可能性があります。もう一度クリックして続行してください。";
 "battery.action.cancelChargeToFullNowPending" = "システムが一時的なフル充電をまだ確認できていません。少し待ってから再試行してください。";
+
+// AirPods system controls
+"airPods.controls" = "AirPods コントロール…";
+"airPods.adaptive" = "適応型オーディオ";
+"airPods.lessNoise" = "ノイズを減らす";
+"airPods.moreNoise" = "ノイズを増やす";
+"airPods.adaptiveUnavailable" = "Bluetooth経由の適応型オーディオ調整は利用できません。";
+"airPods.spatial" = "空間オーディオ";
+"airPods.conversation" = "会話感知";
+"airPods.routeChanged" = "選択した AirPods が変更されたか切断されました。現在の出力のコントロールを開き直してください。";
+"airPods.unconfirmed" = "macOS で変更を確認できませんでした。更新して実際の設定を確認してください。";
+"airPods.unavailable" = "Bluetoothによる直接操作は利用できません。";
+"airPods.notAvailable" = "利用不可 — 更新して確認";
+"airPods.apply" = "適用";
+
+"airPods.spatialFixed" = "固定";
+"airPods.spatialHeadTracked" = "ヘッドトラッキング";

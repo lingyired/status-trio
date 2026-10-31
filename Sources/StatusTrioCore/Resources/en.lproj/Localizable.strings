@@ -569,3 +569,20 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Confirm Set to %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "The system charge state may have changed. Click again to continue.";
 "battery.action.cancelChargeToFullNowPending" = "The system has not confirmed the temporary override yet. Try again shortly.";
+
+// AirPods system controls
+"airPods.controls" = "AirPods Controls…";
+"airPods.adaptive" = "Adaptive Audio";
+"airPods.lessNoise" = "Less Noise";
+"airPods.moreNoise" = "More Noise";
+"airPods.adaptiveUnavailable" = "Adaptive adjustment is unavailable over Bluetooth.";
+"airPods.spatial" = "Spatial Audio";
+"airPods.conversation" = "Conversation Awareness";
+"airPods.routeChanged" = "The selected AirPods changed or disconnected. Reopen controls for the current output.";
+"airPods.unconfirmed" = "macOS did not confirm the change. Refresh to read the actual setting.";
+"airPods.unavailable" = "Direct Bluetooth control is unavailable.";
+"airPods.notAvailable" = "Unavailable — refresh to check";
+"airPods.apply" = "Apply";
+
+"airPods.spatialFixed" = "Fixed";
+"airPods.spatialHeadTracked" = "Head Tracked";

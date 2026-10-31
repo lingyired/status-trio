@@ -188,6 +188,8 @@ final class MacOS13UICompatibilityTests: XCTestCase {
         "macmini.gen2",
         "microphone",
         "powerplug.portrait.fill",
+        "person.spatialaudio.fill",
+        "person.spatialaudio.stereo.fill",
         "right",
         "smartphone",
         "translate",

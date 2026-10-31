@@ -147,8 +147,11 @@ final class AudioInputMonitorTests: XCTestCase {
     observation.emit(.devicesChanged)
     XCTAssertEqual(hardware.fullReadCount, 1)
 
+    // Hiding publishes the old non-refreshing status asynchronously. A distinct
+    // device proves this expectation observes the new read, not that queued event.
+    hardware.setReading(reading(defaultID: 22))
     let reopened = log.expectStatus("reopening panel refreshes dirty devices") {
-      $0.defaultDeviceID == 11 && !$0.isRefreshing
+      $0.defaultDeviceID == 22 && !$0.isRefreshing
     }
     monitor.setVisible(true)
     await fulfillment(of: [reopened], timeout: 5)

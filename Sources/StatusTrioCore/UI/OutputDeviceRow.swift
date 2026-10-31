@@ -6,11 +6,39 @@ struct OutputDeviceRow: View {
     let onSelect: () -> Void
     let onSelectListeningMode: (BluetoothListeningMode) -> Void
 
+    @State private var expanded = false
+    @State private var controls: AirPodsSystemControlsModel?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            selectionButton
+            HStack(spacing: 6) {
+                selectionButton
+                if state.supportsAirPodsSystemControls && !state.isPreview {
+                    Button {
+                        expanded.toggle()
+                        if expanded && controls == nil {
+                            controls = AirPodsSystemControlsModel(deviceID: state.key, deviceName: state.name)
+                        }
+                        if expanded {
+                            controls?.refresh()
+                        } else { controls?.stop() }
+                    } label: {
+                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .frame(width: 24, height: 28)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(localization.string(.airPodsControls))
+                    .accessibilityValue(expanded ? localization.string(.commonExpanded) : localization.string(.commonCollapsed))
+                }
+            }
 
-            if let listeningMode = state.listeningMode, listeningMode.isControllable {
+            if expanded, state.supportsAirPodsSystemControls, let controls {
+                AirPodsSystemControlsView(model: controls, listeningMode: state.listeningMode, onSelectListeningMode: onSelectListeningMode)
+            }
+
+            if !state.supportsAirPodsSystemControls, let listeningMode = state.listeningMode, listeningMode.isControllable {
                 BluetoothListeningModeControl(
                     presentation: listeningMode,
                     onSelect: onSelectListeningMode
@@ -18,6 +46,17 @@ struct OutputDeviceRow: View {
                 .padding(.leading, Self.modeLeadingInset)
             }
         }
+        .onChange(of: state.key) { _ in resetControls() }
+        .onChange(of: state.name) { _ in resetControls() }
+        .onChange(of: state.supportsAirPodsSystemControls) { supported in
+            if !supported { resetControls() }
+        }
+    }
+
+    private func resetControls() {
+        controls?.stop()
+        controls = nil
+        expanded = false
     }
 
     private var selectionButton: some View {
