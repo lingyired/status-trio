@@ -159,8 +159,11 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "Deaktivieren, damit der Blitz seine gewohnte Größe und Farbe behält; der Ladeeffekt läuft weiter.";
 "settings.battery.chargingEffectTest" = "Ladeanimation testen";
 "settings.battery.chargingEffectTestDescription" = "Entwicklerversion: Animation ohne Ladevorgang abspielen. Der Testmodus endet nach dem Neustart.";
-"settings.battery.percentageWhenConnected" = "Prozentsatz bei Netzbetrieb ohne Laden anzeigen";
-"settings.battery.percentageWhenConnectedDescription" = "Wenn aktiviert, zeigt eine Netzquelle ohne Ladung den Prozentsatz statt des Steckers.";
+"settings.battery.connectedIndicator" = "Anzeige bei Netzbetrieb ohne Laden";
+"settings.battery.connectedIndicatorDescription" = "Was das Batterie-Symbol zeigt, wenn das MacBook am Strom hängt, aber nicht lädt: Stecker, Blitz oder Prozentwert.";
+"settings.battery.connectedIndicator.plug" = "Stecker";
+"settings.battery.connectedIndicator.bolt" = "Blitz";
+"settings.battery.connectedIndicator.percentage" = "Prozentwert";
 "settings.battery.symbolScale" = "Größe von Prozentsatz/Blitz";
 "settings.battery.symbolScaleAccessibility" = "Größe von Batterieprozentsatz und Blitz";
 "settings.battery.symbolScaleDescription" = "Prozentsatz und Blitz verwenden dieselbe Größe.";
@@ -339,6 +342,8 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Nur Lautstärkeregler";
 "settings.popup.volumeScroll.natural" = "Natürliches Scrollen";
 "settings.popup.volumeScroll.natural.description" = "Wenn aktiviert, erhöht Scrollen nach oben mit Maus oder Trackpad die Lautstärke. Wenn deaktiviert, folgt die Lautstärke der System-Scrollrichtung. Wenn nach dem Aktivieren dieser Option Scrollen mit der Maus nach oben weiterhin die Lautstärke verringert, konfigurieren Sie MOS, Scroll Reverser, LinearMouse oder eine ähnliche App so, dass Status Trio unverändert bleibt, normalerweise über eine Ausnahme-/Ignorierliste (manchmal Allowlist genannt).";
+"settings.popup.volumeScroll.feedback" = "Ton beim Scrollen zur Lautstärkeänderung abspielen";
+"settings.popup.volumeScroll.feedback.description" = "Spielt den Ton ab, wenn du die Lautstärke durch Scrollen änderst. Standardmäßig gilt die macOS-Einstellung „Feedback bei Lautstärkeänderung wiedergeben“; ein Umschalten hier gilt nur für Status Trio.";
 "settings.popup.volumeScroll.direction" = "Scrollrichtung";
 "settings.popup.volumeScroll.direction.description" = "Wähle die Richtung, die die Lautstärke erhöht.";
 "settings.popup.volumeScroll.direction.up" = "Nach oben";

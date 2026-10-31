@@ -51,7 +51,7 @@ extension SettingsStore {
         )
         .combineLatest(
             Publishers.CombineLatest4(
-                $showsPercentageWhenConnected,
+                $batteryConnectedIndicator,
                 $batterySymbolScale,
                 $showsChargingBoltHeartbeat,
                 $showsMenuBarChargingEffect
@@ -66,7 +66,7 @@ extension SettingsStore {
                 showsChargingIndicator: primaryInputs.1,
                 usesStatusColors: primaryInputs.2,
                 criticalThreshold: primaryInputs.3,
-                showsPercentageWhenConnected: additionalInputs.0,
+                connectedIndicator: additionalInputs.0,
                 symbolScale: additionalInputs.1,
                 showsChargingEffect:
                     additionalInputs.3 || showsDockChargingEffect,
@@ -159,7 +159,7 @@ private struct BatteryAppearanceInputs {
     var showsChargingIndicator: Bool
     var usesStatusColors: Bool
     var criticalThreshold: Double
-    var showsPercentageWhenConnected: Bool
+    var connectedIndicator: BatteryConnectedIndicator
     var symbolScale: Double
     var showsChargingEffect: Bool
     var showsChargingBoltHeartbeat: Bool
@@ -173,7 +173,7 @@ private struct BatteryAppearanceInputs {
             showsChargingBoltHeartbeat: showsChargingBoltHeartbeat,
             usesStatusColors: usesStatusColors,
             criticalThreshold: Int(criticalThreshold.rounded()),
-            showsPercentageWhenConnected: showsPercentageWhenConnected,
+            connectedIndicator: connectedIndicator,
             fullThreshold: Int(fullThreshold.rounded()),
             textScale: symbolScale * BatteryIconOptions.defaultTextScale,
             ringStrokeScale: ringStrokeScale

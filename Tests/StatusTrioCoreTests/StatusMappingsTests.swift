@@ -183,7 +183,7 @@ final class StatusMappingsTests: XCTestCase {
         XCTAssertEqual(
             StatusMappings.batteryGapContent(
                 connectedBattery(),
-                options: batteryOptions(showsPercentageWhenConnected: true)
+                options: batteryOptions(connectedIndicator: .percentage)
             ),
             .percentage
         )
@@ -193,9 +193,44 @@ final class StatusMappingsTests: XCTestCase {
         XCTAssertEqual(
             StatusMappings.batteryGapContent(
                 chargingBattery(),
-                options: batteryOptions(showsPercentageWhenConnected: true)
+                options: batteryOptions(connectedIndicator: .percentage)
             ),
             .bolt
+        )
+    }
+
+    func testBatteryGapContentShowsTheBoltForConnectedPowerWhenPicked() {
+        XCTAssertEqual(
+            StatusMappings.batteryGapContent(
+                connectedBattery(),
+                options: batteryOptions(connectedIndicator: .bolt)
+            ),
+            .bolt
+        )
+        XCTAssertEqual(
+            StatusMappings.batteryGapContent(
+                chargedOnPower(),
+                options: batteryOptions(connectedIndicator: .bolt)
+            ),
+            .bolt
+        )
+        // Without the charging indicator the bolt has no gap to live in.
+        XCTAssertEqual(
+            StatusMappings.batteryGapContent(
+                connectedBattery(),
+                options: batteryOptions(showsIndicator: false, connectedIndicator: .bolt)
+            ),
+            .percentage
+        )
+    }
+
+    func testBatteryGapContentPlugsWhenPercentageIsPickedButHidden() {
+        XCTAssertEqual(
+            StatusMappings.batteryGapContent(
+                connectedBattery(),
+                options: batteryOptions(showsPercentage: false, connectedIndicator: .percentage)
+            ),
+            .plug
         )
     }
 
@@ -219,7 +254,7 @@ final class StatusMappingsTests: XCTestCase {
                 connectedBattery(),
                 options: batteryOptions(
                     showsPercentage: false,
-                    showsPercentageWhenConnected: true
+                    connectedIndicator: .percentage
                 )
             ),
             .plug
@@ -488,14 +523,14 @@ final class StatusMappingsTests: XCTestCase {
     private func batteryOptions(
         showsIndicator: Bool = true,
         showsPercentage: Bool = true,
-        showsPercentageWhenConnected: Bool = false
+        connectedIndicator: BatteryConnectedIndicator = .plug
     ) -> BatteryIconOptions {
         BatteryIconOptions(
             showsPercentage: showsPercentage,
             showsChargingIndicator: showsIndicator,
             usesStatusColors: true,
             criticalThreshold: 20,
-            showsPercentageWhenConnected: showsPercentageWhenConnected
+            connectedIndicator: connectedIndicator
         )
     }
 

@@ -85,7 +85,7 @@ final class ConnectedPowerPlugIndicatorTests: XCTestCase {
                 showsChargingIndicator: true,
                 usesStatusColors: true,
                 criticalThreshold: 20,
-                showsPercentageWhenConnected: true
+                connectedIndicator: .percentage
             )
         )
         let onBattery = try menuBarPixels(for: onBatteryBattery())
@@ -95,6 +95,26 @@ final class ConnectedPowerPlugIndicatorTests: XCTestCase {
             percentage.alphaSum(inSVGRect: glyphRegion, size: 20, scale: 8),
             onBattery.alphaSum(inSVGRect: glyphRegion, size: 20, scale: 8),
             "the connected percentage must use the same numerals as the on-battery one"
+        )
+    }
+
+    func testConnectedPowerShowsTheBoltWhenPicked() throws {
+        let chargingBolt = try menuBarPixels(for: chargingBattery())
+        let connectedBolt = try menuBarPixels(
+            for: connectedBattery(),
+            options: BatteryIconOptions(
+                showsPercentage: true,
+                showsChargingIndicator: true,
+                usesStatusColors: true,
+                criticalThreshold: 20,
+                connectedIndicator: .bolt
+            )
+        )
+
+        XCTAssertEqual(
+            connectedBolt.alphaSum(inSVGRect: glyphRegion, size: 20, scale: 8),
+            chargingBolt.alphaSum(inSVGRect: glyphRegion, size: 20, scale: 8),
+            "the connected bolt must use the same glyph as the charging bolt"
         )
     }
 

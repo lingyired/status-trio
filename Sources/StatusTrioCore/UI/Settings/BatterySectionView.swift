@@ -255,14 +255,16 @@ struct BatterySectionView: View {
             if store.showsChargingIndicator && store.showsBatteryPercentage {
                 SettingsDivider()
 
-                SettingsToggleRow(
-                    symbol: "number",
+                SettingsMenuRow(
+                    symbol: "powerplug.portrait.fill",
                     tint: .teal,
-                    title: localization.string(.settingsBatteryPercentageWhenConnected),
+                    title: localization.string(.settingsBatteryConnectedIndicator),
                     subtitle: localization.string(
-                        .settingsBatteryPercentageWhenConnectedDescription
+                        .settingsBatteryConnectedIndicatorDescription
                     ),
-                    isOn: $store.showsPercentageWhenConnected
+                    selection: $store.batteryConnectedIndicator,
+                    options: BatteryConnectedIndicator.allCases,
+                    label: connectedIndicatorLabel
                 )
             }
 
@@ -496,5 +498,16 @@ struct BatterySectionView: View {
             helper.isReady ? .lowPowerModeHelperReady : .lowPowerModeHelperUnavailable
         ))
         .foregroundColor(helper.isReady ? Color.green : Color.secondary)
+    }
+
+    private func connectedIndicatorLabel(_ indicator: BatteryConnectedIndicator) -> String {
+        switch indicator {
+        case .plug:
+            localization.string(.settingsBatteryConnectedIndicatorPlug)
+        case .bolt:
+            localization.string(.settingsBatteryConnectedIndicatorBolt)
+        case .percentage:
+            localization.string(.settingsBatteryConnectedIndicatorPercentage)
+        }
     }
 }

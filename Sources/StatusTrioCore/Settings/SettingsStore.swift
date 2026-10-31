@@ -44,6 +44,9 @@ final class SettingsStore: ObservableObject {
     static let showsMenuBarChargingEffectDefaultsKey = "showsMenuBarChargingEffect"
     static let showsDockChargingEffectDefaultsKey = "showsDockChargingEffect"
     static let showsChargingBoltHeartbeatDefaultsKey = "showsChargingBoltHeartbeat"
+    static let batteryConnectedIndicatorDefaultsKey = "batteryConnectedIndicator"
+    /// Legacy boolean replaced by `batteryConnectedIndicator`; read once for
+    /// migration and never written again (#195).
     static let showsPercentageWhenConnectedDefaultsKey = "showsPercentageWhenConnected"
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
     static let batteryCriticalThresholdDefaultsKey = "batteryCriticalThreshold"
@@ -151,6 +154,9 @@ final class SettingsStore: ObservableObject {
     static let defaultPopupVolumeScrollDirection: PopupVolumeScrollDirection = .up
     static let popupVolumeNaturalScrollingDefaultsKey = "popupVolumeNaturalScrolling"
     static let defaultPopupVolumeNaturalScrolling = false
+    /// App-level switch for the scroll-to-change-volume tick (#194). Absent
+    /// means "follow the macOS system switch"; present is an explicit choice.
+    static let popupVolumeScrollFeedbackDefaultsKey = VolumeScrollFeedbackPreference.key
 
     static let appIconPlacementDefaultsKey = "appIconPlacement"
     static let dockIconBackgroundPreferenceDefaultsKey = "dockIconBackgroundPreference"
@@ -362,11 +368,11 @@ final class SettingsStore: ObservableObject {
         testsChargingEffect = enabled
     }
 
-    @Published var showsPercentageWhenConnected: Bool {
+    @Published var batteryConnectedIndicator: BatteryConnectedIndicator {
         didSet {
             defaults.set(
-                showsPercentageWhenConnected,
-                forKey: Self.showsPercentageWhenConnectedDefaultsKey
+                batteryConnectedIndicator.rawValue,
+                forKey: Self.batteryConnectedIndicatorDefaultsKey
             )
         }
     }
@@ -976,6 +982,35 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// The stored app-level choice for the scroll-to-change-volume tick.
+    ///
+    /// `nil` means the user has never toggled it, and the effective value
+    /// follows the macOS system switch. Once they toggle it, this holds an
+    /// explicit value that wins over the system switch (#194).
+    @Published var popupVolumeScrollFeedbackOverride: Bool? {
+        didSet {
+            if let popupVolumeScrollFeedbackOverride {
+                defaults.set(
+                    popupVolumeScrollFeedbackOverride,
+                    forKey: Self.popupVolumeScrollFeedbackDefaultsKey
+                )
+            } else {
+                defaults.removeObject(forKey: Self.popupVolumeScrollFeedbackDefaultsKey)
+            }
+        }
+    }
+
+    /// The switch value the settings row and the player should use.
+    var popupVolumeScrollFeedback: Bool {
+        popupVolumeScrollFeedbackOverride
+            ?? SystemVolumeFeedbackPreference.isEnabled(in: defaults)
+    }
+
+    /// Records an explicit choice, leaving the "follow the system" state behind.
+    func setPopupVolumeScrollFeedbackOverride(_ enabled: Bool) {
+        popupVolumeScrollFeedbackOverride = enabled
+    }
+
     var visiblePopupSections: [PopupSection] {
         popupSectionOrder.filter { enabledPopupSections.contains($0) }
     }
@@ -1326,7 +1361,7 @@ final class SettingsStore: ObservableObject {
             showsChargingBoltHeartbeat: showsChargingBoltHeartbeat,
             usesStatusColors: usesBatteryStatusColors,
             criticalThreshold: Int(batteryCriticalThreshold.rounded()),
-            showsPercentageWhenConnected: showsPercentageWhenConnected,
+            connectedIndicator: batteryConnectedIndicator,
             fullThreshold: Int(batteryFullThreshold.rounded()),
             textScale: batterySymbolScale * BatteryIconOptions.defaultTextScale,
             ringStrokeScale: ringStrokeStyle.scale
@@ -1568,9 +1603,24 @@ final class SettingsStore: ObservableObject {
         self.showsChargingBoltHeartbeat = defaults.object(
             forKey: Self.showsChargingBoltHeartbeatDefaultsKey
         ) as? Bool ?? true
-        self.showsPercentageWhenConnected = defaults.object(
-            forKey: Self.showsPercentageWhenConnectedDefaultsKey
-        ) as? Bool ?? false
+        if let storedConnectedIndicator = defaults
+            .string(forKey: Self.batteryConnectedIndicatorDefaultsKey)
+            .flatMap(BatteryConnectedIndicator.init(rawValue:)) {
+            self.batteryConnectedIndicator = storedConnectedIndicator
+        } else {
+            // Migrate the old boolean once: false was the plug, true meant the
+            // percentage. Persist the result so the legacy key is not read
+            // again on later launches (#195).
+            let showedPercentage = defaults.object(
+                forKey: Self.showsPercentageWhenConnectedDefaultsKey
+            ) as? Bool ?? false
+            let migrated: BatteryConnectedIndicator = showedPercentage ? .percentage : .plug
+            self.batteryConnectedIndicator = migrated
+            defaults.set(
+                migrated.rawValue,
+                forKey: Self.batteryConnectedIndicatorDefaultsKey
+            )
+        }
         self.usesBatteryStatusColors = defaults.object(forKey: Self.usesBatteryStatusColorsDefaultsKey) as? Bool ?? true
         self.batterySymbolScale = Self.clampedBatterySymbolScale(
             storedBatterySymbolScale ?? Self.defaultBatterySymbolScale
@@ -1751,6 +1801,9 @@ final class SettingsStore: ObservableObject {
         self.popupVolumeNaturalScrolling = defaults.object(
             forKey: Self.popupVolumeNaturalScrollingDefaultsKey
         ) as? Bool ?? Self.defaultPopupVolumeNaturalScrolling
+        self.popupVolumeScrollFeedbackOverride = defaults.object(
+            forKey: Self.popupVolumeScrollFeedbackDefaultsKey
+        ) as? Bool
     }
 
     private static func decodedNearbyBLESelections(_ data: Data?) -> [NearbyBLEDeviceSelection] {

@@ -207,7 +207,7 @@ enum IconStateSheet {
                             showsChargingIndicator: true,
                             usesStatusColors: true,
                             criticalThreshold: 20,
-                            showsPercentageWhenConnected: true
+                            connectedIndicator: .percentage
                         )
                     )
                 ]

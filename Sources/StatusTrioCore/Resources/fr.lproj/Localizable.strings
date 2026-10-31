@@ -159,8 +159,11 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "Désactivez cette option pour conserver la taille et la couleur habituelles de l’éclair ; l’effet de l’arc de charge continue.";
 "settings.battery.chargingEffectTest" = "Tester l’animation de charge";
 "settings.battery.chargingEffectTestDescription" = "Version de développement : animation sans charge. Le mode test s’arrête après redémarrage.";
-"settings.battery.percentageWhenConnected" = "Afficher le pourcentage sur secteur sans charge";
-"settings.battery.percentageWhenConnectedDescription" = "Lorsque cette option est activée, une source secteur qui ne charge pas affiche le pourcentage à la place de la prise.";
+"settings.battery.connectedIndicator" = "Afficher en cas d’alimentation sans charge";
+"settings.battery.connectedIndicatorDescription" = "Ce que l’icône de batterie affiche lorsque le Mac est branché mais ne charge pas : la prise, l’éclair ou le pourcentage.";
+"settings.battery.connectedIndicator.plug" = "Prise";
+"settings.battery.connectedIndicator.bolt" = "Éclair";
+"settings.battery.connectedIndicator.percentage" = "Pourcentage";
 "settings.battery.symbolScale" = "Taille du pourcentage/de l’éclair";
 "settings.battery.symbolScaleAccessibility" = "Taille du pourcentage et de l’éclair";
 "settings.battery.symbolScaleDescription" = "Le pourcentage et l’éclair utilisent la même taille.";
@@ -339,6 +342,8 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Réglage du volume uniquement";
 "settings.popup.volumeScroll.natural" = "Défilement naturel";
 "settings.popup.volumeScroll.natural.description" = "Lorsque cette option est activée, un défilement vers le haut avec la souris ou le trackpad augmente le volume. Sinon, le volume suit le sens de défilement du système. Si, après avoir activé cette option, le défilement vers le haut de la souris fait encore baisser le volume, configurez MOS, Scroll Reverser, LinearMouse ou une app similaire pour laisser Status Trio inchangé, généralement via une liste d’exceptions/d’ignorés (parfois appelée liste d’autorisation).";
+"settings.popup.volumeScroll.feedback" = "Émettre un son lors du réglage du volume par défilement";
+"settings.popup.volumeScroll.feedback.description" = "Émet le son lorsque vous réglez le volume par défilement. Par défaut, suit le réglage macOS « émettre un retour sonore lors du changement de volume » ; ce commutateur ne s’applique qu’à Status Trio.";
 "settings.popup.volumeScroll.direction" = "Sens du défilement";
 "settings.popup.volumeScroll.direction.description" = "Choisissez le sens qui augmente le volume.";
 "settings.popup.volumeScroll.direction.up" = "Vers le haut";

@@ -159,8 +159,11 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "Desactívalo para mantener el rayo en su tamaño y color habituales; el efecto del arco de carga continúa.";
 "settings.battery.chargingEffectTest" = "Probar animación de carga";
 "settings.battery.chargingEffectTestDescription" = "Versión de desarrollo: reproduce sin cargar. El modo de prueba se desactiva al reiniciar.";
-"settings.battery.percentageWhenConnected" = "Mostrar el porcentaje al estar conectado sin cargar";
-"settings.battery.percentageWhenConnectedDescription" = "Al activarlo, una fuente de corriente conectada que no está cargando muestra el porcentaje en lugar del enchufe.";
+"settings.battery.connectedIndicator" = "Mostrar al estar conectado sin cargar";
+"settings.battery.connectedIndicatorDescription" = "Lo que muestra el icono de la batería cuando está conectado a la corriente pero no se está cargando: el enchufe, el rayo o el porcentaje.";
+"settings.battery.connectedIndicator.plug" = "Enchufe";
+"settings.battery.connectedIndicator.bolt" = "Rayo";
+"settings.battery.connectedIndicator.percentage" = "Porcentaje";
 "settings.battery.symbolScale" = "Tamaño del porcentaje/rayo";
 "settings.battery.symbolScaleAccessibility" = "Tamaño del porcentaje y el rayo de la batería";
 "settings.battery.symbolScaleDescription" = "El porcentaje y el rayo comparten este tamaño.";
@@ -339,6 +342,8 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Solo el control de volumen";
 "settings.popup.volumeScroll.natural" = "Desplazamiento natural";
 "settings.popup.volumeScroll.natural.description" = "Si está activado, desplazarse hacia arriba con el ratón o el trackpad sube el volumen. Si está desactivado, el volumen sigue la dirección de desplazamiento del sistema. Si, tras activar esta opción, desplazar el ratón hacia arriba sigue bajando el volumen, configura MOS, Scroll Reverser, LinearMouse o una app similar para dejar Status Trio sin cambios, normalmente mediante una lista de excepciones/omisiones (a veces llamada lista de permitidos).";
+"settings.popup.volumeScroll.feedback" = "Reproducir un sonido al cambiar el volumen con el desplazamiento";
+"settings.popup.volumeScroll.feedback.description" = "Reproduce el sonido al cambiar el volumen con el desplazamiento. De forma predeterminada sigue el ajuste de macOS «reproducir sonido al cambiar el volumen»; este interruptor solo afecta a Status Trio.";
 "settings.popup.volumeScroll.direction" = "Dirección del desplazamiento";
 "settings.popup.volumeScroll.direction.description" = "Elige la dirección que sube el volumen.";
 "settings.popup.volumeScroll.direction.up" = "Hacia arriba";

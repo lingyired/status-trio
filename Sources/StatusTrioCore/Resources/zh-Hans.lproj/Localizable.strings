@@ -159,8 +159,11 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "关闭后闪电保持原有大小和颜色；充电圆弧动效仍会继续。";
 "settings.battery.chargingEffectTest" = "测试充电动画";
 "settings.battery.chargingEffectTestDescription" = "开发版：无需充电即可播放；重启后测试模式自动关闭。";
-"settings.battery.percentageWhenConnected" = "已连接电源但未充电时显示电量数字";
-"settings.battery.percentageWhenConnectedDescription" = "开启后，已连接电源但未充电时显示电量数字，而不是插头图标。";
+"settings.battery.connectedIndicator" = "已连接电源但未充电时显示";
+"settings.battery.connectedIndicatorDescription" = "连接电源但未在充电时（如充电上限停止或已充满）电池图标显示的内容：插头、闪电或电量数字。";
+"settings.battery.connectedIndicator.plug" = "插头";
+"settings.battery.connectedIndicator.bolt" = "闪电";
+"settings.battery.connectedIndicator.percentage" = "电量数字";
 "settings.battery.symbolScale" = "电量数字/闪电大小";
 "settings.battery.symbolScaleAccessibility" = "电量数字和闪电大小";
 "settings.battery.symbolScaleDescription" = "数字和闪电使用同一尺寸，调整这里会同步改变两者。";
@@ -339,6 +342,8 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "仅音量组件";
 "settings.popup.volumeScroll.natural" = "自然滚动";
 "settings.popup.volumeScroll.natural.description" = "开启后，鼠标和触控板上滚都会增大音量；关闭后，音量跟随系统的滚动方向。如果开启后鼠标上滚仍然减小音量，请在 MOS、Scroll Reverser、LinearMouse 等应用中将 Status Trio 设为不处理，通常可加入例外/忽略列表（部分应用称为白名单）。";
+"settings.popup.volumeScroll.feedback" = "滚动调节音量时播放提示音";
+"settings.popup.volumeScroll.feedback.description" = "滚动调节音量时播放提示音。默认跟随 macOS「音量更改时播放反馈」设置；在此切换后仅对 Status Trio 生效。";
 "settings.popup.volumeScroll.direction" = "滚动方向";
 "settings.popup.volumeScroll.direction.description" = "选择增大音量的滚动方向。";
 "settings.popup.volumeScroll.direction.up" = "上滑";

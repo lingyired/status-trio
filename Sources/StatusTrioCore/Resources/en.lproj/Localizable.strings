@@ -159,8 +159,11 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "Turn off to keep the bolt at its usual size and color; the charging arc effect continues.";
 "settings.battery.chargingEffectTest" = "Test charging animation";
 "settings.battery.chargingEffectTestDescription" = "Development build: play without charging. Test mode turns off after restart.";
-"settings.battery.percentageWhenConnected" = "Show the percentage while connected without charging";
-"settings.battery.percentageWhenConnectedDescription" = "When enabled, a connected power source that is not charging shows the percentage instead of the plug.";
+"settings.battery.connectedIndicator" = "Show while connected without charging";
+"settings.battery.connectedIndicatorDescription" = "What the battery shows when connected to power but not charging: the plug, the lightning bolt, or the percentage.";
+"settings.battery.connectedIndicator.plug" = "Plug";
+"settings.battery.connectedIndicator.bolt" = "Bolt";
+"settings.battery.connectedIndicator.percentage" = "Percentage";
 "settings.battery.symbolScale" = "Percentage/bolt size";
 "settings.battery.symbolScaleAccessibility" = "Battery percentage and bolt size";
 "settings.battery.symbolScaleDescription" = "The percentage and bolt share this size.";
@@ -339,6 +342,8 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Volume Control Only";
 "settings.popup.volumeScroll.natural" = "Natural Scrolling";
 "settings.popup.volumeScroll.natural.description" = "When on, scrolling up on a mouse or trackpad increases volume. When off, volume follows the system's scrolling direction. If scrolling up still lowers the volume after turning this on, configure MOS, Scroll Reverser, LinearMouse, or a similar app to leave Status Trio unchanged, usually through an exception/ignore list (sometimes called an allowlist).";
+"settings.popup.volumeScroll.feedback" = "Play a sound when scrolling to change the volume";
+"settings.popup.volumeScroll.feedback.description" = "Plays the tick when you change the volume by scrolling. By default it follows the macOS “Play feedback when volume is changed” setting; toggling this here overrides it for Status Trio only.";
 "settings.popup.volumeScroll.direction" = "Scroll Direction";
 "settings.popup.volumeScroll.direction.description" = "Choose the direction that turns the volume up.";
 "settings.popup.volumeScroll.direction.up" = "Scroll Up";

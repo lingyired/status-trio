@@ -159,8 +159,11 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "끄면 번개가 기본 크기와 색상으로 유지되고 충전 아크 효과는 계속됩니다.";
 "settings.battery.chargingEffectTest" = "충전 애니메이션 테스트";
 "settings.battery.chargingEffectTestDescription" = "개발 빌드: 충전하지 않아도 재생합니다. 다시 시작하면 테스트 모드가 꺼집니다.";
-"settings.battery.percentageWhenConnected" = "전원 연결 상태에서 충전하지 않을 때 잔량 표시";
-"settings.battery.percentageWhenConnectedDescription" = "활성화하면 전원에 연결되었지만 충전하지 않을 때 플러그 대신 잔량을 표시합니다.";
+"settings.battery.connectedIndicator" = "전원 연결 시 충전 중이 아닐 때 표시";
+"settings.battery.connectedIndicatorDescription" = "전원에 연결되어 있지만 충전 중이 아닐 때(충전 한도에서 멈춤 또는 완충) 배터리 아이콘에 표시할 내용: 플러그, 번개, 또는 백분율.";
+"settings.battery.connectedIndicator.plug" = "플러그";
+"settings.battery.connectedIndicator.bolt" = "번개";
+"settings.battery.connectedIndicator.percentage" = "백분율";
 "settings.battery.symbolScale" = "잔량/번개 크기";
 "settings.battery.symbolScaleAccessibility" = "배터리 잔량 및 번개 크기";
 "settings.battery.symbolScaleDescription" = "잔량과 번개는 같은 크기를 사용합니다.";
@@ -339,6 +342,8 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "볼륨 컨트롤만";
 "settings.popup.volumeScroll.natural" = "자연스러운 스크롤";
 "settings.popup.volumeScroll.natural.description" = "켜면 마우스나 트랙패드에서 위로 스크롤할 때 볼륨이 커집니다. 끄면 시스템의 스크롤 방향을 따릅니다. 이 옵션을 켠 후에도 마우스 위로 스크롤할 때 볼륨이 낮아지면 보통 예외/무시 목록(허용 목록이라고도 함)을 사용해 MOS, Scroll Reverser, LinearMouse 또는 유사한 앱에서 Status Trio를 변경하지 않도록 설정하세요.";
+"settings.popup.volumeScroll.feedback" = "스크롤로 볼륨을 조절할 때 소리 재생";
+"settings.popup.volumeScroll.feedback.description" = "스크롤로 볼륨을 조절할 때 알림음을 재생합니다. 기본값은 macOS의 '볼륨 변경 시 피드백 재생'을 따릅니다. 여기서 전환하면 Status Trio에만 적용됩니다.";
 "settings.popup.volumeScroll.direction" = "스크롤 방향";
 "settings.popup.volumeScroll.direction.description" = "볼륨을 높이는 스크롤 방향을 선택합니다.";
 "settings.popup.volumeScroll.direction.up" = "위로 스크롤";

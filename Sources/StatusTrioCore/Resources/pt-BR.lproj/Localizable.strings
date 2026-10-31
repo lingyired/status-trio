@@ -159,8 +159,11 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "Desative para manter o raio no tamanho e na cor habituais; o efeito do arco de carregamento continua.";
 "settings.battery.chargingEffectTest" = "Testar animação de carregamento";
 "settings.battery.chargingEffectTestDescription" = "Versão de desenvolvimento: reproduz sem carregar. O modo de teste desliga ao reiniciar.";
-"settings.battery.percentageWhenConnected" = "Mostrar a porcentagem ao estar conectado sem carregar";
-"settings.battery.percentageWhenConnectedDescription" = "Quando ativado, uma fonte de energia conectada que não está carregando mostra a porcentagem em vez do plugue.";
+"settings.battery.connectedIndicator" = "Mostrar quando conectado sem carregar";
+"settings.battery.connectedIndicatorDescription" = "O que o ícone da bateria mostra quando está ligado à energia mas não está carregando: o plugue, o raio ou a porcentagem.";
+"settings.battery.connectedIndicator.plug" = "Plugue";
+"settings.battery.connectedIndicator.bolt" = "Raio";
+"settings.battery.connectedIndicator.percentage" = "Porcentagem";
 "settings.battery.symbolScale" = "Tamanho da porcentagem/raio";
 "settings.battery.symbolScaleAccessibility" = "Tamanho da porcentagem e do raio da bateria";
 "settings.battery.symbolScaleDescription" = "A porcentagem e o raio usam o mesmo tamanho.";
@@ -339,6 +342,8 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Somente o controle de volume";
 "settings.popup.volumeScroll.natural" = "Rolagem natural";
 "settings.popup.volumeScroll.natural.description" = "Quando ativado, rolar para cima com o mouse ou trackpad aumenta o volume. Quando desativado, o volume segue a direção de rolagem do sistema. Se, depois de ativar esta opção, rolar o mouse para cima ainda diminuir o volume, configure o MOS, Scroll Reverser, LinearMouse ou um app semelhante para deixar o Status Trio inalterado, normalmente por meio de uma lista de exceções/ignorados (às vezes chamada de lista de permissões).";
+"settings.popup.volumeScroll.feedback" = "Reproduzir som ao ajustar o volume com a rolagem";
+"settings.popup.volumeScroll.feedback.description" = "Reproduz o som ao ajustar o volume com a rolagem. Por padrão, segue a configuração do macOS “Reproduzir feedback ao alterar o volume”; alternar aqui vale apenas para o Status Trio.";
 "settings.popup.volumeScroll.direction" = "Direção da rolagem";
 "settings.popup.volumeScroll.direction.description" = "Escolha a direção que aumenta o volume.";
 "settings.popup.volumeScroll.direction.up" = "Para cima";

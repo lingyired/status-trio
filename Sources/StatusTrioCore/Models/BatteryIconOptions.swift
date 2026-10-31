@@ -6,7 +6,8 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
     let showsChargingEffect: Bool
     let showsChargingBoltHeartbeat: Bool
     let usesStatusColors: Bool
-    let showsPercentageWhenConnected: Bool
+    /// What the top gap shows while connected to power but not charging (#195).
+    let connectedIndicator: BatteryConnectedIndicator
     let criticalThreshold: Int
     /// The level at which the ring counts as full (#105).
     ///
@@ -33,7 +34,7 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         showsChargingBoltHeartbeat: true,
         usesStatusColors: true,
         criticalThreshold: 20,
-        showsPercentageWhenConnected: false,
+        connectedIndicator: .plug,
         fullThreshold: defaultFullThreshold,
         textScale: defaultTextScale,
         ringStrokeScale: defaultRingStrokeScale
@@ -46,7 +47,7 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         showsChargingBoltHeartbeat: Bool = true,
         usesStatusColors: Bool = true,
         criticalThreshold: Int = 20,
-        showsPercentageWhenConnected: Bool = false,
+        connectedIndicator: BatteryConnectedIndicator = .plug,
         fullThreshold: Int = defaultFullThreshold,
         textScale: Double = defaultTextScale,
         ringStrokeScale: Double = defaultRingStrokeScale
@@ -56,7 +57,7 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         self.showsChargingEffect = showsChargingEffect
         self.showsChargingBoltHeartbeat = showsChargingBoltHeartbeat
         self.usesStatusColors = usesStatusColors
-        self.showsPercentageWhenConnected = showsPercentageWhenConnected
+        self.connectedIndicator = connectedIndicator
         self.criticalThreshold = min(100, max(0, criticalThreshold))
         self.fullThreshold = min(100, max(1, fullThreshold))
         self.textScale = textScale.isFinite ? min(3, max(1, textScale)) : Self.defaultTextScale
