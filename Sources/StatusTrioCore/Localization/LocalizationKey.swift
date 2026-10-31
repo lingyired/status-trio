@@ -523,6 +523,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     // key exists for the accessibility wording only and never for a label.
     case bluetoothListeningModeNoiseCancellation = "bluetooth.listeningMode.noiseCancellation"
     case bluetoothListeningModeTransparency = "bluetooth.listeningMode.transparency"
+    case airPodsRetry = "airpods.retry"
     case airPodsApply = "airPods.apply"
     case airPodsControls = "airPods.controls"
     case airPodsAdaptive = "airPods.adaptive"

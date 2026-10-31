@@ -586,3 +586,5 @@
 
 "airPods.spatialFixed" = "固定";
 "airPods.spatialHeadTracked" = "頭部追蹤";
+
+"airpods.retry" = "重試";

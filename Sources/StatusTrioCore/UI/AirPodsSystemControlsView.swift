@@ -148,19 +148,17 @@ struct AirPodsSystemControlsView: View {
             Divider()
             heading(.airPodsConversation)
             options(model.snapshot.conversation, group: .conversation, symbol: "person.wave.2.fill")
-            Divider()
-            HStack(spacing: 8) {
+            if model.busy {
+                ProgressView().controlSize(.mini)
+            }
+            if let key = model.errorKey {
+                Divider()
                 Button { model.refresh() } label: {
-                    Label(localization.string(.bluetoothRefresh), systemImage: "arrow.clockwise")
+                    Label(localization.string(.airPodsRetry), systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(.plain)
                 .disabled(model.busy)
-                Spacer(minLength: 0)
-                if model.busy { ProgressView().controlSize(.mini) }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            if let key = model.errorKey {
+                .font(.caption)
                 Text(localization.string(key))
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

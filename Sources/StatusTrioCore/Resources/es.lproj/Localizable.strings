@@ -586,3 +586,5 @@
 
 "airPods.spatialFixed" = "Fijo";
 "airPods.spatialHeadTracked" = "Seguimiento de la cabeza";
+
+"airpods.retry" = "Reintentar";

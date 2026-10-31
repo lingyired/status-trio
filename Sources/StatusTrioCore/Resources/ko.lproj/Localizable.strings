@@ -586,3 +586,5 @@
 
 "airPods.spatialFixed" = "고정";
 "airPods.spatialHeadTracked" = "머리 추적";
+
+"airpods.retry" = "다시 시도";
