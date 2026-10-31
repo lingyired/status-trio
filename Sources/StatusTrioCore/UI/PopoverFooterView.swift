@@ -3,13 +3,9 @@ import SwiftUI
 /// The state-dependent parts of the popover footer, kept as plain data so the
 /// settings label can be asserted without rendering a view.
 enum PopoverFooterPresentation {
-    /// The settings button carries the development codename inline, where it has
-    /// always been. The running version is deliberately not part of this label:
-    /// it is a separate element at the trailing edge of the row, so the button
-    /// stays short and readable in every language.
-    static func settingsLabel(title: String, developmentSuffix: String?) -> String {
-        guard let developmentSuffix, !developmentSuffix.isEmpty else { return title }
-        return "\(title) · \(developmentSuffix)"
+    /// Keep development identity in Settings About, not in the compact menu.
+    static func settingsLabel(title: String, developmentSuffix _: String?) -> String {
+        title
     }
 }
 
