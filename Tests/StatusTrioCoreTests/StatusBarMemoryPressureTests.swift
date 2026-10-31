@@ -24,6 +24,26 @@ final class StatusBarMemoryPressureTests: XCTestCase {
         XCTAssertTrue(harness.didActivateApplication)
     }
 
+    /// #183: while the app is regular (Settings or the first-run window is open)
+    /// activating it from another app's full-screen Space restores that window,
+    /// switches away from the Space and the panel dismisses itself. The panel is
+    /// non-activating, so presenting must withhold the forced activation.
+    func testRegularApplicationPolicyWithholdsShortcutPresentationActivation() throws {
+        let harness = try StatusBarPressureHarness(
+            isVisible: false,
+            isApplicationRegular: true
+        )
+        defer { harness.cleanUp() }
+
+        harness.controller.openPopoverFromShortcut()
+
+        XCTAssertTrue(harness.controller.popoverForTesting.isShown)
+        XCTAssertFalse(
+            harness.didActivateApplication,
+            "a regular app must not be force-activated from the status panel"
+        )
+    }
+
     func testShortcutPresentationTogglesAndCleansItsFallbackAnchor() throws {
         let harness = try StatusBarPressureHarness(isVisible: false)
         defer { harness.cleanUp() }
@@ -138,7 +158,7 @@ private final class StatusBarPressureHarness {
     var didActivateApplication: Bool { activationProbe.didActivate }
     private let suiteName: String
 
-    init(isVisible: Bool = true) throws {
+    init(isVisible: Bool = true, isApplicationRegular: Bool = false) throws {
         suiteName = "StatusTrioCoreTests.StatusBarMemoryPressure.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suiteName) else {
             throw HarnessError.missingDefaults
@@ -162,6 +182,7 @@ private final class StatusBarPressureHarness {
             activatesApplicationForPopover: { [activationProbe] in
                 activationProbe.didActivate = true
             },
+            isApplicationRegular: { isApplicationRegular },
             renderMenuBarBase: { _, _, _, _ in nil },
             renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )

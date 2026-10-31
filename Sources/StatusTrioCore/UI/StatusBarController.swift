@@ -53,6 +53,10 @@ final class StatusBarController: NSObject {
     private let accessibilityValueDidChange: @MainActor (String) -> Void
     private let popoverContentReleaseSleeper: @Sendable (Duration) async throws -> Void
     private let activatesApplicationForPopover: @MainActor () -> Void
+    /// Whether the app currently runs as a regular app (Dock icon, its own
+    /// windows on a desktop Space). See `presentPopover` for why a forced
+    /// activation is withheld in that state.
+    private let isApplicationRegular: @MainActor () -> Bool
     let chargingEffectClock: ChargingEffectClock
     private var iconPresentationCancellable: AnyCancellable?
     private var accessibilityCancellable: AnyCancellable?
@@ -176,6 +180,9 @@ final class StatusBarController: NSObject {
         activatesApplicationForPopover: @escaping @MainActor () -> Void = {
             NSApp.activate(ignoringOtherApps: true)
         },
+        isApplicationRegular: @escaping @MainActor () -> Bool = {
+            NSApplication.shared.activationPolicy() == .regular
+        },
         renderMenuBarBase: @escaping MenuBarBaseRenderer = { scene, size, scale, appearance in
             StatusIconRenderer.menuBarTemplateBase(
                 scene: scene,
@@ -231,6 +238,7 @@ final class StatusBarController: NSObject {
         self.accessibilityValueDidChange = accessibilityValueDidChange
         self.popoverContentReleaseSleeper = popoverContentReleaseSleeper
         self.activatesApplicationForPopover = activatesApplicationForPopover
+        self.isApplicationRegular = isApplicationRegular
         self.chargingEffectClock = chargingEffectClock
         self.openSettings = openSettings
         self.openAppBatterySettings = openAppBatterySettings
@@ -557,7 +565,18 @@ final class StatusBarController: NSObject {
         // One bounded refresh per open covers a lost distributed notification
         // without any polling while the popover is closed.
         refreshInputSourceIfNeeded()
-        if activatesApplication {
+        // Only force-activate when the app is not already regular. A regular
+        // app owns a Dock tile and real windows on a desktop Space (the Settings
+        // or first-run window). Activating such an app from another app's
+        // full-screen Space makes macOS restore that window, which switches away
+        // from the full-screen Space; the app resigns active right after the
+        // panel is presented and the panel dismisses itself (#183). The panel is
+        // a non-activating NSPanel, so it still shows over the full-screen Space
+        // and becomes key without activating the app. The Dock click path skips
+        // activation for the same reason.
+        let forcesApplicationActivation =
+            activatesApplication && !isApplicationRegular()
+        if forcesApplicationActivation {
             // A transient popover shown while the app is still inactive can be
             // dismissed again straight away. Status-item clicks come from the
             // system menu bar process, so the modern activate() can be ignored
@@ -582,7 +601,7 @@ final class StatusBarController: NSObject {
             """
             Popover presented shown=\(self.popover.isShown) \
             key=\(popoverWindow?.isKeyWindow ?? false) \
-            applicationActivation=\(activatesApplication ? "forced" : "skipped", privacy: .public) \
+            applicationActivation=\(forcesApplicationActivation ? "forced" : (activatesApplication ? "withheld-regular" : "skipped"), privacy: .public) \
             \(dockActivationFocusSnapshot(window: popoverWindow), privacy: .public)
             """
         )
