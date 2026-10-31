@@ -379,9 +379,19 @@ final class BluetoothListeningModeController: ObservableObject {
             if let existing = presentations[address], existing.isChanging {
                 next[address] = existing
             } else {
+                // `off` is a stored preview state but not a drawn capsule: map it
+                // to a nil selection so a turned-off preview stays unhighlighted
+                // across refreshes, while a fresh row still defaults to NC.
+                let stored = previewSelectedModes[address]
+                let selected: BluetoothListeningMode?
+                if let stored {
+                    selected = Self.previewAvailableModes.contains(stored) ? stored : nil
+                } else {
+                    selected = .noiseCancellation
+                }
                 next[address] = BluetoothListeningModePresentation(
                     availableModes: Self.previewAvailableModes,
-                    selectedMode: previewSelectedModes[address] ?? .noiseCancellation
+                    selectedMode: selected
                 )
             }
             if let endpoint = Self.syntheticEndpoint(for: device.id) {
@@ -428,16 +438,21 @@ final class BluetoothListeningModeController: ObservableObject {
               presentation.availableModes.contains(mode) else {
             return
         }
-        guard !presentation.isChanging, presentation.selectedMode != mode else { return }
+        guard !presentation.isChanging else { return }
+        // A tap on the capsule already highlighted means "turn it off"; any other
+        // tap selects that mode. `off` is not a drawn capsule on an AirPods row,
+        // so this re-tap is how the device is turned off.
+        let target = presentation.requestedMode(forTapped: mode)
+        guard target != presentation.selectedMode else { return }
 
-        presentation = presentation.changing(to: mode)
+        presentation = presentation.changing(to: target)
         presentations[address] = presentation
         let token = issueChangeToken(for: address)
 
         changeTasks[address] = Task { [weak self, hal = self.hal] in
-            let result = await hal.setMode(mode, for: endpointID)
+            let result = await hal.setMode(target, for: endpointID)
             guard let self, !Task.isCancelled, self.changeTokens[address] == token else { return }
-            self.apply(result, of: mode, to: presentation, at: address, endpointID: endpointID)
+            self.apply(result, of: target, to: presentation, at: address, endpointID: endpointID)
         }
     }
 
@@ -447,13 +462,20 @@ final class BluetoothListeningModeController: ObservableObject {
     /// back to the last confirmed selection and shows the same failure mark.
     private func setHuaweiMode(_ mode: BluetoothListeningMode, forAddress address: String) {
         guard var presentation = presentations[address],
-              presentation.availableModes.contains(mode),
-              let noiseMode = HuaweiNoiseState.noiseMode(for: mode) else {
+              presentation.availableModes.contains(mode) else {
             return
         }
-        guard !presentation.isChanging, presentation.selectedMode != mode else { return }
+        guard !presentation.isChanging else { return }
+        // Re-tapping the highlighted mode turns noise control off, exactly as on the
+        // AirPods path; here `off` is also a drawn capsule, and both routes resolve
+        // to the same `normal` mode over SPP.
+        let target = presentation.requestedMode(forTapped: mode)
+        guard target != presentation.selectedMode,
+              let noiseMode = HuaweiNoiseState.noiseMode(for: target) else {
+            return
+        }
 
-        presentation = presentation.changing(to: mode)
+        presentation = presentation.changing(to: target)
         presentations[address] = presentation
         let token = issueChangeToken(for: address)
 
@@ -462,9 +484,9 @@ final class BluetoothListeningModeController: ObservableObject {
                 let state = try await transport.setMode(noiseMode, address: address)
                 guard let self, !Task.isCancelled, self.changeTokens[address] == token else { return }
                 self.changeTasks[address] = nil
-                if state.listeningMode == mode {
+                if state.listeningMode == target {
                     self.retireChangeToken(for: address)
-                    self.presentations[address] = presentation.settled(on: mode)
+                    self.presentations[address] = presentation.settled(on: target)
                 } else {
                     self.showFailure(state.listeningMode, previous: presentation, at: address)
                 }
@@ -536,17 +558,19 @@ final class BluetoothListeningModeController: ObservableObject {
     private func setModePreview(_ mode: BluetoothListeningMode, forAddress address: String) {
         guard var presentation = presentations[address],
               presentation.availableModes.contains(mode) else { return }
-        guard !presentation.isChanging, presentation.selectedMode != mode else { return }
+        guard !presentation.isChanging else { return }
+        let target = presentation.requestedMode(forTapped: mode)
+        guard target != presentation.selectedMode else { return }
 
-        presentation = presentation.changing(to: mode)
+        presentation = presentation.changing(to: target)
         presentations[address] = presentation
         let token = issueChangeToken(for: address)
 
         changeTasks[address] = Task { [weak self, delay = self.previewSettleDelay] in
             try? await Task.sleep(for: delay)
             guard let self, !Task.isCancelled, self.changeTokens[address] == token else { return }
-            self.previewSelectedModes[address] = mode
-            self.presentations[address] = presentation.settled(on: mode)
+            self.previewSelectedModes[address] = target
+            self.presentations[address] = presentation.settled(on: target)
             self.changeTasks[address] = nil
             self.retireChangeToken(for: address)
         }

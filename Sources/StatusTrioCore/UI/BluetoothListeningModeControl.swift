@@ -37,14 +37,18 @@ struct BluetoothListeningModeControl: View {
     @ViewBuilder
     private func capsule(_ mode: BluetoothListeningMode) -> some View {
         let isSelected = presentation.selectedMode == mode
-        let isTarget = presentation.isChanging(to: mode)
+        // A re-tap of the selected capsule asks the device to turn off. `off` is
+        // never drawn as its own capsule on an AirPods row, so the spinner for that
+        // request belongs on the selected capsule, not a phantom "off" button.
+        let isTurningOff = isSelected && presentation.isChanging(to: .off)
+        let isTarget = presentation.isChanging(to: mode) || isTurningOff
         // Only a change in flight locks the group: the write is per device, so
         // tapping a second capsule while the first is settling would stack a
-        // request the controller already refuses. The selected capsule is *not*
-        // disabled — Apple's selected control reads as chosen, not greyed out, and
+        // request the controller already refuses. The selected capsule stays
+        // enabled — Apple's selected control reads as chosen, not greyed out, and
         // disabling it would drop the whole pill to SwiftUI's dimmed opacity,
-        // turning the white label and accent fill muddy. A re-tap on it is a safe
-        // no-op because the controller refuses to re-select the current mode.
+        // turning the white label and accent fill muddy. A re-tap on it requests
+        // `off`, turning the active mode back off.
         let isDisabled = presentation.isChanging
 
         Button {
@@ -79,8 +83,8 @@ struct BluetoothListeningModeControl: View {
         .disabled(isDisabled)
         .accessibilityLabel(localization.string(mode.titleKey))
         // VoiceOver says "selected" from the trait, so the highlight is not carried
-        // by colour alone; the selected pill stays enabled (a re-tap is a no-op)
-        // precisely so it renders as chosen rather than greyed-out.
+        // by colour alone; the selected pill stays enabled (a re-tap turns the mode
+        // off) precisely so it renders as chosen rather than greyed-out.
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
