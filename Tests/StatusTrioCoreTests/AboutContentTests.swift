@@ -61,6 +61,14 @@ final class AboutContentTests: XCTestCase {
         }
     }
 
+    func testBundledAboutImagesArePresent() {
+        XCTAssertNotNil(AboutAssets.weChatQRCode, "missing bundled WeChat QR")
+        XCTAssertNotNil(AboutAssets.qqQRCode, "missing bundled QQ QR")
+        for app in AboutContentCatalog.apps(for: .simplifiedChinese) {
+            XCTAssertNotNil(AboutAssets.appIcon(for: app), "missing bundled icon \(app.iconResource)")
+        }
+    }
+
     func testChineseAppsListRendersTallerThanEnglish() throws {
         let suite = "StatusTrioCoreTests.AboutContent.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

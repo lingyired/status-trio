@@ -146,12 +146,17 @@ enum AboutContentCatalog {
 
 /// Loads the About page's bundled raster assets.
 ///
-/// Update workflow: when the WeChat group QR changes, replace
-/// `screenshots/status-trio-wechat-group.png` (used by the README) and regenerate
-/// the bundled derivative `Resources/AboutWeChatQR.png` shown here.
+/// Update workflow: when a group QR changes, replace the matching README image
+/// (`screenshots/status-trio-wechat-group.png` or `screenshots/status-trio-qq-group.png`)
+/// and regenerate the bundled square derivative (`Resources/AboutWeChatQR.png` or
+/// `Resources/AboutQQQR.png`) shown here.
 enum AboutAssets {
     static var weChatQRCode: NSImage? {
         image(named: "AboutWeChatQR")
+    }
+
+    static var qqQRCode: NSImage? {
+        image(named: "AboutQQQR")
     }
 
     static func appIcon(for app: AboutAppLink) -> NSImage? {

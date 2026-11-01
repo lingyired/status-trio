@@ -58,35 +58,40 @@ struct AboutCommunityView: View {
     }
 
     private var qqRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(localization.string(.settingsAboutCommunityQQ))
                     .font(.system(size: 13, weight: .semibold))
                 Text(localization.string(.settingsAboutCommunityQQDescription))
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    Text(AppMetadata.qqGroupNumber)
+                        .font(.system(size: 13, design: .monospaced))
+                        .textSelection(.enabled)
+                    Button {
+                        copyGroupNumber()
+                    } label: {
+                        Text(
+                            localization.string(
+                                copied
+                                    ? LocalizationKey.settingsAboutCommunityCopied
+                                    : LocalizationKey.settingsAboutCommunityCopy
+                            )
+                        )
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
             }
 
             Spacer(minLength: 8)
 
-            Text(AppMetadata.qqGroupNumber)
-                .font(.system(size: 13, design: .monospaced))
-                .textSelection(.enabled)
-
-            Button {
-                copyGroupNumber()
-            } label: {
-                Text(
-                    localization.string(
-                        copied
-                            ? LocalizationKey.settingsAboutCommunityCopied
-                            : LocalizationKey.settingsAboutCommunityCopy
-                    )
-                )
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
+            qrTile(
+                AboutAssets.qqQRCode,
+                label: localization.string(.settingsAboutCommunityQQ)
+            )
         }
         .padding(.horizontal, SettingsMetrics.rowPaddingH)
         .padding(.vertical, 12)
@@ -105,25 +110,30 @@ struct AboutCommunityView: View {
 
             Spacer(minLength: 8)
 
-            if let qrCode = AboutAssets.weChatQRCode {
-                Image(nsImage: qrCode)
-                    .resizable()
-                    .interpolation(.high)
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 104, height: 104)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
-                    .accessibilityLabel(
-                        localization.string(.settingsAboutCommunityWeChat)
-                    )
-            }
+            qrTile(
+                AboutAssets.weChatQRCode,
+                label: localization.string(.settingsAboutCommunityWeChat)
+            )
         }
         .padding(.horizontal, SettingsMetrics.rowPaddingH)
         .padding(.vertical, 12)
+    }
+
+    @ViewBuilder
+    private func qrTile(_ image: NSImage?, label: String) -> some View {
+        if let image {
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 104, height: 104)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+                .accessibilityLabel(label)
+        }
     }
 
     private func copyGroupNumber() {
