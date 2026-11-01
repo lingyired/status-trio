@@ -206,7 +206,7 @@ struct IconSceneRegionTests {
             ("plugged-in percentage", mappedScene(
                 snapshot: snapshot(percentage: 76, isConnectedToPower: true),
                 configuration: IconPresentationConfiguration(
-                    battery: BatteryIconOptions(showsPercentageWhenConnected: true),
+                    battery: BatteryIconOptions(connectedIndicator: .percentage),
                     connection: .standard,
                     volume: .standard,
                     bluetooth: .standard

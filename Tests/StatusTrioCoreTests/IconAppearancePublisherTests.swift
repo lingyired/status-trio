@@ -171,8 +171,8 @@ final class IconAppearancePublisherTests: XCTestCase {
         IconMutation(name: "usesBatteryStatusColors") { $0.usesBatteryStatusColors = false },
         IconMutation(name: "batteryCriticalThreshold") { $0.batteryCriticalThreshold = 35 },
         IconMutation(name: "batteryFullThreshold") { $0.batteryFullThreshold = 80 },
-        IconMutation(name: "showsPercentageWhenConnected") {
-            $0.showsPercentageWhenConnected = true
+        IconMutation(name: "batteryConnectedIndicator") {
+            $0.batteryConnectedIndicator = .bolt
         },
         IconMutation(name: "connectionCenterSource") {
             $0.connectionCenterSource = .batteryPercentage

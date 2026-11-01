@@ -55,7 +55,7 @@ final class IconPresentationMapperTests: XCTestCase {
 
     func testBatteryGapHonorsPresencePercentageAndPowerOptions() {
         let options = BatteryIconOptions(showsPercentage: true, showsChargingIndicator: true,
-                                         showsPercentageWhenConnected: true)
+                                         connectedIndicator: .percentage)
         let connectedFull = BatteryStatus(rawPercentage: 100, isPresent: true, isCharging: false,
                                           isCharged: true, isLowPowerMode: false, isConnectedToPower: true)
         let absent = BatteryStatus(rawPercentage: 42, isPresent: false, isCharging: false,
@@ -75,7 +75,7 @@ final class IconPresentationMapperTests: XCTestCase {
         let plugged = BatteryStatus(rawPercentage: 100, isPresent: true, isCharging: false,
                                     isCharged: true, isLowPowerMode: false, isConnectedToPower: true)
         let plugOptions = BatteryIconOptions(showsPercentage: true, showsChargingIndicator: true,
-                                             showsPercentageWhenConnected: false)
+                                             connectedIndicator: .plug)
         let plug = scene(snapshot: snapshot(battery: plugged), batteryOptions: plugOptions).outerRing
         XCTAssertEqual(plug?.gap, .indicator)
         XCTAssertEqual(plug?.accessory, .symbol(IconSymbolState(

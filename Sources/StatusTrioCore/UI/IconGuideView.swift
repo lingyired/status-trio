@@ -480,7 +480,7 @@ struct IconGuideView: View {
             showsChargingIndicator: false,
             usesStatusColors: true,
             criticalThreshold: configured.criticalThreshold,
-            showsPercentageWhenConnected: true,
+            connectedIndicator: .percentage,
             fullThreshold: configured.fullThreshold,
             textScale: configured.textScale,
             ringStrokeScale: configured.ringStrokeScale,

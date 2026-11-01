@@ -13,23 +13,47 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.iconSize, 24, accuracy: 0.001)
     }
 
-    func testConnectedPowerPercentageDefaultsOffAndFeedsTheIconOptions() {
+    func testConnectedPowerIndicatorDefaultsToPlugAndFeedsTheIconOptions() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
-        XCTAssertFalse(store.showsPercentageWhenConnected)
-        XCTAssertFalse(store.batteryIconOptions.showsPercentageWhenConnected)
+        XCTAssertEqual(store.batteryConnectedIndicator, .plug)
+        XCTAssertEqual(store.batteryIconOptions.connectedIndicator, .plug)
     }
 
-    func testConnectedPowerPercentageChoicePersists() {
+    func testConnectedPowerIndicatorChoicePersists() {
         let suite = makeSuite()
         defer { clear(suite) }
 
         let first = SettingsStore(defaults: suite.defaults)
-        first.showsPercentageWhenConnected = true
+        first.batteryConnectedIndicator = .bolt
 
         let second = SettingsStore(defaults: suite.defaults)
-        XCTAssertTrue(second.showsPercentageWhenConnected)
-        XCTAssertTrue(second.batteryIconOptions.showsPercentageWhenConnected)
+        XCTAssertEqual(second.batteryConnectedIndicator, .bolt)
+        XCTAssertEqual(second.batteryIconOptions.connectedIndicator, .bolt)
+    }
+
+    func testConnectedPowerIndicatorMigratesTheLegacyBoolean() {
+        let percentageSuite = makeSuite()
+        defer { clear(percentageSuite) }
+        percentageSuite.defaults.set(
+            true,
+            forKey: SettingsStore.showsPercentageWhenConnectedDefaultsKey
+        )
+        XCTAssertEqual(
+            SettingsStore(defaults: percentageSuite.defaults).batteryConnectedIndicator,
+            .percentage
+        )
+
+        let plugSuite = makeSuite()
+        defer { clear(plugSuite) }
+        plugSuite.defaults.set(
+            false,
+            forKey: SettingsStore.showsPercentageWhenConnectedDefaultsKey
+        )
+        XCTAssertEqual(
+            SettingsStore(defaults: plugSuite.defaults).batteryConnectedIndicator,
+            .plug
+        )
     }
 
     func testBluetoothAudioIconChoiceDefaultsToAutomaticAndPersists() {
@@ -1339,8 +1363,48 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(second.popupVolumeNaturalScrolling)
     }
 
-    func testPopupVolumeNaturalScrollingFallsBackToOffForNonBooleanStoredValue() {
+    func testPopupVolumeScrollFeedbackFollowsTheSystemSwitchUntilToggled() {
         let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(defaults: suite.defaults)
+
+        // No stored override: the value tracks the system switch.
+        XCTAssertEqual(
+            store.popupVolumeScrollFeedback,
+            SystemVolumeFeedbackPreference.isEnabled(in: suite.defaults)
+        )
+    }
+
+    func testPopupVolumeScrollFeedbackOverrideWinsAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        first.setPopupVolumeScrollFeedbackOverride(false)
+        XCTAssertFalse(first.popupVolumeScrollFeedback)
+
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(second.popupVolumeScrollFeedbackOverride, false)
+        XCTAssertFalse(second.popupVolumeScrollFeedback)
+
+        second.setPopupVolumeScrollFeedbackOverride(true)
+        XCTAssertTrue(second.popupVolumeScrollFeedback)
+    }
+
+    func testPopupVolumeScrollFeedbackNonBooleanStoredValueFallsBackToSystem() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set("yes", forKey: SettingsStore.popupVolumeScrollFeedbackDefaultsKey)
+
+        let store = SettingsStore(defaults: suite.defaults)
+        XCTAssertNil(store.popupVolumeScrollFeedbackOverride)
+        XCTAssertEqual(
+            store.popupVolumeScrollFeedback,
+            SystemVolumeFeedbackPreference.isEnabled(in: suite.defaults)
+        )
+    }
+
+    func testPopupVolumeNaturalScrollingFallsBackToOffForNonBooleanStoredValue() {        let suite = makeSuite()
         defer { clear(suite) }
         suite.defaults.set(
             "yes",
