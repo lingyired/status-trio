@@ -4,15 +4,39 @@ import Foundation
 enum PanelPresentationMapper {
     static func battery(
         _ status: BatteryStatus,
+        powerSample: SystemPowerSample? = nil,
+        inputPower: SystemPowerSample? = nil,
+        batteryPower: BatteryPowerSample? = nil,
+        showsPowerInfoBar: Bool = false,
+        now: Date = Date(),
         localization: Localization,
         chargeToFullNow: ChargeToFullNowPresentation = .hidden
     ) -> PanelSummaryState {
-        let title = batteryTitle(status, localization: localization)
+        let title = batteryTitle(
+            status,
+            powerSample: powerSample,
+            now: now,
+            localization: localization
+        )
         let subtitle = batterySubtitle(
             status,
             localization: localization,
             chargeToFullNow: chargeToFullNow
         )
+        // A Mac with no battery can still open the page when the runtime shows
+        // that it has a usable whole-machine power reading.
+        let canOpenDetails = status.isPresent
+            || (powerSample?.isFresh(at: now) ?? false)
+        let infoBar = showsPowerInfoBar
+            ? powerInfoBar(
+                status: status,
+                systemPower: powerSample,
+                inputPower: inputPower,
+                batteryPower: batteryPower,
+                now: now,
+                localization: localization
+            )
+            : nil
 
         return PanelSummaryState(
             title: title,
@@ -22,9 +46,47 @@ enum PanelPresentationMapper {
             tint: batteryTint(status),
             accessibilityLabel: title,
             accessibilityValue: subtitle,
-            showsSettings: status.isPresent,
-            intent: status.isPresent ? .batteryDetails : .none
+            showsSettings: canOpenDetails,
+            intent: canOpenDetails ? .batteryDetails : .none,
+            powerInfoBar: infoBar
         )
+    }
+
+    /// Provisional power info bar. Each rail is shown on its own and missing or
+    /// stale rails are simply absent; rails are never added into a "total".
+    private static func powerInfoBar(
+        status: BatteryStatus,
+        systemPower: SystemPowerSample?,
+        inputPower: SystemPowerSample?,
+        batteryPower: BatteryPowerSample?,
+        now: Date,
+        localization: Localization
+    ) -> PowerInfoBarState? {
+        let locale = localization.resolvedLanguage.locale
+        func watts(_ value: Double) -> String {
+            value.formatted(.number.precision(.fractionLength(1)).locale(locale)) + " W"
+        }
+        var items: [PowerInfoBarItem] = []
+        if let inputPower, inputPower.watts.isFinite, inputPower.isFresh(at: now) {
+            items.append(PowerInfoBarItem(kind: .input, value: watts(inputPower.watts)))
+        }
+        if status.isPresent, let batteryPower, batteryPower.watts.isFinite, batteryPower.isFresh(at: now) {
+            // Battery power keeps its own sign out of the label; the magnitude
+            // is the flow into (or out of) the pack, never folded into system.
+            // A pack sitting at 0 W is idle, not charging, so say that instead
+            // of printing a misleading 0.0 W.
+            let magnitude = abs(batteryPower.watts)
+            items.append(PowerInfoBarItem(
+                kind: .battery,
+                value: magnitude < 0.05
+                    ? localization.string(.powerInfoBarNotCharging)
+                    : watts(magnitude)
+            ))
+        }
+        if let systemPower, systemPower.watts.isFinite, systemPower.isFresh(at: now) {
+            items.append(PowerInfoBarItem(kind: .system, value: watts(systemPower.watts)))
+        }
+        return items.isEmpty ? nil : PowerInfoBarState(items: items)
     }
 
     static func network(
@@ -101,8 +163,23 @@ enum PanelPresentationMapper {
         )
     }
 
-    static func batteryTitle(_ battery: BatteryStatus, localization: Localization) -> String {
-        localization.format(.batteryTitle, battery.percentage)
+    static func batteryTitle(
+        _ battery: BatteryStatus,
+        powerSample: SystemPowerSample? = nil,
+        now: Date = Date(),
+        localization: Localization
+    ) -> String {
+        guard battery.isPresent else {
+            // A Mac with no battery has no percentage to show. Use the runtime
+            // whole-machine reading when it is fresh; otherwise say so instead
+            // of inventing 0 W or 100%.
+            guard let powerSample, powerSample.isFresh(at: now), powerSample.watts.isFinite else {
+                return localization.string(.batteryTitlePowerUnavailable)
+            }
+            let watts = Int(min(999, max(0, powerSample.watts)).rounded())
+            return localization.format(.batteryTitlePower, watts)
+        }
+        return localization.format(.batteryTitle, battery.percentage)
     }
 
     static func batteryTimeToFullText(minutes: Int?, localization: Localization) -> String {

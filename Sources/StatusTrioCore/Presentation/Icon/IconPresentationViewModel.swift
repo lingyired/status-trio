@@ -57,15 +57,18 @@ final class IconPresentationViewModel: ObservableObject {
     private let snapshots: AnyPublisher<StatusSnapshot, Never>
     private let preferences: AnyPublisher<IconPresentationSettings, Never>
     private let inputSources: AnyPublisher<InputSourceDescriptor?, Never>
+    private let systemPowers: AnyPublisher<SystemPowerSample?, Never>
     private let resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs
     private let mapScene: IconSceneMapper
     private let snapshotScheduler: any IconPresentationScheduling
     private var snapshotSubscription: AnyCancellable?
     private var preferencesSubscription: AnyCancellable?
     private var inputSourcesSubscription: AnyCancellable?
+    private var systemPowersSubscription: AnyCancellable?
     private var latestSnapshot: StatusSnapshot
     private var latestSettings: IconPresentationSettings
     private var latestInputSource: InputSourceDescriptor?
+    private var latestSystemPower: SystemPowerSample?
     private var receivedSnapshotForStart = false
     private var receivedSettingsForStart = false
     private var receivedInputSourceForStart = false
@@ -77,6 +80,7 @@ final class IconPresentationViewModel: ObservableObject {
         snapshots: AnyPublisher<StatusSnapshot, Never>,
         preferences: AnyPublisher<IconPresentationSettings, Never>,
         inputSources: AnyPublisher<InputSourceDescriptor?, Never> = Empty<InputSourceDescriptor?, Never>().eraseToAnyPublisher(),
+        systemPowers: AnyPublisher<SystemPowerSample?, Never> = Empty<SystemPowerSample?, Never>().eraseToAnyPublisher(),
         resolveInputs: @escaping @MainActor (StatusSnapshot) -> IconPresentationInputs,
         mapScene: @escaping IconSceneMapper = { inputs, configuration in
             IconPresentationMapper.scene(inputs: inputs, configuration: configuration)
@@ -86,6 +90,7 @@ final class IconPresentationViewModel: ObservableObject {
         self.snapshots = snapshots
         self.preferences = preferences
         self.inputSources = inputSources
+        self.systemPowers = systemPowers
         self.resolveInputs = resolveInputs
         self.mapScene = mapScene
         self.snapshotScheduler = snapshotScheduler
@@ -95,6 +100,7 @@ final class IconPresentationViewModel: ObservableObject {
             snapshot: snapshot,
             settings: settings,
             inputSource: nil,
+            systemPower: nil,
             resolveInputs: resolveInputs,
             mapScene: mapScene
         )
@@ -122,6 +128,11 @@ final class IconPresentationViewModel: ObservableObject {
                 self?.receive(deliveredInputSource)
             }
         }
+        systemPowersSubscription = systemPowers.sink { [weak self] deliveredSystemPower in
+            MainActor.assumeIsolated {
+                self?.receive(deliveredSystemPower)
+            }
+        }
     }
 
     func stop() {
@@ -129,9 +140,11 @@ final class IconPresentationViewModel: ObservableObject {
         snapshotSubscription?.cancel()
         preferencesSubscription?.cancel()
         inputSourcesSubscription?.cancel()
+        systemPowersSubscription?.cancel()
         snapshotSubscription = nil
         preferencesSubscription = nil
         inputSourcesSubscription = nil
+        systemPowersSubscription = nil
         receivedSnapshotForStart = false
         receivedSettingsForStart = false
         receivedInputSourceForStart = false
@@ -188,6 +201,16 @@ final class IconPresentationViewModel: ObservableObject {
         publishLatestOutput()
     }
 
+    /// A power sample is not part of the startup handshake: the icon already
+    /// has a scene, and waiting for a hardware read would delay it. A sample
+    /// that lands later repaints the centre slot immediately.
+    private func receive(_ systemPower: SystemPowerSample?) {
+        latestSystemPower = systemPower
+        guard synchronizedStart else { return }
+        snapshotScheduler.cancel()
+        publishLatestOutput()
+    }
+
     private func publishWhenStartInputsAreReady() {
         guard receivedSnapshotForStart, receivedSettingsForStart else { return }
         synchronizedStart = true
@@ -200,6 +223,7 @@ final class IconPresentationViewModel: ObservableObject {
             snapshot: latestSnapshot,
             settings: latestSettings,
             inputSource: latestInputSource,
+            systemPower: latestSystemPower,
             resolveInputs: resolveInputs,
             mapScene: mapScene
         )
@@ -211,18 +235,29 @@ final class IconPresentationViewModel: ObservableObject {
         snapshot: StatusSnapshot,
         settings: IconPresentationSettings,
         inputSource: InputSourceDescriptor?,
+        systemPower: SystemPowerSample?,
         resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs,
         mapScene: IconSceneMapper
     ) -> IconPresentationOutput {
         let scene = mapScene(
-            resolvedInputs(snapshot: snapshot, inputSource: inputSource, resolveInputs: resolveInputs),
+            resolvedInputs(
+                snapshot: snapshot,
+                inputSource: inputSource,
+                systemPower: systemPower,
+                resolveInputs: resolveInputs
+            ),
             settings.configuration
         )
         let menuBarTestScene: IconSceneState?
         if settings.testsChargingEffect {
             let projected = ChargingEffectTestMode.snapshot(snapshot, enabled: true)
             menuBarTestScene = mapScene(
-                resolvedInputs(snapshot: projected, inputSource: inputSource, resolveInputs: resolveInputs),
+                resolvedInputs(
+                    snapshot: projected,
+                    inputSource: inputSource,
+                    systemPower: systemPower,
+                    resolveInputs: resolveInputs
+                ),
                 settings.configuration
             )
         } else {
@@ -244,13 +279,15 @@ final class IconPresentationViewModel: ObservableObject {
     private static func resolvedInputs(
         snapshot: StatusSnapshot,
         inputSource: InputSourceDescriptor?,
+        systemPower: SystemPowerSample?,
         resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs
     ) -> IconPresentationInputs {
         let inputs = resolveInputs(snapshot)
         return IconPresentationInputs(
             snapshot: inputs.snapshot,
             audioIcon: inputs.audioIcon,
-            inputSource: inputSource?.resolvedForDrawing()
+            inputSource: inputSource?.resolvedForDrawing(),
+            systemPower: systemPower
         )
     }
 }

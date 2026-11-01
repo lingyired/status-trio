@@ -3,9 +3,8 @@ struct ConnectionIconOptions: Equatable, Hashable, Sendable {
     let showsWiFiIconForHotspot: Bool
     let showsWiFiIconForTemporaryConnection: Bool
     let showsWiFiIconForInternetSharing: Bool
-    let showsBatteryPercentageInConnectionSlot: Bool
-    /// Which of the two centre-slot sources the user chose. `.automatic` keeps
-    /// every shipped priority rule untouched.
+    /// What the centre slot draws. `.automatic` keeps every shipped priority
+    /// rule untouched; the other cases each own the slot exclusively.
     let centerSource: ConnectionCenterSource
     /// While an input source is drawn, show a genuine network outage instead.
     /// Defaults to on so the centre slot stays honest about a dead link.
@@ -17,7 +16,6 @@ struct ConnectionIconOptions: Equatable, Hashable, Sendable {
         showsWiFiIconForHotspot: false,
         showsWiFiIconForTemporaryConnection: false,
         showsWiFiIconForInternetSharing: false,
-        showsBatteryPercentageInConnectionSlot: false,
         centerSource: .automatic,
         prioritizesNetworkErrorsOverInputSource: true,
         wifiScale: 1.0
@@ -28,7 +26,6 @@ struct ConnectionIconOptions: Equatable, Hashable, Sendable {
         showsWiFiIconForHotspot: Bool = false,
         showsWiFiIconForTemporaryConnection: Bool = false,
         showsWiFiIconForInternetSharing: Bool = false,
-        showsBatteryPercentageInConnectionSlot: Bool = false,
         centerSource: ConnectionCenterSource = .automatic,
         prioritizesNetworkErrorsOverInputSource: Bool = true,
         wifiScale: Double = 1.0
@@ -37,7 +34,6 @@ struct ConnectionIconOptions: Equatable, Hashable, Sendable {
         self.showsWiFiIconForHotspot = showsWiFiIconForHotspot
         self.showsWiFiIconForTemporaryConnection = showsWiFiIconForTemporaryConnection
         self.showsWiFiIconForInternetSharing = showsWiFiIconForInternetSharing
-        self.showsBatteryPercentageInConnectionSlot = showsBatteryPercentageInConnectionSlot
         self.centerSource = centerSource
         self.prioritizesNetworkErrorsOverInputSource = prioritizesNetworkErrorsOverInputSource
         self.wifiScale = wifiScale

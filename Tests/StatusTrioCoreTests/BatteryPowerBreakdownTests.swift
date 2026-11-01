@@ -234,14 +234,13 @@ final class BatteryPowerBreakdownPresentationTests: XCTestCase {
         XCTAssertEqual(unavailable.powerFlow?.destinations.map(\.kind), [.charging, .system])
     }
 
-    func testSwitchIsPersistedIndependently() throws {
+    func testPowerFlowSwitchIsPersisted() throws {
         let (_, defaults, suite) = try localization()
         defer { defaults.removeTestSuite(named: suite) }
         let store = SettingsStore(defaults: defaults)
-        XCTAssertTrue(store.showsPowerBreakdown)
-        store.showsPowerBreakdown = false
-        XCTAssertFalse(SettingsStore(defaults: defaults).showsPowerBreakdown)
-        XCTAssertTrue(SettingsStore(defaults: defaults).showsSystemPower)
+        XCTAssertTrue(store.showsBatteryPowerFlow)
+        store.showsBatteryPowerFlow = false
+        XCTAssertFalse(SettingsStore(defaults: defaults).showsBatteryPowerFlow)
     }
 }
 

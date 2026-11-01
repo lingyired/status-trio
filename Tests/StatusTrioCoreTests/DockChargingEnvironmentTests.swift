@@ -28,7 +28,7 @@ struct DockChargingEnvironmentTests {
 
         fixture.environment.appIconController.flushPendingPresentationForTesting()
         let assignmentsBeforeSceneChange = fixture.application.assignments
-        fixture.settings.showsBatteryPercentageInConnectionSlot = true
+        fixture.settings.connectionCenterSource = .batteryPercentage
         fixture.environment.appIconController.flushPendingPresentationForTesting()
         #expect(fixture.application.assignments == assignmentsBeforeSceneChange)
     }

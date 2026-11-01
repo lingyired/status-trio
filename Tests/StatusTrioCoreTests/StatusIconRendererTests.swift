@@ -1420,7 +1420,7 @@ final class StatusIconRendererTests: XCTestCase {
         let slotPercentage = try renderPixels(
             snapshot,
             connectionOptions: ConnectionIconOptions(
-                showsBatteryPercentageInConnectionSlot: true
+                centerSource: .batteryPercentage
             )
         )
 
@@ -1447,7 +1447,7 @@ final class StatusIconRendererTests: XCTestCase {
         let slotPercentage = try renderPixels(
             snapshot,
             connectionOptions: ConnectionIconOptions(
-                showsBatteryPercentageInConnectionSlot: true
+                centerSource: .batteryPercentage
             )
         )
 
@@ -1491,7 +1491,7 @@ final class StatusIconRendererTests: XCTestCase {
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
                 connectionOptions: ConnectionIconOptions(
-                    showsBatteryPercentageInConnectionSlot: true
+                    centerSource: .batteryPercentage
                 ),
                 bluetoothAudioOptions: pickedSymbol
             ))

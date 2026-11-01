@@ -3,11 +3,12 @@ import Foundation
 enum IconPresentationMapper {
     static func scene(
         inputs: IconPresentationInputs,
-        configuration: IconPresentationConfiguration
+        configuration: IconPresentationConfiguration,
+        now: Date = Date()
     ) -> IconSceneState {
         IconSceneState(
             outerRing: batteryState(inputs.snapshot.battery, options: configuration.battery),
-            center: centerState(inputs: inputs, configuration: configuration),
+            center: centerState(inputs: inputs, configuration: configuration, now: now),
             footer: footerState(inputs.snapshot.volume, options: configuration.volume,
                                 bluetoothOptions: configuration.bluetooth),
             statusColors: configuration.battery.usesStatusColors
@@ -80,15 +81,47 @@ enum IconPresentationMapper {
 
     private static func centerState(
         inputs: IconPresentationInputs,
-        configuration: IconPresentationConfiguration
+        configuration: IconPresentationConfiguration,
+        now: Date
     ) -> CenterState? {
         let snapshot = inputs.snapshot
         let battery = snapshot.battery
         let connectionOptions = configuration.connection
         let bluetoothOptions = configuration.bluetooth
 
-        if connectionOptions.showsBatteryPercentageInConnectionSlot, battery.isPresent {
-            return .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: 1))
+        // The user asked the centre slot to carry whole-machine watts. This is
+        // the one branch that replaces the network content unconditionally. Its
+        // text follows the "Wi-Fi Icon Size" centre-symbol scale so the number
+        // grows and shrinks with the network glyph it replaces.
+        if connectionOptions.centerSource == .power {
+            let textScale = connectionOptions.wifiScale
+            if let sample = inputs.systemPower,
+               sample.isFresh(at: now),
+               sample.watts.isFinite {
+                // Integer watts, no unit, laid out for at most three digits.
+                // Clamp in Double space so a pathological sample can never trap
+                // an Int conversion.
+                let watts = Int(min(999, max(0, sample.watts)).rounded())
+                return .text(IconTextState(text: "\(watts)", color: .primary, scale: textScale))
+            }
+            // Never a fake 0 W. A battery Mac may still show its level; a Mac
+            // with no battery shows an honest placeholder instead of inventing
+            // a percentage it does not have.
+            if battery.isPresent {
+                return .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: textScale))
+            }
+            return .text(IconTextState(text: "--", color: .primary, scale: textScale))
+        }
+
+        if connectionOptions.centerSource == .batteryPercentage, battery.isPresent {
+            // Every numeric centre mode shares the same size rule: the Wi-Fi
+            // Icon Size scale, so switching between percentage and watts does
+            // not change the number's size.
+            return .text(IconTextState(
+                text: "\(battery.percentage)",
+                color: .primary,
+                scale: connectionOptions.wifiScale
+            ))
         }
 
         // The user asked the centre slot to carry the current input source.

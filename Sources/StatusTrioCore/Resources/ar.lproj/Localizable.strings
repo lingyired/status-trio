@@ -49,6 +49,8 @@
 "settings.network.centerSource.description" = "اختر ما تعرضه أيقونة الحالة في الوسط. «تلقائي» يحافظ على سلوك الشبكة والبلوتوث المعتاد.";
 "settings.network.centerSource.automatic" = "تلقائي";
 "settings.network.centerSource.inputSource" = "مصدر الإدخال الحالي";
+"settings.network.centerSource.batteryPercentage" = "نسبة البطارية";
+"settings.network.centerSource.power" = "الطاقة (واط)";
 "settings.network.centerSource.bluetoothFallback" = "عند اختيار مصدر الإدخال، تُستخدم أيقونات البلوتوث والشبكة كخيار احتياطي فقط.";
 "settings.network.centerSource.networkWarnings" = "إعطاء الأولوية لمشاكل الشبكة";
 "settings.network.centerSource.networkWarnings.description" = "عندما يكون الـ Mac غير متصل فعلياً، يعرض الوسط حالة الشبكة بدلاً من مصدر الإدخال.";
@@ -128,8 +130,6 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "عرض البطارية";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
-"settings.battery.showPercentageInConnectionSlot" = "إظهار نسبة البطارية في موضع الاتصال";
-"settings.battery.showPercentageInConnectionSlotDescription" = "يستبدل رمز Wi-Fi أو الاتصال، وهو مستقل عن مؤشر البطارية العلوي.";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";
 "settings.battery.chargingDescription" = "عند التفعيل، تتحول النسبة إلى رمز برق أو قابس أثناء الشحن أو الاتصال بالطاقة.";
 "settings.battery.chargingEffect" = "تأثير الشحن";
@@ -177,6 +177,8 @@
 "settings.updates.automatic" = "التحقق تلقائيًا من وجود تحديثات";
 "settings.updates.check" = "التحقق من وجود تحديثات…";
 "battery.title" = "البطارية · %d%%";
+"battery.title.power" = "الطاقة · %d واط";
+"battery.title.powerUnavailable" = "الطاقة · غير متاحة";
 "battery.state.notPresent" = "لا توجد بطارية";
 "battery.state.charged" = "ممتلئة بالكامل";
 "battery.state.calculatingTimeToFull" = "جارٍ حساب الوقت حتى الامتلاء";
@@ -460,6 +462,7 @@
 // On-demand battery details.
 "battery.details.title" = "تفاصيل البطارية";
 "battery.details.systemPower" = "قدرة النظام (تقديرية)";
+"battery.details.watt" = "الطاقة";
 "battery.details.systemReadAt" = "وقت قراءة النظام";
 "battery.details.power" = "قدرة البطارية (تقديرية)";
 "battery.details.charging" = "الشحن (تقديري)";
@@ -576,6 +579,10 @@
 "settings.battery.powerFlow.description" = "تُحدّث قراءات الطاقة فقط عند فتح لوحة البطارية. قد تتأخر المستشعرات وقد لا تتطابق القراءات الثلاث تمامًا.";
 "settings.battery.breakdown" = "تقسيم الطاقة حسب المكوّن";
 "settings.battery.breakdown.description" = "يقسّم دخل المحول إلى الشاشة المدمجة وخرج USB وبقية حمل النظام (بما في ذلك SoC). تُخفى القيم غير المتاحة، وتعود الواجهة إلى طاقة النظام عند تعذّر التقسيم.";
+"settings.battery.powerInfoBar" = "شريط معلومات الطاقة";
+"settings.battery.powerFlowDiagram" = "مخطط تدفق الطاقة";
+"settings.battery.powerFlowDiagramDescription" = "يعرض مخطط تدفق الطاقة (الدخل / البطارية / النظام) في صفحة تفاصيل البطارية.";
+"settings.battery.powerInfoBarDescription" = "يعرض طاقة الدخل والبطارية والنظام أسفل وحدة البطارية أثناء فتح اللوحة. معطّل افتراضيًا.";
 "settings.battery.energyRefreshInterval" = "الفاصل الزمني لأخذ العينات في الخلفية";
 "settings.battery.energyRefreshInterval.description" = "يُستخدم عندما تكون اللوحة مغلقة. تستمر صفحة تفاصيل البطارية في التحديث كل 5 ثوانٍ.";
 "battery.power.input" = "دخل الشاحن";
@@ -584,6 +591,10 @@
 "battery.power.system" = "النظام";
 "battery.power.system.help" = "طاقة النظام (بما في ذلك SoC)";
 "battery.power.system.explanation" = "“النظام” هو ما يتبقى بعد شحن البطارية والشاشة وUSB، ويشمل SoC والذاكرة ومتحكمات الشاشة وغيرها.";
+"power.infoBar.input" = "دخل الشاحن";
+"power.infoBar.battery" = "شحن البطارية";
+"power.infoBar.system" = "طاقة النظام";
+"power.infoBar.notCharging" = "لا يتم الشحن";
 "battery.power.display" = "الشاشة";
 "battery.power.usb" = "خرج USB";
 "battery.power.soc" = "SoC";

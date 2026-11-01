@@ -66,6 +66,8 @@
 "settings.network.centerSource.description" = "選擇狀態圖示中間位置顯示的內容。「自動」保留原有的網路與藍牙行為。";
 "settings.network.centerSource.automatic" = "自動";
 "settings.network.centerSource.inputSource" = "目前輸入法";
+"settings.network.centerSource.batteryPercentage" = "電池百分比";
+"settings.network.centerSource.power" = "功耗（瓦）";
 "settings.network.centerSource.bluetoothFallback" = "選擇輸入法後，藍牙與網路圖示僅作為備援顯示。";
 "settings.network.centerSource.networkWarnings" = "優先顯示網路異常";
 "settings.network.centerSource.networkWarnings.description" = "當 Mac 確實離線時，中間位置改為顯示網路狀態而非輸入法。";
@@ -145,8 +147,6 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "電池顯示";
 "settings.battery.showPercentage" = "顯示電量數字";
-"settings.battery.showPercentageInConnectionSlot" = "在連線位置顯示電量數字";
-"settings.battery.showPercentageInConnectionSlotDescription" = "取代 Wi-Fi 或連線圖示；此選項可與頂端電池指示器分別開啟。";
 "settings.battery.showChargingIndicator" = "充電/連接電源時顯示指示圖示";
 "settings.battery.chargingDescription" = "開啟後，正在充電或已連接電源時，電量數字會替換為閃電或插頭圖示；關閉則繼續顯示數字。";
 "settings.battery.chargingEffect" = "充電效果";
@@ -194,6 +194,8 @@
 "settings.updates.automatic" = "自動檢查更新";
 "settings.updates.check" = "檢查更新…";
 "battery.title" = "電池 · %d%%";
+"battery.title.power" = "功耗 · %d W";
+"battery.title.powerUnavailable" = "功耗 · 暫不可用";
 "battery.state.notPresent" = "無電池裝置";
 "battery.state.charged" = "已充滿";
 "battery.state.calculatingTimeToFull" = "正在計算充滿時間";
@@ -460,6 +462,7 @@
 // On-demand battery details.
 "battery.details.title" = "電池詳細資訊";
 "battery.details.systemPower" = "整機功耗（估算）";
+"battery.details.watt" = "功耗";
 "battery.details.systemReadAt" = "整機讀取時間";
 "battery.details.power" = "電池功率（估算）";
 "battery.details.charging" = "充電（估算）";
@@ -576,6 +579,10 @@
 "settings.battery.powerFlow.description" = "功率讀值僅在電池面板開啟時更新。感測器讀值可能延遲，各分項功率不一定完全相加。";
 "settings.battery.breakdown" = "依元件細分功耗";
 "settings.battery.breakdown.description" = "把轉接器輸入拆成內建螢幕、USB 對外供電與其餘系統負載（含 SoC）。讀不到的分項會隱藏；無法可靠拆分時仍顯示系統總功耗。";
+"settings.battery.powerInfoBar" = "功耗資訊條";
+"settings.battery.powerFlowDiagram" = "功耗流向圖";
+"settings.battery.powerFlowDiagramDescription" = "在電池詳細頁顯示輸入 / 電池 / 系統功耗流向圖。";
+"settings.battery.powerInfoBarDescription" = "面板開啟時，在電池模組下方顯示輸入、電池、系統功耗。預設關閉。";
 "settings.battery.energyRefreshInterval" = "背景取樣間隔";
 "settings.battery.energyRefreshInterval.description" = "面板關閉時依此間隔取樣；開啟電池詳細資料後仍每 5 秒重新整理。";
 "battery.power.input" = "充電器輸入";
@@ -584,6 +591,10 @@
 "battery.power.system" = "系統功耗";
 "battery.power.system.help" = "系統功耗（含 SoC）";
 "battery.power.system.explanation" = "“系統”是扣除電池充電、顯示器與 USB 後的其餘負載，包含 SoC、記憶體與顯示控制器等，不是單一感測器讀數。";
+"power.infoBar.input" = "充電器輸入";
+"power.infoBar.battery" = "電池充電";
+"power.infoBar.system" = "系統功耗";
+"power.infoBar.notCharging" = "未在充電";
 "battery.power.display" = "顯示器";
 "battery.power.usb" = "USB 供電";
 "battery.power.soc" = "SoC";

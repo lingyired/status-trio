@@ -187,14 +187,35 @@ final class BatteryDetailsTests: XCTestCase {
         XCTAssertNotNil(withoutSMC.power)
     }
 
-    func testSystemPowerIsOnlySampledForAPresentBatteryOnExternalPower() {
+    func testSystemPowerIsMeaningfulForNoBatteryAndOnExternalPower() {
         XCTAssertTrue(BatteryDetailsReader.readsSystemPower(for: state(connected: true)))
         XCTAssertFalse(BatteryDetailsReader.readsSystemPower(for: state()))
         let absent = BatteryPowerState(BatteryStatus(rawPercentage: 0, isPresent: false,
                                                      isCharging: false, isLowPowerMode: false,
                                                      isConnectedToPower: true))
-        XCTAssertFalse(BatteryDetailsReader.readsSystemPower(for: absent),
-                       "A Mac without a battery has no discharge row to compare against")
+        XCTAssertTrue(BatteryDetailsReader.readsSystemPower(for: absent),
+                      "A Mac without a battery still has a whole-machine power reading to show")
+    }
+
+    func testNoBatteryDetailsExposeOnlyTheSystemPowerRow() {
+        let absent = BatteryPowerState(BatteryStatus(rawPercentage: nil, isPresent: false,
+                                                     isCharging: false, isLowPowerMode: false,
+                                                     isConnectedToPower: false))
+        let sample = SystemPowerSample(watts: 18.4, readAt: now)
+        let details = BatteryDetailsReader.parse(
+            registry: [:], adapterWatts: 90, remainingSeconds: -1,
+            state: absent, now: now, systemPower: sample)
+        XCTAssertEqual(details.systemPower, sample)
+        XCTAssertEqual(details.powerAvailability, .available)
+        XCTAssertNil(details.adapterWatts)
+        XCTAssertNil(details.remainingMinutes)
+        XCTAssertNil(details.cycleCount)
+        XCTAssertNil(details.power)
+
+        let collecting = BatteryDetailsReader.parse(
+            registry: [:], adapterWatts: 90, remainingSeconds: -1,
+            state: absent, now: now)
+        XCTAssertEqual(collecting.powerAvailability, .collecting)
     }
 
     func testMissingStaleAndFutureTelemetryFailClosed() {

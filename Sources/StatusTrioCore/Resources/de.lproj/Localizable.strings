@@ -66,6 +66,8 @@
 "settings.network.centerSource.description" = "Wähle, was das Status-Symbol in der Mitte zeigt. „Automatisch“ behält das bisherige Netzwerk- und Bluetooth-Verhalten bei.";
 "settings.network.centerSource.automatic" = "Automatisch";
 "settings.network.centerSource.inputSource" = "Aktuelle Eingabequelle";
+"settings.network.centerSource.batteryPercentage" = "Batterieprozentsatz";
+"settings.network.centerSource.power" = "Leistung (Watt)";
 "settings.network.centerSource.bluetoothFallback" = "Bei gewählter Eingabequelle dienen Bluetooth- und Netzwerksymbole nur als Ersatz.";
 "settings.network.centerSource.networkWarnings" = "Netzwerkprobleme bevorzugen";
 "settings.network.centerSource.networkWarnings.description" = "Wenn der Mac wirklich offline ist, zeigt die Mitte den Netzwerkstatus statt der Eingabequelle.";
@@ -145,8 +147,6 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Batterieanzeige";
 "settings.battery.showPercentage" = "Batterieprozentsatz anzeigen";
-"settings.battery.showPercentageInConnectionSlot" = "Batterieprozentsatz an der Verbindungsposition anzeigen";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Ersetzt das WLAN- oder Verbindungssymbol und ist unabhängig von der oberen Batterieanzeige.";
 "settings.battery.showChargingIndicator" = "Symbol beim Laden oder Netzbetrieb anzeigen";
 "settings.battery.chargingDescription" = "Wenn aktiviert, wird der Prozentsatz beim Laden oder Netzbetrieb durch ein Blitz- oder Steckersymbol ersetzt.";
 "settings.battery.chargingEffect" = "Ladeeffekt";
@@ -194,6 +194,8 @@
 "settings.updates.automatic" = "Automatisch nach Updates suchen";
 "settings.updates.check" = "Nach Updates suchen…";
 "battery.title" = "Batterie · %d%%";
+"battery.title.power" = "Leistung · %d W";
+"battery.title.powerUnavailable" = "Leistung · Nicht verfügbar";
 "battery.state.notPresent" = "Keine Batterie";
 "battery.state.charged" = "Vollständig geladen";
 "battery.state.calculatingTimeToFull" = "Ladezeit bis voll wird berechnet";
@@ -460,6 +462,7 @@
 // On-demand battery details.
 "battery.details.title" = "Batteriedetails";
 "battery.details.systemPower" = "Systemleistung (geschätzt)";
+"battery.details.watt" = "Leistung";
 "battery.details.systemReadAt" = "System ausgelesen um";
 "battery.details.power" = "Batterieleistung (geschätzt)";
 "battery.details.charging" = "Laden (geschätzt)";
@@ -576,6 +579,10 @@
 "settings.battery.powerFlow.description" = "Leistungswerte werden nur bei geöffnetem Batteriepanel aktualisiert. Sensoren können verzögert sein; die drei Werte müssen sich nicht genau addieren.";
 "settings.battery.breakdown" = "Leistung nach Komponenten aufteilen";
 "settings.battery.breakdown.description" = "Teilt die Adaptereingangsleistung in integriertes Display, USB-Ausgang und die übrige Systemlast (inklusive SoC) auf. Nicht messbare Werte werden ausgeblendet; ohne verlässliche Aufteilung erscheint wieder die Systemleistung.";
+"settings.battery.powerInfoBar" = "Leistungsinfozeile";
+"settings.battery.powerFlowDiagram" = "Leistungsflussdiagramm";
+"settings.battery.powerFlowDiagramDescription" = "Zeigt das Leistungsflussdiagramm (Eingang / Batterie / System) auf der Batteriedetailseite.";
+"settings.battery.powerInfoBarDescription" = "Zeigt bei geöffnetem Panel Eingangs-, Batterie- und Systemleistung unter dem Batteriemodul. Standardmäßig aus.";
 "settings.battery.energyRefreshInterval" = "Intervall für Hintergrundmessung";
 "settings.battery.energyRefreshInterval.description" = "Wird bei geschlossenem Panel verwendet. Die Batteriedetailseite wird weiterhin alle 5 Sekunden aktualisiert.";
 "battery.power.input" = "Ladeeingang";
@@ -584,6 +591,10 @@
 "battery.power.system" = "System";
 "battery.power.system.help" = "Systemleistung (inkl. SoC)";
 "battery.power.system.explanation" = "„System“ ist, was nach Akkuladung, Display und USB übrig bleibt: SoC, Speicher, Display-Controller und weitere nicht einzeln gemessene Lasten.";
+"power.infoBar.input" = "Ladegeräteingang";
+"power.infoBar.battery" = "Batterieladung";
+"power.infoBar.system" = "Systemleistung";
+"power.infoBar.notCharging" = "Wird nicht geladen";
 "battery.power.display" = "Display";
 "battery.power.usb" = "USB-Ausgang";
 "battery.power.soc" = "SoC";

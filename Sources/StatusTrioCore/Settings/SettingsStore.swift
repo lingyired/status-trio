@@ -29,10 +29,8 @@ final class SettingsStore: ObservableObject {
     static let batterySymbolScaleRange: ClosedRange<Double> = 0.9...1.1
     static let defaultBatterySymbolScale: Double = 1
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
-    static let showsChargerInputPowerDefaultsKey = "showsChargerInputPower"
-    static let showsBatteryChargingPowerDefaultsKey = "showsBatteryChargingPower"
-    static let showsSystemPowerDefaultsKey = "showsSystemPower"
-    static let showsPowerBreakdownDefaultsKey = "showsPowerBreakdown"
+    static let showsBatteryPowerFlowDefaultsKey = "showsBatteryPowerFlow"
+    static let showsBatteryPowerInfoBarDefaultsKey = "showsBatteryPowerInfoBar"
     static let showsHighEnergyAppsDefaultsKey = "showsHighEnergyApps"
     static let highEnergyAppsRefreshIntervalDefaultsKey = "highEnergyAppsRefreshIntervalSeconds"
     static let highEnergyAppsRefreshIntervalRange: ClosedRange<Double> = 10...60
@@ -59,6 +57,8 @@ final class SettingsStore: ObservableObject {
     /// Draws the private LAN address on the network row's second line. Off by
     /// default: the address is a diagnostic, not something every panel needs.
     static let showsLocalIPAddressDefaultsKey = "showsLocalIPAddress"
+    /// Migration-only: superseded by `connectionCenterSource`. Read once at
+    /// launch, then removed so it can never override a later selection.
     static let showsBatteryPercentageInConnectionSlotDefaultsKey = "showsBatteryPercentageInConnectionSlot"
     /// Raw value of `ConnectionCenterSource`. Missing or unknown values decode
     /// to `.automatic`, so a downgrade or corrupted default never changes the
@@ -261,17 +261,16 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var showsChargerInputPower: Bool {
-        didSet { defaults.set(showsChargerInputPower, forKey: Self.showsChargerInputPowerDefaultsKey) }
+    /// The single switch for the details page's power flow diagram. When on it
+    /// draws the full diagram (input, battery, breakdown/system); when off the
+    /// diagram is hidden. The old per-rail switches were folded into this one.
+    @Published var showsBatteryPowerFlow: Bool {
+        didSet { defaults.set(showsBatteryPowerFlow, forKey: Self.showsBatteryPowerFlowDefaultsKey) }
     }
-    @Published var showsBatteryChargingPower: Bool {
-        didSet { defaults.set(showsBatteryChargingPower, forKey: Self.showsBatteryChargingPowerDefaultsKey) }
-    }
-    @Published var showsSystemPower: Bool {
-        didSet { defaults.set(showsSystemPower, forKey: Self.showsSystemPowerDefaultsKey) }
-    }
-    @Published var showsPowerBreakdown: Bool {
-        didSet { defaults.set(showsPowerBreakdown, forKey: Self.showsPowerBreakdownDefaultsKey) }
+    /// Provisional: shows input/battery/system power under the panel's battery
+    /// module. Off by default; not yet an accepted specification.
+    @Published var showsBatteryPowerInfoBar: Bool {
+        didSet { defaults.set(showsBatteryPowerInfoBar, forKey: Self.showsBatteryPowerInfoBarDefaultsKey) }
     }
     @Published var showsHighEnergyApps: Bool {
         didSet { defaults.set(showsHighEnergyApps, forKey: Self.showsHighEnergyAppsDefaultsKey) }
@@ -288,9 +287,14 @@ final class SettingsStore: ObservableObject {
     }
 
     var batteryPowerDisplayOptions: BatteryPowerDisplayOptions {
-        BatteryPowerDisplayOptions(showsInput: showsChargerInputPower,
-            showsCharging: showsBatteryChargingPower, showsSystem: showsSystemPower,
-            showsBreakdown: showsPowerBreakdown)
+        // One switch drives every rail; the reader still only samples what the
+        // diagram needs.
+        BatteryPowerDisplayOptions(
+            showsInput: showsBatteryPowerFlow,
+            showsCharging: showsBatteryPowerFlow,
+            showsSystem: showsBatteryPowerFlow,
+            showsBreakdown: showsBatteryPowerFlow
+        )
     }
 
     @Published var showsChargeToFullNowButton: Bool {
@@ -519,15 +523,6 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 showsLocalIPAddress,
                 forKey: Self.showsLocalIPAddressDefaultsKey
-            )
-        }
-    }
-
-    @Published var showsBatteryPercentageInConnectionSlot: Bool {
-        didSet {
-            defaults.set(
-                showsBatteryPercentageInConnectionSlot,
-                forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey
             )
         }
     }
@@ -1364,7 +1359,6 @@ final class SettingsStore: ObservableObject {
             showsWiFiIconForHotspot: showsWiFiIconForHotspot,
             showsWiFiIconForTemporaryConnection: showsWiFiIconForTemporaryConnection,
             showsWiFiIconForInternetSharing: showsWiFiIconForInternetSharing,
-            showsBatteryPercentageInConnectionSlot: showsBatteryPercentageInConnectionSlot,
             centerSource: connectionCenterSource,
             prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrorsOverInputSource,
             wifiScale: wifiSymbolScale
@@ -1550,10 +1544,8 @@ final class SettingsStore: ObservableObject {
             ?? .system
         self.iconSize = Self.clampedIconSize(storedIconSize ?? Self.defaultIconSize)
         self.showsBatteryPercentage = defaults.object(forKey: Self.showsBatteryPercentageDefaultsKey) as? Bool ?? true
-        self.showsChargerInputPower = defaults.object(forKey: Self.showsChargerInputPowerDefaultsKey) as? Bool ?? false
-        self.showsBatteryChargingPower = defaults.object(forKey: Self.showsBatteryChargingPowerDefaultsKey) as? Bool ?? true
-        self.showsSystemPower = defaults.object(forKey: Self.showsSystemPowerDefaultsKey) as? Bool ?? true
-        self.showsPowerBreakdown = defaults.object(forKey: Self.showsPowerBreakdownDefaultsKey) as? Bool ?? true
+        self.showsBatteryPowerFlow = defaults.object(forKey: Self.showsBatteryPowerFlowDefaultsKey) as? Bool ?? true
+        self.showsBatteryPowerInfoBar = defaults.object(forKey: Self.showsBatteryPowerInfoBarDefaultsKey) as? Bool ?? false
         self.showsHighEnergyApps = defaults.object(forKey: Self.showsHighEnergyAppsDefaultsKey) as? Bool ?? false
         self.highEnergyAppsRefreshIntervalSeconds = Self.clampedHighEnergyAppsRefreshInterval(
             defaults.object(forKey: Self.highEnergyAppsRefreshIntervalDefaultsKey) as? Double
@@ -1636,14 +1628,23 @@ final class SettingsStore: ObservableObject {
         self.showsLocalIPAddress = defaults.object(
             forKey: Self.showsLocalIPAddressDefaultsKey
         ) as? Bool ?? false
-        self.showsBatteryPercentageInConnectionSlot = defaults.object(
+        // One-time migration: the centre slot used to be a network-source
+        // choice plus a separate "battery percentage in the connection slot"
+        // switch, and the switch won at draw time. Preserve that effective
+        // choice, then drop the legacy key so a later manual change survives.
+        let legacyPercentageInSlot = defaults.object(
             forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey
         ) as? Bool ?? false
-        self.connectionCenterSource = defaults.string(
+        let storedCenterSource = defaults.string(
             forKey: Self.connectionCenterSourceDefaultsKey
         )
         .flatMap(ConnectionCenterSource.init(rawValue:))
-            ?? .automatic
+        self.connectionCenterSource = legacyPercentageInSlot
+            ? .batteryPercentage
+            : (storedCenterSource ?? .automatic)
+        if legacyPercentageInSlot {
+            defaults.removeObject(forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey)
+        }
         self.prioritizesNetworkErrorsOverInputSource = defaults.object(
             forKey: Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey
         ) as? Bool ?? true

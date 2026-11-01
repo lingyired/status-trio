@@ -155,6 +155,10 @@ struct NetworkSectionView: View {
             localization.string(.settingsNetworkCenterSourceAutomatic)
         case .inputSource:
             localization.string(.settingsNetworkCenterSourceInputSource)
+        case .batteryPercentage:
+            localization.string(.settingsNetworkCenterSourceBatteryPercentage)
+        case .power:
+            localization.string(.settingsNetworkCenterSourcePower)
         }
     }
 }

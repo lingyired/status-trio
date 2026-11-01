@@ -37,6 +37,53 @@ final class PanelDetailMapperTests: XCTestCase {
         XCTAssertFalse(state.isLoading)
     }
 
+    func testNoBatteryDetailsHideBatteryOnlyRows() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: nil,
+            isPresent: false,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: false
+        )
+        var details = BatteryDetails(adapterWatts: 90, cycleCount: 12, powerAvailability: .available)
+        details.systemPower = SystemPowerSample(watts: 18.4, readAt: Date())
+
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+
+        XCTAssertEqual(state.rows.map(\.id), [
+            LocalizationKey.batteryDetailsWatt.rawValue,
+            LocalizationKey.batteryDetailsSystemReadAt.rawValue,
+            LocalizationKey.batteryDetailsLowPower.rawValue
+        ])
+        XCTAssertEqual(state.rows[0].value, "18.4 W")
+        XCTAssertEqual(state.title, "Power · 18 W")
+        XCTAssertNil(state.powerFlow)
+    }
+
+    func testNoBatteryDetailsSayCollectingInsteadOfZero() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: nil,
+            isPresent: false,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: false
+        )
+        let state = PanelDetailMapper.battery(
+            status: battery,
+            details: BatteryDetails(powerAvailability: .collecting),
+            localization: localization
+        )
+
+        XCTAssertEqual(state.rows.map(\.id), [
+            LocalizationKey.batteryDetailsWatt.rawValue,
+            LocalizationKey.batteryDetailsLowPower.rawValue
+        ])
+        XCTAssertEqual(state.rows[0].value, localization.string(.batteryDetailsCollecting))
+        XCTAssertEqual(state.title, "Power · Unavailable")
+    }
+
     func testPowerFlowDropsFractionAtThreeDigitWatts() {
         let localization = makeLocalization()
         let battery = BatteryStatus(

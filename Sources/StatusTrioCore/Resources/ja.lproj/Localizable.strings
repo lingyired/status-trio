@@ -66,6 +66,8 @@
 "settings.network.centerSource.description" = "ステータスアイコン中央に表示する内容を選択します。「自動」は従来のネットワークと Bluetooth の動作を維持します。";
 "settings.network.centerSource.automatic" = "自動";
 "settings.network.centerSource.inputSource" = "現在の入力ソース";
+"settings.network.centerSource.batteryPercentage" = "バッテリー残量";
+"settings.network.centerSource.power" = "消費電力（W）";
 "settings.network.centerSource.bluetoothFallback" = "入力ソースを選ぶと、Bluetooth とネットワークのアイコンはフォールバックとしてのみ使われます。";
 "settings.network.centerSource.networkWarnings" = "ネットワークの問題を優先";
 "settings.network.centerSource.networkWarnings.description" = "Mac が実際にオフラインのときは、入力ソースの代わりにネットワークの状態を表示します。";
@@ -145,8 +147,6 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "バッテリー表示";
 "settings.battery.showPercentage" = "バッテリー残量を表示";
-"settings.battery.showPercentageInConnectionSlot" = "接続位置にバッテリー残量を表示";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Wi-Fi または接続記号の代わりに表示します。上部のバッテリー表示とは別に設定できます。";
 "settings.battery.showChargingIndicator" = "充電中または電源接続時にアイコンを表示";
 "settings.battery.chargingDescription" = "有効にすると、充電中または電源接続時に残量が稲妻またはプラグに変わります。無効の場合は残量を表示します。";
 "settings.battery.chargingEffect" = "充電エフェクト";
@@ -194,6 +194,8 @@
 "settings.updates.automatic" = "自動的にアップデートを確認";
 "settings.updates.check" = "アップデートを確認…";
 "battery.title" = "バッテリー · %d%%";
+"battery.title.power" = "消費電力 · %d W";
+"battery.title.powerUnavailable" = "消費電力 · 利用不可";
 "battery.state.notPresent" = "バッテリーなし";
 "battery.state.charged" = "充電完了";
 "battery.state.calculatingTimeToFull" = "満充電までの時間を計算中";
@@ -460,6 +462,7 @@
 // On-demand battery details.
 "battery.details.title" = "バッテリーの詳細";
 "battery.details.systemPower" = "システム消費電力（推定）";
+"battery.details.watt" = "消費電力";
 "battery.details.systemReadAt" = "システム読み取り時刻";
 "battery.details.power" = "バッテリー電力（推定）";
 "battery.details.charging" = "充電（推定）";
@@ -576,6 +579,10 @@
 "settings.battery.powerFlow.description" = "電力値はバッテリーパネルを開いている間だけ更新します。センサーの更新に遅延があり、3つの値の合計は一致しない場合があります。";
 "settings.battery.breakdown" = "電力を項目別に分割";
 "settings.battery.breakdown.description" = "アダプター入力を内蔵ディスプレイ、USB 出力、残りのシステム負荷（SoC を含む）に分割します。取得できない項目は非表示になり、分割できない場合はシステム電力の表示に戻ります。";
+"settings.battery.powerInfoBar" = "電力情報バー";
+"settings.battery.powerFlowDiagram" = "電力フロー図";
+"settings.battery.powerFlowDiagramDescription" = "バッテリー詳細ページに電力の流れ（入力 / バッテリー / システム）を表示します。";
+"settings.battery.powerInfoBarDescription" = "パネルを開いている間、バッテリーモジュールの下に入力・バッテリー・システムの電力を表示します。既定ではオフです。";
 "settings.battery.energyRefreshInterval" = "バックグラウンドサンプリング間隔";
 "settings.battery.energyRefreshInterval.description" = "パネルを閉じている間に使用します。バッテリー詳細ページは引き続き 5 秒ごとに更新されます。";
 "battery.power.input" = "充電器入力";
@@ -584,6 +591,10 @@
 "battery.power.system" = "システム";
 "battery.power.system.help" = "システム電力（SoC を含む）";
 "battery.power.system.explanation" = "「システム」は、バッテリー充電、ディスプレイ、USB を除いた残りです。SoC、メモリ、ディスプレイコントローラーなどを含み、単一のセンサー値ではありません。";
+"power.infoBar.input" = "充電器入力";
+"power.infoBar.battery" = "バッテリー充電";
+"power.infoBar.system" = "システム電力";
+"power.infoBar.notCharging" = "充電していません";
 "battery.power.display" = "ディスプレイ";
 "battery.power.usb" = "USB 出力";
 "battery.power.soc" = "SoC";

@@ -66,6 +66,8 @@
 "settings.network.centerSource.description" = "Escolha o que o ícone de status mostra no centro. “Automático” mantém o comportamento de rede e Bluetooth atual.";
 "settings.network.centerSource.automatic" = "Automático";
 "settings.network.centerSource.inputSource" = "Fonte de entrada atual";
+"settings.network.centerSource.batteryPercentage" = "Porcentagem da bateria";
+"settings.network.centerSource.power" = "Potência (watts)";
 "settings.network.centerSource.bluetoothFallback" = "Com a fonte de entrada selecionada, os ícones de Bluetooth e rede são usados apenas como alternativa.";
 "settings.network.centerSource.networkWarnings" = "Priorizar problemas de rede";
 "settings.network.centerSource.networkWarnings.description" = "Quando o Mac está realmente offline, o centro mostra o estado da rede em vez da fonte de entrada.";
@@ -145,8 +147,6 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Exibição da bateria";
 "settings.battery.showPercentage" = "Mostrar porcentagem da bateria";
-"settings.battery.showPercentageInConnectionSlot" = "Mostrar porcentagem da bateria na posição de conexão";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Substitui o símbolo de Wi-Fi ou conexão. É independente do indicador de bateria superior.";
 "settings.battery.showChargingIndicator" = "Mostrar um indicador ao carregar ou conectar à energia";
 "settings.battery.chargingDescription" = "Quando ativado, a porcentagem vira um raio ou um plugue durante o carregamento ou com energia conectada.";
 "settings.battery.chargingEffect" = "Efeito de carregamento";
@@ -194,6 +194,8 @@
 "settings.updates.automatic" = "Verificar atualizações automaticamente";
 "settings.updates.check" = "Verificar atualizações…";
 "battery.title" = "Bateria · %d%%";
+"battery.title.power" = "Potência · %d W";
+"battery.title.powerUnavailable" = "Potência · Indisponível";
 "battery.state.notPresent" = "Sem bateria";
 "battery.state.charged" = "Totalmente carregada";
 "battery.state.calculatingTimeToFull" = "Calculando tempo para carga total";
@@ -460,6 +462,7 @@
 // On-demand battery details.
 "battery.details.title" = "Detalhes da bateria";
 "battery.details.systemPower" = "Consumo do sistema (estimado)";
+"battery.details.watt" = "Potência";
 "battery.details.systemReadAt" = "Leitura do sistema";
 "battery.details.power" = "Potência da bateria (estimada)";
 "battery.details.charging" = "Carga (estimada)";
@@ -576,6 +579,10 @@
 "settings.battery.powerFlow.description" = "As potências são atualizadas apenas com o painel Bateria aberto. Os sensores podem ter atraso e as três leituras podem não somar exatamente.";
 "settings.battery.breakdown" = "Dividir a energia por componente";
 "settings.battery.breakdown.description" = "Divide a entrada do adaptador em tela integrada, saída USB e o restante da carga do sistema (incluindo o SoC). Leituras indisponíveis ficam ocultas; sem uma divisão confiável, a energia do sistema volta a aparecer.";
+"settings.battery.powerInfoBar" = "Barra de potência";
+"settings.battery.powerFlowDiagram" = "Diagrama de fluxo de potência";
+"settings.battery.powerFlowDiagramDescription" = "Mostra o diagrama de fluxo de potência (entrada / bateria / sistema) na página de detalhes da bateria.";
+"settings.battery.powerInfoBarDescription" = "Mostra a potência de entrada, da bateria e do sistema abaixo do módulo de bateria com o painel aberto. Desativado por padrão.";
 "settings.battery.energyRefreshInterval" = "Intervalo de amostragem em segundo plano";
 "settings.battery.energyRefreshInterval.description" = "Usado com o painel fechado. A página de detalhes da bateria continua atualizando a cada 5 segundos.";
 "battery.power.input" = "Entrada carregador";
@@ -584,6 +591,10 @@
 "battery.power.system" = "Sistema";
 "battery.power.system.help" = "Potência do sistema (incl. SoC)";
 "battery.power.system.explanation" = "“Sistema” é o que resta após a carga da bateria, a tela e o USB: inclui SoC, memória, controladores de vídeo e outras cargas não medidas separadamente.";
+"power.infoBar.input" = "Entrada do carregador";
+"power.infoBar.battery" = "Carga da bateria";
+"power.infoBar.system" = "Potência do sistema";
+"power.infoBar.notCharging" = "Não está carregando";
 "battery.power.display" = "Tela";
 "battery.power.usb" = "Saída USB";
 "battery.power.soc" = "SoC";

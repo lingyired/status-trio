@@ -24,22 +24,10 @@ struct BatterySectionView: View {
 
     private var powerFlowGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryPowerFlow)) {
-            SettingsToggleRow(symbol: "powerplug.fill", tint: .orange,
-                title: localization.string(.batteryPowerInput),
-                isOn: $store.showsChargerInputPower)
-            SettingsDivider()
-            SettingsToggleRow(symbol: "battery.100.bolt", tint: .green,
-                title: localization.string(.batteryPowerCharging),
-                isOn: $store.showsBatteryChargingPower)
-            SettingsDivider()
-            SettingsToggleRow(symbol: "cpu", tint: .blue,
-                title: localization.string(.settingsBatteryBreakdown),
-                subtitle: localization.string(.settingsBatteryBreakdownDescription),
-                isOn: $store.showsPowerBreakdown)
-            SettingsDivider()
-            SettingsToggleRow(symbol: "laptopcomputer", tint: .blue,
-                title: localization.string(.batteryPowerSystem),
-                isOn: $store.showsSystemPower)
+            SettingsToggleRow(symbol: "arrow.triangle.branch", tint: .orange,
+                title: localization.string(.settingsBatteryPowerFlowDiagram),
+                subtitle: localization.string(.settingsBatteryPowerFlowDiagramDescription),
+                isOn: $store.showsBatteryPowerFlow)
             SettingsDivider()
             SettingsToggleRow(symbol: "app", tint: .purple,
                 title: localization.string(.batteryHighEnergyApps),
@@ -95,6 +83,18 @@ struct BatterySectionView: View {
 
     private var batteryGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryTitle)) {
+            // Provisional panel option: a single line of input / battery /
+            // system power under the battery module. Off by default.
+            SettingsToggleRow(
+                symbol: "chart.bar.fill",
+                tint: .teal,
+                title: localization.string(.settingsBatteryPowerInfoBar),
+                subtitle: localization.string(.settingsBatteryPowerInfoBarDescription),
+                isOn: $store.showsBatteryPowerInfoBar
+            )
+
+            SettingsDivider()
+
             // Low Power Mode control is offered only when this build bundled the
             // privileged helper, so an App-Store-style build never shows a
             // toggle it cannot honour.
@@ -176,18 +176,6 @@ struct BatterySectionView: View {
                 tint: .green,
                 title: localization.string(.settingsBatteryShowPercentage),
                 isOn: $store.showsBatteryPercentage
-            )
-
-            SettingsDivider()
-
-            SettingsToggleRow(
-                symbol: "number",
-                tint: .teal,
-                title: localization.string(.settingsBatteryShowPercentageInConnectionSlot),
-                subtitle: localization.string(
-                    .settingsBatteryShowPercentageInConnectionSlotDescription
-                ),
-                isOn: $store.showsBatteryPercentageInConnectionSlot
             )
 
             SettingsDivider()

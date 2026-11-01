@@ -66,6 +66,8 @@
 "settings.network.centerSource.description" = "Выберите, что показывать в центре значка состояния. «Автоматически» сохраняет прежнее поведение сети и Bluetooth.";
 "settings.network.centerSource.automatic" = "Автоматически";
 "settings.network.centerSource.inputSource" = "Текущий источник ввода";
+"settings.network.centerSource.batteryPercentage" = "Процент батареи";
+"settings.network.centerSource.power" = "Мощность (Вт)";
 "settings.network.centerSource.bluetoothFallback" = "При выбранном источнике ввода значки Bluetooth и сети используются только как запасной вариант.";
 "settings.network.centerSource.networkWarnings" = "Сначала проблемы сети";
 "settings.network.centerSource.networkWarnings.description" = "Когда Mac действительно офлайн, в центре показывается состояние сети вместо источника ввода.";
@@ -145,8 +147,6 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Отображение батареи";
 "settings.battery.showPercentage" = "Показывать процент заряда";
-"settings.battery.showPercentageInConnectionSlot" = "Показывать процент заряда на месте подключения";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Заменяет значок Wi-Fi или подключения. Эта настройка не зависит от верхнего индикатора батареи.";
 "settings.battery.showChargingIndicator" = "Показывать значок при зарядке или питании от сети";
 "settings.battery.chargingDescription" = "Если включено, процент заменяется молнией или вилкой во время зарядки или при питании от сети.";
 "settings.battery.chargingEffect" = "Эффект зарядки";
@@ -194,6 +194,8 @@
 "settings.updates.automatic" = "Автоматически проверять обновления";
 "settings.updates.check" = "Проверить обновления…";
 "battery.title" = "Батарея · %d%%";
+"battery.title.power" = "Мощность · %d Вт";
+"battery.title.powerUnavailable" = "Мощность · Недоступно";
 "battery.state.notPresent" = "Батарея отсутствует";
 "battery.state.charged" = "Полностью заряжена";
 "battery.state.calculatingTimeToFull" = "Расчёт времени до полного заряда";
@@ -460,6 +462,7 @@
 // On-demand battery details.
 "battery.details.title" = "Сведения об аккумуляторе";
 "battery.details.systemPower" = "Мощность системы (оценка)";
+"battery.details.watt" = "Мощность";
 "battery.details.systemReadAt" = "Время чтения системы";
 "battery.details.power" = "Мощность аккумулятора (оценка)";
 "battery.details.charging" = "Зарядка (оценка)";
@@ -576,6 +579,10 @@
 "settings.battery.powerFlow.description" = "Мощность обновляется только при открытой панели батареи. Данные датчиков могут запаздывать, поэтому сумма трёх показаний может различаться.";
 "settings.battery.breakdown" = "Разбить мощность по компонентам";
 "settings.battery.breakdown.description" = "Делит входную мощность адаптера на встроенный дисплей, выход USB и остальную нагрузку системы (включая SoC). Недоступные значения скрываются; если разбить нельзя, снова показывается мощность системы.";
+"settings.battery.powerInfoBar" = "Строка мощности";
+"settings.battery.powerFlowDiagram" = "Схема потока мощности";
+"settings.battery.powerFlowDiagramDescription" = "Показывает схему потока мощности (вход / батарея / система) на странице сведений о батарее.";
+"settings.battery.powerInfoBarDescription" = "Показывает мощность входа, батареи и системы под модулем батареи при открытой панели. По умолчанию выключено.";
 "settings.battery.energyRefreshInterval" = "Интервал фонового сбора";
 "settings.battery.energyRefreshInterval.description" = "Используется при закрытой панели. Страница сведений об аккумуляторе по-прежнему обновляется каждые 5 секунд.";
 "battery.power.input" = "От зарядки";
@@ -584,6 +591,10 @@
 "battery.power.system" = "Система";
 "battery.power.system.help" = "Мощность системы (вкл. SoC)";
 "battery.power.system.explanation" = "«Система» — это остаток после зарядки аккумулятора, дисплея и USB: SoC, память, контроллеры дисплея и другие независимо не измеренные нагрузки.";
+"power.infoBar.input" = "Вход зарядного устройства";
+"power.infoBar.battery" = "Заряд батареи";
+"power.infoBar.system" = "Мощность системы";
+"power.infoBar.notCharging" = "Не заряжается";
 "battery.power.display" = "Дисплей";
 "battery.power.usb" = "USB-выход";
 "battery.power.soc" = "SoC";

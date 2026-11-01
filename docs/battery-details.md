@@ -83,6 +83,21 @@ sample time rather than promising live per-second watts. Hardware validation so
 far covers one Apple silicon Mac on battery. Charging transitions and other Mac
 models still need field validation before making broad accuracy claims.
 
+## No battery (desktop Macs)
+
+A Mac with no battery still opens this page when the runtime exposes a fresh
+whole-machine power reading. The title becomes `Power · xx W`
+(`Power · Unavailable` while none is available), and only these rows remain:
+
+- **Power** and its read time, from the shared `PowerSamplingService` sample;
+- **Low Power Mode**, which is system-wide, not battery-specific;
+- the sensor explanation behind the info button.
+
+Voltage, current, adapter rating, time remaining, cycle count and charging power
+are battery-only and are hidden. The reading comes from the same shared sampler
+as the icon and the panel summary; the page never opens a second system-power
+connection of its own. See [Power in the centre slot](power-center-slot.md).
+
 ## Transition wording
 
 After a power-source change the registry can keep reporting the previous source

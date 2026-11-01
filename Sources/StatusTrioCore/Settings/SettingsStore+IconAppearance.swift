@@ -104,16 +104,6 @@ extension SettingsStore {
                 wifiScale: wifiScale
             )
         }
-        .combineLatest($showsBatteryPercentageInConnectionSlot) { options, showsPercentage in
-            ConnectionIconOptions(
-                showsWiFiIconForEthernet: options.showsWiFiIconForEthernet,
-                showsWiFiIconForHotspot: options.showsWiFiIconForHotspot,
-                showsWiFiIconForTemporaryConnection: options.showsWiFiIconForTemporaryConnection,
-                showsWiFiIconForInternetSharing: options.showsWiFiIconForInternetSharing,
-                showsBatteryPercentageInConnectionSlot: showsPercentage,
-                wifiScale: options.wifiScale
-            )
-        }
         .combineLatest($connectionCenterSource, $prioritizesNetworkErrorsOverInputSource) {
             options, centerSource, prioritizesNetworkErrors in
             ConnectionIconOptions(
@@ -121,7 +111,6 @@ extension SettingsStore {
                 showsWiFiIconForHotspot: options.showsWiFiIconForHotspot,
                 showsWiFiIconForTemporaryConnection: options.showsWiFiIconForTemporaryConnection,
                 showsWiFiIconForInternetSharing: options.showsWiFiIconForInternetSharing,
-                showsBatteryPercentageInConnectionSlot: options.showsBatteryPercentageInConnectionSlot,
                 centerSource: centerSource,
                 prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrors,
                 wifiScale: options.wifiScale

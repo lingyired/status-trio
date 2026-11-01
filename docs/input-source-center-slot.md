@@ -134,6 +134,26 @@ list stays readable on a dark panel:
 Both are cached per URL, so a panel redraw never re-reads or re-rasterises the
 file.
 
+## Middle-slot choice
+
+The centre slot is one single-choice setting, not a set of independent toggles:
+
+- **Automatic** — the shipped priority: battery percentage in the connection
+  position, then Bluetooth audio, then Ethernet / Wi-Fi;
+- **Current Input Source** — the selected input source, with the optional
+  network-error override;
+- **Battery Percentage** — the battery level in the centre slot, only on a Mac
+  that has a battery; a Mac without one falls back to Automatic;
+- **Power** — the live whole-machine wattage, described in
+  [Power in the centre slot](power-center-slot.md).
+
+The former `showsBatteryPercentageInConnectionSlot` switch is folded into this
+choice. On the first launch after the upgrade a stored `true` migrates to
+**Battery Percentage** — that switch won at draw time — and the legacy key is
+then removed, so a later manual choice is not overridden. The ring's own
+percentage text (`showsBatteryPercentage`) is a different setting and is
+unchanged.
+
 ## Verification status
 
 Run and passing on macOS 27.0.1 / Xcode 27.0 / Swift 6.4 (newer than the CI

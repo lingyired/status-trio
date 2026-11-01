@@ -66,6 +66,8 @@
 "settings.network.centerSource.description" = "상태 아이콘 중앙에 표시할 내용을 선택합니다. '자동'은 기존 네트워크 및 Bluetooth 동작을 유지합니다.";
 "settings.network.centerSource.automatic" = "자동";
 "settings.network.centerSource.inputSource" = "현재 입력 소스";
+"settings.network.centerSource.batteryPercentage" = "배터리 잔량";
+"settings.network.centerSource.power" = "전력(와트)";
 "settings.network.centerSource.bluetoothFallback" = "입력 소스를 선택하면 Bluetooth 및 네트워크 아이콘은 대체용으로만 사용됩니다.";
 "settings.network.centerSource.networkWarnings" = "네트워크 문제 우선 표시";
 "settings.network.centerSource.networkWarnings.description" = "Mac이 실제로 오프라인일 때 중앙에 입력 소스 대신 네트워크 상태를 표시합니다.";
@@ -145,8 +147,6 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "배터리 표시";
 "settings.battery.showPercentage" = "배터리 잔량 표시";
-"settings.battery.showPercentageInConnectionSlot" = "연결 위치에 배터리 잔량 표시";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Wi-Fi 또는 연결 기호를 대체합니다. 상단 배터리 표시와 별도로 설정할 수 있습니다.";
 "settings.battery.showChargingIndicator" = "충전 또는 전원 연결 시 아이콘 표시";
 "settings.battery.chargingDescription" = "활성화하면 충전 중이거나 전원에 연결되었을 때 잔량이 번개 또는 플러그로 바뀝니다. 비활성화하면 잔량을 계속 표시합니다.";
 "settings.battery.chargingEffect" = "충전 효과";
@@ -194,6 +194,8 @@
 "settings.updates.automatic" = "자동으로 업데이트 확인";
 "settings.updates.check" = "업데이트 확인…";
 "battery.title" = "배터리 · %d%%";
+"battery.title.power" = "전력 · %d W";
+"battery.title.powerUnavailable" = "전력 · 사용할 수 없음";
 "battery.state.notPresent" = "배터리 없음";
 "battery.state.charged" = "충전 완료";
 "battery.state.calculatingTimeToFull" = "완전 충전 시간 계산 중";
@@ -460,6 +462,7 @@
 // On-demand battery details.
 "battery.details.title" = "배터리 세부 정보";
 "battery.details.systemPower" = "시스템 소비 전력(추정)";
+"battery.details.watt" = "전력";
 "battery.details.systemReadAt" = "시스템 읽기 시각";
 "battery.details.power" = "배터리 전력(추정)";
 "battery.details.charging" = "충전(추정)";
@@ -576,6 +579,10 @@
 "settings.battery.powerFlow.description" = "전력 값은 배터리 패널이 열려 있을 때만 갱신합니다. 센서 갱신이 지연되어 세 값의 합이 일치하지 않을 수 있습니다.";
 "settings.battery.breakdown" = "부품별 전력 분할";
 "settings.battery.breakdown.description" = "어댑터 입력을 내장 디스플레이, USB 출력, 나머지 시스템 부하(SoC 포함)로 나눕니다. 읽을 수 없는 항목은 숨겨지고, 분할할 수 없으면 시스템 전력 표시로 돌아갑니다.";
+"settings.battery.powerInfoBar" = "전력 정보 표시줄";
+"settings.battery.powerFlowDiagram" = "전력 흐름 다이어그램";
+"settings.battery.powerFlowDiagramDescription" = "배터리 세부 정보 페이지에 입력 / 배터리 / 시스템 전력 흐름을 표시합니다.";
+"settings.battery.powerInfoBarDescription" = "패널을 열면 배터리 모듈 아래에 입력, 배터리, 시스템 전력을 표시합니다. 기본값은 꺼짐입니다.";
 "settings.battery.energyRefreshInterval" = "백그라운드 샘플링 간격";
 "settings.battery.energyRefreshInterval.description" = "패널이 닫혀 있을 때 사용됩니다. 배터리 세부사항 페이지는 계속 5초마다 새로 고칩니다.";
 "battery.power.input" = "충전기 입력";
@@ -584,6 +591,10 @@
 "battery.power.system" = "시스템";
 "battery.power.system.help" = "시스템 전력(SoC 포함)";
 "battery.power.system.explanation" = "“    ”";
+"power.infoBar.input" = "충전기 입력";
+"power.infoBar.battery" = "배터리 충전";
+"power.infoBar.system" = "시스템 전력";
+"power.infoBar.notCharging" = "충전 중 아님";
 "battery.power.display" = "디스플레이";
 "battery.power.usb" = "USB 출력";
 "battery.power.soc" = "SoC";

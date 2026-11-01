@@ -174,8 +174,8 @@ final class IconAppearancePublisherTests: XCTestCase {
         IconMutation(name: "showsPercentageWhenConnected") {
             $0.showsPercentageWhenConnected = true
         },
-        IconMutation(name: "showsBatteryPercentageInConnectionSlot") {
-            $0.showsBatteryPercentageInConnectionSlot = true
+        IconMutation(name: "connectionCenterSource") {
+            $0.connectionCenterSource = .batteryPercentage
         },
         IconMutation(name: "batteryStatusColors.charging") {
             $0.batteryStatusColors.charging = .preset(.mint)

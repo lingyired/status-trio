@@ -66,6 +66,8 @@
 "settings.network.centerSource.description" = "Scegli cosa mostra l’icona di stato al centro. «Automatico» mantiene il comportamento di rete e Bluetooth abituale.";
 "settings.network.centerSource.automatic" = "Automatico";
 "settings.network.centerSource.inputSource" = "Sorgente di input corrente";
+"settings.network.centerSource.batteryPercentage" = "Percentuale batteria";
+"settings.network.centerSource.power" = "Potenza (watt)";
 "settings.network.centerSource.bluetoothFallback" = "Con la sorgente di input selezionata, le icone Bluetooth e rete vengono usate solo come ripiego.";
 "settings.network.centerSource.networkWarnings" = "Dai priorità ai problemi di rete";
 "settings.network.centerSource.networkWarnings.description" = "Quando il Mac è davvero offline, al centro viene mostrato lo stato della rete invece della sorgente di input.";
@@ -145,8 +147,6 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Visualizzazione batteria";
 "settings.battery.showPercentage" = "Mostra percentuale batteria";
-"settings.battery.showPercentageInConnectionSlot" = "Mostra la percentuale della batteria nella posizione della connessione";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Sostituisce il simbolo Wi-Fi o di connessione. È indipendente dall’indicatore della batteria in alto.";
 "settings.battery.showChargingIndicator" = "Mostra un indicatore durante la carica o con alimentazione collegata";
 "settings.battery.chargingDescription" = "Se attivato, la percentuale diventa un fulmine o una spina durante la carica o con alimentazione collegata.";
 "settings.battery.chargingEffect" = "Effetto di ricarica";
@@ -194,6 +194,8 @@
 "settings.updates.automatic" = "Controlla automaticamente gli aggiornamenti";
 "settings.updates.check" = "Controlla aggiornamenti…";
 "battery.title" = "Batteria · %d%%";
+"battery.title.power" = "Potenza · %d W";
+"battery.title.powerUnavailable" = "Potenza · Non disponibile";
 "battery.state.notPresent" = "Nessuna batteria";
 "battery.state.charged" = "Completamente carica";
 "battery.state.calculatingTimeToFull" = "Calcolo del tempo alla carica completa";
@@ -460,6 +462,7 @@
 // On-demand battery details.
 "battery.details.title" = "Dettagli batteria";
 "battery.details.systemPower" = "Consumo sistema (stimato)";
+"battery.details.watt" = "Potenza";
 "battery.details.systemReadAt" = "Lettura del sistema";
 "battery.details.power" = "Potenza della batteria (stimata)";
 "battery.details.charging" = "Carica (stimata)";
@@ -576,6 +579,10 @@
 "settings.battery.powerFlow.description" = "Le potenze si aggiornano solo con il pannello Batteria aperto. I sensori possono essere in ritardo e le tre letture potrebbero non coincidere.";
 "settings.battery.breakdown" = "Suddividi la potenza per componente";
 "settings.battery.breakdown.description" = "Suddivide l’ingresso dell’adattatore in display integrato, uscita USB e il resto del carico di sistema (incluso il SoC). I valori non disponibili vengono nascosti; senza una suddivisione affidabile torna la potenza di sistema.";
+"settings.battery.powerInfoBar" = "Barra info potenza";
+"settings.battery.powerFlowDiagram" = "Diagramma del flusso di potenza";
+"settings.battery.powerFlowDiagramDescription" = "Mostra il diagramma del flusso di potenza (ingresso / batteria / sistema) nella pagina dei dettagli della batteria.";
+"settings.battery.powerInfoBarDescription" = "Mostra la potenza di ingresso, batteria e sistema sotto il modulo batteria con il pannello aperto. Disattivato per impostazione predefinita.";
 "settings.battery.energyRefreshInterval" = "Intervallo di campionamento in background";
 "settings.battery.energyRefreshInterval.description" = "Usato quando il pannello è chiuso. La pagina dei dettagli della batteria si aggiorna comunque ogni 5 secondi.";
 "battery.power.input" = "Dal caricatore";
@@ -584,6 +591,10 @@
 "battery.power.system" = "Sistema";
 "battery.power.system.help" = "Potenza di sistema (incl. SoC)";
 "battery.power.system.explanation" = "“Sistema” è ciò che resta dopo carica della batteria, display e USB: comprende SoC, memoria, controller del display e altri carichi non misurati singolarmente.";
+"power.infoBar.input" = "Ingresso caricatore";
+"power.infoBar.battery" = "Carica batteria";
+"power.infoBar.system" = "Potenza sistema";
+"power.infoBar.notCharging" = "Non in carica";
 "battery.power.display" = "Display";
 "battery.power.usb" = "Uscita USB";
 "battery.power.soc" = "SoC";
