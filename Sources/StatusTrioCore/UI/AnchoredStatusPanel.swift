@@ -241,7 +241,18 @@ final class StatusPanelContentViewController: NSViewController {
             glass.style = .regular
             glass.cornerRadius = AnchoredStatusPanel.cornerRadius
             glass.autoresizingMask = [.width, .height]
-            glass.contentView = hostingController.view
+            // Keep the SwiftUI hosting view one plain container away from
+            // `NSGlassEffectView.contentView`. Assigning the hosting view
+            // directly lets the glass view treat the hosting view's intrinsic
+            // content size as its own and resize/reposition the panel window
+            // whenever a detail page changes the content height (#183
+            // follow-up).
+            let glassContent = NSView(frame: glass.bounds)
+            glassContent.autoresizingMask = [.width, .height]
+            hostingController.view.frame = glassContent.bounds
+            hostingController.view.autoresizingMask = [.width, .height]
+            glassContent.addSubview(hostingController.view)
+            glass.contentView = glassContent
             container.addSubview(glass)
             backgroundView = glass
         } else {

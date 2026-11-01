@@ -3,8 +3,10 @@
 Status: **fix implemented; the activation-gating behaviour is covered by
 deterministic unit tests. The originating defect was reported on macOS 15.7.3,
 which this checkout cannot run, so the live full-screen reproduction is
-`NOT RUN`. The macOS 27 `full` profile is blocked by a pre-existing,
-unrelated rendering-fingerprint flake (see “Verification”, below).**
+`NOT RUN`. A macOS 27 acceptance pass also found and fixed a Liquid Glass
+detail-page resize jump in the same panel (see the follow-up section). The
+macOS 27 `full` profile is blocked by a pre-existing, unrelated
+rendering-fingerprint flake (see “Verification”, below).**
 
 Related issues:
 
@@ -143,3 +145,60 @@ On a machine where the defect reproduces (macOS 15.7.3 or similar):
 
 Expected: the panel stays open until an outside click / Escape / a panel action,
 with no self-dismissal on pointer movement.
+
+## Follow-up found during macOS 27 acceptance: detail-page resize jump
+
+### Symptom
+
+Opening the battery-detail or Wi-Fi-detail page moved the panel. For the tall
+battery page the panel was pushed above the top of the screen so its Back
+control could not be clicked; closing and reopening the panel showed the same
+detail page at a normal position. Returning from a detail page moved the panel
+again.
+
+### Evidence
+
+A `CGWindowListCopyWindowInfo` poll of the panel window (layer 25) while
+reproducing on macOS 27.2 recorded the top edge and height oscillating:
+
+```
+Y= 34 H=418   (normal)
+Y=-217 H=336  (above the screen top, Back unreachable)
+Y= 34 H=318
+Y=134 H=418
+Y= 34 H=361
+Y= 91 H=418
+```
+
+The X position stayed constant; only the vertical placement and height moved.
+
+### Cause
+
+On macOS 26+, `StatusPanelContentViewController` set
+`NSGlassEffectView.contentView = hostingController.view` directly. The glass
+view then treated the SwiftUI hosting view's intrinsic content size as its own
+and resized/repositioned the panel window whenever the content height changed.
+That fought `AnchoredStatusPanel.applyContentSize`, which had already computed
+the correct anchored frame (top edge fixed). A probe that forced the pre-Tahoe
+`NSVisualEffectView` path kept the top edge fixed at 1086 pt; the same probe on
+the glass path reported 1148 pt after switching to the Wi-Fi page.
+
+### Fix
+
+`Sources/StatusTrioCore/UI/AnchoredStatusPanel.swift` now puts a plain `NSView`
+between the glass background and the hosting view and lets that container fill
+`NSGlassEffectView.contentView`. The plain view has no intrinsic content size,
+so the glass can no longer drive the window frame; the hosting view still fills
+it through its autoresizing mask.
+
+### Regression test
+
+`Tests/StatusTrioCoreTests/StatusPanelContentResizeTests.swift` builds the real
+`StatusPopoverView`, opens the Wi-Fi detail page and returns, and asserts the
+menu-bar edge and X position stay fixed and the summary height is restored.
+
+- Without the container: **FAIL** — top edge `1148` vs expected `1086`.
+- With the container: **PASS**.
+
+The pre-Tahoe `NSVisualEffectView` path was already stable; it is unchanged.
+
