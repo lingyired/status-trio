@@ -240,9 +240,18 @@ behaviours are intentionally not reproduced:
   window) does not dismiss the panel. Clicking another app, the status item,
   pressing Escape, or choosing any panel action closes it; actions that open
   Settings close it explicitly.
+- While the app is regular (the Settings or first-run window is open, so the Dock
+  icon is visible) the panel presents without force-activating the app. That
+  keeps it usable over another app's full-screen Space instead of switching
+  Spaces and dismissing itself (issue #183); the trade-off is that the app does
+  not come to the front until you click into it or open a window.
 - The glass background uses public `NSGlassEffectView` (macOS 26+) or
   `NSVisualEffectView` (macOS 13–25), not the private `NSPopoverFrame`. See
   [the issue #186 verification record](verification/issue-186-arrowless-status-panel.md).
+- On macOS 26+ the Liquid Glass material resolves to `NSAppearanceNameDarkAqua`
+  (not the old popover's vibrant appearance), so secondary text and some
+  template artwork read slightly fainter than the previous `NSPopover` panel.
+  This is accepted as the platform's system-native appearance.
 - The Reduce Transparency state is read when the panel background is built.
   Toggling it while the retained content is still cached applies on the next
   content rebuild (the five-second retention window after close), not live.

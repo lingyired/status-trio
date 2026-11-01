@@ -97,6 +97,7 @@ final class AnchoredStatusPanel: NSPanel {
             }
         }
         orderFrontRegardless()
+        invalidateShadow()
     }
 
     override func performClose(_ sender: Any?) {
@@ -133,6 +134,7 @@ final class AnchoredStatusPanel: NSPanel {
         guard abs(frame.width - rounded.width) >= 0.5 || abs(frame.height - rounded.height) >= 0.5
         else { return }
         setFrame(placementFrame(for: rounded), display: true)
+        invalidateShadow()
     }
 
     private func reposition() {
@@ -140,6 +142,7 @@ final class AnchoredStatusPanel: NSPanel {
         let target = placementFrame(for: frame.size)
         guard target != frame else { return }
         setFrame(target, display: true)
+        invalidateShadow()
     }
 
     private func placementFrame(for contentSize: NSSize) -> NSRect {
@@ -206,7 +209,15 @@ final class StatusPanelHostingController<Content: View>: NSHostingController<Con
 
     override func viewDidLayout() {
         super.viewDidLayout()
-        let size = view.fittingSize
+        // Ask for the ideal size at the panel width with an unbounded height.
+        // `view.fittingSize` can echo the hosting view's current (possibly
+        // stale) bounds while a route transition is still settling; a stale
+        // report would leave the panel at the detail page's height after going
+        // back, clipping the taller summary at the top.
+        let width = view.bounds.width > 0 ? view.bounds.width : view.fittingSize.width
+        let proposed = NSSize(width: max(width, 1), height: .greatestFiniteMagnitude)
+        let measured = sizeThatFits(in: proposed)
+        let size = measured.width > 0 && measured.height > 0 ? measured : view.fittingSize
         guard size.width > 0, size.height > 0, size != lastReportedSize else { return }
         lastReportedSize = size
         onLayout?(size)
@@ -233,6 +244,11 @@ final class StatusPanelContentViewController: NSViewController {
     override func loadView() {
         let container = NSView(frame: .zero)
         container.wantsLayer = true
+        // Clip at the window's root as well as at the glass surface. The
+        // glass rounds its own material; it does not round its ancestor's
+        // backing layer or rectangular descendant drawing outside the curve.
+        container.layer?.cornerRadius = AnchoredStatusPanel.cornerRadius
+        container.layer?.masksToBounds = true
         view = container
 
         let reduceTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
@@ -241,7 +257,18 @@ final class StatusPanelContentViewController: NSViewController {
             glass.style = .regular
             glass.cornerRadius = AnchoredStatusPanel.cornerRadius
             glass.autoresizingMask = [.width, .height]
-            glass.contentView = hostingController.view
+            // Keep the SwiftUI hosting view one plain container away from
+            // `NSGlassEffectView.contentView`. Assigning the hosting view
+            // directly lets the glass view treat the hosting view's intrinsic
+            // content size as its own and resize/reposition the panel window
+            // whenever a detail page changes the content height (#183
+            // follow-up).
+            let glassContent = NSView(frame: glass.bounds)
+            glassContent.autoresizingMask = [.width, .height]
+            hostingController.view.frame = glassContent.bounds
+            hostingController.view.autoresizingMask = [.width, .height]
+            glassContent.addSubview(hostingController.view)
+            glass.contentView = glassContent
             container.addSubview(glass)
             backgroundView = glass
         } else {
@@ -267,12 +294,6 @@ final class StatusPanelContentViewController: NSViewController {
             container.addSubview(background)
             backgroundView = background
 
-            // The hosting view is a sibling of the rounded background on this
-            // path, so clip the container too. Otherwise content drawn right at
-            // the corner could square it off.
-            container.layer?.cornerRadius = AnchoredStatusPanel.cornerRadius
-            container.layer?.masksToBounds = true
-
             hostingController.view.frame = container.bounds
             hostingController.view.autoresizingMask = [.width, .height]
             container.addSubview(hostingController.view)
@@ -284,7 +305,11 @@ final class StatusPanelContentViewController: NSViewController {
     override func viewDidLayout() {
         super.viewDidLayout()
         if #available(macOS 26.0, *), let glass = backgroundView as? NSGlassEffectView {
-            hostingController.view.frame = glass.bounds
+            // The hosting view now lives inside a plain container inside the
+            // glass; match that container, not the glass view itself, so any
+            // glass content insets cannot clip the content's top edge.
+            hostingController.view.frame = hostingController.view.superview?.bounds
+                ?? glass.bounds
         } else {
             hostingController.view.frame = view.bounds
         }

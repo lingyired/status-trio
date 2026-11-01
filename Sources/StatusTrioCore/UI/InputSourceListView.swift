@@ -105,7 +105,7 @@ struct InputSourceListView: View {
                 .scaledToFit()
                 .foregroundStyle(.primary)
         } else if let marker = row.marker, !marker.isEmpty {
-            labelChip(marker)
+            InputSourceLabelChip(label: marker)
         } else {
             Image(systemName: "keyboard")
                 .font(.system(size: 11))
@@ -113,7 +113,22 @@ struct InputSourceListView: View {
         }
     }
 
-    private func labelChip(_ label: String) -> some View {
+}
+
+/// The rounded keycap macOS draws for an input source that ships no icon file
+/// (the ABC chip), with its letter knocked out so the row shows through.
+///
+/// The disc is an explicit white in dark mode and black in light mode rather
+/// than `.primary`: `.primary` is the label colour, only ~85 % white in dark
+/// mode, so a large filled area at that value reads as grey next to the thin,
+/// equally bright ink of an icon row. `compositingGroup()` is kept so the
+/// destination-out letter erases only the disc and never the row behind it.
+struct InputSourceLabelChip: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let label: String
+
+    var body: some View {
         Text(label)
             .font(.system(size: 10, weight: .semibold, design: .rounded))
             .foregroundStyle(.white)
@@ -121,7 +136,7 @@ struct InputSourceListView: View {
             .frame(width: 18, height: 15)
             .background(
                 RoundedRectangle(cornerRadius: 4.5, style: .continuous)
-                    .fill(.primary)
+                    .fill(colorScheme == .dark ? Color.white : Color.black)
             )
             .compositingGroup()
     }
