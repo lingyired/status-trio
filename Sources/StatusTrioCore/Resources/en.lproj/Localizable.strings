@@ -632,3 +632,14 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Confirm Set to %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "The system charge state may have changed. Click again to continue.";
 "battery.action.cancelChargeToFullNowPending" = "The system has not confirmed the temporary override yet. Try again shortly.";
+"settings.popup.order.brightness" = "Brightness";
+"brightness.row.accessibility" = "Brightness for %@, %@";
+"brightness.row.accessibilityUnavailable" = "Brightness for %@, %@";
+"brightness.unavailable" = "Unavailable";
+"brightness.appAbsent" = "Requires BetterDisplay";
+"brightness.noBackend" = "No brightness control";
+"brightness.unresponsive" = "Not responding";
+"brightness.backend.directDDC" = "Direct DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Adjust the brightness of connected displays.";
+"settings.brightness.backend" = "Brightness backend for %@";

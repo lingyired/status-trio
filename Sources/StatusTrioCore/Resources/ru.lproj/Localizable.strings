@@ -632,3 +632,15 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Подтвердить установку %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "Состояние зарядки системы могло измениться. Нажмите ещё раз, чтобы продолжить.";
 "battery.action.cancelChargeToFullNowPending" = "Система ещё не подтвердила временную зарядку до 100 %. Повторите попытку через несколько секунд.";
+
+"settings.popup.order.brightness" = "Яркость";
+"brightness.row.accessibility" = "Яркость %@, %@";
+"brightness.row.accessibilityUnavailable" = "Яркость %@, %@";
+"brightness.unavailable" = "Недоступно";
+"brightness.appAbsent" = "Требуется BetterDisplay";
+"brightness.noBackend" = "Нет управления яркостью";
+"brightness.unresponsive" = "Не отвечает";
+"brightness.backend.directDDC" = "Прямой DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Настройте яркость подключённых дисплеев.";
+"settings.brightness.backend" = "Бэкенд яркости для %@";

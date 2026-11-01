@@ -632,3 +632,15 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "%d%% への設定を確認";
 "battery.action.cancelChargeToFullNowConfirmation" = "システムの充電状態が変更された可能性があります。もう一度クリックして続行してください。";
 "battery.action.cancelChargeToFullNowPending" = "システムが一時的なフル充電をまだ確認できていません。少し待ってから再試行してください。";
+
+"settings.popup.order.brightness" = "明るさ";
+"brightness.row.accessibility" = "%@ の明るさ、%@";
+"brightness.row.accessibilityUnavailable" = "%@ の明るさ、%@";
+"brightness.unavailable" = "利用不可";
+"brightness.appAbsent" = "BetterDisplay が必要";
+"brightness.noBackend" = "明るさを制御できません";
+"brightness.unresponsive" = "応答なし";
+"brightness.backend.directDDC" = "ダイレクト DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "接続されているディスプレイの明るさを調整します。";
+"settings.brightness.backend" = "%@ の明るさバックエンド";

@@ -632,3 +632,15 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "确认设为 %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "系统充电状态可能已更改。再次点击以继续。";
 "battery.action.cancelChargeToFullNowPending" = "系统尚未确认临时充满状态，请稍后重试。";
+
+"settings.popup.order.brightness" = "亮度";
+"brightness.row.accessibility" = "%@ 的亮度，%@";
+"brightness.row.accessibilityUnavailable" = "%@ 的亮度，%@";
+"brightness.unavailable" = "不可用";
+"brightness.appAbsent" = "需要 BetterDisplay";
+"brightness.noBackend" = "无法控制亮度";
+"brightness.unresponsive" = "无响应";
+"brightness.backend.directDDC" = "直接 DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "调整已连接显示器的亮度。";
+"settings.brightness.backend" = "%@ 的亮度后端";

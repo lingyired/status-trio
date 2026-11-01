@@ -632,3 +632,15 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Confirmar definição para %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "O estado de carga do sistema pode ter mudado. Clique novamente para continuar.";
 "battery.action.cancelChargeToFullNowPending" = "O sistema ainda não confirmou a carga completa temporária. Tente novamente em instantes.";
+
+"settings.popup.order.brightness" = "Brilho";
+"brightness.row.accessibility" = "Brilho de %@, %@";
+"brightness.row.accessibilityUnavailable" = "Brilho de %@, %@";
+"brightness.unavailable" = "Indisponível";
+"brightness.appAbsent" = "Requer o BetterDisplay";
+"brightness.noBackend" = "Sem controle de brilho";
+"brightness.unresponsive" = "Não responde";
+"brightness.backend.directDDC" = "DDC direto";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Ajuste o brilho das telas conectadas.";
+"settings.brightness.backend" = "Backend de brilho para %@";

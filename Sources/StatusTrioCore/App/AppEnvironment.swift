@@ -141,6 +141,7 @@ final class AppEnvironment {
         store.bindLowPowerModeSettings(settings)
         store.bindBluetoothSettings(settings)
         store.bindExternalVolumeSettings(settings)
+        store.bindExternalBrightnessSettings(settings)
         store.start()
         telemetryReporter.start()
     }
@@ -379,6 +380,7 @@ final class AppEnvironment {
         connectionMonitor: (any NetworkConnectionMonitoring)? = nil,
         vpnMonitor: (any VPNMonitoring)? = nil,
         volumeMonitor: any VolumeMonitoring,
+        brightnessMonitor: any BrightnessMonitoring = BrightnessMonitor(),
         inputMonitor: (any AudioInputMonitoring)? = nil,
         refreshInterval: Duration = .seconds(15)
     ) -> SystemStatusStore {
@@ -388,6 +390,7 @@ final class AppEnvironment {
             connectionMonitor: connectionMonitor,
             vpnMonitor: vpnMonitor,
             volumeMonitor: volumeMonitor,
+            brightnessMonitor: brightnessMonitor,
             inputMonitor: inputMonitor,
             refreshInterval: refreshInterval,
             bluetoothDevices: BluetoothDeviceController(
