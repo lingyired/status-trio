@@ -4,7 +4,11 @@ import Foundation
 enum BrightnessBackend: String, Codable, CaseIterable, Sendable {
     /// Direct DDC/CI over I2C. External displays default to this.
     case directDDC
-    /// BetterDisplay's notification API. Built-in displays use this.
+    /// Apple's private DisplayServices framework. Built-in displays use this so
+    /// no third-party app is required (maintainer-approved private API).
+    case displayServices
+    /// BetterDisplay's notification API. Kept as an optional backend for
+    /// external displays; no longer required for built-in displays.
     case betterDisplay
 }
 
@@ -31,6 +35,7 @@ enum BrightnessUnavailableReason: String, Equatable, Sendable {
 /// Where one display's current brightness reading came from.
 enum BrightnessControlSource: Equatable, Sendable {
     case directDDC
+    case displayServices
     case betterDisplay
     case unavailable(BrightnessUnavailableReason)
 }

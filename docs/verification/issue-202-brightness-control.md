@@ -13,7 +13,8 @@ Plan: `docs/superpowers/plans/2026-11-01-issue-202-brightness-control.md`
 ## 交付内容
 
 - 外接屏：直接 DDC（VCP `0x10`）亮度读/写，写后读回确认，fail closed。
-- 内置屏：BetterDisplay 亮度读/写（按 displayUUID），写后读回确认。
+- 内置屏：私有 `DisplayServices` 亮度读/写（dlopen，维护者批准的私有 API 例外），写后读回确认；不再依赖 BetterDisplay。
+- 外屏可选 BetterDisplay 后端保留但非必需。
 - 状态面板新增「亮度」分区（`sun.max`）：每块屏一行，滑块 + 百分比；
   不可调控时显示原因。默认不启用，用户在 Settings →「Displayed Items」打开。
 - 模型/监控/Store/设置接线：`BrightnessStatus`、`BrightnessMonitor`、
@@ -52,7 +53,7 @@ Plan: `docs/superpowers/plans/2026-11-01-issue-202-brightness-control.md`
 - 独立验证：`ChargingEffectRenderingTests` 单独运行 5/5 通过；全量套件也曾
   多次整体通过（`swift test` 与 `--no-parallel` 均出现过整体绿）。
 - 真机 DDC 亮度效果：**NOT RUN**（本环境无外接屏 I2C 通路）。
-- 真机内置屏 BetterDisplay 亮度效果：**NOT RUN**（未安装/未授权 BetterDisplay）。
+- 真机内置屏 DisplayServices 亮度效果：**NOT RUN**（本环境外接屏模式，无内置屏在线）。
 - macOS 13 / macOS 26 运行时：**NOT RUN**。
 - 硬件签名 / 公证 / DMG / Universal 打包 / 正式发布 CI：**NOT RUN**（本地验证不覆盖）。
 
@@ -60,8 +61,8 @@ Plan: `docs/superpowers/plans/2026-11-01-issue-202-brightness-control.md`
 
 - `CGDisplayCreateUUIDFromDisplayID` 与 IORegistry `EDID UUID` 在旧系统可能不等，
   解析失败即报错不猜测；真机需确认多屏匹配。
-- BetterDisplay 亮度命令的 `brightness/min/max` 参数键与 payload 形态照 volume
-  移植，未在真实 BetterDisplay 上核对。
+- 内置屏 `DisplayServices` 私有 API 需在真机（笔记本内置屏）验证读写与取整行为。
+- 外屏可选 BetterDisplay 的 `brightness/min/max` 参数键照 volume 移植，未真机核对。
 - DDC 写后读回按「读回值==写入值」严格确认；显示器若取整可能 fail closed
   （设计取向，真机再评估是否加容差）。
 - 设置页暂只提供分区开关；每块外屏的后端选择 API

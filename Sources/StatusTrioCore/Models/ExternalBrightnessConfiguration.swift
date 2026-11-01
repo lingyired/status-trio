@@ -17,8 +17,8 @@ struct ExternalBrightnessConfiguration: Codable, Equatable, Sendable {
     /// cannot be repaired into a safe default.
     func sanitized() -> Self? {
         switch backend {
-        case .directDDC:
-            return Self(backend: .directDDC, betterDisplayUUID: nil)
+        case .directDDC, .displayServices:
+            return Self(backend: backend, betterDisplayUUID: nil)
         case .betterDisplay:
             let uuid = betterDisplayUUID?
                 .trimmingCharacters(in: .whitespacesAndNewlines)

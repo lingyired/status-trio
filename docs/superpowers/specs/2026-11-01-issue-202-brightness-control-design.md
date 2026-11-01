@@ -16,15 +16,15 @@ Issue #202 是功能请求：增加屏幕亮度调节，支持内屏和外屏，
 维护者已确认（2026-11-01）：
 
 - **范围**：外接屏 + 内置屏都支持，分两阶段，先外屏后内置。
-- **后端**：外接屏复用现有 DDC 基建（VCP `0x10` 亮度），内置屏走 existing
-  BetterDisplay 集成。
+- **后端**：外接屏复用现有 DDC 基建（VCP `0x10` 亮度），内置屏走私有
+  `DisplayServices`（维护者于 2026-11-01 测试后批准破例，避免强制安装 BetterDisplay）。
 - **入口**：状态面板滑块 + 设置页开关，交互对齐现有音量。
 
 成功标准（对齐现有音量体验）：
 
 - 状态面板里每一块可调控的屏幕都有一个亮度滑块，拖动即改。
 - 设置页可开关「亮度」分区、选择每个外屏的后端；设置持久化。
-- 外屏走直接 DDC；内置屏走 BetterDisplay；两者互不影响。
+- 外屏走直接 DDC；内置屏走 `DisplayServices`；两者互不影响。
 - 失败/过期写入绝不显示成乐观成功值（fail closed）。
 - 现有音量、DDC、BetterDisplay 行为不回归。
 
@@ -58,7 +58,7 @@ Issue #202 是功能请求：增加屏幕亮度调节，支持内屏和外屏，
 4. **fail closed。** 目标不唯一、回复不合法、读回不一致时一律不写、不显示
    乐观值。
 5. **不改 BetterDisplay 偏好、不静默提权、不引入第三方依赖。**
-6. **外屏不依赖任何第三方软件；内置屏依赖 BetterDisplay，缺失时显示为不可用。**
+6. **外屏与内置屏都不依赖第三方软件；内置屏使用 `DisplayServices` 私有 API（维护者批准的例外）。**
 
 ## 4. 数据模型
 
@@ -67,7 +67,8 @@ Issue #202 是功能请求：增加屏幕亮度调节，支持内屏和外屏，
 ```swift
 enum BrightnessBackend: String, Codable, CaseIterable, Sendable {
     case directDDC      // 外屏默认
-    case betterDisplay  // 内置屏默认，也可用于外屏
+    case displayServices // 内置屏默认（私有 DisplayServices）
+    case betterDisplay  // 外屏可选后端
 }
 
 enum BrightnessControlSource: Equatable, Sendable {
@@ -142,23 +143,24 @@ struct BrightnessStatus: Equatable, Sendable {
 `uid` 传给 `DDCTargetResolver.resolve`。若与 EDID UUID 不相等（旧系统/特殊
 显示器），解析失败即 `resolveFailed`，不猜测。
 
-### 6.2 内置屏：BetterDisplay
+### 6.2 内置屏：DisplayServices（私有 API）
 
-- 新增 `Sources/StatusTrioCore/Display/BetterDisplayBrightnessCoordinator.swift`，
-  复用 `BetterDisplayIntegrationClient`（不新建连接）。
-- 读：`commands: ["get"], parameters: ["UUID": displayUUID, "brightness": nil, ...]`
-  解析当前亮度与范围（min/max）。
-- 写：`commands: ["set"], parameters: ["UUID": displayUUID, "brightness": value]`，
-  写后读回确认，未确认即 `writeNotConfirmed`。
-- BetterDisplay 缺失/未运行时，内置屏 `source = .unavailable(.appAbsent)`，
-  不显示可拖动滑块。
-- 需要给 client 增加 `Brightness` 相关的 OSD 事件识别（`controlTarget ==
-  "brightness"`），供外部改动同步；不在本轮绘制新 OSD。
+- 新增 `Sources/StatusTrioCore/Display/DisplayServicesBrightnessController.swift`：
+  `dlopen` Apple 私有 `DisplayServices` 框架，`DisplayServicesGetBrightness` /
+  `DisplayServicesSetBrightness` 读写内置屏亮度。
+- 写后读回确认（容差 2%），未确认即 `writeNotConfirmed`；符号/框架不可用即
+  `source = .unavailable(.noBackend)`，不崩溃、不显示可拖动滑块。
+- 这是维护者批准的「私有 API」例外：macOS 无公开内置屏亮度 API，否则只能强制
+  用户安装 BetterDisplay。
+
+### 6.2b 外屏可选 BetterDisplay 后端（非必需）
+
+- 现有 `BetterDisplayBrightnessCoordinator` 保留为外屏的可选后端；默认外屏不用它。
 
 ### 6.3 单一写入者
 
 某屏标记为 `betterDisplay` 后端时，其 DDC 路径对该屏停用；反之亦然。配置在
-设置里显式选择，默认：外屏 `directDDC`、内置屏只走 `betterDisplay`。
+外屏默认 `directDDC`（可配置 `betterDisplay`）、内置屏自动走 `displayServices`。
 
 ## 7. 监控与接线
 
@@ -166,7 +168,7 @@ struct BrightnessStatus: Equatable, Sendable {
   （`@MainActor`，实现 `BrightnessMonitoring` 协议：`updates`、
   `start/stop/refresh/recover`、`setDisplayAsleep`、`topologyChanged`、
   `setBackend(_:for:)`），持有 `DisplayCatalog`、外屏 DDC 协调器、内置屏
-  BetterDisplay 协调器，聚合发布 `BrightnessStatus`。
+  DisplayServices 控制器、可选 BetterDisplay 协调器，聚合发布 `BrightnessStatus`。
 - `MonitorProtocols.swift` 增加 `BrightnessMonitoring`。
 - `AppEnvironment.makeStore` 增加 `brightnessMonitor` 参数并创建默认实例；
   `SystemStatusStore` 订阅并写入 `StatusSnapshot.brightness`。

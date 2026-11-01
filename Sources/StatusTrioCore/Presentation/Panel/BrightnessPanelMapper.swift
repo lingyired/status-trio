@@ -55,7 +55,7 @@ enum BrightnessPanelMapper {
         localization: Localization
     ) -> String {
         switch source {
-        case .directDDC, .betterDisplay:
+        case .directDDC, .displayServices, .betterDisplay:
             // Adjustable sources never reach here; keep a safe fallback.
             return localization.string(.brightnessUnavailable)
         case .unavailable(let reason):

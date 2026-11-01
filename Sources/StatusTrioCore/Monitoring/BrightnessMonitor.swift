@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import os
 
@@ -28,13 +29,20 @@ final class BrightnessMonitor: BrightnessMonitoring {
         _ onUpdate: @escaping @MainActor (BetterDisplayBrightnessCoordinator.Update) -> Void
     ) -> BetterDisplayBrightnessCoordinator
 
+    typealias DisplayServicesMaker = @MainActor (
+        _ displayID: UInt32,
+        _ onUpdate: @escaping @MainActor (DisplayServicesBrightnessUpdate) -> Void
+    ) -> DisplayServicesBrightnessController
+
     private enum BackendKind: Equatable {
         case directDDC
+        case displayServices
         case betterDisplay
     }
 
     private enum Backend {
         case ddc(DDCBrightnessCoordinator)
+        case displayServices(DisplayServicesBrightnessController)
         case betterDisplay(BetterDisplayBrightnessCoordinator)
     }
 
@@ -49,6 +57,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
 
     private let catalog: DisplayCatalogProviding
     private let makeDDC: DDCMaker
+    private let makeDisplayServices: DisplayServicesMaker
     private let makeBetterDisplay: BetterDisplayMaker
     private let continuation: AsyncStream<BrightnessStatus>.Continuation
     let updates: AsyncStream<BrightnessStatus>
@@ -66,11 +75,18 @@ final class BrightnessMonitor: BrightnessMonitoring {
     init(
         catalog: DisplayCatalogProviding = LiveDisplayCatalog(),
         makeDDC: DDCMaker? = nil,
+        makeDisplayServices: DisplayServicesMaker? = nil,
         makeBetterDisplay: BetterDisplayMaker? = nil
     ) {
         self.catalog = catalog
         self.makeDDC = makeDDC ?? { displayID, onUpdate in
             DDCBrightnessCoordinator(onUpdate: onUpdate)
+        }
+        self.makeDisplayServices = makeDisplayServices ?? { displayID, onUpdate in
+            DisplayServicesBrightnessController(
+                displayID: CGDirectDisplayID(displayID),
+                onUpdate: onUpdate
+            )
         }
         self.makeBetterDisplay = makeBetterDisplay ?? { displayUUID, onUpdate in
             BetterDisplayBrightnessCoordinator(
@@ -106,6 +122,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
             for entry in entries.values {
                 switch entry.backend {
                 case .ddc(let coordinator): coordinator.refresh()
+                case .displayServices(let coordinator): coordinator.refresh()
                 case .betterDisplay(let coordinator): coordinator.refresh()
                 }
             }
@@ -138,6 +155,8 @@ final class BrightnessMonitor: BrightnessMonitoring {
         for entry in entries.values {
             switch entry.backend {
             case .ddc(let coordinator): coordinator.setDisplayAsleep(asleep)
+            case .displayServices(let coordinator):
+                if asleep { coordinator.stop() } else { coordinator.start() }
             case .betterDisplay(let coordinator):
                 if asleep { coordinator.stop() } else { coordinator.start() }
             }
@@ -176,6 +195,8 @@ final class BrightnessMonitor: BrightnessMonitoring {
         switch entry.backend {
         case .ddc(let coordinator):
             coordinator.setBrightness(scalar)
+        case .displayServices(let coordinator):
+            coordinator.setBrightness(scalar)
         case .betterDisplay(let coordinator):
             coordinator.setBrightness(scalar)
         }
@@ -203,9 +224,12 @@ final class BrightnessMonitor: BrightnessMonitoring {
 
         for descriptor in descriptors {
             let configuration = configuration(for: descriptor)
-            let desiredKind: BackendKind = configuration.backend == .betterDisplay
-                ? .betterDisplay
-                : .directDDC
+            let desiredKind: BackendKind
+            switch configuration.backend {
+            case .directDDC: desiredKind = .directDDC
+            case .displayServices: desiredKind = .displayServices
+            case .betterDisplay: desiredKind = .betterDisplay
+            }
             let desiredBDBUUID = configuration.backend == .betterDisplay
                 ? (configuration.betterDisplayUUID ?? descriptor.id)
                 : nil
@@ -233,9 +257,10 @@ final class BrightnessMonitor: BrightnessMonitoring {
     }
 
     private func configuration(for descriptor: DisplayDescriptor) -> ExternalBrightnessConfiguration {
-        // A built-in display can only be driven through BetterDisplay.
+        // Built-in displays use DisplayServices; external displays use the
+        // configured backend (direct DDC by default).
         if descriptor.isBuiltin {
-            return ExternalBrightnessConfiguration(backend: .betterDisplay, betterDisplayUUID: nil)
+            return ExternalBrightnessConfiguration(backend: .displayServices, betterDisplayUUID: nil)
         }
         return configurations[descriptor.id] ?? .default
     }
@@ -246,13 +271,19 @@ final class BrightnessMonitor: BrightnessMonitoring {
         betterDisplayUUID: String?
     ) -> Entry {
         let cached = cachedStates[descriptor.id]
+        let backend: BrightnessBackend
+        switch kind {
+        case .directDDC: backend = .directDDC
+        case .displayServices: backend = .displayServices
+        case .betterDisplay: backend = .betterDisplay
+        }
         let initialState = DisplayBrightness(
             id: descriptor.id,
             name: descriptor.name,
             isBuiltin: descriptor.isBuiltin,
             scalar: cached?.scalar,
             canAdjust: cached?.canAdjust ?? false,
-            backend: kind == .directDDC ? .directDDC : .betterDisplay,
+            backend: backend,
             source: cached?.source ?? .unavailable(.readFailed)
         )
         let displayID = descriptor.id
@@ -268,6 +299,18 @@ final class BrightnessMonitor: BrightnessMonitoring {
                 backendKind: .directDDC,
                 betterDisplayUUID: nil,
                 backend: .ddc(coordinator),
+                state: initialState
+            )
+        case .displayServices:
+            let coordinator = makeDisplayServices(descriptor.displayID) { [weak self] update in
+                self?.apply(update, systemDisplayID: displayID)
+            }
+            coordinator.start()
+            return Entry(
+                descriptor: descriptor,
+                backendKind: .displayServices,
+                betterDisplayUUID: nil,
+                backend: .displayServices(coordinator),
                 state: initialState
             )
         case .betterDisplay:
@@ -289,6 +332,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
     private func teardown(_ entry: Entry) {
         switch entry.backend {
         case .ddc(let coordinator): coordinator.stop()
+        case .displayServices(let coordinator): coordinator.stop()
         case .betterDisplay(let coordinator): coordinator.stop()
         }
     }
@@ -316,10 +360,29 @@ final class BrightnessMonitor: BrightnessMonitoring {
     }
 
     private func apply(
-        _ update: BetterDisplayBrightnessCoordinator.Update,
+        _ update: DisplayServicesBrightnessUpdate,
         systemDisplayID: String
     ) {
-        guard var entry = entries[systemDisplayID], entry.backendKind == .betterDisplay else {
+        guard var entry = entries[systemDisplayID], entry.backendKind == .displayServices else {
+            return
+        }
+        entry.state = DisplayBrightness(
+            id: entry.descriptor.id,
+            name: entry.descriptor.name,
+            isBuiltin: entry.descriptor.isBuiltin,
+            scalar: update.scalar,
+            canAdjust: update.canAdjust,
+            backend: .displayServices,
+            source: update.source
+        )
+        entries[systemDisplayID] = entry
+        publish()
+    }
+
+    private func apply(
+        _ update: BetterDisplayBrightnessCoordinator.Update,
+        systemDisplayID: String
+    ) {        guard var entry = entries[systemDisplayID], entry.backendKind == .betterDisplay else {
             return
         }
         entry.state = DisplayBrightness(
