@@ -123,7 +123,7 @@ final class PowerSamplingService: ObservableObject {
                 self.inFlight = false
                 if self.isRunning, self.generation == generation {
                     if self.systemPower != reading.system { self.systemPower = reading.system }
-                    if includeAuxiliaryRails {
+                    if includeAuxiliaryRails, self.demands.contains(.powerInfoBar) {
                         if self.inputPower != reading.input { self.inputPower = reading.input }
                         if self.batteryPower != reading.battery { self.batteryPower = reading.battery }
                     }
