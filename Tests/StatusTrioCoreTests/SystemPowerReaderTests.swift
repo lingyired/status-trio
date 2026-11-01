@@ -169,6 +169,22 @@ final class SystemPowerReaderTests: XCTestCase {
         XCTAssertTrue(mirrorRails.isEmpty)
     }
 
+    func testPortRailsTreatAcknowledgedButUndecodableKeyAsMeasured() {
+        // Key info succeeds (the key exists) but the value read fails, so no
+        // channel decodes. The keys still answered; do not fall back to the
+        // frozen registry value.
+        let rails = SystemPowerReader.readPortOutput { request in
+            if request[42] == 9 { return self.info() } // recognized key, `flt`
+            var failed = self.value([0, 0, 0, 0])
+            failed[40] = 0x84 // value read error
+            return failed
+        }
+        guard case .measured(let watts, _) = rails else {
+            return XCTFail("acknowledged keys must stay measured, not fall back")
+        }
+        XCTAssertTrue(watts.isEmpty)
+    }
+
     func testPortRailsCarryTheSMCReadStartTime() {
         let readAt = Date(timeIntervalSince1970: 1_000)
         let rails = SystemPowerReader.readPortOutput(exchange: { request in
