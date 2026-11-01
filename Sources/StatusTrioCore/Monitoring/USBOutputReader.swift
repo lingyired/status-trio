@@ -25,11 +25,13 @@ struct USBOutputSample: Equatable, Sendable {
     }
 }
 
-/// SMC D1–D4 accessory rails. `.unavailable` means the fixed keys did not
-/// answer, which is different from a measured rail sitting at idle.
+/// SMC D1–D4 accessory rails. `.unavailable` means none of the fixed keys
+/// answered, which is different from an answered rail sitting at idle. The
+/// measured case carries the SMC read-start time so a stalled read cannot make
+/// an old rail value look fresh.
 enum PortOutputRails: Equatable, Sendable {
     case unavailable
-    case measured([Double])
+    case measured(watts: [Double], readAt: Date)
 }
 
 enum USBOutputReader {
@@ -44,12 +46,14 @@ enum USBOutputReader {
         switch portRails {
         case .unavailable:
             return parse(registry: registry, now: now)
-        case .measured(let rails):
+        case .measured(let rails, let readAt):
             let active = rails.filter { $0 >= chargingFloorWatts }
             guard !active.isEmpty else { return nil }
             let total = active.reduce(0, +)
             guard total <= 300 else { return nil }
-            return USBOutputSample(watts: total, readAt: now, portCount: active.count)
+            // Keep the SMC read-start, not `now`, so a stalled refresh cannot
+            // pass this reading off as fresh to the breakdown's staleness check.
+            return USBOutputSample(watts: total, readAt: readAt, portCount: active.count)
         }
     }
 

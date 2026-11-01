@@ -79,7 +79,7 @@ struct SystemPowerReader: Sendable {
             if let watts = Self.readValue(sensor: .display, exchange: exchange) {
                 readings.display = SystemPowerSample(watts: watts, readAt: readAt)
             }
-            readings.portRails = Self.readPortOutput(exchange: exchange)
+            readings.portRails = Self.readPortOutput(exchange: exchange, readAt: readAt)
         }
         return readings
     }
@@ -141,21 +141,24 @@ struct SystemPowerReader: Sendable {
     }
 
     /// Live accessory output on channels D1–D4. Each channel is `DnJV` × `DnJI`.
-    /// A channel counts only when both keys decode. `.unavailable` means none
-    /// of the eight fixed keys answered.
-    static func readPortOutput(exchange: ([UInt8]) -> [UInt8]?) -> PortOutputRails {
+    /// A channel yields power only when both keys decode, but answering a single
+    /// key already counts as an answer: a partial reply must stay `.measured`
+    /// (with that channel skipped) instead of falling back to the frozen
+    /// `PowerOutDetails` value. `.unavailable` means none of the eight fixed
+    /// keys answered. The SMC read start travels with the rails.
+    static func readPortOutput(exchange: ([UInt8]) -> [UInt8]?, readAt: Date = Date()) -> PortOutputRails {
         var rails: [Double] = []
         var answered = false
         for channel in 1...4 {
-            guard let volts = readScalar(key: portRailKey(channel: channel, voltage: true), exchange: exchange),
-                  let amps = readScalar(key: portRailKey(channel: channel, voltage: false), exchange: exchange)
-            else { continue }
-            answered = true
+            let volts = readScalar(key: portRailKey(channel: channel, voltage: true), exchange: exchange)
+            let amps = readScalar(key: portRailKey(channel: channel, voltage: false), exchange: exchange)
+            if volts != nil || amps != nil { answered = true }
+            guard let volts, let amps else { continue }
             let watts = volts * amps
             guard watts.isFinite, (0...150).contains(watts) else { continue }
             rails.append(watts)
         }
-        return answered ? .measured(rails) : .unavailable
+        return answered ? .measured(watts: rails, readAt: readAt) : .unavailable
     }
 
     static func portRailKey(channel: Int, voltage: Bool) -> UInt32 {
