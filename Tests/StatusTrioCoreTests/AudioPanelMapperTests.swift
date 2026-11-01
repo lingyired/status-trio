@@ -484,3 +484,70 @@ final class AudioPanelMapperTests: XCTestCase {
         )
     }
 }
+
+@MainActor
+final class AudioPanelMapperListeningControlTests: XCTestCase {
+    private final class EndpointProvider: CoreAudioBluetoothEndpointProviding {
+        let endpoints: [BluetoothListeningModeEndpoint]
+        init(_ endpoints: [BluetoothListeningModeEndpoint]) { self.endpoints = endpoints }
+        func discoverEndpoints(using hal: BluetoothListeningModeHAL) -> [BluetoothListeningModeEndpoint] { endpoints }
+    }
+
+    private func makeLocalization() -> Localization {
+        let suiteName = "AudioPanelMapperListeningControlTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        addTeardownBlock { TestUserDefaults.removeSuite(named: suiteName) }
+        return Localization(defaults: defaults, preferredLanguages: ["en"])
+    }
+
+    func testHidingOtherOutputsKeepsCurrentAirPodsListeningControls() {
+        let localization = makeLocalization()
+        let endpoint = BluetoothListeningModeEndpoint(
+            audioDeviceID: 42,
+            capability: BluetoothListeningModeCapability(
+                audioDeviceID: 42,
+                availableModes: [.noiseCancellation, .transparency],
+                currentMode: .noiseCancellation,
+                canSet: true
+            ),
+            isDefaultOutput: true,
+            bluetoothAddress: "aa:bb:cc:dd:ee:ff"
+        )
+        let controller = BluetoothListeningModeController(
+            hal: BluetoothListeningModeHAL(
+                backend: FakeListeningModeBackend(),
+                sleeper: ImmediateListeningModeSleeper(),
+                retryAttempts: 1,
+                retryDelay: .milliseconds(1)
+            ),
+            endpointProvider: EndpointProvider([endpoint]),
+            listenerBackend: FakeListeningModeListenerBackend(),
+            failureClearDelay: .milliseconds(1)
+        )
+        controller.refresh(devices: [BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:FF", name: "AirPods Pro", kind: .audio, isConnected: true
+        )])
+        defer { controller.stop() }
+
+        let airPods = AudioOutputDevice(id: 42, name: "AirPods Pro", uid: "pods", isCurrent: true, transport: .bluetooth)
+        let speakers = AudioOutputDevice(id: 1, name: "Speakers", uid: "speaker", isCurrent: false)
+        let status = VolumeStatus(
+            scalar: 0.5, isMuted: false, deviceName: "AirPods Pro",
+            currentDevice: airPods, outputDevices: [speakers, airPods],
+            canSetVolume: true, canMute: true
+        )
+
+        let state = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            deviceList: AudioOutputListPreferences(hiddenUIDs: ["speaker"]),
+            listeningModes: controller,
+            localization: localization
+        )
+
+        XCTAssertEqual(state.rows.count, 1, "Only the current AirPods remain after hiding others")
+        XCTAssertEqual(state.rows.first?.listeningMode?.isControllable, true)
+        XCTAssertTrue(state.showsDeviceList,
+                      "The list must stay visible so the surviving listening-mode control is reachable")
+    }
+}
