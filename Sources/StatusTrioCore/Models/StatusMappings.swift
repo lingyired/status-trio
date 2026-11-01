@@ -24,9 +24,9 @@ enum StatusMappings {
         guard let rssi else { return 0 }
         switch rssi {
         // Parentheses are required for this negative partial range in Swift 6.
-        case (-60)...:
+        case (-70)...:
             return 3
-        case -78 ... -61:
+        case -78 ... -71:
             return 2
         case -88 ... -79:
             return 1

@@ -25,13 +25,13 @@ struct PresentationArchitectureTests {
     }
 
     @Test func sceneIdentityTracksWiFiBarsRatherThanRawRSSI() {
-        #expect(StatusMappings.wifiBars(rssi: -62) == 2)
-        #expect(StatusMappings.wifiBars(rssi: -70) == 2)
+        #expect(StatusMappings.wifiBars(rssi: -71) == 2)
+        #expect(StatusMappings.wifiBars(rssi: -78) == 2)
         #expect(StatusMappings.wifiBars(rssi: -60) == 3)
-        #expect(StatusMappings.wifiBars(rssi: -61) == 2)
+        #expect(StatusMappings.wifiBars(rssi: -70) == 3)
 
-        let twoBarsA = scene(for: PresentationFixtures.snapshot(rssi: -62))
-        let twoBarsB = scene(for: PresentationFixtures.snapshot(rssi: -70))
+        let twoBarsA = scene(for: PresentationFixtures.snapshot(rssi: -71))
+        let twoBarsB = scene(for: PresentationFixtures.snapshot(rssi: -78))
         let threeBars = scene(for: PresentationFixtures.snapshot(rssi: -60))
         #expect(twoBarsA == twoBarsB)
         #expect(twoBarsA != threeBars)

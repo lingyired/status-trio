@@ -36,7 +36,7 @@ struct DockIconRenderCacheTests {
     @Test func imageCacheReusesAndEvictsLeastRecentlyUsedRaster() {
         let cache = DockIconImageCache(limit: 2)
         let first = key(rssi: -50)
-        let second = key(rssi: -65)
+        let second = key(rssi: -75)
         let third = key(rssi: -80)
         let firstImage = makeBitmapImage(width: 64, height: 64)
         let secondImage = makeBitmapImage(width: 64, height: 64)

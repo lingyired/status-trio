@@ -225,7 +225,7 @@ final class IconPresentationMapperTests: XCTestCase {
         let cases: [(NetworkConnection, WiFiState, Int?, ConnectionIconOptions, CenterState?)] = [
             (.ethernet, .off, nil, options, .symbol(IconSymbolState(source: .symbol(name: "wifi", variableValue: 1, fallback: nil), color: .primary, scale: 1))),
             (.wifi, .connected, -89, options, .symbol(IconSymbolState(source: .symbol(name: "wifi", variableValue: 0, fallback: nil), color: .inactive, scale: 1))),
-            (.wifi, .hotspot, -70, options, .symbol(IconSymbolState(source: .symbol(name: "wifi", variableValue: 0.66, fallback: nil), color: .primary, scale: 1))),
+            (.wifi, .hotspot, -75, options, .symbol(IconSymbolState(source: .symbol(name: "wifi", variableValue: 0.66, fallback: nil), color: .primary, scale: 1))),
             (.wifi, .temporary, -50, ConnectionIconOptions(), .symbol(IconSymbolState(source: .primitive(.screenWedge), color: .primary, scale: 1))),
             (.wifi, .shared, -50, ConnectionIconOptions(), .symbol(IconSymbolState(source: .primitive(.arrowWedge), color: .primary, scale: 1))),
             (.wifi, .off, -50, options, .symbol(IconSymbolState(source: .symbol(name: "wifi.slash", variableValue: 1, fallback: nil), color: .primary, scale: 1)))
@@ -372,7 +372,7 @@ final class IconPresentationMapperTests: XCTestCase {
         ]
 
         for (state, disabledOptions, disabledState, enabledOptions) in cases {
-            let snapshot = snapshot(wifi: WiFiStatus(state: state, rssi: -61))
+            let snapshot = snapshot(wifi: WiFiStatus(state: state, rssi: -75))
             XCTAssertEqual(scene(snapshot: snapshot, connectionOptions: disabledOptions).center, disabledState)
             XCTAssertEqual(scene(snapshot: snapshot, connectionOptions: enabledOptions).center,
                            .symbol(IconSymbolState(source: .symbol(name: "wifi", variableValue: 0.66, fallback: nil),

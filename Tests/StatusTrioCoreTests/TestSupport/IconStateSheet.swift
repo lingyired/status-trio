@@ -225,7 +225,7 @@ enum IconStateSheet {
                     entry(
                         zh: "已连接（2 格）",
                         en: "Connected (2 bars)",
-                        wifi: WiFiStatus(state: .connected, rssi: -70)
+                        wifi: WiFiStatus(state: .connected, rssi: -75)
                     ),
                     entry(
                         zh: "已连接（1 格）",

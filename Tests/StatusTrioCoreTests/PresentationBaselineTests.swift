@@ -5,8 +5,8 @@ import XCTest
 @MainActor
 final class PresentationBaselineTests: XCTestCase {
     func testDotBucketAndSignalBucketBaseline() {
-        XCTAssertEqual(StatusMappings.wifiBars(rssi: -61), 2)
-        XCTAssertEqual(StatusMappings.wifiBars(rssi: -62), 2)
+        XCTAssertEqual(StatusMappings.wifiBars(rssi: -75), 2)
+        XCTAssertEqual(StatusMappings.wifiBars(rssi: -78), 2)
         XCTAssertEqual(StatusMappings.volumeSteps(scalar: 0.51, isMuted: false), 3)
         XCTAssertEqual(StatusMappings.volumeSteps(scalar: 0.74, isMuted: false), 3)
     }
