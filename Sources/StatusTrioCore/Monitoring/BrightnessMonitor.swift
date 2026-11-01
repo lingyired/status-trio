@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import os
@@ -71,14 +72,18 @@ final class BrightnessMonitor: BrightnessMonitoring {
     private var displayAsleep = false
     private var started = false
     private var generation: UInt64 = 0
+    private let notificationCenter: NotificationCenter
+    private var screenParameterObserver: NSObjectProtocol?
 
     init(
         catalog: DisplayCatalogProviding = LiveDisplayCatalog(),
         makeDDC: DDCMaker? = nil,
         makeDisplayServices: DisplayServicesMaker? = nil,
-        makeBetterDisplay: BetterDisplayMaker? = nil
+        makeBetterDisplay: BetterDisplayMaker? = nil,
+        notificationCenter: NotificationCenter = .default
     ) {
         self.catalog = catalog
+        self.notificationCenter = notificationCenter
         self.makeDDC = makeDDC ?? { displayID, onUpdate in
             DDCBrightnessCoordinator(onUpdate: onUpdate)
         }
@@ -106,10 +111,24 @@ final class BrightnessMonitor: BrightnessMonitoring {
     func start() {
         guard !started else { return }
         started = true
+        // Display hot-plug is an AppKit notification; without it the list only
+        // rebuilt on wake, so a panel already open when a screen is added or
+        // removed kept the old rows and the old DDC service.
+        screenParameterObserver = notificationCenter.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.topologyChanged() }
+        }
     }
 
     func stop() {
         started = false
+        if let observer = screenParameterObserver {
+            notificationCenter.removeObserver(observer)
+            screenParameterObserver = nil
+        }
         stopCoordinators()
         continuation.finish()
     }
@@ -166,7 +185,11 @@ final class BrightnessMonitor: BrightnessMonitoring {
 
     func topologyChanged() {
         guard started, detailsVisible, !displayAsleep else { return }
-        rebuild()
+        // A screen add/remove/rearrange can keep the same display identity while
+        // the framebuffer behind it changes, so a retained DDC service may point
+        // at hardware that is gone. Rebuild from scratch: tear every backend down
+        // and let each display re-resolve, instead of reusing a stale service.
+        rebuild(force: true)
         refresh()
     }
 
@@ -211,13 +234,21 @@ final class BrightnessMonitor: BrightnessMonitoring {
 
     // MARK: - Rebuild
 
-    private func rebuild() {
+    private func rebuild(force: Bool = false) {
         generation &+= 1
         let descriptors = catalog.currentDisplays()
         var updated = entries
 
+        // A forced rebuild (screen topology change) drops every backend so a
+        // display that survived the change still re-resolves its service and
+        // discards any write queued against the old connection.
+        if force {
+            for entry in entries.values { teardown(entry) }
+            updated.removeAll(keepingCapacity: true)
+        }
+
         // Drop entries whose display is gone.
-        for (id, entry) in entries where !descriptors.contains(where: { $0.id == id }) {
+        for (id, entry) in Array(updated) where !descriptors.contains(where: { $0.id == id }) {
             teardown(entry)
             updated.removeValue(forKey: id)
         }
@@ -248,7 +279,8 @@ final class BrightnessMonitor: BrightnessMonitoring {
             updated[descriptor.id] = makeEntry(
                 for: descriptor,
                 kind: desiredKind,
-                betterDisplayUUID: desiredBDBUUID
+                betterDisplayUUID: desiredBDBUUID,
+                allowsCachedAdjustability: !force
             )
         }
 
@@ -268,7 +300,8 @@ final class BrightnessMonitor: BrightnessMonitoring {
     private func makeEntry(
         for descriptor: DisplayDescriptor,
         kind: BackendKind,
-        betterDisplayUUID: String?
+        betterDisplayUUID: String?,
+        allowsCachedAdjustability: Bool = true
     ) -> Entry {
         let cached = cachedStates[descriptor.id]
         let backend: BrightnessBackend
@@ -277,14 +310,19 @@ final class BrightnessMonitor: BrightnessMonitoring {
         case .displayServices: backend = .displayServices
         case .betterDisplay: backend = .betterDisplay
         }
+        // After a topology change the cached value is only a hint for drawing the
+        // row immediately; a possibly different display must re-read before the
+        // panel offers a slider that writes to the wrong hardware.
         let initialState = DisplayBrightness(
             id: descriptor.id,
             name: descriptor.name,
             isBuiltin: descriptor.isBuiltin,
             scalar: cached?.scalar,
-            canAdjust: cached?.canAdjust ?? false,
+            canAdjust: allowsCachedAdjustability ? (cached?.canAdjust ?? false) : false,
             backend: backend,
-            source: cached?.source ?? .unavailable(.readFailed)
+            source: allowsCachedAdjustability
+                ? (cached?.source ?? .unavailable(.readFailed))
+                : .unavailable(.readFailed)
         )
         let displayID = descriptor.id
 
