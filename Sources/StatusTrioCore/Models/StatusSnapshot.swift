@@ -180,17 +180,20 @@ struct StatusSnapshot: Equatable, Sendable {
     let wifi: WiFiStatus
     let connection: NetworkConnection
     let volume: VolumeStatus
+    let brightness: BrightnessStatus
 
     init(
         battery: BatteryStatus,
         wifi: WiFiStatus,
         connection: NetworkConnection = .unknown,
-        volume: VolumeStatus
+        volume: VolumeStatus,
+        brightness: BrightnessStatus = .placeholder
     ) {
         self.battery = battery
         self.wifi = wifi
         self.connection = connection
         self.volume = volume
+        self.brightness = brightness
     }
 
     static let placeholder = StatusSnapshot(

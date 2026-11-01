@@ -632,3 +632,15 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Einstellung auf %d%% bestätigen";
 "battery.action.cancelChargeToFullNowConfirmation" = "Der System-Ladestatus hat sich möglicherweise geändert. Zum Fortfahren erneut klicken.";
 "battery.action.cancelChargeToFullNowPending" = "Das System hat das vorübergehende Laden auf 100 % noch nicht bestätigt. Bitte gleich erneut versuchen.";
+
+"settings.popup.order.brightness" = "Helligkeit";
+"brightness.row.accessibility" = "Helligkeit für %@, %@";
+"brightness.row.accessibilityUnavailable" = "Helligkeit für %@, %@";
+"brightness.unavailable" = "Nicht verfügbar";
+"brightness.appAbsent" = "Erfordert BetterDisplay";
+"brightness.noBackend" = "Keine Helligkeitssteuerung";
+"brightness.unresponsive" = "Reagiert nicht";
+"brightness.backend.directDDC" = "Direktes DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Passe die Helligkeit angeschlossener Displays an.";
+"settings.brightness.backend" = "Helligkeits-Backend für %@";

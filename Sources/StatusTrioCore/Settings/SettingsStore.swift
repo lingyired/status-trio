@@ -140,6 +140,7 @@ final class SettingsStore: ObservableObject {
     static let inputDeviceOrderDefaultsKey = "inputDeviceOrder"
     static let hiddenInputDeviceUIDsDefaultsKey = "hiddenInputDeviceUIDs"
     static let externalVolumeConfigurationsDefaultsKey = "externalVolumeConfigurations.v1"
+    static let externalBrightnessConfigurationsDefaultsKey = "externalBrightnessConfigurations.v1"
     static let popupSectionOrderDefaultsKey = "popupSectionOrder"
     static let enabledPopupSectionsDefaultsKey = "enabledPopupSections"
     static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .vpn, .volume]
@@ -875,6 +876,18 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published private(set) var externalBrightnessConfigurations: [String: ExternalBrightnessConfiguration] {
+        didSet {
+            guard !externalBrightnessConfigurations.isEmpty,
+                  let data = try? JSONEncoder().encode(externalBrightnessConfigurations)
+            else {
+                defaults.removeObject(forKey: Self.externalBrightnessConfigurationsDefaultsKey)
+                return
+            }
+            defaults.set(data, forKey: Self.externalBrightnessConfigurationsDefaultsKey)
+        }
+    }
+
     @Published var showsBluetoothDeviceList: Bool {
         didSet {
             defaults.set(
@@ -1113,6 +1126,29 @@ final class SettingsStore: ObservableObject {
         }
         guard updated != externalVolumeConfigurations else { return }
         externalVolumeConfigurations = updated
+    }
+
+    func externalBrightnessConfiguration(for displayID: String) -> ExternalBrightnessConfiguration {
+        let displayID = displayID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !displayID.isEmpty else { return .default }
+        return externalBrightnessConfigurations[displayID] ?? .default
+    }
+
+    func setExternalBrightnessConfiguration(
+        _ configuration: ExternalBrightnessConfiguration,
+        for displayID: String
+    ) {
+        let displayID = displayID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !displayID.isEmpty else { return }
+
+        var updated = externalBrightnessConfigurations
+        if let sanitized = configuration.sanitized(), sanitized != .default {
+            updated[displayID] = sanitized
+        } else {
+            updated.removeValue(forKey: displayID)
+        }
+        guard updated != externalBrightnessConfigurations else { return }
+        externalBrightnessConfigurations = updated
     }
 
     func moveOutputDevices(
@@ -1568,6 +1604,9 @@ final class SettingsStore: ObservableObject {
         let storedExternalVolumeConfigurations = Self.decodedExternalVolumeConfigurations(
             defaults.data(forKey: Self.externalVolumeConfigurationsDefaultsKey)
         )
+        let storedExternalBrightnessConfigurations = Self.decodedExternalBrightnessConfigurations(
+            defaults.data(forKey: Self.externalBrightnessConfigurationsDefaultsKey)
+        )
         let storedPopupSectionOrder = defaults.stringArray(
             forKey: Self.popupSectionOrderDefaultsKey
         ) ?? []
@@ -1819,6 +1858,7 @@ final class SettingsStore: ObservableObject {
         self.inputDeviceOrder = storedInputDeviceOrder
         self.hiddenInputDeviceUIDs = storedHiddenInputDeviceUIDs
         self.externalVolumeConfigurations = storedExternalVolumeConfigurations
+        self.externalBrightnessConfigurations = storedExternalBrightnessConfigurations
         self.popupSectionOrder = Self.sanitizedPopupSectionOrder(
             storedPopupSectionOrder
         )
@@ -1891,6 +1931,32 @@ final class SettingsStore: ObservableObject {
                 continue
             }
             sanitized[uid] = configuration
+        }
+        return sanitized
+    }
+
+    private static func decodedExternalBrightnessConfigurations(
+        _ data: Data?
+    ) -> [String: ExternalBrightnessConfiguration] {
+        guard let data,
+              let decoded = try? JSONDecoder().decode(
+                  [String: ExternalBrightnessConfiguration].self,
+                  from: data
+              )
+        else {
+            return [:]
+        }
+
+        var sanitized: [String: ExternalBrightnessConfiguration] = [:]
+        for (rawID, configuration) in decoded {
+            let displayID = rawID.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !displayID.isEmpty,
+                  let configuration = configuration.sanitized(),
+                  configuration != .default
+            else {
+                continue
+            }
+            sanitized[displayID] = configuration
         }
         return sanitized
     }

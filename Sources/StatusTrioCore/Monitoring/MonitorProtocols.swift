@@ -61,6 +61,38 @@ protocol VolumeMonitoring: AnyObject {
 }
 
 @MainActor
+protocol BrightnessMonitoring: AnyObject {
+    var updates: AsyncStream<BrightnessStatus> { get }
+    func start()
+    func stop()
+    func refresh()
+    func recover()
+    func setDetailsVisible(_ visible: Bool)
+    func setDisplayAsleep(_ asleep: Bool)
+    func topologyChanged()
+    /// Select the backend allowed to drive one display, keyed by display UUID.
+    func setBackend(_ backend: BrightnessBackend, forDisplayID displayID: String)
+    func setExternalBrightnessConfigurations(
+        _ configurations: [String: ExternalBrightnessConfiguration]
+    )
+    func setBrightness(_ scalar: Double, forDisplayID displayID: String)
+    func finishBrightnessAdjustment(displayID: String)
+}
+
+@MainActor
+extension BrightnessMonitoring {
+    func setDetailsVisible(_ visible: Bool) {}
+    func setDisplayAsleep(_ asleep: Bool) {}
+    func topologyChanged() {}
+    func setBackend(_ backend: BrightnessBackend, forDisplayID displayID: String) {}
+    func setExternalBrightnessConfigurations(
+        _ configurations: [String: ExternalBrightnessConfiguration]
+    ) {}
+    func setBrightness(_ scalar: Double, forDisplayID displayID: String) {}
+    func finishBrightnessAdjustment(displayID: String) {}
+}
+
+@MainActor
 extension VolumeMonitoring {
     var betterDisplayCatalogUpdates: AsyncStream<BetterDisplayCatalogUpdate> {
         AsyncStream { $0.finish() }

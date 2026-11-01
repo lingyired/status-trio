@@ -632,3 +632,15 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "تأكيد الضبط على %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "قد تكون حالة شحن النظام قد تغيّرت. انقر مرة أخرى للمتابعة.";
 "battery.action.cancelChargeToFullNowPending" = "لم يؤكد النظام تجاوز حد الشحن المؤقت بعد. حاول مرة أخرى بعد قليل.";
+
+"settings.popup.order.brightness" = "السطوع";
+"brightness.row.accessibility" = "السطوع لـ %@، %@";
+"brightness.row.accessibilityUnavailable" = "السطوع لـ %@، %@";
+"brightness.unavailable" = "غير متاح";
+"brightness.appAbsent" = "يتطلب BetterDisplay";
+"brightness.noBackend" = "لا يوجد تحكم في السطوع";
+"brightness.unresponsive" = "لا يستجيب";
+"brightness.backend.directDDC" = "DDC مباشر";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "اضبط سطوع الشاشات المتصلة.";
+"settings.brightness.backend" = "خلفية السطوع لـ %@";

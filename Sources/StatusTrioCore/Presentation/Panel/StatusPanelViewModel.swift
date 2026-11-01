@@ -50,6 +50,7 @@ final class StatusPanelViewModel: ObservableObject {
     /// also owns HUAWEI and AirPods listening-mode discovery.
     @Published private(set) var listeningModeTaskID = ""
     @Published private(set) var volume: VolumePanelState
+    @Published private(set) var brightness: BrightnessPanelState
     @Published private(set) var audioInput: AudioInputPanelState
     @Published private(set) var inputSource: InputSourcePanelState
     @Published private(set) var batteryDetails: PanelDetailState
@@ -139,6 +140,10 @@ final class StatusPanelViewModel: ObservableObject {
         inputSource = InputSourcePanelMapper.map(
             state: resolvedInputSourceController.state,
             failure: resolvedInputSourceController.selectionFailure,
+            localization: localization
+        )
+        brightness = BrightnessPanelMapper.map(
+            store.popupSnapshot.brightness,
             localization: localization
         )
         batteryDetails = PanelDetailMapper.battery(
@@ -792,6 +797,12 @@ final class StatusPanelViewModel: ObservableObject {
         if isVisible(.audioInput) {
             publishAudioInput(mapInput(store.liveInput))
         }
+        if isVisible(.brightness) {
+            brightness = BrightnessPanelMapper.map(
+                store.popupSnapshot.brightness,
+                localization: localization
+            )
+        }
         if isVisible(.inputSource) {
             publishInputSource(
                 state: inputSourceController.state,
@@ -851,6 +862,13 @@ final class StatusPanelViewModel: ObservableObject {
                 localization: localization
             )
             if network != networkState { network = networkState }
+        }
+        if isVisible(.brightness) {
+            let brightnessState = BrightnessPanelMapper.map(
+                snapshot.brightness,
+                localization: localization
+            )
+            if brightness != brightnessState { brightness = brightnessState }
         }
         if store.batteryDetails.isActive { refreshBatteryDetails(status: snapshot.battery) }
         if store.wifiNetworks.isActive { refreshWiFiDetails(status: snapshot.wifi) }
