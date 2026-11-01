@@ -109,4 +109,47 @@ final class SystemPowerReaderTests: XCTestCase {
         XCTAssertNil(read(.display, key: [0x52, 0x42, 0x44, 0x50],
                           payload: [0, 0, 0x7a, 0x43]), "250 W is outside any backlight rail")
     }
+
+    func testPortRailsMultiplyVoltageByCurrentAndIgnoreSilentChannels() {
+        let rails = SystemPowerReader.readPortOutput { request in
+            XCTAssertNotEqual(request[42], 6)
+            let key = Array(request.prefix(4))
+            let known: [[UInt8]: [UInt8]] = [
+                [0x56, 0x4A, 0x31, 0x44]: self.floatPayload(5.222), // D1JV
+                [0x49, 0x4A, 0x31, 0x44]: self.floatPayload(0.806), // D1JI
+                [0x56, 0x4A, 0x32, 0x44]: self.floatPayload(5.25),  // D2JV
+                [0x49, 0x4A, 0x32, 0x44]: self.floatPayload(0.027)  // D2JI, about 0.14 W
+            ]
+            guard let payload = known[key] else {
+                XCTAssertEqual(request[42], 9, "A missing channel is refused at key info")
+                var missing = self.info()
+                missing[40] = 0x84
+                return missing
+            }
+            return request[42] == 9 ? self.info() : self.value(payload)
+        }
+        guard case .measured(let watts) = rails else {
+            return XCTFail("expected measured rails")
+        }
+        XCTAssertEqual(watts.count, 2)
+        XCTAssertEqual(watts[0], 5.222 * 0.806, accuracy: 0.001)
+    }
+
+    func testPortRailsAreUnavailableWhenNoChannelAnswers() {
+        let rails = SystemPowerReader.readPortOutput { request in
+            XCTAssertEqual(request[42], 9)
+            var missing = self.info()
+            missing[40] = 0x84
+            return missing
+        }
+        XCTAssertEqual(rails, .unavailable)
+    }
+
+    private func floatPayload(_ number: Float) -> [UInt8] {
+        let bits = number.bitPattern
+        return [UInt8(truncatingIfNeeded: bits),
+                UInt8(truncatingIfNeeded: bits >> 8),
+                UInt8(truncatingIfNeeded: bits >> 16),
+                UInt8(truncatingIfNeeded: bits >> 24)]
+    }
 }

@@ -1,8 +1,10 @@
 import Foundation
 
 /// A USB / Thunderbolt port that is currently sourcing power to an accessory.
-/// `AppleSmartBattery.PowerOutDetails` reports milliwatts per port; the key is
-/// absent when nothing is attached.
+///
+/// The live sample is SMC channels D1–D4, `DnJV` × `DnJI`. `PowerOutDetails`
+/// is the fallback when those fixed keys do not answer, and is absent when
+/// nothing is attached.
 ///
 /// Only `Watts` is a measured output: on Mac15,9 / macOS 27.2 it matched
 /// `Current × AdapterVoltage` within 0.2% (2461 mW vs 2457 mW) for a hub. The
@@ -23,7 +25,34 @@ struct USBOutputSample: Equatable, Sendable {
     }
 }
 
+/// SMC D1–D4 accessory rails. `.unavailable` means the fixed keys did not
+/// answer, which is different from a measured rail sitting at idle.
+enum PortOutputRails: Equatable, Sendable {
+    case unavailable
+    case measured([Double])
+}
+
 enum USBOutputReader {
+    /// Idle CC/VConn rails on Mac16,1 sat at 0.05–0.14 W. The first Apple Watch
+    /// charge pulse on that machine was 0.60 W, so anything quieter is not
+    /// treated as power delivered to an accessory.
+    static let chargingFloorWatts = 0.20
+
+    /// Prefer a live SMC rail. An answered rail that is only idling stays
+    /// hidden; it must not be replaced by a frozen `PowerOutDetails` value.
+    static func resolve(portRails: PortOutputRails, registry: [String: Any], now: Date = Date()) -> USBOutputSample? {
+        switch portRails {
+        case .unavailable:
+            return parse(registry: registry, now: now)
+        case .measured(let rails):
+            let active = rails.filter { $0 >= chargingFloorWatts }
+            guard !active.isEmpty else { return nil }
+            let total = active.reduce(0, +)
+            guard total <= 300 else { return nil }
+            return USBOutputSample(watts: total, readAt: now, portCount: active.count)
+        }
+    }
+
     /// Ports that are powering an accessory, summed into one output reading.
     /// A port without a measured `Watts` value is skipped, not filled in from
     /// the PD contract. Values outside a plausible single-port envelope are
