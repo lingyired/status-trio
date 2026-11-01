@@ -342,8 +342,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "仅音量组件";
 "settings.popup.volumeScroll.natural" = "自然滚动";
 "settings.popup.volumeScroll.natural.description" = "开启后，鼠标和触控板上滚都会增大音量；关闭后，音量跟随系统的滚动方向。如果开启后鼠标上滚仍然减小音量，请在 MOS、Scroll Reverser、LinearMouse 等应用中将 Status Trio 设为不处理，通常可加入例外/忽略列表（部分应用称为白名单）。";
-"settings.popup.volumeScroll.feedback" = "滚动调节音量时播放提示音";
-"settings.popup.volumeScroll.feedback.description" = "滚动调节音量时播放提示音。默认跟随 macOS「音量更改时播放反馈」设置；在此切换后仅对 Status Trio 生效。";
+"settings.audio.volumeFeedbackTitle" = "音量反馈";
+"settings.audio.volumeFeedback" = "滚动调节音量时播放提示音";
+"settings.audio.volumeFeedbackDescription" = "滚动调节音量时播放提示音。默认跟随 macOS「音量更改时播放反馈」设置；在此切换后仅对 Status Trio 生效。";
 "settings.popup.volumeScroll.direction" = "滚动方向";
 "settings.popup.volumeScroll.direction.description" = "选择增大音量的滚动方向。";
 "settings.popup.volumeScroll.direction.up" = "上滑";

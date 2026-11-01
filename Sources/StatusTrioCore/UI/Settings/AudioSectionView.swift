@@ -15,6 +15,7 @@ struct AudioSectionView: View {
             )
         }) {
             indicatorStyleGroup
+            volumeFeedbackGroup
             displayRulesGroup
             externalVolumeGroup
             deviceOrderGroup
@@ -49,6 +50,21 @@ struct AudioSectionView: View {
                         statusStore: statusStore
                     )
                 }
+            )
+        }
+    }
+
+    private var volumeFeedbackGroup: some View {
+        SettingsGroup(localization.string(.settingsAudioVolumeFeedbackTitle)) {
+            SettingsToggleRow(
+                symbol: "bell.and.waves.left.and.right.fill",
+                tint: .pink,
+                title: localization.string(.settingsAudioVolumeFeedback),
+                subtitle: localization.string(.settingsAudioVolumeFeedbackDescription),
+                isOn: Binding(
+                    get: { store.popupVolumeScrollFeedback },
+                    set: { store.setPopupVolumeScrollFeedbackOverride($0) }
+                )
             )
         }
     }

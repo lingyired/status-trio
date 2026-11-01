@@ -342,8 +342,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Nur Lautstärkeregler";
 "settings.popup.volumeScroll.natural" = "Natürliches Scrollen";
 "settings.popup.volumeScroll.natural.description" = "Wenn aktiviert, erhöht Scrollen nach oben mit Maus oder Trackpad die Lautstärke. Wenn deaktiviert, folgt die Lautstärke der System-Scrollrichtung. Wenn nach dem Aktivieren dieser Option Scrollen mit der Maus nach oben weiterhin die Lautstärke verringert, konfigurieren Sie MOS, Scroll Reverser, LinearMouse oder eine ähnliche App so, dass Status Trio unverändert bleibt, normalerweise über eine Ausnahme-/Ignorierliste (manchmal Allowlist genannt).";
-"settings.popup.volumeScroll.feedback" = "Ton beim Scrollen zur Lautstärkeänderung abspielen";
-"settings.popup.volumeScroll.feedback.description" = "Spielt den Ton ab, wenn du die Lautstärke durch Scrollen änderst. Standardmäßig gilt die macOS-Einstellung „Feedback bei Lautstärkeänderung wiedergeben“; ein Umschalten hier gilt nur für Status Trio.";
+"settings.audio.volumeFeedbackTitle" = "Lautstärke-Feedback";
+"settings.audio.volumeFeedback" = "Ton beim Scrollen zur Lautstärkeänderung abspielen";
+"settings.audio.volumeFeedbackDescription" = "Spielt den Ton ab, wenn du die Lautstärke durch Scrollen änderst. Standardmäßig gilt die macOS-Einstellung „Feedback bei Lautstärkeänderung wiedergeben“; ein Umschalten hier gilt nur für Status Trio.";
 "settings.popup.volumeScroll.direction" = "Scrollrichtung";
 "settings.popup.volumeScroll.direction.description" = "Wähle die Richtung, die die Lautstärke erhöht.";
 "settings.popup.volumeScroll.direction.up" = "Nach oben";

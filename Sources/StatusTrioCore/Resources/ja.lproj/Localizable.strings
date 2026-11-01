@@ -342,8 +342,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "音量コントロールのみ";
 "settings.popup.volumeScroll.natural" = "ナチュラルスクロール";
 "settings.popup.volumeScroll.natural.description" = "オンにすると、マウスまたはトラックパッドの上方向スクロールで音量が上がります。オフでは、システムのスクロール方向に従います。オンにした後もマウスの上スクロールで音量が下がる場合は、通常は例外/無視リスト（許可リストと呼ばれることもあります）を使い、MOS、Scroll Reverser、LinearMouse などのアプリで Status Trio を変更しないよう設定してください。";
-"settings.popup.volumeScroll.feedback" = "スクロールで音量を変更したときに音を鳴らす";
-"settings.popup.volumeScroll.feedback.description" = "スクロールで音量を変更したときに通知音を鳴らします。既定では macOS の「音量変更時にフィードバックを再生」に従います。ここで切り替えると Status Trio のみに適用されます。";
+"settings.audio.volumeFeedbackTitle" = "音量フィードバック";
+"settings.audio.volumeFeedback" = "スクロールで音量を変更したときに音を鳴らす";
+"settings.audio.volumeFeedbackDescription" = "スクロールで音量を変更したときに通知音を鳴らします。既定では macOS の「音量変更時にフィードバックを再生」に従います。ここで切り替えると Status Trio のみに適用されます。";
 "settings.popup.volumeScroll.direction" = "スクロール方向";
 "settings.popup.volumeScroll.direction.description" = "音量を上げるスクロール方向を選びます。";
 "settings.popup.volumeScroll.direction.up" = "上スクロール";

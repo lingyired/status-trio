@@ -103,19 +103,6 @@ struct PopoverSectionView: View {
                     subtitle: localization.string(.settingsPopupVolumeScrollNaturalDescription),
                     isOn: $store.popupVolumeNaturalScrolling
                 )
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "bell.and.waves.left.and.right.fill",
-                    tint: .pink,
-                    title: localization.string(.settingsPopupVolumeScrollFeedback),
-                    subtitle: localization.string(.settingsPopupVolumeScrollFeedbackDescription),
-                    isOn: Binding(
-                        get: { store.popupVolumeScrollFeedback },
-                        set: { store.setPopupVolumeScrollFeedbackOverride($0) }
-                    )
-                )
             }
         }
     }

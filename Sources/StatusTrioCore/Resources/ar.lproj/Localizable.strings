@@ -342,8 +342,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "أداة مستوى الصوت فقط";
 "settings.popup.volumeScroll.natural" = "التمرير الطبيعي";
 "settings.popup.volumeScroll.natural.description" = "عند التشغيل، يؤدي التمرير لأعلى بالماوس أو لوحة التتبع إلى زيادة مستوى الصوت. عند الإيقاف، يتبع مستوى الصوت اتجاه التمرير في النظام. إذا استمر تمرير الماوس لأعلى في خفض مستوى الصوت بعد تشغيل هذا الخيار، فاضبط MOS أو Scroll Reverser أو LinearMouse أو تطبيقًا مشابهًا بحيث يترك Status Trio دون تغيير، عادةً عبر قائمة استثناءات/تجاهل (يُطلق عليها أحيانًا قائمة السماح).";
-"settings.popup.volumeScroll.feedback" = "تشغيل صوت عند تغيير مستوى الصوت بالتمرير";
-"settings.popup.volumeScroll.feedback.description" = "يشغّل النقرة عند تغيير مستوى الصوت بالتمرير. الافتراضي يتبع إعداد macOS «تشغيل التغذية الراجعة عند تغيير مستوى الصوت»؛ التبديل هنا ينطبق على Status Trio فقط.";
+"settings.audio.volumeFeedbackTitle" = "التغذية الراجعة لمستوى الصوت";
+"settings.audio.volumeFeedback" = "تشغيل صوت عند تغيير مستوى الصوت بالتمرير";
+"settings.audio.volumeFeedbackDescription" = "يشغّل النقرة عند تغيير مستوى الصوت بالتمرير. الافتراضي يتبع إعداد macOS «تشغيل التغذية الراجعة عند تغيير مستوى الصوت»؛ التبديل هنا ينطبق على Status Trio فقط.";
 "settings.popup.volumeScroll.direction" = "اتجاه التمرير";
 "settings.popup.volumeScroll.direction.description" = "اختر الاتجاه الذي يرفع مستوى الصوت.";
 "settings.popup.volumeScroll.direction.up" = "للأعلى";

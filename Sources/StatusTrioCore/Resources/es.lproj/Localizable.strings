@@ -342,8 +342,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Solo el control de volumen";
 "settings.popup.volumeScroll.natural" = "Desplazamiento natural";
 "settings.popup.volumeScroll.natural.description" = "Si está activado, desplazarse hacia arriba con el ratón o el trackpad sube el volumen. Si está desactivado, el volumen sigue la dirección de desplazamiento del sistema. Si, tras activar esta opción, desplazar el ratón hacia arriba sigue bajando el volumen, configura MOS, Scroll Reverser, LinearMouse o una app similar para dejar Status Trio sin cambios, normalmente mediante una lista de excepciones/omisiones (a veces llamada lista de permitidos).";
-"settings.popup.volumeScroll.feedback" = "Reproducir un sonido al cambiar el volumen con el desplazamiento";
-"settings.popup.volumeScroll.feedback.description" = "Reproduce el sonido al cambiar el volumen con el desplazamiento. De forma predeterminada sigue el ajuste de macOS «reproducir sonido al cambiar el volumen»; este interruptor solo afecta a Status Trio.";
+"settings.audio.volumeFeedbackTitle" = "Comentarios de volumen";
+"settings.audio.volumeFeedback" = "Reproducir un sonido al cambiar el volumen con el desplazamiento";
+"settings.audio.volumeFeedbackDescription" = "Reproduce el sonido al cambiar el volumen con el desplazamiento. De forma predeterminada sigue el ajuste de macOS «reproducir sonido al cambiar el volumen»; este interruptor solo afecta a Status Trio.";
 "settings.popup.volumeScroll.direction" = "Dirección del desplazamiento";
 "settings.popup.volumeScroll.direction.description" = "Elige la dirección que sube el volumen.";
 "settings.popup.volumeScroll.direction.up" = "Hacia arriba";

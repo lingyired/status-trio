@@ -342,8 +342,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Volume Control Only";
 "settings.popup.volumeScroll.natural" = "Natural Scrolling";
 "settings.popup.volumeScroll.natural.description" = "When on, scrolling up on a mouse or trackpad increases volume. When off, volume follows the system's scrolling direction. If scrolling up still lowers the volume after turning this on, configure MOS, Scroll Reverser, LinearMouse, or a similar app to leave Status Trio unchanged, usually through an exception/ignore list (sometimes called an allowlist).";
-"settings.popup.volumeScroll.feedback" = "Play a sound when scrolling to change the volume";
-"settings.popup.volumeScroll.feedback.description" = "Plays the tick when you change the volume by scrolling. By default it follows the macOS “Play feedback when volume is changed” setting; toggling this here overrides it for Status Trio only.";
+"settings.audio.volumeFeedbackTitle" = "Volume feedback";
+"settings.audio.volumeFeedback" = "Play a sound when scrolling to change the volume";
+"settings.audio.volumeFeedbackDescription" = "Plays the tick when you change the volume by scrolling. By default it follows the macOS “Play feedback when volume is changed” setting; toggling this here overrides it for Status Trio only.";
 "settings.popup.volumeScroll.direction" = "Scroll Direction";
 "settings.popup.volumeScroll.direction.description" = "Choose the direction that turns the volume up.";
 "settings.popup.volumeScroll.direction.up" = "Scroll Up";

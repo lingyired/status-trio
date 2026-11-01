@@ -342,8 +342,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Réglage du volume uniquement";
 "settings.popup.volumeScroll.natural" = "Défilement naturel";
 "settings.popup.volumeScroll.natural.description" = "Lorsque cette option est activée, un défilement vers le haut avec la souris ou le trackpad augmente le volume. Sinon, le volume suit le sens de défilement du système. Si, après avoir activé cette option, le défilement vers le haut de la souris fait encore baisser le volume, configurez MOS, Scroll Reverser, LinearMouse ou une app similaire pour laisser Status Trio inchangé, généralement via une liste d’exceptions/d’ignorés (parfois appelée liste d’autorisation).";
-"settings.popup.volumeScroll.feedback" = "Émettre un son lors du réglage du volume par défilement";
-"settings.popup.volumeScroll.feedback.description" = "Émet le son lorsque vous réglez le volume par défilement. Par défaut, suit le réglage macOS « émettre un retour sonore lors du changement de volume » ; ce commutateur ne s’applique qu’à Status Trio.";
+"settings.audio.volumeFeedbackTitle" = "Retour sonore du volume";
+"settings.audio.volumeFeedback" = "Émettre un son lors du réglage du volume par défilement";
+"settings.audio.volumeFeedbackDescription" = "Émet le son lorsque vous réglez le volume par défilement. Par défaut, suit le réglage macOS « émettre un retour sonore lors du changement de volume » ; ce commutateur ne s’applique qu’à Status Trio.";
 "settings.popup.volumeScroll.direction" = "Sens du défilement";
 "settings.popup.volumeScroll.direction.description" = "Choisissez le sens qui augmente le volume.";
 "settings.popup.volumeScroll.direction.up" = "Vers le haut";
