@@ -52,8 +52,8 @@ Plan: `docs/superpowers/plans/2026-11-01-issue-202-brightness-control.md`
     `test-macos13-deployment-contract` / `test-powerui-charge-restore`：PASS
 - 独立验证：`ChargingEffectRenderingTests` 单独运行 5/5 通过；全量套件也曾
   多次整体通过（`swift test` 与 `--no-parallel` 均出现过整体绿）。
-- 真机 DDC 亮度效果：**NOT RUN**（本环境无外接屏 I2C 通路）。
-- 真机内置屏 DisplayServices 亮度效果：**NOT RUN**（本环境外接屏模式，无内置屏在线）。
+- 真机外接屏 DDC 亮度：**PASS（手动，维护者 2026-11-01）** — Acer XV272U 经直接 DDC 可调；日志 `ddc.resolve matched branch=dispext0`、`profile=P1 usable`。
+- 真机内置屏 DisplayServices 亮度：**PASS（手动，维护者 2026-11-01）** — 退出 BetterDisplay 后内置屏亮度仍可调，证明不依赖 BetterDisplay。
 - macOS 13 / macOS 26 运行时：**NOT RUN**。
 - 硬件签名 / 公证 / DMG / Universal 打包 / 正式发布 CI：**NOT RUN**（本地验证不覆盖）。
 
@@ -61,8 +61,8 @@ Plan: `docs/superpowers/plans/2026-11-01-issue-202-brightness-control.md`
 
 - `CGDisplayCreateUUIDFromDisplayID` 与 IORegistry `EDID UUID` 在旧系统可能不等，
   解析失败即报错不猜测；真机需确认多屏匹配。
-- 内置屏 `DisplayServices` 私有 API 需在真机（笔记本内置屏）验证读写与取整行为。
-- 外屏可选 BetterDisplay 的 `brightness/min/max` 参数键照 volume 移植，未真机核对。
+- 内置屏 `DisplayServices` 已手动确认可调；极端取整/回读容差在个别机型仍可能 fail-closed。
+- 外屏可选 BetterDisplay 的 `brightness/min/max` 参数键照 volume 移植，未真机核对（外屏默认不用它）。
 - DDC 写后读回按「读回值==写入值」严格确认；显示器若取整可能 fail closed
   （设计取向，真机再评估是否加容差）。
 - 设置页暂只提供分区开关；每块外屏的后端选择 API
