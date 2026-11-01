@@ -29,6 +29,18 @@ struct BatteryPowerFlowView: View {
     /// The ribbon bundle is centred in the input card with a 5% margin above
     /// and below, so it reads as one stream leaving the middle of the card.
     private static let bundleInset: CGFloat = 0.05
+    /// The panel chrome is transparent Liquid Glass, so the previous very light
+    /// fills (0.045–0.08) vanished over a bright or colourful desktop. These
+    /// fills and rims keep each node and ribbon legible without hiding the glass.
+    /// The input chip deliberately reuses the outer power bar's exact styling
+    /// (`.primary` at 0.18, radius 12, 0.3 rim) so the two "charger input"
+    /// surfaces read the same.
+    private static let inputCardFill: Double = 0.18
+    private static let inputCardStroke: Double = 0.3
+    private static let cardFill: Double = 0.18
+    private static let cardStroke: Double = 0.32
+    private static let ribbonFillStart: Double = 0.22
+    private static let ribbonFillEnd: Double = 0.62
 
     private func rowHeight(_ index: Int) -> CGFloat {
         guard isCompact else { return nodeHeight }
@@ -141,7 +153,18 @@ struct BatteryPowerFlowView: View {
                        height: Self.inputCardHeight, singleLine: false, iconSize: 15,
                        iconLeading: false)
                     .frame(width: destinations.isEmpty ? width : 62)
-                    .background(.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 14))
+                    // `Color.primary` (an explicit colour), not bare `.primary`:
+                    // in `.background(_:in:)` the leading dot resolves to the
+                    // hierarchical `HierarchicalShapeStyle.primary`, which follows
+                    // the vibrant foreground of the detail page and renders almost
+                    // transparent over the glass. The explicit colour matches the
+                    // outer power bar's `Color.primary` chip.
+                    .background(Color.primary.opacity(Self.inputCardFill),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Color.primary.opacity(Self.inputCardStroke), lineWidth: 1)
+                    }
                     .position(x: destinations.isEmpty ? width / 2 : 31, y: center)
             }
             ForEach(Array(destinations.enumerated()), id: \.offset) { index, item in
@@ -152,7 +175,11 @@ struct BatteryPowerFlowView: View {
                        iconSize: isCompact && !showsLabel(index) && rowHeight(index) <= Self.denseRow
                            ? 10 : Self.iconSize(for: item.kind))
                     .frame(width: state.input == nil ? width : 94)
-                    .background(Self.color(for: item.kind).opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                    .background(Self.color(for: item.kind).opacity(Self.cardFill), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Self.color(for: item.kind).opacity(Self.cardStroke), lineWidth: 1)
+                    }
                     .position(x: state.input == nil ? width / 2 : width - 47, y: centerY(index))
             }
         }
@@ -281,7 +308,7 @@ struct BatteryPowerFlowView: View {
                 control2: CGPoint(x: start + control, y: startY + thickness / 2))
             path.closeSubpath()
         }
-        .fill(LinearGradient(colors: [color.opacity(0.08), color.opacity(0.3)],
+        .fill(LinearGradient(colors: [color.opacity(Self.ribbonFillStart), color.opacity(Self.ribbonFillEnd)],
             startPoint: .leading, endPoint: .trailing))
         .accessibilityHidden(true)
     }

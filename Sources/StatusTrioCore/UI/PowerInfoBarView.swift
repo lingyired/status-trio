@@ -42,7 +42,16 @@ struct PowerInfoBarView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        // The panel chrome is transparent Liquid Glass, so a very light tint
+        // disappears over a bright or colourful desktop. Keep the fill and a
+        // thin rim opaque enough that each card still reads as a surface. The
+        // battery details flow diagram reuses this exact styling for its input
+        // card, so both "charger input" chips match.
+        .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(tint.opacity(0.3), lineWidth: 1)
+        }
         .accessibilityElement(children: .combine)
     }
 
