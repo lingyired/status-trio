@@ -231,6 +231,18 @@ struct BluetoothListeningModePresentation: Equatable, Sendable {
 }
 
 extension BluetoothListeningModePresentation {
+    /// The mode a tap on `mode` should request from the device.
+    ///
+    /// Tapping the capsule that is already the confirmed selection asks the
+    /// device to turn its listening mode *off*; tapping any other capsule selects
+    /// it. `off` is never drawn as its own capsule on an AirPods row (`off` has no
+    /// `lsms` bit), so re-tapping the active mode is the only way a user can ask
+    /// for it. Keeping the rule here means both the CoreAudio and HUAWEI write
+    /// paths — and the preview — resolve a tap identically.
+    func requestedMode(forTapped mode: BluetoothListeningMode) -> BluetoothListeningMode {
+        selectedMode == mode ? .off : mode
+    }
+
     /// Whether a write to this device is currently in flight.
     var isChanging: Bool {
         if case .changing = actionState { return true }

@@ -12,6 +12,9 @@ final class BatteryDetailsController: ObservableObject {
     /// treat an open battery page like its Wi-Fi and Bluetooth counterparts.
     var isActive: Bool { active }
     private let reader: Reader?
+    /// The shared system-power sampler. Set once by the store after both objects
+    /// exist; nil in previews and standalone tests that do not need it.
+    var powerSampling: PowerSamplingService?
     private var options = BatteryPowerDisplayOptions.default
     private var showsHighEnergyApps = false
     private static let queue = DispatchQueue(label: "com.lingsmbp.StatusTrio.battery-details", qos: .utility)
@@ -42,8 +45,28 @@ final class BatteryDetailsController: ObservableObject {
         generation += 1
         details = nil
         if showsHighEnergyApps { energyApps.activate() }
+        updatePowerDemand()
         refresh()
         startRefreshLoop()
+    }
+
+    /// The details page is the only surface that reads a split or a charging
+    /// sample, but the whole-machine total it shows is owned by the shared
+    /// sampler. Register the demand only when this page can actually present it.
+    private func updatePowerDemand() {
+        guard let powerSampling else { return }
+        let wantsSystemPower: Bool
+        if active, let state {
+            wantsSystemPower = BatteryDetailsReader.readsSystemPower(for: state)
+                && (!state.isPresent || options.showsSystem)
+        } else {
+            wantsSystemPower = false
+        }
+        if wantsSystemPower {
+            powerSampling.begin(.details)
+        } else {
+            powerSampling.end(.details)
+        }
     }
 
     func configure(options: BatteryPowerDisplayOptions, showsHighEnergyApps: Bool) {
@@ -52,6 +75,7 @@ final class BatteryDetailsController: ObservableObject {
         self.showsHighEnergyApps = showsHighEnergyApps
         if active && showsHighEnergyApps { energyApps.activate() } else { energyApps.deactivate() }
         if changed && active {
+            updatePowerDemand()
             refresh()
             startRefreshLoop()
         }
@@ -69,6 +93,7 @@ final class BatteryDetailsController: ObservableObject {
             notBefore = now
         }
         self.state = state
+        updatePowerDemand()
     }
 
     private func startRefreshLoop() {
@@ -85,6 +110,7 @@ final class BatteryDetailsController: ObservableObject {
     }
 
     func deactivate() {
+        powerSampling?.end(.details)
         active = false
         refreshTask?.cancel()
         refreshTask = nil
@@ -122,11 +148,18 @@ final class BatteryDetailsController: ObservableObject {
         let reader = reader
         let options = options
         let previousBreakdown = details?.breakdown
+        // The shared sampler owns the SMC whole-machine read. Hand its latest
+        // sample to the reader so the details page never opens a second
+        // system-power connection of its own.
+        let sharedSystemPower = powerSampling?.systemPower
+        let usesSharedSystemPower = powerSampling != nil
         Self.queue.async { [weak self] in
             guard self != nil else { return }
             let result = reader?(state, notBefore)
                 ?? BatteryDetailsReader().read(state: state, notBefore: notBefore, options: options,
-                                                previousBreakdown: previousBreakdown)
+                                                previousBreakdown: previousBreakdown,
+                                                systemPower: sharedSystemPower,
+                                                usesSharedSystemPower: usesSharedSystemPower)
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.inFlight = false

@@ -342,6 +342,7 @@ enum DockIconRenderer {
             size: DockIconGlyphLayout.glyphSVGSize,
             foreground: palette.foreground,
             criticalColor: StatusIconRenderer.defaultCriticalColor,
+            statusPalette: .resolved(dark: backgroundStyle == .dark),
             phase: phase,
             regions: regions
         )

@@ -66,6 +66,8 @@
 "settings.network.centerSource.description" = "Elige qué muestra el icono de estado en el centro. «Automático» mantiene el comportamiento de red y Bluetooth habitual.";
 "settings.network.centerSource.automatic" = "Automático";
 "settings.network.centerSource.inputSource" = "Fuente de entrada actual";
+"settings.network.centerSource.batteryPercentage" = "Porcentaje de batería";
+"settings.network.centerSource.power" = "Potencia (vatios)";
 "settings.network.centerSource.bluetoothFallback" = "Con la fuente de entrada seleccionada, los iconos de Bluetooth y red solo se usan como respaldo.";
 "settings.network.centerSource.networkWarnings" = "Priorizar problemas de red";
 "settings.network.centerSource.networkWarnings.description" = "Cuando el Mac está realmente sin conexión, el centro muestra el estado de red en lugar de la fuente de entrada.";
@@ -145,8 +147,6 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Visualización de la batería";
 "settings.battery.showPercentage" = "Mostrar porcentaje de batería";
-"settings.battery.showPercentageInConnectionSlot" = "Mostrar el porcentaje de batería en la posición de conexión";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Sustituye el símbolo de Wi-Fi o conexión. Es independiente del indicador de batería superior.";
 "settings.battery.showChargingIndicator" = "Mostrar un indicador al cargar o conectar a la corriente";
 "settings.battery.chargingDescription" = "Al activarlo, el porcentaje se convierte en un rayo o un enchufe mientras se carga o está conectado a la corriente.";
 "settings.battery.chargingEffect" = "Efecto de carga";
@@ -168,9 +168,27 @@
 "settings.battery.symbolScaleAccessibility" = "Tamaño del porcentaje y el rayo de la batería";
 "settings.battery.symbolScaleDescription" = "El porcentaje y el rayo comparten este tamaño.";
 "settings.battery.statusColors" = "Colorear el arco según el estado de la batería";
-"settings.battery.statusColorsDescription" = "Batería baja en rojo, modo de bajo consumo en amarillo y carga o corriente conectada en verde.";
+"settings.battery.statusColorsDescription" = "Por defecto, corriente en verde, bajo consumo en amarillo y batería baja en rojo. Puedes cambiarlos abajo. Al desactivar, se ignoran los colores personalizados guardados.";
+"settings.battery.colors.charging" = "Carga / corriente conectada";
+"settings.battery.colors.lowPower" = "Modo de bajo consumo";
+"settings.battery.colors.critical" = "Batería críticamente baja";
+"settings.battery.colors.system" = "Predeterminado del sistema";
+"settings.battery.colors.custom" = "Personalizado";
+"settings.battery.colors.mint" = "Menta";
+"settings.battery.colors.sky" = "Cielo";
+"settings.battery.colors.lavender" = "Lavanda";
+"settings.battery.colors.amber" = "Ámbar";
+"settings.battery.colors.rose" = "Rosa";
+"settings.battery.colors.slate" = "Pizarra";
+"settings.battery.colors.reset" = "Restablecer";
+"settings.battery.colors.resetAll" = "Restablecer todos los colores";
+"settings.battery.colors.inactive" = "Los colores de estado están desactivados. Tus opciones se guardan y se aplicarán al volver a activarlos.";
+"settings.battery.colors.referenceContrast" = "Contraste mínimo de referencia · %.2f:1";
+"settings.battery.colors.previews" = "Vistas previas de color clara y oscura";
+"settings.battery.colors.adjusted" = "Ajustado por visibilidad";
+"settings.battery.colors.referenceDescription" = "Los colores personalizados se comparten entre apariencias y se ajustan a un mínimo de 1.2:1. Los colores del sistema y predefinidos no cambian. El contraste es el mínimo frente a fondos blanco y negro y sus pistas; el fondo real puede variar.";
 "settings.battery.criticalThreshold" = "Umbral de batería baja";
-"settings.battery.criticalThresholdDescription" = "Los niveles por debajo de este umbral se consideran bajos y se muestran en rojo.";
+"settings.battery.criticalThresholdDescription" = "Los niveles por debajo de este umbral usan el color de batería críticamente baja.";
 "settings.battery.fullThreshold" = "Nivel de anillo lleno";
 "settings.battery.fullThresholdDescription" = "El anillo de batería se considera lleno a este nivel. Útil cuando la limitación de carga mantiene la batería por debajo del 100%.";
 "settings.battery.fullThresholdUseChargeLimit" = "Usar el límite de carga";
@@ -179,6 +197,8 @@
 "settings.updates.automatic" = "Buscar actualizaciones automáticamente";
 "settings.updates.check" = "Buscar actualizaciones…";
 "battery.title" = "Batería · %d%%";
+"battery.title.power" = "Potencia · %d W";
+"battery.title.powerUnavailable" = "Potencia · No disponible";
 "battery.state.notPresent" = "Sin batería";
 "battery.state.charged" = "Carga completa";
 "battery.state.calculatingTimeToFull" = "Calculando tiempo para carga completa";
@@ -448,6 +468,7 @@
 // On-demand battery details.
 "battery.details.title" = "Detalles de la batería";
 "battery.details.systemPower" = "Consumo del sistema (estimado)";
+"battery.details.watt" = "Potencia";
 "battery.details.systemReadAt" = "Lectura del sistema";
 "battery.details.power" = "Potencia de la batería (estimada)";
 "battery.details.charging" = "Carga (estimada)";
@@ -564,6 +585,10 @@
 "settings.battery.powerFlow.description" = "Las potencias se actualizan solo con el panel Batería abierto. Los sensores pueden tener retraso y las tres lecturas pueden no sumar exactamente.";
 "settings.battery.breakdown" = "Dividir la potencia por componente";
 "settings.battery.breakdown.description" = "Divide la entrada del adaptador entre la pantalla integrada, la salida USB y el resto de la carga del sistema (incluido el SoC). Los valores no disponibles se ocultan; sin un desglose fiable vuelve la potencia del sistema.";
+"settings.battery.powerInfoBar" = "Barra de potencia";
+"settings.battery.powerFlowDiagram" = "Diagrama de flujo de potencia";
+"settings.battery.powerFlowDiagramDescription" = "Muestra el diagrama de flujo de potencia (entrada / batería / sistema) en la página de detalles de la batería.";
+"settings.battery.powerInfoBarDescription" = "Muestra la potencia de entrada, batería y sistema bajo el módulo de batería con el panel abierto. Desactivado por defecto.";
 "settings.battery.energyRefreshInterval" = "Intervalo de muestreo en segundo plano";
 "settings.battery.energyRefreshInterval.description" = "Se usa con el panel cerrado. La página de detalles de la batería sigue actualizándose cada 5 segundos.";
 "battery.power.input" = "Entrada cargador";
@@ -572,6 +597,10 @@
 "battery.power.system" = "Sistema";
 "battery.power.system.help" = "Potencia del sistema (incl. SoC)";
 "battery.power.system.explanation" = "“Sistema” es lo que queda tras la carga de la batería, la pantalla y el USB: incluye el SoC, la memoria, los controladores de pantalla y otras cargas no medidas por separado.";
+"power.infoBar.input" = "Entrada del cargador";
+"power.infoBar.battery" = "Carga de batería";
+"power.infoBar.system" = "Potencia del sistema";
+"power.infoBar.notCharging" = "No se está cargando";
 "battery.power.display" = "Pantalla";
 "battery.power.usb" = "Salida USB";
 "battery.power.soc" = "SoC";

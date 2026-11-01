@@ -81,6 +81,9 @@ final class SystemStatusStore: ObservableObject {
     var betterDisplayDevices: [BetterDisplayDevice] { betterDisplayState.devices }
     var betterDisplayAvailability: BetterDisplayAvailability { betterDisplayState.availability }
     let batteryDetails: BatteryDetailsController
+    /// The single owner of periodic whole-machine power reads shared by the
+    /// icon centre slot, the panel summary and the details page.
+    let powerSampling: PowerSamplingService
     let wifiNetworks: WiFiNetworkController
     /// The wired link's address configuration. Read while the popover is open on
     /// an Ethernet connection and dropped when either stops being true, so the
@@ -215,6 +218,7 @@ final class SystemStatusStore: ObservableObject {
         },
         wakeNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
         batteryDetails: BatteryDetailsController = BatteryDetailsController(),
+        powerSampling: PowerSamplingService = PowerSamplingService(),
         wifiNetworks: WiFiNetworkController = WiFiNetworkController(),
         primaryLink: PrimaryLinkController = PrimaryLinkController(),
         localIP: LocalIPController = LocalIPController(),
@@ -241,6 +245,8 @@ final class SystemStatusStore: ObservableObject {
         self.popupDebounceSleep = popupDebounceSleep
         self.wakeNotificationCenter = wakeNotificationCenter
         self.batteryDetails = batteryDetails
+        self.powerSampling = powerSampling
+        batteryDetails.powerSampling = powerSampling
         self.wifiNetworks = wifiNetworks
         self.primaryLink = primaryLink
         self.localIP = localIP
@@ -492,6 +498,7 @@ final class SystemStatusStore: ObservableObject {
             self.displayWakeObserver = nil
         }
 
+        powerSampling.stopAll()
         batteryDetails.deactivate()
         mobileBattery.stop()
         lowPowerMode.stop()

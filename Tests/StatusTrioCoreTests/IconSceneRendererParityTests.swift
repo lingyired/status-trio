@@ -570,7 +570,7 @@ final class IconSceneRendererParityTests: XCTestCase {
         cases.append(visualCase(
             "battery percentage in center slot",
             snapshot: ordinary,
-            configuration: configuration(connection: ConnectionIconOptions(showsBatteryPercentageInConnectionSlot: true)),
+            configuration: configuration(connection: ConnectionIconOptions(centerSource: .batteryPercentage)),
             expected: scene(ring: ordinaryRing, center: .text(IconTextState(text: "68", color: .primary, scale: 1))),
             distinctRegion: centerRegion
         ))

@@ -49,12 +49,12 @@ final class PresentationBaselineTests: XCTestCase {
 
         let batteryCenter = try renderedPixels(
             snapshot,
-            showsBatteryPercentageInConnectionSlot: true,
+            centerSource: .batteryPercentage,
             bluetoothOptions: bluetoothWithNetworkErrorPriority
         )
         let batteryOnlyReference = try renderedPixels(
             snapshot,
-            showsBatteryPercentageInConnectionSlot: true
+            centerSource: .batteryPercentage
         )
         let prioritizedNetworkError = try renderedPixels(
             snapshot,
@@ -88,7 +88,7 @@ final class PresentationBaselineTests: XCTestCase {
 
         let enabledWithBatterySlot = try renderedPixels(
             snapshot,
-            showsBatteryPercentageInConnectionSlot: true,
+            centerSource: .batteryPercentage,
             bluetoothOptions: bluetoothReplacement
         )
         let enabledWithoutBatterySlot = try renderedPixels(
@@ -97,7 +97,7 @@ final class PresentationBaselineTests: XCTestCase {
         )
         let standardNetwork = try renderedPixels(
             snapshot,
-            showsBatteryPercentageInConnectionSlot: true
+            centerSource: .batteryPercentage
         )
 
         XCTAssertEqual(
@@ -109,7 +109,7 @@ final class PresentationBaselineTests: XCTestCase {
 
     private func renderedPixels(
         _ snapshot: StatusSnapshot,
-        showsBatteryPercentageInConnectionSlot: Bool = false,
+        centerSource: ConnectionCenterSource = .automatic,
         bluetoothOptions: BluetoothAudioIconOptions = .standard
     ) throws -> PixelBuffer {
         let image = try XCTUnwrap(renderMenuBarFixture(
@@ -118,7 +118,7 @@ final class PresentationBaselineTests: XCTestCase {
             scale: 8,
             foreground: CGColor(gray: 1, alpha: 1),
             connectionOptions: ConnectionIconOptions(
-                showsBatteryPercentageInConnectionSlot: showsBatteryPercentageInConnectionSlot
+                centerSource: centerSource
             ),
             bluetoothAudioOptions: bluetoothOptions
         ))

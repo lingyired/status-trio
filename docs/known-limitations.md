@@ -131,6 +131,21 @@ public half of the mechanism; the key names belong to `powerd`, and a key that g
 away only means those notifications stop arriving, which leaves the safety-net poll
 as the only trigger, exactly as before.
 
+## Apple TV and HomePod have no trustworthy Bluetooth identity
+
+The Bluetooth device list draws a glyph only for the class the paired-device
+report declares, and refines that glyph by name. An Apple TV is not a normal
+Bluetooth audio device: it lives on AirPlay, and CoreAudio only exposes it while
+it is already the active system output, without a model name — so it cannot be
+identified or discovered in the Bluetooth list (or the idle audio-output list).
+A HomePod can appear in the paired report as one entry per unit, but that report
+carries no stereo-pair or room grouping and no verified product identity, so two
+HomePods cannot be folded into one row, and a unit renamed to its room name falls
+back to the generic audio glyph. Per the issues' own rule ("if it cannot be
+identified, do not support it"), Status Trio does not guess here. Full support
+would need AirPlay/Bonjour discovery and a route helper — a separate feature. See
+[issue #100 / #101 analysis](issue-100-101-apple-tv-homepod-bluetooth.md).
+
 ## Telemetry cannot identify uninstalls
 
 When anonymous usage statistics are enabled, the app sends a small heartbeat
@@ -158,11 +173,12 @@ battery ring's progress arc, the active volume dots or arc fill, and the whole
 ring while the charging effect animates) are drawn in a custom raster above it
 and cannot follow.
 
-So an icon that is monochrome throughout — the usual unplugged case, or any
-configuration with status colours turned off — tracks a dragged Space perfectly,
-while an icon showing `critical`, `lowPower`, `powered`, or `bluetooth` re-tints
+An icon whose scene has no chromatic regions tracks a dragged Space throughout.
+An icon showing `critical`, `lowPower`, `powered`, or `bluetooth` re-tints
 everything except those coloured primitives and settles on the correct colour
-when the switch completes. This is a menu-bar-only behaviour: the Dock icon is a
+when the switch completes. Charging effects can also require an overlay even
+with status colours turned off; turning colours off does not change the existing
+animation-region policy. This is a menu-bar-only behaviour: the Dock icon is a
 single full-colour render and is unaffected. See
 [issue #112](https://github.com/lingyired/status-trio/issues/112).
 
@@ -184,7 +200,30 @@ Space-drag tinting working. This does not establish acceptance for every macOS
 version or for the complete application's animation and lifecycle. See the
 [integration and verification scope](verification/issue-165-template-image-view.md).
 The [earlier experiments](verification/inactive-display-icon-dimming.md) describe
-the rejected full-raster and template-button arrangements.
+the rejected full-raster and template-button arrangements. Colour settings keep
+this arrangement and require the same Space-drag and unfocused-display acceptance
+checks.
+
+## Custom battery colours and reference contrast
+
+Charging, Low Power Mode and critical-battery ring fills can each use the system
+semantic colour, a preset, or a custom colour. A custom HSB selection is shared
+between light and dark appearances and retained when status colours are disabled.
+Disabling status colours ignores these overrides and preserves the existing
+monochrome animation behaviour.
+
+Custom-colour visibility is checked against black and white reference backgrounds
+and their composited ring tracks. The settings report reference contrast and
+whether the rendered colour was adjusted to reach the 1.2:1 floor; the stored
+selection stays unchanged. These references do not measure the live wallpaper or
+the translucent menu bar, so they cannot guarantee contrast against every
+background. The charging highlight continues to derive from the resolved fill
+using its existing contrast policy.
+
+System semantic green, yellow and red depend on macOS and appearance. They are a
+system-defined baseline, rather than a guarantee of identical pixels to Apple's
+battery menu item. Custom colours remain in the chromatic overlay and inherit
+the Space-drag limitation above.
 
 ## Custom status panel instead of `NSPopover`
 

@@ -2,15 +2,22 @@ struct IconSceneState: Equatable, Hashable, Sendable {
     let outerRing: OuterRingState?
     let center: CenterState?
     let footer: FooterState?
+    /// The per-role colour overrides carried with the scene so every copy — the
+    /// render caches, the Dock key, the menu-bar overlay — resolves the same
+    /// answer and a colour change invalidates the cached raster. `.standard`
+    /// keeps the system semantic colours.
+    let statusColors: BatteryStatusColors
 
     init(
         outerRing: OuterRingState? = nil,
         center: CenterState? = nil,
-        footer: FooterState? = nil
+        footer: FooterState? = nil,
+        statusColors: BatteryStatusColors = .standard
     ) {
         self.outerRing = outerRing
         self.center = center
         self.footer = footer
+        self.statusColors = statusColors
     }
 }
 
@@ -28,7 +35,8 @@ extension IconSceneState {
                 strokeScale: ring.strokeScale
             ),
             center: center,
-            footer: footer
+            footer: footer,
+            statusColors: statusColors
         )
     }
 

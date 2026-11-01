@@ -65,6 +65,7 @@ final class StatusBarController: NSObject {
     private var isMenuBarChargingEffectEnabled: Bool
     private var screenParametersCancellable: AnyCancellable?
     private var refreshIntervalCancellable: AnyCancellable?
+    private var powerDemandCancellable: AnyCancellable?
     private let openSettings: () -> Void
     /// Opens Status Trio's own Settings window on the Battery tab.
     private let openAppBatterySettings: () -> Void
@@ -283,6 +284,20 @@ final class StatusBarController: NSObject {
             .removeDuplicates()
             .sink { [weak self] seconds in
                 self?.store.setRefreshInterval(.seconds(Int(seconds.rounded())))
+            }
+
+        // The icon is the surface that keeps wanting watts while the panel is
+        // closed. Its demand keeps the shared sampler at the idle cadence; the
+        // panel and details page add their own faster demands.
+        powerDemandCancellable = settings.$connectionCenterSource
+            .removeDuplicates()
+            .sink { [weak self] source in
+                guard let self else { return }
+                if source.needsPowerSampling {
+                    self.store.powerSampling.begin(.icon)
+                } else {
+                    self.store.powerSampling.end(.icon)
+                }
             }
 
         screenParametersCancellable = NotificationCenter.default.publisher(

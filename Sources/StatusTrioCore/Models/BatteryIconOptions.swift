@@ -19,6 +19,9 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
     let fullThreshold: Int
     let textScale: Double
     let ringStrokeScale: Double
+    /// The user's per-role colour overrides. `.standard` selects the system
+    /// semantic colours (the #188 baseline, which itself changed those colours).
+    let batteryStatusColors: BatteryStatusColors
 
     static let defaultTextScale = 1.8
     /// Kept in step with the stroke-style default so tuning the enum cannot
@@ -50,7 +53,8 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         connectedIndicator: BatteryConnectedIndicator = .plug,
         fullThreshold: Int = defaultFullThreshold,
         textScale: Double = defaultTextScale,
-        ringStrokeScale: Double = defaultRingStrokeScale
+        ringStrokeScale: Double = defaultRingStrokeScale,
+        batteryStatusColors: BatteryStatusColors = .standard
     ) {
         self.showsPercentage = showsPercentage
         self.showsChargingIndicator = showsChargingIndicator
@@ -62,5 +66,6 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         self.fullThreshold = min(100, max(1, fullThreshold))
         self.textScale = textScale.isFinite ? min(3, max(1, textScale)) : Self.defaultTextScale
         self.ringStrokeScale = ringStrokeScale.isFinite ? min(2.5, max(0.5, ringStrokeScale)) : Self.defaultRingStrokeScale
+        self.batteryStatusColors = batteryStatusColors
     }
 }

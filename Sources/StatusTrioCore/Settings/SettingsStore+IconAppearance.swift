@@ -71,12 +71,18 @@ extension SettingsStore {
                 showsChargingEffect:
                     additionalInputs.3 || showsDockChargingEffect,
                 showsChargingBoltHeartbeat: additionalInputs.2,
-                fullThreshold: Self.defaultBatteryFullThreshold
+                fullThreshold: Self.defaultBatteryFullThreshold,
+                batteryStatusColors: .standard
             )
         }
         .combineLatest($batteryFullThreshold) { inputs, fullThreshold in
             var updated = inputs
             updated.fullThreshold = fullThreshold
+            return updated
+        }
+        .combineLatest($batteryStatusColors) { inputs, colors in
+            var updated = inputs
+            updated.batteryStatusColors = colors
             return updated
         }
         .eraseToAnyPublisher()
@@ -98,16 +104,6 @@ extension SettingsStore {
                 wifiScale: wifiScale
             )
         }
-        .combineLatest($showsBatteryPercentageInConnectionSlot) { options, showsPercentage in
-            ConnectionIconOptions(
-                showsWiFiIconForEthernet: options.showsWiFiIconForEthernet,
-                showsWiFiIconForHotspot: options.showsWiFiIconForHotspot,
-                showsWiFiIconForTemporaryConnection: options.showsWiFiIconForTemporaryConnection,
-                showsWiFiIconForInternetSharing: options.showsWiFiIconForInternetSharing,
-                showsBatteryPercentageInConnectionSlot: showsPercentage,
-                wifiScale: options.wifiScale
-            )
-        }
         .combineLatest($connectionCenterSource, $prioritizesNetworkErrorsOverInputSource) {
             options, centerSource, prioritizesNetworkErrors in
             ConnectionIconOptions(
@@ -115,7 +111,6 @@ extension SettingsStore {
                 showsWiFiIconForHotspot: options.showsWiFiIconForHotspot,
                 showsWiFiIconForTemporaryConnection: options.showsWiFiIconForTemporaryConnection,
                 showsWiFiIconForInternetSharing: options.showsWiFiIconForInternetSharing,
-                showsBatteryPercentageInConnectionSlot: options.showsBatteryPercentageInConnectionSlot,
                 centerSource: centerSource,
                 prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrors,
                 wifiScale: options.wifiScale
@@ -164,6 +159,7 @@ private struct BatteryAppearanceInputs {
     var showsChargingEffect: Bool
     var showsChargingBoltHeartbeat: Bool
     var fullThreshold: Double
+    var batteryStatusColors: BatteryStatusColors
 
     func options(ringStrokeScale: Double) -> BatteryIconOptions {
         BatteryIconOptions(
@@ -176,7 +172,8 @@ private struct BatteryAppearanceInputs {
             connectedIndicator: connectedIndicator,
             fullThreshold: Int(fullThreshold.rounded()),
             textScale: symbolScale * BatteryIconOptions.defaultTextScale,
-            ringStrokeScale: ringStrokeScale
+            ringStrokeScale: ringStrokeScale,
+            batteryStatusColors: batteryStatusColors
         )
     }
 }

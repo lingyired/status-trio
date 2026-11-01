@@ -62,7 +62,9 @@ struct BatteryPowerState: Hashable, Sendable {
 
 struct BatteryDetailsReader: Sendable {
     func read(state: BatteryPowerState, notBefore: Date?, options: BatteryPowerDisplayOptions = .default,
-              previousBreakdown: BatteryPowerBreakdown? = nil) -> BatteryDetails {
+              previousBreakdown: BatteryPowerBreakdown? = nil,
+              systemPower sharedSystemPower: SystemPowerSample? = nil,
+              usesSharedSystemPower: Bool = false) -> BatteryDetails {
         let adapter = IOPSCopyExternalPowerAdapterDetails()?.takeRetainedValue() as? [String: Any]
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
         var registry: [String: Any] = [:]
@@ -73,8 +75,14 @@ struct BatteryDetailsReader: Sendable {
                 registry = properties?.takeRetainedValue() as? [String: Any] ?? [:]
             }
         }
+        // A caller that already owns a shared sample must not open a second
+        // system-power connection here. Only readers without one (previews,
+        // standalone tests) fall back to their own read.
+        let readsOwnSystemPower = !usesSharedSystemPower
+            && Self.readsSystemPower(for: state)
+            && options.showsSystem
         let sensors = SystemPowerReader().readSensors(
-            system: Self.readsSystemPower(for: state) && options.showsSystem,
+            system: readsOwnSystemPower,
             input: state.isPresent && state.isConnected && (options.showsInput || options.showsBreakdown),
             // Read the live battery sensor whenever the page can show charging
             // power. macOS can keep the IOPS/registry charging flags false for
@@ -115,7 +123,8 @@ struct BatteryDetailsReader: Sendable {
             state: state,
             now: now,
             notBefore: notBefore,
-            systemPower: sensors.system, inputPower: sensors.input, batteryPower: sensors.battery,
+            systemPower: sharedSystemPower ?? sensors.system,
+            inputPower: sensors.input, batteryPower: sensors.battery,
             breakdown: breakdown
         )
         if !options.showsInput { result.inputPower = nil }
@@ -123,11 +132,11 @@ struct BatteryDetailsReader: Sendable {
         return result
     }
 
-    /// Sampling AppleSMC costs an IPC round trip, so only do it when the page can
-    /// show the result: a Mac without a battery has no discharge row to compare
-    /// the system total against, and SMC is only queried on external power.
+    /// Whether this page has a meaningful whole-machine power row. A Mac with
+    /// no battery has no discharge or charging row to show, so its only power
+    /// reading is the system total; a battery Mac uses it on external power.
     static func readsSystemPower(for state: BatteryPowerState) -> Bool {
-        state.isPresent && state.isConnected
+        !state.isPresent || state.isConnected
     }
 
     /// The split covers both directions: an adapter feeding the Mac, or the
@@ -148,7 +157,17 @@ struct BatteryDetailsReader: Sendable {
         systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
         batteryPower: BatteryPowerSample? = nil, breakdown: BatteryPowerBreakdown? = nil
     ) -> BatteryDetails {
-        guard state.isPresent else { return BatteryDetails(powerAvailability: .unavailable) }
+        guard state.isPresent else {
+            // No battery: the system total is the whole page. A missing or stale
+            // sample is reported as collecting, never as 0 W.
+            guard let systemPower else {
+                return BatteryDetails(powerAvailability: .collecting)
+            }
+            guard systemPower.isFresh(at: now, notBefore: notBefore) else {
+                return BatteryDetails(powerAvailability: .collecting)
+            }
+            return BatteryDetails(powerAvailability: .available, systemPower: systemPower)
+        }
         var result = BatteryDetails(
             adapterWatts: state.isConnected ? adapterWatts.flatMap { $0 > 0 ? $0 : nil } : nil,
             remainingMinutes: !state.isConnected && remainingSeconds.isFinite && remainingSeconds >= 60

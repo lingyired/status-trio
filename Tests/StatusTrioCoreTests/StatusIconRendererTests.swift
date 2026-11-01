@@ -43,6 +43,33 @@ final class StatusIconRendererTests: XCTestCase {
         XCTAssertEqual(nsImage.size, NSSize(width: 20, height: 20))
     }
 
+    /// #188: the template mask must be fully opaque in both appearances. The
+    /// old `labelColor` ink carried alpha ≈ 0.847, which caps the drawn alpha at
+    /// roughly 216; opaque black/white caps it at 255. This is the hypothesis
+    /// under test for the grey report, not proof of the user-visible root cause.
+    func testMenuBarTemplateInkIsOpaqueInBothAppearances() throws {
+        let scene = IconSceneState(outerRing: OuterRingState(
+            segments: [RingSegmentState(progress: 0.5, color: .primary)],
+            gap: .closed
+        ))
+
+        for name in [NSAppearance.Name.aqua, .darkAqua] {
+            let appearance = try XCTUnwrap(NSAppearance(named: name))
+            let image = try XCTUnwrap(StatusIconRenderer.menuBarTemplateBase(
+                scene: scene,
+                size: 20,
+                scale: 4,
+                appearance: appearance
+            ))
+            let cgImage = try XCTUnwrap(image.cgImage(forProposedRect: nil, context: nil, hints: nil))
+            let pixels = try PixelBuffer(image: cgImage)
+            let maximumAlpha = stride(from: 3, to: pixels.bytes.count, by: 4)
+                .map { pixels.bytes[$0] }
+                .max() ?? 0
+            XCTAssertEqual(maximumAlpha, 255, "\(name.rawValue)")
+        }
+    }
+
     func testRendererRejectsNonPositiveSizeOrScale() {
         let snapshot = StatusSnapshot.placeholder
         let foreground = CGColor(gray: 1, alpha: 1)
@@ -127,7 +154,7 @@ final class StatusIconRendererTests: XCTestCase {
         ))
     }
 
-    func testChargingStateUsesDarkerGreenForLightMenuBar() throws {
+    func testChargingStateUsesLightAppearanceSemanticGreen() throws {
         let snapshot = StatusSnapshot(
             battery: makeBattery(rawPercentage: 50, isCharging: true),
             wifi: .placeholder,
@@ -142,10 +169,14 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
 
+        // #188: the charging arc is now the light-appearance system green, not a
+        // frozen RGB constant. Assert against the semantic colour the renderer
+        // resolves for the light menu bar instead of a hand-tuned triple.
+        let expected = resolvedSystemColor(.systemGreen, dark: false)
         XCTAssertTrue(pixels.containsColor(
-            red: 31.0 / 255.0,
-            green: 143.0 / 255.0,
-            blue: 61.0 / 255.0,
+            red: expected.red,
+            green: expected.green,
+            blue: expected.blue,
             tolerance: 0.08,
             minimumAlpha: 0.9
         ))
@@ -256,7 +287,7 @@ final class StatusIconRendererTests: XCTestCase {
         ))
     }
 
-    func testLowPowerStateUsesDarkerYellowForLightMenuBar() throws {
+    func testLowPowerStateUsesLightAppearanceSemanticYellow() throws {
         let snapshot = StatusSnapshot(
             battery: makeBattery(rawPercentage: 50, isLowPowerMode: true),
             wifi: .placeholder,
@@ -271,10 +302,12 @@ final class StatusIconRendererTests: XCTestCase {
             ))
         )
 
+        // #188: the low-power arc is now the light-appearance system yellow.
+        let expected = resolvedSystemColor(.systemYellow, dark: false)
         XCTAssertTrue(pixels.containsColor(
-            red: 201.0 / 255.0,
-            green: 151.0 / 255.0,
-            blue: 0,
+            red: expected.red,
+            green: expected.green,
+            blue: expected.blue,
             tolerance: 0.08,
             minimumAlpha: 0.9
         ))
@@ -1387,7 +1420,7 @@ final class StatusIconRendererTests: XCTestCase {
         let slotPercentage = try renderPixels(
             snapshot,
             connectionOptions: ConnectionIconOptions(
-                showsBatteryPercentageInConnectionSlot: true
+                centerSource: .batteryPercentage
             )
         )
 
@@ -1414,7 +1447,7 @@ final class StatusIconRendererTests: XCTestCase {
         let slotPercentage = try renderPixels(
             snapshot,
             connectionOptions: ConnectionIconOptions(
-                showsBatteryPercentageInConnectionSlot: true
+                centerSource: .batteryPercentage
             )
         )
 
@@ -1458,7 +1491,7 @@ final class StatusIconRendererTests: XCTestCase {
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
                 connectionOptions: ConnectionIconOptions(
-                    showsBatteryPercentageInConnectionSlot: true
+                    centerSource: .batteryPercentage
                 ),
                 bluetoothAudioOptions: pickedSymbol
             ))
@@ -1806,6 +1839,24 @@ final class StatusIconRendererTests: XCTestCase {
         // The product ID, not the name, decides the glyph.
         XCTAssertEqual(namedAirPods.bytes, renamedAirPods.bytes)
         XCTAssertNotEqual(renamedWithoutProductID.bytes, renamedAirPods.bytes)
+    }
+
+    /// Resolves a dynamic system colour the way the renderer does for one menu
+    /// bar appearance, so a semantic baseline can be asserted without pinning a
+    /// hand-tuned RGB triple that the OS may tune independently.
+    private func resolvedSystemColor(
+        _ color: NSColor,
+        dark: Bool
+    ) -> (red: CGFloat, green: CGFloat, blue: CGFloat) {
+        guard let appearance = NSAppearance(named: dark ? .darkAqua : .aqua) else {
+            return (0, 0, 0)
+        }
+        var resolved: (red: CGFloat, green: CGFloat, blue: CGFloat) = (0, 0, 0)
+        appearance.performAsCurrentDrawingAppearance {
+            guard let rgb = color.usingColorSpace(.deviceRGB) else { return }
+            resolved = (rgb.redComponent, rgb.greenComponent, rgb.blueComponent)
+        }
+        return resolved
     }
 
     private func bluetoothPixels(deviceName: String, modelUID: String?) throws -> PixelBuffer {

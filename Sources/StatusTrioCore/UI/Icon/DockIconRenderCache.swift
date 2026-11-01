@@ -17,7 +17,8 @@ struct DockIconRenderKey: Hashable {
                 strokeScale: ring.strokeScale
             ),
             center: scene.center,
-            footer: scene.footer
+            footer: scene.footer,
+            statusColors: scene.statusColors
         )
     }
 

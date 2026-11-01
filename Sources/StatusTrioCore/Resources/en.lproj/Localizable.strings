@@ -66,6 +66,8 @@
 "settings.network.centerSource.description" = "Choose what the status icon’s middle slot shows. Automatic keeps the usual network and Bluetooth behavior.";
 "settings.network.centerSource.automatic" = "Automatic";
 "settings.network.centerSource.inputSource" = "Current Input Source";
+"settings.network.centerSource.batteryPercentage" = "Battery Percentage";
+"settings.network.centerSource.power" = "Power (Watts)";
 "settings.network.centerSource.bluetoothFallback" = "With the input source selected, Bluetooth and network icons are used only as fallbacks.";
 "settings.network.centerSource.networkWarnings" = "Show network problems instead";
 "settings.network.centerSource.networkWarnings.description" = "When the Mac is genuinely offline, the middle slot shows the network state instead of the input source.";
@@ -145,8 +147,6 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Battery Display";
 "settings.battery.showPercentage" = "Show battery percentage";
-"settings.battery.showPercentageInConnectionSlot" = "Show battery percentage in the connection position";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Replaces the Wi-Fi or connection symbol. This is independent from the top battery indicator.";
 "settings.battery.showChargingIndicator" = "Show an indicator while charging or connected to power";
 "settings.battery.chargingDescription" = "When enabled, the percentage becomes a bolt or plug while charging or connected to power.";
 "settings.battery.chargingEffect" = "Charging effect";
@@ -168,9 +168,27 @@
 "settings.battery.symbolScaleAccessibility" = "Battery percentage and bolt size";
 "settings.battery.symbolScaleDescription" = "The percentage and bolt share this size.";
 "settings.battery.statusColors" = "Color the arc by battery state";
-"settings.battery.statusColorsDescription" = "Low battery is red, Low Power Mode is yellow, and charging or connected power is green.";
+"settings.battery.statusColorsDescription" = "Defaults are green for power, yellow for Low Power Mode, and red for low battery. Change them below. Turning this off ignores saved custom colors.";
+"settings.battery.colors.charging" = "Charging / connected power";
+"settings.battery.colors.lowPower" = "Low Power Mode";
+"settings.battery.colors.critical" = "Critically low battery";
+"settings.battery.colors.system" = "System default";
+"settings.battery.colors.custom" = "Custom";
+"settings.battery.colors.mint" = "Mint";
+"settings.battery.colors.sky" = "Sky";
+"settings.battery.colors.lavender" = "Lavender";
+"settings.battery.colors.amber" = "Amber";
+"settings.battery.colors.rose" = "Rose";
+"settings.battery.colors.slate" = "Slate";
+"settings.battery.colors.reset" = "Reset";
+"settings.battery.colors.resetAll" = "Reset all colors";
+"settings.battery.colors.inactive" = "State colors are off. Your choices are saved and will apply when enabled again.";
+"settings.battery.colors.referenceContrast" = "Minimum reference contrast · %.2f:1";
+"settings.battery.colors.previews" = "Light and dark color previews";
+"settings.battery.colors.adjusted" = "Adjusted for visibility";
+"settings.battery.colors.referenceDescription" = "Custom colors are shared across appearances and adjusted to at least 1.2:1. System and preset colors stay unchanged. Contrast is the minimum across white, black and their tracks; actual wallpaper may differ.";
 "settings.battery.criticalThreshold" = "Low battery threshold";
-"settings.battery.criticalThresholdDescription" = "Battery levels below this threshold are treated as low and shown in red.";
+"settings.battery.criticalThresholdDescription" = "Battery levels below this threshold use the critically low battery color.";
 "settings.battery.fullThreshold" = "Full ring level";
 "settings.battery.fullThresholdDescription" = "The battery ring counts as full at this level. Useful when charge limiting holds the battery below 100%.";
 "settings.battery.fullThresholdUseChargeLimit" = "Use the charge limit";
@@ -179,6 +197,8 @@
 "settings.updates.automatic" = "Automatically check for updates";
 "settings.updates.check" = "Check for Updates…";
 "battery.title" = "Battery · %d%%";
+"battery.title.power" = "Power · %d W";
+"battery.title.powerUnavailable" = "Power · Unavailable";
 "battery.state.notPresent" = "No battery";
 "battery.state.charged" = "Fully charged";
 "battery.state.calculatingTimeToFull" = "Calculating time to full";
@@ -448,6 +468,7 @@
 // On-demand battery details.
 "battery.details.title" = "Battery Details";
 "battery.details.systemPower" = "System power (estimate)";
+"battery.details.watt" = "Power";
 "battery.details.systemReadAt" = "System read at";
 "battery.details.power" = "Battery power (estimate)";
 "battery.details.charging" = "Charging (estimate)";
@@ -564,6 +585,10 @@
 "settings.battery.powerFlow.description" = "Power readings update only while the battery panel is open. Sensor updates may lag and the three readings may not add up exactly.";
 "settings.battery.breakdown" = "Split power by component";
 "settings.battery.breakdown.description" = "Splits the adapter input into built-in display, USB output, and the remaining system load (including the SoC). Unavailable readings are hidden; without a reliable split the system total returns.";
+"settings.battery.powerInfoBar" = "Power info bar";
+"settings.battery.powerFlowDiagram" = "Power Flow Diagram";
+"settings.battery.powerFlowDiagramDescription" = "Shows the input / battery / system power flow diagram in the battery details page.";
+"settings.battery.powerInfoBarDescription" = "Shows input, battery and system power below the battery module while the panel is open. Off by default.";
 "settings.battery.energyRefreshInterval" = "Background sampling interval";
 "settings.battery.energyRefreshInterval.description" = "Used while the panel is closed. The battery detail page still refreshes every 5 seconds.";
 "battery.power.input" = "Charger input";
@@ -572,6 +597,10 @@
 "battery.power.system" = "System power";
 "battery.power.system.help" = "System power (incl. SoC)";
 "battery.power.system.explanation" = "“System” is what remains after battery charging, the display and USB: it covers the SoC, memory, display controllers and other loads that are not measured on their own.";
+"power.infoBar.input" = "Charger input";
+"power.infoBar.battery" = "Battery charging";
+"power.infoBar.system" = "System power";
+"power.infoBar.notCharging" = "Not charging";
 "battery.power.display" = "Display";
 "battery.power.usb" = "USB out";
 "battery.power.soc" = "SoC";

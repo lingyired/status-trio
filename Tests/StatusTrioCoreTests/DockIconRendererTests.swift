@@ -106,13 +106,17 @@ final class DockIconRendererTests: XCTestCase {
         ))
     }
 
-    func testLightStyleUsesDarkChargingPalette() throws {
+    func testLightStyleUsesLightAppearanceSemanticGreen() throws {
         let pixels = try pixels(for: chargingStatus(), backgroundStyle: .light)
+        var lightSemanticGreen = NSColor.systemGreen
+        NSAppearance(named: .aqua)!.performAsCurrentDrawingAppearance {
+            lightSemanticGreen = NSColor.systemGreen.usingColorSpace(.deviceRGB)!
+        }
 
         XCTAssertTrue(pixels.containsColor(
-            red: 31.0 / 255.0,
-            green: 143.0 / 255.0,
-            blue: 61.0 / 255.0,
+            red: lightSemanticGreen.redComponent,
+            green: lightSemanticGreen.greenComponent,
+            blue: lightSemanticGreen.blueComponent,
             tolerance: 0.08,
             minimumAlpha: 0.9
         ))
@@ -318,6 +322,26 @@ final class DockIconRendererTests: XCTestCase {
         return try PixelBuffer(image: try XCTUnwrap(representation.cgImage))
     }
 
+    /// #188: the Dock now resolves `.critical` through the same semantic palette
+    /// as charging and low power, so a dark tile draws the dark-appearance system
+    /// red rather than the old fixed #FF3B30. This is intentional three-role
+    /// semantic parity, documented in the implementation report.
+    func testDarkStyleUsesDarkAppearanceSemanticRed() throws {
+        let pixels = try pixels(for: criticalStatus(), backgroundStyle: .dark)
+        var expected = NSColor.systemRed
+        NSAppearance(named: .darkAqua)!.performAsCurrentDrawingAppearance {
+            expected = NSColor.systemRed.usingColorSpace(.deviceRGB)!
+        }
+
+        XCTAssertTrue(pixels.containsColor(
+            red: expected.redComponent,
+            green: expected.greenComponent,
+            blue: expected.blueComponent,
+            tolerance: 0.08,
+            minimumAlpha: 0.9
+        ))
+    }
+
     private func chargingStatus() -> MenuBarStatus {
         MenuBarStatus(snapshot: StatusSnapshot(
             battery: BatteryStatus(
@@ -326,6 +350,20 @@ final class DockIconRendererTests: XCTestCase {
                 isCharging: true,
                 isLowPowerMode: false,
                 isConnectedToPower: true
+            ),
+            wifi: .placeholder,
+            volume: .placeholder
+        ))
+    }
+
+    private func criticalStatus() -> MenuBarStatus {
+        MenuBarStatus(snapshot: StatusSnapshot(
+            battery: BatteryStatus(
+                rawPercentage: 10,
+                isPresent: true,
+                isCharging: false,
+                isLowPowerMode: false,
+                isConnectedToPower: false
             ),
             wifi: .placeholder,
             volume: .placeholder

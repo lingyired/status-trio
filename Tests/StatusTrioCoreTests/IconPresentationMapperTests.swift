@@ -207,7 +207,7 @@ final class IconPresentationMapperTests: XCTestCase {
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output", currentDevice: PresentationFixtures.bluetoothDevice))
         let configuration = IconPresentationConfiguration(
             battery: .standard,
-            connection: ConnectionIconOptions(showsBatteryPercentageInConnectionSlot: true), volume: .standard,
+            connection: ConnectionIconOptions(centerSource: .batteryPercentage), volume: .standard,
             bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true, prioritizesNetworkErrors: true))
 
         let center = IconPresentationMapper.scene(
@@ -239,9 +239,117 @@ final class IconPresentationMapperTests: XCTestCase {
     }
 
     func testConnectionSlotToggleShowsPresentBatteryPercentage() {
-        let config = ConnectionIconOptions(showsBatteryPercentageInConnectionSlot: true)
+        let config = ConnectionIconOptions(centerSource: .batteryPercentage)
         let output = scene(snapshot: PresentationFixtures.snapshot(), connectionOptions: config).center
         XCTAssertEqual(output, .text(IconTextState(text: "68", color: .primary, scale: 1)))
+    }
+
+    func testPowerCenterSlotRendersIntegerWattsWithoutUnitOrDecimal() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let config = ConnectionIconOptions(centerSource: .power)
+        let cases: [(Double, String)] = [
+            (23.6, "24"),
+            (0.4, "0"),
+            (-2, "0"),
+            (999.4, "999"),
+            (1_204, "999")
+        ]
+        for (watts, expected) in cases {
+            let sample = SystemPowerSample(watts: watts, readAt: now)
+            let output = IconPresentationMapper.scene(
+                inputs: IconPresentationInputs(
+                    snapshot: PresentationFixtures.snapshot(),
+                    audioIcon: nil,
+                    systemPower: sample
+                ),
+                configuration: configuration(connection: config),
+                now: now
+            ).center
+            XCTAssertEqual(output, .text(IconTextState(text: expected, color: .primary, scale: 1)),
+                           "watts=\(watts)")
+        }
+    }
+
+    func testPowerTextFollowsTheWifiIconSizeScale() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let config = ConnectionIconOptions(centerSource: .power, wifiScale: 1.8)
+        let sample = SystemPowerSample(watts: 23.6, readAt: now)
+        let scene = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: PresentationFixtures.snapshot(),
+                audioIcon: nil,
+                systemPower: sample
+            ),
+            configuration: configuration(connection: config),
+            now: now
+        )
+        XCTAssertEqual(scene.center,
+                       .text(IconTextState(text: "24", color: .primary, scale: 1.8)),
+                       "The wattage must grow with the Wi-Fi Icon Size setting")
+    }
+
+    func testBatteryPercentageCentreUsesTheSameWifiIconSizeScale() {
+        let config = ConnectionIconOptions(centerSource: .batteryPercentage, wifiScale: 1.8)
+        let center = scene(snapshot: snapshot(battery: BatteryStatus(
+            rawPercentage: 68, isPresent: true, isCharging: false,
+            isLowPowerMode: false, isConnectedToPower: false
+        )), connectionOptions: config).center
+        XCTAssertEqual(center, .text(IconTextState(text: "68", color: .primary, scale: 1.8)))
+    }
+
+    func testPowerCenterSlotFallsBackToBatteryThenPlaceholder() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let config = ConnectionIconOptions(centerSource: .power)
+        let stale = SystemPowerSample(watts: 23.6, readAt: now.addingTimeInterval(-120))
+
+        let present = BatteryStatus(rawPercentage: 68, isPresent: true, isCharging: false,
+                                    isLowPowerMode: false, isConnectedToPower: false)
+        let withBattery = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: snapshot(battery: present),
+                audioIcon: nil,
+                systemPower: stale
+            ),
+            configuration: configuration(connection: config),
+            now: now
+        ).center
+        XCTAssertEqual(withBattery, .text(IconTextState(text: "68", color: .primary, scale: 1)),
+                       "A battery Mac may still show its level instead of a fake wattage")
+
+        let nonFinite = SystemPowerSample(watts: .infinity, readAt: now)
+        let nonFiniteCenter = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: snapshot(battery: present),
+                audioIcon: nil,
+                systemPower: nonFinite
+            ),
+            configuration: configuration(connection: config),
+            now: now
+        ).center
+        XCTAssertEqual(nonFiniteCenter, .text(IconTextState(text: "68", color: .primary, scale: 1)),
+                       "A non-finite sample must fall back instead of trapping Int conversion")
+
+        let noBattery = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                      isLowPowerMode: false, isConnectedToPower: false)
+        let placeholder = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: snapshot(battery: noBattery),
+                audioIcon: nil,
+                systemPower: nil
+            ),
+            configuration: configuration(connection: config),
+            now: now
+        ).center
+        XCTAssertEqual(placeholder, .text(IconTextState(text: "--", color: .primary, scale: 1)),
+                       "A Mac with no battery must not invent a percentage or a 0 W reading")
+    }
+
+    func testBatteryPercentageCenterFallsThroughWhenBatteryIsAbsent() {
+        let absent = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: false)
+        let config = ConnectionIconOptions(centerSource: .batteryPercentage)
+        let center = scene(snapshot: snapshot(battery: absent), connectionOptions: config).center
+        XCTAssertNotEqual(center, .text(IconTextState(text: "100", color: .primary, scale: 1)))
     }
 
     func testOffAndUnavailableWifiShareOneVisualState() {
@@ -399,6 +507,17 @@ final class IconPresentationMapperTests: XCTestCase {
         IconPresentationMapper.scene(inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: audioIcon),
             configuration: IconPresentationConfiguration(battery: batteryOptions, connection: connectionOptions,
                                                          volume: volumeOptions, bluetooth: bluetoothOptions))
+    }
+
+    private func configuration(
+        connection: ConnectionIconOptions
+    ) -> IconPresentationConfiguration {
+        IconPresentationConfiguration(
+            battery: .standard,
+            connection: connection,
+            volume: .standard,
+            bluetooth: .standard
+        )
     }
 
     private func snapshot(battery: BatteryStatus = BatteryStatus(rawPercentage: 68, isPresent: true, isCharging: false,

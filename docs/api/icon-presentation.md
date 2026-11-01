@@ -34,11 +34,15 @@ struct IconSceneState: Equatable, Hashable, Sendable {
     let outerRing: OuterRingState?
     let center: CenterState?
     let footer: FooterState?
+    /// Per-role battery colour overrides; `.standard` follows the semantic
+    /// colours. Part of the scene so every surface and cache key sees it.
+    let statusColors: BatteryStatusColors
 
     init(
         outerRing: OuterRingState? = nil,
         center: CenterState? = nil,
-        footer: FooterState? = nil
+        footer: FooterState? = nil,
+        statusColors: BatteryStatusColors = .standard
     )
 }
 ```
@@ -73,6 +77,24 @@ struct IconSceneState: Equatable, Hashable, Sendable {
 `IconTextState(text:color:scale:)` 提供短文本。symbol/text 的有限正数 scale 原样保留，非有限或非正数恢复为 1；这不是任意文本的排版容器，生产者需要控制文案长度和可读性。
 
 `IconColorRole` 可取 `.primary`、`.inactive`、`.critical`、`.lowPower`、`.powered`、`.bluetooth`。由绘制表面解析实际颜色，不传入固定深色或浅色 RGB。
+
+### 电池状态色配置
+
+`BatteryStatusColors` 为 charging、lowPower、critical 三个角色保存 `.system`、
+`.preset` 或 `.custom(HSB)`。它从 `SettingsStore.batteryStatusColors` 经
+`BatteryIconOptions` 进入共享场景；菜单栏、Dock、弹出面板和设置预览使用同一个解析器。
+颜色选择必须参与场景 equality/hash，并在关闭表面动画或生成静态缓存场景时保留。
+设置发布链使用 Combine 已交付的值，避免 `@Published` 提前发布造成旧色重绘。
+
+系统默认以当前外观的系统语义绿、黄、红为基线；菜单栏读取实际 effective appearance，
+Dock 按图标背景外观解析。用户自定义 HSB 原值由两个外观共用。渲染值的参考可见性
+下限为 1.2:1，参照黑/白底及其轨道合成色，设置页显示参考对比度与是否调整；
+这不等于实测透明菜单栏背景。充电高光继续从最终填充色派生。
+
+颜色设置不改变 `templateRegions` / `chromaticRegions` 的分类或 #165 的承载关系：
+彩色场景保留透明非模板 button 占位图、独立 template NSImageView 与上层彩色 CALayer。
+关闭状态色后忽略覆盖配置，仍保留既有动画区域判定。模板区域继续由系统在 Space
+拖动途中着色，彩色区域仍等提交后重绘，不新增焦点检测或手动变暗补偿。
 
 ### 底部
 

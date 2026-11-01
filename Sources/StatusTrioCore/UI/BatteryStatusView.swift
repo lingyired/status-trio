@@ -19,6 +19,10 @@ struct BatteryStatusView: View {
         VStack(alignment: .leading, spacing: 8) {
             summaryRow
 
+            if let infoBar = state.powerInfoBar, !infoBar.isEmpty {
+                PowerInfoBarView(state: infoBar)
+            }
+
             if chargeToFullNow.showsActionArea {
                 ChargeToFullNowActionView(
                     presentation: chargeToFullNow,

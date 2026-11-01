@@ -550,4 +550,43 @@ final class IconPresentationViewModelTests: XCTestCase {
             menuBarSize: settings.menuBarSize
         )
     }
+
+    func testSystemPowerSamplesRepaintThePowerCentreSlot() {
+        let snapshot = PresentationFixtures.snapshot()
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(snapshot)
+        let settings = IconPresentationSettings(
+            configuration: IconPresentationConfiguration(
+                battery: .standard,
+                connection: ConnectionIconOptions(centerSource: .power),
+                volume: .standard,
+                bluetooth: .standard
+            ),
+            menuBarSize: 24,
+            testsChargingEffect: false
+        )
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let systemPowers = CurrentValueSubject<SystemPowerSample?, Never>(nil)
+        let scheduler = ManualIconPresentationScheduler()
+        let model = IconPresentationViewModel(
+            snapshot: snapshot,
+            settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(),
+            preferences: preferences.eraseToAnyPublisher(),
+            systemPowers: systemPowers.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            snapshotScheduler: scheduler
+        )
+
+        XCTAssertEqual(model.output.scene.center,
+                       .text(IconTextState(text: "\(snapshot.battery.percentage)", color: .primary, scale: 1)))
+
+        model.start()
+        snapshots.send(snapshot)
+        preferences.send(settings)
+        systemPowers.send(SystemPowerSample(watts: 23.6, readAt: Date()))
+
+        XCTAssertEqual(model.output.scene.center,
+                       .text(IconTextState(text: "24", color: .primary, scale: 1)))
+        model.stop()
+    }
 }

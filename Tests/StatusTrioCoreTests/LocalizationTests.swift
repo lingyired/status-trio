@@ -153,6 +153,32 @@ final class LocalizationTests: XCTestCase {
         }
     }
 
+    func testPowerCentreSlotCopyExistsInEveryLanguage() throws {
+        let keys: [LocalizationKey] = [
+            .batteryTitlePower,
+            .batteryTitlePowerUnavailable,
+            .batteryDetailsWatt,
+            .settingsNetworkCenterSourceBatteryPercentage,
+            .settingsNetworkCenterSourcePower,
+            .settingsBatteryPowerFlowDiagram,
+            .settingsBatteryPowerFlowDiagramDescription,
+            .settingsBatteryPowerInfoBar,
+            .settingsBatteryPowerInfoBarDescription,
+            .powerInfoBarInput,
+            .powerInfoBarBattery,
+            .powerInfoBarSystem,
+            .powerInfoBarNotCharging
+        ]
+        for language in AppLanguage.allCases {
+            let bundle = try XCTUnwrap(Localization.resourceBundle(for: language))
+            for key in keys {
+                let value = bundle.localizedString(forKey: key.rawValue, value: nil, table: nil)
+                XCTAssertFalse(value.isEmpty, "\(language.rawValue) missing \(key.rawValue)")
+                XCTAssertNotEqual(value, key.rawValue, "\(language.rawValue) missing \(key.rawValue)")
+            }
+        }
+    }
+
     func testEveryParameterizedKeyUsesMatchingPlaceholders() throws {
         let expectedPlaceholderCounts: [LocalizationKey: Int] = [
             .wifiSummaryBand: 1,
@@ -165,6 +191,7 @@ final class LocalizationTests: XCTestCase {
             .settingsRefreshIntervalValue: 1,
             .settingsAboutVersion: 1,
             .batteryTitle: 1,
+            .batteryTitlePower: 1,
             .batteryTimeToFullMinutes: 1,
             .batteryTimeToFullHours: 1,
             .batteryTimeToFullHoursMinutes: 2,

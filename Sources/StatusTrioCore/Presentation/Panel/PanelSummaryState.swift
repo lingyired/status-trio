@@ -29,4 +29,7 @@ struct PanelSummaryState: Equatable, Sendable {
     let accessibilityValue: String
     let showsSettings: Bool
     let intent: PanelSummaryIntent
+    /// The provisional single-line power info bar under the battery module.
+    /// `nil` unless the user enabled the option and at least one rail is fresh.
+    var powerInfoBar: PowerInfoBarState? = nil
 }

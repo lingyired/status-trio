@@ -49,6 +49,8 @@
 "settings.network.centerSource.description" = "اختر ما تعرضه أيقونة الحالة في الوسط. «تلقائي» يحافظ على سلوك الشبكة والبلوتوث المعتاد.";
 "settings.network.centerSource.automatic" = "تلقائي";
 "settings.network.centerSource.inputSource" = "مصدر الإدخال الحالي";
+"settings.network.centerSource.batteryPercentage" = "نسبة البطارية";
+"settings.network.centerSource.power" = "الطاقة (واط)";
 "settings.network.centerSource.bluetoothFallback" = "عند اختيار مصدر الإدخال، تُستخدم أيقونات البلوتوث والشبكة كخيار احتياطي فقط.";
 "settings.network.centerSource.networkWarnings" = "إعطاء الأولوية لمشاكل الشبكة";
 "settings.network.centerSource.networkWarnings.description" = "عندما يكون الـ Mac غير متصل فعلياً، يعرض الوسط حالة الشبكة بدلاً من مصدر الإدخال.";
@@ -128,8 +130,6 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "عرض البطارية";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
-"settings.battery.showPercentageInConnectionSlot" = "إظهار نسبة البطارية في موضع الاتصال";
-"settings.battery.showPercentageInConnectionSlotDescription" = "يستبدل رمز Wi-Fi أو الاتصال، وهو مستقل عن مؤشر البطارية العلوي.";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";
 "settings.battery.chargingDescription" = "عند التفعيل، تتحول النسبة إلى رمز برق أو قابس أثناء الشحن أو الاتصال بالطاقة.";
 "settings.battery.chargingEffect" = "تأثير الشحن";
@@ -151,9 +151,27 @@
 "settings.battery.symbolScaleAccessibility" = "حجم نسبة البطارية ورمز البرق";
 "settings.battery.symbolScaleDescription" = "تستخدم النسبة ورمز البرق الحجم نفسه.";
 "settings.battery.statusColors" = "تلوين القوس حسب حالة البطارية";
-"settings.battery.statusColorsDescription" = "البطارية المنخفضة باللون الأحمر، ووضع الطاقة المنخفضة بالأصفر، والشحن أو الاتصال بالطاقة بالأخضر.";
+"settings.battery.statusColorsDescription" = "الألوان الافتراضية هي الأخضر للطاقة والأصفر لوضع الطاقة المنخفضة والأحمر لانخفاض البطارية. يمكنك تغييرها أدناه. عند التعطيل لا تُطبّق الألوان المخصصة المحفوظة.";
+"settings.battery.colors.charging" = "الشحن / الاتصال بالطاقة";
+"settings.battery.colors.lowPower" = "وضع الطاقة المنخفضة";
+"settings.battery.colors.critical" = "انخفاض حرج في البطارية";
+"settings.battery.colors.system" = "إعداد النظام الافتراضي";
+"settings.battery.colors.custom" = "مخصص";
+"settings.battery.colors.mint" = "نعناعي";
+"settings.battery.colors.sky" = "سماوي";
+"settings.battery.colors.lavender" = "خزامي";
+"settings.battery.colors.amber" = "كهرماني";
+"settings.battery.colors.rose" = "وردي";
+"settings.battery.colors.slate" = "رمادي أردوازي";
+"settings.battery.colors.reset" = "إعادة تعيين";
+"settings.battery.colors.resetAll" = "إعادة تعيين كل الألوان";
+"settings.battery.colors.inactive" = "ألوان الحالة معطلة. تُحفظ اختياراتك وتُطبّق عند تفعيلها مجددًا.";
+"settings.battery.colors.referenceContrast" = "أدنى تباين مرجعي · %.2f:1";
+"settings.battery.colors.previews" = "معاينة الألوان في المظهرين الفاتح والداكن";
+"settings.battery.colors.adjusted" = "عُدّل لتحسين الوضوح";
+"settings.battery.colors.referenceDescription" = "تُستخدم الألوان المخصصة نفسها في المظهرين وتُعدّل إلى 1.2:1 على الأقل. تبقى ألوان النظام والألوان الجاهزة دون تغيير. التباين هو أدنى قيمة على خلفيتين بيضاء وسوداء ومساري القوس عليهما، وقد يختلف مع خلفية الشاشة الفعلية.";
 "settings.battery.criticalThreshold" = "حد البطارية المنخفضة";
-"settings.battery.criticalThresholdDescription" = "تُعتبر المستويات الأقل من هذا الحد منخفضة وتُعرض باللون الأحمر.";
+"settings.battery.criticalThresholdDescription" = "تُستخدم ألوان الانخفاض الحرج للبطارية عندما يكون المستوى أقل من هذه العتبة.";
 "settings.battery.fullThreshold" = "مستوى اكتمال الحلقة";
 "settings.battery.fullThresholdDescription" = "تُعتبر حلقة البطارية ممتلئة عند هذا المستوى. مفيد عندما يحد تحديد الشحن من البطارية دون 100%.";
 "settings.battery.fullThresholdUseChargeLimit" = "استخدام حد الشحن";
@@ -162,6 +180,8 @@
 "settings.updates.automatic" = "التحقق تلقائيًا من وجود تحديثات";
 "settings.updates.check" = "التحقق من وجود تحديثات…";
 "battery.title" = "البطارية · %d%%";
+"battery.title.power" = "الطاقة · %d واط";
+"battery.title.powerUnavailable" = "الطاقة · غير متاحة";
 "battery.state.notPresent" = "لا توجد بطارية";
 "battery.state.charged" = "ممتلئة بالكامل";
 "battery.state.calculatingTimeToFull" = "جارٍ حساب الوقت حتى الامتلاء";
@@ -448,6 +468,7 @@
 // On-demand battery details.
 "battery.details.title" = "تفاصيل البطارية";
 "battery.details.systemPower" = "قدرة النظام (تقديرية)";
+"battery.details.watt" = "الطاقة";
 "battery.details.systemReadAt" = "وقت قراءة النظام";
 "battery.details.power" = "قدرة البطارية (تقديرية)";
 "battery.details.charging" = "الشحن (تقديري)";
@@ -564,6 +585,10 @@
 "settings.battery.powerFlow.description" = "تُحدّث قراءات الطاقة فقط عند فتح لوحة البطارية. قد تتأخر المستشعرات وقد لا تتطابق القراءات الثلاث تمامًا.";
 "settings.battery.breakdown" = "تقسيم الطاقة حسب المكوّن";
 "settings.battery.breakdown.description" = "يقسّم دخل المحول إلى الشاشة المدمجة وخرج USB وبقية حمل النظام (بما في ذلك SoC). تُخفى القيم غير المتاحة، وتعود الواجهة إلى طاقة النظام عند تعذّر التقسيم.";
+"settings.battery.powerInfoBar" = "شريط معلومات الطاقة";
+"settings.battery.powerFlowDiagram" = "مخطط تدفق الطاقة";
+"settings.battery.powerFlowDiagramDescription" = "يعرض مخطط تدفق الطاقة (الدخل / البطارية / النظام) في صفحة تفاصيل البطارية.";
+"settings.battery.powerInfoBarDescription" = "يعرض طاقة الدخل والبطارية والنظام أسفل وحدة البطارية أثناء فتح اللوحة. معطّل افتراضيًا.";
 "settings.battery.energyRefreshInterval" = "الفاصل الزمني لأخذ العينات في الخلفية";
 "settings.battery.energyRefreshInterval.description" = "يُستخدم عندما تكون اللوحة مغلقة. تستمر صفحة تفاصيل البطارية في التحديث كل 5 ثوانٍ.";
 "battery.power.input" = "دخل الشاحن";
@@ -572,6 +597,10 @@
 "battery.power.system" = "النظام";
 "battery.power.system.help" = "طاقة النظام (بما في ذلك SoC)";
 "battery.power.system.explanation" = "“النظام” هو ما يتبقى بعد شحن البطارية والشاشة وUSB، ويشمل SoC والذاكرة ومتحكمات الشاشة وغيرها.";
+"power.infoBar.input" = "دخل الشاحن";
+"power.infoBar.battery" = "شحن البطارية";
+"power.infoBar.system" = "طاقة النظام";
+"power.infoBar.notCharging" = "لا يتم الشحن";
 "battery.power.display" = "الشاشة";
 "battery.power.usb" = "خرج USB";
 "battery.power.soc" = "SoC";

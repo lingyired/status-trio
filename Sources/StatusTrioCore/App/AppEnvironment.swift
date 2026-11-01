@@ -447,6 +447,9 @@ final class AppEnvironment {
                 .map(\.selectedDescriptor)
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
+            systemPowers: store.powerSampling.$systemPower
+                .removeDuplicates()
+                .eraseToAnyPublisher(),
             resolveInputs: { snapshot in
                 IconPresentationResourceResolver.inputs(snapshot: snapshot)
             }
