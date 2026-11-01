@@ -224,3 +224,50 @@ Two sizing paths are now hardened:
 Coverage added in `StatusPanelContentTests` for the ideal-height measurement and
 extended in `StatusPanelContentResizeTests` for summary → battery detail →
 summary and summary → Wi-Fi detail → summary round trips.
+
+### Appearance investigation and rejected root-glass experiment
+
+A later experiment replaced the outer container with `NSGlassEffectView` and
+assigned the hosting view directly to its content. Although the earlier test
+passed, the maintainer observed the detail-page jump returning; the ABC keycap
+and corner outline were unchanged. That experiment is rejected and the stable
+container structure above is restored. The resize test now waits for natural
+AppKit/SwiftUI layout without manually calling `viewDidLayout`.
+
+The earlier claim that the wrapper caused the ABC colour difference was not
+verified. A headless comparison found both the template icon and keycap using
+`.primary` at roughly RGB 221 in dark mode. The filled keycap now uses explicit
+white in dark appearance and black in light appearance, with a pixel test for
+its ink and cut-out letter. This is a deliberate contrast adjustment, not a
+claim about Liquid Glass internals.
+
+The glass path previously rounded only the material itself; its outer backing
+layer had radius 0 and `masksToBounds == false`. The root now clips descendants
+to the panel's 16 pt curve, matching the pre-Tahoe root clipping contract. A
+focused test fails on the old configuration and passes after the fix. The
+WindowServer shadow is invalidated after frame changes so it can track the
+current transparent silhouette. These contracts do not prove the user's
+on-screen dark outline has disappeared; that remains a visual acceptance item.
+
+
+### Text contrast: popover-material experiment (rejected)
+
+The maintainer compared the custom panel with the 1.8.0 `NSPopover` and found
+secondary text fainter. A headless appearance probe shows the difference is the
+background class: `NSVisualEffectView(material: .popover)` resolves to
+`NSAppearanceNameVibrantDark`, while `NSGlassEffectView` resolves to
+`NSAppearanceNameDarkAqua`, so SwiftUI `.secondary` follows different values.
+
+An experiment (dev build "Issue 183B") switched the panel to
+`NSVisualEffectView(material: .popover)` on every macOS version. It matched the
+old popover's text contrast but stopped using Liquid Glass, which the maintainer
+noticed and rejected: the project keeps `NSGlassEffectView` on macOS 26+ as the
+#186 design requires.
+
+### Decision: keep system-native Liquid Glass
+
+The maintainer chose to accept the system-native Liquid Glass appearance
+(`NSGlassEffectView`) as-is. The slightly fainter secondary text is accepted as
+the platform's own value for that material rather than compensated with a manual
+colour override. The popover-material experiment is removed from the shipped
+code.

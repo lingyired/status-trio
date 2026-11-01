@@ -97,6 +97,7 @@ final class AnchoredStatusPanel: NSPanel {
             }
         }
         orderFrontRegardless()
+        invalidateShadow()
     }
 
     override func performClose(_ sender: Any?) {
@@ -133,6 +134,7 @@ final class AnchoredStatusPanel: NSPanel {
         guard abs(frame.width - rounded.width) >= 0.5 || abs(frame.height - rounded.height) >= 0.5
         else { return }
         setFrame(placementFrame(for: rounded), display: true)
+        invalidateShadow()
     }
 
     private func reposition() {
@@ -140,6 +142,7 @@ final class AnchoredStatusPanel: NSPanel {
         let target = placementFrame(for: frame.size)
         guard target != frame else { return }
         setFrame(target, display: true)
+        invalidateShadow()
     }
 
     private func placementFrame(for contentSize: NSSize) -> NSRect {
@@ -241,6 +244,11 @@ final class StatusPanelContentViewController: NSViewController {
     override func loadView() {
         let container = NSView(frame: .zero)
         container.wantsLayer = true
+        // Clip at the window's root as well as at the glass surface. The
+        // glass rounds its own material; it does not round its ancestor's
+        // backing layer or rectangular descendant drawing outside the curve.
+        container.layer?.cornerRadius = AnchoredStatusPanel.cornerRadius
+        container.layer?.masksToBounds = true
         view = container
 
         let reduceTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
@@ -285,12 +293,6 @@ final class StatusPanelContentViewController: NSViewController {
             background.autoresizingMask = [.width, .height]
             container.addSubview(background)
             backgroundView = background
-
-            // The hosting view is a sibling of the rounded background on this
-            // path, so clip the container too. Otherwise content drawn right at
-            // the corner could square it off.
-            container.layer?.cornerRadius = AnchoredStatusPanel.cornerRadius
-            container.layer?.masksToBounds = true
 
             hostingController.view.frame = container.bounds
             hostingController.view.autoresizingMask = [.width, .height]

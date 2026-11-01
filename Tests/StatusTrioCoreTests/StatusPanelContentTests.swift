@@ -61,6 +61,25 @@ final class StatusPanelContentTests: XCTestCase {
         XCTAssertGreaterThan(ideal.height, 40)
     }
 
+    func testRootClipsRectangularDescendantsToThePanelCorners() throws {
+        let host = StatusPanelHostingController(rootView: FixedContent())
+        let wrapper = StatusPanelContentViewController(hostingController: host)
+        let root = wrapper.view
+        XCTAssertEqual(root.layer?.cornerRadius, AnchoredStatusPanel.cornerRadius)
+        XCTAssertEqual(root.layer?.masksToBounds, true)
+
+        root.frame = NSRect(x: 0, y: 0, width: 330, height: 120)
+        root.layoutSubtreeIfNeeded()
+        let bitmap = try XCTUnwrap(root.bitmapImageRepForCachingDisplay(in: root.bounds))
+        root.cacheDisplay(in: root.bounds, to: bitmap)
+
+        // A rectangular descendant fills the root bounds; the root mask must
+        // make the extreme corner transparent, otherwise the window shadow is
+        // computed from a square silhouette.
+        let cornerAlpha = bitmap.colorAt(x: 0, y: 0)?.alphaComponent ?? 1
+        XCTAssertEqual(cornerAlpha, 0, accuracy: 0.001)
+    }
+
     func testPanelCanBecomeKeyWithoutBecomingMain() {
         let panel = AnchoredStatusPanel()
 

@@ -158,8 +158,8 @@ final class StatusPanelContentResizeTests: XCTestCase {
     private func settle<Content: View>(_ host: StatusPanelHostingController<Content>) {
         for _ in 0..<12 {
             RunLoop.current.run(until: Date().addingTimeInterval(0.03))
-            host.view.layoutSubtreeIfNeeded()
-            host.viewDidLayout()
+            // Let AppKit and SwiftUI deliver their normal layout callbacks.
+            // Calling viewDidLayout manually here hid production regressions.
         }
     }
 }

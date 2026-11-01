@@ -248,6 +248,10 @@ behaviours are intentionally not reproduced:
 - The glass background uses public `NSGlassEffectView` (macOS 26+) or
   `NSVisualEffectView` (macOS 13–25), not the private `NSPopoverFrame`. See
   [the issue #186 verification record](verification/issue-186-arrowless-status-panel.md).
+- On macOS 26+ the Liquid Glass material resolves to `NSAppearanceNameDarkAqua`
+  (not the old popover's vibrant appearance), so secondary text and some
+  template artwork read slightly fainter than the previous `NSPopover` panel.
+  This is accepted as the platform's system-native appearance.
 - The Reduce Transparency state is read when the panel background is built.
   Toggling it while the retained content is still cached applies on the next
   content rebuild (the five-second retention window after close), not live.
