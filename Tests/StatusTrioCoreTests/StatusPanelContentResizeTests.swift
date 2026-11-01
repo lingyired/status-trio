@@ -21,7 +21,18 @@ final class StatusPanelContentResizeTests: XCTestCase {
         let store = SystemStatusStore(
             batteryMonitor: ResizeProbeBatteryMonitor(),
             wifiMonitor: ResizeProbeWiFiMonitor(),
-            volumeMonitor: ResizeProbeVolumeMonitor()
+            volumeMonitor: ResizeProbeVolumeMonitor(),
+            initialSnapshot: StatusSnapshot(
+                battery: BatteryStatus(
+                    rawPercentage: 70,
+                    isPresent: true,
+                    isCharging: false,
+                    isLowPowerMode: false,
+                    isConnectedToPower: true
+                ),
+                wifi: .placeholder,
+                volume: .placeholder
+            )
         )
         let panelModel = StatusPanelViewModel(
             store: store,
@@ -97,24 +108,50 @@ final class StatusPanelContentResizeTests: XCTestCase {
 
         panelModel.showSummaryPage()
         settle(host)
-        let returned = panel.frame
+        let returnedFromWiFi = panel.frame
         XCTAssertEqual(
-            returned.maxY,
+            returnedFromWiFi.maxY,
             summary.maxY,
             accuracy: 0.5,
             "leaving a detail page must keep the menu-bar edge fixed"
         )
         XCTAssertEqual(
-            returned.minX,
+            returnedFromWiFi.minX,
             summary.minX,
             accuracy: 0.5,
             "leaving a detail page must not move the panel sideways"
         )
         XCTAssertEqual(
-            returned.height,
+            returnedFromWiFi.height,
             summary.height,
             accuracy: 1.5,
             "the summary page must return to its original height"
+        )
+
+        panelModel.showBatteryPage()
+        settle(host)
+        let battery = panel.frame
+        XCTAssertEqual(
+            battery.maxY,
+            summary.maxY,
+            accuracy: 0.5,
+            "opening the battery detail page must keep the menu-bar edge fixed"
+        )
+
+        panelModel.showSummaryPage()
+        settle(host)
+        let returnedFromBattery = panel.frame
+        XCTAssertEqual(
+            returnedFromBattery.maxY,
+            summary.maxY,
+            accuracy: 0.5,
+            "leaving the battery detail page must keep the menu-bar edge fixed"
+        )
+        XCTAssertEqual(
+            returnedFromBattery.height,
+            summary.height,
+            accuracy: 1.5,
+            "the summary page must return to its original height after the battery page"
         )
     }
 

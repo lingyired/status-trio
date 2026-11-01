@@ -45,6 +45,22 @@ final class StatusPanelContentTests: XCTestCase {
         XCTAssertEqual(size.width, host.view.fittingSize.width)
     }
 
+    func testReportsTheIdealContentHeightEvenWhenTheViewIsStretchedShort() {
+        let host = StatusPanelHostingController(rootView: FixedContent())
+        var reported: [NSSize] = []
+        host.onLayout = { reported.append($0) }
+
+        // Mimic the moment after leaving a shorter detail page: the hosting
+        // view is still at the old height while the summary content is taller.
+        host.view.frame = NSRect(x: 0, y: 0, width: 330, height: 40)
+        host.view.layoutSubtreeIfNeeded()
+        host.viewDidLayout()
+
+        let ideal = host.sizeThatFits(in: NSSize(width: 330, height: CGFloat.greatestFiniteMagnitude))
+        XCTAssertEqual(reported.last?.height ?? 0, ideal.height, accuracy: 0.5)
+        XCTAssertGreaterThan(ideal.height, 40)
+    }
+
     func testPanelCanBecomeKeyWithoutBecomingMain() {
         let panel = AnchoredStatusPanel()
 

@@ -206,7 +206,15 @@ final class StatusPanelHostingController<Content: View>: NSHostingController<Con
 
     override func viewDidLayout() {
         super.viewDidLayout()
-        let size = view.fittingSize
+        // Ask for the ideal size at the panel width with an unbounded height.
+        // `view.fittingSize` can echo the hosting view's current (possibly
+        // stale) bounds while a route transition is still settling; a stale
+        // report would leave the panel at the detail page's height after going
+        // back, clipping the taller summary at the top.
+        let width = view.bounds.width > 0 ? view.bounds.width : view.fittingSize.width
+        let proposed = NSSize(width: max(width, 1), height: .greatestFiniteMagnitude)
+        let measured = sizeThatFits(in: proposed)
+        let size = measured.width > 0 && measured.height > 0 ? measured : view.fittingSize
         guard size.width > 0, size.height > 0, size != lastReportedSize else { return }
         lastReportedSize = size
         onLayout?(size)
@@ -295,7 +303,11 @@ final class StatusPanelContentViewController: NSViewController {
     override func viewDidLayout() {
         super.viewDidLayout()
         if #available(macOS 26.0, *), let glass = backgroundView as? NSGlassEffectView {
-            hostingController.view.frame = glass.bounds
+            // The hosting view now lives inside a plain container inside the
+            // glass; match that container, not the glass view itself, so any
+            // glass content insets cannot clip the content's top edge.
+            hostingController.view.frame = hostingController.view.superview?.bounds
+                ?? glass.bounds
         } else {
             hostingController.view.frame = view.bounds
         }

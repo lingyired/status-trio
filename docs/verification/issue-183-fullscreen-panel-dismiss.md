@@ -202,3 +202,25 @@ menu-bar edge and X position stay fixed and the summary height is restored.
 
 The pre-Tahoe `NSVisualEffectView` path was already stable; it is unchanged.
 
+
+### Residual: summary clipped at the top after returning from battery details
+
+macOS 27 acceptance after the container fix showed a second, intermittent
+symptom: after leaving the battery detail page, the summary occasionally stayed
+at the detail page's height, so the taller summary was clipped at the top and
+its first rows were unreachable.
+
+Two sizing paths are now hardened:
+
+- `StatusPanelHostingController.viewDidLayout` measures
+  `sizeThatFits(in: NSSize(width: panelWidth, height: .greatestFiniteMagnitude))`
+  instead of `view.fittingSize`. The unbounded proposal returns the content's
+  ideal height even while a route transition is still settling, so a stale
+  detail-page height cannot be reported as the new summary height.
+- `StatusPanelContentViewController.viewDidLayout` sizes the hosting view to its
+  actual superview (`glassContent`), not to `glass.bounds`, so any
+  `NSGlassEffectView` content inset cannot clip the top edge.
+
+Coverage added in `StatusPanelContentTests` for the ideal-height measurement and
+extended in `StatusPanelContentResizeTests` for summary → battery detail →
+summary and summary → Wi-Fi detail → summary round trips.
