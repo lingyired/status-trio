@@ -133,6 +133,8 @@
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";
 "settings.battery.chargingDescription" = "عند التفعيل، تتحول النسبة إلى رمز برق أو قابس أثناء الشحن أو الاتصال بالطاقة.";
+"settings.battery.splitGapProgress" = "تقسيم التقدم عندما تكون الفجوة العليا ممتلئة";
+"settings.battery.splitGapProgressDescription" = "عندما تظهر صاعقة أو قابس أو نسبة مئوية في الفجوة العليا، يُرسم الحلقة بحيث يمثل النصف الأيسر 0–50% والنصف الأيمن 50–100%، حتى لا تحجب الفجوة التقدم بعد الأن.";
 "settings.battery.chargingEffect" = "تأثير الشحن";
 "settings.battery.chargingEffectDescription" = "تحريك الإبراز أثناء الشحن فقط. يتوقف عند تفعيل «تقليل الحركة».";
 "settings.battery.menuBarChargingEffect" = "تأثير الشحن في شريط القوائم";

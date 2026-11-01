@@ -42,6 +42,7 @@ final class SettingsStore: ObservableObject {
     static let showsMenuBarChargingEffectDefaultsKey = "showsMenuBarChargingEffect"
     static let showsDockChargingEffectDefaultsKey = "showsDockChargingEffect"
     static let showsChargingBoltHeartbeatDefaultsKey = "showsChargingBoltHeartbeat"
+    static let batterySplitGapProgressDefaultsKey = "batterySplitGapProgress"
     static let batteryConnectedIndicatorDefaultsKey = "batteryConnectedIndicator"
     /// Legacy boolean replaced by `batteryConnectedIndicator`; read once for
     /// migration and never written again (#195).
@@ -357,6 +358,18 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 showsChargingBoltHeartbeat,
                 forKey: Self.showsChargingBoltHeartbeatDefaultsKey
+            )
+        }
+    }
+
+    /// When the top gap shows an icon or the percentage, make the visible arc
+    /// carry the whole 0–100% scale (left half 0–50%, right half 50–100%) so the
+    /// gap no longer hides progress (#205). Off by default.
+    @Published var batterySplitGapProgress: Bool {
+        didSet {
+            defaults.set(
+                batterySplitGapProgress,
+                forKey: Self.batterySplitGapProgressDefaultsKey
             )
         }
     }
@@ -1378,6 +1391,7 @@ final class SettingsStore: ObservableObject {
             showsChargingIndicator: showsChargingIndicator,
             showsChargingEffect: showsChargingEffect,
             showsChargingBoltHeartbeat: showsChargingBoltHeartbeat,
+            splitGapProgress: batterySplitGapProgress,
             usesStatusColors: usesBatteryStatusColors,
             criticalThreshold: Int(batteryCriticalThreshold.rounded()),
             connectedIndicator: batteryConnectedIndicator,
@@ -1620,6 +1634,9 @@ final class SettingsStore: ObservableObject {
         self.showsChargingBoltHeartbeat = defaults.object(
             forKey: Self.showsChargingBoltHeartbeatDefaultsKey
         ) as? Bool ?? true
+        self.batterySplitGapProgress = defaults.object(
+            forKey: Self.batterySplitGapProgressDefaultsKey
+        ) as? Bool ?? false
         if let storedConnectedIndicator = defaults
             .string(forKey: Self.batteryConnectedIndicatorDefaultsKey)
             .flatMap(BatteryConnectedIndicator.init(rawValue:)) {

@@ -150,6 +150,8 @@
 "settings.battery.showPercentage" = "顯示電量數字";
 "settings.battery.showChargingIndicator" = "充電/連接電源時顯示指示圖示";
 "settings.battery.chargingDescription" = "開啟後，正在充電或已連接電源時，電量數字會替換為閃電或插頭圖示；關閉則繼續顯示數字。";
+"settings.battery.splitGapProgress" = "頂部有圖示時進度對分";
+"settings.battery.splitGapProgressDescription" = "當頂部缺口顯示閃電、插頭或電量數字時，將圓環進度分成左右兩半：左半為 0–50%、右半為 50–100%，讓缺口不再遮住進度。";
 "settings.battery.chargingEffect" = "充電效果";
 "settings.battery.chargingEffectDescription" = "僅在充電時顯示動態高光；開啟「減少動態效果」時停止。";
 "settings.battery.menuBarChargingEffect" = "選單列充電效果";

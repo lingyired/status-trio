@@ -32,6 +32,21 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(second.batteryIconOptions.connectedIndicator, .bolt)
     }
 
+    func testSplitGapProgressDefaultsOffAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(first.batterySplitGapProgress)
+        XCTAssertFalse(first.batteryIconOptions.splitGapProgress)
+
+        first.batterySplitGapProgress = true
+
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertTrue(second.batterySplitGapProgress)
+        XCTAssertTrue(second.batteryIconOptions.splitGapProgress)
+    }
+
     func testConnectedPowerIndicatorMigratesTheLegacyBoolean() {
         let percentageSuite = makeSuite()
         defer { clear(percentageSuite) }

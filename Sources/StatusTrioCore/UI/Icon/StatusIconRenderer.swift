@@ -1068,11 +1068,22 @@ extension StatusIconRenderer {
             : StatusIconGeometry.batteryValueTopGapWidth
         let lineWidth = 8 * CGFloat(ring.strokeScale)
 
+        // In `.split` mode the top gap carries no progress, so the arc and its
+        // charging effect follow a progress-space head that fills the visible
+        // arc evenly (left half 0–50%, right half 50–100%, #205).
+        let drawProgress = ring.gapProgressMode == .split
+            ? StatusIconGeometry.splitFillProgress(
+                forProgress: segment.progress,
+                hasTopGap: hasTopGap,
+                topGapWidth: topGapWidth
+            )
+            : segment.progress
+
         let arcColor = sceneColor(for: segment.color, foreground: foreground, statusPalette: statusPalette)
         let effectFrame = ring.effect.flatMap { _ in
             phase.flatMap {
                 ChargingEffectPolicy.frame(
-                    progress: segment.progress,
+                    progress: drawProgress,
                     phase: $0,
                     hasTopGap: hasTopGap,
                     topGapWidth: topGapWidth
@@ -1092,7 +1103,7 @@ extension StatusIconRenderer {
             context.setLineWidth(lineWidth)
             context.setStrokeColor(arcColor)
             context.addPath(StatusIconGeometry.batteryFill(
-                progress: segment.progress,
+                progress: drawProgress,
                 hasTopGap: hasTopGap,
                 topGapWidth: topGapWidth
             ))

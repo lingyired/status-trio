@@ -150,6 +150,8 @@
 "settings.battery.showPercentage" = "Показывать процент заряда";
 "settings.battery.showChargingIndicator" = "Показывать значок при зарядке или питании от сети";
 "settings.battery.chargingDescription" = "Если включено, процент заменяется молнией или вилкой во время зарядки или при питании от сети.";
+"settings.battery.splitGapProgress" = "Делить прогресс при заполненном верхнем разрыве";
+"settings.battery.splitGapProgressDescription" = "Когда в верхнем разрыве показаны молния, вилка или процент, кольцо рисуется так, что левая половина — 0–50 %, а правая — 50–100 %, и разрыв больше не скрывает прогресс.";
 "settings.battery.chargingEffect" = "Эффект зарядки";
 "settings.battery.chargingEffectDescription" = "Анимирует подсветку только во время зарядки. Останавливается при включённом параметре «Уменьшение движения».";
 "settings.battery.menuBarChargingEffect" = "Эффект зарядки в строке меню";

@@ -168,6 +168,7 @@ final class IconAppearancePublisherTests: XCTestCase {
         IconMutation(name: "showsChargingIndicator") { $0.showsChargingIndicator = false },
         IconMutation(name: "showsChargingEffect") { $0.showsChargingEffect = false },
         IconMutation(name: "showsChargingBoltHeartbeat") { $0.showsChargingBoltHeartbeat = false },
+        IconMutation(name: "batterySplitGapProgress") { $0.batterySplitGapProgress = true },
         IconMutation(name: "usesBatteryStatusColors") { $0.usesBatteryStatusColors = false },
         IconMutation(name: "batteryCriticalThreshold") { $0.batteryCriticalThreshold = 35 },
         IconMutation(name: "batteryFullThreshold") { $0.batteryFullThreshold = 80 },

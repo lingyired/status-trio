@@ -150,6 +150,8 @@
 "settings.battery.showPercentage" = "Mostra percentuale batteria";
 "settings.battery.showChargingIndicator" = "Mostra un indicatore durante la carica o con alimentazione collegata";
 "settings.battery.chargingDescription" = "Se attivato, la percentuale diventa un fulmine o una spina durante la carica o con alimentazione collegata.";
+"settings.battery.splitGapProgress" = "Dividi l’avanzamento quando lo spazio superiore è pieno";
+"settings.battery.splitGapProgressDescription" = "Quando nello spazio superiore c’è un fulmine, una spina o una percentuale, l’anello viene disegnato in modo che la metà sinistra sia 0–50% e quella destra 50–100%, così lo spazio non nasconde più l’avanzamento.";
 "settings.battery.chargingEffect" = "Effetto di ricarica";
 "settings.battery.chargingEffectDescription" = "Anima l’evidenziazione solo durante la ricarica. Si interrompe quando «Riduci movimento» è attivo.";
 "settings.battery.menuBarChargingEffect" = "Effetto di ricarica nella barra dei menu";

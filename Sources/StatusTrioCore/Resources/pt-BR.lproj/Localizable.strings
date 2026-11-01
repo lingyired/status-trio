@@ -150,6 +150,8 @@
 "settings.battery.showPercentage" = "Mostrar porcentagem da bateria";
 "settings.battery.showChargingIndicator" = "Mostrar um indicador ao carregar ou conectar à energia";
 "settings.battery.chargingDescription" = "Quando ativado, a porcentagem vira um raio ou um plugue durante o carregamento ou com energia conectada.";
+"settings.battery.splitGapProgress" = "Dividir o progresso quando o espaço superior tem conteúdo";
+"settings.battery.splitGapProgressDescription" = "Quando há um raio, plugue ou porcentagem no espaço superior, o anel é desenhado de modo que a metade esquerda seja 0–50% e a direita 50–100%, para que o espaço não oculte mais o progresso.";
 "settings.battery.chargingEffect" = "Efeito de carregamento";
 "settings.battery.chargingEffectDescription" = "Anima o destaque somente durante o carregamento. Para quando Reduzir Movimento está ativado.";
 "settings.battery.menuBarChargingEffect" = "Efeito de carregamento na barra de menus";

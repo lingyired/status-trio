@@ -256,6 +256,21 @@ struct DockIconRenderCacheTests {
         #expect(reusedPreview === previewImage)
     }
 
+    /// Split-gap progress (#205) must reach the Dock key even though the key
+    /// strips the charging effect before hashing: two charging scenes that
+    /// differ only in gap progress mode must not share one raster.
+    @Test func dockIdentityRetainsSplitGapProgressThroughTheEffectStrippingStep() {
+        let absorbed = chargingScene(options: .standard)
+        let split = chargingScene(options: BatteryIconOptions(splitGapProgress: true))
+        let absorbedKey = DockIconRenderKey(scene: absorbed, backgroundStyle: .dark, pixelLength: 512)
+        let splitKey = DockIconRenderKey(scene: split, backgroundStyle: .dark, pixelLength: 512)
+
+        #expect(absorbed.outerRing?.gapProgressMode == .absorbed)
+        #expect(split.outerRing?.gapProgressMode == .split)
+        #expect(absorbed.outerRing?.effect != nil && split.outerRing?.effect != nil)
+        #expect(absorbedKey != splitKey)
+    }
+
     /// The Dock tile renders the same scene as the menu bar, so the dock key
     /// carries the classified output glyph: two classifications must not share
     /// one raster. The snapshot keeps Wi-Fi connected so the replacement is not
