@@ -644,3 +644,22 @@
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Настройте яркость подключённых дисплеев.";
 "settings.brightness.backend" = "Бэкенд яркости для %@";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "Подписаться на автора";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "Блог";
+"settings.about.community.title" = "Сообщество";
+"settings.about.community.qq" = "Группа QQ";
+"settings.about.community.qqDescription" = "Присоединяйтесь к группе Status Trio для вопросов и отзывов.";
+"settings.about.community.wechat" = "Группа WeChat";
+"settings.about.community.wechatDescription" = "Отсканируйте в WeChat, чтобы присоединиться к группе Status Trio. QR-код периодически обновляется; актуальный — в README на GitHub.";
+"settings.about.community.copy" = "Копировать";
+"settings.about.community.copied" = "Скопировано";
+"settings.about.moreApps.title" = "Другие приложения";
+"settings.about.moreApps.open" = "Открыть";
+"settings.about.moreApps.newtab01Description" = "Новая вкладка на основе закладок: открывайте папки как группы вкладок или в разделённом виде, с несколькими темами.";
+"settings.about.moreApps.noLazyloadDescription" = "Отключите ленивую загрузку изображений: загружаются только видимые изображения — быстрее и меньше трафика.";
+"settings.about.moreApps.fund01Description" = "Мониторинг портфеля фондов: дневное изменение всегда в строке меню или на панели задач, несколько групп обновляются в реальном времени.";

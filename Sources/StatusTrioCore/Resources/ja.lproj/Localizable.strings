@@ -644,3 +644,22 @@
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "接続されているディスプレイの明るさを調整します。";
 "settings.brightness.backend" = "%@ の明るさバックエンド";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "作者をフォロー";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "ブログ";
+"settings.about.community.title" = "コミュニティ";
+"settings.about.community.qq" = "QQグループ";
+"settings.about.community.qqDescription" = "質問やフィードバックのため Status Trio グループにご参加ください。";
+"settings.about.community.wechat" = "WeChatグループ";
+"settings.about.community.wechatDescription" = "WeChatでスキャンして Status Trio グループに参加できます。QRコードは定期的に更新されます。最新版は GitHub README をご覧ください。";
+"settings.about.community.copy" = "コピー";
+"settings.about.community.copied" = "コピーしました";
+"settings.about.moreApps.title" = "その他のアプリ";
+"settings.about.moreApps.open" = "開く";
+"settings.about.moreApps.newtab01Description" = "ブックマーク連動の新しいタブ: フォルダーをタブグループや分割表示で開け、テーマも複数用意。";
+"settings.about.moreApps.noLazyloadDescription" = "画像の遅延読み込みを無効化: ビューポートに入った画像だけを読み込み、高速・省データ。";
+"settings.about.moreApps.fund01Description" = "投資信託の保有状況を監視: 前日比をメニューバー／タスクバーに常時表示し、複数グループをリアルタイム更新。";

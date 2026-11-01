@@ -644,3 +644,22 @@
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Réglez la luminosité des écrans connectés.";
 "settings.brightness.backend" = "Backend de luminosité pour %@";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "Suivre l’auteur";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "Blog";
+"settings.about.community.title" = "Communauté";
+"settings.about.community.qq" = "Groupe QQ";
+"settings.about.community.qqDescription" = "Rejoignez le groupe Status Trio pour poser vos questions et donner votre avis.";
+"settings.about.community.wechat" = "Groupe WeChat";
+"settings.about.community.wechatDescription" = "Scannez avec WeChat pour rejoindre le groupe Status Trio. Le QR code est renouvelé régulièrement ; consultez le README GitHub pour le plus récent.";
+"settings.about.community.copy" = "Copier";
+"settings.about.community.copied" = "Copié";
+"settings.about.moreApps.title" = "Plus d’apps";
+"settings.about.moreApps.open" = "Ouvrir";
+"settings.about.moreApps.newtab01Description" = "Nouvel onglet basé sur les favoris : ouvrez des dossiers en groupes d’onglets ou en vue partagée, avec plusieurs thèmes.";
+"settings.about.moreApps.noLazyloadDescription" = "Désactivez le chargement différé des images : seules les images visibles sont chargées, pour des pages plus rapides et moins de données.";
+"settings.about.moreApps.fund01Description" = "Suivi de portefeuille : la variation du jour toujours dans la barre des menus ou la barre des tâches, plusieurs groupes actualisés en direct.";

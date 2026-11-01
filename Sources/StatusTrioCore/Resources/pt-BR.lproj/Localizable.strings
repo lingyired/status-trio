@@ -644,3 +644,22 @@
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Ajuste o brilho das telas conectadas.";
 "settings.brightness.backend" = "Backend de brilho para %@";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "Seguir o autor";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "Blog";
+"settings.about.community.title" = "Comunidade";
+"settings.about.community.qq" = "Grupo do QQ";
+"settings.about.community.qqDescription" = "Entre no grupo do Status Trio para dúvidas e feedback.";
+"settings.about.community.wechat" = "Grupo do WeChat";
+"settings.about.community.wechatDescription" = "Escaneie com o WeChat para entrar no grupo do Status Trio. O QR code é renovado periodicamente; veja o README no GitHub para o mais recente.";
+"settings.about.community.copy" = "Copiar";
+"settings.about.community.copied" = "Copiado";
+"settings.about.moreApps.title" = "Mais apps";
+"settings.about.moreApps.open" = "Abrir";
+"settings.about.moreApps.newtab01Description" = "Nova aba baseada em favoritos: abra pastas como grupos de abas ou em visualização dividida, com vários temas.";
+"settings.about.moreApps.noLazyloadDescription" = "Desative o carregamento preguiçoso de imagens: carregue apenas as imagens visíveis, para páginas mais rápidas e com menos dados.";
+"settings.about.moreApps.fund01Description" = "Acompanhamento de fundos: a variação do dia sempre na barra de menus ou na barra de tarefas, com vários grupos atualizados em tempo real.";

@@ -644,3 +644,22 @@
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "اضبط سطوع الشاشات المتصلة.";
 "settings.brightness.backend" = "خلفية السطوع لـ %@";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "متابعة المؤلف";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "المدونة";
+"settings.about.community.title" = "المجتمع";
+"settings.about.community.qq" = "مجموعة QQ";
+"settings.about.community.qqDescription" = "انضم إلى مجموعة Status Trio للأسئلة والملاحظات.";
+"settings.about.community.wechat" = "مجموعة WeChat";
+"settings.about.community.wechatDescription" = "امسح باستخدام WeChat للانضمام إلى مجموعة Status Trio. يتم تجديد رمز QR دوريًا؛ راجع README على GitHub للحصول على الأحدث.";
+"settings.about.community.copy" = "نسخ";
+"settings.about.community.copied" = "تم النسخ";
+"settings.about.moreApps.title" = "المزيد من التطبيقات";
+"settings.about.moreApps.open" = "فتح";
+"settings.about.moreApps.newtab01Description" = "علامة تبويب جديدة قائمة على الإشارات المرجعية: افتح المجلدات كمجموعات علامات تبويب أو في عرض منقسم، مع عدة سمات.";
+"settings.about.moreApps.noLazyloadDescription" = "عطّل التحميل المتأخر للصور: لا تُحمَّل إلا الصور الظاهرة، لصفحات أسرع وبيانات أقل.";
+"settings.about.moreApps.fund01Description" = "متابعة محفظة الصناديق: نسبة تغيّر اليوم دائمًا في شريط القوائم أو شريط المهام، مع تحديث عدة مجموعات مباشرةً.";

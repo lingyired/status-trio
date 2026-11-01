@@ -209,10 +209,10 @@ Status Trio follows the macOS preferred language by default and includes English
 Status Trio has a Chinese-language community for questions, feedback, and release discussion.
 
 - **QQ group:** `735856753`
-- **WeChat group:** Scan the QR code below (valid through November 7, 2026).
+- **WeChat group:** Scan the QR code below to join.
 
 <p align="center">
-  <img src="screenshots/status-trio-wechat-group-2026-10-31.png" width="220" alt="Status Trio WeChat group QR code, valid through November 7, 2026">
+  <img src="screenshots/status-trio-wechat-group.png" width="220" alt="Status Trio WeChat group QR code">
 </p>
 
 ## Privacy

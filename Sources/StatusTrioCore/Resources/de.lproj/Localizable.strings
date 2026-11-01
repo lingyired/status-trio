@@ -644,3 +644,22 @@
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Passe die Helligkeit angeschlossener Displays an.";
 "settings.brightness.backend" = "Helligkeits-Backend für %@";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "Autor folgen";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "Blog";
+"settings.about.community.title" = "Community";
+"settings.about.community.qq" = "QQ-Gruppe";
+"settings.about.community.qqDescription" = "Tritt der Status-Trio-Gruppe für Fragen und Feedback bei.";
+"settings.about.community.wechat" = "WeChat-Gruppe";
+"settings.about.community.wechatDescription" = "Mit WeChat scannen, um der Status-Trio-Gruppe beizutreten. Der QR-Code wird regelmäßig erneuert; den aktuellen findest du im GitHub-README.";
+"settings.about.community.copy" = "Kopieren";
+"settings.about.community.copied" = "Kopiert";
+"settings.about.moreApps.title" = "Weitere Apps";
+"settings.about.moreApps.open" = "Öffnen";
+"settings.about.moreApps.newtab01Description" = "Lesezeichenbasierter neuer Tab: Ordner als Tab-Gruppen oder in geteilter Ansicht öffnen, mit mehreren Designs.";
+"settings.about.moreApps.noLazyloadDescription" = "Bild-Lazy-Loading deaktivieren: Nur Bilder im Sichtbereich laden – schnellere Seiten, weniger Daten.";
+"settings.about.moreApps.fund01Description" = "Fonds-Depot im Blick: Tagesänderung stets in der Menüleiste bzw. Taskleiste, mehrere Gruppen live aktualisiert.";

@@ -644,3 +644,22 @@
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "调整已连接显示器的亮度。";
 "settings.brightness.backend" = "%@ 的亮度后端";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "关注作者";
+"settings.about.social.douyin" = "抖音";
+"settings.about.social.xiaohongshu" = "小红书";
+"settings.about.social.bilibili" = "哔哩哔哩";
+"settings.about.social.blog" = "个人博客";
+"settings.about.community.title" = "加入社群";
+"settings.about.community.qq" = "QQ 群";
+"settings.about.community.qqDescription" = "加入 Status Trio 用户群，交流问题与反馈。";
+"settings.about.community.wechat" = "微信群";
+"settings.about.community.wechatDescription" = "微信扫码加入 Status Trio 微信群。二维码定期更新，失效请到 GitHub README 获取最新。";
+"settings.about.community.copy" = "复制";
+"settings.about.community.copied" = "已复制";
+"settings.about.moreApps.title" = "更多 App";
+"settings.about.moreApps.open" = "打开";
+"settings.about.moreApps.newtab01Description" = "书签驱动的新标签页：文件夹一键开成标签组或分屏，多套主题。";
+"settings.about.moreApps.noLazyloadDescription" = "禁用图片懒加载：只加载进入视口的图片，网页更快更省流量。";
+"settings.about.moreApps.fund01Description" = "基金持仓盯盘，涨跌幅常驻菜单栏 / 任务栏，多分组实时刷新。";

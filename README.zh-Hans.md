@@ -207,10 +207,10 @@ Status Trio 默认跟随 macOS 首选语言，支持 English、简体中文、�
 Status Trio 设有中文交流群，欢迎反馈问题、交流使用体验和了解版本动态。
 
 - **QQ 群：** `735856753`
-- **微信群：** 扫描下方二维码加入（有效期至 2026 年 11 月 7 日）。
+- **微信群：** 扫描下方二维码加入。
 
 <p align="center">
-  <img src="screenshots/status-trio-wechat-group-2026-10-31.png" width="220" alt="Status Trio 微信群二维码，有效期至 2026 年 11 月 7 日">
+  <img src="screenshots/status-trio-wechat-group.png" width="220" alt="Status Trio 微信群二维码">
 </p>
 
 ## 隐私

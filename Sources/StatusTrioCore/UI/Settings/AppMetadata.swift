@@ -58,6 +58,27 @@ enum AppMetadata {
     static let authorURL = URL(string: "https://github.com/lingyired")!
     static let authorWebsiteURL = URL(string: "https://lingai.net/")!
 
+    // MARK: About — author social channels
+
+    static let authorXURL = URL(string: "https://x.com/lingyired")!
+    static let authorDouyinURL = URL(
+        string: "https://www.douyin.com/user/MS4wLjABAAAAbiTboFKa6VcEX08y_0tIkUxZV-ZGP_901qOtVNX5bC4Xs87wdBmAPOENobXVVEoW"
+    )!
+    static let authorXiaohongshuURL = URL(
+        string: "https://www.xiaohongshu.com/user/profile/60a479d30000000001006e88"
+    )!
+    static let authorBilibiliURL = URL(string: "https://space.bilibili.com/103021226")!
+
+    // MARK: About — Chinese community
+
+    static let qqGroupNumber = "735856753"
+
+    // MARK: About — other apps by the author
+
+    static let newtab01URL = URL(string: "https://lingai.net/newtab01/")!
+    static let noLazyloadURL = URL(string: "https://lingai.net/no-lazyload/")!
+    static let fund01URL = URL(string: "https://lingai.net/fund01/")!
+
     static var versionDisplayString: String {
         versionDisplayString(from: Bundle.main.infoDictionary ?? [:])
     }

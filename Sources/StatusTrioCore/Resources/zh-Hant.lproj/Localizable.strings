@@ -644,3 +644,22 @@
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "調整已連接顯示器的亮度。";
 "settings.brightness.backend" = "%@ 的亮度後端";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "關注作者";
+"settings.about.social.douyin" = "抖音";
+"settings.about.social.xiaohongshu" = "小紅書";
+"settings.about.social.bilibili" = "嗶哩嗶哩";
+"settings.about.social.blog" = "個人部落格";
+"settings.about.community.title" = "加入社群";
+"settings.about.community.qq" = "QQ 群";
+"settings.about.community.qqDescription" = "加入 Status Trio 使用者群，交流問題與回饋。";
+"settings.about.community.wechat" = "微信群";
+"settings.about.community.wechatDescription" = "微信掃碼加入 Status Trio 微信群。二維碼定期更新，失效請到 GitHub README 取得最新。";
+"settings.about.community.copy" = "複製";
+"settings.about.community.copied" = "已複製";
+"settings.about.moreApps.title" = "更多 App";
+"settings.about.moreApps.open" = "開啟";
+"settings.about.moreApps.newtab01Description" = "書籤驅動的新分頁：資料夾一鍵開成分頁群組或分割檢視，多套主題。";
+"settings.about.moreApps.noLazyloadDescription" = "禁用圖片延遲載入：只載入進入視窗的圖片，網頁更快更省流量。";
+"settings.about.moreApps.fund01Description" = "基金持股盯盤，漲跌幅常駐選單列 / 工作列，多群組即時更新。";
