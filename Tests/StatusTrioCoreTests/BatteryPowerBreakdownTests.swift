@@ -123,6 +123,34 @@ final class BatteryPowerBreakdownTests: XCTestCase {
                      "a port without a power value is not a zero-watt output")
         XCTAssertNil(USBOutputReader.parse(registry: ["PowerOutDetails": [["Watts": 900_000]]]))
     }
+
+    func testLivePortRailsReplaceAFrozenRegistryReading() {
+        let frozen: [String: Any] = ["PowerOutDetails": [["PortIndex": 1, "Watts": 9_000]]]
+        let readAt = Date(timeIntervalSince1970: 1_000)
+        let live = USBOutputReader.resolve(
+            portRails: .measured(watts: [4.208, 0.14, 0.07], readAt: readAt), registry: frozen)
+        XCTAssertEqual(live?.watts ?? -1, 4.208, accuracy: 0.0001)
+        XCTAssertEqual(live?.portCount, 1)
+        XCTAssertEqual(live?.readAt, readAt, "a measured rail keeps the SMC read time")
+        XCTAssertNil(USBOutputReader.resolve(
+            portRails: .measured(watts: [0.05, 0.14], readAt: readAt), registry: frozen),
+            "an answered idle rail must not fall back to a frozen registry value")
+        XCTAssertEqual(USBOutputReader.resolve(portRails: .unavailable, registry: [
+            "PowerOutDetails": [["PortIndex": 1, "Watts": 7_000]]
+        ])?.watts, 7)
+    }
+
+    func testMeasuredRailStalenessUsesSMCReadTimeNotObservationTime() {
+        // A refresh whose SMC read stalled: the measurement is 120 s old, but a
+        // caller stamping `now` would call it fresh. It must be rejected.
+        let readAt = Date(timeIntervalSince1970: 1_000)
+        let observedAt = readAt.addingTimeInterval(120)
+        let sample = USBOutputReader.resolve(
+            portRails: .measured(watts: [4.2], readAt: readAt), registry: [:], now: observedAt)
+        XCTAssertEqual(sample?.readAt, readAt)
+        XCTAssertEqual(sample?.isFresh(at: observedAt), false,
+                       "a rail read 120 s ago must not pass the freshness window")
+    }
 }
 
 @MainActor

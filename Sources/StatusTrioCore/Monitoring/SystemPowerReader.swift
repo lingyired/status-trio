@@ -20,6 +20,8 @@ struct PowerSensorReadings: Equatable, Sendable {
     /// Built-in display backlight power (`PDBR`); `PBwo` on newer chips is not
     /// read yet, so machines without `PDBR` simply report nil.
     var display: SystemPowerSample?
+    /// Accessory output on SMC channels D1–D4 (`DnJV` volts × `DnJI` amps).
+    var portRails: PortOutputRails = .unavailable
 
     static let empty = Self()
 }
@@ -70,10 +72,14 @@ struct SystemPowerReader: Sendable {
             readings.battery = BatteryPowerSample(volts: volts, amps: amps, updatedAt: readAt)
         }
         #endif
-        // Backlight is its own SMC key. A machine that does not export it
-        // reports nil and the caller hides the branch.
-        if breakdown, let watts = Self.readValue(sensor: .display, exchange: exchange) {
-            readings.display = SystemPowerSample(watts: watts, readAt: readAt)
+        // Backlight and the four port rails share this connection. A missing
+        // backlight key hides that branch. Port keys that do not answer stay
+        // `.unavailable` so the caller can fall back to PowerOutDetails.
+        if breakdown {
+            if let watts = Self.readValue(sensor: .display, exchange: exchange) {
+                readings.display = SystemPowerSample(watts: watts, readAt: readAt)
+            }
+            readings.portRails = Self.readPortOutput(exchange: exchange, readAt: readAt)
         }
         return readings
     }
@@ -132,6 +138,58 @@ struct SystemPowerReader: Sendable {
         // outside the plausible rail range means the key is not this reading.
         case .display: return (0...150).contains(watts) ? watts : nil
         }
+    }
+
+    /// Live accessory output on channels D1–D4. Each channel is `DnJV` × `DnJI`.
+    /// A channel yields power only when both keys decode, but answering a single
+    /// key already counts as an answer: a partial reply must stay `.measured`
+    /// (with that channel skipped) instead of falling back to the frozen
+    /// `PowerOutDetails` value. `.unavailable` means none of the eight fixed
+    /// keys answered. The SMC read start travels with the rails.
+    static func readPortOutput(exchange: ([UInt8]) -> [UInt8]?, readAt: Date = Date()) -> PortOutputRails {
+        var rails: [Double] = []
+        var answered = false
+        for channel in 1...4 {
+            let volts = readScalar(key: portRailKey(channel: channel, voltage: true), exchange: exchange)
+            let amps = readScalar(key: portRailKey(channel: channel, voltage: false), exchange: exchange)
+            if volts != nil || amps != nil { answered = true }
+            guard let volts, let amps else { continue }
+            let watts = volts * amps
+            guard watts.isFinite, (0...150).contains(watts) else { continue }
+            rails.append(watts)
+        }
+        return answered ? .measured(watts: rails, readAt: readAt) : .unavailable
+    }
+
+    static func portRailKey(channel: Int, voltage: Bool) -> UInt32 {
+        let suffix: UInt32 = voltage ? 0x4A56 : 0x4A49 // "JV" or "JI"
+        return (0x44 << 24) | (UInt32(0x30 + channel) << 16) | suffix
+    }
+
+    /// A unitless SMC scalar in the same encodings as the watt sensors.
+    /// Zero stays: 0 V × 0 A is an idle port, not a missing system-total sensor.
+    static func readScalar(key: UInt32, exchange: ([UInt8]) -> [UInt8]?) -> Double? {
+        var request = [UInt8](repeating: 0, count: 80)
+        for offset in 0..<4 { request[offset] = UInt8(truncatingIfNeeded: key >> (offset * 8)) }
+        request[42] = 9 // read key info
+        guard let info = exchange(request), info.count == 80, info[40] == 0 else { return nil }
+        let size = littleEndianUInt32(info, at: 28)
+        let type = littleEndianUInt32(info, at: 32)
+        switch (type, size) {
+        case (0x666c7420, 4), (0x66706532, 2), (0x73703738, 2): break // flt , fpe2, sp78
+        default: return nil
+        }
+        request.replaceSubrange(28..<32, with: info[28..<32])
+        request[42] = 5 // read bytes (never issue write command 6)
+        guard let response = exchange(request), response.count == 80, response[40] == 0 else { return nil }
+        let value: Double
+        if type == 0x666c7420 {
+            value = Double(Float(bitPattern: littleEndianUInt32(response, at: 48)))
+        } else {
+            let raw = UInt16(response[48]) << 8 | UInt16(response[49])
+            value = type == 0x66706532 ? Double(raw) / 4 : Double(Int16(bitPattern: raw)) / 256
+        }
+        return value.isFinite ? value : nil
     }
 
     private static func littleEndianUInt32(_ bytes: [UInt8], at offset: Int) -> UInt32 {

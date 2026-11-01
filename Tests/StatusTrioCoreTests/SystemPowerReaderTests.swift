@@ -109,4 +109,92 @@ final class SystemPowerReaderTests: XCTestCase {
         XCTAssertNil(read(.display, key: [0x52, 0x42, 0x44, 0x50],
                           payload: [0, 0, 0x7a, 0x43]), "250 W is outside any backlight rail")
     }
+
+    func testPortRailsMultiplyVoltageByCurrentAndIgnoreSilentChannels() {
+        let rails = SystemPowerReader.readPortOutput { request in
+            XCTAssertNotEqual(request[42], 6)
+            let key = Array(request.prefix(4))
+            let known: [[UInt8]: [UInt8]] = [
+                [0x56, 0x4A, 0x31, 0x44]: self.floatPayload(5.222), // D1JV
+                [0x49, 0x4A, 0x31, 0x44]: self.floatPayload(0.806), // D1JI
+                [0x56, 0x4A, 0x32, 0x44]: self.floatPayload(5.25),  // D2JV
+                [0x49, 0x4A, 0x32, 0x44]: self.floatPayload(0.027)  // D2JI, about 0.14 W
+            ]
+            guard let payload = known[key] else {
+                XCTAssertEqual(request[42], 9, "A missing channel is refused at key info")
+                var missing = self.info()
+                missing[40] = 0x84
+                return missing
+            }
+            return request[42] == 9 ? self.info() : self.value(payload)
+        }
+        guard case .measured(let watts, _) = rails else {
+            return XCTFail("expected measured rails")
+        }
+        XCTAssertEqual(watts.count, 2)
+        XCTAssertEqual(watts[0], 5.222 * 0.806, accuracy: 0.001)
+    }
+
+    func testPortRailsTreatPartialReplyAsAnsweredInsteadOfUnavailable() {
+        // D1JV answers but D1JI is silent: the channel cannot be multiplied, so
+        // it is skipped, yet a single answered key still means "answered". It
+        // must not fall back to the frozen registry value.
+        let voltageOnly = SystemPowerReader.readPortOutput { request in
+            if Array(request.prefix(4)) == [0x56, 0x4A, 0x31, 0x44] { // D1JV
+                return request[42] == 9 ? self.info() : self.value(self.floatPayload(5.0))
+            }
+            XCTAssertEqual(request[42], 9)
+            var missing = self.info()
+            missing[40] = 0x84
+            return missing
+        }
+        guard case .measured(let rails, _) = voltageOnly else {
+            return XCTFail("a voltage-only reply must stay measured, not fall back")
+        }
+        XCTAssertTrue(rails.isEmpty)
+
+        // The mirror case: only a current key answers.
+        let currentOnly = SystemPowerReader.readPortOutput { request in
+            if Array(request.prefix(4)) == [0x49, 0x4A, 0x31, 0x44] { // D1JI
+                return request[42] == 9 ? self.info() : self.value(self.floatPayload(0.5))
+            }
+            XCTAssertEqual(request[42], 9)
+            var missing = self.info()
+            missing[40] = 0x84
+            return missing
+        }
+        guard case .measured(let mirrorRails, _) = currentOnly else {
+            return XCTFail("a current-only reply must stay measured, not fall back")
+        }
+        XCTAssertTrue(mirrorRails.isEmpty)
+    }
+
+    func testPortRailsCarryTheSMCReadStartTime() {
+        let readAt = Date(timeIntervalSince1970: 1_000)
+        let rails = SystemPowerReader.readPortOutput(exchange: { request in
+            request[42] == 9 ? self.info() : self.value(self.floatPayload(1.0))
+        }, readAt: readAt)
+        guard case .measured(_, let carried) = rails else {
+            return XCTFail("expected measured rails")
+        }
+        XCTAssertEqual(carried, readAt)
+    }
+
+    func testPortRailsAreUnavailableWhenNoChannelAnswers() {
+        let rails = SystemPowerReader.readPortOutput { request in
+            XCTAssertEqual(request[42], 9)
+            var missing = self.info()
+            missing[40] = 0x84
+            return missing
+        }
+        XCTAssertEqual(rails, .unavailable)
+    }
+
+    private func floatPayload(_ number: Float) -> [UInt8] {
+        let bits = number.bitPattern
+        return [UInt8(truncatingIfNeeded: bits),
+                UInt8(truncatingIfNeeded: bits >> 8),
+                UInt8(truncatingIfNeeded: bits >> 16),
+                UInt8(truncatingIfNeeded: bits >> 24)]
+    }
 }
