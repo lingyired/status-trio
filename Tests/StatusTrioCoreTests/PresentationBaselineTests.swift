@@ -65,7 +65,7 @@ final class PresentationBaselineTests: XCTestCase {
         XCTAssertNotEqual(centerSlotPixels(batteryCenter), centerSlotPixels(prioritizedNetworkError))
     }
 
-    func testAbsentBatteryFallsThroughToEnabledBluetoothReplacement() throws {
+    func testAbsentBatteryPercentageCenterWinsOverBluetoothReplacement() throws {
         let fixture = PresentationFixtures.snapshot()
         let snapshot = StatusSnapshot(
             battery: BatteryStatus(
@@ -100,11 +100,18 @@ final class PresentationBaselineTests: XCTestCase {
             centerSource: .batteryPercentage
         )
 
+        // A no-battery Mac reports 100, so the battery-percentage slot draws the
+        // number and wins over the Bluetooth replacement exactly as it does on a
+        // battery Mac. The Bluetooth options therefore no longer change the
+        // centre, while the plain automatic decision still shows the glyph.
         XCTAssertEqual(
+            centerSlotPixels(enabledWithBatterySlot),
+            centerSlotPixels(standardNetwork)
+        )
+        XCTAssertNotEqual(
             centerSlotPixels(enabledWithBatterySlot),
             centerSlotPixels(enabledWithoutBatterySlot)
         )
-        XCTAssertNotEqual(centerSlotPixels(enabledWithBatterySlot), centerSlotPixels(standardNetwork))
     }
 
     private func renderedPixels(

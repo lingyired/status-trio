@@ -17,8 +17,19 @@ struct BatterySectionView: View {
                 isDarkBackground: $previewIsDark
             )
         }) {
+            if !statusStore.snapshot.battery.isPresent {
+                noBatteryNoticeGroup
+            }
             batteryGroup
             powerFlowGroup
+        }
+    }
+
+    /// A Mac without a battery reports 100 as its level; spell that out at the
+    /// top of the page so nobody reads the placeholder as a real reading.
+    private var noBatteryNoticeGroup: some View {
+        SettingsGroup {
+            SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryNotice))
         }
     }
 

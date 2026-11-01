@@ -146,6 +146,7 @@
 "settings.about.starOnGitHub" = "在 GitHub 上標星";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "電池顯示";
+"settings.battery.noBatteryNotice" = "目前裝置沒有電池，所以電量顯示預設為 100。";
 "settings.battery.showPercentage" = "顯示電量數字";
 "settings.battery.showChargingIndicator" = "充電/連接電源時顯示指示圖示";
 "settings.battery.chargingDescription" = "開啟後，正在充電或已連接電源時，電量數字會替換為閃電或插頭圖示；關閉則繼續顯示數字。";

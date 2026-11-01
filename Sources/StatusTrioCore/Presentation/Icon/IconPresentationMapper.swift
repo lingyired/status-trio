@@ -113,10 +113,12 @@ enum IconPresentationMapper {
             return .text(IconTextState(text: "--", color: .primary, scale: textScale))
         }
 
-        if connectionOptions.centerSource == .batteryPercentage, battery.isPresent {
+        if connectionOptions.centerSource == .batteryPercentage {
             // Every numeric centre mode shares the same size rule: the Wi-Fi
             // Icon Size scale, so switching between percentage and watts does
-            // not change the number's size.
+            // not change the number's size. A Mac with no battery reports 100
+            // through `BatteryStatus.percentage`, so this slot and the top
+            // battery indicator agree on the same value.
             return .text(IconTextState(
                 text: "\(battery.percentage)",
                 color: .primary,

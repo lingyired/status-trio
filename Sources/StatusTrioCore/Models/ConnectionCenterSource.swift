@@ -12,8 +12,10 @@ enum ConnectionCenterSource: String, CaseIterable, Identifiable, Sendable {
     /// The currently selected macOS input source, falling back to the
     /// automatic decision whenever a source cannot be read or drawn.
     case inputSource
-    /// The battery percentage, only on Macs that have a battery. A Mac without
-    /// one falls back to the automatic decision rather than inventing a level.
+    /// The battery percentage. A Mac without a battery reports 100 through
+    /// `BatteryStatus.percentage`, so the slot shows 100 there — the same value
+    /// the top battery indicator uses — instead of falling back to the network
+    /// glyph.
     case batteryPercentage
     /// The live whole-machine power reading. Falls back to the battery
     /// percentage on a battery Mac when the sensor is unreadable, and to a

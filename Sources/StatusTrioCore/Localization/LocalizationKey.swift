@@ -277,6 +277,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsAudioExternalVolumeStatusChooseDisplay = "settings.audio.externalVolume.status.chooseDisplay"
     case settingsAudioExternalVolumeStatusNotConfirmed = "settings.audio.externalVolume.status.notConfirmed"
     case settingsBatteryTitle = "settings.battery.title"
+    case settingsBatteryNoBatteryNotice = "settings.battery.noBatteryNotice"
     case settingsBatteryShowPercentage = "settings.battery.showPercentage"
     case settingsBatteryShowChargingIndicator = "settings.battery.showChargingIndicator"
     case settingsBatteryChargingDescription = "settings.battery.chargingDescription"

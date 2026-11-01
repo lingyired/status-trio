@@ -142,8 +142,9 @@ The centre slot is one single-choice setting, not a set of independent toggles:
   position, then Bluetooth audio, then Ethernet / Wi-Fi;
 - **Current Input Source** — the selected input source, with the optional
   network-error override;
-- **Battery Percentage** — the battery level in the centre slot, only on a Mac
-  that has a battery; a Mac without one falls back to Automatic;
+- **Battery Percentage** — the battery level in the centre slot. A Mac without a
+  battery reports 100, so the slot shows 100 just like the top battery
+  indicator;
 - **Power** — the live whole-machine wattage, described in
   [Power in the centre slot](power-center-slot.md).
 

@@ -344,12 +344,15 @@ final class IconPresentationMapperTests: XCTestCase {
                        "A Mac with no battery must not invent a percentage or a 0 W reading")
     }
 
-    func testBatteryPercentageCenterFallsThroughWhenBatteryIsAbsent() {
+    func testBatteryPercentageCenterShowsOneHundredWhenBatteryIsAbsent() {
+        // A Mac with no battery reports 100 through `BatteryStatus.percentage`.
+        // The connection slot must show that same value instead of falling back
+        // to the network glyph, matching the top battery indicator.
         let absent = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
                                    isLowPowerMode: false, isConnectedToPower: false)
         let config = ConnectionIconOptions(centerSource: .batteryPercentage)
         let center = scene(snapshot: snapshot(battery: absent), connectionOptions: config).center
-        XCTAssertNotEqual(center, .text(IconTextState(text: "100", color: .primary, scale: 1)))
+        XCTAssertEqual(center, .text(IconTextState(text: "100", color: .primary, scale: 1)))
     }
 
     func testOffAndUnavailableWifiShareOneVisualState() {
