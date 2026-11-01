@@ -204,7 +204,7 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         XCTAssertEqual(backend.writeCount, 1)
     }
 
-    func testReTapOfSelectedModeWritesNothing() async {
+    func testReTapOfSelectedModeTurnsItOff() async {
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 3 // already Transparency, and the capability highlights it
         let cap = capability(current: .transparency)
@@ -217,9 +217,18 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
 
         controller.setMode(.transparency, for: device())
 
-        XCTAssertEqual(controller.presentations[key]?.actionState, .idle, "a re-tap never starts a write")
-        await waitUntil { backend.writeCount == 0 }
-        XCTAssertEqual(backend.writeCount, 0)
+        XCTAssertEqual(
+            controller.presentations[key]?.actionState,
+            .changing(to: .off),
+            "re-tapping the active mode starts an Off write"
+        )
+        await waitUntil { controller.presentations[key]?.actionState == .idle }
+        XCTAssertNil(
+            controller.presentations[key]?.selectedMode,
+            "turning off clears the highlight"
+        )
+        XCTAssertEqual(backend.writeCount, 1)
+        XCTAssertEqual(backend.lstm.value, BluetoothListeningMode.off.rawValue)
     }
 
     func testRepeatTapWhileChangingDoesNotStackAWrite() async {

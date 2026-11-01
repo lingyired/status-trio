@@ -131,6 +131,21 @@ public half of the mechanism; the key names belong to `powerd`, and a key that g
 away only means those notifications stop arriving, which leaves the safety-net poll
 as the only trigger, exactly as before.
 
+## Apple TV and HomePod have no trustworthy Bluetooth identity
+
+The Bluetooth device list draws a glyph only for the class the paired-device
+report declares, and refines that glyph by name. An Apple TV is not a normal
+Bluetooth audio device: it lives on AirPlay, and CoreAudio only exposes it while
+it is already the active system output, without a model name — so it cannot be
+identified or discovered in the Bluetooth list (or the idle audio-output list).
+A HomePod can appear in the paired report as one entry per unit, but that report
+carries no stereo-pair or room grouping and no verified product identity, so two
+HomePods cannot be folded into one row, and a unit renamed to its room name falls
+back to the generic audio glyph. Per the issues' own rule ("if it cannot be
+identified, do not support it"), Status Trio does not guess here. Full support
+would need AirPlay/Bonjour discovery and a route helper — a separate feature. See
+[issue #100 / #101 analysis](issue-100-101-apple-tv-homepod-bluetooth.md).
+
 ## Telemetry cannot identify uninstalls
 
 When anonymous usage statistics are enabled, the app sends a small heartbeat

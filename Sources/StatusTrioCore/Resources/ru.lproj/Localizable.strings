@@ -159,8 +159,11 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "Отключите, чтобы молния сохранила обычный размер и цвет; эффект дуги зарядки продолжит работать.";
 "settings.battery.chargingEffectTest" = "Проверить анимацию зарядки";
 "settings.battery.chargingEffectTestDescription" = "Сборка для разработки: работает без зарядки. Режим проверки выключится после перезапуска.";
-"settings.battery.percentageWhenConnected" = "Показывать процент при питании от сети без зарядки";
-"settings.battery.percentageWhenConnectedDescription" = "Если включено, при питании от сети без зарядки показывается процент вместо вилки.";
+"settings.battery.connectedIndicator" = "Показывать при питании без зарядки";
+"settings.battery.connectedIndicatorDescription" = "Что показывает значок батареи, когда Mac подключён к питанию, но не заряжается: вилка, молния или процент.";
+"settings.battery.connectedIndicator.plug" = "Вилка";
+"settings.battery.connectedIndicator.bolt" = "Молния";
+"settings.battery.connectedIndicator.percentage" = "Процент";
 "settings.battery.symbolScale" = "Размер процента и молнии";
 "settings.battery.symbolScaleAccessibility" = "Размер процента батареи и молнии";
 "settings.battery.symbolScaleDescription" = "Процент и молния используют один размер.";
@@ -359,6 +362,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Только регулятор громкости";
 "settings.popup.volumeScroll.natural" = "Естественная прокрутка";
 "settings.popup.volumeScroll.natural.description" = "Если включено, прокрутка вверх мышью или трекпадом увеличивает громкость. Если выключено, громкость следует направлению прокрутки системы. Если после включения этой опции прокрутка мыши вверх всё ещё уменьшает громкость, настройте MOS, Scroll Reverser, LinearMouse или похожее приложение так, чтобы Status Trio оставался без изменений, обычно через список исключений/игнорирования (иногда называемый списком разрешённых).";
+"settings.audio.volumeFeedbackTitle" = "Обратная связь громкости";
+"settings.audio.volumeFeedback" = "Звук при изменении громкости прокруткой";
+"settings.audio.volumeFeedbackDescription" = "Воспроизводит звук при изменении громкости прокруткой. По умолчанию используется параметр macOS «Воспроизводить звук при изменении громкости»; переключатель здесь действует только для Status Trio.";
 "settings.popup.volumeScroll.direction" = "Направление прокрутки";
 "settings.popup.volumeScroll.direction.description" = "Выберите направление, увеличивающее громкость.";
 "settings.popup.volumeScroll.direction.up" = "Вверх";

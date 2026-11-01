@@ -35,6 +35,32 @@ enum SystemVolumeFeedbackPreference {
     }
 }
 
+/// The app-level switch for the scroll-to-change-volume tick (#194), layered on
+/// top of the macOS system switch.
+///
+/// The stored value is a `Bool`; a missing key means "follow the system
+/// switch", which is the state a user starts in until they toggle the row. Once
+/// an explicit value is stored it wins over the system switch, so someone whose
+/// Mac has the system feedback off can still turn the app's own tick on, and
+/// the reverse.
+enum VolumeScrollFeedbackPreference {
+    static let key = "popupVolumeScrollFeedback"
+
+    /// The combination rule, split out so the missing-key case can be tested
+    /// without a suite picking up this Mac's global preference.
+    static func isEnabled(storedValue: Any?, systemEnabled: Bool) -> Bool {
+        guard let storedValue else { return systemEnabled }
+        return (storedValue as? NSNumber)?.boolValue ?? systemEnabled
+    }
+
+    static func isEnabled(in defaults: UserDefaults = .standard) -> Bool {
+        isEnabled(
+            storedValue: defaults.object(forKey: key),
+            systemEnabled: SystemVolumeFeedbackPreference.isEnabled(in: defaults)
+        )
+    }
+}
+
 /// Coalesces a burst of volume changes into one tick per interval.
 struct VolumeFeedbackThrottle {
     /// The tick is 40 ms long and a scroll gesture delivers events far faster
@@ -104,7 +130,7 @@ final class VolumeFeedbackPlayer: VolumeFeedbackPlaying {
     }
 
     func playVolumeChangeFeedback() {
-        guard SystemVolumeFeedbackPreference.isEnabled(in: defaults) else { return }
+        guard VolumeScrollFeedbackPreference.isEnabled(in: defaults) else { return }
         guard throttle.shouldPlay(at: now()) else { return }
         guard let sound = loadedSound() else { return }
         playback(sound)

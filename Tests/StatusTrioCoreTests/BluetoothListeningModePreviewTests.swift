@@ -133,16 +133,25 @@ final class BluetoothListeningModePreviewTests: XCTestCase {
         XCTAssertEqual(backend.writeCount, 0, "and it still has not written after settling")
     }
 
-    /// Re-tapping the capsule that is already selected writes nothing, exactly like
-    /// the real path — the row is a preview of the interaction, not a stress
-    /// button.
-    func testPreviewRetapOfSelectedModeDoesNothing() {
+    /// Re-tapping the capsule that is already selected turns the preview off, the
+    /// same interaction the real row offers.
+    func testPreviewRetapOfSelectedModeTurnsItOff() async {
         let controller = makePreviewController()
         controller.refresh(devices: [connectedAirPods()])
-        // The default selection is noise cancellation, so re-tapping it must be
-        // refused on the guard.
+        // The default selection is noise cancellation, so re-tapping it starts an
+        // Off write that settles with no highlight.
         controller.setMode(.noiseCancellation, for: connectedAirPods())
-        XCTAssertEqual(controller.presentations[key]?.isChanging, false)
+        XCTAssertEqual(controller.presentations[key]?.isChanging(to: .off), true)
+
+        await waitUntil { controller.presentations[self.key]?.isChanging == false }
+        XCTAssertNil(controller.presentations[key]?.selectedMode, "turning off clears the highlight")
+
+        // A stale refresh must not snap the picker back to the default mode.
+        controller.refresh(devices: [connectedAirPods()])
+        XCTAssertNil(
+            controller.presentations[key]?.selectedMode,
+            "a turned-off preview stays unhighlighted across refreshes"
+        )
     }
 
     /// Two taps in quick succession: the second is refused because the first is

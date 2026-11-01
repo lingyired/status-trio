@@ -57,19 +57,24 @@ enum StatusMappings {
     }
 
     /// A charging battery keeps the bolt. A connected power source that is not
-    /// charging — including a battery that is already full — shows the plug,
-    /// or the percentage when the user asked for the number in that state and
-    /// the percentage is available at all.
+    /// charging — including a battery that is already full — shows whatever the
+    /// user picked for that state: the plug (the default), the bolt, or the
+    /// percentage when the percentage is shown at all.
     static func batteryGapContent(
         _ battery: BatteryStatus,
         options: BatteryIconOptions
     ) -> BatteryGapContent {
         if battery.isPresent, options.showsChargingIndicator {
             if battery.isCharging { return .bolt }
-            let showsPercentageForPower = options.showsPercentageWhenConnected
-                && options.showsPercentage
-            if battery.isConnectedToPower, !showsPercentageForPower {
-                return .plug
+            if battery.isConnectedToPower {
+                switch options.connectedIndicator {
+                case .plug:
+                    return .plug
+                case .bolt:
+                    return .bolt
+                case .percentage:
+                    return options.showsPercentage ? .percentage : .plug
+                }
             }
         }
 

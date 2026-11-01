@@ -159,8 +159,11 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "Disattivala per mantenere il fulmine alle dimensioni e al colore abituali; l’effetto dell’arco di ricarica continua.";
 "settings.battery.chargingEffectTest" = "Prova animazione di ricarica";
 "settings.battery.chargingEffectTestDescription" = "Versione di sviluppo: riproduce senza ricarica. La modalità di prova si disattiva al riavvio.";
-"settings.battery.percentageWhenConnected" = "Mostra la percentuale con alimentazione collegata senza carica";
-"settings.battery.percentageWhenConnectedDescription" = "Se attivato, una fonte di alimentazione collegata che non sta caricando mostra la percentuale invece della spina.";
+"settings.battery.connectedIndicator" = "Mostra quando collegato senza ricarica";
+"settings.battery.connectedIndicatorDescription" = "Cosa mostra l’icona della batteria quando è collegato all’alimentazione ma non in carica: la spina, il fulmine o la percentuale.";
+"settings.battery.connectedIndicator.plug" = "Spina";
+"settings.battery.connectedIndicator.bolt" = "Fulmine";
+"settings.battery.connectedIndicator.percentage" = "Percentuale";
 "settings.battery.symbolScale" = "Dimensione percentuale/fulmine";
 "settings.battery.symbolScaleAccessibility" = "Dimensione percentuale batteria e fulmine";
 "settings.battery.symbolScaleDescription" = "Percentuale e fulmine usano la stessa dimensione.";
@@ -359,6 +362,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Solo il controllo del volume";
 "settings.popup.volumeScroll.natural" = "Scorrimento naturale";
 "settings.popup.volumeScroll.natural.description" = "Se attivo, scorrendo verso l’alto con mouse o trackpad il volume aumenta. Se disattivo, il volume segue la direzione di scorrimento del sistema. Se, dopo aver attivato questa opzione, lo scorrimento verso l’alto del mouse abbassa ancora il volume, configura MOS, Scroll Reverser, LinearMouse o un’app simile per lasciare Status Trio invariato, di solito tramite un elenco di eccezioni/ignorati (talvolta chiamato elenco consentiti).";
+"settings.audio.volumeFeedbackTitle" = "Feedback del volume";
+"settings.audio.volumeFeedback" = "Riproduci un suono quando cambi il volume scorrendo";
+"settings.audio.volumeFeedbackDescription" = "Riproduce il suono quando cambi il volume scorrendo. Per impostazione predefinita segue l’impostazione di macOS «Riproduci feedback quando il volume cambia»; questa opzione vale solo per Status Trio.";
 "settings.popup.volumeScroll.direction" = "Direzione di scorrimento";
 "settings.popup.volumeScroll.direction.description" = "Scegli la direzione che alza il volume.";
 "settings.popup.volumeScroll.direction.up" = "Verso l’alto";
