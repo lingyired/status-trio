@@ -150,6 +150,8 @@
 "settings.battery.showPercentage" = "Afficher le pourcentage de batterie";
 "settings.battery.showChargingIndicator" = "Afficher un indicateur pendant la charge ou sur secteur";
 "settings.battery.chargingDescription" = "Lorsque cette option est activée, le pourcentage devient un éclair ou une prise pendant la charge ou sur secteur.";
+"settings.battery.splitGapProgress" = "Répartir la progression quand l’encoche supérieure est remplie";
+"settings.battery.splitGapProgressDescription" = "Lorsqu’un éclair, une prise ou un pourcentage occupe l’encoche supérieure, l’anneau est dessiné de sorte que la moitié gauche représente 0–50 % et la moitié droite 50–100 %, afin que l’encoche ne masque plus la progression.";
 "settings.battery.chargingEffect" = "Effet de charge";
 "settings.battery.chargingEffectDescription" = "Anime la surbrillance uniquement pendant la charge. L’animation s’arrête si « Réduire les animations » est activé.";
 "settings.battery.menuBarChargingEffect" = "Effet de charge dans la barre des menus";

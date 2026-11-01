@@ -150,6 +150,8 @@
 "settings.battery.showPercentage" = "Show battery percentage";
 "settings.battery.showChargingIndicator" = "Show an indicator while charging or connected to power";
 "settings.battery.chargingDescription" = "When enabled, the percentage becomes a bolt or plug while charging or connected to power.";
+"settings.battery.splitGapProgress" = "Split progress when the top gap is filled";
+"settings.battery.splitGapProgressDescription" = "When a bolt, plug or percentage sits in the top gap, draw the ring so the left half is 0–50% and the right half is 50–100%, so the gap no longer hides progress.";
 "settings.battery.chargingEffect" = "Charging effect";
 "settings.battery.chargingEffectDescription" = "Animate the highlight only while charging. Stops when Reduce Motion is on.";
 "settings.battery.menuBarChargingEffect" = "Menu bar charging effect";

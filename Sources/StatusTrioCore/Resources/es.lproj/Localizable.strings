@@ -150,6 +150,8 @@
 "settings.battery.showPercentage" = "Mostrar porcentaje de batería";
 "settings.battery.showChargingIndicator" = "Mostrar un indicador al cargar o conectar a la corriente";
 "settings.battery.chargingDescription" = "Al activarlo, el porcentaje se convierte en un rayo o un enchufe mientras se carga o está conectado a la corriente.";
+"settings.battery.splitGapProgress" = "Dividir el progreso cuando el hueco superior tiene contenido";
+"settings.battery.splitGapProgressDescription" = "Cuando en el hueco superior hay un rayo, un enchufe o un porcentaje, el anillo se dibuja de modo que la mitad izquierda sea 0–50 % y la derecha 50–100 %, para que el hueco deje de ocultar el progreso.";
 "settings.battery.chargingEffect" = "Efecto de carga";
 "settings.battery.chargingEffectDescription" = "Anima el resaltado solo durante la carga. Se detiene si «Reducir movimiento» está activado.";
 "settings.battery.menuBarChargingEffect" = "Efecto de carga en la barra de menús";

@@ -266,6 +266,7 @@ struct RingStrokeStylePreview: View {
                 battery: BatteryIconOptions(
                     showsPercentage: store.showsBatteryPercentage,
                     showsChargingIndicator: store.showsChargingIndicator,
+                    splitGapProgress: store.batterySplitGapProgress,
                     usesStatusColors: store.usesBatteryStatusColors,
                     criticalThreshold: Int(store.batteryCriticalThreshold.rounded()),
                     connectedIndicator: store.batteryConnectedIndicator,

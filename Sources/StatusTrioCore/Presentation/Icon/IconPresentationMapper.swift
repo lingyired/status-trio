@@ -75,7 +75,8 @@ enum IconPresentationMapper {
             gap: gap,
             accessory: accessory,
             effect: effect,
-            strokeScale: options.ringStrokeScale
+            strokeScale: options.ringStrokeScale,
+            gapProgressMode: options.splitGapProgress ? .split : .absorbed
         )
     }
 

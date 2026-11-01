@@ -150,6 +150,8 @@
 "settings.battery.showPercentage" = "배터리 잔량 표시";
 "settings.battery.showChargingIndicator" = "충전 또는 전원 연결 시 아이콘 표시";
 "settings.battery.chargingDescription" = "활성화하면 충전 중이거나 전원에 연결되었을 때 잔량이 번개 또는 플러그로 바뀝니다. 비활성화하면 잔량을 계속 표시합니다.";
+"settings.battery.splitGapProgress" = "상단 틈에 내용이 있을 때 진행률 분할";
+"settings.battery.splitGapProgressDescription" = "상단 틈에 번개, 플러그 또는 퍼센트가 표시될 때 링을 왼쪽 절반 0–50%, 오른쪽 절반 50–100%로 그려 틈이 진행률을 가리지 않도록 합니다.";
 "settings.battery.chargingEffect" = "충전 효과";
 "settings.battery.chargingEffectDescription" = "충전 중에만 강조 표시를 애니메이션으로 표시합니다. ‘동작 줄이기’가 켜져 있으면 중지합니다.";
 "settings.battery.menuBarChargingEffect" = "메뉴 막대 충전 효과";

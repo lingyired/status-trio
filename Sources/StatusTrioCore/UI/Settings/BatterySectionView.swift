@@ -206,6 +206,17 @@ struct BatterySectionView: View {
 
             SettingsDivider()
 
+            // Split the visible arc when the top gap has content (#205).
+            SettingsToggleRow(
+                symbol: "circle.lefthalf.filled",
+                tint: .blue,
+                title: localization.string(.settingsBatterySplitGapProgress),
+                subtitle: localization.string(.settingsBatterySplitGapProgressDescription),
+                isOn: $store.batterySplitGapProgress
+            )
+
+            SettingsDivider()
+
             SettingsToggleRow(
                 symbol: "menubar.rectangle",
                 tint: .green,

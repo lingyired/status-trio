@@ -176,6 +176,30 @@ enum StatusIconGeometry {
         return gapStart
     }
 
+    /// Maps battery progress to the progress-space arc end for a `.split` top
+    /// gap (#205). The gap carries no progress, so the visible arc spans the
+    /// whole 0–100% scale: the left visible half is 0–50% and the right visible
+    /// half is 50–100%. Feeding the result to `batteryFill` fills exactly the
+    /// requested fraction of the visible arc, so 51 and 59 no longer look alike.
+    static func splitFillProgress(
+        forProgress progress: Double,
+        hasTopGap: Bool,
+        topGapWidth: CGFloat = batteryChargingBoltTopGapWidth
+    ) -> Double {
+        let clampedProgress = clampedUnit(progress)
+        guard hasTopGap else { return clampedProgress }
+        let visibleArcLength = visibleFraction(
+            forProgress: 1,
+            hasTopGap: true,
+            topGapWidth: topGapWidth
+        )
+        return Self.progress(
+            forVisibleFraction: clampedProgress * visibleArcLength,
+            hasTopGap: true,
+            topGapWidth: topGapWidth
+        )
+    }
+
     private static func clampedUnit(_ value: Double) -> Double {
         guard value.isFinite else { return 0 }
         return min(1, max(0, value))

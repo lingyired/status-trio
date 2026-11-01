@@ -58,9 +58,11 @@ extension SettingsStore {
             )
         )
         .combineLatest($showsDockChargingEffect)
-        .map { values, showsDockChargingEffect -> BatteryAppearanceInputs in
-            let primaryInputs = values.0
-            let additionalInputs = values.1
+        .combineLatest($batterySplitGapProgress)
+        .map { values, splitGapProgress -> BatteryAppearanceInputs in
+            let primaryInputs = values.0.0
+            let additionalInputs = values.0.1
+            let showsDockChargingEffect = values.1
             return BatteryAppearanceInputs(
                 showsPercentage: primaryInputs.0,
                 showsChargingIndicator: primaryInputs.1,
@@ -71,6 +73,7 @@ extension SettingsStore {
                 showsChargingEffect:
                     additionalInputs.3 || showsDockChargingEffect,
                 showsChargingBoltHeartbeat: additionalInputs.2,
+                splitGapProgress: splitGapProgress,
                 fullThreshold: Self.defaultBatteryFullThreshold,
                 batteryStatusColors: .standard
             )
@@ -158,6 +161,7 @@ private struct BatteryAppearanceInputs {
     var symbolScale: Double
     var showsChargingEffect: Bool
     var showsChargingBoltHeartbeat: Bool
+    var splitGapProgress: Bool
     var fullThreshold: Double
     var batteryStatusColors: BatteryStatusColors
 
@@ -167,6 +171,7 @@ private struct BatteryAppearanceInputs {
             showsChargingIndicator: showsChargingIndicator,
             showsChargingEffect: showsChargingEffect,
             showsChargingBoltHeartbeat: showsChargingBoltHeartbeat,
+            splitGapProgress: splitGapProgress,
             usesStatusColors: usesStatusColors,
             criticalThreshold: Int(criticalThreshold.rounded()),
             connectedIndicator: connectedIndicator,

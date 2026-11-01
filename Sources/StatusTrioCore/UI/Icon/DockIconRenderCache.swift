@@ -14,7 +14,8 @@ struct DockIconRenderKey: Hashable {
                 gap: ring.gap,
                 accessory: ring.accessory,
                 effect: nil,
-                strokeScale: ring.strokeScale
+                strokeScale: ring.strokeScale,
+                gapProgressMode: ring.gapProgressMode
             ),
             center: scene.center,
             footer: scene.footer,

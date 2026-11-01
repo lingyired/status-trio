@@ -5,6 +5,11 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
     let showsChargingIndicator: Bool
     let showsChargingEffect: Bool
     let showsChargingBoltHeartbeat: Bool
+    /// When the top gap shows content (bolt, plug or percentage), draw the arc so
+    /// the left visible half carries 0–50% and the right visible half carries
+    /// 50–100%, instead of letting the gap absorb progress (#205). Off by
+    /// default so the historical "gap consumes progress" look is preserved.
+    let splitGapProgress: Bool
     let usesStatusColors: Bool
     /// What the top gap shows while connected to power but not charging (#195).
     let connectedIndicator: BatteryConnectedIndicator
@@ -35,6 +40,7 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         showsChargingIndicator: true,
         showsChargingEffect: true,
         showsChargingBoltHeartbeat: true,
+        splitGapProgress: false,
         usesStatusColors: true,
         criticalThreshold: 20,
         connectedIndicator: .plug,
@@ -48,6 +54,7 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         showsChargingIndicator: Bool = true,
         showsChargingEffect: Bool = true,
         showsChargingBoltHeartbeat: Bool = true,
+        splitGapProgress: Bool = false,
         usesStatusColors: Bool = true,
         criticalThreshold: Int = 20,
         connectedIndicator: BatteryConnectedIndicator = .plug,
@@ -60,6 +67,7 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         self.showsChargingIndicator = showsChargingIndicator
         self.showsChargingEffect = showsChargingEffect
         self.showsChargingBoltHeartbeat = showsChargingBoltHeartbeat
+        self.splitGapProgress = splitGapProgress
         self.usesStatusColors = usesStatusColors
         self.connectedIndicator = connectedIndicator
         self.criticalThreshold = min(100, max(0, criticalThreshold))
