@@ -54,6 +54,9 @@ final class BrightnessMonitor: BrightnessMonitoring {
     let updates: AsyncStream<BrightnessStatus>
 
     private var entries: [String: Entry] = [:]
+    /// Last known per-display state, kept across hide/show so the panel can draw
+    /// the display list immediately instead of waiting for a fresh DDC read.
+    private var cachedStates: [String: DisplayBrightness] = [:]
     private var configurations: [String: ExternalBrightnessConfiguration] = [:]
     private var detailsVisible = false
     private var displayAsleep = false
@@ -91,7 +94,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
 
     func stop() {
         started = false
-        teardownAll()
+        stopCoordinators()
         continuation.finish()
     }
 
@@ -122,7 +125,10 @@ final class BrightnessMonitor: BrightnessMonitoring {
             guard started, !displayAsleep else { return }
             rebuild()
         } else {
-            teardownAll()
+            // Stop the workers but keep the last published state in `cachedStates`
+            // (and therefore in the store snapshot) so reopening the section draws
+            // the list instantly instead of blanking first.
+            stopCoordinators()
         }
     }
 
@@ -239,14 +245,15 @@ final class BrightnessMonitor: BrightnessMonitoring {
         kind: BackendKind,
         betterDisplayUUID: String?
     ) -> Entry {
+        let cached = cachedStates[descriptor.id]
         let initialState = DisplayBrightness(
             id: descriptor.id,
             name: descriptor.name,
             isBuiltin: descriptor.isBuiltin,
-            scalar: nil,
-            canAdjust: false,
+            scalar: cached?.scalar,
+            canAdjust: cached?.canAdjust ?? false,
             backend: kind == .directDDC ? .directDDC : .betterDisplay,
-            source: .unavailable(.readFailed)
+            source: cached?.source ?? .unavailable(.readFailed)
         )
         let displayID = descriptor.id
 
@@ -286,10 +293,9 @@ final class BrightnessMonitor: BrightnessMonitoring {
         }
     }
 
-    private func teardownAll() {
+    private func stopCoordinators() {
         for entry in entries.values { teardown(entry) }
         entries.removeAll()
-        publish()
     }
 
     // MARK: - Update application
@@ -341,6 +347,9 @@ final class BrightnessMonitor: BrightnessMonitoring {
                 return lhs.descriptor.id < rhs.descriptor.id
             }
             .map(\.state)
+        for display in displays {
+            cachedStates[display.id] = display
+        }
         continuation.yield(
             BrightnessStatus(displays: displays, transitionGeneration: generation)
         )
