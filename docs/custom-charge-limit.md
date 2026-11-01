@@ -101,6 +101,23 @@ selected. The opt-in policy described here deliberately adds event-based
 restoration for an explicitly saved managed target. Historical experiments do
 not prove this new policy's runtime behavior.
 
+## Interaction with Charge to Full Now
+
+The existing **Charge to Full Now** action and the managed policy share one
+writer. When a managed limit is active it becomes the cancel/restore target, so
+cancelling a temporary full charge resumes the managed limit rather than the
+legacy **Restore limit** slider. That slider therefore only governs the
+**System Managed** case; it is disabled and annotated while a managed limit is
+selected.
+
+Both actions persist their own session (`chargeToFullNow.session.v1` and
+`managedChargeLimit.session.v1`). They are independent records with different
+purposes and are not merged: the managed policy is the single source of truth
+for the native limit, and Charge to Full Now reads it through one closure
+(`managedRestoreLimit`). On relaunch each controller re-reads the live native
+state before acting, so a completed, cancelled, or externally ended override is
+reconciled rather than blindly replayed.
+
 ## Verification scope
 
 Automated policy and bridge tests use fake clients. Local builds and tests do

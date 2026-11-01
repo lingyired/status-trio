@@ -347,6 +347,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBatteryChargeLimitUnavailableOption = "settings.battery.chargeLimit.unavailableOption"
     case settingsBatteryChargeLimitReapply = "settings.battery.chargeLimit.reapply"
     case settingsBatteryChargeLimitRestoreDescription = "settings.battery.chargeLimit.restoreDescription"
+    case settingsBatteryChargeLimitRestoreScopeHint = "settings.battery.chargeLimit.restoreScopeHint"
     case settingsBatteryChargeLimitSupport = "settings.battery.chargeLimit.support"
     case settingsAboutVersion = "settings.about.version"
     case settingsAboutDescription = "settings.about.description"

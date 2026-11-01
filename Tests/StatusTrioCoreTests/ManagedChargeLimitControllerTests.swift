@@ -358,6 +358,128 @@ final class ManagedChargeLimitControllerTests: XCTestCase {
         XCTAssertNil(store.session)
     }
 
+    // MARK: - Charge to Full Now × managed limit integration
+
+    private func demand(connected: Bool = true, full: Bool = false) -> ChargeToFullNowDemand {
+        ChargeToFullNowDemand(
+            settingEnabled: true,
+            popoverVisible: true,
+            batterySectionVisible: true,
+            battery: battery(connected: connected, full: full)
+        )
+    }
+
+    /// End-to-end: select a managed limit, run Charge to Full Now, cancel, and
+    /// confirm the managed limit (not the legacy slider) is what gets restored.
+    func testChargeToFullCancelRestoresActiveManagedLimit() async {
+        let backend = ManagedChargeBackend()
+        backend.state = ChargeToFullNowDeviceState(
+            mclEnabledRawValue: 0, mclLimit: 100,
+            availableChargeLimits: [80, 85, 90, 95], chargingOverrideAllowed: true
+        )
+        let store = MemoryManagedChargeStore()
+        let managed = ManagedChargeLimitController(backend: backend, sessionStore: store)
+        await managed.selectLimit(90)
+        XCTAssertEqual(managed.status, .active(90))
+        XCTAssertEqual(store.session?.originalLimit, 100)
+
+        let charge = ChargeToFullNowController(
+            backend: managed,
+            managedRestoreLimit: { managed.managedRestoreLimit }
+        )
+        charge.update(demand())
+        XCTAssertEqual(charge.presentation, .available)
+
+        charge.requestChargeToFullNow()
+        await settle { charge.presentation == .chargingToFull }
+        charge.update(demand())
+        XCTAssertEqual(charge.presentation, .chargingToFull)
+
+        charge.performPrimaryAction()
+        await settle { charge.presentation == .limitRestored(limit: 90) }
+
+        XCTAssertEqual(charge.presentation, .limitRestored(limit: 90))
+        // Selection wrote 90 once; cancelling re-applied 90 through the managed
+        // controller. No legacy restore call was made.
+        XCTAssertEqual(backend.targets, [90, 90])
+        XCTAssertTrue(backend.restoreTargets.isEmpty)
+        XCTAssertEqual(managed.status, .active(90))
+        XCTAssertEqual(store.session?.limit, 90)
+        XCTAssertEqual(store.session?.originalLimit, 100)
+        XCTAssertEqual(store.session?.isTemporarilyOverridden, false)
+    }
+
+    /// Regression: with System Managed (no managed limit), Charge to Full Now
+    /// keeps the legacy slider target and never writes through the policy.
+    func testSystemManagedChargeToFullRestoresLegacySliderLimit() async {
+        let backend = ManagedChargeBackend()
+        backend.state = ChargeToFullNowDeviceState(
+            mclEnabledRawValue: 1, mclLimit: 80,
+            availableChargeLimits: [80, 85, 90, 95], chargingOverrideAllowed: true
+        )
+        let store = MemoryManagedChargeStore()
+        let managed = ManagedChargeLimitController(backend: backend, sessionStore: store)
+        XCTAssertNil(managed.managedRestoreLimit)
+
+        let charge = ChargeToFullNowController(
+            backend: managed,
+            restoreLimit: { 85 },
+            managedRestoreLimit: { managed.managedRestoreLimit }
+        )
+        charge.update(demand())
+        XCTAssertEqual(charge.presentation, .available)
+
+        charge.requestChargeToFullNow()
+        await settle { charge.presentation == .chargingToFull }
+        charge.update(demand())
+        charge.performPrimaryAction()
+        await settle { charge.presentation == .limitRestored(limit: 85) }
+
+        XCTAssertEqual(charge.presentation, .limitRestored(limit: 85))
+        XCTAssertEqual(backend.restoreTargets, [85])
+        XCTAssertTrue(backend.targets.isEmpty)
+        XCTAssertNil(store.session)
+    }
+
+    /// A power-state tick during a temporary full charge must preserve the
+    /// override instead of silently re-applying (ending) the managed cap.
+    func testBatteryTickDuringTemporaryOverrideDoesNotReapplyManagedLimit() async {
+        let backend = ManagedChargeBackend()
+        backend.state = ChargeToFullNowDeviceState(
+            mclEnabledRawValue: 0, mclLimit: 100,
+            availableChargeLimits: [80, 85, 90, 95], chargingOverrideAllowed: true
+        )
+        let store = MemoryManagedChargeStore()
+        let managed = ManagedChargeLimitController(backend: backend, sessionStore: store)
+        await managed.selectLimit(90)
+        let writesAfterSelection = backend.targets.count
+
+        _ = await managed.chargeToFullNow()
+        XCTAssertEqual(backend.state.mclEnabledRawValue, 3)
+
+        await managed.updateBattery(battery(connected: true))
+
+        XCTAssertEqual(backend.targets.count, writesAfterSelection)
+        XCTAssertEqual(managed.status, .temporarilyOverridden(90))
+    }
+
+    /// A saved policy that is no longer applied must read as reapply-needed
+    /// (`failed`), never as a permanent `checking` spinner.
+    func testRefreshFlagsUnappliedManagedLimitAsFailedForReapply() async {
+        let backend = ManagedChargeBackend()
+        backend.state = ChargeToFullNowDeviceState(
+            mclEnabledRawValue: 1, mclLimit: 100,
+            availableChargeLimits: [80, 85, 90, 95], chargingOverrideAllowed: true
+        )
+        let store = MemoryManagedChargeStore(session: .init(limit: 90, originalLimit: 100))
+        let controller = ManagedChargeLimitController(backend: backend, sessionStore: store)
+
+        controller.refresh()
+
+        XCTAssertEqual(controller.status, .failed)
+        XCTAssertTrue(backend.targets.isEmpty)
+    }
+
     private func settle(_ predicate: () -> Bool) async {
         for _ in 0..<100 where !predicate() { await Task.yield() }
         XCTAssertTrue(predicate())
@@ -394,6 +516,7 @@ private final class ManagedChargeBackend: BatteryChargeControlling {
     }
     var reads = 0
     var targets: [Int] = []
+    var restoreTargets: [Int] = []
     var succeeds = true
     var applies = true
     var options: [Int] = [80, 85, 90, 95] {
@@ -421,6 +544,13 @@ private final class ManagedChargeBackend: BatteryChargeControlling {
             state = ChargeToFullNowDeviceState(mclEnabledRawValue: 1, mclLimit: limit,
                 availableChargeLimits: options, chargingOverrideAllowed: true)
         }
+        return .success
+    }
+    func restoreChargeLimit(to limit: Int) async -> ChargeToFullNowWriteResult {
+        restoreTargets.append(limit)
+        guard succeeds else { return .failure }
+        state = ChargeToFullNowDeviceState(mclEnabledRawValue: 1, mclLimit: limit,
+            availableChargeLimits: options, chargingOverrideAllowed: true)
         return .success
     }
 }

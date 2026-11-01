@@ -651,3 +651,4 @@
 "settings.battery.chargeLimit.restoreDescription" = "Режим «Управляется системой» восстанавливает системный предел, записанный до включения этой функции. После выхода из Status Trio последний применённый предел сохраняется.";
 "settings.battery.chargeLimit.support" = "Для совместимых Mac с чипом Apple и macOS 26.4 или новее. macOS может иногда полностью заряжать аккумулятор для точной оценки уровня заряда.";
 "settings.battery.chargeLimit.checking" = "Проверка сохранённого предела заряда…";
+"settings.battery.chargeLimit.restoreScopeHint" = "Используется только при отсутствии выбранного управляемого лимита зарядки.";

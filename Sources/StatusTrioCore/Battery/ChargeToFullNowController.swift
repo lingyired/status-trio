@@ -91,6 +91,12 @@ final class ChargeToFullNowController: ObservableObject {
     /// limit". Cancel always restores this value instead of guessing a limit
     /// macOS may have removed from the persisted plist.
     private let restoreLimit: () -> Int
+    /// When a managed charge limit is active, that limit (not the slider above)
+    /// is the cancel target, so a temporary full charge resumes the managed
+    /// policy instead of the legacy fixed restore value. Two sessions persist
+    /// independently (`chargeToFullNow.session.v1` here, `managedChargeLimit.session.v1`
+    /// in the managed controller); this closure is the single read of the
+    /// managed policy and takes precedence whenever it returns non-nil.
     private let managedRestoreLimit: () -> Int?
     private let now: () -> Date
     private var currentDemand: ChargeToFullNowDemand?

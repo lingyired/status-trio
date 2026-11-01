@@ -651,3 +651,4 @@
 "settings.battery.chargeLimit.restoreDescription" = "„Vom System verwaltet“ stellt das vor Aktivierung dieser Funktion gespeicherte Systemlimit wieder her. Das zuletzt angewendete Limit bleibt nach dem Beenden von Status Trio bestehen.";
 "settings.battery.chargeLimit.support" = "Für unterstützte Macs mit Apple Chip und macOS 26.4 oder neuer. macOS lädt gelegentlich vollständig auf, um die Genauigkeit der Ladestandsanzeige zu erhalten.";
 "settings.battery.chargeLimit.checking" = "Gespeichertes Ladelimit wird geprüft…";
+"settings.battery.chargeLimit.restoreScopeHint" = "Wird nur verwendet, wenn kein verwalteter Ladegrenzwert ausgewählt ist.";

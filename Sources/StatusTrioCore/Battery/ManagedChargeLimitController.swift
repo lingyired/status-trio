@@ -112,7 +112,12 @@ final class ManagedChargeLimitController: ObservableObject, BatteryChargeControl
             save(saved)
             status = .temporarilyOverridden(saved.limit)
         } else {
-            status = .checking
+            // A saved policy that is neither active, paused, pending, nor an
+            // override means the cap is not currently applied (for example it
+            // was cleared while the app was closed). This is a reapply-needed
+            // state, not a transient `checking` one: surface it so the user can
+            // Reapply instead of watching an endless spinner.
+            status = .failed
         }
     }
 

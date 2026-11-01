@@ -651,3 +651,4 @@
 "settings.battery.chargeLimit.restoreDescription" = "Gestion par le système rétablit la limite système enregistrée avant l’activation de cette fonction. La dernière limite appliquée reste en place après avoir quitté Status Trio.";
 "settings.battery.chargeLimit.support" = "Pour les Mac avec puce Apple compatibles sous macOS 26.4 ou ultérieur. macOS peut parfois effectuer une charge complète pour maintenir la précision du niveau de batterie.";
 "settings.battery.chargeLimit.checking" = "Vérification de la limite de charge enregistrée…";
+"settings.battery.chargeLimit.restoreScopeHint" = "Utilisé uniquement lorsqu'aucune limite de charge gérée n'est sélectionnée.";

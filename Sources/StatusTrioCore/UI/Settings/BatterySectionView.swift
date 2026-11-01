@@ -29,6 +29,19 @@ struct BatterySectionView: View {
         }
     }
 
+    /// True once a managed charge limit governs the restore target. The legacy
+    /// "restore limit" slider below only governs the System Managed case, so it
+    /// is disabled (and explained) whenever the managed policy will win.
+    private var managedLimitGovernsRestore: Bool {
+        managedChargeLimit?.managedRestoreLimit != nil
+    }
+
+    private var restoreLimitSubtitle: String {
+        let base = localization.string(.settingsBatteryRestoreLimitDescription)
+        guard managedLimitGovernsRestore else { return base }
+        return base + " " + localization.string(.settingsBatteryChargeLimitRestoreScopeHint)
+    }
+
     /// A Mac without a battery reports 100 as its level; spell that out at the
     /// top of the page so nobody reads the placeholder as a real reading.
     private var noBatteryNoticeGroup: some View {
@@ -140,18 +153,18 @@ struct BatterySectionView: View {
                     "arrow.uturn.backward.circle",
                     tint: .green,
                     title: localization.string(.settingsBatteryRestoreLimit),
-                    subtitle: localization.string(
-                        .settingsBatteryRestoreLimitDescription
-                    ),
-                    subtitleLink: Text(
-                        localization.string(
-                            .settingsBatteryFullThresholdUseChargeLimit
+                    subtitle: restoreLimitSubtitle,
+                    subtitleLink: managedLimitGovernsRestore
+                        ? nil
+                        : Text(
+                            localization.string(
+                                .settingsBatteryFullThresholdUseChargeLimit
+                            )
                         )
-                    )
-                    .foregroundColor(Color.accentColor),
-                    subtitleLinkAction: {
-                        store.applySystemChargeToFullRestoreLimit()
-                    },
+                        .foregroundColor(Color.accentColor),
+                    subtitleLinkAction: managedLimitGovernsRestore
+                        ? nil
+                        : { store.applySystemChargeToFullRestoreLimit() },
                     trailing: {
                         HStack(spacing: 8) {
                             Slider(
@@ -165,6 +178,7 @@ struct BatterySectionView: View {
                                 in: SettingsStore.chargeToFullRestoreLimitRange,
                                 step: 5
                             )
+                            .disabled(managedLimitGovernsRestore)
                             .controlSize(.small)
                             .frame(width: 90)
                             .accessibilityLabel(
