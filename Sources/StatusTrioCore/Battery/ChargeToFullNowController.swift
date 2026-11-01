@@ -91,6 +91,7 @@ final class ChargeToFullNowController: ObservableObject {
     /// limit". Cancel always restores this value instead of guessing a limit
     /// macOS may have removed from the persisted plist.
     private let restoreLimit: () -> Int
+    private let managedRestoreLimit: () -> Int?
     private let now: () -> Date
     private var currentDemand: ChargeToFullNowDemand?
     private var session: ChargeToFullNowSession?
@@ -111,11 +112,13 @@ final class ChargeToFullNowController: ObservableObject {
         sessionStore: any ChargeToFullNowSessionStoring =
             VolatileChargeToFullNowSessionStore(),
         restoreLimit: @escaping () -> Int = { 80 },
+        managedRestoreLimit: @escaping () -> Int? = { nil },
         now: @escaping () -> Date = Date.init
     ) {
         self.backend = backend
         self.sessionStore = sessionStore
         self.restoreLimit = restoreLimit
+        self.managedRestoreLimit = managedRestoreLimit
         self.now = now
         session = sessionStore.load()
         sessionNeedsConfirmation = session != nil
@@ -393,6 +396,9 @@ final class ChargeToFullNowController: ObservableObject {
     }
 
     private func clampedRestoreLimit() -> Int {
+        // Managed targets come from PowerUI's advertised choices, which need not
+        // share the legacy restore slider's fixed five-percent steps.
+        if let managed = managedRestoreLimit() { return min(100, max(80, managed)) }
         let requested = restoreLimit()
         let clamped = min(
             Int(SettingsStore.chargeToFullRestoreLimitRange.upperBound),

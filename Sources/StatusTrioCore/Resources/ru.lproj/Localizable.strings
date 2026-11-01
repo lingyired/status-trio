@@ -630,3 +630,22 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Подтвердить установку %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "Состояние зарядки системы могло измениться. Нажмите ещё раз, чтобы продолжить.";
 "battery.action.cancelChargeToFullNowPending" = "Система ещё не подтвердила временную зарядку до 100 %. Повторите попытку через несколько секунд.";
+
+// Opt-in managed charge limit
+"settings.battery.chargeLimit.title" = "Предел заряда";
+"settings.battery.chargeLimit.target" = "Максимальный заряд";
+"settings.battery.chargeLimit.description" = "Применить предел сейчас и повторно применять при запуске, выходе из сна или подключении питания.";
+"settings.battery.chargeLimit.systemManaged" = "Управляется системой";
+"settings.battery.chargeLimit.status" = "Состояние";
+"settings.battery.chargeLimit.applying" = "Применение предела заряда…";
+"settings.battery.chargeLimit.systemStatus" = "Status Trio не управляет пределом заряда.";
+"settings.battery.chargeLimit.active" = "Установлен предел заряда %d%%.";
+"settings.battery.chargeLimit.overridden" = "Временная зарядка до полного уровня. Предел %d%% вернётся после отмены, полной зарядки или повторного подключения питания.";
+"settings.battery.chargeLimit.failed" = "Не удалось проверить предел заряда. Выберите предел или «Управляется системой», чтобы повторить попытку.";
+"settings.battery.chargeLimit.externalChange" = "Обнаружен другой предел заряда. Автоматическое применение приостановлено. Примените предел повторно или выберите другой, чтобы продолжить.";
+"settings.battery.chargeLimit.unavailable" = "Сохранённый предел %d%% сейчас недоступен. Выберите доступный предел или «Управляется системой».";
+"settings.battery.chargeLimit.unavailableOption" = "%d%% (недоступно)";
+"settings.battery.chargeLimit.reapply" = "Применить снова";
+"settings.battery.chargeLimit.restoreDescription" = "Режим «Управляется системой» восстанавливает системный предел, записанный до включения этой функции. После выхода из Status Trio последний применённый предел сохраняется.";
+"settings.battery.chargeLimit.support" = "Для совместимых Mac с чипом Apple и macOS 26.4 или новее. macOS может иногда полностью заряжать аккумулятор для точной оценки уровня заряда.";
+"settings.battery.chargeLimit.checking" = "Проверка сохранённого предела заряда…";

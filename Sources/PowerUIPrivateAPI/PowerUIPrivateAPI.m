@@ -210,9 +210,10 @@ static NSString * _Nullable STFirstError(
     return nil;
 }
 
-static STPowerUIChargeState *STReadState(
+static STPowerUIChargeState *STReadStateWithOptionsErrorPolicy(
     id<STPowerUIChargeClient> client,
-    NSString * _Nullable * _Nullable failure
+    NSString * _Nullable * _Nullable failure,
+    BOOL rejectOptionsError
 ) {
     NSError *enabledError = nil;
     NSError *limitError = nil;
@@ -268,6 +269,9 @@ static STPowerUIChargeState *STReadState(
     }
 
     NSString *errorMessage = STFirstError(enabledError, limitError, uiError);
+    if (rejectOptionsError && errorMessage == nil) {
+        errorMessage = STErrorDescription(availableError);
+    }
     BOOL valid = errorMessage == nil && uiSucceeded;
     if (!uiSucceeded && errorMessage == nil) {
         errorMessage = @"PowerUI did not return charging UI state.";
@@ -281,6 +285,129 @@ static STPowerUIChargeState *STReadState(
       availableChargeLimits:availableError == nil ? availableLimits : @[]
     chargingOverrideAllowed:uiSucceeded && uiError == nil ? allowed : NO
                 errorMessage:errorMessage];
+}
+
+static STPowerUIChargeState *STReadState(
+    id<STPowerUIChargeClient> client,
+    NSString * _Nullable * _Nullable failure
+) {
+    return STReadStateWithOptionsErrorPolicy(client, failure, NO);
+}
+
+static BOOL STExplicitChargeLimitIsSupported(
+    STPowerUIChargeState *state,
+    NSInteger limit
+) {
+    // Restoring no cap does not require PowerUI to advertise 100 as a limit.
+    if (limit == 100) return YES;
+    for (id option in state.availableChargeLimits) {
+        if ([option isKindOfClass:[NSNumber class]]
+            && [option isEqualToNumber:@(limit)]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+static STPowerUIChargeWriteResult *STSetChargeLimit(
+    id<STPowerUIChargeClient> client,
+    NSInteger limit,
+    NSInteger expectedCurrentLimit,
+    NSUInteger expectedEnabledState
+) {
+    @try {
+        if (limit < 80 || limit > 100
+            || expectedCurrentLimit < 0 || expectedCurrentLimit > 100
+            || (expectedEnabledState != 0
+                && expectedEnabledState != 1
+                && expectedEnabledState != 3)) {
+            return [[STPowerUIChargeWriteResult alloc]
+                initWithSucceeded:NO
+                     errorMessage:@"The requested charge limit or expected state is invalid."];
+        }
+
+        NSString *failure = nil;
+        STPowerUIChargeState *state = STReadStateWithOptionsErrorPolicy(client, &failure, YES);
+        if (!state.validState) {
+            return [[STPowerUIChargeWriteResult alloc]
+                initWithSucceeded:NO
+                     errorMessage:failure ?: @"PowerUI could not read the charge limit."];
+        }
+        // The explicit user intent is tied to this exact snapshot. In
+        // contrast to restore, it may replace an active sub-100 limit.
+        if (state.mclLimit != expectedCurrentLimit
+            || state.mclEnabledRawValue != expectedEnabledState) {
+            return [[STPowerUIChargeWriteResult alloc]
+                initWithSucceeded:NO
+                     errorMessage:@"The charge limit changed. Open the panel and try again."];
+        }
+        if (!STExplicitChargeLimitIsSupported(state, limit)) {
+            return [[STPowerUIChargeWriteResult alloc]
+                initWithSucceeded:NO
+                     errorMessage:@"The requested charge limit is not supported."];
+        }
+
+        if (state.mclLimit != limit) {
+            NSError *writeError = nil;
+            BOOL wrote = [client setMCLLimit:(unsigned char)limit error:&writeError];
+            if (!wrote || writeError != nil) {
+                return [[STPowerUIChargeWriteResult alloc]
+                    initWithSucceeded:NO
+                         errorMessage:STErrorDescription(writeError)
+                            ?: @"PowerUI rejected the charge limit."];
+            }
+
+            // Do not enable after a failed read, an intervening limit change,
+            // or a changed disabled state. Never repair those states here.
+            state = STReadStateWithOptionsErrorPolicy(client, &failure, YES);
+            if (!state.validState) {
+                return [[STPowerUIChargeWriteResult alloc]
+                    initWithSucceeded:NO
+                         errorMessage:failure ?: @"PowerUI could not verify the charge limit."];
+            }
+            if (state.mclLimit != limit
+                || (state.mclEnabledRawValue != expectedEnabledState
+                    && state.mclEnabledRawValue != 1)) {
+                return [[STPowerUIChargeWriteResult alloc]
+                    initWithSucceeded:NO
+                         errorMessage:@"The charge limit changed. Open the panel and try again."];
+            }
+            if (!STExplicitChargeLimitIsSupported(state, limit)) {
+                return [[STPowerUIChargeWriteResult alloc]
+                    initWithSucceeded:NO
+                         errorMessage:@"The requested charge limit is no longer supported."];
+            }
+        }
+
+        if (state.mclEnabledRawValue == 1) {
+            return [[STPowerUIChargeWriteResult alloc]
+                initWithSucceeded:YES errorMessage:nil];
+        }
+
+        NSError *writeError = nil;
+        BOOL wrote = [client enableMCL:&writeError];
+        if (!wrote || writeError != nil) {
+            return [[STPowerUIChargeWriteResult alloc]
+                initWithSucceeded:NO
+                     errorMessage:STErrorDescription(writeError)
+                        ?: @"PowerUI could not enable the charge limit."];
+        }
+
+        state = STReadStateWithOptionsErrorPolicy(client, &failure, YES);
+        if (!state.validState
+            || state.mclEnabledRawValue != 1
+            || state.mclLimit != limit) {
+            return [[STPowerUIChargeWriteResult alloc]
+                initWithSucceeded:NO
+                     errorMessage:failure ?: @"PowerUI did not confirm the requested charge limit."];
+        }
+        return [[STPowerUIChargeWriteResult alloc]
+            initWithSucceeded:YES errorMessage:nil];
+    } @catch (NSException *exception) {
+        return [[STPowerUIChargeWriteResult alloc]
+            initWithSucceeded:NO
+                 errorMessage:exception.reason ?: @"PowerUI raised an exception."];
+    }
 }
 
 static STPowerUIChargeWriteResult *STRestoreChargeLimit(
@@ -545,6 +672,40 @@ static STPowerUIChargeWriteResult *STRestoreChargeLimit(
     return [[STPowerUIChargeWriteResult alloc]
         initWithSucceeded:wrote && errorMessage == nil
              errorMessage:errorMessage ?: (wrote ? nil : @"PowerUI rejected the request.")];
+}
+
+- (STPowerUIChargeWriteResult *)setChargeLimit:(NSInteger)limit
+                         expectedCurrentLimit:(NSInteger)expectedCurrentLimit
+                         expectedEnabledState:(NSUInteger)expectedEnabledState {
+    if (limit < 80 || limit > 100
+        || expectedCurrentLimit < 0 || expectedCurrentLimit > 100
+        || (expectedEnabledState != 0
+            && expectedEnabledState != 1
+            && expectedEnabledState != 3)) {
+        return [[STPowerUIChargeWriteResult alloc]
+            initWithSucceeded:NO
+                 errorMessage:@"The requested charge limit or expected state is invalid."];
+    }
+
+    STPowerUIRuntime runtime = STLoadRuntime();
+    if (runtime.reason != STPowerUIChargeAvailabilityReasonAvailable) {
+        return [[STPowerUIChargeWriteResult alloc]
+            initWithSucceeded:NO
+                 errorMessage:@"PowerUI is unavailable."];
+    }
+
+    id<STPowerUIChargeClient> client = STCreateClient(runtime);
+    if (client == nil) {
+        return [[STPowerUIChargeWriteResult alloc]
+            initWithSucceeded:NO
+                 errorMessage:@"PowerUI client is unavailable."];
+    }
+
+    STPowerUIChargeWriteResult *result = STSetChargeLimit(
+        client, limit, expectedCurrentLimit, expectedEnabledState
+    );
+    STReleaseIfNeeded(client);
+    return result;
 }
 
 - (STPowerUIChargeWriteResult *)restoreChargeLimit:(NSInteger)limit {

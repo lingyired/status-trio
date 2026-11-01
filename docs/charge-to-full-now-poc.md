@@ -1,5 +1,11 @@
 # Charge to Full Now: research and implementation
 
+This document records the native-equivalent action and its historical
+verification. The optional [managed charge-limit policy](custom-charge-limit.md)
+adds lifecycle restoration only after a custom limit is explicitly selected.
+Descriptions below of no automatic restoration refer to the legacy action
+with **System Managed** selected, not to that opt-in policy.
+
 ## Decision
 
 **IMPLEMENTED as a native-equivalent override with explicit cancellation.**
@@ -13,9 +19,10 @@ manually restored the limit to `80`.
 
 The user reviewed that evidence and explicitly chose to replicate the native
 button's behavior, including its lack of automatic recovery. Status Trio stores
-the operation session and offers an explicit "Cancel Charge to Full" action. It
-never restores the limit automatically, watches the battery in the background,
-or runs a periodic task.
+the operation session and offers an explicit "Cancel Charge to Full" action.
+With System Managed selected, this action does not restore the limit
+automatically or watch the battery in the background. Neither mode adds a
+periodic charging task.
 
 Two follow-ups were requested on October 31, 2026:
 
@@ -73,7 +80,8 @@ Private Objective-C classes are kept loaded until process exit.
 
 The tool is outside `Sources`, is not a Swift package target, and is not
 called by the app, settings, popover, or tests in `scripts/test.sh`.
-The product bridge does not acquire an additional query or background task.
+The legacy action's bridge does not acquire an additional query or background
+task.
 There is deliberately no write flag, declared write method, privileged
 service, or charge-limit setter in the tool.
 
@@ -234,7 +242,8 @@ setting and neither restored it after unplugging. The user reviewed this
 behavior, explicitly accepted it as the native-equivalent outcome, and
 requested this exact action in Status Trio. The later explicit-cancel
 requirement adds a saved operation snapshot for user-triggered restoration;
-product code still performs no automatic restoration.
+the legacy action still performs no automatic restoration with System Managed
+selected. The separately selected managed policy adds lifecycle restoration.
 
 ## Relationship to the native action
 
@@ -347,7 +356,7 @@ charging animation, menu-bar icon, or Dock icon.
 | Private write return value and `NSError` on macOS 27.2 | PASS: returned `true`, no error |
 | PowerUI UI limit during override | PASS: remained `80` immediately before and after the request |
 | Persistent limit behavior matches native action | PASS: both native click and private request changed Charge Limit from `80` to `100`; accepted product behavior |
-| Unplug/replug automatic restoration | VERIFIED ABSENT on macOS 27.2; native-equivalent behavior is retained |
+| Unplug/replug automatic restoration | VERIFIED ABSENT on macOS 27.2 for the native-equivalent legacy action; not a managed-policy test |
 | Manual restoration and read-only confirmation | PASS: user restored native `80`; MCL and UI limit report `80` |
 | macOS 27.0.1 restoration after system update/reboot | PASS: MCL and UI limits returned to `80`; policy populated |
 | Settings default, persistence, and capability visibility | PASS: focused XCTest |
@@ -420,7 +429,8 @@ presentation, tests, and 12 translations.
 The product still does not request permissions, use administrator authorization,
 add a Helper/XPC service/LaunchDaemon, write SMC, rewrite the charging plist,
 run a permanent timer, or substitute a different charging mechanism. Charging
-writes remain limited to the explicit user action:
+writes in this legacy flow remain limited to the explicit user action; the
+separately opted-in managed policy also writes at documented lifecycle events:
 
 1. `temporarilyDisableMCL:` starts the native-equivalent override.
 2. `enableMCL:` is tried first. A fresh enabled/limit read can finish the
@@ -431,9 +441,10 @@ writes remain limited to the explicit user action:
 4. The bridge re-reads PowerUI and reports success only when the limit is active
    at the requested value.
 
-Manual product acceptance remains separate from the automated suite: set the
-native limit to `80%`, open the built Status Trio development app, enable the
-setting, and click its `Charge to Full Now` button. After the temporary override
+Manual product acceptance remains separate from the automated suite: select
+System Managed in the built development app's charge-limit picker, then set the
+native limit to `80%`. Enable the action setting and click the app's
+`Charge to Full Now` button. After the temporary override
 is visible, click `Cancel Charge to Full` and record PowerUI and System Settings
 before, during, and after both writes. Do not perform either write in an
 automated test.

@@ -630,3 +630,22 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Confirmar definição para %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "O estado de carga do sistema pode ter mudado. Clique novamente para continuar.";
 "battery.action.cancelChargeToFullNowPending" = "O sistema ainda não confirmou a carga completa temporária. Tente novamente em instantes.";
+
+// Opt-in managed charge limit
+"settings.battery.chargeLimit.title" = "Limite de carga";
+"settings.battery.chargeLimit.target" = "Carga máxima";
+"settings.battery.chargeLimit.description" = "Aplique um limite agora e reaplique ao iniciar, despertar ou reconectar a alimentação.";
+"settings.battery.chargeLimit.systemManaged" = "Gerenciado pelo sistema";
+"settings.battery.chargeLimit.status" = "Estado";
+"settings.battery.chargeLimit.applying" = "Aplicando limite de carga…";
+"settings.battery.chargeLimit.systemStatus" = "O Status Trio não está gerenciando o limite de carga.";
+"settings.battery.chargeLimit.active" = "Limite de carga definido em %d%%.";
+"settings.battery.chargeLimit.overridden" = "Carga completa temporária. O limite de %d%% será retomado ao cancelar, concluir a carga ou reconectar a alimentação.";
+"settings.battery.chargeLimit.failed" = "Não foi possível verificar o limite de carga. Escolha um limite ou Gerenciado pelo sistema para tentar novamente.";
+"settings.battery.chargeLimit.externalChange" = "Outro limite de carga foi detectado. A reaplicação automática está pausada. Reaplique ou escolha um limite para continuar.";
+"settings.battery.chargeLimit.unavailable" = "O limite salvo de %d%% está indisponível no momento. Escolha um limite disponível ou Gerenciado pelo sistema.";
+"settings.battery.chargeLimit.unavailableOption" = "%d%% (indisponível)";
+"settings.battery.chargeLimit.reapply" = "Reaplicar";
+"settings.battery.chargeLimit.restoreDescription" = "Gerenciado pelo sistema restaura o limite do sistema registrado antes de ativar este recurso. O último limite aplicado permanece ao encerrar o Status Trio.";
+"settings.battery.chargeLimit.support" = "Para Macs compatíveis com Apple Silicon e macOS 26.4 ou posterior. O macOS pode carregar totalmente de vez em quando para manter a precisão do nível da bateria.";
+"settings.battery.chargeLimit.checking" = "Verificando o limite de carga salvo…";

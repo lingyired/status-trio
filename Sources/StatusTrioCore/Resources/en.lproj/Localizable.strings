@@ -630,3 +630,22 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Confirm Set to %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "The system charge state may have changed. Click again to continue.";
 "battery.action.cancelChargeToFullNowPending" = "The system has not confirmed the temporary override yet. Try again shortly.";
+
+// Opt-in managed charge limit
+"settings.battery.chargeLimit.title" = "Charge Limit";
+"settings.battery.chargeLimit.target" = "Maximum charge";
+"settings.battery.chargeLimit.description" = "Apply a limit now and reapply it after launch, wake, or reconnecting power.";
+"settings.battery.chargeLimit.systemManaged" = "System Managed";
+"settings.battery.chargeLimit.status" = "Status";
+"settings.battery.chargeLimit.applying" = "Applying charge limit…";
+"settings.battery.chargeLimit.systemStatus" = "Status Trio is not managing the charge limit.";
+"settings.battery.chargeLimit.active" = "Charge limit set to %d%%.";
+"settings.battery.chargeLimit.overridden" = "Charging to full temporarily. The %d%% limit resumes after cancellation, full charge, or reconnecting power.";
+"settings.battery.chargeLimit.failed" = "Could not verify the charge limit. Select a charge limit or System Managed to retry.";
+"settings.battery.chargeLimit.externalChange" = "Another charge limit was detected. Automatic reapplying is paused; reapply or choose a limit to continue.";
+"settings.battery.chargeLimit.unavailable" = "The saved %d%% limit is currently unavailable. Choose an available limit or System Managed.";
+"settings.battery.chargeLimit.unavailableOption" = "%d%% (unavailable)";
+"settings.battery.chargeLimit.reapply" = "Reapply";
+"settings.battery.chargeLimit.restoreDescription" = "System Managed restores the system limit recorded before enabling this feature. The last applied limit remains when Status Trio quits.";
+"settings.battery.chargeLimit.support" = "For supported Apple silicon Macs with macOS 26.4 or later. macOS may occasionally charge to full to maintain battery accuracy.";
+"settings.battery.chargeLimit.checking" = "Checking the saved charge limit…";

@@ -630,3 +630,22 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Conferma impostazione al %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "Lo stato di carica del sistema potrebbe essere cambiato. Fai di nuovo clic per continuare.";
 "battery.action.cancelChargeToFullNowPending" = "Il sistema non ha ancora confermato la carica completa temporanea. Riprova tra qualche istante.";
+
+// Opt-in managed charge limit
+"settings.battery.chargeLimit.title" = "Limite di carica";
+"settings.battery.chargeLimit.target" = "Carica massima";
+"settings.battery.chargeLimit.description" = "Applica un limite ora e riapplicalo all’avvio, al risveglio o quando ricolleghi l’alimentazione.";
+"settings.battery.chargeLimit.systemManaged" = "Gestito dal sistema";
+"settings.battery.chargeLimit.status" = "Stato";
+"settings.battery.chargeLimit.applying" = "Applicazione del limite di carica…";
+"settings.battery.chargeLimit.systemStatus" = "Status Trio non sta gestendo il limite di carica.";
+"settings.battery.chargeLimit.active" = "Limite di carica impostato al %d%%.";
+"settings.battery.chargeLimit.overridden" = "Carica completa temporanea. Il limite del %d%% riprende dopo l’annullamento, la carica completa o il ricollegamento dell’alimentazione.";
+"settings.battery.chargeLimit.failed" = "Impossibile verificare il limite di carica. Scegli un limite o Gestito dal sistema per riprovare.";
+"settings.battery.chargeLimit.externalChange" = "È stato rilevato un altro limite di carica. La riapplicazione automatica è sospesa. Riapplica o scegli un limite per continuare.";
+"settings.battery.chargeLimit.unavailable" = "Il limite salvato del %d%% non è attualmente disponibile. Scegli un limite disponibile o Gestito dal sistema.";
+"settings.battery.chargeLimit.unavailableOption" = "%d%% (non disponibile)";
+"settings.battery.chargeLimit.reapply" = "Riapplica";
+"settings.battery.chargeLimit.restoreDescription" = "Gestito dal sistema ripristina il limite di sistema registrato prima di attivare questa funzione. L’ultimo limite applicato resta attivo quando esci da Status Trio.";
+"settings.battery.chargeLimit.support" = "Per Mac compatibili con chip Apple e macOS 26.4 o successivo. macOS può occasionalmente completare la carica per mantenere accurata la stima della batteria.";
+"settings.battery.chargeLimit.checking" = "Verifica del limite di carica salvato…";

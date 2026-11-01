@@ -13,6 +13,7 @@ struct SettingsView: View {
     var inputSourceController: InputSourceController? = nil
     var globalShortcutController: GlobalShortcutController? = nil
     var chargeToFullNow: ChargeToFullNowController? = nil
+    var managedChargeLimit: ManagedChargeLimitController? = nil
     let onShowIconGuide: () -> Void
     /// Returns the tab the window controller wants to reveal, if any. The
     /// controller stores the request because the first presentation can post
@@ -184,7 +185,8 @@ struct SettingsView: View {
                 store: store,
                 statusStore: statusStore,
                 previewIsDark: $previewIsDark,
-                chargeToFullNow: chargeToFullNow
+                chargeToFullNow: chargeToFullNow,
+                managedChargeLimit: managedChargeLimit
             )
         case .network:
             NetworkSectionView(

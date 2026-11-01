@@ -630,3 +630,22 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "تأكيد الضبط على %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "قد تكون حالة شحن النظام قد تغيّرت. انقر مرة أخرى للمتابعة.";
 "battery.action.cancelChargeToFullNowPending" = "لم يؤكد النظام تجاوز حد الشحن المؤقت بعد. حاول مرة أخرى بعد قليل.";
+
+// Opt-in managed charge limit
+"settings.battery.chargeLimit.title" = "حد الشحن";
+"settings.battery.chargeLimit.target" = "الحد الأقصى للشحن";
+"settings.battery.chargeLimit.description" = "طبّق حدًا الآن وأعد تطبيقه عند التشغيل أو الاستيقاظ أو إعادة توصيل الطاقة.";
+"settings.battery.chargeLimit.systemManaged" = "بإدارة النظام";
+"settings.battery.chargeLimit.status" = "الحالة";
+"settings.battery.chargeLimit.applying" = "جارٍ تطبيق حد الشحن…";
+"settings.battery.chargeLimit.systemStatus" = "لا يدير Status Trio حد الشحن حاليًا.";
+"settings.battery.chargeLimit.active" = "تم ضبط حد الشحن على %d%%.";
+"settings.battery.chargeLimit.overridden" = "شحن كامل مؤقت. يُستأنف الحد البالغ %d%% بعد الإلغاء أو اكتمال الشحن أو إعادة توصيل الطاقة.";
+"settings.battery.chargeLimit.failed" = "تعذر التحقق من حد الشحن. اختر حد شحن أو بإدارة النظام للمحاولة مجددًا.";
+"settings.battery.chargeLimit.externalChange" = "تم اكتشاف حد شحن آخر. توقفت إعادة التطبيق التلقائية مؤقتًا. أعد التطبيق أو اختر حدًا للمتابعة.";
+"settings.battery.chargeLimit.unavailable" = "الحد المحفوظ البالغ %d%% غير متاح حاليًا. اختر حدًا متاحًا أو بإدارة النظام.";
+"settings.battery.chargeLimit.unavailableOption" = "%d%% (غير متاح)";
+"settings.battery.chargeLimit.reapply" = "إعادة التطبيق";
+"settings.battery.chargeLimit.restoreDescription" = "يعيد خيار بإدارة النظام حد النظام المسجل قبل تفعيل هذه الميزة. يبقى آخر حد مطبّق عند إنهاء Status Trio.";
+"settings.battery.chargeLimit.support" = "لأجهزة Mac المدعومة المزودة بشرائح Apple وتعمل بنظام macOS 26.4 أو أحدث. قد يُكمل macOS الشحن أحيانًا للحفاظ على دقة تقدير مستوى البطارية.";
+"settings.battery.chargeLimit.checking" = "جارٍ التحقق من حد الشحن المحفوظ…";

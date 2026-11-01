@@ -42,6 +42,13 @@ typedef NS_ENUM(NSInteger, STPowerUIChargeAvailabilityReason) {
 - (STPowerUIChargeWriteResult *)temporarilyDisableMCL;
 /// Enables MCL at `limit`, using `setMCLLimit:error:` only when required.
 - (STPowerUIChargeWriteResult *)restoreChargeLimit:(NSInteger)limit;
+/// Applies explicit user intent only while a fresh state matches the expected
+/// limit and raw enabled value. Sub-100 targets must be advertised by PowerUI;
+/// 100 restores no cap. Sends at most one set and one enable request.
+- (STPowerUIChargeWriteResult *)setChargeLimit:(NSInteger)limit
+                         expectedCurrentLimit:(NSInteger)expectedCurrentLimit
+                         expectedEnabledState:(NSUInteger)expectedEnabledState
+    NS_SWIFT_NAME(applyChargeLimit(_:expectedCurrentLimit:expectedEnabledState:));
 @end
 
 NS_ASSUME_NONNULL_END
