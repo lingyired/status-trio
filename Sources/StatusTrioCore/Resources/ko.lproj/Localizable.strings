@@ -651,3 +651,15 @@
 "settings.battery.chargeLimit.restoreDescription" = "시스템에서 관리를 선택하면 이 기능을 켜기 전에 기록한 시스템 한도로 복원됩니다. Status Trio를 종료해도 마지막으로 적용한 한도는 유지됩니다.";
 "settings.battery.chargeLimit.support" = "macOS 26.4 이상을 실행하는 지원 대상 Apple Silicon Mac에서 사용할 수 있습니다. macOS는 배터리 잔량의 정확도를 유지하기 위해 가끔 완전히 충전할 수 있습니다.";
 "settings.battery.chargeLimit.checking" = "저장된 충전 한도 확인 중…";
+
+"settings.popup.order.brightness" = "밝기";
+"brightness.row.accessibility" = "%@의 밝기, %@";
+"brightness.row.accessibilityUnavailable" = "%@의 밝기, %@";
+"brightness.unavailable" = "사용할 수 없음";
+"brightness.appAbsent" = "BetterDisplay 필요";
+"brightness.noBackend" = "밝기 제어 없음";
+"brightness.unresponsive" = "응답 없음";
+"brightness.backend.directDDC" = "직접 DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "연결된 디스플레이의 밝기를 조절합니다.";
+"settings.brightness.backend" = "%@의 밝기 백엔드";

@@ -651,3 +651,15 @@
 "settings.battery.chargeLimit.restoreDescription" = "„Vom System verwaltet“ stellt das vor Aktivierung dieser Funktion gespeicherte Systemlimit wieder her. Das zuletzt angewendete Limit bleibt nach dem Beenden von Status Trio bestehen.";
 "settings.battery.chargeLimit.support" = "Für unterstützte Macs mit Apple Chip und macOS 26.4 oder neuer. macOS lädt gelegentlich vollständig auf, um die Genauigkeit der Ladestandsanzeige zu erhalten.";
 "settings.battery.chargeLimit.checking" = "Gespeichertes Ladelimit wird geprüft…";
+
+"settings.popup.order.brightness" = "Helligkeit";
+"brightness.row.accessibility" = "Helligkeit für %@, %@";
+"brightness.row.accessibilityUnavailable" = "Helligkeit für %@, %@";
+"brightness.unavailable" = "Nicht verfügbar";
+"brightness.appAbsent" = "Erfordert BetterDisplay";
+"brightness.noBackend" = "Keine Helligkeitssteuerung";
+"brightness.unresponsive" = "Reagiert nicht";
+"brightness.backend.directDDC" = "Direktes DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Passe die Helligkeit angeschlossener Displays an.";
+"settings.brightness.backend" = "Helligkeits-Backend für %@";

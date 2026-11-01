@@ -651,3 +651,15 @@
 "settings.battery.chargeLimit.restoreDescription" = "Gestion par le système rétablit la limite système enregistrée avant l’activation de cette fonction. La dernière limite appliquée reste en place après avoir quitté Status Trio.";
 "settings.battery.chargeLimit.support" = "Pour les Mac avec puce Apple compatibles sous macOS 26.4 ou ultérieur. macOS peut parfois effectuer une charge complète pour maintenir la précision du niveau de batterie.";
 "settings.battery.chargeLimit.checking" = "Vérification de la limite de charge enregistrée…";
+
+"settings.popup.order.brightness" = "Luminosité";
+"brightness.row.accessibility" = "Luminosité de %@, %@";
+"brightness.row.accessibilityUnavailable" = "Luminosité de %@, %@";
+"brightness.unavailable" = "Indisponible";
+"brightness.appAbsent" = "Nécessite BetterDisplay";
+"brightness.noBackend" = "Aucun contrôle de luminosité";
+"brightness.unresponsive" = "Ne répond pas";
+"brightness.backend.directDDC" = "DDC direct";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Réglez la luminosité des écrans connectés.";
+"settings.brightness.backend" = "Backend de luminosité pour %@";

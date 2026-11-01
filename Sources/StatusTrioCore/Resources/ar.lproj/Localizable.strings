@@ -651,3 +651,15 @@
 "settings.battery.chargeLimit.restoreDescription" = "يعيد خيار بإدارة النظام حد النظام المسجل قبل تفعيل هذه الميزة. يبقى آخر حد مطبّق عند إنهاء Status Trio.";
 "settings.battery.chargeLimit.support" = "لأجهزة Mac المدعومة المزودة بشرائح Apple وتعمل بنظام macOS 26.4 أو أحدث. قد يُكمل macOS الشحن أحيانًا للحفاظ على دقة تقدير مستوى البطارية.";
 "settings.battery.chargeLimit.checking" = "جارٍ التحقق من حد الشحن المحفوظ…";
+
+"settings.popup.order.brightness" = "السطوع";
+"brightness.row.accessibility" = "السطوع لـ %@، %@";
+"brightness.row.accessibilityUnavailable" = "السطوع لـ %@، %@";
+"brightness.unavailable" = "غير متاح";
+"brightness.appAbsent" = "يتطلب BetterDisplay";
+"brightness.noBackend" = "لا يوجد تحكم في السطوع";
+"brightness.unresponsive" = "لا يستجيب";
+"brightness.backend.directDDC" = "DDC مباشر";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "اضبط سطوع الشاشات المتصلة.";
+"settings.brightness.backend" = "خلفية السطوع لـ %@";

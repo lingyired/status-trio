@@ -6,6 +6,7 @@ enum PopupSection: String, CaseIterable, Identifiable, Sendable {
     case vpn
     case bluetooth
     case volume
+    case brightness
     case audioInput
     case inputSource
 
@@ -18,6 +19,7 @@ enum PopupSection: String, CaseIterable, Identifiable, Sendable {
         case .vpn: .vpnTitle
         case .bluetooth: .bluetoothTitle
         case .volume: .settingsPopupOrderVolume
+        case .brightness: .settingsPopupOrderBrightness
         case .audioInput: .settingsPopupOrderAudioInput
         case .inputSource: .settingsPopupOrderInputSource
         }
@@ -30,6 +32,7 @@ enum PopupSection: String, CaseIterable, Identifiable, Sendable {
         case .vpn: "lock.shield"
         case .bluetooth: "antenna.radiowaves.left.and.right"
         case .volume: "speaker.wave.2"
+        case .brightness: SymbolFallback.name("sun.max", "sun.max")
         case .audioInput: "mic"
         case .inputSource: "keyboard"
         }

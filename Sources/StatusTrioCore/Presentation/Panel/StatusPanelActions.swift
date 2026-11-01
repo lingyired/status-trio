@@ -9,6 +9,8 @@ final class StatusPanelActions {
     private let selectInputDevice: (AudioInputDevice) -> Void
     private let setVolumeCommand: (Double) -> Void
     private let finishVolumeCommand: () -> Void
+    private let setBrightnessCommand: (String, Double) -> Void
+    private let finishBrightnessCommand: (String) -> Void
     private let toggleMuteCommand: () -> Void
     private let setInputScalarCommand: (Double, UUID) -> Void
     private let toggleInputMuteCommand: () -> Void
@@ -63,6 +65,8 @@ final class StatusPanelActions {
         selectInput: @escaping (AudioInputDevice) -> Void = { _ in },
         setVolume: @escaping (Double) -> Void = { _ in },
         finishVolumeAdjustment: @escaping () -> Void = {},
+        setBrightness: @escaping (String, Double) -> Void = { _, _ in },
+        finishBrightnessAdjustment: @escaping (String) -> Void = { _ in },
         toggleMute: @escaping () -> Void = {},
         setInputScalar: @escaping (Double, UUID) -> Void = { _, _ in },
         toggleInputMute: @escaping () -> Void = {},
@@ -107,6 +111,8 @@ final class StatusPanelActions {
         self.selectInputDevice = selectInput
         self.setVolumeCommand = setVolume
         self.finishVolumeCommand = finishVolumeAdjustment
+        self.setBrightnessCommand = setBrightness
+        self.finishBrightnessCommand = finishBrightnessAdjustment
         self.toggleMuteCommand = toggleMute
         self.setInputScalarCommand = setInputScalar
         self.toggleInputMuteCommand = toggleInputMute
@@ -159,6 +165,8 @@ final class StatusPanelActions {
             selectInput: { device in store.selectInputDevice(device.id) },
             setVolume: { scalar in store.setVolume(scalar) },
             finishVolumeAdjustment: { store.finishVolumeAdjustment() },
+            setBrightness: { id, scalar in store.setBrightness(scalar, forDisplayID: id) },
+            finishBrightnessAdjustment: { id in store.finishBrightnessAdjustment(displayID: id) },
             toggleMute: { store.toggleMute() },
             setInputScalar: { scalar, requestID in store.setInputScalar(scalar, requestID: requestID) },
             toggleInputMute: { store.toggleInputMute() },
@@ -236,6 +244,16 @@ final class StatusPanelActions {
 
     func finishVolumeAdjustment() {
         finishVolumeCommand()
+    }
+
+    func setBrightness(_ scalar: Double, forDisplayID displayID: String) {
+        guard scalar.isFinite, !displayID.isEmpty else { return }
+        setBrightnessCommand(displayID, min(1, max(0, scalar)))
+    }
+
+    func finishBrightnessAdjustment(displayID: String) {
+        guard !displayID.isEmpty else { return }
+        finishBrightnessCommand(displayID)
     }
 
     func toggleMute() {

@@ -651,3 +651,15 @@
 "settings.battery.chargeLimit.restoreDescription" = "「由系统管理」会恢复启用此功能前记录的系统上限。退出 Status Trio 后，最后应用的上限仍会保留。";
 "settings.battery.chargeLimit.support" = "适用于搭载 Apple 芯片且支持此功能的 Mac，需 macOS 26.4 或更高版本。macOS 可能会偶尔充满电，以保持电量估算准确。";
 "settings.battery.chargeLimit.checking" = "正在检查已保存的充电上限…";
+
+"settings.popup.order.brightness" = "亮度";
+"brightness.row.accessibility" = "%@ 的亮度，%@";
+"brightness.row.accessibilityUnavailable" = "%@ 的亮度，%@";
+"brightness.unavailable" = "不可用";
+"brightness.appAbsent" = "需要 BetterDisplay";
+"brightness.noBackend" = "无法控制亮度";
+"brightness.unresponsive" = "无响应";
+"brightness.backend.directDDC" = "直接 DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "调整已连接显示器的亮度。";
+"settings.brightness.backend" = "%@ 的亮度后端";

@@ -651,3 +651,15 @@
 "settings.battery.chargeLimit.restoreDescription" = "System Managed restores the system limit recorded before enabling this feature. The last applied limit remains when Status Trio quits.";
 "settings.battery.chargeLimit.support" = "For supported Apple silicon Macs with macOS 26.4 or later. macOS may occasionally charge to full to maintain battery accuracy.";
 "settings.battery.chargeLimit.checking" = "Checking the saved charge limit…";
+
+"settings.popup.order.brightness" = "Brightness";
+"brightness.row.accessibility" = "Brightness for %@, %@";
+"brightness.row.accessibilityUnavailable" = "Brightness for %@, %@";
+"brightness.unavailable" = "Unavailable";
+"brightness.appAbsent" = "Requires BetterDisplay";
+"brightness.noBackend" = "No brightness control";
+"brightness.unresponsive" = "Not responding";
+"brightness.backend.directDDC" = "Direct DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Adjust the brightness of connected displays.";
+"settings.brightness.backend" = "Brightness backend for %@";

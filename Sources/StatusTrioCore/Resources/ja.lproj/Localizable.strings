@@ -651,3 +651,15 @@
 "settings.battery.chargeLimit.restoreDescription" = "「システム管理」は、この機能を有効にする前に記録したシステムの上限に戻します。Status Trio を終了しても、最後に適用した上限は維持されます。";
 "settings.battery.chargeLimit.support" = "macOS 26.4 以降を搭載した対応する Apple シリコン Mac で利用できます。macOS はバッテリー残量の精度を保つため、時折フル充電する場合があります。";
 "settings.battery.chargeLimit.checking" = "保存された充電上限を確認中…";
+
+"settings.popup.order.brightness" = "明るさ";
+"brightness.row.accessibility" = "%@ の明るさ、%@";
+"brightness.row.accessibilityUnavailable" = "%@ の明るさ、%@";
+"brightness.unavailable" = "利用不可";
+"brightness.appAbsent" = "BetterDisplay が必要";
+"brightness.noBackend" = "明るさを制御できません";
+"brightness.unresponsive" = "応答なし";
+"brightness.backend.directDDC" = "ダイレクト DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "接続されているディスプレイの明るさを調整します。";
+"settings.brightness.backend" = "%@ の明るさバックエンド";

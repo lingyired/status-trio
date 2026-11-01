@@ -651,3 +651,15 @@
 "settings.battery.chargeLimit.restoreDescription" = "Gerenciado pelo sistema restaura o limite do sistema registrado antes de ativar este recurso. O último limite aplicado permanece ao encerrar o Status Trio.";
 "settings.battery.chargeLimit.support" = "Para Macs compatíveis com Apple Silicon e macOS 26.4 ou posterior. O macOS pode carregar totalmente de vez em quando para manter a precisão do nível da bateria.";
 "settings.battery.chargeLimit.checking" = "Verificando o limite de carga salvo…";
+
+"settings.popup.order.brightness" = "Brilho";
+"brightness.row.accessibility" = "Brilho de %@, %@";
+"brightness.row.accessibilityUnavailable" = "Brilho de %@, %@";
+"brightness.unavailable" = "Indisponível";
+"brightness.appAbsent" = "Requer o BetterDisplay";
+"brightness.noBackend" = "Sem controle de brilho";
+"brightness.unresponsive" = "Não responde";
+"brightness.backend.directDDC" = "DDC direto";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Ajuste o brilho das telas conectadas.";
+"settings.brightness.backend" = "Backend de brilho para %@";
