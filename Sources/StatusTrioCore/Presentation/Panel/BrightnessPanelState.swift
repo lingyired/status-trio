@@ -15,10 +15,10 @@ struct BrightnessRowState: Equatable, Identifiable, Sendable {
     /// A short explanation shown instead of the percentage when unavailable.
     let unavailableText: String?
 
+    /// A sun icon rather than a per-device icon, so every row reads as
+    /// "brightness" instead of "this display".
     var symbolName: String {
-        isBuiltin
-            ? SymbolFallback.name("laptopcomputer", "laptopcomputer")
-            : SymbolFallback.name("display", "display")
+        SymbolFallback.name("sun.max.fill", "sun.max")
     }
 }
 
