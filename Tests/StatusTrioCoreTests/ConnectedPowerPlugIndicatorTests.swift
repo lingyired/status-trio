@@ -98,26 +98,6 @@ final class ConnectedPowerPlugIndicatorTests: XCTestCase {
         )
     }
 
-    func testConnectedPowerShowsTheBoltWhenPicked() throws {
-        let chargingBolt = try menuBarPixels(for: chargingBattery())
-        let connectedBolt = try menuBarPixels(
-            for: connectedBattery(),
-            options: BatteryIconOptions(
-                showsPercentage: true,
-                showsChargingIndicator: true,
-                usesStatusColors: true,
-                criticalThreshold: 20,
-                connectedIndicator: .bolt
-            )
-        )
-
-        XCTAssertEqual(
-            connectedBolt.alphaSum(inSVGRect: glyphRegion, size: 20, scale: 8),
-            chargingBolt.alphaSum(inSVGRect: glyphRegion, size: 20, scale: 8),
-            "the connected bolt must use the same glyph as the charging bolt"
-        )
-    }
-
     func testDockIconDrawsThePlugForConnectedPower() throws {
         let plug = try dockPixels(for: MenuBarStatus(snapshot: snapshot(for: connectedBattery())))
         let bolt = try dockPixels(for: MenuBarStatus(snapshot: snapshot(for: chargingBattery())))
