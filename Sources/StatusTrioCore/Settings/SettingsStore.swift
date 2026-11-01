@@ -1715,10 +1715,14 @@ final class SettingsStore: ObservableObject {
         self.batteryFullThreshold = Self.clampedBatteryFullThreshold(
             storedFullThreshold ?? Self.defaultBatteryFullThreshold
         )
-        self.chargeToFullRestoreLimit = Self.clampedChargeToFullRestoreLimit(
+        let resolvedRestoreLimit = Self.clampedChargeToFullRestoreLimit(
             storedRestoreLimit
                 ?? Self.systemChargeToFullRestoreLimit(read: systemChargeLimit)
         )
+        self.chargeToFullRestoreLimit = resolvedRestoreLimit
+        // Initialization does not call didSet; keep the initial restore target
+        // even when macOS removes its charge-limit policy during an override.
+        defaults.set(resolvedRestoreLimit, forKey: Self.chargeToFullRestoreLimitDefaultsKey)
         self.showsWiFiIconForEthernet = defaults.object(
             forKey: Self.showsWiFiIconForEthernetDefaultsKey
         ) as? Bool ?? false
@@ -1749,6 +1753,10 @@ final class SettingsStore: ObservableObject {
             ? .batteryPercentage
             : (storedCenterSource ?? .automatic)
         if legacyPercentageInSlot {
+            defaults.set(
+                ConnectionCenterSource.batteryPercentage.rawValue,
+                forKey: Self.connectionCenterSourceDefaultsKey
+            )
             defaults.removeObject(forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey)
         }
         self.prioritizesNetworkErrorsOverInputSource = defaults.object(

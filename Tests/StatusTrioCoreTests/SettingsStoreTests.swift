@@ -638,6 +638,28 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.chargeToFullRestoreLimit, 100, accuracy: 0.001)
     }
 
+    func testInitialRestoreLimitSurvivesMissingSystemPolicy() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let first = SettingsStore(defaults: suite.defaults, systemChargeLimit: { 80 })
+        XCTAssertEqual(first.chargeToFullRestoreLimit, 80, accuracy: 0.001)
+
+        let second = SettingsStore(defaults: suite.defaults, systemChargeLimit: { nil })
+
+        XCTAssertEqual(second.chargeToFullRestoreLimit, 80, accuracy: 0.001)
+    }
+
+    func testInitialUnlimitedRestoreLimitSurvivesANewSystemLimit() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let first = SettingsStore(defaults: suite.defaults, systemChargeLimit: { nil })
+        XCTAssertEqual(first.chargeToFullRestoreLimit, 100, accuracy: 0.001)
+
+        let second = SettingsStore(defaults: suite.defaults, systemChargeLimit: { 80 })
+
+        XCTAssertEqual(second.chargeToFullRestoreLimit, 100, accuracy: 0.001)
+    }
+
     func testStoredChargeToFullRestoreLimitWinsOverTheSystemValue() {
         let suite = makeSuite()
         defer { clear(suite) }
