@@ -743,10 +743,34 @@ final class StatusBarController: NSObject {
         popoverDismissMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]
         ) { [weak self] _ in
+            // Read the pointer synchronously: the event is non-Sendable and the
+            // pointer may move before the main-actor hop runs.
+            let clickLocation = NSEvent.mouseLocation
             Task { @MainActor [weak self] in
-                self?.popover.performClose(nil)
+                guard let self else { return }
+                let policy = PopoverDismissalPolicy(
+                    statusItemFrame: self.statusItemButtonScreenFrame()
+                )
+                // A click on the status item is the item's own toggle, not an
+                // outside click. Dismissing here would close on mouse-down and
+                // the item's mouse-up toggle would reopen it (issue #224).
+                guard policy.shouldDismiss(at: clickLocation) else { return }
+                self.popover.performClose(nil)
             }
         }
+    }
+
+    /// The status item button's rectangle in screen coordinates, when the item
+    /// is visible. Used to tell a click on the item (its own toggle) from an
+    /// outside click that should dismiss the panel (issue #224).
+    private func statusItemButtonScreenFrame() -> NSRect? {
+        guard isStatusItemVisible,
+              let button = statusItem.button,
+              let window = button.window else {
+            return nil
+        }
+        let rectInWindow = button.convert(button.bounds, to: nil)
+        return window.convertToScreen(rectInWindow)
     }
 
     private func removePopoverDismissMonitor() {
