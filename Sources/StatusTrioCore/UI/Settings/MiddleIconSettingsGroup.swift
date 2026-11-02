@@ -224,31 +224,34 @@ private struct MiddleBluetoothIconOptions: View {
     }
 
     private var bluetoothAudioIconChoiceRow: some View {
-        SettingsRow(
+        let choice = store.bluetoothAudioIconChoice
+        let choiceTitle = choice.displayName(using: localization)
+        return SettingsRow(
             "headphones",
             tint: .blue,
             title: localization.string(.settingsBluetoothIconChoice),
             subtitle: localization.string(.settingsBluetoothIconChoiceDescription)
         ) {
-            Picker(
-                localization.string(.settingsBluetoothIconChoice),
-                selection: Binding(
-                    get: { store.bluetoothAudioIconChoice },
-                    set: { store.bluetoothAudioIconChoice = $0 }
-                )
-            ) {
+            Menu {
                 ForEach(IconPresentationResourceResolver.availableBluetoothAudioIconChoices) { choice in
-                    Label(
-                        choice.displayName(using: localization),
-                        systemImage: choice.symbolName ?? "arrow.clockwise"
-                    )
-                    .tag(choice)
+                    Button {
+                        store.bluetoothAudioIconChoice = choice
+                    } label: {
+                        Label(
+                            choice.displayName(using: localization),
+                            systemImage: choice.symbolName ?? "arrow.clockwise"
+                        )
+                    }
                 }
+            } label: {
+                MiddleIconMenuLabel(
+                    symbol: choice.symbolName ?? "arrow.clockwise",
+                    title: choiceTitle
+                )
             }
-            .pickerStyle(.menu)
-            .labelsHidden()
-            .frame(width: 190, alignment: .trailing)
-            .fixedSize(horizontal: true, vertical: false)
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
             .accessibilityLabel(localization.string(.settingsBluetoothIconChoice))
             .accessibilityIdentifier("bluetooth.audioIconChoice")
         }
@@ -264,27 +267,33 @@ private struct MiddleBluetoothIconOptions: View {
     ///
     /// The row draws the choice's own glyph, so it reads like the menu bar will.
     private var networkIconSourceRow: some View {
-        SettingsRow(
+        let option = selectedOption
+        let optionTitle = option.title
+            ?? localization.string(.settingsBluetoothNetworkIconSourceAudio)
+        return SettingsRow(
             title: localization.string(.settingsBluetoothNetworkIconSourceGroup),
             subtitle: localization.string(.settingsBluetoothNetworkIconSourceAudioDescription),
             leading: { SettingsIcon(symbol: selectedOption.symbolName, tint: .blue) }
         ) {
-            Picker(
-                localization.string(.settingsBluetoothNetworkIconSourceGroup),
-                selection: networkIconSourceBinding
-            ) {
+            Menu {
                 ForEach(sourceOptions) { option in
-                    Label(
-                        option.title
-                            ?? localization.string(.settingsBluetoothNetworkIconSourceAudio),
-                        systemImage: option.symbolName
-                    )
-                    .tag(option.source)
+                    Button {
+                        networkIconSourceBinding.wrappedValue = option.source
+                    } label: {
+                        Label(
+                            option.title
+                                ?? localization.string(.settingsBluetoothNetworkIconSourceAudio),
+                            systemImage: option.symbolName
+                        )
+                    }
                 }
+            } label: {
+                MiddleIconMenuLabel(symbol: option.symbolName, title: optionTitle)
             }
-            .labelsHidden()
-            .frame(width: 190, alignment: .trailing)
-            .fixedSize(horizontal: true, vertical: false)
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .accessibilityLabel(localization.string(.settingsBluetoothNetworkIconSourceGroup))
             .accessibilityIdentifier("bluetooth.networkIconSource")
         }
     }
@@ -435,5 +444,38 @@ private enum MiddleIconPreviewScene {
             scale: 2,
             appearance: MenuBarPreviewBackdrop.appearance(isDarkBackground: isDarkBackground)
         )
+    }
+}
+
+/// A pop-up button whose closed width never depends on the pending device
+/// list; only the open menu may grow with its items.
+private struct MiddleIconMenuLabel: View {
+    let symbol: String
+    let title: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol)
+                .imageScale(.small)
+            Text(title)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 6)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.secondary)
+        }
+        .font(.system(size: 13))
+        .padding(.horizontal, 10)
+        .frame(width: 190, height: 24)
+        .background(
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(Color.primary.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+        )
+        .contentShape(Rectangle())
     }
 }
