@@ -383,9 +383,9 @@ private enum MiddleIconPreviewScene {
         battery: BatteryStatus(
             rawPercentage: 68,
             isPresent: true,
-            isCharging: false,
+            isCharging: true,
             isLowPowerMode: false,
-            isConnectedToPower: false
+            isConnectedToPower: true
         ),
         wifi: WiFiStatus(state: .connected, rssi: -52),
         connection: .wifi,
