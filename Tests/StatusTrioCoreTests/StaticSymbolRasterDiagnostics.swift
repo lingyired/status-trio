@@ -18,7 +18,12 @@ func staticSymbolRasterBaselineFingerprints() -> Set<String>? {
             "2b80a2f6e7d2e107e498c689e430910bccc027a7b7dfe56c7353a3b6b40f98a8"
         ]
     case (27, 51, 46):
-        return ["377721331486253656c666fdc02ca98650f5d4421d623a54f388fd8389da339e"]
+        // CI's 1x display rasterises the same symbol metrics differently from
+        // the local Retina variant; keep each exact environment pair bounded.
+        return [
+            "377721331486253656c666fdc02ca98650f5d4421d623a54f388fd8389da339e",
+            "c11034a3fd7363b1539936aaa5135d03acab67545a13800b56ccf432946971af"
+        ]
     default:
         return nil
     }
