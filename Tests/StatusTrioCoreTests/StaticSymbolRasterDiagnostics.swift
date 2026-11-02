@@ -9,18 +9,13 @@ func staticSymbolRasterBaselineFingerprints() -> Set<String>? {
     case (26, _, _):
         return ["9dcba3184f0953f8c173cc2f846977f01b84510a8505166bd6a8048f44d8fd97"]
     case (27, 50, 47):
-        // macOS 27.0 and 27.2 rasterize the same symbol metrics differently.
-        // Keep every bounded local variant observed for this size; the committed
-        // artwork itself is still checked against these exact system-produced
-        // pixels. The third hash is the same committed scene rasterised after the
-        // full suite has already initialised AppKit: an offline comparison showed
-        // the only difference from the other variants is the SF Symbol glyph
-        // raster (155 px); every non-symbol pixel is byte-identical. It is pinned,
-        // not tolerated, so a deliberate artwork change still fails.
+        // The centre slot moved onto the ring's centre, so the scene raster
+        // changed with it; these are the two AppKit-initialisation variants
+        // observed for the current artwork. Re-record with
+        // STATUS_TRIO_STATIC_ICON_DIAGNOSTICS=1 on a new environment.
         return [
-            "e08ab4aebc69b650e667fb2aa5a2647f9efade4a7941dbd19061134192280cbc",
-            "3e0ba302848d3b450504b31fa4dca8afbacb6bc52d0d8f9ba0a91e0a54586918",
-            "55ad404dff65400f453f2f981c9c63b779dd528fd08525eea9aaa986c8c36a46"
+            "b96f244a941726e997eeb1a173f715ca0ce187aec75fed536426d5b1b076328b",
+            "2b80a2f6e7d2e107e498c689e430910bccc027a7b7dfe56c7353a3b6b40f98a8"
         ]
     case (27, 51, 46):
         return ["377721331486253656c666fdc02ca98650f5d4421d623a54f388fd8389da339e"]

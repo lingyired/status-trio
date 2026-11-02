@@ -37,22 +37,14 @@ final class AppIconPreviewTests: XCTestCase {
     private static let approvedArtworkFingerprints: [String: Set<ArtworkFingerprint>] = [
         "AppIcon-light.png": [
             ArtworkFingerprint(
-                committed: "4df1923cd7ca02a783bae0fb6c2d8f23ac605a039cb65288fa7fd68cfa3cf74e",
-                rendered: "4df1923cd7ca02a783bae0fb6c2d8f23ac605a039cb65288fa7fd68cfa3cf74e"
-            ),
-            ArtworkFingerprint(
-                committed: "4df1923cd7ca02a783bae0fb6c2d8f23ac605a039cb65288fa7fd68cfa3cf74e",
-                rendered: "0b4d0592c80c35d947d5075a485189bc05d733c8f2d6ad10a0e1208e699fa167"
+                committed: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981",
+                rendered: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981"
             )
         ],
         "AppIcon-dark.png": [
             ArtworkFingerprint(
-                committed: "dcf3050235ad7fe55319ff2afb350a6c23f3e409976dd80870b69f61c05c4a50",
-                rendered: "dcf3050235ad7fe55319ff2afb350a6c23f3e409976dd80870b69f61c05c4a50"
-            ),
-            ArtworkFingerprint(
-                committed: "dcf3050235ad7fe55319ff2afb350a6c23f3e409976dd80870b69f61c05c4a50",
-                rendered: "b49187a93641ef1d67208f1e8b85de5efbed520c5bb9de8bd031378887ba5ae6"
+                committed: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63",
+                rendered: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63"
             )
         ]
     ]

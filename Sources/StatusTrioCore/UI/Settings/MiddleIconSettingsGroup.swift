@@ -248,6 +248,7 @@ private struct MiddleBluetoothIconOptions: View {
             .pickerStyle(.menu)
             .labelsHidden()
             .frame(width: 190, alignment: .trailing)
+            .fixedSize(horizontal: true, vertical: false)
             .accessibilityLabel(localization.string(.settingsBluetoothIconChoice))
             .accessibilityIdentifier("bluetooth.audioIconChoice")
         }
@@ -283,6 +284,7 @@ private struct MiddleBluetoothIconOptions: View {
             }
             .labelsHidden()
             .frame(width: 190, alignment: .trailing)
+            .fixedSize(horizontal: true, vertical: false)
             .accessibilityIdentifier("bluetooth.networkIconSource")
         }
     }
