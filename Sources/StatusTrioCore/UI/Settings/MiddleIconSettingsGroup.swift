@@ -8,16 +8,7 @@ struct MiddleIconSettingsGroup: View {
 
     var body: some View {
         SettingsGroup(localization.string(.settingsMiddleIconTitle)) {
-            SettingsMenuRow(
-                symbol: "circle.inset.filled",
-                tint: .indigo,
-                title: localization.string(.settingsMiddleIconSource),
-                subtitle: localization.string(.settingsMiddleIconDescription),
-                selection: $store.connectionCenterSource,
-                options: ConnectionCenterSource.allCases,
-                label: sourceLabel
-            )
-            .accessibilityIdentifier("appIcon.middleSource")
+            sourcePicker
 
             if store.connectionCenterSource == .bluetoothDevice {
                 SettingsDivider()
@@ -36,6 +27,52 @@ struct MiddleIconSettingsGroup: View {
                 .accessibilityIdentifier("appIcon.networkWarnings")
             }
         }
+    }
+
+    /// Five options are too many for a pop-up menu to read well, so the middle
+    /// content is a full-width row of picture tiles: each tile shows what the
+    /// slot would draw, and the selected one carries the standard ring.
+    private var sourcePicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(localization.string(.settingsMiddleIconDescription))
+                .font(.system(size: 11.5))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                ForEach(ConnectionCenterSource.allCases) { source in
+                    let selected = store.connectionCenterSource == source
+                    Button {
+                        store.connectionCenterSource = source
+                    } label: {
+                        VStack(spacing: 5) {
+                            MiddleIconSourcePreview(source: source)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 42)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                        .fill(Color.primary.opacity(0.06))
+                                )
+                                .selectionRing(selected, cornerRadius: 7)
+                            Text(sourceLabel(source))
+                                .font(.system(size: 11.5))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
+                                .foregroundStyle(selected ? Color.primary : Color.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(sourceLabel(source))
+                    .accessibilityAddTraits(selected ? [.isSelected, .isButton] : [.isButton])
+                }
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(localization.string(.settingsMiddleIconSource))
+        }
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.vertical, SettingsMetrics.rowPaddingV)
+        .accessibilityIdentifier("appIcon.middleSource")
     }
 
     private func sourceLabel(_ source: ConnectionCenterSource) -> String {
@@ -124,6 +161,7 @@ private struct MiddleBluetoothIconOptions: View {
             }
             .pickerStyle(.menu)
             .labelsHidden()
+            .frame(width: 190, alignment: .trailing)
             .accessibilityLabel(localization.string(.settingsBluetoothIconChoice))
             .accessibilityIdentifier("bluetooth.audioIconChoice")
         }
@@ -158,7 +196,7 @@ private struct MiddleBluetoothIconOptions: View {
                 }
             }
             .labelsHidden()
-            .fixedSize()
+            .frame(width: 190, alignment: .trailing)
             .accessibilityIdentifier("bluetooth.networkIconSource")
         }
     }
@@ -212,4 +250,35 @@ private struct MiddleBluetoothIconOptions: View {
         return picked
     }
 
+}
+
+/// The glyph each middle-content option would put in the slot.
+private struct MiddleIconSourcePreview: View {
+    let source: ConnectionCenterSource
+
+    var body: some View {
+        Group {
+            switch source {
+            case .network:
+                Image(systemName: "wifi")
+                    .font(.system(size: 18, weight: .medium))
+            case .bluetoothDevice:
+                Image(systemName: "headphones")
+                    .font(.system(size: 18, weight: .medium))
+            case .inputSource:
+                Image(systemName: "keyboard")
+                    .font(.system(size: 17, weight: .medium))
+            case .batteryPercentage:
+                Text("68%")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+            case .power:
+                Text("24W")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+            }
+        }
+        .foregroundStyle(.primary)
+        .accessibilityHidden(true)
+    }
 }
