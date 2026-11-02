@@ -35,6 +35,12 @@
       "skillFolderHash": "3b1205aa5038c71946077dd63b9e71b447729e70",
       "computedHash": "4f571e7befb8b0946d9d7770232c818812412e9ab1dfb811f847edfba1fc6275"
     },
+    "github-actions-efficiency": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/github-actions-efficiency/SKILL.md",
+      "computedHash": "92628da7f3eb2ae5625168f31587712a3cd77ac9ba5a23ffc24e86fd12c4408c"
+    },
     "macos-auto-update": {
       "source": "fayazara/macos-app-skills",
       "sourceType": "github",
