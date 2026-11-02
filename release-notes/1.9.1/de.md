@@ -18,16 +18,11 @@
 ### Mittleres Symbol
 
 - Die Quelle des Mittelfelds ist jetzt ein gemeinsamer „Mittleres Symbol"-Selektor: Netzwerk, Bluetooth-Gerät, aktuelle Eingabequelle, Batterieprozentsatz oder Leistung. Die beiden Netzwerkfehler-Schalter sind zu einem zusammengeführt, der für alle Quellen gilt; der wirkungslose Bluetooth-Schalter „Netzwerksymbol ersetzen" entfällt, alte Werte werden automatisch übernommen.
-- Die Quellen des mittleren Symbols sind jetzt Bildkacheln, die die echte Darstellung zeigen. Eine gemeinsame „Größe des mittleren Symbols" steuert Wi‑Fi, Bluetooth, Eingabequelle und Zahlen; die Netzwerksymbol-Stiloptionen zogen auf dieselbe Seite.
-- Die Vorschau zeigt den Ladezustand, und der mittlere Inhalt sitzt jetzt vertikal mittig am Batteriering; Text ist etwas kleiner als Symbole.
+- Das mittlere Symbol war nicht vertikal zentriert; das ist behoben.
 
 ### Anleitung
 
-- Überarbeitete Einführung: Das Fenster hat die Höhe der höchsten Seite und ändert seine Größe beim Schrittwechsel nicht mehr; Vorschauen liegen auf einer Fläche, Teile-Beschriftungen nennen oberen Bogen, mittleres Symbol und untere Punkte, neue Beispiele für das Mittelfeld (Prozent, Leistung, Eingabequelle) und ein kompakterer Zustimmungsblock.
-
-### Einstellungen
-
-- Alle Einstellungs-Popupmenüs nutzen eine gemeinsame Breite und springen nicht mehr mit ihren Optionen oder der Geräteliste; das native Popup-Aussehen bleibt erhalten.
+- Die Einführung wurde überarbeitet.
 
 ### Audio
 
@@ -36,7 +31,7 @@
 
 ### Panel
 
-- Das Statuspanel hat einen eckigen, zahnlosen Stil, ein „Mehr"-Menü unten und passt Größe und Layout unter Liquid Glass besser an.
+- Das Statuspanel hat einen eckigen, zahnlosen Stil passend zum macOS-Menüleisten-Panel, ein „Mehr"-Menü unten und passt Größe und Layout unter Liquid Glass besser an.
 
 ### Korrekturen
 
