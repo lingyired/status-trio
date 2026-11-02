@@ -122,10 +122,11 @@ enum StatusIconRenderer {
     /// puts every SF Symbol half a unit right of it. The symbol's ink is then
     /// measured and compensated separately; see issue #30 and
     /// `drawOfficialSymbol`.
-    private static let wifiSymbolCenter = CGPoint(
+    static let centerAnchor = CGPoint(
         x: StatusIconGeometry.artworkCenterX,
-        y: 64.0
+        y: StatusIconGeometry.batteryCenterY
     )
+    private static let wifiSymbolCenter = centerAnchor
 
     /// Unified optical alpha for all inactive tracks (battery groove, Wi-Fi muted signal, volume hidden dots).
     private static let inactiveTrackAlpha: CGFloat = 0.22

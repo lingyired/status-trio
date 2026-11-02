@@ -16,7 +16,10 @@ enum StatusIconGeometry {
 
     // Derived from the SVG battery endpoints and radius.
     private static let batteryRadius: CGFloat = 51.5
-    private static let batteryCenter = CGPoint(x: artworkCenterX, y: 61.48715261785473)
+    /// Vertical centre of the battery ring. The centre slot shares it so the
+    /// glyph sits on the circle's centre instead of slightly below it.
+    static let batteryCenterY: CGFloat = 61.48715261785473
+    private static let batteryCenter = CGPoint(x: artworkCenterX, y: batteryCenterY)
     private static let batteryStart: CGFloat = 148.69008689281117 * .pi / 180
     private static let batterySweep: CGFloat = 242.6198262143777 * .pi / 180
     static let batteryValueTopGapWidth: CGFloat = 64
