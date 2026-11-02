@@ -143,6 +143,11 @@ final class SettingsStore: ObservableObject {
     static let externalBrightnessConfigurationsDefaultsKey = "externalBrightnessConfigurations.v1"
     static let popupSectionOrderDefaultsKey = "popupSectionOrder"
     static let enabledPopupSectionsDefaultsKey = "enabledPopupSections"
+    /// Default order of the status-panel sections. Display brightness sits below
+    /// the audio-input row so the two device-level controls stay together.
+    static let defaultPopupSectionOrder: [PopupSection] = [
+        .battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource
+    ]
     static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .vpn, .volume]
     /// Set once the VPN row has been offered to a stored section list.
     ///
@@ -2086,7 +2091,7 @@ final class SettingsStore: ObservableObject {
         let storedSections = rawValues
             .compactMap(PopupSection.init(rawValue:))
             .filter { seen.insert($0).inserted }
-        return storedSections + PopupSection.allCases.filter { !seen.contains($0) }
+        return storedSections + Self.defaultPopupSectionOrder.filter { !seen.contains($0) }
     }
 
     /// Adds `.vpn` to a list that predates the row, once.
