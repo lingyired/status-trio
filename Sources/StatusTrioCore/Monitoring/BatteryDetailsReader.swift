@@ -101,7 +101,7 @@ struct BatteryDetailsReader: Sendable {
                 charging: sensors.battery.map { max(0, $0.watts) },
                 discharge: sensors.battery.map { max(0, -$0.watts) },
                 display: sensors.display,
-                usb: USBOutputReader.parse(registry: registry, now: now),
+                usb: USBOutputReader.resolve(portRails: sensors.portRails, registry: registry, now: now),
                 now: now
             )
             // One overall refresh can catch the rails mid-update and show a
