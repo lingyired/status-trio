@@ -462,8 +462,9 @@ private struct MiddleIconMenuLabel: View {
                 .truncationMode(.middle)
             Spacer(minLength: 6)
             Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.primary.opacity(0.8))
+                .frame(width: 14)
         }
         .font(.system(size: 13))
         .padding(.horizontal, 10)
