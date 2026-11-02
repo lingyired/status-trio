@@ -44,7 +44,7 @@ struct GeneralSectionView: View {
                         }
                     }
                     .labelsHidden()
-                    .fixedSize()
+                    .settingsMenuPickerWidth()
                 }
             )
 

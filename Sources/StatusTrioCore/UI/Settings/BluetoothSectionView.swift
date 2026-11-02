@@ -209,7 +209,7 @@ struct BluetoothSectionView: View {
                             }
                         }
                         .labelsHidden()
-                        .fixedSize()
+                        .settingsMenuPickerWidth()
                     }
                 }
             }

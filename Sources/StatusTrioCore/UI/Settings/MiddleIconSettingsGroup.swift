@@ -249,8 +249,7 @@ private struct MiddleBluetoothIconOptions: View {
             }
             .pickerStyle(.menu)
             .labelsHidden()
-            .frame(width: 190)
-            .flexibleMenuPickerSizing()
+            .settingsMenuPickerWidth()
             .accessibilityLabel(localization.string(.settingsBluetoothIconChoice))
             .accessibilityIdentifier("bluetooth.audioIconChoice")
         }
@@ -289,8 +288,7 @@ private struct MiddleBluetoothIconOptions: View {
             }
             .labelsHidden()
             .pickerStyle(.menu)
-            .frame(width: 190)
-            .flexibleMenuPickerSizing()
+            .settingsMenuPickerWidth()
             .accessibilityIdentifier("bluetooth.networkIconSource")
         }
     }
@@ -441,25 +439,5 @@ private enum MiddleIconPreviewScene {
             scale: 2,
             appearance: MenuBarPreviewBackdrop.appearance(isDarkBackground: isDarkBackground)
         )
-    }
-}
-
-/// macOS 26's `.buttonSizing(.flexible)` makes a menu picker fill its frame
-/// instead of sizing to its current menu items. Older systems fall back to the
-/// plain frame.
-private struct FlexibleMenuPickerSizing: ViewModifier {
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
-            content.buttonSizing(.flexible)
-        } else {
-            content
-        }
-    }
-}
-
-private extension View {
-    func flexibleMenuPickerSizing() -> some View {
-        modifier(FlexibleMenuPickerSizing())
     }
 }
