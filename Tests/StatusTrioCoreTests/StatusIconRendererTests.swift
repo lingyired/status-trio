@@ -1229,6 +1229,18 @@ final class StatusIconRendererTests: XCTestCase {
         XCTAssertNotEqual(normalPixels.bytes, scaledPixels.bytes)
     }
 
+    func testCentreTextUsesASmallerBaselineThanTheSymbol() {
+        XCTAssertEqual(
+            StatusIconRenderer.centerTextPointSize(for: 1.6),
+            60.8 * StatusIconRenderer.centerTextBaselineFactor,
+            accuracy: 0.001
+        )
+        XCTAssertLessThan(
+            StatusIconRenderer.centerTextPointSize(for: 1.6),
+            StatusIconRenderer.centerSymbolPointSize(for: 1.6)
+        )
+    }
+
     func testCenterSymbolScaleUsesTheSharedBasePointSize() {
         XCTAssertEqual(StatusIconRenderer.centerSymbolBasePointSize, 38)
         XCTAssertEqual(StatusIconRenderer.centerSymbolPointSize(for: 1.0), 38)
