@@ -32,7 +32,7 @@
 "settings.appIconPlacement.dock" = "程序坞";
 "settings.appIconPlacement.both" = "两处";
 "settings.appIconPlacement.dockExitHint" = "关闭设置后，程序坞图标将自动消失";
-"settings.appIcon.dockGroup" = "Dock 图标";
+"settings.appIcon.dockGroup" = "程序坞图标";
 "settings.dockIconBackground" = "Dock 图标背景";
 "settings.dockIconBackground.description" = "仅影响程序坞中显示的实时图标。「跟随系统」读取「系统设置 › 外观 › 图标与小组件样式」（macOS 15 及以上）。Finder 与启动台中的应用图标在 macOS 26 及以上跟随系统深色和浅色外观；选择“深色”或“浅色”只影响程序坞中的实时图标。";
 "settings.dockIconBackground.system" = "跟随系统";
@@ -667,3 +667,12 @@
 // About: community WeChat QR refresh
 "settings.about.community.refresh" = "刷新";
 "settings.about.community.refreshFailed" = "二维码加载失败，请重试。";
+
+"guide.partPosition.battery" = "顶部圆弧";
+"guide.partPosition.network" = "中间图标";
+"guide.partPosition.volume" = "底部圆点";
+"guide.network.center" = "可在「设置 › 应用图标 › 中间图标」中修改显示内容，支持电量、功耗、输入法、蓝牙音频。";
+
+"guide.state.chargingBatteryCenter" = "充电 + 电池百分比";
+"guide.state.fullPowerCenter" = "已充满 + 功耗";
+"guide.state.lowBatteryInputCenter" = "低电量 + 输入法";

@@ -8,6 +8,9 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
         width: IconGuideOnboardingView.contentWidth,
         height: 700
     )
+    /// Lower bound keeps a very short localized page from producing a window
+    /// too small to read; the upper bound is the initial/default height above.
+    static let minimumContentHeight: CGFloat = 420
 
     private let settings: SettingsStore
     private let localization: Localization
@@ -18,6 +21,14 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     private var ownsActivationPolicy = false
     private var previewVisibilityObserver: ((Bool) -> Void)?
     private var isPreviewWindowVisible = false
+    /// Latest content height reported by the guide view, applied on the next
+    /// main-runloop turn so we never resize inside SwiftUI's layout pass.
+    private var pendingContentHeight: CGFloat?
+    /// The largest content height seen since the guide opened. The window grows
+    /// to fit a taller page but never shrinks for a shorter one, so switching
+    /// steps does not resize (the gallery page is slightly shorter than anatomy).
+    private var maximumContentHeight: CGFloat = 0
+    private var isContentResizeScheduled = false
     var openSettings: (() -> Void)?
 
     init(
@@ -72,6 +83,13 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
         let window = window ?? makeWindow()
         self.window = window
         applyLocalization()
+        // Let the guide lay out once so its reported content height settles
+        // before the first presentation, avoiding a visible resize flash.
+        window.contentView?.layoutSubtreeIfNeeded()
+        applyPendingContentHeight()
+        if !window.isVisible {
+            window.center()
+        }
         if backgroundUITesting.isEnabled {
             BackgroundUIWindowPlacement.position(window, display: backgroundUITesting.display)
         } else {
@@ -84,6 +102,9 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         leaveActivationPolicyIfNeeded()
         setPreviewWindowVisible(false)
+        pendingContentHeight = nil
+        maximumContentHeight = 0
+        isContentResizeScheduled = false
         window?.contentView = nil
         window = nil
     }
@@ -99,7 +120,10 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
             IconGuideOnboardingView(
                 settings: settings,
                 onCustomize: { [weak self] in self?.handleCustomize() },
-                onDone: { [weak self] in self?.window?.close() }
+                onDone: { [weak self] in self?.window?.close() },
+                onContentHeightChange: { [weak self] height in
+                    self?.handleContentHeightChange(height)
+                }
             )
         }
 
@@ -112,7 +136,7 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
         window.isReleasedWhenClosed = true
         window.contentMinSize = NSSize(
             width: IconGuideOnboardingView.contentWidth,
-            height: 420
+            height: Self.minimumContentHeight
         )
         window.isMovableByWindowBackground = true
         window.titleVisibility = .hidden
@@ -127,7 +151,42 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
         openSettings?()
     }
 
+    /// Resizes the window to the guide's intrinsic content height. Scheduled on
+    /// the next main-runloop turn so the window is never mutated during
+    /// SwiftUI's layout/preference pass (the path that recursed on Ventura).
+    private func handleContentHeightChange(_ height: CGFloat) {
+        guard height > 0 else { return }
+        pendingContentHeight = height
+        guard !isContentResizeScheduled else { return }
+        isContentResizeScheduled = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.isContentResizeScheduled = false
+            self.applyPendingContentHeight()
+        }
+    }
+
+    private func applyPendingContentHeight() {
+        guard let window, let height = pendingContentHeight else { return }
+        maximumContentHeight = max(maximumContentHeight, height)
+        var target = maximumContentHeight
+        if let screen = window.screen ?? NSScreen.main {
+            // Leave room for the menu bar and Dock so the window is never
+            // taller than the usable screen.
+            target = min(target, screen.visibleFrame.height - 40)
+        }
+        target = max(target, Self.minimumContentHeight)
+        let currentHeight = window.contentRect(forFrameRect: window.frame).height
+        guard abs(currentHeight - target) > 0.5 else { return }
+        let top = window.frame.maxY
+        window.setContentSize(NSSize(width: Self.contentSize.width, height: target))
+        window.setFrameOrigin(
+            NSPoint(x: window.frame.origin.x, y: top - window.frame.height)
+        )
+    }
+
     private func applyLocalization(language: AppLanguage? = nil) {
+        maximumContentHeight = 0
         let language = language ?? localization.resolvedLanguage
         window?.title = localization.string(.guideTitle, language: language)
         window?.contentView?.userInterfaceLayoutDirection = language.nsLayoutDirection
