@@ -133,12 +133,18 @@ struct MiddleIconSettingsGroup: View {
                             MiddleIconSourcePreview(source: source)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 42)
-                                .selectionRing(selected, cornerRadius: 7)
+                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+                                )
+                                .selectionRing(selected, cornerRadius: 6)
                             Text(sourceLabel(source))
-                                .font(.system(size: 11.5))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.75)
+                                .font(.system(size: 11.5, weight: selected ? .semibold : .regular))
                                 .foregroundStyle(selected ? Color.primary : Color.secondary)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity)
                         }
                     }
                     .buttonStyle(.plain)
@@ -350,7 +356,6 @@ private struct MiddleIconSourcePreview: View {
                     .padding(3)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .accessibilityHidden(true)
     }
 }
