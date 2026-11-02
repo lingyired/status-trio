@@ -32,7 +32,7 @@
 
 ### Panneau
 
-- Le panneau de statut adopte un style sans coins ni encoche, assorti au panneau de la barre des menus de macOS, ajoute un menu « plus » en bas et adapte mieux taille et mise en page sous Liquid Glass.
+- Le panneau de statut adopte un style sans coins ni encoche, assorti au panneau de la barre des menus de macOS. Un nouveau menu « … » en bas regroupe les actions courantes (Rechercher les mises à jour, À propos, Réglages de la barre des menus, Quitter) et la taille et la mise en page s'adaptent mieux sous Liquid Glass.
 
 ### Corrections
 
