@@ -18,16 +18,11 @@
 ### Middle icon
 
 - The middle-slot source is now one "Middle Icon" selector: network, Bluetooth device, current input source, battery percentage, or power. The two network-error switches are merged into one that covers every source, the non-working Bluetooth "replace network icon" toggle is gone, and old stored values migrate automatically.
-- Middle-icon sources are now picture tiles that preview the real rendering. One "Middle Icon Size" now drives Wi-Fi, Bluetooth, input source and numbers, and the network icon-style options moved to the same page.
-- The middle-icon preview shows the charging state, and the centre content is now vertically centred on the battery ring; text sits slightly smaller than symbols.
+- Fixed the middle icon not being vertically centred.
 
 ### Guide
 
-- Reworked onboarding: the window sizes to the tallest page and no longer resizes between steps; previews share one surface, part captions name the top arc, middle icon and bottom dots, and new middle-slot examples (battery percentage, power, input source) were added; the consent block is more compact.
-
-### Settings
-
-- Every Settings pop-up menu now uses one shared width and no longer jumps with its options or device list, while keeping the native pop-up look.
+- Polished the onboarding guide.
 
 ### Audio
 
@@ -36,7 +31,7 @@
 
 ### Panel
 
-- The status panel uses a squared-off, notchless style, adds a bottom "more" menu, and adapts size and layout better under Liquid Glass.
+- The status panel uses a squared-off, notchless style to match the macOS menu-bar panel, adds a bottom "more" menu, and adapts size and layout better under Liquid Glass.
 
 ### Fixes
 

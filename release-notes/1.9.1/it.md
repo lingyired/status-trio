@@ -18,16 +18,11 @@
 ### Icona centrale
 
 - La sorgente dello slot centrale è ora un unico selettore «Icona centrale»: rete, dispositivo Bluetooth, sorgente di ingresso corrente, percentuale batteria o potenza. I due interruttori di errore di rete sono uniti in uno che vale per tutte le sorgenti, l'interruttore Bluetooth «sostituisci icona di rete» non funzionante è stato rimosso e i valori salvati vengono migrati automaticamente.
-- Le sorgenti dell'icona centrale sono ora riquadri immagine che mostrano il rendering reale. Un'unica «Dimensione icona centrale» controlla Wi‑Fi, Bluetooth, sorgente di ingresso e numeri, e le opzioni di stile dell'icona di rete sono state spostate in quella pagina.
-- L'anteprima mostra lo stato di carica, il contenuto centrale è ora centrato verticalmente sull'anello della batteria e il testo è leggermente più piccolo dei simboli.
+- Corretta l'icona centrale che non era centrata verticalmente.
 
 ### Guida
 
-- Guida rinnovata: la finestra adotta l'altezza della pagina più alta e non cambia più dimensione tra i passi; le anteprime condividono una superficie, le didascalie indicano arco superiore, icona centrale e punti inferiori, sono stati aggiunti esempi dello slot centrale (percentuale, potenza, sorgente di ingresso) e il blocco del consenso è più compatto.
-
-### Impostazioni
-
-- Tutti i menu a comparsa delle Impostazioni usano una larghezza comune e non cambiano più con le opzioni o l'elenco dei dispositivi, mantenendo l'aspetto nativo.
+- Guida introduttiva migliorata.
 
 ### Audio
 
@@ -36,7 +31,7 @@
 
 ### Pannello
 
-- Il pannello di stato usa uno stile senza angoli né tacca, aggiunge un menu «altro» in basso e adatta meglio dimensioni e layout con Liquid Glass.
+- Il pannello di stato usa uno stile senza angoli né tacca, coerente con il pannello della barra dei menu di macOS, aggiunge un menu «altro» in basso e adatta meglio dimensioni e layout con Liquid Glass.
 
 ### Correzioni
 

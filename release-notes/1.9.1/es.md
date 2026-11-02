@@ -18,16 +18,11 @@
 ### Icono central
 
 - La fuente del espacio central ahora es un único selector «Icono central»: red, dispositivo Bluetooth, fuente de entrada actual, porcentaje de batería o energía. Los dos interruptores de error de red se han unido en uno que afecta a todas las fuentes, el interruptor de Bluetooth «reemplazar icono de red» que no funcionaba se ha eliminado y los valores guardados se migran automáticamente.
-- Las fuentes del icono central ahora son mosaicos de imagen que previsualizan el resultado real. Un único «Tamaño del icono central» controla Wi‑Fi, Bluetooth, fuente de entrada y números, y las opciones de estilo del icono de red se movieron a esa página.
-- La vista previa muestra el estado de carga, el contenido central queda centrado verticalmente en el anillo de batería y el texto es algo más pequeño que los símbolos.
+- Corregido que el icono central no quedaba centrado verticalmente.
 
 ### Guía
 
-- Guía renovada: la ventana adopta la altura de la página más alta y ya no cambia de tamaño entre pasos; las vistas previas comparten una superficie, las leyendas nombran el arco superior, el icono central y los puntos inferiores, se añaden ejemplos del espacio central (porcentaje, energía, fuente de entrada) y el bloque de consentimiento es más compacto.
-
-### Ajustes
-
-- Todos los menús emergentes de Ajustes usan un ancho común y ya no cambian de ancho con sus opciones o la lista de dispositivos, manteniendo el aspecto nativo.
+- Guía de introducción mejorada.
 
 ### Audio
 
@@ -36,7 +31,7 @@
 
 ### Panel
 
-- El panel de estado usa un estilo sin esquinas ni muesca, añade un menú «más» inferior y adapta mejor tamaño y diseño con Liquid Glass.
+- El panel de estado usa un estilo sin esquinas ni muesca, a juego con el panel de la barra de menús de macOS, añade un menú «más» inferior y adapta mejor tamaño y diseño con Liquid Glass.
 
 ### Correcciones
 
