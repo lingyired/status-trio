@@ -688,3 +688,11 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "右クリックの動作";
+"settings.menuBarRightClickAction.description" = "メニューバーのアイコンを右クリックしたときの動作です。";
+"settings.menuBarRightClickAction.contextMenu" = "コンテキストメニューを表示";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "低電力モードを切り替え";
+"settings.menuBarRightClickAction.chargeToFullNow" = "今すぐフル充電";
+"settings.menuBarRightClickAction.toggleMute" = "ミュートを切り替え";
+"settings.menuBarRightClickAction.unavailableHint" = "選択した動作は現在利用できません。右クリックするとメニューが表示されます。";

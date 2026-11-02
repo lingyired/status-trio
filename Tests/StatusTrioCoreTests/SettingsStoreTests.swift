@@ -1696,6 +1696,51 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(published, [.dock, .both])
     }
 
+    func testMenuBarRightClickActionDefaultsToContextMenu() {
+        let store = SettingsStore(defaults: makeSuite().defaults)
+
+        XCTAssertEqual(store.menuBarRightClickAction, .contextMenu)
+    }
+
+    func testMenuBarRightClickActionPersistsAcrossStoreInstances() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        first.menuBarRightClickAction = .toggleMute
+
+        XCTAssertEqual(
+            SettingsStore(defaults: suite.defaults).menuBarRightClickAction,
+            .toggleMute
+        )
+    }
+
+    func testUnknownMenuBarRightClickActionFallsBackToContextMenu() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(
+            "not-an-action",
+            forKey: SettingsStore.menuBarRightClickActionDefaultsKey
+        )
+
+        XCTAssertEqual(SettingsStore(defaults: suite.defaults).menuBarRightClickAction, .contextMenu)
+    }
+
+    func testMenuBarRightClickActionPublishesChanges() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        var published: [MenuBarRightClickAction] = []
+        let cancellable = store.$menuBarRightClickAction.dropFirst().sink { published.append($0) }
+        defer { cancellable.cancel() }
+
+        store.menuBarRightClickAction = .chargeToFullNow
+        store.menuBarRightClickAction = .toggleLowPowerMode
+
+        XCTAssertEqual(published, [.chargeToFullNow, .toggleLowPowerMode])
+    }
+
     func testDockIconBackgroundPreferenceDefaultsToSystem() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 

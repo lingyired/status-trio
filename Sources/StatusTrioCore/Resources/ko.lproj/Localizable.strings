@@ -688,3 +688,11 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "우클릭 동작";
+"settings.menuBarRightClickAction.description" = "메뉴 막대 아이콘을 우클릭할 때 수행할 동작입니다.";
+"settings.menuBarRightClickAction.contextMenu" = "상황 메뉴 표시";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "저전력 모드 전환";
+"settings.menuBarRightClickAction.chargeToFullNow" = "지금 완전 충전";
+"settings.menuBarRightClickAction.toggleMute" = "음소거 전환";
+"settings.menuBarRightClickAction.unavailableHint" = "선택한 동작을 지금 사용할 수 없습니다. 우클릭하면 메뉴가 표시됩니다.";

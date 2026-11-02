@@ -688,3 +688,11 @@
 "guide.state.chargingBatteryCenter" = "充電 + 電池百分比";
 "guide.state.fullPowerCenter" = "已充滿 + 功耗";
 "guide.state.lowBatteryInputCenter" = "低電量 + 輸入法";
+
+"settings.menuBarRightClickAction" = "右鍵操作";
+"settings.menuBarRightClickAction.description" = "右鍵點擊選單列圖示時執行的動作。";
+"settings.menuBarRightClickAction.contextMenu" = "顯示右鍵選單";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "切換低電量模式";
+"settings.menuBarRightClickAction.chargeToFullNow" = "立即充滿";
+"settings.menuBarRightClickAction.toggleMute" = "切換靜音";
+"settings.menuBarRightClickAction.unavailableHint" = "目前選取的操作無法使用；右鍵將改為顯示選單。";

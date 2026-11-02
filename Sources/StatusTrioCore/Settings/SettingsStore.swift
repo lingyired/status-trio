@@ -172,6 +172,7 @@ final class SettingsStore: ObservableObject {
 
     static let appIconPlacementDefaultsKey = "appIconPlacement"
     static let dockIconBackgroundPreferenceDefaultsKey = "dockIconBackgroundPreference"
+    static let menuBarRightClickActionDefaultsKey = "menuBarRightClickAction.v1"
 
     @Published private(set) var sharesAnonymousAnalytics: Bool
     @Published private(set) var telemetryConsentVersion: Int
@@ -254,6 +255,18 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 dockIconBackgroundPreference.rawValue,
                 forKey: Self.dockIconBackgroundPreferenceDefaultsKey
+            )
+        }
+    }
+
+    /// The action performed when the user right-clicks the menu-bar icon.
+    /// Defaults to the historical context menu; an unknown stored raw value
+    /// falls back to it as well.
+    @Published var menuBarRightClickAction: MenuBarRightClickAction {
+        didSet {
+            defaults.set(
+                menuBarRightClickAction.rawValue,
+                forKey: Self.menuBarRightClickActionDefaultsKey
             )
         }
     }
@@ -1610,6 +1623,12 @@ final class SettingsStore: ObservableObject {
         self.dockIconBackgroundPreference = storedDockIconBackgroundPreference
             .flatMap(DockIconBackgroundPreference.init(rawValue:))
             ?? .system
+        let storedMenuBarRightClickAction = defaults.string(
+            forKey: Self.menuBarRightClickActionDefaultsKey
+        )
+        self.menuBarRightClickAction = storedMenuBarRightClickAction
+            .flatMap(MenuBarRightClickAction.init(rawValue:))
+            ?? .contextMenu
         self.iconSize = Self.clampedIconSize(storedIconSize ?? Self.defaultIconSize)
         self.showsBatteryPercentage = defaults.object(forKey: Self.showsBatteryPercentageDefaultsKey) as? Bool ?? true
         self.showsBatteryPowerFlow = defaults.object(forKey: Self.showsBatteryPowerFlowDefaultsKey) as? Bool ?? true

@@ -210,6 +210,37 @@ final class ChargeToFullNowController: ObservableObject {
         }
     }
 
+    /// Menu-bar quick action: perform the same start/cancel toggle as the panel
+    /// button, but without requiring the panel to be open.
+    ///
+    /// It synthesizes a demand as if the battery section were visible, then
+    /// reuses `update` + `performPrimaryAction` so all the capability, live-state
+    /// and restore-limit logic stays in one place. Returns whether an action was
+    /// actually available; callers fall back to the context menu when it is not,
+    /// so an impossible quick action never becomes a silent no-op.
+    @discardableResult
+    func performQuickToggle(battery: BatteryStatus) -> Bool {
+        guard capability.isAvailable else { return false }
+
+        update(
+            ChargeToFullNowDemand(
+                settingEnabled: true,
+                popoverVisible: true,
+                batterySectionVisible: true,
+                battery: battery
+            )
+        )
+
+        switch presentation {
+        case .available, .failed, .chargingToFull:
+            performPrimaryAction()
+            return true
+        case .hidden, .applying, .cancelling, .unavailable, .limitRestored,
+             .cancelConfirmationRequired, .cancelPending, .cancelFailed:
+            return false
+        }
+    }
+
     func requestChargeToFullNow() {
         guard !isApplying,
               !isCancelling,

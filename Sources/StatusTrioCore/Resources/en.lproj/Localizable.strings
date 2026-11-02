@@ -687,3 +687,11 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "Right-click action";
+"settings.menuBarRightClickAction.description" = "What the menu bar icon does when you right-click it.";
+"settings.menuBarRightClickAction.contextMenu" = "Show context menu";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "Toggle Low Power Mode";
+"settings.menuBarRightClickAction.chargeToFullNow" = "Charge to full now";
+"settings.menuBarRightClickAction.toggleMute" = "Toggle mute";
+"settings.menuBarRightClickAction.unavailableHint" = "The selected action isn't available right now; right-click will show the menu instead.";

@@ -688,3 +688,11 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "Действие при правом клике";
+"settings.menuBarRightClickAction.description" = "Что делает значок в строке меню при щелчке правой кнопкой.";
+"settings.menuBarRightClickAction.contextMenu" = "Показать контекстное меню";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "Переключить режим энергосбережения";
+"settings.menuBarRightClickAction.chargeToFullNow" = "Зарядить до 100% сейчас";
+"settings.menuBarRightClickAction.toggleMute" = "Переключить без звука";
+"settings.menuBarRightClickAction.unavailableHint" = "Выбранное действие сейчас недоступно; при правом клике откроется меню.";

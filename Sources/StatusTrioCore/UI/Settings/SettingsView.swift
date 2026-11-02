@@ -214,7 +214,9 @@ struct SettingsView: View {
             GeneralSectionView(
                 store: store,
                 localization: localization,
-                globalShortcutController: globalShortcutController
+                globalShortcutController: globalShortcutController,
+                statusStore: statusStore,
+                chargeToFullNow: chargeToFullNow
             )
         case .about:
             AboutSectionView()

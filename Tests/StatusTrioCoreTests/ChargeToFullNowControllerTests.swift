@@ -429,6 +429,57 @@ final class ChargeToFullNowControllerTests: XCTestCase {
         XCTAssertEqual(backend.readCount, readsAfterActivation)
     }
 
+    func testQuickToggleStartsChargeWhenAvailable() async {
+        let backend = StubBatteryChargeController(deviceState: activeLimit(80))
+        let controller = ChargeToFullNowController(backend: backend, restoreLimit: { 80 })
+
+        let didAct = controller.performQuickToggle(battery: demand(percentage: 80).battery)
+        XCTAssertTrue(didAct)
+
+        await backend.waitUntilWriteStarts()
+        backend.finishWrite(.success)
+        await waitUntil { controller.presentation == .chargingToFull }
+    }
+
+    func testQuickToggleCancelsWhenChargingToFull() async {
+        let backend = StubBatteryChargeController(deviceState: activeLimit(80))
+        let controller = ChargeToFullNowController(backend: backend, restoreLimit: { 80 })
+
+        controller.update(demand())
+        await beginCharge(controller, backend)
+
+        backend.deviceState = .temporaryOverride
+        backend.restoreState = activeLimit(80)
+
+        let didAct = controller.performQuickToggle(battery: demand().battery)
+        XCTAssertTrue(didAct)
+        await waitUntil { controller.presentation == .limitRestored(limit: 80) }
+        XCTAssertEqual(backend.restoreTargets, [80])
+    }
+
+    func testQuickToggleReturnsFalseWhenNothingToCharge() {
+        let backend = StubBatteryChargeController(deviceState: activeLimit(80))
+        let controller = ChargeToFullNowController(backend: backend, restoreLimit: { 80 })
+
+        let didAct = controller.performQuickToggle(
+            battery: demand(connectedToPower: false).battery
+        )
+
+        XCTAssertFalse(didAct)
+        XCTAssertEqual(controller.presentation, .hidden)
+    }
+
+    func testQuickToggleReturnsFalseForUnsupportedCapabilityWithoutReading() {
+        let backend = StubBatteryChargeController(
+            capability: .unavailable(.unsupportedSystem),
+            deviceState: activeLimit(80)
+        )
+        let controller = ChargeToFullNowController(backend: backend)
+
+        XCTAssertFalse(controller.performQuickToggle(battery: demand().battery))
+        XCTAssertEqual(backend.readCount, 0)
+    }
+
     func testCancelRestoresEverySupportedConfiguredLimit() async {
         for limit in [80, 85, 90, 95] {
             let backend = StubBatteryChargeController(

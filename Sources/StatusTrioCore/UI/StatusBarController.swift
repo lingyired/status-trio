@@ -45,6 +45,9 @@ final class StatusBarController: NSObject {
     private let store: SystemStatusStore
     private let settings: SettingsStore
     private let panelActions: StatusPanelActions
+    /// Retained so the right-click quick action can reuse the same
+    /// charge-to-full start/cancel path the panel button uses.
+    private let chargeToFullNow: ChargeToFullNowController?
     private let panelViewModel: StatusPanelViewModel
     private let iconPresentation: IconPresentationViewModel
     private let localization: Localization
@@ -207,6 +210,7 @@ final class StatusBarController: NSObject {
         self.appearanceProvider = appearanceProvider
         self.store = store
         self.settings = settings
+        self.chargeToFullNow = chargeToFullNow
         let resolvedInputSourceController = inputSourceController ?? InputSourceController()
         self.inputSourceController = resolvedInputSourceController
         let panelActions = StatusPanelActions(
@@ -409,7 +413,39 @@ final class StatusBarController: NSObject {
             togglePopover()
         case .right:
             popover.performClose(nil)
+            performRightClickAction()
+        }
+    }
+
+    /// Resolve which custom quick action is possible right now. Each flag comes
+    /// from the owning subsystem; the router falls back to the context menu for
+    /// anything unavailable so the right-click never silently does nothing.
+    private var quickActionAvailability: MenuBarQuickActionAvailability {
+        MenuBarQuickActionAvailability(
+            lowPowerMode: settings.controlsLowPowerMode && PrivilegedHelperManager.shared.isReady,
+            chargeToFullNow: chargeToFullNow?.isSettingAvailable ?? false,
+            mute: store.liveVolume.canMute
+        )
+    }
+
+    /// Route a right-click to the configured quick action (#209). The default
+    /// `.contextMenu` keeps the historical `showMenu()` path unchanged.
+    private func performRightClickAction() {
+        let outcome = MenuBarRightClickRouter.outcome(
+            for: settings.menuBarRightClickAction,
+            availability: quickActionAvailability
+        )
+        switch outcome {
+        case .showContextMenu:
             showMenu()
+        case .toggleLowPowerMode:
+            store.lowPowerMode.setLowPowerMode(!store.lowPowerMode.isLowPowerMode)
+        case .toggleChargeToFullNow:
+            if chargeToFullNow?.performQuickToggle(battery: store.snapshot.battery) != true {
+                showMenu()
+            }
+        case .toggleMute:
+            store.toggleMute()
         }
     }
 

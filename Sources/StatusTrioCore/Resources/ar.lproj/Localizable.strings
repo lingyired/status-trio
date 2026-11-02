@@ -688,3 +688,11 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "إجراء النقر بالزر الأيمن";
+"settings.menuBarRightClickAction.description" = "ما يفعله رمز شريط القوائم عند النقر عليه بزر الفأرة الأيمن.";
+"settings.menuBarRightClickAction.contextMenu" = "إظهار قائمة السياق";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "تبديل وضع الطاقة المنخفضة";
+"settings.menuBarRightClickAction.chargeToFullNow" = "الشحن الكامل الآن";
+"settings.menuBarRightClickAction.toggleMute" = "تبديل كتم الصوت";
+"settings.menuBarRightClickAction.unavailableHint" = "الإجراء المحدد غير متاح الآن؛ سيؤدي النقر بالزر الأيمن إلى إظهار القائمة بدلاً من ذلك.";

@@ -688,3 +688,11 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "Action du clic droit";
+"settings.menuBarRightClickAction.description" = "Ce que fait l'icône de la barre des menus lors d'un clic droit.";
+"settings.menuBarRightClickAction.contextMenu" = "Afficher le menu contextuel";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "Basculer le mode économie d'énergie";
+"settings.menuBarRightClickAction.chargeToFullNow" = "Charger à fond maintenant";
+"settings.menuBarRightClickAction.toggleMute" = "Basculer la sourdine";
+"settings.menuBarRightClickAction.unavailableHint" = "L'action sélectionnée n'est pas disponible pour le moment ; le clic droit affichera le menu.";
