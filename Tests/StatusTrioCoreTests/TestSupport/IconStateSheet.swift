@@ -287,33 +287,29 @@ enum IconStateSheet {
                 zone: .bluetooth,
                 entries: [
                     entry(
-                        zh: "取代 Wi-Fi 图标",
-                        en: "Replaces the Wi-Fi icon",
-                        bluetoothOptions: BluetoothAudioIconOptions(
-                            replacesNetworkIcon: true
-                        ),
+                        zh: "中间图标设为蓝牙设备",
+                        en: "Bluetooth device as the middle icon",
+                        connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                        bluetoothOptions: BluetoothAudioIconOptions(),
                         bluetoothDevice: SheetFixtures.bluetoothDevice
                     ),
                     entry(
-                        zh: "网络异常时保留 Wi-Fi 图标",
-                        en: "Keeps Wi-Fi when the network is down",
+                        zh: "网络异常时优先显示网络",
+                        en: "Network error takes priority",
                         wifi: WiFiStatus(state: .noInternet, rssi: -58),
-                        bluetoothOptions: BluetoothAudioIconOptions(
-                            replacesNetworkIcon: true
-                        ),
+                        connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                        bluetoothOptions: BluetoothAudioIconOptions(),
                         bluetoothDevice: SheetFixtures.bluetoothDevice
                     ),
                     entry(
-                        zh: "未开启取代时仍显示 Wi-Fi 图标",
-                        en: "Wi-Fi stays while replacement is off",
+                        zh: "中间图标为网络时仍显示 Wi-Fi",
+                        en: "Wi-Fi while the middle icon is Network",
                         bluetoothDevice: SheetFixtures.bluetoothDevice
                     ),
                     entry(
                         zh: "音量圆点变蓝",
                         en: "Blue volume dots",
-                        bluetoothOptions: BluetoothAudioIconOptions(
-                            usesVolumeColor: true
-                        ),
+                        bluetoothOptions: BluetoothAudioIconOptions(usesVolumeColor: true),
                         bluetoothDevice: SheetFixtures.bluetoothDevice,
                         volumeScalar: 0.75
                     ),
@@ -321,9 +317,7 @@ enum IconStateSheet {
                         zh: "音量圆弧变蓝",
                         en: "Blue volume arc",
                         volumeOptions: VolumeIconOptions(displayStyle: .arc),
-                        bluetoothOptions: BluetoothAudioIconOptions(
-                            usesVolumeColor: true
-                        ),
+                        bluetoothOptions: BluetoothAudioIconOptions(usesVolumeColor: true),
                         bluetoothDevice: SheetFixtures.bluetoothDevice
                     ),
                     entry(

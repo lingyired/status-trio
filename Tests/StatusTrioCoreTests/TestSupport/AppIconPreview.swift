@@ -34,10 +34,7 @@ enum AppIconPreview {
                 currentDevice: SheetFixtures.bluetoothDevice
             )
         ),
-        bluetoothAudioOptions: BluetoothAudioIconOptions(
-            replacesNetworkIcon: false,
-            usesVolumeColor: true
-        )
+        bluetoothAudioOptions: BluetoothAudioIconOptions(usesVolumeColor: true)
     )
 
     /// The Icon Composer artwork for one system appearance.

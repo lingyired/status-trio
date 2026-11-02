@@ -41,15 +41,20 @@ final class IconGuideRedesignTests: XCTestCase {
 
         for state in Self.bluetoothDeviceStates {
             let options = state.bluetoothAudioOptions(configuring: configured)
-            XCTAssertTrue(options.replacesNetworkIcon, "\(state) must show the device symbol")
+            XCTAssertEqual(
+                state.connectionCenterSourceOverride,
+                .bluetoothDevice,
+                "\(state) must show the device symbol"
+            )
             XCTAssertTrue(options.usesVolumeColor, "\(state) must show the blue volume row")
         }
 
         let tinted = IconGuideState.wifiVolumeTint.bluetoothAudioOptions(
             configuring: configured
         )
-        XCTAssertFalse(
-            tinted.replacesNetworkIcon,
+        XCTAssertEqual(
+            IconGuideState.wifiVolumeTint.connectionCenterSourceOverride,
+            .network,
             "The blue volume card keeps the normal network symbol in the middle."
         )
         XCTAssertTrue(tinted.usesVolumeColor)
@@ -69,7 +74,7 @@ final class IconGuideRedesignTests: XCTestCase {
             configuring: .standard
         )
 
-        XCTAssertFalse(options.replacesNetworkIcon)
+        XCTAssertEqual(IconGuideState.wifiVolumeTint.connectionCenterSourceOverride, .network)
         XCTAssertTrue(options.usesVolumeColor)
         XCTAssertEqual(IconGuideState.wifiVolumeTint.status.connection, .wifi)
         XCTAssertEqual(IconGuideState.wifiVolumeTint.status.wifi.state, .connected)
@@ -79,16 +84,11 @@ final class IconGuideRedesignTests: XCTestCase {
     }
 
     func testBluetoothGuideStatesKeepTheConfiguredBluetoothPreferences() {
-        let configured = BluetoothAudioIconOptions(
-            replacesNetworkIcon: false,
-            usesVolumeColor: false,
-            prioritizesNetworkErrors: false,
-            symbolScale: 1.35
-        )
+        let configured = BluetoothAudioIconOptions(usesVolumeColor: false, symbolScale: 1.35)
 
         for state in Self.bluetoothStates {
             let options = state.bluetoothAudioOptions(configuring: configured)
-            XCTAssertEqual(options.prioritizesNetworkErrors, false)
+            XCTAssertTrue(options.usesVolumeColor)
             XCTAssertEqual(options.symbolScale, 1.35)
         }
     }

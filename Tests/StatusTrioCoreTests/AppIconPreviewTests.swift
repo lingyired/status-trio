@@ -64,7 +64,6 @@ final class AppIconPreviewTests: XCTestCase {
         XCTAssertEqual(state.status.wifi.state, .connected)
         XCTAssertEqual(state.status.volume.currentDevice, SheetFixtures.bluetoothDevice)
         XCTAssertTrue(state.bluetoothAudioOptions.usesVolumeColor)
-        XCTAssertFalse(state.bluetoothAudioOptions.replacesNetworkIcon)
         XCTAssertEqual(state.backgroundStyle, .dark)
     }
 

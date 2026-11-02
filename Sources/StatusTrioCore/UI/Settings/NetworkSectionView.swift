@@ -41,36 +41,6 @@ struct NetworkSectionView: View {
 
     private var connectionIconsGroup: some View {
         SettingsGroup(localization.string(.settingsNetworkConnectionIcons)) {
-            SettingsMenuRow(
-                symbol: "keyboard",
-                tint: .indigo,
-                title: localization.string(.settingsNetworkCenterSource),
-                subtitle: localization.string(.settingsNetworkCenterSourceDescription),
-                selection: $store.connectionCenterSource,
-                options: ConnectionCenterSource.allCases,
-                label: centerSourceLabel
-            )
-
-            if store.connectionCenterSource == .inputSource {
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "wifi.exclamationmark",
-                    tint: .orange,
-                    title: localization.string(.settingsNetworkCenterSourceNetworkWarnings),
-                    subtitle: localization.string(.settingsNetworkCenterSourceNetworkWarningsDescription),
-                    isOn: $store.prioritizesNetworkErrorsOverInputSource
-                )
-
-                SettingsDivider()
-
-                SettingsHintRow(
-                    text: localization.string(.settingsNetworkCenterSourceBluetoothFallback)
-                )
-            }
-
-            SettingsDivider()
-
             SettingsRow(
                 "wifi",
                 tint: .blue,
@@ -149,16 +119,4 @@ struct NetworkSectionView: View {
         }
     }
 
-    private func centerSourceLabel(_ source: ConnectionCenterSource) -> String {
-        switch source {
-        case .automatic:
-            localization.string(.settingsNetworkCenterSourceAutomatic)
-        case .inputSource:
-            localization.string(.settingsNetworkCenterSourceInputSource)
-        case .batteryPercentage:
-            localization.string(.settingsNetworkCenterSourceBatteryPercentage)
-        case .power:
-            localization.string(.settingsNetworkCenterSourcePower)
-        }
-    }
 }

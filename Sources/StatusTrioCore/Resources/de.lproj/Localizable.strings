@@ -56,6 +56,16 @@
 "settings.tab.panel" = "Statusbereich";
 "settings.tab.about" = "Über";
 "settings.menuBar.title" = "Menüleistensymbol";
+"settings.appIcon.middleIcon.title" = "Mittleres Symbol";
+"settings.appIcon.middleIcon.source" = "Mittleres Symbol";
+"settings.appIcon.middleIcon.description" = "Wähle, was das Status-Symbol in der Mitte zeigt. Es wird immer nur eine Quelle angezeigt.";
+"settings.appIcon.middleIcon.network" = "Netzwerk";
+"settings.appIcon.middleIcon.bluetooth" = "Bluetooth-Gerät";
+"settings.appIcon.middleIcon.inputSource" = "Aktuelle Eingabequelle";
+"settings.appIcon.middleIcon.batteryPercentage" = "Batterieprozentsatz";
+"settings.appIcon.middleIcon.power" = "Leistung (Watt)";
+"settings.appIcon.middleIcon.networkWarnings" = "Netzwerkprobleme bevorzugen";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Wenn der Mac wirklich offline ist, zeigt die Mitte den Netzwerkstatus statt der gewählten Quelle.";
 "settings.network.connectionIcons" = "Stil der Verbindungssymbole";
 "settings.network.connectionIcons.description" = "Wenn aktiviert, verwendet der ausgewählte Status das standardmäßige WLAN-Signal-Symbol anstelle seiner speziellen Markierung.";
 "settings.network.wifiIconForEthernet" = "WLAN-Symbol für Ethernet verwenden";

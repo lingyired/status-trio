@@ -341,12 +341,9 @@ struct DockIconRenderCacheTests {
     ) -> IconPresentationConfiguration {
         IconPresentationConfiguration(
             battery: .standard,
-            connection: .standard,
+            connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
             volume: .standard,
-            bluetooth: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true,
-                networkIconSymbolOverride: override
-            )
+            bluetooth: BluetoothAudioIconOptions(networkIconSymbolOverride: override)
         )
     }
 

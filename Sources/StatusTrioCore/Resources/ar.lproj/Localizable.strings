@@ -39,6 +39,16 @@
 "settings.tab.panel" = "لوحة الحالة";
 "settings.tab.about" = "حول";
 "settings.menuBar.title" = "رمز شريط القوائم";
+"settings.appIcon.middleIcon.title" = "الأيقونة الوسطى";
+"settings.appIcon.middleIcon.source" = "الأيقونة الوسطى";
+"settings.appIcon.middleIcon.description" = "اختر ما تعرضه أيقونة الحالة في المنتصف. يُعرض مصدر واحد فقط في كل مرة.";
+"settings.appIcon.middleIcon.network" = "الشبكة";
+"settings.appIcon.middleIcon.bluetooth" = "جهاز Bluetooth";
+"settings.appIcon.middleIcon.inputSource" = "مصدر الإدخال الحالي";
+"settings.appIcon.middleIcon.batteryPercentage" = "نسبة البطارية";
+"settings.appIcon.middleIcon.power" = "الطاقة (واط)";
+"settings.appIcon.middleIcon.networkWarnings" = "إعطاء أولوية لمشاكل الشبكة";
+"settings.appIcon.middleIcon.networkWarnings.description" = "عندما يكون Mac غير متصل فعليًا، يعرض المنتصف حالة الشبكة بدلًا من المصدر المحدد.";
 "settings.network.connectionIcons" = "نمط أيقونات الاتصال";
 "settings.network.connectionIcons.description" = "عند التمكين، تستخدم الحالة المحددة أيقونة إشارة Wi-Fi القياسية بدلًا من علامتها الخاصة.";
 "settings.network.wifiIconForEthernet" = "استخدام أيقونة Wi-Fi لإيثرنت";

@@ -90,10 +90,15 @@ enum IconPresentationMapper {
         let connectionOptions = configuration.connection
         let bluetoothOptions = configuration.bluetooth
 
-        // The user asked the centre slot to carry whole-machine watts. This is
-        // the one branch that replaces the network content unconditionally. Its
-        // text follows the "Wi-Fi Icon Size" centre-symbol scale so the number
-        // grows and shrinks with the network glyph it replaces.
+        if connectionOptions.prioritizesNetworkErrors,
+           StatusMappings.isNetworkOffline(wifi: snapshot.wifi, connection: snapshot.connection) {
+            return networkState(snapshot: snapshot, options: connectionOptions)
+        }
+
+        // The user asked the centre slot to carry whole-machine watts. Its text
+        // follows the "Wi-Fi Icon Size" centre-symbol scale so the number grows
+        // and shrinks with the network glyph it replaces. A genuine outage was
+        // handled above when the warning toggle is on.
         if connectionOptions.centerSource == .power {
             let textScale = connectionOptions.wifiScale
             if let sample = inputs.systemPower,
@@ -127,23 +132,15 @@ enum IconPresentationMapper {
             ))
         }
 
-        // The user asked the centre slot to carry the current input source.
-        // Everything below this branch is the shipped `.automatic` decision,
-        // which also serves as the fallback whenever no source can be drawn.
+        // Unavailable selected content falls back directly to the network.
         if connectionOptions.centerSource == .inputSource,
-           let inputSource = inputs.inputSource,
-           !(connectionOptions.prioritizesNetworkErrorsOverInputSource
-               && StatusMappings.isNetworkOffline(
-                   wifi: snapshot.wifi,
-                   connection: snapshot.connection
-               )) {
+           let inputSource = inputs.inputSource {
             return inputSourceCenterState(inputSource, scale: connectionOptions.wifiScale)
         }
 
-        if StatusMappings.shouldReplaceNetworkIcon(
+        if connectionOptions.centerSource == .bluetoothDevice,
+           StatusMappings.canShowBluetoothIcon(
             currentDevice: snapshot.volume.currentDevice,
-            wifi: snapshot.wifi,
-            connection: snapshot.connection,
             options: bluetoothOptions
         ) {
             let source: IconSymbolSource
@@ -162,6 +159,10 @@ enum IconPresentationMapper {
             return .symbol(IconSymbolState(source: source, color: .bluetooth, scale: bluetoothOptions.symbolScale))
         }
 
+        return networkState(snapshot: snapshot, options: connectionOptions)
+    }
+
+    private static func networkState(snapshot: StatusSnapshot, options connectionOptions: ConnectionIconOptions) -> CenterState {
         if snapshot.connection == .ethernet {
             if connectionOptions.showsWiFiIconForEthernet {
                 return wifiSymbol(variableValue: 1, color: .primary, scale: connectionOptions.wifiScale)

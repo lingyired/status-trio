@@ -65,9 +65,11 @@ final class SettingsStore: ObservableObject {
     /// launch, then removed so it can never override a later selection.
     static let showsBatteryPercentageInConnectionSlotDefaultsKey = "showsBatteryPercentageInConnectionSlot"
     /// Raw value of `ConnectionCenterSource`. Missing or unknown values decode
-    /// to `.automatic`, so a downgrade or corrupted default never changes the
+    /// to `.network`, so a downgrade or corrupted default never changes the
     /// shipped icon behaviour.
     static let connectionCenterSourceDefaultsKey = "connectionCenterSource"
+    static let prioritizesNetworkErrorsDefaultsKey = "prioritizesNetworkErrors"
+    /// Migration-only keys from the split middle-slot settings.
     static let prioritizesNetworkErrorsOverInputSourceDefaultsKey = "prioritizesNetworkErrorsOverInputSource"
     static let replacesNetworkIconWithBluetoothAudioDefaultsKey = "replacesNetworkIconWithBluetoothAudio"
     static let usesBluetoothAudioVolumeColorDefaultsKey = "usesBluetoothAudioVolumeColor"
@@ -561,21 +563,9 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var prioritizesNetworkErrorsOverInputSource: Bool {
+    @Published var prioritizesNetworkErrors: Bool {
         didSet {
-            defaults.set(
-                prioritizesNetworkErrorsOverInputSource,
-                forKey: Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey
-            )
-        }
-    }
-
-    @Published var replacesNetworkIconWithBluetoothAudio: Bool {
-        didSet {
-            defaults.set(
-                replacesNetworkIconWithBluetoothAudio,
-                forKey: Self.replacesNetworkIconWithBluetoothAudioDefaultsKey
-            )
+            defaults.set(prioritizesNetworkErrors, forKey: Self.prioritizesNetworkErrorsDefaultsKey)
         }
     }
 
@@ -584,15 +574,6 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 usesBluetoothAudioVolumeColor,
                 forKey: Self.usesBluetoothAudioVolumeColorDefaultsKey
-            )
-        }
-    }
-
-    @Published var prioritizesNetworkErrorsOverBluetoothAudio: Bool {
-        didSet {
-            defaults.set(
-                prioritizesNetworkErrorsOverBluetoothAudio,
-                forKey: Self.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey
             )
         }
     }
@@ -1450,16 +1431,14 @@ final class SettingsStore: ObservableObject {
             showsWiFiIconForTemporaryConnection: showsWiFiIconForTemporaryConnection,
             showsWiFiIconForInternetSharing: showsWiFiIconForInternetSharing,
             centerSource: connectionCenterSource,
-            prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrorsOverInputSource,
+            prioritizesNetworkErrors: prioritizesNetworkErrors,
             wifiScale: wifiSymbolScale
         )
     }
 
     var bluetoothAudioIconOptions: BluetoothAudioIconOptions {
         BluetoothAudioIconOptions(
-            replacesNetworkIcon: replacesNetworkIconWithBluetoothAudio,
             usesVolumeColor: usesBluetoothAudioVolumeColor,
-            prioritizesNetworkErrors: prioritizesNetworkErrorsOverBluetoothAudio,
             symbolScale: bluetoothSymbolScale,
             networkIconSymbolOverride: bluetoothNetworkIconSymbolName,
             iconChoice: bluetoothAudioIconChoice
@@ -1743,39 +1722,42 @@ final class SettingsStore: ObservableObject {
         self.showsLocalIPAddress = defaults.object(
             forKey: Self.showsLocalIPAddressDefaultsKey
         ) as? Bool ?? false
-        // One-time migration: the centre slot used to be a network-source
-        // choice plus a separate "battery percentage in the connection slot"
-        // switch, and the switch won at draw time. Preserve that effective
-        // choice, then drop the legacy key so a later manual change survives.
-        let legacyPercentageInSlot = defaults.object(
-            forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey
-        ) as? Bool ?? false
-        let storedCenterSource = defaults.string(
-            forKey: Self.connectionCenterSourceDefaultsKey
-        )
-        .flatMap(ConnectionCenterSource.init(rawValue:))
-        self.connectionCenterSource = legacyPercentageInSlot
-            ? .batteryPercentage
-            : (storedCenterSource ?? .automatic)
+        // Resolve the effective legacy choice once, then remove competing keys.
+        // Persist the new choice even at default so old flags cannot revive.
+        let legacyPercentageInSlot = defaults.bool(forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey)
+        let storedCenterSource = defaults.string(forKey: Self.connectionCenterSourceDefaultsKey)
+        let source: ConnectionCenterSource
         if legacyPercentageInSlot {
-            defaults.set(
-                ConnectionCenterSource.batteryPercentage.rawValue,
-                forKey: Self.connectionCenterSourceDefaultsKey
-            )
-            defaults.removeObject(forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey)
+            source = .batteryPercentage
+        } else if let stored = storedCenterSource.flatMap(ConnectionCenterSource.init(rawValue:)) {
+            source = stored
+        } else if (storedCenterSource == nil || storedCenterSource == "automatic"),
+                  defaults.bool(forKey: Self.replacesNetworkIconWithBluetoothAudioDefaultsKey) {
+            source = .bluetoothDevice
+        } else {
+            source = .network
         }
-        self.prioritizesNetworkErrorsOverInputSource = defaults.object(
-            forKey: Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey
-        ) as? Bool ?? true
-        self.replacesNetworkIconWithBluetoothAudio = defaults.object(
-            forKey: Self.replacesNetworkIconWithBluetoothAudioDefaultsKey
-        ) as? Bool ?? false
+        self.connectionCenterSource = source
+        let legacyPriorityKey: String? = switch source {
+        case .inputSource: Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey
+        case .bluetoothDevice: Self.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey
+        default: nil
+        }
+        let legacyPriority = legacyPriorityKey.flatMap { defaults.object(forKey: $0) as? Bool } ?? true
+        let unifiedPriority = defaults.object(forKey: Self.prioritizesNetworkErrorsDefaultsKey) as? Bool
+            ?? legacyPriority
+        self.prioritizesNetworkErrors = unifiedPriority
+        defaults.set(source.rawValue, forKey: Self.connectionCenterSourceDefaultsKey)
+        defaults.set(unifiedPriority, forKey: Self.prioritizesNetworkErrorsDefaultsKey)
+        for key in [Self.showsBatteryPercentageInConnectionSlotDefaultsKey,
+                    Self.replacesNetworkIconWithBluetoothAudioDefaultsKey,
+                    Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey,
+                    Self.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey] {
+            defaults.removeObject(forKey: key)
+        }
         self.usesBluetoothAudioVolumeColor = defaults.object(
             forKey: Self.usesBluetoothAudioVolumeColorDefaultsKey
         ) as? Bool ?? false
-        self.prioritizesNetworkErrorsOverBluetoothAudio = defaults.object(
-            forKey: Self.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey
-        ) as? Bool ?? true
         self.showsBluetoothBatteryLevels = defaults.object(
             forKey: Self.showsBluetoothBatteryLevelsDefaultsKey
         ) as? Bool ?? true

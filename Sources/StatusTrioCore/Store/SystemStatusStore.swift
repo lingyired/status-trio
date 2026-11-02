@@ -5,7 +5,7 @@ import Foundation
 
 private struct BluetoothDemandSettingsSnapshot: Equatable {
     var enabledPopupSections: Set<PopupSection> = []
-    var replacesNetworkIconWithBluetoothAudio = false
+    var centerSource: ConnectionCenterSource = .network
     var bluetoothNetworkIconDeviceAddress: String?
     var showsAppleDevicesAndBattery = false
     var refreshesAppleBatteriesInBackground = false
@@ -687,7 +687,7 @@ final class SystemStatusStore: ObservableObject {
 
         let panelAndDisplay = Publishers.CombineLatest4(
             settings.$enabledPopupSections,
-            settings.$replacesNetworkIconWithBluetoothAudio,
+            settings.$connectionCenterSource,
             settings.$bluetoothNetworkIconDeviceAddress,
             settings.$showsAppleDevicesAndBattery
         )
@@ -703,7 +703,7 @@ final class SystemStatusStore: ObservableObject {
                 let previouslyNeededVolumeDetails = self.needsVolumeDetails
                 self.bluetoothSettingsSnapshot = BluetoothDemandSettingsSnapshot(
                     enabledPopupSections: panelAndDisplay.0,
-                    replacesNetworkIconWithBluetoothAudio: panelAndDisplay.1,
+                    centerSource: panelAndDisplay.1,
                     bluetoothNetworkIconDeviceAddress: panelAndDisplay.2,
                     showsAppleDevicesAndBattery: panelAndDisplay.3,
                     refreshesAppleBatteriesInBackground: backgroundAndRows.0,
@@ -729,7 +729,7 @@ final class SystemStatusStore: ObservableObject {
     ) -> BluetoothDemandSettingsSnapshot {
         BluetoothDemandSettingsSnapshot(
             enabledPopupSections: settings.enabledPopupSections,
-            replacesNetworkIconWithBluetoothAudio: settings.replacesNetworkIconWithBluetoothAudio,
+            centerSource: settings.connectionCenterSource,
             bluetoothNetworkIconDeviceAddress: settings.bluetoothNetworkIconDeviceAddress,
             showsAppleDevicesAndBattery: settings.showsAppleDevicesAndBattery,
             refreshesAppleBatteriesInBackground: settings.refreshesAppleBatteriesInBackground,
@@ -749,7 +749,7 @@ final class SystemStatusStore: ObservableObject {
                 || legacyBluetoothSettingsDemandClaimCount > 0 {
                 sources.insert(.settings)
             }
-            if bluetoothSettingsSnapshot.replacesNetworkIconWithBluetoothAudio,
+            if bluetoothSettingsSnapshot.centerSource == .bluetoothDevice,
                bluetoothSettingsSnapshot.bluetoothNetworkIconDeviceAddress?.isEmpty == false {
                 sources.insert(.selectedDeviceIcon)
             }

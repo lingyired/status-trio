@@ -56,6 +56,16 @@
 "settings.tab.panel" = "Painel de status";
 "settings.tab.about" = "Sobre";
 "settings.menuBar.title" = "Ícone da barra de menus";
+"settings.appIcon.middleIcon.title" = "Ícone central";
+"settings.appIcon.middleIcon.source" = "Ícone central";
+"settings.appIcon.middleIcon.description" = "Escolha o que o ícone de status mostra no centro. Apenas uma fonte é exibida por vez.";
+"settings.appIcon.middleIcon.network" = "Rede";
+"settings.appIcon.middleIcon.bluetooth" = "Dispositivo Bluetooth";
+"settings.appIcon.middleIcon.inputSource" = "Fonte de entrada atual";
+"settings.appIcon.middleIcon.batteryPercentage" = "Porcentagem da bateria";
+"settings.appIcon.middleIcon.power" = "Potência (watts)";
+"settings.appIcon.middleIcon.networkWarnings" = "Priorizar problemas de rede";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Quando o Mac está realmente offline, o centro mostra o estado da rede em vez da fonte escolhida.";
 "settings.network.connectionIcons" = "Estilo dos ícones de conexão";
 "settings.network.connectionIcons.description" = "Quando ativado, o estado selecionado usa o ícone padrão de sinal de Wi-Fi em vez da marca especial.";
 "settings.network.wifiIconForEthernet" = "Usar o ícone de Wi-Fi para Ethernet";

@@ -275,9 +275,9 @@ struct IconSurfaceIntegrationTests {
             harness: harness
         )
 
-        harness.settings.replacesNetworkIconWithBluetoothAudio = true
+        harness.settings.connectionCenterSource = .bluetoothDevice
         let beforePriorityChange = harness.iconPresentation.output.scene
-        harness.settings.prioritizesNetworkErrorsOverBluetoothAudio = false
+        harness.settings.prioritizesNetworkErrors = false
         try await waitUntil {
             guard case let .symbol(symbol) = harness.iconPresentation.output.scene.center else { return false }
             return symbol.color == .bluetooth && harness.iconPresentation.output.scene != beforePriorityChange

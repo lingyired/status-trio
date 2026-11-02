@@ -56,6 +56,16 @@
 "settings.tab.panel" = "ステータスパネル";
 "settings.tab.about" = "このアプリについて";
 "settings.menuBar.title" = "メニューバーアイコン";
+"settings.appIcon.middleIcon.title" = "中央のアイコン";
+"settings.appIcon.middleIcon.source" = "中央のアイコン";
+"settings.appIcon.middleIcon.description" = "ステータスアイコン中央に表示する内容を選択します。同時に表示できるのは 1 つだけです。";
+"settings.appIcon.middleIcon.network" = "ネットワーク";
+"settings.appIcon.middleIcon.bluetooth" = "Bluetooth デバイス";
+"settings.appIcon.middleIcon.inputSource" = "現在の入力ソース";
+"settings.appIcon.middleIcon.batteryPercentage" = "バッテリー残量";
+"settings.appIcon.middleIcon.power" = "消費電力（W）";
+"settings.appIcon.middleIcon.networkWarnings" = "ネットワークの問題を優先";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Mac が実際にオフラインのときは、選択したソースの代わりにネットワークの状態を表示します。";
 "settings.network.connectionIcons" = "接続アイコンのスタイル";
 "settings.network.connectionIcons.description" = "有効にすると、選択した状態は専用マークではなく標準の Wi-Fi シグナルアイコンで表示されます。";
 "settings.network.wifiIconForEthernet" = "Ethernet に Wi-Fi アイコンを使用";

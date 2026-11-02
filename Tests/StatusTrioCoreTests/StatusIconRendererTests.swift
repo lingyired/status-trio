@@ -1295,9 +1295,8 @@ final class StatusIconRendererTests: XCTestCase {
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    replacesNetworkIcon: true
-                )
+                connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                bluetoothAudioOptions: BluetoothAudioIconOptions()
             ))
         )
 
@@ -1335,10 +1334,8 @@ final class StatusIconRendererTests: XCTestCase {
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    replacesNetworkIcon: true,
-                    networkIconSymbolOverride: "keyboard"
-                )
+                connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                bluetoothAudioOptions: BluetoothAudioIconOptions(networkIconSymbolOverride: "keyboard")
             ))
         )
 
@@ -1367,10 +1364,8 @@ final class StatusIconRendererTests: XCTestCase {
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    replacesNetworkIcon: true,
-                    networkIconSymbolOverride: "keyboard"
-                )
+                connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                bluetoothAudioOptions: BluetoothAudioIconOptions(networkIconSymbolOverride: "keyboard")
             ))
         )
         let unknown = try PixelBuffer(
@@ -1379,10 +1374,8 @@ final class StatusIconRendererTests: XCTestCase {
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    replacesNetworkIcon: true,
-                    networkIconSymbolOverride: "statustrio.nonexistent.symbol"
-                )
+                connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                bluetoothAudioOptions: BluetoothAudioIconOptions(networkIconSymbolOverride: "statustrio.nonexistent.symbol")
             ))
         )
 
@@ -1472,10 +1465,7 @@ final class StatusIconRendererTests: XCTestCase {
             connection: .wifi,
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: nil)
         )
-        let pickedSymbol = BluetoothAudioIconOptions(
-            replacesNetworkIcon: true,
-            networkIconSymbolOverride: "keyboard"
-        )
+        let pickedSymbol = BluetoothAudioIconOptions(networkIconSymbolOverride: "keyboard")
 
         let symbolOnly = try PixelBuffer(
             image: try XCTUnwrap(renderMenuBarFixture(
@@ -1483,6 +1473,7 @@ final class StatusIconRendererTests: XCTestCase {
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
+                connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
                 bluetoothAudioOptions: pickedSymbol
             ))
         )
@@ -1526,9 +1517,8 @@ final class StatusIconRendererTests: XCTestCase {
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 0, alpha: 1),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    replacesNetworkIcon: true
-                )
+                connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                bluetoothAudioOptions: BluetoothAudioIconOptions()
             ))
         )
 
@@ -1546,46 +1536,37 @@ final class StatusIconRendererTests: XCTestCase {
             battery: .placeholder,
             wifi: WiFiStatus(state: .noInternet, rssi: nil),
             connection: .wifi,
-            volume: VolumeStatus(
-                scalar: 0.5,
-                isMuted: false,
-                deviceName: "AirPods Pro",
-                currentDevice: bluetoothOutputDevice(name: "AirPods Pro")
-            )
+            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: nil,
+                                 currentDevice: bluetoothOutputDevice(name: "AirPods"))
         )
-        let standard = try PixelBuffer(
+        let withPriority = try PixelBuffer(
             image: try XCTUnwrap(renderMenuBarFixture(
-            snapshot: snapshot,
+                snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    replacesNetworkIcon: true,
-                    prioritizesNetworkErrors: false
-                )
+                connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                bluetoothAudioOptions: BluetoothAudioIconOptions()
             ))
         )
-        let networkPriority = try PixelBuffer(
+        let withoutPriority = try PixelBuffer(
             image: try XCTUnwrap(renderMenuBarFixture(
-            snapshot: snapshot,
+                snapshot: snapshot,
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    replacesNetworkIcon: true,
-                    prioritizesNetworkErrors: true
-                )
+                connectionOptions: ConnectionIconOptions(
+                    centerSource: .bluetoothDevice,
+                    prioritizesNetworkErrors: false
+                ),
+                bluetoothAudioOptions: BluetoothAudioIconOptions()
             ))
         )
 
-        XCTAssertNotEqual(standard.bytes, networkPriority.bytes)
-        XCTAssertFalse(networkPriority.containsColor(
-            red: 77.0 / 255.0,
-            green: 163.0 / 255.0,
-            blue: 1,
-            tolerance: 0.04,
-            minimumAlpha: 0.9
-        ))
+        XCTAssertFalse(withPriority.containsColor(red: 77/255, green: 163/255, blue: 1,
+                                                  tolerance: 0.08, minimumAlpha: 0.9))
+        XCTAssertTrue(withoutPriority.containsColor(red: 77/255, green: 163/255, blue: 1,
+                                                    tolerance: 0.08, minimumAlpha: 0.9))
     }
 
     func testBluetoothOutputColorsActiveVolumeDotsBlue() throws {
@@ -1597,9 +1578,7 @@ final class StatusIconRendererTests: XCTestCase {
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
                 volumeOptions: VolumeIconOptions(displayStyle: .dots),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    usesVolumeColor: true
-                )
+                bluetoothAudioOptions: BluetoothAudioIconOptions(usesVolumeColor: true)
             ))
         )
         let dots = StatusIconGeometry.volumeDots()
@@ -1625,9 +1604,7 @@ final class StatusIconRendererTests: XCTestCase {
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
                 volumeOptions: VolumeIconOptions(displayStyle: .arc),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    usesVolumeColor: true
-                )
+                bluetoothAudioOptions: BluetoothAudioIconOptions(usesVolumeColor: true)
             ))
         )
 
@@ -1648,10 +1625,8 @@ final class StatusIconRendererTests: XCTestCase {
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    replacesNetworkIcon: true,
-                    symbolScale: 1.0
-                )
+                connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                bluetoothAudioOptions: BluetoothAudioIconOptions(symbolScale: 1.0)
             ))
         )
         let scaledPixels = try PixelBuffer(
@@ -1660,10 +1635,8 @@ final class StatusIconRendererTests: XCTestCase {
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    replacesNetworkIcon: true,
-                    symbolScale: 1.5
-                )
+                connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                bluetoothAudioOptions: BluetoothAudioIconOptions(symbolScale: 1.5)
             ))
         )
         let bluetoothRegion = CGRect(x: 20, y: 20, width: 80, height: 80)
@@ -1883,7 +1856,8 @@ final class StatusIconRendererTests: XCTestCase {
                 size: 20,
                 scale: 8,
                 foreground: CGColor(gray: 1, alpha: 1),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(replacesNetworkIcon: true),
+                connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                bluetoothAudioOptions: BluetoothAudioIconOptions(),
                 inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: audioIcon)
             ))
         )

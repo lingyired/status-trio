@@ -11,9 +11,35 @@ final class ConnectionCenterSourceTests: XCTestCase {
         return (suite, defaults)
     }
 
-    func testFreshInstallStartsOnAutomatic() throws {
+    func testLegacyAutomaticWithBluetoothMigratesToExclusiveSource() throws {
         let (_, defaults) = try makeDefaults()
-        XCTAssertEqual(SettingsStore(defaults: defaults).connectionCenterSource, .automatic)
+        defaults.set("automatic", forKey: SettingsStore.connectionCenterSourceDefaultsKey)
+        defaults.set(true, forKey: SettingsStore.replacesNetworkIconWithBluetoothAudioDefaultsKey)
+        defaults.set(false, forKey: SettingsStore.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey)
+        let settings = SettingsStore(defaults: defaults)
+        XCTAssertEqual(settings.connectionCenterSource.rawValue, "bluetoothDevice")
+        XCTAssertFalse(settings.prioritizesNetworkErrors)
+        XCTAssertNil(defaults.object(forKey: SettingsStore.replacesNetworkIconWithBluetoothAudioDefaultsKey))
+        XCTAssertNil(defaults.object(forKey: SettingsStore.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey))
+        settings.connectionCenterSource = .power
+        XCTAssertEqual(SettingsStore(defaults: defaults).connectionCenterSource, .power)
+    }
+
+    func testNumericSourcesGainUnifiedOutagePriorityOnUpgrade() throws {
+        for source in ["power", "batteryPercentage"] {
+            let (_, defaults) = try makeDefaults()
+            defaults.set(source, forKey: SettingsStore.connectionCenterSourceDefaultsKey)
+            defaults.set(false, forKey: SettingsStore.prioritizesNetworkErrorsOverInputSourceDefaultsKey)
+            let settings = SettingsStore(defaults: defaults)
+            XCTAssertEqual(settings.connectionCenterSource.rawValue, source)
+            XCTAssertTrue(settings.prioritizesNetworkErrors)
+            XCTAssertNil(defaults.object(forKey: SettingsStore.prioritizesNetworkErrorsOverInputSourceDefaultsKey))
+        }
+    }
+
+    func testFreshInstallStartsOnNetwork() throws {
+        let (_, defaults) = try makeDefaults()
+        XCTAssertEqual(SettingsStore(defaults: defaults).connectionCenterSource, .network)
     }
 
     func testLegacyCentreSlotSwitchMigratesToOneChoiceAndIsRemoved() throws {

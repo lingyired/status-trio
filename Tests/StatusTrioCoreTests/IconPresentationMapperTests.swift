@@ -199,7 +199,7 @@ final class IconPresentationMapperTests: XCTestCase {
         }
     }
 
-    func testBatteryCenterPercentageWinsOverBluetoothAndNetworkError() {
+    func testBatteryPercentageCenterShowsItsNumberWhenOutagePriorityIsOff() {
         let battery = BatteryStatus(rawPercentage: 45, isPresent: true, isCharging: false,
                                     isLowPowerMode: false, isConnectedToPower: false)
         let snapshot = StatusSnapshot(battery: battery,
@@ -207,8 +207,9 @@ final class IconPresentationMapperTests: XCTestCase {
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output", currentDevice: PresentationFixtures.bluetoothDevice))
         let configuration = IconPresentationConfiguration(
             battery: .standard,
-            connection: ConnectionIconOptions(centerSource: .batteryPercentage), volume: .standard,
-            bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true, prioritizesNetworkErrors: true))
+            connection: ConnectionIconOptions(centerSource: .batteryPercentage,
+                                              prioritizesNetworkErrors: false), volume: .standard,
+            bluetooth: BluetoothAudioIconOptions())
 
         let center = IconPresentationMapper.scene(
             inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: .symbol(name: "airpods.pro", variableValue: nil, fallback: "headphones")),
@@ -235,6 +236,18 @@ final class IconPresentationMapperTests: XCTestCase {
             let snapshot = snapshot(connection: connection, wifi: WiFiStatus(state: wifiState, rssi: rssi))
             XCTAssertEqual(scene(snapshot: snapshot, connectionOptions: caseOptions).center, expected,
                            "connection=\(connection), wifi=\(wifiState)")
+        }
+    }
+
+    func testNetworkOutageOverridesNumericMiddleContent() {
+        let offline = snapshot(connection: .offline, wifi: WiFiStatus(state: .noInternet, rssi: nil))
+        for source in [ConnectionCenterSource.power, .batteryPercentage] {
+            let output = scene(snapshot: offline, connectionOptions: ConnectionIconOptions(centerSource: source))
+            XCTAssertEqual(output.center, .symbol(IconSymbolState(
+                source: .symbol(name: "wifi.exclamationmark", variableValue: 1, fallback: nil),
+                color: .primary,
+                scale: 1
+            )), "The outage priority must also cover \(source)")
         }
     }
 
@@ -289,7 +302,11 @@ final class IconPresentationMapperTests: XCTestCase {
     }
 
     func testBatteryPercentageCentreUsesTheSameWifiIconSizeScale() {
-        let config = ConnectionIconOptions(centerSource: .batteryPercentage, wifiScale: 1.8)
+        let config = ConnectionIconOptions(
+            centerSource: .batteryPercentage,
+            prioritizesNetworkErrors: false,
+            wifiScale: 1.8
+        )
         let center = scene(snapshot: snapshot(battery: BatteryStatus(
             rawPercentage: 68, isPresent: true, isCharging: false,
             isLowPowerMode: false, isConnectedToPower: false
@@ -299,7 +316,7 @@ final class IconPresentationMapperTests: XCTestCase {
 
     func testPowerCenterSlotFallsBackToBatteryThenPlaceholder() {
         let now = Date(timeIntervalSince1970: 1_789_555_974)
-        let config = ConnectionIconOptions(centerSource: .power)
+        let config = ConnectionIconOptions(centerSource: .power, prioritizesNetworkErrors: false)
         let stale = SystemPowerSample(watts: 23.6, readAt: now.addingTimeInterval(-120))
 
         let present = BatteryStatus(rawPercentage: 68, isPresent: true, isCharging: false,
@@ -350,7 +367,10 @@ final class IconPresentationMapperTests: XCTestCase {
         // to the network glyph, matching the top battery indicator.
         let absent = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
                                    isLowPowerMode: false, isConnectedToPower: false)
-        let config = ConnectionIconOptions(centerSource: .batteryPercentage)
+        let config = ConnectionIconOptions(
+            centerSource: .batteryPercentage,
+            prioritizesNetworkErrors: false
+        )
         let center = scene(snapshot: snapshot(battery: absent), connectionOptions: config).center
         XCTAssertEqual(center, .text(IconTextState(text: "100", color: .primary, scale: 1)))
     }
@@ -384,34 +404,45 @@ final class IconPresentationMapperTests: XCTestCase {
     }
 
     func testBluetoothOverrideWorksWithoutOutputAndNetworkErrorsWinWhenPrioritized() {
-        let bluetooth = BluetoothAudioIconOptions(replacesNetworkIcon: true,
-            prioritizesNetworkErrors: false, networkIconSymbolOverride: "custom.device")
-        let noOutput = scene(snapshot: snapshot(wifi: WiFiStatus(state: .noInternet, rssi: nil)),
-                             bluetoothOptions: bluetooth).center
-        XCTAssertEqual(noOutput, .symbol(IconSymbolState(source: .symbol(name: "custom.device", variableValue: nil, fallback: "dot.radiowaves.left.and.right"), color: .bluetooth, scale: 1.6)))
+        let bluetooth = BluetoothAudioIconOptions(networkIconSymbolOverride: "custom.device")
+        let connected = scene(
+            snapshot: snapshot(wifi: WiFiStatus(state: .connected, rssi: -50)),
+            connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+            bluetoothOptions: bluetooth
+        ).center
+        XCTAssertEqual(connected, .symbol(IconSymbolState(source: .symbol(name: "custom.device", variableValue: nil, fallback: "dot.radiowaves.left.and.right"), color: .bluetooth, scale: 1.6)))
 
-        let prioritizeError = BluetoothAudioIconOptions(replacesNetworkIcon: true,
-            prioritizesNetworkErrors: true, networkIconSymbolOverride: "custom.device")
-        let error = scene(snapshot: snapshot(wifi: WiFiStatus(state: .noInternet, rssi: nil)),
-                          bluetoothOptions: prioritizeError).center
+        let error = scene(
+            snapshot: snapshot(wifi: WiFiStatus(state: .noInternet, rssi: nil)),
+            connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+            bluetoothOptions: bluetooth
+        ).center
         XCTAssertEqual(error, .symbol(IconSymbolState(source: .symbol(name: "wifi.exclamationmark", variableValue: 1, fallback: nil), color: .primary, scale: 1)))
     }
 
     func testBluetoothCurrentOutputUsesResolvedIconAndPrioritizedErrorsKeepNetworkCenter() {
         let output = snapshot(wifi: WiFiStatus(state: .connected, rssi: -45),
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output", currentDevice: PresentationFixtures.bluetoothDevice))
-        let options = BluetoothAudioIconOptions(replacesNetworkIcon: true)
+        let options = BluetoothAudioIconOptions()
         let input = IconPresentationInputs(snapshot: output,
             audioIcon: .image(url: URL(fileURLWithPath: "/audio.png"), fallbackSymbol: "headphones"))
         XCTAssertEqual(IconPresentationMapper.scene(inputs: input,
-            configuration: IconPresentationConfiguration(battery: .standard, connection: .standard,
-                                                         volume: .standard, bluetooth: options)).center,
+            configuration: IconPresentationConfiguration(
+                battery: .standard,
+                connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                volume: .standard,
+                bluetooth: options
+            )).center,
             .symbol(IconSymbolState(source: .image(url: URL(fileURLWithPath: "/audio.png"), fallbackSymbol: "headphones"),
                                     color: .bluetooth, scale: 1.6)))
 
         let error = snapshot(connection: .wifi, wifi: WiFiStatus(state: .noInternet, rssi: -45),
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output", currentDevice: PresentationFixtures.bluetoothDevice))
-        XCTAssertEqual(scene(snapshot: error, bluetoothOptions: options).center,
+        XCTAssertEqual(scene(
+            snapshot: error,
+            connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+            bluetoothOptions: options
+        ).center,
                        .symbol(IconSymbolState(source: .symbol(name: "wifi.exclamationmark", variableValue: 1, fallback: nil),
                                                color: .primary, scale: 1)))
     }

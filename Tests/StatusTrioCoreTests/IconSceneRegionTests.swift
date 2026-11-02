@@ -128,9 +128,9 @@ struct IconSceneRegionTests {
             snapshot: bluetoothSnapshot(),
             configuration: IconPresentationConfiguration(
                 battery: .standard,
-                connection: .standard,
+                connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
                 volume: .standard,
-                bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true, usesVolumeColor: true)
+                bluetooth: BluetoothAudioIconOptions(usesVolumeColor: true)
             )
         )
 
@@ -229,9 +229,9 @@ struct IconSceneRegionTests {
                 snapshot: bluetoothSnapshot(),
                 configuration: IconPresentationConfiguration(
                     battery: .standard,
-                    connection: .standard,
+                    connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
                     volume: .standard,
-                    bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true, usesVolumeColor: true)
+                    bluetooth: BluetoothAudioIconOptions(usesVolumeColor: true)
                 )
             )),
             ("ethernet", mappedScene(snapshot: snapshot(percentage: 76, connection: .ethernet)))

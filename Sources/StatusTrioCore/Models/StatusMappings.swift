@@ -95,30 +95,14 @@ enum StatusMappings {
         return min(1, max(0, Double(battery.percentage) / Double(threshold)))
     }
 
-    static func shouldReplaceNetworkIcon(
+    /// Availability only; source selection and outage priority belong to the scene.
+    static func canShowBluetoothIcon(
         currentDevice: AudioOutputDevice?,
-        wifi: WiFiStatus,
-        connection: NetworkConnection,
         options: BluetoothAudioIconOptions
     ) -> Bool {
-        guard options.replacesNetworkIcon else { return false }
-
-        // A picked device pins the glyph, so the current output is irrelevant
-        // to the decision. Without one, the replacement still requires the
-        // current output to be Bluetooth audio.
-        if options.networkIconSymbolOverride == nil {
-            guard currentDevice?.transport == .bluetooth
-                    || currentDevice?.transport == .bluetoothLowEnergy else {
-                return false
-            }
-        }
-
-        guard options.prioritizesNetworkErrors else { return true }
-
-        // A wired connection is not a Wi-Fi error and can still coexist with
-        // Bluetooth audio.
-        if connection == .offline { return false }
-        return !wifi.state.isBluetoothReplacementNetworkError
+        options.networkIconSymbolOverride != nil
+            || currentDevice?.transport == .bluetooth
+            || currentDevice?.transport == .bluetoothLowEnergy
     }
 
     /// Whether the machine is genuinely offline right now.

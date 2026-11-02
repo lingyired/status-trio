@@ -82,8 +82,8 @@ final class StatusIconPreviewCardTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { TestUserDefaults.removeSuite(named: suiteName) }
         let store = SettingsStore(defaults: defaults)
-        store.replacesNetworkIconWithBluetoothAudio = true
-        store.prioritizesNetworkErrorsOverBluetoothAudio = false
+        store.connectionCenterSource = .bluetoothDevice
+        store.prioritizesNetworkErrors = false
         store.bluetoothNetworkIconSymbolName = "person.crop.circle"
         let statusStore = SystemStatusStore(
             batteryMonitor: EmptyBatteryMonitor(),

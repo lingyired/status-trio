@@ -91,7 +91,7 @@ struct IconMenuBarTemplateTests {
             battery: .standard,
             connection: .standard,
             volume: .standard,
-            bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true, usesVolumeColor: true)
+            bluetooth: BluetoothAudioIconOptions(usesVolumeColor: true)
         )
         let scene = mappedScene(snapshot: snapshot, configuration: configuration)
 

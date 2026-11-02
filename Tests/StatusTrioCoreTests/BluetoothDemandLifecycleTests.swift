@@ -8,7 +8,7 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
     func testOrdinaryPanelOpenDoesNotStartBluetoothWhenNoConsumerNeedsIt() {
         let fixture = makeFixture(authorization: .allowed)
         fixture.settings.setPopupSection(.bluetooth, enabled: false)
-        fixture.settings.replacesNetworkIconWithBluetoothAudio = false
+        fixture.settings.connectionCenterSource = .network
         fixture.settings.setBluetoothNetworkIconDevice(address: nil, symbolName: nil)
         fixture.settings.refreshesAppleBatteriesInBackground = false
         fixture.store.bindBluetoothSettings(fixture.settings)
@@ -178,7 +178,7 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
     func testSelectedPairedIconKeepsReadAfterOtherDemandsDisappear() {
         let fixture = makeFixture(authorization: .allowed)
         fixture.settings.setPopupSection(.bluetooth, enabled: true)
-        fixture.settings.replacesNetworkIconWithBluetoothAudio = true
+        fixture.settings.connectionCenterSource = .bluetoothDevice
         fixture.settings.setBluetoothNetworkIconDevice(
             address: "AA-BB-CC-DD-EE-FF",
             symbolName: "keyboard"
@@ -198,7 +198,7 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
 
     func testCoreAudioOnlyIconDoesNotStartPairedDeviceRead() {
         let fixture = makeFixture(authorization: .allowed)
-        fixture.settings.replacesNetworkIconWithBluetoothAudio = true
+        fixture.settings.connectionCenterSource = .bluetoothDevice
         fixture.settings.setBluetoothNetworkIconDevice(address: nil, symbolName: nil)
         fixture.store.bindBluetoothSettings(fixture.settings)
         fixture.store.start()
@@ -439,7 +439,7 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
         let settings = SettingsStore(defaults: suite.defaults)
         settings.setPopupSection(.bluetooth, enabled: false)
         settings.setPopupSection(.volume, enabled: true)
-        settings.replacesNetworkIconWithBluetoothAudio = false
+        settings.connectionCenterSource = .network
         settings.setBluetoothNetworkIconDevice(address: nil, symbolName: nil)
         settings.showsAppleDevicesAndBattery = false
         settings.refreshesAppleBatteriesInBackground = false

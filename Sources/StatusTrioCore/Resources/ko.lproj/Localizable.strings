@@ -56,6 +56,16 @@
 "settings.tab.panel" = "상태 패널";
 "settings.tab.about" = "정보";
 "settings.menuBar.title" = "메뉴 막대 아이콘";
+"settings.appIcon.middleIcon.title" = "중앙 아이콘";
+"settings.appIcon.middleIcon.source" = "중앙 아이콘";
+"settings.appIcon.middleIcon.description" = "상태 아이콘 중앙에 표시할 내용을 선택합니다. 한 번에 하나의 소스만 표시됩니다.";
+"settings.appIcon.middleIcon.network" = "네트워크";
+"settings.appIcon.middleIcon.bluetooth" = "Bluetooth 기기";
+"settings.appIcon.middleIcon.inputSource" = "현재 입력 소스";
+"settings.appIcon.middleIcon.batteryPercentage" = "배터리 잔량";
+"settings.appIcon.middleIcon.power" = "전력(와트)";
+"settings.appIcon.middleIcon.networkWarnings" = "네트워크 문제 우선 표시";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Mac이 실제로 오프라인일 때 중앙에 선택한 소스 대신 네트워크 상태를 표시합니다.";
 "settings.network.connectionIcons" = "연결 아이콘 스타일";
 "settings.network.connectionIcons.description" = "활성화하면 선택한 상태가 전용 표시 대신 표준 Wi-Fi 신호 아이콘으로 표시됩니다.";
 "settings.network.wifiIconForEthernet" = "Ethernet에 Wi-Fi 아이콘 사용";

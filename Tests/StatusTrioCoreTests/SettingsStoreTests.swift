@@ -270,9 +270,7 @@ final class SettingsStoreTests: XCTestCase {
     func testBluetoothAudioDisplayDefaults() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
-        XCTAssertFalse(store.replacesNetworkIconWithBluetoothAudio)
         XCTAssertFalse(store.usesBluetoothAudioVolumeColor)
-        XCTAssertTrue(store.prioritizesNetworkErrorsOverBluetoothAudio)
         // Levels are a display-only read: a surface has to claim them, and the
         // claim only exists while a Bluetooth surface is on screen, so the
         // default is on.
@@ -392,24 +390,22 @@ final class SettingsStoreTests: XCTestCase {
         defer { clear(suite) }
 
         let first = SettingsStore(defaults: suite.defaults)
-        first.replacesNetworkIconWithBluetoothAudio = true
+        first.connectionCenterSource = .bluetoothDevice
+        first.prioritizesNetworkErrors = false
         first.usesBluetoothAudioVolumeColor = true
-        first.prioritizesNetworkErrorsOverBluetoothAudio = false
         first.showsBluetoothBatteryLevels = true
         first.bluetoothSymbolScale = 1.45
 
         let second = SettingsStore(defaults: suite.defaults)
-        XCTAssertTrue(second.replacesNetworkIconWithBluetoothAudio)
+        XCTAssertEqual(second.connectionCenterSource, .bluetoothDevice)
+        XCTAssertFalse(second.prioritizesNetworkErrors)
         XCTAssertTrue(second.usesBluetoothAudioVolumeColor)
-        XCTAssertFalse(second.prioritizesNetworkErrorsOverBluetoothAudio)
         XCTAssertTrue(second.showsBluetoothBatteryLevels)
         XCTAssertEqual(second.bluetoothSymbolScale, 1.45, accuracy: 0.001)
         XCTAssertEqual(
             second.bluetoothAudioIconOptions,
             BluetoothAudioIconOptions(
-                replacesNetworkIcon: true,
                 usesVolumeColor: true,
-                prioritizesNetworkErrors: false,
                 symbolScale: 1.45
             )
         )
@@ -420,15 +416,7 @@ final class SettingsStoreTests: XCTestCase {
         defer { clear(suite) }
         suite.defaults.set(
             "yes",
-            forKey: SettingsStore.replacesNetworkIconWithBluetoothAudioDefaultsKey
-        )
-        suite.defaults.set(
-            "yes",
             forKey: SettingsStore.usesBluetoothAudioVolumeColorDefaultsKey
-        )
-        suite.defaults.set(
-            "no",
-            forKey: SettingsStore.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey
         )
         suite.defaults.set(
             "yes",
@@ -437,9 +425,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let store = SettingsStore(defaults: suite.defaults)
 
-        XCTAssertFalse(store.replacesNetworkIconWithBluetoothAudio)
         XCTAssertFalse(store.usesBluetoothAudioVolumeColor)
-        XCTAssertTrue(store.prioritizesNetworkErrorsOverBluetoothAudio)
         XCTAssertTrue(store.showsBluetoothBatteryLevels)
     }
 

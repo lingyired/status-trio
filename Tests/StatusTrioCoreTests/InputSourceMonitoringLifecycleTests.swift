@@ -30,7 +30,7 @@ final class InputSourceMonitoringLifecycleTests: XCTestCase {
         XCTAssertEqual(reader.readCount, 1)
         XCTAssertEqual(controller.state.selectedID, CountingInputSourceReader.abcID)
 
-        settings.connectionCenterSource = .automatic
+        settings.connectionCenterSource = .network
         XCTAssertEqual(reader.readCount, 1, "turning the centre slot off stops the reader")
 
         settings.setPopupSection(.inputSource, enabled: true)

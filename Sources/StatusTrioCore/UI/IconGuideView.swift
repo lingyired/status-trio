@@ -118,22 +118,25 @@ enum IconGuideState: String, CaseIterable, Identifiable, Sendable {
         configuring configured: BluetoothAudioIconOptions
     ) -> BluetoothAudioIconOptions {
         switch self {
-        case .bluetoothHeadphones, .bluetoothAirPods:
-            BluetoothAudioIconOptions(
-                replacesNetworkIcon: true,
+        case .bluetoothHeadphones, .bluetoothAirPods, .wifiVolumeTint:
+            return BluetoothAudioIconOptions(
                 usesVolumeColor: true,
-                prioritizesNetworkErrors: configured.prioritizesNetworkErrors,
-                symbolScale: configured.symbolScale
-            )
-        case .wifiVolumeTint:
-            BluetoothAudioIconOptions(
-                replacesNetworkIcon: false,
-                usesVolumeColor: true,
-                prioritizesNetworkErrors: configured.prioritizesNetworkErrors,
-                symbolScale: configured.symbolScale
+                symbolScale: configured.symbolScale,
+                networkIconSymbolOverride: configured.networkIconSymbolOverride,
+                iconChoice: configured.iconChoice
             )
         default:
-            configured
+            return configured
+        }
+    }
+
+    /// Device cards demonstrate the Bluetooth source; the volume-only card
+    /// keeps the network source it is named for.
+    var connectionCenterSourceOverride: ConnectionCenterSource? {
+        switch self {
+        case .bluetoothHeadphones, .bluetoothAirPods: .bluetoothDevice
+        case .wifiVolumeTint: .network
+        default: nil
         }
     }
 
@@ -567,12 +570,26 @@ struct IconGuideStateCard: View {
     var previewCache: DockIconPreviewCache? = nil
     @EnvironmentObject var localization: Localization
 
+    private var connectionOptions: ConnectionIconOptions {
+        let base = settings.connectionIconOptions
+        guard let source = state.connectionCenterSourceOverride else { return base }
+        return ConnectionIconOptions(
+            showsWiFiIconForEthernet: base.showsWiFiIconForEthernet,
+            showsWiFiIconForHotspot: base.showsWiFiIconForHotspot,
+            showsWiFiIconForTemporaryConnection: base.showsWiFiIconForTemporaryConnection,
+            showsWiFiIconForInternetSharing: base.showsWiFiIconForInternetSharing,
+            centerSource: source,
+            prioritizesNetworkErrors: base.prioritizesNetworkErrors,
+            wifiScale: base.wifiScale
+        )
+    }
+
     var body: some View {
         VStack(spacing: 10) {
             DockIconTile(
                 status: state.status,
                 batteryOptions: settings.batteryIconOptions,
-                connectionOptions: settings.connectionIconOptions,
+                connectionOptions: connectionOptions,
                 volumeOptions: volumeOptions,
                 bluetoothAudioOptions: state.bluetoothAudioOptions(
                     configuring: settings.bluetoothAudioIconOptions

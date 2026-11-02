@@ -176,6 +176,7 @@ struct SettingsView: View {
             AppIconSectionView(
                 store: store,
                 statusStore: statusStore,
+                inputSourceController: inputSourceController,
                 previewIsDark: $previewIsDark,
                 onShowIconGuide: onShowIconGuide
             )

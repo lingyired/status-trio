@@ -16,7 +16,7 @@ struct IconPresentationInputs: Equatable, Sendable {
     let snapshot: StatusSnapshot
     let audioIcon: IconSymbolSource?
     /// The selected input source, already filtered to an enabled, select-capable
-    /// source. `nil` whenever the centre slot must fall back to `.automatic`.
+    /// source. `nil` whenever the centre slot must fall back to `.network`.
     let inputSource: InputSourceDescriptor?
     /// The shared whole-machine power sample when the centre slot is set to
     /// `.power`. `nil` until the sampler has a fresh reading.

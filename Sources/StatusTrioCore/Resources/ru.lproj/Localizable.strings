@@ -56,6 +56,16 @@
 "settings.tab.panel" = "Панель состояния";
 "settings.tab.about" = "О программе";
 "settings.menuBar.title" = "Значок в строке меню";
+"settings.appIcon.middleIcon.title" = "Центральный значок";
+"settings.appIcon.middleIcon.source" = "Центральный значок";
+"settings.appIcon.middleIcon.description" = "Выберите, что показывать в центре значка состояния. Одновременно отображается только один источник.";
+"settings.appIcon.middleIcon.network" = "Сеть";
+"settings.appIcon.middleIcon.bluetooth" = "Устройство Bluetooth";
+"settings.appIcon.middleIcon.inputSource" = "Текущий источник ввода";
+"settings.appIcon.middleIcon.batteryPercentage" = "Процент батареи";
+"settings.appIcon.middleIcon.power" = "Мощность (Вт)";
+"settings.appIcon.middleIcon.networkWarnings" = "Сначала проблемы сети";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Когда Mac действительно офлайн, в центре показывается состояние сети вместо выбранного источника.";
 "settings.network.connectionIcons" = "Стиль значков подключения";
 "settings.network.connectionIcons.description" = "Если включено, выбранное состояние отображается стандартным значком сигнала Wi-Fi вместо специального обозначения.";
 "settings.network.wifiIconForEthernet" = "Использовать значок Wi-Fi для Ethernet";

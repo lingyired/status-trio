@@ -142,38 +142,19 @@ final class InputSourceIconPresentationTests: XCTestCase {
         )))
     }
 
-    func testMissingSourceFallsBackToTheBluetoothReplacement() {
-        let scene = scene(
+    func testMissingInputSourceFallsBackToTheNetworkSource() {
+        let inputFallback = scene(
             snapshot: snapshot(device: PresentationFixtures.bluetoothDevice),
             inputSource: nil,
-            configuration: configuration(
-                centerSource: .inputSource,
-                bluetoothReplacesNetworkIcon: true
-            )
+            configuration: configuration(centerSource: .inputSource)
         )
-
-        XCTAssertEqual(
-            scene.center?.colorRole,
-            .bluetooth,
-            "a missing input source must fall back to the shipped bluetooth replacement"
-        )
-    }
-
-    func testInputSourceWinsOverTheBluetoothReplacement() {
-        let scene = scene(
+        let networkScene = scene(
             snapshot: snapshot(device: PresentationFixtures.bluetoothDevice),
-            inputSource: descriptor(iconURL: iconURL),
-            configuration: configuration(
-                centerSource: .inputSource,
-                bluetoothReplacesNetworkIcon: true
-            )
+            inputSource: nil,
+            configuration: configuration(centerSource: .network)
         )
 
-        XCTAssertEqual(scene.center, .symbol(IconSymbolState(
-            source: .image(url: iconURL, fallbackSymbol: "keyboard"),
-            color: .primary,
-            scale: wifiScale
-        )))
+        XCTAssertEqual(inputFallback.center, networkScene.center)
     }
 
     func testAutomaticModeIgnoresTheInputSourceEntirely() {
@@ -181,12 +162,12 @@ final class InputSourceIconPresentationTests: XCTestCase {
         let without = scene(
             snapshot: snapshot,
             inputSource: nil,
-            configuration: configuration(centerSource: .automatic)
+            configuration: configuration(centerSource: .network)
         )
         let with = scene(
             snapshot: snapshot,
             inputSource: descriptor(iconURL: iconURL),
-            configuration: configuration(centerSource: .automatic)
+            configuration: configuration(centerSource: .network)
         )
 
         XCTAssertEqual(with, without)
@@ -202,7 +183,7 @@ final class InputSourceIconPresentationTests: XCTestCase {
         let automatic = scene(
             snapshot: snapshot,
             inputSource: nil,
-            configuration: configuration(centerSource: .automatic)
+            configuration: configuration(centerSource: .network)
         )
 
         XCTAssertEqual(fallback, automatic)
@@ -251,21 +232,17 @@ final class InputSourceIconPresentationTests: XCTestCase {
     private func configuration(
         centerSource: ConnectionCenterSource,
         prioritizesNetworkErrors: Bool = true,
-        bluetoothReplacesNetworkIcon: Bool = false,
         wifiScale: Double = 1.6
     ) -> IconPresentationConfiguration {
         IconPresentationConfiguration(
             battery: .standard,
             connection: ConnectionIconOptions(
                 centerSource: centerSource,
-                prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrors,
+                prioritizesNetworkErrors: prioritizesNetworkErrors,
                 wifiScale: wifiScale
             ),
             volume: .standard,
-            bluetooth: BluetoothAudioIconOptions(
-                replacesNetworkIcon: bluetoothReplacesNetworkIcon,
-                prioritizesNetworkErrors: true
-            )
+            bluetooth: BluetoothAudioIconOptions()
         )
     }
 

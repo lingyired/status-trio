@@ -56,6 +56,16 @@
 "settings.tab.panel" = "状态面板";
 "settings.tab.about" = "关于";
 "settings.menuBar.title" = "菜单栏图标";
+"settings.appIcon.middleIcon.title" = "中间图标";
+"settings.appIcon.middleIcon.source" = "中间图标";
+"settings.appIcon.middleIcon.description" = "选择状态图标中间位置显示的内容。同一时间只显示一个来源。";
+"settings.appIcon.middleIcon.network" = "网络";
+"settings.appIcon.middleIcon.bluetooth" = "蓝牙设备";
+"settings.appIcon.middleIcon.inputSource" = "当前输入法";
+"settings.appIcon.middleIcon.batteryPercentage" = "电池百分比";
+"settings.appIcon.middleIcon.power" = "功耗（瓦）";
+"settings.appIcon.middleIcon.networkWarnings" = "优先显示网络异常";
+"settings.appIcon.middleIcon.networkWarnings.description" = "当 Mac 确实离线时，中间位置改为显示网络状态，而不是所选来源。";
 "settings.network.connectionIcons" = "连接图标样式";
 "settings.network.connectionIcons.description" = "启用后，对应状态改用普通 Wi‑Fi 信号图标，不再显示其专用标记。";
 "settings.network.wifiIconForEthernet" = "有线连接使用 Wi‑Fi 图标";

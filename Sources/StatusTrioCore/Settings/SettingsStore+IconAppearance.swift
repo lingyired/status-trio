@@ -107,7 +107,7 @@ extension SettingsStore {
                 wifiScale: wifiScale
             )
         }
-        .combineLatest($connectionCenterSource, $prioritizesNetworkErrorsOverInputSource) {
+        .combineLatest($connectionCenterSource, $prioritizesNetworkErrors) {
             options, centerSource, prioritizesNetworkErrors in
             ConnectionIconOptions(
                 showsWiFiIconForEthernet: options.showsWiFiIconForEthernet,
@@ -115,7 +115,7 @@ extension SettingsStore {
                 showsWiFiIconForTemporaryConnection: options.showsWiFiIconForTemporaryConnection,
                 showsWiFiIconForInternetSharing: options.showsWiFiIconForInternetSharing,
                 centerSource: centerSource,
-                prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrors,
+                prioritizesNetworkErrors: prioritizesNetworkErrors,
                 wifiScale: options.wifiScale
             )
         }
@@ -124,22 +124,16 @@ extension SettingsStore {
     }
 
     private var bluetoothOptionsPublisher: AnyPublisher<BluetoothAudioIconOptions, Never> {
-        Publishers.CombineLatest4(
-            $replacesNetworkIconWithBluetoothAudio,
+        Publishers.CombineLatest3(
             $usesBluetoothAudioVolumeColor,
-            $prioritizesNetworkErrorsOverBluetoothAudio,
-            $bluetoothSymbolScale
+            $bluetoothSymbolScale,
+            $bluetoothNetworkIconSymbolName
         )
-        .combineLatest($bluetoothNetworkIconSymbolName) { values, symbolOverride in
-            (values, symbolOverride)
-        }
         .combineLatest($bluetoothAudioIconChoiceRawValue) { values, choiceRawValue in
             BluetoothAudioIconOptions(
-                replacesNetworkIcon: values.0.0,
-                usesVolumeColor: values.0.1,
-                prioritizesNetworkErrors: values.0.2,
-                symbolScale: values.0.3,
-                networkIconSymbolOverride: values.1,
+                usesVolumeColor: values.0,
+                symbolScale: values.1,
+                networkIconSymbolOverride: values.2,
                 iconChoice: BluetoothAudioIconChoice.persisted(choiceRawValue) { symbol in
                     NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
                 }
