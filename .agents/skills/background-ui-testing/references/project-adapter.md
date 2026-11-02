@@ -34,8 +34,11 @@ This applies to every agent, harness, and Computer Use provider.
 
 Use this project's isolated test launcher and documented tool restrictions.
 Verify capabilities before live attachment/input, then run a bounded
-setting/navigation/screenshot gate without test-caused focus, pointer, or
-workspace interference. Stop unsupported steps; never activate then restore.
+gate using only task-authorized operations, without test-caused focus,
+pointer, or workspace interference. For interactive tasks, verify actual
+control values, navigation, and a target screenshot where applicable.
+For read-only tasks, do not mutate settings to complete the gate; mark
+mutation NOT RUN. Stop unsupported steps; never activate then restore.
 Report functional and background results separately as PASS, FAIL, BLOCKED,
 or NOT RUN, with evidence covering the actual action times. Restore only
 this run's state and stop only its instances/observers.
@@ -47,6 +50,11 @@ file and supply the skill text as a referenced document. Do not claim that
 every runtime. Verify discovery in that runtime. Keep this entry short and
 maintain the full procedure in one skill.
 
+This entry applies when background testing is requested. A project may
+separately choose background testing as its default for live UI work; state
+that policy in its own instruction file. Installation alone does not make
+every UI task a background test.
+
 ## Distribution
 
 The repository copy is versioned source. For personal reuse, a copy can be
@@ -57,5 +65,11 @@ or instruction reference. No global instruction files need to be overwritten.
 Keep relative references within the skill so the directory can move intact.
 `agents/openai.yaml` is optional Codex UI metadata; other harnesses can ignore
 it. The core `SKILL.md` has no hardcoded CU API, machine path, dependency, or
-permission requirement. This is a user-maintained local skill, not a
-third-party entry to regenerate through a project's upstream lock file.
+permission requirement. Installing the skill does not install a provider or
+grant permissions.
+
+Maintain the standalone repository as the upstream source. Record the
+installed version or commit and use the installing harness's supported
+update mechanism. Before replacing a copied skill, detect local changes;
+do not overwrite them silently. Keep project-specific adapters in their
+own repositories so upstream updates do not replace local policy.

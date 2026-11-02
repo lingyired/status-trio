@@ -38,18 +38,14 @@ Stop observers at their deadline and before replacing the test instance.
 
 ## Project boundaries
 
-`--background-ui-testing` and `--test-display=secondary` are Status Trio's
-Debug options; they are not macOS or general harness features. Another app must
-declare its own supported route. Do not invent or silently inject these flags.
+Read the current project's adapter for its launch route, supported providers,
+identity checks, and known activating controls. Background test flags are
+app-specific, not macOS or general harness features. Do not invent flags,
+copy another app's Bundle ID, or weaken ownership checks to reuse its scripts.
 
-Status Trio's adapter is the repository's `AGENTS.md` section
-"Background UI Testing" and `docs/background-computer-use-testing.md`.
-Its launcher and focus diagnostic intentionally contain project-specific
-Bundle ID and process checks. Reuse them there; do not copy them unchanged as
-universal utilities or weaken identity checks to fit another app.
-
-For Status Trio, use native Codex CU only under its current project policy.
-Manual menu-bar/Dock behavior and system dialogs need separate acceptance;
-an app's intentional foreground interaction is not a background automation
-PASS. First-run preferences must follow their real policy; resetting a guide
-requires an explicitly scoped test fixture and restoration of that test domain.
+Menu-bar/Dock behavior and system dialogs need separate acceptance; an app's
+intentional foreground interaction is not a background automation PASS.
+First-run preferences must follow the project's real policy; resetting a
+guide requires an explicitly scoped test fixture and restoration of that
+test domain. Historical results for a provider are scoped to the recorded
+app, host, version, and controls, not every macOS app.
