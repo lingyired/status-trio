@@ -32,7 +32,7 @@
 
 ### Panel
 
-- El panel de estado usa un estilo sin esquinas ni muesca, a juego con el panel de la barra de menús de macOS, añade un menú «más» inferior y adapta mejor tamaño y diseño con Liquid Glass.
+- El panel de estado usa un estilo sin esquinas ni muesca, a juego con el panel de la barra de menús de macOS. Un nuevo menú «…» inferior reúne acciones habituales como Buscar actualizaciones, Acerca de, Ajustes de la barra de menús y Salir, y adapta mejor tamaño y diseño con Liquid Glass.
 
 ### Correcciones
 

@@ -32,7 +32,7 @@
 
 ### Panel
 
-- Das Statuspanel hat einen eckigen, zahnlosen Stil passend zum macOS-Menüleisten-Panel, ein „Mehr"-Menü unten und passt Größe und Layout unter Liquid Glass besser an.
+- Das Statuspanel hat einen eckigen, zahnlosen Stil passend zum macOS-Menüleisten-Panel. Ein neues „…"-Menü unten bündelt häufige Aktionen wie Nach Updates suchen, Über, Menüleisten-Einstellungen und Beenden; Größe und Layout passen unter Liquid Glass besser.
 
 ### Korrekturen
 
