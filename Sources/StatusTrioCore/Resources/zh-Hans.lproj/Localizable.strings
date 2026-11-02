@@ -658,7 +658,7 @@
 "settings.about.community.wechatDescription" = "扫码加入 Status Trio 微信群。二维码会定期更新，点「刷新」可拉取 GitHub 上的最新二维码。";
 "settings.about.community.copy" = "复制";
 "settings.about.community.copied" = "已复制";
-"settings.about.moreApps.title" = "更多 App";
+"settings.about.moreApps.title" = "作者的其他作品";
 "settings.about.moreApps.open" = "打开";
 "settings.about.moreApps.newtab01Description" = "书签驱动的新标签页：文件夹一键开成标签组或分屏，多套主题。";
 "settings.about.moreApps.noLazyloadDescription" = "禁用浏览器的图片懒加载，让页面一打开就加载全部图片，不必边滚动边加载。";

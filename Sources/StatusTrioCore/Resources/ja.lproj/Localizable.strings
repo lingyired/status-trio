@@ -658,7 +658,7 @@
 "settings.about.community.wechatDescription" = "WeChatでスキャンして Status Trio グループに参加できます。QRコードは定期的に更新されます。最新版は GitHub README をご覧ください。";
 "settings.about.community.copy" = "コピー";
 "settings.about.community.copied" = "コピーしました";
-"settings.about.moreApps.title" = "その他のアプリ";
+"settings.about.moreApps.title" = "作者の他の作品";
 "settings.about.moreApps.open" = "開く";
 "settings.about.moreApps.newtab01Description" = "ブックマーク連動の新しいタブ: フォルダーをタブグループや分割表示で開け、テーマも複数用意。";
 "settings.about.moreApps.noLazyloadDescription" = "ブラウザの画像の遅延読み込みを無効にし、ページを開いた時点で全ての画像を読み込みます。スクロールしながら読み込む必要はありません。";

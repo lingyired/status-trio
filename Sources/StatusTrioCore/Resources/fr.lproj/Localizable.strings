@@ -658,7 +658,7 @@
 "settings.about.community.wechatDescription" = "Scannez avec WeChat pour rejoindre le groupe Status Trio. Le QR code est renouvelé régulièrement ; consultez le README GitHub pour le plus récent.";
 "settings.about.community.copy" = "Copier";
 "settings.about.community.copied" = "Copié";
-"settings.about.moreApps.title" = "Plus d’apps";
+"settings.about.moreApps.title" = "Autres réalisations de l’auteur";
 "settings.about.moreApps.open" = "Ouvrir";
 "settings.about.moreApps.newtab01Description" = "Nouvel onglet basé sur les favoris : ouvrez des dossiers en groupes d’onglets ou en vue partagée, avec plusieurs thèmes.";
 "settings.about.moreApps.noLazyloadDescription" = "Désactivez le chargement différé des images du navigateur pour que la page charge toutes les images d’un coup, sans avoir à faire défiler.";

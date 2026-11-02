@@ -658,7 +658,7 @@
 "settings.about.community.wechatDescription" = "امسح باستخدام WeChat للانضمام إلى مجموعة Status Trio. يتم تجديد رمز QR دوريًا؛ راجع README على GitHub للحصول على الأحدث.";
 "settings.about.community.copy" = "نسخ";
 "settings.about.community.copied" = "تم النسخ";
-"settings.about.moreApps.title" = "المزيد من التطبيقات";
+"settings.about.moreApps.title" = "أعمال أخرى للمؤلف";
 "settings.about.moreApps.open" = "فتح";
 "settings.about.moreApps.newtab01Description" = "علامة تبويب جديدة قائمة على الإشارات المرجعية: افتح المجلدات كمجموعات علامات تبويب أو في عرض منقسم، مع عدة سمات.";
 "settings.about.moreApps.noLazyloadDescription" = "عطّل التحميل المتأخر للصور في المتصفح حتى تُحمّل الصفحة جميع الصور دفعة واحدة دون الحاجة إلى التمرير.";

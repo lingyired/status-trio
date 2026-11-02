@@ -658,7 +658,7 @@
 "settings.about.community.wechatDescription" = "Отсканируйте в WeChat, чтобы присоединиться к группе Status Trio. QR-код периодически обновляется; актуальный — в README на GitHub.";
 "settings.about.community.copy" = "Копировать";
 "settings.about.community.copied" = "Скопировано";
-"settings.about.moreApps.title" = "Другие приложения";
+"settings.about.moreApps.title" = "Другие работы автора";
 "settings.about.moreApps.open" = "Открыть";
 "settings.about.moreApps.newtab01Description" = "Новая вкладка на основе закладок: открывайте папки как группы вкладок или в разделённом виде, с несколькими темами.";
 "settings.about.moreApps.noLazyloadDescription" = "Отключите ленивую загрузку изображений в браузере, чтобы страница загружала все изображения сразу — без прокрутки.";

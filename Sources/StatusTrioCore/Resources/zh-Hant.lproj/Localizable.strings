@@ -658,7 +658,7 @@
 "settings.about.community.wechatDescription" = "掃碼加入 Status Trio 微信群。二維碼會定期更新，點「重新整理」可取得 GitHub 上的最新二維碼。";
 "settings.about.community.copy" = "複製";
 "settings.about.community.copied" = "已複製";
-"settings.about.moreApps.title" = "更多 App";
+"settings.about.moreApps.title" = "作者的其他作品";
 "settings.about.moreApps.open" = "開啟";
 "settings.about.moreApps.newtab01Description" = "書籤驅動的新分頁：資料夾一鍵開成分頁群組或分割檢視，多套主題。";
 "settings.about.moreApps.noLazyloadDescription" = "禁用瀏覽器的圖片延遲載入，讓頁面一開啟就載入全部圖片，不必邊捲動邊載入。";

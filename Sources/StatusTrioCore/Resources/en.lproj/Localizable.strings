@@ -657,7 +657,7 @@
 "settings.about.community.wechatDescription" = "Scan with WeChat to join the Status Trio group. The QR code rotates periodically; tap Refresh to load the latest from GitHub.";
 "settings.about.community.copy" = "Copy";
 "settings.about.community.copied" = "Copied";
-"settings.about.moreApps.title" = "More Apps";
+"settings.about.moreApps.title" = "More from the author";
 "settings.about.moreApps.open" = "Open";
 "settings.about.moreApps.newtab01Description" = "Bookmark-driven new tab: open folders as tab groups or split view, with themes.";
 "settings.about.moreApps.noLazyloadDescription" = "Disable the browser's image lazy-loading so a page loads all images up front — no need to scroll to reveal them.";

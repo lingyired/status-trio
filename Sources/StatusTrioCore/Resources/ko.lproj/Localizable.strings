@@ -658,7 +658,7 @@
 "settings.about.community.wechatDescription" = "WeChat으로 스캔하여 Status Trio 그룹에 참여하세요. QR 코드는 주기적으로 갱신되며, 최신 코드는 GitHub README에서 확인하세요.";
 "settings.about.community.copy" = "복사";
 "settings.about.community.copied" = "복사됨";
-"settings.about.moreApps.title" = "더 많은 앱";
+"settings.about.moreApps.title" = "작성자의 다른 작품";
 "settings.about.moreApps.open" = "열기";
 "settings.about.moreApps.newtab01Description" = "북마크 기반 새 탭: 폴더를 탭 그룹이나 분할 보기로 열 수 있고 다양한 테마 제공.";
 "settings.about.moreApps.noLazyloadDescription" = "브라우저의 이미지 지연 로딩을 꺼서 페이지를 열면 모든 이미지를 바로 불러옵니다. 스크롤하면서 불러올 필요가 없습니다.";
