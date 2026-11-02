@@ -29,22 +29,30 @@ final class AppIconPreviewTests: XCTestCase {
         let rendered: String
     }
 
-    // The committed artwork is regenerated from the renderer, so on this
-    // environment its decoded pixels equal the rendered pixels. The previous
-    // table kept a second pair for CI's headless CoreGraphics antialiasing; that
-    // pair was tied to the old committed bytes and must be re-recorded on that
-    // hardware. Only the verified local pair is approved here.
+    // The committed artwork is regenerated from the renderer, so on a given
+    // environment its decoded pixels equal the rendered pixels. CI's headless
+    // CoreGraphics antialiasing renders the same committed bytes differently,
+    // so its exact rendered pair is recorded alongside the local pair. Every
+    // entry still pins the decoded pixels; a deliberate artwork change fails.
     private static let approvedArtworkFingerprints: [String: Set<ArtworkFingerprint>] = [
         "AppIcon-light.png": [
             ArtworkFingerprint(
                 committed: "4df1923cd7ca02a783bae0fb6c2d8f23ac605a039cb65288fa7fd68cfa3cf74e",
                 rendered: "4df1923cd7ca02a783bae0fb6c2d8f23ac605a039cb65288fa7fd68cfa3cf74e"
+            ),
+            ArtworkFingerprint(
+                committed: "4df1923cd7ca02a783bae0fb6c2d8f23ac605a039cb65288fa7fd68cfa3cf74e",
+                rendered: "0b4d0592c80c35d947d5075a485189bc05d733c8f2d6ad10a0e1208e699fa167"
             )
         ],
         "AppIcon-dark.png": [
             ArtworkFingerprint(
                 committed: "dcf3050235ad7fe55319ff2afb350a6c23f3e409976dd80870b69f61c05c4a50",
                 rendered: "dcf3050235ad7fe55319ff2afb350a6c23f3e409976dd80870b69f61c05c4a50"
+            ),
+            ArtworkFingerprint(
+                committed: "dcf3050235ad7fe55319ff2afb350a6c23f3e409976dd80870b69f61c05c4a50",
+                rendered: "b49187a93641ef1d67208f1e8b85de5efbed520c5bb9de8bd031378887ba5ae6"
             )
         ]
     ]
