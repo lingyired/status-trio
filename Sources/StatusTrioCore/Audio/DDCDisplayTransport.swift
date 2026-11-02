@@ -59,6 +59,13 @@ final class DDCDisplayTransport: DDCFeatureTransport {
     private static let dataAddress = DDCPacket.dataAddress
     private static let volumeVCP = DDCPacket.volumeVCP
 
+    /// Whether a registry entry name is a framebuffer node. See
+    /// `FramebufferEnumeration.nodeNames` for why there is more than one.
+    static func isFramebufferNodeName(_ name: String?) -> Bool {
+        guard let name else { return false }
+        return FramebufferEnumeration.nodeNames.contains(name)
+    }
+
     static func isConnectedExternalFramebuffer(
         ioNameMatched: String?,
         displayWidth: Int?,
@@ -130,7 +137,7 @@ final class DDCDisplayTransport: DDCFeatureTransport {
             let entry = IOIteratorNext(iterator)
             guard entry != IO_OBJECT_NULL else { break }
             switch Self.registryName(entry) {
-            case "IOMobileFramebufferShim":
+            case let name where Self.isFramebufferNodeName(name):
                 let ioNameMatched = Self.stringProperty("IONameMatched", entry: entry)
                 let displayWidth = Self.integerProperty("DisplayWidth", entry: entry)
                 let displayHeight = Self.integerProperty("DisplayHeight", entry: entry)

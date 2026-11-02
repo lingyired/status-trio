@@ -71,27 +71,16 @@ struct LiveDisplayCatalog: DisplayCatalogProviding {
     private static func externalDisplaysFromRegistry() -> [DisplayDescriptor] {
         #if arch(arm64)
         var result: [DisplayDescriptor] = []
-        let matching = IOServiceMatching("IOMobileFramebufferShim")
-        var iterator: io_iterator_t = IO_OBJECT_NULL
-        guard IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator) == KERN_SUCCESS else {
-            return []
-        }
-        defer { IOObjectRelease(iterator) }
-
-        while true {
-            let entry = IOIteratorNext(iterator)
-            guard entry != IO_OBJECT_NULL else { break }
-            defer { IOObjectRelease(entry) }
-
+        FramebufferEnumeration.forEach { entry in
             guard let ioNameMatched = stringProperty("IONameMatched", entry: entry),
                   ioNameMatched.hasPrefix("dispext")
-            else { continue }
+            else { return }
 
             let width = integerProperty("DisplayWidth", entry: entry) ?? 0
             let height = integerProperty("DisplayHeight", entry: entry) ?? 0
             guard width > 0, height > 0,
                   let edidUUID = stringProperty("EDID UUID", entry: entry, recursive: true)
-            else { continue }
+            else { return }
 
             let name = productName(entry: entry) ?? "External Display (\(width)×\(height))"
             result.append(

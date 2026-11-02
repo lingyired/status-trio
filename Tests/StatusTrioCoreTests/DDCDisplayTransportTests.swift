@@ -12,6 +12,19 @@ final class DDCDisplayTransportTests: XCTestCase {
         XCTAssertNil(DDCDisplayTransport.branchToken(fromIONameMatched: nil))
     }
 
+    func testFramebufferNodeNamesAcceptBothRegistryShapes() {
+        // The name every Mac this already worked on uses must keep matching.
+        XCTAssertTrue(DDCDisplayTransport.isFramebufferNodeName("IOMobileFramebufferShim"))
+        // MacBook Air M3 (t8122) on macOS 27: the node is `AppleCLCD2` and no
+        // `IOMobileFramebufferShim` node exists.
+        XCTAssertTrue(DDCDisplayTransport.isFramebufferNodeName("AppleCLCD2"))
+
+        XCTAssertFalse(DDCDisplayTransport.isFramebufferNodeName("IOMobileFramebuffer"))
+        XCTAssertFalse(DDCDisplayTransport.isFramebufferNodeName("DCPAVServiceProxy"))
+        XCTAssertFalse(DDCDisplayTransport.isFramebufferNodeName(""))
+        XCTAssertFalse(DDCDisplayTransport.isFramebufferNodeName(nil))
+    }
+
     func testServiceBranchTokenComesFromTheDcpavServiceEpicAncestor() {
         // Real macOS 27 sample: the external proxy sits under
         // `dispext0:dcpav-service-epic:0` inside the `dcpext0` branch.
