@@ -256,20 +256,34 @@ detailed release and recovery rules.
   `bash scripts/launch-computer-use.sh [--display secondary]`. This always builds
   through `build-worktree.sh`, checks this branch's dev identity, and starts a
   new background test process. Release does not interpret the test flags.
-- Status Trio currently permits Codex native Computer Use only. The reusable
-  skill does not authorize another GUI provider for this project.
-  First trace foreground PID/Bundle ID with
-  the bounded `scripts/measure-ui-focus.swift` tool; continue a background step
-  only when its actual setting change, sidebar navigation and screenshot work
-  without a foreground transition. Do not activate an app and restore focus.
+- **Computer Use providers:** Status Trio accepts any provider that passes the
+  background capability gate, not only Codex native Computer Use. First-class
+  providers are Codex native Computer Use, `kimi-cu` MCP, and `agent-desktop`;
+  other instance-scoped AX/DOM providers are allowed under the same gate. When
+  the project or user `AGENTS.md` names a preferred CU tool (for example a
+  user-level rule that prefers `kimi-cu` MCP), use it if the current session
+  exposes it. A provider counts as available only when the harness actually
+  exposes it; installed-but-unconnected does not count. Input must be
+  instance-scoped remote AX/DOM/window input, not foreground/global input;
+  never substitute `osascript`/System Events, `CGEventPost`, `cliclick`, or
+  per-pixel pointer automation.
+- First trace foreground PID/Bundle ID with the bounded
+  `scripts/measure-ui-focus.swift` tool; continue a background step only when
+  its actual setting change, sidebar navigation and screenshot work without a
+  foreground transition. Do not activate an app and restore focus.
+- If no Computer Use provider is available, stop and report the affected
+  click/input steps as `BLOCKED (no Computer Use provider)`, naming the
+  providers checked and what connecting one (such as the `kimi-cu` MCP server)
+  would unlock. Do not downgrade them to a bare `NOT RUN`, and do not silently
+  hand the work to the user as the only option.
 - Background support covers Settings presentation, the first-run guide's
   verified Next/Back/preview/Customize path, and verified Settings controls.
   Menu-bar/shortcut popovers, real Dock activation, text input, shortcut
   recording, guide menu-bar help/links/system dialogs and system permission
   dialogs need separate evidence.
   Pause a step that requires activation or an unavailable/unlocked display and
-  report `FAIL`, `BLOCKED` or `NOT RUN`; do not substitute another GUI MCP,
-  global clicks, private APIs or additional permissions.
+  report `FAIL`, `BLOCKED` or `NOT RUN`; do not substitute foreground/global
+  input, private APIs or additional permissions.
 - In background mode, do not enable the Bluetooth row from either the
   Bluetooth page's "Show in status panel" control or the status-panel page's
   Bluetooth visibility control: both retain explicit app activation, even
