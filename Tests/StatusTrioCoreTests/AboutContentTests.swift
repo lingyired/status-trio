@@ -73,7 +73,7 @@ final class AboutContentTests: XCTestCase {
         }
 
         XCTAssertEqual(literalTitles(.newtab01), ["Chrome", "Edge"])
-        XCTAssertEqual(literalTitles(.noLazyload), ["Chrome", "Edge", "Firefox", "App Store"])
+        XCTAssertEqual(literalTitles(.noLazyload), ["Chrome", "Edge", "Firefox", "Safari"])
 
         let fund = apps.first { $0.identity == .fund01 }
         XCTAssertEqual(fund?.links.count, 1)

@@ -153,7 +153,7 @@ enum AboutContentCatalog {
                     .init(label: .literal("Chrome"), url: AppMetadata.noLazyloadChromeURL, icon: .asset("AboutStoreChrome")),
                     .init(label: .literal("Edge"), url: AppMetadata.noLazyloadEdgeURL, icon: .asset("AboutStoreEdge")),
                     .init(label: .literal("Firefox"), url: AppMetadata.noLazyloadFirefoxURL, icon: .asset("AboutStoreFirefox")),
-                    .init(label: .literal("App Store"), url: AppMetadata.noLazyloadAppStoreURL, icon: .asset("AboutStoreAppStore")),
+                    .init(label: .literal("Safari"), url: AppMetadata.noLazyloadSafariURL, icon: .asset("AboutStoreSafari")),
                 ]
             ),
         ]

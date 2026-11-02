@@ -105,7 +105,9 @@ enum AppMetadata {
     static let noLazyloadFirefoxURL = URL(
         string: "https://addons.mozilla.org/firefox/addon/no-lazyload/"
     )!
-    static let noLazyloadAppStoreURL = URL(
+    /// The Safari build is distributed through the Mac App Store, so the label
+    /// says "Safari" to keep the row's browser list consistent.
+    static let noLazyloadSafariURL = URL(
         string: "https://apps.apple.com/app/id6825400530?mt=12"
     )!
     static let fund01URL = URL(string: "https://lingai.net/fund01/")!
