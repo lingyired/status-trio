@@ -70,8 +70,13 @@ struct AboutCommunityView: View {
     }
 
     private var qqRow: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center, spacing: 14) {
+            qrTile(
+                AboutAssets.qqQRCode,
+                label: localization.string(.settingsAboutCommunityQQ)
+            )
+
+            VStack(alignment: .leading, spacing: 5) {
                 Text(localization.string(.settingsAboutCommunityQQ))
                     .font(.system(size: 13, weight: .semibold))
                 Text(localization.string(.settingsAboutCommunityQQDescription))
@@ -82,6 +87,12 @@ struct AboutCommunityView: View {
                     Text(AppMetadata.qqGroupNumber)
                         .font(.system(size: 13, design: .monospaced))
                         .textSelection(.enabled)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color.primary.opacity(0.06))
+                        )
                     Button {
                         copyGroupNumber()
                     } label: {
@@ -96,22 +107,23 @@ struct AboutCommunityView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                 }
+                .padding(.top, 1)
             }
 
-            Spacer(minLength: 8)
-
-            qrTile(
-                AboutAssets.qqQRCode,
-                label: localization.string(.settingsAboutCommunityQQ)
-            )
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, SettingsMetrics.rowPaddingH)
         .padding(.vertical, 12)
     }
 
     private var weChatRow: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(alignment: .center, spacing: 14) {
+            qrTile(
+                weChatImage ?? AboutAssets.weChatQRCode,
+                label: localization.string(.settingsAboutCommunityWeChat)
+            )
+
+            VStack(alignment: .leading, spacing: 5) {
                 Text(localization.string(.settingsAboutCommunityWeChat))
                     .font(.system(size: 13, weight: .semibold))
                 Text(localization.string(.settingsAboutCommunityWeChatDescription))
@@ -137,7 +149,7 @@ struct AboutCommunityView: View {
                             .controlSize(.small)
                     }
                 }
-                .padding(.top, 2)
+                .padding(.top, 1)
 
                 if weChatRefreshFailed {
                     Text(localization.string(.settingsAboutCommunityRefreshFailed))
@@ -147,12 +159,7 @@ struct AboutCommunityView: View {
                 }
             }
 
-            Spacer(minLength: 8)
-
-            qrTile(
-                weChatImage ?? AboutAssets.weChatQRCode,
-                label: localization.string(.settingsAboutCommunityWeChat)
-            )
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, SettingsMetrics.rowPaddingH)
         .padding(.vertical, 12)
@@ -165,10 +172,10 @@ struct AboutCommunityView: View {
                 .resizable()
                 .interpolation(.high)
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 104, height: 104)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .frame(width: 84, height: 84)
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
                         .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
                 )
                 .accessibilityLabel(label)
