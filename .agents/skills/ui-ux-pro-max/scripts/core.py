@@ -156,7 +156,7 @@ STACK_CURRENT_APPLICABILITY = {
     "html-tailwind": "html-tailwind 4.3",
     "shadcn": "shadcn cli 4",
     "nuxtjs": "nuxtjs 4.5",
-    "nuxt-ui": "nuxt-ui 4.10",
+    "nuxt-ui": "nuxt-ui 4.12.0",
     "react-native": "react-native 0.86.x",
     "flutter": "flutter 3.44.x",
     "swiftui": "swiftui current",
@@ -856,7 +856,7 @@ def _stack_query_requests_legacy(query, stack):
     if current_version is not None and stack_name is not None:
         matches = re.finditer(
             rf"\b(?:{stack_name})\s*(?:sdk|ui)?\s*(?:[@(]\s*)?(?:v(?:ersion)?\s*)?"
-            rf"(\d+)(?:\.(\d+))?\s*\)?",
+            rf"(\d+)(?:\.(\d+))?(?!\w)\s*\)?",
             normalized,
         )
         requested_versions = [
