@@ -6,6 +6,15 @@ Ordinary development does not require GitHub Actions. Use focused local tests
 while developing, then run the verification profile sized to the risk before
 delivery and merge.
 
+### Iteration vs. delivery
+
+A full profile is a **delivery gate, not a per-edit step**. While iterating, run
+only the focused filter that covers the behavior you touched, e.g.
+`bash scripts/test.sh 'SettingsViewTests'` or
+`bash scripts/test.sh 'IconPresentationMapperTests'`. Do not re-run the full
+Swift suite after every edit; run it once on the final integrated tree before
+merge. The profiles below size the *delivery* check, not each save.
+
 Pick one bounded profile with
 `bash scripts/verify-local.sh <quick|docs|full> [swift-test-filter]`:
 
@@ -69,8 +78,9 @@ automatically by Codex.
 | --- | --- | --- |
 | Documentation, copy, localization, translations | `.agents/rules/release.md` only for release copy; otherwise the affected UI rule | `docs`; release-note coverage when applicable |
 | Ordinary isolated feature or unit test | Rule for its subsystem | Focused `quick` tests; add the subsystem regression filter |
-| State/store, `@MainActor`, `Sendable`, actor isolation, concurrency, `deinit`, SwiftUI bindings, generic/resource plumbing | `.agents/rules/performance.md`, `.agents/rules/macos-compatibility.md` | `full` |
-| Icon scene, renderer, `StatusIconRenderer`, `StatusIconGeometry`, `IconPresentationMapper`, `IconSceneState`, `StatusBarController` icon path, `AppIconController`, `DockIconRenderKey`, `DockIconRenderer` | `.agents/rules/rendering.md` | `full`, plus `Issue30WiFiAlignmentTests` and Dock/Menu Bar parity tests |
+| State/store schema, migration, `@MainActor`, `Sendable`, actor isolation, concurrency, `deinit`, generic/resource plumbing | `.agents/rules/performance.md`, `.agents/rules/macos-compatibility.md` | `full` before delivery; while iterating, the focused store/behavior tests |
+| Settings pane layout, control styling, copy or previews that only read existing state (no change to mapper, renderer, scene or stored schema) | `.agents/rules/rendering.md` only if a preview calls the renderer | `quick` with the pane's focused tests (e.g. `SettingsViewTests`); `full` only if the same change also touches rendering/model below |
+| Icon scene, renderer, `StatusIconRenderer`, `StatusIconGeometry`, `IconPresentationMapper`, `IconSceneState`, `StatusBarController` icon path, `AppIconController`, `DockIconRenderKey`, `DockIconRenderer` | `.agents/rules/rendering.md` | `full` before delivery, plus `Issue30WiFiAlignmentTests` and Dock/Menu Bar parity tests; iterate with the focused renderer/mapper filter |
 | Bluetooth, nearby BLE, audio, battery, permission or privacy behavior | `.agents/rules/bluetooth.md` or the matching device rule | Affected focused tests; `full` for lifecycle or permission changes |
 | Wi-Fi, Ethernet, VPN, SSID/location, Settings pane route | `.agents/rules/network.md` | Focused network tests and `StatusMenuBuilderTests` for route changes |
 | Helper, XPC, LaunchDaemon, signing or privileged behavior | `.agents/rules/release-validation.md` | `full`; manual Developer ID and XPC checks remain `NOT RUN` until performed |
