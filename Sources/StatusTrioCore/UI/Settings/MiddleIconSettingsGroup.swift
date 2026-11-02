@@ -251,7 +251,7 @@ private struct MiddleBluetoothIconOptions: View {
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
-            .fixedSize()
+            .middleIconMenuChrome()
             .accessibilityLabel(localization.string(.settingsBluetoothIconChoice))
             .accessibilityIdentifier("bluetooth.audioIconChoice")
         }
@@ -292,7 +292,7 @@ private struct MiddleBluetoothIconOptions: View {
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
-            .fixedSize()
+            .middleIconMenuChrome()
             .accessibilityLabel(localization.string(.settingsBluetoothNetworkIconSourceGroup))
             .accessibilityIdentifier("bluetooth.networkIconSource")
         }
@@ -468,14 +468,22 @@ private struct MiddleIconMenuLabel: View {
         .font(.system(size: 13))
         .padding(.horizontal, 10)
         .frame(width: 190, height: 24)
-        .background(
-            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(Color.primary.opacity(0.06))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
-        )
         .contentShape(Rectangle())
+    }
+}
+
+private extension View {
+    /// A native-looking pop-up chrome applied outside the borderless `Menu`,
+    /// which otherwise discards a label background.
+    func middleIconMenuChrome() -> some View {
+        frame(width: 190, height: 24)
+            .background(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(Color.primary.opacity(0.10))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.20), lineWidth: 1)
+            )
     }
 }
