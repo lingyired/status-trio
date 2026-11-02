@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "現在の入力ソース";
 "settings.appIcon.middleIcon.batteryPercentage" = "バッテリー残量";
 "settings.appIcon.middleIcon.power" = "消費電力（W）";
+"settings.appIcon.middleIcon.size" = "中央アイコンのサイズ";
+"settings.appIcon.middleIcon.size.description" = "中央に表示するすべての内容（Wi-Fi、Bluetooth、入力ソース、数字）で共通のサイズです。";
 "settings.appIcon.middleIcon.networkWarnings" = "ネットワークの問題を優先";
 "settings.appIcon.middleIcon.networkWarnings.description" = "Mac が実際にオフラインのときは、選択したソースの代わりにネットワークの状態を表示します。";
 "settings.network.connectionIcons" = "接続アイコンのスタイル";

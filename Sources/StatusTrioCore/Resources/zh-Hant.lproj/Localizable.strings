@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "目前輸入法";
 "settings.appIcon.middleIcon.batteryPercentage" = "電池百分比";
 "settings.appIcon.middleIcon.power" = "功耗（瓦）";
+"settings.appIcon.middleIcon.size" = "中間圖示大小";
+"settings.appIcon.middleIcon.size.description" = "中間顯示的所有內容（Wi‑Fi、藍牙、輸入法、數字）共用這個大小。";
 "settings.appIcon.middleIcon.networkWarnings" = "優先顯示網路異常";
 "settings.appIcon.middleIcon.networkWarnings.description" = "當 Mac 確實離線時，中間位置改為顯示網路狀態，而不是所選來源。";
 "settings.network.connectionIcons" = "連線圖示樣式";

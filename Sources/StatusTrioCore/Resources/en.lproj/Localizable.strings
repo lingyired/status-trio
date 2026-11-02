@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "Current Input Source";
 "settings.appIcon.middleIcon.batteryPercentage" = "Battery Percentage";
 "settings.appIcon.middleIcon.power" = "Power (Watts)";
+"settings.appIcon.middleIcon.size" = "Middle Icon Size";
+"settings.appIcon.middleIcon.size.description" = "One size for every middle content: Wi-Fi, Bluetooth, input source, and numbers.";
 "settings.appIcon.middleIcon.networkWarnings" = "Show network problems instead";
 "settings.appIcon.middleIcon.networkWarnings.description" = "When the Mac is genuinely offline, the middle shows the network state instead of the selected source.";
 "settings.network.connectionIcons" = "Connection Icon Style";

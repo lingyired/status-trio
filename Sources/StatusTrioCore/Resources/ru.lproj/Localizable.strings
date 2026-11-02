@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "Текущий источник ввода";
 "settings.appIcon.middleIcon.batteryPercentage" = "Процент батареи";
 "settings.appIcon.middleIcon.power" = "Мощность (Вт)";
+"settings.appIcon.middleIcon.size" = "Размер центрального значка";
+"settings.appIcon.middleIcon.size.description" = "Единый размер для всего содержимого в центре: Wi-Fi, Bluetooth, источник ввода и числа.";
 "settings.appIcon.middleIcon.networkWarnings" = "Сначала проблемы сети";
 "settings.appIcon.middleIcon.networkWarnings.description" = "Когда Mac действительно офлайн, в центре показывается состояние сети вместо выбранного источника.";
 "settings.network.connectionIcons" = "Стиль значков подключения";

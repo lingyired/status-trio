@@ -724,16 +724,6 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var bluetoothSymbolScale: Double {
-        didSet {
-            let clamped = Self.clampedBluetoothSymbolScale(bluetoothSymbolScale)
-            guard clamped == bluetoothSymbolScale else {
-                bluetoothSymbolScale = clamped
-                return
-            }
-            defaults.set(clamped, forKey: Self.bluetoothSymbolScaleDefaultsKey)
-        }
-    }
 
     @Published var bluetoothAudioIconChoiceRawValue: String {
         didSet { defaults.set(bluetoothAudioIconChoiceRawValue, forKey: Self.bluetoothAudioIconChoiceDefaultsKey) }
@@ -757,6 +747,13 @@ final class SettingsStore: ObservableObject {
             }
             defaults.set(clamped, forKey: Self.wifiSymbolScaleDefaultsKey)
         }
+    }
+
+    /// Unified middle-icon size: the Bluetooth centre glyph now shares the same
+    /// scale as the Wi-Fi glyph, input-source icon and numeric content.
+    var bluetoothSymbolScale: Double {
+        get { wifiSymbolScale }
+        set { wifiSymbolScale = newValue }
     }
 
     @Published var volumeDisplayStyle: VolumeDisplayStyle {
@@ -1439,7 +1436,7 @@ final class SettingsStore: ObservableObject {
     var bluetoothAudioIconOptions: BluetoothAudioIconOptions {
         BluetoothAudioIconOptions(
             usesVolumeColor: usesBluetoothAudioVolumeColor,
-            symbolScale: bluetoothSymbolScale,
+            symbolScale: wifiSymbolScale,
             networkIconSymbolOverride: bluetoothNetworkIconSymbolName,
             iconChoice: bluetoothAudioIconChoice
         )
@@ -1573,7 +1570,6 @@ final class SettingsStore: ObservableObject {
             defaults.stringArray(forKey: Self.revealedGhostBluetoothDeviceAddressesDefaultsKey) ?? []
         )
         let storedRefreshInterval = (defaults.object(forKey: Self.refreshIntervalDefaultsKey) as? NSNumber)?.doubleValue
-        let storedBluetoothSymbolScale = (defaults.object(forKey: Self.bluetoothSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
         let storedWifiSymbolScale = (defaults.object(forKey: Self.wifiSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
         let storedVolumeDisplayStyle = defaults.string(forKey: Self.volumeDisplayStyleDefaultsKey)
         let storedRingStrokeStyle = defaults.string(forKey: Self.ringStrokeStyleDefaultsKey)
@@ -1801,12 +1797,12 @@ final class SettingsStore: ObservableObject {
         self.bluetoothListeningModePreviewLanguage = defaults.string(
             forKey: Self.bluetoothListeningModePreviewLanguageDefaultsKey
         ) ?? ""
-        self.bluetoothSymbolScale = Self.clampedBluetoothSymbolScale(
-            storedBluetoothSymbolScale ?? Self.defaultBluetoothSymbolScale
-        )
         self.wifiSymbolScale = Self.clampedWifiSymbolScale(
-            storedWifiSymbolScale ?? Self.defaultWifiSymbolScale
+            storedWifiSymbolScale
+                ?? (defaults.object(forKey: Self.bluetoothSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
+                ?? Self.defaultWifiSymbolScale
         )
+        defaults.removeObject(forKey: Self.bluetoothSymbolScaleDefaultsKey)
         self.volumeDisplayStyle = storedVolumeDisplayStyle
             .flatMap(VolumeDisplayStyle.init(rawValue:))
             ?? Self.defaultVolumeDisplayStyle

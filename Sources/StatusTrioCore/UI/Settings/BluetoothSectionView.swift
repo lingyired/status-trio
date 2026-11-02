@@ -54,36 +54,6 @@ struct BluetoothSectionView: View {
 
                 SettingsDivider()
 
-                SettingsRow(
-                    glyph: .bluetoothRune,
-                    tint: .blue,
-                    title: localization.string(.settingsBluetoothSymbolScale),
-                    subtitle: localization.string(.settingsBluetoothSymbolScaleDescription)
-                ) {
-                    HStack(spacing: 8) {
-                        Slider(
-                            value: Binding(
-                                get: { store.bluetoothSymbolScale },
-                                set: { store.bluetoothSymbolScale = (round($0 * 20) / 20) }
-                            ),
-                            in: SettingsStore.bluetoothSymbolScaleRange
-                        )
-                        .frame(width: 130)
-                        .controlSize(.small)
-                        .accessibilityLabel(localization.string(.settingsBluetoothSymbolScale))
-                        .accessibilityValue(
-                            "\(Int(round(store.bluetoothSymbolScale * 100)))%"
-                        )
-
-                        Text("\(Int(round(store.bluetoothSymbolScale * 100)))%")
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 44, alignment: .trailing)
-                    }
-                }
-
-                SettingsDivider()
-
                 SettingsToggleRow(
                     symbol: "speaker.wave.2.fill",
                     tint: .cyan,

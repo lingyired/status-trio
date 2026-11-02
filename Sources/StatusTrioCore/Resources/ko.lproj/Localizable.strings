@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "현재 입력 소스";
 "settings.appIcon.middleIcon.batteryPercentage" = "배터리 잔량";
 "settings.appIcon.middleIcon.power" = "전력(와트)";
+"settings.appIcon.middleIcon.size" = "중앙 아이콘 크기";
+"settings.appIcon.middleIcon.size.description" = "중앙에 표시되는 모든 내용(Wi-Fi, Bluetooth, 입력 소스, 숫자)에 공통으로 적용되는 크기입니다.";
 "settings.appIcon.middleIcon.networkWarnings" = "네트워크 문제 우선 표시";
 "settings.appIcon.middleIcon.networkWarnings.description" = "Mac이 실제로 오프라인일 때 중앙에 선택한 소스 대신 네트워크 상태를 표시합니다.";
 "settings.network.connectionIcons" = "연결 아이콘 스타일";

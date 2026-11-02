@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "Source de saisie actuelle";
 "settings.appIcon.middleIcon.batteryPercentage" = "Pourcentage de batterie";
 "settings.appIcon.middleIcon.power" = "Puissance (watts)";
+"settings.appIcon.middleIcon.size" = "Taille de l’icône centrale";
+"settings.appIcon.middleIcon.size.description" = "Une seule taille pour tout le contenu central : Wi-Fi, Bluetooth, source de saisie et nombres.";
 "settings.appIcon.middleIcon.networkWarnings" = "Prioriser les problèmes réseau";
 "settings.appIcon.middleIcon.networkWarnings.description" = "Quand le Mac est réellement hors ligne, le centre affiche l’état du réseau plutôt que la source choisie.";
 "settings.network.connectionIcons" = "Style des icônes de connexion";

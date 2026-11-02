@@ -158,6 +158,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsMiddleIconInputSource = "settings.appIcon.middleIcon.inputSource"
     case settingsMiddleIconBatteryPercentage = "settings.appIcon.middleIcon.batteryPercentage"
     case settingsMiddleIconPower = "settings.appIcon.middleIcon.power"
+    case settingsMiddleIconSize = "settings.appIcon.middleIcon.size"
+    case settingsMiddleIconSizeDescription = "settings.appIcon.middleIcon.size.description"
     case settingsMiddleIconNetworkWarnings = "settings.appIcon.middleIcon.networkWarnings"
     case settingsMiddleIconNetworkWarningsDescription = "settings.appIcon.middleIcon.networkWarnings.description"
     case settingsNetworkConnectionIcons = "settings.network.connectionIcons"

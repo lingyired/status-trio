@@ -5,10 +5,19 @@ struct MiddleIconSettingsGroup: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @EnvironmentObject private var localization: Localization
+    @State private var showsNetworkIconOptions = false
 
     var body: some View {
         SettingsGroup(localization.string(.settingsMiddleIconTitle)) {
             sourcePicker
+
+            SettingsDivider()
+            middleIconSizeRow
+
+            if store.connectionCenterSource == .network {
+                SettingsDivider()
+                connectionStyleDisclosure
+            }
 
             if store.connectionCenterSource == .bluetoothDevice {
                 SettingsDivider()
@@ -25,6 +34,81 @@ struct MiddleIconSettingsGroup: View {
                     isOn: $store.prioritizesNetworkErrors
                 )
                 .accessibilityIdentifier("appIcon.networkWarnings")
+            }
+        }
+    }
+
+    /// One shared size for every middle content: Wi-Fi, Bluetooth, input source
+    /// and the numeric modes all follow this value.
+    private var middleIconSizeRow: some View {
+        SettingsRow(
+            "circle.inset.filled",
+            tint: .indigo,
+            title: localization.string(.settingsMiddleIconSize),
+            subtitle: localization.string(.settingsMiddleIconSizeDescription)
+        ) {
+            HStack(spacing: 8) {
+                Slider(
+                    value: Binding(
+                        get: { store.wifiSymbolScale },
+                        set: { store.wifiSymbolScale = (round($0 * 20) / 20) }
+                    ),
+                    in: SettingsStore.wifiSymbolScaleRange
+                )
+                .frame(width: 130)
+                .controlSize(.small)
+                .accessibilityLabel(localization.string(.settingsMiddleIconSize))
+                .accessibilityValue("\(Int(round(store.wifiSymbolScale * 100)))%")
+
+                Text("\(Int(round(store.wifiSymbolScale * 100)))%")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 44, alignment: .trailing)
+            }
+        }
+    }
+
+    /// The network-only glyph variants; hidden for the other sources because
+    /// they cannot draw a Wi-Fi state.
+    private var connectionStyleDisclosure: some View {
+        VStack(spacing: 0) {
+            SettingsDisclosureRow(
+                "cable.connector",
+                tint: .teal,
+                title: localization.string(.settingsNetworkConnectionIcons),
+                subtitle: localization.string(.settingsNetworkConnectionIconsDescription),
+                isExpanded: $showsNetworkIconOptions
+            )
+
+            if showsNetworkIconOptions {
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "cable.connector",
+                    tint: .teal,
+                    title: localization.string(.settingsNetworkWiFiIconForEthernet),
+                    isOn: $store.showsWiFiIconForEthernet
+                )
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "personalhotspot",
+                    tint: .blue,
+                    title: localization.string(.settingsNetworkWiFiIconForHotspot),
+                    isOn: $store.showsWiFiIconForHotspot
+                )
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "network",
+                    tint: .purple,
+                    title: localization.string(.settingsNetworkWiFiIconForTemporaryConnection),
+                    isOn: $store.showsWiFiIconForTemporaryConnection
+                )
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "antenna.radiowaves.left.and.right",
+                    tint: .indigo,
+                    title: localization.string(.settingsNetworkWiFiIconForInternetSharing),
+                    isOn: $store.showsWiFiIconForInternetSharing
+                )
             }
         }
     }
@@ -49,10 +133,6 @@ struct MiddleIconSettingsGroup: View {
                             MiddleIconSourcePreview(source: source)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 42)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                        .fill(Color.primary.opacity(0.06))
-                                )
                                 .selectionRing(selected, cornerRadius: 7)
                             Text(sourceLabel(source))
                                 .font(.system(size: 11.5))
@@ -252,33 +332,101 @@ private struct MiddleBluetoothIconOptions: View {
 
 }
 
-/// The glyph each middle-content option would put in the slot.
+/// A real miniature of the status icon with only the middle content changed,
+/// so each tile shows exactly what the slot will draw.
 private struct MiddleIconSourcePreview: View {
     let source: ConnectionCenterSource
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Group {
-            switch source {
-            case .network:
-                Image(systemName: "wifi")
-                    .font(.system(size: 18, weight: .medium))
-            case .bluetoothDevice:
-                Image(systemName: "headphones")
-                    .font(.system(size: 18, weight: .medium))
-            case .inputSource:
-                Image(systemName: "keyboard")
-                    .font(.system(size: 17, weight: .medium))
-            case .batteryPercentage:
-                Text("68%")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-            case .power:
-                Text("24W")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
+        let dark = colorScheme == .dark
+        ZStack {
+            MenuBarPreviewBackdrop(isDarkBackground: dark, cornerRadius: 6)
+            if let image = MiddleIconPreviewScene.image(for: source, isDarkBackground: dark) {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .padding(3)
             }
         }
-        .foregroundStyle(.primary)
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .accessibilityHidden(true)
+    }
+}
+
+/// Builds the still preview for one middle-content option from the real mapper
+/// and renderer, with a fixed sample status so the tiles never disagree with
+/// the menu bar artwork.
+@MainActor
+private enum MiddleIconPreviewScene {
+    private static let now = Date(timeIntervalSince1970: 1_789_555_974)
+
+    private static let device = AudioOutputDevice(
+        id: 0,
+        name: "AirPods",
+        uid: "middle-icon.preview",
+        isCurrent: true,
+        volume: 0.5,
+        transport: .bluetooth
+    )
+
+    private static let inputSource = InputSourceDescriptor(
+        id: "com.apple.keylayout.ABC",
+        localizedName: "ABC",
+        primaryLanguage: "en",
+        iconURL: nil,
+        shortLabel: "中"
+    )
+
+    private static let snapshot = StatusSnapshot(
+        battery: BatteryStatus(
+            rawPercentage: 68,
+            isPresent: true,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: false
+        ),
+        wifi: WiFiStatus(state: .connected, rssi: -52),
+        connection: .wifi,
+        volume: VolumeStatus(
+            scalar: 0.5,
+            isMuted: false,
+            deviceName: device.name,
+            currentDevice: device
+        )
+    )
+
+    static func image(for source: ConnectionCenterSource, isDarkBackground: Bool) -> NSImage? {
+        let connection = ConnectionIconOptions(
+            centerSource: source,
+            prioritizesNetworkErrors: true,
+            wifiScale: 1.0
+        )
+        let configuration = IconPresentationConfiguration(
+            battery: .standard,
+            connection: connection,
+            volume: .standard,
+            bluetooth: BluetoothAudioIconOptions(symbolScale: 1.0)
+        )
+        let inputs = IconPresentationInputs(
+            snapshot: snapshot,
+            audioIcon: nil,
+            inputSource: source == .inputSource ? inputSource : nil,
+            systemPower: source == .power
+                ? SystemPowerSample(watts: 24, readAt: now)
+                : nil
+        )
+        let scene = IconPresentationMapper.scene(
+            inputs: inputs,
+            configuration: configuration,
+            now: now
+        )
+        return StatusIconRenderer.image(
+            scene: scene,
+            size: 28,
+            scale: 2,
+            appearance: MenuBarPreviewBackdrop.appearance(isDarkBackground: isDarkBackground)
+        )
     }
 }
