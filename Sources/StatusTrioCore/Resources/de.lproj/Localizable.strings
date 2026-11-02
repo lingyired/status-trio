@@ -661,7 +661,7 @@
 "settings.about.moreApps.title" = "Weitere Apps";
 "settings.about.moreApps.open" = "Öffnen";
 "settings.about.moreApps.newtab01Description" = "Lesezeichenbasierter neuer Tab: Ordner als Tab-Gruppen oder in geteilter Ansicht öffnen, mit mehreren Designs.";
-"settings.about.moreApps.noLazyloadDescription" = "Bild-Lazy-Loading deaktivieren: Nur Bilder im Sichtbereich laden – schnellere Seiten, weniger Daten.";
+"settings.about.moreApps.noLazyloadDescription" = "Deaktiviert das Lazy-Loading von Bildern im Browser, sodass eine Seite alle Bilder sofort lädt – kein Scrollen nötig.";
 "settings.about.moreApps.fund01Description" = "Fonds-Depot im Blick: Tagesänderung stets in der Menüleiste bzw. Taskleiste, mehrere Gruppen live aktualisiert.";
 
 // About: community WeChat QR refresh

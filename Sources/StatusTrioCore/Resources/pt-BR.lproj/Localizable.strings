@@ -661,7 +661,7 @@
 "settings.about.moreApps.title" = "Mais apps";
 "settings.about.moreApps.open" = "Abrir";
 "settings.about.moreApps.newtab01Description" = "Nova aba baseada em favoritos: abra pastas como grupos de abas ou em visualização dividida, com vários temas.";
-"settings.about.moreApps.noLazyloadDescription" = "Desative o carregamento preguiçoso de imagens: carregue apenas as imagens visíveis, para páginas mais rápidas e com menos dados.";
+"settings.about.moreApps.noLazyloadDescription" = "Desative o carregamento preguiçoso de imagens do navegador para que a página carregue todas as imagens de uma vez, sem precisar rolar.";
 "settings.about.moreApps.fund01Description" = "Acompanhamento de fundos: a variação do dia sempre na barra de menus ou na barra de tarefas, com vários grupos atualizados em tempo real.";
 
 // About: community WeChat QR refresh

@@ -661,7 +661,7 @@
 "settings.about.moreApps.title" = "Altre app";
 "settings.about.moreApps.open" = "Apri";
 "settings.about.moreApps.newtab01Description" = "Nuova scheda basata sui segnalibri: apri le cartelle come gruppi di schede o in vista divisa, con diversi temi.";
-"settings.about.moreApps.noLazyloadDescription" = "Disattiva il caricamento differito delle immagini: carica solo le immagini visibili, per pagine più veloci e meno dati.";
+"settings.about.moreApps.noLazyloadDescription" = "Disattiva il caricamento differito delle immagini del browser così la pagina carica subito tutte le immagini, senza dover scorrere.";
 "settings.about.moreApps.fund01Description" = "Monitoraggio del portafoglio: la variazione del giorno sempre nella barra dei menu o nella barra delle applicazioni, più gruppi aggiornati in tempo reale.";
 
 // About: community WeChat QR refresh

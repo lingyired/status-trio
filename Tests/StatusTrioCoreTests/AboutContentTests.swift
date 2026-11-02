@@ -112,8 +112,16 @@ final class AboutContentTests: XCTestCase {
     func testBundledAboutImagesArePresent() {
         XCTAssertNotNil(AboutAssets.weChatQRCode, "missing bundled WeChat QR")
         XCTAssertNotNil(AboutAssets.qqQRCode, "missing bundled QQ QR")
+        for name in ["AboutSocialDouyin", "AboutSocialXiaohongshu", "AboutSocialBilibili"] {
+            XCTAssertNotNil(AboutAssets.socialIcon(named: name), "missing bundled social icon \(name)")
+        }
         for app in AboutContentCatalog.apps(for: .simplifiedChinese) {
             XCTAssertNotNil(AboutAssets.appIcon(for: app), "missing bundled icon \(app.iconResource)")
+            for link in app.links {
+                if case .asset(let name) = link.icon {
+                    XCTAssertNotNil(AboutAssets.storeIcon(named: name), "missing bundled store icon \(name)")
+                }
+            }
         }
     }
 

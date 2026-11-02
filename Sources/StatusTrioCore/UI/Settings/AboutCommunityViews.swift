@@ -31,6 +31,15 @@ struct AboutSocialLinksView: View {
                 .font(.system(size: 11, weight: .bold))
         case .systemImage(let name):
             Image(systemName: name)
+        case .asset(let name):
+            if let image = AboutAssets.socialIcon(named: name) {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 14, height: 14)
+                    .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
+            }
         }
     }
 

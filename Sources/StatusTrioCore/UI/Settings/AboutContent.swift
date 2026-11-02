@@ -15,11 +15,12 @@ struct AboutSocialLink: Identifiable, Equatable {
         case blog
     }
 
-    /// A tiny leading mark for the chip. SF Symbols are not available for every
-    /// Chinese network, so those use a short native-language monogram instead.
+    /// A tiny leading mark for the chip: a bundled brand PNG, an SF Symbol, or a
+    /// short text monogram (X).
     enum Glyph: Equatable {
         case text(String)
         case systemImage(String)
+        case asset(String)
     }
 
     let network: Network
@@ -95,7 +96,7 @@ enum AboutContentCatalog {
                 network: .douyin,
                 url: AppMetadata.authorDouyinURL,
                 titleKey: .settingsAboutSocialDouyin,
-                glyph: .text("抖"),
+                glyph: .asset("AboutSocialDouyin"),
                 chineseOnly: true
             )
         )
@@ -104,7 +105,7 @@ enum AboutContentCatalog {
                 network: .xiaohongshu,
                 url: AppMetadata.authorXiaohongshuURL,
                 titleKey: .settingsAboutSocialXiaohongshu,
-                glyph: .text("红"),
+                glyph: .asset("AboutSocialXiaohongshu"),
                 chineseOnly: true
             )
         )
@@ -113,7 +114,7 @@ enum AboutContentCatalog {
                 network: .bilibili,
                 url: AppMetadata.authorBilibiliURL,
                 titleKey: .settingsAboutSocialBilibili,
-                glyph: .text("B"),
+                glyph: .asset("AboutSocialBilibili"),
                 chineseOnly: true
             )
         )
@@ -199,6 +200,10 @@ enum AboutAssets {
     }
 
     static func storeIcon(named name: String) -> NSImage? {
+        image(named: name)
+    }
+
+    static func socialIcon(named name: String) -> NSImage? {
         image(named: name)
     }
 

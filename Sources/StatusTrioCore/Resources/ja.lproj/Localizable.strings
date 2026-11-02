@@ -661,7 +661,7 @@
 "settings.about.moreApps.title" = "その他のアプリ";
 "settings.about.moreApps.open" = "開く";
 "settings.about.moreApps.newtab01Description" = "ブックマーク連動の新しいタブ: フォルダーをタブグループや分割表示で開け、テーマも複数用意。";
-"settings.about.moreApps.noLazyloadDescription" = "画像の遅延読み込みを無効化: ビューポートに入った画像だけを読み込み、高速・省データ。";
+"settings.about.moreApps.noLazyloadDescription" = "ブラウザの画像の遅延読み込みを無効にし、ページを開いた時点で全ての画像を読み込みます。スクロールしながら読み込む必要はありません。";
 "settings.about.moreApps.fund01Description" = "投資信託の保有状況を監視: 前日比をメニューバー／タスクバーに常時表示し、複数グループをリアルタイム更新。";
 
 // About: community WeChat QR refresh

@@ -660,7 +660,7 @@
 "settings.about.moreApps.title" = "More Apps";
 "settings.about.moreApps.open" = "Open";
 "settings.about.moreApps.newtab01Description" = "Bookmark-driven new tab: open folders as tab groups or split view, with themes.";
-"settings.about.moreApps.noLazyloadDescription" = "Disable image lazy-load: load only images entering the viewport — faster pages, less data.";
+"settings.about.moreApps.noLazyloadDescription" = "Disable the browser's image lazy-loading so a page loads all images up front — no need to scroll to reveal them.";
 "settings.about.moreApps.fund01Description" = "Fund portfolio watcher: today’s change always in the menu bar or taskbar, with multiple groups refreshed live.";
 
 // About: community WeChat QR refresh
