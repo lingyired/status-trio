@@ -9,7 +9,8 @@
 
 ### Power
 
-- The centre slot can show live whole-machine power instead of a connection source, and Macs without a built-in battery are fully supported.
+- The centre slot can show live whole-machine power instead of a connection source.
+- Macs without a built-in battery can also show power and open the battery details.
 
 ### Displays
 

@@ -9,7 +9,8 @@
 
 ### Alimentazione
 
-- Lo slot centrale può mostrare la potenza totale in tempo reale invece della sorgente di connessione; i Mac senza batteria integrata sono pienamente supportati.
+- Lo slot centrale può mostrare la potenza totale in tempo reale invece della sorgente di connessione.
+- Anche i Mac senza batteria integrata possono mostrare la potenza e aprire i dettagli della batteria.
 
 ### Display
 
