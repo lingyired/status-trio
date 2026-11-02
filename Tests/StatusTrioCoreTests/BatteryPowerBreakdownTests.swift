@@ -290,4 +290,24 @@ final class BatteryPowerFlowLayoutTests: XCTestCase {
         hosting.layoutSubtreeIfNeeded()
         XCTAssertEqual(hosting.fittingSize.height, 140, accuracy: 0.5)
     }
+
+    /// A two-branch diagram must also size each card by its share: a tiny
+    /// display branch can no longer occupy a full fixed-height card next to the
+    /// system load. The old fixed two-card column was 132 pt tall.
+    func testTwoBranchDiagramSizesCardsByShare() {
+        let metrics = [
+            BatteryPowerFlowState.Metric(label: "显示器", value: "0.08 W", watts: 0.08, kind: .display),
+            BatteryPowerFlowState.Metric(label: "系统功耗", value: "28.03 W", watts: 28.03, kind: .system)
+        ]
+        let state = BatteryPowerFlowState(
+            input: .init(label: "充电器输入", value: "28.11 W", watts: 28.11),
+            destinations: metrics)
+        let hosting = NSHostingView(rootView: BatteryPowerFlowView(state: state).frame(width: 302))
+        hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
+        hosting.layoutSubtreeIfNeeded()
+
+        XCTAssertLessThan(hosting.fittingSize.height, 120,
+                          "A 0.3% branch must shrink instead of holding a full fixed card")
+        XCTAssertGreaterThan(hosting.fittingSize.height, 90)
+    }
 }

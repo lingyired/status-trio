@@ -6,10 +6,8 @@ struct BatteryPowerFlowView: View {
     let state: BatteryPowerFlowState
 
     private var destinations: [BatteryPowerFlowState.Metric] { state.destinations }
-    private var isCompact: Bool { destinations.count > 2 }
-    private var nodeHeight: CGFloat { isCompact ? 46 : 60 }
-    private var pitch: CGFloat { isCompact ? 50 : 70 }
-    private var topPadding: CGFloat { isCompact ? 2 : 1 }
+    /// Extra breathing room above and below the branch column.
+    private let topPadding: CGFloat = 2
 
     /// Rows grow with the branch's share of the budget so the card column reads
     /// in the same proportion as the ribbons: a minimum one-line row, a maximum
@@ -42,20 +40,21 @@ struct BatteryPowerFlowView: View {
     private static let ribbonFillStart: Double = 0.22
     private static let ribbonFillEnd: Double = 0.62
 
+    /// Every branch's height is its share of the budget, for any number of
+    /// branches. The proportion is itself a reading: a 0.3% display branch must
+    /// not look as heavy as the system load beside it.
     private func rowHeight(_ index: Int) -> CGFloat {
-        guard isCompact else { return nodeHeight }
         let share = min(1, max(0, state.flowFraction(for: destinations[index]) ?? 0))
         return Self.minRow + (Self.maxRow - Self.minRow) * share
     }
 
     private func showsLabel(_ index: Int) -> Bool {
-        !isCompact || rowHeight(index) >= Self.labelRow
+        rowHeight(index) >= Self.labelRow
     }
 
     /// Height of the branch column itself, without the view's padding.
     private var columnHeight: CGFloat {
         guard !destinations.isEmpty else { return 0 }
-        if !isCompact { return nodeHeight + CGFloat(destinations.count - 1) * pitch }
         return destinations.indices.reduce(CGFloat.zero) { $0 + rowHeight($1) }
             + Self.rowGap * CGFloat(destinations.count - 1)
     }
@@ -68,9 +67,6 @@ struct BatteryPowerFlowView: View {
     }
 
     private func centerY(_ index: Int) -> CGFloat {
-        guard isCompact else {
-            return destinations.count == 1 ? height / 2 : topPadding + nodeHeight / 2 + CGFloat(index) * pitch
-        }
         let rows = destinations.indices.reduce(0) { $0 + rowHeight($1) }
         let column = rows + Self.rowGap * CGFloat(destinations.count - 1)
         // A short column sits centred against the taller input card.
@@ -170,9 +166,9 @@ struct BatteryPowerFlowView: View {
             ForEach(Array(destinations.enumerated()), id: \.offset) { index, item in
                 metric(item, symbol: Self.symbol(for: item.kind),
                        color: Self.color(for: item.kind), height: rowHeight(index),
-                       singleLine: isCompact && !showsLabel(index),
-                       dense: isCompact && !showsLabel(index) && rowHeight(index) <= Self.denseRow,
-                       iconSize: isCompact && !showsLabel(index) && rowHeight(index) <= Self.denseRow
+                       singleLine: !showsLabel(index),
+                       dense: !showsLabel(index) && rowHeight(index) <= Self.denseRow,
+                       iconSize: !showsLabel(index) && rowHeight(index) <= Self.denseRow
                            ? 10 : Self.iconSize(for: item.kind))
                     .frame(width: state.input == nil ? width : 94)
                     .background(Self.color(for: item.kind).opacity(Self.cardFill), in: RoundedRectangle(cornerRadius: 12))
@@ -248,14 +244,14 @@ struct BatteryPowerFlowView: View {
                             .frame(width: 20)
                             .accessibilityHidden(true)
                         Text(value.value)
-                            .font(.system(size: isCompact ? 12 : 13, weight: .semibold, design: .rounded))
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     Text(value.label)
-                        .font(.system(size: isCompact ? 9 : 10))
+                        .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
