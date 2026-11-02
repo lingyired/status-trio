@@ -633,6 +633,25 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "系统充电状态可能已更改。再次点击以继续。";
 "battery.action.cancelChargeToFullNowPending" = "系统尚未确认临时充满状态，请稍后重试。";
 
+// Opt-in managed charge limit
+"settings.battery.chargeLimit.title" = "充电上限";
+"settings.battery.chargeLimit.target" = "最高充电量";
+"settings.battery.chargeLimit.description" = "立即应用上限，并在启动、唤醒或重新接通电源后重新应用。";
+"settings.battery.chargeLimit.systemManaged" = "由系统管理";
+"settings.battery.chargeLimit.status" = "状态";
+"settings.battery.chargeLimit.applying" = "正在应用充电上限…";
+"settings.battery.chargeLimit.systemStatus" = "Status Trio 当前不管理充电上限。";
+"settings.battery.chargeLimit.active" = "充电上限已设为 %d%%。";
+"settings.battery.chargeLimit.overridden" = "正在临时充满电。取消、充满电或重新接通电源后恢复 %d%% 上限。";
+"settings.battery.chargeLimit.failed" = "无法验证充电上限。请选择充电上限或「由系统管理」以重试。";
+"settings.battery.chargeLimit.externalChange" = "检测到其他充电上限，已暂停自动重新应用。请重新应用或选择上限以继续。";
+"settings.battery.chargeLimit.unavailable" = "已保存的 %d%% 上限当前不可用。请选择可用上限或「由系统管理」。";
+"settings.battery.chargeLimit.unavailableOption" = "%d%%（不可用）";
+"settings.battery.chargeLimit.reapply" = "重新应用";
+"settings.battery.chargeLimit.restoreDescription" = "「由系统管理」会恢复启用此功能前记录的系统上限。退出 Status Trio 后，最后应用的上限仍会保留。";
+"settings.battery.chargeLimit.support" = "适用于搭载 Apple 芯片且支持此功能的 Mac，需 macOS 26.4 或更高版本。macOS 可能会偶尔充满电，以保持电量估算准确。";
+"settings.battery.chargeLimit.checking" = "正在检查已保存的充电上限…";
+
 "settings.popup.order.brightness" = "亮度";
 "brightness.row.accessibility" = "%@ 的亮度，%@";
 "brightness.row.accessibilityUnavailable" = "%@ 的亮度，%@";

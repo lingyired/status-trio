@@ -12,6 +12,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let inputSourceController: InputSourceController
     private let globalShortcutController: GlobalShortcutController?
     private let chargeToFullNow: ChargeToFullNowController?
+    private let managedChargeLimit: ManagedChargeLimitController?
     private let activationPolicy: AppActivationPolicy
     private let showIconGuide: () -> Void
     private let backgroundUITesting: BackgroundUITestingConfiguration
@@ -39,6 +40,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         inputSourceController: InputSourceController? = nil,
         globalShortcutController: GlobalShortcutController? = nil,
         chargeToFullNow: ChargeToFullNowController? = nil,
+        managedChargeLimit: ManagedChargeLimitController? = nil,
         backgroundUITesting: BackgroundUITestingConfiguration = .disabled,
         presentWindow: @escaping @MainActor (NSWindow, SettingsWindowPresentation) -> Void = {
             window, mode in mode.present(window)
@@ -51,6 +53,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         self.inputSourceController = inputSourceController ?? InputSourceController()
         self.globalShortcutController = globalShortcutController
         self.chargeToFullNow = chargeToFullNow
+        self.managedChargeLimit = managedChargeLimit
         self.activationPolicy = activationPolicy
         self.showIconGuide = showIconGuide
         self.backgroundUITesting = backgroundUITesting
@@ -205,6 +208,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 inputSourceController: inputSourceController,
                 globalShortcutController: globalShortcutController,
                 chargeToFullNow: chargeToFullNow,
+                managedChargeLimit: managedChargeLimit,
                 onShowIconGuide: showIconGuide,
                 consumePendingSection: { [weak self] in self?.takePendingSection() }
             )

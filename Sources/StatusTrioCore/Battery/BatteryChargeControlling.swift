@@ -68,9 +68,14 @@ protocol BatteryChargeControlling: AnyObject {
     func readState() -> ChargeToFullNowDeviceState
     func chargeToFullNow() async -> ChargeToFullNowWriteResult
     func restoreChargeLimit(to limit: Int) async -> ChargeToFullNowWriteResult
+    func setChargeLimit(to limit: Int, expectedState: ChargeToFullNowDeviceState) async -> ChargeToFullNowWriteResult
 }
 
 extension BatteryChargeControlling {
+    func setChargeLimit(to limit: Int, expectedState: ChargeToFullNowDeviceState) async -> ChargeToFullNowWriteResult {
+        .failure
+    }
+
     func restoreChargeLimit(to limit: Int) async -> ChargeToFullNowWriteResult {
         .failure
     }
@@ -133,6 +138,19 @@ final class PowerUIChargeController: BatteryChargeControlling {
             )
         }
         let result = bridge.restoreChargeLimit(limit)
+        return ChargeToFullNowWriteResult(
+            succeeded: result.didSucceed,
+            errorMessage: result.didSucceed ? nil : result.errorMessage
+        )
+    }
+
+    func setChargeLimit(to limit: Int, expectedState: ChargeToFullNowDeviceState) async -> ChargeToFullNowWriteResult {
+        guard capability.isAvailable, let current = expectedState.mclLimit else { return .failure }
+        let result = bridge.applyChargeLimit(
+            limit,
+            expectedCurrentLimit: current,
+            expectedEnabledState: expectedState.mclEnabledRawValue
+        )
         return ChargeToFullNowWriteResult(
             succeeded: result.didSucceed,
             errorMessage: result.didSucceed ? nil : result.errorMessage

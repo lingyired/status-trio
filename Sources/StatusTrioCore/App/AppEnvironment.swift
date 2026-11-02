@@ -20,6 +20,7 @@ final class AppEnvironment {
     let dockChargingAnimationPresenter: (any DockChargingAnimationPresenting)?
     let dockVisibilityMonitor: (any DockVisibilityMonitoring)?
     let telemetryReporter: any TelemetryReporting
+    let managedChargeLimit: ManagedChargeLimitController?
     let bluetoothAudioIconOverrideSynchronizer = BluetoothAudioIconOverrideSynchronizer()
     private let bluetoothProfilerCache: BluetoothProfilerReportCache
     private let bluetoothNearbyBatteryOptOutSynchronizer = BluetoothNearbyBatteryOptOutSynchronizer()
@@ -59,7 +60,8 @@ final class AppEnvironment {
         memoryPressureMonitor: MemoryPressureMonitor? = nil,
         bluetoothProfilerCache: BluetoothProfilerReportCache = .shared,
         previewResourceLifecycle: PreviewResourceLifecycle? = nil,
-        backgroundUITesting: BackgroundUITestingConfiguration = .disabled
+        backgroundUITesting: BackgroundUITestingConfiguration = .disabled,
+        managedChargeLimit: ManagedChargeLimitController? = nil
     ) {
         self.store = store
         self.settings = settings
@@ -78,6 +80,7 @@ final class AppEnvironment {
         self.dockChargingAnimationPresenter = dockChargingAnimationPresenter
         self.dockVisibilityMonitor = dockVisibilityMonitor
         self.telemetryReporter = telemetryReporter
+        self.managedChargeLimit = managedChargeLimit
         self.memoryPressureMonitor = memoryPressureMonitor ?? MemoryPressureMonitor()
         self.bluetoothProfilerCache = bluetoothProfilerCache
         self.previewResourceLifecycle = previewResourceLifecycle ?? PreviewResourceLifecycle()
@@ -143,10 +146,15 @@ final class AppEnvironment {
         store.bindExternalVolumeSettings(settings)
         store.bindExternalBrightnessSettings(settings)
         store.start()
+        managedChargeLimit?.start(
+            batteries: store.$snapshot.dropFirst().map { $0.battery }
+                .removeDuplicates().eraseToAnyPublisher()
+        )
         telemetryReporter.start()
     }
 
     func stop() {
+        managedChargeLimit?.stop()
         memoryPressureMonitor.stop()
         memoryPressureMonitor.onPressure = nil
         telemetryReporter.stop()
@@ -459,14 +467,19 @@ final class AppEnvironment {
         )
         let chargingEffectClock = ChargingEffectClock()
         let chargingEffectMotionMonitor = ChargingEffectMotionMonitor()
-        let chargeToFullNow = ChargeToFullNowController(
+        let managedChargeLimit = ManagedChargeLimitController(
             backend: PowerUIChargeController(),
+            sessionStore: UserDefaultsManagedChargeLimitSessionStore(defaults: .standard)
+        )
+        let chargeToFullNow = ChargeToFullNowController(
+            backend: managedChargeLimit,
             sessionStore: UserDefaultsChargeToFullNowSessionStore(
                 defaults: .standard
             ),
             restoreLimit: {
                 Int(settings.chargeToFullRestoreLimit.rounded())
-            }
+            },
+            managedRestoreLimit: { managedChargeLimit.managedRestoreLimit }
         )
         let dockChargingAnimationPresenter: any DockChargingAnimationPresenting =
             DockChargingAnimationRendererMode.usesApplicationIconFrames()
@@ -515,6 +528,7 @@ final class AppEnvironment {
             inputSourceController: inputSourceController,
             globalShortcutController: globalShortcutController,
             chargeToFullNow: chargeToFullNow,
+            managedChargeLimit: managedChargeLimit,
             backgroundUITesting: backgroundUITesting
         )
         settingsWindowController = resolvedSettingsWindowController
@@ -589,7 +603,8 @@ final class AppEnvironment {
             dockChargingAnimationPresenter: dockChargingAnimationPresenter,
             dockVisibilityMonitor: dockVisibilityMonitor,
             telemetryReporter: telemetryReporter,
-            backgroundUITesting: backgroundUITesting
+            backgroundUITesting: backgroundUITesting,
+            managedChargeLimit: managedChargeLimit
         )
     }
 

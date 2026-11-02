@@ -633,6 +633,25 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "Der System-Ladestatus hat sich möglicherweise geändert. Zum Fortfahren erneut klicken.";
 "battery.action.cancelChargeToFullNowPending" = "Das System hat das vorübergehende Laden auf 100 % noch nicht bestätigt. Bitte gleich erneut versuchen.";
 
+// Opt-in managed charge limit
+"settings.battery.chargeLimit.title" = "Ladelimit";
+"settings.battery.chargeLimit.target" = "Maximaler Ladestand";
+"settings.battery.chargeLimit.description" = "Ein Limit jetzt anwenden und nach dem Start, Aufwachen oder erneuten Netzanschluss wieder anwenden.";
+"settings.battery.chargeLimit.systemManaged" = "Vom System verwaltet";
+"settings.battery.chargeLimit.status" = "Status";
+"settings.battery.chargeLimit.applying" = "Ladelimit wird angewendet…";
+"settings.battery.chargeLimit.systemStatus" = "Status Trio verwaltet das Ladelimit nicht.";
+"settings.battery.chargeLimit.active" = "Das Ladelimit ist auf %d%% eingestellt.";
+"settings.battery.chargeLimit.overridden" = "Der Akku wird vorübergehend vollgeladen. Nach Abbruch, voller Ladung oder erneutem Netzanschluss gilt wieder das Limit von %d%%.";
+"settings.battery.chargeLimit.failed" = "Das Ladelimit konnte nicht bestätigt werden. Ein Ladelimit oder „Vom System verwaltet“ wählen, um es erneut zu versuchen.";
+"settings.battery.chargeLimit.externalChange" = "Ein anderes Ladelimit wurde erkannt. Die automatische Anwendung pausiert. Zum Fortfahren erneut anwenden oder ein Limit wählen.";
+"settings.battery.chargeLimit.unavailable" = "Das gespeicherte Limit von %d%% ist derzeit nicht verfügbar. Ein verfügbares Limit oder „Vom System verwaltet“ wählen.";
+"settings.battery.chargeLimit.unavailableOption" = "%d%% (nicht verfügbar)";
+"settings.battery.chargeLimit.reapply" = "Erneut anwenden";
+"settings.battery.chargeLimit.restoreDescription" = "„Vom System verwaltet“ stellt das vor Aktivierung dieser Funktion gespeicherte Systemlimit wieder her. Das zuletzt angewendete Limit bleibt nach dem Beenden von Status Trio bestehen.";
+"settings.battery.chargeLimit.support" = "Für unterstützte Macs mit Apple Chip und macOS 26.4 oder neuer. macOS lädt gelegentlich vollständig auf, um die Genauigkeit der Ladestandsanzeige zu erhalten.";
+"settings.battery.chargeLimit.checking" = "Gespeichertes Ladelimit wird geprüft…";
+
 "settings.popup.order.brightness" = "Helligkeit";
 "brightness.row.accessibility" = "Helligkeit für %@, %@";
 "brightness.row.accessibilityUnavailable" = "Helligkeit für %@, %@";

@@ -633,6 +633,25 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "システムの充電状態が変更された可能性があります。もう一度クリックして続行してください。";
 "battery.action.cancelChargeToFullNowPending" = "システムが一時的なフル充電をまだ確認できていません。少し待ってから再試行してください。";
 
+// Opt-in managed charge limit
+"settings.battery.chargeLimit.title" = "充電上限";
+"settings.battery.chargeLimit.target" = "最大充電量";
+"settings.battery.chargeLimit.description" = "今すぐ上限を適用し、起動時、スリープ解除時、電源の再接続時に再適用します。";
+"settings.battery.chargeLimit.systemManaged" = "システム管理";
+"settings.battery.chargeLimit.status" = "状態";
+"settings.battery.chargeLimit.applying" = "充電上限を適用中…";
+"settings.battery.chargeLimit.systemStatus" = "Status Trio は充電上限を管理していません。";
+"settings.battery.chargeLimit.active" = "充電上限は %d%% に設定されています。";
+"settings.battery.chargeLimit.overridden" = "一時的にフル充電しています。キャンセル時、フル充電時、電源の再接続時に %d%% の上限を再開します。";
+"settings.battery.chargeLimit.failed" = "充電上限を確認できませんでした。上限または「システム管理」を選んで再試行してください。";
+"settings.battery.chargeLimit.externalChange" = "別の充電上限が検出されたため、自動再適用を一時停止しました。再適用するか、上限を選択して再開してください。";
+"settings.battery.chargeLimit.unavailable" = "保存された %d%% の上限は現在利用できません。利用可能な上限か「システム管理」を選んでください。";
+"settings.battery.chargeLimit.unavailableOption" = "%d%%（利用不可）";
+"settings.battery.chargeLimit.reapply" = "再適用";
+"settings.battery.chargeLimit.restoreDescription" = "「システム管理」は、この機能を有効にする前に記録したシステムの上限に戻します。Status Trio を終了しても、最後に適用した上限は維持されます。";
+"settings.battery.chargeLimit.support" = "macOS 26.4 以降を搭載した対応する Apple シリコン Mac で利用できます。macOS はバッテリー残量の精度を保つため、時折フル充電する場合があります。";
+"settings.battery.chargeLimit.checking" = "保存された充電上限を確認中…";
+
 "settings.popup.order.brightness" = "明るさ";
 "brightness.row.accessibility" = "%@ の明るさ、%@";
 "brightness.row.accessibilityUnavailable" = "%@ の明るさ、%@";
