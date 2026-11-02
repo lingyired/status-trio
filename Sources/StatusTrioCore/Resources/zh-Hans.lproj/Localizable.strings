@@ -644,3 +644,26 @@
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "调整已连接显示器的亮度。";
 "settings.brightness.backend" = "%@ 的亮度后端";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "关注作者";
+"settings.about.social.douyin" = "抖音";
+"settings.about.social.xiaohongshu" = "小红书";
+"settings.about.social.bilibili" = "哔哩哔哩";
+"settings.about.social.blog" = "个人博客";
+"settings.about.community.title" = "加入社群";
+"settings.about.community.qq" = "QQ 群";
+"settings.about.community.qqDescription" = "加入 Status Trio 用户群，交流问题与反馈。";
+"settings.about.community.wechat" = "微信群";
+"settings.about.community.wechatDescription" = "扫码加入 Status Trio 微信群。二维码会定期更新，点「刷新」可拉取 GitHub 上的最新二维码。";
+"settings.about.community.copy" = "复制";
+"settings.about.community.copied" = "已复制";
+"settings.about.moreApps.title" = "作者的其他作品";
+"settings.about.moreApps.open" = "打开";
+"settings.about.moreApps.newtab01Description" = "书签驱动的新标签页：文件夹一键开成标签组或分屏，多套主题。";
+"settings.about.moreApps.noLazyloadDescription" = "禁用浏览器的图片懒加载，让页面一打开就加载全部图片，不必边滚动边加载。";
+"settings.about.moreApps.fund01Description" = "基金持仓盯盘，涨跌幅常驻菜单栏 / 任务栏，多分组实时刷新。";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "刷新";
+"settings.about.community.refreshFailed" = "二维码加载失败，请重试。";

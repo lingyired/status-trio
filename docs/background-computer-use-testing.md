@@ -6,9 +6,9 @@ The reusable procedure is
 [`background-ui-testing`](../.agents/skills/background-ui-testing/SKILL.md).
 Its non-interference contract applies to every agent and harness. This document
 is Status Trio's project adapter: Debug launch flags, supported presentation,
-verified controls, diagnostics, and rollback. The project's native Codex CU
-restriction remains in force; the general skill does not enable other GUI
-providers or confer permissions.
+verified controls, provider support, diagnostics, and rollback. The reusable
+skill neither requires nor authorizes installing a provider; it supplies the
+capability gate this project applies to every provider.
 
 Functional and background acceptance are separate. A manual menu-bar/Dock
 click that opens an activating popover can pass functional acceptance while
@@ -17,9 +17,9 @@ does not cover it; inspect action timestamps before citing zero activations.
 No skill or instruction file enforces behavior in a harness that did not
 actually load it.
 
-This is an opt-in **Debug Settings and first-run guide mode**, tested with Codex
-native Computer Use. It is not a separate input session. Spaces, displays and
-applications still share foreground and keyboard focus.
+This is an opt-in **Debug Settings and first-run guide mode**, first tested with
+Codex native Computer Use. It is not a separate input session. Spaces, displays
+and applications still share foreground and keyboard focus.
 
 The Phase 1 feasibility gate passed on October 31, 2026: the throwaway
 accessory-window probe supported setting changes, sidebar navigation and
@@ -42,6 +42,42 @@ call `NSApp.activate`, even with authorization already granted. **Do not click
 these controls during a background test.** Leave their actual tests `NOT RUN`
 or run them in an explicitly foreground session. This change does not broaden
 the permission behavior to make them appear supported.
+
+## Computer Use provider support
+
+The project accepts any Computer Use provider that passes the background
+capability gate in
+[harness-adapters.md](../.agents/skills/background-ui-testing/references/harness-adapters.md);
+Codex native Computer Use is not the only permitted provider. First-class
+providers are Codex native Computer Use, `kimi-cu` MCP, and `agent-desktop`.
+Any other instance-scoped AX/DOM/window provider is allowed under the same gate.
+Foreground/global keyboard or pointer input is never allowed, whether it comes
+from a provider, `osascript`/System Events, `CGEventPost`, `cliclick`, or a
+per-pixel pointer loop.
+
+Selection order:
+
+1. A CU tool explicitly named in the project `AGENTS.md` or the user-level
+   `AGENTS.md` / harness instruction file (for example, a user rule that
+   prefers `kimi-cu` MCP), when the current session actually exposes it.
+2. Otherwise, any available provider that passes the per-run capability record
+   (target selection, launch/attach, observation, input, interference trace,
+   lifecycle) without a foreground transition.
+3. If no provider is available, report the affected steps as
+   `BLOCKED (no Computer Use provider)`, name the providers checked, and say
+   what connecting one would unlock. A provider that is installed but not
+   connected to the current harness counts as unavailable.
+
+| Provider | Exposed as | Status on this project |
+| --- | --- | --- |
+| Codex native Computer Use | native CU service exposed to Codex | Phase 1 gate and first-run guide gate passed (see below) |
+| `kimi-cu` MCP | MCP server (Apple-silicon app at `/Applications/KimiCU.app`) | capability gate required; not yet verified here |
+| `agent-desktop` | CLI (global npm, e.g. `agent-desktop@1.0.2`) | installed on this host; default is AX press / headless, `--headed` permits physical input; capability gate required, not yet verified here |
+
+An unverified provider reaches `PASS` only for actions actually exercised under
+this gate; unexercised click, menu, text-input or permission actions stay
+`NOT RUN` with the reason recorded. Do not claim another provider inherits
+Codex's results.
 
 ## Launch and fallback
 

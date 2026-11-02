@@ -644,3 +644,26 @@
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "接続されているディスプレイの明るさを調整します。";
 "settings.brightness.backend" = "%@ の明るさバックエンド";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "作者をフォロー";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "ブログ";
+"settings.about.community.title" = "コミュニティ";
+"settings.about.community.qq" = "QQグループ";
+"settings.about.community.qqDescription" = "質問やフィードバックのため Status Trio グループにご参加ください。";
+"settings.about.community.wechat" = "WeChatグループ";
+"settings.about.community.wechatDescription" = "WeChatでスキャンして Status Trio グループに参加できます。QRコードは定期的に更新されます。最新版は GitHub README をご覧ください。";
+"settings.about.community.copy" = "コピー";
+"settings.about.community.copied" = "コピーしました";
+"settings.about.moreApps.title" = "作者の他の作品";
+"settings.about.moreApps.open" = "開く";
+"settings.about.moreApps.newtab01Description" = "ブックマーク連動の新しいタブ: フォルダーをタブグループや分割表示で開け、テーマも複数用意。";
+"settings.about.moreApps.noLazyloadDescription" = "ブラウザの画像の遅延読み込みを無効にし、ページを開いた時点で全ての画像を読み込みます。スクロールしながら読み込む必要はありません。";
+"settings.about.moreApps.fund01Description" = "投資信託の保有状況を監視: 前日比をメニューバー／タスクバーに常時表示し、複数グループをリアルタイム更新。";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

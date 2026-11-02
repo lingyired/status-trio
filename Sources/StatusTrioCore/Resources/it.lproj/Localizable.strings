@@ -644,3 +644,26 @@
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Regola la luminosità dei display collegati.";
 "settings.brightness.backend" = "Backend luminosità per %@";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "Segui l’autore";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "Blog";
+"settings.about.community.title" = "Community";
+"settings.about.community.qq" = "Gruppo QQ";
+"settings.about.community.qqDescription" = "Unisciti al gruppo Status Trio per domande e feedback.";
+"settings.about.community.wechat" = "Gruppo WeChat";
+"settings.about.community.wechatDescription" = "Scansiona con WeChat per unirti al gruppo Status Trio. Il codice QR viene rinnovato periodicamente; consulta il README su GitHub per l’ultimo.";
+"settings.about.community.copy" = "Copia";
+"settings.about.community.copied" = "Copiato";
+"settings.about.moreApps.title" = "Altri lavori dell’autore";
+"settings.about.moreApps.open" = "Apri";
+"settings.about.moreApps.newtab01Description" = "Nuova scheda basata sui segnalibri: apri le cartelle come gruppi di schede o in vista divisa, con diversi temi.";
+"settings.about.moreApps.noLazyloadDescription" = "Disattiva il caricamento differito delle immagini del browser così la pagina carica subito tutte le immagini, senza dover scorrere.";
+"settings.about.moreApps.fund01Description" = "Monitoraggio del portafoglio: la variazione del giorno sempre nella barra dei menu o nella barra delle applicazioni, più gruppi aggiornati in tempo reale.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

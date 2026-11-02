@@ -71,6 +71,22 @@ struct AboutSectionView: View {
                 .padding(.horizontal, SettingsMetrics.rowPaddingH)
                 .padding(.vertical, 14)
             }
+
+            SettingsGroup(localization.string(.settingsAboutSocialTitle)) {
+                AboutSocialLinksView()
+                    .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                    .padding(.vertical, 12)
+            }
+
+            if localization.resolvedLanguage.isChinese {
+                SettingsGroup(localization.string(.settingsAboutCommunityTitle)) {
+                    AboutCommunityView()
+                }
+            }
+
+            SettingsGroup(localization.string(.settingsAboutMoreAppsTitle)) {
+                AboutMoreAppsView()
+            }
         }
     }
 }
