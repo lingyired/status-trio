@@ -45,6 +45,14 @@ GUI action is still a GUI action. A tool that requires foreground/global input
 belongs in an explicitly foreground test, not an activate/restore loop.
 This skill neither requires nor authorizes installing a third-party provider.
 
+MCP-exposed desktop CU providers are judged by the same capability record: an
+MCP tool name is not evidence of instance-scoped input. Confirm whether the
+provider's click/type/scroll use remote AX/DOM/window actions or
+foreground/global events, and whether its screenshots and accessibility reads
+are instance-scoped. If the current session exposes no CU provider, say so
+explicitly and report the affected steps as blocked; do not silently substitute
+`osascript`, `CGEventPost`, or `cliclick`.
+
 ## Codex native CU example
 
 Discover the native interface exposed in the current session and use its
