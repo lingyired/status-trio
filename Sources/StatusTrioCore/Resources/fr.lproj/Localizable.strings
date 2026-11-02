@@ -663,3 +663,7 @@
 "settings.about.moreApps.newtab01Description" = "Nouvel onglet basé sur les favoris : ouvrez des dossiers en groupes d’onglets ou en vue partagée, avec plusieurs thèmes.";
 "settings.about.moreApps.noLazyloadDescription" = "Désactivez le chargement différé des images : seules les images visibles sont chargées, pour des pages plus rapides et moins de données.";
 "settings.about.moreApps.fund01Description" = "Suivi de portefeuille : la variation du jour toujours dans la barre des menus ou la barre des tâches, plusieurs groupes actualisés en direct.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

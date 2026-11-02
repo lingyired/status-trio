@@ -48,6 +48,9 @@ struct AboutCommunityView: View {
     @EnvironmentObject private var localization: Localization
 
     @State private var copied = false
+    @State private var weChatImage: NSImage?
+    @State private var isRefreshingWeChat = false
+    @State private var weChatRefreshFailed = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -106,12 +109,39 @@ struct AboutCommunityView: View {
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 8) {
+                    Button {
+                        refreshWeChatQR()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.clockwise")
+                            Text(localization.string(.settingsAboutCommunityRefresh))
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(isRefreshingWeChat)
+
+                    if isRefreshingWeChat {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+                .padding(.top, 2)
+
+                if weChatRefreshFailed {
+                    Text(localization.string(.settingsAboutCommunityRefreshFailed))
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             Spacer(minLength: 8)
 
             qrTile(
-                AboutAssets.weChatQRCode,
+                weChatImage ?? AboutAssets.weChatQRCode,
                 label: localization.string(.settingsAboutCommunityWeChat)
             )
         }
@@ -146,6 +176,35 @@ struct AboutCommunityView: View {
             copied = false
         }
     }
+
+    /// Pulls the latest README-hosted QR so the owner can rotate the group QR
+    /// in the repository without shipping a new build. Network access happens
+    /// only on this explicit tap — no polling.
+    private func refreshWeChatQR() {
+        guard !isRefreshingWeChat else { return }
+        isRefreshingWeChat = true
+        weChatRefreshFailed = false
+        Task { @MainActor in
+            defer { isRefreshingWeChat = false }
+            do {
+                var request = URLRequest(url: AppMetadata.weChatGroupImageURL)
+                request.cachePolicy = .reloadIgnoringLocalCacheData
+                request.timeoutInterval = 15
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard
+                    let http = response as? HTTPURLResponse,
+                    http.statusCode == 200,
+                    let image = NSImage(data: data)
+                else {
+                    weChatRefreshFailed = true
+                    return
+                }
+                weChatImage = AboutAssets.normalizedWeChatQR(image)
+            } catch {
+                weChatRefreshFailed = true
+            }
+        }
+    }
 }
 
 /// "More Apps" group: a tappable list of the author's other apps.
@@ -171,32 +230,67 @@ private struct AboutAppRow: View {
     let app: AboutAppLink
 
     var body: some View {
-        Link(destination: app.url) {
-            HStack(spacing: 12) {
-                icon
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(app.name)
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(localization.string(app.subtitleKey))
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 8)
-                Text(localization.string(.settingsAboutMoreAppsOpen))
+        HStack(alignment: .top, spacing: 12) {
+            icon
+                .padding(.top, 1)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(app.name)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(localization.string(app.subtitleKey))
                     .font(.system(size: 11.5))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 3)
-                    .background(
-                        Capsule().fill(Color.primary.opacity(0.06))
-                    )
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                WrappingHStack(spacing: 6, rowSpacing: 6) {
+                    ForEach(Array(app.links.enumerated()), id: \.offset) { _, link in
+                        Link(destination: link.url) {
+                            HStack(spacing: 4) {
+                                storeGlyph(link.icon)
+                                Text(title(for: link.label))
+                            }
+                            .font(.system(size: 11, weight: .medium))
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                        .accessibilityLabel("\(app.name) — \(title(for: link.label))")
+                    }
+                }
+                .padding(.top, 1)
             }
-            .contentShape(Rectangle())
-            .padding(.horizontal, SettingsMetrics.rowPaddingH)
-            .padding(.vertical, 10)
+
+            Spacer(minLength: 0)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(app.name) — \(localization.string(.settingsAboutMoreAppsOpen))")
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.vertical, 11)
+    }
+
+    private func title(for label: AboutAppLink.LinkLabel) -> String {
+        switch label {
+        case .literal(let text):
+            return text
+        case .key(let key):
+            return localization.string(key)
+        }
+    }
+
+    @ViewBuilder
+    private func storeGlyph(_ icon: AboutAppLink.StoreIcon?) -> some View {
+        if let icon {
+            switch icon {
+            case .asset(let name):
+                if let image = AboutAssets.storeIcon(named: name) {
+                    Image(nsImage: image)
+                        .resizable()
+                        .interpolation(.high)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 13, height: 13)
+                }
+            case .systemImage(let name):
+                Image(systemName: name)
+                    .font(.system(size: 11))
+            }
+        }
     }
 
     @ViewBuilder

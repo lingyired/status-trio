@@ -663,3 +663,7 @@
 "settings.about.moreApps.newtab01Description" = "Nueva pestaña basada en marcadores: abre carpetas como grupos de pestañas o en vista dividida, con varios temas.";
 "settings.about.moreApps.noLazyloadDescription" = "Desactiva la carga diferida de imágenes: carga solo las imágenes visibles para páginas más rápidas y con menos datos.";
 "settings.about.moreApps.fund01Description" = "Seguimiento de fondos: la variación del día siempre en la barra de menús o la barra de tareas, con varios grupos actualizados en vivo.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

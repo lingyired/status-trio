@@ -363,6 +363,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsAboutCommunityWeChatDescription = "settings.about.community.wechatDescription"
     case settingsAboutCommunityCopy = "settings.about.community.copy"
     case settingsAboutCommunityCopied = "settings.about.community.copied"
+    case settingsAboutCommunityRefresh = "settings.about.community.refresh"
+    case settingsAboutCommunityRefreshFailed = "settings.about.community.refreshFailed"
     case settingsAboutMoreAppsTitle = "settings.about.moreApps.title"
     case settingsAboutMoreAppsOpen = "settings.about.moreApps.open"
     case settingsAboutMoreAppsNewtab01Description = "settings.about.moreApps.newtab01Description"

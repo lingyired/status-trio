@@ -663,3 +663,7 @@
 "settings.about.moreApps.newtab01Description" = "ブックマーク連動の新しいタブ: フォルダーをタブグループや分割表示で開け、テーマも複数用意。";
 "settings.about.moreApps.noLazyloadDescription" = "画像の遅延読み込みを無効化: ビューポートに入った画像だけを読み込み、高速・省データ。";
 "settings.about.moreApps.fund01Description" = "投資信託の保有状況を監視: 前日比をメニューバー／タスクバーに常時表示し、複数グループをリアルタイム更新。";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

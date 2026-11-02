@@ -663,3 +663,7 @@
 "settings.about.moreApps.newtab01Description" = "북마크 기반 새 탭: 폴더를 탭 그룹이나 분할 보기로 열 수 있고 다양한 테마 제공.";
 "settings.about.moreApps.noLazyloadDescription" = "이미지 지연 로딩 사용 안 함: 뷰포트에 들어온 이미지만 불러와 더 빠르고 데이터를 절약합니다.";
 "settings.about.moreApps.fund01Description" = "펀드 보유 현황 모니터링: 당일 등락률을 메뉴 막대/작업 표시줄에 상시 표시하고 여러 그룹을 실시간 갱신.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

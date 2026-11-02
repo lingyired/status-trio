@@ -655,7 +655,7 @@
 "settings.about.community.qq" = "QQ 群";
 "settings.about.community.qqDescription" = "加入 Status Trio 用户群，交流问题与反馈。";
 "settings.about.community.wechat" = "微信群";
-"settings.about.community.wechatDescription" = "微信扫码加入 Status Trio 微信群。二维码定期更新，失效请到 GitHub README 获取最新。";
+"settings.about.community.wechatDescription" = "扫码加入 Status Trio 微信群。二维码会定期更新，点「刷新」可拉取 GitHub 上的最新二维码。";
 "settings.about.community.copy" = "复制";
 "settings.about.community.copied" = "已复制";
 "settings.about.moreApps.title" = "更多 App";
@@ -663,3 +663,7 @@
 "settings.about.moreApps.newtab01Description" = "书签驱动的新标签页：文件夹一键开成标签组或分屏，多套主题。";
 "settings.about.moreApps.noLazyloadDescription" = "禁用图片懒加载：只加载进入视口的图片，网页更快更省流量。";
 "settings.about.moreApps.fund01Description" = "基金持仓盯盘，涨跌幅常驻菜单栏 / 任务栏，多分组实时刷新。";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "刷新";
+"settings.about.community.refreshFailed" = "二维码加载失败，请重试。";

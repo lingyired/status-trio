@@ -663,3 +663,7 @@
 "settings.about.moreApps.newtab01Description" = "Новая вкладка на основе закладок: открывайте папки как группы вкладок или в разделённом виде, с несколькими темами.";
 "settings.about.moreApps.noLazyloadDescription" = "Отключите ленивую загрузку изображений: загружаются только видимые изображения — быстрее и меньше трафика.";
 "settings.about.moreApps.fund01Description" = "Мониторинг портфеля фондов: дневное изменение всегда в строке меню или на панели задач, несколько групп обновляются в реальном времени.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

@@ -73,10 +73,37 @@ enum AppMetadata {
 
     static let qqGroupNumber = "735856753"
 
-    // MARK: About — other apps by the author
+    /// The README-hosted WeChat group QR (a poster). The Community card can
+    /// refresh the in-app QR from this URL so the owner can rotate the group QR
+    /// in the repository without rebuilding the app.
+    static let weChatGroupImageURL = URL(
+        string: "https://raw.githubusercontent.com/lingyired/status-trio/main/screenshots/status-trio-wechat-group.png"
+    )!
 
-    static let newtab01URL = URL(string: "https://lingai.net/newtab01/")!
-    static let noLazyloadURL = URL(string: "https://lingai.net/no-lazyload/")!
+    // MARK: About — other apps by the author
+    //
+    // Store listings are preferred over the project homepages because the
+    // homepages are not localized; the stores follow the user's language.
+    // fund01 stays on its project homepage because it is Chinese-only.
+
+    static let newtab01ChromeURL = URL(
+        string: "https://chromewebstore.google.com/detail/newtab01/nlecfkdndodablijmfcjbnannkgmpegj"
+    )!
+    static let newtab01EdgeURL = URL(
+        string: "https://microsoftedge.microsoft.com/addons/detail/fpeecbmmlohilnpndglclffekddafele"
+    )!
+    static let noLazyloadChromeURL = URL(
+        string: "https://chromewebstore.google.com/detail/no-lazyload-disable-image/gdaoomgmekonglmdeaoengblkjeopall"
+    )!
+    static let noLazyloadEdgeURL = URL(
+        string: "https://microsoftedge.microsoft.com/addons/detail/fmemfkecmbfpmodcmfalihhknaohjefp"
+    )!
+    static let noLazyloadFirefoxURL = URL(
+        string: "https://addons.mozilla.org/firefox/addon/no-lazyload/"
+    )!
+    static let noLazyloadAppStoreURL = URL(
+        string: "https://apps.apple.com/app/id6825400530?mt=12"
+    )!
     static let fund01URL = URL(string: "https://lingai.net/fund01/")!
 
     static var versionDisplayString: String {

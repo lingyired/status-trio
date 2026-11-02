@@ -54,11 +54,47 @@ final class AboutContentTests: XCTestCase {
 
     func testAllCatalogURLsAreAbsolute() {
         let urls = AboutContentCatalog.socialLinks(for: .simplifiedChinese).map(\.url)
-            + AboutContentCatalog.apps(for: .simplifiedChinese).map(\.url)
+            + AboutContentCatalog.apps(for: .simplifiedChinese).flatMap(\.links).map(\.url)
         for url in urls {
             XCTAssertNotNil(url.scheme)
             XCTAssertNotNil(url.host)
         }
+    }
+
+    func testStoreLinksPerApp() {
+        let apps = AboutContentCatalog.apps(for: .simplifiedChinese)
+
+        func literalTitles(_ id: AboutAppLink.Identity) -> [String] {
+            let app = apps.first { $0.identity == id }
+            return (app?.links ?? []).map { link in
+                if case .literal(let title) = link.label { return title }
+                return "<localized>"
+            }
+        }
+
+        XCTAssertEqual(literalTitles(.newtab01), ["Chrome", "Edge"])
+        XCTAssertEqual(literalTitles(.noLazyload), ["Chrome", "Edge", "Firefox", "App Store"])
+
+        let fund = apps.first { $0.identity == .fund01 }
+        XCTAssertEqual(fund?.links.count, 1)
+        XCTAssertEqual(fund?.links.first?.label, .key(.settingsAboutProject))
+    }
+
+    func testEdgeLinksPointToDedicatedListings() {
+        let apps = AboutContentCatalog.apps(for: .english)
+        func edgeURL(_ id: AboutAppLink.Identity) -> String? {
+            apps.first { $0.identity == id }?
+                .links.first { $0.label == .literal("Edge") }?
+                .url.absoluteString
+        }
+        XCTAssertEqual(
+            edgeURL(.newtab01),
+            "https://microsoftedge.microsoft.com/addons/detail/fpeecbmmlohilnpndglclffekddafele"
+        )
+        XCTAssertEqual(
+            edgeURL(.noLazyload),
+            "https://microsoftedge.microsoft.com/addons/detail/fmemfkecmbfpmodcmfalihhknaohjefp"
+        )
     }
 
     func testBundledAboutImagesArePresent() {

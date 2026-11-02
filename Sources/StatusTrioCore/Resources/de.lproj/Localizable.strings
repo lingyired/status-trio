@@ -663,3 +663,7 @@
 "settings.about.moreApps.newtab01Description" = "Lesezeichenbasierter neuer Tab: Ordner als Tab-Gruppen oder in geteilter Ansicht öffnen, mit mehreren Designs.";
 "settings.about.moreApps.noLazyloadDescription" = "Bild-Lazy-Loading deaktivieren: Nur Bilder im Sichtbereich laden – schnellere Seiten, weniger Daten.";
 "settings.about.moreApps.fund01Description" = "Fonds-Depot im Blick: Tagesänderung stets in der Menüleiste bzw. Taskleiste, mehrere Gruppen live aktualisiert.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

@@ -654,7 +654,7 @@
 "settings.about.community.qq" = "QQ Group";
 "settings.about.community.qqDescription" = "Join the Status Trio group for questions and feedback.";
 "settings.about.community.wechat" = "WeChat Group";
-"settings.about.community.wechatDescription" = "Scan with WeChat to join the Status Trio group. The QR code rotates periodically; see the GitHub README for the latest.";
+"settings.about.community.wechatDescription" = "Scan with WeChat to join the Status Trio group. The QR code rotates periodically; tap Refresh to load the latest from GitHub.";
 "settings.about.community.copy" = "Copy";
 "settings.about.community.copied" = "Copied";
 "settings.about.moreApps.title" = "More Apps";
@@ -662,3 +662,7 @@
 "settings.about.moreApps.newtab01Description" = "Bookmark-driven new tab: open folders as tab groups or split view, with themes.";
 "settings.about.moreApps.noLazyloadDescription" = "Disable image lazy-load: load only images entering the viewport — faster pages, less data.";
 "settings.about.moreApps.fund01Description" = "Fund portfolio watcher: today’s change always in the menu bar or taskbar, with multiple groups refreshed live.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

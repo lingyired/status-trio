@@ -655,7 +655,7 @@
 "settings.about.community.qq" = "QQ 群";
 "settings.about.community.qqDescription" = "加入 Status Trio 使用者群，交流問題與回饋。";
 "settings.about.community.wechat" = "微信群";
-"settings.about.community.wechatDescription" = "微信掃碼加入 Status Trio 微信群。二維碼定期更新，失效請到 GitHub README 取得最新。";
+"settings.about.community.wechatDescription" = "掃碼加入 Status Trio 微信群。二維碼會定期更新，點「重新整理」可取得 GitHub 上的最新二維碼。";
 "settings.about.community.copy" = "複製";
 "settings.about.community.copied" = "已複製";
 "settings.about.moreApps.title" = "更多 App";
@@ -663,3 +663,7 @@
 "settings.about.moreApps.newtab01Description" = "書籤驅動的新分頁：資料夾一鍵開成分頁群組或分割檢視，多套主題。";
 "settings.about.moreApps.noLazyloadDescription" = "禁用圖片延遲載入：只載入進入視窗的圖片，網頁更快更省流量。";
 "settings.about.moreApps.fund01Description" = "基金持股盯盤，漲跌幅常駐選單列 / 工作列，多群組即時更新。";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "重新整理";
+"settings.about.community.refreshFailed" = "二維碼載入失敗，請重試。";
