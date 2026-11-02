@@ -32,7 +32,7 @@
 
 ### Panel
 
-- The status panel uses a squared-off, notchless style to match the macOS menu-bar panel; a new “…” menu at the bottom gathers common actions such as Check for Updates, About, Menu Bar Settings and Quit, and size and layout adapt better under Liquid Glass.
+- The status panel uses a squared-off, notchless style to match the macOS menu-bar panel; a new “…” menu at the bottom gathers common actions such as Check for Updates, About, Menu Bar Settings and Quit.
 
 ### Fixes
 
