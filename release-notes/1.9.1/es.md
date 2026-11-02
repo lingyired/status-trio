@@ -9,7 +9,8 @@
 
 ### Energía
 
-- La ranura central puede mostrar la energía total en vivo en lugar de la fuente de conexión, y los Mac sin batería integrada son totalmente compatibles.
+- La ranura central puede mostrar la energía total en vivo en lugar de la fuente de conexión.
+- Los Mac sin batería integrada también pueden mostrar energía y abrir los detalles de batería.
 
 ### Pantallas
 

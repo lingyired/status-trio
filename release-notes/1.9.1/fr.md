@@ -9,7 +9,8 @@
 
 ### Énergie
 
-- L'emplacement central peut afficher la puissance totale en direct au lieu de la source de connexion ; les Mac sans batterie intégrée sont pris en charge.
+- L'emplacement central peut afficher la puissance totale en direct au lieu de la source de connexion.
+- Les Mac sans batterie intégrée peuvent aussi afficher la puissance et ouvrir les détails de batterie.
 
 ### Écrans
 

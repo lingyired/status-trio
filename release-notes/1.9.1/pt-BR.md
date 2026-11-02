@@ -9,7 +9,8 @@
 
 ### Energia
 
-- O espaço central pode mostrar a energia total ao vivo em vez da fonte de conexão; Macs sem bateria integrada são totalmente suportados.
+- O espaço central pode mostrar a energia total ao vivo em vez da fonte de conexão.
+- Macs sem bateria integrada também podem mostrar energia e abrir os detalhes da bateria.
 
 ### Telas
 

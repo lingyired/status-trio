@@ -9,7 +9,8 @@
 
 ### Energie
 
-- Der Mittelfeld-Slot kann statt einer Verbindungsquelle die Live-Leistung des gesamten Macs anzeigen; Macs ohne internen Akku werden voll unterstützt.
+- Der Mittelfeld-Slot kann statt einer Verbindungsquelle die Live-Leistung des gesamten Macs anzeigen.
+- Macs ohne internen Akku können ebenfalls Leistung anzeigen und die Batteriedetails öffnen.
 
 ### Displays
 
