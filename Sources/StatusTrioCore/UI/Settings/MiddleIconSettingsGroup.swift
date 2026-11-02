@@ -232,26 +232,25 @@ private struct MiddleBluetoothIconOptions: View {
             title: localization.string(.settingsBluetoothIconChoice),
             subtitle: localization.string(.settingsBluetoothIconChoiceDescription)
         ) {
-            Menu {
-                ForEach(IconPresentationResourceResolver.availableBluetoothAudioIconChoices) { choice in
-                    Button {
-                        store.bluetoothAudioIconChoice = choice
-                    } label: {
-                        Label(
-                            choice.displayName(using: localization),
-                            systemImage: choice.symbolName ?? "arrow.clockwise"
-                        )
-                    }
-                }
-            } label: {
-                MiddleIconMenuLabel(
-                    symbol: choice.symbolName ?? "arrow.clockwise",
-                    title: choiceTitle
+            Picker(
+                localization.string(.settingsBluetoothIconChoice),
+                selection: Binding(
+                    get: { store.bluetoothAudioIconChoice },
+                    set: { store.bluetoothAudioIconChoice = $0 }
                 )
+            ) {
+                ForEach(IconPresentationResourceResolver.availableBluetoothAudioIconChoices) { choice in
+                    Label(
+                        choice.displayName(using: localization),
+                        systemImage: choice.symbolName ?? "arrow.clockwise"
+                    )
+                    .tag(choice)
+                }
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .middleIconMenuChrome()
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(width: 190)
+            .flexibleMenuPickerSizing()
             .accessibilityLabel(localization.string(.settingsBluetoothIconChoice))
             .accessibilityIdentifier("bluetooth.audioIconChoice")
         }
@@ -275,25 +274,23 @@ private struct MiddleBluetoothIconOptions: View {
             subtitle: localization.string(.settingsBluetoothNetworkIconSourceAudioDescription),
             leading: { SettingsIcon(symbol: selectedOption.symbolName, tint: .blue) }
         ) {
-            Menu {
+            Picker(
+                localization.string(.settingsBluetoothNetworkIconSourceGroup),
+                selection: networkIconSourceBinding
+            ) {
                 ForEach(sourceOptions) { option in
-                    Button {
-                        networkIconSourceBinding.wrappedValue = option.source
-                    } label: {
-                        Label(
-                            option.title
-                                ?? localization.string(.settingsBluetoothNetworkIconSourceAudio),
-                            systemImage: option.symbolName
-                        )
-                    }
+                    Label(
+                        option.title
+                            ?? localization.string(.settingsBluetoothNetworkIconSourceAudio),
+                        systemImage: option.symbolName
+                    )
+                    .tag(option.source)
                 }
-            } label: {
-                MiddleIconMenuLabel(symbol: option.symbolName, title: optionTitle)
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .middleIconMenuChrome()
-            .accessibilityLabel(localization.string(.settingsBluetoothNetworkIconSourceGroup))
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .frame(width: 190)
+            .flexibleMenuPickerSizing()
             .accessibilityIdentifier("bluetooth.networkIconSource")
         }
     }
@@ -447,44 +444,22 @@ private enum MiddleIconPreviewScene {
     }
 }
 
-/// A pop-up button whose closed width never depends on the pending device
-/// list; only the open menu may grow with its items.
-private struct MiddleIconMenuLabel: View {
-    let symbol: String
-    let title: String
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: symbol)
-                .imageScale(.small)
-            Text(title)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Spacer(minLength: 6)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.primary.opacity(0.8))
-                .frame(width: 14)
+/// macOS 26's `.buttonSizing(.flexible)` makes a menu picker fill its frame
+/// instead of sizing to its current menu items. Older systems fall back to the
+/// plain frame.
+private struct FlexibleMenuPickerSizing: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.buttonSizing(.flexible)
+        } else {
+            content
         }
-        .font(.system(size: 13))
-        .padding(.horizontal, 10)
-        .frame(width: 190, height: 24)
-        .contentShape(Rectangle())
     }
 }
 
 private extension View {
-    /// A native-looking pop-up chrome applied outside the borderless `Menu`,
-    /// which otherwise discards a label background.
-    func middleIconMenuChrome() -> some View {
-        frame(width: 190, height: 24)
-            .background(
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(Color.primary.opacity(0.10))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.20), lineWidth: 1)
-            )
+    func flexibleMenuPickerSizing() -> some View {
+        modifier(FlexibleMenuPickerSizing())
     }
 }
