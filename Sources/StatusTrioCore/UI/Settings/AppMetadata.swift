@@ -76,9 +76,13 @@ enum AppMetadata {
     /// The README-hosted WeChat group QR (a poster). The Community card can
     /// refresh the in-app QR from this URL so the owner can rotate the group QR
     /// in the repository without rebuilding the app.
-    static let weChatGroupImageURL = URL(
-        string: "https://raw.githubusercontent.com/lingyired/status-trio/main/screenshots/status-trio-wechat-group.png"
-    )!
+    ///
+    /// Candidates are tried in order: the current file name first, then the old
+    /// dated name as a transition fallback until the rename reaches `main`.
+    static let weChatGroupImageURLs: [URL] = [
+        URL(string: "https://raw.githubusercontent.com/lingyired/status-trio/main/screenshots/status-trio-wechat-group.png")!,
+        URL(string: "https://raw.githubusercontent.com/lingyired/status-trio/main/screenshots/status-trio-wechat-group-2026-10-31.png")!,
+    ]
 
     // MARK: About — other apps by the author
     //

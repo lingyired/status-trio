@@ -80,6 +80,18 @@ final class AboutContentTests: XCTestCase {
         XCTAssertEqual(fund?.links.first?.label, .key(.settingsAboutProject))
     }
 
+    func testWeChatRefreshURLsTryNewNameThenLegacy() {
+        let urls = AppMetadata.weChatGroupImageURLs.map(\.absoluteString)
+        XCTAssertEqual(urls.count, 2)
+        XCTAssertTrue(urls[0].hasSuffix("/screenshots/status-trio-wechat-group.png"))
+        XCTAssertTrue(urls[1].hasSuffix("/screenshots/status-trio-wechat-group-2026-10-31.png"))
+        XCTAssertTrue(
+            urls.allSatisfy {
+                $0.hasPrefix("https://raw.githubusercontent.com/lingyired/status-trio/main/")
+            }
+        )
+    }
+
     func testEdgeLinksPointToDedicatedListings() {
         let apps = AboutContentCatalog.apps(for: .english)
         func edgeURL(_ id: AboutAppLink.Identity) -> String? {

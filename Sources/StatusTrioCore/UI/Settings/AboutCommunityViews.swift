@@ -186,23 +186,32 @@ struct AboutCommunityView: View {
         weChatRefreshFailed = false
         Task { @MainActor in
             defer { isRefreshingWeChat = false }
-            do {
-                var request = URLRequest(url: AppMetadata.weChatGroupImageURL)
-                request.cachePolicy = .reloadIgnoringLocalCacheData
-                request.timeoutInterval = 15
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard
-                    let http = response as? HTTPURLResponse,
-                    http.statusCode == 200,
-                    let image = NSImage(data: data)
-                else {
-                    weChatRefreshFailed = true
+            for url in AppMetadata.weChatGroupImageURLs {
+                if let image = await Self.fetchImage(url) {
+                    weChatImage = AboutAssets.normalizedWeChatQR(image)
                     return
                 }
-                weChatImage = AboutAssets.normalizedWeChatQR(image)
-            } catch {
-                weChatRefreshFailed = true
             }
+            weChatRefreshFailed = true
+        }
+    }
+
+    private static func fetchImage(_ url: URL) async -> NSImage? {
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.timeoutInterval = 15
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard
+                let http = response as? HTTPURLResponse,
+                http.statusCode == 200,
+                let image = NSImage(data: data)
+            else {
+                return nil
+            }
+            return image
+        } catch {
+            return nil
         }
     }
 }
