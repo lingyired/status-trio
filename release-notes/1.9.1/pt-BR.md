@@ -32,7 +32,7 @@
 
 ### Painel
 
-- O painel de status usa estilo sem cantos nem entalhe, alinhado ao painel da barra de menus do macOS. Um novo menu «…» inferior reúne ações comuns como Verificar atualizações, Sobre, Ajustes da barra de menus e Sair, e tamanho e layout se adaptam melhor no Liquid Glass.
+- O painel de status usa estilo sem cantos nem entalhe, alinhado ao painel da barra de menus do macOS. Um novo menu «…» inferior reúne ações comuns como Verificar atualizações, Sobre, Ajustes da barra de menus e Sair.
 
 ### Correções
 

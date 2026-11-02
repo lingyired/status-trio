@@ -32,7 +32,7 @@
 
 ### Pannello
 
-- Il pannello di stato usa uno stile senza angoli né tacca, coerente con il pannello della barra dei menu di macOS. Un nuovo menu «…» in basso raccoglie azioni comuni come Verifica aggiornamenti, Informazioni, Impostazioni barra dei menu e Esci; dimensioni e layout si adattano meglio con Liquid Glass.
+- Il pannello di stato usa uno stile senza angoli né tacca, coerente con il pannello della barra dei menu di macOS. Un nuovo menu «…» in basso raccoglie azioni comuni come Verifica aggiornamenti, Informazioni, Impostazioni barra dei menu e Esci.
 
 ### Correzioni
 
