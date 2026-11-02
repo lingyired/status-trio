@@ -76,6 +76,7 @@ final class BetterDisplayBrightnessCoordinator {
     private var isStarted = false
     private var isClientStarted = false
     private var requestInFlight = false
+    private var pendingScalar: Double?
 
     init(
         client: any BetterDisplayRequesting,
@@ -105,6 +106,7 @@ final class BetterDisplayBrightnessCoordinator {
         isStarted = false
         generation &+= 1
         requestInFlight = false
+        pendingScalar = nil
         lastRange = nil
         (client as? BetterDisplayBrightnessHintSource)?
             .setBrightnessOSDHandler(nil)
@@ -125,8 +127,19 @@ final class BetterDisplayBrightnessCoordinator {
     /// `get` is issued first so the raw value can be computed; a write is never
     /// sent blind.
     func setBrightness(_ scalar: Double) {
-        guard isStarted, !requestInFlight else { return }
+        guard isStarted else { return }
         let target = min(max(scalar, 0), 1)
+        if requestInFlight {
+            // A drag can outrun the display's request round-trip. Keep only the
+            // newest value and send it when the current request ends, so the
+            // final slider position is never silently dropped.
+            pendingScalar = target
+            return
+        }
+        performWrite(target)
+    }
+
+    private func performWrite(_ target: Double) {
         ensureClientStarted()
         requestInFlight = true
         generation &+= 1
@@ -345,6 +358,13 @@ final class BetterDisplayBrightnessCoordinator {
             source: source,
             commandID: commandID
         )
+        drainPendingWrite()
+    }
+
+    private func drainPendingWrite() {
+        guard isStarted, !requestInFlight, let next = pendingScalar else { return }
+        pendingScalar = nil
+        performWrite(next)
     }
 
     private func emit(

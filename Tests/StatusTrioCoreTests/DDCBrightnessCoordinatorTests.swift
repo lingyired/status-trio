@@ -72,6 +72,8 @@ final class DDCBrightnessCoordinatorTests: XCTestCase {
         let update = try? XCTUnwrap(updates.last { $0.commandID == commandID })
         XCTAssertNil(update?.scalar, "A failed confirmation must not publish an optimistic value")
         XCTAssertEqual(update?.source, .unavailable(.writeNotConfirmed))
+        XCTAssertEqual(update?.canAdjust, false,
+                       "An unconfirmed write must not keep the slider enabled while the error text is hidden")
         coordinator.stop()
     }
 

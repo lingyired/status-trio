@@ -143,6 +143,11 @@ final class SettingsStore: ObservableObject {
     static let externalBrightnessConfigurationsDefaultsKey = "externalBrightnessConfigurations.v1"
     static let popupSectionOrderDefaultsKey = "popupSectionOrder"
     static let enabledPopupSectionsDefaultsKey = "enabledPopupSections"
+    /// Default order of the status-panel sections. Display brightness sits below
+    /// the audio-input row so the two device-level controls stay together.
+    static let defaultPopupSectionOrder: [PopupSection] = [
+        .battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource
+    ]
     static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .vpn, .volume]
     /// Set once the VPN row has been offered to a stored section list.
     ///
@@ -1715,10 +1720,14 @@ final class SettingsStore: ObservableObject {
         self.batteryFullThreshold = Self.clampedBatteryFullThreshold(
             storedFullThreshold ?? Self.defaultBatteryFullThreshold
         )
-        self.chargeToFullRestoreLimit = Self.clampedChargeToFullRestoreLimit(
+        let resolvedRestoreLimit = Self.clampedChargeToFullRestoreLimit(
             storedRestoreLimit
                 ?? Self.systemChargeToFullRestoreLimit(read: systemChargeLimit)
         )
+        self.chargeToFullRestoreLimit = resolvedRestoreLimit
+        // Initialization does not call didSet; keep the initial restore target
+        // even when macOS removes its charge-limit policy during an override.
+        defaults.set(resolvedRestoreLimit, forKey: Self.chargeToFullRestoreLimitDefaultsKey)
         self.showsWiFiIconForEthernet = defaults.object(
             forKey: Self.showsWiFiIconForEthernetDefaultsKey
         ) as? Bool ?? false
@@ -1749,6 +1758,10 @@ final class SettingsStore: ObservableObject {
             ? .batteryPercentage
             : (storedCenterSource ?? .automatic)
         if legacyPercentageInSlot {
+            defaults.set(
+                ConnectionCenterSource.batteryPercentage.rawValue,
+                forKey: Self.connectionCenterSourceDefaultsKey
+            )
             defaults.removeObject(forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey)
         }
         self.prioritizesNetworkErrorsOverInputSource = defaults.object(
@@ -2078,7 +2091,7 @@ final class SettingsStore: ObservableObject {
         let storedSections = rawValues
             .compactMap(PopupSection.init(rawValue:))
             .filter { seen.insert($0).inserted }
-        return storedSections + PopupSection.allCases.filter { !seen.contains($0) }
+        return storedSections + Self.defaultPopupSectionOrder.filter { !seen.contains($0) }
     }
 
     /// Adds `.vpn` to a list that predates the row, once.

@@ -99,6 +99,29 @@ final class ChargeToFullNowControllerTests: XCTestCase {
         XCTAssertEqual(backend.restoreCount, 1)
     }
 
+    func testCancelAfterRelaunchRestoresTheInitiallySavedSystemLimit() async throws {
+        let suite = "ChargeToFullNowControllerTests.RestoreAfterRelaunch.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { TestUserDefaults.removeSuite(named: suite) }
+        let first = SettingsStore(defaults: defaults, systemChargeLimit: { 80 })
+        XCTAssertEqual(first.chargeToFullRestoreLimit, 80, accuracy: 0.001)
+        let reopened = SettingsStore(defaults: defaults, systemChargeLimit: { nil })
+        let backend = StubBatteryChargeController(deviceState: .temporaryOverride)
+        backend.restoreState = activeLimit(80)
+        let controller = ChargeToFullNowController(
+            backend: backend,
+            restoreLimit: { Int(reopened.chargeToFullRestoreLimit.rounded()) }
+        )
+        controller.update(demand(percentage: 85, isCharging: true))
+        XCTAssertEqual(controller.presentation, .chargingToFull)
+
+        controller.performPrimaryAction()
+        await waitUntil { backend.restoreCount == 1 }
+
+        XCTAssertEqual(backend.restoreTargets, [80])
+        await waitUntil { controller.presentation == .limitRestored(limit: 80) }
+    }
+
     func testSystemStartedOverrideCancelCanClearTheLimit() async {
         let backend = StubBatteryChargeController(deviceState: .temporaryOverride)
         let controller = ChargeToFullNowController(

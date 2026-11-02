@@ -441,3 +441,64 @@ private final class BrightnessFakeBridge: BetterDisplayNotificationBridging {
         }
     }
 }
+
+/// A client whose `set` requests can be held open, so a slider drag can be
+/// simulated while a previous write is still in flight.
+@MainActor
+private final class GatedBrightnessClient: BetterDisplayRequesting {
+    var gateClosed = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private(set) var writes: [Double] = []
+    private var current = 0.4
+
+    func start(onEvent: @escaping @MainActor (BetterDisplayEvent) -> Void) {}
+    func stop() {}
+
+    func request(commands: [String], parameters: [String: String?]) async throws -> String? {
+        if commands == ["set"] {
+            if let raw = parameters["brightness"] ?? nil, let value = Double(raw) {
+                writes.append(value)
+                current = value
+            }
+            if gateClosed {
+                await withCheckedContinuation { waiters.append($0) }
+            }
+            return nil
+        }
+        return "\(current),0.0,1.0"
+    }
+
+    func release() {
+        gateClosed = false
+        let pending = waiters
+        waiters.removeAll()
+        pending.forEach { $0.resume() }
+    }
+}
+
+extension BetterDisplayBrightnessTests {
+    func testLatestDragValueIsSentAfterAnInFlightWriteFinishes() async {
+        let client = GatedBrightnessClient()
+        var updates: [BetterDisplayBrightnessCoordinator.Update] = []
+        let coordinator = BetterDisplayBrightnessCoordinator(
+            client: client,
+            displayUUID: "external-uuid"
+        ) { updates.append($0) }
+
+        coordinator.start()
+        await waitUntil { updates.contains { ($0.scalar ?? -1) == 0.4 } }
+
+        client.gateClosed = true
+        coordinator.setBrightness(0.5)
+        await waitUntil { client.writes.count == 1 }
+
+        // A second drag while the first write is still open must not be dropped.
+        coordinator.setBrightness(0.9)
+        client.release()
+
+        await waitUntil { client.writes == [0.5, 0.9] }
+        XCTAssertEqual(client.writes, [0.5, 0.9])
+        await waitUntil { updates.last?.scalar.map { abs($0 - 0.9) < 0.001 } ?? false }
+        coordinator.stop()
+    }
+}

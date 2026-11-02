@@ -326,3 +326,28 @@ final class PanelDetailMapperTests: XCTestCase {
         return Localization(defaults: UserDefaults(suiteName: suite) ?? .standard, preferredLanguages: ["en"])
     }
 }
+
+extension PanelDetailMapperTests {
+    func testUnpluggedBatterySplitRendersPowerFlow() {
+        let localization = makeLocalization()
+        let timestamp = Date(timeIntervalSince1970: 1_700_000_000)
+        let battery = BatteryStatus(
+            rawPercentage: 60, isPresent: true, isCharging: false,
+            isLowPowerMode: false, isConnectedToPower: false
+        )
+        let split = BatteryPowerBreakdown(
+            source: .battery, sourceWatts: 30, display: nil, usb: nil,
+            system: .init(watts: 30, readAt: timestamp), readAt: timestamp
+        )
+        // Go through the real parser so the power-source gate is exercised,
+        // not just the display layer with a pre-built breakdown.
+        let details = BatteryDetailsReader.parse(
+            registry: [:], adapterWatts: nil, remainingSeconds: -1,
+            state: BatteryPowerState(battery), now: timestamp, breakdown: split
+        )
+
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+
+        XCTAssertNotNil(state.powerFlow, "A verified battery split must keep the flow diagram while unplugged")
+    }
+}

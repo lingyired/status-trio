@@ -206,8 +206,8 @@ final class StatusPanelViewModel: ObservableObject {
         settings.$showsBatteryPowerInfoBar
             .removeDuplicates()
             .dropFirst()
-            .sink { [weak self] _ in
-                self?.updatePowerSamplingDemand()
+            .sink { [weak self] enabled in
+                self?.updatePowerSamplingDemand(showsPowerInfoBar: enabled)
             }
             .store(in: &cancellables)
 
@@ -249,6 +249,7 @@ final class StatusPanelViewModel: ObservableObject {
         chargeToFullNow?.clearDemand()
         chargeToFullNowPresentation = .hidden
         store.powerSampling.end(.panel)
+        store.powerSampling.end(.powerInfoBar)
         cancellables.removeAll()
     }
 
@@ -611,7 +612,7 @@ final class StatusPanelViewModel: ObservableObject {
     /// The panel summary and a no-battery page need the shared sampler only
     /// while the customer can see them. The details page registers its own
     /// demand, so closing the panel never cuts a sample it is still using.
-    private func updatePowerSamplingDemand() {
+    private func updatePowerSamplingDemand(showsPowerInfoBar: Bool? = nil) {
         let panelVisible = isStarted && visiblePopupSections.contains(.battery)
         if panelVisible {
             store.powerSampling.begin(.panel)
@@ -619,8 +620,10 @@ final class StatusPanelViewModel: ObservableObject {
             store.powerSampling.end(.panel)
         }
         // The provisional info bar needs the input and battery rails; without
-        // it the sampler reads only the whole-machine total.
-        if panelVisible, settings.showsBatteryPowerInfoBar {
+        // it the sampler reads only the whole-machine total. Published settings
+        // arrive before their stored value commits, so prefer the delivered value.
+        let showsInfoBar = showsPowerInfoBar ?? settings.showsBatteryPowerInfoBar
+        if panelVisible, showsInfoBar {
             store.powerSampling.begin(.powerInfoBar)
         } else {
             store.powerSampling.end(.powerInfoBar)

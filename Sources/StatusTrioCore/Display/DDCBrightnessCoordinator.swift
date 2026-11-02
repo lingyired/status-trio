@@ -230,7 +230,15 @@ final class DDCBrightnessCoordinator {
             case .reply(let reply):
                 self.failures = 0
                 let resolved = Self.resolve(reply: reply, requested: requested)
-                self.emit(scalar: resolved.scalar, canAdjust: true, source: resolved.source, commandID: commandID)
+                // A write whose read-back did not confirm resolves to a nil
+                // scalar and `.writeNotConfirmed`; never keep `canAdjust` true
+                // then, or the row loses both the slider and the error text.
+                self.emit(
+                    scalar: resolved.scalar,
+                    canAdjust: resolved.scalar != nil,
+                    source: resolved.source,
+                    commandID: commandID
+                )
                 self.schedulePoll(after: self.pollInterval)
             case .failure(let failure):
                 if let requested {
