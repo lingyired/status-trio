@@ -53,14 +53,13 @@ are instance-scoped. If the current session exposes no CU provider, say so
 explicitly and report the affected steps as blocked; do not silently substitute
 `osascript`, `CGEventPost`, or `cliclick`.
 
-## Codex native CU example
+## Provider-specific adapters
 
-Discover the native interface exposed in the current session and use its
+Discover the interface exposed in the current session and use its
 documented target binding, observation, input, and screenshot methods. Do not
 assume old method names, persistent element indices, or old tool behavior.
 
-Status Trio experiments observed attachment delivering an app reopen, and
-menu-bar/Dock targeting failures on one host. Those are app/tool/host-specific
-observations, not universal Codex guarantees or universal macOS limitations.
-Read the project's current adapter and retest the affected gate if the
-harness, native service identity, or attachment route changes.
+Keep observed attachment side effects, unsupported routes, provider versions,
+and reproduction evidence in the project's adapter. Retest the affected gate
+when the harness, service identity, or attachment route changes. A provider
+installed on disk but not exposed to this session is unavailable to this run.

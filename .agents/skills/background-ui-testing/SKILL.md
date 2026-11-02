@@ -1,6 +1,10 @@
 ---
 name: background-ui-testing
 description: Use when any agent or harness tests a UI while the user continues working, requests non-disruptive Computer Use, or places test windows on a secondary display.
+license: Apache-2.0
+metadata:
+  author: lingyired
+  version: "0.1.0"
 ---
 
 # Background UI Testing
@@ -52,6 +56,8 @@ Give every recording a start, deadline, target identity, output path, and stop
 condition. A finite observer may continue briefly across a user reply, but
 must have a hard timeout and a known owner; never extend it indefinitely.
 Include launch/attach in the trace or mark them separately unverified.
+For a compact run record and cleanup ledger, read
+[evidence-and-cleanup.md](references/evidence-and-cleanup.md).
 
 If collecting manual input, prepare the correct live instance and recording
 first, then tell the user exactly what to click and the time remaining.
@@ -114,8 +120,10 @@ Report each claim separately:
 
 An entry point can be functional PASS and background FAIL. An observed
 activation is already evidence against non-activation even if the external
-trace expired. If neither outcome has evidence, use BLOCKED/NOT RUN rather
-than inventing a PASS or a product defect.
+trace expired. Use BLOCKED when a missing prerequisite prevents the stated
+check, and NOT RUN when that check was not performed or its action time was
+not covered. Report only the dimensions actually observed; a foreground trace
+does not establish pointer, keyboard-focus, or workspace behavior.
 
 ## 5. Restore and report
 
@@ -124,6 +132,8 @@ than inventing a PASS or a product defect.
 - Restore only state changed by this run, using an isolated snapshot or a
   change ledger. Verify restored values and absence of owned processes.
   Do not overwrite concurrent changes made by the user or another agent.
+  If ownership is uncertain, preserve the current value and report the
+  restoration as BLOCKED; continue cleanup of other owned resources.
 - Report instance/build provenance, harness/tool, displays, actions and their
   time coverage, functional result, interference result, evidence paths,
   limitations, and cleanup status. Separate manual, automated, and code-only
