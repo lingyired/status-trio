@@ -39,12 +39,20 @@ final class AppIconPreviewTests: XCTestCase {
             ArtworkFingerprint(
                 committed: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981",
                 rendered: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981"
+            ),
+            ArtworkFingerprint(
+                committed: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981",
+                rendered: "3b2f6ba5835c645e88e9238d0adec31bbfd1232e92991fe3fdc907a496ef6aa7"
             )
         ],
         "AppIcon-dark.png": [
             ArtworkFingerprint(
                 committed: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63",
                 rendered: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63"
+            ),
+            ArtworkFingerprint(
+                committed: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63",
+                rendered: "8fb28729b1f064541dc0b7236d6408c45055aa40e6c5c94ffc0f33419bdc1f93"
             )
         ]
     ]
