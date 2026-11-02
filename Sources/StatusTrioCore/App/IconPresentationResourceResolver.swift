@@ -12,6 +12,7 @@ enum IconPresentationResourceResolver {
     static func inputs(
         snapshot: StatusSnapshot,
         inputSource: InputSourceDescriptor? = nil,
+        systemPower: SystemPowerSample? = nil,
         fileExists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) },
         isSymbolAvailable: (String) -> Bool = { symbol in
             NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
@@ -22,7 +23,8 @@ enum IconPresentationResourceResolver {
             return IconPresentationInputs(
                 snapshot: snapshot,
                 audioIcon: nil,
-                inputSource: resolvedInputSource
+                inputSource: resolvedInputSource,
+                systemPower: systemPower
             )
         }
 
@@ -38,7 +40,8 @@ enum IconPresentationResourceResolver {
         return IconPresentationInputs(
             snapshot: snapshot,
             audioIcon: source,
-            inputSource: resolvedInputSource
+            inputSource: resolvedInputSource,
+            systemPower: systemPower
         )
     }
 }

@@ -679,3 +679,12 @@
 // About: community WeChat QR refresh
 "settings.about.community.refresh" = "重新整理";
 "settings.about.community.refreshFailed" = "二維碼載入失敗，請重試。";
+
+"guide.partPosition.battery" = "頂部圓弧";
+"guide.partPosition.network" = "中間圖標";
+"guide.partPosition.volume" = "底部圓點";
+"guide.network.center" = "可在「設定 › 應用圖示 › 中間圖標」中修改顯示內容，支援電量、功耗、輸入法、藍牙音訊。";
+
+"guide.state.chargingBatteryCenter" = "充電 + 電池百分比";
+"guide.state.fullPowerCenter" = "已充滿 + 功耗";
+"guide.state.lowBatteryInputCenter" = "低電量 + 輸入法";

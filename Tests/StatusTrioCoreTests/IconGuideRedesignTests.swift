@@ -16,7 +16,7 @@ final class IconGuideRedesignTests: XCTestCase {
         bluetoothDeviceStates + [.wifiVolumeTint]
     }
 
-    func testGuideProvidesTenDistinctStateExamples() {
+    func testGuideProvidesDistinctStateExamples() {
         XCTAssertEqual(IconGuideState.all.count, 10)
         XCTAssertEqual(Set(IconGuideState.all.map(\.id)).count, 10)
 
@@ -361,67 +361,91 @@ final class IconGuideRedesignTests: XCTestCase {
         XCTAssertNotNil(hostingView.subviews)
     }
 
-    func testOnboardingHeightStaysEqualAcrossPages() {
+    func testOnboardingHeightTracksContentAcrossPagesAndLanguages() {
         let name = "IconGuideRedesignTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!
         defer { defaults.removeTestSuite(named: name) }
-        let settings = SettingsStore(defaults: defaults)
-        for language in AppLanguage.allCases {
+
+        func preferredHeight(
+            of page: IconGuidePage,
+            language: AppLanguage,
+            settings: SettingsStore,
+            defaults: UserDefaults
+        ) -> CGFloat {
             let localization = Localization(
                 defaults: defaults,
                 preferredLanguages: [language.rawValue]
             )
-            var preferredHeights: [CGFloat] = []
-
-            for page in [IconGuidePage.anatomy, .states] {
-                let view = IconGuideOnboardingView(
-                    settings: settings,
-                    initialPage: page,
-                    onCustomize: {},
-                    onDone: {}
-                )
-                .environmentObject(localization)
-
-                let hostingController = NSHostingController(rootView: view)
-                hostingController.sizingOptions = [.preferredContentSize]
-                hostingController.view.frame = NSRect(
-                    x: 0,
-                    y: 0,
-                    width: IconGuideOnboardingView.contentWidth,
-                    height: 560
-                )
-                hostingController.view.layoutSubtreeIfNeeded()
-
-                let preferredSize = hostingController.preferredContentSize
-                XCTAssertEqual(
-                    preferredSize.width,
-                    IconGuideOnboardingView.contentWidth,
-                    accuracy: 0.5,
-                    language.rawValue
-                )
-                XCTAssertGreaterThanOrEqual(
-                    preferredSize.height,
-                    420,
-                    language.rawValue
-                )
-                XCTAssertLessThan(
-                    preferredSize.height,
-                    680,
-                    language.rawValue
-                )
-                preferredHeights.append(preferredSize.height)
-            }
-
+            let view = IconGuideOnboardingView(
+                settings: settings,
+                initialPage: page,
+                onCustomize: {},
+                onDone: {}
+            )
+            .environmentObject(localization)
+            let hostingController = NSHostingController(rootView: view)
+            hostingController.sizingOptions = [.preferredContentSize]
+            hostingController.view.frame = NSRect(
+                x: 0,
+                y: 0,
+                width: IconGuideOnboardingView.contentWidth,
+                height: 560
+            )
+            hostingController.view.layoutSubtreeIfNeeded()
             XCTAssertEqual(
-                preferredHeights[0],
-                preferredHeights[1],
+                hostingController.preferredContentSize.width,
+                IconGuideOnboardingView.contentWidth,
                 accuracy: 0.5,
-                "Page heights differ in \(language.rawValue)"
+                language.rawValue
+            )
+            return hostingController.preferredContentSize.height
+        }
+
+        // Both pages share the same fixed body height and carry the compact
+        // consent line in the footer, so they are exactly the same height in
+        // every language whether or not consent is still unrecorded.
+        let firstRun = SettingsStore(defaults: defaults)
+        for language in AppLanguage.allCases {
+            let anatomy = preferredHeight(of: .anatomy, language: language, settings: firstRun, defaults: defaults)
+            let states = preferredHeight(of: .states, language: language, settings: firstRun, defaults: defaults)
+            for height in [anatomy, states] {
+                XCTAssertGreaterThanOrEqual(
+                    height,
+                    OnboardingWindowController.minimumContentHeight,
+                    language.rawValue
+                )
+                XCTAssertLessThanOrEqual(
+                    height,
+                    OnboardingWindowController.contentSize.height,
+                    language.rawValue
+                )
+            }
+        }
+
+        // Consent already recorded: neither page renders the card, so both
+        // pages settle to the same height in every language.
+        let consentedName = "IconGuideRedesignTests.consent.\(UUID().uuidString)"
+        let consentedDefaults = UserDefaults(suiteName: consentedName)!
+        defer { consentedDefaults.removeTestSuite(named: consentedName) }
+        let consented = SettingsStore(defaults: consentedDefaults)
+        consented.completeTelemetryConsent(sharesAnalytics: false)
+        for language in AppLanguage.allCases {
+            let anatomy = preferredHeight(
+                of: .anatomy,
+                language: language,
+                settings: consented,
+                defaults: consentedDefaults
+            )
+            let states = preferredHeight(
+                of: .states,
+                language: language,
+                settings: consented,
+                defaults: consentedDefaults
             )
         }
     }
 
-    func testFooterPrimaryActionStaysFixedAcrossPages() throws {
+    func testFooterPrimaryActionStaysAnchoredToContentBottom() throws {
         for language in AppLanguage.allCases {
             let name = "IconGuideRedesignTests.\(UUID().uuidString)"
             let defaults = UserDefaults(suiteName: name)!
@@ -431,7 +455,8 @@ final class IconGuideRedesignTests: XCTestCase {
                 defaults: defaults,
                 preferredLanguages: [language.rawValue]
             )
-            var frames: [CGRect] = []
+            var bottomInsets: [CGFloat] = []
+            var trailingEdges: [CGFloat] = []
 
             for page in [IconGuidePage.anatomy, .states] {
                 let view = IconGuideOnboardingView(
@@ -442,26 +467,51 @@ final class IconGuideRedesignTests: XCTestCase {
                 )
                 .environmentObject(localization)
 
+                // Measure the page's own natural height, then lay it out at
+                // exactly that height so the footer's bottom inset is comparable.
+                let controller = NSHostingController(rootView: view)
+                controller.sizingOptions = [.preferredContentSize]
+                controller.view.frame = NSRect(
+                    x: 0,
+                    y: 0,
+                    width: IconGuideOnboardingView.contentWidth,
+                    height: 560
+                )
+                controller.view.layoutSubtreeIfNeeded()
+                let contentHeight = controller.preferredContentSize.height
+
                 let hostingView = NSHostingView(rootView: view)
-                hostingView.frame = NSRect(x: 0, y: 0, width: 640, height: 560)
+                hostingView.frame = NSRect(
+                    x: 0,
+                    y: 0,
+                    width: IconGuideOnboardingView.contentWidth,
+                    height: contentHeight
+                )
                 hostingView.layoutSubtreeIfNeeded()
 
                 let trailingEdge = IconGuideOnboardingView.contentWidth - 28
-                let subviewFrames: [CGRect] = hostingView.subviews.map(\.frame)
-                let trailingFrames = subviewFrames.filter { frame in
+                let trailingFrames = hostingView.subviews.map(\.frame).filter { frame in
                     frame.height > 0
                         && abs(frame.maxX - trailingEdge) < 0.5
                 }
                 let primaryFrame = try XCTUnwrap(
                     trailingFrames.max { $0.minX < $1.minX }
                 )
-                frames.append(primaryFrame)
+                bottomInsets.append(contentHeight - primaryFrame.maxY)
+                trailingEdges.append(primaryFrame.maxX)
             }
 
             XCTAssertEqual(
-                frames[0],
-                frames[1],
-                "Footer moved in \(language.rawValue)"
+                bottomInsets[0],
+                bottomInsets[1],
+                accuracy: 1.0,
+                "Footer is not anchored to the content bottom in \(language.rawValue)"
+            )
+            XCTAssertEqual(
+                trailingEdges[0],
+                trailingEdges[1],
+                accuracy: 0.5,
+                "Footer trailing edge moved in \(language.rawValue)"
             )
         }
     }

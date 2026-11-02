@@ -93,7 +93,7 @@ final class GuideWindowLifecycleTests: XCTestCase {
         XCTAssertEqual(application.policies.last, .accessory)
     }
 
-    func testOnboardingUsesDeterministicHostingSize() throws {
+    func testOnboardingWindowSizesToContentHeight() throws {
         let fixture = try DefaultsFixture()
         defer { fixture.tearDown() }
         let controller = OnboardingWindowController(
@@ -110,12 +110,21 @@ final class GuideWindowLifecycleTests: XCTestCase {
         controller.show()
         let window = try XCTUnwrap(controller.window)
         defer { window.close() }
+        // Let the deferred content-height resize run.
+        RunLoop.current.run(until: Date().addingTimeInterval(0.3))
 
-        XCTAssertEqual(window.contentRect(forFrameRect: window.frame).size, OnboardingWindowController.contentSize)
-        XCTAssertEqual(window.contentView?.frame.size, OnboardingWindowController.contentSize)
+        XCTAssertEqual(window.contentView?.frame.size.width, IconGuideOnboardingView.contentWidth)
         XCTAssertTrue(window.contentView is NSHostingView<LocalizedRootView<IconGuideOnboardingView>>)
         XCTAssertEqual(window.contentView?.intrinsicContentSize, NSSize(width: -1, height: -1))
         XCTAssertEqual(window.contentView?.autoresizingMask, [.width, .height])
+
+        let height = window.contentRect(forFrameRect: window.frame).height
+        XCTAssertGreaterThanOrEqual(height, OnboardingWindowController.minimumContentHeight - 0.5)
+        XCTAssertLessThan(
+            height,
+            OnboardingWindowController.contentSize.height,
+            "window should hug the content instead of the fixed default height"
+        )
     }
 
     func testOnboardingContentFitsItsFixedWindow() throws {
