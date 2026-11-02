@@ -1,83 +1,102 @@
 # Background Computer Use testing
 
+[当前接入规则与本次调整（中文）](background-computer-use-testing.zh-Hans.md)
+
 ## Scope and current decision
 
-The reusable procedure is
+The reusable execution contract is
 [`background-ui-testing`](../.agents/skills/background-ui-testing/SKILL.md).
-Its non-interference contract applies to every agent and harness. This document
-is Status Trio's project adapter: Debug launch flags, supported presentation,
-verified controls, provider support, diagnostics, and rollback. The reusable
-skill neither requires nor authorizes installing a provider; it supplies the
-capability gate this project applies to every provider.
+It governs target binding, safe launch/attachment/input/capture/placement,
+interference observation, stopping and cleanup when loaded by a harness.
+It provides instructions, not a driver or an isolated input session.
+The project, its agent and tools own test cases, steps, assertions, functional
+acceptance and reporting. No additional setting change, navigation, screenshot
+or prewritten test suite is required by the skill.
 
-Functional and background acceptance are separate. A manual menu-bar/Dock
-click that opens an activating popover can pass functional acceptance while
-failing a non-activation criterion. A recording that expires before an action
-does not cover it; inspect action timestamps before citing zero activations.
-No skill or instruction file enforces behavior in a harness that did not
-actually load it.
+This document supplies Status Trio's local launch, tool and cleanup policies.
+Live Status Trio UI work defaults to background execution under `AGENTS.md`.
+Static reviews and non-GUI checks do not require launching or attaching to an
+app. Reuse a suitable verified, still-owned background test instance; invoke
+the launcher only when a new launch or rebuild is needed. Other applications
+use their own supported targets and routes.
 
-This is an opt-in **Debug Settings and first-run guide mode**, first tested with
-Codex native Computer Use. It is not a separate input session. Spaces, displays
-and applications still share foreground and keyboard focus.
+This is opt-in **Debug Settings and first-run guide support**, originally
+investigated with Codex native Computer Use. Spaces, displays and applications
+still share the user's session. A secondary display alone isolates no input.
+Assess each required operation before using it; a successful historical AX
+button action does not establish text input, menu, Dock, permission-dialog or
+other provider support. Unknown or activating routes stop while the user works.
 
-The Phase 1 feasibility gate passed on October 31, 2026: the throwaway
-accessory-window probe supported setting changes, sidebar navigation and
-window screenshots in five consecutive rounds, without an observed foreground
-transition. This justified implementing the injected configuration and optional
-display placement. A later integrated test connected a secondary display and
-passed the first-run guide gate: native attachment, Next, Back, a verified
-preview control, screenshot capture and the transition to Settings all operated
-without the target app becoming active. The rest of the runtime acceptance
-matrix remains incomplete.
+Use existing suitable bounded observations, or the project's read-only
+`scripts/measure-ui-focus.swift` where appropriate. Its foreground, target
+activity/policy, window and activation evidence does not establish keyboard
+routing, pointer, clipboard or all workspace effects. State the uncovered
+dimensions. Correlate actual action times with observation coverage; expired
+sampling is not zero interference. Renew coverage without repeating functional
+tests solely to meet this skill. Keep functional results and interference
+conclusions distinct within the project's existing reporting conventions.
 
-No claim here extends the successful AX button interactions to text input,
-coordinate clicks, menus, permission dialogs, shortcut recording or every
-SwiftUI control. Those steps must stop if they require activation.
+Enabling Bluetooth's "Show in status panel" on the Bluetooth page, or enabling
+Bluetooth in the status-panel section visibility list, explicitly activates
+the app even after authorization. **Do not click these controls during a
+background run.** Leave their tests `NOT RUN` in that run, or use a separately
+authorized foreground session. These remain project-specific known exclusions.
 
-Two specific Settings controls remain foreground-only: enabling Bluetooth's
-"Show in status panel" on the Bluetooth page, and enabling Bluetooth in the
-status-panel page's section visibility list. Their existing bindings explicitly
-call `NSApp.activate`, even with authorization already granted. **Do not click
-these controls during a background test.** Leave their actual tests `NOT RUN`
-or run them in an explicitly foreground session. This change does not broaden
-the permission behavior to make them appear supported.
+The Phase 0/1 investigations, repeated Settings sequences, guide checks and
+runtime matrix below are **historical project-chosen tests**, not a universal
+skill gate, a current compatibility guarantee or required work for each run.
+Preserve their provenance and limitations when citing them. They are not new
+runtime evidence for the November 2, 2026 documentation alignment.
 
 ## Computer Use provider support
 
-The project accepts any Computer Use provider that passes the background
-capability gate in
-[harness-adapters.md](../.agents/skills/background-ui-testing/references/harness-adapters.md);
-Codex native Computer Use is not the only permitted provider. First-class
-providers are Codex native Computer Use, `kimi-cu` MCP, and `agent-desktop`.
-Any other instance-scoped AX/DOM/window provider is allowed under the same gate.
-Foreground/global keyboard or pointer input is never allowed, whether it comes
-from a provider, `osascript`/System Events, `CGEventPost`, `cliclick`, or a
-per-pixel pointer loop.
+Assess the exact routes needed by the authorized workload using
+[harness-adapters.md](../.agents/skills/background-ui-testing/references/harness-adapters.md).
+Do not add functional probes to obtain provider approval. Resolve unknown
+side effects using supplied documentation, read-only evidence or separately
+authorized isolated calibration, not experiments in the user's active session.
+Status Trio requires instance-scoped AX/DOM/window input and prohibits
+foreground/global input, `osascript`/System Events, `CGEventPost`, `cliclick`
+and per-pixel pointer automation. These are project tool restrictions.
 
 Selection order:
 
-1. A CU tool explicitly named in the project `AGENTS.md` or the user-level
-   `AGENTS.md` / harness instruction file (for example, a user rule that
-   prefers `kimi-cu` MCP), when the current session actually exposes it.
-2. Otherwise, any available provider that passes the per-run capability record
-   (target selection, launch/attach, observation, input, interference trace,
-   lifecycle) without a foreground transition.
-3. If no provider is available, report the affected steps as
-   `BLOCKED (no Computer Use provider)`, name the providers checked, and say
-   what connecting one would unlock. A provider that is installed but not
-   connected to the current harness counts as unavailable.
+1. Honor an explicitly preferred CU tool in user/project instructions when
+   the current session actually exposes it.
+2. Otherwise use an exposed provider whose needed target, launch/attachment,
+   observation, input and lifecycle routes have established suitable effects.
+   Reuse suitable evidence; no fixed record format or sample operation is
+   required. Installation alone does not make a provider available.
+3. If none is exposed, mark affected input steps
+   `BLOCKED (no Computer Use provider)` under the project convention, naming
+   the providers checked and what connecting one would unlock. Stop an
+   exposed but unsupported route with its actual reason. A foreground/manual
+   fallback needs authorization; continue independent safe work.
 
-| Provider | Exposed as | Status on this project |
+| Candidate provider | Availability to establish | Evidence scope |
 | --- | --- | --- |
-| Codex native Computer Use | native CU service exposed to Codex | Phase 1 gate and first-run guide gate passed (see below) |
-| `kimi-cu` MCP | MCP server (Apple-silicon app at `/Applications/KimiCU.app`) | capability gate required; not yet verified here |
-| `agent-desktop` | CLI (global npm, e.g. `agent-desktop@1.0.2`) | installed on this host; default is AX press / headless, `--headed` permits physical input; capability gate required, not yet verified here |
+| Codex native Computer Use | Native CU service exposed to this session | Historical specific AX paths below; reassess changed service/attachment routes |
+| `kimi-cu` MCP | Relevant MCP tools actually exposed to this session | Assess exact methods, target binding and effects; no inherited native CU result |
+| `agent-desktop` | CLI available under current tool restrictions | Assess the actual version/mode/operation; a headless or AX label alone proves nothing |
 
-An unverified provider reaches `PASS` only for actions actually exercised under
-this gate; unexercised click, menu, text-input or permission actions stay
-`NOT RUN` with the reason recorded. Do not claim another provider inherits
-Codex's results.
+These are candidates, not a requirement to install or switch tools. An
+unexercised operation has no runtime result. Keep existing project status and
+report conventions; the skill imposes no provider-wide pass label.
+
+## Installed skill provenance
+
+The November 2, 2026 alignment copies the complete eight-file package from the
+standalone `background-ui-testing` repository's local working tree, based on
+commit `50a1194` **plus uncommitted execution-scope edits**. This is not a
+published release or a clean snapshot of that commit. The declared package
+metadata remains `0.1.0`.
+
+Package SHA-256:
+`6643d4219bbbdebc6375acd9832843571fb1f699583f770df1832a77e6208591`.
+Compute by sorting package-relative file paths and hashing each UTF-8 path,
+a NUL byte, file bytes and another NUL byte. The local package and standalone
+source are compared byte-for-byte as part of this alignment. Preserve local
+edits on future updates; no bulk update of other installed skills is needed.
 
 ## Launch and fallback
 
@@ -86,21 +105,30 @@ From the isolated development branch/worktree:
 ```bash
 bash scripts/launch-computer-use.sh
 bash scripts/launch-computer-use.sh --display secondary
+bash scripts/launch-computer-use.sh --reuse
 ```
 
-The script always builds with `bash scripts/build-worktree.sh debug no-open`.
+For a new launch, the script builds with `bash scripts/build-worktree.sh debug no-open`.
 It validates the branch-specific Bundle ID, executable, development codename,
 Debug capability marker and source HEAD. The final JSON reports path, PID,
 source SHA, whether the source tree was dirty, and requested/connected displays.
 A dirty build is **HEAD plus local changes**, not a clean build of that SHA.
 The executable digest is printed separately.
 
-The script checks instances before building. It can gracefully terminate only
-a process with this exact Bundle ID, bundle/executable path and
-`--background-ui-testing` argument. A non-test instance, another checkout using
-the same ID, a failed graceful exit or a new instance appearing during the build
-stops the launcher. It does not use `pkill`, `open -n` or attempt to append
-arguments to a running app.
+The script checks instances before building and refuses when any matching
+instance already exists. It never terminates that process. A new instance
+appearing during the build also stops launch. Only the still-authorized owner
+may close an existing instance before a rebuild.
+
+`--reuse` only inspects one finished instance with matching bundle/executable
+paths, Debug capability, background flag and launcher token. It sends no
+launch, reopen, input or placement request, and performs no build. Reuse of
+an existing instance does not grant cleanup ownership or prove that its
+executable is the latest source. The report preserves its recorded build
+metadata; on-disk metadata is not a fresh measurement of loaded code.
+If `--display secondary` is also requested, an instance originally launched
+without that request is refused rather than moved. Actual topology and
+placement still need assessment.
 
 A per-worktree directory lock covers preflight, build and launch, preventing
 two instances of this launcher from assembling the same bundle concurrently.
@@ -110,14 +138,16 @@ compare-and-start API: a manual launch or a different build command racing
 this script remains outside its lock. Serialize such commands; the token
 detects misidentification but cannot retract an already delivered reopen.
 
-The app receives immutable launch configuration from `AppEnvironment.live()`:
+`AppDelegate` validates immutable launch configuration before acquiring an
+instance or starting `AppEnvironment`:
 
 - `--background-ui-testing` opts in only when compiled with `DEBUG`.
 - `--test-display=secondary` requires that opt-in. With no secondary display,
   presentation falls back to the physical main display.
-- Malformed or duplicate reserved arguments disable the mode and produce
-  Debug diagnostics in the existing `DockActivation` log category. Other
-  arguments are left alone. Release ignores both testing flags.
+- Malformed or duplicate reserved arguments produce Debug diagnostics in the
+  existing `DockActivation` log category and reject startup before creating
+  the environment or showing UI. They do not fall back to activating normal
+  presentation. Other arguments are left alone. Release ignores test flags.
 
 Background startup preserves the normal first-run guide policy. If the guide is
 due, it stays on the same first-run path and renders without requesting
@@ -155,7 +185,37 @@ Release/normal-mode events retain the existing route. A future native service
 identity must be observed and retested before assuming the same support.
 Do not use activate-then-restore as a background workaround.
 
-## Phase 0: baseline and attribution
+## Ordinary tests and visible AppKit fixtures
+
+Some existing tests exercise real window layout, hit targets, panel lifetime
+or status items. Their activation-policy spies do not intercept actual window
+ordering, and a background `orderFront` still displays a window. This explains
+why ordinary test runs could flash UI despite the live-CU instructions.
+
+Those fixtures now use `VisibleUITestCase` for XCTest or a
+`VisibleUITests.isEnabled` suite condition for Swift Testing. Their existing
+assertions are preserved. They are skipped by default under both
+`bash scripts/test.sh [filter]` and direct `swift test`. Non-UI tests execute
+normally. The `full` profile keeps this boundary and reports skipped coverage;
+it is not complete native UI acceptance.
+
+`STATUS_TRIO_ALLOW_VISIBLE_UI_TESTS=1` is an explicit opt-in for an authorized
+visible or suitably isolated session. It enables the original AppKit paths;
+it does not provide focus/input isolation and is not a background-test flag.
+Do not enable it while the user works just to avoid skips.
+
+The read-only focus observer also accepts `--pid <pid>`. Without it, the
+observer can wait for launch and binds the first single target's PID, path and
+launch date. It stops with an incomplete-coverage result if that identity
+disappears, changes or becomes ambiguous. No target observed before the
+deadline is incomplete coverage too. Existing fields are retained; the summary
+adds target coverage and unmeasured dimensions. The offline
+`scripts/test-ui-focus-coverage.sh` checks the tracker without accessing live UI.
+
+The historical records below describe the earlier implementation, including
+its former automatic restart behavior. They are not current launcher policy.
+
+## Historical Phase 0: baseline and attribution
 
 Source base: `98fc8a10879ca9ed4244626e8b44682d7b54a7bc`, fetched from
 `origin/main` before creating `codex/background-computer-use-testing`.
@@ -190,7 +250,7 @@ Computer Use service itself necessarily activates the app independently of its
 reopen handler. Removing the Settings activation group allowed the same native
 attachment to remain in the background.
 
-## Phase 1: feasibility evidence
+## Historical Phase 1: feasibility evidence
 
 The small, discarded probe changed only Debug Settings presentation: skip the
 regular request, use `orderFront`, suppress permission resurfacing and disable
@@ -282,7 +342,7 @@ under the second recorder rather than counting incomplete coverage as a pass.
 The maximum observed sample gaps were 57.90 ms and 62.50 ms. These results do
 not prove absence of a transient shorter than that interval.
 
-## Integrated build and remaining runtime matrix
+## Historical integrated build and remaining runtime matrix
 
 The launcher successfully built and started PID `21498` with both testing
 flags. It reported the correct dev ID and `sourceDirty=true`. The only
@@ -320,7 +380,7 @@ run or as an app regression. The test instance was then gracefully terminated.
 | Launcher rejects production ID / another worktree's ID | PASS | NOT RUN | Live helper refused both; protected PIDs unchanged |
 | Launcher safe restart / refuses this path's non-test process | PASS (process boundary) | NOT RUN | PIDs `53864` -> `55062`; non-test PID `55079` refused before rebuild |
 
-## Automated verification and evidence
+## Historical automated verification and evidence
 
 Focused development command:
 

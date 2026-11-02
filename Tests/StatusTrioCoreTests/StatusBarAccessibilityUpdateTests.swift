@@ -3,6 +3,7 @@ import Foundation
 import Testing
 @testable import StatusTrioCore
 
+@Suite(.enabled(if: VisibleUITests.isEnabled, Comment(rawValue: VisibleUITests.reason)))
 @MainActor
 struct StatusBarAccessibilityUpdateTests {
     /// Several emissions in one turn must land as one update carrying the

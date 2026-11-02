@@ -91,6 +91,16 @@ automatically by Codex.
 always runs `scripts/check-forbidden-patterns.sh`, including when a filter is
 provided. Do not duplicate its test or filter logic in a second wrapper.
 
+Ordinary test runs must not present native windows or menu-bar items.
+Fixtures that require them use `VisibleUITestCase` (XCTest) or the
+`VisibleUITests.isEnabled` suite condition (Swift Testing). They are explicitly
+skipped by default, including under direct `swift test`; their functional
+assertions stay intact. Only set `STATUS_TRIO_ALLOW_VISIBLE_UI_TESTS=1` in an
+authorized visible/isolated session with assessed effects. This opt-in does
+not make those tests background-safe. Report skipped UI coverage separately;
+do not enable it merely to make a full profile exercise every test. New
+fixtures that create real status items or order windows must use this boundary.
+
 For any icon work, use the existing isolated-ink and full-composite
 `Issue30WiFiAlignmentTests`; never replace them with a tolerance that hides a
 half-unit shift. Keep `ChargingEffectRenderingTests` fingerprints honest.
@@ -229,81 +239,62 @@ detailed release and recovery rules.
 
 ## Background UI Testing
 
-- **Default route:** unless the task explicitly requires human visual
-  inspection or a documented foreground-only step, every agent and harness
-  that will operate or observe a live macOS UI must first read
-  `.agents/skills/background-ui-testing/SKILL.md` and start through
-  `bash scripts/launch-computer-use.sh [--display secondary]`. Do not choose a
-  normal foreground launch or ask the user to operate the app merely because
-  that path is more familiar. Non-GUI unit tests, headless tests, static
-  inspection and command-line diagnostics retain their normal workflows.
-- Default background UI scenarios include: opening, navigating or changing
-  Settings and verifying the resulting state; first-run guide and transition
-  checks; supported menu-bar, status-panel, Dock and shortcut interactions;
-  screenshot, layout and visual-regression capture; secondary-display checks;
-  permission-recovery paths before a system-owned prompt requires handoff; and
-  any request to inspect or test the running app while the user continues
-  working. "Background" is the default test entry point, not a promise that
-  every control can be operated without activation.
-- Pause only the affected step and request a foreground/manual handoff when
-  explicit human visual or UX judgement is required; the user must see or
-  physically operate something; a system authorization, password, security
-  prompt, locked-screen action or app installation requires the user; the
-  current harness cannot perform the action without foreground/global input;
-  or the test specifically verifies normal/Release activation semantics that
-  the Debug background mode intentionally changes. Continue any remaining
-  background-safe work before or after the handoff, and report manual and
-  automated evidence separately. Ask at the blocked step, not pre-emptively.
-- The Skill defines the common non-interference contract; this section
-  supplies Status Trio's adapter. A secondary display does not isolate focus
-  or input. Establish the active harness's capabilities before live
-  attachment/input and stop unsafe steps.
-- Scope every acceptance claim to its actual app instance, harness, controls,
-  and observation interval. Check that manual actions occurred before the
-  recording deadline; expired sampling is not zero interference. Report
-  functional behavior and background non-activation separately.
-- Start an isolated Debug test instance with
-  `bash scripts/launch-computer-use.sh [--display secondary]`. This always builds
-  through `build-worktree.sh`, checks this branch's dev identity, and starts a
-  new background test process. Release does not interpret the test flags.
-- **Computer Use providers:** Status Trio accepts any provider that passes the
-  background capability gate, not only Codex native Computer Use. First-class
-  providers are Codex native Computer Use, `kimi-cu` MCP, and `agent-desktop`;
-  other instance-scoped AX/DOM providers are allowed under the same gate. When
-  the project or user `AGENTS.md` names a preferred CU tool (for example a
-  user-level rule that prefers `kimi-cu` MCP), use it if the current session
-  exposes it. A provider counts as available only when the harness actually
-  exposes it; installed-but-unconnected does not count. Input must be
-  instance-scoped remote AX/DOM/window input, not foreground/global input;
-  never substitute `osascript`/System Events, `CGEventPost`, `cliclick`, or
-  per-pixel pointer automation.
-- First trace foreground PID/Bundle ID with the bounded
-  `scripts/measure-ui-focus.swift` tool; continue a background step only when
-  its actual setting change, sidebar navigation and screenshot work without a
-  foreground transition. Do not activate an app and restore focus.
-- If no Computer Use provider is available, stop and report the affected
-  click/input steps as `BLOCKED (no Computer Use provider)`, naming the
-  providers checked and what connecting one (such as the `kimi-cu` MCP server)
-  would unlock. Do not downgrade them to a bare `NOT RUN`, and do not silently
-  hand the work to the user as the only option.
-- Background support covers Settings presentation, the first-run guide's
-  verified Next/Back/preview/Customize path, and verified Settings controls.
-  Menu-bar/shortcut popovers, real Dock activation, text input, shortcut
-  recording, guide menu-bar help/links/system dialogs and system permission
-  dialogs need separate evidence.
-  Pause a step that requires activation or an unavailable/unlocked display and
-  report `FAIL`, `BLOCKED` or `NOT RUN`; do not substitute foreground/global
-  input, private APIs or additional permissions.
-- In background mode, do not enable the Bluetooth row from either the
-  Bluetooth page's "Show in status panel" control or the status-panel page's
-  Bluetooth visibility control: both retain explicit app activation, even
-  after permission is granted. Pause these tests and report `NOT RUN`.
-- The launcher may gracefully stop only this path's existing test instance.
-  A non-test instance or a Bundle ID collision stops the launch. It never
-  terminates production or other worktrees. See
-  `docs/background-computer-use-testing.md` for evidence and rollback.
-- Restore this run's isolated preference changes and stop its observers and
-  test instance after testing. Preserve concurrent user/agent changes.
+- **Project policy and scope:** live Status Trio UI work defaults to background
+  execution. Read `.agents/skills/background-ui-testing/SKILL.md` before live
+  launch, attachment, capture or input. The project, its agent and tools own
+  the test cases, steps, assertions, functional acceptance and reports; the
+  skill governs non-disruptive execution only. Do not add setting changes,
+  navigation or screenshots as a capability gate. Static review and non-GUI
+  tests use their normal workflows and do not require a live app. For another
+  app, use that app's supported target and route, not Status Trio's launcher.
+- **Target and launch:** bind to a verified, still-owned Debug background test
+  instance from this worktree when suitable. Use
+  `bash scripts/launch-computer-use.sh --reuse [--display secondary]` to inspect
+  a matching launcher-created Debug instance without rebuilding or reopening.
+  Reuse does not grant cleanup ownership. When a launch or rebuild is needed,
+  use `bash scripts/launch-computer-use.sh [--display secondary]`.
+  It builds through `build-worktree.sh` and checks the branch-specific dev
+  identity. Any existing instance or Bundle ID collision stops a new launch;
+  only the instance's owner may close it before rebuilding. Invalid reserved
+  Debug arguments reject startup before UI presentation; Release ignores the
+  test flags. A secondary display
+  is placement, not input isolation; check actual placement and any fallback.
+- **Computer Use providers:** assess the exact operations needed from the
+  provider exposed to this session. Codex native Computer Use, `kimi-cu` MCP,
+  `agent-desktop` and other instance-scoped AX/DOM/window providers are
+  candidates, not blanket compatibility claims. Honor an explicit user or
+  project tool preference when available. Installed-but-unconnected is
+  unavailable. Input must be instance-scoped, never foreground/global input;
+  Status Trio also prohibits `osascript`/System Events, `CGEventPost`, `cliclick`
+  and per-pixel pointer automation. If no provider is exposed, use the project
+  convention `BLOCKED (no Computer Use provider)` for affected input steps,
+  naming the providers checked and what connecting one would unlock.
+- **Observation and evidence:** reuse suitable bounded observations; otherwise
+  use `scripts/measure-ui-focus.swift` for foreground identity, target
+  activity/policy, window bounds and activation events. It does not establish
+  keyboard routing, pointer, clipboard or all workspace effects. Assess those
+  effects for each needed route and disclose observation blind spots. Scope
+  claims to the actual instance, provider, operation and covered interval.
+  The observer binds the first single target (or the specified `--pid`) and
+  ends coverage if that identity disappears, changes or becomes ambiguous.
+  Renew expired coverage before continuing, without restarting the app or
+  repeating functional tests solely for that reason. Keep functional results
+  and background-interference conclusions distinct in the existing report;
+  no new status scheme or report template is required.
+- **Limits, fallback and cleanup:** stop only affected steps when targeting or
+  side effects are unknown, activation/global input is required, or evidence
+  contradicts the safe route. Never activate then restore. Known exclusions
+  include enabling Bluetooth via either the Bluetooth page's "Show in status
+  panel" control or the status-panel page's Bluetooth visibility control:
+  both explicitly activate the app; leave these tests `NOT RUN` in background
+  mode. Historical Settings/guide results do not establish menu-bar, real Dock,
+  text-input, shortcut-recording or system-dialog support. Human judgement,
+  system authorization and normal/Release activation checks may require an
+  explicitly authorized foreground/manual handoff; continue independent safe
+  work. Restore only still-owned isolated changes and stop only observers and
+  test resources within this run's cleanup scope. Preserve concurrent changes.
+  See `docs/background-computer-use-testing.zh-Hans.md` for current Chinese
+  guidance and `docs/background-computer-use-testing.md` for historical evidence.
 
 ## Project Skills
 

@@ -11,6 +11,8 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
     let display: Display
     let diagnostics: [String]
 
+    var rejectsLaunch: Bool { !diagnostics.isEmpty }
+
     static let disabled = Self(arguments: [])
 
     init(arguments: [String]) {

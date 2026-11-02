@@ -1,23 +1,47 @@
 # Adopting the contract
 
-Keep the reusable skill independent of a particular product or harness. Store
-project launch commands and exceptions in the project's own instructions or
-testing document. No dependency on Codex, macOS, a particular MCP, or a new
-permission is implied by the core contract.
+Leave test planning to the project, its agent, and tools: what to test, the
+steps, data/fixtures, assertions, functional acceptance, and reporting.
+A prewritten plan is not a prerequisite. This skill only governs whether
+and how the authorized CU operations can run without disrupting the user's
+session.
 
-## Project adapter
+## Connect existing project instructions
 
-An adapter should identify the existing, supported:
+Reference existing information needed for background execution:
 
-- Isolated test build/profile, app identity, launch command, and graceful stop.
-- Background presentation and optional display placement, including fallback.
-- Bounded diagnostics and evidence output location, with their limitations.
-- Verified controls versus activating/unsupported steps, per tested harness.
-- Changed-state ownership, restoration, and normal launch fallback.
+- The authorized target and how the tool binds to it without taking over
+  the user's working instance or data.
+- Supported launch, attachment, input, and optional placement routes, including
+  known activation or global-input effects.
+- Available interference observations and their limits.
+- Resource ownership, project cleanup, and authorized fallback routes.
 
-If one of these is unavailable, report the gap. Do not invent a background
-mode, introduce tools, or alter the product just to fill the adapter.
-An adapter need not be a new config format; a short existing document is enough.
+Reuse the project's terminology and documents. No new adapter format,
+launcher, development identity, observer, or control inventory is required.
+Do not collect a stack/build inventory just to run an already-supported route.
+Missing background support is a capability gap, not a reason to add tests
+or change the project's acceptance criteria.
+
+## Integration boundary
+
+If adaptation advice is requested, inspect the actual stack, lifecycle,
+automation interfaces, and relevant build/packaging routes before suggesting
+options. Prefer existing capabilities and low-impact, removable approaches.
+The developer and their agent decide whether and how to implement them within
+the authorized scope; no plugin, helper, file count, or per-window pattern
+is prescribed.
+
+App adaptation, production-build isolation, and normal application behavior
+remain project engineering responsibilities. This skill does not initiate a
+release audit or prescribe their verification suite. If test support is added,
+it should not affect normal production use; background-execution evidence
+alone proves neither that isolation nor release readiness.
+
+When a supplied operation cannot run safely in the background, explain the
+limitation and supported options. A foreground or isolated-session fallback
+requires its own assessment and authorization. Do not silently replace the
+project's CU workload with headless checks or a new test design.
 
 ## Instruction-file entry
 
@@ -32,23 +56,24 @@ When testing a UI while the user continues working, read and follow
 [background-ui-testing](.agents/skills/background-ui-testing/SKILL.md).
 This applies to every agent, harness, and Computer Use provider.
 
-Use this project's isolated test launcher and documented tool restrictions.
-Verify capabilities before live attachment/input, then run a bounded
-gate using only task-authorized operations, without test-caused focus,
-pointer, or workspace interference. For interactive tasks, verify actual
-control values, navigation, and a target screenshot where applicable.
-For read-only tasks, do not mutate settings to complete the gate; mark
-mutation NOT RUN. Stop unsupported steps; never activate then restore.
-Report functional and background results separately as PASS, FAIL, BLOCKED,
-or NOT RUN, with evidence covering the actual action times. Restore only
-this run's state and stop only its instances/observers.
+Use this project's supported test target and documented tool restrictions.
+Leave test cases, steps, assertions, functional acceptance, and reporting to
+this project and its agent. This skill adds no testing-method requirements.
+Assess the background execution route before launch,
+attachment, capture, or input; observe focus, input, pointer, clipboard, and
+workspace effects within known time coverage.
+Do not add capability-probe tests or mutations. Stop unsupported or disruptive
+operations; never activate then restore. Explain background limitations and
+cleanup using the existing report, without redefining the functional result.
+Restore only still-owned mutations and release resources within this run's
+cleanup scope; do not terminate a shared host to close one test context.
 ```
 
 If a harness cannot load skills, copy the rule into its actual instruction
 file and supply the skill text as a referenced document. Do not claim that
 `AGENTS.md`, a filename convention, or skill installation enforces behavior in
 every runtime. Verify discovery in that runtime. Keep this entry short and
-maintain the full procedure in one skill.
+maintain the full execution contract in one skill.
 
 This entry applies when background testing is requested. A project may
 separately choose background testing as its default for live UI work; state

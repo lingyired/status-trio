@@ -82,7 +82,7 @@ printf 'release-policy\n' >> "${VERIFY_TRACE:?}"
 SH
     for script in test-mobile-battery-build-cache.sh test-ci-diagnostics.sh \
         test-ci-workflow.sh test-build-timing.sh test-launch-computer-use.sh \
-        test-background-ui-configuration.sh; do
+        test-background-ui-configuration.sh test-ui-focus-coverage.sh; do
         printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/$script"
     done
     cat > "$fixture/scripts/test-powerui-charge-restore.sh" <<'SH'

@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class SettingsRowHitAreaTests: XCTestCase {
+final class SettingsRowHitAreaTests: VisibleUITestCase {
     func testPopupSettingsButtonUsesFullRowHitArea() {
         let localization = makeLocalization()
         let settings = makeSettings()

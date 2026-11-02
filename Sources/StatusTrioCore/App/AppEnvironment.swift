@@ -409,11 +409,9 @@ final class AppEnvironment {
         )
     }
 
-    static func live() -> AppEnvironment {
-        let backgroundUITesting = BackgroundUITestingConfiguration(arguments: ProcessInfo.processInfo.arguments)
-        for diagnostic in backgroundUITesting.diagnostics {
-            dockActivationLogger.error("\(diagnostic, privacy: .public)")
-        }
+    static func live(
+        backgroundUITesting: BackgroundUITestingConfiguration = .disabled
+    ) -> AppEnvironment {
         let settings = SettingsStore()
         // A measurement launch can force the synthetic charging input so the
         // animation can be compared on and off on a machine that is not charging.

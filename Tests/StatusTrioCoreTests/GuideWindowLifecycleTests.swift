@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class GuideWindowLifecycleTests: XCTestCase {
+final class GuideWindowLifecycleTests: VisibleUITestCase {
     #if DEBUG
     func testBackgroundGuideUsesFirstRunPolicyWithoutActivation() throws {
         let fixture = try DefaultsFixture()

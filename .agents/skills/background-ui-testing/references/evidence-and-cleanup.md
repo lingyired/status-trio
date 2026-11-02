@@ -1,54 +1,51 @@
 # Evidence and cleanup
 
-Use a short Markdown record or equivalent structured data. Record facts;
-missing fields are unknown, not an invitation to probe the user's session.
+Use existing project/tool reports for the supplied tests. Add only the
+information needed to explain background interference, coverage limits, and
+cleanup. This guide defines no test cases, functional evidence requirements,
+report schema, or status vocabulary. A tool-output reference may be sufficient;
+a browser context need not have a separate PID or local evidence file.
 
-## Run record
+## Interference evidence
 
-```text
-Run: <unique run ID>
-Target: <executable/profile, PID/context ID, build/commit, dirty state>
-Harness: <provider, version, exposed capabilities, attachment route>
-Environment: <OS, displays/scaling, requested and actual placement>
-Observation: <start, deadline, clock basis, actual gaps, output path>
-Actions: <action ID, target identity, start/end time, observed outcome>
-Functional result: <PASS | FAIL | BLOCKED | NOT RUN, evidence>
-Foreground activation: <status, evidence interval, resolution, blind spots>
-Input focus: <status, evidence interval, resolution, blind spots>
-Pointer: <status, evidence interval, resolution, blind spots>
-Workspace: <status, evidence interval, resolution, blind spots>
-Cleanup: <owned resources stopped, values restored, preserved conflicts>
-```
+Associate observations with the actual target, route, operations, and time
+interval. Distinguish foreground activation, input focus, pointer, clipboard,
+and workspace effects as far as the available tools can observe them.
+Describe resolution, gaps, and missing measurements rather than inferring
+non-interference from silence.
 
 Use the same clock basis for actions and observations or record how they
 were correlated. A fresh trace can observe the same instance; a new recording
 does not require restarting the app or inventing a new PID.
 
-An action outside the trace has interference measurement NOT RUN. If a
-missing capability prevents measurement, that measurement is BLOCKED.
-Independently observed activation remains FAIL even without a valid trace.
-Judge functional outcome separately.
+If an action occurred outside the trace, explain that its interference was
+not measured. If a missing capability prevented measurement, explain that
+limitation. Independently observed activation remains evidence of interference
+even without a valid trace. Leave functional outcomes to the project's tests.
 
-For file-only inspection of an existing screenshot, record its source and
-timestamp if available. Live interaction and live interference measurements
-are NOT RUN; do not attach to an app merely to inspect a saved artifact.
+Saved-artifact inspection provides no live interference measurement and needs
+no attachment. Do not launch a UI or add a functional probe to obtain a
+background result for file-only work.
 
-## Change ledger
+## Cleanup ownership
 
-For each mutation, record the target domain/resource, original value,
-value written by this run, action time, and any available revision or
-ownership evidence. Before restoring, read the current state and check
-whether the run still owns that mutation.
+Follow project cleanup for test data and application state; this skill does
+not define a new reset procedure. For background-execution changes such as
+window placement or owned observers, retain enough ownership information to
+release or restore them safely.
 
 If another actor changed the value, or ownership cannot be established,
-preserve it and mark that restoration BLOCKED with the reason. A current
+preserve it and explain why restoration was withheld. A current
 value equal to the test's write is not, by itself, proof that nobody changed
 it in between. Continue safe cleanup of other resources.
 
-Stop only observers and test instances created or explicitly owned by the
-run. Confirm exit or timeout, and record resources left running. Do not use
-cleanup to terminate an unrelated app or restore a whole shared preference
-snapshot over concurrent changes.
+Release resources at their actual ownership boundary. For an owned browser
+context, close that context rather than a shared browser process. For a
+pre-existing test target, follow the agreed cleanup scope instead of assuming
+that attachment authorizes termination. Confirm release or timeout of
+resources due for cleanup, and record any unresolved cleanup. Do not terminate
+an unrelated app or restore a whole shared preference snapshot over concurrent
+changes.
 
 ## Sharing evidence
 

@@ -10,7 +10,7 @@ import XCTest
 /// which pushed the panel off the top of the screen when a detail page made it
 /// taller.
 @MainActor
-final class StatusPanelContentResizeTests: XCTestCase {
+final class StatusPanelContentResizeTests: VisibleUITestCase {
     func testOpeningAndLeavingADetailPageKeepsTheMenuBarAnchoredEdgeFixed() throws {
         let suiteName = "StatusTrioCoreTests.StatusPanelContentResize.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

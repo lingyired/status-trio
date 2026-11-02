@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class SettingsWindowControllerTests: XCTestCase {
+final class SettingsWindowControllerTests: VisibleUITestCase {
     func testShowCreatesReusesAndLocalizesSingleWindow() throws {
         let suiteName = "StatusTrioCoreTests.SettingsWindow.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

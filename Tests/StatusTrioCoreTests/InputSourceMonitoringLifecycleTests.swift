@@ -6,7 +6,7 @@ import XCTest
 /// all, so they must cost neither a TIS read nor a distributed observer. The
 /// controller is started and stopped by the two settings that can draw one.
 @MainActor
-final class InputSourceMonitoringLifecycleTests: XCTestCase {
+final class InputSourceMonitoringLifecycleTests: VisibleUITestCase {
     func testMonitoringFollowsTheTwoFeaturesThatDrawAnInputSource() throws {
         let suiteName = "InputSourceMonitoringLifecycleTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

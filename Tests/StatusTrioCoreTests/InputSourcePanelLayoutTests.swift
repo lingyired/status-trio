@@ -8,7 +8,7 @@ import XCTest
 /// interactive targets are what a user without the mouse precision for a
 /// one-line button actually clicks, so they are the measurable part.
 @MainActor
-final class InputSourcePanelLayoutTests: XCTestCase {
+final class InputSourcePanelLayoutTests: VisibleUITestCase {
     func testTheSummaryRowDoesNotDrawTheSourceList() {
         let sizes = interactiveSubViewSizes(
             for: summaryView(),

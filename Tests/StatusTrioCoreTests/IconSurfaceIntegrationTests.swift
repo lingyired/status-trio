@@ -2,7 +2,7 @@ import AppKit
 import Testing
 @testable import StatusTrioCore
 
-@Suite(.serialized)
+@Suite(.serialized, .enabled(if: VisibleUITests.isEnabled, Comment(rawValue: VisibleUITests.reason)))
 @MainActor
 struct IconSurfaceIntegrationTests {
     @Test func bothSurfacesRenderTheSameDeliveredScene() async throws {

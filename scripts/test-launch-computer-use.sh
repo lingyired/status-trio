@@ -21,7 +21,8 @@ cat > "$FIXTURE/bin/swift" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$2" >> "$ST_CUA_FIXTURE_LOG"
 if [[ "$2" == "prepare" && "${ST_CUA_FIXTURE_BUSY:-0}" == 1 ]]; then exit 1; fi
-if [[ "$2" == "launch" && "$5" != "${ST_CUA_FIXTURE_DISPLAY:-automatic}" ]]; then exit 1; fi
+if [[ ( "$2" == "launch" || "$2" == "reuse" ) && "$5" != "${ST_CUA_FIXTURE_DISPLAY:-automatic}" ]]; then exit 1; fi
+if [[ "$2" == "reuse" && "${ST_CUA_FIXTURE_REUSE_MISSING:-0}" == 1 ]]; then exit 1; fi
 EOF
 cat > "$TEST_ROOT/scripts/build-worktree.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -77,6 +78,10 @@ if rg -q '^build$' "$ST_CUA_FIXTURE_LOG"; then
 fi
 expect_failure env ST_CUA_FIXTURE_BRANCH=main bash "$TEST_ROOT/scripts/launch-computer-use.sh"
 expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --display primary
+expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse --reuse
+expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --display secondary --display secondary
+expect_failure env ST_CUA_FIXTURE_REUSE_MISSING=1 bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse
+[[ "$(cat "$ST_CUA_FIXTURE_LOG")" == "reuse" ]]
 for display in automatic secondary; do
     : > "$ST_CUA_FIXTURE_LOG"
     if [[ "$display" == secondary ]]; then
@@ -86,4 +91,13 @@ for display in automatic secondary; do
     fi
     [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == $'prepare\nbuild\nlaunch' ]]
 done
-echo "Computer Use launcher: 10 isolation, lock, capability, argument and ordering cases passed."
+for display in automatic secondary; do
+    : > "$ST_CUA_FIXTURE_LOG"
+    if [[ "$display" == secondary ]]; then
+        ST_CUA_FIXTURE_DISPLAY="$display" bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse --display secondary > "$FIXTURE/output"
+    else
+        bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse > "$FIXTURE/output"
+    fi
+    [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == "reuse" ]]
+done
+echo "Computer Use launcher: 15 isolation, lock, capability, argument, reuse and ordering cases passed."

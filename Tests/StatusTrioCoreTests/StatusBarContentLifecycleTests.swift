@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class StatusBarContentLifecycleTests: XCTestCase {
+final class StatusBarContentLifecycleTests: VisibleUITestCase {
     func testCloseStopsSubscriptionsImmediatelyAndReopenStartsSynchronouslyWithLatestValues() async throws {
         let harness = try ContentLifecycleHarness()
         defer { harness.cleanUp() }
