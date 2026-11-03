@@ -368,6 +368,13 @@
 "inputSource.switchFailed" = "Wechsel zu „%@“ nicht möglich. Wähle sie direkt aus oder versuche es erneut.";
 "inputSource.switchUnconfirmed" = "macOS hat „%@“ akzeptiert, meldet aber weiterhin eine andere Eingabequelle. Die vorderste App braucht möglicherweise den Fokus.";
 "settings.popup.order.inputSource" = "Eingabequelle";
+"settings.panel.background.title" = "Panel-Hintergrund";
+"settings.panel.background.style" = "Hintergrundstil";
+"settings.panel.background.style.description" = "Wähle, wie der Hintergrund des Statuspanels gezeichnet wird.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "Klassisches Material";
+"settings.panel.background.style.solid" = "Einfarbig";
+"settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass erfordert macOS 26 oder neuer.";
 "settings.popup.volumeScroll.group" = "Panel-Scrollen";
 "settings.popup.volumeScroll" = "Lautstärke durch Scrollen ändern";
 "settings.popup.volumeScroll.description" = "Im Statusbereich scrollen, um die Ausgabelautstärke zu ändern.";
@@ -613,6 +620,7 @@
 "battery.power.system.help" = "Systemleistung (inkl. SoC)";
 "battery.power.system.explanation" = "„System“ ist, was nach Akkuladung, Display und USB übrig bleibt: SoC, Speicher, Display-Controller und weitere nicht einzeln gemessene Lasten.";
 "power.infoBar.input" = "Ladegeräteingang";
+"power.infoBar.noInput" = "Kein Netzteil";
 "power.infoBar.battery" = "Batterieladung";
 "power.infoBar.discharging" = "Batterieentladung";
 "power.infoBar.system" = "Systemleistung";

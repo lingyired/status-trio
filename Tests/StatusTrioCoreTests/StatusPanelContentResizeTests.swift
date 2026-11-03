@@ -62,7 +62,7 @@ final class StatusPanelContentResizeTests: VisibleUITestCase {
             ).environmentObject(localization)
         )
         let panel = AnchoredStatusPanel()
-        panel.installContent(host)
+        panel.installContent(host, backgroundStyle: .solid)
 
         let screenFrame = NSScreen.main?.frame
             ?? NSRect(x: 0, y: 0, width: 1_440, height: 900)

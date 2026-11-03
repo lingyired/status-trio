@@ -128,7 +128,7 @@ struct StatusPopoverView: View {
                 lowPowerMode: panel.store.lowPowerMode,
                 showsLowPowerToggle: panel.settings.controlsLowPowerMode
                     && helper.isReady,
-                chargeToFullNow: panel.chargeToFullNowPresentation,
+                chargeToFullNow: panel.summaryChargeToFullNowPresentation,
                 onChargeToFullNow: {
                     panel.actions.requestChargeToFullNow()
                 }

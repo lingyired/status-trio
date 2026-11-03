@@ -368,6 +368,13 @@
 "inputSource.switchFailed" = "Couldn’t switch to “%@”. Select it directly or try again.";
 "inputSource.switchUnconfirmed" = "macOS accepted “%@” but still reports another input source. The front app may need focus.";
 "settings.popup.order.inputSource" = "Input Source";
+"settings.panel.background.title" = "Panel Background";
+"settings.panel.background.style" = "Background Style";
+"settings.panel.background.style.description" = "Choose how the status panel background is drawn.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "Classic Material";
+"settings.panel.background.style.solid" = "Solid Color";
+"settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requires macOS 26 or later.";
 "settings.popup.volumeScroll.group" = "Panel Scrolling";
 "settings.popup.volumeScroll" = "Adjust Volume by Scrolling";
 "settings.popup.volumeScroll.description" = "Scroll inside the status panel to change the output volume.";
@@ -613,6 +620,7 @@
 "battery.power.system.help" = "System power (incl. SoC)";
 "battery.power.system.explanation" = "“System” is what remains after battery charging, the display and USB: it covers the SoC, memory, display controllers and other loads that are not measured on their own.";
 "power.infoBar.input" = "Charger input";
+"power.infoBar.noInput" = "No power adapter";
 "power.infoBar.battery" = "Battery charging";
 "power.infoBar.discharging" = "Battery discharging";
 "power.infoBar.system" = "System power";

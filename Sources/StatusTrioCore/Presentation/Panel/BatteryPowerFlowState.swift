@@ -4,6 +4,12 @@ struct BatteryPowerFlowState: Equatable, Sendable {
     /// Which rail a branch represents. The view maps this to a symbol and tint;
     /// the state itself stays free of AppKit concerns.
     enum Kind: Equatable, Sendable {
+        /// The left-hand source node fed by the power adapter.
+        case input
+        /// The left-hand source node fed by the pack when it is discharging.
+        /// Shares the outer power bar's plain-battery glyph and orange tint so
+        /// the two surfaces agree.
+        case batterySource
         case charging
         case display
         case usb

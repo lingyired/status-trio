@@ -2,14 +2,16 @@ import Combine
 import Foundation
 
 struct ChargeToFullNowDemand: Equatable, Sendable {
-    let settingEnabled: Bool
     let popoverVisible: Bool
     let batterySectionVisible: Bool
     let battery: BatteryStatus
 
+    /// Capability, panel visibility and live battery state decide whether the
+    /// action may run. The Settings toggle does not participate: it only
+    /// controls whether the summary card shows the row, while the battery
+    /// details page always shows it when the action is applicable.
     var showsSurface: Bool {
-        settingEnabled
-            && popoverVisible
+        popoverVisible
             && batterySectionVisible
             && battery.isPresent
     }
@@ -224,7 +226,6 @@ final class ChargeToFullNowController: ObservableObject {
 
         update(
             ChargeToFullNowDemand(
-                settingEnabled: true,
                 popoverVisible: true,
                 batterySectionVisible: true,
                 battery: battery

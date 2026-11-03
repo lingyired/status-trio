@@ -145,21 +145,26 @@ struct BatteryPowerFlowView: View {
                 }
             }
             if let input = state.input {
-                metric(input, symbol: "powerplug.fill", color: .primary,
-                       height: Self.inputCardHeight, singleLine: false, iconSize: 15,
+                // The source node is the adapter (plug, primary) unless the pack
+                // is discharging, in which case it takes the outer bar's
+                // discharging card style (plain battery, orange).
+                let inputColor = Self.color(for: input.kind)
+                metric(input, symbol: Self.symbol(for: input.kind), color: inputColor,
+                       height: Self.inputCardHeight, singleLine: false,
+                       iconSize: Self.iconSize(for: input.kind),
                        iconLeading: false)
                     .frame(width: destinations.isEmpty ? width : 62)
                     // `Color.primary` (an explicit colour), not bare `.primary`:
                     // in `.background(_:in:)` the leading dot resolves to the
                     // hierarchical `HierarchicalShapeStyle.primary`, which follows
                     // the vibrant foreground of the detail page and renders almost
-                    // transparent over the glass. The explicit colour matches the
-                    // outer power bar's `Color.primary` chip.
-                    .background(Color.primary.opacity(Self.inputCardFill),
+                    // transparent over the glass. `Self.color(for:)` returns the
+                    // explicit colour for the adapter chip.
+                    .background(inputColor.opacity(Self.inputCardFill),
                                 in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color.primary.opacity(Self.inputCardStroke), lineWidth: 1)
+                            .strokeBorder(inputColor.opacity(Self.inputCardStroke), lineWidth: 1)
                     }
                     .position(x: destinations.isEmpty ? width / 2 : 31, y: center)
             }
@@ -184,6 +189,10 @@ struct BatteryPowerFlowView: View {
 
     private static func symbol(for kind: BatteryPowerFlowState.Kind) -> String {
         switch kind {
+        case .input: return "powerplug.fill"
+        // The pack as the source: plain battery, matching the outer bar's
+        // discharging card (only charging carries the bolt).
+        case .batterySource: return "battery.100"
         case .charging: return "battery.100.bolt"
         case .display: return "display"
         case .usb: return "cable.connector"
@@ -193,6 +202,9 @@ struct BatteryPowerFlowView: View {
 
     private static func color(for kind: BatteryPowerFlowState.Kind) -> Color {
         switch kind {
+        case .input: return .primary
+        // Same orange as the outer power bar's discharging battery card.
+        case .batterySource: return .orange
         case .charging: return .green
         case .display: return .indigo
         case .usb: return .orange
@@ -204,6 +216,8 @@ struct BatteryPowerFlowView: View {
     /// larger than the display and connector glyphs at the same point size.
     private static func iconSize(for kind: BatteryPowerFlowState.Kind) -> CGFloat {
         switch kind {
+        case .input: return 15
+        case .batterySource: return 13
         case .charging: return 12
         case .display, .usb, .system: return 13
         }

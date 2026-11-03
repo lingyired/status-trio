@@ -73,6 +73,7 @@ final class StatusBarController: NSObject {
     private var screenParametersCancellable: AnyCancellable?
     private var refreshIntervalCancellable: AnyCancellable?
     private var powerDemandCancellable: AnyCancellable?
+    private var panelBackgroundCancellable: AnyCancellable?
     private let openSettings: () -> Void
     /// Opens Status Trio's own Settings window on the Battery tab.
     private let openAppBatterySettings: () -> Void
@@ -312,6 +313,14 @@ final class StatusBarController: NSObject {
                 }
             }
 
+        // The panel may already be open when the user changes the background
+        // style; swap it in place rather than waiting for the next reopen.
+        panelBackgroundCancellable = settings.$panelBackgroundStyle
+            .removeDuplicates()
+            .sink { [weak self] style in
+                self?.popover.applyBackgroundStyle(style)
+            }
+
         screenParametersCancellable = NotificationCenter.default.publisher(
             for: NSApplication.didChangeScreenParametersNotification,
             object: NSApp
@@ -501,7 +510,7 @@ final class StatusBarController: NSObject {
             // keep preferred sizing on the newer path.
             hostingController.sizingOptions = [.preferredContentSize]
         }
-        popover.installContent(hostingController)
+        popover.installContent(hostingController, backgroundStyle: settings.panelBackgroundStyle)
     }
 
     private func togglePopover() {

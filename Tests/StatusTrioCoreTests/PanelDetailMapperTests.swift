@@ -346,8 +346,41 @@ extension PanelDetailMapperTests {
             state: BatteryPowerState(battery), now: timestamp, breakdown: split
         )
 
-        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+        var options = BatteryPowerDisplayOptions.default
+        options.showsInput = true
+        let state = PanelDetailMapper.battery(
+            status: battery, details: details, localization: localization, powerOptions: options
+        )
 
         XCTAssertNotNil(state.powerFlow, "A verified battery split must keep the flow diagram while unplugged")
+        // The pack is the source while discharging, so its card must take the
+        // discharging style (plain battery, orange) instead of the adapter feed.
+        XCTAssertEqual(state.powerFlow?.input?.kind, .batterySource)
+        XCTAssertEqual(state.powerFlow?.input?.label, localization.string(.batteryPowerBatterySource))
+        XCTAssertEqual(state.powerFlow?.input?.value, "30.00 W")
+    }
+
+    func testConnectedPowerFlowUsesAdapterInputStyle() {
+        let localization = makeLocalization()
+        let timestamp = Date(timeIntervalSince1970: 1_700_000_000)
+        let battery = BatteryStatus(
+            rawPercentage: 60, isPresent: true, isCharging: true,
+            isLowPowerMode: false, isConnectedToPower: true
+        )
+        var options = BatteryPowerDisplayOptions.default
+        options.showsInput = true
+        var details = BatteryDetails(adapterWatts: 140, powerAvailability: .available)
+        details.inputPower = SystemPowerSample(watts: 61.5, readAt: timestamp)
+        details.systemPower = SystemPowerSample(watts: 10.6, readAt: timestamp)
+
+        let input = PanelDetailMapper.battery(
+            status: battery,
+            details: details,
+            localization: localization,
+            powerOptions: options
+        ).powerFlow?.input
+
+        XCTAssertEqual(input?.kind, .input, "A fed diagram's source is the adapter, not the pack")
+        XCTAssertEqual(input?.label, localization.string(.batteryPowerInput))
     }
 }

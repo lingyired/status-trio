@@ -368,6 +368,13 @@
 "inputSource.switchFailed" = "Não foi possível mudar para “%@”. Selecione-a diretamente ou tente novamente.";
 "inputSource.switchUnconfirmed" = "O macOS aceitou “%@”, mas ainda informa outra fonte de entrada. O app em primeiro plano pode precisar de foco.";
 "settings.popup.order.inputSource" = "Fonte de entrada";
+"settings.panel.background.title" = "Fundo do painel";
+"settings.panel.background.style" = "Estilo do fundo";
+"settings.panel.background.style.description" = "Escolha como o fundo do painel de status é desenhado.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "Material clássico";
+"settings.panel.background.style.solid" = "Cor sólida";
+"settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requer macOS 26 ou posterior.";
 "settings.popup.volumeScroll.group" = "Rolagem do painel";
 "settings.popup.volumeScroll" = "Ajustar o volume com a rolagem";
 "settings.popup.volumeScroll.description" = "Role dentro do painel de status para alterar o volume de saída.";
@@ -613,6 +620,7 @@
 "battery.power.system.help" = "Potência do sistema (incl. SoC)";
 "battery.power.system.explanation" = "“Sistema” é o que resta após a carga da bateria, a tela e o USB: inclui SoC, memória, controladores de vídeo e outras cargas não medidas separadamente.";
 "power.infoBar.input" = "Entrada do carregador";
+"power.infoBar.noInput" = "Sem adaptador";
 "power.infoBar.battery" = "Carga da bateria";
 "power.infoBar.discharging" = "Descarga da bateria";
 "power.infoBar.system" = "Potência do sistema";

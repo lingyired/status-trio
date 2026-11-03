@@ -72,6 +72,10 @@ below describe what is implemented, not a frozen specification.
   label and a one-decimal wattage). A missing or stale rail is absent, and the
   bar hides when none is fresh. The three values are never added into a total.
 - A Mac with no battery hides the **Battery** rail.
+- On a laptop **on battery**, the adapter still yields a fresh ~0 W sample; the
+  **Input** card says "No power adapter" (未接电源) rather than "0.0 W", which
+  would read like a connected-but-idle charger. A battery-less Mac keeps its
+  real input reading.
 - It rides the same shared sampler as the icon and details page. Its demand is
   released when the panel closes or the option is switched off, and that must
   never interrupt an icon or details demand that is still live. Because it needs

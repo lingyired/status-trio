@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class ChargeToFullNowPanelIntegrationTests: XCTestCase {
-    func testPanelDemandFollowsSettingVisibilityAndBatterySnapshot() async {
+    func testDetailsAlwaysShowsWhileSettingOnlyGatesSummary() async {
         let backend = PanelChargeBackend(state: .activeLimit)
         let chargeToFullNow = ChargeToFullNowController(backend: backend)
         let fixture = PanelStoreFixture()
@@ -18,6 +18,7 @@ final class ChargeToFullNowPanelIntegrationTests: XCTestCase {
         }
 
         XCTAssertEqual(panel.chargeToFullNowPresentation, .hidden)
+        XCTAssertEqual(panel.summaryChargeToFullNowPresentation, .hidden)
         XCTAssertEqual(backend.readCount, 0)
 
         fixture.store.setPopoverVisible(true)
@@ -30,13 +31,27 @@ final class ChargeToFullNowPanelIntegrationTests: XCTestCase {
             panel.chargeToFullNowPresentation == .available
         }
         XCTAssertTrue(becameAvailable)
+        XCTAssertEqual(panel.summaryChargeToFullNowPresentation, .available)
 
+        // Turning the setting off hides only the summary card; the details page
+        // keeps showing the action.
+        fixture.settings.showsChargeToFullNowButton = false
+        XCTAssertEqual(panel.chargeToFullNowPresentation, .available)
+        XCTAssertEqual(panel.summaryChargeToFullNowPresentation, .hidden)
+
+        fixture.settings.showsChargeToFullNowButton = true
+        XCTAssertEqual(panel.summaryChargeToFullNowPresentation, .available)
+
+        // Closing the panel hides both surfaces.
         fixture.store.setPopoverVisible(false)
         XCTAssertEqual(panel.chargeToFullNowPresentation, .hidden)
+        XCTAssertEqual(panel.summaryChargeToFullNowPresentation, .hidden)
 
+        // Hiding the battery section still gates both surfaces.
         fixture.store.setPopoverVisible(true)
         fixture.settings.setPopupSection(.battery, enabled: false)
         XCTAssertEqual(panel.chargeToFullNowPresentation, .hidden)
+        XCTAssertEqual(panel.summaryChargeToFullNowPresentation, .hidden)
     }
 
     func testStopClearsTheDemandWithoutAnotherPowerUIRead() {

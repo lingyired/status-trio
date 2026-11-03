@@ -8,9 +8,10 @@ import SwiftUI
 /// to hide it, so the panel is now a borderless `NSPanel` that reproduces the
 /// popover's behaviour itself:
 ///
-/// - native Liquid Glass on macOS 26+ (`NSGlassEffectView`), the pre-Tahoe
-///   `NSVisualEffectView` material on macOS 13–25, and a solid fill when the
-///   user has Reduce Transparency on;
+/// - a user-selectable background (issue #233): native Liquid Glass on
+///   macOS 26+ (`NSGlassEffectView`), the pre-Tahoe `NSVisualEffectView`
+///   material, or an opaque fill that follows light / dark. Reduce
+///   Transparency always forces the opaque fill;
 /// - anchored placement with the same edge semantics, gap, screen clamping and
 ///   flip-to-the-other-side fallback as `NSPopover`;
 /// - outside-click dismissal, Escape, app deactivation and the status item's
@@ -75,12 +76,26 @@ final class AnchoredStatusPanel: NSPanel {
     /// Sizing is driven by `StatusPanelHostingController.viewDidLayout`, not by
     /// the wrapper's own layout pass: the hosting view is the thing whose
     /// intrinsic size changes when a row expands.
-    func installContent<Content: View>(_ hostingController: StatusPanelHostingController<Content>) {
+    func installContent<Content: View>(
+        _ hostingController: StatusPanelHostingController<Content>,
+        backgroundStyle: PanelBackgroundStyle
+    ) {
         hostingController.onLayout = { [weak self] size in
             self?.applyContentSize(size)
         }
-        let controller = StatusPanelContentViewController(hostingController: hostingController)
+        let controller = StatusPanelContentViewController(
+            hostingController: hostingController,
+            backgroundStyle: backgroundStyle
+        )
         contentViewController = controller
+    }
+
+    /// Swaps the panel background in place when the setting changes. No-op when
+    /// no content is installed yet; the next `installContent` uses the current
+    /// style.
+    func applyBackgroundStyle(_ style: PanelBackgroundStyle) {
+        (contentViewController as? StatusPanelContentViewController)?
+            .applyBackgroundStyle(style)
     }
 
     // MARK: - Presentation
@@ -290,15 +305,56 @@ final class StatusPanelHostingController<Content: View>: NSHostingController<Con
     }
 }
 
+/// Solid fill used when the panel renders opaque — either the user picked
+/// `.solid`, or macOS "Reduce Transparency" is on (issues #233 / #234).
+///
+/// `NSColor.windowBackgroundColor` is a dynamic color. Resolving `.cgColor`
+/// once, at `loadView()` time, freezes whatever appearance happened to be
+/// current then (often a dark menu-bar/SwiftUI drawing context) and never
+/// follows the panel's own `effectiveAppearance` afterwards — a light-mode
+/// panel then paints a black background behind dark text. Resolving inside
+/// `updateLayer()` under `effectiveAppearance` keeps it correct on first show,
+/// and `viewDidChangeEffectiveAppearance()` repaints when the system or the
+/// screen appearance changes, so the fill follows light / dark automatically.
+@MainActor
+final class SolidPanelBackgroundView: NSView {
+    override var wantsUpdateLayer: Bool { true }
+
+    override func updateLayer() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+}
+
 /// Hosts the SwiftUI content inside the panel's background.
 @MainActor
 final class StatusPanelContentViewController: NSViewController {
     let hostingController: NSViewController
 
+    /// The user's chosen style. The effective style can differ when Reduce
+    /// Transparency forces a solid fill.
+    private(set) var backgroundStyle: PanelBackgroundStyle
+    /// Injectable so tests can exercise the non-solid paths on a machine that
+    /// has Reduce Transparency turned on.
+    private let isReduceTransparencyEnabled: () -> Bool
     private var backgroundView: NSView?
 
-    init(hostingController: NSViewController) {
+    init(
+        hostingController: NSViewController,
+        backgroundStyle: PanelBackgroundStyle,
+        isReduceTransparencyEnabled: @escaping () -> Bool = {
+            NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+        }
+    ) {
         self.hostingController = hostingController
+        self.backgroundStyle = backgroundStyle
+        self.isReduceTransparencyEnabled = isReduceTransparencyEnabled
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -317,55 +373,93 @@ final class StatusPanelContentViewController: NSViewController {
         container.layer?.masksToBounds = true
         view = container
 
-        let reduceTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
-        if #available(macOS 26.0, *), !reduceTransparency {
-            let glass = NSGlassEffectView(frame: container.bounds)
-            glass.style = .regular
-            glass.cornerRadius = AnchoredStatusPanel.cornerRadius
-            glass.autoresizingMask = [.width, .height]
-            // Keep the SwiftUI hosting view one plain container away from
-            // `NSGlassEffectView.contentView`. Assigning the hosting view
-            // directly lets the glass view treat the hosting view's intrinsic
-            // content size as its own and resize/reposition the panel window
-            // whenever a detail page changes the content height (#183
-            // follow-up).
-            let glassContent = NSView(frame: glass.bounds)
-            glassContent.autoresizingMask = [.width, .height]
-            hostingController.view.frame = glassContent.bounds
-            hostingController.view.autoresizingMask = [.width, .height]
-            glassContent.addSubview(hostingController.view)
-            glass.contentView = glassContent
-            container.addSubview(glass)
-            backgroundView = glass
-        } else {
-            let background: NSView
-            if reduceTransparency {
-                let solid = NSView(frame: container.bounds)
-                solid.wantsLayer = true
-                solid.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-                solid.layer?.cornerRadius = AnchoredStatusPanel.cornerRadius
-                solid.layer?.masksToBounds = true
-                background = solid
-            } else {
-                let effect = NSVisualEffectView(frame: container.bounds)
-                effect.material = .popover
-                effect.blendingMode = .behindWindow
-                effect.state = .active
-                effect.wantsLayer = true
-                effect.layer?.cornerRadius = AnchoredStatusPanel.cornerRadius
-                effect.layer?.masksToBounds = true
-                background = effect
-            }
-            background.autoresizingMask = [.width, .height]
-            container.addSubview(background)
-            backgroundView = background
+        addChild(hostingController)
+        installBackground(in: container)
+    }
 
+    /// Swaps the background without rebuilding the window or re-creating the
+    /// SwiftUI content. Called when the setting changes while the panel exists.
+    func applyBackgroundStyle(_ style: PanelBackgroundStyle) {
+        guard style != backgroundStyle else { return }
+        backgroundStyle = style
+        guard isViewLoaded else { return }
+        installBackground(in: view)
+    }
+
+    /// Reduce Transparency keeps the panel opaque for accessibility; it wins
+    /// over the user's choice and forces the solid fill.
+    private var effectiveBackgroundStyle: PanelBackgroundStyle {
+        PanelBackgroundStyle.renderStyle(
+            for: backgroundStyle,
+            reduceTransparency: isReduceTransparencyEnabled()
+        )
+    }
+
+    private func installBackground(in container: NSView) {
+        backgroundView?.removeFromSuperview()
+        backgroundView = nil
+        hostingController.view.removeFromSuperview()
+
+        let background = makeBackgroundView(in: container)
+        background.autoresizingMask = [.width, .height]
+        container.addSubview(background)
+        backgroundView = background
+
+        // The glass path already embedded the hosting view in its own plain
+        // container; every other path hosts the content directly above the
+        // background in `container`.
+        if hostingController.view.superview == nil {
             hostingController.view.frame = container.bounds
             hostingController.view.autoresizingMask = [.width, .height]
             container.addSubview(hostingController.view)
         }
+    }
 
-        addChild(hostingController)
+    private func makeBackgroundView(in container: NSView) -> NSView {
+        switch effectiveBackgroundStyle {
+        case .liquidGlass:
+            if #available(macOS 26.0, *) {
+                let glass = NSGlassEffectView(frame: container.bounds)
+                glass.style = .regular
+                glass.cornerRadius = AnchoredStatusPanel.cornerRadius
+                // Keep the SwiftUI hosting view one plain container away from
+                // `NSGlassEffectView.contentView`. Assigning the hosting view
+                // directly lets the glass view treat the hosting view's
+                // intrinsic content size as its own and resize/reposition the
+                // panel window whenever a detail page changes the content
+                // height (#183 follow-up).
+                let glassContent = NSView(frame: glass.bounds)
+                glassContent.autoresizingMask = [.width, .height]
+                hostingController.view.frame = glassContent.bounds
+                hostingController.view.autoresizingMask = [.width, .height]
+                glassContent.addSubview(hostingController.view)
+                glass.contentView = glassContent
+                return glass
+            }
+            // Older systems cannot render Liquid Glass; `.resolved` normally
+            // prevents this, but fall back to the classic material if a direct
+            // caller still asks for it.
+            return makeClassicMaterialBackground(in: container)
+        case .classicMaterial:
+            return makeClassicMaterialBackground(in: container)
+        case .solid:
+            let solid = SolidPanelBackgroundView(frame: container.bounds)
+            solid.wantsLayer = true
+            solid.layer?.cornerRadius = AnchoredStatusPanel.cornerRadius
+            solid.layer?.masksToBounds = true
+            return solid
+        }
+    }
+
+    private func makeClassicMaterialBackground(in container: NSView) -> NSView {
+        let effect = NSVisualEffectView(frame: container.bounds)
+        effect.material = .popover
+        effect.blendingMode = .behindWindow
+        effect.state = .active
+        effect.wantsLayer = true
+        effect.layer?.cornerRadius = AnchoredStatusPanel.cornerRadius
+        effect.layer?.masksToBounds = true
+        return effect
     }
 
     override func viewDidLayout() {

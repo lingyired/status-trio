@@ -116,11 +116,16 @@ enum PanelDetailMapper {
         let sampledCharging = details.power.flatMap { $0.watts > 0 ? $0.watts : nil }
         let charging: Double? = sampledCharging ?? (status.isCharging ? nil : 0)
         // The left node names whichever rail feeds the diagram: the adapter
-        // input, or the pack when it is discharging into the machine.
-        let sourceLabel: LocalizationKey = details.breakdown?.source == .battery
+        // input, or the pack when it is discharging into the machine. The pack
+        // is styled like the outer power bar's discharging card (plain battery,
+        // orange) so a discharge never reads as an adapter feed.
+        let sourceIsBattery = details.breakdown?.source == .battery
+        let sourceLabel: LocalizationKey = sourceIsBattery
             ? .batteryPowerBatterySource : .batteryPowerInput
         let sourceWatts = details.breakdown?.sourceWatts ?? details.inputPower?.watts
-        let input = options.showsInput ? metric(sourceLabel, sourceWatts) : nil
+        let input = options.showsInput
+            ? metric(sourceLabel, sourceWatts, kind: sourceIsBattery ? .batterySource : .input)
+            : nil
         // A verified split replaces the single system node. Without one the
         // legacy two-branch diagram stays exactly as it was.
         if options.showsBreakdown, let split = details.breakdown {

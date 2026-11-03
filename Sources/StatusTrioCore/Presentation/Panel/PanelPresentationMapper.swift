@@ -86,7 +86,20 @@ enum PanelPresentationMapper {
         }
         var items: [PowerInfoBarItem] = []
         if let inputPower, inputPower.watts.isFinite, inputPower.isFresh(at: now) {
-            items.append(PowerInfoBarItem(kind: .input, value: watts(inputPower.watts)))
+            // A laptop on battery has no adapter feeding it, yet the rail still
+            // yields a fresh ~0 W sample. Printing "0.0 W" under "Charger input"
+            // reads as if a charger were attached but idle, so say plainly that
+            // there is no external power. A no-battery Mac has no such state and
+            // keeps its real reading.
+            let unplugged = status.isPresent && !status.isConnectedToPower && abs(inputPower.watts) < 0.05
+            if unplugged {
+                items.append(PowerInfoBarItem(
+                    kind: .inputDisconnected,
+                    value: localization.string(.powerInfoBarNoInput)
+                ))
+            } else {
+                items.append(PowerInfoBarItem(kind: .input, value: watts(inputPower.watts)))
+            }
         }
         if status.isPresent, let batteryPower, batteryPower.watts.isFinite, batteryPower.isFresh(at: now) {
             // The magnitude is the flow into (or out of) the pack, never folded
