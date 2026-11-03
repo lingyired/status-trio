@@ -16,6 +16,18 @@ enum MenuBarRightClickAction: String, CaseIterable, Identifiable, Sendable {
     case chargeToFullNow
     /// Mute ↔ unmute the current output device.
     case toggleMute
+    /// Turn the Wi-Fi radio on ↔ off.
+    case toggleWiFi
+    /// Refresh battery, Wi-Fi and volume readings immediately.
+    case refreshStatus
+    /// Open the system Settings pane for Wi-Fi.
+    case openWiFiSettings
+    /// Open the system Settings pane for Bluetooth.
+    case openBluetoothSettings
+    /// Open the system Settings pane for Battery.
+    case openBatterySettings
+    /// Open the system Settings pane for Sound.
+    case openSoundSettings
 
     var id: Self { self }
 
@@ -26,6 +38,12 @@ enum MenuBarRightClickAction: String, CaseIterable, Identifiable, Sendable {
         case .toggleLowPowerMode: .menuBarRightClickToggleLowPowerMode
         case .chargeToFullNow: .menuBarRightClickChargeToFullNow
         case .toggleMute: .menuBarRightClickToggleMute
+        case .toggleWiFi: .menuBarRightClickToggleWiFi
+        case .refreshStatus: .menuBarRightClickRefreshStatus
+        case .openWiFiSettings: .menuBarRightClickOpenWiFiSettings
+        case .openBluetoothSettings: .menuBarRightClickOpenBluetoothSettings
+        case .openBatterySettings: .menuBarRightClickOpenBatterySettings
+        case .openSoundSettings: .menuBarRightClickOpenSoundSettings
         }
     }
 
@@ -37,6 +55,12 @@ enum MenuBarRightClickAction: String, CaseIterable, Identifiable, Sendable {
         case .toggleLowPowerMode: "leaf.fill"
         case .chargeToFullNow: "battery.100.bolt"
         case .toggleMute: "speaker.slash.fill"
+        case .toggleWiFi: "wifi"
+        case .refreshStatus: "arrow.clockwise"
+        case .openWiFiSettings: "wifi"
+        case .openBluetoothSettings: "dot.radiowaves.left.and.right"
+        case .openBatterySettings: "battery.100"
+        case .openSoundSettings: "speaker.wave.2.fill"
         }
     }
 }

@@ -696,3 +696,10 @@
 "settings.menuBarRightClickAction.chargeToFullNow" = "今すぐフル充電";
 "settings.menuBarRightClickAction.toggleMute" = "ミュートを切り替え";
 "settings.menuBarRightClickAction.unavailableHint" = "選択した動作は現在利用できません。右クリックするとメニューが表示されます。";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "Wi-Fi を切り替え";
+"settings.menuBarRightClickAction.refreshStatus" = "状態を更新";
+"settings.menuBarRightClickAction.openWiFiSettings" = "Wi-Fi 設定を開く";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "Bluetooth 設定を開く";
+"settings.menuBarRightClickAction.openBatterySettings" = "バッテリー設定を開く";
+"settings.menuBarRightClickAction.openSoundSettings" = "サウンド設定を開く";

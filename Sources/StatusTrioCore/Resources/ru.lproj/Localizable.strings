@@ -696,3 +696,10 @@
 "settings.menuBarRightClickAction.chargeToFullNow" = "Зарядить до 100% сейчас";
 "settings.menuBarRightClickAction.toggleMute" = "Переключить без звука";
 "settings.menuBarRightClickAction.unavailableHint" = "Выбранное действие сейчас недоступно; при правом клике откроется меню.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "Переключить Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "Обновить состояние";
+"settings.menuBarRightClickAction.openWiFiSettings" = "Открыть настройки Wi-Fi";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "Открыть настройки Bluetooth";
+"settings.menuBarRightClickAction.openBatterySettings" = "Открыть настройки аккумулятора";
+"settings.menuBarRightClickAction.openSoundSettings" = "Открыть настройки звука";

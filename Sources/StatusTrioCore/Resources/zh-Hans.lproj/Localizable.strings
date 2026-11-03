@@ -696,3 +696,10 @@
 "settings.menuBarRightClickAction.chargeToFullNow" = "立刻充满";
 "settings.menuBarRightClickAction.toggleMute" = "切换静音";
 "settings.menuBarRightClickAction.unavailableHint" = "当前选中的操作不可用；右键将改为显示菜单。";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "切换 Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "刷新状态";
+"settings.menuBarRightClickAction.openWiFiSettings" = "打开 Wi-Fi 设置";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "打开蓝牙设置";
+"settings.menuBarRightClickAction.openBatterySettings" = "打开电池设置";
+"settings.menuBarRightClickAction.openSoundSettings" = "打开声音设置";

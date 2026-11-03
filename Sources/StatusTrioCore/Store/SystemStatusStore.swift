@@ -584,6 +584,15 @@ final class SystemStatusStore: ObservableObject {
         volumeController?.toggleMute()
     }
 
+    /// Menu-bar quick action: toggle the Wi-Fi radio while the panel is closed.
+    /// No confirmation step (unlike Bluetooth), so it just flips the current
+    /// radio state. `.unavailable` means there is no Wi-Fi interface to toggle.
+    func toggleWiFiPower() {
+        guard !hasStopped, snapshot.wifi.state != .unavailable else { return }
+        let isOff = snapshot.wifi.state == .off
+        wifiNetworks.setPowerFromQuickAction(!isOff)
+    }
+
     func selectOutputDevice(_ device: AudioOutputDevice) {
         guard !hasStopped else { return }
         volumeController?.selectOutputDevice(device.id)

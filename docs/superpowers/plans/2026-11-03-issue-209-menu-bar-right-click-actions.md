@@ -126,3 +126,21 @@ func performQuickToggle(battery: BatteryStatus) -> Bool
 - 左键是否完全不变；Dock 右键未触碰。
 - 12 语言键是否齐全、占位符一致。
 - 快捷充电是否可能残留合成 demand 影响面板状态（`performQuickToggle` 后清理）。
+
+## 追加动作（2026-11-03，用户确认后扩展）
+
+在原有 4 个动作基础上追加，仍走同一套 `MenuBarRightClickAction` + router 结构：
+
+- `toggleWiFi` 切换 Wi-Fi 开关：`SystemStatusStore.toggleWiFiPower()` →
+  `WiFiNetworkController.setPowerFromQuickAction(_:)`（不依赖面板可见性，直接下发一次
+  电台开关；普通面板路径仍受 `isActive` 约束）。
+- `refreshStatus` 刷新状态：`SystemStatusStore.refreshAll()`。
+- 导航类 `openWiFiSettings` / `openBluetoothSettings` / `openBatterySettings` /
+  `openSoundSettings`：复用 `StatusBarController` 已有的系统设置面板打开方法。
+
+导航与刷新类无运行时前置条件，始终可用；Wi-Fi 开关在无接口（`.unavailable`）时回退菜单。
+未加入蓝牙开关（关闭需二次确认）与输入法切换（可能有多个输入法）。
+
+顺带把「打开状态面板」快捷键行的「录制」按钮宽度对齐到 `SettingsMetrics.menuPickerWidth`。
+
+最终：验证通过后合并到 `main` 并推送。

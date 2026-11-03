@@ -8,6 +8,12 @@ enum MenuBarRightClickOutcome: Equatable {
     case toggleLowPowerMode
     case toggleChargeToFullNow
     case toggleMute
+    case toggleWiFi
+    case refreshStatus
+    case openWiFiSettings
+    case openBluetoothSettings
+    case openBatterySettings
+    case openSoundSettings
 }
 
 /// A snapshot of which quick actions can run right now.
@@ -17,17 +23,26 @@ enum MenuBarRightClickOutcome: Equatable {
 /// - `lowPowerMode`: privileged helper ready and the feature opted in.
 /// - `chargeToFullNow`: the charge-to-full capability is supported on this Mac.
 /// - `mute`: the current output device can be muted.
+/// - `wifi`: a Wi-Fi interface exists (the radio can be toggled).
+///
+/// `refreshStatus` and the Settings-pane navigation actions are always
+/// available; they have no runtime precondition to check.
 struct MenuBarQuickActionAvailability: Equatable {
     var lowPowerMode: Bool
     var chargeToFullNow: Bool
     var mute: Bool
+    var wifi: Bool
 
     func isAvailable(_ action: MenuBarRightClickAction) -> Bool {
         switch action {
-        case .contextMenu: true
+        case .contextMenu, .refreshStatus,
+             .openWiFiSettings, .openBluetoothSettings,
+             .openBatterySettings, .openSoundSettings:
+            true
         case .toggleLowPowerMode: lowPowerMode
         case .chargeToFullNow: chargeToFullNow
         case .toggleMute: mute
+        case .toggleWiFi: wifi
         }
     }
 }
@@ -48,6 +63,12 @@ enum MenuBarRightClickRouter {
         case .toggleLowPowerMode: return .toggleLowPowerMode
         case .chargeToFullNow: return .toggleChargeToFullNow
         case .toggleMute: return .toggleMute
+        case .toggleWiFi: return .toggleWiFi
+        case .refreshStatus: return .refreshStatus
+        case .openWiFiSettings: return .openWiFiSettings
+        case .openBluetoothSettings: return .openBluetoothSettings
+        case .openBatterySettings: return .openBatterySettings
+        case .openSoundSettings: return .openSoundSettings
         }
     }
 }

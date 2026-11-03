@@ -154,7 +154,8 @@ struct GeneralSectionView: View {
         MenuBarQuickActionAvailability(
             lowPowerMode: store.controlsLowPowerMode && helper.isReady,
             chargeToFullNow: chargeToFullNow?.isSettingAvailable ?? false,
-            mute: statusStore?.liveVolume.canMute ?? false
+            mute: statusStore?.liveVolume.canMute ?? false,
+            wifi: (statusStore?.snapshot.wifi.state ?? .unavailable) != .unavailable
         )
     }
 

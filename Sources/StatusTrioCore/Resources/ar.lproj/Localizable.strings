@@ -696,3 +696,10 @@
 "settings.menuBarRightClickAction.chargeToFullNow" = "الشحن الكامل الآن";
 "settings.menuBarRightClickAction.toggleMute" = "تبديل كتم الصوت";
 "settings.menuBarRightClickAction.unavailableHint" = "الإجراء المحدد غير متاح الآن؛ سيؤدي النقر بالزر الأيمن إلى إظهار القائمة بدلاً من ذلك.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "تبديل Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "تحديث الحالة";
+"settings.menuBarRightClickAction.openWiFiSettings" = "فتح إعدادات Wi-Fi";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "فتح إعدادات Bluetooth";
+"settings.menuBarRightClickAction.openBatterySettings" = "فتح إعدادات البطارية";
+"settings.menuBarRightClickAction.openSoundSettings" = "فتح إعدادات الصوت";

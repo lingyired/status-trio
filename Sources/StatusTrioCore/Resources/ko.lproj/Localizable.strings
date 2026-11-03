@@ -696,3 +696,10 @@
 "settings.menuBarRightClickAction.chargeToFullNow" = "지금 완전 충전";
 "settings.menuBarRightClickAction.toggleMute" = "음소거 전환";
 "settings.menuBarRightClickAction.unavailableHint" = "선택한 동작을 지금 사용할 수 없습니다. 우클릭하면 메뉴가 표시됩니다.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "Wi-Fi 전환";
+"settings.menuBarRightClickAction.refreshStatus" = "상태 새로 고침";
+"settings.menuBarRightClickAction.openWiFiSettings" = "Wi-Fi 설정 열기";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "Bluetooth 설정 열기";
+"settings.menuBarRightClickAction.openBatterySettings" = "배터리 설정 열기";
+"settings.menuBarRightClickAction.openSoundSettings" = "사운드 설정 열기";

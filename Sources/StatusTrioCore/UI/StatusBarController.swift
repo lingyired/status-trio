@@ -424,7 +424,8 @@ final class StatusBarController: NSObject {
         MenuBarQuickActionAvailability(
             lowPowerMode: settings.controlsLowPowerMode && PrivilegedHelperManager.shared.isReady,
             chargeToFullNow: chargeToFullNow?.isSettingAvailable ?? false,
-            mute: store.liveVolume.canMute
+            mute: store.liveVolume.canMute,
+            wifi: store.snapshot.wifi.state != .unavailable
         )
     }
 
@@ -446,6 +447,18 @@ final class StatusBarController: NSObject {
             }
         case .toggleMute:
             store.toggleMute()
+        case .toggleWiFi:
+            store.toggleWiFiPower()
+        case .refreshStatus:
+            store.refreshAll()
+        case .openWiFiSettings:
+            handleOpenWiFiSettings()
+        case .openBluetoothSettings:
+            handleOpenBluetoothSettings()
+        case .openBatterySettings:
+            handleOpenBatterySettings()
+        case .openSoundSettings:
+            handleOpenSoundSettings()
         }
     }
 

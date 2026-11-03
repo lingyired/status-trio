@@ -696,3 +696,10 @@
 "settings.menuBarRightClickAction.chargeToFullNow" = "立即充滿";
 "settings.menuBarRightClickAction.toggleMute" = "切換靜音";
 "settings.menuBarRightClickAction.unavailableHint" = "目前選取的操作無法使用；右鍵將改為顯示選單。";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "切換 Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "重新整理狀態";
+"settings.menuBarRightClickAction.openWiFiSettings" = "開啟 Wi-Fi 設定";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "開啟藍牙設定";
+"settings.menuBarRightClickAction.openBatterySettings" = "開啟電池設定";
+"settings.menuBarRightClickAction.openSoundSettings" = "開啟聲音設定";

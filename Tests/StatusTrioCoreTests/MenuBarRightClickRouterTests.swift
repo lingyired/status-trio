@@ -2,21 +2,55 @@ import XCTest
 @testable import StatusTrioCore
 
 final class MenuBarRightClickRouterTests: XCTestCase {
+    private func availability(
+        lowPowerMode: Bool = true,
+        chargeToFullNow: Bool = true,
+        mute: Bool = true,
+        wifi: Bool = true
+    ) -> MenuBarQuickActionAvailability {
+        MenuBarQuickActionAvailability(
+            lowPowerMode: lowPowerMode,
+            chargeToFullNow: chargeToFullNow,
+            mute: mute,
+            wifi: wifi
+        )
+    }
+
     private var allAvailability: [MenuBarQuickActionAvailability] {
         var result: [MenuBarQuickActionAvailability] = []
         for lowPower in [false, true] {
             for charge in [false, true] {
                 for mute in [false, true] {
-                    result.append(MenuBarQuickActionAvailability(
-                        lowPowerMode: lowPower,
-                        chargeToFullNow: charge,
-                        mute: mute
-                    ))
+                    for wifi in [false, true] {
+                        result.append(availability(
+                            lowPowerMode: lowPower,
+                            chargeToFullNow: charge,
+                            mute: mute,
+                            wifi: wifi
+                        ))
+                    }
                 }
             }
         }
         return result
     }
+
+    /// The capability-gated actions and the outcome each maps to when available.
+    private let capabilityActions: [(MenuBarRightClickAction, MenuBarRightClickOutcome)] = [
+        (.toggleLowPowerMode, .toggleLowPowerMode),
+        (.chargeToFullNow, .toggleChargeToFullNow),
+        (.toggleMute, .toggleMute),
+        (.toggleWiFi, .toggleWiFi)
+    ]
+
+    /// Actions with no runtime precondition; they map directly to their outcome.
+    private let alwaysAvailableActions: [(MenuBarRightClickAction, MenuBarRightClickOutcome)] = [
+        (.refreshStatus, .refreshStatus),
+        (.openWiFiSettings, .openWiFiSettings),
+        (.openBluetoothSettings, .openBluetoothSettings),
+        (.openBatterySettings, .openBatterySettings),
+        (.openSoundSettings, .openSoundSettings)
+    ]
 
     func testContextMenuAlwaysShowsContextMenu() {
         for availability in allAvailability {
@@ -28,66 +62,66 @@ final class MenuBarRightClickRouterTests: XCTestCase {
     }
 
     func testEachActionSelectsItsOwnOutcomeWhenAvailable() {
-        let available = MenuBarQuickActionAvailability(
-            lowPowerMode: true,
-            chargeToFullNow: true,
-            mute: true
-        )
-
-        XCTAssertEqual(
-            MenuBarRightClickRouter.outcome(for: .toggleLowPowerMode, availability: available),
-            .toggleLowPowerMode
-        )
-        XCTAssertEqual(
-            MenuBarRightClickRouter.outcome(for: .chargeToFullNow, availability: available),
-            .toggleChargeToFullNow
-        )
-        XCTAssertEqual(
-            MenuBarRightClickRouter.outcome(for: .toggleMute, availability: available),
-            .toggleMute
-        )
+        let available = availability()
+        for (action, outcome) in capabilityActions + alwaysAvailableActions {
+            XCTAssertEqual(
+                MenuBarRightClickRouter.outcome(for: action, availability: available),
+                outcome,
+                "\(action) should map to \(outcome) when available"
+            )
+        }
     }
 
-    func testEachActionFallsBackToContextMenuWhenUnavailable() {
-        let unavailable = MenuBarQuickActionAvailability(
+    func testCapabilityActionsFallBackToContextMenuWhenUnavailable() {
+        let unavailable = availability(
             lowPowerMode: false,
             chargeToFullNow: false,
-            mute: false
+            mute: false,
+            wifi: false
         )
-
-        XCTAssertEqual(
-            MenuBarRightClickRouter.outcome(for: .toggleLowPowerMode, availability: unavailable),
-            .showContextMenu
-        )
-        XCTAssertEqual(
-            MenuBarRightClickRouter.outcome(for: .chargeToFullNow, availability: unavailable),
-            .showContextMenu
-        )
-        XCTAssertEqual(
-            MenuBarRightClickRouter.outcome(for: .toggleMute, availability: unavailable),
-            .showContextMenu
-        )
+        for (action, _) in capabilityActions {
+            XCTAssertEqual(
+                MenuBarRightClickRouter.outcome(for: action, availability: unavailable),
+                .showContextMenu,
+                "\(action) should fall back when unavailable"
+            )
+        }
     }
 
-    func testAvailabilityOnlyGatesItsOwnAction() {
-        // Low power unavailable but the other two available: only the low
-        // power action falls back.
-        let availability = MenuBarQuickActionAvailability(
+    func testAlwaysAvailableActionsNeverFallBack() {
+        let unavailable = availability(
+            lowPowerMode: false,
+            chargeToFullNow: false,
+            mute: false,
+            wifi: false
+        )
+        for (action, outcome) in alwaysAvailableActions {
+            XCTAssertEqual(
+                MenuBarRightClickRouter.outcome(for: action, availability: unavailable),
+                outcome,
+                "\(action) should stay available regardless of capability flags"
+            )
+        }
+    }
+
+    func testOneUnavailableCapabilityOnlyGatesItsOwnAction() {
+        let availability = availability(
             lowPowerMode: false,
             chargeToFullNow: true,
-            mute: true
+            mute: true,
+            wifi: true
         )
         XCTAssertEqual(
             MenuBarRightClickRouter.outcome(for: .toggleLowPowerMode, availability: availability),
             .showContextMenu
         )
         XCTAssertEqual(
-            MenuBarRightClickRouter.outcome(for: .chargeToFullNow, availability: availability),
-            .toggleChargeToFullNow
+            MenuBarRightClickRouter.outcome(for: .toggleWiFi, availability: availability),
+            .toggleWiFi
         )
         XCTAssertEqual(
-            MenuBarRightClickRouter.outcome(for: .toggleMute, availability: availability),
-            .toggleMute
+            MenuBarRightClickRouter.outcome(for: .refreshStatus, availability: availability),
+            .refreshStatus
         )
     }
 
@@ -98,7 +132,18 @@ final class MenuBarRightClickRouterTests: XCTestCase {
         XCTAssertNil(MenuBarRightClickAction(rawValue: "not-an-action"))
         XCTAssertEqual(
             MenuBarRightClickAction.allCases.map(\.rawValue),
-            ["contextMenu", "toggleLowPowerMode", "chargeToFullNow", "toggleMute"]
+            [
+                "contextMenu",
+                "toggleLowPowerMode",
+                "chargeToFullNow",
+                "toggleMute",
+                "toggleWiFi",
+                "refreshStatus",
+                "openWiFiSettings",
+                "openBluetoothSettings",
+                "openBatterySettings",
+                "openSoundSettings"
+            ]
         )
     }
 
