@@ -280,6 +280,11 @@
 "settings.network.panelGroup" = "Panel";
 "settings.network.showLocalIP" = "Lokale IP anzeigen";
 "settings.network.showLocalIP.description" = "Zeigt die private LAN-Adresse dieses Macs in der Netzwerkzeile an, vor den WLAN-Details.";
+
+"settings.network.permissionNotDeterminedTitle" = "Standortberechtigung erforderlich";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio benötigt Zugriff auf den Standort, um Ihren WLAN-Namen zu lesen. Klicken Sie unten, um ihn zu erlauben.";
+"settings.network.permissionDeniedTitle" = "Standortberechtigung ist deaktiviert";
+"settings.network.permissionDeniedDescription" = "Ohne Standortzugriff können WLAN-Namen nicht angezeigt werden. Aktivieren Sie sie in den Systemeinstellungen.";
 "settings.audio.externalVolume.title" = "Lautstärke externer Displays";
 "settings.audio.externalVolume.controlMethod" = "Steuerungsmethode";
 "settings.audio.externalVolume.controlMethodDescription" = "Wenn die Lautstärkeregelung im Statusfenster dieses Gerät nicht steuern kann, verwende BetterDisplay.";

@@ -163,15 +163,17 @@ struct WiFiNetworkListView: View {
         if let message = state.message {
             switch state.messageIntent {
             case .requestWiFiNameAccess:
-                Button(message, action: onRequestNameAccess)
-                    .buttonStyle(.plain)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                WiFiPermissionActionButton(
+                    icon: "location.fill",
+                    title: message,
+                    action: onRequestNameAccess
+                )
             case .locationSettings:
-                Button(message, action: onOpenLocationSettings)
-                    .buttonStyle(.plain)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                WiFiPermissionActionButton(
+                    icon: "location.fill",
+                    title: message,
+                    action: onOpenLocationSettings
+                )
             default:
                 HStack(spacing: 8) {
                     if state.isScanning { ProgressView().controlSize(.small) }

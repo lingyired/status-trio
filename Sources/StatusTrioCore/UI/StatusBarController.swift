@@ -1560,11 +1560,7 @@ final class StatusBarController: NSObject {
     ]
     .compactMap(URL.init(string:))
 
-    static let locationSettingsURLs = [
-        "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_LocationServices",
-        "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"
-    ]
-    .compactMap(URL.init(string:))
+    static let locationSettingsURLs = SystemStatusStore.locationSettingsURLs
 
     static let soundOutputSettingsURLs = [
         "x-apple.systempreferences:com.apple.Sound-Settings.extension?output",

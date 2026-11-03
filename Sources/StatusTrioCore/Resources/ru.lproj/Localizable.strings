@@ -280,6 +280,11 @@
 "settings.network.panelGroup" = "Панель";
 "settings.network.showLocalIP" = "Показывать локальный IP";
 "settings.network.showLocalIP.description" = "Показывает частный адрес локальной сети этого Mac в строке сети, перед сведениями Wi-Fi.";
+
+"settings.network.permissionNotDeterminedTitle" = "Необходимо разрешение на геолокацию";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio нужен доступ к геолокации, чтобы читать имя Wi-Fi. Нажмите ниже, чтобы разрешить его.";
+"settings.network.permissionDeniedTitle" = "Разрешение на геолокацию выключено";
+"settings.network.permissionDeniedDescription" = "Без доступа к геолокации имена Wi-Fi не отображаются. Включите его в Системных настройках.";
 "settings.audio.externalVolume.title" = "Громкость внешнего дисплея";
 "settings.audio.externalVolume.controlMethod" = "Способ управления";
 "settings.audio.externalVolume.controlMethodDescription" = "Если элементы управления громкостью на панели состояния не управляют этим устройством, используйте BetterDisplay.";

@@ -83,6 +83,50 @@ final class SettingsViewTests: XCTestCase {
         }
     }
 
+    /// The network pane surfaces the Wi-Fi location permission only when name
+    /// access is missing, matching the Bluetooth permission banner. `.notDetermined`
+    /// offers to raise the prompt; `.denied`/`.restricted` send the user to
+    /// Privacy & Security; a granted app shows no notice. This pins that the
+    /// pane really pays attention to `snapshot.wifi.nameAccess`.
+    func testNetworkPermissionNoticeTracksWiFiNameAccess() throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let localization = Localization(defaults: suite.defaults, preferredLanguages: ["en"])
+        let store = SettingsStore(defaults: suite.defaults)
+
+        @MainActor
+        func renderedHeight(nameAccess: WiFiNameAccess) -> CGFloat {
+            let statusStore = makeStatusStore(nameAccess: nameAccess)
+            let pane = NetworkSectionView(
+                store: store,
+                statusStore: statusStore,
+                previewIsDark: .constant(true)
+            )
+            .environmentObject(localization)
+            .environmentObject(ChargingEffectClock())
+
+            let hosting = NSHostingView(rootView: pane)
+            hosting.frame = NSRect(
+                x: 0, y: 0,
+                width: SettingsView.width - SettingsView.sidebarWidth,
+                height: SettingsView.height
+            )
+            hosting.layoutSubtreeIfNeeded()
+            return hosting.fittingSize.height
+        }
+
+        // The permission notice row only renders when name access is missing, so
+        // each ungranted state grows the pane taller than the granted baseline.
+        let grantedHeight = renderedHeight(nameAccess: .authorized)
+        for state in [WiFiNameAccess.notDetermined, .denied, .restricted] {
+            let height = renderedHeight(nameAccess: state)
+            XCTAssertGreaterThan(
+                height, grantedHeight,
+                "\(state): the permission notice should add height over the granted baseline (\(grantedHeight))"
+            )
+        }
+    }
     /// The order list is only reachable when the pane can read paired devices.
     /// The pane used to read `statusStore.bluetoothDevices.devices` without
     /// observing the controller and without activating it, so a fresh launch
@@ -331,6 +375,20 @@ private func makeStatusStore() -> SystemStatusStore {
         batteryMonitor: DummyBatteryMonitor(),
         wifiMonitor: DummyWiFiMonitor(),
         volumeMonitor: DummyVolumeMonitor()
+    )
+}
+
+@MainActor
+private func makeStatusStore(nameAccess: WiFiNameAccess) -> SystemStatusStore {
+    SystemStatusStore(
+        batteryMonitor: DummyBatteryMonitor(),
+        wifiMonitor: DummyWiFiMonitor(),
+        volumeMonitor: DummyVolumeMonitor(),
+        initialSnapshot: StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -50, nameAccess: nameAccess),
+            volume: .placeholder
+        )
     )
 }
 

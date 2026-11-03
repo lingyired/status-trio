@@ -280,6 +280,11 @@
 "settings.network.panelGroup" = "面板";
 "settings.network.showLocalIP" = "顯示內網 IP";
 "settings.network.showLocalIP.description" = "在網路的第二行顯示本機內網 IP，位於 Wi-Fi 資訊之前。";
+
+"settings.network.permissionNotDeterminedTitle" = "需要定位權限";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio 需要定位權限才能讀取 Wi-Fi 名稱。點擊下方按鈕進行授權。";
+"settings.network.permissionDeniedTitle" = "定位權限已關閉";
+"settings.network.permissionDeniedDescription" = "沒有定位權限時無法顯示 Wi-Fi 名稱。請在系統設定中開啟。";
 "settings.audio.externalVolume.title" = "外部顯示器音量";
 "settings.audio.externalVolume.controlMethod" = "控制方式";
 "settings.audio.externalVolume.controlMethodDescription" = "如果狀態面板的音量控制無法調整此裝置，可改用 BetterDisplay。";

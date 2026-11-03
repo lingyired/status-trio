@@ -17,7 +17,43 @@ struct NetworkSectionView: View {
                 isDarkBackground: $previewIsDark
             )
         }) {
+            if statusStore.snapshot.wifi.nameAccess != .authorized {
+                wifiPermissionNotice
+                SettingsDivider()
+            }
             panelGroup
+        }
+    }
+
+    /// Shown at the top of the pane whenever Wi-Fi name access is not granted.
+    /// macOS reads a Wi-Fi name through location services, so the notice mirrors
+    /// the Bluetooth permission banner's look; `.notDetermined` offers to raise
+    /// the system prompt, `.denied`/`.restricted` send the user to Settings.
+    @ViewBuilder
+    private var wifiPermissionNotice: some View {
+        switch statusStore.snapshot.wifi.nameAccess {
+        case .authorized:
+            EmptyView()
+        case .notDetermined:
+            SettingsPermissionNotice(
+                title: localization.string(.settingsNetworkPermissionNotDeterminedTitle),
+                description: .settingsNetworkPermissionNotDeterminedDescription,
+                buttonKey: .wifiActionRequestNameAccess,
+                action: { requestLocationPermission() }
+            )
+        case .denied, .restricted:
+            SettingsPermissionNotice(
+                title: localization.string(.settingsNetworkPermissionDeniedTitle),
+                description: .settingsNetworkPermissionDeniedDescription,
+                buttonKey: .wifiActionOpenLocationSettings,
+                action: { statusStore.openLocationSettings() }
+            )
+        }
+    }
+
+    private func requestLocationPermission() {
+        if statusStore.requestWiFiNameAccess() == .openLocationSettings {
+            statusStore.openLocationSettings()
         }
     }
 

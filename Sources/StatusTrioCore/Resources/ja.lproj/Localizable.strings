@@ -280,6 +280,11 @@
 "settings.network.panelGroup" = "パネル";
 "settings.network.showLocalIP" = "ローカル IP を表示";
 "settings.network.showLocalIP.description" = "ネットワーク行の 2 行目に、Wi-Fi の情報より前にこの Mac のプライベート LAN アドレスを表示します。";
+
+"settings.network.permissionNotDeterminedTitle" = "位置情報の許可が必要です";
+"settings.network.permissionNotDeterminedDescription" = "Wi-Fi 名を読み取るには Status Trio の位置情報へのアクセスが必要です。下のボタンから許可してください。";
+"settings.network.permissionDeniedTitle" = "位置情報の許可がオフです";
+"settings.network.permissionDeniedDescription" = "位置情報へのアクセスがないと Wi-Fi 名を表示できません。システム設定で有効にしてください。";
 "settings.audio.externalVolume.title" = "外部ディスプレイ音量";
 "settings.audio.externalVolume.controlMethod" = "制御方法";
 "settings.audio.externalVolume.controlMethodDescription" = "ステータスパネルの音量コントロールでこのデバイスを調整できない場合は、BetterDisplay を使用してください。";

@@ -630,6 +630,23 @@ final class SystemStatusStore: ObservableObject {
         }
     }
 
+    /// The route where a refused Wi-Fi location grant is restored. Lives under
+    /// Privacy & Security, because macOS reads a Wi-Fi name via location services.
+    static let locationSettingsURLs: [URL] = [
+        "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_LocationServices",
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"
+    ]
+    .compactMap(URL.init(string:))
+
+    /// Opens the Privacy & Security pane where a refused Wi-Fi location grant is
+    /// restored. Unlike the Bluetooth pane route (which toggles the radio), the
+    /// refusal lives under Privacy & Security.
+    func openLocationSettings() {
+        for url in Self.locationSettingsURLs where NSWorkspace.shared.open(url) {
+            return
+        }
+    }
+
     func setBluetoothDeviceMonitoringEnabled(_ enabled: Bool) {
         guard !hasStopped else { return }
         isLegacyBluetoothDemandEnabled = enabled

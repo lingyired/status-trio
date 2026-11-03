@@ -355,35 +355,19 @@ struct BluetoothSectionView: View {
         case .allowed:
             EmptyView()
         case .notDetermined:
-            permissionNotice(
+            SettingsPermissionNotice(
+                title: localization.string(.settingsBluetoothPermissionRequired),
                 description: .settingsBluetoothPermissionNotDeterminedDescription,
                 buttonKey: .bluetoothActionRequestAuthorization,
                 action: { statusStore.requestBluetoothAuthorization() }
             )
         case .denied, .restricted:
-            permissionNotice(
+            SettingsPermissionNotice(
+                title: localization.string(.settingsBluetoothPermissionRequired),
                 description: .settingsBluetoothPermissionDeniedDescription,
                 buttonKey: .bluetoothActionOpenPermissionSettings,
                 action: { statusStore.openBluetoothPermissionSettings() }
             )
-        }
-    }
-
-    private func permissionNotice(
-        description: LocalizationKey,
-        buttonKey: LocalizationKey,
-        action: @escaping () -> Void
-    ) -> some View {
-        SettingsGroup {
-            SettingsRow(
-                "exclamationmark.triangle.fill",
-                tint: .orange,
-                title: localization.string(.settingsBluetoothPermissionRequired),
-                subtitle: localization.string(description)
-            ) {
-                Button(localization.string(buttonKey), action: action)
-                    .controlSize(.small)
-            }
         }
     }
 

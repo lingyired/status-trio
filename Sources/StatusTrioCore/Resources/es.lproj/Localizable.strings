@@ -280,6 +280,11 @@
 "settings.network.panelGroup" = "Panel";
 "settings.network.showLocalIP" = "Mostrar IP local";
 "settings.network.showLocalIP.description" = "Muestra la dirección LAN privada de este Mac en la fila de red, antes de los detalles de Wi-Fi.";
+
+"settings.network.permissionNotDeterminedTitle" = "Se necesita permiso de localización";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio necesita acceso a tu ubicación para leer el nombre de la red Wi-Fi. Haz clic abajo para concederlo.";
+"settings.network.permissionDeniedTitle" = "Permiso de localización desactivado";
+"settings.network.permissionDeniedDescription" = "Sin acceso a la ubicación no se pueden mostrar los nombres Wi-Fi. Actívalo en Ajustes del Sistema.";
 "settings.audio.externalVolume.title" = "Volumen de pantalla externa";
 "settings.audio.externalVolume.controlMethod" = "Método de control";
 "settings.audio.externalVolume.controlMethodDescription" = "Si los controles de volumen del panel de estado no pueden controlar este dispositivo, usa BetterDisplay.";
