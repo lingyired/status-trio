@@ -36,6 +36,9 @@ final class AnchoredStatusPanel: NSPanel {
     /// Clearance reserved for an auto-hidden Dock on the anchored edge (#229).
     private var dockInset = DockReveal.noInset
     private var showCancellables: Set<AnyCancellable> = []
+    /// Set by `show` between ordering the window in transparent and revealing it
+    /// once the first layout has settled, so a size correction never flashes.
+    private var pendingReveal = false
 
     init() {
         super.init(
@@ -99,13 +102,53 @@ final class AnchoredStatusPanel: NSPanel {
         installShowObservers()
 
         if let content = contentViewController as? StatusPanelContentViewController {
+            // Touching `view` loads it; macOS 13 has no `loadViewIfNeeded`.
+            _ = content.view
+            content.view.layoutSubtreeIfNeeded()
             let size = content.intrinsicContentSize
             if size.width > 0, size.height > 0 {
                 setFrame(placementFrame(for: size), display: false)
             }
         }
+        // Order the window in already sized but fully transparent. The first
+        // layout pass after this can still correct the content size; doing it
+        // while invisible and then fading the panel in hides the jump that read
+        // as a flash on open.
+        alphaValue = 0
         orderFrontRegardless()
         invalidateShadow()
+        pendingReveal = true
+        DispatchQueue.main.async { [weak self] in
+            self?.revealAfterSettling()
+        }
+    }
+
+    /// Runs one runloop turn after `show`, lays the content out once more, applies
+    /// any corrected size while still transparent, and fades the panel in. A
+    /// single, short fade reads as the panel simply appearing, rather than a
+    /// window that lands at one height and then snaps to another.
+    private func revealAfterSettling() {
+        guard isVisible, pendingReveal else {
+            pendingReveal = false
+            return
+        }
+        pendingReveal = false
+        contentViewController?.view.layoutSubtreeIfNeeded()
+        if let content = contentViewController as? StatusPanelContentViewController {
+            let size = content.intrinsicContentSize
+            if size.width > 0, size.height > 0 {
+                setFrame(placementFrame(for: size), display: false)
+            }
+        }
+        guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+            alphaValue = 1
+            return
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.12
+            context.allowsImplicitAnimation = true
+            self.animator().alphaValue = 1
+        }
     }
 
     override func performClose(_ sender: Any?) {
@@ -116,6 +159,7 @@ final class AnchoredStatusPanel: NSPanel {
         // A hidden window has nothing to tear down; callers rely on `isShown`
         // before they act on a close.
         guard isVisible else { return }
+        pendingReveal = false
         removeShowObservers()
         super.close()
         NotificationCenter.default.post(name: Self.didCloseNotification, object: self)
