@@ -49,6 +49,12 @@ paired iPhone's companion service, so all of the following are prerequisites:
    (one phone plus eight Watches); later groups that would exceed the budget are
    omitted. Selection follows phone-ID order, so completion timing cannot change
    which group survives. A Watch is only dropped together with its own iPhone.
+   A cycle runs at most eight routes × two transports = 16 helper discovery
+   processes, and only while discovery demand is active (panel visible or
+   background refresh enabled). The reader logs one identifier-free summary per
+   cycle — listed/probed phones, discovered/retained candidates, dropped groups,
+   and dropped Watch candidates — before the cap, so a group the cap removed
+   stays visible in diagnostics.
 5. The Watch row must be verified: `trustRequired == false`, the candidate
    carries the iPhone route's `.usb`/`.network` transport, and the evidence is an
    Apple Watch model or the trusted companion route. The helper never sets

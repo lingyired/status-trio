@@ -69,14 +69,20 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
     /// Discovery bounds: at most eight iPhone routes are probed, and at most
     /// eight candidates are kept from their discovery groups, except the first
     /// group may contain nine (one phone plus eight Watches).
+    ///
+    /// A cycle runs at most 8 routes × 2 transports = 16 helper processes, and
+    /// only while the discovery demand token is held (foreground panel or
+    /// enabled background refresh).
     private static let maximumDiscoveryPhones = 8
     private static let maximumDiscoveryCandidates = 8
 
     func discover() async throws -> [AppleDeviceCandidate] {
         let listingData = try await executor.run(arguments: ["--list"], timeout: .seconds(3))
-        let phones = try MobileBatteryWire.decodeListing(listingData)
+        let listedRoutes = try MobileBatteryWire.decodeListing(listingData)
+        let phones = listedRoutes
             .sorted { $0.id < $1.id }
             .prefix(Self.maximumDiscoveryPhones)
+        let probedPhones = phones.count
         let groups = await withTaskGroup(
             of: PhoneDiscoveryGroup.self,
             returning: [PhoneDiscoveryGroup].self
@@ -97,12 +103,35 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
         // its phone (or keep a Watch whose phone was cut). Adding groups in
         // phone-ID order also keeps the kept set stable between refreshes
         // instead of following nondeterministic task-completion order.
+        let orderedGroups = groups.sorted(by: { $0.phoneID < $1.phoneID })
+        let groupShapes = orderedGroups.map { group -> (candidateCount: Int, watchCount: Int) in
+            (
+                candidateCount: group.candidates.count,
+                watchCount: group.candidates.filter { candidate in
+                    if case .trustedWatch = candidate.id { return true }
+                    return false
+                }.count
+            )
+        }
         var merged: [AppleDeviceCandidate] = []
-        for group in groups.sorted(by: { $0.phoneID < $1.phoneID }) {
+        var includedGroups = 0
+        for group in orderedGroups {
             let next = Self.mergeCandidates(merged + group.candidates)
             if !merged.isEmpty, next.count > Self.maximumDiscoveryCandidates { break }
             merged = next
+            includedGroups += 1
         }
+        // Summarize before returning: the controller only sees post-cap
+        // candidates, so a dropped group and its Watches would otherwise be
+        // invisible. Identifier-free; one line per cycle.
+        let summary = MobileBatteryDiscoverySummary.make(
+            listedPhones: listedRoutes.count,
+            probedPhones: probedPhones,
+            groups: groupShapes,
+            includedGroups: includedGroups,
+            retainedCandidates: merged.count
+        )
+        mobileDiscoveryLogger.debug("discovery \(summary.logDescription, privacy: .public)")
         return merged
     }
 
@@ -341,6 +370,43 @@ private enum MobileBatteryHelperReadJob: Sendable {
 private struct WatchCandidate: Sendable {
     let route: WatchRoute
     let transports: [MobileBatteryTransport]
+}
+
+/// Identifier-free summary of one discovery cycle. The controller only sees
+/// post-cap candidates, so a dropped phone group and the Watches inside it would
+/// otherwise never appear in diagnostics. Counts only; no device identifiers.
+struct MobileBatteryDiscoverySummary: Equatable, Sendable {
+    let listedPhones: Int
+    let probedPhones: Int
+    let discoveredCandidates: Int
+    let retainedCandidates: Int
+    let droppedGroups: Int
+    let droppedWatchCandidates: Int
+
+    /// `groups` are the phone groups in the order the candidate cap visits
+    /// them; `includedGroups` is how many fit before the budget was reached.
+    static func make(
+        listedPhones: Int,
+        probedPhones: Int,
+        groups: [(candidateCount: Int, watchCount: Int)],
+        includedGroups: Int,
+        retainedCandidates: Int
+    ) -> Self {
+        let included = max(0, min(includedGroups, groups.count))
+        let dropped = groups.dropFirst(included)
+        return Self(
+            listedPhones: listedPhones,
+            probedPhones: probedPhones,
+            discoveredCandidates: groups.reduce(0) { $0 + $1.candidateCount },
+            retainedCandidates: retainedCandidates,
+            droppedGroups: dropped.count,
+            droppedWatchCandidates: dropped.reduce(0) { $0 + $1.watchCount }
+        )
+    }
+
+    var logDescription: String {
+        "listedPhones=\(listedPhones) probedPhones=\(probedPhones) discoveredCandidates=\(discoveredCandidates) retainedCandidates=\(retainedCandidates) droppedGroups=\(droppedGroups) droppedWatchCandidates=\(droppedWatchCandidates)"
+    }
 }
 
 /// One iPhone route's discovery result: the phone candidate plus any Watch

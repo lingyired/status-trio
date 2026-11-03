@@ -138,6 +138,45 @@ struct MobileBatteryHelperReaderTests {
         ])
     }
 
+    /// The discovery summary is produced before the candidate cap, so a group
+    /// the cap dropped, and the Watches inside it, stay visible in diagnostics.
+    /// It carries counts only, never a device identifier.
+    @Test func discoverySummaryCountsDroppedGroupsAndTheirWatches() {
+        let summary = MobileBatteryDiscoverySummary.make(
+            listedPhones: 9,
+            probedPhones: 8,
+            groups: [
+                (candidateCount: 2, watchCount: 1),
+                (candidateCount: 2, watchCount: 1),
+                (candidateCount: 4, watchCount: 3),
+            ],
+            includedGroups: 2,
+            retainedCandidates: 4
+        )
+        #expect(summary.listedPhones == 9)
+        #expect(summary.probedPhones == 8)
+        #expect(summary.discoveredCandidates == 8)
+        #expect(summary.retainedCandidates == 4)
+        #expect(summary.droppedGroups == 1)
+        #expect(summary.droppedWatchCandidates == 3)
+        #expect(summary.logDescription.split(separator: " ").count == 6)
+    }
+
+    /// A group larger than the whole budget is kept and never counted as
+    /// dropped, so the summary cannot report impossible drops.
+    @Test func discoverySummaryClampsIncludedGroupsToKnownGroups() {
+        let summary = MobileBatteryDiscoverySummary.make(
+            listedPhones: 1,
+            probedPhones: 1,
+            groups: [(candidateCount: 9, watchCount: 8)],
+            includedGroups: 3,
+            retainedCandidates: 9
+        )
+        #expect(summary.discoveredCandidates == 9)
+        #expect(summary.droppedGroups == 0)
+        #expect(summary.droppedWatchCandidates == 0)
+    }
+
     @Test func defaultExecutorResolvesThePackagedHelperName() async throws {
         if let packagedBundlePath = ProcessInfo.processInfo.environment["STATUS_TRIO_MOBILE_BATTERY_BUNDLE_URL"] {
             let bundle = URL(fileURLWithPath: packagedBundlePath, isDirectory: true)
