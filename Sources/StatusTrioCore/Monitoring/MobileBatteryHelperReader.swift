@@ -70,9 +70,9 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
     /// eight candidates are kept from their discovery groups, except the first
     /// group may contain nine (one phone plus eight Watches).
     ///
-    /// A cycle runs at most 8 routes × 2 transports = 16 helper processes, and
-    /// only while the discovery demand token is held (foreground panel or
-    /// enabled background refresh).
+    /// A cycle runs at most 8 routes × 2 transports = 16 --discover-device
+    /// invocations plus one --list invocation. The controller owns discovery
+    /// demand through active claims; releasing demand cancels this work.
     private static let maximumDiscoveryPhones = 8
     private static let maximumDiscoveryCandidates = 8
 
@@ -82,7 +82,6 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
         let phones = listedRoutes
             .sorted { $0.id < $1.id }
             .prefix(Self.maximumDiscoveryPhones)
-        let probedPhones = phones.count
         let groups = await withTaskGroup(
             of: PhoneDiscoveryGroup.self,
             returning: [PhoneDiscoveryGroup].self
@@ -126,7 +125,9 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
         // invisible. Identifier-free; one line per cycle.
         let summary = MobileBatteryDiscoverySummary.make(
             listedPhones: listedRoutes.count,
-            probedPhones: probedPhones,
+            // Completed scheduled groups; a cancelled task may have exited
+            // before invoking the helper, so this is not a process count.
+            probedPhones: groups.count,
             groups: groupShapes,
             includedGroups: includedGroups,
             retainedCandidates: merged.count
