@@ -3,6 +3,7 @@ import SwiftUI
 /// A static flow diagram: sampling changes the numbers and ribbon widths, with
 /// no animation clock, Canvas loop, or work while the panel is closed.
 struct BatteryPowerFlowView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let state: BatteryPowerFlowState
 
     private var destinations: [BatteryPowerFlowState.Metric] { state.destinations }
@@ -30,11 +31,9 @@ struct BatteryPowerFlowView: View {
     /// The panel chrome is transparent Liquid Glass, so the previous very light
     /// fills (0.045–0.08) vanished over a bright or colourful desktop. These
     /// fills and rims keep each node and ribbon legible without hiding the glass.
-    /// The input chip deliberately reuses the outer power bar's exact styling
-    /// (`.primary` at 0.18, radius 12, 0.3 rim) so the two "charger input"
-    /// surfaces read the same.
-    private static let inputCardFill: Double = 0.18
-    private static let inputCardStroke: Double = 0.3
+    /// The input chip shares the outer power bar's styling through
+    /// `PowerCardSurface` (silver fill and rim, radius 12), so the two "charger
+    /// input" cards read the same in both appearances.
     private static let cardFill: Double = 0.18
     private static let cardStroke: Double = 0.32
     private static let ribbonFillStart: Double = 0.22
@@ -149,6 +148,7 @@ struct BatteryPowerFlowView: View {
                 // is discharging, in which case it takes the outer bar's
                 // discharging card style (plain battery, orange).
                 let inputColor = Self.color(for: input.kind)
+                let inputSurface = Self.surface(for: input.kind)
                 metric(input, symbol: Self.symbol(for: input.kind), color: inputColor,
                        height: Self.inputCardHeight, singleLine: false,
                        iconSize: Self.iconSize(for: input.kind),
@@ -160,11 +160,12 @@ struct BatteryPowerFlowView: View {
                     // the vibrant foreground of the detail page and renders almost
                     // transparent over the glass. `Self.color(for:)` returns the
                     // explicit colour for the adapter chip.
-                    .background(inputColor.opacity(Self.inputCardFill),
+                    .background(inputSurface.fill(tint: inputColor, scheme: colorScheme),
                                 in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(inputColor.opacity(Self.inputCardStroke), lineWidth: 1)
+                            .strokeBorder(inputSurface.stroke(tint: inputColor, scheme: colorScheme),
+                                          lineWidth: 1)
                     }
                     .position(x: destinations.isEmpty ? width / 2 : 31, y: center)
             }
@@ -209,6 +210,17 @@ struct BatteryPowerFlowView: View {
         case .display: return .indigo
         case .usb: return .orange
         case .system: return .blue
+        }
+    }
+
+    /// The input card's surface: the shared silver while the adapter supplies
+    /// power, and the input-card tint wash (not the branch cards' slightly
+    /// heavier rim) when the pack is the source instead.
+    static func surface(for kind: BatteryPowerFlowState.Kind) -> PowerCardSurface {
+        switch kind {
+        case .input: return .silver(.connected)
+        case .batterySource, .charging, .display, .usb, .system:
+            return .tint(fillOpacity: 0.18, strokeOpacity: 0.3)
         }
     }
 

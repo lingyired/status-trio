@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WiFiNetworkListView: View {
     @EnvironmentObject private var localization: Localization
+    @Environment(\.colorScheme) private var colorScheme
     let state: WiFiPanelState
     let onBack: () -> Void
     let onRequestNameAccess: () -> Void
@@ -182,6 +183,10 @@ struct WiFiNetworkListView: View {
         }
     }
 
+    private var connectedMarkerColor: Color {
+        WiFiConnectedMarkerPalette.resolved(dark: colorScheme == .dark).color
+    }
+
     private func networkRow(_ row: PanelWiFiNetworkRow) -> some View {
         Button {
             if row.opensSettings { onOpenWiFiSettings() }
@@ -190,7 +195,11 @@ struct WiFiNetworkListView: View {
                 if row.selected {
                     Image(systemName: "checkmark")
                         .frame(width: 16, height: 16, alignment: .center)
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(connectedMarkerColor)
+                        .opacity(row.opensSettings ? 1 : 0)
+                        // The button's accessibility label already says
+                        // "Connected"; the marker is decoration.
+                        .accessibilityHidden(true)
                 } else {
                     Image(systemName: "wifi")
                         .frame(width: 16, height: 16, alignment: .center)
@@ -223,6 +232,19 @@ struct WiFiNetworkListView: View {
         }
         .buttonStyle(.plain)
         .disabled(!row.opensSettings)
+        .overlay(alignment: .leading) {
+            if row.selected && !row.opensSettings {
+                // A disabled button dims its whole label, but connection state
+                // is not a control — draw the marker again outside that dimming.
+                // Keep this frame and leading alignment in sync with the marker
+                // inside the label above.
+                Image(systemName: "checkmark")
+                    .frame(width: 16, height: 16, alignment: .center)
+                    .foregroundStyle(connectedMarkerColor)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
         .accessibilityLabel(row.accessibilityLabel)
     }
 }
