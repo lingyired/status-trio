@@ -1,6 +1,6 @@
 # Issue #244 DMG 安装页验证
 
-日期：2026-11-03。分支：`feat/244-dmg-installer`。基点及对比的 origin/main：`cb62fdd76c854207357cc23ad918165b1c5b300e`。验证覆盖该基点上的本次未提交改动，不应表述为基点本身已包含新实现。
+日期：2026-11-03。分支 `feat/244-dmg-installer` 已合入 `main`（`0be83fd4`，基线 `cb62fdd7`，合入前主线前进至 `2a67c6c0` 仅为 analytics 快照）。完整验证在提交 `cd2eb688` 上通过；变基后仅新增 analytics 文件，重跑安装页、公证、工作流策略、Sparkle 契约、验证入口与禁止模式回归，全部退出 0。
 
 ## 结果
 
