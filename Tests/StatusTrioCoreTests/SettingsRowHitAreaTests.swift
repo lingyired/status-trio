@@ -22,6 +22,7 @@ final class SettingsRowHitAreaTests: VisibleUITestCase {
         let view = StatusPopoverView(
             panel: panel,
             scrollTargets: PopoverScrollTargets(),
+            layoutMetrics: StatusPanelLayoutMetrics(),
             requestWiFiNameAccess: {},
             requestBluetoothAuthorization: {},
             openBatterySettings: {},

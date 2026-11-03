@@ -30,6 +30,11 @@ final class AnchoredStatusPanel: NSPanel {
     /// screen. Replaces `NSPopoverDelegate.popoverDidClose(_:)`.
     var onClose: (() -> Void)?
 
+    /// Height budget shared with the SwiftUI content. The window and the
+    /// content must agree on it so overflowing content scrolls instead of
+    /// growing the window past the screen (#237).
+    let layoutMetrics = StatusPanelLayoutMetrics()
+
     private var anchor: StatusPanelAnchor?
     private var anchorView: NSView?
     private var anchorRectInView: NSRect = .zero
@@ -40,6 +45,9 @@ final class AnchoredStatusPanel: NSPanel {
     /// Set by `show` between ordering the window in transparent and revealing it
     /// once the first layout has settled, so a size correction never flashes.
     private var pendingReveal = false
+    /// The last size the content reported at its natural height, before the
+    /// screen cap was applied (#237).
+    private var lastContentSize: NSSize = .zero
 
     init() {
         super.init(
@@ -114,16 +122,17 @@ final class AnchoredStatusPanel: NSPanel {
             screenRect: Self.screenRect(for: rect, in: view),
             preferredEdge: preferredEdge
         )
+        // Publish the height cap before the content loads so the first layout
+        // already measures against it; otherwise the first frame would be the
+        // full, off-screen height (#237).
+        updateLayoutMetrics()
         installShowObservers()
 
         if let content = contentViewController as? StatusPanelContentViewController {
             // Touching `view` loads it; macOS 13 has no `loadViewIfNeeded`.
             _ = content.view
             content.view.layoutSubtreeIfNeeded()
-            let size = content.intrinsicContentSize
-            if size.width > 0, size.height > 0 {
-                setFrame(placementFrame(for: size), display: false)
-            }
+            applyInitialContentSize()
         }
         // Order the window in already sized but fully transparent. The first
         // layout pass after this can still correct the content size; doing it
@@ -149,12 +158,7 @@ final class AnchoredStatusPanel: NSPanel {
         }
         pendingReveal = false
         contentViewController?.view.layoutSubtreeIfNeeded()
-        if let content = contentViewController as? StatusPanelContentViewController {
-            let size = content.intrinsicContentSize
-            if size.width > 0, size.height > 0 {
-                setFrame(placementFrame(for: size), display: false)
-            }
-        }
+        applyInitialContentSize()
         guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
             alphaValue = 1
             return
@@ -195,21 +199,73 @@ final class AnchoredStatusPanel: NSPanel {
 
     // MARK: - Placement
 
+    /// Sizes the window from the content's current natural measurement, capped
+    /// to the screen budget, without a display pass (#237).
+    private func applyInitialContentSize() {
+        guard let content = contentViewController as? StatusPanelContentViewController else {
+            return
+        }
+        let size = content.intrinsicContentSize
+        guard size.width > 0, size.height > 0 else { return }
+        lastContentSize = size
+        setFrame(placementFrame(for: cappedContentSize(size)), display: false)
+    }
+
     private func applyContentSize(_ size: NSSize) {
         guard size.width > 0, size.height > 0 else { return }
-        let rounded = NSSize(width: ceil(size.width), height: ceil(size.height))
+        // Keep the content's own height. When the screen budget grows again,
+        // the panel can return to it instead of staying at the old cap.
+        lastContentSize = size
+        let capped = cappedContentSize(size)
+        let rounded = NSSize(width: ceil(capped.width), height: ceil(capped.height))
         guard abs(frame.width - rounded.width) >= 0.5 || abs(frame.height - rounded.height) >= 0.5
         else { return }
         setFrame(placementFrame(for: rounded), display: true)
         invalidateShadow()
     }
 
+    /// Limits a measured content height to the current screen budget (#237).
+    ///
+    /// The SwiftUI page deliberately reports its natural height even when it
+    /// is scrolling inside the capped window. Capping belongs here, at the
+    /// window, so a short page can still be shorter than the budget and hug
+    /// its content instead of growing to the cap.
+    private func cappedContentSize(_ size: NSSize) -> NSSize {
+        guard let maximumHeight = layoutMetrics.maximumPanelHeight else { return size }
+        return NSSize(width: size.width, height: min(size.height, maximumHeight))
+    }
+
     private func reposition() {
         guard isVisible else { return }
+        updateLayoutMetrics()
+        // A screen, Space or Dock change can move the cap without changing the
+        // page. Re-apply the last natural content size so the window shrinks
+        // back into the new budget (or grows back into a roomier one).
+        if lastContentSize.width > 0, lastContentSize.height > 0 {
+            applyContentSize(lastContentSize)
+        }
         let target = placementFrame(for: frame.size)
         guard target != frame else { return }
         setFrame(target, display: true)
         invalidateShadow()
+    }
+
+    /// Recomputes how tall the panel may get and hands the number to the
+    /// SwiftUI content. Called when the panel opens and whenever the screen,
+    /// Dock, menu bar or Space geometry changes while it is open (#237).
+    ///
+    /// The published value only changes when the number actually changes, so
+    /// a resize notification triggered by our own `setFrame` cannot start a
+    /// layout/publish loop.
+    private func updateLayoutMetrics() {
+        guard let currentAnchor = currentAnchor() else { return }
+        layoutMetrics.update(
+            maximumPanelHeight: StatusPanelPlacement.maximumPanelHeight(
+                anchor: currentAnchor,
+                screens: NSScreen.screens.map { StatusPanelScreen($0) },
+                dockInset: dockInset
+            )
+        )
     }
 
     private func placementFrame(for contentSize: NSSize) -> NSRect {
@@ -245,7 +301,18 @@ final class AnchoredStatusPanel: NSPanel {
     private func installShowObservers() {
         removeShowObservers()
         let center = NotificationCenter.default
+        // Covers display changes, menu bar geometry and Dock show/hide (all of
+        // which move the usable frame and therefore the height budget).
         center.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.reposition()
+            }
+            .store(in: &showCancellables)
+        // A Space change can move the anchor to a screen with a different
+        // usable frame even when the screen parameters themselves do not change.
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.reposition()

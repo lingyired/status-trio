@@ -44,6 +44,7 @@ final class StatusPanelContentResizeTests: VisibleUITestCase {
             rootView: StatusPopoverView(
                 panel: panelModel,
                 scrollTargets: PopoverScrollTargets(),
+                layoutMetrics: StatusPanelLayoutMetrics(),
                 requestWiFiNameAccess: {},
                 requestBluetoothAuthorization: {},
                 openBatterySettings: {},

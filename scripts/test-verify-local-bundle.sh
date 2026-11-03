@@ -67,7 +67,7 @@ SH
         test-launch-computer-use.sh test-background-ui-configuration.sh \
         test-ui-focus-coverage.sh \
         test-mobile-battery-clang-version.sh test-release-workflow-policy.sh \
-        test-release-pipeline.sh test-release-notarization.sh \
+        test-release-pipeline.sh test-release-notarization.sh test-dmg-installer.sh \
         test-verify-local.sh test-verify-local-bundle.sh; do
         cat > "$fixture/scripts/$script" <<SH
 #!/usr/bin/env bash
