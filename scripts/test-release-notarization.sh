@@ -156,8 +156,32 @@ case "$name" in
         esac ;;
     codesign)
         if [[ "${SMOKE_CODESIGN_FAIL:-false}" == true && "$*" == *codesign-smoke* ]]; then exit 42; fi ;;
-    hdiutil) [[ "$1" == info ]] || exit 88
-        printf '<plist><dict><key>images</key><array/></dict></plist>' ;;
+    hdiutil)
+        case "$1" in
+            info) printf '<plist><dict><key>images</key><array/></dict></plist>' ;;
+            convert)
+                shift
+                destination=''
+                source=''
+                previous_argument=''
+                for argument in "$@"; do
+                    if [[ "$previous_argument" == -o ]]; then destination="$argument"; fi
+                    source="$argument"
+                    previous_argument="$argument"
+                done
+                [[ -n "$destination" ]] || exit 88
+                cp "$source" "$destination" ;;
+            attach)
+                # The installer re-opens the image to hide its helper dotfiles;
+                # provide a real directory so chflags can record the request.
+                mkdir -p "$TEST_ROOT/hide-mount"
+                : > "$TEST_ROOT/hide-mount/.VolumeIcon.icns"
+                : > "$TEST_ROOT/hide-mount/.background"
+                printf '/dev/disk998s1\tApple_HFS\t%s\n' "$TEST_ROOT/hide-mount" ;;
+            detach) : ;;
+            *) exit 88 ;;
+        esac ;;
+    chflags) : ;;
     create-dmg)
         if [[ "$1" == --version ]]; then echo 'create-dmg 1.3.0'; else
             args=("$@")
@@ -182,7 +206,7 @@ case "$name" in
 esac
 TOOL
 chmod +x "$TEST_ROOT/bin/tool"
-for command in create-dmg swift xcodebuild hdiutil ditto codesign xcrun spctl plutil xmllint gh sign_update shasum security openssl lipo; do
+for command in create-dmg swift xcodebuild hdiutil chflags ditto codesign xcrun spctl plutil xmllint gh sign_update shasum security openssl lipo; do
     ln -s tool "$TEST_ROOT/bin/$command"
 done
 ln -s /bin/bash "$TEST_ROOT/bin/bash"
