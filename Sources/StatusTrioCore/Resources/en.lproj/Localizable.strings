@@ -667,9 +667,8 @@
 "brightness.unresponsive" = "Not responding";
 "brightness.backend.directDDC" = "Direct DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Adjust the brightness of connected displays.";
-"settings.brightness.backend" = "Brightness backend for %@";
-
+"settings.brightness.description" = "Turn a display off to hide its brightness row. External displays can also use the BetterDisplay backend.";
+"settings.brightness.backend" = "Brightness Backend";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Follow the Author";
 "settings.about.social.douyin" = "Douyin";
@@ -716,3 +715,11 @@
 "settings.menuBarRightClickAction.openBluetoothSettings" = "Open Bluetooth settings";
 "settings.menuBarRightClickAction.openBatterySettings" = "Open Battery settings";
 "settings.menuBarRightClickAction.openSoundSettings" = "Open Sound settings";
+
+"settings.tab.brightness" = "Brightness";
+"settings.brightness.group.title" = "Connected Displays";
+"settings.brightness.empty" = "No displays are connected.";
+"settings.brightness.builtIn" = "Built-in";
+"settings.brightness.internalBackend.description" = "Built-in display brightness uses the DisplayServices backend.";
+"settings.brightness.externalBackend.description" = "Choose how Status Trio controls this display's brightness.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay isn't running or its notification integration is off.";

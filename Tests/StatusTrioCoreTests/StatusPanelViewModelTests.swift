@@ -597,6 +597,27 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertEqual(panel.bluetooth.summary.title, fixture.localization.string(.bluetoothTitle))
     }
 
+    func testBrightnessSectionIsDroppedOnlyWhenEveryDisplayIsHidden() {
+        let visible: [PopupSection] = [.battery, .volume, .brightness, .inputSource]
+
+        XCTAssertEqual(
+            StatusPanelViewModel.displayedSummarySections(
+                visible: visible,
+                brightnessIsEmpty: false
+            ),
+            visible,
+            "with a visible display the section stays where it is ordered"
+        )
+        XCTAssertEqual(
+            StatusPanelViewModel.displayedSummarySections(
+                visible: visible,
+                brightnessIsEmpty: true
+            ),
+            [.battery, .volume, .inputSource],
+            "an all-hidden list must not leave an empty brightness section or divider"
+        )
+    }
+
     private func waitForYields(
         _ condition: @MainActor () -> Bool,
         count: Int = 100

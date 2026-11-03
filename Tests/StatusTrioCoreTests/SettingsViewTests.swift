@@ -7,7 +7,7 @@ import XCTest
 @MainActor
 final class SettingsViewTests: XCTestCase {
     func testSettingsViewDimensionsAndSections() {
-        XCTAssertEqual(SettingsView.Section.allCases.count, 8)
+        XCTAssertEqual(SettingsView.Section.allCases.count, 9)
         XCTAssertEqual(SettingsView.sidebarWidth, 190)
         XCTAssertEqual(SettingsView.width, 720)
         XCTAssertEqual(SettingsView.height, 530)
@@ -16,9 +16,14 @@ final class SettingsViewTests: XCTestCase {
     func testSidebarListsEveryStatusElementBeforeTheAppWidePanes() {
         XCTAssertEqual(
             SettingsView.Section.allCases,
-            [.appIcon, .battery, .network, .bluetooth, .audio, .popover, .general, .about]
+            [.appIcon, .battery, .network, .bluetooth, .audio, .brightness, .popover, .general, .about]
         )
         XCTAssertEqual(SettingsView.Section.allCases.first, .appIcon)
+        // The brightness hub sits directly after the audio pane.
+        XCTAssertEqual(
+            SettingsView.Section.allCases.firstIndex(of: .brightness),
+            SettingsView.Section.allCases.firstIndex(of: .audio).map { $0 + 1 }
+        )
     }
 
     func testStatusElementPanesRenderWithoutCrashing() {
@@ -60,6 +65,10 @@ final class SettingsViewTests: XCTestCase {
                 previewIsDark: isDark
             ))),
             ("popover", AnyView(PopoverSectionView(
+                store: store,
+                statusStore: statusStore
+            ))),
+            ("brightness", AnyView(BrightnessSectionView(
                 store: store,
                 statusStore: statusStore
             )))
@@ -326,6 +335,38 @@ final class SettingsViewTests: XCTestCase {
                 XCTAssertFalse(title.isEmpty, "Section \(section) title should not be empty for \(lang)")
             }
         }
+    }
+
+    /// #236: the panel-scrolling settings belong on the Audio pane, not the
+    /// status-panel pane. Guard the move at the source so a later refactor
+    /// cannot quietly split the group across two pages.
+    func testPanelScrollingSettingsLiveOnTheAudioPaneOnly() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+
+        let audio = try String(
+            contentsOf: base.appendingPathComponent("AudioSectionView.swift"),
+            encoding: .utf8
+        )
+        let popover = try String(
+            contentsOf: base.appendingPathComponent("PopoverSectionView.swift"),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(audio.contains("volumeScrollGroup"))
+        XCTAssertTrue(audio.contains("settingsPopupVolumeScrollGroup"))
+        XCTAssertTrue(audio.contains("scrollScopeLabel"))
+
+        XCTAssertFalse(popover.contains("volumeScrollGroup"))
+        XCTAssertFalse(popover.contains("settingsPopupVolumeScroll"))
+        XCTAssertFalse(popover.contains("scrollScopeLabel"))
+        XCTAssertFalse(
+            popover.contains("popupScrollAdjustsVolume"),
+            "the status-panel pane must not keep any scroll-to-volume control"
+        )
     }
 }
 

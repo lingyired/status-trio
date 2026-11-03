@@ -669,9 +669,8 @@
 "brightness.unresponsive" = "无响应";
 "brightness.backend.directDDC" = "直接 DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "调整已连接显示器的亮度。";
-"settings.brightness.backend" = "%@ 的亮度后端";
-
+"settings.brightness.description" = "关闭某台显示器即从状态面板中隐藏其亮度行。外接显示器还可选用 BetterDisplay 后端。";
+"settings.brightness.backend" = "亮度后端";
 // About: community, author social links and more apps
 "settings.about.social.title" = "关注作者";
 "settings.about.social.douyin" = "抖音";
@@ -718,3 +717,11 @@
 "settings.menuBarRightClickAction.openBluetoothSettings" = "打开蓝牙设置";
 "settings.menuBarRightClickAction.openBatterySettings" = "打开电池设置";
 "settings.menuBarRightClickAction.openSoundSettings" = "打开声音设置";
+
+"settings.tab.brightness" = "亮度";
+"settings.brightness.group.title" = "已连接的显示器";
+"settings.brightness.empty" = "没有已连接的显示器。";
+"settings.brightness.builtIn" = "内建";
+"settings.brightness.internalBackend.description" = "内建显示器的亮度使用 DisplayServices 后端。";
+"settings.brightness.externalBackend.description" = "选择 Status Trio 控制此显示器亮度的方式。";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay 未运行，或未开启通知集成。";

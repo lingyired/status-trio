@@ -28,6 +28,7 @@ struct SettingsView: View {
         case network
         case bluetooth
         case audio
+        case brightness
         case popover
         case general
         case about
@@ -46,6 +47,7 @@ struct SettingsView: View {
             case .network: return .symbol("wifi")
             case .bluetooth: return .bluetoothRune
             case .audio:   return .symbol("speaker.wave.3.fill")
+            case .brightness: return .symbol(SymbolFallback.name("sun.max.fill", "sun.max"))
             case .popover: return .symbol("list.bullet.rectangle")
             case .general: return .symbol("gearshape.fill")
             case .about:   return .symbol("info.circle.fill")
@@ -59,6 +61,7 @@ struct SettingsView: View {
             case .network: return .blue
             case .bluetooth: return .blue
             case .audio:   return .cyan
+            case .brightness: return .orange
             case .popover: return .purple
             case .general: return .gray
             case .about:   return .orange
@@ -73,6 +76,7 @@ struct SettingsView: View {
             case .network: return localization.string(.settingsTabNetwork)
             case .bluetooth: return localization.string(.settingsTabBluetooth)
             case .audio:   return localization.string(.settingsTabAudio)
+            case .brightness: return localization.string(.settingsTabBrightness)
             case .popover: return localization.string(.settingsTabPanel)
             case .general: return localization.string(.settingsPageGeneral)
             case .about:   return localization.string(.settingsTabAbout)
@@ -208,6 +212,8 @@ struct SettingsView: View {
                 statusStore: statusStore,
                 previewIsDark: $previewIsDark
             )
+        case .brightness:
+            BrightnessSectionView(store: store, statusStore: statusStore)
         case .popover:
             PopoverSectionView(store: store, statusStore: statusStore)
         case .general:

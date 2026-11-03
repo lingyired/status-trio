@@ -669,9 +669,8 @@
 "brightness.unresponsive" = "No responde";
 "brightness.backend.directDDC" = "DDC directo";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Ajusta el brillo de las pantallas conectadas.";
-"settings.brightness.backend" = "Backend de brillo para %@";
-
+"settings.brightness.description" = "Desactiva una pantalla para ocultar su fila de brillo. Las pantallas externas también pueden usar el backend BetterDisplay.";
+"settings.brightness.backend" = "Backend de brillo";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Seguir al autor";
 "settings.about.social.douyin" = "Douyin";
@@ -718,3 +717,11 @@
 "settings.menuBarRightClickAction.openBluetoothSettings" = "Abrir ajustes de Bluetooth";
 "settings.menuBarRightClickAction.openBatterySettings" = "Abrir ajustes de Batería";
 "settings.menuBarRightClickAction.openSoundSettings" = "Abrir ajustes de Sonido";
+
+"settings.tab.brightness" = "Brillo";
+"settings.brightness.group.title" = "Pantallas conectadas";
+"settings.brightness.empty" = "No hay pantallas conectadas.";
+"settings.brightness.builtIn" = "Integrada";
+"settings.brightness.internalBackend.description" = "El brillo de la pantalla integrada usa el backend DisplayServices.";
+"settings.brightness.externalBackend.description" = "Elige cómo Status Trio controla el brillo de esta pantalla.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay no se está ejecutando o su integración de notificaciones está desactivada.";

@@ -669,9 +669,8 @@
 "brightness.unresponsive" = "Non risponde";
 "brightness.backend.directDDC" = "DDC diretto";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Regola la luminosità dei display collegati.";
-"settings.brightness.backend" = "Backend luminosità per %@";
-
+"settings.brightness.description" = "Disattiva un display per nascondere la relativa riga della luminosità. I display esterni possono anche usare il backend BetterDisplay.";
+"settings.brightness.backend" = "Backend luminosità";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Segui l’autore";
 "settings.about.social.douyin" = "Douyin";
@@ -718,3 +717,11 @@
 "settings.menuBarRightClickAction.openBluetoothSettings" = "Apri impostazioni Bluetooth";
 "settings.menuBarRightClickAction.openBatterySettings" = "Apri impostazioni Batteria";
 "settings.menuBarRightClickAction.openSoundSettings" = "Apri impostazioni Audio";
+
+"settings.tab.brightness" = "Luminosità";
+"settings.brightness.group.title" = "Display collegati";
+"settings.brightness.empty" = "Nessun display collegato.";
+"settings.brightness.builtIn" = "Integrato";
+"settings.brightness.internalBackend.description" = "La luminosità del display integrato usa il backend DisplayServices.";
+"settings.brightness.externalBackend.description" = "Scegli come Status Trio controlla la luminosità di questo display.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay non è in esecuzione o la sua integrazione delle notifiche è disattivata.";

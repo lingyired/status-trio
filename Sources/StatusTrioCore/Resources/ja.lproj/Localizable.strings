@@ -669,9 +669,8 @@
 "brightness.unresponsive" = "応答なし";
 "brightness.backend.directDDC" = "ダイレクト DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "接続されているディスプレイの明るさを調整します。";
-"settings.brightness.backend" = "%@ の明るさバックエンド";
-
+"settings.brightness.description" = "ディスプレイをオフにすると、その明るさの行が非表示になります。外付けディスプレイは BetterDisplay バックエンドも使用できます。";
+"settings.brightness.backend" = "明るさバックエンド";
 // About: community, author social links and more apps
 "settings.about.social.title" = "作者をフォロー";
 "settings.about.social.douyin" = "Douyin";
@@ -718,3 +717,11 @@
 "settings.menuBarRightClickAction.openBluetoothSettings" = "Bluetooth 設定を開く";
 "settings.menuBarRightClickAction.openBatterySettings" = "バッテリー設定を開く";
 "settings.menuBarRightClickAction.openSoundSettings" = "サウンド設定を開く";
+
+"settings.tab.brightness" = "明るさ";
+"settings.brightness.group.title" = "接続中のディスプレイ";
+"settings.brightness.empty" = "接続されているディスプレイはありません。";
+"settings.brightness.builtIn" = "内蔵";
+"settings.brightness.internalBackend.description" = "内蔵ディスプレイの明るさは DisplayServices バックエンドを使用します。";
+"settings.brightness.externalBackend.description" = "このディスプレイの明るさを Status Trio が制御する方法を選択します。";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay が実行されていないか、通知連携がオフになっています。";

@@ -669,9 +669,8 @@
 "brightness.unresponsive" = "Ne répond pas";
 "brightness.backend.directDDC" = "DDC direct";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Réglez la luminosité des écrans connectés.";
-"settings.brightness.backend" = "Backend de luminosité pour %@";
-
+"settings.brightness.description" = "Désactivez un écran pour masquer sa ligne de luminosité. Les écrans externes peuvent aussi utiliser le backend BetterDisplay.";
+"settings.brightness.backend" = "Backend de luminosité";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Suivre l’auteur";
 "settings.about.social.douyin" = "Douyin";
@@ -718,3 +717,11 @@
 "settings.menuBarRightClickAction.openBluetoothSettings" = "Ouvrir les réglages Bluetooth";
 "settings.menuBarRightClickAction.openBatterySettings" = "Ouvrir les réglages Batterie";
 "settings.menuBarRightClickAction.openSoundSettings" = "Ouvrir les réglages Son";
+
+"settings.tab.brightness" = "Luminosité";
+"settings.brightness.group.title" = "Écrans connectés";
+"settings.brightness.empty" = "Aucun écran connecté.";
+"settings.brightness.builtIn" = "Intégré";
+"settings.brightness.internalBackend.description" = "La luminosité de l’écran intégré utilise le backend DisplayServices.";
+"settings.brightness.externalBackend.description" = "Choisissez comment Status Trio contrôle la luminosité de cet écran.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay n’est pas lancé ou son intégration de notifications est désactivée.";
