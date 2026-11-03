@@ -139,6 +139,7 @@ else
         "scripts/test-release-workflow-policy.sh"
         "scripts/test-release-pipeline.sh"
         "scripts/test-release-notarization.sh"
+        "scripts/test-dmg-installer.sh"
         "scripts/test-mobile-battery-clang-version.sh"
         "scripts/test-verify-local.sh"
         "scripts/test-verify-local-bundle.sh"

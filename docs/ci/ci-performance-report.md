@@ -458,8 +458,10 @@ three active jobs, and skipped Publish.
 | Native cache restore interval | 1s | 5s | 4s |
 
 Verify and Native started at the same second in both parallel runs. Package
-started after both succeeded. The 19 unconditional native/offline contracts
-remain in Native; the two additional trusted recovery regressions remain
+started after both succeeded. (Historical measurement: 19 contracts at the time;
+issue #244 subsequently added the DMG installer regression as the 20th contract.)
+The 19 unconditional native/offline contracts
+remained in Native; the two additional trusted recovery regressions remained
 conditional in Verify. Neither normal diagnostic exercised online recovery.
 Each full Swift run reported 1,928 Core XCTest and 15 Helper XCTest, with
 eight existing skips and zero failures, plus 763 passing Swift Testing tests.
@@ -520,10 +522,11 @@ valid shapes, package-only and failed-publication sources, missing/failed/
 skipped Native, extra jobs, metadata/workflow shape mismatches, and missing
 Native dependency.
 
-Policy regressions additionally pin all 19 unconditional native commands and
-both conditional trusted recovery regressions, require the normal success
-gates, reject conditional Swift/preflight tests, replacement shells, write
-permissions or Environment access in verification jobs, and preserve the
+At that revision, policy regressions additionally pinned all 19 unconditional
+native commands (20 since issue #244 added the DMG installer regression) and
+both conditional trusted recovery regressions, required the normal success
+gates, rejected conditional Swift/preflight tests, replacement shells, write
+permissions or Environment access in verification jobs, and preserved the
 release runner and diagnostic ordering. Native summaries now identify Native,
 its actual job status, and the `native-diagnostics` artifact. The new missing-
 contract, conditional-preflight, and Native-label regressions were observed
