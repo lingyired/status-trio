@@ -6,6 +6,7 @@ import SwiftUI
 /// into a whole-machine total.
 struct PowerInfoBarView: View {
     @EnvironmentObject private var localization: Localization
+    @Environment(\.colorScheme) private var colorScheme
     let state: PowerInfoBarState
 
     var body: some View {
@@ -25,6 +26,7 @@ struct PowerInfoBarView: View {
 
     private func card(kind: PowerInfoBarKind, value: String?) -> some View {
         let tint = Self.tint(for: kind)
+        let surface = Self.surface(for: kind)
         return VStack(alignment: .center, spacing: 1) {
             HStack(spacing: 5) {
                 Image(systemName: Self.symbolName(for: kind))
@@ -58,12 +60,13 @@ struct PowerInfoBarView: View {
         // The panel chrome is transparent Liquid Glass, so a very light tint
         // disappears over a bright or colourful desktop. Keep the fill and a
         // thin rim opaque enough that each card still reads as a surface. The
-        // battery details flow diagram reuses this exact styling for its input
-        // card, so both "charger input" chips match.
-        .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        // battery details flow diagram shares `PowerCardSurface`, so both
+        // "charger input" cards resolve the same silver.
+        .background(surface.fill(tint: tint, scheme: colorScheme),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(tint.opacity(0.3), lineWidth: 1)
+                .strokeBorder(surface.stroke(tint: tint, scheme: colorScheme), lineWidth: 1)
         }
         .accessibilityElement(children: .combine)
     }
@@ -101,6 +104,17 @@ struct PowerInfoBarView: View {
         case .batteryDischarging: return .orange
         case .batteryIdle: return .secondary
         case .system: return .blue
+        }
+    }
+
+    /// Only the two neutral plug cards take the silver surface; the coloured
+    /// rails keep their own tint wash at the shared opacities.
+    static func surface(for kind: PowerInfoBarKind) -> PowerCardSurface {
+        switch kind {
+        case .input: return .silver(.connected)
+        case .inputDisconnected: return .silver(.disconnected)
+        case .batteryCharging, .batteryDischarging, .batteryIdle, .system:
+            return .tint(fillOpacity: 0.18, strokeOpacity: 0.3)
         }
     }
 }
