@@ -37,6 +37,7 @@ final class PanelActionAlignmentTests: XCTestCase {
             AudioInputControlsView(
                 state: state,
                 actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
                 onOpenSoundSettings: {}
             )
         )

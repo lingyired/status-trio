@@ -147,6 +147,8 @@ final class StatusBarController: NSObject {
     private var volumeScrollMonitor: Any?
     private let volumeScrollAdjustment = PopupVolumeScrollAdjustment()
     private var volumeScrollSession = PopupVolumeScrollSession()
+    private var brightnessScrollSession = PopupLevelScrollSession()
+    private var audioInputScrollSession = PopupLevelScrollSession()
     private let popoverScrollTargets = PopoverScrollTargets()
     private var popoverAnchorWindow: NSWindow?
     private var popoverToggleGate = PopoverToggleGate(
@@ -899,13 +901,112 @@ final class StatusBarController: NSObject {
     }
 
     private func shouldConsumeVolumeScrollWheel(_ event: NSEvent) -> Bool {
+        guard event.window === popover.contentViewController?.view.window,
+              settings.popupScrollAdjustsVolume else { return false }
+
+        let point = event.locationInWindow
+        let window = event.window
+
+        // 1. The registered slider directly under the pointer owns the wheel,
+        //    before any scroll view or the panel-wide fallback (issue #256).
+        if let target = popoverScrollTargets.target(at: point, in: window) {
+            return consumeScroll(target: target, event: event)
+        }
+
+        // 2. A scrollable scroll view under the pointer owns the wheel.
+        if isPointerOverScrollableScrollView(event) { return false }
+
+        // 3. Panel-wide fallback to the output volume (default preference).
+        guard settings.popupVolumeScrollScope == .panel,
+              store.isVolumeControlAvailable,
+              panelViewModel.volume.canAdjust else {
+            return false
+        }
+        return consumeVolume(event: event)
+    }
+
+    /// Routes a wheel event to the slider directly under the pointer.
+    private func consumeScroll(
+        target: PanelLevelScrollTarget,
+        event: NSEvent
+    ) -> Bool {
+        switch target {
+        case .volume:
+            guard store.isVolumeControlAvailable, panelViewModel.volume.canAdjust else {
+                return true // consume so the wheel does not scroll underneath
+            }
+            return consumeVolume(event: event)
+        case .brightness(let displayID):
+            // Only adjust when the scope allows panel-level interaction; under
+            // `.volumeControl` the wheel is still consumed so it never changes
+            // the output volume while over a brightness slider.
+            guard settings.popupVolumeScrollScope == .panel else { return true }
+            return consumeBrightness(displayID: displayID, event: event)
+        case .audioInput:
+            // Same scope rule as brightness: under `.volumeControl` the wheel
+            // is consumed so it can never change the output volume while over
+            // the input slider.
+            guard settings.popupVolumeScrollScope == .panel else { return true }
+            return consumeAudioInput(event: event)
+        }
+    }
+
+    private func consumeAudioInput(event: NSEvent) -> Bool {
+        let inputState = panelViewModel.audioInput
+        guard inputState.canAdjust, let fallback = inputState.scalar else {
+            return true // registered but not adjustable: consume, do not change volume
+        }
+        guard event.momentumPhase.isEmpty else { return true }
+
+        guard let currentScalar = audioInputScrollSession.scalar(
+            at: event.timestamp,
+            displayID: "audio-input",
+            fallback: fallback
+        ) else { return false }
+        let delta = volumeScrollAdjustment.volumeDelta(
+            deltaY: Double(event.scrollingDeltaY),
+            isPrecise: event.hasPreciseScrollingDeltas,
+            isDirectionInverted: event.isDirectionInvertedFromDevice,
+            usesNaturalScrolling: settings.popupVolumeNaturalScrolling
+        )
+        guard let delta else { return true }
+
+        let nextScalar = audioInputScrollSession.applying(delta: delta, to: currentScalar)
+        store.setInputScalar(nextScalar)
+        return true
+    }
+
+    private func consumeBrightness(displayID: String, event: NSEvent) -> Bool {
+        guard let row = panelViewModel.brightness.rows.first(where: { $0.id == displayID }),
+              row.canAdjust,
+              let fallback = row.scalar else {
+            return true // registered but not adjustable: consume, do not change volume
+        }
+        guard event.momentumPhase.isEmpty else { return true }
+
+        guard let currentScalar = brightnessScrollSession.scalar(
+            at: event.timestamp,
+            displayID: displayID,
+            fallback: fallback
+        ) else { return false }
+        let delta = volumeScrollAdjustment.volumeDelta(
+            deltaY: Double(event.scrollingDeltaY),
+            isPrecise: event.hasPreciseScrollingDeltas,
+            isDirectionInverted: event.isDirectionInvertedFromDevice,
+            usesNaturalScrolling: settings.popupVolumeNaturalScrolling
+        )
+        guard let delta else { return true }
+
+        let nextScalar = brightnessScrollSession.applying(delta: delta, to: currentScalar)
+        store.setBrightness(nextScalar, forDisplayID: displayID)
+        return true
+    }
+
+    private func consumeVolume(event: NSEvent) -> Bool {
         let volumeState = panelViewModel.volume
         guard event.window === popover.contentViewController?.view.window,
-              settings.popupScrollAdjustsVolume,
               store.isVolumeControlAvailable,
-              volumeState.canAdjust,
-              !isPointerOverScrollableScrollView(event),
-              isPointerInsideVolumeScrollArea(event) else {
+              volumeState.canAdjust else {
             return false
         }
         guard event.momentumPhase.isEmpty else { return true }
@@ -939,16 +1040,6 @@ final class StatusBarController: NSObject {
         return true
     }
 
-    /// Scroll targeting only narrows the gesture area; the whole panel stays
-    /// valid when the preference is left at its default.
-    private func isPointerInsideVolumeScrollArea(_ event: NSEvent) -> Bool {
-        guard settings.popupVolumeScrollScope == .volumeControl else { return true }
-        return popoverScrollTargets.containsVolumeControl(
-            at: event.locationInWindow,
-            in: event.window
-        )
-    }
-
     /// Whether the pointer sits over a scroll view that can actually scroll
     /// right now.
     ///
@@ -966,6 +1057,8 @@ final class StatusBarController: NSObject {
 
     private func resetVolumeScrollSession() {
         volumeScrollSession.reset()
+        brightnessScrollSession.reset()
+        audioInputScrollSession.reset()
     }
 
     private func handlePanelDidClose() {

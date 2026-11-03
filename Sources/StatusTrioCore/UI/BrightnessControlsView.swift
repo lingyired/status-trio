@@ -1,14 +1,21 @@
 import SwiftUI
 
 /// The brightness section of the status panel: one row per connected display.
+/// Each row is a single inline capsule whose display name lives inside the bar
+/// (no separate title line).
 struct BrightnessControlsView: View {
     let state: BrightnessPanelState
     let actions: StatusPanelActions
+    let scrollTargets: PopoverScrollTargets
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             ForEach(state.rows) { row in
-                BrightnessRowView(row: row, actions: actions)
+                BrightnessRowView(
+                    row: row,
+                    actions: actions,
+                    scrollTargets: scrollTargets
+                )
             }
         }
     }
@@ -17,40 +24,71 @@ struct BrightnessControlsView: View {
 private struct BrightnessRowView: View {
     let row: BrightnessRowState
     let actions: StatusPanelActions
+    let scrollTargets: PopoverScrollTargets
 
     /// Local slider draft. Programmatic reads update it only while the user is
     /// not editing, so a late system echo never fights the drag.
     @State private var draft: Double = 0
     @State private var isEditing = false
 
+    private var isAdjustable: Bool { row.canAdjust && row.scalar != nil }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            header
-            if row.canAdjust, row.scalar != nil {
-                Slider(
-                    value: Binding(
-                        get: { draft },
-                        set: { newValue in
-                            draft = newValue
-                            actions.setBrightness(newValue, forDisplayID: row.id)
+        HStack(alignment: .center, spacing: 10) {
+            // Same leading footprint as the volume row's mute glyph so the
+            // sliders of both sections start on the same x.
+            PanelActionGlyph(
+                systemName: row.symbolName,
+                font: .system(size: 15, weight: .medium)
+            )
+            .foregroundStyle(.secondary)
+            .accessibilityHidden(true)
+
+            Group {
+                if isAdjustable {
+                    PanelLevelSlider(
+                        value: sliderBinding,
+                        label: row.name,
+                        isEnabled: true,
+                        accessibilityLabel: row.accessibilityLabel,
+                        accessibilityValue: row.percentageText,
+                        onEditingChanged: { editing in
+                            isEditing = editing
+                            if !editing {
+                                actions.finishBrightnessAdjustment(displayID: row.id)
+                            }
                         }
-                    ),
-                    in: 0...1,
-                    onEditingChanged: { editing in
-                        isEditing = editing
-                        if !editing {
-                            actions.finishBrightnessAdjustment(displayID: row.id)
-                        }
-                    }
-                )
-                .controlSize(.small)
-                .accessibilityLabel(row.accessibilityLabel)
-            } else if let unavailable = row.unavailableText {
-                Text(unavailable)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    )
+                } else if let unavailable = row.unavailableText {
+                    // Not adjustable: keep the capsule as a clear disabled
+                    // placeholder (name inside, reason on the trailing side)
+                    // instead of a title line plus a slider.
+                    unavailableCapsule(reason: unavailable)
+                } else {
+                    // Adjustable in principle but the value is unreadable.
+                    PanelLevelSlider(
+                        value: sliderBinding,
+                        label: row.name,
+                        isEnabled: false,
+                        accessibilityLabel: row.accessibilityLabel,
+                        accessibilityValue: row.percentageText,
+                        onEditingChanged: { _ in }
+                    )
+                }
             }
+            .frame(minHeight: PanelLevelSliderMetrics.controlHeight)
+            .background(
+                LevelSliderScrollTarget(
+                    targets: scrollTargets,
+                    target: .brightness(displayID: row.id)
+                )
+            )
+
+            Text(isAdjustable ? row.percentageText : "—")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 34, alignment: .trailing)
+                .accessibilityHidden(true)
         }
         .onAppear { if !isEditing { draft = row.scalar ?? 0 } }
         .onChange(of: row.scalar) { newValue in
@@ -62,23 +100,38 @@ private struct BrightnessRowView: View {
         .accessibilityLabel(row.accessibilityLabel)
     }
 
-    private var header: some View {
-        HStack(spacing: 8) {
-            Image(systemName: row.symbolName)
-                .font(.system(size: 13, weight: .regular))
-                .foregroundStyle(.secondary)
-                .frame(width: 18)
-            Text(row.name)
-                .font(.system(size: 12, weight: .medium))
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Spacer(minLength: 6)
-            if row.canAdjust {
-                Text(row.percentageText)
-                    .font(.system(size: 11))
-                    .monospacedDigit()
+    /// Disabled-looking capsule used when the display cannot be adjusted.
+    private func unavailableCapsule(reason: String) -> some View {
+        ZStack {
+            Capsule()
+                .fill(Color.secondary.opacity(0.12))
+                .frame(height: PanelLevelSliderMetrics.barHeight)
+            HStack(spacing: 8) {
+                Text(row.name)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .foregroundStyle(.primary.opacity(0.6))
+                Spacer(minLength: 8)
+                Text(reason)
+                    .font(.system(size: 10))
+                    .lineLimit(1)
                     .foregroundStyle(.secondary)
             }
+            .padding(.horizontal, PanelLevelSliderMetrics.labelLeadingInset)
         }
+        .frame(height: PanelLevelSliderMetrics.controlHeight)
+        .accessibilityLabel(row.accessibilityLabel)
+        .accessibilityValue(reason)
+    }
+
+    private var sliderBinding: Binding<Double> {
+        Binding(
+            get: { draft },
+            set: { newValue in
+                draft = newValue
+                actions.setBrightness(newValue, forDisplayID: row.id)
+            }
+        )
     }
 }

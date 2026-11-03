@@ -226,12 +226,14 @@ struct StatusPopoverView: View {
         case .brightness:
             BrightnessControlsView(
                 state: panel.brightness,
-                actions: panel.actions
+                actions: panel.actions,
+                scrollTargets: scrollTargets
             )
         case .audioInput:
             AudioInputControlsView(
                 state: panel.audioInput,
                 actions: panel.actions,
+                scrollTargets: scrollTargets,
                 onOpenSoundSettings: openSoundInputSettings
             )
         case .inputSource:

@@ -84,6 +84,7 @@ struct AudioInputControlsView: View {
 
     let state: AudioInputPanelState
     let actions: StatusPanelActions
+    let scrollTargets: PopoverScrollTargets
     let onOpenSoundSettings: () -> Void
 
     @State private var volumeDraft = AudioInputVolumeDraft()
@@ -189,6 +190,12 @@ struct AudioInputControlsView: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            .background(
+                LevelSliderScrollTarget(
+                    targets: scrollTargets,
+                    target: .audioInput
+                )
+            )
 
             Text(sliderAccessibilityValue)
                 .font(.caption.monospacedDigit())
