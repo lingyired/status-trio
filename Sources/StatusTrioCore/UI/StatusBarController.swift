@@ -769,8 +769,26 @@ final class StatusBarController: NSObject {
                 pointer: point
             )
         } ?? DockReveal.noInset
+        // Attach the panel to the Dock's inner edge rather than to the click
+        // point plus half a tile. The tile-based raise made the gap grow with
+        // where on the icon the click landed and with the tile size, leaving the
+        // panel noticeably far from the Dock (#229 follow-up).
+        var origin = anchor.origin
+        if let screen {
+            let edge = DockReveal.dockEdge(
+                screenFrame: screen.frame,
+                visibleFrame: screen.visibleFrame,
+                placement: placement
+            )
+            switch placement {
+            case .bottom:
+                origin.y = edge
+            case .left, .right:
+                origin.x = edge
+            }
+        }
         return (
-            popoverAnchorView(at: anchor.origin),
+            popoverAnchorView(at: origin),
             anchor.preferredEdge,
             dockInset
         )

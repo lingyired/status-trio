@@ -46,7 +46,7 @@ struct DockRevealInsetTests {
             pointer: NSPoint(x: 20, y: 400)
         )
 
-        #expect(inset.left == DockReveal.extent)
+        #expect(inset.left == DockReveal.sideExtent)
         #expect(inset.bottom == 0 && inset.right == 0 && inset.top == 0)
     }
 
@@ -57,7 +57,7 @@ struct DockRevealInsetTests {
             pointer: NSPoint(x: 1420, y: 400)
         )
 
-        #expect(inset.right == DockReveal.extent)
+        #expect(inset.right == DockReveal.sideExtent)
         #expect(inset.bottom == 0 && inset.left == 0 && inset.top == 0)
     }
 
@@ -214,6 +214,61 @@ struct DockAreaPointerTests {
                 screenFrame: screen,
                 visibleFrame: visible
             )
+        )
+    }
+}
+
+struct DockRevealEdgeTests {
+    private let screen = NSRect(x: 0, y: 0, width: 2048, height: 1152)
+
+    @Test func visibleDockEdgeUsesTheVisibleFrameEdge() {
+        let visibleBottom = NSRect(x: 0, y: 90, width: 2048, height: 1032)
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: visibleBottom,
+                placement: .bottom
+            ) == 90
+        )
+
+        let visibleLeft = NSRect(x: 64, y: 0, width: 1984, height: 1122)
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: visibleLeft,
+                placement: .left
+            ) == 64
+        )
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: NSRect(x: 0, y: 0, width: 1984, height: 1122),
+                placement: .right
+            ) == 1984
+        )
+    }
+
+    @Test func collapsedDockEdgeReservesTheRevealExtent() {
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: screen,
+                placement: .bottom
+            ) == DockReveal.extent
+        )
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: screen,
+                placement: .left
+            ) == DockReveal.sideExtent
+        )
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: screen,
+                placement: .right
+            ) == screen.maxX - DockReveal.sideExtent
         )
     }
 }
