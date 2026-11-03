@@ -1,5 +1,10 @@
 import Darwin
 import Foundation
+import OSLog
+
+private let mobileDiscoveryLogger = Logger(
+    subsystem: "com.lingsmbp.StatusTrio", category: "apple-device-discovery"
+)
 
 protocol MobileBatteryHelperExecuting: Sendable {
     func run(arguments: [String], timeout: Duration) async throws -> Data
@@ -61,22 +66,44 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
         self.cycleTimeout = cycleTimeout
     }
 
+    /// Discovery bounds: at most eight iPhone routes are probed, and at most
+    /// eight candidates are kept from their discovery groups, except the first
+    /// group may contain nine (one phone plus eight Watches).
+    private static let maximumDiscoveryPhones = 8
+    private static let maximumDiscoveryCandidates = 8
+
     func discover() async throws -> [AppleDeviceCandidate] {
         let listingData = try await executor.run(arguments: ["--list"], timeout: .seconds(3))
-        let phones = try MobileBatteryWire.decodeListing(listingData).prefix(8)
-        return await withTaskGroup(of: [AppleDeviceCandidate].self, returning: [AppleDeviceCandidate].self) { group in
+        let phones = try MobileBatteryWire.decodeListing(listingData)
+            .sorted { $0.id < $1.id }
+            .prefix(Self.maximumDiscoveryPhones)
+        let groups = await withTaskGroup(
+            of: PhoneDiscoveryGroup.self,
+            returning: [PhoneDiscoveryGroup].self
+        ) { group in
             for phone in phones {
                 guard !Task.isCancelled else { break }
-                group.addTask { await discover(phone) }
+                group.addTask {
+                    PhoneDiscoveryGroup(phoneID: phone.id, candidates: await discover(phone))
+                }
             }
-            var candidates: [AppleDeviceCandidate] = []
-            while let values = await group.next() {
-                candidates.append(contentsOf: values)
-                let merged = Self.mergeCandidates(candidates)
-                if merged.count >= 8 { return Array(merged.prefix(8)) }
-            }
-            return Array(Self.mergeCandidates(candidates).prefix(8))
+            var results: [PhoneDiscoveryGroup] = []
+            while let value = await group.next() { results.append(value) }
+            return results
         }
+        // Keep each phone's discovery group whole. A Watch is only discoverable
+        // through its paired iPhone's companion route, so truncating the merged
+        // phone and Watch list by hashed row ID can drop a Watch while keeping
+        // its phone (or keep a Watch whose phone was cut). Adding groups in
+        // phone-ID order also keeps the kept set stable between refreshes
+        // instead of following nondeterministic task-completion order.
+        var merged: [AppleDeviceCandidate] = []
+        for group in groups.sorted(by: { $0.phoneID < $1.phoneID }) {
+            let next = Self.mergeCandidates(merged + group.candidates)
+            if !merged.isEmpty, next.count > Self.maximumDiscoveryCandidates { break }
+            merged = next
+        }
+        return merged
     }
 
     func read(selectedIDs: Set<AppleDeviceID>) async throws -> MobileBatteryReadResult {
@@ -144,14 +171,27 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
     private func discover(_ phone: PhoneRoute) async -> [AppleDeviceCandidate] {
         var candidates: [AppleDeviceCandidate] = []
         for transport in phone.transports {
+            guard !Task.isCancelled else { return candidates }
             do {
                 let data = try await executor.run(
                     arguments: ["--discover-device", phone.id, "--transport", transport.rawValue],
                     timeout: .seconds(5)
                 )
                 let decoded = try MobileBatteryWire.decodeDiscovery(data, expectedParentID: phone.id)
+                let failures = MobileBatteryWire.decodeDiscoveryFailures(data)
+                let categories = Set(failures.map(\.category)).sorted().joined(separator: ",")
+                let companion = decoded.contains { candidate in
+                    if case .trustedWatch = candidate.id { return true }
+                    return false
+                } ? "watch-found" : "companion-empty-or-unavailable"
+                mobileDiscoveryLogger.debug("route=\(transport.rawValue, privacy: .public) candidates=\(decoded.count, privacy: .public) companion=\(companion, privacy: .public) failures=\(categories, privacy: .public)")
                 candidates.append(contentsOf: decoded)
-                if !decoded.isEmpty { break }
+                // Phone metadata can succeed while the companion service fails.
+                // In that case try the other already-listed route for Watches.
+                if decoded.contains(where: {
+                    if case .trustedWatch = $0.id { return true }
+                    return false
+                }) { break }
             } catch {
                 if Task.isCancelled { return candidates }
             }
@@ -301,6 +341,14 @@ private enum MobileBatteryHelperReadJob: Sendable {
 private struct WatchCandidate: Sendable {
     let route: WatchRoute
     let transports: [MobileBatteryTransport]
+}
+
+/// One iPhone route's discovery result: the phone candidate plus any Watch
+/// candidates reached through its companion service. The group is the unit the
+/// candidate cap keeps or drops so a Watch never outlives its phone.
+private struct PhoneDiscoveryGroup: Sendable {
+    let phoneID: String
+    let candidates: [AppleDeviceCandidate]
 }
 
 private actor MobileBatteryReadAccumulator {

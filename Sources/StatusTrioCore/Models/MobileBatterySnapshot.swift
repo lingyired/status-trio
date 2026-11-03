@@ -48,6 +48,26 @@ enum MobileBatteryWireError: Error, Equatable {
     case unsupportedSchema(Int)
 }
 
+/// Failure categories this app knows how to surface. Diagnostic output maps
+/// anything else to `other`, so an arbitrary helper string never reaches a log.
+enum MobileBatteryFailureCategory: String {
+    case batteryUnavailable = "battery-unavailable"
+    case cycleTimeout = "cycle-timeout"
+    case hostIdentityMissing = "host-identity-missing"
+    case invalidDevice = "invalid-device"
+    case readFailed = "read-failed"
+    case sessionUnavailable = "session-unavailable"
+    case trustRequired = "trust-required"
+    case unsolicitedDevice = "unsolicited-device"
+    case watchNotPaired = "watch-not-paired"
+    case watchUnavailable = "watch-unavailable"
+
+    /// The known category, or `other` for an unrecognized helper string.
+    static func diagnostic(_ raw: String) -> String {
+        Self(rawValue: raw)?.rawValue ?? "other"
+    }
+}
+
 enum MobileBatteryWire {
     static func decode(
         _ data: Data,
@@ -185,6 +205,29 @@ enum MobileBatteryWire {
         return candidates
     }
 
+    /// Diagnostic-only read of the discovery envelope's failures. Never throws:
+    /// a malformed failure list must not discard otherwise valid candidates.
+    ///
+    /// `NativeBatteryClient`'s discovery path emits only `trust-required`,
+    /// `host-identity-missing`, and `session-unavailable`. A failed companion
+    /// client is silent, so a phone with no Watch candidate is logged as
+    /// `companion-empty-or-unavailable`, not as a specific failure.
+    static func decodeDiscoveryFailures(_ data: Data) -> [MobileBatteryReadFailure] {
+        struct FailuresEnvelope: Decodable {
+            let failures: [WireFailure]?
+        }
+        guard let envelope = try? JSONDecoder().decode(FailuresEnvelope.self, from: data) else {
+            return []
+        }
+        return (envelope.failures ?? []).map { failure in
+            MobileBatteryReadFailure(
+                category: MobileBatteryFailureCategory.diagnostic(failure.category),
+                deviceID: failure.id
+            )
+        }
+    }
+
+    // Legacy --read-phone metadata; discovery uses inline `candidates` instead.
     static func decodeWatchCandidates(_ data: Data, expectedParentID: String) throws -> [WatchRoute] {
         let envelope = try JSONDecoder().decode(WatchCandidateEnvelope.self, from: data)
         guard envelope.schemaVersion == 1 else { throw MobileBatteryWireError.unsupportedSchema(envelope.schemaVersion) }

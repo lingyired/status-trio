@@ -92,6 +92,40 @@ final class AppleDeviceDiscoveryControllerTests: XCTestCase {
         await reader.finishAll()
     }
 
+    func testDiscoveryDiagnosticsCountWatchesAndRejectedRoutes() async {
+        let reader = ControlledMobileBatteryReader()
+        let controller = AppleDeviceDiscoveryController(reader: reader)
+        controller.request("foreground-summary")
+        controller.setEnabled(true)
+        await waitUntil { await reader.discoveryCount == 1 }
+        await reader.completeDiscovery(0, with: [
+            candidate(id: "phone-1", model: "iPhone18,1"),
+            AppleDeviceCandidate(
+                id: .trustedWatch(parentID: "phone-1", id: "watch-1"),
+                name: "Watch", model: "Watch7,4",
+                transports: [.usb], trustRequired: false, evidence: .verifiedAppleModel
+            ),
+            AppleDeviceCandidate(
+                id: .trustedDevice("untrusted"), name: "Phone", model: "iPhone18,1",
+                transports: [.usb], trustRequired: true, evidence: .verifiedAppleModel
+            ),
+        ])
+        await waitUntil { controller.candidates.count == 3 && !controller.isDiscovering }
+
+        let diagnostics = controller.discoveryDiagnostics
+        XCTAssertEqual(diagnostics?.candidateCount, 3)
+        XCTAssertEqual(diagnostics?.watchCandidateCount, 1)
+        XCTAssertEqual(diagnostics?.verifiedCandidateCount, 2)
+        XCTAssertEqual(diagnostics?.rejectedWatchCount, 0)
+        XCTAssertEqual(diagnostics?.rejectedOtherCount, 1)
+        XCTAssertNil(diagnostics?.failureCategory)
+
+        controller.setEnabled(false)
+        XCTAssertNil(controller.discoveryDiagnostics)
+        controller.stop()
+        await reader.finishAll()
+    }
+
     private func candidate(id: String, model: String) -> AppleDeviceCandidate {
         AppleDeviceCandidate(
             id: .trustedDevice(id), name: "Device", model: model,

@@ -25,6 +25,53 @@ reading can remain until its observation expires. Same-named classic Bluetooth
 rows are not assumed to be the same device as helper UDIDs and remain separate
 when no stable mapping exists.
 
+## Why a Watch row may be missing
+
+Discovery has no Bluetooth route of its own. A Watch is read only through its
+paired iPhone's companion service, so all of the following are prerequisites:
+
+1. The iPhone must appear in the helper's `--list` output. That list contains
+   only devices reachable over USB or an already configured Wi-Fi sync route; a
+   Bluetooth-only pairing never appears, so its Watch cannot be discovered.
+2. The iPhone must be trusted by this Mac. An untrusted route produces a
+   `trustRequired` candidate with no model and no Watch candidates, and it is
+   never shown as an Apple device row.
+3. The iPhone must be unlocked and reachable long enough for the companion
+   service to answer. If the companion client or its device registry fails, the
+   helper still returns the iPhone candidate with **no Watch candidates**. The
+   helper's discovery output only reports `trust-required`,
+   `host-identity-missing`, and `session-unavailable` failures; a failed
+   companion client is silent, so the app cannot tell "no paired Watch" apart
+   from "companion unavailable". An empty companion result is therefore logged
+   as `companion-empty-or-unavailable`, not as a specific failure.
+4. Discovery probes at most eight iPhone routes and keeps whole phone groups
+   against an eight-candidate budget. The first group may contain nine entries
+   (one phone plus eight Watches); later groups that would exceed the budget are
+   omitted. Selection follows phone-ID order, so completion timing cannot change
+   which group survives. A Watch is only dropped together with its own iPhone.
+5. The Watch row must be verified: `trustRequired == false`, the candidate
+   carries the iPhone route's `.usb`/`.network` transport, and the evidence is an
+   Apple Watch model or the trusted companion route. The helper never sets
+   `.bluetooth` on these candidates; `isVerifiedTrustedAppleDevice` rejects any
+   candidate without a trusted transport, so a helper that ever emitted
+   `.bluetooth` for a Watch would hide that row.
+6. A read needs the parent iPhone to still appear in `--list` in the same cycle.
+   If the iPhone dropped between discovery and reading, that Watch read is
+   skipped silently for the cycle.
+7. `--read-watch` can fail while the Watch is off the wrist, locked, or out of
+   range. An initial Watch observation gets at most three retries at one-minute
+   intervals, then it follows the regular refresh cadence.
+
+`MobileBatteryHelperReader.decodeWatchCandidates` is not part of discovery: it
+reads the `watchCandidates` list that only the `--read-phone` envelope emits.
+Watches reach discovery inline in `--discover-device`'s `candidates` array and
+are decoded by `MobileBatteryWire.decodeDiscovery`.
+
+`AppleDeviceDiscoveryController.discoveryDiagnostics` records one identifier-free
+summary per discovery cycle: candidate count, Watch count, verified count,
+rejected counts, and a failure category. A missing Watch row can therefore be
+traced to a helper failure instead of guessed at.
+
 ## Helper dependencies and redistribution
 
 The app bundles a native helper and universal runtime libraries built from source. Exact upstream repositories, versions, commit pins, and declared licenses are in [`Support/mobile-battery-dependencies.json`](../Support/mobile-battery-dependencies.json). The dependency graph is OpenSSL 3.5.9, libplist 2.8.0, libimobiledevice-glue 1.3.2, libusbmuxd 2.1.1, libtatsu 1.0.5, and libimobiledevice 1.4.0. The corresponding license texts and source rebuild/replacement instructions are in [`Support/MobileBatteryHelper/ThirdPartyNotices/`](../Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md).

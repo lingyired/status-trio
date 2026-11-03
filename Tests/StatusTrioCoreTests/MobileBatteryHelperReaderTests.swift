@@ -64,6 +64,80 @@ struct MobileBatteryHelperReaderTests {
         #expect(candidates.allSatisfy { $0.isVerifiedTrustedAppleDevice })
     }
 
+    /// A single iPhone's discovery group can exceed the candidate cap on its own.
+    /// The group must stay whole: a Watch is only reachable through its phone's
+    /// companion route, so trimming by hashed row ID would drop a Watch while
+    /// keeping its phone, or keep a Watch whose phone was cut.
+    @Test func discoveryKeepsAWatchWithItsPhoneWhenOneGroupExceedsTheCap() async throws {
+        let watchEntries = (0..<8)
+            .map { #"{"id":"w\#($0)","parentID":"p","model":"Watch7,4","transport":"usb","trustRequired":false}"# }
+            .joined(separator: ",")
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb"}]}"#.utf8)
+            }
+            if arguments == ["--discover-device", "p", "--transport", "usb"] {
+                return Data(#"{"schemaVersion":1,"candidates":[{"id":"p","model":"iPhone18,1","transport":"usb","trustRequired":false},\#(watchEntries)],"failures":[]}"#.utf8)
+            }
+            Issue.record("unexpected helper call: \(arguments)")
+            return Data()
+        }
+        let candidates = try await MobileBatteryHelperReader(executor: executor).discover()
+        #expect(candidates.contains { $0.id == .trustedDevice("p") })
+        #expect((0..<8).allSatisfy { index in
+            candidates.contains { $0.id == .trustedWatch(parentID: "p", id: "w\(index)") }
+        })
+        #expect(candidates.allSatisfy { $0.isVerifiedTrustedAppleDevice })
+    }
+
+    /// A companion-discovered Watch inherits the iPhone route's transport. The
+    /// helper never emits `.bluetooth` here, so the `.usb`/`.network` eligibility
+    /// requirement does not reject it.
+    @Test func discoveryInheritsThePhoneTransportForCompanionWatchCandidates() async throws {
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"network","availableTransports":["network"]}]}"#.utf8)
+            }
+            if arguments == ["--discover-device", "p", "--transport", "network"] {
+                return Data(#"{"schemaVersion":1,"candidates":[{"id":"p","model":"iPhone18,1","transport":"network","trustRequired":false},{"id":"w","parentID":"p","model":"Watch7,4","transport":"network","trustRequired":false}],"failures":[]}"#.utf8)
+            }
+            Issue.record("unexpected helper call: \(arguments)")
+            return Data()
+        }
+        let candidates = try await MobileBatteryHelperReader(executor: executor).discover()
+        guard let watch = candidates.first(where: {
+            $0.id == .trustedWatch(parentID: "p", id: "w")
+        }) else {
+            Issue.record("watch candidate missing: \(candidates.map(\.id))")
+            return
+        }
+        #expect(watch.transports == [.network])
+        #expect(watch.evidence == .verifiedAppleModel)
+        #expect(watch.isVerifiedTrustedAppleDevice)
+    }
+
+    @Test func discoveryTriesNetworkCompanionWhenUSBReturnsOnlyPhoneMetadata() async throws {
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb","availableTransports":["usb","network"]}]}"#.utf8)
+            }
+            if arguments.last == "usb" {
+                return Data(#"{"schemaVersion":1,"candidates":[{"id":"p","model":"iPhone18,1","transport":"usb","trustRequired":false}],"failures":[]}"#.utf8)
+            }
+            return Data(#"{"schemaVersion":1,"candidates":[{"id":"p","model":"iPhone18,1","transport":"network","trustRequired":false},{"id":"w","parentID":"p","transport":"network","trustRequired":false}],"failures":[]}"#.utf8)
+        }
+        let candidates = try await MobileBatteryHelperReader(executor: executor).discover()
+        let watch = try #require(candidates.first { $0.id == .trustedWatch(parentID: "p", id: "w") })
+        #expect(watch.transports == [.network])
+        #expect(watch.evidence == .trustedWatchCompanion)
+        #expect(watch.isVerifiedTrustedAppleDevice)
+        #expect(await executor.recordedArguments == [
+            ["--list"],
+            ["--discover-device", "p", "--transport", "usb"],
+            ["--discover-device", "p", "--transport", "network"],
+        ])
+    }
+
     @Test func defaultExecutorResolvesThePackagedHelperName() async throws {
         if let packagedBundlePath = ProcessInfo.processInfo.environment["STATUS_TRIO_MOBILE_BATTERY_BUNDLE_URL"] {
             let bundle = URL(fileURLWithPath: packagedBundlePath, isDirectory: true)
