@@ -90,14 +90,7 @@ struct BluetoothStatusView: View {
     /// completed device read. Only then is a cached skeleton shown; a genuinely
     /// empty or unavailable radio must not keep a stale skeleton on screen.
     private var bluetoothListIsLoading: Bool {
-        guard listOptions.showsList, !controller.hasLoadedDevices else { return false }
-        switch controller.availability {
-        case .idle, .initializing, .available:
-            return true
-        case .authorizationNotDetermined, .authorizationDenied, .authorizationRestricted,
-             .poweredOff, .unavailable, .failed:
-            return false
-        }
+        listOptions.showsList && isWaitingForFirstDeviceRead
     }
 
     /// The nearby rows are persisted readings, kept across scans so a missed
@@ -502,11 +495,29 @@ struct BluetoothStatusView: View {
     }
 
     private var hidesSubtitle: Bool {
-        BluetoothPanelListVisibility.hidesRowSubtitle(
+        // Until the first device read completes, say nothing: claiming "no
+        // connected devices" while the list is still loading is a wrong, taller
+        // line that disappears once the real rows arrive, which jitters the panel.
+        if isWaitingForFirstDeviceRead { return true }
+        return BluetoothPanelListVisibility.hidesRowSubtitle(
             availability: controller.availability,
             devices: controller.devices,
             options: listOptions
         )
+    }
+
+    /// Whether the row is in the window between opening and its first completed
+    /// device read. States the radio can legitimately explain (off, denied,
+    /// restricted, failed, unavailable) are not "loading".
+    private var isWaitingForFirstDeviceRead: Bool {
+        guard !controller.hasLoadedDevices else { return false }
+        switch controller.availability {
+        case .idle, .initializing, .available:
+            return true
+        case .authorizationNotDetermined, .authorizationDenied, .authorizationRestricted,
+             .poweredOff, .unavailable, .failed:
+            return false
+        }
     }
 
     /// The task re-runs when the level setting or one of the device names
