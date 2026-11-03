@@ -59,16 +59,20 @@ final class DDCDisplayTransport: DDCFeatureTransport {
     private static let dataAddress = DDCPacket.dataAddress
     private static let volumeVCP = DDCPacket.volumeVCP
 
+    /// Whether a registry entry is a connected external framebuffer. Delegates
+    /// to `FramebufferEnumeration` so enumeration and resolution share a single
+    /// definition, and the node's class name is deliberately not consulted: a
+    /// future framebuffer class still resolves.
     static func isConnectedExternalFramebuffer(
         ioNameMatched: String?,
         displayWidth: Int?,
         displayHeight: Int?
     ) -> Bool {
-        guard let ioNameMatched,
-              ioNameMatched.hasPrefix("dispext"),
-              let displayWidth,
-              let displayHeight else { return false }
-        return displayWidth > 0 && displayHeight > 0
+        FramebufferEnumeration.isExternalFramebuffer(
+            ioNameMatched: ioNameMatched,
+            displayWidth: displayWidth,
+            displayHeight: displayHeight
+        )
     }
 
     /// Maps `IONameMatched` ("dispext0,t603x") to the branch token shared with
@@ -129,39 +133,40 @@ final class DDCDisplayTransport: DDCFeatureTransport {
         while true {
             let entry = IOIteratorNext(iterator)
             guard entry != IO_OBJECT_NULL else { break }
-            switch Self.registryName(entry) {
-            case "IOMobileFramebufferShim":
-                let ioNameMatched = Self.stringProperty("IONameMatched", entry: entry)
-                let displayWidth = Self.integerProperty("DisplayWidth", entry: entry)
-                let displayHeight = Self.integerProperty("DisplayHeight", entry: entry)
-                if Self.isConnectedExternalFramebuffer(
-                    ioNameMatched: ioNameMatched,
-                    displayWidth: displayWidth,
-                    displayHeight: displayHeight
-                ), let branchToken = Self.branchToken(fromIONameMatched: ioNameMatched),
-                   let entryID = Self.registryEntryID(entry) {
-                    framebuffers.append(DDCFramebufferSnapshot(
-                        entryID: entryID,
-                        branchName: branchToken,
-                        edidUUID: Self.stringProperty("EDID UUID", entry: entry, recursive: true)
-                    ))
-                }
+            // Detect the framebuffer by what it publishes, not by class name,
+            // so a renamed framebuffer class still resolves. Empty external
+            // slots (`dispextN` without a size) do not qualify.
+            let ioNameMatched = Self.stringProperty("IONameMatched", entry: entry)
+            if Self.isConnectedExternalFramebuffer(
+                ioNameMatched: ioNameMatched,
+                displayWidth: Self.integerProperty("DisplayWidth", entry: entry),
+                displayHeight: Self.integerProperty("DisplayHeight", entry: entry)
+            ), let branchToken = Self.branchToken(fromIONameMatched: ioNameMatched),
+               let entryID = Self.registryEntryID(entry) {
+                framebuffers.append(DDCFramebufferSnapshot(
+                    entryID: entryID,
+                    branchName: branchToken,
+                    edidUUID: Self.stringProperty("EDID UUID", entry: entry, recursive: true)
+                ))
                 IOObjectRelease(entry)
-            case "DCPAVServiceProxy" where Self.stringProperty("Location", entry: entry) == "External":
-                if let entryID = Self.registryEntryID(entry) {
-                    services.append((
+                continue
+            }
+            guard Self.registryName(entry) == "DCPAVServiceProxy",
+                  Self.stringProperty("Location", entry: entry) == "External" else {
+                IOObjectRelease(entry)
+                continue
+            }
+            if let entryID = Self.registryEntryID(entry) {
+                services.append((
+                    entryID: entryID,
+                    snapshot: DDCServiceSnapshot(
                         entryID: entryID,
-                        snapshot: DDCServiceSnapshot(
-                            entryID: entryID,
-                            branchName: Self.branchToken(fromServiceAncestorNames: Self.ancestorNames(of: entry)),
-                            location: "External"
-                        ),
-                        entry: entry
-                    ))
-                } else {
-                    IOObjectRelease(entry)
-                }
-            default:
+                        branchName: Self.branchToken(fromServiceAncestorNames: Self.ancestorNames(of: entry)),
+                        location: "External"
+                    ),
+                    entry: entry
+                ))
+            } else {
                 IOObjectRelease(entry)
             }
         }
