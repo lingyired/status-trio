@@ -27,7 +27,9 @@
 - PASS：`bash scripts/test-mobile-battery-helper.sh` 原生 helper 契约测试（注入 API，不是真机）。
 - 首轮 full：FAIL，唯一 XCTest 失败为上述旧 Wi-Fi 文案断言；855 个 Swift Testing 测试通过。后续构建/契约未到达。
 - `c8cc310c` 修正后 `PresentationTextMapperTests`：PASS。
-- 第二轮 full：已通过完整 Swift 测试阶段，运行构建阶段；期间新增候选截断诊断，最终需在所有源码冻结后再验证。
+- 第二轮 full：完整 Swift 测试通过；因期间新增候选截断诊断，主动停止此轮，不作为最终完整证据。
+- 最终 full：**PASS**，exit 0，冻结且干净的提交 `81ee56c17a2eb336a103eadefea7cec572d31f99`。XCTest 2436 项、0 失败、67 项跳过；Swift Testing 857 项（122 suites）通过。Release、非 Universal app bundle、平台/SDK、MobileBattery/特权 Helper bundle，以及全部原生检查和离线发布模拟通过。可见 UI 默认跳过，未启用 opt-in。
+- 最终日志：`/tmp/status-trio-248-249-full-final.log`；本地验证日志副本为 `.build/local-verification/log.txt`。这不是硬件、运行时、签名、公证或发布通过。
 
 ## 真机验收与证据边界
 
