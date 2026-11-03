@@ -614,6 +614,7 @@
 "battery.power.system.explanation" = "“Sistema” é o que resta após a carga da bateria, a tela e o USB: inclui SoC, memória, controladores de vídeo e outras cargas não medidas separadamente.";
 "power.infoBar.input" = "Entrada do carregador";
 "power.infoBar.battery" = "Carga da bateria";
+"power.infoBar.discharging" = "Descarga da bateria";
 "power.infoBar.system" = "Potência do sistema";
 "power.infoBar.notCharging" = "Não está carregando";
 "battery.power.display" = "Tela";

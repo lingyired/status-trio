@@ -58,7 +58,10 @@ struct PowerInfoBarView: View {
     private static func symbolName(for kind: PowerInfoBarKind) -> String {
         switch kind {
         case .input: return "powerplug.fill"
-        case .battery: return "battery.100.bolt"
+        // Only charging carries the bolt. A discharging or idle pack is a plain
+        // battery so the direction reads at a glance.
+        case .batteryCharging: return "battery.100.bolt"
+        case .batteryDischarging, .batteryIdle: return "battery.100"
         case .system: return "laptopcomputer"
         }
     }
@@ -68,7 +71,7 @@ struct PowerInfoBarView: View {
     private static func iconSize(for kind: PowerInfoBarKind) -> CGFloat {
         switch kind {
         case .input: return 15
-        case .battery: return 12
+        case .batteryCharging, .batteryDischarging, .batteryIdle: return 12
         case .system: return 13
         }
     }
@@ -76,7 +79,11 @@ struct PowerInfoBarView: View {
     private static func tint(for kind: PowerInfoBarKind) -> Color {
         switch kind {
         case .input: return .primary
-        case .battery: return .green
+        case .batteryCharging: return .green
+        // Charging is green; discharging is deliberately not, so the two are
+        // never mistaken for each other. Idle stays neutral.
+        case .batteryDischarging: return .orange
+        case .batteryIdle: return .secondary
         case .system: return .blue
         }
     }

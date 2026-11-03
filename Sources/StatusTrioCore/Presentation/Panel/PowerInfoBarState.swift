@@ -1,15 +1,25 @@
 import Foundation
 
 /// One rail in the provisional power info bar.
+///
+/// The battery rail carries its power direction in the kind, because the same
+/// positive magnitude means opposite things: current into the pack is charging,
+/// current out of it is discharging. Keeping the direction here lets the title,
+/// glyph and colour agree instead of a discharging pack still reading
+/// "Battery charging".
 enum PowerInfoBarKind: String, Equatable, Hashable, Sendable {
     case input
-    case battery
+    case batteryCharging
+    case batteryDischarging
+    case batteryIdle
     case system
 
     var title: LocalizationKey {
         switch self {
         case .input: return .powerInfoBarInput
-        case .battery: return .powerInfoBarBattery
+        case .batteryCharging: return .powerInfoBarBattery
+        case .batteryDischarging: return .powerInfoBarDischarging
+        case .batteryIdle: return .powerInfoBarNotCharging
         case .system: return .powerInfoBarSystem
         }
     }

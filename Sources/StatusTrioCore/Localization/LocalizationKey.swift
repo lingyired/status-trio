@@ -431,6 +431,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case batteryPowerSystemExplanation = "battery.power.system.explanation"
     case powerInfoBarInput = "power.infoBar.input"
     case powerInfoBarBattery = "power.infoBar.battery"
+    case powerInfoBarDischarging = "power.infoBar.discharging"
     case powerInfoBarSystem = "power.infoBar.system"
     case powerInfoBarNotCharging = "power.infoBar.notCharging"
     case batteryPowerDisplay = "battery.power.display"

@@ -614,6 +614,7 @@
 "battery.power.system.explanation" = "“Sistema” è ciò che resta dopo carica della batteria, display e USB: comprende SoC, memoria, controller del display e altri carichi non misurati singolarmente.";
 "power.infoBar.input" = "Ingresso caricatore";
 "power.infoBar.battery" = "Carica batteria";
+"power.infoBar.discharging" = "Scarica della batteria";
 "power.infoBar.system" = "Potenza sistema";
 "power.infoBar.notCharging" = "Non in carica";
 "battery.power.display" = "Display";

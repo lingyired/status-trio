@@ -614,6 +614,7 @@
 "battery.power.system.explanation" = "“النظام” هو ما يتبقى بعد شحن البطارية والشاشة وUSB، ويشمل SoC والذاكرة ومتحكمات الشاشة وغيرها.";
 "power.infoBar.input" = "دخل الشاحن";
 "power.infoBar.battery" = "شحن البطارية";
+"power.infoBar.discharging" = "تفريغ البطارية";
 "power.infoBar.system" = "طاقة النظام";
 "power.infoBar.notCharging" = "لا يتم الشحن";
 "battery.power.display" = "الشاشة";

@@ -614,6 +614,7 @@
 "battery.power.system.explanation" = "“System” is what remains after battery charging, the display and USB: it covers the SoC, memory, display controllers and other loads that are not measured on their own.";
 "power.infoBar.input" = "Charger input";
 "power.infoBar.battery" = "Battery charging";
+"power.infoBar.discharging" = "Battery discharging";
 "power.infoBar.system" = "System power";
 "power.infoBar.notCharging" = "Not charging";
 "battery.power.display" = "Display";

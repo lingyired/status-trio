@@ -88,7 +88,7 @@ final class PanelPresentationMapperTests: XCTestCase {
             now: now,
             localization: makeLocalization(.english)
         )
-        XCTAssertEqual(on.powerInfoBar?.items.map(\.kind), [.input, .battery, .system])
+        XCTAssertEqual(on.powerInfoBar?.items.map(\.kind), [.input, .batteryCharging, .system])
         XCTAssertEqual(on.powerInfoBar?.items.map(\.value), ["30.2 W", "12.0 W", "18.0 W"])
 
         let off = PanelPresentationMapper.battery(
@@ -118,8 +118,50 @@ final class PanelPresentationMapperTests: XCTestCase {
             localization: localization
         )
 
-        let batteryItem = row.powerInfoBar?.items.first { $0.kind == .battery }
-        XCTAssertEqual(batteryItem?.value, localization.string(.powerInfoBarNotCharging))
+        let batteryItem = row.powerInfoBar?.items.first { $0.kind == .batteryIdle }
+        XCTAssertEqual(batteryItem?.value, "0.0 W",
+                       "The big number keeps the wattage; the idle note belongs in the title")
+        XCTAssertEqual(batteryItem?.title, .powerInfoBarNotCharging)
+    }
+
+    func testPowerInfoBarBatteryCardFollowsPowerDirection() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let localization = makeLocalization(.english)
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: true,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+
+        func batteryItem(amps: Double) -> PowerInfoBarItem? {
+            let row = PanelPresentationMapper.battery(
+                battery,
+                batteryPower: BatteryPowerSample(volts: 12, amps: amps, updatedAt: now),
+                showsPowerInfoBar: true,
+                now: now,
+                localization: localization
+            )
+            return row.powerInfoBar?.items.first { $0.kind == .batteryCharging
+                || $0.kind == .batteryDischarging || $0.kind == .batteryIdle }
+        }
+
+        // Positive current is charging: bolt glyph, green, "Battery charging".
+        let charging = batteryItem(amps: 1.0)
+        XCTAssertEqual(charging?.kind, .batteryCharging)
+        XCTAssertEqual(charging?.value, "12.0 W")
+        XCTAssertEqual(charging?.title, .powerInfoBarBattery)
+
+        // Negative current is discharging. The number stays the magnitude, but
+        // the direction must reach the label instead of claiming a charge.
+        let discharging = batteryItem(amps: -0.5)
+        XCTAssertEqual(discharging?.kind, .batteryDischarging)
+        XCTAssertEqual(discharging?.value, "6.0 W")
+        XCTAssertEqual(discharging?.title, .powerInfoBarDischarging)
+        XCTAssertNotEqual(discharging?.title, .powerInfoBarBattery,
+                          "A discharging pack must never read as charging")
+
+        // A pack at rest is idle, not charging, and still shows its wattage.
+        let idle = batteryItem(amps: 0)
+        XCTAssertEqual(idle?.kind, .batteryIdle)
+        XCTAssertEqual(idle?.value, "0.0 W")
+        XCTAssertEqual(idle?.title, .powerInfoBarNotCharging)
     }
 
     func testPowerInfoBarHidesBatteryAndMissingRails() {

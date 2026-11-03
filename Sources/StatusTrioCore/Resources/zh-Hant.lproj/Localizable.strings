@@ -614,6 +614,7 @@
 "battery.power.system.explanation" = "“系統”是扣除電池充電、顯示器與 USB 後的其餘負載，包含 SoC、記憶體與顯示控制器等，不是單一感測器讀數。";
 "power.infoBar.input" = "充電器輸入";
 "power.infoBar.battery" = "電池充電";
+"power.infoBar.discharging" = "電池放電";
 "power.infoBar.system" = "系統功耗";
 "power.infoBar.notCharging" = "未在充電";
 "battery.power.display" = "顯示器";

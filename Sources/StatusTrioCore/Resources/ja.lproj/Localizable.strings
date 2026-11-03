@@ -614,6 +614,7 @@
 "battery.power.system.explanation" = "「システム」は、バッテリー充電、ディスプレイ、USB を除いた残りです。SoC、メモリ、ディスプレイコントローラーなどを含み、単一のセンサー値ではありません。";
 "power.infoBar.input" = "充電器入力";
 "power.infoBar.battery" = "バッテリー充電";
+"power.infoBar.discharging" = "バッテリー放電";
 "power.infoBar.system" = "システム電力";
 "power.infoBar.notCharging" = "充電していません";
 "battery.power.display" = "ディスプレイ";
