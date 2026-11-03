@@ -265,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "系统代理";
 "vpn.subtitle.connectedWithProxy" = "已连接 · 代理 %@";
 "vpn.subtitle.proxyAutomatic" = "自动配置";
-"wifi.action.requestNameAccess" = "允许定位以显示 Wi-Fi 名称";
+"wifi.action.requestNameAccess" = "允许定位以显示 Wi-Fi 网络";
 "wifi.action.openLocationSettings" = "去设置中允许定位";
 "wifi.action.openSettings" = "打开 Wi-Fi 设置";
 "wifi.action.switchingHint" = "选择网络会在系统设置中打开 Wi-Fi 面板。";
@@ -282,9 +282,9 @@
 "settings.network.showLocalIP.description" = "在网络的第二行显示本机内网 IP，位于 Wi-Fi 信息之前。";
 
 "settings.network.permissionNotDeterminedTitle" = "需要定位权限";
-"settings.network.permissionNotDeterminedDescription" = "Status Trio 需要定位权限才能读取 Wi-Fi 名称。点击下方按钮进行授权。";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio 需要定位权限才能显示 Wi-Fi 网络。点击下方按钮进行授权。";
 "settings.network.permissionDeniedTitle" = "定位权限已关闭";
-"settings.network.permissionDeniedDescription" = "没有定位权限时无法显示 Wi-Fi 名称。请在系统设置中开启。";
+"settings.network.permissionDeniedDescription" = "没有定位权限时无法显示 Wi-Fi 网络。请在系统设置中开启。";
 "settings.audio.externalVolume.title" = "外部显示器音量";
 "settings.audio.externalVolume.controlMethod" = "控制方式";
 "settings.audio.externalVolume.controlMethodDescription" = "如果状态面板的音量控制无法调节此设备，可改用 BetterDisplay。";

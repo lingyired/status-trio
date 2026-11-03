@@ -265,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "システムプロキシ";
 "vpn.subtitle.connectedWithProxy" = "接続済み · プロキシ %@";
 "vpn.subtitle.proxyAutomatic" = "自動構成";
-"wifi.action.requestNameAccess" = "位置情報を許可してWi-Fi名を表示";
+"wifi.action.requestNameAccess" = "位置情報を許可してWi-Fiネットワークを表示";
 "wifi.action.openLocationSettings" = "設定で位置情報を許可";
 "wifi.action.openSettings" = "Wi-Fi設定を開く";
 "wifi.action.switchingHint" = "ネットワークを選ぶと、システム設定の Wi-Fi パネルが開きます。";
@@ -282,9 +282,9 @@
 "settings.network.showLocalIP.description" = "ネットワーク行の 2 行目に、Wi-Fi の情報より前にこの Mac のプライベート LAN アドレスを表示します。";
 
 "settings.network.permissionNotDeterminedTitle" = "位置情報の許可が必要です";
-"settings.network.permissionNotDeterminedDescription" = "Wi-Fi 名を読み取るには Status Trio の位置情報へのアクセスが必要です。下のボタンから許可してください。";
+"settings.network.permissionNotDeterminedDescription" = "Wi-Fi ネットワークを表示するには Status Trio の位置情報へのアクセスが必要です。下のボタンから許可してください。";
 "settings.network.permissionDeniedTitle" = "位置情報の許可がオフです";
-"settings.network.permissionDeniedDescription" = "位置情報へのアクセスがないと Wi-Fi 名を表示できません。システム設定で有効にしてください。";
+"settings.network.permissionDeniedDescription" = "位置情報へのアクセスがないと Wi-Fi ネットワークを表示できません。システム設定で有効にしてください。";
 "settings.audio.externalVolume.title" = "外部ディスプレイ音量";
 "settings.audio.externalVolume.controlMethod" = "制御方法";
 "settings.audio.externalVolume.controlMethodDescription" = "ステータスパネルの音量コントロールでこのデバイスを調整できない場合は、BetterDisplay を使用してください。";

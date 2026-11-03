@@ -2,8 +2,10 @@ import SwiftUI
 
 /// An obvious, whole-row action for the Wi-Fi location permission states on the
 /// details page. The old presentation was a plain caption that read as help
-/// text; this renders an accent-tinted button with a leading icon and a
+/// text; this renders a neutral, bordered button with a leading icon and a
 /// trailing chevron so the user can see it is the way to resolve the prompt.
+/// Deliberately not accent-tinted: a permission hint should read as a quiet,
+/// tappable row rather than a primary blue action.
 struct WiFiPermissionActionButton: View {
     let icon: String
     let title: String
@@ -14,26 +16,26 @@ struct WiFiPermissionActionButton: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 13))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(.secondary)
 
                 Text(title)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color.accentColor.opacity(0.6))
+                    .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.12))
+                    .fill(Color.primary.opacity(0.06))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(Color.accentColor.opacity(0.35), lineWidth: 1)
+                    .stroke(Color.primary.opacity(0.12), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

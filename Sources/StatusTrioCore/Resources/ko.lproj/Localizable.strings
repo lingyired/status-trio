@@ -265,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "시스템 프록시";
 "vpn.subtitle.connectedWithProxy" = "연결됨 · 프록시 %@";
 "vpn.subtitle.proxyAutomatic" = "자동 구성";
-"wifi.action.requestNameAccess" = "위치를 허용하여 Wi-Fi 이름 표시";
+"wifi.action.requestNameAccess" = "위치를 허용하여 Wi-Fi 네트워크 표시";
 "wifi.action.openLocationSettings" = "설정에서 위치 허용";
 "wifi.action.openSettings" = "Wi-Fi 설정 열기";
 "wifi.action.switchingHint" = "네트워크를 선택하면 시스템 설정의 Wi-Fi 패널이 열립니다.";
@@ -282,9 +282,9 @@
 "settings.network.showLocalIP.description" = "네트워크 행의 둘째 줄에 Wi-Fi 정보보다 먼저 이 Mac의 사설 LAN 주소를 표시합니다.";
 
 "settings.network.permissionNotDeterminedTitle" = "위치 권한이 필요합니다";
-"settings.network.permissionNotDeterminedDescription" = "Status Trio가 Wi-Fi 이름을 읽으려면 위치 접근이 필요합니다. 아래 버튼을 눌러 허용하세요.";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio가 Wi-Fi 네트워크를 표시하려면 위치 접근이 필요합니다. 아래 버튼을 눌러 허용하세요.";
 "settings.network.permissionDeniedTitle" = "위치 권한이 꺼져 있습니다";
-"settings.network.permissionDeniedDescription" = "위치 접근이 없으면 Wi-Fi 이름을 표시할 수 없습니다. 시스템 설정에서 활성화하세요.";
+"settings.network.permissionDeniedDescription" = "위치 접근이 없으면 Wi-Fi 네트워크를 표시할 수 없습니다. 시스템 설정에서 활성화하세요.";
 "settings.audio.externalVolume.title" = "외부 디스플레이 볼륨";
 "settings.audio.externalVolume.controlMethod" = "제어 방식";
 "settings.audio.externalVolume.controlMethodDescription" = "상태 패널의 볼륨 제어로 이 기기를 조절할 수 없다면 BetterDisplay를 사용하십시오.";

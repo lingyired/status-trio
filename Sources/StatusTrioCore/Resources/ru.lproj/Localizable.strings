@@ -265,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "Системный прокси";
 "vpn.subtitle.connectedWithProxy" = "Подключено · прокси %@";
 "vpn.subtitle.proxyAutomatic" = "Автонастройка";
-"wifi.action.requestNameAccess" = "Разрешить геолокацию для показа имени Wi‑Fi";
+"wifi.action.requestNameAccess" = "Разрешить геолокацию для показа сетей Wi‑Fi";
 "wifi.action.openLocationSettings" = "Разрешить геолокацию в Настройках";
 "wifi.action.openSettings" = "Открыть настройки Wi‑Fi";
 "wifi.action.switchingHint" = "Выбор сети открывает панель Wi-Fi в «Системных настройках».";
@@ -282,9 +282,9 @@
 "settings.network.showLocalIP.description" = "Показывает частный адрес локальной сети этого Mac в строке сети, перед сведениями Wi-Fi.";
 
 "settings.network.permissionNotDeterminedTitle" = "Необходимо разрешение на геолокацию";
-"settings.network.permissionNotDeterminedDescription" = "Status Trio нужен доступ к геолокации, чтобы читать имя Wi-Fi. Нажмите ниже, чтобы разрешить его.";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio нужен доступ к геолокации, чтобы показывать сети Wi‑Fi. Нажмите ниже, чтобы разрешить его.";
 "settings.network.permissionDeniedTitle" = "Разрешение на геолокацию выключено";
-"settings.network.permissionDeniedDescription" = "Без доступа к геолокации имена Wi-Fi не отображаются. Включите его в Системных настройках.";
+"settings.network.permissionDeniedDescription" = "Без доступа к геолокации сети Wi‑Fi не отображаются. Включите его в Системных настройках.";
 "settings.audio.externalVolume.title" = "Громкость внешнего дисплея";
 "settings.audio.externalVolume.controlMethod" = "Способ управления";
 "settings.audio.externalVolume.controlMethodDescription" = "Если элементы управления громкостью на панели состояния не управляют этим устройством, используйте BetterDisplay.";

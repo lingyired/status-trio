@@ -265,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "وكيل النظام";
 "vpn.subtitle.connectedWithProxy" = "متصل · وكيل %@";
 "vpn.subtitle.proxyAutomatic" = "تكوين تلقائي";
-"wifi.action.requestNameAccess" = "السماح بالموقع لإظهار اسم Wi‑Fi";
+"wifi.action.requestNameAccess" = "السماح بالموقع لإظهار شبكات Wi‑Fi";
 "wifi.action.openLocationSettings" = "السماح بالموقع في الإعدادات";
 "wifi.action.openSettings" = "فتح إعدادات Wi‑Fi";
 "wifi.action.switchingHint" = "اختيار شبكة يفتح لوحة Wi-Fi في إعدادات النظام.";
@@ -282,9 +282,9 @@
 "settings.network.showLocalIP.description" = "يعرض عنوان الشبكة المحلية لهذا الـ Mac في سطر الشبكة، قبل تفاصيل Wi-Fi.";
 
 "settings.network.permissionNotDeterminedTitle" = "مطلوب إذن الموقع";
-"settings.network.permissionNotDeterminedDescription" = "يحتاج Status Trio إلى الوصول إلى موقعك لقراءة اسم Wi-Fi. انقر أدناه للمنح.";
+"settings.network.permissionNotDeterminedDescription" = "يحتاج Status Trio إلى الوصول إلى موقعك لإظهار شبكات Wi‑Fi. انقر أدناه للمنح.";
 "settings.network.permissionDeniedTitle" = "إذن الموقع معطّل";
-"settings.network.permissionDeniedDescription" = "بدون الوصول إلى الموقع، لا يمكن عرض أسماء Wi-Fi. فعّله في إعدادات النظام.";
+"settings.network.permissionDeniedDescription" = "بدون الوصول إلى الموقع، لا يمكن عرض شبكات Wi‑Fi. فعّله في إعدادات النظام.";
 "settings.audio.externalVolume.title" = "مستوى صوت الشاشة الخارجية";
 "settings.audio.externalVolume.controlMethod" = "طريقة التحكم";
 "settings.audio.externalVolume.controlMethodDescription" = "إذا لم تتمكن أدوات التحكم في مستوى الصوت بلوحة الحالة من التحكم في هذا الجهاز، فاستخدم BetterDisplay.";

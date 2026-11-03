@@ -265,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "System proxy";
 "vpn.subtitle.connectedWithProxy" = "Connected · proxy %@";
 "vpn.subtitle.proxyAutomatic" = "Automatic configuration";
-"wifi.action.requestNameAccess" = "Allow location to show Wi-Fi name";
+"wifi.action.requestNameAccess" = "Allow location to show Wi-Fi networks";
 "wifi.action.openLocationSettings" = "Allow location in Settings";
 "wifi.action.openSettings" = "Open Wi-Fi Settings";
 "wifi.action.switchingHint" = "Choosing a network opens the Wi-Fi pane in System Settings.";
@@ -281,9 +281,9 @@
 "settings.network.showLocalIP" = "Show Local IP Address";
 "settings.network.showLocalIP.description" = "Shows this Mac's private LAN address on the network row, before the Wi-Fi details.";
 "settings.network.permissionNotDeterminedTitle" = "Location permission needed";
-"settings.network.permissionNotDeterminedDescription" = "Status Trio needs Location access to read your Wi-Fi name. Click below to grant it.";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio needs Location access to show Wi-Fi networks. Click below to grant it.";
 "settings.network.permissionDeniedTitle" = "Location permission is off";
-"settings.network.permissionDeniedDescription" = "Wi-Fi names can't be shown without Location access. Enable it in System Settings.";
+"settings.network.permissionDeniedDescription" = "Wi-Fi networks can't be shown without Location access. Enable it in System Settings.";
 "settings.audio.externalVolume.title" = "External Display Volume";
 "settings.audio.externalVolume.controlMethod" = "Control Method";
 "settings.audio.externalVolume.controlMethodDescription" = "If the status panel cannot control this device’s volume, choose BetterDisplay.";
