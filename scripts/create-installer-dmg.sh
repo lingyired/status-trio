@@ -80,18 +80,18 @@ TMPDIR="$TEMP_ROOT/tool-tmp/" create-dmg \
     --icon-size 104 --text-size 13 \
     --icon "$APP_FILE" 180 230 \
     --app-drop-link 480 230 \
+    --icon ".VolumeIcon.icns" 760 470 \
+    --icon ".background" 860 470 \
     --hide-extension "$APP_FILE" \
     --no-internet-enable --format UDZO \
     "$TEMP_ROOT/installer.dmg" "$TEMP_ROOT/staging"
 [[ -s "$TEMP_ROOT/installer.dmg" ]] || die 'create-dmg did not produce a nonempty image.'
 
-# create-dmg lays out the volume with a Finder AppleScript, which does not run
-# reliably on a headless (non-GUI) release runner. Without that pass the helper
-# files `create-dmg` adds (.VolumeIcon.icns and .background) end up visible in
-# the volume root and overlap the installer instructions drawn on the
-# background. Re-open the image, hide those two helper files, and put them at a
-# bottom-right corner position so they stay out of the instructional area even
-# if a Finder variant displays hidden files.
+# create-dmg adds two helper dotfiles (.VolumeIcon.icns and .background). Finder
+# excludes hidden items from the "every item" reposition pass, so their icons
+# fall back to the default first-free slots over the installer instructions.
+# They are already positioned outside the window above; also mark them hidden so
+# a Finder that shows hidden files still keeps them out of the way, and repack.
 hide_dmg_helpers() {
     local rw mnt final
     rw="${TEMP_ROOT}/installer.helpers.dmg"

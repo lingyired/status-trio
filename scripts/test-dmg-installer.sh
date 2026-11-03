@@ -121,6 +121,13 @@ ruby -e '
   background = args[args.index("--background") + 1]
   abort "missing Retina background" unless background.end_with?("background@2x.png") && File.file?(background)
   abort "duplicate Applications link" unless args.count("--app-drop-link") == 1
+  # Hidden helper dotfiles must be pinned outside the 660x420 window so a Finder
+  # that shows hidden files cannot draw them over the instructions.
+  {".VolumeIcon.icns" => 760, ".background" => 860}.each do |name, x|
+    index = args.each_index.find { |i| args[i] == "--icon" && args[i + 1] == name }
+    abort "helper #{name} is not positioned" unless index
+    abort "helper #{name} overlaps the window" unless args[index + 2].to_i > 660
+  end
 ' "$DMG_TRACE"
 [[ "$(< "$WORK/output.dmg")" == 'fixture disk image' ]] || fail 'output missing'
 [[ ! -e "$(< "$DMG_TRACE.tmpdir")" ]] || fail 'successful package leaked tool temporary directory'

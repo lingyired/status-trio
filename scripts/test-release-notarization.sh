@@ -179,6 +179,11 @@ case "$name" in
                 : > "$TEST_ROOT/hide-mount/.background"
                 printf '/dev/disk998s1\tApple_HFS\t%s\n' "$TEST_ROOT/hide-mount" ;;
             detach) : ;;
+            create)
+                # The plain installer layout builds the image directly from a
+                # staging folder; record a fixture image at the output path.
+                for argument in "$@"; do output_path="$argument"; done
+                printf 'fixture disk image' > "$output_path" ;;
             *) exit 88 ;;
         esac ;;
     chflags) : ;;
@@ -461,7 +466,7 @@ ruby -e '
   operations = [
     ["ditto", "<-c>"], ["xcrun", "<submit>", ".zip>"],
     ["xcrun", "<staple>", ".app>"], ["xcrun", "<validate>", ".app>"],
-    ["create-dmg", "<--volname>"], ["codesign", "<--sign>", ".dmg>", "<--timestamp>", "<--keychain>", "<test-keychain>"],
+    ["hdiutil", "<create>"], ["codesign", "<--sign>", ".dmg>", "<--timestamp>", "<--keychain>", "<test-keychain>"],
     ["codesign", "<--verify>", ".dmg>"], ["xcrun", "<submit>", ".dmg>"],
     ["xcrun", "<staple>", ".dmg>"], ["xcrun", "<validate>", ".dmg>"],
     ["spctl", "<--type>", "<open>", "<context:primary-signature>"],

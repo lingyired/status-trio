@@ -207,7 +207,24 @@ RESOLVED_OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd -P)"
     die 'DMG output escaped OUTPUT_DIR.'
 [[ "$(basename "$DMG_PATH")" == "$DMG_BASENAME-$VERSION.dmg" ]] || die 'Unexpected DMG output name.'
 rm -f -- "$DMG_PATH" "$DMG_PATH.sha256"
-DMG_APP_NAME="$APP_NAME" bash "$ROOT/scripts/create-installer-dmg.sh" "$APP_DIR" "$DMG_PATH"
+# DMG_INSTALL_PAGE=styled draws the bilingual install page through create-dmg.
+# DMG_INSTALL_PAGE=plain falls back to the pre-install-page layout: the app and
+# an Applications symlink only. The plain layout is an explicit opt-out, never a
+# silent fallback, and it keeps the DMG signing/notarization order unchanged.
+DMG_INSTALL_PAGE="${DMG_INSTALL_PAGE:-plain}"
+case "$DMG_INSTALL_PAGE" in
+    styled)
+        DMG_APP_NAME="$APP_NAME" bash "$ROOT/scripts/create-installer-dmg.sh" "$APP_DIR" "$DMG_PATH" ;;
+    plain)
+        STAGING_DIR="$TEMP_ROOT/dmg"
+        mkdir -p "$STAGING_DIR"
+        ditto "$APP_DIR" "$STAGING_DIR/$APP_NAME.app"
+        ln -s /Applications "$STAGING_DIR/Applications"
+        hdiutil create -quiet -volname "$APP_NAME" -srcfolder "$STAGING_DIR" \
+            -ov -format UDZO "$DMG_PATH" ;;
+    *)
+        die 'DMG_INSTALL_PAGE must be styled or plain.' ;;
+esac
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     build_phase dmg-codesign

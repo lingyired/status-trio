@@ -2,7 +2,7 @@
 
 ### Menu bar
 
-- Configurable right-click quick actions on the status item: show the context menu, toggle Low Power Mode, charge to full or cancel, mute, toggle Wi‑Fi, refresh, or open the Wi‑Fi, Bluetooth, Battery or Sound settings pane (#209).
+- Configurable right-click quick actions on the status item: show the context menu, toggle Low Power Mode, charge to full or cancel, mute, toggle Wi-Fi, refresh, or open the Wi-Fi, Bluetooth, Battery or Sound settings pane (#209).
 
 ### Panel
 
@@ -28,8 +28,4 @@
 
 ### Fixes
 
-- Improved Wi‑Fi connected checkmark contrast (#242).
-
-### Install
-
-- The release DMG now ships a native bilingual install page.
+- Improved Wi-Fi connected checkmark contrast (#242).
