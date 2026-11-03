@@ -88,4 +88,49 @@ final class StatusPanelContentTests: XCTestCase {
         XCTAssertEqual(panel.collectionBehavior.contains(.fullScreenAuxiliary), true)
         XCTAssertEqual(panel.collectionBehavior.contains(.canJoinAllSpaces), true)
     }
+
+    // MARK: - Reduce Transparency solid background (issue #234)
+
+    func testSolidBackgroundResolvesWindowBackgroundForAquaAndDarkAqua() throws {
+        let solid = SolidPanelBackgroundView(frame: NSRect(x: 0, y: 0, width: 320, height: 200))
+        solid.wantsLayer = true
+
+        solid.appearance = NSAppearance(named: .aqua)
+        solid.updateLayer()
+        let light = try XCTUnwrap(rgbComponents(of: solid))
+        XCTAssertEqual(Double(light.red), 1.0, accuracy: 0.02)
+        XCTAssertEqual(Double(light.green), 1.0, accuracy: 0.02)
+        XCTAssertEqual(Double(light.blue), 1.0, accuracy: 0.02)
+
+        solid.appearance = NSAppearance(named: .darkAqua)
+        solid.updateLayer()
+        let dark = try XCTUnwrap(rgbComponents(of: solid))
+        XCTAssertEqual(Double(dark.red), 0.118, accuracy: 0.02)
+        XCTAssertEqual(Double(dark.green), 0.118, accuracy: 0.02)
+        XCTAssertEqual(Double(dark.blue), 0.118, accuracy: 0.02)
+    }
+
+    func testSolidBackgroundRepaintsWhenEffectiveAppearanceChanges() throws {
+        let solid = SolidPanelBackgroundView(frame: NSRect(x: 0, y: 0, width: 320, height: 200))
+        solid.wantsLayer = true
+        solid.appearance = NSAppearance(named: .darkAqua)
+        solid.updateLayer()
+        let dark = try XCTUnwrap(rgbComponents(of: solid))
+
+        solid.needsDisplay = false
+        solid.appearance = NSAppearance(named: .aqua)
+        solid.viewDidChangeEffectiveAppearance()
+
+        solid.updateLayer()
+        let light = try XCTUnwrap(rgbComponents(of: solid))
+        XCTAssertGreaterThan(light.red, dark.red + 0.5)
+    }
+
+    private func rgbComponents(of view: NSView) -> (red: CGFloat, green: CGFloat, blue: CGFloat)? {
+        guard
+            let cgColor = view.layer?.backgroundColor,
+            let color = NSColor(cgColor: cgColor)?.usingColorSpace(.deviceRGB)
+        else { return nil }
+        return (color.redComponent, color.greenComponent, color.blueComponent)
+    }
 }

@@ -246,6 +246,33 @@ final class StatusPanelHostingController<Content: View>: NSHostingController<Con
     }
 }
 
+/// Solid fill used for the panel when macOS "Reduce Transparency" is on
+/// (issue #234).
+///
+/// `NSColor.windowBackgroundColor` is a dynamic color. Resolving `.cgColor`
+/// once, at `loadView()` time, freezes whatever appearance happened to be
+/// current then (often a dark menu-bar/SwiftUI drawing context) and never
+/// follows the panel's own `effectiveAppearance` again — a light-mode panel
+/// then paints a black background behind dark text. Resolving inside
+/// `updateLayer()` under `effectiveAppearance` keeps it correct on first show,
+/// and `viewDidChangeEffectiveAppearance()` repaints when the system or the
+/// screen appearance changes.
+@MainActor
+final class SolidPanelBackgroundView: NSView {
+    override var wantsUpdateLayer: Bool { true }
+
+    override func updateLayer() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+}
+
 /// Hosts the SwiftUI content inside the panel's background.
 @MainActor
 final class StatusPanelContentViewController: NSViewController {
@@ -296,9 +323,8 @@ final class StatusPanelContentViewController: NSViewController {
         } else {
             let background: NSView
             if reduceTransparency {
-                let solid = NSView(frame: container.bounds)
+                let solid = SolidPanelBackgroundView(frame: container.bounds)
                 solid.wantsLayer = true
-                solid.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
                 solid.layer?.cornerRadius = AnchoredStatusPanel.cornerRadius
                 solid.layer?.masksToBounds = true
                 background = solid
