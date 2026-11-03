@@ -90,13 +90,43 @@ final class WiFiNetworkListContrastTests: XCTestCase {
         return bitmap
     }
 
+    func testMarkerPaletteMeetsContrastInBothAppearances() {
+        // Light appearance: the panel is near-white, #F5F5F5 for a solid
+        // background, up to white where the material reads brightest.
+        for backdrop in [245.0 / 255, 1.0] {
+            let ink = WiFiConnectedMarkerPalette.light
+            XCTAssertGreaterThanOrEqual(
+                contrast(red: ink.red, green: ink.green, blue: ink.blue, against: backdrop),
+                3,
+                "Light marker against a \(backdrop) backdrop"
+            )
+        }
+        // Dark appearance: near-black, with #1C1C1E standing in for the
+        // brightest plausible dark panel surface.
+        for backdrop in [0.0, 28.0 / 255] {
+            let ink = WiFiConnectedMarkerPalette.dark
+            XCTAssertGreaterThanOrEqual(
+                contrast(red: ink.red, green: ink.green, blue: ink.blue, against: backdrop),
+                3,
+                "Dark marker against a \(backdrop) backdrop"
+            )
+        }
+    }
+
     private func contrast(_ color: NSColor, against background: Double) -> Double {
+        contrast(
+            red: color.redComponent,
+            green: color.greenComponent,
+            blue: color.blueComponent,
+            against: background
+        )
+    }
+
+    private func contrast(red: Double, green: Double, blue: Double, against background: Double) -> Double {
         func linear(_ value: Double) -> Double {
             value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
         }
-        let ink = 0.2126 * linear(color.redComponent)
-            + 0.7152 * linear(color.greenComponent)
-            + 0.0722 * linear(color.blueComponent)
+        let ink = 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
         let backdrop = linear(background)
         return (max(ink, backdrop) + 0.05) / (min(ink, backdrop) + 0.05)
     }

@@ -172,9 +172,7 @@ struct WiFiNetworkListView: View {
     }
 
     private var connectedMarkerColor: Color {
-        colorScheme == .dark
-            ? Color(.sRGB, red: 48 / 255, green: 209 / 255, blue: 88 / 255, opacity: 1)
-            : Color(.sRGB, red: 30 / 255, green: 142 / 255, blue: 62 / 255, opacity: 1)
+        WiFiConnectedMarkerPalette.resolved(dark: colorScheme == .dark).color
     }
 
     private func networkRow(_ row: PanelWiFiNetworkRow) -> some View {
@@ -187,6 +185,9 @@ struct WiFiNetworkListView: View {
                         .frame(width: 16, height: 16, alignment: .center)
                         .foregroundStyle(connectedMarkerColor)
                         .opacity(row.opensSettings ? 1 : 0)
+                        // The button's accessibility label already says
+                        // "Connected"; the marker is decoration.
+                        .accessibilityHidden(true)
                 } else {
                     Image(systemName: "wifi")
                         .frame(width: 16, height: 16, alignment: .center)
@@ -221,7 +222,10 @@ struct WiFiNetworkListView: View {
         .disabled(!row.opensSettings)
         .overlay(alignment: .leading) {
             if row.selected && !row.opensSettings {
-                // Keep connection status opaque outside the disabled button's dimming.
+                // A disabled button dims its whole label, but connection state
+                // is not a control — draw the marker again outside that dimming.
+                // Keep this frame and leading alignment in sync with the marker
+                // inside the label above.
                 Image(systemName: "checkmark")
                     .frame(width: 16, height: 16, alignment: .center)
                     .foregroundStyle(connectedMarkerColor)
