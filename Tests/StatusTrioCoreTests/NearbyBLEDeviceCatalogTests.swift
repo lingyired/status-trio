@@ -187,15 +187,16 @@ struct NearbyBLEDeviceCatalogTests {
         #expect(refreshedAgain == refreshed)
     }
 
-    @Test func candidatesStayInvisibleUntilAValidBatteryReadingExistsAndRowsExpireAfterTwentyMinutes() {
+    @Test func candidatesStayInvisibleUntilAValidBatteryReadingExistsAndRowsExpireAfterThreeMinutes() {
         let now = Date(timeIntervalSince1970: 50_000)
-        let current = selection(name: "Current", verifiedAt: now.addingTimeInterval(-1200))
-        let expired = selection(name: "Expired", verifiedAt: now.addingTimeInterval(-1201))
+        let lifetime = BluetoothLEBatteryScanPolicy.resultLifetime
+        let current = selection(name: "Current", verifiedAt: now.addingTimeInterval(-lifetime))
+        let expired = selection(name: "Expired", verifiedAt: now.addingTimeInterval(-(lifetime + 1)))
         let rows = NearbyBLEDeviceCatalog.panelRows(
             selections: [current, expired],
             readings: [
                 reading(current.id, name: current.name, level: 75, updatedAt: now),
-                reading(expired.id, name: expired.name, level: 42, updatedAt: now.addingTimeInterval(-1201))
+                reading(expired.id, name: expired.name, level: 42, updatedAt: now.addingTimeInterval(-(lifetime + 1)))
             ],
             failures: [], options: .standard, now: now
         )
@@ -222,16 +223,27 @@ struct NearbyBLEDeviceCatalogTests {
 
     @Test func nextVerifiedRowExpirationIgnoresExpiredRowsWhenFutureRowsRemain() {
         let now = Date(timeIntervalSince1970: 80_000)
-        let expired = selection(name: "Expired", verifiedAt: now.addingTimeInterval(-1201))
-        let future = selection(name: "Future", verifiedAt: now.addingTimeInterval(-900))
-        let allExpired = selection(name: "Also expired", verifiedAt: now.addingTimeInterval(-1800))
+        let lifetime = BluetoothLEBatteryScanPolicy.resultLifetime
+        let expired = selection(name: "Expired", verifiedAt: now.addingTimeInterval(-(lifetime + 1)))
+        let future = selection(name: "Future", verifiedAt: now.addingTimeInterval(-60))
+        let allExpired = selection(name: "Also expired", verifiedAt: now.addingTimeInterval(-(lifetime + 1)))
 
         #expect(NearbyBLEDeviceCatalog.nextVerifiedRowExpiration(
             selections: [expired, future], now: now
-        ) == now.addingTimeInterval(300))
+        ) == now.addingTimeInterval(lifetime - 60))
         #expect(NearbyBLEDeviceCatalog.nextVerifiedRowExpiration(
             selections: [expired, allExpired], now: now
         ) == nil)
+    }
+
+    // MARK: - Nearby BLE result lifetime
+
+    /// Issue #249: a nearby row may only outlive its reading by a few minutes,
+    /// not the twenty it used to. Bound the constant instead of pinning an exact
+    /// number, so a future tuning that stays inside the agreed range is allowed.
+    @Test func nearbyResultLifetimeStaysWithinAFewMinutes() {
+        #expect(BluetoothLEBatteryScanPolicy.resultLifetime >= 120)
+        #expect(BluetoothLEBatteryScanPolicy.resultLifetime <= 180)
     }
 
     private func selection(

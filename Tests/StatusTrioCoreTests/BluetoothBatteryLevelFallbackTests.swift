@@ -23,6 +23,7 @@ struct BluetoothBatteryLevelFallbackTests {
     }
 
     private func accessory(
+        identifier: String? = "E0CA918B-FC5E-C942-B6C3-23F27810A34F",
         name: String = "AirPods Pro",
         vendorID: Int? = nil,
         productID: Int? = nil,
@@ -30,6 +31,7 @@ struct BluetoothBatteryLevelFallbackTests {
         percentage: Int = 93
     ) -> BluetoothAccessoryBatteryLevel {
         BluetoothAccessoryBatteryLevel(
+            identifier: identifier,
             name: name,
             vendorID: vendorID,
             productID: productID,
@@ -184,6 +186,74 @@ struct BluetoothBatteryLevelFallbackTests {
             merged[BluetoothBatteryReader.normalizedAddress("AC:90:85:C2:9C:1F")]?.summary
                 == "L 93% · R 91% · Case 60%"
         )
+    }
+
+    @Test("Two connected sets of the same model cannot borrow one reading")
+    func sameModelDevicesAreAmbiguous() {
+        let devices = [device(vendorID: 76, productID: 8207),
+                       device(address: "11:22:33:44:55:66", vendorID: 76, productID: 8207)]
+        let readings = [accessory(vendorID: 76, productID: 8207)]
+        #expect(BluetoothBatteryLevelFallback.merged(levels: [:], accessories: readings, devices: devices).isEmpty)
+        #expect(BluetoothBatteryLevelFallback.level(for: devices[0], accessories: readings, devices: devices) == nil)
+    }
+
+    @Test("A disconnected same-model neighbour still makes ownership ambiguous")
+    func disconnectedNeighbourCannotLendItsReading() {
+        let devices = [device(vendorID: 76, productID: 8207),
+                       device(address: "11:22:33:44:55:66", isConnected: false, vendorID: 76, productID: 8207)]
+        #expect(BluetoothBatteryLevelFallback.merged(
+            levels: [:], accessories: [accessory(vendorID: 76, productID: 8207)], devices: devices
+        ).isEmpty)
+    }
+
+    @Test("Distinct identifiers never combine parts or choose the first set")
+    func multipleIdentifiersForOneDeviceAreRejected() {
+        let target = device()
+        let readings = [accessory(identifier: "first", part: .left, percentage: 93),
+                        accessory(identifier: "second", part: .right, percentage: 12)]
+        #expect(BluetoothBatteryLevelFallback.merged(levels: [:], accessories: readings, devices: [target]).isEmpty)
+        #expect(BluetoothBatteryLevelFallback.level(for: target, accessories: readings, devices: [target]) == nil)
+    }
+
+    @Test("Uniquely attributable identifiers can describe distinct devices")
+    func distinctDevicesKeepTheirOwnReadings() {
+        let first = device()
+        let second = device(address: "11:22:33:44:55:66", name: "MX Keys")
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:], accessories: [accessory(identifier: "first", percentage: 93),
+                                      accessory(identifier: "second", name: "MX Keys", percentage: 12)],
+            devices: [first, second]
+        )
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(first.id)]?.main == 93)
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(second.id)]?.main == 12)
+    }
+
+    @Test("Disconnected devices and unidentified readings supply no fallback")
+    func disconnectedAndUnidentifiedReadingsAreRejected() {
+        let disconnected = device(isConnected: false)
+        #expect(!BluetoothBatteryLevelFallback.matches(accessory(), disconnected))
+        #expect(BluetoothBatteryLevelFallback.level(for: disconnected, accessories: [accessory()], devices: [disconnected]) == nil)
+        #expect(BluetoothBatteryLevelFallback.merged(levels: [:], accessories: [accessory()], devices: [disconnected]).isEmpty)
+        #expect(BluetoothBatteryLevelFallback.merged(levels: [:], accessories: [accessory(identifier: nil)], devices: [device()]).isEmpty)
+        #expect(BluetoothBatteryLevelFallback.merged(levels: [:], accessories: [], devices: [device()]).isEmpty)
+        #expect(!BluetoothBatteryLevelFallback.isNeeded(levels: nil, devices: []))
+    }
+
+    @Test("UUID casing does not split a single accessory's channels")
+    func identifierCaseDoesNotSplitChannels() {
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:], accessories: [accessory(identifier: "ABCD", part: .left, percentage: 93),
+                                      accessory(identifier: "abcd", part: .right, percentage: 91)], devices: [device()]
+        )
+        #expect(merged.values.first?.summary == "L 93% · R 91%")
+    }
+
+    @Test("An unresolvable second identifier disables the whole fallback")
+    func unidentifiedOwnerPreventsMultiAccessoryFallback() {
+        #expect(BluetoothBatteryLevelFallback.merged(
+            levels: [:], accessories: [accessory(identifier: "first"),
+                                      accessory(identifier: "second", name: "Unknown")], devices: [device()]
+        ).isEmpty)
     }
 
     // MARK: - Matching

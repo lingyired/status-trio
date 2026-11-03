@@ -1112,7 +1112,6 @@ final class BluetoothDeviceController: ObservableObject {
         guard BluetoothBatteryLevelFallback.isNeeded(levels: levels, devices: devices) else {
             return
         }
-        let devices = devices
         accessoryBatteryReader.read { [weak self] accessories in
             Task { @MainActor [weak self] in
                 guard let self,
@@ -1126,10 +1125,14 @@ final class BluetoothDeviceController: ObservableObject {
                 // the primary read's verdict stands, and a second line saying the
                 // same thing would only repeat it.
                 guard let accessories else { return }
+                // Resolve against the *current* device list, not the one captured
+                // when the read started. A device can disconnect while `pmset`
+                // runs; its snapshot then still says "connected", and merging
+                // against it would hand a level to a device that already left.
                 let merged = BluetoothBatteryLevelFallback.merged(
                     levels: self.batteryLevels,
                     accessories: accessories,
-                    devices: devices
+                    devices: self.devices
                 )
                 self.batteryLevels = merged
                 // The report's failure is cleared exactly when the second source
