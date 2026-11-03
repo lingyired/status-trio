@@ -33,6 +33,9 @@ struct BluetoothDeviceList: View {
     /// Only record a snapshot once the controller has a real device read; a
     /// still-loading or empty placeholder list must never overwrite the cache.
     var recordsLayoutSnapshot = true
+    /// Addresses of cached, connected AirPods rows that should reserve a battery
+    /// line while their level is being read.
+    var batteryPlaceholderAddresses: Set<String> = []
 
     @State private var isExpanded = false
     @State private var nearbyRowFrames: [UUID: CGRect] = [:]
@@ -235,6 +238,12 @@ struct BluetoothDeviceList: View {
     /// draws with. Shared by the scroll bound and the persisted layout snapshot so
     /// the skeleton is never a different height from the row it replaces.
     private func estimatedRowHeight(for device: BluetoothDevice) -> CGFloat {
+        let address = BluetoothBatteryReader.normalizedAddress(device.id)
+        // A cached AirPods row reserves the two-line height while its level is
+        // still being read, so the scroll bound matches what it will draw.
+        if batteryPlaceholderAddresses.contains(address) {
+            return BluetoothDeviceRowMetrics.componentHeight
+        }
         let mobileSnapshot = mobileMetadata(for: device)[device.id]
         let hasMobileDetailLine = mobileSnapshot.map {
             MobileBatteryDeviceRowPresentation.detailText(
@@ -242,7 +251,6 @@ struct BluetoothDeviceList: View {
                 charging: localization.string(.mobileBatteryCharging)
             ) != nil
         } ?? false
-        let address = BluetoothBatteryReader.normalizedAddress(device.id)
         let modeHeight: CGFloat = device.isHuaweiAudio
             && listeningModePresentations[address]?.isControllable == true ? 23 : 0
         return modeHeight + BluetoothDeviceRowMetrics.estimatedHeight(
@@ -265,6 +273,7 @@ struct BluetoothDeviceList: View {
                     canonicalStatusByDeviceID: canonicalStatus(for: device),
                     listeningMode: listeningModePresentations[address],
                     onSelectListeningMode: { onSelectListeningMode(address, $0) },
+                    showsBatteryPlaceholder: batteryPlaceholderAddresses.contains(address),
                     actionState: actionStates[address],
                     isConfirmingDisconnect: confirmingAddress == address
                         && BluetoothDeviceActionPolicy.requiresConfirmation(for: device),

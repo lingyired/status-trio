@@ -415,6 +415,36 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
         fixture.store.stop()
     }
 
+    func testLastReadStaysInMemoryForTheNextOpen() async {
+        let fixture = makeFixture(authorization: .allowed)
+        fixture.settings.setPopupSection(.bluetooth, enabled: true)
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.reader.readCount == 1 }
+
+        let device = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:FF",
+            name: "AirPods Pro",
+            kind: .audio,
+            isConnected: true
+        )
+        fixture.reader.complete(.success([device]))
+        await waitUntil { fixture.store.bluetoothDevices.devices.count == 1 }
+        XCTAssertEqual(fixture.store.bluetoothDevices.cachedDevices, [device])
+
+        fixture.store.setPopoverVisible(false)
+        await waitUntil { fixture.store.bluetoothDevices.devices.isEmpty }
+
+        XCTAssertEqual(
+            fixture.store.bluetoothDevices.cachedDevices,
+            [device],
+            "The last read stays in memory so a reopen can draw its rows immediately"
+        )
+        XCTAssertFalse(fixture.store.bluetoothDevices.hasLoadedDevices)
+        fixture.store.stop()
+    }
+
     func testProfilerCacheResetWaitsForEveryReaderToRelease() {
         let cache = BluetoothProfilerReportCache()
         let first = cache.acquireReader()

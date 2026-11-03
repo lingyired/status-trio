@@ -314,6 +314,12 @@ final class CoreBluetoothStateMonitor: NSObject, @preconcurrency CBCentralManage
 @MainActor
 final class BluetoothDeviceController: ObservableObject {
     @Published private(set) var devices: [BluetoothDevice] = []
+    /// The last successfully read devices, kept only in memory for this process.
+    /// The panel draws these rows instantly while the fresh read is in flight,
+    /// so reopening does not wait on the OS. Bounded and never written to disk:
+    /// device names and addresses stay out of `UserDefaults`.
+    private(set) var cachedDevices: [BluetoothDevice] = []
+    private static let cachedDeviceLimit = 24
     /// Whether a device read has completed since the controller last released
     /// its transient state. The status panel reads it to tell "no devices yet"
     /// from "the list has not loaded again since reopening", so it can draw a
@@ -728,6 +734,7 @@ final class BluetoothDeviceController: ObservableObject {
                         self.appleBluetoothAudioDiagnosticReporter.report($0)
                     }
                     self.devices = devices
+                    self.cachedDevices = Array(devices.prefix(Self.cachedDeviceLimit))
                     self.hasLoadedDevices = true
                     // The BLE route matches a phone's advertised name against
                     // this list, so it has to follow the report as it lands.

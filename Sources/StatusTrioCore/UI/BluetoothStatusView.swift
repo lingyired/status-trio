@@ -89,8 +89,53 @@ struct BluetoothStatusView: View {
     /// Whether the section is in the window between reopening and its first
     /// completed device read. Only then is a cached skeleton shown; a genuinely
     /// empty or unavailable radio must not keep a stale skeleton on screen.
+    private var isWaitingForFirstDeviceRead: Bool {
+        guard !controller.hasLoadedDevices else { return false }
+        switch controller.availability {
+        case .idle, .initializing, .available:
+            return true
+        case .authorizationNotDetermined, .authorizationDenied, .authorizationRestricted,
+             .poweredOff, .unavailable, .failed:
+            return false
+        }
+    }
+
+    /// Whether the previous read's devices are standing in for the incoming one.
+    /// This shows real names at once while the OS read runs; the list keeps the
+    /// cached rows until the fresh result lands.
+    private var isShowingCachedDevices: Bool {
+        listOptions.showsList
+            && !controller.hasLoadedDevices
+            && controller.devices.isEmpty
+            && !controller.cachedDevices.isEmpty
+    }
+
+    private var displayedDevices: [BluetoothDevice] {
+        isShowingCachedDevices ? controller.cachedDevices : controller.devices
+    }
+
+    /// Cached rows only need to read as a normal available list while loading;
+    /// the real availability still decides any explained state once a read lands.
+    private var effectiveAvailability: BluetoothAvailability {
+        isShowingCachedDevices ? .available : controller.availability
+    }
+
+    /// Connected AirPods keep their two-line height while the battery is read.
+    private var cachedBatteryPlaceholderAddresses: Set<String> {
+        guard isShowingCachedDevices else { return [] }
+        return Set(
+            controller.cachedDevices
+                .filter { device in
+                    device.isConnected
+                        && (device.airPodsModel != nil
+                            || device.name.localizedCaseInsensitiveContains("airpods"))
+                }
+                .map { BluetoothBatteryReader.normalizedAddress($0.id) }
+        )
+    }
+
     private var bluetoothListIsLoading: Bool {
-        listOptions.showsList && isWaitingForFirstDeviceRead
+        listOptions.showsList && !isShowingCachedDevices && isWaitingForFirstDeviceRead
     }
 
     /// The nearby rows are persisted readings, kept across scans so a missed
@@ -180,7 +225,7 @@ struct BluetoothStatusView: View {
         let bluetoothPlaceholder = bluetoothListIsLoading
             ? layoutSnapshots.snapshot(for: .bluetooth)
             : nil
-        let showsBluetoothSkeleton = (bluetoothPlaceholder?.rowCount ?? 0) > 0
+        let showsBluetoothSkeleton = !isShowingCachedDevices && (bluetoothPlaceholder?.rowCount ?? 0) > 0
 
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 10) {
@@ -210,7 +255,7 @@ struct BluetoothStatusView: View {
                 }
             }
 
-            if listOptions.showsList && (BluetoothPanelListVisibility.showsList(availability: controller.availability, devices: controller.devices, options: listOptions) || !appleRows.isEmpty || !nearbyRows.isEmpty || showsBluetoothSkeleton) {
+            if listOptions.showsList && (BluetoothPanelListVisibility.showsList(availability: effectiveAvailability, devices: displayedDevices, options: listOptions) || !appleRows.isEmpty || !nearbyRows.isEmpty || showsBluetoothSkeleton) {
                 if showsBluetoothSkeleton, let bluetoothPlaceholder {
                     VStack(spacing: 2) {
                         PanelListSkeleton(
@@ -230,7 +275,7 @@ struct BluetoothStatusView: View {
                     }
                 } else {
                     BluetoothDeviceList(
-                        devices: controller.devices,
+                        devices: displayedDevices,
                         batteryLevels: controller.batteryLevels.merging(appleProjection.batteryLevels, uniquingKeysWith: { _, apple in apple }),
                         nearbyReadingsByID: Dictionary(controller.nearbyBatteryDevices.map { ($0.id, $0) }, uniquingKeysWith: { old, new in
                             new.lastUpdated >= old.lastUpdated ? new : old
@@ -255,7 +300,8 @@ struct BluetoothStatusView: View {
                         onRequestDisconnect: { controller.requestDisconnectConfirmation(for: $0) },
                         onCancelDisconnect: { controller.cancelDisconnectConfirmation() },
                         layoutSnapshots: layoutSnapshots,
-                        recordsLayoutSnapshot: controller.hasLoadedDevices
+                        recordsLayoutSnapshot: controller.hasLoadedDevices,
+                        batteryPlaceholderAddresses: cachedBatteryPlaceholderAddresses
                     )
 
                     if controller.batteryLevelsReadFailed {
@@ -500,31 +546,17 @@ struct BluetoothStatusView: View {
         // line that disappears once the real rows arrive, which jitters the panel.
         if isWaitingForFirstDeviceRead { return true }
         return BluetoothPanelListVisibility.hidesRowSubtitle(
-            availability: controller.availability,
-            devices: controller.devices,
+            availability: effectiveAvailability,
+            devices: displayedDevices,
             options: listOptions
         )
-    }
-
-    /// Whether the row is in the window between opening and its first completed
-    /// device read. States the radio can legitimately explain (off, denied,
-    /// restricted, failed, unavailable) are not "loading".
-    private var isWaitingForFirstDeviceRead: Bool {
-        guard !controller.hasLoadedDevices else { return false }
-        switch controller.availability {
-        case .idle, .initializing, .available:
-            return true
-        case .authorizationNotDetermined, .authorizationDenied, .authorizationRestricted,
-             .poweredOff, .unavailable, .failed:
-            return false
-        }
     }
 
     /// The task re-runs when the level setting or one of the device names
     /// changes. The name also covers an AirPods swapping to another device at
     /// the same address.
     private var batteryReadTaskID: String {
-        let names = BluetoothDevicePresentation.grouped(controller.devices).connected
+        let names = BluetoothDevicePresentation.grouped(displayedDevices).connected
             .map(\.name)
             .joined(separator: "、")
         return "\(showsBatteryLevels)-\(names)"
@@ -532,8 +564,8 @@ struct BluetoothStatusView: View {
 
     private var summaryPresentation: BluetoothSummary {
         BluetoothSummary.presentation(
-            availability: controller.availability,
-            devices: controller.devices,
+            availability: effectiveAvailability,
+            devices: displayedDevices,
             batteryLevels: controller.batteryLevels
         )
     }
