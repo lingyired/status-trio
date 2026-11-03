@@ -528,6 +528,15 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsNetworkShowLocalIP = "settings.network.showLocalIP"
     case settingsNetworkShowLocalIPDescription = "settings.network.showLocalIP.description"
 
+    /// The Wi-Fi details page and the network settings pane both surface the
+    /// location permission macOS needs to read a Wi-Fi name. `.notDetermined`
+    /// offers to raise the system prompt; `.denied`/`.restricted` send the user
+    /// to Privacy & Security.
+    case settingsNetworkPermissionNotDeterminedTitle = "settings.network.permissionNotDeterminedTitle"
+    case settingsNetworkPermissionDeniedTitle = "settings.network.permissionDeniedTitle"
+    case settingsNetworkPermissionNotDeterminedDescription = "settings.network.permissionNotDeterminedDescription"
+    case settingsNetworkPermissionDeniedDescription = "settings.network.permissionDeniedDescription"
+
     case wifiSummaryBand = "wifi.summary.band"
     case wifiSummarySignal = "wifi.summary.signal"
     case wifiSummaryBandAndSignal = "wifi.summary.bandAndSignal"

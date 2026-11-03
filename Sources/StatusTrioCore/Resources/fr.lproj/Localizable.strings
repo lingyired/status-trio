@@ -265,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "Proxy système";
 "vpn.subtitle.connectedWithProxy" = "Connecté · proxy %@";
 "vpn.subtitle.proxyAutomatic" = "Configuration automatique";
-"wifi.action.requestNameAccess" = "Autoriser la localisation pour afficher le nom du Wi‑Fi";
+"wifi.action.requestNameAccess" = "Autoriser la localisation pour afficher les réseaux Wi‑Fi";
 "wifi.action.openLocationSettings" = "Autoriser la localisation dans Réglages";
 "wifi.action.openSettings" = "Ouvrir les réglages Wi‑Fi";
 "wifi.action.switchingHint" = "Choisir un réseau ouvre le panneau Wi-Fi des Réglages Système.";
@@ -280,6 +280,11 @@
 "settings.network.panelGroup" = "Panneau";
 "settings.network.showLocalIP" = "Afficher l’IP locale";
 "settings.network.showLocalIP.description" = "Affiche l’adresse LAN privée de ce Mac sur la ligne réseau, avant les détails Wi-Fi.";
+
+"settings.network.permissionNotDeterminedTitle" = "Autorisation de localisation requise";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio a besoin d’accéder à votre localisation pour afficher les réseaux Wi‑Fi. Cliquez ci-dessous pour l’autoriser.";
+"settings.network.permissionDeniedTitle" = "Autorisation de localisation désactivée";
+"settings.network.permissionDeniedDescription" = "Sans accès à la localisation, les réseaux Wi‑Fi ne peuvent pas être affichés. Activez-le dans les Réglages Système.";
 "settings.audio.externalVolume.title" = "Volume de l’écran externe";
 "settings.audio.externalVolume.controlMethod" = "Méthode de contrôle";
 "settings.audio.externalVolume.controlMethodDescription" = "Si les commandes de volume du panneau d’état ne contrôlent pas cet appareil, utilisez BetterDisplay.";

@@ -265,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "系統代理";
 "vpn.subtitle.connectedWithProxy" = "已連線 · 代理 %@";
 "vpn.subtitle.proxyAutomatic" = "自動設定";
-"wifi.action.requestNameAccess" = "允許定位以顯示 Wi-Fi 名稱";
+"wifi.action.requestNameAccess" = "允許定位以顯示 Wi-Fi 網路";
 "wifi.action.openLocationSettings" = "前往設定允許定位";
 "wifi.action.openSettings" = "打開 Wi-Fi 設定";
 "wifi.action.switchingHint" = "選擇網路會在系統設定中打開 Wi-Fi 面板。";
@@ -280,6 +280,11 @@
 "settings.network.panelGroup" = "面板";
 "settings.network.showLocalIP" = "顯示內網 IP";
 "settings.network.showLocalIP.description" = "在網路的第二行顯示本機內網 IP，位於 Wi-Fi 資訊之前。";
+
+"settings.network.permissionNotDeterminedTitle" = "需要定位權限";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio 需要定位權限才能顯示 Wi-Fi 網路。點擊下方按鈕進行授權。";
+"settings.network.permissionDeniedTitle" = "定位權限已關閉";
+"settings.network.permissionDeniedDescription" = "沒有定位權限時無法顯示 Wi-Fi 網路。請在系統設定中開啟。";
 "settings.audio.externalVolume.title" = "外部顯示器音量";
 "settings.audio.externalVolume.controlMethod" = "控制方式";
 "settings.audio.externalVolume.controlMethodDescription" = "如果狀態面板的音量控制無法調整此裝置，可改用 BetterDisplay。";

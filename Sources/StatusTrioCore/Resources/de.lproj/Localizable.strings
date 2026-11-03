@@ -265,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "Systemproxy";
 "vpn.subtitle.connectedWithProxy" = "Verbunden · Proxy %@";
 "vpn.subtitle.proxyAutomatic" = "Automatische Konfiguration";
-"wifi.action.requestNameAccess" = "Standort erlauben, um Wi‑Fi-Namen anzuzeigen";
+"wifi.action.requestNameAccess" = "Standort erlauben, um Wi‑Fi-Netzwerke anzuzeigen";
 "wifi.action.openLocationSettings" = "Standort in Einstellungen erlauben";
 "wifi.action.openSettings" = "Wi‑Fi-Einstellungen öffnen";
 "wifi.action.switchingHint" = "Die Auswahl eines Netzwerks öffnet den Wi‑Fi-Bereich der Systemeinstellungen.";
@@ -280,6 +280,11 @@
 "settings.network.panelGroup" = "Panel";
 "settings.network.showLocalIP" = "Lokale IP anzeigen";
 "settings.network.showLocalIP.description" = "Zeigt die private LAN-Adresse dieses Macs in der Netzwerkzeile an, vor den WLAN-Details.";
+
+"settings.network.permissionNotDeterminedTitle" = "Standortberechtigung erforderlich";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio benötigt Zugriff auf den Standort, um WLAN-Netzwerke anzuzeigen. Klicken Sie unten, um ihn zu erlauben.";
+"settings.network.permissionDeniedTitle" = "Standortberechtigung ist deaktiviert";
+"settings.network.permissionDeniedDescription" = "Ohne Standortzugriff können WLAN-Netzwerke nicht angezeigt werden. Aktivieren Sie ihn in den Systemeinstellungen.";
 "settings.audio.externalVolume.title" = "Lautstärke externer Displays";
 "settings.audio.externalVolume.controlMethod" = "Steuerungsmethode";
 "settings.audio.externalVolume.controlMethodDescription" = "Wenn die Lautstärkeregelung im Statusfenster dieses Gerät nicht steuern kann, verwende BetterDisplay.";
