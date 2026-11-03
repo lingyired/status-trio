@@ -7,6 +7,9 @@ import SwiftUI
 struct BluetoothDeviceList: View {
     @EnvironmentObject private var localization: Localization
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// True when the panel already owns an outer scroll surface (#237). The list
+    /// must then draw every row directly instead of adding a second scroller.
+    @Environment(\.statusPanelManagesScrolling) private var statusPanelManagesScrolling
     let devices: [BluetoothDevice]
     let batteryLevels: [String: BluetoothBatteryLevel]
     var nearbyReadingsByID: [UUID: NearbyBluetoothBatteryDevice] = [:]
@@ -198,21 +201,24 @@ struct BluetoothDeviceList: View {
         }
     }
 
-    /// The rows, bounded.
+    /// The rows, bounded when this list is used on its own.
     ///
-    /// The scroll view appears only once the rows outgrow the panel. The summary
-    /// popover has no scroll view of its own, so without a bound a long list — an
-    /// expanded one, or a limit the user raised — would keep growing the popover
-    /// past the screen. A scroll view that is not needed is not free either: its
-    /// scroller flashes while an expansion animates through the moment where the
-    /// content is taller than the shrinking frame, which a list of six devices
-    /// should never show. Below the bound the rows are laid out directly, so
-    /// there is nothing to flash. The panel's scroll-wheel handling already
-    /// leaves a pointer over an `NSScrollView` to that view instead of adjusting
-    /// the volume.
+    /// The scroll view appears only once the rows outgrow the bound. A scroll
+    /// view that is not needed is not free either: its scroller flashes while an
+    /// expansion animates through the moment where the content is taller than
+    /// the shrinking frame, which a list of six devices should never show.
+    /// Below the bound the rows are laid out directly, so there is nothing to
+    /// flash. When the status panel itself owns the outer scroll surface, the
+    /// list must not bound or scroll at all (#237): the panel needs the rows'
+    /// natural height to decide whether one outer scroller is necessary. The
+    /// panel's scroll-wheel handling already leaves a pointer over an
+    /// `NSScrollView` to that view instead of adjusting the volume.
     @ViewBuilder
     private func rows(_ visibleDevices: [BluetoothDevice]) -> some View {
-        if estimatedContentHeight(for: visibleDevices) > Self.maximumRowsHeight {
+        if statusPanelManagesScrolling {
+            rowStack(visibleDevices)
+                .background(viewportFrameReader)
+        } else if estimatedContentHeight(for: visibleDevices) > Self.maximumRowsHeight {
             ScrollView { rowStack(visibleDevices) }
                 .frame(maxHeight: Self.maximumRowsHeight)
                 .background(viewportFrameReader)

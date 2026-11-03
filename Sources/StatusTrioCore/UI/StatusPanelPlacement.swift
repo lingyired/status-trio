@@ -35,6 +35,11 @@ enum StatusPanelPlacement {
     /// menu bar / Dock without touching it.
     static let gap: CGFloat = 6
 
+    /// Breathing room kept between a height-capped panel and the screen edges.
+    /// Without it a long panel would touch the menu bar and the bottom of the
+    /// visible frame, which reads as clipped rather than scrollable (#237).
+    static let edgeMargin: CGFloat = 8
+
     /// Chooses the frame for a panel of `contentSize` anchored at `anchor`.
     ///
     /// The panel is centred on the anchor's perpendicular axis, flushed to the
@@ -43,21 +48,45 @@ enum StatusPanelPlacement {
     /// the popover behaviour users already expect. The frame keeps its top edge
     /// fixed for `.minY` (menu bar) anchors, so a growing panel extends
     /// downwards instead of jumping.
+    ///
+    /// The size is capped before the origin is clamped (issue #237): content
+    /// taller than the screen can otherwise never be placed inside the visible
+    /// frame, so the panel used to be pushed off the top or bottom edge. Capped
+    /// content scrolls inside the panel instead.
     static func frame(
         contentSize: NSSize,
         anchor: StatusPanelAnchor,
         screens: [StatusPanelScreen],
         dockInset: NSEdgeInsets = DockReveal.noInset
     ) -> NSRect {
-        let size = NSSize(
-            width: max(contentSize.width, 1),
-            height: max(contentSize.height, 1)
-        )
         let anchorRect = anchor.screenRect
-        let raw = screenContaining(anchorRect, screens: screens)
-        let visibleFrame = usableFrame(
-            raw?.visibleFrame ?? anchorRect,
-            dockInset: dockInset
+        guard let raw = screenContaining(anchorRect, screens: screens) else {
+            // No screen means no known budget. Preserve the content size and
+            // attach to the requested edge without inventing a screen from the anchor.
+            let size = NSSize(width: max(contentSize.width, 1), height: max(contentSize.height, 1))
+            let origin: NSPoint
+            switch anchor.preferredEdge {
+            case .maxY:
+                origin = NSPoint(x: anchorRect.midX - size.width / 2, y: anchorRect.maxY + gap)
+            case .maxX:
+                origin = NSPoint(x: anchorRect.maxX + gap, y: anchorRect.midY - size.height / 2)
+            case .minX:
+                origin = NSPoint(x: anchorRect.minX - gap - size.width, y: anchorRect.midY - size.height / 2)
+            default:
+                origin = NSPoint(x: anchorRect.midX - size.width / 2, y: anchorRect.minY - gap - size.height)
+            }
+            return NSRect(origin: origin, size: size)
+        }
+        let visibleFrame = usableFrame(raw.visibleFrame, dockInset: dockInset)
+        let size = NSSize(
+            width: min(
+                max(contentSize.width, 1),
+                max(visibleFrame.width - edgeMargin * 2, 1)
+            ),
+            height: min(
+                max(contentSize.height, 1),
+                maximumPanelHeight(anchor: anchor, visibleFrame: visibleFrame)
+            )
         )
 
         var origin: NSPoint
@@ -106,6 +135,54 @@ enum StatusPanelPlacement {
             max(visibleFrame.minY, visibleFrame.maxY - size.height)
         )
         return NSRect(origin: origin, size: size)
+    }
+
+    /// The tallest panel that can be shown next to the anchor on its screen
+    /// (#237).
+    ///
+    /// A menu-bar-anchored panel normally hangs below the anchor and a
+    /// Dock-anchored one above it, so the preferred side's free height is the
+    /// first candidate. The opposite side counts too: an anchor near the
+    /// bottom of the screen has almost no room below, yet the panel flips
+    /// above and may use the full height there. Capping by the preferred side
+    /// alone used to shrink that panel to one point, which then "fit" below
+    /// and defeated the flip. A sideways anchor does not constrain the height,
+    /// so only the screen height counts.
+    static func maximumPanelHeight(
+        anchor: StatusPanelAnchor,
+        screens: [StatusPanelScreen],
+        dockInset: NSEdgeInsets = DockReveal.noInset
+    ) -> CGFloat? {
+        guard let screen = screenContaining(anchor.screenRect, screens: screens) else { return nil }
+        let visibleFrame = usableFrame(screen.visibleFrame, dockInset: dockInset)
+        return maximumPanelHeight(anchor: anchor, visibleFrame: visibleFrame)
+    }
+
+    private static func maximumPanelHeight(
+        anchor: StatusPanelAnchor,
+        visibleFrame: NSRect
+    ) -> CGFloat {
+        let screenCap = max(visibleFrame.height - edgeMargin * 2, 1)
+        let edgeCap: CGFloat
+        let oppositeCap: CGFloat
+        switch anchor.preferredEdge {
+        case .minY:
+            edgeCap = anchor.screenRect.minY - gap - visibleFrame.minY - edgeMargin
+            oppositeCap = visibleFrame.maxY - anchor.screenRect.maxY - gap - edgeMargin
+        case .maxY:
+            edgeCap = visibleFrame.maxY - anchor.screenRect.maxY - gap - edgeMargin
+            oppositeCap = anchor.screenRect.minY - gap - visibleFrame.minY - edgeMargin
+        case .maxX, .minX:
+            edgeCap = screenCap
+            oppositeCap = screenCap
+        @unknown default:
+            edgeCap = screenCap
+            oppositeCap = screenCap
+        }
+        // The cap is a budget, not a prediction of the chosen side: the frame
+        // still flips or clamps after sizing. Picking the roomier side keeps
+        // the flip decision meaningful for anchors near a screen edge.
+        return max(1, min(screenCap, max(edgeCap, oppositeCap)))
     }
 
     /// Shrinks the screen's visible frame by the clearance an auto-hidden Dock

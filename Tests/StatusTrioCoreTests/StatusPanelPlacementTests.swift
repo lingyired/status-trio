@@ -268,4 +268,117 @@ struct StatusPanelPlacementTests {
         )
         #expect(bottomFrame.minY == 90 + StatusPanelPlacement.gap + 1)
     }
+
+    @Test func noScreensPreservesContentSizeAndHasNoHeightBudget() {
+        for edge: NSRectEdge in [.minY, .maxY, .minX, .maxX] {
+            let anchor = StatusPanelAnchor(
+                screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),
+                preferredEdge: edge
+            )
+            let frame = StatusPanelPlacement.frame(
+                contentSize: NSSize(width: 330, height: 300),
+                anchor: anchor,
+                screens: []
+            )
+            #expect(frame.size == NSSize(width: 330, height: 300))
+            #expect(StatusPanelPlacement.maximumPanelHeight(anchor: anchor, screens: []) == nil)
+            switch edge {
+            case .minY: #expect(frame.maxY == anchor.screenRect.minY - StatusPanelPlacement.gap)
+            case .maxY: #expect(frame.minY == anchor.screenRect.maxY + StatusPanelPlacement.gap)
+            case .minX: #expect(frame.maxX == anchor.screenRect.minX - StatusPanelPlacement.gap)
+            case .maxX: #expect(frame.minX == anchor.screenRect.maxX + StatusPanelPlacement.gap)
+            default: break
+            }
+        }
+    }
+
+    // MARK: - Screen-height cap (#237)
+
+    @Test func menuBarAnchorBudgetReachesTheBottomOfTheVisibleFrame() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),
+            preferredEdge: .minY
+        )
+
+        // 875pt visible frame minus 8pt of breathing room on each side. The
+        // distance from the anchor to the bottom of the frame is larger, so the
+        // screen height is the binding constraint.
+        #expect(
+            StatusPanelPlacement.maximumPanelHeight(
+                anchor: anchor,
+                screens: [screen]
+            ) == screen.visibleFrame.height - StatusPanelPlacement.edgeMargin * 2
+        )
+    }
+
+    @Test func contentTallerThanTheScreenIsCappedAndThePanelStaysVisible() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),
+            preferredEdge: .minY
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 4000),
+            anchor: anchor,
+            screens: [screen]
+        )
+
+        #expect(frame.size.height == 875 - StatusPanelPlacement.edgeMargin * 2)
+        #expect(frame.size.width == 330)
+        #expect(frame.minY >= screen.visibleFrame.minY)
+        #expect(frame.maxY <= screen.visibleFrame.maxY)
+        #expect(frame.maxY == anchor.screenRect.minY - StatusPanelPlacement.gap)
+    }
+
+    @Test func contentWiderThanTheScreenIsCapped() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),
+            preferredEdge: .minY
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 4000, height: 400),
+            anchor: anchor,
+            screens: [screen]
+        )
+
+        #expect(frame.size.width == screen.visibleFrame.width - StatusPanelPlacement.edgeMargin * 2)
+        #expect(frame.minX >= screen.visibleFrame.minX)
+        #expect(frame.maxX <= screen.visibleFrame.maxX)
+    }
+
+    @Test func dockAnchoredContentIsCappedAboveTheDockEdge() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 488, y: 20, width: 24, height: 18),
+            preferredEdge: .maxY
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 4000),
+            anchor: anchor,
+            screens: [screen]
+        )
+
+        // The panel keeps its 6pt gap above the Dock icon and the 8pt margin
+        // before the menu bar.
+        #expect(frame.size.height == 875 - 38 - StatusPanelPlacement.gap - StatusPanelPlacement.edgeMargin)
+        #expect(frame.minY == 38 + StatusPanelPlacement.gap)
+        #expect(frame.maxY <= screen.visibleFrame.maxY)
+    }
+
+    /// The cap must not shrink panels that already fit.
+    @Test func contentThatFitsKeepsItsExactHeight() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),
+            preferredEdge: .minY
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 700),
+            anchor: anchor,
+            screens: [screen]
+        )
+
+        #expect(frame.size.height == 700)
+    }
 }

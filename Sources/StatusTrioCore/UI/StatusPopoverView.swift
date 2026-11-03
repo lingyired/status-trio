@@ -8,6 +8,10 @@ struct StatusPopoverView: View {
     /// it left the control invisible until the popover was recreated.
     @ObservedObject private var helper: PrivilegedHelperManager = .shared
     let scrollTargets: PopoverScrollTargets
+    /// The panel window's current height budget (#237). The content caps and
+    /// scrolls itself at the same number the window uses, so the two never
+    /// disagree about how tall the panel may get.
+    @ObservedObject var layoutMetrics: StatusPanelLayoutMetrics
     @EnvironmentObject private var localization: Localization
     let requestWiFiNameAccess: () -> Void
     let requestBluetoothAuthorization: () -> Void
@@ -28,6 +32,29 @@ struct StatusPopoverView: View {
     var dismissPanel: () -> Void = {}
 
     var body: some View {
+        // One scroll surface for every route (#237). The area measures the page
+        // at its natural height and only scrolls once the screen budget cannot
+        // hold it, so a short page still hugs its content. The summary footer
+        // stays outside the scroll view so it is always reachable.
+        StatusPanelScrollArea(maximumHeight: layoutMetrics.maximumPanelHeight) {
+            routeContent
+                // Inside the panel there must be exactly one scroller. The
+                // detail pages and Bluetooth lists keep their own scroll views
+                // for other hosts, but disable them here.
+                .environment(\.statusPanelManagesScrolling, true)
+        } footer: {
+            if panel.route == .summary {
+                pinnedFooter
+            }
+        }
+        .frame(width: 330)
+    }
+
+    /// The current route, inset for the panel's fixed width.
+    ///
+    /// The bottom inset is 12pt when the summary's pinned footer follows, which
+    /// reproduces the old in-page `VStack` spacing before the footer's rule.
+    private var routeContent: some View {
         Group {
             switch panel.route {
             case .summary:
@@ -79,8 +106,18 @@ struct StatusPopoverView: View {
                 )
             }
         }
-        .padding(14)
-        .frame(width: 330)
+        .padding(.top, 14)
+        .padding(.horizontal, 14)
+        .padding(.bottom, routeBottomPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The gap between the route content and the pinned footer. The summary
+    /// keeps 12pt so the footer's rule sits where the old in-page spacing put
+    /// it; an empty summary lets the footer own the whole inset.
+    private var routeBottomPadding: CGFloat {
+        guard panel.route == .summary else { return 14 }
+        return panel.visiblePopupSections.isEmpty ? 0 : 12
     }
 
     private var summary: some View {
@@ -92,15 +129,10 @@ struct StatusPopoverView: View {
                     Divider()
                 }
             }
-
-            if !panel.visiblePopupSections.isEmpty {
-                Divider()
-                    .opacity(0.6)
-                    .padding(.vertical, 2)
-            }
-
-            PopoverFooterView(openSettings: openSettings, quit: quit, dismissPanel: dismissPanel)
         }
+        // The volume device list is summary-only: keep its lifecycle tied to
+        // this page so leaving for a detail route stops it, while scrolling a
+        // long summary does not.
         .task(id: [
             panel.listeningModeTaskID,
             String(panel.visiblePopupSections.contains(.bluetooth)),
@@ -114,6 +146,21 @@ struct StatusPopoverView: View {
             }
         }
         .onDisappear { panel.actions.volumeListDisappeared() }
+    }
+
+    /// The summary footer, pinned to the panel's bottom edge (#237).
+    private var pinnedFooter: some View {
+        VStack(spacing: 12) {
+            if !panel.visiblePopupSections.isEmpty {
+                Divider()
+                    .opacity(0.6)
+                    .padding(.vertical, 2)
+            }
+
+            PopoverFooterView(openSettings: openSettings, quit: quit, dismissPanel: dismissPanel)
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 14)
     }
 
     @ViewBuilder

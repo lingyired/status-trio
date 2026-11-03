@@ -485,6 +485,7 @@ final class StatusBarController: NSObject {
             StatusPopoverView(
                 panel: panelViewModel,
                 scrollTargets: popoverScrollTargets,
+                layoutMetrics: popover.layoutMetrics,
                 requestWiFiNameAccess: { self.handleRequestWiFiNameAccess() },
                 requestBluetoothAuthorization: { self.handleRequestBluetoothAuthorization() },
                 openBatterySettings: { self.handleOpenBatterySettings() },
@@ -903,7 +904,7 @@ final class StatusBarController: NSObject {
               settings.popupScrollAdjustsVolume,
               store.isVolumeControlAvailable,
               volumeState.canAdjust,
-              !isPointerOverScrollView(event),
+              !isPointerOverScrollableScrollView(event),
               isPointerInsideVolumeScrollArea(event) else {
             return false
         }
@@ -948,17 +949,19 @@ final class StatusBarController: NSObject {
         )
     }
 
-    private func isPointerOverScrollView(_ event: NSEvent) -> Bool {
+    /// Whether the pointer sits over a scroll view that can actually scroll
+    /// right now.
+    ///
+    /// The panel's own outer scroll view (#237) is always present, but a
+    /// scroll view with nothing to scroll must not
+    /// swallow the wheel: on a short panel the wheel still adjusts the volume
+    /// (issue #22), exactly as it did before the panel could scroll.
+    private func isPointerOverScrollableScrollView(_ event: NSEvent) -> Bool {
         guard let rootView = popover.contentViewController?.view else { return false }
-        let point = rootView.convert(event.locationInWindow, from: nil)
-        var view = rootView.hitTest(point)
-        while let currentView = view {
-            if currentView is NSScrollView {
-                return true
-            }
-            view = currentView.superview
-        }
-        return false
+        return PanelScrollHitTesting.pointerIsOverScrollableScrollView(
+            at: rootView.convert(event.locationInWindow, from: nil),
+            in: rootView
+        )
     }
 
     private func resetVolumeScrollSession() {

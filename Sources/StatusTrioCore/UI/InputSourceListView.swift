@@ -4,6 +4,9 @@ import SwiftUI
 /// input source, with the current one marked and one click away from switching.
 struct InputSourceListView: View {
     @EnvironmentObject private var localization: Localization
+    /// The panel owns one outer scroll surface (#237); this page must not add a
+    /// second one on top of it.
+    @Environment(\.statusPanelManagesScrolling) private var statusPanelManagesScrolling
 
     let state: InputSourcePanelState
     let onBack: () -> Void
@@ -18,19 +21,14 @@ struct InputSourceListView: View {
                 action: onBack
             )
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
-                    if let emptyMessage = state.emptyMessage {
-                        Text(emptyMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    } else {
-                        rows
-                    }
+            if statusPanelManagesScrolling {
+                sourceRows
+            } else {
+                ScrollView {
+                    sourceRows
                 }
+                .frame(maxHeight: 330)
             }
-            .frame(maxHeight: 330)
 
             if let failure = state.failureText {
                 Label(failure, systemImage: "exclamationmark.triangle.fill")
@@ -44,6 +42,19 @@ struct InputSourceListView: View {
             Button(state.openSettingsLabel, action: onOpenKeyboardSettings)
                 .buttonStyle(.plain)
                 .accessibilityLabel(state.openSettingsLabel)
+        }
+    }
+
+    private var sourceRows: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if let emptyMessage = state.emptyMessage {
+                Text(emptyMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                rows
+            }
         }
     }
 

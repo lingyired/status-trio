@@ -16,6 +16,10 @@ struct WiFiNetworkListView: View {
     let onSetShowsDetails: (Bool) -> Void
     let onSetShowsMore: (Bool) -> Void
 
+    /// The panel owns one outer scroll surface (#237); this page must not add a
+    /// second one on top of it.
+    @Environment(\.statusPanelManagesScrolling) private var statusPanelManagesScrolling
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
@@ -25,19 +29,14 @@ struct WiFiNetworkListView: View {
             )
             .disabled(!state.canSetPower)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    personalHotspotSection
-                    knownNetworksSection
-                    otherNetworksSection
-                    stateMessage(
-                        hasVisibleNetworks: !state.personalHotspotRows.isEmpty
-                            || !state.knownRows.isEmpty
-                            || !state.otherRows.isEmpty
-                    )
+            if statusPanelManagesScrolling {
+                networkSections
+            } else {
+                ScrollView {
+                    networkSections
                 }
+                .frame(maxHeight: 330)
             }
-            .frame(maxHeight: 330)
 
             Divider()
             Text(localization.string(.wifiActionSwitchingHint))
@@ -52,6 +51,19 @@ struct WiFiNetworkListView: View {
             Button(localization.string(.networkActionShareInternet), action: onOpenSharingSettings)
                 .buttonStyle(.plain)
                 .help(localization.string(.networkActionShareInternetHelp))
+        }
+    }
+
+    private var networkSections: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            personalHotspotSection
+            knownNetworksSection
+            otherNetworksSection
+            stateMessage(
+                hasVisibleNetworks: !state.personalHotspotRows.isEmpty
+                    || !state.knownRows.isEmpty
+                    || !state.otherRows.isEmpty
+            )
         }
     }
 

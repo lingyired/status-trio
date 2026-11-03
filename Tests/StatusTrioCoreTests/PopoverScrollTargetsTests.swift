@@ -29,6 +29,7 @@ final class PopoverScrollTargetsTests: XCTestCase {
             rootView: StatusPopoverView(
                 panel: panel,
                 scrollTargets: targets,
+                layoutMetrics: StatusPanelLayoutMetrics(),
                 requestWiFiNameAccess: {},
                 requestBluetoothAuthorization: {},
                 openBatterySettings: {},
