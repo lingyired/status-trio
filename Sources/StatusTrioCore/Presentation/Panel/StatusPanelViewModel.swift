@@ -57,6 +57,10 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var wifiDetails: WiFiPanelState
     @Published private(set) var wiredDetails: PanelDetailState
     @Published private(set) var chargeToFullNowPresentation: ChargeToFullNowPresentation = .hidden
+    /// The battery summary card keeps honoring the Settings toggle: the row only
+    /// appears there when the user has enabled it. The battery details page uses
+    /// the ungated `chargeToFullNowPresentation` above.
+    @Published private(set) var summaryChargeToFullNowPresentation: ChargeToFullNowPresentation = .hidden
     @Published private(set) var visiblePopupSections: [PopupSection]
     @Published private(set) var route: StatusPanelRoute = .summary
     @Published private(set) var wifiDisclosure = WiFiPanelDisclosureState()
@@ -195,7 +199,7 @@ final class StatusPanelViewModel: ObservableObject {
                         batteryPower: batteryPower,
                         showsPowerInfoBar: self.settings.showsBatteryPowerInfoBar,
                         localization: self.localization,
-                        chargeToFullNow: self.chargeToFullNowPresentation
+                        chargeToFullNow: self.summaryChargeToFullNowPresentation
                     )
                     if self.battery != next { self.battery = next }
                 }
@@ -248,6 +252,7 @@ final class StatusPanelViewModel: ObservableObject {
         subscribedSourceDemand = nil
         chargeToFullNow?.clearDemand()
         chargeToFullNowPresentation = .hidden
+        summaryChargeToFullNowPresentation = .hidden
         store.powerSampling.end(.panel)
         store.powerSampling.end(.powerInfoBar)
         cancellables.removeAll()
@@ -564,6 +569,7 @@ final class StatusPanelViewModel: ObservableObject {
     private func subscribeToChargeToFullNow() {
         guard let chargeToFullNow else {
             chargeToFullNowPresentation = .hidden
+            summaryChargeToFullNowPresentation = .hidden
             return
         }
 
@@ -572,12 +578,27 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] presentation in
                 guard let self else { return }
                 chargeToFullNowPresentation = presentation
+                refreshSummaryChargeToFullNowPresentation()
                 refreshBatterySummary()
             }
             .store(in: &cancellables)
 
-        Publishers.CombineLatest4(
-            settings.$showsChargeToFullNowButton.removeDuplicates(),
+        // The Settings toggle only gates the summary card; the battery details
+        // page uses the ungated presentation. Refresh the summary immediately on
+        // toggle so turning it off/on updates the card without waiting for the
+        // next battery tick.
+        settings.$showsChargeToFullNowButton
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                // `@Published` emits before the stored property updates, so use
+                // the emitted value rather than re-reading the store here.
+                refreshSummaryChargeToFullNowPresentation(settingEnabled: enabled)
+                refreshBatterySummary()
+            }
+            .store(in: &cancellables)
+
+        Publishers.CombineLatest3(
             Publishers.CombineLatest(
                 settings.$enabledPopupSections,
                 settings.$popupSectionOrder
@@ -591,15 +612,24 @@ final class StatusPanelViewModel: ObservableObject {
                 .map(\.battery)
                 .removeDuplicates()
         )
-        .sink { [weak self] settingEnabled, batterySectionVisible, popoverVisible, battery in
+        .sink { [weak self] batterySectionVisible, popoverVisible, battery in
             self?.updateChargeToFullNowDemand(
-                settingEnabled: settingEnabled,
                 batterySectionVisible: batterySectionVisible,
                 popoverVisible: popoverVisible,
                 battery: battery
             )
         }
         .store(in: &cancellables)
+    }
+
+    private func refreshSummaryChargeToFullNowPresentation(
+        settingEnabled: Bool? = nil
+    ) {
+        let enabled = settingEnabled ?? settings.showsChargeToFullNowButton
+        let next = enabled ? chargeToFullNowPresentation : .hidden
+        if summaryChargeToFullNowPresentation != next {
+            summaryChargeToFullNowPresentation = next
+        }
     }
 
     /// True when the battery page has something to show: a real battery, or a
@@ -641,13 +671,12 @@ final class StatusPanelViewModel: ObservableObject {
             batteryPower: store.powerSampling.batteryPower,
             showsPowerInfoBar: settings.showsBatteryPowerInfoBar,
             localization: localization,
-            chargeToFullNow: chargeToFullNowPresentation
+            chargeToFullNow: summaryChargeToFullNowPresentation
         )
         if battery != next { battery = next }
     }
 
     private func updateChargeToFullNowDemand(
-        settingEnabled: Bool,
         batterySectionVisible: Bool,
         popoverVisible: Bool,
         battery: BatteryStatus
@@ -658,7 +687,6 @@ final class StatusPanelViewModel: ObservableObject {
         }
         chargeToFullNow.update(
             ChargeToFullNowDemand(
-                settingEnabled: settingEnabled,
                 popoverVisible: popoverVisible,
                 batterySectionVisible: batterySectionVisible,
                 battery: battery
@@ -850,7 +878,7 @@ final class StatusPanelViewModel: ObservableObject {
                 batteryPower: store.powerSampling.batteryPower,
                 showsPowerInfoBar: settings.showsBatteryPowerInfoBar,
                 localization: localization,
-                chargeToFullNow: chargeToFullNowPresentation
+                chargeToFullNow: summaryChargeToFullNowPresentation
             )
             if battery != batteryState { battery = batteryState }
         }

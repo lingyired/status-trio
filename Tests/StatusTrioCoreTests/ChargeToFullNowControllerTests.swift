@@ -12,7 +12,6 @@ final class ChargeToFullNowControllerTests: XCTestCase {
         XCTAssertEqual(controller.presentation, .available)
 
         let hiddenDemands = [
-            demand(settingEnabled: false),
             demand(popoverVisible: false),
             demand(batterySectionVisible: false),
             demand(connectedToPower: false),
@@ -948,7 +947,6 @@ final class ChargeToFullNowControllerTests: XCTestCase {
     }
 
     private func demand(
-        settingEnabled: Bool = true,
         popoverVisible: Bool = true,
         batterySectionVisible: Bool = true,
         connectedToPower: Bool = true,
@@ -957,7 +955,6 @@ final class ChargeToFullNowControllerTests: XCTestCase {
         isCharging: Bool = false
     ) -> ChargeToFullNowDemand {
         ChargeToFullNowDemand(
-            settingEnabled: settingEnabled,
             popoverVisible: popoverVisible,
             batterySectionVisible: batterySectionVisible,
             battery: BatteryStatus(
