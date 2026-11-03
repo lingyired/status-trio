@@ -210,4 +210,28 @@ struct StatusPanelPlacementTests {
         #expect(inset.right == DockReveal.extent)
         #expect(frame.maxX <= collapsedScreen.frame.maxX - DockReveal.extent)
     }
+
+    /// A Dock-anchored panel attaches by its bottom edge, so growing content
+    /// must extend upwards. This is what keeps the panel off the Dock when the
+    /// window later resizes to its real content height (#229).
+    @Test func growingContentKeepsTheBottomEdgeFixedForDockAnchors() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 100, y: 44, width: 1, height: 1),
+            preferredEdge: .maxY
+        )
+
+        let short = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 200),
+            anchor: anchor,
+            screens: [screen]
+        )
+        let tall = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 500),
+            anchor: anchor,
+            screens: [screen]
+        )
+
+        #expect(short.minY == tall.minY)
+        #expect(tall.maxY > short.maxY)
+    }
 }

@@ -192,6 +192,19 @@ final class AnchoredStatusPanel: NSPanel {
                 self?.reposition()
             }
             .store(in: &showCancellables)
+        // The window's content view controller drives the window's height from
+        // the hosting view's preferred size. When that size grows after
+        // presentation AppKit resizes the window while keeping the top-left
+        // corner fixed, so a Dock-anchored panel would grow *downwards* past
+        // the screen edge and cover the Dock (issue #229). Re-run placement on
+        // every resize so the anchored edge stays put and the panel grows away
+        // from the Dock instead.
+        center.publisher(for: NSWindow.didResizeNotification, object: self)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.reposition()
+            }
+            .store(in: &showCancellables)
         center.publisher(for: NSApplication.didResignActiveNotification)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
