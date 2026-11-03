@@ -637,7 +637,7 @@
 "settings.battery.showChargeToFullNow" = "지금 완전히 충전 버튼 표시";
 "settings.battery.showChargeToFullNowDescription" = "상태 패널에 macOS 충전 한도를 일시적으로 해제하고 100%까지 충전하는 버튼을 표시합니다.";
 "settings.battery.restoreLimit" = "취소 후 복원할 충전 한도";
-"settings.battery.restoreLimitDescription" = "‘지금 완전히 충전’을 취소할 때 복원할 충전 한도입니다. 100%는 한도 없음을 의미합니다.";
+"settings.battery.restoreLimitDescription" = "‘지금 완전히 충전’을 취소할 때 복원할 충전 한도입니다.";
 "battery.action.chargeToFullNow" = "지금 완전히 충전";
 "battery.action.chargeToFullNowApplying" = "완전 충전 요청 중…";
 "battery.action.chargeToFullNowCharging" = "100%까지 충전 중";
@@ -645,9 +645,10 @@
 "battery.action.chargeToFullNowUnavailable" = "지금 완전히 충전은 현재 사용할 수 없습니다.";
 "battery.action.cancelChargeToFullNow" = "완전 충전 취소";
 "battery.action.cancelChargeToFullNowApplying" = "충전 제한 복원 중…";
-"battery.action.cancelChargeToFullNowFailed" = "충전 제한을 복원할 수 없습니다: %@";
+"battery.action.cancelChargeToFullNowFailed" = "충전 제한을 복원할 수 없습니다. 다시 시도하십시오.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "시스템 충전 제한이 변경되었습니다. 설정의 복원 제한을 확인한 후 다시 시도하십시오.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "시스템 충전 제한은 %1$d%%입니다. %2$d%%(으)로 복원하시겠습니까?";
 "battery.action.cancelChargeToFullNowRestored" = "충전 제한을 %d%%(으)로 복원했습니다";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "충전 한도가 해제되었습니다";
 "battery.action.cancelChargeToFullNowFallback" = "충전 제한을 %d%%(으)로 설정했습니다";
 "battery.action.cancelChargeToFullNowConfirm" = "%d%% 복원 확인";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "%d%% 설정 확인";

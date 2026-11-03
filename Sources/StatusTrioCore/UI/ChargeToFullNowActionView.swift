@@ -91,12 +91,22 @@ struct ChargeToFullNowActionView: View {
                     color: .secondary,
                     showsIcon: false
                 )
-            case .cancelFailed(let message):
+            case .cancelFailed(let reason):
+                notice(
+                    localization.string(
+                        reason == .limitChanged
+                            ? .batteryActionCancelChargeToFullNowLimitChangedFailed
+                            : .batteryActionCancelChargeToFullNowFailed
+                    )
+                )
+            case .cancelLimitChangedConfirmation(let current, let target):
                 notice(
                     localization.format(
-                        .batteryActionCancelChargeToFullNowFailed,
-                        message ?? ""
-                    )
+                        .batteryActionCancelChargeToFullNowLimitChangedConfirmation,
+                        current,
+                        target
+                    ),
+                    color: .secondary
                 )
             case .hidden,
                  .available,
@@ -131,6 +141,11 @@ struct ChargeToFullNowActionView: View {
                 .batteryActionCancelChargeToFullNowConfirm,
                 limit
             )
+        case .cancelLimitChangedConfirmation(_, let target):
+            localization.format(
+                .batteryActionCancelChargeToFullNowConfirmFallback,
+                target
+            )
         case .hidden, .available, .failed, .unavailable, .limitRestored:
             localization.string(.batteryActionChargeToFullNow)
         }
@@ -148,6 +163,7 @@ struct ChargeToFullNowActionView: View {
              .cancelPending,
              .cancelling,
              .cancelFailed,
+             .cancelLimitChangedConfirmation,
              .limitRestored:
             false
         }
@@ -176,9 +192,7 @@ struct ChargeToFullNowActionView: View {
     }
 
     private func restoredLimitText(_ limit: Int) -> String {
-        limit >= 100
-            ? localization.string(.batteryActionCancelChargeToFullNowRestoredUnlimited)
-            : localization.format(.batteryActionCancelChargeToFullNowRestored, limit)
+        localization.format(.batteryActionCancelChargeToFullNowRestored, limit)
     }
 
     private func notice(_ key: LocalizationKey) -> some View {

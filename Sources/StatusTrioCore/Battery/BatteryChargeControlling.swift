@@ -47,9 +47,18 @@ struct ChargeToFullNowDeviceState: Equatable, Sendable {
     }
 }
 
+enum ChargeToFullNowFailure: Equatable, Sendable {
+    case unsupportedLimit
+    case limitChanged
+    case unavailable
+    case verificationFailed
+    case rejected
+}
+
 struct ChargeToFullNowWriteResult: Equatable, Sendable {
     let succeeded: Bool
     let errorMessage: String?
+    var failure: ChargeToFullNowFailure? = nil
 
     static let success = ChargeToFullNowWriteResult(
         succeeded: true,
@@ -67,11 +76,22 @@ protocol BatteryChargeControlling: AnyObject {
     var capability: ChargeToFullNowCapability { get }
     func readState() -> ChargeToFullNowDeviceState
     func chargeToFullNow() async -> ChargeToFullNowWriteResult
-    func restoreChargeLimit(to limit: Int) async -> ChargeToFullNowWriteResult
+    /// `expectedLimit` is the sub-100 limit recorded for the running session,
+    /// or `nil` when no session recorded one. A cancel can read an intermediate
+    /// sub-100 limit that differs from the target (for example the original
+    /// limit is still active); when it equals `expectedLimit`, one setting
+    /// write is still allowed.
+    func restoreChargeLimit(
+        to limit: Int,
+        expectedLimit: Int?
+    ) async -> ChargeToFullNowWriteResult
 }
 
 extension BatteryChargeControlling {
-    func restoreChargeLimit(to limit: Int) async -> ChargeToFullNowWriteResult {
+    func restoreChargeLimit(
+        to limit: Int,
+        expectedLimit: Int?
+    ) async -> ChargeToFullNowWriteResult {
         .failure
     }
 }
@@ -115,28 +135,59 @@ final class PowerUIChargeController: BatteryChargeControlling {
         guard capability.isAvailable else {
             return ChargeToFullNowWriteResult(
                 succeeded: false,
-                errorMessage: "PowerUI is unavailable."
+                errorMessage: "PowerUI is unavailable.",
+                failure: .unavailable
             )
         }
         let result = bridge.temporarilyDisableMCL()
         return ChargeToFullNowWriteResult(
             succeeded: result.didSucceed,
-            errorMessage: result.didSucceed ? nil : result.errorMessage
+            errorMessage: result.didSucceed ? nil : result.errorMessage,
+            failure: Self.mapFailure(result.failure)
         )
     }
 
-    func restoreChargeLimit(to limit: Int) async -> ChargeToFullNowWriteResult {
+    func restoreChargeLimit(
+        to limit: Int,
+        expectedLimit: Int?
+    ) async -> ChargeToFullNowWriteResult {
         guard capability.isAvailable else {
             return ChargeToFullNowWriteResult(
                 succeeded: false,
-                errorMessage: "PowerUI is unavailable."
+                errorMessage: "PowerUI is unavailable.",
+                failure: .unavailable
             )
         }
-        let result = bridge.restoreChargeLimit(limit)
+        let result = bridge.restoreChargeLimit(
+            limit,
+            expectedLimit: expectedLimit ?? 0
+        )
         return ChargeToFullNowWriteResult(
             succeeded: result.didSucceed,
-            errorMessage: result.didSucceed ? nil : result.errorMessage
+            errorMessage: result.didSucceed ? nil : result.errorMessage,
+            failure: Self.mapFailure(result.failure)
         )
+    }
+
+    private static func mapFailure(
+        _ failure: STPowerUIChargeWriteFailure
+    ) -> ChargeToFullNowFailure? {
+        switch failure {
+        case .unsupportedLimit:
+            return .unsupportedLimit
+        case .limitChanged:
+            return .limitChanged
+        case .unavailable:
+            return .unavailable
+        case .verificationFailed:
+            return .verificationFailed
+        case .rejected:
+            return .rejected
+        case .none:
+            return nil
+        @unknown default:
+            return nil
+        }
     }
 
     private static func mapCapability(

@@ -637,7 +637,7 @@
 "settings.battery.showChargeToFullNow" = "Mostrar botão Carregar Completamente Agora";
 "settings.battery.showChargeToFullNowDescription" = "Mostra um botão no painel de status para ignorar temporariamente o limite de carga do macOS e carregar até 100%.";
 "settings.battery.restoreLimit" = "Limite restaurado após cancelar";
-"settings.battery.restoreLimitDescription" = "Limite de carga restaurado quando você cancela “Carregar Completamente Agora”. 100% significa sem limite.";
+"settings.battery.restoreLimitDescription" = "Limite de carga restaurado quando você cancela “Carregar Completamente Agora”.";
 "battery.action.chargeToFullNow" = "Carregar Completamente Agora";
 "battery.action.chargeToFullNowApplying" = "Solicitando carga completa…";
 "battery.action.chargeToFullNowCharging" = "Carregando até 100%";
@@ -645,9 +645,10 @@
 "battery.action.chargeToFullNowUnavailable" = "Carregar Completamente Agora não está disponível no momento.";
 "battery.action.cancelChargeToFullNow" = "Cancelar Carga Completa";
 "battery.action.cancelChargeToFullNowApplying" = "Restaurando limite de carga…";
-"battery.action.cancelChargeToFullNowFailed" = "Não foi possível restaurar o limite de carga: %@";
+"battery.action.cancelChargeToFullNowFailed" = "Não foi possível restaurar o limite de carga. Tente novamente.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "O limite de carga do sistema mudou. Verifique o limite de restauração nos Ajustes e tente novamente.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "O limite de carga do sistema é %1$d%%. Restaurar para %2$d%%?";
 "battery.action.cancelChargeToFullNowRestored" = "Limite de carga restaurado para %d%%";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "Limite de carga removido";
 "battery.action.cancelChargeToFullNowFallback" = "Limite de carga definido para %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "Confirmar restauração para %d%%";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Confirmar definição para %d%%";

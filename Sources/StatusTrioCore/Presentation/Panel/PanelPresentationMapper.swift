@@ -268,6 +268,7 @@ enum PanelPresentationMapper {
              .cancelConfirmationRequired,
              .cancelPending,
              .cancelFailed,
+             .cancelLimitChangedConfirmation,
              .limitRestored:
             break
         }

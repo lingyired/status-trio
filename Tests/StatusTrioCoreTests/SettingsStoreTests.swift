@@ -615,13 +615,13 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.chargeToFullRestoreLimit, 90, accuracy: 0.001)
     }
 
-    func testChargeToFullRestoreLimitDefaultsToUnlimitedWithoutASystemLimit() {
+    func testChargeToFullRestoreLimitDefaultsToNinetyFiveWithoutASystemLimit() {
         let store = SettingsStore(
             defaults: makeSuite().defaults,
             systemChargeLimit: { nil }
         )
 
-        XCTAssertEqual(store.chargeToFullRestoreLimit, 100, accuracy: 0.001)
+        XCTAssertEqual(store.chargeToFullRestoreLimit, 95, accuracy: 0.001)
     }
 
     func testInitialRestoreLimitSurvivesMissingSystemPolicy() {
@@ -635,15 +635,27 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(second.chargeToFullRestoreLimit, 80, accuracy: 0.001)
     }
 
-    func testInitialUnlimitedRestoreLimitSurvivesANewSystemLimit() {
+    func testLegacyUnlimitedRestoreLimitMigratesToTheSystemLimit() {
         let suite = makeSuite()
         defer { clear(suite) }
-        let first = SettingsStore(defaults: suite.defaults, systemChargeLimit: { nil })
-        XCTAssertEqual(first.chargeToFullRestoreLimit, 100, accuracy: 0.001)
+        suite.defaults.set(
+            100,
+            forKey: SettingsStore.chargeToFullRestoreLimitDefaultsKey
+        )
 
-        let second = SettingsStore(defaults: suite.defaults, systemChargeLimit: { 80 })
+        let migrated = SettingsStore(
+            defaults: suite.defaults,
+            systemChargeLimit: { 80 }
+        )
 
-        XCTAssertEqual(second.chargeToFullRestoreLimit, 100, accuracy: 0.001)
+        XCTAssertEqual(migrated.chargeToFullRestoreLimit, 80, accuracy: 0.001)
+        XCTAssertEqual(
+            suite.defaults.double(
+                forKey: SettingsStore.chargeToFullRestoreLimitDefaultsKey
+            ),
+            80,
+            accuracy: 0.001
+        )
     }
 
     func testStoredChargeToFullRestoreLimitWinsOverTheSystemValue() {
@@ -671,7 +683,7 @@ final class SettingsStoreTests: XCTestCase {
         )
 
         store.chargeToFullRestoreLimit = 140
-        XCTAssertEqual(store.chargeToFullRestoreLimit, 100, accuracy: 0.001)
+        XCTAssertEqual(store.chargeToFullRestoreLimit, 95, accuracy: 0.001)
 
         store.chargeToFullRestoreLimit = 10
         XCTAssertEqual(store.chargeToFullRestoreLimit, 80, accuracy: 0.001)

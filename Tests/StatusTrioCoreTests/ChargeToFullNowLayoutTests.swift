@@ -23,7 +23,7 @@ final class ChargeToFullNowLayoutTests: XCTestCase {
             .cancelConfirmationRequired(limit: 80),
             .cancelPending,
             .cancelling,
-            .cancelFailed(message: "PowerUI rejected the request."),
+            .cancelFailed(reason: .rejected),
             .limitRestored(limit: 80)
         ] {
             let size = try render(presentation)
@@ -51,12 +51,11 @@ final class ChargeToFullNowLayoutTests: XCTestCase {
                 .failed,
                 .unavailable,
                 .cancelConfirmationRequired(limit: 80),
-                .cancelConfirmationRequired(limit: 100),
                 .cancelPending,
                 .cancelling,
-                .cancelFailed(message: "PowerUI rejected the request."),
-                .limitRestored(limit: 80),
-                .limitRestored(limit: 100)
+                .cancelFailed(reason: .rejected),
+                .cancelLimitChangedConfirmation(current: 90, target: 80),
+                .limitRestored(limit: 80)
             ] {
                 let size = try render(presentation, language: language)
                 XCTAssertEqual(

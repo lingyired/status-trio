@@ -26,10 +26,11 @@ Two follow-ups were requested on October 31, 2026:
 - The October 31 re-check showed that `powerd` empties the persisted `policies`
   array while the native override runs, so there is no reliable limit to read
   back. Cancel therefore restores an explicit setting, "Restore Limit After
-  Cancelling" (80–100%). Its first-run default is the limit macOS currently
-  enforces, or 100% ("no limit") when the system has none; the settings row
-  can refill it from the system on demand. 100% means the cancel only
-  re-enables normal charging to full.
+  Cancelling" (80–95%). Its first-run default is the limit macOS currently
+  enforces, or 95% when the system has no readable limit; the settings row
+  can refill it from the system on demand. 100% ("no limit") is not a restore
+  target: a stored 100% from an older build migrates to the system limit (or
+  95%) on load.
 - A successful cancellation no longer bounces straight back to the button. The
   row keeps a "Charge limit restored" status while the system charges toward
   the restored limit, and the button returns once the battery reaches that
@@ -302,8 +303,21 @@ The product implementation follows this audit:
   successfully read limit. Cancellation always tries `enableMCL:` first and
   reads the enabled state and limit again. Only a successful call with a
   verifiable non-target state can fall back once to `setMCLLimit:error:`,
-  then `enableMCL:`, followed by another verification read. Errors or a
-  different restored sub-100 limit stop the operation without more writes.
+  followed by another verification read. The fallback deliberately does not
+  call `enableMCL:` again: PowerUI reapplies its saved pre-override limit on
+  every enable call, which rewrote 90% back to 80% on macOS 27.2. Errors stop
+  the operation without more writes.
+- Issue #243: a cancel can read an intermediate sub-100 limit that is not the
+  target — the session's original limit may still be active, and PowerUI may
+  report the limit it persisted for the system. The bridge takes the session's
+  recorded `originalLimit` as `expectedLimit`; a limit equal to it may be
+  replaced by the one bounded fallback, and only a sub-100 limit that is
+  neither the target nor the expected limit stops the write. Without a
+  recorded original limit (macOS started the override), a mismatch is reported
+  and the panel asks once before replacing the read limit. A 100% target now
+  passes the public range check and clears the limit through the same path.
+- Restore failures carry a stable failure category instead of surfacing raw
+  PowerUI English; the panel maps it to localized copy.
 - A valid active limit from the user or another app supersedes the saved
   session without a restore write. A session restored after relaunch, a
   potentially external `100%` state, a state-read error, or a fallback requires a
@@ -426,8 +440,10 @@ writes remain limited to the explicit user action:
 2. `enableMCL:` is tried first. A fresh enabled/limit read can finish the
    cancellation without a setting write.
 3. Only if that successful call leaves a verifiable non-target state does
-   `setMCLLimit:error:` apply the validated target before one more
-   `enableMCL:`. A newly observed different sub-100 limit stops the fallback.
+   `setMCLLimit:error:` apply the validated target. Do not call `enableMCL:`
+   afterwards: PowerUI reapplies its saved pre-override limit on each enable
+   (observed 90% -> 80% on macOS 27.2). A newly observed sub-100 limit that is
+   neither the target nor the expected session limit stops the fallback.
 4. The bridge re-reads PowerUI and reports success only when the limit is active
    at the requested value.
 
@@ -459,8 +475,13 @@ limit (`80`, `85`, `90`, `95`); record the exact OS build and Mac model.
 3. Click Cancel Charge to Full manually. If confirmation is shown, verify the
    displayed target before the second click.
 4. Record the enabled state and stored limit after `enableMCL:`, and after
-   `setMCLLimit:error:` plus `enableMCL:` if fallback was needed. Compare the
-   final value with System Settings and the actual charging state.
+   `setMCLLimit:error:` if fallback was needed. Compare the final value with
+   System Settings and the actual charging state. Do not add another
+   `enableMCL:` after the target write.
+   A read taken immediately after the write can report MCL still disengaged
+   or primed while the stored limit already equals the target; that counts as
+   restored. A single invalid read is re-read once, because a transient read
+   failure must not turn a completed write into a reported failure.
 5. Test one external limit change and one application relaunch. The external
    valid limit must survive; the relaunched session must require confirmation.
 

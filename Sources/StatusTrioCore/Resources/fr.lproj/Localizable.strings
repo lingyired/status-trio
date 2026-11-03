@@ -637,7 +637,7 @@
 "settings.battery.showChargeToFullNow" = "Afficher le bouton Recharger complètement maintenant";
 "settings.battery.showChargeToFullNowDescription" = "Affiche dans le panneau d’état un bouton pour ignorer temporairement la limite de charge de macOS et recharger jusqu’à 100 %.";
 "settings.battery.restoreLimit" = "Limite restaurée après annulation";
-"settings.battery.restoreLimitDescription" = "Limite de charge restaurée lorsque vous annulez « Recharger complètement maintenant ». 100 % signifie aucune limite.";
+"settings.battery.restoreLimitDescription" = "Limite de charge restaurée lorsque vous annulez « Recharger complètement maintenant ».";
 "battery.action.chargeToFullNow" = "Recharger complètement maintenant";
 "battery.action.chargeToFullNowApplying" = "Demande de recharge complète…";
 "battery.action.chargeToFullNowCharging" = "Recharge vers 100 %";
@@ -645,9 +645,10 @@
 "battery.action.chargeToFullNowUnavailable" = "Recharger complètement maintenant est indisponible pour le moment.";
 "battery.action.cancelChargeToFullNow" = "Annuler la recharge complète";
 "battery.action.cancelChargeToFullNowApplying" = "Restauration de la limite de charge…";
-"battery.action.cancelChargeToFullNowFailed" = "Impossible de restaurer la limite de charge : %@";
+"battery.action.cancelChargeToFullNowFailed" = "Impossible de restaurer la limite de charge. Réessayez.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "La limite de charge du système a changé. Vérifiez la limite de restauration dans Réglages, puis réessayez.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "La limite de charge du système est de %1$d%%. La restaurer à %2$d%% ?";
 "battery.action.cancelChargeToFullNowRestored" = "Limite de charge restaurée à %d%%";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "Limite de charge supprimée";
 "battery.action.cancelChargeToFullNowFallback" = "Limite de charge définie à %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "Confirmer la restauration à %d%%";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Confirmer le réglage à %d%%";

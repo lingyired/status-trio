@@ -637,7 +637,7 @@
 "settings.battery.showChargeToFullNow" = "显示立即充满电按钮";
 "settings.battery.showChargeToFullNowDescription" = "在状态面板中显示立即充满电按钮，允许临时解除 macOS 的充电上限并充至 100%。";
 "settings.battery.restoreLimit" = "取消后恢复的充电上限";
-"settings.battery.restoreLimitDescription" = "取消立即充满后要恢复的充电上限；100% 表示不设上限。";
+"settings.battery.restoreLimitDescription" = "取消立即充满后要恢复的充电上限。";
 "battery.action.chargeToFullNow" = "立即充满电";
 "battery.action.chargeToFullNowApplying" = "正在请求立即充满电…";
 "battery.action.chargeToFullNowCharging" = "正在充电至 100%";
@@ -645,9 +645,10 @@
 "battery.action.chargeToFullNowUnavailable" = "立即充满电当前不可用。";
 "battery.action.cancelChargeToFullNow" = "取消立即充满";
 "battery.action.cancelChargeToFullNowApplying" = "正在恢复充电上限…";
-"battery.action.cancelChargeToFullNowFailed" = "无法恢复充电上限：%@";
+"battery.action.cancelChargeToFullNowFailed" = "无法恢复充电上限，请重试。";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "系统充电上限已更改，请检查设置中的恢复上限后重试。";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "系统充电上限为 %1$d%%，要恢复为 %2$d%% 吗？";
 "battery.action.cancelChargeToFullNowRestored" = "充电上限已恢复为 %d%%";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "充电上限已清除";
 "battery.action.cancelChargeToFullNowFallback" = "已将充电上限设为 %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "确认恢复为 %d%%";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "确认设为 %d%%";

@@ -637,7 +637,7 @@
 "settings.battery.showChargeToFullNow" = "Mostra pulsante Completa carica ora";
 "settings.battery.showChargeToFullNowDescription" = "Mostra nel pannello di stato un pulsante per ignorare temporaneamente il limite di carica di macOS e caricare fino al 100%.";
 "settings.battery.restoreLimit" = "Limite ripristinato dopo l’annullamento";
-"settings.battery.restoreLimitDescription" = "Limite di carica ripristinato quando annulli «Completa carica ora». 100% significa nessun limite.";
+"settings.battery.restoreLimitDescription" = "Limite di carica ripristinato quando annulli «Completa carica ora».";
 "battery.action.chargeToFullNow" = "Completa carica ora";
 "battery.action.chargeToFullNowApplying" = "Richiesta di carica completa…";
 "battery.action.chargeToFullNowCharging" = "Caricamento fino al 100%";
@@ -645,9 +645,10 @@
 "battery.action.chargeToFullNowUnavailable" = "Completa carica ora non è disponibile al momento.";
 "battery.action.cancelChargeToFullNow" = "Annulla carica completa";
 "battery.action.cancelChargeToFullNowApplying" = "Ripristino del limite di carica…";
-"battery.action.cancelChargeToFullNowFailed" = "Impossibile ripristinare il limite di carica: %@";
+"battery.action.cancelChargeToFullNowFailed" = "Impossibile ripristinare il limite di carica. Riprova.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "Il limite di carica di sistema è cambiato. Controlla il limite di ripristino nelle Impostazioni e riprova.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "Il limite di carica di sistema è %1$d%%. Ripristinarlo al %2$d%%?";
 "battery.action.cancelChargeToFullNowRestored" = "Limite di carica ripristinato al %d%%";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "Limite di carica rimosso";
 "battery.action.cancelChargeToFullNowFallback" = "Limite di carica impostato al %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "Conferma ripristino al %d%%";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Conferma impostazione al %d%%";

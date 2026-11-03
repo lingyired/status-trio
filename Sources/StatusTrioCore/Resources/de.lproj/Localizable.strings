@@ -637,7 +637,7 @@
 "settings.battery.showChargeToFullNow" = "„Jetzt vollständig laden“-Taste anzeigen";
 "settings.battery.showChargeToFullNowDescription" = "Zeigt im Statusfeld eine Taste an, die das macOS-Ladelimit vorübergehend aufhebt und bis 100 % lädt.";
 "settings.battery.restoreLimit" = "Ladelimit nach Abbruch wiederherstellen";
-"settings.battery.restoreLimitDescription" = "Das Ladelimit, das beim Abbrechen von „Jetzt vollständig laden“ wiederhergestellt wird. 100 % bedeutet kein Limit.";
+"settings.battery.restoreLimitDescription" = "Das Ladelimit, das beim Abbrechen von „Jetzt vollständig laden“ wiederhergestellt wird.";
 "battery.action.chargeToFullNow" = "Jetzt vollständig laden";
 "battery.action.chargeToFullNowApplying" = "Vollständiges Laden wird angefordert…";
 "battery.action.chargeToFullNowCharging" = "Wird auf 100 % geladen";
@@ -645,9 +645,10 @@
 "battery.action.chargeToFullNowUnavailable" = "„Jetzt vollständig laden“ ist derzeit nicht verfügbar.";
 "battery.action.cancelChargeToFullNow" = "Vollständiges Laden abbrechen";
 "battery.action.cancelChargeToFullNowApplying" = "Ladegrenze wird wiederhergestellt…";
-"battery.action.cancelChargeToFullNowFailed" = "Ladegrenze konnte nicht wiederhergestellt werden: %@";
+"battery.action.cancelChargeToFullNowFailed" = "Die Ladegrenze konnte nicht wiederhergestellt werden. Versuche es erneut.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "Die System-Ladegrenze wurde geändert. Prüfe die Wiederherstellungsgrenze in den Einstellungen und versuche es erneut.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "Die System-Ladegrenze liegt bei %1$d%%. Auf %2$d%% zurücksetzen?";
 "battery.action.cancelChargeToFullNowRestored" = "Ladegrenze auf %d%% wiederhergestellt";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "Ladelimit aufgehoben";
 "battery.action.cancelChargeToFullNowFallback" = "Ladegrenze auf %d%% gesetzt";
 "battery.action.cancelChargeToFullNowConfirm" = "Wiederherstellung auf %d%% bestätigen";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Einstellung auf %d%% bestätigen";

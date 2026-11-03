@@ -637,7 +637,7 @@
 "settings.battery.showChargeToFullNow" = "「今すぐフル充電」ボタンを表示";
 "settings.battery.showChargeToFullNowDescription" = "ステータスパネルに、macOS の充電上限を一時的に解除して 100% まで充電するボタンを表示します。";
 "settings.battery.restoreLimit" = "キャンセル後に復元する充電上限";
-"settings.battery.restoreLimitDescription" = "「今すぐフル充電」をキャンセルしたときに復元する充電上限。100% は上限なしを意味します。";
+"settings.battery.restoreLimitDescription" = "「今すぐフル充電」をキャンセルしたときに復元する充電上限。";
 "battery.action.chargeToFullNow" = "今すぐフル充電";
 "battery.action.chargeToFullNowApplying" = "フル充電を要求中…";
 "battery.action.chargeToFullNowCharging" = "100% まで充電中";
@@ -645,9 +645,10 @@
 "battery.action.chargeToFullNowUnavailable" = "今すぐフル充電は現在利用できません。";
 "battery.action.cancelChargeToFullNow" = "フル充電をキャンセル";
 "battery.action.cancelChargeToFullNowApplying" = "充電上限を復元中…";
-"battery.action.cancelChargeToFullNowFailed" = "充電上限を復元できませんでした: %@";
+"battery.action.cancelChargeToFullNowFailed" = "充電上限を復元できませんでした。もう一度お試しください。";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "システムの充電上限が変更されました。設定の復元上限を確認して、もう一度お試しください。";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "システムの充電上限は %1$d%% です。%2$d%% に戻しますか？";
 "battery.action.cancelChargeToFullNowRestored" = "充電上限を %d%% に復元しました";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "充電上限を解除しました";
 "battery.action.cancelChargeToFullNowFallback" = "充電上限を %d%% に設定しました";
 "battery.action.cancelChargeToFullNowConfirm" = "%d%% への復元を確認";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "%d%% への設定を確認";

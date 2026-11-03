@@ -637,7 +637,7 @@
 "settings.battery.showChargeToFullNow" = "إظهار زر الشحن حتى الامتلاء الآن";
 "settings.battery.showChargeToFullNowDescription" = "يعرض زرًا في لوحة الحالة لتجاوز حد الشحن في macOS مؤقتًا والشحن حتى 100%.";
 "settings.battery.restoreLimit" = "حد الشحن بعد الإلغاء";
-"settings.battery.restoreLimitDescription" = "حد الشحن الذي يُستعاد عند إلغاء «الشحن بشكل كامل الآن». تعني 100% عدم وجود حد.";
+"settings.battery.restoreLimitDescription" = "حد الشحن الذي يُستعاد عند إلغاء «الشحن بشكل كامل الآن».";
 "battery.action.chargeToFullNow" = "الشحن بشكل كامل الآن";
 "battery.action.chargeToFullNowApplying" = "جارٍ طلب الشحن الكامل…";
 "battery.action.chargeToFullNowCharging" = "جارٍ الشحن حتى 100%";
@@ -645,9 +645,10 @@
 "battery.action.chargeToFullNowUnavailable" = "الشحن بشكل كامل الآن غير متاح الآن.";
 "battery.action.cancelChargeToFullNow" = "إلغاء الشحن الكامل";
 "battery.action.cancelChargeToFullNowApplying" = "جارٍ استعادة حد الشحن…";
-"battery.action.cancelChargeToFullNowFailed" = "تعذّر استعادة حد الشحن: %@";
+"battery.action.cancelChargeToFullNowFailed" = "تعذّر استعادة حد الشحن. حاول مرة أخرى.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "تغيّر حد الشحن في النظام. تحقّق من حد الاستعادة في الإعدادات وحاول مرة أخرى.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "حد الشحن في النظام هو %1$d%%. هل تريد استعادته إلى %2$d%%؟";
 "battery.action.cancelChargeToFullNowRestored" = "تمت استعادة حد الشحن إلى %d%%";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "تمت إزالة حد الشحن";
 "battery.action.cancelChargeToFullNowFallback" = "تم ضبط حد الشحن على %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "تأكيد الاستعادة إلى %d%%";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "تأكيد الضبط على %d%%";

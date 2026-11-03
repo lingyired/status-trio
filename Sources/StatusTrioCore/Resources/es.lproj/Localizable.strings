@@ -637,7 +637,7 @@
 "settings.battery.showChargeToFullNow" = "Mostrar botón Cargar completamente ahora";
 "settings.battery.showChargeToFullNowDescription" = "Muestra un botón en el panel de estado para omitir temporalmente el límite de carga de macOS y cargar hasta el 100 %.";
 "settings.battery.restoreLimit" = "Límite restaurado al cancelar";
-"settings.battery.restoreLimitDescription" = "Límite de carga que se restaura al cancelar «Cargar completamente ahora». 100 % significa sin límite.";
+"settings.battery.restoreLimitDescription" = "Límite de carga que se restaura al cancelar «Cargar completamente ahora».";
 "battery.action.chargeToFullNow" = "Cargar completamente ahora";
 "battery.action.chargeToFullNowApplying" = "Solicitando carga completa…";
 "battery.action.chargeToFullNowCharging" = "Cargando hasta el 100 %";
@@ -645,9 +645,10 @@
 "battery.action.chargeToFullNowUnavailable" = "Cargar completamente ahora no está disponible en este momento.";
 "battery.action.cancelChargeToFullNow" = "Cancelar carga completa";
 "battery.action.cancelChargeToFullNowApplying" = "Restaurando límite de carga…";
-"battery.action.cancelChargeToFullNowFailed" = "No se pudo restaurar el límite de carga: %@";
+"battery.action.cancelChargeToFullNowFailed" = "No se pudo restaurar el límite de carga. Inténtalo de nuevo.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "El límite de carga del sistema cambió. Revisa el límite de restauración en Ajustes e inténtalo de nuevo.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "El límite de carga del sistema es del %1$d%%. ¿Restaurarlo al %2$d%%?";
 "battery.action.cancelChargeToFullNowRestored" = "Límite de carga restaurado al %d%%";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "Límite de carga eliminado";
 "battery.action.cancelChargeToFullNowFallback" = "Límite de carga establecido en %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "Confirmar restauración al %d%%";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Confirmar ajuste al %d%%";

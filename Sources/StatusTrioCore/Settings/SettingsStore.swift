@@ -23,8 +23,8 @@ final class SettingsStore: ObservableObject {
     static let defaultBatteryFullThreshold: Double = Double(BatteryIconOptions.defaultFullThreshold)
     /// The charge limit restored when the user cancels Charge to Full Now.
     /// 100 means "no limit", so cancelling re-enables normal charging to 100%.
-    static let chargeToFullRestoreLimitRange: ClosedRange<Double> = 80...100
-    static let defaultChargeToFullRestoreLimit: Double = 100
+    static let chargeToFullRestoreLimitRange: ClosedRange<Double> = 80...95
+    static let defaultChargeToFullRestoreLimit: Double = 95
     static let chargeToFullRestoreLimitDefaultsKey = "chargeToFullRestoreLimit"
     static let batterySymbolScaleRange: ClosedRange<Double> = 0.9...1.1
     static let defaultBatterySymbolScale: Double = 1
@@ -1430,7 +1430,10 @@ final class SettingsStore: ObservableObject {
         let url = url ?? chargeLimitURLForTesting
         let limit = url.map { SystemChargeLimitReader.chargeLimit(from: $0) }
             ?? SystemChargeLimitReader.chargeLimit()
-        guard let limit, (80..<100).contains(limit) else { return }
+        guard let limit,
+              Self.chargeToFullRestoreLimitRange.contains(Double(limit)) else {
+            return
+        }
         chargeToFullRestoreLimit = Double(limit)
     }
 
@@ -1742,9 +1745,9 @@ final class SettingsStore: ObservableObject {
         self.batteryFullThreshold = Self.clampedBatteryFullThreshold(
             storedFullThreshold ?? Self.defaultBatteryFullThreshold
         )
-        let resolvedRestoreLimit = Self.clampedChargeToFullRestoreLimit(
-            storedRestoreLimit
-                ?? Self.systemChargeToFullRestoreLimit(read: systemChargeLimit)
+        let resolvedRestoreLimit = Self.resolvedChargeToFullRestoreLimit(
+            stored: storedRestoreLimit,
+            system: Self.systemChargeToFullRestoreLimit(read: systemChargeLimit)
         )
         self.chargeToFullRestoreLimit = resolvedRestoreLimit
         // Initialization does not call didSet; keep the initial restore target
@@ -2056,6 +2059,24 @@ final class SettingsStore: ObservableObject {
         ).rounded()
     }
 
+    /// Resolves the stored restore limit into the supported 80...95 range.
+    ///
+    /// An older build allowed 100% ("no limit"). That choice is gone, so a
+    /// stored 100 resolves to the system's current limit, or 95 when none is
+    /// readable, instead of silently installing 95 over a known 80.
+    static func resolvedChargeToFullRestoreLimit(
+        stored: Double?,
+        system: Double
+    ) -> Double {
+        guard let stored, stored.isFinite else {
+            return clampedChargeToFullRestoreLimit(system)
+        }
+        if chargeToFullRestoreLimitRange.contains(stored.rounded()) {
+            return clampedChargeToFullRestoreLimit(stored)
+        }
+        return clampedChargeToFullRestoreLimit(system)
+    }
+
     static func clampedChargeToFullRestoreLimit(_ value: Double) -> Double {
         guard value.isFinite else { return defaultChargeToFullRestoreLimit }
         let clamped = min(
@@ -2066,12 +2087,13 @@ final class SettingsStore: ObservableObject {
         return (clamped / 5).rounded() * 5
     }
 
-    /// The first-run default: the limit macOS currently enforces, or "no
-    /// limit" (100%) when the system has no readable user limit.
+    /// The first-run default: the limit macOS currently enforces, or 95 when
+    /// the system has no readable 80...95 limit.
     static func systemChargeToFullRestoreLimit(
         read: () -> Int? = { SystemChargeLimitReader.chargeLimit() }
     ) -> Double {
-        guard let limit = read(), (80..<100).contains(limit) else {
+        guard let limit = read(),
+              chargeToFullRestoreLimitRange.contains(Double(limit)) else {
             return defaultChargeToFullRestoreLimit
         }
         return Double(limit)

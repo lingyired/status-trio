@@ -637,7 +637,7 @@
 "settings.battery.showChargeToFullNow" = "Показывать кнопку «Зарядить полностью сейчас»";
 "settings.battery.showChargeToFullNowDescription" = "Показывает в панели состояния кнопку, которая временно снимает ограничение зарядки macOS и заряжает до 100 %.";
 "settings.battery.restoreLimit" = "Предел после отмены";
-"settings.battery.restoreLimitDescription" = "Предел зарядки, восстанавливаемый при отмене «Зарядить полностью сейчас». 100 % — без ограничения.";
+"settings.battery.restoreLimitDescription" = "Предел зарядки, восстанавливаемый при отмене «Зарядить полностью сейчас».";
 "battery.action.chargeToFullNow" = "Зарядить полностью сейчас";
 "battery.action.chargeToFullNowApplying" = "Запрос полной зарядки…";
 "battery.action.chargeToFullNowCharging" = "Зарядка до 100 %";
@@ -645,9 +645,10 @@
 "battery.action.chargeToFullNowUnavailable" = "«Зарядить полностью сейчас» сейчас недоступно.";
 "battery.action.cancelChargeToFullNow" = "Отменить полную зарядку";
 "battery.action.cancelChargeToFullNowApplying" = "Восстановление лимита зарядки…";
-"battery.action.cancelChargeToFullNowFailed" = "Не удалось восстановить лимит зарядки: %@";
+"battery.action.cancelChargeToFullNowFailed" = "Не удалось восстановить лимит зарядки. Повторите попытку.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "Системный лимит зарядки изменился. Проверьте лимит восстановления в настройках и повторите попытку.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "Системный лимит зарядки — %1$d%%. Восстановить до %2$d%%?";
 "battery.action.cancelChargeToFullNowRestored" = "Лимит зарядки восстановлен до %d%%";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "Ограничение зарядки снято";
 "battery.action.cancelChargeToFullNowFallback" = "Лимит зарядки установлен на %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "Подтвердить восстановление до %d%%";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Подтвердить установку %d%%";

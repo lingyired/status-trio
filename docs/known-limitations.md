@@ -79,10 +79,23 @@ another explicit confirmation. A failed request is not proof of restoration:
 check the charge limit in System Settings and restore it there if needed.
 
 **Cancel Charge to Full restores the limit configured in Settings → Battery
-(“Restore Limit After Cancelling”, 80–100%).** That setting defaults to the
-limit macOS currently enforces, or 100% (“no limit”) when the system has none,
-and its link refills it from the system on demand. 100% means cancelling simply
-re-enables normal charging to full instead of installing a charge limit.
+(“Restore Limit After Cancelling”, 80–95%).** That setting defaults to the
+limit macOS currently enforces, or 95% when the system has no readable limit,
+and its link refills it from the system on demand. A stored 100% from an older
+build migrates to the system limit (or 95%) because "no limit" is no longer a
+restore target.
+
+The override's 100% limit is not restored automatically: a test Mac kept it
+even after charging to full and reconnecting power. Cancelling therefore never
+assumes the system restored the pre-override limit. It reads the limit around
+the enable step, accepts the session's recorded original limit as an
+intermediate value, applies the configured target with one bounded write, and
+only stops when the observed sub-100 limit is neither the target nor the
+original limit. When the override was started from the macOS battery menu, so
+no original limit was recorded, a different sub-100 limit is shown and the app
+asks once before replacing it. This removes the previous dead end where
+cancelling failed with "The charge limit changed" and retrying could never
+succeed.
 
 The same cancellation is offered when the override starts from the macOS
 battery menu instead. It only appears while the battery can still charge: at
@@ -94,8 +107,9 @@ target is an explicit setting rather than a remembered guess.
 After a successful cancel, the action area keeps a **Charge limit restored**
 status instead of immediately offering **Charge to Full Now** again. The
 button returns once the battery reaches the restored limit, the system stops
-charging early, or the override ends. This avoids a charge/cancel loop when
-the restored limit is still above the current charge.
+charging early, the override ends, 30 seconds pass without charging, or the
+panel is closed. This avoids a charge/cancel loop when the restored limit is
+still above the current charge.
 See [implementation, observed native behavior, and verification
 limits](charge-to-full-now-poc.md).
 
