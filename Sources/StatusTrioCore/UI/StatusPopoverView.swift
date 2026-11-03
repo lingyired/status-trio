@@ -166,7 +166,8 @@ struct StatusPopoverView: View {
                 onOpenBluetoothPermissionSettings: openBluetoothPermissionSettings,
                 onSetRadioPower: { enabled in
                     panel.actions.setBluetoothPower(enabled)
-                }
+                },
+                layoutSnapshots: panel.layoutSnapshots
             )
         case .volume:
             VolumeControlsView(

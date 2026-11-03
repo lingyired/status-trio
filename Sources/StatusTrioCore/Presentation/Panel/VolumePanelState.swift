@@ -49,6 +49,10 @@ struct VolumePanelState: Equatable, Sendable {
     let muteHelp: String
     let sliderLabel: String
     let showsDeviceList: Bool
+    /// An equal-height skeleton to draw while the real rows are being re-read
+    /// after the panel reopens. Nil once real data is available (or when no
+    /// layout was ever recorded).
+    let deviceListPlaceholder: PanelListLayoutSnapshot?
     /// Complete rows stay resolved in display order. The view owns only whether
     /// its local disclosure is expanded.
     let rows: [PanelAudioDeviceRow]

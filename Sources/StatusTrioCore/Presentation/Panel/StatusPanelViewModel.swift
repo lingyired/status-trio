@@ -63,6 +63,9 @@ final class StatusPanelViewModel: ObservableObject {
 
     let store: SystemStatusStore
     let settings: SettingsStore
+    /// Persisted per-list layout, shared with the views so a reopened panel can
+    /// reserve last time's height while the lists re-read their rows.
+    let layoutSnapshots: PanelListLayoutSnapshotStore
     private let localization: Localization
     private let inputSourceController: InputSourceController
     private let chargeToFullNow: ChargeToFullNowController?
@@ -74,6 +77,10 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private var bluetoothPresentationRevision = 0
     private var isStarted = false
     private var bluetoothIsExpanded = false
+    /// Whether the volume section has published a real, non-empty device list
+    /// since the panel last started. Until it has, the section may draw the
+    /// cached skeleton instead of an empty list.
+    private var volumeDeviceRowsLoaded = false
     private var pendingRefreshRegions: RefreshRegions = []
     private var lifecycleGeneration = 0
 
@@ -95,6 +102,7 @@ final class StatusPanelViewModel: ObservableObject {
         let resolvedInputSourceController = inputSourceController ?? InputSourceController()
         self.store = store
         self.settings = settings
+        self.layoutSnapshots = PanelListLayoutSnapshotStore(defaults: settings.userDefaults)
         self.localization = localization
         self.inputSourceController = resolvedInputSourceController
         self.chargeToFullNow = chargeToFullNow
@@ -244,6 +252,7 @@ final class StatusPanelViewModel: ObservableObject {
         isStarted = false
         lifecycleGeneration &+= 1
         pendingRefreshRegions = []
+        volumeDeviceRowsLoaded = false
         sourceDemandCancellables.removeAll()
         subscribedSourceDemand = nil
         chargeToFullNow?.clearDemand()
@@ -346,6 +355,7 @@ final class StatusPanelViewModel: ObservableObject {
         guard !isStarted, !store.isPopoverVisible, !store.hasOpenPopoverPanel else { return }
         pendingRefreshRegions = []
         bluetoothIsExpanded = false
+        volumeDeviceRowsLoaded = false
         bluetooth = bluetooth.releasingDeviceRows()
         batteryDetails = batteryDetails.releasingRows()
         wifiDetails = wifiDetails.releasingLists()
@@ -427,6 +437,15 @@ final class StatusPanelViewModel: ObservableObject {
 
     private func mapVolume(_ status: VolumeStatus) -> VolumePanelState {
         let previewConfiguration = currentPreviewConfiguration
+        // Draw the cached skeleton only inside the window between reopening and
+        // the first real device list of this presentation. A genuinely empty or
+        // unavailable controller must not keep a stale skeleton on screen.
+        let deviceListPlaceholder: PanelListLayoutSnapshot? =
+            !volumeDeviceRowsLoaded
+            && status.outputDevices.isEmpty
+            && store.isVolumeControllerAvailable
+            ? layoutSnapshots.snapshot(for: .volume).flatMap { $0.showsDeviceList ? $0 : nil }
+            : nil
         return AudioPanelMapper.volume(
             status,
             controllerAvailable: store.isVolumeControllerAvailable,
@@ -440,6 +459,7 @@ final class StatusPanelViewModel: ObservableObject {
             previewDevices: ListeningModePreview.outputRows(for: previewConfiguration, volume: status.scalar),
             previewLanguageCode: previewConfiguration.languageCode,
             previewLocalization: PreviewLocalization.forCode(previewConfiguration.languageCode),
+            deviceListPlaceholder: deviceListPlaceholder,
             localization: localization
         )
     }
@@ -1029,6 +1049,17 @@ final class StatusPanelViewModel: ObservableObject {
         }
         guard volume != state else { return }
         volume = state
+        // Once real rows are back, remember the collapsed layout so the next
+        // open can reserve its height, and mark the section as loaded so it stops
+        // asking for the skeleton.
+        guard !state.rows.isEmpty else { return }
+        volumeDeviceRowsLoaded = true
+        let snapshot = PanelListLayoutSnapshot(
+            rowHeights: VolumeDeviceRowMetrics.rowHeights(for: state.visibleRows(expanded: false)),
+            hasExpansionButton: state.hasHiddenRows,
+            showsDeviceList: state.showsDeviceList
+        )
+        layoutSnapshots.save(snapshot.isEmpty ? nil : snapshot, for: .volume)
     }
 
     private func publishAudioInput(_ state: AudioInputPanelState) {
@@ -1097,6 +1128,7 @@ private extension VolumePanelState {
             muteHelp: muteHelp,
             sliderLabel: sliderLabel,
             showsDeviceList: false,
+            deviceListPlaceholder: nil,
             rows: [],
             previewRows: [],
             visibleLimit: visibleLimit,
@@ -1122,6 +1154,7 @@ private extension VolumePanelState {
             muteHelp: muteHelp,
             sliderLabel: sliderLabel,
             showsDeviceList: false,
+            deviceListPlaceholder: nil,
             rows: [],
             previewRows: [],
             visibleLimit: visibleLimit,

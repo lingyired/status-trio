@@ -1475,6 +1475,11 @@ final class SettingsStore: ObservableObject {
 
     private let defaults: UserDefaults
 
+    /// The defaults domain this settings object owns, exposed so panel-level
+    /// caches (such as the device-list layout snapshots) persist in the same
+    /// domain and tests get isolated suites for free.
+    var userDefaults: UserDefaults { defaults }
+
     func updateTrustedAppleDeviceMetadata(_ candidates: [AppleDeviceCandidate]) {
         var values = Dictionary(
             trustedAppleDeviceMetadata.filter(\.isVerifiedTrustedAppleDevice).map { ($0.id, $0) },

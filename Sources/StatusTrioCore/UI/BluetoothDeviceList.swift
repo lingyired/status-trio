@@ -27,6 +27,13 @@ struct BluetoothDeviceList: View {
     let onRequestDisconnect: (BluetoothDevice) -> Void
     let onCancelDisconnect: () -> Void
 
+    /// Persists the collapsed list's layout after a real read so the panel can
+    /// draw an equal-height skeleton the next time it reopens.
+    var layoutSnapshots: PanelListLayoutSnapshotStore = PanelListLayoutSnapshotStore()
+    /// Only record a snapshot once the controller has a real device read; a
+    /// still-loading or empty placeholder list must never overwrite the cache.
+    var recordsLayoutSnapshot = true
+
     @State private var isExpanded = false
     @State private var nearbyRowFrames: [UUID: CGRect] = [:]
     @State private var rowsViewportFrame = CGRect.zero
@@ -39,6 +46,15 @@ struct BluetoothDeviceList: View {
         let displayRows: [BluetoothDisplayRow]
         let appleRows: [AppleDevicePanelRow]
         let options: BluetoothDeviceListOptions
+    }
+
+    /// Identity for the persisted layout. `.task(id:)` rewrites the snapshot only
+    /// when the collapsed row heights, the expansion control, or the loaded flag
+    /// actually change, so a periodic refresh does not hit `UserDefaults`.
+    private struct LayoutPersistenceID: Equatable {
+        let rowHeights: [Double]
+        let hasExpansionButton: Bool
+        let isLoaded: Bool
     }
 
     private var displayRows: [BluetoothDisplayRow] {
@@ -94,6 +110,22 @@ struct BluetoothDeviceList: View {
             appleRows: appleRows,
             options: options
         )
+        // The layout the panel shows when it reopens: the collapsed list, since
+        // the view's own disclosure always resets. Persisted so the next open can
+        // reserve this exact height while the rows are re-read.
+        let collapsedVisibleDevices = BluetoothDeviceListPresentation.visibleDevices(
+            from: orderedDisplayDevices,
+            limit: options.maxVisibleDevices,
+            isExpanded: false
+        )
+        let layoutPersistenceID = LayoutPersistenceID(
+            rowHeights: collapsedVisibleDevices.map { Double(estimatedRowHeight(for: $0)) },
+            hasExpansionButton: BluetoothDeviceListPresentation.canToggleExpansion(
+                for: orderedDisplayDevices,
+                limit: options.maxVisibleDevices
+            ),
+            isLoaded: recordsLayoutSnapshot
+        )
 
         VStack(spacing: Self.rowSpacing) {
             rows(visibleDisplayDevices)
@@ -148,6 +180,15 @@ struct BluetoothDeviceList: View {
         .onChange(of: visibilitySnapshot) { snapshot in
             publishVisibleNearbyIDs(in: snapshot)
         }
+        .task(id: layoutPersistenceID) {
+            guard layoutPersistenceID.isLoaded else { return }
+            let snapshot = PanelListLayoutSnapshot(
+                rowHeights: layoutPersistenceID.rowHeights,
+                hasExpansionButton: layoutPersistenceID.hasExpansionButton,
+                showsDeviceList: true
+            )
+            layoutSnapshots.save(snapshot.isEmpty ? nil : snapshot, for: .bluetooth)
+        }
         .onDisappear {
             reportVisibleNearbyIDs([])
             reportVisibleAppleIDs([])
@@ -185,23 +226,30 @@ struct BluetoothDeviceList: View {
     private func estimatedContentHeight(for visibleDevices: [BluetoothDevice]) -> CGFloat {
         guard !visibleDevices.isEmpty else { return 0 }
         let rowHeights = visibleDevices.reduce(CGFloat(0)) { total, device in
-            let mobileSnapshot = mobileMetadata(for: device)[device.id]
-            let hasMobileDetailLine = mobileSnapshot.map {
-                MobileBatteryDeviceRowPresentation.detailText(
-                    $0,
-                    charging: localization.string(.mobileBatteryCharging)
-                ) != nil
-            } ?? false
-            let address = BluetoothBatteryReader.normalizedAddress(device.id)
-            let modeHeight: CGFloat = device.isHuaweiAudio
-                && listeningModePresentations[address]?.isControllable == true ? 23 : 0
-            return total + modeHeight + BluetoothDeviceRowMetrics.estimatedHeight(
-                for: device,
-                batteryLevels: batteryLevels,
-                hasMobileDetailLine: hasMobileDetailLine
-            )
+            total + estimatedRowHeight(for: device)
         }
         return rowHeights + Self.rowSpacing * CGFloat(visibleDevices.count - 1)
+    }
+
+    /// The height one device row contributes, matching the height the row itself
+    /// draws with. Shared by the scroll bound and the persisted layout snapshot so
+    /// the skeleton is never a different height from the row it replaces.
+    private func estimatedRowHeight(for device: BluetoothDevice) -> CGFloat {
+        let mobileSnapshot = mobileMetadata(for: device)[device.id]
+        let hasMobileDetailLine = mobileSnapshot.map {
+            MobileBatteryDeviceRowPresentation.detailText(
+                $0,
+                charging: localization.string(.mobileBatteryCharging)
+            ) != nil
+        } ?? false
+        let address = BluetoothBatteryReader.normalizedAddress(device.id)
+        let modeHeight: CGFloat = device.isHuaweiAudio
+            && listeningModePresentations[address]?.isControllable == true ? 23 : 0
+        return modeHeight + BluetoothDeviceRowMetrics.estimatedHeight(
+            for: device,
+            batteryLevels: batteryLevels,
+            hasMobileDetailLine: hasMobileDetailLine
+        )
     }
 
     private func rowStack(_ visibleDevices: [BluetoothDevice]) -> some View {

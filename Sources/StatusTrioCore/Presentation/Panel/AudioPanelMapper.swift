@@ -13,6 +13,7 @@ enum AudioPanelMapper {
         previewDevices: [AudioOutputDevice] = [],
         previewLanguageCode: String = "",
         previewLocalization: Localization? = nil,
+        deviceListPlaceholder: PanelListLayoutSnapshot? = nil,
         localization: Localization
     ) -> VolumePanelState {
         let scalar = readableScalar(status.scalar)
@@ -104,7 +105,9 @@ enum AudioPanelMapper {
             ),
             sliderLabel: localization.string(.volumeAccessibilityLabel),
             showsDeviceList: orderedDevices.count > 1 || keepsHiddenActiveDevice
-                || hasListeningControls || !previewRows.isEmpty,
+                || hasListeningControls || !previewRows.isEmpty
+                || (deviceListPlaceholder?.showsDeviceList == true),
+            deviceListPlaceholder: deviceListPlaceholder,
             rows: rows,
             previewRows: previewRows,
             visibleLimit: deviceList.visibleLimit,

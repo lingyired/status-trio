@@ -314,6 +314,11 @@ final class CoreBluetoothStateMonitor: NSObject, @preconcurrency CBCentralManage
 @MainActor
 final class BluetoothDeviceController: ObservableObject {
     @Published private(set) var devices: [BluetoothDevice] = []
+    /// Whether a device read has completed since the controller last released
+    /// its transient state. The status panel reads it to tell "no devices yet"
+    /// from "the list has not loaded again since reopening", so it can draw a
+    /// cache-sized skeleton instead of an empty list during that window.
+    @Published private(set) var hasLoadedDevices = false
     @Published private(set) var availability: BluetoothAvailability = .idle
     @Published private(set) var batteryLevels: [String: BluetoothBatteryLevel] = [:]
     @Published private(set) var nearbyBatteryDevices: [NearbyBluetoothBatteryDevice] = []
@@ -679,6 +684,7 @@ final class BluetoothDeviceController: ObservableObject {
         clearBatteryLevels()
         clearDeviceActions()
         devices = []
+        hasLoadedDevices = false
         batteryLevelsReadFailed = false
         nearbyBLEDiscoveryRequests.removeAll()
         visibleNearbyBLERequests.removeAll()
@@ -722,6 +728,7 @@ final class BluetoothDeviceController: ObservableObject {
                         self.appleBluetoothAudioDiagnosticReporter.report($0)
                     }
                     self.devices = devices
+                    self.hasLoadedDevices = true
                     // The BLE route matches a phone's advertised name against
                     // this list, so it has to follow the report as it lands.
                     self.updateKnownNearbyAppleNames()
@@ -1045,6 +1052,7 @@ final class BluetoothDeviceController: ObservableObject {
         } else {
             invalidateDeviceRead()
             devices = []
+            hasLoadedDevices = false
             clearDeviceActions()
             clearBatteryLevels()
             stopPeriodicRefresh()

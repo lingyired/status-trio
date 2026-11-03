@@ -68,6 +68,9 @@ struct BluetoothStatusView: View {
     let onOpenBluetoothSettings: () -> Void
     let onOpenBluetoothPermissionSettings: () -> Void
     let onSetRadioPower: (Bool) -> Void
+    /// Layout snapshots let the section draw a cache-sized skeleton while the
+    /// controller re-reads its devices after the panel reopens.
+    var layoutSnapshots: PanelListLayoutSnapshotStore = PanelListLayoutSnapshotStore()
 
     @State private var visibleTrustedAppleIDs = Set<AppleDeviceID>()
     @State private var visibleNearbyBLEIDs = Set<UUID>()
@@ -81,6 +84,20 @@ struct BluetoothStatusView: View {
             hidesGhostDevices: listOptions.hidesGhostDevices,
             revealedGhostDeviceAddresses: listOptions.revealedGhostDeviceAddresses
         )
+    }
+
+    /// Whether the section is in the window between reopening and its first
+    /// completed device read. Only then is a cached skeleton shown; a genuinely
+    /// empty or unavailable radio must not keep a stale skeleton on screen.
+    private var bluetoothListIsLoading: Bool {
+        guard listOptions.showsList, !controller.hasLoadedDevices else { return false }
+        switch controller.availability {
+        case .idle, .initializing, .available:
+            return true
+        case .authorizationNotDetermined, .authorizationDenied, .authorizationRestricted,
+             .poweredOff, .unavailable, .failed:
+            return false
+        }
     }
 
     /// The nearby rows are persisted readings, kept across scans so a missed
@@ -167,6 +184,10 @@ struct BluetoothStatusView: View {
             failures: controller.nearbyBLEReadFailures, options: effectiveListOptions, now: Date(),
             batteryLevelsEnabled: showsBatteryLevels
         )
+        let bluetoothPlaceholder = bluetoothListIsLoading
+            ? layoutSnapshots.snapshot(for: .bluetooth)
+            : nil
+        let showsBluetoothSkeleton = (bluetoothPlaceholder?.rowCount ?? 0) > 0
 
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 10) {
@@ -196,41 +217,62 @@ struct BluetoothStatusView: View {
                 }
             }
 
-            if listOptions.showsList && (BluetoothPanelListVisibility.showsList(availability: controller.availability, devices: controller.devices, options: listOptions) || !appleRows.isEmpty || !nearbyRows.isEmpty) {
-                BluetoothDeviceList(
-                    devices: controller.devices,
-                    batteryLevels: controller.batteryLevels.merging(appleProjection.batteryLevels, uniquingKeysWith: { _, apple in apple }),
-                    nearbyReadingsByID: Dictionary(controller.nearbyBatteryDevices.map { ($0.id, $0) }, uniquingKeysWith: { old, new in
-                        new.lastUpdated >= old.lastUpdated ? new : old
-                    }),
-                    mobileMetadataByDeviceID: appleProjection.mobileMetadataByDeviceID,
-                    nearbyRows: nearbyRows,
-                    onVisibleNearbyIDsChanged: { ids in
-                        visibleNearbyBLEIDs = ids
-                        updateReadAuthorization(readAuthorizationSnapshot)
-                    },
-                    appleRows: appleRows,
-                    onVisibleAppleIDsChanged: { ids in
-                        visibleTrustedAppleIDs = ids
-                        updateReadAuthorization(readAuthorizationSnapshot)
-                    },
-                    actionStates: controller.deviceActionStates,
-                    confirmingAddress: controller.pendingDisconnectConfirmation,
-                    options: effectiveListOptions,
-                    listeningModePresentations: listeningModePresentations,
-                    onSelectListeningMode: onSelectListeningMode,
-                    onPerformAction: { controller.performDeviceAction(for: $0) },
-                    onRequestDisconnect: { controller.requestDisconnectConfirmation(for: $0) },
-                    onCancelDisconnect: { controller.cancelDisconnectConfirmation() }
-                )
+            if listOptions.showsList && (BluetoothPanelListVisibility.showsList(availability: controller.availability, devices: controller.devices, options: listOptions) || !appleRows.isEmpty || !nearbyRows.isEmpty || showsBluetoothSkeleton) {
+                if showsBluetoothSkeleton, let bluetoothPlaceholder {
+                    VStack(spacing: 2) {
+                        PanelListSkeleton(
+                            rowHeights: bluetoothPlaceholder.rowHeights.map { CGFloat($0) },
+                            twoLineThreshold: 30
+                        )
+                        // Match the real list's scroll bound so a long list cannot
+                        // reserve more height than the real, scrollable one draws.
+                        .frame(maxHeight: BluetoothDeviceList.maximumRowsHeight, alignment: .top)
+                        .clipped()
+                        if bluetoothPlaceholder.hasExpansionButton {
+                            PanelDeviceListExpansionPlaceholder(
+                                expandLabel: localization.string(.bluetoothListExpand),
+                                collapseLabel: localization.string(.bluetoothListCollapse)
+                            )
+                        }
+                    }
+                } else {
+                    BluetoothDeviceList(
+                        devices: controller.devices,
+                        batteryLevels: controller.batteryLevels.merging(appleProjection.batteryLevels, uniquingKeysWith: { _, apple in apple }),
+                        nearbyReadingsByID: Dictionary(controller.nearbyBatteryDevices.map { ($0.id, $0) }, uniquingKeysWith: { old, new in
+                            new.lastUpdated >= old.lastUpdated ? new : old
+                        }),
+                        mobileMetadataByDeviceID: appleProjection.mobileMetadataByDeviceID,
+                        nearbyRows: nearbyRows,
+                        onVisibleNearbyIDsChanged: { ids in
+                            visibleNearbyBLEIDs = ids
+                            updateReadAuthorization(readAuthorizationSnapshot)
+                        },
+                        appleRows: appleRows,
+                        onVisibleAppleIDsChanged: { ids in
+                            visibleTrustedAppleIDs = ids
+                            updateReadAuthorization(readAuthorizationSnapshot)
+                        },
+                        actionStates: controller.deviceActionStates,
+                        confirmingAddress: controller.pendingDisconnectConfirmation,
+                        options: effectiveListOptions,
+                        listeningModePresentations: listeningModePresentations,
+                        onSelectListeningMode: onSelectListeningMode,
+                        onPerformAction: { controller.performDeviceAction(for: $0) },
+                        onRequestDisconnect: { controller.requestDisconnectConfirmation(for: $0) },
+                        onCancelDisconnect: { controller.cancelDisconnectConfirmation() },
+                        layoutSnapshots: layoutSnapshots,
+                        recordsLayoutSnapshot: controller.hasLoadedDevices
+                    )
 
-                if controller.batteryLevelsReadFailed {
-                    // The list is where the levels are, so this is where a report
-                    // that could not be read is reported: one line for the whole
-                    // list, never a placeholder on every row.
-                    Text(localization.string(.bluetoothBatteryUnavailable))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if controller.batteryLevelsReadFailed {
+                        // The list is where the levels are, so this is where a report
+                        // that could not be read is reported: one line for the whole
+                        // list, never a placeholder on every row.
+                        Text(localization.string(.bluetoothBatteryUnavailable))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
