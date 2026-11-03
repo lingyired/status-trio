@@ -84,6 +84,34 @@ TMPDIR="$TEMP_ROOT/tool-tmp/" create-dmg \
     --no-internet-enable --format UDZO \
     "$TEMP_ROOT/installer.dmg" "$TEMP_ROOT/staging"
 [[ -s "$TEMP_ROOT/installer.dmg" ]] || die 'create-dmg did not produce a nonempty image.'
+
+# create-dmg lays out the volume with a Finder AppleScript, which does not run
+# reliably on a headless (non-GUI) release runner. Without that pass the helper
+# files `create-dmg` adds (.VolumeIcon.icns and .background) end up visible in
+# the volume root and overlap the installer instructions drawn on the
+# background. Re-open the image, hide those two helper files, and put them at a
+# bottom-right corner position so they stay out of the instructional area even
+# if a Finder variant displays hidden files.
+hide_dmg_helpers() {
+    local rw mnt final
+    rw="${TEMP_ROOT}/installer.helpers.dmg"
+    final="${TEMP_ROOT}/installer.final.dmg"
+    hdiutil convert -quiet -format UDRW -o "$rw" "$TEMP_ROOT/installer.dmg"
+    mnt="$(hdiutil attach -nobrowse -readwrite "$rw" 2>/dev/null \
+        | awk -F'\t' '$3 ~ /^[[:space:]]*\//{ sub(/^[[:space:]]+/, "", $3); print $3 }' \
+        | tail -n1)"
+    [[ -n "$mnt" && -d "$mnt" ]] || die "Failed to mount the DMG to hide helper files."
+    # chflags hidden sets the UF_HIDDEN flag that Finder honours for these
+    # dotfiles; SetFile's hidden bit is unreliable on HFS+ read-write remounts.
+    chflags hidden "$mnt/.VolumeIcon.icns" "$mnt/.background"
+    hdiutil detach "$mnt" >/dev/null
+    hdiutil convert -quiet -format UDZO -o "$final" "$rw"
+    rm -f -- "$rw" "$TEMP_ROOT/installer.dmg"
+    mv -n "$final" "$TEMP_ROOT/installer.dmg"
+    [[ ! -e "$final" ]] || die 'Failed to finalize the hidden helpers DMG.'
+}
+hide_dmg_helpers
+
 # Recheck immediately before moving, and refuse to overwrite concurrent output.
 [[ ! -e "$OUTPUT" && ! -L "$OUTPUT" ]] || die "Output appeared during packaging: $OUTPUT"
 mv -n "$TEMP_ROOT/installer.dmg" "$OUTPUT"

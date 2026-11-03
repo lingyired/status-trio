@@ -62,15 +62,46 @@ set -euo pipefail
 if [[ "$1" == info ]]; then
     if [[ -f "$DMG_INFO" ]]; then cat "$DMG_INFO"; else printf '<plist><dict><key>images</key><array/></dict></plist>'; fi
 elif [[ "$1" == detach ]]; then
-    printf 'detach %s\n' "$2" >> "$DMG_TRACE"
-    [[ "$2" == /dev/disk991 ]] || exit 83
+    # Only the owned backing image belongs to the cleanup contract; the helper
+    # re-mount uses its own mock path and must not pollute that count.
+    if [[ "$2" == /dev/disk991 ]]; then
+        printf 'detach %s\n' "$2" >> "$DMG_TRACE"
+    else
+        printf 'unmount %s\n' "$2" >> "$DMG_TRACE"
+    fi
     [[ "${MOCK_DETACH_FAIL:-0}" != 1 ]] || exit 16
+elif [[ "$1" == convert ]]; then
+    # The installer re-opens the image to hide helper dotfiles, then repacks.
+    # Mirror it as an opaque copy so the offline regression never touches a real disk.
+    printf 'convert %s\n' "$*" >> "$DMG_TRACE"
+    shift  # drop "convert"
+    dest=""
+    prev=""
+    for arg in "$@"; do
+        [[ "$prev" == "-o" ]] && dest="$arg"
+        prev="$arg"
+    done
+    [[ -n "$dest" ]] || exit 85
+    cp "${@: -1}" "$dest"
+elif [[ "$1" == attach ]]; then
+    # Emit a real, writable directory as the mount point so chflags can run.
+    mnt="${DMG_MOCK_MNT:?}"
+    mkdir -p "$mnt"
+    : > "$mnt/.VolumeIcon.icns" "$mnt/.background"
+    mkdir -p "$mnt/Status Trio.app"
+    printf 'attach %s\n' "$*" >> "$DMG_TRACE"
+    printf '/dev/disk992\tApple_HFS\t%s\n' "$mnt"
 else
     echo "unexpected hdiutil operation: $*" >&2
     exit 84
 fi
 MOCK
-chmod +x "$WORK/bin/create-dmg" "$WORK/bin/hdiutil"
+cat > "$WORK/bin/chflags" <<'MOCK'
+#!/usr/bin/env bash
+printf 'hide %s\n' "$*" >> "$DMG_TRACE"
+MOCK
+export DMG_MOCK_MNT="$WORK/mockmnt"
+chmod +x "$WORK/bin/create-dmg" "$WORK/bin/hdiutil" "$WORK/bin/chflags"
 export PATH="$WORK/bin:$PATH"
 SCRIPT="$ROOT/scripts/create-installer-dmg.sh"
 [[ -f "$SCRIPT" ]] || fail 'installer wrapper is missing'
@@ -93,6 +124,11 @@ ruby -e '
 ' "$DMG_TRACE"
 [[ "$(< "$WORK/output.dmg")" == 'fixture disk image' ]] || fail 'output missing'
 [[ ! -e "$(< "$DMG_TRACE.tmpdir")" ]] || fail 'successful package leaked tool temporary directory'
+# The helper dotfiles create-dmg adds must be hidden so they never sit on the
+# installer instructions, especially on a headless runner without Finder layout.
+/usr/bin/grep -q '^hide -a h .*\.VolumeIcon\.icns .*\.background$\|^hide .*\.VolumeIcon\.icns .*\.background$' "$DMG_TRACE" \
+    || fail 'helper dotfiles were not hidden'
+/usr/bin/grep -q '^unmount ' "$DMG_TRACE" || fail 'helper re-mount was not detached'
 # The build bundle has no space; the user-facing name must still have one.
 mkdir -p "$WORK/StatusTrio.app/Contents/Resources"
 printf fixture > "$WORK/StatusTrio.app/Contents/Resources/AppIcon.icns"
