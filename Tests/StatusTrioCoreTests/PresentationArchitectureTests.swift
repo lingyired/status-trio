@@ -72,9 +72,9 @@ struct PresentationArchitectureTests {
 
         let configuration = IconPresentationConfiguration(
             battery: .standard,
-            connection: .standard,
+            connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
             volume: .standard,
-            bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true)
+            bluetooth: BluetoothAudioIconOptions()
         )
         let originalScene = IconPresentationMapper.scene(inputs: originalInputs, configuration: configuration)
         let renamedScene = IconPresentationMapper.scene(inputs: renamedInputs, configuration: configuration)

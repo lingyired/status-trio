@@ -177,6 +177,7 @@ struct SettingsView: View {
             AppIconSectionView(
                 store: store,
                 statusStore: statusStore,
+                inputSourceController: inputSourceController,
                 previewIsDark: $previewIsDark,
                 onShowIconGuide: onShowIconGuide
             )
@@ -215,7 +216,9 @@ struct SettingsView: View {
             GeneralSectionView(
                 store: store,
                 localization: localization,
-                globalShortcutController: globalShortcutController
+                globalShortcutController: globalShortcutController,
+                statusStore: statusStore,
+                chargeToFullNow: chargeToFullNow
             )
         case .about:
             AboutSectionView()

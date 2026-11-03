@@ -13,6 +13,7 @@ enum AudioPanelMapper {
         previewDevices: [AudioOutputDevice] = [],
         previewLanguageCode: String = "",
         previewLocalization: Localization? = nil,
+        deviceListPlaceholder: PanelListLayoutSnapshot? = nil,
         localization: Localization
     ) -> VolumePanelState {
         let scalar = readableScalar(status.scalar)
@@ -80,6 +81,11 @@ enum AudioPanelMapper {
             isPreview: true,
             localization: previewLocalization ?? localization
         )
+        // A lone row may still carry the only listening-mode control (AirPods
+        // noise control). Hiding the other outputs must not take that control
+        // away with the list, so a row that can change a listening mode keeps
+        // the list visible even when it is the only device left.
+        let hasListeningControls = rows.contains { $0.listeningMode?.isControllable == true }
 
         return VolumePanelState(
             summary: summary,
@@ -98,7 +104,10 @@ enum AudioPanelMapper {
                     : .volumeMuteUnavailable
             ),
             sliderLabel: localization.string(.volumeAccessibilityLabel),
-            showsDeviceList: orderedDevices.count > 1 || keepsHiddenActiveDevice || !previewRows.isEmpty,
+            showsDeviceList: orderedDevices.count > 1 || keepsHiddenActiveDevice
+                || hasListeningControls || !previewRows.isEmpty
+                || (deviceListPlaceholder?.showsDeviceList == true),
+            deviceListPlaceholder: deviceListPlaceholder,
             rows: rows,
             previewRows: previewRows,
             visibleLimit: deviceList.visibleLimit,

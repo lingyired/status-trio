@@ -39,6 +39,18 @@
 "settings.tab.panel" = "لوحة الحالة";
 "settings.tab.about" = "حول";
 "settings.menuBar.title" = "رمز شريط القوائم";
+"settings.appIcon.middleIcon.title" = "الأيقونة الوسطى";
+"settings.appIcon.middleIcon.source" = "الأيقونة الوسطى";
+"settings.appIcon.middleIcon.description" = "اختر ما تعرضه أيقونة الحالة في المنتصف. يُعرض مصدر واحد فقط في كل مرة.";
+"settings.appIcon.middleIcon.network" = "الشبكة";
+"settings.appIcon.middleIcon.bluetooth" = "جهاز Bluetooth";
+"settings.appIcon.middleIcon.inputSource" = "مصدر الإدخال الحالي";
+"settings.appIcon.middleIcon.batteryPercentage" = "نسبة البطارية";
+"settings.appIcon.middleIcon.power" = "الطاقة (واط)";
+"settings.appIcon.middleIcon.size" = "حجم الأيقونة الوسطى";
+"settings.appIcon.middleIcon.size.description" = "حجم واحد لكل محتوى المنتصف: Wi-Fi وBluetooth ومصدر الإدخال والأرقام.";
+"settings.appIcon.middleIcon.networkWarnings" = "إعطاء أولوية لمشاكل الشبكة";
+"settings.appIcon.middleIcon.networkWarnings.description" = "عندما يكون Mac غير متصل فعليًا، يعرض المنتصف حالة الشبكة بدلًا من المصدر المحدد.";
 "settings.network.connectionIcons" = "نمط أيقونات الاتصال";
 "settings.network.connectionIcons.description" = "عند التمكين، تستخدم الحالة المحددة أيقونة إشارة Wi-Fi القياسية بدلًا من علامتها الخاصة.";
 "settings.network.wifiIconForEthernet" = "استخدام أيقونة Wi-Fi لإيثرنت";
@@ -253,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "وكيل النظام";
 "vpn.subtitle.connectedWithProxy" = "متصل · وكيل %@";
 "vpn.subtitle.proxyAutomatic" = "تكوين تلقائي";
-"wifi.action.requestNameAccess" = "السماح بالموقع لإظهار اسم Wi‑Fi";
+"wifi.action.requestNameAccess" = "السماح بالموقع لإظهار شبكات Wi‑Fi";
 "wifi.action.openLocationSettings" = "السماح بالموقع في الإعدادات";
 "wifi.action.openSettings" = "فتح إعدادات Wi‑Fi";
 "wifi.action.switchingHint" = "اختيار شبكة يفتح لوحة Wi-Fi في إعدادات النظام.";
@@ -268,6 +280,11 @@
 "settings.network.panelGroup" = "لوحة";
 "settings.network.showLocalIP" = "إظهار IP المحلي";
 "settings.network.showLocalIP.description" = "يعرض عنوان الشبكة المحلية لهذا الـ Mac في سطر الشبكة، قبل تفاصيل Wi-Fi.";
+
+"settings.network.permissionNotDeterminedTitle" = "مطلوب إذن الموقع";
+"settings.network.permissionNotDeterminedDescription" = "يحتاج Status Trio إلى الوصول إلى موقعك لإظهار شبكات Wi‑Fi. انقر أدناه للمنح.";
+"settings.network.permissionDeniedTitle" = "إذن الموقع معطّل";
+"settings.network.permissionDeniedDescription" = "بدون الوصول إلى الموقع، لا يمكن عرض شبكات Wi‑Fi. فعّله في إعدادات النظام.";
 "settings.audio.externalVolume.title" = "مستوى صوت الشاشة الخارجية";
 "settings.audio.externalVolume.controlMethod" = "طريقة التحكم";
 "settings.audio.externalVolume.controlMethodDescription" = "إذا لم تتمكن أدوات التحكم في مستوى الصوت بلوحة الحالة من التحكم في هذا الجهاز، فاستخدم BetterDisplay.";
@@ -356,6 +373,13 @@
 "inputSource.switchFailed" = "تعذّر التبديل إلى «%@». اختره مباشرة أو حاول مرة أخرى.";
 "inputSource.switchUnconfirmed" = "قبل macOS «%@» لكنه لا يزال يُبلّغ عن مصدر إدخال آخر. قد يحتاج التطبيق في المقدمة إلى التركيز.";
 "settings.popup.order.inputSource" = "مصدر الإدخال";
+"settings.panel.background.title" = "خلفية اللوحة";
+"settings.panel.background.style" = "نمط الخلفية";
+"settings.panel.background.style.description" = "اختر طريقة رسم خلفية لوحة الحالة.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "مادة كلاسيكية";
+"settings.panel.background.style.solid" = "لون موحّد";
+"settings.panel.background.style.liquidGlassUnavailable" = "يتطلب Liquid Glass نظام macOS 26 أو أحدث.";
 "settings.popup.volumeScroll.group" = "تمرير اللوحة";
 "settings.popup.volumeScroll" = "ضبط مستوى الصوت بالتمرير";
 "settings.popup.volumeScroll.description" = "مرّر داخل لوحة الحالة لتغيير مستوى صوت الإخراج.";
@@ -601,7 +625,9 @@
 "battery.power.system.help" = "طاقة النظام (بما في ذلك SoC)";
 "battery.power.system.explanation" = "“النظام” هو ما يتبقى بعد شحن البطارية والشاشة وUSB، ويشمل SoC والذاكرة ومتحكمات الشاشة وغيرها.";
 "power.infoBar.input" = "دخل الشاحن";
+"power.infoBar.noInput" = "لا يوجد محول طاقة";
 "power.infoBar.battery" = "شحن البطارية";
+"power.infoBar.discharging" = "تفريغ البطارية";
 "power.infoBar.system" = "طاقة النظام";
 "power.infoBar.notCharging" = "لا يتم الشحن";
 "battery.power.display" = "الشاشة";
@@ -616,7 +642,7 @@
 "settings.battery.showChargeToFullNow" = "إظهار زر الشحن حتى الامتلاء الآن";
 "settings.battery.showChargeToFullNowDescription" = "يعرض زرًا في لوحة الحالة لتجاوز حد الشحن في macOS مؤقتًا والشحن حتى 100%.";
 "settings.battery.restoreLimit" = "حد الشحن بعد الإلغاء";
-"settings.battery.restoreLimitDescription" = "حد الشحن الذي يُستعاد عند إلغاء «الشحن بشكل كامل الآن». تعني 100% عدم وجود حد.";
+"settings.battery.restoreLimitDescription" = "حد الشحن الذي يُستعاد عند إلغاء «الشحن بشكل كامل الآن».";
 "battery.action.chargeToFullNow" = "الشحن بشكل كامل الآن";
 "battery.action.chargeToFullNowApplying" = "جارٍ طلب الشحن الكامل…";
 "battery.action.chargeToFullNowCharging" = "جارٍ الشحن حتى 100%";
@@ -624,16 +650,74 @@
 "battery.action.chargeToFullNowUnavailable" = "الشحن بشكل كامل الآن غير متاح الآن.";
 "battery.action.cancelChargeToFullNow" = "إلغاء الشحن الكامل";
 "battery.action.cancelChargeToFullNowApplying" = "جارٍ استعادة حد الشحن…";
-"battery.action.cancelChargeToFullNowFailed" = "تعذّر استعادة حد الشحن: %@";
+"battery.action.cancelChargeToFullNowFailed" = "تعذّر استعادة حد الشحن. حاول مرة أخرى.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "تغيّر حد الشحن في النظام. تحقّق من حد الاستعادة في الإعدادات وحاول مرة أخرى.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "حد الشحن في النظام هو %1$d%%. هل تريد استعادته إلى %2$d%%؟";
 "battery.action.cancelChargeToFullNowRestored" = "تمت استعادة حد الشحن إلى %d%%";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "تمت إزالة حد الشحن";
 "battery.action.cancelChargeToFullNowFallback" = "تم ضبط حد الشحن على %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "تأكيد الاستعادة إلى %d%%";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "تأكيد الضبط على %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "قد تكون حالة شحن النظام قد تغيّرت. انقر مرة أخرى للمتابعة.";
 "battery.action.cancelChargeToFullNowPending" = "لم يؤكد النظام تجاوز حد الشحن المؤقت بعد. حاول مرة أخرى بعد قليل.";
 
-// Opt-in managed charge limit
+"settings.popup.order.brightness" = "السطوع";
+"brightness.row.accessibility" = "السطوع لـ %@، %@";
+"brightness.row.accessibilityUnavailable" = "السطوع لـ %@، %@";
+"brightness.unavailable" = "غير متاح";
+"brightness.appAbsent" = "يتطلب BetterDisplay";
+"brightness.noBackend" = "لا يوجد تحكم في السطوع";
+"brightness.unresponsive" = "لا يستجيب";
+"brightness.backend.directDDC" = "DDC مباشر";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "اضبط سطوع الشاشات المتصلة.";
+"settings.brightness.backend" = "خلفية السطوع لـ %@";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "متابعة المؤلف";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "المدونة";
+"settings.about.community.title" = "المجتمع";
+"settings.about.community.qq" = "مجموعة QQ";
+"settings.about.community.qqDescription" = "انضم إلى مجموعة Status Trio للأسئلة والملاحظات.";
+"settings.about.community.wechat" = "مجموعة WeChat";
+"settings.about.community.wechatDescription" = "امسح باستخدام WeChat للانضمام إلى مجموعة Status Trio. يتم تجديد رمز QR دوريًا؛ راجع README على GitHub للحصول على الأحدث.";
+"settings.about.community.copy" = "نسخ";
+"settings.about.community.copied" = "تم النسخ";
+"settings.about.moreApps.title" = "أعمال أخرى للمؤلف";
+"settings.about.moreApps.open" = "فتح";
+"settings.about.moreApps.newtab01Description" = "علامة تبويب جديدة قائمة على الإشارات المرجعية: افتح المجلدات كمجموعات علامات تبويب أو في عرض منقسم، مع عدة سمات.";
+"settings.about.moreApps.noLazyloadDescription" = "عطّل التحميل المتأخر للصور في المتصفح حتى تُحمّل الصفحة جميع الصور دفعة واحدة دون الحاجة إلى التمرير.";
+"settings.about.moreApps.fund01Description" = "متابعة محفظة الصناديق: نسبة تغيّر اليوم دائمًا في شريط القوائم أو شريط المهام، مع تحديث عدة مجموعات مباشرةً.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";
+
+"guide.partPosition.battery" = "Top arc";
+"guide.partPosition.network" = "Middle icon";
+"guide.partPosition.volume" = "Bottom dots";
+"guide.network.center" = "Change what the middle icon shows in Settings › Network › Middle Slot — battery, power, input source, or Bluetooth audio.";
+
+"guide.state.chargingBatteryCenter" = "Charging + Battery %";
+"guide.state.fullPowerCenter" = "Full + Power";
+"guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "إجراء النقر بالزر الأيمن";
+"settings.menuBarRightClickAction.description" = "ما يفعله رمز شريط القوائم عند النقر عليه بزر الفأرة الأيمن.";
+"settings.menuBarRightClickAction.contextMenu" = "إظهار قائمة السياق";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "تبديل وضع الطاقة المنخفضة";
+"settings.menuBarRightClickAction.chargeToFullNow" = "الشحن الكامل الآن";
+"settings.menuBarRightClickAction.toggleMute" = "تبديل كتم الصوت";
+"settings.menuBarRightClickAction.unavailableHint" = "الإجراء المحدد غير متاح الآن؛ سيؤدي النقر بالزر الأيمن إلى إظهار القائمة بدلاً من ذلك.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "تبديل Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "تحديث الحالة";
+"settings.menuBarRightClickAction.openWiFiSettings" = "فتح إعدادات Wi-Fi";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "فتح إعدادات Bluetooth";
+"settings.menuBarRightClickAction.openBatterySettings" = "فتح إعدادات البطارية";
+"settings.menuBarRightClickAction.openSoundSettings" = "فتح إعدادات الصوت";
 "settings.battery.chargeLimit.title" = "حد الشحن";
 "settings.battery.chargeLimit.target" = "الحد الأقصى للشحن";
 "settings.battery.chargeLimit.description" = "طبّق حدًا الآن وأعد تطبيقه عند التشغيل أو الاستيقاظ أو إعادة توصيل الطاقة.";

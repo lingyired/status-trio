@@ -59,21 +59,20 @@ there is no new cache and the delayed work is bounded to one task per scheduler.
 
 ## Priority and fallback
 
-`ConnectionCenterSource.automatic` is the shipped default and its decision is
-byte-identical to the previous release: the input-source branch sits behind it.
-With `.inputSource` selected, the centre slot resolves in this order, and each
-step is pinned by `InputSourceIconPresentationTests`:
+`ConnectionCenterSource.network` is the shipped default and its decision is
+byte-identical to the previous release. With any non-network source selected,
+the centre slot resolves in this order, and each step is pinned by
+`IconPresentationMapperTests` and `InputSourceIconPresentationTests`:
 
 | Priority | Condition | Drawn |
 | --- | --- | --- |
-| 1 | Battery percentage asked for in the connection slot | battery text |
-| 2 | Network outage, when the warning toggle is on (default) | Wi-Fi error glyph |
-| 3 | Current input source | its icon, else its short label, else `keyboard` |
-| 4 | Bluetooth audio replacement, when enabled | the device icon |
-| 5 | Network | Wi-Fi / wired as before |
+| 1 | Genuine network outage, when the warning toggle is on (default) | Wi-Fi error glyph |
+| 2 | Chosen source: battery percentage, power, input source, or Bluetooth device | that source's content |
+| 3 | Chosen content cannot be drawn (no input source, no Bluetooth output) | network fallback below |
+| 4 | Network | Wi-Fi / wired as before |
 
 A live wired link is never an outage, so a wired user with Wi-Fi switched off
-keeps their input-source icon (`StatusMappings.isNetworkOffline`).
+keeps their chosen content (`StatusMappings.isNetworkOffline`).
 
 ## Icon rendering
 

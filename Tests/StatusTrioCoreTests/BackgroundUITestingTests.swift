@@ -5,19 +5,22 @@ import XCTest
 final class BackgroundUITestingTests: XCTestCase {
     func testConfigurationDefaultsAndReleaseBoundary() {
         XCTAssertFalse(BackgroundUITestingConfiguration(arguments: []).isEnabled)
+        XCTAssertFalse(BackgroundUITestingConfiguration(arguments: []).rejectsLaunch)
         let configuration = BackgroundUITestingConfiguration(arguments: [
             "--background-ui-testing", "--test-display=secondary"
         ])
         #if DEBUG
         XCTAssertTrue(configuration.isEnabled)
         XCTAssertEqual(configuration.display, .secondary)
+        XCTAssertFalse(configuration.rejectsLaunch)
         #else
         XCTAssertFalse(configuration.isEnabled)
         XCTAssertEqual(configuration.display, .automatic)
+        XCTAssertFalse(configuration.rejectsLaunch)
         #endif
     }
 
-    func testInvalidReservedArgumentsDisableModeWithDiagnostic() {
+    func testInvalidReservedArgumentsRejectDebugLaunchInsteadOfUsingNormalPresentation() {
         for arguments in [
             ["--test-display=secondary"],
             ["--background-ui-testing", "--test-display=primary"],
@@ -29,6 +32,9 @@ final class BackgroundUITestingTests: XCTestCase {
             XCTAssertFalse(configuration.isEnabled, "\(arguments)")
             #if DEBUG
             XCTAssertFalse(configuration.diagnostics.isEmpty, "\(arguments)")
+            XCTAssertTrue(configuration.rejectsLaunch, "\(arguments)")
+            #else
+            XCTAssertFalse(configuration.rejectsLaunch, "\(arguments)")
             #endif
         }
         XCTAssertTrue(BackgroundUITestingConfiguration(

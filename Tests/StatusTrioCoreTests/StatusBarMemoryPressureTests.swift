@@ -3,7 +3,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class StatusBarMemoryPressureTests: XCTestCase {
+final class StatusBarMemoryPressureTests: VisibleUITestCase {
     func testDockPresentationDoesNotForceApplicationActivation() throws {
         let harness = try StatusBarPressureHarness()
         defer { harness.cleanUp() }

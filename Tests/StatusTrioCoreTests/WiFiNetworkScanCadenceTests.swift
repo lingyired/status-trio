@@ -155,6 +155,31 @@ final class WiFiNetworkScanCadenceTests: XCTestCase {
         controller.deactivate()
     }
 
+    /// The panel path stays demand-gated: without an active list a power change
+    /// is ignored.
+    func testNormalPowerToggleIsIgnoredWhenInactive() {
+        let scanner = FakeWiFiNetworkScanner()
+        let controller = makeController(scanner: scanner)
+
+        XCTAssertFalse(controller.isActive)
+        controller.setPower(false)
+
+        XCTAssertEqual(scanner.powerValues, [])
+    }
+
+    /// The menu-bar right-click quick action has no Wi-Fi list demand, so its
+    /// power change must reach the radio while the panel is closed.
+    func testQuickPowerToggleReachesTheRadioWithoutActivation() async {
+        let scanner = FakeWiFiNetworkScanner()
+        let controller = makeController(scanner: scanner)
+
+        XCTAssertFalse(controller.isActive)
+        controller.setPowerFromQuickAction(false)
+
+        await waitUntil { scanner.powerValues == [false] }
+        XCTAssertEqual(scanner.powerValues, [false])
+    }
+
     /// The 30-second periodic loop is a floor, not a second cadence: with the
     /// injected sleeper it must ask for a scan no more often than the interval.
     func testThePeriodicLoopHonoursTheInterval() async {
@@ -297,6 +322,7 @@ private final class FakeWiFiNetworkScanner: WiFiNetworkScanning, @unchecked Send
     private let lock = NSLock()
     private var pending: [@Sendable (WiFiScanWorkerResult) -> Void] = []
     private var count = 0
+    private var powerCalls: [Bool] = []
 
     var holdsCompletions = false
     var result: WiFiScanWorkerResult = .success(
@@ -304,6 +330,7 @@ private final class FakeWiFiNetworkScanner: WiFiNetworkScanning, @unchecked Send
     )
 
     var scanCount: Int { lock.withLock { count } }
+    var powerValues: [Bool] { lock.withLock { powerCalls } }
 
     func scan(completion: @escaping @Sendable (WiFiScanWorkerResult) -> Void) {
         let result = lock.withLock { () -> WiFiScanWorkerResult in
@@ -326,6 +353,7 @@ private final class FakeWiFiNetworkScanner: WiFiNetworkScanning, @unchecked Send
     /// Reports the radio change as applied, which is what `setPower` returning
     /// true means, so the controller takes its "changed" path.
     func setPower(_ isOn: Bool, completion: @escaping @Sendable (Bool) -> Void) {
+        lock.withLock { powerCalls.append(isOn) }
         completion(true)
     }
 }

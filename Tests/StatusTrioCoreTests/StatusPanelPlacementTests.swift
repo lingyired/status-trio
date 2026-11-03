@@ -137,4 +137,248 @@ struct StatusPanelPlacementTests {
         #expect(short.maxY == tall.maxY)
         #expect(tall.minY < short.minY)
     }
+
+    // MARK: - Collapsed (auto-hidden) Dock (#229)
+
+    private let collapsedScreen = StatusPanelScreen(
+        frame: NSRect(x: 0, y: 0, width: 1440, height: 900),
+        visibleFrame: NSRect(x: 0, y: 0, width: 1440, height: 900)
+    )
+
+    @Test func collapsedBottomDockKeepsThePanelAboveTheRevealStrip() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 488, y: 44, width: 24, height: 18),
+            preferredEdge: .maxY
+        )
+        let inset = DockReveal.inset(
+            screenFrame: collapsedScreen.frame,
+            visibleFrame: collapsedScreen.visibleFrame,
+            pointer: NSPoint(x: 500, y: 20)
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 400),
+            anchor: anchor,
+            screens: [collapsedScreen],
+            dockInset: inset
+        )
+
+        #expect(inset.bottom == DockReveal.extent)
+        #expect(frame.minY >= collapsedScreen.frame.minY + DockReveal.extent)
+    }
+
+    @Test func collapsedLeftDockKeepsThePanelClearOfTheRevealStrip() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 34, y: 388, width: 18, height: 24),
+            preferredEdge: .maxX
+        )
+        let inset = DockReveal.inset(
+            screenFrame: collapsedScreen.frame,
+            visibleFrame: collapsedScreen.visibleFrame,
+            pointer: NSPoint(x: 20, y: 400)
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 400),
+            anchor: anchor,
+            screens: [collapsedScreen],
+            dockInset: inset
+        )
+
+        #expect(inset.left == DockReveal.sideExtent)
+        #expect(frame.minX >= collapsedScreen.frame.minX + DockReveal.sideExtent)
+    }
+
+    @Test func collapsedRightDockKeepsThePanelClearOfTheRevealStrip() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 1392, y: 388, width: 18, height: 24),
+            preferredEdge: .minX
+        )
+        let inset = DockReveal.inset(
+            screenFrame: collapsedScreen.frame,
+            visibleFrame: collapsedScreen.visibleFrame,
+            pointer: NSPoint(x: 1420, y: 400)
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 400),
+            anchor: anchor,
+            screens: [collapsedScreen],
+            dockInset: inset
+        )
+
+        #expect(inset.right == DockReveal.sideExtent)
+        #expect(frame.maxX <= collapsedScreen.frame.maxX - DockReveal.sideExtent)
+    }
+
+    /// A Dock-anchored panel attaches by its bottom edge, so growing content
+    /// must extend upwards. This is what keeps the panel off the Dock when the
+    /// window later resizes to its real content height (#229).
+    @Test func growingContentKeepsTheBottomEdgeFixedForDockAnchors() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 100, y: 44, width: 1, height: 1),
+            preferredEdge: .maxY
+        )
+
+        let short = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 200),
+            anchor: anchor,
+            screens: [screen]
+        )
+        let tall = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 500),
+            anchor: anchor,
+            screens: [screen]
+        )
+
+        #expect(short.minY == tall.minY)
+        #expect(tall.maxY > short.maxY)
+    }
+
+    /// With the anchor snapped to the Dock's inner edge, the panel keeps the
+    /// normal gap instead of floating away from the Dock (#229 follow-up).
+    @Test func dockAnchorAtTheVisibleEdgeKeepsTheNormalGap() {
+        let leftDock = StatusPanelScreen(
+            frame: NSRect(x: 0, y: 0, width: 1440, height: 900),
+            visibleFrame: NSRect(x: 64, y: 0, width: 1376, height: 875)
+        )
+        let leftAnchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 64, y: 400, width: 1, height: 1),
+            preferredEdge: .maxX
+        )
+        let leftFrame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 300),
+            anchor: leftAnchor,
+            screens: [leftDock]
+        )
+        #expect(leftFrame.minX == 64 + StatusPanelPlacement.gap + 1)
+
+        let bottomDock = StatusPanelScreen(
+            frame: NSRect(x: 0, y: 0, width: 1440, height: 900),
+            visibleFrame: NSRect(x: 0, y: 90, width: 1440, height: 810)
+        )
+        let bottomAnchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 700, y: 90, width: 1, height: 1),
+            preferredEdge: .maxY
+        )
+        let bottomFrame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 300),
+            anchor: bottomAnchor,
+            screens: [bottomDock]
+        )
+        #expect(bottomFrame.minY == 90 + StatusPanelPlacement.gap + 1)
+    }
+
+    @Test func noScreensPreservesContentSizeAndHasNoHeightBudget() {
+        for edge: NSRectEdge in [.minY, .maxY, .minX, .maxX] {
+            let anchor = StatusPanelAnchor(
+                screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),
+                preferredEdge: edge
+            )
+            let frame = StatusPanelPlacement.frame(
+                contentSize: NSSize(width: 330, height: 300),
+                anchor: anchor,
+                screens: []
+            )
+            #expect(frame.size == NSSize(width: 330, height: 300))
+            #expect(StatusPanelPlacement.maximumPanelHeight(anchor: anchor, screens: []) == nil)
+            switch edge {
+            case .minY: #expect(frame.maxY == anchor.screenRect.minY - StatusPanelPlacement.gap)
+            case .maxY: #expect(frame.minY == anchor.screenRect.maxY + StatusPanelPlacement.gap)
+            case .minX: #expect(frame.maxX == anchor.screenRect.minX - StatusPanelPlacement.gap)
+            case .maxX: #expect(frame.minX == anchor.screenRect.maxX + StatusPanelPlacement.gap)
+            default: break
+            }
+        }
+    }
+
+    // MARK: - Screen-height cap (#237)
+
+    @Test func menuBarAnchorBudgetReachesTheBottomOfTheVisibleFrame() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),
+            preferredEdge: .minY
+        )
+
+        // 875pt visible frame minus 8pt of breathing room on each side. The
+        // distance from the anchor to the bottom of the frame is larger, so the
+        // screen height is the binding constraint.
+        #expect(
+            StatusPanelPlacement.maximumPanelHeight(
+                anchor: anchor,
+                screens: [screen]
+            ) == screen.visibleFrame.height - StatusPanelPlacement.edgeMargin * 2
+        )
+    }
+
+    @Test func contentTallerThanTheScreenIsCappedAndThePanelStaysVisible() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),
+            preferredEdge: .minY
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 4000),
+            anchor: anchor,
+            screens: [screen]
+        )
+
+        #expect(frame.size.height == 875 - StatusPanelPlacement.edgeMargin * 2)
+        #expect(frame.size.width == 330)
+        #expect(frame.minY >= screen.visibleFrame.minY)
+        #expect(frame.maxY <= screen.visibleFrame.maxY)
+        #expect(frame.maxY == anchor.screenRect.minY - StatusPanelPlacement.gap)
+    }
+
+    @Test func contentWiderThanTheScreenIsCapped() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),
+            preferredEdge: .minY
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 4000, height: 400),
+            anchor: anchor,
+            screens: [screen]
+        )
+
+        #expect(frame.size.width == screen.visibleFrame.width - StatusPanelPlacement.edgeMargin * 2)
+        #expect(frame.minX >= screen.visibleFrame.minX)
+        #expect(frame.maxX <= screen.visibleFrame.maxX)
+    }
+
+    @Test func dockAnchoredContentIsCappedAboveTheDockEdge() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 488, y: 20, width: 24, height: 18),
+            preferredEdge: .maxY
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 4000),
+            anchor: anchor,
+            screens: [screen]
+        )
+
+        // The panel keeps its 6pt gap above the Dock icon and the 8pt margin
+        // before the menu bar.
+        #expect(frame.size.height == 875 - 38 - StatusPanelPlacement.gap - StatusPanelPlacement.edgeMargin)
+        #expect(frame.minY == 38 + StatusPanelPlacement.gap)
+        #expect(frame.maxY <= screen.visibleFrame.maxY)
+    }
+
+    /// The cap must not shrink panels that already fit.
+    @Test func contentThatFitsKeepsItsExactHeight() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),
+            preferredEdge: .minY
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 700),
+            anchor: anchor,
+            screens: [screen]
+        )
+
+        #expect(frame.size.height == 700)
+    }
 }

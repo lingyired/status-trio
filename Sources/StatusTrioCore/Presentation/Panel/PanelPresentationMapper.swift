@@ -8,6 +8,7 @@ enum PanelPresentationMapper {
         inputPower: SystemPowerSample? = nil,
         batteryPower: BatteryPowerSample? = nil,
         showsPowerInfoBar: Bool = false,
+        powerInfoBarIsLoading: Bool = false,
         now: Date = Date(),
         localization: Localization,
         chargeToFullNow: ChargeToFullNowPresentation = .hidden
@@ -27,16 +28,33 @@ enum PanelPresentationMapper {
         // that it has a usable whole-machine power reading.
         let canOpenDetails = status.isPresent
             || (powerSample?.isFresh(at: now) ?? false)
-        let infoBar = showsPowerInfoBar
-            ? powerInfoBar(
+        let infoBar: PowerInfoBarState?
+        if showsPowerInfoBar {
+            if let bar = powerInfoBar(
                 status: status,
                 systemPower: powerSample,
                 inputPower: inputPower,
                 batteryPower: batteryPower,
                 now: now,
                 localization: localization
-            )
-            : nil
+            ) {
+                infoBar = bar
+            } else if powerInfoBarIsLoading {
+                // Reserve the bar's height with grey rails until the first read
+                // lands, so turning the setting on (or reopening the panel) does
+                // not grow the panel when the numbers arrive.
+                infoBar = PowerInfoBarState(
+                    items: [],
+                    placeholderKinds: status.isPresent
+                        ? [.input, .batteryIdle, .system]
+                        : [.input, .system]
+                )
+            } else {
+                infoBar = nil
+            }
+        } else {
+            infoBar = nil
+        }
 
         return PanelSummaryState(
             title: title,
@@ -68,20 +86,39 @@ enum PanelPresentationMapper {
         }
         var items: [PowerInfoBarItem] = []
         if let inputPower, inputPower.watts.isFinite, inputPower.isFresh(at: now) {
-            items.append(PowerInfoBarItem(kind: .input, value: watts(inputPower.watts)))
+            // A laptop on battery has no adapter feeding it, yet the rail still
+            // yields a fresh ~0 W sample. Printing "0.0 W" under "Charger input"
+            // reads as if a charger were attached but idle, so say plainly that
+            // there is no external power. A no-battery Mac has no such state and
+            // keeps its real reading.
+            let unplugged = status.isPresent && !status.isConnectedToPower && abs(inputPower.watts) < 0.05
+            if unplugged {
+                items.append(PowerInfoBarItem(
+                    kind: .inputDisconnected,
+                    value: localization.string(.powerInfoBarNoInput)
+                ))
+            } else {
+                items.append(PowerInfoBarItem(kind: .input, value: watts(inputPower.watts)))
+            }
         }
         if status.isPresent, let batteryPower, batteryPower.watts.isFinite, batteryPower.isFresh(at: now) {
-            // Battery power keeps its own sign out of the label; the magnitude
-            // is the flow into (or out of) the pack, never folded into system.
-            // A pack sitting at 0 W is idle, not charging, so say that instead
-            // of printing a misleading 0.0 W.
-            let magnitude = abs(batteryPower.watts)
-            items.append(PowerInfoBarItem(
-                kind: .battery,
-                value: magnitude < 0.05
-                    ? localization.string(.powerInfoBarNotCharging)
-                    : watts(magnitude)
-            ))
+            // The magnitude is the flow into (or out of) the pack, never folded
+            // into system. Its sign is the direction: positive is charging,
+            // negative is discharging, and a pack within 0.05 W of zero is idle
+            // rather than charging. The number stays the magnitude so the card
+            // reads "3.8 W" in both directions; the kind carries the direction
+            // for the title, glyph and colour.
+            let signedWatts = batteryPower.watts
+            let magnitude = abs(signedWatts)
+            let kind: PowerInfoBarKind
+            if magnitude < 0.05 {
+                kind = .batteryIdle
+            } else if signedWatts < 0 {
+                kind = .batteryDischarging
+            } else {
+                kind = .batteryCharging
+            }
+            items.append(PowerInfoBarItem(kind: kind, value: watts(magnitude)))
         }
         if let systemPower, systemPower.watts.isFinite, systemPower.isFresh(at: now) {
             items.append(PowerInfoBarItem(kind: .system, value: watts(systemPower.watts)))
@@ -231,6 +268,7 @@ enum PanelPresentationMapper {
              .cancelConfirmationRequired,
              .cancelPending,
              .cancelFailed,
+             .cancelLimitChangedConfirmation,
              .limitRestored:
             break
         }

@@ -3,20 +3,26 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_DISPLAY="automatic"
-case "$#" in
-    0) ;;
-    2)
-        if [[ "$1" != "--display" || "$2" != "secondary" ]]; then
-            echo "Usage: bash scripts/launch-computer-use.sh [--display secondary]" >&2
-            exit 2
-        fi
-        TEST_DISPLAY="secondary"
-        ;;
-    *)
-        echo "Usage: bash scripts/launch-computer-use.sh [--display secondary]" >&2
-        exit 2
-        ;;
-esac
+REUSE=0
+usage() {
+    echo "Usage: bash scripts/launch-computer-use.sh [--reuse] [--display secondary]" >&2
+    exit 2
+}
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --reuse)
+            [[ "$REUSE" == 0 ]] || usage
+            REUSE=1
+            shift
+            ;;
+        --display)
+            [[ $# -ge 2 && "$2" == secondary && "$TEST_DISPLAY" == automatic ]] || usage
+            TEST_DISPLAY="secondary"
+            shift 2
+            ;;
+        *) usage ;;
+    esac
+done
 
 BRANCH="$(git -C "$ROOT" branch --show-current)"
 if [[ -z "$BRANCH" || "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
@@ -47,7 +53,14 @@ release_lock() {
 }
 trap release_lock EXIT
 
-# Inspect before building so a running non-test bundle is never replaced.
+# Reuse is read-only: it neither rebuilds nor sends a reopen to the process.
+if [[ "$REUSE" == 1 ]]; then
+    swift "$ROOT/scripts/computer-use-instance.swift" reuse "$BUNDLE_ID" "$APP_PATH" "$TEST_DISPLAY"
+    exit 0
+fi
+
+# Inspect before building so any running bundle, including another run's test
+# instance, is preserved. Its owner must explicitly close it before rebuilding.
 swift "$ROOT/scripts/computer-use-instance.swift" prepare "$BUNDLE_ID" "$APP_PATH"
 BUNDLE_ID="$BUNDLE_ID" bash "$ROOT/scripts/build-worktree.sh" debug no-open
 

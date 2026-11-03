@@ -26,6 +26,20 @@ final class ManagedChargeLimitController: ObservableObject, BatteryChargeControl
         return session.limit
     }
 
+    /// A managed restore may target the recorded original of 100 ("no cap").
+    /// `reportedChargeLimit` treats 100 as "no limit", so verify that shape
+    /// directly instead of reusing the shared sub-100 restore check.
+    private static func restoreIsVerified(
+        limit: Int,
+        state: ChargeToFullNowDeviceState
+    ) -> Bool {
+        guard state.errorMessage == nil else { return false }
+        if limit >= 100 {
+            return state.mclEnabledRawValue == 1 && state.mclLimit == 100
+        }
+        return state.mclEnabledRawValue != 3 && state.reportedChargeLimit == limit
+    }
+
     private let backend: any BatteryChargeControlling
     private let sessionStore: any ManagedChargeLimitSessionStoring
     private let notificationCenter: NotificationCenter
@@ -87,7 +101,7 @@ final class ManagedChargeLimitController: ObservableObject, BatteryChargeControl
         guard state.errorMessage == nil else { status = .failed; return }
         guard var saved = session else { status = .systemManaged; return }
         if saved.isRestoringSystem {
-            if ChargeToFullNowController.restoreIsVerified(limit: saved.originalLimit, state: state) {
+            if Self.restoreIsVerified(limit: saved.originalLimit, state: state) {
                 clearSession()
             } else { status = .failed }
             return
@@ -145,12 +159,18 @@ final class ManagedChargeLimitController: ObservableObject, BatteryChargeControl
         return result
     }
 
-    func restoreChargeLimit(to limit: Int) async -> ChargeToFullNowWriteResult {
+    func restoreChargeLimit(
+        to limit: Int,
+        expectedLimit: Int?
+    ) async -> ChargeToFullNowWriteResult {
+        // A managed policy owns the restore target: reapplying the managed
+        // limit resumes it and ends the temporary override, regardless of the
+        // legacy slider target. Otherwise forward the session's expected limit.
         if let managedRestoreLimit { return await applySelection(managedRestoreLimit) }
         guard canWrite else { return .failure }
         isApplying = true
         defer { finishOperation() }
-        return await backend.restoreChargeLimit(to: limit)
+        return await backend.restoreChargeLimit(to: limit, expectedLimit: expectedLimit)
     }
 
     /// Called by existing battery snapshots, with connection/completion de-duplication.
@@ -247,7 +267,7 @@ final class ManagedChargeLimitController: ObservableObject, BatteryChargeControl
         }
         guard !hasStopped, !Task.isCancelled else { return .failure }
         let after = backend.readState()
-        guard result.succeeded, ChargeToFullNowController.restoreIsVerified(limit: target, state: after) else {
+        guard result.succeeded, Self.restoreIsVerified(limit: target, state: after) else {
             status = .failed
             return .failure
         }

@@ -111,6 +111,10 @@ enum StatusIconRenderer {
     }
 
     static let centerSymbolBasePointSize: CGFloat = 38
+    /// The centre slot's numeric/label text is drawn slightly smaller than a
+    /// symbol at the same scale, so a percentage does not read heavier than the
+    /// network or Bluetooth glyph it replaces.
+    static let centerTextBaselineFactor: CGFloat = 0.9
     private static let defaultBatteryValueTextScale = 1.8
 
     /// Anchored to the artwork's centre, not the canvas midpoint: the vector
@@ -118,10 +122,11 @@ enum StatusIconRenderer {
     /// puts every SF Symbol half a unit right of it. The symbol's ink is then
     /// measured and compensated separately; see issue #30 and
     /// `drawOfficialSymbol`.
-    private static let wifiSymbolCenter = CGPoint(
+    static let centerAnchor = CGPoint(
         x: StatusIconGeometry.artworkCenterX,
-        y: 64.0
+        y: StatusIconGeometry.batteryCenterY
     )
+    private static let wifiSymbolCenter = centerAnchor
 
     /// Unified optical alpha for all inactive tracks (battery groove, Wi-Fi muted signal, volume hidden dots).
     private static let inactiveTrackAlpha: CGFloat = 0.22
@@ -405,6 +410,10 @@ enum StatusIconRenderer {
             return centerSymbolBasePointSize
         }
         return centerSymbolBasePointSize * CGFloat(scale)
+    }
+
+    static func centerTextPointSize(for scale: Double) -> CGFloat {
+        centerSymbolPointSize(for: scale) * centerTextBaselineFactor
     }
 
     private static func drawTintedImage(
@@ -1193,7 +1202,7 @@ extension StatusIconRenderer {
     ) {
         switch center {
         case let .text(text):
-            let fontSize = centerSymbolBasePointSize * CGFloat(text.scale)
+            let fontSize = centerTextPointSize(for: text.scale)
             let color = sceneColor(for: text.color, foreground: foreground, statusPalette: statusPalette)
             let line = sceneTextLine(text.text, color: color, fontSize: fontSize)
             let bounds = CTLineGetBoundsWithOptions(line, [.useGlyphPathBounds])

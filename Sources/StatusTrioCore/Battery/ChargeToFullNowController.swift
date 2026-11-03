@@ -2,14 +2,16 @@ import Combine
 import Foundation
 
 struct ChargeToFullNowDemand: Equatable, Sendable {
-    let settingEnabled: Bool
     let popoverVisible: Bool
     let batterySectionVisible: Bool
     let battery: BatteryStatus
 
+    /// Capability, panel visibility and live battery state decide whether the
+    /// action may run. The Settings toggle does not participate: it only
+    /// controls whether the summary card shows the row, while the battery
+    /// details page always shows it when the action is applicable.
     var showsSurface: Bool {
-        settingEnabled
-            && popoverVisible
+        popoverVisible
             && batterySectionVisible
             && battery.isPresent
     }
@@ -32,7 +34,10 @@ enum ChargeToFullNowPresentation: Equatable, Sendable {
     case cancelConfirmationRequired(limit: Int)
     case cancelPending
     case cancelling
-    case cancelFailed(message: String?)
+    case cancelFailed(reason: ChargeToFullNowFailure)
+    /// An intermediate charge limit that differs from the configured target
+    /// was read while cancelling. The user confirms before it is replaced.
+    case cancelLimitChangedConfirmation(current: Int, target: Int)
     /// The configured limit is back. The action stays hidden while the battery
     /// finishes charging toward a sub-100 limit.
     case limitRestored(limit: Int)
@@ -48,7 +53,8 @@ enum ChargeToFullNowPresentation: Equatable, Sendable {
              .cancelConfirmationRequired,
              .cancelPending,
              .cancelling,
-             .cancelFailed:
+             .cancelFailed,
+             .cancelLimitChangedConfirmation:
             true
         }
     }
@@ -106,6 +112,12 @@ final class ChargeToFullNowController: ObservableObject {
     private var isApplying = false
     private var isCancelling = false
     private var hasObservedTemporaryOverride = false
+    private var pendingLimitChange: PendingLimitChange?
+
+    private struct PendingLimitChange {
+        let currentLimit: Int
+        let targetLimit: Int
+    }
 
     private struct RestoredLimitState {
         let limit: Int
@@ -153,14 +165,17 @@ final class ChargeToFullNowController: ObservableObject {
 
         // A confirmation is an explicit user step. Keep it across live battery
         // ticks; the next tap re-reads the state before any write anyway.
-        if case .cancelConfirmationRequired = presentation {
+        switch presentation {
+        case .cancelConfirmationRequired, .cancelLimitChangedConfirmation:
             return
+        default:
+            break
         }
 
         if state.errorMessage != nil {
             if session != nil {
                 sessionNeedsConfirmation = true
-                publish(.cancelFailed(message: state.errorMessage))
+                publish(.cancelFailed(reason: .unavailable))
             } else {
                 publish(.unavailable)
             }
@@ -203,6 +218,10 @@ final class ChargeToFullNowController: ObservableObject {
 
     func clearDemand() {
         currentDemand = nil
+        pendingLimitChange = nil
+        // Closing the panel ends the restored-limit notice; reopening shows
+        // the live state instead of a stale "restored" row.
+        restoredLimit = nil
         if !isApplying, !isCancelling {
             publish(.hidden)
         }
@@ -210,12 +229,44 @@ final class ChargeToFullNowController: ObservableObject {
 
     func performPrimaryAction() {
         switch presentation {
-        case .chargingToFull, .cancelConfirmationRequired, .cancelPending, .cancelFailed:
+        case .chargingToFull, .cancelConfirmationRequired, .cancelPending,
+             .cancelFailed, .cancelLimitChangedConfirmation:
             requestCancelChargeToFullNow()
         case .available, .failed:
             requestChargeToFullNow()
         case .hidden, .applying, .cancelling, .unavailable, .limitRestored:
             break
+        }
+    }
+
+    /// Menu-bar quick action: perform the same start/cancel toggle as the panel
+    /// button, but without requiring the panel to be open.
+    ///
+    /// It synthesizes a demand as if the battery section were visible, then
+    /// reuses `update` + `performPrimaryAction` so all the capability, live-state
+    /// and restore-limit logic stays in one place. Returns whether an action was
+    /// actually available; callers fall back to the context menu when it is not,
+    /// so an impossible quick action never becomes a silent no-op.
+    @discardableResult
+    func performQuickToggle(battery: BatteryStatus) -> Bool {
+        guard capability.isAvailable else { return false }
+
+        update(
+            ChargeToFullNowDemand(
+                popoverVisible: true,
+                batterySectionVisible: true,
+                battery: battery
+            )
+        )
+
+        switch presentation {
+        case .available, .failed, .chargingToFull:
+            performPrimaryAction()
+            return true
+        case .hidden, .applying, .cancelling, .unavailable, .limitRestored,
+             .cancelConfirmationRequired, .cancelPending, .cancelFailed,
+             .cancelLimitChangedConfirmation:
+            return false
         }
     }
 
@@ -278,6 +329,15 @@ final class ChargeToFullNowController: ObservableObject {
         let state = backend.readState()
         let limit = clampedRestoreLimit()
 
+        if let pending = pendingLimitChange {
+            pendingLimitChange = nil
+            beginRestore(
+                limit: pending.targetLimit,
+                expectedLimit: pending.currentLimit
+            )
+            return
+        }
+
         if session != nil {
             if state.hasActiveChargeLimit {
                 if mayBeStaleActiveLimit(state) {
@@ -304,7 +364,7 @@ final class ChargeToFullNowController: ObservableObject {
                 return
             }
 
-            beginRestore(limit: limit)
+            beginRestore(limit: limit, expectedLimit: session?.originalLimit)
             return
         }
 
@@ -321,15 +381,18 @@ final class ChargeToFullNowController: ObservableObject {
             )
             return
         }
-        beginRestore(limit: limit)
+        beginRestore(limit: limit, expectedLimit: nil)
     }
 
-    private func beginRestore(limit: Int) {
+    private func beginRestore(limit: Int, expectedLimit: Int?) {
         isCancelling = true
         publish(.cancelling)
         Task { @MainActor [weak self] in
             guard let self else { return }
-            let result = await backend.restoreChargeLimit(to: limit)
+            let result = await backend.restoreChargeLimit(
+                to: limit,
+                expectedLimit: expectedLimit
+            )
             isCancelling = false
             let verification = backend.readState()
             let verified = result.succeeded
@@ -337,6 +400,7 @@ final class ChargeToFullNowController: ObservableObject {
 
             if verified {
                 clearSession()
+                pendingLimitChange = nil
                 restoredLimit = RestoredLimitState(
                     limit: limit,
                     restoredAt: now(),
@@ -352,29 +416,45 @@ final class ChargeToFullNowController: ObservableObject {
 
             if verified {
                 publish(.limitRestored(limit: limit))
-            } else {
+                return
+            }
+
+            // With no recorded original limit, a different sub-100 limit was
+            // read after the enable step. Ask once before replacing it with the
+            // configured target instead of dead-ending on a value that rarely
+            // matches.
+            if expectedLimit == nil,
+               result.failure == .limitChanged,
+               let currentLimit = verification.reportedChargeLimit {
+                pendingLimitChange = PendingLimitChange(
+                    currentLimit: currentLimit,
+                    targetLimit: limit
+                )
                 publish(
-                    .cancelFailed(
-                        message: result.errorMessage
-                            ?? verification.errorMessage
-                            ?? "PowerUI did not confirm the restored charge limit."
+                    .cancelLimitChangedConfirmation(
+                        current: currentLimit,
+                        target: limit
                     )
                 )
+                return
             }
+
+            let reason = result.failure
+                ?? (result.succeeded ? .verificationFailed : .rejected)
+            publish(.cancelFailed(reason: reason))
         }
     }
 
-    /// Restoring 100% means "no limit", so PowerUI reports MCL enabled with no
-    /// sub-100 limit instead of the active-limit shape used for 80–95.
+    /// The restored target must be stored as a sub-100 limit again. MCL can
+    /// still be disengaged or primed for a moment right after the write, so
+    /// every non-override shape counts; requiring `raw == 1` failed healthy
+    /// restores.
     static func restoreIsVerified(
         limit: Int,
         state: ChargeToFullNowDeviceState
     ) -> Bool {
         guard state.errorMessage == nil else { return false }
-        if limit >= 100 {
-            return state.mclEnabledRawValue == 1 && state.mclLimit == 100
-        }
-        return state.hasActiveChargeLimit
+        return state.mclEnabledRawValue != 3
             && state.reportedChargeLimit == limit
     }
 
@@ -387,7 +467,7 @@ final class ChargeToFullNowController: ObservableObject {
         state: ChargeToFullNowDeviceState
     ) -> Bool {
         guard state.errorMessage == nil,
-              state.hasActiveChargeLimit,
+              state.mclEnabledRawValue != 3,
               state.reportedChargeLimit == restored.limit,
               demand.canStartChargeToFull,
               demand.battery.percentage < restored.limit else {

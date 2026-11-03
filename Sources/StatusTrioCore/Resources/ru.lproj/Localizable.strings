@@ -56,6 +56,18 @@
 "settings.tab.panel" = "Панель состояния";
 "settings.tab.about" = "О программе";
 "settings.menuBar.title" = "Значок в строке меню";
+"settings.appIcon.middleIcon.title" = "Центральный значок";
+"settings.appIcon.middleIcon.source" = "Центральный значок";
+"settings.appIcon.middleIcon.description" = "Выберите, что показывать в центре значка состояния. Одновременно отображается только один источник.";
+"settings.appIcon.middleIcon.network" = "Сеть";
+"settings.appIcon.middleIcon.bluetooth" = "Устройство Bluetooth";
+"settings.appIcon.middleIcon.inputSource" = "Текущий источник ввода";
+"settings.appIcon.middleIcon.batteryPercentage" = "Процент батареи";
+"settings.appIcon.middleIcon.power" = "Мощность (Вт)";
+"settings.appIcon.middleIcon.size" = "Размер центрального значка";
+"settings.appIcon.middleIcon.size.description" = "Единый размер для всего содержимого в центре: Wi-Fi, Bluetooth, источник ввода и числа.";
+"settings.appIcon.middleIcon.networkWarnings" = "Сначала проблемы сети";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Когда Mac действительно офлайн, в центре показывается состояние сети вместо выбранного источника.";
 "settings.network.connectionIcons" = "Стиль значков подключения";
 "settings.network.connectionIcons.description" = "Если включено, выбранное состояние отображается стандартным значком сигнала Wi-Fi вместо специального обозначения.";
 "settings.network.wifiIconForEthernet" = "Использовать значок Wi-Fi для Ethernet";
@@ -253,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "Системный прокси";
 "vpn.subtitle.connectedWithProxy" = "Подключено · прокси %@";
 "vpn.subtitle.proxyAutomatic" = "Автонастройка";
-"wifi.action.requestNameAccess" = "Разрешить геолокацию для показа имени Wi‑Fi";
+"wifi.action.requestNameAccess" = "Разрешить геолокацию для показа сетей Wi‑Fi";
 "wifi.action.openLocationSettings" = "Разрешить геолокацию в Настройках";
 "wifi.action.openSettings" = "Открыть настройки Wi‑Fi";
 "wifi.action.switchingHint" = "Выбор сети открывает панель Wi-Fi в «Системных настройках».";
@@ -268,6 +280,11 @@
 "settings.network.panelGroup" = "Панель";
 "settings.network.showLocalIP" = "Показывать локальный IP";
 "settings.network.showLocalIP.description" = "Показывает частный адрес локальной сети этого Mac в строке сети, перед сведениями Wi-Fi.";
+
+"settings.network.permissionNotDeterminedTitle" = "Необходимо разрешение на геолокацию";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio нужен доступ к геолокации, чтобы показывать сети Wi‑Fi. Нажмите ниже, чтобы разрешить его.";
+"settings.network.permissionDeniedTitle" = "Разрешение на геолокацию выключено";
+"settings.network.permissionDeniedDescription" = "Без доступа к геолокации сети Wi‑Fi не отображаются. Включите его в Системных настройках.";
 "settings.audio.externalVolume.title" = "Громкость внешнего дисплея";
 "settings.audio.externalVolume.controlMethod" = "Способ управления";
 "settings.audio.externalVolume.controlMethodDescription" = "Если элементы управления громкостью на панели состояния не управляют этим устройством, используйте BetterDisplay.";
@@ -356,6 +373,13 @@
 "inputSource.switchFailed" = "Не удалось переключиться на «%@». Выберите его напрямую или повторите попытку.";
 "inputSource.switchUnconfirmed" = "macOS приняла «%@», но по-прежнему сообщает о другом источнике ввода. Возможно, активному приложению нужен фокус.";
 "settings.popup.order.inputSource" = "Источник ввода";
+"settings.panel.background.title" = "Фон панели";
+"settings.panel.background.style" = "Стиль фона";
+"settings.panel.background.style.description" = "Выберите способ отрисовки фона панели состояния.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "Классический материал";
+"settings.panel.background.style.solid" = "Сплошной цвет";
+"settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass требует macOS 26 или новее.";
 "settings.popup.volumeScroll.group" = "Прокрутка панели";
 "settings.popup.volumeScroll" = "Регулировать громкость прокруткой";
 "settings.popup.volumeScroll.description" = "Прокручивайте внутри панели состояния, чтобы изменить громкость вывода.";
@@ -601,7 +625,9 @@
 "battery.power.system.help" = "Мощность системы (вкл. SoC)";
 "battery.power.system.explanation" = "«Система» — это остаток после зарядки аккумулятора, дисплея и USB: SoC, память, контроллеры дисплея и другие независимо не измеренные нагрузки.";
 "power.infoBar.input" = "Вход зарядного устройства";
+"power.infoBar.noInput" = "Нет питания";
 "power.infoBar.battery" = "Заряд батареи";
+"power.infoBar.discharging" = "Разряд аккумулятора";
 "power.infoBar.system" = "Мощность системы";
 "power.infoBar.notCharging" = "Не заряжается";
 "battery.power.display" = "Дисплей";
@@ -616,7 +642,7 @@
 "settings.battery.showChargeToFullNow" = "Показывать кнопку «Зарядить полностью сейчас»";
 "settings.battery.showChargeToFullNowDescription" = "Показывает в панели состояния кнопку, которая временно снимает ограничение зарядки macOS и заряжает до 100 %.";
 "settings.battery.restoreLimit" = "Предел после отмены";
-"settings.battery.restoreLimitDescription" = "Предел зарядки, восстанавливаемый при отмене «Зарядить полностью сейчас». 100 % — без ограничения.";
+"settings.battery.restoreLimitDescription" = "Предел зарядки, восстанавливаемый при отмене «Зарядить полностью сейчас».";
 "battery.action.chargeToFullNow" = "Зарядить полностью сейчас";
 "battery.action.chargeToFullNowApplying" = "Запрос полной зарядки…";
 "battery.action.chargeToFullNowCharging" = "Зарядка до 100 %";
@@ -624,16 +650,74 @@
 "battery.action.chargeToFullNowUnavailable" = "«Зарядить полностью сейчас» сейчас недоступно.";
 "battery.action.cancelChargeToFullNow" = "Отменить полную зарядку";
 "battery.action.cancelChargeToFullNowApplying" = "Восстановление лимита зарядки…";
-"battery.action.cancelChargeToFullNowFailed" = "Не удалось восстановить лимит зарядки: %@";
+"battery.action.cancelChargeToFullNowFailed" = "Не удалось восстановить лимит зарядки. Повторите попытку.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "Системный лимит зарядки изменился. Проверьте лимит восстановления в настройках и повторите попытку.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "Системный лимит зарядки — %1$d%%. Восстановить до %2$d%%?";
 "battery.action.cancelChargeToFullNowRestored" = "Лимит зарядки восстановлен до %d%%";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "Ограничение зарядки снято";
 "battery.action.cancelChargeToFullNowFallback" = "Лимит зарядки установлен на %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "Подтвердить восстановление до %d%%";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Подтвердить установку %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "Состояние зарядки системы могло измениться. Нажмите ещё раз, чтобы продолжить.";
 "battery.action.cancelChargeToFullNowPending" = "Система ещё не подтвердила временную зарядку до 100 %. Повторите попытку через несколько секунд.";
 
-// Opt-in managed charge limit
+"settings.popup.order.brightness" = "Яркость";
+"brightness.row.accessibility" = "Яркость %@, %@";
+"brightness.row.accessibilityUnavailable" = "Яркость %@, %@";
+"brightness.unavailable" = "Недоступно";
+"brightness.appAbsent" = "Требуется BetterDisplay";
+"brightness.noBackend" = "Нет управления яркостью";
+"brightness.unresponsive" = "Не отвечает";
+"brightness.backend.directDDC" = "Прямой DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Настройте яркость подключённых дисплеев.";
+"settings.brightness.backend" = "Бэкенд яркости для %@";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "Подписаться на автора";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "Блог";
+"settings.about.community.title" = "Сообщество";
+"settings.about.community.qq" = "Группа QQ";
+"settings.about.community.qqDescription" = "Присоединяйтесь к группе Status Trio для вопросов и отзывов.";
+"settings.about.community.wechat" = "Группа WeChat";
+"settings.about.community.wechatDescription" = "Отсканируйте в WeChat, чтобы присоединиться к группе Status Trio. QR-код периодически обновляется; актуальный — в README на GitHub.";
+"settings.about.community.copy" = "Копировать";
+"settings.about.community.copied" = "Скопировано";
+"settings.about.moreApps.title" = "Другие работы автора";
+"settings.about.moreApps.open" = "Открыть";
+"settings.about.moreApps.newtab01Description" = "Новая вкладка на основе закладок: открывайте папки как группы вкладок или в разделённом виде, с несколькими темами.";
+"settings.about.moreApps.noLazyloadDescription" = "Отключите ленивую загрузку изображений в браузере, чтобы страница загружала все изображения сразу — без прокрутки.";
+"settings.about.moreApps.fund01Description" = "Мониторинг портфеля фондов: дневное изменение всегда в строке меню или на панели задач, несколько групп обновляются в реальном времени.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";
+
+"guide.partPosition.battery" = "Top arc";
+"guide.partPosition.network" = "Middle icon";
+"guide.partPosition.volume" = "Bottom dots";
+"guide.network.center" = "Change what the middle icon shows in Settings › Network › Middle Slot — battery, power, input source, or Bluetooth audio.";
+
+"guide.state.chargingBatteryCenter" = "Charging + Battery %";
+"guide.state.fullPowerCenter" = "Full + Power";
+"guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "Действие при правом клике";
+"settings.menuBarRightClickAction.description" = "Что делает значок в строке меню при щелчке правой кнопкой.";
+"settings.menuBarRightClickAction.contextMenu" = "Показать контекстное меню";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "Переключить режим энергосбережения";
+"settings.menuBarRightClickAction.chargeToFullNow" = "Зарядить до 100% сейчас";
+"settings.menuBarRightClickAction.toggleMute" = "Переключить без звука";
+"settings.menuBarRightClickAction.unavailableHint" = "Выбранное действие сейчас недоступно; при правом клике откроется меню.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "Переключить Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "Обновить состояние";
+"settings.menuBarRightClickAction.openWiFiSettings" = "Открыть настройки Wi-Fi";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "Открыть настройки Bluetooth";
+"settings.menuBarRightClickAction.openBatterySettings" = "Открыть настройки аккумулятора";
+"settings.menuBarRightClickAction.openSoundSettings" = "Открыть настройки звука";
 "settings.battery.chargeLimit.title" = "Предел заряда";
 "settings.battery.chargeLimit.target" = "Максимальный заряд";
 "settings.battery.chargeLimit.description" = "Применить предел сейчас и повторно применять при запуске, выходе из сна или подключении питания.";

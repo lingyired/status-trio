@@ -435,3 +435,54 @@ final class BatteryDetailsControllerTests: XCTestCase {
         XCTAssertFalse(controller.isActive)
     }
 }
+
+/// R4: an unplugged Mac must keep the split it just measured from the pack,
+/// while an adapter split from the previous refresh or a stale split must not
+/// leak across the power-source change.
+final class BatteryDetailsBreakdownRetentionTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_789_555_974)
+
+    private func state(connected: Bool) -> BatteryPowerState {
+        BatteryPowerState(BatteryStatus(rawPercentage: 70, isPresent: true,
+                                        isCharging: false, isLowPowerMode: false,
+                                        isConnectedToPower: connected))
+    }
+
+    private func split(_ source: BatteryPowerBreakdown.Source, at date: Date) -> BatteryPowerBreakdown {
+        BatteryPowerBreakdown(
+            source: source,
+            sourceWatts: 30,
+            display: nil,
+            usb: nil,
+            system: .init(watts: 30, readAt: date),
+            readAt: date
+        )
+    }
+
+    private func parse(connected: Bool, breakdown: BatteryPowerBreakdown?, now: Date) -> BatteryDetails {
+        BatteryDetailsReader.parse(
+            registry: [:], adapterWatts: nil, remainingSeconds: -1,
+            state: state(connected: connected), now: now, breakdown: breakdown
+        )
+    }
+
+    func testUnpluggedKeepsVerifiedBatterySplit() {
+        let batterySplit = split(.battery, at: now)
+        XCTAssertEqual(parse(connected: false, breakdown: batterySplit, now: now).breakdown, batterySplit)
+    }
+
+    func testUnpluggedDropsAdapterSplitFromPreviousRefresh() {
+        let adapterSplit = split(.adapter, at: now)
+        XCTAssertNil(parse(connected: false, breakdown: adapterSplit, now: now).breakdown)
+    }
+
+    func testUnpluggedDropsStaleBatterySplit() {
+        let stale = split(.battery, at: now.addingTimeInterval(-30))
+        XCTAssertNil(parse(connected: false, breakdown: stale, now: now).breakdown)
+    }
+
+    func testConnectedKeepsAdapterSplit() {
+        let adapterSplit = split(.adapter, at: now)
+        XCTAssertEqual(parse(connected: true, breakdown: adapterSplit, now: now).breakdown, adapterSplit)
+    }
+}

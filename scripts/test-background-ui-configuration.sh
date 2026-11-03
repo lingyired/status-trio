@@ -10,10 +10,20 @@ let configuration = BackgroundUITestingConfiguration(arguments: flags)
 #if DEBUG
 precondition(configuration.isEnabled)
 precondition(configuration.display == .secondary)
+precondition(!configuration.rejectsLaunch)
 precondition(!BackgroundUITestingConfiguration(arguments: ["--test-display=secondary"]).diagnostics.isEmpty)
+for flags in [
+    ["--background-ui-testing", "--test-display=primary"],
+    ["--background-ui-testing", "--background-ui-testing"],
+    ["--test-display=secondary"]
+] {
+    precondition(BackgroundUITestingConfiguration(arguments: flags).rejectsLaunch)
+}
+precondition(!BackgroundUITestingConfiguration(arguments: []).rejectsLaunch)
 print("Debug configuration: explicit opt-in and diagnostics passed.")
 #else
 precondition(configuration == .disabled)
+precondition(!configuration.rejectsLaunch)
 precondition(BackgroundUITestingConfiguration(arguments: ["--background-ui-testing-typo"]) == .disabled)
 print("Release configuration: testing arguments have no effect.")
 #endif

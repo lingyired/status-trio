@@ -56,6 +56,18 @@
 "settings.tab.panel" = "ステータスパネル";
 "settings.tab.about" = "このアプリについて";
 "settings.menuBar.title" = "メニューバーアイコン";
+"settings.appIcon.middleIcon.title" = "中央のアイコン";
+"settings.appIcon.middleIcon.source" = "中央のアイコン";
+"settings.appIcon.middleIcon.description" = "ステータスアイコン中央に表示する内容を選択します。同時に表示できるのは 1 つだけです。";
+"settings.appIcon.middleIcon.network" = "ネットワーク";
+"settings.appIcon.middleIcon.bluetooth" = "Bluetooth デバイス";
+"settings.appIcon.middleIcon.inputSource" = "現在の入力ソース";
+"settings.appIcon.middleIcon.batteryPercentage" = "バッテリー残量";
+"settings.appIcon.middleIcon.power" = "消費電力（W）";
+"settings.appIcon.middleIcon.size" = "中央アイコンのサイズ";
+"settings.appIcon.middleIcon.size.description" = "中央に表示するすべての内容（Wi-Fi、Bluetooth、入力ソース、数字）で共通のサイズです。";
+"settings.appIcon.middleIcon.networkWarnings" = "ネットワークの問題を優先";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Mac が実際にオフラインのときは、選択したソースの代わりにネットワークの状態を表示します。";
 "settings.network.connectionIcons" = "接続アイコンのスタイル";
 "settings.network.connectionIcons.description" = "有効にすると、選択した状態は専用マークではなく標準の Wi-Fi シグナルアイコンで表示されます。";
 "settings.network.wifiIconForEthernet" = "Ethernet に Wi-Fi アイコンを使用";
@@ -253,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "システムプロキシ";
 "vpn.subtitle.connectedWithProxy" = "接続済み · プロキシ %@";
 "vpn.subtitle.proxyAutomatic" = "自動構成";
-"wifi.action.requestNameAccess" = "位置情報を許可してWi-Fi名を表示";
+"wifi.action.requestNameAccess" = "位置情報を許可してWi-Fiネットワークを表示";
 "wifi.action.openLocationSettings" = "設定で位置情報を許可";
 "wifi.action.openSettings" = "Wi-Fi設定を開く";
 "wifi.action.switchingHint" = "ネットワークを選ぶと、システム設定の Wi-Fi パネルが開きます。";
@@ -268,6 +280,11 @@
 "settings.network.panelGroup" = "パネル";
 "settings.network.showLocalIP" = "ローカル IP を表示";
 "settings.network.showLocalIP.description" = "ネットワーク行の 2 行目に、Wi-Fi の情報より前にこの Mac のプライベート LAN アドレスを表示します。";
+
+"settings.network.permissionNotDeterminedTitle" = "位置情報の許可が必要です";
+"settings.network.permissionNotDeterminedDescription" = "Wi-Fi ネットワークを表示するには Status Trio の位置情報へのアクセスが必要です。下のボタンから許可してください。";
+"settings.network.permissionDeniedTitle" = "位置情報の許可がオフです";
+"settings.network.permissionDeniedDescription" = "位置情報へのアクセスがないと Wi-Fi ネットワークを表示できません。システム設定で有効にしてください。";
 "settings.audio.externalVolume.title" = "外部ディスプレイ音量";
 "settings.audio.externalVolume.controlMethod" = "制御方法";
 "settings.audio.externalVolume.controlMethodDescription" = "ステータスパネルの音量コントロールでこのデバイスを調整できない場合は、BetterDisplay を使用してください。";
@@ -356,6 +373,13 @@
 "inputSource.switchFailed" = "「%@」に切り替えられませんでした。直接選択するか、もう一度お試しください。";
 "inputSource.switchUnconfirmed" = "macOS は「%@」を受け付けましたが、現在の入力ソースは別のままです。最前面のアプリにフォーカスが必要な場合があります。";
 "settings.popup.order.inputSource" = "入力ソース";
+"settings.panel.background.title" = "パネルの背景";
+"settings.panel.background.style" = "背景スタイル";
+"settings.panel.background.style.description" = "ステータスパネルの背景の描画方法を選択します。";
+"settings.panel.background.style.liquidGlass" = "リキッドグラス";
+"settings.panel.background.style.classicMaterial" = "クラシックマテリアル";
+"settings.panel.background.style.solid" = "単色";
+"settings.panel.background.style.liquidGlassUnavailable" = "リキッドグラスには macOS 26 以降が必要です。";
 "settings.popup.volumeScroll.group" = "パネルのスクロール";
 "settings.popup.volumeScroll" = "スクロールで音量を調整";
 "settings.popup.volumeScroll.description" = "ステータスパネル内をスクロールすると出力音量を変更できます。";
@@ -601,7 +625,9 @@
 "battery.power.system.help" = "システム電力（SoC を含む）";
 "battery.power.system.explanation" = "「システム」は、バッテリー充電、ディスプレイ、USB を除いた残りです。SoC、メモリ、ディスプレイコントローラーなどを含み、単一のセンサー値ではありません。";
 "power.infoBar.input" = "充電器入力";
+"power.infoBar.noInput" = "電源未接続";
 "power.infoBar.battery" = "バッテリー充電";
+"power.infoBar.discharging" = "バッテリー放電";
 "power.infoBar.system" = "システム電力";
 "power.infoBar.notCharging" = "充電していません";
 "battery.power.display" = "ディスプレイ";
@@ -616,7 +642,7 @@
 "settings.battery.showChargeToFullNow" = "「今すぐフル充電」ボタンを表示";
 "settings.battery.showChargeToFullNowDescription" = "ステータスパネルに、macOS の充電上限を一時的に解除して 100% まで充電するボタンを表示します。";
 "settings.battery.restoreLimit" = "キャンセル後に復元する充電上限";
-"settings.battery.restoreLimitDescription" = "「今すぐフル充電」をキャンセルしたときに復元する充電上限。100% は上限なしを意味します。";
+"settings.battery.restoreLimitDescription" = "「今すぐフル充電」をキャンセルしたときに復元する充電上限。";
 "battery.action.chargeToFullNow" = "今すぐフル充電";
 "battery.action.chargeToFullNowApplying" = "フル充電を要求中…";
 "battery.action.chargeToFullNowCharging" = "100% まで充電中";
@@ -624,16 +650,74 @@
 "battery.action.chargeToFullNowUnavailable" = "今すぐフル充電は現在利用できません。";
 "battery.action.cancelChargeToFullNow" = "フル充電をキャンセル";
 "battery.action.cancelChargeToFullNowApplying" = "充電上限を復元中…";
-"battery.action.cancelChargeToFullNowFailed" = "充電上限を復元できませんでした: %@";
+"battery.action.cancelChargeToFullNowFailed" = "充電上限を復元できませんでした。もう一度お試しください。";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "システムの充電上限が変更されました。設定の復元上限を確認して、もう一度お試しください。";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "システムの充電上限は %1$d%% です。%2$d%% に戻しますか？";
 "battery.action.cancelChargeToFullNowRestored" = "充電上限を %d%% に復元しました";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "充電上限を解除しました";
 "battery.action.cancelChargeToFullNowFallback" = "充電上限を %d%% に設定しました";
 "battery.action.cancelChargeToFullNowConfirm" = "%d%% への復元を確認";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "%d%% への設定を確認";
 "battery.action.cancelChargeToFullNowConfirmation" = "システムの充電状態が変更された可能性があります。もう一度クリックして続行してください。";
 "battery.action.cancelChargeToFullNowPending" = "システムが一時的なフル充電をまだ確認できていません。少し待ってから再試行してください。";
 
-// Opt-in managed charge limit
+"settings.popup.order.brightness" = "明るさ";
+"brightness.row.accessibility" = "%@ の明るさ、%@";
+"brightness.row.accessibilityUnavailable" = "%@ の明るさ、%@";
+"brightness.unavailable" = "利用不可";
+"brightness.appAbsent" = "BetterDisplay が必要";
+"brightness.noBackend" = "明るさを制御できません";
+"brightness.unresponsive" = "応答なし";
+"brightness.backend.directDDC" = "ダイレクト DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "接続されているディスプレイの明るさを調整します。";
+"settings.brightness.backend" = "%@ の明るさバックエンド";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "作者をフォロー";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "ブログ";
+"settings.about.community.title" = "コミュニティ";
+"settings.about.community.qq" = "QQグループ";
+"settings.about.community.qqDescription" = "質問やフィードバックのため Status Trio グループにご参加ください。";
+"settings.about.community.wechat" = "WeChatグループ";
+"settings.about.community.wechatDescription" = "WeChatでスキャンして Status Trio グループに参加できます。QRコードは定期的に更新されます。最新版は GitHub README をご覧ください。";
+"settings.about.community.copy" = "コピー";
+"settings.about.community.copied" = "コピーしました";
+"settings.about.moreApps.title" = "作者の他の作品";
+"settings.about.moreApps.open" = "開く";
+"settings.about.moreApps.newtab01Description" = "ブックマーク連動の新しいタブ: フォルダーをタブグループや分割表示で開け、テーマも複数用意。";
+"settings.about.moreApps.noLazyloadDescription" = "ブラウザの画像の遅延読み込みを無効にし、ページを開いた時点で全ての画像を読み込みます。スクロールしながら読み込む必要はありません。";
+"settings.about.moreApps.fund01Description" = "投資信託の保有状況を監視: 前日比をメニューバー／タスクバーに常時表示し、複数グループをリアルタイム更新。";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";
+
+"guide.partPosition.battery" = "Top arc";
+"guide.partPosition.network" = "Middle icon";
+"guide.partPosition.volume" = "Bottom dots";
+"guide.network.center" = "Change what the middle icon shows in Settings › Network › Middle Slot — battery, power, input source, or Bluetooth audio.";
+
+"guide.state.chargingBatteryCenter" = "Charging + Battery %";
+"guide.state.fullPowerCenter" = "Full + Power";
+"guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "右クリックの動作";
+"settings.menuBarRightClickAction.description" = "メニューバーのアイコンを右クリックしたときの動作です。";
+"settings.menuBarRightClickAction.contextMenu" = "コンテキストメニューを表示";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "低電力モードを切り替え";
+"settings.menuBarRightClickAction.chargeToFullNow" = "今すぐフル充電";
+"settings.menuBarRightClickAction.toggleMute" = "ミュートを切り替え";
+"settings.menuBarRightClickAction.unavailableHint" = "選択した動作は現在利用できません。右クリックするとメニューが表示されます。";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "Wi-Fi を切り替え";
+"settings.menuBarRightClickAction.refreshStatus" = "状態を更新";
+"settings.menuBarRightClickAction.openWiFiSettings" = "Wi-Fi 設定を開く";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "Bluetooth 設定を開く";
+"settings.menuBarRightClickAction.openBatterySettings" = "バッテリー設定を開く";
+"settings.menuBarRightClickAction.openSoundSettings" = "サウンド設定を開く";
 "settings.battery.chargeLimit.title" = "充電上限";
 "settings.battery.chargeLimit.target" = "最大充電量";
 "settings.battery.chargeLimit.description" = "今すぐ上限を適用し、起動時、スリープ解除時、電源の再接続時に再適用します。";

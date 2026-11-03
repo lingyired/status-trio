@@ -10,7 +10,7 @@ import XCTest
 /// which pushed the panel off the top of the screen when a detail page made it
 /// taller.
 @MainActor
-final class StatusPanelContentResizeTests: XCTestCase {
+final class StatusPanelContentResizeTests: VisibleUITestCase {
     func testOpeningAndLeavingADetailPageKeepsTheMenuBarAnchoredEdgeFixed() throws {
         let suiteName = "StatusTrioCoreTests.StatusPanelContentResize.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -44,6 +44,7 @@ final class StatusPanelContentResizeTests: XCTestCase {
             rootView: StatusPopoverView(
                 panel: panelModel,
                 scrollTargets: PopoverScrollTargets(),
+                layoutMetrics: StatusPanelLayoutMetrics(),
                 requestWiFiNameAccess: {},
                 requestBluetoothAuthorization: {},
                 openBatterySettings: {},
@@ -62,7 +63,7 @@ final class StatusPanelContentResizeTests: XCTestCase {
             ).environmentObject(localization)
         )
         let panel = AnchoredStatusPanel()
-        panel.installContent(host)
+        panel.installContent(host, backgroundStyle: .solid)
 
         let screenFrame = NSScreen.main?.frame
             ?? NSRect(x: 0, y: 0, width: 1_440, height: 900)

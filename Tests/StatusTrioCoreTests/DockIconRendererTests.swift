@@ -258,10 +258,8 @@ final class DockIconRendererTests: XCTestCase {
         let standard = try pixels(for: status)
         let overridden = try pixels(
             for: status,
-            bluetoothAudioOptions: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true,
-                networkIconSymbolOverride: "keyboard"
-            )
+            connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+            bluetoothAudioOptions: BluetoothAudioIconOptions(networkIconSymbolOverride: "keyboard")
         )
 
         XCTAssertNotEqual(standard.bytes, overridden.bytes)
@@ -296,7 +294,8 @@ final class DockIconRendererTests: XCTestCase {
                     currentDevice: device
                 )
             )),
-            bluetoothAudioOptions: BluetoothAudioIconOptions(replacesNetworkIcon: true)
+            connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+            bluetoothAudioOptions: BluetoothAudioIconOptions()
         )
     }
 

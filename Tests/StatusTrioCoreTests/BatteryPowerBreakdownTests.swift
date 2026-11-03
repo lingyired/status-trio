@@ -123,6 +123,34 @@ final class BatteryPowerBreakdownTests: XCTestCase {
                      "a port without a power value is not a zero-watt output")
         XCTAssertNil(USBOutputReader.parse(registry: ["PowerOutDetails": [["Watts": 900_000]]]))
     }
+
+    func testLivePortRailsReplaceAFrozenRegistryReading() {
+        let frozen: [String: Any] = ["PowerOutDetails": [["PortIndex": 1, "Watts": 9_000]]]
+        let readAt = Date(timeIntervalSince1970: 1_000)
+        let live = USBOutputReader.resolve(
+            portRails: .measured(watts: [4.208, 0.14, 0.07], readAt: readAt), registry: frozen)
+        XCTAssertEqual(live?.watts ?? -1, 4.208, accuracy: 0.0001)
+        XCTAssertEqual(live?.portCount, 1)
+        XCTAssertEqual(live?.readAt, readAt, "a measured rail keeps the SMC read time")
+        XCTAssertNil(USBOutputReader.resolve(
+            portRails: .measured(watts: [0.05, 0.14], readAt: readAt), registry: frozen),
+            "an answered idle rail must not fall back to a frozen registry value")
+        XCTAssertEqual(USBOutputReader.resolve(portRails: .unavailable, registry: [
+            "PowerOutDetails": [["PortIndex": 1, "Watts": 7_000]]
+        ])?.watts, 7)
+    }
+
+    func testMeasuredRailStalenessUsesSMCReadTimeNotObservationTime() {
+        // A refresh whose SMC read stalled: the measurement is 120 s old, but a
+        // caller stamping `now` would call it fresh. It must be rejected.
+        let readAt = Date(timeIntervalSince1970: 1_000)
+        let observedAt = readAt.addingTimeInterval(120)
+        let sample = USBOutputReader.resolve(
+            portRails: .measured(watts: [4.2], readAt: readAt), registry: [:], now: observedAt)
+        XCTAssertEqual(sample?.readAt, readAt)
+        XCTAssertEqual(sample?.isFresh(at: observedAt), false,
+                       "a rail read 120 s ago must not pass the freshness window")
+    }
 }
 
 @MainActor
@@ -261,5 +289,25 @@ final class BatteryPowerFlowLayoutTests: XCTestCase {
         hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
         hosting.layoutSubtreeIfNeeded()
         XCTAssertEqual(hosting.fittingSize.height, 140, accuracy: 0.5)
+    }
+
+    /// A two-branch diagram must also size each card by its share: a tiny
+    /// display branch can no longer occupy a full fixed-height card next to the
+    /// system load. The old fixed two-card column was 132 pt tall.
+    func testTwoBranchDiagramSizesCardsByShare() {
+        let metrics = [
+            BatteryPowerFlowState.Metric(label: "显示器", value: "0.08 W", watts: 0.08, kind: .display),
+            BatteryPowerFlowState.Metric(label: "系统功耗", value: "28.03 W", watts: 28.03, kind: .system)
+        ]
+        let state = BatteryPowerFlowState(
+            input: .init(label: "充电器输入", value: "28.11 W", watts: 28.11),
+            destinations: metrics)
+        let hosting = NSHostingView(rootView: BatteryPowerFlowView(state: state).frame(width: 302))
+        hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
+        hosting.layoutSubtreeIfNeeded()
+
+        XCTAssertLessThan(hosting.fittingSize.height, 120,
+                          "A 0.3% branch must shrink instead of holding a full fixed card")
+        XCTAssertGreaterThan(hosting.fittingSize.height, 90)
     }
 }

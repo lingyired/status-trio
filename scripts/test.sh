@@ -6,6 +6,13 @@ PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
 cd "$PROJECT_ROOT"
 
+if [[ "${STATUS_TRIO_ALLOW_VISIBLE_UI_TESTS:-0}" == "1" ]]; then
+    echo "Visible AppKit UI tests enabled: this run may display windows and menu-bar items."
+else
+    echo "Visible AppKit UI tests are skipped; non-UI tests retain their normal assertions."
+    echo "Live UI coverage requires a separately authorized session (STATUS_TRIO_ALLOW_VISIBLE_UI_TESTS=1)."
+fi
+
 # Enforce the AGENTS.md rule the CI toolchain needs: never pass an
 # actor-isolated method as a function value (docs/swift-ci-compatibility.md).
 # Unconditional, so a filtered run still enforces the rule even though

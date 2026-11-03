@@ -1,0 +1,85 @@
+import Foundation
+import Testing
+@testable import StatusTrioCore
+
+// Temporary review probes: run against the unmodified candidate, then archive
+// outside the test target. These assertions describe the intended behavior.
+@MainActor
+struct Review190RegressionProbes {
+    private func defaults() throws -> (String, UserDefaults) {
+        let name = "Review190RegressionProbes.\(UUID().uuidString)"
+        return (name, try #require(UserDefaults(suiteName: name)))
+    }
+
+    @Test func legacyCentreChoiceSurvivesSecondLaunch() throws {
+        let (name, prefs) = try defaults()
+        defer { TestUserDefaults.removeSuite(named: name) }
+        prefs.set(true, forKey: SettingsStore.showsBatteryPercentageInConnectionSlotDefaultsKey)
+        let first = SettingsStore(defaults: prefs, systemChargeLimit: { nil })
+        #expect(first.connectionCenterSource == .batteryPercentage)
+        let second = SettingsStore(defaults: prefs, systemChargeLimit: { nil })
+        #expect(second.connectionCenterSource == .batteryPercentage)
+    }
+
+    @Test func initialRestoreLimitSurvivesMissingSystemPolicy() throws {
+        let (name, prefs) = try defaults()
+        defer { TestUserDefaults.removeSuite(named: name) }
+        let first = SettingsStore(defaults: prefs, systemChargeLimit: { 80 })
+        #expect(first.chargeToFullRestoreLimit == 80)
+        let second = SettingsStore(defaults: prefs, systemChargeLimit: { nil })
+        #expect(second.chargeToFullRestoreLimit == 80)
+    }
+
+    @Test func closingPanelReleasesInfoBarDemand() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.connectionCenterSource = .automatic
+        fixture.settings.showsBatteryPowerInfoBar = true
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        #expect(fixture.store.powerSampling.demands.contains(.powerInfoBar))
+        panel.stop()
+        #expect(fixture.store.powerSampling.demands.isEmpty)
+        #expect(!fixture.store.powerSampling.isRunning)
+    }
+
+    @Test func enablingInfoBarUsesDeliveredNewPreference() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.showsBatteryPowerInfoBar = false
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        fixture.settings.showsBatteryPowerInfoBar = true
+        fixture.updateScheduler.runScheduled()
+        #expect(fixture.store.powerSampling.demands.contains(.powerInfoBar))
+    }
+
+    @Test func disablingInfoBarReleasesAuxiliaryDemand() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.showsBatteryPowerInfoBar = true
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        fixture.settings.showsBatteryPowerInfoBar = false
+        fixture.updateScheduler.runScheduled()
+        #expect(!fixture.store.powerSampling.demands.contains(.powerInfoBar))
+    }
+
+    @Test func unpluggedParsePreservesValidatedBatterySplit() throws {
+        let now = Date()
+        let split = try #require(BatteryPowerBreakdown.resolve(
+            adapterInput: nil, charging: 0, discharge: 30,
+            display: SystemPowerSample(watts: 5, readAt: now), usb: nil, now: now
+        ))
+        #expect(split.source == .battery)
+        let state = BatteryPowerState(BatteryStatus(
+            rawPercentage: 70, isPresent: true, isCharging: false,
+            isLowPowerMode: false, isConnectedToPower: false
+        ))
+        let parsed = BatteryDetailsReader.parse(
+            registry: [:], adapterWatts: nil, remainingSeconds: 3600,
+            state: state, now: now, breakdown: split
+        )
+        #expect(parsed.breakdown == split)
+    }
+}

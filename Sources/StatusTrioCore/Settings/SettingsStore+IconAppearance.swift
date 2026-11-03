@@ -36,7 +36,10 @@ extension SettingsStore {
             )
         }
         .combineLatest($ringStrokeStyle) { groups, style in
-            groups.appearance(ringStrokeScale: style.scale)
+            (groups, style.scale)
+        }
+        .combineLatest($wifiSymbolScale) { pair, centerScale in
+            pair.0.appearance(ringStrokeScale: pair.1, centerScale: centerScale)
         }
         .removeDuplicates()
         .eraseToAnyPublisher()
@@ -92,31 +95,24 @@ extension SettingsStore {
     }
 
     private var connectionOptionsPublisher: AnyPublisher<ConnectionIconOptions, Never> {
-        Publishers.CombineLatest4(
-            $showsWiFiIconForEthernet,
-            $showsWiFiIconForHotspot,
-            $showsWiFiIconForTemporaryConnection,
-            $showsWiFiIconForInternetSharing
+        Publishers.CombineLatest(
+            Publishers.CombineLatest4(
+                $showsWiFiIconForEthernet,
+                $showsWiFiIconForHotspot,
+                $showsWiFiIconForTemporaryConnection,
+                $showsWiFiIconForInternetSharing
+            ),
+            Publishers.CombineLatest($connectionCenterSource, $prioritizesNetworkErrors)
         )
-        .combineLatest($wifiSymbolScale) { values, wifiScale in
+        .map { pair in
             ConnectionIconOptions(
-                showsWiFiIconForEthernet: values.0,
-                showsWiFiIconForHotspot: values.1,
-                showsWiFiIconForTemporaryConnection: values.2,
-                showsWiFiIconForInternetSharing: values.3,
-                wifiScale: wifiScale
-            )
-        }
-        .combineLatest($connectionCenterSource, $prioritizesNetworkErrorsOverInputSource) {
-            options, centerSource, prioritizesNetworkErrors in
-            ConnectionIconOptions(
-                showsWiFiIconForEthernet: options.showsWiFiIconForEthernet,
-                showsWiFiIconForHotspot: options.showsWiFiIconForHotspot,
-                showsWiFiIconForTemporaryConnection: options.showsWiFiIconForTemporaryConnection,
-                showsWiFiIconForInternetSharing: options.showsWiFiIconForInternetSharing,
-                centerSource: centerSource,
-                prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrors,
-                wifiScale: options.wifiScale
+                showsWiFiIconForEthernet: pair.0.0,
+                showsWiFiIconForHotspot: pair.0.1,
+                showsWiFiIconForTemporaryConnection: pair.0.2,
+                showsWiFiIconForInternetSharing: pair.0.3,
+                centerSource: pair.1.0,
+                prioritizesNetworkErrors: pair.1.1,
+                wifiScale: 1.0
             )
         }
         .removeDuplicates()
@@ -124,21 +120,13 @@ extension SettingsStore {
     }
 
     private var bluetoothOptionsPublisher: AnyPublisher<BluetoothAudioIconOptions, Never> {
-        Publishers.CombineLatest4(
-            $replacesNetworkIconWithBluetoothAudio,
+        Publishers.CombineLatest(
             $usesBluetoothAudioVolumeColor,
-            $prioritizesNetworkErrorsOverBluetoothAudio,
-            $bluetoothSymbolScale
+            $bluetoothNetworkIconSymbolName
         )
-        .combineLatest($bluetoothNetworkIconSymbolName) { values, symbolOverride in
-            (values, symbolOverride)
-        }
         .combineLatest($bluetoothAudioIconChoiceRawValue) { values, choiceRawValue in
             BluetoothAudioIconOptions(
-                replacesNetworkIcon: values.0.0,
-                usesVolumeColor: values.0.1,
-                prioritizesNetworkErrors: values.0.2,
-                symbolScale: values.0.3,
+                usesVolumeColor: values.0,
                 networkIconSymbolOverride: values.1,
                 iconChoice: BluetoothAudioIconChoice.persisted(choiceRawValue) { symbol in
                     NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
@@ -191,16 +179,31 @@ private struct IconAppearanceGroups {
     var volumeDisplayStyle: VolumeDisplayStyle
     var iconSize: Double
 
-    func appearance(ringStrokeScale: Double) -> StatusIconAppearance {
-        StatusIconAppearance(
+    func appearance(ringStrokeScale: Double, centerScale: Double) -> StatusIconAppearance {
+        let scaledConnection = ConnectionIconOptions(
+            showsWiFiIconForEthernet: connection.showsWiFiIconForEthernet,
+            showsWiFiIconForHotspot: connection.showsWiFiIconForHotspot,
+            showsWiFiIconForTemporaryConnection: connection.showsWiFiIconForTemporaryConnection,
+            showsWiFiIconForInternetSharing: connection.showsWiFiIconForInternetSharing,
+            centerSource: connection.centerSource,
+            prioritizesNetworkErrors: connection.prioritizesNetworkErrors,
+            wifiScale: centerScale
+        )
+        let scaledBluetooth = BluetoothAudioIconOptions(
+            usesVolumeColor: bluetooth.usesVolumeColor,
+            symbolScale: centerScale,
+            networkIconSymbolOverride: bluetooth.networkIconSymbolOverride,
+            iconChoice: bluetooth.iconChoice
+        )
+        return StatusIconAppearance(
             iconSize: iconSize,
             batteryOptions: battery.options(ringStrokeScale: ringStrokeScale),
-            connectionOptions: connection,
+            connectionOptions: scaledConnection,
             volumeOptions: VolumeIconOptions(
                 displayStyle: volumeDisplayStyle,
                 ringStrokeScale: ringStrokeScale
             ),
-            bluetoothAudioOptions: bluetooth
+            bluetoothAudioOptions: scaledBluetooth
         )
     }
 }

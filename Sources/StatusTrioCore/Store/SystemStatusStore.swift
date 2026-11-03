@@ -5,7 +5,7 @@ import Foundation
 
 private struct BluetoothDemandSettingsSnapshot: Equatable {
     var enabledPopupSections: Set<PopupSection> = []
-    var replacesNetworkIconWithBluetoothAudio = false
+    var centerSource: ConnectionCenterSource = .network
     var bluetoothNetworkIconDeviceAddress: String?
     var showsAppleDevicesAndBattery = false
     var refreshesAppleBatteriesInBackground = false
@@ -74,6 +74,7 @@ final class SystemStatusStore: ObservableObject {
     /// keys should not gain a signal for a popover-only label.
     @Published private(set) var isNetworkConstrained = false
     @Published private(set) var liveVolume: VolumeStatus
+    @Published private(set) var liveBrightness: BrightnessStatus
     @Published private(set) var liveInput = AudioInputStatus.empty
     @Published private(set) var betterDisplayState = BetterDisplayCatalogUpdate(
         devices: [], availability: .idle
@@ -110,6 +111,7 @@ final class SystemStatusStore: ObservableObject {
     private let connectionMonitor: (any NetworkConnectionMonitoring)?
     private let vpnMonitor: (any VPNMonitoring)?
     private let volumeMonitor: any VolumeMonitoring
+    private let brightnessMonitor: any BrightnessMonitoring
     private let inputMonitor: (any AudioInputMonitoring)?
     private let volumeController: (any VolumeControlling)?
     private let volumeFeedback: (any VolumeFeedbackPlaying)?
@@ -126,6 +128,8 @@ final class SystemStatusStore: ObservableObject {
     private var inputSettingsCancellable: AnyCancellable?
     private var externalVolumeSettingsCancellable: AnyCancellable?
     private weak var boundExternalVolumeSettings: SettingsStore?
+    private var externalBrightnessSettingsCancellable: AnyCancellable?
+    private weak var boundExternalBrightnessSettings: SettingsStore?
     private var localIPSettingsCancellable: AnyCancellable?
     private var applicationEnergySettingsCancellable: AnyCancellable?
     private var isApplicationEnergyEnabled = false
@@ -203,6 +207,7 @@ final class SystemStatusStore: ObservableObject {
         connectionMonitor: (any NetworkConnectionMonitoring)? = nil,
         vpnMonitor: (any VPNMonitoring)? = nil,
         volumeMonitor: any VolumeMonitoring,
+        brightnessMonitor: any BrightnessMonitoring = BrightnessMonitor(),
         inputMonitor: (any AudioInputMonitoring)? = nil,
         volumeFeedback: (any VolumeFeedbackPlaying)? = VolumeFeedbackPlayer(),
         refreshInterval: Duration = .seconds(15),
@@ -236,6 +241,7 @@ final class SystemStatusStore: ObservableObject {
         self.connectionMonitor = connectionMonitor
         self.vpnMonitor = vpnMonitor
         self.volumeMonitor = volumeMonitor
+        self.brightnessMonitor = brightnessMonitor
         self.inputMonitor = inputMonitor
         self.volumeController = volumeMonitor as? any VolumeControlling
         self.volumeFeedback = volumeFeedback
@@ -261,6 +267,7 @@ final class SystemStatusStore: ObservableObject {
         self.popupSnapshot = initialSnapshot
         self.vpnStatus = .placeholder
         self.liveVolume = initialSnapshot.volume
+        self.liveBrightness = initialSnapshot.brightness
         bluetoothAuthorizationCancellable = bluetoothDevices.$authorizationStatus
             .sink { [weak self] _ in
                 guard let self else { return }
@@ -293,6 +300,7 @@ final class SystemStatusStore: ObservableObject {
         updateApplicationEnergyDemand()
         wifiMonitor.setDetailsVisible(false)
         volumeMonitor.setDetailsVisible(false)
+        brightnessMonitor.setDetailsVisible(false)
 
         wakeObserver = wakeNotificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
@@ -315,6 +323,8 @@ final class SystemStatusStore: ObservableObject {
                 self.updateApplicationEnergyDemand()
                 self.bluetoothDevices.setSystemSleeping(false)
                 self.volumeMonitor.setDisplayAsleep(false)
+                self.brightnessMonitor.setDisplayAsleep(false)
+                self.brightnessMonitor.topologyChanged()
                 self.displayAsleepSkipCount = 0
                 self.reconcileBluetoothDemand()
                 self.recoverAll()
@@ -345,6 +355,7 @@ final class SystemStatusStore: ObservableObject {
                 self?.isApplicationEnergyDisplayAsleep = true
                 self?.updateApplicationEnergyDemand()
                 self?.volumeMonitor.setDisplayAsleep(true)
+                self?.brightnessMonitor.setDisplayAsleep(true)
             }
         }
 
@@ -362,6 +373,8 @@ final class SystemStatusStore: ObservableObject {
                 self.isApplicationEnergySystemAsleep = false
                 self.updateApplicationEnergyDemand()
                 self.volumeMonitor.setDisplayAsleep(false)
+                self.brightnessMonitor.setDisplayAsleep(false)
+                self.brightnessMonitor.topologyChanged()
                 self.displayAsleepSkipCount = 0
                 self.reconcileBluetoothDemand()
                 self.recoverAll()
@@ -373,6 +386,7 @@ final class SystemStatusStore: ObservableObject {
         wifiMonitor.start()
         connectionMonitor?.start()
         volumeMonitor.start()
+        brightnessMonitor.start()
 
         if let inputMonitor {
             let inputUpdates = inputMonitor.updates
@@ -394,6 +408,7 @@ final class SystemStatusStore: ObservableObject {
         let wifiUpdates = wifiMonitor.updates
         let connectionUpdates = connectionMonitor?.updates
         let volumeUpdates = volumeMonitor.updates
+        let brightnessUpdates = brightnessMonitor.updates
         let betterDisplayCatalogUpdates = volumeMonitor.betterDisplayCatalogUpdates
         var tasks = [
             Task { [weak self] in
@@ -412,6 +427,12 @@ final class SystemStatusStore: ObservableObject {
                 for await value in volumeUpdates {
                     guard let self else { return }
                     self.applyVolume(value)
+                }
+            },
+            Task { [weak self] in
+                for await value in brightnessUpdates {
+                    guard let self else { return }
+                    self.applyBrightness(value)
                 }
             },
             Task { [weak self] in
@@ -507,6 +528,7 @@ final class SystemStatusStore: ObservableObject {
         wifiMonitor.stop()
         connectionMonitor?.stop()
         volumeMonitor.stop()
+        brightnessMonitor.stop()
         monitorTasks.forEach { $0.cancel() }
         monitorTasks.removeAll()
         refreshTask?.cancel()
@@ -562,6 +584,15 @@ final class SystemStatusStore: ObservableObject {
         volumeController?.toggleMute()
     }
 
+    /// Menu-bar quick action: toggle the Wi-Fi radio while the panel is closed.
+    /// No confirmation step (unlike Bluetooth), so it just flips the current
+    /// radio state. `.unavailable` means there is no Wi-Fi interface to toggle.
+    func toggleWiFiPower() {
+        guard !hasStopped, snapshot.wifi.state != .unavailable else { return }
+        let isOff = snapshot.wifi.state == .off
+        wifiNetworks.setPowerFromQuickAction(!isOff)
+    }
+
     func selectOutputDevice(_ device: AudioOutputDevice) {
         guard !hasStopped else { return }
         volumeController?.selectOutputDevice(device.id)
@@ -595,6 +626,23 @@ final class SystemStatusStore: ObservableObject {
     /// the radio, while a refusal lives under Privacy & Security.
     func openBluetoothPermissionSettings() {
         for url in Self.bluetoothPermissionSettingsURLs where NSWorkspace.shared.open(url) {
+            return
+        }
+    }
+
+    /// The route where a refused Wi-Fi location grant is restored. Lives under
+    /// Privacy & Security, because macOS reads a Wi-Fi name via location services.
+    static let locationSettingsURLs: [URL] = [
+        "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_LocationServices",
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"
+    ]
+    .compactMap(URL.init(string:))
+
+    /// Opens the Privacy & Security pane where a refused Wi-Fi location grant is
+    /// restored. Unlike the Bluetooth pane route (which toggles the radio), the
+    /// refusal lives under Privacy & Security.
+    func openLocationSettings() {
+        for url in Self.locationSettingsURLs where NSWorkspace.shared.open(url) {
             return
         }
     }
@@ -665,7 +713,7 @@ final class SystemStatusStore: ObservableObject {
 
         let panelAndDisplay = Publishers.CombineLatest4(
             settings.$enabledPopupSections,
-            settings.$replacesNetworkIconWithBluetoothAudio,
+            settings.$connectionCenterSource,
             settings.$bluetoothNetworkIconDeviceAddress,
             settings.$showsAppleDevicesAndBattery
         )
@@ -681,7 +729,7 @@ final class SystemStatusStore: ObservableObject {
                 let previouslyNeededVolumeDetails = self.needsVolumeDetails
                 self.bluetoothSettingsSnapshot = BluetoothDemandSettingsSnapshot(
                     enabledPopupSections: panelAndDisplay.0,
-                    replacesNetworkIconWithBluetoothAudio: panelAndDisplay.1,
+                    centerSource: panelAndDisplay.1,
                     bluetoothNetworkIconDeviceAddress: panelAndDisplay.2,
                     showsAppleDevicesAndBattery: panelAndDisplay.3,
                     refreshesAppleBatteriesInBackground: backgroundAndRows.0,
@@ -691,6 +739,7 @@ final class SystemStatusStore: ObservableObject {
                 self.updateVolumeDetailsAfterSettingsChange(
                     previouslyNeeded: previouslyNeededVolumeDetails
                 )
+                self.updateBrightnessDetailsVisibility()
                 self.reconcileBluetoothDemand()
             }
             .store(in: &bluetoothSettingsCancellables)
@@ -706,7 +755,7 @@ final class SystemStatusStore: ObservableObject {
     ) -> BluetoothDemandSettingsSnapshot {
         BluetoothDemandSettingsSnapshot(
             enabledPopupSections: settings.enabledPopupSections,
-            replacesNetworkIconWithBluetoothAudio: settings.replacesNetworkIconWithBluetoothAudio,
+            centerSource: settings.connectionCenterSource,
             bluetoothNetworkIconDeviceAddress: settings.bluetoothNetworkIconDeviceAddress,
             showsAppleDevicesAndBattery: settings.showsAppleDevicesAndBattery,
             refreshesAppleBatteriesInBackground: settings.refreshesAppleBatteriesInBackground,
@@ -726,7 +775,7 @@ final class SystemStatusStore: ObservableObject {
                 || legacyBluetoothSettingsDemandClaimCount > 0 {
                 sources.insert(.settings)
             }
-            if bluetoothSettingsSnapshot.replacesNetworkIconWithBluetoothAudio,
+            if bluetoothSettingsSnapshot.centerSource == .bluetoothDevice,
                bluetoothSettingsSnapshot.bluetoothNetworkIconDeviceAddress?.isEmpty == false {
                 sources.insert(.selectedDeviceIcon)
             }
@@ -879,6 +928,19 @@ final class SystemStatusStore: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] configurations in
                 self?.volumeMonitor.setExternalVolumeConfigurations(configurations)
+            }
+    }
+
+    func bindExternalBrightnessSettings(_ settings: SettingsStore) {
+        guard !hasStopped else { return }
+        boundExternalBrightnessSettings = settings
+        brightnessMonitor.setExternalBrightnessConfigurations(
+            settings.externalBrightnessConfigurations
+        )
+        externalBrightnessSettingsCancellable = settings.$externalBrightnessConfigurations
+            .removeDuplicates()
+            .sink { [weak self] configurations in
+                self?.brightnessMonitor.setExternalBrightnessConfigurations(configurations)
             }
     }
 
@@ -1083,6 +1145,18 @@ final class SystemStatusStore: ObservableObject {
     private func updateDetailsVisibility() {
         wifiMonitor.setDetailsVisible(isPopoverVisible)
         volumeMonitor.setDetailsVisible(needsVolumeDetails)
+        updateBrightnessDetailsVisibility()
+    }
+
+    private var needsBrightnessDetails: Bool {
+        isPopoverVisible
+            && bluetoothSettingsSnapshot.enabledPopupSections.contains(.brightness)
+    }
+
+    private func updateBrightnessDetailsVisibility() {
+        let needed = needsBrightnessDetails
+        brightnessMonitor.setDetailsVisible(needed)
+        if needed { brightnessMonitor.refresh() }
     }
 
     func bindInputSettings(_ settings: SettingsStore) {
@@ -1410,6 +1484,23 @@ final class SystemStatusStore: ObservableObject {
         reconcileBluetoothDemand()
     }
 
+    private func applyBrightness(_ value: BrightnessStatus) {
+        if value != liveBrightness {
+            liveBrightness = value
+        }
+        publish(snapshot.replacingBrightness(value))
+    }
+
+    func setBrightness(_ scalar: Double, forDisplayID displayID: String) {
+        guard !hasStopped, scalar.isFinite, !displayID.isEmpty else { return }
+        brightnessMonitor.setBrightness(min(1, max(0, scalar)), forDisplayID: displayID)
+    }
+
+    func finishBrightnessAdjustment(displayID: String) {
+        guard !hasStopped, !displayID.isEmpty else { return }
+        brightnessMonitor.finishBrightnessAdjustment(displayID: displayID)
+    }
+
     private func applyBetterDisplayCatalog(_ value: BetterDisplayCatalogUpdate) {
         guard betterDisplayState != value else { return }
         betterDisplayState = value
@@ -1535,20 +1626,24 @@ private extension VolumeStatus {
 
 extension StatusSnapshot {
     func replacingBattery(_ value: BatteryStatus) -> StatusSnapshot {
-        StatusSnapshot(battery: value, wifi: wifi, connection: connection, volume: volume)
+        StatusSnapshot(battery: value, wifi: wifi, connection: connection, volume: volume, brightness: brightness)
     }
 }
 
 private extension StatusSnapshot {
     func replacingWiFi(_ value: WiFiStatus) -> StatusSnapshot {
-        StatusSnapshot(battery: battery, wifi: value, connection: connection, volume: volume)
+        StatusSnapshot(battery: battery, wifi: value, connection: connection, volume: volume, brightness: brightness)
     }
 
     func replacingConnection(_ value: NetworkConnection) -> StatusSnapshot {
-        StatusSnapshot(battery: battery, wifi: wifi, connection: value, volume: volume)
+        StatusSnapshot(battery: battery, wifi: wifi, connection: value, volume: volume, brightness: brightness)
     }
 
     func replacingVolume(_ value: VolumeStatus) -> StatusSnapshot {
-        StatusSnapshot(battery: battery, wifi: wifi, connection: connection, volume: value)
+        StatusSnapshot(battery: battery, wifi: wifi, connection: connection, volume: value, brightness: brightness)
+    }
+
+    func replacingBrightness(_ value: BrightnessStatus) -> StatusSnapshot {
+        StatusSnapshot(battery: battery, wifi: wifi, connection: connection, volume: volume, brightness: value)
     }
 }

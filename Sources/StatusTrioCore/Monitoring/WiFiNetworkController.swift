@@ -383,6 +383,26 @@ final class WiFiNetworkController: ObservableObject {
         }
     }
 
+    /// One-shot radio power change for a surface that is not the Wi-Fi list
+    /// demand, such as the menu-bar right-click quick action. Unlike `setPower`
+    /// it does not require `isActive`; when the list happens to be active it
+    /// still refreshes the cached scan as the normal path does. The snapshot is
+    /// refreshed by the regular monitor cadence afterward.
+    func setPowerFromQuickAction(_ enabled: Bool) {
+        _ = scanGate.advance()
+        worker.setPower(enabled) { [weak self] changed in
+            Task { @MainActor [weak self] in
+                guard let self, self.isActive else { return }
+                if changed {
+                    self.state = .ready
+                    self.refreshNow()
+                } else {
+                    self.state = .failed
+                }
+            }
+        }
+    }
+
     private func receiveScanResult(_ result: WiFiScanWorkerResult) {
         switch result {
         case let .success(payload):

@@ -21,10 +21,10 @@ func command(_ executable: String, _ arguments: [String]) -> String {
 
 let arguments = Array(CommandLine.arguments.dropFirst())
 guard (arguments.count == 3 && arguments[0] == "prepare")
-        || (arguments.count == 4 && arguments[0] == "launch"
+        || (arguments.count == 4 && ["launch", "reuse"].contains(arguments[0])
             && ["automatic", "secondary"].contains(arguments[3])),
       arguments[1].hasPrefix("com.lingsmbp.StatusTrio.dev.") else {
-    fail("Usage: computer-use-instance.swift <prepare|launch> <dev-bundle-id> <app-path> [automatic|secondary]")
+    fail("Usage: computer-use-instance.swift <prepare|launch|reuse> <dev-bundle-id> <app-path> [automatic|secondary]")
 }
 let mode = arguments[0]
 let bundleID = arguments[1]
@@ -47,22 +47,52 @@ func launchArguments(_ app: NSRunningApplication) -> [Substring] {
         .split(whereSeparator: \.isWhitespace)
 }
 
+func report(_ app: NSRunningApplication, launchToken: String, display: String, reused: Bool) {
+    let plist = NSDictionary(contentsOf: appURL.appendingPathComponent("Contents/Info.plist")) ?? [:]
+    let report: [String: Any] = [
+        "bundleID": bundleID, "path": appURL.path, "pid": app.processIdentifier,
+        "sha": plist["STBuildCommit"] ?? "", "sourceDirty": plist["STBuildSourceDirty"] ?? false,
+        "backgroundUITesting": true, "requestedDisplay": display,
+        "launchToken": launchToken, "reused": reused,
+        "mainDisplayID": CGMainDisplayID(),
+        "connectedDisplayIDs": NSScreen.screens.map {
+            ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
+        }
+    ]
+    guard let data = try? JSONSerialization.data(withJSONObject: report, options: [.sortedKeys]) else {
+        fail("Could not encode instance identity.")
+    }
+    print(String(decoding: data, as: UTF8.self))
+}
+
 if mode == "prepare" {
     let running = instances()
     guard running.count <= 1 else { fail("Multiple instances share \(bundleID); stop and inspect them.") }
     if let app = running.first {
         validatePath(app)
-        guard launchArguments(app).contains("--background-ui-testing") else {
-            fail("PID \(app.processIdentifier) is a non-test dev instance. Quit it explicitly before testing.")
-        }
-        guard app.terminate() else { fail("Test PID \(app.processIdentifier) refused graceful termination.") }
-        let deadline = Date(timeIntervalSinceNow: 8)
-        while !app.isTerminated, Date() < deadline {
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
-        }
-        guard app.isTerminated else { fail("Test PID \(app.processIdentifier) did not exit; no force kill.") }
-        print("Stopped this worktree's test PID \(app.processIdentifier).")
+        fail("PID \(app.processIdentifier) is already running and will not be stopped. Use --reuse for a suitable test instance, or have its owner close it before rebuilding.")
     }
+} else if mode == "reuse" {
+    let running = instances()
+    guard running.count == 1, let app = running.first, app.isFinishedLaunching else {
+        fail("Reuse needs exactly one finished test instance; no launch or reopen was sent.")
+    }
+    validatePath(app)
+    let actualArguments = launchArguments(app)
+    let tokens = actualArguments.filter { $0.hasPrefix("--status-trio-ui-test-launch=") }
+    let plist = NSDictionary(contentsOf: appURL.appendingPathComponent("Contents/Info.plist")) ?? [:]
+    guard actualArguments.contains("--background-ui-testing"),
+          tokens.count == 1, let token = tokens.first,
+          UUID(uuidString: String(token.dropFirst("--status-trio-ui-test-launch=".count))) != nil,
+          plist["CFBundleIdentifier"] as? String == bundleID,
+          plist["STBackgroundUITestingSupported"] as? Bool == true else {
+        fail("Existing instance lacks the expected Debug test identity and launch token.")
+    }
+    let display = actualArguments.contains("--test-display=secondary") ? "secondary" : "automatic"
+    guard arguments[3] != "secondary" || display == "secondary" else {
+        fail("Existing instance did not request the secondary display; reuse will not move its windows.")
+    }
+    report(app, launchToken: String(token), display: display, reused: true)
 } else {
     // Recheck after the build: another launch may have occurred in the meantime.
     guard instances().isEmpty else { fail("An instance appeared during build; no reopen or duplicate launch sent.") }
@@ -89,17 +119,5 @@ if mode == "prepare" {
     guard flags.allSatisfy({ actualArguments.contains(Substring($0)) }) else {
         fail("Running PID \(app.processIdentifier) does not have the requested test arguments.")
     }
-    let plist = NSDictionary(contentsOf: appURL.appendingPathComponent("Contents/Info.plist")) ?? [:]
-    let report: [String: Any] = [
-        "bundleID": bundleID, "path": appURL.path, "pid": app.processIdentifier,
-        "sha": plist["STBuildCommit"] ?? "", "sourceDirty": plist["STBuildSourceDirty"] ?? false,
-        "backgroundUITesting": true, "requestedDisplay": arguments[3],
-        "launchToken": launchToken,
-        "mainDisplayID": CGMainDisplayID(),
-        "connectedDisplayIDs": NSScreen.screens.map {
-            ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
-        }
-    ]
-    let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
-    print(String(decoding: data, as: UTF8.self))
+    report(app, launchToken: launchToken, display: arguments[3], reused: false)
 }

@@ -29,7 +29,7 @@ final class PresentationBaselineTests: XCTestCase {
         XCTAssertEqual(PresentationFixtures.bluetoothDevice.transport, .bluetooth)
     }
 
-    func testPresentBatteryPercentageWinsOverPrioritizedNetworkErrorAndBluetoothOutput() throws {
+    func testPrioritizedNetworkErrorWinsOverBatteryPercentageAndBluetoothOutput() throws {
         let fixture = PresentationFixtures.snapshot()
         let snapshot = StatusSnapshot(
             battery: fixture.battery,
@@ -42,10 +42,7 @@ final class PresentationBaselineTests: XCTestCase {
                 currentDevice: PresentationFixtures.bluetoothDevice
             )
         )
-        let bluetoothWithNetworkErrorPriority = BluetoothAudioIconOptions(
-            replacesNetworkIcon: true,
-            prioritizesNetworkErrors: true
-        )
+        let bluetoothWithNetworkErrorPriority = BluetoothAudioIconOptions()
 
         let batteryCenter = try renderedPixels(
             snapshot,
@@ -54,15 +51,16 @@ final class PresentationBaselineTests: XCTestCase {
         )
         let batteryOnlyReference = try renderedPixels(
             snapshot,
-            centerSource: .batteryPercentage
+            centerSource: .batteryPercentage,
+            prioritizesNetworkErrors: false
         )
         let prioritizedNetworkError = try renderedPixels(
             snapshot,
             bluetoothOptions: bluetoothWithNetworkErrorPriority
         )
 
-        XCTAssertEqual(centerSlotPixels(batteryCenter), centerSlotPixels(batteryOnlyReference))
-        XCTAssertNotEqual(centerSlotPixels(batteryCenter), centerSlotPixels(prioritizedNetworkError))
+        XCTAssertEqual(centerSlotPixels(batteryCenter), centerSlotPixels(prioritizedNetworkError))
+        XCTAssertNotEqual(centerSlotPixels(batteryCenter), centerSlotPixels(batteryOnlyReference))
     }
 
     func testAbsentBatteryPercentageCenterWinsOverBluetoothReplacement() throws {
@@ -84,7 +82,7 @@ final class PresentationBaselineTests: XCTestCase {
                 currentDevice: PresentationFixtures.bluetoothDevice
             )
         )
-        let bluetoothReplacement = BluetoothAudioIconOptions(replacesNetworkIcon: true)
+        let bluetoothReplacement = BluetoothAudioIconOptions()
 
         let enabledWithBatterySlot = try renderedPixels(
             snapshot,
@@ -116,7 +114,8 @@ final class PresentationBaselineTests: XCTestCase {
 
     private func renderedPixels(
         _ snapshot: StatusSnapshot,
-        centerSource: ConnectionCenterSource = .automatic,
+        centerSource: ConnectionCenterSource = .network,
+        prioritizesNetworkErrors: Bool = true,
         bluetoothOptions: BluetoothAudioIconOptions = .standard
     ) throws -> PixelBuffer {
         let image = try XCTUnwrap(renderMenuBarFixture(
@@ -125,7 +124,8 @@ final class PresentationBaselineTests: XCTestCase {
             scale: 8,
             foreground: CGColor(gray: 1, alpha: 1),
             connectionOptions: ConnectionIconOptions(
-                centerSource: centerSource
+                centerSource: centerSource,
+                prioritizesNetworkErrors: prioritizesNetworkErrors
             ),
             bluetoothAudioOptions: bluetoothOptions
         ))

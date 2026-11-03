@@ -50,18 +50,26 @@ final class StatusPanelViewModel: ObservableObject {
     /// also owns HUAWEI and AirPods listening-mode discovery.
     @Published private(set) var listeningModeTaskID = ""
     @Published private(set) var volume: VolumePanelState
+    @Published private(set) var brightness: BrightnessPanelState
     @Published private(set) var audioInput: AudioInputPanelState
     @Published private(set) var inputSource: InputSourcePanelState
     @Published private(set) var batteryDetails: PanelDetailState
     @Published private(set) var wifiDetails: WiFiPanelState
     @Published private(set) var wiredDetails: PanelDetailState
     @Published private(set) var chargeToFullNowPresentation: ChargeToFullNowPresentation = .hidden
+    /// The battery summary card keeps honoring the Settings toggle: the row only
+    /// appears there when the user has enabled it. The battery details page uses
+    /// the ungated `chargeToFullNowPresentation` above.
+    @Published private(set) var summaryChargeToFullNowPresentation: ChargeToFullNowPresentation = .hidden
     @Published private(set) var visiblePopupSections: [PopupSection]
     @Published private(set) var route: StatusPanelRoute = .summary
     @Published private(set) var wifiDisclosure = WiFiPanelDisclosureState()
 
     let store: SystemStatusStore
     let settings: SettingsStore
+    /// Persisted per-list layout, shared with the views so a reopened panel can
+    /// reserve last time's height while the lists re-read their rows.
+    let layoutSnapshots: PanelListLayoutSnapshotStore
     private let localization: Localization
     private let inputSourceController: InputSourceController
     private let chargeToFullNow: ChargeToFullNowController?
@@ -73,6 +81,10 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private var bluetoothPresentationRevision = 0
     private var isStarted = false
     private var bluetoothIsExpanded = false
+    /// Whether the volume section has published a real, non-empty device list
+    /// since the panel last started. Until it has, the section may draw the
+    /// cached skeleton instead of an empty list.
+    private var volumeDeviceRowsLoaded = false
     private var pendingRefreshRegions: RefreshRegions = []
     private var lifecycleGeneration = 0
 
@@ -94,6 +106,7 @@ final class StatusPanelViewModel: ObservableObject {
         let resolvedInputSourceController = inputSourceController ?? InputSourceController()
         self.store = store
         self.settings = settings
+        self.layoutSnapshots = PanelListLayoutSnapshotStore(defaults: settings.userDefaults)
         self.localization = localization
         self.inputSourceController = resolvedInputSourceController
         self.chargeToFullNow = chargeToFullNow
@@ -139,6 +152,10 @@ final class StatusPanelViewModel: ObservableObject {
         inputSource = InputSourcePanelMapper.map(
             state: resolvedInputSourceController.state,
             failure: resolvedInputSourceController.selectionFailure,
+            localization: localization
+        )
+        brightness = BrightnessPanelMapper.map(
+            store.popupSnapshot.brightness,
             localization: localization
         )
         batteryDetails = PanelDetailMapper.battery(
@@ -189,8 +206,9 @@ final class StatusPanelViewModel: ObservableObject {
                         inputPower: inputPower,
                         batteryPower: batteryPower,
                         showsPowerInfoBar: self.settings.showsBatteryPowerInfoBar,
+                        powerInfoBarIsLoading: !self.store.powerSampling.hasCompletedFirstRead,
                         localization: self.localization,
-                        chargeToFullNow: self.chargeToFullNowPresentation
+                        chargeToFullNow: self.summaryChargeToFullNowPresentation
                     )
                     if self.battery != next { self.battery = next }
                 }
@@ -201,8 +219,8 @@ final class StatusPanelViewModel: ObservableObject {
         settings.$showsBatteryPowerInfoBar
             .removeDuplicates()
             .dropFirst()
-            .sink { [weak self] _ in
-                self?.updatePowerSamplingDemand()
+            .sink { [weak self] enabled in
+                self?.updatePowerSamplingDemand(showsPowerInfoBar: enabled)
             }
             .store(in: &cancellables)
 
@@ -239,11 +257,14 @@ final class StatusPanelViewModel: ObservableObject {
         isStarted = false
         lifecycleGeneration &+= 1
         pendingRefreshRegions = []
+        volumeDeviceRowsLoaded = false
         sourceDemandCancellables.removeAll()
         subscribedSourceDemand = nil
         chargeToFullNow?.clearDemand()
         chargeToFullNowPresentation = .hidden
+        summaryChargeToFullNowPresentation = .hidden
         store.powerSampling.end(.panel)
+        store.powerSampling.end(.powerInfoBar)
         cancellables.removeAll()
     }
 
@@ -340,6 +361,7 @@ final class StatusPanelViewModel: ObservableObject {
         guard !isStarted, !store.isPopoverVisible, !store.hasOpenPopoverPanel else { return }
         pendingRefreshRegions = []
         bluetoothIsExpanded = false
+        volumeDeviceRowsLoaded = false
         bluetooth = bluetooth.releasingDeviceRows()
         batteryDetails = batteryDetails.releasingRows()
         wifiDetails = wifiDetails.releasingLists()
@@ -421,6 +443,15 @@ final class StatusPanelViewModel: ObservableObject {
 
     private func mapVolume(_ status: VolumeStatus) -> VolumePanelState {
         let previewConfiguration = currentPreviewConfiguration
+        // Draw the cached skeleton only inside the window between reopening and
+        // the first real device list of this presentation. A genuinely empty or
+        // unavailable controller must not keep a stale skeleton on screen.
+        let deviceListPlaceholder: PanelListLayoutSnapshot? =
+            !volumeDeviceRowsLoaded
+            && status.outputDevices.isEmpty
+            && store.isVolumeControllerAvailable
+            ? layoutSnapshots.snapshot(for: .volume).flatMap { $0.showsDeviceList ? $0 : nil }
+            : nil
         return AudioPanelMapper.volume(
             status,
             controllerAvailable: store.isVolumeControllerAvailable,
@@ -434,6 +465,7 @@ final class StatusPanelViewModel: ObservableObject {
             previewDevices: ListeningModePreview.outputRows(for: previewConfiguration, volume: status.scalar),
             previewLanguageCode: previewConfiguration.languageCode,
             previewLocalization: PreviewLocalization.forCode(previewConfiguration.languageCode),
+            deviceListPlaceholder: deviceListPlaceholder,
             localization: localization
         )
     }
@@ -558,6 +590,7 @@ final class StatusPanelViewModel: ObservableObject {
     private func subscribeToChargeToFullNow() {
         guard let chargeToFullNow else {
             chargeToFullNowPresentation = .hidden
+            summaryChargeToFullNowPresentation = .hidden
             return
         }
 
@@ -566,12 +599,27 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] presentation in
                 guard let self else { return }
                 chargeToFullNowPresentation = presentation
+                refreshSummaryChargeToFullNowPresentation()
                 refreshBatterySummary()
             }
             .store(in: &cancellables)
 
-        Publishers.CombineLatest4(
-            settings.$showsChargeToFullNowButton.removeDuplicates(),
+        // The Settings toggle only gates the summary card; the battery details
+        // page uses the ungated presentation. Refresh the summary immediately on
+        // toggle so turning it off/on updates the card without waiting for the
+        // next battery tick.
+        settings.$showsChargeToFullNowButton
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                // `@Published` emits before the stored property updates, so use
+                // the emitted value rather than re-reading the store here.
+                refreshSummaryChargeToFullNowPresentation(settingEnabled: enabled)
+                refreshBatterySummary()
+            }
+            .store(in: &cancellables)
+
+        Publishers.CombineLatest3(
             Publishers.CombineLatest(
                 settings.$enabledPopupSections,
                 settings.$popupSectionOrder
@@ -585,15 +633,24 @@ final class StatusPanelViewModel: ObservableObject {
                 .map(\.battery)
                 .removeDuplicates()
         )
-        .sink { [weak self] settingEnabled, batterySectionVisible, popoverVisible, battery in
+        .sink { [weak self] batterySectionVisible, popoverVisible, battery in
             self?.updateChargeToFullNowDemand(
-                settingEnabled: settingEnabled,
                 batterySectionVisible: batterySectionVisible,
                 popoverVisible: popoverVisible,
                 battery: battery
             )
         }
         .store(in: &cancellables)
+    }
+
+    private func refreshSummaryChargeToFullNowPresentation(
+        settingEnabled: Bool? = nil
+    ) {
+        let enabled = settingEnabled ?? settings.showsChargeToFullNowButton
+        let next = enabled ? chargeToFullNowPresentation : .hidden
+        if summaryChargeToFullNowPresentation != next {
+            summaryChargeToFullNowPresentation = next
+        }
     }
 
     /// True when the battery page has something to show: a real battery, or a
@@ -606,7 +663,7 @@ final class StatusPanelViewModel: ObservableObject {
     /// The panel summary and a no-battery page need the shared sampler only
     /// while the customer can see them. The details page registers its own
     /// demand, so closing the panel never cuts a sample it is still using.
-    private func updatePowerSamplingDemand() {
+    private func updatePowerSamplingDemand(showsPowerInfoBar: Bool? = nil) {
         let panelVisible = isStarted && visiblePopupSections.contains(.battery)
         if panelVisible {
             store.powerSampling.begin(.panel)
@@ -614,8 +671,10 @@ final class StatusPanelViewModel: ObservableObject {
             store.powerSampling.end(.panel)
         }
         // The provisional info bar needs the input and battery rails; without
-        // it the sampler reads only the whole-machine total.
-        if panelVisible, settings.showsBatteryPowerInfoBar {
+        // it the sampler reads only the whole-machine total. Published settings
+        // arrive before their stored value commits, so prefer the delivered value.
+        let showsInfoBar = showsPowerInfoBar ?? settings.showsBatteryPowerInfoBar
+        if panelVisible, showsInfoBar {
             store.powerSampling.begin(.powerInfoBar)
         } else {
             store.powerSampling.end(.powerInfoBar)
@@ -632,14 +691,14 @@ final class StatusPanelViewModel: ObservableObject {
             inputPower: store.powerSampling.inputPower,
             batteryPower: store.powerSampling.batteryPower,
             showsPowerInfoBar: settings.showsBatteryPowerInfoBar,
+            powerInfoBarIsLoading: !store.powerSampling.hasCompletedFirstRead,
             localization: localization,
-            chargeToFullNow: chargeToFullNowPresentation
+            chargeToFullNow: summaryChargeToFullNowPresentation
         )
         if battery != next { battery = next }
     }
 
     private func updateChargeToFullNowDemand(
-        settingEnabled: Bool,
         batterySectionVisible: Bool,
         popoverVisible: Bool,
         battery: BatteryStatus
@@ -650,7 +709,6 @@ final class StatusPanelViewModel: ObservableObject {
         }
         chargeToFullNow.update(
             ChargeToFullNowDemand(
-                settingEnabled: settingEnabled,
                 popoverVisible: popoverVisible,
                 batterySectionVisible: batterySectionVisible,
                 battery: battery
@@ -792,6 +850,12 @@ final class StatusPanelViewModel: ObservableObject {
         if isVisible(.audioInput) {
             publishAudioInput(mapInput(store.liveInput))
         }
+        if isVisible(.brightness) {
+            brightness = BrightnessPanelMapper.map(
+                store.popupSnapshot.brightness,
+                localization: localization
+            )
+        }
         if isVisible(.inputSource) {
             publishInputSource(
                 state: inputSourceController.state,
@@ -836,7 +900,7 @@ final class StatusPanelViewModel: ObservableObject {
                 batteryPower: store.powerSampling.batteryPower,
                 showsPowerInfoBar: settings.showsBatteryPowerInfoBar,
                 localization: localization,
-                chargeToFullNow: chargeToFullNowPresentation
+                chargeToFullNow: summaryChargeToFullNowPresentation
             )
             if battery != batteryState { battery = batteryState }
         }
@@ -851,6 +915,13 @@ final class StatusPanelViewModel: ObservableObject {
                 localization: localization
             )
             if network != networkState { network = networkState }
+        }
+        if isVisible(.brightness) {
+            let brightnessState = BrightnessPanelMapper.map(
+                snapshot.brightness,
+                localization: localization
+            )
+            if brightness != brightnessState { brightness = brightnessState }
         }
         if store.batteryDetails.isActive { refreshBatteryDetails(status: snapshot.battery) }
         if store.wifiNetworks.isActive { refreshWiFiDetails(status: snapshot.wifi) }
@@ -1008,6 +1079,17 @@ final class StatusPanelViewModel: ObservableObject {
         }
         guard volume != state else { return }
         volume = state
+        // Once real rows are back, remember the collapsed layout so the next
+        // open can reserve its height, and mark the section as loaded so it stops
+        // asking for the skeleton.
+        guard !state.rows.isEmpty else { return }
+        volumeDeviceRowsLoaded = true
+        let snapshot = PanelListLayoutSnapshot(
+            rowHeights: VolumeDeviceRowMetrics.rowHeights(for: state.visibleRows(expanded: false)),
+            hasExpansionButton: state.hasHiddenRows,
+            showsDeviceList: state.showsDeviceList
+        )
+        layoutSnapshots.save(snapshot.isEmpty ? nil : snapshot, for: .volume)
     }
 
     private func publishAudioInput(_ state: AudioInputPanelState) {
@@ -1076,6 +1158,7 @@ private extension VolumePanelState {
             muteHelp: muteHelp,
             sliderLabel: sliderLabel,
             showsDeviceList: false,
+            deviceListPlaceholder: nil,
             rows: [],
             previewRows: [],
             visibleLimit: visibleLimit,
@@ -1101,6 +1184,7 @@ private extension VolumePanelState {
             muteHelp: muteHelp,
             sliderLabel: sliderLabel,
             showsDeviceList: false,
+            deviceListPlaceholder: nil,
             rows: [],
             previewRows: [],
             visibleLimit: visibleLimit,

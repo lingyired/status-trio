@@ -3,13 +3,12 @@ import SwiftUI
 /// A static flow diagram: sampling changes the numbers and ribbon widths, with
 /// no animation clock, Canvas loop, or work while the panel is closed.
 struct BatteryPowerFlowView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let state: BatteryPowerFlowState
 
     private var destinations: [BatteryPowerFlowState.Metric] { state.destinations }
-    private var isCompact: Bool { destinations.count > 2 }
-    private var nodeHeight: CGFloat { isCompact ? 46 : 60 }
-    private var pitch: CGFloat { isCompact ? 50 : 70 }
-    private var topPadding: CGFloat { isCompact ? 2 : 1 }
+    /// Extra breathing room above and below the branch column.
+    private let topPadding: CGFloat = 2
 
     /// Rows grow with the branch's share of the budget so the card column reads
     /// in the same proportion as the ribbons: a minimum one-line row, a maximum
@@ -32,30 +31,29 @@ struct BatteryPowerFlowView: View {
     /// The panel chrome is transparent Liquid Glass, so the previous very light
     /// fills (0.045–0.08) vanished over a bright or colourful desktop. These
     /// fills and rims keep each node and ribbon legible without hiding the glass.
-    /// The input chip deliberately reuses the outer power bar's exact styling
-    /// (`.primary` at 0.18, radius 12, 0.3 rim) so the two "charger input"
-    /// surfaces read the same.
-    private static let inputCardFill: Double = 0.18
-    private static let inputCardStroke: Double = 0.3
+    /// The input chip shares the outer power bar's styling through
+    /// `PowerCardSurface` (silver fill and rim, radius 12), so the two "charger
+    /// input" cards read the same in both appearances.
     private static let cardFill: Double = 0.18
     private static let cardStroke: Double = 0.32
     private static let ribbonFillStart: Double = 0.22
     private static let ribbonFillEnd: Double = 0.62
 
+    /// Every branch's height is its share of the budget, for any number of
+    /// branches. The proportion is itself a reading: a 0.3% display branch must
+    /// not look as heavy as the system load beside it.
     private func rowHeight(_ index: Int) -> CGFloat {
-        guard isCompact else { return nodeHeight }
         let share = min(1, max(0, state.flowFraction(for: destinations[index]) ?? 0))
         return Self.minRow + (Self.maxRow - Self.minRow) * share
     }
 
     private func showsLabel(_ index: Int) -> Bool {
-        !isCompact || rowHeight(index) >= Self.labelRow
+        rowHeight(index) >= Self.labelRow
     }
 
     /// Height of the branch column itself, without the view's padding.
     private var columnHeight: CGFloat {
         guard !destinations.isEmpty else { return 0 }
-        if !isCompact { return nodeHeight + CGFloat(destinations.count - 1) * pitch }
         return destinations.indices.reduce(CGFloat.zero) { $0 + rowHeight($1) }
             + Self.rowGap * CGFloat(destinations.count - 1)
     }
@@ -68,9 +66,6 @@ struct BatteryPowerFlowView: View {
     }
 
     private func centerY(_ index: Int) -> CGFloat {
-        guard isCompact else {
-            return destinations.count == 1 ? height / 2 : topPadding + nodeHeight / 2 + CGFloat(index) * pitch
-        }
         let rows = destinations.indices.reduce(0) { $0 + rowHeight($1) }
         let column = rows + Self.rowGap * CGFloat(destinations.count - 1)
         // A short column sits centred against the taller input card.
@@ -149,30 +144,37 @@ struct BatteryPowerFlowView: View {
                 }
             }
             if let input = state.input {
-                metric(input, symbol: "powerplug.fill", color: .primary,
-                       height: Self.inputCardHeight, singleLine: false, iconSize: 15,
+                // The source node is the adapter (plug, primary) unless the pack
+                // is discharging, in which case it takes the outer bar's
+                // discharging card style (plain battery, orange).
+                let inputColor = Self.color(for: input.kind)
+                let inputSurface = Self.surface(for: input.kind)
+                metric(input, symbol: Self.symbol(for: input.kind), color: inputColor,
+                       height: Self.inputCardHeight, singleLine: false,
+                       iconSize: Self.iconSize(for: input.kind),
                        iconLeading: false)
                     .frame(width: destinations.isEmpty ? width : 62)
                     // `Color.primary` (an explicit colour), not bare `.primary`:
                     // in `.background(_:in:)` the leading dot resolves to the
                     // hierarchical `HierarchicalShapeStyle.primary`, which follows
                     // the vibrant foreground of the detail page and renders almost
-                    // transparent over the glass. The explicit colour matches the
-                    // outer power bar's `Color.primary` chip.
-                    .background(Color.primary.opacity(Self.inputCardFill),
+                    // transparent over the glass. `Self.color(for:)` returns the
+                    // explicit colour for the adapter chip.
+                    .background(inputSurface.fill(tint: inputColor, scheme: colorScheme),
                                 in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color.primary.opacity(Self.inputCardStroke), lineWidth: 1)
+                            .strokeBorder(inputSurface.stroke(tint: inputColor, scheme: colorScheme),
+                                          lineWidth: 1)
                     }
                     .position(x: destinations.isEmpty ? width / 2 : 31, y: center)
             }
             ForEach(Array(destinations.enumerated()), id: \.offset) { index, item in
                 metric(item, symbol: Self.symbol(for: item.kind),
                        color: Self.color(for: item.kind), height: rowHeight(index),
-                       singleLine: isCompact && !showsLabel(index),
-                       dense: isCompact && !showsLabel(index) && rowHeight(index) <= Self.denseRow,
-                       iconSize: isCompact && !showsLabel(index) && rowHeight(index) <= Self.denseRow
+                       singleLine: !showsLabel(index),
+                       dense: !showsLabel(index) && rowHeight(index) <= Self.denseRow,
+                       iconSize: !showsLabel(index) && rowHeight(index) <= Self.denseRow
                            ? 10 : Self.iconSize(for: item.kind))
                     .frame(width: state.input == nil ? width : 94)
                     .background(Self.color(for: item.kind).opacity(Self.cardFill), in: RoundedRectangle(cornerRadius: 12))
@@ -188,6 +190,10 @@ struct BatteryPowerFlowView: View {
 
     private static func symbol(for kind: BatteryPowerFlowState.Kind) -> String {
         switch kind {
+        case .input: return "powerplug.fill"
+        // The pack as the source: plain battery, matching the outer bar's
+        // discharging card (only charging carries the bolt).
+        case .batterySource: return "battery.100"
         case .charging: return "battery.100.bolt"
         case .display: return "display"
         case .usb: return "cable.connector"
@@ -197,6 +203,9 @@ struct BatteryPowerFlowView: View {
 
     private static func color(for kind: BatteryPowerFlowState.Kind) -> Color {
         switch kind {
+        case .input: return .primary
+        // Same orange as the outer power bar's discharging battery card.
+        case .batterySource: return .orange
         case .charging: return .green
         case .display: return .indigo
         case .usb: return .orange
@@ -204,10 +213,23 @@ struct BatteryPowerFlowView: View {
         }
     }
 
+    /// The input card's surface: the shared silver while the adapter supplies
+    /// power, and the input-card tint wash (not the branch cards' slightly
+    /// heavier rim) when the pack is the source instead.
+    static func surface(for kind: BatteryPowerFlowState.Kind) -> PowerCardSurface {
+        switch kind {
+        case .input: return .silver(.connected)
+        case .batterySource, .charging, .display, .usb, .system:
+            return .tint(fillOpacity: 0.18, strokeOpacity: 0.3)
+        }
+    }
+
     /// SF Symbols do not share one optical weight: the battery glyph reads
     /// larger than the display and connector glyphs at the same point size.
     private static func iconSize(for kind: BatteryPowerFlowState.Kind) -> CGFloat {
         switch kind {
+        case .input: return 15
+        case .batterySource: return 13
         case .charging: return 12
         case .display, .usb, .system: return 13
         }
@@ -248,14 +270,14 @@ struct BatteryPowerFlowView: View {
                             .frame(width: 20)
                             .accessibilityHidden(true)
                         Text(value.value)
-                            .font(.system(size: isCompact ? 12 : 13, weight: .semibold, design: .rounded))
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     Text(value.label)
-                        .font(.system(size: isCompact ? 9 : 10))
+                        .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)

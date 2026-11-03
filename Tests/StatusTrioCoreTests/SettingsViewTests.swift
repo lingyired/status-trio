@@ -83,6 +83,50 @@ final class SettingsViewTests: XCTestCase {
         }
     }
 
+    /// The network pane surfaces the Wi-Fi location permission only when name
+    /// access is missing, matching the Bluetooth permission banner. `.notDetermined`
+    /// offers to raise the prompt; `.denied`/`.restricted` send the user to
+    /// Privacy & Security; a granted app shows no notice. This pins that the
+    /// pane really pays attention to `snapshot.wifi.nameAccess`.
+    func testNetworkPermissionNoticeTracksWiFiNameAccess() throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let localization = Localization(defaults: suite.defaults, preferredLanguages: ["en"])
+        let store = SettingsStore(defaults: suite.defaults)
+
+        @MainActor
+        func renderedHeight(nameAccess: WiFiNameAccess) -> CGFloat {
+            let statusStore = makeStatusStore(nameAccess: nameAccess)
+            let pane = NetworkSectionView(
+                store: store,
+                statusStore: statusStore,
+                previewIsDark: .constant(true)
+            )
+            .environmentObject(localization)
+            .environmentObject(ChargingEffectClock())
+
+            let hosting = NSHostingView(rootView: pane)
+            hosting.frame = NSRect(
+                x: 0, y: 0,
+                width: SettingsView.width - SettingsView.sidebarWidth,
+                height: SettingsView.height
+            )
+            hosting.layoutSubtreeIfNeeded()
+            return hosting.fittingSize.height
+        }
+
+        // The permission notice row only renders when name access is missing, so
+        // each ungranted state grows the pane taller than the granted baseline.
+        let grantedHeight = renderedHeight(nameAccess: .authorized)
+        for state in [WiFiNameAccess.notDetermined, .denied, .restricted] {
+            let height = renderedHeight(nameAccess: state)
+            XCTAssertGreaterThan(
+                height, grantedHeight,
+                "\(state): the permission notice should add height over the granted baseline (\(grantedHeight))"
+            )
+        }
+    }
     /// The order list is only reachable when the pane can read paired devices.
     /// The pane used to read `statusStore.bluetoothDevices.devices` without
     /// observing the controller and without activating it, so a fresh launch
@@ -134,7 +178,9 @@ final class SettingsViewTests: XCTestCase {
     /// The picker under the replace-network-icon toggle: off hides it, on
     /// draws the audio-device row and every classified paired device, and
     /// picking a device records its address and resolved symbol in the store.
-    func testBluetoothNetworkIconSourcePickerRendersAndPicksADevice() async {
+    /// The middle-icon source lives in App Icon; selecting Bluetooth reveals
+    /// its device row, and picking a device records address and symbol together.
+    func testMiddleIconSourcePickerRendersBluetoothOptionsAndPicksADevice() async {
         let suite = makeSuite()
         defer { clear(suite) }
 
@@ -156,39 +202,31 @@ final class SettingsViewTests: XCTestCase {
 
         let localization = Localization(defaults: suite.defaults, preferredLanguages: ["en"])
         let store = SettingsStore(defaults: suite.defaults)
-        let emptyStoreController = SettingsBluetoothTestFactory.makeController(devices: [])
 
-        store.replacesNetworkIconWithBluetoothAudio = false
-        let withToggleOff = renderBluetoothPane(
+        store.connectionCenterSource = .network
+        let withoutDeviceOptions = renderAppIconPane(
             store: store,
-            storeController: emptyStoreController,
-            observedController: controller,
+            statusStore: makeStatusStore(bluetoothDevices: controller),
             localization: localization
         )
-        store.replacesNetworkIconWithBluetoothAudio = true
-        let withToggleOn = renderBluetoothPane(
+        store.connectionCenterSource = .bluetoothDevice
+        let withDeviceOptions = renderAppIconPane(
             store: store,
-            storeController: emptyStoreController,
-            observedController: controller,
+            statusStore: makeStatusStore(bluetoothDevices: controller),
             localization: localization
         )
 
         XCTAssertGreaterThan(
-            withToggleOn.height,
-            withToggleOff.height + 40,
-            "the picker must render the audio-device row and two classified devices "
-                + "(on \(withToggleOn.height), off \(withToggleOff.height))"
+            withDeviceOptions.height,
+            withoutDeviceOptions.height + 30,
+            "selecting Bluetooth must render the device row "
+                + "(with \(withDeviceOptions.height), without \(withoutDeviceOptions.height))"
         )
 
-        // Picking the keyboard device records both halves of the choice; the
-        // ghost device never made it into the picker to be picked instead.
         store.setBluetoothNetworkIconDevice(address: "d36d6c40a32e", symbolName: "keyboard")
         XCTAssertEqual(store.bluetoothNetworkIconDeviceAddress, "d36d6c40a32e")
         XCTAssertEqual(store.bluetoothNetworkIconSymbolName, "keyboard")
-        XCTAssertEqual(
-            store.bluetoothAudioIconOptions.networkIconSymbolOverride,
-            "keyboard"
-        )
+        XCTAssertEqual(store.bluetoothAudioIconOptions.networkIconSymbolOverride, "keyboard")
     }
 
     func testSettingsViewHostingViewRendersWithoutCrashing() {
@@ -340,6 +378,30 @@ private func makeStatusStore() -> SystemStatusStore {
     )
 }
 
+@MainActor
+private func makeStatusStore(nameAccess: WiFiNameAccess) -> SystemStatusStore {
+    SystemStatusStore(
+        batteryMonitor: DummyBatteryMonitor(),
+        wifiMonitor: DummyWiFiMonitor(),
+        volumeMonitor: DummyVolumeMonitor(),
+        initialSnapshot: StatusSnapshot(
+            battery: .placeholder,
+            wifi: WiFiStatus(state: .connected, rssi: -50, nameAccess: nameAccess),
+            volume: .placeholder
+        )
+    )
+}
+
+@MainActor
+private func makeStatusStore(bluetoothDevices: BluetoothDeviceController) -> SystemStatusStore {
+    SystemStatusStore(
+        batteryMonitor: DummyBatteryMonitor(),
+        wifiMonitor: DummyWiFiMonitor(),
+        volumeMonitor: DummyVolumeMonitor(),
+        bluetoothDevices: bluetoothDevices
+    )
+}
+
 /// A `BluetoothDeviceController` whose paired-device read answers with the
 /// fixture and whose monitor already holds the grant, so `activate()` starts
 /// the monitor without a permission prompt, exactly as the granted app does.
@@ -363,6 +425,32 @@ private enum SettingsBluetoothTestFactory {
 /// controllers: the pane renders the one it observes, while the store keeps an
 /// empty one, so a pane that fell back to `statusStore.bluetoothDevices` would
 /// still draw the empty branch.
+@MainActor
+private func renderAppIconPane(
+    store: SettingsStore,
+    statusStore: SystemStatusStore,
+    localization: Localization
+) -> NSSize {
+    let pane = AppIconSectionView(
+        store: store,
+        statusStore: statusStore,
+        previewIsDark: .constant(true),
+        onShowIconGuide: {}
+    )
+    .environmentObject(localization)
+    .environmentObject(ChargingEffectClock())
+
+    let hosting = NSHostingView(rootView: pane)
+    hosting.frame = NSRect(
+        x: 0,
+        y: 0,
+        width: SettingsView.width - SettingsView.sidebarWidth,
+        height: SettingsView.height
+    )
+    hosting.layoutSubtreeIfNeeded()
+    return hosting.fittingSize
+}
+
 @MainActor
 private func renderBluetoothPane(
     store: SettingsStore,

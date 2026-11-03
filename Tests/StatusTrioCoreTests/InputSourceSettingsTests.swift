@@ -6,10 +6,10 @@ final class InputSourceSettingsTests: XCTestCase {
     func testCenterSourceDefaultsToAutomaticAndNetworkWarningsStayOn() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
-        XCTAssertEqual(store.connectionCenterSource, .automatic)
-        XCTAssertTrue(store.prioritizesNetworkErrorsOverInputSource)
-        XCTAssertEqual(store.connectionIconOptions.centerSource, .automatic)
-        XCTAssertTrue(store.connectionIconOptions.prioritizesNetworkErrorsOverInputSource)
+        XCTAssertEqual(store.connectionCenterSource, .network)
+        XCTAssertTrue(store.prioritizesNetworkErrors)
+        XCTAssertEqual(store.connectionIconOptions.centerSource, .network)
+        XCTAssertTrue(store.connectionIconOptions.prioritizesNetworkErrors)
     }
 
     func testUnknownStoredSourceDecodesToAutomatic() {
@@ -20,7 +20,7 @@ final class InputSourceSettingsTests: XCTestCase {
             forKey: SettingsStore.connectionCenterSourceDefaultsKey
         )
 
-        XCTAssertEqual(SettingsStore(defaults: suite.defaults).connectionCenterSource, .automatic)
+        XCTAssertEqual(SettingsStore(defaults: suite.defaults).connectionCenterSource, .network)
     }
 
     func testChoicesPersistAcrossStoreInstances() {
@@ -29,11 +29,11 @@ final class InputSourceSettingsTests: XCTestCase {
 
         let first = SettingsStore(defaults: suite.defaults)
         first.connectionCenterSource = .inputSource
-        first.prioritizesNetworkErrorsOverInputSource = false
+        first.prioritizesNetworkErrors = false
 
         let second = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(second.connectionCenterSource, .inputSource)
-        XCTAssertFalse(second.prioritizesNetworkErrorsOverInputSource)
+        XCTAssertFalse(second.prioritizesNetworkErrors)
     }
 
     func testAStoredPanelListGainsTheSectionWithoutEnablingIt() {

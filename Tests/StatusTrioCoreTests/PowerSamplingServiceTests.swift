@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import XCTest
 @testable import StatusTrioCore
@@ -55,6 +56,23 @@ final class PowerSamplingServiceTests: XCTestCase {
         XCTAssertNil(service.systemPower, "A stopped sampler must not leave a stale value behind")
     }
 
+    func testCompletedFirstReadTracksTheRunningSession() async {
+        let service = makeService { _ in
+            PowerSamplingReading(system: SystemPowerSample(watts: 17.5, readAt: Date()))
+        }
+        XCTAssertFalse(service.hasCompletedFirstRead)
+
+        service.begin(.panel)
+        await waitForSample(service)
+        XCTAssertTrue(service.hasCompletedFirstRead)
+
+        service.end(.panel)
+        XCTAssertFalse(
+            service.hasCompletedFirstRead,
+            "A stopped sampler asks the next open to reserve its skeleton again"
+        )
+    }
+
     func testAnUnreadableSampleIsNeverPublishedAsZero() async {
         let service = makeService { _ in .empty }
         service.begin(.icon)
@@ -86,6 +104,47 @@ final class PowerSamplingServiceTests: XCTestCase {
         XCTAssertNil(service.batteryPower)
         XCTAssertNotNil(service.systemPower, "The panel's whole-machine sample must survive")
         service.end(.panel)
+    }
+
+    func testEndingAuxiliaryDemandRejectsInFlightRailsButKeepsIconSystemPower() async {
+        let initialSystem = SystemPowerSample(watts: 18, readAt: now)
+        let nextSystem = SystemPowerSample(watts: 21, readAt: now)
+        let input = SystemPowerSample(watts: 30, readAt: now)
+        let battery = BatteryPowerSample(volts: 12, amps: 1, updatedAt: now)
+        let initialDelivered = expectation(description: "initial icon power delivered")
+        let auxiliaryReadStarted = expectation(description: "auxiliary read is in flight")
+        let nextSystemDelivered = expectation(description: "in-flight system power remains useful to icon")
+        let releaseAuxiliaryRead = DispatchSemaphore(value: 0)
+        let service = makeService { includeAuxiliaryRails in
+            guard includeAuxiliaryRails else { return PowerSamplingReading(system: initialSystem) }
+            auxiliaryReadStarted.fulfill()
+            guard releaseAuxiliaryRead.wait(timeout: .now() + 5) == .success else { return .empty }
+            return PowerSamplingReading(system: nextSystem, input: input, battery: battery)
+        }
+        var observations: Set<AnyCancellable> = []
+        service.$systemPower.sink { sample in
+            if sample == initialSystem { initialDelivered.fulfill() }
+            if sample == nextSystem { nextSystemDelivered.fulfill() }
+        }.store(in: &observations)
+        defer {
+            releaseAuxiliaryRead.signal()
+            service.stopAll()
+            observations.removeAll()
+        }
+        service.begin(.icon)
+        await fulfillment(of: [initialDelivered], timeout: 1)
+        service.begin(.powerInfoBar)
+        await fulfillment(of: [auxiliaryReadStarted], timeout: 1)
+
+        service.end(.powerInfoBar)
+        releaseAuxiliaryRead.signal()
+        await fulfillment(of: [nextSystemDelivered], timeout: 1)
+
+        XCTAssertEqual(service.demands, [.icon])
+        XCTAssertTrue(service.isRunning)
+        XCTAssertEqual(service.systemPower, nextSystem)
+        XCTAssertNil(service.inputPower, "An ended demand must not be repopulated by its late input rail")
+        XCTAssertNil(service.batteryPower, "An ended demand must not be repopulated by its late battery rail")
     }
 
     func testStopAllReleasesEveryDemand() {

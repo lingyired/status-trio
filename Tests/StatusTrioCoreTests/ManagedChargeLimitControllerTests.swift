@@ -132,7 +132,7 @@ final class ManagedChargeLimitControllerTests: XCTestCase {
         await controller.updateBattery(battery())
         await controller.handleWake()
         XCTAssertEqual(backend.targets, [90])
-        let result = await controller.restoreChargeLimit(to: 80)
+        let result = await controller.restoreChargeLimit(to: 80, expectedLimit: nil)
         XCTAssertTrue(result.succeeded)
         XCTAssertEqual(backend.targets, [90, 90])
         XCTAssertEqual(store.session?.isTemporarilyOverridden, false)
@@ -145,7 +145,7 @@ final class ManagedChargeLimitControllerTests: XCTestCase {
         await managed.selectLimit(82)
         let panel = ChargeToFullNowController(backend: managed,
             managedRestoreLimit: { managed.managedRestoreLimit })
-        panel.update(ChargeToFullNowDemand(settingEnabled: true, popoverVisible: true,
+        panel.update(ChargeToFullNowDemand(popoverVisible: true,
             batterySectionVisible: true, battery: battery()))
         panel.requestChargeToFullNow()
         await settle { panel.presentation == .chargingToFull }
@@ -362,7 +362,6 @@ final class ManagedChargeLimitControllerTests: XCTestCase {
 
     private func demand(connected: Bool = true, full: Bool = false) -> ChargeToFullNowDemand {
         ChargeToFullNowDemand(
-            settingEnabled: true,
             popoverVisible: true,
             batterySectionVisible: true,
             battery: battery(connected: connected, full: full)
@@ -546,7 +545,7 @@ private final class ManagedChargeBackend: BatteryChargeControlling {
         }
         return .success
     }
-    func restoreChargeLimit(to limit: Int) async -> ChargeToFullNowWriteResult {
+    func restoreChargeLimit(to limit: Int, expectedLimit: Int?) async -> ChargeToFullNowWriteResult {
         restoreTargets.append(limit)
         guard succeeds else { return .failure }
         state = ChargeToFullNowDeviceState(mclEnabledRawValue: 1, mclLimit: limit,

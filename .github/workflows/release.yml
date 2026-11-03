@@ -296,6 +296,7 @@ jobs:
           bash "$CI_TOOLS_ROOT/scripts/test-build-timing.sh"
           bash scripts/test-release-pipeline.sh
           bash scripts/test-release-notarization.sh
+          bash scripts/test-dmg-installer.sh
           bash scripts/test-mobile-battery-clang-version.sh
           bash scripts/test-verify-local.sh
           bash scripts/test-verify-local-bundle.sh
@@ -360,6 +361,13 @@ jobs:
           swift --version
           xcodebuild -version
           printf 'macOS SDK: %s\n' "$(xcrun --sdk macosx --show-sdk-version)"
+
+      - name: Prepare DMG installer tool
+        run: |
+          if ! command -v create-dmg >/dev/null 2>&1; then
+            HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 brew install create-dmg
+          fi
+          bash scripts/create-installer-dmg.sh --check
 
       - name: Validate publishing secrets and notarization mode
         env:

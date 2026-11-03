@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class SettingsRowHitAreaTests: XCTestCase {
+final class SettingsRowHitAreaTests: VisibleUITestCase {
     func testPopupSettingsButtonUsesFullRowHitArea() {
         let localization = makeLocalization()
         let settings = makeSettings()
@@ -22,6 +22,7 @@ final class SettingsRowHitAreaTests: XCTestCase {
         let view = StatusPopoverView(
             panel: panel,
             scrollTargets: PopoverScrollTargets(),
+            layoutMetrics: StatusPanelLayoutMetrics(),
             requestWiFiNameAccess: {},
             requestBluetoothAuthorization: {},
             openBatterySettings: {},

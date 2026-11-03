@@ -7,7 +7,7 @@ import XCTest
 /// while the option groups below it scroll, and it must share their width — a
 /// scrollbar that takes layout space only narrows the scrolling content.
 @MainActor
-final class SettingsPagePinningTests: XCTestCase {
+final class SettingsPagePinningTests: VisibleUITestCase {
     func testPinnedHeaderIsPinnedInsideThePageScrollView() throws {
         let hostingView = makeHostingView(
             SettingsPage(pinnedHeader: {

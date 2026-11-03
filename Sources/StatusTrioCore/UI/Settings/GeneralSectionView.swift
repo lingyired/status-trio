@@ -4,8 +4,13 @@ struct GeneralSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var localization: Localization
     var globalShortcutController: GlobalShortcutController? = nil
+    /// Used only to report which quick actions are available right now. Optional
+    /// so previews/tests can render the pane without the full app graph.
+    var statusStore: SystemStatusStore? = nil
+    var chargeToFullNow: ChargeToFullNowController? = nil
     @ObservedObject private var launchAtLogin: LaunchAtLoginManager = .shared
     @ObservedObject private var updaterManager: UpdaterManager = .shared
+    @ObservedObject private var helper: PrivilegedHelperManager = .shared
 
     var body: some View {
         SettingsPage {
@@ -44,7 +49,7 @@ struct GeneralSectionView: View {
                         }
                     }
                     .labelsHidden()
-                    .fixedSize()
+                    .settingsMenuPickerWidth()
                 }
             )
 
@@ -102,6 +107,10 @@ struct GeneralSectionView: View {
                 SettingsDivider()
             }
 
+            rightClickActionRow
+
+            SettingsDivider()
+
             // Status refresh interval
             SettingsRow(
                 "arrow.clockwise",
@@ -137,6 +146,44 @@ struct GeneralSectionView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 50, alignment: .trailing)
                 }
+            }
+        }
+    }
+
+    private var rightClickActionAvailability: MenuBarQuickActionAvailability {
+        MenuBarQuickActionAvailability(
+            lowPowerMode: store.controlsLowPowerMode && helper.isReady,
+            chargeToFullNow: chargeToFullNow?.isSettingAvailable ?? false,
+            mute: statusStore?.liveVolume.canMute ?? false,
+            wifi: (statusStore?.snapshot.wifi.state ?? .unavailable) != .unavailable
+        )
+    }
+
+    /// Single-select right-click action (#209). The selected action's glyph is
+    /// the row's tile; an unavailable selection shows a hint that a right-click
+    /// will fall back to the menu rather than doing nothing.
+    private var rightClickActionRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SettingsRow(
+                store.menuBarRightClickAction.settingsSymbol,
+                tint: .blue,
+                title: localization.string(.menuBarRightClickAction),
+                subtitle: localization.string(.menuBarRightClickActionDescription)
+            ) {
+                Picker(
+                    localization.string(.menuBarRightClickAction),
+                    selection: $store.menuBarRightClickAction
+                ) {
+                    ForEach(MenuBarRightClickAction.allCases) { action in
+                        Text(localization.string(action.titleKey)).tag(action)
+                    }
+                }
+                .labelsHidden()
+                .settingsMenuPickerWidth()
+            }
+
+            if !rightClickActionAvailability.isAvailable(store.menuBarRightClickAction) {
+                SettingsHintRow(text: localization.string(.menuBarRightClickUnavailableHint))
             }
         }
     }

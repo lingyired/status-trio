@@ -56,6 +56,18 @@
 "settings.tab.panel" = "상태 패널";
 "settings.tab.about" = "정보";
 "settings.menuBar.title" = "메뉴 막대 아이콘";
+"settings.appIcon.middleIcon.title" = "중앙 아이콘";
+"settings.appIcon.middleIcon.source" = "중앙 아이콘";
+"settings.appIcon.middleIcon.description" = "상태 아이콘 중앙에 표시할 내용을 선택합니다. 한 번에 하나의 소스만 표시됩니다.";
+"settings.appIcon.middleIcon.network" = "네트워크";
+"settings.appIcon.middleIcon.bluetooth" = "Bluetooth 기기";
+"settings.appIcon.middleIcon.inputSource" = "현재 입력 소스";
+"settings.appIcon.middleIcon.batteryPercentage" = "배터리 잔량";
+"settings.appIcon.middleIcon.power" = "전력(와트)";
+"settings.appIcon.middleIcon.size" = "중앙 아이콘 크기";
+"settings.appIcon.middleIcon.size.description" = "중앙에 표시되는 모든 내용(Wi-Fi, Bluetooth, 입력 소스, 숫자)에 공통으로 적용되는 크기입니다.";
+"settings.appIcon.middleIcon.networkWarnings" = "네트워크 문제 우선 표시";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Mac이 실제로 오프라인일 때 중앙에 선택한 소스 대신 네트워크 상태를 표시합니다.";
 "settings.network.connectionIcons" = "연결 아이콘 스타일";
 "settings.network.connectionIcons.description" = "활성화하면 선택한 상태가 전용 표시 대신 표준 Wi-Fi 신호 아이콘으로 표시됩니다.";
 "settings.network.wifiIconForEthernet" = "Ethernet에 Wi-Fi 아이콘 사용";
@@ -253,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "시스템 프록시";
 "vpn.subtitle.connectedWithProxy" = "연결됨 · 프록시 %@";
 "vpn.subtitle.proxyAutomatic" = "자동 구성";
-"wifi.action.requestNameAccess" = "위치를 허용하여 Wi-Fi 이름 표시";
+"wifi.action.requestNameAccess" = "위치를 허용하여 Wi-Fi 네트워크 표시";
 "wifi.action.openLocationSettings" = "설정에서 위치 허용";
 "wifi.action.openSettings" = "Wi-Fi 설정 열기";
 "wifi.action.switchingHint" = "네트워크를 선택하면 시스템 설정의 Wi-Fi 패널이 열립니다.";
@@ -268,6 +280,11 @@
 "settings.network.panelGroup" = "패널";
 "settings.network.showLocalIP" = "로컬 IP 표시";
 "settings.network.showLocalIP.description" = "네트워크 행의 둘째 줄에 Wi-Fi 정보보다 먼저 이 Mac의 사설 LAN 주소를 표시합니다.";
+
+"settings.network.permissionNotDeterminedTitle" = "위치 권한이 필요합니다";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio가 Wi-Fi 네트워크를 표시하려면 위치 접근이 필요합니다. 아래 버튼을 눌러 허용하세요.";
+"settings.network.permissionDeniedTitle" = "위치 권한이 꺼져 있습니다";
+"settings.network.permissionDeniedDescription" = "위치 접근이 없으면 Wi-Fi 네트워크를 표시할 수 없습니다. 시스템 설정에서 활성화하세요.";
 "settings.audio.externalVolume.title" = "외부 디스플레이 볼륨";
 "settings.audio.externalVolume.controlMethod" = "제어 방식";
 "settings.audio.externalVolume.controlMethodDescription" = "상태 패널의 볼륨 제어로 이 기기를 조절할 수 없다면 BetterDisplay를 사용하십시오.";
@@ -356,6 +373,13 @@
 "inputSource.switchFailed" = "‘%@’(으)로 전환하지 못했습니다. 직접 선택하거나 다시 시도하십시오.";
 "inputSource.switchUnconfirmed" = "macOS가 ‘%@’을(를) 수락했지만 현재 입력 소스는 다른 항목입니다. 최전면 앱에 포커스가 필요할 수 있습니다.";
 "settings.popup.order.inputSource" = "입력 소스";
+"settings.panel.background.title" = "패널 배경";
+"settings.panel.background.style" = "배경 스타일";
+"settings.panel.background.style.description" = "상태 패널 배경을 그리는 방식을 선택합니다.";
+"settings.panel.background.style.liquidGlass" = "리퀴드 글래스";
+"settings.panel.background.style.classicMaterial" = "클래식 소재";
+"settings.panel.background.style.solid" = "단색";
+"settings.panel.background.style.liquidGlassUnavailable" = "리퀴드 글래스는 macOS 26 이상이 필요합니다.";
 "settings.popup.volumeScroll.group" = "패널 스크롤";
 "settings.popup.volumeScroll" = "스크롤로 볼륨 조절";
 "settings.popup.volumeScroll.description" = "상태 패널 안에서 스크롤하면 출력 볼륨이 바뀝니다.";
@@ -601,7 +625,9 @@
 "battery.power.system.help" = "시스템 전력(SoC 포함)";
 "battery.power.system.explanation" = "“    ”";
 "power.infoBar.input" = "충전기 입력";
+"power.infoBar.noInput" = "전원 미연결";
 "power.infoBar.battery" = "배터리 충전";
+"power.infoBar.discharging" = "배터리 방전";
 "power.infoBar.system" = "시스템 전력";
 "power.infoBar.notCharging" = "충전 중 아님";
 "battery.power.display" = "디스플레이";
@@ -616,7 +642,7 @@
 "settings.battery.showChargeToFullNow" = "지금 완전히 충전 버튼 표시";
 "settings.battery.showChargeToFullNowDescription" = "상태 패널에 macOS 충전 한도를 일시적으로 해제하고 100%까지 충전하는 버튼을 표시합니다.";
 "settings.battery.restoreLimit" = "취소 후 복원할 충전 한도";
-"settings.battery.restoreLimitDescription" = "‘지금 완전히 충전’을 취소할 때 복원할 충전 한도입니다. 100%는 한도 없음을 의미합니다.";
+"settings.battery.restoreLimitDescription" = "‘지금 완전히 충전’을 취소할 때 복원할 충전 한도입니다.";
 "battery.action.chargeToFullNow" = "지금 완전히 충전";
 "battery.action.chargeToFullNowApplying" = "완전 충전 요청 중…";
 "battery.action.chargeToFullNowCharging" = "100%까지 충전 중";
@@ -624,16 +650,74 @@
 "battery.action.chargeToFullNowUnavailable" = "지금 완전히 충전은 현재 사용할 수 없습니다.";
 "battery.action.cancelChargeToFullNow" = "완전 충전 취소";
 "battery.action.cancelChargeToFullNowApplying" = "충전 제한 복원 중…";
-"battery.action.cancelChargeToFullNowFailed" = "충전 제한을 복원할 수 없습니다: %@";
+"battery.action.cancelChargeToFullNowFailed" = "충전 제한을 복원할 수 없습니다. 다시 시도하십시오.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "시스템 충전 제한이 변경되었습니다. 설정의 복원 제한을 확인한 후 다시 시도하십시오.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "시스템 충전 제한은 %1$d%%입니다. %2$d%%(으)로 복원하시겠습니까?";
 "battery.action.cancelChargeToFullNowRestored" = "충전 제한을 %d%%(으)로 복원했습니다";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "충전 한도가 해제되었습니다";
 "battery.action.cancelChargeToFullNowFallback" = "충전 제한을 %d%%(으)로 설정했습니다";
 "battery.action.cancelChargeToFullNowConfirm" = "%d%% 복원 확인";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "%d%% 설정 확인";
 "battery.action.cancelChargeToFullNowConfirmation" = "시스템 충전 상태가 변경되었을 수 있습니다. 계속하려면 다시 클릭하십시오.";
 "battery.action.cancelChargeToFullNowPending" = "시스템이 임시 완전 충전 상태를 아직 확인하지 못했습니다. 잠시 후 다시 시도하세요.";
 
-// Opt-in managed charge limit
+"settings.popup.order.brightness" = "밝기";
+"brightness.row.accessibility" = "%@의 밝기, %@";
+"brightness.row.accessibilityUnavailable" = "%@의 밝기, %@";
+"brightness.unavailable" = "사용할 수 없음";
+"brightness.appAbsent" = "BetterDisplay 필요";
+"brightness.noBackend" = "밝기 제어 없음";
+"brightness.unresponsive" = "응답 없음";
+"brightness.backend.directDDC" = "직접 DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "연결된 디스플레이의 밝기를 조절합니다.";
+"settings.brightness.backend" = "%@의 밝기 백엔드";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "작성자 팔로우";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "블로그";
+"settings.about.community.title" = "커뮤니티";
+"settings.about.community.qq" = "QQ 그룹";
+"settings.about.community.qqDescription" = "질문과 피드백을 위해 Status Trio 그룹에 참여하세요.";
+"settings.about.community.wechat" = "WeChat 그룹";
+"settings.about.community.wechatDescription" = "WeChat으로 스캔하여 Status Trio 그룹에 참여하세요. QR 코드는 주기적으로 갱신되며, 최신 코드는 GitHub README에서 확인하세요.";
+"settings.about.community.copy" = "복사";
+"settings.about.community.copied" = "복사됨";
+"settings.about.moreApps.title" = "작성자의 다른 작품";
+"settings.about.moreApps.open" = "열기";
+"settings.about.moreApps.newtab01Description" = "북마크 기반 새 탭: 폴더를 탭 그룹이나 분할 보기로 열 수 있고 다양한 테마 제공.";
+"settings.about.moreApps.noLazyloadDescription" = "브라우저의 이미지 지연 로딩을 꺼서 페이지를 열면 모든 이미지를 바로 불러옵니다. 스크롤하면서 불러올 필요가 없습니다.";
+"settings.about.moreApps.fund01Description" = "펀드 보유 현황 모니터링: 당일 등락률을 메뉴 막대/작업 표시줄에 상시 표시하고 여러 그룹을 실시간 갱신.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";
+
+"guide.partPosition.battery" = "Top arc";
+"guide.partPosition.network" = "Middle icon";
+"guide.partPosition.volume" = "Bottom dots";
+"guide.network.center" = "Change what the middle icon shows in Settings › Network › Middle Slot — battery, power, input source, or Bluetooth audio.";
+
+"guide.state.chargingBatteryCenter" = "Charging + Battery %";
+"guide.state.fullPowerCenter" = "Full + Power";
+"guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "우클릭 동작";
+"settings.menuBarRightClickAction.description" = "메뉴 막대 아이콘을 우클릭할 때 수행할 동작입니다.";
+"settings.menuBarRightClickAction.contextMenu" = "상황 메뉴 표시";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "저전력 모드 전환";
+"settings.menuBarRightClickAction.chargeToFullNow" = "지금 완전 충전";
+"settings.menuBarRightClickAction.toggleMute" = "음소거 전환";
+"settings.menuBarRightClickAction.unavailableHint" = "선택한 동작을 지금 사용할 수 없습니다. 우클릭하면 메뉴가 표시됩니다.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "Wi-Fi 전환";
+"settings.menuBarRightClickAction.refreshStatus" = "상태 새로 고침";
+"settings.menuBarRightClickAction.openWiFiSettings" = "Wi-Fi 설정 열기";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "Bluetooth 설정 열기";
+"settings.menuBarRightClickAction.openBatterySettings" = "배터리 설정 열기";
+"settings.menuBarRightClickAction.openSoundSettings" = "사운드 설정 열기";
 "settings.battery.chargeLimit.title" = "충전 한도";
 "settings.battery.chargeLimit.target" = "최대 충전량";
 "settings.battery.chargeLimit.description" = "지금 한도를 적용하고 앱 실행, 잠자기 해제 또는 전원 재연결 시 다시 적용합니다.";

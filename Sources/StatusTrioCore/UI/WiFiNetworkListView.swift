@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WiFiNetworkListView: View {
     @EnvironmentObject private var localization: Localization
+    @Environment(\.colorScheme) private var colorScheme
     let state: WiFiPanelState
     let onBack: () -> Void
     let onRequestNameAccess: () -> Void
@@ -16,6 +17,10 @@ struct WiFiNetworkListView: View {
     let onSetShowsDetails: (Bool) -> Void
     let onSetShowsMore: (Bool) -> Void
 
+    /// The panel owns one outer scroll surface (#237); this page must not add a
+    /// second one on top of it.
+    @Environment(\.statusPanelManagesScrolling) private var statusPanelManagesScrolling
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
@@ -25,19 +30,14 @@ struct WiFiNetworkListView: View {
             )
             .disabled(!state.canSetPower)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    personalHotspotSection
-                    knownNetworksSection
-                    otherNetworksSection
-                    stateMessage(
-                        hasVisibleNetworks: !state.personalHotspotRows.isEmpty
-                            || !state.knownRows.isEmpty
-                            || !state.otherRows.isEmpty
-                    )
+            if statusPanelManagesScrolling {
+                networkSections
+            } else {
+                ScrollView {
+                    networkSections
                 }
+                .frame(maxHeight: 330)
             }
-            .frame(maxHeight: 330)
 
             Divider()
             Text(localization.string(.wifiActionSwitchingHint))
@@ -52,6 +52,19 @@ struct WiFiNetworkListView: View {
             Button(localization.string(.networkActionShareInternet), action: onOpenSharingSettings)
                 .buttonStyle(.plain)
                 .help(localization.string(.networkActionShareInternetHelp))
+        }
+    }
+
+    private var networkSections: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            personalHotspotSection
+            knownNetworksSection
+            otherNetworksSection
+            stateMessage(
+                hasVisibleNetworks: !state.personalHotspotRows.isEmpty
+                    || !state.knownRows.isEmpty
+                    || !state.otherRows.isEmpty
+            )
         }
     }
 
@@ -150,15 +163,17 @@ struct WiFiNetworkListView: View {
         if let message = state.message {
             switch state.messageIntent {
             case .requestWiFiNameAccess:
-                Button(message, action: onRequestNameAccess)
-                    .buttonStyle(.plain)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                WiFiPermissionActionButton(
+                    icon: "location.fill",
+                    title: message,
+                    action: onRequestNameAccess
+                )
             case .locationSettings:
-                Button(message, action: onOpenLocationSettings)
-                    .buttonStyle(.plain)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                WiFiPermissionActionButton(
+                    icon: "location.fill",
+                    title: message,
+                    action: onOpenLocationSettings
+                )
             default:
                 HStack(spacing: 8) {
                     if state.isScanning { ProgressView().controlSize(.small) }
@@ -170,6 +185,10 @@ struct WiFiNetworkListView: View {
         }
     }
 
+    private var connectedMarkerColor: Color {
+        WiFiConnectedMarkerPalette.resolved(dark: colorScheme == .dark).color
+    }
+
     private func networkRow(_ row: PanelWiFiNetworkRow) -> some View {
         Button {
             if row.opensSettings { onOpenWiFiSettings() }
@@ -178,7 +197,11 @@ struct WiFiNetworkListView: View {
                 if row.selected {
                     Image(systemName: "checkmark")
                         .frame(width: 16, height: 16, alignment: .center)
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(connectedMarkerColor)
+                        .opacity(row.opensSettings ? 1 : 0)
+                        // The button's accessibility label already says
+                        // "Connected"; the marker is decoration.
+                        .accessibilityHidden(true)
                 } else {
                     Image(systemName: "wifi")
                         .frame(width: 16, height: 16, alignment: .center)
@@ -211,6 +234,19 @@ struct WiFiNetworkListView: View {
         }
         .buttonStyle(.plain)
         .disabled(!row.opensSettings)
+        .overlay(alignment: .leading) {
+            if row.selected && !row.opensSettings {
+                // A disabled button dims its whole label, but connection state
+                // is not a control — draw the marker again outside that dimming.
+                // Keep this frame and leading alignment in sync with the marker
+                // inside the label above.
+                Image(systemName: "checkmark")
+                    .frame(width: 16, height: 16, alignment: .center)
+                    .foregroundStyle(connectedMarkerColor)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
         .accessibilityLabel(row.accessibilityLabel)
     }
 }

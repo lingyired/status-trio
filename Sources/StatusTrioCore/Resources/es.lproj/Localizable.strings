@@ -56,6 +56,18 @@
 "settings.tab.panel" = "Panel de estado";
 "settings.tab.about" = "Acerca de";
 "settings.menuBar.title" = "Icono de la barra de menús";
+"settings.appIcon.middleIcon.title" = "Icono central";
+"settings.appIcon.middleIcon.source" = "Icono central";
+"settings.appIcon.middleIcon.description" = "Elige qué muestra el icono de estado en el centro. Solo se muestra una fuente a la vez.";
+"settings.appIcon.middleIcon.network" = "Red";
+"settings.appIcon.middleIcon.bluetooth" = "Dispositivo Bluetooth";
+"settings.appIcon.middleIcon.inputSource" = "Fuente de entrada actual";
+"settings.appIcon.middleIcon.batteryPercentage" = "Porcentaje de batería";
+"settings.appIcon.middleIcon.power" = "Potencia (vatios)";
+"settings.appIcon.middleIcon.size" = "Tamaño del icono central";
+"settings.appIcon.middleIcon.size.description" = "Un solo tamaño para todo el contenido central: Wi-Fi, Bluetooth, fuente de entrada y números.";
+"settings.appIcon.middleIcon.networkWarnings" = "Priorizar problemas de red";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Cuando el Mac está realmente sin conexión, el centro muestra el estado de red en lugar de la fuente elegida.";
 "settings.network.connectionIcons" = "Estilo de los iconos de conexión";
 "settings.network.connectionIcons.description" = "Al activarlo, el estado seleccionado usa el icono estándar de señal Wi-Fi en lugar de su marca especial.";
 "settings.network.wifiIconForEthernet" = "Usar el icono de Wi-Fi para Ethernet";
@@ -253,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "Proxy del sistema";
 "vpn.subtitle.connectedWithProxy" = "Conectado · proxy %@";
 "vpn.subtitle.proxyAutomatic" = "Configuración automática";
-"wifi.action.requestNameAccess" = "Permitir ubicación para mostrar el nombre de Wi-Fi";
+"wifi.action.requestNameAccess" = "Permitir ubicación para mostrar las redes Wi-Fi";
 "wifi.action.openLocationSettings" = "Permitir ubicación en Ajustes";
 "wifi.action.openSettings" = "Abrir ajustes de Wi-Fi";
 "wifi.action.switchingHint" = "Elegir una red abre el panel de Wi-Fi de Ajustes del Sistema.";
@@ -268,6 +280,11 @@
 "settings.network.panelGroup" = "Panel";
 "settings.network.showLocalIP" = "Mostrar IP local";
 "settings.network.showLocalIP.description" = "Muestra la dirección LAN privada de este Mac en la fila de red, antes de los detalles de Wi-Fi.";
+
+"settings.network.permissionNotDeterminedTitle" = "Se necesita permiso de localización";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio necesita acceso a tu ubicación para mostrar las redes Wi-Fi. Haz clic abajo para concederlo.";
+"settings.network.permissionDeniedTitle" = "Permiso de localización desactivado";
+"settings.network.permissionDeniedDescription" = "Sin acceso a la ubicación no se pueden mostrar las redes Wi-Fi. Actívalo en Ajustes del Sistema.";
 "settings.audio.externalVolume.title" = "Volumen de pantalla externa";
 "settings.audio.externalVolume.controlMethod" = "Método de control";
 "settings.audio.externalVolume.controlMethodDescription" = "Si los controles de volumen del panel de estado no pueden controlar este dispositivo, usa BetterDisplay.";
@@ -356,6 +373,13 @@
 "inputSource.switchFailed" = "No se pudo cambiar a «%@». Selecciónala directamente o inténtalo de nuevo.";
 "inputSource.switchUnconfirmed" = "macOS aceptó «%@», pero sigue indicando otra fuente de entrada. Puede que la app en primer plano necesite el foco.";
 "settings.popup.order.inputSource" = "Fuente de entrada";
+"settings.panel.background.title" = "Fondo del panel";
+"settings.panel.background.style" = "Estilo de fondo";
+"settings.panel.background.style.description" = "Elige cómo se dibuja el fondo del panel de estado.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "Material clásico";
+"settings.panel.background.style.solid" = "Color sólido";
+"settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requiere macOS 26 o posterior.";
 "settings.popup.volumeScroll.group" = "Desplazamiento del panel";
 "settings.popup.volumeScroll" = "Ajustar el volumen desplazándose";
 "settings.popup.volumeScroll.description" = "Desplázate dentro del panel de estado para cambiar el volumen de salida.";
@@ -601,7 +625,9 @@
 "battery.power.system.help" = "Potencia del sistema (incl. SoC)";
 "battery.power.system.explanation" = "“Sistema” es lo que queda tras la carga de la batería, la pantalla y el USB: incluye el SoC, la memoria, los controladores de pantalla y otras cargas no medidas por separado.";
 "power.infoBar.input" = "Entrada del cargador";
+"power.infoBar.noInput" = "Sin adaptador";
 "power.infoBar.battery" = "Carga de batería";
+"power.infoBar.discharging" = "Descarga de la batería";
 "power.infoBar.system" = "Potencia del sistema";
 "power.infoBar.notCharging" = "No se está cargando";
 "battery.power.display" = "Pantalla";
@@ -616,7 +642,7 @@
 "settings.battery.showChargeToFullNow" = "Mostrar botón Cargar completamente ahora";
 "settings.battery.showChargeToFullNowDescription" = "Muestra un botón en el panel de estado para omitir temporalmente el límite de carga de macOS y cargar hasta el 100 %.";
 "settings.battery.restoreLimit" = "Límite restaurado al cancelar";
-"settings.battery.restoreLimitDescription" = "Límite de carga que se restaura al cancelar «Cargar completamente ahora». 100 % significa sin límite.";
+"settings.battery.restoreLimitDescription" = "Límite de carga que se restaura al cancelar «Cargar completamente ahora».";
 "battery.action.chargeToFullNow" = "Cargar completamente ahora";
 "battery.action.chargeToFullNowApplying" = "Solicitando carga completa…";
 "battery.action.chargeToFullNowCharging" = "Cargando hasta el 100 %";
@@ -624,16 +650,74 @@
 "battery.action.chargeToFullNowUnavailable" = "Cargar completamente ahora no está disponible en este momento.";
 "battery.action.cancelChargeToFullNow" = "Cancelar carga completa";
 "battery.action.cancelChargeToFullNowApplying" = "Restaurando límite de carga…";
-"battery.action.cancelChargeToFullNowFailed" = "No se pudo restaurar el límite de carga: %@";
+"battery.action.cancelChargeToFullNowFailed" = "No se pudo restaurar el límite de carga. Inténtalo de nuevo.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "El límite de carga del sistema cambió. Revisa el límite de restauración en Ajustes e inténtalo de nuevo.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "El límite de carga del sistema es del %1$d%%. ¿Restaurarlo al %2$d%%?";
 "battery.action.cancelChargeToFullNowRestored" = "Límite de carga restaurado al %d%%";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "Límite de carga eliminado";
 "battery.action.cancelChargeToFullNowFallback" = "Límite de carga establecido en %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "Confirmar restauración al %d%%";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Confirmar ajuste al %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "El estado de carga del sistema puede haber cambiado. Haz clic de nuevo para continuar.";
 "battery.action.cancelChargeToFullNowPending" = "El sistema aún no ha confirmado la carga completa temporal. Vuelve a intentarlo en unos segundos.";
 
-// Opt-in managed charge limit
+"settings.popup.order.brightness" = "Brillo";
+"brightness.row.accessibility" = "Brillo de %@, %@";
+"brightness.row.accessibilityUnavailable" = "Brillo de %@, %@";
+"brightness.unavailable" = "No disponible";
+"brightness.appAbsent" = "Requiere BetterDisplay";
+"brightness.noBackend" = "Sin control de brillo";
+"brightness.unresponsive" = "No responde";
+"brightness.backend.directDDC" = "DDC directo";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Ajusta el brillo de las pantallas conectadas.";
+"settings.brightness.backend" = "Backend de brillo para %@";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "Seguir al autor";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "Blog";
+"settings.about.community.title" = "Comunidad";
+"settings.about.community.qq" = "Grupo de QQ";
+"settings.about.community.qqDescription" = "Únete al grupo de Status Trio para preguntas y comentarios.";
+"settings.about.community.wechat" = "Grupo de WeChat";
+"settings.about.community.wechatDescription" = "Escanea con WeChat para unirte al grupo de Status Trio. El código QR se renueva periódicamente; consulta el README de GitHub para el más reciente.";
+"settings.about.community.copy" = "Copiar";
+"settings.about.community.copied" = "Copiado";
+"settings.about.moreApps.title" = "Más del autor";
+"settings.about.moreApps.open" = "Abrir";
+"settings.about.moreApps.newtab01Description" = "Nueva pestaña basada en marcadores: abre carpetas como grupos de pestañas o en vista dividida, con varios temas.";
+"settings.about.moreApps.noLazyloadDescription" = "Desactiva la carga diferida de imágenes del navegador para que la página cargue todas las imágenes de una vez, sin tener que desplazarte.";
+"settings.about.moreApps.fund01Description" = "Seguimiento de fondos: la variación del día siempre en la barra de menús o la barra de tareas, con varios grupos actualizados en vivo.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";
+
+"guide.partPosition.battery" = "Top arc";
+"guide.partPosition.network" = "Middle icon";
+"guide.partPosition.volume" = "Bottom dots";
+"guide.network.center" = "Change what the middle icon shows in Settings › Network › Middle Slot — battery, power, input source, or Bluetooth audio.";
+
+"guide.state.chargingBatteryCenter" = "Charging + Battery %";
+"guide.state.fullPowerCenter" = "Full + Power";
+"guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "Acción del clic derecho";
+"settings.menuBarRightClickAction.description" = "Qué hace el icono de la barra de menús al hacer clic derecho.";
+"settings.menuBarRightClickAction.contextMenu" = "Mostrar menú contextual";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "Alternar modo de bajo consumo";
+"settings.menuBarRightClickAction.chargeToFullNow" = "Cargar al máximo ahora";
+"settings.menuBarRightClickAction.toggleMute" = "Alternar silencio";
+"settings.menuBarRightClickAction.unavailableHint" = "La acción seleccionada no está disponible ahora mismo; el clic derecho mostrará el menú.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "Alternar Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "Actualizar estado";
+"settings.menuBarRightClickAction.openWiFiSettings" = "Abrir ajustes de Wi-Fi";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "Abrir ajustes de Bluetooth";
+"settings.menuBarRightClickAction.openBatterySettings" = "Abrir ajustes de Batería";
+"settings.menuBarRightClickAction.openSoundSettings" = "Abrir ajustes de Sonido";
 "settings.battery.chargeLimit.title" = "Límite de carga";
 "settings.battery.chargeLimit.target" = "Carga máxima";
 "settings.battery.chargeLimit.description" = "Aplica un límite ahora y vuelve a aplicarlo al iniciar, salir del reposo o reconectar la alimentación.";

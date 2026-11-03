@@ -303,6 +303,14 @@ struct ShortcutSettingsRow: View {
     @ObservedObject var controller: GlobalShortcutController
     @ObservedObject var localization: Localization
 
+    /// The recorder shares the menu-picker width with the clear button when one
+    /// is shown, so the trailing group never wider than the page's pickers.
+    private var recorderWidth: CGFloat {
+        store.statusPanelShortcut == nil
+            ? SettingsMetrics.menuPickerWidth
+            : SettingsMetrics.menuPickerWidth - 54 - 8
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SettingsRow(
@@ -318,7 +326,7 @@ struct ShortcutSettingsRow: View {
                         controller: controller,
                         localization: localization
                     )
-                    .frame(width: 132, height: 24)
+                    .frame(width: recorderWidth, height: 24)
 
                     if store.statusPanelShortcut != nil {
                         ShortcutClearButton(
@@ -328,6 +336,10 @@ struct ShortcutSettingsRow: View {
                         .frame(width: 54, height: 24)
                     }
                 }
+                // Keep the whole trailing group exactly as wide as the menu
+                // pickers elsewhere on this page, so the record button's right
+                // edge lines up with them.
+                .frame(width: SettingsMetrics.menuPickerWidth, alignment: .trailing)
             }
 
             if let feedback = controller.feedback {

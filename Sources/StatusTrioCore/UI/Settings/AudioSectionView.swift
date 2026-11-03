@@ -296,6 +296,7 @@ struct AudioSectionView: View {
                     }
                     .pickerStyle(.menu)
                     .labelsHidden()
+                    .settingsMenuPickerWidth()
                     .disabled(!state.canEditConfiguration)
                     .accessibilityIdentifier("audio.betterDisplay.backend")
                 }
@@ -330,6 +331,7 @@ struct AudioSectionView: View {
                         }
                         .pickerStyle(.menu)
                         .labelsHidden()
+                        .settingsMenuPickerWidth()
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .help(state.selectedDisplayUUID ?? "")

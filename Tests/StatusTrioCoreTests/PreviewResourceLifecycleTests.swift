@@ -3,7 +3,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class PreviewResourceLifecycleTests: XCTestCase {
+final class PreviewResourceLifecycleTests: VisibleUITestCase {
     func testClosingOnePreviewOwnerKeepsCacheUntilTheLastOwnerCloses() throws {
         let cache = DockIconPreviewCache(limit: 4)
         try seedPreviewCache(cache)

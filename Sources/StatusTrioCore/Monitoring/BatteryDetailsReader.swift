@@ -101,7 +101,7 @@ struct BatteryDetailsReader: Sendable {
                 charging: sensors.battery.map { max(0, $0.watts) },
                 discharge: sensors.battery.map { max(0, -$0.watts) },
                 display: sensors.display,
-                usb: USBOutputReader.parse(registry: registry, now: now),
+                usb: USBOutputReader.resolve(portRails: sensors.portRails, registry: registry, now: now),
                 now: now
             )
             // One overall refresh can catch the rails mid-update and show a
@@ -149,6 +149,24 @@ struct BatteryDetailsReader: Sendable {
     /// refresh boundary. One periodic tick, not a general cache.
     static let breakdownHoldSeconds: TimeInterval = 6
 
+    /// A split belongs to the rail it was measured from. On external power the
+    /// adapter split stands in; on battery only a split whose source is the
+    /// discharging pack is valid, so an adapter split from the previous refresh
+    /// can never leak across an unplug. Either way the split must still be the
+    /// one this refresh or its single hold produced.
+    private static func acceptableBreakdown(
+        _ breakdown: BatteryPowerBreakdown?,
+        state: BatteryPowerState,
+        now: Date
+    ) -> BatteryPowerBreakdown? {
+        guard let breakdown else { return nil }
+        guard breakdown.readAt <= now.addingTimeInterval(5),
+              now.timeIntervalSince(breakdown.readAt) <= breakdownHoldSeconds
+        else { return nil }
+        if state.isConnected { return breakdown }
+        return breakdown.source == .battery ? breakdown : nil
+    }
+
     /// IORegistry is public, but these AppleSmartBattery properties are best-effort,
     /// not a stable cross-model API. Never combine values from nested telemetry sources.
     static func parse(
@@ -174,7 +192,7 @@ struct BatteryDetailsReader: Sendable {
                 && remainingSeconds < Double(Int.max) ? Int(remainingSeconds / 60) : nil,
             cycleCount: (registry["CycleCount"] as? Int).flatMap { $0 >= 0 ? $0 : nil },
             systemPower: state.isConnected ? systemPower : nil,
-            breakdown: state.isConnected ? breakdown : nil
+            breakdown: acceptableBreakdown(breakdown, state: state, now: now)
         )
         let registryMatches = (registry["ExternalConnected"] as? Bool) == state.isConnected
             && (registry["IsCharging"] as? Bool) == state.isCharging

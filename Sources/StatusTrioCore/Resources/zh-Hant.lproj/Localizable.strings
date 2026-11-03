@@ -56,6 +56,18 @@
 "settings.tab.panel" = "狀態面板";
 "settings.tab.about" = "關於";
 "settings.menuBar.title" = "選單列圖示";
+"settings.appIcon.middleIcon.title" = "中間圖示";
+"settings.appIcon.middleIcon.source" = "中間圖示";
+"settings.appIcon.middleIcon.description" = "選擇狀態圖示中間位置顯示的內容。同一時間只顯示一個來源。";
+"settings.appIcon.middleIcon.network" = "網路";
+"settings.appIcon.middleIcon.bluetooth" = "藍牙裝置";
+"settings.appIcon.middleIcon.inputSource" = "目前輸入法";
+"settings.appIcon.middleIcon.batteryPercentage" = "電池百分比";
+"settings.appIcon.middleIcon.power" = "功耗（瓦）";
+"settings.appIcon.middleIcon.size" = "中間圖示大小";
+"settings.appIcon.middleIcon.size.description" = "中間顯示的所有內容（Wi‑Fi、藍牙、輸入法、數字）共用這個大小。";
+"settings.appIcon.middleIcon.networkWarnings" = "優先顯示網路異常";
+"settings.appIcon.middleIcon.networkWarnings.description" = "當 Mac 確實離線時，中間位置改為顯示網路狀態，而不是所選來源。";
 "settings.network.connectionIcons" = "連線圖示樣式";
 "settings.network.connectionIcons.description" = "啟用後，對應狀態會改用一般 Wi‑Fi 訊號圖示，不再顯示專用標記。";
 "settings.network.wifiIconForEthernet" = "有線連線使用 Wi‑Fi 圖示";
@@ -253,7 +265,7 @@
 "vpn.subtitle.systemProxy" = "系統代理";
 "vpn.subtitle.connectedWithProxy" = "已連線 · 代理 %@";
 "vpn.subtitle.proxyAutomatic" = "自動設定";
-"wifi.action.requestNameAccess" = "允許定位以顯示 Wi-Fi 名稱";
+"wifi.action.requestNameAccess" = "允許定位以顯示 Wi-Fi 網路";
 "wifi.action.openLocationSettings" = "前往設定允許定位";
 "wifi.action.openSettings" = "打開 Wi-Fi 設定";
 "wifi.action.switchingHint" = "選擇網路會在系統設定中打開 Wi-Fi 面板。";
@@ -268,6 +280,11 @@
 "settings.network.panelGroup" = "面板";
 "settings.network.showLocalIP" = "顯示內網 IP";
 "settings.network.showLocalIP.description" = "在網路的第二行顯示本機內網 IP，位於 Wi-Fi 資訊之前。";
+
+"settings.network.permissionNotDeterminedTitle" = "需要定位權限";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio 需要定位權限才能顯示 Wi-Fi 網路。點擊下方按鈕進行授權。";
+"settings.network.permissionDeniedTitle" = "定位權限已關閉";
+"settings.network.permissionDeniedDescription" = "沒有定位權限時無法顯示 Wi-Fi 網路。請在系統設定中開啟。";
 "settings.audio.externalVolume.title" = "外部顯示器音量";
 "settings.audio.externalVolume.controlMethod" = "控制方式";
 "settings.audio.externalVolume.controlMethodDescription" = "如果狀態面板的音量控制無法調整此裝置，可改用 BetterDisplay。";
@@ -356,6 +373,13 @@
 "inputSource.switchFailed" = "無法切換到「%@」。請直接選擇它或稍後再試。";
 "inputSource.switchUnconfirmed" = "macOS 已接受「%@」，但目前的輸入法仍是其他項目。前景應用程式可能需要取得焦點。";
 "settings.popup.order.inputSource" = "輸入法";
+"settings.panel.background.title" = "面板背景";
+"settings.panel.background.style" = "背景樣式";
+"settings.panel.background.style.description" = "選擇狀態面板背景的繪製方式。";
+"settings.panel.background.style.liquidGlass" = "液態玻璃";
+"settings.panel.background.style.classicMaterial" = "經典材質";
+"settings.panel.background.style.solid" = "純色";
+"settings.panel.background.style.liquidGlassUnavailable" = "液態玻璃需要 macOS 26 或以上版本。";
 "settings.popup.volumeScroll.group" = "面板滾動";
 "settings.popup.volumeScroll" = "捲動調節音量";
 "settings.popup.volumeScroll.description" = "在狀態面板內滾動即可調節輸出音量。";
@@ -601,7 +625,9 @@
 "battery.power.system.help" = "系統功耗（含 SoC）";
 "battery.power.system.explanation" = "“系統”是扣除電池充電、顯示器與 USB 後的其餘負載，包含 SoC、記憶體與顯示控制器等，不是單一感測器讀數。";
 "power.infoBar.input" = "充電器輸入";
+"power.infoBar.noInput" = "未接電源";
 "power.infoBar.battery" = "電池充電";
+"power.infoBar.discharging" = "電池放電";
 "power.infoBar.system" = "系統功耗";
 "power.infoBar.notCharging" = "未在充電";
 "battery.power.display" = "顯示器";
@@ -616,7 +642,7 @@
 "settings.battery.showChargeToFullNow" = "顯示立即完全充電按鈕";
 "settings.battery.showChargeToFullNowDescription" = "在狀態面板中顯示立即完全充電按鈕，允許暫時解除 macOS 的充電上限並充至 100%。";
 "settings.battery.restoreLimit" = "取消後恢復的充電上限";
-"settings.battery.restoreLimitDescription" = "取消立即完全充電後要恢復的充電上限；100% 表示不設上限。";
+"settings.battery.restoreLimitDescription" = "取消立即完全充電後要恢復的充電上限。";
 "battery.action.chargeToFullNow" = "立即完全充電";
 "battery.action.chargeToFullNowApplying" = "正在要求立即完全充電…";
 "battery.action.chargeToFullNowCharging" = "正在充電至 100%";
@@ -624,16 +650,74 @@
 "battery.action.chargeToFullNowUnavailable" = "立即完全充電目前無法使用。";
 "battery.action.cancelChargeToFullNow" = "取消立即完全充電";
 "battery.action.cancelChargeToFullNowApplying" = "正在恢復充電上限…";
-"battery.action.cancelChargeToFullNowFailed" = "無法恢復充電上限：%@";
+"battery.action.cancelChargeToFullNowFailed" = "無法恢復充電上限，請再試一次。";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "系統充電上限已更改，請檢查設定中的恢復上限後再試一次。";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "系統充電上限為 %1$d%%，要恢復為 %2$d%% 嗎？";
 "battery.action.cancelChargeToFullNowRestored" = "充電上限已恢復為 %d%%";
-"battery.action.cancelChargeToFullNowRestoredUnlimited" = "充電上限已清除";
 "battery.action.cancelChargeToFullNowFallback" = "已將充電上限設為 %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "確認恢復為 %d%%";
 "battery.action.cancelChargeToFullNowConfirmFallback" = "確認設為 %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "系統充電狀態可能已變更。請再次按一下繼續。";
 "battery.action.cancelChargeToFullNowPending" = "系統尚未確認暫時充滿狀態，請稍後再試。";
 
-// Opt-in managed charge limit
+"settings.popup.order.brightness" = "亮度";
+"brightness.row.accessibility" = "%@ 的亮度，%@";
+"brightness.row.accessibilityUnavailable" = "%@ 的亮度，%@";
+"brightness.unavailable" = "無法使用";
+"brightness.appAbsent" = "需要 BetterDisplay";
+"brightness.noBackend" = "無法控制亮度";
+"brightness.unresponsive" = "沒有回應";
+"brightness.backend.directDDC" = "直接 DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "調整已連接顯示器的亮度。";
+"settings.brightness.backend" = "%@ 的亮度後端";
+
+// About: community, author social links and more apps
+"settings.about.social.title" = "關注作者";
+"settings.about.social.douyin" = "抖音";
+"settings.about.social.xiaohongshu" = "小紅書";
+"settings.about.social.bilibili" = "嗶哩嗶哩";
+"settings.about.social.blog" = "個人部落格";
+"settings.about.community.title" = "加入社群";
+"settings.about.community.qq" = "QQ 群";
+"settings.about.community.qqDescription" = "加入 Status Trio 使用者群，交流問題與回饋。";
+"settings.about.community.wechat" = "微信群";
+"settings.about.community.wechatDescription" = "掃碼加入 Status Trio 微信群。二維碼會定期更新，點「重新整理」可取得 GitHub 上的最新二維碼。";
+"settings.about.community.copy" = "複製";
+"settings.about.community.copied" = "已複製";
+"settings.about.moreApps.title" = "作者的其他作品";
+"settings.about.moreApps.open" = "開啟";
+"settings.about.moreApps.newtab01Description" = "書籤驅動的新分頁：資料夾一鍵開成分頁群組或分割檢視，多套主題。";
+"settings.about.moreApps.noLazyloadDescription" = "禁用瀏覽器的圖片延遲載入，讓頁面一開啟就載入全部圖片，不必邊捲動邊載入。";
+"settings.about.moreApps.fund01Description" = "基金持股盯盤，漲跌幅常駐選單列 / 工作列，多群組即時更新。";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "重新整理";
+"settings.about.community.refreshFailed" = "二維碼載入失敗，請重試。";
+
+"guide.partPosition.battery" = "頂部圓弧";
+"guide.partPosition.network" = "中間圖標";
+"guide.partPosition.volume" = "底部圓點";
+"guide.network.center" = "可在「設定 › 應用圖示 › 中間圖標」中修改顯示內容，支援電量、功耗、輸入法、藍牙音訊。";
+
+"guide.state.chargingBatteryCenter" = "充電 + 電池百分比";
+"guide.state.fullPowerCenter" = "已充滿 + 功耗";
+"guide.state.lowBatteryInputCenter" = "低電量 + 輸入法";
+
+"settings.menuBarRightClickAction" = "右鍵操作";
+"settings.menuBarRightClickAction.description" = "右鍵點擊選單列圖示時執行的動作。";
+"settings.menuBarRightClickAction.contextMenu" = "顯示右鍵選單";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "切換低電量模式";
+"settings.menuBarRightClickAction.chargeToFullNow" = "立即充滿";
+"settings.menuBarRightClickAction.toggleMute" = "切換靜音";
+"settings.menuBarRightClickAction.unavailableHint" = "目前選取的操作無法使用；右鍵將改為顯示選單。";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "切換 Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "重新整理狀態";
+"settings.menuBarRightClickAction.openWiFiSettings" = "開啟 Wi-Fi 設定";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "開啟藍牙設定";
+"settings.menuBarRightClickAction.openBatterySettings" = "開啟電池設定";
+"settings.menuBarRightClickAction.openSoundSettings" = "開啟聲音設定";
 "settings.battery.chargeLimit.title" = "充電上限";
 "settings.battery.chargeLimit.target" = "最高充電量";
 "settings.battery.chargeLimit.description" = "立即套用上限，並在啟動、喚醒或重新接上電源後再次套用。";

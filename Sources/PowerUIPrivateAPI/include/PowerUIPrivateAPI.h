@@ -29,8 +29,20 @@ typedef NS_ENUM(NSInteger, STPowerUIChargeAvailabilityReason) {
 @property (nonatomic, copy, readonly, nullable) NSString *errorMessage;
 @end
 
+/// Stable failure categories. The Swift layer maps these to localized copy so
+/// the UI never shows raw PowerUI English.
+typedef NS_ENUM(NSInteger, STPowerUIChargeWriteFailure) {
+    STPowerUIChargeWriteFailureNone = 0,
+    STPowerUIChargeWriteFailureUnsupportedLimit,
+    STPowerUIChargeWriteFailureLimitChanged,
+    STPowerUIChargeWriteFailureUnavailable,
+    STPowerUIChargeWriteFailureVerificationFailed,
+    STPowerUIChargeWriteFailureRejected
+};
+
 @interface STPowerUIChargeWriteResult : NSObject
 @property (nonatomic, readonly, getter=didSucceed) BOOL succeeded;
+@property (nonatomic, readonly) STPowerUIChargeWriteFailure failure;
 @property (nonatomic, copy, readonly, nullable) NSString *errorMessage;
 @end
 
@@ -40,8 +52,19 @@ typedef NS_ENUM(NSInteger, STPowerUIChargeAvailabilityReason) {
 - (STPowerUIChargeState *)readState;
 /// Sends one request. The caller owns user intent, revalidation, and de-duplication.
 - (STPowerUIChargeWriteResult *)temporarilyDisableMCL;
-/// Enables MCL at `limit`, using `setMCLLimit:error:` only when required.
-- (STPowerUIChargeWriteResult *)restoreChargeLimit:(NSInteger)limit;
+/// Restores the charge limit to `limit` (80...99), using
+/// `setMCLLimit:error:` only when required.
+///
+/// `expectedLimit` is the sub-100 limit this app last recorded for the running
+/// charge-to-full session, or `0` when no session recorded one. A cancel can
+/// observe an intermediate sub-100 limit that differs from the target: the
+/// session's original limit may still be active, and PowerUI may report the
+/// limit it persisted for the system. A value equal to `expectedLimit` is that
+/// intermediate state and may be replaced by one bounded `setMCLLimit:`
+/// fallback. A sub-100 limit that is neither the target nor the expected limit
+/// is treated as an external change and is rejected without writing.
+- (STPowerUIChargeWriteResult *)restoreChargeLimit:(NSInteger)limit
+                                    expectedLimit:(NSInteger)expectedLimit;
 /// Applies explicit user intent only while a fresh state matches the expected
 /// limit and raw enabled value. Sub-100 targets must be advertised by PowerUI;
 /// 100 restores no cap. Sends at most one set and one enable request.

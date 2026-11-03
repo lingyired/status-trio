@@ -270,9 +270,7 @@ final class SettingsStoreTests: XCTestCase {
     func testBluetoothAudioDisplayDefaults() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
-        XCTAssertFalse(store.replacesNetworkIconWithBluetoothAudio)
         XCTAssertFalse(store.usesBluetoothAudioVolumeColor)
-        XCTAssertTrue(store.prioritizesNetworkErrorsOverBluetoothAudio)
         // Levels are a display-only read: a surface has to claim them, and the
         // claim only exists while a Bluetooth surface is on screen, so the
         // default is on.
@@ -392,24 +390,22 @@ final class SettingsStoreTests: XCTestCase {
         defer { clear(suite) }
 
         let first = SettingsStore(defaults: suite.defaults)
-        first.replacesNetworkIconWithBluetoothAudio = true
+        first.connectionCenterSource = .bluetoothDevice
+        first.prioritizesNetworkErrors = false
         first.usesBluetoothAudioVolumeColor = true
-        first.prioritizesNetworkErrorsOverBluetoothAudio = false
         first.showsBluetoothBatteryLevels = true
         first.bluetoothSymbolScale = 1.45
 
         let second = SettingsStore(defaults: suite.defaults)
-        XCTAssertTrue(second.replacesNetworkIconWithBluetoothAudio)
+        XCTAssertEqual(second.connectionCenterSource, .bluetoothDevice)
+        XCTAssertFalse(second.prioritizesNetworkErrors)
         XCTAssertTrue(second.usesBluetoothAudioVolumeColor)
-        XCTAssertFalse(second.prioritizesNetworkErrorsOverBluetoothAudio)
         XCTAssertTrue(second.showsBluetoothBatteryLevels)
         XCTAssertEqual(second.bluetoothSymbolScale, 1.45, accuracy: 0.001)
         XCTAssertEqual(
             second.bluetoothAudioIconOptions,
             BluetoothAudioIconOptions(
-                replacesNetworkIcon: true,
                 usesVolumeColor: true,
-                prioritizesNetworkErrors: false,
                 symbolScale: 1.45
             )
         )
@@ -420,15 +416,7 @@ final class SettingsStoreTests: XCTestCase {
         defer { clear(suite) }
         suite.defaults.set(
             "yes",
-            forKey: SettingsStore.replacesNetworkIconWithBluetoothAudioDefaultsKey
-        )
-        suite.defaults.set(
-            "yes",
             forKey: SettingsStore.usesBluetoothAudioVolumeColorDefaultsKey
-        )
-        suite.defaults.set(
-            "no",
-            forKey: SettingsStore.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey
         )
         suite.defaults.set(
             "yes",
@@ -437,9 +425,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let store = SettingsStore(defaults: suite.defaults)
 
-        XCTAssertFalse(store.replacesNetworkIconWithBluetoothAudio)
         XCTAssertFalse(store.usesBluetoothAudioVolumeColor)
-        XCTAssertTrue(store.prioritizesNetworkErrorsOverBluetoothAudio)
         XCTAssertTrue(store.showsBluetoothBatteryLevels)
     }
 
@@ -629,13 +615,47 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.chargeToFullRestoreLimit, 90, accuracy: 0.001)
     }
 
-    func testChargeToFullRestoreLimitDefaultsToUnlimitedWithoutASystemLimit() {
+    func testChargeToFullRestoreLimitDefaultsToNinetyFiveWithoutASystemLimit() {
         let store = SettingsStore(
             defaults: makeSuite().defaults,
             systemChargeLimit: { nil }
         )
 
-        XCTAssertEqual(store.chargeToFullRestoreLimit, 100, accuracy: 0.001)
+        XCTAssertEqual(store.chargeToFullRestoreLimit, 95, accuracy: 0.001)
+    }
+
+    func testInitialRestoreLimitSurvivesMissingSystemPolicy() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let first = SettingsStore(defaults: suite.defaults, systemChargeLimit: { 80 })
+        XCTAssertEqual(first.chargeToFullRestoreLimit, 80, accuracy: 0.001)
+
+        let second = SettingsStore(defaults: suite.defaults, systemChargeLimit: { nil })
+
+        XCTAssertEqual(second.chargeToFullRestoreLimit, 80, accuracy: 0.001)
+    }
+
+    func testLegacyUnlimitedRestoreLimitMigratesToTheSystemLimit() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(
+            100,
+            forKey: SettingsStore.chargeToFullRestoreLimitDefaultsKey
+        )
+
+        let migrated = SettingsStore(
+            defaults: suite.defaults,
+            systemChargeLimit: { 80 }
+        )
+
+        XCTAssertEqual(migrated.chargeToFullRestoreLimit, 80, accuracy: 0.001)
+        XCTAssertEqual(
+            suite.defaults.double(
+                forKey: SettingsStore.chargeToFullRestoreLimitDefaultsKey
+            ),
+            80,
+            accuracy: 0.001
+        )
     }
 
     func testStoredChargeToFullRestoreLimitWinsOverTheSystemValue() {
@@ -663,7 +683,7 @@ final class SettingsStoreTests: XCTestCase {
         )
 
         store.chargeToFullRestoreLimit = 140
-        XCTAssertEqual(store.chargeToFullRestoreLimit, 100, accuracy: 0.001)
+        XCTAssertEqual(store.chargeToFullRestoreLimit, 95, accuracy: 0.001)
 
         store.chargeToFullRestoreLimit = 10
         XCTAssertEqual(store.chargeToFullRestoreLimit, 80, accuracy: 0.001)
@@ -1343,12 +1363,12 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.inputDeviceOrder, [])
     }
 
-    func testPopupSectionOrderDefaultsToAllSectionsWithInputSourceLast() {
+    func testPopupSectionOrderDefaultsToBrightnessBelowAudioInput() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .inputSource]
+            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
     }
 
@@ -1479,7 +1499,7 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .inputSource]
+            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
         )
         XCTAssertFalse(store.enabledPopupSections.contains(.audioInput))
         store.setPopupSection(.audioInput, enabled: true)
@@ -1511,7 +1531,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             first.popupSectionOrder,
-            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .inputSource]
+            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
         XCTAssertEqual(
             first.visiblePopupSections,
@@ -1537,11 +1557,11 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .inputSource]
+            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
         )
         XCTAssertEqual(
             SettingsStore(defaults: suite.defaults).popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .inputSource]
+            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
         )
     }
 
@@ -1558,7 +1578,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .network, .battery, .vpn, .bluetooth, .audioInput, .inputSource]
+            [.volume, .network, .battery, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
         )
     }
 
@@ -1686,6 +1706,51 @@ final class SettingsStoreTests: XCTestCase {
         store.appIconPlacement = .both
 
         XCTAssertEqual(published, [.dock, .both])
+    }
+
+    func testMenuBarRightClickActionDefaultsToContextMenu() {
+        let store = SettingsStore(defaults: makeSuite().defaults)
+
+        XCTAssertEqual(store.menuBarRightClickAction, .contextMenu)
+    }
+
+    func testMenuBarRightClickActionPersistsAcrossStoreInstances() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        first.menuBarRightClickAction = .toggleMute
+
+        XCTAssertEqual(
+            SettingsStore(defaults: suite.defaults).menuBarRightClickAction,
+            .toggleMute
+        )
+    }
+
+    func testUnknownMenuBarRightClickActionFallsBackToContextMenu() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(
+            "not-an-action",
+            forKey: SettingsStore.menuBarRightClickActionDefaultsKey
+        )
+
+        XCTAssertEqual(SettingsStore(defaults: suite.defaults).menuBarRightClickAction, .contextMenu)
+    }
+
+    func testMenuBarRightClickActionPublishesChanges() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        var published: [MenuBarRightClickAction] = []
+        let cancellable = store.$menuBarRightClickAction.dropFirst().sink { published.append($0) }
+        defer { cancellable.cancel() }
+
+        store.menuBarRightClickAction = .chargeToFullNow
+        store.menuBarRightClickAction = .toggleLowPowerMode
+
+        XCTAssertEqual(published, [.chargeToFullNow, .toggleLowPowerMode])
     }
 
     func testDockIconBackgroundPreferenceDefaultsToSystem() {

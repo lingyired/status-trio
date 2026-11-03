@@ -29,22 +29,30 @@ final class AppIconPreviewTests: XCTestCase {
         let rendered: String
     }
 
-    // The committed artwork is regenerated from the renderer, so on this
-    // environment its decoded pixels equal the rendered pixels. The previous
-    // table kept a second pair for CI's headless CoreGraphics antialiasing; that
-    // pair was tied to the old committed bytes and must be re-recorded on that
-    // hardware. Only the verified local pair is approved here.
+    // The committed artwork is regenerated from the renderer, so on a given
+    // environment its decoded pixels equal the rendered pixels. CI's headless
+    // CoreGraphics antialiasing renders the same committed bytes differently,
+    // so its exact rendered pair is recorded alongside the local pair. Every
+    // entry still pins the decoded pixels; a deliberate artwork change fails.
     private static let approvedArtworkFingerprints: [String: Set<ArtworkFingerprint>] = [
         "AppIcon-light.png": [
             ArtworkFingerprint(
-                committed: "4df1923cd7ca02a783bae0fb6c2d8f23ac605a039cb65288fa7fd68cfa3cf74e",
-                rendered: "4df1923cd7ca02a783bae0fb6c2d8f23ac605a039cb65288fa7fd68cfa3cf74e"
+                committed: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981",
+                rendered: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981"
+            ),
+            ArtworkFingerprint(
+                committed: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981",
+                rendered: "3b2f6ba5835c645e88e9238d0adec31bbfd1232e92991fe3fdc907a496ef6aa7"
             )
         ],
         "AppIcon-dark.png": [
             ArtworkFingerprint(
-                committed: "dcf3050235ad7fe55319ff2afb350a6c23f3e409976dd80870b69f61c05c4a50",
-                rendered: "dcf3050235ad7fe55319ff2afb350a6c23f3e409976dd80870b69f61c05c4a50"
+                committed: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63",
+                rendered: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63"
+            ),
+            ArtworkFingerprint(
+                committed: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63",
+                rendered: "8fb28729b1f064541dc0b7236d6408c45055aa40e6c5c94ffc0f33419bdc1f93"
             )
         ]
     ]
@@ -56,7 +64,6 @@ final class AppIconPreviewTests: XCTestCase {
         XCTAssertEqual(state.status.wifi.state, .connected)
         XCTAssertEqual(state.status.volume.currentDevice, SheetFixtures.bluetoothDevice)
         XCTAssertTrue(state.bluetoothAudioOptions.usesVolumeColor)
-        XCTAssertFalse(state.bluetoothAudioOptions.replacesNetworkIcon)
         XCTAssertEqual(state.backgroundStyle, .dark)
     }
 

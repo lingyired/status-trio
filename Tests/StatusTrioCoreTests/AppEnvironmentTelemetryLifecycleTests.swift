@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class AppEnvironmentTelemetryLifecycleTests: XCTestCase {
+final class AppEnvironmentTelemetryLifecycleTests: VisibleUITestCase {
     func testEnvironmentStartsAndStopsTelemetryAlongsideFakeStatusServices() throws {
         let suiteName = "AppEnvironmentTelemetryLifecycleTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

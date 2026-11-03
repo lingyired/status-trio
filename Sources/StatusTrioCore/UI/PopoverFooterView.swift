@@ -56,6 +56,14 @@ struct PopoverFooterView: View {
             .buttonStyle(.plain)
             .keyboardShortcut(",", modifiers: .command)
 
+            // The version sits at the trailing edge rather than inside the
+            // button's label, which has to stay readable in every language.
+            // It stays visible here even though About also shows it: the footer
+            // is where the running build is checked while testing.
+            Text(AppMetadata.versionDisplayString)
+                .lineLimit(1)
+                .fixedSize()
+
             Menu {
                 Button(localization.string(.menuCheckForUpdates)) {
                     dismissPanel()
