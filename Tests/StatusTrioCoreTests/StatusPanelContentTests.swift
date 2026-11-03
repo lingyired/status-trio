@@ -36,7 +36,7 @@ final class StatusPanelContentTests: XCTestCase {
 
     func testWrapperReportsTheSameIntrinsicSize() {
         let host = StatusPanelHostingController(rootView: FixedContent())
-        let wrapper = StatusPanelContentViewController(hostingController: host)
+        let wrapper = StatusPanelContentViewController(hostingController: host, backgroundStyle: .solid)
 
         let size = wrapper.intrinsicContentSize
 
@@ -63,7 +63,7 @@ final class StatusPanelContentTests: XCTestCase {
 
     func testRootClipsRectangularDescendantsToThePanelCorners() throws {
         let host = StatusPanelHostingController(rootView: FixedContent())
-        let wrapper = StatusPanelContentViewController(hostingController: host)
+        let wrapper = StatusPanelContentViewController(hostingController: host, backgroundStyle: .solid)
         let root = wrapper.view
         XCTAssertEqual(root.layer?.cornerRadius, AnchoredStatusPanel.cornerRadius)
         XCTAssertEqual(root.layer?.masksToBounds, true)
@@ -87,6 +87,83 @@ final class StatusPanelContentTests: XCTestCase {
         XCTAssertFalse(panel.canBecomeMain)
         XCTAssertEqual(panel.collectionBehavior.contains(.fullScreenAuxiliary), true)
         XCTAssertEqual(panel.collectionBehavior.contains(.canJoinAllSpaces), true)
+    }
+
+    // MARK: - Background style (issue #233)
+
+    private func makeWrapper(
+        style: PanelBackgroundStyle,
+        reduceTransparency: Bool = false
+    ) -> StatusPanelContentViewController {
+        let host = StatusPanelHostingController(rootView: FixedContent())
+        return StatusPanelContentViewController(
+            hostingController: host,
+            backgroundStyle: style,
+            isReduceTransparencyEnabled: { reduceTransparency }
+        )
+    }
+
+    func testSolidBackgroundInstallsOpaqueFillBelowContent() {
+        let wrapper = makeWrapper(style: .solid)
+        let root = wrapper.view
+        let backgroundIndex = root.subviews.firstIndex { $0 is SolidPanelBackgroundView }
+        let contentIndex = root.subviews.firstIndex { $0 === wrapper.hostingController.view }
+
+        XCTAssertNotNil(backgroundIndex, "solid style must add a SolidPanelBackgroundView")
+        XCTAssertNotNil(contentIndex, "content host stays installed")
+        if let backgroundIndex, let contentIndex {
+            XCTAssertLessThan(backgroundIndex, contentIndex, "background sits behind content")
+        }
+    }
+
+    func testReduceTransparencyForcesSolidBackground() {
+        let wrapper = makeWrapper(style: .classicMaterial, reduceTransparency: true)
+        let root = wrapper.view
+
+        XCTAssertTrue(
+            root.subviews.contains { $0 is SolidPanelBackgroundView },
+            "Reduce Transparency must force the solid fill"
+        )
+        XCTAssertFalse(root.subviews.contains { $0 is NSVisualEffectView })
+    }
+
+    func testClassicMaterialInstallsPopoverVisualEffect() {
+        let wrapper = makeWrapper(style: .classicMaterial)
+
+        let effect = wrapper.view.subviews.compactMap { $0 as? NSVisualEffectView }.first
+        XCTAssertNotNil(effect)
+        XCTAssertEqual(effect?.material, .popover)
+        XCTAssertEqual(effect?.blendingMode, .behindWindow)
+    }
+
+    func testLiquidGlassInstallsGlassOnSupportedSystem() throws {
+        guard #available(macOS 26.0, *) else {
+            throw XCTSkip("Liquid Glass needs macOS 26 or newer")
+        }
+        let wrapper = makeWrapper(style: .liquidGlass)
+
+        XCTAssertTrue(
+            wrapper.view.subviews.contains { $0 is NSGlassEffectView },
+            "liquid glass style must add an NSGlassEffectView on macOS 26+"
+        )
+    }
+
+    func testApplyingStyleSwapsBackgroundAndKeepsContent() {
+        let wrapper = makeWrapper(style: .solid)
+        let root = wrapper.view
+        let content = wrapper.hostingController.view
+        XCTAssertTrue(root.subviews.contains { $0 is SolidPanelBackgroundView })
+
+        wrapper.applyBackgroundStyle(.classicMaterial)
+
+        XCTAssertEqual(wrapper.backgroundStyle, .classicMaterial)
+        XCTAssertFalse(root.subviews.contains { $0 is SolidPanelBackgroundView })
+        XCTAssertTrue(root.subviews.contains { $0 is NSVisualEffectView })
+        XCTAssertTrue(
+            root.subviews.contains { $0 === content },
+            "swapping the background must not replace the SwiftUI content"
+        )
+        XCTAssertNotNil(content.superview)
     }
 
     // MARK: - Reduce Transparency solid background (issue #234)

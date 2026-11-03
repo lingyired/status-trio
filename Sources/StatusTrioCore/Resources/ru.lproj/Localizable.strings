@@ -368,6 +368,13 @@
 "inputSource.switchFailed" = "Не удалось переключиться на «%@». Выберите его напрямую или повторите попытку.";
 "inputSource.switchUnconfirmed" = "macOS приняла «%@», но по-прежнему сообщает о другом источнике ввода. Возможно, активному приложению нужен фокус.";
 "settings.popup.order.inputSource" = "Источник ввода";
+"settings.panel.background.title" = "Фон панели";
+"settings.panel.background.style" = "Стиль фона";
+"settings.panel.background.style.description" = "Выберите способ отрисовки фона панели состояния.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "Классический материал";
+"settings.panel.background.style.solid" = "Сплошной цвет";
+"settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass требует macOS 26 или новее.";
 "settings.popup.volumeScroll.group" = "Прокрутка панели";
 "settings.popup.volumeScroll" = "Регулировать громкость прокруткой";
 "settings.popup.volumeScroll.description" = "Прокручивайте внутри панели состояния, чтобы изменить громкость вывода.";

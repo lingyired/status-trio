@@ -368,6 +368,13 @@
 "inputSource.switchFailed" = "Impossibile passare a «%@». Selezionala direttamente o riprova.";
 "inputSource.switchUnconfirmed" = "macOS ha accettato «%@» ma segnala ancora un’altra sorgente di input. L’app in primo piano potrebbe richiedere il focus.";
 "settings.popup.order.inputSource" = "Sorgente di input";
+"settings.panel.background.title" = "Sfondo del pannello";
+"settings.panel.background.style" = "Stile sfondo";
+"settings.panel.background.style.description" = "Scegli come disegnare lo sfondo del pannello di stato.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "Materiale classico";
+"settings.panel.background.style.solid" = "Tinta unita";
+"settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass richiede macOS 26 o versione successiva.";
 "settings.popup.volumeScroll.group" = "Scorrimento del pannello";
 "settings.popup.volumeScroll" = "Regola il volume scorrendo";
 "settings.popup.volumeScroll.description" = "Scorri all’interno del pannello di stato per cambiare il volume di uscita.";

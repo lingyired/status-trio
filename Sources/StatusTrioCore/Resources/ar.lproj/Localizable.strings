@@ -368,6 +368,13 @@
 "inputSource.switchFailed" = "تعذّر التبديل إلى «%@». اختره مباشرة أو حاول مرة أخرى.";
 "inputSource.switchUnconfirmed" = "قبل macOS «%@» لكنه لا يزال يُبلّغ عن مصدر إدخال آخر. قد يحتاج التطبيق في المقدمة إلى التركيز.";
 "settings.popup.order.inputSource" = "مصدر الإدخال";
+"settings.panel.background.title" = "خلفية اللوحة";
+"settings.panel.background.style" = "نمط الخلفية";
+"settings.panel.background.style.description" = "اختر طريقة رسم خلفية لوحة الحالة.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "مادة كلاسيكية";
+"settings.panel.background.style.solid" = "لون موحّد";
+"settings.panel.background.style.liquidGlassUnavailable" = "يتطلب Liquid Glass نظام macOS 26 أو أحدث.";
 "settings.popup.volumeScroll.group" = "تمرير اللوحة";
 "settings.popup.volumeScroll" = "ضبط مستوى الصوت بالتمرير";
 "settings.popup.volumeScroll.description" = "مرّر داخل لوحة الحالة لتغيير مستوى صوت الإخراج.";

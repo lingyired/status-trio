@@ -368,6 +368,13 @@
 "inputSource.switchFailed" = "Impossible de passer à « %@ ». Sélectionnez-la directement ou réessayez.";
 "inputSource.switchUnconfirmed" = "macOS a accepté « %@ » mais signale toujours une autre source de saisie. L’app au premier plan doit peut-être être activée.";
 "settings.popup.order.inputSource" = "Source de saisie";
+"settings.panel.background.title" = "Fond du panneau";
+"settings.panel.background.style" = "Style d’arrière-plan";
+"settings.panel.background.style.description" = "Choisissez le rendu de l’arrière-plan du panneau d’état.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "Matériau classique";
+"settings.panel.background.style.solid" = "Couleur unie";
+"settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass nécessite macOS 26 ou ultérieur.";
 "settings.popup.volumeScroll.group" = "Défilement du panneau";
 "settings.popup.volumeScroll" = "Régler le volume en défilant";
 "settings.popup.volumeScroll.description" = "Faites défiler dans le panneau d’état pour changer le volume de sortie.";

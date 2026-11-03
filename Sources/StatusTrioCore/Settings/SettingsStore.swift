@@ -68,6 +68,11 @@ final class SettingsStore: ObservableObject {
     /// to `.network`, so a downgrade or corrupted default never changes the
     /// shipped icon behaviour.
     static let connectionCenterSourceDefaultsKey = "connectionCenterSource"
+    /// Raw value of `PanelBackgroundStyle`. Missing or unknown values derive
+    /// from the running OS, and a stored `.liquidGlass` on macOS < 26 resolves
+    /// to `.classicMaterial` so a downgrade never selects an unavailable
+    /// background (issue #233).
+    static let panelBackgroundStyleDefaultsKey = "panelBackgroundStyle"
     static let prioritizesNetworkErrorsDefaultsKey = "prioritizesNetworkErrors"
     /// Migration-only keys from the split middle-slot settings.
     static let prioritizesNetworkErrorsOverInputSourceDefaultsKey = "prioritizesNetworkErrorsOverInputSource"
@@ -255,6 +260,18 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 dockIconBackgroundPreference.rawValue,
                 forKey: Self.dockIconBackgroundPreferenceDefaultsKey
+            )
+        }
+    }
+
+    /// Background drawn behind the status panel. Defaults to Liquid Glass on
+    /// macOS 26+ and to the classic popover material on older systems. Reduce
+    /// Transparency overrides this at render time (issue #233).
+    @Published var panelBackgroundStyle: PanelBackgroundStyle {
+        didSet {
+            defaults.set(
+                panelBackgroundStyle.rawValue,
+                forKey: Self.panelBackgroundStyleDefaultsKey
             )
         }
     }
@@ -1623,6 +1640,12 @@ final class SettingsStore: ObservableObject {
         self.dockIconBackgroundPreference = storedDockIconBackgroundPreference
             .flatMap(DockIconBackgroundPreference.init(rawValue:))
             ?? .system
+        let storedPanelBackgroundStyle = defaults.string(
+            forKey: Self.panelBackgroundStyleDefaultsKey
+        )
+        self.panelBackgroundStyle = PanelBackgroundStyle.resolved(
+            storedPanelBackgroundStyle.flatMap(PanelBackgroundStyle.init(rawValue:))
+        )
         let storedMenuBarRightClickAction = defaults.string(
             forKey: Self.menuBarRightClickActionDefaultsKey
         )

@@ -368,6 +368,13 @@
 "inputSource.switchFailed" = "「%@」に切り替えられませんでした。直接選択するか、もう一度お試しください。";
 "inputSource.switchUnconfirmed" = "macOS は「%@」を受け付けましたが、現在の入力ソースは別のままです。最前面のアプリにフォーカスが必要な場合があります。";
 "settings.popup.order.inputSource" = "入力ソース";
+"settings.panel.background.title" = "パネルの背景";
+"settings.panel.background.style" = "背景スタイル";
+"settings.panel.background.style.description" = "ステータスパネルの背景の描画方法を選択します。";
+"settings.panel.background.style.liquidGlass" = "リキッドグラス";
+"settings.panel.background.style.classicMaterial" = "クラシックマテリアル";
+"settings.panel.background.style.solid" = "単色";
+"settings.panel.background.style.liquidGlassUnavailable" = "リキッドグラスには macOS 26 以降が必要です。";
 "settings.popup.volumeScroll.group" = "パネルのスクロール";
 "settings.popup.volumeScroll" = "スクロールで音量を調整";
 "settings.popup.volumeScroll.description" = "ステータスパネル内をスクロールすると出力音量を変更できます。";

@@ -368,6 +368,13 @@
 "inputSource.switchFailed" = "无法切换到“%@”。请直接选择它或稍后重试。";
 "inputSource.switchUnconfirmed" = "macOS 已接受“%@”，但当前输入法仍是其他项。前台应用可能需要获得焦点。";
 "settings.popup.order.inputSource" = "输入法";
+"settings.panel.background.title" = "面板背景";
+"settings.panel.background.style" = "背景样式";
+"settings.panel.background.style.description" = "选择状态面板背景的绘制方式。";
+"settings.panel.background.style.liquidGlass" = "液态玻璃";
+"settings.panel.background.style.classicMaterial" = "经典材质";
+"settings.panel.background.style.solid" = "纯色";
+"settings.panel.background.style.liquidGlassUnavailable" = "液态玻璃需要 macOS 26 或更高版本。";
 "settings.popup.volumeScroll.group" = "面板滚动";
 "settings.popup.volumeScroll" = "滚动调节音量";
 "settings.popup.volumeScroll.description" = "在状态面板内滚动即可调节输出音量。";
