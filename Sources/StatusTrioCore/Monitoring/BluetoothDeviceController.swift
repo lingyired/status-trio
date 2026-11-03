@@ -333,6 +333,9 @@ final class BluetoothDeviceController: ObservableObject {
     /// `batteryLevels` cannot say it: an empty dictionary is also what a report
     /// without any readable level looks like.
     @Published private(set) var batteryLevelsReadFailed = false
+    /// Whether a battery-level read has completed since the claim was taken, so
+    /// the panel can keep a placeholder line until the first real reading lands.
+    @Published private(set) var hasCompletedBatteryRead = false
 
     private let worker: any BluetoothPairedDeviceReading
     private let appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter
@@ -1084,6 +1087,7 @@ final class BluetoothDeviceController: ObservableObject {
                 // panel reports it once instead of staying silent.
                 self.batteryLevelsReadFailed = levels == nil
                 self.batteryLevels = levels ?? [:]
+                self.hasCompletedBatteryRead = true
                 // The primary source is published first and on its own. The
                 // second source is an addition to it, never a precondition for
                 // it, so a read that never answers cannot hold the list back.
@@ -1143,6 +1147,7 @@ final class BluetoothDeviceController: ObservableObject {
         _ = batteryRequestGate.advance()
         batteryLevelsReadFailed = false
         batteryLevels = [:]
+        hasCompletedBatteryRead = false
     }
 
     private var currentNearbyBLEReadPermit: Set<UUID> {

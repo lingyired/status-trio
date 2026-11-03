@@ -121,14 +121,22 @@ struct BluetoothStatusView: View {
     }
 
     /// Connected AirPods keep their two-line height while the battery is read.
-    private var cachedBatteryPlaceholderAddresses: Set<String> {
-        guard isShowingCachedDevices else { return [] }
+    /// Connected AirPods keep their two-line height from the first cached paint
+    /// until the first real battery read lands, so the row never collapses to a
+    /// single line and grows back when the level arrives.
+    private var batteryPlaceholderAddresses: Set<String> {
+        guard showsBatteryLevels else { return [] }
+        guard isShowingCachedDevices || !controller.hasCompletedBatteryRead else { return [] }
         return Set(
-            controller.cachedDevices
+            displayedDevices
                 .filter { device in
-                    device.isConnected
-                        && (device.airPodsModel != nil
-                            || device.name.localizedCaseInsensitiveContains("airpods"))
+                    guard device.isConnected,
+                          device.airPodsModel != nil
+                            || device.name.localizedCaseInsensitiveContains("airpods")
+                    else { return false }
+                    return controller.batteryLevels[
+                        BluetoothBatteryReader.normalizedAddress(device.id)
+                    ] == nil
                 }
                 .map { BluetoothBatteryReader.normalizedAddress($0.id) }
         )
@@ -301,7 +309,7 @@ struct BluetoothStatusView: View {
                         onCancelDisconnect: { controller.cancelDisconnectConfirmation() },
                         layoutSnapshots: layoutSnapshots,
                         recordsLayoutSnapshot: controller.hasLoadedDevices,
-                        batteryPlaceholderAddresses: cachedBatteryPlaceholderAddresses
+                        batteryPlaceholderAddresses: batteryPlaceholderAddresses
                     )
 
                     if controller.batteryLevelsReadFailed {
@@ -559,7 +567,11 @@ struct BluetoothStatusView: View {
         let names = BluetoothDevicePresentation.grouped(displayedDevices).connected
             .map(\.name)
             .joined(separator: "、")
-        return "\(showsBatteryLevels)-\(names)"
+        // Include the load/availability so the claim is (re)issued once the fresh
+        // read lands. Cached rows can request it earlier while the radio is still
+        // initializing, when the read is skipped; without this the name-only id
+        // would not change on the real result and the levels would never load.
+        return "\(showsBatteryLevels)-\(controller.hasLoadedDevices)-\(controller.availability)-\(names)"
     }
 
     private var summaryPresentation: BluetoothSummary {

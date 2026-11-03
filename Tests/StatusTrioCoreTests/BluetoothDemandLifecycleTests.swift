@@ -445,6 +445,30 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
         fixture.store.stop()
     }
 
+    func testBatteryRequestWhileTheDeviceReadIsInFlightStillReadsLevels() async {
+        let fixture = makeFixture(authorization: .allowed)
+        fixture.settings.setPopupSection(.bluetooth, enabled: true)
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.reader.readCount == 1 }
+
+        // The panel asks for levels as soon as cached rows are on screen, before
+        // the fresh paired-device read returns.
+        fixture.store.bluetoothDevices.requestBatteryLevels("bluetooth.summary")
+        fixture.reader.complete(.success([
+            BluetoothDevice(
+                id: "AA:BB:CC:DD:EE:FF",
+                name: "AirPods Pro",
+                kind: .audio,
+                isConnected: true
+            )
+        ]))
+        await waitUntil { fixture.batteryReader.readCount > 0 }
+        XCTAssertGreaterThan(fixture.batteryReader.readCount, 0)
+        fixture.store.stop()
+    }
+
     func testProfilerCacheResetWaitsForEveryReaderToRelease() {
         let cache = BluetoothProfilerReportCache()
         let first = cache.acquireReader()
@@ -504,7 +528,8 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
             stateMonitor: stateMonitor,
             reader: reader,
             volumeMonitor: volumeMonitor,
-            cache: cache
+            cache: cache,
+            batteryReader: batteryReader
         )
     }
 
@@ -553,6 +578,7 @@ private struct DemandFixture {
     let reader: DemandBluetoothReader
     let volumeMonitor: DemandVolumeMonitor
     let cache: BluetoothProfilerReportCache
+    let batteryReader: DemandBluetoothBatteryReader
 }
 
 private struct UserDefaultsSuite {
@@ -619,7 +645,12 @@ private final class DemandBluetoothReader: BluetoothPairedDeviceReading, @unchec
 }
 
 private final class DemandBluetoothBatteryReader: BluetoothBatteryReading {
+    private let lock = NSLock()
+    private var count = 0
+    var readCount: Int { lock.withLock { count } }
+
     func read(completion: @escaping @Sendable ([String: BluetoothBatteryLevel]?) -> Void) {
+        lock.withLock { count += 1 }
         completion([:])
     }
 }
