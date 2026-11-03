@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WiFiNetworkListView: View {
     @EnvironmentObject private var localization: Localization
+    @Environment(\.colorScheme) private var colorScheme
     let state: WiFiPanelState
     let onBack: () -> Void
     let onRequestNameAccess: () -> Void
@@ -170,6 +171,12 @@ struct WiFiNetworkListView: View {
         }
     }
 
+    private var connectedMarkerColor: Color {
+        colorScheme == .dark
+            ? Color(.sRGB, red: 48 / 255, green: 209 / 255, blue: 88 / 255, opacity: 1)
+            : Color(.sRGB, red: 30 / 255, green: 142 / 255, blue: 62 / 255, opacity: 1)
+    }
+
     private func networkRow(_ row: PanelWiFiNetworkRow) -> some View {
         Button {
             if row.opensSettings { onOpenWiFiSettings() }
@@ -178,7 +185,8 @@ struct WiFiNetworkListView: View {
                 if row.selected {
                     Image(systemName: "checkmark")
                         .frame(width: 16, height: 16, alignment: .center)
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(connectedMarkerColor)
+                        .opacity(row.opensSettings ? 1 : 0)
                 } else {
                     Image(systemName: "wifi")
                         .frame(width: 16, height: 16, alignment: .center)
@@ -211,6 +219,16 @@ struct WiFiNetworkListView: View {
         }
         .buttonStyle(.plain)
         .disabled(!row.opensSettings)
+        .overlay(alignment: .leading) {
+            if row.selected && !row.opensSettings {
+                // Keep connection status opaque outside the disabled button's dimming.
+                Image(systemName: "checkmark")
+                    .frame(width: 16, height: 16, alignment: .center)
+                    .foregroundStyle(connectedMarkerColor)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
         .accessibilityLabel(row.accessibilityLabel)
     }
 }
