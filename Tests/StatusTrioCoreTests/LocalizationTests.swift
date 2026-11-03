@@ -165,6 +165,7 @@ final class LocalizationTests: XCTestCase {
             .settingsBatteryPowerInfoBar,
             .settingsBatteryPowerInfoBarDescription,
             .powerInfoBarInput,
+            .powerInfoBarNoInput,
             .powerInfoBarBattery,
             .powerInfoBarDischarging,
             .powerInfoBarSystem,

@@ -9,6 +9,7 @@ import Foundation
 /// "Battery charging".
 enum PowerInfoBarKind: String, Equatable, Hashable, Sendable {
     case input
+    case inputDisconnected
     case batteryCharging
     case batteryDischarging
     case batteryIdle
@@ -16,7 +17,7 @@ enum PowerInfoBarKind: String, Equatable, Hashable, Sendable {
 
     var title: LocalizationKey {
         switch self {
-        case .input: return .powerInfoBarInput
+        case .input, .inputDisconnected: return .powerInfoBarInput
         case .batteryCharging: return .powerInfoBarBattery
         case .batteryDischarging: return .powerInfoBarDischarging
         case .batteryIdle: return .powerInfoBarNotCharging

@@ -613,6 +613,7 @@
 "battery.power.system.help" = "Мощность системы (вкл. SoC)";
 "battery.power.system.explanation" = "«Система» — это остаток после зарядки аккумулятора, дисплея и USB: SoC, память, контроллеры дисплея и другие независимо не измеренные нагрузки.";
 "power.infoBar.input" = "Вход зарядного устройства";
+"power.infoBar.noInput" = "Нет питания";
 "power.infoBar.battery" = "Заряд батареи";
 "power.infoBar.discharging" = "Разряд аккумулятора";
 "power.infoBar.system" = "Мощность системы";

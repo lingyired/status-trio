@@ -124,6 +124,47 @@ final class PanelPresentationMapperTests: XCTestCase {
         XCTAssertEqual(batteryItem?.title, .powerInfoBarNotCharging)
     }
 
+    func testPowerInfoBarSaysNoAdapterWhenLaptopIsOnBattery() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let localization = makeLocalization(.english)
+        let onBattery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
+                                      isLowPowerMode: false, isConnectedToPower: false)
+
+        let row = PanelPresentationMapper.battery(
+            onBattery,
+            inputPower: SystemPowerSample(watts: 0, readAt: now),
+            batteryPower: BatteryPowerSample(volts: 12, amps: -0.7, updatedAt: now),
+            showsPowerInfoBar: true,
+            now: now,
+            localization: localization
+        )
+
+        let inputItem = row.powerInfoBar?.items.first { $0.kind == .inputDisconnected }
+        XCTAssertEqual(inputItem?.value, localization.string(.powerInfoBarNoInput),
+                       "A fresh 0 W adapter sample on battery must not read as an idle charger")
+        XCTAssertEqual(inputItem?.title, .powerInfoBarInput)
+        XCTAssertNil(row.powerInfoBar?.items.first { $0.kind == .input },
+                     "The connected-input card must not also be present")
+    }
+
+    func testPowerInfoBarKeepsInputReadingOnABatteryLessMac() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let noBattery = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                      isLowPowerMode: false, isConnectedToPower: false)
+
+        let row = PanelPresentationMapper.battery(
+            noBattery,
+            inputPower: SystemPowerSample(watts: 0, readAt: now),
+            showsPowerInfoBar: true,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+
+        let inputItem = row.powerInfoBar?.items.first { $0.kind == .input }
+        XCTAssertEqual(inputItem?.value, "0.0 W",
+                       "Without a battery there is no on-battery state; keep the real reading")
+    }
+
     func testPowerInfoBarBatteryCardFollowsPowerDirection() {
         let now = Date(timeIntervalSince1970: 1_789_555_974)
         let localization = makeLocalization(.english)

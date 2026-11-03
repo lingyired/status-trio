@@ -613,6 +613,7 @@
 "battery.power.system.help" = "Systemleistung (inkl. SoC)";
 "battery.power.system.explanation" = "„System“ ist, was nach Akkuladung, Display und USB übrig bleibt: SoC, Speicher, Display-Controller und weitere nicht einzeln gemessene Lasten.";
 "power.infoBar.input" = "Ladegeräteingang";
+"power.infoBar.noInput" = "Kein Netzteil";
 "power.infoBar.battery" = "Batterieladung";
 "power.infoBar.discharging" = "Batterieentladung";
 "power.infoBar.system" = "Systemleistung";

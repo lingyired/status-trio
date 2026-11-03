@@ -613,6 +613,7 @@
 "battery.power.system.help" = "Puissance système (SoC incl.)";
 "battery.power.system.explanation" = "« Système » est ce qui reste après la charge de la batterie, l’écran et l’USB : SoC, mémoire, contrôleurs d’affichage et autres charges non mesurées séparément.";
 "power.infoBar.input" = "Entrée du chargeur";
+"power.infoBar.noInput" = "Aucun adaptateur";
 "power.infoBar.battery" = "Charge batterie";
 "power.infoBar.discharging" = "Décharge de la batterie";
 "power.infoBar.system" = "Puissance système";
