@@ -46,14 +46,19 @@ enum StatusPanelPlacement {
     static func frame(
         contentSize: NSSize,
         anchor: StatusPanelAnchor,
-        screens: [StatusPanelScreen]
+        screens: [StatusPanelScreen],
+        dockInset: NSEdgeInsets = DockReveal.noInset
     ) -> NSRect {
         let size = NSSize(
             width: max(contentSize.width, 1),
             height: max(contentSize.height, 1)
         )
         let anchorRect = anchor.screenRect
-        let visibleFrame = screenContaining(anchorRect, screens: screens)?.visibleFrame ?? anchorRect
+        let raw = screenContaining(anchorRect, screens: screens)
+        let visibleFrame = usableFrame(
+            raw?.visibleFrame ?? anchorRect,
+            dockInset: dockInset
+        )
 
         var origin: NSPoint
         switch anchor.preferredEdge {
@@ -101,6 +106,32 @@ enum StatusPanelPlacement {
             max(visibleFrame.minY, visibleFrame.maxY - size.height)
         )
         return NSRect(origin: origin, size: size)
+    }
+
+    /// Shrinks the screen's visible frame by the clearance an auto-hidden Dock
+    /// needs on the edge it reveals from.
+    ///
+    /// A collapsed Dock reports `visibleFrame == frame`, so placement would
+    /// otherwise let a Dock-anchored panel reach the physical screen edge and
+    /// overlap the revealed Dock (issue #229). A visible Dock already reduces
+    /// `visibleFrame`, and `DockReveal` returns no inset there.
+    private static func usableFrame(
+        _ visibleFrame: NSRect,
+        dockInset: NSEdgeInsets
+    ) -> NSRect {
+        guard !(dockInset.top == 0 && dockInset.left == 0
+            && dockInset.bottom == 0 && dockInset.right == 0) else { return visibleFrame }
+        let minX = visibleFrame.minX + max(0, dockInset.left)
+        let maxX = visibleFrame.maxX - max(0, dockInset.right)
+        let minY = visibleFrame.minY + max(0, dockInset.bottom)
+        let maxY = visibleFrame.maxY - max(0, dockInset.top)
+        guard maxX > minX, maxY > minY else { return visibleFrame }
+        return NSRect(
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY
+        )
     }
 
     /// The screen whose frame contains the anchor's centre, falling back to the

@@ -549,7 +549,8 @@ final class StatusBarController: NSObject {
             // A real Dock tile click already activated this app before the
             // reopen callback. Re-activating can restore the existing Settings
             // window ahead of the transient popover.
-            activatesApplication: false
+            activatesApplication: false,
+            dockInset: anchor.dockInset
         )
     }
 
@@ -602,7 +603,8 @@ final class StatusBarController: NSObject {
         relativeTo rect: NSRect,
         of view: NSView,
         preferredEdge: NSRectEdge,
-        activatesApplication: Bool = true
+        activatesApplication: Bool = true,
+        dockInset: NSEdgeInsets = DockReveal.noInset
     ) {
         cancelPopoverContentRelease()
         store.setPopoverVisible(true)
@@ -632,7 +634,12 @@ final class StatusBarController: NSObject {
             // by the user-activation policy.
             activatesApplicationForPopover()
         }
-        popover.show(relativeTo: rect, of: view, preferredEdge: preferredEdge)
+        popover.show(
+            relativeTo: rect,
+            of: view,
+            preferredEdge: preferredEdge,
+            dockInset: dockInset
+        )
         // The popover's backing window only exists once it has been shown, and
         // without a Spaces behavior it stays on this app's desktop Space while
         // another app is full-screen.
@@ -733,15 +740,39 @@ final class StatusBarController: NSObject {
 
     /// The Dock icon has no public frame, but the click happens on the icon, so
     /// a tiny invisible window at the click point anchors the popover there.
-    private func dockAnchor(at point: NSPoint) -> (view: NSView, preferredEdge: NSRectEdge) {
+    private func dockAnchor(at point: NSPoint) -> (
+        view: NSView,
+        preferredEdge: NSRectEdge,
+        dockInset: NSEdgeInsets
+    ) {
+        let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
+        // A collapsed Dock no longer shrinks visibleFrame, so resolve() cannot
+        // tell its orientation; fall back to the pointer's nearest edge first.
+        let placement = screen.map {
+            DockReveal.collapsedPlacement(
+                screenFrame: $0.frame,
+                visibleFrame: $0.visibleFrame,
+                pointer: point
+            ) ?? DockPlacement.resolve(screenFrame: $0.frame, visibleFrame: $0.visibleFrame)
+        } ?? .bottom
         let anchor = DockPopoverAnchor.make(
             clickPoint: point,
             tileSize: NSApplication.shared.dockTile.size,
-            placement: dockPlacement(at: point)
+            placement: placement
         )
+        // Leave room for the revealed Dock so the panel cannot overlap it when
+        // the Dock is set to auto-hide (#229). A visible Dock needs no inset.
+        let dockInset = screen.map {
+            DockReveal.inset(
+                screenFrame: $0.frame,
+                visibleFrame: $0.visibleFrame,
+                pointer: point
+            )
+        } ?? DockReveal.noInset
         return (
             popoverAnchorView(at: anchor.origin),
-            anchor.preferredEdge
+            anchor.preferredEdge,
+            dockInset
         )
     }
 
@@ -776,15 +807,6 @@ final class StatusBarController: NSObject {
         popoverAnchorWindow.orderOut(nil)
         popoverAnchorWindow.close()
         self.popoverAnchorWindow = nil
-    }
-
-    private func dockPlacement(at point: NSPoint) -> DockPlacement {
-        let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
-        guard let screen else { return .bottom }
-        return DockPlacement.resolve(
-            screenFrame: screen.frame,
-            visibleFrame: screen.visibleFrame
-        )
     }
 
     private func installPopoverDismissMonitor() {

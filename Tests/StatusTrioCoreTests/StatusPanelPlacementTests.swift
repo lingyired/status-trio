@@ -137,4 +137,77 @@ struct StatusPanelPlacementTests {
         #expect(short.maxY == tall.maxY)
         #expect(tall.minY < short.minY)
     }
+
+    // MARK: - Collapsed (auto-hidden) Dock (#229)
+
+    private let collapsedScreen = StatusPanelScreen(
+        frame: NSRect(x: 0, y: 0, width: 1440, height: 900),
+        visibleFrame: NSRect(x: 0, y: 0, width: 1440, height: 900)
+    )
+
+    @Test func collapsedBottomDockKeepsThePanelAboveTheRevealStrip() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 488, y: 44, width: 24, height: 18),
+            preferredEdge: .maxY
+        )
+        let inset = DockReveal.inset(
+            screenFrame: collapsedScreen.frame,
+            visibleFrame: collapsedScreen.visibleFrame,
+            pointer: NSPoint(x: 500, y: 20)
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 400),
+            anchor: anchor,
+            screens: [collapsedScreen],
+            dockInset: inset
+        )
+
+        #expect(inset.bottom == DockReveal.extent)
+        #expect(frame.minY >= collapsedScreen.frame.minY + DockReveal.extent)
+    }
+
+    @Test func collapsedLeftDockKeepsThePanelClearOfTheRevealStrip() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 34, y: 388, width: 18, height: 24),
+            preferredEdge: .maxX
+        )
+        let inset = DockReveal.inset(
+            screenFrame: collapsedScreen.frame,
+            visibleFrame: collapsedScreen.visibleFrame,
+            pointer: NSPoint(x: 20, y: 400)
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 400),
+            anchor: anchor,
+            screens: [collapsedScreen],
+            dockInset: inset
+        )
+
+        #expect(inset.left == DockReveal.extent)
+        #expect(frame.minX >= collapsedScreen.frame.minX + DockReveal.extent)
+    }
+
+    @Test func collapsedRightDockKeepsThePanelClearOfTheRevealStrip() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 1392, y: 388, width: 18, height: 24),
+            preferredEdge: .minX
+        )
+        let inset = DockReveal.inset(
+            screenFrame: collapsedScreen.frame,
+            visibleFrame: collapsedScreen.visibleFrame,
+            pointer: NSPoint(x: 1420, y: 400)
+        )
+
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 400),
+            anchor: anchor,
+            screens: [collapsedScreen],
+            dockInset: inset
+        )
+
+        #expect(inset.right == DockReveal.extent)
+        #expect(frame.maxX <= collapsedScreen.frame.maxX - DockReveal.extent)
+    }
 }

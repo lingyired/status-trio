@@ -33,6 +33,8 @@ final class AnchoredStatusPanel: NSPanel {
     private var anchorView: NSView?
     private var anchorRectInView: NSRect = .zero
     private var preferredEdge: NSRectEdge = .minY
+    /// Clearance reserved for an auto-hidden Dock on the anchored edge (#229).
+    private var dockInset = DockReveal.noInset
     private var showCancellables: Set<AnyCancellable> = []
 
     init() {
@@ -80,10 +82,16 @@ final class AnchoredStatusPanel: NSPanel {
 
     // MARK: - Presentation
 
-    func show(relativeTo rect: NSRect, of view: NSView, preferredEdge: NSRectEdge) {
+    func show(
+        relativeTo rect: NSRect,
+        of view: NSView,
+        preferredEdge: NSRectEdge,
+        dockInset: NSEdgeInsets = DockReveal.noInset
+    ) {
         anchorView = view
         anchorRectInView = rect
         self.preferredEdge = preferredEdge
+        self.dockInset = dockInset
         anchor = StatusPanelAnchor(
             screenRect: Self.screenRect(for: rect, in: view),
             preferredEdge: preferredEdge
@@ -152,7 +160,8 @@ final class AnchoredStatusPanel: NSPanel {
         return StatusPanelPlacement.frame(
             contentSize: contentSize,
             anchor: currentAnchor,
-            screens: NSScreen.screens.map { StatusPanelScreen($0) }
+            screens: NSScreen.screens.map { StatusPanelScreen($0) },
+            dockInset: dockInset
         )
     }
 
