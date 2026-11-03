@@ -46,6 +46,10 @@ final class PowerSamplingService: ObservableObject {
     @Published private(set) var systemPower: SystemPowerSample?
     @Published private(set) var inputPower: SystemPowerSample?
     @Published private(set) var batteryPower: BatteryPowerSample?
+    /// Whether a whole-machine read has completed since the sampler last stopped.
+    /// The panel uses it to tell "still loading" from "no rail to show", so it can
+    /// reserve the info-bar height with a skeleton instead of growing on arrival.
+    @Published private(set) var hasCompletedFirstRead = false
     /// Exposed for tests and diagnostics.
     private(set) var demands: Set<Demand> = []
     private(set) var isRunning = false
@@ -127,6 +131,7 @@ final class PowerSamplingService: ObservableObject {
                         if self.inputPower != reading.input { self.inputPower = reading.input }
                         if self.batteryPower != reading.battery { self.batteryPower = reading.battery }
                     }
+                    if !self.hasCompletedFirstRead { self.hasCompletedFirstRead = true }
                 }
                 if self.needsRefresh {
                     self.needsRefresh = false
@@ -163,6 +168,7 @@ final class PowerSamplingService: ObservableObject {
         // opens later; a fresh demand starts a new read.
         if systemPower != nil { systemPower = nil }
         clearAuxiliaryRails()
+        hasCompletedFirstRead = false
     }
 
     private func clearAuxiliaryRails() {

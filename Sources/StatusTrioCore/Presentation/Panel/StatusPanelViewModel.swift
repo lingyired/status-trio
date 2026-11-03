@@ -202,6 +202,7 @@ final class StatusPanelViewModel: ObservableObject {
                         inputPower: inputPower,
                         batteryPower: batteryPower,
                         showsPowerInfoBar: self.settings.showsBatteryPowerInfoBar,
+                        powerInfoBarIsLoading: !self.store.powerSampling.hasCompletedFirstRead,
                         localization: self.localization,
                         chargeToFullNow: self.chargeToFullNowPresentation
                     )
@@ -660,6 +661,7 @@ final class StatusPanelViewModel: ObservableObject {
             inputPower: store.powerSampling.inputPower,
             batteryPower: store.powerSampling.batteryPower,
             showsPowerInfoBar: settings.showsBatteryPowerInfoBar,
+            powerInfoBarIsLoading: !store.powerSampling.hasCompletedFirstRead,
             localization: localization,
             chargeToFullNow: chargeToFullNowPresentation
         )

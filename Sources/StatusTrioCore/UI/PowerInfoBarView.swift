@@ -10,29 +10,42 @@ struct PowerInfoBarView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ForEach(state.items) { item in
-                card(item)
+            if state.items.isEmpty {
+                ForEach(state.placeholderKinds, id: \.self) { kind in
+                    card(kind: kind, value: nil)
+                }
+            } else {
+                ForEach(state.items) { item in
+                    card(kind: item.kind, value: item.value)
+                }
             }
         }
         .accessibilityElement(children: .contain)
     }
 
-    private func card(_ item: PowerInfoBarItem) -> some View {
-        let tint = Self.tint(for: item.kind)
+    private func card(kind: PowerInfoBarKind, value: String?) -> some View {
+        let tint = Self.tint(for: kind)
         return VStack(alignment: .center, spacing: 1) {
             HStack(spacing: 5) {
-                Image(systemName: Self.symbolName(for: item.kind))
-                    .font(.system(size: Self.iconSize(for: item.kind), weight: .medium))
+                Image(systemName: Self.symbolName(for: kind))
+                    .font(.system(size: Self.iconSize(for: kind), weight: .medium))
                     .foregroundStyle(tint)
                     .accessibilityHidden(true)
-                Text(item.value)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                if let value {
+                    Text(value)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                } else {
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(Color.secondary.opacity(0.18))
+                        .frame(width: 46, height: 12)
+                        .accessibilityHidden(true)
+                }
             }
 
-            Text(localization.string(item.title))
+            Text(localization.string(kind.title))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)

@@ -8,6 +8,7 @@ enum PanelPresentationMapper {
         inputPower: SystemPowerSample? = nil,
         batteryPower: BatteryPowerSample? = nil,
         showsPowerInfoBar: Bool = false,
+        powerInfoBarIsLoading: Bool = false,
         now: Date = Date(),
         localization: Localization,
         chargeToFullNow: ChargeToFullNowPresentation = .hidden
@@ -27,16 +28,33 @@ enum PanelPresentationMapper {
         // that it has a usable whole-machine power reading.
         let canOpenDetails = status.isPresent
             || (powerSample?.isFresh(at: now) ?? false)
-        let infoBar = showsPowerInfoBar
-            ? powerInfoBar(
+        let infoBar: PowerInfoBarState?
+        if showsPowerInfoBar {
+            if let bar = powerInfoBar(
                 status: status,
                 systemPower: powerSample,
                 inputPower: inputPower,
                 batteryPower: batteryPower,
                 now: now,
                 localization: localization
-            )
-            : nil
+            ) {
+                infoBar = bar
+            } else if powerInfoBarIsLoading {
+                // Reserve the bar's height with grey rails until the first read
+                // lands, so turning the setting on (or reopening the panel) does
+                // not grow the panel when the numbers arrive.
+                infoBar = PowerInfoBarState(
+                    items: [],
+                    placeholderKinds: status.isPresent
+                        ? [.input, .batteryIdle, .system]
+                        : [.input, .system]
+                )
+            } else {
+                infoBar = nil
+            }
+        } else {
+            infoBar = nil
+        }
 
         return PanelSummaryState(
             title: title,

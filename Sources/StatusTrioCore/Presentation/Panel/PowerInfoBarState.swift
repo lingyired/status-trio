@@ -40,6 +40,10 @@ struct PowerInfoBarItem: Equatable, Hashable, Sendable, Identifiable {
 /// are absent from `items`; the bar hides entirely when empty.
 struct PowerInfoBarState: Equatable, Hashable, Sendable {
     let items: [PowerInfoBarItem]
+    /// Rails to draw as grey skeletons while the first whole-machine read is
+    /// still pending. Empty once the real `items` are available (or when there is
+    /// nothing to reserve), so the bar's height does not jump when data arrives.
+    var placeholderKinds: [PowerInfoBarKind] = []
 
-    var isEmpty: Bool { items.isEmpty }
+    var isEmpty: Bool { items.isEmpty && placeholderKinds.isEmpty }
 }

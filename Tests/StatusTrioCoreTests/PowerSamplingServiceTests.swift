@@ -56,6 +56,23 @@ final class PowerSamplingServiceTests: XCTestCase {
         XCTAssertNil(service.systemPower, "A stopped sampler must not leave a stale value behind")
     }
 
+    func testCompletedFirstReadTracksTheRunningSession() async {
+        let service = makeService { _ in
+            PowerSamplingReading(system: SystemPowerSample(watts: 17.5, readAt: Date()))
+        }
+        XCTAssertFalse(service.hasCompletedFirstRead)
+
+        service.begin(.panel)
+        await waitForSample(service)
+        XCTAssertTrue(service.hasCompletedFirstRead)
+
+        service.end(.panel)
+        XCTAssertFalse(
+            service.hasCompletedFirstRead,
+            "A stopped sampler asks the next open to reserve its skeleton again"
+        )
+    }
+
     func testAnUnreadableSampleIsNeverPublishedAsZero() async {
         let service = makeService { _ in .empty }
         service.begin(.icon)

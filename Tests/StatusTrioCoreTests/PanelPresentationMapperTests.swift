@@ -103,6 +103,47 @@ final class PanelPresentationMapperTests: XCTestCase {
         XCTAssertNil(off.powerInfoBar, "The info bar must stay hidden until the setting is on")
     }
 
+    func testPowerInfoBarReservesSkeletonRailsUntilTheFirstRead() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+
+        let loading = PanelPresentationMapper.battery(
+            battery,
+            showsPowerInfoBar: true,
+            powerInfoBarIsLoading: true,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+        XCTAssertEqual(loading.powerInfoBar?.items.count, 0)
+        XCTAssertEqual(loading.powerInfoBar?.placeholderKinds, [.input, .batteryIdle, .system])
+        XCTAssertFalse(loading.powerInfoBar?.isEmpty ?? true)
+
+        let settled = PanelPresentationMapper.battery(
+            battery,
+            showsPowerInfoBar: true,
+            powerInfoBarIsLoading: false,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+        XCTAssertNil(settled.powerInfoBar, "No rails and no longer loading means no bar")
+    }
+
+    func testPowerInfoBarSkeletonOmitsTheBatteryRailWithoutABattery() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let battery = BatteryStatus(rawPercentage: 0, isPresent: false, isCharging: false,
+                                    isLowPowerMode: false, isConnectedToPower: false)
+
+        let loading = PanelPresentationMapper.battery(
+            battery,
+            showsPowerInfoBar: true,
+            powerInfoBarIsLoading: true,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+        XCTAssertEqual(loading.powerInfoBar?.placeholderKinds, [.input, .system])
+    }
+
     func testPowerInfoBarSaysNotChargingAtZeroBatteryWatts() {
         let now = Date(timeIntervalSince1970: 1_789_555_974)
         let localization = makeLocalization(.english)
