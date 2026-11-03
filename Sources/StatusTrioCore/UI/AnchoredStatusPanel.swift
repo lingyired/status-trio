@@ -145,7 +145,7 @@ final class AnchoredStatusPanel: NSPanel {
             return
         }
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.12
+            context.duration = 0.08
             context.allowsImplicitAnimation = true
             self.animator().alphaValue = 1
         }
