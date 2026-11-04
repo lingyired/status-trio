@@ -2,6 +2,38 @@ import XCTest
 @testable import StatusTrioCore
 
 final class AirPodsDirectProtocolTests: XCTestCase {
+    func testHardwareSupportDoesNotDependOnPlaybackState() {
+        for uid in ["2002 4c", "200f 4c"] {
+            XCTAssertEqual(AirPodsFeatureSupport(modelUID: uid).spatial, false)
+            XCTAssertEqual(AirPodsFeatureSupport(modelUID: uid).conversation, false)
+        }
+        for uid in ["2013 4c", "2019 4c", "200e 4c", "200a 4c", "201f 4c"] {
+            XCTAssertEqual(AirPodsFeatureSupport(modelUID: uid).spatial, true)
+            XCTAssertEqual(AirPodsFeatureSupport(modelUID: uid).conversation, false)
+        }
+        for uid in ["201b 4c", "2014 4c", "2024 4c", "2027 4c", "202d 4c"] {
+            XCTAssertEqual(AirPodsFeatureSupport(modelUID: uid).spatial, true)
+            XCTAssertNil(AirPodsFeatureSupport(modelUID: uid).conversation)
+        }
+        XCTAssertNil(AirPodsFeatureSupport(modelUID: "ffff 4c").spatial)
+        XCTAssertNil(AirPodsFeatureSupport(modelUID: nil).conversation)
+    }
+
+    func testUnsupportedConversationDiffersFromOffAndFailedRead() throws {
+        let decoder = JSONDecoder()
+        let unsupported = try decoder.decode(AirPodsAudioHelper.Snapshot.self,
+            from: Data(#"{"conversationSupported":false}"#.utf8))
+        XCTAssertEqual(unsupported.conversationSupported, false)
+        XCTAssertNil(unsupported.conversation)
+        let off = try decoder.decode(AirPodsAudioHelper.Snapshot.self,
+            from: Data(#"{"conversationSupported":true,"conversation":false}"#.utf8))
+        XCTAssertEqual(off.conversationSupported, true)
+        XCTAssertEqual(off.conversation, false)
+        XCTAssertNil(try decoder.decode(AirPodsAudioHelper.Snapshot.self, from: Data("{}".utf8)).conversationSupported)
+        XCTAssertThrowsError(try decoder.decode(AirPodsAudioHelper.Snapshot.self,
+            from: Data(#"{"conversationSupported":1}"#.utf8)))
+    }
+
     func testHelperProtocolRejectsNonBooleanState() throws {
         let decoder = JSONDecoder()
         XCTAssertEqual(try decoder.decode(AirPodsAudioHelper.Snapshot.self, from: Data(#"{"conversation":true}"#.utf8)).conversation, true)

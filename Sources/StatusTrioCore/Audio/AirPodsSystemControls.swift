@@ -17,6 +17,36 @@ struct AirPodsSystemSnapshot: Equatable {
     var loaded = false
     var conversationLoaded = false
     var spatialLoaded = false
+    var supportsSpatial: Bool? = nil
+    var supportsConversation: Bool? = nil
+}
+
+/// Hardware support is distinct from temporary playback/API availability.
+/// Unknown variants defer to runtime capability reporting.
+struct AirPodsFeatureSupport {
+    let spatial: Bool?
+    let conversation: Bool?
+
+    init(modelUID: String?) {
+        guard let model = AirPodsModel(modelUID: modelUID) else {
+            spatial = nil
+            conversation = nil
+            return
+        }
+        spatial = model != .airPods
+        let product = (modelUID ?? "").split(separator: " ").first
+            .flatMap { BluetoothHexIdentifier.value(from: String($0)) }
+        switch model {
+        case .airPods, .airPodsGen3, .airPodsProGen1:
+            conversation = false
+        case .airPodsGen4 where product == 0x2019:
+            conversation = false // AirPods 4 without ANC
+        case .airPodsMax where product == 0x200A || product == 0x201F:
+            conversation = false // Lightning / USB-C first generation
+        default:
+            conversation = nil
+        }
+    }
 }
 
 enum AirPodsSystemControlError: Error {
@@ -158,6 +188,10 @@ final class AirPodsSystemControls: NSObject, IOBluetoothL2CAPChannelDelegate {
     func read(onUpdate: (AirPodsSystemSnapshot) -> Void = { _ in }) async throws -> AirPodsSystemSnapshot {
         _ = try device()
         var snapshot = AirPodsSystemSnapshot()
+        let modelUID = CoreAudioOutputController().outputDevices().first { $0.id == target.id }?.modelUID
+        let support = AirPodsFeatureSupport(modelUID: modelUID)
+        snapshot.supportsSpatial = support.spatial
+        snapshot.supportsConversation = support.conversation
         spatialState = try? AirPodsSpatialControls(deviceID: target.id).read()
         snapshot.spatial = spatialOptions()
         snapshot.spatialLoaded = true
@@ -166,6 +200,7 @@ final class AirPodsSystemControls: NSObject, IOBluetoothL2CAPChannelDelegate {
         try Task.checkCancellation()
         _ = try device()
         helperConversation = helper?.conversation
+        if let supported = helper?.conversationSupported { snapshot.supportsConversation = supported }
         snapshot.conversation = conversationOptions()
         snapshot.conversationLoaded = true
         onUpdate(snapshot)

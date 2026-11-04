@@ -1,7 +1,10 @@
 import Foundation
 
 struct AirPodsAudioHelper {
-    struct Snapshot: Decodable, Equatable { let conversation: Bool? }
+    struct Snapshot: Decodable, Equatable {
+        let conversation: Bool?
+        var conversationSupported: Bool? = nil
+    }
 
     static func run(uid: String, conversation: Bool? = nil) async throws -> Snapshot {
         try Task.checkCancellation()

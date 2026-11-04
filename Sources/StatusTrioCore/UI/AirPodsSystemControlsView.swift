@@ -124,13 +124,14 @@ struct AirPodsSystemControlsView: View {
     var listeningMode: BluetoothListeningModePresentation? = nil
     var onSelectListeningMode: (BluetoothListeningMode) -> Void = { _ in }
     @EnvironmentObject private var localization: Localization
+    @Environment(\.colorScheme) private var colorScheme
     @State private var adaptiveDraft: Double = 50
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Divider()
-            heading(.bluetoothListeningModeGroup)
-            if let listeningMode {
+            if let listeningMode, listeningMode.isControllable {
+                Divider()
+                heading(.bluetoothListeningModeGroup)
                 ForEach(listeningMode.availableModes, id: \.self) { mode in
                     option(localization.string(mode.titleKey), symbol: symbol(mode), selected: listeningMode.selectedMode == mode) {
                         onSelectListeningMode(mode)
@@ -142,12 +143,16 @@ struct AirPodsSystemControlsView: View {
                     Text(localization.string(.bluetoothListeningModeChangeFailed)).font(.caption)
                 }
             }
-            Divider()
-            heading(.airPodsSpatial)
-            options(model.snapshot.spatial, group: .spatial, symbol: "person.spatialaudio.stereo.fill")
-            Divider()
-            heading(.airPodsConversation)
-            options(model.snapshot.conversation, group: .conversation, symbol: "person.wave.2.fill")
+            if model.snapshot.supportsSpatial != false {
+                Divider()
+                heading(.airPodsSpatial)
+                options(model.snapshot.spatial, group: .spatial, symbol: "person.spatialaudio.stereo.fill")
+            }
+            if model.snapshot.supportsConversation != false {
+                Divider()
+                heading(.airPodsConversation)
+                options(model.snapshot.conversation, group: .conversation, symbol: "person.wave.2.fill")
+            }
             if model.busy {
                 ProgressView().controlSize(.mini)
             }
@@ -228,10 +233,11 @@ struct AirPodsSystemControlsView: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark").font(.body.weight(.semibold))
+                    .foregroundStyle(colorScheme == .dark ? Color.white : Color.black)
                     .opacity(selected ? 1 : 0).frame(width: 16)
                     .accessibilityHidden(true)
-                Image(nsImage: AirPodsControlSymbols.image(symbol)).resizable().scaledToFit()
-                    .foregroundStyle(symbol == "person.fill" || symbol == "person.wave.2.fill" || symbol == "person.spatialaudio.stereo.fill" || symbol == "spatialize-stereo-head-tracked" ? Color.secondary : Color.primary)
+                Image(nsImage: AirPodsControlSymbols.image(symbol)).renderingMode(.template).resizable().scaledToFit()
+                    .foregroundStyle(colorScheme == .dark ? Color.white : Color.black)
                     .frame(width: 20, height: 20).accessibilityHidden(true)
                 Text(title).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)

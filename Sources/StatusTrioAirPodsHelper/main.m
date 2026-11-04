@@ -71,7 +71,7 @@ int main(int argc, char **argv) { @autoreleasepool {
     NSString *identity = [[device deviceID] copy];
     if (identity.length == 0 || ![device respondsToSelector:@selector(supportsConversationDetection)] ||
         ![device respondsToSelector:@selector(isConversationDetectionEnabled)]) return 3;
-    if (![device supportsConversationDetection]) { puts("{}"); return [operation isEqualToString:@"read"] ? 0 : 3; }
+    if (![device supportsConversationDetection]) { puts("{\"conversationSupported\":false}"); return [operation isEqualToString:@"read"] ? 0 : 3; }
     if (![operation isEqualToString:@"read"]) {
         BOOL desired = [operation isEqualToString:@"ca-on"];
         device = endpoint(context, uid, identity);
@@ -92,6 +92,6 @@ int main(int argc, char **argv) { @autoreleasepool {
     }
     device = endpoint(context, uid, identity);
     if (!device) return 4;
-    printf("{\"conversation\":%s}\n", [device isConversationDetectionEnabled] ? "true" : "false");
+    printf("{\"conversationSupported\":true,\"conversation\":%s}\n", [device isConversationDetectionEnabled] ? "true" : "false");
     return 0;
 }}

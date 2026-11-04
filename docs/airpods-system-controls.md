@@ -215,3 +215,16 @@ in the initial open/closed issue search. Existing listening-mode work is in
 [#79](https://github.com/lingyired/status-trio/issues/79),
 [#82](https://github.com/lingyired/status-trio/pull/82), and
 [#85](https://github.com/lingyired/status-trio/pull/85).
+
+## Model-specific sections
+
+Listening Mode is shown only when macOS supplies a controllable set of modes.
+Known hardware exclusions hide unsupported Spatial Audio and Conversation
+Awareness sections (including Conversation Awareness on basic AirPods 4).
+The helper also reports Conversation Awareness support separately from its
+on/off value. Unknown variants defer to runtime reporting; an API/read failure
+is not evidence that hardware lacks a feature. Spatial Audio on a supported
+model remains visible as unavailable when no active media client can be read.
+All control glyphs use white in dark appearance and black in light appearance.
+Cross-model hardware validation remains NOT RUN; model and protocol behavior
+are covered by local tests.
