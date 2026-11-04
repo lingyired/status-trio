@@ -639,6 +639,134 @@ struct MobileBatteryHelperReaderTests {
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
         return url
     }
+
+    /// USB reports `[p]` and network reports `[p, w]`: three route observations
+    /// of two devices. The summary must count identities, not transport rows.
+    @Test func discoverySummaryDeduplicatesAcrossTransports() async throws {
+        let summary = try await Self.captureDiscoverySummary(
+            phones: [Self.phoneEntry("p", transports: ["usb", "network"])]
+        ) { _, transport in
+            transport == "usb"
+                ? [Self.phoneCandidate("p", transport: transport)]
+                : [
+                    Self.phoneCandidate("p", transport: transport),
+                    Self.watchCandidate("w", parent: "p", transport: transport),
+                ]
+        }
+        #expect(summary.discoveredCandidates == 2)
+        #expect(summary.retainedCandidates == 2)
+        #expect(summary.droppedGroups == 0)
+        #expect(summary.droppedWatchCandidates == 0)
+    }
+
+    /// Each phone group is deduplicated before counting, so two phones seen on
+    /// both transports count as two identities rather than four observations.
+    @Test func discoverySummaryDeduplicatesEveryPhoneGroupBeforeCounting() async throws {
+        let summary = try await Self.captureDiscoverySummary(
+            phones: [
+                Self.phoneEntry("p", transports: ["usb", "network"]),
+                Self.phoneEntry("q", transports: ["usb", "network"]),
+            ]
+        ) { phoneID, transport in
+            [Self.phoneCandidate(phoneID, transport: transport)]
+        }
+        #expect(summary.discoveredCandidates == 2)
+        #expect(summary.retainedCandidates == 2)
+        #expect(summary.droppedGroups == 0)
+        #expect(summary.droppedWatchCandidates == 0)
+    }
+
+    /// The first group may exceed the eight-candidate budget on its own; it is
+    /// kept whole and its nine identities are reported as discovered/retained.
+    @Test func discoverySummaryCountsTheFirstGroupOfNine() async throws {
+        let summary = try await Self.captureDiscoverySummary(
+            phones: [Self.phoneEntry("p", transports: ["usb"])]
+        ) { _, transport in
+            [Self.phoneCandidate("p", transport: transport)]
+                + (0..<8).map { Self.watchCandidate("w\($0)", parent: "p", transport: transport) }
+        }
+        #expect(summary.discoveredCandidates == 9)
+        #expect(summary.retainedCandidates == 9)
+        #expect(summary.droppedGroups == 0)
+        #expect(summary.droppedWatchCandidates == 0)
+    }
+
+    /// A group dropped by the budget contributes its distinct Watch identities
+    /// once, even though that phone was observed on two transports.
+    @Test func discoverySummaryCountsDroppedGroupWatchesOnce() async throws {
+        let summary = try await Self.captureDiscoverySummary(
+            phones: [
+                Self.phoneEntry("p", transports: ["usb"]),
+                Self.phoneEntry("q", transports: ["usb", "network"]),
+            ]
+        ) { phoneID, transport in
+            if phoneID == "p" {
+                return [Self.phoneCandidate("p", transport: transport)]
+                    + (0..<8).map { Self.watchCandidate("pw\($0)", parent: "p", transport: transport) }
+            }
+            if transport == "usb" { return [Self.phoneCandidate("q", transport: transport)] }
+            return [
+                Self.phoneCandidate("q", transport: transport),
+                Self.watchCandidate("qw", parent: "q", transport: transport),
+            ]
+        }
+        #expect(summary.discoveredCandidates == 11)
+        #expect(summary.retainedCandidates == 9)
+        #expect(summary.droppedGroups == 1)
+        #expect(summary.droppedWatchCandidates == 1)
+    }
+
+    private static func captureDiscoverySummary(
+        phones: [String],
+        discover: @escaping @Sendable (_ phoneID: String, _ transport: String) async throws -> [String]
+    ) async throws -> MobileBatteryDiscoverySummary {
+        let listing = phones.joined(separator: ",")
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[\#(listing)]}"#.utf8)
+            }
+            let entries = try await discover(arguments[1], arguments.last ?? "usb")
+                .joined(separator: ",")
+            return Data(#"{"schemaVersion":1,"candidates":[\#(entries)],"failures":[]}"#.utf8)
+        }
+        let box = DiscoverySummaryBox()
+        _ = try await MobileBatteryHelperReader(
+            executor: executor,
+            discoverySummarySink: { box.record($0) }
+        ).discoverWithDiagnostics()
+        return try #require(box.summary)
+    }
+
+    private static func phoneEntry(_ id: String, transports: [String]) -> String {
+        let list = transports.map { "\"\($0)\"" }.joined(separator: ",")
+        return #"{"id":"\#(id)","transport":"\#(transports.first ?? "usb")","availableTransports":[\#(list)]}"#
+    }
+
+    private static func phoneCandidate(_ id: String, transport: String) -> String {
+        #"{"id":"\#(id)","model":"iPhone18,1","transport":"\#(transport)","trustRequired":false}"#
+    }
+
+    private static func watchCandidate(_ id: String, parent: String, transport: String) -> String {
+        #"{"id":"\#(id)","parentID":"\#(parent)","model":"Watch7,4","transport":"\#(transport)","trustRequired":false}"#
+    }
+}
+
+/// Lock-protected collector for the Reader's per-cycle summary.
+private final class DiscoverySummaryBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: MobileBatteryDiscoverySummary?
+
+    func record(_ summary: MobileBatteryDiscoverySummary) {
+        lock.lock()
+        value = summary
+        lock.unlock()
+    }
+
+    var summary: MobileBatteryDiscoverySummary? {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
 }
 
 private actor TwoStageWatchOrderingExecutor: MobileBatteryHelperExecuting {

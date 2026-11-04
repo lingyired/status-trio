@@ -57,13 +57,18 @@ struct ProcessMobileBatteryHelperExecutor: MobileBatteryHelperExecuting {
 struct MobileBatteryHelperReader: MobileBatteryReading {
     private let executor: any MobileBatteryHelperExecuting
     private let cycleTimeout: Duration
+    /// Receives the identifier-free cycle summary once per discovery. Production
+    /// keeps the bounded debug log; tests use this to assert the counts directly.
+    private let discoverySummarySink: @Sendable (MobileBatteryDiscoverySummary) -> Void
 
     init(
         executor: any MobileBatteryHelperExecuting = ProcessMobileBatteryHelperExecutor(),
-        cycleTimeout: Duration = .seconds(25)
+        cycleTimeout: Duration = .seconds(25),
+        discoverySummarySink: @escaping @Sendable (MobileBatteryDiscoverySummary) -> Void = { _ in }
     ) {
         self.executor = executor
         self.cycleTimeout = cycleTimeout
+        self.discoverySummarySink = discoverySummarySink
     }
 
     /// Discovery bounds: at most eight iPhone routes are probed, and at most
@@ -107,14 +112,17 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
         // phone-ID order also keeps the kept set stable between refreshes
         // instead of following nondeterministic task-completion order.
         let orderedGroups = groups.sorted(by: { $0.phoneID < $1.phoneID })
+        // Count identities, not transport observations: one phone seen on both
+        // USB and network is one discovered device, not two. This view only
+        // feeds the summary; the returned candidates and the cap still use the
+        // original group/merge path.
         let groupShapes = orderedGroups.map { group -> (candidateCount: Int, watchCount: Int) in
-            (
-                candidateCount: group.candidates.count,
-                watchCount: group.candidates.filter { candidate in
-                    if case .trustedWatch = candidate.id { return true }
-                    return false
-                }.count
-            )
+            var identities: Set<AppleDeviceID> = []
+            var watchCount = 0
+            for candidate in group.candidates where identities.insert(candidate.id).inserted {
+                if case .trustedWatch = candidate.id { watchCount += 1 }
+            }
+            return (candidateCount: identities.count, watchCount: watchCount)
         }
         var merged: [AppleDeviceCandidate] = []
         var includedGroups = 0
@@ -137,6 +145,7 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
             retainedCandidates: merged.count
         )
         mobileDiscoveryLogger.debug("discovery \(summary.logDescription, privacy: .public)")
+        discoverySummarySink(summary)
         var routes = MobileBatteryDiscoveryRouteDiagnostics()
         for group in groups {
             routes.attemptedRouteCount += group.routeDiagnostics.attemptedRouteCount

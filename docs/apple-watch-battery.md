@@ -56,7 +56,12 @@ paired iPhone's companion service, so all of the following are prerequisites:
    The reader logs one identifier-free summary per cycle — listed phones,
    completed scheduled phone groups (`probedPhones`, not a process count),
    discovered/retained candidates, dropped groups, and dropped Watch candidates —
-   so a group the cap removed stays visible in diagnostics.
+   so a group the cap removed stays visible in diagnostics. The summary counts
+   identities, not transport observations: each phone group is deduplicated by
+   `AppleDeviceID` before counting, so a phone reported on both USB and network
+   with one Watch is `discovered=2`, not three route rows. `retainedCandidates`
+   is the number of candidates actually returned, and `droppedWatchCandidates`
+   counts distinct Watch identities in the groups the budget omitted.
 5. The Watch row must be verified: `trustRequired == false`, the candidate
    carries the iPhone route's `.usb`/`.network` transport, and the evidence is an
    Apple Watch model or the trusted companion route. The helper never sets
