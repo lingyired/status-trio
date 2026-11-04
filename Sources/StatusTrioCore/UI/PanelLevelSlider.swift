@@ -50,31 +50,22 @@ enum PanelLevelSliderLabelLayout {
         return (text as NSString).size(withAttributes: attrs).width
     }
 
-    /// Decides the parked side. Preference: keep the current side while the
-    /// whole text still fits there; otherwise move to the side that fits;
-    /// otherwise truncate on the roomier side. Each direction therefore has its
-    /// own "still fits" threshold, which keeps the label from oscillating.
+    /// Decides the parked side. The leading (blue) side always wins when the
+    /// whole text fits there; only then does the label move to the trailing
+    /// side of the thumb, and if neither side fits it truncates on the roomier
+    /// one.
     static func side(
         thumbCenterX: CGFloat,
         controlWidth: CGFloat,
-        textWidth: CGFloat,
-        currentlyTrailing: Bool
+        textWidth: CGFloat
     ) -> Side {
         let leading = leadingSpace(thumbCenterX: thumbCenterX)
         let trailing = trailingSpace(
             thumbCenterX: thumbCenterX,
             controlWidth: controlWidth
         )
-        let fitsLeading = leading >= textWidth
-        let fitsTrailing = trailing >= textWidth
-
-        if currentlyTrailing {
-            if fitsTrailing { return .trailing }
-            if fitsLeading { return .leading }
-        } else {
-            if fitsLeading { return .leading }
-            if fitsTrailing { return .trailing }
-        }
+        if leading >= textWidth { return .leading }
+        if trailing >= textWidth { return .trailing }
         return leading >= trailing ? .leading : .trailing
     }
 
@@ -153,10 +144,6 @@ struct PanelLevelSlider: View {
     var accessibilityHint: String? = nil
     var onEditingChanged: (Bool) -> Void = { _ in }
 
-    /// Remembers which side the label currently parks on so a value hovering at
-    /// a threshold cannot make it bounce.
-    @State private var isLabelOnRight = false
-
     var body: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
@@ -164,6 +151,13 @@ struct PanelLevelSlider: View {
                 for: value,
                 width: width
             )
+            let labelSide: PanelLevelSliderLabelLayout.Side = label.map { text in
+                PanelLevelSliderLabelLayout.side(
+                    thumbCenterX: centerX,
+                    controlWidth: width,
+                    textWidth: PanelLevelSliderLabelLayout.textWidth(text)
+                )
+            } ?? .leading
             ZStack(alignment: .leading) {
                 Representable(
                     isEnabled: isEnabled,
@@ -181,7 +175,7 @@ struct PanelLevelSlider: View {
                 if let label {
                     inlineLabel(
                         label,
-                        side: isLabelOnRight ? .trailing : .leading,
+                        side: labelSide,
                         thumbCenterX: centerX,
                         width: width
                     )
@@ -189,36 +183,10 @@ struct PanelLevelSlider: View {
                     .accessibilityHidden(true)
                 }
             }
-            .onAppear {
-                applyLabelSide(value: value, width: width)
-            }
-            .onChange(of: value) { newValue in
-                // Recompute from the *new* value; the closure captured the old
-                // one, which would park the label at the old thumb position.
-                applyLabelSide(value: newValue, width: width)
-            }
-            .onChange(of: width) { newWidth in
-                applyLabelSide(value: value, width: newWidth)
-            }
         }
         .frame(height: PanelLevelSliderMetrics.controlHeight)
         // Accessibility lives on the native NSSlider so VoiceOver sees one
         // adjustable control with the same label/value the old Slider exposed.
-    }
-
-    private func applyLabelSide(value: Double, width: CGFloat) {
-        guard let label else { return }
-        let centerX = PanelLevelSliderMetrics.thumbCenterX(
-            for: value,
-            width: width
-        )
-        let side = PanelLevelSliderLabelLayout.side(
-            thumbCenterX: centerX,
-            controlWidth: width,
-            textWidth: PanelLevelSliderLabelLayout.textWidth(label),
-            currentlyTrailing: isLabelOnRight
-        )
-        isLabelOnRight = (side == .trailing)
     }
 
     @ViewBuilder

@@ -42,14 +42,12 @@ final class PanelLevelSliderTests: XCTestCase {
 
     private func side(
         _ value: Double,
-        text: String,
-        currentlyTrailing: Bool = false
+        text: String
     ) -> PanelLevelSliderLabelLayout.Side {
         PanelLevelSliderLabelLayout.side(
             thumbCenterX: center(value),
             controlWidth: controlWidth,
-            textWidth: PanelLevelSliderLabelLayout.textWidth(text),
-            currentlyTrailing: currentlyTrailing
+            textWidth: PanelLevelSliderLabelLayout.textWidth(text)
         )
     }
 
@@ -154,27 +152,28 @@ final class PanelLevelSliderTests: XCTestCase {
         XCTAssertLessThanOrEqual(zeroFrame.width, textWidth)
     }
 
-    func testHysteresisKeepsTheCurrentSideWhenBothFit() {
+    func testLeadingSideWinsWheneverTheTextFitsThere() {
         let name = "Studio Display"
         let textWidth = PanelLevelSliderLabelLayout.textWidth(name)
+        // Mid value: both sides fit, so the leading (blue) side wins.
         let mid = center(0.5)
         XCTAssertEqual(
             PanelLevelSliderLabelLayout.side(
                 thumbCenterX: mid,
                 controlWidth: controlWidth,
-                textWidth: textWidth,
-                currentlyTrailing: true
-            ),
-            .trailing
-        )
-        XCTAssertEqual(
-            PanelLevelSliderLabelLayout.side(
-                thumbCenterX: mid,
-                controlWidth: controlWidth,
-                textWidth: textWidth,
-                currentlyTrailing: false
+                textWidth: textWidth
             ),
             .leading
+        )
+        // Very low value: the leading side no longer fits, so it yields.
+        let low = center(0.0)
+        XCTAssertEqual(
+            PanelLevelSliderLabelLayout.side(
+                thumbCenterX: low,
+                controlWidth: controlWidth,
+                textWidth: textWidth
+            ),
+            .trailing
         )
     }
 
