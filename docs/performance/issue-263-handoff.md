@@ -5,12 +5,11 @@
 
 ## 0. 一句话现状
 
-**面板侧两轮修完：状态拆分（§5.1）+ 合并 main 的 `PanelLevelSlider` 并限频回写（§5.2）。**
-只拆观察粒度不够——真正的大头是「每个拖动事件都让 SwiftUI 提交一次整窗布局/绘制」。
-Debug 120Hz A/B：不限频峰值 42.3%/平均 23.1%，限频后 20.0%/10.0%。
-**2026-11-04 真机 Release 验收：用户实测面板拖动音量峰值约 15%（此前 30%+），
-手感正常，验收通过。** 残余为原生控件每帧布局/vibrancy/CA 合成。
-分支和 worktree 保留（后续若要继续压残余成本仍在此分支）。
+**面板侧三轮修完：状态拆分（§5.1）+ 合并 main 的 `PanelLevelSlider` 并限频回写（§5.2）
++ 滑杆绘制改位图缓存（§5.4）。**
+第一轮真机 Release 验收约 15%（此前 30%+）；第三轮在隔离面板探针里把绘制成本
+从 15.0% 压到约 10.1%（Release，120Hz 模拟拖动），待真机复核。
+分支和 worktree 保留。
 
 ## 1. 分支 / worktree / 提交（沿用）
 
@@ -187,7 +186,31 @@ Debug（120Hz 模拟拖动）A/B：
 
 Release 真机数值待用户复核；预期比 Debug 低不少。
 
-### 5.4 已知边界
+### 5.4 ✅ 第三轮：滑杆绘制改位图缓存
+
+`sample` 与隔离面板探针把残余拆开：Release、120Hz 下整行可见拖动约 15%，
+其中空绘制（trivial）只要 5%，滑杆自身每帧的 `NSBezierPath` 填充 + `NSShadow`
+旋钮光栅化约 10 个百分点；阴影单项约 2.6。
+
+修法（`PanelLevelSliderView`）：
+
+- 轨道、填充、旋钮（含阴影）各预光栅化成 `NSImage`（按 backing scale 绘制，
+  旋钮的 shadow 烘进位图），拖动时只做 `NSImage.draw` 位图搬运；
+- 填充用同一张整宽胶囊位图裁左侧 `fillWidth` 绘制，右端方角恰好藏在旋钮下；
+- 失效时机：尺寸、`isEnabled`、`fillColor`、effectiveAppearance、backing scale 变化；
+- 标签文字仍走原有 `drawLabel`（带标签的滑杆不受影响）。
+
+实测（Release 位图缓存前后，隔离面板探针，120Hz 模拟拖动）：
+
+| 版本 | CPU |
+| --- | --- |
+| 旧：每帧路径 + 阴影 | 15.0% |
+| 新：位图缓存 | 10.1% |
+
+试过但**放弃**的：只重绘拇指移动的小脏区（`setNeedsDisplay(rect)`），实测反而
+从 8.1% 升到 9.5%（Debug），说明 CA/图层上传对整层更友好。
+
+### 5.5 已知边界
 
 - 残余成本来自原生控件每帧触发的 AppKit 子树布局 + vibrancy + CA 提交
   （`NSViewUpdateVibrancyForSubtree`、`_layoutSubtreeWithOldSize`、`CA::Layer::commit`），
