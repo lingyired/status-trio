@@ -59,6 +59,22 @@ struct LegacyChargeLimitSettingsView: View {
                 .disabled(controller.isApplying || !controller.isAvailable)
             }
 
+            if LegacyChargeLimitRecovery.showsRestoreAction(status: controller.status) {
+                SettingsDivider()
+                SettingsRow(
+                    "arrow.counterclockwise",
+                    tint: .orange,
+                    title: localization.string(.settingsBatteryLegacyChargeLimitRestoreOriginal),
+                    subtitle: nil
+                ) {
+                    Button(localization.string(.settingsBatteryLegacyChargeLimitRestoreOriginal)) {
+                        run { await controller.disable() }
+                    }
+                    .controlSize(.small)
+                    .disabled(controller.isApplying)
+                }
+            }
+
             SettingsDivider()
 
             SettingsRow(

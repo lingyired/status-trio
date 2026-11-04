@@ -78,3 +78,18 @@ enum LegacyChargeLimitPanelMapper {
         )
     }
 }
+/// Phase 8: an explicit recovery entry. Whenever the app cannot claim the cap is
+/// held (failed verification, a failed restore, or a foreign change), the
+/// settings page offers a one-click "restore original charging behaviour".
+/// Turning the limit off is the same operation; the dedicated entry makes the
+/// path discoverable when the toggle already looks off.
+enum LegacyChargeLimitRecovery {
+    static func showsRestoreAction(status: LegacyChargeLimitStatus) -> Bool {
+        switch status {
+        case .restoreFailed, .unverified, .externalChange, .failed:
+            return true
+        default:
+            return false
+        }
+    }
+}

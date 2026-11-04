@@ -774,3 +774,4 @@
 "settings.battery.legacyChargeLimit.cancel" = "Volles Laden abbrechen";
 "settings.battery.legacyChargeLimit.reapply" = "Erneut anwenden";
 "settings.battery.legacyChargeLimit.beta" = "Experimentell. Standardmäßig aus; das Verhalten auf echter Hardware wurde in diesem Build nicht geprüft.";
+"settings.battery.legacyChargeLimit.restoreOriginal" = "Ursprüngliches Ladeverhalten wiederherstellen";

@@ -437,6 +437,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBatteryLegacyChargeLimitCancel = "settings.battery.legacyChargeLimit.cancel"
     case settingsBatteryLegacyChargeLimitReapply = "settings.battery.legacyChargeLimit.reapply"
     case settingsBatteryLegacyChargeLimitBeta = "settings.battery.legacyChargeLimit.beta"
+    case settingsBatteryLegacyChargeLimitRestoreOriginal = "settings.battery.legacyChargeLimit.restoreOriginal"
     case settingsAboutVersion = "settings.about.version"
     case settingsAboutDescription = "settings.about.description"
     case settingsAboutProject = "settings.about.project"

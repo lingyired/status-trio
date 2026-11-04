@@ -774,3 +774,4 @@
 "settings.battery.legacyChargeLimit.cancel" = "取消充满";
 "settings.battery.legacyChargeLimit.reapply" = "重新应用";
 "settings.battery.legacyChargeLimit.beta" = "实验性功能。默认关闭；此版本尚未验证真实硬件行为。";
+"settings.battery.legacyChargeLimit.restoreOriginal" = "恢复原始充电行为";

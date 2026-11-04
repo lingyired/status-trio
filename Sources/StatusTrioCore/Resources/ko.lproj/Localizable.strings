@@ -774,3 +774,4 @@
 "settings.battery.legacyChargeLimit.cancel" = "완전 충전 취소";
 "settings.battery.legacyChargeLimit.reapply" = "다시 적용";
 "settings.battery.legacyChargeLimit.beta" = "실험적 기능. 기본적으로 꺼져 있으며 이 빌드에서는 실제 하드웨어 동작을 검증하지 않았습니다.";
+"settings.battery.legacyChargeLimit.restoreOriginal" = "원래 충전 동작 복원";

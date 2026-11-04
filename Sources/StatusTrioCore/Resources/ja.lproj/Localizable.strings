@@ -774,3 +774,4 @@
 "settings.battery.legacyChargeLimit.cancel" = "フル充電をキャンセル";
 "settings.battery.legacyChargeLimit.reapply" = "再適用";
 "settings.battery.legacyChargeLimit.beta" = "実験的機能。既定ではオフです。このビルドでは実機動作を検証していません。";
+"settings.battery.legacyChargeLimit.restoreOriginal" = "元の充電動作に戻す";

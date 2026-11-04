@@ -58,6 +58,17 @@ final class LegacyChargeLimitPanelMapperTests: XCTestCase {
         XCTAssertEqual(state(status: .unverified).action, .none)
     }
 
+    func testRecoveryEntryAppearsOnlyWhenTheCapIsUncertain() {
+        XCTAssertTrue(LegacyChargeLimitRecovery.showsRestoreAction(status: .restoreFailed))
+        XCTAssertTrue(LegacyChargeLimitRecovery.showsRestoreAction(status: .unverified))
+        XCTAssertTrue(LegacyChargeLimitRecovery.showsRestoreAction(status: .externalChange))
+        XCTAssertTrue(LegacyChargeLimitRecovery.showsRestoreAction(status: .failed))
+        XCTAssertFalse(LegacyChargeLimitRecovery.showsRestoreAction(status: .notEnabled))
+        XCTAssertFalse(LegacyChargeLimitRecovery.showsRestoreAction(status: .holding(at: 80)))
+        XCTAssertFalse(LegacyChargeLimitRecovery.showsRestoreAction(status: .temporarilyChargingToFull))
+        XCTAssertFalse(LegacyChargeLimitRecovery.showsRestoreAction(status: .checkingHardware))
+    }
+
     func testUnsupportedShowsNoRow() {
         XCTAssertFalse(state(status: .unsupported, selectedLimit: nil).isVisible)
     }

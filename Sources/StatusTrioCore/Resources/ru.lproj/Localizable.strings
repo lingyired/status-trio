@@ -774,3 +774,4 @@
 "settings.battery.legacyChargeLimit.cancel" = "Отменить полную зарядку";
 "settings.battery.legacyChargeLimit.reapply" = "Применить повторно";
 "settings.battery.legacyChargeLimit.beta" = "Экспериментально. По умолчанию выключено; поведение на реальном оборудовании в этой сборке не проверялось.";
+"settings.battery.legacyChargeLimit.restoreOriginal" = "Восстановить исходное поведение зарядки";

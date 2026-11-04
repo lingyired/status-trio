@@ -774,3 +774,4 @@
 "settings.battery.legacyChargeLimit.cancel" = "Cancelar carga completa";
 "settings.battery.legacyChargeLimit.reapply" = "Reaplicar";
 "settings.battery.legacyChargeLimit.beta" = "Experimental. Desativado por padrão; o comportamento em hardware real não foi validado nesta compilação.";
+"settings.battery.legacyChargeLimit.restoreOriginal" = "Restaurar o comportamento de carga original";

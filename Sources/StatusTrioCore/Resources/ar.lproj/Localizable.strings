@@ -774,3 +774,4 @@
 "settings.battery.legacyChargeLimit.cancel" = "إلغاء الشحن الكامل";
 "settings.battery.legacyChargeLimit.reapply" = "إعادة التطبيق";
 "settings.battery.legacyChargeLimit.beta" = "ميزة تجريبية. معطّلة افتراضيًا؛ لم يتم التحقق من سلوك الأجهزة الحقيقية في هذا الإصدار.";
+"settings.battery.legacyChargeLimit.restoreOriginal" = "استعادة سلوك الشحن الأصلي";
