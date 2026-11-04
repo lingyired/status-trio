@@ -118,3 +118,13 @@ placement最终高度 = min(201, 200.25) = 200.25 → 实际已经到位
 - **真机 10 分钟 Wi-Fi 详情页验收：BLOCKED（本会话没有暴露 Computer Use 提供方）**。现有运行中的 StatusTrio 实例属于其他 worktree，不能复用或关闭；本 worktree 未启动独立 Debug 实例。需要人工或带 Computer Use 的会话执行：打开 Wi-Fi 详情页、停留 10 分钟，观察 CPU、Activity Monitor 与重新 `sample`。
 - 修复前后的真实 CPU 对比数据：NOT RUN（没有做现场基线，不伪造对比）。
 - macOS 13 真机、签名/公证、Universal 打包：NOT RUN，仍按 release 流程另行验证。
+
+### 独立审查跟进（提交 `ba0f9c48`）
+
+独立审查指出三处缺口，已修复并补测：
+
+1. **同步重测的更新不能被丢弃**：`needsRemeasure` 分支在清空旧测量后强制 host 重新布局；若重测在同一回合同步报告新尺寸，直接应用，不再等到下一回合。新增协调器用例（单轮 drain 验证“同一回合”）。
+2. **换内容后旧 host 失效**：新增 `contentHost` 身份校验，旧 hosting controller 的延迟布局不再进入测量队列；新增用例覆盖替换后旧 host 不再被接受。
+3. **Release 测试编译**：convergence 用例整体包在 `#if DEBUG` 中，只有 DEBUG 才有 frame 写入计数。补充事实：`swift build -c release --build-tests` 在干净 main 上本就因模块解析失败，不是本分支引入；Release 应用构建通过。
+
+修复后聚焦用例 52 个 XCTest + 45 个 Swift Testing 0 失败，`quick` 档通过，Release 构建通过。
