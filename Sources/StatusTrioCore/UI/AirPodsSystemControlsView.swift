@@ -215,7 +215,8 @@ struct AirPodsSystemControlsView: View {
             if let listeningMode, listeningMode.isControllable {
                 Divider()
                 heading(.bluetoothListeningModeGroup)
-                ForEach(listeningMode.availableModes, id: \.self) { mode in
+                ForEach([BluetoothListeningMode.off, .transparency, .adaptive, .noiseCancellation]
+                    .filter { listeningMode.availableModes.contains($0) }, id: \.self) { mode in
                     option(localization.string(mode.titleKey), symbol: symbol(mode), selected: listeningMode.selectedMode == mode) {
                         onSelectListeningMode(mode)
                     }.disabled(listeningMode.isChanging)
