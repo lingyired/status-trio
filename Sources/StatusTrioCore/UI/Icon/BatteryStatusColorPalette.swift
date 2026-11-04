@@ -10,18 +10,21 @@ import AppKit
 struct BatteryStatusColorPalette {
     let charging: CGColor
     let lowPower: CGColor
+    let highPower: CGColor
     let critical: CGColor
 
     static func resolved(appearance: NSAppearance) -> Self {
         var result = Self(
             charging: CGColor(gray: 1, alpha: 1),
             lowPower: CGColor(gray: 1, alpha: 1),
+            highPower: CGColor(gray: 1, alpha: 1),
             critical: CGColor.redFallback
         )
         appearance.performAsCurrentDrawingAppearance {
             result = Self(
                 charging: rgb(.systemGreen),
                 lowPower: rgb(.systemYellow),
+                highPower: rgb(.systemBlue),
                 critical: rgb(.systemRed)
             )
         }
@@ -41,6 +44,7 @@ struct BatteryStatusColorPalette {
         return Self(
             charging: resolved.charging,
             lowPower: resolved.lowPower,
+            highPower: resolved.highPower,
             critical: critical
         )
     }
@@ -49,6 +53,7 @@ struct BatteryStatusColorPalette {
         switch role {
         case .charging: charging
         case .lowPower: lowPower
+        case .highPower: highPower
         case .critical: critical
         }
     }
@@ -68,6 +73,7 @@ struct BatteryStatusColorPalette {
         return Self(
             charging: resolve(.charging, charging),
             lowPower: resolve(.lowPower, lowPower),
+            highPower: resolve(.highPower, highPower),
             critical: resolve(.critical, critical)
         )
     }

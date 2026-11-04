@@ -156,6 +156,29 @@ struct VolumeStatus: Equatable, Sendable {
 }
 
 extension VolumeStatus {
+    /// Whether two readings differ only in the live level (`scalar`).
+    ///
+    /// A drag emits a new level many times a second. The panel coalesces those
+    /// pure level changes so the volume row does not invalidate SwiftUI on every
+    /// tick (#263). Everything else — mute, the device set, availability, the
+    /// control source, an external transition — must publish immediately.
+    ///
+    /// Device entries carry their own volume, and the native reader stamps the
+    /// current device with the live scalar, so the comparison ignores the
+    /// per-device volume fields and keeps only device identity.
+    func changesOnlyLevel(comparedTo other: VolumeStatus) -> Bool {
+        isMuted == other.isMuted
+            && muteState == other.muteState
+            && deviceName == other.deviceName
+            && currentDevice?.replacingVolume(nil) == other.currentDevice?.replacingVolume(nil)
+            && outputDevices.map { $0.replacingVolume(nil) }
+                == other.outputDevices.map { $0.replacingVolume(nil) }
+            && canSetVolume == other.canSetVolume
+            && canMute == other.canMute
+            && controlSource == other.controlSource
+            && externalVolumeTransitionGeneration == other.externalVolumeTransitionGeneration
+    }
+
     func replacingExternalVolumeTransitionGeneration(
         _ generation: UInt64,
         controlSource: VolumeControlSource? = nil

@@ -99,26 +99,27 @@ final class XPCPrivilegedHelperClient: LowPowerModeClienting, @unchecked Sendabl
 }
 
 /// Resumes the XPC continuation exactly once, then invalidates the connection.
-final class OneShotReply: @unchecked Sendable {
+final class OneShotReply<Value: Sendable>: @unchecked Sendable {
     private let lock = NSLock()
     private var finished = false
-    private let continuation: CheckedContinuation<Bool, any Error>
+    private let continuation: CheckedContinuation<Value, any Error>
     private let connection: NSXPCConnection
 
     init(
-        continuation: CheckedContinuation<Bool, any Error>,
+        continuation: CheckedContinuation<Value, any Error>,
         connection: NSXPCConnection,
         timeout: TimeInterval,
-        queue: DispatchQueue
+        queue: DispatchQueue,
+        timeoutError: any Error = LowPowerModeClientError.helperUnavailable
     ) {
         self.continuation = continuation
         self.connection = connection
         queue.asyncAfter(deadline: .now() + timeout) { [self] in
-            resolve(.failure(LowPowerModeClientError.helperUnavailable))
+            resolve(.failure(timeoutError))
         }
     }
 
-    func resolve(_ result: Result<Bool, any Error>) {
+    func resolve(_ result: Result<Value, any Error>) {
         lock.lock()
         guard !finished else {
             lock.unlock()

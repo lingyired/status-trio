@@ -249,7 +249,7 @@ struct BluetoothStatusView: View {
         let showsBluetoothSkeleton = !isShowingCachedDevices && (bluetoothPlaceholder?.rowCount ?? 0) > 0
 
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 10) {
+            HStack(alignment: .center, spacing: PanelSummaryActionMetrics.iconGap) {
                 titleBlock
 
                 let powerPresentation = BluetoothRadioPowerPresentation.make(

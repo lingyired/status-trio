@@ -6,17 +6,35 @@ import PowerHelperProtocol
 protocol PmsetRunning: Sendable {
     func setLowPowerMode(enabled: Bool) async throws
     func currentLowPowerMode() async -> Bool?
+    func highPowerModeSupported() async -> Bool?
+    func setHighPowerMode(enabled: Bool) async throws
+    func currentHighPowerMode() async -> Bool?
+}
+
+/// Defaults keep a runner that only models Low Power Mode (the fixtures in the
+/// tests) valid. The real runner overrides all of them.
+extension PmsetRunning {
+    func highPowerModeSupported() async -> Bool? { false }
+    func setHighPowerMode(enabled: Bool) async throws {
+        throw PmsetError.launchFailed("High Power Mode is not supported")
+    }
+    func currentHighPowerMode() async -> Bool? { nil }
 }
 
 enum PmsetError: LocalizedError {
     case launchFailed(String)
-    case nonZeroExit(Int32)
+    case nonZeroExit(Int32, String?)
     case timedOut
 
     var errorDescription: String? {
         switch self {
         case let .launchFailed(reason): "pmset could not be launched: \(reason)"
-        case let .nonZeroExit(code): "pmset exited with status \(code)"
+        case let .nonZeroExit(code, message):
+            if let message, !message.isEmpty {
+                "pmset exited with status \(code): \(message)"
+            } else {
+                "pmset exited with status \(code)"
+            }
         case .timedOut: "pmset did not finish in time"
         }
     }
@@ -47,12 +65,19 @@ struct SystemPmsetRunner: PmsetRunning {
     }
 
     func setLowPowerMode(enabled: Bool) async throws {
-        let outcome = try await run(
-            arguments: LowPowerModeCommand.arguments(enabled: enabled),
-            capturesOutput: false
-        )
-        guard let status = outcome.status else { throw PmsetError.timedOut }
-        guard status == 0 else { throw PmsetError.nonZeroExit(status) }
+        // Low and High Power Mode are two states of the one system Power Mode
+        // switch, so turning Low Power Mode on while High Power Mode is active
+        // leaves the Mac in an undefined combination. Clear High Power Mode
+        // first; the clear is best effort, because a Mac that does not support
+        // it must never fail the Low Power Mode write. The capability probe is
+        // deliberately not consulted here: it is a separate child process and
+        // this path only needs the write itself.
+        if enabled {
+            // `powermode 0` is Automatic: it clears High Power Mode. The old
+            // `highpowermode` argument is no longer accepted on macOS 26+.
+            _ = try? await runWrite(arguments: HighPowerModeCommand.arguments(enabled: false))
+        }
+        try await runWrite(arguments: LowPowerModeCommand.arguments(enabled: enabled))
     }
 
     func currentLowPowerMode() async -> Bool? {
@@ -66,20 +91,75 @@ struct SystemPmsetRunner: PmsetRunning {
         return LowPowerModeCommand.parseEnabled(fromPmsetOutput: outcome.output)
     }
 
+    func highPowerModeSupported() async -> Bool? {
+        // `pmset -g cap` is the capability probe recommended by the issue: it
+        // follows whatever the running macOS reports instead of hard-coding a
+        // model list a future Mac would fall outside of.
+        guard let outcome = try? await run(
+            arguments: HighPowerModeCommand.capabilitiesArguments,
+            capturesOutput: true
+        ), outcome.status == 0 else {
+            return nil
+        }
+        return HighPowerModeCommand.isSupported(fromCapabilitiesOutput: outcome.output)
+    }
+
+    func currentHighPowerMode() async -> Bool? {
+        guard let outcome = try? await run(arguments: ["-g"], capturesOutput: true),
+              outcome.status == 0 else { return nil }
+        return HighPowerModeCommand.parseEnabled(fromPmsetOutput: outcome.output)
+    }
+
+    func setHighPowerMode(enabled: Bool) async throws {
+        // Clear the mutually exclusive Low Power Mode first. Best effort: a
+        // write that the Mac ignores must not fail the High Power Mode write.
+        if enabled {
+            _ = try? await runWrite(arguments: LowPowerModeCommand.arguments(enabled: false))
+        }
+        try await runWrite(arguments: HighPowerModeCommand.arguments(enabled: enabled))
+    }
+
+    private func runWrite(arguments: [String]) async throws {
+        // Capture both streams so a rejected write reports `pmset`'s own reason
+        // (`Unsupported mode 3`, usage text) instead of only an exit status.
+        let outcome = try await run(
+            arguments: arguments,
+            capturesOutput: true,
+            capturesError: true
+        )
+        guard let status = outcome.status else { throw PmsetError.timedOut }
+        guard status == 0 else {
+            throw PmsetError.nonZeroExit(status, outcome.errorOutput)
+        }
+    }
+
     private struct Outcome {
         /// `nil` when the timeout fired before the child exited.
         let status: Int32?
         let output: String
+        let errorOutput: String
     }
 
-    private func run(arguments: [String], capturesOutput: Bool) async throws -> Outcome {
+    private func run(
+        arguments: [String],
+        capturesOutput: Bool,
+        capturesError: Bool = false
+    ) async throws -> Outcome {
         let process = Process()
         process.executableURL = executableURL
         process.arguments = arguments
-        // Nothing reads these pipes, so a child that writes must never be able
-        // to fill one and block forever: both go to the null device, and stdout
-        // is only piped when the caller actually parses it.
-        process.standardError = FileHandle.nullDevice
+        // Unread pipes can fill and block the child, so a stream is only piped
+        // when the caller actually parses it. `pmset` writes a single short line,
+        // well under the pipe buffer, so draining both after exit is safe.
+        let stderrPipe: Pipe?
+        if capturesError {
+            let pipe = Pipe()
+            process.standardError = pipe
+            stderrPipe = pipe
+        } else {
+            process.standardError = FileHandle.nullDevice
+            stderrPipe = nil
+        }
         let stdoutPipe: Pipe?
         if capturesOutput {
             let pipe = Pipe()
@@ -97,10 +177,20 @@ struct SystemPmsetRunner: PmsetRunning {
         }
 
         let status = await waitForExit(of: process)
+        // A timed-out child was killed, so its output is incomplete by
+        // definition. Draining the pipes here can block forever when the child
+        // left a descendant holding the write end; skip it and report the
+        // timeout instead of waiting for that descendant.
+        if status == nil {
+            return Outcome(status: nil, output: "", errorOutput: "")
+        }
         let output = stdoutPipe.map {
             String(data: $0.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         } ?? ""
-        return Outcome(status: status, output: output)
+        let errorOutput = stderrPipe.map {
+            String(data: $0.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        } ?? ""
+        return Outcome(status: status, output: output, errorOutput: errorOutput)
     }
 
     /// Awaits the child without blocking the caller's queue, and reports `nil`
@@ -198,19 +288,72 @@ final class PowerModeService: NSObject, PowerHelperXPCProtocol {
             reply.send(await runner.currentLowPowerMode() ?? enabled, nil)
         }
     }
+
+    func readProtocolVersion(withReply reply: @escaping (Int, String?) -> Void) {
+        // Answered from the daemon's own binary: an outdated daemon does not
+        // implement this selector at all, and the app turns that connection
+        // failure into a "helper needs updating" notice.
+        PowerHelperReply(reply).send(PowerHelperProtocolVersion.current, nil)
+    }
+
+    func readHighPowerModeSupport(withReply reply: @escaping (Bool, String?) -> Void) {
+        let reply = PowerHelperReply(reply)
+        let runner = self.runner
+        Task {
+            guard let supported = await runner.highPowerModeSupported() else {
+                reply.send(false, "High Power Mode support is unavailable.")
+                return
+            }
+            reply.send(supported, nil)
+        }
+    }
+
+    func readHighPowerMode(withReply reply: @escaping (Bool, String?) -> Void) {
+        let reply = PowerHelperReply(reply)
+        let runner = self.runner
+        Task {
+            guard let enabled = await runner.currentHighPowerMode() else {
+                reply.send(false, "High Power Mode state is unavailable.")
+                return
+            }
+            reply.send(enabled, nil)
+        }
+    }
+
+    func setHighPowerMode(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void) {
+        let reply = PowerHelperReply(reply)
+        let runner = self.runner
+        Task {
+            do {
+                try await runner.setHighPowerMode(enabled: enabled)
+            } catch {
+                reply.send(false, error.localizedDescription)
+                return
+            }
+            guard let observed = await runner.currentHighPowerMode() else {
+                reply.send(false, "High Power Mode could not be verified after the write.")
+                return
+            }
+            guard observed == enabled else {
+                reply.send(observed, "High Power Mode did not match the requested state.")
+                return
+            }
+            reply.send(observed, nil)
+        }
+    }
 }
 
 /// The XPC reply block is an Objective-C closure, which the importer cannot
 /// prove `Sendable`. The connection calls it exactly once, so handing it to the
 /// detached task is safe.
-private final class PowerHelperReply: @unchecked Sendable {
-    private let reply: (Bool, String?) -> Void
+private final class PowerHelperReply<Value>: @unchecked Sendable {
+    private let reply: (Value, String?) -> Void
 
-    init(_ reply: @escaping (Bool, String?) -> Void) {
+    init(_ reply: @escaping (Value, String?) -> Void) {
         self.reply = reply
     }
 
-    func send(_ enabled: Bool, _ errorDescription: String?) {
-        reply(enabled, errorDescription)
+    func send(_ value: Value, _ errorDescription: String?) {
+        reply(value, errorDescription)
     }
 }

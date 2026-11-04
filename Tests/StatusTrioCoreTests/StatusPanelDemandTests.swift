@@ -168,7 +168,7 @@ final class StatusPanelDemandTests: XCTestCase {
 
         let hiddenVolume = panel.volume
         var volumePublications = 0
-        let volumeObservation = panel.$volume
+        let volumeObservation = panel.volumeControl.$volume
             .dropFirst()
             .sink { _ in volumePublications += 1 }
         defer { volumeObservation.cancel() }

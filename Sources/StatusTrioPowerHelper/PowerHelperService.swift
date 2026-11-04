@@ -24,6 +24,23 @@ final class PowerHelperService: NSObject, PowerHelperCombinedXPCProtocol {
         lowPowerMode.setLowPowerMode(enabled, withReply: reply)
     }
 
+    // Main's versioned power-mode surface shares this exported connection.
+    func readProtocolVersion(withReply reply: @escaping (Int, String?) -> Void) {
+        lowPowerMode.readProtocolVersion(withReply: reply)
+    }
+
+    func readHighPowerModeSupport(withReply reply: @escaping (Bool, String?) -> Void) {
+        lowPowerMode.readHighPowerModeSupport(withReply: reply)
+    }
+
+    func readHighPowerMode(withReply reply: @escaping (Bool, String?) -> Void) {
+        lowPowerMode.readHighPowerMode(withReply: reply)
+    }
+
+    func setHighPowerMode(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void) {
+        lowPowerMode.setHighPowerMode(enabled, withReply: reply)
+    }
+
     // MARK: Legacy charge limit
 
     func probeLegacyChargeLimit(

@@ -5,8 +5,13 @@ import AppKit
 struct SummaryActionAlignmentProbe {
     let bitmap: NSBitmapImageRep
     let scale: CGFloat
+    /// The hosting view the bitmap was captured from. Kept so a probe can also
+    /// read the frame of an embedded AppKit control (for example an `NSSlider`
+    /// that layer rendering keeps out of the bitmap).
+    private let hosting: NSView
 
     init?(_ hosting: NSView, pixelScale: CGFloat? = nil) {
+        self.hosting = hosting
         let image: NSBitmapImageRep?
         if let pixelScale {
             image = NSBitmapImageRep(
@@ -166,5 +171,26 @@ struct SummaryActionAlignmentProbe {
             width: CGFloat(maxPixelX - minPixelX) / scale,
             height: CGFloat(maxPixelY - minPixelY) / scale
         )
+    }
+
+    /// The vertical center of the first embedded `NSView` matching `predicate`,
+    /// in the same top-left point space as the bitmap measurements.
+    ///
+    /// Layer-backed AppKit controls can be missing from a `cacheDisplay`
+    /// bitmap, so their alignment is read from the view tree instead.
+    func subviewCenterY(where predicate: (NSView) -> Bool) -> CGFloat? {
+        var result: CGFloat?
+        func walk(_ view: NSView) {
+            guard result == nil else { return }
+            if predicate(view) {
+                result = view.convert(view.bounds, to: hosting).midY
+                return
+            }
+            for subview in view.subviews {
+                walk(subview)
+            }
+        }
+        walk(hosting)
+        return result
     }
 }

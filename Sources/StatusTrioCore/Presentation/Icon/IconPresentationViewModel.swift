@@ -58,6 +58,7 @@ final class IconPresentationViewModel: ObservableObject {
     private let preferences: AnyPublisher<IconPresentationSettings, Never>
     private let inputSources: AnyPublisher<InputSourceDescriptor?, Never>
     private let systemPowers: AnyPublisher<SystemPowerSample?, Never>
+    private let highPowerModes: AnyPublisher<Bool, Never>
     private let resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs
     private let mapScene: IconSceneMapper
     private let snapshotScheduler: any IconPresentationScheduling
@@ -65,10 +66,12 @@ final class IconPresentationViewModel: ObservableObject {
     private var preferencesSubscription: AnyCancellable?
     private var inputSourcesSubscription: AnyCancellable?
     private var systemPowersSubscription: AnyCancellable?
+    private var highPowerModesSubscription: AnyCancellable?
     private var latestSnapshot: StatusSnapshot
     private var latestSettings: IconPresentationSettings
     private var latestInputSource: InputSourceDescriptor?
     private var latestSystemPower: SystemPowerSample?
+    private var latestHighPowerMode = false
     private var receivedSnapshotForStart = false
     private var receivedSettingsForStart = false
     private var receivedInputSourceForStart = false
@@ -81,6 +84,7 @@ final class IconPresentationViewModel: ObservableObject {
         preferences: AnyPublisher<IconPresentationSettings, Never>,
         inputSources: AnyPublisher<InputSourceDescriptor?, Never> = Empty<InputSourceDescriptor?, Never>().eraseToAnyPublisher(),
         systemPowers: AnyPublisher<SystemPowerSample?, Never> = Empty<SystemPowerSample?, Never>().eraseToAnyPublisher(),
+        highPowerModes: AnyPublisher<Bool, Never> = Empty<Bool, Never>().eraseToAnyPublisher(),
         resolveInputs: @escaping @MainActor (StatusSnapshot) -> IconPresentationInputs,
         mapScene: @escaping IconSceneMapper = { inputs, configuration in
             IconPresentationMapper.scene(inputs: inputs, configuration: configuration)
@@ -91,6 +95,7 @@ final class IconPresentationViewModel: ObservableObject {
         self.preferences = preferences
         self.inputSources = inputSources
         self.systemPowers = systemPowers
+        self.highPowerModes = highPowerModes
         self.resolveInputs = resolveInputs
         self.mapScene = mapScene
         self.snapshotScheduler = snapshotScheduler
@@ -101,6 +106,7 @@ final class IconPresentationViewModel: ObservableObject {
             settings: settings,
             inputSource: nil,
             systemPower: nil,
+            isHighPowerMode: false,
             resolveInputs: resolveInputs,
             mapScene: mapScene
         )
@@ -133,6 +139,11 @@ final class IconPresentationViewModel: ObservableObject {
                 self?.receive(deliveredSystemPower)
             }
         }
+        highPowerModesSubscription = highPowerModes.sink { [weak self] isHighPowerMode in
+            MainActor.assumeIsolated {
+                self?.receive(highPowerMode: isHighPowerMode)
+            }
+        }
     }
 
     func stop() {
@@ -141,10 +152,12 @@ final class IconPresentationViewModel: ObservableObject {
         preferencesSubscription?.cancel()
         inputSourcesSubscription?.cancel()
         systemPowersSubscription?.cancel()
+        highPowerModesSubscription?.cancel()
         snapshotSubscription = nil
         preferencesSubscription = nil
         inputSourcesSubscription = nil
         systemPowersSubscription = nil
+        highPowerModesSubscription = nil
         receivedSnapshotForStart = false
         receivedSettingsForStart = false
         receivedInputSourceForStart = false
@@ -211,6 +224,15 @@ final class IconPresentationViewModel: ObservableObject {
         publishLatestOutput()
     }
 
+    /// High Power Mode changes repaint immediately: the user just moved the
+    /// Power Mode control and the icon colour is the feedback.
+    private func receive(highPowerMode: Bool) {
+        latestHighPowerMode = highPowerMode
+        guard synchronizedStart else { return }
+        snapshotScheduler.cancel()
+        publishLatestOutput()
+    }
+
     private func publishWhenStartInputsAreReady() {
         guard receivedSnapshotForStart, receivedSettingsForStart else { return }
         synchronizedStart = true
@@ -224,6 +246,7 @@ final class IconPresentationViewModel: ObservableObject {
             settings: latestSettings,
             inputSource: latestInputSource,
             systemPower: latestSystemPower,
+            isHighPowerMode: latestHighPowerMode,
             resolveInputs: resolveInputs,
             mapScene: mapScene
         )
@@ -236,6 +259,7 @@ final class IconPresentationViewModel: ObservableObject {
         settings: IconPresentationSettings,
         inputSource: InputSourceDescriptor?,
         systemPower: SystemPowerSample?,
+        isHighPowerMode: Bool,
         resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs,
         mapScene: IconSceneMapper
     ) -> IconPresentationOutput {
@@ -244,6 +268,7 @@ final class IconPresentationViewModel: ObservableObject {
                 snapshot: snapshot,
                 inputSource: inputSource,
                 systemPower: systemPower,
+                isHighPowerMode: isHighPowerMode,
                 resolveInputs: resolveInputs
             ),
             settings.configuration
@@ -256,6 +281,7 @@ final class IconPresentationViewModel: ObservableObject {
                     snapshot: projected,
                     inputSource: inputSource,
                     systemPower: systemPower,
+                    isHighPowerMode: isHighPowerMode,
                     resolveInputs: resolveInputs
                 ),
                 settings.configuration
@@ -280,6 +306,7 @@ final class IconPresentationViewModel: ObservableObject {
         snapshot: StatusSnapshot,
         inputSource: InputSourceDescriptor?,
         systemPower: SystemPowerSample?,
+        isHighPowerMode: Bool,
         resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs
     ) -> IconPresentationInputs {
         let inputs = resolveInputs(snapshot)
@@ -287,7 +314,8 @@ final class IconPresentationViewModel: ObservableObject {
             snapshot: inputs.snapshot,
             audioIcon: inputs.audioIcon,
             inputSource: inputSource?.resolvedForDrawing(),
-            systemPower: systemPower
+            systemPower: systemPower,
+            isHighPowerMode: isHighPowerMode
         )
     }
 }

@@ -142,3 +142,33 @@ extension FooterState {
         }
     }
 }
+
+extension IconSceneState {
+    /// Tells a continuous volume *value* change apart from every other scene
+    /// change. The Dock uses this to coalesce continuous volume adjustment
+    /// without delaying settings or non-volume scene updates.
+    ///
+    /// It is a value change only when the ring, centre and per-role colours are
+    /// untouched and the footer kept its kind, colour and stroke: a dots↔arc
+    /// switch, a stroke change, a colour change, or any ring/centre change is
+    /// a settings or device change and stays on the immediate path.
+    func isVolumeValueChange(from previous: IconSceneState) -> Bool {
+        guard outerRing == previous.outerRing,
+              center == previous.center,
+              statusColors == previous.statusColors,
+              footer != previous.footer else {
+            return false
+        }
+        switch (previous.footer, footer) {
+        case let (.some(.dots(old)), .some(.dots(new))):
+            return old.count == new.count
+                && old.color == new.color
+                && old.strokeScale == new.strokeScale
+        case let (.some(.arc(old)), .some(.arc(new))):
+            return old.color == new.color
+                && old.strokeScale == new.strokeScale
+        default:
+            return false
+        }
+    }
+}

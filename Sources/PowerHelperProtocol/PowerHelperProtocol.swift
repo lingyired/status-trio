@@ -36,12 +36,30 @@ public enum PowerHelperConstants {
     }
 }
 
+/// The version of the XPC surface the daemon implements.
+///
+/// Bumped whenever the protocol gains a method the app may call. The app reads
+/// this before using a newer method: a daemon built before the bump cannot
+/// answer `readProtocolVersion` at all, which the app surfaces as "the helper
+/// needs updating" instead of a silent failure.
+public enum PowerHelperProtocolVersion {
+    /// `readLowPowerMode` and `setLowPowerMode`.
+    public static let lowPowerMode = 1
+    /// Adds `readProtocolVersion` plus the High Power Mode capability probe,
+    /// read and write (issue #235).
+    public static let highPowerMode = 2
+
+    /// What the daemon in this build implements.
+    public static let current = highPowerMode
+}
+
 /// The XPC surface the privileged helper exposes.
 ///
-/// Deliberately tiny: one boolean read and one boolean write for Low Power
-/// Mode. Every operation is a separate call so a failed write cannot be
-/// mistaken for a successful read, and the reply carries the state the daemon
-/// observed *after* the change rather than echoing the request.
+/// Deliberately small: one boolean read and one boolean write for Low Power
+/// Mode, and the same shape for High Power Mode. Every operation is a separate
+/// call so a failed write cannot be mistaken for a successful read, and the
+/// reply carries the state the daemon observed *after* the change rather than
+/// echoing the request.
 @objc public protocol PowerHelperXPCProtocol {
     /// Reads the current Low Power Mode state.
     ///
@@ -52,4 +70,31 @@ public enum PowerHelperConstants {
     /// Sets Low Power Mode and replies with the state the daemon observed
     /// afterwards, so the caller never has to guess whether the write took.
     func setLowPowerMode(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void)
+
+    /// Replies with `PowerHelperProtocolVersion.current` for this daemon.
+    ///
+    /// A daemon built before this method existed invalidates the connection for
+    /// this selector, which is exactly how the app detects an outdated helper.
+    /// Added in protocol version 2.
+    func readProtocolVersion(withReply reply: @escaping (Int, String?) -> Void)
+
+    /// Whether this Mac reports High Power Mode support (`pmset -g cap`).
+    ///
+    /// Added in protocol version 2. The app hides the High Power Mode control
+    /// when this is false or unknown, so an unsupported Mac never shows a switch
+    /// that can only fail.
+    func readHighPowerModeSupport(withReply reply: @escaping (Bool, String?) -> Void)
+
+    /// Reads the current High Power Mode state.
+    ///
+    /// Added in protocol version 2. `enabled` is the observed value;
+    /// `errorDescription` is non-nil only when it could not be read.
+    func readHighPowerMode(withReply reply: @escaping (Bool, String?) -> Void)
+
+    /// Sets High Power Mode and replies with the state the daemon observed
+    /// afterwards. Enabling High Power Mode clears Low Power Mode first, because
+    /// the two are mutually exclusive states of one system switch.
+    ///
+    /// Added in protocol version 2.
+    func setHighPowerMode(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void)
 }

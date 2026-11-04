@@ -27,6 +27,46 @@ struct BluetoothSettingsDemandToken: Hashable, Sendable {
     fileprivate let id = UUID()
 }
 
+/// The privileged-helper readiness the low-battery automation (#246) needs.
+///
+/// The automation writes Low Power Mode on the user's behalf, so it must not
+/// act on a helper that is not actually usable (unregistered, waiting for
+/// approval, or unresponsive). Injected so the store can be exercised without a
+/// live daemon; production reads the one shared manager.
+@MainActor
+protocol HelperReadinessProviding {
+    /// Whether the helper can serve a write right now.
+    var isReady: Bool { get }
+    /// Fires whenever `isReady` may have changed, so the automation can
+    /// re-evaluate against the current battery snapshot instead of waiting for
+    /// the next one.
+    var readinessPublisher: AnyPublisher<Bool, Never> { get }
+}
+
+/// Production provider. Resolves the shared manager lazily so a store that
+/// never binds the low-power settings does not touch the helper at all.
+@MainActor
+struct SharedHelperReadiness: HelperReadinessProviding {
+    var isReady: Bool { PrivilegedHelperManager.shared.isReady }
+
+    var readinessPublisher: AnyPublisher<Bool, Never> {
+        PrivilegedHelperManager.shared.readinessPublisher
+    }
+}
+
+extension PrivilegedHelperManager: HelperReadinessProviding {
+    /// The same `isReady` rule the UI gates the switches with, re-published so
+    /// the automation can re-evaluate when approval or responsiveness lands.
+    var readinessPublisher: AnyPublisher<Bool, Never> {
+        Publishers.CombineLatest3($isEnabled, $status, $isHelperResponsive)
+            .map { enabled, status, isResponsive in
+                enabled && status != .notRegistered && isResponsive
+            }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
+    }
+}
+
 @MainActor
 final class SystemStatusStore: ObservableObject {
     static let popupDebounceInterval: Duration = .milliseconds(500)
@@ -105,6 +145,14 @@ final class SystemStatusStore: ObservableObject {
     /// The Low Power Mode write path. Dormant until the opt-in enables it, so
     /// the privileged helper is never contacted while the feature is off.
     let lowPowerMode: LowPowerModeController
+    /// The High Power Mode write path (#235). Same helper as `lowPowerMode`,
+    /// dormant for the same reason; the two bridges share the one LaunchDaemon.
+    let highPowerMode: HighPowerModeController
+    /// The low-battery → Low Power Mode automation (#246).
+    private let lowPowerAutoEnable = LowPowerAutoEnableController()
+    /// Helper readiness for the #246 automation. Production reads the shared
+    /// manager; tests inject a fake.
+    private let helperReadiness: any HelperReadinessProviding
 
     private let batteryMonitor: any BatteryMonitoring
     private let wifiMonitor: any WiFiMonitoring
@@ -138,6 +186,14 @@ final class SystemStatusStore: ObservableObject {
     private var mobileBatterySettingsCancellable: AnyCancellable?
     private var lowPowerModeSettingsCancellable: AnyCancellable?
     private var lowPowerModeSnapshotCancellable: AnyCancellable?
+    private var lowPowerAutoEnableCancellable: AnyCancellable?
+    /// The threshold and the helper readiness are preconditions of #246 rather
+    /// than battery events, so each has its own subscription to re-evaluate.
+    private var lowPowerAutoEnableThresholdCancellable: AnyCancellable?
+    private var lowPowerAutoEnableReadinessCancellable: AnyCancellable?
+    /// The settings that drive the low-battery automation. Weak so the store
+    /// does not extend the settings lifetime past the app environment.
+    private weak var boundLowPowerSettings: SettingsStore?
     private var appleDeviceSettingsCancellable: AnyCancellable?
     private var appleBackgroundSettingsCancellable: AnyCancellable?
     private var appleEligibilitySettingsCancellable: AnyCancellable?
@@ -240,6 +296,8 @@ final class SystemStatusStore: ObservableObject {
         appleDeviceDiscovery: AppleDeviceDiscoveryController = AppleDeviceDiscoveryController(),
         bluetoothListeningModes: BluetoothListeningModeController = BluetoothListeningModeController(),
         lowPowerMode: LowPowerModeController = LowPowerModeController(),
+        highPowerMode: HighPowerModeController = HighPowerModeController(),
+        helperReadiness: (any HelperReadinessProviding)? = nil,
         initialSnapshot: StatusSnapshot = .placeholder
     ) {
         self.batteryMonitor = batteryMonitor
@@ -269,6 +327,8 @@ final class SystemStatusStore: ObservableObject {
         self.appleDeviceDiscovery = appleDeviceDiscovery
         self.bluetoothListeningModes = bluetoothListeningModes
         self.lowPowerMode = lowPowerMode
+        self.highPowerMode = highPowerMode
+        self.helperReadiness = helperReadiness ?? SharedHelperReadiness()
         self.snapshot = initialSnapshot
         self.popupSnapshot = initialSnapshot
         self.vpnStatus = .placeholder
@@ -490,6 +550,13 @@ final class SystemStatusStore: ObservableObject {
         lowPowerModeSettingsCancellable = nil
         lowPowerModeSnapshotCancellable?.cancel()
         lowPowerModeSnapshotCancellable = nil
+        lowPowerAutoEnableCancellable?.cancel()
+        lowPowerAutoEnableCancellable = nil
+        lowPowerAutoEnableThresholdCancellable?.cancel()
+        lowPowerAutoEnableThresholdCancellable = nil
+        lowPowerAutoEnableReadinessCancellable?.cancel()
+        lowPowerAutoEnableReadinessCancellable = nil
+        boundLowPowerSettings = nil
         appleDeviceSettingsCancellable?.cancel()
         appleDeviceSettingsCancellable = nil
         appleBackgroundSettingsCancellable?.cancel()
@@ -529,6 +596,8 @@ final class SystemStatusStore: ObservableObject {
         batteryDetails.deactivate()
         mobileBattery.stop()
         lowPowerMode.stop()
+        highPowerMode.stop()
+        lowPowerAutoEnable.reset()
         appleDeviceDiscovery.stop()
         batteryMonitor.stop()
         wifiMonitor.stop()
@@ -991,6 +1060,7 @@ final class SystemStatusStore: ObservableObject {
             isApplicationEnergyDisplayAsleep = false
             updateApplicationEnergyDemand()
             lowPowerMode.refresh()
+            highPowerMode.refresh()
         }
         mobileBattery.setSurfaceVisible(visible)
         updateAppleRefreshDemand()
@@ -1326,17 +1396,90 @@ final class SystemStatusStore: ObservableObject {
     /// displayed value from the battery snapshot the app already reads.
     func bindLowPowerModeSettings(_ settings: SettingsStore) {
         guard !hasStopped else { return }
+        boundLowPowerSettings = settings
         lowPowerModeSettingsCancellable = settings.$controlsLowPowerMode
             .removeDuplicates()
             .sink { [weak self] enabled in
-                self?.lowPowerMode.setEnabled(enabled)
+                guard let self else { return }
+                // Both modes ride the one helper opt-in: the daemon controls
+                // both power-mode writes and must not be contacted unless the
+                // user asked for it.
+                self.lowPowerMode.setEnabled(enabled)
+                self.highPowerMode.setEnabled(enabled)
+                // The automation needs this opt-in too (#246), and the battery
+                // may already be low: re-evaluate now instead of waiting for the
+                // next snapshot.
+                self.evaluateLowPowerAutoEnable(
+                    battery: self.snapshot.battery, controlsOverride: enabled
+                )
             }
         lowPowerModeSnapshotCancellable = $snapshot
-            .map(\.battery.isLowPowerMode)
+            .map(\.battery)
+            .removeDuplicates()
+            .sink { [weak self] battery in
+                self?.lowPowerMode.updateFromSystemRead(battery.isLowPowerMode)
+                self?.evaluateLowPowerAutoEnable(battery: battery)
+            }
+        lowPowerAutoEnableCancellable = settings.$autoEnablesLowPowerMode
             .removeDuplicates()
             .sink { [weak self] enabled in
-                self?.lowPowerMode.updateFromSystemRead(enabled)
+                guard let self else { return }
+                guard enabled else {
+                    self.lowPowerAutoEnable.reset()
+                    return
+                }
+                // Enabling the automation while the battery is already low must
+                // not wait for the next snapshot to act.
+                self.evaluateLowPowerAutoEnable(
+                    battery: self.snapshot.battery, automationOverride: enabled
+                )
             }
+        // The threshold and the helper's readiness are preconditions of #246,
+        // not battery events: a change to either re-evaluates the current
+        // snapshot at once.
+        lowPowerAutoEnableThresholdCancellable = settings.$autoLowPowerThreshold
+            .removeDuplicates()
+            .sink { [weak self] threshold in
+                guard let self else { return }
+                self.evaluateLowPowerAutoEnable(
+                    battery: self.snapshot.battery, thresholdOverride: threshold
+                )
+            }
+        lowPowerAutoEnableReadinessCancellable = helperReadiness.readinessPublisher
+            .removeDuplicates()
+            .sink { [weak self] ready in
+                guard let self else { return }
+                self.evaluateLowPowerAutoEnable(
+                    battery: self.snapshot.battery, readinessOverride: ready
+                )
+            }
+    }
+
+    /// #246: Low Power Mode follows the existing low-battery threshold, but
+    /// only while running on battery and only once per low-battery cycle. Both
+    /// the automation switch and the helper-backed control must be on, and the
+    /// helper must actually be usable for the write.
+    private func evaluateLowPowerAutoEnable(
+        battery: BatteryStatus,
+        controlsOverride: Bool? = nil,
+        automationOverride: Bool? = nil,
+        thresholdOverride: Double? = nil,
+        readinessOverride: Bool? = nil
+    ) {
+        guard let settings = boundLowPowerSettings else { return }
+        // @Published emits in willSet, so subscribers pass the incoming value
+        // instead of reading the property's previous value during delivery.
+        let isEnabled = (automationOverride ?? settings.autoEnablesLowPowerMode)
+            && (controlsOverride ?? settings.controlsLowPowerMode)
+            && HighPowerModeController.supportsCurrentPlatform
+        let shouldEnable = lowPowerAutoEnable.evaluate(
+            battery: battery,
+            threshold: thresholdOverride ?? settings.autoLowPowerThreshold,
+            isEnabled: isEnabled,
+            isHelperReady: readinessOverride ?? helperReadiness.isReady
+        )
+        guard shouldEnable else { return }
+        lowPowerMode.setLowPowerMode(true)
     }
 
     private func updateAppleRefreshDemand() {

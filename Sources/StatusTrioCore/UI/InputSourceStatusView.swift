@@ -13,7 +13,7 @@ struct InputSourceStatusView: View {
     let onOpenKeyboardSettings: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: PanelSummaryActionMetrics.iconGap) {
             Button(action: onOpen) {
                 HStack(alignment: .center, spacing: 10) {
                     PanelSymbolView(

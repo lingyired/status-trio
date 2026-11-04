@@ -4,6 +4,10 @@ enum BatteryColorRole: Equatable, Sendable {
     case foreground
     case critical
     case lowPower
+    /// The system is in High Power Mode (#235). Mutually exclusive with
+    /// `lowPower`; it wins over `charging` because High Power Mode is itself a
+    /// connected-power state.
+    case highPower
     case charging
 }
 
@@ -47,11 +51,13 @@ enum StatusMappings {
 
     static func batteryColorRole(
         _ battery: BatteryStatus,
-        criticalThreshold: Int = 20
+        criticalThreshold: Int = 20,
+        isHighPowerMode: Bool = false
     ) -> BatteryColorRole {
         let threshold = min(100, max(0, criticalThreshold))
         if battery.percentage < threshold { return .critical }
         if battery.isLowPowerMode { return .lowPower }
+        if isHighPowerMode { return .highPower }
         if battery.isCharging || battery.isConnectedToPower { return .charging }
         return .foreground
     }
