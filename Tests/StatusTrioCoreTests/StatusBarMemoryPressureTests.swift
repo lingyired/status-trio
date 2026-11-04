@@ -61,45 +61,62 @@ final class StatusBarMemoryPressureTests: VisibleUITestCase {
         XCTAssertTrue(harness.controller.popoverForTesting.isShown)
     }
 
-    /// Issue #267: after opening Settings and then the panel, clicking the
-    /// already-key Settings window must close the panel. The controller observes
-    /// `NSWindow.didBecomeMain`/`didBecomeKey`; a real `.normal` window becoming
-    /// key is the exact signal.
-    func testOtherNormalWindowBecomingKeyClosesThePanel() async throws {
+    /// Issue #267, real key handoff (no synthesized notifications): with the
+    /// Settings window already open and key, the panel opens and takes key;
+    /// making the Settings window key again must close the panel.
+    ///
+    /// `VisibleUITestCase`: skipped by default. `isKeyWindow` is only meaningful
+    /// while the app is active, so this needs an authorized visible session.
+    func testRealKeyHandoffFromPanelBackToSettingsClosesPanel() throws {
         let harness = try StatusBarPressureHarness()
         defer { harness.cleanUp() }
-        harness.controller.togglePopover()
-        let panel = harness.controller.popoverForTesting
-        XCTAssertTrue(panel.isShown)
+
+        let app = NSApplication.shared
+        if #available(macOS 14.0, *) {
+            app.activate()
+        } else {
+            app.activate(ignoringOtherApps: true)
+        }
 
         let settingsWindow = NSWindow(
-            contentRect: NSRect(x: 80, y: 80, width: 320, height: 240),
+            contentRect: NSRect(x: 120, y: 120, width: 360, height: 280),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
         )
         settingsWindow.isReleasedWhenClosed = false
-        defer { settingsWindow.close() }
-        // Visible UI test: order the window in so `isVisible` is true, exactly
-        // as a real Settings window is while the panel is open.
-        settingsWindow.orderFront(nil)
-        let closed = expectation(
-            forNotification: AnchoredStatusPanel.didCloseNotification,
-            object: panel
+        addTeardownBlock {
+            settingsWindow.orderOut(nil)
+            settingsWindow.close()
+        }
+
+        settingsWindow.makeKeyAndOrderFront(nil)
+        XCTAssertTrue(
+            settingsWindow.isKeyWindow,
+            "the Settings window must start as the key window"
         )
 
-        NotificationCenter.default.post(
-            name: NSWindow.didBecomeKeyNotification,
-            object: settingsWindow
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+        XCTAssertTrue(
+            panel.isKeyWindow,
+            "the non-activating panel takes key when it opens over Settings"
         )
 
-        await fulfillment(of: [closed], timeout: 1)
-        XCTAssertFalse(panel.isShown)
+        settingsWindow.makeKey()
+        waitUntilClosed(panel)
+        XCTAssertFalse(panel.isShown, "clicking Settings must close the panel")
+        XCTAssertTrue(
+            settingsWindow.isKeyWindow,
+            "focus stays on the Settings window; the panel does not take it back"
+        )
     }
 
-    /// A window that became main but not key (or either) must also dismiss: the
-    /// `didBecomeMain` path covers the same real window.
-    func testOtherNormalWindowBecomingMainClosesThePanel() async throws {
+    /// Notification-wiring check for the `didBecomeMain` path. This posts a
+    /// synthetic notification; it does not prove a real key/main handoff (see
+    /// `testRealKeyHandoffFromPanelBackToSettingsClosesPanel`).
+    func testSynthesizedMainNotificationClosesThePanel() async throws {
         let harness = try StatusBarPressureHarness()
         defer { harness.cleanUp() }
         harness.controller.togglePopover()
@@ -131,9 +148,9 @@ final class StatusBarMemoryPressureTests: VisibleUITestCase {
         XCTAssertFalse(panel.isShown)
     }
 
-    /// Clicking the panel's own controls makes the panel itself key. It must not
-    /// dismiss.
-    func testPanelBecomingKeyKeepsThePanelOpen() async throws {
+    /// Synthetic-only check that the panel's own key transition keeps it open.
+    /// A real transition is covered by `testRealKeyHandoffFromPanelBackToSettingsClosesPanel`.
+    func testSynthesizedPanelKeyNotificationKeepsThePanelOpen() async throws {
         let harness = try StatusBarPressureHarness()
         defer { harness.cleanUp() }
         harness.controller.togglePopover()
@@ -153,7 +170,7 @@ final class StatusBarMemoryPressureTests: VisibleUITestCase {
 
     /// A panel-owned sheet (confirmation) becomes key at a modal level with a
     /// sheet parent; it must not dismiss the panel underneath.
-    func testPanelOwnSheetBecomingKeyKeepsThePanelOpen() async throws {
+    func testSynthesizedPanelSheetKeyNotificationKeepsThePanelOpen() async throws {
         let harness = try StatusBarPressureHarness()
         defer { harness.cleanUp() }
         harness.controller.togglePopover()
@@ -185,7 +202,7 @@ final class StatusBarMemoryPressureTests: VisibleUITestCase {
 
     /// A floating/menu-level window (e.g. an NSMenu or alert) must not dismiss
     /// the panel.
-    func testFloatingLevelWindowBecomingKeyKeepsThePanelOpen() async throws {
+    func testSynthesizedFloatingLevelKeyNotificationKeepsThePanelOpen() async throws {
         let harness = try StatusBarPressureHarness()
         defer { harness.cleanUp() }
         harness.controller.togglePopover()
@@ -211,7 +228,8 @@ final class StatusBarMemoryPressureTests: VisibleUITestCase {
         XCTAssertTrue(panel.isShown)
     }
 
-    func testDockPresentationDoesNotForceApplicationActivation() throws {        let harness = try StatusBarPressureHarness()
+    func testDockPresentationDoesNotForceApplicationActivation() throws {
+        let harness = try StatusBarPressureHarness()
         defer { harness.cleanUp() }
 
         harness.controller.togglePopover(anchoredAtScreenPoint: harness.anchorPoint)
