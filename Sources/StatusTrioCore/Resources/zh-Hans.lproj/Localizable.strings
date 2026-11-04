@@ -673,7 +673,7 @@
 "airPods.routeChanged" = "所选 AirPods 已更改或断开连接。请重新打开当前输出设备的控制。";
 "airPods.unconfirmed" = "macOS 未确认更改。请刷新以读取实际设置。";
 "airPods.unavailable" = "蓝牙直连控制暂不可用。";
-"airPods.notAvailable" = "不可用，请刷新检查";
+"airPods.notAvailable" = "不可用";
 "airPods.apply" = "应用";
 
 "airPods.spatialFixed" = "固定";

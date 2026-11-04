@@ -673,7 +673,7 @@
 "airPods.routeChanged" = "選択した AirPods が変更されたか切断されました。現在の出力のコントロールを開き直してください。";
 "airPods.unconfirmed" = "macOS で変更を確認できませんでした。更新して実際の設定を確認してください。";
 "airPods.unavailable" = "Bluetoothによる直接操作は利用できません。";
-"airPods.notAvailable" = "利用不可 — 更新して確認";
+"airPods.notAvailable" = "利用不可";
 "airPods.apply" = "適用";
 
 "airPods.spatialFixed" = "固定";

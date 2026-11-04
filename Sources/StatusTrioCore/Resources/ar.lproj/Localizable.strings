@@ -673,7 +673,7 @@
 "airPods.routeChanged" = "تغيرت سماعات AirPods المحددة أو انقطع اتصالها. أعد فتح عناصر تحكم الإخراج الحالي.";
 "airPods.unconfirmed" = "لم يؤكد macOS التغيير. حدّث لقراءة الإعداد الفعلي.";
 "airPods.unavailable" = "التحكم المباشر عبر Bluetooth غير متاح.";
-"airPods.notAvailable" = "غير متاح — حدّث للتحقق";
+"airPods.notAvailable" = "غير متاح";
 "airPods.apply" = "تطبيق";
 
 "airPods.spatialFixed" = "ثابت";

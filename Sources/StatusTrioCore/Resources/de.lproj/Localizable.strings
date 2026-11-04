@@ -673,7 +673,7 @@
 "airPods.routeChanged" = "Die ausgewählten AirPods wurden gewechselt oder getrennt. Steuerung für die aktuelle Ausgabe erneut öffnen.";
 "airPods.unconfirmed" = "macOS hat die Änderung nicht bestätigt. Aktualisieren, um die tatsächliche Einstellung zu lesen.";
 "airPods.unavailable" = "Direkte Bluetooth-Steuerung ist nicht verfügbar.";
-"airPods.notAvailable" = "Nicht verfügbar — zum Prüfen aktualisieren";
+"airPods.notAvailable" = "Nicht verfügbar";
 "airPods.apply" = "Anwenden";
 
 "airPods.spatialFixed" = "Fixiert";

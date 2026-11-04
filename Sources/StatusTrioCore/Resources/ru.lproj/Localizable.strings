@@ -673,7 +673,7 @@
 "airPods.routeChanged" = "Выбранные AirPods изменились или отключились. Откройте управление текущим выходом заново.";
 "airPods.unconfirmed" = "macOS не подтвердила изменение. Обновите, чтобы прочитать фактическую настройку.";
 "airPods.unavailable" = "Прямое управление по Bluetooth недоступно.";
-"airPods.notAvailable" = "Недоступно — обновите для проверки";
+"airPods.notAvailable" = "Недоступно";
 "airPods.apply" = "Применить";
 
 "airPods.spatialFixed" = "Фиксированное";
