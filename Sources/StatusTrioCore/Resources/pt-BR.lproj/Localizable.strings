@@ -664,6 +664,7 @@
 "brightness.row.accessibility" = "Brilho de %@, %@";
 "brightness.row.accessibilityUnavailable" = "Brilho de %@, %@";
 "brightness.unavailable" = "Indisponível";
+"brightness.action.openSettings" = "Abrir ajustes do monitor";
 "brightness.appAbsent" = "Requer o BetterDisplay";
 "brightness.noBackend" = "Sem controle de brilho";
 "brightness.unresponsive" = "Não responde";

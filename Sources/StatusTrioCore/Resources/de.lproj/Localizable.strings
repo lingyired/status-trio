@@ -664,6 +664,7 @@
 "brightness.row.accessibility" = "Helligkeit für %@, %@";
 "brightness.row.accessibilityUnavailable" = "Helligkeit für %@, %@";
 "brightness.unavailable" = "Nicht verfügbar";
+"brightness.action.openSettings" = "Bildschirmeinstellungen öffnen";
 "brightness.appAbsent" = "Erfordert BetterDisplay";
 "brightness.noBackend" = "Keine Helligkeitssteuerung";
 "brightness.unresponsive" = "Reagiert nicht";

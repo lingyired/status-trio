@@ -662,6 +662,7 @@
 "brightness.row.accessibility" = "Brightness for %@, %@";
 "brightness.row.accessibilityUnavailable" = "Brightness for %@, %@";
 "brightness.unavailable" = "Unavailable";
+"brightness.action.openSettings" = "Open Display Settings";
 "brightness.appAbsent" = "Requires BetterDisplay";
 "brightness.noBackend" = "No brightness control";
 "brightness.unresponsive" = "Not responding";

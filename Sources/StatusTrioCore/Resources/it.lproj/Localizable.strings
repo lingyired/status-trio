@@ -664,6 +664,7 @@
 "brightness.row.accessibility" = "Luminosità di %@, %@";
 "brightness.row.accessibilityUnavailable" = "Luminosità di %@, %@";
 "brightness.unavailable" = "Non disponibile";
+"brightness.action.openSettings" = "Apri impostazioni display";
 "brightness.appAbsent" = "Richiede BetterDisplay";
 "brightness.noBackend" = "Nessun controllo della luminosità";
 "brightness.unresponsive" = "Non risponde";

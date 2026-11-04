@@ -112,6 +112,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsPanelBackgroundStyleLiquidGlassUnavailable = "settings.panel.background.style.liquidGlassUnavailable"
     case brightnessRowAccessibility = "brightness.row.accessibility"
     case brightnessRowAccessibilityUnavailable = "brightness.row.accessibilityUnavailable"
+    case brightnessActionOpenSettings = "brightness.action.openSettings"
     case brightnessUnavailable = "brightness.unavailable"
     case brightnessAppAbsent = "brightness.appAbsent"
     case brightnessNoBackend = "brightness.noBackend"

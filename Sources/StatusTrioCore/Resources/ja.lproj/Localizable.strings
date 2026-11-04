@@ -664,6 +664,7 @@
 "brightness.row.accessibility" = "%@ の明るさ、%@";
 "brightness.row.accessibilityUnavailable" = "%@ の明るさ、%@";
 "brightness.unavailable" = "利用不可";
+"brightness.action.openSettings" = "ディスプレイ設定を開く";
 "brightness.appAbsent" = "BetterDisplay が必要";
 "brightness.noBackend" = "明るさを制御できません";
 "brightness.unresponsive" = "応答なし";

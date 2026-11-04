@@ -664,6 +664,7 @@
 "brightness.row.accessibility" = "Яркость %@, %@";
 "brightness.row.accessibilityUnavailable" = "Яркость %@, %@";
 "brightness.unavailable" = "Недоступно";
+"brightness.action.openSettings" = "Открыть настройки дисплея";
 "brightness.appAbsent" = "Требуется BetterDisplay";
 "brightness.noBackend" = "Нет управления яркостью";
 "brightness.unresponsive" = "Не отвечает";

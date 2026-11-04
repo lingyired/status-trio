@@ -664,6 +664,7 @@
 "brightness.row.accessibility" = "%@ 的亮度，%@";
 "brightness.row.accessibilityUnavailable" = "%@ 的亮度，%@";
 "brightness.unavailable" = "不可用";
+"brightness.action.openSettings" = "打开显示器设置";
 "brightness.appAbsent" = "需要 BetterDisplay";
 "brightness.noBackend" = "无法控制亮度";
 "brightness.unresponsive" = "无响应";

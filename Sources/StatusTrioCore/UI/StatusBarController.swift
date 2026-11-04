@@ -501,6 +501,7 @@ final class StatusBarController: NSObject {
                 openSettings: { self.handleOpenSettings() },
                 openSoundSettings: { self.handleOpenSoundSettings() },
                 openSoundInputSettings: { self.handleOpenSoundInputSettings() },
+                openDisplaySettings: { self.handleOpenDisplaySettings() },
                 openKeyboardSettings: { self.handleOpenKeyboardSettings() },
                 quit: quitAction,
                 dismissPanel: { [weak self] in self?.closePopover() }
@@ -1583,6 +1584,11 @@ final class StatusBarController: NSObject {
         Self.openSystemSettings(Self.bluetoothSettingsURLs)
     }
 
+    private func handleOpenDisplaySettings() {
+        popover.performClose(nil)
+        Self.openSystemSettings(Self.displaySettingsURLs)
+    }
+
     /// Where a refused Bluetooth grant is given back. This is not the pane the
     /// gear opens: that one turns the radio on and off, while a refusal lives in
     /// Privacy & Security. The store owns the route so Settings and the popover
@@ -1634,6 +1640,15 @@ final class StatusBarController: NSObject {
     static let sharingSettingsURLs = [
         "x-apple.systempreferences:com.apple.Sharing-Settings.extension",
         "x-apple.systempreferences:com.apple.preferences.sharing"
+    ]
+    .compactMap(URL.init(string:))
+
+    /// The Displays pane owns brightness for built-in and external monitors.
+    /// Keep the legacy identifier as a fallback for older System Settings
+    /// builds; the extension route decides the destination.
+    static let displaySettingsURLs = [
+        "x-apple.systempreferences:com.apple.Displays-Settings.extension",
+        "x-apple.systempreferences:com.apple.preference.displays"
     ]
     .compactMap(URL.init(string:))
 

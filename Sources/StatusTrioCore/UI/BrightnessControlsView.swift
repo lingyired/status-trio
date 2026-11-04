@@ -7,6 +7,7 @@ struct BrightnessControlsView: View {
     let state: BrightnessPanelState
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
+    let onOpenDisplaySettings: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -14,7 +15,8 @@ struct BrightnessControlsView: View {
                 BrightnessRowView(
                     row: row,
                     actions: actions,
-                    scrollTargets: scrollTargets
+                    scrollTargets: scrollTargets,
+                    onOpenDisplaySettings: onOpenDisplaySettings
                 )
             }
         }
@@ -25,6 +27,9 @@ private struct BrightnessRowView: View {
     let row: BrightnessRowState
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
+    let onOpenDisplaySettings: () -> Void
+
+    @EnvironmentObject private var localization: Localization
 
     /// Local slider draft. Programmatic reads update it only while the user is
     /// not editing, so a late system echo never fights the drag.
@@ -89,6 +94,15 @@ private struct BrightnessRowView: View {
                 .foregroundStyle(.secondary)
                 .frame(minWidth: 34, alignment: .trailing)
                 .accessibilityHidden(true)
+
+            Button(action: onOpenDisplaySettings) {
+                PanelActionGlyph(systemName: "gearshape")
+                    .foregroundStyle(.secondary)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(localization.string(.brightnessActionOpenSettings))
+            .accessibilityLabel(localization.string(.brightnessActionOpenSettings))
         }
         .onAppear { if !isEditing { draft = row.scalar ?? 0 } }
         .onChange(of: row.scalar) { newValue in

@@ -664,6 +664,7 @@
 "brightness.row.accessibility" = "السطوع لـ %@، %@";
 "brightness.row.accessibilityUnavailable" = "السطوع لـ %@، %@";
 "brightness.unavailable" = "غير متاح";
+"brightness.action.openSettings" = "فتح إعدادات الشاشة";
 "brightness.appAbsent" = "يتطلب BetterDisplay";
 "brightness.noBackend" = "لا يوجد تحكم في السطوع";
 "brightness.unresponsive" = "لا يستجيب";

@@ -664,6 +664,7 @@
 "brightness.row.accessibility" = "Brillo de %@, %@";
 "brightness.row.accessibilityUnavailable" = "Brillo de %@, %@";
 "brightness.unavailable" = "No disponible";
+"brightness.action.openSettings" = "Abrir ajustes de pantalla";
 "brightness.appAbsent" = "Requiere BetterDisplay";
 "brightness.noBackend" = "Sin control de brillo";
 "brightness.unresponsive" = "No responde";
