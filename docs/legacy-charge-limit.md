@@ -222,6 +222,19 @@ What exists in this branch (source-level evidence only):
 - Helper coordinator: durable root-owned journal written before the first
   write, `expectedLimit` ownership check before any write, multi-key rollback,
   readback verification, restore on disable and on client loss.
+  `expectedLimit` always means "the value I believe is on the hardware right
+  now" — never the pre-management restore destination; the app therefore passes
+  `nil` when it only knows its own intent, and the journal enforces ownership.
+- The journal records `hw.model`; a record from another Mac is refused, so a
+  stale file cannot restore a stock value that does not exist here. The store
+  is owner-only, `O_NOFOLLOW`, single-link, size-bounded and atomic; an
+  unreadable/corrupt record is an error, never "no session".
+- Battery-driven hysteresis: the app's existing battery snapshot drives the 2%
+  decision. Only a decision change writes; there is no new polling timer. A
+  temporary full charge is never interrupted, and sleep clears the remembered
+  gate so wake re-evaluates from hardware.
+- One persistent authenticated XPC connection while a limit is held, released
+  as soon as none is, so the helper can idle-exit.
 - `SMCPrivateAPI`: minimal AppleSMC IOKit bridge whose write allowlist is
   `BCLM`/`CH0B`/`CH0C`/`CHTE`; linked only into the root helper.
 - Shared typed XPC capsule + combined protocol; Low Power Mode and the charge
