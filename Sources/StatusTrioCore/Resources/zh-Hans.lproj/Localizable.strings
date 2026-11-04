@@ -100,7 +100,7 @@
 "settings.bluetooth.batteryLevels" = "显示蓝牙设备电量";
 "settings.bluetooth.batteryLevelsDescription" = "当状态面板显示蓝牙设备时读取 AirPods 电量，不会额外请求权限。";
 "settings.bluetooth.listeningModePreview" = "预览聆听模式开关";
-"settings.bluetooth.listeningModePreviewDescription" = "在每台已连接的 AirPods 上显示模式胶囊，用于界面测试。点击胶囊的动画与真机一致，但不会更改 AirPods 的任何设置。";
+"settings.bluetooth.listeningModePreviewDescription" = "在面板中注入一台合成 AirPods 用于界面测试。聆听模式与内联控制的交互和真机一致，但不会更改任何设备设置。";
 "settings.bluetooth.listeningModePreviewDeviceName" = "预览设备名";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "预览行显示的名字。留空走默认；填一个超长的可以测截断。";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "预览行数";

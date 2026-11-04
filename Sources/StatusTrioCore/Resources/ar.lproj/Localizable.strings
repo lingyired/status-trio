@@ -83,7 +83,7 @@
 "settings.bluetooth.batteryLevels" = "عرض مستويات بطارية Bluetooth";
 "settings.bluetooth.batteryLevelsDescription" = "تقرأ مستويات بطارية AirPods أثناء عرض إدخال Bluetooth. لن يظهر طلب إذن إضافي.";
 "settings.bluetooth.listeningModePreview" = "معاينة مُبدِّل وضع السمع";
-"settings.bluetooth.listeningModePreviewDescription" = "اعرض كبسولات الوضع على جميع AirPods المتصلة لاختبار الواجهة. النقر على كبسولة يُحركها كما على الجهاز الفعلي لكن دون تغيير أي إعداد في AirPods.";
+"settings.bluetooth.listeningModePreviewDescription" = "يحقن صف AirPods اصطناعي في اللوحة لاختبار الواجهة. تتصرف أوضاع الاستماع وعناصر التحكم المضمّنة كعتاد حقيقي لكنها لا تغيّر أي إعداد على أي جهاز.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "اسم جهاز المعاينة";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "الاسم الظاهر على صفوف المعاينة. اتركه فارغًا لاستخدام الاسم الافتراضي، أو اكتب اسمًا طويلًا جدًا لاختبار الاقتطاع.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "عدد صفوف المعاينة";

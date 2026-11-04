@@ -100,7 +100,7 @@
 "settings.bluetooth.batteryLevels" = "Show Bluetooth battery levels";
 "settings.bluetooth.batteryLevelsDescription" = "Reads battery levels for visible Bluetooth and Apple device rows in the status panel.";
 "settings.bluetooth.listeningModePreview" = "Preview the listening mode switch";
-"settings.bluetooth.listeningModePreviewDescription" = "Show the mode capsules on every connected AirPods for interface testing. Tapping a capsule animates as it does on a real device, but changes nothing on the AirPods.";
+"settings.bluetooth.listeningModePreviewDescription" = "Inject a synthetic AirPods row into the panel to test the interface. Its listening modes and inline controls behave like real hardware but change nothing on any device.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Preview device name";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Name shown on the preview rows. Leave empty for the built-in default, or type a very long name to check truncation.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "Preview row count";

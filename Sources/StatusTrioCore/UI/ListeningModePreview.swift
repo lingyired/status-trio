@@ -108,16 +108,28 @@ enum ListeningModePreview {
     /// Synthetic inline-control data so Settings > Bluetooth > preview can exercise
     /// the whole AirPods disclosure without hardware. It never reaches CoreAudio or
     /// a Bluetooth channel; the row renders these values and mutates them locally.
-    static var systemControlSnapshot: AirPodsSystemSnapshot {
+    /// Titles use the same localization keys as the real controls so the preview
+    /// reads in the selected language.
+    static func systemControlSnapshot(_ localization: Localization) -> AirPodsSystemSnapshot {
         AirPodsSystemSnapshot(
             conversation: [
-                AirPodsSystemOption(title: conversationOnTitle, selected: true, symbol: "person.open.fill"),
-                AirPodsSystemOption(title: conversationOffTitle, selected: false, symbol: "person.closed.fill")
+                AirPodsSystemOption(
+                    title: localization.string(.batteryDetailsOn), selected: true,
+                    symbol: "person.wave.2.fill"),
+                AirPodsSystemOption(
+                    title: localization.string(.bluetoothListeningModeOff), selected: false,
+                    symbol: "person.wave.2.fill", dimWaves: true)
             ],
             spatial: [
-                AirPodsSystemOption(title: spatialOffTitle, selected: false, symbol: "person.spatialaudio.stereo.fill", dimWaves: true),
-                AirPodsSystemOption(title: spatialFixedTitle, selected: false, symbol: "person.spatialaudio.stereo.fill"),
-                AirPodsSystemOption(title: spatialHeadTrackedTitle, selected: true, symbol: "spatialize-stereo-head-tracked")
+                AirPodsSystemOption(
+                    title: localization.string(.bluetoothListeningModeOff), selected: false,
+                    symbol: "person.spatialaudio.stereo.fill", dimWaves: true),
+                AirPodsSystemOption(
+                    title: localization.string(.airPodsSpatialFixed), selected: false,
+                    symbol: "person.spatialaudio.stereo.fill"),
+                AirPodsSystemOption(
+                    title: localization.string(.airPodsSpatialHeadTracked), selected: true,
+                    symbol: "spatialize-stereo-head-tracked")
             ],
             adaptive: 65,
             loaded: true,
@@ -127,12 +139,4 @@ enum ListeningModePreview {
             supportsConversation: true
         )
     }
-
-    // Literal row titles only back the preview fixture; the real controls take
-    // their titles from `Localization` so the fixture stays language-independent.
-    private static let conversationOnTitle = "On"
-    private static let conversationOffTitle = "Off"
-    private static let spatialOffTitle = "Off"
-    private static let spatialFixedTitle = "Fixed"
-    private static let spatialHeadTrackedTitle = "Head Tracked"
 }

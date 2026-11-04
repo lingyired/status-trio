@@ -100,7 +100,7 @@
 "settings.bluetooth.batteryLevels" = "顯示藍牙裝置電量";
 "settings.bluetooth.batteryLevelsDescription" = "當狀態面板顯示藍牙裝置時讀取 AirPods 電量，不會額外要求權限。";
 "settings.bluetooth.listeningModePreview" = "預試聆聽模式切換";
-"settings.bluetooth.listeningModePreviewDescription" = "在每台已連結的 AirPods 上顯示模式膠囊，用於介面測試。點擊膠囊的動畫與真機一致，但不會變更 AirPods 的任何設定。";
+"settings.bluetooth.listeningModePreviewDescription" = "在面板中注入一台合成 AirPods 用於介面測試。聆聽模式與內聯控制的互動和真機一致，但不會變更任何裝置設定。";
 "settings.bluetooth.listeningModePreviewDeviceName" = "預試裝置名";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "預試列顯示的名字。留空使用預設；填入超長名稱可測試截斷。";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "預試列數";

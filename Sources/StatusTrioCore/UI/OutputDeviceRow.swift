@@ -58,7 +58,7 @@ struct OutputDeviceRow: View {
             deviceID: state.key,
             deviceName: state.name,
             conversationCache: state.isPreview ? nil : conversationCache,
-            preview: state.isPreview ? ListeningModePreview.systemControlSnapshot : nil
+            preview: state.isPreview ? ListeningModePreview.systemControlSnapshot(localization) : nil
         )
     }
 

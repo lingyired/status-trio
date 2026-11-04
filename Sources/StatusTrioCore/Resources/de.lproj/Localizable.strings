@@ -100,7 +100,7 @@
 "settings.bluetooth.batteryLevels" = "Bluetooth-Batteriestände anzeigen";
 "settings.bluetooth.batteryLevelsDescription" = "Liest AirPods-Batteriestände, während der Bluetooth-Eintrag sichtbar ist. Es wird keine zusätzliche Berechtigung angefragt.";
 "settings.bluetooth.listeningModePreview" = "Hörmodus-Umschaltung Vorschau anzeigen";
-"settings.bluetooth.listeningModePreviewDescription" = "Für UI-Tests die Modi-Kapseln auf allen verbundenen AirPods anzeigen. Das Antippen einer Kapsel animiert wie auf einem echten Gerät, ändert aber nichts an den AirPods.";
+"settings.bluetooth.listeningModePreviewDescription" = "Fügt dem Panel eine synthetische AirPods-Zeile für Oberflächentests hinzu. Hördmodi und Inline-Steuerung verhalten sich wie echte Hardware, ändern aber nichts an einem Gerät.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Vorschau-Gerätename";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Der in den Vorschauzeilen angezeigte Name. Leer lässt den Standardtext, ein langer Name prüft die Kürzung.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "Anzahl Vorschauzeilen";

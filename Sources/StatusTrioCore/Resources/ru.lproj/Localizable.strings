@@ -100,7 +100,7 @@
 "settings.bluetooth.batteryLevels" = "Показывать заряд устройств Bluetooth";
 "settings.bluetooth.batteryLevelsDescription" = "Заряд AirPods считывается, пока показан пункт Bluetooth. Дополнительный запрос разрешения не появляется.";
 "settings.bluetooth.listeningModePreview" = "Предпросмотр переключателя режима прослушивания";
-"settings.bluetooth.listeningModePreviewDescription" = "Показывать переключатели режима на всех подключённых AirPods для проверки интерфейса. Нажатие анимируется как на настоящем устройстве, но ничего в AirPods не меняет.";
+"settings.bluetooth.listeningModePreviewDescription" = "Добавляет в панель синтетическую строку AirPods для проверки интерфейса. Режимы прослушивания и встроенные элементы управления ведут себя как настоящее оборудование, но ничего не меняют ни на одном устройстве.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Имя устройства предпросмотра";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Имя, отображаемое в тестовых строках. Оставьте пустым, чтобы использовать значение по умолчанию; введите очень длинное имя, чтобы проверить обрезку.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "Количество строк предпросмотра";
