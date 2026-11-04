@@ -93,21 +93,69 @@ final class LocalizationTests: XCTestCase {
             XCTAssertTrue(chineseDescription.contains(term), "zh-Hans 缺少 \(term)")
         }
 
-        // The preview description is UI-test-only and must say it changes nothing
-        // on the headphones, so users do not mistake it for the real switch.
+        // The preview description must be accurate: preview/synthetic rows are
+        // UI-test-only and switching them changes nothing on the headphones,
+        // while real device rows (HUAWEI included) still act on hardware — with
+        // only some HUAWEI models supported and a failed switch reverting. That
+        // nuance must survive in every shipped language, not just English.
+        let previewTerms: [AppLanguage: (preview: String, huawei: String)] = [
+            .english: ("preview", "HUAWEI"),
+            .simplifiedChinese: ("预览", "华为"),
+            .traditionalChinese: ("預覽", "華為"),
+            .japanese: ("プレビュー", "HUAWEI"),
+            .korean: ("미리보기", "HUAWEI"),
+            .spanish: ("vista previa", "HUAWEI"),
+            .french: ("aperçu", "HUAWEI"),
+            .german: ("Vorschau", "HUAWEI"),
+            .italian: ("anteprima", "HUAWEI"),
+            .brazilianPortuguese: ("pré-visualização", "HUAWEI"),
+            .russian: ("Предпросмотр", "HUAWEI"),
+            .arabic: ("المعاينة", "HUAWEI"),
+        ]
+        XCTAssertEqual(previewTerms.count, AppLanguage.allCases.count, "每语言都要有预览语义断言")
+        for language in AppLanguage.allCases {
+            let bundle = try XCTUnwrap(Localization.resourceBundle(for: language))
+            let value = bundle.localizedString(
+                forKey: LocalizationKey.settingsBluetoothListeningModePreviewDescription.rawValue,
+                value: nil,
+                table: nil
+            )
+            XCTAssertFalse(value.isEmpty, "\(language.rawValue) preview description is empty")
+            guard let terms = previewTerms[language] else {
+                XCTFail("missing preview-term expectation for \(language.rawValue)")
+                continue
+            }
+            XCTAssertTrue(
+                value.localizedCaseInsensitiveContains(terms.preview),
+                "\(language.rawValue) preview description must keep preview-only wording"
+            )
+            XCTAssertTrue(
+                value.localizedCaseInsensitiveContains(terms.huawei),
+                "\(language.rawValue) preview description must keep the HUAWEI scope"
+            )
+        }
+
+        // English spells out the distinction between preview rows and real rows.
         let englishPreview = english.localizedString(
             forKey: LocalizationKey.settingsBluetoothListeningModePreviewDescription.rawValue,
             value: nil,
             table: nil
         )
-        XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("testing"))
+        XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("preview"))
+        XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("interface testing only"))
+        XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("never changes your headphones"))
+        XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("real device rows"))
+        XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("some HUAWEI models"))
+        XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("restores the previous mode"))
+
         let chinesePreview = chinese.localizedString(
             forKey: LocalizationKey.settingsBluetoothListeningModePreviewDescription.rawValue,
             value: nil,
             table: nil
         )
-        XCTAssertTrue(chinesePreview.contains("界面测试"))
-        XCTAssertTrue(chinesePreview.contains("不会更改耳机"))
+        for term in ["预览", "界面测试", "不会更改耳机", "真实设备", "华为", "部分", "恢复原模式"] {
+            XCTAssertTrue(chinesePreview.contains(term), "zh-Hans preview description 缺少 \(term)")
+        }
     }
 
     func testAppleDeviceBatteryCopyDescribesNearbyNamedRowsWithoutConsentInEveryLanguage() throws {

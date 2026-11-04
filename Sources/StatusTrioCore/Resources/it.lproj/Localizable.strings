@@ -102,7 +102,7 @@
 "settings.bluetooth.listeningModeTitle" = "Mostra i controlli della modalità di ascolto";
 "settings.bluetooth.listeningModeDescription" = "Mostra le capsule di cancellazione del rumore/trasparenza/spento sugli AirPods collegati e su alcune cuffie HUAWEI. Solo alcuni modelli HUAWEI sono supportati; se una modifica fallisce, viene ripristinata la modalità precedente.";
 "settings.bluetooth.listeningModePreview" = "Anteprima del selettore modalità di ascolto";
-"settings.bluetooth.listeningModePreviewDescription" = "Solo per test dell'interfaccia: attivare o disattivare una capsula non modifica mai le cuffie.";
+"settings.bluetooth.listeningModePreviewDescription" = "L'anteprima aggiunge solo righe sintetiche per testare l'interfaccia; cambiare una riga di anteprima non modifica mai le cuffie. Le righe dei dispositivi reali, inclusi HUAWEI, continuano a funzionare in base al supporto di ciascun dispositivo: solo alcuni modelli HUAWEI sono supportati e, se un cambio fallisce, viene ripristinata la modalità precedente.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Nome dispositivo anteprima";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Nome mostrato nelle righe di anteprima. Lascia vuoto per il default, oppure inserisci un nome molto lungo per verificare la troncatura.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "Numero di righe anteprima";

@@ -102,7 +102,7 @@
 "settings.bluetooth.listeningModeTitle" = "顯示聆聽模式控制";
 "settings.bluetooth.listeningModeDescription" = "在已連接的 AirPods 和部分華為耳機上顯示降噪/透傳/關閉膠囊。華為耳機僅部分型號支援，切換失敗時會恢復原模式。";
 "settings.bluetooth.listeningModePreview" = "預試聆聽模式切換";
-"settings.bluetooth.listeningModePreviewDescription" = "僅用於介面測試，切換膠囊不會變更耳機。";
+"settings.bluetooth.listeningModePreviewDescription" = "預覽僅注入合成列用於介面測試，切換預覽列不會變更耳機。真實裝置列（含華為）仍依裝置實際支援運作：華為僅部分型號支援，切換失敗時會恢復原模式。";
 "settings.bluetooth.listeningModePreviewDeviceName" = "預試裝置名";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "預試列顯示的名字。留空使用預設；填入超長名稱可測試截斷。";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "預試列數";
