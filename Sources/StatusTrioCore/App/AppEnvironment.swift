@@ -94,9 +94,18 @@ final class AppEnvironment {
         memoryPressureMonitor.start()
         iconPresentation.start()
         startInputSourceMonitoringIfNeeded()
-        let presentedOnboarding = onboardingWindowController.showIfNeeded()
+        // A panel test must not be blocked by first-run onboarding. The
+        // Settings background route keeps its existing onboarding policy.
+        let presentedOnboarding =
+            backgroundUITesting.isEnabled && backgroundUITesting.opensStatusPanel
+            ? false
+            : onboardingWindowController.showIfNeeded()
         if backgroundUITesting.isEnabled, !presentedOnboarding {
-            settingsWindowController.show()
+            if backgroundUITesting.opensStatusPanel {
+                statusBarController.presentStatusPanelForBackgroundTesting()
+            } else {
+                settingsWindowController.show()
+            }
         }
         statusBarController.visibilityDidChange = { [weak self] in
             self?.updateChargingEffectClock()
@@ -491,6 +500,7 @@ final class AppEnvironment {
             },
             quitAction: { NSApplication.shared.terminate(nil) },
             chargingEffectClock: chargingEffectClock,
+            backgroundUITesting: backgroundUITesting,
             inputSourceController: inputSourceController,
             chargeToFullNow: chargeToFullNow
         )

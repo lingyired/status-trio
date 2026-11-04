@@ -9,6 +9,7 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
 
     let isEnabled: Bool
     let display: Display
+    let opensStatusPanel: Bool
     let diagnostics: [String]
 
     var rejectsLaunch: Bool { !diagnostics.isEmpty }
@@ -19,6 +20,7 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
         #if DEBUG
         let enabledCount = arguments.filter { $0 == "--background-ui-testing" }.count
         let displays = arguments.filter { $0.hasPrefix("--test-display") }
+        let statusPanelArguments = arguments.filter { $0.hasPrefix("--test-open-status-panel") }
         var problems = arguments.filter {
             $0.hasPrefix("--background-ui-testing") && $0 != "--background-ui-testing"
         }.map { "Unknown background UI testing argument: \($0)" }
@@ -31,12 +33,21 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
         if !displays.isEmpty, enabledCount == 0 {
             problems.append("--test-display requires --background-ui-testing.")
         }
+        if statusPanelArguments.count > 1
+            || statusPanelArguments.contains(where: { $0 != "--test-open-status-panel" }) {
+            problems.append("Expected at most one --test-open-status-panel.")
+        }
+        if !statusPanelArguments.isEmpty, enabledCount == 0 {
+            problems.append("--test-open-status-panel requires --background-ui-testing.")
+        }
         isEnabled = enabledCount == 1 && problems.isEmpty
         display = isEnabled && !displays.isEmpty ? .secondary : .automatic
+        opensStatusPanel = isEnabled && statusPanelArguments.count == 1
         diagnostics = problems
         #else
         isEnabled = false
         display = .automatic
+        opensStatusPanel = false
         diagnostics = []
         #endif
     }

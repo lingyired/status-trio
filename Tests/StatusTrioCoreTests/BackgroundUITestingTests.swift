@@ -12,12 +12,42 @@ final class BackgroundUITestingTests: XCTestCase {
         #if DEBUG
         XCTAssertTrue(configuration.isEnabled)
         XCTAssertEqual(configuration.display, .secondary)
+        XCTAssertFalse(configuration.opensStatusPanel)
         XCTAssertFalse(configuration.rejectsLaunch)
         #else
         XCTAssertFalse(configuration.isEnabled)
         XCTAssertEqual(configuration.display, .automatic)
+        XCTAssertFalse(configuration.opensStatusPanel)
         XCTAssertFalse(configuration.rejectsLaunch)
         #endif
+    }
+
+    func testStatusPanelRequiresBackgroundTestingAndIsDebugOnly() {
+        let configuration = BackgroundUITestingConfiguration(arguments: [
+            "--background-ui-testing",
+            "--test-display=secondary",
+            "--test-open-status-panel"
+        ])
+        #if DEBUG
+        XCTAssertTrue(configuration.isEnabled)
+        XCTAssertTrue(configuration.opensStatusPanel)
+        XCTAssertEqual(configuration.display, .secondary)
+        XCTAssertFalse(configuration.rejectsLaunch)
+        #else
+        XCTAssertFalse(configuration.isEnabled)
+        XCTAssertFalse(configuration.opensStatusPanel)
+        XCTAssertFalse(configuration.rejectsLaunch)
+        #endif
+    }
+
+    @MainActor
+    func testBackgroundStatusPanelRefusesKeyWindowStatus() {
+        let panel = AnchoredStatusPanel()
+        XCTAssertTrue(panel.canBecomeKey)
+        panel.disablesKeyWindowForTesting = true
+        XCTAssertFalse(panel.canBecomeKey)
+        panel.disablesKeyWindowForTesting = false
+        XCTAssertTrue(panel.canBecomeKey)
     }
 
     func testInvalidReservedArgumentsRejectDebugLaunchInsteadOfUsingNormalPresentation() {
@@ -26,7 +56,11 @@ final class BackgroundUITestingTests: XCTestCase {
             ["--background-ui-testing", "--test-display=primary"],
             ["--background-ui-testing", "--background-ui-testing-typo"],
             ["--background-ui-testing", "--test-display"],
-            ["--background-ui-testing", "--background-ui-testing"]
+            ["--background-ui-testing", "--background-ui-testing"],
+            ["--test-open-status-panel"],
+            ["--background-ui-testing", "--test-open-status-panel-typo"],
+            ["--background-ui-testing", "--test-open-status-panel",
+             "--test-open-status-panel"]
         ] {
             let configuration = BackgroundUITestingConfiguration(arguments: arguments)
             XCTAssertFalse(configuration.isEnabled, "\(arguments)")
