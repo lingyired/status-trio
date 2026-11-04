@@ -270,3 +270,48 @@ Re-selecting the current CoreAudio listening mode is a no-op, preventing the
 old implicit-Off shortcut from bypassing the missing row. The private
 `person.closed.fill` artwork puts its ring in the first palette layer: dim that
 layer and keep the person solid, like the Spatialize Stereo Off artwork.
+
+### Existing-connection transport follow-up (2026-11-04)
+
+This investigation made no accessory-setting writes, opened no L2CAP channel,
+and did not open Control Center or System Settings. It did expose an unsafe
+read-only CoreAudio probe, described below; it must not be repeated.
+
+- **New candidate: MobileBluetooth's generic accessory commands.** The installed
+  framework exports `BTAccessoryManagerSendControlCommand(manager, device,
+  command, value)` and `BTAccessoryManagerGetControlCommand(manager, device,
+  command, parameter, outValue)`. BluetoothManager's
+  `setConversationDetectMode:` passes command `0x28` to the former. This is a
+  genuine daemon-mediated command route, not a second L2CAP channel.
+- A bounded read-only BluetoothManager probe initialized the manager, but received
+  no accessory manager or connected devices. The daemon log explicitly reported
+  `has insufficient entitlements to send MBFramework XPC messages` for that
+  probe. The framework log reported an invalid XPC connection. Therefore no
+  Adaptive-strength read or write reached the headset through this route.
+- Static daemon inspection confirmed a separate MobileBluetooth message gate:
+  at `0x10032c488`, the dispatcher rejects an unauthorized session before
+  dispatching `kCBMsgId` string messages. The command handlers include
+  `kCBMsgIdAccessorySendControlCommandMsg` and
+  `kCBMsgIdAccessoryGetControlCommandMsg`. Finding those handlers does not make
+  them accessible to this app.
+- **CoreBluetooth raw-command candidate rejected.** On this installed build,
+  `-[CBManager sendRawCommand:data:completionHandler:]` at `0x1A6B1772C`
+  consists of `mov w0, #0; ret`. It neither sends data nor invokes the completion.
+  `CBDeviceSettings` exposes Adaptive Volume and listening-mode settings, but no
+  Adaptive noise-strength setter was found in that class.
+- **CoreAudio catalog is not a safe generic probing surface.** The current
+  endpoint returned 98 custom-property descriptors (`cust`, 1176 bytes). A loop
+  asking their sizes/settability reached `dvsf`, returned `-308`, and subsequent
+  queries saw an invalidated object. The resulting coreaudiod crash report
+  records a null-pointer SIGSEGV in BTAudioHALPlugin at image offset `0x3b6b0`.
+  Disassembly maps `dvsf` to that instruction, `ldr d0, [x4]`, which assumes a
+  qualifier is present despite the descriptor's zero qualifier type. CoreAudio
+  restarted, and later reads of the ordinary `lstm`/`lsms` properties succeeded.
+  This may have interrupted playback. Live exploratory probing stopped; only
+  static analysis continued. Do not infer safety from a property being advertised
+  or an operation being read-only, and do not enumerate private property getters
+  without a separately established argument contract.
+
+No working uninterrupted Adaptive-strength route was established, and no
+production control code was changed. These findings are specific to the locally
+installed binaries; virtual addresses are evidence references, not app constants.
