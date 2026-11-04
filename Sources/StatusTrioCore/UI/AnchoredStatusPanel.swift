@@ -53,6 +53,8 @@ final class AnchoredStatusPanel: NSPanel {
     /// Drives the frame-by-frame content resize and the height it converges on.
     private var contentResizeTimer: Timer?
     private var animatedContentSize: NSSize?
+    private var resizeStartHeight: CGFloat = 0
+    private var resizeStartTime: CFTimeInterval = 0
     /// Animates height-only content resizes so expanding a row grows the panel
     /// smoothly. Tests drive sizing synchronously and turn this off.
     var animatesContentResizes = true
@@ -298,18 +300,23 @@ final class AnchoredStatusPanel: NSPanel {
         // change animates; the reveal correction, reduce-motion users and width
         // changes keep the immediate write.
         if isAnimatingContentSize {
-            // A newer measurement while the animation runs: retarget it. The
-            // tick reads the target every frame, so the panel converges on the
-            // latest height without a second snap.
-            animatedContentSize = contentSize
-            (contentViewController as? StatusPanelContentViewController)?.pinContentHeight(contentSize.height)
+            // A newer measurement (a second expand/collapse before the first
+            // animation finished) retargets from the height the panel is at
+            // right now, so the easing curve restarts from the current point
+            // instead of rushing to a stale end. Sub-point corrections are
+            // ignored: restarting the curve for them is the jitter.
+            if let current = animatedContentSize,
+               abs(current.height - contentSize.height) < 2 {
+                return
+            }
+            beginContentResizeAnimation(to: contentSize)
             return
         }
         if shouldAnimateContentResize(to: target) {
 #if DEBUG
             frameWriteCount += 1
 #endif
-            startContentResizeAnimation(to: contentSize)
+            beginContentResizeAnimation(to: contentSize)
             return
         }
         setFrame(target, display: false)
@@ -324,24 +331,33 @@ final class AnchoredStatusPanel: NSPanel {
     /// independently, which let the panel's top edge overshoot towards the menu
     /// bar and snap back. Recomputing the placed frame from the anchor on every
     /// tick keeps the anchored edge exactly still.
-    private func startContentResizeAnimation(to contentSize: NSSize) {
-        contentResizeTimer?.invalidate()
-        isAnimatingContentSize = true
+    ///
+    /// Starting or retargeting both go through here: the current height and the
+    /// current time become the new origin of the curve, so a second toggle
+    /// mid-flight continues from where the panel is instead of jumping.
+    private func beginContentResizeAnimation(to contentSize: NSSize) {
+        let wasAnimating = isAnimatingContentSize
+        resizeStartHeight = frame.height
+        resizeStartTime = CACurrentMediaTime()
         animatedContentSize = contentSize
         // Freeze the content at its final height: SwiftUI lays it out once and
         // the growing window reveals it, instead of re-flowing the page at every
         // intermediate height.
-        (contentViewController as? StatusPanelContentViewController)?.pinContentHeight(contentSize.height)
-        let startHeight = frame.height
-        let startTime = CACurrentMediaTime()
-        let duration: CFTimeInterval = 0.18
-        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] timer in
+        (contentViewController as? StatusPanelContentViewController)?
+            .pinContentHeight(contentSize.height)
+        isAnimatingContentSize = true
+        if wasAnimating, contentResizeTimer != nil { return }
+        let timer = Timer(timeInterval: 1.0 / 120.0, repeats: true) { [weak self] timer in
             guard let self else {
                 timer.invalidate()
                 return
             }
-            let progress = min(1, (CACurrentMediaTime() - startTime) / duration)
+            let duration: CFTimeInterval = 0.22
+            let progress = min(1, (CACurrentMediaTime() - self.resizeStartTime) / duration)
+            // Ease-out cubic: fast away from the anchored edge, settling as it
+            // reaches the final height.
             let eased = 1 - pow(1 - progress, 3)
+            let startHeight = self.resizeStartHeight
             let targetHeight = self.animatedContentSize?.height ?? startHeight
             // Snap every tick to a whole point. A fractional height makes
             // AppKit round the window's origin and size independently, so the
@@ -386,7 +402,10 @@ final class AnchoredStatusPanel: NSPanel {
             && !isAnimatingContentSize
             && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
             && abs(target.width - frame.width) < 0.5
-            && abs(target.height - frame.height) >= 1
+            // Only a real height change animates. A leftover measurement of a
+            // point or two settles instantly; animating that reads as a twitch
+            // right after the panel has finished growing.
+            && abs(target.height - frame.height) >= 8
     }
 
     // MARK: - Layout scheduling
