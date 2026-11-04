@@ -5,7 +5,17 @@ import SwiftUI
 /// Resolve the installed system artwork at runtime; older systems get public fallbacks.
 @MainActor
 enum AirPodsControlSymbols {
+    /// SwiftUI re-evaluates a row's body on every layout pass while the panel is
+    /// being measured. Resolving these symbols hits the symbol cache, a palette
+    /// configuration and — for the spatial artwork — the Control Center bundle
+    /// on disk, so cache the resolved images per name instead of rebuilding them
+    /// in `body`. This is what keeps the expand/collapse from stuttering.
+    private static var imageCache: [String: NSImage] = [:]
+    private static var offImageCache: [String: NSImage] = [:]
+
     static func offImage(_ name: String, dark: Bool) -> NSImage {
+        let key = "\(name)#\(dark ? "dark" : "light")"
+        if let cached = offImageCache[key] { return cached }
         let color = dark ? NSColor.white : NSColor.black
         let source = image(name)
         // Stereo artwork puts waves in the primary layer; conversation artwork
@@ -15,10 +25,18 @@ enum AirPodsControlSymbols {
         let result = source.withSymbolConfiguration(.init(paletteColors: colors)) ?? source
         let copy = (result.copy() as? NSImage) ?? result
         copy.isTemplate = false
+        offImageCache[key] = copy
         return copy
     }
 
     static func image(_ name: String) -> NSImage {
+        if let cached = imageCache[name] { return cached }
+        let resolved = resolveImage(name)
+        imageCache[name] = resolved
+        return resolved
+    }
+
+    private static func resolveImage(_ name: String) -> NSImage {
         if name == "spatialize-stereo-head-tracked",
            let bundle = Bundle(path: "/System/Library/CoreServices/ControlCenter.app"),
            let image = bundle.image(forResource: name)?.copy() as? NSImage {
@@ -38,6 +56,13 @@ enum AirPodsControlSymbols {
         default: fallback = "person.fill"
         }
         return NSImage(systemSymbolName: fallback, accessibilityDescription: nil) ?? NSImage()
+    }
+
+    /// Tests and appearance changes can clear the cache; the images themselves
+    /// are immutable once configured.
+    static func resetCache() {
+        imageCache.removeAll()
+        offImageCache.removeAll()
     }
 }
 
@@ -128,10 +153,18 @@ final class AirPodsSystemControlsModel: ObservableObject {
 
     private var isPreview: Bool { previewSnapshot != nil }
 
+    /// Preview rows have no live source, so the fixture is the whole state. Only
+    /// republish when it actually changes: an unconditional assignment wakes the
+    /// panel, which re-measures and resizes while this row is expanding.
+    private func publishPreview() {
+        guard let previewSnapshot, snapshot != previewSnapshot else { return }
+        snapshot = previewSnapshot
+    }
+
     func start(read: Reader? = nil) {
-        if previewSnapshot != nil {
+        if isPreview {
             // Preview owns no observation and no hardware channel.
-            snapshot = previewSnapshot ?? snapshot
+            publishPreview()
             return
         }
         guard observation == nil else { return }
@@ -185,8 +218,8 @@ final class AirPodsSystemControlsModel: ObservableObject {
     typealias Reader = (@escaping @MainActor (AirPodsSystemSnapshot) -> Void) async throws -> AirPodsSystemSnapshot
 
     func refresh(read: Reader? = nil) {
-        if previewSnapshot != nil {
-            snapshot = previewSnapshot ?? snapshot
+        if isPreview {
+            publishPreview()
             return
         }
         run(.refresh) {
