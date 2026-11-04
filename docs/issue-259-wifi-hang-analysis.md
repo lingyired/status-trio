@@ -113,11 +113,13 @@ placement最终高度 = min(201, 200.25) = 200.25 → 实际已经到位
 - 滚动桥接做过变异验证：把发布改回同步会让 4 个时机/生命周期用例失败，说明新测试能抓住回归。
 - `StatusPanelContentResizeTests` 的 2 个用例属 Visible UI，默认跳过；`bash scripts/verify-local.sh full` 结果另行记录。
 
-### 未验证项
+### 验证结论
 
-- **真机 10 分钟 Wi-Fi 详情页验收：BLOCKED（本会话没有暴露 Computer Use 提供方）**。现有运行中的 StatusTrio 实例属于其他 worktree，不能复用或关闭；本 worktree 未启动独立 Debug 实例。需要人工或带 Computer Use 的会话执行：打开 Wi-Fi 详情页、停留 10 分钟，观察 CPU、Activity Monitor 与重新 `sample`。
+- **真机验收：用户于 2026-11-04 自测确认修复版可用**（打开 Wi-Fi 详情页不再卡死）。本会话没有收集修复前后的 CPU / `sample` 对比数据，因此这里没有量化性能结论；定位依据是原 sample 栈与自动化测试。
+- 修复已合并到 `main`（合并提交 `a1d2f526`）。
+- 另构建了 1.9.3 (50) 的 Developer ID 签名 + 公证 DMG 供外部测试（App/DMG 均 Accepted、已装订）；它不属于正式发布物。
 - 修复前后的真实 CPU 对比数据：NOT RUN（没有做现场基线，不伪造对比）。
-- macOS 13 真机、签名/公证、Universal 打包：NOT RUN，仍按 release 流程另行验证。
+- macOS 13 真机、正式发布签名/公证流程：NOT RUN，仍按 release 流程另行验证。
 
 ### 独立审查跟进（提交 `ba0f9c48`）
 
