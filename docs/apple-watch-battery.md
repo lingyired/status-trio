@@ -77,8 +77,23 @@ are decoded by `MobileBatteryWire.decodeDiscovery`.
 
 `AppleDeviceDiscoveryController.discoveryDiagnostics` records one identifier-free
 summary per discovery cycle: candidate count, Watch count, verified count,
-rejected counts, and a failure category. A missing Watch row can therefore be
-traced to a helper failure instead of guessed at.
+rejected counts, a failure category, and the discovery route diagnostics. The
+route diagnostics count each route actually started once, and count a route as
+failed once when the helper call or decode throws, or when the helper envelope
+reports failures for it. Multiple failures reported for one route do not inflate
+the count; their categories are merged and mapped to a fixed vocabulary.
+`DecodingError` maps to `invalid-envelope` and an unsupported schema keeps its
+own category. The log names the outcome in order: `all-routes-failed` when every
+started route failed, `partial-failure` when some did, `empty` when no route
+failed and no candidate was kept, otherwise `success`. A reader that cannot
+report routes logs `routes=not-reported` instead of claiming success.
+
+A discovery failure therefore no longer reads as `failure=none`, and a partially
+successful cycle keeps its verified candidates. Cancellation propagates as
+cancellation rather than being published as a discovery failure, and a result
+that arrives after the surface released its demand is discarded. The native
+companion limitation above is unchanged: the helper still cannot say whether a
+missing Watch means no paired Watch or an unavailable companion service.
 
 ## Helper dependencies and redistribution
 

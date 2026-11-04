@@ -38,9 +38,58 @@ struct MobileBatteryReadResult: Sendable {
     }
 }
 
+struct MobileBatteryDiscoveryResult: Sendable {
+    let candidates: [AppleDeviceCandidate]
+    let routeDiagnostics: MobileBatteryDiscoveryRouteDiagnostics?
+}
+
+struct MobileBatteryDiscoveryRouteDiagnostics: Equatable, Sendable {
+    var attemptedRouteCount: Int = 0
+    var failedRouteCount: Int = 0
+    var failureCategories: Set<MobileBatteryDiscoveryFailureCategory> = []
+}
+
+enum MobileBatteryDiscoveryFailureCategory: String, Sendable, Hashable {
+    case helperUnavailable = "helper-unavailable"
+    case helperTimeout = "helper-timeout"
+    case helperFailed = "helper-failed"
+    case helperOutputTooLarge = "helper-output-too-large"
+    case invalidEnvelope = "invalid-envelope"
+    case unsupportedSchema = "unsupported-schema"
+    case trustRequired = "trust-required"
+    case hostIdentityMissing = "host-identity-missing"
+    case sessionUnavailable = "session-unavailable"
+    case other
+
+    static func from(_ error: any Error) -> Self {
+        if error is DecodingError { return .invalidEnvelope }
+        if let wire = error as? MobileBatteryWireError {
+            return switch wire {
+            case .invalidEnvelope: .invalidEnvelope
+            case .unsupportedSchema: .unsupportedSchema
+            }
+        }
+        guard let helper = error as? MobileBatteryHelperError else { return .other }
+        return switch helper {
+        case .unavailable: .helperUnavailable
+        case .timedOut, .cycleTimedOut: .helperTimeout
+        case .processFailed: .helperFailed
+        case .outputTooLarge: .helperOutputTooLarge
+        case .cancelled: .other // Cancellation is propagated before classification.
+        }
+    }
+}
+
 protocol MobileBatteryReading: Sendable {
     func discover() async throws -> [AppleDeviceCandidate]
+    func discoverWithDiagnostics() async throws -> MobileBatteryDiscoveryResult
     func read(selectedIDs: Set<AppleDeviceID>) async throws -> MobileBatteryReadResult
+}
+
+extension MobileBatteryReading {
+    func discoverWithDiagnostics() async throws -> MobileBatteryDiscoveryResult {
+        MobileBatteryDiscoveryResult(candidates: try await discover(), routeDiagnostics: nil)
+    }
 }
 
 enum MobileBatteryWireError: Error, Equatable {

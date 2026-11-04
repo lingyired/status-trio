@@ -69,6 +69,22 @@ final class AppleDeviceDiscoveryControllerTests: XCTestCase {
         await settle()
         XCTAssertTrue(controller.candidates.isEmpty)
         XCTAssertFalse(controller.isDiscovering)
+        XCTAssertNil(controller.discoveryDiagnostics)
+        controller.stop()
+        await reader.finishAll()
+    }
+
+    func testReleasedSurfaceRejectsLateDiscoveryDiagnostics() async {
+        let reader = ControlledMobileBatteryReader()
+        let controller = AppleDeviceDiscoveryController(reader: reader)
+        controller.request("surface")
+        controller.setEnabled(true)
+        await waitUntil { await reader.discoveryCount == 1 }
+        controller.release("surface")
+        await reader.completeDiscovery(0, with: [candidate(id: "late", model: "iPhone18,1")])
+        await settle()
+        XCTAssertNil(controller.discoveryDiagnostics)
+        XCTAssertTrue(controller.candidates.isEmpty)
         controller.stop()
         await reader.finishAll()
     }
@@ -126,6 +142,31 @@ final class AppleDeviceDiscoveryControllerTests: XCTestCase {
         await reader.finishAll()
     }
 
+    func testActualReaderDistinguishesEmptyFailedAndPartialDiscovery() async {
+        // All scenarios exercise the real Reader through the Controller.
+        for scenario in DiscoveryRouteScenario.allCases {
+            let controller = AppleDeviceDiscoveryController(
+                reader: MobileBatteryHelperReader(executor: DiscoveryRouteExecutor(scenario: scenario))
+            )
+            controller.request("integration")
+            controller.setEnabled(true)
+            await waitUntil { !controller.isDiscovering }
+            let diagnostics = controller.discoveryDiagnostics
+            let routes = diagnostics?.routeDiagnostics
+            XCTAssertNotNil(routes, "\(scenario)")
+            XCTAssertEqual(routes?.attemptedRouteCount, scenario.attempted, "\(scenario)")
+            XCTAssertEqual(routes?.failedRouteCount, scenario.failed, "\(scenario)")
+            XCTAssertEqual(controller.candidates.count, scenario.candidateCount, "\(scenario)")
+            if let category = scenario.category {
+                XCTAssertTrue(routes?.failureCategories.contains(category) == true, "\(scenario)")
+                XCTAssertNotNil(diagnostics?.failureCategory, "\(scenario) must not log failure=none")
+            } else {
+                XCTAssertNil(diagnostics?.failureCategory)
+            }
+            controller.stop()
+        }
+    }
+
     private func candidate(id: String, model: String) -> AppleDeviceCandidate {
         AppleDeviceCandidate(
             id: .trustedDevice(id), name: "Device", model: model,
@@ -140,5 +181,62 @@ final class AppleDeviceDiscoveryControllerTests: XCTestCase {
         while !(await condition()), ContinuousClock.now < deadline { await Task.yield() }
         let satisfied = await condition()
         XCTAssertTrue(satisfied)
+    }
+}
+
+private enum DiscoveryRouteScenario: CaseIterable, Sendable {
+    case empty, timedOut, badJSON, partial, fallback, nativeFailure, unknownFailure
+
+    var attempted: Int { self == .empty ? 0 : 2 }
+    var failed: Int {
+        switch self {
+        case .empty: 0
+        case .partial, .fallback: 1
+        default: 2
+        }
+    }
+    var candidateCount: Int {
+        switch self {
+        case .partial: 1
+        case .fallback: 2
+        default: 0
+        }
+    }
+    var category: MobileBatteryDiscoveryFailureCategory? {
+        switch self {
+        case .empty: nil
+        case .timedOut, .partial, .fallback: .helperTimeout
+        case .badJSON: .invalidEnvelope
+        case .nativeFailure: .sessionUnavailable
+        case .unknownFailure: .other
+        }
+    }
+}
+
+private struct DiscoveryRouteExecutor: MobileBatteryHelperExecuting {
+    let scenario: DiscoveryRouteScenario
+
+    func run(arguments: [String], timeout: Duration) async throws -> Data {
+        if arguments == ["--list"] {
+            if scenario == .empty {
+                return Data(#"{"schemaVersion":1,"phones":[]}"#.utf8)
+            }
+            if scenario == .partial {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb"},{"id":"q","transport":"usb"}]}"#.utf8)
+            }
+            return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb","availableTransports":["usb","network"]}]}"#.utf8)
+        }
+        switch scenario {
+        case .badJSON: return Data("invalid JSON".utf8)
+        case .nativeFailure:
+            return Data(#"{"schemaVersion":1,"candidates":[],"failures":[{"error":"session-unavailable"},{"error":"session-unavailable"}]}"#.utf8)
+        case .unknownFailure:
+            return Data(#"{"schemaVersion":1,"candidates":[],"failures":[{"error":"untrusted-external-text"}]}"#.utf8)
+        case .partial where arguments[1] == "p":
+            return Data(#"{"schemaVersion":1,"candidates":[{"id":"p","model":"iPhone18,1","transport":"usb","trustRequired":false}],"failures":[]}"#.utf8)
+        case .fallback where arguments.last == "network":
+            return Data(#"{"schemaVersion":1,"candidates":[{"id":"p","model":"iPhone18,1","transport":"network","trustRequired":false},{"id":"w","parentID":"p","transport":"network","trustRequired":false}],"failures":[]}"#.utf8)
+        default: throw MobileBatteryHelperError.timedOut
+        }
     }
 }

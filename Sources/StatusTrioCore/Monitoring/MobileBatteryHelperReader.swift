@@ -77,25 +77,29 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
     private static let maximumDiscoveryCandidates = 8
 
     func discover() async throws -> [AppleDeviceCandidate] {
+        try await discoverWithDiagnostics().candidates
+    }
+
+    func discoverWithDiagnostics() async throws -> MobileBatteryDiscoveryResult {
+        try Task.checkCancellation()
         let listingData = try await executor.run(arguments: ["--list"], timeout: .seconds(3))
         let listedRoutes = try MobileBatteryWire.decodeListing(listingData)
         let phones = listedRoutes
             .sorted { $0.id < $1.id }
             .prefix(Self.maximumDiscoveryPhones)
-        let groups = await withTaskGroup(
+        let groups = try await withThrowingTaskGroup(
             of: PhoneDiscoveryGroup.self,
             returning: [PhoneDiscoveryGroup].self
         ) { group in
             for phone in phones {
-                guard !Task.isCancelled else { break }
-                group.addTask {
-                    PhoneDiscoveryGroup(phoneID: phone.id, candidates: await discover(phone))
-                }
+                try Task.checkCancellation()
+                group.addTask { try await discover(phone) }
             }
             var results: [PhoneDiscoveryGroup] = []
-            while let value = await group.next() { results.append(value) }
+            while let value = try await group.next() { results.append(value) }
             return results
         }
+        try Task.checkCancellation()
         // Keep each phone's discovery group whole. A Watch is only discoverable
         // through its paired iPhone's companion route, so truncating the merged
         // phone and Watch list by hashed row ID can drop a Watch while keeping
@@ -133,7 +137,13 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
             retainedCandidates: merged.count
         )
         mobileDiscoveryLogger.debug("discovery \(summary.logDescription, privacy: .public)")
-        return merged
+        var routes = MobileBatteryDiscoveryRouteDiagnostics()
+        for group in groups {
+            routes.attemptedRouteCount += group.routeDiagnostics.attemptedRouteCount
+            routes.failedRouteCount += group.routeDiagnostics.failedRouteCount
+            routes.failureCategories.formUnion(group.routeDiagnostics.failureCategories)
+        }
+        return MobileBatteryDiscoveryResult(candidates: merged, routeDiagnostics: routes)
     }
 
     func read(selectedIDs: Set<AppleDeviceID>) async throws -> MobileBatteryReadResult {
@@ -198,18 +208,28 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
         return await accumulator.snapshot()
     }
 
-    private func discover(_ phone: PhoneRoute) async -> [AppleDeviceCandidate] {
+    private func discover(_ phone: PhoneRoute) async throws -> PhoneDiscoveryGroup {
         var candidates: [AppleDeviceCandidate] = []
+        var routes = MobileBatteryDiscoveryRouteDiagnostics()
         for transport in phone.transports {
-            guard !Task.isCancelled else { return candidates }
+            try Task.checkCancellation()
+            routes.attemptedRouteCount += 1
             do {
                 let data = try await executor.run(
                     arguments: ["--discover-device", phone.id, "--transport", transport.rawValue],
                     timeout: .seconds(5)
                 )
+                try Task.checkCancellation()
                 let decoded = try MobileBatteryWire.decodeDiscovery(data, expectedParentID: phone.id)
                 let failures = MobileBatteryWire.decodeDiscoveryFailures(data)
-                let categories = Set(failures.map(\.category)).sorted().joined(separator: ",")
+                let routeCategories = Set(failures.map {
+                    MobileBatteryDiscoveryFailureCategory(rawValue: $0.category) ?? .other
+                })
+                if !failures.isEmpty {
+                    routes.failedRouteCount += 1
+                    routes.failureCategories.formUnion(routeCategories)
+                }
+                let categories = routeCategories.map(\.rawValue).sorted().joined(separator: ",")
                 let companion = decoded.contains { candidate in
                     if case .trustedWatch = candidate.id { return true }
                     return false
@@ -223,10 +243,15 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
                     return false
                 }) { break }
             } catch {
-                if Task.isCancelled { return candidates }
+                if Task.isCancelled || error is CancellationError
+                    || (error as? MobileBatteryHelperError) == .cancelled {
+                    throw CancellationError()
+                }
+                routes.failedRouteCount += 1
+                routes.failureCategories.insert(.from(error))
             }
         }
-        return candidates
+        return PhoneDiscoveryGroup(phoneID: phone.id, candidates: candidates, routeDiagnostics: routes)
     }
 
     private func readJobs(_ jobs: [MobileBatteryHelperReadJob], accumulator: MobileBatteryReadAccumulator) async {
@@ -427,6 +452,7 @@ struct MobileBatteryDiscoverySummary: Equatable, Sendable {
 private struct PhoneDiscoveryGroup: Sendable {
     let phoneID: String
     let candidates: [AppleDeviceCandidate]
+    let routeDiagnostics: MobileBatteryDiscoveryRouteDiagnostics
 }
 
 private actor MobileBatteryReadAccumulator {

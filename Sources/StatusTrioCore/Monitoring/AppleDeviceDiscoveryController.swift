@@ -16,10 +16,12 @@ struct AppleDeviceDiscoveryDiagnostics: Equatable, Sendable {
     let rejectedWatchCount: Int
     let rejectedOtherCount: Int
     let failureCategory: String?
+    let routeDiagnostics: MobileBatteryDiscoveryRouteDiagnostics?
 
     static func make(
         from values: [AppleDeviceCandidate],
-        failureCategory: String? = nil
+        failureCategory: String? = nil,
+        routeDiagnostics: MobileBatteryDiscoveryRouteDiagnostics? = nil
     ) -> Self {
         var watchCandidateCount = 0
         var verifiedCandidateCount = 0
@@ -43,7 +45,11 @@ struct AppleDeviceDiscoveryDiagnostics: Equatable, Sendable {
             verifiedCandidateCount: verifiedCandidateCount,
             rejectedWatchCount: rejectedWatchCount,
             rejectedOtherCount: rejectedOtherCount,
-            failureCategory: failureCategory
+            failureCategory: failureCategory ?? routeDiagnostics.flatMap { routes in
+                routes.failureCategories.isEmpty ? nil
+                    : routes.failureCategories.map(\.rawValue).sorted().joined(separator: ",")
+            },
+            routeDiagnostics: routeDiagnostics
         )
     }
 }
@@ -131,11 +137,12 @@ final class AppleDeviceDiscoveryController: ObservableObject {
         let reader = self.reader
         task = Task { [weak self, reader] in
             do {
-                let candidates = try await reader.discover()
+                let result = try await reader.discoverWithDiagnostics()
                 guard !Task.isCancelled else { return }
-                self?.finish(candidates, generation: currentGeneration)
+                self?.finish(result.candidates, generation: currentGeneration, routeDiagnostics: result.routeDiagnostics)
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, !(error is CancellationError),
+                      (error as? MobileBatteryHelperError) != .cancelled else { return }
                 self?.finish(
                     [],
                     generation: currentGeneration,
@@ -148,7 +155,8 @@ final class AppleDeviceDiscoveryController: ObservableObject {
     private func finish(
         _ values: [AppleDeviceCandidate],
         generation currentGeneration: UInt64,
-        failureCategory: String? = nil
+        failureCategory: String? = nil,
+        routeDiagnostics: MobileBatteryDiscoveryRouteDiagnostics? = nil
     ) {
         guard generation == currentGeneration, isActive else { return }
         let sorted = values.sorted { $0.id.rowID < $1.id.rowID }
@@ -157,7 +165,8 @@ final class AppleDeviceDiscoveryController: ObservableObject {
         task = nil
         let diagnostics = AppleDeviceDiscoveryDiagnostics.make(
             from: sorted,
-            failureCategory: failureCategory
+            failureCategory: failureCategory,
+            routeDiagnostics: routeDiagnostics
         )
         discoveryDiagnostics = diagnostics
         logIfChanged(diagnostics, candidates: sorted)
@@ -169,6 +178,7 @@ final class AppleDeviceDiscoveryController: ObservableObject {
     /// A bounded, identifier-free category so a missing Watch row can be
     /// traced to a failed helper or a malformed payload.
     private static func failureCategory(for error: any Error) -> String {
+        if error is DecodingError { return "invalid-envelope" }
         if let helperError = error as? MobileBatteryHelperError {
             return switch helperError {
             case .unavailable: "helper-unavailable"
@@ -198,8 +208,18 @@ final class AppleDeviceDiscoveryController: ObservableObject {
         guard lastLoggedDiagnostics != diagnostics else { return }
         lastLoggedDiagnostics = diagnostics
         let failure = diagnostics.failureCategory ?? "none"
+        let routeSummary: String
+        if let routes = diagnostics.routeDiagnostics {
+            let outcome = routes.failedRouteCount > 0 && routes.failedRouteCount == routes.attemptedRouteCount
+                ? "all-routes-failed"
+                : routes.failedRouteCount > 0 ? "partial-failure"
+                : diagnostics.candidateCount == 0 ? "empty" : "success"
+            routeSummary = "attempted=\(routes.attemptedRouteCount) failed=\(routes.failedRouteCount) outcome=\(outcome)"
+        } else {
+            routeSummary = "routes=not-reported"
+        }
         appleDeviceDiscoveryLogger.info(
-            "discovery candidates=\(diagnostics.candidateCount, privacy: .public) watches=\(diagnostics.watchCandidateCount, privacy: .public) verified=\(diagnostics.verifiedCandidateCount, privacy: .public) rejectedWatches=\(diagnostics.rejectedWatchCount, privacy: .public) rejectedOthers=\(diagnostics.rejectedOtherCount, privacy: .public) failure=\(failure, privacy: .public)"
+            "discovery candidates=\(diagnostics.candidateCount, privacy: .public) watches=\(diagnostics.watchCandidateCount, privacy: .public) verified=\(diagnostics.verifiedCandidateCount, privacy: .public) rejectedWatches=\(diagnostics.rejectedWatchCount, privacy: .public) rejectedOthers=\(diagnostics.rejectedOtherCount, privacy: .public) failure=\(failure, privacy: .public) \(routeSummary, privacy: .public)"
         )
         for candidate in candidates {
             let transport = candidate.transports.map(\.rawValue).joined(separator: ",")

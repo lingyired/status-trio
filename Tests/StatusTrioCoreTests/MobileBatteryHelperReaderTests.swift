@@ -4,6 +4,35 @@ import Darwin
 @testable import StatusTrioCore
 
 struct MobileBatteryHelperReaderTests {
+    @Test func discoveryCancellationPropagatesWithoutStartingAlternateRoute() async {
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb","availableTransports":["usb","network"]}]}"#.utf8)
+            }
+            throw MobileBatteryHelperError.cancelled
+        }
+        do {
+            _ = try await MobileBatteryHelperReader(executor: executor).discoverWithDiagnostics()
+            Issue.record("cancelled discovery must throw instead of publishing a failure result")
+        } catch {
+            #expect(error is CancellationError)
+        }
+        #expect(await executor.recordedArguments == [
+            ["--list"], ["--discover-device", "p", "--transport", "usb"],
+        ])
+    }
+
+    @Test func discoveryListingFailureStillThrows() async {
+        let executor = ScriptedMobileBatteryExecutor { _ in throw MobileBatteryHelperError.unavailable }
+        do {
+            _ = try await MobileBatteryHelperReader(executor: executor).discoverWithDiagnostics()
+            Issue.record("listing failure must throw")
+        } catch {
+            #expect((error as? MobileBatteryHelperError) == .unavailable)
+        }
+        #expect(await executor.recordedArguments == [["--list"]])
+    }
+
     @Test func emptySelectedIDsPerformNoHelperCalls() async throws {
         let executor = ScriptedMobileBatteryExecutor { _ in Issue.record("empty authorization must not invoke helper"); return Data() }
         let result = try await MobileBatteryHelperReader(executor: executor).read(selectedIDs: [])
