@@ -14,6 +14,7 @@ enum AudioPanelMapper {
         previewLanguageCode: String = "",
         previewLocalization: Localization? = nil,
         deviceListPlaceholder: PanelListLayoutSnapshot? = nil,
+        showsAirPodsSystemControls: Bool = true,
         localization: Localization
     ) -> VolumePanelState {
         let scalar = readableScalar(status.scalar)
@@ -70,7 +71,9 @@ enum AudioPanelMapper {
             order: deviceList.order,
             hiddenUIDs: deviceList.hiddenUIDs
         )
-        let rows = outputRows(orderedDevices, listeningModes: listeningModes, localization: localization)
+        let rows = outputRows(orderedDevices, listeningModes: listeningModes,
+                              showsAirPodsSystemControls: showsAirPodsSystemControls,
+                              localization: localization)
         // A lone row is not a choice, unless the panel kept it because it is the active
         // output: hiding every device must never hide what is playing right now.
         let keepsHiddenActiveDevice = orderedDevices.count == 1
@@ -208,6 +211,7 @@ enum AudioPanelMapper {
         _ devices: [AudioOutputDevice],
         listeningModes: BluetoothListeningModeController?,
         isPreview: Bool = false,
+        showsAirPodsSystemControls: Bool = true,
         localization: Localization
     ) -> [PanelAudioDeviceRow] {
         devices.enumerated().map { index, device in
@@ -245,7 +249,8 @@ enum AudioPanelMapper {
                 listeningModeAddress: listeningModes?.control(forEndpoint: device.id)?.address,
                 listeningMode: listeningModes?.control(forEndpoint: device.id)?.presentation,
                 isPreview: isPreview,
-                supportsAirPodsSystemControls: !isPreview && device.isCurrent && device.isBluetoothAudio
+                supportsAirPodsSystemControls: showsAirPodsSystemControls && !isPreview
+                    && device.isCurrent && device.isBluetoothAudio
                     && AirPodsModel(modelUID: device.modelUID) != nil && device.uid != nil
             )
         }

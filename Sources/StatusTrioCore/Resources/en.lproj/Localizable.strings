@@ -492,6 +492,9 @@
 "settings.audio.indicatorStyleDescription" = "Choose whether volume displays as four discrete dots or a continuous bottom arc.";
 "settings.audio.indicatorStyle.dots" = "Dots";
 "settings.audio.indicatorStyle.arc" = "Arc";
+"settings.audio.airPodsInlineControlsTitle" = "AirPods Inline Controls";
+"settings.audio.airPodsInlineControls" = "Show AirPods controls on the volume panel";
+"settings.audio.airPodsInlineControlsDescription" = "Show Conversation Awareness, Spatial Audio, and Adaptive controls beside your AirPods output. Disable to hide these private-API controls.";
 
 // On-demand battery details.
 "battery.details.title" = "Battery Details";

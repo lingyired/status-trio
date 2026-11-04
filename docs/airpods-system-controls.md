@@ -83,6 +83,23 @@ Conversation Awareness and Adaptive strength are independent: failure to open
 AACP cannot erase the helper's verified Conversation Awareness state. Spatial Audio uses its own CoreAudio backend; the helper is used only for
 Conversation Awareness.
 
+## User preference: hide the inline controls
+
+Because these controls rely on private APIs and a process-local compatibility
+shim, Settings → Audio exposes "Show AirPods controls on the volume panel"
+(`showsInlineAirPodsControls`, on by default). Turning it off hides the whole
+inline section on the volume panel: the disclosure chevron, Conversation
+Awareness, Spatial Audio, and Adaptive strength. The remaining audio output row
+and the classic `lstm`/`lsms` listening-mode control are unchanged, and a
+non-AirPods endpoint is unaffected.
+
+The preference is persisted in `SettingsStore` and reaches the panel through the
+`showsInlineAirPodsControls` environment value injected at the popover root, so
+turning it off closes any expanded controls instead of leaving a running model
+behind. The toggle does not change what is bundled or signed: the helper process,
+the dylib, and the signing path are identical in both states; only whether the
+panel presents those controls changes.
+
 ## Spatial Audio investigation
 
 AirBuddy 3.0.3 was downloaded from its official site and inspected read-only,

@@ -493,6 +493,9 @@
 "settings.audio.indicatorStyleDescription" = "Elige si el volumen se muestra como cuatro puntos o un arco continuo.";
 "settings.audio.indicatorStyle.dots" = "Puntos";
 "settings.audio.indicatorStyle.arc" = "Arco";
+"settings.audio.airPodsInlineControlsTitle" = "Controles AirPods integrados";
+"settings.audio.airPodsInlineControls" = "Mostrar controles de AirPods en el panel de volumen";
+"settings.audio.airPodsInlineControlsDescription" = "Muestra controles de detección de conversación, audio espacial y adaptativo junto a tu salida de AirPods. Desactívalo para ocultar estos controles basados en API privadas.";
 
 // On-demand battery details.
 "battery.details.title" = "Detalles de la batería";

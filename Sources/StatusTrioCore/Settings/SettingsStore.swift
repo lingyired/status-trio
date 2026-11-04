@@ -61,6 +61,11 @@ final class SettingsStore: ObservableObject {
     /// Draws the private LAN address on the network row's second line. Off by
     /// default: the address is a diagnostic, not something every panel needs.
     static let showsLocalIPAddressDefaultsKey = "showsLocalIPAddress"
+    /// Whether inline AirPods controls (Conversation Awareness, Spatial Audio,
+    /// Adaptive strength) are shown on the volume panel's output device row.
+    /// On by default; the setting exists so a user can hide the private-API
+    /// helper-backed controls without disabling audio output entirely.
+    static let showsInlineAirPodsControlsDefaultsKey = "showsInlineAirPodsControls"
     /// Migration-only: superseded by `connectionCenterSource`. Read once at
     /// launch, then removed so it can never override a later selection.
     static let showsBatteryPercentageInConnectionSlotDefaultsKey = "showsBatteryPercentageInConnectionSlot"
@@ -583,6 +588,15 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 showsLocalIPAddress,
                 forKey: Self.showsLocalIPAddressDefaultsKey
+            )
+        }
+    }
+
+    @Published var showsInlineAirPodsControls: Bool {
+        didSet {
+            defaults.set(
+                showsInlineAirPodsControls,
+                forKey: Self.showsInlineAirPodsControlsDefaultsKey
             )
         }
     }
@@ -1798,6 +1812,9 @@ final class SettingsStore: ObservableObject {
         self.showsLocalIPAddress = defaults.object(
             forKey: Self.showsLocalIPAddressDefaultsKey
         ) as? Bool ?? false
+        self.showsInlineAirPodsControls = defaults.object(
+            forKey: Self.showsInlineAirPodsControlsDefaultsKey
+        ) as? Bool ?? true
         // Resolve the effective legacy choice once, then remove competing keys.
         // Persist the new choice even at default so old flags cannot revive.
         let legacyPercentageInSlot = defaults.bool(forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey)

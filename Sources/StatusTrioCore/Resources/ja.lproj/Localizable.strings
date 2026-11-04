@@ -493,6 +493,9 @@
 "settings.audio.indicatorStyleDescription" = "ステータスリング下部に4つのドットまたは連続する円弧バーのいずれで表示するかを選択します。";
 "settings.audio.indicatorStyle.dots" = "4つのドット";
 "settings.audio.indicatorStyle.arc" = "円弧バー";
+"settings.audio.airPodsInlineControlsTitle" = "AirPods インラインコントロール";
+"settings.audio.airPodsInlineControls" = "音量パネルに AirPods コントロールを表示";
+"settings.audio.airPodsInlineControlsDescription" = "AirPods 出力の横に会話認識・空間オーディオ・アダプティブのコントロールを表示します。私的 API ベースのこれらのコントロールを隠すにはオフにします。";
 
 // On-demand battery details.
 "battery.details.title" = "バッテリーの詳細";

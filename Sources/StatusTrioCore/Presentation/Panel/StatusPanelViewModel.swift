@@ -163,6 +163,7 @@ final class StatusPanelViewModel: ObservableObject {
                 settings: settings
             ),
             deviceList: settings.outputDeviceListPreferences,
+            showsAirPodsSystemControls: settings.showsInlineAirPodsControls,
             localization: localization
         )
         audioInput = AudioPanelMapper.input(
@@ -488,6 +489,7 @@ final class StatusPanelViewModel: ObservableObject {
             previewLanguageCode: previewConfiguration.languageCode,
             previewLocalization: PreviewLocalization.forCode(previewConfiguration.languageCode),
             deviceListPlaceholder: deviceListPlaceholder,
+            showsAirPodsSystemControls: settings.showsInlineAirPodsControls,
             localization: localization
         )
     }

@@ -21,6 +21,7 @@ struct AudioSectionView: View {
             externalVolumeGroup
             deviceOrderGroup
             inputDeviceOrderGroup
+            airPodsInlineControlsGroup
         }
         .onAppear {
             statusStore.refreshAll()
@@ -501,6 +502,21 @@ struct AudioSectionView: View {
 
     private func orderListHeight(for count: Int) -> CGFloat {
         min(max(CGFloat(count) * 32 + 12, 48), 180)
+    }
+
+    private var airPodsInlineControlsGroup: some View {
+        SettingsGroup(localization.string(.settingsAudioAirPodsInlineControlsTitle)) {
+            SettingsToggleRow(
+                symbol: "airpods",
+                tint: .blue,
+                title: localization.string(.settingsAudioAirPodsInlineControls),
+                subtitle: localization.string(.settingsAudioAirPodsInlineControlsDescription),
+                isOn: Binding(
+                    get: { store.showsInlineAirPodsControls },
+                    set: { store.showsInlineAirPodsControls = $0 }
+                )
+            )
+        }
     }
 }
 
