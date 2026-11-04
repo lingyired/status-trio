@@ -99,8 +99,10 @@
 "settings.bluetooth.networkErrorPriorityDescription" = "Connection errors and offline states keep the network icon instead of the Bluetooth device icon.";
 "settings.bluetooth.batteryLevels" = "Show Bluetooth battery levels";
 "settings.bluetooth.batteryLevelsDescription" = "Reads battery levels for visible Bluetooth and Apple device rows in the status panel.";
+"settings.bluetooth.listeningModeTitle" = "Show listening mode controls";
+"settings.bluetooth.listeningModeDescription" = "Show noise-cancelling, transparency and off capsules on connected AirPods and some HUAWEI headphones. Only some HUAWEI models are supported; if a switch fails, the previous mode is restored.";
 "settings.bluetooth.listeningModePreview" = "Preview the listening mode switch";
-"settings.bluetooth.listeningModePreviewDescription" = "Show the mode capsules on every connected AirPods for interface testing. Tapping a capsule animates as it does on a real device, but changes nothing on the AirPods.";
+"settings.bluetooth.listeningModePreviewDescription" = "For interface testing only \u2014 turning a capsule on or off never changes your headphones.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Preview device name";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Name shown on the preview rows. Leave empty for the built-in default, or type a very long name to check truncation.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "Preview row count";

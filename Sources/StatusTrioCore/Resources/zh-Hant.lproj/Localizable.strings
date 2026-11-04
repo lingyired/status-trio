@@ -99,6 +99,8 @@
 "settings.bluetooth.networkErrorPriorityDescription" = "斷線或無網路時仍顯示網路圖示，不顯示藍牙裝置圖示。";
 "settings.bluetooth.batteryLevels" = "顯示藍牙裝置電量";
 "settings.bluetooth.batteryLevelsDescription" = "當狀態面板顯示藍牙裝置時讀取 AirPods 電量，不會額外要求權限。";
+"settings.bluetooth.listeningModeTitle" = "顯示聆聽模式控制";
+"settings.bluetooth.listeningModeDescription" = "在已連接的 AirPods 和部分華為耳機上顯示降噪/透傳/關閉膠囊。華為耳機僅部分型號支援，切換失敗時會恢復原模式。";
 "settings.bluetooth.listeningModePreview" = "預試聆聽模式切換";
 "settings.bluetooth.listeningModePreviewDescription" = "在每台已連結的 AirPods 上顯示模式膠囊，用於介面測試。點擊膠囊的動畫與真機一致，但不會變更 AirPods 的任何設定。";
 "settings.bluetooth.listeningModePreviewDeviceName" = "預試裝置名";

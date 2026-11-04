@@ -99,6 +99,8 @@
 "settings.bluetooth.networkErrorPriorityDescription" = "Los errores de conexión y el estado sin conexión mantienen el icono de red en lugar del dispositivo Bluetooth.";
 "settings.bluetooth.batteryLevels" = "Mostrar niveles de batería Bluetooth";
 "settings.bluetooth.batteryLevelsDescription" = "Lee los niveles de batería de los AirPods mientras se muestra la entrada Bluetooth. No se solicita permiso adicional.";
+"settings.bluetooth.listeningModeTitle" = "Mostrar controles del modo de escucha";
+"settings.bluetooth.listeningModeDescription" = "Muestra cápsulas de cancelación de ruido/transparencia/desactivado en los AirPods conectados y algunos auriculares HUAWEI. Solo se admiten algunos modelos de HUAWEI; si un cambio falla, se restaura el modo anterior.";
 "settings.bluetooth.listeningModePreview" = "Previsualizar el selector del modo de escucha";
 "settings.bluetooth.listeningModePreviewDescription" = "Muestra las cápsulas de modo en todos los AirPods conectados para probar la interfaz. Al tocar una cápsula se anima igual que en un dispositivo real, pero no cambia nada en los AirPods.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Nombre del dispositivo de vista previa";

@@ -509,7 +509,7 @@ final class StatusPanelViewModel: ObservableObject {
                 settings: settings
             ),
             deviceList: outputPreferences,
-            listeningModes: store.bluetoothListeningModes,
+            listeningModes: settings.showsBluetoothListeningMode ? store.bluetoothListeningModes : nil,
             listeningModeTaskID: makeListeningModeTaskID(outputDevices: status.outputDevices),
             previewDevices: ListeningModePreview.outputRows(for: previewConfiguration, volume: status.scalar),
             previewLanguageCode: previewConfiguration.languageCode,
@@ -536,7 +536,7 @@ final class StatusPanelViewModel: ObservableObject {
 
     private var currentPreviewConfiguration: ListeningModePreview.Configuration {
         ListeningModePreview.Configuration(
-            isEnabled: settings.previewsBluetoothListeningMode,
+            isEnabled: settings.showsBluetoothListeningMode && settings.previewsBluetoothListeningMode,
             deviceName: settings.bluetoothListeningModePreviewDeviceName,
             deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
             languageCode: settings.bluetoothListeningModePreviewLanguage
@@ -545,11 +545,17 @@ final class StatusPanelViewModel: ObservableObject {
 
     private func makeListeningModeTaskID(outputDevices: [AudioOutputDevice]) -> String {
         let configuration = ListeningModePreview.Configuration(
-            isEnabled: settings.previewsBluetoothListeningMode,
+            isEnabled: settings.showsBluetoothListeningMode && settings.previewsBluetoothListeningMode,
             deviceName: settings.bluetoothListeningModePreviewDeviceName,
             deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
             languageCode: settings.bluetoothListeningModePreviewLanguage
         )
+        guard settings.showsBluetoothListeningMode else {
+            // Master switch off: no real or preview listening-mode surface. A
+            // stable non-empty tag lets the summary task mark this generation
+            // "closed" and tear down discovery (see `listeningModeTaskID`).
+            return "off::\(store.popoverOpenGeneration)"
+        }
         let connected = BluetoothDevicePresentation.grouped(store.bluetoothDevices.devices).connected
             .filter { $0.isAirPods || $0.isHuaweiAudio }
             .map { BluetoothBatteryReader.normalizedAddress($0.id) }

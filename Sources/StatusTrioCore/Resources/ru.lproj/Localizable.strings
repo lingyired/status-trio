@@ -99,6 +99,8 @@
 "settings.bluetooth.networkErrorPriorityDescription" = "При ошибке подключения или отсутствии сети остаётся значок сети вместо устройства Bluetooth.";
 "settings.bluetooth.batteryLevels" = "Показывать заряд устройств Bluetooth";
 "settings.bluetooth.batteryLevelsDescription" = "Заряд AirPods считывается, пока показан пункт Bluetooth. Дополнительный запрос разрешения не появляется.";
+"settings.bluetooth.listeningModeTitle" = "Показывать управление режимом прослушивания";
+"settings.bluetooth.listeningModeDescription" = "Показывает капсулы шумоподавления/прозрачности/выключения на подключённых AirPods и некоторых наушниках HUAWEI. Поддерживаются лишь некоторые модели HUAWEI; при сбое переключения восстанавливается прежний режим.";
 "settings.bluetooth.listeningModePreview" = "Предпросмотр переключателя режима прослушивания";
 "settings.bluetooth.listeningModePreviewDescription" = "Показывать переключатели режима на всех подключённых AirPods для проверки интерфейса. Нажатие анимируется как на настоящем устройстве, но ничего в AirPods не меняет.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Имя устройства предпросмотра";

@@ -102,6 +102,7 @@ final class SettingsStore: ObservableObject {
     static let appleDeviceSettingsMigrationVersionDefaultsKey = "appleDeviceSettingsMigrationVersion"
     static let archivedLegacyNearbyBLESelectionsDefaultsKey = "archivedLegacyNearbyBLESelections"
     static let trustedAppleDeviceMetadataDefaultsKey = "trustedAppleDeviceMetadata.v1"
+    static let showsBluetoothListeningModeDefaultsKey = "showsBluetoothListeningMode"
     static let previewsBluetoothListeningModeDefaultsKey = "previewsBluetoothListeningMode"
     static let bluetoothListeningModePreviewDeviceNameDefaultsKey = "bluetoothListeningModePreviewDeviceName"
     static let bluetoothListeningModePreviewDeviceCountDefaultsKey = "bluetoothListeningModePreviewDeviceCount"
@@ -735,13 +736,30 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// The real listening-mode master switch. When on, the app discovers and
+    /// shows noise-cancelling/transparency/off capsules for connected AirPods
+    /// and supported HUAWEI headphones while the Bluetooth or volume section is
+    /// visible. When off, no real discovery, SPP session, or control capsules
+    /// are presented anywhere (the synthetic interface preview is a separate,
+    /// test-only toggle gated behind this one). Defaults to on so real devices
+    /// keep working out of the box.
+    @Published var showsBluetoothListeningMode: Bool {
+        didSet {
+            defaults.set(
+                showsBluetoothListeningMode,
+                forKey: Self.showsBluetoothListeningModeDefaultsKey
+            )
+        }
+    }
+
     /// Interface preview for the AirPods listening-mode switch. When on, every
     /// connected AirPods row shows the three mode capsules and tapping them
     /// drives the same busy → settled animation, but no CoreAudio write is
     /// issued. The toggle exists so the row's layout, focus order, and tap
     /// feedback can be exercised on a Mac that has no controllable AirPods
     /// attached; it is off by default so a normal user never sees a
-    /// non-functional capsule.
+    /// non-functional capsule. Only has effect while `showsBluetoothListeningMode`
+    /// is also on.
     @Published var previewsBluetoothListeningMode: Bool {
         didSet {
             defaults.set(
@@ -1925,6 +1943,9 @@ final class SettingsStore: ObservableObject {
         )
         self.archivedLegacyNearbyBLESelections = appleMigration.archivedLegacyBLESelections
         self.trustedAppleDeviceMetadata = storedTrustedMetadata
+        self.showsBluetoothListeningMode = defaults.object(
+            forKey: Self.showsBluetoothListeningModeDefaultsKey
+        ) as? Bool ?? true
         self.previewsBluetoothListeningMode = defaults.object(
             forKey: Self.previewsBluetoothListeningModeDefaultsKey
         ) as? Bool ?? false

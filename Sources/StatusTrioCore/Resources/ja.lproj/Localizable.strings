@@ -99,6 +99,8 @@
 "settings.bluetooth.networkErrorPriorityDescription" = "接続エラーやオフライン状態では、Bluetooth 機器ではなくネットワークアイコンを表示します。";
 "settings.bluetooth.batteryLevels" = "Bluetooth のバッテリー残量を表示";
 "settings.bluetooth.batteryLevelsDescription" = "Bluetooth 項目の表示中に AirPods の残量を読み取ります。追加の権限確認は表示されません。";
+"settings.bluetooth.listeningModeTitle" = "ヒアリングモードのコントロールを表示";
+"settings.bluetooth.listeningModeDescription" = "接続中の AirPods と一部の HUAWEI ヘッドホンに、ノイズキャンセリング/外音取り込み/オフのボタンを表示します。HUAWEI は一部のモデルのみ対応しており、切り替えに失敗した場合は元のモードに戻ります。";
 "settings.bluetooth.listeningModePreview" = "ヒアリングモード切り替えをプレビュー表示";
 "settings.bluetooth.listeningModePreviewDescription" = "UI の確認用に、接続中のすべての AirPods にモード切り替えのボタンを表示します。タップすると実機と同じアニメーションが動きますが、AirPods の設定は変更されません。";
 "settings.bluetooth.listeningModePreviewDeviceName" = "プレビュー表示名";

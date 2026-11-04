@@ -140,12 +140,24 @@ struct BluetoothSectionView: View {
                 SettingsDivider()
 
                 SettingsToggleRow(
-                    symbol: "eyeglasses",
+                    symbol: "earbuds",
                     tint: .purple,
-                    title: localization.string(.settingsBluetoothListeningModePreview),
-                    subtitle: localization.string(.settingsBluetoothListeningModePreviewDescription),
-                    isOn: $store.previewsBluetoothListeningMode
+                    title: localization.string(.settingsBluetoothListeningModeTitle),
+                    subtitle: localization.string(.settingsBluetoothListeningModeDescription),
+                    isOn: $store.showsBluetoothListeningMode
                 )
+
+                if store.showsBluetoothListeningMode {
+                    SettingsDivider()
+
+                    SettingsToggleRow(
+                        symbol: "eyeglasses",
+                        tint: .purple,
+                        title: localization.string(.settingsBluetoothListeningModePreview),
+                        subtitle: localization.string(.settingsBluetoothListeningModePreviewDescription),
+                        isOn: $store.previewsBluetoothListeningMode
+                    )
+                }
 
                 if store.previewsBluetoothListeningMode {
                     SettingsDivider()

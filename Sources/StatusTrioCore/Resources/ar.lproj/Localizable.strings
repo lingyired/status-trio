@@ -82,6 +82,8 @@
 "settings.bluetooth.networkErrorPriorityDescription" = "تبقى أيقونة الشبكة ظاهرة عند انقطاع الاتصال أو غياب الإنترنت بدلًا من أيقونة جهاز Bluetooth.";
 "settings.bluetooth.batteryLevels" = "عرض مستويات بطارية Bluetooth";
 "settings.bluetooth.batteryLevelsDescription" = "تقرأ مستويات بطارية AirPods أثناء عرض إدخال Bluetooth. لن يظهر طلب إذن إضافي.";
+"settings.bluetooth.listeningModeTitle" = "عرض عناصر التحكم في وضع السمع";
+"settings.bluetooth.listeningModeDescription" = "يعرض كبسولات إلغاء الضوضاء/الشفافية/إيقاف على AirPods المتصلة وبعض سماعات HUAWEI. لا تُدعم سوى بعض طرز HUAWEI؛ وإذا فشل التبديل فسيُستعاد الوضع السابق.";
 "settings.bluetooth.listeningModePreview" = "معاينة مُبدِّل وضع السمع";
 "settings.bluetooth.listeningModePreviewDescription" = "اعرض كبسولات الوضع على جميع AirPods المتصلة لاختبار الواجهة. النقر على كبسولة يُحركها كما على الجهاز الفعلي لكن دون تغيير أي إعداد في AirPods.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "اسم جهاز المعاينة";
