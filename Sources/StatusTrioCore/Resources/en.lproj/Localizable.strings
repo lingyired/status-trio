@@ -204,8 +204,8 @@
 "settings.battery.colors.previews" = "Light and dark color previews";
 "settings.battery.colors.adjusted" = "Adjusted for visibility";
 "settings.battery.colors.referenceDescription" = "Custom colors are shared across appearances and adjusted to at least 1.2:1. System and preset colors stay unchanged. Contrast is the minimum across white, black and their tracks; actual wallpaper may differ.";
-"settings.battery.criticalThreshold" = "Low battery threshold";
-"settings.battery.criticalThresholdDescription" = "Battery levels below this threshold use the critically low battery color.";
+"settings.battery.criticalThreshold" = "Critical Battery Threshold";
+"settings.battery.criticalThresholdDescription" = "Below this level the battery icon uses the critical battery colour.";
 "settings.battery.fullThreshold" = "Full ring level";
 "settings.battery.fullThresholdDescription" = "The battery ring counts as full at this level. Useful when charge limiting holds the battery below 100%.";
 "settings.battery.fullThresholdUseChargeLimit" = "Use the charge limit";

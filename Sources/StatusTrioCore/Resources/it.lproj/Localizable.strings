@@ -204,8 +204,8 @@
 "settings.battery.colors.previews" = "Anteprime dei colori chiari e scuri";
 "settings.battery.colors.adjusted" = "Adattato per visibilità";
 "settings.battery.colors.referenceDescription" = "I colori personalizzati sono comuni ai due aspetti e adattati ad almeno 1.2:1. I colori di sistema e predefiniti restano invariati. Il contrasto è il minimo su sfondi bianco e nero e relative tracce; lo sfondo reale può dare risultati diversi.";
-"settings.battery.criticalThreshold" = "Soglia batteria scarica";
-"settings.battery.criticalThresholdDescription" = "Sotto questa soglia viene usato il colore della batteria quasi esaurita.";
+"settings.battery.criticalThreshold" = "Soglia critica della batteria";
+"settings.battery.criticalThresholdDescription" = "Sotto questo livello l’icona della batteria usa il colore di batteria critica.";
 "settings.battery.fullThreshold" = "Livello anello pieno";
 "settings.battery.fullThresholdDescription" = "L'anello della batteria è considerato pieno a questo livello. Utile quando il limite di carica mantiene la batteria sotto il 100%.";
 "settings.battery.fullThresholdUseChargeLimit" = "Usa il limite di carica";

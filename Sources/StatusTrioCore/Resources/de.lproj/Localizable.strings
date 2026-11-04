@@ -204,8 +204,8 @@
 "settings.battery.colors.previews" = "Farbvorschau für helle und dunkle Darstellung";
 "settings.battery.colors.adjusted" = "Für Sichtbarkeit angepasst";
 "settings.battery.colors.referenceDescription" = "Eigene Farben gelten für beide Darstellungen und werden auf mindestens 1.2:1 angepasst. System- und Vorgabefarben bleiben unverändert. Der Kontrast ist das Minimum auf Schwarz, Weiß und deren Bogenspuren; das tatsächliche Hintergrundbild kann abweichen.";
-"settings.battery.criticalThreshold" = "Schwellenwert für niedrigen Ladestand";
-"settings.battery.criticalThresholdDescription" = "Unter diesem Wert wird die Farbe für kritisch niedrigen Ladestand verwendet.";
+"settings.battery.criticalThreshold" = "Kritischer Akkustand";
+"settings.battery.criticalThresholdDescription" = "Unterhalb dieses Werts verwendet das Batteriesymbol die Farbe für kritischen Akkustand.";
 "settings.battery.fullThreshold" = "Ladestand für vollen Ring";
 "settings.battery.fullThresholdDescription" = "Ab diesem Ladestand gilt der Batteriering als voll. Nützlich, wenn die Ladebegrenzung die Batterie unter 100% hält.";
 "settings.battery.fullThresholdUseChargeLimit" = "Ladebegrenzung übernehmen";

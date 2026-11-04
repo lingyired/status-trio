@@ -187,8 +187,8 @@
 "settings.battery.colors.previews" = "معاينة الألوان في المظهرين الفاتح والداكن";
 "settings.battery.colors.adjusted" = "عُدّل لتحسين الوضوح";
 "settings.battery.colors.referenceDescription" = "تُستخدم الألوان المخصصة نفسها في المظهرين وتُعدّل إلى 1.2:1 على الأقل. تبقى ألوان النظام والألوان الجاهزة دون تغيير. التباين هو أدنى قيمة على خلفيتين بيضاء وسوداء ومساري القوس عليهما، وقد يختلف مع خلفية الشاشة الفعلية.";
-"settings.battery.criticalThreshold" = "حد البطارية المنخفضة";
-"settings.battery.criticalThresholdDescription" = "تُستخدم ألوان الانخفاض الحرج للبطارية عندما يكون المستوى أقل من هذه العتبة.";
+"settings.battery.criticalThreshold" = "حد البطارية الحرج";
+"settings.battery.criticalThresholdDescription" = "تحت هذا المستوى يستخدم رمز البطارية لون البطارية الحرج.";
 "settings.battery.fullThreshold" = "مستوى اكتمال الحلقة";
 "settings.battery.fullThresholdDescription" = "تُعتبر حلقة البطارية ممتلئة عند هذا المستوى. مفيد عندما يحد تحديد الشحن من البطارية دون 100%.";
 "settings.battery.fullThresholdUseChargeLimit" = "استخدام حد الشحن";

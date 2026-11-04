@@ -204,8 +204,8 @@
 "settings.battery.colors.previews" = "淺色與深色顏色預覽";
 "settings.battery.colors.adjusted" = "已按可見性調整";
 "settings.battery.colors.referenceDescription" = "自訂顏色在深淺外觀中共用，必要時調整至至少 1.2:1；系統與預設顏色維持原色。對比度取黑白背景及其圓弧底軌的最小值，實際桌布效果可能不同。";
-"settings.battery.criticalThreshold" = "低電量門檻";
-"settings.battery.criticalThresholdDescription" = "低於此門檻時，使用臨界低電量顏色。";
+"settings.battery.criticalThreshold" = "臨界電量閾值";
+"settings.battery.criticalThresholdDescription" = "電量低於此值時，電池圖示使用臨界低電量顏色。";
 "settings.battery.fullThreshold" = "圓環滿格電量";
 "settings.battery.fullThresholdDescription" = "電量達到該值時圓環即視為滿格。適合充電上限設定在 100% 以下的場景。";
 "settings.battery.fullThresholdUseChargeLimit" = "使用充電上限";

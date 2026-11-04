@@ -204,8 +204,8 @@
 "settings.battery.colors.previews" = "ライトとダークの色プレビュー";
 "settings.battery.colors.adjusted" = "見やすさのため調整済み";
 "settings.battery.colors.referenceDescription" = "カスタム色は両方の外観で共通で、必要に応じて1.2:1以上に調整されます。システム色とプリセット色は変更しません。コントラストは白黒の背景と各円弧の下地に対する最小値です。実際の壁紙では異なる場合があります。";
-"settings.battery.criticalThreshold" = "低残量のしきい値";
-"settings.battery.criticalThresholdDescription" = "この値未満になると、残量がわずかなときの色を使用します。";
+"settings.battery.criticalThreshold" = "クリティカル残量しきい値";
+"settings.battery.criticalThresholdDescription" = "この値を下回ると、バッテリーアイコンがクリティカル低バッテリー色になります。";
 "settings.battery.fullThreshold" = "リング満充電の基準";
 "settings.battery.fullThresholdDescription" = "この电量に達した時点でリングを満充電として表示します。充電上限が100%未満に設定されている場合に便利です。";
 "settings.battery.fullThresholdUseChargeLimit" = "充電上限を使用";

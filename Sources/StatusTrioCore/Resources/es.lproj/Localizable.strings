@@ -204,8 +204,8 @@
 "settings.battery.colors.previews" = "Vistas previas de color clara y oscura";
 "settings.battery.colors.adjusted" = "Ajustado por visibilidad";
 "settings.battery.colors.referenceDescription" = "Los colores personalizados se comparten entre apariencias y se ajustan a un mínimo de 1.2:1. Los colores del sistema y predefinidos no cambian. El contraste es el mínimo frente a fondos blanco y negro y sus pistas; el fondo real puede variar.";
-"settings.battery.criticalThreshold" = "Umbral de batería baja";
-"settings.battery.criticalThresholdDescription" = "Los niveles por debajo de este umbral usan el color de batería críticamente baja.";
+"settings.battery.criticalThreshold" = "Umbral crítico de batería";
+"settings.battery.criticalThresholdDescription" = "Por debajo de este nivel, el icono de batería usa el color de batería crítica.";
 "settings.battery.fullThreshold" = "Nivel de anillo lleno";
 "settings.battery.fullThresholdDescription" = "El anillo de batería se considera lleno a este nivel. Útil cuando la limitación de carga mantiene la batería por debajo del 100%.";
 "settings.battery.fullThresholdUseChargeLimit" = "Usar el límite de carga";

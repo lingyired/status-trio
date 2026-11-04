@@ -204,8 +204,8 @@
 "settings.battery.colors.previews" = "밝은 모드와 어두운 모드 색상 미리보기";
 "settings.battery.colors.adjusted" = "가시성에 맞게 조정됨";
 "settings.battery.colors.referenceDescription" = "사용자 지정 색상은 두 모드에서 공통으로 사용하며 필요 시 최소 1.2:1로 조정합니다. 시스템 및 프리셋 색상은 유지합니다. 대비는 흑백 배경과 각 원호 바탕에서의 최솟값이며 실제 배경화면에서는 다를 수 있습니다.";
-"settings.battery.criticalThreshold" = "배터리 부족 임계값";
-"settings.battery.criticalThresholdDescription" = "이 값 미만이면 배터리 잔량 매우 부족 색상을 사용합니다.";
+"settings.battery.criticalThreshold" = "위험 배터리 임계값";
+"settings.battery.criticalThresholdDescription" = "이 값 아래로 떨어지면 배터리 아이콘이 위험 배터리 색으로 표시됩니다.";
 "settings.battery.fullThreshold" = "링 full 충전 기준";
 "settings.battery.fullThresholdDescription" = "배터리 링이 이 수준에 도달하면 가득 찬 것으로 표시합니다. 충전 상한이 100% 미만으로 설정된 경우에 유용합니다.";
 "settings.battery.fullThresholdUseChargeLimit" = "충전 상한 사용";
