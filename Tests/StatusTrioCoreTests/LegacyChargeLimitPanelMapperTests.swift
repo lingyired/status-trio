@@ -67,6 +67,41 @@ final class LegacyChargeLimitPanelMapperTests: XCTestCase {
         XCTAssertEqual(state(status: .unverified).action, .none)
     }
 
+    func testCardActionLabelIsFullChargeOrCancelOnly() {
+        XCTAssertEqual(
+            LegacyChargeLimitPanelMapper.actionTitleKey(for: .chargeToFull),
+            .settingsBatteryLegacyChargeLimitChargeToFull
+        )
+        XCTAssertEqual(
+            LegacyChargeLimitPanelMapper.actionTitleKey(for: .cancelFullCharge),
+            .settingsBatteryLegacyChargeLimitCancel
+        )
+        XCTAssertNil(LegacyChargeLimitPanelMapper.actionTitleKey(for: .none))
+    }
+
+    func testCardActionIsHiddenUntilACapIsHeld() {
+        XCTAssertEqual(
+            LegacyChargeLimitPanelMapper.cardAction(availability: .available(.intelBCLM),
+                                                     status: .notEnabled, selectedLimit: nil),
+            .none
+        )
+        XCTAssertEqual(
+            LegacyChargeLimitPanelMapper.cardAction(availability: .unavailable(.unsupportedOS),
+                                                     status: .holding(at: 85), selectedLimit: 85),
+            .none
+        )
+        XCTAssertEqual(
+            LegacyChargeLimitPanelMapper.cardAction(availability: .available(.intelBCLM),
+                                                     status: .holding(at: 85), selectedLimit: 85),
+            .chargeToFull
+        )
+        XCTAssertEqual(
+            LegacyChargeLimitPanelMapper.cardAction(availability: .available(.intelBCLM),
+                                                     status: .temporarilyChargingToFull, selectedLimit: 85),
+            .cancelFullCharge
+        )
+    }
+
     func testRecoveryEntryAppearsOnlyWhenTheCapIsUncertain() {
         XCTAssertTrue(LegacyChargeLimitRecovery.showsRestoreAction(status: .restoreFailed))
         XCTAssertTrue(LegacyChargeLimitRecovery.showsRestoreAction(status: .unverified))

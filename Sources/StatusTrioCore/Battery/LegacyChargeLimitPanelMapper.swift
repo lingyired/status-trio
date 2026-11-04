@@ -37,6 +37,32 @@ struct LegacyChargeLimitPanelState: Equatable {
 }
 
 enum LegacyChargeLimitPanelMapper {
+    /// The card's one-tap action. It is deliberately the only thing the card
+    /// shows for legacy systems: no ceiling, no status row.
+    static func cardAction(
+        availability: LegacyChargeLimitAvailability,
+        status: LegacyChargeLimitStatus,
+        selectedLimit: Int?
+    ) -> LegacyChargeLimitPanelState.Action {
+        guard availability.isAvailable, selectedLimit != nil else { return .none }
+        switch status {
+        case .holding:
+            return .chargeToFull
+        case .temporarilyChargingToFull:
+            return .cancelFullCharge
+        default:
+            return .none
+        }
+    }
+
+    static func actionTitleKey(for action: LegacyChargeLimitPanelState.Action) -> LocalizationKey? {
+        switch action {
+        case .chargeToFull: return .settingsBatteryLegacyChargeLimitChargeToFull
+        case .cancelFullCharge: return .settingsBatteryLegacyChargeLimitCancel
+        case .none: return nil
+        }
+    }
+
     /// Only an opted-in, available controller appears on the panel. Settings
     /// remains the place to discover and enable the feature.
     static func map(

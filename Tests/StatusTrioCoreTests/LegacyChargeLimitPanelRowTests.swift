@@ -90,16 +90,26 @@ final class LegacyChargeLimitPanelRowTests: XCTestCase {
         XCTAssertGreaterThan(hostingHeight(controller, language: .simplifiedChinese), 0)
     }
 
-    /// The user asked for the battery card to keep only the existing
-    /// "charge to full once" action, with no charge-ceiling row. Pin that.
-    func testBatteryCardDoesNotShowTheLegacyCeiling() async {
+    /// The card shows a one-tap action for legacy systems but never the ceiling
+    /// row, so it must stay shorter than the full details row.
+    func testBatteryCardShowsOnlyTheFullChargeAction() async {
+        let controller = makeController()
+        await controller.refresh()
+        XCTAssertEqual(cardHeight(controller), cardHeight(nil), accuracy: 1,
+                       "No action exists until a cap is held")
+        _ = await controller.setLimit(85)
+        let withAction = cardHeight(controller)
+        XCTAssertGreaterThan(withAction, cardHeight(nil) + 20, "The card must offer the action")
+        XCTAssertLessThan(withAction, 140, "The card must not gain the full ceiling row")
+        XCTAssertLessThan(withAction, hostingHeight(controller, language: .english) + cardHeight(nil) + 60)
+    }
+
+    func testCardActionSwitchesToCancelDuringATemporaryFullCharge() async {
         let controller = makeController()
         await controller.refresh()
         _ = await controller.setLimit(85)
         _ = await controller.chargeToFullOnce()
-        let plain = cardHeight(nil)
-        XCTAssertEqual(cardHeight(controller), plain, accuracy: 1,
-                       "The card must not gain a ceiling row")
+        XCTAssertGreaterThan(cardHeight(controller), cardHeight(nil) + 20)
     }
 
     private func cardHeight(_ controller: LegacyChargeLimitController?) -> CGFloat {
@@ -107,7 +117,8 @@ final class LegacyChargeLimitPanelRowTests: XCTestCase {
                                    isLowPowerMode: false, isConnectedToPower: true)
         let view = BatteryStatusView(
             state: PanelPresentationMapper.battery(status, localization: makeLocalization(.english)),
-            onOpenBatteryDetails: {}, onOpenBatterySettings: {}
+            onOpenBatteryDetails: {}, onOpenBatterySettings: {},
+            legacyChargeAction: controller
         )
         let hosting = NSHostingView(rootView: view.frame(width: 330)
             .environmentObject(makeLocalization(.english)))
@@ -125,6 +136,18 @@ final class LegacyChargeLimitPanelRowTests: XCTestCase {
         let controller = makeController()
         await controller.refresh()
         _ = await controller.setLimit(85)
+        for language in [AppLanguage.english, .simplifiedChinese, .german] {
+            try writeSnapshot(card(controller, language: language).padding(14)
+                .background(Color(nsColor: .windowBackgroundColor)),
+                to: directory.appendingPathComponent("card-holding-\(language.rawValue).png"))
+        }
+        _ = await controller.chargeToFullOnce()
+        for language in [AppLanguage.english, .simplifiedChinese, .german] {
+            try writeSnapshot(card(controller, language: language).padding(14)
+                .background(Color(nsColor: .windowBackgroundColor)),
+                to: directory.appendingPathComponent("card-temporary-full-\(language.rawValue).png"))
+        }
+        _ = await controller.cancelChargeToFull()
         for language in [AppLanguage.english, .simplifiedChinese] {
             try writeSnapshot(
                 BatteryDetailsView(
@@ -142,6 +165,18 @@ final class LegacyChargeLimitPanelRowTests: XCTestCase {
                 to: directory.appendingPathComponent("details-holding-\(language.rawValue).png")
             )
         }
+    }
+
+    private func card(_ controller: LegacyChargeLimitController?, language: AppLanguage) -> some View {
+        let status = BatteryStatus(rawPercentage: 78, isPresent: true, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: true)
+        return BatteryStatusView(
+            state: PanelPresentationMapper.battery(status, localization: makeLocalization(language)),
+            onOpenBatteryDetails: {}, onOpenBatterySettings: {},
+            legacyChargeAction: controller
+        )
+        .frame(width: 330)
+        .environmentObject(makeLocalization(language))
     }
 
     private func detailsState(_ language: AppLanguage) -> PanelDetailState {

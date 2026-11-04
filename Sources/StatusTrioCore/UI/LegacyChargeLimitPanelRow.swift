@@ -4,7 +4,15 @@ import SwiftUI
 /// rendering either surface never probes hardware or starts a battery monitor.
 @MainActor
 struct LegacyChargeLimitPanelRow: View {
+    enum Style {
+        /// Details page: ceiling, status and one action.
+        case full
+        /// Battery card: a single action, never the ceiling.
+        case actionOnly
+    }
+
     @ObservedObject var controller: LegacyChargeLimitController
+    var style: Style = .full
     var showsActions = true
     @EnvironmentObject private var localization: Localization
 
@@ -18,6 +26,60 @@ struct LegacyChargeLimitPanelRow: View {
     }
 
     var body: some View {
+        if style == .actionOnly {
+            actionOnly
+        } else {
+            fullRow
+        }
+    }
+
+    /// The card keeps the panel minimal: only the one-tap action.
+    private var actionOnly: some View {
+        let action = LegacyChargeLimitPanelMapper.cardAction(
+            availability: controller.availability,
+            status: controller.status,
+            selectedLimit: controller.selectedLimit
+        )
+        let busy = controller.isApplying
+        return Group {
+            if busy {
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityLabel(localization.string(.settingsBatteryChargeLimitApplying))
+            } else if showsActions, let key = LegacyChargeLimitPanelMapper.actionTitleKey(for: action) {
+                Button {
+                    perform(action)
+                } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: action == .cancelFullCharge ? "xmark" : "bolt.fill")
+                            .frame(width: 14, height: 14)
+                        Text(localization.string(key))
+                            .font(.caption.weight(.medium))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        Spacer(minLength: 0)
+                    }
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 10)
+                    .frame(maxWidth: .infinity, minHeight: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .fill(Color.secondary.opacity(0.08))
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .strokeBorder(Color.secondary.opacity(0.12))
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(localization.string(key))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var fullRow: some View {
         let state = mapped
         if state.isVisible, let status = state.status, let target = state.targetLimit {
             HStack(alignment: .center, spacing: 10) {
