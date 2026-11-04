@@ -764,4 +764,19 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case powerModeLow = "battery.powerMode.low"
     case powerModeHigh = "battery.powerMode.high"
     case powerModeHighRequiresPower = "battery.powerMode.highRequiresPower"
+
+    // Settings subpage labels
+    case settingsSubtopicAppIconPlacementSize = "settings.subtopic.appIcon.placementSize"
+    case settingsSubtopicAppIconRingAndDock = "settings.subtopic.appIcon.ringAndDock"
+    case settingsSubtopicAppIconMiddleIcon = "settings.subtopic.appIcon.middleIcon"
+    case settingsSubtopicBatteryIconDisplay = "settings.subtopic.battery.iconDisplay"
+    case settingsSubtopicBatteryColorsAndAnimation = "settings.subtopic.battery.colorsAndAnimation"
+    case settingsSubtopicBatteryChargeManagement = "settings.subtopic.battery.chargeManagement"
+    case settingsSubtopicBatteryPowerAndEnergy = "settings.subtopic.battery.powerAndEnergy"
+    case settingsSubtopicAudioDisplayAndInteraction = "settings.subtopic.audio.displayAndInteraction"
+    case settingsSubtopicAudioDeviceManagement = "settings.subtopic.audio.deviceManagement"
+    case settingsSubtopicAudioExternalVolume = "settings.subtopic.audio.externalVolume"
+    case settingsSubtopicBluetoothDisplayAndPreview = "settings.subtopic.bluetooth.displayAndPreview"
+    case settingsSubtopicBluetoothDeviceAndBattery = "settings.subtopic.bluetooth.deviceAndBattery"
+    case settingsSubtopicBluetoothPanelAndList = "settings.subtopic.bluetooth.panelAndList"
 }

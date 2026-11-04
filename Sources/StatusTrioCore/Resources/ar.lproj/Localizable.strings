@@ -755,3 +755,18 @@
 "battery.powerMode.low" = "طاقة منخفضة";
 "battery.powerMode.high" = "طاقة عالية";
 "battery.powerMode.highRequiresPower" = "لا يسري وضع الطاقة العالية إلا عند توصيل محول الطاقة.";
+
+// Settings subpage labels
+"settings.subtopic.appIcon.placementSize" = "الموضع والحجم";
+"settings.subtopic.appIcon.ringAndDock" = "الحلقة وDock";
+"settings.subtopic.appIcon.middleIcon" = "الأيقونة الوسطى";
+"settings.subtopic.battery.iconDisplay" = "عرض الأيقونة";
+"settings.subtopic.battery.colorsAndAnimation" = "الألوان والحركة";
+"settings.subtopic.battery.chargeManagement" = "إدارة الشحن";
+"settings.subtopic.battery.powerAndEnergy" = "الطاقة والاستهلاك";
+"settings.subtopic.audio.displayAndInteraction" = "العرض والتفاعل";
+"settings.subtopic.audio.deviceManagement" = "إدارة الأجهزة";
+"settings.subtopic.audio.externalVolume" = "مستوى الصوت الخارجي";
+"settings.subtopic.bluetooth.displayAndPreview" = "العرض والمعاينة";
+"settings.subtopic.bluetooth.deviceAndBattery" = "الأجهزة والبطارية";
+"settings.subtopic.bluetooth.panelAndList" = "اللوحة والقائمة";

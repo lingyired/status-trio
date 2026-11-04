@@ -755,3 +755,18 @@
 "battery.powerMode.low" = "Низкое энергопотребление";
 "battery.powerMode.high" = "Высокая мощность";
 "battery.powerMode.highRequiresPower" = "Режим высокой мощности вступает в силу при подключённом адаптере питания.";
+
+// Settings subpage labels
+"settings.subtopic.appIcon.placementSize" = "Положение и размер";
+"settings.subtopic.appIcon.ringAndDock" = "Кольцо и Dock";
+"settings.subtopic.appIcon.middleIcon" = "Центральный значок";
+"settings.subtopic.battery.iconDisplay" = "Отображение значка";
+"settings.subtopic.battery.colorsAndAnimation" = "Цвета и анимация";
+"settings.subtopic.battery.chargeManagement" = "Управление зарядкой";
+"settings.subtopic.battery.powerAndEnergy" = "Энергия и расход";
+"settings.subtopic.audio.displayAndInteraction" = "Отображение и взаимодействие";
+"settings.subtopic.audio.deviceManagement" = "Управление устройствами";
+"settings.subtopic.audio.externalVolume" = "Внешняя громкость";
+"settings.subtopic.bluetooth.displayAndPreview" = "Отображение и предпросмотр";
+"settings.subtopic.bluetooth.deviceAndBattery" = "Устройства и батарея";
+"settings.subtopic.bluetooth.panelAndList" = "Панель и список";

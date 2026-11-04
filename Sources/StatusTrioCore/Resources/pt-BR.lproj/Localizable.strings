@@ -755,3 +755,18 @@
 "battery.powerMode.low" = "Baixo Consumo";
 "battery.powerMode.high" = "Alto Desempenho";
 "battery.powerMode.highRequiresPower" = "O Modo de Alto Desempenho passa a valer com o adaptador de energia conectado.";
+
+// Settings subpage labels
+"settings.subtopic.appIcon.placementSize" = "Posição e tamanho";
+"settings.subtopic.appIcon.ringAndDock" = "Anel e Dock";
+"settings.subtopic.appIcon.middleIcon" = "Ícone central";
+"settings.subtopic.battery.iconDisplay" = "Exibição do ícone";
+"settings.subtopic.battery.colorsAndAnimation" = "Cores e animação";
+"settings.subtopic.battery.chargeManagement" = "Gerenciamento de carga";
+"settings.subtopic.battery.powerAndEnergy" = "Energia e consumo";
+"settings.subtopic.audio.displayAndInteraction" = "Exibição e interação";
+"settings.subtopic.audio.deviceManagement" = "Gerenciamento de dispositivos";
+"settings.subtopic.audio.externalVolume" = "Volume externo";
+"settings.subtopic.bluetooth.displayAndPreview" = "Exibição e prévia";
+"settings.subtopic.bluetooth.deviceAndBattery" = "Dispositivos e bateria";
+"settings.subtopic.bluetooth.panelAndList" = "Painel e lista";

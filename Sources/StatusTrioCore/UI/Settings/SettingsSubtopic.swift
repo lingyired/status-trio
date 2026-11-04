@@ -57,25 +57,25 @@ enum SettingsSubtopic: Hashable, Identifiable, CaseIterable {
     func title(_ localization: Localization) -> String {
         switch self {
         // App Icon
-        case .appIconPlacementSize: return localization.string(.settingsAppIconPlacement)
-        case .appIconRingAndDock:   return localization.string(.settingsAppIconDockGroup)
-        case .appIconMiddleIcon:    return localization.string(.settingsMiddleIconTitle)
+        case .appIconPlacementSize: return localization.string(.settingsSubtopicAppIconPlacementSize)
+        case .appIconRingAndDock:   return localization.string(.settingsSubtopicAppIconRingAndDock)
+        case .appIconMiddleIcon:    return localization.string(.settingsSubtopicAppIconMiddleIcon)
 
         // Battery
-        case .batteryIconDisplay:          return localization.string(.settingsBatteryGroupIcon)
-        case .batteryColorsAndAnimation:   return localization.string(.settingsBatteryGroupColors)
-        case .batteryChargeManagement:     return localization.string(.settingsBatteryGroupCharging)
-        case .batteryPowerAndEnergy:       return localization.string(.settingsBatteryGroupPower)
+        case .batteryIconDisplay:          return localization.string(.settingsSubtopicBatteryIconDisplay)
+        case .batteryColorsAndAnimation:   return localization.string(.settingsSubtopicBatteryColorsAndAnimation)
+        case .batteryChargeManagement:     return localization.string(.settingsSubtopicBatteryChargeManagement)
+        case .batteryPowerAndEnergy:       return localization.string(.settingsSubtopicBatteryPowerAndEnergy)
 
         // Audio
-        case .audioDisplayAndInteraction:  return localization.string(.settingsAudioIndicatorStyleTitle)
-        case .audioDeviceManagement:       return localization.string(.settingsAudioDisplayRules)
-        case .audioExternalVolume:         return localization.string(.settingsAudioExternalVolumeTitle)
+        case .audioDisplayAndInteraction:  return localization.string(.settingsSubtopicAudioDisplayAndInteraction)
+        case .audioDeviceManagement:       return localization.string(.settingsSubtopicAudioDeviceManagement)
+        case .audioExternalVolume:         return localization.string(.settingsSubtopicAudioExternalVolume)
 
         // Bluetooth
-        case .bluetoothDisplayAndPreview:  return localization.string(.settingsBluetoothTitle)
-        case .bluetoothDeviceAndBattery:   return localization.string(.settingsAppleDevicesAndBattery)
-        case .bluetoothPanelAndList:       return localization.string(.settingsBluetoothDeviceListGroup)
+        case .bluetoothDisplayAndPreview:  return localization.string(.settingsSubtopicBluetoothDisplayAndPreview)
+        case .bluetoothDeviceAndBattery:   return localization.string(.settingsSubtopicBluetoothDeviceAndBattery)
+        case .bluetoothPanelAndList:       return localization.string(.settingsSubtopicBluetoothPanelAndList)
         }
     }
 }

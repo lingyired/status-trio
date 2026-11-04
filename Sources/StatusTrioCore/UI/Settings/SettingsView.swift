@@ -209,6 +209,7 @@ struct SettingsView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(showsPill ? [.isSelected] : [])
     }
 
     private func subtopicRow(_ subtopic: SettingsSubtopic) -> some View {
@@ -226,6 +227,7 @@ struct SettingsView: View {
                             : Color.primary.opacity(0.9)
                     )
                     .lineLimit(1)
+                    .truncationMode(.tail)
 
                 Spacer(minLength: 0)
             }
@@ -243,6 +245,8 @@ struct SettingsView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .help(subtopic.title(localization))
+        .accessibilityAddTraits(navigation.selectedSubtopic == subtopic ? [.isSelected] : [])
     }
 
     // MARK: - Detail

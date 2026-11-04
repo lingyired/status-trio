@@ -755,3 +755,18 @@
 "battery.powerMode.low" = "低電量";
 "battery.powerMode.high" = "高電量";
 "battery.powerMode.highRequiresPower" = "高電量模式需要連接電源後才會生效。";
+
+// Settings subpage labels
+"settings.subtopic.appIcon.placementSize" = "位置與尺寸";
+"settings.subtopic.appIcon.ringAndDock" = "圓弧與 Dock";
+"settings.subtopic.appIcon.middleIcon" = "中間圖示";
+"settings.subtopic.battery.iconDisplay" = "圖示顯示";
+"settings.subtopic.battery.colorsAndAnimation" = "顏色與動畫";
+"settings.subtopic.battery.chargeManagement" = "充電管理";
+"settings.subtopic.battery.powerAndEnergy" = "電源與能耗";
+"settings.subtopic.audio.displayAndInteraction" = "顯示與互動";
+"settings.subtopic.audio.deviceManagement" = "裝置管理";
+"settings.subtopic.audio.externalVolume" = "外部音量";
+"settings.subtopic.bluetooth.displayAndPreview" = "顯示與預覽";
+"settings.subtopic.bluetooth.deviceAndBattery" = "裝置與電量";
+"settings.subtopic.bluetooth.panelAndList" = "面板與列表";

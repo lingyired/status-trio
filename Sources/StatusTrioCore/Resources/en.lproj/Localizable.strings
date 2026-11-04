@@ -753,3 +753,18 @@
 "battery.powerMode.low" = "Low Power";
 "battery.powerMode.high" = "High Power";
 "battery.powerMode.highRequiresPower" = "High Power Mode takes effect when a power adapter is connected.";
+
+// Settings subpage labels
+"settings.subtopic.appIcon.placementSize" = "Placement & Size";
+"settings.subtopic.appIcon.ringAndDock" = "Ring & Dock";
+"settings.subtopic.appIcon.middleIcon" = "Middle Icon";
+"settings.subtopic.battery.iconDisplay" = "Icon Display";
+"settings.subtopic.battery.colorsAndAnimation" = "Colors & Animation";
+"settings.subtopic.battery.chargeManagement" = "Charge Management";
+"settings.subtopic.battery.powerAndEnergy" = "Power & Energy";
+"settings.subtopic.audio.displayAndInteraction" = "Display & Interaction";
+"settings.subtopic.audio.deviceManagement" = "Device Management";
+"settings.subtopic.audio.externalVolume" = "External Volume";
+"settings.subtopic.bluetooth.displayAndPreview" = "Display & Preview";
+"settings.subtopic.bluetooth.deviceAndBattery" = "Devices & Battery";
+"settings.subtopic.bluetooth.panelAndList" = "Panel & List";

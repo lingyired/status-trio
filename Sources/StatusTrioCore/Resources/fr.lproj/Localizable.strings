@@ -755,3 +755,18 @@
 "battery.powerMode.low" = "Économie";
 "battery.powerMode.high" = "Haute puissance";
 "battery.powerMode.highRequiresPower" = "Le mode haute puissance prend effet une fois l’adaptateur secteur connecté.";
+
+// Settings subpage labels
+"settings.subtopic.appIcon.placementSize" = "Position et taille";
+"settings.subtopic.appIcon.ringAndDock" = "Anneau et Dock";
+"settings.subtopic.appIcon.middleIcon" = "Icône centrale";
+"settings.subtopic.battery.iconDisplay" = "Affichage de l’icône";
+"settings.subtopic.battery.colorsAndAnimation" = "Couleurs et animation";
+"settings.subtopic.battery.chargeManagement" = "Gestion de la charge";
+"settings.subtopic.battery.powerAndEnergy" = "Énergie et consommation";
+"settings.subtopic.audio.displayAndInteraction" = "Affichage et interaction";
+"settings.subtopic.audio.deviceManagement" = "Gestion des appareils";
+"settings.subtopic.audio.externalVolume" = "Volume externe";
+"settings.subtopic.bluetooth.displayAndPreview" = "Affichage et aperçu";
+"settings.subtopic.bluetooth.deviceAndBattery" = "Appareils et batterie";
+"settings.subtopic.bluetooth.panelAndList" = "Panneau et liste";

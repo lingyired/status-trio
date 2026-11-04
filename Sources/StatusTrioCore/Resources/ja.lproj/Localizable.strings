@@ -755,3 +755,18 @@
 "battery.powerMode.low" = "低電力";
 "battery.powerMode.high" = "高電力";
 "battery.powerMode.highRequiresPower" = "高電力モードは電源アダプタを接続すると有効になります。";
+
+// Settings subpage labels
+"settings.subtopic.appIcon.placementSize" = "配置とサイズ";
+"settings.subtopic.appIcon.ringAndDock" = "リングと Dock";
+"settings.subtopic.appIcon.middleIcon" = "中央アイコン";
+"settings.subtopic.battery.iconDisplay" = "アイコン表示";
+"settings.subtopic.battery.colorsAndAnimation" = "色とアニメーション";
+"settings.subtopic.battery.chargeManagement" = "充電管理";
+"settings.subtopic.battery.powerAndEnergy" = "電源とエネルギー";
+"settings.subtopic.audio.displayAndInteraction" = "表示と操作";
+"settings.subtopic.audio.deviceManagement" = "デバイス管理";
+"settings.subtopic.audio.externalVolume" = "外部音量";
+"settings.subtopic.bluetooth.displayAndPreview" = "表示とプレビュー";
+"settings.subtopic.bluetooth.deviceAndBattery" = "デバイスとバッテリー";
+"settings.subtopic.bluetooth.panelAndList" = "パネルとリスト";

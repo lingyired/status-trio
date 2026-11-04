@@ -755,3 +755,18 @@
 "battery.powerMode.low" = "저전력";
 "battery.powerMode.high" = "고전력";
 "battery.powerMode.highRequiresPower" = "고전력 모드는 전원 어댑터를 연결해야 적용됩니다.";
+
+// Settings subpage labels
+"settings.subtopic.appIcon.placementSize" = "위치 및 크기";
+"settings.subtopic.appIcon.ringAndDock" = "링 및 Dock";
+"settings.subtopic.appIcon.middleIcon" = "중앙 아이콘";
+"settings.subtopic.battery.iconDisplay" = "아이콘 표시";
+"settings.subtopic.battery.colorsAndAnimation" = "색상 및 애니메이션";
+"settings.subtopic.battery.chargeManagement" = "충전 관리";
+"settings.subtopic.battery.powerAndEnergy" = "전원 및 에너지";
+"settings.subtopic.audio.displayAndInteraction" = "표시 및 상호작용";
+"settings.subtopic.audio.deviceManagement" = "기기 관리";
+"settings.subtopic.audio.externalVolume" = "외부 볼륨";
+"settings.subtopic.bluetooth.displayAndPreview" = "표시 및 미리보기";
+"settings.subtopic.bluetooth.deviceAndBattery" = "기기 및 배터리";
+"settings.subtopic.bluetooth.panelAndList" = "패널 및 목록";
