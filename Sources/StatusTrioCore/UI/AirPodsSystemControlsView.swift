@@ -41,11 +41,49 @@ enum AirPodsControlSymbols {
     }
 }
 
+/// One confirmed value for the current route, owned by SystemStatusStore.
+/// No hardware objects, timers, or work survive menu dismissal.
+@MainActor
+final class AirPodsConversationCache {
+    private var route: PanelAudioDeviceID?
+    private var value: [AirPodsSystemOption] = []
+    private(set) var generation = 0
+
+    func updateRoute(_ route: PanelAudioDeviceID?) {
+        guard self.route != route else { return }
+        self.route = route
+        value = []
+        generation += 1
+    }
+
+    func options(for route: PanelAudioDeviceID) -> [AirPodsSystemOption] {
+        self.route == route ? value : []
+    }
+
+    func store(_ options: [AirPodsSystemOption], route: PanelAudioDeviceID, generation: Int) {
+        guard self.route == route, self.generation == generation else { return }
+        value = options
+    }
+}
+
+private struct AirPodsConversationCacheKey: EnvironmentKey {
+    static let defaultValue: AirPodsConversationCache? = nil
+}
+
+extension EnvironmentValues {
+    var airPodsConversationCache: AirPodsConversationCache? {
+        get { self[AirPodsConversationCacheKey.self] }
+        set { self[AirPodsConversationCacheKey.self] = newValue }
+    }
+}
+
 @MainActor
 final class AirPodsSystemControlsModel: ObservableObject {
     @Published private(set) var snapshot = AirPodsSystemSnapshot()
     @Published private(set) var busy = false
     @Published private(set) var errorKey: LocalizationKey?
+    private let conversationCache: AirPodsConversationCache?
+    private var conversationGeneration: Int = 0
     private let controls: AirPodsSystemControls
     private var task: Task<Void, Never>?
     private let deviceID: PanelAudioDeviceID
@@ -69,16 +107,27 @@ final class AirPodsSystemControlsModel: ObservableObject {
 
     init(deviceID: PanelAudioDeviceID, deviceName: String, snapshot: AirPodsSystemSnapshot = .init(),
          listenerBackend: any BluetoothListeningModePropertyListening = CoreAudioBluetoothListeningModeListenerBackend(),
-         spatialReader: (@MainActor () throws -> [AirPodsSystemOption])? = nil) {
+         spatialReader: (@MainActor () throws -> [AirPodsSystemOption])? = nil,
+         conversationCache: AirPodsConversationCache? = nil) {
+        self.conversationCache = conversationCache
+        self.conversationGeneration = conversationCache?.generation ?? 0
         self.deviceID = deviceID
         self.listenerBackend = listenerBackend
         self.spatialReader = spatialReader
         self.snapshot = snapshot
         controls = AirPodsSystemControls(target: deviceID, name: deviceName)
+        if let conversationCache {
+            self.snapshot.conversation = conversationCache.options(for: deviceID)
+        }
     }
 
     func start(read: Reader? = nil) {
         guard observation == nil else { return }
+        if let conversationCache {
+            conversationGeneration = conversationCache.generation
+            snapshot.conversation = conversationCache.options(for: deviceID)
+            snapshot.conversationLoaded = !snapshot.conversation.isEmpty
+        }
         observationGeneration += 1
         let token = observationGeneration
         observation = AirPodsSpatialObservation(deviceID: deviceID.id, backend: listenerBackend) { [weak self] in
@@ -113,6 +162,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
                 self.snapshot.spatialLoaded = true
                 if error as? AirPodsSystemControlError == .routeChanged {
                     self.snapshot = AirPodsSystemSnapshot()
+                    self.cacheConversation([])
                     self.errorKey = .airPodsRouteChanged
                     self.stop()
                 }
@@ -129,6 +179,12 @@ final class AirPodsSystemControlsModel: ObservableObject {
                 guard !Task.isCancelled else { return }
                 guard let self else { return }
                 var updated = snapshot
+                if !updated.conversationLoaded && !updated.loaded && updated.supportsConversation != false {
+                    updated.conversation = self.snapshot.conversation
+                    updated.conversationLoaded = self.snapshot.conversationLoaded
+                } else {
+                    self.cacheConversation(updated.conversation)
+                }
                 if self.spatialRevision != revision {
                     updated.spatial = self.snapshot.spatial
                     updated.spatialLoaded = self.snapshot.spatialLoaded
@@ -151,7 +207,9 @@ final class AirPodsSystemControlsModel: ObservableObject {
         run(.option(group)) {
             let options = try await self.controls.select(title, group: group)
             switch group {
-            case .conversation: self.snapshot.conversation = options
+            case .conversation:
+                self.snapshot.conversation = options
+                self.cacheConversation(options)
             case .spatial: self.snapshot.spatial = options
             }
         }
@@ -175,6 +233,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
                 snapshot.spatial = []
                 if error as? AirPodsSystemControlError == .routeChanged {
                     snapshot = AirPodsSystemSnapshot()
+                    cacheConversation([])
                     errorKey = .airPodsRouteChanged
                     stop()
                     return
@@ -191,6 +250,10 @@ final class AirPodsSystemControlsModel: ObservableObject {
 
     func setAdaptive(_ value: Int) {
         run(.adaptive) { self.snapshot.adaptive = try await self.controls.setAdaptive(value) }
+    }
+
+    private func cacheConversation(_ options: [AirPodsSystemOption]) {
+        conversationCache?.store(options, route: deviceID, generation: conversationGeneration)
     }
 
     func stop() {
@@ -221,9 +284,12 @@ final class AirPodsSystemControlsModel: ObservableObject {
             } catch is CancellationError {
                 guard !Task.isCancelled else { return }
                 snapshot = AirPodsSystemSnapshot(loaded: true)
+                cacheConversation([])
                 errorKey = .airPodsUnavailable
             } catch {
                 guard !Task.isCancelled else { return }
+                if case .refresh = change { cacheConversation([]) }
+                if case .option(.conversation) = change { cacheConversation([]) }
                 // Never leave a failed write displaying an earlier confirmed value
                 // as if it were current; Refresh obtains a fresh system snapshot.
                 switch change {
@@ -234,6 +300,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
                 }
                 if let error = error as? AirPodsSystemControlError, error == .routeChanged {
                     snapshot = AirPodsSystemSnapshot()
+                    cacheConversation([])
                 }
                 switch error as? AirPodsSystemControlError {
                 case .routeChanged: errorKey = .airPodsRouteChanged

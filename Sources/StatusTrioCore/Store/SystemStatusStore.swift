@@ -29,6 +29,8 @@ struct BluetoothSettingsDemandToken: Hashable, Sendable {
 
 @MainActor
 final class SystemStatusStore: ObservableObject {
+    let airPodsConversationCache = AirPodsConversationCache()
+
     static let popupDebounceInterval: Duration = .milliseconds(500)
 
     /// The fallback poll refreshes the battery on every tick: its percentage and
@@ -268,6 +270,8 @@ final class SystemStatusStore: ObservableObject {
         self.popupSnapshot = initialSnapshot
         self.vpnStatus = .placeholder
         self.liveVolume = initialSnapshot.volume
+        let initialOutput = initialSnapshot.volume.outputDevices.first(where: \.isCurrent) ?? initialSnapshot.volume.currentDevice
+        airPodsConversationCache.updateRoute(initialOutput.map { PanelAudioDeviceID(id: $0.id, uid: $0.uid) })
         self.liveBrightness = initialSnapshot.brightness
         bluetoothAuthorizationCancellable = bluetoothDevices.$authorizationStatus
             .sink { [weak self] _ in
@@ -1486,6 +1490,8 @@ final class SystemStatusStore: ObservableObject {
     }
 
     private func applyVolume(_ value: VolumeStatus) {
+        let current = value.outputDevices.first(where: \.isCurrent) ?? value.currentDevice
+        airPodsConversationCache.updateRoute(current.map { PanelAudioDeviceID(id: $0.id, uid: $0.uid) })
         // `liveVolume` drives the popover's volume section through
         // `objectWillChange`, and `publish` only dedupes the snapshot. Writing an
         // unchanged reading here re-rendered every volume observer on every

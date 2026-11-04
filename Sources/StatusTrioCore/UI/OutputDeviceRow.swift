@@ -6,6 +6,7 @@ struct OutputDeviceRow: View {
     let onSelect: () -> Void
     let onSelectListeningMode: (BluetoothListeningMode) -> Void
 
+    @Environment(\.airPodsConversationCache) private var conversationCache
     @State private var expanded = false
     @State private var controls: AirPodsSystemControlsModel?
 
@@ -17,7 +18,7 @@ struct OutputDeviceRow: View {
                     Button {
                         expanded.toggle()
                         if expanded && controls == nil {
-                            controls = AirPodsSystemControlsModel(deviceID: state.key, deviceName: state.name)
+                            controls = AirPodsSystemControlsModel(deviceID: state.key, deviceName: state.name, conversationCache: conversationCache)
                         }
                         if !expanded { controls?.stop() }
                     } label: {
