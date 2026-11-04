@@ -216,6 +216,35 @@ final class LegacyChargeLimitControllerTests: XCTestCase {
         XCTAssertEqual(controller.status, .holding(at: 90))
     }
 
+    func testStartWithNoSessionDoesNotProbeOrStartTheHelper() async {
+        let client = FakeLegacyClient()
+        let controller = makeController(client: client)
+        controller.start()
+        // Give the (possibly scheduled) task a turn to run.
+        await Task.yield()
+        XCTAssertEqual(client.probeCalls, 0, "An idle app must not spawn the root helper")
+        XCTAssertEqual(controller.status, .notEnabled)
+    }
+
+    func testStartWithSavedSessionVerifiesIt() async {
+        let store = VolatileLegacyChargeLimitSessionStore()
+        store.save(LegacyChargeLimitSession(requestedLimit: 80, originalLimit: 100))
+        let client = FakeLegacyClient()
+        let controller = makeController(client: client, store: store)
+        controller.start()
+        for _ in 0..<50 where client.verifyCalls.isEmpty {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(client.verifyCalls, [80])
+    }
+
+    func testRefreshAvailabilityProbesWhenThePaneIsShown() async {
+        let client = FakeLegacyClient()
+        let controller = makeController(client: client)
+        await controller.refreshAvailability()
+        XCTAssertEqual(client.probeCalls, 1)
+    }
+
     func testUnavailableControllerDoesNotIssueCommands() async {
         let client = FakeLegacyClient()
         let controller = makeController(client: client, osBand: .tahoe)

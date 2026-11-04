@@ -18,6 +18,11 @@ struct LegacyChargeLimitSettingsView: View {
             localization.string(.settingsBatteryLegacyChargeLimitTitle),
             footnote: localization.string(.settingsBatteryLegacyChargeLimitBeta)
         ) {
+            // Probes only while this pane is visible; an idle app never
+            // spawns the root helper.
+            Color.clear
+                .frame(height: 0)
+                .task { await controller.refreshAvailability() }
             SettingsRow(
                 "battery.100",
                 tint: .orange,

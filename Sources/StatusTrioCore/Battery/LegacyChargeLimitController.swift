@@ -38,10 +38,23 @@ final class LegacyChargeLimitController: ObservableObject {
 
     // MARK: - Lifecycle
 
+    /// App launch must not start the root helper: the plan limits health probes
+    /// to an active limit or a visible Settings pane. A saved session is the
+    /// only reason to verify at launch (it owns the hardware).
     func start() {
         guard !started else { return }
         started = true
+        guard sessionStore.load() != nil else {
+            status = .notEnabled
+            return
+        }
         taskRefresh()
+    }
+
+    /// Called when the battery Settings pane becomes visible. This is the only
+    /// place availability is probed, so an idle app never spawns the helper.
+    func refreshAvailability() async {
+        await refresh()
     }
 
     func stop() {
