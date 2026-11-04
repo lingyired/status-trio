@@ -166,7 +166,6 @@
 "settings.battery.group.charging" = "充电";
 "settings.battery.group.powerModes" = "电量模式";
 "settings.battery.group.power" = "功耗";
-"settings.battery.group.all" = "全部";
 "settings.battery.noBatteryNotice" = "当前设备没有电池，所以电量显示默认为 100。";
 "settings.battery.showPercentage" = "显示电量数字";
 "settings.battery.showChargingIndicator" = "充电/连接电源时显示指示图标";

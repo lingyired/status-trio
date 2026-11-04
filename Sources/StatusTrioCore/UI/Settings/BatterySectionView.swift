@@ -7,10 +7,6 @@ struct BatterySectionView: View {
     @Binding var previewIsDark: Bool
     var chargeToFullNow: ChargeToFullNowController? = nil
     @EnvironmentObject private var localization: Localization
-    @Environment(\.settingsScrollProxy) private var scrollProxy
-    /// Which group the page is showing. `nil` shows every group; selecting one
-    /// filters the page to it, so the long list becomes a short one.
-    @State private var selectedSection: BatterySectionAnchor?
     @ObservedObject private var helper: PrivilegedHelperManager = .shared
 
 
@@ -25,112 +21,19 @@ struct BatterySectionView: View {
             if !statusStore.snapshot.battery.isPresent {
                 noBatteryNoticeGroup
             }
-            sectionNavigation
-            if let selectedSection {
-                sectionContent(selectedSection)
-            } else {
-                sectionContent(.icon)
-                sectionContent(.colors)
-                sectionContent(.chargingEffects)
-                sectionContent(.charging)
-                if helper.isAvailable {
-                    sectionContent(.powerModes)
-                }
-                sectionContent(.power)
-            }
-        }
-    }
-
-    /// Quick jumps to each group: the page is long, and a row of labels is
-    /// faster than scrolling for the one setting a user came for.
-    private var sectionNavigation: some View {
-        SettingsGroup {
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 108), spacing: 8)],
-                alignment: .leading,
-                spacing: 8
-            ) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        selectedSection = nil
-                    }
-                } label: {
-                    Text(localization.string(.settingsBatteryGroupAll))
-                        .font(.caption)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 5)
-                }
-                .buttonStyle(SectionJumpButtonStyle(isSelected: selectedSection == nil))
-
-                ForEach(BatterySectionAnchor.allCases) { anchor in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            selectedSection = anchor
-                        }
-                    } label: {
-                        Text(localization.string(anchor.titleKey))
-                            .font(.caption)
-                            .lineLimit(1)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 5)
-                    }
-                    .buttonStyle(SectionJumpButtonStyle(isSelected: selectedSection == anchor))
-                }
-            }
-            .padding(.horizontal, SettingsMetrics.rowPaddingH)
-            .padding(.vertical, 8)
-        }
-    }
-
-    @ViewBuilder
-    private func sectionContent(_ anchor: BatterySectionAnchor) -> some View {
-        switch anchor {
-        case .icon:
             iconGroup
-                .id(anchor.rawValue)
-        case .colors:
             colorsGroup
-                .id(anchor.rawValue)
-        case .chargingEffects:
             chargingEffectsGroup
-                .id(anchor.rawValue)
-        case .charging:
             chargingGroup
-                .id(anchor.rawValue)
-        case .powerModes:
-            powerModesGroup
-                .id(anchor.rawValue)
-        case .power:
+            if helper.isAvailable {
+                powerModesGroup
+            }
             powerFlowGroup
-                .id(anchor.rawValue)
         }
     }
 
     /// A Mac without a battery reports 100 as its level; spell that out at the
     /// top of the page so nobody reads the placeholder as a real reading.
-    private enum BatterySectionAnchor: String, CaseIterable, Identifiable {
-        case icon
-        case colors
-        case chargingEffects
-        case charging
-        case powerModes
-        case power
-
-        var id: String { rawValue }
-
-        var titleKey: LocalizationKey {
-            switch self {
-            case .icon: .settingsBatteryGroupIcon
-            case .colors: .settingsBatteryGroupColors
-            case .chargingEffects: .settingsBatteryGroupChargingEffects
-            case .charging: .settingsBatteryGroupCharging
-            case .powerModes: .settingsBatteryGroupPowerModes
-            case .power: .settingsBatteryGroupPower
-            }
-        }
-    }
-
     private var noBatteryNoticeGroup: some View {
         SettingsGroup {
             SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryNotice))
@@ -668,25 +571,7 @@ struct BatterySectionView: View {
     }
 
 
-    /// A capsule jump label that shows a pressed state and takes the whole capsule
-/// as its hit area (a plain button only hits its text).
-private struct SectionJumpButtonStyle: ButtonStyle {
-    let isSelected: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(isSelected ? Color.white : Color.primary)
-            .background(
-                isSelected
-                    ? Color.accentColor
-                    : Color.secondary.opacity(configuration.isPressed ? 0.26 : 0.12),
-                in: Capsule()
-            )
-            .contentShape(Capsule())
-    }
-}
-
-/// One state, carried by the description instead of a line of its own.
+    /// One state, carried by the description instead of a line of its own.
     ///
     /// The native approval value is deliberately not repeated here: it can stay
     /// "pending" on a system where the helper already answers, and the approval

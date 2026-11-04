@@ -806,26 +806,6 @@ struct SettingsDivider: View {
 /// scrollbar. The header must not sit outside the scroll view: a scrollbar that
 /// takes layout space only narrows the scrolling content, which used to leave the
 /// app icon page's card groups one scrollbar narrower than the preview above them.
-/// Lets a page's content ask the enclosing `SettingsPage` scroll view to move
-/// to a named anchor, so a long page can offer quick jumps without a second
-/// navigation level.
-/// `ScrollViewProxy` is only used from the main actor; the value type keeps
-/// the environment key Sendable without changing how it is used.
-private struct SettingsScrollTarget: @unchecked Sendable {
-    let proxy: ScrollViewProxy?
-}
-
-private struct SettingsScrollProxyKey: EnvironmentKey {
-    static let defaultValue = SettingsScrollTarget(proxy: nil)
-}
-
-extension EnvironmentValues {
-    var settingsScrollProxy: ScrollViewProxy? {
-        get { self[SettingsScrollProxyKey.self].proxy }
-        set { self[SettingsScrollProxyKey.self] = SettingsScrollTarget(proxy: newValue) }
-    }
-}
-
 struct SettingsPage<Content: View, PinnedHeader: View>: View {
     @ViewBuilder let pinnedHeader: PinnedHeader
     @ViewBuilder let content: Content
@@ -839,13 +819,6 @@ struct SettingsPage<Content: View, PinnedHeader: View>: View {
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            scrollContent(proxy: proxy)
-        }
-        .background(Color(nsColor: .windowBackgroundColor))
-    }
-
-    private func scrollContent(proxy: ScrollViewProxy) -> some View {
         ScrollView {
             if PinnedHeader.self == EmptyView.self {
                 contentColumn
@@ -873,7 +846,6 @@ struct SettingsPage<Content: View, PinnedHeader: View>: View {
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        .environment(\.settingsScrollProxy, proxy)
     }
 
     private var contentColumn: some View {

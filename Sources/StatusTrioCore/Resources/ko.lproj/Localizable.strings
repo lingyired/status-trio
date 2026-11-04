@@ -166,7 +166,6 @@
 "settings.battery.group.charging" = "충전";
 "settings.battery.group.powerModes" = "전원 모드";
 "settings.battery.group.power" = "전력";
-"settings.battery.group.all" = "전체";
 "settings.battery.noBatteryNotice" = "이 기기에는 배터리가 없으므로 배터리 잔량이 기본적으로 100으로 표시됩니다.";
 "settings.battery.showPercentage" = "배터리 잔량 표시";
 "settings.battery.showChargingIndicator" = "충전 또는 전원 연결 시 아이콘 표시";

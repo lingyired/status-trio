@@ -166,7 +166,6 @@
 "settings.battery.group.charging" = "Зарядка";
 "settings.battery.group.powerModes" = "Режимы питания";
 "settings.battery.group.power" = "Энергопотребление";
-"settings.battery.group.all" = "Все";
 "settings.battery.noBatteryNotice" = "На этом устройстве нет аккумулятора, поэтому уровень заряда по умолчанию отображается как 100.";
 "settings.battery.showPercentage" = "Показывать процент заряда";
 "settings.battery.showChargingIndicator" = "Показывать значок при зарядке или питании от сети";

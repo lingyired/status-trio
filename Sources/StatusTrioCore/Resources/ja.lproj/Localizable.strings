@@ -166,7 +166,6 @@
 "settings.battery.group.charging" = "充電";
 "settings.battery.group.powerModes" = "電力モード";
 "settings.battery.group.power" = "電力";
-"settings.battery.group.all" = "すべて";
 "settings.battery.noBatteryNotice" = "このデバイスにはバッテリーがないため、バッテリー残量は既定で 100 と表示されます。";
 "settings.battery.showPercentage" = "バッテリー残量を表示";
 "settings.battery.showChargingIndicator" = "充電中または電源接続時にアイコンを表示";
