@@ -13,6 +13,9 @@ struct BatteryDetailsView: View {
     /// and layout tests, where the read-only row stands in for it.
     private let lowPowerMode: LowPowerModeController?
     private let showsLowPowerControl: Bool
+    private let highPowerMode: HighPowerModeController?
+    private let showsHighPowerControl: Bool
+    private let isConnectedToPower: Bool
     private let chargeToFullNow: ChargeToFullNowPresentation
     private let onChargeToFullNow: () -> Void
     /// The sensor caveats and the energy-ranking caveat live behind the header's
@@ -28,6 +31,9 @@ struct BatteryDetailsView: View {
         onAppear: @escaping () -> Void,
         lowPowerMode: LowPowerModeController? = nil,
         showsLowPowerControl: Bool = false,
+        highPowerMode: HighPowerModeController? = nil,
+        showsHighPowerControl: Bool = false,
+        isConnectedToPower: Bool = true,
         chargeToFullNow: ChargeToFullNowPresentation = .hidden,
         onChargeToFullNow: @escaping () -> Void = {}
     ) {
@@ -39,6 +45,9 @@ struct BatteryDetailsView: View {
         self.onAppear = onAppear
         self.lowPowerMode = lowPowerMode
         self.showsLowPowerControl = showsLowPowerControl
+        self.highPowerMode = highPowerMode
+        self.showsHighPowerControl = showsHighPowerControl
+        self.isConnectedToPower = isConnectedToPower
         self.chargeToFullNow = chargeToFullNow
         self.onChargeToFullNow = onChargeToFullNow
     }
@@ -82,7 +91,20 @@ struct BatteryDetailsView: View {
                 HighEnergyAppsView(ranking: ranking)
             }
 
-            if showsLowPowerControl, let lowPowerMode {
+            // Low and High are two states of one system switch. When the Mac
+            // supports High Power Mode the page presents the three states
+            // together; otherwise only the Low Power toggle exists.
+            if showsLowPowerControl, let lowPowerMode,
+               showsHighPowerControl, let highPowerMode,
+               highPowerMode.isSupported || highPowerMode.needsHelperUpdate
+                || highPowerMode.lastError != nil {
+                Divider()
+                PowerModePickerRow(
+                    lowController: lowPowerMode,
+                    highController: highPowerMode,
+                    isConnectedToPower: isConnectedToPower
+                )
+            } else if showsLowPowerControl, let lowPowerMode {
                 Divider()
                 lowPowerControlRow(lowPowerMode)
             }

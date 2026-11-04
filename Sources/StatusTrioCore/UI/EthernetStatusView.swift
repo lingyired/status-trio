@@ -13,7 +13,7 @@ struct EthernetStatusView: View {
     let onOpenNetworkSettings: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: PanelSummaryActionMetrics.iconGap) {
             Button {
                 onOpenDetails()
             } label: {

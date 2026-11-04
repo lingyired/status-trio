@@ -9,6 +9,9 @@ import Foundation
 enum BatteryStatusColorRole: String, CaseIterable, Hashable, Sendable {
     case charging
     case lowPower
+    /// High Power Mode's ring colour (#235). Defaults to the system blue so an
+    /// existing install gains the state without changing its saved palette.
+    case highPower
     case critical
 }
 
@@ -72,15 +75,18 @@ struct BatteryStatusColorComponents: Equatable, Hashable, Sendable {
 struct BatteryStatusColors: Equatable, Hashable, Sendable {
     var charging: BatteryStatusColorSelection
     var lowPower: BatteryStatusColorSelection
+    var highPower: BatteryStatusColorSelection
     var critical: BatteryStatusColorSelection
 
     init(
         charging: BatteryStatusColorSelection = .system,
         lowPower: BatteryStatusColorSelection = .system,
+        highPower: BatteryStatusColorSelection = .system,
         critical: BatteryStatusColorSelection = .system
     ) {
         self.charging = charging
         self.lowPower = lowPower
+        self.highPower = highPower
         self.critical = critical
     }
 
@@ -89,13 +95,15 @@ struct BatteryStatusColors: Equatable, Hashable, Sendable {
     /// Whether any role overrides the system colour. Used by the settings page
     /// to decide if the "follow system" reset is worth offering.
     var hasOverrides: Bool {
-        !charging.isSystem || !lowPower.isSystem || !critical.isSystem
+        !charging.isSystem || !lowPower.isSystem || !highPower.isSystem
+            || !critical.isSystem
     }
 
     func selection(for role: BatteryStatusColorRole) -> BatteryStatusColorSelection {
         switch role {
         case .charging: charging
         case .lowPower: lowPower
+        case .highPower: highPower
         case .critical: critical
         }
     }
@@ -104,6 +112,7 @@ struct BatteryStatusColors: Equatable, Hashable, Sendable {
         switch role {
         case .charging: charging = selection
         case .lowPower: lowPower = selection
+        case .highPower: highPower = selection
         case .critical: critical = selection
         }
     }
