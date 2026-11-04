@@ -51,6 +51,20 @@ struct OutputDeviceRow: View {
         .onChange(of: state.supportsAirPodsSystemControls) { supported in
             if !supported { resetControls() }
         }
+        .onAppear {
+            // Development aid: lets a resize/jitter investigation drive the
+            // expansion without a pointer. Ignored outside `.dev.` bundles.
+            guard Self.expandsForResizeProbe,
+                  state.supportsAirPodsSystemControls,
+                  !expanded else { return }
+            if controls == nil { controls = makeControls() }
+            expanded = true
+        }
+    }
+
+    static var expandsForResizeProbe: Bool {
+        Bundle.main.bundleIdentifier?.contains(".dev.") == true
+            && ProcessInfo.processInfo.environment["STATUS_TRIO_EXPAND_AIRPODS"] == "1"
     }
 
     private func makeControls() -> AirPodsSystemControlsModel {

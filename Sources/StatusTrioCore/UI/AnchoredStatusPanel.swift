@@ -50,9 +50,9 @@ final class AnchoredStatusPanel: NSPanel {
     /// notifications it emits must not re-enter the layout coordinator, or the
     /// animated frame and the re-placement would fight each other.
     private var isAnimatingContentSize = false
-    /// A measurement that arrives while the resize animation is running. Applied
-    /// once the animation settles, so a repeated report cannot snap the frame.
-    private var pendingAnimatedTarget: NSRect?
+    /// Drives the frame-by-frame content resize and the height it converges on.
+    private var contentResizeTimer: Timer?
+    private var animatedContentSize: NSSize?
     /// Animates height-only content resizes so expanding a row grows the panel
     /// smoothly. Tests drive sizing synchronously and turn this off.
     var animatesContentResizes = true
@@ -237,7 +237,9 @@ final class AnchoredStatusPanel: NSPanel {
         guard isVisible else { return }
         pendingReveal = false
         isAnimatingContentSize = false
-        pendingAnimatedTarget = nil
+        contentResizeTimer?.invalidate()
+        contentResizeTimer = nil
+        animatedContentSize = nil
         layoutCoordinator.invalidate()
         removeShowObservers()
         super.close()
@@ -294,31 +296,18 @@ final class AnchoredStatusPanel: NSPanel {
         // smoothly instead of snapping. Only a settled, visible, height-only
         // change animates; the reveal correction, reduce-motion users and width
         // changes keep the immediate write.
+        if isAnimatingContentSize {
+            // A newer measurement while the animation runs: retarget it. The
+            // tick reads the target every frame, so the panel converges on the
+            // latest height without a second snap.
+            animatedContentSize = contentSize
+            return
+        }
         if shouldAnimateContentResize(to: target) {
-            isAnimatingContentSize = true
-            pendingAnimatedTarget = nil
 #if DEBUG
             frameWriteCount += 1
 #endif
-            NSAnimationContext.runAnimationGroup({ context in
-                context.duration = 0.18
-                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                context.allowsImplicitAnimation = true
-                self.animator().setFrame(target, display: true)
-            }, completionHandler: { [weak self] in
-                guard let self else { return }
-                let final = self.pendingAnimatedTarget ?? target
-                self.pendingAnimatedTarget = nil
-                self.isAnimatingContentSize = false
-                self.setFrame(final, display: false)
-                self.invalidateShadow()
-            })
-            return
-        }
-        if isAnimatingContentSize {
-            // The animation is already running to a target; remember the latest
-            // measurement and let its completion handler land it.
-            pendingAnimatedTarget = target
+            startContentResizeAnimation(to: contentSize)
             return
         }
         setFrame(target, display: false)
@@ -326,6 +315,58 @@ final class AnchoredStatusPanel: NSPanel {
         frameWriteCount += 1
 #endif
         invalidateShadow()
+    }
+
+    /// Animates the panel height frame by frame instead of handing the window to
+    /// `NSWindowAnimator`. AppKit interpolates the frame's size and origin
+    /// independently, which let the panel's top edge overshoot towards the menu
+    /// bar and snap back. Recomputing the placed frame from the anchor on every
+    /// tick keeps the anchored edge exactly still.
+    private func startContentResizeAnimation(to contentSize: NSSize) {
+        contentResizeTimer?.invalidate()
+        isAnimatingContentSize = true
+        animatedContentSize = contentSize
+        let startHeight = frame.height
+        let startTime = CACurrentMediaTime()
+        let duration: CFTimeInterval = 0.18
+        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] timer in
+            guard let self else {
+                timer.invalidate()
+                return
+            }
+            let progress = min(1, (CACurrentMediaTime() - startTime) / duration)
+            let eased = 1 - pow(1 - progress, 3)
+            let targetHeight = self.animatedContentSize?.height ?? startHeight
+            // Snap every tick to a whole point. A fractional height makes
+            // AppKit round the window's origin and size independently, so the
+            // anchored edge wobbles by up to a point while the panel grows.
+            let height = (startHeight + (targetHeight - startHeight) * CGFloat(eased)).rounded()
+            if let anchor = self.currentAnchor() {
+                let placed = StatusPanelPlacement.frame(
+                    contentSize: NSSize(width: self.frame.width, height: height),
+                    anchor: anchor,
+                    screens: NSScreen.screens.map { StatusPanelScreen($0) },
+                    dockInset: self.dockInset
+                )
+                // Only the final tick forces a synchronous display and rebuilds
+                // the shadow; intermediate frames ride the normal run-loop draw.
+                self.setFrame(placed, display: progress >= 1)
+                if progress >= 1 { self.invalidateShadow() }
+            }
+            if progress >= 1 {
+                timer.invalidate()
+                self.contentResizeTimer = nil
+                self.isAnimatingContentSize = false
+                let finalSize = self.animatedContentSize
+                self.animatedContentSize = nil
+                if let finalSize {
+                    self.applyContentFrame(finalSize)
+                }
+                self.invalidateShadow()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        contentResizeTimer = timer
     }
 
     private func shouldAnimateContentResize(to target: NSRect) -> Bool {
