@@ -737,3 +737,4 @@
 "settings.battery.chargeLimit.checking" = "保存された充電上限を確認中…";
 "settings.battery.chargeLimit.restoreScopeHint" = "管理対象の充電上限が選択されていない場合にのみ使用されます。";
 "settings.battery.restoreLimitManagedLocked" = "「充電上限」が上限を管理しているため、この復元上限は変更できません。そこで「システム管理」を選ぶと変更できます。";
+"settings.battery.chargeLimit.preferSystemOptimization" = "macOS 標準のバッテリー最適化を優先してください。通常は固定上限より適切に充電を管理します。固定上限が本当に必要な場合のみ、このオプションを使用してください。";

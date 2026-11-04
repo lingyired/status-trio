@@ -737,3 +737,4 @@
 "settings.battery.chargeLimit.checking" = "Gespeichertes Ladelimit wird geprüft…";
 "settings.battery.chargeLimit.restoreScopeHint" = "Wird nur verwendet, wenn kein verwalteter Ladegrenzwert ausgewählt ist.";
 "settings.battery.restoreLimitManagedLocked" = "„Ladelimit“ steuert derzeit die Ladegrenze, daher kann diese Wiederherstellungsgrenze nicht geändert werden. Wähle dort „Vom System verwaltet“, um sie zu bearbeiten.";
+"settings.battery.chargeLimit.preferSystemOptimization" = "Bevorzuge die in macOS integrierte Batterieoptimierung. Sie verwaltet das Laden meist besser als eine feste Obergrenze; nutze diese Option nur, wenn du eine feste Grenze brauchst.";

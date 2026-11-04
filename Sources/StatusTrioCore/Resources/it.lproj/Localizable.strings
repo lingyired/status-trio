@@ -737,3 +737,4 @@
 "settings.battery.chargeLimit.checking" = "Verifica del limite di carica salvato…";
 "settings.battery.chargeLimit.restoreScopeHint" = "Usato solo quando non è selezionato un limite di carica gestito.";
 "settings.battery.restoreLimitManagedLocked" = "«Limite di carica» sta gestendo il limite di carica, quindi questo limite di ripristino non può essere modificato. Scegli «Gestito dal sistema» per modificarlo.";
+"settings.battery.chargeLimit.preferSystemOptimization" = "Preferisci l'ottimizzazione della batteria integrata in macOS. Di solito gestisce la carica meglio di un limite fisso; usa questa opzione solo se ti serve un limite fisso.";

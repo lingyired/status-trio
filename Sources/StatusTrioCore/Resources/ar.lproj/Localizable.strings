@@ -737,3 +737,4 @@
 "settings.battery.chargeLimit.checking" = "جارٍ التحقق من حد الشحن المحفوظ…";
 "settings.battery.chargeLimit.restoreScopeHint" = "يُستخدم فقط عند عدم تحديد حد شحن مُدار.";
 "settings.battery.restoreLimitManagedLocked" = "«حد الشحن» يتحكم في حد الشحن، لذلك لا يمكن تغيير حد الاستعادة هذا. اختر «بإدارة النظام» هناك لتعديله.";
+"settings.battery.chargeLimit.preferSystemOptimization" = "يُفضّل استخدام تحسين البطارية المدمج في macOS. فهو عادةً يدير الشحن بشكل أفضل من الحد الثابت؛ استخدم هذا الخيار فقط عندما تحتاج إلى حد ثابت.";

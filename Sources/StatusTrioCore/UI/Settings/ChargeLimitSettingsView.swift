@@ -70,6 +70,17 @@ struct ChargeLimitSettingsView: View {
             SettingsHintRow(
                 text: localization.string(.settingsBatteryChargeLimitRestoreDescription)
             )
+
+            // This section is only offered on macOS 26.4+ (the PowerUI MCL
+            // capability gate). On those systems the built-in battery
+            // optimization is usually the better choice, so say so explicitly.
+            if controller.isAvailable {
+                SettingsHintRow(
+                    text: localization.string(
+                        .settingsBatteryChargeLimitPreferSystemOptimization
+                    )
+                )
+            }
         }
         .onAppear {
             controller.refresh()

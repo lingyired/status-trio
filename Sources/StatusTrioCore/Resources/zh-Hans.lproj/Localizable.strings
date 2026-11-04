@@ -737,3 +737,4 @@
 "settings.battery.chargeLimit.checking" = "正在检查已保存的充电上限…";
 "settings.battery.chargeLimit.restoreScopeHint" = "仅在未选择托管充电上限时使用。";
 "settings.battery.restoreLimitManagedLocked" = "「充电上限」正在接管最高充电值，因此此处的恢复上限无法修改。请在「充电上限」里选择「由系统管理」后再修改。";
+"settings.battery.chargeLimit.preferSystemOptimization" = "建议优先使用 macOS 自带的电池优化，它通常比固定上限管理得更好；只有确实需要固定上限时才使用这个选项。";

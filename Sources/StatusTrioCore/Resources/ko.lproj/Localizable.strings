@@ -737,3 +737,4 @@
 "settings.battery.chargeLimit.checking" = "저장된 충전 한도 확인 중…";
 "settings.battery.chargeLimit.restoreScopeHint" = "관리되는 충전 한도가 선택되지 않은 경우에만 사용됩니다.";
 "settings.battery.restoreLimitManagedLocked" = "'충전 한도'가 충전 상한을 관리하고 있어 이 복원 한도를 변경할 수 없습니다. 해당 항목에서 '시스템에서 관리'를 선택하면 변경할 수 있습니다.";
+"settings.battery.chargeLimit.preferSystemOptimization" = "macOS에 내장된 배터리 최적화를 우선 사용하는 것이 좋습니다. 일반적으로 고정 상한보다 충전을 더 잘 관리합니다. 고정 상한이 꼭 필요할 때만 이 옵션을 사용하세요.";

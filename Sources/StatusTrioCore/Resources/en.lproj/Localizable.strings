@@ -735,3 +735,4 @@
 "settings.battery.chargeLimit.checking" = "Checking the saved charge limit…";
 "settings.battery.chargeLimit.restoreScopeHint" = "Only used when no managed charge limit is selected.";
 "settings.battery.restoreLimitManagedLocked" = "“Charge Limit” is controlling the charge ceiling, so this restore limit can't be changed. Choose “System Managed” there to edit it.";
+"settings.battery.chargeLimit.preferSystemOptimization" = "Prefer the battery optimization built into macOS. It usually manages charging better than a fixed cap; use this option only when you need a fixed limit.";
