@@ -179,6 +179,7 @@ final class SystemStatusStore: ObservableObject {
     /// because no menu bar or Dock tile is on screen to keep fresh.
     @Published private(set) var isDisplayAsleep = false
     private var isSettingsVisible = false
+    private var isBrightnessSettingsVisible = false
     private var isBluetoothMonitoringSuspendedForPower = false
     private weak var boundBluetoothSettings: SettingsStore?
     private var hasBluetoothSettingsBinding = false
@@ -1011,12 +1012,24 @@ final class SystemStatusStore: ObservableObject {
     func setSettingsVisible(_ visible: Bool) {
         guard !hasStopped, isSettingsVisible != visible else { return }
         isSettingsVisible = visible
+        // Closing the window hides the Brightness tab without necessarily
+        // running its `onDisappear`, so clear the demand here too.
+        if !visible { isBrightnessSettingsVisible = false }
         updateDetailsVisibility()
         inputMonitor?.setDeviceListVisible(visible)
 
         if visible {
             refreshAll()
         }
+    }
+
+    /// The brightness settings tab is on screen. Reading brightness is
+    /// demand-gated, so the monitor should stay alive while the user is on the
+    /// tab, but not while they browse other tabs.
+    func setBrightnessSettingsVisible(_ visible: Bool) {
+        guard !hasStopped, isBrightnessSettingsVisible != visible else { return }
+        isBrightnessSettingsVisible = visible
+        updateBrightnessDetailsVisibility()
     }
 
     func activateWiFiPanel() {
@@ -1149,8 +1162,9 @@ final class SystemStatusStore: ObservableObject {
     }
 
     private var needsBrightnessDetails: Bool {
-        isPopoverVisible
-            && bluetoothSettingsSnapshot.enabledPopupSections.contains(.brightness)
+        (isPopoverVisible
+            && bluetoothSettingsSnapshot.enabledPopupSections.contains(.brightness))
+            || isBrightnessSettingsVisible
     }
 
     private func updateBrightnessDetailsVisibility() {

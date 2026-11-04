@@ -16,6 +16,7 @@ struct AudioSectionView: View {
         }) {
             indicatorStyleGroup
             volumeFeedbackGroup
+            volumeScrollGroup
             displayRulesGroup
             externalVolumeGroup
             deviceOrderGroup
@@ -66,6 +67,51 @@ struct AudioSectionView: View {
                     set: { store.setPopupVolumeScrollFeedbackOverride($0) }
                 )
             )
+        }
+    }
+
+    private var volumeScrollGroup: some View {
+        SettingsGroup(localization.string(.settingsPopupVolumeScrollGroup)) {
+            SettingsToggleRow(
+                symbol: "speaker.wave.2.fill",
+                tint: .cyan,
+                title: localization.string(.settingsPopupVolumeScroll),
+                subtitle: localization.string(.settingsPopupVolumeScrollDescription),
+                isOn: $store.popupScrollAdjustsVolume
+            )
+
+            if store.popupScrollAdjustsVolume {
+                SettingsDivider()
+
+                SettingsMenuRow(
+                    symbol: "aspectratio",
+                    tint: .teal,
+                    title: localization.string(.settingsPopupVolumeScrollScope),
+                    subtitle: localization.string(.settingsPopupVolumeScrollScopeDescription),
+                    selection: $store.popupVolumeScrollScope,
+                    options: PopupVolumeScrollScope.allCases,
+                    label: scrollScopeLabel
+                )
+
+                SettingsDivider()
+
+                SettingsToggleRow(
+                    symbol: "arrow.up.arrow.down",
+                    tint: .indigo,
+                    title: localization.string(.settingsPopupVolumeScrollNatural),
+                    subtitle: localization.string(.settingsPopupVolumeScrollNaturalDescription),
+                    isOn: $store.popupVolumeNaturalScrolling
+                )
+            }
+        }
+    }
+
+    private func scrollScopeLabel(_ scope: PopupVolumeScrollScope) -> String {
+        switch scope {
+        case .panel:
+            localization.string(.settingsPopupVolumeScrollScopePanel)
+        case .volumeControl:
+            localization.string(.settingsPopupVolumeScrollScopeVolumeControl)
         }
     }
 

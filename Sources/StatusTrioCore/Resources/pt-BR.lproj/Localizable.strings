@@ -296,7 +296,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "Tela indisponível";
 "settings.audio.externalVolume.refresh" = "Detectar novamente";
 "settings.audio.externalVolume.requirements" = "Se a conexão falhar, ative o acesso à CLI e a integração baseada em notificações nos ajustes do BetterDisplay.";
-"settings.audio.externalVolume.footnote" = "O controle de volume nativo do macOS tem prioridade. O método selecionado é usado quando o controle nativo não estiver disponível.";
+"settings.audio.externalVolume.footnote" = "O controle de volume nativo do macOS tem prioridade. O método selecionado é usado quando o controle nativo não estiver disponível. A versão gratuita do BetterDisplay é suficiente; não é preciso licença Pro.";
 "settings.audio.externalVolume.noStableOutput" = "A saída atual não tem um ID de áudio estável, portanto o BetterDisplay não pode ser configurado para ela.";
 "settings.audio.externalVolume.status.ready" = "Conectado. O controle de volume está disponível.";
 "settings.audio.externalVolume.status.idle" = "Não conectado.";
@@ -669,9 +669,8 @@
 "brightness.unresponsive" = "Não responde";
 "brightness.backend.directDDC" = "DDC direto";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Ajuste o brilho das telas conectadas.";
-"settings.brightness.backend" = "Backend de brilho para %@";
-
+"settings.brightness.description" = "Desative uma tela para ocultar sua linha de brilho.";
+"settings.brightness.backend" = "Backend de brilho";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Seguir o autor";
 "settings.about.social.douyin" = "Douyin";
@@ -718,3 +717,14 @@
 "settings.menuBarRightClickAction.openBluetoothSettings" = "Abrir ajustes de Bluetooth";
 "settings.menuBarRightClickAction.openBatterySettings" = "Abrir ajustes de Bateria";
 "settings.menuBarRightClickAction.openSoundSettings" = "Abrir ajustes de Som";
+
+"settings.tab.brightness" = "Brilho";
+"settings.brightness.group.title" = "Telas conectadas";
+"settings.brightness.empty" = "Nenhuma tela conectada.";
+"settings.brightness.builtIn" = "Embutida";
+"settings.brightness.internalBackend.description" = "O brilho da tela embutida usa o backend DisplayServices.";
+"settings.brightness.externalBackend.description" = "Escolha como o Status Trio controla o brilho desta tela.";
+"settings.brightness.backend.betterDisplayNeeded" = "O BetterDisplay não está em execução ou sua integração de notificações está desativada.";
+"settings.brightness.compatibility.title" = "Não consegue controlar uma tela?";
+"settings.brightness.compatibility.description" = "Cada fabricante implementa o DDC de um jeito, então o Status Trio não consegue cobrir todos os modelos. Se o brilho de uma tela não puder ser ajustado aqui, mude-a para o backend BetterDisplay — o Status Trio vai controlá-la pelo BetterDisplay. A versão gratuita é suficiente; não é preciso licença Pro.";
+"settings.brightness.compatibility.link" = "Baixar o BetterDisplay (grátis)";

@@ -296,7 +296,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "사용할 수 없는 디스플레이";
 "settings.audio.externalVolume.refresh" = "다시 감지";
 "settings.audio.externalVolume.requirements" = "연결에 실패하면 BetterDisplay 설정에서 CLI 접근 및 알림 기반 통합을 활성화하십시오.";
-"settings.audio.externalVolume.footnote" = "macOS 기본 볼륨 제어가 우선합니다. 기본 제어를 사용할 수 없을 때 선택한 방식을 사용합니다.";
+"settings.audio.externalVolume.footnote" = "macOS 기본 볼륨 제어가 우선합니다. 기본 제어를 사용할 수 없을 때 선택한 방식을 사용합니다. BetterDisplay는 무료 버전으로 충분하며 Pro 라이선스는 필요하지 않습니다.";
 "settings.audio.externalVolume.noStableOutput" = "현재 출력에 안정적인 오디오 ID가 없어 BetterDisplay를 구성할 수 없습니다.";
 "settings.audio.externalVolume.status.ready" = "연결됨. 볼륨을 조절할 수 있습니다.";
 "settings.audio.externalVolume.status.idle" = "연결되지 않음.";
@@ -669,9 +669,8 @@
 "brightness.unresponsive" = "응답 없음";
 "brightness.backend.directDDC" = "직접 DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "연결된 디스플레이의 밝기를 조절합니다.";
-"settings.brightness.backend" = "%@의 밝기 백엔드";
-
+"settings.brightness.description" = "디스플레이를 끄면 해당 밝기 행이 숨겨집니다.";
+"settings.brightness.backend" = "밝기 백엔드";
 // About: community, author social links and more apps
 "settings.about.social.title" = "작성자 팔로우";
 "settings.about.social.douyin" = "Douyin";
@@ -718,3 +717,14 @@
 "settings.menuBarRightClickAction.openBluetoothSettings" = "Bluetooth 설정 열기";
 "settings.menuBarRightClickAction.openBatterySettings" = "배터리 설정 열기";
 "settings.menuBarRightClickAction.openSoundSettings" = "사운드 설정 열기";
+
+"settings.tab.brightness" = "밝기";
+"settings.brightness.group.title" = "연결된 디스플레이";
+"settings.brightness.empty" = "연결된 디스플레이가 없습니다.";
+"settings.brightness.builtIn" = "내장";
+"settings.brightness.internalBackend.description" = "내장 디스플레이 밝기는 DisplayServices 백엔드를 사용합니다.";
+"settings.brightness.externalBackend.description" = "Status Trio가 이 디스플레이의 밝기를 제어하는 방식을 선택하세요.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay가 실행 중이 아니거나 알림 연동이 꺼져 있습니다.";
+"settings.brightness.compatibility.title" = "밝기를 조절할 수 없나요?";
+"settings.brightness.compatibility.description" = "제조사마다 DDC 구현이 달라 Status Trio가 모든 모델을 지원할 수는 없습니다. 여기서 밝기를 조절할 수 없는 디스플레이는 BetterDisplay 백엔드로 전환하세요. Status Trio가 BetterDisplay를 통해 제어합니다. 무료 버전으로 충분하며 Pro 라이선스는 필요하지 않습니다.";
+"settings.brightness.compatibility.link" = "BetterDisplay 다운로드(무료)";
