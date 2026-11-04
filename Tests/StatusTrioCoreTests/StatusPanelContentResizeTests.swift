@@ -12,81 +12,13 @@ import XCTest
 @MainActor
 final class StatusPanelContentResizeTests: VisibleUITestCase {
     func testOpeningAndLeavingADetailPageKeepsTheMenuBarAnchoredEdgeFixed() throws {
-        let suiteName = "StatusTrioCoreTests.StatusPanelContentResize.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
-        defer { defaults.removeTestSuite(named: suiteName) }
+        let fixture = try makeFixture()
+        defer { fixture.close() }
+        let panel = fixture.panel
+        let panelModel = fixture.panelModel
+        let host = fixture.host
 
-        let settings = SettingsStore(defaults: defaults)
-        let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
-        let store = SystemStatusStore(
-            batteryMonitor: ResizeProbeBatteryMonitor(),
-            wifiMonitor: ResizeProbeWiFiMonitor(),
-            volumeMonitor: ResizeProbeVolumeMonitor(),
-            initialSnapshot: StatusSnapshot(
-                battery: BatteryStatus(
-                    rawPercentage: 70,
-                    isPresent: true,
-                    isCharging: false,
-                    isLowPowerMode: false,
-                    isConnectedToPower: true
-                ),
-                wifi: .placeholder,
-                volume: .placeholder
-            )
-        )
-        let panelModel = StatusPanelViewModel(
-            store: store,
-            settings: settings,
-            localization: localization,
-            actions: StatusPanelActions(store: store, settings: settings)
-        )
-        let host = StatusPanelHostingController(
-            rootView: StatusPopoverView(
-                panel: panelModel,
-                scrollTargets: PopoverScrollTargets(),
-                layoutMetrics: StatusPanelLayoutMetrics(),
-                requestWiFiNameAccess: {},
-                requestBluetoothAuthorization: {},
-                openBatterySettings: {},
-                openAppBatterySettings: {},
-                openWiFiSettings: {},
-                openNetworkSettings: {},
-                openSharingSettings: {},
-                openLocationSettings: {},
-                openBluetoothSettings: {},
-                openBluetoothPermissionSettings: {},
-                openSettings: {},
-                openSoundSettings: {},
-                openSoundInputSettings: {},
-                openKeyboardSettings: {},
-                quit: {}
-            ).environmentObject(localization)
-        )
-        let panel = AnchoredStatusPanel()
-        panel.installContent(host, backgroundStyle: .solid)
-
-        let screenFrame = NSScreen.main?.frame
-            ?? NSRect(x: 0, y: 0, width: 1_440, height: 900)
-        let anchorWindow = NSWindow(
-            contentRect: NSRect(
-                x: screenFrame.midX,
-                y: screenFrame.maxY - 60,
-                width: 24,
-                height: 30
-            ),
-            styleMask: .borderless,
-            backing: .buffered,
-            defer: false
-        )
-        let anchorView = NSView(frame: NSRect(x: 0, y: 0, width: 24, height: 30))
-        anchorWindow.contentView?.addSubview(anchorView)
-        anchorWindow.orderFront(nil)
-        defer {
-            panel.performClose(nil)
-            anchorWindow.orderOut(nil)
-        }
-
-        panel.show(relativeTo: anchorView.bounds, of: anchorView, preferredEdge: .minY)
+        fixture.show()
         settle(host)
         let summary = panel.frame
         XCTAssertGreaterThan(summary.height, 0)
@@ -154,6 +86,140 @@ final class StatusPanelContentResizeTests: VisibleUITestCase {
             accuracy: 1.5,
             "the summary page must return to its original height after the battery page"
         )
+    }
+
+    /// Issue #259: once the panel has settled, its own resize notifications must
+    /// not keep rewriting the same frame. A real content change still resizes.
+    func testSettledWindowIgnoresRepeatedResizeNotifications() throws {
+        let fixture = try makeFixture()
+        defer { fixture.close() }
+        let panel = fixture.panel
+
+        fixture.show()
+        settle(fixture.host)
+        panel.resetFrameWriteCount()
+
+        for _ in 0..<100 {
+            NotificationCenter.default.post(
+                name: NSWindow.didResizeNotification,
+                object: panel
+            )
+        }
+        settle(fixture.host)
+        XCTAssertEqual(
+            panel.frameWriteCount,
+            0,
+            "a settled window must not keep rewriting its frame for its own resizes"
+        )
+
+        fixture.panelModel.showBatteryPage()
+        settle(fixture.host)
+        XCTAssertGreaterThan(
+            panel.frameWriteCount,
+            0,
+            "a real content change must still resize the window"
+        )
+    }
+
+    private func makeFixture() throws -> PanelFixture {
+        let suiteName = "StatusTrioCoreTests.StatusPanelContentResize.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removeTestSuite(named: suiteName) }
+
+        let settings = SettingsStore(defaults: defaults)
+        let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+        let store = SystemStatusStore(
+            batteryMonitor: ResizeProbeBatteryMonitor(),
+            wifiMonitor: ResizeProbeWiFiMonitor(),
+            volumeMonitor: ResizeProbeVolumeMonitor(),
+            initialSnapshot: StatusSnapshot(
+                battery: BatteryStatus(
+                    rawPercentage: 70,
+                    isPresent: true,
+                    isCharging: false,
+                    isLowPowerMode: false,
+                    isConnectedToPower: true
+                ),
+                wifi: .placeholder,
+                volume: .placeholder
+            )
+        )
+        let panelModel = StatusPanelViewModel(
+            store: store,
+            settings: settings,
+            localization: localization,
+            actions: StatusPanelActions(store: store, settings: settings)
+        )
+        let panel = AnchoredStatusPanel()
+        let host = StatusPanelHostingController(
+            rootView: AnyView(
+                StatusPopoverView(
+                    panel: panelModel,
+                    scrollTargets: PopoverScrollTargets(),
+                    layoutMetrics: panel.layoutMetrics,
+                    requestWiFiNameAccess: {},
+                    requestBluetoothAuthorization: {},
+                    openBatterySettings: {},
+                    openAppBatterySettings: {},
+                    openWiFiSettings: {},
+                    openNetworkSettings: {},
+                    openSharingSettings: {},
+                    openLocationSettings: {},
+                    openBluetoothSettings: {},
+                    openBluetoothPermissionSettings: {},
+                    openSettings: {},
+                    openSoundSettings: {},
+                    openSoundInputSettings: {},
+                    openKeyboardSettings: {},
+                    quit: {}
+                )
+                .environmentObject(localization)
+            )
+        )
+        panel.installContent(host, backgroundStyle: .solid)
+
+        let screenFrame = NSScreen.main?.frame
+            ?? NSRect(x: 0, y: 0, width: 1_440, height: 900)
+        let anchorWindow = NSWindow(
+            contentRect: NSRect(
+                x: screenFrame.midX,
+                y: screenFrame.maxY - 60,
+                width: 24,
+                height: 30
+            ),
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+        let anchorView = NSView(frame: NSRect(x: 0, y: 0, width: 24, height: 30))
+        anchorWindow.contentView?.addSubview(anchorView)
+        anchorWindow.orderFront(nil)
+
+        return PanelFixture(
+            panel: panel,
+            panelModel: panelModel,
+            host: host,
+            anchorWindow: anchorWindow,
+            anchorView: anchorView
+        )
+    }
+
+    @MainActor
+    private struct PanelFixture {
+        let panel: AnchoredStatusPanel
+        let panelModel: StatusPanelViewModel
+        let host: StatusPanelHostingController<AnyView>
+        let anchorWindow: NSWindow
+        let anchorView: NSView
+
+        func show() {
+            panel.show(relativeTo: anchorView.bounds, of: anchorView, preferredEdge: .minY)
+        }
+
+        func close() {
+            panel.performClose(nil)
+            anchorWindow.orderOut(nil)
+        }
     }
 
     private func settle<Content: View>(_ host: StatusPanelHostingController<Content>) {

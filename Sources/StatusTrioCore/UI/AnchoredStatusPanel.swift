@@ -45,6 +45,16 @@ final class AnchoredStatusPanel: NSPanel {
     /// Set by `show` between ordering the window in transparent and revealing it
     /// once the first layout has settled, so a size correction never flashes.
     private var pendingReveal = false
+#if DEBUG
+    /// Number of window frame writes since the last reset. Issue #259 uses it in
+    /// the convergence regression and in the live diagnostic; release builds
+    /// omit it.
+    private(set) var frameWriteCount = 0
+
+    func resetFrameWriteCount() {
+        frameWriteCount = 0
+    }
+#endif
     /// Coalesces the three things that can change the window's frame: a content
     /// measurement, the window's own resize, and a screen / Dock / Space change
     /// (issue #259). Each one is applied once, on a later main-actor turn.
@@ -249,6 +259,9 @@ final class AnchoredStatusPanel: NSPanel {
             dockInset: dockInset
         ) else { return }
         setFrame(target, display: false)
+#if DEBUG
+        frameWriteCount += 1
+#endif
         invalidateShadow()
     }
 
@@ -291,6 +304,9 @@ final class AnchoredStatusPanel: NSPanel {
         let target = placementFrame(for: frame.size)
         guard target != frame else { return }
         setFrame(target, display: false)
+#if DEBUG
+        frameWriteCount += 1
+#endif
         invalidateShadow()
     }
 
