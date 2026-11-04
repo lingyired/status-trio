@@ -51,9 +51,11 @@
 - 计划：`docs/superpowers/plans/2026-11-04-accessory-battery-review-followup.md`；已配置 `group/smart-auto` 的子任务实施与交叉审查，主代理做最终整合验证。新任务的本地 full 结果须单列，不能沿用上文旧 SHA 的 PASS。
 - 已 fetch 的 `origin/main`：`ddd728eeb50e992721158dfc64642841edf01b40`。相对原基线新增的主线变更与四项补修写域不重叠；原分支旧 Wi-Fi 文案断言与上游 `9e0d9c0b` 是同一修正。未合入或推送主线。
 - 新 worktree 基线 focused：PASS，exit 0，21 XCTest + 60 Swift Testing（3 suites）；日志 `/tmp/status-trio-followup-baseline.log`。
-- Task 1：`cc53657c`。真实 USB 消耗传入 timeout 的回归先红后绿，27 Swift Testing 通过；独立审查 Spec/Quality Approved。Watch 5 秒总执行预算保留，按剩余路由均分；双路由首路最多约 2.5 秒，最后一路拿当时剩余预算。每路前检查取消。慢 USB 的真机影响仍待验证，不保证进程清理后的墙钟严格 5 秒。
+- Task 1：`cc53657c`。脚本 executor 等到传入的 USB timeout 用尽后抛错的回归先红后绿（不是真机 USB），27 Swift Testing 通过；独立审查 Spec/Quality Approved。Watch 5 秒总执行预算保留，按剩余路由均分；双路由首路最多约 2.5 秒，最后一路拿当时剩余预算。每路前检查取消。慢 USB 的真机影响仍待验证，不保证进程清理后的墙钟严格 5 秒。
 - Task 2：`15f03ca3`。Reader → Controller 的全失败/部分失败/坏 JSON/原生错误分类先红后绿，8 XCTest + 47 Swift Testing 通过；协议兼容回归 31 XCTest + 10 catalog tests 通过。独立审查 Spec/Quality Approved。
 - Task 3：`63f991f1`。真实 Reader 的 summary sink 回归先红后绿（33 Swift Testing 通过）：USB `[p]` / network `[p,w]` 计 2 个 identity；多 phone 重复、首组 9、预算丢弃的计数均覆盖。只对统计视图去重，实际 cap/返回候选及路由诊断不变。独立审查 Spec/Quality Approved。
-- Task 4、最终整合/full：进行中，结果待记录。
+- Task 4：`532e75d1`。组内 records 一致性及交叉歧义、connection generation/设备快照 generation 保护先红后绿。聚焦 19 XCTest + 24 Swift Testing 通过；蓝牙扩大回归 414 XCTest（2 跳过）+ 210 Swift Testing 通过，均 0 失败。独立审查 Spec/Quality Approved。每次连接事件即清电量，warm 请求等到当前 generation 的新设备快照；旧 profiler/accessory 晚回调均不能恢复旧电量。事件缺少地址，因此可能短暂清掉其他设备电量；仍合并 I/O，不增加 profiler 并发或轮询。
+- 最终整合/full：待运行于冻结提交；最终结果须包含本轮 SHA、exit 与日志。
+- 已知既有窗口：deactivate 不清空设备列表，也不推进连接 generation；重新激活时，在新 profiler 快照到来前可能短暂沿用旧设备列表。该路径未被此次连接事件补修覆盖，未作为已修成果；重新打开与真机离场行为仍需单独验收。
 - 13:59（UTC+8）被动执行 `pmset -g accps -xml` 只看到两条 Mouse 类 accessory，无 part；这仅说明当时没有可用的 AirPods 多 part 样本。只留类别/字段是否存在的匿名记录，不留真实 identifier，不构成 AirPods 验收。
 - 两套 AirPods/多 part identifier 语义/列表外旧读数、已信任 iPhone+Watch 的 USB/Wi-Fi/首读/重连、Ventura 与当前 macOS 应用真机验收：**NOT RUN**。不自动改用 Group Identifier，不配置系统信任或配对，不启动前台 UI；不关闭 issue。

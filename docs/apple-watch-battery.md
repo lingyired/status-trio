@@ -75,7 +75,16 @@ paired iPhone's companion service, so all of the following are prerequisites:
    range. An initial Watch observation gets at most three retries at one-minute
    intervals, then it follows the regular refresh cadence.
 
-`MobileBatteryHelperReader.decodeWatchCandidates` is not part of discovery: it
+Each Watch read keeps one five-second execution budget across the parent's
+available transports. Before each attempt the reader divides the current
+remaining time by the number of routes still available: with USB and network,
+USB initially receives at most about 2.5 seconds and network gets the remaining
+time if USB fails. A single route gets the whole remaining budget. Cancellation
+is checked before starting another route. Process termination/cleanup can add
+wall-clock overhead; this is not a promise of a five-second wall-clock bound.
+The shorter first-route budget still needs acceptance on slow USB hardware.
+
+`MobileBatteryWire.decodeWatchCandidates` is not part of discovery: it
 reads the `watchCandidates` list that only the `--read-phone` envelope emits.
 Watches reach discovery inline in `--discover-device`'s `candidates` array and
 are decoded by `MobileBatteryWire.decodeDiscovery`.

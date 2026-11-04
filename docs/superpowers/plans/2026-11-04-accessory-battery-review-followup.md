@@ -49,12 +49,12 @@
 
 **Interfaces:** 保留 `MobileBatteryReading.read(selectedIDs: Set<AppleDeviceID>) async throws -> MobileBatteryReadResult`。在 Reader 增加纯函数 `static func watchRouteTimeout(remaining: Duration, remainingRouteCount: Int) -> Duration`，返回剩余预算除以剩余可尝试路由数；调用前保证两参数为正。
 
-- [ ] 添加 `watchReadReservesBudgetForNetworkAfterUSBTimeout`：真实 Reader + scripted executor，listing 含 USB/network；USB 等到传入 timeout 后抛 timedOut，network 返回指定 Watch 61%。断言调用顺序为 USB→network、结果含该 Watch、USB timeout 不大于 2.5 秒、network timeout 为正。
-- [ ] 添加纯预算断言：5 秒/2 路由 = 2.5 秒；只剩 1 路由获得全部剩余预算。覆盖只有 USB、只有 network、USB 成功后不调用 network、取消后不启动下一条、两条都失败时不重试第三次。
-- [ ] 运行 `bash scripts/test.sh 'MobileBatteryHelperReaderTests'`，确认旧实现对“USB 用满预算”用例失败。
-- [ ] `readWatch` 每次按当前 deadline 重算剩余预算，并用上述函数分配当前路由 timeout；不延长总预算、不并发读同一块 Watch。循环前检查取消。
-- [ ] 同命令转绿，保留现有快失败/共享预算/部分成功测试。用例不得靠固定很短的 sleep 假装超时。
-- [ ] 只暂存本任务文件，提交 `fix(apple-watch): reserve time for the alternate battery route`。
+- [x] 添加 `watchReadReservesBudgetForNetworkAfterUSBTimeout`：真实 Reader + scripted executor，listing 含 USB/network；USB 等到传入 timeout 后抛 timedOut，network 返回指定 Watch 61%。断言调用顺序为 USB→network、结果含该 Watch、USB timeout 不大于 2.5 秒、network timeout 为正。
+- [x] 添加纯预算断言：5 秒/2 路由 = 2.5 秒；只剩 1 路由获得全部剩余预算。覆盖只有 USB、只有 network、USB 成功后不调用 network、取消后不启动下一条、两条都失败时不重试第三次。
+- [x] 运行 `bash scripts/test.sh 'MobileBatteryHelperReaderTests'`，确认旧实现对“USB 用满预算”用例失败。
+- [x] `readWatch` 每次按当前 deadline 重算剩余预算，并用上述函数分配当前路由 timeout；不延长总预算、不并发读同一块 Watch。循环前检查取消。
+- [x] 同命令转绿，保留现有快失败/共享预算/部分成功测试。用例不得靠固定很短的 sleep 假装超时。
+- [x] 只暂存本任务文件，提交 `fix(apple-watch): reserve time for the alternate battery route`。
 
 **取舍：** 本轮先修“备用路由永远不执行”，不增加跨 controller 的成功路由缓存；双路由时首路预算更短，需在真机中检查慢 USB 的影响。不能保证所有设备都在 5 秒内读取成功。
 
@@ -70,14 +70,14 @@
 - 协议新增 `func discoverWithDiagnostics() async throws -> MobileBatteryDiscoveryResult`；扩展的默认实现包装既有 `discover()`、诊断置 nil，兼容其他实现，不伪造路由计数。生产 Reader 实现新方法，旧 `discover()` 委托新方法返回 candidates。
 - Controller 改调新方法；`AppleDeviceDiscoveryDiagnostics` 增加可选 routeDiagnostics，并将它纳入 Equatable/日志变化去重。真实 Reader 的诊断始终非 nil；默认实现的 nil 表示未提供诊断。
 
-- [ ] 添加 Reader→Controller 的集成用例（注入实际 Reader + executor）：空 listing、全部 timedOut、全部坏 JSON、一个 phone 成功另一个失败、USB 失败 network 成功、helper envelope 含 session-unavailable。
-- [ ] 断言：空 listing 的 attempted=0/failed=0；两条路由均超时为 attempted=2/failed=2 且包含 helper-timeout；部分成功保留已验证 candidates；坏 JSON 为 invalid-envelope；未知原生类别归 other。上述失败不能显示为 `failure=none`。
-- [ ] 先运行 `bash scripts/test.sh 'MobileBatteryHelperReaderTests|MobileBatterySnapshotTests|AppleDeviceDiscoveryControllerTests'`，确认新错误传播用例能抓住当前失败。
-- [ ] 每条实际启动的 route 计 attempted；executor/decode 抛错，或成功 envelope 带 failure 时，计一次 failed 并归类；多个 failure 不把同一路由重复计数。所有子任务返回局部结果，由 task group 合并，不新增共享可变状态。
-- [ ] `--list` 整体失败继续 throw 给现有 controller 错误处理。Task cancellation 直接取消，不作为一次“发现失败”发布。单 route 失败保留其他 route/phone 的成功候选。
-- [ ] summary 按顺序明确记录状态：failed=attempted>0 为 all-routes-failed；0<failed<attempted 为 partial-failure；failed=0 且 candidates 为空为 empty；其余为 success。诊断为 nil 时记录 not-reported，不能伪造成功。另保留具体类别与 candidates 数，避免把“有 phone metadata 但 companion 没结果”误报成确认无 Watch。
-- [ ] 同命令转绿，补关闭 surface/禁用 master 后迟到诊断不能覆盖新代次的断言。更新文档，说明 native companion 失败仍无法区分“没配 Watch/服务不可用”。
-- [ ] 明确文件暂存并提交 `fix(apple-watch): propagate discovery route failures to diagnostics`。
+- [x] 添加 Reader→Controller 的集成用例（注入实际 Reader + executor）：空 listing、全部 timedOut、全部坏 JSON、一个 phone 成功另一个失败、USB 失败 network 成功、helper envelope 含 session-unavailable。
+- [x] 断言：空 listing 的 attempted=0/failed=0；两条路由均超时为 attempted=2/failed=2 且包含 helper-timeout；部分成功保留已验证 candidates；坏 JSON 为 invalid-envelope；未知原生类别归 other。上述失败不能显示为 `failure=none`。
+- [x] 先运行 `bash scripts/test.sh 'MobileBatteryHelperReaderTests|MobileBatterySnapshotTests|AppleDeviceDiscoveryControllerTests'`，确认新错误传播用例能抓住当前失败。
+- [x] 每条实际启动的 route 计 attempted；executor/decode 抛错，或成功 envelope 带 failure 时，计一次 failed 并归类；多个 failure 不把同一路由重复计数。所有子任务返回局部结果，由 task group 合并，不新增共享可变状态。
+- [x] `--list` 整体失败继续 throw 给现有 controller 错误处理。Task cancellation 直接取消，不作为一次“发现失败”发布。单 route 失败保留其他 route/phone 的成功候选。
+- [x] summary 按顺序明确记录状态：failed=attempted>0 为 all-routes-failed；0<failed<attempted 为 partial-failure；failed=0 且 candidates 为空为 empty；其余为 success。诊断为 nil 时记录 not-reported，不能伪造成功。另保留具体类别与 candidates 数，避免把“有 phone metadata 但 companion 没结果”误报成确认无 Watch。
+- [x] 同命令转绿，补关闭 surface/禁用 master 后迟到诊断不能覆盖新代次的断言。更新文档，说明 native companion 失败仍无法区分“没配 Watch/服务不可用”。
+- [x] 明确文件暂存并提交 `fix(apple-watch): propagate discovery route failures to diagnostics`。
 
 ## Task 3：统一发现和保留候选的计数口径
 
@@ -85,10 +85,10 @@
 
 **Interfaces:** 保留 `MobileBatteryDiscoverySummary` 六个既有字段。`discoveredCandidates` 计按 AppleDeviceID 去重的候选数；`retainedCandidates` 计实际返回候选数；`droppedWatchCandidates` 计真实省略的 Watch identity 数，不按 transport 重复算。
 
-- [ ] Reader 初始化器增加 `discoverySummarySink: @escaping @Sendable (MobileBatteryDiscoverySummary) -> Void = { _ in }`，每周期汇总后调用一次；测试用现有锁保护的结果盒收集。生产仍只输出现有有界 debug，不增加另一路日志。不能只手工构造 groupShapes 来测试统计。
-- [ ] 添加 `discoverySummaryDeduplicatesAcrossTransports`：USB=[p]、network=[p,w]，断言 discovered=2、retained=2、droppedGroups=0、droppedWatchCandidates=0。再覆盖多台手机重复路由、首组 9、后续组被预算丢弃。
-- [ ] `bash scripts/test.sh 'MobileBatteryHelperReaderTests'` 先红；按 identity 去重每个 phone group 后再构造 shape/统计，保留 phone-ID 排序、整组保留与既有 cap 行为。
-- [ ] 同命令转绿，日志不含标识符；提交 `fix(apple-watch): deduplicate discovery summary identities`。
+- [x] Reader 初始化器增加 `discoverySummarySink: @escaping @Sendable (MobileBatteryDiscoverySummary) -> Void = { _ in }`，每周期汇总后调用一次；测试用现有锁保护的结果盒收集。生产仍只输出现有有界 debug，不增加另一路日志。不能只手工构造 groupShapes 来测试统计。
+- [x] 添加 `discoverySummaryDeduplicatesAcrossTransports`：USB=[p]、network=[p,w]，断言 discovered=2、retained=2、droppedGroups=0、droppedWatchCandidates=0。再覆盖多台手机重复路由、首组 9、后续组被预算丢弃。
+- [x] `bash scripts/test.sh 'MobileBatteryHelperReaderTests'` 先红；按 identity 去重每个 phone group 后再构造 shape/统计，保留 phone-ID 排序、整组保留与既有 cap 行为。
+- [x] 同命令转绿，日志不含标识符；提交 `fix(apple-watch): deduplicate discovery summary identities`。
 
 ## Task 4：AirPods 输入一致性和真实断连窗口
 
@@ -96,12 +96,12 @@
 
 **Interfaces:** 保留 `merged(levels:accessories:devices:)`。controller 私有 `receiveConnectionEvent()` 的电量失效发生在 debounce 之前，不改变系统事件源接口。
 
-- [ ] 添加“同 UUID 左耳 v76/p8207、右耳 v1133/p45915”的失败用例：整组拒绝，不能输出 L93/R12。只有组中每条 reading 的现有 identityMatches 判据都支持同一目标时，才能作为该目标的候选组；同型号/缺型号按既有明确规则处理，不凭名字或型号推导 UUID↔MAC 关系。
-- [ ] 添加受控异步 controller 用例：挂起 accessory read → 发出连接变化事件 → 在新 profiler 完成前交付旧 reading；旧读数不得重新出现。用 continuation/手动 sleeper，不用抢时序的 sleep。
-- [ ] 运行 `bash scripts/test.sh 'BluetoothBatteryLevelFallbackTests|BluetoothAccessoryBatteryEventTests|BluetoothConnectionEventTests'` 先红；确认当前 gate 仅在新 profiler 到达时失效，替换成 self.devices 并未解决更早窗口。
-- [ ] 连接变化通知不带设备地址，每个有效通知均调用现有 `clearBatteryLevels()` 并推进连接 generation，发生在 debounce 的 scheduled guard 之前；只合并 I/O，不合并失效。补受控失败用例：事件后重 warm 电量请求、事件前已启动 profiler 晚回调、同 burst 第二事件均不能恢复旧电量。用连接 generation 和设备快照 generation（或等价最小机制）保证只有事件后启动且未被后续事件作废的设备快照可以恢复 battery read；`refresh()` 开始捕获 generation，`refreshBatteryLevels()` 加有效快照 guard。保留既有 refresh pending/coalescing，不主动丢设备读取来增加并发 profiler，不新增轮询、计时器或权限。此举会暂时清空其他设备的电量，文档需说明；不把事件当作蓝牙权限授权。
-- [ ] 修同 identifier 的一致性检查；补合法 L/R/Case 共享 ID、多 ID 不能归属、已断连同型号邻居、无 ID、已有 primary level 保持不变的回归。
-- [ ] 同命令转绿，再覆盖 master 关闭、蓝牙 unavailable、失去最后需求后的晚回调；提交 `fix(bluetooth): reject inconsistent groups and invalidate battery reads on connection changes`。
+- [x] 添加“同 UUID 左耳 v76/p8207、右耳 v1133/p45915”的失败用例：整组拒绝，不能输出 L93/R12。只有组中每条 reading 的现有 identityMatches 判据都支持同一目标时，才能作为该目标的候选组；同型号/缺型号按既有明确规则处理，不凭名字或型号推导 UUID↔MAC 关系。
+- [x] 添加受控异步 controller 用例：挂起 accessory read → 发出连接变化事件 → 在新 profiler 完成前交付旧 reading；旧读数不得重新出现。用 continuation/手动 sleeper，不用抢时序的 sleep。
+- [x] 运行 `bash scripts/test.sh 'BluetoothBatteryLevelFallbackTests|BluetoothAccessoryBatteryEventTests|BluetoothConnectionEventTests'` 先红；确认当前 gate 仅在新 profiler 到达时失效，替换成 self.devices 并未解决更早窗口。
+- [x] 连接变化通知不带设备地址，每个有效通知均调用现有 `clearBatteryLevels()` 并推进连接 generation，发生在 debounce 的 scheduled guard 之前；只合并 I/O，不合并失效。补受控失败用例：事件后重 warm 电量请求、事件前已启动 profiler 晚回调、同 burst 第二事件均不能恢复旧电量。用连接 generation 和设备快照 generation（或等价最小机制）保证只有事件后启动且未被后续事件作废的设备快照可以恢复 battery read；`refresh()` 开始捕获 generation，`refreshBatteryLevels()` 加有效快照 guard。保留既有 refresh pending/coalescing，不主动丢设备读取来增加并发 profiler，不新增轮询、计时器或权限。此举会暂时清空其他设备的电量，文档需说明；不把事件当作蓝牙权限授权。
+- [x] 修同 identifier 的一致性检查；补合法 L/R/Case 共享 ID、多 ID 不能归属、已断连同型号邻居、无 ID、已有 primary level 保持不变的回归。
+- [x] 同命令转绿，再覆盖 master 关闭、蓝牙 unavailable、失去最后需求后的晚回调；提交 `fix(bluetooth): reject inconsistent groups and invalidate battery reads on connection changes`。
 
 ## Task 5：真实样本裁决与交付验证
 
