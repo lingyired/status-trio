@@ -86,7 +86,8 @@ struct VolumeControlsView: View {
                     onEditingChanged: { isEditing in
                         handleVolumeEditing(isEditing)
                     },
-                    height: PanelLevelSliderMetrics.compactSlotHeight
+                    height: PanelLevelSliderMetrics.compactSlotHeight,
+                    barHeight: PanelLevelSliderMetrics.compactBarHeight
                 )
                     .background(VolumeControlScrollTarget(targets: scrollTargets))
 

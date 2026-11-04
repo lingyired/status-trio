@@ -174,7 +174,8 @@ struct AudioInputControlsView: View {
                     onEditingChanged: { editing in
                         volumeDraft.setEditing(editing)
                     },
-                    height: PanelLevelSliderMetrics.compactSlotHeight
+                    height: PanelLevelSliderMetrics.compactSlotHeight,
+                    barHeight: PanelLevelSliderMetrics.compactBarHeight
                 )
                 .help(state.canAdjust
                     ? localization.string(.audioInputVolume)

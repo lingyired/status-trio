@@ -8,7 +8,9 @@ enum PanelLevelSliderMetrics {
     static let controlHeight: CGFloat = 30
     /// Shorter height used by the volume and mic rows so those two sliders sit
     /// tighter vertically while the brightness rows keep `controlHeight`.
-    static let compactSlotHeight: CGFloat = 26
+    static let compactSlotHeight: CGFloat = 20
+    /// Slim capsule height for compact (volume/mic) rows.
+    static let compactBarHeight: CGFloat = 12
     /// Visible capsule height.
     static let barHeight: CGFloat = 16
     /// White thumb circle diameter.
@@ -158,6 +160,10 @@ struct PanelLevelSlider: View {
     /// and mic rows opt into a shorter control while the brightness rows keep
     /// the default.
     var height: CGFloat = PanelLevelSliderMetrics.controlHeight
+    /// Visible capsule (bar) height. Standard rows use the metric default; the
+    /// compact volume/mic rows opt into a slimmer capsule. `nil` falls back to
+    /// the metric default.
+    var barHeight: CGFloat = PanelLevelSliderMetrics.barHeight
 
     var body: some View {
         GeometryReader { proxy in
@@ -173,7 +179,8 @@ struct PanelLevelSlider: View {
                     value = newValue
                 },
                 onEditingChanged: onEditingChanged,
-                height: height
+                height: height,
+                barHeight: barHeight
             )
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
@@ -195,6 +202,7 @@ private extension PanelLevelSlider {
         let onValueChanged: (Double) -> Void
         let onEditingChanged: (Bool) -> Void
         let height: CGFloat
+        let barHeight: CGFloat
 
         func makeNSView(context: Context) -> PanelLevelSliderView {
             let slider = PanelLevelSliderView()
@@ -202,6 +210,7 @@ private extension PanelLevelSlider {
             slider.onEditingChanged = onEditingChanged
             slider.isEnabled = isEnabled
             slider.designHeight = height
+            slider.barHeight = barHeight
             slider.doubleValue = clamped(currentValue)
             slider.setLabel(label, animated: false)
             applyAccessibility(to: slider)
@@ -212,6 +221,7 @@ private extension PanelLevelSlider {
             nsView.isEnabled = isEnabled
             nsView.fillColor = NSColor(tint)
             nsView.designHeight = height
+            nsView.barHeight = barHeight
             nsView.onValueChanged = onValueChanged
             nsView.onEditingChanged = onEditingChanged
             nsView.setLabel(label, animated: true)
@@ -262,6 +272,10 @@ final class PanelLevelSliderView: NSSlider {
     /// The panel's design height for this control. The volume and mic rows use
     /// a shorter slot than the brightness rows.
     var designHeight: CGFloat = PanelLevelSliderMetrics.controlHeight
+    /// Visible capsule height for this control. Compact rows pass a slim value
+    /// so the blue capsule reads shorter than the standard rows.
+    var barHeight: CGFloat = PanelLevelSliderMetrics.barHeight
+    private var barCornerRadius: CGFloat { barHeight / 2 }
 
     private var rasterGeneration = 0
     private var rasterBuiltGeneration = -1
@@ -332,12 +346,12 @@ final class PanelLevelSliderView: NSSlider {
         // The capsule spans the full control width so its leading edge lines up
         // with the row's other components; the thumb still travels between the
         // rounded ends (centre inset by its radius).
-        let y = (bounds.height - PanelLevelSliderMetrics.barHeight) / 2
+        let y = (bounds.height - barHeight) / 2
         return NSRect(
             x: 0,
             y: y,
             width: max(0, bounds.width),
-            height: PanelLevelSliderMetrics.barHeight
+            height: barHeight
         )
     }
 
@@ -545,7 +559,7 @@ final class PanelLevelSliderView: NSSlider {
         let trackColor = dark
             ? NSColor(white: 1.0, alpha: 0.14)
             : NSColor(white: 0.0, alpha: 0.10)
-        let barRadius = PanelLevelSliderMetrics.barCornerRadius
+        let barRadius = barCornerRadius
         let barSize = bar.size
 
         trackImage = Self.rasterized(size: barSize, scale: scale) { _ in
