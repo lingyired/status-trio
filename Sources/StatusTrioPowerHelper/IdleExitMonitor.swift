@@ -75,6 +75,9 @@ final class IdleExitMonitor: @unchecked Sendable {
 
     private let lock = NSLock()
     private var liveConnections = 0
+    /// True while a charge session needs recovery after its client vanished.
+    /// The root daemon must not exit leaving a capped battery with no owner.
+    private var recoveryRequired = false
     /// Bumped whenever the idle window is invalidated, so a timer that has
     /// already started running cannot exit a process that has a client again.
     private var generation: UInt64 = 0
@@ -96,6 +99,16 @@ final class IdleExitMonitor: @unchecked Sendable {
     /// — still goes away instead of lingering as root forever.
     func start() {
         armExitIfIdle()
+    }
+
+    /// Blocks idle exit while a stranded charge session still needs recovery.
+    /// Clearing it re-arms the exit when no client is connected.
+    func setRecoveryRequired(_ required: Bool) {
+        lock.lock()
+        recoveryRequired = required
+        let shouldArm = !required
+        lock.unlock()
+        if shouldArm { armExitIfIdle() }
     }
 
     /// The listener accepted a connection: keep the process alive.
@@ -121,7 +134,7 @@ final class IdleExitMonitor: @unchecked Sendable {
 
     private func armExitIfIdle() {
         lock.lock()
-        guard liveConnections == 0, pendingExit == nil else {
+        guard liveConnections == 0, pendingExit == nil, !recoveryRequired else {
             lock.unlock()
             return
         }
@@ -137,7 +150,7 @@ final class IdleExitMonitor: @unchecked Sendable {
     /// arrived after this window was scheduled has already invalidated it.
     private func idleWindowElapsed(generation scheduled: UInt64) {
         lock.lock()
-        guard generation == scheduled, liveConnections == 0 else {
+        guard generation == scheduled, liveConnections == 0, !recoveryRequired else {
             lock.unlock()
             return
         }

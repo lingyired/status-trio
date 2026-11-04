@@ -140,6 +140,35 @@ final class ConnectionLifetimeTests: XCTestCase {
 }
 
 /// Test clock: records scheduled work and runs it only when a test says so.
+final class IdleExitRecoveryHoldTests: XCTestCase {
+    func testStrandedChargeRecoveryKeepsTheRootDaemonAlive() {
+        let scheduler = ManualDelayedWorkScheduler()
+        let exits = ExitRecorder()
+        let monitor = IdleExitMonitor(scheduler: scheduler, exitProcess: exits.record)
+        monitor.start()
+        monitor.connectionOpened()
+        monitor.setRecoveryRequired(true)
+        monitor.connectionClosed()
+        scheduler.runScheduledWork()
+        XCTAssertEqual(exits.count, 0, "A cap awaiting recovery must not be abandoned")
+
+        monitor.setRecoveryRequired(false)
+        scheduler.runScheduledWork()
+        XCTAssertEqual(exits.count, 1)
+    }
+
+    func testRecoveryHoldAlsoBlocksAnAlreadyScheduledWindow() {
+        let scheduler = ManualDelayedWorkScheduler()
+        let exits = ExitRecorder()
+        let monitor = IdleExitMonitor(scheduler: scheduler, exitProcess: exits.record)
+        monitor.start()
+        // A window is scheduled, then recovery becomes required before it fires.
+        monitor.setRecoveryRequired(true)
+        scheduler.runScheduledWork()
+        XCTAssertEqual(exits.count, 0)
+    }
+}
+
 final class ManualDelayedWorkScheduler: DelayedWorkScheduling, @unchecked Sendable {
     final class Entry: @unchecked Sendable {
         let delay: TimeInterval

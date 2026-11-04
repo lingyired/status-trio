@@ -8,16 +8,16 @@ import PowerHelperProtocol
 /// Foundation before this delegate runs. The delegate re-checks the caller as
 /// defense in depth and logs any rejection.
 final class ListenerDelegate: NSObject, NSXPCListenerDelegate {
-    private let service: PowerHelperService
+    private let lowPowerMode: PowerModeService
     private let legacy: LegacyChargeLimitService?
     private let idleExit: IdleExitMonitor?
 
     init(
-        service: PowerHelperService,
+        lowPowerMode: PowerModeService,
         legacy: LegacyChargeLimitService? = nil,
         idleExit: IdleExitMonitor? = nil
     ) {
-        self.service = service
+        self.lowPowerMode = lowPowerMode
         self.legacy = legacy
         self.idleExit = idleExit
     }
@@ -31,22 +31,25 @@ final class ListenerDelegate: NSObject, NSXPCListenerDelegate {
             return false
         }
         connection.exportedInterface = NSXPCInterface(with: PowerHelperCombinedXPCProtocol.self)
-        connection.exportedObject = service
+        // One proxy per connection: it owns this connection's hardware
+        // ownership id, so only this connection can release its own cap.
+        let chargeConnection = LegacyChargeConnection(service: legacy)
+        connection.exportedObject = PowerHelperService(
+            lowPowerMode: lowPowerMode,
+            legacy: chargeConnection
+        )
         // Every accepted connection is a reason for this root process to exist.
         // Counting them lets the daemon exit once the app is done with it,
         // including when the app quits without invalidating its connection.
         if let idleExit {
             idleExit.connectionOpened()
-            let lifetime = ConnectionLifetime { [legacy] in
+            let lifetime = ConnectionLifetime { [chargeConnection] in
                 // A client that vanishes can leave the battery inhibited. Put
                 // the stock values back before the process is allowed to exit;
-                // the restore is bounded and journal-backed. A failed restore is
-                // logged and the journal is retained so the next app launch can
-                // reconcile and retry; it is never reported as success.
-                let restored = legacy?.restoreForClientLoss() ?? true
-                if !restored {
-                    NSLog("StatusTrioPowerHelper: charge restore is pending after client loss")
-                }
+                // the restore is bounded and journal-backed. Only this
+                // connection's cap is released, so an unrelated Low Power Mode
+                // session ending cannot disturb it.
+                chargeConnection.release()
                 idleExit.connectionClosed()
             }
             connection.invalidationHandler = { lifetime.end() }

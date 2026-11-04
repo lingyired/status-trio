@@ -130,6 +130,7 @@ public final class SMLegacyChargeLimitWriteReply: NSObject, NSSecureCoding {
 
 /// The legacy charge-limit command surface the daemon exposes. Narrow and
 /// typed: it never takes a raw SMC key name or byte payload from the client.
+///
 @objc public protocol LegacyChargeLimitXPCProtocol {
     /// Read-only capability probe (no write). Returns a typed capability.
     func probeLegacyChargeLimit(

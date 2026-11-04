@@ -18,10 +18,16 @@ let legacyService = LegacyChargeLimitService(
     executor: IOKitLegacySMCExecutor(),
     journal: FileLegacyChargeLimitJournal(directory: journalDirectory),
     battery: SystemLegacyBatteryProvider(),
-    hardware: LegacyHelperEnvironment.facts()
+    hardware: LegacyHelperEnvironment.facts(),
+    // A cap whose client vanished must not be abandoned: keep the root daemon
+    // alive until the stock values are actually restored.
+    recoveryDemandChanged: { required in idleExit.setRecoveryRequired(required) }
 )
-let service = PowerHelperService(lowPowerMode: PowerModeService(), legacy: legacyService)
-let delegate = ListenerDelegate(service: service, legacy: legacyService, idleExit: idleExit)
+let delegate = ListenerDelegate(
+    lowPowerMode: PowerModeService(),
+    legacy: legacyService,
+    idleExit: idleExit
+)
 let listener = NSXPCListener(machServiceName: PowerHelperConstants.machServiceName)
 listener.delegate = delegate
 // Authoritative client gate: Foundation evaluates this against the peer's audit

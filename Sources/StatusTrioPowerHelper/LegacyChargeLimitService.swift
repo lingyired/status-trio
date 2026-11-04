@@ -50,13 +50,24 @@ enum LegacyGatePolicy {
 /// Serialized coordinator. A record of the original and the intended write is
 /// durable before I/O. A successful readback confirms bytes only, not that the
 /// battery actually stopped charging (physical validation remains NOT RUN).
-final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @unchecked Sendable {
+/// The coordinator itself is not the XPC-exported object: each connection gets
+/// its own `LegacyChargeConnection` proxy that supplies that connection's owner
+/// id. Keeping the exported surface off this type makes the ownership rule
+/// structural rather than a convention.
+final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
     private let executor: any LegacySMCExecuting
     private let journalStore: any LegacyChargeLimitJournaling
     private let battery: any LegacyBatteryProviding
     private let hardware: LegacyHardwareFacts
     private let hardwareModel: String
     private let lock = NSLock()
+    /// Connection currently owning the hardware. Any other live connection is
+    /// refused a mutating command, so an unrelated XPC session (Low Power Mode)
+    /// cannot disable or overwrite the cap.
+    private var ownerID: UUID?
+    /// Called with `true`/`false` when client-loss recovery becomes pending or
+    /// is resolved, so the daemon can hold itself alive while a cap is stranded.
+    private let recoveryDemandChanged: (Bool) -> Void
     private typealias Session = LegacyChargeLimitJournal
     // Protocol requirements spell this type in their signatures, so the
     // alias must be at least internal.
@@ -76,13 +87,15 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
         journal: any LegacyChargeLimitJournaling,
         battery: any LegacyBatteryProviding,
         hardware: LegacyHardwareFacts,
-        hardwareModel: String = LegacyHelperEnvironment.modelIdentifier()
+        hardwareModel: String = LegacyHelperEnvironment.modelIdentifier(),
+        recoveryDemandChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.executor = executor
         self.journalStore = journal
         self.battery = battery
         self.hardware = hardware
         self.hardwareModel = hardwareModel
+        self.recoveryDemandChanged = recoveryDemandChanged
     }
 
     func probeLegacyChargeLimit(
@@ -108,10 +121,12 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
     }
 
     func setLegacyChargeLimit(
-        _ limit: Int, expectedLimit: NSNumber?, withReply reply: @escaping (Reply?) -> Void
+        _ limit: Int, expectedLimit: NSNumber?, ownerID: UUID,
+        withReply reply: @escaping (Reply?) -> Void
     ) {
         perform(reply) {
             try requireEligible()
+            try claimHardware(ownerID)
             guard (80...100).contains(limit) else {
                 throw Failure(.limitOutOfRange, "The charge limit is outside 80–100%.")
             }
@@ -147,9 +162,10 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
         }
     }
 
-    func legacyChargeToFullOnce(withReply reply: @escaping (Reply?) -> Void) {
+    func legacyChargeToFullOnce(ownerID: UUID, withReply reply: @escaping (Reply?) -> Void) {
         perform(reply) {
             try requireEligible()
+            try adoptOrRequire(ownerID)
             var session = try requireSession()
             let current = try readOwned(session)
             let desired = try desiredRaw(session: session, limit: 100, full: true, current: current)
@@ -161,9 +177,10 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
         }
     }
 
-    func cancelLegacyChargeToFull(withReply reply: @escaping (Reply?) -> Void) {
+    func cancelLegacyChargeToFull(ownerID: UUID, withReply reply: @escaping (Reply?) -> Void) {
         perform(reply) {
             try requireEligible()
+            try adoptOrRequire(ownerID)
             var session = try requireSession()
             guard session.isTemporarilyOverridden else {
                 throw Failure(.cancelled, "There is no temporary override to cancel.")
@@ -179,9 +196,12 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
         }
     }
 
-    func disableLegacyChargeLimit(expectedLimit: NSNumber?, withReply reply: @escaping (Reply?) -> Void) {
+    func disableLegacyChargeLimit(
+        expectedLimit: NSNumber?, ownerID: UUID, withReply reply: @escaping (Reply?) -> Void
+    ) {
         perform(reply) {
             try requireEligible()
+            try adoptOrRequire(ownerID)
             var session = try requireSession()
             let current = try readOwned(session, allowInterrupted: true)
             if let expectedLimit {
@@ -196,6 +216,7 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
             // A failed clear is a failed disable; retain the verified restore
             // state in the journal so a retry remains safe.
             try journalStore.clear()
+            clearOwnership()
             return success(observedLimit: session.backend == .intelBCLM
                 ? session.originalRaw["BCLM"].map { Int($0[0]) } : nil)
         }
@@ -219,21 +240,54 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
         }
     }
 
+    /// A new session claims the hardware; a session with no live owner (app
+    /// relaunch, first launch after a crash) may be adopted by one connection.
+    /// Two live connections can never own the same cap.
+    private func claimHardware(_ newOwner: UUID) throws {
+        if let ownerID, ownerID != newOwner {
+            throw Failure(.ownershipConflict, "Another connection owns the charge limit.")
+        }
+        ownerID = newOwner
+    }
+
+    /// Mutating an existing session requires being its live owner, or adopting
+    /// it when no other live connection holds it.
+    private func adoptOrRequire(_ requested: UUID) throws {
+        if let ownerID, ownerID != requested {
+            throw Failure(.ownershipConflict, "Another connection owns the charge limit.")
+        }
+        ownerID = requested
+    }
+
+    private func clearOwnership() {
+        ownerID = nil
+        recoveryDemandChanged(false)
+    }
+
     /// Connection owner loss must call this before releasing its idle lease.
     /// False means recovery remains pending; the caller must keep the helper
     /// alive and make the error visible instead of silently abandoning a cap.
     @discardableResult
-    func restoreForClientLoss() -> Bool {
+    func restoreForClientLoss(owner: UUID) -> Bool {
         lock.withLock {
+            // Only the connection that owns the session may trigger recovery;
+            // an unrelated connection ending must not touch the active cap.
+            guard ownerID == owner else { return true }
             do {
-                guard var session = try loadOwnedJournal() else { return true }
+                guard var session = try loadOwnedJournal() else {
+                    clearOwnership()
+                    return true
+                }
                 try requireEligible()
                 let current = try readOwned(session, allowInterrupted: true)
                 try apply(&session, desired: session.originalRaw, current: current)
                 try journalStore.clear()
+                clearOwnership()
                 return true
             } catch {
                 NSLog("StatusTrioPowerHelper: charge recovery pending: %@", String(describing: error))
+                ownerID = nil
+                recoveryDemandChanged(true)
                 return false
             }
         }

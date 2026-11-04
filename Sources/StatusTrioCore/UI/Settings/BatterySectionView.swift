@@ -31,7 +31,7 @@ struct BatterySectionView: View {
                       ) {
                 LegacyChargeLimitSettingsView(
                     controller: legacyChargeLimit,
-                    requestHelperApproval: { helper.setEnabled(true) }
+                    requestHelperApproval: { helper.ensureSharedHelperRegistered() }
                 )
             }
             powerFlowGroup

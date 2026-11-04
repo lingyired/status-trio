@@ -501,6 +501,43 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         XCTAssertTrue(manager.isReady)
     }
 
+    func testSharedHelperDemandRegistersWithoutEnablingLowPowerModeIntent() async {
+        let service = FakePrivilegedHelperService(status: .notRegistered)
+        let manager = PrivilegedHelperManager(service: service, pollInterval: .milliseconds(20))
+        XCTAssertFalse(manager.isEnabled)
+
+        manager.ensureSharedHelperRegistered()
+
+        XCTAssertFalse(manager.isEnabled, "Approving the shared helper must not opt into LPM control")
+        XCTAssertTrue(manager.sharedHelperDemand)
+        XCTAssertEqual(service.registerCallCount, 1)
+    }
+
+    func testSharedHelperReadinessTracksTheHelperNotTheLowPowerModeSwitch() async {
+        // A never-registered machine starts with the LPM intent off; only the
+        // shared demand is raised here.
+        let service = FakePrivilegedHelperService(status: .notRegistered)
+        service.statusAfterRegister = .requiresApproval
+        service.allowsPendingVerification = true
+        let manager = PrivilegedHelperManager(service: service, pollInterval: .milliseconds(20))
+        manager.ensureSharedHelperRegistered()
+
+        await waitUntil { manager.isSharedHelperReady }
+        XCTAssertTrue(manager.isSharedHelperReady)
+        XCTAssertFalse(manager.isEnabled)
+        XCTAssertFalse(manager.isReady, "LPM readiness still requires the LPM intent")
+    }
+
+    func testReleasingSharedHelperDemandStopsPollingWhenLowPowerModeIsOff() async {
+        let service = FakePrivilegedHelperService(status: .notRegistered)
+        let manager = PrivilegedHelperManager(service: service, pollInterval: .milliseconds(20))
+        manager.ensureSharedHelperRegistered()
+        await waitUntil { manager.isSharedHelperReady }
+        manager.releaseSharedHelperDemand()
+        XCTAssertFalse(manager.sharedHelperDemand)
+        XCTAssertFalse(manager.isSharedHelperReady)
+    }
+
     private func waitUntil(_ predicate: () -> Bool) async {
         let deadline = Date().addingTimeInterval(1)
         while !predicate(), Date() < deadline {
