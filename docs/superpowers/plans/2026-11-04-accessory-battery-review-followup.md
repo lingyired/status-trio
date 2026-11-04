@@ -99,7 +99,7 @@
 - [ ] 添加“同 UUID 左耳 v76/p8207、右耳 v1133/p45915”的失败用例：整组拒绝，不能输出 L93/R12。只有组中每条 reading 的现有 identityMatches 判据都支持同一目标时，才能作为该目标的候选组；同型号/缺型号按既有明确规则处理，不凭名字或型号推导 UUID↔MAC 关系。
 - [ ] 添加受控异步 controller 用例：挂起 accessory read → 发出连接变化事件 → 在新 profiler 完成前交付旧 reading；旧读数不得重新出现。用 continuation/手动 sleeper，不用抢时序的 sleep。
 - [ ] 运行 `bash scripts/test.sh 'BluetoothBatteryLevelFallbackTests|BluetoothAccessoryBatteryEventTests|BluetoothConnectionEventTests'` 先红；确认当前 gate 仅在新 profiler 到达时失效，替换成 self.devices 并未解决更早窗口。
-- [ ] 连接变化通知不带设备地址，因此收到任一有效通知即保守调用现有 `clearBatteryLevels()`，同步推进 batteryRequestGate 并清掉旧值，然后保留既有 debounce 刷新。合并突发事件时只由首个事件失效一次。此举会暂时清空其他设备的电量，文档需说明；不把事件当作蓝牙权限授权。
+- [ ] 连接变化通知不带设备地址，每个有效通知均调用现有 `clearBatteryLevels()` 并推进连接 generation，发生在 debounce 的 scheduled guard 之前；只合并 I/O，不合并失效。补受控失败用例：事件后重 warm 电量请求、事件前已启动 profiler 晚回调、同 burst 第二事件均不能恢复旧电量。用连接 generation 和设备快照 generation（或等价最小机制）保证只有事件后启动且未被后续事件作废的设备快照可以恢复 battery read；`refresh()` 开始捕获 generation，`refreshBatteryLevels()` 加有效快照 guard。保留既有 refresh pending/coalescing，不主动丢设备读取来增加并发 profiler，不新增轮询、计时器或权限。此举会暂时清空其他设备的电量，文档需说明；不把事件当作蓝牙权限授权。
 - [ ] 修同 identifier 的一致性检查；补合法 L/R/Case 共享 ID、多 ID 不能归属、已断连同型号邻居、无 ID、已有 primary level 保持不变的回归。
 - [ ] 同命令转绿，再覆盖 master 关闭、蓝牙 unavailable、失去最后需求后的晚回调；提交 `fix(bluetooth): reject inconsistent groups and invalidate battery reads on connection changes`。
 
