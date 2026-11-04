@@ -485,9 +485,16 @@ struct AirPodsSystemControlsView: View {
 
     private func options(_ values: [AirPodsSystemOption], group: AirPodsSystemControls.Group,
                          symbol: String) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if values.isEmpty && !(model.snapshot.loaded || (group == .spatial ? model.snapshot.spatialLoaded : model.snapshot.conversationLoaded)) {
-                loadingIndicator.padding(.leading, 30)
+        let loaded = group == .spatial
+            ? model.snapshot.spatialLoaded
+            : model.snapshot.conversationLoaded
+        return VStack(alignment: .leading, spacing: 0) {
+            if !loaded, values.isEmpty {
+                // Reserve the final row count while loading so progressive
+                // publishes only swap content instead of growing the panel and
+                // shrinking it again. The plan's synthetic preview defines the
+                // expected shape of each section.
+                loadingPlaceholderRows(Self.expectedOptionCount(group))
             } else if values.isEmpty {
                 option(localization.string(.airPodsNotAvailable), symbol: symbol, selected: false) {}
                     .disabled(true)
@@ -499,6 +506,38 @@ struct AirPodsSystemControlsView: View {
                 }
             }
         }
+    }
+
+    /// The number of option rows each section settles on for a supported model.
+    /// Matches `ListeningModePreview.systemControlSnapshot`.
+    static func expectedOptionCount(_ group: AirPodsSystemControls.Group) -> Int {
+        group == .spatial ? 3 : 2
+    }
+
+    /// Skeleton rows that occupy the same height as the real option rows while
+    /// the async read is in flight, so loading only replaces content. They are
+    /// visually a placeholder, never a blank pretend feature.
+    private func loadingPlaceholderRows(_ count: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<max(count, 1), id: \.self) { _ in
+                HStack(spacing: 8) {
+                    Color.clear.frame(width: 16)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.secondary.opacity(0.12))
+                        .frame(width: 20, height: 20)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.secondary.opacity(0.12))
+                        .frame(maxWidth: 120)
+                        .frame(height: 10)
+                        .accessibilityHidden(true)
+                    Spacer(minLength: 0)
+                }
+                .font(.body)
+                .padding(.vertical, 2)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(localization.string(.batteryDetailsLoading))
     }
 
     private var loadingIndicator: some View {

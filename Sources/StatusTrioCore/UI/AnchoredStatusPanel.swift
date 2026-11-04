@@ -675,7 +675,16 @@ final class StatusPanelHostingController<Content: View>: NSHostingController<Con
         let proposed = NSSize(width: max(width, 1), height: .greatestFiniteMagnitude)
         let measured = sizeThatFits(in: proposed)
         let size = measured.width > 0 && measured.height > 0 ? measured : view.fittingSize
-        guard size.width > 0, size.height > 0, size != lastReportedSize else { return }
+        guard size.width > 0, size.height > 0 else { return }
+        // Compare with a display-pixel tolerance: a re-layout that differs only
+        // by a fraction of a physical pixel is the same presented size. Without
+        // it a sub-point wobble republishes on every pass and fights the window
+        // animation. A real change of a pixel still gets through.
+        let scale = max(view.window?.backingScaleFactor ?? 1, 1)
+        let tolerance = 1.0 / scale
+        let unchanged = abs(size.width - lastReportedSize.width) < tolerance
+            && abs(size.height - lastReportedSize.height) < tolerance
+        guard !unchanged else { return }
         lastReportedSize = size
         onLayout?(size)
     }
