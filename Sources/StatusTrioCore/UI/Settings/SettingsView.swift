@@ -20,6 +20,9 @@ struct SettingsView: View {
     var consumePendingSection: () -> Section? = { nil }
 
     @State private var selectedSection: Section = .appIcon
+    @State private var expandedSection: Section? = .appIcon
+    @State private var selectedSubtopic: SettingsSubtopic? = .appIconPlacementSize
+    @State private var lastSubtopicBySection: [Section: SettingsSubtopic] = [:]
     @State private var previewIsDark: Bool = true
 
     enum Section: String, CaseIterable, Identifiable {
@@ -108,67 +111,150 @@ struct SettingsView: View {
         select(section)
     }
 
+    private func subtopics(for section: Section) -> [SettingsSubtopic] {
+        SettingsSubtopic.allCases.filter { $0.section == section }
+    }
+
+    private func defaultSubtopic(for section: Section) -> SettingsSubtopic {
+        subtopics(for: section).first { $0.isDefault }
+            ?? subtopics(for: section)[0]
+    }
+
     private func select(_ section: Section) {
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
             selectedSection = section
+            if subtopics(for: section).isEmpty {
+                expandedSection = nil
+                selectedSubtopic = nil
+            } else {
+                expandedSection = section
+                let remembered = lastSubtopicBySection[section] ?? defaultSubtopic(for: section)
+                selectedSubtopic = remembered
+                lastSubtopicBySection[section] = remembered
+            }
+        }
+    }
+
+    /// Reveals one leaf subtopic beneath its parent category.
+    private func selectSubtopic(_ subtopic: SettingsSubtopic) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+            selectedSection = subtopic.section
+            expandedSection = subtopic.section
+            selectedSubtopic = subtopic
+            lastSubtopicBySection[subtopic.section] = subtopic
         }
     }
 
     // MARK: - Sidebar
 
     private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            // Breathing space below traffic lights
+        VStack(spacing: 0) {
+            // Breathing space below traffic lights stays fixed; only the rows
+            // below it scroll.
             Color.clear.frame(height: 42)
 
-            ForEach(Section.allCases) { section in
-                Button {
-                    select(section)
-                } label: {
-                    HStack(alignment: .center, spacing: 10) {
-                        SettingsIcon(glyph: section.glyph, tint: section.tint)
+            // The sidebar scrolls on its own so a long expanded category can
+            // never push the detail page or clip the traffic-light header.
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(Section.allCases) { section in
+                        categoryRow(section)
 
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(section.title(localization))
-                                .font(.system(size: 13, weight: selectedSection == section ? .medium : .regular))
-                                .foregroundStyle(selectedSection == section ? Color.white : Color.primary)
-                                .lineLimit(1)
-
-                            if section == .about {
-                                Text(
-                                    DevelopmentBuildPresentation.aboutSidebarDetail(
-                                        version: AppMetadata.versionDisplayString,
-                                        codename: AppMetadata.developmentCodename
-                                    )
-                                )
-                                    .font(.system(size: 9, weight: .regular, design: .rounded))
-                                    .foregroundStyle(
-                                        selectedSection == section
-                                            ? Color.white.opacity(0.72)
-                                            : Color.secondary
-                                    )
-                                    .lineLimit(2)
-                                    .truncationMode(.tail)
-                                    .fixedSize(horizontal: false, vertical: true)
+                        if expandedSection == section, !subtopics(for: section).isEmpty {
+                            ForEach(subtopics(for: section)) { subtopic in
+                                subtopicRow(subtopic)
                             }
                         }
-
-                        Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(selectedSection == section ? Color.accentColor : Color.clear)
-                    )
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 10)
+                .padding(.bottom, 8)
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 10)
+    }
+
+    private func categoryRow(_ section: Section) -> some View {
+        // A simple category paints a filled pill; an expandable category whose
+        // leaf is selected only gets a weight emphasis, so the two highlights
+        // never compete.
+        let showsPill = selectedSection == section && subtopics(for: section).isEmpty
+        return Button {
+            select(section)
+        } label: {
+            HStack(alignment: .center, spacing: 10) {
+                SettingsIcon(glyph: section.glyph, tint: section.tint)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(section.title(localization))
+                        .font(.system(size: 13, weight: selectedSection == section ? .medium : .regular))
+                        .foregroundStyle(showsPill ? Color.white : Color.primary)
+                        .lineLimit(1)
+
+                    if section == .about {
+                        Text(
+                            DevelopmentBuildPresentation.aboutSidebarDetail(
+                                version: AppMetadata.versionDisplayString,
+                                codename: AppMetadata.developmentCodename
+                            )
+                        )
+                            .font(.system(size: 9, weight: .regular, design: .rounded))
+                            .foregroundStyle(
+                                showsPill
+                                    ? Color.white.opacity(0.72)
+                                    : Color.secondary
+                            )
+                            .lineLimit(2)
+                            .truncationMode(.tail)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(showsPill ? Color.accentColor : Color.clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func subtopicRow(_ subtopic: SettingsSubtopic) -> some View {
+        Button {
+            selectSubtopic(subtopic)
+        } label: {
+            HStack(alignment: .center, spacing: 10) {
+                // Leave a matching overhang so the indented leaf aligns with its
+                // category's icon-space and reads as nested beneath it.
+                Text(subtopic.title(localization))
+                    .font(.system(size: 12))
+                    .foregroundStyle(
+                        selectedSubtopic == subtopic
+                            ? Color.white
+                            : Color.primary.opacity(0.9)
+                    )
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+            }
+            .padding(.leading, 44)
+            .padding(.trailing, 8)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(
+                        selectedSubtopic == subtopic
+                            ? Color.accentColor
+                            : Color.clear
+                    )
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Detail
@@ -182,14 +268,16 @@ struct SettingsView: View {
                 statusStore: statusStore,
                 inputSourceController: inputSourceController,
                 previewIsDark: $previewIsDark,
-                onShowIconGuide: onShowIconGuide
+                onShowIconGuide: onShowIconGuide,
+                subtopic: subtopicIfSelectionMatches(.appIcon)
             )
         case .battery:
             BatterySectionView(
                 store: store,
                 statusStore: statusStore,
                 previewIsDark: $previewIsDark,
-                chargeToFullNow: chargeToFullNow
+                chargeToFullNow: chargeToFullNow,
+                subtopic: subtopicIfSelectionMatches(.battery)
             )
         case .network:
             NetworkSectionView(
@@ -204,13 +292,15 @@ struct SettingsView: View {
                 statusStore: statusStore,
                 bluetoothDevices: statusStore.bluetoothDevices,
                 appleDeviceDiscovery: statusStore.appleDeviceDiscovery,
-                previewIsDark: $previewIsDark
+                previewIsDark: $previewIsDark,
+                subtopic: subtopicIfSelectionMatches(.bluetooth)
             )
         case .audio:
             AudioSectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark
+                previewIsDark: $previewIsDark,
+                subtopic: subtopicIfSelectionMatches(.audio)
             )
         case .brightness:
             BrightnessSectionView(store: store, statusStore: statusStore)
@@ -227,6 +317,15 @@ struct SettingsView: View {
         case .about:
             AboutSectionView()
         }
+    }
+
+    /// Reveals the active subtopic only when it belongs to the given section,
+    /// so a single-pane or cross-category selection never bleeds into detail.
+    private func subtopicIfSelectionMatches(_ section: Section) -> SettingsSubtopic? {
+        guard let selectedSubtopic, selectedSubtopic.section == section else {
+            return nil
+        }
+        return selectedSubtopic
     }
 
     static let sidebarWidth: CGFloat = 190

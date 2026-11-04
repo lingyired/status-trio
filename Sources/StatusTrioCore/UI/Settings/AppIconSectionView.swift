@@ -7,6 +7,9 @@ struct AppIconSectionView: View {
     var inputSourceController: InputSourceController? = nil
     @Binding var previewIsDark: Bool
     let onShowIconGuide: () -> Void
+    /// When non-`nil` the pane shows only that leaf subtopic beneath the App
+    /// Icon category; `nil` keeps the original full-pane layout.
+    var subtopic: SettingsSubtopic? = nil
     @EnvironmentObject private var localization: Localization
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -21,34 +24,55 @@ struct AppIconSectionView: View {
                 isDarkBackground: $previewIsDark
             )
         }) {
-            SettingsGroup {
-                SettingsRow(
-                    "questionmark.circle",
-                    tint: .indigo,
-                    title: localization.string(.guideTitle)
-                ) {
-                    Button(action: onShowIconGuide) {
-                        Label(
-                            localization.string(.guideOpen),
-                            systemImage: "macwindow"
-                        )
-                    }
+            if let subtopic {
+                appIconSubpage(subtopic)
+            } else {
+                fullAppIconContent
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var fullAppIconContent: some View {
+        iconGuideGroup
+        placementGroup
+        menuBarGroup
+        statusIconGroup
+        MiddleIconSettingsGroup(store: store, statusStore: statusStore)
+        dockGroup
+    }
+
+    @ViewBuilder
+    private func appIconSubpage(_ subtopic: SettingsSubtopic) -> some View {
+        switch subtopic {
+        case .appIconPlacementSize:
+            iconGuideGroup
+            placementGroup
+            menuBarGroup
+        case .appIconRingAndDock:
+            statusIconGroup
+            dockGroup
+        case .appIconMiddleIcon:
+            MiddleIconSettingsGroup(store: store, statusStore: statusStore)
+        default:
+            fullAppIconContent
+        }
+    }
+
+    private var iconGuideGroup: some View {
+        SettingsGroup {
+            SettingsRow(
+                "questionmark.circle",
+                tint: .indigo,
+                title: localization.string(.guideTitle)
+            ) {
+                Button(action: onShowIconGuide) {
+                    Label(
+                        localization.string(.guideOpen),
+                        systemImage: "macwindow"
+                    )
                 }
             }
-
-            // 2. Where the icon lives
-            placementGroup
-
-            // 3. Menu bar surface
-            menuBarGroup
-
-            // 4. Ring thickness, shared by the menu bar and the Dock icons
-            statusIconGroup
-
-            MiddleIconSettingsGroup(store: store, statusStore: statusStore)
-
-            // 5. Dock surface
-            dockGroup
         }
     }
 

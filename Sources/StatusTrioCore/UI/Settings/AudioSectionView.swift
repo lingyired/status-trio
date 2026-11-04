@@ -4,6 +4,9 @@ struct AudioSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @Binding var previewIsDark: Bool
+    /// When non-`nil` the pane shows only that leaf subtopic beneath the Audio
+    /// category; `nil` keeps the original full-pane layout.
+    var subtopic: SettingsSubtopic? = nil
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
@@ -14,16 +17,43 @@ struct AudioSectionView: View {
                 isDarkBackground: $previewIsDark
             )
         }) {
-            indicatorStyleGroup
-            volumeFeedbackGroup
-            volumeScrollGroup
-            displayRulesGroup
-            externalVolumeGroup
-            deviceOrderGroup
-            inputDeviceOrderGroup
+            if let subtopic {
+                audioSubpage(subtopic)
+            } else {
+                fullAudioContent
+            }
         }
         .onAppear {
             statusStore.refreshAll()
+        }
+    }
+
+    @ViewBuilder
+    private var fullAudioContent: some View {
+        indicatorStyleGroup
+        volumeFeedbackGroup
+        volumeScrollGroup
+        displayRulesGroup
+        externalVolumeGroup
+        deviceOrderGroup
+        inputDeviceOrderGroup
+    }
+
+    @ViewBuilder
+    private func audioSubpage(_ subtopic: SettingsSubtopic) -> some View {
+        switch subtopic {
+        case .audioDisplayAndInteraction:
+            indicatorStyleGroup
+            volumeFeedbackGroup
+            volumeScrollGroup
+        case .audioDeviceManagement:
+            displayRulesGroup
+            deviceOrderGroup
+            inputDeviceOrderGroup
+        case .audioExternalVolume:
+            externalVolumeGroup
+        default:
+            fullAudioContent
         }
     }
 

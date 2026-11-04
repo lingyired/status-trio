@@ -6,6 +6,10 @@ struct BatterySectionView: View {
     @ObservedObject var statusStore: SystemStatusStore
     @Binding var previewIsDark: Bool
     var chargeToFullNow: ChargeToFullNowController? = nil
+    /// When non-`nil` the pane shows only that leaf subtopic beneath the Battery
+    /// category; `nil` keeps the original full-pane layout (used by tests and
+    /// by any caller that does not drive the two-level sidebar).
+    var subtopic: SettingsSubtopic? = nil
     @EnvironmentObject private var localization: Localization
     @ObservedObject private var helper: PrivilegedHelperManager = .shared
 
@@ -18,17 +22,50 @@ struct BatterySectionView: View {
                 isDarkBackground: $previewIsDark
             )
         }) {
+            if let subtopic {
+                batterySubpage(subtopic)
+            } else {
+                fullBatteryContent
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var fullBatteryContent: some View {
+        if !statusStore.snapshot.battery.isPresent {
+            noBatteryNoticeGroup
+        }
+        iconGroup
+        colorsGroup
+        chargingEffectsGroup
+        chargingGroup
+        if helper.isAvailable {
+            powerModesGroup
+        }
+        powerFlowGroup
+    }
+
+    @ViewBuilder
+    private func batterySubpage(_ subtopic: SettingsSubtopic) -> some View {
+        switch subtopic {
+        case .batteryIconDisplay:
             if !statusStore.snapshot.battery.isPresent {
                 noBatteryNoticeGroup
             }
             iconGroup
+            fullThresholdGroup
+        case .batteryColorsAndAnimation:
             colorsGroup
             chargingEffectsGroup
-            chargingGroup
+        case .batteryChargeManagement:
+            chargeManagementGroup
+        case .batteryPowerAndEnergy:
             if helper.isAvailable {
                 powerModesGroup
             }
             powerFlowGroup
+        default:
+            fullBatteryContent
         }
     }
 
@@ -235,107 +272,143 @@ struct BatterySectionView: View {
 
     /// Charging behaviour: the temporary full-charge action, its restore target
     /// and the level that counts as a full ring.
+    /// The combined charging card shown on the original single-pane layout.
     private var chargingGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupCharging)) {
-            if let chargeToFullNow, chargeToFullNow.isSettingAvailable {
-                SettingsToggleRow(
-                    symbol: "bolt.badge.clock.fill",
-                    tint: .green,
-                    title: localization.string(.settingsBatteryShowChargeToFullNow),
-                    subtitle: localization.string(
-                        .settingsBatteryShowChargeToFullNowDescription
-                    ),
-                    isOn: $store.showsChargeToFullNowButton
+            chargeToFullNowContent
+            SettingsDivider()
+            fullThresholdContent
+            systemChargeLimitUnavailableNote
+        }
+    }
+
+    /// "Charge Management" subtopic: the "Charge to full now" entry and the
+    /// restore-limit control that cancels it. The full-ring level moved to the
+    /// Icon Display subtopic because it only paints the visual completeness.
+    private var chargeManagementGroup: some View {
+        SettingsGroup(localization.string(.settingsBatteryGroupCharging)) {
+            if chargeToFullNow?.isSettingAvailable == true {
+                chargeToFullNowContent
+            } else {
+                // Never leave an empty card when the platform does not offer
+                // the temporary full-charge override.
+                SettingsHintRow(
+                    text: localization.string(.batteryActionChargeToFullNowUnavailable)
                 )
-
-                SettingsDivider()
-
-                // macOS removes the persisted charge limit while the native
-                // override runs, so the cancel target is an explicit setting
-                // rather than a guess. The link fills it in from the system
-                // once; afterwards it stays a plain editable value.
-                SettingsRow(
-                    "arrow.uturn.backward.circle",
-                    tint: .green,
-                    title: localization.string(.settingsBatteryRestoreLimit),
-                    subtitle: localization.string(
-                        .settingsBatteryRestoreLimitDescription
-                    ),
-                    subtitleLink: Text(
-                        localization.string(
-                            .settingsBatteryFullThresholdUseChargeLimit
-                        )
-                    )
-                    .foregroundColor(Color.accentColor),
-                    subtitleLinkAction: {
-                        store.applySystemChargeToFullRestoreLimit()
-                    },
-                    trailing: {
-                        HStack(spacing: 8) {
-                            Slider(
-                                value: Binding(
-                                    get: { store.chargeToFullRestoreLimit },
-                                    set: {
-                                        store.chargeToFullRestoreLimit =
-                                            $0.rounded()
-                                    }
-                                ),
-                                in: SettingsStore.chargeToFullRestoreLimitRange,
-                                step: 5
-                            )
-                            .controlSize(.small)
-                            .frame(width: 90)
-                            .accessibilityLabel(
-                                localization.string(.settingsBatteryRestoreLimit)
-                            )
-                            .accessibilityValue(
-                                "\(Int(store.chargeToFullRestoreLimit))%"
-                            )
-
-                            Text("\(Int(store.chargeToFullRestoreLimit))%")
-                                .font(.system(size: 12, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 44, alignment: .trailing)
-                        }
-                    }
-                )
-
-                SettingsDivider()
             }
+        }
+    }
+
+    /// "Icon Display" subtopic's second card: the full-ring visual threshold
+    /// (grouped under the icon-title so it reads as part of how the icon is
+    /// drawn, not as a charging behaviour).
+    private var fullThresholdGroup: some View {
+        SettingsGroup(localization.string(.settingsBatteryGroupIcon)) {
+            fullThresholdContent
+            systemChargeLimitUnavailableNote
+        }
+    }
+
+    @ViewBuilder
+    private var chargeToFullNowContent: some View {
+        if let chargeToFullNow, chargeToFullNow.isSettingAvailable {
+            SettingsToggleRow(
+                symbol: "bolt.badge.clock.fill",
+                tint: .green,
+                title: localization.string(.settingsBatteryShowChargeToFullNow),
+                subtitle: localization.string(
+                    .settingsBatteryShowChargeToFullNowDescription
+                ),
+                isOn: $store.showsChargeToFullNowButton
+            )
 
             SettingsDivider()
 
-            // Full Ring Level (#105)
-            //
-            // The slider row is byte-for-byte the low-battery threshold row
-            // above it, so the percentage lands on the same baseline as every
-            // other slider on the pane.
-            //
-            // The "use the system value" action is a link in the description
-            // rather than a button of its own: it is a one-shot convenience, not
-            // a setting, and a second row for it would spend a whole row on an
-            // action nobody looks for. As a link it reads as part of the
-            // explanation — "here is when you would want this, and here is how
-            // to fill it in".
+            // macOS removes the persisted charge limit while the native
+            // override runs, so the cancel target is an explicit setting
+            // rather than a guess. The link fills it in from the system
+            // once; afterwards it stays a plain editable value.
             SettingsRow(
-                "battery100.bolt",
+                "arrow.uturn.backward.circle",
                 tint: .green,
-                title: localization.string(.settingsBatteryFullThreshold),
-                subtitle: localization.string(.settingsBatteryFullThresholdDescription),
+                title: localization.string(.settingsBatteryRestoreLimit),
+                subtitle: localization.string(
+                    .settingsBatteryRestoreLimitDescription
+                ),
                 subtitleLink: Text(
-                    localization.string(.settingsBatteryFullThresholdUseChargeLimit)
+                    localization.string(
+                        .settingsBatteryFullThresholdUseChargeLimit
+                    )
                 )
                 .foregroundColor(Color.accentColor),
-                // Fills the slider in from the system. A one-shot action, not a
-                // mode: the level stays editable afterwards, and nothing
-                // re-reads the plist behind the user's back.
-                //
-                // Accent colour rather than `.link`, which is macOS 14+ and
-                // this app still ships macOS 13.
                 subtitleLinkAction: {
-                    store.applySystemChargeLimit()
+                    store.applySystemChargeToFullRestoreLimit()
                 },
                 trailing: {
+                    HStack(spacing: 8) {
+                        Slider(
+                            value: Binding(
+                                get: { store.chargeToFullRestoreLimit },
+                                set: {
+                                    store.chargeToFullRestoreLimit =
+                                        $0.rounded()
+                                }
+                            ),
+                            in: SettingsStore.chargeToFullRestoreLimitRange,
+                            step: 5
+                        )
+                        .controlSize(.small)
+                        .frame(width: 90)
+                        .accessibilityLabel(
+                            localization.string(.settingsBatteryRestoreLimit)
+                        )
+                        .accessibilityValue(
+                            "\(Int(store.chargeToFullRestoreLimit))%"
+                        )
+
+                        Text("\(Int(store.chargeToFullRestoreLimit))%")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var fullThresholdContent: some View {
+        // Full Ring Level (#105)
+        //
+        // The slider row is byte-for-byte the low-battery threshold row
+        // above it, so the percentage lands on the same baseline as every
+        // other slider on the pane.
+        //
+        // The "use the system value" action is a link in the description
+        // rather than a button of its own: it is a one-shot convenience, not
+        // a setting, and a second row for it would spend a whole row on an
+        // action nobody looks for. As a link it reads as part of the
+        // explanation — "here is when you would want this, and here is how
+        // to fill it in".
+        SettingsRow(
+            "battery100.bolt",
+            tint: .green,
+            title: localization.string(.settingsBatteryFullThreshold),
+            subtitle: localization.string(.settingsBatteryFullThresholdDescription),
+            subtitleLink: Text(
+                localization.string(.settingsBatteryFullThresholdUseChargeLimit)
+            )
+            .foregroundColor(Color.accentColor),
+            // Fills the slider in from the system. A one-shot action, not a
+            // mode: the level stays editable afterwards, and nothing
+            // re-reads the plist behind the user's back.
+            //
+            // Accent colour rather than `.link`, which is macOS 14+ and
+            // this app still ships macOS 13.
+            subtitleLinkAction: {
+                store.applySystemChargeLimit()
+            },
+            trailing: {
                 HStack(spacing: 8) {
                     Slider(
                         value: Binding(
@@ -357,21 +430,23 @@ struct BatterySectionView: View {
                         .frame(width: 44, alignment: .trailing)
                 }
             }
-            )
+        )
+    }
 
-            if !store.canReadSystemChargeLimit {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                    Text(localization.string(
-                        .settingsBatteryFullThresholdSystemUnavailable
-                    ))
-                    .font(.caption)
+    @ViewBuilder
+    private var systemChargeLimitUnavailableNote: some View {
+        if !store.canReadSystemChargeLimit {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, SettingsMetrics.rowPaddingH)
-                .padding(.bottom, 6)
+                Text(localization.string(
+                    .settingsBatteryFullThresholdSystemUnavailable
+                ))
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
+            .padding(.horizontal, SettingsMetrics.rowPaddingH)
+            .padding(.bottom, 6)
         }
     }
 
