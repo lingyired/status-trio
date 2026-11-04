@@ -440,8 +440,7 @@ final class BluetoothListeningModeController: ObservableObject {
         }
         guard !presentation.isChanging else { return }
         // A tap on the capsule already highlighted means "turn it off"; any other
-        // tap selects that mode. `off` is not a drawn capsule on an AirPods row,
-        // so this re-tap is how the device is turned off.
+        // tap selects that mode, including the explicit Off row.
         let target = presentation.requestedMode(forTapped: mode)
         guard target != presentation.selectedMode else { return }
 

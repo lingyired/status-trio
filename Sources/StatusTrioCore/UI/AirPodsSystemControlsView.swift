@@ -217,7 +217,7 @@ struct AirPodsSystemControlsView: View {
                 heading(.bluetoothListeningModeGroup)
                 ForEach([BluetoothListeningMode.off, .transparency, .adaptive, .noiseCancellation]
                     .filter { listeningMode.availableModes.contains($0) }, id: \.self) { mode in
-                    option(localization.string(mode.titleKey), symbol: symbol(mode), selected: listeningMode.selectedMode == mode) {
+                    option(localization.string(mode.titleKey), symbol: symbol(mode), selected: listeningMode.selectedMode == mode, dimWaves: mode == .off) {
                         onSelectListeningMode(mode)
                     }.disabled(listeningMode.isChanging)
                     if mode == .adaptive, listeningMode.selectedMode == mode { adaptiveControl }
@@ -340,7 +340,7 @@ struct AirPodsSystemControlsView: View {
         case .transparency: return "person.open.fill"
         case .adaptive: return "person.and.sparkles.fill"
         case .noiseCancellation: return "person.closed.fill"
-        case .off: return "speaker.slash"
+        case .off: return "person.closed.fill"
         }
     }
 }

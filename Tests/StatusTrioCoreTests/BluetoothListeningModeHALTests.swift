@@ -146,12 +146,12 @@ final class BluetoothListeningModeHALTests: XCTestCase {
 
     // MARK: - Support-mask parsing (§18.1)
 
-    func testSupportMaskSingleModeIsNotControllable() {
+    func testSupportMaskSingleModeCanSwitchToOff() {
         let backend = FakeListeningModeBackend()
         backend.lsms.value = 0b001
         let capability = makeHAL(backend).capability(for: device)
-        XCTAssertEqual(capability?.availableModes, [.noiseCancellation])
-        XCTAssertEqual(capability?.isControllable, false, "one mode has nothing to switch between")
+        XCTAssertEqual(capability?.availableModes, [.off, .noiseCancellation])
+        XCTAssertEqual(capability?.isControllable, true, "noise control can switch between Off and ANC")
     }
 
     func testSupportMaskTwoModes() {
@@ -159,7 +159,7 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         backend.lsms.value = 0b011
         XCTAssertEqual(
             makeHAL(backend).capability(for: device)?.availableModes,
-            [.noiseCancellation, .transparency]
+            [.off, .noiseCancellation, .transparency]
         )
     }
 
@@ -168,7 +168,7 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         backend.lsms.value = 0b111
         XCTAssertEqual(
             makeHAL(backend).capability(for: device)?.availableModes,
-            [.noiseCancellation, .transparency, .adaptive]
+            [.off, .noiseCancellation, .transparency, .adaptive]
         )
     }
 
@@ -176,7 +176,7 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         let backend = FakeListeningModeBackend()
         backend.lsms.value = 0b1_0111 // a future bit at position 3 plus all three known
         let capability = makeHAL(backend).capability(for: device)
-        XCTAssertEqual(capability?.availableModes, [.noiseCancellation, .transparency, .adaptive])
+        XCTAssertEqual(capability?.availableModes, [.off, .noiseCancellation, .transparency, .adaptive])
         XCTAssertTrue(
             BluetoothListeningModeSupport.hasUnknownBits(backend.lsms.value),
             "the unknown bit is reported, never promoted to a mode"
@@ -191,12 +191,12 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         XCTAssertNil(makeHAL(backend).capability(for: device)?.currentMode)
     }
 
-    func testCurrentOffIsObservedButNotSelectable() {
+    func testCurrentOffIsSelectableAndHighlighted() {
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 1
         let capability = makeHAL(backend).capability(for: device)
         XCTAssertEqual(capability?.currentMode, .off)
-        XCTAssertFalse(BluetoothListeningMode.off.isUserSelectable)
+        XCTAssertEqual(BluetoothListeningModePresentation(capability: capability!).selectedMode, .off)
     }
 
     func testCurrentModesMapToTheirRawValues() {

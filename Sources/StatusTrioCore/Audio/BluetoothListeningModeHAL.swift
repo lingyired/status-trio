@@ -182,7 +182,10 @@ struct BluetoothListeningModeHAL {
         let canSet = backend.isSettable(deviceID, BluetoothListeningModeProperty.listeningMode)
         return BluetoothListeningModeCapability(
             audioDeviceID: deviceID,
-            availableModes: BluetoothListeningModeSupport.availableModes(from: supportMask),
+            // Off has no lsms bit. The existing lstm writer already supports it;
+            // include it explicitly when the endpoint advertises noise control.
+            availableModes: supportMask & BluetoothListeningModeSupport.recognizedMask != 0
+                ? [.off] + BluetoothListeningModeSupport.availableModes(from: supportMask) : [],
             currentMode: BluetoothListeningModeRawValue.mode(from: rawMode),
             canSet: canSet
         )
@@ -218,9 +221,8 @@ struct BluetoothListeningModeHAL {
         _ mode: BluetoothListeningMode,
         for deviceID: AudioDeviceID
     ) async -> BluetoothListeningModeWriteResult {
-        // `off` is a valid write target even though it is not a drawn capsule on an
-        // AirPods row: re-tapping the active mode asks the device to turn off, and
-        // the HAL writes the `off` raw value exactly as it writes any other mode.
+        // Off has no lsms bit but is a valid lstm write target, both from its
+        // explicit row and from re-tapping an active legacy capsule.
         guard mode.isUserSelectable || mode == .off else {
             return .failed(.modeUnsupported)
         }

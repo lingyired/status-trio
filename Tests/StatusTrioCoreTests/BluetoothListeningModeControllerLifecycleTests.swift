@@ -204,6 +204,21 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         XCTAssertEqual(backend.writeCount, 1)
     }
 
+    func testExplicitOffRowWritesAndRemainsSelected() async {
+        let backend = FakeListeningModeBackend()
+        let cap = BluetoothListeningModeHAL(backend: backend).capability(for: endpointID)!
+        let (controller, _, _) = makeController(endpoints: [endpoint(capability: cap)], backend: backend)
+        controller.refresh(devices: [device()])
+        XCTAssertTrue(controller.presentations[key]!.availableModes.contains(.off))
+        controller.setMode(.off, for: device())
+        await waitUntil { controller.presentations[key]?.actionState == .idle }
+        XCTAssertEqual(controller.presentations[key]?.selectedMode, .off)
+        XCTAssertEqual(backend.lstm.value, BluetoothListeningMode.off.rawValue)
+        XCTAssertEqual(backend.writeCount, 1)
+        controller.setMode(.off, for: device())
+        XCTAssertEqual(backend.writeCount, 1, "Selecting Off again is a no-op")
+    }
+
     func testReTapOfSelectedModeTurnsItOff() async {
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 3 // already Transparency, and the capability highlights it
