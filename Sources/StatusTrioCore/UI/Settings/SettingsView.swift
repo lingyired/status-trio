@@ -18,11 +18,11 @@ struct SettingsView: View {
     /// controller stores the request because the first presentation can post
     /// its notification before SwiftUI has subscribed.
     var consumePendingSection: () -> Section? = { nil }
+    /// The optional leaf within `consumePendingSection`'s tab, for deep links
+    /// that target a specific subpage.
+    var consumePendingSubtopic: () -> SettingsSubtopic? = { nil }
 
-    @State private var selectedSection: Section = .appIcon
-    @State private var expandedSection: Section? = .appIcon
-    @State private var selectedSubtopic: SettingsSubtopic? = .appIconPlacementSize
-    @State private var lastSubtopicBySection: [Section: SettingsSubtopic] = [:]
+    @StateObject private var navigation = SettingsNavigationModel()
     @State private var previewIsDark: Bool = true
 
     enum Section: String, CaseIterable, Identifiable {
@@ -108,40 +108,28 @@ struct SettingsView: View {
 
     private func applyRequestedSectionIfAvailable() {
         guard let section = consumePendingSection() else { return }
-        select(section)
+        let subtopic = consumePendingSubtopic()
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+            navigation.apply(section: section, subtopic: subtopic)
+        }
     }
 
     private func subtopics(for section: Section) -> [SettingsSubtopic] {
-        SettingsSubtopic.allCases.filter { $0.section == section }
+        section.subtopics
     }
 
-    private func defaultSubtopic(for section: Section) -> SettingsSubtopic {
-        subtopics(for: section).first { $0.isDefault }
-            ?? subtopics(for: section)[0]
-    }
-
+    /// Moves the selection. Kept as a thin animated wrapper so the sidebar
+    /// buttons and the model stay decoupled.
     private func select(_ section: Section) {
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
-            selectedSection = section
-            if subtopics(for: section).isEmpty {
-                expandedSection = nil
-                selectedSubtopic = nil
-            } else {
-                expandedSection = section
-                let remembered = lastSubtopicBySection[section] ?? defaultSubtopic(for: section)
-                selectedSubtopic = remembered
-                lastSubtopicBySection[section] = remembered
-            }
+            navigation.select(section)
         }
     }
 
     /// Reveals one leaf subtopic beneath its parent category.
     private func selectSubtopic(_ subtopic: SettingsSubtopic) {
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
-            selectedSection = subtopic.section
-            expandedSection = subtopic.section
-            selectedSubtopic = subtopic
-            lastSubtopicBySection[subtopic.section] = subtopic
+            navigation.selectSubtopic(subtopic)
         }
     }
 
@@ -160,7 +148,7 @@ struct SettingsView: View {
                     ForEach(Section.allCases) { section in
                         categoryRow(section)
 
-                        if expandedSection == section, !subtopics(for: section).isEmpty {
+                        if navigation.expandedSection == section, !subtopics(for: section).isEmpty {
                             ForEach(subtopics(for: section)) { subtopic in
                                 subtopicRow(subtopic)
                             }
@@ -178,7 +166,7 @@ struct SettingsView: View {
         // A simple category paints a filled pill; an expandable category whose
         // leaf is selected only gets a weight emphasis, so the two highlights
         // never compete.
-        let showsPill = selectedSection == section && subtopics(for: section).isEmpty
+        let showsPill = navigation.selectedSection == section && subtopics(for: section).isEmpty
         return Button {
             select(section)
         } label: {
@@ -187,7 +175,7 @@ struct SettingsView: View {
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(section.title(localization))
-                        .font(.system(size: 13, weight: selectedSection == section ? .medium : .regular))
+                        .font(.system(size: 13, weight: navigation.selectedSection == section ? .medium : .regular))
                         .foregroundStyle(showsPill ? Color.white : Color.primary)
                         .lineLimit(1)
 
@@ -233,7 +221,7 @@ struct SettingsView: View {
                 Text(subtopic.title(localization))
                     .font(.system(size: 12))
                     .foregroundStyle(
-                        selectedSubtopic == subtopic
+                        navigation.selectedSubtopic == subtopic
                             ? Color.white
                             : Color.primary.opacity(0.9)
                     )
@@ -247,7 +235,7 @@ struct SettingsView: View {
             .background(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(
-                        selectedSubtopic == subtopic
+                        navigation.selectedSubtopic == subtopic
                             ? Color.accentColor
                             : Color.clear
                     )
@@ -261,7 +249,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var detail: some View {
-        switch selectedSection {
+        switch navigation.selectedSection {
         case .appIcon:
             AppIconSectionView(
                 store: store,
@@ -322,10 +310,10 @@ struct SettingsView: View {
     /// Reveals the active subtopic only when it belongs to the given section,
     /// so a single-pane or cross-category selection never bleeds into detail.
     private func subtopicIfSelectionMatches(_ section: Section) -> SettingsSubtopic? {
-        guard let selectedSubtopic, selectedSubtopic.section == section else {
+        guard let selected = navigation.selectedSubtopic, selected.section == section else {
             return nil
         }
-        return selectedSubtopic
+        return selected
     }
 
     static let sidebarWidth: CGFloat = 190

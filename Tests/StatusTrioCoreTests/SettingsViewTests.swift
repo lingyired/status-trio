@@ -166,13 +166,15 @@ final class SettingsViewTests: XCTestCase {
             store: SettingsStore(defaults: suite.defaults),
             storeController: emptyStoreController,
             observedController: controller,
-            localization: Localization(defaults: suite.defaults, preferredLanguages: ["en"])
+            localization: Localization(defaults: suite.defaults, preferredLanguages: ["en"]),
+            subtopic: .bluetoothPanelAndList
         )
         let empty = renderBluetoothPane(
             store: SettingsStore(defaults: suite.defaults),
             storeController: emptyStoreController,
             observedController: SettingsBluetoothTestFactory.makeController(devices: []),
-            localization: Localization(defaults: suite.defaults, preferredLanguages: ["en"])
+            localization: Localization(defaults: suite.defaults, preferredLanguages: ["en"]),
+            subtopic: .bluetoothPanelAndList
         )
 
         XCTAssertGreaterThan(
@@ -216,13 +218,15 @@ final class SettingsViewTests: XCTestCase {
         let withoutDeviceOptions = renderAppIconPane(
             store: store,
             statusStore: makeStatusStore(bluetoothDevices: controller),
-            localization: localization
+            localization: localization,
+            subtopic: .appIconMiddleIcon
         )
         store.connectionCenterSource = .bluetoothDevice
         let withDeviceOptions = renderAppIconPane(
             store: store,
             statusStore: makeStatusStore(bluetoothDevices: controller),
-            localization: localization
+            localization: localization,
+            subtopic: .appIconMiddleIcon
         )
 
         XCTAssertGreaterThan(
@@ -554,6 +558,16 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(popover.contains("settingsPopupVolumeScrollDirection"))
         XCTAssertTrue(popover.contains("settingsPopupVolumeScrollNatural"))
         XCTAssertTrue(popover.contains("popupVolumeNaturalScrolling"))
+
+        // The volume-scroll group is routed to the "display and interaction"
+        // leaf; the device-management leaf must not render it.
+        let displayStart = try XCTUnwrap(audio.range(of: "case .audioDisplayAndInteraction:"))
+        let deviceStart = try XCTUnwrap(audio.range(of: "case .audioDeviceManagement:"))
+        let externalStart = try XCTUnwrap(audio.range(of: "case .audioExternalVolume:"))
+        let displayLeaf = audio[displayStart.lowerBound..<deviceStart.lowerBound]
+        let deviceLeaf = audio[deviceStart.lowerBound..<externalStart.lowerBound]
+        XCTAssertTrue(displayLeaf.contains("volumeScrollGroup"))
+        XCTAssertFalse(deviceLeaf.contains("volumeScrollGroup"))
         XCTAssertFalse(
             popover.contains("popupScrollAdjustsVolume"),
             "the panel pane must not own the volume-scroll switch"
@@ -684,13 +698,15 @@ private enum SettingsBluetoothTestFactory {
 private func renderAppIconPane(
     store: SettingsStore,
     statusStore: SystemStatusStore,
-    localization: Localization
+    localization: Localization,
+    subtopic: SettingsSubtopic? = nil
 ) -> NSSize {
     let pane = AppIconSectionView(
         store: store,
         statusStore: statusStore,
         previewIsDark: .constant(true),
-        onShowIconGuide: {}
+        onShowIconGuide: {},
+        subtopic: subtopic
     )
     .environmentObject(localization)
     .environmentObject(ChargingEffectClock())
@@ -711,7 +727,8 @@ private func renderBluetoothPane(
     store: SettingsStore,
     storeController: BluetoothDeviceController,
     observedController: BluetoothDeviceController,
-    localization: Localization
+    localization: Localization,
+    subtopic: SettingsSubtopic? = nil
 ) -> NSSize {
     let statusStore = SystemStatusStore(
         batteryMonitor: DummyBatteryMonitor(),
@@ -724,7 +741,8 @@ private func renderBluetoothPane(
         statusStore: statusStore,
         bluetoothDevices: observedController,
         appleDeviceDiscovery: statusStore.appleDeviceDiscovery,
-        previewIsDark: .constant(true)
+        previewIsDark: .constant(true),
+        subtopic: subtopic
     )
     .environmentObject(localization)
     .environmentObject(ChargingEffectClock())

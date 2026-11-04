@@ -15,18 +15,46 @@ struct BatterySectionView: View {
 
 
     var body: some View {
-        SettingsPage(pinnedHeader: {
-            StatusIconPreviewCard(
-                store: store,
-                statusStore: statusStore,
-                isDarkBackground: $previewIsDark
-            )
-        }) {
-            if let subtopic {
-                batterySubpage(subtopic)
+        Group {
+            if showsIconPreview {
+                SettingsPage(pinnedHeader: {
+                    StatusIconPreviewCard(
+                        store: store,
+                        statusStore: statusStore,
+                        isDarkBackground: $previewIsDark
+                    )
+                }) {
+                    batteryContent
+                }
+                .id(subtopic)
             } else {
-                fullBatteryContent
+                SettingsPage {
+                    batteryContent
+                }
+                .id(subtopic)
             }
+        }
+    }
+
+    /// Only the pages that paint the icon carry the pinned live preview; the
+    /// charging and power pages need the vertical space for rows instead.
+    private var showsIconPreview: Bool {
+        switch subtopic {
+        case .batteryChargeManagement, .batteryPowerAndEnergy:
+            return false
+        case .batteryIconDisplay, .batteryColorsAndAnimation, .none:
+            return true
+        default:
+            return true
+        }
+    }
+
+    @ViewBuilder
+    private var batteryContent: some View {
+        if let subtopic {
+            batterySubpage(subtopic)
+        } else {
+            fullBatteryContent
         }
     }
 

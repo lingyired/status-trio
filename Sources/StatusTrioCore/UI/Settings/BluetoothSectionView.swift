@@ -19,24 +19,29 @@ struct BluetoothSectionView: View {
     @State private var settingsDemandToken: BluetoothSettingsDemandToken?
 
     var body: some View {
-        SettingsPage(pinnedHeader: {
-            StatusIconPreviewCard(
-                store: store,
-                statusStore: statusStore,
-                isDarkBackground: $previewIsDark
-            )
-        }) {
-            if subtopic == nil {
-                fullBluetoothContent
-            } else if let subtopic {
-                bluetoothSubpage(subtopic)
+        // The settings-demand token is owned by this stable container, not by
+        // the three leaf subpages. Switching between them must not tear down
+        // and rebuild the Bluetooth listener; only leaving the whole category
+        // may. The page below it is the only thing rebuilt on a leaf switch.
+        Group {
+            if showsIconPreview {
+                SettingsPage(pinnedHeader: {
+                    StatusIconPreviewCard(
+                        store: store,
+                        statusStore: statusStore,
+                        isDarkBackground: $previewIsDark
+                    )
+                }) {
+                    bluetoothContent
+                }
+                .id(subtopic)
             } else {
-                fullBluetoothContent
+                SettingsPage {
+                    bluetoothContent
+                }
+                .id(subtopic)
             }
         }
-        // The settings-demand token is owned by this container, not by the
-        // three leaf subpages. Switching between them must not tear down and
-        // rebuild the Bluetooth listener; only leaving the whole category may.
         .onAppear {
             if let settingsDemandToken {
                 statusStore.endBluetoothSettingsDemand(settingsDemandToken)
@@ -47,6 +52,28 @@ struct BluetoothSectionView: View {
             guard let settingsDemandToken else { return }
             statusStore.endBluetoothSettingsDemand(settingsDemandToken)
             self.settingsDemandToken = nil
+        }
+    }
+
+    /// The preview is shown where the icon drawing is being configured; the
+    /// device/battery and panel/device-list pages skip it.
+    private var showsIconPreview: Bool {
+        switch subtopic {
+        case .bluetoothDeviceAndBattery, .bluetoothPanelAndList:
+            return false
+        case .bluetoothDisplayAndPreview, .none:
+            return true
+        default:
+            return true
+        }
+    }
+
+    @ViewBuilder
+    private var bluetoothContent: some View {
+        if let subtopic {
+            bluetoothSubpage(subtopic)
+        } else {
+            fullBluetoothContent
         }
     }
 

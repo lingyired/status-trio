@@ -30,6 +30,9 @@ struct AppIconSectionView: View {
                 fullAppIconContent
             }
         }
+        // Every app-icon page keeps the live preview, but a leaf switch should
+        // still start at the top of the new page.
+        .id(subtopic)
     }
 
     @ViewBuilder

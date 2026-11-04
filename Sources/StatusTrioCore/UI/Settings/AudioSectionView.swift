@@ -10,21 +10,52 @@ struct AudioSectionView: View {
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
-        SettingsPage(pinnedHeader: {
-            StatusIconPreviewCard(
-                store: store,
-                statusStore: statusStore,
-                isDarkBackground: $previewIsDark
-            )
-        }) {
-            if let subtopic {
-                audioSubpage(subtopic)
+        // The lifecycle stays on this stable container; only the page below it
+        // is rebuilt when the leaf changes, so switching subpages does not
+        // re-run the refresh.
+        Group {
+            if showsIconPreview {
+                SettingsPage(pinnedHeader: {
+                    StatusIconPreviewCard(
+                        store: store,
+                        statusStore: statusStore,
+                        isDarkBackground: $previewIsDark
+                    )
+                }) {
+                    audioContent
+                }
+                .id(subtopic)
             } else {
-                fullAudioContent
+                SettingsPage {
+                    audioContent
+                }
+                .id(subtopic)
             }
         }
         .onAppear {
             statusStore.refreshAll()
+        }
+    }
+
+    /// The preview belongs to the page that shows how the icon is drawn; the
+    /// device and external-volume pages use the space for their own rows.
+    private var showsIconPreview: Bool {
+        switch subtopic {
+        case .audioDeviceManagement, .audioExternalVolume:
+            return false
+        case .audioDisplayAndInteraction, .none:
+            return true
+        default:
+            return true
+        }
+    }
+
+    @ViewBuilder
+    private var audioContent: some View {
+        if let subtopic {
+            audioSubpage(subtopic)
+        } else {
+            fullAudioContent
         }
     }
 
