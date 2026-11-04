@@ -174,33 +174,6 @@ final class LegacySMCBytePolicyTests: XCTestCase {
     }
 }
 
-final class LegacyFakeSMCTests: XCTestCase {
-    private func bclmStore(_ value: Data) -> [String: (info: LegacySMCKeyInfo, data: Data)] {
-        [LegacySMCKeys.intelBCLM: (info: LegacySMCKeyInfo(dataType: "ui8", dataSize: 1), data: value)]
-    }
-
-    func testReadWriteAllowlist() {
-        let smc = FakeSMC(
-            store: bclmStore(Data([100])),
-            writeAllowlist: [LegacySMCKeys.intelBCLM],
-            verifiedWritableKeys: [LegacySMCKeys.intelBCLM]
-        )
-
-        XCTAssertEqual(smc.readKey(LegacySMCKeys.intelBCLM)?.data, Data([100]))
-        XCTAssertNil(smc.readKey("NOPE"))
-
-        let ok = smc.writeKey(LegacySMCKeys.intelBCLM, data: Data([80]))
-        XCTAssertTrue(ok.ok)
-        XCTAssertEqual(smc.readKey(LegacySMCKeys.intelBCLM)?.data, Data([80]))
-
-        // A keyed entry not in the allowlist is denied.
-        let smcDeny = FakeSMC(store: bclmStore(Data([100])), writeAllowlist: [])
-        let denied = smcDeny.writeKey(LegacySMCKeys.intelBCLM, data: Data([80]))
-        XCTAssertFalse(denied.ok)
-        XCTAssertEqual(smcDeny.readKey(LegacySMCKeys.intelBCLM)?.data, Data([100]))
-    }
-}
-
 final class LegacySessionTests: XCTestCase {
     @MainActor
     func testVolatileStore() {

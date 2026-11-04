@@ -1,8 +1,7 @@
 import Foundation
 
-/// Pure policy that maps a requested ceiling into concrete SMC write values
-/// and knows how to verify a readback for each backend. No IOKit here; tests
-/// drive it with `FakeSMC`.
+/// Pure policy that maps a requested ceiling into concrete SMC write values.
+/// No IOKit here; the helper performs the actual I/O and validates the result.
 ///
 /// The byte shapes are derived from the project reference behaviour (batt,
 /// battery, charge-limiter), re-implemented independently here. See

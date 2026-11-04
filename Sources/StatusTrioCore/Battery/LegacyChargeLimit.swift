@@ -4,9 +4,9 @@ import Foundation
 /// Apple Silicon) that coexists with the native PowerUI path on macOS 26.4+.
 ///
 /// This file intentionally contains no IOKit, no UI and no writes. Every
-/// decision is a pure function over injected facts so it can be unit-tested
-/// with `FakeSMC`/`FakeBattery`. Phase 2 wires real read-only probes behind
-/// the same protocols.
+/// decision is a pure function over facts that the privileged helper discovers
+/// and returns over the typed XPC probe; the read-only SMC implementation lives
+/// in the helper, not here.
 
 // MARK: - Runtime & OS classification
 
