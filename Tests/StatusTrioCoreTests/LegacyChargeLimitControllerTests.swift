@@ -451,6 +451,15 @@ final class LegacyChargeLimitControllerTests: XCTestCase {
         XCTAssertEqual(controller.status, .temporarilyChargingToFull)
     }
 
+    func testUnsupportedOSAlsoReleasesTheHelperConnection() async {
+        let client = FakeLegacyClient()
+        let controller = makeController(client: client, osBand: .fifteen)
+        await controller.refresh()
+        XCTAssertEqual(controller.availability, .unavailable(.unsupportedOS))
+        XCTAssertGreaterThan(client.releaseCalls, 0,
+                             "macOS 15 has no legacy backend; do not keep the helper alive")
+    }
+
     func testUnavailableControllerDoesNotIssueCommands() async {
         let client = FakeLegacyClient()
         let controller = makeController(client: client, osBand: .tahoe)

@@ -258,3 +258,18 @@ final class ExitRecorder: @unchecked Sendable {
         return recorded
     }
 }
+
+/// The helper must agree with the app on the product scope: legacy limiting is
+/// macOS 13-14 only, so a 15+ daemon refuses even if a client asks.
+final class LegacyHelperScopeTests: XCTestCase {
+    private func version(_ major: Int) -> OperatingSystemVersion {
+        OperatingSystemVersion(majorVersion: major, minorVersion: 0, patchVersion: 0)
+    }
+
+    func testLegacyScopeIsMacOS13And14Only() {
+        XCTAssertTrue(LegacyHelperEnvironment.allowsLegacyLimiter(version: version(13)))
+        XCTAssertTrue(LegacyHelperEnvironment.allowsLegacyLimiter(version: version(14)))
+        XCTAssertFalse(LegacyHelperEnvironment.allowsLegacyLimiter(version: version(15)))
+        XCTAssertFalse(LegacyHelperEnvironment.allowsLegacyLimiter(version: version(26)))
+    }
+}

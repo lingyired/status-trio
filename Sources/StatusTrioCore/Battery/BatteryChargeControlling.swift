@@ -105,11 +105,24 @@ final class PowerUIChargeController: BatteryChargeControlling {
     private let bridge = STPowerUIChargeBridge()
     private var cachedCapability: ChargeToFullNowCapability?
 
+    /// The native charge-to-full option belongs to macOS 26.4+, the OS that
+    /// ships the system charge limit. Gate on the version explicitly so a
+    /// private-API answer can never surface it on an older system.
+    nonisolated static func gatedCapability(
+        _ bridgeCapability: ChargeToFullNowCapability,
+        version: OperatingSystemVersion = ProcessInfo.processInfo.operatingSystemVersion
+    ) -> ChargeToFullNowCapability {
+        guard ChargeLimitSystemVersionGate.prefersSystemBatteryOptimization(version: version) else {
+            return .unavailable(.unsupportedSystem)
+        }
+        return bridgeCapability
+    }
+
     var capability: ChargeToFullNowCapability {
         if let cachedCapability {
             return cachedCapability
         }
-        let capability = Self.mapCapability(bridge.capability())
+        let capability = Self.gatedCapability(Self.mapCapability(bridge.capability()))
         cachedCapability = capability
         return capability
     }

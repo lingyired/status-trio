@@ -547,6 +547,28 @@ final class LegacyChargeLimitServiceTests: XCTestCase {
         XCTAssertEqual(executor.writes.count, writes)
     }
 
+    func testIneligibleSystemReleasesStartupRecoveryInsteadOfHoldingTheDaemon() {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        try? journal.save(LegacyChargeLimitJournal(
+            backend: .intelBCLM, hardwareModel: "Mac15,9", requestedLimit: 80,
+            originalRaw: ["BCLM": Data([90])], lastWrittenRaw: ["BCLM": Data([80])]
+        ))
+        let demand = RecoveryDemandRecorder()
+        let service = LegacyChargeLimitService(
+            executor: executor, journal: journal, battery: FakeBatterySource(level: 50),
+            hardware: LegacyHardwareFacts(isIntel: true, allowsLegacyLimiter: false, hasInternalBattery: true),
+            recoveryDemandChanged: { demand.record($0) }
+        )
+        // macOS 15 can neither restore nor own the cap; holding a root daemon
+        // forever would achieve nothing.
+        XCTAssertTrue(service.reconcileAtStartup())
+        XCTAssertNotEqual(demand.last, true, "An inapplicable record must not hold the daemon")
+        XCTAssertTrue(executor.writes.isEmpty)
+        XCTAssertTrue(service.restoreForClientLoss(owner: UUID()))
+        XCTAssertNotEqual(demand.last, true)
+    }
+
     // MARK: - Journal failure injection
 
     func testInitialJournalSaveFailureBlocksEveryHardwareWrite() {

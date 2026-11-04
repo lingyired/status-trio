@@ -171,6 +171,8 @@ final class LegacyChargeLimitController: ObservableObject {
         guard osBand.allowsLegacyLimiter else {
             availability = .unavailable(.unsupportedOS)
             status = .notEnabled
+            // No legacy backend exists here; do not keep the root helper alive.
+            client.releaseConnection()
             return
         }
         let generation = commandGeneration

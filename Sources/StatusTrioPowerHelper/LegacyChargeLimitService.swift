@@ -314,22 +314,58 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
     @discardableResult
     func reconcileAtStartup() -> Bool {
         lock.withLock {
-            do {
-                guard var session = try loadOwnedJournal() else { return true }
-                try requireEligible()
-                let current = try readOwned(session, allowInterrupted: true)
-                try apply(&session, desired: session.originalRaw, current: current)
-                try journalStore.clear()
+            switch restoreJournalIfSafe() {
+            case .nothingToDo, .restored:
                 recoveryDemandChanged(false)
                 return true
-            } catch {
-                NSLog(
-                    "StatusTrioPowerHelper: startup charge reconciliation pending: %@",
-                    String(describing: error)
-                )
+            case .failed:
                 recoveryDemandChanged(true)
                 return false
             }
+        }
+    }
+
+    private enum JournalRestoreOutcome {
+        case nothingToDo
+        case restored
+        case failed
+    }
+
+    /// Restores the journal only when this system can act on it.
+    ///
+    /// A different model/OS build, an unreadable record, or a system that is no
+    /// longer in the legacy scope means the daemon cannot safely do anything.
+    /// That is *not* a failed recovery: holding a root process forever would
+    /// not help, so those cases leave the record untouched and report
+    /// `nothingToDo`.
+    private func restoreJournalIfSafe() -> JournalRestoreOutcome {
+        guard hardware.hasInternalBattery, hardware.allowsLegacyLimiter else {
+            NSLog("StatusTrioPowerHelper: legacy charge limit is out of scope on this system")
+            return .nothingToDo
+        }
+        let session: Session
+        do {
+            guard let loaded = try loadOwnedJournal() else { return .nothingToDo }
+            session = loaded
+        } catch {
+            NSLog(
+                "StatusTrioPowerHelper: charge record cannot be applied here: %@",
+                String(describing: error)
+            )
+            return .nothingToDo
+        }
+        do {
+            var mutable = session
+            let current = try readOwned(mutable, allowInterrupted: true)
+            try apply(&mutable, desired: mutable.originalRaw, current: current)
+            try journalStore.clear()
+            return .restored
+        } catch {
+            NSLog(
+                "StatusTrioPowerHelper: charge recovery failed: %@",
+                String(describing: error)
+            )
+            return .failed
         }
     }
 
@@ -342,19 +378,11 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
             // Only the connection that owns the session may trigger recovery;
             // an unrelated connection ending must not touch the active cap.
             guard ownerID == owner else { return true }
-            do {
-                guard var session = try loadOwnedJournal() else {
-                    clearOwnership()
-                    return true
-                }
-                try requireEligible()
-                let current = try readOwned(session, allowInterrupted: true)
-                try apply(&session, desired: session.originalRaw, current: current)
-                try journalStore.clear()
+            switch restoreJournalIfSafe() {
+            case .nothingToDo, .restored:
                 clearOwnership()
                 return true
-            } catch {
-                NSLog("StatusTrioPowerHelper: charge recovery pending: %@", String(describing: error))
+            case .failed:
                 ownerID = nil
                 recoveryDemandChanged(true)
                 return false

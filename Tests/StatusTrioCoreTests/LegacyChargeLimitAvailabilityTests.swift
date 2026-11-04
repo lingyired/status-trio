@@ -89,10 +89,21 @@ final class LegacyChargeLimitAvailabilityTests: XCTestCase {
         XCTAssertEqual(availability, .unavailable(.noSupportedKeys))
     }
 
+    func testMacOS15IsReportedAsUnsupportedOS() {
+        let availability = LegacyChargeLimitAvailability.resolve(
+            probe: probe(bclm: true),
+            architecture: .intel,
+            osBand: .fifteen,
+            helperAvailable: true
+        )
+        XCTAssertEqual(availability, .unavailable(.unsupportedOS))
+    }
+
     func testOSBandClassificationMatchesThePlanMatrix() {
         // 16-26.3 is explicitly out of this milestone, not "legacy".
         XCTAssertFalse(LegacyOSBand.sixteenToTahoeLegacy.allowsLegacyLimiter)
         XCTAssertTrue(LegacyOSBand.thirteenToFourteen.allowsLegacyLimiter)
-        XCTAssertTrue(LegacyOSBand.fifteen.allowsLegacyLimiter)
+        XCTAssertFalse(LegacyOSBand.fifteen.allowsLegacyLimiter,
+                       "The legacy limiter is macOS 13-14 only")
     }
 }

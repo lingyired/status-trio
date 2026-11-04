@@ -24,9 +24,26 @@ final class LegacyChargeLimitBackendSelectionTests: XCTestCase {
         XCTAssertEqual(LegacyChargeBackend.select(using: c), .intelBCLM)
     }
 
-    func testIntelOnMacOS15SelectsBCLM() {
-        let c = caps(arch: .intel, band: .fifteen)
-        XCTAssertEqual(LegacyChargeBackend.select(using: c), .intelBCLM)
+    func testMacOS15IsOutsideTheLegacyScope() {
+        let intel = caps(arch: .intel, band: .fifteen)
+        XCTAssertFalse(intel.osBand.allowsLegacyLimiter)
+        XCTAssertEqual(LegacyChargeBackend.select(using: intel), .unsupported)
+        let silicon = caps(
+            arch: .appleSilicon,
+            band: .fifteen,
+            keys: [LegacySMCKeys.siliconCH0B, LegacySMCKeys.siliconCH0C]
+        )
+        XCTAssertEqual(LegacyChargeBackend.select(using: silicon), .unsupported)
+    }
+
+    func testMacOS13And14RemainInScope() {
+        for band in [LegacyOSBand.thirteenToFourteen] {
+            XCTAssertTrue(band.allowsLegacyLimiter)
+            XCTAssertEqual(
+                LegacyChargeBackend.select(using: caps(arch: .intel, band: band)),
+                .intelBCLM
+            )
+        }
     }
 
     func testIntelBCLMKeyAbsentIsUnsupported() {

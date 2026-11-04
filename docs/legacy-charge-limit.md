@@ -8,8 +8,9 @@
 > **Plan of record:** `status-trio-legacy-charge-limit-plan.md` (user-provided 2026-11-04)
 
 This note is the Phase 0 deliverable for adding optional, low-overhead battery
-charge ceilings on macOS 13–15 (Intel and Apple Silicon) alongside the existing
-native PowerUI limit on macOS 26.4+. It records what the reference projects
+charge ceilings on macOS 13–14 (Intel and Apple Silicon) alongside the existing
+native PowerUI limit on macOS 26.4+. macOS 15 is out of scope by a 2026-11-05
+product decision. It records what the reference projects
 actually do, the supported matrix, licensing boundaries, and the evidence gaps
 that must stay open until real-hardware validation. It complements
 `docs/charge-limit-lower-macos-research.md`, which was written earlier and
@@ -87,9 +88,9 @@ on firmware where the inhibit keys are gated behind the private
 
 | Runtime | Model | Legacy limiter | Notes |
 | --- | --- | --- | --- |
-| macOS 13–15 | Intel | Eligible after probe + validation (firmware `BCLM`) | Keep system charge-to-full if present |
+| macOS 13–14 | Intel | Eligible after probe + validation (firmware `BCLM`) | Keep system charge-to-full if present |
 | macOS 13–14 | Apple Silicon | Legacy SMC inhibit (`CH0B`/`CH0C`, `CHTE`) after probe | Independent of native |
-| macOS 15 | Apple Silicon | Legacy SMC inhibit by **actual capabilities**, not OS-only | See §4 gap |
+| macOS 15 | All | **Out of scope (user decision 2026-11-05)** | No legacy backend; no native limit before 26.4 |
 | macOS 16–26.3 | All | **Not released in this milestone** | Do not regress existing features |
 | macOS 26.4+ | Apple Silicon | Do not expose legacy SMC writes | Prefer existing native PowerUI/system limit |
 | macOS 26.4+ | Intel | Not in this milestone | No built-in manual ceiling assumed |

@@ -762,7 +762,7 @@
 "settings.brightness.compatibility.description" = "Chaque fabricant implémente DDC différemment : Status Trio ne peut pas couvrir tous les modèles. Si la luminosité d’un écran n’est pas réglable ici, passez-le au backend BetterDisplay — Status Trio le pilotera alors via BetterDisplay. La version gratuite suffit ; aucune licence Pro n’est nécessaire.";
 "settings.brightness.compatibility.link" = "Télécharger BetterDisplay (gratuit)";
 "settings.battery.legacyChargeLimit.title" = "Limite de charge (macOS antérieur)";
-"settings.battery.legacyChargeLimit.description" = "Maintient la batterie sous un niveau choisi sur macOS 13–15. Expérimental : le comportement sur matériel réel est encore en cours de validation.";
+"settings.battery.legacyChargeLimit.description" = "Maintient la batterie sous un niveau choisi sur macOS 13–14. Expérimental : le comportement sur matériel réel est encore en cours de validation.";
 "settings.battery.legacyChargeLimit.toggle" = "Gérer la limite de charge";
 "settings.battery.legacyChargeLimit.target" = "Charge maximale";
 "settings.battery.legacyChargeLimit.status" = "État";
