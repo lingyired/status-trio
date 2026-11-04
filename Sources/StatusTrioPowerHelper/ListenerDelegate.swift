@@ -40,8 +40,13 @@ final class ListenerDelegate: NSObject, NSXPCListenerDelegate {
             let lifetime = ConnectionLifetime { [legacy] in
                 // A client that vanishes can leave the battery inhibited. Put
                 // the stock values back before the process is allowed to exit;
-                // the restore is bounded and journal-backed.
-                legacy?.restoreForClientLoss()
+                // the restore is bounded and journal-backed. A failed restore is
+                // logged and the journal is retained so the next app launch can
+                // reconcile and retry; it is never reported as success.
+                let restored = legacy?.restoreForClientLoss() ?? true
+                if !restored {
+                    NSLog("StatusTrioPowerHelper: charge restore is pending after client loss")
+                }
                 idleExit.connectionClosed()
             }
             connection.invalidationHandler = { lifetime.end() }

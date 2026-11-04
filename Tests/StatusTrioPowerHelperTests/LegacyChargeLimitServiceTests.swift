@@ -7,12 +7,14 @@ private final class ByteSMC: LegacySMCExecuting {
     var store: [String: Data]
     var failKeys: Set<String> = []
     var writes: [String] = []
+    var beforeWrite: ((String, Data) -> Void)?
 
     init(store: [String: Data]) { self.store = store }
 
     func readKey(_ key: String) -> Data? { store[key] }
 
     func writeKey(_ key: String, data: Data) -> Bool {
+        beforeWrite?(key, data)
         writes.append(key)
         guard !failKeys.contains(key) else { return false }
         store[key] = data
@@ -232,6 +234,103 @@ final class LegacyChargeLimitServiceTests: XCTestCase {
         var reply: SMLegacyChargeLimitWriteReply?
         service.disableLegacyChargeLimit(expectedLimit: nil) { reply = $0 }
         XCTAssertEqual(reply?.succeeded, true)
+    }
+
+    // MARK: - Review regressions (run against the real service)
+
+    func testIntelDisableAcceptsHeldValueAsExpectedAndRestoresStock() {
+        let executor = intelExecutor(90)
+        let service = makeService(executor)
+        service.setLegacyChargeLimit(80, expectedLimit: NSNumber(value: 90)) { _ in }
+        var result: SMLegacyChargeLimitWriteReply?
+        // The app only knows its held ceiling. expectedLimit always describes
+        // the current value, never the pre-management restore destination.
+        service.disableLegacyChargeLimit(expectedLimit: NSNumber(value: 80)) { result = $0 }
+        XCTAssertEqual(result?.succeeded, true)
+        XCTAssertEqual(executor.readKey("BCLM"), Data([90]))
+    }
+
+    func testSiliconSetRefusesForeignGateEvenWithMatchingRequestedLimit() {
+        let executor = siliconPairExecutor()
+        let service = makeService(executor, battery: FakeBatterySource(level: 90), isIntel: false)
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { _ in }
+        executor.store["CH0B"] = Data([0])
+        executor.store["CH0C"] = Data([0])
+        let before = executor.writes.count
+        var result: SMLegacyChargeLimitWriteReply?
+        service.setLegacyChargeLimit(85, expectedLimit: NSNumber(value: 80)) { result = $0 }
+        XCTAssertEqual(result?.errorCode, .ownershipConflict)
+        XCTAssertEqual(executor.writes.count, before)
+    }
+
+    func testNilExpectedCannotBypassAnExistingIntelSessionOwnership() {
+        let executor = intelExecutor(90)
+        let service = makeService(executor)
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { _ in }
+        executor.store["BCLM"] = Data([85])
+        let before = executor.writes.count
+        var result: SMLegacyChargeLimitWriteReply?
+        service.setLegacyChargeLimit(95, expectedLimit: nil) { result = $0 }
+        XCTAssertEqual(result?.errorCode, .ownershipConflict)
+        XCTAssertEqual(executor.writes.count, before)
+    }
+
+    func testCancelDoesNotOverwriteAnExternalCeilingDuringFullCharge() {
+        let executor = intelExecutor(90)
+        let service = makeService(executor)
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { _ in }
+        service.legacyChargeToFullOnce { _ in }
+        executor.store["BCLM"] = Data([85])
+        let before = executor.writes.count
+        var result: SMLegacyChargeLimitWriteReply?
+        service.cancelLegacyChargeToFull { result = $0 }
+        XCTAssertEqual(result?.errorCode, .ownershipConflict)
+        XCTAssertEqual(executor.writes.count, before)
+    }
+
+    func testFullChargeDoesNotOverwriteAnExternalCeiling() {
+        let executor = intelExecutor(90)
+        let service = makeService(executor)
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { _ in }
+        executor.store["BCLM"] = Data([85])
+        let before = executor.writes.count
+        var result: SMLegacyChargeLimitWriteReply?
+        service.legacyChargeToFullOnce { result = $0 }
+        XCTAssertEqual(result?.errorCode, .ownershipConflict)
+        XCTAssertEqual(executor.writes.count, before)
+    }
+
+    func testFailedFullChargeDoesNotPersistAnAcceptedOverride() {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        let service = makeService(executor, journal: journal)
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { _ in }
+        executor.failKeys = ["BCLM"]
+        var result: SMLegacyChargeLimitWriteReply?
+        service.legacyChargeToFullOnce { result = $0 }
+        XCTAssertEqual(result?.succeeded, false)
+        XCTAssertEqual(journal.saved?.isTemporarilyOverridden, false)
+    }
+
+    func testDisableRequiresSuccessfulFreshReadOfEveryOwnedKey() {
+        let executor = intelExecutor(90)
+        let service = makeService(executor)
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { _ in }
+        executor.store["BCLM"] = nil // unavailable or transient read failure
+        let before = executor.writes.count
+        var result: SMLegacyChargeLimitWriteReply?
+        service.disableLegacyChargeLimit(expectedLimit: nil) { result = $0 }
+        XCTAssertEqual(result?.succeeded, false)
+        XCTAssertEqual(executor.writes.count, before)
+    }
+
+    func testMissingSiliconBatteryReadingNeverInventsZeroPercent() {
+        let executor = siliconPairExecutor(2, 2)
+        let service = makeService(executor, battery: FakeBatterySource(level: nil), isIntel: false)
+        var result: SMLegacyChargeLimitWriteReply?
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { result = $0 }
+        XCTAssertEqual(result?.succeeded, false)
+        XCTAssertTrue(executor.writes.isEmpty)
     }
 
     // MARK: - Journal

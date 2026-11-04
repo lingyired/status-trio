@@ -46,6 +46,7 @@ final class LegacyChargeLimitController: ObservableObject {
         started = true
         guard sessionStore.load() != nil else {
             status = .notEnabled
+            client.releaseConnection()
             return
         }
         taskRefresh()
@@ -59,6 +60,7 @@ final class LegacyChargeLimitController: ObservableObject {
 
     func stop() {
         started = false
+        client.releaseConnection()
     }
 
     // MARK: - Commands
@@ -87,6 +89,8 @@ final class LegacyChargeLimitController: ObservableObject {
             session = nil
             selectedLimit = nil
             status = .notEnabled
+            // No active limit owns the hardware: let the helper idle-exit.
+            client.releaseConnection()
             return
         }
         session = loaded
@@ -142,7 +146,10 @@ final class LegacyChargeLimitController: ObservableObject {
         isApplying = true
         defer { isApplying = false }
         do {
-            let outcome = try await client.disable(expectedLimit: session?.requestedLimit)
+            // The helper owns the stock value; the app only knows its intent, so
+            // it must not fabricate an "expected hardware value" here. Ownership
+            // is enforced by the helper's journal, not by a client guess.
+            let outcome = try await client.disable(expectedLimit: nil)
             guard outcome.succeeded else {
                 status = .restoreFailed
                 return false
@@ -150,6 +157,7 @@ final class LegacyChargeLimitController: ObservableObject {
             saveSession(nil)
             selectedLimit = nil
             status = .notEnabled
+            client.releaseConnection()
             return true
         } catch {
             status = .restoreFailed

@@ -1,151 +1,55 @@
 import Foundation
 import PowerHelperProtocol
 
-// MARK: - Injected facts
-
-/// Hardware facts the helper trusts for gating. Resolved once when the daemon
-/// builds the service (runtime CPU + OS band + internal battery presence). The
-/// app never supplies these over XPC, so a compromised client cannot talk the
-/// daemon into writing a key the machine does not have.
+/// Facts are resolved inside the helper, never supplied by the XPC caller.
 struct LegacyHardwareFacts: Equatable, Sendable {
     var isIntel: Bool
     var allowsLegacyLimiter: Bool
     var hasInternalBattery: Bool
 }
 
-/// Battery facts the coordinator needs for the Silicon gate decision. Injected
-/// so tests never need real power sources.
 protocol LegacyBatteryProviding: AnyObject {
     func currentPercent() -> Int?
     func isOnACPower() -> Bool
 }
 
-/// Durable ownership record. Written *before* the first hardware write so a
-/// crash or a failed write cannot lose the stock value; cleared only after a
-/// verified restore.
-struct LegacyChargeLimitJournal: Codable, Equatable, Sendable {
-    enum Backend: String, Codable, Sendable {
-        case intelBCLM
-        case silicon
-    }
-
-    var backend: Backend
-    /// Machine identity captured when the journal was written. A journal whose
-    /// model no longer matches must never drive a blind write.
-    var hardwareModel: String
-    /// The ceiling the user asked for.
-    var requestedLimit: Int
-    /// Raw SMC payload captured before the first write, per key.
-    var originalRaw: [String: Data]
-    /// Raw payload the last successful write left behind, per key.
-    var lastWrittenRaw: [String: Data]
-    var isTemporarilyOverridden = false
-}
-
-protocol LegacyChargeLimitJournaling: AnyObject {
-    func load() -> LegacyChargeLimitJournal?
-    func save(_ journal: LegacyChargeLimitJournal)
-    func clear()
-}
-
-/// Root-owned on-disk journal under the helper's own directory.
-final class FileLegacyChargeLimitJournal: LegacyChargeLimitJournaling {
-    private let url: URL
-
-    init(directory: URL) {
-        self.url = directory.appendingPathComponent("legacy-charge-limit-journal.json")
-    }
-
-    func load() -> LegacyChargeLimitJournal? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder().decode(LegacyChargeLimitJournal.self, from: data)
-    }
-
-    func save(_ journal: LegacyChargeLimitJournal) {
-        guard let data = try? JSONEncoder().encode(journal) else { return }
-        try? FileManager.default.createDirectory(
-            at: url.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        try? data.write(to: url, options: .atomic)
-    }
-
-    func clear() {
-        try? FileManager.default.removeItem(at: url)
-    }
-}
-
-// MARK: - Executor
-
-/// Byte-level SMC surface. The helper owns the key allowlist; the service only
-/// names the four charge keys it understands and enforces type/size/value
-/// rules before calling this.
 protocol LegacySMCExecuting: AnyObject {
     func readKey(_ key: String) -> Data?
     func writeKey(_ key: String, data: Data) -> Bool
 }
 
-// MARK: - Closed key set
-
-/// The only SMC keys this feature may touch, with expected widths. Anything
-/// not listed here can never be read or written by the service.
 enum LegacyChargeSMCKeys {
     static let bclm = "BCLM"
     static let ch0b = "CH0B"
     static let ch0c = "CH0C"
     static let chte = "CHTE"
-
-    static let widths: [String: Int] = [
-        bclm: 1,
-        ch0b: 1,
-        ch0c: 1,
-        chte: 4,
-    ]
-
+    static let widths = [bclm: 1, ch0b: 1, ch0c: 1, chte: 4]
     static let writeAllowlist: Set<String> = [bclm, ch0b, ch0c, chte]
 
     static func isValidValue(_ data: Data, for key: String) -> Bool {
         guard widths[key] == data.count else { return false }
         switch key {
-        case bclm:
-            guard let value = data.first else { return false }
-            return (50...100).contains(value)
-        case ch0b, ch0c:
-            guard let value = data.first else { return false }
-            return value == 0x00 || value == 0x02
-        case chte:
-            return data == Data([0x00, 0x00, 0x00, 0x00])
-                || data == Data([0x01, 0x00, 0x00, 0x00])
-        default:
-            return false
+        case bclm: return (50...100).contains(Int(data[0]))
+        case ch0b, ch0c: return data[0] == 0 || data[0] == 2
+        case chte: return data == Data([0, 0, 0, 0]) || data == Data([1, 0, 0, 0])
+        default: return false
         }
     }
 }
 
-// MARK: - Gate decision (kept in step with the app engine's thresholds)
-
 enum LegacyGatePolicy {
     static let hysteresis = 2
-
-    /// True when charging should be allowed for a limit at `limit`.
     static func shouldAllowCharging(level: Int, limit: Int, currentlyAllowed: Bool?) -> Bool {
+        if limit == 100 { return true }
         if level >= limit { return false }
         if level <= limit - hysteresis { return true }
         return currentlyAllowed ?? true
     }
 }
 
-// MARK: - Service
-
-/// Server side of the legacy charge-limit XPC surface.
-///
-/// Ownership rules:
-/// - A write is only issued after a durable journal records the raw stock value.
-/// - `expectedLimit` is compared with the *observed* hardware value before any
-///   write; a mismatch is reported, never overwritten.
-/// - Multi-key Silicon writes roll back already-applied keys on failure.
-/// - Success is reported only after reading the hardware back; a write call that
-///   claims success but leaves the old bytes is a failure.
+/// Serialized coordinator. A record of the original and the intended write is
+/// durable before I/O. A successful readback confirms bytes only, not that the
+/// battery actually stopped charging (physical validation remains NOT RUN).
 final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @unchecked Sendable {
     private let executor: any LegacySMCExecuting
     private let journalStore: any LegacyChargeLimitJournaling
@@ -153,6 +57,19 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
     private let hardware: LegacyHardwareFacts
     private let hardwareModel: String
     private let lock = NSLock()
+    private typealias Session = LegacyChargeLimitJournal
+    // Protocol requirements spell this type in their signatures, so the
+    // alias must be at least internal.
+    typealias Reply = SMLegacyChargeLimitWriteReply
+
+    private struct Failure: Error {
+        let code: SMLegacyChargeLimitErrorCode
+        let message: String
+        init(_ code: SMLegacyChargeLimitErrorCode, _ message: String) {
+            self.code = code
+            self.message = message
+        }
+    }
 
     init(
         executor: any LegacySMCExecuting,
@@ -168,435 +85,334 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
         self.hardwareModel = hardwareModel
     }
 
-    /// Loads the journal only when it was written on this same machine.
-    ///
-    /// A journal from another model/firmware must never trigger a restore or
-    /// overwrite: the stock value it recorded may not even exist here.
-    private func loadOwnedJournal() -> LegacyChargeLimitJournal? {
-        guard let journal = journalStore.load() else { return nil }
-        guard journal.hardwareModel == hardwareModel else {
-            NSLog(
-                "StatusTrioPowerHelper: ignoring charge journal for %@ on %@",
-                journal.hardwareModel,
-                hardwareModel
-            )
-            return nil
-        }
-        return journal
-    }
-
-    // MARK: Probe (read-only)
-
     func probeLegacyChargeLimit(
         withReply reply: @escaping (SMLegacyChargeLimitProbeReply?, String?) -> Void
     ) {
-        let bclmPresent = validRead(LegacyChargeSMCKeys.bclm) != nil
-        let pairPresent = validRead(LegacyChargeSMCKeys.ch0b) != nil
-            && validRead(LegacyChargeSMCKeys.ch0c) != nil
-        let chtePresent = validRead(LegacyChargeSMCKeys.chte) != nil
-        reply(
-            SMLegacyChargeLimitProbeReply(
+        // Probe and writes share the same lock; the underlying user client is
+        // never touched concurrently by this coordinator.
+        let result = lock.withLock {
+            let eligible = hardware.hasInternalBattery && hardware.allowsLegacyLimiter
+            return SMLegacyChargeLimitProbeReply(
                 hasInternalBattery: hardware.hasInternalBattery,
-                intelBCLMPresent: bclmPresent,
-                siliconPairPresent: pairPresent,
-                siliconCHTEPresent: chtePresent,
+                intelBCLMPresent: eligible && hardware.isIntel && validRead("BCLM") != nil,
+                siliconPairPresent: eligible && !hardware.isIntel
+                    && validRead("CH0B") != nil && validRead("CH0C") != nil,
+                siliconCHTEPresent: eligible && !hardware.isIntel && validRead("CHTE") != nil,
                 architectureName: hardware.isIntel ? "intel" : "appleSilicon",
                 osBandName: hardware.allowsLegacyLimiter ? "legacy" : "unsupported",
-                errorCode: .none,
+                errorCode: eligible ? .none : .unsupportedHardware,
                 errorDescription: nil
-            ),
-            nil
-        )
+            )
+        }
+        reply(result, nil)
     }
-
-    // MARK: Set limit
 
     func setLegacyChargeLimit(
-        _ limit: Int,
-        expectedLimit: NSNumber?,
-        withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
+        _ limit: Int, expectedLimit: NSNumber?, withReply reply: @escaping (Reply?) -> Void
     ) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard (80...100).contains(limit) else {
-            reply(failure(.limitOutOfRange, "The charge limit is outside 80–100%."))
-            return
-        }
-        guard hardware.hasInternalBattery, hardware.allowsLegacyLimiter else {
-            reply(failure(.unsupportedHardware, "This Mac or macOS version is not supported."))
-            return
-        }
-
-        if hardware.isIntel {
-            guard let current = validRead(LegacyChargeSMCKeys.bclm),
-                  let currentPercent = current.first.map(Int.init) else {
-                reply(failure(.unsupportedHardware, "The Intel charge ceiling key is unavailable."))
-                return
+        perform(reply) {
+            try requireEligible()
+            guard (80...100).contains(limit) else {
+                throw Failure(.limitOutOfRange, "The charge limit is outside 80–100%.")
             }
-            if let expectedLimit, expectedLimit.intValue != currentPercent {
-                reply(failure(.ownershipConflict, "Another controller changed the charge limit."))
-                return
+            let previous = try loadOwnedJournal()
+            let raw: [String: Data]
+            if let previous {
+                raw = try readOwned(previous)
+            } else {
+                raw = try discoverOriginal()
             }
-
-            var session = loadOwnedJournal() ?? LegacyChargeLimitJournal(
-                backend: .intelBCLM,
+            if let expectedLimit {
+                let expected = try validatedPercent(expectedLimit)
+                let actual = hardware.isIntel ? raw["BCLM"].map { Int($0[0]) } : previous?.requestedLimit
+                // Silicon has no firmware percentage. Its raw gate ownership
+                // is checked by readOwned, and expectedLimit names the held intent.
+                guard actual == expected else {
+                    throw Failure(.ownershipConflict, "The expected current limit changed.")
+                }
+            }
+            var session = previous ?? Session(
+                backend: hardware.isIntel ? .intelBCLM : .silicon,
                 hardwareModel: hardwareModel,
                 requestedLimit: limit,
-                originalRaw: [LegacyChargeSMCKeys.bclm: current],
-                lastWrittenRaw: [:]
+                originalRaw: raw,
+                lastWrittenRaw: raw
             )
-            session.backend = .intelBCLM
+            let desired = try desiredRaw(session: session, limit: limit, full: false, current: raw)
+            try apply(&session, desired: desired, current: raw)
             session.requestedLimit = limit
-            if session.originalRaw[LegacyChargeSMCKeys.bclm] == nil {
-                session.originalRaw[LegacyChargeSMCKeys.bclm] = current
-            }
-            journalStore.save(session)
-
-            guard writeAndVerify(key: LegacyChargeSMCKeys.bclm, value: Data([UInt8(limit)])) else {
-                reply(failure(.verificationFailed, "The hardware did not take the new limit."))
-                return
-            }
-            session.lastWrittenRaw[LegacyChargeSMCKeys.bclm] = Data([UInt8(limit)])
             session.isTemporarilyOverridden = false
-            journalStore.save(session)
-            reply(success(observedLimit: limit))
-            return
+            try persist(session)
+            return success(observedLimit: hardware.isIntel ? limit : nil)
         }
-
-        // Apple Silicon: the "limit" is a target; the gate is what the hardware
-        // understands. Verify the gate actually moved.
-        let keySet = siliconKeySet()
-        guard let keySet else {
-            reply(failure(.unsupportedHardware, "No supported charging-gate key was found."))
-            return
-        }
-        let originals = originalGateRaw(for: keySet)
-        var session = loadOwnedJournal() ?? LegacyChargeLimitJournal(
-            backend: .silicon,
-            hardwareModel: hardwareModel,
-            requestedLimit: limit,
-            originalRaw: originals,
-            lastWrittenRaw: [:]
-        )
-        session.backend = .silicon
-        session.requestedLimit = limit
-        for (key, value) in originals where session.originalRaw[key] == nil {
-            session.originalRaw[key] = value
-        }
-        journalStore.save(session)
-
-        let level = battery.currentPercent() ?? 0
-        let currentlyAllowed = gateIsOpen(keySet)
-        let allow = LegacyGatePolicy.shouldAllowCharging(
-            level: level,
-            limit: limit,
-            currentlyAllowed: currentlyAllowed
-        )
-        guard applyGate(keySet, allow: allow) else {
-            reply(failure(.verificationFailed, "The charging gate did not change."))
-            return
-        }
-        session.lastWrittenRaw = gateRaw(keySet, allow: allow)
-        session.isTemporarilyOverridden = false
-        journalStore.save(session)
-        reply(success(observedLimit: allow ? 100 : limit))
     }
 
-    // MARK: Charge to full once / cancel
-
-    func legacyChargeToFullOnce(
-        withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
-    ) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard var session = loadOwnedJournal() else {
-            reply(failure(.cancelled, "There is no managed limit to override."))
-            return
+    func legacyChargeToFullOnce(withReply reply: @escaping (Reply?) -> Void) {
+        perform(reply) {
+            try requireEligible()
+            var session = try requireSession()
+            let current = try readOwned(session)
+            let desired = try desiredRaw(session: session, limit: 100, full: true, current: current)
+            try apply(&session, desired: desired, current: current)
+            // Accepted override is recorded only after successful readback.
+            session.isTemporarilyOverridden = true
+            try persist(session)
+            return success(observedLimit: session.backend == .intelBCLM ? 100 : nil)
         }
-        session.isTemporarilyOverridden = true
-        journalStore.save(session)
+    }
 
-        if session.backend == .intelBCLM {
-            guard writeAndVerify(key: LegacyChargeSMCKeys.bclm, value: Data([100])) else {
-                reply(failure(.verificationFailed, "The hardware did not lift the limit."))
-                return
+    func cancelLegacyChargeToFull(withReply reply: @escaping (Reply?) -> Void) {
+        perform(reply) {
+            try requireEligible()
+            var session = try requireSession()
+            guard session.isTemporarilyOverridden else {
+                throw Failure(.cancelled, "There is no temporary override to cancel.")
             }
-            session.lastWrittenRaw[LegacyChargeSMCKeys.bclm] = Data([100])
-        } else {
-            guard let keySet = siliconKeySet(), applyGate(keySet, allow: true) else {
-                reply(failure(.verificationFailed, "The charging gate did not open."))
-                return
-            }
-            session.lastWrittenRaw = gateRaw(keySet, allow: true)
-        }
-        journalStore.save(session)
-        reply(success(observedLimit: 100))
-    }
-
-    func cancelLegacyChargeToFull(
-        withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
-    ) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard var session = loadOwnedJournal() else {
-            reply(failure(.cancelled, "There is no temporary override to cancel."))
-            return
-        }
-        guard session.isTemporarilyOverridden else {
-            reply(failure(.cancelled, "There is no temporary override to cancel."))
-            return
-        }
-        guard reapplyRequestedLimit(session: &session) else {
-            reply(failure(.restoreFailed, "The saved limit could not be reapplied."))
-            return
-        }
-        session.isTemporarilyOverridden = false
-        journalStore.save(session)
-        reply(success(observedLimit: session.requestedLimit))
-    }
-
-    // MARK: Disable / restore
-
-    func disableLegacyChargeLimit(
-        expectedLimit: NSNumber?,
-        withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
-    ) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard let session = loadOwnedJournal() else {
-            reply(failure(.cancelled, "No managed limit is active."))
-            return
-        }
-
-        // Refuse to blindly overwrite a foreign value the user or another app
-        // set while we were holding the session.
-        for (key, written) in session.lastWrittenRaw {
-            if let current = validRead(key), current != written {
-                reply(failure(.ownershipConflict, "Another controller changed the charge setting."))
-                return
-            }
-        }
-        if let expectedLimit, session.backend == .intelBCLM,
-           let stock = session.originalRaw[LegacyChargeSMCKeys.bclm]?.first.map(Int.init),
-           expectedLimit.intValue != stock {
-            // expectedLimit describes the *stock* value on restore paths; a
-            // mismatch means the caller is working from a stale view.
-            reply(failure(.ownershipConflict, "The expected charge limit does not match."))
-            return
-        }
-
-        for (key, value) in session.originalRaw {
-            guard writeAndVerify(key: key, value: value) else {
-                reply(failure(.restoreFailed, "The stock charge setting could not be restored."))
-                return
-            }
-        }
-        if session.originalRaw.isEmpty {
-            reply(failure(.restoreFailed, "No stock charge value was recorded."))
-            return
-        }
-        journalStore.clear()
-        let observed = session.backend == .intelBCLM
-            ? session.originalRaw[LegacyChargeSMCKeys.bclm]?.first.map(Int.init)
-            : 100
-        reply(success(observedLimit: observed ?? 100))
-    }
-
-    func verifyLegacyChargeLimit(
-        _ limit: Int,
-        withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
-    ) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard (80...100).contains(limit) else {
-            reply(failure(.limitOutOfRange, "The charge limit is outside 80–100%."))
-            return
-        }
-        guard let session = loadOwnedJournal() else {
-            reply(failure(.cancelled, "No managed limit is active."))
-            return
-        }
-        let matches: Bool
-        if session.backend == .intelBCLM {
-            matches = validRead(LegacyChargeSMCKeys.bclm)?.first.map(Int.init) == limit
-        } else {
-            guard let keySet = siliconKeySet() else {
-                reply(failure(.unsupportedHardware, "No supported charging-gate key was found."))
-                return
-            }
-            let level = battery.currentPercent() ?? 0
-            let shouldAllow = level < limit
-            matches = gateIsOpen(keySet) == shouldAllow
-        }
-        if matches {
-            reply(success(observedLimit: limit))
-        } else {
-            reply(failure(.verificationFailed, "The hardware is not at the requested limit."))
+            let current = try readOwned(session)
+            let desired = try desiredRaw(
+                session: session, limit: session.requestedLimit, full: false, current: current
+            )
+            try apply(&session, desired: desired, current: current)
+            session.isTemporarilyOverridden = false
+            try persist(session)
+            return success(observedLimit: session.backend == .intelBCLM ? session.requestedLimit : nil)
         }
     }
 
-    // MARK: - Helpers
-
-    private func validRead(_ key: String) -> Data? {
-        guard LegacyChargeSMCKeys.writeAllowlist.contains(key),
-              let data = executor.readKey(key),
-              LegacyChargeSMCKeys.isValidValue(data, for: key) else {
-            return nil
-        }
-        return data
-    }
-
-    private func writeAndVerify(key: String, value: Data) -> Bool {
-        guard LegacyChargeSMCKeys.writeAllowlist.contains(key),
-              LegacyChargeSMCKeys.isValidValue(value, for: key) else {
-            return false
-        }
-        guard executor.writeKey(key, data: value) else { return false }
-        return validRead(key) == value
-    }
-
-    private func siliconKeySet() -> SiliconGate? {
-        if validRead(LegacyChargeSMCKeys.ch0b) != nil, validRead(LegacyChargeSMCKeys.ch0c) != nil {
-            return .pair
-        }
-        if validRead(LegacyChargeSMCKeys.chte) != nil {
-            return .chte
-        }
-        return nil
-    }
-
-    private enum SiliconGate {
-        case pair
-        case chte
-    }
-
-    private func originalGateRaw(for keySet: SiliconGate) -> [String: Data] {
-        switch keySet {
-        case .pair:
-            return [
-                LegacyChargeSMCKeys.ch0b: validRead(LegacyChargeSMCKeys.ch0b) ?? Data([0x00]),
-                LegacyChargeSMCKeys.ch0c: validRead(LegacyChargeSMCKeys.ch0c) ?? Data([0x00]),
-            ]
-        case .chte:
-            return [LegacyChargeSMCKeys.chte: validRead(LegacyChargeSMCKeys.chte) ?? Data([0, 0, 0, 0])]
-        }
-    }
-
-    private func gateRaw(_ keySet: SiliconGate, allow: Bool) -> [String: Data] {
-        switch keySet {
-        case .pair:
-            let byte: UInt8 = allow ? 0x00 : 0x02
-            return [LegacyChargeSMCKeys.ch0b: Data([byte]), LegacyChargeSMCKeys.ch0c: Data([byte])]
-        case .chte:
-            return [LegacyChargeSMCKeys.chte: allow ? Data([0, 0, 0, 0]) : Data([0x01, 0, 0, 0])]
-        }
-    }
-
-    private func gateIsOpen(_ keySet: SiliconGate) -> Bool {
-        switch keySet {
-        case .pair:
-            return validRead(LegacyChargeSMCKeys.ch0b) == Data([0x00])
-        case .chte:
-            return validRead(LegacyChargeSMCKeys.chte) == Data([0, 0, 0, 0])
-        }
-    }
-
-    /// Writes every key of the gate, rolling back the ones already applied if a
-    /// later write fails, then verifies the final readback.
-    private func applyGate(_ keySet: SiliconGate, allow: Bool) -> Bool {
-        let desired = gateRaw(keySet, allow: allow)
-        let originals = originalGateRaw(for: keySet)
-        var applied: [String] = []
-        for key in [LegacyChargeSMCKeys.ch0b, LegacyChargeSMCKeys.ch0c, LegacyChargeSMCKeys.chte] {
-            guard let value = desired[key] else { continue }
-            if !executor.writeKey(key, data: value) {
-                for rollbackKey in applied.reversed() {
-                    if let original = originals[rollbackKey] {
-                        _ = executor.writeKey(rollbackKey, data: original)
-                    }
+    func disableLegacyChargeLimit(expectedLimit: NSNumber?, withReply reply: @escaping (Reply?) -> Void) {
+        perform(reply) {
+            try requireEligible()
+            var session = try requireSession()
+            let current = try readOwned(session, allowInterrupted: true)
+            if let expectedLimit {
+                let expected = try validatedPercent(expectedLimit)
+                let actual = session.backend == .intelBCLM
+                    ? current["BCLM"].map { Int($0[0]) } : session.requestedLimit
+                guard actual == expected else {
+                    throw Failure(.ownershipConflict, "The expected current limit changed.")
                 }
+            }
+            try apply(&session, desired: session.originalRaw, current: current)
+            // A failed clear is a failed disable; retain the verified restore
+            // state in the journal so a retry remains safe.
+            try journalStore.clear()
+            return success(observedLimit: session.backend == .intelBCLM
+                ? session.originalRaw["BCLM"].map { Int($0[0]) } : nil)
+        }
+    }
+
+    func verifyLegacyChargeLimit(_ limit: Int, withReply reply: @escaping (Reply?) -> Void) {
+        perform(reply) {
+            try requireEligible()
+            let session = try requireSession()
+            guard session.requestedLimit == limit else {
+                throw Failure(.ownershipConflict, "The saved target changed.")
+            }
+            _ = try readOwned(session)
+            guard session.pendingRaw == nil else {
+                throw Failure(.verificationFailed, "A previous write needs explicit recovery.")
+            }
+            // No writes and no guessed percentage for Silicon. This confirms
+            // the recorded raw gate only, not a firmware-enforced ceiling.
+            return success(observedLimit: session.backend == .intelBCLM
+                ? session.lastWrittenRaw["BCLM"].map { Int($0[0]) } : nil)
+        }
+    }
+
+    /// Connection owner loss must call this before releasing its idle lease.
+    /// False means recovery remains pending; the caller must keep the helper
+    /// alive and make the error visible instead of silently abandoning a cap.
+    @discardableResult
+    func restoreForClientLoss() -> Bool {
+        lock.withLock {
+            do {
+                guard var session = try loadOwnedJournal() else { return true }
+                try requireEligible()
+                let current = try readOwned(session, allowInterrupted: true)
+                try apply(&session, desired: session.originalRaw, current: current)
+                try journalStore.clear()
+                return true
+            } catch {
+                NSLog("StatusTrioPowerHelper: charge recovery pending: %@", String(describing: error))
                 return false
             }
-            applied.append(key)
         }
-        // Verify by readback: a "successful" write that leaves the old bytes is
-        // not a successful limit.
-        for (key, value) in desired {
-            guard validRead(key) == value else { return false }
-        }
-        return true
     }
 
-    private func reapplyRequestedLimit(session: inout LegacyChargeLimitJournal) -> Bool {
-        if session.backend == .intelBCLM {
-            let value = Data([UInt8(session.requestedLimit)])
-            guard writeAndVerify(key: LegacyChargeSMCKeys.bclm, value: value) else { return false }
-            session.lastWrittenRaw[LegacyChargeSMCKeys.bclm] = value
-            return true
+    // MARK: Transaction boundary
+
+    private func apply(_ session: inout Session, desired: [String: Data], current: [String: Data]) throws {
+        guard Set(desired.keys) == Set(session.originalRaw.keys),
+              desired.allSatisfy({ LegacyChargeSMCKeys.isValidValue($0.value, for: $0.key) }) else {
+            throw Failure(.unsupportedHardware, "The charge key payload is invalid.")
         }
-        guard let keySet = siliconKeySet() else { return false }
-        let level = battery.currentPercent() ?? 0
-        let allow = LegacyGatePolicy.shouldAllowCharging(
-            level: level,
-            limit: session.requestedLimit,
-            currentlyAllowed: gateIsOpen(keySet)
-        )
-        guard applyGate(keySet, allow: allow) else { return false }
-        session.lastWrittenRaw = gateRaw(keySet, allow: allow)
-        return true
+        session.pendingRaw = desired
+        // Failing persistence prevents all hardware I/O.
+        try persist(session)
+        var touched: [String] = []
+        do {
+            for key in desired.keys.sorted() {
+                guard validRead(key) == current[key] else {
+                    throw Failure(.ownershipConflict, "A charge key changed at the write boundary.")
+                }
+                guard desired[key] != current[key] else { continue }
+                touched.append(key) // a failed call may still have applied
+                guard executor.writeKey(key, data: desired[key]!), validRead(key) == desired[key] else {
+                    throw Failure(.verificationFailed, "The hardware did not confirm the write.")
+                }
+            }
+            guard desired.allSatisfy({ validRead($0.key) == $0.value }) else {
+                throw Failure(.verificationFailed, "The charge key readback changed.")
+            }
+        } catch {
+            // Roll back only values attributable to this transaction. A foreign
+            // change is never overwritten. Confirm every rollback readback.
+            var restored = true
+            for key in touched.reversed() {
+                guard let original = current[key], let observed = validRead(key) else {
+                    restored = false
+                    continue
+                }
+                if observed == original { continue }
+                guard observed == desired[key], executor.writeKey(key, data: original),
+                      validRead(key) == original else {
+                    restored = false
+                    continue
+                }
+            }
+            if restored {
+                session.lastWrittenRaw = current
+                session.pendingRaw = nil
+                try persist(session)
+                throw error
+            }
+            // pendingRaw remains durable for an explicit restore/reconcile.
+            throw Failure(.restoreFailed, "A partial charge write could not be rolled back.")
+        }
+        session.lastWrittenRaw = desired
+        session.pendingRaw = nil
+        try persist(session)
     }
 
-    private func success(observedLimit: Int?) -> SMLegacyChargeLimitWriteReply {
-        SMLegacyChargeLimitWriteReply(
-            succeeded: true,
-            observedLimit: observedLimit.map { NSNumber(value: $0) },
-            verified: true,
-            errorCode: .none,
-            errorDescription: nil
-        )
+    private func perform(_ reply: (Reply?) -> Void, operation: () throws -> Reply) {
+        let result: Reply = lock.withLock {
+            do { return try operation() }
+            catch let error as Failure { return failure(error.code, error.message) }
+            catch { return failure(.rejected, "The recovery journal could not be saved or read.") }
+        }
+        // Do not invoke client code while holding the coordinator lock.
+        reply(result)
     }
 
-    private func failure(
-        _ code: SMLegacyChargeLimitErrorCode,
-        _ description: String
-    ) -> SMLegacyChargeLimitWriteReply {
-        SMLegacyChargeLimitWriteReply(
-            succeeded: false,
-            observedLimit: nil,
-            verified: false,
-            errorCode: code,
-            errorDescription: description
-        )
+    private func requireEligible() throws {
+        guard hardware.hasInternalBattery, hardware.allowsLegacyLimiter,
+              !hardwareModel.isEmpty, hardwareModel != "unknown" else {
+            throw Failure(.unsupportedHardware, "This hardware or macOS version is not eligible.")
+        }
     }
-}
-extension LegacyChargeLimitService {
-    /// Best-effort restore when the app disappears without disabling.
-    ///
-    /// The daemon is about to idle-exit and would otherwise leave the hardware
-    /// inhibited with no owner. Only values this service last wrote are
-    /// restored; a foreign change is left alone and logged (bounded, no retry).
-    func restoreForClientLoss() {
-        lock.lock()
-        defer { lock.unlock() }
-        guard let session = loadOwnedJournal() else { return }
-        for (key, written) in session.lastWrittenRaw {
-            if let current = validRead(key), current != written {
-                NSLog("StatusTrioPowerHelper: charge key %@ changed by another writer; not restoring", key)
-                journalStore.clear()
-                return
+
+    private func loadOwnedJournal() throws -> Session? {
+        guard let session = try journalStore.load() else { return nil }
+        guard session.hardwareModel == hardwareModel,
+              (session.backend == .intelBCLM) == hardware.isIntel,
+              (80...100).contains(session.requestedLimit) else {
+            throw Failure(.ownershipConflict, "The recovery record belongs to different hardware.")
+        }
+        let keys = Set(session.originalRaw.keys)
+        let validKeys = session.backend == .intelBCLM ? keys == ["BCLM"]
+            : keys == ["CH0B", "CH0C"] || keys == ["CHTE"]
+        guard validKeys, keys == Set(session.lastWrittenRaw.keys),
+              session.originalRaw.allSatisfy({ LegacyChargeSMCKeys.isValidValue($0.value, for: $0.key) }),
+              session.lastWrittenRaw.allSatisfy({ LegacyChargeSMCKeys.isValidValue($0.value, for: $0.key) }) else {
+            throw Failure(.ownershipConflict, "The recovery record has an invalid key set.")
+        }
+        if let pending = session.pendingRaw {
+            guard keys == Set(pending.keys),
+                  pending.allSatisfy({ LegacyChargeSMCKeys.isValidValue($0.value, for: $0.key) }) else {
+                throw Failure(.ownershipConflict, "The pending recovery payload is invalid.")
             }
         }
-        for (key, value) in session.originalRaw {
-            if !writeAndVerify(key: key, value: value) {
-                NSLog("StatusTrioPowerHelper: could not restore charge key %@ on client loss", key)
-                return
-            }
+        return session
+    }
+
+    private func requireSession() throws -> Session {
+        guard let session = try loadOwnedJournal() else {
+            throw Failure(.cancelled, "No managed charge session exists.")
         }
-        journalStore.clear()
+        return session
+    }
+
+    private func readOwned(_ session: Session, allowInterrupted: Bool = false) throws -> [String: Data] {
+        if session.pendingRaw != nil && !allowInterrupted {
+            throw Failure(.verificationFailed, "An interrupted write needs explicit restoration.")
+        }
+        var raw: [String: Data] = [:]
+        for (key, expected) in session.lastWrittenRaw {
+            guard let current = validRead(key) else {
+                throw Failure(.verificationFailed, "A charge setting could not be read.")
+            }
+            guard current == expected || (allowInterrupted && current == session.pendingRaw?[key]) else {
+                throw Failure(.ownershipConflict, "Another controller changed a charge setting.")
+            }
+            raw[key] = current
+        }
+        return raw
+    }
+
+    private func discoverOriginal() throws -> [String: Data] {
+        if hardware.isIntel, let ceiling = validRead("BCLM") { return ["BCLM": ceiling] }
+        if !hardware.isIntel {
+            if let b = validRead("CH0B"), let c = validRead("CH0C") { return ["CH0B": b, "CH0C": c] }
+            if let t = validRead("CHTE") { return ["CHTE": t] }
+        }
+        throw Failure(.unsupportedHardware, "No validated charge key set was found.")
+    }
+
+    private func desiredRaw(
+        session: Session, limit: Int, full: Bool, current: [String: Data]
+    ) throws -> [String: Data] {
+        if session.backend == .intelBCLM { return ["BCLM": Data([UInt8(limit)])] }
+        let allow: Bool
+        if full || limit == 100 { allow = true }
+        else {
+            guard let level = battery.currentPercent(), (0...100).contains(level) else {
+                throw Failure(.verificationFailed, "The internal battery level is unknown.")
+            }
+            let open = current["CH0B"] == Data([0]) && current["CH0C"] == Data([0])
+                || current["CHTE"] == Data([0, 0, 0, 0])
+            allow = !battery.isOnACPower() || LegacyGatePolicy.shouldAllowCharging(
+                level: level, limit: limit, currentlyAllowed: open
+            )
+        }
+        if current["CHTE"] != nil { return ["CHTE": allow ? Data([0, 0, 0, 0]) : Data([1, 0, 0, 0])] }
+        return ["CH0B": Data([allow ? 0 : 2]), "CH0C": Data([allow ? 0 : 2])]
+    }
+
+    private func persist(_ session: Session) throws {
+        try journalStore.save(session)
+    }
+
+    private func validRead(_ key: String) -> Data? {
+        guard LegacyChargeSMCKeys.writeAllowlist.contains(key), let raw = executor.readKey(key),
+              LegacyChargeSMCKeys.isValidValue(raw, for: key) else { return nil }
+        return raw
+    }
+
+    private func validatedPercent(_ number: NSNumber) throws -> Int {
+        let percent = number.intValue
+        guard number.doubleValue.isFinite, number.doubleValue == Double(percent),
+              (50...100).contains(percent) else {
+            throw Failure(.ownershipConflict, "The expected current limit is invalid.")
+        }
+        return percent
+    }
+
+    private func success(observedLimit: Int?) -> Reply {
+        Reply(succeeded: true, observedLimit: observedLimit.map { NSNumber(value: $0) },
+              verified: true, errorCode: .none, errorDescription: nil)
+    }
+
+    private func failure(_ code: SMLegacyChargeLimitErrorCode, _ message: String) -> Reply {
+        Reply(succeeded: false, observedLimit: nil, verified: false, errorCode: code, errorDescription: message)
     }
 }

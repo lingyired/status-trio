@@ -22,6 +22,7 @@ private final class FakeLegacyClient: LegacyChargeLimitClienting, @unchecked Sen
     private(set) var cancelCalls = 0
     private(set) var verifyCalls: [Int] = []
     private(set) var probeCalls = 0
+    private(set) var releaseCalls = 0
 
     func probe() async throws -> LegacyChargeLimitProbeFacts {
         probeCalls += 1
@@ -51,6 +52,10 @@ private final class FakeLegacyClient: LegacyChargeLimitClienting, @unchecked Sen
     func verify(_ limit: Int) async throws -> LegacyChargeLimitWriteOutcome {
         verifyCalls.append(limit)
         return try verifyResult.get()
+    }
+
+    func releaseConnection() {
+        releaseCalls += 1
     }
 }
 
@@ -243,6 +248,23 @@ final class LegacyChargeLimitControllerTests: XCTestCase {
         let controller = makeController(client: client)
         await controller.refreshAvailability()
         XCTAssertEqual(client.probeCalls, 1)
+    }
+
+    func testDisableReleasesTheHelperConnection() async {
+        let client = FakeLegacyClient()
+        let controller = makeController(client: client)
+        await controller.refresh()
+        _ = await controller.setLimit(80)
+        let before = client.releaseCalls
+        _ = await controller.disable()
+        XCTAssertGreaterThan(client.releaseCalls, before, "No limit held means the helper may exit")
+    }
+
+    func testIdleRefreshReleasesTheConnection() async {
+        let client = FakeLegacyClient()
+        let controller = makeController(client: client)
+        await controller.refresh()
+        XCTAssertGreaterThan(client.releaseCalls, 0)
     }
 
     func testUnavailableControllerDoesNotIssueCommands() async {

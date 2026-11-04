@@ -10,6 +10,13 @@ protocol LegacyChargeLimitClienting: Sendable {
     func cancelChargeToFull() async throws -> LegacyChargeLimitWriteOutcome
     func disable(expectedLimit: Int?) async throws -> LegacyChargeLimitWriteOutcome
     func verify(_ limit: Int) async throws -> LegacyChargeLimitWriteOutcome
+    /// Drops the persistent helper connection. The daemon is allowed to
+    /// idle-exit afterwards, so this must only run once no limit is held.
+    func releaseConnection()
+}
+
+extension LegacyChargeLimitClienting {
+    func releaseConnection() {}
 }
 
 struct LegacyChargeLimitWriteOutcome: Equatable, Sendable {
@@ -25,24 +32,44 @@ struct LegacyChargeLimitWriteOutcome: Equatable, Sendable {
 
 enum LegacyChargeLimitClientError: Error, Equatable {
     case helperUnavailable
+    case timedOut
     case rejected(String)
 }
 
-/// Talks to the registered LaunchDaemon over the combined XPC surface.
+/// Persistent, authenticated XPC client.
 ///
-/// Runtime behaviour (a real daemon handshake) is NOT RUN in this session; the
-/// type exists so the app has a real adapter and the controller can be tested
-/// against a fake.
+/// The plan requires one connection to stay open while a legacy limit is held,
+/// so the helper does not idle-exit underneath an active session. The
+/// connection is created lazily, recreated after invalidation, and released
+/// explicitly once no limit is held.
+///
+/// Runtime handshakes remain NOT RUN in this session; this type is exercised
+/// only structurally, the controller is tested against a fake.
 final class XPCPrivilegedLegacyChargeClient: LegacyChargeLimitClienting, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "StatusTrio.PowerHelper.LegacyCharge")
-    private let requestTimeout: TimeInterval
+    private let lock = NSLock()
+    private var connection: NSXPCConnection?
+    private let requestTimeout: Duration
 
-    init(requestTimeout: TimeInterval = 5) {
+    init(requestTimeout: Duration = .seconds(5)) {
         self.requestTimeout = requestTimeout
     }
 
+    deinit {
+        connection?.invalidate()
+    }
+
+    func releaseConnection() {
+        lock.lock()
+        let current = connection
+        connection = nil
+        lock.unlock()
+        current?.invalidate()
+    }
+
+    // MARK: Commands
+
     func probe() async throws -> LegacyChargeLimitProbeFacts {
-        try await withProxy { proxy, finish in
+        try await perform { proxy, finish in
             proxy.probeLegacyChargeLimit { reply, error in
                 guard let reply else {
                     finish(.failure(LegacyChargeLimitClientError.rejected(error ?? "probe failed")))
@@ -69,15 +96,11 @@ final class XPCPrivilegedLegacyChargeClient: LegacyChargeLimitClienting, @unchec
     }
 
     func chargeToFullOnce() async throws -> LegacyChargeLimitWriteOutcome {
-        try await write { proxy, reply in
-            proxy.legacyChargeToFullOnce(withReply: reply)
-        }
+        try await write { proxy, reply in proxy.legacyChargeToFullOnce(withReply: reply) }
     }
 
     func cancelChargeToFull() async throws -> LegacyChargeLimitWriteOutcome {
-        try await write { proxy, reply in
-            proxy.cancelLegacyChargeToFull(withReply: reply)
-        }
+        try await write { proxy, reply in proxy.cancelLegacyChargeToFull(withReply: reply) }
     }
 
     func disable(expectedLimit: Int?) async throws -> LegacyChargeLimitWriteOutcome {
@@ -90,17 +113,15 @@ final class XPCPrivilegedLegacyChargeClient: LegacyChargeLimitClienting, @unchec
     }
 
     func verify(_ limit: Int) async throws -> LegacyChargeLimitWriteOutcome {
-        try await write { proxy, reply in
-            proxy.verifyLegacyChargeLimit(limit, withReply: reply)
-        }
+        try await write { proxy, reply in proxy.verifyLegacyChargeLimit(limit, withReply: reply) }
     }
 
-    // MARK: - Plumbing
+    // MARK: Plumbing
 
     private func write(
         _ body: @escaping @Sendable (any LegacyChargeLimitXPCProtocol, @escaping @Sendable (SMLegacyChargeLimitWriteReply?) -> Void) -> Void
     ) async throws -> LegacyChargeLimitWriteOutcome {
-        try await withProxy { proxy, finish in
+        try await perform { proxy, finish in
             body(proxy) { reply in
                 guard let reply else {
                     finish(.failure(LegacyChargeLimitClientError.rejected("empty reply")))
@@ -136,41 +157,94 @@ final class XPCPrivilegedLegacyChargeClient: LegacyChargeLimitClienting, @unchec
         }
     }
 
-    private func withProxy<T: Sendable>(
+    private func currentConnection() -> NSXPCConnection? {
+        lock.lock()
+        defer { lock.unlock() }
+        if let connection { return connection }
+        let new = NSXPCConnection(
+            machServiceName: PowerHelperConstants.machServiceName,
+            options: .privileged
+        )
+        new.remoteObjectInterface = NSXPCInterface(with: PowerHelperCombinedXPCProtocol.self)
+        new.invalidationHandler = { [weak self] in
+            guard let self else { return }
+            self.lock.lock()
+            if self.connection === new { self.connection = nil }
+            self.lock.unlock()
+        }
+        new.resume()
+        connection = new
+        return new
+    }
+
+    private func perform<T: Sendable>(
         _ body: @escaping @Sendable (any LegacyChargeLimitXPCProtocol, @escaping @Sendable (Result<T, any Error>) -> Void) -> Void
     ) async throws -> T {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async {
-                let connection = NSXPCConnection(
-                    machServiceName: PowerHelperConstants.machServiceName,
-                    options: .privileged
-                )
-                connection.remoteObjectInterface = NSXPCInterface(
-                    with: PowerHelperCombinedXPCProtocol.self
-                )
-                connection.resume()
-                defer { connection.invalidate() }
-                let errorOnce = ResumeOnce()
-                guard let proxy = connection.remoteObjectProxyWithErrorHandler({ error in
-                    errorOnce.run {
-                        continuation.resume(throwing: LegacyChargeLimitClientError.rejected(
-                            error.localizedDescription
-                        ))
-                    }
-                }) as? any LegacyChargeLimitXPCProtocol else {
-                    continuation.resume(throwing: LegacyChargeLimitClientError.helperUnavailable)
-                    return
+        let connection = currentConnection()
+        guard let connection else {
+            throw LegacyChargeLimitClientError.helperUnavailable
+        }
+        return try await withCheckedThrowingContinuation { continuation in
+            let once = ResumeOnce()
+            let timer = TimeoutGuard {
+                once.run { continuation.resume(throwing: LegacyChargeLimitClientError.timedOut) }
+            }
+            timer.start(after: requestTimeout.timeInterval)
+            guard let proxy = connection.remoteObjectProxyWithErrorHandler({ error in
+                timer.cancel()
+                once.run {
+                    continuation.resume(throwing: LegacyChargeLimitClientError.rejected(
+                        error.localizedDescription
+                    ))
                 }
-                let once = ResumeOnce()
-                body(proxy) { result in
-                    once.run { continuation.resume(with: result) }
-                }
+            }) as? any LegacyChargeLimitXPCProtocol else {
+                timer.cancel()
+                once.run { continuation.resume(throwing: LegacyChargeLimitClientError.helperUnavailable) }
+                return
+            }
+            body(proxy) { result in
+                timer.cancel()
+                once.run { continuation.resume(with: result) }
             }
         }
     }
 }
-/// Resumes a continuation at most once, even if XPC delivers an error handler
-/// and a reply for the same call.
+
+private extension Duration {
+    var timeInterval: TimeInterval {
+        let (seconds, attoseconds) = components
+        return TimeInterval(seconds) + TimeInterval(attoseconds) / 1e18
+    }
+}
+
+/// Resumes a continuation at most once, even if XPC delivers an error handler,
+/// a reply, and the timeout for the same call.
+/// Owns the timeout work item so `@Sendable` XPC closures never capture a
+/// non-Sendable `DispatchWorkItem`.
+private final class TimeoutGuard: @unchecked Sendable {
+    private let lock = NSLock()
+    private var item: DispatchWorkItem?
+
+    init(_ body: @escaping @Sendable () -> Void) {
+        item = DispatchWorkItem(block: body)
+    }
+
+    func start(after seconds: TimeInterval) {
+        lock.lock()
+        let work = item
+        lock.unlock()
+        guard let work else { return }
+        DispatchQueue.global().asyncAfter(deadline: .now() + seconds, execute: work)
+    }
+
+    func cancel() {
+        lock.lock()
+        item?.cancel()
+        item = nil
+        lock.unlock()
+    }
+}
+
 private final class ResumeOnce: @unchecked Sendable {
     private let lock = NSLock()
     private var done = false
