@@ -44,25 +44,26 @@ struct BatterySectionView: View {
     /// faster than scrolling for the one setting a user came for.
     private var sectionNavigation: some View {
         SettingsGroup {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(BatterySectionAnchor.allCases) { anchor in
-                        Button {
-                            scrollProxy?.scrollTo(anchor.rawValue, anchor: .top)
-                        } label: {
-                            Text(localization.string(anchor.titleKey))
-                                .font(.caption)
-                                .lineLimit(1)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.12), in: Capsule())
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 108), spacing: 8)],
+                alignment: .leading,
+                spacing: 8
+            ) {
+                ForEach(BatterySectionAnchor.allCases) { anchor in
+                    Button {
+                        scrollProxy?.scrollTo(anchor.rawValue, anchor: .top)
+                    } label: {
+                        Text(localization.string(anchor.titleKey))
+                            .font(.caption)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 5)
                     }
+                    .buttonStyle(SectionJumpButtonStyle())
                 }
-                .padding(.horizontal, SettingsMetrics.rowPaddingH)
-                .padding(.vertical, 8)
             }
+            .padding(.horizontal, SettingsMetrics.rowPaddingH)
+            .padding(.vertical, 8)
         }
     }
 
@@ -627,7 +628,21 @@ struct BatterySectionView: View {
     }
 
 
-    /// One state, carried by the description instead of a line of its own.
+    /// A capsule jump label that shows a pressed state and takes the whole capsule
+/// as its hit area (a plain button only hits its text).
+private struct SectionJumpButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(.primary)
+            .background(
+                Color.secondary.opacity(configuration.isPressed ? 0.26 : 0.12),
+                in: Capsule()
+            )
+            .contentShape(Capsule())
+    }
+}
+
+/// One state, carried by the description instead of a line of its own.
     ///
     /// The native approval value is deliberately not repeated here: it can stay
     /// "pending" on a system where the helper already answers, and the approval
