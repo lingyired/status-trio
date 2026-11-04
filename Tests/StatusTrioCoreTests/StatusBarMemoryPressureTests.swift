@@ -61,8 +61,155 @@ final class StatusBarMemoryPressureTests: VisibleUITestCase {
         XCTAssertTrue(harness.controller.popoverForTesting.isShown)
     }
 
-    func testDockPresentationDoesNotForceApplicationActivation() throws {
+    /// Issue #267: after opening Settings and then the panel, clicking the
+    /// already-key Settings window must close the panel. The controller observes
+    /// `NSWindow.didBecomeMain`/`didBecomeKey`; a real `.normal` window becoming
+    /// key is the exact signal.
+    func testOtherNormalWindowBecomingKeyClosesThePanel() async throws {
         let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+
+        let settingsWindow = NSWindow(
+            contentRect: NSRect(x: 80, y: 80, width: 320, height: 240),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        settingsWindow.isReleasedWhenClosed = false
+        defer { settingsWindow.close() }
+        // Visible UI test: order the window in so `isVisible` is true, exactly
+        // as a real Settings window is while the panel is open.
+        settingsWindow.orderFront(nil)
+        let closed = expectation(
+            forNotification: AnchoredStatusPanel.didCloseNotification,
+            object: panel
+        )
+
+        NotificationCenter.default.post(
+            name: NSWindow.didBecomeKeyNotification,
+            object: settingsWindow
+        )
+
+        await fulfillment(of: [closed], timeout: 1)
+        XCTAssertFalse(panel.isShown)
+    }
+
+    /// A window that became main but not key (or either) must also dismiss: the
+    /// `didBecomeMain` path covers the same real window.
+    func testOtherNormalWindowBecomingMainClosesThePanel() async throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+
+        let settingsWindow = NSWindow(
+            contentRect: NSRect(x: 80, y: 80, width: 320, height: 240),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        settingsWindow.isReleasedWhenClosed = false
+        defer { settingsWindow.close() }
+        // Visible UI test: order the window in so `isVisible` is true, exactly
+        // as a real Settings window is while the panel is open.
+        settingsWindow.orderFront(nil)
+        let closed = expectation(
+            forNotification: AnchoredStatusPanel.didCloseNotification,
+            object: panel
+        )
+
+        NotificationCenter.default.post(
+            name: NSWindow.didBecomeMainNotification,
+            object: settingsWindow
+        )
+
+        await fulfillment(of: [closed], timeout: 1)
+        XCTAssertFalse(panel.isShown)
+    }
+
+    /// Clicking the panel's own controls makes the panel itself key. It must not
+    /// dismiss.
+    func testPanelBecomingKeyKeepsThePanelOpen() async throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+        let panelWindow = try XCTUnwrap(panel.contentViewController?.view.window)
+
+        NotificationCenter.default.post(
+            name: NSWindow.didBecomeKeyNotification,
+            object: panelWindow
+        )
+        // Give the main-actor sink a turn before asserting.
+        await Task.yield()
+
+        XCTAssertTrue(panel.isShown)
+    }
+
+    /// A panel-owned sheet (confirmation) becomes key at a modal level with a
+    /// sheet parent; it must not dismiss the panel underneath.
+    func testPanelOwnSheetBecomingKeyKeepsThePanelOpen() async throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+        let panelWindow = try XCTUnwrap(panel.contentViewController?.view.window)
+
+        let sheetWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 120),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        sheetWindow.isReleasedWhenClosed = false
+        defer { sheetWindow.close() }
+        await panelWindow.beginSheet(sheetWindow)
+        defer { panelWindow.endSheet(sheetWindow) }
+
+        NotificationCenter.default.post(
+            name: NSWindow.didBecomeKeyNotification,
+            object: sheetWindow
+        )
+        await Task.yield()
+
+        XCTAssertTrue(panel.isShown)
+    }
+
+    /// A floating/menu-level window (e.g. an NSMenu or alert) must not dismiss
+    /// the panel.
+    func testFloatingLevelWindowBecomingKeyKeepsThePanelOpen() async throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+
+        let floatingWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 120, height: 80),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        floatingWindow.isReleasedWhenClosed = false
+        floatingWindow.level = .floating
+        defer { floatingWindow.close() }
+
+        NotificationCenter.default.post(
+            name: NSWindow.didBecomeKeyNotification,
+            object: floatingWindow
+        )
+        await Task.yield()
+
+        XCTAssertTrue(panel.isShown)
+    }
+
+    func testDockPresentationDoesNotForceApplicationActivation() throws {        let harness = try StatusBarPressureHarness()
         defer { harness.cleanUp() }
 
         harness.controller.togglePopover(anchoredAtScreenPoint: harness.anchorPoint)

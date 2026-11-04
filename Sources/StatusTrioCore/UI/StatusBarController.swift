@@ -160,6 +160,9 @@ final class StatusBarController: NSObject {
     private var isPopoverClosing = false
     private var popoverWindowFocusCancellables: Set<AnyCancellable> = []
     private var applicationFocusCancellables: Set<AnyCancellable> = []
+    /// Observes other app windows coming to the front so the panel closes when
+    /// the user clicks a real window such as Settings (issue #267).
+    private var appWindowFrontmostCancellables: Set<AnyCancellable> = []
     private let inputSourceController: InputSourceController
     /// How a presentation resolves the appearance it rasterizes in.
     ///
@@ -263,6 +266,7 @@ final class StatusBarController: NSObject {
         configureButton()
         configurePopover()
         observeApplicationFocusChanges()
+        observeAppWindowFrontmostChanges()
         observeAppearanceChanges()
         scheduleInitialRender()
 
@@ -781,6 +785,54 @@ final class StatusBarController: NSObject {
                 )
             }
             .store(in: &applicationFocusCancellables)
+    }
+
+    /// The panel is a non-activating borderless `NSPanel`, so clicking another of
+    /// this app's windows (the Settings window that was already key before the
+    /// panel opened) never reaches `addGlobalMonitorForEvents`, which only sees
+    /// events outside the app. Without this, the panel stays on top of Settings
+    /// (issue #267). An `NSPopover` would close by itself here because it tracks
+    /// its own window; a custom panel must react to the key/main handoff.
+    private func observeAppWindowFrontmostChanges() {
+        let center = NotificationCenter.default
+        let policy = PanelFocusDismissPolicy()
+        // AppKit posts these window notifications synchronously on the main
+        // thread. Handle them synchronously so a run-loop hop cannot deliver a
+        // stale key change after the panel has re-keyed itself and close it
+        // spuriously (e.g. when app activation keys Settings just before the
+        // panel is ordered in).
+        let handle: (Notification) -> Void = { [weak self] notification in
+            MainActor.assumeIsolated {
+                self?.dismissPanelIfExternalWindowCameForward(notification, policy: policy)
+            }
+        }
+        center.publisher(for: NSWindow.didBecomeKeyNotification)
+            .sink(receiveValue: handle)
+            .store(in: &appWindowFrontmostCancellables)
+        center.publisher(for: NSWindow.didBecomeMainNotification)
+            .sink(receiveValue: handle)
+            .store(in: &appWindowFrontmostCancellables)
+    }
+
+    /// Closes the panel when a real, independent window (Settings) is brought to
+    /// the front. This mirrors the app's existing close paths so focus falls on
+    /// the clicked window without activating the app or stealing focus.
+    private func dismissPanelIfExternalWindowCameForward(
+        _ notification: Notification,
+        policy: PanelFocusDismissPolicy
+    ) {
+        guard popover.isShown, !isPopoverClosing,
+              let candidateWindow = notification.object as? NSWindow else { return }
+        let panelWindow = popover.contentViewController?.view.window
+        let candidate = PanelFocusDismissPolicy.FocusedWindow(
+            isPanel: candidateWindow === panelWindow,
+            isVisible: candidateWindow.isVisible,
+            level: candidateWindow.level,
+            hasSheetParent: candidateWindow.sheetParent != nil,
+            hasParent: candidateWindow.parent != nil
+        )
+        guard policy.shouldDismiss(for: candidate) else { return }
+        popover.performClose(nil)
     }
 
     private func installPopoverWindowFocusObservers(_ window: NSWindow?) {
