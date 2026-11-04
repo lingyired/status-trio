@@ -881,7 +881,8 @@ final class PanelStoreFixture {
     init(
         outputDevices: [AudioOutputDevice] = [],
         pairedDevices: [BluetoothDevice] = [],
-        wifiScanner: PanelWiFiScanner = PanelWiFiScanner()
+        wifiScanner: PanelWiFiScanner = PanelWiFiScanner(),
+        hardwareMetrics: HardwareMetricsService = HardwareMetricsService()
     ) {
         let suiteName = "StatusPanelViewModelTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -926,6 +927,7 @@ final class PanelStoreFixture {
             inputMonitor: input,
             popupDebounceSleep: { duration in await sleeper.sleep(duration) },
             powerSampling: PowerSamplingService(reader: { _ in .empty }),
+            hardwareMetrics: hardwareMetrics,
             wifiNetworks: WiFiNetworkController(scanWorker: wifiScanner),
             bluetoothDevices: bluetoothDevices,
             bluetoothListeningModes: bluetoothListeningModes,

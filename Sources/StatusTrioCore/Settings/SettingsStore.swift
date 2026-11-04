@@ -165,7 +165,8 @@ final class SettingsStore: ObservableObject {
     /// Default order of the status-panel sections. Display brightness sits below
     /// the audio-input row so the two device-level controls stay together.
     static let defaultPopupSectionOrder: [PopupSection] = [
-        .battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource
+        .battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource,
+        .hardwareMonitor
     ]
     static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .vpn, .volume]
     /// Set once the VPN row has been offered to a stored section list.
@@ -1707,7 +1708,7 @@ final class SettingsStore: ObservableObject {
         )
         let storedPopupSectionOrder = defaults.stringArray(
             forKey: Self.popupSectionOrderDefaultsKey
-        ) ?? []
+        )
         let storedEnabledPopupSections = defaults.stringArray(
             forKey: Self.enabledPopupSectionsDefaultsKey
         )
@@ -1997,9 +1998,16 @@ final class SettingsStore: ObservableObject {
         self.hiddenBrightnessDisplayIDs = storedHiddenBrightnessDisplayIDs
         self.externalVolumeConfigurations = storedExternalVolumeConfigurations
         self.externalBrightnessConfigurations = storedExternalBrightnessConfigurations
-        self.popupSectionOrder = Self.sanitizedPopupSectionOrder(
-            storedPopupSectionOrder
-        )
+        let migratedPopupSectionOrder = Self.sanitizedPopupSectionOrder(storedPopupSectionOrder ?? [])
+        self.popupSectionOrder = migratedPopupSectionOrder
+        // Initializer assignments do not invoke didSet. Only a list the user
+        // already saved is completed on disk: persisting the defaults for a
+        // fresh install would freeze today's default order and hide sections
+        // added in later releases.
+        let migratedOrderRawValues = migratedPopupSectionOrder.map(\.rawValue)
+        if let storedPopupSectionOrder, storedPopupSectionOrder != migratedOrderRawValues {
+            defaults.set(migratedOrderRawValues, forKey: Self.popupSectionOrderDefaultsKey)
+        }
         let hasIntroducedVPN = defaults.bool(
             forKey: Self.vpnPopupSectionIntroducedDefaultsKey
         )

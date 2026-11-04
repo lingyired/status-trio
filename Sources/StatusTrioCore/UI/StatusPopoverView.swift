@@ -267,6 +267,8 @@ struct StatusPopoverView: View {
                 onOpen: { panel.showInputSourcePage() },
                 onOpenKeyboardSettings: openKeyboardSettings
             )
+        case .hardwareMonitor:
+            HardwareMonitorCardView(model: panel.hardwareMonitor)
         }
     }
 
