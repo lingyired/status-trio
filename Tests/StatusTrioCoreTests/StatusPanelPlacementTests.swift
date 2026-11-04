@@ -8,6 +8,59 @@ struct StatusPanelPlacementTests {
         visibleFrame: NSRect(x: 0, y: 0, width: 1440, height: 875)
     )
 
+    @Test func submenuAlignsTopWithEntryAndPrefersRight() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 300, y: 600, width: 250, height: 28),
+            preferredEdge: .maxX,
+            alignsTop: true
+        )
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 300), anchor: anchor, screens: [screen]
+        )
+        #expect(frame.minX == 556)
+        #expect(frame.maxY == 628)
+    }
+
+    @Test func submenuFlipsLeftWithoutMovingItsTop() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 1150, y: 600, width: 250, height: 28),
+            preferredEdge: .maxX,
+            alignsTop: true
+        )
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 300), anchor: anchor, screens: [screen]
+        )
+        #expect(frame.maxX == 1144)
+        #expect(frame.maxY == 628)
+    }
+
+    @Test func submenuScreenCapKeepsTallContentInsideScreen() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: 300, y: 60, width: 250, height: 28),
+            preferredEdge: .maxX,
+            alignsTop: true
+        )
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 2000), anchor: anchor, screens: [screen]
+        )
+        #expect(frame.height == 859)
+        #expect(frame.minY >= screen.visibleFrame.minY)
+        #expect(frame.maxY <= screen.visibleFrame.maxY)
+    }
+
+    @Test func submenuTopAlignmentAlsoWorksWithoutScreens() {
+        let anchor = StatusPanelAnchor(
+            screenRect: NSRect(x: -500, y: 300, width: 250, height: 28),
+            preferredEdge: .maxX,
+            alignsTop: true
+        )
+        let frame = StatusPanelPlacement.frame(
+            contentSize: NSSize(width: 330, height: 200), anchor: anchor, screens: []
+        )
+        #expect(frame.maxY == 328)
+        #expect(frame.minX == -244)
+    }
+
     @Test func menuBarAnchorHangsCentredBelowWithTheGap() {
         let anchor = StatusPanelAnchor(
             screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),

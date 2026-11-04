@@ -1,12 +1,11 @@
 import SwiftUI
 
 /// The Bluetooth device list shown under the status row. Paired, trusted-mobile,
-/// and selected BLE rows share one order, limit, expansion control, and viewport.
+/// and selected BLE rows share one order and a bounded main list with overflow.
 /// Only actionable paired rows connect or disconnect; external reading rows stay
 /// read-only.
 struct BluetoothDeviceList: View {
     @EnvironmentObject private var localization: Localization
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// True when the panel already owns an outer scroll surface (#237). The list
     /// must then draw every row directly instead of adding a second scroller.
     @Environment(\.statusPanelManagesScrolling) private var statusPanelManagesScrolling
@@ -40,18 +39,52 @@ struct BluetoothDeviceList: View {
     /// line while their level is being read.
     var batteryPlaceholderAddresses: Set<String> = []
 
-    @State private var isExpanded = false
-    @State private var nearbyRowFrames: [UUID: CGRect] = [:]
-    @State private var rowsViewportFrame = CGRect.zero
+    @State private var isOverflowPresented = false
+    @State private var isVisible = false
+    @State private var mainDemand = VisibilityDemand()
+    @State private var overflowDemand = VisibilityDemand()
     @State private var reportedNearbyIDs = Set<UUID>()
-    @State private var rowFrames: [String: CGRect] = [:]
     @State private var reportedAppleIDs = Set<AppleDeviceID>()
 
-    private struct BluetoothDeviceListVisibilitySnapshot: Equatable {
-        let visibleDevices: [BluetoothDevice]
-        let displayRows: [BluetoothDisplayRow]
-        let appleRows: [AppleDevicePanelRow]
-        let options: BluetoothDeviceListOptions
+    static func partition(
+        _ devices: [BluetoothDevice], limit: Int
+    ) -> (main: [BluetoothDevice], overflow: [BluetoothDevice]) {
+        let count = max(0, limit)
+        return (Array(devices.prefix(count)), Array(devices.dropFirst(count)))
+    }
+
+    /// Each hosting tree reports only intersecting canonical rows. Alias IDs
+    /// inherit that visibility; a closed overflow never authorizes a late report.
+    struct VisibilityDemand: Equatable {
+        var nearbyIDs = Set<UUID>()
+        var appleIDs = Set<AppleDeviceID>()
+
+        static func visible(
+            rows: [BluetoothDisplayRow], frames: [String: CGRect],
+            viewport: CGRect, appleRowIDs: [String: AppleDeviceID]
+        ) -> Self {
+            guard viewport.width > 0, viewport.height > 0 else { return Self() }
+            var demand = Self()
+            for row in rows {
+                guard let frame = frames[row.device.id], frame.width > 0, frame.height > 0,
+                      frame.intersects(viewport) else { continue }
+                for sourceID in row.sourceIDs {
+                    if let id = BluetoothDeviceIdentity.bleUUID(from: sourceID) {
+                        demand.nearbyIDs.insert(id)
+                    }
+                    if let id = appleRowIDs[sourceID] { demand.appleIDs.insert(id) }
+                }
+            }
+            return demand
+        }
+
+        static func combining(main: Self, overflow: Self, isOverflowPresented: Bool) -> Self {
+            guard isOverflowPresented else { return main }
+            return Self(
+                nearbyIDs: main.nearbyIDs.union(overflow.nearbyIDs),
+                appleIDs: main.appleIDs.union(overflow.appleIDs)
+            )
+        }
     }
 
     /// Identity for the persisted layout. `.task(id:)` rewrites the snapshot only
@@ -91,8 +124,6 @@ struct BluetoothDeviceList: View {
             + BluetoothDeviceListPresentation.orderedDisplayRows(disconnected, using: options.order, batteryLevels: orderingLevels)
     }
 
-    private static let geometryCoordinateSpace = "BluetoothDeviceList"
-
     /// How tall the rows may grow before they scroll, matching the Wi-Fi list's
     /// own bound so the two lists in the panel stop at the same place.
     static let maximumRowsHeight: CGFloat = 330
@@ -105,25 +136,9 @@ struct BluetoothDeviceList: View {
 
     var body: some View {
         let orderedDisplayDevices = displayRows.map(\.device)
-        let visibleDisplayDevices = BluetoothDeviceListPresentation.visibleDevices(
-            from: orderedDisplayDevices,
-            limit: options.maxVisibleDevices,
-            isExpanded: isExpanded
-        )
-        let visibilitySnapshot = BluetoothDeviceListVisibilitySnapshot(
-            visibleDevices: visibleDisplayDevices,
-            displayRows: displayRows,
-            appleRows: appleRows,
-            options: options
-        )
-        // The layout the panel shows when it reopens: the collapsed list, since
-        // the view's own disclosure always resets. Persisted so the next open can
-        // reserve this exact height while the rows are re-read.
-        let collapsedVisibleDevices = BluetoothDeviceListPresentation.visibleDevices(
-            from: orderedDisplayDevices,
-            limit: options.maxVisibleDevices,
-            isExpanded: false
-        )
+        let partition = Self.partition(orderedDisplayDevices, limit: options.maxVisibleDevices)
+        // Persist only the main list so reopening reserves the collapsed height.
+        let collapsedVisibleDevices = partition.main
         let layoutPersistenceID = LayoutPersistenceID(
             rowHeights: collapsedVisibleDevices.map { Double(estimatedRowHeight(for: $0)) },
             hasExpansionButton: BluetoothDeviceListPresentation.canToggleExpansion(
@@ -134,57 +149,24 @@ struct BluetoothDeviceList: View {
         )
 
         VStack(spacing: Self.rowSpacing) {
-            rows(visibleDisplayDevices)
+            rows(partition.main)
 
-            // Deliberately outside the scroll region: collapsing a long list must
-            // not require scrolling to the bottom first.
-            if BluetoothDeviceListPresentation.canToggleExpansion(
-                for: orderedDisplayDevices,
-                limit: options.maxVisibleDevices
-            ) {
-                Button {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) {
-                        isExpanded.toggle()
-                    }
-                } label: {
-                    HStack(alignment: .center, spacing: 8) {
-                        PanelActionGlyph(
-                            systemName: "chevron.down",
-                            font: .caption.weight(.semibold),
-                            size: 16
-                        )
-                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
-
-                        Text(
-                            localization.string(
-                                isExpanded ? .bluetoothListCollapse : .bluetoothListExpand
-                            )
-                        )
-                        .font(.callout)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 5)
-                    .contentShape(Rectangle())
+            if !partition.overflow.isEmpty {
+                CascadingSubmenuButton(
+                    title: localization.string(.bluetoothListExpand),
+                    isPresented: $isOverflowPresented
+                ) {
+                    rowStack(partition.overflow, isOverflow: true)
                 }
-                .buttonStyle(.plain)
             }
         }
-        .coordinateSpace(name: Self.geometryCoordinateSpace)
-        .onPreferenceChange(BluetoothDeviceListRowFramesPreferenceKey.self) { frames in
-            rowFrames = frames
-            nearbyRowFrames = Dictionary(frames.compactMap { key, frame in
-                guard let id = BluetoothDeviceIdentity.bleUUID(from: key) else { return nil }
-                return (id, frame)
-            }, uniquingKeysWith: { _, latest in latest })
-            publishVisibleNearbyIDs(in: visibilitySnapshot)
+        .onAppear {
+            isVisible = true
+            publishVisibleIDs()
         }
-        .onPreferenceChange(BluetoothDeviceListViewportPreferenceKey.self) { frame in
-            rowsViewportFrame = frame
-            publishVisibleNearbyIDs(in: visibilitySnapshot)
-        }
-        .onChange(of: visibilitySnapshot) { snapshot in
-            publishVisibleNearbyIDs(in: snapshot)
+        .onChange(of: isOverflowPresented) { presented in
+            if !presented { overflowDemand = VisibilityDemand() }
+            publishVisibleIDs()
         }
         .task(id: layoutPersistenceID) {
             guard layoutPersistenceID.isLoaded else { return }
@@ -196,6 +178,10 @@ struct BluetoothDeviceList: View {
             layoutSnapshots.save(snapshot.isEmpty ? nil : snapshot, for: .bluetooth)
         }
         .onDisappear {
+            isVisible = false
+            isOverflowPresented = false
+            mainDemand = VisibilityDemand()
+            overflowDemand = VisibilityDemand()
             reportVisibleNearbyIDs([])
             reportVisibleAppleIDs([])
         }
@@ -217,14 +203,11 @@ struct BluetoothDeviceList: View {
     private func rows(_ visibleDevices: [BluetoothDevice]) -> some View {
         if statusPanelManagesScrolling {
             rowStack(visibleDevices)
-                .background(viewportFrameReader)
         } else if estimatedContentHeight(for: visibleDevices) > Self.maximumRowsHeight {
             ScrollView { rowStack(visibleDevices) }
                 .frame(maxHeight: Self.maximumRowsHeight)
-                .background(viewportFrameReader)
         } else {
             rowStack(visibleDevices)
-                .background(viewportFrameReader)
         }
     }
 
@@ -266,34 +249,44 @@ struct BluetoothDeviceList: View {
         )
     }
 
-    private func rowStack(_ visibleDevices: [BluetoothDevice]) -> some View {
-        VStack(spacing: Self.rowSpacing) {
-            ForEach(visibleDevices) { device in
-                let address = BluetoothBatteryReader.normalizedAddress(device.id)
-                BluetoothDeviceRow(
-                    device: device,
-                    batteryLevels: batteryLevels(for: device),
-                    mobileMetadataByDeviceID: mobileMetadata(for: device),
-                    nearbyMetadataByDeviceID: nearbyMetadata(for: device),
-                    appleStatusByDeviceID: appleStatus(for: device),
-                    canonicalStatusByDeviceID: canonicalStatus(for: device),
-                    listeningMode: listeningModePresentations[address],
-                    onSelectListeningMode: { onSelectListeningMode(address, $0) },
-                    showsBatteryPlaceholder: batteryPlaceholderAddresses.contains(address),
-                    actionState: actionStates[address],
-                    isConfirmingDisconnect: confirmingAddress == address
-                        && BluetoothDeviceActionPolicy.requiresConfirmation(for: device),
-                    onPerformAction: { onPerformAction(device) },
-                    onRequestDisconnect: { onRequestDisconnect(device) },
-                    onCancelDisconnect: onCancelDisconnect
-                )
-                .background {
-                    if device.isReadOverTheAir {
-                        GeometryReader { proxy in
-                            Color.clear.preference(
-                                key: BluetoothDeviceListRowFramesPreferenceKey.self,
-                                value: [device.id: proxy.frame(in: .named(Self.geometryCoordinateSpace))]
-                            )
+    private func rowStack(_ visibleDevices: [BluetoothDevice], isOverflow: Bool = false) -> some View {
+        let visibleIDs = Set(visibleDevices.map(\.id))
+        return BluetoothListVisibilityRegion(
+            rows: displayRows.filter { visibleIDs.contains($0.device.id) },
+            appleRowIDs: AppleDeviceCatalog.rowIdentityMap(appleRows),
+            onChange: { demand in
+                if isOverflow { overflowDemand = demand } else { mainDemand = demand }
+                publishVisibleIDs()
+            }
+        ) {
+            VStack(spacing: Self.rowSpacing) {
+                ForEach(visibleDevices) { device in
+                    let address = BluetoothBatteryReader.normalizedAddress(device.id)
+                    BluetoothDeviceRow(
+                        device: device,
+                        batteryLevels: batteryLevels(for: device),
+                        mobileMetadataByDeviceID: mobileMetadata(for: device),
+                        nearbyMetadataByDeviceID: nearbyMetadata(for: device),
+                        appleStatusByDeviceID: appleStatus(for: device),
+                        canonicalStatusByDeviceID: canonicalStatus(for: device),
+                        listeningMode: listeningModePresentations[address],
+                        onSelectListeningMode: { onSelectListeningMode(address, $0) },
+                        showsBatteryPlaceholder: batteryPlaceholderAddresses.contains(address),
+                        actionState: actionStates[address],
+                        isConfirmingDisconnect: confirmingAddress == address
+                            && BluetoothDeviceActionPolicy.requiresConfirmation(for: device),
+                        onPerformAction: { onPerformAction(device) },
+                        onRequestDisconnect: { onRequestDisconnect(device) },
+                        onCancelDisconnect: onCancelDisconnect
+                    )
+                    .background {
+                        if device.isReadOverTheAir {
+                            GeometryReader { proxy in
+                                Color.clear.preference(
+                                    key: BluetoothListVisibilityRegionRowFramesKey.self,
+                                    value: [device.id: proxy.frame(in: .named(BluetoothListVisibilityCoordinateSpace.rows))]
+                                )
+                            }
                         }
                     }
                 }
@@ -375,38 +368,13 @@ struct BluetoothDeviceList: View {
         )
     }
 
-    private var viewportFrameReader: some View {
-        GeometryReader { proxy in
-            Color.clear.preference(
-                key: BluetoothDeviceListViewportPreferenceKey.self,
-                value: proxy.frame(in: .named(Self.geometryCoordinateSpace))
-            )
-        }
-    }
-
-    private func publishVisibleNearbyIDs(in snapshot: BluetoothDeviceListVisibilitySnapshot) {
-        var nearbyIDs = NearbyBLEPanelVisibility.visibleSelectedIDs(
-            in: snapshot.visibleDevices,
-            frames: nearbyRowFrames,
-            viewport: rowsViewportFrame
+    private func publishVisibleIDs() {
+        guard isVisible else { return }
+        let demand = VisibilityDemand.combining(
+            main: mainDemand, overflow: overflowDemand, isOverflowPresented: isOverflowPresented
         )
-        var appleIDs = AppleDevicePanelVisibility.visibleIDs(
-            in: snapshot.visibleDevices,
-            rowIDs: AppleDeviceCatalog.rowIdentityMap(snapshot.appleRows),
-            frames: rowFrames,
-            viewport: rowsViewportFrame
-        )
-        let visibleIDs = Set(snapshot.visibleDevices.map(\.id))
-        for row in snapshot.displayRows where visibleIDs.contains(row.device.id) {
-            for sourceID in row.sourceIDs {
-                if let uuid = BluetoothDeviceIdentity.bleUUID(from: sourceID) { nearbyIDs.insert(uuid) }
-                if let appleID = snapshot.appleRows.first(where: { $0.device.id == sourceID })?.id {
-                    appleIDs.insert(appleID)
-                }
-            }
-        }
-        reportVisibleNearbyIDs(nearbyIDs)
-        reportVisibleAppleIDs(appleIDs)
+        reportVisibleNearbyIDs(demand.nearbyIDs)
+        reportVisibleAppleIDs(demand.appleIDs)
     }
 
     private func reportVisibleNearbyIDs(_ ids: Set<UUID>) {
@@ -419,23 +387,5 @@ struct BluetoothDeviceList: View {
         guard reportedAppleIDs != ids else { return }
         reportedAppleIDs = ids
         onVisibleAppleIDsChanged(ids)
-    }
-}
-
-private struct BluetoothDeviceListRowFramesPreferenceKey: PreferenceKey {
-    static let defaultValue: [String: CGRect] = [:]
-
-    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
-        value.merge(nextValue(), uniquingKeysWith: { _, latest in latest })
-    }
-}
-
-struct BluetoothDeviceListViewportPreferenceKey: PreferenceKey {
-    static let defaultValue = CGRect.zero
-
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        let next = nextValue()
-        guard next.width > 0, next.height > 0 else { return }
-        value = next
     }
 }

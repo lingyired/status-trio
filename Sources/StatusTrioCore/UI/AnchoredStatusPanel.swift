@@ -29,6 +29,8 @@ final class AnchoredStatusPanel: NSPanel {
     /// Called once for every close, on the main actor, after the panel is off
     /// screen. Replaces `NSPopoverDelegate.popoverDidClose(_:)`.
     var onClose: (() -> Void)?
+    private(set) var isClosing = false
+    private(set) var isClosingForFocusLoss = false
 
     /// Height budget shared with the SwiftUI content. The window and the
     /// content must agree on it so overflowing content scrolls instead of
@@ -39,6 +41,24 @@ final class AnchoredStatusPanel: NSPanel {
     private var anchorView: NSView?
     private var anchorRectInView: NSRect = .zero
     private var preferredEdge: NSRectEdge = .minY
+    private var alignsTop = false
+    /// The root retains its coordinator in SwiftUI; the panel only links lifecycle.
+    weak var submenuCoordinator: CascadingSubmenuCoordinator?
+    var statusItemFrameForDismissal: (() -> NSRect?)?
+
+    func shouldDismissForOutsideClick(at point: NSPoint) -> Bool {
+        PopoverDismissalPolicy(statusItemFrame: statusItemFrameForDismissal?()).shouldDismiss(at: point)
+    }
+
+    func ownsEventWindow(_ window: NSWindow?) -> Bool {
+        guard let window else { return false }
+        return window === self || childWindows?.contains { $0 === window } == true
+    }
+
+    func containsScreenPoint(_ point: NSPoint) -> Bool {
+        (isVisible && frame.contains(point))
+            || childWindows?.contains { $0.isVisible && $0.frame.contains(point) } == true
+    }
     /// Clearance reserved for an auto-hidden Dock on the anchored edge (#229).
     private var dockInset = DockReveal.noInset
     private var showCancellables: Set<AnyCancellable> = []
@@ -158,15 +178,18 @@ final class AnchoredStatusPanel: NSPanel {
         relativeTo rect: NSRect,
         of view: NSView,
         preferredEdge: NSRectEdge,
-        dockInset: NSEdgeInsets = DockReveal.noInset
+        dockInset: NSEdgeInsets = DockReveal.noInset,
+        alignsTop: Bool = false
     ) {
         anchorView = view
         anchorRectInView = rect
         self.preferredEdge = preferredEdge
+        self.alignsTop = alignsTop
         self.dockInset = dockInset
         anchor = StatusPanelAnchor(
             screenRect: Self.screenRect(for: rect, in: view),
-            preferredEdge: preferredEdge
+            preferredEdge: preferredEdge,
+            alignsTop: alignsTop
         )
         // Publish the height cap before the content loads so the first layout
         // already measures against it; otherwise the first frame would be the
@@ -221,6 +244,10 @@ final class AnchoredStatusPanel: NSPanel {
     }
 
     override func close() {
+        guard !isClosing else { return }
+        isClosing = true
+        defer { isClosing = false }
+        submenuCoordinator?.closeForParent()
         // A hidden window has nothing to tear down; callers rely on `isShown`
         // before they act on a close.
         guard isVisible else { return }
@@ -234,14 +261,18 @@ final class AnchoredStatusPanel: NSPanel {
 
     override func keyDown(with event: NSEvent) {
         if event.keyCode == 53 {
-            performClose(nil)
+            cancelOperation(nil)
             return
         }
         super.keyDown(with: event)
     }
 
     override func cancelOperation(_ sender: Any?) {
-        performClose(nil)
+        if let submenuCoordinator, submenuCoordinator.hasOpenChild {
+            submenuCoordinator.close()
+        } else {
+            performClose(nil)
+        }
     }
 
     // MARK: - Placement
@@ -374,7 +405,8 @@ final class AnchoredStatusPanel: NSPanel {
             let rectInWindow = anchorView.convert(anchorRectInView, to: nil)
             return StatusPanelAnchor(
                 screenRect: window.convertToScreen(rectInWindow),
-                preferredEdge: preferredEdge
+                preferredEdge: preferredEdge,
+                alignsTop: alignsTop
             )
         }
         return anchor
@@ -424,7 +456,7 @@ final class AnchoredStatusPanel: NSPanel {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self, self.isVisible else { return }
-                self.performClose(nil)
+                self.closeForFocusLoss()
             }
             .store(in: &showCancellables)
         // A nonactivating panel can own keyboard focus while another app stays
@@ -439,9 +471,15 @@ final class AnchoredStatusPanel: NSPanel {
                         as? NSRunningApplication,
                       app.processIdentifier != ProcessInfo.processInfo.processIdentifier
                 else { return }
-                self.performClose(nil)
+                self.closeForFocusLoss()
             }
             .store(in: &showCancellables)
+    }
+
+    private func closeForFocusLoss() {
+        isClosingForFocusLoss = true
+        defer { isClosingForFocusLoss = false }
+        performClose(nil)
     }
 
     private func removeShowObservers() {

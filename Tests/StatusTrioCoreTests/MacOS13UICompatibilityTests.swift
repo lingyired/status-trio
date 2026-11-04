@@ -6,6 +6,7 @@ final class MacOS13UICompatibilityTests: XCTestCase {
         let files = [
             "Sources/StatusTrioCore/UI/AudioInputControlsView.swift",
             "Sources/StatusTrioCore/UI/BluetoothDeviceList.swift",
+            "Sources/StatusTrioCore/UI/BluetoothListVisibilityRegion.swift",
             "Sources/StatusTrioCore/UI/BluetoothStatusView.swift",
             "Sources/StatusTrioCore/UI/IconGuideView.swift",
             "Sources/StatusTrioCore/UI/Settings/StatusIconPreviewCard.swift",
@@ -64,8 +65,14 @@ final class MacOS13UICompatibilityTests: XCTestCase {
             contentsOf: packageRoot.appendingPathComponent("Sources/StatusTrioCore/UI/BluetoothDeviceList.swift"),
             encoding: .utf8
         )
-        XCTAssertTrue(listSource.contains("BluetoothDeviceListVisibilitySnapshot"))
-        XCTAssertTrue(listSource.contains(".onChange(of: visibilitySnapshot)"))
+        XCTAssertTrue(listSource.contains("struct VisibilityDemand: Equatable"))
+        let regionSource = try String(
+            contentsOf: packageRoot.appendingPathComponent("Sources/StatusTrioCore/UI/BluetoothListVisibilityRegion.swift"),
+            encoding: .utf8
+        )
+        XCTAssertTrue(regionSource.contains("private var demand: BluetoothDeviceList.VisibilityDemand"))
+        XCTAssertTrue(regionSource.contains(".onChange(of: demand) { onChange($0) }"))
+        XCTAssertTrue(regionSource.contains(".onDisappear { onChange(.init()) }"))
     }
 
     func testPictureRowKeepsNativeActivationAndUsesMoveCommandForArrows() throws {

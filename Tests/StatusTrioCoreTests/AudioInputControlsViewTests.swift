@@ -11,8 +11,8 @@ final class AudioInputControlsViewTests: XCTestCase {
         let controls = String(source[controlsStart.lowerBound..<controlsEnd.lowerBound])
 
         XCTAssertTrue(
-            controls.contains("PanelLevelSlider("),
-            "volume control layout must use the shared panel slider"
+            controls.contains("NativePanelLevelSlider("),
+            "volume control layout must use the shared native panel slider"
         )
         XCTAssertTrue(controls.contains("isEnabled: state.canAdjust"))
         XCTAssertTrue(controls.contains("if state.scalar == nil"))

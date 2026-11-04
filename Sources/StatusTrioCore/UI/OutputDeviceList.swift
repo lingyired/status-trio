@@ -20,7 +20,7 @@ struct OutputDeviceList: View {
         let visibleRows = OutputDeviceListPresentation.visibleDevices(
             from: rows,
             limit: visibleLimit,
-            isExpanded: isExpanded
+            isExpanded: false
         )
 
         if let skeleton, rows.isEmpty, previewRows.isEmpty, skeleton.rowCount > 0 {
@@ -51,11 +51,9 @@ struct OutputDeviceList: View {
                 .environmentObject(PreviewLocalization.forCode(previewLanguageCode) ?? localization)
 
                 if OutputDeviceListPresentation.canToggleExpansion(for: rows, limit: visibleLimit) {
-                    DeviceListExpansionButton(
-                        isExpanded: $isExpanded,
-                        expandLabel: expandLabel,
-                        collapseLabel: collapseLabel
-                    )
+                    CascadingSubmenuButton(title: expandLabel, isPresented: $isExpanded) {
+                        deviceRows(Array(rows.dropFirst(visibleRows.count)))
+                    }
                 }
             }
         }

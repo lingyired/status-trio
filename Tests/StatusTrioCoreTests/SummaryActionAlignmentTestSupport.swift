@@ -1,4 +1,5 @@
 import AppKit
+@testable import StatusTrioCore
 
 /// Reads the geometry SwiftUI actually rendered for a summary row's controls.
 @MainActor
@@ -9,6 +10,7 @@ struct SummaryActionAlignmentProbe {
     /// read the frame of an embedded AppKit control (for example an `NSSlider`
     /// that layer rendering keeps out of the bitmap).
     private let hosting: NSView
+    private let nativeTrackCenterY: CGFloat?
 
     init?(_ hosting: NSView, pixelScale: CGFloat? = nil) {
         self.hosting = hosting
@@ -35,6 +37,17 @@ struct SummaryActionAlignmentProbe {
 
         self.bitmap = bitmap
         scale = CGFloat(bitmap.pixelsWide) / hosting.bounds.width
+        func nativeSlider(in view: NSView) -> NativePanelLevelSliderControl? {
+            if let slider = view as? NativePanelLevelSliderControl { return slider }
+            return view.subviews.lazy.compactMap { nativeSlider(in: $0) }.first
+        }
+        if let slider = nativeSlider(in: hosting), let cell = slider.cell as? NSSliderCell {
+            let bar = cell.barRect(flipped: slider.isFlipped)
+            let center = slider.convert(NSPoint(x: bar.midX, y: bar.midY), to: hosting).y
+            nativeTrackCenterY = hosting.isFlipped ? center : hosting.bounds.height - center
+        } else {
+            nativeTrackCenterY = nil
+        }
     }
 
     func trailingGlyphRects(
@@ -103,6 +116,9 @@ struct SummaryActionAlignmentProbe {
     func controlRowCenterY(
         excluding excludedRects: [CGRect]
     ) -> CGFloat? {
+        // Native knobs cast an asymmetric shadow. Its ink bounds are not the
+        // track center; compare glyph ink to the native cell's real geometry.
+        if let nativeTrackCenterY { return nativeTrackCenterY }
         let actionRows = excludedRects.map { inkBounds(in: $0) }.compactMap { $0 }
         guard let actionTop = actionRows.map(\.minY).min(),
               let actionBottom = actionRows.map(\.maxY).max() else {

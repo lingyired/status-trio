@@ -34,5 +34,28 @@ struct BrightnessPanelState: Equatable, Sendable {
 
     var isEmpty: Bool { rows.isEmpty }
 
+    static let collapsedDisplayLimit = 3
+
+    var hasHiddenRows: Bool {
+        OutputDeviceListPresentation.canToggleExpansion(
+            for: rows, limit: Self.collapsedDisplayLimit
+        )
+    }
+
+    func visibleRows(expanded: Bool) -> [BrightnessRowState] {
+        OutputDeviceListPresentation.visibleDevices(
+            from: rows, limit: Self.collapsedDisplayLimit, isExpanded: expanded
+        )
+    }
+
+    func displayName(for row: BrightnessRowState, builtInName: String) -> String {
+        let name = row.isBuiltin ? builtInName : row.name
+        let matching = rows.filter { $0.name == row.name && $0.isBuiltin == row.isBuiltin }
+        guard matching.count > 1, let index = matching.firstIndex(where: { $0.id == row.id }) else {
+            return name
+        }
+        return "\(name) · \(index + 1)"
+    }
+
     static let placeholder = BrightnessPanelState(rows: [])
 }

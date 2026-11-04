@@ -11,6 +11,14 @@ struct StatusPanelAnchor: Equatable {
     /// The edge of `screenRect` the panel attaches to, mirroring
     /// `NSPopover.show(relativeTo:of:preferredEdge:)`.
     let preferredEdge: NSRectEdge
+    /// Side child panels align with the entry's top; Dock panels stay centred.
+    let alignsTop: Bool
+
+    init(screenRect: NSRect, preferredEdge: NSRectEdge, alignsTop: Bool = false) {
+        self.screenRect = screenRect
+        self.preferredEdge = preferredEdge
+        self.alignsTop = alignsTop
+    }
 }
 
 /// A screen's geometry in the small shape placement needs, so the maths can be
@@ -109,9 +117,9 @@ enum StatusPanelPlacement {
             case .maxY:
                 origin = NSPoint(x: anchorRect.midX - size.width / 2, y: anchorRect.maxY + gap)
             case .maxX:
-                origin = NSPoint(x: anchorRect.maxX + gap, y: anchorRect.midY - size.height / 2)
+                origin = NSPoint(x: anchorRect.maxX + gap, y: anchor.alignsTop ? anchorRect.maxY - size.height : anchorRect.midY - size.height / 2)
             case .minX:
-                origin = NSPoint(x: anchorRect.minX - gap - size.width, y: anchorRect.midY - size.height / 2)
+                origin = NSPoint(x: anchorRect.minX - gap - size.width, y: anchor.alignsTop ? anchorRect.maxY - size.height : anchorRect.midY - size.height / 2)
             default:
                 origin = NSPoint(x: anchorRect.midX - size.width / 2, y: anchorRect.minY - gap - size.height)
             }
@@ -148,11 +156,11 @@ enum StatusPanelPlacement {
         case .maxX, .minX:
             let toRight = NSPoint(
                 x: anchorRect.maxX + gap,
-                y: anchorRect.midY - size.height / 2
+                y: anchor.alignsTop ? anchorRect.maxY - size.height : anchorRect.midY - size.height / 2
             )
             let toLeft = NSPoint(
                 x: anchorRect.minX - gap - size.width,
-                y: anchorRect.midY - size.height / 2
+                y: anchor.alignsTop ? anchorRect.maxY - size.height : anchorRect.midY - size.height / 2
             )
             if anchor.preferredEdge == .maxX {
                 origin = fitsHorizontally(toRight, size: size, in: visibleFrame) ? toRight : toLeft

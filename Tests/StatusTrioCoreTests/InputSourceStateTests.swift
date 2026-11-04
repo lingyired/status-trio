@@ -28,7 +28,7 @@ final class InputSourceStateTests: XCTestCase {
         let descriptor = try XCTUnwrap(state.selectedDescriptor)
         XCTAssertEqual(descriptor.primaryLanguage, "zh-Hans")
         XCTAssertEqual(descriptor.iconURL, url)
-        XCTAssertEqual(descriptor.shortLabel, "拼")
+        XCTAssertEqual(descriptor.shortLabel, "简")
     }
 
     func testSelectedDescriptorIsNilWhenSelectionIsNotInTheEnabledList() {

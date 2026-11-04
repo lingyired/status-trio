@@ -3,6 +3,7 @@ import SwiftUI
 
 struct StatusPopoverView: View {
     @ObservedObject var panel: StatusPanelViewModel
+    @StateObject private var submenus = CascadingSubmenuCoordinator()
     /// Observed so the Low Power Mode control appears the moment the helper is
     /// approved — reading `.isReady` off the shared manager without observing
     /// it left the control invisible until the popover was recreated.
@@ -33,33 +34,30 @@ struct StatusPopoverView: View {
     var dismissPanel: () -> Void = {}
 
     var body: some View {
-        // One scroll surface for every route (#237). The area measures the page
-        // at its natural height and only scrolls once the screen budget cannot
-        // hold it, so a short page still hugs its content. The summary footer
-        // stays outside the scroll view so it is always reachable.
+        // The summary stays mounted while details open alongside it. Each
+        // window owns one capped scroll surface; the main footer stays pinned.
         StatusPanelScrollArea(maximumHeight: layoutMetrics.maximumPanelHeight) {
-            routeContent
+            summary
+                .padding(.top, 14)
+                .padding(.horizontal, 14)
+                .padding(.bottom, displayedSections.isEmpty ? 0 : 12)
                 // Inside the panel there must be exactly one scroller. The
                 // detail pages and Bluetooth lists keep their own scroll views
                 // for other hosts, but disable them here.
                 .environment(\.statusPanelManagesScrolling, true)
         } footer: {
-            if panel.route == .summary {
-                pinnedFooter
-            }
+            pinnedFooter
         }
         .frame(width: 330)
+        .environment(\.cascadingSubmenuCoordinator, submenus)
     }
 
-    /// The current route, inset for the panel's fixed width.
-    ///
-    /// The bottom inset is 12pt when the summary's pinned footer follows, which
-    /// reproduces the old in-page `VStack` spacing before the footer's rule.
+    /// Existing detail content, hosted by the active entry's child window.
     private var routeContent: some View {
         Group {
             switch panel.route {
             case .summary:
-                summary
+                EmptyView()
             case .battery:
                 BatteryDetailsView(
                     state: panel.batteryDetails,
@@ -112,18 +110,32 @@ struct StatusPopoverView: View {
                 )
             }
         }
-        .padding(.top, 14)
-        .padding(.horizontal, 14)
-        .padding(.bottom, routeBottomPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// The gap between the route content and the pinned footer. The summary
-    /// keeps 12pt so the footer's rule sits where the old in-page spacing put
-    /// it; an empty summary lets the footer own the whole inset.
-    private var routeBottomPadding: CGFloat {
-        guard panel.route == .summary else { return 14 }
-        return displayedSections.isEmpty ? 0 : 12
+    private func detailBinding(_ route: StatusPanelRoute) -> Binding<Bool> {
+        Binding(get: { panel.route == route }, set: { presented in
+            if presented {
+                switch route {
+                case .battery: panel.showBatteryPage()
+                case .wifi: panel.showWiFiPage(showsDetailsInitially: NSEvent.modifierFlags.contains(.option))
+                case .ethernet: panel.showWiredPage()
+                case .inputSource: panel.showInputSourcePage()
+                case .summary: break
+                }
+            } else if !submenus.isClosingParent, panel.route == route {
+                panel.showSummaryPage()
+            }
+        })
+    }
+
+    private var networkDetailBinding: Binding<Bool> {
+        let route: StatusPanelRoute = panel.network.intent == .wiredDetails ? .ethernet : .wifi
+        let binding = detailBinding(route)
+        return Binding(get: { binding.wrappedValue }, set: { presented in
+            guard !presented || panel.network.intent == .wiredDetails || panel.network.intent == .wifiDetails else { return }
+            binding.wrappedValue = presented
+        })
     }
 
     private var summary: some View {
@@ -137,9 +149,8 @@ struct StatusPopoverView: View {
                 }
             }
         }
-        // The volume device list is summary-only: keep its lifecycle tied to
-        // this page so leaving for a detail route stops it, while scrolling a
-        // long summary does not.
+        // Main controls remain visible while a child is open, so their demand
+        // stays tied to the main panel rather than the selected detail route.
         .task(id: [
             panel.listeningModeTaskID,
             String(panel.visiblePopupSections.contains(.bluetooth)),
@@ -204,6 +215,9 @@ struct StatusPopoverView: View {
                     panel.actions.requestChargeToFullNow()
                 }
             )
+            .cascadingSubmenu(isPresented: detailBinding(.battery), backgroundStyle: panel.settings.panelBackgroundStyle) {
+                routeContent
+            }
         case .network:
             NetworkStatusView(
                 state: panel.network,
@@ -214,6 +228,9 @@ struct StatusPopoverView: View {
                 onOpenNetworkSettings: openNetworkSettings,
                 onOpenLocationSettings: openLocationSettings
             )
+            .cascadingSubmenu(isPresented: networkDetailBinding, backgroundStyle: panel.settings.panelBackgroundStyle) {
+                routeContent
+            }
         case .vpn:
             VPNStatusView(state: panel.vpn)
         case .bluetooth:
@@ -267,6 +284,9 @@ struct StatusPopoverView: View {
                 onOpen: { panel.showInputSourcePage() },
                 onOpenKeyboardSettings: openKeyboardSettings
             )
+            .cascadingSubmenu(isPresented: detailBinding(.inputSource), backgroundStyle: panel.settings.panelBackgroundStyle) {
+                routeContent
+            }
         }
     }
 

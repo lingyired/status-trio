@@ -1,30 +1,56 @@
 import SwiftUI
 
 /// The brightness section of the status panel: one row per connected display.
-/// Each row is a single inline capsule whose display name lives inside the bar
-/// (no separate title line).
+/// Names stay beside the native sliders, and larger setups can reveal the
+/// displays beyond the first three in an adjacent submenu.
 struct BrightnessControlsView: View {
     let state: BrightnessPanelState
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
     let onOpenDisplaySettings: () -> Void
 
+    @EnvironmentObject private var localization: Localization
+    @State private var isExpanded = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(state.rows) { row in
-                BrightnessRowView(
-                    row: row,
-                    actions: actions,
-                    scrollTargets: scrollTargets,
-                    onOpenDisplaySettings: onOpenDisplaySettings
-                )
+            displayRows(state.visibleRows(expanded: false))
+            if state.hasHiddenRows {
+                CascadingSubmenuButton(
+                    title: "\(localization.string(.commonExpand)) (+\(state.rows.count - BrightnessPanelState.collapsedDisplayLimit))",
+                    isPresented: $isExpanded
+                ) {
+                    VStack(spacing: 8) {
+                        displayRows(Array(state.rows.dropFirst(BrightnessPanelState.collapsedDisplayLimit)))
+                    }
+                }
+                .accessibilityValue(localization.string(isExpanded ? .commonExpanded : .commonCollapsed))
             }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(localization.string(.settingsBrightnessGroupTitle))
+        .onChange(of: state.rows.map(\.id)) { _ in isExpanded = false }
+        .onDisappear { isExpanded = false }
+    }
+
+    private func displayRows(_ rows: [BrightnessRowState]) -> some View {
+        ForEach(rows) { row in
+            BrightnessRowView(
+                row: row,
+                displayName: state.displayName(
+                    for: row, builtInName: localization.string(.settingsBrightnessBuiltIn)
+                ),
+                actions: actions,
+                scrollTargets: scrollTargets,
+                onOpenDisplaySettings: onOpenDisplaySettings
+            )
         }
     }
 }
 
 private struct BrightnessRowView: View {
     let row: BrightnessRowState
+    let displayName: String
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
     let onOpenDisplaySettings: () -> Void
@@ -39,9 +65,7 @@ private struct BrightnessRowView: View {
     private var isAdjustable: Bool { row.canAdjust && row.scalar != nil }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            // Same leading footprint as the volume row's mute glyph so the
-            // sliders of both sections start on the same x.
+        HStack(alignment: .center, spacing: 8) {
             PanelActionGlyph(
                 systemName: row.symbolName,
                 font: .system(size: 15, weight: .medium)
@@ -49,14 +73,21 @@ private struct BrightnessRowView: View {
             .foregroundStyle(.secondary)
             .accessibilityHidden(true)
 
+            Text(displayName)
+                .font(.caption)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(width: 72, alignment: .leading)
+                .help(accessibilityName)
+                .accessibilityHidden(true)
+
             Group {
-                if isAdjustable {
-                    PanelLevelSlider(
+                if row.canAdjust {
+                    NativePanelLevelSlider(
                         value: sliderBinding,
-                        label: row.name,
-                        isEnabled: true,
-                        accessibilityLabel: row.accessibilityLabel,
-                        accessibilityValue: row.percentageText,
+                        isEnabled: isAdjustable,
+                        accessibilityLabel: accessibilityName,
+                        accessibilityValue: isAdjustable ? percentageText : localization.string(.brightnessUnavailable),
                         onEditingChanged: { editing in
                             isEditing = editing
                             if !editing {
@@ -64,21 +95,18 @@ private struct BrightnessRowView: View {
                             }
                         }
                     )
+                    .frame(minWidth: 100)
                 } else if let unavailable = row.unavailableText {
-                    // Not adjustable: keep the capsule as a clear disabled
-                    // placeholder (name inside, reason on the trailing side)
-                    // instead of a title line plus a slider.
-                    unavailableCapsule(reason: unavailable)
+                    Text(unavailable)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .help(unavailable)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    // Adjustable in principle but the value is unreadable.
-                    PanelLevelSlider(
-                        value: sliderBinding,
-                        label: row.name,
-                        isEnabled: false,
-                        accessibilityLabel: row.accessibilityLabel,
-                        accessibilityValue: row.percentageText,
-                        onEditingChanged: { _ in }
-                    )
+                    Text("—")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .frame(minHeight: PanelLevelSliderMetrics.controlHeight)
@@ -89,10 +117,10 @@ private struct BrightnessRowView: View {
                 )
             )
 
-            Text(isAdjustable ? row.percentageText : "—")
+            Text(isAdjustable ? percentageText : "—")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .frame(minWidth: 34, alignment: .trailing)
+                .frame(width: 34, alignment: .trailing)
                 .accessibilityHidden(true)
 
             Button(action: onOpenDisplaySettings) {
@@ -110,33 +138,20 @@ private struct BrightnessRowView: View {
                 draft = newValue
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(row.accessibilityLabel)
+        .onDisappear {
+            if isEditing {
+                actions.finishBrightnessAdjustment(displayID: row.id)
+                isEditing = false
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(accessibilityName)
     }
 
-    /// Disabled-looking capsule used when the display cannot be adjusted.
-    private func unavailableCapsule(reason: String) -> some View {
-        ZStack {
-            Capsule()
-                .fill(Color.secondary.opacity(0.12))
-                .frame(height: PanelLevelSliderMetrics.barHeight)
-            HStack(spacing: 8) {
-                Text(row.name)
-                    .font(.system(size: 10, weight: .medium))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .foregroundStyle(.primary.opacity(0.6))
-                Spacer(minLength: 8)
-                Text(reason)
-                    .font(.system(size: 9))
-                    .lineLimit(1)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, PanelLevelSliderMetrics.labelLeadingInset)
-        }
-        .frame(height: PanelLevelSliderMetrics.controlHeight)
-        .accessibilityLabel(row.accessibilityLabel)
-        .accessibilityValue(reason)
+    private var accessibilityName: String { row.isBuiltin ? row.name : displayName }
+
+    private var percentageText: String {
+        isEditing ? BrightnessPanelMapper.percentText(draft) : row.percentageText
     }
 
     private var sliderBinding: Binding<Double> {
