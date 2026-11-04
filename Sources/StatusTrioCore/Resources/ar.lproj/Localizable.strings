@@ -735,3 +735,17 @@
 "settings.brightness.compatibility.title" = "لا يمكن التحكم في السطوع؟";
 "settings.brightness.compatibility.description" = "تختلف طريقة تنفيذ DDC بين مصنّعي الشاشات، لذا لا يمكن لـ Status Trio دعم كل الطُرز. إذا تعذّر ضبط سطوع شاشة من هنا، فبدّل خلفيتها إلى BetterDisplay — وسيتحكم Status Trio بها عبر BetterDisplay. الإصدار المجاني كافٍ، ولا حاجة لشراء Pro.";
 "settings.brightness.compatibility.link" = "نزّل BetterDisplay (مجانًا)";
+"settings.battery.colors.highPower" = "وضع الطاقة العالية";
+"battery.lowPowerMode.autoEnable" = "تشغيل وضع الطاقة المنخفضة تلقائيًا";
+"battery.lowPowerMode.autoEnableDescription" = "بعد فصل الطاقة، يتم تشغيل وضع الطاقة المنخفضة تلقائيًا عندما ينخفض مستوى البطارية إلى ما دون حد البطارية المنخفضة. مرة واحدة لكل دورة بطارية منخفضة.";
+"settings.battery.autoLowPowerThreshold" = "حد التفعيل التلقائي";
+"settings.battery.autoLowPowerThresholdDescription" = "يتم تشغيل وضع الطاقة المنخفضة تلقائيًا عند انخفاض البطارية عن هذا المستوى أثناء العمل على البطارية.";
+"battery.highPowerMode.toggle" = "وضع الطاقة العالية";
+"battery.highPowerMode.toggleDescription" = "يزيد سرعة المراوح لتحقيق أداء مستمر أعلى، مقابل ضجيج أكبر.";
+"battery.highPowerMode.helperNeedsUpdate" = "يلزم تحديث مساعد الطاقة قبل استخدام وضع الطاقة العالية.";
+"battery.highPowerMode.failure" = "تعذّر تبديل وضع الطاقة العالية. حاول مرة أخرى.";
+"battery.powerMode.title" = "وضع الطاقة";
+"battery.powerMode.automatic" = "تلقائي";
+"battery.powerMode.low" = "طاقة منخفضة";
+"battery.powerMode.high" = "طاقة عالية";
+"battery.powerMode.highRequiresPower" = "لا يسري وضع الطاقة العالية إلا عند توصيل محول الطاقة.";

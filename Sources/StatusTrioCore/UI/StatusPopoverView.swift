@@ -71,6 +71,11 @@ struct StatusPopoverView: View {
                     lowPowerMode: panel.store.lowPowerMode,
                     showsLowPowerControl: panel.settings.controlsLowPowerMode
                         && helper.isReady,
+                    highPowerMode: panel.store.highPowerMode,
+                    showsHighPowerControl: panel.settings.controlsLowPowerMode
+                        && helper.isReady,
+                    isConnectedToPower:
+                        panel.store.popupSnapshot.battery.isConnectedToPower,
                     chargeToFullNow: panel.chargeToFullNowPresentation,
                     onChargeToFullNow: { panel.actions.requestChargeToFullNow() }
                 )
@@ -191,6 +196,9 @@ struct StatusPopoverView: View {
                 lowPowerMode: panel.store.lowPowerMode,
                 showsLowPowerToggle: panel.settings.controlsLowPowerMode
                     && helper.isReady,
+                highPowerMode: panel.store.highPowerMode,
+                isConnectedToPower:
+                    panel.store.popupSnapshot.battery.isConnectedToPower,
                 chargeToFullNow: panel.summaryChargeToFullNowPresentation,
                 onChargeToFullNow: {
                     panel.actions.requestChargeToFullNow()

@@ -735,3 +735,17 @@
 "settings.brightness.compatibility.title" = "Helligkeit nicht steuerbar?";
 "settings.brightness.compatibility.description" = "Hersteller setzen DDC unterschiedlich um, daher kann Status Trio nicht jedes Modell abdecken. Lässt sich die Helligkeit eines Displays hier nicht einstellen, stelle es auf das BetterDisplay-Backend um — Status Trio steuert es dann über BetterDisplay. Die kostenlose Version genügt; eine Pro-Lizenz ist nicht nötig.";
 "settings.brightness.compatibility.link" = "BetterDisplay herunterladen (kostenlos)";
+"settings.battery.colors.highPower" = "Hochenergiemodus";
+"battery.lowPowerMode.autoEnable" = "Niedrigenergiemodus automatisch aktivieren";
+"battery.lowPowerMode.autoEnableDescription" = "Ohne Netzteil schaltet sich der Niedrigenergiemodus automatisch ein, sobald der Akkustand unter den Schwellenwert für niedrigen Akkustand fällt. Einmal pro Niedrigakkupyklus.";
+"settings.battery.autoLowPowerThreshold" = "Schwellenwert für Auto-Aktivierung";
+"settings.battery.autoLowPowerThresholdDescription" = "Der Niedrigenergiemodus wird im Akkubetrieb unterhalb dieses Werts automatisch aktiviert.";
+"battery.highPowerMode.toggle" = "Hochenergiemodus";
+"battery.highPowerMode.toggleDescription" = "Lässt die Lüfter schneller laufen, um dauerhaft höhere Leistung zu erreichen – auf Kosten lauterer Lüfter.";
+"battery.highPowerMode.helperNeedsUpdate" = "Der Energiehelfer muss aktualisiert werden, bevor der Hochenergiemodus verwendet werden kann.";
+"battery.highPowerMode.failure" = "Der Hochenergiemodus konnte nicht umgeschaltet werden. Bitte erneut versuchen.";
+"battery.powerMode.title" = "Energiemodus";
+"battery.powerMode.automatic" = "Automatisch";
+"battery.powerMode.low" = "Niedrigenergie";
+"battery.powerMode.high" = "Hochenergie";
+"battery.powerMode.highRequiresPower" = "Der Hochenergiemodus wird erst mit angeschlossenem Netzteil wirksam.";

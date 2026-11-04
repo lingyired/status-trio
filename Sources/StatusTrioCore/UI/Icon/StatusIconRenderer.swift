@@ -1401,6 +1401,8 @@ extension StatusIconRenderer {
             statusPalette.critical
         case .lowPower:
             statusPalette.lowPower
+        case .highPower:
+            statusPalette.highPower
         case .powered:
             statusPalette.charging
         case .bluetooth:

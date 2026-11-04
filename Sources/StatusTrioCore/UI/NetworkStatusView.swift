@@ -15,7 +15,7 @@ struct NetworkStatusView: View {
     private var hasWiFiDetails: Bool { state.intent == .wifiDetails }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: PanelSummaryActionMetrics.iconGap) {
             Button(action: { activateRow() }) {
                 HStack(alignment: .center, spacing: 10) {
                     PanelSymbolView(source: state.symbol)

@@ -16,6 +16,12 @@ final class SettingsStore: ObservableObject {
     static let iconSizeDefaultsKey = "menuBarIconSize"
 
     static let batteryCriticalThresholdRange: ClosedRange<Double> = 0...100
+    /// The battery level at which the automation (#246) switches Low Power Mode
+    /// on. Kept separate from the critical colour threshold: the colour marks a
+    /// genuinely low battery, while the automation threshold may be much higher
+    /// (for example 90%) without turning the icon red at 90%.
+    static let autoLowPowerThresholdRange: ClosedRange<Double> = 0...100
+    static let defaultAutoLowPowerThreshold: Double = 20
     static let defaultBatteryCriticalThreshold: Double = 20
     /// The ring closes at the level the user picks. The floor keeps the arc a
     /// usable fraction of the circle instead of a hairline at 1%.
@@ -50,8 +56,10 @@ final class SettingsStore: ObservableObject {
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
     static let batteryStatusColorsChargingDefaultsKey = "batteryStatusColors.charging"
     static let batteryStatusColorsLowPowerDefaultsKey = "batteryStatusColors.lowPower"
+    static let batteryStatusColorsHighPowerDefaultsKey = "batteryStatusColors.highPower"
     static let batteryStatusColorsCriticalDefaultsKey = "batteryStatusColors.critical"
     static let batteryCriticalThresholdDefaultsKey = "batteryCriticalThreshold"
+    static let autoLowPowerThresholdDefaultsKey = "autoLowPowerThreshold"
     static let batteryFullThresholdDefaultsKey = "batteryFullThreshold"
     static let batterySymbolScaleDefaultsKey = "batterySymbolScale"
     static let showsWiFiIconForEthernetDefaultsKey = "showsWiFiIconForEthernet"
@@ -82,6 +90,7 @@ final class SettingsStore: ObservableObject {
     static let showsBluetoothBatteryLevelsDefaultsKey = "showsBluetoothBatteryLevels"
     static let showsBluetoothPowerControlDefaultsKey = "showsBluetoothPowerControl"
     static let controlsLowPowerModeDefaultsKey = "controlsLowPowerMode"
+    static let autoEnablesLowPowerModeDefaultsKey = "autoEnablesLowPowerMode"
     static let showsNearbyBluetoothBatteryDevicesDefaultsKey = "showsNearbyBluetoothBatteryDevices"
     static let showsMobileDeviceBatteryLevelsDefaultsKey = "showsMobileDeviceBatteryLevels"
     static let showsAppleDevicesAndBatteryDefaultsKey = "showsAppleDevicesAndBattery"
@@ -463,6 +472,10 @@ final class SettingsStore: ObservableObject {
                 forKey: Self.batteryStatusColorsLowPowerDefaultsKey
             )
             defaults.set(
+                batteryStatusColors.highPower.storageValue,
+                forKey: Self.batteryStatusColorsHighPowerDefaultsKey
+            )
+            defaults.set(
                 batteryStatusColors.critical.storageValue,
                 forKey: Self.batteryStatusColorsCriticalDefaultsKey
             )
@@ -488,6 +501,18 @@ final class SettingsStore: ObservableObject {
                 return
             }
             defaults.set(clamped, forKey: Self.batteryCriticalThresholdDefaultsKey)
+        }
+    }
+
+    /// The level at which #246 switches Low Power Mode on by itself.
+    @Published var autoLowPowerThreshold: Double {
+        didSet {
+            let clamped = Self.clampedAutoLowPowerThreshold(autoLowPowerThreshold)
+            guard clamped == autoLowPowerThreshold else {
+                autoLowPowerThreshold = clamped
+                return
+            }
+            defaults.set(clamped, forKey: Self.autoLowPowerThresholdDefaultsKey)
         }
     }
 
@@ -644,6 +669,18 @@ final class SettingsStore: ObservableObject {
     @Published var controlsLowPowerMode: Bool {
         didSet {
             defaults.set(controlsLowPowerMode, forKey: Self.controlsLowPowerModeDefaultsKey)
+        }
+    }
+
+    /// Whether the app switches Low Power Mode on by itself when the battery
+    /// drops below `batteryCriticalThreshold` while running on battery (#246).
+    /// Off by default: silently changing the power profile is opt-in.
+    @Published var autoEnablesLowPowerMode: Bool {
+        didSet {
+            defaults.set(
+                autoEnablesLowPowerMode,
+                forKey: Self.autoEnablesLowPowerModeDefaultsKey
+            )
         }
     }
 
@@ -1775,6 +1812,9 @@ final class SettingsStore: ObservableObject {
             lowPower: BatteryStatusColorSelection(
                 storageValue: defaults.string(forKey: Self.batteryStatusColorsLowPowerDefaultsKey) ?? "system"
             ),
+            highPower: BatteryStatusColorSelection(
+                storageValue: defaults.string(forKey: Self.batteryStatusColorsHighPowerDefaultsKey) ?? "system"
+            ),
             critical: BatteryStatusColorSelection(
                 storageValue: defaults.string(forKey: Self.batteryStatusColorsCriticalDefaultsKey) ?? "system"
             )
@@ -1782,9 +1822,19 @@ final class SettingsStore: ObservableObject {
         self.batterySymbolScale = Self.clampedBatterySymbolScale(
             storedBatterySymbolScale ?? Self.defaultBatterySymbolScale
         )
-        self.batteryCriticalThreshold = Self.clampedBatteryCriticalThreshold(
+        let clampedCritical = Self.clampedBatteryCriticalThreshold(
             storedCriticalThreshold ?? Self.defaultBatteryCriticalThreshold
         )
+        let storedAutoThreshold = (defaults.object(
+            forKey: Self.autoLowPowerThresholdDefaultsKey
+        ) as? NSNumber)?.doubleValue
+        // No automatic migration: a raised critical threshold may have been the
+        // user's colour choice rather than an automation setting, and moving it
+        // would silently change their icon colours.
+        self.autoLowPowerThreshold = Self.clampedAutoLowPowerThreshold(
+            storedAutoThreshold ?? Self.defaultAutoLowPowerThreshold
+        )
+        self.batteryCriticalThreshold = clampedCritical
         self.batteryFullThreshold = Self.clampedBatteryFullThreshold(
             storedFullThreshold ?? Self.defaultBatteryFullThreshold
         )
@@ -1855,6 +1905,9 @@ final class SettingsStore: ObservableObject {
         ) as? Bool ?? true
         self.controlsLowPowerMode = defaults.object(
             forKey: Self.controlsLowPowerModeDefaultsKey
+        ) as? Bool ?? false
+        self.autoEnablesLowPowerMode = defaults.object(
+            forKey: Self.autoEnablesLowPowerModeDefaultsKey
         ) as? Bool ?? false
         self.showsNearbyBluetoothBatteryDevices = defaults.object(
             forKey: Self.showsNearbyBluetoothBatteryDevicesDefaultsKey
@@ -2088,6 +2141,14 @@ final class SettingsStore: ObservableObject {
             bluetoothSymbolScaleRange.upperBound,
             max(bluetoothSymbolScaleRange.lowerBound, value)
         )
+    }
+
+    static func clampedAutoLowPowerThreshold(_ value: Double) -> Double {
+        guard value.isFinite else { return defaultAutoLowPowerThreshold }
+        return min(
+            autoLowPowerThresholdRange.upperBound,
+            max(autoLowPowerThresholdRange.lowerBound, value)
+        ).rounded()
     }
 
     static func clampedBatteryCriticalThreshold(_ value: Double) -> Double {

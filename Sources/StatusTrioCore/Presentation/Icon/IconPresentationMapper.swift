@@ -14,6 +14,7 @@ enum IconPresentationMapper {
         return IconSceneState(
             outerRing: batteryState(
                 inputs.snapshot.battery,
+                isHighPowerMode: inputs.isHighPowerMode,
                 options: configuration.battery,
                 closesRing: closesRing
             ),
@@ -27,16 +28,22 @@ enum IconPresentationMapper {
 
     private static func batteryState(
         _ battery: BatteryStatus,
+        isHighPowerMode: Bool,
         options: BatteryIconOptions,
         closesRing: Bool
     ) -> OuterRingState {
         let role = options.usesStatusColors
-            ? StatusMappings.batteryColorRole(battery, criticalThreshold: options.criticalThreshold)
+            ? StatusMappings.batteryColorRole(
+                battery,
+                criticalThreshold: options.criticalThreshold,
+                isHighPowerMode: isHighPowerMode
+            )
             : .foreground
         let color: IconColorRole = switch role {
         case .foreground: .primary
         case .critical: .critical
         case .lowPower: .lowPower
+        case .highPower: .highPower
         case .charging: .powered
         }
 

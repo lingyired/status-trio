@@ -735,3 +735,17 @@
 "settings.brightness.compatibility.title" = "Не регулируется яркость?";
 "settings.brightness.compatibility.description" = "Производители реализуют DDC по-разному, поэтому Status Trio не может поддерживать все модели. Если яркость дисплея здесь не регулируется, переключите его на бэкенд BetterDisplay — Status Trio будет управлять им через BetterDisplay. Бесплатной версии достаточно; лицензия Pro не нужна.";
 "settings.brightness.compatibility.link" = "Скачать BetterDisplay (бесплатно)";
+"settings.battery.colors.highPower" = "Режим высокой мощности";
+"battery.lowPowerMode.autoEnable" = "Автоматически включать режим низкого энергопотребления";
+"battery.lowPowerMode.autoEnableDescription" = "После отключения питания режим низкого энергопотребления включается автоматически, когда заряд аккумулятора опускается ниже порога низкого заряда. Один раз за цикл низкого заряда.";
+"settings.battery.autoLowPowerThreshold" = "Порог автоактивации";
+"settings.battery.autoLowPowerThresholdDescription" = "Режим низкого энергопотребления включается автоматически ниже этого уровня при работе от аккумулятора.";
+"battery.highPowerMode.toggle" = "Режим высокой мощности";
+"battery.highPowerMode.toggleDescription" = "Ускоряет вентиляторы для более высокой длительной производительности ценой большего шума.";
+"battery.highPowerMode.helperNeedsUpdate" = "Помощник питания необходимо обновить, прежде чем использовать режим высокой мощности.";
+"battery.highPowerMode.failure" = "Не удалось переключить режим высокой мощности. Повторите попытку.";
+"battery.powerMode.title" = "Режим питания";
+"battery.powerMode.automatic" = "Автоматический";
+"battery.powerMode.low" = "Низкое энергопотребление";
+"battery.powerMode.high" = "Высокая мощность";
+"battery.powerMode.highRequiresPower" = "Режим высокой мощности вступает в силу при подключённом адаптере питания.";

@@ -496,6 +496,55 @@ struct BatterySectionView: View {
                 .padding(.horizontal, SettingsMetrics.rowPaddingH)
                 .padding(.bottom, 6)
             }
+
+            // #246: the automation needs the helper-backed switch, so it stays
+            // visible only while the helper can run, and disabled until the
+            // user has turned the Low Power Mode control on.
+            if helper.isAvailable, HighPowerModeController.supportsCurrentPlatform,
+               statusStore.snapshot.battery.isPresent {
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "battery.25",
+                    tint: .green,
+                    title: localization.string(.lowPowerModeAutoEnable),
+                    subtitle: localization.string(.lowPowerModeAutoEnableDescription),
+                    isOn: $store.autoEnablesLowPowerMode
+                )
+                .disabled(!helper.isEnabled)
+
+                // Its own threshold, separate from the critical colour level:
+                // a 90% automation threshold must not paint the icon red at 90%.
+                if store.autoEnablesLowPowerMode {
+                    SettingsDivider()
+                    SettingsRow(
+                        "slider.horizontal.3",
+                        tint: .green,
+                        title: localization.string(.autoLowPowerThreshold),
+                        subtitle: localization.string(.autoLowPowerThresholdDescription)
+                    ) {
+                        HStack(spacing: 8) {
+                            Slider(
+                                value: Binding(
+                                    get: { store.autoLowPowerThreshold },
+                                    set: { store.autoLowPowerThreshold = $0.rounded() }
+                                ),
+                                in: SettingsStore.autoLowPowerThresholdRange
+                            )
+                            .frame(width: 130)
+                            .controlSize(.small)
+                            .accessibilityLabel(
+                                localization.string(.autoLowPowerThreshold)
+                            )
+                            .accessibilityValue("\(Int(store.autoLowPowerThreshold))%")
+
+                            Text("\(Int(store.autoLowPowerThreshold))%")
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 44, alignment: .trailing)
+                        }
+                    }
+                }
+            }
         }
     }
 

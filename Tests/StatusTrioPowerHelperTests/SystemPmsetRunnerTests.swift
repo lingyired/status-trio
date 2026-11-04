@@ -49,10 +49,11 @@ final class SystemPmsetRunnerTests: XCTestCase {
             try await runner.setLowPowerMode(enabled: false)
             XCTFail("a non-zero exit must fail")
         } catch {
-            guard case .nonZeroExit(let code) = error as? PmsetError else {
+            guard case let .nonZeroExit(code, message) = error as? PmsetError else {
                 return XCTFail("expected a non-zero exit, got \(error)")
             }
             XCTAssertEqual(code, 17)
+            XCTAssertEqual(message?.trimmingCharacters(in: .whitespacesAndNewlines), "nope")
         }
     }
 

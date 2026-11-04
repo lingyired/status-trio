@@ -735,3 +735,17 @@
 "settings.brightness.compatibility.title" = "明るさを調整できない場合";
 "settings.brightness.compatibility.description" = "ディスプレイメーカーごとに DDC の実装が異なるため、Status Trio はすべての機種に対応できません。ここで明るさを調整できないディスプレイは、BetterDisplay バックエンドに切り替えてください。Status Trio が BetterDisplay 経由で制御します。無料版で十分です。Pro ライセンスは不要です。";
 "settings.brightness.compatibility.link" = "BetterDisplay をダウンロード（無料）";
+"settings.battery.colors.highPower" = "高電力モード";
+"battery.lowPowerMode.autoEnable" = "低電力モードを自動でオン";
+"battery.lowPowerMode.autoEnableDescription" = "電源を外すと、バッテリー残量が低バッテリーしきい値を下回ったときに低電力モードが自動でオンになります。低バッテリーごとに 1 回だけです。";
+"settings.battery.autoLowPowerThreshold" = "自動オンのしきい値";
+"settings.battery.autoLowPowerThresholdDescription" = "バッテリー使用時に残量がこの値を下回ると低電力モードを自動でオンにします。";
+"battery.highPowerMode.toggle" = "高電力モード";
+"battery.highPowerMode.toggleDescription" = "ファンの回転数を上げて高い持続性能を引き出します。ファンの騒音は大きくなります。";
+"battery.highPowerMode.helperNeedsUpdate" = "高電力モードを使用するには、パワーヘルパーを更新する必要があります。";
+"battery.highPowerMode.failure" = "高電力モードを切り替えられませんでした。もう一度お試しください。";
+"battery.powerMode.title" = "電力モード";
+"battery.powerMode.automatic" = "自動";
+"battery.powerMode.low" = "低電力";
+"battery.powerMode.high" = "高電力";
+"battery.powerMode.highRequiresPower" = "高電力モードは電源アダプタを接続すると有効になります。";

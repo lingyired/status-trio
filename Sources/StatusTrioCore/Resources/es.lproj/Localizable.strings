@@ -735,3 +735,17 @@
 "settings.brightness.compatibility.title" = "¿No puedes controlar una pantalla?";
 "settings.brightness.compatibility.description" = "Cada fabricante implementa DDC a su manera, así que Status Trio no puede cubrir todos los modelos. Si el brillo de una pantalla no se puede ajustar aquí, cámbiala al backend BetterDisplay: Status Trio la controlará a través de BetterDisplay. La versión gratuita es suficiente; no hace falta una licencia Pro.";
 "settings.brightness.compatibility.link" = "Descargar BetterDisplay (gratis)";
+"settings.battery.colors.highPower" = "Modo de alto consumo";
+"battery.lowPowerMode.autoEnable" = "Activar automáticamente el modo de bajo consumo";
+"battery.lowPowerMode.autoEnableDescription" = "Al desconectar la alimentación, el modo de bajo consumo se activa automáticamente cuando la batería baja del umbral de batería baja. Una vez por ciclo de batería baja.";
+"settings.battery.autoLowPowerThreshold" = "Umbral de activación automática";
+"settings.battery.autoLowPowerThresholdDescription" = "El modo de bajo consumo se activa automáticamente por debajo de este nivel cuando usa la batería.";
+"battery.highPowerMode.toggle" = "Modo de alto consumo";
+"battery.highPowerMode.toggleDescription" = "Hace girar los ventiladores más rápido para lograr un rendimiento sostenido mayor, a costa de más ruido.";
+"battery.highPowerMode.helperNeedsUpdate" = "El asistente de energía debe actualizarse antes de poder usar el modo de alto consumo.";
+"battery.highPowerMode.failure" = "No se pudo cambiar el modo de alto consumo. Inténtalo de nuevo.";
+"battery.powerMode.title" = "Modo de energía";
+"battery.powerMode.automatic" = "Automático";
+"battery.powerMode.low" = "Bajo consumo";
+"battery.powerMode.high" = "Alto consumo";
+"battery.powerMode.highRequiresPower" = "El modo de alto consumo se aplica al conectar el adaptador de corriente.";

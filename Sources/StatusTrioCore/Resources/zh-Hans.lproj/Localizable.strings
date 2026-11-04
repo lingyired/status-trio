@@ -735,3 +735,17 @@
 "settings.brightness.compatibility.title" = "显示器调不了亮度？";
 "settings.brightness.compatibility.description" = "各家显示器的 DDC 实现并不统一，Status Trio 无法覆盖所有型号。如果某台显示器的亮度在这里调不了，可以把它切到 BetterDisplay 后端——Status Trio 会通过 BetterDisplay 来调节。免费版就够用，不需要购买 Pro。";
 "settings.brightness.compatibility.link" = "下载 BetterDisplay（免费）";
+"settings.battery.colors.highPower" = "高电量模式";
+"battery.lowPowerMode.autoEnable" = "自动开启低电量模式";
+"battery.lowPowerMode.autoEnableDescription" = "拔掉电源后，电量低于低电量阈值会自动开启低电量模式；每次低电只开一次。";
+"settings.battery.autoLowPowerThreshold" = "自动开启阈值";
+"settings.battery.autoLowPowerThresholdDescription" = "使用电池时，电量低于该值就自动开启低电量模式。";
+"battery.highPowerMode.toggle" = "高电量模式";
+"battery.highPowerMode.toggleDescription" = "提高风扇转速以获得更高的持续性能，风扇噪音会增加。";
+"battery.highPowerMode.helperNeedsUpdate" = "电源 helper 需要更新后才能使用高电量模式。";
+"battery.highPowerMode.failure" = "无法切换高电量模式，请稍后重试。";
+"battery.powerMode.title" = "能量模式";
+"battery.powerMode.automatic" = "自动";
+"battery.powerMode.low" = "低电量";
+"battery.powerMode.high" = "高电量";
+"battery.powerMode.highRequiresPower" = "高电量模式需要连接电源后才会生效。";

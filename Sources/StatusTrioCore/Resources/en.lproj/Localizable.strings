@@ -733,3 +733,17 @@
 "settings.brightness.compatibility.title" = "Can't control a display?";
 "settings.brightness.compatibility.description" = "Display vendors implement DDC differently, so Status Trio can't cover every model. If a display's brightness can't be adjusted here, switch it to the BetterDisplay backend — Status Trio will drive it through BetterDisplay. The free version is enough; no Pro license needed.";
 "settings.brightness.compatibility.link" = "Download BetterDisplay (free)";
+"settings.battery.colors.highPower" = "High Power Mode";
+"battery.lowPowerMode.autoEnable" = "Auto-enable Low Power Mode";
+"battery.lowPowerMode.autoEnableDescription" = "When unplugged, Low Power Mode turns on automatically once the battery drops below the low-battery threshold. Once per low-battery cycle.";
+"settings.battery.autoLowPowerThreshold" = "Auto-enable threshold";
+"settings.battery.autoLowPowerThresholdDescription" = "Low Power Mode turns on when the battery drops below this level on battery.";
+"battery.highPowerMode.toggle" = "High Power Mode";
+"battery.highPowerMode.toggleDescription" = "Runs the fans faster for higher sustained performance, at the cost of more fan noise.";
+"battery.highPowerMode.helperNeedsUpdate" = "The power helper needs updating before High Power Mode can be used.";
+"battery.highPowerMode.failure" = "Could not switch High Power Mode. Try again.";
+"battery.powerMode.title" = "Power Mode";
+"battery.powerMode.automatic" = "Automatic";
+"battery.powerMode.low" = "Low Power";
+"battery.powerMode.high" = "High Power";
+"battery.powerMode.highRequiresPower" = "High Power Mode takes effect when a power adapter is connected.";
