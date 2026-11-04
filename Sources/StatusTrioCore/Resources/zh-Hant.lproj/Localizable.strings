@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "目前輸入法";
 "settings.appIcon.middleIcon.batteryPercentage" = "電池百分比";
 "settings.appIcon.middleIcon.power" = "功耗（瓦）";
+"settings.appIcon.middleIcon.chargingStatus" = "充電狀態";
+"settings.appIcon.middleIcon.chargingStatus.description" = "放電時顯示電量百分比，充電時顯示閃電，連接電源時顯示插頭；頂部圓環保持閉合。";
 "settings.appIcon.middleIcon.size" = "中間圖示大小";
 "settings.appIcon.middleIcon.size.description" = "中間顯示的所有內容（Wi‑Fi、藍牙、輸入法、數字）共用這個大小。";
 "settings.appIcon.middleIcon.networkWarnings" = "優先顯示網路異常";
@@ -296,7 +298,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "顯示器無法使用";
 "settings.audio.externalVolume.refresh" = "重新偵測";
 "settings.audio.externalVolume.requirements" = "若連線失敗，請在 BetterDisplay 設定中啟用 CLI 存取和通知式整合。";
-"settings.audio.externalVolume.footnote" = "macOS 原生音量控制優先；無法使用原生控制時，才會使用所選方式。";
+"settings.audio.externalVolume.footnote" = "macOS 原生音量控制優先；無法使用原生控制時，才會使用所選方式。BetterDisplay 免費版即可，無需購買 Pro。";
 "settings.audio.externalVolume.noStableOutput" = "目前輸出沒有穩定的音訊 ID，因此無法為其設定 BetterDisplay。";
 "settings.audio.externalVolume.status.ready" = "已連接，可調節音量。";
 "settings.audio.externalVolume.status.idle" = "未連接。";
@@ -380,6 +382,9 @@
 "settings.panel.background.style.classicMaterial" = "經典材質";
 "settings.panel.background.style.solid" = "純色";
 "settings.panel.background.style.liquidGlassUnavailable" = "液態玻璃需要 macOS 26 或以上版本。";
+"settings.panel.openBehavior.title" = "開啟時的行為";
+"settings.panel.returnsToSummaryOnOpen" = "每次開啟都回到總覽頁面";
+"settings.panel.returnsToSummaryOnOpen.description" = "開啟後，每次打開狀態面板都從總覽頁面開始；關閉時會保留上次查看的詳細頁面。";
 "settings.popup.volumeScroll.group" = "面板滾動";
 "settings.popup.volumeScroll" = "捲動調節音量";
 "settings.popup.volumeScroll.description" = "在狀態面板內滾動即可調節輸出音量。";
@@ -670,9 +675,8 @@
 "brightness.unresponsive" = "沒有回應";
 "brightness.backend.directDDC" = "直接 DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "調整已連接顯示器的亮度。";
-"settings.brightness.backend" = "%@ 的亮度後端";
-
+"settings.brightness.description" = "關閉某台顯示器即從狀態面板中隱藏其亮度列。";
+"settings.brightness.backend" = "亮度後端";
 // About: community, author social links and more apps
 "settings.about.social.title" = "關注作者";
 "settings.about.social.douyin" = "抖音";
@@ -719,3 +723,14 @@
 "settings.menuBarRightClickAction.openBluetoothSettings" = "開啟藍牙設定";
 "settings.menuBarRightClickAction.openBatterySettings" = "開啟電池設定";
 "settings.menuBarRightClickAction.openSoundSettings" = "開啟聲音設定";
+
+"settings.tab.brightness" = "亮度";
+"settings.brightness.group.title" = "已連接的顯示器";
+"settings.brightness.empty" = "沒有已連接的顯示器。";
+"settings.brightness.builtIn" = "內建";
+"settings.brightness.internalBackend.description" = "內建顯示器的亮度使用 DisplayServices 後端。";
+"settings.brightness.externalBackend.description" = "選擇 Status Trio 控制此顯示器亮度的方式。";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay 未執行，或未開啟通知整合。";
+"settings.brightness.compatibility.title" = "顯示器調不了亮度？";
+"settings.brightness.compatibility.description" = "各家顯示器的 DDC 實作並不統一，Status Trio 無法涵蓋所有型號。如果某台顯示器的亮度在這裡調不了，可以把它切到 BetterDisplay 後端——Status Trio 會透過 BetterDisplay 來調節。免費版就夠用，不需要購買 Pro。";
+"settings.brightness.compatibility.link" = "下載 BetterDisplay（免費）";

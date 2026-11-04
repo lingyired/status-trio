@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "現在の入力ソース";
 "settings.appIcon.middleIcon.batteryPercentage" = "バッテリー残量";
 "settings.appIcon.middleIcon.power" = "消費電力（W）";
+"settings.appIcon.middleIcon.chargingStatus" = "充電状態";
+"settings.appIcon.middleIcon.chargingStatus.description" = "バッテリー駆動時は残量、充電中は稲妻、電源接続時はプラグを表示し、リングは閉じたままです。";
 "settings.appIcon.middleIcon.size" = "中央アイコンのサイズ";
 "settings.appIcon.middleIcon.size.description" = "中央に表示するすべての内容（Wi-Fi、Bluetooth、入力ソース、数字）で共通のサイズです。";
 "settings.appIcon.middleIcon.networkWarnings" = "ネットワークの問題を優先";
@@ -296,7 +298,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "利用できないディスプレイ";
 "settings.audio.externalVolume.refresh" = "再検出";
 "settings.audio.externalVolume.requirements" = "接続に失敗する場合は、BetterDisplay の設定で CLI アクセスと通知ベースの連携を有効にしてください。";
-"settings.audio.externalVolume.footnote" = "macOS のネイティブ音量制御が優先されます。ネイティブ制御を利用できない場合に、選択した方法を使用します。";
+"settings.audio.externalVolume.footnote" = "macOS のネイティブ音量制御が優先されます。ネイティブ制御を利用できない場合に、選択した方法を使用します。BetterDisplay は無料版で十分です。Pro ライセンスは不要です。";
 "settings.audio.externalVolume.noStableOutput" = "現在の出力には安定したオーディオ ID がないため、BetterDisplay を設定できません。";
 "settings.audio.externalVolume.status.ready" = "接続済みです。音量を調節できます。";
 "settings.audio.externalVolume.status.idle" = "未接続です。";
@@ -380,6 +382,9 @@
 "settings.panel.background.style.classicMaterial" = "クラシックマテリアル";
 "settings.panel.background.style.solid" = "単色";
 "settings.panel.background.style.liquidGlassUnavailable" = "リキッドグラスには macOS 26 以降が必要です。";
+"settings.panel.openBehavior.title" = "開くときの動作";
+"settings.panel.returnsToSummaryOnOpen" = "開くたびに常に概要ページへ戻る";
+"settings.panel.returnsToSummaryOnOpen.description" = "有効にすると、ステータスパネルは常に概要ページで開きます。無効の場合は、最後に表示していたページが保持されます。";
 "settings.popup.volumeScroll.group" = "パネルのスクロール";
 "settings.popup.volumeScroll" = "スクロールで音量を調整";
 "settings.popup.volumeScroll.description" = "ステータスパネル内をスクロールすると出力音量を変更できます。";
@@ -670,9 +675,8 @@
 "brightness.unresponsive" = "応答なし";
 "brightness.backend.directDDC" = "ダイレクト DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "接続されているディスプレイの明るさを調整します。";
-"settings.brightness.backend" = "%@ の明るさバックエンド";
-
+"settings.brightness.description" = "ディスプレイをオフにすると、その明るさの行が非表示になります。";
+"settings.brightness.backend" = "明るさバックエンド";
 // About: community, author social links and more apps
 "settings.about.social.title" = "作者をフォロー";
 "settings.about.social.douyin" = "Douyin";
@@ -719,3 +723,14 @@
 "settings.menuBarRightClickAction.openBluetoothSettings" = "Bluetooth 設定を開く";
 "settings.menuBarRightClickAction.openBatterySettings" = "バッテリー設定を開く";
 "settings.menuBarRightClickAction.openSoundSettings" = "サウンド設定を開く";
+
+"settings.tab.brightness" = "明るさ";
+"settings.brightness.group.title" = "接続中のディスプレイ";
+"settings.brightness.empty" = "接続されているディスプレイはありません。";
+"settings.brightness.builtIn" = "内蔵";
+"settings.brightness.internalBackend.description" = "内蔵ディスプレイの明るさは DisplayServices バックエンドを使用します。";
+"settings.brightness.externalBackend.description" = "このディスプレイの明るさを Status Trio が制御する方法を選択します。";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay が実行されていないか、通知連携がオフになっています。";
+"settings.brightness.compatibility.title" = "明るさを調整できない場合";
+"settings.brightness.compatibility.description" = "ディスプレイメーカーごとに DDC の実装が異なるため、Status Trio はすべての機種に対応できません。ここで明るさを調整できないディスプレイは、BetterDisplay バックエンドに切り替えてください。Status Trio が BetterDisplay 経由で制御します。無料版で十分です。Pro ライセンスは不要です。";
+"settings.brightness.compatibility.link" = "BetterDisplay をダウンロード（無料）";

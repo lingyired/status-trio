@@ -148,6 +148,9 @@ final class SettingsStore: ObservableObject {
     static let hiddenInputDeviceUIDsDefaultsKey = "hiddenInputDeviceUIDs"
     static let externalVolumeConfigurationsDefaultsKey = "externalVolumeConfigurations.v1"
     static let externalBrightnessConfigurationsDefaultsKey = "externalBrightnessConfigurations.v1"
+    /// Display IDs the user unchecked in the new Brightness settings tab. The
+    /// status panel's brightness section leaves those displays out.
+    static let hiddenBrightnessDisplayIDsDefaultsKey = "hiddenBrightnessDisplayIDs"
     static let popupSectionOrderDefaultsKey = "popupSectionOrder"
     static let enabledPopupSectionsDefaultsKey = "enabledPopupSections"
     /// Default order of the status-panel sections. Display brightness sits below
@@ -178,6 +181,10 @@ final class SettingsStore: ObservableObject {
     static let appIconPlacementDefaultsKey = "appIconPlacement"
     static let dockIconBackgroundPreferenceDefaultsKey = "dockIconBackgroundPreference"
     static let menuBarRightClickActionDefaultsKey = "menuBarRightClickAction.v1"
+
+    /// Issue #262: when on, reopening the status panel starts on the summary
+    /// page instead of the last-opened detail page.
+    static let returnsToSummaryOnOpenDefaultsKey = "returnsToSummaryOnOpen"
 
     @Published private(set) var sharesAnonymousAnalytics: Bool
     @Published private(set) var telemetryConsentVersion: Int
@@ -901,6 +908,17 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Display IDs the user unchecked in the Brightness settings tab. The
+    /// status panel's brightness section leaves those displays out entirely.
+    @Published private(set) var hiddenBrightnessDisplayIDs: Set<String> {
+        didSet {
+            defaults.set(
+                Array(hiddenBrightnessDisplayIDs),
+                forKey: Self.hiddenBrightnessDisplayIDsDefaultsKey
+            )
+        }
+    }
+
     @Published var showsBluetoothDeviceList: Bool {
         didSet {
             defaults.set(
@@ -1009,6 +1027,15 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 popupScrollAdjustsVolume,
                 forKey: Self.popupScrollAdjustsVolumeDefaultsKey
+            )
+        }
+    }
+
+    @Published var returnsToSummaryOnOpen: Bool {
+        didSet {
+            defaults.set(
+                returnsToSummaryOnOpen,
+                forKey: Self.returnsToSummaryOnOpenDefaultsKey
             )
         }
     }
@@ -1162,6 +1189,19 @@ final class SettingsStore: ObservableObject {
         }
         guard updated != externalBrightnessConfigurations else { return }
         externalBrightnessConfigurations = updated
+    }
+
+    func setBrightnessDisplayHidden(_ displayID: String, hidden: Bool) {
+        let displayID = displayID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !displayID.isEmpty else { return }
+        var updated = hiddenBrightnessDisplayIDs
+        if hidden {
+            updated.insert(displayID)
+        } else {
+            updated.remove(displayID)
+        }
+        guard updated != hiddenBrightnessDisplayIDs else { return }
+        hiddenBrightnessDisplayIDs = updated
     }
 
     func moveOutputDevices(
@@ -1619,6 +1659,9 @@ final class SettingsStore: ObservableObject {
         let storedHiddenInputDeviceUIDs = Set(
             defaults.stringArray(forKey: Self.hiddenInputDeviceUIDsDefaultsKey) ?? []
         )
+        let storedHiddenBrightnessDisplayIDs = Set(
+            defaults.stringArray(forKey: Self.hiddenBrightnessDisplayIDsDefaultsKey) ?? []
+        )
         let storedExternalVolumeConfigurations = Self.decodedExternalVolumeConfigurations(
             defaults.data(forKey: Self.externalVolumeConfigurationsDefaultsKey)
         )
@@ -1898,6 +1941,7 @@ final class SettingsStore: ObservableObject {
         self.hiddenOutputDeviceUIDs = storedHiddenOutputDeviceUIDs
         self.inputDeviceOrder = storedInputDeviceOrder
         self.hiddenInputDeviceUIDs = storedHiddenInputDeviceUIDs
+        self.hiddenBrightnessDisplayIDs = storedHiddenBrightnessDisplayIDs
         self.externalVolumeConfigurations = storedExternalVolumeConfigurations
         self.externalBrightnessConfigurations = storedExternalBrightnessConfigurations
         self.popupSectionOrder = Self.sanitizedPopupSectionOrder(
@@ -1927,6 +1971,9 @@ final class SettingsStore: ObservableObject {
         self.popupScrollAdjustsVolume = defaults.object(
             forKey: Self.popupScrollAdjustsVolumeDefaultsKey
         ) as? Bool ?? Self.defaultPopupScrollAdjustsVolume
+        self.returnsToSummaryOnOpen = defaults.object(
+            forKey: Self.returnsToSummaryOnOpenDefaultsKey
+        ) as? Bool ?? false
         self.popupVolumeScrollScope = storedPopupVolumeScrollScope
             .flatMap(PopupVolumeScrollScope.init(rawValue:))
             ?? Self.defaultPopupVolumeScrollScope

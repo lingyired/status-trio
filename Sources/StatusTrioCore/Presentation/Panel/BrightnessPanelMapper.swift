@@ -5,9 +5,12 @@ import Foundation
 enum BrightnessPanelMapper {
     static func map(
         _ status: BrightnessStatus,
-        localization: Localization
+        localization: Localization,
+        hiddenDisplayIDs: Set<String> = []
     ) -> BrightnessPanelState {
-        let rows = status.displays.map { display in
+        let rows = status.displays
+            .filter { !hiddenDisplayIDs.contains($0.id) }
+            .map { display in
             let percentageText = display.scalar.map(percentText) ?? ""
             let unavailableText = display.canAdjust
                 ? nil

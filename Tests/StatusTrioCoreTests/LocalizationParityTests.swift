@@ -111,6 +111,61 @@ final class LocalizationParityTests: XCTestCase {
         }
     }
 
+    func testBrightnessCompatibilityCopyIsTranslatedInEveryLanguage() throws {
+        let keys = [
+            "settings.tab.brightness",
+            "settings.brightness.group.title",
+            "settings.brightness.description",
+            "settings.brightness.empty",
+            "settings.brightness.builtIn",
+            "settings.brightness.internalBackend.description",
+            "settings.brightness.externalBackend.description",
+            "settings.brightness.backend.betterDisplayNeeded",
+            "settings.brightness.compatibility.title",
+            "settings.brightness.compatibility.description",
+            "settings.brightness.compatibility.link"
+        ]
+        XCTAssertEqual(keys.count, 11)
+
+        for language in AppLanguage.allCases {
+            let values = Dictionary(
+                uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) }
+            )
+            for key in keys {
+                XCTAssertFalse(
+                    (values[key] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    "\(language.rawValue).lproj: \(key) is missing or empty"
+                )
+            }
+        }
+    }
+
+    /// DDC brightness and volume through BetterDisplay are free features, so the
+    /// copy must say the free version is enough. Otherwise users read the
+    /// BetterDisplay pointer as "buy Pro".
+    func testBetterDisplayCopySaysTheFreeVersionIsEnough() throws {
+        let expectations: [(AppLanguage, String)] = [
+            (.english, "free"),
+            (.simplifiedChinese, "免费"),
+            (.traditionalChinese, "免費")
+        ]
+        for (language, marker) in expectations {
+            let values = Dictionary(
+                uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) }
+            )
+            for key in [
+                "settings.brightness.compatibility.description",
+                "settings.audio.externalVolume.footnote"
+            ] {
+                let value = (values[key] ?? "").lowercased()
+                XCTAssertTrue(
+                    value.contains(marker.lowercased()),
+                    "\(language.rawValue).lproj: \(key) must mention that the free version is enough"
+                )
+            }
+        }
+    }
+
     func testTelemetryConsentTranslationsArePresentInEveryLanguage() throws {
         let keys = [
             "settings.analytics.title",

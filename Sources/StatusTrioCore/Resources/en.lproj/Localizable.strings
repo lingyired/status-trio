@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "Current Input Source";
 "settings.appIcon.middleIcon.batteryPercentage" = "Battery Percentage";
 "settings.appIcon.middleIcon.power" = "Power (Watts)";
+"settings.appIcon.middleIcon.chargingStatus" = "Charging status";
+"settings.appIcon.middleIcon.chargingStatus.description" = "Shows the battery level while on battery, a bolt while charging, and a plug while connected to power; the ring stays closed.";
 "settings.appIcon.middleIcon.size" = "Middle Icon Size";
 "settings.appIcon.middleIcon.size.description" = "One size for every middle content: Wi-Fi, Bluetooth, input source, and numbers.";
 "settings.appIcon.middleIcon.networkWarnings" = "Show network problems instead";
@@ -295,7 +297,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "Unavailable Display";
 "settings.audio.externalVolume.refresh" = "Detect Again";
 "settings.audio.externalVolume.requirements" = "If the connection fails, enable CLI access and notification-based integration in BetterDisplay settings.";
-"settings.audio.externalVolume.footnote" = "Native macOS volume control takes priority. The selected method is used when native control is unavailable.";
+"settings.audio.externalVolume.footnote" = "Native macOS volume control takes priority. The selected method is used when native control is unavailable. The free BetterDisplay version is enough; no Pro license needed.";
 "settings.audio.externalVolume.noStableOutput" = "The current output has no stable audio ID, so BetterDisplay cannot be configured for it.";
 "settings.audio.externalVolume.status.ready" = "Connected. Volume control is available.";
 "settings.audio.externalVolume.status.idle" = "Not connected.";
@@ -379,6 +381,9 @@
 "settings.panel.background.style.classicMaterial" = "Classic Material";
 "settings.panel.background.style.solid" = "Solid Color";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requires macOS 26 or later.";
+"settings.panel.openBehavior.title" = "Opening Behavior";
+"settings.panel.returnsToSummaryOnOpen" = "Always Start on the Summary Page";
+"settings.panel.returnsToSummaryOnOpen.description" = "When enabled, the status panel always opens on the summary page; otherwise it remembers the last page you viewed.";
 "settings.popup.volumeScroll.group" = "Panel Scrolling";
 "settings.popup.volumeScroll" = "Adjust Volume by Scrolling";
 "settings.popup.volumeScroll.description" = "Scroll inside the status panel to change the output volume.";
@@ -668,9 +673,8 @@
 "brightness.unresponsive" = "Not responding";
 "brightness.backend.directDDC" = "Direct DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Adjust the brightness of connected displays.";
-"settings.brightness.backend" = "Brightness backend for %@";
-
+"settings.brightness.description" = "Turn a display off to hide its brightness row.";
+"settings.brightness.backend" = "Brightness Backend";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Follow the Author";
 "settings.about.social.douyin" = "Douyin";
@@ -717,3 +721,14 @@
 "settings.menuBarRightClickAction.openBluetoothSettings" = "Open Bluetooth settings";
 "settings.menuBarRightClickAction.openBatterySettings" = "Open Battery settings";
 "settings.menuBarRightClickAction.openSoundSettings" = "Open Sound settings";
+
+"settings.tab.brightness" = "Brightness";
+"settings.brightness.group.title" = "Connected Displays";
+"settings.brightness.empty" = "No displays are connected.";
+"settings.brightness.builtIn" = "Built-in";
+"settings.brightness.internalBackend.description" = "Built-in display brightness uses the DisplayServices backend.";
+"settings.brightness.externalBackend.description" = "Choose how Status Trio controls this display's brightness.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay isn't running or its notification integration is off.";
+"settings.brightness.compatibility.title" = "Can't control a display?";
+"settings.brightness.compatibility.description" = "Display vendors implement DDC differently, so Status Trio can't cover every model. If a display's brightness can't be adjusted here, switch it to the BetterDisplay backend — Status Trio will drive it through BetterDisplay. The free version is enough; no Pro license needed.";
+"settings.brightness.compatibility.link" = "Download BetterDisplay (free)";

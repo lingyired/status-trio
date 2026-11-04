@@ -219,12 +219,22 @@ described by the other source.
 The XML form is asked for rather than the plain-text one, because the text form
 prints an accessory it cannot resolve with an empty name — the Mac this was
 written on shows its AirPods as `- (id=…) 97%` — and the name is one of the two
-things a reading is joined to a device by. `Vendor ID`/`Product ID` are the
-identity when both sides carry the pair, so a rename cannot re-join a reading to
-whichever device now happens to share its wording. The name is the fallback for a
-report entry that carries no pair, and that comparison is exact rather than a
-substring match, which would join an accessory to any device whose name happens
-to contain it.
+things a reading is joined to a device by. `Vendor ID`/`Product ID` identify a
+model when both sides carry the pair, so a rename does not change that model
+match. They do not prove a physical device's identity. The name is the fallback
+when either side lacks the pair, and that comparison is exact rather than a
+substring match.
+
+Accessory readings are grouped by a nonempty `Accessory Identifier`. Ownership
+checks include all paired devices, including disconnected devices: first collect
+every device any record could match, require exactly one possible owner, then
+require every record in the group to match that owner. A matching part cannot
+vouch for another part with conflicting metadata. Only connected devices receive
+fallback levels. Missing identifiers are ignored; if multiple identifiers cannot
+all be attributed unambiguously, the entire fallback round is rejected. This
+conservative rule is not a UUID-to-Bluetooth-address mapping. Real AirPods
+L/R/Case samples are still needed to establish whether their parts share this
+identifier; do not substitute `Group Identifier` without that evidence.
 
 A reading is written to the channel its part names, and a part never writes the
 device-wide level: `Part Identifier = Left` fills `left`, and only a reading with
@@ -242,6 +252,16 @@ unless the second source actually supplied a level, so a report that failed
 outright is never quietly replaced by a partial answer.
 
 ## Levels refresh on the system's own notifications
+
+Every monitored connection event immediately clears battery levels and advances
+the connection generation, before checking the debounce latch. A device read
+captures this generation when it starts; battery reads, including repeated warm
+claims, resume only after a device snapshot from the current generation arrives.
+An older profiler completion can settle the existing read latch but cannot
+restore battery reads. Bursts still share the existing debounced device refresh;
+no additional polling or concurrent profiler process is introduced. Because a
+connection notification carries no address, other devices can briefly lose their
+battery display while the fresh snapshot is pending.
 
 The safety-net poll stays, and is still deliberately slow, but a level that changes
 is now re-read within a few seconds. While a surface is showing levels the

@@ -138,6 +138,7 @@ final class BluetoothAccessoryBatteryEventTests: XCTestCase {
     func testTheSecondSourceFillsADeviceTheReportHasNoLevelFor() async {
         let accessoryReader = StubAccessoryBatteryReader(levels: [
             BluetoothAccessoryBatteryLevel(
+                identifier: "E0CA918B-FC5E-C942-B6C3-23F27810A34F",
                 name: "机灵的耳机",
                 vendorID: 76,
                 productID: 8207,
@@ -169,6 +170,7 @@ final class BluetoothAccessoryBatteryEventTests: XCTestCase {
     func testAReportThatCoversEveryDeviceDoesNotReadTheSecondSource() async {
         let accessoryReader = StubAccessoryBatteryReader(levels: [
             BluetoothAccessoryBatteryLevel(
+                identifier: "E0CA918B-FC5E-C942-B6C3-23F27810A34F",
                 name: "机灵的耳机",
                 vendorID: 76,
                 productID: 8207,
@@ -234,6 +236,7 @@ final class BluetoothAccessoryBatteryEventTests: XCTestCase {
             batteryReader: StubBatteryReader(levels: nil),
             accessoryBatteryReader: StubAccessoryBatteryReader(levels: [
                 BluetoothAccessoryBatteryLevel(
+                    identifier: "E0CA918B-FC5E-C942-B6C3-23F27810A34F",
                     name: "机灵的耳机",
                     vendorID: 76,
                     productID: 8207,

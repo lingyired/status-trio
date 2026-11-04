@@ -1236,6 +1236,37 @@ final class SettingsStoreTests: XCTestCase {
         )
     }
 
+    func testHiddenBrightnessDisplaysPersistAndToggleBack() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        XCTAssertTrue(store.hiddenBrightnessDisplayIDs.isEmpty)
+
+        store.setBrightnessDisplayHidden("display-a", hidden: true)
+        store.setBrightnessDisplayHidden("display-b", hidden: true)
+        XCTAssertEqual(store.hiddenBrightnessDisplayIDs, ["display-a", "display-b"])
+
+        let reloaded = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(
+            reloaded.hiddenBrightnessDisplayIDs,
+            ["display-a", "display-b"],
+            "the hidden set survives a relaunch, including temporarily absent displays"
+        )
+
+        reloaded.setBrightnessDisplayHidden("display-a", hidden: false)
+        XCTAssertEqual(reloaded.hiddenBrightnessDisplayIDs, ["display-b"])
+    }
+
+    func testHidingAnUnknownBrightnessDisplayIsANoOp() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let store = SettingsStore(defaults: suite.defaults)
+        store.setBrightnessDisplayHidden("   ", hidden: true)
+        XCTAssertTrue(store.hiddenBrightnessDisplayIDs.isEmpty)
+    }
+
     func testShowingAHiddenOutputDeviceAgainKeepsItsPlace() {
         let suite = makeSuite()
         defer { clear(suite) }

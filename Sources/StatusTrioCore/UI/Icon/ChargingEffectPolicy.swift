@@ -99,17 +99,23 @@ enum ChargingEffectPolicy {
             ) - head
         ) < 1e-9
 
-        let boltScale: Double
-        let boltArcColorAmount: Double
-        if hasTopGap {
-            let gapStart = StatusIconGeometry.lastVisibleProgress(
+        // The top gap occupies the progress range [topGapStart, topGapEnd]
+        // (the two are symmetric around 0.5). Both the bolt-pulse transition and
+        // the tail clamp below refer to these bounds.
+        let topGapStart = hasTopGap
+            ? StatusIconGeometry.lastVisibleProgress(
                 forProgress: 0.5,
                 hasTopGap: true,
                 topGapWidth: topGapWidth
             )
-            let gapEnd = 1 - gapStart
-            if endpoint >= gapEnd, head > gapStart, head < gapEnd {
-                let pulse = boltGapPulse(at: (head - gapStart) / (gapEnd - gapStart))
+            : 0
+        let topGapEnd = hasTopGap ? 1 - topGapStart : 0
+
+        let boltScale: Double
+        let boltArcColorAmount: Double
+        if hasTopGap {
+            if endpoint >= topGapEnd, head > topGapStart, head < topGapEnd {
+                let pulse = boltGapPulse(at: (head - topGapStart) / (topGapEnd - topGapStart))
                 boltScale = 1 + 0.2 * pulse
                 boltArcColorAmount = pulse
             } else {
@@ -126,15 +132,23 @@ enum ChargingEffectPolicy {
             tailRatio * visibleArcLength,
             maximumTailToFillRatio * visibleFill
         )
+        // The tail must only ever draw the visible side the head currently
+        // sits on. When the head has advanced past the top gap, the unwrapped
+        // tail range would reach back across the gap into the left arc; that
+        // left sliver lingers as a flickering residue (#254). Clamp the tail to
+        // the head's own visible side so it never spans the gap, and hide it
+        // entirely while the head is inside the gap.
         let tailRange: ClosedRange<Double>?
-        if visibleFill >= minimumTailFill, head > 0, tailLength > 0 {
+        if visibleFill >= minimumTailFill, head > 0, tailLength > 0,
+           !hasTopGap || head <= topGapStart || head >= topGapEnd {
             let visibleHead = StatusIconGeometry.visibleFraction(
                 forProgress: head,
                 hasTopGap: hasTopGap,
                 topGapWidth: topGapWidth
             )
+            let visibleTailStart = max(0, visibleHead - tailLength)
             let tailStart = StatusIconGeometry.progress(
-                forVisibleFraction: max(0, visibleHead - tailLength),
+                forVisibleFraction: visibleTailStart,
                 hasTopGap: hasTopGap,
                 topGapWidth: topGapWidth
             )
@@ -143,7 +157,12 @@ enum ChargingEffectPolicy {
                 hasTopGap: hasTopGap,
                 topGapWidth: topGapWidth
             )
-            tailRange = tailStart...tailEnd
+            let sideStart = hasTopGap && head >= topGapEnd
+                ? max(tailStart, topGapEnd) : tailStart
+            // At the gap's exact right edge the inverse visible mapping selects
+            // its left edge. No right-side tail has grown yet; never construct
+            // a descending ClosedRange at this boundary.
+            tailRange = tailEnd > sideStart ? sideStart...tailEnd : nil
         } else {
             tailRange = nil
         }
