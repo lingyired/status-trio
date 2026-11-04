@@ -168,3 +168,11 @@ public final class SMLegacyChargeLimitWriteReply: NSObject, NSSecureCoding {
         withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
     )
 }
+/// One exported object that carries both the existing Low Power Mode surface
+/// and the legacy charge-limit surface. NSXPC allows a single exported
+/// interface per connection, so the combined protocol is what the daemon
+/// exports; clients that only need Low Power Mode may keep using
+/// `PowerHelperXPCProtocol`.
+@objc public protocol PowerHelperCombinedXPCProtocol:
+    PowerHelperXPCProtocol,
+    LegacyChargeLimitXPCProtocol {}

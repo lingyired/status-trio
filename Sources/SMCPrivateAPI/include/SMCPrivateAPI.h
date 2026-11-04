@@ -40,6 +40,13 @@ void STSMClose(void);
 /* Reads a key. Returns true when the key exists and was read. */
 bool STSMReadKey(const char *key, STSMReadResult *out);
 
+/* Reads a key into a caller buffer. Returns true and sets `outSize` when the
+ * key exists and fits; the caller compares `outSize` with the expected width. */
+bool STSMReadKeyCopy(const char *key,
+                     uint8_t *outBytes,
+                     uint32_t capacity,
+                     uint32_t *outSize);
+
 /* Writes bytes to an allowlisted key. Returns true when the write returned OK.
  * The caller must still perform a readback to verify. Non-allowlisted keys are
  * rejected (false) without touching the SMC. */

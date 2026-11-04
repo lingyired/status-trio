@@ -9,7 +9,19 @@ import PowerHelperProtocol
 // daemon owns its own lifetime: the monitor ends the process once the app's
 // connections are gone instead of leaving a root daemon behind.
 let idleExit = IdleExitMonitor()
-let delegate = ListenerDelegate(service: PowerModeService(), idleExit: idleExit)
+
+// Durable ownership record lives in a root-owned directory so a crash or a
+// failed write cannot lose the stock charge value. The directory is created by
+// the helper itself; the app never writes here.
+let journalDirectory = URL(fileURLWithPath: "/Library/Application Support/StatusTrio", isDirectory: true)
+let legacyService = LegacyChargeLimitService(
+    executor: IOKitLegacySMCExecutor(),
+    journal: FileLegacyChargeLimitJournal(directory: journalDirectory),
+    battery: SystemLegacyBatteryProvider(),
+    hardware: LegacyHelperEnvironment.facts()
+)
+let service = PowerHelperService(lowPowerMode: PowerModeService(), legacy: legacyService)
+let delegate = ListenerDelegate(service: service, legacy: legacyService, idleExit: idleExit)
 let listener = NSXPCListener(machServiceName: PowerHelperConstants.machServiceName)
 listener.delegate = delegate
 // Authoritative client gate: Foundation evaluates this against the peer's audit

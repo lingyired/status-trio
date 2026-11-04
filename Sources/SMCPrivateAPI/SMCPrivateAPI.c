@@ -192,3 +192,21 @@ bool STSMWriteKeyAllowlisted(const char *key, const uint8_t *bytes, uint32_t siz
     }
     return output.result == 0;
 }
+bool STSMReadKeyCopy(const char *key,
+                     uint8_t *outBytes,
+                     uint32_t capacity,
+                     uint32_t *outSize) {
+    if (key == NULL || outBytes == NULL || outSize == NULL || capacity == 0) {
+        return false;
+    }
+    STSMReadResult result;
+    if (!STSMReadKey(key, &result) || !result.ok) {
+        return false;
+    }
+    if (result.bytesRead > capacity) {
+        return false;
+    }
+    memcpy(outBytes, result.bytes, result.bytesRead);
+    *outSize = result.bytesRead;
+    return true;
+}
