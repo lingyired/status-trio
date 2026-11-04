@@ -160,7 +160,7 @@
 "settings.about.starOnGitHub" = "Aggiungi una stella su GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Visualizzazione batteria";
-"settings.battery.group.icon" = "Icona batteria";
+"settings.battery.group.icon" = "Arco superiore della batteria";
 "settings.battery.group.colors" = "Stato e colori";
 "settings.battery.group.chargingEffects" = "Effetti di ricarica";
 "settings.battery.group.charging" = "Ricarica";

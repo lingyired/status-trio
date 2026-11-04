@@ -160,7 +160,7 @@
 "settings.about.starOnGitHub" = "GitHub에서 별표 주기";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "배터리 표시";
-"settings.battery.group.icon" = "배터리 아이콘";
+"settings.battery.group.icon" = "상단 배터리 호";
 "settings.battery.group.colors" = "상태 및 색상";
 "settings.battery.group.chargingEffects" = "충전 효과";
 "settings.battery.group.charging" = "충전";

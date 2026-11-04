@@ -160,7 +160,7 @@
 "settings.about.starOnGitHub" = "在 GitHub 上標星";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "電池顯示";
-"settings.battery.group.icon" = "電池圖示";
+"settings.battery.group.icon" = "頂部電池圓弧";
 "settings.battery.group.colors" = "狀態與顏色";
 "settings.battery.group.chargingEffects" = "充電效果";
 "settings.battery.group.charging" = "充電";

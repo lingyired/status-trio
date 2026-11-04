@@ -7,6 +7,7 @@ struct BatterySectionView: View {
     @Binding var previewIsDark: Bool
     var chargeToFullNow: ChargeToFullNowController? = nil
     @EnvironmentObject private var localization: Localization
+    @Environment(\.settingsScrollProxy) private var scrollProxy
     @ObservedObject private var helper: PrivilegedHelperManager = .shared
 
 
@@ -21,19 +22,74 @@ struct BatterySectionView: View {
             if !statusStore.snapshot.battery.isPresent {
                 noBatteryNoticeGroup
             }
+            sectionNavigation
             iconGroup
+                .id(BatterySectionAnchor.icon.rawValue)
             colorsGroup
+                .id(BatterySectionAnchor.colors.rawValue)
             chargingEffectsGroup
+                .id(BatterySectionAnchor.chargingEffects.rawValue)
             chargingGroup
+                .id(BatterySectionAnchor.charging.rawValue)
             if helper.isAvailable {
                 powerModesGroup
+                    .id(BatterySectionAnchor.powerModes.rawValue)
             }
             powerFlowGroup
+                .id(BatterySectionAnchor.power.rawValue)
+        }
+    }
+
+    /// Quick jumps to each group: the page is long, and a row of labels is
+    /// faster than scrolling for the one setting a user came for.
+    private var sectionNavigation: some View {
+        SettingsGroup {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(BatterySectionAnchor.allCases) { anchor in
+                        Button {
+                            scrollProxy?.scrollTo(anchor.rawValue, anchor: .top)
+                        } label: {
+                            Text(localization.string(anchor.titleKey))
+                                .font(.caption)
+                                .lineLimit(1)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.secondary.opacity(0.12), in: Capsule())
+                    }
+                }
+                .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                .padding(.vertical, 8)
+            }
         }
     }
 
     /// A Mac without a battery reports 100 as its level; spell that out at the
     /// top of the page so nobody reads the placeholder as a real reading.
+    private enum BatterySectionAnchor: String, CaseIterable, Identifiable {
+        case icon
+        case colors
+        case chargingEffects
+        case charging
+        case powerModes
+        case power
+
+        var id: String { rawValue }
+
+        var titleKey: LocalizationKey {
+            switch self {
+            case .icon: .settingsBatteryGroupIcon
+            case .colors: .settingsBatteryGroupColors
+            case .chargingEffects: .settingsBatteryGroupChargingEffects
+            case .charging: .settingsBatteryGroupCharging
+            case .powerModes: .settingsBatteryGroupPowerModes
+            case .power: .settingsBatteryGroupPower
+            }
+        }
+    }
+
     private var noBatteryNoticeGroup: some View {
         SettingsGroup {
             SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryNotice))

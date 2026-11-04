@@ -160,7 +160,7 @@
 "settings.about.starOnGitHub" = "GitHub でスターを付ける";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "バッテリー表示";
-"settings.battery.group.icon" = "バッテリーアイコン";
+"settings.battery.group.icon" = "上部バッテリーアーク";
 "settings.battery.group.colors" = "状態と色";
 "settings.battery.group.chargingEffects" = "充電エフェクト";
 "settings.battery.group.charging" = "充電";

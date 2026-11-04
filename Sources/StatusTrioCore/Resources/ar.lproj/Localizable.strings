@@ -143,7 +143,7 @@
 "settings.about.starOnGitHub" = "نجمة على GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "عرض البطارية";
-"settings.battery.group.icon" = "رمز البطارية";
+"settings.battery.group.icon" = "قوس البطارية العلوي";
 "settings.battery.group.colors" = "الحالة والألوان";
 "settings.battery.group.chargingEffects" = "تأثيرات الشحن";
 "settings.battery.group.charging" = "الشحن";
