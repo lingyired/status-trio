@@ -668,7 +668,7 @@
 "airPods.lessNoise" = "更少噪声";
 "airPods.moreNoise" = "更多噪声";
 "airPods.adaptiveUnavailable" = "暂无法通过蓝牙调整自适应音频。";
-"airPods.spatial" = "空间音频";
+"airPods.spatial" = "空间化立体声";
 "airPods.conversation" = "对话感知";
 "airPods.routeChanged" = "所选 AirPods 已更改或断开连接。请重新打开当前输出设备的控制。";
 "airPods.unconfirmed" = "macOS 未确认更改。请刷新以读取实际设置。";

@@ -668,7 +668,7 @@
 "airPods.lessNoise" = "Меньше шума";
 "airPods.moreNoise" = "Больше шума";
 "airPods.adaptiveUnavailable" = "Настройка адаптивного аудио по Bluetooth недоступна.";
-"airPods.spatial" = "Пространственное аудио";
+"airPods.spatial" = "Сделать стерео пространственным";
 "airPods.conversation" = "Распознавание разговора";
 "airPods.routeChanged" = "Выбранные AirPods изменились или отключились. Откройте управление текущим выходом заново.";
 "airPods.unconfirmed" = "macOS не подтвердила изменение. Обновите, чтобы прочитать фактическую настройку.";

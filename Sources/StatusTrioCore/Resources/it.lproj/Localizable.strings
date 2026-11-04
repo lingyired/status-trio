@@ -668,7 +668,7 @@
 "airPods.lessNoise" = "Meno rumore";
 "airPods.moreNoise" = "Più rumore";
 "airPods.adaptiveUnavailable" = "La regolazione adattiva tramite Bluetooth non è disponibile.";
-"airPods.spatial" = "Audio spaziale";
+"airPods.spatial" = "Simula audio spaziale";
 "airPods.conversation" = "Rilevamento conversazione";
 "airPods.routeChanged" = "Gli AirPods selezionati sono cambiati o disconnessi. Riapri i controlli per l’uscita corrente.";
 "airPods.unconfirmed" = "macOS non ha confermato la modifica. Aggiorna per leggere l’impostazione effettiva.";

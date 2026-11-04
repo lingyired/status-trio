@@ -668,7 +668,7 @@
 "airPods.lessNoise" = "ضوضاء أقل";
 "airPods.moreNoise" = "ضوضاء أكثر";
 "airPods.adaptiveUnavailable" = "ضبط الصوت التكيفي عبر Bluetooth غير متاح.";
-"airPods.spatial" = "الصوت المكاني";
+"airPods.spatial" = "جعل الاستريو مكانيًا";
 "airPods.conversation" = "إدراك المحادثة";
 "airPods.routeChanged" = "تغيرت سماعات AirPods المحددة أو انقطع اتصالها. أعد فتح عناصر تحكم الإخراج الحالي.";
 "airPods.unconfirmed" = "لم يؤكد macOS التغيير. حدّث لقراءة الإعداد الفعلي.";

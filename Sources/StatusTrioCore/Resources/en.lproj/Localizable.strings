@@ -667,7 +667,7 @@
 "airPods.lessNoise" = "Less Noise";
 "airPods.moreNoise" = "More Noise";
 "airPods.adaptiveUnavailable" = "Adaptive adjustment is unavailable over Bluetooth.";
-"airPods.spatial" = "Spatial Audio";
+"airPods.spatial" = "Spatialize Stereo";
 "airPods.conversation" = "Conversation Awareness";
 "airPods.routeChanged" = "The selected AirPods changed or disconnected. Reopen controls for the current output.";
 "airPods.unconfirmed" = "macOS did not confirm the change. Refresh to read the actual setting.";
