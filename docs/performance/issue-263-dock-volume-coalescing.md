@@ -7,9 +7,10 @@ continuously, the **Dock** repaints at a bounded rate and merges changes that
 are too small to see. The panel and the menu bar keep their existing realtime
 feedback, and the final value always lands exactly.
 
-This is **not** a CPU-measurement result. No `sample`/Activity Monitor sampling
-exists for the volume-adjustment path yet, so this document makes no claim about
-measured CPU improvement. The Dock is also **not** confirmed to be the hotspot.
+This change is a bounded-rate safeguard on the Dock path. Real runtime sampling
+now exists; see the **Runtime sampling (2026-11-04)** section below for what it
+found on this machine. The Dock is **not** confirmed to be the hotspot — and on
+the sampled machine it was **not** a hotspot.
 
 ## Code evidence checked before changing anything
 
@@ -54,4 +55,29 @@ bar path and the panel path are untouched.
 
 - Focused: `bash scripts/test.sh 'DockVolumeRenderCoalescerTests|AppIconControllerTests|Issue30WiFiAlignmentTests|IconSurfaceIntegrationTests|PresentationArchitectureTests'`.
 - Delivery: `bash scripts/verify-local.sh full` on the final tree.
-- Runtime CPU improvement: **NOT RUN** — no sampling was performed.
+
+## Runtime sampling (2026-11-04)
+
+Real `sample` capture of the running build while continuously dragging the
+volume slider on this machine (arm64, macOS 27.2). The app was the worktree's
+development bundle (`com.lingsmbp.StatusTrio.dev.fix-issue-263-volume-cpu`),
+Dock tile visible, default `.dots` volume style. A 12 s capture while the user
+dragged the slider in the panel.
+
+Result:
+
+- **No Dock repaint hotspot.** No `DockIconRenderer`/`DockIcon` samples appear in
+  the drag window. Discrete `.dots` + `removeDuplicates` + the Dock cache mean a
+  continuous drag does not re-raster the Dock.
+- **Menu bar icon is not a hotspot.** `StatusIconRenderer` samples are sporadic
+  and tiny (≤ ~8 samples).
+- The visible busy frames are the **panel sliding control itself**: AppKit
+  `layoutIfNeeded`/`_layoutViewTree` (≈140 samples) and SwiftUI
+  `DisplayList.ViewUpdater` updates; the main thread otherwise sits in the event
+  loop. `SystemStatusStore.setVolume` is called at drag cadence but a single
+  CoreAudio write is cheap.
+- Net: on **this** machine and configuration, dragging volume does not produce a
+  standout CPU spike in StatusTrio. The change is therefore a defensive
+  bound-rate guard; any residual high CPU on the reporter's machine is more
+  likely the panel layout / SwiftUI, a `.arc` continuous configuration, or a
+  BetterDisplay / DDC volume write path, which this change does not touch.
