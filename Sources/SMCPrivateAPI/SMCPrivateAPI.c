@@ -54,10 +54,17 @@ bool STSMIsWriteAllowlisted(const char *key) {
         || strcmp(key, "CH0C") == 0 || strcmp(key, "CHTE") == 0;
 }
 
+/* SMC type names are four bytes; the fourth is a space for three-character
+ * names ("ui8 "), but some firmware encodes it as NUL. Accept exactly those
+ * two spellings and nothing else. */
+static bool typeIs(const char *type, const char *name) {
+    return memcmp(type, name, 3) == 0 && (type[3] == ' ' || type[3] == '\0');
+}
+
 bool STSMValidateChargeKeyInfo(const char *key, const char *type, uint32_t size) {
     if (!STSMIsWriteAllowlisted(key) || type == NULL) return false;
     if (strcmp(key, "CHTE") == 0) return size == 4 && memcmp(type, "ui32", 4) == 0;
-    return size == 1 && memcmp(type, "ui8 ", 4) == 0;
+    return size == 1 && typeIs(type, "ui8");
 }
 
 bool STSMValidateChargeWrite(const char *key, const uint8_t *bytes, uint32_t size) {

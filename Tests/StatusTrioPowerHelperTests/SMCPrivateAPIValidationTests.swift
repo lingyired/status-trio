@@ -26,6 +26,10 @@ final class SMCPrivateAPIValidationTests: XCTestCase {
         XCTAssertFalse(STSMValidateChargeKeyInfo("CH0B", "ui32", 1))
         XCTAssertFalse(STSMValidateChargeKeyInfo("CHTE", "ui32", 1))
         XCTAssertFalse(STSMValidateChargeKeyInfo("BCLM", "flt ", 1))
+        // Some firmware writes the trailing pad as NUL rather than a space.
+        XCTAssertTrue(STSMValidateChargeKeyInfo("BCLM", "ui8\0", 1))
+        XCTAssertFalse(STSMValidateChargeKeyInfo("BCLM", "ui8x", 1))
+        XCTAssertFalse(STSMValidateChargeKeyInfo("BCLM", "ui16", 1))
     }
 
     func testWriteValuesAreClosedToChargeCeilingsAndTheTwoGateValues() {

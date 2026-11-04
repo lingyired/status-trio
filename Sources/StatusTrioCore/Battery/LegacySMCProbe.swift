@@ -24,6 +24,11 @@ struct LegacySMCProbe {
         LegacySMCKeys.siliconCHTE: "ui32",
     ]
 
+    /// SMC type names are four bytes padded with a space or NUL.
+    private static func normalizedType(_ raw: String) -> String {
+        String(raw.replacingOccurrences(of: "\0", with: " ").trimmingCharacters(in: .whitespaces))
+    }
+
     static func probe(
         smc: SMCAccessing,
         architecture: LegacyRuntimeArchitecture,
@@ -36,7 +41,7 @@ struct LegacySMCProbe {
         for (key, expectedType) in recognizedKeys {
             let expectedSize = key == LegacySMCKeys.siliconCHTE ? 4 : 1
             guard let value = smc.readKey(key),
-                  value.info.dataType == expectedType || value.info.dataType == expectedType + " ",
+                  Self.normalizedType(value.info.dataType) == expectedType,
                   value.info.dataSize == expectedSize,
                   value.data.count == expectedSize else { continue }
             let bytes = Array(value.data)
