@@ -82,10 +82,57 @@ enum ListeningModePreview {
             return AudioOutputDevice(
                 id: endpoint,
                 name: name,
+                uid: previewUID(for: id),
                 isCurrent: true,
                 volume: volume,
-                transport: .bluetooth
+                transport: .bluetooth,
+                modelUID: previewModelUID
             )
         }
     }
+
+    /// The synthetic UID keeps the preview row recognisable to the inline-control
+    /// gate without pretending to be a real CoreAudio endpoint.
+    static func previewUID(for id: String) -> String {
+        "\(id):output"
+    }
+
+    static func isSyntheticPreviewUID(_ uid: String?) -> Bool {
+        uid?.hasPrefix(BluetoothListeningModeController.previewAddressPrefix) == true
+    }
+
+    /// An AirPods Pro 2 (USB-C) product/vendor pair, so the preview row draws the
+    /// AirPods Pro glyph and passes the real model gate.
+    static let previewModelUID = "2024 4c"
+
+    /// Synthetic inline-control data so Settings > Bluetooth > preview can exercise
+    /// the whole AirPods disclosure without hardware. It never reaches CoreAudio or
+    /// a Bluetooth channel; the row renders these values and mutates them locally.
+    static var systemControlSnapshot: AirPodsSystemSnapshot {
+        AirPodsSystemSnapshot(
+            conversation: [
+                AirPodsSystemOption(title: conversationOnTitle, selected: true, symbol: "person.open.fill"),
+                AirPodsSystemOption(title: conversationOffTitle, selected: false, symbol: "person.closed.fill")
+            ],
+            spatial: [
+                AirPodsSystemOption(title: spatialOffTitle, selected: false, symbol: "person.spatialaudio.stereo.fill", dimWaves: true),
+                AirPodsSystemOption(title: spatialFixedTitle, selected: false, symbol: "person.spatialaudio.stereo.fill"),
+                AirPodsSystemOption(title: spatialHeadTrackedTitle, selected: true, symbol: "spatialize-stereo-head-tracked")
+            ],
+            adaptive: 65,
+            loaded: true,
+            conversationLoaded: true,
+            spatialLoaded: true,
+            supportsSpatial: true,
+            supportsConversation: true
+        )
+    }
+
+    // Literal row titles only back the preview fixture; the real controls take
+    // their titles from `Localization` so the fixture stays language-independent.
+    private static let conversationOnTitle = "On"
+    private static let conversationOffTitle = "Off"
+    private static let spatialOffTitle = "Off"
+    private static let spatialFixedTitle = "Fixed"
+    private static let spatialHeadTrackedTitle = "Head Tracked"
 }

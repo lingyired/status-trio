@@ -85,6 +85,9 @@ final class AirPodsSystemControlsModel: ObservableObject {
     private let conversationCache: AirPodsConversationCache?
     private var conversationGeneration: Int = 0
     private let controls: AirPodsSystemControls
+    /// Non-nil in the Settings > Bluetooth preview: reads settle to this fixture
+    /// and writes mutate the local snapshot, so no hardware or helper is touched.
+    private let previewSnapshot: AirPodsSystemSnapshot?
     private var task: Task<Void, Never>?
     private let deviceID: PanelAudioDeviceID
     private let listenerBackend: any BluetoothListeningModePropertyListening
@@ -108,20 +111,29 @@ final class AirPodsSystemControlsModel: ObservableObject {
     init(deviceID: PanelAudioDeviceID, deviceName: String, snapshot: AirPodsSystemSnapshot = .init(),
          listenerBackend: any BluetoothListeningModePropertyListening = CoreAudioBluetoothListeningModeListenerBackend(),
          spatialReader: (@MainActor () throws -> [AirPodsSystemOption])? = nil,
-         conversationCache: AirPodsConversationCache? = nil) {
+         conversationCache: AirPodsConversationCache? = nil,
+         preview: AirPodsSystemSnapshot? = nil) {
         self.conversationCache = conversationCache
         self.conversationGeneration = conversationCache?.generation ?? 0
         self.deviceID = deviceID
         self.listenerBackend = listenerBackend
         self.spatialReader = spatialReader
-        self.snapshot = snapshot
+        self.previewSnapshot = preview
+        self.snapshot = preview ?? snapshot
         controls = AirPodsSystemControls(target: deviceID, name: deviceName)
         if let conversationCache {
             self.snapshot.conversation = conversationCache.options(for: deviceID)
         }
     }
 
+    private var isPreview: Bool { previewSnapshot != nil }
+
     func start(read: Reader? = nil) {
+        if previewSnapshot != nil {
+            // Preview owns no observation and no hardware channel.
+            snapshot = previewSnapshot ?? snapshot
+            return
+        }
         guard observation == nil else { return }
         if let conversationCache {
             conversationGeneration = conversationCache.generation
@@ -173,6 +185,10 @@ final class AirPodsSystemControlsModel: ObservableObject {
     typealias Reader = (@escaping @MainActor (AirPodsSystemSnapshot) -> Void) async throws -> AirPodsSystemSnapshot
 
     func refresh(read: Reader? = nil) {
+        if previewSnapshot != nil {
+            snapshot = previewSnapshot ?? snapshot
+            return
+        }
         run(.refresh) {
             let revision = self.spatialRevision
             let publish: @MainActor (AirPodsSystemSnapshot) -> Void = { [weak self] snapshot in
@@ -200,6 +216,18 @@ final class AirPodsSystemControlsModel: ObservableObject {
     }
 
     func select(_ title: String, group: AirPodsSystemControls.Group) {
+        if isPreview {
+            // Preview: move the selection locally; never open a channel or call
+            // the helper. The row still shows busy/selected transitions.
+            switch group {
+            case .conversation:
+                snapshot.conversation = selecting(title, in: snapshot.conversation)
+                cacheConversation(snapshot.conversation)
+            case .spatial:
+                snapshot.spatial = selecting(title, in: snapshot.spatial)
+            }
+            return
+        }
         if group == .spatial {
             writeSpatial { try await self.controls.select(title, group: .spatial) }
             return
@@ -249,7 +277,23 @@ final class AirPodsSystemControlsModel: ObservableObject {
     }
 
     func setAdaptive(_ value: Int) {
+        if isPreview {
+            snapshot.adaptive = value
+            return
+        }
         run(.adaptive) { self.snapshot.adaptive = try await self.controls.setAdaptive(value) }
+    }
+
+    private func selecting(_ title: String, in options: [AirPodsSystemOption]) -> [AirPodsSystemOption] {
+        options.map { option in
+            AirPodsSystemOption(
+                title: option.title,
+                selected: option.title == title,
+                mode: option.mode,
+                symbol: option.symbol,
+                dimWaves: option.dimWaves
+            )
+        }
     }
 
     private func cacheConversation(_ options: [AirPodsSystemOption]) {

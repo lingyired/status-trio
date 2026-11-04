@@ -14,11 +14,11 @@ struct OutputDeviceRow: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 selectionButton
-                if state.supportsAirPodsSystemControls && !state.isPreview {
+                if state.supportsAirPodsSystemControls {
                     Button {
                         expanded.toggle()
                         if expanded && controls == nil {
-                            controls = AirPodsSystemControlsModel(deviceID: state.key, deviceName: state.name, conversationCache: conversationCache)
+                            controls = makeControls()
                         }
                         if !expanded { controls?.stop() }
                     } label: {
@@ -51,6 +51,15 @@ struct OutputDeviceRow: View {
         .onChange(of: state.supportsAirPodsSystemControls) { supported in
             if !supported { resetControls() }
         }
+    }
+
+    private func makeControls() -> AirPodsSystemControlsModel {
+        AirPodsSystemControlsModel(
+            deviceID: state.key,
+            deviceName: state.name,
+            conversationCache: state.isPreview ? nil : conversationCache,
+            preview: state.isPreview ? ListeningModePreview.systemControlSnapshot : nil
+        )
     }
 
     private func resetControls() {
