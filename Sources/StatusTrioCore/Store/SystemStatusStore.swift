@@ -169,6 +169,11 @@ final class SystemStatusStore: ObservableObject {
     nonisolated(unsafe) private var displaySleepObserver: NSObjectProtocol?
     nonisolated(unsafe) private var displayWakeObserver: NSObjectProtocol?
     private var lastPublishedSnapshot: StatusSnapshot?
+    /// Optimistic display brightness while the backend confirms the write.
+    private var pendingBrightnessScalars: [String: Double] = [:]
+    /// Optimistic input gain while the input monitor confirms the write.
+    private var pendingInputScalar: Double?
+    private var pendingInputDeviceID: AudioDeviceID?
     private var hasStarted = false
     private var hasStopped = false
     @Published private(set) var isPopoverVisible = false
@@ -179,6 +184,7 @@ final class SystemStatusStore: ObservableObject {
     /// because no menu bar or Dock tile is on screen to keep fresh.
     @Published private(set) var isDisplayAsleep = false
     private var isSettingsVisible = false
+    private var isBrightnessSettingsVisible = false
     private var isBluetoothMonitoringSuspendedForPower = false
     private weak var boundBluetoothSettings: SettingsStore?
     private var hasBluetoothSettingsBinding = false
@@ -559,7 +565,7 @@ final class SystemStatusStore: ObservableObject {
         }
         let previousScalar = liveVolume.scalar
         liveVolume = liveVolume.replacingScalar(min(1, max(0, scalar)))
-        publish(snapshot.replacingVolume(liveVolume))
+        publish(snapshot.replacingVolume(liveVolume), immediately: true)
         volumeController?.setVolume(liveVolume.scalar ?? 0)
 
         // The system plays its own feedback only for the volume changes it
@@ -580,7 +586,7 @@ final class SystemStatusStore: ObservableObject {
             return
         }
         liveVolume = liveVolume.replacingMuted(!liveVolume.isMuted)
-        publish(snapshot.replacingVolume(liveVolume))
+        publish(snapshot.replacingVolume(liveVolume), immediately: true)
         volumeController?.toggleMute()
     }
 
@@ -676,6 +682,14 @@ final class SystemStatusStore: ObservableObject {
         guard bluetoothDevices.authorization == .allowed else { return }
         guard await bluetoothPower.setPower(enabled), !hasStopped else { return }
         isBluetoothMonitoringSuspendedForPower = !enabled
+        if !enabled {
+            // The radio is now off and monitoring is suspended, so no new read
+            // will overwrite the cached rows. Drop them (and the stale connected
+            // markers they carry) before the demand reconciliation clears the
+            // in-memory devices, so the panel never draws last-known devices as
+            // if they were live while the radio shows powered off.
+            bluetoothDevices.clearCachedDevicesForPowerOff()
+        }
         reconcileBluetoothDemand()
     }
 
@@ -1011,12 +1025,24 @@ final class SystemStatusStore: ObservableObject {
     func setSettingsVisible(_ visible: Bool) {
         guard !hasStopped, isSettingsVisible != visible else { return }
         isSettingsVisible = visible
+        // Closing the window hides the Brightness tab without necessarily
+        // running its `onDisappear`, so clear the demand here too.
+        if !visible { isBrightnessSettingsVisible = false }
         updateDetailsVisibility()
         inputMonitor?.setDeviceListVisible(visible)
 
         if visible {
             refreshAll()
         }
+    }
+
+    /// The brightness settings tab is on screen. Reading brightness is
+    /// demand-gated, so the monitor should stay alive while the user is on the
+    /// tab, but not while they browse other tabs.
+    func setBrightnessSettingsVisible(_ visible: Bool) {
+        guard !hasStopped, isBrightnessSettingsVisible != visible else { return }
+        isBrightnessSettingsVisible = visible
+        updateBrightnessDetailsVisibility()
     }
 
     func activateWiFiPanel() {
@@ -1149,8 +1175,9 @@ final class SystemStatusStore: ObservableObject {
     }
 
     private var needsBrightnessDetails: Bool {
-        isPopoverVisible
-            && bluetoothSettingsSnapshot.enabledPopupSections.contains(.brightness)
+        (isPopoverVisible
+            && bluetoothSettingsSnapshot.enabledPopupSections.contains(.brightness))
+            || isBrightnessSettingsVisible
     }
 
     private func updateBrightnessDetailsVisibility() {
@@ -1383,6 +1410,20 @@ final class SystemStatusStore: ObservableObject {
     func setInputScalar(_ value: Double, requestID: UUID = UUID()) {
         guard !hasStopped else { return }
         inputMonitor?.setScalar(value, requestID: requestID)
+        // Follow the slider/wheel immediately instead of waiting for the gain
+        // read-back; the read-back reconciles below.
+        guard value.isFinite, liveInput.canSetVolume else { return }
+        let clamped = min(1, max(0, value))
+        pendingInputScalar = clamped
+        pendingInputDeviceID = liveInput.defaultDeviceID
+        var optimistic = liveInput
+        optimistic.scalar = clamped
+        liveInput = optimistic
+    }
+
+    private func clearPendingInputScalar() {
+        pendingInputScalar = nil
+        pendingInputDeviceID = nil
     }
 
     func toggleInputMute() {
@@ -1396,6 +1437,7 @@ final class SystemStatusStore: ObservableObject {
         guard hasStarted else { return }
 
         isInputEnabled = enabled
+        if !enabled { clearPendingInputScalar() }
         inputMonitor?.setEnabled(enabled)
         // The monitor keeps the two surfaces separate: the popover owns the
         // 1 Hz usage poll, while Settings only keeps the device inventory live.
@@ -1405,6 +1447,22 @@ final class SystemStatusStore: ObservableObject {
 
     private func applyInput(_ value: AudioInputStatus) {
         guard !hasStopped, isInputEnabled else { return }
+        if let pending = pendingInputScalar {
+            if value.defaultDeviceID != pendingInputDeviceID
+                || !value.canSetVolume
+                || value.scalar == nil {
+                clearPendingInputScalar()
+            } else if let incoming = value.scalar, abs(incoming - pending) <= 0.02 {
+                clearPendingInputScalar()
+            } else {
+                // A read-back queued before the write must not undo the gain the
+                // user is currently scrolling.
+                var reconciled = value
+                reconciled.scalar = pending
+                liveInput = reconciled
+                return
+            }
+        }
         liveInput = value
     }
 
@@ -1485,15 +1543,60 @@ final class SystemStatusStore: ObservableObject {
     }
 
     private func applyBrightness(_ value: BrightnessStatus) {
-        if value != liveBrightness {
-            liveBrightness = value
+        let reconciled = reconcilePendingBrightness(value)
+        if reconciled != liveBrightness {
+            liveBrightness = reconciled
         }
-        publish(snapshot.replacingBrightness(value))
+        publish(snapshot.replacingBrightness(reconciled))
+    }
+
+    /// Applies the optimistic scalar the user just produced until the monitor
+    /// confirms it. A stale read-back (queued before the write) must not drag
+    /// the panel back to the old value.
+    private func reconcilePendingBrightness(_ value: BrightnessStatus) -> BrightnessStatus {
+        guard !pendingBrightnessScalars.isEmpty else { return value }
+        let displayIDs = Set(value.displays.map(\.id))
+        pendingBrightnessScalars = pendingBrightnessScalars.filter { displayIDs.contains($0.key) }
+        guard !pendingBrightnessScalars.isEmpty else { return value }
+
+        var displays = value.displays
+        for index in displays.indices {
+            let display = displays[index]
+            guard let pending = pendingBrightnessScalars[display.id] else { continue }
+            guard display.canAdjust, let incoming = display.scalar else {
+                // The backend reported the display as unreadable/unavailable:
+                // drop the optimistic value so the failure is visible.
+                pendingBrightnessScalars.removeValue(forKey: display.id)
+                continue
+            }
+            if abs(incoming - pending) <= 0.02 {
+                pendingBrightnessScalars.removeValue(forKey: display.id)
+            } else {
+                displays[index] = display.replacingScalar(pending)
+            }
+        }
+        return BrightnessStatus(
+            displays: displays,
+            transitionGeneration: value.transitionGeneration
+        )
     }
 
     func setBrightness(_ scalar: Double, forDisplayID displayID: String) {
         guard !hasStopped, scalar.isFinite, !displayID.isEmpty else { return }
-        brightnessMonitor.setBrightness(min(1, max(0, scalar)), forDisplayID: displayID)
+        let clamped = min(1, max(0, scalar))
+        pendingBrightnessScalars[displayID] = clamped
+        // Publish the target immediately so the panel follows the wheel/drag
+        // instead of waiting for the DDC read-back.
+        if let index = liveBrightness.displays.firstIndex(where: { $0.id == displayID }) {
+            var displays = liveBrightness.displays
+            displays[index] = displays[index].replacingScalar(clamped)
+            liveBrightness = BrightnessStatus(
+                displays: displays,
+                transitionGeneration: liveBrightness.transitionGeneration
+            )
+            publish(snapshot.replacingBrightness(liveBrightness), immediately: true)
+        }
+        brightnessMonitor.setBrightness(clamped, forDisplayID: displayID)
     }
 
     func finishBrightnessAdjustment(displayID: String) {
@@ -1525,11 +1628,24 @@ final class SystemStatusStore: ObservableObject {
         )
     }
 
-    private func publish(_ next: StatusSnapshot) {
-        guard !hasStopped, next != lastPublishedSnapshot else { return }
-        lastPublishedSnapshot = next
-        snapshot = next
-        schedulePopupSnapshot(next)
+    private func publish(_ next: StatusSnapshot, immediately: Bool = false) {
+        guard !hasStopped else { return }
+        let changed = next != lastPublishedSnapshot
+        if changed {
+            lastPublishedSnapshot = next
+            snapshot = next
+        }
+        guard immediately else {
+            if changed { schedulePopupSnapshot(next) }
+            return
+        }
+        // Interactive writes (wheel/drag) must not wait for the popup debounce:
+        // a burst of wheel events keeps cancelling it, so the panel only updated
+        // after the gesture stopped.
+        guard isPopoverVisible else { return }
+        popupPublishTask?.cancel()
+        popupPublishTask = nil
+        if popupSnapshot != next { applyPopupSnapshot(next) }
     }
 
     private func schedulePopupSnapshot(_ next: StatusSnapshot) {

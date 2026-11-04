@@ -34,6 +34,22 @@ final class StatusPanelContentTests: XCTestCase {
         XCTAssertEqual(reported.first, host.view.fittingSize)
     }
 
+
+    /// Issue #259: a hosting controller that has been replaced must stop driving
+    /// the panel, even if it finishes a delayed layout pass afterwards.
+    func testAReplacedHostIsNoLongerTheCurrentContent() {
+        let panel = AnchoredStatusPanel()
+        let first = StatusPanelHostingController(rootView: FixedContent())
+        let second = StatusPanelHostingController(rootView: FixedContent())
+
+        panel.installContent(first, backgroundStyle: .solid)
+        XCTAssertTrue(panel.isCurrentContentHost(first))
+
+        panel.installContent(second, backgroundStyle: .solid)
+        XCTAssertFalse(panel.isCurrentContentHost(first), "a replaced host must not drive the panel")
+        XCTAssertTrue(panel.isCurrentContentHost(second))
+    }
+
     func testWrapperReportsTheSameIntrinsicSize() {
         let host = StatusPanelHostingController(rootView: FixedContent())
         let wrapper = StatusPanelContentViewController(hostingController: host, backgroundStyle: .solid)

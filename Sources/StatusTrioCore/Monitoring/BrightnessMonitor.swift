@@ -262,7 +262,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
             case .betterDisplay: desiredKind = .betterDisplay
             }
             let desiredBDBUUID = configuration.backend == .betterDisplay
-                ? (configuration.betterDisplayUUID ?? descriptor.id)
+                ? (configuration.betterDisplayUUID ?? Self.resolvedBetterDisplayUUID(for: descriptor))
                 : nil
 
             if var existing = updated[descriptor.id],
@@ -295,6 +295,20 @@ final class BrightnessMonitor: BrightnessMonitoring {
             return ExternalBrightnessConfiguration(backend: .displayServices, betterDisplayUUID: nil)
         }
         return configurations[descriptor.id] ?? .default
+    }
+
+    /// The BetterDisplay device UUID for a display. Built-in displays already
+    /// key `descriptor.id` on the CG UUID BetterDisplay addresses them by. For
+    /// external displays `descriptor.id` is the EDID/DDC UUID, which
+    /// BetterDisplay does not accept, so derive the CG UUID they use.
+    static func resolvedBetterDisplayUUID(
+        for descriptor: DisplayDescriptor,
+        cgUUID: (UInt32) -> String = LiveDisplayCatalog.displayUUIDString
+    ) -> String {
+        if descriptor.isBuiltin { return descriptor.id }
+        let uuid = cgUUID(descriptor.displayID)
+        // Fall back to the descriptor id only when CG has no UUID for it.
+        return uuid.hasPrefix("display-") ? descriptor.id : uuid
     }
 
     private func makeEntry(

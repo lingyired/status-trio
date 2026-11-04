@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "Source de saisie actuelle";
 "settings.appIcon.middleIcon.batteryPercentage" = "Pourcentage de batterie";
 "settings.appIcon.middleIcon.power" = "Puissance (watts)";
+"settings.appIcon.middleIcon.chargingStatus" = "État de charge";
+"settings.appIcon.middleIcon.chargingStatus.description" = "Affiche le niveau de batterie sur batterie, un éclair en charge et une prise sur secteur ; l'anneau reste fermé.";
 "settings.appIcon.middleIcon.size" = "Taille de l’icône centrale";
 "settings.appIcon.middleIcon.size.description" = "Une seule taille pour tout le contenu central : Wi-Fi, Bluetooth, source de saisie et nombres.";
 "settings.appIcon.middleIcon.networkWarnings" = "Prioriser les problèmes réseau";
@@ -296,7 +298,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "Écran indisponible";
 "settings.audio.externalVolume.refresh" = "Détecter à nouveau";
 "settings.audio.externalVolume.requirements" = "Si la connexion échoue, activez l’accès à la CLI et l’intégration par notifications dans les réglages de BetterDisplay.";
-"settings.audio.externalVolume.footnote" = "Le contrôle de volume natif de macOS est prioritaire. La méthode sélectionnée est utilisée lorsque le contrôle natif n’est pas disponible.";
+"settings.audio.externalVolume.footnote" = "Le contrôle de volume natif de macOS est prioritaire. La méthode sélectionnée est utilisée lorsque le contrôle natif n’est pas disponible. La version gratuite de BetterDisplay suffit ; aucune licence Pro n’est nécessaire.";
 "settings.audio.externalVolume.noStableOutput" = "La sortie actuelle n’a pas d’identifiant audio stable ; BetterDisplay ne peut donc pas être configuré pour elle.";
 "settings.audio.externalVolume.status.ready" = "Connecté. Le contrôle du volume est disponible.";
 "settings.audio.externalVolume.status.idle" = "Non connecté.";
@@ -380,20 +382,24 @@
 "settings.panel.background.style.classicMaterial" = "Matériau classique";
 "settings.panel.background.style.solid" = "Couleur unie";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass nécessite macOS 26 ou ultérieur.";
+"settings.panel.openBehavior.title" = "Comportement à l’ouverture";
+"settings.panel.returnsToSummaryOnOpen" = "Toujours s’ouvrir sur la page de résumé";
+"settings.panel.returnsToSummaryOnOpen.description" = "Lorsque cette option est activée, le panneau d’état s’ouvre toujours sur la page de résumé ; sinon, il conserve la dernière page consultée.";
 "settings.popup.volumeScroll.group" = "Défilement du panneau";
-"settings.popup.volumeScroll" = "Régler le volume en défilant";
-"settings.popup.volumeScroll.description" = "Faites défiler dans le panneau d’état pour changer le volume de sortie.";
+"settings.audio.volumeScroll.group" = "Défilement du volume";
+"settings.popup.volumeScroll" = "Ajuster par défilement";
+"settings.popup.volumeScroll.description" = "Faites défiler dans le panneau d’état pour changer le volume de sortie. Sur un curseur, le défilement ajuste ce curseur (volume, luminosité ou gain d’entrée).";
 "settings.popup.volumeScroll.scope" = "Zone";
-"settings.popup.volumeScroll.scope.description" = "Choisissez la zone où le défilement modifie le volume.";
+"settings.popup.volumeScroll.scope.description" = "Choisissez si le défilement sur les zones vides du panneau ajuste le volume de sortie.";
 "settings.popup.volumeScroll.scope.panel" = "Tout le panneau";
-"settings.popup.volumeScroll.scope.volumeControl" = "Réglage du volume uniquement";
+"settings.popup.volumeScroll.scope.volumeControl" = "Curseurs uniquement";
 "settings.popup.volumeScroll.natural" = "Défilement naturel";
-"settings.popup.volumeScroll.natural.description" = "Lorsque cette option est activée, un défilement vers le haut avec la souris ou le trackpad augmente le volume. Sinon, le volume suit le sens de défilement du système. Si, après avoir activé cette option, le défilement vers le haut de la souris fait encore baisser le volume, configurez MOS, Scroll Reverser, LinearMouse ou une app similaire pour laisser Status Trio inchangé, généralement via une liste d’exceptions/d’ignorés (parfois appelée liste d’autorisation).";
+"settings.popup.volumeScroll.natural.description" = "Lorsque cette option est activée, faire défiler vers le haut augmente la valeur sous le pointeur (volume, luminosité ou gain d’entrée) ; sinon, le défilement suit la direction du système. Si la valeur baisse encore en défilant vers le haut après avoir activé cette option, excluez Status Trio dans MOS, Scroll Reverser, LinearMouse ou une app similaire, généralement via une liste d’exceptions/d’ignorés.";
 "settings.audio.volumeFeedbackTitle" = "Retour sonore du volume";
 "settings.audio.volumeFeedback" = "Émettre un son lors du réglage du volume par défilement";
 "settings.audio.volumeFeedbackDescription" = "Émet le son lorsque vous réglez le volume par défilement. Par défaut, suit le réglage macOS « émettre un retour sonore lors du changement de volume » ; ce commutateur ne s’applique qu’à Status Trio.";
 "settings.popup.volumeScroll.direction" = "Sens du défilement";
-"settings.popup.volumeScroll.direction.description" = "Choisissez le sens qui augmente le volume.";
+"settings.popup.volumeScroll.direction.description" = "S’applique aux curseurs de volume, de luminosité et d’entrée.";
 "settings.popup.volumeScroll.direction.up" = "Vers le haut";
 "settings.popup.volumeScroll.direction.down" = "Vers le bas";
 
@@ -664,14 +670,14 @@
 "brightness.row.accessibility" = "Luminosité de %@, %@";
 "brightness.row.accessibilityUnavailable" = "Luminosité de %@, %@";
 "brightness.unavailable" = "Indisponible";
+"brightness.action.openSettings" = "Ouvrir les réglages de l’écran";
 "brightness.appAbsent" = "Nécessite BetterDisplay";
 "brightness.noBackend" = "Aucun contrôle de luminosité";
 "brightness.unresponsive" = "Ne répond pas";
 "brightness.backend.directDDC" = "DDC direct";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Réglez la luminosité des écrans connectés.";
-"settings.brightness.backend" = "Backend de luminosité pour %@";
-
+"settings.brightness.description" = "Désactivez un écran pour masquer sa ligne de luminosité.";
+"settings.brightness.backend" = "Backend de luminosité";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Suivre l’auteur";
 "settings.about.social.douyin" = "Douyin";
@@ -738,3 +744,14 @@
 "settings.battery.chargeLimit.restoreScopeHint" = "Utilisé uniquement lorsqu'aucune limite de charge gérée n'est sélectionnée.";
 "settings.battery.restoreLimitManagedLocked" = "« Limite de charge » contrôle la limite de charge ; ce seuil de restauration ne peut donc pas être modifié. Choisissez « Gestion par le système » pour le modifier.";
 "settings.battery.chargeLimit.preferSystemOptimization" = "Préférez l'optimisation de la batterie intégrée à macOS. Elle gère généralement mieux la charge qu'une limite fixe ; n'utilisez cette option que si vous avez besoin d'une limite fixe.";
+
+"settings.tab.brightness" = "Luminosité";
+"settings.brightness.group.title" = "Écrans connectés";
+"settings.brightness.empty" = "Aucun écran connecté.";
+"settings.brightness.builtIn" = "Intégré";
+"settings.brightness.internalBackend.description" = "La luminosité de l’écran intégré utilise le backend DisplayServices.";
+"settings.brightness.externalBackend.description" = "Choisissez comment Status Trio contrôle la luminosité de cet écran.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay n’est pas lancé ou son intégration de notifications est désactivée.";
+"settings.brightness.compatibility.title" = "Luminosité non contrôlable ?";
+"settings.brightness.compatibility.description" = "Chaque fabricant implémente DDC différemment : Status Trio ne peut pas couvrir tous les modèles. Si la luminosité d’un écran n’est pas réglable ici, passez-le au backend BetterDisplay — Status Trio le pilotera alors via BetterDisplay. La version gratuite suffit ; aucune licence Pro n’est nécessaire.";
+"settings.brightness.compatibility.link" = "Télécharger BetterDisplay (gratuit)";

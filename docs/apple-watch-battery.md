@@ -25,6 +25,90 @@ reading can remain until its observation expires. Same-named classic Bluetooth
 rows are not assumed to be the same device as helper UDIDs and remain separate
 when no stable mapping exists.
 
+## Why a Watch row may be missing
+
+Discovery has no Bluetooth route of its own. A Watch is read only through its
+paired iPhone's companion service, so all of the following are prerequisites:
+
+1. The iPhone must appear in the helper's `--list` output. That list contains
+   only devices reachable over USB or an already configured Wi-Fi sync route; a
+   Bluetooth-only pairing never appears, so its Watch cannot be discovered.
+2. The iPhone must be trusted by this Mac. An untrusted route produces a
+   `trustRequired` candidate with no model and no Watch candidates, and it is
+   never shown as an Apple device row.
+3. The iPhone must be unlocked and reachable long enough for the companion
+   service to answer. If the companion client or its device registry fails, the
+   helper still returns the iPhone candidate with **no Watch candidates**. The
+   helper's discovery output only reports `trust-required`,
+   `host-identity-missing`, and `session-unavailable` failures; a failed
+   companion client is silent, so the app cannot tell "no paired Watch" apart
+   from "companion unavailable". An empty companion result is therefore logged
+   as `companion-empty-or-unavailable`, not as a specific failure.
+4. Discovery probes at most eight iPhone routes and keeps whole phone groups
+   against an eight-candidate budget. The first group may contain nine entries
+   (one phone plus eight Watches); later groups that would exceed the budget are
+   omitted. Selection follows phone-ID order, so completion timing cannot change
+   which group survives. A Watch is only dropped together with its own iPhone.
+   A cycle runs at most eight routes × two transports = 16 `--discover-device`
+   invocations, plus one `--list` invocation (17 helper processes total).
+   Discovery runs only while the controller is enabled and has active claims
+   from its owning surfaces or background refresh; releasing demand cancels it.
+   The reader logs one identifier-free summary per cycle — listed phones,
+   completed scheduled phone groups (`probedPhones`, not a process count),
+   discovered/retained candidates, dropped groups, and dropped Watch candidates —
+   so a group the cap removed stays visible in diagnostics. The summary counts
+   identities, not transport observations: each phone group is deduplicated by
+   `AppleDeviceID` before counting, so a phone reported on both USB and network
+   with one Watch is `discovered=2`, not three route rows. `retainedCandidates`
+   is the number of candidates actually returned, and `droppedWatchCandidates`
+   counts distinct Watch identities in the groups the budget omitted.
+5. The Watch row must be verified: `trustRequired == false`, the candidate
+   carries the iPhone route's `.usb`/`.network` transport, and the evidence is an
+   Apple Watch model or the trusted companion route. The helper never sets
+   `.bluetooth` on these candidates; `isVerifiedTrustedAppleDevice` rejects any
+   candidate without a trusted transport, so a helper that ever emitted
+   `.bluetooth` for a Watch would hide that row.
+6. A read needs the parent iPhone to still appear in `--list` in the same cycle.
+   If the iPhone dropped between discovery and reading, that Watch read is
+   skipped silently for the cycle.
+7. `--read-watch` can fail while the Watch is off the wrist, locked, or out of
+   range. An initial Watch observation gets at most three retries at one-minute
+   intervals, then it follows the regular refresh cadence.
+
+Each Watch read keeps one five-second execution budget across the parent's
+available transports. Before each attempt the reader divides the current
+remaining time by the number of routes still available: with USB and network,
+USB initially receives at most about 2.5 seconds and network gets the remaining
+time if USB fails. A single route gets the whole remaining budget. Cancellation
+is checked before starting another route. Process termination/cleanup can add
+wall-clock overhead; this is not a promise of a five-second wall-clock bound.
+The shorter first-route budget still needs acceptance on slow USB hardware.
+
+`MobileBatteryWire.decodeWatchCandidates` is not part of discovery: it
+reads the `watchCandidates` list that only the `--read-phone` envelope emits.
+Watches reach discovery inline in `--discover-device`'s `candidates` array and
+are decoded by `MobileBatteryWire.decodeDiscovery`.
+
+`AppleDeviceDiscoveryController.discoveryDiagnostics` records one identifier-free
+summary per discovery cycle: candidate count, Watch count, verified count,
+rejected counts, a failure category, and the discovery route diagnostics. The
+route diagnostics count each route actually started once, and count a route as
+failed once when the helper call or decode throws, or when the helper envelope
+reports failures for it. Multiple failures reported for one route do not inflate
+the count; their categories are merged and mapped to a fixed vocabulary.
+`DecodingError` maps to `invalid-envelope` and an unsupported schema keeps its
+own category. The log names the outcome in order: `all-routes-failed` when every
+started route failed, `partial-failure` when some did, `empty` when no route
+failed and no candidate was kept, otherwise `success`. A reader that cannot
+report routes logs `routes=not-reported` instead of claiming success.
+
+A discovery failure therefore no longer reads as `failure=none`, and a partially
+successful cycle keeps its verified candidates. Cancellation propagates as
+cancellation rather than being published as a discovery failure, and a result
+that arrives after the surface released its demand is discarded. The native
+companion limitation above is unchanged: the helper still cannot say whether a
+missing Watch means no paired Watch or an unavailable companion service.
+
 ## Helper dependencies and redistribution
 
 The app bundles a native helper and universal runtime libraries built from source. Exact upstream repositories, versions, commit pins, and declared licenses are in [`Support/mobile-battery-dependencies.json`](../Support/mobile-battery-dependencies.json). The dependency graph is OpenSSL 3.5.9, libplist 2.8.0, libimobiledevice-glue 1.3.2, libusbmuxd 2.1.1, libtatsu 1.0.5, and libimobiledevice 1.4.0. The corresponding license texts and source rebuild/replacement instructions are in [`Support/MobileBatteryHelper/ThirdPartyNotices/`](../Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md).

@@ -4,6 +4,35 @@ import Darwin
 @testable import StatusTrioCore
 
 struct MobileBatteryHelperReaderTests {
+    @Test func discoveryCancellationPropagatesWithoutStartingAlternateRoute() async {
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb","availableTransports":["usb","network"]}]}"#.utf8)
+            }
+            throw MobileBatteryHelperError.cancelled
+        }
+        do {
+            _ = try await MobileBatteryHelperReader(executor: executor).discoverWithDiagnostics()
+            Issue.record("cancelled discovery must throw instead of publishing a failure result")
+        } catch {
+            #expect(error is CancellationError)
+        }
+        #expect(await executor.recordedArguments == [
+            ["--list"], ["--discover-device", "p", "--transport", "usb"],
+        ])
+    }
+
+    @Test func discoveryListingFailureStillThrows() async {
+        let executor = ScriptedMobileBatteryExecutor { _ in throw MobileBatteryHelperError.unavailable }
+        do {
+            _ = try await MobileBatteryHelperReader(executor: executor).discoverWithDiagnostics()
+            Issue.record("listing failure must throw")
+        } catch {
+            #expect((error as? MobileBatteryHelperError) == .unavailable)
+        }
+        #expect(await executor.recordedArguments == [["--list"]])
+    }
+
     @Test func emptySelectedIDsPerformNoHelperCalls() async throws {
         let executor = ScriptedMobileBatteryExecutor { _ in Issue.record("empty authorization must not invoke helper"); return Data() }
         let result = try await MobileBatteryHelperReader(executor: executor).read(selectedIDs: [])
@@ -62,6 +91,119 @@ struct MobileBatteryHelperReaderTests {
         let candidates = try await MobileBatteryHelperReader(executor: executor).discover()
         #expect(candidates.count == 8)
         #expect(candidates.allSatisfy { $0.isVerifiedTrustedAppleDevice })
+    }
+
+    /// A single iPhone's discovery group can exceed the candidate cap on its own.
+    /// The group must stay whole: a Watch is only reachable through its phone's
+    /// companion route, so trimming by hashed row ID would drop a Watch while
+    /// keeping its phone, or keep a Watch whose phone was cut.
+    @Test func discoveryKeepsAWatchWithItsPhoneWhenOneGroupExceedsTheCap() async throws {
+        let watchEntries = (0..<8)
+            .map { #"{"id":"w\#($0)","parentID":"p","model":"Watch7,4","transport":"usb","trustRequired":false}"# }
+            .joined(separator: ",")
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb"}]}"#.utf8)
+            }
+            if arguments == ["--discover-device", "p", "--transport", "usb"] {
+                return Data(#"{"schemaVersion":1,"candidates":[{"id":"p","model":"iPhone18,1","transport":"usb","trustRequired":false},\#(watchEntries)],"failures":[]}"#.utf8)
+            }
+            Issue.record("unexpected helper call: \(arguments)")
+            return Data()
+        }
+        let candidates = try await MobileBatteryHelperReader(executor: executor).discover()
+        #expect(candidates.contains { $0.id == .trustedDevice("p") })
+        #expect((0..<8).allSatisfy { index in
+            candidates.contains { $0.id == .trustedWatch(parentID: "p", id: "w\(index)") }
+        })
+        #expect(candidates.allSatisfy { $0.isVerifiedTrustedAppleDevice })
+    }
+
+    /// A companion-discovered Watch inherits the iPhone route's transport. The
+    /// helper never emits `.bluetooth` here, so the `.usb`/`.network` eligibility
+    /// requirement does not reject it.
+    @Test func discoveryInheritsThePhoneTransportForCompanionWatchCandidates() async throws {
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"network","availableTransports":["network"]}]}"#.utf8)
+            }
+            if arguments == ["--discover-device", "p", "--transport", "network"] {
+                return Data(#"{"schemaVersion":1,"candidates":[{"id":"p","model":"iPhone18,1","transport":"network","trustRequired":false},{"id":"w","parentID":"p","model":"Watch7,4","transport":"network","trustRequired":false}],"failures":[]}"#.utf8)
+            }
+            Issue.record("unexpected helper call: \(arguments)")
+            return Data()
+        }
+        let candidates = try await MobileBatteryHelperReader(executor: executor).discover()
+        guard let watch = candidates.first(where: {
+            $0.id == .trustedWatch(parentID: "p", id: "w")
+        }) else {
+            Issue.record("watch candidate missing: \(candidates.map(\.id))")
+            return
+        }
+        #expect(watch.transports == [.network])
+        #expect(watch.evidence == .verifiedAppleModel)
+        #expect(watch.isVerifiedTrustedAppleDevice)
+    }
+
+    @Test func discoveryTriesNetworkCompanionWhenUSBReturnsOnlyPhoneMetadata() async throws {
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb","availableTransports":["usb","network"]}]}"#.utf8)
+            }
+            if arguments.last == "usb" {
+                return Data(#"{"schemaVersion":1,"candidates":[{"id":"p","model":"iPhone18,1","transport":"usb","trustRequired":false}],"failures":[]}"#.utf8)
+            }
+            return Data(#"{"schemaVersion":1,"candidates":[{"id":"p","model":"iPhone18,1","transport":"network","trustRequired":false},{"id":"w","parentID":"p","transport":"network","trustRequired":false}],"failures":[]}"#.utf8)
+        }
+        let candidates = try await MobileBatteryHelperReader(executor: executor).discover()
+        let watch = try #require(candidates.first { $0.id == .trustedWatch(parentID: "p", id: "w") })
+        #expect(watch.transports == [.network])
+        #expect(watch.evidence == .trustedWatchCompanion)
+        #expect(watch.isVerifiedTrustedAppleDevice)
+        #expect(await executor.recordedArguments == [
+            ["--list"],
+            ["--discover-device", "p", "--transport", "usb"],
+            ["--discover-device", "p", "--transport", "network"],
+        ])
+    }
+
+    /// The discovery summary is produced before the candidate cap, so a group
+    /// the cap dropped, and the Watches inside it, stay visible in diagnostics.
+    /// It carries counts only, never a device identifier.
+    @Test func discoverySummaryCountsDroppedGroupsAndTheirWatches() {
+        let summary = MobileBatteryDiscoverySummary.make(
+            listedPhones: 9,
+            probedPhones: 8,
+            groups: [
+                (candidateCount: 2, watchCount: 1),
+                (candidateCount: 2, watchCount: 1),
+                (candidateCount: 4, watchCount: 3),
+            ],
+            includedGroups: 2,
+            retainedCandidates: 4
+        )
+        #expect(summary.listedPhones == 9)
+        #expect(summary.probedPhones == 8)
+        #expect(summary.discoveredCandidates == 8)
+        #expect(summary.retainedCandidates == 4)
+        #expect(summary.droppedGroups == 1)
+        #expect(summary.droppedWatchCandidates == 3)
+        #expect(summary.logDescription.split(separator: " ").count == 6)
+    }
+
+    /// A group larger than the whole budget is kept and never counted as
+    /// dropped, so the summary cannot report impossible drops.
+    @Test func discoverySummaryClampsIncludedGroupsToKnownGroups() {
+        let summary = MobileBatteryDiscoverySummary.make(
+            listedPhones: 1,
+            probedPhones: 1,
+            groups: [(candidateCount: 9, watchCount: 8)],
+            includedGroups: 3,
+            retainedCandidates: 9
+        )
+        #expect(summary.discoveredCandidates == 9)
+        #expect(summary.droppedGroups == 0)
+        #expect(summary.droppedWatchCandidates == 0)
     }
 
     @Test func defaultExecutorResolvesThePackagedHelperName() async throws {
@@ -178,6 +320,114 @@ struct MobileBatteryHelperReaderTests {
             .read(selectedIDs: [.trustedDevice("slow"), .trustedDevice("fast")])
         #expect(result.snapshots.map(\.id) == ["fast"])
         #expect(result.failures.contains { $0.category == "cycle-timeout" })
+    }
+
+    @Test func watchRouteTimeoutSharesRemainingBudgetBetweenRemainingRoutes() {
+        #expect(MobileBatteryHelperReader.watchRouteTimeout(
+            remaining: .seconds(5), remainingRouteCount: 2
+        ) == .milliseconds(2_500))
+        #expect(MobileBatteryHelperReader.watchRouteTimeout(
+            remaining: .milliseconds(1_750), remainingRouteCount: 1
+        ) == .milliseconds(1_750))
+    }
+
+    @Test func watchReadReservesBudgetForNetworkAfterUSBTimeout() async throws {
+        let executor = ScriptedMobileBatteryExecutor(timeoutHandler: { arguments, timeout in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb","availableTransports":["usb","network"]}]}"#.utf8)
+            }
+            if arguments == ["--read-watch", "p", "--watch-id", "w", "--transport", "usb"] {
+                // Consume the actual budget, not a short simulated timeout.
+                try await Task.sleep(for: timeout)
+                throw MobileBatteryHelperError.timedOut
+            }
+            if arguments == ["--read-watch", "p", "--watch-id", "w", "--transport", "network"] {
+                return Data(#"{"schemaVersion":1,"devices":[{"id":"w","parentID":"p","model":"Watch7,1","batteryLevel":61,"transport":"network"}],"failures":[],"watchCandidates":[]}"#.utf8)
+            }
+            Issue.record("unexpected helper call: \(arguments)")
+            throw MobileBatteryHelperError.processFailed
+        })
+        let result = try await MobileBatteryHelperReader(executor: executor)
+            .read(selectedIDs: [.trustedWatch(parentID: "p", id: "w")])
+        let calls = await executor.recordedArguments
+        let timeouts = await executor.recordedTimeouts
+        #expect(calls == [
+            ["--list"],
+            ["--read-watch", "p", "--watch-id", "w", "--transport", "usb"],
+            ["--read-watch", "p", "--watch-id", "w", "--transport", "network"],
+        ])
+        #expect(result.snapshots.map(\.identity) == ["watch:p:w"])
+        #expect(result.snapshots.first?.batteryLevel == 61)
+        try #require(timeouts.count >= 2)
+        #expect(timeouts[1] <= .milliseconds(2_500))
+        try #require(timeouts.count == 3)
+        #expect(timeouts[2] > .zero)
+        #expect(timeouts[2] < .seconds(5))
+    }
+
+    @Test(arguments: [["usb"], ["network"], ["usb", "network"]])
+    func watchReadStopsAfterSuccessfulRoute(transports: [String]) async throws {
+        let transport = try #require(transports.first)
+        let available = transports.map { "\"\($0)\"" }.joined(separator: ",")
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"\#(transport)","availableTransports":[\#(available)]}]}"#.utf8)
+            }
+            return Data(#"{"schemaVersion":1,"devices":[{"id":"w","parentID":"p","model":"Watch7,1","batteryLevel":61,"transport":"\#(transport)"}],"failures":[],"watchCandidates":[]}"#.utf8)
+        }
+        let result = try await MobileBatteryHelperReader(executor: executor)
+            .read(selectedIDs: [.trustedWatch(parentID: "p", id: "w")])
+        #expect(result.snapshots.map(\.identity) == ["watch:p:w"])
+        #expect(await executor.recordedArguments == [
+            ["--list"], ["--read-watch", "p", "--watch-id", "w", "--transport", transport],
+        ])
+        if transports.count == 1 {
+            let timeouts = await executor.recordedTimeouts
+            try #require(timeouts.count == 2)
+            #expect(timeouts[1] > .milliseconds(2_500))
+            #expect(timeouts[1] <= .seconds(5))
+        }
+    }
+
+    @Test func cancelledWatchReadDoesNotStartAlternateRoute() async throws {
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb","availableTransports":["usb","network"]}]}"#.utf8)
+            }
+            // Cancellation arrives as a helper completes without a Watch.
+            withUnsafeCurrentTask { $0?.cancel() }
+            return Data(#"{"schemaVersion":1,"devices":[],"failures":[],"watchCandidates":[]}"#.utf8)
+        }
+        let readTask = Task {
+            try await MobileBatteryHelperReader(executor: executor)
+                .read(selectedIDs: [.trustedWatch(parentID: "p", id: "w")])
+        }
+        do {
+            _ = try await readTask.value
+        } catch is CancellationError {
+            // Both propagation and an empty result honor the cancellation.
+        }
+        #expect(await executor.recordedArguments == [
+            ["--list"], ["--read-watch", "p", "--watch-id", "w", "--transport", "usb"],
+        ])
+    }
+
+    @Test func watchReadTriesEachAvailableRouteAtMostOnceWhenBothFail() async throws {
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb","availableTransports":["usb","network"]}]}"#.utf8)
+            }
+            throw MobileBatteryHelperError.processFailed
+        }
+        let result = try await MobileBatteryHelperReader(executor: executor)
+            .read(selectedIDs: [.trustedWatch(parentID: "p", id: "w")])
+        #expect(result.snapshots.isEmpty)
+        #expect(result.failures.filter { $0.category == "read-failed" }.count == 2)
+        #expect(await executor.recordedArguments == [
+            ["--list"],
+            ["--read-watch", "p", "--watch-id", "w", "--transport", "usb"],
+            ["--read-watch", "p", "--watch-id", "w", "--transport", "network"],
+        ])
     }
 
     @Test func watchFallbackUsesTheRemainingSharedBudget() async throws {
@@ -389,6 +639,134 @@ struct MobileBatteryHelperReaderTests {
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
         return url
     }
+
+    /// USB reports `[p]` and network reports `[p, w]`: three route observations
+    /// of two devices. The summary must count identities, not transport rows.
+    @Test func discoverySummaryDeduplicatesAcrossTransports() async throws {
+        let summary = try await Self.captureDiscoverySummary(
+            phones: [Self.phoneEntry("p", transports: ["usb", "network"])]
+        ) { _, transport in
+            transport == "usb"
+                ? [Self.phoneCandidate("p", transport: transport)]
+                : [
+                    Self.phoneCandidate("p", transport: transport),
+                    Self.watchCandidate("w", parent: "p", transport: transport),
+                ]
+        }
+        #expect(summary.discoveredCandidates == 2)
+        #expect(summary.retainedCandidates == 2)
+        #expect(summary.droppedGroups == 0)
+        #expect(summary.droppedWatchCandidates == 0)
+    }
+
+    /// Each phone group is deduplicated before counting, so two phones seen on
+    /// both transports count as two identities rather than four observations.
+    @Test func discoverySummaryDeduplicatesEveryPhoneGroupBeforeCounting() async throws {
+        let summary = try await Self.captureDiscoverySummary(
+            phones: [
+                Self.phoneEntry("p", transports: ["usb", "network"]),
+                Self.phoneEntry("q", transports: ["usb", "network"]),
+            ]
+        ) { phoneID, transport in
+            [Self.phoneCandidate(phoneID, transport: transport)]
+        }
+        #expect(summary.discoveredCandidates == 2)
+        #expect(summary.retainedCandidates == 2)
+        #expect(summary.droppedGroups == 0)
+        #expect(summary.droppedWatchCandidates == 0)
+    }
+
+    /// The first group may exceed the eight-candidate budget on its own; it is
+    /// kept whole and its nine identities are reported as discovered/retained.
+    @Test func discoverySummaryCountsTheFirstGroupOfNine() async throws {
+        let summary = try await Self.captureDiscoverySummary(
+            phones: [Self.phoneEntry("p", transports: ["usb"])]
+        ) { _, transport in
+            [Self.phoneCandidate("p", transport: transport)]
+                + (0..<8).map { Self.watchCandidate("w\($0)", parent: "p", transport: transport) }
+        }
+        #expect(summary.discoveredCandidates == 9)
+        #expect(summary.retainedCandidates == 9)
+        #expect(summary.droppedGroups == 0)
+        #expect(summary.droppedWatchCandidates == 0)
+    }
+
+    /// A group dropped by the budget contributes its distinct Watch identities
+    /// once, even though that phone was observed on two transports.
+    @Test func discoverySummaryCountsDroppedGroupWatchesOnce() async throws {
+        let summary = try await Self.captureDiscoverySummary(
+            phones: [
+                Self.phoneEntry("p", transports: ["usb"]),
+                Self.phoneEntry("q", transports: ["usb", "network"]),
+            ]
+        ) { phoneID, transport in
+            if phoneID == "p" {
+                return [Self.phoneCandidate("p", transport: transport)]
+                    + (0..<8).map { Self.watchCandidate("pw\($0)", parent: "p", transport: transport) }
+            }
+            if transport == "usb" { return [Self.phoneCandidate("q", transport: transport)] }
+            return [
+                Self.phoneCandidate("q", transport: transport),
+                Self.watchCandidate("qw", parent: "q", transport: transport),
+            ]
+        }
+        #expect(summary.discoveredCandidates == 11)
+        #expect(summary.retainedCandidates == 9)
+        #expect(summary.droppedGroups == 1)
+        #expect(summary.droppedWatchCandidates == 1)
+    }
+
+    private static func captureDiscoverySummary(
+        phones: [String],
+        discover: @escaping @Sendable (_ phoneID: String, _ transport: String) async throws -> [String]
+    ) async throws -> MobileBatteryDiscoverySummary {
+        let listing = phones.joined(separator: ",")
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[\#(listing)]}"#.utf8)
+            }
+            let entries = try await discover(arguments[1], arguments.last ?? "usb")
+                .joined(separator: ",")
+            return Data(#"{"schemaVersion":1,"candidates":[\#(entries)],"failures":[]}"#.utf8)
+        }
+        let box = DiscoverySummaryBox()
+        _ = try await MobileBatteryHelperReader(
+            executor: executor,
+            discoverySummarySink: { box.record($0) }
+        ).discoverWithDiagnostics()
+        return try #require(box.summary)
+    }
+
+    private static func phoneEntry(_ id: String, transports: [String]) -> String {
+        let list = transports.map { "\"\($0)\"" }.joined(separator: ",")
+        return #"{"id":"\#(id)","transport":"\#(transports.first ?? "usb")","availableTransports":[\#(list)]}"#
+    }
+
+    private static func phoneCandidate(_ id: String, transport: String) -> String {
+        #"{"id":"\#(id)","model":"iPhone18,1","transport":"\#(transport)","trustRequired":false}"#
+    }
+
+    private static func watchCandidate(_ id: String, parent: String, transport: String) -> String {
+        #"{"id":"\#(id)","parentID":"\#(parent)","model":"Watch7,4","transport":"\#(transport)","trustRequired":false}"#
+    }
+}
+
+/// Lock-protected collector for the Reader's per-cycle summary.
+private final class DiscoverySummaryBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: MobileBatteryDiscoverySummary?
+
+    func record(_ summary: MobileBatteryDiscoverySummary) {
+        lock.lock()
+        value = summary
+        lock.unlock()
+    }
+
+    var summary: MobileBatteryDiscoverySummary? {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
 }
 
 private actor TwoStageWatchOrderingExecutor: MobileBatteryHelperExecuting {
@@ -552,13 +930,18 @@ private actor TwoStageWatchOrderingGate {
 
 private actor ScriptedMobileBatteryExecutor: MobileBatteryHelperExecuting {
     typealias Handler = @Sendable ([String]) async throws -> Data
-    private let handler: Handler
+    typealias TimeoutHandler = @Sendable ([String], Duration) async throws -> Data
+    private let handler: TimeoutHandler
     private(set) var recordedArguments: [[String]] = []
     private(set) var recordedTimeouts: [Duration] = []
     private var activeRuns = 0
     private(set) var maximumConcurrentRuns = 0
 
-    init(handler: @escaping Handler) { self.handler = handler }
+    init(handler: @escaping Handler) {
+        self.handler = { arguments, _ in try await handler(arguments) }
+    }
+
+    init(timeoutHandler: @escaping TimeoutHandler) { self.handler = timeoutHandler }
 
     func run(arguments: [String], timeout: Duration) async throws -> Data {
         recordedArguments.append(arguments)
@@ -566,7 +949,7 @@ private actor ScriptedMobileBatteryExecutor: MobileBatteryHelperExecuting {
         activeRuns += 1
         maximumConcurrentRuns = max(maximumConcurrentRuns, activeRuns)
         defer { activeRuns -= 1 }
-        return try await handler(arguments)
+        return try await handler(arguments, timeout)
     }
 }
 

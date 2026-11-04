@@ -80,4 +80,48 @@ final class BrightnessMonitorTests: XCTestCase {
         monitor.stop()
     }
 
+    func testBuiltInDisplayKeepsItsDescriptorUUIDForBetterDisplay() {
+        let builtin = DisplayDescriptor(id: "cg-uuid", name: "Built-in", isBuiltin: true, displayID: 5)
+        let resolved = BrightnessMonitor.resolvedBetterDisplayUUID(
+            for: builtin,
+            cgUUID: { _ in "unused-cg-uuid" }
+        )
+        XCTAssertEqual(
+            resolved, "cg-uuid",
+            "Built-in displays are already keyed by the CG UUID BetterDisplay uses"
+        )
+    }
+
+    func testExternalDisplayResolvesTheCGUUIDNotTheEDIDUUID() {
+        let external = DisplayDescriptor(
+            id: "EDID-UUID",
+            name: "External",
+            isBuiltin: false,
+            displayID: 7
+        )
+        let resolved = BrightnessMonitor.resolvedBetterDisplayUUID(
+            for: external,
+            cgUUID: { displayID in
+                XCTAssertEqual(displayID, 7)
+                return "CG-UUID"
+            }
+        )
+        XCTAssertEqual(
+            resolved, "CG-UUID",
+            "BetterDisplay addresses external displays by CG UUID, not the EDID UUID"
+        )
+        XCTAssertNotEqual(resolved, external.id)
+    }
+
+    func testExternalDisplayFallsBackToItsIDWhenCGHasNoUUID() {
+        let external = DisplayDescriptor(id: "EDID-UUID", name: "External", isBuiltin: false, displayID: 7)
+        let resolved = BrightnessMonitor.resolvedBetterDisplayUUID(
+            for: external,
+            cgUUID: { _ in "display-7" }
+        )
+        // When CG cannot produce a real UUID the catalog returns its
+        // "display-<id>" sentinel, so the descriptor id is the only stable
+        // identity left.
+        XCTAssertEqual(resolved, "EDID-UUID")
+    }
 }

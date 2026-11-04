@@ -45,6 +45,38 @@ final class DockIconRendererTests: XCTestCase {
         XCTAssertLessThanOrEqual(abs(Int(body.blue) - 23), 3)
     }
 
+    /// #260: the Dock tile is a free-standing bitmap, so macOS does not apply
+    /// the icon-grid safe area the way it does to the bundle icon. The
+    /// renderer has to draw that margin itself, or the white plate reads
+    /// larger than the system apps beside it in the Dock.
+    func testDockBodyFillsAppleIconGrid() throws {
+        let pixels = try pixels(for: .placeholder)
+
+        var minX = pixels.width
+        var maxX = -1
+        var minY = pixels.height
+        var maxY = -1
+        for y in 0..<pixels.height {
+            for x in 0..<pixels.width where pixels.rgba(x: x, y: y).alpha >= 128 {
+                minX = min(minX, x)
+                maxX = max(maxX, x)
+                minY = min(minY, y)
+                maxY = max(maxY, y)
+            }
+        }
+
+        let bodyWidth = CGFloat(maxX - minX + 1)
+        let expected = DockIconGlyphLayout.artworkSide
+            / DockIconGlyphLayout.designLength
+            * CGFloat(pixels.width)
+        // 824/1024 of the raster, within a pixel of antialiasing.
+        XCTAssertEqual(bodyWidth, expected, accuracy: 1)
+        XCTAssertEqual(CGFloat(maxY - minY + 1), expected, accuracy: 1)
+        // A symmetric 100/1024 design-unit margin on every side.
+        XCTAssertEqual(minX, pixels.width - 1 - maxX, accuracy: 1)
+        XCTAssertEqual(minY, pixels.height - 1 - maxY, accuracy: 1)
+    }
+
     func testChargingStatusPreservesGreenAccent() throws {
         let status = MenuBarStatus(snapshot: StatusSnapshot(
             battery: BatteryStatus(

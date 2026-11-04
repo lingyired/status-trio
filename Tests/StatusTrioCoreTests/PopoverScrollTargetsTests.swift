@@ -52,15 +52,23 @@ final class PopoverScrollTargetsTests: XCTestCase {
         window.contentView?.addSubview(hostingView)
         hostingView.layoutSubtreeIfNeeded()
 
-        let marker = try XCTUnwrap(scrollTargetView(in: hostingView))
+        let marker = try XCTUnwrap(
+            scrollTargetViews(in: hostingView).first { candidate in
+                let center = candidate.convert(
+                    NSPoint(x: candidate.bounds.midX, y: candidate.bounds.midY),
+                    to: nil
+                )
+                return targets.target(at: center, in: window) == .volume
+            }
+        )
         let center = marker.convert(
             NSPoint(x: marker.bounds.midX, y: marker.bounds.midY),
             to: nil
         )
         XCTAssertGreaterThan(marker.bounds.height, 0)
-        XCTAssertTrue(targets.containsVolumeControl(at: center, in: window))
-        XCTAssertFalse(
-            targets.containsVolumeControl(
+        XCTAssertEqual(targets.target(at: center, in: window), .volume)
+        XCTAssertNil(
+            targets.target(
                 at: NSPoint(x: center.x, y: center.y + 200),
                 in: window
             )
@@ -71,17 +79,14 @@ final class PopoverScrollTargetsTests: XCTestCase {
         let window = makeWindow()
         let targets = PopoverScrollTargets()
         let control = makeControlView(in: window)
-        targets.registerVolumeControl(control)
+        targets.register(control, as: .volume)
 
-        XCTAssertTrue(
-            targets.containsVolumeControl(at: NSPoint(x: 100, y: 70), in: window)
+        XCTAssertEqual(
+            targets.target(at: NSPoint(x: 100, y: 70), in: window),
+            .volume
         )
-        XCTAssertFalse(
-            targets.containsVolumeControl(at: NSPoint(x: 100, y: 20), in: window)
-        )
-        XCTAssertFalse(
-            targets.containsVolumeControl(at: NSPoint(x: 10, y: 70), in: window)
-        )
+        XCTAssertNil(targets.target(at: NSPoint(x: 100, y: 20), in: window))
+        XCTAssertNil(targets.target(at: NSPoint(x: 10, y: 70), in: window))
     }
 
     func testRegionIsEmptyBeforeRegistrationAndAfterRemoval() {
@@ -90,13 +95,13 @@ final class PopoverScrollTargetsTests: XCTestCase {
         let control = makeControlView(in: window)
         let point = NSPoint(x: 100, y: 70)
 
-        XCTAssertFalse(targets.containsVolumeControl(at: point, in: window))
+        XCTAssertNil(targets.target(at: point, in: window))
 
-        targets.registerVolumeControl(control)
-        XCTAssertTrue(targets.containsVolumeControl(at: point, in: window))
+        targets.register(control, as: .volume)
+        XCTAssertEqual(targets.target(at: point, in: window), .volume)
 
-        targets.unregisterVolumeControl(control)
-        XCTAssertFalse(targets.containsVolumeControl(at: point, in: window))
+        targets.unregister(control)
+        XCTAssertNil(targets.target(at: point, in: window))
     }
 
     func testStaleRemovalKeepsTheCurrentVolumeControl() {
@@ -104,12 +109,13 @@ final class PopoverScrollTargetsTests: XCTestCase {
         let targets = PopoverScrollTargets()
         let control = makeControlView(in: window)
         let stale = NSView(frame: control.frame)
-        targets.registerVolumeControl(control)
+        targets.register(control, as: .volume)
 
-        targets.unregisterVolumeControl(stale)
+        targets.unregister(stale)
 
-        XCTAssertTrue(
-            targets.containsVolumeControl(at: NSPoint(x: 100, y: 70), in: window)
+        XCTAssertEqual(
+            targets.target(at: NSPoint(x: 100, y: 70), in: window),
+            .volume
         )
     }
 
@@ -117,13 +123,59 @@ final class PopoverScrollTargetsTests: XCTestCase {
         let window = makeWindow()
         let otherWindow = makeWindow()
         let targets = PopoverScrollTargets()
-        targets.registerVolumeControl(makeControlView(in: window))
+        targets.register(makeControlView(in: window), as: .volume)
 
-        XCTAssertFalse(
-            targets.containsVolumeControl(at: NSPoint(x: 100, y: 70), in: otherWindow)
+        XCTAssertNil(targets.target(at: NSPoint(x: 100, y: 70), in: otherWindow))
+        XCTAssertNil(targets.target(at: NSPoint(x: 100, y: 70), in: nil))
+    }
+
+    // MARK: #256 multi-slider registry
+
+    func testBrightnessAndAudioInputSlidersCarryTheirOwnTargets() {
+        let window = makeWindow()
+        let targets = PopoverScrollTargets()
+        let volume = makeControlView(in: window, frame: NSRect(x: 40, y: 60, width: 200, height: 30))
+        let brightness = makeControlView(in: window, frame: NSRect(x: 40, y: 100, width: 200, height: 30))
+        let input = makeControlView(in: window, frame: NSRect(x: 40, y: 140, width: 200, height: 30))
+        targets.register(volume, as: .volume)
+        targets.register(brightness, as: .brightness(displayID: "display-1"))
+        targets.register(input, as: .audioInput)
+
+        XCTAssertEqual(targets.target(at: NSPoint(x: 100, y: 70), in: window), .volume)
+        XCTAssertEqual(
+            targets.target(at: NSPoint(x: 100, y: 110), in: window),
+            .brightness(displayID: "display-1")
         )
-        XCTAssertFalse(
-            targets.containsVolumeControl(at: NSPoint(x: 100, y: 70), in: nil)
+        XCTAssertEqual(targets.target(at: NSPoint(x: 100, y: 150), in: window), .audioInput)
+        XCTAssertNil(targets.target(at: NSPoint(x: 100, y: 200), in: window))
+    }
+
+    func testOverlappingSlidersResolveToTheMostRecentlyRegistered() {
+        let window = makeWindow()
+        let targets = PopoverScrollTargets()
+        let lower = makeControlView(in: window, frame: NSRect(x: 40, y: 60, width: 200, height: 30))
+        let upper = makeControlView(in: window, frame: NSRect(x: 40, y: 60, width: 200, height: 30))
+        targets.register(lower, as: .volume)
+        targets.register(upper, as: .audioInput)
+
+        XCTAssertEqual(
+            targets.target(at: NSPoint(x: 100, y: 70), in: window),
+            .audioInput
+        )
+    }
+
+    func testReRegisteringMovesTheSliderToTheTop() {
+        let window = makeWindow()
+        let targets = PopoverScrollTargets()
+        let first = makeControlView(in: window, frame: NSRect(x: 40, y: 60, width: 200, height: 30))
+        let second = makeControlView(in: window, frame: NSRect(x: 40, y: 60, width: 200, height: 30))
+        targets.register(first, as: .volume)
+        targets.register(second, as: .audioInput)
+        targets.register(first, as: .volume)
+
+        XCTAssertEqual(
+            targets.target(at: NSPoint(x: 100, y: 70), in: window),
+            .volume
         )
     }
 
@@ -136,22 +188,24 @@ final class PopoverScrollTargetsTests: XCTestCase {
         )
     }
 
-    private func makeControlView(in window: NSWindow) -> NSView {
-        let control = NSView(frame: NSRect(x: 40, y: 60, width: 200, height: 30))
+    private func makeControlView(
+        in window: NSWindow,
+        frame: NSRect = NSRect(x: 40, y: 60, width: 200, height: 30)
+    ) -> NSView {
+        let control = NSView(frame: frame)
         window.contentView?.addSubview(control)
         return control
     }
 
-    private func scrollTargetView(in view: NSView) -> ScrollTargetView? {
+    private func scrollTargetViews(in view: NSView) -> [ScrollTargetView] {
+        var result: [ScrollTargetView] = []
         if let marker = view as? ScrollTargetView {
-            return marker
+            result.append(marker)
         }
         for subview in view.subviews {
-            if let marker = scrollTargetView(in: subview) {
-                return marker
-            }
+            result.append(contentsOf: scrollTargetViews(in: subview))
         }
-        return nil
+        return result
     }
 }
 

@@ -69,6 +69,19 @@ struct DisplayBrightness: Equatable, Sendable, Identifiable {
         self.backend = backend
         self.source = source
     }
+
+    /// A copy carrying a new scalar but the same backend/source metadata.
+    func replacingScalar(_ scalar: Double?) -> DisplayBrightness {
+        DisplayBrightness(
+            id: id,
+            name: name,
+            isBuiltin: isBuiltin,
+            scalar: scalar,
+            canAdjust: canAdjust,
+            backend: backend,
+            source: source
+        )
+    }
 }
 
 struct BrightnessStatus: Equatable, Sendable {

@@ -261,12 +261,27 @@ enum StatusIconRenderer {
     ) {
         let boltHeight = StatusIconGeometry.batteryChargingBolt().boundingBoxOfPath.height
         let targetHeight = boltHeight * boltScale * StatusIconGeometry.batteryPlugHeightScale
-        guard targetHeight.isFinite, targetHeight > 0 else { return }
+        drawBatteryPlug(
+            targetHeight: targetHeight,
+            center: StatusIconGeometry.batteryTopIndicatorCenter(boltScale: boltScale),
+            foreground: foreground,
+            in: context
+        )
+    }
 
+    /// Draws the plug at an explicit optical height around `center`; the centre
+    /// slot uses this so the plug matches the bolt it replaces (#253).
+    private static func drawBatteryPlug(
+        targetHeight: CGFloat,
+        center: CGPoint,
+        foreground: CGColor,
+        in context: CGContext
+    ) {
+        guard targetHeight.isFinite, targetHeight > 0 else { return }
         drawOfficialSymbol(
             name: StatusIconGeometry.batteryPlugSymbolName,
             pointSize: batteryPlugPointSize(targetHeight: targetHeight),
-            center: StatusIconGeometry.batteryTopIndicatorCenter(boltScale: boltScale),
+            center: center,
             foreground: foreground,
             in: context
         )
@@ -415,6 +430,17 @@ enum StatusIconRenderer {
     static func centerTextPointSize(for scale: Double) -> CGFloat {
         centerSymbolPointSize(for: scale) * centerTextBaselineFactor
     }
+
+    /// Optical height for the centre slot's vector bolt/plug. An SF Symbol's
+    /// point size is not its ink height: at the default Wi-Fi scale (1.6) the
+    /// Wi-Fi glyph's ink measures ~49.5 canvas units, while the vector bolt only
+    /// reached 38 with the old 0.62 factor — visibly smaller than the glyph it
+    /// replaces. 0.8 puts its ink back on the Wi-Fi glyph's height.
+    static func centerChargingGlyphHeight(for scale: Double) -> CGFloat {
+        centerSymbolPointSize(for: scale) * centerChargingGlyphHeightFactor
+    }
+
+    private static let centerChargingGlyphHeightFactor: CGFloat = 0.8
 
     private static func drawTintedImage(
         _ image: NSImage,
@@ -1246,12 +1272,27 @@ extension StatusIconRenderer {
             case .arrowWedge:
                 drawSharedConnectionMark(wifiScale: symbol.scale, in: context, foreground: tint)
             case .bolt:
-                let path = StatusIconGeometry.batteryChargingBolt(scale: CGFloat(symbol.scale))
+                // The charge glyphs are vector art authored for the top gap, so
+                // the centre slot sizes them from its own point budget and moves
+                // their ink centre onto the slot anchor (#253).
+                let path = StatusIconGeometry.batteryChargingBolt(
+                    centeredAt: center,
+                    targetHeight: centerChargingGlyphHeight(for: symbol.scale)
+                )
                 context.setFillColor(tint)
                 context.addPath(path)
                 context.fillPath()
             case .plug:
-                drawBatteryPlug(boltScale: CGFloat(symbol.scale), foreground: tint, in: context)
+                // The plug's strokes are thinner than the bolt's solid body, so
+                // it is drawn 20% taller for the same visual weight — the same
+                // rule the top gap uses.
+                drawBatteryPlug(
+                    targetHeight: centerChargingGlyphHeight(for: symbol.scale)
+                        * StatusIconGeometry.batteryPlugHeightScale,
+                    center: center,
+                    foreground: tint,
+                    in: context
+                )
             }
         case let .symbol(name, variableValue, fallback):
             let chosen = availableSymbol(name) ? name : fallback.flatMap { availableSymbol($0) ? $0 : nil }

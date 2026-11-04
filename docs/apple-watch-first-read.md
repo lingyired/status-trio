@@ -57,6 +57,14 @@ bash scripts/check-forbidden-patterns.sh
 git diff --check
 ```
 
-Actor-isolated controller changes additionally require the repository's
-nonpublishing CI preflight before merging or publishing. No release, installed
-app replacement, or credential change is part of this fix.
+Actor-isolated controller changes are verified locally. The repository is
+local-first and does not require a remote CI preflight before merging; use the
+focused filter while iterating and the `full` local profile on the final
+integrated tree:
+
+```bash
+bash scripts/test.sh 'AppleDeviceDiscoveryControllerTests|MobileBatteryHelperReaderTests'
+bash scripts/verify-local.sh full
+```
+
+No release, installed app replacement, or credential change is part of this fix.

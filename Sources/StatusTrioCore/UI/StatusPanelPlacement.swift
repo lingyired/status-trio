@@ -40,6 +40,46 @@ enum StatusPanelPlacement {
     /// visible frame, which reads as clipped rather than scrollable (#237).
     static let edgeMargin: CGFloat = 8
 
+    /// Decides whether a panel of `contentSize` needs a window frame write, and
+    /// returns the frame to write.
+    ///
+    /// `nil` means the window already sits at the frame this content would
+    /// produce. The decision has to use the frame the placement maths will
+    /// actually apply — after the screen cap and the width clamp — because a
+    /// capped or clamped panel whose current frame is compared against some
+    /// intermediate size looks stale on every update and rewrites the same
+    /// frame forever (issue #259).
+    ///
+    /// When there is no anchor there is no screen budget either, so the frame
+    /// keeps the current origin and only adopts the content size, matching
+    /// `AnchoredStatusPanel`'s fallback.
+    static func contentFrameUpdate(
+        from currentFrame: NSRect,
+        contentSize: NSSize,
+        anchor: StatusPanelAnchor?,
+        screens: [StatusPanelScreen],
+        dockInset: NSEdgeInsets = DockReveal.noInset
+    ) -> NSRect? {
+        guard contentSize.width.isFinite, contentSize.height.isFinite,
+              contentSize.width > 0, contentSize.height > 0
+        else { return nil }
+        let target: NSRect
+        if let anchor {
+            target = frame(
+                contentSize: contentSize,
+                anchor: anchor,
+                screens: screens,
+                dockInset: dockInset
+            )
+        } else {
+            target = NSRect(origin: currentFrame.origin, size: contentSize)
+        }
+        let sizeChanged = abs(target.width - currentFrame.width) >= 0.5
+            || abs(target.height - currentFrame.height) >= 0.5
+        guard sizeChanged || target.origin != currentFrame.origin else { return nil }
+        return target
+    }
+
     /// Chooses the frame for a panel of `contentSize` anchored at `anchor`.
     ///
     /// The panel is centred on the anchor's perpendicular axis, flushed to the

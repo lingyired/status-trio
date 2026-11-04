@@ -168,4 +168,40 @@ final class StatusPanelRouteTests: XCTestCase {
         fixture.store.setPopoverVisible(false)
         fixture.store.stop()
     }
+
+    func testReturnsToSummaryOnOpenResetsRouteOnReopenWithoutReactivatingCollectors() {
+        let fixture = PanelStoreFixture()
+        let actions = StatusPanelActions(store: fixture.store, settings: fixture.settings)
+        let panel = fixture.makePanel(actions: actions)
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+
+        panel.showBatteryPage()
+        XCTAssertEqual(panel.route, .battery)
+        XCTAssertTrue(fixture.store.batteryDetails.isActive)
+
+        fixture.settings.returnsToSummaryOnOpen = true
+        panel.stop()
+        fixture.store.setPopoverVisible(false)
+        fixture.store.closePopoverDetails()
+        panel.releaseInactivePresentationState()
+
+        // Route stays in memory but the detail collector is released.
+        XCTAssertEqual(panel.route, .battery)
+        XCTAssertFalse(fixture.store.batteryDetails.isActive)
+
+        // Reopening with the setting on returns to summary and does not
+        // reactivate the battery collector.
+        fixture.store.setPopoverVisible(true)
+        panel.start()
+        panel.prepareForPresentation()
+
+        XCTAssertEqual(panel.route, .summary)
+        XCTAssertFalse(fixture.store.batteryDetails.isActive)
+
+        panel.stop()
+        fixture.store.setPopoverVisible(false)
+        fixture.store.stop()
+    }
 }

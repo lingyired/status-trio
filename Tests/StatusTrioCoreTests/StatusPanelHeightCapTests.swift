@@ -109,6 +109,25 @@ final class StatusPanelHeightCapTests: XCTestCase {
         XCTAssertGreaterThan(uncapped.measuredSize().height, 200)
     }
 
+
+    /// Issue #259: the same content must follow a budget that shrinks and then
+    /// returns, instead of sticking at the smallest cap it ever saw.
+    func testTheSameContentFollowsABudgetThatShrinksAndRecovers() throws {
+        let natural = try makeFixture(cap: nil).measuredSize().height
+        XCTAssertGreaterThan(natural, 300, "the fixture content must exceed the test budget")
+
+        let fixture = try makeFixture(cap: 300)
+        XCTAssertEqual(fixture.measuredSize().height, 300, accuracy: 1)
+
+        fixture.metrics.update(maximumPanelHeight: 200)
+        fixture.settleLayout()
+        XCTAssertEqual(fixture.measuredSize().height, 200, accuracy: 1)
+
+        fixture.metrics.update(maximumPanelHeight: 300)
+        fixture.settleLayout()
+        XCTAssertEqual(fixture.measuredSize().height, 300, accuracy: 1)
+    }
+
     func testChangingRoutesReturnsThePageToTheTop() throws {
         let fixture = try makeFixture(cap: 200)
         let summaryScroll = try XCTUnwrap(firstScrollView(in: fixture.host.view))
@@ -135,6 +154,7 @@ final class StatusPanelHeightCapTests: XCTestCase {
         let host: StatusPanelHostingController<AnyView>
         let window: NSWindow
         let panel: StatusPanelViewModel
+        let metrics: StatusPanelLayoutMetrics
 
         func measuredSize() -> NSSize {
             host.view.layoutSubtreeIfNeeded()
@@ -210,7 +230,7 @@ final class StatusPanelHeightCapTests: XCTestCase {
         )
         host.view.frame = NSRect(x: 0, y: 0, width: 330, height: 700)
         window.contentView?.addSubview(host.view)
-        let fixture = Fixture(host: host, window: window, panel: panel)
+        let fixture = Fixture(host: host, window: window, panel: panel, metrics: metrics)
         fixture.settleLayout()
         return fixture
     }

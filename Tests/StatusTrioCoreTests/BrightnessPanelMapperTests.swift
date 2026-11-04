@@ -87,6 +87,60 @@ final class BrightnessPanelMapperTests: XCTestCase {
         XCTAssertNil(configuration.sanitized()?.betterDisplayUUID)
     }
 
+    func testHiddenDisplayIsFilteredOutOfThePanel() {
+        let status = BrightnessStatus(displays: [
+            DisplayBrightness(
+                id: "builtin", name: "Built-in", isBuiltin: true, scalar: 0.5,
+                canAdjust: true, backend: .displayServices, source: .displayServices
+            ),
+            DisplayBrightness(
+                id: "external", name: "External", isBuiltin: false, scalar: 0.7,
+                canAdjust: true, backend: .directDDC, source: .directDDC
+            )
+        ])
+
+        let state = BrightnessPanelMapper.map(
+            status,
+            localization: makeLocalization(.english),
+            hiddenDisplayIDs: ["external"]
+        )
+
+        XCTAssertEqual(state.rows.map(\.id), ["builtin"])
+    }
+
+    func testHidingEveryDisplayLeavesAnEmptyState() {
+        let status = BrightnessStatus(displays: [
+            DisplayBrightness(
+                id: "builtin", name: "Built-in", isBuiltin: true, scalar: 0.5,
+                canAdjust: true, backend: .displayServices, source: .displayServices
+            )
+        ])
+
+        let state = BrightnessPanelMapper.map(
+            status,
+            localization: makeLocalization(.english),
+            hiddenDisplayIDs: ["builtin"]
+        )
+
+        XCTAssertTrue(state.isEmpty, "An all-hidden list must drop the whole section")
+    }
+
+    func testWithoutHiddenIDsEveryDisplayMaps() {
+        let status = BrightnessStatus(displays: [
+            DisplayBrightness(
+                id: "a", name: "A", isBuiltin: false, scalar: 0.3,
+                canAdjust: true, backend: .directDDC, source: .directDDC
+            ),
+            DisplayBrightness(
+                id: "b", name: "B", isBuiltin: false, scalar: 0.6,
+                canAdjust: true, backend: .directDDC, source: .directDDC
+            )
+        ])
+
+        let state = BrightnessPanelMapper.map(status, localization: makeLocalization(.english))
+        XCTAssertEqual(state.rows.map(\.id), ["a", "b"])
+    }
+
     private func makeLocalization(_ language: AppLanguage) -> Localization {
         let suiteName = "BrightnessPanelMapperTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

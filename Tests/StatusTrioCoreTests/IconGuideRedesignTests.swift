@@ -238,11 +238,19 @@ final class IconGuideRedesignTests: XCTestCase {
             in: CGRect(x: 0, y: 0, width: 256, height: 256)
         )
 
-        XCTAssertEqual(frame.minX, 48.7, accuracy: 0.001)
-        XCTAssertEqual(frame.minY, 45.04, accuracy: 0.001)
-        XCTAssertEqual(frame.width, 168, accuracy: 0.001)
-        XCTAssertEqual(frame.height, 168, accuracy: 0.001)
+        // The glyph frame is the reference artwork scaled into Apple's
+        // 824/1024 icon grid (issue #260): 672 * 824/896 = 618 design units.
+        XCTAssertEqual(frame.minX, 55.072321, accuracy: 0.001)
+        XCTAssertEqual(frame.minY, 51.706429, accuracy: 0.001)
+        XCTAssertEqual(frame.width, 154.5, accuracy: 0.001)
+        XCTAssertEqual(frame.height, 154.5, accuracy: 0.001)
         XCTAssertTrue(CGRect(x: 0, y: 0, width: 256, height: 256).contains(frame))
+        // The glyph keeps the artwork's 75% proportion to the tile body.
+        XCTAssertEqual(
+            frame.width / (DockIconGlyphLayout.artworkSide / 1024 * 256),
+            0.75,
+            accuracy: 0.0001
+        )
     }
 
     func testGuidePageNavigationAdvancesAndReturns() {

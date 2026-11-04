@@ -485,84 +485,84 @@ final class BetterDisplayVolumeUIFixRegressionTests: XCTestCase {
             .english: LocalizedFallbackCopy(
                 controlMethodDescription: "If the status panel cannot control this device’s volume, choose BetterDisplay.",
                 displayDescription: "Choose the display that corresponds to this audio output.",
-                footnote: "Native macOS volume control takes priority. The selected method is used when native control is unavailable.",
+                footnote: "Native macOS volume control takes priority. The selected method is used when native control is unavailable. The free BetterDisplay version is enough; no Pro license needed.",
                 requirements: "If the connection fails, enable CLI access and notification-based integration in BetterDisplay settings.",
                 notConfirmed: "The volume change could not be confirmed. Select “Detect Again” and try again."
             ),
             .simplifiedChinese: LocalizedFallbackCopy(
                 controlMethodDescription: "如果状态面板的音量控制无法调节此设备，可改用 BetterDisplay。",
                 displayDescription: "选择与此音频输出对应的显示器。",
-                footnote: "macOS 原生音量控制优先；原生控制不可用时才使用所选方式。",
+                footnote: "macOS 原生音量控制优先；原生控制不可用时才使用所选方式。BetterDisplay 免费版即可，无需购买 Pro。",
                 requirements: "如果连接失败，请在 BetterDisplay 设置中启用 CLI 访问和基于通知的集成。",
                 notConfirmed: "无法确认音量更改。请点按“重新检测”后重试。"
             ),
             .traditionalChinese: LocalizedFallbackCopy(
                 controlMethodDescription: "如果狀態面板的音量控制無法調整此裝置，可改用 BetterDisplay。",
                 displayDescription: "選擇與此音訊輸出對應的顯示器。",
-                footnote: "macOS 原生音量控制優先；無法使用原生控制時，才會使用所選方式。",
+                footnote: "macOS 原生音量控制優先；無法使用原生控制時，才會使用所選方式。BetterDisplay 免費版即可，無需購買 Pro。",
                 requirements: "若連線失敗，請在 BetterDisplay 設定中啟用 CLI 存取和通知式整合。",
                 notConfirmed: "無法確認音量變更。請按一下「重新偵測」後再試一次。"
             ),
             .japanese: LocalizedFallbackCopy(
                 controlMethodDescription: "ステータスパネルの音量コントロールでこのデバイスを調整できない場合は、BetterDisplay を使用してください。",
                 displayDescription: "このオーディオ出力に対応するディスプレイを選択します。",
-                footnote: "macOS のネイティブ音量制御が優先されます。ネイティブ制御を利用できない場合に、選択した方法を使用します。",
+                footnote: "macOS のネイティブ音量制御が優先されます。ネイティブ制御を利用できない場合に、選択した方法を使用します。BetterDisplay は無料版で十分です。Pro ライセンスは不要です。",
                 requirements: "接続に失敗する場合は、BetterDisplay の設定で CLI アクセスと通知ベースの連携を有効にしてください。",
                 notConfirmed: "音量の変更を確認できませんでした。「再検出」を選択して、もう一度お試しください。"
             ),
             .korean: LocalizedFallbackCopy(
                 controlMethodDescription: "상태 패널의 볼륨 제어로 이 기기를 조절할 수 없다면 BetterDisplay를 사용하십시오.",
                 displayDescription: "이 오디오 출력에 해당하는 디스플레이를 선택하십시오.",
-                footnote: "macOS 기본 볼륨 제어가 우선합니다. 기본 제어를 사용할 수 없을 때 선택한 방식을 사용합니다.",
+                footnote: "macOS 기본 볼륨 제어가 우선합니다. 기본 제어를 사용할 수 없을 때 선택한 방식을 사용합니다. BetterDisplay는 무료 버전으로 충분하며 Pro 라이선스는 필요하지 않습니다.",
                 requirements: "연결에 실패하면 BetterDisplay 설정에서 CLI 접근 및 알림 기반 통합을 활성화하십시오.",
                 notConfirmed: "볼륨 변경을 확인할 수 없습니다. ‘다시 감지’를 선택한 후 다시 시도하십시오."
             ),
             .spanish: LocalizedFallbackCopy(
                 controlMethodDescription: "Si los controles de volumen del panel de estado no pueden controlar este dispositivo, usa BetterDisplay.",
                 displayDescription: "Elige la pantalla que corresponde a esta salida de audio.",
-                footnote: "El control de volumen nativo de macOS tiene prioridad. El método seleccionado se usa cuando el control nativo no está disponible.",
+                footnote: "El control de volumen nativo de macOS tiene prioridad. El método seleccionado se usa cuando el control nativo no está disponible. La versión gratuita de BetterDisplay es suficiente; no hace falta una licencia Pro.",
                 requirements: "Si la conexión falla, activa el acceso a la CLI y la integración basada en notificaciones en los ajustes de BetterDisplay.",
                 notConfirmed: "No se pudo confirmar el cambio de volumen. Selecciona «Volver a detectar» e inténtalo de nuevo."
             ),
             .french: LocalizedFallbackCopy(
                 controlMethodDescription: "Si les commandes de volume du panneau d’état ne contrôlent pas cet appareil, utilisez BetterDisplay.",
                 displayDescription: "Choisissez l’écran correspondant à cette sortie audio.",
-                footnote: "Le contrôle de volume natif de macOS est prioritaire. La méthode sélectionnée est utilisée lorsque le contrôle natif n’est pas disponible.",
+                footnote: "Le contrôle de volume natif de macOS est prioritaire. La méthode sélectionnée est utilisée lorsque le contrôle natif n’est pas disponible. La version gratuite de BetterDisplay suffit ; aucune licence Pro n’est nécessaire.",
                 requirements: "Si la connexion échoue, activez l’accès à la CLI et l’intégration par notifications dans les réglages de BetterDisplay.",
                 notConfirmed: "Le changement de volume n’a pas pu être confirmé. Sélectionnez « Détecter à nouveau », puis réessayez."
             ),
             .german: LocalizedFallbackCopy(
                 controlMethodDescription: "Wenn die Lautstärkeregelung im Statusfenster dieses Gerät nicht steuern kann, verwende BetterDisplay.",
                 displayDescription: "Wähle das Display, das diesem Audioausgang entspricht.",
-                footnote: "Die native macOS-Lautstärkesteuerung hat Vorrang. Die ausgewählte Methode wird verwendet, wenn die native Steuerung nicht verfügbar ist.",
+                footnote: "Die native macOS-Lautstärkesteuerung hat Vorrang. Die ausgewählte Methode wird verwendet, wenn die native Steuerung nicht verfügbar ist. Die kostenlose BetterDisplay-Version genügt; eine Pro-Lizenz ist nicht nötig.",
                 requirements: "Wenn die Verbindung fehlschlägt, aktiviere den CLI-Zugriff und die benachrichtigungsbasierte Integration in den BetterDisplay-Einstellungen.",
                 notConfirmed: "Die Lautstärkeänderung konnte nicht bestätigt werden. Wähle „Erneut suchen“ und versuche es noch einmal."
             ),
             .italian: LocalizedFallbackCopy(
                 controlMethodDescription: "Se i controlli del volume nel pannello di stato non riescono a gestire questo dispositivo, usa BetterDisplay.",
                 displayDescription: "Scegli lo schermo corrispondente a questa uscita audio.",
-                footnote: "Il controllo volume nativo di macOS ha la precedenza. Il metodo selezionato viene usato quando il controllo nativo non è disponibile.",
+                footnote: "Il controllo volume nativo di macOS ha la precedenza. Il metodo selezionato viene usato quando il controllo nativo non è disponibile. La versione gratuita di BetterDisplay è sufficiente; non serve una licenza Pro.",
                 requirements: "Se la connessione non riesce, attiva l’accesso alla CLI e l’integrazione basata su notifiche nelle impostazioni di BetterDisplay.",
                 notConfirmed: "Impossibile confermare la modifica del volume. Seleziona “Rileva di nuovo” e riprova."
             ),
             .brazilianPortuguese: LocalizedFallbackCopy(
                 controlMethodDescription: "Se os controles de volume do painel de status não conseguirem controlar este dispositivo, use o BetterDisplay.",
                 displayDescription: "Escolha a tela correspondente a esta saída de áudio.",
-                footnote: "O controle de volume nativo do macOS tem prioridade. O método selecionado é usado quando o controle nativo não estiver disponível.",
+                footnote: "O controle de volume nativo do macOS tem prioridade. O método selecionado é usado quando o controle nativo não estiver disponível. A versão gratuita do BetterDisplay é suficiente; não é preciso licença Pro.",
                 requirements: "Se a conexão falhar, ative o acesso à CLI e a integração baseada em notificações nos ajustes do BetterDisplay.",
                 notConfirmed: "Não foi possível confirmar a alteração de volume. Selecione “Detectar novamente” e tente outra vez."
             ),
             .russian: LocalizedFallbackCopy(
                 controlMethodDescription: "Если элементы управления громкостью на панели состояния не управляют этим устройством, используйте BetterDisplay.",
                 displayDescription: "Выберите дисплей, соответствующий этому аудиовыходу.",
-                footnote: "Собственное управление громкостью macOS имеет приоритет. Выбранный способ используется, когда собственное управление недоступно.",
+                footnote: "Собственное управление громкостью macOS имеет приоритет. Выбранный способ используется, когда собственное управление недоступно. Бесплатной версии BetterDisplay достаточно; лицензия Pro не нужна.",
                 requirements: "Если подключение не удаётся, включите доступ к CLI и интеграцию на основе уведомлений в настройках BetterDisplay.",
                 notConfirmed: "Не удалось подтвердить изменение громкости. Выберите «Обнаружить снова» и повторите попытку."
             ),
             .arabic: LocalizedFallbackCopy(
                 controlMethodDescription: "إذا لم تتمكن أدوات التحكم في مستوى الصوت بلوحة الحالة من التحكم في هذا الجهاز، فاستخدم BetterDisplay.",
                 displayDescription: "اختر الشاشة المقابلة لخرج الصوت هذا.",
-                footnote: "يحظى التحكم الأصلي في مستوى الصوت في macOS بالأولوية. تُستخدم الطريقة المحددة عندما لا يتوفر التحكم الأصلي.",
+                footnote: "يحظى التحكم الأصلي في مستوى الصوت في macOS بالأولوية. تُستخدم الطريقة المحددة عندما لا يتوفر التحكم الأصلي. يكفي إصدار BetterDisplay المجاني، ولا حاجة لشراء Pro.",
                 requirements: "إذا فشل الاتصال، ففعّل وصول CLI والتكامل المستند إلى الإشعارات في إعدادات BetterDisplay.",
                 notConfirmed: "تعذّر تأكيد تغيير مستوى الصوت. اختر «اكتشاف مجددًا» ثم حاول مرة أخرى."
             )

@@ -10,6 +10,14 @@ import Foundation
 /// the device-wide level. That is what keeps one bud's charge from being shown
 /// as the whole device's.
 struct BluetoothAccessoryBatteryLevel: Equatable, Sendable {
+    /// The accessory this reading describes, as the power manager names it.
+    ///
+    /// Unlike the vendor/product pair, which every set of one model shares, this
+    /// distinguishes two sets of the same model. It is the only safe way to
+    /// attribute a reading to a device: `nil` means the source did not identify
+    /// the accessory, and such a reading is never used rather than guessed onto
+    /// whichever device happens to share its model or name.
+    let identifier: String?
     let name: String
     let vendorID: Int?
     let productID: Int?
@@ -72,6 +80,7 @@ enum BluetoothAccessoryBatteryReader {
             return nil
         }
         return BluetoothAccessoryBatteryLevel(
+            identifier: identifier(of: document),
             name: (document["Name"] as? String)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
             vendorID: document["Vendor ID"] as? Int,
@@ -79,6 +88,19 @@ enum BluetoothAccessoryBatteryReader {
             part: BluetoothAccessoryPart(identifier: document["Part Identifier"] as? String),
             percentage: percentage
         )
+    }
+
+    /// The accessory's own identity, as the power manager writes it.
+    ///
+    /// This is a UUID from the power manager, not the device's Bluetooth address,
+    /// so it is never compared to a device directly. It is kept because it is the
+    /// only value that tells two sets of one model apart: the vendor/product pair
+    /// and the name are shared by both. A source that omits it, or writes an
+    /// empty string, is reported as `nil` and cannot be attributed by the caller.
+    private static func identifier(of document: [String: Any]) -> String? {
+        guard let identifier = document["Accessory Identifier"] as? String else { return nil }
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     /// `Current Capacity` is the charge left and `Max Capacity` the full charge,

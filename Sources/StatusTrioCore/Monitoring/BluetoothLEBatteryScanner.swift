@@ -18,7 +18,13 @@ struct BluetoothLEBatteryScanPolicy {
     /// device that keeps failing is left alone until the user asks again.
     static let failedConnectionSuspensionThreshold = 3
     /// A verified row disappears after this long without a successful read.
-    static let resultLifetime: TimeInterval = 1200
+    ///
+    /// Kept to a few minutes rather than tens: a nearby device's battery is only
+    /// trusted while a fresh reading backs it, so a row that stops reporting
+    /// should clear promptly instead of lingering as a plausible-looking stale
+    /// number. Three minutes still spans several 60-second automatic scans, so a
+    /// single missed pass does not flicker the row away.
+    static let resultLifetime: TimeInterval = 180
     static let maxQueuedCandidates = 8
     static let maxConcurrentConnections = 2
     static let connectionTimeout: Duration = .seconds(8)

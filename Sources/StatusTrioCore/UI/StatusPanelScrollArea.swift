@@ -209,7 +209,7 @@ enum PanelScrollOffset {
 /// legacy scroller when macOS is set to always show scroll bars, which would
 /// appear beside the slim indicator and narrow the page. Scrolling itself stays
 /// native, so the wheel, trackpad and keyboard are unchanged.
-private struct PanelScrollBridge: NSViewRepresentable {
+struct PanelScrollBridge: NSViewRepresentable {
     @Binding var offset: CGFloat
 
     func makeCoordinator() -> Coordinator {
@@ -224,6 +224,7 @@ private struct PanelScrollBridge: NSViewRepresentable {
 
     func updateNSView(_ nsView: BridgeView, context: Context) {
         nsView.coordinator = context.coordinator
+        context.coordinator.updateBinding($offset)
         nsView.attach()
     }
 
@@ -264,14 +265,30 @@ private struct PanelScrollBridge: NSViewRepresentable {
         private var offset: Binding<CGFloat>
         private weak var scrollView: NSScrollView?
         private var observer: NSObjectProtocol?
+        private let scheduler: StatusPanelLayoutUpdateScheduler
 
-        init(offset: Binding<CGFloat>) {
+        init(
+            offset: Binding<CGFloat>,
+            scheduler: StatusPanelLayoutUpdateScheduler? = nil
+        ) {
             self.offset = offset
+            self.scheduler = scheduler
+                ?? StatusPanelLayoutUpdateScheduler { operation in
+                    Task { @MainActor in operation() }
+                }
+        }
+
+        /// Adopts a new binding without re-solving the scroll view. SwiftUI
+        /// recreates the `@Binding` on every update, so the coordinator has to
+        /// follow it rather than keep the one it was created with.
+        func updateBinding(_ binding: Binding<CGFloat>) {
+            offset = binding
+            schedulePublish()
         }
 
         func bind(to scrollView: NSScrollView) {
             if self.scrollView === scrollView, observer != nil {
-                publish()
+                schedulePublish()
                 return
             }
             detach()
@@ -283,21 +300,36 @@ private struct PanelScrollBridge: NSViewRepresentable {
                 queue: .main
             ) { [weak self] _ in
                 Task { @MainActor in
-                    self?.publish()
+                    self?.noteBoundsChanged()
                 }
             }
-            publish()
+            schedulePublish()
+        }
+
+        /// The coalescing entry for a clip-view bounds change. `internal` so the
+        /// behaviour is testable without a window; the observer calls it.
+        func noteBoundsChanged() {
+            schedulePublish()
         }
 
         func detach() {
             if let observer {
                 NotificationCenter.default.removeObserver(observer)
             }
+            scheduler.invalidate()
             observer = nil
             scrollView = nil
         }
 
-        private func publish() {
+        /// Leaving the layout pass before writing the binding keeps SwiftUI from
+        /// mutating state while it is still updating the view tree (issue #259).
+        private func schedulePublish() {
+            scheduler.enqueue { [weak self] in
+                self?.publishNow()
+            }
+        }
+
+        private func publishNow() {
             guard let scrollView, let documentView = scrollView.documentView else {
                 return
             }

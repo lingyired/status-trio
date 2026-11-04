@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "현재 입력 소스";
 "settings.appIcon.middleIcon.batteryPercentage" = "배터리 잔량";
 "settings.appIcon.middleIcon.power" = "전력(와트)";
+"settings.appIcon.middleIcon.chargingStatus" = "충전 상태";
+"settings.appIcon.middleIcon.chargingStatus.description" = "배터리 사용 시 잔량, 충전 중에는 번개, 전원 연결 시 플러그를 표시하며 링은 닫힌 상태로 유지됩니다.";
 "settings.appIcon.middleIcon.size" = "중앙 아이콘 크기";
 "settings.appIcon.middleIcon.size.description" = "중앙에 표시되는 모든 내용(Wi-Fi, Bluetooth, 입력 소스, 숫자)에 공통으로 적용되는 크기입니다.";
 "settings.appIcon.middleIcon.networkWarnings" = "네트워크 문제 우선 표시";
@@ -296,7 +298,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "사용할 수 없는 디스플레이";
 "settings.audio.externalVolume.refresh" = "다시 감지";
 "settings.audio.externalVolume.requirements" = "연결에 실패하면 BetterDisplay 설정에서 CLI 접근 및 알림 기반 통합을 활성화하십시오.";
-"settings.audio.externalVolume.footnote" = "macOS 기본 볼륨 제어가 우선합니다. 기본 제어를 사용할 수 없을 때 선택한 방식을 사용합니다.";
+"settings.audio.externalVolume.footnote" = "macOS 기본 볼륨 제어가 우선합니다. 기본 제어를 사용할 수 없을 때 선택한 방식을 사용합니다. BetterDisplay는 무료 버전으로 충분하며 Pro 라이선스는 필요하지 않습니다.";
 "settings.audio.externalVolume.noStableOutput" = "현재 출력에 안정적인 오디오 ID가 없어 BetterDisplay를 구성할 수 없습니다.";
 "settings.audio.externalVolume.status.ready" = "연결됨. 볼륨을 조절할 수 있습니다.";
 "settings.audio.externalVolume.status.idle" = "연결되지 않음.";
@@ -380,20 +382,24 @@
 "settings.panel.background.style.classicMaterial" = "클래식 소재";
 "settings.panel.background.style.solid" = "단색";
 "settings.panel.background.style.liquidGlassUnavailable" = "리퀴드 글래스는 macOS 26 이상이 필요합니다.";
+"settings.panel.openBehavior.title" = "열 때 동작";
+"settings.panel.returnsToSummaryOnOpen" = "열 때마다 항상 요약 페이지로 돌아가기";
+"settings.panel.returnsToSummaryOnOpen.description" = "활성화하면 상태 패널이 항상 요약 페이지에서 열립니다. 비활성화하면 마지막으로 본 페이지가 유지됩니다.";
 "settings.popup.volumeScroll.group" = "패널 스크롤";
-"settings.popup.volumeScroll" = "스크롤로 볼륨 조절";
-"settings.popup.volumeScroll.description" = "상태 패널 안에서 스크롤하면 출력 볼륨이 바뀝니다.";
+"settings.audio.volumeScroll.group" = "음량 스크롤";
+"settings.popup.volumeScroll" = "스크롤로 조절";
+"settings.popup.volumeScroll.description" = "상태 패널 안에서 스크롤하여 출력 음량을 변경합니다. 슬라이더 위에서는 해당 슬라이더(음량, 밝기, 입력 게인)를 조절합니다.";
 "settings.popup.volumeScroll.scope" = "적용 범위";
-"settings.popup.volumeScroll.scope.description" = "스크롤로 볼륨을 바꿀 위치를 선택합니다.";
+"settings.popup.volumeScroll.scope.description" = "패널의 빈 영역을 스크롤할 때 출력 음량을 조절할지 선택합니다.";
 "settings.popup.volumeScroll.scope.panel" = "패널 전체";
-"settings.popup.volumeScroll.scope.volumeControl" = "볼륨 컨트롤만";
+"settings.popup.volumeScroll.scope.volumeControl" = "슬라이더에서만";
 "settings.popup.volumeScroll.natural" = "자연스러운 스크롤";
-"settings.popup.volumeScroll.natural.description" = "켜면 마우스나 트랙패드에서 위로 스크롤할 때 볼륨이 커집니다. 끄면 시스템의 스크롤 방향을 따릅니다. 이 옵션을 켠 후에도 마우스 위로 스크롤할 때 볼륨이 낮아지면 보통 예외/무시 목록(허용 목록이라고도 함)을 사용해 MOS, Scroll Reverser, LinearMouse 또는 유사한 앱에서 Status Trio를 변경하지 않도록 설정하세요.";
+"settings.popup.volumeScroll.natural.description" = "켜면 위로 스크롤할 때 포인터 아래 값(음량, 밝기, 입력 게인)이 커집니다. 끄면 시스템 스크롤 방향을 따릅니다. 이 옵션을 켠 후에도 위로 스크롤할 때 값이 줄어들면 MOS, Scroll Reverser, LinearMouse 등에서 Status Trio를 예외/무시 목록에 추가하세요.";
 "settings.audio.volumeFeedbackTitle" = "볼륨 피드백";
 "settings.audio.volumeFeedback" = "스크롤로 볼륨을 조절할 때 소리 재생";
 "settings.audio.volumeFeedbackDescription" = "스크롤로 볼륨을 조절할 때 알림음을 재생합니다. 기본값은 macOS의 '볼륨 변경 시 피드백 재생'을 따릅니다. 여기서 전환하면 Status Trio에만 적용됩니다.";
 "settings.popup.volumeScroll.direction" = "스크롤 방향";
-"settings.popup.volumeScroll.direction.description" = "볼륨을 높이는 스크롤 방향을 선택합니다.";
+"settings.popup.volumeScroll.direction.description" = "음량, 밝기, 입력 슬라이더에 적용됩니다.";
 "settings.popup.volumeScroll.direction.up" = "위로 스크롤";
 "settings.popup.volumeScroll.direction.down" = "아래로 스크롤";
 
@@ -664,14 +670,14 @@
 "brightness.row.accessibility" = "%@의 밝기, %@";
 "brightness.row.accessibilityUnavailable" = "%@의 밝기, %@";
 "brightness.unavailable" = "사용할 수 없음";
+"brightness.action.openSettings" = "디스플레이 설정 열기";
 "brightness.appAbsent" = "BetterDisplay 필요";
 "brightness.noBackend" = "밝기 제어 없음";
 "brightness.unresponsive" = "응답 없음";
 "brightness.backend.directDDC" = "직접 DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "연결된 디스플레이의 밝기를 조절합니다.";
-"settings.brightness.backend" = "%@의 밝기 백엔드";
-
+"settings.brightness.description" = "디스플레이를 끄면 해당 밝기 행이 숨겨집니다.";
+"settings.brightness.backend" = "밝기 백엔드";
 // About: community, author social links and more apps
 "settings.about.social.title" = "작성자 팔로우";
 "settings.about.social.douyin" = "Douyin";
@@ -738,3 +744,14 @@
 "settings.battery.chargeLimit.restoreScopeHint" = "관리되는 충전 한도가 선택되지 않은 경우에만 사용됩니다.";
 "settings.battery.restoreLimitManagedLocked" = "'충전 한도'가 충전 상한을 관리하고 있어 이 복원 한도를 변경할 수 없습니다. 해당 항목에서 '시스템에서 관리'를 선택하면 변경할 수 있습니다.";
 "settings.battery.chargeLimit.preferSystemOptimization" = "macOS에 내장된 배터리 최적화를 우선 사용하는 것이 좋습니다. 일반적으로 고정 상한보다 충전을 더 잘 관리합니다. 고정 상한이 꼭 필요할 때만 이 옵션을 사용하세요.";
+
+"settings.tab.brightness" = "밝기";
+"settings.brightness.group.title" = "연결된 디스플레이";
+"settings.brightness.empty" = "연결된 디스플레이가 없습니다.";
+"settings.brightness.builtIn" = "내장";
+"settings.brightness.internalBackend.description" = "내장 디스플레이 밝기는 DisplayServices 백엔드를 사용합니다.";
+"settings.brightness.externalBackend.description" = "Status Trio가 이 디스플레이의 밝기를 제어하는 방식을 선택하세요.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay가 실행 중이 아니거나 알림 연동이 꺼져 있습니다.";
+"settings.brightness.compatibility.title" = "밝기를 조절할 수 없나요?";
+"settings.brightness.compatibility.description" = "제조사마다 DDC 구현이 달라 Status Trio가 모든 모델을 지원할 수는 없습니다. 여기서 밝기를 조절할 수 없는 디스플레이는 BetterDisplay 백엔드로 전환하세요. Status Trio가 BetterDisplay를 통해 제어합니다. 무료 버전으로 충분하며 Pro 라이선스는 필요하지 않습니다.";
+"settings.brightness.compatibility.link" = "BetterDisplay 다운로드(무료)";

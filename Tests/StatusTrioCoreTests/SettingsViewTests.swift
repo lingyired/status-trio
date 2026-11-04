@@ -7,7 +7,7 @@ import XCTest
 @MainActor
 final class SettingsViewTests: XCTestCase {
     func testSettingsViewDimensionsAndSections() {
-        XCTAssertEqual(SettingsView.Section.allCases.count, 8)
+        XCTAssertEqual(SettingsView.Section.allCases.count, 9)
         XCTAssertEqual(SettingsView.sidebarWidth, 190)
         XCTAssertEqual(SettingsView.width, 720)
         XCTAssertEqual(SettingsView.height, 530)
@@ -16,9 +16,14 @@ final class SettingsViewTests: XCTestCase {
     func testSidebarListsEveryStatusElementBeforeTheAppWidePanes() {
         XCTAssertEqual(
             SettingsView.Section.allCases,
-            [.appIcon, .battery, .network, .bluetooth, .audio, .popover, .general, .about]
+            [.appIcon, .battery, .network, .bluetooth, .audio, .brightness, .popover, .general, .about]
         )
         XCTAssertEqual(SettingsView.Section.allCases.first, .appIcon)
+        // The brightness hub sits directly after the audio pane.
+        XCTAssertEqual(
+            SettingsView.Section.allCases.firstIndex(of: .brightness),
+            SettingsView.Section.allCases.firstIndex(of: .audio).map { $0 + 1 }
+        )
     }
 
     func testStatusElementPanesRenderWithoutCrashing() {
@@ -60,6 +65,10 @@ final class SettingsViewTests: XCTestCase {
                 previewIsDark: isDark
             ))),
             ("popover", AnyView(PopoverSectionView(
+                store: store,
+                statusStore: statusStore
+            ))),
+            ("brightness", AnyView(BrightnessSectionView(
                 store: store,
                 statusStore: statusStore
             )))
@@ -326,6 +335,67 @@ final class SettingsViewTests: XCTestCase {
                 XCTAssertFalse(title.isEmpty, "Section \(section) title should not be empty for \(lang)")
             }
         }
+    }
+
+    /// #245/#256: the volume-scroll switch and its effect scope stay on the
+    /// Audio pane, while the shared scroll direction (used by volume, brightness
+    /// and input sliders) lives on the status-panel pane. Guard the split at the
+    /// source so neither half drifts back into the other page.
+    func testScrollSettingsAreSplitBetweenPanelAndAudioPanes() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+
+        let audio = try String(
+            contentsOf: base.appendingPathComponent("AudioSectionView.swift"),
+            encoding: .utf8
+        )
+        let popover = try String(
+            contentsOf: base.appendingPathComponent("PopoverSectionView.swift"),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(audio.contains("volumeScrollGroup"))
+        XCTAssertTrue(audio.contains("settingsAudioVolumeScrollGroup"))
+        XCTAssertTrue(audio.contains("scrollScopeLabel"))
+        XCTAssertTrue(audio.contains("popupScrollAdjustsVolume"))
+        XCTAssertTrue(audio.contains("popupVolumeScrollScope"))
+        XCTAssertFalse(audio.contains("popupVolumeNaturalScrolling"))
+        XCTAssertFalse(audio.contains("settingsPopupVolumeScrollNatural"))
+
+        XCTAssertTrue(popover.contains("scrollDirectionGroup"))
+        XCTAssertTrue(popover.contains("settingsPopupVolumeScrollDirection"))
+        XCTAssertTrue(popover.contains("settingsPopupVolumeScrollNatural"))
+        XCTAssertTrue(popover.contains("popupVolumeNaturalScrolling"))
+        XCTAssertFalse(
+            popover.contains("popupScrollAdjustsVolume"),
+            "the panel pane must not own the volume-scroll switch"
+        )
+        XCTAssertFalse(popover.contains("popupVolumeScrollScope"))
+        XCTAssertFalse(popover.contains("scrollScopeLabel"))
+    }
+
+    /// The compatibility note tells users whose display DDC Status Trio cannot
+    /// speak to use BetterDisplay, and links to its site. Pin the URL and the
+    /// fact that the note actually reaches the page.
+    func testBrightnessPaneLinksToTheBetterDisplaySite() throws {
+        XCTAssertEqual(
+            BrightnessSectionView.betterDisplayWebsiteURL?.absoluteString,
+            "https://betterdisplay.pro"
+        )
+
+        let sourceURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings/BrightnessSectionView.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+        XCTAssertTrue(source.contains("settingsBrightnessCompatibilityDescription"))
+        XCTAssertTrue(source.contains("settingsBrightnessCompatibilityLink"))
+        XCTAssertTrue(source.contains("compatibilityGroup"))
+        XCTAssertTrue(source.contains("NSWorkspace.shared.open"))
     }
 }
 

@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "現在の入力ソース";
 "settings.appIcon.middleIcon.batteryPercentage" = "バッテリー残量";
 "settings.appIcon.middleIcon.power" = "消費電力（W）";
+"settings.appIcon.middleIcon.chargingStatus" = "充電状態";
+"settings.appIcon.middleIcon.chargingStatus.description" = "バッテリー駆動時は残量、充電中は稲妻、電源接続時はプラグを表示し、リングは閉じたままです。";
 "settings.appIcon.middleIcon.size" = "中央アイコンのサイズ";
 "settings.appIcon.middleIcon.size.description" = "中央に表示するすべての内容（Wi-Fi、Bluetooth、入力ソース、数字）で共通のサイズです。";
 "settings.appIcon.middleIcon.networkWarnings" = "ネットワークの問題を優先";
@@ -296,7 +298,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "利用できないディスプレイ";
 "settings.audio.externalVolume.refresh" = "再検出";
 "settings.audio.externalVolume.requirements" = "接続に失敗する場合は、BetterDisplay の設定で CLI アクセスと通知ベースの連携を有効にしてください。";
-"settings.audio.externalVolume.footnote" = "macOS のネイティブ音量制御が優先されます。ネイティブ制御を利用できない場合に、選択した方法を使用します。";
+"settings.audio.externalVolume.footnote" = "macOS のネイティブ音量制御が優先されます。ネイティブ制御を利用できない場合に、選択した方法を使用します。BetterDisplay は無料版で十分です。Pro ライセンスは不要です。";
 "settings.audio.externalVolume.noStableOutput" = "現在の出力には安定したオーディオ ID がないため、BetterDisplay を設定できません。";
 "settings.audio.externalVolume.status.ready" = "接続済みです。音量を調節できます。";
 "settings.audio.externalVolume.status.idle" = "未接続です。";
@@ -380,20 +382,24 @@
 "settings.panel.background.style.classicMaterial" = "クラシックマテリアル";
 "settings.panel.background.style.solid" = "単色";
 "settings.panel.background.style.liquidGlassUnavailable" = "リキッドグラスには macOS 26 以降が必要です。";
+"settings.panel.openBehavior.title" = "開くときの動作";
+"settings.panel.returnsToSummaryOnOpen" = "開くたびに常に概要ページへ戻る";
+"settings.panel.returnsToSummaryOnOpen.description" = "有効にすると、ステータスパネルは常に概要ページで開きます。無効の場合は、最後に表示していたページが保持されます。";
 "settings.popup.volumeScroll.group" = "パネルのスクロール";
-"settings.popup.volumeScroll" = "スクロールで音量を調整";
-"settings.popup.volumeScroll.description" = "ステータスパネル内をスクロールすると出力音量を変更できます。";
+"settings.audio.volumeScroll.group" = "音量スクロール";
+"settings.popup.volumeScroll" = "スクロールで調整";
+"settings.popup.volumeScroll.description" = "ステータスパネル内をスクロールして出力音量を変更します。スライダー上では、そのスライダー（音量・明るさ・入力ゲイン）を調整します。";
 "settings.popup.volumeScroll.scope" = "適用範囲";
-"settings.popup.volumeScroll.scope.description" = "スクロールで音量を変更する範囲を選びます。";
+"settings.popup.volumeScroll.scope.description" = "パネルの空白領域をスクロールしたときに出力音量を調整するかを選択します。";
 "settings.popup.volumeScroll.scope.panel" = "パネル全体";
-"settings.popup.volumeScroll.scope.volumeControl" = "音量コントロールのみ";
+"settings.popup.volumeScroll.scope.volumeControl" = "スライダーのみ";
 "settings.popup.volumeScroll.natural" = "ナチュラルスクロール";
-"settings.popup.volumeScroll.natural.description" = "オンにすると、マウスまたはトラックパッドの上方向スクロールで音量が上がります。オフでは、システムのスクロール方向に従います。オンにした後もマウスの上スクロールで音量が下がる場合は、通常は例外/無視リスト（許可リストと呼ばれることもあります）を使い、MOS、Scroll Reverser、LinearMouse などのアプリで Status Trio を変更しないよう設定してください。";
+"settings.popup.volumeScroll.natural.description" = "オンにすると、上方向のスクロールでポインタ下の値（音量・明るさ・入力ゲイン）が増えます。オフにするとシステムのスクロール方向に従います。オンにした後も上スクロールで値が下がる場合は、MOS、Scroll Reverser、LinearMouse などで Status Trio を例外/無視リストに追加してください。";
 "settings.audio.volumeFeedbackTitle" = "音量フィードバック";
 "settings.audio.volumeFeedback" = "スクロールで音量を変更したときに音を鳴らす";
 "settings.audio.volumeFeedbackDescription" = "スクロールで音量を変更したときに通知音を鳴らします。既定では macOS の「音量変更時にフィードバックを再生」に従います。ここで切り替えると Status Trio のみに適用されます。";
 "settings.popup.volumeScroll.direction" = "スクロール方向";
-"settings.popup.volumeScroll.direction.description" = "音量を上げるスクロール方向を選びます。";
+"settings.popup.volumeScroll.direction.description" = "音量・明るさ・入力のスライダーに適用されます。";
 "settings.popup.volumeScroll.direction.up" = "上スクロール";
 "settings.popup.volumeScroll.direction.down" = "下スクロール";
 
@@ -664,14 +670,14 @@
 "brightness.row.accessibility" = "%@ の明るさ、%@";
 "brightness.row.accessibilityUnavailable" = "%@ の明るさ、%@";
 "brightness.unavailable" = "利用不可";
+"brightness.action.openSettings" = "ディスプレイ設定を開く";
 "brightness.appAbsent" = "BetterDisplay が必要";
 "brightness.noBackend" = "明るさを制御できません";
 "brightness.unresponsive" = "応答なし";
 "brightness.backend.directDDC" = "ダイレクト DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "接続されているディスプレイの明るさを調整します。";
-"settings.brightness.backend" = "%@ の明るさバックエンド";
-
+"settings.brightness.description" = "ディスプレイをオフにすると、その明るさの行が非表示になります。";
+"settings.brightness.backend" = "明るさバックエンド";
 // About: community, author social links and more apps
 "settings.about.social.title" = "作者をフォロー";
 "settings.about.social.douyin" = "Douyin";
@@ -738,3 +744,14 @@
 "settings.battery.chargeLimit.restoreScopeHint" = "管理対象の充電上限が選択されていない場合にのみ使用されます。";
 "settings.battery.restoreLimitManagedLocked" = "「充電上限」が上限を管理しているため、この復元上限は変更できません。そこで「システム管理」を選ぶと変更できます。";
 "settings.battery.chargeLimit.preferSystemOptimization" = "macOS 標準のバッテリー最適化を優先してください。通常は固定上限より適切に充電を管理します。固定上限が本当に必要な場合のみ、このオプションを使用してください。";
+
+"settings.tab.brightness" = "明るさ";
+"settings.brightness.group.title" = "接続中のディスプレイ";
+"settings.brightness.empty" = "接続されているディスプレイはありません。";
+"settings.brightness.builtIn" = "内蔵";
+"settings.brightness.internalBackend.description" = "内蔵ディスプレイの明るさは DisplayServices バックエンドを使用します。";
+"settings.brightness.externalBackend.description" = "このディスプレイの明るさを Status Trio が制御する方法を選択します。";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay が実行されていないか、通知連携がオフになっています。";
+"settings.brightness.compatibility.title" = "明るさを調整できない場合";
+"settings.brightness.compatibility.description" = "ディスプレイメーカーごとに DDC の実装が異なるため、Status Trio はすべての機種に対応できません。ここで明るさを調整できないディスプレイは、BetterDisplay バックエンドに切り替えてください。Status Trio が BetterDisplay 経由で制御します。無料版で十分です。Pro ライセンスは不要です。";
+"settings.brightness.compatibility.link" = "BetterDisplay をダウンロード（無料）";

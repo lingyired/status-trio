@@ -26,6 +26,7 @@ struct StatusPopoverView: View {
     let openSettings: () -> Void
     let openSoundSettings: () -> Void
     let openSoundInputSettings: () -> Void
+    var openDisplaySettings: () -> Void = {}
     let openKeyboardSettings: () -> Void
     let quit: () -> Void
     /// The footer's Actions menu closes the panel before opening another window.
@@ -117,15 +118,16 @@ struct StatusPopoverView: View {
     /// it; an empty summary lets the footer own the whole inset.
     private var routeBottomPadding: CGFloat {
         guard panel.route == .summary else { return 14 }
-        return panel.visiblePopupSections.isEmpty ? 0 : 12
+        return displayedSections.isEmpty ? 0 : 12
     }
 
     private var summary: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ForEach(panel.visiblePopupSections) { section in
+        let sections = displayedSections
+        return VStack(alignment: .leading, spacing: 12) {
+            ForEach(sections) { section in
                 popupSection(section)
 
-                if section != panel.visiblePopupSections.last {
+                if section != sections.last {
                     Divider()
                 }
             }
@@ -148,10 +150,24 @@ struct StatusPopoverView: View {
         .onDisappear { panel.actions.volumeListDisappeared() }
     }
 
+    /// The summary sections actually rendered: the brightness section is
+    /// dropped when every display is hidden, so no empty section or dangling
+    /// separator is left behind (#241).
+    private var displayedSections: [PopupSection] {
+        panel.displayedSummarySections
+    }
+
+    /// The footer only renders on the summary route, so its rule follows the
+    /// sections that are actually drawn. When every section is hidden the rule
+    /// would otherwise sit over an empty page.
+    private var showsFooterRule: Bool {
+        !displayedSections.isEmpty
+    }
+
     /// The summary footer, pinned to the panel's bottom edge (#237).
     private var pinnedFooter: some View {
         VStack(spacing: 12) {
-            if !panel.visiblePopupSections.isEmpty {
+            if showsFooterRule {
                 Divider()
                     .opacity(0.6)
                     .padding(.vertical, 2)
@@ -226,12 +242,15 @@ struct StatusPopoverView: View {
         case .brightness:
             BrightnessControlsView(
                 state: panel.brightness,
-                actions: panel.actions
+                actions: panel.actions,
+                scrollTargets: scrollTargets,
+                onOpenDisplaySettings: openDisplaySettings
             )
         case .audioInput:
             AudioInputControlsView(
                 state: panel.audioInput,
                 actions: panel.actions,
+                scrollTargets: scrollTargets,
                 onOpenSoundSettings: openSoundInputSettings
             )
         case .inputSource:

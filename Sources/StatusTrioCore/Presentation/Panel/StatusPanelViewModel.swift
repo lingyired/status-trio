@@ -65,6 +65,27 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var route: StatusPanelRoute = .summary
     @Published private(set) var wifiDisclosure = WiFiPanelDisclosureState()
 
+    /// The summary sections actually rendered. The brightness section is
+    /// dropped when every display is hidden, so a fully hidden list leaves no
+    /// empty section or dangling separator behind (#241).
+    var displayedSummarySections: [PopupSection] {
+        Self.displayedSummarySections(
+            visible: visiblePopupSections,
+            brightnessIsEmpty: brightness.isEmpty
+        )
+    }
+
+    /// Pure section filter behind `displayedSummarySections`. Kept static so
+    /// the "all displays hidden drops the section" rule is unit-testable
+    /// without standing up a live panel.
+    nonisolated static func displayedSummarySections(
+        visible: [PopupSection],
+        brightnessIsEmpty: Bool
+    ) -> [PopupSection] {
+        guard brightnessIsEmpty else { return visible }
+        return visible.filter { $0 != .brightness }
+    }
+
     let store: SystemStatusStore
     let settings: SettingsStore
     /// Persisted per-list layout, shared with the views so a reopened panel can
@@ -156,7 +177,8 @@ final class StatusPanelViewModel: ObservableObject {
         )
         brightness = BrightnessPanelMapper.map(
             store.popupSnapshot.brightness,
-            localization: localization
+            localization: localization,
+            hiddenDisplayIDs: settings.hiddenBrightnessDisplayIDs
         )
         batteryDetails = PanelDetailMapper.battery(
             status: store.popupSnapshot.battery,
@@ -332,6 +354,10 @@ final class StatusPanelViewModel: ObservableObject {
     /// Re-enters the lightweight route after a close released the detail view
     /// and its collectors. This runs before the popover's first layout pass.
     func prepareForPresentation() {
+        if settings.returnsToSummaryOnOpen {
+            closeCurrentPage()
+            return
+        }
         guard store.isPopoverVisible, route != .summary else { return }
         guard isRouteAvailable(route) else {
             closeCurrentPage()
@@ -853,7 +879,8 @@ final class StatusPanelViewModel: ObservableObject {
         if isVisible(.brightness) {
             brightness = BrightnessPanelMapper.map(
                 store.popupSnapshot.brightness,
-                localization: localization
+                localization: localization,
+                hiddenDisplayIDs: settings.hiddenBrightnessDisplayIDs
             )
         }
         if isVisible(.inputSource) {
@@ -919,7 +946,8 @@ final class StatusPanelViewModel: ObservableObject {
         if isVisible(.brightness) {
             let brightnessState = BrightnessPanelMapper.map(
                 snapshot.brightness,
-                localization: localization
+                localization: localization,
+                hiddenDisplayIDs: settings.hiddenBrightnessDisplayIDs
             )
             if brightness != brightnessState { brightness = brightnessState }
         }
