@@ -122,6 +122,41 @@ final class AirPodsInlineControlsTests: XCTestCase {
                 host.cacheDisplay(in: host.bounds, to: bitmap)
                 let data = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
                 try data.write(to: URL(fileURLWithPath: directory).appendingPathComponent("airpods-inline-\(dark ? "dark" : "light").png"))
+                // PR comparison uses fixture state, not hardware access. Keep the
+                // unverified Adaptive slider absent from the published preview.
+                var beforeRow = row
+                beforeRow.supportsAirPodsSystemControls = false
+                var headerRow = beforeRow
+                headerRow.listeningMode = nil
+                let preview = AirPodsSystemControlsModel(deviceID: row.key, deviceName: row.name,
+                    snapshot: .init(
+                        conversation: [.init(title: "Off", selected: false, symbol: "person.fill"),
+                                       .init(title: "On", selected: true, symbol: "person.wave.2.fill")],
+                        spatial: [.init(title: "Off", selected: false, symbol: "person.fill"),
+                                  .init(title: "Fixed", selected: false, symbol: "person.spatialaudio.stereo.fill"),
+                                  .init(title: "Head Tracked", selected: true, symbol: "spatialize-stereo-head-tracked")],
+                        loaded: true))
+                let before = AnyView(OutputDeviceRow(state: beforeRow, onSelect: {}, onSelectListeningMode: { _ in }))
+                let after = AnyView(VStack(alignment: .leading, spacing: 2) {
+                    OutputDeviceRow(state: headerRow, onSelect: {}, onSelectListeningMode: { _ in })
+                    AirPodsSystemControlsView(model: preview, listeningMode: row.listeningMode)
+                })
+                for (name, view) in [("before", before), ("after", after)] {
+                    let comparison = NSHostingView(rootView: view.padding(14).frame(width: 300)
+                        .background(dark ? Color(white: 0.16) : Color(white: 0.93))
+                        .environmentObject(localization).environment(\.colorScheme, dark ? .dark : .light))
+                    comparison.appearance = host.appearance
+                    comparison.frame = NSRect(origin: .zero, size: comparison.fittingSize)
+                    comparison.layoutSubtreeIfNeeded()
+                    try await Task.sleep(for: .milliseconds(60))
+                    comparison.frame = NSRect(origin: .zero, size: comparison.fittingSize)
+                    comparison.layoutSubtreeIfNeeded()
+                    let bitmap = try XCTUnwrap(comparison.bitmapImageRepForCachingDisplay(in: comparison.bounds))
+                    comparison.cacheDisplay(in: comparison.bounds, to: bitmap)
+                    let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+                    try png.write(to: URL(fileURLWithPath: directory)
+                        .appendingPathComponent("airpods-\(name)-\(dark ? "dark" : "light").png"))
+                }
             }
         }
     }
