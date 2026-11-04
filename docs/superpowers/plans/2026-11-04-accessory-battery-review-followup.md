@@ -109,20 +109,22 @@
 
 **Interfaces:** 交接以具体 SHA、命令、exit、PASS/FAIL/NOT RUN、实际硬件/系统为证据。不改变系统信任/配对，不抢前台。
 
+**执行状态：** 软件补修与逐任务/最终复核完成；干净冻结提交 `5ca8c0801086af497b3fb8db7063e5ae880de410` 的 `full` 已通过，XCTest 2442（67 跳过）、Swift Testing 872，零失败。硬件四项下列复选框保留未选：本机只有两条 Mouse accessory，打包 helper `--list` 为 0 phones，均 **NOT RUN**，等待人工验收。完整证据见 `docs/issue-248-249-verification.md`。
+
 - [ ] 采集真正 AirPods 的多 part `pmset -g accps -xml`，同时保留该时刻 profiler 连接状态；检查 Accessory Identifier/Group Identifier/Part Identifier、型号及各 part 的关联。公开 fixture 用一致替换后的虚构标识符；原始标识符不入常规日志或仓库。
 - [ ] 测一套 L/R/Case、两套同型号、一连一断、离场、重新连接；分别观察 primary 与 accessory fallback，不能把 primary 正常显示当作 fallback 验收。若相同套的 parts 不共享 Accessory Identifier，先按证据补失败 fixture，再修分组；没有证据不自动改用 Group Identifier。
 - [ ] 特别记录“列表外同型号旧 accps 仍存在”的场景；当前唯一型号匹配不证明身份。若真机复现错配，单独补用例并收紧回退，不能继续声称已完全阻止串台。
 - [ ] 用已信任 iPhone+配对 Watch 验证 USB 正常、USB companion 失败但已有 Wi-Fi 可用、USB 单路、手机离线、取消/关闭面板。未连接硬件或无法安全操作则明确 NOT RUN，软件测试照常完成，但两 issue 不视为硬件验收通过。
-- [ ] 若需要 live UI，先读 `.agents/skills/background-ui-testing/SKILL.md` 并采用项目后台测试方式；需要用户信任、配对、配置 Finder Wi-Fi 同步或前台操作时保留人工验收步骤。
-- [ ] 最终集成先跑：
+- [x] Live UI：本轮不适用，未启动/操作前台应用；信任、配对、Finder Wi-Fi 同步等保留人工步骤。
+- [x] 最终集成测试：下列目标过滤已由最终 `full` 的同一 `scripts/test.sh` 入口完整覆盖；各任务先跑过对应 focused/Bluetooth sweep，最终不额外重复过滤测试。该完整过滤命令保留为后续局部复验参考：
 
 ```bash
 bash scripts/test.sh 'MobileBatteryHelperReaderTests|MobileBatterySnapshotTests|AppleDeviceDiscoveryControllerTests|MobileBatteryControllerTests|BluetoothBatteryLevelFallbackTests|BluetoothAccessoryBatteryTests|BluetoothAccessoryBatteryEventTests|BluetoothConnectionEventTests|NearbyBLEDeviceCatalogTests'
 ```
 
-- [ ] fetch 比较最新 origin/main，记录共享文件冲突；源码冻结后执行 `bash scripts/verify-local.sh full`，完整通过才标本地验证 PASS。任何代码再改须重验受影响范围，并在最终整合树完成 full。
-- [ ] 更新验证报告，明确上轮 PASS 对应旧 SHA，本轮新 SHA 和完整日志路径；去掉“改当前列表已经证明解决竞态”等不成立说法，保留真实 identifier 语义/硬件 NOT RUN。
-- [ ] 明确文件暂存并提交证据文档；保留分支/worktree，等用户验收后才考虑合并和 issue 状态。
+- [x] fetch 比较最新 origin/main，记录共享文件冲突；源码冻结后执行 `bash scripts/verify-local.sh full`，完整通过才标本地验证 PASS。任何代码再改须重验受影响范围，并在最终整合树完成 full。
+- [x] 更新验证报告，明确上轮 PASS 对应旧 SHA，本轮新 SHA 和完整日志路径；去掉“改当前列表已经证明解决竞态”等不成立说法，保留真实 identifier 语义/硬件 NOT RUN。
+- [x] 明确文件暂存并提交证据文档；保留分支/worktree，等用户验收后才考虑合并和 issue 状态。
 
 ## 执行建议与完成定义
 

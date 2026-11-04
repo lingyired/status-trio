@@ -1,6 +1,8 @@
 # #248 / #249 蓝牙与配件电量验证记录
 
-## 范围与基线
+**当前补修状态：** 新分支 `fix-248-249-review-followup` 的四项软件补修与交叉审查完成；`bash scripts/verify-local.sh full` 在干净冻结提交 `5ca8c0801086af497b3fb8db7063e5ae880de410` 通过（exit 0）。XCTest 2442 项（67 跳过）、Swift Testing 872 项，零失败。真机验收仍 **NOT RUN**，不代表 #248/#249 已经整体验收或发布。下文前半保留旧分支历史，最新记录见末节。
+
+## 原分支范围与基线（历史）
 
 - 独立分支：`fix/248-249-bluetooth-battery`。
 - 分支基线及 2026-11-04 首次、再次 fetch 的 `origin/main`：`053fb3c29b0b1c33c0c48a8c7bf04038f2fd1ab4`。
@@ -19,7 +21,7 @@
 
 发现工作仍受原需求/取消边界控制。每周期最多探测 8 部手机的既有 USB/network 路由；无 Watch 时最多 16 次 --discover-device，另有 1 次 --list，共最多 17 个 helper 子进程，各发现路由最多 5 秒。诊断不记设备标识符；controller 在计数变化时记录，reader 路由 debug 为逐周期有界输出。发现周期更长可能延长已有候选清空后的空白窗口。
 
-## 本地验证
+## 原分支本地验证（历史）
 
 环境：macOS 27.2 (26B123)，Xcode 27.0 (27A266a)。
 
@@ -55,7 +57,10 @@
 - Task 2：`15f03ca3`。Reader → Controller 的全失败/部分失败/坏 JSON/原生错误分类先红后绿，8 XCTest + 47 Swift Testing 通过；协议兼容回归 31 XCTest + 10 catalog tests 通过。独立审查 Spec/Quality Approved。
 - Task 3：`63f991f1`。真实 Reader 的 summary sink 回归先红后绿（33 Swift Testing 通过）：USB `[p]` / network `[p,w]` 计 2 个 identity；多 phone 重复、首组 9、预算丢弃的计数均覆盖。只对统计视图去重，实际 cap/返回候选及路由诊断不变。独立审查 Spec/Quality Approved。
 - Task 4：`532e75d1`。组内 records 一致性及交叉歧义、connection generation/设备快照 generation 保护先红后绿。聚焦 19 XCTest + 24 Swift Testing 通过；蓝牙扩大回归 414 XCTest（2 跳过）+ 210 Swift Testing 通过，均 0 失败。独立审查 Spec/Quality Approved。每次连接事件即清电量，warm 请求等到当前 generation 的新设备快照；旧 profiler/accessory 晚回调均不能恢复旧电量。事件缺少地址，因此可能短暂清掉其他设备电量；仍合并 I/O，不增加 profiler 并发或轮询。
-- 最终整合/full：待运行于冻结提交；最终结果须包含本轮 SHA、exit 与日志。
+- 最终整合/full：**PASS**，命令 `bash scripts/verify-local.sh full`，exit **0**；干净冻结提交 `5ca8c0801086af497b3fb8db7063e5ae880de410`（源代码与 `532e75d1` 相同，之后仅补文档）。Xcode 27.0 / Swift 6.4 / SDK 27.0；XCTest **2442 项、67 跳过、0 失败**；Swift Testing **872 项 / 122 suites 通过**。Release、非 Universal Ad-hoc app bundle、SDK/平台与两个 Helper bundle 契约、全部原生检查及离线发布流程模拟通过。可见 UI 默认跳过，未启用 opt-in。
+- 本轮日志：`/tmp/status-trio-248-249-followup-full.log`，保留副本 `.build/local-verification/248-249-followup-full.log`（与后续 docs 检查日志分开）。文档收尾提交不改变已验证源代码；不把此验证称为 Developer ID 签名、公证、Universal、DMG、发布或 macOS 13 运行时通过。
+- 最终全分支复核：`3ff11ffb..5ca8c080`，14 个路径；逐任务 Spec/Quality 全部 Approved。`group/smart-auto` 两位成员复核安全/输入假设/资源滥用、架构/组合/合法操作级联，未发现本轮新增阻塞问题；主代理追过成功 snapshot 对早前 USB failure 的显示优先级。审查与行为测试不能替代硬件验收。
 - 已知既有窗口：deactivate 不清空设备列表，也不推进连接 generation；重新激活时，在新 profiler 快照到来前可能短暂沿用旧设备列表。该路径未被此次连接事件补修覆盖，未作为已修成果；重新打开与真机离场行为仍需单独验收。
 - 13:59（UTC+8）被动执行 `pmset -g accps -xml` 只看到两条 Mouse 类 accessory，无 part；这仅说明当时没有可用的 AirPods 多 part 样本。只留类别/字段是否存在的匿名记录，不留真实 identifier，不构成 AirPods 验收。
-- 两套 AirPods/多 part identifier 语义/列表外旧读数、已信任 iPhone+Watch 的 USB/Wi-Fi/首读/重连、Ventura 与当前 macOS 应用真机验收：**NOT RUN**。不自动改用 Group Identifier，不配置系统信任或配对，不启动前台 UI；不关闭 issue。
+- 15:05（UTC+8）执行本轮冻结提交打包 helper 的 `--list`：exit 0、schemaVersion 1、**phones = 0**，stderr 为空。仅作被动枚举，未保留设备名称或标识符；没有可用于本轮 Watch 读取验收的手机路由。
+- 两套 AirPods/多 part identifier 语义/列表外旧读数、已信任 iPhone+Watch 的 USB/Wi-Fi/首读/重连、Ventura 与当前 macOS 应用真机验收：**NOT RUN**。不自动改用 Group Identifier，不配置系统信任或配对，不启动前台 UI；不关闭 issue。新旧分支与 worktree 均保留，未合并、未推送。
