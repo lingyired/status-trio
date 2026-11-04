@@ -85,7 +85,8 @@ struct VolumeControlsView: View {
                     accessibilityValue: percentageText,
                     onEditingChanged: { isEditing in
                         handleVolumeEditing(isEditing)
-                    }
+                    },
+                    height: PanelLevelSliderMetrics.compactSlotHeight
                 )
                     .background(VolumeControlScrollTarget(targets: scrollTargets))
 

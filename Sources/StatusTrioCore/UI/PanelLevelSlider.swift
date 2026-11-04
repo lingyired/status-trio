@@ -6,6 +6,9 @@ import SwiftUI
 enum PanelLevelSliderMetrics {
     /// Overall control height on screen.
     static let controlHeight: CGFloat = 30
+    /// Shorter height used by the volume and mic rows so those two sliders sit
+    /// tighter vertically while the brightness rows keep `controlHeight`.
+    static let compactSlotHeight: CGFloat = 26
     /// Visible capsule height.
     static let barHeight: CGFloat = 16
     /// White thumb circle diameter.
@@ -151,6 +154,10 @@ struct PanelLevelSlider: View {
     var accessibilityValue: String? = nil
     var accessibilityHint: String? = nil
     var onEditingChanged: (Bool) -> Void = { _ in }
+    /// Overall control height on screen. The panel's default is 30; the volume
+    /// and mic rows opt into a shorter control while the brightness rows keep
+    /// the default.
+    var height: CGFloat = PanelLevelSliderMetrics.controlHeight
 
     var body: some View {
         GeometryReader { proxy in
@@ -165,11 +172,12 @@ struct PanelLevelSlider: View {
                 onValueChanged: { newValue in
                     value = newValue
                 },
-                onEditingChanged: onEditingChanged
+                onEditingChanged: onEditingChanged,
+                height: height
             )
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .frame(height: PanelLevelSliderMetrics.controlHeight)
+        .frame(height: height)
         // Accessibility lives on the native NSSlider so VoiceOver sees one
         // adjustable control with the same label/value the old Slider exposed.
     }
@@ -186,12 +194,14 @@ private extension PanelLevelSlider {
         let accessibilityHint: String?
         let onValueChanged: (Double) -> Void
         let onEditingChanged: (Bool) -> Void
+        let height: CGFloat
 
         func makeNSView(context: Context) -> PanelLevelSliderView {
             let slider = PanelLevelSliderView()
             slider.onValueChanged = onValueChanged
             slider.onEditingChanged = onEditingChanged
             slider.isEnabled = isEnabled
+            slider.designHeight = height
             slider.doubleValue = clamped(currentValue)
             slider.setLabel(label, animated: false)
             applyAccessibility(to: slider)
@@ -201,6 +211,7 @@ private extension PanelLevelSlider {
         func updateNSView(_ nsView: PanelLevelSliderView, context: Context) {
             nsView.isEnabled = isEnabled
             nsView.fillColor = NSColor(tint)
+            nsView.designHeight = height
             nsView.onValueChanged = onValueChanged
             nsView.onEditingChanged = onEditingChanged
             nsView.setLabel(label, animated: true)
@@ -247,6 +258,10 @@ final class PanelLevelSliderView: NSSlider {
             if !fillColor.isEqual(oldValue) { invalidateRaster() }
         }
     }
+
+    /// The panel's design height for this control. The volume and mic rows use
+    /// a shorter slot than the brightness rows.
+    var designHeight: CGFloat = PanelLevelSliderMetrics.controlHeight
 
     private var rasterGeneration = 0
     private var rasterBuiltGeneration = -1
@@ -303,7 +318,7 @@ final class PanelLevelSliderView: NSSlider {
     override var intrinsicContentSize: NSSize {
         NSSize(
             width: NSView.noIntrinsicMetric,
-            height: PanelLevelSliderMetrics.controlHeight
+            height: designHeight
         )
     }
 
