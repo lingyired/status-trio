@@ -179,18 +179,26 @@ struct SummaryActionAlignmentProbe {
     /// Layer-backed AppKit controls can be missing from a `cacheDisplay`
     /// bitmap, so their alignment is read from the view tree instead.
     func subviewCenterY(where predicate: (NSView) -> Bool) -> CGFloat? {
-        var result: CGFloat?
-        func walk(_ view: NSView) {
-            guard result == nil else { return }
-            if predicate(view) {
-                result = view.convert(view.bounds, to: hosting).midY
-                return
-            }
+        guard let view = firstSubview(where: predicate) else { return nil }
+        return view.convert(view.bounds, to: hosting).midY
+    }
+
+    /// The frame (in the hosting view's point space) of the first embedded
+    /// `NSView` matching `predicate`. Used to compare horizontal slot positions
+    /// across rows, which are rendered as separate hosting views.
+    func subviewFrame(where predicate: (NSView) -> Bool) -> CGRect? {
+        guard let view = firstSubview(where: predicate) else { return nil }
+        return view.convert(view.bounds, to: hosting)
+    }
+
+    private func firstSubview(where predicate: (NSView) -> Bool) -> NSView? {
+        func walk(_ view: NSView) -> NSView? {
+            if predicate(view) { return view }
             for subview in view.subviews {
-                walk(subview)
+                if let hit = walk(subview) { return hit }
             }
+            return nil
         }
-        walk(hosting)
-        return result
+        return walk(hosting)
     }
 }

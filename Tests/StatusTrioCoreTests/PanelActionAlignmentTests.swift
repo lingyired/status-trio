@@ -186,6 +186,67 @@ final class PanelActionAlignmentTests: XCTestCase {
         }
     }
 
+    func testVolumeMicBrightnessSlidersShareTheSameLeadingSlotX() throws {
+        let volumeProbe = try render(
+            VolumeControlsView(
+                state: try makeVolumeState(),
+                actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
+                onOpenSoundSettings: {}
+            )
+        )
+        let micProbe = try render(
+            AudioInputControlsView(
+                state: try makeAudioInputState(showsDeviceList: false),
+                actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
+                onOpenSoundSettings: {}
+            )
+        )
+        let brightnessProbe = try render(
+            BrightnessControlsView(
+                state: BrightnessPanelState(rows: [
+                    BrightnessRowState(
+                        id: "display",
+                        name: "Studio Display",
+                        isBuiltin: false,
+                        scalar: 0.5,
+                        canAdjust: true,
+                        backend: .directDDC,
+                        source: .directDDC,
+                        percentageText: "50%",
+                        accessibilityLabel: "Studio Display brightness",
+                        unavailableText: nil
+                    )
+                ]),
+                actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
+                onOpenDisplaySettings: {}
+            )
+        )
+
+        let xSources: [(String, CGFloat?)] = [
+            ("volume", volumeProbe.subviewFrame(where: { $0 is NSSlider })?.minX),
+            ("mic", micProbe.subviewFrame(where: { $0 is NSSlider })?.minX),
+            ("brightness", brightnessProbe.subviewFrame(where: { $0 is NSSlider })?.minX)
+        ]
+        let sliders = xSources.compactMap { $0.1 }
+        XCTAssertEqual(sliders.count, 3, "all three rows must render an NSSlider")
+        guard sliders.count == 3 else { return }
+        let reference = try XCTUnwrap(sliders.first)
+        for (name, x) in xSources {
+            XCTAssertNotNil(x, "\(name) slider must have a measurable leading x")
+            if let x {
+                XCTAssertEqual(
+                    x,
+                    reference,
+                    accuracy: 0.5,
+                    "\(name) slider must start on the same x as the volume slider"
+                )
+            }
+        }
+    }
+
     private func render<V: View>(_ view: V) throws -> SummaryActionAlignmentProbe {
         let suite = "StatusTrioCoreTests.PanelActionAlignment.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

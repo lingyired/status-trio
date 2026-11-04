@@ -46,6 +46,7 @@ private struct BrightnessRowView: View {
                 systemName: row.symbolName,
                 font: .system(size: 15, weight: .medium)
             )
+            .frame(width: PanelSummaryActionMetrics.leadingGlyphSlot)
             .foregroundStyle(.secondary)
             .accessibilityHidden(true)
 

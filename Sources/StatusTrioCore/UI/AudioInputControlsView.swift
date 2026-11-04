@@ -137,8 +137,8 @@ struct AudioInputControlsView: View {
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(state.muteTint.color())
                         .frame(
-                            width: PanelSummaryActionMetrics.hitTarget,
-                            height: PanelSummaryActionMetrics.hitTarget
+                            width: PanelSummaryActionMetrics.leadingGlyphSlot,
+                            height: PanelSummaryActionMetrics.leadingGlyphSlot
                         )
                         .accessibilityHidden(true)
 

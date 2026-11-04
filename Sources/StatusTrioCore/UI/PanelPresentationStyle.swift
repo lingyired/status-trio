@@ -3,6 +3,14 @@ import SwiftUI
 
 enum PanelSummaryActionMetrics {
     static let hitTarget: CGFloat = 24
+    /// Fixed horizontal slot for the leading (mute/input/brightness) glyph so
+    /// the volume, mic, and brightness sliders all start on the same x.
+    ///
+    /// The three panel rows use different SF Symbols (speaker / mic / sun) whose
+    /// natural ink widths differ; without a shared slot width the sliders'
+    /// leading edge drifts between rows. Equal slots keep every slider's
+    /// leading edge aligned.
+    static let leadingGlyphSlot: CGFloat = 24
     /// Gap between the trailing action icons of one summary row.
     ///
     /// The hit target already supplies most of the visual air, so a wide stack

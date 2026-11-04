@@ -68,6 +68,7 @@ struct VolumeControlsView: View {
                         systemName: state.muteSymbol,
                         font: .system(size: 15, weight: .medium)
                     )
+                        .frame(width: PanelSummaryActionMetrics.leadingGlyphSlot)
                         .foregroundStyle(state.muted ? Color.red : Color.secondary)
                         .contentShape(Rectangle())
                 }
