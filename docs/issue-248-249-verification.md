@@ -1,6 +1,6 @@
 # #248 / #249 蓝牙与配件电量验证记录
 
-**当前补修状态：** 新分支 `fix-248-249-review-followup` 的四项软件补修与交叉审查完成；`bash scripts/verify-local.sh full` 在干净冻结提交 `5ca8c0801086af497b3fb8db7063e5ae880de410` 通过（exit 0）。XCTest 2442 项（67 跳过）、Swift Testing 872 项，零失败。真机验收仍 **NOT RUN**，不代表 #248/#249 已经整体验收或发布。下文前半保留旧分支历史，最新记录见末节。
+**当前补修状态：** 四项软件补修与交叉审查完成，已合并进 `main`（`fcce4213`）并推送；合并后最终树 `8db0045b` 的 `bash scripts/verify-local.sh full` 通过（exit 0，XCTest 2469 项、71 跳过，Swift Testing 907 项，零失败）。真机验收 **NOT RUN**，按用户决定改由真实设备使用验证，不代表 #248/#249 已整体验收或发布，issue 仍保持打开。下文前半保留原分支历史。
 
 ## 原分支范围与基线（历史）
 
@@ -9,7 +9,7 @@
 - #249：`02c0dab9`；#248：`dc24edea`。
 - 审查后 #249 截断诊断：`76df99a2`，资源边界说明：`ae30d021`。计数在 cap 前后同时汇总，显示被省略的组及 Watch 数。
 - 测试基线修正：`c8cc310c`。#247 的 `b221d721` 已将权限动作文案改为“Wi-Fi 网络”，旧断言仍为“Wi-Fi 名称”；单独同步精确断言，保留语言验证。
-- 不合并、不推送、不关闭 issue，留待统一验收。
+- 该历史分支后来随补修分支一并合入 `main`（`fcce4213`）；issue 仍不关闭，等发布版本统一核对。
 
 ## 实现及取舍
 
@@ -51,7 +51,7 @@
 
 - 用户要求新增分支/worktree：`fix-248-249-review-followup`，从旧分支 `3ff11ffbad0f1b0aeb27f362c72897ee7ac5907d` 开始；原 worktree 与未提交计划保留不动。
 - 计划：`docs/superpowers/plans/2026-11-04-accessory-battery-review-followup.md`；已配置 `group/smart-auto` 的子任务实施与交叉审查，主代理做最终整合验证。新任务的本地 full 结果须单列，不能沿用上文旧 SHA 的 PASS。
-- 已 fetch 的 `origin/main`：`ddd728eeb50e992721158dfc64642841edf01b40`。相对原基线新增的主线变更与四项补修写域不重叠；原分支旧 Wi-Fi 文案断言与上游 `9e0d9c0b` 是同一修正。未合入或推送主线。
+- 合并前的 `origin/main`：`ddd728eeb50e992721158dfc64642841edf01b40`。合并基 `053fb3c2` 之后主线只在 `PanelPresentationTextTests.swift` 与补修分支重叠，两边是同一处「Wi-Fi 网络」文案修正，`git merge --no-ff` 无冲突。
 - 新 worktree 基线 focused：PASS，exit 0，21 XCTest + 60 Swift Testing（3 suites）；日志 `/tmp/status-trio-followup-baseline.log`。
 - Task 1：`cc53657c`。脚本 executor 等到传入的 USB timeout 用尽后抛错的回归先红后绿（不是真机 USB），27 Swift Testing 通过；独立审查 Spec/Quality Approved。Watch 5 秒总执行预算保留，按剩余路由均分；双路由首路最多约 2.5 秒，最后一路拿当时剩余预算。每路前检查取消。慢 USB 的真机影响仍待验证，不保证进程清理后的墙钟严格 5 秒。
 - Task 2：`15f03ca3`。Reader → Controller 的全失败/部分失败/坏 JSON/原生错误分类先红后绿，8 XCTest + 47 Swift Testing 通过；协议兼容回归 31 XCTest + 10 catalog tests 通过。独立审查 Spec/Quality Approved。
@@ -63,4 +63,5 @@
 - 已知既有窗口：deactivate 不清空设备列表，也不推进连接 generation；重新激活时，在新 profiler 快照到来前可能短暂沿用旧设备列表。该路径未被此次连接事件补修覆盖，未作为已修成果；重新打开与真机离场行为仍需单独验收。
 - 13:59（UTC+8）被动执行 `pmset -g accps -xml` 只看到两条 Mouse 类 accessory，无 part；这仅说明当时没有可用的 AirPods 多 part 样本。只留类别/字段是否存在的匿名记录，不留真实 identifier，不构成 AirPods 验收。
 - 15:05（UTC+8）执行本轮冻结提交打包 helper 的 `--list`：exit 0、schemaVersion 1、**phones = 0**，stderr 为空。仅作被动枚举，未保留设备名称或标识符；没有可用于本轮 Watch 读取验收的手机路由。
-- 两套 AirPods/多 part identifier 语义/列表外旧读数、已信任 iPhone+Watch 的 USB/Wi-Fi/首读/重连、Ventura 与当前 macOS 应用真机验收：**NOT RUN**。不自动改用 Group Identifier，不配置系统信任或配对，不启动前台 UI；不关闭 issue。新旧分支与 worktree 均保留，未合并、未推送。
+- 两套 AirPods/多 part identifier 语义/列表外旧读数、已信任 iPhone+Watch 的 USB/Wi-Fi/首读/重连、Ventura 与当前 macOS 应用真机验收：**NOT RUN**。用户确认这些项目只能由实际使用者在真实设备上尝试，因此以合并后由用户验证代替本机硬件验收。不自动改用 Group Identifier，不配置系统信任或配对，不启动前台 UI。
+- 合并：`fcce4213`（`--no-ff`，分支 `fix-248-249-review-followup` 入 `main`），同日主线另有 #262 合并 `8db0045b`。合并后最终树 `8db0045b` 的 `bash scripts/verify-local.sh full` **PASS，exit 0**：XCTest **2469 项、71 跳过、0 失败**、Swift Testing **907 项 / 127 suites**；日志 `/tmp/status-trio-main-merge-full.log`。已推送到 `origin/main`。issue 仍未关闭，等发布版本统一核对。
