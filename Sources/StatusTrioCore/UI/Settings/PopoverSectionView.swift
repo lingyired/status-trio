@@ -9,8 +9,24 @@ struct PopoverSectionView: View {
     var body: some View {
         SettingsPage {
             backgroundStyleGroup
+            scrollDirectionGroup
             popupOrderGroup
             openBehaviorGroup
+        }
+    }
+
+    private var scrollDirectionGroup: some View {
+        SettingsGroup(
+            localization.string(.settingsPopupVolumeScrollDirection),
+            footnote: localization.string(.settingsPopupVolumeScrollDirectionDescription)
+        ) {
+            SettingsToggleRow(
+                symbol: "arrow.up.arrow.down",
+                tint: .indigo,
+                title: localization.string(.settingsPopupVolumeScrollNatural),
+                subtitle: localization.string(.settingsPopupVolumeScrollNaturalDescription),
+                isOn: $store.popupVolumeNaturalScrolling
+            )
         }
     }
 

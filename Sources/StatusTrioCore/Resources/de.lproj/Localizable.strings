@@ -386,19 +386,20 @@
 "settings.panel.returnsToSummaryOnOpen" = "Beim Öffnen immer zur Übersichtsseite zurückkehren";
 "settings.panel.returnsToSummaryOnOpen.description" = "Wenn diese Option aktiviert ist, öffnet sich das Statuspanel immer auf der Übersichtsseite; andernfalls wird die zuletzt angezeigte Seite beibehalten.";
 "settings.popup.volumeScroll.group" = "Panel-Scrollen";
-"settings.popup.volumeScroll" = "Lautstärke durch Scrollen ändern";
-"settings.popup.volumeScroll.description" = "Im Statusbereich scrollen, um die Ausgabelautstärke zu ändern.";
+"settings.audio.volumeScroll.group" = "Lautstärke-Scrollen";
+"settings.popup.volumeScroll" = "Durch Scrollen anpassen";
+"settings.popup.volumeScroll.description" = "Im Statusfeld scrollen, um die Ausgangslautstärke zu ändern. Über einem Regler wird stattdessen dieser Regler angepasst (Lautstärke, Helligkeit oder Eingangsverstärkung).";
 "settings.popup.volumeScroll.scope" = "Bereich";
-"settings.popup.volumeScroll.scope.description" = "Wähle, wo die Scrollgeste die Lautstärke ändert.";
+"settings.popup.volumeScroll.scope.description" = "Wählen Sie, ob Scrollen über leeren Bereichen des Felds die Ausgangslautstärke ändert.";
 "settings.popup.volumeScroll.scope.panel" = "Ganzer Bereich";
-"settings.popup.volumeScroll.scope.volumeControl" = "Nur Lautstärkeregler";
+"settings.popup.volumeScroll.scope.volumeControl" = "Nur auf Reglern";
 "settings.popup.volumeScroll.natural" = "Natürliches Scrollen";
-"settings.popup.volumeScroll.natural.description" = "Wenn aktiviert, erhöht Scrollen nach oben mit Maus oder Trackpad die Lautstärke. Wenn deaktiviert, folgt die Lautstärke der System-Scrollrichtung. Wenn nach dem Aktivieren dieser Option Scrollen mit der Maus nach oben weiterhin die Lautstärke verringert, konfigurieren Sie MOS, Scroll Reverser, LinearMouse oder eine ähnliche App so, dass Status Trio unverändert bleibt, normalerweise über eine Ausnahme-/Ignorierliste (manchmal Allowlist genannt).";
+"settings.popup.volumeScroll.natural.description" = "Wenn aktiviert, erhöht Scrollen nach oben den Wert unter dem Zeiger (Lautstärke, Helligkeit oder Eingangsverstärkung); deaktiviert folgt es der Scrollrichtung des Systems. Sinkt der Wert beim Hochscrollen nach dem Aktivieren dieser Option weiterhin, nehmen Sie Status Trio in MOS, Scroll Reverser, LinearMouse o. Ä. über eine Ausnahme-/Ignorierliste aus.";
 "settings.audio.volumeFeedbackTitle" = "Lautstärke-Feedback";
 "settings.audio.volumeFeedback" = "Ton beim Scrollen zur Lautstärkeänderung abspielen";
 "settings.audio.volumeFeedbackDescription" = "Spielt den Ton ab, wenn du die Lautstärke durch Scrollen änderst. Standardmäßig gilt die macOS-Einstellung „Feedback bei Lautstärkeänderung wiedergeben“; ein Umschalten hier gilt nur für Status Trio.";
 "settings.popup.volumeScroll.direction" = "Scrollrichtung";
-"settings.popup.volumeScroll.direction.description" = "Wähle die Richtung, die die Lautstärke erhöht.";
+"settings.popup.volumeScroll.direction.description" = "Gilt für die Lautstärke-, Helligkeits- und Eingangsregler.";
 "settings.popup.volumeScroll.direction.up" = "Nach oben";
 "settings.popup.volumeScroll.direction.down" = "Nach unten";
 
@@ -669,6 +670,7 @@
 "brightness.row.accessibility" = "Helligkeit für %@, %@";
 "brightness.row.accessibilityUnavailable" = "Helligkeit für %@, %@";
 "brightness.unavailable" = "Nicht verfügbar";
+"brightness.action.openSettings" = "Bildschirmeinstellungen öffnen";
 "brightness.appAbsent" = "Erfordert BetterDisplay";
 "brightness.noBackend" = "Keine Helligkeitssteuerung";
 "brightness.unresponsive" = "Reagiert nicht";

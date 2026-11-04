@@ -31,12 +31,52 @@ final class PanelActionAlignmentTests: XCTestCase {
         }
     }
 
+    func testBrightnessRowCentersPercentageAndGearWithTheSlider() throws {
+        let state = BrightnessPanelState(rows: [
+            BrightnessRowState(
+                id: "display",
+                name: "Studio Display",
+                isBuiltin: false,
+                scalar: 0.5,
+                canAdjust: true,
+                backend: .directDDC,
+                source: .directDDC,
+                percentageText: "50%",
+                accessibilityLabel: "Studio Display brightness",
+                unavailableText: nil
+            )
+        ])
+        let probe = try render(
+            BrightnessControlsView(
+                state: state,
+                actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
+                onOpenDisplaySettings: {}
+            )
+        )
+        let actions = probe.trailingGlyphRects(count: 2, minimumX: 200)
+        XCTAssertEqual(actions.count, 2, "brightness row must render its percentage and gear")
+        guard actions.count == 2 else { return }
+
+        let rowCenter = probe.controlRowCenterY(excluding: actions)
+        for (name, rect) in zip(["percentage", "gear"], actions) {
+            let center = try XCTUnwrap(probe.glyphCenterY(in: rect))
+            XCTAssertEqual(
+                center,
+                try XCTUnwrap(rowCenter),
+                accuracy: 1,
+                "\(name) center must match the brightness row's rendered center"
+            )
+        }
+    }
+
     func testAudioInputControlsCenterMuteAndSettingsWithTheSliderRow() throws {
         let state = try makeAudioInputState(showsDeviceList: false)
         let probe = try render(
             AudioInputControlsView(
                 state: state,
                 actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
                 onOpenSoundSettings: {}
             )
         )

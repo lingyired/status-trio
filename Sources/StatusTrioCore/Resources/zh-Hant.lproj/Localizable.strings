@@ -386,19 +386,20 @@
 "settings.panel.returnsToSummaryOnOpen" = "每次開啟都回到總覽頁面";
 "settings.panel.returnsToSummaryOnOpen.description" = "開啟後，每次打開狀態面板都從總覽頁面開始；關閉時會保留上次查看的詳細頁面。";
 "settings.popup.volumeScroll.group" = "面板滾動";
-"settings.popup.volumeScroll" = "捲動調節音量";
-"settings.popup.volumeScroll.description" = "在狀態面板內滾動即可調節輸出音量。";
+"settings.audio.volumeScroll.group" = "音量滾動";
+"settings.popup.volumeScroll" = "滾動調節";
+"settings.popup.volumeScroll.description" = "在狀態面板內滾動調節輸出音量；指標位於滑桿上時改為調節該滑桿（音量、亮度或輸入增益）。";
 "settings.popup.volumeScroll.scope" = "生效範圍";
-"settings.popup.volumeScroll.scope.description" = "選擇哪裡的滾動手勢會改變音量。";
+"settings.popup.volumeScroll.scope.description" = "選擇空白處的滾動是否調節輸出音量。";
 "settings.popup.volumeScroll.scope.panel" = "整個面板";
-"settings.popup.volumeScroll.scope.volumeControl" = "僅音量元件";
+"settings.popup.volumeScroll.scope.volumeControl" = "僅滑桿";
 "settings.popup.volumeScroll.natural" = "自然捲動";
-"settings.popup.volumeScroll.natural.description" = "開啟後，滑鼠和觸控板上滑都會提高音量；關閉後，音量跟隨系統的捲動方向。如果開啟後滑鼠上滑仍然降低音量，請在 MOS、Scroll Reverser、LinearMouse 等應用程式中將 Status Trio 設為不處理，通常可加入例外/忽略清單（部分應用稱為白名單）。";
+"settings.popup.volumeScroll.natural.description" = "開啟後，上滾增大指標下的數值（音量、亮度或輸入增益）；關閉後跟隨系統的滾動方向。如果開啟後上滾仍然減小數值，請在 MOS、Scroll Reverser、LinearMouse 等應用中將 Status Trio 設為不處理，通常可加入例外/忽略清單（部分應用稱為白名單）。";
 "settings.audio.volumeFeedbackTitle" = "音量回饋";
 "settings.audio.volumeFeedback" = "滾動調節音量時播放提示音";
 "settings.audio.volumeFeedbackDescription" = "滾動調節音量時播放提示音。預設跟隨 macOS「音量更改時播放回饋」設定；在此切換後僅對 Status Trio 生效。";
 "settings.popup.volumeScroll.direction" = "滾動方向";
-"settings.popup.volumeScroll.direction.description" = "選擇增大音量的滾動方向。";
+"settings.popup.volumeScroll.direction.description" = "適用於音量、亮度與輸入滑桿。";
 "settings.popup.volumeScroll.direction.up" = "上滑";
 "settings.popup.volumeScroll.direction.down" = "下滑";
 
@@ -669,6 +670,7 @@
 "brightness.row.accessibility" = "%@ 的亮度，%@";
 "brightness.row.accessibilityUnavailable" = "%@ 的亮度，%@";
 "brightness.unavailable" = "無法使用";
+"brightness.action.openSettings" = "打開顯示器設定";
 "brightness.appAbsent" = "需要 BetterDisplay";
 "brightness.noBackend" = "無法控制亮度";
 "brightness.unresponsive" = "沒有回應";

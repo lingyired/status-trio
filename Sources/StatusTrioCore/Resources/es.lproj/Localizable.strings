@@ -386,19 +386,20 @@
 "settings.panel.returnsToSummaryOnOpen" = "Volver siempre a la página de resumen al abrir";
 "settings.panel.returnsToSummaryOnOpen.description" = "Si se activa, el panel de estado se abre siempre en la página de resumen; en caso contrario, recuerda la última página que viste.";
 "settings.popup.volumeScroll.group" = "Desplazamiento del panel";
-"settings.popup.volumeScroll" = "Ajustar el volumen desplazándose";
-"settings.popup.volumeScroll.description" = "Desplázate dentro del panel de estado para cambiar el volumen de salida.";
+"settings.audio.volumeScroll.group" = "Desplazamiento de volumen";
+"settings.popup.volumeScroll" = "Ajustar desplazando";
+"settings.popup.volumeScroll.description" = "Desplázate dentro del panel de estado para cambiar el volumen de salida. Sobre un deslizador, el desplazamiento ajusta ese deslizador (volumen, brillo o ganancia de entrada).";
 "settings.popup.volumeScroll.scope" = "Área";
-"settings.popup.volumeScroll.scope.description" = "Elige dónde cambia el volumen el gesto de desplazamiento.";
+"settings.popup.volumeScroll.scope.description" = "Elige si el desplazamiento sobre zonas vacías del panel ajusta el volumen de salida.";
 "settings.popup.volumeScroll.scope.panel" = "Todo el panel";
-"settings.popup.volumeScroll.scope.volumeControl" = "Solo el control de volumen";
+"settings.popup.volumeScroll.scope.volumeControl" = "Solo en deslizadores";
 "settings.popup.volumeScroll.natural" = "Desplazamiento natural";
-"settings.popup.volumeScroll.natural.description" = "Si está activado, desplazarse hacia arriba con el ratón o el trackpad sube el volumen. Si está desactivado, el volumen sigue la dirección de desplazamiento del sistema. Si, tras activar esta opción, desplazar el ratón hacia arriba sigue bajando el volumen, configura MOS, Scroll Reverser, LinearMouse o una app similar para dejar Status Trio sin cambios, normalmente mediante una lista de excepciones/omisiones (a veces llamada lista de permitidos).";
+"settings.popup.volumeScroll.natural.description" = "Cuando está activado, desplazarse hacia arriba aumenta el valor bajo el puntero (volumen, brillo o ganancia de entrada); si está desactivado, sigue la dirección de desplazamiento del sistema. Si el valor sigue bajando al desplazarte hacia arriba tras activar esta opción, excluye Status Trio en MOS, Scroll Reverser, LinearMouse o una app similar, normalmente mediante una lista de excepciones/omisiones.";
 "settings.audio.volumeFeedbackTitle" = "Comentarios de volumen";
 "settings.audio.volumeFeedback" = "Reproducir un sonido al cambiar el volumen con el desplazamiento";
 "settings.audio.volumeFeedbackDescription" = "Reproduce el sonido al cambiar el volumen con el desplazamiento. De forma predeterminada sigue el ajuste de macOS «reproducir sonido al cambiar el volumen»; este interruptor solo afecta a Status Trio.";
 "settings.popup.volumeScroll.direction" = "Dirección del desplazamiento";
-"settings.popup.volumeScroll.direction.description" = "Elige la dirección que sube el volumen.";
+"settings.popup.volumeScroll.direction.description" = "Se aplica a los deslizadores de volumen, brillo y entrada.";
 "settings.popup.volumeScroll.direction.up" = "Hacia arriba";
 "settings.popup.volumeScroll.direction.down" = "Hacia abajo";
 
@@ -669,6 +670,7 @@
 "brightness.row.accessibility" = "Brillo de %@, %@";
 "brightness.row.accessibilityUnavailable" = "Brillo de %@, %@";
 "brightness.unavailable" = "No disponible";
+"brightness.action.openSettings" = "Abrir ajustes de pantalla";
 "brightness.appAbsent" = "Requiere BetterDisplay";
 "brightness.noBackend" = "Sin control de brillo";
 "brightness.unresponsive" = "No responde";

@@ -71,9 +71,9 @@ struct AudioSectionView: View {
     }
 
     private var volumeScrollGroup: some View {
-        SettingsGroup(localization.string(.settingsPopupVolumeScrollGroup)) {
+        SettingsGroup(localization.string(.settingsAudioVolumeScrollGroup)) {
             SettingsToggleRow(
-                symbol: "speaker.wave.2.fill",
+                symbol: "arrow.up.arrow.down.circle.fill",
                 tint: .cyan,
                 title: localization.string(.settingsPopupVolumeScroll),
                 subtitle: localization.string(.settingsPopupVolumeScrollDescription),
@@ -91,16 +91,6 @@ struct AudioSectionView: View {
                     selection: $store.popupVolumeScrollScope,
                     options: PopupVolumeScrollScope.allCases,
                     label: scrollScopeLabel
-                )
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "arrow.up.arrow.down",
-                    tint: .indigo,
-                    title: localization.string(.settingsPopupVolumeScrollNatural),
-                    subtitle: localization.string(.settingsPopupVolumeScrollNaturalDescription),
-                    isOn: $store.popupVolumeNaturalScrolling
                 )
             }
         }

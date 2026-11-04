@@ -386,19 +386,20 @@
 "settings.panel.returnsToSummaryOnOpen" = "Toujours s’ouvrir sur la page de résumé";
 "settings.panel.returnsToSummaryOnOpen.description" = "Lorsque cette option est activée, le panneau d’état s’ouvre toujours sur la page de résumé ; sinon, il conserve la dernière page consultée.";
 "settings.popup.volumeScroll.group" = "Défilement du panneau";
-"settings.popup.volumeScroll" = "Régler le volume en défilant";
-"settings.popup.volumeScroll.description" = "Faites défiler dans le panneau d’état pour changer le volume de sortie.";
+"settings.audio.volumeScroll.group" = "Défilement du volume";
+"settings.popup.volumeScroll" = "Ajuster par défilement";
+"settings.popup.volumeScroll.description" = "Faites défiler dans le panneau d’état pour changer le volume de sortie. Sur un curseur, le défilement ajuste ce curseur (volume, luminosité ou gain d’entrée).";
 "settings.popup.volumeScroll.scope" = "Zone";
-"settings.popup.volumeScroll.scope.description" = "Choisissez la zone où le défilement modifie le volume.";
+"settings.popup.volumeScroll.scope.description" = "Choisissez si le défilement sur les zones vides du panneau ajuste le volume de sortie.";
 "settings.popup.volumeScroll.scope.panel" = "Tout le panneau";
-"settings.popup.volumeScroll.scope.volumeControl" = "Réglage du volume uniquement";
+"settings.popup.volumeScroll.scope.volumeControl" = "Curseurs uniquement";
 "settings.popup.volumeScroll.natural" = "Défilement naturel";
-"settings.popup.volumeScroll.natural.description" = "Lorsque cette option est activée, un défilement vers le haut avec la souris ou le trackpad augmente le volume. Sinon, le volume suit le sens de défilement du système. Si, après avoir activé cette option, le défilement vers le haut de la souris fait encore baisser le volume, configurez MOS, Scroll Reverser, LinearMouse ou une app similaire pour laisser Status Trio inchangé, généralement via une liste d’exceptions/d’ignorés (parfois appelée liste d’autorisation).";
+"settings.popup.volumeScroll.natural.description" = "Lorsque cette option est activée, faire défiler vers le haut augmente la valeur sous le pointeur (volume, luminosité ou gain d’entrée) ; sinon, le défilement suit la direction du système. Si la valeur baisse encore en défilant vers le haut après avoir activé cette option, excluez Status Trio dans MOS, Scroll Reverser, LinearMouse ou une app similaire, généralement via une liste d’exceptions/d’ignorés.";
 "settings.audio.volumeFeedbackTitle" = "Retour sonore du volume";
 "settings.audio.volumeFeedback" = "Émettre un son lors du réglage du volume par défilement";
 "settings.audio.volumeFeedbackDescription" = "Émet le son lorsque vous réglez le volume par défilement. Par défaut, suit le réglage macOS « émettre un retour sonore lors du changement de volume » ; ce commutateur ne s’applique qu’à Status Trio.";
 "settings.popup.volumeScroll.direction" = "Sens du défilement";
-"settings.popup.volumeScroll.direction.description" = "Choisissez le sens qui augmente le volume.";
+"settings.popup.volumeScroll.direction.description" = "S’applique aux curseurs de volume, de luminosité et d’entrée.";
 "settings.popup.volumeScroll.direction.up" = "Vers le haut";
 "settings.popup.volumeScroll.direction.down" = "Vers le bas";
 
@@ -669,6 +670,7 @@
 "brightness.row.accessibility" = "Luminosité de %@, %@";
 "brightness.row.accessibilityUnavailable" = "Luminosité de %@, %@";
 "brightness.unavailable" = "Indisponible";
+"brightness.action.openSettings" = "Ouvrir les réglages de l’écran";
 "brightness.appAbsent" = "Nécessite BetterDisplay";
 "brightness.noBackend" = "Aucun contrôle de luminosité";
 "brightness.unresponsive" = "Ne répond pas";

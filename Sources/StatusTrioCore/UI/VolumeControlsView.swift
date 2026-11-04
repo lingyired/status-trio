@@ -53,18 +53,16 @@ struct VolumeControlsView: View {
                 .help(state.muteHelp)
                 .accessibilityLabel(state.muteHelp)
 
-                Slider(
+                PanelLevelSlider(
                     value: volumeBinding,
-                    in: 0...1,
+                    isEnabled: state.canAdjust,
+                    tint: state.muted ? Color.secondary : Color.accentColor,
+                    accessibilityLabel: state.sliderLabel,
+                    accessibilityValue: percentageText,
                     onEditingChanged: { isEditing in
                         handleVolumeEditing(isEditing)
                     }
                 )
-                    .tint(state.muted ? Color.secondary : Color.accentColor)
-                    .disabled(!state.canAdjust)
-                    .accessibilityLabel(state.sliderLabel)
-                    .accessibilityValue(percentageText)
-                    .padding(.horizontal, 2)
                     .background(VolumeControlScrollTarget(targets: scrollTargets))
 
                 Text(percentageText)

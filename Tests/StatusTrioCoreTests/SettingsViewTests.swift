@@ -337,10 +337,11 @@ final class SettingsViewTests: XCTestCase {
         }
     }
 
-    /// #236: the panel-scrolling settings belong on the Audio pane, not the
-    /// status-panel pane. Guard the move at the source so a later refactor
-    /// cannot quietly split the group across two pages.
-    func testPanelScrollingSettingsLiveOnTheAudioPaneOnly() throws {
+    /// #245/#256: the volume-scroll switch and its effect scope stay on the
+    /// Audio pane, while the shared scroll direction (used by volume, brightness
+    /// and input sliders) lives on the status-panel pane. Guard the split at the
+    /// source so neither half drifts back into the other page.
+    func testScrollSettingsAreSplitBetweenPanelAndAudioPanes() throws {
         let base = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -357,16 +358,23 @@ final class SettingsViewTests: XCTestCase {
         )
 
         XCTAssertTrue(audio.contains("volumeScrollGroup"))
-        XCTAssertTrue(audio.contains("settingsPopupVolumeScrollGroup"))
+        XCTAssertTrue(audio.contains("settingsAudioVolumeScrollGroup"))
         XCTAssertTrue(audio.contains("scrollScopeLabel"))
+        XCTAssertTrue(audio.contains("popupScrollAdjustsVolume"))
+        XCTAssertTrue(audio.contains("popupVolumeScrollScope"))
+        XCTAssertFalse(audio.contains("popupVolumeNaturalScrolling"))
+        XCTAssertFalse(audio.contains("settingsPopupVolumeScrollNatural"))
 
-        XCTAssertFalse(popover.contains("volumeScrollGroup"))
-        XCTAssertFalse(popover.contains("settingsPopupVolumeScroll"))
-        XCTAssertFalse(popover.contains("scrollScopeLabel"))
+        XCTAssertTrue(popover.contains("scrollDirectionGroup"))
+        XCTAssertTrue(popover.contains("settingsPopupVolumeScrollDirection"))
+        XCTAssertTrue(popover.contains("settingsPopupVolumeScrollNatural"))
+        XCTAssertTrue(popover.contains("popupVolumeNaturalScrolling"))
         XCTAssertFalse(
             popover.contains("popupScrollAdjustsVolume"),
-            "the status-panel pane must not keep any scroll-to-volume control"
+            "the panel pane must not own the volume-scroll switch"
         )
+        XCTAssertFalse(popover.contains("popupVolumeScrollScope"))
+        XCTAssertFalse(popover.contains("scrollScopeLabel"))
     }
 
     /// The compatibility note tells users whose display DDC Status Trio cannot
