@@ -727,4 +727,4 @@
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay не запущен или его интеграция с уведомлениями отключена.";
 "settings.brightness.compatibility.title" = "Не регулируется яркость?";
 "settings.brightness.compatibility.description" = "Производители реализуют DDC по-разному, поэтому Status Trio не может поддерживать все модели. Если яркость дисплея здесь не регулируется, переключите его на бэкенд BetterDisplay — Status Trio будет управлять им через BetterDisplay. Бесплатной версии достаточно; лицензия Pro не нужна.";
-"settings.brightness.compatibility.link" = "Скачать BetterDisplay";
+"settings.brightness.compatibility.link" = "Скачать BetterDisplay (бесплатно)";

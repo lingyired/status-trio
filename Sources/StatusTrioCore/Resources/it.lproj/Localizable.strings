@@ -727,4 +727,4 @@
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay non è in esecuzione o la sua integrazione delle notifiche è disattivata.";
 "settings.brightness.compatibility.title" = "Luminosità non controllabile?";
 "settings.brightness.compatibility.description" = "Ogni produttore implementa DDC a modo suo, quindi Status Trio non può coprire tutti i modelli. Se la luminosità di un display non è regolabile qui, passalo al backend BetterDisplay: Status Trio lo controllerà tramite BetterDisplay. La versione gratuita è sufficiente; non serve una licenza Pro.";
-"settings.brightness.compatibility.link" = "Scarica BetterDisplay";
+"settings.brightness.compatibility.link" = "Scarica BetterDisplay (gratis)";

@@ -727,4 +727,4 @@
 "settings.brightness.backend.betterDisplayNeeded" = "O BetterDisplay não está em execução ou sua integração de notificações está desativada.";
 "settings.brightness.compatibility.title" = "Não consegue controlar uma tela?";
 "settings.brightness.compatibility.description" = "Cada fabricante implementa o DDC de um jeito, então o Status Trio não consegue cobrir todos os modelos. Se o brilho de uma tela não puder ser ajustado aqui, mude-a para o backend BetterDisplay — o Status Trio vai controlá-la pelo BetterDisplay. A versão gratuita é suficiente; não é preciso licença Pro.";
-"settings.brightness.compatibility.link" = "Obter o BetterDisplay";
+"settings.brightness.compatibility.link" = "Baixar o BetterDisplay (grátis)";

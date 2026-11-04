@@ -59,21 +59,26 @@ struct BrightnessSectionView: View {
     /// Closing note for displays Status Trio cannot drive directly: vendor DDC
     /// implementations differ, so the honest answer is to hand those displays to
     /// a dedicated app rather than claim full coverage.
+    ///
+    /// The link is its own button under the paragraph rather than an inline
+    /// `subtitleLink`: that keeps only the link tappable and stops a long label
+    /// from breaking mid-word inside the sentence.
     private var compatibilityGroup: some View {
         SettingsGroup {
-            SettingsRow(
-                "questionmark.circle",
-                tint: .secondary,
+            SettingsCustomRow(
                 title: localization.string(.settingsBrightnessCompatibilityTitle),
                 subtitle: localization.string(.settingsBrightnessCompatibilityDescription),
-                subtitleLink: Text(
-                    localization.string(.settingsBrightnessCompatibilityLink)
-                )
-                .foregroundColor(Color.accentColor),
-                subtitleLinkAction: openBetterDisplayWebsite
-            ) {
-                EmptyView()
-            }
+                leading: {
+                    SettingsIcon(symbol: "questionmark.circle", tint: .secondary)
+                },
+                content: {
+                    Button(localization.string(.settingsBrightnessCompatibilityLink)) {
+                        openBetterDisplayWebsite()
+                    }
+                    .buttonStyle(.link)
+                    .controlSize(.small)
+                }
+            )
         }
     }
 

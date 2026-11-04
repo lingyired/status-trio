@@ -727,4 +727,4 @@
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay 未运行，或未开启通知集成。";
 "settings.brightness.compatibility.title" = "显示器调不了亮度？";
 "settings.brightness.compatibility.description" = "各家显示器的 DDC 实现并不统一，Status Trio 无法覆盖所有型号。如果某台显示器的亮度在这里调不了，可以把它切到 BetterDisplay 后端——Status Trio 会通过 BetterDisplay 来调节。免费版就够用，不需要购买 Pro。";
-"settings.brightness.compatibility.link" = "前往 BetterDisplay 官网";
+"settings.brightness.compatibility.link" = "下载 BetterDisplay（免费）";
