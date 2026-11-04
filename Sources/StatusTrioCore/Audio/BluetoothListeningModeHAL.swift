@@ -182,10 +182,11 @@ struct BluetoothListeningModeHAL {
         let canSet = backend.isSettable(deviceID, BluetoothListeningModeProperty.listeningMode)
         return BluetoothListeningModeCapability(
             audioDeviceID: deviceID,
-            // Off has no lsms bit. The existing lstm writer already supports it;
-            // include it explicitly when the endpoint advertises noise control.
-            availableModes: supportMask & BluetoothListeningModeSupport.recognizedMask != 0
-                ? [.off] + BluetoothListeningModeSupport.availableModes(from: supportMask) : [],
+            // lsms describes supported modes, not the user's permission to use
+            // Off. Until that separate setting is readable, expose Off only when
+            // the headset reports it as current; never infer permission from lsms.
+            availableModes: (rawMode == BluetoothListeningMode.off.rawValue ? [.off] : [])
+                + BluetoothListeningModeSupport.availableModes(from: supportMask),
             currentMode: BluetoothListeningModeRawValue.mode(from: rawMode),
             canSet: canSet
         )

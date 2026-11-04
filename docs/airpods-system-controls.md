@@ -254,3 +254,19 @@ registrations and rejects queued callbacks; reopening starts a fresh read and
 subscription. A spatial write defers notification reads until its confirmation
 finishes. Playback updates received during the supplementary Bluetooth read are
 published immediately and cannot be overwritten by its older snapshot.
+
+### Off listening-mode visibility (2026-11-04)
+
+`lsms = 7` and AVFoundation's `availableBluetoothListeningModes` both include
+normal noise-control capability while the user confirms **Off Listening Mode is
+disabled**. Neither is evidence that Off is allowed. Control Center separately
+uses `AudioAccessoryDevice.listeningModeOffAllowed`; the unprivileged
+AADeviceManager paired-device read returned no devices, and AAController
+activation returned `Missing entitlement: com.apple.bluetooth.system`.
+
+Until a reliable permission read is available, only an observed `lstm = 1`
+adds the Off row. Enabled-but-unselected Off is therefore not yet detected.
+Re-selecting the current CoreAudio listening mode is a no-op, preventing the
+old implicit-Off shortcut from bypassing the missing row. The private
+`person.closed.fill` artwork puts its ring in the first palette layer: dim that
+layer and keep the person solid, like the Spatialize Stereo Off artwork.

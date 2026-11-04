@@ -146,12 +146,12 @@ final class BluetoothListeningModeHALTests: XCTestCase {
 
     // MARK: - Support-mask parsing (§18.1)
 
-    func testSupportMaskSingleModeCanSwitchToOff() {
+    func testSupportMaskDoesNotImplyOffPermission() {
         let backend = FakeListeningModeBackend()
         backend.lsms.value = 0b001
         let capability = makeHAL(backend).capability(for: device)
-        XCTAssertEqual(capability?.availableModes, [.off, .noiseCancellation])
-        XCTAssertEqual(capability?.isControllable, true, "noise control can switch between Off and ANC")
+        XCTAssertEqual(capability?.availableModes, [.noiseCancellation])
+        XCTAssertEqual(capability?.isControllable, false)
     }
 
     func testSupportMaskTwoModes() {
@@ -159,7 +159,7 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         backend.lsms.value = 0b011
         XCTAssertEqual(
             makeHAL(backend).capability(for: device)?.availableModes,
-            [.off, .noiseCancellation, .transparency]
+            [.noiseCancellation, .transparency]
         )
     }
 
@@ -168,7 +168,7 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         backend.lsms.value = 0b111
         XCTAssertEqual(
             makeHAL(backend).capability(for: device)?.availableModes,
-            [.off, .noiseCancellation, .transparency, .adaptive]
+            [.noiseCancellation, .transparency, .adaptive]
         )
     }
 
@@ -176,7 +176,7 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         let backend = FakeListeningModeBackend()
         backend.lsms.value = 0b1_0111 // a future bit at position 3 plus all three known
         let capability = makeHAL(backend).capability(for: device)
-        XCTAssertEqual(capability?.availableModes, [.off, .noiseCancellation, .transparency, .adaptive])
+        XCTAssertEqual(capability?.availableModes, [.noiseCancellation, .transparency, .adaptive])
         XCTAssertTrue(
             BluetoothListeningModeSupport.hasUnknownBits(backend.lsms.value),
             "the unknown bit is reported, never promoted to a mode"

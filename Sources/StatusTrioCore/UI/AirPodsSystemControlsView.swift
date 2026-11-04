@@ -11,7 +11,7 @@ enum AirPodsControlSymbols {
         // Stereo artwork puts waves in the primary layer; conversation artwork
         // puts the person there. Explicit palettes keep the person solid in both.
         let dimmed = color.withAlphaComponent(0.35)
-        let colors = name == "person.spatialaudio.stereo.fill" ? [dimmed, color] : [color, dimmed]
+        let colors = ["person.spatialaudio.stereo.fill", "person.closed.fill"].contains(name) ? [dimmed, color] : [color, dimmed]
         let result = source.withSymbolConfiguration(.init(paletteColors: colors)) ?? source
         let copy = (result.copy() as? NSImage) ?? result
         copy.isTemplate = false

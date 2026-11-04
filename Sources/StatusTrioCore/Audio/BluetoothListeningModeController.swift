@@ -439,9 +439,9 @@ final class BluetoothListeningModeController: ObservableObject {
             return
         }
         guard !presentation.isChanging else { return }
-        // A tap on the capsule already highlighted means "turn it off"; any other
-        // tap selects that mode, including the explicit Off row.
-        let target = presentation.requestedMode(forTapped: mode)
+        // A selected CoreAudio row is a no-op. Do not bypass the Off permission
+        // gate by implicitly turning noise control off on a second tap.
+        let target = mode
         guard target != presentation.selectedMode else { return }
 
         presentation = presentation.changing(to: target)
