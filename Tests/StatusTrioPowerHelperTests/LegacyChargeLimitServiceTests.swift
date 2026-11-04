@@ -178,6 +178,62 @@ final class LegacyChargeLimitServiceTests: XCTestCase {
         XCTAssertEqual(second?.succeeded, false)
     }
 
+    // MARK: - Stale journal identity
+
+    func testJournalFromAnotherModelIsIgnoredAndNeverWritten() {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        let foreign = LegacyChargeLimitJournal(
+            backend: .intelBCLM,
+            hardwareModel: "MacBookPro16,1",
+            requestedLimit: 80,
+            originalRaw: ["BCLM": Data([40])],
+            lastWrittenRaw: ["BCLM": Data([40])]
+        )
+        journal.save(foreign)
+
+        let service = LegacyChargeLimitService(
+            executor: executor,
+            journal: journal,
+            battery: FakeBatterySource(level: 50),
+            hardware: LegacyHardwareFacts(isIntel: true, allowsLegacyLimiter: true, hasInternalBattery: true),
+            hardwareModel: "Mac15,9"
+        )
+        var reply: SMLegacyChargeLimitWriteReply?
+        service.disableLegacyChargeLimit(expectedLimit: nil) { reply = $0 }
+        XCTAssertEqual(reply?.succeeded, false)
+        XCTAssertTrue(executor.writes.isEmpty, "A foreign journal must not drive a write")
+
+        var full: SMLegacyChargeLimitWriteReply?
+        service.legacyChargeToFullOnce { full = $0 }
+        XCTAssertEqual(full?.succeeded, false)
+        XCTAssertTrue(executor.writes.isEmpty)
+    }
+
+    func testJournalOnTheSameModelIsHonoured() {
+        // The hardware sits at the value this journal last wrote (80).
+        let executor = intelExecutor(80)
+        let journal = MemoryJournal()
+        journal.save(LegacyChargeLimitJournal(
+            backend: .intelBCLM,
+            hardwareModel: "Mac15,9",
+            requestedLimit: 80,
+            originalRaw: ["BCLM": Data([90])],
+            lastWrittenRaw: ["BCLM": Data([80])]
+        ))
+        // Hardware is at the held value, so disable may restore the stock one.
+        let service = LegacyChargeLimitService(
+            executor: executor,
+            journal: journal,
+            battery: FakeBatterySource(level: 50),
+            hardware: LegacyHardwareFacts(isIntel: true, allowsLegacyLimiter: true, hasInternalBattery: true),
+            hardwareModel: "Mac15,9"
+        )
+        var reply: SMLegacyChargeLimitWriteReply?
+        service.disableLegacyChargeLimit(expectedLimit: nil) { reply = $0 }
+        XCTAssertEqual(reply?.succeeded, true)
+    }
+
     // MARK: - Journal
 
     func testPendingJournalIsPersistedBeforeTheWriteAndClearedOnDisable() {

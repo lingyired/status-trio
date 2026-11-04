@@ -30,6 +30,9 @@ struct LegacyChargeLimitJournal: Codable, Equatable, Sendable {
     }
 
     var backend: Backend
+    /// Machine identity captured when the journal was written. A journal whose
+    /// model no longer matches must never drive a blind write.
+    var hardwareModel: String
     /// The ceiling the user asked for.
     var requestedLimit: Int
     /// Raw SMC payload captured before the first write, per key.
@@ -148,18 +151,38 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
     private let journalStore: any LegacyChargeLimitJournaling
     private let battery: any LegacyBatteryProviding
     private let hardware: LegacyHardwareFacts
+    private let hardwareModel: String
     private let lock = NSLock()
 
     init(
         executor: any LegacySMCExecuting,
         journal: any LegacyChargeLimitJournaling,
         battery: any LegacyBatteryProviding,
-        hardware: LegacyHardwareFacts
+        hardware: LegacyHardwareFacts,
+        hardwareModel: String = LegacyHelperEnvironment.modelIdentifier()
     ) {
         self.executor = executor
         self.journalStore = journal
         self.battery = battery
         self.hardware = hardware
+        self.hardwareModel = hardwareModel
+    }
+
+    /// Loads the journal only when it was written on this same machine.
+    ///
+    /// A journal from another model/firmware must never trigger a restore or
+    /// overwrite: the stock value it recorded may not even exist here.
+    private func loadOwnedJournal() -> LegacyChargeLimitJournal? {
+        guard let journal = journalStore.load() else { return nil }
+        guard journal.hardwareModel == hardwareModel else {
+            NSLog(
+                "StatusTrioPowerHelper: ignoring charge journal for %@ on %@",
+                journal.hardwareModel,
+                hardwareModel
+            )
+            return nil
+        }
+        return journal
     }
 
     // MARK: Probe (read-only)
@@ -216,8 +239,9 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
                 return
             }
 
-            var session = journalStore.load() ?? LegacyChargeLimitJournal(
+            var session = loadOwnedJournal() ?? LegacyChargeLimitJournal(
                 backend: .intelBCLM,
+                hardwareModel: hardwareModel,
                 requestedLimit: limit,
                 originalRaw: [LegacyChargeSMCKeys.bclm: current],
                 lastWrittenRaw: [:]
@@ -248,8 +272,9 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
             return
         }
         let originals = originalGateRaw(for: keySet)
-        var session = journalStore.load() ?? LegacyChargeLimitJournal(
+        var session = loadOwnedJournal() ?? LegacyChargeLimitJournal(
             backend: .silicon,
+            hardwareModel: hardwareModel,
             requestedLimit: limit,
             originalRaw: originals,
             lastWrittenRaw: [:]
@@ -286,7 +311,7 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
         lock.lock()
         defer { lock.unlock() }
 
-        guard var session = journalStore.load() else {
+        guard var session = loadOwnedJournal() else {
             reply(failure(.cancelled, "There is no managed limit to override."))
             return
         }
@@ -316,7 +341,7 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
         lock.lock()
         defer { lock.unlock() }
 
-        guard var session = journalStore.load() else {
+        guard var session = loadOwnedJournal() else {
             reply(failure(.cancelled, "There is no temporary override to cancel."))
             return
         }
@@ -342,7 +367,7 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
         lock.lock()
         defer { lock.unlock() }
 
-        guard let session = journalStore.load() else {
+        guard let session = loadOwnedJournal() else {
             reply(failure(.cancelled, "No managed limit is active."))
             return
         }
@@ -392,7 +417,7 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
             reply(failure(.limitOutOfRange, "The charge limit is outside 80–100%."))
             return
         }
-        guard let session = journalStore.load() else {
+        guard let session = loadOwnedJournal() else {
             reply(failure(.cancelled, "No managed limit is active."))
             return
         }
@@ -558,7 +583,7 @@ extension LegacyChargeLimitService {
     func restoreForClientLoss() {
         lock.lock()
         defer { lock.unlock() }
-        guard let session = journalStore.load() else { return }
+        guard let session = loadOwnedJournal() else { return }
         for (key, written) in session.lastWrittenRaw {
             if let current = validRead(key), current != written {
                 NSLog("StatusTrioPowerHelper: charge key %@ changed by another writer; not restoring", key)
