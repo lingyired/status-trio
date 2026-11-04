@@ -30,6 +30,25 @@ final class AnchoredStatusPanel: NSPanel {
     /// screen. Replaces `NSPopoverDelegate.popoverDidClose(_:)`.
     var onClose: (() -> Void)?
 
+    /// Set for the Debug background-testing route so the panel stays visible
+    /// while another application remains active. The controller owns this
+    /// value and leaves it false for normal interaction.
+    var disablesDismissOnResignForTesting: Bool = false
+
+    /// Set only for the Debug background-testing route. A visible nonactivating
+    /// panel can still become key when AppKit orders it in; refusing key status
+    /// keeps application activation and keyboard focus with the user's app.
+    var disablesKeyWindowForTesting: Bool = false {
+        didSet {
+            becomesKeyOnlyIfNeeded = disablesKeyWindowForTesting
+        }
+    }
+
+    /// The normal status panel orders itself in regardless of the active app.
+    /// Background tests use a normal front order so an active app's windows can
+    /// remain above it.
+    var avoidsOrderFrontRegardlessForTesting: Bool = false
+
     /// Height budget shared with the SwiftUI content. The window and the
     /// content must agree on it so overflowing content scrolls instead of
     /// growing the window past the screen (#237).
@@ -102,7 +121,7 @@ final class AnchoredStatusPanel: NSPanel {
     }
 
     /// A borderless, non-activating panel is only key when it says so.
-    override var canBecomeKey: Bool { true }
+    override var canBecomeKey: Bool { !disablesKeyWindowForTesting }
     override var canBecomeMain: Bool { false }
 
     var isShown: Bool { isVisible }
@@ -185,7 +204,11 @@ final class AnchoredStatusPanel: NSPanel {
         // while invisible and then fading the panel in hides the jump that read
         // as a flash on open.
         alphaValue = 0
-        orderFrontRegardless()
+        if avoidsOrderFrontRegardlessForTesting {
+            orderFront(nil)
+        } else {
+            orderFrontRegardless()
+        }
         invalidateShadow()
         pendingReveal = true
         DispatchQueue.main.async { [weak self] in
@@ -420,28 +443,35 @@ final class AnchoredStatusPanel: NSPanel {
                 self?.handleWindowResize()
             }
             .store(in: &showCancellables)
-        center.publisher(for: NSApplication.didResignActiveNotification)
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                guard let self, self.isVisible else { return }
-                self.performClose(nil)
-            }
-            .store(in: &showCancellables)
-        // A nonactivating panel can own keyboard focus while another app stays
-        // active. Cmd-Tab then switches that app, without a Status Trio resign
-        // notification. Observe the workspace as well while the panel is open.
-        NSWorkspace.shared.notificationCenter
-            .publisher(for: NSWorkspace.didActivateApplicationNotification)
-            .receive(on: RunLoop.main)
-            .sink { [weak self] notification in
-                guard let self, self.isVisible,
-                      let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
-                        as? NSRunningApplication,
-                      app.processIdentifier != ProcessInfo.processInfo.processIdentifier
-                else { return }
-                self.performClose(nil)
-            }
-            .store(in: &showCancellables)
+        // The panel is a non-activating NSPanel and usually owns keyboard
+        // focus while the user stays in another app, so it dismisses itself
+        // when the user switches away. The Debug background-test route stays
+        // open while the user's foreground app is unchanged, so it omits the
+        // focus-loss pair.
+        if !disablesDismissOnResignForTesting {
+            center.publisher(for: NSApplication.didResignActiveNotification)
+                .receive(on: RunLoop.main)
+                .sink { [weak self] _ in
+                    guard let self, self.isVisible else { return }
+                    self.performClose(nil)
+                }
+                .store(in: &showCancellables)
+            // A nonactivating panel can own keyboard focus while another app stays
+            // active. Cmd-Tab then switches that app, without a Status Trio resign
+            // notification. Observe the workspace as well while the panel is open.
+            NSWorkspace.shared.notificationCenter
+                .publisher(for: NSWorkspace.didActivateApplicationNotification)
+                .receive(on: RunLoop.main)
+                .sink { [weak self] notification in
+                    guard let self, self.isVisible,
+                          let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                            as? NSRunningApplication,
+                          app.processIdentifier != ProcessInfo.processInfo.processIdentifier
+                    else { return }
+                    self.performClose(nil)
+                }
+                .store(in: &showCancellables)
+        }
     }
 
     private func removeShowObservers() {
