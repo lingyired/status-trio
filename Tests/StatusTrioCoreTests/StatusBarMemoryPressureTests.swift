@@ -169,7 +169,9 @@ final class StatusBarMemoryPressureTests: VisibleUITestCase {
         )
         sheetWindow.isReleasedWhenClosed = false
         defer { sheetWindow.close() }
-        await panelWindow.beginSheet(sheetWindow)
+        // Use the completion-handler form: the async `beginSheet(_:)` overlay
+        // would suspend until the sheet is dismissed, which never happens here.
+        panelWindow.beginSheet(sheetWindow, completionHandler: { _ in })
         defer { panelWindow.endSheet(sheetWindow) }
 
         NotificationCenter.default.post(
