@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import QuartzCore
 import SwiftUI
 
 /// The status panel window.
@@ -45,6 +46,16 @@ final class AnchoredStatusPanel: NSPanel {
     /// Set by `show` between ordering the window in transparent and revealing it
     /// once the first layout has settled, so a size correction never flashes.
     private var pendingReveal = false
+    /// Guards the animated content-driven resize: while it runs, the frame
+    /// notifications it emits must not re-enter the layout coordinator, or the
+    /// animated frame and the re-placement would fight each other.
+    private var isAnimatingContentSize = false
+    /// A measurement that arrives while the resize animation is running. Applied
+    /// once the animation settles, so a repeated report cannot snap the frame.
+    private var pendingAnimatedTarget: NSRect?
+    /// Animates height-only content resizes so expanding a row grows the panel
+    /// smoothly. Tests drive sizing synchronously and turn this off.
+    var animatesContentResizes = true
 #if DEBUG
     /// Number of window frame writes since the last reset. Issue #259 uses it in
     /// the convergence regression and in the live diagnostic; release builds
@@ -225,6 +236,8 @@ final class AnchoredStatusPanel: NSPanel {
         // before they act on a close.
         guard isVisible else { return }
         pendingReveal = false
+        isAnimatingContentSize = false
+        pendingAnimatedTarget = nil
         layoutCoordinator.invalidate()
         removeShowObservers()
         super.close()
@@ -276,11 +289,53 @@ final class AnchoredStatusPanel: NSPanel {
             screens: NSScreen.screens.map { StatusPanelScreen($0) },
             dockInset: dockInset
         ) else { return }
+        // Expanding an in-panel row changes the content height in one step. Let
+        // the anchored edge stay put and animate the height so the panel grows
+        // smoothly instead of snapping. Only a settled, visible, height-only
+        // change animates; the reveal correction, reduce-motion users and width
+        // changes keep the immediate write.
+        if shouldAnimateContentResize(to: target) {
+            isAnimatingContentSize = true
+            pendingAnimatedTarget = nil
+#if DEBUG
+            frameWriteCount += 1
+#endif
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = 0.18
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                context.allowsImplicitAnimation = true
+                self.animator().setFrame(target, display: true)
+            }, completionHandler: { [weak self] in
+                guard let self else { return }
+                let final = self.pendingAnimatedTarget ?? target
+                self.pendingAnimatedTarget = nil
+                self.isAnimatingContentSize = false
+                self.setFrame(final, display: false)
+                self.invalidateShadow()
+            })
+            return
+        }
+        if isAnimatingContentSize {
+            // The animation is already running to a target; remember the latest
+            // measurement and let its completion handler land it.
+            pendingAnimatedTarget = target
+            return
+        }
         setFrame(target, display: false)
 #if DEBUG
         frameWriteCount += 1
 #endif
         invalidateShadow()
+    }
+
+    private func shouldAnimateContentResize(to target: NSRect) -> Bool {
+        animatesContentResizes
+            && isVisible
+            && !pendingReveal
+            && !isAnimatingContentSize
+            && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            && abs(target.width - frame.width) < 0.5
+            && abs(target.height - frame.height) >= 1
     }
 
     // MARK: - Layout scheduling
@@ -294,7 +349,7 @@ final class AnchoredStatusPanel: NSPanel {
     }
 
     private func handleWindowResize() {
-        guard isVisible else { return }
+        guard isVisible, !isAnimatingContentSize else { return }
         layoutCoordinator.windowDidResize()
     }
 

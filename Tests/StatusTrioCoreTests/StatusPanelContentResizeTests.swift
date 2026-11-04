@@ -154,6 +154,10 @@ final class StatusPanelContentResizeTests: VisibleUITestCase {
             actions: StatusPanelActions(store: store, settings: settings)
         )
         let panel = AnchoredStatusPanel()
+        // These tests drive the height synchronously and assert on the frame
+        // right after settling; the production resize animation would leave the
+        // frame mid-flight, so opt out here.
+        panel.animatesContentResizes = false
         let host = StatusPanelHostingController(
             rootView: AnyView(
                 StatusPopoverView(
