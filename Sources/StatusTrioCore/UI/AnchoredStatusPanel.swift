@@ -45,11 +45,25 @@ final class AnchoredStatusPanel: NSPanel {
     /// Set by `show` between ordering the window in transparent and revealing it
     /// once the first layout has settled, so a size correction never flashes.
     private var pendingReveal = false
-    /// The last size the content reported at its natural height, before the
-    /// screen cap was applied (#237).
-    private var lastContentSize: NSSize = .zero
+    /// Coalesces the three things that can change the window's frame: a content
+    /// measurement, the window's own resize, and a screen / Dock / Space change
+    /// (issue #259). Each one is applied once, on a later main-actor turn.
+    private let layoutUpdateScheduler: StatusPanelLayoutUpdateScheduler
+    private lazy var layoutCoordinator = StatusPanelLayoutCoordinator(
+        scheduler: layoutUpdateScheduler,
+        applyContentSize: { [weak self] size in self?.applyContentSize(size) },
+        reposition: { [weak self] in self?.repositionPlacementOnly() },
+        remeasure: { [weak self] in self?.remeasureContent() }
+    )
+    /// Set while content is installed; asks the hosting controller to report its
+    /// size again after the height budget changed.
+    private var invalidateContentMeasurement: (() -> Void)?
 
-    init() {
+    init(layoutUpdateScheduler: StatusPanelLayoutUpdateScheduler? = nil) {
+        self.layoutUpdateScheduler = layoutUpdateScheduler
+            ?? StatusPanelLayoutUpdateScheduler { operation in
+                Task { @MainActor in operation() }
+            }
         super.init(
             contentRect: .zero,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -89,8 +103,12 @@ final class AnchoredStatusPanel: NSPanel {
         backgroundStyle: PanelBackgroundStyle
     ) {
         hostingController.onLayout = { [weak self] size in
-            self?.applyContentSize(size)
+            self?.requestContentSize(size)
         }
+        invalidateContentMeasurement = { [weak hostingController] in
+            hostingController?.invalidateSizeMeasurement()
+        }
+        layoutCoordinator.invalidate()
         let controller = StatusPanelContentViewController(
             hostingController: hostingController,
             backgroundStyle: backgroundStyle
@@ -179,6 +197,7 @@ final class AnchoredStatusPanel: NSPanel {
         // before they act on a close.
         guard isVisible else { return }
         pendingReveal = false
+        layoutCoordinator.invalidate()
         removeShowObservers()
         super.close()
         NotificationCenter.default.post(name: Self.didCloseNotification, object: self)
@@ -207,23 +226,21 @@ final class AnchoredStatusPanel: NSPanel {
         }
         let size = content.intrinsicContentSize
         guard size.width > 0, size.height > 0 else { return }
-        lastContentSize = size
-        applyContentFrame(cappedContentSize(size), display: false)
+        applyContentFrame(cappedContentSize(size))
     }
 
     private func applyContentSize(_ size: NSSize) {
         guard size.width > 0, size.height > 0 else { return }
-        // Keep the content's own height. When the screen budget grows again,
-        // the panel can return to it instead of staying at the old cap.
-        lastContentSize = size
         let capped = cappedContentSize(size)
         let rounded = NSSize(width: ceil(capped.width), height: ceil(capped.height))
-        applyContentFrame(rounded, display: true)
+        applyContentFrame(rounded)
     }
 
     /// Writes the window frame for a measured content size, or does nothing when
-    /// the window already sits at the frame that size produces.
-    private func applyContentFrame(_ contentSize: NSSize, display: Bool) {
+    /// the window already sits at the frame that size produces. The write is not
+    /// displayed synchronously: forcing a display here re-enters layout while a
+    /// layout pass is still running (issue #259).
+    private func applyContentFrame(_ contentSize: NSSize) {
         guard let target = StatusPanelPlacement.contentFrameUpdate(
             from: frame,
             contentSize: contentSize,
@@ -231,7 +248,49 @@ final class AnchoredStatusPanel: NSPanel {
             screens: NSScreen.screens.map { StatusPanelScreen($0) },
             dockInset: dockInset
         ) else { return }
-        setFrame(target, display: display)
+        setFrame(target, display: false)
+        invalidateShadow()
+    }
+
+    // MARK: - Layout scheduling
+
+    /// Receives the content's measured size. The coordinator applies the latest
+    /// measurement on a later main-actor turn instead of resizing during the
+    /// layout pass that produced it (issue #259).
+    private func requestContentSize(_ size: NSSize) {
+        guard isVisible, size.width > 0, size.height > 0 else { return }
+        layoutCoordinator.requestContentSize(size)
+    }
+
+    private func handleWindowResize() {
+        guard isVisible else { return }
+        layoutCoordinator.windowDidResize()
+    }
+
+    private func handlePlacementEnvironmentChange() {
+        guard isVisible else { return }
+        updateLayoutMetrics()
+        layoutCoordinator.placementEnvironmentChanged()
+    }
+
+    /// Asks the content to measure itself again after the height budget changed.
+    /// Safe to call from a coordinator turn; never from inside `viewDidLayout`.
+    private func remeasureContent() {
+        guard isVisible else { return }
+        invalidateContentMeasurement?()
+        guard let content = contentViewController else { return }
+        content.view.needsLayout = true
+        content.view.layoutSubtreeIfNeeded()
+    }
+
+    /// Re-places the window for its current size. A resize notification only
+    /// corrects the anchored edge; it must not replay an older content size
+    /// (issue #259).
+    private func repositionPlacementOnly() {
+        guard isVisible else { return }
+        let target = placementFrame(for: frame.size)
+        guard target != frame else { return }
+        setFrame(target, display: false)
         invalidateShadow()
     }
 
@@ -244,21 +303,6 @@ final class AnchoredStatusPanel: NSPanel {
     private func cappedContentSize(_ size: NSSize) -> NSSize {
         guard let maximumHeight = layoutMetrics.maximumPanelHeight else { return size }
         return NSSize(width: size.width, height: min(size.height, maximumHeight))
-    }
-
-    private func reposition() {
-        guard isVisible else { return }
-        updateLayoutMetrics()
-        // A screen, Space or Dock change can move the cap without changing the
-        // page. Re-apply the last natural content size so the window shrinks
-        // back into the new budget (or grows back into a roomier one).
-        if lastContentSize.width > 0, lastContentSize.height > 0 {
-            applyContentSize(lastContentSize)
-        }
-        let target = placementFrame(for: frame.size)
-        guard target != frame else { return }
-        setFrame(target, display: true)
-        invalidateShadow()
     }
 
     /// Recomputes how tall the panel may get and hands the number to the
@@ -317,7 +361,7 @@ final class AnchoredStatusPanel: NSPanel {
         center.publisher(for: NSApplication.didChangeScreenParametersNotification)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.reposition()
+                self?.handlePlacementEnvironmentChange()
             }
             .store(in: &showCancellables)
         // A Space change can move the anchor to a screen with a different
@@ -326,7 +370,7 @@ final class AnchoredStatusPanel: NSPanel {
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.reposition()
+                self?.handlePlacementEnvironmentChange()
             }
             .store(in: &showCancellables)
         // The window's content view controller drives the window's height from
@@ -339,7 +383,7 @@ final class AnchoredStatusPanel: NSPanel {
         center.publisher(for: NSWindow.didResizeNotification, object: self)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.reposition()
+                self?.handleWindowResize()
             }
             .store(in: &showCancellables)
         center.publisher(for: NSApplication.didResignActiveNotification)
@@ -356,6 +400,88 @@ final class AnchoredStatusPanel: NSPanel {
     }
 }
 
+// MARK: - Layout coordinator
+
+/// Owns the three sources that can change the panel window's frame and merges
+/// them into a single main-actor turn (issue #259): a content measurement, the
+/// window's own resize, and a screen / Dock / Space change.
+///
+/// The distinction matters. A resize notification must only re-place the window
+/// for the size it already has — replaying an older content measurement there
+/// is what kept the window and the layout pass updating each other. A content
+/// measurement may resize the window. A placement-environment change drops
+/// measurements taken against the old budget and asks the content to measure
+/// again.
+@MainActor
+final class StatusPanelLayoutCoordinator {
+    private let scheduler: StatusPanelLayoutUpdateScheduler
+    private let applyContentSize: (NSSize) -> Void
+    private let reposition: () -> Void
+    private let remeasure: () -> Void
+
+    private var pendingContentSize: NSSize?
+    private var needsRemeasure = false
+
+    init(
+        scheduler: StatusPanelLayoutUpdateScheduler,
+        applyContentSize: @escaping (NSSize) -> Void,
+        reposition: @escaping () -> Void,
+        remeasure: @escaping () -> Void
+    ) {
+        self.scheduler = scheduler
+        self.applyContentSize = applyContentSize
+        self.reposition = reposition
+        self.remeasure = remeasure
+    }
+
+    func requestContentSize(_ size: NSSize) {
+        pendingContentSize = size
+        enqueueFlush()
+    }
+
+    func windowDidResize() {
+        enqueueFlush()
+    }
+
+    func placementEnvironmentChanged() {
+        needsRemeasure = true
+        enqueueFlush()
+    }
+
+    func invalidate() {
+        pendingContentSize = nil
+        needsRemeasure = false
+        scheduler.invalidate()
+    }
+
+    /// Runs one merged pass. `internal` so the coalescing behaviour is testable
+    /// without a window; production reaches it through the scheduler.
+    func flush() {
+        if needsRemeasure {
+            needsRemeasure = false
+            // A measurement taken before the budget changed no longer describes
+            // the available space, so it must not decide the new frame.
+            pendingContentSize = nil
+            remeasure()
+            reposition()
+            return
+        }
+        if let size = pendingContentSize {
+            pendingContentSize = nil
+            applyContentSize(size)
+            return
+        }
+        // A bare resize only re-places the window; it never replays content.
+        reposition()
+    }
+
+    private func enqueueFlush() {
+        scheduler.enqueue { [weak self] in
+            self?.flush()
+        }
+    }
+}
+
 // MARK: - Content view controller
 
 /// A hosting controller that reports the SwiftUI content's ideal size whenever
@@ -365,6 +491,13 @@ final class AnchoredStatusPanel: NSPanel {
 final class StatusPanelHostingController<Content: View>: NSHostingController<Content> {
     var onLayout: ((NSSize) -> Void)?
     private var lastReportedSize: NSSize = .zero
+
+    /// Drops the remembered measurement so the next layout pass reports again,
+    /// even when the content's own ideal size did not change. Used after the
+    /// panel's height budget changed (issue #259).
+    func invalidateSizeMeasurement() {
+        lastReportedSize = .zero
+    }
 
     override func viewDidLayout() {
         super.viewDidLayout()
