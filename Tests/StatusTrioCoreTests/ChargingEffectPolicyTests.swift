@@ -75,9 +75,9 @@ struct ChargingEffectPolicyTests {
     }
 
     @Test func tailUsesThirtyTwoPercentOfTheVisibleArcWhenBatteryFillIsLongEnough() throws {
-        let phase = ChargingEffectPhase(step: 31, stepsPerCycle: 36, kind: .steady)
+        let phase = ChargingEffectPhase(step: 28, stepsPerCycle: 36, kind: .steady)
         let frame = try #require(ChargingEffectPolicy.frame(
-            progress: 0.8,
+            progress: 1.0,
             phase: phase,
             hasTopGap: true,
             topGapWidth: StatusIconGeometry.batteryChargingBoltTopGapWidth
@@ -133,7 +133,7 @@ struct ChargingEffectPolicyTests {
         #expect(boosted.tailRange == regular.tailRange)
     }
 
-    @Test func movingTailSplitsAtTheGapAndHidesAHeadInsideIt() throws {
+    @Test func movingTailStaysOnTheHeadsSideAcrossTheGapAndHidesInsideIt() throws {
         let crossing = try #require(ChargingEffectPolicy.frame(
             progress: 0.8,
             phase: ChargingEffectPhase(step: 24, stepsPerCycle: 36, kind: .steady),
@@ -145,24 +145,22 @@ struct ChargingEffectPolicyTests {
             hasTopGap: true
         ))
         let crossingRange = try #require(crossing.tailRange)
-        let gapRange = try #require(insideGap.tailRange)
-
         let crossingPath = StatusIconGeometry.batteryHighlight(
             from: crossingRange.lowerBound,
             to: crossingRange.upperBound,
             hasTopGap: true
         )
-        let gapPath = StatusIconGeometry.batteryHighlight(
-            from: gapRange.lowerBound,
-            to: gapRange.upperBound,
-            hasTopGap: true
-        )
 
+        // The head has advanced past the top gap: the tail must only draw the
+        // right visible side. Clamping keeps a single arc and leaves no left
+        // residue behind (#254).
         #expect(crossing.headIsVisible)
-        #expect(moveToCount(in: crossingPath) == 2)
+        #expect(moveToCount(in: crossingPath) == 1)
+        // The head is inside the gap: no visible side to pin the tail to, so it
+        // is hidden entirely rather than drawn as a lingering sliver.
         #expect(insideGap.headIsVisible == false)
         #expect(insideGap.beadAlpha == 0)
-        #expect(moveToCount(in: gapPath) == 1)
+        #expect(insideGap.tailRange == nil)
     }
 
     @Test func beadFadesOutMonotonicallyDuringTheEndpointHeartbeat() throws {
@@ -183,6 +181,48 @@ struct ChargingEffectPolicyTests {
         #expect(release.beadAlpha == 0)
         #expect(peak.heartbeatAlpha > attack.heartbeatAlpha)
         #expect(release.heartbeatAlpha == 0)
+    }
+
+    @Test func headExactlyAtRightGapBoundaryDoesNotCreateAnInvertedTail() throws {
+        let gapStart = StatusIconGeometry.lastVisibleProgress(forProgress: 0.5, hasTopGap: true)
+        let gapEnd = 1 - gapStart
+        let frame = try #require(ChargingEffectPolicy.frame(
+            progress: gapEnd,
+            phase: .init(step: 31, stepsPerCycle: 36, kind: .steady),
+            hasTopGap: true
+        ))
+        #expect(frame.headIsVisible)
+        #expect(frame.tailRange == nil)
+        #expect(frame.tailAlpha == 0)
+    }
+
+    @Test func everyTailFrameStaysOnOneVisibleSideWithoutChangingHeadTiming() throws {
+        for width in [CGFloat(0), 30, 50, 64, 500] {
+            for progress in [0.2, 0.5, 0.76, 0.8, 1.0] {
+                let endpoint = StatusIconGeometry.lastVisibleProgress(
+                    forProgress: progress, hasTopGap: true, topGapWidth: width
+                )
+                for step in 0..<36 {
+                    let frame = try #require(ChargingEffectPolicy.frame(
+                        progress: progress,
+                        phase: .init(step: step, stepsPerCycle: 36, kind: .steady),
+                        hasTopGap: true, topGapWidth: width
+                    ))
+                    #expect(abs(frame.headProgress - endpoint * min(1, Double(step) / 31)) < 1e-9)
+                    if let tail = frame.tailRange {
+                        let path = StatusIconGeometry.batteryHighlight(
+                            from: tail.lowerBound, to: tail.upperBound,
+                            hasTopGap: true, topGapWidth: width
+                        )
+                        #expect(moveToCount(in: path) == 1)
+                    }
+                    if !frame.headIsVisible {
+                        #expect(frame.tailRange == nil)
+                        #expect(frame.tailAlpha == 0)
+                    }
+                }
+            }
+        }
     }
 
     @Test func invalidPhaseAndProgressDoNotProduceFrames() {
