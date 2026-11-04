@@ -10,11 +10,9 @@ struct AudioSectionView: View {
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
-        // The lifecycle stays on this stable container; only the page below it
-        // is rebuilt when the leaf changes, so switching subpages does not
-        // re-run the refresh.
-        // A concrete, stable container keeps the refresh hook attached to one
-        // identity so switching leaves does not re-run it.
+        // The lifecycle stays on this concrete, stable container; only the
+        // page below it is rebuilt when the leaf changes, so switching
+        // subpages does not re-run the refresh.
         VStack(spacing: 0) {
             if showsIconPreview {
                 SettingsPage(pinnedHeader: {

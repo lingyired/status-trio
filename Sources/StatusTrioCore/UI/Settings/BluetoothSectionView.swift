@@ -19,13 +19,10 @@ struct BluetoothSectionView: View {
     @State private var settingsDemandToken: BluetoothSettingsDemandToken?
 
     var body: some View {
-        // The settings-demand token is owned by this stable container, not by
-        // the three leaf subpages. Switching between them must not tear down
-        // and rebuild the Bluetooth listener; only leaving the whole category
-        // may. The page below it is the only thing rebuilt on a leaf switch.
-        // A concrete, stable container (not a transparent `Group`) so the
-        // lifecycle modifiers below are attached to one identity that survives
-        // every leaf switch.
+        // A concrete, stable container (not a transparent `Group`): the
+        // settings-demand lifecycle below must stay attached to one identity,
+        // so switching between the three leaves never tears down and rebuilds
+        // the Bluetooth listener. Only the page underneath is rebuilt.
         VStack(spacing: 0) {
             if showsIconPreview {
                 SettingsPage(pinnedHeader: {
