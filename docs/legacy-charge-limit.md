@@ -155,13 +155,12 @@ fact**:
    failures are on **Apple Silicon** and about `CHWA` key-presence, not Intel
    `BCLM`. Intel `BCLM` behaviour on macOS 15 is therefore **unverified** and
    cannot be assumed broken or working. This is the sharpest uncertainty in the
-   "Intel 13–15" target and must be settled on a real Intel macOS 13/14/15
-   machine before the Intel backend is advertised.
-2. **Apple Silicon macOS 15 inhibit.** Whether `CH0B`/`CH0C`/`CHTE` remain
-   writable without the private entitlement on macOS 15 is not confirmed for
-   this repository; batt's own docs say newer firmware gates them. The plan
-   explicitly says the Apple Silicon 13/14 and 15 backends are distinguished by
-   actual capabilities, not an OS-only check.
+   "Intel 13–14" target and must be settled on a real Intel macOS 13/14
+   machine before the Intel backend is advertised. (macOS 15 was later ruled
+   out of scope by the 2026-11-05 product decision.)
+2. **Apple Silicon macOS 15 inhibit.** Moot for this feature: macOS 15 is out
+   of scope (2026-11-05). Recorded only because it explains why the earlier plan
+   treated 15 as a separate capability band.
 3. **No entitlement guessing.** Plan requires no private entitlement guesses in
    the probe. Determining which key set exists and is writable is a read-only
    probe in Phase 2; a writable result is proven only on authorized hardware.
