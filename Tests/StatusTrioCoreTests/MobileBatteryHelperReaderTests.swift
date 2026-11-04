@@ -293,6 +293,114 @@ struct MobileBatteryHelperReaderTests {
         #expect(result.failures.contains { $0.category == "cycle-timeout" })
     }
 
+    @Test func watchRouteTimeoutSharesRemainingBudgetBetweenRemainingRoutes() {
+        #expect(MobileBatteryHelperReader.watchRouteTimeout(
+            remaining: .seconds(5), remainingRouteCount: 2
+        ) == .milliseconds(2_500))
+        #expect(MobileBatteryHelperReader.watchRouteTimeout(
+            remaining: .milliseconds(1_750), remainingRouteCount: 1
+        ) == .milliseconds(1_750))
+    }
+
+    @Test func watchReadReservesBudgetForNetworkAfterUSBTimeout() async throws {
+        let executor = ScriptedMobileBatteryExecutor(timeoutHandler: { arguments, timeout in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb","availableTransports":["usb","network"]}]}"#.utf8)
+            }
+            if arguments == ["--read-watch", "p", "--watch-id", "w", "--transport", "usb"] {
+                // Consume the actual budget, not a short simulated timeout.
+                try await Task.sleep(for: timeout)
+                throw MobileBatteryHelperError.timedOut
+            }
+            if arguments == ["--read-watch", "p", "--watch-id", "w", "--transport", "network"] {
+                return Data(#"{"schemaVersion":1,"devices":[{"id":"w","parentID":"p","model":"Watch7,1","batteryLevel":61,"transport":"network"}],"failures":[],"watchCandidates":[]}"#.utf8)
+            }
+            Issue.record("unexpected helper call: \(arguments)")
+            throw MobileBatteryHelperError.processFailed
+        })
+        let result = try await MobileBatteryHelperReader(executor: executor)
+            .read(selectedIDs: [.trustedWatch(parentID: "p", id: "w")])
+        let calls = await executor.recordedArguments
+        let timeouts = await executor.recordedTimeouts
+        #expect(calls == [
+            ["--list"],
+            ["--read-watch", "p", "--watch-id", "w", "--transport", "usb"],
+            ["--read-watch", "p", "--watch-id", "w", "--transport", "network"],
+        ])
+        #expect(result.snapshots.map(\.identity) == ["watch:p:w"])
+        #expect(result.snapshots.first?.batteryLevel == 61)
+        try #require(timeouts.count >= 2)
+        #expect(timeouts[1] <= .milliseconds(2_500))
+        try #require(timeouts.count == 3)
+        #expect(timeouts[2] > .zero)
+        #expect(timeouts[2] < .seconds(5))
+    }
+
+    @Test(arguments: [["usb"], ["network"], ["usb", "network"]])
+    func watchReadStopsAfterSuccessfulRoute(transports: [String]) async throws {
+        let transport = try #require(transports.first)
+        let available = transports.map { "\"\($0)\"" }.joined(separator: ",")
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"\#(transport)","availableTransports":[\#(available)]}]}"#.utf8)
+            }
+            return Data(#"{"schemaVersion":1,"devices":[{"id":"w","parentID":"p","model":"Watch7,1","batteryLevel":61,"transport":"\#(transport)"}],"failures":[],"watchCandidates":[]}"#.utf8)
+        }
+        let result = try await MobileBatteryHelperReader(executor: executor)
+            .read(selectedIDs: [.trustedWatch(parentID: "p", id: "w")])
+        #expect(result.snapshots.map(\.identity) == ["watch:p:w"])
+        #expect(await executor.recordedArguments == [
+            ["--list"], ["--read-watch", "p", "--watch-id", "w", "--transport", transport],
+        ])
+        if transports.count == 1 {
+            let timeouts = await executor.recordedTimeouts
+            try #require(timeouts.count == 2)
+            #expect(timeouts[1] > .milliseconds(2_500))
+            #expect(timeouts[1] <= .seconds(5))
+        }
+    }
+
+    @Test func cancelledWatchReadDoesNotStartAlternateRoute() async throws {
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb","availableTransports":["usb","network"]}]}"#.utf8)
+            }
+            // Cancellation arrives as a helper completes without a Watch.
+            withUnsafeCurrentTask { $0?.cancel() }
+            return Data(#"{"schemaVersion":1,"devices":[],"failures":[],"watchCandidates":[]}"#.utf8)
+        }
+        let readTask = Task {
+            try await MobileBatteryHelperReader(executor: executor)
+                .read(selectedIDs: [.trustedWatch(parentID: "p", id: "w")])
+        }
+        do {
+            _ = try await readTask.value
+        } catch is CancellationError {
+            // Both propagation and an empty result honor the cancellation.
+        }
+        #expect(await executor.recordedArguments == [
+            ["--list"], ["--read-watch", "p", "--watch-id", "w", "--transport", "usb"],
+        ])
+    }
+
+    @Test func watchReadTriesEachAvailableRouteAtMostOnceWhenBothFail() async throws {
+        let executor = ScriptedMobileBatteryExecutor { arguments in
+            if arguments == ["--list"] {
+                return Data(#"{"schemaVersion":1,"phones":[{"id":"p","transport":"usb","availableTransports":["usb","network"]}]}"#.utf8)
+            }
+            throw MobileBatteryHelperError.processFailed
+        }
+        let result = try await MobileBatteryHelperReader(executor: executor)
+            .read(selectedIDs: [.trustedWatch(parentID: "p", id: "w")])
+        #expect(result.snapshots.isEmpty)
+        #expect(result.failures.filter { $0.category == "read-failed" }.count == 2)
+        #expect(await executor.recordedArguments == [
+            ["--list"],
+            ["--read-watch", "p", "--watch-id", "w", "--transport", "usb"],
+            ["--read-watch", "p", "--watch-id", "w", "--transport", "network"],
+        ])
+    }
+
     @Test func watchFallbackUsesTheRemainingSharedBudget() async throws {
         let executor = ScriptedMobileBatteryExecutor { arguments in
             if arguments == ["--list"] {
@@ -665,13 +773,18 @@ private actor TwoStageWatchOrderingGate {
 
 private actor ScriptedMobileBatteryExecutor: MobileBatteryHelperExecuting {
     typealias Handler = @Sendable ([String]) async throws -> Data
-    private let handler: Handler
+    typealias TimeoutHandler = @Sendable ([String], Duration) async throws -> Data
+    private let handler: TimeoutHandler
     private(set) var recordedArguments: [[String]] = []
     private(set) var recordedTimeouts: [Duration] = []
     private var activeRuns = 0
     private(set) var maximumConcurrentRuns = 0
 
-    init(handler: @escaping Handler) { self.handler = handler }
+    init(handler: @escaping Handler) {
+        self.handler = { arguments, _ in try await handler(arguments) }
+    }
+
+    init(timeoutHandler: @escaping TimeoutHandler) { self.handler = timeoutHandler }
 
     func run(arguments: [String], timeout: Duration) async throws -> Data {
         recordedArguments.append(arguments)
@@ -679,7 +792,7 @@ private actor ScriptedMobileBatteryExecutor: MobileBatteryHelperExecuting {
         activeRuns += 1
         maximumConcurrentRuns = max(maximumConcurrentRuns, activeRuns)
         defer { activeRuns -= 1 }
-        return try await handler(arguments)
+        return try await handler(arguments, timeout)
     }
 }
 

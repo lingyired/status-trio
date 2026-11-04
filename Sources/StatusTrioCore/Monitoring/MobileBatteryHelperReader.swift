@@ -288,19 +288,30 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
         return collected
     }
 
+    /// Reserve an equal share of the remaining execution budget for each route.
+    /// Callers must supply a positive budget and at least one remaining route.
+    static func watchRouteTimeout(remaining: Duration, remainingRouteCount: Int) -> Duration {
+        remaining / remainingRouteCount
+    }
+
     private func readWatch(_ candidate: WatchCandidate) async -> MobileBatteryReadResult {
         var collected = MobileBatteryReadResult()
         let transports = candidate.transports.contains(candidate.route.transport)
             ? [candidate.route.transport] + candidate.transports.filter { $0 != candidate.route.transport }
             : candidate.transports
         let deadline = ContinuousClock.now + .seconds(5)
-        for transport in transports {
+        for (index, transport) in transports.enumerated() {
+            guard !Task.isCancelled else { break }
             let remainingBudget = ContinuousClock.now.duration(to: deadline)
             guard remainingBudget > .zero else { break }
+            let routeTimeout = Self.watchRouteTimeout(
+                remaining: remainingBudget,
+                remainingRouteCount: transports.count - index
+            )
             do {
                 let data = try await executor.run(
                     arguments: ["--read-watch", candidate.route.parentID, "--watch-id", candidate.route.id, "--transport", transport.rawValue],
-                    timeout: remainingBudget
+                    timeout: routeTimeout
                 )
                 let decoded = try MobileBatteryWire.decode(data, expectedParentID: candidate.route.parentID, observedAt: Date())
                 var returnedWatch = false
