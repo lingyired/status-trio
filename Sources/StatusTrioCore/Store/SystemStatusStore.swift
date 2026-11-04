@@ -171,6 +171,9 @@ final class SystemStatusStore: ObservableObject {
     private var lastPublishedSnapshot: StatusSnapshot?
     /// Optimistic display brightness while the backend confirms the write.
     private var pendingBrightnessScalars: [String: Double] = [:]
+    /// Optimistic input gain while the input monitor confirms the write.
+    private var pendingInputScalar: Double?
+    private var pendingInputDeviceID: AudioDeviceID?
     private var hasStarted = false
     private var hasStopped = false
     @Published private(set) var isPopoverVisible = false
@@ -1385,6 +1388,20 @@ final class SystemStatusStore: ObservableObject {
     func setInputScalar(_ value: Double, requestID: UUID = UUID()) {
         guard !hasStopped else { return }
         inputMonitor?.setScalar(value, requestID: requestID)
+        // Follow the slider/wheel immediately instead of waiting for the gain
+        // read-back; the read-back reconciles below.
+        guard value.isFinite, liveInput.canSetVolume else { return }
+        let clamped = min(1, max(0, value))
+        pendingInputScalar = clamped
+        pendingInputDeviceID = liveInput.defaultDeviceID
+        var optimistic = liveInput
+        optimistic.scalar = clamped
+        liveInput = optimistic
+    }
+
+    private func clearPendingInputScalar() {
+        pendingInputScalar = nil
+        pendingInputDeviceID = nil
     }
 
     func toggleInputMute() {
@@ -1398,6 +1415,7 @@ final class SystemStatusStore: ObservableObject {
         guard hasStarted else { return }
 
         isInputEnabled = enabled
+        if !enabled { clearPendingInputScalar() }
         inputMonitor?.setEnabled(enabled)
         // The monitor keeps the two surfaces separate: the popover owns the
         // 1 Hz usage poll, while Settings only keeps the device inventory live.
@@ -1407,6 +1425,22 @@ final class SystemStatusStore: ObservableObject {
 
     private func applyInput(_ value: AudioInputStatus) {
         guard !hasStopped, isInputEnabled else { return }
+        if let pending = pendingInputScalar {
+            if value.defaultDeviceID != pendingInputDeviceID
+                || !value.canSetVolume
+                || value.scalar == nil {
+                clearPendingInputScalar()
+            } else if let incoming = value.scalar, abs(incoming - pending) <= 0.02 {
+                clearPendingInputScalar()
+            } else {
+                // A read-back queued before the write must not undo the gain the
+                // user is currently scrolling.
+                var reconciled = value
+                reconciled.scalar = pending
+                liveInput = reconciled
+                return
+            }
+        }
         liveInput = value
     }
 

@@ -1,8 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// Shared geometry between the AppKit drawing and the SwiftUI inline label so
-/// the painted track/thumb and the label position always agree.
+/// Shared geometry between the AppKit drawing and the inline label so the
+/// painted track/thumb and the label position always agree.
 enum PanelLevelSliderMetrics {
     /// Overall control height on screen.
     static let controlHeight: CGFloat = 30
@@ -19,11 +19,19 @@ enum PanelLevelSliderMetrics {
     static let labelLeadingInset: CGFloat = 12
     /// Gap kept between the thumb and the inline label.
     static let labelGap: CGFloat = 7
+    /// Font used by the inline label.
+    static let labelFontSize: CGFloat = 9
+    /// How long the label takes to move between the two sides.
+    static let labelAnimationDuration: TimeInterval = 0.16
 
     /// Thumb centre X for a value in 0...1 across the whole capsule.
     static func thumbCenterX(for value: Double, width: CGFloat) -> CGFloat {
         let clamped = Double(min(1, max(0, value)))
         return horizontalInset + CGFloat(clamped) * max(0, width - horizontalInset * 2)
+    }
+
+    static var labelFont: NSFont {
+        .systemFont(ofSize: labelFontSize, weight: .medium)
     }
 }
 
@@ -44,9 +52,7 @@ enum PanelLevelSliderLabelLayout {
 
     /// Measured width of the label text using the component's font.
     static func textWidth(_ text: String) -> CGFloat {
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 9, weight: .medium)
-        ]
+        let attrs: [NSAttributedString.Key: Any] = [.font: PanelLevelSliderMetrics.labelFont]
         return (text as NSString).size(withAttributes: attrs).width
     }
 
@@ -146,88 +152,24 @@ struct PanelLevelSlider: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let width = proxy.size.width
-            let centerX = PanelLevelSliderMetrics.thumbCenterX(
-                for: value,
-                width: width
+            Representable(
+                isEnabled: isEnabled,
+                tint: tint,
+                currentValue: value,
+                label: label,
+                accessibilityLabel: accessibilityLabel,
+                accessibilityValue: accessibilityValue,
+                accessibilityHint: accessibilityHint,
+                onValueChanged: { newValue in
+                    value = newValue
+                },
+                onEditingChanged: onEditingChanged
             )
-            let labelSide: PanelLevelSliderLabelLayout.Side = label.map { text in
-                PanelLevelSliderLabelLayout.side(
-                    thumbCenterX: centerX,
-                    controlWidth: width,
-                    textWidth: PanelLevelSliderLabelLayout.textWidth(text)
-                )
-            } ?? .leading
-            ZStack(alignment: .leading) {
-                Representable(
-                    isEnabled: isEnabled,
-                    tint: tint,
-                    currentValue: value,
-                    accessibilityLabel: accessibilityLabel,
-                    accessibilityValue: accessibilityValue,
-                    accessibilityHint: accessibilityHint,
-                    onValueChanged: { newValue in
-                        value = newValue
-                    },
-                    onEditingChanged: onEditingChanged
-                )
-
-                if let label {
-                    inlineLabel(
-                        label,
-                        side: labelSide,
-                        thumbCenterX: centerX,
-                        width: width
-                    )
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-                }
-            }
-            // The panel itself allows text selection in some detail rows; the
-            // slider label is decoration and must never join a selection drag.
-            .textSelection(.disabled)
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
         .frame(height: PanelLevelSliderMetrics.controlHeight)
         // Accessibility lives on the native NSSlider so VoiceOver sees one
         // adjustable control with the same label/value the old Slider exposed.
-    }
-
-    @ViewBuilder
-    private func inlineLabel(
-        _ text: String,
-        side: PanelLevelSliderLabelLayout.Side,
-        thumbCenterX: CGFloat,
-        width: CGFloat
-    ) -> some View {
-        let frame = PanelLevelSliderLabelLayout.frame(
-            side: side,
-            thumbCenterX: thumbCenterX,
-            controlWidth: width,
-            textWidth: PanelLevelSliderLabelLayout.textWidth(text)
-        )
-        if frame.isVisible {
-            Text(text)
-                .font(.system(size: 9, weight: .medium))
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .foregroundStyle(labelColor(side: frame.side))
-                .frame(width: frame.width, alignment: .leading)
-                .help(text)
-                .textSelection(.disabled)
-                .focusable(false)
-                .offset(x: frame.originX, y: 0)
-                // Animate only the leading/trailing hand-off; the drag itself
-                // must stay frame-synchronous, so this is keyed to the side and
-                // not to the continuous value.
-                .animation(.easeInOut(duration: 0.16), value: frame.side)
-        }
-    }
-
-    private func labelColor(side: PanelLevelSliderLabelLayout.Side) -> Color {
-        guard isEnabled else { return .primary.opacity(0.55) }
-        return PanelLevelSliderLabelLayout.usesLightText(side: side)
-            ? Color.white.opacity(0.95)
-            : Color.primary.opacity(0.9)
     }
 }
 
@@ -236,6 +178,7 @@ private extension PanelLevelSlider {
         let isEnabled: Bool
         let tint: Color
         let currentValue: Double
+        let label: String?
         let accessibilityLabel: String?
         let accessibilityValue: String?
         let accessibilityHint: String?
@@ -248,6 +191,7 @@ private extension PanelLevelSlider {
             slider.onEditingChanged = onEditingChanged
             slider.isEnabled = isEnabled
             slider.doubleValue = clamped(currentValue)
+            slider.setLabel(label, animated: false)
             applyAccessibility(to: slider)
             return slider
         }
@@ -257,6 +201,7 @@ private extension PanelLevelSlider {
             nsView.fillColor = NSColor(tint)
             nsView.onValueChanged = onValueChanged
             nsView.onEditingChanged = onEditingChanged
+            nsView.setLabel(label, animated: true)
             applyAccessibility(to: nsView)
             // Mirror external draft changes into the native control. During a
             // drag the produced value has already been written back, so this is
@@ -267,6 +212,7 @@ private extension PanelLevelSlider {
                 nsView.doubleValue = target
                 nsView.needsDisplay = true
             }
+            nsView.refreshLabel(animated: true)
         }
 
         private func applyAccessibility(to slider: PanelLevelSliderView) {
@@ -284,10 +230,28 @@ private extension PanelLevelSlider {
 /// AppKit slider that owns all drawing. Native `NSSlider` interaction (track
 /// click jumps to the value, drag, keyboard arrows, VoiceOver) is preserved by
 /// keeping the `NSSlider`/`NSSliderCell` machinery; only pixels are replaced.
+///
+/// The optional label is drawn with AppKit instead of a SwiftUI `Text` overlay:
+/// drag transactions must never involve the text system (selection handles /
+/// focus), and the short side-switch animation is driven by a bounded timer.
 final class PanelLevelSliderView: NSSlider {
     var onValueChanged: ((Double) -> Void)?
     var onEditingChanged: ((Bool) -> Void)?
     var fillColor: NSColor = .controlAccentColor
+
+    private var labelText: String?
+    private var labelTextWidth: CGFloat = 0
+    private var labelOriginX: CGFloat = 0
+    private var labelSide: PanelLevelSliderLabelLayout.Side?
+    private var labelAnimation: LabelAnimation?
+    private var labelAnimationTimer: Timer?
+
+    private struct LabelAnimation {
+        var fromX: CGFloat
+        var toX: CGFloat
+        let startTime: TimeInterval
+        var side: PanelLevelSliderLabelLayout.Side
+    }
 
     /// Marks tracking session boundaries so `mouseDown`/`mouseUp` around a
     /// super call always pair, including for keyboard navigation.
@@ -308,6 +272,13 @@ final class PanelLevelSliderView: NSSlider {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+        if newWindow == nil {
+            stopLabelAnimationTimer()
+        }
+    }
 
     override var isFlipped: Bool { true }
 
@@ -348,14 +319,118 @@ final class PanelLevelSliderView: NSSlider {
         return NSPoint(x: x, y: bounds.midY)
     }
 
+    // MARK: Label configuration.
+
+    func setLabel(_ text: String?, animated: Bool) {
+        let changed = text != labelText
+        labelText = text
+        if changed {
+            labelTextWidth = text.map { PanelLevelSliderLabelLayout.textWidth($0) } ?? 0
+        }
+        if changed {
+            labelAnimation = nil
+            stopLabelAnimationTimer()
+            labelSide = nil
+        }
+        refreshLabel(animated: animated)
+    }
+
+    func refreshLabel(animated: Bool) {
+        guard labelText != nil, bounds.width > 0 else {
+            labelAnimation = nil
+            stopLabelAnimationTimer()
+            labelSide = nil
+            needsDisplay = true
+            return
+        }
+        let textWidth = labelTextWidth
+        let centerX = knobCenter(in: bounds).x
+        let side = PanelLevelSliderLabelLayout.side(
+            thumbCenterX: centerX,
+            controlWidth: bounds.width,
+            textWidth: textWidth
+        )
+        let target = PanelLevelSliderLabelLayout.frame(
+            side: side,
+            thumbCenterX: centerX,
+            controlWidth: bounds.width,
+            textWidth: textWidth
+        )
+
+        if animated, bounds.width > 0, let previousSide = labelSide,
+           previousSide != target.side {
+            let startX = currentLabelOriginX()
+            labelAnimation = LabelAnimation(
+                fromX: startX,
+                toX: target.originX,
+                startTime: ProcessInfo.processInfo.systemUptime,
+                side: target.side
+            )
+            labelSide = target.side
+            startLabelAnimationTimerIfNeeded()
+        } else if labelAnimation != nil {
+            labelAnimation?.toX = target.originX
+            labelAnimation?.side = target.side
+            labelSide = target.side
+            startLabelAnimationTimerIfNeeded()
+        } else {
+            labelOriginX = target.originX
+            labelSide = target.side
+        }
+        needsDisplay = true
+    }
+
+    override func layout() {
+        super.layout()
+        refreshLabel(animated: false)
+    }
+
+    // MARK: Label animation.
+
+    private func currentLabelOriginX() -> CGFloat {
+        guard let animation = labelAnimation else { return labelOriginX }
+        let elapsed = ProcessInfo.processInfo.systemUptime - animation.startTime
+        let progress = min(1, max(0, elapsed / PanelLevelSliderMetrics.labelAnimationDuration))
+        // easeInOut
+        let eased = progress < 0.5
+            ? 2 * progress * progress
+            : 1 - pow(-2 * progress + 2, 2) / 2
+        return animation.fromX + (animation.toX - animation.fromX) * CGFloat(eased)
+    }
+
+    private func startLabelAnimationTimerIfNeeded() {
+        guard labelAnimationTimer == nil else { return }
+        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] timer in
+            guard let self else { timer.invalidate(); return }
+            self.needsDisplay = true
+            if let animation = self.labelAnimation {
+                let elapsed = ProcessInfo.processInfo.systemUptime - animation.startTime
+                if elapsed >= PanelLevelSliderMetrics.labelAnimationDuration {
+                    self.labelOriginX = animation.toX
+                    self.labelAnimation = nil
+                    self.stopLabelAnimationTimer()
+                }
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        labelAnimationTimer = timer
+    }
+
+    private func stopLabelAnimationTimer() {
+        labelAnimationTimer?.invalidate()
+        labelAnimationTimer = nil
+    }
+
     // MARK: Drawing.
 
     @objc func valueDidChange(_ sender: Any?) {
+        refreshLabel(animated: true)
         onValueChanged?(clampedDoubleValue)
     }
 
     override func draw(_ dirtyRect: NSRect) {
         drawBarAndFill()
+        drawLabel()
         drawKnob()
     }
 
@@ -398,6 +473,52 @@ final class PanelLevelSliderView: NSSlider {
         )
         effectiveFillColor.setFill()
         fillPath.fill()
+    }
+
+    private func drawLabel() {
+        guard let text = labelText, !text.isEmpty, bounds.width > 0 else { return }
+        let textWidth = labelTextWidth
+        let centerX = knobCenter(in: bounds).x
+        let frame = PanelLevelSliderLabelLayout.frame(
+            side: labelSide ?? PanelLevelSliderLabelLayout.side(
+                thumbCenterX: centerX,
+                controlWidth: bounds.width,
+                textWidth: textWidth
+            ),
+            thumbCenterX: centerX,
+            controlWidth: bounds.width,
+            textWidth: textWidth
+        )
+        guard frame.isVisible else { return }
+
+        let font = PanelLevelSliderMetrics.labelFont
+        let height = ceil(font.ascender - font.descender + font.leading)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingMiddle
+        paragraph.alignment = .left
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: labelColor(side: frame.side),
+            .paragraphStyle: paragraph,
+        ]
+        let rect = NSRect(
+            x: currentLabelOriginX(),
+            y: (bounds.height - height) / 2,
+            width: frame.width,
+            height: height
+        )
+        (text as NSString).draw(
+            with: rect,
+            options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
+            attributes: attributes
+        )
+    }
+
+    private func labelColor(side: PanelLevelSliderLabelLayout.Side) -> NSColor {
+        guard isEnabled else { return .secondaryLabelColor }
+        return PanelLevelSliderLabelLayout.usesLightText(side: side)
+            ? NSColor.white.withAlphaComponent(0.95)
+            : NSColor.labelColor.withAlphaComponent(0.9)
     }
 
     private func drawKnob() {
