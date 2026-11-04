@@ -57,7 +57,7 @@
   - `StatusPanelResizeCoordinatorTests`（5）+ `StatusPanelResizeDiagnosticsTests`（1）
   - `AirPodsInlineWindowTransitionTests`（8）
   - `StatusPanelScrollAreaTests` / `StatusPanelPlacementTests` / `StatusPanelHeightCapTests` / `AirPodsInlineControlsSizingTests` 等回归通过。
-- `bash scripts/verify-local.sh full`：见本次交付日志。
+- `bash scripts/verify-local.sh full`：**通过（exit 0）**，`head=f7b9d06b`，full 档包含完整 Swift 套件、Release 构建、本地 ad hoc app bundle 与平台/原生契约检查；不含签名、公证、DMG、Universal 打包。
 - 可见 UI 测试（`StatusPanelContentResizeTests`）按仓库规则默认跳过，未在本会话启用。
 
 ## 5. 仍需硬件/人工实测的项目
