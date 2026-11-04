@@ -1,3 +1,4 @@
+import Combine
 import XCTest
 @testable import StatusTrioCore
 
@@ -314,6 +315,73 @@ final class LegacyChargeLimitControllerTests: XCTestCase {
         await controller.refresh()
         await controller.handleBattery(level: 90, isOnAC: true)
         XCTAssertTrue(client.setLimitCalls.isEmpty)
+    }
+
+    func testAppStartWithPublisherReconcilesSavedIntentAndConsumesFirstRealUpdate() async {
+        let client = FakeLegacyClient()
+        let store = VolatileLegacyChargeLimitSessionStore()
+        store.save(LegacyChargeLimitSession(requestedLimit: 80, originalLimit: 100))
+        let controller = makeController(client: client, store: store)
+        let batteries = PassthroughSubject<BatteryStatus, Never>()
+        controller.start(batteries: batteries.eraseToAnyPublisher())
+        await waitUntil { client.verifyCalls == [80] }
+        XCTAssertEqual(controller.status, .holding(at: 80))
+
+        // AppEnvironment already omits the store's initial snapshot. The
+        // controller must not drop this first genuine power/battery event.
+        batteries.send(battery(90))
+        await waitUntil { client.setLimitCalls.count == 1 }
+        batteries.send(battery(79))
+        batteries.send(battery(78))
+        await waitUntil { client.setLimitCalls.count == 2 }
+        XCTAssertEqual(client.setLimitCalls.map(\.limit), [80, 80])
+        controller.stop()
+    }
+
+    func testPublisherCompletesTemporaryFullChargeAndRestoresTheHeldIntent() async {
+        let client = FakeLegacyClient()
+        let controller = makeController(client: client)
+        let batteries = PassthroughSubject<BatteryStatus, Never>()
+        controller.start(batteries: batteries.eraseToAnyPublisher())
+        await controller.refresh()
+        _ = await controller.setLimit(85)
+        _ = await controller.chargeToFullOnce()
+        batteries.send(battery(99))
+        batteries.send(battery(100))
+        await waitUntil { client.cancelCalls == 1 }
+        XCTAssertEqual(controller.status, .holding(at: 85))
+        XCTAssertEqual(client.setLimitCalls.map(\.limit), [85])
+        controller.stop()
+    }
+
+    func testWakeFailureShowsFailedAndKeepsTheSavedIntent() async {
+        let client = FakeLegacyClient()
+        let store = VolatileLegacyChargeLimitSessionStore()
+        let controller = makeController(client: client, store: store)
+        await controller.refresh()
+        _ = await controller.setLimit(90)
+        client.setLimitResult = .success(LegacyChargeLimitWriteOutcome(
+            succeeded: false, verified: false, observedLimit: nil, error: .verificationFailed
+        ))
+        await controller.handleWake()
+        XCTAssertEqual(controller.status, .failed)
+        XCTAssertEqual(store.load()?.requestedLimit, 90)
+    }
+
+    private func battery(_ level: Int) -> BatteryStatus {
+        BatteryStatus(rawPercentage: level, isPresent: true, isCharging: level < 100,
+                      isCharged: level == 100, isLowPowerMode: false, isConnectedToPower: true)
+    }
+
+    private func waitUntil(
+        file: StaticString = #filePath, line: UInt = #line, _ predicate: () -> Bool
+    ) async {
+        for _ in 0..<100 {
+            if predicate() { return }
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(2))
+        }
+        XCTFail("Expected asynchronous controller event was not observed", file: file, line: line)
     }
 
     func testUnavailableControllerDoesNotIssueCommands() async {

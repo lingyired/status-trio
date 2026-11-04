@@ -33,12 +33,18 @@ private final class FakeBatterySource: LegacyBatteryProviding {
     func isOnACPower() -> Bool { onAC }
 }
 
+private struct JournalWriteFailed: Error {}
+
 private final class MemoryJournal: LegacyChargeLimitJournaling {
     var saved: LegacyChargeLimitJournal?
     var clearCount = 0
+    var failSave = false
     func load() -> LegacyChargeLimitJournal? { saved }
-    func save(_ journal: LegacyChargeLimitJournal) { saved = journal }
-    func clear() {
+    func save(_ journal: LegacyChargeLimitJournal) throws {
+        if failSave { throw JournalWriteFailed() }
+        saved = journal
+    }
+    func clear() throws {
         saved = nil
         clearCount += 1
     }
@@ -182,7 +188,7 @@ final class LegacyChargeLimitServiceTests: XCTestCase {
 
     // MARK: - Stale journal identity
 
-    func testJournalFromAnotherModelIsIgnoredAndNeverWritten() {
+    func testJournalFromAnotherModelIsIgnoredAndNeverWritten() throws {
         let executor = intelExecutor(90)
         let journal = MemoryJournal()
         let foreign = LegacyChargeLimitJournal(
@@ -192,7 +198,7 @@ final class LegacyChargeLimitServiceTests: XCTestCase {
             originalRaw: ["BCLM": Data([40])],
             lastWrittenRaw: ["BCLM": Data([40])]
         )
-        journal.save(foreign)
+        try journal.save(foreign)
 
         let service = LegacyChargeLimitService(
             executor: executor,
@@ -212,11 +218,11 @@ final class LegacyChargeLimitServiceTests: XCTestCase {
         XCTAssertTrue(executor.writes.isEmpty)
     }
 
-    func testJournalOnTheSameModelIsHonoured() {
+    func testJournalOnTheSameModelIsHonoured() throws {
         // The hardware sits at the value this journal last wrote (80).
         let executor = intelExecutor(80)
         let journal = MemoryJournal()
-        journal.save(LegacyChargeLimitJournal(
+        try journal.save(LegacyChargeLimitJournal(
             backend: .intelBCLM,
             hardwareModel: "Mac15,9",
             requestedLimit: 80,
@@ -344,6 +350,89 @@ final class LegacyChargeLimitServiceTests: XCTestCase {
         XCTAssertEqual(result?.succeeded, true)
         XCTAssertEqual(executor.readKey("CH0B"), Data([0x02]))
         XCTAssertEqual(executor.readKey("CHTE"), Data([0, 0, 0, 0]), "Do not mix key families")
+    }
+
+    // MARK: - Journal failure injection
+
+    func testInitialJournalSaveFailureBlocksEveryHardwareWrite() {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        journal.failSave = true
+        let service = makeService(executor, journal: journal)
+        var reply: SMLegacyChargeLimitWriteReply?
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { reply = $0 }
+        XCTAssertEqual(reply?.succeeded, false)
+        XCTAssertTrue(executor.writes.isEmpty)
+        XCTAssertNil(journal.saved)
+        XCTAssertEqual(executor.store["BCLM"], Data([90]))
+    }
+
+    func testOriginalAndPendingTargetAreDurableBeforeEnteringTheExecutor() {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        let service = makeService(executor, journal: journal)
+        executor.beforeWrite = { key, value in
+            XCTAssertEqual(key, "BCLM")
+            XCTAssertEqual(value, Data([80]))
+            XCTAssertEqual(journal.saved?.originalRaw, ["BCLM": Data([90])])
+            XCTAssertEqual(journal.saved?.lastWrittenRaw, ["BCLM": Data([90])])
+            XCTAssertEqual(journal.saved?.pendingRaw, ["BCLM": Data([80])])
+        }
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { reply in
+            XCTAssertEqual(reply?.succeeded, true)
+        }
+    }
+
+    func testSaveFailureBlocksSetFullCancelAndDisableForAnExistingSession() {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        let service = makeService(executor, journal: journal)
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { _ in }
+        let saved = journal.saved
+        let initialWrites = executor.writes.count
+        journal.failSave = true
+        service.setLegacyChargeLimit(85, expectedLimit: NSNumber(value: 80)) { reply in
+            XCTAssertEqual(reply?.succeeded, false)
+        }
+        service.legacyChargeToFullOnce { reply in XCTAssertEqual(reply?.succeeded, false) }
+        service.disableLegacyChargeLimit(expectedLimit: nil) { reply in
+            XCTAssertEqual(reply?.succeeded, false)
+        }
+        XCTAssertEqual(executor.writes.count, initialWrites)
+        XCTAssertEqual(journal.saved, saved)
+
+        journal.failSave = false
+        service.legacyChargeToFullOnce { _ in }
+        let fullRecord = journal.saved
+        let fullWrites = executor.writes.count
+        journal.failSave = true
+        service.cancelLegacyChargeToFull { reply in XCTAssertEqual(reply?.succeeded, false) }
+        XCTAssertEqual(executor.writes.count, fullWrites)
+        XCTAssertEqual(journal.saved, fullRecord)
+    }
+
+    func testPostWriteSaveFailureRetainsPendingRecoveryUntilExplicitDisable() {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        let service = makeService(executor, journal: journal)
+        executor.beforeWrite = { _, _ in journal.failSave = true }
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { reply in
+            XCTAssertEqual(reply?.succeeded, false)
+        }
+        XCTAssertEqual(executor.store["BCLM"], Data([80]))
+        XCTAssertEqual(journal.saved?.originalRaw, ["BCLM": Data([90])])
+        XCTAssertEqual(journal.saved?.pendingRaw, ["BCLM": Data([80])])
+        let before = executor.writes.count
+        service.verifyLegacyChargeLimit(80) { reply in XCTAssertEqual(reply?.succeeded, false) }
+        XCTAssertEqual(executor.writes.count, before, "Verification never repairs a pending write")
+
+        executor.beforeWrite = nil
+        journal.failSave = false
+        service.disableLegacyChargeLimit(expectedLimit: nil) { reply in
+            XCTAssertEqual(reply?.succeeded, true)
+        }
+        XCTAssertEqual(executor.store["BCLM"], Data([90]))
+        XCTAssertNil(journal.saved)
     }
 
     // MARK: - Journal

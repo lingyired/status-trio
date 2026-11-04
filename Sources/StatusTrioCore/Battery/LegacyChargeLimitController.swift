@@ -26,6 +26,10 @@ final class LegacyChargeLimitController: ObservableObject {
     /// Last gate decision this controller asked for, so hysteresis does not
     /// flap on small level wobbles and we do not write on every battery tick.
     private var lastAppliedAllowsCharging: Bool?
+    /// Bumped by every user command. A launch reconcile captures this and
+    /// discards its result if a command landed while it was awaiting the helper,
+    /// so a slow startup verify can never overwrite the user's newer action.
+    private var commandGeneration = 0
 
     init(
         client: any LegacyChargeLimitClienting = XPCPrivilegedLegacyChargeClient(),
@@ -61,9 +65,12 @@ final class LegacyChargeLimitController: ObservableObject {
     /// trigger; no polling timer is introduced. Only a decision change writes.
     func start(batteries: AnyPublisher<BatteryStatus, Never>) {
         self.batteries = batteries
+        // Reconcile the saved intent exactly as the launch path does. The
+        // caller's publisher already omits its initial replay value, so this
+        // subscription must NOT drop the first genuine event.
+        start()
         guard cancellables.isEmpty else { return }
         batteries
-            .dropFirst()
             .removeDuplicates()
             .sink { [weak self] battery in
                 guard let self else { return }
@@ -76,7 +83,17 @@ final class LegacyChargeLimitController: ObservableObject {
     }
 
     func handleBattery(level: Int, isOnAC: Bool) async {
-        guard isAvailable, let session, status != .temporarilyChargingToFull else { return }
+        // A temporary full charge ends when the battery is full, then the held
+        // ceiling is re-applied. Ordinary battery events never interrupt it.
+        if status == .temporarilyChargingToFull {
+            guard let session,
+                  !LegacyChargeLimitEngine.temporaryFullShouldContinue(batteryLevel: level) else {
+                return
+            }
+            _ = await cancelChargeToFull()
+            return
+        }
+        guard isAvailable, let session else { return }
         guard session.requestedLimit > 0 else { return }
         if !isOnAC {
             // No AC means nothing to gate; do not touch the hardware.
@@ -121,6 +138,7 @@ final class LegacyChargeLimitController: ObservableObject {
             status = .notEnabled
             return
         }
+        let generation = commandGeneration
         let probe: LegacyChargeLimitProbeFacts
         do {
             probe = try await client.probe()
@@ -135,6 +153,7 @@ final class LegacyChargeLimitController: ObservableObject {
             osBand: osBand,
             helperAvailable: true
         )
+        guard generation == commandGeneration else { return }
         guard let loaded = sessionStore.load() else {
             session = nil
             selectedLimit = nil
@@ -147,6 +166,7 @@ final class LegacyChargeLimitController: ObservableObject {
         selectedLimit = loaded.requestedLimit
         status = .checkingHardware
         let outcome = try? await client.verify(loaded.requestedLimit)
+        guard generation == commandGeneration else { return }
         if let outcome, outcome.verified {
             status = .holding(at: loaded.requestedLimit)
         } else {
@@ -161,6 +181,7 @@ final class LegacyChargeLimitController: ObservableObject {
             return false
         }
         guard Self.limits.contains(limit) else { return false }
+        commandGeneration &+= 1
         isApplying = true
         defer { isApplying = false }
         do {
@@ -196,6 +217,7 @@ final class LegacyChargeLimitController: ObservableObject {
         isApplying = true
         defer { isApplying = false }
         do {
+            commandGeneration &+= 1
             // The helper owns the stock value; the app only knows its intent, so
             // it must not fabricate an "expected hardware value" here. Ownership
             // is enforced by the helper's journal, not by a client guess.
@@ -218,6 +240,7 @@ final class LegacyChargeLimitController: ObservableObject {
     @discardableResult
     func chargeToFullOnce() async -> Bool {
         guard isAvailable, session != nil else { return false }
+        commandGeneration &+= 1
         isApplying = true
         defer { isApplying = false }
         do {
@@ -237,6 +260,7 @@ final class LegacyChargeLimitController: ObservableObject {
     @discardableResult
     func cancelChargeToFull() async -> Bool {
         guard isAvailable, let session else { return false }
+        commandGeneration &+= 1
         isApplying = true
         defer { isApplying = false }
         do {
