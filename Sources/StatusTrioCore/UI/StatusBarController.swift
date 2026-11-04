@@ -822,6 +822,9 @@ final class StatusBarController: NSObject {
         policy: PanelFocusDismissPolicy
     ) {
         guard popover.isShown, !isPopoverClosing,
+              // The Debug background-testing route intentionally keeps the panel
+              // up while the user works; it must not be closed by a focus change.
+              !popover.disablesDismissOnResignForTesting,
               let candidateWindow = notification.object as? NSWindow else { return }
         let panelWindow = popover.contentViewController?.view.window
         let candidate = PanelFocusDismissPolicy.FocusedWindow(
