@@ -757,3 +757,13 @@
 "battery.powerMode.low" = "Низкое энергопотребление";
 "battery.powerMode.high" = "Высокая мощность";
 "battery.powerMode.highRequiresPower" = "Режим высокой мощности вступает в силу при подключённом адаптере питания.";
+
+"settings.network.powerControl" = "Показывать кнопку питания Wi-Fi";
+"settings.network.powerControlDescription" = "Добавляет кнопку питания Wi-Fi на панель состояния.";
+"wifi.power.turnOn" = "Включить Wi-Fi";
+"wifi.power.turnOff" = "Выключить Wi-Fi";
+"wifi.power.unknown" = "Состояние Wi-Fi недоступно.";
+"wifi.power.changeFailed" = "Состояние Wi-Fi не изменилось.";
+"wifi.power.offConfirmTitle" = "Выключить Wi-Fi?";
+"wifi.power.offConfirmMessage" = "Текущая сеть будет отключена. Вы можете снова включить Wi-Fi в этой панели или в Системных настройках.";
+"wifi.power.offConfirmAction" = "Выключить";

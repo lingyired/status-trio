@@ -757,3 +757,13 @@
 "battery.powerMode.low" = "低電量";
 "battery.powerMode.high" = "高電量";
 "battery.powerMode.highRequiresPower" = "高電量模式需要連接電源後才會生效。";
+
+"settings.network.powerControl" = "顯示 Wi-Fi 電源開關";
+"settings.network.powerControlDescription" = "在狀態面板的 Wi-Fi 標題列顯示電源開關。";
+"wifi.power.turnOn" = "開啟 Wi-Fi";
+"wifi.power.turnOff" = "關閉 Wi-Fi";
+"wifi.power.unknown" = "Wi-Fi 狀態無法取得。";
+"wifi.power.changeFailed" = "Wi-Fi 狀態未能變更。";
+"wifi.power.offConfirmTitle" = "要關閉 Wi-Fi 嗎？";
+"wifi.power.offConfirmMessage" = "目前網路將中斷連線。你可以從此面板或系統設定重新開啟 Wi-Fi。";
+"wifi.power.offConfirmAction" = "關閉";

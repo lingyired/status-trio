@@ -757,3 +757,13 @@
 "battery.powerMode.low" = "Baixo Consumo";
 "battery.powerMode.high" = "Alto Desempenho";
 "battery.powerMode.highRequiresPower" = "O Modo de Alto Desempenho passa a valer com o adaptador de energia conectado.";
+
+"settings.network.powerControl" = "Mostrar controle de energia do Wi-Fi";
+"settings.network.powerControlDescription" = "Adiciona um botão de energia do Wi-Fi ao painel de status.";
+"wifi.power.turnOn" = "Ativar Wi-Fi";
+"wifi.power.turnOff" = "Desativar Wi-Fi";
+"wifi.power.unknown" = "O estado do Wi-Fi não está disponível.";
+"wifi.power.changeFailed" = "O Wi-Fi não mudou de estado.";
+"wifi.power.offConfirmTitle" = "Desativar Wi-Fi?";
+"wifi.power.offConfirmMessage" = "A rede atual será desconectada. Você pode ativar o Wi-Fi novamente neste painel ou em Ajustes do Sistema.";
+"wifi.power.offConfirmAction" = "Desativar";

@@ -757,3 +757,13 @@
 "battery.powerMode.low" = "Risparmio";
 "battery.powerMode.high" = "Prestazioni elevate";
 "battery.powerMode.highRequiresPower" = "La modalità prestazioni elevate si attiva solo con l’alimentatore collegato.";
+
+"settings.network.powerControl" = "Mostra il controllo di accensione Wi-Fi";
+"settings.network.powerControlDescription" = "Aggiunge un pulsante di accensione Wi-Fi al pannello di stato.";
+"wifi.power.turnOn" = "Attiva Wi-Fi";
+"wifi.power.turnOff" = "Disattiva Wi-Fi";
+"wifi.power.unknown" = "Lo stato Wi-Fi non è disponibile.";
+"wifi.power.changeFailed" = "Wi-Fi non ha cambiato stato.";
+"wifi.power.offConfirmTitle" = "Disattivare Wi-Fi?";
+"wifi.power.offConfirmMessage" = "La rete attuale verrà disconnessa. Puoi riattivare Wi-Fi da questo pannello o dalle Impostazioni di Sistema.";
+"wifi.power.offConfirmAction" = "Disattiva";

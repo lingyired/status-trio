@@ -757,3 +757,13 @@
 "battery.powerMode.low" = "طاقة منخفضة";
 "battery.powerMode.high" = "طاقة عالية";
 "battery.powerMode.highRequiresPower" = "لا يسري وضع الطاقة العالية إلا عند توصيل محول الطاقة.";
+
+"settings.network.powerControl" = "إظهار زر طاقة Wi-Fi";
+"settings.network.powerControlDescription" = "يضيف زر طاقة Wi-Fi إلى لوحة الحالة.";
+"wifi.power.turnOn" = "تشغيل Wi-Fi";
+"wifi.power.turnOff" = "إيقاف Wi-Fi";
+"wifi.power.unknown" = "حالة Wi-Fi غير متاحة.";
+"wifi.power.changeFailed" = "لم تتغير حالة Wi-Fi.";
+"wifi.power.offConfirmTitle" = "هل تريد إيقاف Wi-Fi؟";
+"wifi.power.offConfirmMessage" = "ستنقطع الشبكة الحالية. يمكنك تشغيل Wi-Fi مرة أخرى من هذه اللوحة أو من إعدادات النظام.";
+"wifi.power.offConfirmAction" = "إيقاف";

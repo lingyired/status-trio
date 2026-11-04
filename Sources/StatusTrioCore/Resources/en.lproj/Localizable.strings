@@ -755,3 +755,13 @@
 "battery.powerMode.low" = "Low Power";
 "battery.powerMode.high" = "High Power";
 "battery.powerMode.highRequiresPower" = "High Power Mode takes effect when a power adapter is connected.";
+
+"settings.network.powerControl" = "Show Wi-Fi Power Control";
+"settings.network.powerControlDescription" = "Adds a Wi-Fi power button to the status panel.";
+"wifi.power.turnOn" = "Turn Wi-Fi on";
+"wifi.power.turnOff" = "Turn Wi-Fi off";
+"wifi.power.unknown" = "Wi-Fi status is unavailable.";
+"wifi.power.changeFailed" = "Wi-Fi did not change state.";
+"wifi.power.offConfirmTitle" = "Turn off Wi-Fi?";
+"wifi.power.offConfirmMessage" = "The current network will disconnect. You can turn Wi-Fi back on from this panel or System Settings.";
+"wifi.power.offConfirmAction" = "Turn Off";

@@ -62,6 +62,16 @@ struct NetworkSectionView: View {
     /// the menu bar artwork and this decides the panel's second line.
     private var panelGroup: some View {
         SettingsGroup(localization.string(.settingsNetworkPanelGroup)) {
+            if WiFiPowerControlVisibility.showsSettingsControl(state: statusStore.snapshot.wifi.state) {
+                SettingsToggleRow(
+                    symbol: "power.circle",
+                    tint: .blue,
+                    title: localization.string(.settingsNetworkPowerControl),
+                    subtitle: localization.string(.settingsNetworkPowerControlDescription),
+                    isOn: $store.showsWiFiPowerControl
+                )
+                SettingsDivider()
+            }
             SettingsToggleRow(
                 symbol: "network",
                 tint: .cyan,

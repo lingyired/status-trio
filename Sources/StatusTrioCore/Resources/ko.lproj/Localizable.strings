@@ -757,3 +757,13 @@
 "battery.powerMode.low" = "저전력";
 "battery.powerMode.high" = "고전력";
 "battery.powerMode.highRequiresPower" = "고전력 모드는 전원 어댑터를 연결해야 적용됩니다.";
+
+"settings.network.powerControl" = "Wi-Fi 전원 버튼 표시";
+"settings.network.powerControlDescription" = "상태 패널에 Wi-Fi 전원 버튼을 표시합니다.";
+"wifi.power.turnOn" = "Wi-Fi 켜기";
+"wifi.power.turnOff" = "Wi-Fi 끄기";
+"wifi.power.unknown" = "Wi-Fi 상태를 사용할 수 없습니다.";
+"wifi.power.changeFailed" = "Wi-Fi 상태가 변경되지 않았습니다.";
+"wifi.power.offConfirmTitle" = "Wi-Fi를 끄시겠습니까?";
+"wifi.power.offConfirmMessage" = "현재 네트워크 연결이 해제됩니다. 이 패널이나 시스템 설정에서 Wi-Fi를 다시 켤 수 있습니다.";
+"wifi.power.offConfirmAction" = "끄기";

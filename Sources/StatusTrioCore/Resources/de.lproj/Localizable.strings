@@ -757,3 +757,13 @@
 "battery.powerMode.low" = "Niedrigenergie";
 "battery.powerMode.high" = "Hochenergie";
 "battery.powerMode.highRequiresPower" = "Der Hochenergiemodus wird erst mit angeschlossenem Netzteil wirksam.";
+
+"settings.network.powerControl" = "Wi-Fi-Ein-/Ausschalter anzeigen";
+"settings.network.powerControlDescription" = "Fügt dem Statusbereich einen Ein-/Ausschalter für Wi-Fi hinzu.";
+"wifi.power.turnOn" = "Wi-Fi einschalten";
+"wifi.power.turnOff" = "Wi-Fi ausschalten";
+"wifi.power.unknown" = "Der Wi-Fi-Status ist nicht verfügbar.";
+"wifi.power.changeFailed" = "Wi-Fi hat den Status nicht geändert.";
+"wifi.power.offConfirmTitle" = "Wi-Fi ausschalten?";
+"wifi.power.offConfirmMessage" = "Das aktuelle Netzwerk wird getrennt. Du kannst Wi-Fi in diesem Fenster oder in den Systemeinstellungen wieder einschalten.";
+"wifi.power.offConfirmAction" = "Ausschalten";

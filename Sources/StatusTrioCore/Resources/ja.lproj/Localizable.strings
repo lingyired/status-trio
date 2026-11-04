@@ -757,3 +757,13 @@
 "battery.powerMode.low" = "低電力";
 "battery.powerMode.high" = "高電力";
 "battery.powerMode.highRequiresPower" = "高電力モードは電源アダプタを接続すると有効になります。";
+
+"settings.network.powerControl" = "Wi-Fi 電源ボタンを表示";
+"settings.network.powerControlDescription" = "ステータスパネルに Wi-Fi の電源ボタンを表示します。";
+"wifi.power.turnOn" = "Wi-Fiをオンにする";
+"wifi.power.turnOff" = "Wi-Fiをオフにする";
+"wifi.power.unknown" = "Wi-Fiの状態を取得できません。";
+"wifi.power.changeFailed" = "Wi-Fiの状態が変わりませんでした。";
+"wifi.power.offConfirmTitle" = "Wi-Fiをオフにしますか？";
+"wifi.power.offConfirmMessage" = "現在のネットワークが切断されます。このパネルまたはシステム設定からWi-Fiを再度オンにできます。";
+"wifi.power.offConfirmAction" = "オフにする";

@@ -219,7 +219,7 @@ final class StatusPanelActions {
             wifiNameAccess: { store.popupSnapshot.wifi.nameAccess },
             activateWiFiDetails: { store.wifiNetworks.activate(nameAccess: $0) },
             closeWiFiDetails: { store.wifiNetworks.deactivate() },
-            setWiFiPower: { store.wifiNetworks.setPower($0) },
+            setWiFiPower: { store.setWiFiPower($0) },
             refreshWiFi: { store.wifiNetworks.refreshNow(nameAccess: $0) },
             openWiredDetails: { store.activatePrimaryLinkPanel() },
             closeWiredDetails: { store.closePrimaryLinkPanel() },
