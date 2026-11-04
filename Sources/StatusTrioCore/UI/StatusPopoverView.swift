@@ -26,6 +26,7 @@ struct StatusPopoverView: View {
     let openSettings: () -> Void
     let openSoundSettings: () -> Void
     let openSoundInputSettings: () -> Void
+    var openDisplaySettings: () -> Void = {}
     let openKeyboardSettings: () -> Void
     let quit: () -> Void
     /// The footer's Actions menu closes the panel before opening another window.
@@ -241,12 +242,15 @@ struct StatusPopoverView: View {
         case .brightness:
             BrightnessControlsView(
                 state: panel.brightness,
-                actions: panel.actions
+                actions: panel.actions,
+                scrollTargets: scrollTargets,
+                onOpenDisplaySettings: openDisplaySettings
             )
         case .audioInput:
             AudioInputControlsView(
                 state: panel.audioInput,
                 actions: panel.actions,
+                scrollTargets: scrollTargets,
                 onOpenSoundSettings: openSoundInputSettings
             )
         case .inputSource:

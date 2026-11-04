@@ -377,6 +377,10 @@ final class StatusPanelViewModel: ObservableObject {
     /// Re-enters the lightweight route after a close released the detail view
     /// and its collectors. This runs before the popover's first layout pass.
     func prepareForPresentation() {
+        if settings.returnsToSummaryOnOpen {
+            closeCurrentPage()
+            return
+        }
         guard store.isPopoverVisible, route != .summary else { return }
         guard isRouteAvailable(route) else {
             closeCurrentPage()

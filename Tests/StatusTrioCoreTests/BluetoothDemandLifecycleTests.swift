@@ -445,6 +445,69 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
         fixture.store.stop()
     }
 
+    func testPoweringOffClearsCachedDevicesSoNoStaleDeviceRowsShow() async {
+        let fixture = makeFixture(authorization: .allowed)
+        fixture.settings.setPopupSection(.bluetooth, enabled: true)
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.reader.readCount == 1 }
+
+        let device = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:FF",
+            name: "AirPods Pro",
+            kind: .audio,
+            isConnected: true
+        )
+        fixture.reader.complete(.success([device]))
+        await waitUntil { fixture.store.bluetoothDevices.devices.count == 1 }
+        XCTAssertEqual(fixture.store.bluetoothDevices.cachedDevices, [device])
+
+        // Now power the radio off. Monitoring is suspended with no read coming
+        // to overwrite the cache, so the stale cached rows — with their
+        // connected marker — must be dropped, not left for the next open.
+        await fixture.store.setBluetoothPower(false)
+
+        XCTAssertTrue(
+            fixture.store.bluetoothDevices.cachedDevices.isEmpty,
+            "powering off must clear the cached device rows that would otherwise render as live"
+        )
+        XCTAssertEqual(fixture.store.bluetoothPower.power, .off)
+        fixture.store.stop()
+    }
+
+    func testPoweringBackOnDoesNotRestoreTheClearedCache() async {
+        let fixture = makeFixture(authorization: .allowed)
+        fixture.settings.setPopupSection(.bluetooth, enabled: true)
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.reader.readCount == 1 }
+
+        let device = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:FF",
+            name: "AirPods Pro",
+            kind: .audio,
+            isConnected: true
+        )
+        fixture.reader.complete(.success([device]))
+        await waitUntil { fixture.store.bluetoothDevices.devices.count == 1 }
+        XCTAssertEqual(fixture.store.bluetoothDevices.cachedDevices, [device])
+
+        await fixture.store.setBluetoothPower(false)
+        XCTAssertTrue(fixture.store.bluetoothDevices.cachedDevices.isEmpty)
+
+        // Re-enabling must not surface the cleared cache on the instant reopen:
+        // a fresh read has to repopulate the list, not the stale rows from
+        // before the power-off.
+        await fixture.store.setBluetoothPower(true)
+        XCTAssertTrue(
+            fixture.store.bluetoothDevices.cachedDevices.isEmpty,
+            "re-opening after power off must not draw the pre-power-off cache"
+        )
+        fixture.store.stop()
+    }
+
     func testBatteryRequestWhileTheDeviceReadIsInFlightStillReadsLevels() async {
         let fixture = makeFixture(authorization: .allowed)
         fixture.settings.setPopupSection(.bluetooth, enabled: true)
@@ -510,11 +573,13 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
             workspaceNotificationCenter: NotificationCenter()
         )
         let volumeMonitor = DemandVolumeMonitor()
+        let radioPowerBackend = DemandBluetoothRadioPowerBackend()
         let store = SystemStatusStore(
             batteryMonitor: DemandBatteryMonitor(),
             wifiMonitor: DemandWiFiMonitor(),
             volumeMonitor: volumeMonitor,
             bluetoothDevices: bluetoothController,
+            bluetoothPower: BluetoothRadioPowerController(backend: radioPowerBackend),
             bluetoothProfilerCache: cache
         )
         addTeardownBlock {
@@ -641,6 +706,23 @@ private final class DemandBluetoothReader: BluetoothPairedDeviceReading, @unchec
         let completion = lock.withLock { pending.isEmpty ? nil : pending.removeFirst() }
         completion?(result)
         return completion != nil
+    }
+}
+
+@MainActor
+private final class DemandBluetoothRadioPowerBackend: BluetoothRadioPowerBacking {
+    var isAvailable: Bool { true }
+    private(set) var power: BluetoothRadioPower
+
+    init(power: BluetoothRadioPower = .on) {
+        self.power = power
+    }
+
+    func readPower() -> BluetoothRadioPower { power }
+
+    func setPower(_ enabled: Bool) async -> Bool {
+        power = enabled ? .on : .off
+        return true
     }
 }
 

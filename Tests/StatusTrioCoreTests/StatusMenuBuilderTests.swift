@@ -88,6 +88,16 @@ final class StatusMenuBuilderTests: XCTestCase {
         XCTAssertNil(StatusBarController.clickKind(eventType: .flagsChanged, modifiers: []))
     }
 
+    func testDisplaySettingsRouteOpensTheDisplaysPane() {
+        XCTAssertEqual(
+            StatusBarController.displaySettingsURLs.map(\.absoluteString),
+            [
+                "x-apple.systempreferences:com.apple.Displays-Settings.extension",
+                "x-apple.systempreferences:com.apple.preference.displays"
+            ]
+        )
+    }
+
     func testSystemSettingsURLFallbackOrder() {
         // The Wi-Fi route must come first on every supported macOS version: the
         // Network pane lists services, not networks, and System Settings still

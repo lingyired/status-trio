@@ -36,6 +36,7 @@ final class AudioInputLayoutTests: XCTestCase {
             AudioInputControlsView(
                 state: AudioPanelMapper.input(status, localization: localization),
                 actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
                 onOpenSoundSettings: {}
             )
             .padding(14)

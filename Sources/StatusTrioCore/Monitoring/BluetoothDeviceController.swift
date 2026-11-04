@@ -399,6 +399,16 @@ final class BluetoothDeviceController: ObservableObject {
     private var isMonitoringAccessoryBatteryNotifications = false
     private(set) var isActive = false
     private var batteryRequestGate = AsyncRequestGate()
+    /// Advanced by every valid connection event, before its debounce latch is
+    /// consulted. A device snapshot carries the generation that was current when
+    /// its profiler read started; only a snapshot from the current generation may
+    /// release battery reads. A connection change therefore invalidates the
+    /// battery gate immediately, not one debounce (or one profiler run) later.
+    private var connectionGeneration: UInt64 = 0
+    /// The connection generation the currently published device list was read
+    /// under. It trails `connectionGeneration` from the first event until the
+    /// next profiler read completes.
+    private var deviceSnapshotGeneration: UInt64 = 0
     /// One device read at a time, with at most one coalesced follow-up. Without
     /// this, every trigger started its own `/usr/sbin/system_profiler` process.
     private var isDeviceReadInFlight = false
@@ -706,6 +716,24 @@ final class BluetoothDeviceController: ObservableObject {
         availability = .idle
     }
 
+    /// Clears the cached device rows the panel would otherwise draw while a
+    /// fresh read is in flight.
+    ///
+    /// The cache exists so reopening the panel shows last-known names instantly
+    /// instead of waiting on the OS read. That tradeoff only makes sense while
+    /// Bluetooth is reachable: once the radio is switched off the monitoring is
+    /// suspended with no read coming to overwrite the cache, so the cached
+    /// rows — with their stale connected markers — would keep rendering until
+    /// the radio turns back on. This drops them on the power-off path while
+    /// leaving the ordinary panel-close/reopen cache alone (that path still
+    /// goes through `releaseTransientState`, which keeps `cachedDevices`).
+    func clearCachedDevicesForPowerOff() {
+        cachedDevices = []
+        devices = []
+        hasLoadedDevices = false
+        clearDeviceActions()
+    }
+
     func refresh() {
         guard isActive, availability == .available else { return }
         // Coalesce bursts: at most one read and one follow-up are retained,
@@ -717,6 +745,11 @@ final class BluetoothDeviceController: ObservableObject {
         isDeviceReadInFlight = true
         readToken &+= 1
         let token = readToken
+        // The list this read is about to fetch describes the connections at this
+        // generation. A connection event that lands while the profiler runs moves
+        // the generation on, so this completion publishes devices but cannot
+        // release battery reads.
+        let snapshotGeneration = connectionGeneration
         readWatchdog.arm { [weak self] in
             self?.abandonTimedOutRead(token: token)
         }
@@ -737,6 +770,7 @@ final class BluetoothDeviceController: ObservableObject {
                         self.appleBluetoothAudioDiagnosticReporter.report($0)
                     }
                     self.devices = devices
+                    self.deviceSnapshotGeneration = snapshotGeneration
                     self.cachedDevices = Array(devices.prefix(Self.cachedDeviceLimit))
                     self.hasLoadedDevices = true
                     // The BLE route matches a phone's advertised name against
@@ -1072,6 +1106,12 @@ final class BluetoothDeviceController: ObservableObject {
 
     private func refreshBatteryLevels() {
         guard isActive, batteryLevelsEnabled, availability == .available else { return }
+        // A battery read is only meaningful for the device list it will be merged
+        // against. After a connection change the published list predates the
+        // change, so a warm claim must wait for a profiler read from the current
+        // generation instead of refreshing a level for a device that may have
+        // just left.
+        guard deviceSnapshotGeneration == connectionGeneration else { return }
         let request = batteryRequestGate.advance()
         batteryReader.read { [weak self] levels in
             Task { @MainActor [weak self] in
@@ -1112,7 +1152,6 @@ final class BluetoothDeviceController: ObservableObject {
         guard BluetoothBatteryLevelFallback.isNeeded(levels: levels, devices: devices) else {
             return
         }
-        let devices = devices
         accessoryBatteryReader.read { [weak self] accessories in
             Task { @MainActor [weak self] in
                 guard let self,
@@ -1126,10 +1165,14 @@ final class BluetoothDeviceController: ObservableObject {
                 // the primary read's verdict stands, and a second line saying the
                 // same thing would only repeat it.
                 guard let accessories else { return }
+                // Resolve against the *current* device list, not the one captured
+                // when the read started. A device can disconnect while `pmset`
+                // runs; its snapshot then still says "connected", and merging
+                // against it would hand a level to a device that already left.
                 let merged = BluetoothBatteryLevelFallback.merged(
                     levels: self.batteryLevels,
                     accessories: accessories,
-                    devices: devices
+                    devices: self.devices
                 )
                 self.batteryLevels = merged
                 // The report's failure is cleared exactly when the second source
@@ -1704,6 +1747,12 @@ final class BluetoothDeviceController: ObservableObject {
     /// notification would otherwise start its own profiler run.
     private func receiveConnectionEvent() {
         guard isActive, isMonitoringConnectionEventNotifications else { return }
+        // The notification carries no address, so every event invalidates the
+        // whole battery read. This happens before the debounce latch is consulted:
+        // a second event in one burst must still clear, and a warm claim must not
+        // restart a read against the pre-change device list.
+        connectionGeneration &+= 1
+        clearBatteryLevels()
         guard !isConnectionEventReadScheduled else { return }
         isConnectionEventReadScheduled = true
         let request = connectionEventGate.advance()
