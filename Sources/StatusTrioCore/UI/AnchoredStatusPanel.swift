@@ -68,6 +68,13 @@ final class AnchoredStatusPanel: NSPanel {
     /// Set while content is installed; asks the hosting controller to report its
     /// size again after the height budget changed.
     private var invalidateContentMeasurement: (() -> Void)?
+    /// The hosting controller currently installed as the panel's content.
+    private weak var contentHost: NSViewController?
+
+    /// Whether `host` is the content currently installed.
+    func isCurrentContentHost(_ host: NSViewController) -> Bool {
+        contentHost === host
+    }
 
     init(layoutUpdateScheduler: StatusPanelLayoutUpdateScheduler? = nil) {
         self.layoutUpdateScheduler = layoutUpdateScheduler
@@ -112,11 +119,22 @@ final class AnchoredStatusPanel: NSPanel {
         _ hostingController: StatusPanelHostingController<Content>,
         backgroundStyle: PanelBackgroundStyle
     ) {
-        hostingController.onLayout = { [weak self] size in
-            self?.requestContentSize(size)
+        contentHost = hostingController
+        hostingController.onLayout = { [weak self, weak hostingController] size in
+            guard let self, let hostingController else { return }
+            // A replaced host can still finish a delayed layout pass. Only the
+            // content that is installed now may drive the window (issue #259).
+            guard self.isCurrentContentHost(hostingController) else { return }
+            self.requestContentSize(size)
         }
         invalidateContentMeasurement = { [weak hostingController] in
-            hostingController?.invalidateSizeMeasurement()
+            guard let hostingController else { return }
+            hostingController.invalidateSizeMeasurement()
+            // Clearing the cache alone does not schedule a layout pass, so the
+            // host would never report again. Drive the pass here: the re-measure
+            // must produce a fresh measurement, not silently do nothing.
+            hostingController.view.needsLayout = true
+            hostingController.view.layoutSubtreeIfNeeded()
         }
         layoutCoordinator.invalidate()
         let controller = StatusPanelContentViewController(
@@ -479,6 +497,15 @@ final class StatusPanelLayoutCoordinator {
             // the available space, so it must not decide the new frame.
             pendingContentSize = nil
             remeasure()
+            // `remeasure` drives a layout pass, so the fresh measurement usually
+            // arrives synchronously. Apply it in this turn: waiting for another
+            // one would drop a real update whenever the environment change did
+            // not actually alter the budget.
+            if let size = pendingContentSize {
+                pendingContentSize = nil
+                applyContentSize(size)
+                return
+            }
             reposition()
             return
         }

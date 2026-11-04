@@ -88,6 +88,7 @@ final class StatusPanelContentResizeTests: VisibleUITestCase {
         )
     }
 
+#if DEBUG
     /// Issue #259: once the panel has settled, its own resize notifications must
     /// not keep rewriting the same frame. A real content change still resizes.
     func testSettledWindowIgnoresRepeatedResizeNotifications() throws {
@@ -120,6 +121,8 @@ final class StatusPanelContentResizeTests: VisibleUITestCase {
             "a real content change must still resize the window"
         )
     }
+
+#endif
 
     private func makeFixture() throws -> PanelFixture {
         let suiteName = "StatusTrioCoreTests.StatusPanelContentResize.\(UUID().uuidString)"

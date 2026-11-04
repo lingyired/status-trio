@@ -15,6 +15,13 @@ private final class ManualSchedule {
             callbacks.removeFirst()()
         }
     }
+
+    /// Runs exactly one main-actor turn, so a test can tell "same turn" from
+    /// "a later turn".
+    func drainOneTurn() {
+        guard !callbacks.isEmpty else { return }
+        callbacks.removeFirst()()
+    }
 }
 
 @MainActor
@@ -22,6 +29,9 @@ private final class CoordinatorProbe {
     var appliedSizes: [NSSize] = []
     var repositionCount = 0
     var remeasureCount = 0
+    /// Runs inside the coordinator's re-measure step, so a test can model a host
+    /// that reports a fresh measurement synchronously.
+    var onRemeasure: (() -> Void)?
 }
 
 @MainActor
@@ -34,7 +44,10 @@ struct StatusPanelLayoutCoordinatorTests {
             scheduler: scheduler,
             applyContentSize: { probe.appliedSizes.append($0) },
             reposition: { probe.repositionCount += 1 },
-            remeasure: { probe.remeasureCount += 1 }
+            remeasure: {
+                probe.remeasureCount += 1
+                probe.onRemeasure?()
+            }
         )
         return (coordinator, probe, manual)
     }
@@ -97,6 +110,27 @@ struct StatusPanelLayoutCoordinatorTests {
         #expect(probe.remeasureCount == 1)
         #expect(probe.repositionCount == 1)
         #expect(probe.appliedSizes.isEmpty, "the pre-change measurement is stale")
+    }
+
+
+    /// Issue #259 review: a re-measure that reports synchronously must be applied
+    /// in the same turn. Otherwise a Space change with an unchanged budget can
+    /// discard the pending update and leave the window at the old size.
+    @Test func environmentChangeAppliesAFreshSynchronousMeasurement() {
+        let (coordinator, probe, manual) = makeCoordinator()
+        probe.onRemeasure = {
+            coordinator.requestContentSize(NSSize(width: 330, height: 260))
+        }
+
+        coordinator.placementEnvironmentChanged()
+        coordinator.requestContentSize(NSSize(width: 330, height: 400))
+        manual.drainOneTurn()
+
+        #expect(probe.remeasureCount == 1)
+        #expect(
+            probe.appliedSizes.map(\.height) == [260],
+            "the fresh measurement must replace the stale one in the same turn"
+        )
     }
 
     @Test func aFreshMeasurementAfterTheRemeasureStillApplies() {
