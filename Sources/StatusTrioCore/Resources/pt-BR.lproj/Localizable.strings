@@ -386,8 +386,9 @@
 "settings.panel.returnsToSummaryOnOpen" = "Sempre iniciar na página de resumo";
 "settings.panel.returnsToSummaryOnOpen.description" = "Quando ativado, o painel de status sempre abre na página de resumo; caso contrário, ele lembra a última página visualizada.";
 "settings.popup.volumeScroll.group" = "Rolagem do painel";
+"settings.audio.volumeScroll.group" = "Rolagem do volume";
 "settings.popup.volumeScroll" = "Ajustar rolando";
-"settings.popup.volumeScroll.description" = "Role dentro do painel de status para ajustar o volume, o brilho ou o ganho de entrada sob o ponteiro. Em áreas vazias, a rolagem ajusta o volume de saída.";
+"settings.popup.volumeScroll.description" = "Role dentro do painel de status para alterar o volume de saída. Sobre um controle, a rolagem ajusta esse controle (volume, brilho ou ganho de entrada).";
 "settings.popup.volumeScroll.scope" = "Área";
 "settings.popup.volumeScroll.scope.description" = "Escolha se a rolagem sobre áreas vazias do painel ajusta o volume de saída.";
 "settings.popup.volumeScroll.scope.panel" = "Painel inteiro";
@@ -398,7 +399,7 @@
 "settings.audio.volumeFeedback" = "Reproduzir som ao ajustar o volume com a rolagem";
 "settings.audio.volumeFeedbackDescription" = "Reproduz o som ao ajustar o volume com a rolagem. Por padrão, segue a configuração do macOS “Reproduzir feedback ao alterar o volume”; alternar aqui vale apenas para o Status Trio.";
 "settings.popup.volumeScroll.direction" = "Direção da rolagem";
-"settings.popup.volumeScroll.direction.description" = "Escolha a direção que aumenta o volume.";
+"settings.popup.volumeScroll.direction.description" = "Aplica-se aos controles de volume, brilho e entrada.";
 "settings.popup.volumeScroll.direction.up" = "Para cima";
 "settings.popup.volumeScroll.direction.down" = "Para baixo";
 

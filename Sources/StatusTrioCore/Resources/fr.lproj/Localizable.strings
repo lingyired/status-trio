@@ -386,8 +386,9 @@
 "settings.panel.returnsToSummaryOnOpen" = "Toujours s’ouvrir sur la page de résumé";
 "settings.panel.returnsToSummaryOnOpen.description" = "Lorsque cette option est activée, le panneau d’état s’ouvre toujours sur la page de résumé ; sinon, il conserve la dernière page consultée.";
 "settings.popup.volumeScroll.group" = "Défilement du panneau";
+"settings.audio.volumeScroll.group" = "Défilement du volume";
 "settings.popup.volumeScroll" = "Ajuster par défilement";
-"settings.popup.volumeScroll.description" = "Faites défiler dans le panneau d’état pour ajuster le volume, la luminosité ou le gain d’entrée sous le pointeur. Sur les zones vides, le défilement ajuste le volume de sortie.";
+"settings.popup.volumeScroll.description" = "Faites défiler dans le panneau d’état pour changer le volume de sortie. Sur un curseur, le défilement ajuste ce curseur (volume, luminosité ou gain d’entrée).";
 "settings.popup.volumeScroll.scope" = "Zone";
 "settings.popup.volumeScroll.scope.description" = "Choisissez si le défilement sur les zones vides du panneau ajuste le volume de sortie.";
 "settings.popup.volumeScroll.scope.panel" = "Tout le panneau";
@@ -398,7 +399,7 @@
 "settings.audio.volumeFeedback" = "Émettre un son lors du réglage du volume par défilement";
 "settings.audio.volumeFeedbackDescription" = "Émet le son lorsque vous réglez le volume par défilement. Par défaut, suit le réglage macOS « émettre un retour sonore lors du changement de volume » ; ce commutateur ne s’applique qu’à Status Trio.";
 "settings.popup.volumeScroll.direction" = "Sens du défilement";
-"settings.popup.volumeScroll.direction.description" = "Choisissez le sens qui augmente le volume.";
+"settings.popup.volumeScroll.direction.description" = "S’applique aux curseurs de volume, de luminosité et d’entrée.";
 "settings.popup.volumeScroll.direction.up" = "Vers le haut";
 "settings.popup.volumeScroll.direction.down" = "Vers le bas";
 

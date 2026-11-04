@@ -385,8 +385,9 @@
 "settings.panel.returnsToSummaryOnOpen" = "Always Start on the Summary Page";
 "settings.panel.returnsToSummaryOnOpen.description" = "When enabled, the status panel always opens on the summary page; otherwise it remembers the last page you viewed.";
 "settings.popup.volumeScroll.group" = "Panel Scrolling";
+"settings.audio.volumeScroll.group" = "Volume Scrolling";
 "settings.popup.volumeScroll" = "Adjust by Scrolling";
-"settings.popup.volumeScroll.description" = "Scroll inside the status panel to adjust the volume, brightness, or input gain under the pointer. Scrolling over empty areas adjusts the output volume.";
+"settings.popup.volumeScroll.description" = "Scroll inside the status panel to change the output volume. Over a slider, scrolling adjusts that slider (volume, brightness, or input gain).";
 "settings.popup.volumeScroll.scope" = "Adjustment Area";
 "settings.popup.volumeScroll.scope.description" = "Choose whether scrolling over empty panel areas changes the output volume.";
 "settings.popup.volumeScroll.scope.panel" = "Whole Panel";
@@ -397,7 +398,7 @@
 "settings.audio.volumeFeedback" = "Play a sound when scrolling to change the volume";
 "settings.audio.volumeFeedbackDescription" = "Plays the tick when you change the volume by scrolling. By default it follows the macOS “Play feedback when volume is changed” setting; toggling this here overrides it for Status Trio only.";
 "settings.popup.volumeScroll.direction" = "Scroll Direction";
-"settings.popup.volumeScroll.direction.description" = "Choose the direction that turns the volume up.";
+"settings.popup.volumeScroll.direction.description" = "Applies to the volume, brightness, and input sliders.";
 "settings.popup.volumeScroll.direction.up" = "Scroll Up";
 "settings.popup.volumeScroll.direction.down" = "Scroll Down";
 

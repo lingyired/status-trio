@@ -386,8 +386,9 @@
 "settings.panel.returnsToSummaryOnOpen" = "열 때마다 항상 요약 페이지로 돌아가기";
 "settings.panel.returnsToSummaryOnOpen.description" = "활성화하면 상태 패널이 항상 요약 페이지에서 열립니다. 비활성화하면 마지막으로 본 페이지가 유지됩니다.";
 "settings.popup.volumeScroll.group" = "패널 스크롤";
+"settings.audio.volumeScroll.group" = "음량 스크롤";
 "settings.popup.volumeScroll" = "스크롤로 조절";
-"settings.popup.volumeScroll.description" = "상태 패널 안에서 스크롤하여 포인터 아래의 음량, 밝기 또는 입력 게인을 조절합니다. 빈 영역에서는 출력 음량을 조절합니다.";
+"settings.popup.volumeScroll.description" = "상태 패널 안에서 스크롤하여 출력 음량을 변경합니다. 슬라이더 위에서는 해당 슬라이더(음량, 밝기, 입력 게인)를 조절합니다.";
 "settings.popup.volumeScroll.scope" = "적용 범위";
 "settings.popup.volumeScroll.scope.description" = "패널의 빈 영역을 스크롤할 때 출력 음량을 조절할지 선택합니다.";
 "settings.popup.volumeScroll.scope.panel" = "패널 전체";
@@ -398,7 +399,7 @@
 "settings.audio.volumeFeedback" = "스크롤로 볼륨을 조절할 때 소리 재생";
 "settings.audio.volumeFeedbackDescription" = "스크롤로 볼륨을 조절할 때 알림음을 재생합니다. 기본값은 macOS의 '볼륨 변경 시 피드백 재생'을 따릅니다. 여기서 전환하면 Status Trio에만 적용됩니다.";
 "settings.popup.volumeScroll.direction" = "스크롤 방향";
-"settings.popup.volumeScroll.direction.description" = "볼륨을 높이는 스크롤 방향을 선택합니다.";
+"settings.popup.volumeScroll.direction.description" = "음량, 밝기, 입력 슬라이더에 적용됩니다.";
 "settings.popup.volumeScroll.direction.up" = "위로 스크롤";
 "settings.popup.volumeScroll.direction.down" = "아래로 스크롤";
 

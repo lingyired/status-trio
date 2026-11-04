@@ -386,8 +386,9 @@
 "settings.panel.returnsToSummaryOnOpen" = "每次開啟都回到總覽頁面";
 "settings.panel.returnsToSummaryOnOpen.description" = "開啟後，每次打開狀態面板都從總覽頁面開始；關閉時會保留上次查看的詳細頁面。";
 "settings.popup.volumeScroll.group" = "面板滾動";
+"settings.audio.volumeScroll.group" = "音量滾動";
 "settings.popup.volumeScroll" = "滾動調節";
-"settings.popup.volumeScroll.description" = "在狀態面板內滾動，調節指標下的音量、亮度或輸入增益；空白處滾動調節輸出音量。";
+"settings.popup.volumeScroll.description" = "在狀態面板內滾動調節輸出音量；指標位於滑桿上時改為調節該滑桿（音量、亮度或輸入增益）。";
 "settings.popup.volumeScroll.scope" = "生效範圍";
 "settings.popup.volumeScroll.scope.description" = "選擇空白處的滾動是否調節輸出音量。";
 "settings.popup.volumeScroll.scope.panel" = "整個面板";
@@ -398,7 +399,7 @@
 "settings.audio.volumeFeedback" = "滾動調節音量時播放提示音";
 "settings.audio.volumeFeedbackDescription" = "滾動調節音量時播放提示音。預設跟隨 macOS「音量更改時播放回饋」設定；在此切換後僅對 Status Trio 生效。";
 "settings.popup.volumeScroll.direction" = "滾動方向";
-"settings.popup.volumeScroll.direction.description" = "選擇增大音量的滾動方向。";
+"settings.popup.volumeScroll.direction.description" = "適用於音量、亮度與輸入滑桿。";
 "settings.popup.volumeScroll.direction.up" = "上滑";
 "settings.popup.volumeScroll.direction.down" = "下滑";
 

@@ -386,8 +386,9 @@
 "settings.panel.returnsToSummaryOnOpen" = "Всегда начинать со страницы обзора";
 "settings.panel.returnsToSummaryOnOpen.description" = "Когда включено, панель состояния всегда открывается на странице обзора; в противном случае запоминается последняя просмотренная страница.";
 "settings.popup.volumeScroll.group" = "Прокрутка панели";
+"settings.audio.volumeScroll.group" = "Прокрутка громкости";
 "settings.popup.volumeScroll" = "Регулировка прокруткой";
-"settings.popup.volumeScroll.description" = "Прокручивайте внутри панели состояния, чтобы менять громкость, яркость или усиление входа под указателем. Прокрутка над пустыми областями меняет громкость вывода.";
+"settings.popup.volumeScroll.description" = "Прокручивайте внутри панели состояния, чтобы менять громкость вывода. На ползунке прокрутка меняет этот ползунок (громкость, яркость или усиление входа).";
 "settings.popup.volumeScroll.scope" = "Область";
 "settings.popup.volumeScroll.scope.description" = "Выберите, должна ли прокрутка над пустыми областями панели менять громкость вывода.";
 "settings.popup.volumeScroll.scope.panel" = "Вся панель";
@@ -398,7 +399,7 @@
 "settings.audio.volumeFeedback" = "Звук при изменении громкости прокруткой";
 "settings.audio.volumeFeedbackDescription" = "Воспроизводит звук при изменении громкости прокруткой. По умолчанию используется параметр macOS «Воспроизводить звук при изменении громкости»; переключатель здесь действует только для Status Trio.";
 "settings.popup.volumeScroll.direction" = "Направление прокрутки";
-"settings.popup.volumeScroll.direction.description" = "Выберите направление, увеличивающее громкость.";
+"settings.popup.volumeScroll.direction.description" = "Применяется к ползункам громкости, яркости и входа.";
 "settings.popup.volumeScroll.direction.up" = "Вверх";
 "settings.popup.volumeScroll.direction.down" = "Вниз";
 

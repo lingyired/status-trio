@@ -386,8 +386,9 @@
 "settings.panel.returnsToSummaryOnOpen" = "البدء دائمًا من صفحة الملخص";
 "settings.panel.returnsToSummaryOnOpen.description" = "عند التفعيل، تُفتح لوحة الحالة دائمًا على صفحة الملخص؛ وإلا فإنها تحتفظ بآخر صفحة عرضتها.";
 "settings.popup.volumeScroll.group" = "تمرير اللوحة";
+"settings.audio.volumeScroll.group" = "تمرير مستوى الصوت";
 "settings.popup.volumeScroll" = "الضبط بالتمرير";
-"settings.popup.volumeScroll.description" = "مرّر داخل لوحة الحالة لضبط مستوى الصوت أو السطوع أو كسب الإدخال تحت المؤشر. يؤدي التمرير فوق المناطق الفارغة إلى ضبط مستوى صوت الإخراج.";
+"settings.popup.volumeScroll.description" = "مرّر داخل لوحة الحالة لتغيير مستوى صوت الإخراج. فوق شريط تمرير، يؤدي التمرير إلى ضبط ذلك الشريط (الصوت أو السطوع أو كسب الإدخال).";
 "settings.popup.volumeScroll.scope" = "النطاق";
 "settings.popup.volumeScroll.scope.description" = "اختر ما إذا كان التمرير فوق المناطق الفارغة في اللوحة يضبط مستوى صوت الإخراج.";
 "settings.popup.volumeScroll.scope.panel" = "اللوحة بالكامل";
@@ -398,7 +399,7 @@
 "settings.audio.volumeFeedback" = "تشغيل صوت عند تغيير مستوى الصوت بالتمرير";
 "settings.audio.volumeFeedbackDescription" = "يشغّل النقرة عند تغيير مستوى الصوت بالتمرير. الافتراضي يتبع إعداد macOS «تشغيل التغذية الراجعة عند تغيير مستوى الصوت»؛ التبديل هنا ينطبق على Status Trio فقط.";
 "settings.popup.volumeScroll.direction" = "اتجاه التمرير";
-"settings.popup.volumeScroll.direction.description" = "اختر الاتجاه الذي يرفع مستوى الصوت.";
+"settings.popup.volumeScroll.direction.description" = "ينطبق على أشرطة تمرير الصوت والسطوع والإدخال.";
 "settings.popup.volumeScroll.direction.up" = "للأعلى";
 "settings.popup.volumeScroll.direction.down" = "للأسفل";
 

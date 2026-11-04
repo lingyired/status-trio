@@ -337,11 +337,11 @@ final class SettingsViewTests: XCTestCase {
         }
     }
 
-    /// #245/#256: scrolling now adjusts the slider under the pointer (volume,
-    /// brightness or input gain), so the settings live on the status-panel pane
-    /// rather than the Audio pane. Guard the location at the source so a later
-    /// refactor cannot quietly split the group across two pages.
-    func testPanelScrollingSettingsLiveOnThePanelPaneOnly() throws {
+    /// #245/#256: the volume-scroll switch and its effect scope stay on the
+    /// Audio pane, while the shared scroll direction (used by volume, brightness
+    /// and input sliders) lives on the status-panel pane. Guard the split at the
+    /// source so neither half drifts back into the other page.
+    func testScrollSettingsAreSplitBetweenPanelAndAudioPanes() throws {
         let base = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -357,17 +357,24 @@ final class SettingsViewTests: XCTestCase {
             encoding: .utf8
         )
 
-        XCTAssertTrue(popover.contains("volumeScrollGroup"))
-        XCTAssertTrue(popover.contains("settingsPopupVolumeScrollGroup"))
-        XCTAssertTrue(popover.contains("scrollScopeLabel"))
-        XCTAssertTrue(
-            popover.contains("popupScrollAdjustsVolume"),
-            "the status-panel pane owns the panel-wide scroll adjustment"
-        )
+        XCTAssertTrue(audio.contains("volumeScrollGroup"))
+        XCTAssertTrue(audio.contains("settingsAudioVolumeScrollGroup"))
+        XCTAssertTrue(audio.contains("scrollScopeLabel"))
+        XCTAssertTrue(audio.contains("popupScrollAdjustsVolume"))
+        XCTAssertTrue(audio.contains("popupVolumeScrollScope"))
+        XCTAssertFalse(audio.contains("popupVolumeNaturalScrolling"))
+        XCTAssertFalse(audio.contains("settingsPopupVolumeScrollNatural"))
 
-        XCTAssertFalse(audio.contains("volumeScrollGroup"))
-        XCTAssertFalse(audio.contains("settingsPopupVolumeScroll"))
-        XCTAssertFalse(audio.contains("scrollScopeLabel"))
+        XCTAssertTrue(popover.contains("scrollDirectionGroup"))
+        XCTAssertTrue(popover.contains("settingsPopupVolumeScrollDirection"))
+        XCTAssertTrue(popover.contains("settingsPopupVolumeScrollNatural"))
+        XCTAssertTrue(popover.contains("popupVolumeNaturalScrolling"))
+        XCTAssertFalse(
+            popover.contains("popupScrollAdjustsVolume"),
+            "the panel pane must not own the volume-scroll switch"
+        )
+        XCTAssertFalse(popover.contains("popupVolumeScrollScope"))
+        XCTAssertFalse(popover.contains("scrollScopeLabel"))
     }
 
     /// The compatibility note tells users whose display DDC Status Trio cannot

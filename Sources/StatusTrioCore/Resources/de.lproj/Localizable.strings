@@ -386,8 +386,9 @@
 "settings.panel.returnsToSummaryOnOpen" = "Beim Öffnen immer zur Übersichtsseite zurückkehren";
 "settings.panel.returnsToSummaryOnOpen.description" = "Wenn diese Option aktiviert ist, öffnet sich das Statuspanel immer auf der Übersichtsseite; andernfalls wird die zuletzt angezeigte Seite beibehalten.";
 "settings.popup.volumeScroll.group" = "Panel-Scrollen";
+"settings.audio.volumeScroll.group" = "Lautstärke-Scrollen";
 "settings.popup.volumeScroll" = "Durch Scrollen anpassen";
-"settings.popup.volumeScroll.description" = "Im Statusfeld scrollen, um Lautstärke, Helligkeit oder Eingangsverstärkung unter dem Zeiger anzupassen. Über leeren Bereichen wird die Ausgangslautstärke angepasst.";
+"settings.popup.volumeScroll.description" = "Im Statusfeld scrollen, um die Ausgangslautstärke zu ändern. Über einem Regler wird stattdessen dieser Regler angepasst (Lautstärke, Helligkeit oder Eingangsverstärkung).";
 "settings.popup.volumeScroll.scope" = "Bereich";
 "settings.popup.volumeScroll.scope.description" = "Wählen Sie, ob Scrollen über leeren Bereichen des Felds die Ausgangslautstärke ändert.";
 "settings.popup.volumeScroll.scope.panel" = "Ganzer Bereich";
@@ -398,7 +399,7 @@
 "settings.audio.volumeFeedback" = "Ton beim Scrollen zur Lautstärkeänderung abspielen";
 "settings.audio.volumeFeedbackDescription" = "Spielt den Ton ab, wenn du die Lautstärke durch Scrollen änderst. Standardmäßig gilt die macOS-Einstellung „Feedback bei Lautstärkeänderung wiedergeben“; ein Umschalten hier gilt nur für Status Trio.";
 "settings.popup.volumeScroll.direction" = "Scrollrichtung";
-"settings.popup.volumeScroll.direction.description" = "Wähle die Richtung, die die Lautstärke erhöht.";
+"settings.popup.volumeScroll.direction.description" = "Gilt für die Lautstärke-, Helligkeits- und Eingangsregler.";
 "settings.popup.volumeScroll.direction.up" = "Nach oben";
 "settings.popup.volumeScroll.direction.down" = "Nach unten";
 
