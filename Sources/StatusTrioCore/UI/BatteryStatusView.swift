@@ -18,10 +18,6 @@ struct BatteryStatusView: View {
     var isConnectedToPower: Bool = true
     var chargeToFullNow: ChargeToFullNowPresentation = .hidden
     var onChargeToFullNow: () -> Void = {}
-    var legacyChargeLimit: LegacyChargeLimitController? = nil
-    /// The summary's existing quick-action preference also applies to legacy
-    /// charge-to-full/cancel. The selected ceiling remains visible when off.
-    var showsLegacyChargeActions = true
 
     private var hasDetails: Bool { state.intent == .batteryDetails }
 
@@ -37,11 +33,6 @@ struct BatteryStatusView: View {
                 ChargeToFullNowActionView(
                     presentation: chargeToFullNow,
                     onAction: onChargeToFullNow
-                )
-            }
-            if hasDetails, let legacyChargeLimit {
-                LegacyChargeLimitPanelRow(
-                    controller: legacyChargeLimit, showsActions: showsLegacyChargeActions
                 )
             }
         }

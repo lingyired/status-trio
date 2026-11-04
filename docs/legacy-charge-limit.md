@@ -264,11 +264,7 @@ What exists in this branch (source-level evidence only):
   whenever the app cannot confirm the cap (failed verification, failed restore,
   or a foreign change). Turning the limit off performs the same verified
   helper operation.
-- The main battery card and the battery details page share one row: the held
-  percentage stays visible during a temporary full charge, with a single
-  full-charge/cancel action and in-flight progress. It never samples the battery
-  itself and adds no timer.
-- The battery details page also shows one compact row (target + state + a single
+- The battery details page shows one compact row (target + state + a single
   full-charge/cancel action) derived from the controller; it adds no second
   battery monitor and no timer.
 - `SMCPrivateAPI`: minimal AppleSMC IOKit bridge whose write allowlist is

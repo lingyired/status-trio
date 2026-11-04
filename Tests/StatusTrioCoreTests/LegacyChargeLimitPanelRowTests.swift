@@ -90,54 +90,29 @@ final class LegacyChargeLimitPanelRowTests: XCTestCase {
         XCTAssertGreaterThan(hostingHeight(controller, language: .simplifiedChinese), 0)
     }
 
-    func testMainBatteryCardIncludesTheHeldLimitAndFullChargeState() async {
-        let controller = makeController()
-        await controller.refresh()
-        let withoutRow = summarySize(nil, language: .simplifiedChinese)
-        let disabled = summarySize(controller, language: .simplifiedChinese)
-        XCTAssertEqual(disabled.height, withoutRow.height, accuracy: 1)
-        _ = await controller.setLimit(90)
-        for language in AppLanguage.allCases {
-            let held = summarySize(controller, language: language)
-            let plain = summarySize(nil, language: language)
-            XCTAssertGreaterThan(held.height, plain.height + 15, language.rawValue)
-            XCTAssertLessThanOrEqual(held.width, 332, language.rawValue)
-        }
-        _ = await controller.chargeToFullOnce()
-        XCTAssertGreaterThan(summarySize(controller, language: .simplifiedChinese).height,
-                             withoutRow.height + 15)
-    }
-
-    func testMainCardCanHideQuickActionsWithoutHidingTheCeiling() async {
+    /// The user asked for the battery card to keep only the existing
+    /// "charge to full once" action, with no charge-ceiling row. Pin that.
+    func testBatteryCardDoesNotShowTheLegacyCeiling() async {
         let controller = makeController()
         await controller.refresh()
         _ = await controller.setLimit(85)
-        let card = summary(controller, language: .english, showsActions: false)
-        XCTAssertFalse(card.showsLegacyChargeActions)
-        let hosting = NSHostingView(rootView: card.environmentObject(makeLocalization(.english)))
-        hosting.layoutSubtreeIfNeeded()
-        XCTAssertGreaterThan(hosting.fittingSize.height, summarySize(nil, language: .english).height)
+        _ = await controller.chargeToFullOnce()
+        let plain = cardHeight(nil)
+        XCTAssertEqual(cardHeight(controller), plain, accuracy: 1,
+                       "The card must not gain a ceiling row")
     }
 
-    private func summary(
-        _ controller: LegacyChargeLimitController?, language: AppLanguage, showsActions: Bool = true
-    ) -> BatteryStatusView {
+    private func cardHeight(_ controller: LegacyChargeLimitController?) -> CGFloat {
         let status = BatteryStatus(rawPercentage: 78, isPresent: true, isCharging: false,
                                    isLowPowerMode: false, isConnectedToPower: true)
-        return BatteryStatusView(
-            state: PanelPresentationMapper.battery(status, localization: makeLocalization(language)),
-            onOpenBatteryDetails: {}, onOpenBatterySettings: {},
-            legacyChargeLimit: controller, showsLegacyChargeActions: showsActions
+        let view = BatteryStatusView(
+            state: PanelPresentationMapper.battery(status, localization: makeLocalization(.english)),
+            onOpenBatteryDetails: {}, onOpenBatterySettings: {}
         )
-    }
-
-    private func summarySize(
-        _ controller: LegacyChargeLimitController?, language: AppLanguage
-    ) -> NSSize {
-        let hosting = NSHostingView(rootView: summary(controller, language: language)
-            .environmentObject(makeLocalization(language)).frame(width: 330))
+        let hosting = NSHostingView(rootView: view.frame(width: 330)
+            .environmentObject(makeLocalization(.english)))
         hosting.layoutSubtreeIfNeeded()
-        return hosting.fittingSize
+        return hosting.fittingSize.height
     }
 
     /// Opt-in visual previews, same convention as the battery details layout
@@ -149,29 +124,6 @@ final class LegacyChargeLimitPanelRowTests: XCTestCase {
         let directory = URL(fileURLWithPath: raw, isDirectory: true)
         let controller = makeController()
         await controller.refresh()
-        _ = await controller.setLimit(85)
-        for language in [AppLanguage.english, .simplifiedChinese, .german] {
-            try writeSnapshot(
-                summary(controller, language: language)
-                    .environmentObject(makeLocalization(language))
-                    .frame(width: 330)
-                    .padding(14)
-                    .background(Color(nsColor: .windowBackgroundColor)),
-                to: directory.appendingPathComponent("summary-holding-\(language.rawValue).png")
-            )
-            _ = await controller.chargeToFullOnce()
-            try writeSnapshot(
-                summary(controller, language: language)
-                    .environmentObject(makeLocalization(language))
-                    .frame(width: 330)
-                    .padding(14)
-                    .background(Color(nsColor: .windowBackgroundColor)),
-                to: directory.appendingPathComponent("summary-temporary-full-\(language.rawValue).png")
-            )
-            _ = await controller.cancelChargeToFull()
-        }
-
-        // The details page reuses the same row; capture it in context.
         _ = await controller.setLimit(85)
         for language in [AppLanguage.english, .simplifiedChinese] {
             try writeSnapshot(
