@@ -235,6 +235,20 @@ What exists in this branch (source-level evidence only):
   gate so wake re-evaluates from hardware.
 - One persistent authenticated XPC connection while a limit is held, released
   as soon as none is, so the helper can idle-exit.
+- Hardware ownership is per connection: the daemon hands each XPC connection its
+  own owner id through a per-connection proxy. A second connection (for example
+  the short-lived Low Power Mode client) cannot disable the cap, cannot
+  overwrite it, and its disconnect does not trigger charge recovery.
+- If recovery after client loss fails, the root daemon holds itself alive until
+  the stock values are actually restored; it does not exit leaving a capped
+  battery unowned.
+- The helper registration needed by this feature is tracked separately from the
+  Low Power Mode control intent, so approving the helper from the charge-limit
+  group does not opt the user into Low Power Mode control. The demand follows a
+  held cap, so an idle app does not keep the daemon registered-and-polled.
+- The battery details page shows one compact row (target + state + a single
+  full-charge/cancel action) derived from the controller; it adds no second
+  battery monitor and no timer.
 - `SMCPrivateAPI`: minimal AppleSMC IOKit bridge whose write allowlist is
   `BCLM`/`CH0B`/`CH0C`/`CHTE`; linked only into the root helper.
 - Shared typed XPC capsule + combined protocol; Low Power Mode and the charge

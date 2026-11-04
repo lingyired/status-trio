@@ -10,6 +10,9 @@ protocol LegacyChargeLimitClienting: Sendable {
     func cancelChargeToFull() async throws -> LegacyChargeLimitWriteOutcome
     func disable(expectedLimit: Int?) async throws -> LegacyChargeLimitWriteOutcome
     func verify(_ limit: Int) async throws -> LegacyChargeLimitWriteOutcome
+    /// Inhibits charging immediately before system sleep (Silicon only; Intel
+    /// firmware manages its own cutoff).
+    func prepareForSleep() async throws -> LegacyChargeLimitWriteOutcome
     /// Drops the persistent helper connection. The daemon is allowed to
     /// idle-exit afterwards, so this must only run once no limit is held.
     func releaseConnection()
@@ -114,6 +117,12 @@ final class XPCPrivilegedLegacyChargeClient: LegacyChargeLimitClienting, @unchec
 
     func verify(_ limit: Int) async throws -> LegacyChargeLimitWriteOutcome {
         try await write { proxy, reply in proxy.verifyLegacyChargeLimit(limit, withReply: reply) }
+    }
+
+    /// Inhibits charging immediately before system sleep (Silicon only; Intel
+    /// firmware manages its own cutoff).
+    func prepareForSleep() async throws -> LegacyChargeLimitWriteOutcome {
+        try await write { proxy, reply in proxy.prepareLegacyChargeLimitForSleep(withReply: reply) }
     }
 
     // MARK: Plumbing

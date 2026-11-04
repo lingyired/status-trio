@@ -11,6 +11,11 @@ struct LegacyChargeLimitJournal: Codable, Equatable, Sendable {
     }
     var backend: Backend
     var hardwareModel: String
+    /// OS build (`kern.osversion`) when the record was written. A journal from
+    /// a different firmware/OS build is not trusted to describe this machine.
+    /// Optional so a record written by an earlier development build still
+    /// decodes; a present-but-different value is rejected.
+    var osBuild: String? = nil
     var requestedLimit: Int
     var originalRaw: [String: Data]
     var lastWrittenRaw: [String: Data]

@@ -59,6 +59,12 @@ final class PowerHelperService: NSObject, PowerHelperCombinedXPCProtocol {
         legacy.disableLegacyChargeLimit(expectedLimit: expectedLimit, withReply: reply)
     }
 
+    func prepareLegacyChargeLimitForSleep(
+        withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
+    ) {
+        legacy.prepareLegacyChargeLimitForSleep(withReply: reply)
+    }
+
     func verifyLegacyChargeLimit(
         _ limit: Int,
         withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
@@ -106,10 +112,16 @@ final class LegacyChargeConnection: @unchecked Sendable {
         service?.disableLegacyChargeLimit(expectedLimit: expectedLimit, ownerID: ownerID, withReply: reply)
     }
 
+    func prepareLegacyChargeLimitForSleep(
+        withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
+    ) {
+        service?.prepareForSleep(ownerID: ownerID, withReply: reply)
+    }
+
     func verifyLegacyChargeLimit(
         _ limit: Int, withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
     ) {
-        service?.verifyLegacyChargeLimit(limit, withReply: reply)
+        service?.verifyLegacyChargeLimit(limit, ownerID: ownerID, withReply: reply)
     }
 
     /// Called once when this connection ends. Only the owning connection may

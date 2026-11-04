@@ -415,6 +415,138 @@ final class LegacyChargeLimitServiceTests: XCTestCase {
         XCTAssertEqual(executor.store["BCLM"], Data([90]))
     }
 
+    func testVerifyOnlyReconnectionAdoptsTheJournalAndRestoresOnQuit() {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        let first = makeService(executor, journal: journal)
+        let initialConnection = LegacyChargeConnection(service: first)
+        initialConnection.setLegacyChargeLimit(80, expectedLimit: nil) { reply in
+            XCTAssertEqual(reply?.succeeded, true)
+        }
+        // Simulate a killed helper: a new coordinator has the same durable
+        // journal/hardware but none of the old process's in-memory owner state.
+        let restarted = makeService(executor, journal: journal)
+        let reconnected = LegacyChargeConnection(service: restarted)
+        reconnected.verifyLegacyChargeLimit(80) { reply in
+            XCTAssertEqual(reply?.succeeded, true)
+        }
+        let unrelated = LegacyChargeConnection(service: restarted)
+        unrelated.release()
+        XCTAssertEqual(executor.store["BCLM"], Data([80]))
+        reconnected.release()
+        XCTAssertEqual(executor.store["BCLM"], Data([90]), "Verified reconnect must own quit restoration")
+        XCTAssertNil(journal.saved)
+    }
+
+    func testHelperStartupRestoresAJournalBeforeServingNewRequests() {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        let previous = makeService(executor, journal: journal)
+        previous.setLegacyChargeLimit(80, expectedLimit: nil, ownerID: testOwner) { _ in }
+        let restarted = makeService(executor, journal: journal)
+        XCTAssertTrue(restarted.reconcileAtStartup())
+        XCTAssertEqual(executor.store["BCLM"], Data([90]))
+        XCTAssertNil(journal.saved)
+    }
+
+    func testStartupWithNoJournalDoesNotReadOrWriteChargeHardware() {
+        let executor = intelExecutor(90)
+        let service = makeService(executor)
+        XCTAssertTrue(service.reconcileAtStartup())
+        XCTAssertTrue(executor.writes.isEmpty)
+    }
+
+    func testStartupRefusesForeignCurrentValueAndKeepsRecoveryDemand() {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        let previous = makeService(executor, journal: journal)
+        previous.setLegacyChargeLimit(80, expectedLimit: nil, ownerID: testOwner) { _ in }
+        executor.store["BCLM"] = Data([85])
+        let writes = executor.writes.count
+        let demand = RecoveryDemandRecorder()
+        let restarted = LegacyChargeLimitService(
+            executor: executor, journal: journal, battery: FakeBatterySource(level: 50),
+            hardware: LegacyHardwareFacts(isIntel: true, allowsLegacyLimiter: true, hasInternalBattery: true),
+            recoveryDemandChanged: { demand.record($0) }
+        )
+        XCTAssertFalse(restarted.reconcileAtStartup())
+        XCTAssertEqual(executor.writes.count, writes)
+        XCTAssertNotNil(journal.saved)
+        XCTAssertEqual(demand.last, true)
+    }
+
+    func testStartupRecoversAPendingWriteUsingItsDurableOriginal() {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        let previous = makeService(executor, journal: journal)
+        executor.beforeWrite = { _, _ in journal.failSave = true }
+        previous.setLegacyChargeLimit(80, expectedLimit: nil, ownerID: testOwner) { _ in }
+        XCTAssertEqual(executor.store["BCLM"], Data([80]))
+        XCTAssertNotNil(journal.saved?.pendingRaw)
+        executor.beforeWrite = nil
+        journal.failSave = false
+        let restarted = makeService(executor, journal: journal)
+        XCTAssertTrue(restarted.reconcileAtStartup())
+        XCTAssertEqual(executor.store["BCLM"], Data([90]))
+        XCTAssertNil(journal.saved)
+    }
+
+    func testJournalFromADifferentOSBuildIsRejectedWithoutWriting() throws {
+        let executor = intelExecutor(90)
+        let journal = MemoryJournal()
+        try journal.save(LegacyChargeLimitJournal(
+            backend: .intelBCLM, hardwareModel: "Mac15,9", osBuild: "22G100",
+            requestedLimit: 80, originalRaw: ["BCLM": Data([90])],
+            lastWrittenRaw: ["BCLM": Data([80])]
+        ))
+        let service = LegacyChargeLimitService(
+            executor: executor, journal: journal, battery: FakeBatterySource(level: 50),
+            hardware: LegacyHardwareFacts(isIntel: true, allowsLegacyLimiter: true, hasInternalBattery: true),
+            hardwareModel: "Mac15,9", osBuild: "23A344"
+        )
+        var reply: SMLegacyChargeLimitWriteReply?
+        service.disableLegacyChargeLimit(expectedLimit: nil, ownerID: testOwner) { reply = $0 }
+        XCTAssertEqual(reply?.errorCode, .ownershipConflict)
+        XCTAssertTrue(executor.writes.isEmpty)
+        XCTAssertNotNil(journal.saved)
+    }
+
+    func testSleepForcesInhibitBelowTheThresholdForSilicon() {
+        let executor = siliconPairExecutor()
+        let service = makeService(executor, battery: FakeBatterySource(level: 40), isIntel: false)
+        service.setLegacyChargeLimit(80, expectedLimit: nil, ownerID: testOwner) { _ in }
+        XCTAssertEqual(executor.readKey("CH0B"), Data([0x00]), "Well below the limit the gate is open")
+
+        service.prepareForSleep(ownerID: testOwner) { reply in
+            XCTAssertEqual(reply?.succeeded, true)
+        }
+        XCTAssertEqual(executor.readKey("CH0B"), Data([0x02]))
+        XCTAssertEqual(executor.readKey("CH0C"), Data([0x02]))
+    }
+
+    func testSleepLeavesATemporaryFullChargeAlone() {
+        let executor = siliconPairExecutor()
+        let service = makeService(executor, battery: FakeBatterySource(level: 40), isIntel: false)
+        service.setLegacyChargeLimit(80, expectedLimit: nil, ownerID: testOwner) { _ in }
+        service.legacyChargeToFullOnce(ownerID: testOwner) { _ in }
+        let writes = executor.writes.count
+        service.prepareForSleep(ownerID: testOwner) { reply in
+            XCTAssertEqual(reply?.succeeded, true)
+        }
+        XCTAssertEqual(executor.writes.count, writes)
+    }
+
+    func testSleepIsANoOpForTheIntelFirmwareCeiling() {
+        let executor = intelExecutor(90)
+        let service = makeService(executor)
+        service.setLegacyChargeLimit(80, expectedLimit: nil, ownerID: testOwner) { _ in }
+        let writes = executor.writes.count
+        service.prepareForSleep(ownerID: testOwner) { reply in
+            XCTAssertEqual(reply?.succeeded, true)
+        }
+        XCTAssertEqual(executor.writes.count, writes)
+    }
+
     // MARK: - Journal failure injection
 
     func testInitialJournalSaveFailureBlocksEveryHardwareWrite() {

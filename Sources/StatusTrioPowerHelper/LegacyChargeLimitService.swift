@@ -60,6 +60,7 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
     private let battery: any LegacyBatteryProviding
     private let hardware: LegacyHardwareFacts
     private let hardwareModel: String
+    private let osBuild: String
     private let lock = NSLock()
     /// Connection currently owning the hardware. Any other live connection is
     /// refused a mutating command, so an unrelated XPC session (Low Power Mode)
@@ -88,6 +89,7 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
         battery: any LegacyBatteryProviding,
         hardware: LegacyHardwareFacts,
         hardwareModel: String = LegacyHelperEnvironment.modelIdentifier(),
+        osBuild: String = LegacyHelperEnvironment.osBuild(),
         recoveryDemandChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.executor = executor
@@ -95,6 +97,7 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
         self.battery = battery
         self.hardware = hardware
         self.hardwareModel = hardwareModel
+        self.osBuild = osBuild
         self.recoveryDemandChanged = recoveryDemandChanged
     }
 
@@ -149,6 +152,7 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
             var session = previous ?? Session(
                 backend: hardware.isIntel ? .intelBCLM : .silicon,
                 hardwareModel: hardwareModel,
+                osBuild: osBuild,
                 requestedLimit: limit,
                 originalRaw: raw,
                 lastWrittenRaw: raw
@@ -222,10 +226,45 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
         }
     }
 
-    func verifyLegacyChargeLimit(_ limit: Int, withReply reply: @escaping (Reply?) -> Void) {
+    /// Forces the Silicon gate closed before sleep. Intel firmware owns its own
+    /// cutoff, so that path is a documented no-op here.
+    func prepareForSleep(ownerID: UUID, withReply reply: @escaping (Reply?) -> Void) {
+        perform(reply) {
+            try requireEligible()
+            try adoptOrRequire(ownerID)
+            var session = try requireSession()
+            guard session.backend == .silicon else {
+                return success(observedLimit: nil)
+            }
+            guard !session.isTemporarilyOverridden else {
+                // A one-time full charge is an explicit user decision and must
+                // survive ordinary sleep.
+                return success(observedLimit: nil)
+            }
+            let current = try readOwned(session)
+            // Follow the family recorded in the journal, never the keys that
+            // happen to exist now.
+            let desired: [String: Data]
+            if session.originalRaw["CHTE"] != nil {
+                desired = ["CHTE": Data([1, 0, 0, 0])]
+            } else {
+                desired = ["CH0B": Data([2]), "CH0C": Data([2])]
+            }
+            try apply(&session, desired: desired, current: current)
+            try persist(session)
+            return success(observedLimit: nil)
+        }
+    }
+
+    func verifyLegacyChargeLimit(
+        _ limit: Int, ownerID: UUID? = nil, withReply reply: @escaping (Reply?) -> Void
+    ) {
         perform(reply) {
             try requireEligible()
             let session = try requireSession()
+            // Reconnection after a helper crash must own quit restoration even
+            // if it only verifies the saved session and never changes the cap.
+            if let ownerID { try adoptOrRequire(ownerID) }
             guard session.requestedLimit == limit else {
                 throw Failure(.ownershipConflict, "The saved target changed.")
             }
@@ -262,6 +301,36 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
     private func clearOwnership() {
         ownerID = nil
         recoveryDemandChanged(false)
+    }
+
+    /// Reconciles a journal left by a crashed or killed helper before the
+    /// daemon serves any new request.
+    ///
+    /// A durable journal means some earlier process owned this hardware and is
+    /// gone. Restoring the recorded stock values is the safe default. A current
+    /// value that belongs to neither our last write nor our pending write is a
+    /// foreign change: keep the record, do not write, and stay alive so the
+    /// stranded state is not silently abandoned.
+    @discardableResult
+    func reconcileAtStartup() -> Bool {
+        lock.withLock {
+            do {
+                guard var session = try loadOwnedJournal() else { return true }
+                try requireEligible()
+                let current = try readOwned(session, allowInterrupted: true)
+                try apply(&session, desired: session.originalRaw, current: current)
+                try journalStore.clear()
+                recoveryDemandChanged(false)
+                return true
+            } catch {
+                NSLog(
+                    "StatusTrioPowerHelper: startup charge reconciliation pending: %@",
+                    String(describing: error)
+                )
+                recoveryDemandChanged(true)
+                return false
+            }
+        }
     }
 
     /// Connection owner loss must call this before releasing its idle lease.
@@ -367,6 +436,9 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
 
     private func loadOwnedJournal() throws -> Session? {
         guard let session = try journalStore.load() else { return nil }
+        if let recordedBuild = session.osBuild, recordedBuild != osBuild {
+            throw Failure(.ownershipConflict, "The recovery record belongs to a different system build.")
+        }
         guard session.hardwareModel == hardwareModel,
               (session.backend == .intelBCLM) == hardware.isIntel,
               (80...100).contains(session.requestedLimit) else {

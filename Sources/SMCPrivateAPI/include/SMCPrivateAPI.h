@@ -4,10 +4,10 @@
 /*
  * Minimal AppleSMC access for the legacy charge limiter.
  *
- * Implemented independently from the public IOKit AppleSMC user-client
- * interface (the same interface documented by smc-command and used by every
- * SMC tool). No third-party source is copied; the struct layout is the
- * publicly documented IOKit request/response shape.
+ * Independently implemented against the undocumented AppleSMC user-client
+ * ABI observed by open-source SMC tools. This is not an Apple public API or
+ * compatibility promise. No third-party source is copied; unexpected metadata
+ * and response layouts are rejected.
  *
  * SAFETY: writes are restricted to an explicit allowlist inside the
  * implementation. No arbitrary key writes are exposed. This bridge is only
@@ -52,7 +52,13 @@ bool STSMReadKeyCopy(const char *key,
  * rejected (false) without touching the SMC. */
 bool STSMWriteKeyAllowlisted(const char *key, const uint8_t *bytes, uint32_t size);
 
-/* Returns true when the key is in the hard-coded write allowlist. */
+/* Pure validation also used by the read/write implementation. These never
+ * open a connection or issue IOKit calls. Data types are four ASCII bytes
+ * ("ui8 " includes the trailing space). */
+bool STSMValidateChargeKeyInfo(const char *key, const char *dataType, uint32_t size);
+bool STSMValidateChargeWrite(const char *key, const uint8_t *bytes, uint32_t size);
+
+/* Returns true only for an exact four-character allowlisted key. */
 bool STSMIsWriteAllowlisted(const char *key);
 
 #endif /* SMC_PRIVATE_API_H */

@@ -525,6 +525,13 @@ final class PrivilegedHelperManager: ObservableObject {
                         .advanced(by: self.enabledHealthCheckInterval)
                 }
                 guard observed == .enabled else { return }
+                // Unregistering a shared helper can kill the process while it
+                // owns a charge gate or a recovery journal. Preserve registration
+                // and report the failure; the charge coordinator owns recovery.
+                guard !self.sharedHelperDemand else {
+                    self.recordRegistrationError(error)
+                    return
+                }
                 guard self.recoveryAttempts < Self.maximumRecoveryAttempts else {
                     self.recordRegistrationError(error)
                     return

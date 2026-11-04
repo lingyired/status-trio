@@ -90,7 +90,7 @@ let package = Package(
         // top-level code in main.swift never runs here.
         .testTarget(
             name: "StatusTrioPowerHelperTests",
-            dependencies: ["StatusTrioPowerHelper"],
+            dependencies: ["StatusTrioPowerHelper", "SMCPrivateAPI"],
             path: "Tests/StatusTrioPowerHelperTests"
         )
     ]

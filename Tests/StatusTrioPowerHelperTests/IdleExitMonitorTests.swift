@@ -166,6 +166,10 @@ final class IdleExitRecoveryHoldTests: XCTestCase {
         monitor.setRecoveryRequired(true)
         scheduler.runScheduledWork()
         XCTAssertEqual(exits.count, 0)
+        monitor.setRecoveryRequired(false)
+        XCTAssertEqual(scheduler.scheduledDelays.count, 2, "Recovery must schedule a new real timer")
+        scheduler.runScheduledWork()
+        XCTAssertEqual(exits.count, 1, "Clearing recovery must re-arm even after the old window fired")
     }
 }
 

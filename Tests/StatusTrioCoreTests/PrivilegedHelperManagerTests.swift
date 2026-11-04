@@ -538,6 +538,19 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         XCTAssertFalse(manager.isSharedHelperReady)
     }
 
+    func testSharedHelperFailureDoesNotUnregisterAChargeOwnersDaemon() async {
+        let service = FakePrivilegedHelperService(status: .notRegistered)
+        service.verificationFailuresRemaining = 1
+        let manager = PrivilegedHelperManager(service: service, pollInterval: .milliseconds(20))
+        manager.ensureSharedHelperRegistered()
+        await waitUntil { manager.didFailLastOperation }
+        XCTAssertTrue(manager.didFailLastOperation)
+        XCTAssertEqual(service.recoveryUnregisterCallCount, 0,
+                       "Unregistering a shared helper can abandon the charge session")
+        XCTAssertEqual(service.registerCallCount, 1)
+        manager.releaseSharedHelperDemand()
+    }
+
     private func waitUntil(_ predicate: () -> Bool) async {
         let deadline = Date().addingTimeInterval(1)
         while !predicate(), Date() < deadline {

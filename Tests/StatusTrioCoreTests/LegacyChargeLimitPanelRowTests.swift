@@ -24,6 +24,7 @@ private final class PanelFakeClient: LegacyChargeLimitClienting, @unchecked Send
     func cancelChargeToFull() async throws -> LegacyChargeLimitWriteOutcome { try cancelResult.get() }
     func disable(expectedLimit: Int?) async throws -> LegacyChargeLimitWriteOutcome { .success }
     func verify(_ limit: Int) async throws -> LegacyChargeLimitWriteOutcome { .success }
+    func prepareForSleep() async throws -> LegacyChargeLimitWriteOutcome { .success }
 }
 
 /// The panel row must render inside the popover width in every language and

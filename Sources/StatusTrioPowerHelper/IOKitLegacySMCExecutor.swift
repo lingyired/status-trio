@@ -27,7 +27,7 @@ final class IOKitLegacySMCExecutor: LegacySMCExecuting {
     }
 
     deinit {
-        STSMClose()
+        if opened { STSMClose() }
     }
 
     func readKey(_ key: String) -> Data? {
@@ -94,6 +94,20 @@ enum LegacyHelperEnvironment {
             }
         }
         return false
+    }
+
+    /// `kern.osversion`, e.g. `23A344`. Pairs with the model so a journal is
+    /// only trusted by the same OS/firmware build.
+    static func osBuild() -> String {
+        var size = 0
+        guard sysctlbyname("kern.osversion", nil, &size, nil, 0) == 0, size > 0 else {
+            return "unknown"
+        }
+        var buffer = [UInt8](repeating: 0, count: size)
+        guard sysctlbyname("kern.osversion", &buffer, &size, nil, 0) == 0 else {
+            return "unknown"
+        }
+        return String(decoding: buffer.prefix(while: { $0 != 0 }), as: UTF8.self)
     }
 
     /// `hw.model`, e.g. `MacBookPro16,1`. Used to reject a journal written on a

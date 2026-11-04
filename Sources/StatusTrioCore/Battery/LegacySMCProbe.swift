@@ -34,14 +34,24 @@ struct LegacySMCProbe {
         var keyInfo: [String: LegacySMCKeyInfo] = [:]
 
         for (key, expectedType) in recognizedKeys {
-            guard let info = smc.readKey(key)?.info,
-                  info.dataType == expectedType,
-                  info.dataSize > 0,
-                  info.dataSize <= maxSaneDataSize else {
-                continue
+            let expectedSize = key == LegacySMCKeys.siliconCHTE ? 4 : 1
+            guard let value = smc.readKey(key),
+                  value.info.dataType == expectedType || value.info.dataType == expectedType + " ",
+                  value.info.dataSize == expectedSize,
+                  value.data.count == expectedSize else { continue }
+            let bytes = Array(value.data)
+            let knownValue: Bool
+            switch key {
+            case LegacySMCKeys.intelBCLM:
+                knownValue = (50...100).contains(Int(bytes[0]))
+            case LegacySMCKeys.siliconCHTE:
+                knownValue = bytes == [0, 0, 0, 0] || bytes == [1, 0, 0, 0]
+            default:
+                knownValue = bytes == [0] || bytes == [2]
             }
+            guard knownValue else { continue }
             presentKeys.insert(key)
-            keyInfo[key] = info
+            keyInfo[key] = value.info
         }
 
         // BCLM is consumer-relevant for Intel; the inhibit pair/CHTE for

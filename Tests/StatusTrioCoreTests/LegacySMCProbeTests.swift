@@ -84,6 +84,38 @@ final class LegacySMCProbeTests: XCTestCase {
         XCTAssertFalse(caps.presentKeys.contains("BCLM"))
     }
 
+    func testProbeRejectsNearMissWidthsAndInconsistentPayloads() {
+        let cases: [(String, String, Int, [UInt8])] = [
+            ("BCLM", "ui8", 2, [80, 0]),
+            ("CH0B", "ui8", 4, [0, 0, 0, 0]),
+            ("CHTE", "ui32", 1, [0]),
+            ("CHTE", "ui32", 4, [0]),
+            ("BCLM", "ui8", 1, []),
+            ("BCLM", "ui8", 1, [255]),
+            ("CH0C", "ui8", 1, [3]),
+            ("CHTE", "ui32", 4, [0, 0, 0, 1]),
+        ]
+        for (key, type, size, bytes) in cases {
+            let smc = FakeSMC(store: [key: (
+                info: LegacySMCKeyInfo(dataType: type, dataSize: size), data: Data(bytes)
+            )])
+            let caps = LegacySMCProbe.probe(smc: smc, architecture: .intel,
+                                           osBand: .fifteen, hasInternalBattery: true)
+            XCTAssertFalse(caps.presentKeys.contains(key), "\(key) \(type)/\(size): \(bytes)")
+            XCTAssertTrue(smc.writeLog.isEmpty)
+        }
+    }
+
+    func testProbeAcceptsCanonicalPaddedSMCUint8Type() {
+        let smc = FakeSMC(store: ["BCLM": (
+            info: LegacySMCKeyInfo(dataType: "ui8 ", dataSize: 1), data: Data([90])
+        )])
+        let caps = LegacySMCProbe.probe(smc: smc, architecture: .intel,
+                                       osBand: .thirteenToFourteen, hasInternalBattery: true)
+        XCTAssertTrue(caps.presentKeys.contains("BCLM"))
+        XCTAssertTrue(smc.writeLog.isEmpty)
+    }
+
     func testNoBatteryMakesEverythingUnsupported() {
         let smc = FakeSMC(store: ui8("BCLM", 80))
         let caps = LegacySMCProbe.probe(

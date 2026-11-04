@@ -163,6 +163,13 @@ public final class SMLegacyChargeLimitWriteReply: NSObject, NSSecureCoding {
         withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
     )
 
+    /// Inhibits charging immediately before system sleep, without using the
+    /// battery-level heuristic. A software-driven Silicon gate would otherwise
+    /// keep charging towards the ceiling while the machine is asleep.
+    func prepareLegacyChargeLimitForSleep(
+        withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
+    )
+
     /// Reads back and reports whether the hardware is at the given ceiling.
     func verifyLegacyChargeLimit(
         _ limit: Int,

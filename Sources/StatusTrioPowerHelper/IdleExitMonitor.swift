@@ -106,9 +106,14 @@ final class IdleExitMonitor: @unchecked Sendable {
     func setRecoveryRequired(_ required: Bool) {
         lock.lock()
         recoveryRequired = required
-        let shouldArm = !required
+        let cancelled = required ? pendingExit : nil
+        if required {
+            generation &+= 1
+            pendingExit = nil
+        }
         lock.unlock()
-        if shouldArm { armExitIfIdle() }
+        cancelled?.cancel()
+        if !required { armExitIfIdle() }
     }
 
     /// The listener accepted a connection: keep the process alive.

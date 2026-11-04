@@ -24,6 +24,7 @@ private final class FakeLegacyClient: LegacyChargeLimitClienting, @unchecked Sen
     private(set) var verifyCalls: [Int] = []
     private(set) var probeCalls = 0
     private(set) var releaseCalls = 0
+    private(set) var prepareForSleepCalls = 0
 
     func probe() async throws -> LegacyChargeLimitProbeFacts {
         probeCalls += 1
@@ -53,6 +54,11 @@ private final class FakeLegacyClient: LegacyChargeLimitClienting, @unchecked Sen
     func verify(_ limit: Int) async throws -> LegacyChargeLimitWriteOutcome {
         verifyCalls.append(limit)
         return try verifyResult.get()
+    }
+
+    func prepareForSleep() async throws -> LegacyChargeLimitWriteOutcome {
+        prepareForSleepCalls += 1
+        return .success
     }
 
     func releaseConnection() {
@@ -393,6 +399,56 @@ final class LegacyChargeLimitControllerTests: XCTestCase {
         XCTAssertEqual(demands, [true])
         _ = await controller.disable()
         XCTAssertEqual(demands, [true, false])
+    }
+
+    func testSystemSleepInhibitsAndWakeReapplies() async {
+        let client = FakeLegacyClient()
+        client.probeResult = .success(LegacyChargeLimitProbeFacts(
+            hasInternalBattery: true, intelBCLMPresent: false,
+            siliconPairPresent: true, siliconCHTEPresent: false
+        ))
+        let center = NotificationCenter()
+        let controller = LegacyChargeLimitController(
+            client: client,
+            sessionStore: VolatileLegacyChargeLimitSessionStore(),
+            architecture: .appleSilicon,
+            osBand: .thirteenToFourteen,
+            notificationCenter: center
+        )
+        let batteries = PassthroughSubject<BatteryStatus, Never>()
+        controller.start(batteries: batteries.eraseToAnyPublisher())
+        await controller.refresh()
+        _ = await controller.setLimit(85)
+        let writesBefore = client.setLimitCalls.count
+
+        center.post(name: NSWorkspace.willSleepNotification, object: nil)
+        await waitUntil { client.prepareForSleepCalls == 1 }
+
+        center.post(name: NSWorkspace.didWakeNotification, object: nil)
+        await waitUntil { client.setLimitCalls.count == writesBefore + 1 }
+        XCTAssertEqual(controller.status, .holding(at: 85))
+        controller.stop()
+    }
+
+    func testSleepIsSkippedDuringATemporaryFullCharge() async {
+        let client = FakeLegacyClient()
+        client.probeResult = .success(LegacyChargeLimitProbeFacts(
+            hasInternalBattery: true, intelBCLMPresent: false,
+            siliconPairPresent: true, siliconCHTEPresent: false
+        ))
+        let controller = LegacyChargeLimitController(
+            client: client,
+            sessionStore: VolatileLegacyChargeLimitSessionStore(),
+            architecture: .appleSilicon,
+            osBand: .thirteenToFourteen,
+            notificationCenter: NotificationCenter()
+        )
+        await controller.refresh()
+        _ = await controller.setLimit(85)
+        _ = await controller.chargeToFullOnce()
+        await controller.prepareForSleep()
+        XCTAssertEqual(client.prepareForSleepCalls, 0)
+        XCTAssertEqual(controller.status, .temporarilyChargingToFull)
     }
 
     func testUnavailableControllerDoesNotIssueCommands() async {

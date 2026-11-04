@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 
@@ -19,6 +20,7 @@ final class LegacyChargeLimitController: ObservableObject {
     private let sessionStore: any LegacyChargeLimitSessionStoring
     private let architecture: LegacyRuntimeArchitecture
     private let osBand: LegacyOSBand
+    private let notificationCenter: NotificationCenter
     private var session: LegacyChargeLimitSession?
     private var started = false
     private var cancellables: Set<AnyCancellable> = []
@@ -39,12 +41,14 @@ final class LegacyChargeLimitController: ObservableObject {
         client: any LegacyChargeLimitClienting = XPCPrivilegedLegacyChargeClient(),
         sessionStore: any LegacyChargeLimitSessionStoring = UserDefaultsLegacyChargeLimitSessionStore(defaults: .standard),
         architecture: LegacyRuntimeArchitecture = LegacyRuntimeArchitecture.current,
-        osBand: LegacyOSBand = LegacyOSBand.current
+        osBand: LegacyOSBand = LegacyOSBand.current,
+        notificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.client = client
         self.sessionStore = sessionStore
         self.architecture = architecture
         self.osBand = osBand
+        self.notificationCenter = notificationCenter
     }
 
     var isAvailable: Bool { availability.isAvailable }
@@ -74,6 +78,20 @@ final class LegacyChargeLimitController: ObservableObject {
         // subscription must NOT drop the first genuine event.
         start()
         guard cancellables.isEmpty else { return }
+        // Sleep: close a software-driven gate before the machine suspends, and
+        // re-evaluate from hardware on wake. This is not a polling timer.
+        notificationCenter.publisher(for: NSWorkspace.willSleepNotification)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { @MainActor in await self.prepareForSleep() }
+            }
+            .store(in: &cancellables)
+        notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { @MainActor in await self.handleWake() }
+            }
+            .store(in: &cancellables)
         batteries
             .removeDuplicates()
             .sink { [weak self] battery in
@@ -84,6 +102,19 @@ final class LegacyChargeLimitController: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+    }
+
+    /// Inhibits charging before sleep when a cap is held. A temporary full
+    /// charge is an explicit user choice and is left alone by the helper.
+    func prepareForSleep() async {
+        guard isAvailable, session != nil, status != .temporarilyChargingToFull else { return }
+        do {
+            _ = try await client.prepareForSleep()
+        } catch {
+            // Sleep proceeds regardless; the helper still holds the journal and
+            // the next wake re-evaluates the gate.
+            status = .failed
+        }
     }
 
     func handleBattery(level: Int, isOnAC: Bool) async {

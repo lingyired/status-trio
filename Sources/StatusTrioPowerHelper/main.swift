@@ -23,6 +23,10 @@ let legacyService = LegacyChargeLimitService(
     // alive until the stock values are actually restored.
     recoveryDemandChanged: { required in idleExit.setRecoveryRequired(required) }
 )
+// A journal left by a killed helper is reconciled before the daemon serves any
+// request. A failed reconciliation raises the recovery demand, so the idle
+// monitor will not exit and abandon a capped battery.
+_ = legacyService.reconcileAtStartup()
 let delegate = ListenerDelegate(
     lowPowerMode: PowerModeService(),
     legacy: legacyService,
