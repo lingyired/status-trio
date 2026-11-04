@@ -266,10 +266,11 @@ final class LegacyHelperScopeTests: XCTestCase {
         OperatingSystemVersion(majorVersion: major, minorVersion: 0, patchVersion: 0)
     }
 
-    func testLegacyScopeIsMacOS13And14Only() {
+    func testLegacyScopeIsMacOS13Through15() {
         XCTAssertTrue(LegacyHelperEnvironment.allowsLegacyLimiter(version: version(13)))
         XCTAssertTrue(LegacyHelperEnvironment.allowsLegacyLimiter(version: version(14)))
-        XCTAssertFalse(LegacyHelperEnvironment.allowsLegacyLimiter(version: version(15)))
+        XCTAssertTrue(LegacyHelperEnvironment.allowsLegacyLimiter(version: version(15)))
+        XCTAssertFalse(LegacyHelperEnvironment.allowsLegacyLimiter(version: version(16)))
         XCTAssertFalse(LegacyHelperEnvironment.allowsLegacyLimiter(version: version(26)))
     }
 }

@@ -56,10 +56,10 @@ enum LegacyOSBand: Equatable, Sendable {
     /// Unknown / too new or too old.
     case unknown
 
-    /// Product scope (user, 2026-11-05): the legacy limiter is offered only
-    /// before macOS 15, i.e. on 13 and 14. macOS 15 has no legacy backend.
+    /// Product scope (user, 2026-11-05): "legacy" means macOS 13–15. macOS 16
+    /// through 26.3 is out of this milestone; 26.4+ uses the native limit.
     var allowsLegacyLimiter: Bool {
-        self == .thirteenToFourteen
+        self == .thirteenToFourteen || self == .fifteen
     }
 
     static var current: LegacyOSBand {

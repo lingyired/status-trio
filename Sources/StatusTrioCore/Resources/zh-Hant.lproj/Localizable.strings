@@ -762,7 +762,7 @@
 "settings.brightness.compatibility.description" = "各家顯示器的 DDC 實作並不統一，Status Trio 無法涵蓋所有型號。如果某台顯示器的亮度在這裡調不了，可以把它切到 BetterDisplay 後端——Status Trio 會透過 BetterDisplay 來調節。免費版就夠用，不需要購買 Pro。";
 "settings.brightness.compatibility.link" = "下載 BetterDisplay（免費）";
 "settings.battery.legacyChargeLimit.title" = "舊版充電上限";
-"settings.battery.legacyChargeLimit.description" = "在 macOS 13–14 上把電量保持在所選水平以下。實驗性功能：真實硬體行為仍在驗證中。";
+"settings.battery.legacyChargeLimit.description" = "在 macOS 13–15 上把電量保持在所選水平以下。實驗性功能：真實硬體行為仍在驗證中。";
 "settings.battery.legacyChargeLimit.toggle" = "管理充電上限";
 "settings.battery.legacyChargeLimit.target" = "最高充電量";
 "settings.battery.legacyChargeLimit.status" = "狀態";

@@ -72,15 +72,15 @@ enum LegacyHelperEnvironment {
         return result == 0 && translated == 1
     }
 
-    /// macOS 13–14 only (product scope, user 2026-11-05). macOS 15 and later
-    /// have no legacy backend; 26.4+ uses the native system limit instead.
+    /// macOS 13–15 (product scope, user 2026-11-05). macOS 16–26.3 is out of
+    /// this milestone; 26.4+ uses the native system limit instead.
     static func allowsLegacyLimiter() -> Bool {
         allowsLegacyLimiter(version: ProcessInfo.processInfo.operatingSystemVersion)
     }
 
     /// Pure form for tests and for the daemon's startup fact probe.
     static func allowsLegacyLimiter(version: OperatingSystemVersion) -> Bool {
-        version.majorVersion == 13 || version.majorVersion == 14
+        (13...15).contains(version.majorVersion)
     }
 
     static func hasInternalBattery() -> Bool {

@@ -762,7 +762,7 @@
 "settings.brightness.compatibility.description" = "제조사마다 DDC 구현이 달라 Status Trio가 모든 모델을 지원할 수는 없습니다. 여기서 밝기를 조절할 수 없는 디스플레이는 BetterDisplay 백엔드로 전환하세요. Status Trio가 BetterDisplay를 통해 제어합니다. 무료 버전으로 충분하며 Pro 라이선스는 필요하지 않습니다.";
 "settings.brightness.compatibility.link" = "BetterDisplay 다운로드(무료)";
 "settings.battery.legacyChargeLimit.title" = "레거시 충전 제한";
-"settings.battery.legacyChargeLimit.description" = "macOS 13–14에서 배터리를 선택한 수준 이하로 유지합니다. 실험적 기능: 실제 하드웨어 동작은 아직 검증 중입니다.";
+"settings.battery.legacyChargeLimit.description" = "macOS 13–15에서 배터리를 선택한 수준 이하로 유지합니다. 실험적 기능: 실제 하드웨어 동작은 아직 검증 중입니다.";
 "settings.battery.legacyChargeLimit.toggle" = "충전 제한 관리";
 "settings.battery.legacyChargeLimit.target" = "최대 충전량";
 "settings.battery.legacyChargeLimit.status" = "상태";
