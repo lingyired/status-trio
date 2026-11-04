@@ -205,7 +205,9 @@ struct StatusPopoverView: View {
                 chargeToFullNow: panel.summaryChargeToFullNowPresentation,
                 onChargeToFullNow: {
                     panel.actions.requestChargeToFullNow()
-                }
+                },
+                legacyChargeLimit: legacyChargeLimit,
+                showsLegacyChargeActions: panel.settings.showsChargeToFullNowButton
             )
         case .network:
             NetworkStatusView(

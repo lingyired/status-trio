@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// One compact row on the battery details page: the held ceiling, the current
-/// state, and at most one action. It reads the existing controller state and
-/// does not sample the battery itself.
+/// Shared by the main battery card and battery details. Reads existing state;
+/// rendering either surface never probes hardware or starts a battery monitor.
 @MainActor
 struct LegacyChargeLimitPanelRow: View {
     @ObservedObject var controller: LegacyChargeLimitController
+    var showsActions = true
     @EnvironmentObject private var localization: Localization
 
     private var mapped: LegacyChargeLimitPanelState {
@@ -19,49 +19,61 @@ struct LegacyChargeLimitPanelRow: View {
 
     var body: some View {
         let state = mapped
-        if state.isVisible, let status = state.status {
-            HStack(spacing: 8) {
-                PanelSymbolView(source: .symbol(name: "bolt.batteryblock", variableValue: nil, fallback: "battery.100"))
-                    .foregroundStyle(state.isBusy ? Color.secondary : Color.orange)
-                    .frame(width: 18, height: 18)
-                    .accessibilityHidden(true)
+        if state.isVisible, let status = state.status, let target = state.targetLimit {
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "battery.100")
+                            .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
+                        Text(localization.string(.settingsBatteryChargeLimitTitle))
+                        Text("\(target)%")
+                            .monospacedDigit()
+                            .fontWeight(.semibold)
+                    }
+                    .font(.caption)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(localization.format(.settingsBatteryChargeLimitActive, target))
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(localization.string(.settingsBatteryLegacyChargeLimitTitle))
-                        .font(.caption.weight(.medium))
-                    Text(statusText(status, state: state))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if let message = statusMessage(status, isBusy: state.isBusy) {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
+                .layoutPriority(1)
 
-                Spacer(minLength: 8)
+                Spacer(minLength: 0)
 
                 if state.isBusy {
                     ProgressView()
                         .controlSize(.small)
-                        .accessibilityLabel(
-                            localization.string(.settingsBatteryLegacyChargeLimitChecking)
-                        )
-                } else if state.action != .none {
-                    Button(actionTitle(state.action)) {
-                        perform(state.action)
-                    }
-                    .controlSize(.small)
+                        .accessibilityLabel(localization.string(.settingsBatteryChargeLimitApplying))
+                } else if showsActions && state.action.isEnabled {
+                    Button(actionTitle(state.action)) { perform(state.action) }
+                        .font(.caption)
+                        .controlSize(.small)
+                        .buttonStyle(.bordered)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .accessibilityElement(children: .combine)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("legacy-charge-limit-row")
         }
     }
 
-    private func statusText(
-        _ status: LegacyChargeLimitPanelState.Status,
-        state: LegacyChargeLimitPanelState
-    ) -> String {
+    private func statusMessage(
+        _ status: LegacyChargeLimitPanelState.Status, isBusy: Bool
+    ) -> String? {
+        if isBusy { return localization.string(.settingsBatteryChargeLimitApplying) }
         switch status {
-        case let .holding(limit):
-            return localization.format(.settingsBatteryLegacyChargeLimitHolding, limit)
+        case .holding:
+            return nil // The target already states the active ceiling.
         case .temporarilyFull:
             return localization.string(.settingsBatteryLegacyChargeLimitTemporaryFull)
         case .checking:

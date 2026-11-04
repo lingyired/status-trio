@@ -43,6 +43,15 @@ final class LegacyChargeLimitPanelMapperTests: XCTestCase {
         let mapped = state(status: .temporarilyChargingToFull)
         XCTAssertEqual(mapped.status, .temporarilyFull)
         XCTAssertEqual(mapped.action, .cancelFullCharge)
+        XCTAssertEqual(mapped.targetLimit, 90, "Temporary full must keep the intended restore ceiling visible")
+    }
+
+    func testBusyAndFailedRowsRetainTheSelectedTarget() {
+        let busy = state(status: .holding(at: 90), isApplying: true)
+        XCTAssertEqual(busy.targetLimit, 90)
+        XCTAssertEqual(busy.action, .none)
+        XCTAssertEqual(state(status: .restoreFailed, selectedLimit: 85).targetLimit, 85)
+        XCTAssertNil(state(status: .notEnabled, selectedLimit: nil).targetLimit)
     }
 
     func testApplyingDisablesTheActionAndShowsBusy() {

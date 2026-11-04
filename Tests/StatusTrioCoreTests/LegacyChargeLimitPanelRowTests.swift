@@ -89,4 +89,140 @@ final class LegacyChargeLimitPanelRowTests: XCTestCase {
         _ = await controller.chargeToFullOnce()
         XCTAssertGreaterThan(hostingHeight(controller, language: .simplifiedChinese), 0)
     }
+
+    func testMainBatteryCardIncludesTheHeldLimitAndFullChargeState() async {
+        let controller = makeController()
+        await controller.refresh()
+        let withoutRow = summarySize(nil, language: .simplifiedChinese)
+        let disabled = summarySize(controller, language: .simplifiedChinese)
+        XCTAssertEqual(disabled.height, withoutRow.height, accuracy: 1)
+        _ = await controller.setLimit(90)
+        for language in AppLanguage.allCases {
+            let held = summarySize(controller, language: language)
+            let plain = summarySize(nil, language: language)
+            XCTAssertGreaterThan(held.height, plain.height + 15, language.rawValue)
+            XCTAssertLessThanOrEqual(held.width, 332, language.rawValue)
+        }
+        _ = await controller.chargeToFullOnce()
+        XCTAssertGreaterThan(summarySize(controller, language: .simplifiedChinese).height,
+                             withoutRow.height + 15)
+    }
+
+    func testMainCardCanHideQuickActionsWithoutHidingTheCeiling() async {
+        let controller = makeController()
+        await controller.refresh()
+        _ = await controller.setLimit(85)
+        let card = summary(controller, language: .english, showsActions: false)
+        XCTAssertFalse(card.showsLegacyChargeActions)
+        let hosting = NSHostingView(rootView: card.environmentObject(makeLocalization(.english)))
+        hosting.layoutSubtreeIfNeeded()
+        XCTAssertGreaterThan(hosting.fittingSize.height, summarySize(nil, language: .english).height)
+    }
+
+    private func summary(
+        _ controller: LegacyChargeLimitController?, language: AppLanguage, showsActions: Bool = true
+    ) -> BatteryStatusView {
+        let status = BatteryStatus(rawPercentage: 78, isPresent: true, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: true)
+        return BatteryStatusView(
+            state: PanelPresentationMapper.battery(status, localization: makeLocalization(language)),
+            onOpenBatteryDetails: {}, onOpenBatterySettings: {},
+            legacyChargeLimit: controller, showsLegacyChargeActions: showsActions
+        )
+    }
+
+    private func summarySize(
+        _ controller: LegacyChargeLimitController?, language: AppLanguage
+    ) -> NSSize {
+        let hosting = NSHostingView(rootView: summary(controller, language: language)
+            .environmentObject(makeLocalization(language)).frame(width: 330))
+        hosting.layoutSubtreeIfNeeded()
+        return hosting.fittingSize
+    }
+
+    /// Opt-in visual previews, same convention as the battery details layout
+    /// tests: set STATUS_TRIO_BATTERY_SNAPSHOTS to a directory to write PNGs.
+    func testWritesOptInBatteryPanelSnapshots() async throws {
+        guard let raw = ProcessInfo.processInfo.environment["STATUS_TRIO_BATTERY_SNAPSHOTS"] else {
+            throw XCTSkip("Set STATUS_TRIO_BATTERY_SNAPSHOTS to write panel previews")
+        }
+        let directory = URL(fileURLWithPath: raw, isDirectory: true)
+        let controller = makeController()
+        await controller.refresh()
+        _ = await controller.setLimit(85)
+        for language in [AppLanguage.english, .simplifiedChinese, .german] {
+            try writeSnapshot(
+                summary(controller, language: language)
+                    .environmentObject(makeLocalization(language))
+                    .frame(width: 330)
+                    .padding(14)
+                    .background(Color(nsColor: .windowBackgroundColor)),
+                to: directory.appendingPathComponent("summary-holding-\(language.rawValue).png")
+            )
+            _ = await controller.chargeToFullOnce()
+            try writeSnapshot(
+                summary(controller, language: language)
+                    .environmentObject(makeLocalization(language))
+                    .frame(width: 330)
+                    .padding(14)
+                    .background(Color(nsColor: .windowBackgroundColor)),
+                to: directory.appendingPathComponent("summary-temporary-full-\(language.rawValue).png")
+            )
+            _ = await controller.cancelChargeToFull()
+        }
+
+        // The details page reuses the same row; capture it in context.
+        _ = await controller.setLimit(85)
+        for language in [AppLanguage.english, .simplifiedChinese] {
+            try writeSnapshot(
+                BatteryDetailsView(
+                    state: detailsState(language),
+                    onBack: {},
+                    onOpenBatterySettings: {},
+                    onCopyValue: { _ in },
+                    onAppear: {},
+                    legacyChargeLimit: controller
+                )
+                .padding(14)
+                .frame(width: 330)
+                .background(Color(nsColor: .windowBackgroundColor))
+                .environmentObject(makeLocalization(language)),
+                to: directory.appendingPathComponent("details-holding-\(language.rawValue).png")
+            )
+        }
+    }
+
+    private func detailsState(_ language: AppLanguage) -> PanelDetailState {
+        let localization = makeLocalization(language)
+        return PanelDetailState(
+            title: localization.string(.batteryDetailsTitle),
+            rows: [
+                PanelDetailRow(
+                    id: "cycle", label: "Cycle Count", value: "120",
+                    accessibilityValue: "120", tint: .secondary
+                ),
+                PanelDetailRow(
+                    id: "health", label: "Condition", value: "Normal",
+                    accessibilityValue: "Normal", tint: .positive
+                ),
+            ],
+            isLoading: false,
+            errorText: nil,
+            explanation: nil
+        )
+    }
+
+    private func writeSnapshot(_ view: some View, to url: URL) throws {
+        let hosting = NSHostingView(rootView: view)
+        hosting.appearance = NSAppearance(named: .aqua)
+        hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
+        hosting.layoutSubtreeIfNeeded()
+        let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+        hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+        let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(), withIntermediateDirectories: true
+        )
+        try png.write(to: url)
+    }
 }

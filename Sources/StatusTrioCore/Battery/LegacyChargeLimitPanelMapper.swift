@@ -27,9 +27,12 @@ struct LegacyChargeLimitPanelState: Equatable {
     let status: Status?
     let action: Action
     let isBusy: Bool
+    /// Kept independently of status so temporary full, busy and failed states
+    /// still show the ceiling that will be restored.
+    let targetLimit: Int?
 
     static let hidden = LegacyChargeLimitPanelState(
-        isVisible: false, status: nil, action: .none, isBusy: false
+        isVisible: false, status: nil, action: .none, isBusy: false, targetLimit: nil
     )
 }
 
@@ -74,7 +77,8 @@ enum LegacyChargeLimitPanelMapper {
             isVisible: true,
             status: mappedStatus,
             action: isApplying ? .none : action,
-            isBusy: isApplying
+            isBusy: isApplying,
+            targetLimit: selectedLimit
         )
     }
 }
