@@ -140,6 +140,32 @@ final class LocalizationParityTests: XCTestCase {
         }
     }
 
+    /// DDC brightness and volume through BetterDisplay are free features, so the
+    /// copy must say the free version is enough. Otherwise users read the
+    /// BetterDisplay pointer as "buy Pro".
+    func testBetterDisplayCopySaysTheFreeVersionIsEnough() throws {
+        let expectations: [(AppLanguage, String)] = [
+            (.english, "free"),
+            (.simplifiedChinese, "免费"),
+            (.traditionalChinese, "免費")
+        ]
+        for (language, marker) in expectations {
+            let values = Dictionary(
+                uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) }
+            )
+            for key in [
+                "settings.brightness.compatibility.description",
+                "settings.audio.externalVolume.footnote"
+            ] {
+                let value = (values[key] ?? "").lowercased()
+                XCTAssertTrue(
+                    value.contains(marker.lowercased()),
+                    "\(language.rawValue).lproj: \(key) must mention that the free version is enough"
+                )
+            }
+        }
+    }
+
     func testTelemetryConsentTranslationsArePresentInEveryLanguage() throws {
         let keys = [
             "settings.analytics.title",

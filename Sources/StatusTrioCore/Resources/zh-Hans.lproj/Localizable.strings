@@ -296,7 +296,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "显示器不可用";
 "settings.audio.externalVolume.refresh" = "重新检测";
 "settings.audio.externalVolume.requirements" = "如果连接失败，请在 BetterDisplay 设置中启用 CLI 访问和基于通知的集成。";
-"settings.audio.externalVolume.footnote" = "macOS 原生音量控制优先；原生控制不可用时才使用所选方式。";
+"settings.audio.externalVolume.footnote" = "macOS 原生音量控制优先；原生控制不可用时才使用所选方式。BetterDisplay 免费版即可，无需购买 Pro。";
 "settings.audio.externalVolume.noStableOutput" = "当前输出没有稳定的音频 ID，无法为其配置 BetterDisplay。";
 "settings.audio.externalVolume.status.ready" = "已连接，可调节音量。";
 "settings.audio.externalVolume.status.idle" = "未连接。";
@@ -726,5 +726,5 @@
 "settings.brightness.externalBackend.description" = "选择 Status Trio 控制此显示器亮度的方式。";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay 未运行，或未开启通知集成。";
 "settings.brightness.compatibility.title" = "显示器调不了亮度？";
-"settings.brightness.compatibility.description" = "各家显示器的 DDC 实现并不统一，Status Trio 无法覆盖所有型号。如果某台显示器的亮度在这里调不了，可以把它切到 BetterDisplay 后端——Status Trio 会通过 BetterDisplay 来调节。";
+"settings.brightness.compatibility.description" = "各家显示器的 DDC 实现并不统一，Status Trio 无法覆盖所有型号。如果某台显示器的亮度在这里调不了，可以把它切到 BetterDisplay 后端——Status Trio 会通过 BetterDisplay 来调节。免费版就够用，不需要购买 Pro。";
 "settings.brightness.compatibility.link" = "前往 BetterDisplay 官网";

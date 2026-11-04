@@ -296,7 +296,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "شاشة غير متوفرة";
 "settings.audio.externalVolume.refresh" = "اكتشاف مجددًا";
 "settings.audio.externalVolume.requirements" = "إذا فشل الاتصال، ففعّل وصول CLI والتكامل المستند إلى الإشعارات في إعدادات BetterDisplay.";
-"settings.audio.externalVolume.footnote" = "يحظى التحكم الأصلي في مستوى الصوت في macOS بالأولوية. تُستخدم الطريقة المحددة عندما لا يتوفر التحكم الأصلي.";
+"settings.audio.externalVolume.footnote" = "يحظى التحكم الأصلي في مستوى الصوت في macOS بالأولوية. تُستخدم الطريقة المحددة عندما لا يتوفر التحكم الأصلي. يكفي إصدار BetterDisplay المجاني، ولا حاجة لشراء Pro.";
 "settings.audio.externalVolume.noStableOutput" = "لا يحتوي الخرج الحالي على معرّف صوت ثابت، لذلك لا يمكن إعداد BetterDisplay له.";
 "settings.audio.externalVolume.status.ready" = "متصل. يمكن ضبط مستوى الصوت.";
 "settings.audio.externalVolume.status.idle" = "غير متصل.";
@@ -726,5 +726,5 @@
 "settings.brightness.externalBackend.description" = "اختر كيفية تحكم Status Trio في سطوع هذه الشاشة.";
 "settings.brightness.backend.betterDisplayNeeded" = "تطبيق BetterDisplay غير قيد التشغيل أو أن تكامل الإشعارات فيه معطّل.";
 "settings.brightness.compatibility.title" = "لا يمكن التحكم في السطوع؟";
-"settings.brightness.compatibility.description" = "تختلف طريقة تنفيذ DDC بين مصنّعي الشاشات، لذا لا يمكن لـ Status Trio دعم كل الطُرز. إذا تعذّر ضبط سطوع شاشة من هنا، فبدّل خلفيتها إلى BetterDisplay — وسيتحكم Status Trio بها عبر BetterDisplay.";
+"settings.brightness.compatibility.description" = "تختلف طريقة تنفيذ DDC بين مصنّعي الشاشات، لذا لا يمكن لـ Status Trio دعم كل الطُرز. إذا تعذّر ضبط سطوع شاشة من هنا، فبدّل خلفيتها إلى BetterDisplay — وسيتحكم Status Trio بها عبر BetterDisplay. الإصدار المجاني كافٍ، ولا حاجة لشراء Pro.";
 "settings.brightness.compatibility.link" = "احصل على BetterDisplay";

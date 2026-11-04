@@ -296,7 +296,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "利用できないディスプレイ";
 "settings.audio.externalVolume.refresh" = "再検出";
 "settings.audio.externalVolume.requirements" = "接続に失敗する場合は、BetterDisplay の設定で CLI アクセスと通知ベースの連携を有効にしてください。";
-"settings.audio.externalVolume.footnote" = "macOS のネイティブ音量制御が優先されます。ネイティブ制御を利用できない場合に、選択した方法を使用します。";
+"settings.audio.externalVolume.footnote" = "macOS のネイティブ音量制御が優先されます。ネイティブ制御を利用できない場合に、選択した方法を使用します。BetterDisplay は無料版で十分です。Pro ライセンスは不要です。";
 "settings.audio.externalVolume.noStableOutput" = "現在の出力には安定したオーディオ ID がないため、BetterDisplay を設定できません。";
 "settings.audio.externalVolume.status.ready" = "接続済みです。音量を調節できます。";
 "settings.audio.externalVolume.status.idle" = "未接続です。";
@@ -726,5 +726,5 @@
 "settings.brightness.externalBackend.description" = "このディスプレイの明るさを Status Trio が制御する方法を選択します。";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay が実行されていないか、通知連携がオフになっています。";
 "settings.brightness.compatibility.title" = "明るさを調整できない場合";
-"settings.brightness.compatibility.description" = "ディスプレイメーカーごとに DDC の実装が異なるため、Status Trio はすべての機種に対応できません。ここで明るさを調整できないディスプレイは、BetterDisplay バックエンドに切り替えてください。Status Trio が BetterDisplay 経由で制御します。";
+"settings.brightness.compatibility.description" = "ディスプレイメーカーごとに DDC の実装が異なるため、Status Trio はすべての機種に対応できません。ここで明るさを調整できないディスプレイは、BetterDisplay バックエンドに切り替えてください。Status Trio が BetterDisplay 経由で制御します。無料版で十分です。Pro ライセンスは不要です。";
 "settings.brightness.compatibility.link" = "BetterDisplay を入手";

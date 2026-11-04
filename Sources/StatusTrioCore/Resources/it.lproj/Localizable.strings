@@ -296,7 +296,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "Schermo non disponibile";
 "settings.audio.externalVolume.refresh" = "Rileva di nuovo";
 "settings.audio.externalVolume.requirements" = "Se la connessione non riesce, attiva l’accesso alla CLI e l’integrazione basata su notifiche nelle impostazioni di BetterDisplay.";
-"settings.audio.externalVolume.footnote" = "Il controllo volume nativo di macOS ha la precedenza. Il metodo selezionato viene usato quando il controllo nativo non è disponibile.";
+"settings.audio.externalVolume.footnote" = "Il controllo volume nativo di macOS ha la precedenza. Il metodo selezionato viene usato quando il controllo nativo non è disponibile. La versione gratuita di BetterDisplay è sufficiente; non serve una licenza Pro.";
 "settings.audio.externalVolume.noStableOutput" = "L’uscita corrente non ha un ID audio stabile, quindi BetterDisplay non può essere configurato.";
 "settings.audio.externalVolume.status.ready" = "Connesso. Il controllo del volume è disponibile.";
 "settings.audio.externalVolume.status.idle" = "Non connesso.";
@@ -726,5 +726,5 @@
 "settings.brightness.externalBackend.description" = "Scegli come Status Trio controlla la luminosità di questo display.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay non è in esecuzione o la sua integrazione delle notifiche è disattivata.";
 "settings.brightness.compatibility.title" = "Luminosità non controllabile?";
-"settings.brightness.compatibility.description" = "Ogni produttore implementa DDC a modo suo, quindi Status Trio non può coprire tutti i modelli. Se la luminosità di un display non è regolabile qui, passalo al backend BetterDisplay: Status Trio lo controllerà tramite BetterDisplay.";
+"settings.brightness.compatibility.description" = "Ogni produttore implementa DDC a modo suo, quindi Status Trio non può coprire tutti i modelli. Se la luminosità di un display non è regolabile qui, passalo al backend BetterDisplay: Status Trio lo controllerà tramite BetterDisplay. La versione gratuita è sufficiente; non serve una licenza Pro.";
 "settings.brightness.compatibility.link" = "Scarica BetterDisplay";

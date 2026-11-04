@@ -296,7 +296,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "Недоступный дисплей";
 "settings.audio.externalVolume.refresh" = "Обнаружить снова";
 "settings.audio.externalVolume.requirements" = "Если подключение не удаётся, включите доступ к CLI и интеграцию на основе уведомлений в настройках BetterDisplay.";
-"settings.audio.externalVolume.footnote" = "Собственное управление громкостью macOS имеет приоритет. Выбранный способ используется, когда собственное управление недоступно.";
+"settings.audio.externalVolume.footnote" = "Собственное управление громкостью macOS имеет приоритет. Выбранный способ используется, когда собственное управление недоступно. Бесплатной версии BetterDisplay достаточно; лицензия Pro не нужна.";
 "settings.audio.externalVolume.noStableOutput" = "У текущего выхода нет стабильного аудио-ID, поэтому для него нельзя настроить BetterDisplay.";
 "settings.audio.externalVolume.status.ready" = "Подключено. Управление громкостью доступно.";
 "settings.audio.externalVolume.status.idle" = "Нет подключения.";
@@ -726,5 +726,5 @@
 "settings.brightness.externalBackend.description" = "Выберите, как Status Trio управляет яркостью этого дисплея.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay не запущен или его интеграция с уведомлениями отключена.";
 "settings.brightness.compatibility.title" = "Не регулируется яркость?";
-"settings.brightness.compatibility.description" = "Производители реализуют DDC по-разному, поэтому Status Trio не может поддерживать все модели. Если яркость дисплея здесь не регулируется, переключите его на бэкенд BetterDisplay — Status Trio будет управлять им через BetterDisplay.";
+"settings.brightness.compatibility.description" = "Производители реализуют DDC по-разному, поэтому Status Trio не может поддерживать все модели. Если яркость дисплея здесь не регулируется, переключите его на бэкенд BetterDisplay — Status Trio будет управлять им через BetterDisplay. Бесплатной версии достаточно; лицензия Pro не нужна.";
 "settings.brightness.compatibility.link" = "Скачать BetterDisplay";

@@ -295,7 +295,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "Unavailable Display";
 "settings.audio.externalVolume.refresh" = "Detect Again";
 "settings.audio.externalVolume.requirements" = "If the connection fails, enable CLI access and notification-based integration in BetterDisplay settings.";
-"settings.audio.externalVolume.footnote" = "Native macOS volume control takes priority. The selected method is used when native control is unavailable.";
+"settings.audio.externalVolume.footnote" = "Native macOS volume control takes priority. The selected method is used when native control is unavailable. The free BetterDisplay version is enough; no Pro license needed.";
 "settings.audio.externalVolume.noStableOutput" = "The current output has no stable audio ID, so BetterDisplay cannot be configured for it.";
 "settings.audio.externalVolume.status.ready" = "Connected. Volume control is available.";
 "settings.audio.externalVolume.status.idle" = "Not connected.";
@@ -724,5 +724,5 @@
 "settings.brightness.externalBackend.description" = "Choose how Status Trio controls this display's brightness.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay isn't running or its notification integration is off.";
 "settings.brightness.compatibility.title" = "Can't control a display?";
-"settings.brightness.compatibility.description" = "Display vendors implement DDC differently, so Status Trio can't cover every model. If a display's brightness can't be adjusted here, switch it to the BetterDisplay backend — Status Trio will drive it through BetterDisplay.";
+"settings.brightness.compatibility.description" = "Display vendors implement DDC differently, so Status Trio can't cover every model. If a display's brightness can't be adjusted here, switch it to the BetterDisplay backend — Status Trio will drive it through BetterDisplay. The free version is enough; no Pro license needed.";
 "settings.brightness.compatibility.link" = "Get BetterDisplay";

@@ -296,7 +296,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "Écran indisponible";
 "settings.audio.externalVolume.refresh" = "Détecter à nouveau";
 "settings.audio.externalVolume.requirements" = "Si la connexion échoue, activez l’accès à la CLI et l’intégration par notifications dans les réglages de BetterDisplay.";
-"settings.audio.externalVolume.footnote" = "Le contrôle de volume natif de macOS est prioritaire. La méthode sélectionnée est utilisée lorsque le contrôle natif n’est pas disponible.";
+"settings.audio.externalVolume.footnote" = "Le contrôle de volume natif de macOS est prioritaire. La méthode sélectionnée est utilisée lorsque le contrôle natif n’est pas disponible. La version gratuite de BetterDisplay suffit ; aucune licence Pro n’est nécessaire.";
 "settings.audio.externalVolume.noStableOutput" = "La sortie actuelle n’a pas d’identifiant audio stable ; BetterDisplay ne peut donc pas être configuré pour elle.";
 "settings.audio.externalVolume.status.ready" = "Connecté. Le contrôle du volume est disponible.";
 "settings.audio.externalVolume.status.idle" = "Non connecté.";
@@ -726,5 +726,5 @@
 "settings.brightness.externalBackend.description" = "Choisissez comment Status Trio contrôle la luminosité de cet écran.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay n’est pas lancé ou son intégration de notifications est désactivée.";
 "settings.brightness.compatibility.title" = "Luminosité non contrôlable ?";
-"settings.brightness.compatibility.description" = "Chaque fabricant implémente DDC différemment : Status Trio ne peut pas couvrir tous les modèles. Si la luminosité d’un écran n’est pas réglable ici, passez-le au backend BetterDisplay — Status Trio le pilotera alors via BetterDisplay.";
+"settings.brightness.compatibility.description" = "Chaque fabricant implémente DDC différemment : Status Trio ne peut pas couvrir tous les modèles. Si la luminosité d’un écran n’est pas réglable ici, passez-le au backend BetterDisplay — Status Trio le pilotera alors via BetterDisplay. La version gratuite suffit ; aucune licence Pro n’est nécessaire.";
 "settings.brightness.compatibility.link" = "Télécharger BetterDisplay";
