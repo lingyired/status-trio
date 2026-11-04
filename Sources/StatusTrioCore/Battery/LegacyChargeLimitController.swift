@@ -21,6 +21,11 @@ final class LegacyChargeLimitController: ObservableObject {
     private let osBand: LegacyOSBand
     private var session: LegacyChargeLimitSession?
     private var started = false
+    private var cancellables: Set<AnyCancellable> = []
+    private var batteries: (any Publisher<BatteryStatus, Never>)?
+    /// Last gate decision this controller asked for, so hysteresis does not
+    /// flap on small level wobbles and we do not write on every battery tick.
+    private var lastAppliedAllowsCharging: Bool?
 
     init(
         client: any LegacyChargeLimitClienting = XPCPrivilegedLegacyChargeClient(),
@@ -52,6 +57,48 @@ final class LegacyChargeLimitController: ObservableObject {
         taskRefresh()
     }
 
+    /// Event-driven hysteresis. The app's existing battery snapshot is the
+    /// trigger; no polling timer is introduced. Only a decision change writes.
+    func start(batteries: AnyPublisher<BatteryStatus, Never>) {
+        self.batteries = batteries
+        guard cancellables.isEmpty else { return }
+        batteries
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] battery in
+                guard let self else { return }
+                Task { @MainActor in
+                    await self.handleBattery(level: battery.percentage,
+                                             isOnAC: battery.isConnectedToPower)
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    func handleBattery(level: Int, isOnAC: Bool) async {
+        guard isAvailable, let session, status != .temporarilyChargingToFull else { return }
+        guard session.requestedLimit > 0 else { return }
+        if !isOnAC {
+            // No AC means nothing to gate; do not touch the hardware.
+            lastAppliedAllowsCharging = nil
+            return
+        }
+        let decision = LegacyChargeLimitEngine(limit: session.requestedLimit).decide(
+            batteryLevel: level,
+            isOnAC: isOnAC,
+            currentlyAllowing: lastAppliedAllowsCharging
+        )
+        switch decision {
+        case .none:
+            return
+        case .allowCharging:
+            lastAppliedAllowsCharging = true
+        case .inhibitCharging:
+            lastAppliedAllowsCharging = false
+        }
+        await reapply(limit: session.requestedLimit)
+    }
+
     /// Called when the battery Settings pane becomes visible. This is the only
     /// place availability is probed, so an idle app never spawns the helper.
     func refreshAvailability() async {
@@ -60,6 +107,9 @@ final class LegacyChargeLimitController: ObservableObject {
 
     func stop() {
         started = false
+        cancellables.removeAll()
+        batteries = nil
+        lastAppliedAllowsCharging = nil
         client.releaseConnection()
     }
 
@@ -210,6 +260,8 @@ final class LegacyChargeLimitController: ObservableObject {
     /// events. A failure here is surfaced, never silently retried.
     func handleWake() async {
         guard isAvailable, let session, status != .temporarilyChargingToFull else { return }
+        // The previous gate is untrusted after sleep; re-evaluate from scratch.
+        lastAppliedAllowsCharging = nil
         do {
             let outcome = try await client.setLimit(session.requestedLimit, expectedLimit: session.requestedLimit)
             if outcome.succeeded {
@@ -225,6 +277,19 @@ final class LegacyChargeLimitController: ObservableObject {
     }
 
     // MARK: - Helpers
+
+    private func reapply(limit: Int) async {
+        do {
+            let outcome = try await client.setLimit(limit, expectedLimit: limit)
+            if outcome.succeeded {
+                status = .holding(at: limit)
+            } else if outcome.error == .ownershipConflict {
+                status = .externalChange
+            }
+        } catch {
+            status = .failed
+        }
+    }
 
     private func saveSession(_ session: LegacyChargeLimitSession?) {
         self.session = session

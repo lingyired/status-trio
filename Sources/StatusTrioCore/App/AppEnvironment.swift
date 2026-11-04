@@ -153,7 +153,10 @@ final class AppEnvironment {
             batteries: store.$snapshot.dropFirst().map { $0.battery }
                 .removeDuplicates().eraseToAnyPublisher()
         )
-        legacyChargeLimit?.start()
+        legacyChargeLimit?.start(
+            batteries: store.$snapshot.dropFirst().map { $0.battery }
+                .removeDuplicates().eraseToAnyPublisher()
+        )
         telemetryReporter.start()
     }
 

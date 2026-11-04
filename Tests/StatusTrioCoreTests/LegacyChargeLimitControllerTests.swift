@@ -267,6 +267,55 @@ final class LegacyChargeLimitControllerTests: XCTestCase {
         XCTAssertGreaterThan(client.releaseCalls, 0)
     }
 
+    func testBatteryEventInhibitsAtTheCeilingThenHoldsInsideTheBand() async {
+        let client = FakeLegacyClient()
+        let controller = makeController(client: client)
+        await controller.refresh()
+        _ = await controller.setLimit(80)
+        let baseline = client.setLimitCalls.count
+
+        await controller.handleBattery(level: 90, isOnAC: true)
+        XCTAssertEqual(client.setLimitCalls.count, baseline + 1, "At/above the limit must write the gate")
+
+        // 79 sits inside the 2% band: hold, do not flap.
+        await controller.handleBattery(level: 79, isOnAC: true)
+        XCTAssertEqual(client.setLimitCalls.count, baseline + 1)
+
+        // 78 is the lower band edge: allow charging.
+        await controller.handleBattery(level: 78, isOnAC: true)
+        XCTAssertEqual(client.setLimitCalls.count, baseline + 2)
+    }
+
+    func testBatteryEventOnBatteryPowerNeverWrites() async {
+        let client = FakeLegacyClient()
+        let controller = makeController(client: client)
+        await controller.refresh()
+        _ = await controller.setLimit(80)
+        let baseline = client.setLimitCalls.count
+        await controller.handleBattery(level: 90, isOnAC: false)
+        XCTAssertEqual(client.setLimitCalls.count, baseline)
+    }
+
+    func testBatteryEventDuringTemporaryFullChargeDoesNotInterrupt() async {
+        let client = FakeLegacyClient()
+        let controller = makeController(client: client)
+        await controller.refresh()
+        _ = await controller.setLimit(80)
+        _ = await controller.chargeToFullOnce()
+        let baseline = client.setLimitCalls.count
+        await controller.handleBattery(level: 90, isOnAC: true)
+        XCTAssertEqual(client.setLimitCalls.count, baseline)
+        XCTAssertEqual(controller.status, .temporarilyChargingToFull)
+    }
+
+    func testBatteryEventWithoutSessionDoesNothing() async {
+        let client = FakeLegacyClient()
+        let controller = makeController(client: client)
+        await controller.refresh()
+        await controller.handleBattery(level: 90, isOnAC: true)
+        XCTAssertTrue(client.setLimitCalls.isEmpty)
+    }
+
     func testUnavailableControllerDoesNotIssueCommands() async {
         let client = FakeLegacyClient()
         let controller = makeController(client: client, osBand: .tahoe)
