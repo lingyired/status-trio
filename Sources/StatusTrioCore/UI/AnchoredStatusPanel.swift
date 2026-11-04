@@ -240,6 +240,7 @@ final class AnchoredStatusPanel: NSPanel {
         contentResizeTimer?.invalidate()
         contentResizeTimer = nil
         animatedContentSize = nil
+        (contentViewController as? StatusPanelContentViewController)?.pinContentHeight(nil)
         layoutCoordinator.invalidate()
         removeShowObservers()
         super.close()
@@ -301,6 +302,7 @@ final class AnchoredStatusPanel: NSPanel {
             // tick reads the target every frame, so the panel converges on the
             // latest height without a second snap.
             animatedContentSize = contentSize
+            (contentViewController as? StatusPanelContentViewController)?.pinContentHeight(contentSize.height)
             return
         }
         if shouldAnimateContentResize(to: target) {
@@ -326,6 +328,10 @@ final class AnchoredStatusPanel: NSPanel {
         contentResizeTimer?.invalidate()
         isAnimatingContentSize = true
         animatedContentSize = contentSize
+        // Freeze the content at its final height: SwiftUI lays it out once and
+        // the growing window reveals it, instead of re-flowing the page at every
+        // intermediate height.
+        (contentViewController as? StatusPanelContentViewController)?.pinContentHeight(contentSize.height)
         let startHeight = frame.height
         let startTime = CACurrentMediaTime()
         let duration: CFTimeInterval = 0.18
@@ -359,6 +365,10 @@ final class AnchoredStatusPanel: NSPanel {
                 self.isAnimatingContentSize = false
                 let finalSize = self.animatedContentSize
                 self.animatedContentSize = nil
+                // Let the content fill the window again before the final exact
+                // placement; at this point the pinned height and the window
+                // height are the same, so nothing moves.
+                (self.contentViewController as? StatusPanelContentViewController)?.pinContentHeight(nil)
                 if let finalSize {
                     self.applyContentFrame(finalSize)
                 }
@@ -751,6 +761,22 @@ final class StatusPanelContentViewController: NSViewController {
         installBackground(in: view)
     }
 
+    /// Pins the hosted content to its final height while the window animates
+    /// towards it. SwiftUI then lays the content out once at that size and the
+    /// growing window only reveals more of it, instead of re-flowing the whole
+    /// page at every intermediate height (which read as a refresh). `nil`
+    /// restores normal fill-the-window layout.
+    func pinContentHeight(_ height: CGFloat?) {
+        guard pinnedContentHeight != height else { return }
+        pinnedContentHeight = height
+        guard isViewLoaded else { return }
+        view.needsLayout = true
+        view.layoutSubtreeIfNeeded()
+    }
+
+    private var pinnedContentHeight: CGFloat?
+
+
     /// Reduce Transparency keeps the panel opaque for accessibility; it wins
     /// over the user's choice and forces the solid fill.
     private var effectiveBackgroundStyle: PanelBackgroundStyle {
@@ -829,14 +855,28 @@ final class StatusPanelContentViewController: NSViewController {
 
     override func viewDidLayout() {
         super.viewDidLayout()
+        let container: NSView
         if #available(macOS 26.0, *), let glass = backgroundView as? NSGlassEffectView {
             // The hosting view now lives inside a plain container inside the
             // glass; match that container, not the glass view itself, so any
             // glass content insets cannot clip the content's top edge.
-            hostingController.view.frame = hostingController.view.superview?.bounds
-                ?? glass.bounds
+            container = hostingController.view.superview ?? glass
         } else {
-            hostingController.view.frame = view.bounds
+            container = view
+        }
+        if let height = pinnedContentHeight {
+            // Pinned while the panel grows: lay the content out once at its
+            // final height with its top edge on the container's top, and let
+            // the shorter window clip the rest.
+            let bounds = container.bounds
+            hostingController.view.frame = NSRect(
+                x: 0,
+                y: bounds.height - height,
+                width: bounds.width,
+                height: height
+            )
+        } else {
+            hostingController.view.frame = container.bounds
         }
     }
 
