@@ -64,6 +64,9 @@ final class AnchoredStatusPanel: NSPanel {
         }
         coordinator.pinContent = { [weak self] height in
             guard let self else { return }
+#if DEBUG
+            if height == nil { self.diagnosticUnpinCount += 1 } else { self.diagnosticPinCount += 1 }
+#endif
             let edge = self.lockedResizeAnchor?.preferredEdge ?? self.preferredEdge
             (self.contentViewController as? StatusPanelContentViewController)?
                 .pinContentHeight(height, edge: edge)
@@ -93,6 +96,32 @@ final class AnchoredStatusPanel: NSPanel {
     /// Counts an animated frame write for the convergence diagnostic.
     func frameWriteCountIncrement() {
         frameWriteCount += 1
+    }
+
+    private var diagnosticPinCount = 0
+    private var diagnosticUnpinCount = 0
+
+    /// A privacy-safe snapshot of the current resize state. Debug builds only.
+    var resizeDiagnostics: StatusPanelResizeDiagnostics {
+        let phase: StatusPanelResizeDiagnostics.Phase = {
+            switch contentResizeCoordinator.phase {
+            case .idle: return .idle
+            case .expanding: return .expanding
+            case .collapsing: return .collapsing
+            case .settling: return .settling
+            }
+        }()
+        return StatusPanelResizeDiagnostics(
+            phase: phase,
+            windowHeight: frame.height,
+            anchoredEdgeY: preferredEdge == .maxY ? frame.minY : frame.maxY,
+            targetHeight: contentResizeCoordinator.targetHeight,
+            presentedHeight: contentResizeCoordinator.presentedHeight,
+            frameWriteCount: frameWriteCount,
+            retargetCount: contentResizeCoordinator.retargetCount,
+            pinCount: diagnosticPinCount,
+            unpinCount: diagnosticUnpinCount
+        )
     }
 #endif
     /// Coalesces the three things that can change the window's frame: a content
