@@ -716,6 +716,24 @@ final class BluetoothDeviceController: ObservableObject {
         availability = .idle
     }
 
+    /// Clears the cached device rows the panel would otherwise draw while a
+    /// fresh read is in flight.
+    ///
+    /// The cache exists so reopening the panel shows last-known names instantly
+    /// instead of waiting on the OS read. That tradeoff only makes sense while
+    /// Bluetooth is reachable: once the radio is switched off the monitoring is
+    /// suspended with no read coming to overwrite the cache, so the cached
+    /// rows — with their stale connected markers — would keep rendering until
+    /// the radio turns back on. This drops them on the power-off path while
+    /// leaving the ordinary panel-close/reopen cache alone (that path still
+    /// goes through `releaseTransientState`, which keeps `cachedDevices`).
+    func clearCachedDevicesForPowerOff() {
+        cachedDevices = []
+        devices = []
+        hasLoadedDevices = false
+        clearDeviceActions()
+    }
+
     func refresh() {
         guard isActive, availability == .available else { return }
         // Coalesce bursts: at most one read and one follow-up are retained,

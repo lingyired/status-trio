@@ -682,6 +682,14 @@ final class SystemStatusStore: ObservableObject {
         guard bluetoothDevices.authorization == .allowed else { return }
         guard await bluetoothPower.setPower(enabled), !hasStopped else { return }
         isBluetoothMonitoringSuspendedForPower = !enabled
+        if !enabled {
+            // The radio is now off and monitoring is suspended, so no new read
+            // will overwrite the cached rows. Drop them (and the stale connected
+            // markers they carry) before the demand reconciliation clears the
+            // in-memory devices, so the panel never draws last-known devices as
+            // if they were live while the radio shows powered off.
+            bluetoothDevices.clearCachedDevicesForPowerOff()
+        }
         reconcileBluetoothDemand()
     }
 
