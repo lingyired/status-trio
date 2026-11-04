@@ -246,6 +246,20 @@ What exists in this branch (source-level evidence only):
   Low Power Mode control intent, so approving the helper from the charge-limit
   group does not opt the user into Low Power Mode control. The demand follows a
   held cap, so an idle app does not keep the daemon registered-and-polled.
+- The SMC bridge requires an exact four-character key and the per-key data
+  type/width on every read and every write; a read payload outside the known
+  charge values is treated as absent, so an unrecognised firmware value is
+  never adopted or restored over.
+- The journal also records the OS build (`kern.osversion`); a record from a
+  different build is refused.
+- A journal left by a killed helper is reconciled at the next helper start:
+  stock values are restored, or the record is kept and the daemon stays alive
+  when the current hardware value belongs to something else.
+- When a connection that only verified a saved session disconnects, it still
+  owns quit restoration; the app quits and the stock ceiling is restored.
+- Before sleep the app asks the helper to force the Silicon gate closed (a
+  temporary full charge is preserved, and Intel's firmware ceiling is a no-op);
+  wake re-evaluates from hardware.
 - The battery details page shows one compact row (target + state + a single
   full-charge/cancel action) derived from the controller; it adds no second
   battery monitor and no timer.
