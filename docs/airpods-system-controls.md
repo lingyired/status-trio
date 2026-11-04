@@ -225,6 +225,8 @@ The helper also reports Conversation Awareness support separately from its
 on/off value. Unknown variants defer to runtime reporting; an API/read failure
 is not evidence that hardware lacks a feature. Spatial Audio on a supported
 model remains visible as unavailable when no active media client can be read.
-All control glyphs use white in dark appearance and black in light appearance.
+Control glyphs use white in dark appearance and black in light appearance.
+Off retains the same person-and-waves symbol as On/Fixed, with the waves dimmed
+using a symbol palette; the person remains solid.
 Cross-model hardware validation remains NOT RUN; model and protocol behavior
 are covered by local tests.

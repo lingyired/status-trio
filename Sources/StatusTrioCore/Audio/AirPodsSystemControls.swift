@@ -7,6 +7,7 @@ struct AirPodsSystemOption: Equatable, Identifiable {
     let selected: Bool
     var mode: BluetoothListeningMode? = nil
     var symbol: String? = nil
+    var dimWaves = false
     var id: String { title }
 }
 
@@ -224,7 +225,7 @@ final class AirPodsSystemControls: NSObject, IOBluetoothL2CAPChannelDelegate {
 
     private func conversationOptions() -> [AirPodsSystemOption] {
         guard let value = helperConversation.map({ $0 ? UInt8(1) : UInt8(2) }) ?? values[0x28] else { return [] }
-        return [.init(title: localization.string(.bluetoothListeningModeOff), selected: value == 2, symbol: "person.fill"),
+        return [.init(title: localization.string(.bluetoothListeningModeOff), selected: value == 2, symbol: "person.wave.2.fill", dimWaves: true),
                 .init(title: localization.string(.batteryDetailsOn), selected: value == 1, symbol: "person.wave.2.fill")]
     }
 
@@ -234,8 +235,8 @@ final class AirPodsSystemControls: NSObject, IOBluetoothL2CAPChannelDelegate {
                    [LocalizationKey.bluetoothListeningModeOff, .airPodsSpatialFixed, .airPodsSpatialHeadTracked])
             .map { mode, key in
                 .init(title: localization.string(key), selected: spatialState.mode == mode,
-                      symbol: mode == .off ? "person.fill" :
-                        (mode == .headTracked ? "spatialize-stereo-head-tracked" : "person.spatialaudio.stereo.fill"))
+                      symbol: mode == .headTracked ? "spatialize-stereo-head-tracked" : "person.spatialaudio.stereo.fill",
+                      dimWaves: mode == .off)
             }
     }
 

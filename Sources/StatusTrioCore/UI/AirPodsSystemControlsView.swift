@@ -5,6 +5,19 @@ import SwiftUI
 /// Resolve the installed system artwork at runtime; older systems get public fallbacks.
 @MainActor
 enum AirPodsControlSymbols {
+    static func offImage(_ name: String, dark: Bool) -> NSImage {
+        let color = dark ? NSColor.white : NSColor.black
+        let source = image(name)
+        // Stereo artwork puts waves in the primary layer; conversation artwork
+        // puts the person there. Explicit palettes keep the person solid in both.
+        let dimmed = color.withAlphaComponent(0.35)
+        let colors = name == "person.spatialaudio.stereo.fill" ? [dimmed, color] : [color, dimmed]
+        let result = source.withSymbolConfiguration(.init(paletteColors: colors)) ?? source
+        let copy = (result.copy() as? NSImage) ?? result
+        copy.isTemplate = false
+        return copy
+    }
+
     static func image(_ name: String) -> NSImage {
         if name == "spatialize-stereo-head-tracked",
            let bundle = Bundle(path: "/System/Library/CoreServices/ControlCenter.app"),
@@ -213,7 +226,7 @@ struct AirPodsSystemControlsView: View {
                     .disabled(true)
             } else {
                 ForEach(values) { value in
-                    option(value.title, symbol: value.symbol ?? symbol, selected: value.selected) {
+                    option(value.title, symbol: value.symbol ?? symbol, selected: value.selected, dimWaves: value.dimWaves) {
                         if !value.selected { model.select(value.title, group: group) }
                     }.disabled(model.busy)
                 }
@@ -228,7 +241,7 @@ struct AirPodsSystemControlsView: View {
             .padding(.vertical, 6)
     }
 
-    private func option(_ title: String, symbol: String, selected: Bool,
+    private func option(_ title: String, symbol: String, selected: Bool, dimWaves: Bool = false,
                         action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 8) {
@@ -236,7 +249,8 @@ struct AirPodsSystemControlsView: View {
                     .foregroundStyle(colorScheme == .dark ? Color.white : Color.black)
                     .opacity(selected ? 1 : 0).frame(width: 16)
                     .accessibilityHidden(true)
-                Image(nsImage: AirPodsControlSymbols.image(symbol)).renderingMode(.template).resizable().scaledToFit()
+                Image(nsImage: dimWaves ? AirPodsControlSymbols.offImage(symbol, dark: colorScheme == .dark) : AirPodsControlSymbols.image(symbol))
+                    .renderingMode(dimWaves ? .original : .template).resizable().scaledToFit()
                     .foregroundStyle(colorScheme == .dark ? Color.white : Color.black)
                     .frame(width: 20, height: 20).accessibilityHidden(true)
                 Text(title).fixedSize(horizontal: false, vertical: true)

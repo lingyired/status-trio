@@ -130,9 +130,9 @@ final class AirPodsInlineControlsTests: XCTestCase {
                 headerRow.listeningMode = nil
                 let preview = AirPodsSystemControlsModel(deviceID: row.key, deviceName: row.name,
                     snapshot: .init(
-                        conversation: [.init(title: "Off", selected: false, symbol: "person.fill"),
+                        conversation: [.init(title: "Off", selected: false, symbol: "person.wave.2.fill", dimWaves: true),
                                        .init(title: "On", selected: true, symbol: "person.wave.2.fill")],
-                        spatial: [.init(title: "Off", selected: false, symbol: "person.fill"),
+                        spatial: [.init(title: "Off", selected: false, symbol: "person.spatialaudio.stereo.fill", dimWaves: true),
                                   .init(title: "Fixed", selected: false, symbol: "person.spatialaudio.stereo.fill"),
                                   .init(title: "Head Tracked", selected: true, symbol: "spatialize-stereo-head-tracked")],
                         loaded: true))
