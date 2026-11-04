@@ -105,6 +105,27 @@ bash scripts/test.sh 'SettingsNavigationModelTests|LocalizationParityTests'
 bash scripts/verify-local.sh full
 ```
 
+Phase-level regression notes (each phase kept the suite green before moving on):
+
+- **P0 — navigation base.** `SettingsView` still exposes nine `Section` cases in
+  order with the same titles/sizes; the sidebar gains the expandable layer and
+  the detail keeps dispatching by category. `SettingsViewTests` stayed green.
+- **P1 — Battery.** The four leaf pages render from the same group builders;
+  the full-ring threshold moved to Icon Display while the restore limit stayed
+  in Charge Management, and Charge Management shows an unavailable notice rather
+  than an empty card. Battery and charging-effect suites stayed green.
+- **P2 — Audio.** Display/interaction, device management and external volume
+  split; the scroll-group ownership test now checks the display leaf while still
+  asserting popover keeps scroll direction.
+- **P2 — Bluetooth.** Display/preview, devices/battery and panel/list split;
+  order-list rendering now targets the panel/list leaf, and a source-level test
+  pins the settings-demand lifecycle to the category container.
+- **P3 — App Icon.** Placement/size, ring/Dock and middle-icon split; the
+  middle-icon picker test now renders that leaf.
+- **Localization / a11y.** New `settings.subtopic.*` keys added to all twelve
+  languages and verified by `LocalizationParityTests`; leaf labels wrap to two
+  lines with tooltips and selected rows carry `isSelected`.
+
 Results on this branch (`feat/settings-navigation-refactor`, based on
 `origin/main` `5ff0cff2`):
 
