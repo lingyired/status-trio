@@ -232,8 +232,8 @@ struct StatusPopoverView: View {
                 layoutSnapshots: panel.layoutSnapshots
             )
         case .volume:
-            VolumeControlsView(
-                state: panel.volume,
+            VolumeControlsSection(
+                model: panel.volumeControl,
                 actions: panel.actions,
                 scrollTargets: scrollTargets,
                 onOpenSoundSettings: openSoundSettings

@@ -5,8 +5,8 @@
 
 ## 0. 一句话现状
 
-**根因已定位，两处已修，最关键的第三处（面板整面板重算）还没修。**
-分支和 worktree 直接沿用，不要重建。
+**三处都已修：设置预览缓存、Dock 重绘降频、面板音量状态拆分（§5）。**
+面板侧仍需按 §6 在真机上复核拖音量 CPU 峰值与手感。分支和 worktree 直接沿用，不要重建。
 
 ## 1. 分支 / worktree / 提交（沿用）
 
@@ -22,9 +22,10 @@
 | `757fa1f4` | 文档：Dock 音量拖动采样 |
 | `1a713a65` | 文档：音量 CPU 测量结论（第一版，其中「无法复现」的结论**已被后续推翻**） |
 | `be42b069` | 修复：设置面板图标预览光栅缓存 `StatusIconPreviewCache`（14.7% → 8.7%） |
+| 本次会话新增 | 修复 §5：音量状态拆成 `VolumeControlModel`，音量 tick 不再让整面板失效 |
 
-工作树当前干净。`scripts/verify-local.sh full` 在 `1a713a65` 上通过过；
-`be42b069` 之后**也跑过一次 full，exit 0**。
+本次会话在最终树上跑过 `scripts/verify-local.sh full`，exit 0（2469 tests，71 个可见 UI 测试按默认跳过）。
+工作树提交后应为干净。
 
 ## 2. 问题现象（用户实测）
 
@@ -114,36 +115,41 @@ NSHostingView.layout()
 Dock 侧音量连续变化的限速/合并（10Hz + arc 微小差值合并 + 尾值精确）。
 **实测后确认它不是主要矛盾**（Dock 不在用户场景里），保留即可，别当灵药。
 
-## 5. ⚠️ 还没修的关键项（下一会话的主任务）
+## 5. ✅ 已修：把面板音量状态从 `StatusPanelViewModel` 拆出去
 
-**面板打开时拖音量，`volume` 是 `StatusPanelViewModel` 的 `@Published`，
-而面板根视图观察整个 VM，导致每 tick 整个面板 body 重算 + 整窗布局。**
+**根因**：面板打开时拖音量，`volume` 原是 `StatusPanelViewModel` 的 `@Published`，
+而面板根视图 `@ObservedObject` 观察整个 VM，导致每 tick 整个面板 body 重算 + 整窗布局。
 
-### 具体落点
+**修法**（本次会话提交）：
 
-| 位置 | 说明 |
-| --- | --- |
-| `Presentation/Panel/StatusPanelViewModel.swift:52` | `@Published private(set) var volume: VolumePanelState` |
-| 同上 `:784`、`:827` | `store.$liveVolume` 订阅 → `mapVolume` → `publishVolume` |
-| 同上 `:1100` | `private func publishVolume(_:)` → `volume = state` → 触发整面板重算 |
-| `UI/StatusPopoverView.swift:5` | `@ObservedObject var panel: StatusPanelViewModel` ← 观察整个 VM |
-| `UI/StatusBarController.swift:906` | `panelViewModel.volume`（滚轮调音量读它，**改动时必须保留**） |
-
-### 建议修法
-
-把音量状态从 `StatusPanelViewModel` 里**独立出去**（例如
-`VolumeControlModel: ObservableObject`），只让音量那一行（`VolumeControlsView` 及其容器）
-观察它；`StatusPanelViewModel` 保留一个非 `@Published` 的引用供
-`StatusBarController` 读档位。
+- 新增 `Presentation/Panel/VolumeControlModel.swift`：
+  `VolumeControlModel: ObservableObject`，持有 `@Published private(set) var volume`，
+  `update(_:) -> Bool` 在值未变时不发 `objectWillChange`（挡住重复回退 tick）。
+- `StatusPanelViewModel`：
+  - `@Published volume` 移除，改成非 `@Published` 的 `let volumeControl: VolumeControlModel`；
+  - 新增只读转发 `var volume: VolumePanelState { volumeControl.volume }`，
+    供 `StatusBarController:906` 滚轮读档位和测试读取（行为不变）；
+  - `publishVolume` 改为 `volumeControl.update(state)`；释放路径同样写模型；
+  - 仍只在 VM 内映射/订阅，`listeningModeTaskID`、layout snapshot、设备行骨架逻辑不动。
+- `UI/VolumeControlsView.swift`：新增 `VolumeControlsSection` 容器，它是**唯一**
+  `@ObservedObject` 观察 `VolumeControlModel` 的视图，内部仍渲染原 `VolumeControlsView`。
+- `UI/StatusPopoverView.swift`：音量 section 改用 `VolumeControlsSection`，
+  父视图不再读 `panel.volume`，音量 tick 不再让整面板失效。
+- 测试：原先读 `panel.$volume` 的几处改为 `panel.volumeControl.$volume`；
+  新增 `testLiveVolumePublishesTheVolumeModelWithoutInvalidatingThePanel`
+  锁住契约：一次音量 tick 的 `panel.objectWillChange` 发射数必须为 0。
 
 预期：音量 tick 只让音量行重算，面板主体/其他区不动，布局不再每帧触发。
+**仍待真机验证**：手感（`VolumeControlInteraction` 本地 draft 不受影响）+ 面板打开拖音量
+的 `top -l` CPU 峰值（见 §3.2、§6 的测法），以及设置窗口侧剩余 8.7%。
 
 ### 注意
 
 - `VolumeControlInteraction` 已有本地 draft 值，滑杆跟手性不依赖 store 的发布频率；
   节流/隔离不会让手感变差，但**必须真机验证**。
 - 面板里还有 `store.$popupSnapshot` → `refreshPopupPanels(...)`（`:910`）会重映射所有区，
-  也值得检查：音量 tick 会触发 `schedulePopupSnapshot` 的去抖发布。
+  也值得检查：音量 tick 会触发 `schedulePopupSnapshot` 的去抖发布（500ms 去抖，
+  持续拖动时不会落地，松手后才可能触发一次）。
 - 设置面板还有十来个视图 `@ObservedObject var statusStore: SystemStatusStore`
   （`SettingsView`、`AudioSectionView`、`BatterySectionView`、`NetworkSectionView`、
   `StatusIconPreviewCard`、`MiddleIconSettingsGroup` 等），是剩余 8.7% 的来源，

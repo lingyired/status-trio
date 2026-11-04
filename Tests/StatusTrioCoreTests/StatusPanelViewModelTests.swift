@@ -125,7 +125,7 @@ final class StatusPanelViewModelTests: XCTestCase {
 
         let volumeChanged = expectation(description: "volume panel receives live volume")
         var cancellables: Set<AnyCancellable> = []
-        panel.$volume
+        panel.volumeControl.$volume
             .dropFirst()
             .sink { state in
                 guard state.scalar == 0.83 else { return }
@@ -139,6 +139,48 @@ final class StatusPanelViewModelTests: XCTestCase {
 
         XCTAssertEqual(panel.volume.scalar, 0.83)
         XCTAssertEqual(panel.battery.title, "Battery · 72%")
+    }
+
+    /// #263: while the panel observes the whole view model, a volume tick must
+    /// invalidate only the volume row. If `volume` were still `@Published` on
+    /// `StatusPanelViewModel`, this tick would publish `objectWillChange` for
+    /// every panel section and force a window layout pass.
+    func testLiveVolumePublishesTheVolumeModelWithoutInvalidatingThePanel() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = StatusPanelViewModel(
+            store: fixture.store,
+            settings: fixture.settings,
+            localization: fixture.localization,
+            actions: StatusPanelActions(),
+            updateScheduler: fixture.updateScheduler
+        )
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        var panelPublications = 0
+        var cancellables: Set<AnyCancellable> = []
+        panel.objectWillChange
+            .sink { _ in panelPublications += 1 }
+            .store(in: &cancellables)
+        let volumeChanged = expectation(description: "the volume row receives live volume")
+        panel.volumeControl.$volume
+            .dropFirst()
+            .sink { state in
+                guard state.scalar == 0.83 else { return }
+                volumeChanged.fulfill()
+            }
+            .store(in: &cancellables)
+
+        fixture.store.start()
+        fixture.volume.send(VolumeStatus(scalar: 0.83, isMuted: false, deviceName: "Desk speakers"))
+        await fulfillment(of: [volumeChanged], timeout: 1)
+
+        XCTAssertEqual(panel.volume.scalar, 0.83)
+        XCTAssertEqual(
+            panelPublications,
+            0,
+            "a scalar volume tick must not invalidate the whole panel view model"
+        )
     }
 
     func testPopupBatteryAndNetworkUpdateThroughTheirDebouncedSource() async throws {
@@ -433,7 +475,7 @@ final class StatusPanelViewModelTests: XCTestCase {
         }.store(in: &cancellables)
         panel.$battery.dropFirst().sink { _ in otherRegionUpdates += 1 }.store(in: &cancellables)
         panel.$network.dropFirst().sink { _ in otherRegionUpdates += 1 }.store(in: &cancellables)
-        panel.$volume.dropFirst().sink { _ in otherRegionUpdates += 1 }.store(in: &cancellables)
+        panel.volumeControl.$volume.dropFirst().sink { _ in otherRegionUpdates += 1 }.store(in: &cancellables)
 
         fixture.input.send(AudioInputStatus(
             devices: [
@@ -504,7 +546,7 @@ final class StatusPanelViewModelTests: XCTestCase {
 
         let firstRead = expectation(description: "owner receives live volume while started")
         var cancellables: Set<AnyCancellable> = []
-        panel.$volume.dropFirst().sink { state in
+        panel.volumeControl.$volume.dropFirst().sink { state in
             if state.scalar == 0.83 { firstRead.fulfill() }
         }.store(in: &cancellables)
         fixture.volume.send(VolumeStatus(scalar: 0.83, isMuted: false, deviceName: "Desk speakers"))
@@ -559,7 +601,7 @@ final class StatusPanelViewModelTests: XCTestCase {
         panel.$audioInput.dropFirst().sink { _ in inputPublishes += 1 }.store(in: &cancellables)
 
         let volumeUpdated = expectation(description: "new settings reach the volume region")
-        panel.$volume.dropFirst().sink { state in
+        panel.volumeControl.$volume.dropFirst().sink { state in
             if state.visibleLimit == nil { volumeUpdated.fulfill() }
         }.store(in: &cancellables)
         fixture.settings.alwaysShowsAllOutputDevices = true
@@ -642,7 +684,7 @@ struct AirPodsDiscoveryTriggerTests {
         fixture.store.start()
         defer { panel.stop(); fixture.store.stop() }
         let originalIdentity = panel.volume.listeningModeTaskID
-        let events = observeDiscoveryUpdates(panel.$volume)
+        let events = observeDiscoveryUpdates(panel.volumeControl.$volume)
         defer { events.observation.cancel() }
 
         let selectedAirPods = AudioOutputDevice(id: 42, name: "AirPods Pro 2", uid: "buds", isCurrent: true)
@@ -767,7 +809,7 @@ struct AirPodsDiscoveryTriggerTests {
         fixture.store.start()
         defer { panel.stop(); fixture.store.stop() }
         let originalIdentity = panel.volume.listeningModeTaskID
-        let events = observeDiscoveryUpdates(panel.$volume)
+        let events = observeDiscoveryUpdates(panel.volumeControl.$volume)
         defer { events.observation.cancel() }
 
         fixture.volume.send(VolumeStatus(

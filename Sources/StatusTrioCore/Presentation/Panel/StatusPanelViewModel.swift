@@ -49,7 +49,15 @@ final class StatusPanelViewModel: ObservableObject {
     /// independent of the volume presentation because Bluetooth-only visibility
     /// also owns HUAWEI and AirPods listening-mode discovery.
     @Published private(set) var listeningModeTaskID = ""
-    @Published private(set) var volume: VolumePanelState
+    /// The volume row observes this model directly, so a volume tick
+    /// invalidates only that row instead of the whole panel (#263). The view
+    /// model stays the only writer and keeps the reference non-published.
+    let volumeControl: VolumeControlModel
+
+    /// Read-only passthrough for `StatusBarController`'s scroll handling and
+    /// for tests. It is deliberately not `@Published`: publishing it here would
+    /// re-create the full-panel invalidation this model exists to avoid.
+    var volume: VolumePanelState { volumeControl.volume }
     @Published private(set) var brightness: BrightnessPanelState
     @Published private(set) var audioInput: AudioInputPanelState
     @Published private(set) var inputSource: InputSourcePanelState
@@ -155,15 +163,17 @@ final class StatusPanelViewModel: ObservableObject {
         )
         vpn = PanelPresentationMapper.vpn(store.vpnStatus, localization: localization)
         bluetooth = .empty(localization: localization)
-        volume = AudioPanelMapper.volume(
-            store.liveVolume,
-            controllerAvailable: store.isVolumeControllerAvailable,
-            externalVolumeConfiguration: Self.externalVolumeConfiguration(
-                for: store.liveVolume,
-                settings: settings
-            ),
-            deviceList: settings.outputDeviceListPreferences,
-            localization: localization
+        volumeControl = VolumeControlModel(
+            volume: AudioPanelMapper.volume(
+                store.liveVolume,
+                controllerAvailable: store.isVolumeControllerAvailable,
+                externalVolumeConfiguration: Self.externalVolumeConfiguration(
+                    for: store.liveVolume,
+                    settings: settings
+                ),
+                deviceList: settings.outputDeviceListPreferences,
+                localization: localization
+            )
         )
         audioInput = AudioPanelMapper.input(
             store.liveInput,
@@ -392,9 +402,9 @@ final class StatusPanelViewModel: ObservableObject {
         if !isVisible(.network) { network = network.releasingPresentation() }
         if !isVisible(.vpn) { vpn = vpn.releasingPresentation() }
         if isVisible(.volume) {
-            volume = volume.releasingDeviceRows()
+            volumeControl.update(volumeControl.volume.releasingDeviceRows())
         } else {
-            volume = volume.releasingPresentation()
+            volumeControl.update(volumeControl.volume.releasingPresentation())
         }
         if isVisible(.audioInput) {
             audioInput = audioInput.releasingDeviceRows()
@@ -1101,8 +1111,7 @@ final class StatusPanelViewModel: ObservableObject {
         if listeningModeTaskID != state.listeningModeTaskID {
             listeningModeTaskID = state.listeningModeTaskID
         }
-        guard volume != state else { return }
-        volume = state
+        guard volumeControl.update(state) else { return }
         // Once real rows are back, remember the collapsed layout so the next
         // open can reserve its height, and mark the section as loaded so it stops
         // asking for the skeleton.

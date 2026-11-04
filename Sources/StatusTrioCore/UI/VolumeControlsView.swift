@@ -1,5 +1,27 @@
 import SwiftUI
 
+/// Observing container for the volume row.
+///
+/// The panel observes `StatusPanelViewModel` as a whole, so a volume tick used
+/// to invalidate every section. This wrapper is the only view that observes
+/// `VolumeControlModel`, which keeps a drag's invalidation scoped to the volume
+/// row (#263).
+struct VolumeControlsSection: View {
+    @ObservedObject var model: VolumeControlModel
+    let actions: StatusPanelActions
+    let scrollTargets: PopoverScrollTargets
+    let onOpenSoundSettings: () -> Void
+
+    var body: some View {
+        VolumeControlsView(
+            state: model.volume,
+            actions: actions,
+            scrollTargets: scrollTargets,
+            onOpenSoundSettings: onOpenSoundSettings
+        )
+    }
+}
+
 struct VolumeControlsView: View {
     private struct SynchronizationSnapshot: Equatable {
         let scalar: Double?
