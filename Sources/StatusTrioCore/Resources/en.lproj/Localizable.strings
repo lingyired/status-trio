@@ -736,7 +736,7 @@
 "settings.battery.colors.highPower" = "High Power Mode";
 "battery.lowPowerMode.autoEnable" = "Auto-enable Low Power Mode";
 "battery.lowPowerMode.autoEnableDescription" = "When unplugged, Low Power Mode turns on automatically once the battery drops below the low-battery threshold. Once per low-battery cycle.";
-"settings.battery.autoLowPowerThreshold" = "Auto-enable threshold";
+"settings.battery.autoLowPowerThreshold" = "Auto-enable Low Power Mode";
 "settings.battery.autoLowPowerThresholdDescription" = "Low Power Mode turns on when the battery drops below this level on battery.";
 "battery.highPowerMode.toggle" = "High Power Mode";
 "battery.highPowerMode.toggleDescription" = "Runs the fans faster for higher sustained performance, at the cost of more fan noise.";

@@ -738,7 +738,7 @@
 "settings.battery.colors.highPower" = "고전력 모드";
 "battery.lowPowerMode.autoEnable" = "저전력 모드 자동 켜기";
 "battery.lowPowerMode.autoEnableDescription" = "전원을 분리하면 배터리 잔량이 저배터리 임계값 아래로 떨어질 때 저전력 모드가 자동으로 켜집니다. 저배터리마다 한 번만 실행됩니다.";
-"settings.battery.autoLowPowerThreshold" = "자동 켜기 임계값";
+"settings.battery.autoLowPowerThreshold" = "저전력 모드 자동 켜기";
 "settings.battery.autoLowPowerThresholdDescription" = "배터리 사용 중 잔량이 이 값 아래로 떨어지면 저전력 모드를 자동으로 켭니다.";
 "battery.highPowerMode.toggle" = "고전력 모드";
 "battery.highPowerMode.toggleDescription" = "팬 속도를 높여 지속 성능을 끌어올립니다. 팬 소음이 커집니다.";

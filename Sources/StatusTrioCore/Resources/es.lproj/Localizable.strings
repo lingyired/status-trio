@@ -738,7 +738,7 @@
 "settings.battery.colors.highPower" = "Modo de alto consumo";
 "battery.lowPowerMode.autoEnable" = "Activar automáticamente el modo de bajo consumo";
 "battery.lowPowerMode.autoEnableDescription" = "Al desconectar la alimentación, el modo de bajo consumo se activa automáticamente cuando la batería baja del umbral de batería baja. Una vez por ciclo de batería baja.";
-"settings.battery.autoLowPowerThreshold" = "Umbral de activación automática";
+"settings.battery.autoLowPowerThreshold" = "Activar automáticamente el modo de bajo consumo";
 "settings.battery.autoLowPowerThresholdDescription" = "El modo de bajo consumo se activa automáticamente por debajo de este nivel cuando usa la batería.";
 "battery.highPowerMode.toggle" = "Modo de alto consumo";
 "battery.highPowerMode.toggleDescription" = "Hace girar los ventiladores más rápido para lograr un rendimiento sostenido mayor, a costa de más ruido.";

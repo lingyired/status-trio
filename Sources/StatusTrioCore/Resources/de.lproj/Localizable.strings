@@ -738,7 +738,7 @@
 "settings.battery.colors.highPower" = "Hochenergiemodus";
 "battery.lowPowerMode.autoEnable" = "Niedrigenergiemodus automatisch aktivieren";
 "battery.lowPowerMode.autoEnableDescription" = "Ohne Netzteil schaltet sich der Niedrigenergiemodus automatisch ein, sobald der Akkustand unter den Schwellenwert für niedrigen Akkustand fällt. Einmal pro Niedrigakkupyklus.";
-"settings.battery.autoLowPowerThreshold" = "Schwellenwert für Auto-Aktivierung";
+"settings.battery.autoLowPowerThreshold" = "Niedrigenergiemodus automatisch aktivieren";
 "settings.battery.autoLowPowerThresholdDescription" = "Der Niedrigenergiemodus wird im Akkubetrieb unterhalb dieses Werts automatisch aktiviert.";
 "battery.highPowerMode.toggle" = "Hochenergiemodus";
 "battery.highPowerMode.toggleDescription" = "Lässt die Lüfter schneller laufen, um dauerhaft höhere Leistung zu erreichen – auf Kosten lauterer Lüfter.";

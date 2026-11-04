@@ -738,7 +738,7 @@
 "settings.battery.colors.highPower" = "Modalità prestazioni elevate";
 "battery.lowPowerMode.autoEnable" = "Attiva automaticamente la modalità risparmio energetico";
 "battery.lowPowerMode.autoEnableDescription" = "Una volta scollegato l’alimentatore, la modalità risparmio energetico si attiva automaticamente quando la batteria scende sotto la soglia di batteria scarica. Una volta per ciclo di batteria scarica.";
-"settings.battery.autoLowPowerThreshold" = "Soglia di attivazione automatica";
+"settings.battery.autoLowPowerThreshold" = "Attiva automaticamente la modalità risparmio energetico";
 "settings.battery.autoLowPowerThresholdDescription" = "La modalità risparmio energetico si attiva automaticamente sotto questo livello quando usi la batteria.";
 "battery.highPowerMode.toggle" = "Modalità prestazioni elevate";
 "battery.highPowerMode.toggleDescription" = "Fa girare le ventole più velocemente per prestazioni sostenute più elevate, a costo di più rumore.";

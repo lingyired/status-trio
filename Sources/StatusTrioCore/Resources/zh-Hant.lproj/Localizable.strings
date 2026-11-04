@@ -738,7 +738,7 @@
 "settings.battery.colors.highPower" = "高電量模式";
 "battery.lowPowerMode.autoEnable" = "自動開啟低電量模式";
 "battery.lowPowerMode.autoEnableDescription" = "拔掉電源後，電量低於低電量閾值會自動開啟低電量模式；每次低電只開一次。";
-"settings.battery.autoLowPowerThreshold" = "自動開啟閾值";
+"settings.battery.autoLowPowerThreshold" = "自動開啟低電量模式";
 "settings.battery.autoLowPowerThresholdDescription" = "使用電池時，電量低於此值就自動開啟低電量模式。";
 "battery.highPowerMode.toggle" = "高電量模式";
 "battery.highPowerMode.toggleDescription" = "提高風扇轉速以獲得更高的持續效能，風扇噪音會增加。";

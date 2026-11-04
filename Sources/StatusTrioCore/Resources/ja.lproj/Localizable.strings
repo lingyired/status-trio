@@ -738,7 +738,7 @@
 "settings.battery.colors.highPower" = "高電力モード";
 "battery.lowPowerMode.autoEnable" = "低電力モードを自動でオン";
 "battery.lowPowerMode.autoEnableDescription" = "電源を外すと、バッテリー残量が低バッテリーしきい値を下回ったときに低電力モードが自動でオンになります。低バッテリーごとに 1 回だけです。";
-"settings.battery.autoLowPowerThreshold" = "自動オンのしきい値";
+"settings.battery.autoLowPowerThreshold" = "低電力モードを自動でオン";
 "settings.battery.autoLowPowerThresholdDescription" = "バッテリー使用時に残量がこの値を下回ると低電力モードを自動でオンにします。";
 "battery.highPowerMode.toggle" = "高電力モード";
 "battery.highPowerMode.toggleDescription" = "ファンの回転数を上げて高い持続性能を引き出します。ファンの騒音は大きくなります。";
