@@ -22,6 +22,11 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 @interface STPowerUIChargeState ()
+/// True when `availableChargeLimitsWithError:` reported an error, so the empty
+/// list cannot be trusted to mean "no advertised options". Set-path and
+/// verification must fail rather than assume 100 is supported or that a write
+/// landed. Kept private so the Swift surface is unchanged.
+@property (nonatomic, readwrite) BOOL availableLimitsReadFailed;
 - (instancetype)initWithValidState:(BOOL)validState
                 mclEnabledRawValue:(NSUInteger)mclEnabledRawValue
                           mclLimit:(NSInteger)mclLimit
@@ -278,19 +283,25 @@ static STPowerUIChargeState *STReadState(
     }
     if (failure != NULL) *failure = errorMessage;
 
-    return [[STPowerUIChargeState alloc]
+    STPowerUIChargeState *state = [[STPowerUIChargeState alloc]
         initWithValidState:valid
          mclEnabledRawValue:enabled
                    mclLimit:limitError == nil ? (NSInteger)limit : -1
       availableChargeLimits:availableError == nil ? availableLimits : @[]
     chargingOverrideAllowed:uiSucceeded && uiError == nil ? allowed : NO
                 errorMessage:errorMessage];
+    state.availableLimitsReadFailed = availableError != nil;
+    return state;
 }
 
 static BOOL STExplicitChargeLimitIsSupported(
     STPowerUIChargeState *state,
     NSInteger limit
 ) {
+    // An options-read error means the advertised list is unknown. Do not treat
+    // the empty list as "100 is fine" or as "no standard limits exist"; the
+    // caller must fail without writing (verify-local native check cases).
+    if (state.availableLimitsReadFailed) return NO;
     // Restoring no cap does not require PowerUI to advertise 100 as a limit.
     if (limit == 100) return YES;
     for (id option in state.availableChargeLimits) {
@@ -388,6 +399,7 @@ static STPowerUIChargeWriteResult *STSetChargeLimit(
 
         state = STReadState(client, &failure);
         if (!state.validState
+            || state.availableLimitsReadFailed
             || state.mclEnabledRawValue != 1
             || state.mclLimit != limit) {
             return [[STPowerUIChargeWriteResult alloc]
@@ -419,7 +431,10 @@ static BOOL STIsRestoredChargeLimit(
     STPowerUIChargeState *state,
     NSInteger limit
 ) {
+    // An options-read error means we cannot confirm the advertised set or the
+    // no-cap shape; do not report success on an unverified read.
     return state.validState
+        && !state.availableLimitsReadFailed
         && state.mclEnabledRawValue != 3
         && state.mclLimit == limit;
 }
