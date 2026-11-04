@@ -62,4 +62,38 @@ struct BoundedProcessInvocationTests {
         )
         #expect(outcome == .outputTooLarge)
     }
+
+    /// Issue #268 regression: `finish` used to nil its `stdoutPipe`/`stderrPipe`
+    /// properties while `drainPipesAfterProcessExit` on the stream queues was
+    /// still reading them, releasing the NSPipe mid-drain - a use-after-free
+    /// (SIGSEGV/EXC_BAD_ACCESS in `objc_retain` on
+    /// `-[NSConcretePipe fileHandleForReading]`). The race is timing-dependent, so
+    /// beat on it from every direction at once: normal exit, timeout with a held
+    /// descendant pipe, timeout on a plain sleeper, and an over-limit writer.
+    /// Under TSan this fails on the old code; the fix leaves the pipes to ARC and
+    /// the version-stable here.
+    @Test func noUseAfterFreeUnderConcurrentFinishAndDrain() async {
+        let base = URL(fileURLWithPath: "/bin/sh")
+
+        // ~40 invocations: enough overlap for the stream-queue drains to land
+        // between the deadline handling and finish while staying quick on a busy
+        // runner.
+        for _ in 0..<10 {
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    _ = BoundedProcessInvocation.runSync(executableURL: base, arguments: ["-c", "printf 'ok'"], timeout: .seconds(2))
+                }
+                group.addTask {
+                    _ = BoundedProcessInvocation.runSync(executableURL: base, arguments: ["-c", "sleep 30 & printf 'ready'; exit 0"], timeout: .milliseconds(200))
+                }
+                group.addTask {
+                    _ = BoundedProcessInvocation.runSync(executableURL: base, arguments: ["-c", "sleep 30"], timeout: .milliseconds(200))
+                }
+                group.addTask {
+                    _ = BoundedProcessInvocation.runSync(executableURL: base, arguments: ["-c", "yes 0123456789"], timeout: .seconds(2), outputLimit: 4_096)
+                }
+                for await _ in group {}
+            }
+        }
+    }
 }
