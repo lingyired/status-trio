@@ -382,6 +382,9 @@
 "settings.panel.background.style.classicMaterial" = "クラシックマテリアル";
 "settings.panel.background.style.solid" = "単色";
 "settings.panel.background.style.liquidGlassUnavailable" = "リキッドグラスには macOS 26 以降が必要です。";
+"settings.panel.openBehavior.title" = "開くときの動作";
+"settings.panel.returnsToSummaryOnOpen" = "開くたびに常に概要ページへ戻る";
+"settings.panel.returnsToSummaryOnOpen.description" = "有効にすると、ステータスパネルは常に概要ページで開きます。無効の場合は、最後に表示していたページが保持されます。";
 "settings.popup.volumeScroll.group" = "パネルのスクロール";
 "settings.popup.volumeScroll" = "スクロールで音量を調整";
 "settings.popup.volumeScroll.description" = "ステータスパネル内をスクロールすると出力音量を変更できます。";

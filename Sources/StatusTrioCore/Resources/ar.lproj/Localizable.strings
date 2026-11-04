@@ -382,6 +382,9 @@
 "settings.panel.background.style.classicMaterial" = "مادة كلاسيكية";
 "settings.panel.background.style.solid" = "لون موحّد";
 "settings.panel.background.style.liquidGlassUnavailable" = "يتطلب Liquid Glass نظام macOS 26 أو أحدث.";
+"settings.panel.openBehavior.title" = "سلوك الفتح";
+"settings.panel.returnsToSummaryOnOpen" = "البدء دائمًا من صفحة الملخص";
+"settings.panel.returnsToSummaryOnOpen.description" = "عند التفعيل، تُفتح لوحة الحالة دائمًا على صفحة الملخص؛ وإلا فإنها تحتفظ بآخر صفحة عرضتها.";
 "settings.popup.volumeScroll.group" = "تمرير اللوحة";
 "settings.popup.volumeScroll" = "ضبط مستوى الصوت بالتمرير";
 "settings.popup.volumeScroll.description" = "مرّر داخل لوحة الحالة لتغيير مستوى صوت الإخراج.";

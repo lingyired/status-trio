@@ -381,6 +381,9 @@
 "settings.panel.background.style.classicMaterial" = "Classic Material";
 "settings.panel.background.style.solid" = "Solid Color";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requires macOS 26 or later.";
+"settings.panel.openBehavior.title" = "Opening Behavior";
+"settings.panel.returnsToSummaryOnOpen" = "Always Start on the Summary Page";
+"settings.panel.returnsToSummaryOnOpen.description" = "When enabled, the status panel always opens on the summary page; otherwise it remembers the last page you viewed.";
 "settings.popup.volumeScroll.group" = "Panel Scrolling";
 "settings.popup.volumeScroll" = "Adjust Volume by Scrolling";
 "settings.popup.volumeScroll.description" = "Scroll inside the status panel to change the output volume.";

@@ -182,6 +182,10 @@ final class SettingsStore: ObservableObject {
     static let dockIconBackgroundPreferenceDefaultsKey = "dockIconBackgroundPreference"
     static let menuBarRightClickActionDefaultsKey = "menuBarRightClickAction.v1"
 
+    /// Issue #262: when on, reopening the status panel starts on the summary
+    /// page instead of the last-opened detail page.
+    static let returnsToSummaryOnOpenDefaultsKey = "returnsToSummaryOnOpen"
+
     @Published private(set) var sharesAnonymousAnalytics: Bool
     @Published private(set) var telemetryConsentVersion: Int
     @Published var statusPanelShortcut: StatusPanelShortcut? {
@@ -1023,6 +1027,15 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 popupScrollAdjustsVolume,
                 forKey: Self.popupScrollAdjustsVolumeDefaultsKey
+            )
+        }
+    }
+
+    @Published var returnsToSummaryOnOpen: Bool {
+        didSet {
+            defaults.set(
+                returnsToSummaryOnOpen,
+                forKey: Self.returnsToSummaryOnOpenDefaultsKey
             )
         }
     }
@@ -1958,6 +1971,9 @@ final class SettingsStore: ObservableObject {
         self.popupScrollAdjustsVolume = defaults.object(
             forKey: Self.popupScrollAdjustsVolumeDefaultsKey
         ) as? Bool ?? Self.defaultPopupScrollAdjustsVolume
+        self.returnsToSummaryOnOpen = defaults.object(
+            forKey: Self.returnsToSummaryOnOpenDefaultsKey
+        ) as? Bool ?? false
         self.popupVolumeScrollScope = storedPopupVolumeScrollScope
             .flatMap(PopupVolumeScrollScope.init(rawValue:))
             ?? Self.defaultPopupVolumeScrollScope

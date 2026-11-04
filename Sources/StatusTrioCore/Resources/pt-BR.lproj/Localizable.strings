@@ -382,6 +382,9 @@
 "settings.panel.background.style.classicMaterial" = "Material clássico";
 "settings.panel.background.style.solid" = "Cor sólida";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requer macOS 26 ou posterior.";
+"settings.panel.openBehavior.title" = "Comportamento ao abrir";
+"settings.panel.returnsToSummaryOnOpen" = "Sempre iniciar na página de resumo";
+"settings.panel.returnsToSummaryOnOpen.description" = "Quando ativado, o painel de status sempre abre na página de resumo; caso contrário, ele lembra a última página visualizada.";
 "settings.popup.volumeScroll.group" = "Rolagem do painel";
 "settings.popup.volumeScroll" = "Ajustar o volume com a rolagem";
 "settings.popup.volumeScroll.description" = "Role dentro do painel de status para alterar o volume de saída.";

@@ -382,6 +382,9 @@
 "settings.panel.background.style.classicMaterial" = "经典材质";
 "settings.panel.background.style.solid" = "纯色";
 "settings.panel.background.style.liquidGlassUnavailable" = "液态玻璃需要 macOS 26 或更高版本。";
+"settings.panel.openBehavior.title" = "打开行为";
+"settings.panel.returnsToSummaryOnOpen" = "每次打开回到主界面";
+"settings.panel.returnsToSummaryOnOpen.description" = "开启后，每次点开状态面板都从主界面开始；关闭时会保留上次查看的详情页。";
 "settings.popup.volumeScroll.group" = "面板滚动";
 "settings.popup.volumeScroll" = "滚动调节音量";
 "settings.popup.volumeScroll.description" = "在状态面板内滚动即可调节输出音量。";

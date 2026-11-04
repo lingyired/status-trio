@@ -382,6 +382,9 @@
 "settings.panel.background.style.classicMaterial" = "Matériau classique";
 "settings.panel.background.style.solid" = "Couleur unie";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass nécessite macOS 26 ou ultérieur.";
+"settings.panel.openBehavior.title" = "Comportement à l’ouverture";
+"settings.panel.returnsToSummaryOnOpen" = "Toujours s’ouvrir sur la page de résumé";
+"settings.panel.returnsToSummaryOnOpen.description" = "Lorsque cette option est activée, le panneau d’état s’ouvre toujours sur la page de résumé ; sinon, il conserve la dernière page consultée.";
 "settings.popup.volumeScroll.group" = "Défilement du panneau";
 "settings.popup.volumeScroll" = "Régler le volume en défilant";
 "settings.popup.volumeScroll.description" = "Faites défiler dans le panneau d’état pour changer le volume de sortie.";

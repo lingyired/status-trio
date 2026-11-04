@@ -382,6 +382,9 @@
 "settings.panel.background.style.classicMaterial" = "Materiale classico";
 "settings.panel.background.style.solid" = "Tinta unita";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass richiede macOS 26 o versione successiva.";
+"settings.panel.openBehavior.title" = "Comportamento all’apertura";
+"settings.panel.returnsToSummaryOnOpen" = "Torna sempre alla pagina di riepilogo all’apertura";
+"settings.panel.returnsToSummaryOnOpen.description" = "Quando è attivo, il pannello di stato si apre sempre sulla pagina di riepilogo; in caso contrario, conserva l’ultima pagina visualizzata.";
 "settings.popup.volumeScroll.group" = "Scorrimento del pannello";
 "settings.popup.volumeScroll" = "Regola il volume scorrendo";
 "settings.popup.volumeScroll.description" = "Scorri all’interno del pannello di stato per cambiare il volume di uscita.";

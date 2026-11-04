@@ -10,6 +10,19 @@ struct PopoverSectionView: View {
         SettingsPage {
             backgroundStyleGroup
             popupOrderGroup
+            openBehaviorGroup
+        }
+    }
+
+    private var openBehaviorGroup: some View {
+        SettingsGroup(localization.string(.settingsPanelOpenBehaviorTitle)) {
+            SettingsToggleRow(
+                symbol: "arrow.uturn.backward",
+                tint: .purple,
+                title: localization.string(.settingsPanelReturnsToSummaryOnOpen),
+                subtitle: localization.string(.settingsPanelReturnsToSummaryOnOpenDescription),
+                isOn: $store.returnsToSummaryOnOpen
+            )
         }
     }
 
