@@ -102,7 +102,7 @@
 "settings.bluetooth.listeningModeTitle" = "Показывать управление режимом прослушивания";
 "settings.bluetooth.listeningModeDescription" = "Показывает капсулы шумоподавления/прозрачности/выключения на подключённых AirPods и некоторых наушниках HUAWEI. Поддерживаются лишь некоторые модели HUAWEI; при сбое переключения восстанавливается прежний режим.";
 "settings.bluetooth.listeningModePreview" = "Предпросмотр переключателя режима прослушивания";
-"settings.bluetooth.listeningModePreviewDescription" = "Показывать переключатели режима на всех подключённых AirPods для проверки интерфейса. Нажатие анимируется как на настоящем устройстве, но ничего в AirPods не меняет.";
+"settings.bluetooth.listeningModePreviewDescription" = "Только для проверки интерфейса — включение или выключение капсулы не меняет наушники.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Имя устройства предпросмотра";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Имя, отображаемое в тестовых строках. Оставьте пустым, чтобы использовать значение по умолчанию; введите очень длинное имя, чтобы проверить обрезку.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "Количество строк предпросмотра";

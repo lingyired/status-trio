@@ -102,7 +102,7 @@
 "settings.bluetooth.listeningModeTitle" = "Hörmodus-Steuerung anzeigen";
 "settings.bluetooth.listeningModeDescription" = "Zeigt Kapseln für Geräuschunterdrückung/Transparenz/Aus auf verbundenen AirPods und einigen HUAWEI-Kopfhörern an. Nur manche HUAWEI-Modelle werden unterstützt; schlägt eine Umschaltung fehl, wird der vorherige Modus wiederhergestellt.";
 "settings.bluetooth.listeningModePreview" = "Hörmodus-Umschaltung Vorschau anzeigen";
-"settings.bluetooth.listeningModePreviewDescription" = "Für UI-Tests die Modi-Kapseln auf allen verbundenen AirPods anzeigen. Das Antippen einer Kapsel animiert wie auf einem echten Gerät, ändert aber nichts an den AirPods.";
+"settings.bluetooth.listeningModePreviewDescription" = "Nur für UI-Tests – das Ein- oder Ausschalten einer Kapsel ändert nichts an deinen Kopfhörern.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Vorschau-Gerätename";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Der in den Vorschauzeilen angezeigte Name. Leer lässt den Standardtext, ein langer Name prüft die Kürzung.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "Anzahl Vorschauzeilen";

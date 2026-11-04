@@ -102,7 +102,7 @@
 "settings.bluetooth.listeningModeTitle" = "청취 모드 컨트롤 표시";
 "settings.bluetooth.listeningModeDescription" = "연결된 AirPods와 일부 HUAWEI 헤드폰에 노이즈 캔슬링/투명/꺼짐 단추를 표시합니다. HUAWEI는 일부 모델만 지원하며, 전환에 실패하면 원래 모드로 복원됩니다.";
 "settings.bluetooth.listeningModePreview" = "청취 모드 전환 미리보기";
-"settings.bluetooth.listeningModePreviewDescription" = "인터페이스 테스트를 위해 연결된 모든 AirPods에 모드 전환 단추를 표시합니다. 단추를 누르면 실제 기기와 같은 애니메이션이 재생되지만, AirPods의 설정은 변경되지 않습니다.";
+"settings.bluetooth.listeningModePreviewDescription" = "인터페이스 테스트 전용 — 단추를 켜거나 꺼도 헤드폰은 변경되지 않습니다.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "미리보기 기기 이름";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "미리보기 행에 표시할 이름입니다. 비워 두면 기본값을 사용하고, 긴 이름을 넣으면 잘림을 확인할 수 있습니다.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "미리보기 행 수";

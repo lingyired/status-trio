@@ -102,7 +102,7 @@
 "settings.bluetooth.listeningModeTitle" = "Afficher les contrôles du mode d’écoute";
 "settings.bluetooth.listeningModeDescription" = "Affiche des pastilles de réduction de bruit/transparence/désactivé sur les AirPods connectés et certains casques HUAWEI. Seuls certains modèles HUAWEI sont pris en charge ; si un changement échoue, le mode précédent est restauré.";
 "settings.bluetooth.listeningModePreview" = "Aperçu du sélecteur de mode d'écoute";
-"settings.bluetooth.listeningModePreviewDescription" = "Affiche les pastilles de mode sur tous les AirPods connectés pour tester l'interface. Le toucher d'une pastille s'anime comme sur un vrai appareil, mais ne modifie rien sur les AirPods.";
+"settings.bluetooth.listeningModePreviewDescription" = "Uniquement pour tester l’interface — activer ou désactiver une pastille ne modifie jamais votre casque.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Nom du périphérique d'aperçu";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Nom affiché sur les lignes d'aperçu. Laissez vide pour la valeur par défaut ; saisissez un nom très long pour tester la troncature.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "Nombre de lignes d'aperçu";
