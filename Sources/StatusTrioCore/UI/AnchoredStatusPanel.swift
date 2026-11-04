@@ -208,7 +208,7 @@ final class AnchoredStatusPanel: NSPanel {
         let size = content.intrinsicContentSize
         guard size.width > 0, size.height > 0 else { return }
         lastContentSize = size
-        setFrame(placementFrame(for: cappedContentSize(size)), display: false)
+        applyContentFrame(cappedContentSize(size), display: false)
     }
 
     private func applyContentSize(_ size: NSSize) {
@@ -218,9 +218,20 @@ final class AnchoredStatusPanel: NSPanel {
         lastContentSize = size
         let capped = cappedContentSize(size)
         let rounded = NSSize(width: ceil(capped.width), height: ceil(capped.height))
-        guard abs(frame.width - rounded.width) >= 0.5 || abs(frame.height - rounded.height) >= 0.5
-        else { return }
-        setFrame(placementFrame(for: rounded), display: true)
+        applyContentFrame(rounded, display: true)
+    }
+
+    /// Writes the window frame for a measured content size, or does nothing when
+    /// the window already sits at the frame that size produces.
+    private func applyContentFrame(_ contentSize: NSSize, display: Bool) {
+        guard let target = StatusPanelPlacement.contentFrameUpdate(
+            from: frame,
+            contentSize: contentSize,
+            anchor: currentAnchor(),
+            screens: NSScreen.screens.map { StatusPanelScreen($0) },
+            dockInset: dockInset
+        ) else { return }
+        setFrame(target, display: display)
         invalidateShadow()
     }
 
