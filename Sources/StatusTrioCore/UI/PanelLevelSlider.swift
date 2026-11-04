@@ -2,137 +2,78 @@ import AppKit
 import SwiftUI
 
 /// Shared geometry between the AppKit drawing and the SwiftUI inline label so
-/// the painted track/thumb and the label position always agree.
+/// the painted track/thumb and the label column always agree.
 enum PanelLevelSliderMetrics {
     /// Overall control height on screen.
     static let controlHeight: CGFloat = 30
     /// Visible capsule height.
-    static let barHeight: CGFloat = 14
+    static let barHeight: CGFloat = 16
     /// White thumb circle diameter.
-    static let thumbDiameter: CGFloat = 20
+    static let thumbDiameter: CGFloat = 18
     static var thumbRadius: CGFloat { thumbDiameter / 2 }
-    /// The thumb centre may travel between the capsule's leading/trailing insets.
+    /// Distance kept from the capsule's leading/trailing edge.
     static var horizontalInset: CGFloat { thumbRadius }
     static var barCornerRadius: CGFloat { barHeight / 2 }
 
-    /// Inline label inset from the capsule's leading/trailing edge.
+    /// Inline label inset from the capsule's leading edge.
     static let labelLeadingInset: CGFloat = 12
-    /// Gap kept between the thumb edge and the inline label.
+    /// Gap kept between the label column and the track's start.
     static let labelGap: CGFloat = 8
+    /// A label column may never eat more than half of the capsule, otherwise
+    /// the thumb would have no travel left.
+    static let maximumLabelFraction: CGFloat = 0.46
 
-    /// Thumb centre X for a value in 0...1 inside a given width.
-    static func thumbCenterX(for value: Double, width: CGFloat) -> CGFloat {
-        horizontalInset + CGFloat(value) * max(0, width - horizontalInset * 2)
+    /// Width reserved for the inline label. `preferred` lets a section give
+    /// every row the same column width so all tracks start at the same x.
+    static func reservedLabelWidth(
+        textWidth: CGFloat,
+        controlWidth: CGFloat,
+        preferred: CGFloat?
+    ) -> CGFloat {
+        guard textWidth > 0 || (preferred ?? 0) > 0 else { return 0 }
+        let candidate = preferred ?? textWidth
+        let cap = max(0, controlWidth * maximumLabelFraction)
+        return min(max(0, candidate), cap)
+    }
+
+    /// X where the thumb's travel begins, leaving the label column free.
+    ///
+    /// The start accounts for the thumb radius so the thumb's leading edge can
+    /// never overlap the label text. Without a label the travel starts at the
+    /// capsule's leading inset, matching a plain macOS slider.
+    static func trackStartX(
+        controlWidth: CGFloat,
+        reservedLabelWidth: CGFloat
+    ) -> CGFloat {
+        guard reservedLabelWidth > 0, controlWidth > 0 else {
+            return horizontalInset
+        }
+        let labelEnd = labelLeadingInset + reservedLabelWidth
+        let start = labelEnd + labelGap + thumbRadius
+        let latestUsefulStart = max(horizontalInset, controlWidth - horizontalInset)
+        return min(start, latestUsefulStart)
+    }
+
+    /// Thumb centre X for a value in 0...1, travelling between the track start
+    /// and the trailing inset.
+    static func thumbCenterX(
+        for value: Double,
+        width: CGFloat,
+        trackStartX: CGFloat
+    ) -> CGFloat {
+        let clamped = Double(min(1, max(0, value)))
+        let start = max(horizontalInset, trackStartX)
+        let end = max(start, width - horizontalInset)
+        return start + CGFloat(clamped) * (end - start)
     }
 }
 
-/// Pure layout for the optional inline label: which side of the thumb it parks
-/// on (with hysteresis) and where it is drawn. Kept free of SwiftUI/AppKit so
-/// the avoidance boundary can be unit-tested at 0/10/50/90/100%.
+/// Pure layout for the optional inline label column.
 enum PanelLevelSliderLabelLayout {
-    enum Side: Equatable {
-        case leading
-        case trailing
-    }
-
-    /// Hysteresis is expressed by "keep the current side while it still fits",
-    /// so the switch threshold differs depending on travel direction.
-    static let minimumVisibleWidth: CGFloat = 8
-
-    /// Resolved placement of the label inside the capsule.
-    struct Frame: Equatable {
-        let side: Side
-        let originX: CGFloat
-        let width: CGFloat
-        /// Labels narrower than this are hidden rather than drawn as a sliver.
-        var isVisible: Bool { width > minimumVisibleWidth }
-    }
-
-    /// Decides which side of the thumb holds the label.
-    ///
-    /// Preference order: keep the current side if the full text still fits
-    /// there; otherwise move to the other side if it fits; otherwise stay on
-    /// the side with more room and truncate. This never overlaps the thumb and
-    /// does not oscillate because each direction has its own "still fits" test.
-    static func side(
-        thumbCenterX: CGFloat,
-        controlWidth: CGFloat,
-        textWidth: CGFloat,
-        currentlyTrailing: Bool
-    ) -> Side {
-        let leadingSpace = leadingAvailableSpace(
-            thumbCenterX: thumbCenterX
-        )
-        let trailingSpace = trailingAvailableSpace(
-            thumbCenterX: thumbCenterX,
-            controlWidth: controlWidth
-        )
-        let fitsLeading = leadingSpace >= textWidth
-        let fitsTrailing = trailingSpace >= textWidth
-
-        if currentlyTrailing {
-            if fitsTrailing { return .trailing }
-            if fitsLeading { return .leading }
-        } else {
-            if fitsLeading { return .leading }
-            if fitsTrailing { return .trailing }
-        }
-        // Neither side can hold the full text: truncate on the roomier side.
-        return leadingSpace >= trailingSpace ? .leading : .trailing
-    }
-
-    static func leadingAvailableSpace(thumbCenterX: CGFloat) -> CGFloat {
-        (thumbCenterX - PanelLevelSliderMetrics.thumbRadius
-            - PanelLevelSliderMetrics.labelGap)
-            - PanelLevelSliderMetrics.labelLeadingInset
-    }
-
-    static func trailingAvailableSpace(
-        thumbCenterX: CGFloat,
-        controlWidth: CGFloat
-    ) -> CGFloat {
-        (controlWidth - PanelLevelSliderMetrics.labelLeadingInset)
-            - (thumbCenterX + PanelLevelSliderMetrics.thumbRadius
-                + PanelLevelSliderMetrics.labelGap)
-    }
-
-    /// Resolves where the label can be drawn without being covered by the
-    /// accent fill / thumb.
-    static func frame(
-        side: Side,
-        thumbCenterX: CGFloat,
-        controlWidth: CGFloat,
-        textWidth: CGFloat
-    ) -> Frame {
-        let inset = PanelLevelSliderMetrics.labelLeadingInset
-        let gap = PanelLevelSliderMetrics.labelGap
-        let radius = PanelLevelSliderMetrics.thumbRadius
-
-        let start: CGFloat
-        let available: CGFloat
-        switch side {
-        case .leading:
-            start = inset
-            available = (thumbCenterX - radius - gap) - inset
-        case .trailing:
-            start = thumbCenterX + radius + gap
-            available = (controlWidth - inset) - start
-        }
-
-        let width = max(0, min(textWidth, available))
-        return Frame(side: side, originX: start, width: width)
-    }
-
-    /// Label ink colour: white over the accent fill (leading side), primary over
-    /// the unfilled track (trailing side).
-    static func usesLightText(side: Side) -> Bool {
-        side == .leading
-    }
-
     /// Measured width of the label text using the component's font.
     static func textWidth(_ text: String) -> CGFloat {
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 11, weight: .medium)
+            .font: NSFont.systemFont(ofSize: 9, weight: .medium)
         ]
         return (text as NSString).size(withAttributes: attrs).width
     }
@@ -144,37 +85,46 @@ enum PanelLevelSliderLabelLayout {
 /// are written straight into `value` and editing boundaries are surfaced via
 /// `onEditingChanged`. It contains no volume/brightness business logic.
 ///
-/// Vision (macOS inline capture): a 30pt rounded capsule, fully-rounded ends,
-/// accent-filled progress, white thumb, and an optional single-line label that
-/// lives inside the bar and dodges the thumb while never blocking input.
+/// Vision (macOS inline capture): a 30pt row, fully-rounded capsule, white
+/// thumb, accent-filled progress, and an optional single-line label that owns a
+/// fixed column inside the capsule so it always stays fully legible and the
+/// thumb never runs into it.
 struct PanelLevelSlider: View {
     @Binding var value: Double
     var label: String? = nil
+    /// Fixed label column width shared across rows (nil = fit the text).
+    var labelColumnWidth: CGFloat? = nil
     var isEnabled: Bool = true
     var tint: Color = .accentColor
     var accessibilityLabel: String? = nil
     var accessibilityValue: String? = nil
+    var accessibilityHint: String? = nil
     var onEditingChanged: (Bool) -> Void = { _ in }
-
-    /// Hysteresis: once the label jumps to the thumb's trailing side it stays
-    /// there until the thumb travels comfortably past again, so it never
-    /// oscillates around a threshold.
-    @State private var isLabelOnRight = false
 
     var body: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
-            let centerX = PanelLevelSliderMetrics.thumbCenterX(
-                for: Double(min(1, max(0, value))),
-                width: width
+            let textWidth = label.map { PanelLevelSliderLabelLayout.textWidth($0) } ?? 0
+            let reserved = label == nil
+                ? 0
+                : PanelLevelSliderMetrics.reservedLabelWidth(
+                    textWidth: textWidth,
+                    controlWidth: width,
+                    preferred: labelColumnWidth
+                )
+            let trackStart = PanelLevelSliderMetrics.trackStartX(
+                controlWidth: width,
+                reservedLabelWidth: reserved
             )
             ZStack(alignment: .leading) {
                 Representable(
                     isEnabled: isEnabled,
                     tint: tint,
                     currentValue: value,
+                    labelReserve: reserved,
                     accessibilityLabel: accessibilityLabel,
                     accessibilityValue: accessibilityValue,
+                    accessibilityHint: accessibilityHint,
                     onValueChanged: { newValue in
                         value = newValue
                     },
@@ -182,91 +132,24 @@ struct PanelLevelSlider: View {
                 )
 
                 if let label {
-                    inlineLabel(
-                        label,
-                        side: isLabelOnRight ? .trailing : .leading,
-                        thumbCenterX: centerX,
-                        width: width
-                    )
+                    Text(label)
+                        .font(.system(size: 9, weight: .medium))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .foregroundStyle(
+                            isEnabled ? Color.primary.opacity(0.9) : Color.primary.opacity(0.55)
+                        )
+                        .frame(width: reserved, alignment: .leading)
+                        .offset(x: PanelLevelSliderMetrics.labelLeadingInset, y: 0)
+                        .help(label)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
-            }
-            .onAppear {
-                applyLabelSide(value: value, width: width)
-            }
-            .onChange(of: value) { newValue in
-                // Recompute from the *new* value: the closure captured the old
-                // value, which would otherwise park the label at the old thumb
-                // position (e.g. permanently at 0%).
-                applyLabelSide(value: newValue, width: width)
-            }
-            .onChange(of: width) { newWidth in
-                applyLabelSide(value: value, width: newWidth)
             }
         }
         .frame(height: PanelLevelSliderMetrics.controlHeight)
         // Accessibility lives on the native NSSlider so VoiceOver sees one
         // adjustable control with the same label/value the old Slider exposed.
-    }
-
-    // MARK: Inline label with thumb avoidance.
-
-    private func measureWidth(_ text: String) -> CGFloat {
-        PanelLevelSliderLabelLayout.textWidth(text)
-    }
-
-    /// Updates the parked side using hysteresis so the label does not flip back
-    /// and forth exactly at the threshold. Called from view lifecycle hooks,
-    /// never during `body` evaluation.
-    private func applyLabelSide(value: Double, width: CGFloat) {
-        guard let label else { return }
-        let centerX = PanelLevelSliderMetrics.thumbCenterX(
-            for: Double(min(1, max(0, value))),
-            width: width
-        )
-        let side = PanelLevelSliderLabelLayout.side(
-            thumbCenterX: centerX,
-            controlWidth: width,
-            textWidth: measureWidth(label),
-            currentlyTrailing: isLabelOnRight
-        )
-        isLabelOnRight = (side == .trailing)
-    }
-
-    /// Pure presentation: places the single-line label where the fill/thumb
-    /// cannot cover it, with truncation. Never touches interaction.
-    @ViewBuilder
-    private func inlineLabel(
-        _ text: String,
-        side: PanelLevelSliderLabelLayout.Side,
-        thumbCenterX: CGFloat,
-        width: CGFloat
-    ) -> some View {
-        let frame = PanelLevelSliderLabelLayout.frame(
-            side: side,
-            thumbCenterX: thumbCenterX,
-            controlWidth: width,
-            textWidth: measureWidth(text)
-        )
-        if frame.isVisible {
-            Text(text)
-                .font(.system(size: 11, weight: .medium))
-                .monospacedDigit()
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .foregroundStyle(labelForeground(side: frame.side))
-                .frame(width: frame.width, alignment: .leading)
-                .help(text)
-                .offset(x: frame.originX, y: 0)
-        }
-    }
-
-    private func labelForeground(side: PanelLevelSliderLabelLayout.Side) -> Color {
-        guard isEnabled else { return .primary.opacity(0.6) }
-        return PanelLevelSliderLabelLayout.usesLightText(side: side)
-            ? Color.white.opacity(0.96)
-            : Color.primary.opacity(0.92)
     }
 }
 
@@ -275,8 +158,10 @@ private extension PanelLevelSlider {
         let isEnabled: Bool
         let tint: Color
         let currentValue: Double
+        let labelReserve: CGFloat
         let accessibilityLabel: String?
         let accessibilityValue: String?
+        let accessibilityHint: String?
         let onValueChanged: (Double) -> Void
         let onEditingChanged: (Bool) -> Void
 
@@ -285,6 +170,7 @@ private extension PanelLevelSlider {
             slider.onValueChanged = onValueChanged
             slider.onEditingChanged = onEditingChanged
             slider.isEnabled = isEnabled
+            slider.labelReserve = labelReserve
             slider.doubleValue = clamped(currentValue)
             applyAccessibility(to: slider)
             return slider
@@ -293,6 +179,7 @@ private extension PanelLevelSlider {
         func updateNSView(_ nsView: PanelLevelSliderView, context: Context) {
             nsView.isEnabled = isEnabled
             nsView.fillColor = NSColor(tint)
+            nsView.labelReserve = labelReserve
             nsView.onValueChanged = onValueChanged
             nsView.onEditingChanged = onEditingChanged
             applyAccessibility(to: nsView)
@@ -310,6 +197,7 @@ private extension PanelLevelSlider {
         private func applyAccessibility(to slider: PanelLevelSliderView) {
             slider.setAccessibilityLabel(accessibilityLabel)
             slider.setAccessibilityValue(accessibilityValue)
+            slider.setAccessibilityHelp(accessibilityHint)
         }
 
         private func clamped(_ value: Double) -> Double {
@@ -325,9 +213,11 @@ final class PanelLevelSliderView: NSSlider {
     var onValueChanged: ((Double) -> Void)?
     var onEditingChanged: ((Bool) -> Void)?
     var fillColor: NSColor = .controlAccentColor
+    /// Width reserved for an inline label; the track starts after it.
+    var labelReserve: CGFloat = 0
 
     /// Marks tracking session boundaries so `mouseDown`/`mouseUp` around a
-    /// super call always pairs, including for keyboard navigation.
+    /// super call always pair, including for keyboard navigation.
     private var isGestureActive = false
 
     init() {
@@ -364,6 +254,13 @@ final class PanelLevelSliderView: NSSlider {
         min(1, max(0, doubleValue))
     }
 
+    func trackStartX(in bounds: NSRect) -> CGFloat {
+        PanelLevelSliderMetrics.trackStartX(
+            controlWidth: bounds.width,
+            reservedLabelWidth: labelReserve
+        )
+    }
+
     func barRect(in bounds: NSRect) -> NSRect {
         let inset = PanelLevelSliderMetrics.horizontalInset
         let y = (bounds.height - PanelLevelSliderMetrics.barHeight) / 2
@@ -378,7 +275,8 @@ final class PanelLevelSliderView: NSSlider {
     func knobCenter(in bounds: NSRect) -> NSPoint {
         let x = PanelLevelSliderMetrics.thumbCenterX(
             for: clampedDoubleValue,
-            width: bounds.width
+            width: bounds.width,
+            trackStartX: trackStartX(in: bounds)
         )
         return NSPoint(x: x, y: bounds.midY)
     }
@@ -416,14 +314,36 @@ final class PanelLevelSliderView: NSSlider {
         trackColor.setFill()
         trackPath.fill()
 
+        let startX = trackStartX(in: bounds)
+        // An inline label leaves the leading part of the capsule as a label
+        // bay. Draw a slightly recessed groove for the actual travel so the
+        // thumb at 0% reads as the groove's start, not a stray control.
+        if startX > barRect.minX {
+            let grooveRect = NSRect(
+                x: startX,
+                y: barRect.minY,
+                width: max(0, barRect.maxX - startX),
+                height: barRect.height
+            )
+            let grooveColor = isDarkAppearance
+                ? NSColor(white: 1.0, alpha: 0.10)
+                : NSColor(white: 0.0, alpha: 0.07)
+            grooveColor.setFill()
+            NSBezierPath(
+                roundedRect: grooveRect,
+                xRadius: PanelLevelSliderMetrics.barCornerRadius,
+                yRadius: PanelLevelSliderMetrics.barCornerRadius
+            ).fill()
+        }
+
         guard isEnabled, clampedDoubleValue > 0.001 else { return }
         let centerX = knobCenter(in: bounds).x
-        let fillWidth = max(0, centerX - barRect.minX)
+        let fillWidth = max(0, centerX - startX)
         guard fillWidth > 0.5 else { return }
         let fillRect = NSRect(
-            x: barRect.minX,
+            x: startX,
             y: barRect.minY,
-            width: min(fillWidth, barRect.maxX - barRect.minX),
+            width: min(fillWidth, barRect.maxX - startX),
             height: barRect.height
         )
         let fillPath = NSBezierPath(

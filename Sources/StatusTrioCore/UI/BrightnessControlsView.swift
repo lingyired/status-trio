@@ -8,11 +8,20 @@ struct BrightnessControlsView: View {
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
 
+    /// One shared label column for every row, so all tracks start on the same
+    /// x and the rows stay aligned.
+    private var labelColumnWidth: CGFloat {
+        state.rows
+            .map { PanelLevelSliderLabelLayout.textWidth($0.name) }
+            .max() ?? 0
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(state.rows) { row in
                 BrightnessRowView(
                     row: row,
+                    labelColumnWidth: labelColumnWidth,
                     actions: actions,
                     scrollTargets: scrollTargets
                 )
@@ -23,6 +32,7 @@ struct BrightnessControlsView: View {
 
 private struct BrightnessRowView: View {
     let row: BrightnessRowState
+    let labelColumnWidth: CGFloat
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
 
@@ -49,6 +59,7 @@ private struct BrightnessRowView: View {
                     PanelLevelSlider(
                         value: sliderBinding,
                         label: row.name,
+                        labelColumnWidth: labelColumnWidth,
                         isEnabled: true,
                         accessibilityLabel: row.accessibilityLabel,
                         accessibilityValue: row.percentageText,
@@ -69,6 +80,7 @@ private struct BrightnessRowView: View {
                     PanelLevelSlider(
                         value: sliderBinding,
                         label: row.name,
+                        labelColumnWidth: labelColumnWidth,
                         isEnabled: false,
                         accessibilityLabel: row.accessibilityLabel,
                         accessibilityValue: row.percentageText,
@@ -108,13 +120,13 @@ private struct BrightnessRowView: View {
                 .frame(height: PanelLevelSliderMetrics.barHeight)
             HStack(spacing: 8) {
                 Text(row.name)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 10, weight: .medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .foregroundStyle(.primary.opacity(0.6))
                 Spacer(minLength: 8)
                 Text(reason)
-                    .font(.system(size: 10))
+                    .font(.system(size: 9))
                     .lineLimit(1)
                     .foregroundStyle(.secondary)
             }

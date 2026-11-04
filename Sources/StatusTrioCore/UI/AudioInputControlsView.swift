@@ -162,23 +162,22 @@ struct AudioInputControlsView: View {
             )
 
             ZStack {
-                Slider(
+                PanelLevelSlider(
                     value: sliderValue,
-                    in: 0...1,
+                    isEnabled: state.canAdjust,
+                    tint: state.muteState == .muted ? Color.secondary : Color.accentColor,
+                    accessibilityLabel: state.sliderLabel,
+                    accessibilityValue: sliderAccessibilityValue,
+                    accessibilityHint: state.canAdjust
+                        ? ""
+                        : localization.string(.audioInputVolumeUnavailable),
                     onEditingChanged: { editing in
                         volumeDraft.setEditing(editing)
                     }
                 )
-                .tint(state.muteState == .muted ? Color.secondary : Color.accentColor)
-                .disabled(!state.canAdjust)
                 .help(state.canAdjust
                     ? localization.string(.audioInputVolume)
                     : localization.string(.audioInputVolumeUnavailable))
-                .accessibilityLabel(state.sliderLabel)
-                .accessibilityValue(sliderAccessibilityValue)
-                .accessibilityHint(
-                    state.canAdjust ? "" : localization.string(.audioInputVolumeUnavailable)
-                )
 
                 if state.scalar == nil {
                     Text("—")
