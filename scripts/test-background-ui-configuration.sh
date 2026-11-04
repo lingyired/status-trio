@@ -5,17 +5,22 @@ FIXTURE="$(mktemp -d "${TMPDIR:-/tmp}/StatusTrioBackgroundConfig.XXXXXX")"
 trap 'rm -rf "$FIXTURE"' EXIT
 cat > "$FIXTURE/main.swift" <<'SWIFT'
 import Foundation
-let flags = ["--background-ui-testing", "--test-display=secondary"]
+let flags = ["--background-ui-testing", "--test-display=secondary", "--test-open-status-panel"]
 let configuration = BackgroundUITestingConfiguration(arguments: flags)
 #if DEBUG
 precondition(configuration.isEnabled)
 precondition(configuration.display == .secondary)
+precondition(configuration.opensStatusPanel)
 precondition(!configuration.rejectsLaunch)
 precondition(!BackgroundUITestingConfiguration(arguments: ["--test-display=secondary"]).diagnostics.isEmpty)
 for flags in [
     ["--background-ui-testing", "--test-display=primary"],
     ["--background-ui-testing", "--background-ui-testing"],
-    ["--test-display=secondary"]
+    ["--test-display=secondary"],
+    ["--test-open-status-panel"],
+    ["--background-ui-testing", "--test-open-status-panel-typo"],
+    ["--background-ui-testing", "--test-open-status-panel",
+     "--test-open-status-panel"]
 ] {
     precondition(BackgroundUITestingConfiguration(arguments: flags).rejectsLaunch)
 }
