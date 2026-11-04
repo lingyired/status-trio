@@ -460,6 +460,92 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertEqual(panel.volume.listeningModeTaskID, "BBCCDDEEFF01|outputs:|current:|visible:true|open:1")
     }
 
+    /// The listening-mode master switch must be a real gate on the volume rows:
+    /// with it off, the preview rows and any real capsules disappear even when
+    /// the preview toggle is on, and the discovery identity is marked closed so
+    /// the summary task stops the controller.
+    func testListeningModeMasterSwitchOffHidesPreviewAndVolumeCapsules() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.setPopupSection(.volume, enabled: true)
+        fixture.settings.previewsBluetoothListeningMode = true
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        XCTAssertFalse(panel.volume.previewRows.isEmpty)
+        XCTAssertFalse(panel.volume.listeningModeTaskID.hasPrefix("off::"))
+
+        fixture.settings.showsBluetoothListeningMode = false
+        fixture.updateScheduler.runScheduled()
+
+        XCTAssertTrue(panel.volume.previewRows.isEmpty)
+        XCTAssertTrue(panel.volume.rows.allSatisfy { $0.listeningMode == nil })
+        XCTAssertTrue(panel.volume.listeningModeTaskID.hasPrefix("off::"))
+
+        // Turning it back on restores the preview rows and a live discovery tag.
+        fixture.settings.showsBluetoothListeningMode = true
+        fixture.updateScheduler.runScheduled()
+        XCTAssertFalse(panel.volume.previewRows.isEmpty)
+        XCTAssertFalse(panel.volume.listeningModeTaskID.hasPrefix("off::"))
+    }
+
+    /// `volumeListChanged()` drives the real controller. With the master switch
+    /// off it must stop discovery/SPP and clear presentations; turning it back
+    /// on reruns discovery and republishes controls.
+    func testListeningModeMasterSwitchStopsAndRestoresControllerDiscovery() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.previewsBluetoothListeningMode = true
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        let actions = StatusPanelActions(store: fixture.store, settings: fixture.settings)
+        fixture.store.setPopoverVisible(true)
+        defer {
+            fixture.store.setPopoverVisible(false)
+            fixture.bluetoothListeningModes.stop()
+            fixture.store.stop()
+        }
+
+        actions.volumeListChanged()
+        XCTAssertFalse(fixture.bluetoothListeningModes.presentations.isEmpty)
+
+        fixture.settings.showsBluetoothListeningMode = false
+        actions.volumeListChanged()
+        XCTAssertTrue(fixture.bluetoothListeningModes.presentations.isEmpty)
+
+        fixture.settings.showsBluetoothListeningMode = true
+        actions.volumeListChanged()
+        XCTAssertFalse(fixture.bluetoothListeningModes.presentations.isEmpty)
+    }
+
+    /// With the master switch off, a listening-mode tap routed from a stale
+    /// preview presentation must be ignored.
+    func testListeningModeMasterSwitchOffIgnoresSetMode() {
+        let fixture = PanelStoreFixture()
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        let actions = StatusPanelActions(store: fixture.store, settings: fixture.settings)
+        fixture.store.setPopoverVisible(true)
+        defer {
+            fixture.store.setPopoverVisible(false)
+            fixture.bluetoothListeningModes.stop()
+            fixture.store.stop()
+        }
+
+        fixture.settings.previewsBluetoothListeningMode = true
+        fixture.settings.showsBluetoothListeningMode = true
+        actions.volumeListChanged()
+        let address = try! XCTUnwrap(fixture.bluetoothListeningModes.presentations.keys.first)
+        let before = try! XCTUnwrap(fixture.bluetoothListeningModes.presentations[address])
+
+        fixture.settings.showsBluetoothListeningMode = false
+        actions.setListeningMode(address: address, mode: .transparency)
+
+        XCTAssertEqual(
+            fixture.bluetoothListeningModes.presentations[address]?.selectedMode,
+            before.selectedMode
+        )
+    }
+
+
     func testReviewPR124OutputListIdentityUsesDeliveredVolume() async {
         let original = AudioOutputDevice(id: 1, name: "Built-in", uid: "builtin", isCurrent: true)
         let added = AudioOutputDevice(id: 42, name: "FreeBuds", uid: "buds", isCurrent: false)

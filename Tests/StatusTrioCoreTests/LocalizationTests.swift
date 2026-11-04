@@ -70,6 +70,46 @@ final class LocalizationTests: XCTestCase {
         }
     }
 
+    func testListeningModeMasterCopyExplainsPartialHuaweiSupportAndPreviewIsTestOnly() throws {
+        // The master switch description must set expectations: AirPods plus only
+        // *some* HUAWEI models, and a failed switch restores the previous mode.
+        let english = try XCTUnwrap(Localization.resourceBundle(for: .english))
+        let englishDescription = english.localizedString(
+            forKey: LocalizationKey.settingsBluetoothListeningModeDescription.rawValue,
+            value: nil,
+            table: nil
+        )
+        XCTAssertTrue(englishDescription.localizedCaseInsensitiveContains("HUAWEI"))
+        XCTAssertTrue(englishDescription.localizedCaseInsensitiveContains("some"))
+        XCTAssertTrue(englishDescription.localizedCaseInsensitiveContains("AirPods"))
+
+        let chinese = try XCTUnwrap(Localization.resourceBundle(for: .simplifiedChinese))
+        let chineseDescription = chinese.localizedString(
+            forKey: LocalizationKey.settingsBluetoothListeningModeDescription.rawValue,
+            value: nil,
+            table: nil
+        )
+        for term in ["AirPods", "华为", "部分"] {
+            XCTAssertTrue(chineseDescription.contains(term), "zh-Hans 缺少 \(term)")
+        }
+
+        // The preview description is UI-test-only and must say it changes nothing
+        // on the headphones, so users do not mistake it for the real switch.
+        let englishPreview = english.localizedString(
+            forKey: LocalizationKey.settingsBluetoothListeningModePreviewDescription.rawValue,
+            value: nil,
+            table: nil
+        )
+        XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("testing"))
+        let chinesePreview = chinese.localizedString(
+            forKey: LocalizationKey.settingsBluetoothListeningModePreviewDescription.rawValue,
+            value: nil,
+            table: nil
+        )
+        XCTAssertTrue(chinesePreview.contains("界面测试"))
+        XCTAssertTrue(chinesePreview.contains("不会更改耳机"))
+    }
+
     func testAppleDeviceBatteryCopyDescribesNearbyNamedRowsWithoutConsentInEveryLanguage() throws {
         let english = try XCTUnwrap(Localization.resourceBundle(for: .english))
         let description = english.localizedString(
