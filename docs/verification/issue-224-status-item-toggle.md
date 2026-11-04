@@ -60,3 +60,20 @@ close–reopen activation churn that caused the flicker is gone.
   macOS: **NOT RUN** — this harness has no permitted Computer Use provider for a
   status-item click (same limitation recorded for #186), so it requires an
   authorized foreground/manual pass.
+
+
+## Follow-up: deactivation still reopened v1.9.2
+
+On macOS 27.0.1, production logs showed app deactivation closing the panel
+before the status item's mouse-up reopened it. The global-click exclusion
+above does not cover this path. Menu-bar presentation now skips the legacy
+`NSPopover` forced activation: the current nonactivating `NSPanel` becomes key
+without it. A panel-scoped workspace observer preserves Cmd-Tab dismissal and
+ignores Status Trio's own activation; existing close teardown removes it.
+
+The activation and workspace-close tests failed before their respective fixes.
+The focused visible run passed 16 XCTest and 8 Swift Testing cases. The user
+confirmed repeated open/close/reopen, Settings-open behavior, Cmd-Tab, Escape,
+and outside clicks. CUA could inspect windows but could not click the status item.
+Full local verification is recorded in the PR; macOS 13 runtime is NOT RUN.
+Shortcut activation is unchanged; shortcut-open → status-click is unvalidated.

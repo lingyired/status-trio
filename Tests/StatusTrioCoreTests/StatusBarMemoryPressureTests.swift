@@ -1,9 +1,66 @@
 import AppKit
+import Combine
 import XCTest
 @testable import StatusTrioCore
 
 @MainActor
 final class StatusBarMemoryPressureTests: VisibleUITestCase {
+    func testMenuBarPresentationDoesNotForceApplicationActivation() throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+
+        harness.controller.togglePopover()
+
+        XCTAssertTrue(harness.controller.popoverForTesting.isShown)
+        XCTAssertFalse(harness.didActivateApplication)
+    }
+
+    func testWorkspaceAppSwitchClosesMenuBarPanel() async throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+        let otherApp = try XCTUnwrap(NSWorkspace.shared.runningApplications.first {
+            $0.processIdentifier != ProcessInfo.processInfo.processIdentifier
+                && $0.activationPolicy == .regular
+        })
+        let closed = expectation(
+            forNotification: AnchoredStatusPanel.didCloseNotification,
+            object: panel
+        )
+
+        NSWorkspace.shared.notificationCenter.post(
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            userInfo: [NSWorkspace.applicationUserInfoKey: otherApp]
+        )
+
+        await fulfillment(of: [closed], timeout: 1)
+        XCTAssertFalse(panel.isShown)
+    }
+
+    func testOwnWorkspaceActivationDoesNotDismissMenuBarPanel() async throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+        harness.controller.togglePopover()
+        let delivered = expectation(description: "workspace activation delivered")
+        let center = NSWorkspace.shared.notificationCenter
+        let observer = center.publisher(for: NSWorkspace.didActivateApplicationNotification)
+            .receive(on: RunLoop.main)
+            .sink { _ in delivered.fulfill() }
+
+        center.post(
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            userInfo: [NSWorkspace.applicationUserInfoKey: NSRunningApplication.current]
+        )
+
+        await fulfillment(of: [delivered], timeout: 1)
+        withExtendedLifetime(observer) {}
+        XCTAssertTrue(harness.controller.popoverForTesting.isShown)
+    }
+
     func testDockPresentationDoesNotForceApplicationActivation() throws {
         let harness = try StatusBarPressureHarness()
         defer { harness.cleanUp() }

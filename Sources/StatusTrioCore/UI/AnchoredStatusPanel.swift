@@ -427,6 +427,21 @@ final class AnchoredStatusPanel: NSPanel {
                 self.performClose(nil)
             }
             .store(in: &showCancellables)
+        // A nonactivating panel can own keyboard focus while another app stays
+        // active. Cmd-Tab then switches that app, without a Status Trio resign
+        // notification. Observe the workspace as well while the panel is open.
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.didActivateApplicationNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] notification in
+                guard let self, self.isVisible,
+                      let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                        as? NSRunningApplication,
+                      app.processIdentifier != ProcessInfo.processInfo.processIdentifier
+                else { return }
+                self.performClose(nil)
+            }
+            .store(in: &showCancellables)
     }
 
     private func removeShowObservers() {

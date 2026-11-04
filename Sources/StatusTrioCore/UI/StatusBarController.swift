@@ -514,16 +514,20 @@ final class StatusBarController: NSObject {
         popover.installContent(hostingController, backgroundStyle: settings.panelBackgroundStyle)
     }
 
-    private func togglePopover() {
+    func togglePopover() {
         guard popoverToggleGate.shouldAccept(at: Date()) else { return }
         guard let button = statusItem.button else { return }
         if popover.isShown {
             closePopover()
         } else {
+            // The panel is nonactivating and becomes key on its own. Forcing
+            // activation here lets the next status-item press deactivate and
+            // close it before mouse-up, which would reopen it (#224).
             presentPopover(
                 relativeTo: button.bounds,
                 of: button,
-                preferredEdge: .minY
+                preferredEdge: .minY,
+                activatesApplication: false
             )
         }
     }
