@@ -226,12 +226,16 @@ struct SettingsView: View {
                             ? Color.white
                             : Color.primary.opacity(0.9)
                     )
-                    .lineLimit(1)
+                    // Two lines keep long localized leaf labels readable in
+                    // the fixed 190 pt sidebar; the tooltip carries the full
+                    // text for the rare label that still wraps past that.
+                    .lineLimit(2)
                     .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: 0)
             }
-            .padding(.leading, 44)
+            .padding(.leading, 40)
             .padding(.trailing, 8)
             .padding(.vertical, 4)
             .background(
