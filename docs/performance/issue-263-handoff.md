@@ -5,8 +5,11 @@
 
 ## 0. 一句话现状
 
-**三处都已修：设置预览缓存、Dock 重绘降频、面板音量状态拆分（§5）。**
-面板侧仍需按 §6 在真机上复核拖音量 CPU 峰值与手感。分支和 worktree 直接沿用，不要重建。
+**面板侧两轮修完：状态拆分（§5.1）+ AppKit 滑杆（§5.2）。**
+只拆观察粒度不够——真正的大头是「每个拖动事件都让 SwiftUI 提交一次整窗布局/绘制」，
+换成 AppKit `NSSlider` 后按 120Hz 模拟拖动，Release 峰值从 30%+ 降到约 19%、
+平均约 10%（残余是面板每帧原生合成/vibrancy）。真机手感与最终数值待用户复核。
+分支和 worktree 直接沿用，不要重建。
 
 ## 1. 分支 / worktree / 提交（沿用）
 
@@ -115,7 +118,9 @@ NSHostingView.layout()
 Dock 侧音量连续变化的限速/合并（10Hz + arc 微小差值合并 + 尾值精确）。
 **实测后确认它不是主要矛盾**（Dock 不在用户场景里），保留即可，别当灵药。
 
-## 5. ✅ 已修：把面板音量状态从 `StatusPanelViewModel` 拆出去
+## 5. 面板拖音量 CPU：两轮修法
+
+### 5.1 ✅ 第一轮：把音量状态从 `StatusPanelViewModel` 拆出去
 
 **根因**：面板打开时拖音量，`volume` 原是 `StatusPanelViewModel` 的 `@Published`，
 而面板根视图 `@ObservedObject` 观察整个 VM，导致每 tick 整个面板 body 重算 + 整窗布局。
@@ -139,9 +144,51 @@ Dock 侧音量连续变化的限速/合并（10Hz + arc 微小差值合并 + 尾
   新增 `testLiveVolumePublishesTheVolumeModelWithoutInvalidatingThePanel`
   锁住契约：一次音量 tick 的 `panel.objectWillChange` 发射数必须为 0。
 
-预期：音量 tick 只让音量行重算，面板主体/其他区不动，布局不再每帧触发。
-**仍待真机验证**：手感（`VolumeControlInteraction` 本地 draft 不受影响）+ 面板打开拖音量
-的 `top -l` CPU 峰值（见 §3.2、§6 的测法），以及设置窗口侧剩余 8.7%。
+结果：**这一步没有解决峰值**。真机 Release 仍然 30%+。
+原因：SwiftUI 的 hosting view 只要有一处子视图失效，就会提交整窗布局 + 显示列表 + CA 合成；
+仅缩小「失效范围」并不能消除每次拖动事件的这笔固定成本。
+
+### 5.2 ✅ 第二轮：音量滑杆换成 AppKit `NSSlider`
+
+- `UI/VolumeControlsView.swift`：`VolumeSliderRow` 里原来直接用 SwiftUI `Slider`，
+  它的 binding 每个指针事件都会写 `@State`，于是每个事件都触发一次 SwiftUI 事务。
+  现改为 `NSViewRepresentable` + 原生 `NSSlider`：
+  - 拖动由 AppKit 自己跟踪并重绘，SwiftUI 不再逐事件失效；
+  - 只在原生 `mouseDown`→`mouseUp` 之间把动作交给现有 `VolumeControlInteraction`
+    （`beginEditing`/`setSliderValue`/`endEditing`），语义与旧滑杆一致；
+  - 外部音量变化仍通过 `updateNSView` 同步，拖动期间不覆盖用户手势；
+  - 百分比文字改用合并后的 `state.scalar`（~10Hz），不再依赖逐事件 draft；
+  - 保留静音红色轨道（`trackFillColor`）与 AX 标签/值。
+- 同时保留第一轮的「纯音量变化 10Hz 合并」（`VolumeStatus.changesOnlyLevel` +
+  `receiveLiveVolume`/`pendingLevelVolumeStatus`），结构性变化（静音/设备/可用性）
+  仍然立即发布。
+
+### 5.3 自测方法（没有真实鼠标也能 A/B）
+
+用 AX（实例级，不抢全局输入）打开面板并驱动滑杆，再配合 `top`：
+
+- 打开面板（临时 DEBUG 参数或脚本 `AXExtrasMenuBar` + `AXPress` 都试过；
+  最终用临时启动参数打开，已在提交前移除）；
+- 用 `AXUIElementSetAttributeValue(slider, kAXValueAttribute, …)` 或
+  `AXIncrementAction`/`AXDecrementAction` 以 ~120/s 驱动；
+- `top -l 30 -s 1 -pid <PID> -stats cpu` 读峰值；注意 `sample` 默认 1ms 会显著抬高被测
+  进程 CPU，用 `sample <pid> 20 25` 这种低扰动间隔，或只信 `top`。
+
+实测（Release，面板打开，95%↔100%）：
+
+| 方案 | 驱动方式 | 峰值 | 平均 |
+| --- | --- | --- | --- |
+| 旧：SwiftUI Slider | AX 设值 ~54/s | 32% | 32% |
+| 新：NSSlider | 应用内 120Hz 模拟拖动 | 19.3% | 10.1% |
+| 新：NSSlider | 只用原生滑块、不写 store | 19.5% | 10.4% |
+| 新：NSSlider | 原生滑块 30Hz | 10.6% | 5.1% |
+
+结论：残余成本是原生控件每帧触发的 AppKit 子树布局 + vibrancy + CA 提交
+（`NSViewUpdateVibrancyForSubtree`、`_layoutSubtreeWithOldSize`、`CA::Layer::commit`），
+与 store/设备列表无关。继续压需要更轻量的自绘滑杆（CALayer 轨道+旋钮），
+本轮没做。
+
+**仍待真机验证**：真实拖动手感、百分比跟手、静音色/无障碍，以及最终 Release 峰值。
 
 ### 注意
 

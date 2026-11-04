@@ -19,14 +19,17 @@ final class PanelActionAlignmentTests: XCTestCase {
         XCTAssertEqual(actions.count, 2, "volume mute and Settings glyphs must render")
         guard actions.count == 2 else { return }
 
-        let rowCenter = probe.controlRowCenterY(excluding: actions)
+        let rowCenter = try XCTUnwrap(
+            probe.subviewCenterY(where: { $0 is NSSlider }),
+            "the volume row must render an AppKit slider to align its glyphs against"
+        )
         for (name, rect) in zip(["mute", "settings"], actions) {
             let center = try XCTUnwrap(probe.glyphCenterY(in: rect))
             XCTAssertEqual(
                 center,
-                try XCTUnwrap(rowCenter),
+                rowCenter,
                 accuracy: 1,
-                "\(name) center must match the volume row's rendered center"
+                "\(name) center must match the volume slider's rendered center"
             )
         }
     }

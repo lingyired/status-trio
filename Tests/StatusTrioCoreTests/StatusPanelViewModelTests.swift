@@ -183,6 +183,44 @@ final class StatusPanelViewModelTests: XCTestCase {
         )
     }
 
+    /// #263: a drag emits levels far faster than the row can draw them. A rapid
+    /// series of level-only readings must reach the model as the latest value,
+    /// not as one publication per reading.
+    func testRapidLevelChangesCoalesceToTheLatestVolume() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+        fixture.store.start()
+
+        var publications: [Double] = []
+        var cancellables: Set<AnyCancellable> = []
+        panel.volumeControl.$volume
+            .sink { state in
+                if let scalar = state.scalar { publications.append(scalar) }
+            }
+            .store(in: &cancellables)
+
+        let levels = stride(from: 0.50, through: 0.99, by: 0.01).map { $0 }
+        for level in levels {
+            fixture.volume.send(
+                VolumeStatus(scalar: level, isMuted: false, deviceName: "Desk speakers")
+            )
+        }
+
+        let latest = try XCTUnwrap(levels.last)
+        let deadline = ContinuousClock.now + .seconds(3)
+        while panel.volume.scalar != latest, ContinuousClock.now < deadline {
+            await Task.yield()
+        }
+        XCTAssertEqual(panel.volume.scalar, latest, "the latest level must still land")
+        XCTAssertLessThan(
+            publications.count,
+            levels.count,
+            "level-only readings must coalesce instead of publishing one per tick"
+        )
+    }
+
     func testPopupBatteryAndNetworkUpdateThroughTheirDebouncedSource() async throws {
         let fixture = PanelStoreFixture()
         let panel = fixture.makePanel()
