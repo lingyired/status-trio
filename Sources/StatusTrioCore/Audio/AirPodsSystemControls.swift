@@ -251,9 +251,8 @@ final class AirPodsSystemControls: NSObject, IOBluetoothL2CAPChannelDelegate {
             guard let expected = spatialState, let index = spatialOptions().firstIndex(where: { $0.title == title }) else {
                 throw AirPodsSystemControlError.unavailable
             }
-            let token = generation
             spatialState = try await AirPodsSpatialControls(deviceID: target.id).set(
-                AirPodsSpatialState.Mode.allCases[index], expected: expected) { try self.checkpoint(token) }
+                AirPodsSpatialState.Mode.allCases[index], expected: expected) { _ = try self.device() }
             return spatialOptions()
         }
         guard group == .conversation, let index = conversationOptions().firstIndex(where: { $0.title == title }) else {

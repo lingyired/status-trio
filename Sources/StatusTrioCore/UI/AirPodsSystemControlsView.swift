@@ -55,6 +55,14 @@ final class AirPodsSystemControlsModel: ObservableObject {
     private var observationGeneration = 0
     private var spatialRevision = 0
     private var spatialTask: Task<Void, Never>?
+    private var spatialWriteTask: Task<Void, Never>?
+    @Published private(set) var spatialWriting = false
+
+    var spatialDisabled: Bool {
+        if spatialWriting { return true }
+        if case .refresh? = activeChange { return false }
+        return busy
+    }
     private var spatialDirty = false
     private var activeChange: Change?
     enum Change { case refresh, option(AirPodsSystemControls.Group), adaptive }
@@ -80,10 +88,12 @@ final class AirPodsSystemControlsModel: ObservableObject {
             }
         }
         refresh(read: read)
+        spatialChanged()
     }
 
     private func spatialChanged() {
         spatialDirty = true
+        if spatialWriting { return }
         if case .option(.spatial)? = activeChange { return }
         guard spatialTask == nil else { return }
         let token = observationGeneration
@@ -91,6 +101,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
             await Task.yield() // coalesce notifications from the same HAL update
             guard let self, !Task.isCancelled, self.observationGeneration == token else { return }
             self.spatialTask = nil
+            if self.spatialWriting { return }
             if case .option(.spatial)? = self.activeChange { return }
             self.spatialDirty = false
             self.spatialRevision += 1
@@ -133,12 +144,48 @@ final class AirPodsSystemControlsModel: ObservableObject {
     }
 
     func select(_ title: String, group: AirPodsSystemControls.Group) {
+        if group == .spatial {
+            writeSpatial { try await self.controls.select(title, group: .spatial) }
+            return
+        }
         run(.option(group)) {
             let options = try await self.controls.select(title, group: group)
             switch group {
             case .conversation: self.snapshot.conversation = options
             case .spatial: self.snapshot.spatial = options
             }
+        }
+    }
+
+    // Spatial HAL writes are independent of the supplementary Bluetooth read.
+    func writeSpatial(_ operation: @escaping @MainActor () async throws -> [AirPodsSystemOption]) {
+        guard !spatialDisabled else { return }
+        spatialWriting = true
+        spatialRevision += 1
+        let token = observationGeneration
+        spatialWriteTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let options = try await operation()
+                try Task.checkCancellation()
+                guard observationGeneration == token else { return }
+                snapshot.spatial = options
+            } catch {
+                guard !Task.isCancelled, observationGeneration == token else { return }
+                snapshot.spatial = []
+                if error as? AirPodsSystemControlError == .routeChanged {
+                    snapshot = AirPodsSystemSnapshot()
+                    errorKey = .airPodsRouteChanged
+                    stop()
+                    return
+                }
+                errorKey = .airPodsUnconfirmed
+            }
+            guard !Task.isCancelled, observationGeneration == token else { return }
+            snapshot.spatialLoaded = true
+            spatialWriting = false
+            spatialWriteTask = nil
+            if spatialDirty, observation != nil { spatialChanged() }
         }
     }
 
@@ -149,6 +196,9 @@ final class AirPodsSystemControlsModel: ObservableObject {
     func stop() {
         observationGeneration += 1
         observation = nil
+        spatialWriteTask?.cancel()
+        spatialWriteTask = nil
+        spatialWriting = false
         spatialTask?.cancel()
         spatialTask = nil
         spatialDirty = false
@@ -160,7 +210,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
     }
 
     func run(_ change: Change, _ operation: @escaping @MainActor () async throws -> Void) {
-        guard !busy else { return }
+        guard !busy, !spatialWriting else { return }
         busy = true
         activeChange = change
         errorKey = nil
@@ -237,7 +287,7 @@ struct AirPodsSystemControlsView: View {
                 heading(.airPodsConversation)
                 options(model.snapshot.conversation, group: .conversation, symbol: "person.wave.2.fill")
             }
-            if model.busy {
+            if model.busy || model.spatialWriting {
                 ProgressView().controlSize(.mini)
             }
             if let key = model.errorKey {
@@ -246,7 +296,7 @@ struct AirPodsSystemControlsView: View {
                     Label(localization.string(.airPodsRetry), systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(.plain)
-                .disabled(model.busy)
+                .disabled(model.busy || model.spatialWriting)
                 .font(.caption)
                 Text(localization.string(key))
                     .font(.caption).foregroundStyle(.secondary)
@@ -272,7 +322,7 @@ struct AirPodsSystemControlsView: View {
                     .help(localization.string(.airPodsLessNoise) + " – " + localization.string(.airPodsMoreNoise))
                 if Int(adaptiveDraft) != value {
                     Button(localization.string(.airPodsApply)) { model.setAdaptive(Int(adaptiveDraft)) }
-                        .disabled(model.busy)
+                        .disabled(model.busy || model.spatialWriting)
                         .controlSize(.small)
                 }
             }
@@ -299,7 +349,7 @@ struct AirPodsSystemControlsView: View {
                 ForEach(values) { value in
                     option(value.title, symbol: value.symbol ?? symbol, selected: value.selected, dimWaves: value.dimWaves) {
                         if !value.selected { model.select(value.title, group: group) }
-                    }.disabled(model.busy)
+                    }.disabled(group == .spatial ? model.spatialDisabled : (model.busy || model.spatialWriting))
                 }
             }
         }

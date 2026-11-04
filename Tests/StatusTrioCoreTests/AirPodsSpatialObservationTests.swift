@@ -20,13 +20,19 @@ final class AirPodsSpatialObservationTests: XCTestCase {
         XCTAssertNotNil(finish)
         XCTAssertEqual(backend.added.count, AirPodsSpatialObservation.selectors.count)
         let late = backend.callbacks
-        backend.emit()
+        // Opening the menu reads spatial state without waiting for a notification.
         for _ in 0..<100 where model.snapshot.spatial.isEmpty { try await Task.sleep(for: .milliseconds(5)) }
         XCTAssertEqual(model.snapshot.spatial, playing)
         XCTAssertTrue(model.busy, "Spatial availability must not wait for the supplementary read")
+        XCTAssertFalse(model.spatialDisabled)
+        let selected = [AirPodsSystemOption(title: "Head Tracked", selected: true)]
+        model.writeSpatial { selected }
+        for _ in 0..<100 where model.spatialWriting { try await Task.sleep(for: .milliseconds(5)) }
+        XCTAssertEqual(model.snapshot.spatial, selected)
+        XCTAssertTrue(model.busy, "The independent supplementary read is still pending")
         finish?.resume()
         for _ in 0..<100 where model.busy { try await Task.sleep(for: .milliseconds(5)) }
-        XCTAssertEqual(model.snapshot.spatial, playing, "Old full snapshots must not overwrite a playback notification")
+        XCTAssertEqual(model.snapshot.spatial, selected, "Old full snapshots must not overwrite a playback notification")
         model.stop()
         XCTAssertEqual(backend.removed.sorted(), backend.added.sorted())
         let count = spatialReads
@@ -39,7 +45,18 @@ final class AirPodsSpatialObservationTests: XCTestCase {
         backend.emit()
         for _ in 0..<100 where spatialReads == count { try await Task.sleep(for: .milliseconds(5)) }
         XCTAssertGreaterThan(spatialReads, count, "Reopening must establish fresh observation")
+        var finishWrite: CheckedContinuation<Void, Never>?
+        model.writeSpatial {
+            await withCheckedContinuation { finishWrite = $0 }
+            return selected
+        }
+        for _ in 0..<100 where finishWrite == nil { try await Task.sleep(for: .milliseconds(5)) }
+        XCTAssertNotNil(finishWrite)
         model.stop()
+        finishWrite?.resume()
+        for _ in 0..<10 { await Task.yield() }
+        XCTAssertFalse(model.spatialWriting)
+        XCTAssertEqual(model.snapshot.spatial, playing, "A dismissed write cannot publish a late result")
     }
 
     @MainActor
@@ -51,15 +68,16 @@ final class AirPodsSpatialObservationTests: XCTestCase {
             listenerBackend: backend, spatialReader: { reads += 1; return [] })
         model.start { _ in .init(conversation: conversation, adaptive: 50, loaded: true) }
         for _ in 0..<100 where model.busy { try await Task.sleep(for: .milliseconds(5)) }
+        let initialReads = reads
         var finish: CheckedContinuation<Void, Never>?
         model.run(.option(.spatial)) { await withCheckedContinuation { finish = $0 } }
         for _ in 0..<100 where finish == nil { try await Task.sleep(for: .milliseconds(5)) }
         backend.emit()
         for _ in 0..<10 { await Task.yield() }
-        XCTAssertEqual(reads, 0)
+        XCTAssertEqual(reads, initialReads)
         finish?.resume()
-        for _ in 0..<100 where reads == 0 { try await Task.sleep(for: .milliseconds(5)) }
-        XCTAssertGreaterThan(reads, 0)
+        for _ in 0..<100 where reads == initialReads { try await Task.sleep(for: .milliseconds(5)) }
+        XCTAssertGreaterThan(reads, initialReads)
         XCTAssertTrue(model.snapshot.spatial.isEmpty, "Stopping playback may make Spatial Audio unavailable")
         XCTAssertEqual(model.snapshot.conversation, conversation)
         XCTAssertEqual(model.snapshot.adaptive, 50)
