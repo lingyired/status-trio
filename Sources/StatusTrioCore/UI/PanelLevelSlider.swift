@@ -351,12 +351,14 @@ final class PanelLevelSliderView: NSSlider {
     }
 
     func barRect(in bounds: NSRect) -> NSRect {
-        let inset = PanelLevelSliderMetrics.horizontalInset
+        // The capsule spans the full control width so its leading edge lines up
+        // with the row's other components; the thumb still travels between the
+        // rounded ends (centre inset by its radius).
         let y = (bounds.height - PanelLevelSliderMetrics.barHeight) / 2
         return NSRect(
-            x: inset,
+            x: 0,
             y: y,
-            width: max(0, bounds.width - inset * 2),
+            width: max(0, bounds.width),
             height: PanelLevelSliderMetrics.barHeight
         )
     }
