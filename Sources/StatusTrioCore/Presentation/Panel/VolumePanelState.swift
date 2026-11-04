@@ -24,10 +24,12 @@ struct PanelAudioDeviceRow: Equatable, Identifiable, Sendable {
 
 struct AudioOutputListPreferences: Equatable, Sendable {
     let order: [String]
+    let hiddenUIDs: Set<String>
     let visibleLimit: Int?
 
-    init(order: [String] = [], visibleLimit: Int? = 5) {
+    init(order: [String] = [], hiddenUIDs: Set<String> = [], visibleLimit: Int? = 5) {
         self.order = order
+        self.hiddenUIDs = hiddenUIDs
         self.visibleLimit = visibleLimit.map { max(0, $0) }
     }
 
@@ -48,6 +50,10 @@ struct VolumePanelState: Equatable, Sendable {
     let muteHelp: String
     let sliderLabel: String
     let showsDeviceList: Bool
+    /// An equal-height skeleton to draw while the real rows are being re-read
+    /// after the panel reopens. Nil once real data is available (or when no
+    /// layout was ever recorded).
+    let deviceListPlaceholder: PanelListLayoutSnapshot?
     /// Complete rows stay resolved in display order. The view owns only whether
     /// its local disclosure is expanded.
     let rows: [PanelAudioDeviceRow]

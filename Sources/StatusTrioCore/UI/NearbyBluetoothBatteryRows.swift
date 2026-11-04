@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct NearbyBluetoothBatteryRows: View {
+    /// The panel owns one outer scroll surface (#237); this list must draw every
+    /// row directly there instead of adding a second scroller.
+    @Environment(\.statusPanelManagesScrolling) private var statusPanelManagesScrolling
+
     let rows: [PanelBluetoothDeviceRow]
 
     static let maximumRowsHeight: CGFloat = 168
@@ -9,7 +13,7 @@ struct NearbyBluetoothBatteryRows: View {
     private static var rowsThatFit: Int { Int(maximumRowsHeight / rowPitch) }
 
     var body: some View {
-        if rows.count > Self.rowsThatFit {
+        if !statusPanelManagesScrolling, rows.count > Self.rowsThatFit {
             ScrollView { content }
                 .frame(maxHeight: Self.maximumRowsHeight)
         } else {

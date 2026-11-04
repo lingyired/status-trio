@@ -13,7 +13,7 @@ private struct StatusBarAccessibilityKey: Equatable {
 }
 
 @MainActor
-final class StatusBarController: NSObject, NSPopoverDelegate {
+final class StatusBarController: NSObject {
     static let popoverToggleLockoutInterval: TimeInterval = 0.25
     static let popoverContentReleaseDelay: TimeInterval = 5
 
@@ -41,10 +41,13 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     }
 
     private let statusItem: NSStatusItem
-    private let popover = NSPopover()
+    private let popover = AnchoredStatusPanel()
     private let store: SystemStatusStore
     private let settings: SettingsStore
     private let panelActions: StatusPanelActions
+    /// Retained so the right-click quick action can reuse the same
+    /// charge-to-full start/cancel path the panel button uses.
+    private let chargeToFullNow: ChargeToFullNowController?
     private let panelViewModel: StatusPanelViewModel
     private let iconPresentation: IconPresentationViewModel
     private let localization: Localization
@@ -53,6 +56,10 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     private let accessibilityValueDidChange: @MainActor (String) -> Void
     private let popoverContentReleaseSleeper: @Sendable (Duration) async throws -> Void
     private let activatesApplicationForPopover: @MainActor () -> Void
+    /// Whether the app currently runs as a regular app (Dock icon, its own
+    /// windows on a desktop Space). See `presentPopover` for why a forced
+    /// activation is withheld in that state.
+    private let isApplicationRegular: @MainActor () -> Bool
     let chargingEffectClock: ChargingEffectClock
     private var iconPresentationCancellable: AnyCancellable?
     private var accessibilityCancellable: AnyCancellable?
@@ -65,6 +72,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     private var isMenuBarChargingEffectEnabled: Bool
     private var screenParametersCancellable: AnyCancellable?
     private var refreshIntervalCancellable: AnyCancellable?
+    private var powerDemandCancellable: AnyCancellable?
+    private var panelBackgroundCancellable: AnyCancellable?
     private let openSettings: () -> Void
     /// Opens Status Trio's own Settings window on the Battery tab.
     private let openAppBatterySettings: () -> Void
@@ -96,7 +105,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     var sublayerCountForTesting: Int { statusItem.button?.layer?.sublayers?.count ?? 0 }
     var cachedChargingFrameRebuildCount: Int { chargingFrameCache.rebuildCount }
     var rasterizedChargingFrameCount: Int { chargingFrameCache.rasterizedFrameCount }
-    var popoverForTesting: NSPopover { popover }
+    var popoverForTesting: AnchoredStatusPanel { popover }
     var popoverAnchorWindowForTesting: NSWindow? { popoverAnchorWindow }
     var panelForTesting: StatusPanelViewModel { panelViewModel }
     /// Invokes once when the controller clears a present
@@ -175,6 +184,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         activatesApplicationForPopover: @escaping @MainActor () -> Void = {
             NSApp.activate(ignoringOtherApps: true)
         },
+        isApplicationRegular: @escaping @MainActor () -> Bool = {
+            NSApplication.shared.activationPolicy() == .regular
+        },
         renderMenuBarBase: @escaping MenuBarBaseRenderer = { scene, size, scale, appearance in
             StatusIconRenderer.menuBarTemplateBase(
                 scene: scene,
@@ -199,6 +211,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         self.appearanceProvider = appearanceProvider
         self.store = store
         self.settings = settings
+        self.chargeToFullNow = chargeToFullNow
         let resolvedInputSourceController = inputSourceController ?? InputSourceController()
         self.inputSourceController = resolvedInputSourceController
         let panelActions = StatusPanelActions(
@@ -230,6 +243,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         self.accessibilityValueDidChange = accessibilityValueDidChange
         self.popoverContentReleaseSleeper = popoverContentReleaseSleeper
         self.activatesApplicationForPopover = activatesApplicationForPopover
+        self.isApplicationRegular = isApplicationRegular
         self.chargingEffectClock = chargingEffectClock
         self.openSettings = openSettings
         self.openAppBatterySettings = openAppBatterySettings
@@ -283,6 +297,28 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             .removeDuplicates()
             .sink { [weak self] seconds in
                 self?.store.setRefreshInterval(.seconds(Int(seconds.rounded())))
+            }
+
+        // The icon is the surface that keeps wanting watts while the panel is
+        // closed. Its demand keeps the shared sampler at the idle cadence; the
+        // panel and details page add their own faster demands.
+        powerDemandCancellable = settings.$connectionCenterSource
+            .removeDuplicates()
+            .sink { [weak self] source in
+                guard let self else { return }
+                if source.needsPowerSampling {
+                    self.store.powerSampling.begin(.icon)
+                } else {
+                    self.store.powerSampling.end(.icon)
+                }
+            }
+
+        // The panel may already be open when the user changes the background
+        // style; swap it in place rather than waiting for the next reopen.
+        panelBackgroundCancellable = settings.$panelBackgroundStyle
+            .removeDuplicates()
+            .sink { [weak self] style in
+                self?.popover.applyBackgroundStyle(style)
             }
 
         screenParametersCancellable = NotificationCenter.default.publisher(
@@ -386,13 +422,61 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             togglePopover()
         case .right:
             popover.performClose(nil)
+            performRightClickAction()
+        }
+    }
+
+    /// Resolve which custom quick action is possible right now. Each flag comes
+    /// from the owning subsystem; the router falls back to the context menu for
+    /// anything unavailable so the right-click never silently does nothing.
+    private var quickActionAvailability: MenuBarQuickActionAvailability {
+        MenuBarQuickActionAvailability(
+            lowPowerMode: settings.controlsLowPowerMode && PrivilegedHelperManager.shared.isReady,
+            chargeToFullNow: chargeToFullNow?.isSettingAvailable ?? false,
+            mute: store.liveVolume.canMute,
+            wifi: store.snapshot.wifi.state != .unavailable
+        )
+    }
+
+    /// Route a right-click to the configured quick action (#209). The default
+    /// `.contextMenu` keeps the historical `showMenu()` path unchanged.
+    private func performRightClickAction() {
+        let outcome = MenuBarRightClickRouter.outcome(
+            for: settings.menuBarRightClickAction,
+            availability: quickActionAvailability
+        )
+        switch outcome {
+        case .showContextMenu:
             showMenu()
+        case .toggleLowPowerMode:
+            store.lowPowerMode.setLowPowerMode(!store.lowPowerMode.isLowPowerMode)
+        case .toggleChargeToFullNow:
+            if chargeToFullNow?.performQuickToggle(battery: store.snapshot.battery) != true {
+                showMenu()
+            }
+        case .toggleMute:
+            store.toggleMute()
+        case .toggleWiFi:
+            store.toggleWiFiPower()
+        case .refreshStatus:
+            store.refreshAll()
+        case .openWiFiSettings:
+            handleOpenWiFiSettings()
+        case .openBluetoothSettings:
+            handleOpenBluetoothSettings()
+        case .openBatterySettings:
+            handleOpenBatterySettings()
+        case .openSoundSettings:
+            handleOpenSoundSettings()
         }
     }
 
     private func configurePopover() {
-        popover.behavior = .transient
-        popover.delegate = self
+        // The panel replaces NSPopover (issue #186); close teardown runs through
+        // the panel's own callback instead of NSPopoverDelegate.
+        popover.onClose = { [weak self] in
+            self?.handlePanelDidClose()
+        }
     }
 
     private func installPopoverContentIfNeeded() {
@@ -401,6 +485,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             StatusPopoverView(
                 panel: panelViewModel,
                 scrollTargets: popoverScrollTargets,
+                layoutMetrics: popover.layoutMetrics,
                 requestWiFiNameAccess: { self.handleRequestWiFiNameAccess() },
                 requestBluetoothAuthorization: { self.handleRequestBluetoothAuthorization() },
                 openBatterySettings: { self.handleOpenBatterySettings() },
@@ -415,29 +500,34 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
                 openSoundSettings: { self.handleOpenSoundSettings() },
                 openSoundInputSettings: { self.handleOpenSoundInputSettings() },
                 openKeyboardSettings: { self.handleOpenKeyboardSettings() },
-                quit: quitAction
+                quit: quitAction,
+                dismissPanel: { [weak self] in self?.closePopover() }
             )
         }
-        let hostingController = NSHostingController(rootView: rootView)
+        let hostingController = StatusPanelHostingController(rootView: rootView)
         if #available(macOS 14.0, *) {
             // The Ventura hosting pass can recurse while AppKit installs the
-            // popover content. Leave sizing to the popover's measured content
-            // there, and keep preferred sizing on the newer path.
+            // panel content. Leave sizing to the measured content there, and
+            // keep preferred sizing on the newer path.
             hostingController.sizingOptions = [.preferredContentSize]
         }
-        popover.contentViewController = hostingController
+        popover.installContent(hostingController, backgroundStyle: settings.panelBackgroundStyle)
     }
 
-    private func togglePopover() {
+    func togglePopover() {
         guard popoverToggleGate.shouldAccept(at: Date()) else { return }
         guard let button = statusItem.button else { return }
         if popover.isShown {
             closePopover()
         } else {
+            // The panel is nonactivating and becomes key on its own. Forcing
+            // activation here lets the next status-item press deactivate and
+            // close it before mouse-up, which would reopen it (#224).
             presentPopover(
                 relativeTo: button.bounds,
                 of: button,
-                preferredEdge: .minY
+                preferredEdge: .minY,
+                activatesApplication: false
             )
         }
     }
@@ -473,7 +563,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             // A real Dock tile click already activated this app before the
             // reopen callback. Re-activating can restore the existing Settings
             // window ahead of the transient popover.
-            activatesApplication: false
+            activatesApplication: false,
+            dockInset: anchor.dockInset
         )
     }
 
@@ -526,7 +617,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         relativeTo rect: NSRect,
         of view: NSView,
         preferredEdge: NSRectEdge,
-        activatesApplication: Bool = true
+        activatesApplication: Bool = true,
+        dockInset: NSEdgeInsets = DockReveal.noInset
     ) {
         cancelPopoverContentRelease()
         store.setPopoverVisible(true)
@@ -538,14 +630,30 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         // One bounded refresh per open covers a lost distributed notification
         // without any polling while the popover is closed.
         refreshInputSourceIfNeeded()
-        if activatesApplication {
+        // Only force-activate when the app is not already regular. A regular
+        // app owns a Dock tile and real windows on a desktop Space (the Settings
+        // or first-run window). Activating such an app from another app's
+        // full-screen Space makes macOS restore that window, which switches away
+        // from the full-screen Space; the app resigns active right after the
+        // panel is presented and the panel dismisses itself (#183). The panel is
+        // a non-activating NSPanel, so it still shows over the full-screen Space
+        // and becomes key without activating the app. The Dock click path skips
+        // activation for the same reason.
+        let forcesApplicationActivation =
+            activatesApplication && !isApplicationRegular()
+        if forcesApplicationActivation {
             // A transient popover shown while the app is still inactive can be
             // dismissed again straight away. Status-item clicks come from the
             // system menu bar process, so the modern activate() can be ignored
             // by the user-activation policy.
             activatesApplicationForPopover()
         }
-        popover.show(relativeTo: rect, of: view, preferredEdge: preferredEdge)
+        popover.show(
+            relativeTo: rect,
+            of: view,
+            preferredEdge: preferredEdge,
+            dockInset: dockInset
+        )
         // The popover's backing window only exists once it has been shown, and
         // without a Spaces behavior it stays on this app's desktop Space while
         // another app is full-screen.
@@ -563,7 +671,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             """
             Popover presented shown=\(self.popover.isShown) \
             key=\(popoverWindow?.isKeyWindow ?? false) \
-            applicationActivation=\(activatesApplication ? "forced" : "skipped", privacy: .public) \
+            applicationActivation=\(forcesApplicationActivation ? "forced" : (activatesApplication ? "withheld-regular" : "skipped"), privacy: .public) \
             \(dockActivationFocusSnapshot(window: popoverWindow), privacy: .public)
             """
         )
@@ -636,19 +744,67 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         guard !isPopoverClosing else { return }
         isPopoverClosing = true
         popover.performClose(nil)
+        // The panel's close is synchronous. If it was already off screen the
+        // panel intentionally posts no close callback, so never leave the gate
+        // stuck closed for the next shortcut/toggle.
+        if !popover.isShown {
+            isPopoverClosing = false
+        }
     }
 
     /// The Dock icon has no public frame, but the click happens on the icon, so
     /// a tiny invisible window at the click point anchors the popover there.
-    private func dockAnchor(at point: NSPoint) -> (view: NSView, preferredEdge: NSRectEdge) {
+    private func dockAnchor(at point: NSPoint) -> (
+        view: NSView,
+        preferredEdge: NSRectEdge,
+        dockInset: NSEdgeInsets
+    ) {
+        let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
+        // A collapsed Dock no longer shrinks visibleFrame, so resolve() cannot
+        // tell its orientation; fall back to the pointer's nearest edge first.
+        let placement = screen.map {
+            DockReveal.collapsedPlacement(
+                screenFrame: $0.frame,
+                visibleFrame: $0.visibleFrame,
+                pointer: point
+            ) ?? DockPlacement.resolve(screenFrame: $0.frame, visibleFrame: $0.visibleFrame)
+        } ?? .bottom
         let anchor = DockPopoverAnchor.make(
             clickPoint: point,
             tileSize: NSApplication.shared.dockTile.size,
-            placement: dockPlacement(at: point)
+            placement: placement
         )
+        // Leave room for the revealed Dock so the panel cannot overlap it when
+        // the Dock is set to auto-hide (#229). A visible Dock needs no inset.
+        let dockInset = screen.map {
+            DockReveal.inset(
+                screenFrame: $0.frame,
+                visibleFrame: $0.visibleFrame,
+                pointer: point
+            )
+        } ?? DockReveal.noInset
+        // Attach the panel to the Dock's inner edge rather than to the click
+        // point plus half a tile. The tile-based raise made the gap grow with
+        // where on the icon the click landed and with the tile size, leaving the
+        // panel noticeably far from the Dock (#229 follow-up).
+        var origin = anchor.origin
+        if let screen {
+            let edge = DockReveal.dockEdge(
+                screenFrame: screen.frame,
+                visibleFrame: screen.visibleFrame,
+                placement: placement
+            )
+            switch placement {
+            case .bottom:
+                origin.y = edge
+            case .left, .right:
+                origin.x = edge
+            }
+        }
         return (
-            popoverAnchorView(at: anchor.origin),
-            anchor.preferredEdge
+            popoverAnchorView(at: origin),
+            anchor.preferredEdge,
+            dockInset
         )
     }
 
@@ -685,24 +841,39 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         self.popoverAnchorWindow = nil
     }
 
-    private func dockPlacement(at point: NSPoint) -> DockPlacement {
-        let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
-        guard let screen else { return .bottom }
-        return DockPlacement.resolve(
-            screenFrame: screen.frame,
-            visibleFrame: screen.visibleFrame
-        )
-    }
-
     private func installPopoverDismissMonitor() {
         removePopoverDismissMonitor()
         popoverDismissMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]
         ) { [weak self] _ in
+            // Read the pointer synchronously: the event is non-Sendable and the
+            // pointer may move before the main-actor hop runs.
+            let clickLocation = NSEvent.mouseLocation
             Task { @MainActor [weak self] in
-                self?.popover.performClose(nil)
+                guard let self else { return }
+                let policy = PopoverDismissalPolicy(
+                    statusItemFrame: self.statusItemButtonScreenFrame()
+                )
+                // A click on the status item is the item's own toggle, not an
+                // outside click. Dismissing here would close on mouse-down and
+                // the item's mouse-up toggle would reopen it (issue #224).
+                guard policy.shouldDismiss(at: clickLocation) else { return }
+                self.popover.performClose(nil)
             }
         }
+    }
+
+    /// The status item button's rectangle in screen coordinates, when the item
+    /// is visible. Used to tell a click on the item (its own toggle) from an
+    /// outside click that should dismiss the panel (issue #224).
+    private func statusItemButtonScreenFrame() -> NSRect? {
+        guard isStatusItemVisible,
+              let button = statusItem.button,
+              let window = button.window else {
+            return nil
+        }
+        let rectInWindow = button.convert(button.bounds, to: nil)
+        return window.convertToScreen(rectInWindow)
     }
 
     private func removePopoverDismissMonitor() {
@@ -737,7 +908,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
               settings.popupScrollAdjustsVolume,
               store.isVolumeControlAvailable,
               volumeState.canAdjust,
-              !isPointerOverScrollView(event),
+              !isPointerOverScrollableScrollView(event),
               isPointerInsideVolumeScrollArea(event) else {
             return false
         }
@@ -782,24 +953,26 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         )
     }
 
-    private func isPointerOverScrollView(_ event: NSEvent) -> Bool {
+    /// Whether the pointer sits over a scroll view that can actually scroll
+    /// right now.
+    ///
+    /// The panel's own outer scroll view (#237) is always present, but a
+    /// scroll view with nothing to scroll must not
+    /// swallow the wheel: on a short panel the wheel still adjusts the volume
+    /// (issue #22), exactly as it did before the panel could scroll.
+    private func isPointerOverScrollableScrollView(_ event: NSEvent) -> Bool {
         guard let rootView = popover.contentViewController?.view else { return false }
-        let point = rootView.convert(event.locationInWindow, from: nil)
-        var view = rootView.hitTest(point)
-        while let currentView = view {
-            if currentView is NSScrollView {
-                return true
-            }
-            view = currentView.superview
-        }
-        return false
+        return PanelScrollHitTesting.pointerIsOverScrollableScrollView(
+            at: rootView.convert(event.locationInWindow, from: nil),
+            in: rootView
+        )
     }
 
     private func resetVolumeScrollSession() {
         volumeScrollSession.reset()
     }
 
-    func popoverDidClose(_ notification: Notification) {
+    private func handlePanelDidClose() {
         let popoverWindow = popover.contentViewController?.view.window
         dockActivationLogger.notice(
             """
@@ -1391,11 +1564,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     ]
     .compactMap(URL.init(string:))
 
-    static let locationSettingsURLs = [
-        "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_LocationServices",
-        "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"
-    ]
-    .compactMap(URL.init(string:))
+    static let locationSettingsURLs = SystemStatusStore.locationSettingsURLs
 
     static let soundOutputSettingsURLs = [
         "x-apple.systempreferences:com.apple.Sound-Settings.extension?output",

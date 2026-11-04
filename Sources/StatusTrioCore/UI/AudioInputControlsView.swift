@@ -87,6 +87,7 @@ struct AudioInputControlsView: View {
     let onOpenSoundSettings: () -> Void
 
     @State private var volumeDraft = AudioInputVolumeDraft()
+    @State private var isDeviceListExpanded = false
 
     private var sliderAccessibilityValue: String {
         volumeDraft.accessibilityValue(
@@ -238,7 +239,7 @@ struct AudioInputControlsView: View {
                 .padding(.top, 2)
 
             VStack(spacing: 2) {
-                ForEach(state.rows) { row in
+                ForEach(state.visibleRows(expanded: isDeviceListExpanded)) { row in
                     Button {
                         guard !row.selected else { return }
                         actions.selectInput(row.key)
@@ -274,6 +275,14 @@ struct AudioInputControlsView: View {
                     .accessibilityLabel(row.accessibilityLabel)
                     .accessibilityValue(row.selected ? state.usageText ?? "" : "")
                     .accessibilityHint(row.selected ? "" : row.helpText)
+                }
+
+                if state.hasHiddenRows {
+                    DeviceListExpansionButton(
+                        isExpanded: $isDeviceListExpanded,
+                        expandLabel: state.expandLabel,
+                        collapseLabel: state.collapseLabel
+                    )
                 }
             }
         } else {

@@ -168,14 +168,24 @@ final class IconAppearancePublisherTests: XCTestCase {
         IconMutation(name: "showsChargingIndicator") { $0.showsChargingIndicator = false },
         IconMutation(name: "showsChargingEffect") { $0.showsChargingEffect = false },
         IconMutation(name: "showsChargingBoltHeartbeat") { $0.showsChargingBoltHeartbeat = false },
+        IconMutation(name: "batterySplitGapProgress") { $0.batterySplitGapProgress = true },
         IconMutation(name: "usesBatteryStatusColors") { $0.usesBatteryStatusColors = false },
         IconMutation(name: "batteryCriticalThreshold") { $0.batteryCriticalThreshold = 35 },
         IconMutation(name: "batteryFullThreshold") { $0.batteryFullThreshold = 80 },
-        IconMutation(name: "showsPercentageWhenConnected") {
-            $0.showsPercentageWhenConnected = true
+        IconMutation(name: "batteryConnectedIndicator") {
+            $0.batteryConnectedIndicator = .bolt
         },
-        IconMutation(name: "showsBatteryPercentageInConnectionSlot") {
-            $0.showsBatteryPercentageInConnectionSlot = true
+        IconMutation(name: "connectionCenterSource") {
+            $0.connectionCenterSource = .batteryPercentage
+        },
+        IconMutation(name: "batteryStatusColors.charging") {
+            $0.batteryStatusColors.charging = .preset(.mint)
+        },
+        IconMutation(name: "batteryStatusColors.lowPower") {
+            $0.batteryStatusColors.lowPower = .preset(.sky)
+        },
+        IconMutation(name: "batteryStatusColors.critical") {
+            $0.batteryStatusColors.critical = .custom(.init(hue: 0.8, saturation: 0.7, brightness: 0.7))
         },
         IconMutation(name: "batterySymbolScale") { $0.batterySymbolScale = 1.05 },
         IconMutation(name: "showsWiFiIconForEthernet") { $0.showsWiFiIconForEthernet = true },
@@ -187,22 +197,19 @@ final class IconAppearancePublisherTests: XCTestCase {
             $0.showsWiFiIconForInternetSharing = true
         },
         IconMutation(name: "wifiSymbolScale") { $0.wifiSymbolScale = 1.4 },
-        IconMutation(name: "replacesNetworkIconWithBluetoothAudio") {
-            $0.replacesNetworkIconWithBluetoothAudio = true
+        IconMutation(name: "connectionCenterSourceBluetoothDevice") {
+            $0.connectionCenterSource = .bluetoothDevice
         },
         IconMutation(name: "usesBluetoothAudioVolumeColor") {
             $0.usesBluetoothAudioVolumeColor = true
         },
-        IconMutation(name: "prioritizesNetworkErrorsOverBluetoothAudio") {
-            $0.prioritizesNetworkErrorsOverBluetoothAudio = false
+        IconMutation(name: "prioritizesNetworkErrors") {
+            $0.prioritizesNetworkErrors = false
         },
         IconMutation(name: "connectionCenterSource") {
             $0.connectionCenterSource = .inputSource
         },
-        IconMutation(name: "prioritizesNetworkErrorsOverInputSource") {
-            $0.prioritizesNetworkErrorsOverInputSource = false
-        },
-        IconMutation(name: "bluetoothSymbolScale") { $0.bluetoothSymbolScale = 1.4 },
+        IconMutation(name: "bluetoothSymbolScale") { $0.bluetoothSymbolScale = 1.2 },
         IconMutation(name: "bluetoothAudioIconChoice") { $0.bluetoothAudioIconChoice = .airpods },
         IconMutation(name: "bluetoothNetworkIconDevice") {
             $0.setBluetoothNetworkIconDevice(address: "aa-bb-cc-dd-ee-ff", symbolName: "keyboard")

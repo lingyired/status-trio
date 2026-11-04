@@ -4,6 +4,7 @@ import SwiftUI
 struct AppIconSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
+    var inputSourceController: InputSourceController? = nil
     @Binding var previewIsDark: Bool
     let onShowIconGuide: () -> Void
     @EnvironmentObject private var localization: Localization
@@ -16,6 +17,7 @@ struct AppIconSectionView: View {
             StatusIconPreviewCard(
                 store: store,
                 statusStore: statusStore,
+                inputSourceController: inputSourceController,
                 isDarkBackground: $previewIsDark
             )
         }) {
@@ -42,6 +44,8 @@ struct AppIconSectionView: View {
 
             // 4. Ring thickness, shared by the menu bar and the Dock icons
             statusIconGroup
+
+            MiddleIconSettingsGroup(store: store, statusStore: statusStore)
 
             // 5. Dock surface
             dockGroup

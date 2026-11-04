@@ -5,7 +5,7 @@ import Testing
 /// End-to-end wiring for the Dock charging animation: the user's Dock-only
 /// placement claims the shared clock, the clock's phases reach the Dock
 /// presenter, and going back to a menu-bar placement releases both.
-@Suite(.serialized)
+@Suite(.serialized, .enabled(if: VisibleUITests.isEnabled, Comment(rawValue: VisibleUITests.reason)))
 @MainActor
 struct DockChargingEnvironmentTests {
     @Test func recoveredPresentationReclaimsDockOwnershipBeforeStaticRendering() async throws {
@@ -28,7 +28,7 @@ struct DockChargingEnvironmentTests {
 
         fixture.environment.appIconController.flushPendingPresentationForTesting()
         let assignmentsBeforeSceneChange = fixture.application.assignments
-        fixture.settings.showsBatteryPercentageInConnectionSlot = true
+        fixture.settings.connectionCenterSource = .batteryPercentage
         fixture.environment.appIconController.flushPendingPresentationForTesting()
         #expect(fixture.application.assignments == assignmentsBeforeSceneChange)
     }

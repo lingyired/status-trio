@@ -314,6 +314,17 @@ final class CoreBluetoothStateMonitor: NSObject, @preconcurrency CBCentralManage
 @MainActor
 final class BluetoothDeviceController: ObservableObject {
     @Published private(set) var devices: [BluetoothDevice] = []
+    /// The last successfully read devices, kept only in memory for this process.
+    /// The panel draws these rows instantly while the fresh read is in flight,
+    /// so reopening does not wait on the OS. Bounded and never written to disk:
+    /// device names and addresses stay out of `UserDefaults`.
+    private(set) var cachedDevices: [BluetoothDevice] = []
+    private static let cachedDeviceLimit = 24
+    /// Whether a device read has completed since the controller last released
+    /// its transient state. The status panel reads it to tell "no devices yet"
+    /// from "the list has not loaded again since reopening", so it can draw a
+    /// cache-sized skeleton instead of an empty list during that window.
+    @Published private(set) var hasLoadedDevices = false
     @Published private(set) var availability: BluetoothAvailability = .idle
     @Published private(set) var batteryLevels: [String: BluetoothBatteryLevel] = [:]
     @Published private(set) var nearbyBatteryDevices: [NearbyBluetoothBatteryDevice] = []
@@ -322,6 +333,9 @@ final class BluetoothDeviceController: ObservableObject {
     /// `batteryLevels` cannot say it: an empty dictionary is also what a report
     /// without any readable level looks like.
     @Published private(set) var batteryLevelsReadFailed = false
+    /// Whether a battery-level read has completed since the claim was taken, so
+    /// the panel can keep a placeholder line until the first real reading lands.
+    @Published private(set) var hasCompletedBatteryRead = false
 
     private let worker: any BluetoothPairedDeviceReading
     private let appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter
@@ -679,6 +693,7 @@ final class BluetoothDeviceController: ObservableObject {
         clearBatteryLevels()
         clearDeviceActions()
         devices = []
+        hasLoadedDevices = false
         batteryLevelsReadFailed = false
         nearbyBLEDiscoveryRequests.removeAll()
         visibleNearbyBLERequests.removeAll()
@@ -722,6 +737,8 @@ final class BluetoothDeviceController: ObservableObject {
                         self.appleBluetoothAudioDiagnosticReporter.report($0)
                     }
                     self.devices = devices
+                    self.cachedDevices = Array(devices.prefix(Self.cachedDeviceLimit))
+                    self.hasLoadedDevices = true
                     // The BLE route matches a phone's advertised name against
                     // this list, so it has to follow the report as it lands.
                     self.updateKnownNearbyAppleNames()
@@ -1045,6 +1062,7 @@ final class BluetoothDeviceController: ObservableObject {
         } else {
             invalidateDeviceRead()
             devices = []
+            hasLoadedDevices = false
             clearDeviceActions()
             clearBatteryLevels()
             stopPeriodicRefresh()
@@ -1069,6 +1087,7 @@ final class BluetoothDeviceController: ObservableObject {
                 // panel reports it once instead of staying silent.
                 self.batteryLevelsReadFailed = levels == nil
                 self.batteryLevels = levels ?? [:]
+                self.hasCompletedBatteryRead = true
                 // The primary source is published first and on its own. The
                 // second source is an addition to it, never a precondition for
                 // it, so a read that never answers cannot hold the list back.
@@ -1128,6 +1147,7 @@ final class BluetoothDeviceController: ObservableObject {
         _ = batteryRequestGate.advance()
         batteryLevelsReadFailed = false
         batteryLevels = [:]
+        hasCompletedBatteryRead = false
     }
 
     private var currentNearbyBLEReadPermit: Set<UUID> {

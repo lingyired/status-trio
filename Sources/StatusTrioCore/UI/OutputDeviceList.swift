@@ -2,7 +2,6 @@ import SwiftUI
 
 struct OutputDeviceList: View {
     @EnvironmentObject private var localization: Localization
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let rows: [PanelAudioDeviceRow]
     let previewRows: [PanelAudioDeviceRow]
     let visibleLimit: Int?
@@ -11,6 +10,9 @@ struct OutputDeviceList: View {
     let previewLanguageCode: String
     let onSelect: (PanelAudioDeviceID) -> Void
     let onSelectListeningMode: (String, BluetoothListeningMode) -> Void
+    /// An equal-height placeholder to draw while the real rows are still being
+    /// re-read after the panel reopens. Only used when there are no rows yet.
+    var skeleton: PanelListLayoutSnapshot? = nil
 
     @State private var isExpanded = false
 
@@ -21,7 +23,20 @@ struct OutputDeviceList: View {
             isExpanded: isExpanded
         )
 
-        if rows.isEmpty && previewRows.isEmpty {
+        if let skeleton, rows.isEmpty, previewRows.isEmpty, skeleton.rowCount > 0 {
+            VStack(spacing: 2) {
+                PanelListSkeleton(
+                    rowHeights: skeleton.rowHeights.map { CGFloat($0) },
+                    twoLineThreshold: 40
+                )
+                if skeleton.hasExpansionButton {
+                    PanelDeviceListExpansionPlaceholder(
+                        expandLabel: expandLabel,
+                        collapseLabel: collapseLabel
+                    )
+                }
+            }
+        } else if rows.isEmpty && previewRows.isEmpty {
             Label(localization.string(.volumeOutputEmpty), systemImage: "questionmark.circle")
                 .font(.body)
                 .foregroundStyle(.secondary)
@@ -36,27 +51,11 @@ struct OutputDeviceList: View {
                 .environmentObject(PreviewLocalization.forCode(previewLanguageCode) ?? localization)
 
                 if OutputDeviceListPresentation.canToggleExpansion(for: rows, limit: visibleLimit) {
-                    Button {
-                        withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) {
-                            isExpanded.toggle()
-                        }
-                    } label: {
-                        HStack(alignment: .center, spacing: 8) {
-                            PanelActionGlyph(
-                                systemName: "chevron.down",
-                                font: .caption.weight(.semibold),
-                                size: 16
-                            )
-                                .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                            Text(isExpanded ? collapseLabel : expandLabel)
-                                .font(.callout)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .foregroundStyle(.secondary)
-                        .padding(.vertical, 5)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
+                    DeviceListExpansionButton(
+                        isExpanded: $isExpanded,
+                        expandLabel: expandLabel,
+                        collapseLabel: collapseLabel
+                    )
                 }
             }
         }

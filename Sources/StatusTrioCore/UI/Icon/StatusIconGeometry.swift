@@ -16,7 +16,10 @@ enum StatusIconGeometry {
 
     // Derived from the SVG battery endpoints and radius.
     private static let batteryRadius: CGFloat = 51.5
-    private static let batteryCenter = CGPoint(x: artworkCenterX, y: 61.48715261785473)
+    /// Vertical centre of the battery ring. The centre slot shares it so the
+    /// glyph sits on the circle's centre instead of slightly below it.
+    static let batteryCenterY: CGFloat = 61.48715261785473
+    private static let batteryCenter = CGPoint(x: artworkCenterX, y: batteryCenterY)
     private static let batteryStart: CGFloat = 148.69008689281117 * .pi / 180
     private static let batterySweep: CGFloat = 242.6198262143777 * .pi / 180
     static let batteryValueTopGapWidth: CGFloat = 64
@@ -55,6 +58,26 @@ enum StatusIconGeometry {
             x: artworkCenterX,
             y: referenceBaseline + (fontSize - referenceFontSize) * slope
         )
+    }
+
+    /// A bolt scaled to `targetHeight` and moved so its ink centre lands on
+    /// `target`. The centre slot uses this so the charge glyph sits on the same
+    /// optical anchor as the Wi-Fi / input-source glyph it replaces (#253).
+    static func batteryChargingBolt(centeredAt target: CGPoint, targetHeight: CGFloat) -> CGPath {
+        let base = batteryChargingBolt()
+        let bounds = base.boundingBoxOfPath
+        guard bounds.height.isFinite, bounds.height > 0,
+              targetHeight.isFinite, targetHeight > 0 else { return base }
+        let scale = targetHeight / bounds.height
+        var transform = CGAffineTransform(
+            a: scale,
+            b: 0,
+            c: 0,
+            d: scale,
+            tx: target.x - bounds.midX * scale,
+            ty: target.y - bounds.midY * scale
+        )
+        return base.copy(using: &transform) ?? base
     }
 
     private static let wifiOuterCenter = CGPoint(x: artworkCenterX, y: 78.3)
@@ -174,6 +197,30 @@ enum StatusIconGeometry {
             return clampedProgress
         }
         return gapStart
+    }
+
+    /// Maps battery progress to the progress-space arc end for a `.split` top
+    /// gap (#205). The gap carries no progress, so the visible arc spans the
+    /// whole 0–100% scale: the left visible half is 0–50% and the right visible
+    /// half is 50–100%. Feeding the result to `batteryFill` fills exactly the
+    /// requested fraction of the visible arc, so 51 and 59 no longer look alike.
+    static func splitFillProgress(
+        forProgress progress: Double,
+        hasTopGap: Bool,
+        topGapWidth: CGFloat = batteryChargingBoltTopGapWidth
+    ) -> Double {
+        let clampedProgress = clampedUnit(progress)
+        guard hasTopGap else { return clampedProgress }
+        let visibleArcLength = visibleFraction(
+            forProgress: 1,
+            hasTopGap: true,
+            topGapWidth: topGapWidth
+        )
+        return Self.progress(
+            forVisibleFraction: clampedProgress * visibleArcLength,
+            hasTopGap: true,
+            topGapWidth: topGapWidth
+        )
     }
 
     private static func clampedUnit(_ value: Double) -> Double {

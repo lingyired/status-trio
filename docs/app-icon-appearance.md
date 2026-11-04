@@ -14,6 +14,29 @@ Status Trio 有两个互不相同的图标表面。Issue #151 的“Finder/启�
 因此，设置里的 Dark/Light 只改变 Dock 里的实时图标，不会改变 Finder、启动台、聚焦或应用
 切换器展示的包图标。反过来说，修改包图标素材也不会改变 Dock 实时图标的渲染结果。
 
+## 图标网格与 Dock 底板留白
+
+macOS 的图标网格把可见图形放在 1024 画布中央的 **824×824** 区域，四周各留 100 单位透明
+边缘。系统对应用包图标自己套这个品牌形状（squircle），所以素材是满幅方形也没有问题。
+
+Dock 实时图标不同：它是一张由应用绘制的独立位图，系统**不再套形状掩码**，留白必须由
+`DockIconRenderer` 自己画进位图。因此 `DockIconGlyphLayout.artworkSide` 取 824：底板占
+1024 的 80.47%，与系统应用一致。内部 glyph 与圆角按同一个 `artworkScale`（824/896）
+从原始 896 网格等比缩入，图案与底板的比例保持不变。
+
+实测依据（`NSWorkspace.icon(forFile:)` 渲染后量取不透明边界，1024 槽位）：
+
+| 图标 | 可见底板 |
+| --- | --- |
+| System Settings / Calculator / Notes / App Store | 824 px (80.47%) |
+| Status Trio 应用包图标（系统裁切后） | 824 px (80.47%) |
+| Status Trio Dock 实时图标（#260 修复前） | 896 px (87.50%) |
+| Status Trio Dock 实时图标（#260 修复后） | 824 px (80.47%) |
+
+Issue #260 的成因就是最后一行偏大：Dock 里显得比旁边的系统设置略大。修复只动 Dock
+位图的底板外轮廓与缩放，应用包图标素材逐像素不变（`.square` 路径的 glyph 缩放会抵消
+网格缩放），因此 `AppIconPreviewTests` 的素材指纹不受影响。菜单栏图标尺寸也不变。
+
 ## 构建方式
 
 包图标的唯一来源是 Icon Composer 文档 `Support/AppIcon.icon`：

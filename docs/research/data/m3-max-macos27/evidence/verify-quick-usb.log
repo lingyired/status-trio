@@ -1,0 +1,74 @@
+Local verification
+mode: quick
+head: 364b3c3381a5b44c40b1640e182e687d1e1c3043
+branch: feat/battery-power-breakdown
+uncommitted: 77 changes
+scope: quick
+not verified: UI/runtime behavior, hardware, signing, notarization, DMG, release, appcast
+toolchain:
+
+== Xcode version ==
+  $ xcodebuild -version
+Xcode 27.0
+Build version 27A266a
+
+== Swift version ==
+  $ swift --version
+swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+Target: arm64-apple-macosx27.2.0
+
+== macOS SDK version ==
+  $ xcrun --sdk macosx --show-sdk-version
+27.0
+
+== Shell syntax ==
+  $ bash -e -c for\ script\;\ do\ bash\ -n\ \"\$script\"\;\ done bash scripts/build-app.sh scripts/build-mobile-battery-helper.sh scripts/build-timing.sh scripts/build-worktree.sh scripts/check-forbidden-patterns.sh scripts/check-mobile-battery-dependency.sh scripts/check-mobile-battery-rpath.sh scripts/check-release-workflow-policy.sh scripts/check-workflow-policy.sh scripts/ci-run-stage.sh scripts/generate-app-icon-icns.sh scripts/measure-dock-charging-cpu.sh scripts/measure-menu-bar-charging-cpu.sh scripts/package-release.sh scripts/prepare-mobile-battery-sources.sh scripts/prepare-release-body.sh scripts/probe-charge-to-full-now.sh scripts/publish-release.sh scripts/release.sh scripts/test-app-icon-contract.sh scripts/test-appcast-minimum-system-version.sh scripts/test-build-timing.sh scripts/test-ci-diagnostics.sh scripts/test-ci-workflow.sh scripts/test-macos13-bundle-contract.sh scripts/test-macos13-deployment-contract-regressions.sh scripts/test-macos13-deployment-contract.sh scripts/test-macos13-sparkle-contract.sh scripts/test-macos13-sparkle-metadata.sh scripts/test-mobile-battery-build-cache.sh scripts/test-mobile-battery-clang-version.sh scripts/test-mobile-battery-helper.sh scripts/test-mobile-battery-rpaths.sh scripts/test-mobile-battery-source-cache.sh scripts/test-otool-dependencies.sh scripts/test-powerui-charge-restore.sh scripts/test-privileged-helper-bundle-contract.sh scripts/test-release-notarization.sh scripts/test-release-pipeline.sh scripts/test-release-recovery.sh scripts/test-release-workflow-policy.sh scripts/test-verify-local-bundle.sh scripts/test-verify-local.sh scripts/test-workflow-policy.sh scripts/test.sh scripts/validate-appcast-notes.sh scripts/validate-release-recovery.sh scripts/verify-local.sh scripts/verify-mobile-battery-bundle.sh scripts/verify-platform-version.sh scripts/verify-privileged-helper-bundle.sh
+quick filter: BatteryPowerBreakdown
+
+== Forbidden patterns + focused tests ==
+  $ bash scripts/test.sh BatteryPowerBreakdown
+No forbidden actor-isolated method references found under /Users/lingsmbp/Documents/aiwork/status-trio/.worktrees/battery-power-breakdown/Sources
+Building for debugging...
+[Using on-disk description]
+Build complete! (0.39秒)
+Test Suite 'Selected tests' started at 2026-10-30 23:58:53.731.
+Test Suite 'StatusTrioPowerHelperTests.xctest' started at 2026-10-30 23:58:53.732.
+Test Suite 'StatusTrioPowerHelperTests.xctest' passed at 2026-10-30 23:58:53.732.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 23:58:53.732.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 23:58:53.807.
+Test Suite 'StatusTrioCoreTests.xctest' started at 2026-10-30 23:58:53.808.
+Test Suite 'BatteryPowerBreakdownPresentationTests' started at 2026-10-30 23:58:53.808.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSplitReplacesTheSystemNodeWithFiveBranches]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSplitReplacesTheSystemNodeWithFiveBranches]' passed (0.006 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSwitchIsPersistedIndependently]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSwitchIsPersistedIndependently]' passed (0.005 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSwitchOffOrMissingSplitKeepsTheLegacyDiagram]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSwitchOffOrMissingSplitKeepsTheLegacyDiagram]' passed (0.002 seconds).
+Test Suite 'BatteryPowerBreakdownPresentationTests' passed at 2026-10-30 23:58:53.821.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.013 (0.013) seconds
+Test Suite 'BatteryPowerBreakdownTests' started at 2026-10-30 23:58:53.821.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testMissingAnchorsProduceNoSplit]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testMissingAnchorsProduceNoSplit]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testRejectsResidualThatCannotBeRounding]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testRejectsResidualThatCannotBeRounding]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testRequiresEveryBranchToShareOneWindow]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testRequiresEveryBranchToShareOneWindow]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testSplitsAdapterInputIntoMeasuredBranchesAndResidual]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testSplitsAdapterInputIntoMeasuredBranchesAndResidual]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testTreatsSmallNegativeResidualAsRounding]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testTreatsSmallNegativeResidualAsRounding]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testUnreadableDisplayStillLeavesACoherentSplit]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testUnreadableDisplayStillLeavesACoherentSplit]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testUSBOutputReaderSumsMeasuredPortsAndIgnoresNegotiatedBudget]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testUSBOutputReaderSumsMeasuredPortsAndIgnoresNegotiatedBudget]' passed (0.000 seconds).
+Test Suite 'BatteryPowerBreakdownTests' passed at 2026-10-30 23:58:53.822.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'StatusTrioCoreTests.xctest' passed at 2026-10-30 23:58:53.822.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.013 (0.014) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 23:58:53.822.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.013 (0.015) seconds
+
+Local verification passed: mode=quick head=364b3c3381a5b44c40b1640e182e687d1e1c3043
+This is focused local evidence, not a full suite, runtime check, or release approval.

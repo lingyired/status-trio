@@ -68,6 +68,9 @@ struct BluetoothStatusView: View {
     let onOpenBluetoothSettings: () -> Void
     let onOpenBluetoothPermissionSettings: () -> Void
     let onSetRadioPower: (Bool) -> Void
+    /// Layout snapshots let the section draw a cache-sized skeleton while the
+    /// controller re-reads its devices after the panel reopens.
+    var layoutSnapshots: PanelListLayoutSnapshotStore = PanelListLayoutSnapshotStore()
 
     @State private var visibleTrustedAppleIDs = Set<AppleDeviceID>()
     @State private var visibleNearbyBLEIDs = Set<UUID>()
@@ -81,6 +84,66 @@ struct BluetoothStatusView: View {
             hidesGhostDevices: listOptions.hidesGhostDevices,
             revealedGhostDeviceAddresses: listOptions.revealedGhostDeviceAddresses
         )
+    }
+
+    /// Whether the section is in the window between reopening and its first
+    /// completed device read. Only then is a cached skeleton shown; a genuinely
+    /// empty or unavailable radio must not keep a stale skeleton on screen.
+    private var isWaitingForFirstDeviceRead: Bool {
+        guard !controller.hasLoadedDevices else { return false }
+        switch controller.availability {
+        case .idle, .initializing, .available:
+            return true
+        case .authorizationNotDetermined, .authorizationDenied, .authorizationRestricted,
+             .poweredOff, .unavailable, .failed:
+            return false
+        }
+    }
+
+    /// Whether the previous read's devices are standing in for the incoming one.
+    /// This shows real names at once while the OS read runs; the list keeps the
+    /// cached rows until the fresh result lands.
+    private var isShowingCachedDevices: Bool {
+        listOptions.showsList
+            && !controller.hasLoadedDevices
+            && controller.devices.isEmpty
+            && !controller.cachedDevices.isEmpty
+    }
+
+    private var displayedDevices: [BluetoothDevice] {
+        isShowingCachedDevices ? controller.cachedDevices : controller.devices
+    }
+
+    /// Cached rows only need to read as a normal available list while loading;
+    /// the real availability still decides any explained state once a read lands.
+    private var effectiveAvailability: BluetoothAvailability {
+        isShowingCachedDevices ? .available : controller.availability
+    }
+
+    /// Connected AirPods keep their two-line height while the battery is read.
+    /// Connected AirPods keep their two-line height from the first cached paint
+    /// until the first real battery read lands, so the row never collapses to a
+    /// single line and grows back when the level arrives.
+    private var batteryPlaceholderAddresses: Set<String> {
+        guard showsBatteryLevels else { return [] }
+        guard isShowingCachedDevices || !controller.hasCompletedBatteryRead else { return [] }
+        return Set(
+            displayedDevices
+                .filter { device in
+                    guard device.isConnected,
+                          device.airPodsModel != nil
+                            || device.name.localizedCaseInsensitiveContains("airpods")
+                    else { return false }
+                    return controller.batteryLevels[
+                        BluetoothBatteryReader.normalizedAddress(device.id)
+                    ] == nil
+                }
+                .map { BluetoothBatteryReader.normalizedAddress($0.id) }
+        )
+    }
+
+    private var bluetoothListIsLoading: Bool {
+        listOptions.showsList && !isShowingCachedDevices && isWaitingForFirstDeviceRead
     }
 
     /// The nearby rows are persisted readings, kept across scans so a missed
@@ -167,6 +230,10 @@ struct BluetoothStatusView: View {
             failures: controller.nearbyBLEReadFailures, options: effectiveListOptions, now: Date(),
             batteryLevelsEnabled: showsBatteryLevels
         )
+        let bluetoothPlaceholder = bluetoothListIsLoading
+            ? layoutSnapshots.snapshot(for: .bluetooth)
+            : nil
+        let showsBluetoothSkeleton = !isShowingCachedDevices && (bluetoothPlaceholder?.rowCount ?? 0) > 0
 
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 10) {
@@ -196,41 +263,63 @@ struct BluetoothStatusView: View {
                 }
             }
 
-            if listOptions.showsList && (BluetoothPanelListVisibility.showsList(availability: controller.availability, devices: controller.devices, options: listOptions) || !appleRows.isEmpty || !nearbyRows.isEmpty) {
-                BluetoothDeviceList(
-                    devices: controller.devices,
-                    batteryLevels: controller.batteryLevels.merging(appleProjection.batteryLevels, uniquingKeysWith: { _, apple in apple }),
-                    nearbyReadingsByID: Dictionary(controller.nearbyBatteryDevices.map { ($0.id, $0) }, uniquingKeysWith: { old, new in
-                        new.lastUpdated >= old.lastUpdated ? new : old
-                    }),
-                    mobileMetadataByDeviceID: appleProjection.mobileMetadataByDeviceID,
-                    nearbyRows: nearbyRows,
-                    onVisibleNearbyIDsChanged: { ids in
-                        visibleNearbyBLEIDs = ids
-                        updateReadAuthorization(readAuthorizationSnapshot)
-                    },
-                    appleRows: appleRows,
-                    onVisibleAppleIDsChanged: { ids in
-                        visibleTrustedAppleIDs = ids
-                        updateReadAuthorization(readAuthorizationSnapshot)
-                    },
-                    actionStates: controller.deviceActionStates,
-                    confirmingAddress: controller.pendingDisconnectConfirmation,
-                    options: effectiveListOptions,
-                    listeningModePresentations: listeningModePresentations,
-                    onSelectListeningMode: onSelectListeningMode,
-                    onPerformAction: { controller.performDeviceAction(for: $0) },
-                    onRequestDisconnect: { controller.requestDisconnectConfirmation(for: $0) },
-                    onCancelDisconnect: { controller.cancelDisconnectConfirmation() }
-                )
+            if listOptions.showsList && (BluetoothPanelListVisibility.showsList(availability: effectiveAvailability, devices: displayedDevices, options: listOptions) || !appleRows.isEmpty || !nearbyRows.isEmpty || showsBluetoothSkeleton) {
+                if showsBluetoothSkeleton, let bluetoothPlaceholder {
+                    VStack(spacing: 2) {
+                        PanelListSkeleton(
+                            rowHeights: bluetoothPlaceholder.rowHeights.map { CGFloat($0) },
+                            twoLineThreshold: 30
+                        )
+                        // Match the real list's scroll bound so a long list cannot
+                        // reserve more height than the real, scrollable one draws.
+                        .frame(maxHeight: BluetoothDeviceList.maximumRowsHeight, alignment: .top)
+                        .clipped()
+                        if bluetoothPlaceholder.hasExpansionButton {
+                            PanelDeviceListExpansionPlaceholder(
+                                expandLabel: localization.string(.bluetoothListExpand),
+                                collapseLabel: localization.string(.bluetoothListCollapse)
+                            )
+                        }
+                    }
+                } else {
+                    BluetoothDeviceList(
+                        devices: displayedDevices,
+                        batteryLevels: controller.batteryLevels.merging(appleProjection.batteryLevels, uniquingKeysWith: { _, apple in apple }),
+                        nearbyReadingsByID: Dictionary(controller.nearbyBatteryDevices.map { ($0.id, $0) }, uniquingKeysWith: { old, new in
+                            new.lastUpdated >= old.lastUpdated ? new : old
+                        }),
+                        mobileMetadataByDeviceID: appleProjection.mobileMetadataByDeviceID,
+                        nearbyRows: nearbyRows,
+                        onVisibleNearbyIDsChanged: { ids in
+                            visibleNearbyBLEIDs = ids
+                            updateReadAuthorization(readAuthorizationSnapshot)
+                        },
+                        appleRows: appleRows,
+                        onVisibleAppleIDsChanged: { ids in
+                            visibleTrustedAppleIDs = ids
+                            updateReadAuthorization(readAuthorizationSnapshot)
+                        },
+                        actionStates: controller.deviceActionStates,
+                        confirmingAddress: controller.pendingDisconnectConfirmation,
+                        options: effectiveListOptions,
+                        listeningModePresentations: listeningModePresentations,
+                        onSelectListeningMode: onSelectListeningMode,
+                        onPerformAction: { controller.performDeviceAction(for: $0) },
+                        onRequestDisconnect: { controller.requestDisconnectConfirmation(for: $0) },
+                        onCancelDisconnect: { controller.cancelDisconnectConfirmation() },
+                        layoutSnapshots: layoutSnapshots,
+                        recordsLayoutSnapshot: controller.hasLoadedDevices,
+                        batteryPlaceholderAddresses: batteryPlaceholderAddresses
+                    )
 
-                if controller.batteryLevelsReadFailed {
-                    // The list is where the levels are, so this is where a report
-                    // that could not be read is reported: one line for the whole
-                    // list, never a placeholder on every row.
-                    Text(localization.string(.bluetoothBatteryUnavailable))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if controller.batteryLevelsReadFailed {
+                        // The list is where the levels are, so this is where a report
+                        // that could not be read is reported: one line for the whole
+                        // list, never a placeholder on every row.
+                        Text(localization.string(.bluetoothBatteryUnavailable))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -460,9 +549,13 @@ struct BluetoothStatusView: View {
     }
 
     private var hidesSubtitle: Bool {
-        BluetoothPanelListVisibility.hidesRowSubtitle(
-            availability: controller.availability,
-            devices: controller.devices,
+        // Until the first device read completes, say nothing: claiming "no
+        // connected devices" while the list is still loading is a wrong, taller
+        // line that disappears once the real rows arrive, which jitters the panel.
+        if isWaitingForFirstDeviceRead { return true }
+        return BluetoothPanelListVisibility.hidesRowSubtitle(
+            availability: effectiveAvailability,
+            devices: displayedDevices,
             options: listOptions
         )
     }
@@ -471,16 +564,20 @@ struct BluetoothStatusView: View {
     /// changes. The name also covers an AirPods swapping to another device at
     /// the same address.
     private var batteryReadTaskID: String {
-        let names = BluetoothDevicePresentation.grouped(controller.devices).connected
+        let names = BluetoothDevicePresentation.grouped(displayedDevices).connected
             .map(\.name)
             .joined(separator: "、")
-        return "\(showsBatteryLevels)-\(names)"
+        // Include the load/availability so the claim is (re)issued once the fresh
+        // read lands. Cached rows can request it earlier while the radio is still
+        // initializing, when the read is skipped; without this the name-only id
+        // would not change on the real result and the levels would never load.
+        return "\(showsBatteryLevels)-\(controller.hasLoadedDevices)-\(controller.availability)-\(names)"
     }
 
     private var summaryPresentation: BluetoothSummary {
         BluetoothSummary.presentation(
-            availability: controller.availability,
-            devices: controller.devices,
+            availability: effectiveAvailability,
+            devices: displayedDevices,
             batteryLevels: controller.batteryLevels
         )
     }

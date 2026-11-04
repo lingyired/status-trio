@@ -206,6 +206,14 @@ fi
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $APP_NAME" "$CONTENTS/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleName $APP_NAME" "$CONTENTS/Info.plist"
 
+if [[ "$CONFIGURATION" == "debug" && "$BUNDLE_ID" == com.lingsmbp.StatusTrio.dev.* ]]; then
+    /usr/libexec/PlistBuddy -c "Add :STBackgroundUITestingSupported bool true" "$CONTENTS/Info.plist"
+    /usr/libexec/PlistBuddy -c "Add :STBuildCommit string $(git rev-parse HEAD)" "$CONTENTS/Info.plist"
+    SOURCE_DIRTY=false
+    if [[ -n "$(git status --porcelain)" ]]; then SOURCE_DIRTY=true; fi
+    /usr/libexec/PlistBuddy -c "Add :STBuildSourceDirty bool $SOURCE_DIRTY" "$CONTENTS/Info.plist"
+fi
+
 if [[ -n "$APP_VERSION" ]]; then
     /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" "$CONTENTS/Info.plist"
 fi

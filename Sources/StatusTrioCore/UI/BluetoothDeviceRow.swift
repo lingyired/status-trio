@@ -46,6 +46,10 @@ struct BluetoothDeviceRow: View {
     var canonicalStatusByDeviceID: [String: NearbyBLEPanelRowStatus] = [:]
     var listeningMode: BluetoothListeningModePresentation? = nil
     var onSelectListeningMode: (BluetoothListeningMode) -> Void = { _ in }
+    /// Drawn for a cached, connected AirPods row whose battery is still being
+    /// read: keeps the two-line height so the row does not grow when the level
+    /// lands.
+    var showsBatteryPlaceholder = false
     let actionState: BluetoothDeviceActionState?
     let isConfirmingDisconnect: Bool
     let onPerformAction: () -> Void
@@ -114,7 +118,11 @@ struct BluetoothDeviceRow: View {
             batteryLevels: batteryLevels
         ) {
         case .inline:
-            inlineContent(status)
+            if showsBatteryPlaceholder {
+                componentContent(status)
+            } else {
+                inlineContent(status)
+            }
         case .components:
             componentContent(status)
         }
@@ -256,6 +264,18 @@ struct BluetoothDeviceRow: View {
                 // The glyph is drawn inside the text run and carries no label of
                 // its own, so the run is taken out of the combined element and
                 // read back from its text form, in `rowAccessibilityValue`.
+                .accessibilityHidden(true)
+        } else if showsBatteryPlaceholder {
+            // Same line height as the real level text so the row does not resize
+            // when the fresh battery reading replaces this bar.
+            Text(verbatim: "100%")
+                .font(.caption.monospacedDigit())
+                .hidden()
+                .overlay(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(Color.secondary.opacity(0.18))
+                        .frame(width: 54, height: 9)
+                }
                 .accessibilityHidden(true)
         }
     }

@@ -34,6 +34,14 @@
 `merged`、`built` 和 `released` 不是同义词；只有公开 Release 与 appcast 都
 核验完成，才可称为 `released`。
 
+## DMG 安装页
+
+package job 准备并检查 `create-dmg 1.3.0`；版本不符或 Finder 布局失败会明确停止，不回退为空白安装页。暂存目录只含 App，由 create-dmg 创建 Applications 拖放链接。背景包含双语拖拽、安装完成及从应用启动台打开的说明。
+
+背景源是 `scripts/generate-dmg-background.swift`，运行 `swift scripts/generate-dmg-background.swift assets/dmg` 可重建 1x/2x PNG。打包直接使用 1320×840、144 DPI 的 `background@2x.png`，逻辑尺寸为 660×420pt，不依赖 Finder 自动寻找同名资源。需要设计预览时附加 `--preview Support/AppIcon.png`，预览里的图标和标签不进入正式背景。
+
+`scripts/create-installer-dmg.sh` 在独占临时目录创建镜像；失败时根据 `hdiutil info -plist` 的 image-path 归属清理本次挂载，清理失败保留文件并报错。真实执行会使用 Finder AppleScript，需单独评估对用户桌面的影响。日常 `test-dmg-installer.sh`、公证回归和 full profile 都使用离线工具，不打开 Finder，不创建真实 DMG。真实 Finder 的 Retina、浅/深外观、拖放安装及启动入口仍需人工验收。
+
 ## 触发方式
 
 ### Formal release dispatch

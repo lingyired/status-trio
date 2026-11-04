@@ -8,6 +8,7 @@
 "menu.window" = "Окно";
 "menu.closeWindow" = "Закрыть окно";
 "menu.checkForUpdates" = "Проверить обновления…";
+"menu.openMenuBarSettings" = "Открыть настройки строки меню";
 "settings.title" = "Настройки";
 "settings.page.appearance" = "Оформление";
 "settings.page.general" = "Основные";
@@ -55,6 +56,20 @@
 "settings.tab.panel" = "Панель состояния";
 "settings.tab.about" = "О программе";
 "settings.menuBar.title" = "Значок в строке меню";
+"settings.appIcon.middleIcon.title" = "Центральный значок";
+"settings.appIcon.middleIcon.source" = "Центральный значок";
+"settings.appIcon.middleIcon.description" = "Выберите, что показывать в центре значка состояния. Одновременно отображается только один источник.";
+"settings.appIcon.middleIcon.network" = "Сеть";
+"settings.appIcon.middleIcon.bluetooth" = "Устройство Bluetooth";
+"settings.appIcon.middleIcon.inputSource" = "Текущий источник ввода";
+"settings.appIcon.middleIcon.batteryPercentage" = "Процент батареи";
+"settings.appIcon.middleIcon.power" = "Мощность (Вт)";
+"settings.appIcon.middleIcon.chargingStatus" = "Состояние зарядки";
+"settings.appIcon.middleIcon.chargingStatus.description" = "Показывает процент при работе от батареи, молнию при зарядке и вилку при подключении к сети; кольцо остаётся замкнутым.";
+"settings.appIcon.middleIcon.size" = "Размер центрального значка";
+"settings.appIcon.middleIcon.size.description" = "Единый размер для всего содержимого в центре: Wi-Fi, Bluetooth, источник ввода и числа.";
+"settings.appIcon.middleIcon.networkWarnings" = "Сначала проблемы сети";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Когда Mac действительно офлайн, в центре показывается состояние сети вместо выбранного источника.";
 "settings.network.connectionIcons" = "Стиль значков подключения";
 "settings.network.connectionIcons.description" = "Если включено, выбранное состояние отображается стандартным значком сигнала Wi-Fi вместо специального обозначения.";
 "settings.network.wifiIconForEthernet" = "Использовать значок Wi-Fi для Ethernet";
@@ -65,6 +80,8 @@
 "settings.network.centerSource.description" = "Выберите, что показывать в центре значка состояния. «Автоматически» сохраняет прежнее поведение сети и Bluetooth.";
 "settings.network.centerSource.automatic" = "Автоматически";
 "settings.network.centerSource.inputSource" = "Текущий источник ввода";
+"settings.network.centerSource.batteryPercentage" = "Процент батареи";
+"settings.network.centerSource.power" = "Мощность (Вт)";
 "settings.network.centerSource.bluetoothFallback" = "При выбранном источнике ввода значки Bluetooth и сети используются только как запасной вариант.";
 "settings.network.centerSource.networkWarnings" = "Сначала проблемы сети";
 "settings.network.centerSource.networkWarnings.description" = "Когда Mac действительно офлайн, в центре показывается состояние сети вместо источника ввода.";
@@ -121,9 +138,18 @@
 "settings.audio.maximumVisibleDescription" = "Сколько устройств вывода показывать до кнопки «Развернуть».";
 "settings.audio.showAll" = "Всегда показывать все устройства вывода";
 "settings.audio.showAllDescription" = "Игнорировать ограничение и показывать все доступные устройства вывода.";
+"settings.audio.showAllInput" = "Всегда показывать все устройства ввода";
+"settings.audio.showAllInputDescription" = "Игнорировать ограничение и показывать все доступные устройства ввода.";
+"settings.audio.maximumVisibleInput" = "Максимум видимых устройств ввода";
+"settings.audio.maximumVisibleInputDescription" = "Сколько устройств ввода показывать до кнопки «Развернуть».";
 "settings.audio.orderTitle" = "Порядок устройств вывода";
-"settings.audio.orderDescription" = "Перетаскивайте устройства, чтобы изменить порядок в панели громкости. Новые устройства добавляются в конец.";
+"settings.audio.orderDescription" = "Перетаскивайте устройства, чтобы изменить порядок в панели громкости. Снимите флажок с неиспользуемых устройств, чтобы скрыть их; активное устройство вывода всегда отображается. Новые устройства добавляются в конец.";
 "settings.audio.orderEmpty" = "Нет доступных устройств вывода.";
+"settings.audio.showDevice" = "Показывать на панели состояния";
+"settings.audio.inputOrderTitle" = "Порядок устройств ввода";
+"settings.audio.inputOrderDescription" = "Перетаскивайте устройства, чтобы изменить порядок в разделе «Звуковой вход». Снимите флажок с неиспользуемых устройств, чтобы скрыть их; текущее устройство ввода всегда отображается. Новые устройства добавляются в конец.";
+"settings.audio.inputOrderEmpty" = "Нет доступных устройств ввода.";
+"settings.audio.inputOrderSectionOff" = "Включите «Звуковой вход» в разделе Панель состояния › Отображаемые элементы, чтобы менять порядок устройств ввода или скрывать их.";
 "settings.about.version" = "Версия %@";
 "settings.about.description" = "Нативное приложение macOS, объединяющее Wi-Fi, аккумулятор и громкость в одном компактном значке строки меню. Вдохновлено объединённым значком строки состояния iPhone Duo: на Mac громкость заменяет сотовые данные.";
 "settings.about.project" = "Веб-сайт";
@@ -134,11 +160,12 @@
 "settings.about.starOnGitHub" = "Поставить звезду на GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Отображение батареи";
+"settings.battery.noBatteryNotice" = "На этом устройстве нет аккумулятора, поэтому уровень заряда по умолчанию отображается как 100.";
 "settings.battery.showPercentage" = "Показывать процент заряда";
-"settings.battery.showPercentageInConnectionSlot" = "Показывать процент заряда на месте подключения";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Заменяет значок Wi-Fi или подключения. Эта настройка не зависит от верхнего индикатора батареи.";
 "settings.battery.showChargingIndicator" = "Показывать значок при зарядке или питании от сети";
 "settings.battery.chargingDescription" = "Если включено, процент заменяется молнией или вилкой во время зарядки или при питании от сети.";
+"settings.battery.splitGapProgress" = "Делить прогресс при заполненном верхнем разрыве";
+"settings.battery.splitGapProgressDescription" = "Когда в верхнем разрыве показаны молния, вилка или процент, кольцо рисуется так, что левая половина — 0–50 %, а правая — 50–100 %, и разрыв больше не скрывает прогресс.";
 "settings.battery.chargingEffect" = "Эффект зарядки";
 "settings.battery.chargingEffectDescription" = "Анимирует подсветку только во время зарядки. Останавливается при включённом параметре «Уменьшение движения».";
 "settings.battery.menuBarChargingEffect" = "Эффект зарядки в строке меню";
@@ -149,15 +176,36 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "Отключите, чтобы молния сохранила обычный размер и цвет; эффект дуги зарядки продолжит работать.";
 "settings.battery.chargingEffectTest" = "Проверить анимацию зарядки";
 "settings.battery.chargingEffectTestDescription" = "Сборка для разработки: работает без зарядки. Режим проверки выключится после перезапуска.";
-"settings.battery.percentageWhenConnected" = "Показывать процент при питании от сети без зарядки";
-"settings.battery.percentageWhenConnectedDescription" = "Если включено, при питании от сети без зарядки показывается процент вместо вилки.";
+"settings.battery.connectedIndicator" = "Показывать при питании без зарядки";
+"settings.battery.connectedIndicatorDescription" = "Что показывает значок батареи, когда Mac подключён к питанию, но не заряжается: вилка, молния или процент.";
+"settings.battery.connectedIndicator.plug" = "Вилка";
+"settings.battery.connectedIndicator.bolt" = "Молния";
+"settings.battery.connectedIndicator.percentage" = "Процент";
 "settings.battery.symbolScale" = "Размер процента и молнии";
 "settings.battery.symbolScaleAccessibility" = "Размер процента батареи и молнии";
 "settings.battery.symbolScaleDescription" = "Процент и молния используют один размер.";
 "settings.battery.statusColors" = "Окрашивать дугу по состоянию батареи";
-"settings.battery.statusColorsDescription" = "Низкий заряд — красный, режим энергосбережения — жёлтый, зарядка или питание от сети — зелёный.";
+"settings.battery.statusColorsDescription" = "По умолчанию: питание от сети — зелёный, энергосбережение — жёлтый, низкий заряд — красный. Цвета можно изменить ниже. При выключении сохранённые свои цвета не применяются.";
+"settings.battery.colors.charging" = "Зарядка / питание от сети";
+"settings.battery.colors.lowPower" = "Режим энергосбережения";
+"settings.battery.colors.critical" = "Критически низкий заряд";
+"settings.battery.colors.system" = "По умолчанию системы";
+"settings.battery.colors.custom" = "Свой цвет";
+"settings.battery.colors.mint" = "Мятный";
+"settings.battery.colors.sky" = "Небесный";
+"settings.battery.colors.lavender" = "Лавандовый";
+"settings.battery.colors.amber" = "Янтарный";
+"settings.battery.colors.rose" = "Розовый";
+"settings.battery.colors.slate" = "Сланцевый";
+"settings.battery.colors.reset" = "Сбросить";
+"settings.battery.colors.resetAll" = "Сбросить все цвета";
+"settings.battery.colors.inactive" = "Цвета состояний выключены. Ваш выбор сохранён и будет применён после включения.";
+"settings.battery.colors.referenceContrast" = "Минимальный эталонный контраст · %.2f:1";
+"settings.battery.colors.previews" = "Просмотр цветов в светлом и тёмном оформлении";
+"settings.battery.colors.adjusted" = "Скорректировано для видимости";
+"settings.battery.colors.referenceDescription" = "Свой цвет общий для обоих оформлений и при необходимости корректируется до 1.2:1. Системные и готовые цвета не меняются. Контраст — минимум на белом и чёрном фоне и их дорожках дуги; с реальными обоями результат может отличаться.";
 "settings.battery.criticalThreshold" = "Порог низкого заряда";
-"settings.battery.criticalThresholdDescription" = "Уровни ниже этого порога считаются низкими и отображаются красным.";
+"settings.battery.criticalThresholdDescription" = "Ниже этого порога используется цвет критически низкого заряда.";
 "settings.battery.fullThreshold" = "Уровень полного кольца";
 "settings.battery.fullThresholdDescription" = "Кольцо батареи считается заполненным на этом уровне. Полезно, когда ограничение заряда удерживает батарею ниже 100%.";
 "settings.battery.fullThresholdUseChargeLimit" = "Взять ограничение заряда";
@@ -166,6 +214,8 @@
 "settings.updates.automatic" = "Автоматически проверять обновления";
 "settings.updates.check" = "Проверить обновления…";
 "battery.title" = "Батарея · %d%%";
+"battery.title.power" = "Мощность · %d Вт";
+"battery.title.powerUnavailable" = "Мощность · Недоступно";
 "battery.state.notPresent" = "Батарея отсутствует";
 "battery.state.charged" = "Полностью заряжена";
 "battery.state.calculatingTimeToFull" = "Расчёт времени до полного заряда";
@@ -217,7 +267,7 @@
 "vpn.subtitle.systemProxy" = "Системный прокси";
 "vpn.subtitle.connectedWithProxy" = "Подключено · прокси %@";
 "vpn.subtitle.proxyAutomatic" = "Автонастройка";
-"wifi.action.requestNameAccess" = "Разрешить геолокацию для показа имени Wi‑Fi";
+"wifi.action.requestNameAccess" = "Разрешить геолокацию для показа сетей Wi‑Fi";
 "wifi.action.openLocationSettings" = "Разрешить геолокацию в Настройках";
 "wifi.action.openSettings" = "Открыть настройки Wi‑Fi";
 "wifi.action.switchingHint" = "Выбор сети открывает панель Wi-Fi в «Системных настройках».";
@@ -232,6 +282,11 @@
 "settings.network.panelGroup" = "Панель";
 "settings.network.showLocalIP" = "Показывать локальный IP";
 "settings.network.showLocalIP.description" = "Показывает частный адрес локальной сети этого Mac в строке сети, перед сведениями Wi-Fi.";
+
+"settings.network.permissionNotDeterminedTitle" = "Необходимо разрешение на геолокацию";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio нужен доступ к геолокации, чтобы показывать сети Wi‑Fi. Нажмите ниже, чтобы разрешить его.";
+"settings.network.permissionDeniedTitle" = "Разрешение на геолокацию выключено";
+"settings.network.permissionDeniedDescription" = "Без доступа к геолокации сети Wi‑Fi не отображаются. Включите его в Системных настройках.";
 "settings.audio.externalVolume.title" = "Громкость внешнего дисплея";
 "settings.audio.externalVolume.controlMethod" = "Способ управления";
 "settings.audio.externalVolume.controlMethodDescription" = "Если элементы управления громкостью на панели состояния не управляют этим устройством, используйте BetterDisplay.";
@@ -243,7 +298,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "Недоступный дисплей";
 "settings.audio.externalVolume.refresh" = "Обнаружить снова";
 "settings.audio.externalVolume.requirements" = "Если подключение не удаётся, включите доступ к CLI и интеграцию на основе уведомлений в настройках BetterDisplay.";
-"settings.audio.externalVolume.footnote" = "Собственное управление громкостью macOS имеет приоритет. Выбранный способ используется, когда собственное управление недоступно.";
+"settings.audio.externalVolume.footnote" = "Собственное управление громкостью macOS имеет приоритет. Выбранный способ используется, когда собственное управление недоступно. Бесплатной версии BetterDisplay достаточно; лицензия Pro не нужна.";
 "settings.audio.externalVolume.noStableOutput" = "У текущего выхода нет стабильного аудио-ID, поэтому для него нельзя настроить BetterDisplay.";
 "settings.audio.externalVolume.status.ready" = "Подключено. Управление громкостью доступно.";
 "settings.audio.externalVolume.status.idle" = "Нет подключения.";
@@ -277,6 +332,8 @@
 "volume.output.unknownDevice" = "Неизвестное выходное устройство";
 "volume.output.expand" = "Развернуть";
 "volume.output.collapse" = "Свернуть";
+"audioInput.expand" = "Развернуть";
+"audioInput.collapse" = "Свернуть";
 "volume.action.openSettings" = "Открыть настройки звука";
 "volume.accessibility.label" = "Громкость";
 "audioInput.title" = "Микрофон";
@@ -318,6 +375,13 @@
 "inputSource.switchFailed" = "Не удалось переключиться на «%@». Выберите его напрямую или повторите попытку.";
 "inputSource.switchUnconfirmed" = "macOS приняла «%@», но по-прежнему сообщает о другом источнике ввода. Возможно, активному приложению нужен фокус.";
 "settings.popup.order.inputSource" = "Источник ввода";
+"settings.panel.background.title" = "Фон панели";
+"settings.panel.background.style" = "Стиль фона";
+"settings.panel.background.style.description" = "Выберите способ отрисовки фона панели состояния.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "Классический материал";
+"settings.panel.background.style.solid" = "Сплошной цвет";
+"settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass требует macOS 26 или новее.";
 "settings.popup.volumeScroll.group" = "Прокрутка панели";
 "settings.popup.volumeScroll" = "Регулировать громкость прокруткой";
 "settings.popup.volumeScroll.description" = "Прокручивайте внутри панели состояния, чтобы изменить громкость вывода.";
@@ -327,6 +391,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Только регулятор громкости";
 "settings.popup.volumeScroll.natural" = "Естественная прокрутка";
 "settings.popup.volumeScroll.natural.description" = "Если включено, прокрутка вверх мышью или трекпадом увеличивает громкость. Если выключено, громкость следует направлению прокрутки системы. Если после включения этой опции прокрутка мыши вверх всё ещё уменьшает громкость, настройте MOS, Scroll Reverser, LinearMouse или похожее приложение так, чтобы Status Trio оставался без изменений, обычно через список исключений/игнорирования (иногда называемый списком разрешённых).";
+"settings.audio.volumeFeedbackTitle" = "Обратная связь громкости";
+"settings.audio.volumeFeedback" = "Звук при изменении громкости прокруткой";
+"settings.audio.volumeFeedbackDescription" = "Воспроизводит звук при изменении громкости прокруткой. По умолчанию используется параметр macOS «Воспроизводить звук при изменении громкости»; переключатель здесь действует только для Status Trio.";
 "settings.popup.volumeScroll.direction" = "Направление прокрутки";
 "settings.popup.volumeScroll.direction.description" = "Выберите направление, увеличивающее громкость.";
 "settings.popup.volumeScroll.direction.up" = "Вверх";
@@ -430,6 +497,7 @@
 // On-demand battery details.
 "battery.details.title" = "Сведения об аккумуляторе";
 "battery.details.systemPower" = "Мощность системы (оценка)";
+"battery.details.watt" = "Мощность";
 "battery.details.systemReadAt" = "Время чтения системы";
 "battery.details.power" = "Мощность аккумулятора (оценка)";
 "battery.details.charging" = "Зарядка (оценка)";
@@ -446,7 +514,8 @@
 "battery.details.unavailable" = "Недоступно";
 "battery.details.collecting" = "Измерение…";
 "battery.details.loading" = "Обновление…";
-"battery.details.explanation" = "Мощность оценивается независимыми датчиками; показания могут запаздывать или различаться. Номинал адаптера не равен фактическому входу. При работе от батареи показан чистый разряд. На некоторых моделях задержка обновления батареи — около минуты.";
+"battery.details.explanation" = "Значения мощности являются оценкой; сбор данных может задерживаться до минуты.";
+"battery.details.info" = "Об этих показаниях";
 /* Compact popover controls. */
 "menu.more" = "Другие действия";
 
@@ -543,11 +612,30 @@
 // Battery panel power flow and application energy
 "settings.battery.powerFlow" = "Потоки мощности в панели батареи";
 "settings.battery.powerFlow.description" = "Мощность обновляется только при открытой панели батареи. Данные датчиков могут запаздывать, поэтому сумма трёх показаний может различаться.";
+"settings.battery.breakdown" = "Разбить мощность по компонентам";
+"settings.battery.breakdown.description" = "Делит входную мощность адаптера на встроенный дисплей, выход USB и остальную нагрузку системы (включая SoC). Недоступные значения скрываются; если разбить нельзя, снова показывается мощность системы.";
+"settings.battery.powerInfoBar" = "Строка мощности";
+"settings.battery.powerFlowDiagram" = "Схема потока мощности";
+"settings.battery.powerFlowDiagramDescription" = "Показывает схему потока мощности (вход / батарея / система) на странице сведений о батарее.";
+"settings.battery.powerInfoBarDescription" = "Показывает мощность входа, батареи и системы под модулем батареи при открытой панели. По умолчанию выключено.";
 "settings.battery.energyRefreshInterval" = "Интервал фонового сбора";
 "settings.battery.energyRefreshInterval.description" = "Используется при закрытой панели. Страница сведений об аккумуляторе по-прежнему обновляется каждые 5 секунд.";
 "battery.power.input" = "От зарядки";
+"battery.power.source.battery" = "Аккумулятор";
 "battery.power.charging" = "В батарею";
 "battery.power.system" = "Система";
+"battery.power.system.help" = "Мощность системы (вкл. SoC)";
+"battery.power.system.explanation" = "«Система» — это остаток после зарядки аккумулятора, дисплея и USB: SoC, память, контроллеры дисплея и другие независимо не измеренные нагрузки.";
+"power.infoBar.input" = "Вход зарядного устройства";
+"power.infoBar.noInput" = "Нет питания";
+"power.infoBar.battery" = "Заряд батареи";
+"power.infoBar.discharging" = "Разряд аккумулятора";
+"power.infoBar.system" = "Мощность системы";
+"power.infoBar.notCharging" = "Не заряжается";
+"battery.power.display" = "Дисплей";
+"battery.power.usb" = "USB-выход";
+"battery.power.soc" = "SoC";
+"battery.power.other" = "Прочее";
 "battery.energy.apps" = "Влияние энергопотребления CPU";
 "battery.energy.empty" = "В этом замере нет заметной активности приложений.";
 "battery.energy.cpuExplanation" = "Сортировка по счётчикам энергии CPU приложений, доступных текущему пользователю; это не составное влияние на энергопотребление из Монитора активности. GPU и системные процессы могут не учитываться.";
@@ -555,6 +643,8 @@
 "battery.energy.monitoringDescription" = "Если включено, активность приложений измеряется в фоне даже при закрытой панели. Сбор приостанавливается при отключении, во время сна системы или экрана и при выходе из Status Trio.";
 "settings.battery.showChargeToFullNow" = "Показывать кнопку «Зарядить полностью сейчас»";
 "settings.battery.showChargeToFullNowDescription" = "Показывает в панели состояния кнопку, которая временно снимает ограничение зарядки macOS и заряжает до 100 %.";
+"settings.battery.restoreLimit" = "Предел после отмены";
+"settings.battery.restoreLimitDescription" = "Предел зарядки, восстанавливаемый при отмене «Зарядить полностью сейчас».";
 "battery.action.chargeToFullNow" = "Зарядить полностью сейчас";
 "battery.action.chargeToFullNowApplying" = "Запрос полной зарядки…";
 "battery.action.chargeToFullNowCharging" = "Зарядка до 100 %";
@@ -562,7 +652,9 @@
 "battery.action.chargeToFullNowUnavailable" = "«Зарядить полностью сейчас» сейчас недоступно.";
 "battery.action.cancelChargeToFullNow" = "Отменить полную зарядку";
 "battery.action.cancelChargeToFullNowApplying" = "Восстановление лимита зарядки…";
-"battery.action.cancelChargeToFullNowFailed" = "Не удалось восстановить лимит зарядки: %@";
+"battery.action.cancelChargeToFullNowFailed" = "Не удалось восстановить лимит зарядки. Повторите попытку.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "Системный лимит зарядки изменился. Проверьте лимит восстановления в настройках и повторите попытку.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "Системный лимит зарядки — %1$d%%. Восстановить до %2$d%%?";
 "battery.action.cancelChargeToFullNowRestored" = "Лимит зарядки восстановлен до %d%%";
 "battery.action.cancelChargeToFullNowFallback" = "Лимит зарядки установлен на %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "Подтвердить восстановление до %d%%";
@@ -588,3 +680,71 @@
 "airPods.spatialHeadTracked" = "Отслеживание головы";
 
 "airpods.retry" = "Повторить";
+"settings.popup.order.brightness" = "Яркость";
+"brightness.row.accessibility" = "Яркость %@, %@";
+"brightness.row.accessibilityUnavailable" = "Яркость %@, %@";
+"brightness.unavailable" = "Недоступно";
+"brightness.appAbsent" = "Требуется BetterDisplay";
+"brightness.noBackend" = "Нет управления яркостью";
+"brightness.unresponsive" = "Не отвечает";
+"brightness.backend.directDDC" = "Прямой DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Отключите дисплей, чтобы скрыть его строку яркости.";
+"settings.brightness.backend" = "Бэкенд яркости";
+// About: community, author social links and more apps
+"settings.about.social.title" = "Подписаться на автора";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "Блог";
+"settings.about.community.title" = "Сообщество";
+"settings.about.community.qq" = "Группа QQ";
+"settings.about.community.qqDescription" = "Присоединяйтесь к группе Status Trio для вопросов и отзывов.";
+"settings.about.community.wechat" = "Группа WeChat";
+"settings.about.community.wechatDescription" = "Отсканируйте в WeChat, чтобы присоединиться к группе Status Trio. QR-код периодически обновляется; актуальный — в README на GitHub.";
+"settings.about.community.copy" = "Копировать";
+"settings.about.community.copied" = "Скопировано";
+"settings.about.moreApps.title" = "Другие работы автора";
+"settings.about.moreApps.open" = "Открыть";
+"settings.about.moreApps.newtab01Description" = "Новая вкладка на основе закладок: открывайте папки как группы вкладок или в разделённом виде, с несколькими темами.";
+"settings.about.moreApps.noLazyloadDescription" = "Отключите ленивую загрузку изображений в браузере, чтобы страница загружала все изображения сразу — без прокрутки.";
+"settings.about.moreApps.fund01Description" = "Мониторинг портфеля фондов: дневное изменение всегда в строке меню или на панели задач, несколько групп обновляются в реальном времени.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";
+
+"guide.partPosition.battery" = "Top arc";
+"guide.partPosition.network" = "Middle icon";
+"guide.partPosition.volume" = "Bottom dots";
+"guide.network.center" = "Change what the middle icon shows in Settings › Network › Middle Slot — battery, power, input source, or Bluetooth audio.";
+
+"guide.state.chargingBatteryCenter" = "Charging + Battery %";
+"guide.state.fullPowerCenter" = "Full + Power";
+"guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "Действие при правом клике";
+"settings.menuBarRightClickAction.description" = "Что делает значок в строке меню при щелчке правой кнопкой.";
+"settings.menuBarRightClickAction.contextMenu" = "Показать контекстное меню";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "Переключить режим энергосбережения";
+"settings.menuBarRightClickAction.chargeToFullNow" = "Зарядить до 100% сейчас";
+"settings.menuBarRightClickAction.toggleMute" = "Переключить без звука";
+"settings.menuBarRightClickAction.unavailableHint" = "Выбранное действие сейчас недоступно; при правом клике откроется меню.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "Переключить Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "Обновить состояние";
+"settings.menuBarRightClickAction.openWiFiSettings" = "Открыть настройки Wi-Fi";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "Открыть настройки Bluetooth";
+"settings.menuBarRightClickAction.openBatterySettings" = "Открыть настройки аккумулятора";
+"settings.menuBarRightClickAction.openSoundSettings" = "Открыть настройки звука";
+
+"settings.tab.brightness" = "Яркость";
+"settings.brightness.group.title" = "Подключённые дисплеи";
+"settings.brightness.empty" = "Подключённых дисплеев нет.";
+"settings.brightness.builtIn" = "Встроенный";
+"settings.brightness.internalBackend.description" = "Яркость встроенного дисплея использует бэкенд DisplayServices.";
+"settings.brightness.externalBackend.description" = "Выберите, как Status Trio управляет яркостью этого дисплея.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay не запущен или его интеграция с уведомлениями отключена.";
+"settings.brightness.compatibility.title" = "Не регулируется яркость?";
+"settings.brightness.compatibility.description" = "Производители реализуют DDC по-разному, поэтому Status Trio не может поддерживать все модели. Если яркость дисплея здесь не регулируется, переключите его на бэкенд BetterDisplay — Status Trio будет управлять им через BetterDisplay. Бесплатной версии достаточно; лицензия Pro не нужна.";
+"settings.brightness.compatibility.link" = "Скачать BetterDisplay (бесплатно)";

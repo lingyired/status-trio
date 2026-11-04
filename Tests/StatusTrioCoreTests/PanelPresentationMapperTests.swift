@@ -19,9 +19,250 @@ final class PanelPresentationMapperTests: XCTestCase {
         XCTAssertEqual(row.intent, .none)
         XCTAssertFalse(row.showsSettings)
         XCTAssertEqual(row.symbol, .symbol(name: "battery.slash", variableValue: nil, fallback: nil))
-        XCTAssertEqual(row.title, "Battery · 100%")
+        XCTAssertEqual(row.title, "Power · Unavailable")
         XCTAssertEqual(row.subtitle, "No battery")
         XCTAssertEqual(row.tint, .secondary)
+    }
+
+    func testAbsentBatteryShowsWholeMachinePowerWhenReadable() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let battery = BatteryStatus(
+            rawPercentage: nil,
+            isPresent: false,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: false
+        )
+        let sample = SystemPowerSample(watts: 23.6, readAt: now)
+
+        let row = PanelPresentationMapper.battery(
+            battery,
+            powerSample: sample,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+
+        XCTAssertEqual(row.title, "Power · 24 W")
+        XCTAssertEqual(row.subtitle, "No battery")
+        XCTAssertEqual(row.intent, .batteryDetails)
+        XCTAssertTrue(row.showsSettings)
+    }
+
+    func testAbsentBatteryRejectsAStalePowerReading() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let battery = BatteryStatus(
+            rawPercentage: nil,
+            isPresent: false,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: false
+        )
+        let stale = SystemPowerSample(watts: 23.6, readAt: now.addingTimeInterval(-120))
+
+        let row = PanelPresentationMapper.battery(
+            battery,
+            powerSample: stale,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+
+        XCTAssertEqual(row.title, "Power · Unavailable")
+        XCTAssertEqual(row.intent, .none)
+        XCTAssertFalse(row.showsSettings, "A disabled entry must explain itself instead of opening an empty page")
+    }
+
+    func testPowerInfoBarShowsEachRailIndependentlyOnlyWhenEnabled() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+        let input = SystemPowerSample(watts: 30.2, readAt: now)
+        let system = SystemPowerSample(watts: 18.0, readAt: now)
+        let batteryPower = BatteryPowerSample(volts: 12, amps: 1.0, updatedAt: now)
+
+        let on = PanelPresentationMapper.battery(
+            battery,
+            powerSample: system,
+            inputPower: input,
+            batteryPower: batteryPower,
+            showsPowerInfoBar: true,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+        XCTAssertEqual(on.powerInfoBar?.items.map(\.kind), [.input, .batteryCharging, .system])
+        XCTAssertEqual(on.powerInfoBar?.items.map(\.value), ["30.2 W", "12.0 W", "18.0 W"])
+
+        let off = PanelPresentationMapper.battery(
+            battery,
+            powerSample: system,
+            inputPower: input,
+            batteryPower: batteryPower,
+            showsPowerInfoBar: false,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+        XCTAssertNil(off.powerInfoBar, "The info bar must stay hidden until the setting is on")
+    }
+
+    func testPowerInfoBarReservesSkeletonRailsUntilTheFirstRead() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+
+        let loading = PanelPresentationMapper.battery(
+            battery,
+            showsPowerInfoBar: true,
+            powerInfoBarIsLoading: true,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+        XCTAssertEqual(loading.powerInfoBar?.items.count, 0)
+        XCTAssertEqual(loading.powerInfoBar?.placeholderKinds, [.input, .batteryIdle, .system])
+        XCTAssertFalse(loading.powerInfoBar?.isEmpty ?? true)
+
+        let settled = PanelPresentationMapper.battery(
+            battery,
+            showsPowerInfoBar: true,
+            powerInfoBarIsLoading: false,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+        XCTAssertNil(settled.powerInfoBar, "No rails and no longer loading means no bar")
+    }
+
+    func testPowerInfoBarSkeletonOmitsTheBatteryRailWithoutABattery() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let battery = BatteryStatus(rawPercentage: 0, isPresent: false, isCharging: false,
+                                    isLowPowerMode: false, isConnectedToPower: false)
+
+        let loading = PanelPresentationMapper.battery(
+            battery,
+            showsPowerInfoBar: true,
+            powerInfoBarIsLoading: true,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+        XCTAssertEqual(loading.powerInfoBar?.placeholderKinds, [.input, .system])
+    }
+
+    func testPowerInfoBarSaysNotChargingAtZeroBatteryWatts() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let localization = makeLocalization(.english)
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+        let idleBattery = BatteryPowerSample(volts: 12, amps: 0, updatedAt: now)
+
+        let row = PanelPresentationMapper.battery(
+            battery,
+            batteryPower: idleBattery,
+            showsPowerInfoBar: true,
+            now: now,
+            localization: localization
+        )
+
+        let batteryItem = row.powerInfoBar?.items.first { $0.kind == .batteryIdle }
+        XCTAssertEqual(batteryItem?.value, "0.0 W",
+                       "The big number keeps the wattage; the idle note belongs in the title")
+        XCTAssertEqual(batteryItem?.title, .powerInfoBarNotCharging)
+    }
+
+    func testPowerInfoBarSaysNoAdapterWhenLaptopIsOnBattery() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let localization = makeLocalization(.english)
+        let onBattery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
+                                      isLowPowerMode: false, isConnectedToPower: false)
+
+        let row = PanelPresentationMapper.battery(
+            onBattery,
+            inputPower: SystemPowerSample(watts: 0, readAt: now),
+            batteryPower: BatteryPowerSample(volts: 12, amps: -0.7, updatedAt: now),
+            showsPowerInfoBar: true,
+            now: now,
+            localization: localization
+        )
+
+        let inputItem = row.powerInfoBar?.items.first { $0.kind == .inputDisconnected }
+        XCTAssertEqual(inputItem?.value, localization.string(.powerInfoBarNoInput),
+                       "A fresh 0 W adapter sample on battery must not read as an idle charger")
+        XCTAssertEqual(inputItem?.title, .powerInfoBarInput)
+        XCTAssertNil(row.powerInfoBar?.items.first { $0.kind == .input },
+                     "The connected-input card must not also be present")
+    }
+
+    func testPowerInfoBarKeepsInputReadingOnABatteryLessMac() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let noBattery = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                      isLowPowerMode: false, isConnectedToPower: false)
+
+        let row = PanelPresentationMapper.battery(
+            noBattery,
+            inputPower: SystemPowerSample(watts: 0, readAt: now),
+            showsPowerInfoBar: true,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+
+        let inputItem = row.powerInfoBar?.items.first { $0.kind == .input }
+        XCTAssertEqual(inputItem?.value, "0.0 W",
+                       "Without a battery there is no on-battery state; keep the real reading")
+    }
+
+    func testPowerInfoBarBatteryCardFollowsPowerDirection() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let localization = makeLocalization(.english)
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: true,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+
+        func batteryItem(amps: Double) -> PowerInfoBarItem? {
+            let row = PanelPresentationMapper.battery(
+                battery,
+                batteryPower: BatteryPowerSample(volts: 12, amps: amps, updatedAt: now),
+                showsPowerInfoBar: true,
+                now: now,
+                localization: localization
+            )
+            return row.powerInfoBar?.items.first { $0.kind == .batteryCharging
+                || $0.kind == .batteryDischarging || $0.kind == .batteryIdle }
+        }
+
+        // Positive current is charging: bolt glyph, green, "Battery charging".
+        let charging = batteryItem(amps: 1.0)
+        XCTAssertEqual(charging?.kind, .batteryCharging)
+        XCTAssertEqual(charging?.value, "12.0 W")
+        XCTAssertEqual(charging?.title, .powerInfoBarBattery)
+
+        // Negative current is discharging. The number stays the magnitude, but
+        // the direction must reach the label instead of claiming a charge.
+        let discharging = batteryItem(amps: -0.5)
+        XCTAssertEqual(discharging?.kind, .batteryDischarging)
+        XCTAssertEqual(discharging?.value, "6.0 W")
+        XCTAssertEqual(discharging?.title, .powerInfoBarDischarging)
+        XCTAssertNotEqual(discharging?.title, .powerInfoBarBattery,
+                          "A discharging pack must never read as charging")
+
+        // A pack at rest is idle, not charging, and still shows its wattage.
+        let idle = batteryItem(amps: 0)
+        XCTAssertEqual(idle?.kind, .batteryIdle)
+        XCTAssertEqual(idle?.value, "0.0 W")
+        XCTAssertEqual(idle?.title, .powerInfoBarNotCharging)
+    }
+
+    func testPowerInfoBarHidesBatteryAndMissingRails() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let noBattery = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                      isLowPowerMode: false, isConnectedToPower: false)
+        let input = SystemPowerSample(watts: 30.2, readAt: now)
+
+        let row = PanelPresentationMapper.battery(
+            noBattery,
+            powerSample: nil,
+            inputPower: input,
+            batteryPower: BatteryPowerSample(volts: 12, amps: 1.0, updatedAt: now),
+            showsPowerInfoBar: true,
+            now: now,
+            localization: makeLocalization(.english)
+        )
+        XCTAssertEqual(row.powerInfoBar?.items.map(\.kind), [.input],
+                       "A no-battery Mac hides the battery rail; missing system power is absent")
     }
 
     func testBatterySummaryUsesTwentyPercentCriticalBoundary() {
@@ -69,6 +310,15 @@ final class PanelPresentationMapperTests: XCTestCase {
                 localization.string(.batteryStateCalculatingTimeToFull)
             )
         }
+
+        XCTAssertEqual(
+            PanelPresentationMapper.battery(
+                connectedNotYetCharging,
+                localization: localization,
+                chargeToFullNow: .limitRestored(limit: 95)
+            ).subtitle,
+            localization.string(.batteryStateConnectedToPower)
+        )
 
         let charging = makeBattery(percentage: 80, isCharging: true, isConnectedToPower: true)
         XCTAssertEqual(
@@ -157,8 +407,8 @@ final class PanelPresentationMapperTests: XCTestCase {
             isResolvingName: false,
             localization: localization
         )
-        XCTAssertEqual(needsPermission.subtitle, "Allow location to show Wi-Fi name")
-        XCTAssertEqual(needsPermission.intent, .requestWiFiNameAccess)
+        XCTAssertEqual(needsPermission.subtitle, "Connected · -58 dBm")
+        XCTAssertEqual(needsPermission.intent, .wifiDetails)
 
         let denied = PanelPresentationMapper.network(
             wifi: WiFiStatus(state: .connected, rssi: -58, nameAccess: .denied),
@@ -168,7 +418,43 @@ final class PanelPresentationMapperTests: XCTestCase {
             isResolvingName: false,
             localization: localization
         )
-        XCTAssertEqual(denied.intent, .locationSettings)
+        XCTAssertEqual(denied.intent, .wifiDetails)
+    }
+
+    func testUnauthorizedNameDoesNotHideTheConnectionState() {
+        let localization = makeLocalization(.english)
+        for access in [WiFiNameAccess.denied, .restricted, .notDetermined] {
+            let row = PanelPresentationMapper.network(
+                wifi: WiFiStatus(
+                    state: .connected,
+                    rssi: -50,
+                    nameAccess: access,
+                    band: .fiveGHz
+                ),
+                connection: .wifi,
+                wired: nil,
+                isConstrained: false,
+                isResolvingName: false,
+                localIPAddress: "192.168.1.20",
+                localization: localization
+            )
+            XCTAssertEqual(row.title, "Wi-Fi")
+            XCTAssertEqual(row.subtitle, "192.168.1.20 · Connected · 5 GHz · -50 dBm")
+            XCTAssertEqual(row.measurements, "192.168.1.20 · 5 GHz · -50 dBm")
+            XCTAssertEqual(row.accessibilityValue, "192.168.1.20 · 5 GHz · -50 dBm")
+            XCTAssertEqual(row.intent, .wifiDetails)
+        }
+
+        let notAssociated = PanelPresentationMapper.network(
+            wifi: WiFiStatus(state: .notAssociated, rssi: nil, nameAccess: .denied),
+            connection: .wifi,
+            wired: nil,
+            isConstrained: false,
+            isResolvingName: false,
+            localization: localization
+        )
+        XCTAssertEqual(notAssociated.subtitle, localization.string(.wifiSubtitleNotAssociated))
+        XCTAssertEqual(notAssociated.intent, .wifiDetails)
     }
 
     /// The address rides at the front of the second line, and the Wi-Fi band and
@@ -216,8 +502,8 @@ final class PanelPresentationMapperTests: XCTestCase {
             localization: localization
         )
 
-        XCTAssertEqual(row.subtitle, "Allow location to show Wi-Fi name · 192.168.1.20")
-        XCTAssertEqual(row.intent, .requestWiFiNameAccess)
+        XCTAssertEqual(row.subtitle, "192.168.1.20 · Connected · 5 GHz · -58 dBm")
+        XCTAssertEqual(row.intent, .wifiDetails)
     }
 
     func testWiFiLocationSettingsActionLeadsTheLocalIPAddress() {
@@ -239,9 +525,9 @@ final class PanelPresentationMapperTests: XCTestCase {
 
         XCTAssertEqual(
             row.subtitle,
-            "\(localization.string(.wifiActionOpenLocationSettings)) · 192.168.1.20"
+            "192.168.1.20 · Connected · 5 GHz · -58 dBm"
         )
-        XCTAssertEqual(row.intent, .locationSettings)
+        XCTAssertEqual(row.intent, .wifiDetails)
     }
 
     func testLocalIPIsAbsentWhenTheRowIsNotGivenOne() {

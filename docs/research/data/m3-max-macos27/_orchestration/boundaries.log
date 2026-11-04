@@ -1,0 +1,74 @@
+2026-10-30T23:03:26+0800 mono=199993.958385 RUN_START mode=real planned=505s
+2026-10-30T23:03:26+0800 mono=199994.082548 PHASE_START name=01-idle-baseline dur=30s loader=none out=01-idle-baseline-20261030T230326.jsonl
+2026-10-30T23:03:26+0800 mono=199994.224427 SAMPLER_START name=01-idle-baseline pid=49470 seconds=35 (load 30s + tail 5s)
+2026-10-30T23:03:26+0800 mono=199994.246401 LOAD_START name=01-idle-baseline pids='none' spec=none
+2026-10-30T23:03:42+0800 mono=200010.178276 MID_SNAPSHOT name=01-idle-baseline at_elapsed=15.78s
+2026-10-30T23:04:02+0800 mono=200030.063148 SAMPLER_END name=01-idle-baseline rc=0
+2026-10-30T23:04:02+0800 mono=200030.188497 PHASE_END name=01-idle-baseline sampler_rc=0
+2026-10-30T23:04:02+0800 mono=200030.201343 BUFFER_START 10s between idle-baseline
+2026-10-30T23:04:13+0800 mono=200040.339098 BUFFER_END idle-baseline
+2026-10-30T23:04:13+0800 mono=200040.352836 PHASE_START name=02-cpu-light dur=45s loader=cpu:2 out=02-cpu-light-20261030T230326.jsonl
+2026-10-30T23:04:13+0800 mono=200040.517934 SAMPLER_START name=02-cpu-light pid=58930 seconds=50 (load 45s + tail 5s)
+2026-10-30T23:04:13+0800 mono=200040.528864 LOAD_START name=02-cpu-light pids='58935' spec=cpu:2
+2026-10-30T23:04:36+0800 mono=200063.715675 MID_SNAPSHOT name=02-cpu-light at_elapsed=23.03s
+2026-10-30T23:04:58+0800 mono=200085.614063 LOAD_END_OBSERVED name=02-cpu-light (post-load tail 5s still sampling)
+2026-10-30T23:05:03+0800 mono=200090.831732 SAMPLER_END name=02-cpu-light rc=0
+2026-10-30T23:05:03+0800 mono=200090.968196 PHASE_END name=02-cpu-light sampler_rc=0
+2026-10-30T23:05:03+0800 mono=200090.980563 BUFFER_START 10s between cpu-light
+2026-10-30T23:05:13+0800 mono=200101.113896 BUFFER_END cpu-light
+2026-10-30T23:05:13+0800 mono=200101.127645 PHASE_START name=03-cpu-medium dur=60s loader=cpu:6 out=03-cpu-medium-20261030T230326.jsonl
+2026-10-30T23:05:13+0800 mono=200101.267860 SAMPLER_START name=03-cpu-medium pid=70758 seconds=65 (load 60s + tail 5s)
+2026-10-30T23:05:13+0800 mono=200101.277851 LOAD_START name=03-cpu-medium pids='70763' spec=cpu:6
+2026-10-30T23:05:44+0800 mono=200131.820309 MID_SNAPSHOT name=03-cpu-medium at_elapsed=30.39s
+2026-10-30T23:06:14+0800 mono=200162.081516 LOAD_END_OBSERVED name=03-cpu-medium (post-load tail 5s still sampling)
+2026-10-30T23:06:19+0800 mono=200167.291967 SAMPLER_END name=03-cpu-medium rc=0
+2026-10-30T23:06:20+0800 mono=200167.425333 PHASE_END name=03-cpu-medium sampler_rc=0
+2026-10-30T23:06:20+0800 mono=200167.438032 BUFFER_START 10s between cpu-medium
+2026-10-30T23:06:30+0800 mono=200177.575460 BUFFER_END cpu-medium
+2026-10-30T23:06:30+0800 mono=200177.588526 PHASE_START name=03b-memory-bandwidth dur=40s loader=mem out=03b-memory-bandwidth-20261030T230326.jsonl
+2026-10-30T23:06:30+0800 mono=200177.725711 SAMPLER_START name=03b-memory-bandwidth pid=86052 seconds=45 (load 40s + tail 5s)
+2026-10-30T23:06:30+0800 mono=200177.735771 LOAD_START name=03b-memory-bandwidth pids='86058' spec=mem
+2026-10-30T23:06:50+0800 mono=200198.293352 MID_SNAPSHOT name=03b-memory-bandwidth at_elapsed=20.32s
+2026-10-30T23:07:11+0800 mono=200218.502010 LOAD_END_OBSERVED name=03b-memory-bandwidth (post-load tail 5s still sampling)
+2026-10-30T23:07:16+0800 mono=200223.727378 SAMPLER_END name=03b-memory-bandwidth rc=0
+2026-10-30T23:07:16+0800 mono=200223.855252 PHASE_END name=03b-memory-bandwidth sampler_rc=0
+2026-10-30T23:07:16+0800 mono=200223.867700 BUFFER_START 10s between memory-bandwidth
+2026-10-30T23:07:26+0800 mono=200233.999598 BUFFER_END memory-bandwidth
+2026-10-30T23:07:26+0800 mono=200234.012060 PHASE_START name=04-recovery-idle dur=50s loader=none out=04-recovery-idle-20261030T230326.jsonl
+2026-10-30T23:07:26+0800 mono=200234.148026 SAMPLER_START name=04-recovery-idle pid=97354 seconds=55 (load 50s + tail 5s)
+2026-10-30T23:07:26+0800 mono=200234.157342 LOAD_START name=04-recovery-idle pids='none' spec=none
+2026-10-30T23:07:52+0800 mono=200259.559032 MID_SNAPSHOT name=04-recovery-idle at_elapsed=25.25s
+2026-10-30T23:08:22+0800 mono=200289.958430 SAMPLER_END name=04-recovery-idle rc=0
+2026-10-30T23:08:22+0800 mono=200290.089311 PHASE_END name=04-recovery-idle sampler_rc=0
+2026-10-30T23:08:22+0800 mono=200290.101928 BUFFER_START 10s between recovery-idle
+2026-10-30T23:08:32+0800 mono=200300.233850 BUFFER_END recovery-idle
+2026-10-30T23:08:32+0800 mono=200300.247544 PHASE_START name=05-gpu-compute dur=55s loader=gpu out=05-gpu-compute-20261030T230326.jsonl
+2026-10-30T23:08:33+0800 mono=200300.387840 SAMPLER_START name=05-gpu-compute pid=11451 seconds=60 (load 55s + tail 5s)
+2026-10-30T23:08:33+0800 mono=200300.399021 LOAD_START name=05-gpu-compute pids='11490' spec=gpu
+2026-10-30T23:09:01+0800 mono=200328.862750 MID_SNAPSHOT name=05-gpu-compute at_elapsed=28.31s
+2026-10-30T23:09:28+0800 mono=200356.069223 LOAD_END_OBSERVED name=05-gpu-compute (post-load tail 5s still sampling)
+2026-10-30T23:09:33+0800 mono=200361.285796 SAMPLER_END name=05-gpu-compute rc=0
+2026-10-30T23:09:34+0800 mono=200361.418051 PHASE_END name=05-gpu-compute sampler_rc=0
+2026-10-30T23:09:34+0800 mono=200361.431102 BUFFER_START 10s between gpu-compute
+2026-10-30T23:09:44+0800 mono=200371.561693 BUFFER_END gpu-compute
+2026-10-30T23:09:44+0800 mono=200371.574456 PHASE_START name=06-cpu-gpu-mixed dur=55s loader=mixed:4 out=06-cpu-gpu-mixed-20261030T230326.jsonl
+2026-10-30T23:09:44+0800 mono=200371.712107 SAMPLER_START name=06-cpu-gpu-mixed pid=25755 seconds=60 (load 55s + tail 5s)
+2026-10-30T23:09:44+0800 mono=200371.722724 LOAD_START name=06-cpu-gpu-mixed pids='25760 25761' spec=mixed:4
+2026-10-30T23:10:12+0800 mono=200400.098430 MID_SNAPSHOT name=06-cpu-gpu-mixed at_elapsed=28.23s
+2026-10-30T23:10:39+0800 mono=200427.205919 LOAD_END_OBSERVED name=06-cpu-gpu-mixed (post-load tail 5s still sampling)
+2026-10-30T23:10:45+0800 mono=200432.447094 SAMPLER_END name=06-cpu-gpu-mixed rc=0
+2026-10-30T23:10:45+0800 mono=200432.577263 PHASE_END name=06-cpu-gpu-mixed sampler_rc=0
+2026-10-30T23:10:45+0800 mono=200432.588347 BUFFER_START 10s between cpu-gpu-mixed
+2026-10-30T23:10:55+0800 mono=200442.719711 BUFFER_END cpu-gpu-mixed
+2026-10-30T23:10:55+0800 mono=200442.728945 PHASE_START name=07-recovery-idle-2 dur=50s loader=none out=07-recovery-idle-2-20261030T230326.jsonl
+2026-10-30T23:10:55+0800 mono=200442.840106 SAMPLER_START name=07-recovery-idle-2 pid=39924 seconds=55 (load 50s + tail 5s)
+2026-10-30T23:10:55+0800 mono=200442.847095 LOAD_START name=07-recovery-idle-2 pids='none' spec=none
+2026-10-30T23:11:21+0800 mono=200468.405056 MID_SNAPSHOT name=07-recovery-idle-2 at_elapsed=25.41s
+2026-10-30T23:11:51+0800 mono=200498.878940 SAMPLER_END name=07-recovery-idle-2 rc=0
+2026-10-30T23:11:51+0800 mono=200499.006878 PHASE_END name=07-recovery-idle-2 sampler_rc=0
+2026-10-30T23:11:51+0800 mono=200499.018948 BUFFER_START 10s between recovery-idle-2
+2026-10-30T23:12:01+0800 mono=200509.154444 BUFFER_END recovery-idle-2
+2026-10-30T23:12:01+0800 mono=200509.202019 PHASE_SKIP 08-brightness reason=NOT_TESTED_NO_SETTING_CHANGES probe='RESULT=NO_DISPLAY_SERVICE '
+2026-10-30T23:12:01+0800 mono=200509.321260 RUN_END aborted=0 reason=''
+2026-10-30T23:12:02+0800 mono=200509.361798 RESIDUE_CHECK clean
+2026-10-30T23:12:02+0800 mono=200509.618781 ORCHESTRATION_EXIT aborted=0 reason=''

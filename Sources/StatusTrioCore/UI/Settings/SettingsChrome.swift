@@ -25,6 +25,8 @@ enum SettingsMetrics {
     /// Shared preview dimensions for the three-choice app icon settings.
     static let appIconPictureOptionPreviewSize = CGSize(width: 64, height: 42)
     static let appIconPictureOptionSpacing: CGFloat = 6
+    /// Every pop-up menu in Settings keeps one width, independent of its items.
+    static let menuPickerWidth: CGFloat = 160
 }
 
 /// A titled, rounded card group for settings rows.
@@ -400,7 +402,7 @@ struct SettingsMenuRow<T: Hashable & Identifiable>: View {
                     }
                 }
                 .labelsHidden()
-                .fixedSize()
+                .settingsMenuPickerWidth()
             }
         )
     }
@@ -879,4 +881,24 @@ struct SidebarMaterial: NSViewRepresentable {
     }
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+}
+
+/// macOS 26's `.buttonSizing(.flexible)` makes a menu picker fill its frame
+/// instead of sizing to its current menu items. Older systems keep the frame.
+private struct SettingsMenuPickerSizing: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.buttonSizing(.flexible)
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    func settingsMenuPickerWidth() -> some View {
+        frame(width: SettingsMetrics.menuPickerWidth)
+            .modifier(SettingsMenuPickerSizing())
+    }
 }

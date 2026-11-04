@@ -8,6 +8,7 @@
 "menu.window" = "窗口";
 "menu.closeWindow" = "关闭窗口";
 "menu.checkForUpdates" = "检查更新…";
+"menu.openMenuBarSettings" = "打开系统菜单栏";
 "settings.title" = "设置";
 "settings.page.appearance" = "外观";
 "settings.page.general" = "通用";
@@ -31,7 +32,7 @@
 "settings.appIconPlacement.dock" = "程序坞";
 "settings.appIconPlacement.both" = "两处";
 "settings.appIconPlacement.dockExitHint" = "关闭设置后，程序坞图标将自动消失";
-"settings.appIcon.dockGroup" = "Dock 图标";
+"settings.appIcon.dockGroup" = "程序坞图标";
 "settings.dockIconBackground" = "Dock 图标背景";
 "settings.dockIconBackground.description" = "仅影响程序坞中显示的实时图标。「跟随系统」读取「系统设置 › 外观 › 图标与小组件样式」（macOS 15 及以上）。Finder 与启动台中的应用图标在 macOS 26 及以上跟随系统深色和浅色外观；选择“深色”或“浅色”只影响程序坞中的实时图标。";
 "settings.dockIconBackground.system" = "跟随系统";
@@ -55,6 +56,20 @@
 "settings.tab.panel" = "状态面板";
 "settings.tab.about" = "关于";
 "settings.menuBar.title" = "菜单栏图标";
+"settings.appIcon.middleIcon.title" = "中间图标";
+"settings.appIcon.middleIcon.source" = "中间图标";
+"settings.appIcon.middleIcon.description" = "选择状态图标中间位置显示的内容。同一时间只显示一个来源。";
+"settings.appIcon.middleIcon.network" = "网络";
+"settings.appIcon.middleIcon.bluetooth" = "蓝牙设备";
+"settings.appIcon.middleIcon.inputSource" = "当前输入法";
+"settings.appIcon.middleIcon.batteryPercentage" = "电池百分比";
+"settings.appIcon.middleIcon.power" = "功耗（瓦）";
+"settings.appIcon.middleIcon.chargingStatus" = "充电状态";
+"settings.appIcon.middleIcon.chargingStatus.description" = "放电时显示电量百分比，充电时显示闪电，连接电源时显示插头；顶部圆环保持闭合。";
+"settings.appIcon.middleIcon.size" = "中间图标大小";
+"settings.appIcon.middleIcon.size.description" = "中间显示的所有内容（Wi‑Fi、蓝牙、输入法、数字）共用这个大小。";
+"settings.appIcon.middleIcon.networkWarnings" = "优先显示网络异常";
+"settings.appIcon.middleIcon.networkWarnings.description" = "当 Mac 确实离线时，中间位置改为显示网络状态，而不是所选来源。";
 "settings.network.connectionIcons" = "连接图标样式";
 "settings.network.connectionIcons.description" = "启用后，对应状态改用普通 Wi‑Fi 信号图标，不再显示其专用标记。";
 "settings.network.wifiIconForEthernet" = "有线连接使用 Wi‑Fi 图标";
@@ -65,6 +80,8 @@
 "settings.network.centerSource.description" = "选择状态图标中间位置显示的内容。「自动」保留原有的网络与蓝牙行为。";
 "settings.network.centerSource.automatic" = "自动";
 "settings.network.centerSource.inputSource" = "当前输入法";
+"settings.network.centerSource.batteryPercentage" = "电池百分比";
+"settings.network.centerSource.power" = "功耗（瓦）";
 "settings.network.centerSource.bluetoothFallback" = "选择输入法后，蓝牙与网络图标仅作为回退显示。";
 "settings.network.centerSource.networkWarnings" = "优先显示网络异常";
 "settings.network.centerSource.networkWarnings.description" = "当 Mac 确实离线时，中间位置改为显示网络状态而不是输入法。";
@@ -118,12 +135,21 @@
 "settings.bluetooth.orderFootnote" = "已连接的设备始终排在最前。";
 "bluetooth.battery.unavailable" = "暂不可用";
 "settings.audio.maximumVisible" = "最多显示输出设备";
-"settings.audio.maximumVisibleDescription" = "超过该数量时显示“展开”按钮。";
-"settings.audio.showAll" = "始终全部展开";
+"settings.audio.maximumVisibleDescription" = "输出设备超过该数量时显示“展开”按钮。";
+"settings.audio.showAll" = "始终显示所有输出设备";
 "settings.audio.showAllDescription" = "忽略数量限制，始终显示所有可用输出设备。";
+"settings.audio.showAllInput" = "始终显示所有输入设备";
+"settings.audio.showAllInputDescription" = "忽略数量限制，始终显示所有可用输入设备。";
+"settings.audio.maximumVisibleInput" = "最多显示输入设备";
+"settings.audio.maximumVisibleInputDescription" = "输入设备超过该数量时显示“展开”按钮。";
 "settings.audio.orderTitle" = "输出设备顺序";
-"settings.audio.orderDescription" = "拖动设备可调整音量弹层中的显示顺序。新设备会排在末尾。";
+"settings.audio.orderDescription" = "拖动设备可调整音量弹层中的显示顺序。取消勾选不用的设备即可将其隐藏，当前输出设备始终显示。新设备会排在末尾。";
 "settings.audio.orderEmpty" = "无可用输出设备。";
+"settings.audio.showDevice" = "在状态面板中显示";
+"settings.audio.inputOrderTitle" = "输入设备顺序";
+"settings.audio.inputOrderDescription" = "拖动设备可调整“声音输入”中的显示顺序。取消勾选不用的设备即可将其隐藏，当前输入设备始终显示。新设备会排在末尾。";
+"settings.audio.inputOrderEmpty" = "无可用输入设备。";
+"settings.audio.inputOrderSectionOff" = "在“状态面板 › 显示项目”中打开“声音输入”后，即可调整输入设备的顺序或将其隐藏。";
 "settings.about.version" = "版本 %@";
 "settings.about.description" = "将 Wi-Fi、电池和音量整合为一个简洁菜单栏状态图标的原生 macOS 应用。灵感源自 iPhone Duo 的组合状态栏图标，并在 Mac 上以音量替代蜂窝网络。";
 "settings.about.project" = "项目主页";
@@ -134,11 +160,12 @@
 "settings.about.starOnGitHub" = "在 GitHub 上标星";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "电池显示";
+"settings.battery.noBatteryNotice" = "当前设备没有电池，所以电量显示默认为 100。";
 "settings.battery.showPercentage" = "显示电量数字";
-"settings.battery.showPercentageInConnectionSlot" = "在连接位置显示电量数字";
-"settings.battery.showPercentageInConnectionSlotDescription" = "替换 Wi-Fi 或连接图标；此选项与顶部电池指示器可分别开启。";
 "settings.battery.showChargingIndicator" = "充电/连接电源时显示指示图标";
 "settings.battery.chargingDescription" = "开启后，正在充电或已连接电源时，电量数字会替换为闪电或插头图标；关闭则继续显示数字。";
+"settings.battery.splitGapProgress" = "顶部有图标时进度劈开";
+"settings.battery.splitGapProgressDescription" = "当顶部缺口显示闪电、插头或电量数字时，把圆环进度劈成左右两半：左半为 0–50%、右半为 50–100%，让缺口不再遮住进度。";
 "settings.battery.chargingEffect" = "充电动效";
 "settings.battery.chargingEffectDescription" = "仅在充电时显示动态高光；开启“减弱动态效果”时停止。";
 "settings.battery.menuBarChargingEffect" = "菜单栏充电动效";
@@ -149,15 +176,36 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "关闭后闪电保持原有大小和颜色；充电圆弧动效仍会继续。";
 "settings.battery.chargingEffectTest" = "测试充电动画";
 "settings.battery.chargingEffectTestDescription" = "开发版：无需充电即可播放；重启后测试模式自动关闭。";
-"settings.battery.percentageWhenConnected" = "已连接电源但未充电时显示电量数字";
-"settings.battery.percentageWhenConnectedDescription" = "开启后，已连接电源但未充电时显示电量数字，而不是插头图标。";
+"settings.battery.connectedIndicator" = "已连接电源但未充电时显示";
+"settings.battery.connectedIndicatorDescription" = "连接电源但未在充电时（如充电上限停止或已充满）电池图标显示的内容：插头、闪电或电量数字。";
+"settings.battery.connectedIndicator.plug" = "插头";
+"settings.battery.connectedIndicator.bolt" = "闪电";
+"settings.battery.connectedIndicator.percentage" = "电量数字";
 "settings.battery.symbolScale" = "电量数字/闪电大小";
 "settings.battery.symbolScaleAccessibility" = "电量数字和闪电大小";
 "settings.battery.symbolScaleDescription" = "数字和闪电使用同一尺寸，调整这里会同步改变两者。";
 "settings.battery.statusColors" = "根据状态改变圆弧颜色";
-"settings.battery.statusColorsDescription" = "低电量显示红色，省电模式显示黄色，连接电源或正在充电显示绿色。关闭后圆弧使用普通前景色。";
+"settings.battery.statusColorsDescription" = "默认连接电源为绿色、低电量模式为黄色、低电量为红色，可在下方更改。关闭后忽略已保存的自定颜色。";
+"settings.battery.colors.charging" = "充电 / 连接电源";
+"settings.battery.colors.lowPower" = "低电量模式";
+"settings.battery.colors.critical" = "临界低电量";
+"settings.battery.colors.system" = "系统默认";
+"settings.battery.colors.custom" = "自定";
+"settings.battery.colors.mint" = "薄荷绿";
+"settings.battery.colors.sky" = "天空蓝";
+"settings.battery.colors.lavender" = "薰衣草紫";
+"settings.battery.colors.amber" = "琥珀黄";
+"settings.battery.colors.rose" = "玫瑰红";
+"settings.battery.colors.slate" = "岩灰";
+"settings.battery.colors.reset" = "重置";
+"settings.battery.colors.resetAll" = "重置全部颜色";
+"settings.battery.colors.inactive" = "状态颜色已关闭。配置会保留，再次开启后生效。";
+"settings.battery.colors.referenceContrast" = "参考最小对比度 · %.2f:1";
+"settings.battery.colors.previews" = "浅色与深色颜色预览";
+"settings.battery.colors.adjusted" = "已按可见性调整";
+"settings.battery.colors.referenceDescription" = "自定颜色在深浅外观中共用，必要时调整至至少 1.2:1；系统与预设颜色保持原色。对比度取黑白背景及其圆弧底轨的最小值，实际壁纸效果可能不同。";
 "settings.battery.criticalThreshold" = "低电量阈值";
-"settings.battery.criticalThresholdDescription" = "低于该阈值时视为低电量，并使用红色。";
+"settings.battery.criticalThresholdDescription" = "低于该阈值时，使用临界低电量颜色。";
 "settings.battery.fullThreshold" = "圆环满格电量";
 "settings.battery.fullThresholdDescription" = "电量达到该值时圆环即视为满格。适合充电上限设置在 100% 以下的场景。";
 "settings.battery.fullThresholdUseChargeLimit" = "使用充电上限";
@@ -166,6 +214,8 @@
 "settings.updates.automatic" = "自动检查更新";
 "settings.updates.check" = "检查更新…";
 "battery.title" = "电池 · %d%%";
+"battery.title.power" = "功耗 · %d W";
+"battery.title.powerUnavailable" = "功耗 · 暂不可用";
 "battery.state.notPresent" = "无电池设备";
 "battery.state.charged" = "已充满";
 "battery.state.calculatingTimeToFull" = "正在计算充满时间";
@@ -217,7 +267,7 @@
 "vpn.subtitle.systemProxy" = "系统代理";
 "vpn.subtitle.connectedWithProxy" = "已连接 · 代理 %@";
 "vpn.subtitle.proxyAutomatic" = "自动配置";
-"wifi.action.requestNameAccess" = "允许定位以显示 Wi-Fi 名称";
+"wifi.action.requestNameAccess" = "允许定位以显示 Wi-Fi 网络";
 "wifi.action.openLocationSettings" = "去设置中允许定位";
 "wifi.action.openSettings" = "打开 Wi-Fi 设置";
 "wifi.action.switchingHint" = "选择网络会在系统设置中打开 Wi-Fi 面板。";
@@ -232,6 +282,11 @@
 "settings.network.panelGroup" = "面板";
 "settings.network.showLocalIP" = "显示内网 IP";
 "settings.network.showLocalIP.description" = "在网络的第二行显示本机内网 IP，位于 Wi-Fi 信息之前。";
+
+"settings.network.permissionNotDeterminedTitle" = "需要定位权限";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio 需要定位权限才能显示 Wi-Fi 网络。点击下方按钮进行授权。";
+"settings.network.permissionDeniedTitle" = "定位权限已关闭";
+"settings.network.permissionDeniedDescription" = "没有定位权限时无法显示 Wi-Fi 网络。请在系统设置中开启。";
 "settings.audio.externalVolume.title" = "外部显示器音量";
 "settings.audio.externalVolume.controlMethod" = "控制方式";
 "settings.audio.externalVolume.controlMethodDescription" = "如果状态面板的音量控制无法调节此设备，可改用 BetterDisplay。";
@@ -243,7 +298,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "显示器不可用";
 "settings.audio.externalVolume.refresh" = "重新检测";
 "settings.audio.externalVolume.requirements" = "如果连接失败，请在 BetterDisplay 设置中启用 CLI 访问和基于通知的集成。";
-"settings.audio.externalVolume.footnote" = "macOS 原生音量控制优先；原生控制不可用时才使用所选方式。";
+"settings.audio.externalVolume.footnote" = "macOS 原生音量控制优先；原生控制不可用时才使用所选方式。BetterDisplay 免费版即可，无需购买 Pro。";
 "settings.audio.externalVolume.noStableOutput" = "当前输出没有稳定的音频 ID，无法为其配置 BetterDisplay。";
 "settings.audio.externalVolume.status.ready" = "已连接，可调节音量。";
 "settings.audio.externalVolume.status.idle" = "未连接。";
@@ -277,6 +332,8 @@
 "volume.output.unknownDevice" = "未知输出设备";
 "volume.output.expand" = "展开";
 "volume.output.collapse" = "收起";
+"audioInput.expand" = "展开";
+"audioInput.collapse" = "收起";
 "volume.action.openSettings" = "打开声音设置";
 "volume.accessibility.label" = "音量";
 "audioInput.title" = "麦克风";
@@ -318,6 +375,13 @@
 "inputSource.switchFailed" = "无法切换到“%@”。请直接选择它或稍后重试。";
 "inputSource.switchUnconfirmed" = "macOS 已接受“%@”，但当前输入法仍是其他项。前台应用可能需要获得焦点。";
 "settings.popup.order.inputSource" = "输入法";
+"settings.panel.background.title" = "面板背景";
+"settings.panel.background.style" = "背景样式";
+"settings.panel.background.style.description" = "选择状态面板背景的绘制方式。";
+"settings.panel.background.style.liquidGlass" = "液态玻璃";
+"settings.panel.background.style.classicMaterial" = "经典材质";
+"settings.panel.background.style.solid" = "纯色";
+"settings.panel.background.style.liquidGlassUnavailable" = "液态玻璃需要 macOS 26 或更高版本。";
 "settings.popup.volumeScroll.group" = "面板滚动";
 "settings.popup.volumeScroll" = "滚动调节音量";
 "settings.popup.volumeScroll.description" = "在状态面板内滚动即可调节输出音量。";
@@ -327,6 +391,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "仅音量组件";
 "settings.popup.volumeScroll.natural" = "自然滚动";
 "settings.popup.volumeScroll.natural.description" = "开启后，鼠标和触控板上滚都会增大音量；关闭后，音量跟随系统的滚动方向。如果开启后鼠标上滚仍然减小音量，请在 MOS、Scroll Reverser、LinearMouse 等应用中将 Status Trio 设为不处理，通常可加入例外/忽略列表（部分应用称为白名单）。";
+"settings.audio.volumeFeedbackTitle" = "音量反馈";
+"settings.audio.volumeFeedback" = "滚动调节音量时播放提示音";
+"settings.audio.volumeFeedbackDescription" = "滚动调节音量时播放提示音。默认跟随 macOS「音量更改时播放反馈」设置；在此切换后仅对 Status Trio 生效。";
 "settings.popup.volumeScroll.direction" = "滚动方向";
 "settings.popup.volumeScroll.direction.description" = "选择增大音量的滚动方向。";
 "settings.popup.volumeScroll.direction.up" = "上滑";
@@ -430,6 +497,7 @@
 // On-demand battery details.
 "battery.details.title" = "电池详情";
 "battery.details.systemPower" = "整机功耗（估算）";
+"battery.details.watt" = "功耗";
 "battery.details.systemReadAt" = "整机读取时间";
 "battery.details.power" = "电池功率（估算）";
 "battery.details.charging" = "充电（估算）";
@@ -446,7 +514,8 @@
 "battery.details.unavailable" = "暂不可用";
 "battery.details.collecting" = "采集中…";
 "battery.details.loading" = "更新中…";
-"battery.details.explanation" = "功率为估算值，各传感器读数可能延迟或存在差异，三项功率不一定完全相加。额定功率并非实际输入。拔电后显示电池放电功率；部分机型的电池数据可能延迟约一分钟。";
+"battery.details.explanation" = "功率为估算值，数据收集会有一定延迟，最多约一分钟。";
+"battery.details.info" = "说明";
 /* Compact popover controls. */
 "menu.more" = "更多操作";
 
@@ -542,12 +611,31 @@
 
 // Battery panel power flow and application energy
 "settings.battery.powerFlow" = "电池面板功率流向";
-"settings.battery.powerFlow.description" = "功率读数仅在电池面板打开时更新。传感器读数可能延迟，三项功率不一定完全相加。";
+"settings.battery.powerFlow.description" = "功率读数仅在电池面板打开时更新。传感器读数可能延迟，各分项功率不一定完全相加。";
+"settings.battery.breakdown" = "按部件细分功耗";
+"settings.battery.breakdown.description" = "把适配器输入拆成内建屏、USB 对外供电和其余系统负载（含 SoC）。读不到的分项会隐藏；无法可靠拆分时仍显示系统总功耗。";
+"settings.battery.powerInfoBar" = "功耗信息条";
+"settings.battery.powerFlowDiagram" = "功耗流向图";
+"settings.battery.powerFlowDiagramDescription" = "在电池详情页显示输入 / 电池 / 系统功耗流向图。";
+"settings.battery.powerInfoBarDescription" = "面板打开时，在电池模块下方显示输入、电池、系统功耗。默认关闭。";
 "settings.battery.energyRefreshInterval" = "后台采样间隔";
 "settings.battery.energyRefreshInterval.description" = "面板关闭时按此间隔采样；打开电池详情后仍每 5 秒刷新。";
 "battery.power.input" = "充电器输入";
+"battery.power.source.battery" = "电池";
 "battery.power.charging" = "充入电池";
-"battery.power.system" = "系统供电";
+"battery.power.system" = "系统功耗";
+"battery.power.system.help" = "系统功耗（含 SoC）";
+"battery.power.system.explanation" = "“系统”是扣除电池充电、显示器和 USB 后的其余负载，包含 SoC、内存与显示控制器等，不是单一传感器读数。";
+"power.infoBar.input" = "充电器输入";
+"power.infoBar.noInput" = "未接电源";
+"power.infoBar.battery" = "电池充电";
+"power.infoBar.discharging" = "电池放电";
+"power.infoBar.system" = "系统功耗";
+"power.infoBar.notCharging" = "未在充电";
+"battery.power.display" = "显示器";
+"battery.power.usb" = "USB 供电";
+"battery.power.soc" = "SoC";
+"battery.power.other" = "其他";
 "battery.energy.apps" = "CPU 能耗影响";
 "battery.energy.empty" = "本次采样未发现明显活跃的应用。";
 "battery.energy.cpuExplanation" = "按当前用户可读取的 CPU 能耗计数排序；不等同于活动监视器的综合能耗影响。可能不包含 GPU 和系统进程。";
@@ -555,6 +643,8 @@
 "battery.energy.monitoringDescription" = "开启后即使面板关闭也会在后台采样应用活动；关闭开关、系统或屏幕休眠或退出应用时停止。";
 "settings.battery.showChargeToFullNow" = "显示立即充满电按钮";
 "settings.battery.showChargeToFullNowDescription" = "在状态面板中显示立即充满电按钮，允许临时解除 macOS 的充电上限并充至 100%。";
+"settings.battery.restoreLimit" = "取消后恢复的充电上限";
+"settings.battery.restoreLimitDescription" = "取消立即充满后要恢复的充电上限。";
 "battery.action.chargeToFullNow" = "立即充满电";
 "battery.action.chargeToFullNowApplying" = "正在请求立即充满电…";
 "battery.action.chargeToFullNowCharging" = "正在充电至 100%";
@@ -562,7 +652,9 @@
 "battery.action.chargeToFullNowUnavailable" = "立即充满电当前不可用。";
 "battery.action.cancelChargeToFullNow" = "取消立即充满";
 "battery.action.cancelChargeToFullNowApplying" = "正在恢复充电上限…";
-"battery.action.cancelChargeToFullNowFailed" = "无法恢复充电上限：%@";
+"battery.action.cancelChargeToFullNowFailed" = "无法恢复充电上限，请重试。";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "系统充电上限已更改，请检查设置中的恢复上限后重试。";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "系统充电上限为 %1$d%%，要恢复为 %2$d%% 吗？";
 "battery.action.cancelChargeToFullNowRestored" = "充电上限已恢复为 %d%%";
 "battery.action.cancelChargeToFullNowFallback" = "已将充电上限设为 %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "确认恢复为 %d%%";
@@ -588,3 +680,71 @@
 "airPods.spatialHeadTracked" = "头部跟踪";
 
 "airpods.retry" = "重试";
+"settings.popup.order.brightness" = "亮度";
+"brightness.row.accessibility" = "%@ 的亮度，%@";
+"brightness.row.accessibilityUnavailable" = "%@ 的亮度，%@";
+"brightness.unavailable" = "不可用";
+"brightness.appAbsent" = "需要 BetterDisplay";
+"brightness.noBackend" = "无法控制亮度";
+"brightness.unresponsive" = "无响应";
+"brightness.backend.directDDC" = "直接 DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "关闭某台显示器即从状态面板中隐藏其亮度行。";
+"settings.brightness.backend" = "亮度后端";
+// About: community, author social links and more apps
+"settings.about.social.title" = "关注作者";
+"settings.about.social.douyin" = "抖音";
+"settings.about.social.xiaohongshu" = "小红书";
+"settings.about.social.bilibili" = "哔哩哔哩";
+"settings.about.social.blog" = "个人博客";
+"settings.about.community.title" = "加入社群";
+"settings.about.community.qq" = "QQ 群";
+"settings.about.community.qqDescription" = "加入 Status Trio 用户群，交流问题与反馈。";
+"settings.about.community.wechat" = "微信群";
+"settings.about.community.wechatDescription" = "扫码加入 Status Trio 微信群。二维码会定期更新，点「刷新」可拉取 GitHub 上的最新二维码。";
+"settings.about.community.copy" = "复制";
+"settings.about.community.copied" = "已复制";
+"settings.about.moreApps.title" = "作者的其他作品";
+"settings.about.moreApps.open" = "打开";
+"settings.about.moreApps.newtab01Description" = "书签驱动的新标签页：文件夹一键开成标签组或分屏，多套主题。";
+"settings.about.moreApps.noLazyloadDescription" = "禁用浏览器的图片懒加载，让页面一打开就加载全部图片，不必边滚动边加载。";
+"settings.about.moreApps.fund01Description" = "基金持仓盯盘，涨跌幅常驻菜单栏 / 任务栏，多分组实时刷新。";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "刷新";
+"settings.about.community.refreshFailed" = "二维码加载失败，请重试。";
+
+"guide.partPosition.battery" = "顶部圆弧";
+"guide.partPosition.network" = "中间图标";
+"guide.partPosition.volume" = "底部圆点";
+"guide.network.center" = "可在「设置 › 应用图标 › 中间图标」中修改显示内容，支持电量、功耗、输入法、蓝牙音频。";
+
+"guide.state.chargingBatteryCenter" = "充电 + 电池百分比";
+"guide.state.fullPowerCenter" = "已充满 + 功耗";
+"guide.state.lowBatteryInputCenter" = "低电量 + 输入法";
+
+"settings.menuBarRightClickAction" = "右键操作";
+"settings.menuBarRightClickAction.description" = "右键点击菜单栏图标时执行的动作。";
+"settings.menuBarRightClickAction.contextMenu" = "显示右键菜单";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "切换低电量模式";
+"settings.menuBarRightClickAction.chargeToFullNow" = "立刻充满";
+"settings.menuBarRightClickAction.toggleMute" = "切换静音";
+"settings.menuBarRightClickAction.unavailableHint" = "当前选中的操作不可用；右键将改为显示菜单。";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "切换 Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "刷新状态";
+"settings.menuBarRightClickAction.openWiFiSettings" = "打开 Wi-Fi 设置";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "打开蓝牙设置";
+"settings.menuBarRightClickAction.openBatterySettings" = "打开电池设置";
+"settings.menuBarRightClickAction.openSoundSettings" = "打开声音设置";
+
+"settings.tab.brightness" = "亮度";
+"settings.brightness.group.title" = "已连接的显示器";
+"settings.brightness.empty" = "没有已连接的显示器。";
+"settings.brightness.builtIn" = "内建";
+"settings.brightness.internalBackend.description" = "内建显示器的亮度使用 DisplayServices 后端。";
+"settings.brightness.externalBackend.description" = "选择 Status Trio 控制此显示器亮度的方式。";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay 未运行，或未开启通知集成。";
+"settings.brightness.compatibility.title" = "显示器调不了亮度？";
+"settings.brightness.compatibility.description" = "各家显示器的 DDC 实现并不统一，Status Trio 无法覆盖所有型号。如果某台显示器的亮度在这里调不了，可以把它切到 BetterDisplay 后端——Status Trio 会通过 BetterDisplay 来调节。免费版就够用，不需要购买 Pro。";
+"settings.brightness.compatibility.link" = "下载 BetterDisplay（免费）";

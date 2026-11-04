@@ -87,7 +87,7 @@ The official release is signed with Developer ID and notarized by Apple. Open it
 
 ## Input, audio, and everyday controls
 
-- **Input-source icon** — show the current input method in the middle of the menu bar and Dock icon instead of the network glyph. Choose it in **Settings › Network**; choose an enabled input source from the panel to switch to it.
+- **Input-source icon** — show the current input method in the middle of the menu bar and Dock icon instead of the network glyph. Choose **Current Input Source** under **Settings › App Icon › Middle Icon**; choose an enabled input source from the panel to switch to it.
 - **Global shortcut** — assign a shortcut in **Settings › General** to open or close the status panel from another app. No shortcut is assigned by default.
 - **Bluetooth controls** — turn Bluetooth on or off from the panel, connect or disconnect paired devices, and switch listening modes on supported AirPods and HUAWEI FreeBuds. Optional Apple-device battery rows are configured in **Settings › Bluetooth**; availability depends on the device and connection.
 - **Audio input and output** — select speakers or microphones, adjust output and input levels, and control compatible external-display speakers through DDC. Display volume support depends on the hardware and connection.
@@ -98,11 +98,11 @@ The official release is signed with Developer ID and notarized by Apple. Open it
 The following features are in the source on `main`, but are not included in the current GitHub / Homebrew release, **1.7.5**:
 
 - **Battery power flow and CPU energy impact** — the battery panel can show estimated charger input, power flowing into the battery, and system power. An optional list ranks up to five apps by CPU energy, falling back to CPU activity when energy counters are unavailable. This is not total app energy consumption or a copy of the macOS high-energy list. Enabling the list starts periodic background sampling; turning it off stops sampling. See [power flow and CPU energy impact](docs/battery-power-flow.md).
-- **Charge to Full Now, with cancellation** — a button for supported Apple silicon Macs on macOS 26.4 or later temporarily overrides the native charge limit. It uses a private PowerUI interface and is enabled by default only when the capability is available; you can turn it off in Battery settings. **The charge limit may remain at 100% after charging or unplugging; it is not automatically restored.** Use **Cancel Charge to Full** to request restoration, or check and restore the limit in System Settings. Availability and behavior depend on macOS. See [behavior and verification](docs/charge-to-full-now-poc.md).
+- **Charge to Full Now, with cancellation** — a button for supported Apple silicon Macs on macOS 26.4 or later temporarily overrides the native charge limit. It uses a private PowerUI interface and is enabled by default only when the capability is available; you can turn it off in Battery settings. **The charge limit may remain at 100% after charging or unplugging; it is not automatically restored.** Use **Cancel Charge to Full** to restore the limit configured in Battery settings ("Restore Limit After Cancelling", 80–100%, defaulting to the system limit), or check and restore it in System Settings. Availability and behavior depend on macOS. See [behavior and verification](docs/charge-to-full-now-poc.md).
 
 ## Bluetooth audio
 
-While audio plays over Bluetooth, two switches under **Settings › Bluetooth** let the middle glyph become that device's own symbol — AirPods, headphones, speakers, and other devices supply their own — and let the volume dots or arc turn blue. Both are off by default. **Let network errors take priority**, on by default, keeps the network icon while the connection itself is in trouble:
+Pick **Bluetooth Device** as the middle icon under **Settings › App Icon › Middle Icon** and the middle glyph becomes that device's own symbol while it plays — AirPods, headphones, speakers, and other devices supply their own — and the volume dots or arc can turn blue. **Show network problems instead**, on by default, keeps the network icon while the connection itself is in trouble. The same picker also offers Network, Current Input Source, Battery Percentage, and Power (Watts):
 
 <p align="center">
   <img src="screenshots/menu-bar-airpods.jpg" width="1000" alt="Status Trio menu bar icon showing the AirPods glyph while AirPods are connected, with its status popover open">
@@ -132,7 +132,7 @@ The same live icon can live in the Dock instead of the menu bar, or in both plac
   <sub>Bluetooth panel preview</sub>
 </p>
 
-The Dock icon draws the same combined icon as the menu bar, so with Bluetooth audio replacement enabled the device glyph takes over the middle there too. Its background can follow the system icon style or be pinned to a fixed shade:
+The Dock icon draws the same combined icon as the menu bar, so with Bluetooth Device selected as the middle icon the device glyph takes over the middle there too. Its background can follow the system icon style or be pinned to a fixed shade:
 
 <p align="center">
   <img src="screenshots/status-trio-dock-icons.png" width="880" alt="Status Trio Dock icon in dark, light, and clear backgrounds, in two rows: the Wi-Fi state and Bluetooth audio replacing the Wi-Fi icon with blue volume dots">
@@ -203,6 +203,19 @@ Two boundaries macOS and this project draw deliberately. Both are explained in [
 ## Languages
 
 Status Trio follows the macOS preferred language by default and includes English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, German, Italian, Brazilian Portuguese, Russian, and Arabic.
+
+## Community
+
+Status Trio has a Chinese-language community for questions, feedback, and release discussion.
+
+- **QQ group:** `735856753` — scan the QR code below.
+- **WeChat group:** scan the QR code below.
+
+<p align="center">
+  <img src="screenshots/status-trio-qq-group.png" width="220" alt="Status Trio QQ group QR code">
+  &nbsp;&nbsp;
+  <img src="screenshots/status-trio-wechat-group.png" width="220" alt="Status Trio WeChat group QR code">
+</p>
 
 ## Privacy
 

@@ -31,6 +31,12 @@ private struct BetterDisplayOSDEnvelope: Decodable, Sendable {
             || controlTarget == "volume"
             || controlTarget == "mute"
     }
+
+    /// Brightness OSD hints are recognized separately from audio so the existing
+    /// `isAudioEvent` semantics stay unchanged.
+    var isBrightnessEvent: Bool {
+        controlTarget == "brightness"
+    }
 }
 
 private enum BetterDisplayNotificationName {
@@ -118,7 +124,8 @@ private final class SystemBetterDisplayNotificationObservation:
 }
 
 @MainActor
-final class BetterDisplayIntegrationClient: BetterDisplayRequesting {
+final class BetterDisplayIntegrationClient: BetterDisplayRequesting,
+    BetterDisplayBrightnessHintSource {
     private struct PendingRequest {
         let continuation: CheckedContinuation<String?, any Error>
         let timeoutTask: Task<Void, Never>
@@ -135,6 +142,7 @@ final class BetterDisplayIntegrationClient: BetterDisplayRequesting {
     private var observations: [any BetterDisplayNotificationObservation] = []
     private var pendingRequests: [String: PendingRequest] = [:]
     private var onEvent: (@MainActor (BetterDisplayEvent) -> Void)?
+    private var onBrightnessOSD: (@MainActor () -> Void)?
     private var lifecycleGeneration: UInt64 = 0
     private var isStarted = false
 
@@ -232,10 +240,15 @@ final class BetterDisplayIntegrationClient: BetterDisplayRequesting {
         }
     }
 
+    func setBrightnessOSDHandler(_ handler: (@MainActor () -> Void)?) {
+        onBrightnessOSD = handler
+    }
+
     func stop() {
         isStarted = false
         lifecycleGeneration &+= 1
         onEvent = nil
+        onBrightnessOSD = nil
 
         let observations = observations
         self.observations.removeAll()
@@ -311,11 +324,12 @@ final class BetterDisplayIntegrationClient: BetterDisplayRequesting {
                     BetterDisplayOSDEnvelope.self,
                     from: data
                 ),
-                osd.isAudioEvent
+                osd.isAudioEvent || osd.isBrightnessEvent
             else {
                 return
             }
 
+            let isAudioEvent = osd.isAudioEvent
             Task { @MainActor [weak self] in
                 guard
                     let self,
@@ -323,7 +337,11 @@ final class BetterDisplayIntegrationClient: BetterDisplayRequesting {
                 else {
                     return
                 }
-                self.onEvent?(.audioChanged)
+                if isAudioEvent {
+                    self.onEvent?(.audioChanged)
+                } else {
+                    self.onBrightnessOSD?()
+                }
             }
         }
     }

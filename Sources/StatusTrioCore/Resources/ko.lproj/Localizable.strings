@@ -8,6 +8,7 @@
 "menu.window" = "윈도우";
 "menu.closeWindow" = "윈도우 닫기";
 "menu.checkForUpdates" = "업데이트 확인…";
+"menu.openMenuBarSettings" = "메뉴 막대 설정 열기";
 "settings.title" = "설정";
 "settings.page.appearance" = "모양";
 "settings.page.general" = "일반";
@@ -55,6 +56,20 @@
 "settings.tab.panel" = "상태 패널";
 "settings.tab.about" = "정보";
 "settings.menuBar.title" = "메뉴 막대 아이콘";
+"settings.appIcon.middleIcon.title" = "중앙 아이콘";
+"settings.appIcon.middleIcon.source" = "중앙 아이콘";
+"settings.appIcon.middleIcon.description" = "상태 아이콘 중앙에 표시할 내용을 선택합니다. 한 번에 하나의 소스만 표시됩니다.";
+"settings.appIcon.middleIcon.network" = "네트워크";
+"settings.appIcon.middleIcon.bluetooth" = "Bluetooth 기기";
+"settings.appIcon.middleIcon.inputSource" = "현재 입력 소스";
+"settings.appIcon.middleIcon.batteryPercentage" = "배터리 잔량";
+"settings.appIcon.middleIcon.power" = "전력(와트)";
+"settings.appIcon.middleIcon.chargingStatus" = "충전 상태";
+"settings.appIcon.middleIcon.chargingStatus.description" = "배터리 사용 시 잔량, 충전 중에는 번개, 전원 연결 시 플러그를 표시하며 링은 닫힌 상태로 유지됩니다.";
+"settings.appIcon.middleIcon.size" = "중앙 아이콘 크기";
+"settings.appIcon.middleIcon.size.description" = "중앙에 표시되는 모든 내용(Wi-Fi, Bluetooth, 입력 소스, 숫자)에 공통으로 적용되는 크기입니다.";
+"settings.appIcon.middleIcon.networkWarnings" = "네트워크 문제 우선 표시";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Mac이 실제로 오프라인일 때 중앙에 선택한 소스 대신 네트워크 상태를 표시합니다.";
 "settings.network.connectionIcons" = "연결 아이콘 스타일";
 "settings.network.connectionIcons.description" = "활성화하면 선택한 상태가 전용 표시 대신 표준 Wi-Fi 신호 아이콘으로 표시됩니다.";
 "settings.network.wifiIconForEthernet" = "Ethernet에 Wi-Fi 아이콘 사용";
@@ -65,6 +80,8 @@
 "settings.network.centerSource.description" = "상태 아이콘 중앙에 표시할 내용을 선택합니다. '자동'은 기존 네트워크 및 Bluetooth 동작을 유지합니다.";
 "settings.network.centerSource.automatic" = "자동";
 "settings.network.centerSource.inputSource" = "현재 입력 소스";
+"settings.network.centerSource.batteryPercentage" = "배터리 잔량";
+"settings.network.centerSource.power" = "전력(와트)";
 "settings.network.centerSource.bluetoothFallback" = "입력 소스를 선택하면 Bluetooth 및 네트워크 아이콘은 대체용으로만 사용됩니다.";
 "settings.network.centerSource.networkWarnings" = "네트워크 문제 우선 표시";
 "settings.network.centerSource.networkWarnings.description" = "Mac이 실제로 오프라인일 때 중앙에 입력 소스 대신 네트워크 상태를 표시합니다.";
@@ -121,9 +138,18 @@
 "settings.audio.maximumVisibleDescription" = "‘펼치기’ 컨트롤 전에 표시할 출력 장치 수입니다.";
 "settings.audio.showAll" = "항상 모든 출력 장치 표시";
 "settings.audio.showAllDescription" = "제한을 무시하고 사용 가능한 모든 출력 장치를 표시합니다.";
+"settings.audio.showAllInput" = "항상 모든 입력 장치 표시";
+"settings.audio.showAllInputDescription" = "제한을 무시하고 사용 가능한 모든 입력 장치를 표시합니다.";
+"settings.audio.maximumVisibleInput" = "표시할 최대 입력 장치 수";
+"settings.audio.maximumVisibleInputDescription" = "‘펼치기’ 컨트롤 전에 표시할 입력 장치 수입니다.";
 "settings.audio.orderTitle" = "출력 장치 순서";
-"settings.audio.orderDescription" = "장치를 드래그하여 볼륨 팝오버의 표시 순서를 변경합니다. 새 장치는 끝에 표시됩니다.";
+"settings.audio.orderDescription" = "장치를 드래그하여 볼륨 팝오버의 표시 순서를 변경합니다. 사용하지 않는 장치는 선택 해제하면 숨겨지며, 사용 중인 출력 장치는 항상 표시됩니다. 새 장치는 끝에 표시됩니다.";
 "settings.audio.orderEmpty" = "사용 가능한 출력 장치가 없습니다.";
+"settings.audio.showDevice" = "상태 패널에 표시";
+"settings.audio.inputOrderTitle" = "입력 장치 순서";
+"settings.audio.inputOrderDescription" = "장치를 드래그하여 오디오 입력 섹션의 표시 순서를 변경합니다. 사용하지 않는 장치는 선택 해제하면 숨겨지며, 현재 입력 장치는 항상 표시됩니다. 새 장치는 끝에 표시됩니다.";
+"settings.audio.inputOrderEmpty" = "사용 가능한 입력 장치가 없습니다.";
+"settings.audio.inputOrderSectionOff" = "입력 장치의 순서를 바꾸거나 숨기려면 상태 패널 › 표시 항목에서 오디오 입력을 켜십시오.";
 "settings.about.version" = "버전 %@";
 "settings.about.description" = "Wi-Fi, 배터리, 음량을 하나의 간결한 메뉴 막대 아이콘으로 결합한 네이티브 macOS 앱입니다. iPhone Duo의 결합 상태 막대 아이콘에서 영감을 받아 Mac에서는 셀룰러 데이터 대신 음량을 표시합니다.";
 "settings.about.project" = "웹사이트";
@@ -134,11 +160,12 @@
 "settings.about.starOnGitHub" = "GitHub에서 별표 주기";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "배터리 표시";
+"settings.battery.noBatteryNotice" = "이 기기에는 배터리가 없으므로 배터리 잔량이 기본적으로 100으로 표시됩니다.";
 "settings.battery.showPercentage" = "배터리 잔량 표시";
-"settings.battery.showPercentageInConnectionSlot" = "연결 위치에 배터리 잔량 표시";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Wi-Fi 또는 연결 기호를 대체합니다. 상단 배터리 표시와 별도로 설정할 수 있습니다.";
 "settings.battery.showChargingIndicator" = "충전 또는 전원 연결 시 아이콘 표시";
 "settings.battery.chargingDescription" = "활성화하면 충전 중이거나 전원에 연결되었을 때 잔량이 번개 또는 플러그로 바뀝니다. 비활성화하면 잔량을 계속 표시합니다.";
+"settings.battery.splitGapProgress" = "상단 틈에 내용이 있을 때 진행률 분할";
+"settings.battery.splitGapProgressDescription" = "상단 틈에 번개, 플러그 또는 퍼센트가 표시될 때 링을 왼쪽 절반 0–50%, 오른쪽 절반 50–100%로 그려 틈이 진행률을 가리지 않도록 합니다.";
 "settings.battery.chargingEffect" = "충전 효과";
 "settings.battery.chargingEffectDescription" = "충전 중에만 강조 표시를 애니메이션으로 표시합니다. ‘동작 줄이기’가 켜져 있으면 중지합니다.";
 "settings.battery.menuBarChargingEffect" = "메뉴 막대 충전 효과";
@@ -149,15 +176,36 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "끄면 번개가 기본 크기와 색상으로 유지되고 충전 아크 효과는 계속됩니다.";
 "settings.battery.chargingEffectTest" = "충전 애니메이션 테스트";
 "settings.battery.chargingEffectTestDescription" = "개발 빌드: 충전하지 않아도 재생합니다. 다시 시작하면 테스트 모드가 꺼집니다.";
-"settings.battery.percentageWhenConnected" = "전원 연결 상태에서 충전하지 않을 때 잔량 표시";
-"settings.battery.percentageWhenConnectedDescription" = "활성화하면 전원에 연결되었지만 충전하지 않을 때 플러그 대신 잔량을 표시합니다.";
+"settings.battery.connectedIndicator" = "전원 연결 시 충전 중이 아닐 때 표시";
+"settings.battery.connectedIndicatorDescription" = "전원에 연결되어 있지만 충전 중이 아닐 때(충전 한도에서 멈춤 또는 완충) 배터리 아이콘에 표시할 내용: 플러그, 번개, 또는 백분율.";
+"settings.battery.connectedIndicator.plug" = "플러그";
+"settings.battery.connectedIndicator.bolt" = "번개";
+"settings.battery.connectedIndicator.percentage" = "백분율";
 "settings.battery.symbolScale" = "잔량/번개 크기";
 "settings.battery.symbolScaleAccessibility" = "배터리 잔량 및 번개 크기";
 "settings.battery.symbolScaleDescription" = "잔량과 번개는 같은 크기를 사용합니다.";
 "settings.battery.statusColors" = "배터리 상태에 따라 원호 색상 변경";
-"settings.battery.statusColorsDescription" = "배터리 부족은 빨간색, 저전력 모드는 노란색, 충전 중 또는 전원 연결은 초록색으로 표시합니다. 끄면 원호는 일반 전경색을 사용합니다.";
+"settings.battery.statusColorsDescription" = "기본 색상은 전원 연결 시 초록색, 저전력 모드 시 노란색, 배터리 부족 시 빨간색이며 아래에서 변경할 수 있습니다. 끄면 저장된 사용자 지정 색상은 적용되지 않습니다.";
+"settings.battery.colors.charging" = "충전 중 / 전원 연결";
+"settings.battery.colors.lowPower" = "저전력 모드";
+"settings.battery.colors.critical" = "배터리 잔량 매우 부족";
+"settings.battery.colors.system" = "시스템 기본값";
+"settings.battery.colors.custom" = "사용자 지정";
+"settings.battery.colors.mint" = "민트";
+"settings.battery.colors.sky" = "하늘색";
+"settings.battery.colors.lavender" = "라벤더";
+"settings.battery.colors.amber" = "호박색";
+"settings.battery.colors.rose" = "장미색";
+"settings.battery.colors.slate" = "청회색";
+"settings.battery.colors.reset" = "재설정";
+"settings.battery.colors.resetAll" = "모든 색상 재설정";
+"settings.battery.colors.inactive" = "상태 색상이 꺼져 있습니다. 선택한 설정은 저장되며 다시 켜면 적용됩니다.";
+"settings.battery.colors.referenceContrast" = "참조 최소 대비 · %.2f:1";
+"settings.battery.colors.previews" = "밝은 모드와 어두운 모드 색상 미리보기";
+"settings.battery.colors.adjusted" = "가시성에 맞게 조정됨";
+"settings.battery.colors.referenceDescription" = "사용자 지정 색상은 두 모드에서 공통으로 사용하며 필요 시 최소 1.2:1로 조정합니다. 시스템 및 프리셋 색상은 유지합니다. 대비는 흑백 배경과 각 원호 바탕에서의 최솟값이며 실제 배경화면에서는 다를 수 있습니다.";
 "settings.battery.criticalThreshold" = "배터리 부족 임계값";
-"settings.battery.criticalThresholdDescription" = "이 값 미만은 배터리 부족으로 간주하여 빨간색으로 표시합니다.";
+"settings.battery.criticalThresholdDescription" = "이 값 미만이면 배터리 잔량 매우 부족 색상을 사용합니다.";
 "settings.battery.fullThreshold" = "링 full 충전 기준";
 "settings.battery.fullThresholdDescription" = "배터리 링이 이 수준에 도달하면 가득 찬 것으로 표시합니다. 충전 상한이 100% 미만으로 설정된 경우에 유용합니다.";
 "settings.battery.fullThresholdUseChargeLimit" = "충전 상한 사용";
@@ -166,6 +214,8 @@
 "settings.updates.automatic" = "자동으로 업데이트 확인";
 "settings.updates.check" = "업데이트 확인…";
 "battery.title" = "배터리 · %d%%";
+"battery.title.power" = "전력 · %d W";
+"battery.title.powerUnavailable" = "전력 · 사용할 수 없음";
 "battery.state.notPresent" = "배터리 없음";
 "battery.state.charged" = "충전 완료";
 "battery.state.calculatingTimeToFull" = "완전 충전 시간 계산 중";
@@ -217,7 +267,7 @@
 "vpn.subtitle.systemProxy" = "시스템 프록시";
 "vpn.subtitle.connectedWithProxy" = "연결됨 · 프록시 %@";
 "vpn.subtitle.proxyAutomatic" = "자동 구성";
-"wifi.action.requestNameAccess" = "위치를 허용하여 Wi-Fi 이름 표시";
+"wifi.action.requestNameAccess" = "위치를 허용하여 Wi-Fi 네트워크 표시";
 "wifi.action.openLocationSettings" = "설정에서 위치 허용";
 "wifi.action.openSettings" = "Wi-Fi 설정 열기";
 "wifi.action.switchingHint" = "네트워크를 선택하면 시스템 설정의 Wi-Fi 패널이 열립니다.";
@@ -232,6 +282,11 @@
 "settings.network.panelGroup" = "패널";
 "settings.network.showLocalIP" = "로컬 IP 표시";
 "settings.network.showLocalIP.description" = "네트워크 행의 둘째 줄에 Wi-Fi 정보보다 먼저 이 Mac의 사설 LAN 주소를 표시합니다.";
+
+"settings.network.permissionNotDeterminedTitle" = "위치 권한이 필요합니다";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio가 Wi-Fi 네트워크를 표시하려면 위치 접근이 필요합니다. 아래 버튼을 눌러 허용하세요.";
+"settings.network.permissionDeniedTitle" = "위치 권한이 꺼져 있습니다";
+"settings.network.permissionDeniedDescription" = "위치 접근이 없으면 Wi-Fi 네트워크를 표시할 수 없습니다. 시스템 설정에서 활성화하세요.";
 "settings.audio.externalVolume.title" = "외부 디스플레이 볼륨";
 "settings.audio.externalVolume.controlMethod" = "제어 방식";
 "settings.audio.externalVolume.controlMethodDescription" = "상태 패널의 볼륨 제어로 이 기기를 조절할 수 없다면 BetterDisplay를 사용하십시오.";
@@ -243,7 +298,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "사용할 수 없는 디스플레이";
 "settings.audio.externalVolume.refresh" = "다시 감지";
 "settings.audio.externalVolume.requirements" = "연결에 실패하면 BetterDisplay 설정에서 CLI 접근 및 알림 기반 통합을 활성화하십시오.";
-"settings.audio.externalVolume.footnote" = "macOS 기본 볼륨 제어가 우선합니다. 기본 제어를 사용할 수 없을 때 선택한 방식을 사용합니다.";
+"settings.audio.externalVolume.footnote" = "macOS 기본 볼륨 제어가 우선합니다. 기본 제어를 사용할 수 없을 때 선택한 방식을 사용합니다. BetterDisplay는 무료 버전으로 충분하며 Pro 라이선스는 필요하지 않습니다.";
 "settings.audio.externalVolume.noStableOutput" = "현재 출력에 안정적인 오디오 ID가 없어 BetterDisplay를 구성할 수 없습니다.";
 "settings.audio.externalVolume.status.ready" = "연결됨. 볼륨을 조절할 수 있습니다.";
 "settings.audio.externalVolume.status.idle" = "연결되지 않음.";
@@ -277,6 +332,8 @@
 "volume.output.unknownDevice" = "알 수 없는 출력 장치";
 "volume.output.expand" = "펼치기";
 "volume.output.collapse" = "접기";
+"audioInput.expand" = "펼치기";
+"audioInput.collapse" = "접기";
 "volume.action.openSettings" = "사운드 설정 열기";
 "volume.accessibility.label" = "볼륨";
 "audioInput.title" = "마이크";
@@ -318,6 +375,13 @@
 "inputSource.switchFailed" = "‘%@’(으)로 전환하지 못했습니다. 직접 선택하거나 다시 시도하십시오.";
 "inputSource.switchUnconfirmed" = "macOS가 ‘%@’을(를) 수락했지만 현재 입력 소스는 다른 항목입니다. 최전면 앱에 포커스가 필요할 수 있습니다.";
 "settings.popup.order.inputSource" = "입력 소스";
+"settings.panel.background.title" = "패널 배경";
+"settings.panel.background.style" = "배경 스타일";
+"settings.panel.background.style.description" = "상태 패널 배경을 그리는 방식을 선택합니다.";
+"settings.panel.background.style.liquidGlass" = "리퀴드 글래스";
+"settings.panel.background.style.classicMaterial" = "클래식 소재";
+"settings.panel.background.style.solid" = "단색";
+"settings.panel.background.style.liquidGlassUnavailable" = "리퀴드 글래스는 macOS 26 이상이 필요합니다.";
 "settings.popup.volumeScroll.group" = "패널 스크롤";
 "settings.popup.volumeScroll" = "스크롤로 볼륨 조절";
 "settings.popup.volumeScroll.description" = "상태 패널 안에서 스크롤하면 출력 볼륨이 바뀝니다.";
@@ -327,6 +391,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "볼륨 컨트롤만";
 "settings.popup.volumeScroll.natural" = "자연스러운 스크롤";
 "settings.popup.volumeScroll.natural.description" = "켜면 마우스나 트랙패드에서 위로 스크롤할 때 볼륨이 커집니다. 끄면 시스템의 스크롤 방향을 따릅니다. 이 옵션을 켠 후에도 마우스 위로 스크롤할 때 볼륨이 낮아지면 보통 예외/무시 목록(허용 목록이라고도 함)을 사용해 MOS, Scroll Reverser, LinearMouse 또는 유사한 앱에서 Status Trio를 변경하지 않도록 설정하세요.";
+"settings.audio.volumeFeedbackTitle" = "볼륨 피드백";
+"settings.audio.volumeFeedback" = "스크롤로 볼륨을 조절할 때 소리 재생";
+"settings.audio.volumeFeedbackDescription" = "스크롤로 볼륨을 조절할 때 알림음을 재생합니다. 기본값은 macOS의 '볼륨 변경 시 피드백 재생'을 따릅니다. 여기서 전환하면 Status Trio에만 적용됩니다.";
 "settings.popup.volumeScroll.direction" = "스크롤 방향";
 "settings.popup.volumeScroll.direction.description" = "볼륨을 높이는 스크롤 방향을 선택합니다.";
 "settings.popup.volumeScroll.direction.up" = "위로 스크롤";
@@ -430,6 +497,7 @@
 // On-demand battery details.
 "battery.details.title" = "배터리 세부 정보";
 "battery.details.systemPower" = "시스템 소비 전력(추정)";
+"battery.details.watt" = "전력";
 "battery.details.systemReadAt" = "시스템 읽기 시각";
 "battery.details.power" = "배터리 전력(추정)";
 "battery.details.charging" = "충전(추정)";
@@ -446,7 +514,8 @@
 "battery.details.unavailable" = "사용할 수 없음";
 "battery.details.collecting" = "측정 중…";
 "battery.details.loading" = "업데이트 중…";
-"battery.details.explanation" = "전력은 독립 센서의 추정값으로 지연되거나 다를 수 있습니다. 정격 전력은 실제 입력이 아닙니다. 배터리 사용 시 순 방전 전력을 표시합니다. 일부 기종은 배터리 갱신이 약 1분 지연될 수 있습니다.";
+"battery.details.explanation" = "전력은 추정값이며, 데이터 수집이 최대 1분 정도 지연될 수 있습니다.";
+"battery.details.info" = "이 수치 안내";
 /* Compact popover controls. */
 "menu.more" = "추가 작업";
 
@@ -543,11 +612,30 @@
 // Battery panel power flow and application energy
 "settings.battery.powerFlow" = "배터리 패널 전력 흐름";
 "settings.battery.powerFlow.description" = "전력 값은 배터리 패널이 열려 있을 때만 갱신합니다. 센서 갱신이 지연되어 세 값의 합이 일치하지 않을 수 있습니다.";
+"settings.battery.breakdown" = "부품별 전력 분할";
+"settings.battery.breakdown.description" = "어댑터 입력을 내장 디스플레이, USB 출력, 나머지 시스템 부하(SoC 포함)로 나눕니다. 읽을 수 없는 항목은 숨겨지고, 분할할 수 없으면 시스템 전력 표시로 돌아갑니다.";
+"settings.battery.powerInfoBar" = "전력 정보 표시줄";
+"settings.battery.powerFlowDiagram" = "전력 흐름 다이어그램";
+"settings.battery.powerFlowDiagramDescription" = "배터리 세부 정보 페이지에 입력 / 배터리 / 시스템 전력 흐름을 표시합니다.";
+"settings.battery.powerInfoBarDescription" = "패널을 열면 배터리 모듈 아래에 입력, 배터리, 시스템 전력을 표시합니다. 기본값은 꺼짐입니다.";
 "settings.battery.energyRefreshInterval" = "백그라운드 샘플링 간격";
 "settings.battery.energyRefreshInterval.description" = "패널이 닫혀 있을 때 사용됩니다. 배터리 세부사항 페이지는 계속 5초마다 새로 고칩니다.";
 "battery.power.input" = "충전기 입력";
+"battery.power.source.battery" = "배터리";
 "battery.power.charging" = "배터리 충전";
-"battery.power.system" = "시스템 전력";
+"battery.power.system" = "시스템";
+"battery.power.system.help" = "시스템 전력(SoC 포함)";
+"battery.power.system.explanation" = "“    ”";
+"power.infoBar.input" = "충전기 입력";
+"power.infoBar.noInput" = "전원 미연결";
+"power.infoBar.battery" = "배터리 충전";
+"power.infoBar.discharging" = "배터리 방전";
+"power.infoBar.system" = "시스템 전력";
+"power.infoBar.notCharging" = "충전 중 아님";
+"battery.power.display" = "디스플레이";
+"battery.power.usb" = "USB 출력";
+"battery.power.soc" = "SoC";
+"battery.power.other" = "기타";
 "battery.energy.apps" = "CPU 에너지 영향";
 "battery.energy.empty" = "이번 측정에서 두드러진 앱 활동이 없습니다.";
 "battery.energy.cpuExplanation" = "현재 사용자가 읽을 수 있는 CPU 에너지 카운터순입니다. 활성 상태 보기의 종합 에너지 영향과는 다릅니다. GPU 및 시스템 프로세스는 누락될 수 있습니다.";
@@ -555,6 +643,8 @@
 "battery.energy.monitoringDescription" = "활성화하면 패널이 닫혀 있어도 백그라운드에서 앱 활동을 샘플링합니다. 비활성화하거나 시스템 또는 화면이 잠들 때, Status Trio를 종료할 때 중지합니다.";
 "settings.battery.showChargeToFullNow" = "지금 완전히 충전 버튼 표시";
 "settings.battery.showChargeToFullNowDescription" = "상태 패널에 macOS 충전 한도를 일시적으로 해제하고 100%까지 충전하는 버튼을 표시합니다.";
+"settings.battery.restoreLimit" = "취소 후 복원할 충전 한도";
+"settings.battery.restoreLimitDescription" = "‘지금 완전히 충전’을 취소할 때 복원할 충전 한도입니다.";
 "battery.action.chargeToFullNow" = "지금 완전히 충전";
 "battery.action.chargeToFullNowApplying" = "완전 충전 요청 중…";
 "battery.action.chargeToFullNowCharging" = "100%까지 충전 중";
@@ -562,7 +652,9 @@
 "battery.action.chargeToFullNowUnavailable" = "지금 완전히 충전은 현재 사용할 수 없습니다.";
 "battery.action.cancelChargeToFullNow" = "완전 충전 취소";
 "battery.action.cancelChargeToFullNowApplying" = "충전 제한 복원 중…";
-"battery.action.cancelChargeToFullNowFailed" = "충전 제한을 복원할 수 없습니다: %@";
+"battery.action.cancelChargeToFullNowFailed" = "충전 제한을 복원할 수 없습니다. 다시 시도하십시오.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "시스템 충전 제한이 변경되었습니다. 설정의 복원 제한을 확인한 후 다시 시도하십시오.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "시스템 충전 제한은 %1$d%%입니다. %2$d%%(으)로 복원하시겠습니까?";
 "battery.action.cancelChargeToFullNowRestored" = "충전 제한을 %d%%(으)로 복원했습니다";
 "battery.action.cancelChargeToFullNowFallback" = "충전 제한을 %d%%(으)로 설정했습니다";
 "battery.action.cancelChargeToFullNowConfirm" = "%d%% 복원 확인";
@@ -588,3 +680,71 @@
 "airPods.spatialHeadTracked" = "머리 추적";
 
 "airpods.retry" = "다시 시도";
+"settings.popup.order.brightness" = "밝기";
+"brightness.row.accessibility" = "%@의 밝기, %@";
+"brightness.row.accessibilityUnavailable" = "%@의 밝기, %@";
+"brightness.unavailable" = "사용할 수 없음";
+"brightness.appAbsent" = "BetterDisplay 필요";
+"brightness.noBackend" = "밝기 제어 없음";
+"brightness.unresponsive" = "응답 없음";
+"brightness.backend.directDDC" = "직접 DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "디스플레이를 끄면 해당 밝기 행이 숨겨집니다.";
+"settings.brightness.backend" = "밝기 백엔드";
+// About: community, author social links and more apps
+"settings.about.social.title" = "작성자 팔로우";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "블로그";
+"settings.about.community.title" = "커뮤니티";
+"settings.about.community.qq" = "QQ 그룹";
+"settings.about.community.qqDescription" = "질문과 피드백을 위해 Status Trio 그룹에 참여하세요.";
+"settings.about.community.wechat" = "WeChat 그룹";
+"settings.about.community.wechatDescription" = "WeChat으로 스캔하여 Status Trio 그룹에 참여하세요. QR 코드는 주기적으로 갱신되며, 최신 코드는 GitHub README에서 확인하세요.";
+"settings.about.community.copy" = "복사";
+"settings.about.community.copied" = "복사됨";
+"settings.about.moreApps.title" = "작성자의 다른 작품";
+"settings.about.moreApps.open" = "열기";
+"settings.about.moreApps.newtab01Description" = "북마크 기반 새 탭: 폴더를 탭 그룹이나 분할 보기로 열 수 있고 다양한 테마 제공.";
+"settings.about.moreApps.noLazyloadDescription" = "브라우저의 이미지 지연 로딩을 꺼서 페이지를 열면 모든 이미지를 바로 불러옵니다. 스크롤하면서 불러올 필요가 없습니다.";
+"settings.about.moreApps.fund01Description" = "펀드 보유 현황 모니터링: 당일 등락률을 메뉴 막대/작업 표시줄에 상시 표시하고 여러 그룹을 실시간 갱신.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";
+
+"guide.partPosition.battery" = "Top arc";
+"guide.partPosition.network" = "Middle icon";
+"guide.partPosition.volume" = "Bottom dots";
+"guide.network.center" = "Change what the middle icon shows in Settings › Network › Middle Slot — battery, power, input source, or Bluetooth audio.";
+
+"guide.state.chargingBatteryCenter" = "Charging + Battery %";
+"guide.state.fullPowerCenter" = "Full + Power";
+"guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "우클릭 동작";
+"settings.menuBarRightClickAction.description" = "메뉴 막대 아이콘을 우클릭할 때 수행할 동작입니다.";
+"settings.menuBarRightClickAction.contextMenu" = "상황 메뉴 표시";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "저전력 모드 전환";
+"settings.menuBarRightClickAction.chargeToFullNow" = "지금 완전 충전";
+"settings.menuBarRightClickAction.toggleMute" = "음소거 전환";
+"settings.menuBarRightClickAction.unavailableHint" = "선택한 동작을 지금 사용할 수 없습니다. 우클릭하면 메뉴가 표시됩니다.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "Wi-Fi 전환";
+"settings.menuBarRightClickAction.refreshStatus" = "상태 새로 고침";
+"settings.menuBarRightClickAction.openWiFiSettings" = "Wi-Fi 설정 열기";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "Bluetooth 설정 열기";
+"settings.menuBarRightClickAction.openBatterySettings" = "배터리 설정 열기";
+"settings.menuBarRightClickAction.openSoundSettings" = "사운드 설정 열기";
+
+"settings.tab.brightness" = "밝기";
+"settings.brightness.group.title" = "연결된 디스플레이";
+"settings.brightness.empty" = "연결된 디스플레이가 없습니다.";
+"settings.brightness.builtIn" = "내장";
+"settings.brightness.internalBackend.description" = "내장 디스플레이 밝기는 DisplayServices 백엔드를 사용합니다.";
+"settings.brightness.externalBackend.description" = "Status Trio가 이 디스플레이의 밝기를 제어하는 방식을 선택하세요.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay가 실행 중이 아니거나 알림 연동이 꺼져 있습니다.";
+"settings.brightness.compatibility.title" = "밝기를 조절할 수 없나요?";
+"settings.brightness.compatibility.description" = "제조사마다 DDC 구현이 달라 Status Trio가 모든 모델을 지원할 수는 없습니다. 여기서 밝기를 조절할 수 없는 디스플레이는 BetterDisplay 백엔드로 전환하세요. Status Trio가 BetterDisplay를 통해 제어합니다. 무료 버전으로 충분하며 Pro 라이선스는 필요하지 않습니다.";
+"settings.brightness.compatibility.link" = "BetterDisplay 다운로드(무료)";

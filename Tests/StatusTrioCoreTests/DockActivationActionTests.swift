@@ -3,6 +3,69 @@ import Testing
 @testable import StatusTrioCore
 
 struct DockActivationActionTests {
+    @Test func nativeComputerUseReopenUsesBackgroundSettingsWithEveryPlacement() {
+        let configuration = BackgroundUITestingConfiguration(arguments: ["--background-ui-testing"])
+        let event = AppleEventActivation(
+            kind: .reopen, sender: .other, senderPID: 3798,
+            senderBundleIdentifier: "com.openai.sky.CUAService", eventClass: nil, eventID: nil
+        )
+        for placement in AppIconPlacement.allCases {
+            let result = DockActivationAction.resolve(
+                event: event, showsPersistentDockIcon: placement.showsDockIcon,
+                backgroundUITesting: configuration
+            )
+            #if DEBUG
+            #expect(result == .openSettings)
+            #else
+            #expect(result == (placement.showsDockIcon ? .showPopover : .openSettings))
+            #endif
+            #expect(DockActivationAction.resolve(
+                event: event, showsPersistentDockIcon: placement.showsDockIcon
+            ) == (placement.showsDockIcon ? .showPopover : .openSettings))
+        }
+    }
+
+    @Test func backgroundConfigurationDoesNotChangePhysicalDockOrUnknownSenderRoutes() {
+        for senderID in ["com.apple.dock", "com.example.launcher", "com.openai.sky.CUAService.fake", ""] {
+            let event = AppleEventActivation(
+                kind: .reopen, sender: AppleEventSender(bundleIdentifier: senderID), senderPID: nil,
+                senderBundleIdentifier: senderID, eventClass: nil, eventID: nil
+            )
+            #expect(DockActivationAction.resolve(
+                event: event, showsPersistentDockIcon: true,
+                backgroundUITesting: BackgroundUITestingConfiguration(arguments: ["--background-ui-testing"])
+            ) == .showPopover)
+        }
+        let nonReopen = AppleEventActivation(
+            kind: .missing, sender: .other, senderPID: nil,
+            senderBundleIdentifier: "com.openai.sky.CUAService", eventClass: nil, eventID: nil
+        )
+        #expect(DockActivationAction.resolve(
+            event: nonReopen, showsPersistentDockIcon: true,
+            backgroundUITesting: BackgroundUITestingConfiguration(arguments: ["--background-ui-testing"])
+        ) == .none)
+    }
+
+    @Test func nativeComputerUseReopenKeepsVisibleOnboardingOnItsOwn() {
+        let configuration = BackgroundUITestingConfiguration(arguments: ["--background-ui-testing"])
+        let event = AppleEventActivation(
+            kind: .reopen, sender: .other, senderPID: 3798,
+            senderBundleIdentifier: "com.openai.sky.CUAService", eventClass: nil, eventID: nil
+        )
+
+        for placement in AppIconPlacement.allCases {
+            let result = DockActivationAction.resolve(
+                event: event, showsPersistentDockIcon: placement.showsDockIcon,
+                backgroundUITesting: configuration, hasVisibleOnboarding: true
+            )
+            #if DEBUG
+            #expect(result == .none)
+            #else
+            #expect(result == (placement.showsDockIcon ? .showPopover : .openSettings))
+            #endif
+        }
+    }
+
     @Test func dockAndUnknownReopensRespectPersistentPlacement() {
         for sender in [AppleEventSender.dock, .unknown, .other] {
             for (placement, expected) in [

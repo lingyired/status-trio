@@ -8,6 +8,7 @@
 "menu.window" = "Finestra";
 "menu.closeWindow" = "Chiudi finestra";
 "menu.checkForUpdates" = "Controlla aggiornamenti…";
+"menu.openMenuBarSettings" = "Apri impostazioni barra dei menu";
 "settings.title" = "Impostazioni";
 "settings.page.appearance" = "Aspetto";
 "settings.page.general" = "Generali";
@@ -55,6 +56,20 @@
 "settings.tab.panel" = "Pannello di stato";
 "settings.tab.about" = "Informazioni";
 "settings.menuBar.title" = "Icona della barra dei menu";
+"settings.appIcon.middleIcon.title" = "Icona centrale";
+"settings.appIcon.middleIcon.source" = "Icona centrale";
+"settings.appIcon.middleIcon.description" = "Scegli cosa mostra l’icona di stato al centro. Viene mostrata una sola sorgente alla volta.";
+"settings.appIcon.middleIcon.network" = "Rete";
+"settings.appIcon.middleIcon.bluetooth" = "Dispositivo Bluetooth";
+"settings.appIcon.middleIcon.inputSource" = "Sorgente di input corrente";
+"settings.appIcon.middleIcon.batteryPercentage" = "Percentuale batteria";
+"settings.appIcon.middleIcon.power" = "Potenza (watt)";
+"settings.appIcon.middleIcon.chargingStatus" = "Stato di carica";
+"settings.appIcon.middleIcon.chargingStatus.description" = "Mostra la percentuale a batteria, un fulmine durante la carica e una spina quando collegato; l'anello resta chiuso.";
+"settings.appIcon.middleIcon.size" = "Dimensione dell’icona centrale";
+"settings.appIcon.middleIcon.size.description" = "Una sola dimensione per tutti i contenuti centrali: Wi-Fi, Bluetooth, sorgente di input e numeri.";
+"settings.appIcon.middleIcon.networkWarnings" = "Dai priorità ai problemi di rete";
+"settings.appIcon.middleIcon.networkWarnings.description" = "Quando il Mac è davvero offline, al centro viene mostrato lo stato della rete invece della sorgente scelta.";
 "settings.network.connectionIcons" = "Stile delle icone di connessione";
 "settings.network.connectionIcons.description" = "Se attivato, lo stato selezionato usa l’icona standard del segnale Wi-Fi invece del simbolo dedicato.";
 "settings.network.wifiIconForEthernet" = "Usa l’icona Wi-Fi per Ethernet";
@@ -65,6 +80,8 @@
 "settings.network.centerSource.description" = "Scegli cosa mostra l’icona di stato al centro. «Automatico» mantiene il comportamento di rete e Bluetooth abituale.";
 "settings.network.centerSource.automatic" = "Automatico";
 "settings.network.centerSource.inputSource" = "Sorgente di input corrente";
+"settings.network.centerSource.batteryPercentage" = "Percentuale batteria";
+"settings.network.centerSource.power" = "Potenza (watt)";
 "settings.network.centerSource.bluetoothFallback" = "Con la sorgente di input selezionata, le icone Bluetooth e rete vengono usate solo come ripiego.";
 "settings.network.centerSource.networkWarnings" = "Dai priorità ai problemi di rete";
 "settings.network.centerSource.networkWarnings.description" = "Quando il Mac è davvero offline, al centro viene mostrato lo stato della rete invece della sorgente di input.";
@@ -117,13 +134,22 @@
 "settings.bluetooth.orderEmpty" = "Nessun dispositivo abbinato disponibile.";
 "settings.bluetooth.orderFootnote" = "I dispositivi connessi vengono sempre elencati per primi.";
 "bluetooth.battery.unavailable" = "Non disponibile";
-"settings.audio.maximumVisible" = "Numero massimo di dispositivi visibili";
-"settings.audio.maximumVisibleDescription" = "Numero di dispositivi mostrati prima del comando Espandi.";
-"settings.audio.showAll" = "Mostra sempre tutti i dispositivi";
+"settings.audio.maximumVisible" = "Numero massimo di dispositivi di uscita visibili";
+"settings.audio.maximumVisibleDescription" = "Numero di dispositivi di uscita mostrati prima del comando Espandi.";
+"settings.audio.showAll" = "Mostra sempre tutti i dispositivi di uscita";
 "settings.audio.showAllDescription" = "Ignora il limite e mostra tutti i dispositivi di uscita disponibili.";
+"settings.audio.showAllInput" = "Mostra sempre tutti i dispositivi di ingresso";
+"settings.audio.showAllInputDescription" = "Ignora il limite e mostra tutti i dispositivi di ingresso disponibili.";
+"settings.audio.maximumVisibleInput" = "Numero massimo di dispositivi di ingresso visibili";
+"settings.audio.maximumVisibleInputDescription" = "Numero di dispositivi di ingresso mostrati prima del comando Espandi.";
 "settings.audio.orderTitle" = "Ordine dei dispositivi di uscita";
-"settings.audio.orderDescription" = "Trascina i dispositivi per cambiare l’ordine nel pannello del volume. I nuovi dispositivi vengono aggiunti in fondo.";
+"settings.audio.orderDescription" = "Trascina i dispositivi per cambiare l’ordine nel pannello del volume. Deseleziona quelli che non usi per nasconderli; l’uscita attiva resta sempre visibile. I nuovi dispositivi vengono aggiunti in fondo.";
 "settings.audio.orderEmpty" = "Nessun dispositivo di uscita disponibile.";
+"settings.audio.showDevice" = "Mostra nel pannello di stato";
+"settings.audio.inputOrderTitle" = "Ordine dei dispositivi di ingresso";
+"settings.audio.inputOrderDescription" = "Trascina i dispositivi per cambiare l’ordine nella sezione Ingresso audio. Deseleziona quelli che non usi per nasconderli; l’ingresso attuale resta sempre visibile. I nuovi dispositivi vengono aggiunti in fondo.";
+"settings.audio.inputOrderEmpty" = "Nessun dispositivo di ingresso disponibile.";
+"settings.audio.inputOrderSectionOff" = "Attiva Ingresso audio in Pannello di stato › Elementi mostrati per riordinare o nascondere i dispositivi di ingresso.";
 "settings.about.version" = "Versione %@";
 "settings.about.description" = "Un’app macOS nativa che riunisce Wi-Fi, batteria e volume in una compatta icona della barra dei menu. Ispirata all’icona combinata della barra di stato dell’iPhone Duo, sul Mac usa il volume al posto dei dati cellulari.";
 "settings.about.project" = "Sito web";
@@ -134,11 +160,12 @@
 "settings.about.starOnGitHub" = "Aggiungi una stella su GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Visualizzazione batteria";
+"settings.battery.noBatteryNotice" = "Questo dispositivo non ha una batteria, quindi il livello della batteria viene mostrato come 100 per impostazione predefinita.";
 "settings.battery.showPercentage" = "Mostra percentuale batteria";
-"settings.battery.showPercentageInConnectionSlot" = "Mostra la percentuale della batteria nella posizione della connessione";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Sostituisce il simbolo Wi-Fi o di connessione. È indipendente dall’indicatore della batteria in alto.";
 "settings.battery.showChargingIndicator" = "Mostra un indicatore durante la carica o con alimentazione collegata";
 "settings.battery.chargingDescription" = "Se attivato, la percentuale diventa un fulmine o una spina durante la carica o con alimentazione collegata.";
+"settings.battery.splitGapProgress" = "Dividi l’avanzamento quando lo spazio superiore è pieno";
+"settings.battery.splitGapProgressDescription" = "Quando nello spazio superiore c’è un fulmine, una spina o una percentuale, l’anello viene disegnato in modo che la metà sinistra sia 0–50% e quella destra 50–100%, così lo spazio non nasconde più l’avanzamento.";
 "settings.battery.chargingEffect" = "Effetto di ricarica";
 "settings.battery.chargingEffectDescription" = "Anima l’evidenziazione solo durante la ricarica. Si interrompe quando «Riduci movimento» è attivo.";
 "settings.battery.menuBarChargingEffect" = "Effetto di ricarica nella barra dei menu";
@@ -149,15 +176,36 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "Disattivala per mantenere il fulmine alle dimensioni e al colore abituali; l’effetto dell’arco di ricarica continua.";
 "settings.battery.chargingEffectTest" = "Prova animazione di ricarica";
 "settings.battery.chargingEffectTestDescription" = "Versione di sviluppo: riproduce senza ricarica. La modalità di prova si disattiva al riavvio.";
-"settings.battery.percentageWhenConnected" = "Mostra la percentuale con alimentazione collegata senza carica";
-"settings.battery.percentageWhenConnectedDescription" = "Se attivato, una fonte di alimentazione collegata che non sta caricando mostra la percentuale invece della spina.";
+"settings.battery.connectedIndicator" = "Mostra quando collegato senza ricarica";
+"settings.battery.connectedIndicatorDescription" = "Cosa mostra l’icona della batteria quando è collegato all’alimentazione ma non in carica: la spina, il fulmine o la percentuale.";
+"settings.battery.connectedIndicator.plug" = "Spina";
+"settings.battery.connectedIndicator.bolt" = "Fulmine";
+"settings.battery.connectedIndicator.percentage" = "Percentuale";
 "settings.battery.symbolScale" = "Dimensione percentuale/fulmine";
 "settings.battery.symbolScaleAccessibility" = "Dimensione percentuale batteria e fulmine";
 "settings.battery.symbolScaleDescription" = "Percentuale e fulmine usano la stessa dimensione.";
 "settings.battery.statusColors" = "Colora l’arco in base allo stato della batteria";
-"settings.battery.statusColorsDescription" = "Batteria scarica in rosso, risparmio energia in giallo, carica o alimentazione collegata in verde.";
+"settings.battery.statusColorsDescription" = "Per impostazione predefinita: alimentazione in verde, risparmio energetico in giallo e batteria scarica in rosso. Modificabili sotto. Disattivando, i colori personalizzati salvati non vengono applicati.";
+"settings.battery.colors.charging" = "Ricarica / alimentazione collegata";
+"settings.battery.colors.lowPower" = "Risparmio energetico";
+"settings.battery.colors.critical" = "Batteria quasi esaurita";
+"settings.battery.colors.system" = "Predefinito di sistema";
+"settings.battery.colors.custom" = "Personalizzato";
+"settings.battery.colors.mint" = "Menta";
+"settings.battery.colors.sky" = "Cielo";
+"settings.battery.colors.lavender" = "Lavanda";
+"settings.battery.colors.amber" = "Ambra";
+"settings.battery.colors.rose" = "Rosa";
+"settings.battery.colors.slate" = "Ardesia";
+"settings.battery.colors.reset" = "Ripristina";
+"settings.battery.colors.resetAll" = "Ripristina tutti i colori";
+"settings.battery.colors.inactive" = "I colori di stato sono disattivati. Le scelte vengono conservate e applicate alla riattivazione.";
+"settings.battery.colors.referenceContrast" = "Contrasto minimo di riferimento · %.2f:1";
+"settings.battery.colors.previews" = "Anteprime dei colori chiari e scuri";
+"settings.battery.colors.adjusted" = "Adattato per visibilità";
+"settings.battery.colors.referenceDescription" = "I colori personalizzati sono comuni ai due aspetti e adattati ad almeno 1.2:1. I colori di sistema e predefiniti restano invariati. Il contrasto è il minimo su sfondi bianco e nero e relative tracce; lo sfondo reale può dare risultati diversi.";
 "settings.battery.criticalThreshold" = "Soglia batteria scarica";
-"settings.battery.criticalThresholdDescription" = "I livelli inferiori a questa soglia sono considerati bassi e mostrati in rosso.";
+"settings.battery.criticalThresholdDescription" = "Sotto questa soglia viene usato il colore della batteria quasi esaurita.";
 "settings.battery.fullThreshold" = "Livello anello pieno";
 "settings.battery.fullThresholdDescription" = "L'anello della batteria è considerato pieno a questo livello. Utile quando il limite di carica mantiene la batteria sotto il 100%.";
 "settings.battery.fullThresholdUseChargeLimit" = "Usa il limite di carica";
@@ -166,6 +214,8 @@
 "settings.updates.automatic" = "Controlla automaticamente gli aggiornamenti";
 "settings.updates.check" = "Controlla aggiornamenti…";
 "battery.title" = "Batteria · %d%%";
+"battery.title.power" = "Potenza · %d W";
+"battery.title.powerUnavailable" = "Potenza · Non disponibile";
 "battery.state.notPresent" = "Nessuna batteria";
 "battery.state.charged" = "Completamente carica";
 "battery.state.calculatingTimeToFull" = "Calcolo del tempo alla carica completa";
@@ -217,7 +267,7 @@
 "vpn.subtitle.systemProxy" = "Proxy di sistema";
 "vpn.subtitle.connectedWithProxy" = "Connesso · proxy %@";
 "vpn.subtitle.proxyAutomatic" = "Configurazione automatica";
-"wifi.action.requestNameAccess" = "Consenti posizione per mostrare il nome Wi‑Fi";
+"wifi.action.requestNameAccess" = "Consenti posizione per mostrare le reti Wi‑Fi";
 "wifi.action.openLocationSettings" = "Consenti posizione in Impostazioni";
 "wifi.action.openSettings" = "Apri impostazioni Wi‑Fi";
 "wifi.action.switchingHint" = "Scegliere una rete apre il pannello Wi-Fi delle Impostazioni di Sistema.";
@@ -232,6 +282,11 @@
 "settings.network.panelGroup" = "Pannello";
 "settings.network.showLocalIP" = "Mostra IP locale";
 "settings.network.showLocalIP.description" = "Mostra l'indirizzo LAN privato di questo Mac nella riga di rete, prima dei dettagli Wi-Fi.";
+
+"settings.network.permissionNotDeterminedTitle" = "Autorizzazione di localizzazione necessaria";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio ha bisogno dell’accesso alla tua posizione per mostrare le reti Wi‑Fi. Fai clic qui sotto per concederlo.";
+"settings.network.permissionDeniedTitle" = "Autorizzazione di localizzazione disattivata";
+"settings.network.permissionDeniedDescription" = "Senza accesso alla posizione, le reti Wi‑Fi non possono essere mostrate. Attivalo nelle Impostazioni di Sistema.";
 "settings.audio.externalVolume.title" = "Volume dello schermo esterno";
 "settings.audio.externalVolume.controlMethod" = "Metodo di controllo";
 "settings.audio.externalVolume.controlMethodDescription" = "Se i controlli del volume nel pannello di stato non riescono a gestire questo dispositivo, usa BetterDisplay.";
@@ -243,7 +298,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "Schermo non disponibile";
 "settings.audio.externalVolume.refresh" = "Rileva di nuovo";
 "settings.audio.externalVolume.requirements" = "Se la connessione non riesce, attiva l’accesso alla CLI e l’integrazione basata su notifiche nelle impostazioni di BetterDisplay.";
-"settings.audio.externalVolume.footnote" = "Il controllo volume nativo di macOS ha la precedenza. Il metodo selezionato viene usato quando il controllo nativo non è disponibile.";
+"settings.audio.externalVolume.footnote" = "Il controllo volume nativo di macOS ha la precedenza. Il metodo selezionato viene usato quando il controllo nativo non è disponibile. La versione gratuita di BetterDisplay è sufficiente; non serve una licenza Pro.";
 "settings.audio.externalVolume.noStableOutput" = "L’uscita corrente non ha un ID audio stabile, quindi BetterDisplay non può essere configurato.";
 "settings.audio.externalVolume.status.ready" = "Connesso. Il controllo del volume è disponibile.";
 "settings.audio.externalVolume.status.idle" = "Non connesso.";
@@ -277,6 +332,8 @@
 "volume.output.unknownDevice" = "Dispositivo di uscita sconosciuto";
 "volume.output.expand" = "Espandi";
 "volume.output.collapse" = "Comprimi";
+"audioInput.expand" = "Espandi";
+"audioInput.collapse" = "Comprimi";
 "volume.action.openSettings" = "Apri impostazioni audio";
 "volume.accessibility.label" = "Volume";
 "audioInput.title" = "Microfono";
@@ -318,6 +375,13 @@
 "inputSource.switchFailed" = "Impossibile passare a «%@». Selezionala direttamente o riprova.";
 "inputSource.switchUnconfirmed" = "macOS ha accettato «%@» ma segnala ancora un’altra sorgente di input. L’app in primo piano potrebbe richiedere il focus.";
 "settings.popup.order.inputSource" = "Sorgente di input";
+"settings.panel.background.title" = "Sfondo del pannello";
+"settings.panel.background.style" = "Stile sfondo";
+"settings.panel.background.style.description" = "Scegli come disegnare lo sfondo del pannello di stato.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "Materiale classico";
+"settings.panel.background.style.solid" = "Tinta unita";
+"settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass richiede macOS 26 o versione successiva.";
 "settings.popup.volumeScroll.group" = "Scorrimento del pannello";
 "settings.popup.volumeScroll" = "Regola il volume scorrendo";
 "settings.popup.volumeScroll.description" = "Scorri all’interno del pannello di stato per cambiare il volume di uscita.";
@@ -327,6 +391,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Solo il controllo del volume";
 "settings.popup.volumeScroll.natural" = "Scorrimento naturale";
 "settings.popup.volumeScroll.natural.description" = "Se attivo, scorrendo verso l’alto con mouse o trackpad il volume aumenta. Se disattivo, il volume segue la direzione di scorrimento del sistema. Se, dopo aver attivato questa opzione, lo scorrimento verso l’alto del mouse abbassa ancora il volume, configura MOS, Scroll Reverser, LinearMouse o un’app simile per lasciare Status Trio invariato, di solito tramite un elenco di eccezioni/ignorati (talvolta chiamato elenco consentiti).";
+"settings.audio.volumeFeedbackTitle" = "Feedback del volume";
+"settings.audio.volumeFeedback" = "Riproduci un suono quando cambi il volume scorrendo";
+"settings.audio.volumeFeedbackDescription" = "Riproduce il suono quando cambi il volume scorrendo. Per impostazione predefinita segue l’impostazione di macOS «Riproduci feedback quando il volume cambia»; questa opzione vale solo per Status Trio.";
 "settings.popup.volumeScroll.direction" = "Direzione di scorrimento";
 "settings.popup.volumeScroll.direction.description" = "Scegli la direzione che alza il volume.";
 "settings.popup.volumeScroll.direction.up" = "Verso l’alto";
@@ -430,6 +497,7 @@
 // On-demand battery details.
 "battery.details.title" = "Dettagli batteria";
 "battery.details.systemPower" = "Consumo sistema (stimato)";
+"battery.details.watt" = "Potenza";
 "battery.details.systemReadAt" = "Lettura del sistema";
 "battery.details.power" = "Potenza della batteria (stimata)";
 "battery.details.charging" = "Carica (stimata)";
@@ -446,7 +514,8 @@
 "battery.details.unavailable" = "Non disponibile";
 "battery.details.collecting" = "Misurazione…";
 "battery.details.loading" = "Aggiornamento…";
-"battery.details.explanation" = "Le potenze sono stime di sensori indipendenti e possono essere ritardate o diverse. La potenza nominale non è l’ingresso reale. A batteria viene mostrata la scarica netta. Alcuni modelli aggiornano la batteria con circa un minuto di ritardo.";
+"battery.details.explanation" = "I valori di potenza sono stime; la raccolta può subire un ritardo fino a un minuto.";
+"battery.details.info" = "Informazioni su queste letture";
 /* Compact popover controls. */
 "menu.more" = "Altre azioni";
 
@@ -543,11 +612,30 @@
 // Battery panel power flow and application energy
 "settings.battery.powerFlow" = "Flusso di potenza nel pannello Batteria";
 "settings.battery.powerFlow.description" = "Le potenze si aggiornano solo con il pannello Batteria aperto. I sensori possono essere in ritardo e le tre letture potrebbero non coincidere.";
+"settings.battery.breakdown" = "Suddividi la potenza per componente";
+"settings.battery.breakdown.description" = "Suddivide l’ingresso dell’adattatore in display integrato, uscita USB e il resto del carico di sistema (incluso il SoC). I valori non disponibili vengono nascosti; senza una suddivisione affidabile torna la potenza di sistema.";
+"settings.battery.powerInfoBar" = "Barra info potenza";
+"settings.battery.powerFlowDiagram" = "Diagramma del flusso di potenza";
+"settings.battery.powerFlowDiagramDescription" = "Mostra il diagramma del flusso di potenza (ingresso / batteria / sistema) nella pagina dei dettagli della batteria.";
+"settings.battery.powerInfoBarDescription" = "Mostra la potenza di ingresso, batteria e sistema sotto il modulo batteria con il pannello aperto. Disattivato per impostazione predefinita.";
 "settings.battery.energyRefreshInterval" = "Intervallo di campionamento in background";
 "settings.battery.energyRefreshInterval.description" = "Usato quando il pannello è chiuso. La pagina dei dettagli della batteria si aggiorna comunque ogni 5 secondi.";
 "battery.power.input" = "Dal caricatore";
+"battery.power.source.battery" = "Batteria";
 "battery.power.charging" = "Alla batteria";
 "battery.power.system" = "Sistema";
+"battery.power.system.help" = "Potenza di sistema (incl. SoC)";
+"battery.power.system.explanation" = "“Sistema” è ciò che resta dopo carica della batteria, display e USB: comprende SoC, memoria, controller del display e altri carichi non misurati singolarmente.";
+"power.infoBar.input" = "Ingresso caricatore";
+"power.infoBar.noInput" = "Nessun alimentatore";
+"power.infoBar.battery" = "Carica batteria";
+"power.infoBar.discharging" = "Scarica della batteria";
+"power.infoBar.system" = "Potenza sistema";
+"power.infoBar.notCharging" = "Non in carica";
+"battery.power.display" = "Display";
+"battery.power.usb" = "Uscita USB";
+"battery.power.soc" = "SoC";
+"battery.power.other" = "Altro";
 "battery.energy.apps" = "Impatto energetico CPU";
 "battery.energy.empty" = "Nessuna attività rilevante in questo campione.";
 "battery.energy.cpuExplanation" = "Ordinate per contatori di energia CPU delle app accessibili al tuo account; non è l’impatto energetico composito di Monitoraggio Attività. GPU e processi di sistema possono mancare.";
@@ -555,6 +643,8 @@
 "battery.energy.monitoringDescription" = "Se attivato, campiona l’attività delle app in background anche a pannello chiuso. Il campionamento si interrompe quando lo disattivi, durante la sospensione del sistema o dello schermo e all’uscita da Status Trio.";
 "settings.battery.showChargeToFullNow" = "Mostra pulsante Completa carica ora";
 "settings.battery.showChargeToFullNowDescription" = "Mostra nel pannello di stato un pulsante per ignorare temporaneamente il limite di carica di macOS e caricare fino al 100%.";
+"settings.battery.restoreLimit" = "Limite ripristinato dopo l’annullamento";
+"settings.battery.restoreLimitDescription" = "Limite di carica ripristinato quando annulli «Completa carica ora».";
 "battery.action.chargeToFullNow" = "Completa carica ora";
 "battery.action.chargeToFullNowApplying" = "Richiesta di carica completa…";
 "battery.action.chargeToFullNowCharging" = "Caricamento fino al 100%";
@@ -562,7 +652,9 @@
 "battery.action.chargeToFullNowUnavailable" = "Completa carica ora non è disponibile al momento.";
 "battery.action.cancelChargeToFullNow" = "Annulla carica completa";
 "battery.action.cancelChargeToFullNowApplying" = "Ripristino del limite di carica…";
-"battery.action.cancelChargeToFullNowFailed" = "Impossibile ripristinare il limite di carica: %@";
+"battery.action.cancelChargeToFullNowFailed" = "Impossibile ripristinare il limite di carica. Riprova.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "Il limite di carica di sistema è cambiato. Controlla il limite di ripristino nelle Impostazioni e riprova.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "Il limite di carica di sistema è %1$d%%. Ripristinarlo al %2$d%%?";
 "battery.action.cancelChargeToFullNowRestored" = "Limite di carica ripristinato al %d%%";
 "battery.action.cancelChargeToFullNowFallback" = "Limite di carica impostato al %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "Conferma ripristino al %d%%";
@@ -588,3 +680,71 @@
 "airPods.spatialHeadTracked" = "Rilevamento della testa";
 
 "airpods.retry" = "Riprova";
+"settings.popup.order.brightness" = "Luminosità";
+"brightness.row.accessibility" = "Luminosità di %@, %@";
+"brightness.row.accessibilityUnavailable" = "Luminosità di %@, %@";
+"brightness.unavailable" = "Non disponibile";
+"brightness.appAbsent" = "Richiede BetterDisplay";
+"brightness.noBackend" = "Nessun controllo della luminosità";
+"brightness.unresponsive" = "Non risponde";
+"brightness.backend.directDDC" = "DDC diretto";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Disattiva un display per nascondere la relativa riga della luminosità.";
+"settings.brightness.backend" = "Backend luminosità";
+// About: community, author social links and more apps
+"settings.about.social.title" = "Segui l’autore";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "Blog";
+"settings.about.community.title" = "Community";
+"settings.about.community.qq" = "Gruppo QQ";
+"settings.about.community.qqDescription" = "Unisciti al gruppo Status Trio per domande e feedback.";
+"settings.about.community.wechat" = "Gruppo WeChat";
+"settings.about.community.wechatDescription" = "Scansiona con WeChat per unirti al gruppo Status Trio. Il codice QR viene rinnovato periodicamente; consulta il README su GitHub per l’ultimo.";
+"settings.about.community.copy" = "Copia";
+"settings.about.community.copied" = "Copiato";
+"settings.about.moreApps.title" = "Altri lavori dell’autore";
+"settings.about.moreApps.open" = "Apri";
+"settings.about.moreApps.newtab01Description" = "Nuova scheda basata sui segnalibri: apri le cartelle come gruppi di schede o in vista divisa, con diversi temi.";
+"settings.about.moreApps.noLazyloadDescription" = "Disattiva il caricamento differito delle immagini del browser così la pagina carica subito tutte le immagini, senza dover scorrere.";
+"settings.about.moreApps.fund01Description" = "Monitoraggio del portafoglio: la variazione del giorno sempre nella barra dei menu o nella barra delle applicazioni, più gruppi aggiornati in tempo reale.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";
+
+"guide.partPosition.battery" = "Top arc";
+"guide.partPosition.network" = "Middle icon";
+"guide.partPosition.volume" = "Bottom dots";
+"guide.network.center" = "Change what the middle icon shows in Settings › Network › Middle Slot — battery, power, input source, or Bluetooth audio.";
+
+"guide.state.chargingBatteryCenter" = "Charging + Battery %";
+"guide.state.fullPowerCenter" = "Full + Power";
+"guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "Azione del clic destro";
+"settings.menuBarRightClickAction.description" = "Cosa fa l'icona della barra dei menu quando si fa clic con il tasto destro.";
+"settings.menuBarRightClickAction.contextMenu" = "Mostra menu contestuale";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "Attiva/disattiva risparmio energetico";
+"settings.menuBarRightClickAction.chargeToFullNow" = "Carica al massimo ora";
+"settings.menuBarRightClickAction.toggleMute" = "Attiva/disattiva muto";
+"settings.menuBarRightClickAction.unavailableHint" = "L'azione selezionata non è disponibile al momento; il clic destro mostrerà il menu.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "Attiva/disattiva Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "Aggiorna stato";
+"settings.menuBarRightClickAction.openWiFiSettings" = "Apri impostazioni Wi-Fi";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "Apri impostazioni Bluetooth";
+"settings.menuBarRightClickAction.openBatterySettings" = "Apri impostazioni Batteria";
+"settings.menuBarRightClickAction.openSoundSettings" = "Apri impostazioni Audio";
+
+"settings.tab.brightness" = "Luminosità";
+"settings.brightness.group.title" = "Display collegati";
+"settings.brightness.empty" = "Nessun display collegato.";
+"settings.brightness.builtIn" = "Integrato";
+"settings.brightness.internalBackend.description" = "La luminosità del display integrato usa il backend DisplayServices.";
+"settings.brightness.externalBackend.description" = "Scegli come Status Trio controlla la luminosità di questo display.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay non è in esecuzione o la sua integrazione delle notifiche è disattivata.";
+"settings.brightness.compatibility.title" = "Luminosità non controllabile?";
+"settings.brightness.compatibility.description" = "Ogni produttore implementa DDC a modo suo, quindi Status Trio non può coprire tutti i modelli. Se la luminosità di un display non è regolabile qui, passalo al backend BetterDisplay: Status Trio lo controllerà tramite BetterDisplay. La versione gratuita è sufficiente; non serve una licenza Pro.";
+"settings.brightness.compatibility.link" = "Scarica BetterDisplay (gratis)";

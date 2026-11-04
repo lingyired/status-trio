@@ -673,6 +673,94 @@ final class SystemStatusStoreTests: XCTestCase {
         XCTAssertEqual(input.stopCount, 1)
     }
 
+    func testSettingsWindowKeepsInputListCurrentWhileThePopoverIsClosed() async {
+        let input = FakeAudioInputMonitor()
+        let suite = makeSuite()
+        defer { suite.defaults.removeTestSuite(named: suite.name) }
+        let settings = SettingsStore(defaults: suite.defaults)
+        let store = makeStore(
+            battery: FakeBatteryMonitor(),
+            wifi: FakeWiFiMonitor(),
+            volume: FakeVolumeMonitor(),
+            inputMonitor: input
+        )
+        store.bindInputSettings(settings)
+        store.start()
+        settings.setPopupSection(.audioInput, enabled: true)
+        XCTAssertEqual(input.visibleValues, [false])
+
+        store.setSettingsVisible(true)
+        XCTAssertEqual(input.visibleValues.last, false, "Settings must not request popover usage polling")
+        XCTAssertEqual(input.deviceListVisibleValues.last, true)
+
+        let listed = AudioInputStatus(
+            devices: [AudioInputDevice(id: AudioDeviceID(42), uid: "input-42", name: "USB Mic")],
+            defaultDeviceID: AudioDeviceID(42),
+            deviceName: "USB Mic",
+            scalar: 0.5,
+            canSetVolume: true,
+            muteState: .unmuted,
+            canSetMute: true,
+            isRefreshing: false,
+            isBusy: false,
+            error: nil
+        )
+        input.send(listed)
+        await waitUntil { store.liveInput == listed }
+        XCTAssertEqual(store.liveInput.defaultDeviceID, AudioDeviceID(42))
+
+        // Closing the popover stops usage polling while Settings keeps inventory live.
+        store.setPopoverVisible(true)
+        XCTAssertEqual(input.visibleValues.last, true)
+        store.setPopoverVisible(false)
+        XCTAssertEqual(input.visibleValues.last, false)
+        XCTAssertEqual(input.deviceListVisibleValues.last, true)
+
+        store.setSettingsVisible(false)
+        XCTAssertEqual(input.visibleValues.last, false)
+        XCTAssertEqual(input.deviceListVisibleValues.last, false)
+        store.stop()
+    }
+
+    func testInputEnableAndStartRestoreSeparatePanelAndDeviceListDemand() {
+        let input = FakeAudioInputMonitor()
+        let suite = makeSuite()
+        defer { suite.defaults.removeTestSuite(named: suite.name) }
+        let settings = SettingsStore(defaults: suite.defaults)
+        let store = makeStore(
+            battery: FakeBatteryMonitor(),
+            wifi: FakeWiFiMonitor(),
+            volume: FakeVolumeMonitor(),
+            inputMonitor: input
+        )
+        store.bindInputSettings(settings)
+        store.setSettingsVisible(true)
+        settings.setPopupSection(.audioInput, enabled: true)
+        store.start()
+        XCTAssertEqual(input.enabledValues.last, true)
+        XCTAssertEqual(input.visibleValues.last, false)
+        XCTAssertEqual(input.deviceListVisibleValues.last, true)
+
+        settings.setPopupSection(.audioInput, enabled: false)
+        store.setPopoverVisible(true)
+        settings.setPopupSection(.audioInput, enabled: true)
+        XCTAssertEqual(input.visibleValues.last, true)
+        XCTAssertEqual(input.deviceListVisibleValues.last, true)
+        store.setSettingsVisible(false)
+        XCTAssertEqual(input.visibleValues.last, true)
+        XCTAssertEqual(input.deviceListVisibleValues.last, false)
+
+        store.stop()
+        let panelCalls = input.visibleValues
+        let listCalls = input.deviceListVisibleValues
+        store.setPopoverVisible(false)
+        store.setSettingsVisible(true)
+        settings.setPopupSection(.audioInput, enabled: false)
+        XCTAssertEqual(input.visibleValues, panelCalls)
+        XCTAssertEqual(input.deviceListVisibleValues, listCalls)
+        XCTAssertEqual(input.stopCount, 1)
+    }
+
     func testInputUpdatesDoNotChangeOutputOrIconProjections() async {
         let battery = FakeBatteryMonitor()
         let wifi = FakeWiFiMonitor()
@@ -2816,6 +2904,7 @@ private final class FakeAudioInputMonitor: AudioInputMonitoring {
     private let continuation: AsyncStream<AudioInputStatus>.Continuation
     private(set) var enabledValues: [Bool] = []
     private(set) var visibleValues: [Bool] = []
+    private(set) var deviceListVisibleValues: [Bool] = []
     private(set) var recoverCount = 0
     private(set) var stopCount = 0
     private(set) var selectedDeviceIDs: [AudioDeviceID] = []
@@ -2829,6 +2918,7 @@ private final class FakeAudioInputMonitor: AudioInputMonitoring {
 
     func setEnabled(_ enabled: Bool) { enabledValues.append(enabled) }
     func setVisible(_ visible: Bool) { visibleValues.append(visible) }
+    func setDeviceListVisible(_ visible: Bool) { deviceListVisibleValues.append(visible) }
     func recover() { recoverCount += 1 }
     func select(_ id: AudioDeviceID) { selectedDeviceIDs.append(id) }
     func setScalar(_ value: Double, requestID: UUID) {

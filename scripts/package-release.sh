@@ -90,6 +90,7 @@ WORKTREE_STATUS="$(
 for command in git ruby shasum swift xcrun hdiutil plutil /usr/libexec/PlistBuddy; do
     command -v "$command" >/dev/null 2>&1 || die "required command '$command' is not available."
 done
+bash "$ROOT/scripts/create-installer-dmg.sh" --check
 
 SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
 XCODE_VERSION="$(xcodebuild -version | tr '\n' ' ' | sed 's/ $//')"
@@ -175,10 +176,6 @@ bash "$ROOT/scripts/test-macos13-sparkle-metadata.sh" "$APP_DIR"
 TEMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/StatusTrioPackage.XXXXXX")"
 trap 'build_timing_finish "$?"; rm -rf "$TEMP_ROOT"' EXIT
 build_phase dmg-staging
-STAGING_DIR="$TEMP_ROOT/dmg"
-mkdir -p "$STAGING_DIR"
-ditto "$APP_DIR" "$STAGING_DIR/$APP_NAME.app"
-ln -s /Applications "$STAGING_DIR/Applications"
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     build_phase app-notarization
@@ -186,7 +183,7 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
         die "NOTARY_PROFILE requires a Developer ID signature."
     fi
     APP_ARCHIVE="$TEMP_ROOT/app.zip"
-    ditto -c -k --keepParent "$STAGING_DIR/$APP_NAME.app" "$APP_ARCHIVE"
+    ditto -c -k --keepParent "$APP_DIR" "$APP_ARCHIVE"
     APP_NOTARY_ARGS=(--keychain-profile "$NOTARY_PROFILE")
     if [[ -n "${KEYCHAIN_PATH:-}" ]]; then
         APP_NOTARY_ARGS+=(--keychain "$KEYCHAIN_PATH")
@@ -198,15 +195,36 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
         result = JSON.parse(File.read(ARGV[0]))
         abort("App notarization status was #{result["status"]}.") unless result["status"] == "Accepted"
     ' "$TEMP_ROOT/app-notary.json"
-    xcrun stapler staple "$STAGING_DIR/$APP_NAME.app"
-    xcrun stapler validate "$STAGING_DIR/$APP_NAME.app"
+    xcrun stapler staple "$APP_DIR"
+    xcrun stapler validate "$APP_DIR"
 fi
 
 DMG_PATH="$OUTPUT_DIR/$DMG_BASENAME-$VERSION.dmg"
 build_phase dmg-creation
-rm -f "$DMG_PATH" "$DMG_PATH.sha256"
-hdiutil create -quiet -volname "$APP_NAME" -srcfolder "$STAGING_DIR" \
-    -ov -format UDZO "$DMG_PATH"
+# Preserve the package command's existing rerun behavior for its explicit output.
+RESOLVED_OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd -P)"
+[[ "$(cd "$(dirname "$DMG_PATH")" && pwd -P)" == "$RESOLVED_OUTPUT_DIR" ]] ||
+    die 'DMG output escaped OUTPUT_DIR.'
+[[ "$(basename "$DMG_PATH")" == "$DMG_BASENAME-$VERSION.dmg" ]] || die 'Unexpected DMG output name.'
+rm -f -- "$DMG_PATH" "$DMG_PATH.sha256"
+# DMG_INSTALL_PAGE=styled draws the bilingual install page through create-dmg.
+# DMG_INSTALL_PAGE=plain falls back to the pre-install-page layout: the app and
+# an Applications symlink only. The plain layout is an explicit opt-out, never a
+# silent fallback, and it keeps the DMG signing/notarization order unchanged.
+DMG_INSTALL_PAGE="${DMG_INSTALL_PAGE:-plain}"
+case "$DMG_INSTALL_PAGE" in
+    styled)
+        DMG_APP_NAME="$APP_NAME" bash "$ROOT/scripts/create-installer-dmg.sh" "$APP_DIR" "$DMG_PATH" ;;
+    plain)
+        STAGING_DIR="$TEMP_ROOT/dmg"
+        mkdir -p "$STAGING_DIR"
+        ditto "$APP_DIR" "$STAGING_DIR/$APP_NAME.app"
+        ln -s /Applications "$STAGING_DIR/Applications"
+        hdiutil create -quiet -volname "$APP_NAME" -srcfolder "$STAGING_DIR" \
+            -ov -format UDZO "$DMG_PATH" ;;
+    *)
+        die 'DMG_INSTALL_PAGE must be styled or plain.' ;;
+esac
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     build_phase dmg-codesign
@@ -230,7 +248,7 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     xcrun stapler staple "$DMG_PATH"
     xcrun stapler validate "$DMG_PATH"
     spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG_PATH"
-    spctl --assess --type execute --verbose=2 "$STAGING_DIR/$APP_NAME.app"
+    spctl --assess --type execute --verbose=2 "$APP_DIR"
 fi
 
 DMG_FILENAME="$(basename "$DMG_PATH")"

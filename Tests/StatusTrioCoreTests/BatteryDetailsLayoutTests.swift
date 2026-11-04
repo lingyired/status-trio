@@ -46,6 +46,20 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         XCTAssertEqual(size.width, 330, accuracy: 0.5)
     }
 
+    func testBreakdownPageFitsPopoverWithFiveBranches() async throws {
+        // Five branches are the tallest possible diagram; the page still has to
+        // fit the popover without clipping the actions below it.
+        let heightBudget: CGFloat = 620
+        for language in AppLanguage.allCases {
+            let split = try await render(language: language, available: true, connected: true,
+                                         allPower: true, breakdown: true)
+            XCTAssertLessThan(split.height, heightBudget, language.rawValue)
+            let legacy = try await render(language: language, available: true, connected: true,
+                                          allPower: true)
+            XCTAssertGreaterThan(split.height, legacy.height, language.rawValue)
+        }
+    }
+
     func testBatteryDetailsShowChargeToFullAboveTheSettingsActions() async throws {
         let hidden = try await render(language: .english, available: true, connected: true)
         let available = try await render(
@@ -202,7 +216,7 @@ final class BatteryDetailsLayoutTests: XCTestCase {
                         systemAvailable: Bool = true, charging: Bool = false,
                         allPower: Bool = false, dark: Bool = false, energyApps: Bool = false,
                         chargeToFullNow: ChargeToFullNowPresentation = .hidden,
-                        inputWatts: Double? = nil) async throws -> NSSize {
+                        inputWatts: Double? = nil, breakdown: Bool = false) async throws -> NSSize {
         let suite = "StatusTrioCoreTests.BatteryDetails.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removeTestSuite(named: suite) }
@@ -218,14 +232,21 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             powerAvailability: collecting ? .collecting : .unavailable,
             systemPower: connected && systemAvailable ? SystemPowerSample(watts: 25.59, readAt: observedAt) : nil,
             inputPower: connected
-                ? SystemPowerSample(watts: inputWatts ?? 67, readAt: observedAt) : nil)
+                ? SystemPowerSample(watts: inputWatts ?? 67, readAt: observedAt) : nil,
+            breakdown: breakdown && connected ? BatteryPowerBreakdown(
+                source: .adapter,
+                sourceWatts: 67,
+                display: .init(watts: 8.07, readAt: observedAt),
+                usb: .init(watts: 4.5, readAt: observedAt),
+                system: .init(watts: 13.22, readAt: observedAt),
+                readAt: observedAt) : nil)
         let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: charging,
                                     isLowPowerMode: false, isConnectedToPower: connected)
         let panelState = PanelDetailMapper.battery(
             status: battery,
             details: fixture,
             localization: localization,
-            powerOptions: BatteryPowerDisplayOptions(showsInput: allPower),
+            powerOptions: BatteryPowerDisplayOptions(showsInput: allPower, showsBreakdown: breakdown),
             energyApps: energyApps ? ApplicationEnergyRanking(apps: [
                 EnergyApplication(id: "browser", name: "Browser"),
                 EnergyApplication(id: "editor", name: "Code Editor"),
@@ -249,7 +270,7 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         let state = connected
             ? (systemAvailable ? (charging ? "system-charging" : "system") : "system-unavailable")
             : (available ? "power" : (collecting ? "collecting" : "unavailable"))
-        let size = try await capture(view, named: "battery-\(language.rawValue)-page-\(state)-\(allPower ? "flow" : "default")-\(dark ? "dark" : "light")")
+        let size = try await capture(view, named: "battery-\(language.rawValue)-page-\(state)-\(allPower ? "flow" : "default")-\(breakdown ? "breakdown" : "single")-\(dark ? "dark" : "light")")
         XCTAssertEqual(size.width, 330, accuracy: 0.5)
         return size
     }

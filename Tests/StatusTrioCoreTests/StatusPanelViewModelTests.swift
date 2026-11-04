@@ -28,6 +28,89 @@ final class StatusPanelViewModelTests: XCTestCase {
         panel.stop()
     }
 
+    func testStoppingPanelReleasesPowerInfoBarAndStopsWithoutOtherDemands() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.showsBatteryPowerInfoBar = true
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel, .powerInfoBar])
+
+        panel.stop()
+
+        XCTAssertTrue(fixture.store.powerSampling.demands.isEmpty)
+        XCTAssertFalse(fixture.store.powerSampling.isRunning)
+    }
+
+    func testEnablingPowerInfoBarUsesDeliveredPreferenceBeforeSettingsCommit() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel])
+
+        fixture.settings.showsBatteryPowerInfoBar = true
+
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel, .powerInfoBar])
+        fixture.updateScheduler.runScheduled()
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel, .powerInfoBar])
+    }
+
+    func testDisablingPowerInfoBarReleasesAuxiliaryDemandImmediately() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.showsBatteryPowerInfoBar = true
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        fixture.settings.showsBatteryPowerInfoBar = false
+
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel])
+        fixture.updateScheduler.runScheduled()
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel])
+    }
+
+    func testStoppingPanelPreservesIconDemandAndTwoSecondCadence() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.showsBatteryPowerInfoBar = true
+        let service = fixture.store.powerSampling
+        service.begin(.icon)
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.stop()
+
+        XCTAssertEqual(service.demands, [.icon])
+        XCTAssertTrue(service.isRunning)
+        XCTAssertEqual(PowerSamplingService.interval, .seconds(2))
+        service.end(.icon)
+        XCTAssertTrue(service.demands.isEmpty)
+        XCTAssertFalse(service.isRunning)
+    }
+
+    func testRapidPowerInfoBarChangesAndPanelReopenLeaveNoDemandBehind() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        fixture.settings.showsBatteryPowerInfoBar = true
+        fixture.settings.showsBatteryPowerInfoBar = false
+        fixture.settings.showsBatteryPowerInfoBar = true
+        panel.stop()
+        fixture.updateScheduler.runScheduled()
+        XCTAssertTrue(fixture.store.powerSampling.demands.isEmpty)
+
+        panel.start()
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel, .powerInfoBar])
+        fixture.settings.showsBatteryPowerInfoBar = false
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel])
+        panel.stop()
+        XCTAssertTrue(fixture.store.powerSampling.demands.isEmpty)
+        XCTAssertFalse(fixture.store.powerSampling.isRunning)
+    }
+
     func testLiveVolumeUpdatesPanelImmediatelyWithoutPublishingOtherRegions() async throws {
         let fixture = PanelStoreFixture()
         let panel = StatusPanelViewModel(
@@ -514,6 +597,27 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertEqual(panel.bluetooth.summary.title, fixture.localization.string(.bluetoothTitle))
     }
 
+    func testBrightnessSectionIsDroppedOnlyWhenEveryDisplayIsHidden() {
+        let visible: [PopupSection] = [.battery, .volume, .brightness, .inputSource]
+
+        XCTAssertEqual(
+            StatusPanelViewModel.displayedSummarySections(
+                visible: visible,
+                brightnessIsEmpty: false
+            ),
+            visible,
+            "with a visible display the section stays where it is ordered"
+        )
+        XCTAssertEqual(
+            StatusPanelViewModel.displayedSummarySections(
+                visible: visible,
+                brightnessIsEmpty: true
+            ),
+            [.battery, .volume, .inputSource],
+            "an all-hidden list must not leave an empty brightness section or divider"
+        )
+    }
+
     private func waitForYields(
         _ condition: @MainActor () -> Bool,
         count: Int = 100
@@ -741,6 +845,7 @@ final class PanelStoreFixture {
             volumeMonitor: volume,
             inputMonitor: input,
             popupDebounceSleep: { duration in await sleeper.sleep(duration) },
+            powerSampling: PowerSamplingService(reader: { _ in .empty }),
             wifiNetworks: WiFiNetworkController(scanWorker: wifiScanner),
             bluetoothDevices: bluetoothDevices,
             bluetoothListeningModes: bluetoothListeningModes,
@@ -810,6 +915,7 @@ final class PanelInputMonitor: AudioInputMonitoring {
     private(set) var enabledValues: [Bool] = []
     func setEnabled(_ enabled: Bool) { enabledValues.append(enabled) }
     func setVisible(_ visible: Bool) {}
+    func setDeviceListVisible(_ visible: Bool) {}
     func recover() {}
     func select(_ id: AudioDeviceID) {}
     func setScalar(_ value: Double, requestID: UUID) {}

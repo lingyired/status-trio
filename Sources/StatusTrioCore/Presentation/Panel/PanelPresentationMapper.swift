@@ -4,15 +4,57 @@ import Foundation
 enum PanelPresentationMapper {
     static func battery(
         _ status: BatteryStatus,
+        powerSample: SystemPowerSample? = nil,
+        inputPower: SystemPowerSample? = nil,
+        batteryPower: BatteryPowerSample? = nil,
+        showsPowerInfoBar: Bool = false,
+        powerInfoBarIsLoading: Bool = false,
+        now: Date = Date(),
         localization: Localization,
         chargeToFullNow: ChargeToFullNowPresentation = .hidden
     ) -> PanelSummaryState {
-        let title = batteryTitle(status, localization: localization)
+        let title = batteryTitle(
+            status,
+            powerSample: powerSample,
+            now: now,
+            localization: localization
+        )
         let subtitle = batterySubtitle(
             status,
             localization: localization,
             chargeToFullNow: chargeToFullNow
         )
+        // A Mac with no battery can still open the page when the runtime shows
+        // that it has a usable whole-machine power reading.
+        let canOpenDetails = status.isPresent
+            || (powerSample?.isFresh(at: now) ?? false)
+        let infoBar: PowerInfoBarState?
+        if showsPowerInfoBar {
+            if let bar = powerInfoBar(
+                status: status,
+                systemPower: powerSample,
+                inputPower: inputPower,
+                batteryPower: batteryPower,
+                now: now,
+                localization: localization
+            ) {
+                infoBar = bar
+            } else if powerInfoBarIsLoading {
+                // Reserve the bar's height with grey rails until the first read
+                // lands, so turning the setting on (or reopening the panel) does
+                // not grow the panel when the numbers arrive.
+                infoBar = PowerInfoBarState(
+                    items: [],
+                    placeholderKinds: status.isPresent
+                        ? [.input, .batteryIdle, .system]
+                        : [.input, .system]
+                )
+            } else {
+                infoBar = nil
+            }
+        } else {
+            infoBar = nil
+        }
 
         return PanelSummaryState(
             title: title,
@@ -22,9 +64,66 @@ enum PanelPresentationMapper {
             tint: batteryTint(status),
             accessibilityLabel: title,
             accessibilityValue: subtitle,
-            showsSettings: status.isPresent,
-            intent: status.isPresent ? .batteryDetails : .none
+            showsSettings: canOpenDetails,
+            intent: canOpenDetails ? .batteryDetails : .none,
+            powerInfoBar: infoBar
         )
+    }
+
+    /// Provisional power info bar. Each rail is shown on its own and missing or
+    /// stale rails are simply absent; rails are never added into a "total".
+    private static func powerInfoBar(
+        status: BatteryStatus,
+        systemPower: SystemPowerSample?,
+        inputPower: SystemPowerSample?,
+        batteryPower: BatteryPowerSample?,
+        now: Date,
+        localization: Localization
+    ) -> PowerInfoBarState? {
+        let locale = localization.resolvedLanguage.locale
+        func watts(_ value: Double) -> String {
+            value.formatted(.number.precision(.fractionLength(1)).locale(locale)) + " W"
+        }
+        var items: [PowerInfoBarItem] = []
+        if let inputPower, inputPower.watts.isFinite, inputPower.isFresh(at: now) {
+            // A laptop on battery has no adapter feeding it, yet the rail still
+            // yields a fresh ~0 W sample. Printing "0.0 W" under "Charger input"
+            // reads as if a charger were attached but idle, so say plainly that
+            // there is no external power. A no-battery Mac has no such state and
+            // keeps its real reading.
+            let unplugged = status.isPresent && !status.isConnectedToPower && abs(inputPower.watts) < 0.05
+            if unplugged {
+                items.append(PowerInfoBarItem(
+                    kind: .inputDisconnected,
+                    value: localization.string(.powerInfoBarNoInput)
+                ))
+            } else {
+                items.append(PowerInfoBarItem(kind: .input, value: watts(inputPower.watts)))
+            }
+        }
+        if status.isPresent, let batteryPower, batteryPower.watts.isFinite, batteryPower.isFresh(at: now) {
+            // The magnitude is the flow into (or out of) the pack, never folded
+            // into system. Its sign is the direction: positive is charging,
+            // negative is discharging, and a pack within 0.05 W of zero is idle
+            // rather than charging. The number stays the magnitude so the card
+            // reads "3.8 W" in both directions; the kind carries the direction
+            // for the title, glyph and colour.
+            let signedWatts = batteryPower.watts
+            let magnitude = abs(signedWatts)
+            let kind: PowerInfoBarKind
+            if magnitude < 0.05 {
+                kind = .batteryIdle
+            } else if signedWatts < 0 {
+                kind = .batteryDischarging
+            } else {
+                kind = .batteryCharging
+            }
+            items.append(PowerInfoBarItem(kind: kind, value: watts(magnitude)))
+        }
+        if let systemPower, systemPower.watts.isFinite, systemPower.isFresh(at: now) {
+            items.append(PowerInfoBarItem(kind: .system, value: watts(systemPower.watts)))
+        }
+        return items.isEmpty ? nil : PowerInfoBarState(items: items)
     }
 
     static func network(
@@ -101,8 +200,23 @@ enum PanelPresentationMapper {
         )
     }
 
-    static func batteryTitle(_ battery: BatteryStatus, localization: Localization) -> String {
-        localization.format(.batteryTitle, battery.percentage)
+    static func batteryTitle(
+        _ battery: BatteryStatus,
+        powerSample: SystemPowerSample? = nil,
+        now: Date = Date(),
+        localization: Localization
+    ) -> String {
+        guard battery.isPresent else {
+            // A Mac with no battery has no percentage to show. Use the runtime
+            // whole-machine reading when it is fresh; otherwise say so instead
+            // of inventing 0 W or 100%.
+            guard let powerSample, powerSample.isFresh(at: now), powerSample.watts.isFinite else {
+                return localization.string(.batteryTitlePowerUnavailable)
+            }
+            let watts = Int(min(999, max(0, powerSample.watts)).rounded())
+            return localization.format(.batteryTitlePower, watts)
+        }
+        return localization.format(.batteryTitle, battery.percentage)
     }
 
     static func batteryTimeToFullText(minutes: Int?, localization: Localization) -> String {
@@ -154,7 +268,8 @@ enum PanelPresentationMapper {
              .cancelConfirmationRequired,
              .cancelPending,
              .cancelFailed,
-             .cancelSucceeded:
+             .cancelLimitChangedConfirmation,
+             .limitRestored:
             break
         }
         if battery.isLowPowerMode {
@@ -251,42 +366,34 @@ enum PanelPresentationMapper {
             subtitle = ssid
         } else if isResolvingName {
             subtitle = " "
-        } else if wifi.state.isNetworkAssociated && wifi.nameAccess == .notDetermined {
-            subtitle = localization.string(.wifiActionRequestNameAccess)
-        } else if wifi.state.isNetworkAssociated
-                    && (wifi.nameAccess == .denied || wifi.nameAccess == .restricted) {
-            subtitle = localization.string(.wifiActionOpenLocationSettings)
         } else {
-            subtitle = wifiSubtitle(wifi, localization: localization)
+            // A missing network name is not a connection state. The row keeps
+            // the connection state, and its link measurements when the radio
+            // still reports them; the detail page owns the permission action.
+            let stateText = wifiSubtitle(wifi, localization: localization)
+            subtitle = NetworkRowSubtitle.prepending(stateText, to: linkSubtitle) ?? stateText
         }
 
-        // The address leads the second line, ahead of the band and signal, so a
-        // reader finds it where the network's own details already live.
-        let measurements = NetworkRowSubtitle.prepending(localIPAddress, to: linkSubtitle)
+        // The address leads the second line, and the measurement value keeps
+        // only the link facts: the connection state is already in the label, so
+        // VoiceOver must not hear it twice. The placeholder line describes no
+        // link at all.
+        let measurements = subtitle == " "
+            ? nil
+            : NetworkRowSubtitle.prepending(localIPAddress, to: linkSubtitle)
         // The single-space subtitle is the row holding its line height while the
         // Wi-Fi name resolves. An address fills that line on its own rather than
         // trailing the placeholder's blank.
-        let action = StatusMappings.wifiSummaryAction(for: wifi)
         let displayedSubtitle: String
         if subtitle == " " {
             displayedSubtitle = localIPAddress ?? subtitle
-        } else if action == .requestNameAccess || action == .openLocationSettings {
-            // The permission action is the row's next step. Keep it visible at
-            // the start of the line instead of letting the address occlude it.
-            displayedSubtitle = NetworkRowSubtitle.prepending(subtitle, to: localIPAddress) ?? subtitle
         } else {
             displayedSubtitle = NetworkRowSubtitle.prepending(localIPAddress, to: subtitle) ?? subtitle
         }
 
-        let intent: PanelSummaryIntent
-        switch action {
-        case .openDetails:
-            intent = .wifiDetails
-        case .requestNameAccess:
-            intent = .requestWiFiNameAccess
-        case .openLocationSettings:
-            intent = .locationSettings
-        }
+        // The row itself is always the way into the Wi-Fi details, where the
+        // network-name permission action lives.
+        let intent: PanelSummaryIntent = .wifiDetails
 
         let title = summarySSID ?? localization.string(.wifiTitle)
         let accessibilityLabel: String

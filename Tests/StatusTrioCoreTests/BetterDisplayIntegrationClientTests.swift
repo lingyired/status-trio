@@ -463,8 +463,19 @@ struct BetterDisplayIntegrationClientTests {
         bridge: FakeBetterDisplayNotificationBridge,
         maximumPendingRequests: Int = 32
     ) -> BetterDisplayIntegrationClient {
-        BetterDisplayIntegrationClient(
+        // These tests drive responses through an in-memory fake bridge, so the
+        // only real-world dependency left in the request path is the timeout
+        // watchdog. On a loaded main actor the default three-second wall-clock
+        // sleep can elapse before the already-delivered response is serviced,
+        // turning a resolved request into a spurious `.timedOut`. Parking the
+        // deadline makes the response path deterministic; the sleeper is
+        // retained by the closure the client stores. The dedicated
+        // default-deadline test below still asserts the real three-second value
+        // and its `.timedOut` outcome.
+        let deadlineSleeper = ParkedDeadlineSleeper()
+        return BetterDisplayIntegrationClient(
             bridge: bridge,
+            deadlineSleep: { duration in try await deadlineSleeper.sleep(duration) },
             maximumPendingRequests: maximumPendingRequests
         )
     }
@@ -650,5 +661,19 @@ private final class FakeBetterDisplayNotificationObservation:
             return cancellation
         }
         cancellation?()
+    }
+}
+
+/// Deadline sleeper for tests whose request is answered by the in-memory fake
+/// bridge. Iterating an `AsyncStream` parks without consuming wall-clock time,
+/// so a delivered response is always the first outcome, and cancellation of the
+/// watchdog task ends the loop instead of leaving a suspended continuation
+/// behind. The dedicated default-deadline test still exercises the real
+/// three-second value.
+private struct ParkedDeadlineSleeper: Sendable {
+    func sleep(_ duration: Duration) async throws {
+        let (stream, keepAlive) = AsyncStream<Void>.makeStream()
+        defer { keepAlive.finish() }
+        for await _ in stream {}
     }
 }

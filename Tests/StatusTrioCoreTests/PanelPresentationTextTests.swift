@@ -136,7 +136,7 @@ final class PresentationTextMapperTests: XCTestCase {
         let localization = makeLocalization(.simplifiedChinese)
 
         XCTAssertEqual(localization.string(.menuSettings), "设置…")
-        XCTAssertEqual(localization.string(.wifiActionRequestNameAccess), "允许定位以显示 Wi-Fi 名称")
+        XCTAssertEqual(localization.string(.wifiActionRequestNameAccess), "允许定位以显示 Wi-Fi 网络")
         XCTAssertEqual(localization.string(.wifiActionOpenLocationSettings), "去设置中允许定位")
         XCTAssertEqual(localization.string(.wifiActionOpenSettings), "打开 Wi-Fi 设置")
         XCTAssertEqual(localization.string(.batteryActionOpenSettings), "打开系统电源设置")

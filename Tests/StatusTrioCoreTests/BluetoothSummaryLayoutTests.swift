@@ -702,6 +702,13 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
             controller.$nearbyBatteryDevices,
             description: "nearbyBatteryDevices to publish \(nearbyDevices.count) fixture device(s)"
         ) { $0 == nearbyDevices }
+        // A connected AirPods row reserves its battery line until the first read
+        // settles. Layout tests measure the settled row, so wait for that too —
+        // otherwise the placeholder line can still be on screen.
+        let batteryReadCompletedWaiter = SummaryPublishedStateWaiter(
+            controller.$hasCompletedBatteryRead,
+            description: "the first battery read to complete"
+        ) { $0 }
 
         if authorization == .allowed {
             controller.activate()
@@ -743,6 +750,10 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
         hosting.layoutSubtreeIfNeeded()
         if !batteryLevels.isEmpty {
             try await batteryLevelsWaiter.wait()
+        } else if showsBatteryLevels,
+                  authorization == .allowed,
+                  devices.contains(where: \.isConnected) {
+            try await batteryReadCompletedWaiter.wait()
         }
         let size = hosting.fittingSize
         hosting.frame = NSRect(origin: .zero, size: size)

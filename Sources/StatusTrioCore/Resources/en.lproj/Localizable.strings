@@ -8,6 +8,7 @@
 "menu.window" = "Window";
 "menu.closeWindow" = "Close Window";
 "menu.checkForUpdates" = "Check for Updates…";
+"menu.openMenuBarSettings" = "Open Menu Bar Settings";
 "settings.title" = "Settings";
 "settings.page.appearance" = "Appearance";
 "settings.page.general" = "General";
@@ -55,6 +56,20 @@
 "settings.tab.panel" = "Status Panel";
 "settings.tab.about" = "About";
 "settings.menuBar.title" = "Menu Bar Icon";
+"settings.appIcon.middleIcon.title" = "Middle Icon";
+"settings.appIcon.middleIcon.source" = "Middle Icon";
+"settings.appIcon.middleIcon.description" = "Choose what the status icon shows in the middle. Only one source is shown at a time.";
+"settings.appIcon.middleIcon.network" = "Network";
+"settings.appIcon.middleIcon.bluetooth" = "Bluetooth Device";
+"settings.appIcon.middleIcon.inputSource" = "Current Input Source";
+"settings.appIcon.middleIcon.batteryPercentage" = "Battery Percentage";
+"settings.appIcon.middleIcon.power" = "Power (Watts)";
+"settings.appIcon.middleIcon.chargingStatus" = "Charging status";
+"settings.appIcon.middleIcon.chargingStatus.description" = "Shows the battery level while on battery, a bolt while charging, and a plug while connected to power; the ring stays closed.";
+"settings.appIcon.middleIcon.size" = "Middle Icon Size";
+"settings.appIcon.middleIcon.size.description" = "One size for every middle content: Wi-Fi, Bluetooth, input source, and numbers.";
+"settings.appIcon.middleIcon.networkWarnings" = "Show network problems instead";
+"settings.appIcon.middleIcon.networkWarnings.description" = "When the Mac is genuinely offline, the middle shows the network state instead of the selected source.";
 "settings.network.connectionIcons" = "Connection Icon Style";
 "settings.network.connectionIcons.description" = "When enabled, the selected state uses the standard Wi-Fi signal icon instead of its special mark.";
 "settings.network.wifiIconForEthernet" = "Use Wi-Fi icon for Ethernet";
@@ -65,6 +80,8 @@
 "settings.network.centerSource.description" = "Choose what the status icon’s middle slot shows. Automatic keeps the usual network and Bluetooth behavior.";
 "settings.network.centerSource.automatic" = "Automatic";
 "settings.network.centerSource.inputSource" = "Current Input Source";
+"settings.network.centerSource.batteryPercentage" = "Battery Percentage";
+"settings.network.centerSource.power" = "Power (Watts)";
 "settings.network.centerSource.bluetoothFallback" = "With the input source selected, Bluetooth and network icons are used only as fallbacks.";
 "settings.network.centerSource.networkWarnings" = "Show network problems instead";
 "settings.network.centerSource.networkWarnings.description" = "When the Mac is genuinely offline, the middle slot shows the network state instead of the input source.";
@@ -121,9 +138,18 @@
 "settings.audio.maximumVisibleDescription" = "How many output devices appear before the Expand control.";
 "settings.audio.showAll" = "Always Show All Output Devices";
 "settings.audio.showAllDescription" = "Ignore the limit and show every available output device.";
+"settings.audio.showAllInput" = "Always Show All Input Devices";
+"settings.audio.showAllInputDescription" = "Ignore the limit and show every available input device.";
+"settings.audio.maximumVisibleInput" = "Maximum Visible Input Devices";
+"settings.audio.maximumVisibleInputDescription" = "How many input devices appear before the Expand control.";
 "settings.audio.orderTitle" = "Output Device Order";
-"settings.audio.orderDescription" = "Drag devices to change the order shown in the volume popover. New devices appear at the end.";
+"settings.audio.orderDescription" = "Drag devices to change the order shown in the volume popover. Uncheck devices you don't use to hide them; the active output always stays visible. New devices appear at the end.";
 "settings.audio.orderEmpty" = "No output devices available.";
+"settings.audio.showDevice" = "Show in Status Panel";
+"settings.audio.inputOrderTitle" = "Input Device Order";
+"settings.audio.inputOrderDescription" = "Drag devices to change the order shown in the Audio Input section. Uncheck devices you don't use to hide them; the current input always stays visible. New devices appear at the end.";
+"settings.audio.inputOrderEmpty" = "No input devices available.";
+"settings.audio.inputOrderSectionOff" = "Turn on Audio Input in Status Panel › Displayed Items to reorder or hide input devices.";
 "settings.about.version" = "Version %@";
 "settings.about.description" = "A native macOS menu bar app that combines Wi-Fi, battery, and volume into one compact status icon. Inspired by the iPhone Duo combined status bar icon, with volume replacing cellular data on Mac.";
 "settings.about.project" = "Website";
@@ -134,11 +160,12 @@
 "settings.about.starOnGitHub" = "Star on GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Battery Display";
+"settings.battery.noBatteryNotice" = "This device has no battery, so the battery level is shown as 100 by default.";
 "settings.battery.showPercentage" = "Show battery percentage";
-"settings.battery.showPercentageInConnectionSlot" = "Show battery percentage in the connection position";
-"settings.battery.showPercentageInConnectionSlotDescription" = "Replaces the Wi-Fi or connection symbol. This is independent from the top battery indicator.";
 "settings.battery.showChargingIndicator" = "Show an indicator while charging or connected to power";
 "settings.battery.chargingDescription" = "When enabled, the percentage becomes a bolt or plug while charging or connected to power.";
+"settings.battery.splitGapProgress" = "Split progress when the top gap is filled";
+"settings.battery.splitGapProgressDescription" = "When a bolt, plug or percentage sits in the top gap, draw the ring so the left half is 0–50% and the right half is 50–100%, so the gap no longer hides progress.";
 "settings.battery.chargingEffect" = "Charging effect";
 "settings.battery.chargingEffectDescription" = "Animate the highlight only while charging. Stops when Reduce Motion is on.";
 "settings.battery.menuBarChargingEffect" = "Menu bar charging effect";
@@ -149,15 +176,36 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "Turn off to keep the bolt at its usual size and color; the charging arc effect continues.";
 "settings.battery.chargingEffectTest" = "Test charging animation";
 "settings.battery.chargingEffectTestDescription" = "Development build: play without charging. Test mode turns off after restart.";
-"settings.battery.percentageWhenConnected" = "Show the percentage while connected without charging";
-"settings.battery.percentageWhenConnectedDescription" = "When enabled, a connected power source that is not charging shows the percentage instead of the plug.";
+"settings.battery.connectedIndicator" = "Show while connected without charging";
+"settings.battery.connectedIndicatorDescription" = "What the battery shows when connected to power but not charging: the plug, the lightning bolt, or the percentage.";
+"settings.battery.connectedIndicator.plug" = "Plug";
+"settings.battery.connectedIndicator.bolt" = "Bolt";
+"settings.battery.connectedIndicator.percentage" = "Percentage";
 "settings.battery.symbolScale" = "Percentage/bolt size";
 "settings.battery.symbolScaleAccessibility" = "Battery percentage and bolt size";
 "settings.battery.symbolScaleDescription" = "The percentage and bolt share this size.";
 "settings.battery.statusColors" = "Color the arc by battery state";
-"settings.battery.statusColorsDescription" = "Low battery is red, Low Power Mode is yellow, and charging or connected power is green.";
+"settings.battery.statusColorsDescription" = "Defaults are green for power, yellow for Low Power Mode, and red for low battery. Change them below. Turning this off ignores saved custom colors.";
+"settings.battery.colors.charging" = "Charging / connected power";
+"settings.battery.colors.lowPower" = "Low Power Mode";
+"settings.battery.colors.critical" = "Critically low battery";
+"settings.battery.colors.system" = "System default";
+"settings.battery.colors.custom" = "Custom";
+"settings.battery.colors.mint" = "Mint";
+"settings.battery.colors.sky" = "Sky";
+"settings.battery.colors.lavender" = "Lavender";
+"settings.battery.colors.amber" = "Amber";
+"settings.battery.colors.rose" = "Rose";
+"settings.battery.colors.slate" = "Slate";
+"settings.battery.colors.reset" = "Reset";
+"settings.battery.colors.resetAll" = "Reset all colors";
+"settings.battery.colors.inactive" = "State colors are off. Your choices are saved and will apply when enabled again.";
+"settings.battery.colors.referenceContrast" = "Minimum reference contrast · %.2f:1";
+"settings.battery.colors.previews" = "Light and dark color previews";
+"settings.battery.colors.adjusted" = "Adjusted for visibility";
+"settings.battery.colors.referenceDescription" = "Custom colors are shared across appearances and adjusted to at least 1.2:1. System and preset colors stay unchanged. Contrast is the minimum across white, black and their tracks; actual wallpaper may differ.";
 "settings.battery.criticalThreshold" = "Low battery threshold";
-"settings.battery.criticalThresholdDescription" = "Battery levels below this threshold are treated as low and shown in red.";
+"settings.battery.criticalThresholdDescription" = "Battery levels below this threshold use the critically low battery color.";
 "settings.battery.fullThreshold" = "Full ring level";
 "settings.battery.fullThresholdDescription" = "The battery ring counts as full at this level. Useful when charge limiting holds the battery below 100%.";
 "settings.battery.fullThresholdUseChargeLimit" = "Use the charge limit";
@@ -166,6 +214,8 @@
 "settings.updates.automatic" = "Automatically check for updates";
 "settings.updates.check" = "Check for Updates…";
 "battery.title" = "Battery · %d%%";
+"battery.title.power" = "Power · %d W";
+"battery.title.powerUnavailable" = "Power · Unavailable";
 "battery.state.notPresent" = "No battery";
 "battery.state.charged" = "Fully charged";
 "battery.state.calculatingTimeToFull" = "Calculating time to full";
@@ -217,7 +267,7 @@
 "vpn.subtitle.systemProxy" = "System proxy";
 "vpn.subtitle.connectedWithProxy" = "Connected · proxy %@";
 "vpn.subtitle.proxyAutomatic" = "Automatic configuration";
-"wifi.action.requestNameAccess" = "Allow location to show Wi-Fi name";
+"wifi.action.requestNameAccess" = "Allow location to show Wi-Fi networks";
 "wifi.action.openLocationSettings" = "Allow location in Settings";
 "wifi.action.openSettings" = "Open Wi-Fi Settings";
 "wifi.action.switchingHint" = "Choosing a network opens the Wi-Fi pane in System Settings.";
@@ -232,6 +282,10 @@
 "settings.network.panelGroup" = "Panel";
 "settings.network.showLocalIP" = "Show Local IP Address";
 "settings.network.showLocalIP.description" = "Shows this Mac's private LAN address on the network row, before the Wi-Fi details.";
+"settings.network.permissionNotDeterminedTitle" = "Location permission needed";
+"settings.network.permissionNotDeterminedDescription" = "Status Trio needs Location access to show Wi-Fi networks. Click below to grant it.";
+"settings.network.permissionDeniedTitle" = "Location permission is off";
+"settings.network.permissionDeniedDescription" = "Wi-Fi networks can't be shown without Location access. Enable it in System Settings.";
 "settings.audio.externalVolume.title" = "External Display Volume";
 "settings.audio.externalVolume.controlMethod" = "Control Method";
 "settings.audio.externalVolume.controlMethodDescription" = "If the status panel cannot control this device’s volume, choose BetterDisplay.";
@@ -243,7 +297,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "Unavailable Display";
 "settings.audio.externalVolume.refresh" = "Detect Again";
 "settings.audio.externalVolume.requirements" = "If the connection fails, enable CLI access and notification-based integration in BetterDisplay settings.";
-"settings.audio.externalVolume.footnote" = "Native macOS volume control takes priority. The selected method is used when native control is unavailable.";
+"settings.audio.externalVolume.footnote" = "Native macOS volume control takes priority. The selected method is used when native control is unavailable. The free BetterDisplay version is enough; no Pro license needed.";
 "settings.audio.externalVolume.noStableOutput" = "The current output has no stable audio ID, so BetterDisplay cannot be configured for it.";
 "settings.audio.externalVolume.status.ready" = "Connected. Volume control is available.";
 "settings.audio.externalVolume.status.idle" = "Not connected.";
@@ -277,6 +331,8 @@
 "volume.output.unknownDevice" = "Unknown output device";
 "volume.output.expand" = "Expand";
 "volume.output.collapse" = "Collapse";
+"audioInput.expand" = "Expand";
+"audioInput.collapse" = "Collapse";
 "volume.action.openSettings" = "Open Sound Settings";
 "volume.accessibility.label" = "Volume";
 "audioInput.title" = "Microphone";
@@ -318,6 +374,13 @@
 "inputSource.switchFailed" = "Couldn’t switch to “%@”. Select it directly or try again.";
 "inputSource.switchUnconfirmed" = "macOS accepted “%@” but still reports another input source. The front app may need focus.";
 "settings.popup.order.inputSource" = "Input Source";
+"settings.panel.background.title" = "Panel Background";
+"settings.panel.background.style" = "Background Style";
+"settings.panel.background.style.description" = "Choose how the status panel background is drawn.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "Classic Material";
+"settings.panel.background.style.solid" = "Solid Color";
+"settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requires macOS 26 or later.";
 "settings.popup.volumeScroll.group" = "Panel Scrolling";
 "settings.popup.volumeScroll" = "Adjust Volume by Scrolling";
 "settings.popup.volumeScroll.description" = "Scroll inside the status panel to change the output volume.";
@@ -327,6 +390,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "Volume Control Only";
 "settings.popup.volumeScroll.natural" = "Natural Scrolling";
 "settings.popup.volumeScroll.natural.description" = "When on, scrolling up on a mouse or trackpad increases volume. When off, volume follows the system's scrolling direction. If scrolling up still lowers the volume after turning this on, configure MOS, Scroll Reverser, LinearMouse, or a similar app to leave Status Trio unchanged, usually through an exception/ignore list (sometimes called an allowlist).";
+"settings.audio.volumeFeedbackTitle" = "Volume feedback";
+"settings.audio.volumeFeedback" = "Play a sound when scrolling to change the volume";
+"settings.audio.volumeFeedbackDescription" = "Plays the tick when you change the volume by scrolling. By default it follows the macOS “Play feedback when volume is changed” setting; toggling this here overrides it for Status Trio only.";
 "settings.popup.volumeScroll.direction" = "Scroll Direction";
 "settings.popup.volumeScroll.direction.description" = "Choose the direction that turns the volume up.";
 "settings.popup.volumeScroll.direction.up" = "Scroll Up";
@@ -430,6 +496,7 @@
 // On-demand battery details.
 "battery.details.title" = "Battery Details";
 "battery.details.systemPower" = "System power (estimate)";
+"battery.details.watt" = "Power";
 "battery.details.systemReadAt" = "System read at";
 "battery.details.power" = "Battery power (estimate)";
 "battery.details.charging" = "Charging (estimate)";
@@ -446,7 +513,8 @@
 "battery.details.unavailable" = "Unavailable";
 "battery.details.collecting" = "Sampling…";
 "battery.details.loading" = "Updating…";
-"battery.details.explanation" = "Power readings are estimates from independent sensors and may lag or differ. Adapter rating is not actual input. On battery, power shows net battery discharge. Some models may update battery samples about a minute late.";
+"battery.details.explanation" = "Power readings are estimates; samples may lag by up to a minute.";
+"battery.details.info" = "About these readings";
 /* Compact popover controls. */
 "menu.more" = "More actions";
 
@@ -543,11 +611,30 @@
 // Battery panel power flow and application energy
 "settings.battery.powerFlow" = "Power flow in battery panel";
 "settings.battery.powerFlow.description" = "Power readings update only while the battery panel is open. Sensor updates may lag and the three readings may not add up exactly.";
+"settings.battery.breakdown" = "Split power by component";
+"settings.battery.breakdown.description" = "Splits the adapter input into built-in display, USB output, and the remaining system load (including the SoC). Unavailable readings are hidden; without a reliable split the system total returns.";
+"settings.battery.powerInfoBar" = "Power info bar";
+"settings.battery.powerFlowDiagram" = "Power Flow Diagram";
+"settings.battery.powerFlowDiagramDescription" = "Shows the input / battery / system power flow diagram in the battery details page.";
+"settings.battery.powerInfoBarDescription" = "Shows input, battery and system power below the battery module while the panel is open. Off by default.";
 "settings.battery.energyRefreshInterval" = "Background sampling interval";
 "settings.battery.energyRefreshInterval.description" = "Used while the panel is closed. The battery detail page still refreshes every 5 seconds.";
 "battery.power.input" = "Charger input";
+"battery.power.source.battery" = "Battery";
 "battery.power.charging" = "To battery";
 "battery.power.system" = "System power";
+"battery.power.system.help" = "System power (incl. SoC)";
+"battery.power.system.explanation" = "“System” is what remains after battery charging, the display and USB: it covers the SoC, memory, display controllers and other loads that are not measured on their own.";
+"power.infoBar.input" = "Charger input";
+"power.infoBar.noInput" = "No power adapter";
+"power.infoBar.battery" = "Battery charging";
+"power.infoBar.discharging" = "Battery discharging";
+"power.infoBar.system" = "System power";
+"power.infoBar.notCharging" = "Not charging";
+"battery.power.display" = "Display";
+"battery.power.usb" = "USB out";
+"battery.power.soc" = "SoC";
+"battery.power.other" = "Other";
 "battery.energy.apps" = "CPU Energy Impact";
 "battery.energy.empty" = "No significant app activity in this sample.";
 "battery.energy.cpuExplanation" = "Ranked by CPU energy counters for readable apps in your account; this is not Activity Monitor's composite Energy Impact. GPU and system processes may be missing.";
@@ -555,6 +642,8 @@
 "battery.energy.monitoringDescription" = "When enabled, samples app activity in the background even while the panel is closed. Sampling pauses during sleep, when disabled, or when Status Trio quits.";
 "settings.battery.showChargeToFullNow" = "Show Charge to Full Now Button";
 "settings.battery.showChargeToFullNowDescription" = "Show a button in the status panel to temporarily override the macOS charge limit and charge to 100%.";
+"settings.battery.restoreLimit" = "Restore Limit After Cancelling";
+"settings.battery.restoreLimitDescription" = "The charge limit to restore when you cancel Charge to Full Now.";
 "battery.action.chargeToFullNow" = "Charge to Full Now";
 "battery.action.chargeToFullNowApplying" = "Requesting Charge to Full…";
 "battery.action.chargeToFullNowCharging" = "Charging to 100%";
@@ -562,7 +651,9 @@
 "battery.action.chargeToFullNowUnavailable" = "Charge to Full Now is unavailable right now.";
 "battery.action.cancelChargeToFullNow" = "Cancel Charge to Full";
 "battery.action.cancelChargeToFullNowApplying" = "Restoring Charge Limit…";
-"battery.action.cancelChargeToFullNowFailed" = "Couldn’t restore the charge limit: %@";
+"battery.action.cancelChargeToFullNowFailed" = "Couldn’t restore the charge limit. Try again.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "The system charge limit changed. Check the restore limit in Settings and try again.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "The system charge limit is %1$d%%. Restore it to %2$d%%?";
 "battery.action.cancelChargeToFullNowRestored" = "Charge limit restored to %d%%";
 "battery.action.cancelChargeToFullNowFallback" = "Charge limit set to %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "Confirm Restore to %d%%";
@@ -588,3 +679,71 @@
 "airPods.spatialHeadTracked" = "Head Tracked";
 
 "airpods.retry" = "Retry";
+"settings.popup.order.brightness" = "Brightness";
+"brightness.row.accessibility" = "Brightness for %@, %@";
+"brightness.row.accessibilityUnavailable" = "Brightness for %@, %@";
+"brightness.unavailable" = "Unavailable";
+"brightness.appAbsent" = "Requires BetterDisplay";
+"brightness.noBackend" = "No brightness control";
+"brightness.unresponsive" = "Not responding";
+"brightness.backend.directDDC" = "Direct DDC";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "Turn a display off to hide its brightness row.";
+"settings.brightness.backend" = "Brightness Backend";
+// About: community, author social links and more apps
+"settings.about.social.title" = "Follow the Author";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "Blog";
+"settings.about.community.title" = "Community";
+"settings.about.community.qq" = "QQ Group";
+"settings.about.community.qqDescription" = "Join the Status Trio group for questions and feedback.";
+"settings.about.community.wechat" = "WeChat Group";
+"settings.about.community.wechatDescription" = "Scan with WeChat to join the Status Trio group. The QR code rotates periodically; tap Refresh to load the latest from GitHub.";
+"settings.about.community.copy" = "Copy";
+"settings.about.community.copied" = "Copied";
+"settings.about.moreApps.title" = "More from the author";
+"settings.about.moreApps.open" = "Open";
+"settings.about.moreApps.newtab01Description" = "Bookmark-driven new tab: open folders as tab groups or split view, with themes.";
+"settings.about.moreApps.noLazyloadDescription" = "Disable the browser's image lazy-loading so a page loads all images up front — no need to scroll to reveal them.";
+"settings.about.moreApps.fund01Description" = "Fund portfolio watcher: today’s change always in the menu bar or taskbar, with multiple groups refreshed live.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";
+
+"guide.partPosition.battery" = "Top arc";
+"guide.partPosition.network" = "Middle icon";
+"guide.partPosition.volume" = "Bottom dots";
+"guide.network.center" = "Change what the middle icon shows in Settings › App Icon › Middle Slot — battery, power, input source, or Bluetooth audio.";
+
+"guide.state.chargingBatteryCenter" = "Charging + Battery %";
+"guide.state.fullPowerCenter" = "Full + Power";
+"guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "Right-click action";
+"settings.menuBarRightClickAction.description" = "What the menu bar icon does when you right-click it.";
+"settings.menuBarRightClickAction.contextMenu" = "Show context menu";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "Toggle Low Power Mode";
+"settings.menuBarRightClickAction.chargeToFullNow" = "Charge to full now";
+"settings.menuBarRightClickAction.toggleMute" = "Toggle mute";
+"settings.menuBarRightClickAction.unavailableHint" = "The selected action isn't available right now; right-click will show the menu instead.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "Toggle Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "Refresh status";
+"settings.menuBarRightClickAction.openWiFiSettings" = "Open Wi-Fi settings";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "Open Bluetooth settings";
+"settings.menuBarRightClickAction.openBatterySettings" = "Open Battery settings";
+"settings.menuBarRightClickAction.openSoundSettings" = "Open Sound settings";
+
+"settings.tab.brightness" = "Brightness";
+"settings.brightness.group.title" = "Connected Displays";
+"settings.brightness.empty" = "No displays are connected.";
+"settings.brightness.builtIn" = "Built-in";
+"settings.brightness.internalBackend.description" = "Built-in display brightness uses the DisplayServices backend.";
+"settings.brightness.externalBackend.description" = "Choose how Status Trio controls this display's brightness.";
+"settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay isn't running or its notification integration is off.";
+"settings.brightness.compatibility.title" = "Can't control a display?";
+"settings.brightness.compatibility.description" = "Display vendors implement DDC differently, so Status Trio can't cover every model. If a display's brightness can't be adjusted here, switch it to the BetterDisplay backend — Status Trio will drive it through BetterDisplay. The free version is enough; no Pro license needed.";
+"settings.brightness.compatibility.link" = "Download BetterDisplay (free)";

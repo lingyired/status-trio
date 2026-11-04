@@ -340,9 +340,9 @@ struct AppIconControllerTests {
         harness.controller.flushPendingPresentationForTesting()
         harness.log.reset()
 
-        harness.settings.replacesNetworkIconWithBluetoothAudio = true
+        harness.settings.connectionCenterSource = .bluetoothDevice
         harness.settings.usesBluetoothAudioVolumeColor = true
-        harness.settings.prioritizesNetworkErrorsOverBluetoothAudio = false
+        harness.settings.prioritizesNetworkErrors = false
         #expect(harness.log.renderCount == 0, "The burst must wait for the controlled drain.")
         harness.controller.flushPendingPresentationForTesting()
 
@@ -1162,7 +1162,7 @@ final class AppIconControllerHarness {
         if let initialShowsDockChargingEffect {
             settings.showsDockChargingEffect = initialShowsDockChargingEffect
         }
-        settings.replacesNetworkIconWithBluetoothAudio = initialReplacesNetworkIcon
+        settings.connectionCenterSource = initialReplacesNetworkIcon ? .bluetoothDevice : .network
         self.settings = settings
 
         let store = SystemStatusStore(

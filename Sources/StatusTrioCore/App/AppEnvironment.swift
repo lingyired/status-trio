@@ -26,6 +26,7 @@ final class AppEnvironment {
     private let lowPowerModeControlSynchronizer = LowPowerModeControlSynchronizer()
     private let memoryPressureMonitor: MemoryPressureMonitor
     private let previewResourceLifecycle: PreviewResourceLifecycle
+    let backgroundUITesting: BackgroundUITestingConfiguration
 
     private var chargingEffectCancellables = Set<AnyCancellable>()
     private var inputSourceLifecycleCancellables = Set<AnyCancellable>()
@@ -57,7 +58,8 @@ final class AppEnvironment {
         telemetryReporter: any TelemetryReporting,
         memoryPressureMonitor: MemoryPressureMonitor? = nil,
         bluetoothProfilerCache: BluetoothProfilerReportCache = .shared,
-        previewResourceLifecycle: PreviewResourceLifecycle? = nil
+        previewResourceLifecycle: PreviewResourceLifecycle? = nil,
+        backgroundUITesting: BackgroundUITestingConfiguration = .disabled
     ) {
         self.store = store
         self.settings = settings
@@ -79,6 +81,7 @@ final class AppEnvironment {
         self.memoryPressureMonitor = memoryPressureMonitor ?? MemoryPressureMonitor()
         self.bluetoothProfilerCache = bluetoothProfilerCache
         self.previewResourceLifecycle = previewResourceLifecycle ?? PreviewResourceLifecycle()
+        self.backgroundUITesting = backgroundUITesting
         self.menuBarChargingEffectEnabled = settings.showsMenuBarChargingEffect
         self.dockChargingEffectEnabled = settings.showsDockChargingEffect
     }
@@ -91,7 +94,10 @@ final class AppEnvironment {
         memoryPressureMonitor.start()
         iconPresentation.start()
         startInputSourceMonitoringIfNeeded()
-        onboardingWindowController.showIfNeeded()
+        let presentedOnboarding = onboardingWindowController.showIfNeeded()
+        if backgroundUITesting.isEnabled, !presentedOnboarding {
+            settingsWindowController.show()
+        }
         statusBarController.visibilityDidChange = { [weak self] in
             self?.updateChargingEffectClock()
         }
@@ -135,6 +141,7 @@ final class AppEnvironment {
         store.bindLowPowerModeSettings(settings)
         store.bindBluetoothSettings(settings)
         store.bindExternalVolumeSettings(settings)
+        store.bindExternalBrightnessSettings(settings)
         store.start()
         telemetryReporter.start()
     }
@@ -373,6 +380,7 @@ final class AppEnvironment {
         connectionMonitor: (any NetworkConnectionMonitoring)? = nil,
         vpnMonitor: (any VPNMonitoring)? = nil,
         volumeMonitor: any VolumeMonitoring,
+        brightnessMonitor: any BrightnessMonitoring = BrightnessMonitor(),
         inputMonitor: (any AudioInputMonitoring)? = nil,
         refreshInterval: Duration = .seconds(15)
     ) -> SystemStatusStore {
@@ -382,6 +390,7 @@ final class AppEnvironment {
             connectionMonitor: connectionMonitor,
             vpnMonitor: vpnMonitor,
             volumeMonitor: volumeMonitor,
+            brightnessMonitor: brightnessMonitor,
             inputMonitor: inputMonitor,
             refreshInterval: refreshInterval,
             bluetoothDevices: BluetoothDeviceController(
@@ -400,7 +409,9 @@ final class AppEnvironment {
         )
     }
 
-    static func live() -> AppEnvironment {
+    static func live(
+        backgroundUITesting: BackgroundUITestingConfiguration = .disabled
+    ) -> AppEnvironment {
         let settings = SettingsStore()
         // A measurement launch can force the synthetic charging input so the
         // animation can be compared on and off on a machine that is not charging.
@@ -437,6 +448,9 @@ final class AppEnvironment {
                 .map(\.selectedDescriptor)
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
+            systemPowers: store.powerSampling.$systemPower
+                .removeDuplicates()
+                .eraseToAnyPublisher(),
             resolveInputs: { snapshot in
                 IconPresentationResourceResolver.inputs(snapshot: snapshot)
             }
@@ -447,7 +461,10 @@ final class AppEnvironment {
             backend: PowerUIChargeController(),
             sessionStore: UserDefaultsChargeToFullNowSessionStore(
                 defaults: .standard
-            )
+            ),
+            restoreLimit: {
+                Int(settings.chargeToFullRestoreLimit.rounded())
+            }
         )
         let dockChargingAnimationPresenter: any DockChargingAnimationPresenting =
             DockChargingAnimationRendererMode.usesApplicationIconFrames()
@@ -458,7 +475,8 @@ final class AppEnvironment {
         let onboardingWindowController = OnboardingWindowController(
             settings: settings,
             localization: localization,
-            activationPolicy: activationPolicy
+            activationPolicy: activationPolicy,
+            backgroundUITesting: backgroundUITesting
         )
         var settingsWindowController: SettingsWindowController?
         let controller = StatusBarController(
@@ -494,7 +512,8 @@ final class AppEnvironment {
             chargingEffectClock: chargingEffectClock,
             inputSourceController: inputSourceController,
             globalShortcutController: globalShortcutController,
-            chargeToFullNow: chargeToFullNow
+            chargeToFullNow: chargeToFullNow,
+            backgroundUITesting: backgroundUITesting
         )
         settingsWindowController = resolvedSettingsWindowController
         onboardingWindowController.openSettings = { [weak resolvedSettingsWindowController] in
@@ -567,7 +586,8 @@ final class AppEnvironment {
             globalShortcutController: globalShortcutController,
             dockChargingAnimationPresenter: dockChargingAnimationPresenter,
             dockVisibilityMonitor: dockVisibilityMonitor,
-            telemetryReporter: telemetryReporter
+            telemetryReporter: telemetryReporter,
+            backgroundUITesting: backgroundUITesting
         )
     }
 

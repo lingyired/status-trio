@@ -218,7 +218,10 @@ struct BluetoothListeningModeHAL {
         _ mode: BluetoothListeningMode,
         for deviceID: AudioDeviceID
     ) async -> BluetoothListeningModeWriteResult {
-        guard mode.isUserSelectable else {
+        // `off` is a valid write target even though it is not a drawn capsule on an
+        // AirPods row: re-tapping the active mode asks the device to turn off, and
+        // the HAL writes the `off` raw value exactly as it writes any other mode.
+        guard mode.isUserSelectable || mode == .off else {
             return .failed(.modeUnsupported)
         }
 
@@ -227,15 +230,16 @@ struct BluetoothListeningModeHAL {
               let currentRaw = backend.readUInt32(deviceID, BluetoothListeningModeProperty.listeningMode) else {
             return .failed(.propertyUnavailable)
         }
-        guard supports(mode, for: deviceID) else {
+        // `off` has no `lsms` bit, so it needs no support-mask check; every device
+        // that exposes `lstm` can be switched off.
+        guard mode == .off || supports(mode, for: deviceID) else {
             return .failed(.modeUnsupported)
         }
         guard backend.isSettable(deviceID, BluetoothListeningModeProperty.listeningMode) else {
             return .failed(.notSettable)
         }
 
-        // Already on target: no write, and nothing to read back. This is what keeps
-        // a re-tap of the selected capsule from issuing a redundant request.
+        // Already on target: no write, and nothing to read back.
         if BluetoothListeningModeRawValue.mode(from: currentRaw) == mode {
             return .confirmed(mode)
         }

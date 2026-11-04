@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class SettingsWindowControllerTests: XCTestCase {
+final class SettingsWindowControllerTests: VisibleUITestCase {
     func testShowCreatesReusesAndLocalizesSingleWindow() throws {
         let suiteName = "StatusTrioCoreTests.SettingsWindow.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -265,8 +265,82 @@ final class SettingsWindowControllerTests: XCTestCase {
         XCTAssertTrue(window.isVisible)
     }
 
+    #if DEBUG
+    func testBackgroundPresentationReusesClosesAndRebuildsWithoutRegularPolicy() throws {
+        var presentations: [SettingsWindowPresentation] = []
+        try withAuthorizationFixture(
+            configuration: BackgroundUITestingConfiguration(arguments: ["--background-ui-testing"]),
+            presentWindow: { window, mode in
+                presentations.append(mode)
+                window.orderFront(nil)
+            }
+        ) { controller, statusStore, _, application in
+            var visibility: [Bool] = []
+            controller.startPreviewResourceObservation { visibility.append($0) }
+            controller.show()
+            let first = try XCTUnwrap(controller.window)
+            XCTAssertEqual(first.frameAutosaveName, "")
+            controller.show(section: .battery)
+            XCTAssertTrue(controller.window === first)
+            XCTAssertEqual(presentations, [.background, .background])
+            XCTAssertTrue(application.policies.isEmpty)
+            first.close()
+            XCTAssertNil(controller.window)
+            controller.show()
+            let second = try XCTUnwrap(controller.window)
+            XCTAssertFalse(first === second)
+            second.close()
+            XCTAssertEqual(visibility, [false, true, false, true, false])
+            XCTAssertTrue(application.policies.isEmpty)
+            statusStore.setSettingsVisible(false)
+        }
+    }
+
+    func testBackgroundPermissionDecisionDoesNotPresentOrReopenSettings() throws {
+        var presentations = 0
+        try withAuthorizationFixture(
+            configuration: BackgroundUITestingConfiguration(arguments: ["--background-ui-testing"]),
+            presentWindow: { window, _ in
+                presentations += 1
+                window.orderFront(nil)
+            }
+        ) { controller, statusStore, monitor, application in
+            controller.show()
+            let window = try XCTUnwrap(controller.window)
+            window.orderOut(nil)
+            monitor.authorization = .allowed
+            statusStore.bluetoothDevices.prepareForPresentation()
+            XCTAssertFalse(window.isVisible)
+            XCTAssertEqual(presentations, 1)
+            window.close()
+            controller.resurface()
+            XCTAssertNil(controller.window)
+            XCTAssertEqual(presentations, 1)
+            XCTAssertTrue(application.policies.isEmpty)
+        }
+    }
+    #endif
+
+    func testNormalPresentationKeepsActivatingStrategyAndAutosave() throws {
+        var presentations: [SettingsWindowPresentation] = []
+        try withAuthorizationFixture(presentWindow: { _, mode in presentations.append(mode) }) {
+            controller, _, _, application in
+            controller.show()
+            let window = try XCTUnwrap(controller.window)
+            defer { window.close() }
+            controller.resurface()
+            XCTAssertEqual(presentations, [.activating, .activating])
+            XCTAssertEqual(application.policies, [.regular])
+            XCTAssertEqual(window.frameAutosaveName, "SettingsWindow.Sidebar.v1")
+        }
+    }
+
     private func withAuthorizationFixture(
         initialAuthorization: BluetoothAuthorizationStatus = .notDetermined,
+        configuration: BackgroundUITestingConfiguration = .disabled,
+        presentWindow: @escaping @MainActor (NSWindow, SettingsWindowPresentation) -> Void = {
+            window, mode in mode.present(window)
+        },
         _ body: (SettingsWindowController, SystemStatusStore,
                  SettingsBluetoothStateMonitor, SettingsActivationPolicyApplicationSpy) throws -> Void
     ) throws {
@@ -290,7 +364,9 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: statusStore,
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: AppActivationPolicy(application: application),
-            showIconGuide: {}
+            showIconGuide: {},
+            backgroundUITesting: configuration,
+            presentWindow: presentWindow
         )
         try body(controller, statusStore, monitor, application)
     }

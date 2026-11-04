@@ -15,23 +15,17 @@ final class BatteryPowerFlowTests: XCTestCase {
         XCTAssertEqual(BatteryPowerFlowState(input: metric(100), battery: metric(0), system: metric(25)).batteryFlowFraction, 0)
         XCTAssertNil(BatteryPowerFlowState(input: metric(nil), battery: metric(50), system: nil).batteryFlowFraction)
     }
-    func testSettingsKeepIndependentSelectionsAcrossLaunches() throws {
+    func testPowerFlowSwitchDefaultsOnAndPersists() throws {
         let suite = "BatteryPowerFlowTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removeTestSuite(named: suite) }
         let settings = SettingsStore(defaults: defaults)
-        XCTAssertFalse(settings.showsChargerInputPower)
-        XCTAssertTrue(settings.showsBatteryChargingPower)
-        XCTAssertTrue(settings.showsSystemPower)
+        XCTAssertTrue(settings.showsBatteryPowerFlow)
         XCTAssertFalse(settings.showsHighEnergyApps)
-        settings.showsChargerInputPower = true
-        settings.showsBatteryChargingPower = false
-        settings.showsSystemPower = false
+        settings.showsBatteryPowerFlow = false
         settings.showsHighEnergyApps = true
         let restored = SettingsStore(defaults: defaults)
-        XCTAssertTrue(restored.showsChargerInputPower)
-        XCTAssertFalse(restored.showsBatteryChargingPower)
-        XCTAssertFalse(restored.showsSystemPower)
+        XCTAssertFalse(restored.showsBatteryPowerFlow)
         XCTAssertTrue(restored.showsHighEnergyApps)
     }
 
@@ -90,7 +84,7 @@ final class BatteryPowerFlowTests: XCTestCase {
             for charging in [false, true] {
                 for system in [false, true] {
                     let options = BatteryPowerDisplayOptions(showsInput: input,
-                        showsCharging: charging, showsSystem: system)
+                        showsCharging: charging, showsSystem: system, showsBreakdown: false)
                     let state = PanelDetailMapper.battery(status: status, details: details,
                         localization: localization, powerOptions: options)
                     XCTAssertEqual(state.powerFlow?.input?.watts, input ? 67 : nil)

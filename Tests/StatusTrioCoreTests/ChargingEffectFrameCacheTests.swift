@@ -198,11 +198,11 @@ struct ChargingEffectFrameCacheTests {
             volume: MenuBarVolumeStatus(scalar: 0.4, isMuted: false, deviceName: "Speakers")
         )
         let phase = steadyPhase(step: 7, heartbeatMultiplier: 1.35)
-        var foreground = CGColor(gray: 1, alpha: 1)
+        // The expected raster uses the same opaque ink contract as the live
+        // menu bar, independently of labelColor's accessibility alpha.
+        let foreground = CGColor(gray: 1, alpha: 1)
         var criticalColor = CGColor(red: 1, green: 59.0 / 255.0, blue: 48.0 / 255.0, alpha: 1)
         appearance.performAsCurrentDrawingAppearance {
-            foreground = NSColor.labelColor.usingColorSpace(.deviceRGB)?.cgColor
-                ?? CGColor(gray: 1, alpha: 1)
             criticalColor = NSColor.systemRed.usingColorSpace(.deviceRGB)?.cgColor
                 ?? criticalColor
         }

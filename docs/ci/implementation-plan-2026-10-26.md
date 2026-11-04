@@ -231,7 +231,8 @@ jobs, so normal package success did not cover the new four-job recovery
 shape. Recovery acceptance now matches source metadata to its frozen workflow,
 supports the exact historical three-job and current four-job shapes, and
 requires successful Native verification in the latter. The 19 unconditional
-native contracts and two conditional trusted recovery regressions retain
+native contracts at that revision (20 since issue #244 added the DMG installer
+regression) and two conditional trusted recovery regressions retain
 their separate execution scopes. Online recovery remains outside these
 non-publishing diagnostics.
 

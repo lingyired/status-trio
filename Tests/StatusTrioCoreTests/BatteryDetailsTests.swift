@@ -187,14 +187,35 @@ final class BatteryDetailsTests: XCTestCase {
         XCTAssertNotNil(withoutSMC.power)
     }
 
-    func testSystemPowerIsOnlySampledForAPresentBatteryOnExternalPower() {
+    func testSystemPowerIsMeaningfulForNoBatteryAndOnExternalPower() {
         XCTAssertTrue(BatteryDetailsReader.readsSystemPower(for: state(connected: true)))
         XCTAssertFalse(BatteryDetailsReader.readsSystemPower(for: state()))
         let absent = BatteryPowerState(BatteryStatus(rawPercentage: 0, isPresent: false,
                                                      isCharging: false, isLowPowerMode: false,
                                                      isConnectedToPower: true))
-        XCTAssertFalse(BatteryDetailsReader.readsSystemPower(for: absent),
-                       "A Mac without a battery has no discharge row to compare against")
+        XCTAssertTrue(BatteryDetailsReader.readsSystemPower(for: absent),
+                      "A Mac without a battery still has a whole-machine power reading to show")
+    }
+
+    func testNoBatteryDetailsExposeOnlyTheSystemPowerRow() {
+        let absent = BatteryPowerState(BatteryStatus(rawPercentage: nil, isPresent: false,
+                                                     isCharging: false, isLowPowerMode: false,
+                                                     isConnectedToPower: false))
+        let sample = SystemPowerSample(watts: 18.4, readAt: now)
+        let details = BatteryDetailsReader.parse(
+            registry: [:], adapterWatts: 90, remainingSeconds: -1,
+            state: absent, now: now, systemPower: sample)
+        XCTAssertEqual(details.systemPower, sample)
+        XCTAssertEqual(details.powerAvailability, .available)
+        XCTAssertNil(details.adapterWatts)
+        XCTAssertNil(details.remainingMinutes)
+        XCTAssertNil(details.cycleCount)
+        XCTAssertNil(details.power)
+
+        let collecting = BatteryDetailsReader.parse(
+            registry: [:], adapterWatts: 90, remainingSeconds: -1,
+            state: absent, now: now)
+        XCTAssertEqual(collecting.powerAvailability, .collecting)
     }
 
     func testMissingStaleAndFutureTelemetryFailClosed() {
@@ -412,5 +433,56 @@ final class BatteryDetailsControllerTests: XCTestCase {
         XCTAssertTrue(controller.isActive)
         controller.deactivate()
         XCTAssertFalse(controller.isActive)
+    }
+}
+
+/// R4: an unplugged Mac must keep the split it just measured from the pack,
+/// while an adapter split from the previous refresh or a stale split must not
+/// leak across the power-source change.
+final class BatteryDetailsBreakdownRetentionTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_789_555_974)
+
+    private func state(connected: Bool) -> BatteryPowerState {
+        BatteryPowerState(BatteryStatus(rawPercentage: 70, isPresent: true,
+                                        isCharging: false, isLowPowerMode: false,
+                                        isConnectedToPower: connected))
+    }
+
+    private func split(_ source: BatteryPowerBreakdown.Source, at date: Date) -> BatteryPowerBreakdown {
+        BatteryPowerBreakdown(
+            source: source,
+            sourceWatts: 30,
+            display: nil,
+            usb: nil,
+            system: .init(watts: 30, readAt: date),
+            readAt: date
+        )
+    }
+
+    private func parse(connected: Bool, breakdown: BatteryPowerBreakdown?, now: Date) -> BatteryDetails {
+        BatteryDetailsReader.parse(
+            registry: [:], adapterWatts: nil, remainingSeconds: -1,
+            state: state(connected: connected), now: now, breakdown: breakdown
+        )
+    }
+
+    func testUnpluggedKeepsVerifiedBatterySplit() {
+        let batterySplit = split(.battery, at: now)
+        XCTAssertEqual(parse(connected: false, breakdown: batterySplit, now: now).breakdown, batterySplit)
+    }
+
+    func testUnpluggedDropsAdapterSplitFromPreviousRefresh() {
+        let adapterSplit = split(.adapter, at: now)
+        XCTAssertNil(parse(connected: false, breakdown: adapterSplit, now: now).breakdown)
+    }
+
+    func testUnpluggedDropsStaleBatterySplit() {
+        let stale = split(.battery, at: now.addingTimeInterval(-30))
+        XCTAssertNil(parse(connected: false, breakdown: stale, now: now).breakdown)
+    }
+
+    func testConnectedKeepsAdapterSplit() {
+        let adapterSplit = split(.adapter, at: now)
+        XCTAssertEqual(parse(connected: true, breakdown: adapterSplit, now: now).breakdown, adapterSplit)
     }
 }

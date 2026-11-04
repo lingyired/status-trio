@@ -54,84 +54,12 @@ struct BluetoothSectionView: View {
 
                 SettingsDivider()
 
-                SettingsRow(
-                    glyph: .bluetoothRune,
-                    tint: .blue,
-                    title: localization.string(.settingsBluetoothSymbolScale),
-                    subtitle: localization.string(.settingsBluetoothSymbolScaleDescription)
-                ) {
-                    HStack(spacing: 8) {
-                        Slider(
-                            value: Binding(
-                                get: { store.bluetoothSymbolScale },
-                                set: { store.bluetoothSymbolScale = (round($0 * 20) / 20) }
-                            ),
-                            in: SettingsStore.bluetoothSymbolScaleRange
-                        )
-                        .frame(width: 130)
-                        .controlSize(.small)
-                        .accessibilityLabel(localization.string(.settingsBluetoothSymbolScale))
-                        .accessibilityValue(
-                            "\(Int(round(store.bluetoothSymbolScale * 100)))%"
-                        )
-
-                        Text("\(Int(round(store.bluetoothSymbolScale * 100)))%")
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 44, alignment: .trailing)
-                    }
-                }
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    glyph: .bluetoothRune,
-                    tint: .blue,
-                    title: localization.string(.settingsBluetoothReplaceNetworkIcon),
-                    subtitle: localization.string(.settingsBluetoothReplaceNetworkIconDescription),
-                    isOn: $store.replacesNetworkIconWithBluetoothAudio
-                )
-
-                if store.replacesNetworkIconWithBluetoothAudio {
-                    SettingsDivider()
-
-                    networkIconSourceRow
-
-                    if BluetoothNetworkIconSource.shouldShowAudioIconChoice(
-                        replacingNetworkIcon: store.replacesNetworkIconWithBluetoothAudio,
-                        selectedSource: selectedOption.source
-                    ) {
-                        SettingsDivider()
-                        bluetoothAudioIconChoiceRow
-                    }
-
-                    if !sourceOptionsOffersDevices {
-                        SettingsDivider()
-
-                        SettingsHintRow(
-                            text: localization.string(.settingsBluetoothNetworkIconSourceDevicesEmpty)
-                        )
-                    }
-                }
-
-                SettingsDivider()
-
                 SettingsToggleRow(
                     symbol: "speaker.wave.2.fill",
                     tint: .cyan,
                     title: localization.string(.settingsBluetoothVolumeColor),
                     subtitle: localization.string(.settingsBluetoothVolumeColorDescription),
                     isOn: $store.usesBluetoothAudioVolumeColor
-                )
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "wifi.exclamationmark",
-                    tint: .orange,
-                    title: localization.string(.settingsBluetoothNetworkErrorPriority),
-                    subtitle: localization.string(.settingsBluetoothNetworkErrorPriorityDescription),
-                    isOn: $store.prioritizesNetworkErrorsOverBluetoothAudio
                 )
 
                 SettingsDivider()
@@ -281,7 +209,7 @@ struct BluetoothSectionView: View {
                             }
                         }
                         .labelsHidden()
-                        .fixedSize()
+                        .settingsMenuPickerWidth()
                     }
                 }
             }
@@ -300,118 +228,6 @@ struct BluetoothSectionView: View {
             statusStore.endBluetoothSettingsDemand(settingsDemandToken)
             self.settingsDemandToken = nil
         }
-    }
-
-    private var bluetoothAudioIconChoiceRow: some View {
-        SettingsRow(
-            "headphones",
-            tint: .blue,
-            title: localization.string(.settingsBluetoothIconChoice),
-            subtitle: localization.string(.settingsBluetoothIconChoiceDescription)
-        ) {
-            Picker(
-                localization.string(.settingsBluetoothIconChoice),
-                selection: Binding(
-                    get: { store.bluetoothAudioIconChoice },
-                    set: { store.bluetoothAudioIconChoice = $0 }
-                )
-            ) {
-                ForEach(IconPresentationResourceResolver.availableBluetoothAudioIconChoices) { choice in
-                    Label(
-                        choice.displayName(using: localization),
-                        systemImage: choice.symbolName ?? "arrow.clockwise"
-                    )
-                    .tag(choice)
-                }
-            }
-            .pickerStyle(.menu)
-            .labelsHidden()
-            .accessibilityLabel(localization.string(.settingsBluetoothIconChoice))
-            .accessibilityIdentifier("bluetooth.audioIconChoice")
-        }
-    }
-
-    /// Which glyph replaces the network icon, as one flat pop-up menu: the audio
-    /// device leads, and every classified paired device follows.
-    ///
-    /// The menu is deliberately flat. A `Section` inside the picker's content
-    /// was dropped when the menu opened on macOS, which left the user with the
-    /// audio entry alone and no way to pick a device; the contents are built and
-    /// tested in `BluetoothNetworkIconSourceOption` instead.
-    ///
-    /// The row draws the choice's own glyph, so it reads like the menu bar will.
-    private var networkIconSourceRow: some View {
-        SettingsRow(
-            title: localization.string(.settingsBluetoothNetworkIconSourceGroup),
-            subtitle: localization.string(.settingsBluetoothNetworkIconSourceAudioDescription),
-            leading: { SettingsIcon(symbol: selectedOption.symbolName, tint: .blue) }
-        ) {
-            Picker(
-                localization.string(.settingsBluetoothNetworkIconSourceGroup),
-                selection: networkIconSourceBinding
-            ) {
-                ForEach(sourceOptions) { option in
-                    Label(
-                        option.title
-                            ?? localization.string(.settingsBluetoothNetworkIconSourceAudio),
-                        systemImage: option.symbolName
-                    )
-                    .tag(option.source)
-                }
-            }
-            .labelsHidden()
-            .fixedSize()
-            .accessibilityIdentifier("bluetooth.networkIconSource")
-        }
-    }
-
-    private var networkIconSourceBinding: Binding<BluetoothNetworkIconSource> {
-        Binding(
-            get: { selectedOption.source },
-            set: { source in
-                switch source {
-                case .audioDevices:
-                    store.setBluetoothNetworkIconDevice(address: nil, symbolName: nil)
-                case let .device(address):
-                    guard let option = sourceOptions.first(where: { $0.source == source }) else {
-                        return
-                    }
-                    store.setBluetoothNetworkIconDevice(
-                        address: address,
-                        symbolName: option.symbolName
-                    )
-                }
-            }
-        )
-    }
-
-    /// The menu's contents, and the row's own glyph with them.
-    private var sourceOptions: [BluetoothNetworkIconSourceOption] {
-        BluetoothNetworkIconSourceOption.options(
-            devices: bluetoothDevices.devices,
-            order: store.bluetoothDeviceOrder
-        )
-    }
-
-    /// Whether the menu has anything to offer besides the audio entry. When it
-    /// does not, the pane says why — a grant that has not been given yet and a
-    /// Mac with nothing paired both leave the menu with one row, and without
-    /// the hint that reads as a broken menu.
-    private var sourceOptionsOffersDevices: Bool {
-        BluetoothNetworkIconSourceOption.listsDevices(devices: bluetoothDevices.devices)
-    }
-
-    /// The choice the menu shows as selected. A saved address whose device is
-    /// gone from the paired list falls back to the audio entry, which is the
-    /// only entry the menu still offers.
-    private var selectedOption: BluetoothNetworkIconSourceOption {
-        let options = sourceOptions
-        guard let address = store.bluetoothNetworkIconDeviceAddress,
-              let picked = options.first(where: { $0.source == .device(address: address) })
-        else {
-            return options[0]
-        }
-        return picked
     }
 
     private var deviceListGroup: some View {
@@ -478,34 +294,30 @@ struct BluetoothSectionView: View {
                                 store.hiddenBluetoothDeviceAddresses.contains(BluetoothDeviceIdentity.preferenceKey($0))
                             }
                             HStack(alignment: .center, spacing: 10) {
-                                Image(systemName: BluetoothDeviceRowIcon.symbolName(for: device))
-                                    .foregroundStyle(device.isConnected ? Color.accentColor : Color.secondary)
-                                    .frame(width: 18, height: 18, alignment: .center)
-
-                                Text(device.name)
-                                    .font(.system(size: 13))
-                                    .lineLimit(1)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                Button {
-                                    for sourceID in displayRow.sourceIDs {
-                                        store.setBluetoothDeviceHidden(sourceID, hidden: !isHidden)
+                                Toggle(device.name, isOn: Binding(
+                                    get: { !isHidden },
+                                    set: { isShown in
+                                        for sourceID in displayRow.sourceIDs {
+                                            store.setBluetoothDeviceHidden(sourceID, hidden: !isShown)
+                                        }
                                     }
-                                } label: {
-                                    PanelActionGlyph(
-                                        systemName: isHidden ? "eye.slash" : "eye",
-                                        font: .system(size: 13),
-                                        size: 22
-                                    )
-                                }
-                                .buttonStyle(.plain)
+                                ))
+                                .toggleStyle(.checkbox)
+                                .labelsHidden()
                                 .help(isHidden
                                       ? localization.string(.settingsBluetoothShowDevice)
                                       : localization.string(.settingsBluetoothHideDevice))
-                                .accessibilityLabel(isHidden
-                                      ? localization.string(.settingsBluetoothShowDevice)
-                                      : localization.string(.settingsBluetoothHideDevice))
-                                .frame(width: 26)
+
+                                Image(systemName: BluetoothDeviceRowIcon.symbolName(for: device))
+                                    .foregroundStyle(device.isConnected ? Color.accentColor : Color.secondary)
+                                    .frame(width: 18, height: 18, alignment: .center)
+                                    .opacity(isHidden ? 0.45 : 1)
+
+                                Text(device.name)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(isHidden ? Color.secondary : Color.primary)
+                                    .lineLimit(1)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
 
                                 PanelActionGlyph(
                                     systemName: "line.3.horizontal",
@@ -516,7 +328,6 @@ struct BluetoothSectionView: View {
                                 .accessibilityHidden(true)
                             }
                             .frame(height: 30)
-                            .opacity(isHidden ? 0.45 : 1)
                         }
                         .onMove { source, destination in
                             store.moveBluetoothDevices(
@@ -544,35 +355,19 @@ struct BluetoothSectionView: View {
         case .allowed:
             EmptyView()
         case .notDetermined:
-            permissionNotice(
+            SettingsPermissionNotice(
+                title: localization.string(.settingsBluetoothPermissionRequired),
                 description: .settingsBluetoothPermissionNotDeterminedDescription,
                 buttonKey: .bluetoothActionRequestAuthorization,
                 action: { statusStore.requestBluetoothAuthorization() }
             )
         case .denied, .restricted:
-            permissionNotice(
+            SettingsPermissionNotice(
+                title: localization.string(.settingsBluetoothPermissionRequired),
                 description: .settingsBluetoothPermissionDeniedDescription,
                 buttonKey: .bluetoothActionOpenPermissionSettings,
                 action: { statusStore.openBluetoothPermissionSettings() }
             )
-        }
-    }
-
-    private func permissionNotice(
-        description: LocalizationKey,
-        buttonKey: LocalizationKey,
-        action: @escaping () -> Void
-    ) -> some View {
-        SettingsGroup {
-            SettingsRow(
-                "exclamationmark.triangle.fill",
-                tint: .orange,
-                title: localization.string(.settingsBluetoothPermissionRequired),
-                subtitle: localization.string(description)
-            ) {
-                Button(localization.string(buttonKey), action: action)
-                    .controlSize(.small)
-            }
         }
     }
 

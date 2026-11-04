@@ -1,0 +1,4 @@
+interface:
+  display_name: "Background UI Testing"
+  short_description: "Test UI without disrupting the active user session"
+  default_prompt: "Use $background-ui-testing to test this app while preserving the user foreground app, input focus, and pointer."

@@ -3,17 +3,33 @@ import Foundation
 enum IconPresentationMapper {
     static func scene(
         inputs: IconPresentationInputs,
-        configuration: IconPresentationConfiguration
+        configuration: IconPresentationConfiguration,
+        now: Date = Date()
     ) -> IconSceneState {
-        IconSceneState(
-            outerRing: batteryState(inputs.snapshot.battery, options: configuration.battery),
-            center: centerState(inputs: inputs, configuration: configuration),
+        // #253: the "charging status inside the ring" middle-icon mode draws the
+        // battery/charging status in the centre, so the top gap closes and the
+        // percentage/bolt/plug moves out of it (never drawn twice).
+        let closesRing = configuration.connection.centerSource == .chargingStatus
+            && inputs.snapshot.battery.isPresent
+        return IconSceneState(
+            outerRing: batteryState(
+                inputs.snapshot.battery,
+                options: configuration.battery,
+                closesRing: closesRing
+            ),
+            center: centerState(inputs: inputs, configuration: configuration, now: now),
             footer: footerState(inputs.snapshot.volume, options: configuration.volume,
-                                bluetoothOptions: configuration.bluetooth)
+                                bluetoothOptions: configuration.bluetooth),
+            statusColors: configuration.battery.usesStatusColors
+                ? configuration.battery.batteryStatusColors : .standard
         )
     }
 
-    private static func batteryState(_ battery: BatteryStatus, options: BatteryIconOptions) -> OuterRingState {
+    private static func batteryState(
+        _ battery: BatteryStatus,
+        options: BatteryIconOptions,
+        closesRing: Bool
+    ) -> OuterRingState {
         let role = options.usesStatusColors
             ? StatusMappings.batteryColorRole(battery, criticalThreshold: options.criticalThreshold)
             : .foreground
@@ -23,28 +39,38 @@ enum IconPresentationMapper {
         case .lowPower: .lowPower
         case .charging: .powered
         }
+
         let gapContent = StatusMappings.batteryGapContent(battery, options: options)
-        let gap: RingGapStyle = switch gapContent {
+        let gapStyle: RingGapStyle = switch gapContent {
         case .empty: .closed
         case .percentage: .value
         case .bolt, .plug: .indicator
         }
-        let accessory: RingAccessoryState? = switch gapContent {
-        case .empty: nil
-        case .percentage:
-            .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: options.textScale))
-        case .bolt:
-            .symbol(IconSymbolState(
-                source: .primitive(.bolt),
-                color: .primary,
-                scale: options.textScale
-            ))
-        case .plug:
-            .symbol(IconSymbolState(
-                source: .primitive(.plug),
-                color: .primary,
-                scale: options.textScale
-            ))
+        // The "inside the ring" mode draws its status in the middle slot, so the
+        // top gap closes and its own accessory (percentage/bolt/plug) is not
+        // drawn — otherwise the same value would appear twice.
+        let gap: RingGapStyle = closesRing ? .closed : gapStyle
+        let accessory: RingAccessoryState?
+        if closesRing {
+            accessory = nil
+        } else {
+            accessory = switch gapContent {
+            case .empty: nil
+            case .percentage:
+                .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: options.textScale))
+            case .bolt:
+                .symbol(IconSymbolState(
+                    source: .primitive(.bolt),
+                    color: .primary,
+                    scale: options.textScale
+                ))
+            case .plug:
+                .symbol(IconSymbolState(
+                    source: .primitive(.plug),
+                    color: .primary,
+                    scale: options.textScale
+                ))
+            }
         }
         let effect: RingEffectState? = options.showsChargingEffect
                 && battery.isPresent
@@ -72,40 +98,104 @@ enum IconPresentationMapper {
             gap: gap,
             accessory: accessory,
             effect: effect,
-            strokeScale: options.ringStrokeScale
+            strokeScale: options.ringStrokeScale,
+            // `.split` only has meaning while a top gap consumes progress, so a
+            // closed ring keeps the historical 0–100% arc.
+            gapProgressMode: closesRing || !options.splitGapProgress ? .absorbed : .split
         )
     }
 
     private static func centerState(
         inputs: IconPresentationInputs,
-        configuration: IconPresentationConfiguration
+        configuration: IconPresentationConfiguration,
+        now: Date
     ) -> CenterState? {
         let snapshot = inputs.snapshot
         let battery = snapshot.battery
         let connectionOptions = configuration.connection
         let bluetoothOptions = configuration.bluetooth
 
-        if connectionOptions.showsBatteryPercentageInConnectionSlot, battery.isPresent {
-            return .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: 1))
+        if connectionOptions.prioritizesNetworkErrors,
+           StatusMappings.isNetworkOffline(wifi: snapshot.wifi, connection: snapshot.connection) {
+            return networkState(snapshot: snapshot, options: connectionOptions)
         }
 
-        // The user asked the centre slot to carry the current input source.
-        // Everything below this branch is the shipped `.automatic` decision,
-        // which also serves as the fallback whenever no source can be drawn.
+        // The user asked the centre slot to carry whole-machine watts. Its text
+        // follows the "Wi-Fi Icon Size" centre-symbol scale so the number grows
+        // and shrinks with the network glyph it replaces. A genuine outage was
+        // handled above when the warning toggle is on.
+        if connectionOptions.centerSource == .power {
+            let textScale = connectionOptions.wifiScale
+            if let sample = inputs.systemPower,
+               sample.isFresh(at: now),
+               sample.watts.isFinite {
+                // Integer watts, no unit, laid out for at most three digits.
+                // Clamp in Double space so a pathological sample can never trap
+                // an Int conversion.
+                let watts = Int(min(999, max(0, sample.watts)).rounded())
+                return .text(IconTextState(text: "\(watts)", color: .primary, scale: textScale))
+            }
+            // Never a fake 0 W. A battery Mac may still show its level; a Mac
+            // with no battery shows an honest placeholder instead of inventing
+            // a percentage it does not have.
+            if battery.isPresent {
+                return .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: textScale))
+            }
+            return .text(IconTextState(text: "--", color: .primary, scale: textScale))
+        }
+
+        if connectionOptions.centerSource == .chargingStatus {
+            // The charging status replaces the middle glyph (#253): the level
+            // percentage while on battery, the bolt while charging, and the plug
+            // whenever the machine is on power (including charged / held). A Mac
+            // with no battery has no status to show, so it falls through to the
+            // network glyph instead of inventing one.
+            let textScale = connectionOptions.wifiScale
+            if battery.isPresent {
+                if battery.isCharging, !battery.isCharged {
+                    return .symbol(IconSymbolState(
+                        source: .primitive(.bolt),
+                        color: .primary,
+                        scale: textScale
+                    ))
+                }
+                if battery.isConnectedToPower {
+                    return .symbol(IconSymbolState(
+                        source: .primitive(.plug),
+                        color: .primary,
+                        scale: textScale
+                    ))
+                }
+                return .text(IconTextState(
+                    text: "\(battery.percentage)",
+                    color: .primary,
+                    scale: textScale
+                ))
+            }
+        }
+
+        if connectionOptions.centerSource == .batteryPercentage {
+            // Every numeric centre mode shares the same size rule: the Wi-Fi
+            // Icon Size scale, so switching between percentage and watts does
+            // not change the number's size. A Mac with no battery reports 100
+            // through `BatteryStatus.percentage`, so this slot and the top
+            // battery indicator agree on the same value.
+            return .text(IconTextState(
+                text: "\(battery.percentage)",
+                color: .primary,
+                scale: connectionOptions.wifiScale
+            ))
+        }
+
+        // Unavailable selected content falls back directly to the network.
         if connectionOptions.centerSource == .inputSource,
-           let inputSource = inputs.inputSource,
-           !(connectionOptions.prioritizesNetworkErrorsOverInputSource
-               && StatusMappings.isNetworkOffline(
-                   wifi: snapshot.wifi,
-                   connection: snapshot.connection
-               )) {
+           let inputSource = inputs.inputSource {
             return inputSourceCenterState(inputSource, scale: connectionOptions.wifiScale)
         }
 
-        if StatusMappings.shouldReplaceNetworkIcon(
+        if connectionOptions.centerSource == .bluetoothDevice,
+           StatusMappings.canShowBluetoothIcon(
             currentDevice: snapshot.volume.currentDevice,
-            wifi: snapshot.wifi,
-            connection: snapshot.connection,
             options: bluetoothOptions
         ) {
             let source: IconSymbolSource
@@ -124,6 +214,10 @@ enum IconPresentationMapper {
             return .symbol(IconSymbolState(source: source, color: .bluetooth, scale: bluetoothOptions.symbolScale))
         }
 
+        return networkState(snapshot: snapshot, options: connectionOptions)
+    }
+
+    private static func networkState(snapshot: StatusSnapshot, options connectionOptions: ConnectionIconOptions) -> CenterState {
         if snapshot.connection == .ethernet {
             if connectionOptions.showsWiFiIconForEthernet {
                 return wifiSymbol(variableValue: 1, color: .primary, scale: connectionOptions.wifiScale)

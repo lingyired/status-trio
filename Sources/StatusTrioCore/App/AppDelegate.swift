@@ -17,6 +17,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
+        let backgroundUITesting = BackgroundUITestingConfiguration(
+            arguments: ProcessInfo.processInfo.arguments
+        )
+        guard !backgroundUITesting.rejectsLaunch else {
+            for diagnostic in backgroundUITesting.diagnostics {
+                dockActivationLogger.error("\(diagnostic, privacy: .public)")
+            }
+            NSApplication.shared.terminate(nil)
+            return
+        }
+
         switch SingleInstanceGuard.acquire() {
         case .acquired(let guardInstance):
             self.singleInstanceGuard = guardInstance
@@ -26,7 +37,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let environment = AppEnvironment.live()
+        let environment = AppEnvironment.live(backgroundUITesting: backgroundUITesting)
         self.environment = environment
         environment.start()
         updaterManager.start(activationPolicy: environment.activationPolicy)
@@ -61,9 +72,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let event = AppleEventSenderResolver.currentActivation()
         let placement = environment.settings.appIconPlacement
         let action = DockActivationAction.resolve(
-            isReopenEvent: event.kind == .reopen,
-            sender: event.sender,
-            showsPersistentDockIcon: placement.showsDockIcon
+            event: event,
+            showsPersistentDockIcon: placement.showsDockIcon,
+            backgroundUITesting: environment.backgroundUITesting,
+            hasVisibleOnboarding: environment.onboardingWindowController.window?.isVisible == true
         )
         let settingsWindow = environment.settingsWindowController.window
         dockActivationLogger.notice(

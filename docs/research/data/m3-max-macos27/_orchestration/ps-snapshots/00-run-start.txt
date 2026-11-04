@@ -1,0 +1,30 @@
+# ps snapshot: 00-run-start  wall=2026-10-30T23:03:26+0800 mono=199993.975538
+# --- top 25 by cpu ---
+  PID  PPID  %CPU %MEM COMM
+ 1328     1 105.5  0.3 /System/Applications/Siri AI.app/Contents/MacOS/Siri AI
+48440     1  85.8  0.0 /System/Applications/System Settings.app/Contents/Resources/systemsettingsagent
+81860     1  67.3  6.9 /Applications/BlueStacks.app/Contents/MacOS/BlueStacks
+  619     1  58.8  0.9 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+ 1045     1  56.9  0.3 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd
+63065     1  35.7  0.7 /Applications/magpie.app/Contents/MacOS/magpie
+59354 59341  33.8  0.4 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper (Renderer).app/Contents/MacOS/DeepSeek Harness Helper (Renderer)
+59342 59341  27.7  0.1 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper.app/Contents/MacOS/DeepSeek Harness Helper
+ 1077     1  21.8  0.0 /usr/libexec/siriknowledged
+  879     1  20.2  0.6 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mds_stores
+ 1200     1  14.1  0.0 /usr/libexec/swcd
+18255 17803  11.0  0.0 /Users/lingsmbp/Downloads/macpow
+  808     1   8.6  0.1 /usr/sbin/coreaudiod
+ 1309     1   8.2  0.1 /System/Applications/Utilities/Activity Monitor.app/Contents/MacOS/Activity Monitor
+  613     1   6.4  0.0 /usr/sbin/notifyd
+17763     1   6.4  0.1 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+ 5090     1   6.1  0.0 /usr/libexec/diagnosticd
+84549 84507   4.9  0.0 /usr/bin/log
+ 1005     1   4.6  0.0 /System/Library/PrivateFrameworks/BiomeStreams.framework/Support/BiomeAgent
+49245  9296   4.3  0.0 ps
+ 3951  1409   3.7  0.2 /Applications/Doubao.app/Contents/Helpers/Doubao Browser.app/Contents/Frameworks/Doubao Browser Framework.framework/Versions/147.0.7727.149/Helpers/Doubao Browser Helper (Renderer).app/Contents/MacOS/Doubao Browser Helper (Renderer)
+49315 49313   3.4  0.0 /bin/bash
+59797 59341   3.1  0.7 /Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness
+49296  9342   2.9  0.0 /usr/sbin/lsof
+48740     1   2.9  0.0 /System/Library/PrivateFrameworks/CascadeSets.framework/Versions/A/XPCServices/SetStoreUpdateService.xpc/Contents/MacOS/SetStoreUpdateService
+# --- our loaders / sampler ---
+(none)

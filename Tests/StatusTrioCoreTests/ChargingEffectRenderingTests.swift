@@ -207,7 +207,10 @@ struct ChargingEffectRenderingTests {
         let animatedPixels = try renderPixels(
             snapshot: chargingSnapshot,
             options: arcEffectOptions,
-            phase: .init(step: 24, stepsPerCycle: 36, kind: .steady)
+            // A step whose head has cleared the top gap onto the right visible
+            // side, so the arc animation draws while the (heartbeat-disabled)
+            // foreground bolt stays static.
+            phase: .init(step: 30, stepsPerCycle: 36, kind: .steady)
         )
         let boltPoint = CGPoint(x: 61, y: 11)
         let boltBounds = CGRect(x: 51.3, y: 2.1, width: 15.9, height: 19.9)

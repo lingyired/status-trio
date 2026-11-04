@@ -266,12 +266,14 @@ struct RingStrokeStylePreview: View {
                 battery: BatteryIconOptions(
                     showsPercentage: store.showsBatteryPercentage,
                     showsChargingIndicator: store.showsChargingIndicator,
+                    splitGapProgress: store.batterySplitGapProgress,
                     usesStatusColors: store.usesBatteryStatusColors,
                     criticalThreshold: Int(store.batteryCriticalThreshold.rounded()),
-                    showsPercentageWhenConnected: store.showsPercentageWhenConnected,
+                    connectedIndicator: store.batteryConnectedIndicator,
                     fullThreshold: Int(store.batteryFullThreshold.rounded()),
                     textScale: store.batterySymbolScale * BatteryIconOptions.defaultTextScale,
-                    ringStrokeScale: style.scale
+                    ringStrokeScale: style.scale,
+                    batteryStatusColors: store.batteryStatusColors
                 ),
                 connection: store.connectionIconOptions,
                 volume: VolumeIconOptions(

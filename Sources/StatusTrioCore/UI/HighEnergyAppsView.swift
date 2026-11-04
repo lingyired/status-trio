@@ -49,10 +49,6 @@ struct HighEnergyAppsView: View {
                         .help(app.name)
                 }
             }
-            Text(localization.string(ranking.basis == .cpuEnergy ? .batteryEnergyCPUExplanation : .batteryEnergyActivityExplanation))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .font(.caption)
         .frame(maxWidth: .infinity, alignment: .leading)

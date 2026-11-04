@@ -2,9 +2,10 @@ import SwiftUI
 
 extension ChargeToFullNowPresentation {
     /// Whether the action area should occupy space at all. `unavailable` has no
-    /// button but still explains why the action cannot run.
+    /// button but still explains why the action cannot run; a restored limit
+    /// stays visible while the battery charges up to it.
     var showsActionArea: Bool {
-        showsButton || self == .unavailable
+        showsButton || self == .unavailable || isRestoredLimit
     }
 }
 
@@ -70,6 +71,10 @@ struct ChargeToFullNowActionView: View {
                 .accessibilityLabel(actionLabel)
             }
 
+            if case .limitRestored(let limit) = presentation {
+                restoredLimitRow(limit: limit)
+            }
+
             switch presentation {
             case .failed:
                 notice(.batteryActionChargeToFullNowFailed)
@@ -86,30 +91,30 @@ struct ChargeToFullNowActionView: View {
                     color: .secondary,
                     showsIcon: false
                 )
-            case .cancelFailed(let message):
+            case .cancelFailed(let reason):
                 notice(
-                    localization.format(
-                        .batteryActionCancelChargeToFullNowFailed,
-                        message ?? ""
+                    localization.string(
+                        reason == .limitChanged
+                            ? .batteryActionCancelChargeToFullNowLimitChangedFailed
+                            : .batteryActionCancelChargeToFullNowFailed
                     )
                 )
-            case .cancelSucceeded(let limit, let usedFallback):
+            case .cancelLimitChangedConfirmation(let current, let target):
                 notice(
                     localization.format(
-                        usedFallback
-                            ? .batteryActionCancelChargeToFullNowFallback
-                            : .batteryActionCancelChargeToFullNowRestored,
-                        limit
+                        .batteryActionCancelChargeToFullNowLimitChangedConfirmation,
+                        current,
+                        target
                     ),
-                    color: .secondary,
-                    showsIcon: false
+                    color: .secondary
                 )
             case .hidden,
                  .available,
                  .applying,
                  .chargingToFull,
                  .cancelling,
-                 .unavailable:
+                 .unavailable,
+                 .limitRestored:
                 EmptyView()
             }
         }
@@ -131,21 +136,24 @@ struct ChargeToFullNowActionView: View {
             localization.string(.batteryActionCancelChargeToFullNowApplying)
         case .cancelFailed, .cancelPending:
             localization.string(.batteryActionCancelChargeToFullNow)
-        case .cancelConfirmationRequired(let limit, let usedFallback):
+        case .cancelConfirmationRequired(let limit):
             localization.format(
-                usedFallback
-                    ? .batteryActionCancelChargeToFullNowConfirmFallback
-                    : .batteryActionCancelChargeToFullNowConfirm,
+                .batteryActionCancelChargeToFullNowConfirm,
                 limit
             )
-        case .hidden, .available, .failed, .unavailable, .cancelSucceeded:
+        case .cancelLimitChangedConfirmation(_, let target):
+            localization.format(
+                .batteryActionCancelChargeToFullNowConfirmFallback,
+                target
+            )
+        case .hidden, .available, .failed, .unavailable, .limitRestored:
             localization.string(.batteryActionChargeToFullNow)
         }
     }
 
     private var showsBolt: Bool {
         switch presentation {
-        case .available, .failed, .cancelSucceeded:
+        case .available, .failed:
             true
         case .hidden,
              .applying,
@@ -154,9 +162,37 @@ struct ChargeToFullNowActionView: View {
              .cancelConfirmationRequired,
              .cancelPending,
              .cancelling,
-             .cancelFailed:
+             .cancelFailed,
+             .cancelLimitChangedConfirmation,
+             .limitRestored:
             false
         }
+    }
+
+    /// A static confirmation replaces the button until the battery finishes
+    /// charging to the restored limit, so cancelling cannot bounce the user
+    /// straight back into another Charge to Full Now request.
+    private func restoredLimitRow(limit: Int) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: "checkmark.circle.fill")
+                .frame(width: 14, height: 14)
+                .foregroundStyle(.green)
+
+            Text(restoredLimitText(limit))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func restoredLimitText(_ limit: Int) -> String {
+        localization.format(.batteryActionCancelChargeToFullNowRestored, limit)
     }
 
     private func notice(_ key: LocalizationKey) -> some View {

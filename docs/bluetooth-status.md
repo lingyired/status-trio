@@ -457,8 +457,10 @@ connected input device while it is open.
 ## Switching an AirPods listening mode from its row
 
 A connected AirPods row whose listening mode the system exposes carries a small
-capsule switch under the battery line: one capsule per mode the device reports it
-supports — noise cancellation, transparency, adaptive, and the silent `off` state.
+capsule switch under the battery line: one capsule per selectable mode the device
+reports it supports — noise cancellation, transparency, adaptive. `off` has no
+support bit and is never drawn as its own capsule: the user turns the active mode
+off by tapping the highlighted capsule again.
 The modes and the current selection come from undocumented CoreAudio HAL
 properties read off the device's own audio endpoint: `lsms` lists the modes the
 device supports, `lstm` reports (and sets) the active one. Both are Global scope on
@@ -510,9 +512,11 @@ never nested inside it — SwiftUI swallows an inner button's tap when it lives 
 another `Button`, so nesting would make the capsules dead. The row is one
 `.accessibilityElement(children: .contain)` (not `.combine`), so each capsule keeps
 its own focus target and VoiceOver or the keyboard can land on a single mode;
-selection rides on the `.isSelected` trait and an accent ring, not colour alone, and
-a capsule already selected or already settling into a change is disabled rather than
-firing a redundant write. The in-flight marker honours the system's Reduce Motion:
+selection rides on the `.isSelected` trait and an accent ring, not colour alone. The
+highlighted capsule stays enabled: tapping it again asks the device to turn off
+(`off` is not a drawn capsule on an AirPods row), and the spinner for that request
+appears on the highlighted capsule itself. Only a change already in flight disables
+the group, so a second tap cannot stack a write. The in-flight marker honours the system's Reduce Motion:
 an animated progress dot normally, a static dot when Reduce Motion is on. All of the
 mode names, the group label, and the failure message ship in every language
 (`bluetooth.listeningMode.*`), guarded by the localization parity and

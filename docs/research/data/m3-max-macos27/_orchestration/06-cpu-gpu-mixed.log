@@ -1,0 +1,4 @@
+[cpuload] label=06-cpu-gpu-mixed-cpu threads=4 seconds=55 start_mono=200371.717 pid=25760
+[cpuload] stopped mono=200426.729 elapsed=55.012 iters=95081975808 sink=98453596447.722
+5 start_mono=200371.763 pid=25761
+[gpuload] stopped mono=200426.763 elapsed=55.000 dispatches=104566

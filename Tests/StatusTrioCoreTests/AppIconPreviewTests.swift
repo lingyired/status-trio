@@ -29,36 +29,30 @@ final class AppIconPreviewTests: XCTestCase {
         let rendered: String
     }
 
-    // CI's headless CoreGraphics context rasterizes the Wi-Fi glyph's
-    // antialiased edges differently from a local Retina context. Keep both
-    // complete output pairs approved so any other artwork drift still fails.
+    // The committed artwork is regenerated from the renderer, so on a given
+    // environment its decoded pixels equal the rendered pixels. CI's headless
+    // CoreGraphics antialiasing renders the same committed bytes differently,
+    // so its exact rendered pair is recorded alongside the local pair. Every
+    // entry still pins the decoded pixels; a deliberate artwork change fails.
     private static let approvedArtworkFingerprints: [String: Set<ArtworkFingerprint>] = [
         "AppIcon-light.png": [
             ArtworkFingerprint(
-                committed: "c91b26a7bd887a9313098ee4169febadbc6ecd45dbfd5ebb9ddbe4ffcfb4c6fb",
-                rendered: "c91b26a7bd887a9313098ee4169febadbc6ecd45dbfd5ebb9ddbe4ffcfb4c6fb"
+                committed: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981",
+                rendered: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981"
             ),
             ArtworkFingerprint(
-                committed: "c91b26a7bd887a9313098ee4169febadbc6ecd45dbfd5ebb9ddbe4ffcfb4c6fb",
-                rendered: "aec15b74471aa1bd59fa9053faef592f9c8deb26b21fa8e7fd4e997e17dfaeb5"
-            ),
-            ArtworkFingerprint(
-                committed: "c91b26a7bd887a9313098ee4169febadbc6ecd45dbfd5ebb9ddbe4ffcfb4c6fb",
-                rendered: "590dbe82b49b528babf32e6402bac761d467609791302fd829a4d241de8a882b"
+                committed: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981",
+                rendered: "3b2f6ba5835c645e88e9238d0adec31bbfd1232e92991fe3fdc907a496ef6aa7"
             )
         ],
         "AppIcon-dark.png": [
             ArtworkFingerprint(
-                committed: "ce2cbff551f44d8059f9d3e3ea9ad9a88ee00aff45ecfcddb1a2089c79e0eb07",
-                rendered: "ce2cbff551f44d8059f9d3e3ea9ad9a88ee00aff45ecfcddb1a2089c79e0eb07"
+                committed: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63",
+                rendered: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63"
             ),
             ArtworkFingerprint(
-                committed: "ce2cbff551f44d8059f9d3e3ea9ad9a88ee00aff45ecfcddb1a2089c79e0eb07",
-                rendered: "1f9e102f18271a0f97ed72c5b1cb4fbae084e3592a0ee74c723199eeea42e1bf"
-            ),
-            ArtworkFingerprint(
-                committed: "ce2cbff551f44d8059f9d3e3ea9ad9a88ee00aff45ecfcddb1a2089c79e0eb07",
-                rendered: "50e3bbd73db17312745e8ff2beabf98f143cec152bd6dc3d574f5061c65eb6ea"
+                committed: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63",
+                rendered: "8fb28729b1f064541dc0b7236d6408c45055aa40e6c5c94ffc0f33419bdc1f93"
             )
         ]
     ]
@@ -70,7 +64,6 @@ final class AppIconPreviewTests: XCTestCase {
         XCTAssertEqual(state.status.wifi.state, .connected)
         XCTAssertEqual(state.status.volume.currentDevice, SheetFixtures.bluetoothDevice)
         XCTAssertTrue(state.bluetoothAudioOptions.usesVolumeColor)
-        XCTAssertFalse(state.bluetoothAudioOptions.replacesNetworkIcon)
         XCTAssertEqual(state.backgroundStyle, .dark)
     }
 

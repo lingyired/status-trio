@@ -8,6 +8,7 @@
 "menu.window" = "نافذة";
 "menu.closeWindow" = "إغلاق النافذة";
 "menu.checkForUpdates" = "التحقق من وجود تحديثات…";
+"menu.openMenuBarSettings" = "فتح إعدادات شريط القوائم";
 "settings.title" = "الإعدادات";
 "settings.page.appearance" = "المظهر";
 "settings.page.general" = "عام";
@@ -38,6 +39,20 @@
 "settings.tab.panel" = "لوحة الحالة";
 "settings.tab.about" = "حول";
 "settings.menuBar.title" = "رمز شريط القوائم";
+"settings.appIcon.middleIcon.title" = "الأيقونة الوسطى";
+"settings.appIcon.middleIcon.source" = "الأيقونة الوسطى";
+"settings.appIcon.middleIcon.description" = "اختر ما تعرضه أيقونة الحالة في المنتصف. يُعرض مصدر واحد فقط في كل مرة.";
+"settings.appIcon.middleIcon.network" = "الشبكة";
+"settings.appIcon.middleIcon.bluetooth" = "جهاز Bluetooth";
+"settings.appIcon.middleIcon.inputSource" = "مصدر الإدخال الحالي";
+"settings.appIcon.middleIcon.batteryPercentage" = "نسبة البطارية";
+"settings.appIcon.middleIcon.power" = "الطاقة (واط)";
+"settings.appIcon.middleIcon.chargingStatus" = "حالة الشحن";
+"settings.appIcon.middleIcon.chargingStatus.description" = "يعرض نسبة البطارية عند العمل بالبطارية، وصاعقة أثناء الشحن، وقابسًا عند توصيل الطاقة؛ تبقى الحلقة مكتملة.";
+"settings.appIcon.middleIcon.size" = "حجم الأيقونة الوسطى";
+"settings.appIcon.middleIcon.size.description" = "حجم واحد لكل محتوى المنتصف: Wi-Fi وBluetooth ومصدر الإدخال والأرقام.";
+"settings.appIcon.middleIcon.networkWarnings" = "إعطاء أولوية لمشاكل الشبكة";
+"settings.appIcon.middleIcon.networkWarnings.description" = "عندما يكون Mac غير متصل فعليًا، يعرض المنتصف حالة الشبكة بدلًا من المصدر المحدد.";
 "settings.network.connectionIcons" = "نمط أيقونات الاتصال";
 "settings.network.connectionIcons.description" = "عند التمكين، تستخدم الحالة المحددة أيقونة إشارة Wi-Fi القياسية بدلًا من علامتها الخاصة.";
 "settings.network.wifiIconForEthernet" = "استخدام أيقونة Wi-Fi لإيثرنت";
@@ -48,6 +63,8 @@
 "settings.network.centerSource.description" = "اختر ما تعرضه أيقونة الحالة في الوسط. «تلقائي» يحافظ على سلوك الشبكة والبلوتوث المعتاد.";
 "settings.network.centerSource.automatic" = "تلقائي";
 "settings.network.centerSource.inputSource" = "مصدر الإدخال الحالي";
+"settings.network.centerSource.batteryPercentage" = "نسبة البطارية";
+"settings.network.centerSource.power" = "الطاقة (واط)";
 "settings.network.centerSource.bluetoothFallback" = "عند اختيار مصدر الإدخال، تُستخدم أيقونات البلوتوث والشبكة كخيار احتياطي فقط.";
 "settings.network.centerSource.networkWarnings" = "إعطاء الأولوية لمشاكل الشبكة";
 "settings.network.centerSource.networkWarnings.description" = "عندما يكون الـ Mac غير متصل فعلياً، يعرض الوسط حالة الشبكة بدلاً من مصدر الإدخال.";
@@ -104,9 +121,18 @@
 "settings.audio.maximumVisibleDescription" = "عدد أجهزة الإخراج المعروضة قبل زر التوسيع.";
 "settings.audio.showAll" = "إظهار كل أجهزة الإخراج دائمًا";
 "settings.audio.showAllDescription" = "تجاهل الحد وإظهار كل أجهزة الإخراج المتاحة.";
+"settings.audio.showAllInput" = "إظهار كل أجهزة الإدخال دائمًا";
+"settings.audio.showAllInputDescription" = "تجاهل الحد وإظهار كل أجهزة الإدخال المتاحة.";
+"settings.audio.maximumVisibleInput" = "الحد الأقصى لأجهزة الإدخال الظاهرة";
+"settings.audio.maximumVisibleInputDescription" = "عدد أجهزة الإدخال المعروضة قبل زر التوسيع.";
 "settings.audio.orderTitle" = "ترتيب أجهزة الإخراج";
-"settings.audio.orderDescription" = "اسحب الأجهزة لتغيير ترتيبها في نافذة مستوى الصوت. تظهر الأجهزة الجديدة في النهاية.";
+"settings.audio.orderDescription" = "اسحب الأجهزة لتغيير ترتيبها في نافذة مستوى الصوت. ألغِ تحديد الأجهزة التي لا تستخدمها لإخفائها، ويظل جهاز الإخراج النشط ظاهرًا دائمًا. تظهر الأجهزة الجديدة في النهاية.";
 "settings.audio.orderEmpty" = "لا تتوفر أجهزة إخراج.";
+"settings.audio.showDevice" = "إظهار في لوحة الحالة";
+"settings.audio.inputOrderTitle" = "ترتيب أجهزة الإدخال";
+"settings.audio.inputOrderDescription" = "اسحب الأجهزة لتغيير ترتيبها في قسم إدخال الصوت. ألغِ تحديد الأجهزة التي لا تستخدمها لإخفائها، ويظل جهاز الإدخال الحالي ظاهرًا دائمًا. تظهر الأجهزة الجديدة في النهاية.";
+"settings.audio.inputOrderEmpty" = "لا تتوفر أجهزة إدخال.";
+"settings.audio.inputOrderSectionOff" = "شغّل إدخال الصوت في لوحة الحالة › عناصر لوحة الحالة لإعادة ترتيب أجهزة الإدخال أو إخفائها.";
 "settings.about.version" = "الإصدار %@";
 "settings.about.description" = "تطبيق macOS أصلي يجمع Wi-Fi والبطارية ومستوى الصوت في رمز مدمج واحد في شريط القوائم. مستوحى من رمز شريط الحالة المدمج في iPhone Duo، ويستخدم مستوى الصوت بدل بيانات الشبكة الخلوية على Mac.";
 "settings.about.project" = "الموقع";
@@ -117,11 +143,12 @@
 "settings.about.starOnGitHub" = "نجمة على GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "عرض البطارية";
+"settings.battery.noBatteryNotice" = "لا يحتوي هذا الجهاز على بطارية، لذا يُعرض مستوى البطارية على أنه 100 افتراضيًا.";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
-"settings.battery.showPercentageInConnectionSlot" = "إظهار نسبة البطارية في موضع الاتصال";
-"settings.battery.showPercentageInConnectionSlotDescription" = "يستبدل رمز Wi-Fi أو الاتصال، وهو مستقل عن مؤشر البطارية العلوي.";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";
 "settings.battery.chargingDescription" = "عند التفعيل، تتحول النسبة إلى رمز برق أو قابس أثناء الشحن أو الاتصال بالطاقة.";
+"settings.battery.splitGapProgress" = "تقسيم التقدم عندما تكون الفجوة العليا ممتلئة";
+"settings.battery.splitGapProgressDescription" = "عندما تظهر صاعقة أو قابس أو نسبة مئوية في الفجوة العليا، يُرسم الحلقة بحيث يمثل النصف الأيسر 0–50% والنصف الأيمن 50–100%، حتى لا تحجب الفجوة التقدم بعد الأن.";
 "settings.battery.chargingEffect" = "تأثير الشحن";
 "settings.battery.chargingEffectDescription" = "تحريك الإبراز أثناء الشحن فقط. يتوقف عند تفعيل «تقليل الحركة».";
 "settings.battery.menuBarChargingEffect" = "تأثير الشحن في شريط القوائم";
@@ -132,15 +159,36 @@
 "settings.battery.chargingBoltHeartbeatDescription" = "أوقفه لإبقاء الصاعقة بحجمها ولونها المعتادين؛ يستمر تأثير قوس الشحن.";
 "settings.battery.chargingEffectTest" = "اختبار تأثير الشحن";
 "settings.battery.chargingEffectTestDescription" = "نسخة التطوير: شغّل التأثير دون شحن. يتوقف وضع الاختبار بعد إعادة التشغيل.";
-"settings.battery.percentageWhenConnected" = "إظهار النسبة عند الاتصال بالطاقة دون شحن";
-"settings.battery.percentageWhenConnectedDescription" = "عند التفعيل، يعرض مصدر الطاقة المتصل دون شحن النسبة بدلاً من رمز القابس.";
+"settings.battery.connectedIndicator" = "إظهار عند الاتصال بالطاقة دون شحن";
+"settings.battery.connectedIndicatorDescription" = "ما تعرضه أيقونة البطارية عند الاتصال بالطاقة دون شحن (مثل التوقف عند حد الشحن أو الامتلاء): القابس أو البرق أو النسبة المئوية.";
+"settings.battery.connectedIndicator.plug" = "قابس";
+"settings.battery.connectedIndicator.bolt" = "برق";
+"settings.battery.connectedIndicator.percentage" = "نسبة مئوية";
 "settings.battery.symbolScale" = "حجم النسبة/البرق";
 "settings.battery.symbolScaleAccessibility" = "حجم نسبة البطارية ورمز البرق";
 "settings.battery.symbolScaleDescription" = "تستخدم النسبة ورمز البرق الحجم نفسه.";
 "settings.battery.statusColors" = "تلوين القوس حسب حالة البطارية";
-"settings.battery.statusColorsDescription" = "البطارية المنخفضة باللون الأحمر، ووضع الطاقة المنخفضة بالأصفر، والشحن أو الاتصال بالطاقة بالأخضر.";
+"settings.battery.statusColorsDescription" = "الألوان الافتراضية هي الأخضر للطاقة والأصفر لوضع الطاقة المنخفضة والأحمر لانخفاض البطارية. يمكنك تغييرها أدناه. عند التعطيل لا تُطبّق الألوان المخصصة المحفوظة.";
+"settings.battery.colors.charging" = "الشحن / الاتصال بالطاقة";
+"settings.battery.colors.lowPower" = "وضع الطاقة المنخفضة";
+"settings.battery.colors.critical" = "انخفاض حرج في البطارية";
+"settings.battery.colors.system" = "إعداد النظام الافتراضي";
+"settings.battery.colors.custom" = "مخصص";
+"settings.battery.colors.mint" = "نعناعي";
+"settings.battery.colors.sky" = "سماوي";
+"settings.battery.colors.lavender" = "خزامي";
+"settings.battery.colors.amber" = "كهرماني";
+"settings.battery.colors.rose" = "وردي";
+"settings.battery.colors.slate" = "رمادي أردوازي";
+"settings.battery.colors.reset" = "إعادة تعيين";
+"settings.battery.colors.resetAll" = "إعادة تعيين كل الألوان";
+"settings.battery.colors.inactive" = "ألوان الحالة معطلة. تُحفظ اختياراتك وتُطبّق عند تفعيلها مجددًا.";
+"settings.battery.colors.referenceContrast" = "أدنى تباين مرجعي · %.2f:1";
+"settings.battery.colors.previews" = "معاينة الألوان في المظهرين الفاتح والداكن";
+"settings.battery.colors.adjusted" = "عُدّل لتحسين الوضوح";
+"settings.battery.colors.referenceDescription" = "تُستخدم الألوان المخصصة نفسها في المظهرين وتُعدّل إلى 1.2:1 على الأقل. تبقى ألوان النظام والألوان الجاهزة دون تغيير. التباين هو أدنى قيمة على خلفيتين بيضاء وسوداء ومساري القوس عليهما، وقد يختلف مع خلفية الشاشة الفعلية.";
 "settings.battery.criticalThreshold" = "حد البطارية المنخفضة";
-"settings.battery.criticalThresholdDescription" = "تُعتبر المستويات الأقل من هذا الحد منخفضة وتُعرض باللون الأحمر.";
+"settings.battery.criticalThresholdDescription" = "تُستخدم ألوان الانخفاض الحرج للبطارية عندما يكون المستوى أقل من هذه العتبة.";
 "settings.battery.fullThreshold" = "مستوى اكتمال الحلقة";
 "settings.battery.fullThresholdDescription" = "تُعتبر حلقة البطارية ممتلئة عند هذا المستوى. مفيد عندما يحد تحديد الشحن من البطارية دون 100%.";
 "settings.battery.fullThresholdUseChargeLimit" = "استخدام حد الشحن";
@@ -149,6 +197,8 @@
 "settings.updates.automatic" = "التحقق تلقائيًا من وجود تحديثات";
 "settings.updates.check" = "التحقق من وجود تحديثات…";
 "battery.title" = "البطارية · %d%%";
+"battery.title.power" = "الطاقة · %d واط";
+"battery.title.powerUnavailable" = "الطاقة · غير متاحة";
 "battery.state.notPresent" = "لا توجد بطارية";
 "battery.state.charged" = "ممتلئة بالكامل";
 "battery.state.calculatingTimeToFull" = "جارٍ حساب الوقت حتى الامتلاء";
@@ -217,7 +267,7 @@
 "vpn.subtitle.systemProxy" = "وكيل النظام";
 "vpn.subtitle.connectedWithProxy" = "متصل · وكيل %@";
 "vpn.subtitle.proxyAutomatic" = "تكوين تلقائي";
-"wifi.action.requestNameAccess" = "السماح بالموقع لإظهار اسم Wi‑Fi";
+"wifi.action.requestNameAccess" = "السماح بالموقع لإظهار شبكات Wi‑Fi";
 "wifi.action.openLocationSettings" = "السماح بالموقع في الإعدادات";
 "wifi.action.openSettings" = "فتح إعدادات Wi‑Fi";
 "wifi.action.switchingHint" = "اختيار شبكة يفتح لوحة Wi-Fi في إعدادات النظام.";
@@ -232,6 +282,11 @@
 "settings.network.panelGroup" = "لوحة";
 "settings.network.showLocalIP" = "إظهار IP المحلي";
 "settings.network.showLocalIP.description" = "يعرض عنوان الشبكة المحلية لهذا الـ Mac في سطر الشبكة، قبل تفاصيل Wi-Fi.";
+
+"settings.network.permissionNotDeterminedTitle" = "مطلوب إذن الموقع";
+"settings.network.permissionNotDeterminedDescription" = "يحتاج Status Trio إلى الوصول إلى موقعك لإظهار شبكات Wi‑Fi. انقر أدناه للمنح.";
+"settings.network.permissionDeniedTitle" = "إذن الموقع معطّل";
+"settings.network.permissionDeniedDescription" = "بدون الوصول إلى الموقع، لا يمكن عرض شبكات Wi‑Fi. فعّله في إعدادات النظام.";
 "settings.audio.externalVolume.title" = "مستوى صوت الشاشة الخارجية";
 "settings.audio.externalVolume.controlMethod" = "طريقة التحكم";
 "settings.audio.externalVolume.controlMethodDescription" = "إذا لم تتمكن أدوات التحكم في مستوى الصوت بلوحة الحالة من التحكم في هذا الجهاز، فاستخدم BetterDisplay.";
@@ -243,7 +298,7 @@
 "settings.audio.externalVolume.unavailableDisplay" = "شاشة غير متوفرة";
 "settings.audio.externalVolume.refresh" = "اكتشاف مجددًا";
 "settings.audio.externalVolume.requirements" = "إذا فشل الاتصال، ففعّل وصول CLI والتكامل المستند إلى الإشعارات في إعدادات BetterDisplay.";
-"settings.audio.externalVolume.footnote" = "يحظى التحكم الأصلي في مستوى الصوت في macOS بالأولوية. تُستخدم الطريقة المحددة عندما لا يتوفر التحكم الأصلي.";
+"settings.audio.externalVolume.footnote" = "يحظى التحكم الأصلي في مستوى الصوت في macOS بالأولوية. تُستخدم الطريقة المحددة عندما لا يتوفر التحكم الأصلي. يكفي إصدار BetterDisplay المجاني، ولا حاجة لشراء Pro.";
 "settings.audio.externalVolume.noStableOutput" = "لا يحتوي الخرج الحالي على معرّف صوت ثابت، لذلك لا يمكن إعداد BetterDisplay له.";
 "settings.audio.externalVolume.status.ready" = "متصل. يمكن ضبط مستوى الصوت.";
 "settings.audio.externalVolume.status.idle" = "غير متصل.";
@@ -277,6 +332,8 @@
 "volume.output.unknownDevice" = "جهاز إخراج غير معروف";
 "volume.output.expand" = "توسيع";
 "volume.output.collapse" = "طي";
+"audioInput.expand" = "توسيع";
+"audioInput.collapse" = "طي";
 "volume.action.openSettings" = "فتح إعدادات الصوت";
 "volume.accessibility.label" = "مستوى الصوت";
 "audioInput.title" = "ميكروفون";
@@ -318,6 +375,13 @@
 "inputSource.switchFailed" = "تعذّر التبديل إلى «%@». اختره مباشرة أو حاول مرة أخرى.";
 "inputSource.switchUnconfirmed" = "قبل macOS «%@» لكنه لا يزال يُبلّغ عن مصدر إدخال آخر. قد يحتاج التطبيق في المقدمة إلى التركيز.";
 "settings.popup.order.inputSource" = "مصدر الإدخال";
+"settings.panel.background.title" = "خلفية اللوحة";
+"settings.panel.background.style" = "نمط الخلفية";
+"settings.panel.background.style.description" = "اختر طريقة رسم خلفية لوحة الحالة.";
+"settings.panel.background.style.liquidGlass" = "Liquid Glass";
+"settings.panel.background.style.classicMaterial" = "مادة كلاسيكية";
+"settings.panel.background.style.solid" = "لون موحّد";
+"settings.panel.background.style.liquidGlassUnavailable" = "يتطلب Liquid Glass نظام macOS 26 أو أحدث.";
 "settings.popup.volumeScroll.group" = "تمرير اللوحة";
 "settings.popup.volumeScroll" = "ضبط مستوى الصوت بالتمرير";
 "settings.popup.volumeScroll.description" = "مرّر داخل لوحة الحالة لتغيير مستوى صوت الإخراج.";
@@ -327,6 +391,9 @@
 "settings.popup.volumeScroll.scope.volumeControl" = "أداة مستوى الصوت فقط";
 "settings.popup.volumeScroll.natural" = "التمرير الطبيعي";
 "settings.popup.volumeScroll.natural.description" = "عند التشغيل، يؤدي التمرير لأعلى بالماوس أو لوحة التتبع إلى زيادة مستوى الصوت. عند الإيقاف، يتبع مستوى الصوت اتجاه التمرير في النظام. إذا استمر تمرير الماوس لأعلى في خفض مستوى الصوت بعد تشغيل هذا الخيار، فاضبط MOS أو Scroll Reverser أو LinearMouse أو تطبيقًا مشابهًا بحيث يترك Status Trio دون تغيير، عادةً عبر قائمة استثناءات/تجاهل (يُطلق عليها أحيانًا قائمة السماح).";
+"settings.audio.volumeFeedbackTitle" = "التغذية الراجعة لمستوى الصوت";
+"settings.audio.volumeFeedback" = "تشغيل صوت عند تغيير مستوى الصوت بالتمرير";
+"settings.audio.volumeFeedbackDescription" = "يشغّل النقرة عند تغيير مستوى الصوت بالتمرير. الافتراضي يتبع إعداد macOS «تشغيل التغذية الراجعة عند تغيير مستوى الصوت»؛ التبديل هنا ينطبق على Status Trio فقط.";
 "settings.popup.volumeScroll.direction" = "اتجاه التمرير";
 "settings.popup.volumeScroll.direction.description" = "اختر الاتجاه الذي يرفع مستوى الصوت.";
 "settings.popup.volumeScroll.direction.up" = "للأعلى";
@@ -430,6 +497,7 @@
 // On-demand battery details.
 "battery.details.title" = "تفاصيل البطارية";
 "battery.details.systemPower" = "قدرة النظام (تقديرية)";
+"battery.details.watt" = "الطاقة";
 "battery.details.systemReadAt" = "وقت قراءة النظام";
 "battery.details.power" = "قدرة البطارية (تقديرية)";
 "battery.details.charging" = "الشحن (تقديري)";
@@ -446,7 +514,8 @@
 "battery.details.unavailable" = "غير متاح";
 "battery.details.collecting" = "جارٍ القياس…";
 "battery.details.loading" = "جارٍ التحديث…";
-"battery.details.explanation" = "قراءات الطاقة تقديرات من مستشعرات مستقلة وقد تتأخر أو تختلف. القدرة الاسمية ليست الدخل الفعلي. عند استخدام البطارية يظهر صافي التفريغ. قد يتأخر تحديث البطارية نحو دقيقة في بعض الطرازات.";
+"battery.details.explanation" = "قيم الطاقة تقديرية، وقد يتأخر جمع البيانات حتى دقيقة تقريبًا.";
+"battery.details.info" = "حول هذه القراءات";
 /* Compact popover controls. */
 "menu.more" = "إجراءات أخرى";
 
@@ -543,11 +612,30 @@
 // Battery panel power flow and application energy
 "settings.battery.powerFlow" = "تدفق الطاقة في لوحة البطارية";
 "settings.battery.powerFlow.description" = "تُحدّث قراءات الطاقة فقط عند فتح لوحة البطارية. قد تتأخر المستشعرات وقد لا تتطابق القراءات الثلاث تمامًا.";
+"settings.battery.breakdown" = "تقسيم الطاقة حسب المكوّن";
+"settings.battery.breakdown.description" = "يقسّم دخل المحول إلى الشاشة المدمجة وخرج USB وبقية حمل النظام (بما في ذلك SoC). تُخفى القيم غير المتاحة، وتعود الواجهة إلى طاقة النظام عند تعذّر التقسيم.";
+"settings.battery.powerInfoBar" = "شريط معلومات الطاقة";
+"settings.battery.powerFlowDiagram" = "مخطط تدفق الطاقة";
+"settings.battery.powerFlowDiagramDescription" = "يعرض مخطط تدفق الطاقة (الدخل / البطارية / النظام) في صفحة تفاصيل البطارية.";
+"settings.battery.powerInfoBarDescription" = "يعرض طاقة الدخل والبطارية والنظام أسفل وحدة البطارية أثناء فتح اللوحة. معطّل افتراضيًا.";
 "settings.battery.energyRefreshInterval" = "الفاصل الزمني لأخذ العينات في الخلفية";
 "settings.battery.energyRefreshInterval.description" = "يُستخدم عندما تكون اللوحة مغلقة. تستمر صفحة تفاصيل البطارية في التحديث كل 5 ثوانٍ.";
 "battery.power.input" = "دخل الشاحن";
+"battery.power.source.battery" = "البطارية";
 "battery.power.charging" = "إلى البطارية";
-"battery.power.system" = "طاقة النظام";
+"battery.power.system" = "النظام";
+"battery.power.system.help" = "طاقة النظام (بما في ذلك SoC)";
+"battery.power.system.explanation" = "“النظام” هو ما يتبقى بعد شحن البطارية والشاشة وUSB، ويشمل SoC والذاكرة ومتحكمات الشاشة وغيرها.";
+"power.infoBar.input" = "دخل الشاحن";
+"power.infoBar.noInput" = "لا يوجد محول طاقة";
+"power.infoBar.battery" = "شحن البطارية";
+"power.infoBar.discharging" = "تفريغ البطارية";
+"power.infoBar.system" = "طاقة النظام";
+"power.infoBar.notCharging" = "لا يتم الشحن";
+"battery.power.display" = "الشاشة";
+"battery.power.usb" = "خرج USB";
+"battery.power.soc" = "SoC";
+"battery.power.other" = "أخرى";
 "battery.energy.apps" = "تأثير استهلاك طاقة المعالج";
 "battery.energy.empty" = "لا يوجد نشاط ملحوظ للتطبيقات في هذه العينة.";
 "battery.energy.cpuExplanation" = "مرتبة حسب عدادات طاقة المعالج للتطبيقات المتاحة لحسابك؛ هذا ليس تأثير الطاقة المركب في مراقب النشاط. قد لا تشمل معالج الرسومات وعمليات النظام.";
@@ -555,6 +643,8 @@
 "battery.energy.monitoringDescription" = "عند التفعيل، يتم قياس نشاط التطبيقات في الخلفية حتى عندما تكون اللوحة مغلقة. يتوقف القياس عند التعطيل أو أثناء سكون النظام أو الشاشة أو عند إنهاء Status Trio.";
 "settings.battery.showChargeToFullNow" = "إظهار زر الشحن حتى الامتلاء الآن";
 "settings.battery.showChargeToFullNowDescription" = "يعرض زرًا في لوحة الحالة لتجاوز حد الشحن في macOS مؤقتًا والشحن حتى 100%.";
+"settings.battery.restoreLimit" = "حد الشحن بعد الإلغاء";
+"settings.battery.restoreLimitDescription" = "حد الشحن الذي يُستعاد عند إلغاء «الشحن بشكل كامل الآن».";
 "battery.action.chargeToFullNow" = "الشحن بشكل كامل الآن";
 "battery.action.chargeToFullNowApplying" = "جارٍ طلب الشحن الكامل…";
 "battery.action.chargeToFullNowCharging" = "جارٍ الشحن حتى 100%";
@@ -562,7 +652,9 @@
 "battery.action.chargeToFullNowUnavailable" = "الشحن بشكل كامل الآن غير متاح الآن.";
 "battery.action.cancelChargeToFullNow" = "إلغاء الشحن الكامل";
 "battery.action.cancelChargeToFullNowApplying" = "جارٍ استعادة حد الشحن…";
-"battery.action.cancelChargeToFullNowFailed" = "تعذّر استعادة حد الشحن: %@";
+"battery.action.cancelChargeToFullNowFailed" = "تعذّر استعادة حد الشحن. حاول مرة أخرى.";
+"battery.action.cancelChargeToFullNowLimitChangedFailed" = "تغيّر حد الشحن في النظام. تحقّق من حد الاستعادة في الإعدادات وحاول مرة أخرى.";
+"battery.action.cancelChargeToFullNowLimitChangedConfirmation" = "حد الشحن في النظام هو %1$d%%. هل تريد استعادته إلى %2$d%%؟";
 "battery.action.cancelChargeToFullNowRestored" = "تمت استعادة حد الشحن إلى %d%%";
 "battery.action.cancelChargeToFullNowFallback" = "تم ضبط حد الشحن على %d%%";
 "battery.action.cancelChargeToFullNowConfirm" = "تأكيد الاستعادة إلى %d%%";
@@ -588,3 +680,71 @@
 "airPods.spatialHeadTracked" = "تتبع الرأس";
 
 "airpods.retry" = "إعادة المحاولة";
+"settings.popup.order.brightness" = "السطوع";
+"brightness.row.accessibility" = "السطوع لـ %@، %@";
+"brightness.row.accessibilityUnavailable" = "السطوع لـ %@، %@";
+"brightness.unavailable" = "غير متاح";
+"brightness.appAbsent" = "يتطلب BetterDisplay";
+"brightness.noBackend" = "لا يوجد تحكم في السطوع";
+"brightness.unresponsive" = "لا يستجيب";
+"brightness.backend.directDDC" = "DDC مباشر";
+"brightness.backend.betterDisplay" = "BetterDisplay";
+"settings.brightness.description" = "أوقف تشغيل شاشة لإخفاء صف السطوع الخاص بها.";
+"settings.brightness.backend" = "خلفية السطوع";
+// About: community, author social links and more apps
+"settings.about.social.title" = "متابعة المؤلف";
+"settings.about.social.douyin" = "Douyin";
+"settings.about.social.xiaohongshu" = "Xiaohongshu";
+"settings.about.social.bilibili" = "Bilibili";
+"settings.about.social.blog" = "المدونة";
+"settings.about.community.title" = "المجتمع";
+"settings.about.community.qq" = "مجموعة QQ";
+"settings.about.community.qqDescription" = "انضم إلى مجموعة Status Trio للأسئلة والملاحظات.";
+"settings.about.community.wechat" = "مجموعة WeChat";
+"settings.about.community.wechatDescription" = "امسح باستخدام WeChat للانضمام إلى مجموعة Status Trio. يتم تجديد رمز QR دوريًا؛ راجع README على GitHub للحصول على الأحدث.";
+"settings.about.community.copy" = "نسخ";
+"settings.about.community.copied" = "تم النسخ";
+"settings.about.moreApps.title" = "أعمال أخرى للمؤلف";
+"settings.about.moreApps.open" = "فتح";
+"settings.about.moreApps.newtab01Description" = "علامة تبويب جديدة قائمة على الإشارات المرجعية: افتح المجلدات كمجموعات علامات تبويب أو في عرض منقسم، مع عدة سمات.";
+"settings.about.moreApps.noLazyloadDescription" = "عطّل التحميل المتأخر للصور في المتصفح حتى تُحمّل الصفحة جميع الصور دفعة واحدة دون الحاجة إلى التمرير.";
+"settings.about.moreApps.fund01Description" = "متابعة محفظة الصناديق: نسبة تغيّر اليوم دائمًا في شريط القوائم أو شريط المهام، مع تحديث عدة مجموعات مباشرةً.";
+
+// About: community WeChat QR refresh
+"settings.about.community.refresh" = "Refresh";
+"settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";
+
+"guide.partPosition.battery" = "Top arc";
+"guide.partPosition.network" = "Middle icon";
+"guide.partPosition.volume" = "Bottom dots";
+"guide.network.center" = "Change what the middle icon shows in Settings › Network › Middle Slot — battery, power, input source, or Bluetooth audio.";
+
+"guide.state.chargingBatteryCenter" = "Charging + Battery %";
+"guide.state.fullPowerCenter" = "Full + Power";
+"guide.state.lowBatteryInputCenter" = "Low Battery + Input";
+
+"settings.menuBarRightClickAction" = "إجراء النقر بالزر الأيمن";
+"settings.menuBarRightClickAction.description" = "ما يفعله رمز شريط القوائم عند النقر عليه بزر الفأرة الأيمن.";
+"settings.menuBarRightClickAction.contextMenu" = "إظهار قائمة السياق";
+"settings.menuBarRightClickAction.toggleLowPowerMode" = "تبديل وضع الطاقة المنخفضة";
+"settings.menuBarRightClickAction.chargeToFullNow" = "الشحن الكامل الآن";
+"settings.menuBarRightClickAction.toggleMute" = "تبديل كتم الصوت";
+"settings.menuBarRightClickAction.unavailableHint" = "الإجراء المحدد غير متاح الآن؛ سيؤدي النقر بالزر الأيمن إلى إظهار القائمة بدلاً من ذلك.";
+
+"settings.menuBarRightClickAction.toggleWiFi" = "تبديل Wi-Fi";
+"settings.menuBarRightClickAction.refreshStatus" = "تحديث الحالة";
+"settings.menuBarRightClickAction.openWiFiSettings" = "فتح إعدادات Wi-Fi";
+"settings.menuBarRightClickAction.openBluetoothSettings" = "فتح إعدادات Bluetooth";
+"settings.menuBarRightClickAction.openBatterySettings" = "فتح إعدادات البطارية";
+"settings.menuBarRightClickAction.openSoundSettings" = "فتح إعدادات الصوت";
+
+"settings.tab.brightness" = "السطوع";
+"settings.brightness.group.title" = "الشاشات المتصلة";
+"settings.brightness.empty" = "لا توجد شاشات متصلة.";
+"settings.brightness.builtIn" = "مدمجة";
+"settings.brightness.internalBackend.description" = "يستخدم سطوع الشاشة المدمجة خلفية DisplayServices.";
+"settings.brightness.externalBackend.description" = "اختر كيفية تحكم Status Trio في سطوع هذه الشاشة.";
+"settings.brightness.backend.betterDisplayNeeded" = "تطبيق BetterDisplay غير قيد التشغيل أو أن تكامل الإشعارات فيه معطّل.";
+"settings.brightness.compatibility.title" = "لا يمكن التحكم في السطوع؟";
+"settings.brightness.compatibility.description" = "تختلف طريقة تنفيذ DDC بين مصنّعي الشاشات، لذا لا يمكن لـ Status Trio دعم كل الطُرز. إذا تعذّر ضبط سطوع شاشة من هنا، فبدّل خلفيتها إلى BetterDisplay — وسيتحكم Status Trio بها عبر BetterDisplay. الإصدار المجاني كافٍ، ولا حاجة لشراء Pro.";
+"settings.brightness.compatibility.link" = "نزّل BetterDisplay (مجانًا)";

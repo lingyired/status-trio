@@ -21,6 +21,9 @@ static void *STForbiddenLoad(const char *path, int mode) {
 @property BOOL enableReportsError;
 @property BOOL setReportsError;
 @property BOOL failsVerification;
+@property BOOL disengagesAfterSet;
+@property BOOL primedAfterSet;
+@property BOOL failsReadAfterSet;
 @property BOOL supported;
 @property NSArray<NSNumber *> *limits;
 @property NSMutableArray<NSString *> *writes;
@@ -76,6 +79,10 @@ static void *STForbiddenLoad(const char *path, int mode) {
 - (BOOL)setMCLLimit:(unsigned char)limit error:(NSError **)error {
     [self.writes addObject:[NSString stringWithFormat:@"set:%u", limit]];
     self.limit = self.failsVerification ? 100 : limit;
+    // PowerUI can report MCL disengaged for a moment after the write.
+    if (self.disengagesAfterSet) self.enabled = 0;
+    if (self.primedAfterSet) self.enabled = 2;
+    if (self.failsReadAfterSet) self.remainingReadFailures = 1;
     if (self.setReportsError) {
         *error = [NSError errorWithDomain:@"FakeSet" code:2 userInfo:nil];
     }
@@ -84,6 +91,8 @@ static void *STForbiddenLoad(const char *path, int mode) {
 - (BOOL)enableMCL:(NSError **)error {
     [self.writes addObject:@"enable"];
     self.enabled = 1;
+    // The real PowerUIAgent reapplies its saved limit on EVERY enable call,
+    // including after setMCLLimit: has already applied a different target.
     if (self.restoredByEnable > 0) self.limit = self.restoredByEnable;
     if (self.enableReportsError) {
         *error = [NSError errorWithDomain:@"FakeEnable" code:3 userInfo:nil];
@@ -95,6 +104,28 @@ static void *STForbiddenLoad(const char *path, int mode) {
 static int failures;
 static int cases;
 
+static void CheckExpected(
+    NSString *name,
+    FakeChargeClient *client,
+    NSInteger target,
+    NSInteger expectedLimit,
+    BOOL success,
+    NSArray<NSString *> *writes,
+    STPowerUIChargeWriteFailure failure
+) {
+    cases++;
+    STPowerUIChargeWriteResult *result =
+        STRestoreChargeLimit(client, target, expectedLimit);
+    if (result.didSucceed != success
+        || result.failure != failure
+        || ![client.writes isEqual:writes]) {
+        failures++;
+        fprintf(stderr, "%s: success=%d, failure=%ld, writes=%s\n",
+            name.UTF8String, result.didSucceed, (long)result.failure,
+            client.writes.description.UTF8String);
+    }
+}
+
 static void Check(
     NSString *name,
     FakeChargeClient *client,
@@ -103,11 +134,13 @@ static void Check(
     NSArray<NSString *> *writes
 ) {
     cases++;
-    STPowerUIChargeWriteResult *result = STRestoreChargeLimit(client, target);
+    STPowerUIChargeWriteResult *result =
+        STRestoreChargeLimit(client, target, 0);
     if (result.didSucceed != success || ![client.writes isEqual:writes]) {
         failures++;
         fprintf(stderr, "%s: success=%d, writes=%s\n",
-            name.UTF8String, result.didSucceed, client.writes.description.UTF8String);
+            name.UTF8String, result.didSucceed,
+            client.writes.description.UTF8String);
     }
 }
 
@@ -128,7 +161,7 @@ int main(void) {
 
         FakeChargeClient *fallback = [FakeChargeClient new];
         Check(@"set only after enable cannot restore", fallback, 80, YES,
-            @[@"enable", @"set:80", @"enable"]);
+            @[@"enable", @"set:80"]);
 
         FakeChargeClient *stored = [FakeChargeClient new];
         stored.limit = 90;
@@ -158,7 +191,7 @@ int main(void) {
         FakeChargeClient *mismatch = [FakeChargeClient new];
         mismatch.failsVerification = YES;
         Check(@"verification mismatch cannot report success", mismatch, 80, NO,
-            @[@"enable", @"set:80", @"enable"]);
+            @[@"enable", @"set:80"]);
 
         FakeChargeClient *unsupported = [FakeChargeClient new];
         unsupported.limits = @[@85, @90, @95, @100];
@@ -172,6 +205,90 @@ int main(void) {
         FakeChargeClient *noMCL = [FakeChargeClient new];
         noMCL.supported = NO;
         Check(@"unsupported hardware never writes", noMCL, 80, NO, @[]);
+
+        // The system restores its own persisted limit first; when that value
+        // matches the session's original limit it is an intermediate state.
+        FakeChargeClient *sessionTarget = [FakeChargeClient new];
+        sessionTarget.restoredByEnable = 80;
+        CheckExpected(@"session original then different target",
+            sessionTarget, 90, 80, YES,
+            @[@"enable", @"set:90"],
+            STPowerUIChargeWriteFailureNone);
+
+        FakeChargeClient *sessionExternal = [FakeChargeClient new];
+        sessionExternal.restoredByEnable = 85;
+        CheckExpected(@"session external limit after enable is preserved",
+            sessionExternal, 90, 80, NO, @[@"enable"],
+            STPowerUIChargeWriteFailureLimitChanged);
+
+        FakeChargeClient *noSessionMismatch = [FakeChargeClient new];
+        noSessionMismatch.restoredByEnable = 90;
+        CheckExpected(@"no session restores a different limit without writing",
+            noSessionMismatch, 80, 0, NO, @[@"enable"],
+            STPowerUIChargeWriteFailureLimitChanged);
+
+        FakeChargeClient *unsupportedHundred = [FakeChargeClient new];
+        CheckExpected(@"100 is outside the supported restore range",
+            unsupportedHundred, 100, 0, NO, @[],
+            STPowerUIChargeWriteFailureUnsupportedLimit);
+
+        FakeChargeClient *disengagedAfterSet = [FakeChargeClient new];
+        disengagedAfterSet.restoredByEnable = 95;
+        disengagedAfterSet.disengagesAfterSet = YES;
+        CheckExpected(@"a disengaged MCL right after the write still verifies",
+            disengagedAfterSet, 80, 95, YES,
+            @[@"enable", @"set:80"],
+            STPowerUIChargeWriteFailureNone);
+
+        FakeChargeClient *primedAfterSet = [FakeChargeClient new];
+        primedAfterSet.restoredByEnable = 95;
+        primedAfterSet.primedAfterSet = YES;
+        CheckExpected(@"a primed MCL right after the write still verifies",
+            primedAfterSet, 80, 95, YES,
+            @[@"enable", @"set:80"],
+            STPowerUIChargeWriteFailureNone);
+
+        FakeChargeClient *readAfterSet = [FakeChargeClient new];
+        readAfterSet.restoredByEnable = 95;
+        readAfterSet.failsReadAfterSet = YES;
+        CheckExpected(@"a transient read failure after the write is re-read",
+            readAfterSet, 80, 95, YES,
+            @[@"enable", @"set:80"],
+            STPowerUIChargeWriteFailureNone);
+
+        FakeChargeClient *noSessionConfirmed = [FakeChargeClient new];
+        noSessionConfirmed.restoredByEnable = 90;
+        CheckExpected(@"no session applies the target after confirmation",
+            noSessionConfirmed, 80, 90, YES,
+            @[@"enable", @"set:80"],
+            STPowerUIChargeWriteFailureNone);
+
+        FakeChargeClient *unsupportedAfterEnable = [FakeChargeClient new];
+        unsupportedAfterEnable.restoredByEnable = 80;
+        unsupportedAfterEnable.limits = @[@80, @90, @95, @100];
+        CheckExpected(@"unsupported target reports its own failure",
+            unsupportedAfterEnable, 85, 80, NO, @[],
+            STPowerUIChargeWriteFailureUnsupportedLimit);
+
+        // The restore target is 80...99; 100 ("no limit") is not a target.
+        cases++;
+        if (!(STIsRestorableChargeLimit(80)
+              && STIsRestorableChargeLimit(95)
+              && !STIsRestorableChargeLimit(79)
+              && !STIsRestorableChargeLimit(100))) {
+            failures++;
+            fprintf(stderr, "public restore range must accept 80...99\n");
+        }
+
+        STPowerUIChargeBridge *bridge = [STPowerUIChargeBridge new];
+        STPowerUIChargeWriteResult *outOfRange =
+            [bridge restoreChargeLimit:101 expectedLimit:0];
+        cases++;
+        if (outOfRange.didSucceed
+            || outOfRange.failure != STPowerUIChargeWriteFailureUnsupportedLimit) {
+            failures++;
+            fprintf(stderr, "public bridge must reject 101 before loading PowerUI\n");
+        }
 
         printf("PowerUI restore fake-client cases: %d, failures: %d; no real PowerUI load\n",
             cases, failures);

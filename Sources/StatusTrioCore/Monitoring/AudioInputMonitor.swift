@@ -6,6 +6,7 @@ protocol AudioInputMonitoring: AnyObject {
   var updates: AsyncStream<AudioInputStatus> { get }
   func setEnabled(_ enabled: Bool)
   func setVisible(_ visible: Bool)
+  func setDeviceListVisible(_ visible: Bool)
   func recover()
   func select(_ id: AudioDeviceID)
   func setScalar(_ value: Double, requestID: UUID)
@@ -20,37 +21,62 @@ extension AudioInputMonitoring {
 }
 
 private struct AudioInputVisibilitySnapshot: Sendable {
-  let isVisible: Bool
-  let generation: UInt64
+  let isInventoryVisible: Bool
+  let isUsageVisible: Bool
+  let inventoryGeneration: UInt64
+  let usageGeneration: UInt64
 }
 
-/// The HAL callback snapshots whether the panel was visible when the event occurred. The lock
+/// The HAL callback snapshots which surfaces were visible when the event occurred. The lock
 /// closes the gap between a callback enqueueing a MainActor task and a synchronous visibility
 /// transition running before that task is serviced.
+///
+/// Inventory (the device list) stays live for the popover and the Settings device list, while
+/// 1 Hz default-input usage polling belongs to the popover only. Separate generations preserve
+/// in-flight work while its effective demand remains visible.
 private final class AudioInputVisibilityGate: @unchecked Sendable {
   private let lock = NSLock()
-  private var isVisible = false
-  private var generation: UInt64 = 0
+  private var isPanelVisible = false
+  private var isDeviceListVisible = false
+  private var inventoryGeneration: UInt64 = 0
+  private var usageGeneration: UInt64 = 0
 
   var snapshot: AudioInputVisibilitySnapshot {
     lock.lock()
     defer { lock.unlock() }
-    return AudioInputVisibilitySnapshot(isVisible: isVisible, generation: generation)
+    return AudioInputVisibilitySnapshot(
+      isInventoryVisible: isPanelVisible || isDeviceListVisible,
+      isUsageVisible: isPanelVisible,
+      inventoryGeneration: inventoryGeneration,
+      usageGeneration: usageGeneration
+    )
   }
 
-  func isCurrentVisible(_ snapshot: AudioInputVisibilitySnapshot) -> Bool {
-    guard snapshot.isVisible else { return false }
+  func isCurrentInventoryVisible(_ snapshot: AudioInputVisibilitySnapshot) -> Bool {
+    guard snapshot.isInventoryVisible else { return false }
     lock.lock()
     defer { lock.unlock() }
-    return isVisible && generation == snapshot.generation
+    return (isPanelVisible || isDeviceListVisible)
+      && inventoryGeneration == snapshot.inventoryGeneration
   }
 
-  func setVisible(_ visible: Bool) {
+  func isCurrentUsageVisible(_ snapshot: AudioInputVisibilitySnapshot) -> Bool {
+    guard snapshot.isUsageVisible else { return false }
     lock.lock()
-    if isVisible != visible {
-      isVisible = visible
-      generation &+= 1
+    defer { lock.unlock() }
+    return isPanelVisible && usageGeneration == snapshot.usageGeneration
+  }
+
+  func setVisible(panel: Bool, deviceList: Bool) {
+    lock.lock()
+    if (isPanelVisible || isDeviceListVisible) != (panel || deviceList) {
+      inventoryGeneration &+= 1
     }
+    if isPanelVisible != panel {
+      usageGeneration &+= 1
+    }
+    isPanelVisible = panel
+    isDeviceListVisible = deviceList
     lock.unlock()
   }
 }
@@ -125,7 +151,10 @@ final class AudioInputMonitor: AudioInputMonitoring {
 
   private var status = AudioInputStatus.empty
   private var isEnabled = false
+  /// Popover surface: owns default-input usage polling and its 1 Hz wakeups.
   private var isVisible = false
+  /// Settings surface: keeps the inventory live without usage polling.
+  private var isDeviceListVisible = false
   private var isStopped = false
   private var isDirty = true
   private var observationDegraded = false
@@ -146,6 +175,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
   private var errorExpiryToken: UUID?
   private var errorExpiryTask: Task<Void, Never>?
   private var usagePollTask: Task<Void, Never>?
+  private var usagePollGeneration: UInt64 = 0
   private var usageReadID: UUID?
   private var usageReadInFlight = false
 
@@ -219,8 +249,10 @@ final class AudioInputMonitor: AudioInputMonitoring {
           }
         }
       )
-      if isVisible {
+      if isInventoryVisible {
         requestRefresh()
+      }
+      if isVisible {
         startUsagePolling()
       }
     } else {
@@ -232,10 +264,11 @@ final class AudioInputMonitor: AudioInputMonitoring {
     }
   }
 
+  /// Popover visibility. This keeps the inventory live and owns usage polling.
   func setVisible(_ visible: Bool) {
     guard !isStopped, visible != isVisible else { return }
-    visibilityGate.setVisible(visible)
     isVisible = visible
+    visibilityGate.setVisible(panel: visible, deviceList: isDeviceListVisible)
     if visible {
       if isEnabled {
         requestRefresh()
@@ -243,15 +276,29 @@ final class AudioInputMonitor: AudioInputMonitoring {
       }
     } else {
       stopUsagePolling()
-      readGeneration &+= 1
-      isDirty = true
-      refreshPending = false
-      // A queued full read can no longer satisfy the visible panel. Drop its logical lock now;
-      // the serial worker still prevents any new HAL call from overlapping an already-running one.
-      readInFlight = false
-      readInFlightID = nil
-      status.isRefreshing = false
       status.isDefaultInputInUse = nil
+      if !isInventoryVisible {
+        discardInventoryRead()
+      }
+      publish()
+      startNextWorkIfPossible()
+    }
+  }
+
+  /// Settings device list visibility. The list orders and hides devices, so it keeps the
+  /// inventory live, but it never renders default-input usage and must not start 1 Hz polling.
+  func setDeviceListVisible(_ visible: Bool) {
+    guard !isStopped, visible != isDeviceListVisible else { return }
+    let wasInventoryVisible = isInventoryVisible
+    isDeviceListVisible = visible
+    visibilityGate.setVisible(panel: isVisible, deviceList: visible)
+    guard isEnabled else { return }
+    if visible {
+      if !wasInventoryVisible {
+        requestRefresh()
+      }
+    } else if !isInventoryVisible {
+      discardInventoryRead()
       publish()
       startNextWorkIfPossible()
     }
@@ -259,11 +306,22 @@ final class AudioInputMonitor: AudioInputMonitoring {
 
   func recover() {
     guard !isStopped, isEnabled else { return }
-    if isVisible {
+    if isInventoryVisible {
       requestRefresh()
     } else {
       isDirty = true
     }
+  }
+
+  /// A queued full read can no longer satisfy any visible surface. Drop its logical lock now;
+  /// the serial worker still prevents any new HAL call from overlapping an already-running one.
+  private func discardInventoryRead() {
+    readGeneration &+= 1
+    isDirty = true
+    refreshPending = false
+    readInFlight = false
+    readInFlightID = nil
+    status.isRefreshing = false
   }
 
   func select(_ id: AudioDeviceID) {
@@ -327,6 +385,8 @@ final class AudioInputMonitor: AudioInputMonitoring {
     isStopped = true
     isEnabled = false
     isVisible = false
+    isDeviceListVisible = false
+    visibilityGate.setVisible(panel: false, deviceList: false)
     sessionGeneration &+= 1
     readGeneration &+= 1
     refreshPending = false
@@ -340,6 +400,12 @@ final class AudioInputMonitor: AudioInputMonitoring {
     clearError()
     worker.stopObservation()
     continuation.finish()
+  }
+
+  /// The union of the surfaces that render the input device list. Only the popover renders
+  /// default-input usage, so this stays separate from `isVisible`.
+  private var isInventoryVisible: Bool {
+    isVisible || isDeviceListVisible
   }
 
   private var canAcceptAction: Bool {
@@ -360,9 +426,9 @@ final class AudioInputMonitor: AudioInputMonitoring {
     case .devicesChanged, .defaultChanged, .controlsChanged:
       isDirty = true
       let currentVisibility = visibilityGate.snapshot
-      guard visibilityAtEvent.isVisible,
-        visibilityAtEvent.generation == currentVisibility.generation,
-        isVisible
+      guard visibilityAtEvent.isInventoryVisible,
+        visibilityAtEvent.inventoryGeneration == currentVisibility.inventoryGeneration,
+        isInventoryVisible
       else { return }
       requestRefresh()
     }
@@ -377,7 +443,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
   }
 
   private func requestRefresh() {
-    guard isEnabled, isVisible, !isStopped else {
+    guard isEnabled, isInventoryVisible, !isStopped else {
       isDirty = true
       return
     }
@@ -390,7 +456,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
   }
 
   private func startPendingRefreshIfPossible() {
-    guard refreshPending, isEnabled, isVisible, !isStopped,
+    guard refreshPending, isEnabled, isInventoryVisible, !isStopped,
       !readInFlight, activeCommand == nil, queuedCommands.isEmpty,
       let sessionGate
     else { return }
@@ -430,8 +496,8 @@ final class AudioInputMonitor: AudioInputMonitoring {
     readInFlight = false
     readInFlightID = nil
 
-    guard expectedRead == readGeneration, isVisible else {
-      if isVisible { refreshPending = true }
+    guard expectedRead == readGeneration, isInventoryVisible else {
+      if isInventoryVisible { refreshPending = true }
       startPendingRefreshIfPossible()
       return
     }
@@ -706,6 +772,8 @@ final class AudioInputMonitor: AudioInputMonitoring {
 
   private func startUsagePolling() {
     guard usagePollTask == nil, isEnabled, isVisible, !isStopped else { return }
+    usagePollGeneration &+= 1
+    let pollGeneration = usagePollGeneration
     let expectedSession = sessionGeneration
     usagePollTask = Task { [weak self] in
       guard let self else { return }
@@ -718,13 +786,16 @@ final class AudioInputMonitor: AudioInputMonitoring {
         guard !Task.isCancelled else { break }
         self.refreshDefaultInputUsage(sessionGeneration: expectedSession)
       }
-      if self.sessionGeneration == expectedSession {
+      // A cancelled loop can resume after a close/reopen already installed its replacement.
+      // Only the loop that still owns the generation may clear the task reference.
+      if self.usagePollGeneration == pollGeneration {
         self.usagePollTask = nil
       }
     }
   }
 
   private func stopUsagePolling() {
+    usagePollGeneration &+= 1
     usagePollTask?.cancel()
     usagePollTask = nil
     usageReadID = nil
@@ -919,16 +990,16 @@ private final class AudioInputWorker: @unchecked Sendable {
     completion: @escaping @Sendable (Result<AudioInputRefreshResult, AudioInputHardwareError>) -> Void
   ) {
     queue.async {
-      guard sessionGate.isActive, visibilityGate.isCurrentVisible(visibilitySnapshot) else { return }
+      guard sessionGate.isActive, visibilityGate.isCurrentInventoryVisible(visibilitySnapshot) else { return }
       let reading: AudioInputReading
       do {
         reading = try self.hardware.read(includeDevices: true)
         guard sessionGate.isActive,
-          visibilityGate.isCurrentVisible(visibilitySnapshot)
+          visibilityGate.isCurrentInventoryVisible(visibilitySnapshot)
         else { return }
       } catch {
         guard sessionGate.isActive,
-          visibilityGate.isCurrentVisible(visibilitySnapshot)
+          visibilityGate.isCurrentInventoryVisible(visibilitySnapshot)
         else { return }
         completion(.failure(Self.hardwareError(error)))
         return
@@ -941,7 +1012,7 @@ private final class AudioInputWorker: @unchecked Sendable {
         observationError = Self.hardwareError(error)
       }
       guard sessionGate.isActive,
-        visibilityGate.isCurrentVisible(visibilitySnapshot)
+        visibilityGate.isCurrentInventoryVisible(visibilitySnapshot)
       else { return }
       completion(.success(AudioInputRefreshResult(
         reading: reading,
@@ -957,16 +1028,16 @@ private final class AudioInputWorker: @unchecked Sendable {
     completion: @escaping @Sendable (Result<AudioInputUsageReading, AudioInputHardwareError>) -> Void
   ) {
     queue.async {
-      guard sessionGate.isActive, visibilityGate.isCurrentVisible(visibilitySnapshot) else { return }
+      guard sessionGate.isActive, visibilityGate.isCurrentUsageVisible(visibilitySnapshot) else { return }
       do {
         let reading = try self.hardware.readDefaultInputUsage()
         guard sessionGate.isActive,
-          visibilityGate.isCurrentVisible(visibilitySnapshot)
+          visibilityGate.isCurrentUsageVisible(visibilitySnapshot)
         else { return }
         completion(.success(reading))
       } catch {
         guard sessionGate.isActive,
-          visibilityGate.isCurrentVisible(visibilitySnapshot)
+          visibilityGate.isCurrentUsageVisible(visibilitySnapshot)
         else { return }
         completion(.failure(Self.hardwareError(error)))
       }

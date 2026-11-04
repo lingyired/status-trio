@@ -36,7 +36,10 @@ extension SettingsStore {
             )
         }
         .combineLatest($ringStrokeStyle) { groups, style in
-            groups.appearance(ringStrokeScale: style.scale)
+            (groups, style.scale)
+        }
+        .combineLatest($wifiSymbolScale) { pair, centerScale in
+            pair.0.appearance(ringStrokeScale: pair.1, centerScale: centerScale)
         }
         .removeDuplicates()
         .eraseToAnyPublisher()
@@ -51,27 +54,31 @@ extension SettingsStore {
         )
         .combineLatest(
             Publishers.CombineLatest4(
-                $showsPercentageWhenConnected,
+                $batteryConnectedIndicator,
                 $batterySymbolScale,
                 $showsChargingBoltHeartbeat,
                 $showsMenuBarChargingEffect
             )
         )
         .combineLatest($showsDockChargingEffect)
-        .map { values, showsDockChargingEffect -> BatteryAppearanceInputs in
-            let primaryInputs = values.0
-            let additionalInputs = values.1
+        .combineLatest($batterySplitGapProgress)
+        .map { values, splitGapProgress -> BatteryAppearanceInputs in
+            let primaryInputs = values.0.0
+            let additionalInputs = values.0.1
+            let showsDockChargingEffect = values.1
             return BatteryAppearanceInputs(
                 showsPercentage: primaryInputs.0,
                 showsChargingIndicator: primaryInputs.1,
                 usesStatusColors: primaryInputs.2,
                 criticalThreshold: primaryInputs.3,
-                showsPercentageWhenConnected: additionalInputs.0,
+                connectedIndicator: additionalInputs.0,
                 symbolScale: additionalInputs.1,
                 showsChargingEffect:
                     additionalInputs.3 || showsDockChargingEffect,
                 showsChargingBoltHeartbeat: additionalInputs.2,
-                fullThreshold: Self.defaultBatteryFullThreshold
+                splitGapProgress: splitGapProgress,
+                fullThreshold: Self.defaultBatteryFullThreshold,
+                batteryStatusColors: .standard
             )
         }
         .combineLatest($batteryFullThreshold) { inputs, fullThreshold in
@@ -79,46 +86,33 @@ extension SettingsStore {
             updated.fullThreshold = fullThreshold
             return updated
         }
+        .combineLatest($batteryStatusColors) { inputs, colors in
+            var updated = inputs
+            updated.batteryStatusColors = colors
+            return updated
+        }
         .eraseToAnyPublisher()
     }
 
     private var connectionOptionsPublisher: AnyPublisher<ConnectionIconOptions, Never> {
-        Publishers.CombineLatest4(
-            $showsWiFiIconForEthernet,
-            $showsWiFiIconForHotspot,
-            $showsWiFiIconForTemporaryConnection,
-            $showsWiFiIconForInternetSharing
+        Publishers.CombineLatest(
+            Publishers.CombineLatest4(
+                $showsWiFiIconForEthernet,
+                $showsWiFiIconForHotspot,
+                $showsWiFiIconForTemporaryConnection,
+                $showsWiFiIconForInternetSharing
+            ),
+            Publishers.CombineLatest($connectionCenterSource, $prioritizesNetworkErrors)
         )
-        .combineLatest($wifiSymbolScale) { values, wifiScale in
+        .map { pair in
             ConnectionIconOptions(
-                showsWiFiIconForEthernet: values.0,
-                showsWiFiIconForHotspot: values.1,
-                showsWiFiIconForTemporaryConnection: values.2,
-                showsWiFiIconForInternetSharing: values.3,
-                wifiScale: wifiScale
-            )
-        }
-        .combineLatest($showsBatteryPercentageInConnectionSlot) { options, showsPercentage in
-            ConnectionIconOptions(
-                showsWiFiIconForEthernet: options.showsWiFiIconForEthernet,
-                showsWiFiIconForHotspot: options.showsWiFiIconForHotspot,
-                showsWiFiIconForTemporaryConnection: options.showsWiFiIconForTemporaryConnection,
-                showsWiFiIconForInternetSharing: options.showsWiFiIconForInternetSharing,
-                showsBatteryPercentageInConnectionSlot: showsPercentage,
-                wifiScale: options.wifiScale
-            )
-        }
-        .combineLatest($connectionCenterSource, $prioritizesNetworkErrorsOverInputSource) {
-            options, centerSource, prioritizesNetworkErrors in
-            ConnectionIconOptions(
-                showsWiFiIconForEthernet: options.showsWiFiIconForEthernet,
-                showsWiFiIconForHotspot: options.showsWiFiIconForHotspot,
-                showsWiFiIconForTemporaryConnection: options.showsWiFiIconForTemporaryConnection,
-                showsWiFiIconForInternetSharing: options.showsWiFiIconForInternetSharing,
-                showsBatteryPercentageInConnectionSlot: options.showsBatteryPercentageInConnectionSlot,
-                centerSource: centerSource,
-                prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrors,
-                wifiScale: options.wifiScale
+                showsWiFiIconForEthernet: pair.0.0,
+                showsWiFiIconForHotspot: pair.0.1,
+                showsWiFiIconForTemporaryConnection: pair.0.2,
+                showsWiFiIconForInternetSharing: pair.0.3,
+                centerSource: pair.1.0,
+                prioritizesNetworkErrors: pair.1.1,
+                wifiScale: 1.0
             )
         }
         .removeDuplicates()
@@ -126,21 +120,13 @@ extension SettingsStore {
     }
 
     private var bluetoothOptionsPublisher: AnyPublisher<BluetoothAudioIconOptions, Never> {
-        Publishers.CombineLatest4(
-            $replacesNetworkIconWithBluetoothAudio,
+        Publishers.CombineLatest(
             $usesBluetoothAudioVolumeColor,
-            $prioritizesNetworkErrorsOverBluetoothAudio,
-            $bluetoothSymbolScale
+            $bluetoothNetworkIconSymbolName
         )
-        .combineLatest($bluetoothNetworkIconSymbolName) { values, symbolOverride in
-            (values, symbolOverride)
-        }
         .combineLatest($bluetoothAudioIconChoiceRawValue) { values, choiceRawValue in
             BluetoothAudioIconOptions(
-                replacesNetworkIcon: values.0.0,
-                usesVolumeColor: values.0.1,
-                prioritizesNetworkErrors: values.0.2,
-                symbolScale: values.0.3,
+                usesVolumeColor: values.0,
                 networkIconSymbolOverride: values.1,
                 iconChoice: BluetoothAudioIconChoice.persisted(choiceRawValue) { symbol in
                     NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
@@ -159,11 +145,13 @@ private struct BatteryAppearanceInputs {
     var showsChargingIndicator: Bool
     var usesStatusColors: Bool
     var criticalThreshold: Double
-    var showsPercentageWhenConnected: Bool
+    var connectedIndicator: BatteryConnectedIndicator
     var symbolScale: Double
     var showsChargingEffect: Bool
     var showsChargingBoltHeartbeat: Bool
+    var splitGapProgress: Bool
     var fullThreshold: Double
+    var batteryStatusColors: BatteryStatusColors
 
     func options(ringStrokeScale: Double) -> BatteryIconOptions {
         BatteryIconOptions(
@@ -171,12 +159,14 @@ private struct BatteryAppearanceInputs {
             showsChargingIndicator: showsChargingIndicator,
             showsChargingEffect: showsChargingEffect,
             showsChargingBoltHeartbeat: showsChargingBoltHeartbeat,
+            splitGapProgress: splitGapProgress,
             usesStatusColors: usesStatusColors,
             criticalThreshold: Int(criticalThreshold.rounded()),
-            showsPercentageWhenConnected: showsPercentageWhenConnected,
+            connectedIndicator: connectedIndicator,
             fullThreshold: Int(fullThreshold.rounded()),
             textScale: symbolScale * BatteryIconOptions.defaultTextScale,
-            ringStrokeScale: ringStrokeScale
+            ringStrokeScale: ringStrokeScale,
+            batteryStatusColors: batteryStatusColors
         )
     }
 }
@@ -189,16 +179,31 @@ private struct IconAppearanceGroups {
     var volumeDisplayStyle: VolumeDisplayStyle
     var iconSize: Double
 
-    func appearance(ringStrokeScale: Double) -> StatusIconAppearance {
-        StatusIconAppearance(
+    func appearance(ringStrokeScale: Double, centerScale: Double) -> StatusIconAppearance {
+        let scaledConnection = ConnectionIconOptions(
+            showsWiFiIconForEthernet: connection.showsWiFiIconForEthernet,
+            showsWiFiIconForHotspot: connection.showsWiFiIconForHotspot,
+            showsWiFiIconForTemporaryConnection: connection.showsWiFiIconForTemporaryConnection,
+            showsWiFiIconForInternetSharing: connection.showsWiFiIconForInternetSharing,
+            centerSource: connection.centerSource,
+            prioritizesNetworkErrors: connection.prioritizesNetworkErrors,
+            wifiScale: centerScale
+        )
+        let scaledBluetooth = BluetoothAudioIconOptions(
+            usesVolumeColor: bluetooth.usesVolumeColor,
+            symbolScale: centerScale,
+            networkIconSymbolOverride: bluetooth.networkIconSymbolOverride,
+            iconChoice: bluetooth.iconChoice
+        )
+        return StatusIconAppearance(
             iconSize: iconSize,
             batteryOptions: battery.options(ringStrokeScale: ringStrokeScale),
-            connectionOptions: connection,
+            connectionOptions: scaledConnection,
             volumeOptions: VolumeIconOptions(
                 displayStyle: volumeDisplayStyle,
                 ringStrokeScale: ringStrokeScale
             ),
-            bluetoothAudioOptions: bluetooth
+            bluetoothAudioOptions: scaledBluetooth
         )
     }
 }

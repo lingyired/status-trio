@@ -59,21 +59,20 @@ there is no new cache and the delayed work is bounded to one task per scheduler.
 
 ## Priority and fallback
 
-`ConnectionCenterSource.automatic` is the shipped default and its decision is
-byte-identical to the previous release: the input-source branch sits behind it.
-With `.inputSource` selected, the centre slot resolves in this order, and each
-step is pinned by `InputSourceIconPresentationTests`:
+`ConnectionCenterSource.network` is the shipped default and its decision is
+byte-identical to the previous release. With any non-network source selected,
+the centre slot resolves in this order, and each step is pinned by
+`IconPresentationMapperTests` and `InputSourceIconPresentationTests`:
 
 | Priority | Condition | Drawn |
 | --- | --- | --- |
-| 1 | Battery percentage asked for in the connection slot | battery text |
-| 2 | Network outage, when the warning toggle is on (default) | Wi-Fi error glyph |
-| 3 | Current input source | its icon, else its short label, else `keyboard` |
-| 4 | Bluetooth audio replacement, when enabled | the device icon |
-| 5 | Network | Wi-Fi / wired as before |
+| 1 | Genuine network outage, when the warning toggle is on (default) | Wi-Fi error glyph |
+| 2 | Chosen source: battery percentage, power, input source, or Bluetooth device | that source's content |
+| 3 | Chosen content cannot be drawn (no input source, no Bluetooth output) | network fallback below |
+| 4 | Network | Wi-Fi / wired as before |
 
 A live wired link is never an outage, so a wired user with Wi-Fi switched off
-keeps their input-source icon (`StatusMappings.isNetworkOffline`).
+keeps their chosen content (`StatusMappings.isNetworkOffline`).
 
 ## Icon rendering
 
@@ -133,6 +132,27 @@ list stays readable on a dark panel:
 
 Both are cached per URL, so a panel redraw never re-reads or re-rasterises the
 file.
+
+## Middle-slot choice
+
+The centre slot is one single-choice setting, not a set of independent toggles:
+
+- **Automatic** — the shipped priority: battery percentage in the connection
+  position, then Bluetooth audio, then Ethernet / Wi-Fi;
+- **Current Input Source** — the selected input source, with the optional
+  network-error override;
+- **Battery Percentage** — the battery level in the centre slot. A Mac without a
+  battery reports 100, so the slot shows 100 just like the top battery
+  indicator;
+- **Power** — the live whole-machine wattage, described in
+  [Power in the centre slot](power-center-slot.md).
+
+The former `showsBatteryPercentageInConnectionSlot` switch is folded into this
+choice. On the first launch after the upgrade a stored `true` migrates to
+**Battery Percentage** — that switch won at draw time — and the legacy key is
+then removed, so a later manual choice is not overridden. The ring's own
+percentage text (`showsBatteryPercentage`) is a different setting and is
+unchanged.
 
 ## Verification status
 

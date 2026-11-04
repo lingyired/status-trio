@@ -7,12 +7,14 @@ enum IconPreviewScene {
     static func make(
         snapshot: StatusSnapshot,
         configuration: IconPresentationConfiguration,
-        inputSource: InputSourceDescriptor? = nil
+        inputSource: InputSourceDescriptor? = nil,
+        systemPower: SystemPowerSample? = nil
     ) -> IconSceneState {
         IconPresentationMapper.scene(
             inputs: IconPresentationResourceResolver.inputs(
                 snapshot: snapshot,
-                inputSource: inputSource
+                inputSource: inputSource,
+                systemPower: systemPower
             ),
             configuration: configuration
         )
@@ -21,12 +23,14 @@ enum IconPreviewScene {
     static func make(
         status: MenuBarStatus,
         configuration: IconPresentationConfiguration,
-        inputSource: InputSourceDescriptor? = nil
+        inputSource: InputSourceDescriptor? = nil,
+        systemPower: SystemPowerSample? = nil
     ) -> IconSceneState {
         make(
             snapshot: snapshot(from: status),
             configuration: configuration,
-            inputSource: inputSource
+            inputSource: inputSource,
+            systemPower: systemPower
         )
     }
 
@@ -368,6 +372,8 @@ struct DockIconTile: View {
     /// Live input source for previews that mirror the current centre-slot
     /// choice; static guide artwork leaves it `nil`.
     var inputSource: InputSourceDescriptor? = nil
+    /// Static power sample so the guide can illustrate the power centre slot.
+    var systemPower: SystemPowerSample? = nil
     /// Injected by tests; the app shares one bounded cache.
     var previewCache: DockIconPreviewCache? = nil
 
@@ -397,7 +403,8 @@ struct DockIconTile: View {
                 volume: volumeOptions,
                 bluetooth: bluetoothAudioOptions
             ),
-            inputSource: inputSource
+            inputSource: inputSource,
+            systemPower: systemPower
         )
     }
 

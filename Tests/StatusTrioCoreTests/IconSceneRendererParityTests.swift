@@ -278,16 +278,12 @@ final class IconSceneRendererParityTests: XCTestCase {
         let snapshot = PresentationFixtures.snapshot()
         let symbol = "headphones"
         XCTAssertNotNil(NSImage(systemSymbolName: symbol, accessibilityDescription: nil))
-        let picked = configuration(bluetooth: BluetoothAudioIconOptions(
-            replacesNetworkIcon: true,
-            networkIconSymbolOverride: symbol
-        ))
+        let picked = configuration(centerSource: .bluetoothDevice, bluetooth: BluetoothAudioIconOptions(networkIconSymbolOverride: symbol))
         let scene = mappedScene(for: snapshot, configuration: picked)
         XCTAssertEqual(scene.center, .symbol(IconSymbolState(
             source: .symbol(name: symbol, variableValue: nil, fallback: "dot.radiowaves.left.and.right"),
             color: .bluetooth,
-            scale: BluetoothAudioIconOptions(replacesNetworkIcon: true,
-                                             networkIconSymbolOverride: symbol).symbolScale
+            scale: BluetoothAudioIconOptions(networkIconSymbolOverride: symbol).symbolScale
         )))
         let pixels = try menuBarPixels(scene: scene, foreground: CGColor(gray: 1, alpha: 1), size: 28, scale: 2)
         XCTAssertGreaterThan(pixels.alphaSum(inSVGRect: CGRect(x: 42, y: 55, width: 35, height: 35), size: 28, scale: 2),
@@ -315,8 +311,11 @@ final class IconSceneRendererParityTests: XCTestCase {
             wifi: WiFiStatus(state: .connected, rssi: -62),
             volume: VolumeStatus(scalar: 0.6, isMuted: false, deviceName: device.name, currentDevice: device)
         )
-        let bluetooth = BluetoothAudioIconOptions(replacesNetworkIcon: true)
-        let scene = mappedScene(for: snapshot, configuration: configuration(bluetooth: bluetooth))
+        let bluetooth = BluetoothAudioIconOptions()
+        let scene = mappedScene(
+            for: snapshot,
+            configuration: configuration(centerSource: .bluetoothDevice, bluetooth: bluetooth)
+        )
         XCTAssertEqual(IconPresentationResourceResolver.inputs(snapshot: snapshot).audioIcon,
                        .image(url: url, fallbackSymbol: "headphones"))
         guard case .symbol(let center)? = scene.center else {
@@ -534,7 +533,7 @@ final class IconSceneRendererParityTests: XCTestCase {
         let noInternet = CenterState.symbol(IconSymbolState(source: .symbol(name: "wifi.exclamationmark", variableValue: 1, fallback: nil), color: .primary, scale: 1))
         let wifiCases: [(String, WiFiStatus, NetworkConnection, ConnectionIconOptions, CenterState)] = [
             ("connected full signal", WiFiStatus(state: .connected, rssi: -60), .wifi, .standard, symbol("wifi", value: 1)),
-            ("connected medium signal", WiFiStatus(state: .connected, rssi: -70), .wifi, .standard, mediumWiFi),
+            ("connected medium signal", WiFiStatus(state: .connected, rssi: -75), .wifi, .standard, mediumWiFi),
             ("connected weak signal", WiFiStatus(state: .connected, rssi: -85), .wifi, .standard, symbol("wifi", value: 0.33)),
             ("connected no signal", WiFiStatus(state: .connected, rssi: nil), .wifi, .standard, symbol("wifi", value: 0)),
             ("not associated", WiFiStatus(state: .notAssociated, rssi: nil), .wifi, .standard, symbol("wifi", value: 0)),
@@ -543,15 +542,15 @@ final class IconSceneRendererParityTests: XCTestCase {
             ("no internet", WiFiStatus(state: .noInternet, rssi: -45), .wifi, .standard, noInternet),
             ("hotspot mark", WiFiStatus(state: .hotspot, rssi: -65), .wifi, .standard,
              symbol("personalhotspot", value: 1)),
-            ("hotspot signal", WiFiStatus(state: .hotspot, rssi: -65), .wifi,
+            ("hotspot signal", WiFiStatus(state: .hotspot, rssi: -75), .wifi,
              ConnectionIconOptions(showsWiFiIconForHotspot: true), mediumWiFi),
             ("temporary mark", WiFiStatus(state: .temporary, rssi: -65), .wifi, .standard,
              .symbol(IconSymbolState(source: .primitive(.screenWedge), color: .primary, scale: 1))),
-            ("temporary signal", WiFiStatus(state: .temporary, rssi: -65), .wifi,
+            ("temporary signal", WiFiStatus(state: .temporary, rssi: -75), .wifi,
              ConnectionIconOptions(showsWiFiIconForTemporaryConnection: true, wifiScale: 1.4), symbol("wifi", value: 0.66, scale: 1.4)),
             ("shared mark", WiFiStatus(state: .shared, rssi: -65), .wifi, .standard,
              .symbol(IconSymbolState(source: .primitive(.arrowWedge), color: .primary, scale: 1))),
-            ("shared signal", WiFiStatus(state: .shared, rssi: -65), .wifi,
+            ("shared signal", WiFiStatus(state: .shared, rssi: -75), .wifi,
              ConnectionIconOptions(showsWiFiIconForInternetSharing: true, wifiScale: 0.8), symbol("wifi", value: 0.66, scale: 0.8)),
             ("ethernet", WiFiStatus(state: .off, rssi: nil), .ethernet, .standard,
              .symbol(IconSymbolState(source: .primitive(.wiredPort), color: .primary, scale: 1))),
@@ -570,7 +569,7 @@ final class IconSceneRendererParityTests: XCTestCase {
         cases.append(visualCase(
             "battery percentage in center slot",
             snapshot: ordinary,
-            configuration: configuration(connection: ConnectionIconOptions(showsBatteryPercentageInConnectionSlot: true)),
+            configuration: configuration(connection: ConnectionIconOptions(centerSource: .batteryPercentage)),
             expected: scene(ring: ordinaryRing, center: .text(IconTextState(text: "68", color: .primary, scale: 1))),
             distinctRegion: centerRegion
         ))
@@ -602,7 +601,7 @@ final class IconSceneRendererParityTests: XCTestCase {
              .dots(DotsState(count: 4, activeCount: 3, color: .bluetooth, strokeScale: 1.25)), volumeCenter),
             ("Bluetooth replaced center", VolumeStatus(scalar: 0.75, isMuted: false, deviceName: "Output",
                                                          currentDevice: PresentationFixtures.bluetoothDevice),
-             .standard, BluetoothAudioIconOptions(replacesNetworkIcon: true, usesVolumeColor: true),
+             .standard, BluetoothAudioIconOptions(usesVolumeColor: true),
              .dots(DotsState(count: 4, activeCount: 3, color: .bluetooth, strokeScale: 1.25)),
              .symbol(IconSymbolState(source: .symbol(name: "airpods.pro", variableValue: nil, fallback: "headphones"),
                                      color: .bluetooth, scale: 1.6)))
@@ -614,7 +613,11 @@ final class IconSceneRendererParityTests: XCTestCase {
             cases.append(visualCase(
                 name,
                 snapshot: makeSnapshot(wifi: wifi, volume: volume),
-                configuration: configuration(volume: options, bluetooth: bluetooth),
+                configuration: configuration(
+                    volume: options,
+                    centerSource: name == "Bluetooth replaced center" ? .bluetoothDevice : .network,
+                    bluetooth: bluetooth
+                ),
                 expected: scene(ring: placeholderRing, center: expectedCenter, footer: expectedFooter),
                 distinctRegion: name == "Bluetooth replaced center" ? centerRegion : footerRegion
             ))
@@ -757,9 +760,17 @@ final class IconSceneRendererParityTests: XCTestCase {
         battery: BatteryIconOptions = .standard,
         connection: ConnectionIconOptions = .standard,
         volume: VolumeIconOptions = .standard,
+        centerSource: ConnectionCenterSource = .network,
         bluetooth: BluetoothAudioIconOptions = .standard
     ) -> IconPresentationConfiguration {
-        IconPresentationConfiguration(battery: battery, connection: connection, volume: volume, bluetooth: bluetooth)
+        IconPresentationConfiguration(
+            battery: battery,
+            connection: centerSource == .network
+                ? connection
+                : ConnectionIconOptions(centerSource: centerSource),
+            volume: volume,
+            bluetooth: bluetooth
+        )
     }
 
     private func makeSnapshot(

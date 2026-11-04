@@ -24,7 +24,7 @@ CURRENT_APPLICABILITY = {
     "html-tailwind": "html-tailwind 4.3",
     "shadcn": "shadcn cli 4",
     "nuxtjs": "nuxtjs 4.5",
-    "nuxt-ui": "nuxt-ui 4.10",
+    "nuxt-ui": "nuxt-ui 4.12.0",
 }
 
 
@@ -114,6 +114,20 @@ class TestWebStackFreshness(unittest.TestCase):
                 self.assertGreater(result["count"], 0)
                 self.assertEqual(
                     {row["Status"] for row in result["results"]}, {"deprecated"}
+                )
+
+    def test_number_starting_a_word_is_not_a_version(self):
+        cases = {
+            "react": "react 3d canvas effect cleanup",
+            "html-tailwind": "tailwind 2xl breakpoint",
+            "angular": "angular 2fa login form",
+        }
+        for stack, query in cases.items():
+            with self.subTest(stack=stack, query=query):
+                result = search_stack(query, stack)
+                self.assertGreater(result["count"], 0)
+                self.assertNotIn(
+                    "deprecated", {row["Status"] for row in result["results"]}
                 )
 
     def test_old_major_without_curated_legacy_guidance_abstains(self):

@@ -144,11 +144,7 @@ struct BluetoothAudioIconChoiceTests {
     }
 
     @Test func globalChoiceAppliesOnlyToBluetoothAndLEAudio() {
-        let options = BluetoothAudioIconOptions(
-            replacesNetworkIcon: true,
-            prioritizesNetworkErrors: false,
-            iconChoice: .airpodsPro
-        )
+        let options = BluetoothAudioIconOptions(iconChoice: .airpodsPro)
         let bluetoothScene = scene(transport: .bluetooth, options: options)
         let lowEnergyScene = scene(transport: .bluetoothLowEnergy, options: options)
         let wiredScene = scene(transport: .usb, options: options)
@@ -165,8 +161,6 @@ struct BluetoothAudioIconChoiceTests {
 
     @Test func unsupportedChoiceFallsBackToAutomaticAndPickedNetworkDeviceWins() {
         let unsupported = BluetoothAudioIconOptions(
-            replacesNetworkIcon: true,
-            prioritizesNetworkErrors: false,
             iconChoice: BluetoothAudioIconChoice.persisted("airpods.pro.gen3", isSymbolAvailable: { _ in false })
         )
         let automaticScene = scene(transport: .bluetooth, options: unsupported)
@@ -176,12 +170,7 @@ struct BluetoothAudioIconChoiceTests {
             scale: BluetoothAudioIconOptions.defaultSymbolScale
         )))
 
-        let pickedDevice = BluetoothAudioIconOptions(
-            replacesNetworkIcon: true,
-            prioritizesNetworkErrors: false,
-            networkIconSymbolOverride: "picked.device",
-            iconChoice: .airpodsPro
-        )
+        let pickedDevice = BluetoothAudioIconOptions(networkIconSymbolOverride: "picked.device", iconChoice: .airpodsPro)
         let pickedScene = scene(transport: .usb, options: pickedDevice)
         #expect(pickedScene.center == CenterState.symbol(IconSymbolState(
             source: .symbol(name: "picked.device", variableValue: nil, fallback: "dot.radiowaves.left.and.right"),
@@ -203,13 +192,9 @@ struct BluetoothAudioIconChoiceTests {
         let automatic = IconPresentationConfiguration.standard
         let selected = IconPresentationConfiguration(
             battery: .standard,
-            connection: .standard,
+            connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
             volume: .standard,
-            bluetooth: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true,
-                prioritizesNetworkErrors: false,
-                iconChoice: .overEarHeadphones
-            )
+            bluetooth: BluetoothAudioIconOptions(iconChoice: .overEarHeadphones)
         )
 
         let automaticScene = IconPreviewScene.make(snapshot: snapshot, configuration: automatic)
@@ -253,7 +238,7 @@ struct BluetoothAudioIconChoiceTests {
         )
         let configuration = IconPresentationConfiguration(
             battery: .standard,
-            connection: .standard,
+            connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
             volume: .standard,
             bluetooth: options
         )

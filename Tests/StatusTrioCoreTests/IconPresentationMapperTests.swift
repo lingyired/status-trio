@@ -55,7 +55,7 @@ final class IconPresentationMapperTests: XCTestCase {
 
     func testBatteryGapHonorsPresencePercentageAndPowerOptions() {
         let options = BatteryIconOptions(showsPercentage: true, showsChargingIndicator: true,
-                                         showsPercentageWhenConnected: true)
+                                         connectedIndicator: .percentage)
         let connectedFull = BatteryStatus(rawPercentage: 100, isPresent: true, isCharging: false,
                                           isCharged: true, isLowPowerMode: false, isConnectedToPower: true)
         let absent = BatteryStatus(rawPercentage: 42, isPresent: false, isCharging: false,
@@ -75,7 +75,7 @@ final class IconPresentationMapperTests: XCTestCase {
         let plugged = BatteryStatus(rawPercentage: 100, isPresent: true, isCharging: false,
                                     isCharged: true, isLowPowerMode: false, isConnectedToPower: true)
         let plugOptions = BatteryIconOptions(showsPercentage: true, showsChargingIndicator: true,
-                                             showsPercentageWhenConnected: false)
+                                             connectedIndicator: .plug)
         let plug = scene(snapshot: snapshot(battery: plugged), batteryOptions: plugOptions).outerRing
         XCTAssertEqual(plug?.gap, .indicator)
         XCTAssertEqual(plug?.accessory, .symbol(IconSymbolState(
@@ -199,7 +199,7 @@ final class IconPresentationMapperTests: XCTestCase {
         }
     }
 
-    func testBatteryCenterPercentageWinsOverBluetoothAndNetworkError() {
+    func testBatteryPercentageCenterShowsItsNumberWhenOutagePriorityIsOff() {
         let battery = BatteryStatus(rawPercentage: 45, isPresent: true, isCharging: false,
                                     isLowPowerMode: false, isConnectedToPower: false)
         let snapshot = StatusSnapshot(battery: battery,
@@ -207,8 +207,9 @@ final class IconPresentationMapperTests: XCTestCase {
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output", currentDevice: PresentationFixtures.bluetoothDevice))
         let configuration = IconPresentationConfiguration(
             battery: .standard,
-            connection: ConnectionIconOptions(showsBatteryPercentageInConnectionSlot: true), volume: .standard,
-            bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true, prioritizesNetworkErrors: true))
+            connection: ConnectionIconOptions(centerSource: .batteryPercentage,
+                                              prioritizesNetworkErrors: false), volume: .standard,
+            bluetooth: BluetoothAudioIconOptions())
 
         let center = IconPresentationMapper.scene(
             inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: .symbol(name: "airpods.pro", variableValue: nil, fallback: "headphones")),
@@ -225,7 +226,7 @@ final class IconPresentationMapperTests: XCTestCase {
         let cases: [(NetworkConnection, WiFiState, Int?, ConnectionIconOptions, CenterState?)] = [
             (.ethernet, .off, nil, options, .symbol(IconSymbolState(source: .symbol(name: "wifi", variableValue: 1, fallback: nil), color: .primary, scale: 1))),
             (.wifi, .connected, -89, options, .symbol(IconSymbolState(source: .symbol(name: "wifi", variableValue: 0, fallback: nil), color: .inactive, scale: 1))),
-            (.wifi, .hotspot, -70, options, .symbol(IconSymbolState(source: .symbol(name: "wifi", variableValue: 0.66, fallback: nil), color: .primary, scale: 1))),
+            (.wifi, .hotspot, -75, options, .symbol(IconSymbolState(source: .symbol(name: "wifi", variableValue: 0.66, fallback: nil), color: .primary, scale: 1))),
             (.wifi, .temporary, -50, ConnectionIconOptions(), .symbol(IconSymbolState(source: .primitive(.screenWedge), color: .primary, scale: 1))),
             (.wifi, .shared, -50, ConnectionIconOptions(), .symbol(IconSymbolState(source: .primitive(.arrowWedge), color: .primary, scale: 1))),
             (.wifi, .off, -50, options, .symbol(IconSymbolState(source: .symbol(name: "wifi.slash", variableValue: 1, fallback: nil), color: .primary, scale: 1)))
@@ -238,10 +239,140 @@ final class IconPresentationMapperTests: XCTestCase {
         }
     }
 
+    func testNetworkOutageOverridesNumericMiddleContent() {
+        let offline = snapshot(connection: .offline, wifi: WiFiStatus(state: .noInternet, rssi: nil))
+        for source in [ConnectionCenterSource.power, .batteryPercentage] {
+            let output = scene(snapshot: offline, connectionOptions: ConnectionIconOptions(centerSource: source))
+            XCTAssertEqual(output.center, .symbol(IconSymbolState(
+                source: .symbol(name: "wifi.exclamationmark", variableValue: 1, fallback: nil),
+                color: .primary,
+                scale: 1
+            )), "The outage priority must also cover \(source)")
+        }
+    }
+
     func testConnectionSlotToggleShowsPresentBatteryPercentage() {
-        let config = ConnectionIconOptions(showsBatteryPercentageInConnectionSlot: true)
+        let config = ConnectionIconOptions(centerSource: .batteryPercentage)
         let output = scene(snapshot: PresentationFixtures.snapshot(), connectionOptions: config).center
         XCTAssertEqual(output, .text(IconTextState(text: "68", color: .primary, scale: 1)))
+    }
+
+    func testPowerCenterSlotRendersIntegerWattsWithoutUnitOrDecimal() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let config = ConnectionIconOptions(centerSource: .power)
+        let cases: [(Double, String)] = [
+            (23.6, "24"),
+            (0.4, "0"),
+            (-2, "0"),
+            (999.4, "999"),
+            (1_204, "999")
+        ]
+        for (watts, expected) in cases {
+            let sample = SystemPowerSample(watts: watts, readAt: now)
+            let output = IconPresentationMapper.scene(
+                inputs: IconPresentationInputs(
+                    snapshot: PresentationFixtures.snapshot(),
+                    audioIcon: nil,
+                    systemPower: sample
+                ),
+                configuration: configuration(connection: config),
+                now: now
+            ).center
+            XCTAssertEqual(output, .text(IconTextState(text: expected, color: .primary, scale: 1)),
+                           "watts=\(watts)")
+        }
+    }
+
+    func testPowerTextFollowsTheWifiIconSizeScale() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let config = ConnectionIconOptions(centerSource: .power, wifiScale: 1.8)
+        let sample = SystemPowerSample(watts: 23.6, readAt: now)
+        let scene = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: PresentationFixtures.snapshot(),
+                audioIcon: nil,
+                systemPower: sample
+            ),
+            configuration: configuration(connection: config),
+            now: now
+        )
+        XCTAssertEqual(scene.center,
+                       .text(IconTextState(text: "24", color: .primary, scale: 1.8)),
+                       "The wattage must grow with the Wi-Fi Icon Size setting")
+    }
+
+    func testBatteryPercentageCentreUsesTheSameWifiIconSizeScale() {
+        let config = ConnectionIconOptions(
+            centerSource: .batteryPercentage,
+            prioritizesNetworkErrors: false,
+            wifiScale: 1.8
+        )
+        let center = scene(snapshot: snapshot(battery: BatteryStatus(
+            rawPercentage: 68, isPresent: true, isCharging: false,
+            isLowPowerMode: false, isConnectedToPower: false
+        )), connectionOptions: config).center
+        XCTAssertEqual(center, .text(IconTextState(text: "68", color: .primary, scale: 1.8)))
+    }
+
+    func testPowerCenterSlotFallsBackToBatteryThenPlaceholder() {
+        let now = Date(timeIntervalSince1970: 1_789_555_974)
+        let config = ConnectionIconOptions(centerSource: .power, prioritizesNetworkErrors: false)
+        let stale = SystemPowerSample(watts: 23.6, readAt: now.addingTimeInterval(-120))
+
+        let present = BatteryStatus(rawPercentage: 68, isPresent: true, isCharging: false,
+                                    isLowPowerMode: false, isConnectedToPower: false)
+        let withBattery = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: snapshot(battery: present),
+                audioIcon: nil,
+                systemPower: stale
+            ),
+            configuration: configuration(connection: config),
+            now: now
+        ).center
+        XCTAssertEqual(withBattery, .text(IconTextState(text: "68", color: .primary, scale: 1)),
+                       "A battery Mac may still show its level instead of a fake wattage")
+
+        let nonFinite = SystemPowerSample(watts: .infinity, readAt: now)
+        let nonFiniteCenter = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: snapshot(battery: present),
+                audioIcon: nil,
+                systemPower: nonFinite
+            ),
+            configuration: configuration(connection: config),
+            now: now
+        ).center
+        XCTAssertEqual(nonFiniteCenter, .text(IconTextState(text: "68", color: .primary, scale: 1)),
+                       "A non-finite sample must fall back instead of trapping Int conversion")
+
+        let noBattery = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                      isLowPowerMode: false, isConnectedToPower: false)
+        let placeholder = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: snapshot(battery: noBattery),
+                audioIcon: nil,
+                systemPower: nil
+            ),
+            configuration: configuration(connection: config),
+            now: now
+        ).center
+        XCTAssertEqual(placeholder, .text(IconTextState(text: "--", color: .primary, scale: 1)),
+                       "A Mac with no battery must not invent a percentage or a 0 W reading")
+    }
+
+    func testBatteryPercentageCenterShowsOneHundredWhenBatteryIsAbsent() {
+        // A Mac with no battery reports 100 through `BatteryStatus.percentage`.
+        // The connection slot must show that same value instead of falling back
+        // to the network glyph, matching the top battery indicator.
+        let absent = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: false)
+        let config = ConnectionIconOptions(
+            centerSource: .batteryPercentage,
+            prioritizesNetworkErrors: false
+        )
+        let center = scene(snapshot: snapshot(battery: absent), connectionOptions: config).center
+        XCTAssertEqual(center, .text(IconTextState(text: "100", color: .primary, scale: 1)))
     }
 
     func testOffAndUnavailableWifiShareOneVisualState() {
@@ -264,7 +395,7 @@ final class IconPresentationMapperTests: XCTestCase {
         ]
 
         for (state, disabledOptions, disabledState, enabledOptions) in cases {
-            let snapshot = snapshot(wifi: WiFiStatus(state: state, rssi: -61))
+            let snapshot = snapshot(wifi: WiFiStatus(state: state, rssi: -75))
             XCTAssertEqual(scene(snapshot: snapshot, connectionOptions: disabledOptions).center, disabledState)
             XCTAssertEqual(scene(snapshot: snapshot, connectionOptions: enabledOptions).center,
                            .symbol(IconSymbolState(source: .symbol(name: "wifi", variableValue: 0.66, fallback: nil),
@@ -273,34 +404,45 @@ final class IconPresentationMapperTests: XCTestCase {
     }
 
     func testBluetoothOverrideWorksWithoutOutputAndNetworkErrorsWinWhenPrioritized() {
-        let bluetooth = BluetoothAudioIconOptions(replacesNetworkIcon: true,
-            prioritizesNetworkErrors: false, networkIconSymbolOverride: "custom.device")
-        let noOutput = scene(snapshot: snapshot(wifi: WiFiStatus(state: .noInternet, rssi: nil)),
-                             bluetoothOptions: bluetooth).center
-        XCTAssertEqual(noOutput, .symbol(IconSymbolState(source: .symbol(name: "custom.device", variableValue: nil, fallback: "dot.radiowaves.left.and.right"), color: .bluetooth, scale: 1.6)))
+        let bluetooth = BluetoothAudioIconOptions(networkIconSymbolOverride: "custom.device")
+        let connected = scene(
+            snapshot: snapshot(wifi: WiFiStatus(state: .connected, rssi: -50)),
+            connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+            bluetoothOptions: bluetooth
+        ).center
+        XCTAssertEqual(connected, .symbol(IconSymbolState(source: .symbol(name: "custom.device", variableValue: nil, fallback: "dot.radiowaves.left.and.right"), color: .bluetooth, scale: 1.6)))
 
-        let prioritizeError = BluetoothAudioIconOptions(replacesNetworkIcon: true,
-            prioritizesNetworkErrors: true, networkIconSymbolOverride: "custom.device")
-        let error = scene(snapshot: snapshot(wifi: WiFiStatus(state: .noInternet, rssi: nil)),
-                          bluetoothOptions: prioritizeError).center
+        let error = scene(
+            snapshot: snapshot(wifi: WiFiStatus(state: .noInternet, rssi: nil)),
+            connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+            bluetoothOptions: bluetooth
+        ).center
         XCTAssertEqual(error, .symbol(IconSymbolState(source: .symbol(name: "wifi.exclamationmark", variableValue: 1, fallback: nil), color: .primary, scale: 1)))
     }
 
     func testBluetoothCurrentOutputUsesResolvedIconAndPrioritizedErrorsKeepNetworkCenter() {
         let output = snapshot(wifi: WiFiStatus(state: .connected, rssi: -45),
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output", currentDevice: PresentationFixtures.bluetoothDevice))
-        let options = BluetoothAudioIconOptions(replacesNetworkIcon: true)
+        let options = BluetoothAudioIconOptions()
         let input = IconPresentationInputs(snapshot: output,
             audioIcon: .image(url: URL(fileURLWithPath: "/audio.png"), fallbackSymbol: "headphones"))
         XCTAssertEqual(IconPresentationMapper.scene(inputs: input,
-            configuration: IconPresentationConfiguration(battery: .standard, connection: .standard,
-                                                         volume: .standard, bluetooth: options)).center,
+            configuration: IconPresentationConfiguration(
+                battery: .standard,
+                connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
+                volume: .standard,
+                bluetooth: options
+            )).center,
             .symbol(IconSymbolState(source: .image(url: URL(fileURLWithPath: "/audio.png"), fallbackSymbol: "headphones"),
                                     color: .bluetooth, scale: 1.6)))
 
         let error = snapshot(connection: .wifi, wifi: WiFiStatus(state: .noInternet, rssi: -45),
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output", currentDevice: PresentationFixtures.bluetoothDevice))
-        XCTAssertEqual(scene(snapshot: error, bluetoothOptions: options).center,
+        XCTAssertEqual(scene(
+            snapshot: error,
+            connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+            bluetoothOptions: options
+        ).center,
                        .symbol(IconSymbolState(source: .symbol(name: "wifi.exclamationmark", variableValue: 1, fallback: nil),
                                                color: .primary, scale: 1)))
     }
@@ -388,6 +530,101 @@ final class IconPresentationMapperTests: XCTestCase {
         }
     }
 
+    // MARK: - Charging status inside the ring (#253)
+
+    private func chargingScene(
+        battery: BatteryStatus,
+        source: ConnectionCenterSource,
+        batteryOptions: BatteryIconOptions = .standard,
+        connection: NetworkConnection = .wifi,
+        wifi: WiFiStatus = .placeholder
+    ) -> IconSceneState {
+        scene(
+            snapshot: snapshot(battery: battery, connection: connection, wifi: wifi),
+            batteryOptions: batteryOptions,
+            connectionOptions: ConnectionIconOptions(
+                centerSource: source,
+                prioritizesNetworkErrors: false,
+                wifiScale: 1
+            )
+        )
+    }
+
+    func testChargingStatusCentresTheBoltAndClosesTheRing() {
+        let battery = BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: true,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+        let scene = chargingScene(battery: battery, source: .chargingStatus)
+        XCTAssertEqual(scene.outerRing?.gap, .closed)
+        XCTAssertNil(scene.outerRing?.accessory, "the top gap must not also draw an indicator")
+        guard case let .symbol(symbol)? = scene.center, case .primitive(.bolt) = symbol.source else {
+            return XCTFail("expected the bolt in the centre slot")
+        }
+    }
+
+    func testChargingStatusShowsThePlugWhenConnectedWithoutCharging() {
+        let charged = BatteryStatus(rawPercentage: 100, isPresent: true, isCharging: false,
+                                    isCharged: true, isLowPowerMode: false,
+                                    isConnectedToPower: true)
+        // A charge-limited / held battery is connected but neither charging nor full.
+        let held = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
+                                 isLowPowerMode: false, isConnectedToPower: true)
+        for battery in [charged, held] {
+            let scene = chargingScene(battery: battery, source: .chargingStatus)
+            XCTAssertEqual(scene.outerRing?.gap, .closed)
+            XCTAssertNil(scene.outerRing?.accessory)
+            guard case let .symbol(symbol)? = scene.center, case .primitive(.plug) = symbol.source else {
+                return XCTFail("expected a centred plug for \(battery)")
+            }
+        }
+    }
+
+    func testChargingStatusShowsTheLevelPercentageOnBattery() {
+        let battery = BatteryStatus(rawPercentage: 62, isPresent: true, isCharging: false,
+                                    isLowPowerMode: false, isConnectedToPower: false)
+        let scene = chargingScene(battery: battery, source: .chargingStatus)
+        XCTAssertEqual(scene.outerRing?.gap, .closed)
+        XCTAssertEqual(scene.center,
+                       .text(IconTextState(text: "62", color: .primary, scale: 1)))
+    }
+
+    func testChargingStatusFallsBackToNetworkWithoutABattery() {
+        let absent = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: true)
+        let scene = chargingScene(battery: absent, source: .chargingStatus)
+        // A machine with no battery has no status to invent and no ring to close.
+        XCTAssertNotEqual(scene.outerRing?.gap, .closed)
+        guard case .symbol? = scene.center else {
+            return XCTFail("expected the network glyph fallback")
+        }
+    }
+
+    func testOtherCentreSourcesKeepTheTopGapAccessoryAndTheCentreGlyph() {
+        let battery = BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: true,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+        let scene = chargingScene(battery: battery, source: .network)
+        XCTAssertEqual(scene.outerRing?.gap, .indicator)
+        guard case let .symbol(symbol)? = scene.outerRing?.accessory,
+              case .primitive(.bolt) = symbol.source else {
+            return XCTFail("expected a top-gap bolt")
+        }
+        XCTAssertNotNil(scene.center)
+    }
+
+    func testChargingStatusIgnoresSplitGapProgressWhileClosed() {
+        let battery = BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: true,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+        let split = BatteryIconOptions(splitGapProgress: true)
+        let closed = chargingScene(battery: battery, source: .chargingStatus,
+                                   batteryOptions: split)
+        XCTAssertEqual(closed.outerRing?.gap, .closed)
+        XCTAssertEqual(closed.outerRing?.gapProgressMode, .absorbed)
+
+        let historical = chargingScene(battery: battery, source: .network,
+                                       batteryOptions: split)
+        XCTAssertEqual(historical.outerRing?.gap, .indicator)
+        XCTAssertEqual(historical.outerRing?.gapProgressMode, .split)
+    }
+
     private func scene(
         snapshot: StatusSnapshot = PresentationFixtures.snapshot(),
         batteryOptions: BatteryIconOptions = .standard,
@@ -399,6 +636,17 @@ final class IconPresentationMapperTests: XCTestCase {
         IconPresentationMapper.scene(inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: audioIcon),
             configuration: IconPresentationConfiguration(battery: batteryOptions, connection: connectionOptions,
                                                          volume: volumeOptions, bluetooth: bluetoothOptions))
+    }
+
+    private func configuration(
+        connection: ConnectionIconOptions
+    ) -> IconPresentationConfiguration {
+        IconPresentationConfiguration(
+            battery: .standard,
+            connection: connection,
+            volume: .standard,
+            bluetooth: .standard
+        )
     }
 
     private func snapshot(battery: BatteryStatus = BatteryStatus(rawPercentage: 68, isPresent: true, isCharging: false,

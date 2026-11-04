@@ -14,6 +14,9 @@ struct BatteryDetailsView: View {
     private let showsLowPowerControl: Bool
     private let chargeToFullNow: ChargeToFullNowPresentation
     private let onChargeToFullNow: () -> Void
+    /// The sensor caveats and the energy-ranking caveat live behind the header's
+    /// info button instead of taking three lines under the rows.
+    @State private var showsInfo = false
 
     init(
         state: PanelDetailState,
@@ -53,6 +56,11 @@ struct BatteryDetailsView: View {
                 title: state.title,
                 action: onBack
             )
+            .overlay(alignment: .trailing) {
+                if showsInfoButton {
+                    infoButton
+                }
+            }
 
             VStack(alignment: .leading, spacing: 6) {
                 if let powerFlow = state.powerFlow {
@@ -63,12 +71,6 @@ struct BatteryDetailsView: View {
                         .foregroundStyle(.secondary)
                 }
                 PanelDetailRowsView(detailRows: detailRows, onCopyValue: onCopyValue)
-                if let explanation = state.explanation {
-                    Text(explanation)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .font(.caption)
@@ -130,5 +132,49 @@ struct BatteryDetailsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    /// Anything the page used to spell out under the rows.
+    private var showsInfoButton: Bool {
+        state.explanation != nil || state.energyApps != nil
+    }
+
+    private var infoButton: some View {
+        Button {
+            showsInfo.toggle()
+        } label: {
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 13, weight: .semibold))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .accessibilityLabel(localization.string(.batteryDetailsInfo))
+        .help(localization.string(.batteryDetailsInfo))
+        .popover(isPresented: $showsInfo, arrowEdge: .bottom) {
+            infoContent
+                .frame(width: 280, alignment: .leading)
+                .padding(12)
+        }
+    }
+
+    @ViewBuilder private var infoContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let explanation = state.explanation {
+                Text(explanation)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if state.powerFlow?.system != nil {
+                Text(localization.string(.batteryPowerSystemExplanation))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let ranking = state.energyApps {
+                Text(localization.string(ranking.basis == .cpuEnergy
+                    ? .batteryEnergyCPUExplanation : .batteryEnergyActivityExplanation))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
 }

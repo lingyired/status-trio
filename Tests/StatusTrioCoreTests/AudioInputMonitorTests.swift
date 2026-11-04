@@ -144,12 +144,12 @@ final class AudioInputMonitorTests: XCTestCase {
     XCTAssertEqual(hardware.readRequests, [true])
 
     monitor.setVisible(false)
+    hardware.setReading(reading(defaultID: 22))
     observation.emit(.devicesChanged)
     XCTAssertEqual(hardware.fullReadCount, 1)
 
-    // Hiding publishes the old non-refreshing status asynchronously. A distinct
-    // device proves this expectation observes the new read, not that queued event.
-    hardware.setReading(reading(defaultID: 22))
+    // Expect the reread's new default, not the hide publish that may still be
+    // draining through the log when this expectation is registered.
     let reopened = log.expectStatus("reopening panel refreshes dirty devices") {
       $0.defaultDeviceID == 22 && !$0.isRefreshing
     }
@@ -239,6 +239,113 @@ final class AudioInputMonitorTests: XCTestCase {
     XCTAssertEqual(hardware.readRequests, [true], "usage polling must not enumerate the device list")
     monitor.setVisible(false)
     XCTAssertEqual(hardware.usageReadCount, 1, "hidden popovers stop input-use polling")
+  }
+
+  func testDeviceListVisibilityKeepsInventoryLiveWithoutUsagePolling() async throws {
+    let hardware = FakeAudioInputHardware(reading: reading(defaultID: 11))
+    let monitor = AudioInputMonitor(hardware: hardware)
+    let log = AudioInputStatusLog(monitor.updates)
+    defer { monitor.stop() }
+
+    monitor.setEnabled(true)
+    let observation = try XCTUnwrap(hardware.waitForObservation(timeout: 5))
+    XCTAssertEqual(hardware.fullReadCount, 0)
+    XCTAssertEqual(hardware.usageReadCount, 0)
+
+    let listRead = log.expectStatus("Settings list reads inventory") { $0.defaultDeviceID == 11 }
+    monitor.setDeviceListVisible(true)
+    await fulfillment(of: [listRead], timeout: 5)
+    XCTAssertEqual(hardware.readRequests, [true])
+    XCTAssertEqual(hardware.usageReadCount, 0, "Settings list must not start usage polling")
+
+    hardware.setReading(reading(defaultID: 22))
+    let eventRead = log.expectStatus("HAL event refreshes the list") {
+      $0.defaultDeviceID == 22 && !$0.isRefreshing
+    }
+    observation.emit(.defaultChanged)
+    await fulfillment(of: [eventRead], timeout: 5)
+    XCTAssertEqual(hardware.readRequests, [true, true])
+    XCTAssertEqual(hardware.usageReadCount, 0)
+
+    monitor.setVisible(false)
+    monitor.setDeviceListVisible(false)
+  }
+
+  func testInFlightInventoryReadSurvivesOneSurfaceClosing() async throws {
+    let popoverGate = ManualAudioGate()
+    let settingsGate = ManualAudioGate()
+    let hardware = FakeAudioInputHardware(reading: reading(defaultID: 11))
+    let monitor = AudioInputMonitor(hardware: hardware)
+    let log = AudioInputStatusLog(monitor.updates)
+    defer {
+      monitor.stop()
+      popoverGate.release()
+      settingsGate.release()
+    }
+
+    let popoverReadStarted = expectation(description: "inventory read starts for the popover")
+    popoverGate.onEnter = { popoverReadStarted.fulfill() }
+    hardware.blockNextRead(with: popoverGate, readAfterRelease: true)
+    monitor.setEnabled(true)
+    monitor.setVisible(true)
+    monitor.setDeviceListVisible(true)
+    await fulfillment(of: [popoverReadStarted], timeout: 5)
+
+    hardware.setReading(reading(defaultID: 22))
+    monitor.setVisible(false)
+    let popoverReadApplied = log.expectStatus("Settings keeps the in-flight read") {
+      $0.defaultDeviceID == 22
+    }
+    popoverGate.release()
+    await fulfillment(of: [popoverReadApplied], timeout: 5)
+
+    let settingsReadStarted = expectation(description: "inventory read starts for Settings")
+    settingsGate.onEnter = { settingsReadStarted.fulfill() }
+    hardware.blockNextRead(with: settingsGate, readAfterRelease: true)
+    monitor.setVisible(true)
+    await fulfillment(of: [settingsReadStarted], timeout: 5)
+
+    hardware.setReading(reading(defaultID: 33))
+    monitor.setDeviceListVisible(false)
+    let settingsReadApplied = log.expectStatus("the popover keeps the in-flight read") {
+      $0.defaultDeviceID == 33
+    }
+    settingsGate.release()
+    await fulfillment(of: [settingsReadApplied], timeout: 5)
+    XCTAssertEqual(hardware.readRequests, [true, true])
+  }
+
+  func testCancelledUsageLoopCannotClearTheReopenedLoop() async throws {
+    let sleeper = DeferredAudioUsageSleeper()
+    let hardware = FakeAudioInputHardware(reading: reading(defaultID: 11, isDefaultInputInUse: false))
+    let monitor = AudioInputMonitor(hardware: hardware, usageSleep: { _ in try await sleeper.sleep() })
+    let log = AudioInputStatusLog(monitor.updates)
+    defer {
+      monitor.stop()
+      sleeper.finishAll()
+    }
+
+    let initial = log.expectStatus("initial inventory") { $0.defaultDeviceID == 11 }
+    monitor.setEnabled(true)
+    monitor.setVisible(true)
+    await fulfillment(of: [initial, sleeper.expectCall(1)], timeout: 5)
+
+    monitor.setVisible(false)
+    monitor.setVisible(true)
+    await fulfillment(of: [sleeper.expectCall(2)], timeout: 5)
+
+    // Deliver the cancelled sleep only after the reopened loop owns its task.
+    // Its escape path must not clear the replacement task reference.
+    sleeper.resume(1)
+    for _ in 0..<20 { await Task.yield() }
+
+    hardware.setUsageReading(AudioInputUsageReading(defaultDeviceID: 11, isDefaultInputInUse: true))
+    let usage = log.expectStatus("replacement loop still polls") { $0.isDefaultInputInUse == true }
+    sleeper.resume(2)
+    await fulfillment(of: [usage, sleeper.expectCall(3)], timeout: 5)
+
+    monitor.setVisible(false)
+    XCTAssertTrue(sleeper.cancelledCalls.contains(3), "closing must cancel the replacement loop")
   }
 
   func testDeviceRemovalRefreshesInventoryAndClearsDefaultControls() async throws {
@@ -1220,6 +1327,110 @@ private final class ManualAudioSleeper: @unchecked Sendable {
       waiter.continuation.resume(throwing: CancellationError())
     } else {
       cancelledBeforeRegistration.insert(id)
+      lock.unlock()
+    }
+  }
+}
+
+/// Usage sleeping is held open so a cancelled loop can be released after a
+/// replacement loop has already been started. This reproduces the task-owner
+/// cleanup race without depending on scheduler timing.
+private final class DeferredAudioUsageSleeper: @unchecked Sendable {
+  private struct Waiter {
+    let id: Int
+    let continuation: CheckedContinuation<Void, any Error>
+  }
+
+  private let lock = NSLock()
+  private var nextID = 0
+  private var startedCount = 0
+  private var waiters: [Waiter] = []
+  private var heldCancellations: [Waiter] = []
+  private var cancelledIDs: [Int] = []
+  private var expectations: [(Int, XCTestExpectation)] = []
+
+  var cancelledCalls: [Int] {
+    lock.lock()
+    defer { lock.unlock() }
+    return cancelledIDs
+  }
+
+  func expectCall(_ number: Int) -> XCTestExpectation {
+    let expectation = XCTestExpectation(description: "usage sleep call \(number)")
+    lock.lock()
+    if startedCount >= number {
+      lock.unlock()
+      expectation.fulfill()
+    } else {
+      expectations.append((number, expectation))
+      lock.unlock()
+    }
+    return expectation
+  }
+
+  func sleep() async throws {
+    let id = lock.withLock {
+      nextID += 1
+      return nextID
+    }
+    try await withTaskCancellationHandler(
+      operation: {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+          lock.lock()
+          if cancelledIDs.contains(id) {
+            lock.unlock()
+            continuation.resume(throwing: CancellationError())
+            return
+          }
+          startedCount += 1
+          waiters.append(Waiter(id: id, continuation: continuation))
+          let satisfied = expectations.filter { $0.0 <= startedCount }
+          expectations.removeAll { candidate in satisfied.contains { $0.1 === candidate.1 } }
+          lock.unlock()
+          satisfied.forEach { $0.1.fulfill() }
+        }
+      },
+      onCancel: { self.cancel(id) }
+    )
+  }
+
+  func resume(_ number: Int) {
+    lock.lock()
+    if let index = heldCancellations.firstIndex(where: { $0.id == number }) {
+      let waiter = heldCancellations.remove(at: index)
+      lock.unlock()
+      waiter.continuation.resume(throwing: CancellationError())
+      return
+    }
+    guard let index = waiters.firstIndex(where: { $0.id == number }) else {
+      lock.unlock()
+      return
+    }
+    let waiter = waiters.remove(at: index)
+    lock.unlock()
+    waiter.continuation.resume()
+  }
+
+  func finishAll() {
+    lock.lock()
+    let held = heldCancellations
+    let active = waiters
+    heldCancellations.removeAll()
+    waiters.removeAll()
+    lock.unlock()
+    held.forEach { $0.continuation.resume(throwing: CancellationError()) }
+    active.forEach { $0.continuation.resume() }
+  }
+
+  private func cancel(_ id: Int) {
+    lock.lock()
+    if let index = waiters.firstIndex(where: { $0.id == id }) {
+      let waiter = waiters.remove(at: index)
+      cancelledIDs.append(id)
+      heldCancellations.append(waiter)
+      lock.unlock()
+    } else {
+      cancelledIDs.append(id)
       lock.unlock()
     }
   }

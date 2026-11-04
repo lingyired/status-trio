@@ -93,7 +93,8 @@ struct VolumeControlsView: View {
                     collapseLabel: state.collapseLabel,
                     previewLanguageCode: state.previewLanguageCode,
                     onSelect: { actions.selectOutput($0) },
-                    onSelectListeningMode: { actions.setListeningMode(address: $0, mode: $1) }
+                    onSelectListeningMode: { actions.setListeningMode(address: $0, mode: $1) },
+                    skeleton: state.deviceListPlaceholder
                 )
             }
         }

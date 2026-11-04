@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The state-dependent parts of the popover footer, kept as plain data so the
@@ -7,12 +8,30 @@ enum PopoverFooterPresentation {
     static func settingsLabel(title: String, developmentSuffix _: String?) -> String {
         title
     }
+
+    /// Opens the Menu Bar pane in System Settings. One extension serves the pane
+    /// on every supported release (Control Center on macOS 13–25, Menu Bar from
+    /// 26), so the ordered URL list needs no version branch. Kept as a small
+    /// helper so the view and any future footer action share the same route.
+    static func openMenuBarSettings(
+        workspace: NSWorkspace = .shared,
+        urls: [URL] = MenuBarHelpPolicy().systemSettingsURLs
+    ) {
+        for url in urls where workspace.open(url) {
+            return
+        }
+    }
 }
 
 struct PopoverFooterView: View {
     @EnvironmentObject private var localization: Localization
+    @ObservedObject private var updaterManager: UpdaterManager = .shared
     let openSettings: () -> Void
     let quit: () -> Void
+    /// Closes the status panel before an action opens another window. The panel
+    /// sits above normal windows, so About / updates / System Settings must not
+    /// be left behind it.
+    var dismissPanel: () -> Void = {}
 
     private var settingsTitle: String {
         PopoverFooterPresentation.settingsLabel(
@@ -35,11 +54,34 @@ struct PopoverFooterView: View {
 
             // The version sits at the trailing edge rather than inside the
             // button's label, which has to stay readable in every language.
+            // It stays visible here even though About also shows it: the footer
+            // is where the running build is checked while testing.
             Text(AppMetadata.versionDisplayString)
                 .lineLimit(1)
                 .fixedSize()
 
             Menu {
+                Button(localization.string(.menuCheckForUpdates)) {
+                    dismissPanel()
+                    updaterManager.checkForUpdates()
+                }
+                // Sparkle reports `canCheckForUpdates == false` while a check is
+                // in flight, which is exactly the disabled window the footer
+                // wants; while idle it enables itself again.
+                .disabled(!updaterManager.canCheckForUpdates)
+
+                Button(localization.format(.menuAbout, AppMetadata.name)) {
+                    dismissPanel()
+                    NSApplication.shared.orderFrontStandardAboutPanel(nil)
+                }
+
+                Button(localization.string(.menuOpenMenuBarSettings)) {
+                    dismissPanel()
+                    PopoverFooterPresentation.openMenuBarSettings()
+                }
+
+                Divider()
+
                 Button(localization.string(.menuQuit), action: quit)
                     .keyboardShortcut("q", modifiers: .command)
             } label: {

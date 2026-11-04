@@ -17,24 +17,28 @@ struct BatterySectionView: View {
                 isDarkBackground: $previewIsDark
             )
         }) {
+            if !statusStore.snapshot.battery.isPresent {
+                noBatteryNoticeGroup
+            }
             batteryGroup
             powerFlowGroup
         }
     }
 
+    /// A Mac without a battery reports 100 as its level; spell that out at the
+    /// top of the page so nobody reads the placeholder as a real reading.
+    private var noBatteryNoticeGroup: some View {
+        SettingsGroup {
+            SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryNotice))
+        }
+    }
+
     private var powerFlowGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryPowerFlow)) {
-            SettingsToggleRow(symbol: "powerplug.fill", tint: .orange,
-                title: localization.string(.batteryPowerInput),
-                isOn: $store.showsChargerInputPower)
-            SettingsDivider()
-            SettingsToggleRow(symbol: "battery.100.bolt", tint: .green,
-                title: localization.string(.batteryPowerCharging),
-                isOn: $store.showsBatteryChargingPower)
-            SettingsDivider()
-            SettingsToggleRow(symbol: "laptopcomputer", tint: .blue,
-                title: localization.string(.batteryPowerSystem),
-                isOn: $store.showsSystemPower)
+            SettingsToggleRow(symbol: "arrow.triangle.branch", tint: .orange,
+                title: localization.string(.settingsBatteryPowerFlowDiagram),
+                subtitle: localization.string(.settingsBatteryPowerFlowDiagramDescription),
+                isOn: $store.showsBatteryPowerFlow)
             SettingsDivider()
             SettingsToggleRow(symbol: "app", tint: .purple,
                 title: localization.string(.batteryHighEnergyApps),
@@ -90,6 +94,18 @@ struct BatterySectionView: View {
 
     private var batteryGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryTitle)) {
+            // Provisional panel option: a single line of input / battery /
+            // system power under the battery module. Off by default.
+            SettingsToggleRow(
+                symbol: "chart.bar.fill",
+                tint: .teal,
+                title: localization.string(.settingsBatteryPowerInfoBar),
+                subtitle: localization.string(.settingsBatteryPowerInfoBarDescription),
+                isOn: $store.showsBatteryPowerInfoBar
+            )
+
+            SettingsDivider()
+
             // Low Power Mode control is offered only when this build bundled the
             // privileged helper, so an App-Store-style build never shows a
             // toggle it cannot honour.
@@ -111,6 +127,58 @@ struct BatterySectionView: View {
                 )
 
                 SettingsDivider()
+
+                // macOS removes the persisted charge limit while the native
+                // override runs, so the cancel target is an explicit setting
+                // rather than a guess. The link fills it in from the system
+                // once; afterwards it stays a plain editable value.
+                SettingsRow(
+                    "arrow.uturn.backward.circle",
+                    tint: .green,
+                    title: localization.string(.settingsBatteryRestoreLimit),
+                    subtitle: localization.string(
+                        .settingsBatteryRestoreLimitDescription
+                    ),
+                    subtitleLink: Text(
+                        localization.string(
+                            .settingsBatteryFullThresholdUseChargeLimit
+                        )
+                    )
+                    .foregroundColor(Color.accentColor),
+                    subtitleLinkAction: {
+                        store.applySystemChargeToFullRestoreLimit()
+                    },
+                    trailing: {
+                        HStack(spacing: 8) {
+                            Slider(
+                                value: Binding(
+                                    get: { store.chargeToFullRestoreLimit },
+                                    set: {
+                                        store.chargeToFullRestoreLimit =
+                                            $0.rounded()
+                                    }
+                                ),
+                                in: SettingsStore.chargeToFullRestoreLimitRange,
+                                step: 5
+                            )
+                            .controlSize(.small)
+                            .frame(width: 90)
+                            .accessibilityLabel(
+                                localization.string(.settingsBatteryRestoreLimit)
+                            )
+                            .accessibilityValue(
+                                "\(Int(store.chargeToFullRestoreLimit))%"
+                            )
+
+                            Text("\(Int(store.chargeToFullRestoreLimit))%")
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 44, alignment: .trailing)
+                        }
+                    }
+                )
+
+                SettingsDivider()
             }
 
             // Show Percentage Switch
@@ -123,18 +191,6 @@ struct BatterySectionView: View {
 
             SettingsDivider()
 
-            SettingsToggleRow(
-                symbol: "number",
-                tint: .teal,
-                title: localization.string(.settingsBatteryShowPercentageInConnectionSlot),
-                subtitle: localization.string(
-                    .settingsBatteryShowPercentageInConnectionSlotDescription
-                ),
-                isOn: $store.showsBatteryPercentageInConnectionSlot
-            )
-
-            SettingsDivider()
-
             // Charging Bolt Switch
             SettingsToggleRow(
                 symbol: "bolt.fill",
@@ -142,6 +198,17 @@ struct BatterySectionView: View {
                 title: localization.string(.settingsBatteryShowChargingIndicator),
                 subtitle: localization.string(.settingsBatteryChargingDescription),
                 isOn: $store.showsChargingIndicator
+            )
+
+            SettingsDivider()
+
+            // Split the visible arc when the top gap has content (#205).
+            SettingsToggleRow(
+                symbol: "circle.lefthalf.filled",
+                tint: .blue,
+                title: localization.string(.settingsBatterySplitGapProgress),
+                subtitle: localization.string(.settingsBatterySplitGapProgressDescription),
+                isOn: $store.batterySplitGapProgress
             )
 
             SettingsDivider()
@@ -198,14 +265,16 @@ struct BatterySectionView: View {
             if store.showsChargingIndicator && store.showsBatteryPercentage {
                 SettingsDivider()
 
-                SettingsToggleRow(
-                    symbol: "number",
+                SettingsMenuRow(
+                    symbol: "powerplug.portrait.fill",
                     tint: .teal,
-                    title: localization.string(.settingsBatteryPercentageWhenConnected),
+                    title: localization.string(.settingsBatteryConnectedIndicator),
                     subtitle: localization.string(
-                        .settingsBatteryPercentageWhenConnectedDescription
+                        .settingsBatteryConnectedIndicatorDescription
                     ),
-                    isOn: $store.showsPercentageWhenConnected
+                    selection: $store.batteryConnectedIndicator,
+                    options: BatteryConnectedIndicator.allCases,
+                    label: connectedIndicatorLabel
                 )
             }
 
@@ -252,6 +321,8 @@ struct BatterySectionView: View {
                 subtitle: localization.string(.settingsBatteryStatusColorsDescription),
                 isOn: $store.usesBatteryStatusColors
             )
+
+            BatteryStatusColorsView(store: store)
 
             // Critical Threshold (Inline compact slider)
             if store.usesBatteryStatusColors {
@@ -439,5 +510,16 @@ struct BatterySectionView: View {
             helper.isReady ? .lowPowerModeHelperReady : .lowPowerModeHelperUnavailable
         ))
         .foregroundColor(helper.isReady ? Color.green : Color.secondary)
+    }
+
+    private func connectedIndicatorLabel(_ indicator: BatteryConnectedIndicator) -> String {
+        switch indicator {
+        case .plug:
+            localization.string(.settingsBatteryConnectedIndicatorPlug)
+        case .bolt:
+            localization.string(.settingsBatteryConnectedIndicatorBolt)
+        case .percentage:
+            localization.string(.settingsBatteryConnectedIndicatorPercentage)
+        }
     }
 }

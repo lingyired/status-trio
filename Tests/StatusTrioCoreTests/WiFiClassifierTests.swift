@@ -1891,14 +1891,31 @@ final class WiFiClassifierTests: XCTestCase {
         let reader = DeferredWiFiStatusReader()
         let eventMonitor = FakeWiFiEventMonitor()
         let sleeper = ManualEventSleeper()
+        let recoverySleeper = ManualEventSleeper()
         let monitor = makeMonitor(
             statusReader: reader,
             eventMonitor: eventMonitor,
-            refreshDebounceSleep: { duration in await sleeper.sleep(duration) }
+            refreshDebounceSleep: { duration in await sleeper.sleep(duration) },
+            invalidationRecoveryBackoff: [.seconds(5)],
+            invalidationRecoverySleep: { duration in
+                await recoverySleeper.sleep(duration)
+            }
         )
         monitor.start()
         eventMonitor.deliver(.connectionInvalidated)
         await sleeper.waitForCallCount(1)
+        await recoverySleeper.waitForCallCount(1)
+
+        // Retire the in-flight read before it completes. Releasing the recovery
+        // explicitly (instead of leaving its real `Task.sleep` backoff to race
+        // this test) makes the invalidation-then-complete ordering deterministic:
+        // the recovery's generation bump must land first, or `-40` later wins the
+        // buffered stream and the test misreports the coalescing under test.
+        let restarted = expectation(description: "event monitoring restarted")
+        eventMonitor.onRestart = { restarted.fulfill() }
+        recoverySleeper.releaseAll()
+        await fulfillment(of: [restarted], timeout: 1)
+        eventMonitor.onRestart = nil
 
         reader.complete(makeReading(rssi: -40))
         XCTAssertEqual(reader.includeSSIDRequests.count, 1, "The scheduled refresh owns the follow-up")
@@ -2000,6 +2017,24 @@ final class WiFiClassifierTests: XCTestCase {
         XCTAssertNil(obsolete)
         reader.complete(makeReading())
         XCTAssertEqual(reader.includeSSIDRequests.count, 2)
+    }
+
+    func testDeniedNameAccessStillPublishesConnectionStateAndMeasurements() async {
+        let reader = DeferredWiFiStatusReader()
+        let monitor = makeMonitor(
+            statusReader: reader,
+            nameAuthorizer: FakeWiFiNameAuthorizer(access: .denied)
+        )
+        var iterator = monitor.updates.makeAsyncIterator()
+        monitor.start()
+        reader.complete(makeReading(rssi: -50, ssid: "Hidden network", band: .fiveGHz))
+        let status = await iterator.next()
+        XCTAssertEqual(status?.state, .connected)
+        XCTAssertEqual(status?.rssi, -50)
+        XCTAssertEqual(status?.band, .fiveGHz)
+        XCTAssertNil(status?.ssid)
+        XCTAssertEqual(status?.nameAccess, .denied)
+        monitor.stop()
     }
 
     func testPermissionChangeDiscardsInFlightRead() async {

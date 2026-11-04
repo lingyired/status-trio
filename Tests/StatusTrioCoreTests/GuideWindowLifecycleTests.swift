@@ -4,8 +4,96 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class GuideWindowLifecycleTests: XCTestCase {
-    func testOnboardingUsesDeterministicHostingSize() throws {
+final class GuideWindowLifecycleTests: VisibleUITestCase {
+    #if DEBUG
+    func testBackgroundGuideUsesFirstRunPolicyWithoutActivation() throws {
+        let fixture = try DefaultsFixture()
+        defer { fixture.tearDown() }
+        let settings = SettingsStore(defaults: fixture.defaults)
+        let application = LifecycleActivationApplication()
+        var presentations: [SettingsWindowPresentation] = []
+        let controller = OnboardingWindowController(
+            settings: settings,
+            localization: Localization(
+                defaults: fixture.defaults,
+                preferredLanguages: ["en"]
+            ),
+            activationPolicy: AppActivationPolicy(application: application),
+            backgroundUITesting: BackgroundUITestingConfiguration(
+                arguments: ["--background-ui-testing"]
+            ),
+            presentWindow: { window, presentation in
+                presentations.append(presentation)
+                presentation.present(window)
+            }
+        )
+
+        XCTAssertTrue(controller.showIfNeeded())
+        let window = try XCTUnwrap(controller.window)
+        defer { window.close() }
+
+        XCTAssertTrue(window.isVisible)
+        XCTAssertEqual(presentations, [.background])
+        XCTAssertTrue(application.policies.isEmpty)
+        XCTAssertTrue(settings.hasCompletedIconGuideOnboarding)
+    }
+
+    func testBackgroundGuideDoesNotPresentWhenFirstRunPolicyIsComplete() throws {
+        let fixture = try DefaultsFixture()
+        defer { fixture.tearDown() }
+        let settings = SettingsStore(defaults: fixture.defaults)
+        settings.hasCompletedIconGuideOnboarding = true
+        settings.completeTelemetryConsent(sharesAnalytics: false)
+        var presentations: [SettingsWindowPresentation] = []
+        let controller = OnboardingWindowController(
+            settings: settings,
+            localization: Localization(
+                defaults: fixture.defaults,
+                preferredLanguages: ["en"]
+            ),
+            activationPolicy: AppActivationPolicy(
+                application: LifecycleActivationApplication()
+            ),
+            backgroundUITesting: BackgroundUITestingConfiguration(
+                arguments: ["--background-ui-testing"]
+            ),
+            presentWindow: { _, presentation in presentations.append(presentation) }
+        )
+
+        XCTAssertFalse(controller.showIfNeeded())
+        XCTAssertNil(controller.window)
+        XCTAssertTrue(presentations.isEmpty)
+    }
+    #endif
+
+    func testNormalGuideKeepsActivatingPresentationAndRegularPolicy() throws {
+        let fixture = try DefaultsFixture()
+        defer { fixture.tearDown() }
+        let application = LifecycleActivationApplication()
+        var presentations: [SettingsWindowPresentation] = []
+        let controller = OnboardingWindowController(
+            settings: SettingsStore(defaults: fixture.defaults),
+            localization: Localization(
+                defaults: fixture.defaults,
+                preferredLanguages: ["en"]
+            ),
+            activationPolicy: AppActivationPolicy(application: application),
+            presentWindow: { window, presentation in
+                presentations.append(presentation)
+                presentation.present(window)
+            }
+        )
+
+        XCTAssertTrue(controller.showIfNeeded())
+        let window = try XCTUnwrap(controller.window)
+        window.close()
+
+        XCTAssertEqual(presentations, [.activating])
+        XCTAssertEqual(application.policies.first, .regular)
+        XCTAssertEqual(application.policies.last, .accessory)
+    }
+
+    func testOnboardingWindowSizesToContentHeight() throws {
         let fixture = try DefaultsFixture()
         defer { fixture.tearDown() }
         let controller = OnboardingWindowController(
@@ -22,12 +110,21 @@ final class GuideWindowLifecycleTests: XCTestCase {
         controller.show()
         let window = try XCTUnwrap(controller.window)
         defer { window.close() }
+        // Let the deferred content-height resize run.
+        RunLoop.current.run(until: Date().addingTimeInterval(0.3))
 
-        XCTAssertEqual(window.contentRect(forFrameRect: window.frame).size, OnboardingWindowController.contentSize)
-        XCTAssertEqual(window.contentView?.frame.size, OnboardingWindowController.contentSize)
+        XCTAssertEqual(window.contentView?.frame.size.width, IconGuideOnboardingView.contentWidth)
         XCTAssertTrue(window.contentView is NSHostingView<LocalizedRootView<IconGuideOnboardingView>>)
         XCTAssertEqual(window.contentView?.intrinsicContentSize, NSSize(width: -1, height: -1))
         XCTAssertEqual(window.contentView?.autoresizingMask, [.width, .height])
+
+        let height = window.contentRect(forFrameRect: window.frame).height
+        XCTAssertGreaterThanOrEqual(height, OnboardingWindowController.minimumContentHeight - 0.5)
+        XCTAssertLessThan(
+            height,
+            OnboardingWindowController.contentSize.height,
+            "window should hug the content instead of the fixed default height"
+        )
     }
 
     func testOnboardingContentFitsItsFixedWindow() throws {

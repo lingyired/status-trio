@@ -223,7 +223,7 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         backend.lstm.value = 3 // already Transparency
         let result = await makeHAL(backend).setMode(.transparency, for: device)
         XCTAssertEqual(result, .confirmed(.transparency))
-        XCTAssertEqual(backend.writeCount, 0, "a re-tap of the selected mode writes nothing")
+        XCTAssertEqual(backend.writeCount, 0, "a write to the mode already active writes nothing")
     }
 
     func testSetterFailureIsReported() async {
@@ -272,10 +272,20 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         XCTAssertEqual(backend.writeCount, 0)
     }
 
-    func testWriteToOffIsRejected() async {
+    func testWriteToOffSucceeds() async {
         let backend = FakeListeningModeBackend()
-        backend.lstm.value = 2
+        backend.lstm.value = 2 // on Noise Cancellation
         let result = await makeHAL(backend).setMode(.off, for: device)
-        XCTAssertEqual(result, .failed(.modeUnsupported), "V1 never switches to Off")
+        XCTAssertEqual(result, .confirmed(.off), "re-tapping the active mode turns it off")
+        XCTAssertEqual(backend.writeCount, 1)
+        XCTAssertEqual(backend.lstm.value, BluetoothListeningMode.off.rawValue)
+    }
+
+    func testOffIsIdempotentWhenAlreadyOff() async {
+        let backend = FakeListeningModeBackend()
+        backend.lstm.value = BluetoothListeningMode.off.rawValue
+        let result = await makeHAL(backend).setMode(.off, for: device)
+        XCTAssertEqual(result, .confirmed(.off))
+        XCTAssertEqual(backend.writeCount, 0, "an already-off device needs no write")
     }
 }

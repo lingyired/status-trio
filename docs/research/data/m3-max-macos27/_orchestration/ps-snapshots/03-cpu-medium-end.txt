@@ -1,0 +1,30 @@
+# ps snapshot: 03-cpu-medium-end  wall=2026-10-30T23:06:19+0800 mono=200167.302928
+# --- top 25 by cpu ---
+  PID  PPID  %CPU %MEM COMM
+81860     1  66.0  6.9 /Applications/BlueStacks.app/Contents/MacOS/BlueStacks
+  619     1  60.4  0.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+59342 59341  44.6  0.1 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper.app/Contents/MacOS/DeepSeek Harness Helper
+59354 59341  39.6  0.4 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper (Renderer).app/Contents/MacOS/DeepSeek Harness Helper (Renderer)
+84027  9342  38.2  0.0 /usr/sbin/lsof
+75058  1300  16.9  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+ 1345  1300  13.7  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper
+17763     1   9.6  0.1 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+ 3846     1   9.2  0.0 /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemd
+18255 17803   7.8  0.0 /Users/lingsmbp/Downloads/macpow
+ 5090     1   7.3  0.0 /usr/libexec/diagnosticd
+  808     1   6.9  0.1 /usr/sbin/coreaudiod
+63065     1   5.9  0.7 /Applications/magpie.app/Contents/MacOS/magpie
+84078 84027   5.8  0.0 /usr/sbin/lsof
+84549 84507   5.5  0.0 /usr/bin/log
+ 1300     1   3.7  1.2 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
+83619     1   3.1  0.1 /System/Library/Frameworks/Security.framework/Versions/A/MachServices/SecurityAgent.bundle/Contents/MacOS/SecurityAgent
+  762     1   2.4  0.0 /System/Library/DriverExtensions/com.apple.DriverKit-AppleBCMWLAN.dext/com.apple.DriverKit-AppleBCMWLAN
+  613     1   1.7  0.0 /usr/sbin/notifyd
+  622     1   1.7  0.0 /usr/sbin/cfprefsd
+40411 38968   1.7  0.2 /Applications/OpenBot.app/Contents/Frameworks/OpenBot Helper (Renderer).app/Contents/MacOS/OpenBot Helper (Renderer)
+  599     1   1.4  0.0 /usr/libexec/dasd
+82473     1   1.3  0.3 /Applications/WorkBuddy.app/Contents/MacOS/Electron
+38968     1   1.3  0.4 /Applications/OpenBot.app/Contents/MacOS/OpenBot
+  993     1   1.3  0.0 /System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager
+# --- our loaders / sampler ---
+(none)
