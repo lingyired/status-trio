@@ -13,6 +13,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let globalShortcutController: GlobalShortcutController?
     private let chargeToFullNow: ChargeToFullNowController?
     private let managedChargeLimit: ManagedChargeLimitController?
+    private let legacyChargeLimit: LegacyChargeLimitController?
     private let activationPolicy: AppActivationPolicy
     private let showIconGuide: () -> Void
     private let backgroundUITesting: BackgroundUITestingConfiguration
@@ -41,6 +42,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         globalShortcutController: GlobalShortcutController? = nil,
         chargeToFullNow: ChargeToFullNowController? = nil,
         managedChargeLimit: ManagedChargeLimitController? = nil,
+        legacyChargeLimit: LegacyChargeLimitController? = nil,
         backgroundUITesting: BackgroundUITestingConfiguration = .disabled,
         presentWindow: @escaping @MainActor (NSWindow, SettingsWindowPresentation) -> Void = {
             window, mode in mode.present(window)
@@ -54,6 +56,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         self.globalShortcutController = globalShortcutController
         self.chargeToFullNow = chargeToFullNow
         self.managedChargeLimit = managedChargeLimit
+        self.legacyChargeLimit = legacyChargeLimit
         self.activationPolicy = activationPolicy
         self.showIconGuide = showIconGuide
         self.backgroundUITesting = backgroundUITesting
@@ -209,6 +212,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 globalShortcutController: globalShortcutController,
                 chargeToFullNow: chargeToFullNow,
                 managedChargeLimit: managedChargeLimit,
+                legacyChargeLimit: legacyChargeLimit,
                 onShowIconGuide: showIconGuide,
                 consumePendingSection: { [weak self] in self?.takePendingSection() }
             )

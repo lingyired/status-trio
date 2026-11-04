@@ -21,6 +21,7 @@ final class AppEnvironment {
     let dockVisibilityMonitor: (any DockVisibilityMonitoring)?
     let telemetryReporter: any TelemetryReporting
     let managedChargeLimit: ManagedChargeLimitController?
+    let legacyChargeLimit: LegacyChargeLimitController?
     let bluetoothAudioIconOverrideSynchronizer = BluetoothAudioIconOverrideSynchronizer()
     private let bluetoothProfilerCache: BluetoothProfilerReportCache
     private let bluetoothNearbyBatteryOptOutSynchronizer = BluetoothNearbyBatteryOptOutSynchronizer()
@@ -61,7 +62,8 @@ final class AppEnvironment {
         bluetoothProfilerCache: BluetoothProfilerReportCache = .shared,
         previewResourceLifecycle: PreviewResourceLifecycle? = nil,
         backgroundUITesting: BackgroundUITestingConfiguration = .disabled,
-        managedChargeLimit: ManagedChargeLimitController? = nil
+        managedChargeLimit: ManagedChargeLimitController? = nil,
+        legacyChargeLimit: LegacyChargeLimitController? = nil
     ) {
         self.store = store
         self.settings = settings
@@ -81,6 +83,7 @@ final class AppEnvironment {
         self.dockVisibilityMonitor = dockVisibilityMonitor
         self.telemetryReporter = telemetryReporter
         self.managedChargeLimit = managedChargeLimit
+        self.legacyChargeLimit = legacyChargeLimit
         self.memoryPressureMonitor = memoryPressureMonitor ?? MemoryPressureMonitor()
         self.bluetoothProfilerCache = bluetoothProfilerCache
         self.previewResourceLifecycle = previewResourceLifecycle ?? PreviewResourceLifecycle()
@@ -150,11 +153,13 @@ final class AppEnvironment {
             batteries: store.$snapshot.dropFirst().map { $0.battery }
                 .removeDuplicates().eraseToAnyPublisher()
         )
+        legacyChargeLimit?.start()
         telemetryReporter.start()
     }
 
     func stop() {
         managedChargeLimit?.stop()
+        legacyChargeLimit?.stop()
         memoryPressureMonitor.stop()
         memoryPressureMonitor.onPressure = nil
         telemetryReporter.stop()
@@ -469,6 +474,9 @@ final class AppEnvironment {
             backend: PowerUIChargeController(),
             sessionStore: UserDefaultsManagedChargeLimitSessionStore(defaults: .standard)
         )
+        // Legacy backend is independent of the native 26.4+ controller: it
+        // only becomes visible on macOS 13–15 with an internal battery.
+        let legacyChargeLimit = LegacyChargeLimitController()
         let chargeToFullNow = ChargeToFullNowController(
             backend: managedChargeLimit,
             sessionStore: UserDefaultsChargeToFullNowSessionStore(
@@ -527,6 +535,7 @@ final class AppEnvironment {
             globalShortcutController: globalShortcutController,
             chargeToFullNow: chargeToFullNow,
             managedChargeLimit: managedChargeLimit,
+            legacyChargeLimit: legacyChargeLimit,
             backgroundUITesting: backgroundUITesting
         )
         settingsWindowController = resolvedSettingsWindowController
@@ -602,7 +611,8 @@ final class AppEnvironment {
             dockVisibilityMonitor: dockVisibilityMonitor,
             telemetryReporter: telemetryReporter,
             backgroundUITesting: backgroundUITesting,
-            managedChargeLimit: managedChargeLimit
+            managedChargeLimit: managedChargeLimit,
+            legacyChargeLimit: legacyChargeLimit
         )
     }
 

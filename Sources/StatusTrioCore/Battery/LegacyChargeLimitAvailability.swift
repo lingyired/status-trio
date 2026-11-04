@@ -66,3 +66,28 @@ enum LegacyChargeLimitAvailability: Equatable, Sendable {
         }
     }
 }
+/// Whether the Settings group may appear at all.
+///
+/// The plan says the opt-in group is shown only on eligible macOS 13–15 with an
+/// internal battery and a helper-capable distribution. Helper approval is a
+/// *status inside* the group, not a reason to hide it, so the user has a place
+/// to start the approval flow.
+enum LegacyChargeLimitPlatformEligibility {
+    static func isEligible(
+        architecture: LegacyRuntimeArchitecture,
+        osBand: LegacyOSBand,
+        hasInternalBattery: Bool
+    ) -> Bool {
+        osBand.allowsLegacyLimiter
+            && architecture != .rosetta
+            && hasInternalBattery
+    }
+
+    static func isEligibleCurrent(hasInternalBattery: Bool) -> Bool {
+        isEligible(
+            architecture: LegacyRuntimeArchitecture.current,
+            osBand: LegacyOSBand.current,
+            hasInternalBattery: hasInternalBattery
+        )
+    }
+}

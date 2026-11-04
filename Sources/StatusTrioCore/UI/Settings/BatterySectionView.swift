@@ -7,6 +7,7 @@ struct BatterySectionView: View {
     @Binding var previewIsDark: Bool
     var chargeToFullNow: ChargeToFullNowController? = nil
     var managedChargeLimit: ManagedChargeLimitController? = nil
+    var legacyChargeLimit: LegacyChargeLimitController? = nil
     @EnvironmentObject private var localization: Localization
     @ObservedObject private var helper: PrivilegedHelperManager = .shared
 
@@ -24,6 +25,11 @@ struct BatterySectionView: View {
             batteryGroup
             if let managedChargeLimit, managedChargeLimit.isAvailable {
                 ChargeLimitSettingsView(controller: managedChargeLimit)
+            } else if let legacyChargeLimit,
+                      LegacyChargeLimitPlatformEligibility.isEligibleCurrent(
+                          hasInternalBattery: statusStore.snapshot.battery.isPresent
+                      ) {
+                LegacyChargeLimitSettingsView(controller: legacyChargeLimit)
             }
             powerFlowGroup
         }
