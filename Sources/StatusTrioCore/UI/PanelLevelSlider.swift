@@ -183,6 +183,9 @@ struct PanelLevelSlider: View {
                     .accessibilityHidden(true)
                 }
             }
+            // The panel itself allows text selection in some detail rows; the
+            // slider label is decoration and must never join a selection drag.
+            .textSelection(.disabled)
         }
         .frame(height: PanelLevelSliderMetrics.controlHeight)
         // Accessibility lives on the native NSSlider so VoiceOver sees one
@@ -210,6 +213,8 @@ struct PanelLevelSlider: View {
                 .foregroundStyle(labelColor(side: frame.side))
                 .frame(width: frame.width, alignment: .leading)
                 .help(text)
+                .textSelection(.disabled)
+                .focusable(false)
                 .offset(x: frame.originX, y: 0)
                 // Animate only the leading/trailing hand-off; the drag itself
                 // must stay frame-synchronous, so this is keyed to the side and
