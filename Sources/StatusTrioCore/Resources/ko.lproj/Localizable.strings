@@ -382,6 +382,9 @@
 "settings.panel.background.style.classicMaterial" = "클래식 소재";
 "settings.panel.background.style.solid" = "단색";
 "settings.panel.background.style.liquidGlassUnavailable" = "리퀴드 글래스는 macOS 26 이상이 필요합니다.";
+"settings.panel.openBehavior.title" = "열 때 동작";
+"settings.panel.returnsToSummaryOnOpen" = "열 때마다 항상 요약 페이지로 돌아가기";
+"settings.panel.returnsToSummaryOnOpen.description" = "활성화하면 상태 패널이 항상 요약 페이지에서 열립니다. 비활성화하면 마지막으로 본 페이지가 유지됩니다.";
 "settings.popup.volumeScroll.group" = "패널 스크롤";
 "settings.popup.volumeScroll" = "스크롤로 볼륨 조절";
 "settings.popup.volumeScroll.description" = "상태 패널 안에서 스크롤하면 출력 볼륨이 바뀝니다.";

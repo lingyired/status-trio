@@ -382,6 +382,9 @@
 "settings.panel.background.style.classicMaterial" = "Klassisches Material";
 "settings.panel.background.style.solid" = "Einfarbig";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass erfordert macOS 26 oder neuer.";
+"settings.panel.openBehavior.title" = "Öffnungsverhalten";
+"settings.panel.returnsToSummaryOnOpen" = "Beim Öffnen immer zur Übersichtsseite zurückkehren";
+"settings.panel.returnsToSummaryOnOpen.description" = "Wenn diese Option aktiviert ist, öffnet sich das Statuspanel immer auf der Übersichtsseite; andernfalls wird die zuletzt angezeigte Seite beibehalten.";
 "settings.popup.volumeScroll.group" = "Panel-Scrollen";
 "settings.popup.volumeScroll" = "Lautstärke durch Scrollen ändern";
 "settings.popup.volumeScroll.description" = "Im Statusbereich scrollen, um die Ausgabelautstärke zu ändern.";

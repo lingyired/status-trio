@@ -382,6 +382,9 @@
 "settings.panel.background.style.classicMaterial" = "Material clásico";
 "settings.panel.background.style.solid" = "Color sólido";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requiere macOS 26 o posterior.";
+"settings.panel.openBehavior.title" = "Comportamiento al abrir";
+"settings.panel.returnsToSummaryOnOpen" = "Volver siempre a la página de resumen al abrir";
+"settings.panel.returnsToSummaryOnOpen.description" = "Si se activa, el panel de estado se abre siempre en la página de resumen; en caso contrario, recuerda la última página que viste.";
 "settings.popup.volumeScroll.group" = "Desplazamiento del panel";
 "settings.popup.volumeScroll" = "Ajustar el volumen desplazándose";
 "settings.popup.volumeScroll.description" = "Desplázate dentro del panel de estado para cambiar el volumen de salida.";
