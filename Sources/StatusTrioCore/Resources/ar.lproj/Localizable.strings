@@ -736,3 +736,4 @@
 "settings.battery.chargeLimit.support" = "لأجهزة Mac المدعومة المزودة بشرائح Apple وتعمل بنظام macOS 26.4 أو أحدث. قد يُكمل macOS الشحن أحيانًا للحفاظ على دقة تقدير مستوى البطارية.";
 "settings.battery.chargeLimit.checking" = "جارٍ التحقق من حد الشحن المحفوظ…";
 "settings.battery.chargeLimit.restoreScopeHint" = "يُستخدم فقط عند عدم تحديد حد شحن مُدار.";
+"settings.battery.restoreLimitManagedLocked" = "«حد الشحن» يتحكم في حد الشحن، لذلك لا يمكن تغيير حد الاستعادة هذا. اختر «بإدارة النظام» هناك لتعديله.";

@@ -734,3 +734,4 @@
 "settings.battery.chargeLimit.support" = "For supported Apple silicon Macs with macOS 26.4 or later. macOS may occasionally charge to full to maintain battery accuracy.";
 "settings.battery.chargeLimit.checking" = "Checking the saved charge limit…";
 "settings.battery.chargeLimit.restoreScopeHint" = "Only used when no managed charge limit is selected.";
+"settings.battery.restoreLimitManagedLocked" = "“Charge Limit” is controlling the charge ceiling, so this restore limit can't be changed. Choose “System Managed” there to edit it.";

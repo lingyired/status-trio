@@ -736,3 +736,4 @@
 "settings.battery.chargeLimit.support" = "Para Mac compatibles con chip de Apple y macOS 26.4 o posterior. macOS puede cargar por completo ocasionalmente para mantener la precisión del nivel de batería.";
 "settings.battery.chargeLimit.checking" = "Comprobando el límite de carga guardado…";
 "settings.battery.chargeLimit.restoreScopeHint" = "Solo se usa cuando no hay un límite de carga gestionado seleccionado.";
+"settings.battery.restoreLimitManagedLocked" = "«Límite de carga» controla el límite de carga, así que este límite de restauración no se puede cambiar. Elige «Gestionado por el sistema» allí para editarlo.";

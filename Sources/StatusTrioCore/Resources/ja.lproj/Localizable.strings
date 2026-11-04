@@ -736,3 +736,4 @@
 "settings.battery.chargeLimit.support" = "macOS 26.4 以降を搭載した対応する Apple シリコン Mac で利用できます。macOS はバッテリー残量の精度を保つため、時折フル充電する場合があります。";
 "settings.battery.chargeLimit.checking" = "保存された充電上限を確認中…";
 "settings.battery.chargeLimit.restoreScopeHint" = "管理対象の充電上限が選択されていない場合にのみ使用されます。";
+"settings.battery.restoreLimitManagedLocked" = "「充電上限」が上限を管理しているため、この復元上限は変更できません。そこで「システム管理」を選ぶと変更できます。";

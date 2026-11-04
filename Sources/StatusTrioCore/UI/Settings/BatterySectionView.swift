@@ -42,6 +42,26 @@ struct BatterySectionView: View {
         return base + " " + localization.string(.settingsBatteryChargeLimitRestoreScopeHint)
     }
 
+    /// Replaces the legacy restore-limit control while a managed charge limit
+    /// owns the restore target. A silently disabled slider reads as "cannot be
+    /// changed" without a reason, so the row is hidden and this warning states
+    /// what is controlling it and how to get the setting back.
+    private var restoreLimitLockedWarning: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+            Text(localization.string(.settingsBatteryRestoreLimitManagedLocked))
+                .font(.caption)
+                .foregroundStyle(.red)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
+    }
+
     /// A Mac without a battery reports 100 as its level; spell that out at the
     /// top of the page so nobody reads the placeholder as a real reading.
     private var noBatteryNoticeGroup: some View {
@@ -149,7 +169,8 @@ struct BatterySectionView: View {
                 // override runs, so the cancel target is an explicit setting
                 // rather than a guess. The link fills it in from the system
                 // once; afterwards it stays a plain editable value.
-                SettingsRow(
+                if !managedLimitGovernsRestore {
+                    SettingsRow(
                     "arrow.uturn.backward.circle",
                     tint: .green,
                     title: localization.string(.settingsBatteryRestoreLimit),
@@ -195,6 +216,9 @@ struct BatterySectionView: View {
                         }
                     }
                 )
+                } else {
+                    restoreLimitLockedWarning
+                }
 
                 SettingsDivider()
             }

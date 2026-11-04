@@ -736,3 +736,4 @@
 "settings.battery.chargeLimit.support" = "Für unterstützte Macs mit Apple Chip und macOS 26.4 oder neuer. macOS lädt gelegentlich vollständig auf, um die Genauigkeit der Ladestandsanzeige zu erhalten.";
 "settings.battery.chargeLimit.checking" = "Gespeichertes Ladelimit wird geprüft…";
 "settings.battery.chargeLimit.restoreScopeHint" = "Wird nur verwendet, wenn kein verwalteter Ladegrenzwert ausgewählt ist.";
+"settings.battery.restoreLimitManagedLocked" = "„Ladelimit“ steuert derzeit die Ladegrenze, daher kann diese Wiederherstellungsgrenze nicht geändert werden. Wähle dort „Vom System verwaltet“, um sie zu bearbeiten.";

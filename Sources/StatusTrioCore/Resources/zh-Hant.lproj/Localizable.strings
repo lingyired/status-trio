@@ -736,3 +736,4 @@
 "settings.battery.chargeLimit.support" = "適用於搭載 Apple 晶片且支援此功能的 Mac，需要 macOS 26.4 或以上版本。macOS 可能會偶爾充滿電，以維持電量估算準確。";
 "settings.battery.chargeLimit.checking" = "正在檢查已儲存的充電上限…";
 "settings.battery.chargeLimit.restoreScopeHint" = "僅在未選擇託管充電上限時使用。";
+"settings.battery.restoreLimitManagedLocked" = "「充電上限」正在接管最高充電值，因此此處的恢復上限無法修改。請在「充電上限」裡選擇「由系統管理」後再修改。";
