@@ -166,6 +166,7 @@
 "settings.battery.group.charging" = "Laden";
 "settings.battery.group.powerModes" = "Energiemodi";
 "settings.battery.group.power" = "Leistung";
+"settings.battery.group.all" = "Alle";
 "settings.battery.noBatteryNotice" = "Dieses Gerät hat keinen Akku, daher wird der Batteriestand standardmäßig als 100 angezeigt.";
 "settings.battery.showPercentage" = "Batterieprozentsatz anzeigen";
 "settings.battery.showChargingIndicator" = "Symbol beim Laden oder Netzbetrieb anzeigen";

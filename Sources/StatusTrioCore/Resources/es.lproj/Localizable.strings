@@ -166,6 +166,7 @@
 "settings.battery.group.charging" = "Carga";
 "settings.battery.group.powerModes" = "Modos de energía";
 "settings.battery.group.power" = "Consumo";
+"settings.battery.group.all" = "Todo";
 "settings.battery.noBatteryNotice" = "Este dispositivo no tiene batería, por lo que el nivel de batería se muestra como 100 de forma predeterminada.";
 "settings.battery.showPercentage" = "Mostrar porcentaje de batería";
 "settings.battery.showChargingIndicator" = "Mostrar un indicador al cargar o conectar a la corriente";

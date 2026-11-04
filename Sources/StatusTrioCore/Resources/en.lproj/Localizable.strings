@@ -166,6 +166,7 @@
 "settings.battery.group.charging" = "Charging";
 "settings.battery.group.powerModes" = "Power Modes";
 "settings.battery.group.power" = "Power";
+"settings.battery.group.all" = "All";
 "settings.battery.noBatteryNotice" = "This device has no battery, so the battery level is shown as 100 by default.";
 "settings.battery.showPercentage" = "Show battery percentage";
 "settings.battery.showChargingIndicator" = "Show an indicator while charging or connected to power";

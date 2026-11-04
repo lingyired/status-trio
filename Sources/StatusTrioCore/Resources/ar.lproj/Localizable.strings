@@ -149,6 +149,7 @@
 "settings.battery.group.charging" = "الشحن";
 "settings.battery.group.powerModes" = "أوضاع الطاقة";
 "settings.battery.group.power" = "الطاقة";
+"settings.battery.group.all" = "الكل";
 "settings.battery.noBatteryNotice" = "لا يحتوي هذا الجهاز على بطارية، لذا يُعرض مستوى البطارية على أنه 100 افتراضيًا.";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";
