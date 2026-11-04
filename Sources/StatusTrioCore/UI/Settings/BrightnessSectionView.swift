@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The Brightness settings tab (#241/#239).
@@ -6,7 +7,14 @@ import SwiftUI
 /// external displays, the brightness backend choice (direct DDC or the optional
 /// BetterDisplay backend). Built-in displays are fixed to DisplayServices, so
 /// their row carries a read-only note instead of a picker.
+///
+/// A closing note explains the DDC compatibility limit and points at
+/// BetterDisplay, because a display whose vendor DDC dialect Status Trio cannot
+/// speak is still adjustable through that app.
 struct BrightnessSectionView: View {
+    /// The BetterDisplay project site, linked from the compatibility note.
+    static let betterDisplayWebsiteURL = URL(string: "https://betterdisplay.pro")
+
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @EnvironmentObject private var localization: Localization
@@ -14,6 +22,7 @@ struct BrightnessSectionView: View {
     var body: some View {
         SettingsPage {
             displaysGroup
+            compatibilityGroup
         }
         .onAppear {
             // Reading brightness is demand-gated: keep it alive only while this
@@ -45,6 +54,32 @@ struct BrightnessSectionView: View {
                 }
             }
         }
+    }
+
+    /// Closing note for displays Status Trio cannot drive directly: vendor DDC
+    /// implementations differ, so the honest answer is to hand those displays to
+    /// a dedicated app rather than claim full coverage.
+    private var compatibilityGroup: some View {
+        SettingsGroup {
+            SettingsRow(
+                "questionmark.circle",
+                tint: .secondary,
+                title: localization.string(.settingsBrightnessCompatibilityTitle),
+                subtitle: localization.string(.settingsBrightnessCompatibilityDescription),
+                subtitleLink: Text(
+                    localization.string(.settingsBrightnessCompatibilityLink)
+                )
+                .foregroundColor(Color.accentColor),
+                subtitleLinkAction: openBetterDisplayWebsite
+            ) {
+                EmptyView()
+            }
+        }
+    }
+
+    private func openBetterDisplayWebsite() {
+        guard let url = Self.betterDisplayWebsiteURL else { return }
+        NSWorkspace.shared.open(url)
     }
 
     @ViewBuilder

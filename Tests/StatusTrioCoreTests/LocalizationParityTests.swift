@@ -111,6 +111,35 @@ final class LocalizationParityTests: XCTestCase {
         }
     }
 
+    func testBrightnessCompatibilityCopyIsTranslatedInEveryLanguage() throws {
+        let keys = [
+            "settings.tab.brightness",
+            "settings.brightness.group.title",
+            "settings.brightness.description",
+            "settings.brightness.empty",
+            "settings.brightness.builtIn",
+            "settings.brightness.internalBackend.description",
+            "settings.brightness.externalBackend.description",
+            "settings.brightness.backend.betterDisplayNeeded",
+            "settings.brightness.compatibility.title",
+            "settings.brightness.compatibility.description",
+            "settings.brightness.compatibility.link"
+        ]
+        XCTAssertEqual(keys.count, 11)
+
+        for language in AppLanguage.allCases {
+            let values = Dictionary(
+                uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) }
+            )
+            for key in keys {
+                XCTAssertFalse(
+                    (values[key] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    "\(language.rawValue).lproj: \(key) is missing or empty"
+                )
+            }
+        }
+    }
+
     func testTelemetryConsentTranslationsArePresentInEveryLanguage() throws {
         let keys = [
             "settings.analytics.title",

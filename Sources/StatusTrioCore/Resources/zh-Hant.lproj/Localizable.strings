@@ -669,7 +669,7 @@
 "brightness.unresponsive" = "沒有回應";
 "brightness.backend.directDDC" = "直接 DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "關閉某台顯示器即從狀態面板中隱藏其亮度列。外接顯示器還可選用 BetterDisplay 後端。";
+"settings.brightness.description" = "關閉某台顯示器即從狀態面板中隱藏其亮度列。";
 "settings.brightness.backend" = "亮度後端";
 // About: community, author social links and more apps
 "settings.about.social.title" = "關注作者";
@@ -725,3 +725,6 @@
 "settings.brightness.internalBackend.description" = "內建顯示器的亮度使用 DisplayServices 後端。";
 "settings.brightness.externalBackend.description" = "選擇 Status Trio 控制此顯示器亮度的方式。";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay 未執行，或未開啟通知整合。";
+"settings.brightness.compatibility.title" = "顯示器調不了亮度？";
+"settings.brightness.compatibility.description" = "各家顯示器的 DDC 實作並不統一，Status Trio 無法涵蓋所有型號。如果某台顯示器的亮度在這裡調不了，可以把它切到 BetterDisplay 後端——Status Trio 會透過 BetterDisplay 來調節。";
+"settings.brightness.compatibility.link" = "前往 BetterDisplay 官網";

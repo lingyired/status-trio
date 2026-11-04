@@ -669,7 +669,7 @@
 "brightness.unresponsive" = "لا يستجيب";
 "brightness.backend.directDDC" = "DDC مباشر";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "أوقف تشغيل شاشة لإخفاء صف السطوع الخاص بها. يمكن للشاشات الخارجية أيضًا استخدام خلفية BetterDisplay.";
+"settings.brightness.description" = "أوقف تشغيل شاشة لإخفاء صف السطوع الخاص بها.";
 "settings.brightness.backend" = "خلفية السطوع";
 // About: community, author social links and more apps
 "settings.about.social.title" = "متابعة المؤلف";
@@ -725,3 +725,6 @@
 "settings.brightness.internalBackend.description" = "يستخدم سطوع الشاشة المدمجة خلفية DisplayServices.";
 "settings.brightness.externalBackend.description" = "اختر كيفية تحكم Status Trio في سطوع هذه الشاشة.";
 "settings.brightness.backend.betterDisplayNeeded" = "تطبيق BetterDisplay غير قيد التشغيل أو أن تكامل الإشعارات فيه معطّل.";
+"settings.brightness.compatibility.title" = "لا يمكن التحكم في السطوع؟";
+"settings.brightness.compatibility.description" = "تختلف طريقة تنفيذ DDC بين مصنّعي الشاشات، لذا لا يمكن لـ Status Trio دعم كل الطُرز. إذا تعذّر ضبط سطوع شاشة من هنا، فبدّل خلفيتها إلى BetterDisplay — وسيتحكم Status Trio بها عبر BetterDisplay.";
+"settings.brightness.compatibility.link" = "احصل على BetterDisplay";

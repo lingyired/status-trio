@@ -669,7 +669,7 @@
 "brightness.unresponsive" = "Non risponde";
 "brightness.backend.directDDC" = "DDC diretto";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Disattiva un display per nascondere la relativa riga della luminosità. I display esterni possono anche usare il backend BetterDisplay.";
+"settings.brightness.description" = "Disattiva un display per nascondere la relativa riga della luminosità.";
 "settings.brightness.backend" = "Backend luminosità";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Segui l’autore";
@@ -725,3 +725,6 @@
 "settings.brightness.internalBackend.description" = "La luminosità del display integrato usa il backend DisplayServices.";
 "settings.brightness.externalBackend.description" = "Scegli come Status Trio controlla la luminosità di questo display.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay non è in esecuzione o la sua integrazione delle notifiche è disattivata.";
+"settings.brightness.compatibility.title" = "Luminosità non controllabile?";
+"settings.brightness.compatibility.description" = "Ogni produttore implementa DDC a modo suo, quindi Status Trio non può coprire tutti i modelli. Se la luminosità di un display non è regolabile qui, passalo al backend BetterDisplay: Status Trio lo controllerà tramite BetterDisplay.";
+"settings.brightness.compatibility.link" = "Scarica BetterDisplay";

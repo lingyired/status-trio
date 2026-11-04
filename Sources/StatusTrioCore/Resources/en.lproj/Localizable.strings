@@ -667,7 +667,7 @@
 "brightness.unresponsive" = "Not responding";
 "brightness.backend.directDDC" = "Direct DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Turn a display off to hide its brightness row. External displays can also use the BetterDisplay backend.";
+"settings.brightness.description" = "Turn a display off to hide its brightness row.";
 "settings.brightness.backend" = "Brightness Backend";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Follow the Author";
@@ -723,3 +723,6 @@
 "settings.brightness.internalBackend.description" = "Built-in display brightness uses the DisplayServices backend.";
 "settings.brightness.externalBackend.description" = "Choose how Status Trio controls this display's brightness.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay isn't running or its notification integration is off.";
+"settings.brightness.compatibility.title" = "Can't control a display?";
+"settings.brightness.compatibility.description" = "Display vendors implement DDC differently, so Status Trio can't cover every model. If a display's brightness can't be adjusted here, switch it to the BetterDisplay backend — Status Trio will drive it through BetterDisplay.";
+"settings.brightness.compatibility.link" = "Get BetterDisplay";

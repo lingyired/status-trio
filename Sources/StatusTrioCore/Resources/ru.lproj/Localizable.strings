@@ -669,7 +669,7 @@
 "brightness.unresponsive" = "Не отвечает";
 "brightness.backend.directDDC" = "Прямой DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Отключите дисплей, чтобы скрыть его строку яркости. Внешние дисплеи также могут использовать бэкенд BetterDisplay.";
+"settings.brightness.description" = "Отключите дисплей, чтобы скрыть его строку яркости.";
 "settings.brightness.backend" = "Бэкенд яркости";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Подписаться на автора";
@@ -725,3 +725,6 @@
 "settings.brightness.internalBackend.description" = "Яркость встроенного дисплея использует бэкенд DisplayServices.";
 "settings.brightness.externalBackend.description" = "Выберите, как Status Trio управляет яркостью этого дисплея.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay не запущен или его интеграция с уведомлениями отключена.";
+"settings.brightness.compatibility.title" = "Не регулируется яркость?";
+"settings.brightness.compatibility.description" = "Производители реализуют DDC по-разному, поэтому Status Trio не может поддерживать все модели. Если яркость дисплея здесь не регулируется, переключите его на бэкенд BetterDisplay — Status Trio будет управлять им через BetterDisplay.";
+"settings.brightness.compatibility.link" = "Скачать BetterDisplay";

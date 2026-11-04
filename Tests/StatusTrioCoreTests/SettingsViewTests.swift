@@ -368,6 +368,27 @@ final class SettingsViewTests: XCTestCase {
             "the status-panel pane must not keep any scroll-to-volume control"
         )
     }
+
+    /// The compatibility note tells users whose display DDC Status Trio cannot
+    /// speak to use BetterDisplay, and links to its site. Pin the URL and the
+    /// fact that the note actually reaches the page.
+    func testBrightnessPaneLinksToTheBetterDisplaySite() throws {
+        XCTAssertEqual(
+            BrightnessSectionView.betterDisplayWebsiteURL?.absoluteString,
+            "https://betterdisplay.pro"
+        )
+
+        let sourceURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings/BrightnessSectionView.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+        XCTAssertTrue(source.contains("settingsBrightnessCompatibilityDescription"))
+        XCTAssertTrue(source.contains("settingsBrightnessCompatibilityLink"))
+        XCTAssertTrue(source.contains("compatibilityGroup"))
+        XCTAssertTrue(source.contains("NSWorkspace.shared.open"))
+    }
 }
 
 @MainActor
