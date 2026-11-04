@@ -160,6 +160,12 @@
 "settings.about.starOnGitHub" = "Destacar en GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Visualización de la batería";
+"settings.battery.group.icon" = "Icono de batería";
+"settings.battery.group.colors" = "Estado y colores";
+"settings.battery.group.chargingEffects" = "Efectos de carga";
+"settings.battery.group.charging" = "Carga";
+"settings.battery.group.powerModes" = "Modos de energía";
+"settings.battery.group.power" = "Consumo";
 "settings.battery.noBatteryNotice" = "Este dispositivo no tiene batería, por lo que el nivel de batería se muestra como 100 de forma predeterminada.";
 "settings.battery.showPercentage" = "Mostrar porcentaje de batería";
 "settings.battery.showChargingIndicator" = "Mostrar un indicador al cargar o conectar a la corriente";

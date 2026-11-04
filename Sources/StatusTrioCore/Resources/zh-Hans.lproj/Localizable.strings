@@ -160,6 +160,12 @@
 "settings.about.starOnGitHub" = "在 GitHub 上标星";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "电池显示";
+"settings.battery.group.icon" = "电池图标";
+"settings.battery.group.colors" = "状态与颜色";
+"settings.battery.group.chargingEffects" = "充电效果";
+"settings.battery.group.charging" = "充电";
+"settings.battery.group.powerModes" = "电量模式";
+"settings.battery.group.power" = "功耗";
 "settings.battery.noBatteryNotice" = "当前设备没有电池，所以电量显示默认为 100。";
 "settings.battery.showPercentage" = "显示电量数字";
 "settings.battery.showChargingIndicator" = "充电/连接电源时显示指示图标";

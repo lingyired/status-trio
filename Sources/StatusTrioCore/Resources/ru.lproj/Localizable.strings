@@ -160,6 +160,12 @@
 "settings.about.starOnGitHub" = "Поставить звезду на GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Отображение батареи";
+"settings.battery.group.icon" = "Значок аккумулятора";
+"settings.battery.group.colors" = "Состояние и цвета";
+"settings.battery.group.chargingEffects" = "Эффекты зарядки";
+"settings.battery.group.charging" = "Зарядка";
+"settings.battery.group.powerModes" = "Режимы питания";
+"settings.battery.group.power" = "Энергопотребление";
 "settings.battery.noBatteryNotice" = "На этом устройстве нет аккумулятора, поэтому уровень заряда по умолчанию отображается как 100.";
 "settings.battery.showPercentage" = "Показывать процент заряда";
 "settings.battery.showChargingIndicator" = "Показывать значок при зарядке или питании от сети";

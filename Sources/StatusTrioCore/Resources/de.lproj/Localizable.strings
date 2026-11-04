@@ -160,6 +160,12 @@
 "settings.about.starOnGitHub" = "Auf GitHub markieren";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Batterieanzeige";
+"settings.battery.group.icon" = "Batterie-Symbol";
+"settings.battery.group.colors" = "Status & Farben";
+"settings.battery.group.chargingEffects" = "Ladeeffekte";
+"settings.battery.group.charging" = "Laden";
+"settings.battery.group.powerModes" = "Energiemodi";
+"settings.battery.group.power" = "Leistung";
 "settings.battery.noBatteryNotice" = "Dieses Gerät hat keinen Akku, daher wird der Batteriestand standardmäßig als 100 angezeigt.";
 "settings.battery.showPercentage" = "Batterieprozentsatz anzeigen";
 "settings.battery.showChargingIndicator" = "Symbol beim Laden oder Netzbetrieb anzeigen";

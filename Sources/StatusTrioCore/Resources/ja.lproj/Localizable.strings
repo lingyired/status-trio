@@ -160,6 +160,12 @@
 "settings.about.starOnGitHub" = "GitHub でスターを付ける";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "バッテリー表示";
+"settings.battery.group.icon" = "バッテリーアイコン";
+"settings.battery.group.colors" = "状態と色";
+"settings.battery.group.chargingEffects" = "充電エフェクト";
+"settings.battery.group.charging" = "充電";
+"settings.battery.group.powerModes" = "電力モード";
+"settings.battery.group.power" = "電力";
 "settings.battery.noBatteryNotice" = "このデバイスにはバッテリーがないため、バッテリー残量は既定で 100 と表示されます。";
 "settings.battery.showPercentage" = "バッテリー残量を表示";
 "settings.battery.showChargingIndicator" = "充電中または電源接続時にアイコンを表示";

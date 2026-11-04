@@ -143,6 +143,12 @@
 "settings.about.starOnGitHub" = "نجمة على GitHub";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "عرض البطارية";
+"settings.battery.group.icon" = "رمز البطارية";
+"settings.battery.group.colors" = "الحالة والألوان";
+"settings.battery.group.chargingEffects" = "تأثيرات الشحن";
+"settings.battery.group.charging" = "الشحن";
+"settings.battery.group.powerModes" = "أوضاع الطاقة";
+"settings.battery.group.power" = "الطاقة";
 "settings.battery.noBatteryNotice" = "لا يحتوي هذا الجهاز على بطارية، لذا يُعرض مستوى البطارية على أنه 100 افتراضيًا.";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";

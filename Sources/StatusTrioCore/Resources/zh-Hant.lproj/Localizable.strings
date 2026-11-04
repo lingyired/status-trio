@@ -160,6 +160,12 @@
 "settings.about.starOnGitHub" = "在 GitHub 上標星";
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "電池顯示";
+"settings.battery.group.icon" = "電池圖示";
+"settings.battery.group.colors" = "狀態與顏色";
+"settings.battery.group.chargingEffects" = "充電效果";
+"settings.battery.group.charging" = "充電";
+"settings.battery.group.powerModes" = "電量模式";
+"settings.battery.group.power" = "功耗";
 "settings.battery.noBatteryNotice" = "目前裝置沒有電池，所以電量顯示預設為 100。";
 "settings.battery.showPercentage" = "顯示電量數字";
 "settings.battery.showChargingIndicator" = "充電/連接電源時顯示指示圖示";
