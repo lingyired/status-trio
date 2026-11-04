@@ -260,6 +260,10 @@ What exists in this branch (source-level evidence only):
 - Before sleep the app asks the helper to force the Silicon gate closed (a
   temporary full charge is preserved, and Intel's firmware ceiling is a no-op);
   wake re-evaluates from hardware.
+- The settings group offers an explicit "Restore original charging" entry
+  whenever the app cannot confirm the cap (failed verification, failed restore,
+  or a foreign change). Turning the limit off performs the same verified
+  helper operation.
 - The battery details page shows one compact row (target + state + a single
   full-charge/cancel action) derived from the controller; it adds no second
   battery monitor and no timer.
