@@ -89,7 +89,7 @@ struct VolumeIndicatorPreview: View {
         ZStack {
             MenuBarPreviewBackdrop(isDarkBackground: isDarkBackground)
 
-            Image(nsImage: StatusIconRenderer.image(
+            Image(nsImage: StatusIconPreviewCache.shared.image(
                 scene: previewScene,
                 size: 28,
                 scale: NSScreen.main?.backingScaleFactor ?? 2,
@@ -289,7 +289,7 @@ struct RingStrokeStylePreview: View {
         ZStack {
             MenuBarPreviewBackdrop(isDarkBackground: isDarkBackground)
 
-            Image(nsImage: StatusIconRenderer.image(
+            Image(nsImage: StatusIconPreviewCache.shared.image(
                 scene: previewScene,
                 size: 28,
                 scale: NSScreen.main?.backingScaleFactor ?? 2,

@@ -441,7 +441,7 @@ private enum MiddleIconPreviewScene {
             configuration: configuration,
             now: now
         )
-        return StatusIconRenderer.image(
+        return StatusIconPreviewCache.shared.image(
             scene: scene,
             size: 28,
             scale: 2,

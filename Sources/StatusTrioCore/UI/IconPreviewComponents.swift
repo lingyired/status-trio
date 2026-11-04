@@ -124,7 +124,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
                 Spacer(minLength: 16)
 
                 ZStack {
-                    Image(nsImage: StatusIconRenderer.image(
+                    Image(nsImage: StatusIconPreviewCache.shared.image(
                         scene: scene,
                         size: iconSize,
                         scale: NSScreen.main?.backingScaleFactor ?? 2,
