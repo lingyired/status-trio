@@ -102,6 +102,11 @@ final class SystemStatusStore: ObservableObject {
 
     @Published private(set) var wifiPowerIsChanging = false
     @Published private(set) var wifiPowerFailed = false
+    /// The radio state the most recent summary/quick power request asked for.
+    /// A failed write stays visible until a snapshot reports this state, since
+    /// macOS can also change the radio from System Settings while the panel is
+    /// open. A mismatched or missing interface leaves the failure in place.
+    private var requestedWiFiPowerState: Bool?
     @Published private(set) var snapshot: StatusSnapshot
     @Published private(set) var popupSnapshot: StatusSnapshot
     /// The VPN row's value. Deliberately not part of `StatusSnapshot`: nothing
@@ -670,6 +675,7 @@ final class SystemStatusStore: ObservableObject {
         guard !hasStopped, snapshot.wifi.state != .unavailable, !wifiPowerIsChanging else { return }
         wifiPowerIsChanging = true
         wifiPowerFailed = false
+        requestedWiFiPowerState = enabled
         wifiNetworks.setPowerFromQuickAction(enabled) { [weak self] changed in
             guard let self, !self.hasStopped else { return }
             self.wifiPowerIsChanging = false
@@ -1792,6 +1798,7 @@ final class SystemStatusStore: ObservableObject {
 
     private func publish(_ next: StatusSnapshot, immediately: Bool = false) {
         guard !hasStopped else { return }
+        reconcileWiFiPowerFailure(with: next.wifi)
         let changed = next != lastPublishedSnapshot
         if changed {
             lastPublishedSnapshot = next
@@ -1808,6 +1815,17 @@ final class SystemStatusStore: ObservableObject {
         popupPublishTask?.cancel()
         popupPublishTask = nil
         if popupSnapshot != next { applyPopupSnapshot(next) }
+    }
+
+    /// Clears a stale power-change failure once the snapshot reports the radio
+    /// state the last request asked for. The single snapshot-update entry point
+    /// runs this, so a system-side change or a later successful write clears the
+    /// message without waiting for another power action.
+    private func reconcileWiFiPowerFailure(with wifi: WiFiStatus) {
+        guard let requested = requestedWiFiPowerState, wifi.state != .unavailable else { return }
+        guard WiFiPowerControlVisibility.isRadioOn(state: wifi.state) == requested else { return }
+        requestedWiFiPowerState = nil
+        wifiPowerFailed = false
     }
 
     private func schedulePopupSnapshot(_ next: StatusSnapshot) {

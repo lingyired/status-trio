@@ -241,6 +241,54 @@ final class WiFiPowerSummaryTests: XCTestCase {
         XCTAssertTrue(store.wifiPowerFailed, "a rejected write must be visible")
     }
 
+    func testFailedPowerWriteClearsWhenTheSnapshotMatchesTheRequestedState() async {
+        let fixture = makeStartedStore(wifiState: .connected, powerSucceeds: false)
+        let store = fixture.store
+        store.setWiFiPower(false)
+        await waitUntil { !store.wifiPowerIsChanging && fixture.scanner.powerValues.count == 1 }
+        XCTAssertTrue(store.wifiPowerFailed)
+
+        // The radio reaching the requested off state clears the message.
+        fixture.monitor.send(WiFiStatus(state: .off, rssi: nil))
+        await waitUntil { !store.wifiPowerFailed }
+        XCTAssertFalse(store.wifiPowerFailed, "a matching snapshot must clear the stale failure")
+    }
+
+    func testFailedPowerWriteClearsWhenTurningOnReachesConnected() async {
+        let fixture = makeStartedStore(wifiState: .off, powerSucceeds: false)
+        let store = fixture.store
+        store.setWiFiPower(true)
+        await waitUntil { !store.wifiPowerIsChanging && fixture.scanner.powerValues.count == 1 }
+        XCTAssertTrue(store.wifiPowerFailed)
+
+        fixture.monitor.send(WiFiStatus(state: .connected, rssi: -50))
+        await waitUntil { !store.wifiPowerFailed }
+        XCTAssertFalse(store.wifiPowerFailed)
+    }
+
+    func testFailedPowerWriteStaysWhileTheSnapshotDisagrees() async {
+        let fixture = makeStartedStore(wifiState: .connected, powerSucceeds: false)
+        let store = fixture.store
+        store.setWiFiPower(false)
+        await waitUntil { !store.wifiPowerIsChanging && fixture.scanner.powerValues.count == 1 }
+        XCTAssertTrue(store.wifiPowerFailed)
+
+        fixture.monitor.send(WiFiStatus(state: .connected, rssi: -55))
+        try? await Task.sleep(for: .milliseconds(60))
+        XCTAssertTrue(store.wifiPowerFailed, "a snapshot that still reports on keeps the failure")
+    }
+
+    func testFailedPowerWriteStaysWhenTheInterfaceDisappears() async {
+        let fixture = makeStartedStore(wifiState: .connected, powerSucceeds: false)
+        let store = fixture.store
+        store.setWiFiPower(false)
+        await waitUntil { !store.wifiPowerIsChanging && fixture.scanner.powerValues.count == 1 }
+
+        fixture.monitor.send(WiFiStatus(state: .unavailable, rssi: nil))
+        try? await Task.sleep(for: .milliseconds(60))
+        XCTAssertTrue(store.wifiPowerFailed, "an unavailable interface cannot confirm the target")
+    }
+
     func testPowerActionIsIgnoredWithoutWiFiHardware() async {
         let scanner = FakeWiFiPowerScanner()
         let controller = WiFiNetworkController(scanWorker: scanner)
@@ -351,6 +399,25 @@ final class WiFiPowerSummaryTests: XCTestCase {
         return try XCTUnwrap(SummaryActionAlignmentProbe(hosting))
     }
 
+    private func makeStartedStore(
+        wifiState: WiFiState,
+        powerSucceeds: Bool
+    ) -> (store: SystemStatusStore, scanner: FakeWiFiPowerScanner, monitor: CountingWiFiMonitor) {
+        let scanner = FakeWiFiPowerScanner()
+        scanner.powerSucceeds = powerSucceeds
+        let controller = WiFiNetworkController(scanWorker: scanner)
+        let monitor = CountingWiFiMonitor()
+        let store = makeStore(
+            scanner: scanner,
+            controller: controller,
+            wifiMonitor: monitor,
+            wifiState: wifiState
+        )
+        store.start()
+        addTeardownBlock { store.stop() }
+        return (store, scanner, monitor)
+    }
+
     private func waitUntil(_ condition: () -> Bool) async {
         for _ in 0..<1_000 {
             if condition() { return }
@@ -384,9 +451,15 @@ private final class FakeWiFiPowerScanner: WiFiNetworkScanning, @unchecked Sendab
 
 @MainActor
 private final class CountingWiFiMonitor: WiFiMonitoring {
-    let updates = AsyncStream<WiFiStatus> { $0.finish() }
+    let updates: AsyncStream<WiFiStatus>
+    private let continuation: AsyncStream<WiFiStatus>.Continuation
     private(set) var refreshCount = 0
 
+    init() {
+        (updates, continuation) = AsyncStream.makeStream()
+    }
+
+    func send(_ value: WiFiStatus) { continuation.yield(value) }
     func start() {}
     func stop() {}
     func refresh() { refreshCount += 1 }
