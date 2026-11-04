@@ -23,6 +23,25 @@ enum LegacyRuntimeArchitecture: Equatable, Sendable {
     var isPotentiallySupported: Bool {
         self == .intel || self == .appleSilicon
     }
+
+    /// Runtime classification. Rosetta on Apple Silicon reports `x86_64`, so
+    /// the translation flag has to win over the compile-time architecture.
+    static var current: LegacyRuntimeArchitecture {
+        #if arch(x86_64)
+        return isRosettaProcess() ? .rosetta : .intel
+        #elseif arch(arm64)
+        return .appleSilicon
+        #else
+        return .unsupported
+        #endif
+    }
+
+    private static func isRosettaProcess() -> Bool {
+        var translated: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        let result = sysctlbyname("sysctl.proc_translated", &translated, &size, nil, 0)
+        return result == 0 && translated == 1
+    }
 }
 
 enum LegacyOSBand: Equatable, Sendable {
@@ -39,6 +58,10 @@ enum LegacyOSBand: Equatable, Sendable {
 
     var allowsLegacyLimiter: Bool {
         self == .thirteenToFourteen || self == .fifteen
+    }
+
+    static var current: LegacyOSBand {
+        LegacyOSBandFactor.band(ProcessInfo.processInfo.operatingSystemVersion)
     }
 }
 
@@ -145,6 +168,11 @@ enum LegacyChargeLimitStatus: Equatable, Sendable {
     case temporarilyChargingToFull
     case unsupported
     case restoreFailed
+    /// A write or verification did not take; the user may retry explicitly.
+    case failed
+    /// Another controller changed the hardware value; automatic management is
+    /// paused until the user re-applies or chooses a limit.
+    case externalChange
     /// Hardware control is not verified on this host (missing/writable-key
     /// validation did not pass). Distinct from "unsupported" because the host
     /// may eventually support it after a validated probe.
