@@ -333,6 +333,19 @@ final class LegacyChargeLimitServiceTests: XCTestCase {
         XCTAssertTrue(executor.writes.isEmpty)
     }
 
+    func testBothSiliconFamiliesPresentUsesTheRecordedPairOnly() {
+        let executor = ByteSMC(store: [
+            "CH0B": Data([0x00]), "CH0C": Data([0x00]),
+            "CHTE": Data([0, 0, 0, 0]),
+        ])
+        let service = makeService(executor, battery: FakeBatterySource(level: 90), isIntel: false)
+        var result: SMLegacyChargeLimitWriteReply?
+        service.setLegacyChargeLimit(80, expectedLimit: nil) { result = $0 }
+        XCTAssertEqual(result?.succeeded, true)
+        XCTAssertEqual(executor.readKey("CH0B"), Data([0x02]))
+        XCTAssertEqual(executor.readKey("CHTE"), Data([0, 0, 0, 0]), "Do not mix key families")
+    }
+
     // MARK: - Journal
 
     func testPendingJournalIsPersistedBeforeTheWriteAndClearedOnDisable() {

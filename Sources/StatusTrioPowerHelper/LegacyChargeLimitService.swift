@@ -384,7 +384,12 @@ final class LegacyChargeLimitService: NSObject, LegacyChargeLimitXPCProtocol, @u
                 level: level, limit: limit, currentlyAllowed: open
             )
         }
-        if current["CHTE"] != nil { return ["CHTE": allow ? Data([0, 0, 0, 0]) : Data([1, 0, 0, 0])] }
+        // Choose the family from the journaled key set, never from whichever
+        // keys happen to exist now; mixing families would fail the closed-set
+        // check and could leave a partially owned gate.
+        if session.originalRaw["CHTE"] != nil {
+            return ["CHTE": allow ? Data([0, 0, 0, 0]) : Data([1, 0, 0, 0])]
+        }
         return ["CH0B": Data([allow ? 0 : 2]), "CH0C": Data([allow ? 0 : 2])]
     }
 
