@@ -193,3 +193,71 @@ Nothing in this note substitutes for a real-hardware Physical Device check
 - [smc-command](https://github.com/hholtmann/smcFanControl/tree/master/smc-command) (GPL-2.0) — SMC I/O interface shape.
 - [gosmc](https://github.com/charlie0129/gosmc) (GPL-2.0) — SMC library interface.
 - [calma](https://github.com/Milanpatel35/calma) (GPL-3.0) — architecture reference, allowlist, fake SMC.
+---
+
+## 7. Audited source revisions (2026-11-04)
+
+Fresh shallow clones in an isolated temp directory. Commit identifiers are
+recorded so a later reader can reproduce the audit; no project files were
+copied into Status Trio.
+
+| Project | Audited commit | Licence |
+| --- | --- | --- |
+| bclm | `ae2c209614755d81bf5b788513dba1d44280a6f6` | MIT |
+| batt | `57644f763ef03a443f1c697d3845e0d58b39a6df` | GPL-2.0 |
+| battery | `8288167d8bcfd396120a005ad3528a1e73904f2a` | MIT |
+| charge-limiter | `31836642d3012e3c3201fbf9a645c7196687a229` | GPL-3.0 |
+| smc-command | `e1bd672bcd2d72eddff9b6da7b9cae38e35c4206` | GPL-2.0 |
+| gosmc | `36c917295717bb50f098b591843eb23b4ca699dd` | GPL-2.0 |
+| calma | `6225f40b536b13434d1de8dba9d4d857ed7cf9ea` | GPL-3.0 |
+
+## 8. Implementation status on `fix/207-charge-limit-compat`
+
+What exists in this branch (source-level evidence only):
+
+- Pure domain model: runtime/OS classification, backend selection, status/error
+  taxonomy, session store (`LegacyChargeLimit*`).
+- Read-only capability probe with a closed key list and width/type/value
+  validation (`LegacySMCProbe`, `LegacyChargeSMCKeys`).
+- Helper coordinator: durable root-owned journal written before the first
+  write, `expectedLimit` ownership check before any write, multi-key rollback,
+  readback verification, restore on disable and on client loss.
+- `SMCPrivateAPI`: minimal AppleSMC IOKit bridge whose write allowlist is
+  `BCLM`/`CH0B`/`CH0C`/`CHTE`; linked only into the root helper.
+- Shared typed XPC capsule + combined protocol; Low Power Mode and the charge
+  limiter remain independent surfaces.
+- App-side availability (OS band, runtime architecture including Rosetta,
+  internal battery, probe facts), XPC client, controller and the Settings group,
+  localized in all 12 shipped languages.
+- The "prefer the system battery optimization" hint is gated by an explicit
+  macOS 26.4+ check, not by the private-API capability.
+
+**NOT RUN (no target hardware in this session):**
+
+- Any real SMC read or write on Intel or Apple Silicon macOS 13/14/15.
+- Charge cutoff behaviour at the requested ceiling, plug/unplug, sleep/wake and
+  lid-close.
+- Helper install/approval on a Developer ID build, XPC handshake at runtime.
+- Universal/signed/notarized packaging and macOS 13 runtime acceptance.
+
+`bash scripts/verify-local.sh full` passes for source, build and native
+contracts, but it is not hardware evidence.
+
+## 9. Manual reset procedure (must be validated on real hardware first)
+
+If the limiter cannot be turned off normally:
+
+1. Open Status Trio → Settings → Battery → turn the legacy limit off. The app
+   asks the helper to restore the journaled stock values and verify the
+   readback.
+2. Quit Status Trio. The helper restores the journal on client loss, then
+   idle-exits.
+3. If the app is gone and hardware remains capped: reinstall the same
+   development build and repeat step 1. On Intel, `BCLM` may persist in
+   firmware; after a full charge to 100% the ceiling returns to stock.
+4. If the helper cannot be reached, the journal is under
+   `/Library/Application Support/StatusTrio/`; a maintainer can inspect it, but
+   must not delete it before restoring, or the stock value is lost.
+
+This procedure is a design requirement for release; it has **not** been
+exercised on hardware.

@@ -29,7 +29,10 @@ struct BatterySectionView: View {
                       LegacyChargeLimitPlatformEligibility.isEligibleCurrent(
                           hasInternalBattery: statusStore.snapshot.battery.isPresent
                       ) {
-                LegacyChargeLimitSettingsView(controller: legacyChargeLimit)
+                LegacyChargeLimitSettingsView(
+                    controller: legacyChargeLimit,
+                    requestHelperApproval: { helper.setEnabled(true) }
+                )
             }
             powerFlowGroup
         }

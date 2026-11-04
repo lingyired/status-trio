@@ -6,6 +6,11 @@ import SwiftUI
 @MainActor
 struct LegacyChargeLimitSettingsView: View {
     @ObservedObject var controller: LegacyChargeLimitController
+    /// Registers the shared helper through the existing Login Items approval
+    /// flow. The helper is one signed resource for both Low Power Mode and the
+    /// charge limiter, so the legacy group reuses that affordance instead of
+    /// introducing a second approval mechanism.
+    var requestHelperApproval: () -> Void = {}
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
@@ -63,6 +68,12 @@ struct LegacyChargeLimitSettingsView: View {
                         .accessibilityLabel(
                             localization.string(.settingsBatteryLegacyChargeLimitChecking)
                         )
+                } else if needsHelperApproval {
+                    Button(localization.string(.settingsBatteryLegacyChargeLimitHelperRequired)) {
+                        requestHelperApproval()
+                        run { await controller.refresh() }
+                    }
+                    .controlSize(.small)
                 } else if controller.selectedLimit != nil {
                     Button(localization.string(.settingsBatteryLegacyChargeLimitChargeToFull)) {
                         run { await controller.chargeToFullOnce() }
@@ -94,7 +105,14 @@ struct LegacyChargeLimitSettingsView: View {
         )
     }
 
+    private var needsHelperApproval: Bool {
+        controller.availability == .unavailable(.helperUnavailable)
+    }
+
     private var statusText: String {
+        if needsHelperApproval {
+            return localization.string(.settingsBatteryLegacyChargeLimitHelperRequired)
+        }
         switch controller.status {
         case .notEnabled:
             return localization.string(.settingsBatteryLegacyChargeLimitNotEnabled)
