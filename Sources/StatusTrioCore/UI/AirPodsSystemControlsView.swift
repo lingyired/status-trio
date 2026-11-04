@@ -261,7 +261,7 @@ struct AirPodsSystemControlsView: View {
     @State private var adaptiveDraft: Double = 50
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 2) {
             if let listeningMode, listeningMode.isControllable {
                 Divider()
                 heading(.bluetoothListeningModeGroup)
@@ -304,12 +304,14 @@ struct AirPodsSystemControlsView: View {
             }
 
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
         .onDisappear { model.stop() }
     }
 
     private func heading(_ key: LocalizationKey) -> some View {
         Text(localization.string(key)).font(.callout.weight(.semibold))
+            .padding(.top, 6)
+            .padding(.bottom, 4)
     }
 
     @ViewBuilder private var adaptiveControl: some View {
@@ -339,7 +341,7 @@ struct AirPodsSystemControlsView: View {
 
     private func options(_ values: [AirPodsSystemOption], group: AirPodsSystemControls.Group,
                          symbol: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 0) {
             if values.isEmpty && !(model.snapshot.loaded || (group == .spatial ? model.snapshot.spatialLoaded : model.snapshot.conversationLoaded)) {
                 loadingIndicator.padding(.leading, 30)
             } else if values.isEmpty {
@@ -378,7 +380,7 @@ struct AirPodsSystemControlsView: View {
                 Spacer(minLength: 0)
             }
             .font(.body)
-            .padding(.vertical, 4)
+            .padding(.vertical, 2)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
