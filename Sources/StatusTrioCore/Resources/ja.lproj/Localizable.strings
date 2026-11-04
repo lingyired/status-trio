@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "現在の入力ソース";
 "settings.appIcon.middleIcon.batteryPercentage" = "バッテリー残量";
 "settings.appIcon.middleIcon.power" = "消費電力（W）";
+"settings.appIcon.middleIcon.chargingStatus" = "充電状態";
+"settings.appIcon.middleIcon.chargingStatus.description" = "バッテリー駆動時は残量、充電中は稲妻、電源接続時はプラグを表示し、リングは閉じたままです。";
 "settings.appIcon.middleIcon.size" = "中央アイコンのサイズ";
 "settings.appIcon.middleIcon.size.description" = "中央に表示するすべての内容（Wi-Fi、Bluetooth、入力ソース、数字）で共通のサイズです。";
 "settings.appIcon.middleIcon.networkWarnings" = "ネットワークの問題を優先";

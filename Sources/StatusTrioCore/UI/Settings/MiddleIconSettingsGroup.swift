@@ -123,7 +123,14 @@ struct MiddleIconSettingsGroup: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 8) {
+            if store.connectionCenterSource == .chargingStatus {
+                Text(localization.string(.settingsMiddleIconChargingStatusDescription))
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(alignment: .top, spacing: 8) {
                 ForEach(ConnectionCenterSource.allCases) { source in
                     let selected = store.connectionCenterSource == source
                     Button {
@@ -168,6 +175,7 @@ struct MiddleIconSettingsGroup: View {
         case .inputSource: .settingsMiddleIconInputSource
         case .batteryPercentage: .settingsMiddleIconBatteryPercentage
         case .power: .settingsMiddleIconPower
+        case .chargingStatus: .settingsMiddleIconChargingStatus
         }
         return localization.string(key)
     }

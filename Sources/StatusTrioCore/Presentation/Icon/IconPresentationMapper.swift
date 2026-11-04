@@ -6,8 +6,17 @@ enum IconPresentationMapper {
         configuration: IconPresentationConfiguration,
         now: Date = Date()
     ) -> IconSceneState {
-        IconSceneState(
-            outerRing: batteryState(inputs.snapshot.battery, options: configuration.battery),
+        // #253: the "charging status inside the ring" middle-icon mode draws the
+        // battery/charging status in the centre, so the top gap closes and the
+        // percentage/bolt/plug moves out of it (never drawn twice).
+        let closesRing = configuration.connection.centerSource == .chargingStatus
+            && inputs.snapshot.battery.isPresent
+        return IconSceneState(
+            outerRing: batteryState(
+                inputs.snapshot.battery,
+                options: configuration.battery,
+                closesRing: closesRing
+            ),
             center: centerState(inputs: inputs, configuration: configuration, now: now),
             footer: footerState(inputs.snapshot.volume, options: configuration.volume,
                                 bluetoothOptions: configuration.bluetooth),
@@ -16,7 +25,11 @@ enum IconPresentationMapper {
         )
     }
 
-    private static func batteryState(_ battery: BatteryStatus, options: BatteryIconOptions) -> OuterRingState {
+    private static func batteryState(
+        _ battery: BatteryStatus,
+        options: BatteryIconOptions,
+        closesRing: Bool
+    ) -> OuterRingState {
         let role = options.usesStatusColors
             ? StatusMappings.batteryColorRole(battery, criticalThreshold: options.criticalThreshold)
             : .foreground
@@ -26,28 +39,38 @@ enum IconPresentationMapper {
         case .lowPower: .lowPower
         case .charging: .powered
         }
+
         let gapContent = StatusMappings.batteryGapContent(battery, options: options)
-        let gap: RingGapStyle = switch gapContent {
+        let gapStyle: RingGapStyle = switch gapContent {
         case .empty: .closed
         case .percentage: .value
         case .bolt, .plug: .indicator
         }
-        let accessory: RingAccessoryState? = switch gapContent {
-        case .empty: nil
-        case .percentage:
-            .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: options.textScale))
-        case .bolt:
-            .symbol(IconSymbolState(
-                source: .primitive(.bolt),
-                color: .primary,
-                scale: options.textScale
-            ))
-        case .plug:
-            .symbol(IconSymbolState(
-                source: .primitive(.plug),
-                color: .primary,
-                scale: options.textScale
-            ))
+        // The "inside the ring" mode draws its status in the middle slot, so the
+        // top gap closes and its own accessory (percentage/bolt/plug) is not
+        // drawn — otherwise the same value would appear twice.
+        let gap: RingGapStyle = closesRing ? .closed : gapStyle
+        let accessory: RingAccessoryState?
+        if closesRing {
+            accessory = nil
+        } else {
+            accessory = switch gapContent {
+            case .empty: nil
+            case .percentage:
+                .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: options.textScale))
+            case .bolt:
+                .symbol(IconSymbolState(
+                    source: .primitive(.bolt),
+                    color: .primary,
+                    scale: options.textScale
+                ))
+            case .plug:
+                .symbol(IconSymbolState(
+                    source: .primitive(.plug),
+                    color: .primary,
+                    scale: options.textScale
+                ))
+            }
         }
         let effect: RingEffectState? = options.showsChargingEffect
                 && battery.isPresent
@@ -76,7 +99,9 @@ enum IconPresentationMapper {
             accessory: accessory,
             effect: effect,
             strokeScale: options.ringStrokeScale,
-            gapProgressMode: options.splitGapProgress ? .split : .absorbed
+            // `.split` only has meaning while a top gap consumes progress, so a
+            // closed ring keeps the historical 0–100% arc.
+            gapProgressMode: closesRing || !options.splitGapProgress ? .absorbed : .split
         )
     }
 
@@ -117,6 +142,36 @@ enum IconPresentationMapper {
                 return .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: textScale))
             }
             return .text(IconTextState(text: "--", color: .primary, scale: textScale))
+        }
+
+        if connectionOptions.centerSource == .chargingStatus {
+            // The charging status replaces the middle glyph (#253): the level
+            // percentage while on battery, the bolt while charging, and the plug
+            // whenever the machine is on power (including charged / held). A Mac
+            // with no battery has no status to show, so it falls through to the
+            // network glyph instead of inventing one.
+            let textScale = connectionOptions.wifiScale
+            if battery.isPresent {
+                if battery.isCharging, !battery.isCharged {
+                    return .symbol(IconSymbolState(
+                        source: .primitive(.bolt),
+                        color: .primary,
+                        scale: textScale
+                    ))
+                }
+                if battery.isConnectedToPower {
+                    return .symbol(IconSymbolState(
+                        source: .primitive(.plug),
+                        color: .primary,
+                        scale: textScale
+                    ))
+                }
+                return .text(IconTextState(
+                    text: "\(battery.percentage)",
+                    color: .primary,
+                    scale: textScale
+                ))
+            }
         }
 
         if connectionOptions.centerSource == .batteryPercentage {

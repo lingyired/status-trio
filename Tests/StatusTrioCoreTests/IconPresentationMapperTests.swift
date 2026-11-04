@@ -530,6 +530,101 @@ final class IconPresentationMapperTests: XCTestCase {
         }
     }
 
+    // MARK: - Charging status inside the ring (#253)
+
+    private func chargingScene(
+        battery: BatteryStatus,
+        source: ConnectionCenterSource,
+        batteryOptions: BatteryIconOptions = .standard,
+        connection: NetworkConnection = .wifi,
+        wifi: WiFiStatus = .placeholder
+    ) -> IconSceneState {
+        scene(
+            snapshot: snapshot(battery: battery, connection: connection, wifi: wifi),
+            batteryOptions: batteryOptions,
+            connectionOptions: ConnectionIconOptions(
+                centerSource: source,
+                prioritizesNetworkErrors: false,
+                wifiScale: 1
+            )
+        )
+    }
+
+    func testChargingStatusCentresTheBoltAndClosesTheRing() {
+        let battery = BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: true,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+        let scene = chargingScene(battery: battery, source: .chargingStatus)
+        XCTAssertEqual(scene.outerRing?.gap, .closed)
+        XCTAssertNil(scene.outerRing?.accessory, "the top gap must not also draw an indicator")
+        guard case let .symbol(symbol)? = scene.center, case .primitive(.bolt) = symbol.source else {
+            return XCTFail("expected the bolt in the centre slot")
+        }
+    }
+
+    func testChargingStatusShowsThePlugWhenConnectedWithoutCharging() {
+        let charged = BatteryStatus(rawPercentage: 100, isPresent: true, isCharging: false,
+                                    isCharged: true, isLowPowerMode: false,
+                                    isConnectedToPower: true)
+        // A charge-limited / held battery is connected but neither charging nor full.
+        let held = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
+                                 isLowPowerMode: false, isConnectedToPower: true)
+        for battery in [charged, held] {
+            let scene = chargingScene(battery: battery, source: .chargingStatus)
+            XCTAssertEqual(scene.outerRing?.gap, .closed)
+            XCTAssertNil(scene.outerRing?.accessory)
+            guard case let .symbol(symbol)? = scene.center, case .primitive(.plug) = symbol.source else {
+                return XCTFail("expected a centred plug for \(battery)")
+            }
+        }
+    }
+
+    func testChargingStatusShowsTheLevelPercentageOnBattery() {
+        let battery = BatteryStatus(rawPercentage: 62, isPresent: true, isCharging: false,
+                                    isLowPowerMode: false, isConnectedToPower: false)
+        let scene = chargingScene(battery: battery, source: .chargingStatus)
+        XCTAssertEqual(scene.outerRing?.gap, .closed)
+        XCTAssertEqual(scene.center,
+                       .text(IconTextState(text: "62", color: .primary, scale: 1)))
+    }
+
+    func testChargingStatusFallsBackToNetworkWithoutABattery() {
+        let absent = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: true)
+        let scene = chargingScene(battery: absent, source: .chargingStatus)
+        // A machine with no battery has no status to invent and no ring to close.
+        XCTAssertNotEqual(scene.outerRing?.gap, .closed)
+        guard case .symbol? = scene.center else {
+            return XCTFail("expected the network glyph fallback")
+        }
+    }
+
+    func testOtherCentreSourcesKeepTheTopGapAccessoryAndTheCentreGlyph() {
+        let battery = BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: true,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+        let scene = chargingScene(battery: battery, source: .network)
+        XCTAssertEqual(scene.outerRing?.gap, .indicator)
+        guard case let .symbol(symbol)? = scene.outerRing?.accessory,
+              case .primitive(.bolt) = symbol.source else {
+            return XCTFail("expected a top-gap bolt")
+        }
+        XCTAssertNotNil(scene.center)
+    }
+
+    func testChargingStatusIgnoresSplitGapProgressWhileClosed() {
+        let battery = BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: true,
+                                    isLowPowerMode: false, isConnectedToPower: true)
+        let split = BatteryIconOptions(splitGapProgress: true)
+        let closed = chargingScene(battery: battery, source: .chargingStatus,
+                                   batteryOptions: split)
+        XCTAssertEqual(closed.outerRing?.gap, .closed)
+        XCTAssertEqual(closed.outerRing?.gapProgressMode, .absorbed)
+
+        let historical = chargingScene(battery: battery, source: .network,
+                                       batteryOptions: split)
+        XCTAssertEqual(historical.outerRing?.gap, .indicator)
+        XCTAssertEqual(historical.outerRing?.gapProgressMode, .split)
+    }
+
     private func scene(
         snapshot: StatusSnapshot = PresentationFixtures.snapshot(),
         batteryOptions: BatteryIconOptions = .standard,

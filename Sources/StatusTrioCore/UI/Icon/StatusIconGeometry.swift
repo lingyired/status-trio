@@ -60,6 +60,26 @@ enum StatusIconGeometry {
         )
     }
 
+    /// A bolt scaled to `targetHeight` and moved so its ink centre lands on
+    /// `target`. The centre slot uses this so the charge glyph sits on the same
+    /// optical anchor as the Wi-Fi / input-source glyph it replaces (#253).
+    static func batteryChargingBolt(centeredAt target: CGPoint, targetHeight: CGFloat) -> CGPath {
+        let base = batteryChargingBolt()
+        let bounds = base.boundingBoxOfPath
+        guard bounds.height.isFinite, bounds.height > 0,
+              targetHeight.isFinite, targetHeight > 0 else { return base }
+        let scale = targetHeight / bounds.height
+        var transform = CGAffineTransform(
+            a: scale,
+            b: 0,
+            c: 0,
+            d: scale,
+            tx: target.x - bounds.midX * scale,
+            ty: target.y - bounds.midY * scale
+        )
+        return base.copy(using: &transform) ?? base
+    }
+
     private static let wifiOuterCenter = CGPoint(x: artworkCenterX, y: 78.3)
     private static let wifiOuterRadius: CGFloat = 31
     private static let wifiOuterStart: CGFloat = 227.35 * .pi / 180

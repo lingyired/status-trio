@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "Aktuelle Eingabequelle";
 "settings.appIcon.middleIcon.batteryPercentage" = "Batterieprozentsatz";
 "settings.appIcon.middleIcon.power" = "Leistung (Watt)";
+"settings.appIcon.middleIcon.chargingStatus" = "Ladestatus";
+"settings.appIcon.middleIcon.chargingStatus.description" = "Zeigt den Akkustand im Akkubetrieb, einen Blitz beim Laden und einen Stecker am Netzteil; der Ring bleibt geschlossen.";
 "settings.appIcon.middleIcon.size" = "Größe des mittleren Symbols";
 "settings.appIcon.middleIcon.size.description" = "Eine Größe für alle mittleren Inhalte: WLAN, Bluetooth, Eingabequelle und Zahlen.";
 "settings.appIcon.middleIcon.networkWarnings" = "Netzwerkprobleme bevorzugen";

@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "Fonte de entrada atual";
 "settings.appIcon.middleIcon.batteryPercentage" = "Porcentagem da bateria";
 "settings.appIcon.middleIcon.power" = "Potência (watts)";
+"settings.appIcon.middleIcon.chargingStatus" = "Status de carga";
+"settings.appIcon.middleIcon.chargingStatus.description" = "Mostra a porcentagem na bateria, um raio ao carregar e um plugue quando conectado; o anel permanece fechado.";
 "settings.appIcon.middleIcon.size" = "Tamanho do ícone central";
 "settings.appIcon.middleIcon.size.description" = "Um único tamanho para todo o conteúdo central: Wi-Fi, Bluetooth, fonte de entrada e números.";
 "settings.appIcon.middleIcon.networkWarnings" = "Priorizar problemas de rede";

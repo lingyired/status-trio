@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "현재 입력 소스";
 "settings.appIcon.middleIcon.batteryPercentage" = "배터리 잔량";
 "settings.appIcon.middleIcon.power" = "전력(와트)";
+"settings.appIcon.middleIcon.chargingStatus" = "충전 상태";
+"settings.appIcon.middleIcon.chargingStatus.description" = "배터리 사용 시 잔량, 충전 중에는 번개, 전원 연결 시 플러그를 표시하며 링은 닫힌 상태로 유지됩니다.";
 "settings.appIcon.middleIcon.size" = "중앙 아이콘 크기";
 "settings.appIcon.middleIcon.size.description" = "중앙에 표시되는 모든 내용(Wi-Fi, Bluetooth, 입력 소스, 숫자)에 공통으로 적용되는 크기입니다.";
 "settings.appIcon.middleIcon.networkWarnings" = "네트워크 문제 우선 표시";

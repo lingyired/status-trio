@@ -64,6 +64,8 @@
 "settings.appIcon.middleIcon.inputSource" = "当前输入法";
 "settings.appIcon.middleIcon.batteryPercentage" = "电池百分比";
 "settings.appIcon.middleIcon.power" = "功耗（瓦）";
+"settings.appIcon.middleIcon.chargingStatus" = "充电状态";
+"settings.appIcon.middleIcon.chargingStatus.description" = "放电时显示电量百分比，充电时显示闪电，连接电源时显示插头；顶部圆环保持闭合。";
 "settings.appIcon.middleIcon.size" = "中间图标大小";
 "settings.appIcon.middleIcon.size.description" = "中间显示的所有内容（Wi‑Fi、蓝牙、输入法、数字）共用这个大小。";
 "settings.appIcon.middleIcon.networkWarnings" = "优先显示网络异常";

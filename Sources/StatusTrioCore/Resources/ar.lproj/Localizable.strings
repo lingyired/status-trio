@@ -47,6 +47,8 @@
 "settings.appIcon.middleIcon.inputSource" = "مصدر الإدخال الحالي";
 "settings.appIcon.middleIcon.batteryPercentage" = "نسبة البطارية";
 "settings.appIcon.middleIcon.power" = "الطاقة (واط)";
+"settings.appIcon.middleIcon.chargingStatus" = "حالة الشحن";
+"settings.appIcon.middleIcon.chargingStatus.description" = "يعرض نسبة البطارية عند العمل بالبطارية، وصاعقة أثناء الشحن، وقابسًا عند توصيل الطاقة؛ تبقى الحلقة مكتملة.";
 "settings.appIcon.middleIcon.size" = "حجم الأيقونة الوسطى";
 "settings.appIcon.middleIcon.size.description" = "حجم واحد لكل محتوى المنتصف: Wi-Fi وBluetooth ومصدر الإدخال والأرقام.";
 "settings.appIcon.middleIcon.networkWarnings" = "إعطاء أولوية لمشاكل الشبكة";
