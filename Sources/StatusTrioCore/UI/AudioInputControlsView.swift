@@ -162,10 +162,9 @@ struct AudioInputControlsView: View {
             )
 
             ZStack {
-                PanelLevelSlider(
+                NativePanelLevelSlider(
                     value: sliderValue,
                     isEnabled: state.canAdjust,
-                    tint: state.muteState == .muted ? Color.secondary : Color.accentColor,
                     accessibilityLabel: state.sliderLabel,
                     accessibilityValue: sliderAccessibilityValue,
                     accessibilityHint: state.canAdjust
@@ -245,50 +244,14 @@ struct AudioInputControlsView: View {
                 .padding(.top, 2)
 
             VStack(spacing: 2) {
-                ForEach(state.visibleRows(expanded: isDeviceListExpanded)) { row in
-                    Button {
-                        guard !row.selected else { return }
-                        actions.selectInput(row.key)
-                    } label: {
-                        HStack(spacing: 10) {
-                            ZStack {
-                                Circle()
-                                    .fill(row.selected ? Color.accentColor : Color.secondary.opacity(0.14))
-                                Image(systemName: row.selected ? "mic.fill" : "mic")
-                                    .foregroundStyle(row.selected ? Color.white : Color.secondary)
-                            }
-                            .frame(width: 24, height: 24)
-                            .accessibilityHidden(true)
-
-                            Text(row.name)
-                                .font(.body.weight(row.selected ? .semibold : .regular))
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            if row.selected, let usageText = state.usageText {
-                                Text(usageText)
-                                    .font(.caption)
-                                    .foregroundStyle(.orange)
-                            }
-                        }
-                        .padding(.vertical, 3)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!row.enabled)
-                    .help(row.helpText)
-                    .accessibilityLabel(row.accessibilityLabel)
-                    .accessibilityValue(row.selected ? state.usageText ?? "" : "")
-                    .accessibilityHint(row.selected ? "" : row.helpText)
-                }
+                inputRows(state.visibleRows(expanded: false))
 
                 if state.hasHiddenRows {
-                    DeviceListExpansionButton(
-                        isExpanded: $isDeviceListExpanded,
-                        expandLabel: state.expandLabel,
-                        collapseLabel: state.collapseLabel
-                    )
+                    CascadingSubmenuButton(title: state.expandLabel, isPresented: $isDeviceListExpanded) {
+                        VStack(spacing: 2) {
+                            inputRows(Array(state.rows.dropFirst(state.visibleRows(expanded: false).count)))
+                        }
+                    }
                 }
             }
         } else {
@@ -297,6 +260,46 @@ struct AudioInputControlsView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 4)
+        }
+    }
+
+    private func inputRows(_ rows: [PanelAudioDeviceRow]) -> some View {
+        ForEach(rows) { row in
+            Button {
+                guard !row.selected else { return }
+                actions.selectInput(row.key)
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(row.selected ? Color.accentColor : Color.secondary.opacity(0.14))
+                        Image(systemName: row.selected ? "mic.fill" : "mic")
+                            .foregroundStyle(row.selected ? Color.white : Color.secondary)
+                    }
+                    .frame(width: 24, height: 24)
+                    .accessibilityHidden(true)
+
+                    Text(row.name)
+                        .font(.body.weight(row.selected ? .semibold : .regular))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if row.selected, let usageText = state.usageText {
+                        Text(usageText)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
+                .padding(.vertical, 3)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!row.enabled)
+            .help(row.helpText)
+            .accessibilityLabel(row.accessibilityLabel)
+            .accessibilityValue(row.selected ? state.usageText ?? "" : "")
+            .accessibilityHint(row.selected ? "" : row.helpText)
         }
     }
 

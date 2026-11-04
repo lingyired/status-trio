@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WiFiNetworkListView: View {
     @EnvironmentObject private var localization: Localization
+    @Environment(\.isCascadingSubmenu) private var isSubmenu
     @Environment(\.colorScheme) private var colorScheme
     let state: WiFiPanelState
     let onBack: () -> Void
@@ -122,9 +123,11 @@ struct WiFiNetworkListView: View {
 
     @ViewBuilder
     private var detailsToggle: some View {
-        WiFiDetailsToggleRow(isExpanded: showsDetailsBinding)
+        if !isSubmenu {
+            WiFiDetailsToggleRow(isExpanded: showsDetailsBinding)
+        }
 
-        if showsDetails {
+        if isSubmenu || showsDetails {
             WiFiDetailsView(
                 state: state,
                 showsMore: showsMoreBinding,
@@ -252,6 +255,7 @@ struct WiFiNetworkListView: View {
 }
 
 private struct WiFiDetailsView: View {
+    @Environment(\.isCascadingSubmenu) private var isSubmenu
     let state: WiFiPanelState
     @Binding var showsMore: Bool
     let onCopyValue: (String) -> Void
@@ -259,13 +263,15 @@ private struct WiFiDetailsView: View {
     var body: some View {
         VStack(spacing: 5) {
             PanelDetailRowsView(
-                detailRows: state.visibleDetailRows(expanded: showsMore),
+                detailRows: state.visibleDetailRows(expanded: isSubmenu || showsMore),
                 onCopyValue: onCopyValue
             )
-            Button(showsMore ? state.showLessTitle : state.showMoreTitle) {
-                showsMore.toggle()
+            if !isSubmenu {
+                Button(showsMore ? state.showLessTitle : state.showMoreTitle) {
+                    showsMore.toggle()
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.leading, 26)
         .font(.caption)

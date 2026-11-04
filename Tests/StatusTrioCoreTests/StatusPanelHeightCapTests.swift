@@ -128,23 +128,27 @@ final class StatusPanelHeightCapTests: XCTestCase {
         XCTAssertEqual(fixture.measuredSize().height, 300, accuracy: 1)
     }
 
-    func testChangingRoutesReturnsThePageToTheTop() throws {
+    func testOpeningAndClosingChildDetailsPreservesMainScrollPosition() throws {
         let fixture = try makeFixture(cap: 200)
         let summaryScroll = try XCTUnwrap(firstScrollView(in: fixture.host.view))
         let document = try XCTUnwrap(summaryScroll.documentView)
         document.scroll(NSPoint(x: 0, y: document.bounds.maxY))
         fixture.settleLayout()
-        XCTAssertGreaterThan(summaryScroll.contentView.bounds.minY, 0, "start from a genuinely scrolled summary")
+        let originalOffset = summaryScroll.contentView.bounds.minY
+        XCTAssertGreaterThan(originalOffset, 0, "start from a genuinely scrolled summary")
 
         fixture.panel.showBatteryPage()
         fixture.settleLayout()
         let detailScroll = try XCTUnwrap(firstScrollView(in: fixture.host.view))
-        XCTAssertEqual(detailScroll.contentView.bounds.minY, 0, accuracy: 1)
+        XCTAssertTrue(detailScroll === summaryScroll, "opening a child keeps the main scroll surface mounted")
+        XCTAssertEqual(detailScroll.contentView.bounds.minY, originalOffset, accuracy: 1)
 
         fixture.panel.showSummaryPage()
         fixture.settleLayout()
         let returnedScroll = try XCTUnwrap(firstScrollView(in: fixture.host.view))
-        XCTAssertEqual(returnedScroll.contentView.bounds.minY, 0, accuracy: 1, "returning to summary starts at its top")
+        XCTAssertTrue(returnedScroll === summaryScroll)
+        XCTAssertEqual(returnedScroll.contentView.bounds.minY, originalOffset, accuracy: 1,
+                       "closing a child preserves the user's position in the main panel")
     }
 
     // MARK: - Fixtures

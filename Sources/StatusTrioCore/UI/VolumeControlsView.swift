@@ -76,10 +76,9 @@ struct VolumeControlsView: View {
                 .help(state.muteHelp)
                 .accessibilityLabel(state.muteHelp)
 
-                PanelLevelSlider(
+                NativePanelLevelSlider(
                     value: volumeBinding,
                     isEnabled: state.canAdjust,
-                    tint: state.muted ? Color.secondary : Color.accentColor,
                     accessibilityLabel: state.sliderLabel,
                     accessibilityValue: percentageText,
                     onEditingChanged: { isEditing in

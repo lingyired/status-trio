@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BatteryDetailsView: View {
     @EnvironmentObject private var localization: Localization
+    @Environment(\.isCascadingSubmenu) private var isSubmenu
     let state: PanelDetailState
     let onBack: () -> Void
     let onOpenBatterySettings: () -> Void
@@ -57,7 +58,7 @@ struct BatteryDetailsView: View {
                 action: onBack
             )
             .overlay(alignment: .trailing) {
-                if showsInfoButton {
+                if showsInfoButton && !isSubmenu {
                     infoButton
                 }
             }
@@ -106,6 +107,10 @@ struct BatteryDetailsView: View {
                     action: onOpenAppBatterySettings
                 )
                 .buttonStyle(.plain)
+            }
+            if isSubmenu, showsInfoButton {
+                Divider()
+                infoContent
             }
         }
         .task(id: state.lifecycleIdentity) { onAppear() }

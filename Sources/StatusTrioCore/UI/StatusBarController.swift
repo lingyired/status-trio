@@ -651,6 +651,9 @@ final class StatusBarController: NSObject {
             // by the user-activation policy.
             activatesApplicationForPopover()
         }
+        popover.statusItemFrameForDismissal = { [weak self] in
+            self?.statusItemButtonScreenFrame()
+        }
         popover.show(
             relativeTo: rect,
             of: view,
@@ -860,7 +863,8 @@ final class StatusBarController: NSObject {
                 // A click on the status item is the item's own toggle, not an
                 // outside click. Dismissing here would close on mouse-down and
                 // the item's mouse-up toggle would reopen it (issue #224).
-                guard policy.shouldDismiss(at: clickLocation) else { return }
+                guard policy.shouldDismiss(at: clickLocation),
+                      !self.popover.containsScreenPoint(clickLocation) else { return }
                 self.popover.performClose(nil)
             }
         }
@@ -906,7 +910,7 @@ final class StatusBarController: NSObject {
     }
 
     private func shouldConsumeVolumeScrollWheel(_ event: NSEvent) -> Bool {
-        guard event.window === popover.contentViewController?.view.window,
+        guard popover.ownsEventWindow(event.window),
               settings.popupScrollAdjustsVolume else { return false }
 
         let point = event.locationInWindow
@@ -1003,7 +1007,7 @@ final class StatusBarController: NSObject {
 
     private func consumeVolume(event: NSEvent) -> Bool {
         let volumeState = panelViewModel.volume
-        guard event.window === popover.contentViewController?.view.window,
+        guard popover.ownsEventWindow(event.window),
               store.isVolumeControlAvailable,
               volumeState.canAdjust else {
             return false
