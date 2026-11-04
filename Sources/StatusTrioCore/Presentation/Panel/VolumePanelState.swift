@@ -17,6 +17,7 @@ struct PanelAudioDeviceRow: Equatable, Identifiable, Sendable {
     var listeningModeAddress: String? = nil
     var listeningMode: BluetoothListeningModePresentation? = nil
     var isPreview: Bool = false
+    var supportsAirPodsSystemControls: Bool = false
 
     var id: PanelAudioDeviceID { key }
 }

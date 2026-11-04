@@ -665,6 +665,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "系統充電狀態可能已變更。請再次按一下繼續。";
 "battery.action.cancelChargeToFullNowPending" = "系統尚未確認暫時充滿狀態，請稍後再試。";
 
+// AirPods system controls
+"airPods.controls" = "AirPods 控制…";
+"airPods.adaptive" = "適應性音訊";
+"airPods.lessNoise" = "較少噪音";
+"airPods.moreNoise" = "較多噪音";
+"airPods.adaptiveUnavailable" = "暫時無法透過藍牙調整適應性音訊。";
+"airPods.spatial" = "空間化立體聲";
+"airPods.conversation" = "對話感知";
+"airPods.routeChanged" = "所選 AirPods 已變更或中斷連線。請重新開啟目前輸出裝置的控制。";
+"airPods.unconfirmed" = "macOS 未確認變更。請重新整理以讀取實際設定。";
+"airPods.unavailable" = "藍牙直接控制暫不可用。";
+"airPods.notAvailable" = "無法使用";
+"airPods.apply" = "套用";
+
+"airPods.spatialFixed" = "固定";
+"airPods.spatialHeadTracked" = "頭部追蹤";
+
+"airpods.retry" = "重試";
 "settings.popup.order.brightness" = "亮度";
 "brightness.row.accessibility" = "%@ 的亮度，%@";
 "brightness.row.accessibilityUnavailable" = "%@ 的亮度，%@";

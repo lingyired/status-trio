@@ -47,7 +47,7 @@ enum HuaweiAudioEndpointMatcher {
         return nameMatches.count == 1 ? nameMatches[0].id : nil
     }
 
-    private static func bluetoothAddress(in uid: String) -> String? {
+    static func bluetoothAddress(in uid: String) -> String? {
         if let address = normalizedBluetoothAddress(uid) {
             return address
         }

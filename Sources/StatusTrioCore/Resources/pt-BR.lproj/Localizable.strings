@@ -665,6 +665,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "O estado de carga do sistema pode ter mudado. Clique novamente para continuar.";
 "battery.action.cancelChargeToFullNowPending" = "O sistema ainda não confirmou a carga completa temporária. Tente novamente em instantes.";
 
+// AirPods system controls
+"airPods.controls" = "Controles dos AirPods…";
+"airPods.adaptive" = "Áudio Adaptativo";
+"airPods.lessNoise" = "Menos ruído";
+"airPods.moreNoise" = "Mais ruído";
+"airPods.adaptiveUnavailable" = "O ajuste adaptativo por Bluetooth está indisponível.";
+"airPods.spatial" = "Transformar em Estéreo Espacial";
+"airPods.conversation" = "Detecção de Conversa";
+"airPods.routeChanged" = "Os AirPods selecionados mudaram ou desconectaram. Reabra os controles da saída atual.";
+"airPods.unconfirmed" = "O macOS não confirmou a alteração. Atualize para ler o ajuste real.";
+"airPods.unavailable" = "O controle direto por Bluetooth está indisponível.";
+"airPods.notAvailable" = "Indisponível";
+"airPods.apply" = "Aplicar";
+
+"airPods.spatialFixed" = "Fixo";
+"airPods.spatialHeadTracked" = "Rastreamento da Cabeça";
+
+"airpods.retry" = "Tentar novamente";
 "settings.popup.order.brightness" = "Brilho";
 "brightness.row.accessibility" = "Brilho de %@, %@";
 "brightness.row.accessibilityUnavailable" = "Brilho de %@, %@";

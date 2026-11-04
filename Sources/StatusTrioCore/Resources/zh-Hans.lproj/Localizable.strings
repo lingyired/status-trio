@@ -665,6 +665,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "系统充电状态可能已更改。再次点击以继续。";
 "battery.action.cancelChargeToFullNowPending" = "系统尚未确认临时充满状态，请稍后重试。";
 
+// AirPods system controls
+"airPods.controls" = "AirPods 控制…";
+"airPods.adaptive" = "自适应音频";
+"airPods.lessNoise" = "更少噪声";
+"airPods.moreNoise" = "更多噪声";
+"airPods.adaptiveUnavailable" = "暂无法通过蓝牙调整自适应音频。";
+"airPods.spatial" = "空间化立体声";
+"airPods.conversation" = "对话感知";
+"airPods.routeChanged" = "所选 AirPods 已更改或断开连接。请重新打开当前输出设备的控制。";
+"airPods.unconfirmed" = "macOS 未确认更改。请刷新以读取实际设置。";
+"airPods.unavailable" = "蓝牙直连控制暂不可用。";
+"airPods.notAvailable" = "不可用";
+"airPods.apply" = "应用";
+
+"airPods.spatialFixed" = "固定";
+"airPods.spatialHeadTracked" = "头部跟踪";
+
+"airpods.retry" = "重试";
 "settings.popup.order.brightness" = "亮度";
 "brightness.row.accessibility" = "%@ 的亮度，%@";
 "brightness.row.accessibilityUnavailable" = "%@ 的亮度，%@";

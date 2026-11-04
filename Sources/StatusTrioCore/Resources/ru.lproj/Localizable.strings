@@ -665,6 +665,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "Состояние зарядки системы могло измениться. Нажмите ещё раз, чтобы продолжить.";
 "battery.action.cancelChargeToFullNowPending" = "Система ещё не подтвердила временную зарядку до 100 %. Повторите попытку через несколько секунд.";
 
+// AirPods system controls
+"airPods.controls" = "Управление AirPods…";
+"airPods.adaptive" = "Адаптивное аудио";
+"airPods.lessNoise" = "Меньше шума";
+"airPods.moreNoise" = "Больше шума";
+"airPods.adaptiveUnavailable" = "Настройка адаптивного аудио по Bluetooth недоступна.";
+"airPods.spatial" = "Сделать стерео пространственным";
+"airPods.conversation" = "Распознавание разговора";
+"airPods.routeChanged" = "Выбранные AirPods изменились или отключились. Откройте управление текущим выходом заново.";
+"airPods.unconfirmed" = "macOS не подтвердила изменение. Обновите, чтобы прочитать фактическую настройку.";
+"airPods.unavailable" = "Прямое управление по Bluetooth недоступно.";
+"airPods.notAvailable" = "Недоступно";
+"airPods.apply" = "Применить";
+
+"airPods.spatialFixed" = "Фиксированное";
+"airPods.spatialHeadTracked" = "Отслеживание головы";
+
+"airpods.retry" = "Повторить";
 "settings.popup.order.brightness" = "Яркость";
 "brightness.row.accessibility" = "Яркость %@, %@";
 "brightness.row.accessibilityUnavailable" = "Яркость %@, %@";
