@@ -211,6 +211,10 @@ struct PanelLevelSlider: View {
                 .frame(width: frame.width, alignment: .leading)
                 .help(text)
                 .offset(x: frame.originX, y: 0)
+                // Animate only the leading/trailing hand-off; the drag itself
+                // must stay frame-synchronous, so this is keyed to the side and
+                // not to the continuous value.
+                .animation(.easeInOut(duration: 0.16), value: frame.side)
         }
     }
 
