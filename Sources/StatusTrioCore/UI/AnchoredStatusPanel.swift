@@ -46,15 +46,37 @@ final class AnchoredStatusPanel: NSPanel {
     /// Set by `show` between ordering the window in transparent and revealing it
     /// once the first layout has settled, so a size correction never flashes.
     private var pendingReveal = false
-    /// Guards the animated content-driven resize: while it runs, the frame
-    /// notifications it emits must not re-enter the layout coordinator, or the
-    /// animated frame and the re-placement would fight each other.
-    private var isAnimatingContentSize = false
-    /// Drives the frame-by-frame content resize and the height it converges on.
-    private var contentResizeTimer: Timer?
-    private var animatedContentSize: NSSize?
-    private var resizeStartHeight: CGFloat = 0
-    private var resizeStartTime: CFTimeInterval = 0
+    /// The single owner of animated content-driven height changes. While it is
+    /// animating, frame notifications it emits must not re-enter the layout
+    /// coordinator, or the animated frame and the re-placement would fight.
+    private lazy var contentResizeCoordinator: StatusPanelResizeCoordinator = {
+        let coordinator = StatusPanelResizeCoordinator()
+        coordinator.place = { [weak self] height in
+            self?.placementFrameForPresentedHeight(height) ?? .zero
+        }
+        coordinator.writeFrame = { [weak self] frame, display in
+            guard let self else { return }
+            self.setFrame(frame, display: display)
+#if DEBUG
+            self.frameWriteCountIncrement()
+#endif
+            if display { self.invalidateShadow() }
+        }
+        coordinator.pinContent = { [weak self] height in
+            guard let self else { return }
+            let edge = self.lockedResizeAnchor?.preferredEdge ?? self.preferredEdge
+            (self.contentViewController as? StatusPanelContentViewController)?
+                .pinContentHeight(height, edge: edge)
+        }
+        coordinator.didSettle = { [weak self] in
+            self?.contentResizeDidSettle()
+        }
+        return coordinator
+    }()
+    /// The placement anchor locked for the duration of one animated resize. A
+    /// mid-flight height must not re-derive the anchor and flip the panel to the
+    /// other side of the menu bar / Dock.
+    private var lockedResizeAnchor: StatusPanelAnchor?
     /// Animates height-only content resizes so expanding a row grows the panel
     /// smoothly. Tests drive sizing synchronously and turn this off.
     var animatesContentResizes = true
@@ -66,6 +88,11 @@ final class AnchoredStatusPanel: NSPanel {
 
     func resetFrameWriteCount() {
         frameWriteCount = 0
+    }
+
+    /// Counts an animated frame write for the convergence diagnostic.
+    func frameWriteCountIncrement() {
+        frameWriteCount += 1
     }
 #endif
     /// Coalesces the three things that can change the window's frame: a content
@@ -238,10 +265,8 @@ final class AnchoredStatusPanel: NSPanel {
         // before they act on a close.
         guard isVisible else { return }
         pendingReveal = false
-        isAnimatingContentSize = false
-        contentResizeTimer?.invalidate()
-        contentResizeTimer = nil
-        animatedContentSize = nil
+        contentResizeCoordinator.cancel()
+        lockedResizeAnchor = nil
         (contentViewController as? StatusPanelContentViewController)?.pinContentHeight(nil)
         layoutCoordinator.invalidate()
         removeShowObservers()
@@ -299,26 +324,21 @@ final class AnchoredStatusPanel: NSPanel {
         // smoothly instead of snapping. Only a settled, visible, height-only
         // change animates; the reveal correction, reduce-motion users and width
         // changes keep the immediate write.
-        if isAnimatingContentSize {
-            // A newer measurement (a second expand/collapse before the first
-            // animation finished) retargets from the height the panel is at
-            // right now, so the easing curve restarts from the current point
-            // instead of rushing to a stale end. Sub-point corrections are
-            // ignored: restarting the curve for them is the jitter.
-            if let current = animatedContentSize,
-               abs(current.height - contentSize.height) < 2 {
-                return
-            }
-            beginContentResizeAnimation(to: contentSize)
+        // While an animated resize is in flight, a newer measurement retargets
+        // the single running curve from the live height. Pixel-aligned
+        // corrections that do not change the target are dropped: restarting the
+        // curve for them is exactly the jitter.
+        if contentResizeCoordinator.isAnimating {
+            if contentResizeCoordinator.isAtTarget(contentSize.height) { return }
+            contentResizeCoordinator.retarget(to: contentSize.height, fromHeight: frame.height)
             return
         }
         if shouldAnimateContentResize(to: target) {
-#if DEBUG
-            frameWriteCount += 1
-#endif
-            beginContentResizeAnimation(to: contentSize)
+            lockedResizeAnchor = currentAnchor()
+            contentResizeCoordinator.retarget(to: contentSize.height, fromHeight: frame.height)
             return
         }
+        contentResizeCoordinator.markSettled(at: target.height)
         setFrame(target, display: false)
 #if DEBUG
         frameWriteCount += 1
@@ -326,80 +346,35 @@ final class AnchoredStatusPanel: NSPanel {
         invalidateShadow()
     }
 
-    /// Animates the panel height frame by frame instead of handing the window to
-    /// `NSWindowAnimator`. AppKit interpolates the frame's size and origin
-    /// independently, which let the panel's top edge overshoot towards the menu
-    /// bar and snap back. Recomputing the placed frame from the anchor on every
-    /// tick keeps the anchored edge exactly still.
-    ///
-    /// Starting or retargeting both go through here: the current height and the
-    /// current time become the new origin of the curve, so a second toggle
-    /// mid-flight continues from where the panel is instead of jumping.
-    private func beginContentResizeAnimation(to contentSize: NSSize) {
-        let wasAnimating = isAnimatingContentSize
-        resizeStartHeight = frame.height
-        resizeStartTime = CACurrentMediaTime()
-        animatedContentSize = contentSize
-        // Freeze the content at its final height: SwiftUI lays it out once and
-        // the growing window reveals it, instead of re-flowing the page at every
-        // intermediate height.
-        (contentViewController as? StatusPanelContentViewController)?
-            .pinContentHeight(contentSize.height)
-        isAnimatingContentSize = true
-        if wasAnimating, contentResizeTimer != nil { return }
-        let timer = Timer(timeInterval: 1.0 / 120.0, repeats: true) { [weak self] timer in
-            guard let self else {
-                timer.invalidate()
-                return
-            }
-            let duration: CFTimeInterval = 0.22
-            let progress = min(1, (CACurrentMediaTime() - self.resizeStartTime) / duration)
-            // Ease-out cubic: fast away from the anchored edge, settling as it
-            // reaches the final height.
-            let eased = 1 - pow(1 - progress, 3)
-            let startHeight = self.resizeStartHeight
-            let targetHeight = self.animatedContentSize?.height ?? startHeight
-            // Snap every tick to a whole point. A fractional height makes
-            // AppKit round the window's origin and size independently, so the
-            // anchored edge wobbles by up to a point while the panel grows.
-            let height = (startHeight + (targetHeight - startHeight) * CGFloat(eased)).rounded()
-            if let anchor = self.currentAnchor() {
-                let placed = StatusPanelPlacement.frame(
-                    contentSize: NSSize(width: self.frame.width, height: height),
-                    anchor: anchor,
-                    screens: NSScreen.screens.map { StatusPanelScreen($0) },
-                    dockInset: self.dockInset
-                )
-                // Only the final tick forces a synchronous display and rebuilds
-                // the shadow; intermediate frames ride the normal run-loop draw.
-                self.setFrame(placed, display: progress >= 1)
-                if progress >= 1 { self.invalidateShadow() }
-            }
-            if progress >= 1 {
-                timer.invalidate()
-                self.contentResizeTimer = nil
-                self.isAnimatingContentSize = false
-                let finalSize = self.animatedContentSize
-                self.animatedContentSize = nil
-                // Let the content fill the window again before the final exact
-                // placement; at this point the pinned height and the window
-                // height are the same, so nothing moves.
-                (self.contentViewController as? StatusPanelContentViewController)?.pinContentHeight(nil)
-                if let finalSize {
-                    self.applyContentFrame(finalSize)
-                }
-                self.invalidateShadow()
-            }
+    /// The placed frame for a presented height during an animated resize. The
+    /// anchor is the one locked when the animation began, so intermediate
+    /// heights cannot flip the panel to the other side of the menu bar / Dock.
+    private func placementFrameForPresentedHeight(_ height: CGFloat) -> NSRect {
+        let width = frame.width
+        let size = NSSize(width: width, height: height)
+        if let anchor = lockedResizeAnchor ?? currentAnchor() {
+            return StatusPanelPlacement.frame(
+                contentSize: size,
+                anchor: anchor,
+                screens: NSScreen.screens.map { StatusPanelScreen($0) },
+                dockInset: dockInset
+            )
         }
-        RunLoop.main.add(timer, forMode: .common)
-        contentResizeTimer = timer
+        return NSRect(origin: frame.origin, size: size)
+    }
+
+    /// Runs when the resize coordinator has settled. The coordinator already
+    /// wrote the final frame and released the content pin; this only clears the
+    /// per-run anchor lock.
+    private func contentResizeDidSettle() {
+        lockedResizeAnchor = nil
+        invalidateShadow()
     }
 
     private func shouldAnimateContentResize(to target: NSRect) -> Bool {
         animatesContentResizes
             && isVisible
             && !pendingReveal
-            && !isAnimatingContentSize
             && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
             && abs(target.width - frame.width) < 0.5
             // Only a real height change animates. A leftover measurement of a
@@ -419,12 +394,19 @@ final class AnchoredStatusPanel: NSPanel {
     }
 
     private func handleWindowResize() {
-        guard isVisible, !isAnimatingContentSize else { return }
+        guard isVisible, !contentResizeCoordinator.isAnimating else { return }
         layoutCoordinator.windowDidResize()
     }
 
     private func handlePlacementEnvironmentChange() {
         guard isVisible else { return }
+        // A real screen / Dock / Space change may invalidate the anchor the
+        // running animation locked; settle the panel at its current height and
+        // let the fresh environment measurement drive any repositioning.
+        if contentResizeCoordinator.isAnimating {
+            contentResizeCoordinator.cancel()
+            lockedResizeAnchor = nil
+        }
         updateLayoutMetrics()
         layoutCoordinator.placementEnvironmentChanged()
     }
@@ -785,7 +767,8 @@ final class StatusPanelContentViewController: NSViewController {
     /// growing window only reveals more of it, instead of re-flowing the whole
     /// page at every intermediate height (which read as a refresh). `nil`
     /// restores normal fill-the-window layout.
-    func pinContentHeight(_ height: CGFloat?) {
+    func pinContentHeight(_ height: CGFloat?, edge: NSRectEdge? = nil) {
+        if let edge { pinnedContentEdge = edge }
         guard pinnedContentHeight != height else { return }
         pinnedContentHeight = height
         guard isViewLoaded else { return }
@@ -794,6 +777,7 @@ final class StatusPanelContentViewController: NSViewController {
     }
 
     private var pinnedContentHeight: CGFloat?
+    private var pinnedContentEdge: NSRectEdge = .minY
 
 
     /// Reduce Transparency keeps the panel opaque for accessibility; it wins
@@ -885,12 +869,24 @@ final class StatusPanelContentViewController: NSViewController {
         }
         if let height = pinnedContentHeight {
             // Pinned while the panel grows: lay the content out once at its
-            // final height with its top edge on the container's top, and let
-            // the shorter window clip the rest.
+            // final height, flush with the anchored edge, and let the shorter
+            // window clip the far (growing) side. A menu-bar panel grows
+            // downward so the content's top stays on the container's top; a
+            // bottom-Dock panel grows upward so the content's bottom stays on
+            // the container's bottom. Side Dock anchors keep it centred.
             let bounds = container.bounds
+            let y: CGFloat
+            switch pinnedContentEdge {
+            case .maxY:
+                y = 0
+            case .minX, .maxX:
+                y = (bounds.height - height) / 2
+            default:
+                y = bounds.height - height
+            }
             hostingController.view.frame = NSRect(
                 x: 0,
-                y: bounds.height - height,
+                y: y,
                 width: bounds.width,
                 height: height
             )
