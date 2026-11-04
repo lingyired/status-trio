@@ -159,7 +159,7 @@ struct BluetoothSectionView: View {
                     )
                 }
 
-                if store.previewsBluetoothListeningMode {
+                if store.showsBluetoothListeningMode && store.previewsBluetoothListeningMode {
                     SettingsDivider()
 
                     SettingsRow(
