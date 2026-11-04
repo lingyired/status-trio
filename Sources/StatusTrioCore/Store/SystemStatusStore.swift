@@ -169,6 +169,8 @@ final class SystemStatusStore: ObservableObject {
     nonisolated(unsafe) private var displaySleepObserver: NSObjectProtocol?
     nonisolated(unsafe) private var displayWakeObserver: NSObjectProtocol?
     private var lastPublishedSnapshot: StatusSnapshot?
+    /// Optimistic display brightness while the backend confirms the write.
+    private var pendingBrightnessScalars: [String: Double] = [:]
     private var hasStarted = false
     private var hasStopped = false
     @Published private(set) var isPopoverVisible = false
@@ -559,7 +561,7 @@ final class SystemStatusStore: ObservableObject {
         }
         let previousScalar = liveVolume.scalar
         liveVolume = liveVolume.replacingScalar(min(1, max(0, scalar)))
-        publish(snapshot.replacingVolume(liveVolume))
+        publish(snapshot.replacingVolume(liveVolume), immediately: true)
         volumeController?.setVolume(liveVolume.scalar ?? 0)
 
         // The system plays its own feedback only for the volume changes it
@@ -580,7 +582,7 @@ final class SystemStatusStore: ObservableObject {
             return
         }
         liveVolume = liveVolume.replacingMuted(!liveVolume.isMuted)
-        publish(snapshot.replacingVolume(liveVolume))
+        publish(snapshot.replacingVolume(liveVolume), immediately: true)
         volumeController?.toggleMute()
     }
 
@@ -1485,15 +1487,60 @@ final class SystemStatusStore: ObservableObject {
     }
 
     private func applyBrightness(_ value: BrightnessStatus) {
-        if value != liveBrightness {
-            liveBrightness = value
+        let reconciled = reconcilePendingBrightness(value)
+        if reconciled != liveBrightness {
+            liveBrightness = reconciled
         }
-        publish(snapshot.replacingBrightness(value))
+        publish(snapshot.replacingBrightness(reconciled))
+    }
+
+    /// Applies the optimistic scalar the user just produced until the monitor
+    /// confirms it. A stale read-back (queued before the write) must not drag
+    /// the panel back to the old value.
+    private func reconcilePendingBrightness(_ value: BrightnessStatus) -> BrightnessStatus {
+        guard !pendingBrightnessScalars.isEmpty else { return value }
+        let displayIDs = Set(value.displays.map(\.id))
+        pendingBrightnessScalars = pendingBrightnessScalars.filter { displayIDs.contains($0.key) }
+        guard !pendingBrightnessScalars.isEmpty else { return value }
+
+        var displays = value.displays
+        for index in displays.indices {
+            let display = displays[index]
+            guard let pending = pendingBrightnessScalars[display.id] else { continue }
+            guard display.canAdjust, let incoming = display.scalar else {
+                // The backend reported the display as unreadable/unavailable:
+                // drop the optimistic value so the failure is visible.
+                pendingBrightnessScalars.removeValue(forKey: display.id)
+                continue
+            }
+            if abs(incoming - pending) <= 0.02 {
+                pendingBrightnessScalars.removeValue(forKey: display.id)
+            } else {
+                displays[index] = display.replacingScalar(pending)
+            }
+        }
+        return BrightnessStatus(
+            displays: displays,
+            transitionGeneration: value.transitionGeneration
+        )
     }
 
     func setBrightness(_ scalar: Double, forDisplayID displayID: String) {
         guard !hasStopped, scalar.isFinite, !displayID.isEmpty else { return }
-        brightnessMonitor.setBrightness(min(1, max(0, scalar)), forDisplayID: displayID)
+        let clamped = min(1, max(0, scalar))
+        pendingBrightnessScalars[displayID] = clamped
+        // Publish the target immediately so the panel follows the wheel/drag
+        // instead of waiting for the DDC read-back.
+        if let index = liveBrightness.displays.firstIndex(where: { $0.id == displayID }) {
+            var displays = liveBrightness.displays
+            displays[index] = displays[index].replacingScalar(clamped)
+            liveBrightness = BrightnessStatus(
+                displays: displays,
+                transitionGeneration: liveBrightness.transitionGeneration
+            )
+            publish(snapshot.replacingBrightness(liveBrightness), immediately: true)
+        }
+        brightnessMonitor.setBrightness(clamped, forDisplayID: displayID)
     }
 
     func finishBrightnessAdjustment(displayID: String) {
@@ -1525,11 +1572,24 @@ final class SystemStatusStore: ObservableObject {
         )
     }
 
-    private func publish(_ next: StatusSnapshot) {
-        guard !hasStopped, next != lastPublishedSnapshot else { return }
-        lastPublishedSnapshot = next
-        snapshot = next
-        schedulePopupSnapshot(next)
+    private func publish(_ next: StatusSnapshot, immediately: Bool = false) {
+        guard !hasStopped else { return }
+        let changed = next != lastPublishedSnapshot
+        if changed {
+            lastPublishedSnapshot = next
+            snapshot = next
+        }
+        guard immediately else {
+            if changed { schedulePopupSnapshot(next) }
+            return
+        }
+        // Interactive writes (wheel/drag) must not wait for the popup debounce:
+        // a burst of wheel events keeps cancelling it, so the panel only updated
+        // after the gesture stopped.
+        guard isPopoverVisible else { return }
+        popupPublishTask?.cancel()
+        popupPublishTask = nil
+        if popupSnapshot != next { applyPopupSnapshot(next) }
     }
 
     private func schedulePopupSnapshot(_ next: StatusSnapshot) {
