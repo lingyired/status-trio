@@ -9,8 +9,54 @@ struct PopoverSectionView: View {
     var body: some View {
         SettingsPage {
             backgroundStyleGroup
+            volumeScrollGroup
             popupOrderGroup
             openBehaviorGroup
+        }
+    }
+
+    private var volumeScrollGroup: some View {
+        SettingsGroup(localization.string(.settingsPopupVolumeScrollGroup)) {
+            SettingsToggleRow(
+                symbol: "arrow.up.arrow.down.circle.fill",
+                tint: .cyan,
+                title: localization.string(.settingsPopupVolumeScroll),
+                subtitle: localization.string(.settingsPopupVolumeScrollDescription),
+                isOn: $store.popupScrollAdjustsVolume
+            )
+
+            if store.popupScrollAdjustsVolume {
+                SettingsDivider()
+
+                SettingsMenuRow(
+                    symbol: "aspectratio",
+                    tint: .teal,
+                    title: localization.string(.settingsPopupVolumeScrollScope),
+                    subtitle: localization.string(.settingsPopupVolumeScrollScopeDescription),
+                    selection: $store.popupVolumeScrollScope,
+                    options: PopupVolumeScrollScope.allCases,
+                    label: scrollScopeLabel
+                )
+
+                SettingsDivider()
+
+                SettingsToggleRow(
+                    symbol: "arrow.up.arrow.down",
+                    tint: .indigo,
+                    title: localization.string(.settingsPopupVolumeScrollNatural),
+                    subtitle: localization.string(.settingsPopupVolumeScrollNaturalDescription),
+                    isOn: $store.popupVolumeNaturalScrolling
+                )
+            }
+        }
+    }
+
+    private func scrollScopeLabel(_ scope: PopupVolumeScrollScope) -> String {
+        switch scope {
+        case .panel:
+            localization.string(.settingsPopupVolumeScrollScopePanel)
+        case .volumeControl:
+            localization.string(.settingsPopupVolumeScrollScopeVolumeControl)
         }
     }
 

@@ -337,10 +337,11 @@ final class SettingsViewTests: XCTestCase {
         }
     }
 
-    /// #236: the panel-scrolling settings belong on the Audio pane, not the
-    /// status-panel pane. Guard the move at the source so a later refactor
-    /// cannot quietly split the group across two pages.
-    func testPanelScrollingSettingsLiveOnTheAudioPaneOnly() throws {
+    /// #245/#256: scrolling now adjusts the slider under the pointer (volume,
+    /// brightness or input gain), so the settings live on the status-panel pane
+    /// rather than the Audio pane. Guard the location at the source so a later
+    /// refactor cannot quietly split the group across two pages.
+    func testPanelScrollingSettingsLiveOnThePanelPaneOnly() throws {
         let base = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -356,17 +357,17 @@ final class SettingsViewTests: XCTestCase {
             encoding: .utf8
         )
 
-        XCTAssertTrue(audio.contains("volumeScrollGroup"))
-        XCTAssertTrue(audio.contains("settingsPopupVolumeScrollGroup"))
-        XCTAssertTrue(audio.contains("scrollScopeLabel"))
-
-        XCTAssertFalse(popover.contains("volumeScrollGroup"))
-        XCTAssertFalse(popover.contains("settingsPopupVolumeScroll"))
-        XCTAssertFalse(popover.contains("scrollScopeLabel"))
-        XCTAssertFalse(
+        XCTAssertTrue(popover.contains("volumeScrollGroup"))
+        XCTAssertTrue(popover.contains("settingsPopupVolumeScrollGroup"))
+        XCTAssertTrue(popover.contains("scrollScopeLabel"))
+        XCTAssertTrue(
             popover.contains("popupScrollAdjustsVolume"),
-            "the status-panel pane must not keep any scroll-to-volume control"
+            "the status-panel pane owns the panel-wide scroll adjustment"
         )
+
+        XCTAssertFalse(audio.contains("volumeScrollGroup"))
+        XCTAssertFalse(audio.contains("settingsPopupVolumeScroll"))
+        XCTAssertFalse(audio.contains("scrollScopeLabel"))
     }
 
     /// The compatibility note tells users whose display DDC Status Trio cannot

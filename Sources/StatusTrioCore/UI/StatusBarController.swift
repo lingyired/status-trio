@@ -942,16 +942,10 @@ final class StatusBarController: NSObject {
             }
             return consumeVolume(event: event)
         case .brightness(let displayID):
-            // Only adjust when the scope allows panel-level interaction; under
-            // `.volumeControl` the wheel is still consumed so it never changes
-            // the output volume while over a brightness slider.
-            guard settings.popupVolumeScrollScope == .panel else { return true }
+            // Sliders own the wheel wherever they are; the scope setting only
+            // decides whether empty panel areas also adjust the output volume.
             return consumeBrightness(displayID: displayID, event: event)
         case .audioInput:
-            // Same scope rule as brightness: under `.volumeControl` the wheel
-            // is consumed so it can never change the output volume while over
-            // the input slider.
-            guard settings.popupVolumeScrollScope == .panel else { return true }
             return consumeAudioInput(event: event)
         }
     }
