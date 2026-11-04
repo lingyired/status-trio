@@ -3,6 +3,8 @@ import SwiftUI
 
 struct StatusPopoverView: View {
     @ObservedObject var panel: StatusPanelViewModel
+    /// Legacy charge limit for the battery details page; nil in previews/tests.
+    var legacyChargeLimit: LegacyChargeLimitController? = nil
     /// Observed so the Low Power Mode control appears the moment the helper is
     /// approved — reading `.isReady` off the shared manager without observing
     /// it left the control invisible until the popover was recreated.
@@ -72,7 +74,8 @@ struct StatusPopoverView: View {
                     showsLowPowerControl: panel.settings.controlsLowPowerMode
                         && helper.isReady,
                     chargeToFullNow: panel.chargeToFullNowPresentation,
-                    onChargeToFullNow: { panel.actions.requestChargeToFullNow() }
+                    onChargeToFullNow: { panel.actions.requestChargeToFullNow() },
+                    legacyChargeLimit: legacyChargeLimit
                 )
             case .wifi:
                 WiFiNetworkListView(

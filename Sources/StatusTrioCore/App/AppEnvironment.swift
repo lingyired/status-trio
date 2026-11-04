@@ -153,6 +153,13 @@ final class AppEnvironment {
             batteries: store.$snapshot.dropFirst().map { $0.battery }
                 .removeDuplicates().eraseToAnyPublisher()
         )
+        legacyChargeLimit?.onHelperDemandChanged = { required in
+            if required {
+                PrivilegedHelperManager.shared.ensureSharedHelperRegistered()
+            } else {
+                PrivilegedHelperManager.shared.releaseSharedHelperDemand()
+            }
+        }
         legacyChargeLimit?.start(
             batteries: store.$snapshot.dropFirst().map { $0.battery }
                 .removeDuplicates().eraseToAnyPublisher()
@@ -516,7 +523,8 @@ final class AppEnvironment {
             quitAction: { NSApplication.shared.terminate(nil) },
             chargingEffectClock: chargingEffectClock,
             inputSourceController: inputSourceController,
-            chargeToFullNow: chargeToFullNow
+            chargeToFullNow: chargeToFullNow,
+            legacyChargeLimit: legacyChargeLimit
         )
         let globalShortcutController = GlobalShortcutController(
             settings: settings,

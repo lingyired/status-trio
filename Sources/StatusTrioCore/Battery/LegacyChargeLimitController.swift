@@ -26,6 +26,10 @@ final class LegacyChargeLimitController: ObservableObject {
     /// Last gate decision this controller asked for, so hysteresis does not
     /// flap on small level wobbles and we do not write on every battery tick.
     private var lastAppliedAllowsCharging: Bool?
+    /// Reports whether a held cap needs the shared root helper registered and
+    /// polled. The environment wires this to `PrivilegedHelperManager`, so an
+    /// idle app with no cap never keeps the daemon alive.
+    var onHelperDemandChanged: ((Bool) -> Void)?
     /// Bumped by every user command. A launch reconcile captures this and
     /// discards its result if a command landed while it was awaiting the helper,
     /// so a slow startup verify can never overwrite the user's newer action.
@@ -197,6 +201,7 @@ final class LegacyChargeLimitController: ObservableObject {
             saveSession(newSession)
             selectedLimit = limit
             status = .holding(at: limit)
+            onHelperDemandChanged?(true)
             return true
         } catch LegacyChargeLimitClientError.helperUnavailable {
             availability = .unavailable(.helperUnavailable)
@@ -230,6 +235,7 @@ final class LegacyChargeLimitController: ObservableObject {
             selectedLimit = nil
             status = .notEnabled
             client.releaseConnection()
+            onHelperDemandChanged?(false)
             return true
         } catch {
             status = .restoreFailed

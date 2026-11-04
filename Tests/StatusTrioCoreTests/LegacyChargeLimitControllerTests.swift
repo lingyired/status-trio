@@ -384,6 +384,17 @@ final class LegacyChargeLimitControllerTests: XCTestCase {
         XCTFail("Expected asynchronous controller event was not observed", file: file, line: line)
     }
 
+    func testHoldingACapRaisesAndReleasingItWithdrawsTheSharedHelperDemand() async {
+        let controller = makeController()
+        await controller.refresh()
+        var demands: [Bool] = []
+        controller.onHelperDemandChanged = { demands.append($0) }
+        _ = await controller.setLimit(80)
+        XCTAssertEqual(demands, [true])
+        _ = await controller.disable()
+        XCTAssertEqual(demands, [true, false])
+    }
+
     func testUnavailableControllerDoesNotIssueCommands() async {
         let client = FakeLegacyClient()
         let controller = makeController(client: client, osBand: .tahoe)

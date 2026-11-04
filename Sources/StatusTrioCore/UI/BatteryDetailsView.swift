@@ -14,6 +14,9 @@ struct BatteryDetailsView: View {
     private let showsLowPowerControl: Bool
     private let chargeToFullNow: ChargeToFullNowPresentation
     private let onChargeToFullNow: () -> Void
+    /// Legacy macOS 13–15 ceiling. Optional so previews and layout tests keep
+    /// rendering without a controller.
+    private let legacyChargeLimit: LegacyChargeLimitController?
     /// The sensor caveats and the energy-ranking caveat live behind the header's
     /// info button instead of taking three lines under the rows.
     @State private var showsInfo = false
@@ -28,7 +31,8 @@ struct BatteryDetailsView: View {
         lowPowerMode: LowPowerModeController? = nil,
         showsLowPowerControl: Bool = false,
         chargeToFullNow: ChargeToFullNowPresentation = .hidden,
-        onChargeToFullNow: @escaping () -> Void = {}
+        onChargeToFullNow: @escaping () -> Void = {},
+        legacyChargeLimit: LegacyChargeLimitController? = nil
     ) {
         self.state = state
         self.onBack = onBack
@@ -40,6 +44,7 @@ struct BatteryDetailsView: View {
         self.showsLowPowerControl = showsLowPowerControl
         self.chargeToFullNow = chargeToFullNow
         self.onChargeToFullNow = onChargeToFullNow
+        self.legacyChargeLimit = legacyChargeLimit
     }
 
     private var detailRows: [PanelDetailRow] {
@@ -92,6 +97,10 @@ struct BatteryDetailsView: View {
                     presentation: chargeToFullNow,
                     onAction: onChargeToFullNow
                 )
+            }
+
+            if let legacyChargeLimit {
+                LegacyChargeLimitPanelRow(controller: legacyChargeLimit)
             }
 
             Divider()

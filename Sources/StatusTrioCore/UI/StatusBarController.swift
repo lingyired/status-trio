@@ -48,6 +48,7 @@ final class StatusBarController: NSObject {
     /// Retained so the right-click quick action can reuse the same
     /// charge-to-full start/cancel path the panel button uses.
     private let chargeToFullNow: ChargeToFullNowController?
+    private let legacyChargeLimit: LegacyChargeLimitController?
     private let panelViewModel: StatusPanelViewModel
     private let iconPresentation: IconPresentationViewModel
     private let localization: Localization
@@ -208,12 +209,14 @@ final class StatusBarController: NSObject {
         },
         inputSourceController: InputSourceController? = nil,
         chargeToFullNow: ChargeToFullNowController? = nil,
+        legacyChargeLimit: LegacyChargeLimitController? = nil,
         appearanceProvider: (@MainActor () -> NSAppearance)? = nil
     ) {
         self.appearanceProvider = appearanceProvider
         self.store = store
         self.settings = settings
         self.chargeToFullNow = chargeToFullNow
+        self.legacyChargeLimit = legacyChargeLimit
         let resolvedInputSourceController = inputSourceController ?? InputSourceController()
         self.inputSourceController = resolvedInputSourceController
         let panelActions = StatusPanelActions(
@@ -486,6 +489,7 @@ final class StatusBarController: NSObject {
         let rootView = LocalizedRootView(localization: localization) {
             StatusPopoverView(
                 panel: panelViewModel,
+                legacyChargeLimit: legacyChargeLimit,
                 scrollTargets: popoverScrollTargets,
                 layoutMetrics: popover.layoutMetrics,
                 requestWiFiNameAccess: { self.handleRequestWiFiNameAccess() },
