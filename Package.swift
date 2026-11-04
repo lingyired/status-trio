@@ -46,12 +46,23 @@ let package = Package(
             name: "PowerHelperProtocol",
             path: "Sources/PowerHelperProtocol"
         ),
+        // Minimal AppleSMC access for the legacy charge limiter. Linked only
+        // into the root helper; the write allowlist lives inside the bridge.
+        .target(
+            name: "SMCPrivateAPI",
+            path: "Sources/SMCPrivateAPI",
+            publicHeadersPath: "include",
+            linkerSettings: [
+                .linkedFramework("IOKit")
+            ]
+        ),
         .executableTarget(
             name: "StatusTrioPowerHelper",
-            dependencies: ["PowerHelperProtocol"],
+            dependencies: ["PowerHelperProtocol", "SMCPrivateAPI"],
             path: "Sources/StatusTrioPowerHelper",
             linkerSettings: [
-                .linkedFramework("Security")
+                .linkedFramework("Security"),
+                .linkedFramework("IOKit")
             ]
         ),
         .target(
