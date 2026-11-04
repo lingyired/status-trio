@@ -113,10 +113,18 @@ enum BluetoothBatteryLevelFallback {
         var isAmbiguous = false
 
         for readings in groups {
+            // Collect every device any record could describe. Dropping a record
+            // early (allSatisfy before this filter) would hide a second possible
+            // owner and make the group look unambiguous.
             let namingDevices = devices.filter { device in
                 readings.contains { identityMatches($0, device) }
             }
-            guard namingDevices.count == 1, let device = namingDevices.first else {
+            // The group is usable only when that whole set has one member and
+            // every record agrees it is the target — one matching part must not
+            // lend its identity to a conflicting part.
+            guard namingDevices.count == 1,
+                  let device = namingDevices.first,
+                  readings.allSatisfy({ identityMatches($0, device) }) else {
                 isAmbiguous = true
                 continue
             }

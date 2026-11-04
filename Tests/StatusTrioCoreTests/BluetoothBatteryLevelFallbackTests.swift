@@ -256,6 +256,30 @@ struct BluetoothBatteryLevelFallbackTests {
         ).isEmpty)
     }
 
+    @Test("A shared identifier cannot lend one matching part's identity to a conflicting part")
+    func conflictingPartsRejectTheWholeIdentifierGroup() {
+        let target = device(vendorID: 76, productID: 8207)
+        let readings = [
+            accessory(vendorID: 76, productID: 8207, part: .left, percentage: 93),
+            accessory(vendorID: 1133, productID: 45915, part: .right, percentage: 12)
+        ]
+        #expect(BluetoothBatteryLevelFallback.merged(levels: [:], accessories: readings, devices: [target]).isEmpty)
+        #expect(BluetoothBatteryLevelFallback.level(for: target, accessories: readings, devices: [target]) == nil)
+        let primary = [BluetoothBatteryReader.normalizedAddress(target.id): level(main: 88)]
+        #expect(BluetoothBatteryLevelFallback.merged(levels: primary, accessories: readings, devices: [target]) == primary)
+    }
+
+    @Test("All-parts agreement must not shrink away a cross-device ambiguity")
+    func aPartMatchingAnotherDeviceKeepsTheGroupAmbiguous() {
+        let target = device(vendorID: 76, productID: 8207)
+        // The unnamed-ID part matches both devices by name. The other part
+        // matches only target by model; filtering with allSatisfy first would
+        // conceal the second possible owner of the first part.
+        let neighbour = device(address: "11:22:33:44:55:66", vendorID: 1133, productID: 45915)
+        let readings = [accessory(part: .left), accessory(vendorID: 76, productID: 8207, part: .right)]
+        #expect(BluetoothBatteryLevelFallback.merged(levels: [:], accessories: readings, devices: [target, neighbour]).isEmpty)
+    }
+
     // MARK: - Matching
 
     /// The pair identifies one model, and it is what survives a rename. When both
