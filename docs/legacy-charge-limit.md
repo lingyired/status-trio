@@ -267,6 +267,12 @@ What exists in this branch (source-level evidence only):
 - The battery details page shows one compact row (target + state + a single
   full-charge/cancel action) derived from the controller; it adds no second
   battery monitor and no timer.
+- The main battery card shows no charge ceiling (product decision, user
+  2026-11-04). It does offer one plain action for older systems, where the
+  native PowerUI action does not exist: "charge to full once" while a cap is
+  held, "cancel full charge" during a temporary full charge. The native 26.4+
+  action area and the legacy action never appear together. Tests pin the action
+  per state and assert the card stays well below the full details row.
 - `SMCPrivateAPI`: minimal AppleSMC IOKit bridge whose write allowlist is
   `BCLM`/`CH0B`/`CH0C`/`CHTE`; linked only into the root helper.
 - Shared typed XPC capsule + combined protocol; Low Power Mode and the charge
