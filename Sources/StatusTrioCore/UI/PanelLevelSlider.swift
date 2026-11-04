@@ -203,14 +203,17 @@ private extension PanelLevelSlider {
             nsView.onEditingChanged = onEditingChanged
             nsView.setLabel(label, animated: true)
             applyAccessibility(to: nsView)
-            // Mirror external draft changes into the native control. During a
-            // drag the produced value has already been written back, so this is
-            // a no-op; a late system echo that did not originate from a drag is
-            // applied normally (the panel-level state owns echo suppression).
-            let target = clamped(currentValue)
-            if abs(nsView.doubleValue - target) > 0.0001 {
-                nsView.doubleValue = target
-                nsView.needsDisplay = true
+            // Mirror external draft changes into the native control. While the
+            // pointer tracks, AppKit already owns the position and the draft is
+            // deliberately behind (reports are throttled), so never overwrite
+            // the gesture; a late system echo outside a drag applies normally
+            // (the panel-level state owns echo suppression).
+            if !nsView.isTracking {
+                let target = clamped(currentValue)
+                if abs(nsView.doubleValue - target) > 0.0001 {
+                    nsView.doubleValue = target
+                    nsView.needsDisplay = true
+                }
             }
             nsView.refreshLabel(animated: true)
         }
@@ -423,9 +426,38 @@ final class PanelLevelSliderView: NSSlider {
 
     // MARK: Drawing.
 
+    /// Whether the slider currently owns a pointer/keyboard gesture.
+    var isTracking: Bool { isGestureActive }
+
+    /// Reports at most 30 times a second while a gesture is active. The native
+    /// control keeps drawing every frame; writing the SwiftUI binding on each
+    /// pointer event made the panel hosting view commit a transaction per event
+    /// (#263). A final report flushes when the gesture ends.
+    private static let minimumReportInterval: TimeInterval = 1.0 / 30.0
+    private var lastReportedAt: TimeInterval?
+    private var pendingReportedValue: Double?
+
     @objc func valueDidChange(_ sender: Any?) {
         refreshLabel(animated: true)
+        guard isGestureActive else {
+            onValueChanged?(clampedDoubleValue)
+            return
+        }
+        let now = ProcessInfo.processInfo.systemUptime
+        if let lastReportedAt, now - lastReportedAt < Self.minimumReportInterval {
+            pendingReportedValue = clampedDoubleValue
+            return
+        }
+        lastReportedAt = now
+        pendingReportedValue = nil
         onValueChanged?(clampedDoubleValue)
+    }
+
+    private func flushPendingReport() {
+        guard let pendingReportedValue else { return }
+        self.pendingReportedValue = nil
+        lastReportedAt = nil
+        onValueChanged?(pendingReportedValue)
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -552,6 +584,7 @@ final class PanelLevelSliderView: NSSlider {
         isGestureActive = true
         onEditingChanged?(true)
         super.mouseDown(with: event)
+        flushPendingReport()
         onEditingChanged?(false)
         isGestureActive = false
     }
@@ -581,6 +614,7 @@ final class PanelLevelSliderView: NSSlider {
         isGestureActive = true
         onEditingChanged?(true)
         super.keyDown(with: event)
+        flushPendingReport()
         onEditingChanged?(false)
         isGestureActive = false
     }
