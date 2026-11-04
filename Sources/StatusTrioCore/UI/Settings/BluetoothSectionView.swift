@@ -23,7 +23,10 @@ struct BluetoothSectionView: View {
         // the three leaf subpages. Switching between them must not tear down
         // and rebuild the Bluetooth listener; only leaving the whole category
         // may. The page below it is the only thing rebuilt on a leaf switch.
-        Group {
+        // A concrete, stable container (not a transparent `Group`) so the
+        // lifecycle modifiers below are attached to one identity that survives
+        // every leaf switch.
+        VStack(spacing: 0) {
             if showsIconPreview {
                 SettingsPage(pinnedHeader: {
                     StatusIconPreviewCard(

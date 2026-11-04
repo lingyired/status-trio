@@ -13,7 +13,9 @@ struct AudioSectionView: View {
         // The lifecycle stays on this stable container; only the page below it
         // is rebuilt when the leaf changes, so switching subpages does not
         // re-run the refresh.
-        Group {
+        // A concrete, stable container keeps the refresh hook attached to one
+        // identity so switching leaves does not re-run it.
+        VStack(spacing: 0) {
             if showsIconPreview {
                 SettingsPage(pinnedHeader: {
                     StatusIconPreviewCard(
