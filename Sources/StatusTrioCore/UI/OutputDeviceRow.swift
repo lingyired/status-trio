@@ -19,9 +19,7 @@ struct OutputDeviceRow: View {
                         if expanded && controls == nil {
                             controls = AirPodsSystemControlsModel(deviceID: state.key, deviceName: state.name)
                         }
-                        if expanded {
-                            controls?.refresh()
-                        } else { controls?.stop() }
+                        if !expanded { controls?.stop() }
                     } label: {
                         Image(systemName: expanded ? "chevron.up" : "chevron.down")
                             .font(.caption.weight(.semibold))
@@ -36,6 +34,7 @@ struct OutputDeviceRow: View {
 
             if expanded, state.supportsAirPodsSystemControls, let controls {
                 AirPodsSystemControlsView(model: controls, listeningMode: state.listeningMode, onSelectListeningMode: onSelectListeningMode)
+                    .onAppear { controls.start() }
             }
 
             if !state.supportsAirPodsSystemControls, let listeningMode = state.listeningMode, listeningMode.isControllable {

@@ -229,6 +229,12 @@ final class AirPodsSystemControls: NSObject, IOBluetoothL2CAPChannelDelegate {
                 .init(title: localization.string(.batteryDetailsOn), selected: value == 1, symbol: "person.wave.2.fill")]
     }
 
+    func readSpatial() throws -> [AirPodsSystemOption] {
+        _ = try device()
+        spatialState = try? AirPodsSpatialControls(deviceID: target.id).read()
+        return spatialOptions()
+    }
+
     private func spatialOptions() -> [AirPodsSystemOption] {
         guard let spatialState else { return [] }
         return zip(AirPodsSpatialState.Mode.allCases,

@@ -48,26 +48,87 @@ final class AirPodsSystemControlsModel: ObservableObject {
     @Published private(set) var errorKey: LocalizationKey?
     private let controls: AirPodsSystemControls
     private var task: Task<Void, Never>?
+    private let deviceID: PanelAudioDeviceID
+    private let listenerBackend: any BluetoothListeningModePropertyListening
+    private let spatialReader: (@MainActor () throws -> [AirPodsSystemOption])?
+    private var observation: AirPodsSpatialObservation?
+    private var observationGeneration = 0
+    private var spatialRevision = 0
+    private var spatialTask: Task<Void, Never>?
+    private var spatialDirty = false
+    private var activeChange: Change?
     enum Change { case refresh, option(AirPodsSystemControls.Group), adaptive }
 
-    init(deviceID: PanelAudioDeviceID, deviceName: String, snapshot: AirPodsSystemSnapshot = .init()) {
+    init(deviceID: PanelAudioDeviceID, deviceName: String, snapshot: AirPodsSystemSnapshot = .init(),
+         listenerBackend: any BluetoothListeningModePropertyListening = CoreAudioBluetoothListeningModeListenerBackend(),
+         spatialReader: (@MainActor () throws -> [AirPodsSystemOption])? = nil) {
+        self.deviceID = deviceID
+        self.listenerBackend = listenerBackend
+        self.spatialReader = spatialReader
         self.snapshot = snapshot
         controls = AirPodsSystemControls(target: deviceID, name: deviceName)
+    }
+
+    func start(read: Reader? = nil) {
+        guard observation == nil else { return }
+        observationGeneration += 1
+        let token = observationGeneration
+        observation = AirPodsSpatialObservation(deviceID: deviceID.id, backend: listenerBackend) { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self, self.observationGeneration == token else { return }
+                self.spatialChanged()
+            }
+        }
+        refresh(read: read)
+    }
+
+    private func spatialChanged() {
+        spatialDirty = true
+        if case .option(.spatial)? = activeChange { return }
+        guard spatialTask == nil else { return }
+        let token = observationGeneration
+        spatialTask = Task { [weak self] in
+            await Task.yield() // coalesce notifications from the same HAL update
+            guard let self, !Task.isCancelled, self.observationGeneration == token else { return }
+            self.spatialTask = nil
+            if case .option(.spatial)? = self.activeChange { return }
+            self.spatialDirty = false
+            self.spatialRevision += 1
+            do {
+                self.snapshot.spatial = try self.spatialReader?() ?? self.controls.readSpatial()
+                self.snapshot.spatialLoaded = true
+            } catch {
+                self.snapshot.spatial = []
+                self.snapshot.spatialLoaded = true
+                if error as? AirPodsSystemControlError == .routeChanged {
+                    self.snapshot = AirPodsSystemSnapshot()
+                    self.errorKey = .airPodsRouteChanged
+                    self.stop()
+                }
+            }
+        }
     }
 
     typealias Reader = (@escaping @MainActor (AirPodsSystemSnapshot) -> Void) async throws -> AirPodsSystemSnapshot
 
     func refresh(read: Reader? = nil) {
         run(.refresh) {
+            let revision = self.spatialRevision
             let publish: @MainActor (AirPodsSystemSnapshot) -> Void = { [weak self] snapshot in
                 guard !Task.isCancelled else { return }
-                self?.snapshot = snapshot
+                guard let self else { return }
+                var updated = snapshot
+                if self.spatialRevision != revision {
+                    updated.spatial = self.snapshot.spatial
+                    updated.spatialLoaded = self.snapshot.spatialLoaded
+                }
+                self.snapshot = updated
             }
             let result: AirPodsSystemSnapshot
             if let read { result = try await read(publish) }
             else { result = try await self.controls.read(onUpdate: publish) }
             try Task.checkCancellation()
-            self.snapshot = result
+            publish(result)
         }
     }
 
@@ -86,6 +147,12 @@ final class AirPodsSystemControlsModel: ObservableObject {
     }
 
     func stop() {
+        observationGeneration += 1
+        observation = nil
+        spatialTask?.cancel()
+        spatialTask = nil
+        spatialDirty = false
+        activeChange = nil
         task?.cancel()
         task = nil
         controls.stop()
@@ -95,6 +162,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
     func run(_ change: Change, _ operation: @escaping @MainActor () async throws -> Void) {
         guard !busy else { return }
         busy = true
+        activeChange = change
         errorKey = nil
         task = Task { [weak self] in
             guard let self else { return }
@@ -126,6 +194,8 @@ final class AirPodsSystemControlsModel: ObservableObject {
             guard !Task.isCancelled else { return }
             busy = false
             task = nil
+            activeChange = nil
+            if spatialDirty, observation != nil { spatialChanged() }
         }
     }
 }

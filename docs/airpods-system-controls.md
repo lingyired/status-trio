@@ -230,3 +230,27 @@ Off retains the same person-and-waves symbol as On/Fixed, with the waves dimmed
 using a symbol palette; the person remains solid.
 Cross-model hardware validation remains NOT RUN; model and protocol behavior
 are covered by local tests.
+
+## Live Spatial Audio availability
+
+Read-only inspection of the installed Control Center app/framework on November 4
+found its `CoreAudioController.spatialAudioProperties` and active-client getters.
+The framework dispatch at `0x20A5184E0` handles `acsc`, and the dispatch around
+`0x20A5185C4`–`0x20A518640` routes spatial-property changes (including `spav`,
+`spcf`, `spcs`, and `spss`) to the same update path. These addresses describe the
+inspected OS binary, not stable APIs.
+
+A bounded read-only live probe registered the same property notifications. When
+the user paused and resumed using the keyboard, it observed `spav` change from
+0 to 1, `acsc` change from zero to the media client's PID, and running state
+change from 0 to 1. This verifies the notification source on the tested headset;
+it is not a live end-to-end verification of every supported model.
+
+The expanded menu now owns an `AirPodsSpatialObservation` for availability,
+active client, configuration, spatial/stereo state, head tracking, and device
+running state. Notifications coalesce on the main actor and reread only Spatial
+Audio. No timer or continuous polling is used. Dismissal releases the exact HAL
+registrations and rejects queued callbacks; reopening starts a fresh read and
+subscription. A spatial write defers notification reads until its confirmation
+finishes. Playback updates received during the supplementary Bluetooth read are
+published immediately and cannot be overwritten by its older snapshot.
