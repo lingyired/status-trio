@@ -65,7 +65,8 @@ struct AppIconSectionView: View {
         case .appIconRing:
             AppIconRingView(store: store)
         case .appIconMiddleIcon:
-            MiddleIconSettingsGroup(store: store, statusStore: statusStore)
+            MiddleIconSettingsGroup(store: store, statusStore: statusStore,
+                                    showsGroupTitle: false)
         case .appIconBottomIndicator:
             AppIconBottomIndicatorView(
                 store: store,

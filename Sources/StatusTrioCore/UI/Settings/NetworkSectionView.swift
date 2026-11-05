@@ -17,9 +17,9 @@ struct NetworkSectionView: View {
                 isDarkBackground: $previewIsDark
             )
         }) {
+            // Permission notices come first, then the panel show/hide group.
             if statusStore.snapshot.wifi.nameAccess != .authorized {
                 wifiPermissionNotice
-                SettingsDivider()
             }
             panelGroup
         }
@@ -62,16 +62,7 @@ struct NetworkSectionView: View {
     /// the menu bar artwork and this decides the panel's second line.
     private var panelGroup: some View {
         SettingsGroup(localization.string(.settingsNetworkPanelGroup)) {
-            if WiFiPowerControlVisibility.showsSettingsControl(state: statusStore.snapshot.wifi.state) {
-                SettingsToggleRow(
-                    symbol: "power.circle",
-                    tint: .blue,
-                    title: localization.string(.settingsNetworkPowerControl),
-                    subtitle: localization.string(.settingsNetworkPowerControlDescription),
-                    isOn: $store.showsWiFiPowerControl
-                )
-                SettingsDivider()
-            }
+            // The "show in status panel" toggle leads the pane.
             SettingsToggleRow(
                 symbol: PopupSection.network.systemImage,
                 tint: .blue,
@@ -82,6 +73,17 @@ struct NetworkSectionView: View {
                     set: { store.setPopupSection(.network, enabled: $0) }
                 )
             )
+
+            if WiFiPowerControlVisibility.showsSettingsControl(state: statusStore.snapshot.wifi.state) {
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "power.circle",
+                    tint: .blue,
+                    title: localization.string(.settingsNetworkPowerControl),
+                    subtitle: localization.string(.settingsNetworkPowerControlDescription),
+                    isOn: $store.showsWiFiPowerControl
+                )
+            }
 
             SettingsDivider()
 

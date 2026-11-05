@@ -65,7 +65,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "Процент батареи";
 "settings.appIcon.middleIcon.power" = "Мощность (Вт)";
 "settings.appIcon.middleIcon.chargingStatus" = "Состояние зарядки";
-"settings.appIcon.middleIcon.chargingStatus.description" = "Показывает процент при работе от батареи, молнию при зарядке и вилку при подключении к сети; кольцо остаётся замкнутым.";
+"settings.appIcon.middleIcon.chargingStatus.description" = "В этом режиме параметр «Показывать значок при зарядке или питании от сети» верхней дуги отключён, чтобы значок не дублировался.";
 "settings.appIcon.middleIcon.size" = "Размер центрального значка";
 "settings.appIcon.middleIcon.size.description" = "Единый размер для всего содержимого в центре: Wi-Fi, Bluetooth, источник ввода и числа.";
 "settings.appIcon.middleIcon.networkWarnings" = "Сначала проблемы сети";
@@ -134,7 +134,8 @@
 "settings.bluetooth.iconChoice.stereoPair" = "Стереопара";
 "settings.bluetooth.showDeviceList" = "Показывать список устройств Bluetooth";
 "settings.bluetooth.showDeviceListDescription" = "Показывает сопряжённые устройства под пунктом Bluetooth на панели состояния. Подключённые устройства идут первыми.";
-"settings.bluetooth.deviceListGroup" = "Список на панели состояния";
+"settings.bluetooth.deviceListGroup" = "Список устройств Bluetooth";
+"settings.bluetooth.moreSettings" = "Дополнительные настройки";
 "settings.bluetooth.maximumVisible" = "Максимум видимых устройств Bluetooth";
 "settings.bluetooth.maximumVisibleDescription" = "Сколько устройств показывать до кнопки «Развернуть».";
 "settings.bluetooth.orderTitle" = "Порядок устройств Bluetooth";

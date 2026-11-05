@@ -65,7 +65,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "电池百分比";
 "settings.appIcon.middleIcon.power" = "功耗（瓦）";
 "settings.appIcon.middleIcon.chargingStatus" = "充电状态";
-"settings.appIcon.middleIcon.chargingStatus.description" = "放电时显示电量百分比，充电时显示闪电，连接电源时显示插头；顶部圆环保持闭合。";
+"settings.appIcon.middleIcon.chargingStatus.description" = "此模式下，顶部圆弧的「充电/连接电源时显示指示图标」会失效，避免与中间图标重复。";
 "settings.appIcon.middleIcon.size" = "中间图标大小";
 "settings.appIcon.middleIcon.size.description" = "中间显示的所有内容（Wi‑Fi、蓝牙、输入法、数字）共用这个大小。";
 "settings.appIcon.middleIcon.networkWarnings" = "优先显示网络异常";
@@ -134,7 +134,8 @@
 "settings.bluetooth.iconChoice.stereoPair" = "立体声组合";
 "settings.bluetooth.showDeviceList" = "显示蓝牙设备列表";
 "settings.bluetooth.showDeviceListDescription" = "在状态面板的蓝牙行下方列出已配对设备，已连接的排在前面。";
-"settings.bluetooth.deviceListGroup" = "状态面板列表";
+"settings.bluetooth.deviceListGroup" = "蓝牙设备列表";
+"settings.bluetooth.moreSettings" = "更多设置";
 "settings.bluetooth.maximumVisible" = "最多显示设备数";
 "settings.bluetooth.maximumVisibleDescription" = "超出这个数量的设备需要点击「展开」查看。";
 "settings.bluetooth.orderTitle" = "蓝牙设备顺序";
@@ -180,8 +181,8 @@
 "settings.battery.showPercentage" = "显示电量数字";
 "settings.battery.showChargingIndicator" = "充电/连接电源时显示指示图标";
 "settings.battery.chargingDescription" = "开启后，正在充电或已连接电源时，电量数字会替换为闪电或插头图标；关闭则继续显示数字。";
-"settings.battery.splitGapProgress" = "顶部有图标时进度劈开";
-"settings.battery.splitGapProgressDescription" = "当顶部缺口显示闪电、插头或电量数字时，把圆环进度劈成左右两半：左半为 0–50%、右半为 50–100%，让缺口不再遮住进度。";
+"settings.battery.splitGapProgress" = "顶部有图标时左右两边平分";
+"settings.battery.splitGapProgressDescription" = "当顶部缺口显示闪电、插头或电量数字时，把圆环进度平分成左右两半：左半为 0–50%、右半为 50–100%，让缺口不再遮住进度。";
 "settings.battery.chargingEffect" = "充电动效";
 "settings.battery.chargingEffectDescription" = "仅在充电时显示动态高光；开启“减弱动态效果”时停止。";
 "settings.battery.menuBarChargingEffect" = "菜单栏充电动效";

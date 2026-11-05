@@ -31,6 +31,7 @@ struct BatterySectionView: View {
 
     @ViewBuilder
     private var fullBatteryContent: some View {
+        // Any notice comes first, then the panel show/hide group.
         if !statusStore.snapshot.battery.isPresent {
             noBatteryNoticeGroup
         }

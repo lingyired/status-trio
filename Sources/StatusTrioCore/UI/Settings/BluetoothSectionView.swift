@@ -54,22 +54,26 @@ struct BluetoothSectionView: View {
     private var fullBluetoothContent: some View {
         if bluetoothDevices.authorization != .allowed {
             bluetoothPermissionBanner
-            SettingsDivider()
         }
 
-        SettingsGroup(localization.string(.settingsTabBluetooth)) {
+        // Show-in-panel leads, like every other pane.
+        SettingsGroup(localization.string(.settingsNetworkPanelGroup)) {
             showInStatusPanelRow
+        }
+
+        deviceListGroup
+        deviceOrderGroup
+
+        // Power, device batteries, Apple devices and listening mode live together
+        // in one "More settings" card at the bottom.
+        SettingsGroup(localization.string(.settingsBluetoothMoreSettings)) {
             powerControlRow
-            SettingsDivider()
             batteryLevelsRow
             SettingsDivider()
             appleDevicesRows
             SettingsDivider()
             previewsRows
         }
-
-        deviceListGroup
-        deviceOrderGroup
     }
 
     // MARK: - Row blocks shared by the full pane and the leaf subpages
@@ -90,8 +94,6 @@ struct BluetoothSectionView: View {
             authorization: bluetoothDevices.authorization,
             showsInStatusPanel: store.enabledPopupSections.contains(.bluetooth)
         ) {
-            SettingsDivider()
-
             SettingsToggleRow(
                 symbol: "power.circle",
                 tint: .blue,
@@ -99,6 +101,8 @@ struct BluetoothSectionView: View {
                 subtitle: localization.string(.settingsBluetoothPowerControlDescription),
                 isOn: $store.showsBluetoothPowerControl
             )
+
+            SettingsDivider()
         }
     }
 

@@ -550,12 +550,17 @@ final class IconPresentationMapperTests: XCTestCase {
         )
     }
 
-    func testChargingStatusCentresTheBoltAndClosesTheRing() {
+    func testChargingStatusCentresTheBoltAndKeepsThePercentageInTheTopGap() {
         let battery = BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: true,
                                     isLowPowerMode: false, isConnectedToPower: true)
         let scene = chargingScene(battery: battery, source: .chargingStatus)
-        XCTAssertEqual(scene.outerRing?.gap, .closed)
-        XCTAssertNil(scene.outerRing?.accessory, "the top gap must not also draw an indicator")
+        // The centre already shows the bolt, so the top gap is free to carry the
+        // level percentage instead of closing and losing it.
+        XCTAssertEqual(scene.outerRing?.gap, .value)
+        guard case let .text(text)? = scene.outerRing?.accessory else {
+            return XCTFail("expected the level percentage in the top gap")
+        }
+        XCTAssertEqual(text.text, "55")
         guard case let .symbol(symbol)? = scene.center, case .primitive(.bolt) = symbol.source else {
             return XCTFail("expected the bolt in the centre slot")
         }
@@ -570,8 +575,12 @@ final class IconPresentationMapperTests: XCTestCase {
                                  isLowPowerMode: false, isConnectedToPower: true)
         for battery in [charged, held] {
             let scene = chargingScene(battery: battery, source: .chargingStatus)
-            XCTAssertEqual(scene.outerRing?.gap, .closed)
-            XCTAssertNil(scene.outerRing?.accessory)
+            // The centre shows the plug, so the top gap keeps the level percentage.
+            XCTAssertEqual(scene.outerRing?.gap, .value)
+            guard case let .text(text)? = scene.outerRing?.accessory else {
+                return XCTFail("expected the level percentage in the top gap for \(battery)")
+            }
+            XCTAssertEqual(text.text, "\(battery.percentage)")
             guard case let .symbol(symbol)? = scene.center, case .primitive(.plug) = symbol.source else {
                 return XCTFail("expected a centred plug for \(battery)")
             }
@@ -610,14 +619,14 @@ final class IconPresentationMapperTests: XCTestCase {
         XCTAssertNotNil(scene.center)
     }
 
-    func testChargingStatusIgnoresSplitGapProgressWhileClosed() {
+    func testChargingStatusSplitsGapProgressWhileTheTopGapShowsThePercentage() {
         let battery = BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: true,
                                     isLowPowerMode: false, isConnectedToPower: true)
         let split = BatteryIconOptions(splitGapProgress: true)
-        let closed = chargingScene(battery: battery, source: .chargingStatus,
-                                   batteryOptions: split)
-        XCTAssertEqual(closed.outerRing?.gap, .closed)
-        XCTAssertEqual(closed.outerRing?.gapProgressMode, .absorbed)
+        let open = chargingScene(battery: battery, source: .chargingStatus,
+                                 batteryOptions: split)
+        XCTAssertEqual(open.outerRing?.gap, .value)
+        XCTAssertEqual(open.outerRing?.gapProgressMode, .split)
 
         let historical = chargingScene(battery: battery, source: .network,
                                        batteryOptions: split)

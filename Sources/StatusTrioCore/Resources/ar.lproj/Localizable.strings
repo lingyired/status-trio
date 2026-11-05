@@ -48,7 +48,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "نسبة البطارية";
 "settings.appIcon.middleIcon.power" = "الطاقة (واط)";
 "settings.appIcon.middleIcon.chargingStatus" = "حالة الشحن";
-"settings.appIcon.middleIcon.chargingStatus.description" = "يعرض نسبة البطارية عند العمل بالبطارية، وصاعقة أثناء الشحن، وقابسًا عند توصيل الطاقة؛ تبقى الحلقة مكتملة.";
+"settings.appIcon.middleIcon.chargingStatus.description" = "في هذا الوضع يُعطَّل خيار «إظهار رمز أثناء الشحن أو الاتصال بالطاقة» في القوس العلوي لتجنب تكرار الأيقونة.";
 "settings.appIcon.middleIcon.size" = "حجم الأيقونة الوسطى";
 "settings.appIcon.middleIcon.size.description" = "حجم واحد لكل محتوى المنتصف: Wi-Fi وBluetooth ومصدر الإدخال والأرقام.";
 "settings.appIcon.middleIcon.networkWarnings" = "إعطاء أولوية لمشاكل الشبكة";
@@ -117,7 +117,8 @@
 "settings.bluetooth.iconChoice.stereoPair" = "زوج استريو";
 "settings.bluetooth.showDeviceList" = "إظهار قائمة أجهزة Bluetooth";
 "settings.bluetooth.showDeviceListDescription" = "يسرد الأجهزة المقترنة أسفل إدخال Bluetooth في لوحة الحالة. تظهر الأجهزة المتصلة أولًا.";
-"settings.bluetooth.deviceListGroup" = "قائمة لوحة الحالة";
+"settings.bluetooth.deviceListGroup" = "قائمة أجهزة Bluetooth";
+"settings.bluetooth.moreSettings" = "إعدادات إضافية";
 "settings.bluetooth.maximumVisible" = "الحد الأقصى لأجهزة Bluetooth الظاهرة";
 "settings.bluetooth.maximumVisibleDescription" = "عدد الأجهزة المعروضة قبل زر التوسيع.";
 "settings.bluetooth.orderTitle" = "ترتيب أجهزة Bluetooth";

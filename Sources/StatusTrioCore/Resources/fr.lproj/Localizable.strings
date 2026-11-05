@@ -65,7 +65,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "Pourcentage de batterie";
 "settings.appIcon.middleIcon.power" = "Puissance (watts)";
 "settings.appIcon.middleIcon.chargingStatus" = "État de charge";
-"settings.appIcon.middleIcon.chargingStatus.description" = "Affiche le niveau de batterie sur batterie, un éclair en charge et une prise sur secteur ; l'anneau reste fermé.";
+"settings.appIcon.middleIcon.chargingStatus.description" = "Dans ce mode, « Afficher un indicateur pendant la charge ou sur secteur » de l'arc supérieur est désactivé pour éviter une icône en double.";
 "settings.appIcon.middleIcon.size" = "Taille de l’icône centrale";
 "settings.appIcon.middleIcon.size.description" = "Une seule taille pour tout le contenu central : Wi-Fi, Bluetooth, source de saisie et nombres.";
 "settings.appIcon.middleIcon.networkWarnings" = "Prioriser les problèmes réseau";
@@ -134,7 +134,8 @@
 "settings.bluetooth.iconChoice.stereoPair" = "Paire stéréo";
 "settings.bluetooth.showDeviceList" = "Afficher la liste des périphériques Bluetooth";
 "settings.bluetooth.showDeviceListDescription" = "Affiche les périphériques jumelés sous l’entrée Bluetooth du panneau d’état. Les périphériques connectés apparaissent en premier.";
-"settings.bluetooth.deviceListGroup" = "Liste du panneau d’état";
+"settings.bluetooth.deviceListGroup" = "Liste des appareils Bluetooth";
+"settings.bluetooth.moreSettings" = "Plus d’options";
 "settings.bluetooth.maximumVisible" = "Nombre maximal de périphériques Bluetooth visibles";
 "settings.bluetooth.maximumVisibleDescription" = "Nombre de périphériques affichés avant le bouton Développer.";
 "settings.bluetooth.orderTitle" = "Ordre des périphériques Bluetooth";

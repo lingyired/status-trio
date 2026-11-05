@@ -7,16 +7,24 @@ enum IconPresentationMapper {
         now: Date = Date()
     ) -> IconSceneState {
         // #253: the "charging status inside the ring" middle-icon mode draws the
-        // battery/charging status in the centre, so the top gap closes and the
-        // percentage/bolt/plug moves out of it (never drawn twice).
-        let closesRing = configuration.connection.centerSource == .chargingStatus
-            && inputs.snapshot.battery.isPresent
+        // battery/charging status in the centre. The level percentage lives there
+        // while on battery, so the top gap closes to keep that number from being
+        // drawn twice. While charging / on power the centre shows the bolt or
+        // plug instead, so the top gap stays available and keeps the level
+        // percentage visible (see `batteryState`).
+        let battery = inputs.snapshot.battery
+        let chargingStatusCenter = configuration.connection.centerSource == .chargingStatus
+            && battery.isPresent
+        let closesRing = chargingStatusCenter
+            && !battery.isCharging
+            && !battery.isConnectedToPower
         return IconSceneState(
             outerRing: batteryState(
-                inputs.snapshot.battery,
+                battery,
                 isHighPowerMode: inputs.isHighPowerMode,
                 options: configuration.battery,
-                closesRing: closesRing
+                closesRing: closesRing,
+                chargingStatusCenter: chargingStatusCenter
             ),
             center: centerState(inputs: inputs, configuration: configuration, now: now),
             footer: footerState(inputs.snapshot.volume, options: configuration.volume,
@@ -30,7 +38,8 @@ enum IconPresentationMapper {
         _ battery: BatteryStatus,
         isHighPowerMode: Bool,
         options: BatteryIconOptions,
-        closesRing: Bool
+        closesRing: Bool,
+        chargingStatusCenter: Bool
     ) -> OuterRingState {
         let role = options.usesStatusColors
             ? StatusMappings.batteryColorRole(
@@ -47,7 +56,20 @@ enum IconPresentationMapper {
         case .charging: .powered
         }
 
-        let gapContent = StatusMappings.batteryGapContent(battery, options: options)
+        let naturalGapContent = StatusMappings.batteryGapContent(battery, options: options)
+        // The "inside the ring" mode draws its status in the middle slot. When the
+        // centre carries the level percentage (on battery) the top gap closes so
+        // the same number is not drawn twice. When the centre carries the bolt or
+        // plug instead, the top gap shows the level percentage, so the battery
+        // percentage is never lost while charging or connected to power.
+        let gapContent: BatteryGapContent
+        if closesRing {
+            gapContent = naturalGapContent
+        } else if chargingStatusCenter {
+            gapContent = options.showsPercentage ? .percentage : .empty
+        } else {
+            gapContent = naturalGapContent
+        }
         let gapStyle: RingGapStyle = switch gapContent {
         case .empty: .closed
         case .percentage: .value

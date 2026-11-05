@@ -26,7 +26,9 @@ struct GeneralSectionView: View {
     }
 
     private var systemGroup: some View {
-        SettingsGroup(localization.string(.settingsPageGeneral)) {
+        // The pane is already "General", so the first card carries no repeated
+        // section title.
+        SettingsGroup {
             // Language
             SettingsRow(
                 title: localization.string(.settingsLanguage),

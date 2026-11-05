@@ -4,14 +4,20 @@ import SwiftUI
 struct MiddleIconSettingsGroup: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
+    /// Omitted on the dedicated "Middle Icon" page, where the page title already
+    /// names the section; kept when the group sits among the other icon groups.
+    var showsGroupTitle: Bool = true
     @EnvironmentObject private var localization: Localization
     @State private var showsNetworkIconOptions = false
 
     var body: some View {
-        SettingsGroup(localization.string(.settingsMiddleIconTitle)) {
+        SettingsGroup(showsGroupTitle ? localization.string(.settingsMiddleIconTitle) : nil) {
             sourcePicker
 
-            SettingsDivider()
+            // This divider follows the full-width picker (no leading icon
+            // column), so align it with the picker's content edge instead of the
+            // icon-row inset that would leave a gap on the left.
+            SettingsDivider(inset: SettingsMetrics.rowPaddingH)
             middleIconSizeRow
 
             if store.connectionCenterSource == .network {
@@ -123,13 +129,6 @@ struct MiddleIconSettingsGroup: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if store.connectionCenterSource == .chargingStatus {
-                Text(localization.string(.settingsMiddleIconChargingStatusDescription))
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
             HStack(alignment: .top, spacing: 8) {
                 ForEach(ConnectionCenterSource.allCases) { source in
                     let selected = store.connectionCenterSource == source
@@ -162,6 +161,23 @@ struct MiddleIconSettingsGroup: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(localization.string(.settingsMiddleIconSource))
+
+            if store.connectionCenterSource == .chargingStatus {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Image(systemName: "exclamationmark.circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+
+                    Text(localization.string(.settingsMiddleIconChargingStatusDescription))
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .padding(.horizontal, SettingsMetrics.rowPaddingH)
         .padding(.vertical, SettingsMetrics.rowPaddingV)

@@ -65,7 +65,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "Battery Percentage";
 "settings.appIcon.middleIcon.power" = "Power (Watts)";
 "settings.appIcon.middleIcon.chargingStatus" = "Charging status";
-"settings.appIcon.middleIcon.chargingStatus.description" = "Shows the battery level while on battery, a bolt while charging, and a plug while connected to power; the ring stays closed.";
+"settings.appIcon.middleIcon.chargingStatus.description" = "In this mode the top arc's “Show an indicator while charging or connected to power” is disabled to avoid a duplicate icon.";
 "settings.appIcon.middleIcon.size" = "Middle Icon Size";
 "settings.appIcon.middleIcon.size.description" = "One size for every middle content: Wi-Fi, Bluetooth, input source, and numbers.";
 "settings.appIcon.middleIcon.networkWarnings" = "Show network problems instead";
@@ -134,7 +134,8 @@
 "settings.bluetooth.iconChoice.stereoPair" = "Stereo Pair";
 "settings.bluetooth.showDeviceList" = "Show the Bluetooth device list";
 "settings.bluetooth.showDeviceListDescription" = "Lists paired devices under the Bluetooth entry in the status panel. Connected devices come first.";
-"settings.bluetooth.deviceListGroup" = "Status Panel List";
+"settings.bluetooth.deviceListGroup" = "Bluetooth devices list";
+"settings.bluetooth.moreSettings" = "More settings";
 "settings.bluetooth.maximumVisible" = "Maximum visible Bluetooth devices";
 "settings.bluetooth.maximumVisibleDescription" = "How many devices appear before the Expand control.";
 "settings.bluetooth.orderTitle" = "Bluetooth Device Order";
