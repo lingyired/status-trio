@@ -74,6 +74,8 @@ struct HardwareMetricTilePresentation: Equatable {
     let progress: Double?
     let availability: HardwareMetricAvailability
     let sensorLabel: String?
+    /// True when showing a cached last reading (rendered dimmed + marked expired).
+    let isStale: Bool
 
     @MainActor
     static func tiles(snapshot: HardwareMetricsSnapshot, localization: Localization) -> [Self] {
@@ -87,12 +89,16 @@ struct HardwareMetricTilePresentation: Equatable {
 
     @MainActor
     static func make(metric: HardwareMonitorTile, sample: HardwareMetricSample, localization: Localization) -> Self {
-        let value = sample.availability == .measured ? sample.value.flatMap { $0.isFinite ? $0 : nil } : nil
+        let isStale = sample.availability == .stale
+        // A stale sample keeps its last value as a cached reading: show it dimmed
+        // rather than flashing "—" until the next fresh sample arrives.
+        let eligible = sample.availability == .measured || isStale
+        let value = eligible ? sample.value.flatMap { $0.isFinite ? $0 : nil } : nil
         let availability: HardwareMetricAvailability = sample.availability == .measured && value == nil
             ? .temporarilyUnavailable : sample.availability
         let label = localization.string(metric.labelKey)
         let valueText: String
-        let accessibilityValue: String
+        var accessibilityValue: String
         let progress: Double?
         if let value {
             let locale = localization.resolvedLanguage.locale
@@ -110,6 +116,9 @@ struct HardwareMetricTilePresentation: Equatable {
                 valueText = number
                 accessibilityValue = localization.format(.hardwareMonitorRPM, number)
                 progress = MetricProgressMapper.rpm(sample)
+            }
+            if isStale {
+                accessibilityValue += ", " + localization.string(.hardwareMonitorStale)
             }
         } else {
             valueText = "—"
@@ -136,7 +145,7 @@ struct HardwareMetricTilePresentation: Equatable {
         let help = ["\(label): \(accessibilityValue)", explanation].filter { !$0.isEmpty }.joined(separator: "\n")
         return Self(metric: metric, label: label, valueText: valueText,
                     accessibilityValue: accessibilityValue, help: help, explanation: explanation, progress: progress,
-                    availability: availability, sensorLabel: sample.sensorLabel)
+                    availability: availability, sensorLabel: sample.sensorLabel, isStale: isStale)
     }
 
     static func shouldAnimateProgress(from previous: Self?, to current: Self, reduceMotion: Bool) -> Bool {
@@ -171,6 +180,7 @@ private struct HardwareMonitorTileView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .frame(width: 52, alignment: .trailing)
+                    .opacity(presentation.isStale ? 0.6 : 1)
             }
             .transaction { transaction in
                 transaction.animation = nil
@@ -207,7 +217,7 @@ private struct HardwareMonitorProgressTrack: View {
                 Capsule()
                     .fill(Color.accentColor)
                     .frame(width: geometry.size.width * displayedProgress)
-                    .opacity(presentation.progress == nil ? 0 : 1)
+                    .opacity(presentation.progress == nil ? 0 : (presentation.isStale ? 0.45 : 1))
             }
         }
         .frame(height: 3)

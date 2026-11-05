@@ -116,8 +116,9 @@ final class HardwareMetricsServiceTests: XCTestCase {
 
         service.end(.panel)
         XCTAssertFalse(service.isRunning)
-        XCTAssertEqual(service.observable.snapshot.cpuUsage.availability, .collecting)
-        XCTAssertNil(service.observable.snapshot.cpuUsage.value)
+        // The last fresh frame is kept as a cache (not blanked) so reopening is
+        // instant; with the clock unchanged it is still within freshness.
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.value, 25)
         service.refreshIfNeeded(forceFamilies: [])
         await drain()
         XCTAssertEqual(recorder.calls.count, 1)
@@ -175,6 +176,7 @@ final class HardwareMetricsServiceTests: XCTestCase {
         await awaitReadingStarted(recorder)
         XCTAssertEqual(recorder.calls.count, 1)
 
+        clock.advance(30)
         service.sleep()
         service.wake()
         await drain()
@@ -185,11 +187,38 @@ final class HardwareMetricsServiceTests: XCTestCase {
         await awaitReadingStarted(recorder, count: 2)
         XCTAssertEqual(recorder.calls.count, 2)
         XCTAssertNil(service.observable.snapshot.cpuUsage.value,
-                     "late pre-sleep sample must not be published")
+                     "no value was ever published before sleep, and the late read is discarded")
 
         recorder.continuations[1].resume(returning: snapshot(usage: 70, at: clock.date))
         await drain()
         XCTAssertEqual(service.observable.snapshot.cpuUsage.value, 70)
+        service.stopAll()
+    }
+
+    func testReopenShowsCachedValueUntilFreshReadLands() async {
+        let clock = Clock()
+        let recorder = Recorder()
+        let service = HardwareMetricsService(automaticScheduling: false,
+                                             now: { clock.date },
+                                             reader: recorder.waitingReader())
+        service.begin(.panel, metrics: [.cpuUsage])
+        await awaitReadingStarted(recorder)
+        recorder.continuations[0].resume(returning: snapshot(usage: 42, at: clock.date))
+        await drain()
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.value, 42)
+
+        service.end(.panel)
+        clock.advance(30)               // panel closed for a while
+        service.begin(.panel, metrics: [.cpuUsage])
+        await awaitReadingStarted(recorder, count: 2)
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.value, 42,
+                       "reopening shows the cached last reading, not a blank dash")
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.availability, .stale)
+
+        recorder.continuations[1].resume(returning: snapshot(usage: 55, at: clock.date))
+        await drain()
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.value, 55)
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.availability, .measured)
         service.stopAll()
     }
 
@@ -276,7 +305,7 @@ final class HardwareMetricsServiceTests: XCTestCase {
         service.stopAll()
     }
 
-    func testSleepClearsVisibleSnapshot() async {
+    func testSleepKeepsCachedSnapshot() async {
         let clock = Clock()
         let recorder = Recorder()
         let service = HardwareMetricsService(automaticScheduling: false,
@@ -286,9 +315,8 @@ final class HardwareMetricsServiceTests: XCTestCase {
         await awaitSettled(service, recorderCalls: { recorder.calls.count }, expected: 1)
         XCTAssertEqual(service.observable.snapshot.cpuUsage.value, 42)
         service.sleep()
-        XCTAssertNil(service.observable.snapshot.cpuUsage.value,
-                     "pre-sleep values must not survive as live")
-        XCTAssertEqual(service.observable.snapshot.cpuUsage.availability, .collecting)
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.value, 42,
+                       "a just-sampled value stays as a cached reading across sleep")
         service.stopAll()
     }
 
@@ -356,8 +384,8 @@ final class HardwareMetricsServiceTests: XCTestCase {
             await awaitSettledUntil(service) { !service.isAwaitingReadForTesting }
         }
         XCTAssertEqual(service.observable.snapshot.cpuUsage.availability, .stale)
-        XCTAssertNil(service.observable.snapshot.cpuUsage.value,
-                     "a persistently failing reader must not show a frozen value as live")
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.value, 30,
+                       "within the cache window the last value is shown dimmed, never as live")
         service.stopAll()
     }
 
@@ -367,9 +395,14 @@ final class HardwareMetricsServiceTests: XCTestCase {
                                           source: .smc, availability: .measured)
         let expired = sample.expiring(at: Date(timeIntervalSince1970: 20))
         XCTAssertEqual(expired.availability, .stale)
-        XCTAssertNil(expired.value)
-        XCTAssertNil(MetricProgressMapper.temperature(expired))
+        XCTAssertEqual(expired.value, 65, "cached value is kept inside the cache window")
+        XCTAssertEqual(MetricProgressMapper.temperature(expired) ?? -1, 0.5, accuracy: 0.001,
+                       "cached stale values still draw their dimmed bar")
         XCTAssertEqual(MetricProgressMapper.temperature(sample), 0.5)
+
+        let tooOld = sample.expiring(at: Date(timeIntervalSince1970: 0).addingTimeInterval(400))
+        XCTAssertEqual(tooOld.availability, .stale)
+        XCTAssertNil(tooOld.value, "past cacheLifetime the number is dropped")
 
         let rpmWithoutMax = HardwareMetricSample(value: 1_000, unit: .rpm, source: .smc,
                                                  availability: .measured)

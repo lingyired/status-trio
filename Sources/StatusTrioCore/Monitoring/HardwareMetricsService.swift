@@ -13,6 +13,14 @@ final class HardwareMonitorObservable: ObservableObject {
         if self.snapshot != next { self.snapshot = next }
     }
 
+    /// Keep the last frame as cached, non-fresh values instead of blanking it,
+    /// so reopening the panel shows the previous readings (dimmed) until the
+    /// first fresh sample lands.
+    func markStale(now: Date = Date()) {
+        let next = snapshot.expiring(at: now)
+        if snapshot != next { snapshot = next }
+    }
+
     func clear() {
         if snapshot != .empty { snapshot = .empty }
     }
@@ -76,6 +84,9 @@ final class HardwareMetricsService: ObservableObject {
             needReaderReset = true
             lastRead.removeAll()
         }
+        // Age the retained frame against the current clock so a long-closed
+        // panel's cached reading is presented as stale (dimmed), not as live.
+        observable.markStale(now: now())
         // Compare IDs, not just families: adding GPU to a CPU-only consumer
         // needs an immediate GPU read even though both belong to `.usage`.
         forcedIDs.formUnion(requestedIDs.subtracting(previous))
@@ -110,7 +121,7 @@ final class HardwareMetricsService: ObservableObject {
         needReaderReset = true
         lastRead.removeAll()
         forcedIDs = requestedIDs
-        observable.clear()
+        observable.markStale(now: now())
     }
 
     func wake() {
@@ -131,7 +142,7 @@ final class HardwareMetricsService: ObservableObject {
         needReaderReset = true
         lastRead.removeAll()
         forcedIDs.removeAll()
-        observable.clear()
+        observable.markStale(now: now())
         // `inFlight` deliberately stays true until the outstanding read exits.
     }
 

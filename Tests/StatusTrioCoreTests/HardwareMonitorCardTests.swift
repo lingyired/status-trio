@@ -8,7 +8,7 @@ struct HardwareMonitorPresentationTests {
     @Test func unavailableMetricsKeepAllFourSlotsWithoutOldValuesOrProgress() {
         let fixture = HardwareMonitorTestFixture()
         defer { fixture.cleanup() }
-        for availability in [HardwareMetricAvailability.collecting, .unsupported, .temporarilyUnavailable, .stale] {
+        for availability in [HardwareMetricAvailability.collecting, .unsupported, .temporarilyUnavailable] {
             let snapshot = fixture.snapshot(availability: availability)
             let tiles = HardwareMetricTilePresentation.tiles(snapshot: snapshot, localization: fixture.localization)
             #expect(tiles.map(\.metric) == [.cpu, .gpu, .temperature, .fan])
@@ -17,6 +17,32 @@ struct HardwareMonitorPresentationTests {
             #expect(!tiles[0].accessibilityValue.isEmpty)
             #expect(!tiles[0].accessibilityValue.contains("99"))
         }
+    }
+
+    @Test func staleReadingShowsCachedValueDimmedAndMarkedExpired() {
+        let fixture = HardwareMonitorTestFixture()
+        defer { fixture.cleanup() }
+        let stale = fixture.sample(value: 62, unit: .celsius, availability: .stale)
+        let tile = HardwareMetricTilePresentation.make(metric: .temperature, sample: stale,
+                                                       localization: fixture.localization)
+        #expect(tile.isStale)
+        #expect(tile.valueText != "—")
+        #expect(tile.progress != nil)
+        #expect(tile.accessibilityValue.contains(fixture.localization.string(.hardwareMonitorStale)))
+    }
+
+    @Test func expiredBeyondCacheShowsDashNotOldNumber() {
+        let fixture = HardwareMonitorTestFixture()
+        defer { fixture.cleanup() }
+        let old = HardwareMetricSample(value: 62, unit: .celsius,
+                                       sampledAt: Date(timeIntervalSince1970: 0),
+                                       source: .smc, availability: .measured)
+        let expired = old.expiring(at: Date(timeIntervalSince1970: 0).addingTimeInterval(400))
+        #expect(expired.availability == .stale)
+        #expect(expired.value == nil)
+        let tile = HardwareMetricTilePresentation.make(metric: .temperature, sample: expired,
+                                                       localization: fixture.localization)
+        #expect(tile.valueText == "—")
     }
 
     @Test func loadingFanIsDistinctFromConfirmedFanlessMac() {

@@ -12,19 +12,19 @@ enum MetricProgressMapper {
     static let temperatureRange: ClosedRange<Double> = 30...100
 
     static func percent(_ sample: HardwareMetricSample) -> Double? {
-        guard let value = measuredValue(sample) else { return nil }
+        guard let value = displayableValue(sample) else { return nil }
         return clamp(value / 100.0)
     }
 
     static func temperature(_ sample: HardwareMetricSample,
                             range: ClosedRange<Double> = temperatureRange) -> Double? {
-        guard let value = measuredValue(sample) else { return nil }
+        guard let value = displayableValue(sample) else { return nil }
         let span = max(range.upperBound - range.lowerBound, .leastNonzeroMagnitude)
         return clamp((value - range.lowerBound) / span)
     }
 
     static func rpm(_ sample: HardwareMetricSample) -> Double? {
-        guard let value = measuredValue(sample),
+        guard let value = displayableValue(sample),
               let maximum = sample.metadata.maximum,
               maximum > 0, maximum.isFinite else { return nil }
         return clamp(value / maximum)
@@ -39,9 +39,10 @@ enum MetricProgressMapper {
         }
     }
 
-    /// Value eligible for display: only a measured, fresh, finite number.
-    static func measuredValue(_ sample: HardwareMetricSample) -> Double? {
-        guard sample.availability == .measured,
+    /// Value eligible for display: a measured, fresh number, or the cached
+    /// last value of a stale sample (the UI dims it and marks it expired).
+    static func displayableValue(_ sample: HardwareMetricSample) -> Double? {
+        guard sample.availability == .measured || sample.availability == .stale,
               let value = sample.value,
               value.isFinite else { return nil }
         return value

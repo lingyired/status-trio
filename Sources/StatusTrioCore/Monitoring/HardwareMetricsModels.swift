@@ -96,16 +96,23 @@ struct HardwareMetricSample: Equatable, Sendable {
             Self.freshRange.contains(now.timeIntervalSince(sampledAt))
     }
 
-    /// A measured-but-now-too-old sample becomes `stale` with no value, so a
-    /// reopened panel can never present an old number as real-time telemetry.
+    /// How long a non-fresh reading stays available as a cached last value.
+    /// Beyond this the number is dropped rather than shown as a days-old reading.
+    static let cacheLifetime: TimeInterval = 300
+
+    /// A measured sample that is no longer fresh becomes `stale`. It keeps its
+    /// value as a *cached* last reading (shown dimmed, not as live telemetry) so
+    /// reopening the panel is not a blank flash; only past `cacheLifetime` is the
+    /// value dropped.
     func expiring(at now: Date) -> HardwareMetricSample {
-        guard availability == .measured,
-              !Self.freshRange.contains(now.timeIntervalSince(sampledAt)) else {
-            return self
-        }
+        guard availability == .measured else { return self }
+        let age = now.timeIntervalSince(sampledAt)
+        guard !Self.freshRange.contains(age) else { return self }
         var copy = self
         copy.availability = .stale
-        copy.value = nil
+        if age > Self.cacheLifetime || age < -Self.cacheLifetime {
+            copy.value = nil
+        }
         return copy
     }
 }
