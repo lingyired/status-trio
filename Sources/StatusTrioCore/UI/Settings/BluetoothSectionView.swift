@@ -51,7 +51,7 @@ struct BluetoothSectionView: View {
             SettingsDivider()
         }
 
-        SettingsGroup {
+        SettingsGroup(localization.string(.settingsTabBluetooth)) {
             showInStatusPanelRow
             powerControlRow
             SettingsDivider()
