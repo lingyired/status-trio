@@ -19,14 +19,56 @@ final class PanelActionAlignmentTests: XCTestCase {
         XCTAssertEqual(actions.count, 2, "volume mute and Settings glyphs must render")
         guard actions.count == 2 else { return }
 
-        let rowCenter = probe.controlRowCenterY(excluding: actions)
+        let rowCenter = try XCTUnwrap(
+            probe.subviewCenterY(where: { $0 is NSSlider }),
+            "the volume row must render an AppKit slider to align its glyphs against"
+        )
         for (name, rect) in zip(["mute", "settings"], actions) {
+            let center = try XCTUnwrap(probe.glyphCenterY(in: rect))
+            XCTAssertEqual(
+                center,
+                rowCenter,
+                accuracy: 1,
+                "\(name) center must match the volume slider's rendered center"
+            )
+        }
+    }
+
+    func testBrightnessRowCentersPercentageAndGearWithTheSlider() throws {
+        let state = BrightnessPanelState(rows: [
+            BrightnessRowState(
+                id: "display",
+                name: "Studio Display",
+                isBuiltin: false,
+                scalar: 0.5,
+                canAdjust: true,
+                backend: .directDDC,
+                source: .directDDC,
+                percentageText: "50%",
+                accessibilityLabel: "Studio Display brightness",
+                unavailableText: nil
+            )
+        ])
+        let probe = try render(
+            BrightnessControlsView(
+                state: state,
+                actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
+                onOpenDisplaySettings: {}
+            )
+        )
+        let actions = probe.trailingGlyphRects(count: 2, minimumX: 200)
+        XCTAssertEqual(actions.count, 2, "brightness row must render its percentage and gear")
+        guard actions.count == 2 else { return }
+
+        let rowCenter = probe.controlRowCenterY(excluding: actions)
+        for (name, rect) in zip(["percentage", "gear"], actions) {
             let center = try XCTUnwrap(probe.glyphCenterY(in: rect))
             XCTAssertEqual(
                 center,
                 try XCTUnwrap(rowCenter),
                 accuracy: 1,
-                "\(name) center must match the volume row's rendered center"
+                "\(name) center must match the brightness row's rendered center"
             )
         }
     }
@@ -37,6 +79,7 @@ final class PanelActionAlignmentTests: XCTestCase {
             AudioInputControlsView(
                 state: state,
                 actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
                 onOpenSoundSettings: {}
             )
         )
@@ -140,6 +183,67 @@ final class PanelActionAlignmentTests: XCTestCase {
                 accuracy: 0.5,
                 "\(name) center \(center) must match the two-line content center \(contentCenter)"
             )
+        }
+    }
+
+    func testVolumeMicBrightnessSlidersShareTheSameLeadingSlotX() throws {
+        let volumeProbe = try render(
+            VolumeControlsView(
+                state: try makeVolumeState(),
+                actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
+                onOpenSoundSettings: {}
+            )
+        )
+        let micProbe = try render(
+            AudioInputControlsView(
+                state: try makeAudioInputState(showsDeviceList: false),
+                actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
+                onOpenSoundSettings: {}
+            )
+        )
+        let brightnessProbe = try render(
+            BrightnessControlsView(
+                state: BrightnessPanelState(rows: [
+                    BrightnessRowState(
+                        id: "display",
+                        name: "Studio Display",
+                        isBuiltin: false,
+                        scalar: 0.5,
+                        canAdjust: true,
+                        backend: .directDDC,
+                        source: .directDDC,
+                        percentageText: "50%",
+                        accessibilityLabel: "Studio Display brightness",
+                        unavailableText: nil
+                    )
+                ]),
+                actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
+                onOpenDisplaySettings: {}
+            )
+        )
+
+        let xSources: [(String, CGFloat?)] = [
+            ("volume", volumeProbe.subviewFrame(where: { $0 is NSSlider })?.minX),
+            ("mic", micProbe.subviewFrame(where: { $0 is NSSlider })?.minX),
+            ("brightness", brightnessProbe.subviewFrame(where: { $0 is NSSlider })?.minX)
+        ]
+        let sliders = xSources.compactMap { $0.1 }
+        XCTAssertEqual(sliders.count, 3, "all three rows must render an NSSlider")
+        guard sliders.count == 3 else { return }
+        let reference = try XCTUnwrap(sliders.first)
+        for (name, x) in xSources {
+            XCTAssertNotNil(x, "\(name) slider must have a measurable leading x")
+            if let x {
+                XCTAssertEqual(
+                    x,
+                    reference,
+                    accuracy: 0.5,
+                    "\(name) slider must start on the same x as the volume slider"
+                )
+            }
         }
     }
 

@@ -28,6 +28,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     /// takes it, because the first presentation posts its notification before
     /// the SwiftUI view necessarily exists.
     private var pendingSection: SettingsView.Section?
+    /// The leaf within `pendingSection` when a caller wants a specific subpage
+    /// rather than the category's default one.
+    private var pendingSubtopic: SettingsSubtopic?
 
     init(
         store: SettingsStore,
@@ -102,8 +105,20 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     /// Shows the window and, when requested, reveals one sidebar tab. The
     /// status panel uses this to open the app's own battery settings.
     func show(section: SettingsView.Section?) {
+        show(section: section, subtopic: nil)
+    }
+
+    /// Shows the window and opens one leaf subpage. Existing callers that only
+    /// know the category keep using `show(section:)`, which maps to the
+    /// category's default (or last visited) leaf.
+    func show(subtopic: SettingsSubtopic) {
+        show(section: subtopic.section, subtopic: subtopic)
+    }
+
+    func show(section: SettingsView.Section?, subtopic: SettingsSubtopic?) {
         if let section {
             pendingSection = section
+            pendingSubtopic = subtopic?.section == section ? subtopic : nil
         }
         dockActivationLogger.notice("Settings.show existing=\(self.window != nil)")
         let window = window ?? makeWindow()
@@ -139,6 +154,12 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     func takePendingSection() -> SettingsView.Section? {
         defer { pendingSection = nil }
         return pendingSection
+    }
+
+    /// The leaf requested alongside `takePendingSection`, if any.
+    func takePendingSubtopic() -> SettingsSubtopic? {
+        defer { pendingSubtopic = nil }
+        return pendingSubtopic
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -206,7 +227,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 globalShortcutController: globalShortcutController,
                 chargeToFullNow: chargeToFullNow,
                 onShowIconGuide: showIconGuide,
-                consumePendingSection: { [weak self] in self?.takePendingSection() }
+                consumePendingSection: { [weak self] in self?.takePendingSection() },
+                consumePendingSubtopic: { [weak self] in self?.takePendingSubtopic() }
             )
             .environmentObject(chargingEffectClock)
         }

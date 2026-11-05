@@ -100,24 +100,36 @@ struct BluetoothStatusView: View {
         }
     }
 
+    /// Whether the Bluetooth radio is confirmed off. When it is, the cached
+    /// device rows no longer represent anything live — monitoring is suspended
+    /// and no read will overwrite them until the radio turns back on — so the
+    /// list must not draw last-known devices (with their stale connected
+    /// markers) as if the radio were available.
+    private var isRadioOff: Bool {
+        radioPower.power == .off
+    }
+
     /// Whether the previous read's devices are standing in for the incoming one.
     /// This shows real names at once while the OS read runs; the list keeps the
     /// cached rows until the fresh result lands.
     private var isShowingCachedDevices: Bool {
-        listOptions.showsList
+        guard !isRadioOff else { return false }
+        return listOptions.showsList
             && !controller.hasLoadedDevices
             && controller.devices.isEmpty
             && !controller.cachedDevices.isEmpty
     }
 
     private var displayedDevices: [BluetoothDevice] {
-        isShowingCachedDevices ? controller.cachedDevices : controller.devices
+        guard !isRadioOff else { return [] }
+        return isShowingCachedDevices ? controller.cachedDevices : controller.devices
     }
 
     /// Cached rows only need to read as a normal available list while loading;
     /// the real availability still decides any explained state once a read lands.
     private var effectiveAvailability: BluetoothAvailability {
-        isShowingCachedDevices ? .available : controller.availability
+        if isRadioOff { return .poweredOff }
+        return isShowingCachedDevices ? .available : controller.availability
     }
 
     /// Connected AirPods keep their two-line height while the battery is read.
@@ -143,7 +155,8 @@ struct BluetoothStatusView: View {
     }
 
     private var bluetoothListIsLoading: Bool {
-        listOptions.showsList && !isShowingCachedDevices && isWaitingForFirstDeviceRead
+        guard !isRadioOff else { return false }
+        return listOptions.showsList && !isShowingCachedDevices && isWaitingForFirstDeviceRead
     }
 
     /// The nearby rows are persisted readings, kept across scans so a missed
@@ -236,7 +249,7 @@ struct BluetoothStatusView: View {
         let showsBluetoothSkeleton = !isShowingCachedDevices && (bluetoothPlaceholder?.rowCount ?? 0) > 0
 
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 10) {
+            HStack(alignment: .center, spacing: PanelSummaryActionMetrics.iconGap) {
                 titleBlock
 
                 let powerPresentation = BluetoothRadioPowerPresentation.make(
@@ -549,6 +562,9 @@ struct BluetoothStatusView: View {
     }
 
     private var hidesSubtitle: Bool {
+        // Bluetooth off: let the row explain "powered off" instead of hiding the
+        // subtitle (and never treat the suspended, reset controller as "loading").
+        if isRadioOff { return false }
         // Until the first device read completes, say nothing: claiming "no
         // connected devices" while the list is still loading is a wrong, taller
         // line that disappears once the real rows arrive, which jitters the panel.

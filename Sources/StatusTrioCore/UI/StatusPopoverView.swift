@@ -26,6 +26,7 @@ struct StatusPopoverView: View {
     let openSettings: () -> Void
     let openSoundSettings: () -> Void
     let openSoundInputSettings: () -> Void
+    var openDisplaySettings: () -> Void = {}
     let openKeyboardSettings: () -> Void
     let quit: () -> Void
     /// The footer's Actions menu closes the panel before opening another window.
@@ -71,6 +72,11 @@ struct StatusPopoverView: View {
                     lowPowerMode: panel.store.lowPowerMode,
                     showsLowPowerControl: panel.settings.controlsLowPowerMode
                         && helper.isReady,
+                    highPowerMode: panel.store.highPowerMode,
+                    showsHighPowerControl: panel.settings.controlsLowPowerMode
+                        && helper.isReady,
+                    isConnectedToPower:
+                        panel.store.popupSnapshot.battery.isConnectedToPower,
                     chargeToFullNow: panel.chargeToFullNowPresentation,
                     onChargeToFullNow: { panel.actions.requestChargeToFullNow() }
                 )
@@ -191,13 +197,16 @@ struct StatusPopoverView: View {
                 lowPowerMode: panel.store.lowPowerMode,
                 showsLowPowerToggle: panel.settings.controlsLowPowerMode
                     && helper.isReady,
+                highPowerMode: panel.store.highPowerMode,
+                isConnectedToPower:
+                    panel.store.popupSnapshot.battery.isConnectedToPower,
                 chargeToFullNow: panel.summaryChargeToFullNowPresentation,
                 onChargeToFullNow: {
                     panel.actions.requestChargeToFullNow()
                 }
             )
         case .network:
-            NetworkStatusView(
+            WiFiPowerSummaryView(panel: panel,
                 state: panel.network,
                 onOpenWiFiDetails: { panel.showWiFiPage(showsDetailsInitially: $0) },
                 onOpenWiredDetails: { panel.showWiredPage() },
@@ -222,7 +231,9 @@ struct StatusPopoverView: View {
                 listOptions: panel.settings.bluetoothDeviceListOptions,
                 showsRadioPowerControl: panel.settings.showsBluetoothPowerControl,
                 showsBluetoothInStatusPanel: panel.settings.enabledPopupSections.contains(.bluetooth),
-                listeningModePresentations: panel.store.bluetoothListeningModes.huaweiBluetoothRowPresentations,
+                listeningModePresentations: panel.settings.showsBluetoothListeningMode
+                    ? panel.store.bluetoothListeningModes.huaweiBluetoothRowPresentations
+                    : [:],
                 onSelectListeningMode: { panel.actions.setListeningMode(address: $0, mode: $1) },
                 onRequestAuthorization: requestBluetoothAuthorization,
                 onOpenBluetoothSettings: openBluetoothSettings,
@@ -233,8 +244,8 @@ struct StatusPopoverView: View {
                 layoutSnapshots: panel.layoutSnapshots
             )
         case .volume:
-            VolumeControlsView(
-                state: panel.volume,
+            VolumeControlsSection(
+                model: panel.volumeControl,
                 actions: panel.actions,
                 scrollTargets: scrollTargets,
                 onOpenSoundSettings: openSoundSettings
@@ -242,12 +253,15 @@ struct StatusPopoverView: View {
         case .brightness:
             BrightnessControlsView(
                 state: panel.brightness,
-                actions: panel.actions
+                actions: panel.actions,
+                scrollTargets: scrollTargets,
+                onOpenDisplaySettings: openDisplaySettings
             )
         case .audioInput:
             AudioInputControlsView(
                 state: panel.audioInput,
                 actions: panel.actions,
+                scrollTargets: scrollTargets,
                 onOpenSoundSettings: openSoundInputSettings
             )
         case .inputSource:
@@ -262,5 +276,48 @@ struct StatusPopoverView: View {
     private func copyValue(_ value: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(value, forType: .string)
+    }
+}
+
+private struct WiFiPowerSummaryView: View {
+    @ObservedObject var panel: StatusPanelViewModel
+    @ObservedObject private var store: SystemStatusStore
+    let state: PanelSummaryState
+    let onOpenWiFiDetails: (Bool) -> Void
+    let onOpenWiredDetails: () -> Void
+    let onRequestNameAccess: () -> Void
+    let onOpenWiFiSettings: () -> Void
+    let onOpenNetworkSettings: () -> Void
+    let onOpenLocationSettings: () -> Void
+
+    init(panel: StatusPanelViewModel, state: PanelSummaryState, onOpenWiFiDetails: @escaping (Bool) -> Void, onOpenWiredDetails: @escaping () -> Void, onRequestNameAccess: @escaping () -> Void, onOpenWiFiSettings: @escaping () -> Void, onOpenNetworkSettings: @escaping () -> Void, onOpenLocationSettings: @escaping () -> Void) {
+        self.panel = panel
+        self.store = panel.store
+        self.state = state
+        self.onOpenWiFiDetails = onOpenWiFiDetails
+        self.onOpenWiredDetails = onOpenWiredDetails
+        self.onRequestNameAccess = onRequestNameAccess
+        self.onOpenWiFiSettings = onOpenWiFiSettings
+        self.onOpenNetworkSettings = onOpenNetworkSettings
+        self.onOpenLocationSettings = onOpenLocationSettings
+    }
+
+    var body: some View {
+        NetworkStatusView(
+            showsWiFiPowerControl: WiFiPowerControlVisibility.showsSummaryToggle(
+                state: store.popupSnapshot.wifi.state,
+                isEnabled: panel.settings.showsWiFiPowerControl
+            ),
+            wifiPowerIsOn: WiFiPowerControlVisibility.isRadioOn(state: store.popupSnapshot.wifi.state),
+            wifiPowerCanSet: !store.wifiPowerIsChanging,
+            wifiPowerRequiresConfirmation: WiFiPowerTogglePolicy.requiresConfirmation(
+                for: store.popupSnapshot.wifi.state
+            ),
+            wifiPowerFailed: store.wifiPowerFailed,
+            onSetWiFiPower: { store.setWiFiPower($0) },
+            state: state, onOpenWiFiDetails: onOpenWiFiDetails, onOpenWiredDetails: onOpenWiredDetails,
+            onRequestNameAccess: onRequestNameAccess, onOpenWiFiSettings: onOpenWiFiSettings,
+            onOpenNetworkSettings: onOpenNetworkSettings, onOpenLocationSettings: onOpenLocationSettings
+        )
     }
 }

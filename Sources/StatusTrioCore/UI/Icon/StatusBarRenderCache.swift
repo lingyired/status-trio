@@ -1,4 +1,4 @@
-struct StatusBarRenderKey: Equatable {
+struct StatusBarRenderKey: Equatable, Hashable {
     let scene: IconSceneState
     let iconSize: Double
     let backingScale: Double

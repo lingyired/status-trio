@@ -60,6 +60,7 @@ final class StatusBarController: NSObject {
     /// windows on a desktop Space). See `presentPopover` for why a forced
     /// activation is withheld in that state.
     private let isApplicationRegular: @MainActor () -> Bool
+    private let backgroundUITesting: BackgroundUITestingConfiguration
     let chargingEffectClock: ChargingEffectClock
     private var iconPresentationCancellable: AnyCancellable?
     private var accessibilityCancellable: AnyCancellable?
@@ -147,6 +148,8 @@ final class StatusBarController: NSObject {
     private var volumeScrollMonitor: Any?
     private let volumeScrollAdjustment = PopupVolumeScrollAdjustment()
     private var volumeScrollSession = PopupVolumeScrollSession()
+    private var brightnessScrollSession = PopupLevelScrollSession()
+    private var audioInputScrollSession = PopupLevelScrollSession()
     private let popoverScrollTargets = PopoverScrollTargets()
     private var popoverAnchorWindow: NSWindow?
     private var popoverToggleGate = PopoverToggleGate(
@@ -157,6 +160,9 @@ final class StatusBarController: NSObject {
     private var isPopoverClosing = false
     private var popoverWindowFocusCancellables: Set<AnyCancellable> = []
     private var applicationFocusCancellables: Set<AnyCancellable> = []
+    /// Observes other app windows coming to the front so the panel closes when
+    /// the user clicks a real window such as Settings (issue #267).
+    private var appWindowFrontmostCancellables: Set<AnyCancellable> = []
     private let inputSourceController: InputSourceController
     /// How a presentation resolves the appearance it rasterizes in.
     ///
@@ -187,6 +193,7 @@ final class StatusBarController: NSObject {
         isApplicationRegular: @escaping @MainActor () -> Bool = {
             NSApplication.shared.activationPolicy() == .regular
         },
+        backgroundUITesting: BackgroundUITestingConfiguration = .disabled,
         renderMenuBarBase: @escaping MenuBarBaseRenderer = { scene, size, scale, appearance in
             StatusIconRenderer.menuBarTemplateBase(
                 scene: scene,
@@ -244,6 +251,7 @@ final class StatusBarController: NSObject {
         self.popoverContentReleaseSleeper = popoverContentReleaseSleeper
         self.activatesApplicationForPopover = activatesApplicationForPopover
         self.isApplicationRegular = isApplicationRegular
+        self.backgroundUITesting = backgroundUITesting
         self.chargingEffectClock = chargingEffectClock
         self.openSettings = openSettings
         self.openAppBatterySettings = openAppBatterySettings
@@ -258,6 +266,7 @@ final class StatusBarController: NSObject {
         configureButton()
         configurePopover()
         observeApplicationFocusChanges()
+        observeAppWindowFrontmostChanges()
         observeAppearanceChanges()
         scheduleInitialRender()
 
@@ -499,6 +508,7 @@ final class StatusBarController: NSObject {
                 openSettings: { self.handleOpenSettings() },
                 openSoundSettings: { self.handleOpenSoundSettings() },
                 openSoundInputSettings: { self.handleOpenSoundInputSettings() },
+                openDisplaySettings: { self.handleOpenDisplaySettings() },
                 openKeyboardSettings: { self.handleOpenKeyboardSettings() },
                 quit: quitAction,
                 dismissPanel: { [weak self] in self?.closePopover() }
@@ -568,8 +578,48 @@ final class StatusBarController: NSObject {
         )
     }
 
-    private func presentPopoverFromShortcut() {
-        let menuBarAnchor = visibleMenuBarAnchor()
+    /// Presents the panel on the Debug background-testing route. The anchor is
+    /// derived from the requested display instead of the pointer, the panel is
+    /// not made key, and focus-loss dismissal stays disabled while it is open.
+    func presentStatusPanelForBackgroundTesting() {
+        guard backgroundUITesting.isEnabled, backgroundUITesting.opensStatusPanel else {
+            return
+        }
+        presentPopoverFromShortcut(
+            pointerLocation: backgroundTestingPointerLocation(),
+            activatesApplication: false,
+            makesKeyWindow: false,
+            prefersMenuBarAnchor: false
+        )
+    }
+
+    private func backgroundTestingPointerLocation() -> NSPoint {
+        let screens = NSScreen.screens
+        let mainDisplayID = CGMainDisplayID()
+        let target: NSScreen?
+        switch backgroundUITesting.display {
+        case .secondary:
+            target = screens.first {
+                ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
+                    as? NSNumber)?.uint32Value != mainDisplayID
+            } ?? screens.first
+        case .automatic:
+            target = screens.first {
+                ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
+                    as? NSNumber)?.uint32Value == mainDisplayID
+            } ?? screens.first
+        }
+        guard let target else { return NSEvent.mouseLocation }
+        return NSPoint(x: target.frame.midX, y: target.frame.midY)
+    }
+
+    private func presentPopoverFromShortcut(
+        pointerLocation: NSPoint = NSEvent.mouseLocation,
+        activatesApplication: Bool = true,
+        makesKeyWindow: Bool = true,
+        prefersMenuBarAnchor: Bool = true
+    ) {
+        let menuBarAnchor = prefersMenuBarAnchor ? visibleMenuBarAnchor() : nil
         let screens = NSScreen.screens.map {
             StatusPanelShortcutScreen(
                 frame: $0.frame,
@@ -579,7 +629,7 @@ final class StatusBarController: NSObject {
         let anchor = StatusPanelShortcutPresentationPolicy.anchor(
             menuBarRect: menuBarAnchor?.screenRect,
             isMenuBarVisible: menuBarAnchor != nil,
-            pointerLocation: NSEvent.mouseLocation,
+            pointerLocation: pointerLocation,
             screens: screens
         )
 
@@ -587,7 +637,9 @@ final class StatusBarController: NSObject {
             presentPopover(
                 relativeTo: menuBarAnchor.button.bounds,
                 of: menuBarAnchor.button,
-                preferredEdge: .minY
+                preferredEdge: .minY,
+                activatesApplication: activatesApplication,
+                makesKeyWindow: makesKeyWindow
             )
             return
         }
@@ -596,7 +648,9 @@ final class StatusBarController: NSObject {
         presentPopover(
             relativeTo: anchorView.bounds,
             of: anchorView,
-            preferredEdge: preferredEdge
+            preferredEdge: preferredEdge,
+            activatesApplication: activatesApplication,
+            makesKeyWindow: makesKeyWindow
         )
     }
 
@@ -618,6 +672,7 @@ final class StatusBarController: NSObject {
         of view: NSView,
         preferredEdge: NSRectEdge,
         activatesApplication: Bool = true,
+        makesKeyWindow: Bool = true,
         dockInset: NSEdgeInsets = DockReveal.noInset
     ) {
         cancelPopoverContentRelease()
@@ -648,6 +703,24 @@ final class StatusBarController: NSObject {
             // by the user-activation policy.
             activatesApplicationForPopover()
         }
+        // The background route must also survive the panel's own focus-loss
+        // observers before the window is ordered in.
+        let isBackgroundStatusPanel =
+            backgroundUITesting.isEnabled && backgroundUITesting.opensStatusPanel
+        popover.disablesDismissOnResignForTesting = isBackgroundStatusPanel
+        popover.disablesKeyWindowForTesting = isBackgroundStatusPanel
+        popover.avoidsOrderFrontRegardlessForTesting = isBackgroundStatusPanel
+        if isBackgroundStatusPanel {
+            // Borderless, status-level NSPanels are skipped by some CU window
+            // enumerators. Give the Debug test instance a standard AX window
+            // identity and a normal window level so its existing controls stay
+            // addressable. Release and normal presentation keep their defaults.
+            popover.setAccessibilitySubrole(.standardWindow)
+            popover.setAccessibilityTitle("Status Panel")
+            popover.level = .normal
+            popover.isFloatingPanel = false
+            popover.collectionBehavior = [.ignoresCycle]
+        }
         popover.show(
             relativeTo: rect,
             of: view,
@@ -660,13 +733,15 @@ final class StatusBarController: NSObject {
         let popoverWindow = popover.contentViewController?.view.window
         popoverWindow?.enableDisplayOnFullScreenSpaces()
         installPopoverWindowFocusObservers(popoverWindow)
-        popoverWindow?.makeKey()
-        // Do not focus the first row on open. With keyboard navigation enabled,
-        // AppKit's initial key view drew a blue focus ring on the battery row
-        // before the user touched the keyboard. Clearing the first responder
-        // keeps Tab working: the window still hands the first Tab to the key
-        // view loop, so the panel stays fully keyboard operable.
-        popoverWindow?.makeFirstResponder(nil)
+        if makesKeyWindow {
+            popoverWindow?.makeKey()
+            // Do not focus the first row on open. With keyboard navigation enabled,
+            // AppKit's initial key view drew a blue focus ring on the battery row
+            // before the user touched the keyboard. Clearing the first responder
+            // keeps Tab working: the window still hands the first Tab to the key
+            // view loop, so the panel stays fully keyboard operable.
+            popoverWindow?.makeFirstResponder(nil)
+        }
         dockActivationLogger.notice(
             """
             Popover presented shown=\(self.popover.isShown) \
@@ -675,8 +750,12 @@ final class StatusBarController: NSObject {
             \(dockActivationFocusSnapshot(window: popoverWindow), privacy: .public)
             """
         )
-        installPopoverDismissMonitor()
-        installVolumeScrollMonitor()
+        // A background test instance must not close on the user's global clicks
+        // or consume their scroll wheel.
+        if !(backgroundUITesting.isEnabled && backgroundUITesting.opensStatusPanel) {
+            installPopoverDismissMonitor()
+            installVolumeScrollMonitor()
+        }
     }
 
     private func observeApplicationFocusChanges() {
@@ -706,6 +785,57 @@ final class StatusBarController: NSObject {
                 )
             }
             .store(in: &applicationFocusCancellables)
+    }
+
+    /// The panel is a non-activating borderless `NSPanel`, so clicking another of
+    /// this app's windows (the Settings window that was already key before the
+    /// panel opened) never reaches `addGlobalMonitorForEvents`, which only sees
+    /// events outside the app. Without this, the panel stays on top of Settings
+    /// (issue #267). An `NSPopover` would close by itself here because it tracks
+    /// its own window; a custom panel must react to the key/main handoff.
+    private func observeAppWindowFrontmostChanges() {
+        let center = NotificationCenter.default
+        let policy = PanelFocusDismissPolicy()
+        // AppKit posts these window notifications synchronously on the main
+        // thread. Handle them synchronously so a run-loop hop cannot deliver a
+        // stale key change after the panel has re-keyed itself and close it
+        // spuriously (e.g. when app activation keys Settings just before the
+        // panel is ordered in).
+        let handle: (Notification) -> Void = { [weak self] notification in
+            MainActor.assumeIsolated {
+                self?.dismissPanelIfExternalWindowCameForward(notification, policy: policy)
+            }
+        }
+        center.publisher(for: NSWindow.didBecomeKeyNotification)
+            .sink(receiveValue: handle)
+            .store(in: &appWindowFrontmostCancellables)
+        center.publisher(for: NSWindow.didBecomeMainNotification)
+            .sink(receiveValue: handle)
+            .store(in: &appWindowFrontmostCancellables)
+    }
+
+    /// Closes the panel when a real, independent window (Settings) is brought to
+    /// the front. This mirrors the app's existing close paths so focus falls on
+    /// the clicked window without activating the app or stealing focus.
+    private func dismissPanelIfExternalWindowCameForward(
+        _ notification: Notification,
+        policy: PanelFocusDismissPolicy
+    ) {
+        guard popover.isShown, !isPopoverClosing,
+              // The Debug background-testing route intentionally keeps the panel
+              // up while the user works; it must not be closed by a focus change.
+              !popover.disablesDismissOnResignForTesting,
+              let candidateWindow = notification.object as? NSWindow else { return }
+        let panelWindow = popover.contentViewController?.view.window
+        let candidate = PanelFocusDismissPolicy.FocusedWindow(
+            isPanel: candidateWindow === panelWindow,
+            isVisible: candidateWindow.isVisible,
+            level: candidateWindow.level,
+            hasSheetParent: candidateWindow.sheetParent != nil,
+            hasParent: candidateWindow.parent != nil
+        )
+        guard policy.shouldDismiss(for: candidate) else { return }
+        popover.performClose(nil)
     }
 
     private func installPopoverWindowFocusObservers(_ window: NSWindow?) {
@@ -903,13 +1033,106 @@ final class StatusBarController: NSObject {
     }
 
     private func shouldConsumeVolumeScrollWheel(_ event: NSEvent) -> Bool {
+        guard event.window === popover.contentViewController?.view.window,
+              settings.popupScrollAdjustsVolume else { return false }
+
+        let point = event.locationInWindow
+        let window = event.window
+
+        // 1. The registered slider directly under the pointer owns the wheel,
+        //    before any scroll view or the panel-wide fallback (issue #256).
+        if let target = popoverScrollTargets.target(at: point, in: window) {
+            return consumeScroll(target: target, event: event)
+        }
+
+        // 2. A scrollable scroll view under the pointer owns the wheel.
+        if isPointerOverScrollableScrollView(event) { return false }
+
+        // 3. Panel-wide fallback to the output volume (default preference).
+        guard settings.popupVolumeScrollScope == .panel,
+              store.isVolumeControlAvailable,
+              panelViewModel.volume.canAdjust else {
+            return false
+        }
+        return consumeVolume(event: event)
+    }
+
+    /// Routes a wheel event to the slider directly under the pointer.
+    private func consumeScroll(
+        target: PanelLevelScrollTarget,
+        event: NSEvent
+    ) -> Bool {
+        switch target {
+        case .volume:
+            guard store.isVolumeControlAvailable, panelViewModel.volume.canAdjust else {
+                return true // consume so the wheel does not scroll underneath
+            }
+            return consumeVolume(event: event)
+        case .brightness(let displayID):
+            // Sliders own the wheel wherever they are; the scope setting only
+            // decides whether empty panel areas also adjust the output volume.
+            return consumeBrightness(displayID: displayID, event: event)
+        case .audioInput:
+            return consumeAudioInput(event: event)
+        }
+    }
+
+    private func consumeAudioInput(event: NSEvent) -> Bool {
+        let inputState = panelViewModel.audioInput
+        guard inputState.canAdjust, let fallback = inputState.scalar else {
+            return true // registered but not adjustable: consume, do not change volume
+        }
+        guard event.momentumPhase.isEmpty else { return true }
+
+        guard let currentScalar = audioInputScrollSession.scalar(
+            at: event.timestamp,
+            displayID: "audio-input",
+            fallback: fallback
+        ) else { return false }
+        let delta = volumeScrollAdjustment.volumeDelta(
+            deltaY: Double(event.scrollingDeltaY),
+            isPrecise: event.hasPreciseScrollingDeltas,
+            isDirectionInverted: event.isDirectionInvertedFromDevice,
+            usesNaturalScrolling: settings.popupVolumeNaturalScrolling
+        )
+        guard let delta else { return true }
+
+        let nextScalar = audioInputScrollSession.applying(delta: delta, to: currentScalar)
+        store.setInputScalar(nextScalar)
+        return true
+    }
+
+    private func consumeBrightness(displayID: String, event: NSEvent) -> Bool {
+        guard let row = panelViewModel.brightness.rows.first(where: { $0.id == displayID }),
+              row.canAdjust,
+              let fallback = row.scalar else {
+            return true // registered but not adjustable: consume, do not change volume
+        }
+        guard event.momentumPhase.isEmpty else { return true }
+
+        guard let currentScalar = brightnessScrollSession.scalar(
+            at: event.timestamp,
+            displayID: displayID,
+            fallback: fallback
+        ) else { return false }
+        let delta = volumeScrollAdjustment.volumeDelta(
+            deltaY: Double(event.scrollingDeltaY),
+            isPrecise: event.hasPreciseScrollingDeltas,
+            isDirectionInverted: event.isDirectionInvertedFromDevice,
+            usesNaturalScrolling: settings.popupVolumeNaturalScrolling
+        )
+        guard let delta else { return true }
+
+        let nextScalar = brightnessScrollSession.applying(delta: delta, to: currentScalar)
+        store.setBrightness(nextScalar, forDisplayID: displayID)
+        return true
+    }
+
+    private func consumeVolume(event: NSEvent) -> Bool {
         let volumeState = panelViewModel.volume
         guard event.window === popover.contentViewController?.view.window,
-              settings.popupScrollAdjustsVolume,
               store.isVolumeControlAvailable,
-              volumeState.canAdjust,
-              !isPointerOverScrollableScrollView(event),
-              isPointerInsideVolumeScrollArea(event) else {
+              volumeState.canAdjust else {
             return false
         }
         guard event.momentumPhase.isEmpty else { return true }
@@ -943,16 +1166,6 @@ final class StatusBarController: NSObject {
         return true
     }
 
-    /// Scroll targeting only narrows the gesture area; the whole panel stays
-    /// valid when the preference is left at its default.
-    private func isPointerInsideVolumeScrollArea(_ event: NSEvent) -> Bool {
-        guard settings.popupVolumeScrollScope == .volumeControl else { return true }
-        return popoverScrollTargets.containsVolumeControl(
-            at: event.locationInWindow,
-            in: event.window
-        )
-    }
-
     /// Whether the pointer sits over a scroll view that can actually scroll
     /// right now.
     ///
@@ -970,6 +1183,8 @@ final class StatusBarController: NSObject {
 
     private func resetVolumeScrollSession() {
         volumeScrollSession.reset()
+        brightnessScrollSession.reset()
+        audioInputScrollSession.reset()
     }
 
     private func handlePanelDidClose() {
@@ -984,6 +1199,11 @@ final class StatusBarController: NSObject {
         isPopoverClosing = false
         removePopoverDismissMonitor()
         removeVolumeScrollMonitor()
+        if backgroundUITesting.isEnabled && backgroundUITesting.opensStatusPanel {
+            popover.level = .statusBar
+            popover.isFloatingPanel = true
+            popover.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+        }
         releasePopoverAnchorWindow()
         // The route survives as a few bytes, but detail views and collectors do
         // not. Sample both owners before closing deactivates the collectors.
@@ -1494,6 +1714,11 @@ final class StatusBarController: NSObject {
         Self.openSystemSettings(Self.bluetoothSettingsURLs)
     }
 
+    private func handleOpenDisplaySettings() {
+        popover.performClose(nil)
+        Self.openSystemSettings(Self.displaySettingsURLs)
+    }
+
     /// Where a refused Bluetooth grant is given back. This is not the pane the
     /// gear opens: that one turns the radio on and off, while a refusal lives in
     /// Privacy & Security. The store owns the route so Settings and the popover
@@ -1545,6 +1770,15 @@ final class StatusBarController: NSObject {
     static let sharingSettingsURLs = [
         "x-apple.systempreferences:com.apple.Sharing-Settings.extension",
         "x-apple.systempreferences:com.apple.preferences.sharing"
+    ]
+    .compactMap(URL.init(string:))
+
+    /// The Displays pane owns brightness for built-in and external monitors.
+    /// Keep the legacy identifier as a fallback for older System Settings
+    /// builds; the extension route decides the destination.
+    static let displaySettingsURLs = [
+        "x-apple.systempreferences:com.apple.Displays-Settings.extension",
+        "x-apple.systempreferences:com.apple.preference.displays"
     ]
     .compactMap(URL.init(string:))
 

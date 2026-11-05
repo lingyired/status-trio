@@ -357,47 +357,69 @@ enum PanelPresentationMapper {
             connection: connection,
             localization: localization
         )
+        // The link is up but macOS is withholding its name because the app lacks
+        // the location permission CoreLocation needs to read an SSID.
+        let permissionHidesName = connection == .wifi
+            && wifi.state.isNetworkAssociated
+            && (wifi.ssid?.isEmpty ?? true)
+            && wifi.nameAccess != .authorized
+
+        // Without permission the row keeps a short connection-state title and
+        // turns the second line into an invitation to grant access. Clicking it
+        // raises the system prompt (or opens Privacy settings when access was
+        // already denied), because the detail page cannot show a name either.
+        let title: String
         let subtitle: String
-        if summarySSID != nil {
-            subtitle = linkSubtitle ?? localization.string(
-                wifi.state == .hotspot ? .wifiSubtitleHotspot : .wifiSubtitleConnected
-            )
-        } else if let ssid = wifi.ssid, !ssid.isEmpty {
-            subtitle = ssid
-        } else if isResolvingName {
-            subtitle = " "
+        let measurements: String?
+        let intent: PanelSummaryIntent
+        if permissionHidesName {
+            title = wifiSubtitle(wifi, localization: localization)
+            subtitle = localization.string(.wifiSummaryNameAccessHint)
+            measurements = nil
+            intent = wifi.nameAccess == .denied || wifi.nameAccess == .restricted
+                ? .locationSettings
+                : .requestWiFiNameAccess
         } else {
-            // A missing network name is not a connection state. The row keeps
-            // the connection state, and its link measurements when the radio
-            // still reports them; the detail page owns the permission action.
-            let stateText = wifiSubtitle(wifi, localization: localization)
-            subtitle = NetworkRowSubtitle.prepending(stateText, to: linkSubtitle) ?? stateText
+            let baseSubtitle: String
+            if summarySSID != nil {
+                baseSubtitle = linkSubtitle ?? localization.string(
+                    wifi.state == .hotspot ? .wifiSubtitleHotspot : .wifiSubtitleConnected
+                )
+            } else if let ssid = wifi.ssid, !ssid.isEmpty {
+                baseSubtitle = ssid
+            } else if isResolvingName {
+                baseSubtitle = " "
+            } else {
+                // A missing network name is not a connection state. The row keeps
+                // the connection state, and its link measurements when the radio
+                // still reports them.
+                let stateText = wifiSubtitle(wifi, localization: localization)
+                baseSubtitle = NetworkRowSubtitle.prepending(stateText, to: linkSubtitle) ?? stateText
+            }
+
+            // The address leads the second line, and the measurement value keeps
+            // only the link facts: the connection state is already in the label,
+            // so VoiceOver must not hear it twice. The placeholder line describes
+            // no link at all.
+            measurements = baseSubtitle == " "
+                ? nil
+                : NetworkRowSubtitle.prepending(localIPAddress, to: linkSubtitle)
+            // The single-space subtitle is the row holding its line height while
+            // the Wi-Fi name resolves. An address fills that line on its own
+            // rather than trailing the placeholder's blank.
+            if baseSubtitle == " " {
+                subtitle = localIPAddress ?? baseSubtitle
+            } else {
+                subtitle = NetworkRowSubtitle.prepending(localIPAddress, to: baseSubtitle) ?? baseSubtitle
+            }
+            title = summarySSID ?? localization.string(.wifiTitle)
+            intent = .wifiDetails
         }
 
-        // The address leads the second line, and the measurement value keeps
-        // only the link facts: the connection state is already in the label, so
-        // VoiceOver must not hear it twice. The placeholder line describes no
-        // link at all.
-        let measurements = subtitle == " "
-            ? nil
-            : NetworkRowSubtitle.prepending(localIPAddress, to: linkSubtitle)
-        // The single-space subtitle is the row holding its line height while the
-        // Wi-Fi name resolves. An address fills that line on its own rather than
-        // trailing the placeholder's blank.
-        let displayedSubtitle: String
-        if subtitle == " " {
-            displayedSubtitle = localIPAddress ?? subtitle
-        } else {
-            displayedSubtitle = NetworkRowSubtitle.prepending(localIPAddress, to: subtitle) ?? subtitle
-        }
-
-        // The row itself is always the way into the Wi-Fi details, where the
-        // network-name permission action lives.
-        let intent: PanelSummaryIntent = .wifiDetails
-
-        let title = summarySSID ?? localization.string(.wifiTitle)
         let accessibilityLabel: String
-        if let ssid = wifi.ssid, !ssid.isEmpty {
+        if permissionHidesName {
+            accessibilityLabel = localization.format(.commonLabelValue, title, subtitle)
+        } else if let ssid = wifi.ssid, !ssid.isEmpty {
             accessibilityLabel = localization.format(
                 .wifiAccessibilityWithSSID,
                 ssid,
@@ -406,14 +428,14 @@ enum PanelPresentationMapper {
         } else {
             accessibilityLabel = localization.format(
                 .commonLabelValue,
-                localization.string(.wifiTitle),
+                title,
                 wifiValue(wifi, localization: localization)
             )
         }
 
         return PanelSummaryState(
             title: title,
-            subtitle: displayedSubtitle,
+            subtitle: subtitle,
             measurements: measurements,
             symbol: wifiSymbol(wifi),
             tint: .secondary,

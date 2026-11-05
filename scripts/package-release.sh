@@ -207,11 +207,12 @@ RESOLVED_OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd -P)"
     die 'DMG output escaped OUTPUT_DIR.'
 [[ "$(basename "$DMG_PATH")" == "$DMG_BASENAME-$VERSION.dmg" ]] || die 'Unexpected DMG output name.'
 rm -f -- "$DMG_PATH" "$DMG_PATH.sha256"
-# DMG_INSTALL_PAGE=styled draws the bilingual install page through create-dmg.
-# DMG_INSTALL_PAGE=plain falls back to the pre-install-page layout: the app and
-# an Applications symlink only. The plain layout is an explicit opt-out, never a
-# silent fallback, and it keeps the DMG signing/notarization order unchanged.
-DMG_INSTALL_PAGE="${DMG_INSTALL_PAGE:-plain}"
+# DMG_INSTALL_PAGE=styled (default) draws the bilingual install page through
+# create-dmg. DMG_INSTALL_PAGE=plain is an explicit opt-out that ships the
+# pre-install-page layout: the app and an Applications symlink only. The plain
+# layout is never chosen silently, and either layout keeps the DMG
+# signing/notarization order unchanged.
+DMG_INSTALL_PAGE="${DMG_INSTALL_PAGE:-styled}"
 case "$DMG_INSTALL_PAGE" in
     styled)
         DMG_APP_NAME="$APP_NAME" bash "$ROOT/scripts/create-installer-dmg.sh" "$APP_DIR" "$DMG_PATH" ;;

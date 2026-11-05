@@ -61,6 +61,173 @@ final class StatusBarMemoryPressureTests: VisibleUITestCase {
         XCTAssertTrue(harness.controller.popoverForTesting.isShown)
     }
 
+    /// Issue #267, real key handoff (no synthesized notifications): with the
+    /// Settings window already open and key, the panel opens and takes key;
+    /// making the Settings window key again must close the panel.
+    ///
+    /// `VisibleUITestCase`: skipped by default. `isKeyWindow` is only meaningful
+    /// while the app is active, so this needs an authorized visible session.
+    func testRealKeyHandoffFromPanelBackToSettingsClosesPanel() throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+
+        let app = NSApplication.shared
+        if #available(macOS 14.0, *) {
+            app.activate()
+        } else {
+            app.activate(ignoringOtherApps: true)
+        }
+
+        let settingsWindow = NSWindow(
+            contentRect: NSRect(x: 120, y: 120, width: 360, height: 280),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        settingsWindow.isReleasedWhenClosed = false
+        addTeardownBlock {
+            settingsWindow.orderOut(nil)
+            settingsWindow.close()
+        }
+
+        settingsWindow.makeKeyAndOrderFront(nil)
+        XCTAssertTrue(
+            settingsWindow.isKeyWindow,
+            "the Settings window must start as the key window"
+        )
+
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+        XCTAssertTrue(
+            panel.isKeyWindow,
+            "the non-activating panel takes key when it opens over Settings"
+        )
+
+        settingsWindow.makeKey()
+        waitUntilClosed(panel)
+        XCTAssertFalse(panel.isShown, "clicking Settings must close the panel")
+        XCTAssertTrue(
+            settingsWindow.isKeyWindow,
+            "focus stays on the Settings window; the panel does not take it back"
+        )
+    }
+
+    /// Notification-wiring check for the `didBecomeMain` path. This posts a
+    /// synthetic notification; it does not prove a real key/main handoff (see
+    /// `testRealKeyHandoffFromPanelBackToSettingsClosesPanel`).
+    func testSynthesizedMainNotificationClosesThePanel() async throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+
+        let settingsWindow = NSWindow(
+            contentRect: NSRect(x: 80, y: 80, width: 320, height: 240),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        settingsWindow.isReleasedWhenClosed = false
+        defer { settingsWindow.close() }
+        // Visible UI test: order the window in so `isVisible` is true, exactly
+        // as a real Settings window is while the panel is open.
+        settingsWindow.orderFront(nil)
+        let closed = expectation(
+            forNotification: AnchoredStatusPanel.didCloseNotification,
+            object: panel
+        )
+
+        NotificationCenter.default.post(
+            name: NSWindow.didBecomeMainNotification,
+            object: settingsWindow
+        )
+
+        await fulfillment(of: [closed], timeout: 1)
+        XCTAssertFalse(panel.isShown)
+    }
+
+    /// Synthetic-only check that the panel's own key transition keeps it open.
+    /// A real transition is covered by `testRealKeyHandoffFromPanelBackToSettingsClosesPanel`.
+    func testSynthesizedPanelKeyNotificationKeepsThePanelOpen() async throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+        let panelWindow = try XCTUnwrap(panel.contentViewController?.view.window)
+
+        NotificationCenter.default.post(
+            name: NSWindow.didBecomeKeyNotification,
+            object: panelWindow
+        )
+        // Give the main-actor sink a turn before asserting.
+        await Task.yield()
+
+        XCTAssertTrue(panel.isShown)
+    }
+
+    /// A panel-owned sheet (confirmation) becomes key at a modal level with a
+    /// sheet parent; it must not dismiss the panel underneath.
+    func testSynthesizedPanelSheetKeyNotificationKeepsThePanelOpen() async throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+        let panelWindow = try XCTUnwrap(panel.contentViewController?.view.window)
+
+        let sheetWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 120),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        sheetWindow.isReleasedWhenClosed = false
+        defer { sheetWindow.close() }
+        // Use the completion-handler form: the async `beginSheet(_:)` overlay
+        // would suspend until the sheet is dismissed, which never happens here.
+        panelWindow.beginSheet(sheetWindow, completionHandler: { _ in })
+        defer { panelWindow.endSheet(sheetWindow) }
+
+        NotificationCenter.default.post(
+            name: NSWindow.didBecomeKeyNotification,
+            object: sheetWindow
+        )
+        await Task.yield()
+
+        XCTAssertTrue(panel.isShown)
+    }
+
+    /// A floating/menu-level window (e.g. an NSMenu or alert) must not dismiss
+    /// the panel.
+    func testSynthesizedFloatingLevelKeyNotificationKeepsThePanelOpen() async throws {
+        let harness = try StatusBarPressureHarness()
+        defer { harness.cleanUp() }
+        harness.controller.togglePopover()
+        let panel = harness.controller.popoverForTesting
+        XCTAssertTrue(panel.isShown)
+
+        let floatingWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 120, height: 80),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        floatingWindow.isReleasedWhenClosed = false
+        floatingWindow.level = .floating
+        defer { floatingWindow.close() }
+
+        NotificationCenter.default.post(
+            name: NSWindow.didBecomeKeyNotification,
+            object: floatingWindow
+        )
+        await Task.yield()
+
+        XCTAssertTrue(panel.isShown)
+    }
+
     func testDockPresentationDoesNotForceApplicationActivation() throws {
         let harness = try StatusBarPressureHarness()
         defer { harness.cleanUp() }

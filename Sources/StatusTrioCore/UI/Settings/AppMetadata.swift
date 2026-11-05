@@ -27,6 +27,17 @@ enum AppMetadata {
         developmentCodename(from: Bundle.main.infoDictionary ?? [:])
     }
 
+    /// A development bundle carries `STDevelopmentCodename`; a release bundle
+    /// must not (see AGENTS.md). Developer-only Settings rows key off this flag
+    /// so a packaged release never offers them.
+    static var isDevelopmentBuild: Bool {
+        isDevelopmentBuild(from: Bundle.main.infoDictionary ?? [:])
+    }
+
+    static func isDevelopmentBuild(from infoDictionary: [String: Any]) -> Bool {
+        developmentCodename(from: infoDictionary) != nil
+    }
+
     static func developmentCodename(from infoDictionary: [String: Any]) -> String? {
         validName(infoDictionary[developmentCodenameKey])
     }
@@ -120,5 +131,16 @@ enum AppMetadata {
         let version = infoDictionary["CFBundleShortVersionString"] as? String ?? "1.0.0"
         let build = infoDictionary["CFBundleVersion"] as? String ?? "1"
         return "\(version) (\(build))"
+    }
+
+    /// Just the marketing version, without the build number. The Settings
+    /// sidebar shows this one short line so a long development codename can
+    /// never wrap or truncate there; the About pane keeps the full identity.
+    static var versionShortString: String {
+        versionShortString(from: Bundle.main.infoDictionary ?? [:])
+    }
+
+    static func versionShortString(from infoDictionary: [String: Any]) -> String {
+        infoDictionary["CFBundleShortVersionString"] as? String ?? "1.0.0"
     }
 }

@@ -296,6 +296,23 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertFalse(second.showsBluetoothPowerControl)
     }
 
+    func testListeningModeMasterSwitchDefaultsOnAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        // The real listening-mode master switch must default to on so real
+        // AirPods/HUAWEI devices keep working out of the box.
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertTrue(first.showsBluetoothListeningMode)
+
+        first.showsBluetoothListeningMode = false
+
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(second.showsBluetoothListeningMode)
+        // Previewing stays independent and is off by default.
+        XCTAssertFalse(second.previewsBluetoothListeningMode)
+    }
+
     func testBluetoothNetworkIconDeviceDefaultsToTheAudioDevice() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 

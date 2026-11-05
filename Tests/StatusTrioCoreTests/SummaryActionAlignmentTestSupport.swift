@@ -5,8 +5,13 @@ import AppKit
 struct SummaryActionAlignmentProbe {
     let bitmap: NSBitmapImageRep
     let scale: CGFloat
+    /// The hosting view the bitmap was captured from. Kept so a probe can also
+    /// read the frame of an embedded AppKit control (for example an `NSSlider`
+    /// that layer rendering keeps out of the bitmap).
+    private let hosting: NSView
 
     init?(_ hosting: NSView, pixelScale: CGFloat? = nil) {
+        self.hosting = hosting
         let image: NSBitmapImageRep?
         if let pixelScale {
             image = NSBitmapImageRep(
@@ -166,5 +171,34 @@ struct SummaryActionAlignmentProbe {
             width: CGFloat(maxPixelX - minPixelX) / scale,
             height: CGFloat(maxPixelY - minPixelY) / scale
         )
+    }
+
+    /// The vertical center of the first embedded `NSView` matching `predicate`,
+    /// in the same top-left point space as the bitmap measurements.
+    ///
+    /// Layer-backed AppKit controls can be missing from a `cacheDisplay`
+    /// bitmap, so their alignment is read from the view tree instead.
+    func subviewCenterY(where predicate: (NSView) -> Bool) -> CGFloat? {
+        guard let view = firstSubview(where: predicate) else { return nil }
+        return view.convert(view.bounds, to: hosting).midY
+    }
+
+    /// The frame (in the hosting view's point space) of the first embedded
+    /// `NSView` matching `predicate`. Used to compare horizontal slot positions
+    /// across rows, which are rendered as separate hosting views.
+    func subviewFrame(where predicate: (NSView) -> Bool) -> CGRect? {
+        guard let view = firstSubview(where: predicate) else { return nil }
+        return view.convert(view.bounds, to: hosting)
+    }
+
+    private func firstSubview(where predicate: (NSView) -> Bool) -> NSView? {
+        func walk(_ view: NSView) -> NSView? {
+            if predicate(view) { return view }
+            for subview in view.subviews {
+                if let hit = walk(subview) { return hit }
+            }
+            return nil
+        }
+        return walk(hosting)
     }
 }

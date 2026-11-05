@@ -295,6 +295,67 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
         XCTAssertLessThan(withSettingOn.height, 120)
     }
 
+    /// Powering the radio off must collapse the device list to the powered-off
+    /// row even though devices are still in memory. The cache exists so a reopen
+    /// draws last-known rows instantly, but that only makes sense while the
+    /// radio is reachable: after power-off monitoring is suspended and no read
+    /// will overwrite them, so the cached connected rows (with their blue
+    /// marker) would otherwise stay on screen until the radio turns back on.
+    func testPoweringOffCollapsesTheDeviceList() async throws {
+        let devices = [
+            BluetoothDevice(
+                id: "AA", name: "AirPods Pro",
+                kind: .audio, isConnected: true
+            ),
+            BluetoothDevice(
+                id: "BB", name: "MX Master 3",
+                kind: .peripheral(.mouse), isConnected: true
+            ),
+        ]
+        let listOn = BluetoothDeviceListOptions(
+            showsList: true, maxVisibleDevices: 3, order: []
+        )
+
+        let withListRadioOn = try await render(
+            language: .english,
+            authorization: .allowed,
+            devices: devices,
+            listOptions: listOn,
+            radioPower: .on,
+            showsBatteryLevels: false,
+            named: "bluetooth-radio-on-list"
+        )
+        let radioOff = try await render(
+            language: .english,
+            authorization: .allowed,
+            devices: devices,
+            listOptions: listOn,
+            radioPower: .off,
+            showsBatteryLevels: false,
+            named: "bluetooth-radio-off-list"
+        )
+        let noListRadioOn = try await render(
+            language: .english,
+            authorization: .allowed,
+            devices: devices,
+            listOptions: BluetoothDeviceListOptions(
+                showsList: false, maxVisibleDevices: 3, order: []
+            ),
+            radioPower: .on,
+            showsBatteryLevels: false,
+            named: "bluetooth-radio-on-nolist"
+        )
+
+        // The radio-off row collapses to the same single-line powered-off row
+        // as hiding the list entirely: the in-memory connected devices must not
+        // keep rendering a device list while the radio shows powered off.
+        XCTAssertEqual(radioOff.height, noListRadioOn.height, accuracy: 1.5)
+        XCTAssertLessThan(
+            radioOff.height, withListRadioOn.height,
+            "powering off must collapse the device list, not render cached connected devices"
+        )
+    }
+
     func testAppleMasterDoesNotPromoteNearbyBLEReadingsToOwnedRows() async throws {
         let paired = BluetoothDevice(
             id: "AA:00:00:00:00:01", name: "Temperature Sensor",
@@ -612,6 +673,8 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
         devices: [BluetoothDevice],
         batteryLevels: [String: BluetoothBatteryLevel] = [:],
         listOptions: BluetoothDeviceListOptions = .standard,
+        radioPower: BluetoothRadioPower = .on,
+        showsBatteryLevels: Bool = true,
         named name: String
     ) async throws -> NSSize {
         let (hosting, controller) = try await makeHosting(
@@ -619,7 +682,9 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
             authorization: authorization,
             devices: devices,
             batteryLevels: batteryLevels,
-            listOptions: listOptions
+            listOptions: listOptions,
+            showsBatteryLevels: showsBatteryLevels,
+            radioPower: radioPower
         )
         defer { controller.deactivate() }
 

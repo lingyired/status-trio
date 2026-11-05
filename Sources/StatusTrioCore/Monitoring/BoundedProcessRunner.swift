@@ -282,10 +282,15 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     /// Reads one stream to EOF after the child is gone. Called once per stream,
     /// each on that stream's own queue.
     private func drainPipesAfterProcessExit(_ stream: Stream) {
+        // The pipe stays alive because this block holds `self` strongly (and
+        // `self` holds the pipe); read its handle once and drain it locally
+        // rather than reaching through a mutable property twice.
         switch stream {
         case .stdout:
-            stdoutPipe?.fileHandleForReading.readabilityHandler = nil
-            guard hasPendingWork, !stdoutIOEnded, let handle = stdoutPipe?.fileHandleForReading else { return }
+            guard let pipe = stdoutPipe else { return }
+            let handle = pipe.fileHandleForReading
+            handle.readabilityHandler = nil
+            guard hasPendingWork, !stdoutIOEnded else { return }
             let data = handle.readDataToEndOfFile()
             markIOStreamEnded(.stdout)
             queue.async { [self] in
@@ -293,8 +298,10 @@ final class BoundedProcessInvocation: @unchecked Sendable {
                 received(Data(), stream: .stdout)
             }
         case .stderr:
-            stderrPipe?.fileHandleForReading.readabilityHandler = nil
-            guard hasPendingWork, !stderrIOEnded, let handle = stderrPipe?.fileHandleForReading else { return }
+            guard let pipe = stderrPipe else { return }
+            let handle = pipe.fileHandleForReading
+            handle.readabilityHandler = nil
+            guard hasPendingWork, !stderrIOEnded else { return }
             let data = handle.readDataToEndOfFile()
             markIOStreamEnded(.stderr)
             queue.async { [self] in
@@ -375,11 +382,11 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     private func finish(_ outcome: BoundedProcessOutcome) {
         guard let onFinish else { return }
         self.onFinish = nil
-        // The stream queues still own reads on these pipes. Do not close or
-        // replace their readers here; each stream clears its own handler under
-        // its queue in drainPipesAfterProcessExit.
-        stdoutPipe = nil
-        stderrPipe = nil
+        // The pipes are left to ARC. `drainPipesAfterProcessExit` reads the
+        // handlers on their own streams' queues; nilling the pipe properties
+        // here would release the NSPipe while that other queue was in the
+        // middle of touching it (a use-after-free crash). Every closure that
+        // holds the pipes releases them once it returns.
         process?.terminationHandler = nil
         process = nil
         onFinish(outcome)

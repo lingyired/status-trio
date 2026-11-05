@@ -4,54 +4,62 @@ struct AudioSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @Binding var previewIsDark: Bool
+    /// When non-`nil` the pane shows only that leaf subtopic beneath the Audio
+    /// category; `nil` keeps the original full-pane layout.
+    var subtopic: SettingsSubtopic? = nil
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
-        SettingsPage(pinnedHeader: {
-            StatusIconPreviewCard(
-                store: store,
-                statusStore: statusStore,
-                isDarkBackground: $previewIsDark
-            )
-        }) {
-            indicatorStyleGroup
-            volumeFeedbackGroup
-            volumeScrollGroup
-            displayRulesGroup
-            externalVolumeGroup
-            deviceOrderGroup
-            inputDeviceOrderGroup
-            airPodsInlineControlsGroup
+        // The lifecycle stays on this concrete, stable container so the device
+        // refresh runs once per appearance, not per leaf switch. Audio is a
+        // single pane now; device selection lives beside the volume controls.
+        VStack(spacing: 0) {
+            SettingsPage(pinnedHeader: {
+                StatusIconPreviewCard(
+                    store: store,
+                    statusStore: statusStore,
+                    isDarkBackground: $previewIsDark
+                )
+            }) {
+                fullAudioContent
+            }
         }
         .onAppear {
             statusStore.refreshAll()
         }
     }
 
-    private var indicatorStyleGroup: some View {
-        SettingsGroup(localization.string(.settingsAudioIndicatorStyleTitle)) {
-            SettingsPictureRow(
-                "waveform",
-                tint: .indigo,
-                title: localization.string(.settingsAudioIndicatorStyle),
-                subtitle: localization.string(.settingsAudioIndicatorStyleDescription),
-                selection: $store.volumeDisplayStyle,
-                options: [VolumeDisplayStyle.dots, .arc],
-                previewSize: CGSize(width: 68, height: 44),
-                caption: { style in
-                    switch style {
-                    case .dots: return localization.string(.settingsAudioIndicatorStyleDots)
-                    case .arc: return localization.string(.settingsAudioIndicatorStyleArc)
+    @ViewBuilder
+    private var fullAudioContent: some View {
+        panelVisibilityGroup
+        volumeFeedbackGroup
+        volumeScrollGroup
+        displayRulesGroup
+        deviceOrderGroup
+        inputDeviceOrderGroup
+        externalVolumeGroup
+        airPodsInlineControlsGroup
+    }
+
+    /// Quick show/hide of the audio modules (output volume and input) in the
+    /// status panel.
+    private var panelVisibilityGroup: some View {
+        SettingsGroup(localization.string(.settingsNetworkPanelGroup)) {
+            SettingsToggleRow(
+                symbol: "speaker.wave.2",
+                tint: .cyan,
+                title: localization.string(.settingsPanelShowAudio),
+                subtitle: localization.string(.settingsPanelShowItemDescription),
+                isOn: Binding(
+                    get: {
+                        store.enabledPopupSections.contains(.volume)
+                            || store.enabledPopupSections.contains(.audioInput)
+                    },
+                    set: { enabled in
+                        store.setPopupSection(.volume, enabled: enabled)
+                        store.setPopupSection(.audioInput, enabled: enabled)
                     }
-                },
-                preview: { style in
-                    VolumeIndicatorPreview(
-                        style: style,
-                        isDarkBackground: previewIsDark,
-                        store: store,
-                        statusStore: statusStore
-                    )
-                }
+                )
             )
         }
     }
@@ -72,9 +80,9 @@ struct AudioSectionView: View {
     }
 
     private var volumeScrollGroup: some View {
-        SettingsGroup(localization.string(.settingsPopupVolumeScrollGroup)) {
+        SettingsGroup(localization.string(.settingsAudioVolumeScrollGroup)) {
             SettingsToggleRow(
-                symbol: "speaker.wave.2.fill",
+                symbol: "arrow.up.arrow.down.circle.fill",
                 tint: .cyan,
                 title: localization.string(.settingsPopupVolumeScroll),
                 subtitle: localization.string(.settingsPopupVolumeScrollDescription),
@@ -92,16 +100,6 @@ struct AudioSectionView: View {
                     selection: $store.popupVolumeScrollScope,
                     options: PopupVolumeScrollScope.allCases,
                     label: scrollScopeLabel
-                )
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "arrow.up.arrow.down",
-                    tint: .indigo,
-                    title: localization.string(.settingsPopupVolumeScrollNatural),
-                    subtitle: localization.string(.settingsPopupVolumeScrollNaturalDescription),
-                    isOn: $store.popupVolumeNaturalScrolling
                 )
             }
         }

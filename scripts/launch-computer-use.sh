@@ -3,9 +3,10 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_DISPLAY="automatic"
+PANEL_MODE="settings"
 REUSE=0
 usage() {
-    echo "Usage: bash scripts/launch-computer-use.sh [--reuse] [--display secondary]" >&2
+    echo "Usage: bash scripts/launch-computer-use.sh [--reuse] [--display secondary] [--panel]" >&2
     exit 2
 }
 while [[ $# -gt 0 ]]; do
@@ -19,6 +20,11 @@ while [[ $# -gt 0 ]]; do
             [[ $# -ge 2 && "$2" == secondary && "$TEST_DISPLAY" == automatic ]] || usage
             TEST_DISPLAY="secondary"
             shift 2
+            ;;
+        --panel)
+            [[ "$PANEL_MODE" == settings ]] || usage
+            PANEL_MODE="panel"
+            shift
             ;;
         *) usage ;;
     esac
@@ -55,7 +61,7 @@ trap release_lock EXIT
 
 # Reuse is read-only: it neither rebuilds nor sends a reopen to the process.
 if [[ "$REUSE" == 1 ]]; then
-    swift "$ROOT/scripts/computer-use-instance.swift" reuse "$BUNDLE_ID" "$APP_PATH" "$TEST_DISPLAY"
+    swift "$ROOT/scripts/computer-use-instance.swift" reuse "$BUNDLE_ID" "$APP_PATH" "$TEST_DISPLAY" "$PANEL_MODE"
     exit 0
 fi
 
@@ -78,5 +84,5 @@ if [[ "$(read_plist CFBundleIdentifier)" != "$BUNDLE_ID" \
     exit 1
 fi
 
-swift "$ROOT/scripts/computer-use-instance.swift" launch "$BUNDLE_ID" "$APP_PATH" "$TEST_DISPLAY"
+swift "$ROOT/scripts/computer-use-instance.swift" launch "$BUNDLE_ID" "$APP_PATH" "$TEST_DISPLAY" "$PANEL_MODE"
 shasum -a 256 "$APP_PATH/Contents/MacOS/StatusTrio"

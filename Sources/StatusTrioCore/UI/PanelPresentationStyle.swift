@@ -3,6 +3,30 @@ import SwiftUI
 
 enum PanelSummaryActionMetrics {
     static let hitTarget: CGFloat = 24
+    /// Fixed horizontal slot for the leading (mute/input/brightness) glyph so
+    /// the volume, mic, and brightness sliders all start on the same x.
+    ///
+    /// The three panel rows use different SF Symbols (speaker / mic / sun) whose
+    /// natural ink widths differ; without a shared slot width the sliders'
+    /// leading edge drifts between rows. Equal slots keep every slider's
+    /// leading edge aligned.
+    static let leadingGlyphSlot: CGFloat = 24
+    /// Gap between the trailing action icons of one summary row.
+    ///
+    /// The hit target already supplies most of the visual air, so a wide stack
+    /// spacing made rows with several icons (battery: high/low/chevron/gear)
+    /// look loose and uneven. One shared value keeps every row identical.
+    static let actionSpacing: CGFloat = 2
+    /// The standard gap between trailing action glyphs. Every panel row uses it
+    /// together with `iconInset`, so a row with two icons and a row with four
+    /// (battery: high/low/chevron/gear) share one edge-to-edge rhythm.
+    /// Edge-to-edge gap between two trailing icons whose slots are sized to the
+    /// glyph itself. Equal insets plus one gap make every pair of icons in a row
+    /// read as evenly spaced, including a narrow chevron next to a wide gear.
+    static let iconGap: CGFloat = 8
+    /// Horizontal padding added around a trailing glyph so its click target is
+    /// comfortable without widening the visual gap between glyphs.
+    static let iconInset: CGFloat = 6
 }
 
 /// One optical and hit-target container for every trailing status-panel action.
@@ -11,20 +35,29 @@ enum PanelSummaryActionMetrics {
 struct PanelActionGlyph: View {
     let systemName: String
     var font: Font = .body
-    var size: CGFloat = PanelSummaryActionMetrics.hitTarget
+    /// An explicit square slot for callers that align on a fixed size (the back
+    /// chevron). `nil` uses the panel's natural-glyph sizing.
+    var size: CGFloat? = nil
     /// A row may pin the symbol to its measured centre when a taller neighbouring
     /// text block makes the default optical correction unnecessary.
     var verticalOpticalOffset: CGFloat? = nil
 
     var body: some View {
-        Image(systemName: systemName)
-            .font(font)
-            .frame(
-                width: size,
-                height: size,
-                alignment: .center
-            )
-            .offset(y: verticalOpticalOffset ?? defaultOpticalOffsetY)
+        Group {
+            if let size {
+                Image(systemName: systemName)
+                    .font(font)
+                    .frame(width: size, height: size, alignment: .center)
+            } else {
+                // Natural glyph width with one shared inset: a narrow chevron
+                // and a wide gear then read the same distance apart.
+                Image(systemName: systemName)
+                    .font(font)
+                    .padding(.horizontal, PanelSummaryActionMetrics.iconInset)
+                    .frame(height: PanelSummaryActionMetrics.hitTarget)
+            }
+        }
+        .offset(y: verticalOpticalOffset ?? defaultOpticalOffsetY)
     }
 
     /// SF Symbols keep their own ink bounds inside an equal frame. The gear's

@@ -49,7 +49,15 @@ final class StatusPanelViewModel: ObservableObject {
     /// independent of the volume presentation because Bluetooth-only visibility
     /// also owns HUAWEI and AirPods listening-mode discovery.
     @Published private(set) var listeningModeTaskID = ""
-    @Published private(set) var volume: VolumePanelState
+    /// The volume row observes this model directly, so a volume tick
+    /// invalidates only that row instead of the whole panel (#263). The view
+    /// model stays the only writer and keeps the reference non-published.
+    let volumeControl: VolumeControlModel
+
+    /// Read-only passthrough for `StatusBarController`'s scroll handling and
+    /// for tests. It is deliberately not `@Published`: publishing it here would
+    /// re-create the full-panel invalidation this model exists to avoid.
+    var volume: VolumePanelState { volumeControl.volume }
     @Published private(set) var brightness: BrightnessPanelState
     @Published private(set) var audioInput: AudioInputPanelState
     @Published private(set) var inputSource: InputSourcePanelState
@@ -106,6 +114,17 @@ final class StatusPanelViewModel: ObservableObject {
     /// since the panel last started. Until it has, the section may draw the
     /// cached skeleton instead of an empty list.
     private var volumeDeviceRowsLoaded = false
+    /// The last live volume reading delivered by the store. Used to tell a pure
+    /// level change from a structural one (mute, devices, availability).
+    private var lastLiveVolumeStatus: VolumeStatus?
+    /// The newest level-only reading waiting for the next coalesced publish.
+    private var pendingLevelVolumeStatus: VolumeStatus?
+    private var levelVolumePublishTask: Task<Void, Never>?
+    /// A drag emits levels far faster than the row can usefully draw them.
+    /// Coalescing to 10 Hz stops the panel hosting view from laying out the
+    /// whole tree on every tick (#263); the slider's local draft keeps the
+    /// gesture responsive in between.
+    static let levelVolumePublishInterval: Duration = .milliseconds(100)
     private var pendingRefreshRegions: RefreshRegions = []
     private var lifecycleGeneration = 0
 
@@ -155,16 +174,18 @@ final class StatusPanelViewModel: ObservableObject {
         )
         vpn = PanelPresentationMapper.vpn(store.vpnStatus, localization: localization)
         bluetooth = .empty(localization: localization)
-        volume = AudioPanelMapper.volume(
-            store.liveVolume,
-            controllerAvailable: store.isVolumeControllerAvailable,
-            externalVolumeConfiguration: Self.externalVolumeConfiguration(
-                for: store.liveVolume,
-                settings: settings
-            ),
-            deviceList: settings.outputDeviceListPreferences,
-            showsAirPodsSystemControls: settings.showsInlineAirPodsControls,
-            localization: localization
+        volumeControl = VolumeControlModel(
+            volume: AudioPanelMapper.volume(
+                store.liveVolume,
+                controllerAvailable: store.isVolumeControllerAvailable,
+                externalVolumeConfiguration: Self.externalVolumeConfiguration(
+                    for: store.liveVolume,
+                    settings: settings
+                ),
+                deviceList: settings.outputDeviceListPreferences,
+                showsAirPodsSystemControls: settings.showsInlineAirPodsControls,
+                localization: localization
+            )
         )
         audioInput = AudioPanelMapper.input(
             store.liveInput,
@@ -281,6 +302,8 @@ final class StatusPanelViewModel: ObservableObject {
         lifecycleGeneration &+= 1
         pendingRefreshRegions = []
         volumeDeviceRowsLoaded = false
+        cancelLevelVolumePublish()
+        lastLiveVolumeStatus = nil
         sourceDemandCancellables.removeAll()
         subscribedSourceDemand = nil
         chargeToFullNow?.clearDemand()
@@ -355,6 +378,10 @@ final class StatusPanelViewModel: ObservableObject {
     /// Re-enters the lightweight route after a close released the detail view
     /// and its collectors. This runs before the popover's first layout pass.
     func prepareForPresentation() {
+        if settings.returnsToSummaryOnOpen {
+            closeCurrentPage()
+            return
+        }
         guard store.isPopoverVisible, route != .summary else { return }
         guard isRouteAvailable(route) else {
             closeCurrentPage()
@@ -393,9 +420,9 @@ final class StatusPanelViewModel: ObservableObject {
         if !isVisible(.network) { network = network.releasingPresentation() }
         if !isVisible(.vpn) { vpn = vpn.releasingPresentation() }
         if isVisible(.volume) {
-            volume = volume.releasingDeviceRows()
+            volumeControl.update(volumeControl.volume.releasingDeviceRows())
         } else {
-            volume = volume.releasingPresentation()
+            volumeControl.update(volumeControl.volume.releasingPresentation())
         }
         if isVisible(.audioInput) {
             audioInput = audioInput.releasingDeviceRows()
@@ -483,7 +510,7 @@ final class StatusPanelViewModel: ObservableObject {
                 settings: settings
             ),
             deviceList: outputPreferences,
-            listeningModes: store.bluetoothListeningModes,
+            listeningModes: settings.showsBluetoothListeningMode ? store.bluetoothListeningModes : nil,
             listeningModeTaskID: makeListeningModeTaskID(outputDevices: status.outputDevices),
             previewDevices: ListeningModePreview.outputRows(for: previewConfiguration, volume: status.scalar),
             previewLanguageCode: previewConfiguration.languageCode,
@@ -511,7 +538,7 @@ final class StatusPanelViewModel: ObservableObject {
 
     private var currentPreviewConfiguration: ListeningModePreview.Configuration {
         ListeningModePreview.Configuration(
-            isEnabled: settings.previewsBluetoothListeningMode,
+            isEnabled: settings.showsBluetoothListeningMode && settings.previewsBluetoothListeningMode,
             deviceName: settings.bluetoothListeningModePreviewDeviceName,
             deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
             languageCode: settings.bluetoothListeningModePreviewLanguage
@@ -520,11 +547,17 @@ final class StatusPanelViewModel: ObservableObject {
 
     private func makeListeningModeTaskID(outputDevices: [AudioOutputDevice]) -> String {
         let configuration = ListeningModePreview.Configuration(
-            isEnabled: settings.previewsBluetoothListeningMode,
+            isEnabled: settings.showsBluetoothListeningMode && settings.previewsBluetoothListeningMode,
             deviceName: settings.bluetoothListeningModePreviewDeviceName,
             deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
             languageCode: settings.bluetoothListeningModePreviewLanguage
         )
+        guard settings.showsBluetoothListeningMode else {
+            // Master switch off: no real or preview listening-mode surface. A
+            // stable non-empty tag lets the summary task mark this generation
+            // "closed" and tear down discovery (see `listeningModeTaskID`).
+            return "off::\(store.popoverOpenGeneration)"
+        }
         let connected = BluetoothDevicePresentation.grouped(store.bluetoothDevices.devices).connected
             .filter { $0.isAirPods || $0.isHuaweiAudio }
             .map { BluetoothBatteryReader.normalizedAddress($0.id) }
@@ -785,14 +818,9 @@ final class StatusPanelViewModel: ObservableObject {
         if demand.contains(.volume) {
             store.$liveVolume
                 .dropFirst()
-                .compactMap { [weak self] status -> VolumePanelState? in
-                    guard let self, isVisible(.volume) else { return nil }
-                    return mapVolume(status)
-                }
-                .removeDuplicates()
-                .sink { [weak self] state in
+                .sink { [weak self] status in
                     guard let self, isVisible(.volume) else { return }
-                    publishVolume(state)
+                    receiveLiveVolume(status)
                 }
                 .store(in: &sourceDemandCancellables)
         }
@@ -1099,12 +1127,51 @@ final class StatusPanelViewModel: ObservableObject {
         vpn = state
     }
 
+    /// Receives a raw live reading. A structural change (mute, device list,
+    /// availability, control source, external transition) publishes at once; a
+    /// pure level change is coalesced so a drag cannot invalidate the panel on
+    /// every tick (#263).
+    private func receiveLiveVolume(_ status: VolumeStatus) {
+        let previous = lastLiveVolumeStatus
+        lastLiveVolumeStatus = status
+        if let previous, status.changesOnlyLevel(comparedTo: previous) {
+            pendingLevelVolumeStatus = status
+            scheduleLevelVolumePublish()
+        } else {
+            publishVolume(mapVolume(status))
+        }
+    }
+
+    private func scheduleLevelVolumePublish() {
+        guard levelVolumePublishTask == nil else { return }
+        levelVolumePublishTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: Self.levelVolumePublishInterval)
+            } catch {
+                return
+            }
+            guard let self else { return }
+            self.levelVolumePublishTask = nil
+            let status = self.pendingLevelVolumeStatus
+            self.pendingLevelVolumeStatus = nil
+            guard self.isStarted, self.isVisible(.volume), let status else { return }
+            self.publishVolume(self.mapVolume(status))
+        }
+    }
+
+    private func cancelLevelVolumePublish() {
+        levelVolumePublishTask?.cancel()
+        levelVolumePublishTask = nil
+        pendingLevelVolumeStatus = nil
+    }
+
     private func publishVolume(_ state: VolumePanelState) {
+        // Any immediate publish supersedes a pending coalesced level.
+        cancelLevelVolumePublish()
         if listeningModeTaskID != state.listeningModeTaskID {
             listeningModeTaskID = state.listeningModeTaskID
         }
-        guard volume != state else { return }
-        volume = state
+        guard volumeControl.update(state) else { return }
         // Once real rows are back, remember the collapsed layout so the next
         // open can reserve its height, and mark the section as loaded so it stops
         // asking for the skeleton.

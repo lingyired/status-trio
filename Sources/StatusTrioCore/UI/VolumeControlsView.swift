@@ -1,5 +1,28 @@
 import SwiftUI
 
+/// Observing container for the volume row.
+///
+/// The panel observes `StatusPanelViewModel` as a whole, so a volume tick would
+/// otherwise invalidate every section. This wrapper is the only view that
+/// observes `VolumeControlModel`, which keeps a tick's invalidation scoped to
+/// the volume row (#263).
+struct VolumeControlsSection: View {
+    @ObservedObject var model: VolumeControlModel
+    let actions: StatusPanelActions
+    let scrollTargets: PopoverScrollTargets
+    let onOpenSoundSettings: () -> Void
+
+    var body: some View {
+        VolumeControlsView(
+            state: model.volume,
+            actions: actions,
+            scrollTargets: scrollTargets,
+            onOpenSoundSettings: onOpenSoundSettings
+        )
+    }
+}
+
+
 struct VolumeControlsView: View {
     private struct SynchronizationSnapshot: Equatable {
         let scalar: Double?
@@ -45,6 +68,7 @@ struct VolumeControlsView: View {
                         systemName: state.muteSymbol,
                         font: .system(size: 15, weight: .medium)
                     )
+                        .frame(width: PanelSummaryActionMetrics.leadingGlyphSlot)
                         .foregroundStyle(state.muted ? Color.red : Color.secondary)
                         .contentShape(Rectangle())
                 }
@@ -53,18 +77,18 @@ struct VolumeControlsView: View {
                 .help(state.muteHelp)
                 .accessibilityLabel(state.muteHelp)
 
-                Slider(
+                PanelLevelSlider(
                     value: volumeBinding,
-                    in: 0...1,
+                    isEnabled: state.canAdjust,
+                    tint: state.muted ? Color.secondary : Color.accentColor,
+                    accessibilityLabel: state.sliderLabel,
+                    accessibilityValue: percentageText,
                     onEditingChanged: { isEditing in
                         handleVolumeEditing(isEditing)
-                    }
+                    },
+                    height: PanelLevelSliderMetrics.compactSlotHeight,
+                    barHeight: PanelLevelSliderMetrics.compactBarHeight
                 )
-                    .tint(state.muted ? Color.secondary : Color.accentColor)
-                    .disabled(!state.canAdjust)
-                    .accessibilityLabel(state.sliderLabel)
-                    .accessibilityValue(percentageText)
-                    .padding(.horizontal, 2)
                     .background(VolumeControlScrollTarget(targets: scrollTargets))
 
                 Text(percentageText)

@@ -187,9 +187,17 @@ final class StatusPanelActions {
             releaseBatteryLevels: { store.bluetoothDevices.releaseBatteryLevels($0) },
             requestNearbyBatteryDevices: { store.bluetoothDevices.requestNearbyBatteryDevices($0) },
             releaseNearbyBatteryDevices: { store.bluetoothDevices.releaseNearbyBatteryDevices($0, keepingResults: $1) },
-            setListeningMode: { store.bluetoothListeningModes.setMode($0, forAddress: $1) },
-            listeningModePresentations: { store.bluetoothListeningModes.presentations },
+            setListeningMode: { mode, address in
+                guard settings.showsBluetoothListeningMode else { return }
+                store.bluetoothListeningModes.setMode(mode, forAddress: address)
+            },
+            listeningModePresentations: {
+                store.bluetoothListeningModes.presentations
+            },
             listeningModeDevices: {
+                guard settings.showsBluetoothListeningMode else {
+                    return store.bluetoothDevices.devices
+                }
                 let config = ListeningModePreview.Configuration(
                     isEnabled: settings.previewsBluetoothListeningMode,
                     deviceName: settings.bluetoothListeningModePreviewDeviceName,
@@ -211,7 +219,7 @@ final class StatusPanelActions {
             wifiNameAccess: { store.popupSnapshot.wifi.nameAccess },
             activateWiFiDetails: { store.wifiNetworks.activate(nameAccess: $0) },
             closeWiFiDetails: { store.wifiNetworks.deactivate() },
-            setWiFiPower: { store.wifiNetworks.setPower($0) },
+            setWiFiPower: { store.setWiFiPower($0) },
             refreshWiFi: { store.wifiNetworks.refreshNow(nameAccess: $0) },
             openWiredDetails: { store.activatePrimaryLinkPanel() },
             closeWiredDetails: { store.closePrimaryLinkPanel() },
@@ -219,6 +227,14 @@ final class StatusPanelActions {
             releaseBluetoothSummary: { store.bluetoothDevices.releaseVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken) },
             refreshVolumeListeningModes: {
                 guard store.isPopoverVisible else { return }
+                // The real listening-mode master switch is off: stop discovery,
+                // drop every presentation and clear parked HUAWEI/SPP device
+                // state so no controls are presented anywhere. Re-enabling it
+                // reruns this same refresh path to rediscover live devices.
+                guard settings.showsBluetoothListeningMode else {
+                    store.bluetoothListeningModes.stop()
+                    return
+                }
                 let config = ListeningModePreview.Configuration(
                     isEnabled: settings.previewsBluetoothListeningMode,
                     deviceName: settings.bluetoothListeningModePreviewDeviceName,

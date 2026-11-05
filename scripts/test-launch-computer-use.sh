@@ -22,6 +22,7 @@ cat > "$FIXTURE/bin/swift" <<'EOF'
 printf '%s\n' "$2" >> "$ST_CUA_FIXTURE_LOG"
 if [[ "$2" == "prepare" && "${ST_CUA_FIXTURE_BUSY:-0}" == 1 ]]; then exit 1; fi
 if [[ ( "$2" == "launch" || "$2" == "reuse" ) && "$5" != "${ST_CUA_FIXTURE_DISPLAY:-automatic}" ]]; then exit 1; fi
+if [[ ( "$2" == "launch" || "$2" == "reuse" ) && "$6" != "${ST_CUA_FIXTURE_PANEL_MODE:-settings}" ]]; then exit 1; fi
 if [[ "$2" == "reuse" && "${ST_CUA_FIXTURE_REUSE_MISSING:-0}" == 1 ]]; then exit 1; fi
 EOF
 cat > "$TEST_ROOT/scripts/build-worktree.sh" <<'EOF'
@@ -80,24 +81,29 @@ expect_failure env ST_CUA_FIXTURE_BRANCH=main bash "$TEST_ROOT/scripts/launch-co
 expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --display primary
 expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse --reuse
 expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --display secondary --display secondary
+expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --panel --panel
 expect_failure env ST_CUA_FIXTURE_REUSE_MISSING=1 bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse
 [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == "reuse" ]]
 for display in automatic secondary; do
-    : > "$ST_CUA_FIXTURE_LOG"
-    if [[ "$display" == secondary ]]; then
-        ST_CUA_FIXTURE_DISPLAY="$display" bash "$TEST_ROOT/scripts/launch-computer-use.sh" --display secondary > "$FIXTURE/output"
-    else
-        bash "$TEST_ROOT/scripts/launch-computer-use.sh" > "$FIXTURE/output"
-    fi
-    [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == $'prepare\nbuild\nlaunch' ]]
+    for panel in settings panel; do
+        : > "$ST_CUA_FIXTURE_LOG"
+        args=()
+        [[ "$display" == secondary ]] && args+=(--display secondary)
+        [[ "$panel" == panel ]] && args+=(--panel)
+        ST_CUA_FIXTURE_DISPLAY="$display" ST_CUA_FIXTURE_PANEL_MODE="$panel" \
+            bash "$TEST_ROOT/scripts/launch-computer-use.sh" ${args[@]+"${args[@]}"} > "$FIXTURE/output"
+        [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == $'prepare\nbuild\nlaunch' ]]
+    done
 done
 for display in automatic secondary; do
-    : > "$ST_CUA_FIXTURE_LOG"
-    if [[ "$display" == secondary ]]; then
-        ST_CUA_FIXTURE_DISPLAY="$display" bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse --display secondary > "$FIXTURE/output"
-    else
-        bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse > "$FIXTURE/output"
-    fi
-    [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == "reuse" ]]
+    for panel in settings panel; do
+        : > "$ST_CUA_FIXTURE_LOG"
+        args=(--reuse)
+        [[ "$display" == secondary ]] && args+=(--display secondary)
+        [[ "$panel" == panel ]] && args+=(--panel)
+        ST_CUA_FIXTURE_DISPLAY="$display" ST_CUA_FIXTURE_PANEL_MODE="$panel" \
+            bash "$TEST_ROOT/scripts/launch-computer-use.sh" ${args[@]+"${args[@]}"} > "$FIXTURE/output"
+        [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == "reuse" ]]
+    done
 done
-echo "Computer Use launcher: 15 isolation, lock, capability, argument, reuse and ordering cases passed."
+echo "Computer Use launcher: isolation, lock, capability, argument, reuse, status-panel and ordering cases passed."
