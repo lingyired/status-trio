@@ -4,6 +4,7 @@ import SwiftUI
 
 /// Human-centered, multi-column settings window matching modern macOS standards.
 struct SettingsView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Drives the restrained, unemphasized selection colour while the window is
     /// not key.
     @Environment(\.controlActiveState) private var controlActiveState
@@ -98,23 +99,28 @@ struct SettingsView: View {
     private func applyRequestedSectionIfAvailable() {
         guard let section = consumePendingSection() else { return }
         let subtopic = consumePendingSubtopic()
-        // Switching pages is instantaneous, matching the Magpie settings UI.
-        navigation.apply(section: section, subtopic: subtopic)
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+            navigation.apply(section: section, subtopic: subtopic)
+        }
     }
 
     private func subtopics(for section: Section) -> [SettingsSubtopic] {
         section.subtopics
     }
 
-    /// Moves the selection. No animation: the Magpie-style sidebar switches
-    /// instantly instead of cross-fading the detail page.
+    /// Moves the selection. Kept as a thin animated wrapper so the sidebar
+    /// buttons and the model stay decoupled.
     private func select(_ section: Section) {
-        navigation.select(section)
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+            navigation.select(section)
+        }
     }
 
     /// Reveals one leaf subtopic beneath its parent category.
     private func selectSubtopic(_ subtopic: SettingsSubtopic) {
-        navigation.selectSubtopic(subtopic)
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+            navigation.selectSubtopic(subtopic)
+        }
     }
 
     // MARK: - Sidebar
@@ -128,24 +134,15 @@ struct SettingsView: View {
             // The sidebar scrolls on its own so a long expanded category can
             // never push the detail page or clip the traffic-light header.
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(sidebarGroups) { group in
-                        Text(localization.string(group.title))
-                            .font(.system(
-                                size: SettingsSidebarMetrics.captionFontSize,
-                                weight: .semibold
-                            ))
-                            .foregroundStyle(.secondary)
-                            .padding(.leading, SettingsSidebarMetrics.rowHorizontalPadding)
-                            .padding(.top, SettingsSidebarMetrics.groupCaptionTopSpacing)
-                            .padding(.bottom, SettingsSidebarMetrics.groupCaptionBottomSpacing)
+                VStack(alignment: .leading, spacing: SettingsSidebarMetrics.categoryGroupSpacing) {
+                    ForEach(Section.allCases) { section in
+                        VStack(alignment: .leading, spacing: 0) {
+                            categoryRow(section)
 
-                        VStack(
-                            alignment: .leading,
-                            spacing: SettingsSidebarMetrics.categoryGroupSpacing
-                        ) {
-                            ForEach(group.sections) { section in
-                                sectionBlock(section)
+                            if navigation.expandedSection == section, section.hasSubtopics {
+                                ForEach(subtopics(for: section)) { subtopic in
+                                    subtopicRow(subtopic)
+                                }
                             }
                         }
                     }
@@ -157,79 +154,21 @@ struct SettingsView: View {
         }
     }
 
-    private struct SidebarGroupSpec: Identifiable {
-        let id: String
-        let title: LocalizationKey
-        let sections: [Section]
-    }
-
-    /// Two caption groups keeping the existing category order (Magpie-style
-    /// sidebar). Grouping is visual only; routes and settings are unchanged.
-    private var sidebarGroups: [SidebarGroupSpec] {
-        [
-            SidebarGroupSpec(
-                id: "status",
-                title: .settingsSidebarGroupStatus,
-                sections: [.appIcon, .battery, .network, .bluetooth, .audio, .brightness]
-            ),
-            SidebarGroupSpec(
-                id: "system",
-                title: .settingsSidebarGroupSystem,
-                sections: [.popover, .general, .about]
-            ),
-        ]
-    }
-
-    private func sectionBlock(_ section: Section) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            categoryRow(section)
-
-            if navigation.expandedSection == section, section.hasSubtopics {
-                // A thin vertical guide runs under the parent's icon so the
-                // leaves read as its subtree.
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(subtopics(for: section)) { subtopic in
-                        subtopicRow(subtopic)
-                    }
-                }
-                .overlay(alignment: .leading) {
-                    Rectangle()
-                        .fill(Color.primary.opacity(SettingsSidebarMetrics.treeGuideOpacity))
-                        .frame(width: SettingsSidebarMetrics.treeGuideWidth)
-                        .padding(.leading, SettingsSidebarMetrics.treeGuideInset)
-                        .padding(.top, SettingsSidebarMetrics.treeGuideTopInset)
-                        .padding(.bottom, SettingsSidebarMetrics.treeGuideBottomInset)
-                        .allowsHitTesting(false)
-                }
-            }
-        }
-    }
-
-    /// A calm, neutral selection fill: a translucent label colour in the key
-    /// window and the system's unemphasized colour when the window is not
-    /// focused. No saturated accent block.
+    /// A key window uses a light accent wash; a background window uses the
+    /// system's unemphasized selection colour so no saturated accent lingers.
     private var selectionFill: Color {
         controlActiveState == .inactive
             ? Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
-            : Color.primary.opacity(SettingsSidebarMetrics.selectedRowFillOpacity)
-    }
-
-    /// An even softer wash for an expanded parent, so the two levels never
-    /// carry the same visual weight.
-    private var parentFill: Color {
-        controlActiveState == .inactive
-            ? Color(nsColor: .unemphasizedSelectedContentBackgroundColor).opacity(0.6)
-            : Color.primary.opacity(SettingsSidebarMetrics.selectedParentFillOpacity)
+            : Color.accentColor.opacity(SettingsSidebarMetrics.activeSelectionOpacity)
     }
 
     private func categoryRow(_ section: Section) -> some View {
         let isSelected = navigation.selectedSection == section
         let isParent = section.hasSubtopics
         let isExpanded = navigation.expandedSection == section
-        // A simple category shows the row fill. An expandable parent gets only
-        // a softer wash; its selected leaf carries the stronger highlight.
+        // A simple category shows its own selection pill. An expandable parent
+        // never paints one: its selected leaf carries the highlight instead.
         let showsSelection = isSelected && !isParent
-        let showsParentFill = isParent && isSelected && isExpanded
 
         return Button {
             select(section)
@@ -266,7 +205,7 @@ struct SettingsView: View {
                             size: SettingsSidebarMetrics.chevronPointSize,
                             weight: .semibold
                         ))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(.horizontal, SettingsSidebarMetrics.rowHorizontalPadding)
@@ -276,16 +215,12 @@ struct SettingsView: View {
                     cornerRadius: SettingsSidebarMetrics.categoryCornerRadius,
                     style: .continuous
                 )
-                .fill(
-                    showsSelection
-                        ? selectionFill
-                        : (showsParentFill ? parentFill : Color.clear)
-                )
+                .fill(showsSelection ? selectionFill : Color.clear)
             )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .accessibilityAddTraits(showsSelection ? [.isSelected] : [])
         // The About row shows only the short version so it cannot wrap or
         // truncate; the full identity (version + development codename) stays
         // available in the tooltip and in the About pane itself.

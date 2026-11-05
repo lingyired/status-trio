@@ -912,56 +912,38 @@ extension View {
 /// row builders) makes the sidebar easy to retune without touching behaviour.
 enum SettingsSidebarMetrics {
     /// Space reserved below the traffic-light buttons.
-    static let topInset: CGFloat = 24
+    static let topInset: CGFloat = 42
     /// Outer horizontal margin of the scrolling sidebar content.
-    static let horizontalPadding: CGFloat = 12
+    static let horizontalPadding: CGFloat = 10
     /// Inner horizontal padding of a row's own selection area.
     static let rowHorizontalPadding: CGFloat = 8
 
-    static let categoryRowHeight: CGFloat = 30
-    static let subtopicRowHeight: CGFloat = 24
+    static let categoryRowHeight: CGFloat = 36
+    static let subtopicRowHeight: CGFloat = 27
     /// Gap between two category blocks (category plus its leaves).
-    static let categoryGroupSpacing: CGFloat = 3
+    static let categoryGroupSpacing: CGFloat = 6
 
     /// Fixed glyph column so every category title starts at the same x.
     static let iconSlotWidth: CGFloat = 18
     static let iconPointSize: CGFloat = 16
     static let iconTextSpacing: CGFloat = 10
     /// Drawn box for the custom Bluetooth rune before it is centered in the slot.
-    static let runeFrame: CGFloat = 24
-    static let runeStroke: CGFloat = 1.7
+    static let runeFrame: CGFloat = 26
+    static let runeStroke: CGFloat = 1.8
 
     static let categoryFontSize: CGFloat = 13
     static let subtopicFontSize: CGFloat = 12
     static let aboutVersionFontSize: CGFloat = 10
-    static let chevronPointSize: CGFloat = 9
-    static let captionFontSize: CGFloat = 11
-    /// Vertical breathing room around a group caption.
-    static let groupCaptionTopSpacing: CGFloat = 6
-    static let groupCaptionBottomSpacing: CGFloat = 2
+    static let chevronPointSize: CGFloat = 10
 
     /// Leading inset of a leaf row from the sidebar content edge. Larger than
     /// the category icon column so leaf titles read as nested under the parent.
-    static let subtopicIndent: CGFloat = 40
-
-    /// Vertical tree guide drawn under the expanded parent's icon. It sits at
-    /// the icon's centre (row padding + half the icon slot) and stays well left
-    /// of the leaf highlight, which begins at `subtopicIndent`.
-    static let treeGuideInset: CGFloat = 15
-    static let treeGuideWidth: CGFloat = 1
-    static let treeGuideTopInset: CGFloat = 3
-    static let treeGuideBottomInset: CGFloat = 8
-    static let treeGuideOpacity: Double = 0.14
+    static let subtopicIndent: CGFloat = 44
     static let subtopicCornerRadius: CGFloat = 6
     static let categoryCornerRadius: CGFloat = 7
 
-    /// Neutral row fills keep the selection calm instead of a blue block.
-    /// The key window uses a translucent label colour; a background window uses
-    /// the system's unemphasized selection colour.
-    static let selectedRowFillOpacity: Double = 0.10
-    /// A parent whose leaf is open gets an even softer wash so the two levels
-    /// never compete.
-    static let selectedParentFillOpacity: Double = 0.05
+    /// How strongly the accent tint fills a selected row in the key window.
+    static let activeSelectionOpacity: Double = 0.18
 }
 
 /// A monochrome category glyph for the sidebar.
