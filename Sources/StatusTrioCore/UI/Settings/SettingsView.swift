@@ -43,21 +43,21 @@ struct SettingsView: View {
 
         /// The monochrome mark the sidebar row carries.
         ///
-        /// Bluetooth has no SF Symbol on any release, so its row keeps the
-        /// project's custom rune. Audio borrows the speaker the Audio page's
-        /// own rows use, so the sidebar and the page it opens agree on one
-        /// glyph.
+        /// Every symbol uses its outline (non-`.fill`) variant so filled and
+        /// outlined glyphs carry the same visual weight; `SettingsSidebarGlyph`
+        /// then applies a small per-glyph optical scale. Bluetooth has no SF
+        /// Symbol on any release, so its row keeps the project's custom rune.
         var glyph: SettingsGlyph {
             switch self {
             case .appIcon: return .symbol("macwindow.on.rectangle")
             case .battery: return .symbol(SymbolFallback.name("battery.100percent", "battery.100"))
             case .network: return .symbol("wifi")
             case .bluetooth: return .bluetoothRune
-            case .audio:   return .symbol("speaker.wave.3.fill")
-            case .brightness: return .symbol(SymbolFallback.name("sun.max.fill", "sun.max"))
+            case .audio:   return .symbol("speaker.wave.3")
+            case .brightness: return .symbol(SymbolFallback.name("sun.max", "sun.max.fill"))
             case .popover: return .symbol("list.bullet.rectangle")
-            case .general: return .symbol("gearshape.fill")
-            case .about:   return .symbol("info.circle.fill")
+            case .general: return .symbol("gearshape")
+            case .about:   return .symbol("info.circle")
             }
         }
 

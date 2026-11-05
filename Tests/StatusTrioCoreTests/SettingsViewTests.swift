@@ -539,6 +539,25 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(view.contains("SettingsSidebarMetrics.categoryRowHeight"))
     }
 
+    /// Sidebar glyphs use outline variants and a gentle per-glyph optical
+    /// scale, so a filled speaker/gear/info no longer reads heavier than a
+    /// thin battery/wifi and the icon column looks like one size.
+    func testSidebarGlyphsAreOpticallyNormalized() {
+        for section in SettingsView.Section.allCases {
+            if case .symbol(let name) = section.glyph {
+                XCTAssertFalse(
+                    name.hasSuffix(".fill"),
+                    "\(section) should use an outline glyph for even weight"
+                )
+            }
+            let scale = SettingsSidebarMetrics.opticalScale(for: section.glyph)
+            XCTAssertTrue(
+                (0.9...1.2).contains(scale),
+                "\(section) optical scale \(scale) should stay gentle"
+            )
+        }
+    }
+
     /// The visual parameters stay within the Compact Native Sidebar values
     /// requested for this design, and the sidebar width is 196 pt.
     func testSidebarMetricsMatchTheRequestedDesign() {

@@ -957,6 +957,27 @@ enum SettingsSidebarMetrics {
 
     /// How strongly the accent tint fills a selected row in the key window.
     static let activeSelectionOpacity: Double = 0.18
+
+    /// Per-glyph optical scale so the sidebar icon column reads as one size.
+    /// Derived by measuring each glyph's rendered bounding box; wide glyphs
+    /// (battery, app icon) are trimmed slightly, narrow/tall ones (wifi, the
+    /// Bluetooth rune) and the small outlined round glyphs are nudged up.
+    static func opticalScale(for glyph: SettingsGlyph) -> CGFloat {
+        switch glyph {
+        case .symbol(let name):
+            if name.hasPrefix("battery") { return 1.06 }
+            if name == "wifi" { return 1.06 }
+            if name.hasPrefix("speaker") { return 0.94 }
+            if name.hasPrefix("sun.max") { return 1.0 }
+            if name.hasPrefix("macwindow") { return 0.96 }
+            if name.hasPrefix("list.bullet.rectangle") { return 1.0 }
+            if name.hasPrefix("gearshape") { return 1.02 }
+            if name.hasPrefix("info.circle") { return 1.04 }
+            return 1.0
+        case .bluetoothRune:
+            return 1.18
+        }
+    }
 }
 
 /// A monochrome category glyph for the sidebar.
@@ -989,6 +1010,10 @@ struct SettingsSidebarGlyph: View {
                     )
             }
         }
+        // SF Symbols of different aspect ratios render at noticeably different
+        // apparent sizes in a fixed slot (a wide battery reads small, a narrow
+        // rune reads thin). Nudge each one optically so the column looks even.
+        .scaleEffect(SettingsSidebarMetrics.opticalScale(for: glyph))
         .foregroundStyle(tint)
         .frame(
             width: SettingsSidebarMetrics.iconSlotWidth,
