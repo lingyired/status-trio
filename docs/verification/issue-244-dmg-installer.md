@@ -51,7 +51,8 @@
 
 ### runner 证据
 
-- 分支 `fix/244-dmg-ci-layout` 的临时诊断工作流 run 41943747364（macOS `xcode-27` runner，无 secrets）用发布产物中的 App 执行同一安装页脚本，产出 DMG。
+- 分支 `fix/244-dmg-ci-layout` 的临时诊断工作流在 macOS `xcode-27` runner 上执行同一安装页脚本，产出 DMG，全程无 secrets：首次 run 41943747364 确认方案可行；最终分支 run 41945534784 在完成后再次确认。
+- 最终 run 的日志直接列出 `.DS_Store` 的四个 Iloc 记录；artifact 中解码为 App (180,230)、Applications (480,230)、`.VolumeIcon.icns` (760,470)、`.background` (860,470)。
 - 下载后挂载检查：`.DS_Store` 中 Applications Iloc = (480,230)、`Status Trio.app` Iloc = (180,230)、`.VolumeIcon.icns` Iloc = (760,470)、`.background` Iloc = (860,470)；两个辅助项带 hidden 标记。
 - 同机挂载截图 `issue-244-dmg-ci-fixed.png`：中文标题、英文说明、第二条中文提示、英文提示、App 图标、箭头、Applications 图标均无遮挡，窗口无额外滚动条。
 - 复核环境：本机 macOS 27.2，Finder 开启「显示隐藏文件」，与用户此前看到问题时的条件一致。
