@@ -576,6 +576,7 @@
 "wifi.summary.band" = "%@ GHz";
 "wifi.summary.signal" = "%d dBm";
 "wifi.summary.bandAndSignal" = "%@ · %@";
+"wifi.summary.nameAccessHint" = "點此授權顯示 Wi-Fi 名稱";
 "settings.bluetooth.hideDevice" = "隱藏此裝置";
 "settings.bluetooth.showDevice" = "顯示此裝置";
 "settings.bluetooth.permissionRequired" = "需要藍牙權限";

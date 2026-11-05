@@ -576,6 +576,7 @@
 "wifi.summary.band" = "%@ GHz";
 "wifi.summary.signal" = "%d dBm";
 "wifi.summary.bandAndSignal" = "%@ · %@";
+"wifi.summary.nameAccessHint" = "Нажмите, чтобы разрешить геолокацию и показать имя Wi‑Fi";
 "settings.bluetooth.hideDevice" = "Скрыть устройство";
 "settings.bluetooth.showDevice" = "Показать устройство";
 "settings.bluetooth.permissionRequired" = "Требуется разрешение Bluetooth";

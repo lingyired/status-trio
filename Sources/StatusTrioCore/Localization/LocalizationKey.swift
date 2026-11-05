@@ -574,6 +574,9 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case wifiSummaryBand = "wifi.summary.band"
     case wifiSummarySignal = "wifi.summary.signal"
     case wifiSummaryBandAndSignal = "wifi.summary.bandAndSignal"
+    /// The status-panel Wi-Fi row's quiet second line: it invites the user to
+    /// grant location access so macOS can reveal the network name.
+    case wifiSummaryNameAccessHint = "wifi.summary.nameAccessHint"
 
     case wifiTitle = "wifi.title"
     case wifiValueBars = "wifi.value.bars"

@@ -576,6 +576,7 @@
 "wifi.summary.band" = "%@ GHz";
 "wifi.summary.signal" = "%d dBm";
 "wifi.summary.bandAndSignal" = "%@ · %@";
+"wifi.summary.nameAccessHint" = "タップして位置情報を許可しWi-Fi名を表示";
 "settings.bluetooth.hideDevice" = "デバイスを非表示";
 "settings.bluetooth.showDevice" = "デバイスを表示";
 "settings.bluetooth.permissionRequired" = "Bluetooth の権限が必要です";

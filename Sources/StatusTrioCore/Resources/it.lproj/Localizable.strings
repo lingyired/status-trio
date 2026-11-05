@@ -576,6 +576,7 @@
 "wifi.summary.band" = "%@ GHz";
 "wifi.summary.signal" = "%d dBm";
 "wifi.summary.bandAndSignal" = "%@ · %@";
+"wifi.summary.nameAccessHint" = "Tocca per consentire la posizione e mostrare il nome del Wi‑Fi";
 "settings.bluetooth.hideDevice" = "Nascondi dispositivo";
 "settings.bluetooth.showDevice" = "Mostra dispositivo";
 "settings.bluetooth.permissionRequired" = "Autorizzazione Bluetooth richiesta";

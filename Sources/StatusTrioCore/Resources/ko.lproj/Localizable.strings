@@ -576,6 +576,7 @@
 "wifi.summary.band" = "%@ GHz";
 "wifi.summary.signal" = "%d dBm";
 "wifi.summary.bandAndSignal" = "%@ · %@";
+"wifi.summary.nameAccessHint" = "탭하여 위치를 허용하고 Wi-Fi 이름 표시";
 "settings.bluetooth.hideDevice" = "기기 숨기기";
 "settings.bluetooth.showDevice" = "기기 표시";
 "settings.bluetooth.permissionRequired" = "블루투스 권한 필요";

@@ -22,6 +22,11 @@ struct NetworkStatusView: View {
     private var isWired: Bool { state.intent == .wiredDetails }
     private var hasWiFiDetails: Bool { state.intent == .wifiDetails }
     private var showsPowerToggle: Bool { hasWiFiDetails && showsWiFiPowerControl }
+    /// The chevron promises a detail page. A permission row only raises the
+    /// system prompt or opens Settings, so it must not advertise navigation.
+    private var showsDisclosureChevron: Bool {
+        state.intent == .wifiDetails || state.intent == .wiredDetails
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: PanelSummaryActionMetrics.iconGap) {
@@ -57,15 +62,17 @@ struct NetworkStatusView: View {
             // The row already opens the page from its text; the chevron is its
             // visual affordance. It stays a sibling so the power control can sit
             // between the row content and it.
-            Button(action: { activateRow() }) {
-                PanelActionGlyph(
-                    systemName: "chevron.right",
-                    font: .caption.weight(.semibold)
-                )
+            if showsDisclosureChevron {
+                Button(action: { activateRow() }) {
+                    PanelActionGlyph(
+                        systemName: "chevron.right",
+                        font: .caption.weight(.semibold)
+                    )
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.tertiary)
-            .accessibilityHidden(true)
 
             if state.showsSettings {
                 Button(action: isWired ? onOpenNetworkSettings : onOpenWiFiSettings) {
