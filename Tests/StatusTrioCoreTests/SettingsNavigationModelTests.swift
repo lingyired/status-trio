@@ -23,25 +23,27 @@ final class SettingsNavigationModelTests: XCTestCase {
         for section in [SettingsView.Section.battery, .audio, .bluetooth] {
             model.select(section)
             XCTAssertEqual(model.selectedSection, section)
-            XCTAssertNil(model.expandedSection, "\(section) is single-pane and must not expand")
+            XCTAssertEqual(model.expandedSection, .appIcon, "App Icon stays expanded")
             XCTAssertNil(model.selectedSubtopic, "\(section) has no leaf subtopic")
         }
     }
 
-    func testOnlyOneCategoryStaysExpanded() {
+    func testAppIconStaysExpandedWhenSwitchingCategories() {
         let model = SettingsNavigationModel()
         model.select(.appIcon)
         model.selectSubtopic(.appIconRing)
         XCTAssertEqual(model.expandedSection, .appIcon)
         model.select(.network)
-        XCTAssertNil(model.expandedSection, "selecting another category collapses App Icon")
+        XCTAssertEqual(model.expandedSection, .appIcon, "the only submenu never collapses")
+        model.select(.battery)
+        XCTAssertEqual(model.expandedSection, .appIcon)
     }
 
-    func testSelectingSimpleCategoryCollapsesAndClearsLeaf() {
+    func testSelectingSimpleCategoryKeepsAppIconExpanded() {
         let model = SettingsNavigationModel()
         model.select(.network)
         XCTAssertEqual(model.selectedSection, .network)
-        XCTAssertNil(model.expandedSection)
+        XCTAssertEqual(model.expandedSection, .appIcon, "App Icon keeps its submenu visible")
         XCTAssertNil(model.selectedSubtopic)
     }
 

@@ -17,13 +17,21 @@ final class SettingsNavigationModel: ObservableObject {
     /// category returns to that page instead of always jumping to the default.
     private var lastSubtopicBySection: [SettingsView.Section: SettingsSubtopic]
 
+    /// The category with leaves. Only App Icon has submenus now, so its children
+    /// stay visible at all times; selecting another category must not collapse
+    /// it. Computed rather than hard-coded so it keeps working if another
+    /// expandable category is ever added back.
+    private static var alwaysExpandedSection: SettingsView.Section? {
+        SettingsView.Section.allCases.first { $0.hasSubtopics }
+    }
+
     init(
         selectedSection: SettingsView.Section = .appIcon,
         selectedSubtopic: SettingsSubtopic? = .appIconAppearance
     ) {
         self.selectedSection = selectedSection
         self.selectedSubtopic = selectedSubtopic
-        self.expandedSection = selectedSection.hasSubtopics ? selectedSection : nil
+        self.expandedSection = Self.alwaysExpandedSection
         var remembered: [SettingsView.Section: SettingsSubtopic] = [:]
         if let selectedSubtopic {
             remembered[selectedSection] = selectedSubtopic
@@ -40,9 +48,9 @@ final class SettingsNavigationModel: ObservableObject {
         section.subtopics.first { $0.isDefault } ?? section.subtopics.first
     }
 
-    /// Selects one category. Simple categories just move the selection; an
-    /// expandable category opens to its remembered or default leaf and collapses
-    /// whichever category was expanded before.
+    /// Selects one category. Simple categories just move the selection; the one
+    /// expandable category (App Icon) opens to its remembered or default leaf.
+    /// It never collapses, because it is now the only category with a submenu.
     func select(_ section: SettingsView.Section) {
         let nextSubtopic: SettingsSubtopic?
         if section.hasSubtopics {
@@ -53,36 +61,28 @@ final class SettingsNavigationModel: ObservableObject {
         if let nextSubtopic {
             lastSubtopicBySection[section] = nextSubtopic
         }
-        applySelection(
-            section: section,
-            expanded: section.hasSubtopics ? section : nil,
-            subtopic: nextSubtopic
-        )
+        applySelection(section: section, subtopic: nextSubtopic)
     }
 
-    /// Selects a leaf and expands its parent.
+    /// Selects a leaf inside its parent category.
     func selectSubtopic(_ subtopic: SettingsSubtopic) {
         lastSubtopicBySection[subtopic.section] = subtopic
-        applySelection(
-            section: subtopic.section,
-            expanded: subtopic.section,
-            subtopic: subtopic
-        )
+        applySelection(section: subtopic.section, subtopic: subtopic)
     }
 
     /// Assigns only the fields that actually change, so re-clicking the current
     /// row does not publish an object change and rebuild the detail page for
-    /// nothing.
+    /// nothing. The expandable section is pinned open.
     private func applySelection(
         section: SettingsView.Section,
-        expanded: SettingsView.Section?,
         subtopic: SettingsSubtopic?
     ) {
         if selectedSection != section {
             selectedSection = section
         }
-        if expandedSection != expanded {
-            expandedSection = expanded
+        let pinned = Self.alwaysExpandedSection
+        if expandedSection != pinned {
+            expandedSection = pinned
         }
         if selectedSubtopic != subtopic {
             selectedSubtopic = subtopic
