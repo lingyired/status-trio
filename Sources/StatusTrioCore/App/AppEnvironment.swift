@@ -460,6 +460,9 @@ final class AppEnvironment {
             systemPowers: store.powerSampling.$systemPower
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
+            highPowerModes: store.highPowerMode.$isHighPowerMode
+                .removeDuplicates()
+                .eraseToAnyPublisher(),
             resolveInputs: { snapshot in
                 IconPresentationResourceResolver.inputs(snapshot: snapshot)
             }
