@@ -73,8 +73,8 @@ The sidebar uses one monochrome glyph per category and text-only leaves:
   medium weight. Expandable categories show `chevron.down` when open and
   `chevron.right` when collapsed, and never paint a selection pill (their leaf
   does).
-- Leaf rows: text only, 12 pt, no icon, indented so the title sits under the
-  parent's title. Selected leaves use `.primary` + medium weight over a 6 pt
+- Leaf rows: text only, 12 pt, no icon, indented so the text lines up with the
+  parent category's text (not its icon). Selected leaves use `.primary` + medium weight over a 6 pt
   rounded light accent wash that only covers the row's own inset area.
 - Selection colour: `accentColor` at 18 % in the key window; the system
   `unemphasizedSelectedContentBackgroundColor` when the window is not focused,

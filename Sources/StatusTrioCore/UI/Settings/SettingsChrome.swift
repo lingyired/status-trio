@@ -936,9 +936,11 @@ enum SettingsSidebarMetrics {
     static let aboutVersionFontSize: CGFloat = 10
     static let chevronPointSize: CGFloat = 10
 
-    /// Leading inset of a leaf row from the sidebar content edge. Larger than
-    /// the category icon column so leaf titles read as nested under the parent.
-    static let subtopicIndent: CGFloat = 44
+    /// Leading inset of a leaf row from the sidebar content edge. It is chosen
+    /// so the leaf *text* lines up with the parent category's *text*, not its
+    /// icon: outer padding + this indent + row padding must equal the parent's
+    /// outer padding + row padding + icon slot + icon/text spacing.
+    static let subtopicIndent: CGFloat = 28
     static let subtopicCornerRadius: CGFloat = 6
     static let categoryCornerRadius: CGFloat = 7
 

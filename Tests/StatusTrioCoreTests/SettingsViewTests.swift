@@ -552,10 +552,15 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue((26...28).contains(SettingsSidebarMetrics.subtopicRowHeight))
         XCTAssertTrue((16...18).contains(SettingsSidebarMetrics.iconPointSize))
         XCTAssertTrue((16...18).contains(SettingsSidebarMetrics.iconSlotWidth))
-        XCTAssertGreaterThan(
-            SettingsSidebarMetrics.subtopicIndent,
-            SettingsSidebarMetrics.iconSlotWidth
-        )
+        // Leaf text must line up with the parent category's text.
+        let categoryTextX = SettingsSidebarMetrics.horizontalPadding
+            + SettingsSidebarMetrics.rowHorizontalPadding
+            + SettingsSidebarMetrics.iconSlotWidth
+            + SettingsSidebarMetrics.iconTextSpacing
+        let leafTextX = SettingsSidebarMetrics.horizontalPadding
+            + SettingsSidebarMetrics.subtopicIndent
+            + SettingsSidebarMetrics.rowHorizontalPadding
+        XCTAssertEqual(leafTextX, categoryTextX)
         XCTAssertEqual(SettingsSidebarMetrics.subtopicCornerRadius, 6)
     }
 
