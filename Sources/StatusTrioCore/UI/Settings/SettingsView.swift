@@ -99,7 +99,7 @@ struct SettingsView: View {
     private func applyRequestedSectionIfAvailable() {
         guard let section = consumePendingSection() else { return }
         let subtopic = consumePendingSubtopic()
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: SettingsSidebarMetrics.expandAnimationDuration)) {
             navigation.apply(section: section, subtopic: subtopic)
         }
     }
@@ -111,46 +111,114 @@ struct SettingsView: View {
     /// Moves the selection. Kept as a thin animated wrapper so the sidebar
     /// buttons and the model stay decoupled.
     private func select(_ section: Section) {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: SettingsSidebarMetrics.expandAnimationDuration)) {
             navigation.select(section)
         }
     }
 
     /// Reveals one leaf subtopic beneath its parent category.
     private func selectSubtopic(_ subtopic: SettingsSubtopic) {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: SettingsSidebarMetrics.expandAnimationDuration)) {
             navigation.selectSubtopic(subtopic)
         }
     }
 
     // MARK: - Sidebar
 
+    /// Functional status categories shown in the scrollable top group.
+    private static let scrollableSections: [Section] = [
+        .appIcon, .battery, .network, .bluetooth, .audio, .brightness, .popover,
+    ]
+
+    /// App-wide panes pinned below the divider so they stay reachable when the
+    /// window is short and the top list scrolls.
+    private static let pinnedSections: [Section] = [.general, .about]
+
     private var sidebar: some View {
         VStack(spacing: 0) {
-            // Breathing space below traffic lights stays fixed; only the rows
-            // below it scroll.
+            // Breathing space below traffic lights stays fixed; only the top
+            // group below it scrolls.
             Color.clear.frame(height: SettingsSidebarMetrics.topInset)
 
-            // The sidebar scrolls on its own so a long expanded category can
-            // never push the detail page or clip the traffic-light header.
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: SettingsSidebarMetrics.categoryGroupSpacing) {
-                    ForEach(Section.allCases) { section in
-                        VStack(alignment: .leading, spacing: 0) {
-                            categoryRow(section)
-
-                            if navigation.expandedSection == section, section.hasSubtopics {
-                                ForEach(subtopics(for: section)) { subtopic in
-                                    subtopicRow(subtopic)
-                                }
-                            }
+            // The functional categories scroll on their own so a long expanded
+            // category can never clip the traffic-light header, and the current
+            // selection is kept in view.
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: SettingsSidebarMetrics.categoryGroupSpacing) {
+                        ForEach(Self.scrollableSections) { section in
+                            categoryBlock(section)
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, SettingsSidebarMetrics.horizontalPadding)
+                    .padding(.bottom, 6)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, SettingsSidebarMetrics.horizontalPadding)
-                .padding(.bottom, 8)
+                .onAppear { revealSelection(proxy, animated: false) }
+                // macOS 13-compatible single-parameter onChange closures.
+                .onChange(of: navigation.selectedSection) { _ in revealSelection(proxy) }
+                .onChange(of: navigation.selectedSubtopic) { _ in revealSelection(proxy) }
+                .onChange(of: navigation.expandedSection) { _ in revealSelection(proxy) }
             }
+
+            // Subtle system hairline between functional and app-wide groups.
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(height: 1 / max(NSScreen.main?.backingScaleFactor ?? 2, 1))
+                .opacity(0.6)
+                .padding(.horizontal, SettingsSidebarMetrics.groupSeparatorInset)
+
+            // App-wide panes stay pinned; they never scroll out of reach.
+            VStack(alignment: .leading, spacing: SettingsSidebarMetrics.categoryGroupSpacing) {
+                ForEach(Self.pinnedSections) { section in
+                    categoryBlock(section)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, SettingsSidebarMetrics.horizontalPadding)
+            .padding(.vertical, SettingsSidebarMetrics.pinnedGroupVerticalPadding)
+            .padding(.bottom, 2)
+        }
+    }
+
+    /// A category row plus its leaves when expanded, shared by both groups so
+    /// the top and bottom lists render identically.
+    @ViewBuilder
+    private func categoryBlock(_ section: Section) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            categoryRow(section)
+
+            if navigation.expandedSection == section, section.hasSubtopics {
+                ForEach(subtopics(for: section)) { subtopic in
+                    subtopicRow(subtopic)
+                }
+            }
+        }
+    }
+
+    /// Scrolls the active row into view without ever shifting it horizontally.
+    private func revealSelection(_ proxy: ScrollViewProxy, animated: Bool = true) {
+        let target: AnyHashable?
+        if
+            navigation.selectedSection.hasSubtopics,
+            Self.scrollableSections.contains(navigation.selectedSection),
+            let subtopic = navigation.selectedSubtopic
+        {
+            target = AnyHashable(subtopic)
+        } else if Self.scrollableSections.contains(navigation.selectedSection) {
+            target = AnyHashable(navigation.selectedSection)
+        } else {
+            // The pinned app-wide group is always visible; nothing to scroll.
+            target = nil
+        }
+        guard let target else { return }
+
+        if animated {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: SettingsSidebarMetrics.expandAnimationDuration)) {
+                proxy.scrollTo(target, anchor: .center)
+            }
+        } else {
+            proxy.scrollTo(target, anchor: .center)
         }
     }
 
@@ -200,12 +268,15 @@ struct SettingsView: View {
                 }
 
                 if isParent {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    Image(systemName: "chevron.right")
                         .font(.system(
                             size: SettingsSidebarMetrics.chevronPointSize,
                             weight: .semibold
                         ))
                         .foregroundStyle(.secondary)
+                        // Rotate in lockstep with the expand animation rather
+                        // than swapping glyphs, so the arrow never jumps.
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
             }
             .padding(.horizontal, SettingsSidebarMetrics.rowHorizontalPadding)
@@ -232,6 +303,8 @@ struct SettingsView: View {
                 )
                 : section.title(localization)
         )
+        // Stable scroll target for `ScrollViewReader`.
+        .id(section)
     }
 
     private func subtopicRow(_ subtopic: SettingsSubtopic) -> some View {
@@ -247,13 +320,15 @@ struct SettingsView: View {
                         weight: isSelected ? .medium : .regular
                     ))
                     .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+                    // Compact rows stay one line where the locale fits; longer
+                    // translations wrap to a second line instead of truncating.
                     .lineLimit(2)
                     .truncationMode(.tail)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, SettingsSidebarMetrics.rowHorizontalPadding)
+            .padding(.horizontal, SettingsSidebarMetrics.subtopicRowHorizontalPadding)
             .frame(minHeight: SettingsSidebarMetrics.subtopicRowHeight)
             .background(
                 RoundedRectangle(
@@ -270,6 +345,8 @@ struct SettingsView: View {
         .buttonStyle(.plain)
         .help(subtopic.title(localization))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        // Stable scroll target for `ScrollViewReader`.
+        .id(subtopic)
     }
 
     // MARK: - Detail
@@ -343,7 +420,7 @@ struct SettingsView: View {
         return selected
     }
 
-    static let sidebarWidth: CGFloat = 190
+    static let sidebarWidth: CGFloat = 196
     static let width: CGFloat = 720
     static let height: CGFloat = 530
 }

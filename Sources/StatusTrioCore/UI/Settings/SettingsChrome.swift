@@ -915,13 +915,21 @@ enum SettingsSidebarMetrics {
     static let topInset: CGFloat = 42
     /// Outer horizontal margin of the scrolling sidebar content.
     static let horizontalPadding: CGFloat = 10
-    /// Inner horizontal padding of a row's own selection area.
+    /// Inner horizontal padding of a category row's own selection area.
     static let rowHorizontalPadding: CGFloat = 8
+    /// Slightly tighter inner padding for leaf rows so their text keeps a usable
+    /// width despite the extra indent.
+    static let subtopicRowHorizontalPadding: CGFloat = 6
 
-    static let categoryRowHeight: CGFloat = 36
-    static let subtopicRowHeight: CGFloat = 27
-    /// Gap between two category blocks (category plus its leaves).
-    static let categoryGroupSpacing: CGFloat = 6
+    static let categoryRowHeight: CGFloat = 32
+    static let subtopicRowHeight: CGFloat = 26
+    /// Gap between two category blocks (category plus its leaves). Kept in the
+    /// 2–4 pt band so the list reads denser than the old 6 pt layout.
+    static let categoryGroupSpacing: CGFloat = 4
+    /// Vertical breathing room around the pinned app-wide group at the bottom.
+    static let pinnedGroupVerticalPadding: CGFloat = 6
+    /// Leading inset of the hairline between the scrollable and pinned groups.
+    static let groupSeparatorInset: CGFloat = 18
 
     /// Fixed glyph column so every category title starts at the same x.
     static let iconSlotWidth: CGFloat = 18
@@ -936,13 +944,16 @@ enum SettingsSidebarMetrics {
     static let aboutVersionFontSize: CGFloat = 10
     static let chevronPointSize: CGFloat = 10
 
-    /// Leading inset of a leaf row from the sidebar content edge. It is chosen
-    /// so the leaf *text* lines up with the parent category's *text*, not its
-    /// icon: outer padding + this indent + row padding must equal the parent's
-    /// outer padding + row padding + icon slot + icon/text spacing.
-    static let subtopicIndent: CGFloat = 28
+    /// Leading inset of a leaf row from the sidebar content edge. It is chosen so
+    /// the leaf *text* lines up on the same vertical column as the parent
+    /// category's *text* (not its icon), so the whole group reads as one aligned
+    /// text grid: outer padding + this indent + leaf row padding = parent text x.
+    static let subtopicIndent: CGFloat = 30
     static let subtopicCornerRadius: CGFloat = 6
-    static let categoryCornerRadius: CGFloat = 7
+    static let categoryCornerRadius: CGFloat = 6
+
+    /// Lightweight expand/collapse and selection animation (0.16–0.18 s).
+    static let expandAnimationDuration: Double = 0.17
 
     /// How strongly the accent tint fills a selected row in the key window.
     static let activeSelectionOpacity: Double = 0.18

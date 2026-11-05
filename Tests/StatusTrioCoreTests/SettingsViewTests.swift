@@ -8,7 +8,7 @@ import XCTest
 final class SettingsViewTests: XCTestCase {
     func testSettingsViewDimensionsAndSections() {
         XCTAssertEqual(SettingsView.Section.allCases.count, 9)
-        XCTAssertEqual(SettingsView.sidebarWidth, 190)
+        XCTAssertEqual(SettingsView.sidebarWidth, 196)
         XCTAssertEqual(SettingsView.width, 720)
         XCTAssertEqual(SettingsView.height, 530)
     }
@@ -515,9 +515,9 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(view.contains("SettingsSidebarGlyph(glyph: section.glyph)"))
         XCTAssertFalse(view.contains("SettingsIcon(glyph: section.glyph"))
 
-        // Expandable parents carry a state chevron.
-        XCTAssertTrue(view.contains("chevron.down"))
+        // Expandable parents carry a state chevron that rotates while expanding.
         XCTAssertTrue(view.contains("chevron.right"))
+        XCTAssertTrue(view.contains("rotationEffect(.degrees(isExpanded ? 90 : 0))"))
 
         // Selection is semantic and weakened when the window is not key.
         XCTAssertTrue(view.contains("controlActiveState"))
@@ -544,25 +544,53 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(view.contains("SettingsSidebarMetrics.categoryRowHeight"))
     }
 
-    /// The visual parameters stay within the values requested for this design,
-    /// and the sidebar width is still the existing 190 pt.
+    /// The visual parameters stay within the Compact Native Sidebar values
+    /// requested for this design, and the sidebar width is 196 pt.
     func testSidebarMetricsMatchTheRequestedDesign() {
-        XCTAssertEqual(SettingsView.sidebarWidth, 190)
-        XCTAssertTrue((36...38).contains(SettingsSidebarMetrics.categoryRowHeight))
-        XCTAssertTrue((26...28).contains(SettingsSidebarMetrics.subtopicRowHeight))
+        XCTAssertEqual(SettingsView.sidebarWidth, 196)
+        XCTAssertEqual(SettingsSidebarMetrics.categoryRowHeight, 32)
+        XCTAssertEqual(SettingsSidebarMetrics.subtopicRowHeight, 26)
         XCTAssertTrue((16...18).contains(SettingsSidebarMetrics.iconPointSize))
         XCTAssertTrue((16...18).contains(SettingsSidebarMetrics.iconSlotWidth))
-        // Leaf text must line up with the parent category's text.
+        XCTAssertEqual(SettingsSidebarMetrics.categoryFontSize, 13)
+        XCTAssertEqual(SettingsSidebarMetrics.subtopicFontSize, 12)
+        XCTAssertTrue((2...4).contains(SettingsSidebarMetrics.categoryGroupSpacing))
+        // Leaf text must line up on the same vertical column as the parent text.
         let categoryTextX = SettingsSidebarMetrics.horizontalPadding
             + SettingsSidebarMetrics.rowHorizontalPadding
             + SettingsSidebarMetrics.iconSlotWidth
             + SettingsSidebarMetrics.iconTextSpacing
         let leafTextX = SettingsSidebarMetrics.horizontalPadding
             + SettingsSidebarMetrics.subtopicIndent
-            + SettingsSidebarMetrics.rowHorizontalPadding
+            + SettingsSidebarMetrics.subtopicRowHorizontalPadding
         XCTAssertEqual(leafTextX, categoryTextX)
         XCTAssertEqual(SettingsSidebarMetrics.subtopicCornerRadius, 6)
+        XCTAssertEqual(SettingsSidebarMetrics.categoryCornerRadius, 6)
+        XCTAssertTrue((0.16...0.18).contains(SettingsSidebarMetrics.expandAnimationDuration))
     }
+
+    /// The sidebar keeps its app-wide panes pinned below a divider, scrolls only
+    /// the functional group, and reveals the active row.
+    func testSidebarPinsAppWideGroupAndRevealsSelection() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+
+        let view = try String(
+            contentsOf: base.appendingPathComponent("SettingsView.swift"),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(view.contains("scrollableSections"))
+        XCTAssertTrue(view.contains("pinnedSections"))
+        XCTAssertTrue(view.contains("ScrollViewReader"))
+        XCTAssertTrue(view.contains("revealSelection"))
+        XCTAssertTrue(view.contains(".onChange(of: navigation.selectedSubtopic)"))
+        XCTAssertTrue(view.contains("separatorColor"))
+    }
+
 
     /// The Bluetooth settings-demand token is owned by the category container,
     /// never by a leaf subpage. Switching between Display/Devices/Panel must not
