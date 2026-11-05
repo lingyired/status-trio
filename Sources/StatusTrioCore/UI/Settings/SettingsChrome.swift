@@ -912,16 +912,16 @@ extension View {
 /// row builders) makes the sidebar easy to retune without touching behaviour.
 enum SettingsSidebarMetrics {
     /// Space reserved below the traffic-light buttons.
-    static let topInset: CGFloat = 40
+    static let topInset: CGFloat = 24
     /// Outer horizontal margin of the scrolling sidebar content.
     static let horizontalPadding: CGFloat = 12
     /// Inner horizontal padding of a row's own selection area.
     static let rowHorizontalPadding: CGFloat = 8
 
-    static let categoryRowHeight: CGFloat = 32
-    static let subtopicRowHeight: CGFloat = 26
+    static let categoryRowHeight: CGFloat = 30
+    static let subtopicRowHeight: CGFloat = 24
     /// Gap between two category blocks (category plus its leaves).
-    static let categoryGroupSpacing: CGFloat = 5
+    static let categoryGroupSpacing: CGFloat = 3
 
     /// Fixed glyph column so every category title starts at the same x.
     static let iconSlotWidth: CGFloat = 18
@@ -938,7 +938,7 @@ enum SettingsSidebarMetrics {
     static let captionFontSize: CGFloat = 11
     /// Vertical breathing room around a group caption.
     static let groupCaptionTopSpacing: CGFloat = 6
-    static let groupCaptionBottomSpacing: CGFloat = 3
+    static let groupCaptionBottomSpacing: CGFloat = 2
 
     /// Leading inset of a leaf row from the sidebar content edge. Larger than
     /// the category icon column so leaf titles read as nested under the parent.

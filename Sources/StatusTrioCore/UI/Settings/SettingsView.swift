@@ -4,7 +4,6 @@ import SwiftUI
 
 /// Human-centered, multi-column settings window matching modern macOS standards.
 struct SettingsView: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Drives the restrained, unemphasized selection colour while the window is
     /// not key.
     @Environment(\.controlActiveState) private var controlActiveState
@@ -99,28 +98,23 @@ struct SettingsView: View {
     private func applyRequestedSectionIfAvailable() {
         guard let section = consumePendingSection() else { return }
         let subtopic = consumePendingSubtopic()
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
-            navigation.apply(section: section, subtopic: subtopic)
-        }
+        // Switching pages is instantaneous, matching the Magpie settings UI.
+        navigation.apply(section: section, subtopic: subtopic)
     }
 
     private func subtopics(for section: Section) -> [SettingsSubtopic] {
         section.subtopics
     }
 
-    /// Moves the selection. Kept as a thin animated wrapper so the sidebar
-    /// buttons and the model stay decoupled.
+    /// Moves the selection. No animation: the Magpie-style sidebar switches
+    /// instantly instead of cross-fading the detail page.
     private func select(_ section: Section) {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
-            navigation.select(section)
-        }
+        navigation.select(section)
     }
 
     /// Reveals one leaf subtopic beneath its parent category.
     private func selectSubtopic(_ subtopic: SettingsSubtopic) {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
-            navigation.selectSubtopic(subtopic)
-        }
+        navigation.selectSubtopic(subtopic)
     }
 
     // MARK: - Sidebar
