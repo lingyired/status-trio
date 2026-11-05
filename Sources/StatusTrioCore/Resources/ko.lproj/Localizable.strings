@@ -94,6 +94,8 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth 기기";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "아직 Bluetooth 기기를 읽지 못했습니다. 위에서 Bluetooth 권한을 허용하거나 기기를 페어링하세요.";
 "settings.bluetooth.volumeColor" = "Bluetooth 볼륨을 파란색으로 표시";
+"settings.bluetooth.iconColor" = "Bluetooth 아이콘에 파란색 사용";
+"settings.bluetooth.iconColorDescription" = "메뉴 막대 가운데의 Bluetooth 아이콘을 파란색으로 유지합니다. 끄면 검정/흰색을 따릅니다.";
 "settings.bluetooth.volumeColorDescription" = "Bluetooth 오디오 출력 중에는 활성 볼륨 점 또는 호가 파란색으로 표시됩니다.";
 "settings.bluetooth.networkErrorPriority" = "네트워크 오류 우선";
 "settings.bluetooth.networkErrorPriorityDescription" = "연결 오류나 오프라인 상태에서는 Bluetooth 기기 아이콘 대신 네트워크 아이콘을 유지합니다.";
@@ -378,6 +380,9 @@
 "accessibility.battery" = "배터리 %d%%";
 "accessibility.volume" = "볼륨 %@";
 "settings.refreshInterval" = "상태 새로 고침 간격";
+"settings.refreshInterval.onBattery" = "배터리 사용 시";
+"settings.refreshInterval.onPower" = "전원 연결 시";
+"settings.refreshInterval.active" = "사용 중";
 "settings.refreshInterval.description" = "Status Trio가 변경 사항을 확인하는 빈도입니다. 더 자주 확인하면 CPU 사용량이 늘어납니다.";
 "settings.refreshInterval.value" = "%d초";
 "settings.popup.order" = "표시 항목";

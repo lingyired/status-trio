@@ -240,7 +240,8 @@ enum IconPresentationMapper {
             } else {
                 source = .symbol(name: "headphones", variableValue: nil, fallback: nil)
             }
-            return .symbol(IconSymbolState(source: source, color: .bluetooth, scale: bluetoothOptions.symbolScale))
+            let color: IconColorRole = bluetoothOptions.usesIconColor ? .bluetooth : .primary
+            return .symbol(IconSymbolState(source: source, color: color, scale: bluetoothOptions.symbolScale))
         }
 
         return networkState(snapshot: snapshot, options: connectionOptions)

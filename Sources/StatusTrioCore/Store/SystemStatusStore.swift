@@ -559,6 +559,17 @@ final class SystemStatusStore: ObservableObject {
         monitorTasks = tasks
         reconcileBluetoothDemand()
 
+        startRefreshTask()
+    }
+
+    /// Starts (or restarts) the fallback wait loop with the current interval.
+    ///
+    /// #255: a cadence change must take effect immediately, so changing the
+    /// interval cancels the in-flight wait and starts a fresh one. This only
+    /// touches the wait task — the hardware monitors keep their own tasks and
+    /// are never restarted, and no immediate extra tick is scheduled.
+    private func startRefreshTask() {
+        refreshTask?.cancel()
         refreshTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 guard let sleep = self?.sleep, let interval = self?.refreshInterval else { return }
@@ -1107,6 +1118,11 @@ final class SystemStatusStore: ObservableObject {
     func setRefreshInterval(_ interval: Duration) {
         guard interval != refreshInterval else { return }
         refreshInterval = interval
+        // Only replace the wait when the store is actually running. Called
+        // before start() it just records the value the first wait should use;
+        // called after stop() it must not resurrect polling.
+        guard hasStarted, !hasStopped else { return }
+        startRefreshTask()
     }
 
     func setPopoverVisible(_ visible: Bool) {

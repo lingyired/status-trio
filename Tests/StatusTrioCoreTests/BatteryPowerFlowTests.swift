@@ -1,4 +1,6 @@
+import AppKit
 import Foundation
+import SwiftUI
 import XCTest
 @testable import StatusTrioCore
 
@@ -41,6 +43,48 @@ final class BatteryPowerFlowTests: XCTestCase {
         XCTAssertTrue(source.contains("title: localization.string(.settingsBatteryEnergyRefreshInterval)"))
         XCTAssertTrue(source.contains(".settingsBatteryEnergyRefreshIntervalDescription"))
         XCTAssertTrue(source.contains("in: SettingsStore.highEnergyAppsRefreshIntervalRange"))
+    }
+
+    func testInputCardSquaresOnlyItsRibbonSideCorners() throws {
+        func metric(_ watts: Double, _ kind: BatteryPowerFlowState.Kind, _ label: String)
+            -> BatteryPowerFlowState.Metric {
+            .init(label: label, value: "\(Int(watts))W", watts: watts, kind: kind)
+        }
+        // A tinted source (discharging pack) so the card fill is visible against
+        // the white capture instead of the near-white silver adapter surface.
+        let state = BatteryPowerFlowState(
+            input: metric(100, .batterySource, "Battery"),
+            destinations: [metric(20, .system, "System")]
+        )
+        let view = BatteryPowerFlowView(state: state)
+            .frame(width: 330, height: 84)
+            .background(Color.white)
+            .environment(\.colorScheme, .light)
+        let hosting = NSHostingView(rootView: view)
+        hosting.appearance = NSAppearance(named: .aqua)
+        hosting.frame = NSRect(x: 0, y: 0, width: 330, height: 84)
+        hosting.layoutSubtreeIfNeeded()
+        let probe = try XCTUnwrap(SummaryActionAlignmentProbe(hosting))
+
+        func isInk(_ x: CGFloat, _ y: CGFloat) -> Bool {
+            let px = Int((x * probe.scale).rounded())
+            let py = Int((y * probe.scale).rounded())
+            guard let color = probe.bitmap.colorAt(x: px, y: py)?.usingColorSpace(.deviceRGB)
+            else { return false }
+            let luminance = 0.299 * color.redComponent
+                + 0.587 * color.greenComponent
+                + 0.114 * color.blueComponent
+            return luminance < 0.98
+        }
+
+        // The 62x84 input card sits at the leading edge. Only the ribbon side
+        // (right) corners are square; the outer (left) corners stay rounded. The
+        // two vertical extremes are sampled so the assertion does not depend on
+        // the bitmap's y origin.
+        XCTAssertTrue(isInk(60, 2), "connected top-right corner must be square")
+        XCTAssertTrue(isInk(60, 82), "connected bottom-right corner must be square")
+        XCTAssertFalse(isInk(2, 2), "outer top-left corner must stay rounded")
+        XCTAssertFalse(isInk(2, 82), "outer bottom-left corner must stay rounded")
     }
 
     func testActualInputNeverUsesAdapterRatingAndRejectsStaleOrDisconnectedTelemetry() {

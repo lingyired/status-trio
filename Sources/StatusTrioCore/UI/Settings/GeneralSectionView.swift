@@ -113,41 +113,96 @@ struct GeneralSectionView: View {
 
             SettingsDivider()
 
-            // Status refresh interval
-            SettingsRow(
-                "arrow.clockwise",
-                tint: .orange,
-                title: localization.string(.settingsRefreshInterval),
-                subtitle: localization.string(.settingsRefreshIntervalDescription)
-            ) {
-                HStack(spacing: 8) {
-                    Slider(
-                        value: Binding(
-                            get: { store.refreshIntervalSeconds },
-                            set: { store.refreshIntervalSeconds = ($0 / 5).rounded() * 5 }
-                        ),
-                        in: SettingsStore.refreshIntervalRange
-                    )
-                    .frame(width: 130)
-                    .controlSize(.small)
-                    .accessibilityLabel(localization.string(.settingsRefreshInterval))
-                    .accessibilityValue(
-                        localization.format(
-                            .settingsRefreshIntervalValue,
-                            Int(store.refreshIntervalSeconds)
-                        )
-                    )
+            // Status refresh interval (#255): one row per power source. The row
+            // whose cadence is currently in effect carries an "In use" marker.
+            // Both sliders move in whole seconds.
+            refreshIntervalRow(
+                title: localization.string(.settingsRefreshIntervalOnBattery),
+                subtitle: localization.string(.settingsRefreshIntervalDescription),
+                value: $store.refreshIntervalOnBatterySeconds,
+                isActive: effectiveRefreshSource == .battery
+            )
 
-                    Text(
-                        localization.format(
-                            .settingsRefreshIntervalValue,
-                            Int(store.refreshIntervalSeconds)
+            SettingsDivider()
+
+            refreshIntervalRow(
+                title: localization.string(.settingsRefreshIntervalOnPower),
+                value: $store.refreshIntervalOnPowerSeconds,
+                isActive: effectiveRefreshSource == .power
+            )
+        }
+    }
+
+    private enum RefreshSource {
+        case battery
+        case power
+    }
+
+    /// Which of the two cadences is in effect right now. A Mac with no battery
+    /// has no battery mode, so it falls back to the wall-power cadence.
+    private var effectiveRefreshSource: RefreshSource {
+        guard let battery = statusStore?.snapshot.battery,
+              battery.isPresent,
+              !battery.isConnectedToPower else {
+            return .power
+        }
+        return .battery
+    }
+
+    private func refreshIntervalRow(
+        title: String,
+        subtitle: String? = nil,
+        value: Binding<Double>,
+        isActive: Bool
+    ) -> some View {
+        SettingsRow(
+            "arrow.clockwise",
+            tint: .orange,
+            title: title,
+            subtitle: subtitle
+        ) {
+            HStack(spacing: 8) {
+                if isActive {
+                    Text(localization.string(.settingsRefreshIntervalActive))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule().fill(Color.accentColor.opacity(0.12))
                         )
-                    )
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 50, alignment: .trailing)
+                        .accessibilityLabel(
+                            localization.string(.settingsRefreshIntervalActive)
+                        )
                 }
+
+                Slider(
+                    value: Binding(
+                        get: { value.wrappedValue },
+                        set: { value.wrappedValue = $0.rounded() }
+                    ),
+                    in: SettingsStore.refreshIntervalRange,
+                    step: 1
+                )
+                .frame(width: 130)
+                .controlSize(.small)
+                .accessibilityLabel(title)
+                .accessibilityValue(
+                    localization.format(
+                        .settingsRefreshIntervalValue,
+                        Int(value.wrappedValue)
+                    )
+                )
+
+                Text(
+                    localization.format(
+                        .settingsRefreshIntervalValue,
+                        Int(value.wrappedValue)
+                    )
+                )
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .frame(width: 50, alignment: .trailing)
             }
         }
     }

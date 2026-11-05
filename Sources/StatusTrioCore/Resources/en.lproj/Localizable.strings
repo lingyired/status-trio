@@ -94,6 +94,8 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth Devices";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "No Bluetooth devices read yet. Grant Bluetooth access above, or pair a device.";
 "settings.bluetooth.volumeColor" = "Use blue for Bluetooth volume";
+"settings.bluetooth.iconColor" = "Use blue for the Bluetooth icon";
+"settings.bluetooth.iconColorDescription" = "The Bluetooth icon in the middle stays blue. Turn this off to draw it in the menu bar's black or white.";
 "settings.bluetooth.volumeColorDescription" = "The active volume dots or arc turn blue while audio is playing through Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Let network errors take priority";
 "settings.bluetooth.networkErrorPriorityDescription" = "Connection errors and offline states keep the network icon instead of the Bluetooth device icon.";
@@ -377,6 +379,9 @@
 "accessibility.battery" = "Battery %d%%";
 "accessibility.volume" = "Volume %@";
 "settings.refreshInterval" = "Status refresh interval";
+"settings.refreshInterval.onBattery" = "On battery";
+"settings.refreshInterval.onPower" = "Plugged in";
+"settings.refreshInterval.active" = "In use";
 "settings.refreshInterval.description" = "How often Status Trio checks for changes. Faster updates use more CPU.";
 "settings.refreshInterval.value" = "%d seconds";
 "settings.popup.order" = "Displayed Items";

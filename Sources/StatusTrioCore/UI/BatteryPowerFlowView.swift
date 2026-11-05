@@ -137,11 +137,23 @@ struct BatteryPowerFlowView: View {
             let left: CGFloat = state.input == nil ? 0 : 62
             let right = width - 94
             let center = height / 2
-            if state.input != nil, !destinations.isEmpty {
-                ForEach(ribbons().filter { $0.thickness > 0.5 }) { item in
-                    ribbon(from: left, to: right, startY: item.startY, endY: item.endY,
-                           thickness: item.thickness, endThickness: item.endThickness, color: item.color)
-                }
+            // A ribbon at or below the drawing floor is not drawn, so the cards
+            // it would have touched must stay fully rounded. Resolve both the
+            // drawn ribbons and the connections from one snapshot.
+            let liveRibbons = (state.input != nil && !destinations.isEmpty)
+                ? ribbons().filter { $0.thickness > PowerFlowCardConnections.liveThreshold }
+                : []
+            let thicknessByIndex = Dictionary(
+                liveRibbons.map { ($0.id, $0.thickness) },
+                uniquingKeysWith: { first, _ in first }
+            )
+            let connections = PowerFlowCardConnections(
+                hasInput: state.input != nil,
+                branchThicknesses: destinations.indices.map { thicknessByIndex[$0] ?? 0 }
+            )
+            ForEach(liveRibbons) { item in
+                ribbon(from: left, to: right, startY: item.startY, endY: item.endY,
+                       thickness: item.thickness, endThickness: item.endThickness, color: item.color)
             }
             if let input = state.input {
                 // The source node is the adapter (plug, primary) unless the pack
@@ -154,19 +166,15 @@ struct BatteryPowerFlowView: View {
                        iconSize: Self.iconSize(for: input.kind),
                        iconLeading: false)
                     .frame(width: destinations.isEmpty ? width : 62)
-                    // `Color.primary` (an explicit colour), not bare `.primary`:
-                    // in `.background(_:in:)` the leading dot resolves to the
-                    // hierarchical `HierarchicalShapeStyle.primary`, which follows
-                    // the vibrant foreground of the detail page and renders almost
-                    // transparent over the glass. `Self.color(for:)` returns the
-                    // explicit colour for the adapter chip.
-                    .background(inputSurface.fill(tint: inputColor, scheme: colorScheme),
-                                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(inputSurface.stroke(tint: inputColor, scheme: colorScheme),
-                                          lineWidth: 1)
-                    }
+                    // `Self.color(for:)` returns the explicit `.primary` colour,
+                    // not a bare `.primary` shape style: the leading-dot form
+                    // resolves to the hierarchical foreground, follows the vibrant
+                    // detail-page text and nearly vanishes over the glass.
+                    .powerFlowCardSurface(
+                        fill: inputSurface.fill(tint: inputColor, scheme: colorScheme),
+                        stroke: inputSurface.stroke(tint: inputColor, scheme: colorScheme),
+                        connection: PowerFlowCardShape.inputConnection(connected: connections.inputConnected)
+                    )
                     .position(x: destinations.isEmpty ? width / 2 : 31, y: center)
             }
             ForEach(Array(destinations.enumerated()), id: \.offset) { index, item in
@@ -177,11 +185,11 @@ struct BatteryPowerFlowView: View {
                        iconSize: !showsLabel(index) && rowHeight(index) <= Self.denseRow
                            ? 10 : Self.iconSize(for: item.kind))
                     .frame(width: state.input == nil ? width : 94)
-                    .background(Self.color(for: item.kind).opacity(Self.cardFill), in: RoundedRectangle(cornerRadius: 12))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(Self.color(for: item.kind).opacity(Self.cardStroke), lineWidth: 1)
-                    }
+                    .powerFlowCardSurface(
+                        fill: Self.color(for: item.kind).opacity(Self.cardFill),
+                        stroke: Self.color(for: item.kind).opacity(Self.cardStroke),
+                        connection: PowerFlowCardShape.branchConnection(connected: connections.branches[index])
+                    )
                     .position(x: state.input == nil ? width / 2 : width - 47, y: centerY(index))
             }
         }

@@ -20,6 +20,10 @@ struct BatteryDetailsView: View {
     /// The sensor caveats and the energy-ranking caveat live behind the header's
     /// info button instead of taking three lines under the rows.
     @State private var showsInfo = false
+    /// Each settings row owns its hover state so one row never highlights the
+    /// other while the pointer is over just one of them.
+    @State private var hoveringSystemSettings = false
+    @State private var hoveringAppSettings = false
 
     init(
         state: PanelDetailState,
@@ -118,16 +122,18 @@ struct BatteryDetailsView: View {
 
             Divider()
             VStack(alignment: .leading, spacing: 6) {
-                Button(
+                BatterySettingsLinkRow(
                     localization.string(.batteryActionOpenSettings),
+                    isHovered: hoveringSystemSettings,
                     action: onOpenBatterySettings
                 )
-                .buttonStyle(.plain)
-                Button(
+                .onHover { hoveringSystemSettings = $0 }
+                BatterySettingsLinkRow(
                     localization.string(.batteryActionOpenAppBatterySettings),
+                    isHovered: hoveringAppSettings,
                     action: onOpenAppBatterySettings
                 )
-                .buttonStyle(.plain)
+                .onHover { hoveringAppSettings = $0 }
             }
         }
         .task(id: state.lifecycleIdentity) { onAppear() }

@@ -94,6 +94,8 @@
 "settings.bluetooth.networkIconSourceDevices" = "蓝牙设备";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "尚未读取到蓝牙设备。请在上方授予蓝牙权限，或先配对设备。";
 "settings.bluetooth.volumeColor" = "蓝牙音量使用蓝色";
+"settings.bluetooth.iconColor" = "蓝牙图标使用蓝色";
+"settings.bluetooth.iconColorDescription" = "状态图标中间的蓝牙图标保持蓝色；关闭后跟随菜单栏的黑/白显示。";
 "settings.bluetooth.volumeColorDescription" = "蓝牙输出音频时，音量点或圆弧的活动部分显示为蓝色。";
 "settings.bluetooth.networkErrorPriority" = "网络异常优先于蓝牙图标";
 "settings.bluetooth.networkErrorPriorityDescription" = "断网或无网络时仍显示网络图标，不显示蓝牙设备图标。";
@@ -378,6 +380,9 @@
 "accessibility.battery" = "电池 %d%%";
 "accessibility.volume" = "音量 %@";
 "settings.refreshInterval" = "状态刷新间隔";
+"settings.refreshInterval.onBattery" = "使用电池时";
+"settings.refreshInterval.onPower" = "接通电源时";
+"settings.refreshInterval.active" = "生效中";
 "settings.refreshInterval.description" = "Status Trio 检查状态变化的频率。刷新越快，CPU 占用越高。";
 "settings.refreshInterval.value" = "%d 秒";
 "settings.popup.order" = "显示项目";

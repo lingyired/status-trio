@@ -94,6 +94,8 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth-устройства";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Устройства Bluetooth ещё не прочитаны. Разрешите доступ к Bluetooth выше или сопрягите устройство.";
 "settings.bluetooth.volumeColor" = "Показывать громкость Bluetooth синим";
+"settings.bluetooth.iconColor" = "Синий значок Bluetooth";
+"settings.bluetooth.iconColorDescription" = "Значок Bluetooth в центре остаётся синим. Отключите, чтобы он был чёрным или белым.";
 "settings.bluetooth.volumeColorDescription" = "Активные точки громкости или дуга становятся синими при выводе звука через Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Приоритет ошибок сети";
 "settings.bluetooth.networkErrorPriorityDescription" = "При ошибке подключения или отсутствии сети остаётся значок сети вместо устройства Bluetooth.";
@@ -378,6 +380,9 @@
 "accessibility.battery" = "Батарея %d%%";
 "accessibility.volume" = "Громкость %@";
 "settings.refreshInterval" = "Интервал обновления";
+"settings.refreshInterval.onBattery" = "От батареи";
+"settings.refreshInterval.onPower" = "От сети";
+"settings.refreshInterval.active" = "Используется";
 "settings.refreshInterval.description" = "Как часто Status Trio проверяет изменения. Более частое обновление увеличивает нагрузку на CPU.";
 "settings.refreshInterval.value" = "%d секунд";
 "settings.popup.order" = "Отображаемые элементы";

@@ -302,11 +302,26 @@ final class StatusBarController: NSObject {
             self?.scheduleAccessibilityUpdate()
         }
 
-        refreshIntervalCancellable = settings.$refreshIntervalSeconds
-            .removeDuplicates()
-            .sink { [weak self] seconds in
-                self?.store.setRefreshInterval(.seconds(Int(seconds.rounded())))
-            }
+        // #255: the effective cadence depends on the two per-power-source
+        // settings and the deduplicated power source. Mapping the snapshot to a
+        // single Bool first means an unrelated snapshot update (battery percent,
+        // Wi-Fi, volume) never rebuilds the wait.
+        refreshIntervalCancellable = Publishers.CombineLatest3(
+            settings.$refreshIntervalOnBatterySeconds,
+            settings.$refreshIntervalOnPowerSeconds,
+            store.$snapshot
+                .map { Self.effectivePluggedIn(battery: $0.battery) }
+                .removeDuplicates()
+        )
+        .map { batterySeconds, powerSeconds, pluggedIn in
+            pluggedIn
+                ? Duration.seconds(Int(powerSeconds.rounded()))
+                : Duration.seconds(Int(batterySeconds.rounded()))
+        }
+        .removeDuplicates()
+        .sink { [weak self] interval in
+            self?.store.setRefreshInterval(interval)
+        }
 
         // The icon is the surface that keeps wanting watts while the panel is
         // closed. Its demand keeps the shared sampler at the idle cadence; the
@@ -338,6 +353,15 @@ final class StatusBarController: NSObject {
         .sink { [weak self] _ in
             self?.renderLatestScene()
         }
+    }
+
+    /// Whether the effective refresh cadence should use the wall-power value.
+    ///
+    /// #255: a Mac with no battery has no battery mode, so it is treated as
+    /// plugged in. Charging state is deliberately ignored — an unplugged Mac
+    /// that happens to report charging must still use the battery cadence.
+    static func effectivePluggedIn(battery: BatteryStatus) -> Bool {
+        !battery.isPresent || battery.isConnectedToPower
     }
 
     static func clickKind(eventType: NSEvent.EventType, modifiers: NSEvent.ModifierFlags) -> ClickKind? {

@@ -120,14 +120,16 @@ extension SettingsStore {
     }
 
     private var bluetoothOptionsPublisher: AnyPublisher<BluetoothAudioIconOptions, Never> {
-        Publishers.CombineLatest(
+        Publishers.CombineLatest3(
+            $usesBluetoothAudioIconColor,
             $usesBluetoothAudioVolumeColor,
             $bluetoothNetworkIconSymbolName
         )
         .combineLatest($bluetoothAudioIconChoiceRawValue) { values, choiceRawValue in
             BluetoothAudioIconOptions(
-                usesVolumeColor: values.0,
-                networkIconSymbolOverride: values.1,
+                usesIconColor: values.0,
+                usesVolumeColor: values.1,
+                networkIconSymbolOverride: values.2,
                 iconChoice: BluetoothAudioIconChoice.persisted(choiceRawValue) { symbol in
                     NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
                 }
@@ -190,6 +192,7 @@ private struct IconAppearanceGroups {
             wifiScale: centerScale
         )
         let scaledBluetooth = BluetoothAudioIconOptions(
+            usesIconColor: bluetooth.usesIconColor,
             usesVolumeColor: bluetooth.usesVolumeColor,
             symbolScale: centerScale,
             networkIconSymbolOverride: bluetooth.networkIconSymbolOverride,

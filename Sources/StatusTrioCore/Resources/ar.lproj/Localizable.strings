@@ -77,6 +77,8 @@
 "settings.bluetooth.networkIconSourceDevices" = "أجهزة Bluetooth";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "لم تتم قراءة أي أجهزة Bluetooth بعد. امنح إذن Bluetooth أعلاه أو اقترن بجهاز.";
 "settings.bluetooth.volumeColor" = "استخدام اللون الأزرق لمستوى صوت Bluetooth";
+"settings.bluetooth.iconColor" = "استخدام اللون الأزرق لأيقونة Bluetooth";
+"settings.bluetooth.iconColorDescription" = "تبقى أيقونة Bluetooth في المنتصف زرقاء. أوقف هذا الخيار لرسمها بالأسود أو الأبيض.";
 "settings.bluetooth.volumeColorDescription" = "تتحول نقاط مستوى الصوت النشطة أو القوس إلى الأزرق عند الإخراج عبر Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "إعطاء أولوية لأخطاء الشبكة";
 "settings.bluetooth.networkErrorPriorityDescription" = "تبقى أيقونة الشبكة ظاهرة عند انقطاع الاتصال أو غياب الإنترنت بدلًا من أيقونة جهاز Bluetooth.";
@@ -378,6 +380,9 @@
 "accessibility.battery" = "البطارية %d%%";
 "accessibility.volume" = "مستوى الصوت %@";
 "settings.refreshInterval" = "فترة تحديث الحالة";
+"settings.refreshInterval.onBattery" = "على البطارية";
+"settings.refreshInterval.onPower" = "متصل بالطاقة";
+"settings.refreshInterval.active" = "قيد الاستخدام";
 "settings.refreshInterval.description" = "عدد مرات تحقق Status Trio من التغييرات. تؤدي التحديثات الأكثر تكرارًا إلى استخدام CPU أكبر.";
 "settings.refreshInterval.value" = "%d ثوانٍ";
 "settings.popup.order" = "عناصر لوحة الحالة";

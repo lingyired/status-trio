@@ -94,6 +94,8 @@
 "settings.bluetooth.networkIconSourceDevices" = "Dispositivi Bluetooth";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Nessun dispositivo Bluetooth ancora letto. Concedi l’accesso Bluetooth sopra o abbina un dispositivo.";
 "settings.bluetooth.volumeColor" = "Usa il blu per il volume Bluetooth";
+"settings.bluetooth.iconColor" = "Usa il blu per l’icona Bluetooth";
+"settings.bluetooth.iconColorDescription" = "L’icona Bluetooth al centro resta blu. Disattivala per disegnarla in nero o bianco.";
 "settings.bluetooth.volumeColorDescription" = "I punti del volume attivi o l’arco diventano blu con l’uscita audio Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Dai priorità agli errori di rete";
 "settings.bluetooth.networkErrorPriorityDescription" = "Gli errori di connessione e lo stato offline mantengono l’icona di rete invece del dispositivo Bluetooth.";
@@ -378,6 +380,9 @@
 "accessibility.battery" = "Batteria %d%%";
 "accessibility.volume" = "Volume %@";
 "settings.refreshInterval" = "Intervallo di aggiornamento";
+"settings.refreshInterval.onBattery" = "A batteria";
+"settings.refreshInterval.onPower" = "Collegato alla corrente";
+"settings.refreshInterval.active" = "In uso";
 "settings.refreshInterval.description" = "Con quale frequenza Status Trio controlla le modifiche. Aggiornamenti più frequenti usano più CPU.";
 "settings.refreshInterval.value" = "%d secondi";
 "settings.popup.order" = "Elementi mostrati";
