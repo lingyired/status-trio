@@ -761,7 +761,7 @@
 
 // Settings subpage labels
 "settings.subtopic.appIcon.appearance" = "全体の外観";
-"settings.subtopic.appIcon.ring" = "リング";
+"settings.subtopic.appIcon.ring" = "上部アーク";
 "settings.subtopic.appIcon.bottomIndicator" = "下部インジケーター";
 "settings.subtopic.appIcon.middleIcon" = "中央アイコン";
 "settings.subtopic.battery.charging" = "充電";

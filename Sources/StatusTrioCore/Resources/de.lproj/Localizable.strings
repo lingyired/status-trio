@@ -761,7 +761,7 @@
 
 // Settings subpage labels
 "settings.subtopic.appIcon.appearance" = "Allgemeines Erscheinungsbild";
-"settings.subtopic.appIcon.ring" = "Ring";
+"settings.subtopic.appIcon.ring" = "Oberer Bogen";
 "settings.subtopic.appIcon.bottomIndicator" = "Untere Anzeige";
 "settings.subtopic.appIcon.middleIcon" = "Mittleres Symbol";
 "settings.subtopic.battery.charging" = "Laden";

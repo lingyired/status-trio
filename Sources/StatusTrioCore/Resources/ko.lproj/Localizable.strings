@@ -761,7 +761,7 @@
 
 // Settings subpage labels
 "settings.subtopic.appIcon.appearance" = "전체 모양";
-"settings.subtopic.appIcon.ring" = "링";
+"settings.subtopic.appIcon.ring" = "상단 아크";
 "settings.subtopic.appIcon.bottomIndicator" = "하단 표시기";
 "settings.subtopic.appIcon.middleIcon" = "중앙 아이콘";
 "settings.subtopic.battery.charging" = "충전";

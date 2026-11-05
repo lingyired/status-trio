@@ -761,7 +761,7 @@
 
 // Settings subpage labels
 "settings.subtopic.appIcon.appearance" = "المظهر العام";
-"settings.subtopic.appIcon.ring" = "الحلقة";
+"settings.subtopic.appIcon.ring" = "القوس العلوي";
 "settings.subtopic.appIcon.bottomIndicator" = "المؤشر السفلي";
 "settings.subtopic.appIcon.middleIcon" = "الأيقونة الوسطى";
 "settings.subtopic.battery.charging" = "الشحن";

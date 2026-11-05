@@ -761,7 +761,7 @@
 
 // Settings subpage labels
 "settings.subtopic.appIcon.appearance" = "整體外觀";
-"settings.subtopic.appIcon.ring" = "圓弧";
+"settings.subtopic.appIcon.ring" = "頂部圓弧";
 "settings.subtopic.appIcon.bottomIndicator" = "底部指示器";
 "settings.subtopic.appIcon.middleIcon" = "中間圖示";
 "settings.subtopic.battery.charging" = "充電";

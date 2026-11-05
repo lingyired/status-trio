@@ -761,7 +761,7 @@
 
 // Settings subpage labels
 "settings.subtopic.appIcon.appearance" = "Общий вид";
-"settings.subtopic.appIcon.ring" = "Кольцо";
+"settings.subtopic.appIcon.ring" = "Верхняя дуга";
 "settings.subtopic.appIcon.bottomIndicator" = "Нижний индикатор";
 "settings.subtopic.appIcon.middleIcon" = "Центральный значок";
 "settings.subtopic.battery.charging" = "Зарядка";
