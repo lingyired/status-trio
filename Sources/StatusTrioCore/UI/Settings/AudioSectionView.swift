@@ -10,26 +10,16 @@ struct AudioSectionView: View {
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
-        // The lifecycle stays on this concrete, stable container; only the
-        // page below it is rebuilt when the leaf changes, so switching
-        // subpages does not re-run the refresh.
+        // The lifecycle stays on this concrete, stable container so the device
+        // refresh runs once per appearance, not per leaf switch. Audio is a
+        // single pane now; device selection lives beside the volume controls.
         VStack(spacing: 0) {
             SettingsPage {
-                audioContent
+                fullAudioContent
             }
-            .id(subtopic)
         }
         .onAppear {
             statusStore.refreshAll()
-        }
-    }
-
-    @ViewBuilder
-    private var audioContent: some View {
-        if let subtopic {
-            audioSubpage(subtopic)
-        } else {
-            fullAudioContent
         }
     }
 
@@ -38,26 +28,9 @@ struct AudioSectionView: View {
         volumeFeedbackGroup
         volumeScrollGroup
         displayRulesGroup
-        externalVolumeGroup
         deviceOrderGroup
         inputDeviceOrderGroup
-    }
-
-    @ViewBuilder
-    private func audioSubpage(_ subtopic: SettingsSubtopic) -> some View {
-        switch subtopic {
-        case .audioVolumeControl:
-            volumeFeedbackGroup
-            volumeScrollGroup
-        case .audioAudioDevices:
-            displayRulesGroup
-            deviceOrderGroup
-            inputDeviceOrderGroup
-        case .audioDisplayVolume:
-            externalVolumeGroup
-        default:
-            fullAudioContent
-        }
+        externalVolumeGroup
     }
 
     private var volumeFeedbackGroup: some View {

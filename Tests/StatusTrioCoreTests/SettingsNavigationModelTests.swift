@@ -10,25 +10,31 @@ final class SettingsNavigationModelTests: XCTestCase {
         XCTAssertEqual(model.selectedSubtopic, .appIconAppearance)
     }
 
-    func testSelectingComplexCategoryOpensItsDefaultLeaf() {
+    func testSelectingAppIconOpensItsDefaultLeaf() {
         let model = SettingsNavigationModel()
-        model.select(.battery)
-        XCTAssertEqual(model.selectedSection, .battery)
-        XCTAssertEqual(model.expandedSection, .battery)
-        XCTAssertEqual(model.selectedSubtopic, .batteryCharging)
+        model.select(.appIcon)
+        XCTAssertEqual(model.selectedSection, .appIcon)
+        XCTAssertEqual(model.expandedSection, .appIcon)
+        XCTAssertEqual(model.selectedSubtopic, .appIconAppearance)
+    }
 
-        model.select(.audio)
-        XCTAssertEqual(model.selectedSubtopic, .audioVolumeControl)
-        model.select(.bluetooth)
-        XCTAssertEqual(model.selectedSubtopic, .bluetoothListeningMode)
+    func testBatteryAudioAndBluetoothAreSinglePane() {
+        let model = SettingsNavigationModel()
+        for section in [SettingsView.Section.battery, .audio, .bluetooth] {
+            model.select(section)
+            XCTAssertEqual(model.selectedSection, section)
+            XCTAssertNil(model.expandedSection, "\(section) is single-pane and must not expand")
+            XCTAssertNil(model.selectedSubtopic, "\(section) has no leaf subtopic")
+        }
     }
 
     func testOnlyOneCategoryStaysExpanded() {
         let model = SettingsNavigationModel()
-        model.select(.battery)
-        XCTAssertEqual(model.expandedSection, .battery)
-        model.select(.audio)
-        XCTAssertEqual(model.expandedSection, .audio, "selecting another category collapses the old one")
+        model.select(.appIcon)
+        model.selectSubtopic(.appIconRing)
+        XCTAssertEqual(model.expandedSection, .appIcon)
+        model.select(.network)
+        XCTAssertNil(model.expandedSection, "selecting another category collapses App Icon")
     }
 
     func testSelectingSimpleCategoryCollapsesAndClearsLeaf() {
@@ -41,49 +47,46 @@ final class SettingsNavigationModelTests: XCTestCase {
 
     func testSelectSubtopicExpandsParentAndSetsSection() {
         let model = SettingsNavigationModel()
-        model.select(.battery)
-        model.selectSubtopic(.batteryPowerMode)
-        XCTAssertEqual(model.selectedSection, .battery)
-        XCTAssertEqual(model.expandedSection, .battery)
-        XCTAssertEqual(model.selectedSubtopic, .batteryPowerMode)
+        model.selectSubtopic(.appIconBottomIndicator)
+        XCTAssertEqual(model.selectedSection, .appIcon)
+        XCTAssertEqual(model.expandedSection, .appIcon)
+        XCTAssertEqual(model.selectedSubtopic, .appIconBottomIndicator)
     }
 
     func testRememberedLeafIsRestoredWhenReenteringACategory() {
         let model = SettingsNavigationModel()
-        model.select(.battery)
-        model.selectSubtopic(.batteryEnergy)
+        model.selectSubtopic(.appIconMiddleIcon)
         model.select(.network)
-        model.select(.battery)
+        model.select(.appIcon)
         XCTAssertEqual(
             model.selectedSubtopic,
-            .batteryEnergy,
+            .appIconMiddleIcon,
             "re-entering a category should return to the leaf the user last viewed"
         )
     }
 
     func testApplyOpensTheRequestedLeaf() {
         let model = SettingsNavigationModel()
-        model.apply(section: .battery, subtopic: .batteryCharging)
-        XCTAssertEqual(model.selectedSection, .battery)
-        XCTAssertEqual(model.selectedSubtopic, .batteryCharging)
+        model.apply(section: .appIcon, subtopic: .appIconRing)
+        XCTAssertEqual(model.selectedSection, .appIcon)
+        XCTAssertEqual(model.selectedSubtopic, .appIconRing)
     }
 
     func testApplyFallsBackToDefaultWhenLeafBelongsToAnotherCategory() {
         let model = SettingsNavigationModel()
-        model.apply(section: .audio, subtopic: .batteryCharging)
+        model.apply(section: .audio, subtopic: .appIconRing)
         XCTAssertEqual(model.selectedSection, .audio)
-        XCTAssertEqual(
+        XCTAssertNil(
             model.selectedSubtopic,
-            .audioVolumeControl,
             "a stale leaf must never render the wrong category's page"
         )
     }
 
     func testApplyWithoutLeafOpensTheCategoryDefault() {
         let model = SettingsNavigationModel()
-        model.apply(section: .bluetooth, subtopic: nil)
-        XCTAssertEqual(model.selectedSection, .bluetooth)
-        XCTAssertEqual(model.selectedSubtopic, .bluetoothListeningMode)
+        model.apply(section: .appIcon, subtopic: nil)
+        XCTAssertEqual(model.selectedSection, .appIcon)
+        XCTAssertEqual(model.selectedSubtopic, .appIconAppearance)
     }
 
     func testSectionSubtopicsMatchTheLeafOwnership() {
@@ -92,23 +95,14 @@ final class SettingsNavigationModelTests: XCTestCase {
         XCTAssertTrue(SettingsView.Section.popover.subtopics.isEmpty)
         XCTAssertTrue(SettingsView.Section.general.subtopics.isEmpty)
         XCTAssertTrue(SettingsView.Section.about.subtopics.isEmpty)
+        XCTAssertTrue(SettingsView.Section.battery.subtopics.isEmpty)
+        XCTAssertTrue(SettingsView.Section.audio.subtopics.isEmpty)
+        XCTAssertTrue(SettingsView.Section.bluetooth.subtopics.isEmpty)
 
         XCTAssertEqual(
             SettingsView.Section.appIcon.subtopics,
             [.appIconAppearance, .appIconRing, .appIconMiddleIcon, .appIconBottomIndicator]
         )
-        XCTAssertEqual(
-            SettingsView.Section.battery.subtopics,
-            [.batteryCharging, .batteryPowerMode, .batteryEnergy]
-        )
-        XCTAssertEqual(
-            SettingsView.Section.audio.subtopics,
-            [.audioVolumeControl, .audioAudioDevices, .audioDisplayVolume]
-        )
-        XCTAssertEqual(
-            SettingsView.Section.bluetooth.subtopics,
-            [.bluetoothListeningMode, .bluetoothDeviceBattery, .bluetoothDeviceManagement]
-        )
-        XCTAssertTrue(SettingsView.Section.battery.hasSubtopics)
+        XCTAssertTrue(SettingsView.Section.appIcon.hasSubtopics)
     }
 }

@@ -15,19 +15,9 @@ struct BatterySectionView: View {
 
 
     var body: some View {
-        // Battery is now purely about behaviour (charging, power mode, energy),
-        // so no battery subpage pins the icon preview any more.
+        // Battery is a single pane now: icon appearance lives under App Icon,
+        // and the behaviour controls are grouped by card on one page.
         SettingsPage {
-            batteryContent
-        }
-        .id(subtopic)
-    }
-
-    @ViewBuilder
-    private var batteryContent: some View {
-        if let subtopic {
-            batterySubpage(subtopic)
-        } else {
             fullBatteryContent
         }
     }
@@ -40,32 +30,12 @@ struct BatterySectionView: View {
         chargeManagementGroup
         if helper.isAvailable {
             powerModesGroup
+        } else {
+            SettingsGroup(localization.string(.settingsBatteryGroupPowerModes)) {
+                SettingsHintRow(text: localization.string(.lowPowerModeHelperUnavailable))
+            }
         }
         powerFlowGroup
-    }
-
-    @ViewBuilder
-    private func batterySubpage(_ subtopic: SettingsSubtopic) -> some View {
-        switch subtopic {
-        case .batteryCharging:
-            if !statusStore.snapshot.battery.isPresent {
-                noBatteryNoticeGroup
-            }
-            // Untitled: the page title already reads "Charging".
-            SettingsGroup { chargeManagementContent }
-        case .batteryPowerMode:
-            if helper.isAvailable {
-                SettingsGroup { lowPowerModeGroup }
-            } else {
-                SettingsGroup {
-                    SettingsHintRow(text: localization.string(.lowPowerModeHelperUnavailable))
-                }
-            }
-        case .batteryEnergy:
-            SettingsGroup { powerFlowContent }
-        default:
-            fullBatteryContent
-        }
     }
 
     /// A Mac without a battery reports 100 as its level; spell that out at the

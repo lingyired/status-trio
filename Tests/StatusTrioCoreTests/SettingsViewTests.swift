@@ -166,15 +166,13 @@ final class SettingsViewTests: XCTestCase {
             store: SettingsStore(defaults: suite.defaults),
             storeController: emptyStoreController,
             observedController: controller,
-            localization: Localization(defaults: suite.defaults, preferredLanguages: ["en"]),
-            subtopic: .bluetoothDeviceManagement
+            localization: Localization(defaults: suite.defaults, preferredLanguages: ["en"])
         )
         let empty = renderBluetoothPane(
             store: SettingsStore(defaults: suite.defaults),
             storeController: emptyStoreController,
             observedController: SettingsBluetoothTestFactory.makeController(devices: []),
-            localization: Localization(defaults: suite.defaults, preferredLanguages: ["en"]),
-            subtopic: .bluetoothDeviceManagement
+            localization: Localization(defaults: suite.defaults, preferredLanguages: ["en"])
         )
 
         XCTAssertGreaterThan(
@@ -349,9 +347,6 @@ final class SettingsViewTests: XCTestCase {
     func testOnlyComplexCategoriesExposeOrderedSubtopics() {
         let expected: [SettingsView.Section: [SettingsSubtopic]] = [
             .appIcon: [.appIconAppearance, .appIconRing, .appIconMiddleIcon, .appIconBottomIndicator],
-            .battery: [.batteryCharging, .batteryPowerMode, .batteryEnergy],
-            .audio: [.audioVolumeControl, .audioAudioDevices, .audioDisplayVolume],
-            .bluetooth: [.bluetoothListeningMode, .bluetoothDeviceBattery, .bluetoothDeviceManagement],
         ]
 
         for section in SettingsView.Section.allCases {
@@ -593,10 +588,11 @@ final class SettingsViewTests: XCTestCase {
 
 
     /// The Bluetooth settings-demand token is owned by the category container,
-    /// never by a leaf subpage. Switching between Display/Devices/Panel must not
-    /// tear down and rebuild the listener, so exactly one `onAppear` may begin
-    /// the demand and the leaves must not touch it at all.
-    func testBluetoothSettingsDemandStaysOnTheCategoryContainer() throws {        let base = URL(fileURLWithPath: #filePath)
+    /// never by the content builder. Bluetooth is a single pane now, so there
+    /// is no leaf switch — but the pane body must still not start or stop the
+    /// demand itself, so the listener is not rebuilt.
+    func testBluetoothSettingsDemandStaysOnTheCategoryContainer() throws {
+        let base = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -616,14 +612,15 @@ final class SettingsViewTests: XCTestCase {
         // `onDisappear`.
         XCTAssertEqual(occurrences(of: "endBluetoothSettingsDemand("), 2)
 
-        // The container owns the lifecycle; the leaf builder must not embed it.
-        let subpageRange = try XCTUnwrap(bluetooth.range(of: "private func bluetoothSubpage"))
-        let tail = bluetooth[subpageRange.lowerBound...]
-        let kindRange = try XCTUnwrap(tail.range(of: "private var deviceListGroup"))
-        let subpageBody = tail[..<kindRange.lowerBound]
-        XCTAssertFalse(subpageBody.contains("beginBluetoothSettingsDemand("))
-        XCTAssertFalse(subpageBody.contains("onAppear"))
-        XCTAssertFalse(subpageBody.contains("onDisappear"))
+        // The container owns the lifecycle; the content builder must not.
+        XCTAssertFalse(bluetooth.contains("bluetoothSubpage"))
+        let contentRange = try XCTUnwrap(bluetooth.range(of: "private var fullBluetoothContent"))
+        let tail = bluetooth[contentRange.lowerBound...]
+        let groupRange = try XCTUnwrap(tail.range(of: "private var deviceListGroup"))
+        let contentBody = tail[..<groupRange.lowerBound]
+        XCTAssertFalse(contentBody.contains("beginBluetoothSettingsDemand("))
+        XCTAssertFalse(contentBody.contains("onAppear"))
+        XCTAssertFalse(contentBody.contains("onDisappear"))
     }
 
     /// #245/#256: the volume-scroll switch and its effect scope stay on the
@@ -659,15 +656,16 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(popover.contains("settingsPopupVolumeScrollNatural"))
         XCTAssertTrue(popover.contains("popupVolumeNaturalScrolling"))
 
-        // The volume-scroll group is routed to the "volume control" leaf; the
-        // audio-devices leaf must not render it.
-        let volumeStart = try XCTUnwrap(audio.range(of: "case .audioVolumeControl:"))
-        let devicesStart = try XCTUnwrap(audio.range(of: "case .audioAudioDevices:"))
-        let displayStart = try XCTUnwrap(audio.range(of: "case .audioDisplayVolume:"))
-        let volumeLeaf = audio[volumeStart.lowerBound..<devicesStart.lowerBound]
-        let devicesLeaf = audio[devicesStart.lowerBound..<displayStart.lowerBound]
-        XCTAssertTrue(volumeLeaf.contains("volumeScrollGroup"))
-        XCTAssertFalse(devicesLeaf.contains("volumeScrollGroup"))
+        // Audio is a single pane now: the volume-scroll group sits on the same
+        // page as the device groups, so no leaf switch exists any more.
+        XCTAssertFalse(audio.contains("audioSubpage"))
+        let audioBodyStart = try XCTUnwrap(audio.range(of: "private var fullAudioContent"))
+        let audioBody = audio[audioBodyStart.lowerBound...]
+        XCTAssertTrue(audioBody.contains("volumeScrollGroup"))
+        XCTAssertTrue(audioBody.contains("displayRulesGroup"))
+        XCTAssertTrue(audioBody.contains("deviceOrderGroup"))
+        XCTAssertTrue(audioBody.contains("inputDeviceOrderGroup"))
+        XCTAssertTrue(audioBody.contains("externalVolumeGroup"))
         XCTAssertFalse(
             popover.contains("popupScrollAdjustsVolume"),
             "the panel pane must not own the volume-scroll switch"

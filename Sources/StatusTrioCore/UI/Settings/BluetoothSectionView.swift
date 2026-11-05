@@ -22,26 +22,13 @@ struct BluetoothSectionView: View {
 
     var body: some View {
         // A concrete, stable container (not a transparent `Group`): the
-        // settings-demand lifecycle below must stay attached to one identity,
-        // so switching between the three leaves never tears down and rebuilds
-        // the Bluetooth listener. Only the page underneath is rebuilt.
+        // settings-demand lifecycle must stay attached to one identity so the
+        // paired-device listener is not torn down and rebuilt. Bluetooth is a
+        // single pane now, so there is no leaf switch to rebuild in the first
+        // place.
         VStack(spacing: 0) {
-            if showsIconPreview {
-                SettingsPage(pinnedHeader: {
-                    StatusIconPreviewCard(
-                        store: store,
-                        statusStore: statusStore,
-                        isDarkBackground: $previewIsDark
-                    )
-                }) {
-                    bluetoothContent
-                }
-                .id(subtopic)
-            } else {
-                SettingsPage {
-                    bluetoothContent
-                }
-                .id(subtopic)
+            SettingsPage {
+                fullBluetoothContent
             }
         }
         .onAppear {
@@ -57,28 +44,6 @@ struct BluetoothSectionView: View {
         }
     }
 
-    /// The preview is shown where the icon drawing is being configured; the
-    /// device/battery and panel/device-list pages skip it.
-    private var showsIconPreview: Bool {
-        switch subtopic {
-        case .bluetoothDeviceBattery, .bluetoothDeviceManagement:
-            return false
-        case .bluetoothListeningMode, .none:
-            return true
-        default:
-            return true
-        }
-    }
-
-    @ViewBuilder
-    private var bluetoothContent: some View {
-        if let subtopic {
-            bluetoothSubpage(subtopic)
-        } else {
-            fullBluetoothContent
-        }
-    }
-
     @ViewBuilder
     private var fullBluetoothContent: some View {
         if bluetoothDevices.authorization != .allowed {
@@ -86,7 +51,7 @@ struct BluetoothSectionView: View {
             SettingsDivider()
         }
 
-        SettingsGroup(localization.string(.settingsBluetoothTitle)) {
+        SettingsGroup {
             showInStatusPanelRow
             powerControlRow
             SettingsDivider()
@@ -99,37 +64,6 @@ struct BluetoothSectionView: View {
 
         deviceListGroup
         deviceOrderGroup
-    }
-
-    @ViewBuilder
-    private func bluetoothSubpage(_ subtopic: SettingsSubtopic) -> some View {
-        switch subtopic {
-        case .bluetoothListeningMode:
-            SettingsGroup(localization.string(.settingsBluetoothTitle)) {
-                previewsRows
-            }
-        case .bluetoothDeviceBattery:
-            SettingsGroup(localization.string(.settingsBluetoothTitle)) {
-                batteryLevelsRow
-                SettingsDivider()
-                appleDevicesRows
-            }
-        case .bluetoothDeviceManagement:
-            if bluetoothDevices.authorization != .allowed {
-                bluetoothPermissionBanner
-                SettingsDivider()
-            }
-
-            SettingsGroup(localization.string(.settingsBluetoothTitle)) {
-                showInStatusPanelRow
-                powerControlRow
-            }
-
-            deviceListGroup
-            deviceOrderGroup
-        default:
-            fullBluetoothContent
-        }
     }
 
     // MARK: - Row blocks shared by the full pane and the leaf subpages
