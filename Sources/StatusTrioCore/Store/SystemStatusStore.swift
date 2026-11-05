@@ -231,6 +231,20 @@ final class SystemStatusStore: ObservableObject {
     nonisolated(unsafe) private var systemSleepObserver: NSObjectProtocol?
     nonisolated(unsafe) private var displaySleepObserver: NSObjectProtocol?
     nonisolated(unsafe) private var displayWakeObserver: NSObjectProtocol?
+    /// A Low Power Mode change can leave the rest of the battery reading
+    /// identical, so `BatteryMonitor`'s re-read publishes no new snapshot and
+    /// the controllers would stay stale. This documented Foundation event
+    /// refreshes them directly; High Power Mode, which Foundation does not
+    /// report, is covered by `powerModeNotifications`.
+    nonisolated(unsafe) private var powerStateObserver: NSObjectProtocol?
+    /// High Power Mode has no public Foundation notification; `powerd`'s notify
+    /// key is the only event the app can observe for a system-side change.
+    private let powerModeNotifications: any PowerModeNotificationMonitoring
+    /// The last battery snapshot values the power-mode controllers were told
+    /// about, so a power-source or Low Power Mode change re-reads both modes
+    /// without polling the helper on every ordinary percentage update.
+    private var lastBatteryLowPowerMode: Bool?
+    private var lastBatteryConnectedToPower: Bool?
     private var lastPublishedSnapshot: StatusSnapshot?
     /// Optimistic display brightness while the backend confirms the write.
     private var pendingBrightnessScalars: [String: Double] = [:]
@@ -305,6 +319,7 @@ final class SystemStatusStore: ObservableObject {
         lowPowerMode: LowPowerModeController = LowPowerModeController(),
         highPowerMode: HighPowerModeController = HighPowerModeController(),
         helperReadiness: (any HelperReadinessProviding)? = nil,
+        powerModeNotifications: any PowerModeNotificationMonitoring = PowerModeNotificationMonitor(),
         initialSnapshot: StatusSnapshot = .placeholder
     ) {
         self.batteryMonitor = batteryMonitor
@@ -336,6 +351,7 @@ final class SystemStatusStore: ObservableObject {
         self.lowPowerMode = lowPowerMode
         self.highPowerMode = highPowerMode
         self.helperReadiness = helperReadiness ?? SharedHelperReadiness()
+        self.powerModeNotifications = powerModeNotifications
         self.snapshot = initialSnapshot
         self.popupSnapshot = initialSnapshot
         self.vpnStatus = .placeholder
@@ -361,6 +377,10 @@ final class SystemStatusStore: ObservableObject {
         if let displayWakeObserver {
             wakeNotificationCenter.removeObserver(displayWakeObserver)
         }
+        if let powerStateObserver {
+            NotificationCenter.default.removeObserver(powerStateObserver)
+        }
+        powerModeNotifications.stop()
         monitorTasks.forEach { $0.cancel() }
         inputUpdateTask?.cancel()
         refreshTask?.cancel()
@@ -453,6 +473,19 @@ final class SystemStatusStore: ObservableObject {
                 self.recoverAll()
                 self.refreshAll()
             }
+        }
+
+        powerStateObserver = NotificationCenter.default.addObserver(
+            forName: .NSProcessInfoPowerStateDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.refreshPowerModeControllers()
+            }
+        }
+        powerModeNotifications.start { [weak self] in
+            self?.refreshPowerModeControllers()
         }
 
         batteryMonitor.start()
@@ -598,6 +631,13 @@ final class SystemStatusStore: ObservableObject {
             wakeNotificationCenter.removeObserver(displayWakeObserver)
             self.displayWakeObserver = nil
         }
+        if let powerStateObserver {
+            NotificationCenter.default.removeObserver(powerStateObserver)
+            self.powerStateObserver = nil
+        }
+        powerModeNotifications.stop()
+        lowPowerMode.onSuccessfulWrite = nil
+        highPowerMode.onSuccessfulWrite = nil
 
         powerSampling.stopAll()
         batteryDetails.deactivate()
@@ -1442,9 +1482,18 @@ final class SystemStatusStore: ObservableObject {
             .map(\.battery)
             .removeDuplicates()
             .sink { [weak self] battery in
-                self?.lowPowerMode.updateFromSystemRead(battery.isLowPowerMode)
-                self?.evaluateLowPowerAutoEnable(battery: battery)
+                guard let self else { return }
+                self.handleBatteryPowerModeSnapshot(battery)
+                self.evaluateLowPowerAutoEnable(battery: battery)
             }
+        // The daemon clears the other mode itself, so a successful switch must
+        // re-read the counterpart instead of leaving its old state on screen.
+        lowPowerMode.onSuccessfulWrite = { [weak self] in
+            self?.highPowerMode.refresh()
+        }
+        highPowerMode.onSuccessfulWrite = { [weak self] in
+            self?.lowPowerMode.refresh()
+        }
         lowPowerAutoEnableCancellable = settings.$autoEnablesLowPowerMode
             .removeDuplicates()
             .sink { [weak self] enabled in
@@ -1477,7 +1526,36 @@ final class SystemStatusStore: ObservableObject {
                 self.evaluateLowPowerAutoEnable(
                     battery: self.snapshot.battery, readinessOverride: ready
                 )
+                // Helper approval changes which state is readable: before it,
+                // the probes fail quietly; afterwards they can report the real
+                // mode. Re-read both without waiting for a battery snapshot.
+                if ready { self.refreshPowerModeControllers() }
             }
+    }
+
+    /// Re-reads both power-mode controllers on a system signal. The helper is
+    /// only contacted when the opt-in enabled the controllers.
+    private func refreshPowerModeControllers() {
+        guard !hasStopped else { return }
+        lowPowerMode.refresh()
+        highPowerMode.refresh()
+    }
+
+    /// Battery-sourced power-mode signals only: a power source or Low Power
+    /// Mode change means the exclusive High Power Mode may have flipped too.
+    /// Ordinary percentage ticks stay out of the helper, and this never adds a
+    /// timer — `BatteryMonitor` already emits these snapshots.
+    private func handleBatteryPowerModeSnapshot(_ battery: BatteryStatus) {
+        lowPowerMode.updateFromSystemRead(battery.isLowPowerMode)
+        let previousLowPower = lastBatteryLowPowerMode
+        let previousPowerSource = lastBatteryConnectedToPower
+        lastBatteryLowPowerMode = battery.isLowPowerMode
+        lastBatteryConnectedToPower = battery.isConnectedToPower
+        guard let previousLowPower, let previousPowerSource,
+              battery.isLowPowerMode != previousLowPower
+                || battery.isConnectedToPower != previousPowerSource
+        else { return }
+        refreshPowerModeControllers()
     }
 
     /// #246: Low Power Mode follows the existing low-battery threshold, but
