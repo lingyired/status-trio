@@ -74,8 +74,11 @@ The sidebar uses one monochrome glyph per category and text-only leaves:
   `chevron.right` when collapsed, and never paint a selection pill (their leaf
   does).
 - Leaf rows: text only, 12 pt, no icon, indented so the title sits under the
-  parent's title. Selected leaves use `.primary` + medium weight over a 6 pt
-  rounded light accent wash that only covers the row's own inset area.
+  parent's title. A thin vertical tree guide runs under the expanded parent's
+  icon (inspired by Magpie) so the leaves read as its subtree; the guide sits
+  left of the leaf highlight. Selected leaves use `.primary` + medium weight
+  over a 6 pt rounded light accent wash that only covers the row's own inset
+  area.
 - Selection colour: `accentColor` at 18 % in the key window; the system
   `unemphasizedSelectedContentBackgroundColor` when the window is not focused,
   so a saturated accent never lingers in the background.

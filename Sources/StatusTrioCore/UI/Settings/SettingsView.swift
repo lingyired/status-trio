@@ -140,8 +140,24 @@ struct SettingsView: View {
                             categoryRow(section)
 
                             if navigation.expandedSection == section, section.hasSubtopics {
-                                ForEach(subtopics(for: section)) { subtopic in
-                                    subtopicRow(subtopic)
+                                // A thin vertical guide runs under the parent's
+                                // icon so the leaves read as its subtree. The
+                                // selected leaf's fill starts to its right.
+                                VStack(alignment: .leading, spacing: 0) {
+                                    ForEach(subtopics(for: section)) { subtopic in
+                                        subtopicRow(subtopic)
+                                    }
+                                }
+                                .overlay(alignment: .leading) {
+                                    Rectangle()
+                                        .fill(Color.primary.opacity(
+                                            SettingsSidebarMetrics.treeGuideOpacity
+                                        ))
+                                        .frame(width: SettingsSidebarMetrics.treeGuideWidth)
+                                        .padding(.leading, SettingsSidebarMetrics.treeGuideInset)
+                                        .padding(.top, SettingsSidebarMetrics.treeGuideTopInset)
+                                        .padding(.bottom, SettingsSidebarMetrics.treeGuideBottomInset)
+                                        .allowsHitTesting(false)
                                 }
                             }
                         }

@@ -542,6 +542,8 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(chrome.contains("enum SettingsSidebarMetrics"))
         XCTAssertTrue(view.contains("SettingsSidebarMetrics.subtopicIndent"))
         XCTAssertTrue(view.contains("SettingsSidebarMetrics.categoryRowHeight"))
+        // The second level is connected to its parent by a tree guide line.
+        XCTAssertTrue(view.contains("SettingsSidebarMetrics.treeGuideInset"))
     }
 
     /// The visual parameters stay within the values requested for this design,
@@ -557,6 +559,12 @@ final class SettingsViewTests: XCTestCase {
             SettingsSidebarMetrics.iconSlotWidth
         )
         XCTAssertEqual(SettingsSidebarMetrics.subtopicCornerRadius, 6)
+        // The guide line sits left of the leaf highlight, under the icon column.
+        XCTAssertLessThan(
+            SettingsSidebarMetrics.treeGuideInset,
+            SettingsSidebarMetrics.subtopicIndent
+        )
+        XCTAssertEqual(SettingsSidebarMetrics.treeGuideWidth, 1)
     }
 
     /// The Bluetooth settings-demand token is owned by the category container,

@@ -939,6 +939,15 @@ enum SettingsSidebarMetrics {
     /// Leading inset of a leaf row from the sidebar content edge. Larger than
     /// the category icon column so leaf titles read as nested under the parent.
     static let subtopicIndent: CGFloat = 44
+
+    /// Vertical tree guide drawn under the expanded parent's icon. It sits at
+    /// the icon's centre (row padding + half the icon slot) and stays well left
+    /// of the leaf highlight, which begins at `subtopicIndent`.
+    static let treeGuideInset: CGFloat = 16
+    static let treeGuideWidth: CGFloat = 1
+    static let treeGuideTopInset: CGFloat = 2
+    static let treeGuideBottomInset: CGFloat = 6
+    static let treeGuideOpacity: Double = 0.12
     static let subtopicCornerRadius: CGFloat = 6
     static let categoryCornerRadius: CGFloat = 7
 
