@@ -19,6 +19,23 @@ struct InputSourceDescriptor: Equatable, Hashable, Sendable {
 }
 
 extension InputSourceDescriptor {
+    /// Explicit English keyboard layouts only. An IME's language metadata does
+    /// not establish its internal Latin mode, so its icon remains untouched.
+    func applying(_ modifiers: InputSourceModifiers) -> InputSourceDescriptor {
+        let englishLayouts: Set<String> = [
+            "com.apple.keylayout.abc", "com.apple.keylayout.us",
+            "com.apple.keylayout.usextended", "com.apple.keylayout.british",
+            "com.apple.keylayout.british-pc", "com.apple.keylayout.australian",
+            "com.apple.keylayout.canadian", "com.apple.keylayout.irish",
+            "com.apple.keylayout.dvorak", "com.apple.keylayout.colemak"
+        ]
+        guard englishLayouts.contains(id.lowercased()) else { return self }
+        return InputSourceDescriptor(
+            id: id, localizedName: localizedName, primaryLanguage: primaryLanguage,
+            iconURL: nil, shortLabel: modifiers.isUppercase ? "A" : "a"
+        )
+    }
+
     /// The descriptor as the icon is allowed to draw it.
     ///
     /// An input source whose icon file is gone must degrade to its short label,
