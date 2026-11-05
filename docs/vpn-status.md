@@ -37,6 +37,39 @@ interface names would need maintaining on every macOS release and would still
 miss a new one; the address is what separates a tunnel carrying traffic from a
 tunnel that is merely present.
 
+## Power control (#272)
+
+The summary row now has one power glyph when the system exposes a configured
+System Settings VPN service. The target is the first service in
+`SCNetworkServiceCopyAll` order when disconnected. When any service reports
+connected or connecting, the switch targets that service instead, so turning it
+off cannot stop a different, disconnected first entry. The service ID, not its
+display name, is passed to `SCNetworkConnectionCreateWithServiceID`.
+
+The switch is **absent** when there is no configured service. A system proxy
+alone never creates a service and never shows a switch; a third-party
+NetworkExtension tunnel that only creates a `utun` is likewise read-only. It is
+disabled while a request is in flight, while SystemConfiguration reports
+`connecting`/`disconnecting`, or when the selected service is disabled. A
+failed start/stop, a rejected request, and a callback timeout each produce a
+short localized row message; the monitor is re-read even after a timeout so the
+row returns to the real system state.
+
+`SCNetworkConnectionStart`/`Stop` return values only acknowledge the request.
+The row leaves its changing state when the status callback reports the target
+state, or after a bounded 20-second timeout. The connection uses `linger: true`
+for a user-initiated connect, so closing the popover does not tear down a VPN
+the user just started. Stop uses `forceDisconnect: false`; if another client
+keeps the service connected, the timeout reports that the result was not
+confirmed rather than claiming a disconnect. No privileged helper, entitlement,
+`scutil` subprocess, private API, or admin network-preference write is used.
+
+The documented SystemConfiguration control surface only guarantees PPP
+services. IPSec/L2TP/IKEv2 services that appear in the service reader are shown
+with the same switch, but actual control on each OS build remains an evidence
+item (`NOT RUN` in automated tests). NetworkExtension configurations owned by
+another app are not system services and are outside the switch.
+
 ## Known limitations
 
 - **A system proxy is not a VPN.** Clash Verge in system-proxy mode sets
@@ -80,11 +113,12 @@ switching the row off sticks.
 
 | File | Role |
 | --- | --- |
-| `Models/VPNStatus.swift` | `VPNStatus`, `VPNProxyStatus`, `VPNProbeReading`, `VPNStatusResolver`, `TunnelInterfaceClassifier` |
-| `Monitoring/VPNProbe.swift` | The three readers and their protocols |
+| `Models/VPNStatus.swift` | `VPNStatus`, `VPNProxyStatus`, `VPNProbeReading`, `VPNStatusResolver`, `TunnelInterfaceClassifier`, and `VPNServiceReading` identity/state |
+| `Monitoring/VPNProbe.swift` | The three readers and their protocols; the service reader keeps service IDs and connection states |
 | `Monitoring/VPNMonitor.swift` | Lifecycle, the `SCDynamicStore` subscription, the stream |
-| `UI/VPNStatusView.swift` | The popup row |
-| `UI/StatusPopoverView.swift` | `StatusPresentation.vpnTitle/vpnSubtitle` |
+| `VPN/VPNPowerController.swift` | One in-flight start/stop request, failure copy, refresh and bounded state |
+| `VPN/SystemVPNConnectionController.swift` | Public `SCNetworkConnection` callback-backed start/stop |
+| `UI/VPNStatusView.swift` | The popup row and its power glyph |
 | `Settings/SettingsStore.swift` | Default selection and the migration marker |
 
 ## Verifying by hand
@@ -109,5 +143,7 @@ scutil --proxy
 | `VPNStatusTests.swift` | Resolver output, name prefixes, the up-plus-address rule, proxy dictionary parsing |
 | `VPNMonitorTests.swift` | Lifecycle, subscription, `stop()` finishing the stream, `start()` idempotence |
 | `VPNRowSettingsTests.swift` | Default selection, the one-shot migration and its write-back, a switched-off row staying off |
+| `VPNPowerTests.swift` | Service identity and order, proxy/tunnel-only hiding, target selection, duplicate requests, failure and refresh |
 | `StatusPresentationTests.swift` | Row title and detail for a named tunnel, a bare tunnel, a proxy, both, and a PAC configuration |
-| `LocalizationParityTests.swift` | All twelve languages carrying the six new keys |
+| `PanelPresentationMapperTests.swift` | VPN power presentation on/off, changing, disabled and failure copy |
+| `LocalizationParityTests.swift` | All twelve languages carrying the VPN keys |

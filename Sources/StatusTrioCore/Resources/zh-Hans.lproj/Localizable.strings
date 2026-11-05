@@ -284,6 +284,11 @@
 "vpn.subtitle.systemProxy" = "系统代理";
 "vpn.subtitle.connectedWithProxy" = "已连接 · 代理 %@";
 "vpn.subtitle.proxyAutomatic" = "自动配置";
+"vpn.power.turnOn" = "连接 VPN";
+"vpn.power.turnOff" = "断开 VPN";
+"vpn.power.changing" = "正在切换 VPN…";
+"vpn.power.failed" = "无法切换 VPN，请检查系统设置。";
+"vpn.power.timedOut" = "未能确认 VPN 状态，请稍后再看。";
 "wifi.action.requestNameAccess" = "允许定位以显示 Wi-Fi 网络";
 "wifi.action.openLocationSettings" = "去设置中允许定位";
 "wifi.action.openSettings" = "打开 Wi-Fi 设置";

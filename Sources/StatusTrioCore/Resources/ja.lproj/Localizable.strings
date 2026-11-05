@@ -284,6 +284,11 @@
 "vpn.subtitle.systemProxy" = "システムプロキシ";
 "vpn.subtitle.connectedWithProxy" = "接続済み · プロキシ %@";
 "vpn.subtitle.proxyAutomatic" = "自動構成";
+"vpn.power.turnOn" = "VPN に接続";
+"vpn.power.turnOff" = "VPN を切断";
+"vpn.power.changing" = "VPN の状態を変更中…";
+"vpn.power.failed" = "VPN を変更できませんでした。システム設定を確認してください。";
+"vpn.power.timedOut" = "VPN の状態を確認できませんでした。もう一度確認してください。";
 "wifi.action.requestNameAccess" = "位置情報を許可してWi-Fiネットワークを表示";
 "wifi.action.openLocationSettings" = "設定で位置情報を許可";
 "wifi.action.openSettings" = "Wi-Fi設定を開く";

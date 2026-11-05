@@ -171,7 +171,11 @@ enum PanelPresentationMapper {
         return value
     }
 
-    static func vpn(_ status: VPNStatus, localization: Localization) -> PanelSummaryState {
+    static func vpn(
+        _ status: VPNStatus,
+        powerState: VPNPowerState = VPNPowerState(),
+        localization: Localization
+    ) -> PanelSummaryState {
         let title = vpnTitle(status, localization: localization)
         let subtitle = vpnSubtitle(status, localization: localization)
         let tint: PanelTint
@@ -182,6 +186,28 @@ enum PanelPresentationMapper {
         } else {
             tint = .secondary
         }
+
+        let service = status.powerControlService
+        let power: VPNPowerPresentation? = status.showsPowerControl
+            ? VPNPowerPresentation(
+                isOn: status.powerControlIsOn,
+                isChanging: powerState.isChanging,
+                canSetPower: !powerState.isChanging
+                    && (service?.isEnabled ?? false)
+                    && service?.state != .invalid
+                    && service?.state != .connecting
+                    && service?.state != .disconnecting,
+                failureMessage: powerState.failure.map {
+                    switch $0 {
+                    case .timedOut: localization.string(.vpnPowerTimedOut)
+                    case .requestRejected, .failed: localization.string(.vpnPowerFailed)
+                    }
+                },
+                turnOnHelp: localization.string(.vpnPowerTurnOn),
+                turnOffHelp: localization.string(.vpnPowerTurnOff),
+                changingHelp: localization.string(.vpnPowerChanging)
+            )
+            : nil
 
         return PanelSummaryState(
             title: title,
@@ -196,7 +222,8 @@ enum PanelPresentationMapper {
             accessibilityLabel: localization.string(.vpnTitle),
             accessibilityValue: "\(title), \(subtitle)",
             showsSettings: false,
-            intent: .none
+            intent: .none,
+            vpnPower: power
         )
     }
 

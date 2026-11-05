@@ -102,6 +102,7 @@ final class StatusPanelViewModel: ObservableObject {
     private let localization: Localization
     private let inputSourceController: InputSourceController
     private let chargeToFullNow: ChargeToFullNowController?
+    private let vpnPower: VPNPowerController
     private let updateScheduler: any PanelPresentationUpdateScheduling
     let actions: StatusPanelActions
     private var cancellables: Set<AnyCancellable> = []
@@ -141,7 +142,8 @@ final class StatusPanelViewModel: ObservableObject {
         actions: StatusPanelActions,
         updateScheduler: any PanelPresentationUpdateScheduling = YieldingPanelPresentationUpdateScheduler(),
         inputSourceController: InputSourceController? = nil,
-        chargeToFullNow: ChargeToFullNowController? = nil
+        chargeToFullNow: ChargeToFullNowController? = nil,
+        vpnPower: VPNPowerController? = nil
     ) {
         let resolvedInputSourceController = inputSourceController ?? InputSourceController()
         self.store = store
@@ -150,6 +152,7 @@ final class StatusPanelViewModel: ObservableObject {
         self.localization = localization
         self.inputSourceController = resolvedInputSourceController
         self.chargeToFullNow = chargeToFullNow
+        self.vpnPower = vpnPower ?? store.vpnPower
         self.updateScheduler = updateScheduler
         self.actions = actions
         visiblePopupSections = settings.visiblePopupSections
@@ -487,7 +490,9 @@ final class StatusPanelViewModel: ObservableObject {
     }
 
     private func mapVPN(_ status: VPNStatus) -> PanelSummaryState? {
-        PanelPresentationMapper.vpn(status, localization: localization)
+        PanelPresentationMapper.vpn(
+            status, powerState: vpnPower.state, localization: localization
+        )
     }
 
     private func mapVolume(_ status: VolumeStatus) -> VolumePanelState {
@@ -800,11 +805,13 @@ final class StatusPanelViewModel: ObservableObject {
         subscribedSourceDemand = demand
 
         if demand.contains(.vpn) {
-            store.$vpnStatus
+            Publishers.CombineLatest(store.$vpnStatus, vpnPower.$state)
                 .dropFirst()
-                .compactMap { [weak self] status -> PanelSummaryState? in
+                .compactMap { [weak self] status, powerState -> PanelSummaryState? in
                     guard let self, isVisible(.vpn) else { return nil }
-                    return mapVPN(status)
+                    return PanelPresentationMapper.vpn(
+                        status, powerState: powerState, localization: localization
+                    )
                 }
                 .removeDuplicates()
                 .sink { [weak self] state in
@@ -1115,7 +1122,7 @@ final class StatusPanelViewModel: ObservableObject {
                 )
             }
             if regions.contains(.vpn), isVisible(.vpn) {
-                publishVPN(PanelPresentationMapper.vpn(store.vpnStatus, localization: localization))
+                publishVPN(mapVPN(store.vpnStatus))
             }
         }
     }

@@ -284,6 +284,11 @@
 "vpn.subtitle.systemProxy" = "Proxy do sistema";
 "vpn.subtitle.connectedWithProxy" = "Conectado · proxy %@";
 "vpn.subtitle.proxyAutomatic" = "Configuração automática";
+"vpn.power.turnOn" = "Conectar VPN";
+"vpn.power.turnOff" = "Desconectar VPN";
+"vpn.power.changing" = "Alterando o status da VPN…";
+"vpn.power.failed" = "Não foi possível alterar a VPN. Verifique os Ajustes do Sistema.";
+"vpn.power.timedOut" = "O status da VPN não foi confirmado. Verifique novamente.";
 "wifi.action.requestNameAccess" = "Permitir localização para mostrar as redes Wi‑Fi";
 "wifi.action.openLocationSettings" = "Permitir localização nos Ajustes";
 "wifi.action.openSettings" = "Abrir Ajustes de Wi‑Fi";

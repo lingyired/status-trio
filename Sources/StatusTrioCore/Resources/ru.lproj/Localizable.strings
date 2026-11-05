@@ -284,6 +284,11 @@
 "vpn.subtitle.systemProxy" = "Системный прокси";
 "vpn.subtitle.connectedWithProxy" = "Подключено · прокси %@";
 "vpn.subtitle.proxyAutomatic" = "Автонастройка";
+"vpn.power.turnOn" = "Подключить VPN";
+"vpn.power.turnOff" = "Отключить VPN";
+"vpn.power.changing" = "Изменение состояния VPN…";
+"vpn.power.failed" = "Не удалось изменить VPN. Проверьте Системные настройки.";
+"vpn.power.timedOut" = "Состояние VPN не подтверждено. Проверьте ещё раз.";
 "wifi.action.requestNameAccess" = "Разрешить геолокацию для показа сетей Wi‑Fi";
 "wifi.action.openLocationSettings" = "Разрешить геолокацию в Настройках";
 "wifi.action.openSettings" = "Открыть настройки Wi‑Fi";

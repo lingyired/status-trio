@@ -223,7 +223,9 @@ struct StatusPopoverView: View {
                 onOpenLocationSettings: openLocationSettings
             )
         case .vpn:
-            VPNStatusView(state: panel.vpn)
+            VPNStatusView(state: panel.vpn) { enabled in
+                panel.actions.setVPNPower(enabled)
+            }
         case .bluetooth:
             BluetoothStatusView(
                 controller: panel.store.bluetoothDevices,

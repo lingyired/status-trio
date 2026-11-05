@@ -142,6 +142,10 @@ final class SystemStatusStore: ObservableObject {
     let localIP: LocalIPController
     let bluetoothDevices: BluetoothDeviceController
     let bluetoothPower: BluetoothRadioPowerController
+    /// The VPN summary row's start/stop path. It holds the system service ID,
+    /// not a display name, and reports a confirmed transition or a bounded
+    /// failure (#272).
+    let vpnPower: VPNPowerController
     let mobileBattery: MobileBatteryController
     let appleDeviceDiscovery: AppleDeviceDiscoveryController
     /// The AirPods listening-mode surface. A separate owner from `bluetoothDevices`
@@ -320,6 +324,7 @@ final class SystemStatusStore: ObservableObject {
         highPowerMode: HighPowerModeController = HighPowerModeController(),
         helperReadiness: (any HelperReadinessProviding)? = nil,
         powerModeNotifications: any PowerModeNotificationMonitoring = PowerModeNotificationMonitor(),
+        vpnConnectionController: any VPNConnectionControlling = SystemVPNConnectionController(),
         initialSnapshot: StatusSnapshot = .placeholder
     ) {
         self.batteryMonitor = batteryMonitor
@@ -344,6 +349,7 @@ final class SystemStatusStore: ObservableObject {
         self.localIP = localIP
         self.bluetoothDevices = bluetoothDevices
         self.bluetoothPower = bluetoothPower
+        self.vpnPower = VPNPowerController(backend: vpnConnectionController, refresh: {})
         self.bluetoothProfilerCache = bluetoothProfilerCache
         self.mobileBattery = mobileBattery
         self.appleDeviceDiscovery = appleDeviceDiscovery
@@ -362,6 +368,7 @@ final class SystemStatusStore: ObservableObject {
                 guard let self else { return }
                 self.reconcileBluetoothDemand()
             }
+        vpnPower.refresh = { [weak self] in self?.vpnMonitor?.refresh() }
     }
 
     deinit {
@@ -721,6 +728,15 @@ final class SystemStatusStore: ObservableObject {
             self.wifiPowerIsChanging = false
             self.wifiPowerFailed = !changed
             self.wifiMonitor.refresh()
+        }
+    }
+
+    /// #272: the VPN summary row's power switch. The controller resolves the
+    /// target from the current service list and confirms through the framework
+    /// callback before the row leaves its changing state.
+    func setVPNPower(_ enabled: Bool) {
+        Task { [vpnPower, vpnStatus] in
+            await vpnPower.setPower(enabled, status: vpnStatus)
         }
     }
 
