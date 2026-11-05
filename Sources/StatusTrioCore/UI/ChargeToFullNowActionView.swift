@@ -78,6 +78,12 @@ struct ChargeToFullNowActionView: View {
             switch presentation {
             case .failed:
                 notice(.batteryActionChargeToFullNowFailed)
+            case .unavailable:
+                notice(
+                    localization.string(.batteryActionChargeToFullNowUnavailable),
+                    color: .secondary,
+                    showsIcon: false
+                )
             case .cancelConfirmationRequired:
                 notice(
                     localization.string(
@@ -113,7 +119,6 @@ struct ChargeToFullNowActionView: View {
                  .applying,
                  .chargingToFull,
                  .cancelling,
-                 .unavailable,
                  .limitRestored:
                 EmptyView()
             }

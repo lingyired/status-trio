@@ -22,6 +22,21 @@ static BOOL ProbeSignatureMatches(Class cls, SEL selector, const char *result, N
     return YES;
 }
 
+// Reports new-request eligibility only. Existing override/cancel sessions and
+// the summary visibility setting remain owned by the app controller.
+static NSString *ProbeNewRequestVisibility(NSDictionary *battery, BOOL stateValid,
+    NSUInteger enabled, NSInteger limit, NSArray<NSNumber *> *availableLimits, BOOL allowed) {
+    if (![battery[@"readSucceeded"] boolValue]) return @"unknown:battery-read-failed";
+    if (![battery[@"isPresent"] boolValue]) return @"hidden:no-battery";
+    if (![battery[@"isConnectedToPower"] boolValue]) return @"hidden:on-battery";
+    if ([battery[@"isCharged"] boolValue] || [battery[@"percentage"] integerValue] >= 100)
+        return @"hidden:battery-full";
+    if (!stateValid) return @"unavailable:state-read-failed";
+    NSArray<NSNumber *> *limits = availableLimits.count > 0 ? availableLimits : @[@80, @85, @90, @95];
+    BOOL activeLimit = enabled == 1 && limit >= 80 && limit < 100 && [limits containsObject:@(limit)];
+    return activeLimit || allowed ? @"available" : @"hidden:no-active-limit-or-override";
+}
+
 #if !defined(CHARGE_TO_FULL_NOW_POC_TESTS)
 #import <IOKit/ps/IOPowerSources.h>
 #import <IOKit/ps/IOPSKeys.h>
@@ -32,6 +47,7 @@ static BOOL ProbeSignatureMatches(Class cls, SEL selector, const char *result, N
 - (BOOL)isMCLSupported;
 - (NSUInteger)isMCLCurrentlyEnabled:(NSError **)error;
 - (unsigned char)getMCLLimitWithError:(NSError **)error;
+- (NSArray<NSNumber *> *)availableChargeLimitsWithError:(NSError **)error;
 - (BOOL)smartChargingUIState:(NSUInteger *)state
                  chargeLimit:(NSUInteger *)limit
      chargingOverrideAllowed:(BOOL *)allowed
@@ -147,7 +163,19 @@ static int ProbeInspect(NSMutableDictionary *report) {
     BOOL allowed = NO;
     BOOL uiSuccess = [client smartChargingUIState:&uiState chargeLimit:&uiLimit
         chargingOverrideAllowed:&allowed withError:&uiError];
-    report[@"battery"] = ProbeBattery();
+    NSDictionary *battery = ProbeBattery();
+    report[@"battery"] = battery;
+    NSArray<NSNumber *> *availableLimits = @[];
+    if (ProbeSignatureMatches(cls, @selector(availableChargeLimitsWithError:), @encode(id), @[@"^@"])) {
+        NSError *availableError = nil;
+        NSArray<NSNumber *> *readLimits = [client availableChargeLimitsWithError:&availableError];
+        if (availableError == nil && [readLimits isKindOfClass:NSArray.class]) availableLimits = readLimits;
+    }
+    report[@"availableChargeLimits"] = availableLimits;
+    report[@"newRequestVisibility"] = ProbeNewRequestVisibility(battery,
+        uiSuccess && uiError == nil && enabledError == nil && limitError == nil,
+        enabled, limit, availableLimits, allowed);
+    report[@"visibilityScope"] = @"New request with panel open and capability available; excludes saved override/cancel sessions and summary setting.";
     // These are undocumented enums. Report raw values without inferring enablement or eligibility.
     report[@"mclEnabledRaw"] = @(enabled);
     report[@"mclEnabledError"] = ProbeError(enabledError);
