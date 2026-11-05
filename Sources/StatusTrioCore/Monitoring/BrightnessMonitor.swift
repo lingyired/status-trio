@@ -45,6 +45,10 @@ final class BrightnessMonitor: BrightnessMonitoring {
         case ddc(DDCBrightnessCoordinator)
         case displayServices(DisplayServicesBrightnessController)
         case betterDisplay(BetterDisplayBrightnessCoordinator)
+        /// No backend could be safely constructed for this display (e.g. an
+        /// external without a resolvable CG display id). The row still appears
+        /// but stays unavailable instead of writing to another screen.
+        case unavailable
     }
 
     private struct Entry {
@@ -143,6 +147,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
                 case .ddc(let coordinator): coordinator.refresh()
                 case .displayServices(let coordinator): coordinator.refresh()
                 case .betterDisplay(let coordinator): coordinator.refresh()
+                case .unavailable: break
                 }
             }
         }
@@ -178,6 +183,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
                 if asleep { coordinator.stop() } else { coordinator.start() }
             case .betterDisplay(let coordinator):
                 if asleep { coordinator.stop() } else { coordinator.start() }
+            case .unavailable: break
             }
         }
         if !asleep, detailsVisible { rebuild() }
@@ -222,6 +228,8 @@ final class BrightnessMonitor: BrightnessMonitoring {
             coordinator.setBrightness(scalar)
         case .betterDisplay(let coordinator):
             coordinator.setBrightness(scalar)
+        case .unavailable:
+            break
         }
     }
 
@@ -262,12 +270,21 @@ final class BrightnessMonitor: BrightnessMonitoring {
             case .betterDisplay: desiredKind = .betterDisplay
             }
             let desiredBDBUUID = configuration.backend == .betterDisplay
-                ? (configuration.betterDisplayUUID ?? Self.resolvedBetterDisplayUUID(for: descriptor))
+                ? Self.resolvedBetterDisplayUUID(
+                    for: descriptor,
+                    explicit: configuration.betterDisplayUUID
+                )
                 : nil
 
+            // Reuse only when the backend identity is unchanged. Comparing
+            // `displayID` matters for DisplayServices/unavailable rows whose
+            // descriptor id (EDID/UUID) can stay the same while the resolved CG
+            // display id changes; reusing would keep a controller pointed at the
+            // old display.
             if var existing = updated[descriptor.id],
                existing.backendKind == desiredKind,
-               existing.betterDisplayUUID == desiredBDBUUID {
+               existing.betterDisplayUUID == desiredBDBUUID,
+               existing.descriptor.displayID == descriptor.displayID {
                 existing.descriptor = descriptor
                 updated[descriptor.id] = existing
                 continue
@@ -297,18 +314,34 @@ final class BrightnessMonitor: BrightnessMonitoring {
         return configurations[descriptor.id] ?? .default
     }
 
-    /// The BetterDisplay device UUID for a display. Built-in displays already
-    /// key `descriptor.id` on the CG UUID BetterDisplay addresses them by. For
-    /// external displays `descriptor.id` is the EDID/DDC UUID, which
-    /// BetterDisplay does not accept, so derive the CG UUID they use.
+    /// The BetterDisplay device UUID for a display.
+    ///
+    /// - An explicit UUID from the stored configuration always wins; it is the
+    ///   only identity we can trust without a CG lookup.
+    /// - Built-in displays already key `descriptor.id` on the CG UUID
+    ///   BetterDisplay addresses them by.
+    /// - External displays must resolve their real `CGDirectDisplayID` to the
+    ///   CG UUID BetterDisplay accepts. `displayID == 0` is never queried:
+    ///   `CGDisplayCreateUUIDFromDisplayID(0)` resolves to the built-in display.
+    ///   The catalog's `display-<id>` failure sentinel is also rejected. Both
+    ///   cases return `nil` so the caller reports the display unavailable
+    ///   instead of driving the wrong screen.
     static func resolvedBetterDisplayUUID(
         for descriptor: DisplayDescriptor,
+        explicit: String? = nil,
         cgUUID: (UInt32) -> String = LiveDisplayCatalog.displayUUIDString
-    ) -> String {
-        if descriptor.isBuiltin { return descriptor.id }
+    ) -> String? {
+        let explicitUUID = explicit?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let explicitUUID, !explicitUUID.isEmpty {
+            return explicitUUID
+        }
+        if descriptor.isBuiltin {
+            return descriptor.id.isEmpty ? nil : descriptor.id
+        }
+        guard descriptor.displayID != 0 else { return nil }
         let uuid = cgUUID(descriptor.displayID)
-        // Fall back to the descriptor id only when CG has no UUID for it.
-        return uuid.hasPrefix("display-") ? descriptor.id : uuid
+        guard !uuid.isEmpty, !uuid.hasPrefix("display-") else { return nil }
+        return uuid
     }
 
     private func makeEntry(
@@ -354,6 +387,11 @@ final class BrightnessMonitor: BrightnessMonitoring {
                 state: initialState
             )
         case .displayServices:
+            // DisplayServices needs a real CG display id. 0 resolves to the
+            // built-in panel, so never construct a controller for it.
+            guard descriptor.displayID != 0 else {
+                return unavailableEntry(for: descriptor, backend: .displayServices)
+            }
             let coordinator = makeDisplayServices(descriptor.displayID) { [weak self] update in
                 self?.apply(update, systemDisplayID: displayID)
             }
@@ -366,7 +404,12 @@ final class BrightnessMonitor: BrightnessMonitoring {
                 state: initialState
             )
         case .betterDisplay:
-            let uuid = betterDisplayUUID ?? displayID
+            // No explicit UUID and no reliable CG UUID: fail closed rather than
+            // fall back to the EDID id (which BetterDisplay cannot address) or
+            // to displayID 0 (the built-in screen).
+            guard let uuid = betterDisplayUUID, !uuid.isEmpty else {
+                return unavailableEntry(for: descriptor, backend: .betterDisplay)
+            }
             let coordinator = makeBetterDisplay(uuid) { [weak self] update in
                 self?.apply(update, systemDisplayID: displayID)
             }
@@ -381,11 +424,36 @@ final class BrightnessMonitor: BrightnessMonitoring {
         }
     }
 
+    /// A row with no safe backend. It still publishes so the panel can show the
+    /// display as unavailable, but it never constructs a coordinator that could
+    /// write to the wrong screen.
+    private func unavailableEntry(
+        for descriptor: DisplayDescriptor,
+        backend: BrightnessBackend
+    ) -> Entry {
+        Entry(
+            descriptor: descriptor,
+            backendKind: backend == .betterDisplay ? .betterDisplay : .displayServices,
+            betterDisplayUUID: nil,
+            backend: .unavailable,
+            state: DisplayBrightness(
+                id: descriptor.id,
+                name: descriptor.name,
+                isBuiltin: descriptor.isBuiltin,
+                scalar: nil,
+                canAdjust: false,
+                backend: backend,
+                source: .unavailable(.noBackend)
+            )
+        )
+    }
+
     private func teardown(_ entry: Entry) {
         switch entry.backend {
         case .ddc(let coordinator): coordinator.stop()
         case .displayServices(let coordinator): coordinator.stop()
         case .betterDisplay(let coordinator): coordinator.stop()
+        case .unavailable: break
         }
     }
 

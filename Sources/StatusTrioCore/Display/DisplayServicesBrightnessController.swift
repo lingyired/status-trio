@@ -60,6 +60,13 @@ final class DisplayServicesBrightnessController {
 
     func refresh() {
         guard isStarted else { return }
+        // CGDirectDisplayID 0 is not "no display": CoreGraphics resolves it to
+        // the built-in panel. Refuse it before touching the private API so an
+        // unresolved external can never drive another screen.
+        guard displayID != 0 else {
+            emit(scalar: nil, canAdjust: false, source: .unavailable(.noBackend))
+            return
+        }
         guard api.isAvailable else {
             emit(scalar: nil, canAdjust: false, source: .unavailable(.noBackend))
             return
@@ -75,6 +82,10 @@ final class DisplayServicesBrightnessController {
 
     func setBrightness(_ scalar: Double) {
         guard isStarted else { return }
+        guard displayID != 0 else {
+            emit(scalar: nil, canAdjust: false, source: .unavailable(.noBackend))
+            return
+        }
         guard api.isAvailable else {
             emit(scalar: nil, canAdjust: false, source: .unavailable(.noBackend))
             return
