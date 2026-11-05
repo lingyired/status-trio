@@ -770,3 +770,7 @@
 "settings.subtopic.bluetooth.displayAndPreview" = "顯示與預覽";
 "settings.subtopic.bluetooth.deviceAndBattery" = "裝置與電量";
 "settings.subtopic.bluetooth.panelAndList" = "面板與列表";
+
+// Settings sidebar group captions
+"settings.sidebar.group.status" = "顯示與狀態";
+"settings.sidebar.group.system" = "面板與系統";

@@ -770,3 +770,7 @@
 "settings.subtopic.bluetooth.displayAndPreview" = "표시 및 미리보기";
 "settings.subtopic.bluetooth.deviceAndBattery" = "기기 및 배터리";
 "settings.subtopic.bluetooth.panelAndList" = "패널 및 목록";
+
+// Settings sidebar group captions
+"settings.sidebar.group.status" = "표시 및 상태";
+"settings.sidebar.group.system" = "패널 및 시스템";

@@ -770,3 +770,7 @@
 "settings.subtopic.bluetooth.displayAndPreview" = "表示とプレビュー";
 "settings.subtopic.bluetooth.deviceAndBattery" = "デバイスとバッテリー";
 "settings.subtopic.bluetooth.panelAndList" = "パネルとリスト";
+
+// Settings sidebar group captions
+"settings.sidebar.group.status" = "表示とステータス";
+"settings.sidebar.group.system" = "パネルとシステム";

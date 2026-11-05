@@ -61,32 +61,29 @@ The new leaf labels live under `settings.subtopic.*` and are translated in all
 twelve shipped languages (`en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de`, `fr`,
 `es`, `it`, `pt-BR`, `ru`, `ar`), covered by `LocalizationParityTests`.
 
-## Sidebar visual language (Plan B)
+## Sidebar visual language (Magpie-inspired)
 
-The sidebar uses one monochrome glyph per category and text-only leaves:
+The sidebar follows the Magpie settings UI: a calm, airy tree with group
+captions, monochrome glyphs and grey selection fills (no colored tiles, no blue
+block).
 
-- Category glyphs: SF Symbols at 16 pt in a fixed 18 pt column, `.secondary`
-  tint; the Bluetooth category keeps the project's custom rune (drawn at the
-  same optical size) instead of an inaccurate SF Symbol. The old colored
-  squircle tiles, gradients and shadows are gone.
-- Category rows: 36 pt high, 13 pt title, `.primary`; the selected category is
-  medium weight. Expandable categories show `chevron.down` when open and
-  `chevron.right` when collapsed, and never paint a selection pill (their leaf
-  does).
-- Leaf rows: text only, 12 pt, no icon, indented so the title sits under the
-  parent's title. A thin vertical tree guide runs under the expanded parent's
-  icon (inspired by Magpie) so the leaves read as its subtree; the guide sits
-  left of the leaf highlight. Selected leaves use `.primary` + medium weight
-  over a 6 pt rounded light accent wash that only covers the row's own inset
-  area.
-- Selection colour: `accentColor` at 18 % in the key window; the system
-  `unemphasizedSelectedContentBackgroundColor` when the window is not focused,
-  so a saturated accent never lingers in the background.
+- Two caption groups keep the existing category order: **Display & Status**
+  (App Icon, Battery, Network, Bluetooth, Audio, Brightness) and **Panel &
+  System** (Status Panel, General, About). Grouping is visual only.
+- Category rows: 42 pt high, 14 pt title, an 18 pt monochrome SF Symbol in a
+  fixed 20 pt column (`.secondary`). The Bluetooth category keeps the project's
+  custom rune at the same optical size. Expandable categories show a light
+  `chevron.down`/`chevron.right`.
+- Leaf rows: text only, 13 pt, no icon, indented so the title nests under the
+  parent. A thin vertical tree guide runs under the parent's icon; the leaf
+  highlight begins to its right.
+- Selection: a neutral translucent-label fill (not accent blue) — the selected
+  leaf gets the stronger 10 % wash, its expanded parent a softer 5 % wash so the
+  levels never compete; a simple category uses the same 10 % wash. A background
+  window uses `unemphasizedSelectedContentBackgroundColor`.
 - About: the row shows only the short marketing version (`v1.2.3`) on one line;
-  the full version + development codename remain in the tooltip and the About
-  pane.
-- All numbers live in `SettingsSidebarMetrics` (row heights, indent, spacing,
-  icon slot, corner radii, selection opacity); the sidebar width stays 190 pt.
+  the full version + development codename remain in the tooltip and About pane.
+- All numbers live in `SettingsSidebarMetrics`; the sidebar width stays 190 pt.
 
 ## Invariants that must not drift
 

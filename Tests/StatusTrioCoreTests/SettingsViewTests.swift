@@ -522,7 +522,8 @@ final class SettingsViewTests: XCTestCase {
         // Selection is semantic and weakened when the window is not key.
         XCTAssertTrue(view.contains("controlActiveState"))
         XCTAssertTrue(view.contains("unemphasizedSelectedContentBackgroundColor"))
-        XCTAssertTrue(view.contains("activeSelectionOpacity"))
+        XCTAssertTrue(view.contains("selectedRowFillOpacity"))
+        XCTAssertTrue(view.contains("selectedParentFillOpacity"))
 
         // The leaf row is text only: no glyph and no image inside it.
         let leafStart = try XCTUnwrap(view.range(of: "private func subtopicRow"))
@@ -544,21 +545,24 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(view.contains("SettingsSidebarMetrics.categoryRowHeight"))
         // The second level is connected to its parent by a tree guide line.
         XCTAssertTrue(view.contains("SettingsSidebarMetrics.treeGuideInset"))
+        // Categories are grouped under Magpie-style captions.
+        XCTAssertTrue(view.contains("sidebarGroups"))
+        XCTAssertTrue(chrome.contains("captionFontSize"))
     }
 
     /// The visual parameters stay within the values requested for this design,
     /// and the sidebar width is still the existing 190 pt.
     func testSidebarMetricsMatchTheRequestedDesign() {
         XCTAssertEqual(SettingsView.sidebarWidth, 190)
-        XCTAssertTrue((36...38).contains(SettingsSidebarMetrics.categoryRowHeight))
-        XCTAssertTrue((26...28).contains(SettingsSidebarMetrics.subtopicRowHeight))
-        XCTAssertTrue((16...18).contains(SettingsSidebarMetrics.iconPointSize))
-        XCTAssertTrue((16...18).contains(SettingsSidebarMetrics.iconSlotWidth))
+        XCTAssertTrue((40...46).contains(SettingsSidebarMetrics.categoryRowHeight))
+        XCTAssertTrue((30...34).contains(SettingsSidebarMetrics.subtopicRowHeight))
+        XCTAssertTrue((16...20).contains(SettingsSidebarMetrics.iconPointSize))
+        XCTAssertTrue((18...22).contains(SettingsSidebarMetrics.iconSlotWidth))
         XCTAssertGreaterThan(
             SettingsSidebarMetrics.subtopicIndent,
             SettingsSidebarMetrics.iconSlotWidth
         )
-        XCTAssertEqual(SettingsSidebarMetrics.subtopicCornerRadius, 6)
+        XCTAssertEqual(SettingsSidebarMetrics.subtopicCornerRadius, 7)
         // The guide line sits left of the leaf highlight, under the icon column.
         XCTAssertLessThan(
             SettingsSidebarMetrics.treeGuideInset,

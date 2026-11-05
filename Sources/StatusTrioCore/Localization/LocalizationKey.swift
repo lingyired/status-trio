@@ -779,4 +779,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsSubtopicBluetoothDisplayAndPreview = "settings.subtopic.bluetooth.displayAndPreview"
     case settingsSubtopicBluetoothDeviceAndBattery = "settings.subtopic.bluetooth.deviceAndBattery"
     case settingsSubtopicBluetoothPanelAndList = "settings.subtopic.bluetooth.panelAndList"
+
+    // Settings sidebar group captions
+    case settingsSidebarGroupStatus = "settings.sidebar.group.status"
+    case settingsSidebarGroupSystem = "settings.sidebar.group.system"
 }

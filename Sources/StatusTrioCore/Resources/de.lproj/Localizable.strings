@@ -770,3 +770,7 @@
 "settings.subtopic.bluetooth.displayAndPreview" = "Anzeige & Vorschau";
 "settings.subtopic.bluetooth.deviceAndBattery" = "Geräte & Batterie";
 "settings.subtopic.bluetooth.panelAndList" = "Panel & Liste";
+
+// Settings sidebar group captions
+"settings.sidebar.group.status" = "Anzeige & Status";
+"settings.sidebar.group.system" = "Panel & System";
