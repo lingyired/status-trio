@@ -83,6 +83,20 @@ final class AppMetadataTests: XCTestCase {
         XCTAssertEqual(AppMetadata.versionDisplayString(from: [:]), "1.0.0 (1)")
     }
 
+    func testVersionShortStringDropsTheBuildNumber() {
+        XCTAssertEqual(
+            AppMetadata.versionShortString(from: [
+                "CFBundleShortVersionString": "1.3.0",
+                "CFBundleVersion": "11"
+            ]),
+            "1.3.0"
+        )
+    }
+
+    func testVersionShortStringFallsBackWhenTheVersionKeyIsMissing() {
+        XCTAssertEqual(AppMetadata.versionShortString(from: [:]), "1.0.0")
+    }
+
     func testProjectHomepageURL() {
         XCTAssertEqual(
             AppMetadata.projectHomepageURL.absoluteString,

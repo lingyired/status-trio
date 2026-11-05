@@ -73,6 +73,19 @@ struct NetworkSectionView: View {
                 SettingsDivider()
             }
             SettingsToggleRow(
+                symbol: PopupSection.network.systemImage,
+                tint: .blue,
+                title: localization.string(.settingsPanelShowNetwork),
+                subtitle: localization.string(.settingsPanelShowItemDescription),
+                isOn: Binding(
+                    get: { store.enabledPopupSections.contains(.network) },
+                    set: { store.setPopupSection(.network, enabled: $0) }
+                )
+            )
+
+            SettingsDivider()
+
+            SettingsToggleRow(
                 symbol: "network",
                 tint: .cyan,
                 title: localization.string(.settingsNetworkShowLocalIP),

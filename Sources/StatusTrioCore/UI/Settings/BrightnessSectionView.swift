@@ -21,6 +21,7 @@ struct BrightnessSectionView: View {
 
     var body: some View {
         SettingsPage {
+            panelVisibilityGroup
             displaysGroup
             compatibilityGroup
         }
@@ -31,6 +32,22 @@ struct BrightnessSectionView: View {
         }
         .onDisappear {
             statusStore.setBrightnessSettingsVisible(false)
+        }
+    }
+
+    /// Quick show/hide of the whole brightness module in the status panel.
+    private var panelVisibilityGroup: some View {
+        SettingsGroup(localization.string(.settingsNetworkPanelGroup)) {
+            SettingsToggleRow(
+                symbol: PopupSection.brightness.systemImage,
+                tint: .orange,
+                title: localization.string(.settingsPanelShowBrightness),
+                subtitle: localization.string(.settingsPanelShowItemDescription),
+                isOn: Binding(
+                    get: { store.enabledPopupSections.contains(.brightness) },
+                    set: { store.setPopupSection(.brightness, enabled: $0) }
+                )
+            )
         }
     }
 

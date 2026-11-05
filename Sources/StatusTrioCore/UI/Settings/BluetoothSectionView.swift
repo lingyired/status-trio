@@ -12,227 +12,30 @@ struct BluetoothSectionView: View {
     @ObservedObject var bluetoothDevices: BluetoothDeviceController
     @ObservedObject var appleDeviceDiscovery: AppleDeviceDiscoveryController
     @Binding var previewIsDark: Bool
+    /// When non-`nil` the pane shows only that leaf subtopic beneath the
+    /// Bluetooth category; `nil` keeps the original full-pane layout.
+    var subtopic: SettingsSubtopic? = nil
     @EnvironmentObject private var localization: Localization
     @State private var settingsDemandToken: BluetoothSettingsDemandToken?
+    /// Low-frequency preview tuning stays collapsed so the leaf is quiet.
+    @State private var showsPreviewOptions = false
 
     var body: some View {
-        SettingsPage(pinnedHeader: {
-            StatusIconPreviewCard(
-                store: store,
-                statusStore: statusStore,
-                isDarkBackground: $previewIsDark
-            )
-        }) {
-            if bluetoothDevices.authorization != .allowed {
-                bluetoothPermissionBanner
-                SettingsDivider()
+        // A concrete, stable container (not a transparent `Group`): the
+        // settings-demand lifecycle must stay attached to one identity so the
+        // paired-device listener is not torn down and rebuilt. Bluetooth is a
+        // single pane now, so there is no leaf switch to rebuild in the first
+        // place.
+        VStack(spacing: 0) {
+            SettingsPage(pinnedHeader: {
+                StatusIconPreviewCard(
+                    store: store,
+                    statusStore: statusStore,
+                    isDarkBackground: $previewIsDark
+                )
+            }) {
+                fullBluetoothContent
             }
-
-            SettingsGroup(localization.string(.settingsBluetoothTitle)) {
-                SettingsToggleRow(
-                    symbol: "list.bullet.rectangle",
-                    tint: .purple,
-                    title: localization.string(.settingsBluetoothShowInStatusPanel),
-                    subtitle: localization.string(.settingsBluetoothShowInStatusPanelDescription),
-                    isOn: showInStatusPanelBinding
-                )
-
-                if BluetoothPowerControlVisibility.canConfigure(
-                    authorization: bluetoothDevices.authorization,
-                    showsInStatusPanel: store.enabledPopupSections.contains(.bluetooth)
-                ) {
-                    SettingsDivider()
-
-                    SettingsToggleRow(
-                        symbol: "power.circle",
-                        tint: .blue,
-                        title: localization.string(.settingsBluetoothPowerControl),
-                        subtitle: localization.string(.settingsBluetoothPowerControlDescription),
-                        isOn: $store.showsBluetoothPowerControl
-                    )
-                }
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "speaker.wave.2.fill",
-                    tint: .cyan,
-                    title: localization.string(.settingsBluetoothVolumeColor),
-                    subtitle: localization.string(.settingsBluetoothVolumeColorDescription),
-                    isOn: $store.usesBluetoothAudioVolumeColor
-                )
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: SymbolFallback.name("battery.75percent", "battery.75"),
-                    tint: .green,
-                    title: localization.string(.settingsBluetoothBatteryLevels),
-                    subtitle: localization.string(.settingsBluetoothBatteryLevelsDescription),
-                    isOn: $store.showsBluetoothBatteryLevels
-                )
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "apple.logo",
-                    tint: .blue,
-                    title: localization.string(.settingsAppleDevicesAndBattery),
-                    subtitle: localization.string(.settingsAppleDevicesAndBatteryDescription),
-                    isOn: $store.showsAppleDevicesAndBattery
-                )
-
-                if store.showsAppleDevicesAndBattery {
-                    SettingsDivider()
-
-                    SettingsHintRow(
-                        text: localization.string(.settingsAppleBluetoothReadHelp)
-                    )
-
-                    SettingsDivider()
-
-                    SettingsHintRow(text: localization.string(.settingsAppleTrustHelp))
-
-                    SettingsDivider()
-
-                    SettingsToggleRow(
-                        symbol: "arrow.clockwise.circle",
-                        tint: .green,
-                        title: localization.string(.settingsAppleBackgroundRefresh),
-                        subtitle: localization.string(.settingsAppleBackgroundRefreshDescription),
-                        isOn: $store.refreshesAppleBatteriesInBackground
-                    )
-
-                    if store.refreshesAppleBatteriesInBackground {
-                        SettingsDivider()
-
-                        SettingsRow(
-                            "clock",
-                            tint: .teal,
-                            title: localization.string(.settingsAppleBackgroundRefreshInterval)
-                        ) {
-                            HStack(spacing: 8) {
-                                Text(localization.format(
-                                    .settingsAppleBackgroundRefreshIntervalValue,
-                                    store.appleBatteryRefreshIntervalMinutes
-                                ))
-                                .monospacedDigit()
-                                .font(.system(size: 13, design: .monospaced))
-                                .foregroundStyle(.secondary)
-
-                                Stepper(
-                                    "",
-                                    value: $store.appleBatteryRefreshIntervalMinutes,
-                                    in: SettingsStore.appleBatteryRefreshIntervalMinutesRange
-                                )
-                                .labelsHidden()
-                                .fixedSize()
-                                .accessibilityLabel(localization.string(.settingsAppleBackgroundRefreshInterval))
-                                .accessibilityValue(localization.format(
-                                    .settingsAppleBackgroundRefreshIntervalValue,
-                                    store.appleBatteryRefreshIntervalMinutes
-                                ))
-                            }
-                        }
-                    }
-                }
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "earbuds",
-                    tint: .purple,
-                    title: localization.string(.settingsBluetoothListeningModeTitle),
-                    subtitle: localization.string(.settingsBluetoothListeningModeDescription),
-                    isOn: $store.showsBluetoothListeningMode
-                )
-
-                // The preview rows inject synthetic AirPods for interface
-                // testing. They are developer-only, so a packaged release never
-                // offers them, and the toggle's title says so.
-                if AppMetadata.isDevelopmentBuild && store.showsBluetoothListeningMode {
-                    SettingsDivider()
-
-                    SettingsToggleRow(
-                        symbol: "eyeglasses",
-                        tint: .purple,
-                        title: localization.string(.settingsBluetoothListeningModePreview),
-                        subtitle: localization.string(.settingsBluetoothListeningModePreviewDescription),
-                        isOn: $store.previewsBluetoothListeningMode
-                    )
-                }
-
-                if AppMetadata.isDevelopmentBuild
-                    && store.showsBluetoothListeningMode
-                    && store.previewsBluetoothListeningMode {
-                    SettingsDivider()
-
-                    SettingsRow(
-                        "character.cursor.ibeam",
-                        tint: .purple,
-                        title: localization.string(.settingsBluetoothListeningModePreviewDeviceName),
-                        subtitle: localization.string(.settingsBluetoothListeningModePreviewDeviceNameDescription)
-                    ) {
-                        TextField(
-                            localization.string(.settingsBluetoothListeningModePreviewDeviceName),
-                            text: $store.bluetoothListeningModePreviewDeviceName
-                        )
-                        .textFieldStyle(.roundedBorder)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 150)
-                        .labelsHidden()
-                    }
-
-                    SettingsDivider()
-
-                    SettingsRow(
-                        "number.square",
-                        tint: .purple,
-                        title: localization.string(.settingsBluetoothListeningModePreviewDeviceCount),
-                        subtitle: localization.string(.settingsBluetoothListeningModePreviewDeviceCountDescription)
-                    ) {
-                        HStack(spacing: 10) {
-                            Text("\(store.bluetoothListeningModePreviewDeviceCount)")
-                                .font(.system(size: 13, design: .monospaced))
-                                .frame(minWidth: 22, alignment: .trailing)
-
-                            Stepper(
-                                localization.string(.settingsBluetoothListeningModePreviewDeviceCount),
-                                value: $store.bluetoothListeningModePreviewDeviceCount,
-                                in: SettingsStore.bluetoothListeningModePreviewDeviceCountRange
-                            )
-                            .labelsHidden()
-                        }
-                    }
-
-                    SettingsDivider()
-
-                    SettingsRow(
-                        SymbolFallback.name("translate", "character.bubble", "globe"),
-                        tint: .purple,
-                        title: localization.string(.settingsBluetoothListeningModePreviewLanguage),
-                        subtitle: localization.string(.settingsBluetoothListeningModePreviewLanguageDescription)
-                    ) {
-                        Picker(
-                            localization.string(.settingsBluetoothListeningModePreviewLanguage),
-                            selection: $store.bluetoothListeningModePreviewLanguage
-                        ) {
-                            Text(localization.string(.settingsLanguageFollowSystem))
-                                .tag("")
-
-                            ForEach(AppLanguage.allCases) { lang in
-                                Text(lang.nativeName)
-                                    .tag(lang.rawValue)
-                            }
-                        }
-                        .labelsHidden()
-                        .settingsMenuPickerWidth()
-                    }
-                }
-            }
-
-            deviceListGroup
-            deviceOrderGroup
         }
         .onAppear {
             if let settingsDemandToken {
@@ -244,6 +47,234 @@ struct BluetoothSectionView: View {
             guard let settingsDemandToken else { return }
             statusStore.endBluetoothSettingsDemand(settingsDemandToken)
             self.settingsDemandToken = nil
+        }
+    }
+
+    @ViewBuilder
+    private var fullBluetoothContent: some View {
+        if bluetoothDevices.authorization != .allowed {
+            bluetoothPermissionBanner
+            SettingsDivider()
+        }
+
+        SettingsGroup(localization.string(.settingsTabBluetooth)) {
+            showInStatusPanelRow
+            powerControlRow
+            SettingsDivider()
+            batteryLevelsRow
+            SettingsDivider()
+            appleDevicesRows
+            SettingsDivider()
+            previewsRows
+        }
+
+        deviceListGroup
+        deviceOrderGroup
+    }
+
+    // MARK: - Row blocks shared by the full pane and the leaf subpages
+
+    private var showInStatusPanelRow: some View {
+        SettingsToggleRow(
+            symbol: "list.bullet.rectangle",
+            tint: .purple,
+            title: localization.string(.settingsBluetoothShowInStatusPanel),
+            subtitle: localization.string(.settingsBluetoothShowInStatusPanelDescription),
+            isOn: showInStatusPanelBinding
+        )
+    }
+
+    @ViewBuilder
+    private var powerControlRow: some View {
+        if BluetoothPowerControlVisibility.canConfigure(
+            authorization: bluetoothDevices.authorization,
+            showsInStatusPanel: store.enabledPopupSections.contains(.bluetooth)
+        ) {
+            SettingsDivider()
+
+            SettingsToggleRow(
+                symbol: "power.circle",
+                tint: .blue,
+                title: localization.string(.settingsBluetoothPowerControl),
+                subtitle: localization.string(.settingsBluetoothPowerControlDescription),
+                isOn: $store.showsBluetoothPowerControl
+            )
+        }
+    }
+
+    private var batteryLevelsRow: some View {
+        SettingsToggleRow(
+            symbol: SymbolFallback.name("battery.75percent", "battery.75"),
+            tint: .green,
+            title: localization.string(.settingsBluetoothBatteryLevels),
+            subtitle: localization.string(.settingsBluetoothBatteryLevelsDescription),
+            isOn: $store.showsBluetoothBatteryLevels
+        )
+    }
+
+    @ViewBuilder
+    private var appleDevicesRows: some View {
+        SettingsToggleRow(
+            symbol: "apple.logo",
+            tint: .blue,
+            title: localization.string(.settingsAppleDevicesAndBattery),
+            subtitle: localization.string(.settingsAppleDevicesAndBatteryDescription),
+            isOn: $store.showsAppleDevicesAndBattery
+        )
+
+        if store.showsAppleDevicesAndBattery {
+            SettingsDivider()
+
+            SettingsHintRow(
+                text: localization.string(.settingsAppleBluetoothReadHelp)
+            )
+
+            SettingsDivider()
+
+            SettingsHintRow(text: localization.string(.settingsAppleTrustHelp))
+
+            SettingsDivider()
+
+            SettingsToggleRow(
+                symbol: "arrow.clockwise.circle",
+                tint: .green,
+                title: localization.string(.settingsAppleBackgroundRefresh),
+                subtitle: localization.string(.settingsAppleBackgroundRefreshDescription),
+                isOn: $store.refreshesAppleBatteriesInBackground
+            )
+
+            if store.refreshesAppleBatteriesInBackground {
+                SettingsDivider()
+
+                SettingsRow(
+                    "clock",
+                    tint: .teal,
+                    title: localization.string(.settingsAppleBackgroundRefreshInterval)
+                ) {
+                    HStack(spacing: 8) {
+                        Text(localization.format(
+                            .settingsAppleBackgroundRefreshIntervalValue,
+                            store.appleBatteryRefreshIntervalMinutes
+                        ))
+                        .monospacedDigit()
+                        .font(.system(size: 13, design: .monospaced))
+                        .foregroundStyle(.secondary)
+
+                        Stepper(
+                            "",
+                            value: $store.appleBatteryRefreshIntervalMinutes,
+                            in: SettingsStore.appleBatteryRefreshIntervalMinutesRange
+                        )
+                        .labelsHidden()
+                        .fixedSize()
+                        .accessibilityLabel(localization.string(.settingsAppleBackgroundRefreshInterval))
+                        .accessibilityValue(localization.format(
+                            .settingsAppleBackgroundRefreshIntervalValue,
+                            store.appleBatteryRefreshIntervalMinutes
+                        ))
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var previewsRows: some View {
+        SettingsToggleRow(
+            symbol: "earbuds",
+            tint: .purple,
+            title: localization.string(.settingsBluetoothListeningModeTitle),
+            subtitle: localization.string(.settingsBluetoothListeningModeDescription),
+            isOn: $store.showsBluetoothListeningMode
+        )
+
+        // Preview injection is developer-only, so a packaged release never
+        // offers the synthetic rows.
+        if AppMetadata.isDevelopmentBuild && store.showsBluetoothListeningMode {
+            SettingsDivider()
+
+            SettingsToggleRow(
+                symbol: "eyeglasses",
+                tint: .purple,
+                title: localization.string(.settingsBluetoothListeningModePreview),
+                subtitle: localization.string(.settingsBluetoothListeningModePreviewDescription),
+                isOn: $store.previewsBluetoothListeningMode
+            )
+        }
+
+        if AppMetadata.isDevelopmentBuild
+            && store.showsBluetoothListeningMode
+            && store.previewsBluetoothListeningMode {
+            SettingsDivider()
+
+            DisclosureGroup(isExpanded: $showsPreviewOptions) {
+                SettingsRow(
+                    "character.cursor.ibeam",
+                    tint: .purple,
+                    title: localization.string(.settingsBluetoothListeningModePreviewDeviceName),
+                    subtitle: localization.string(.settingsBluetoothListeningModePreviewDeviceNameDescription)
+                ) {
+                    TextField(
+                        localization.string(.settingsBluetoothListeningModePreviewDeviceName),
+                        text: $store.bluetoothListeningModePreviewDeviceName
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 150)
+                    .labelsHidden()
+                }
+
+                SettingsDivider()
+
+                SettingsRow(
+                    "number.square",
+                    tint: .purple,
+                    title: localization.string(.settingsBluetoothListeningModePreviewDeviceCount),
+                    subtitle: localization.string(.settingsBluetoothListeningModePreviewDeviceCountDescription)
+                ) {
+                    HStack(spacing: 10) {
+                        Text("\(store.bluetoothListeningModePreviewDeviceCount)")
+                            .font(.system(size: 13, design: .monospaced))
+                            .frame(minWidth: 22, alignment: .trailing)
+
+                        Stepper(
+                            localization.string(.settingsBluetoothListeningModePreviewDeviceCount),
+                            value: $store.bluetoothListeningModePreviewDeviceCount,
+                            in: SettingsStore.bluetoothListeningModePreviewDeviceCountRange
+                        )
+                        .labelsHidden()
+                    }
+                }
+
+                SettingsDivider()
+
+                SettingsRow(
+                    SymbolFallback.name("translate", "character.bubble", "globe"),
+                    tint: .purple,
+                    title: localization.string(.settingsBluetoothListeningModePreviewLanguage),
+                    subtitle: localization.string(.settingsBluetoothListeningModePreviewLanguageDescription)
+                ) {
+                    Picker(
+                        localization.string(.settingsBluetoothListeningModePreviewLanguage),
+                        selection: $store.bluetoothListeningModePreviewLanguage
+                    ) {
+                        Text(localization.string(.settingsLanguageFollowSystem))
+                            .tag("")
+
+                        ForEach(AppLanguage.allCases) { lang in
+                            Text(lang.nativeName)
+                                .tag(lang.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .settingsMenuPickerWidth()
+                }
+            } label: {
+                Text(localization.string(.settingsBluetoothListeningModePreviewOptions))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, SettingsMetrics.rowPaddingH)
+            }
         }
     }
 

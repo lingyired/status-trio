@@ -132,4 +132,15 @@ enum AppMetadata {
         let build = infoDictionary["CFBundleVersion"] as? String ?? "1"
         return "\(version) (\(build))"
     }
+
+    /// Just the marketing version, without the build number. The Settings
+    /// sidebar shows this one short line so a long development codename can
+    /// never wrap or truncate there; the About pane keeps the full identity.
+    static var versionShortString: String {
+        versionShortString(from: Bundle.main.infoDictionary ?? [:])
+    }
+
+    static func versionShortString(from infoDictionary: [String: Any]) -> String {
+        infoDictionary["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    }
 }

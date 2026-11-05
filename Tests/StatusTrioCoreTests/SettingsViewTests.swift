@@ -8,7 +8,7 @@ import XCTest
 final class SettingsViewTests: XCTestCase {
     func testSettingsViewDimensionsAndSections() {
         XCTAssertEqual(SettingsView.Section.allCases.count, 9)
-        XCTAssertEqual(SettingsView.sidebarWidth, 190)
+        XCTAssertEqual(SettingsView.sidebarWidth, 196)
         XCTAssertEqual(SettingsView.width, 720)
         XCTAssertEqual(SettingsView.height, 530)
     }
@@ -216,13 +216,15 @@ final class SettingsViewTests: XCTestCase {
         let withoutDeviceOptions = renderAppIconPane(
             store: store,
             statusStore: makeStatusStore(bluetoothDevices: controller),
-            localization: localization
+            localization: localization,
+            subtopic: .appIconMiddleIcon
         )
         store.connectionCenterSource = .bluetoothDevice
         let withDeviceOptions = renderAppIconPane(
             store: store,
             statusStore: makeStatusStore(bluetoothDevices: controller),
-            localization: localization
+            localization: localization,
+            subtopic: .appIconMiddleIcon
         )
 
         XCTAssertGreaterThan(
@@ -337,6 +339,340 @@ final class SettingsViewTests: XCTestCase {
         }
     }
 
+    // MARK: - Two-level navigation
+
+    /// Only the four complex categories expand into leaf subtopics, each in a
+    /// fixed order with exactly one default. The five simple categories stay
+    /// single-pane so the sidebar never grows an empty disclosure.
+    func testOnlyComplexCategoriesExposeOrderedSubtopics() {
+        let expected: [SettingsView.Section: [SettingsSubtopic]] = [
+            .appIcon: [.appIconAppearance, .appIconRing, .appIconMiddleIcon, .appIconBottomIndicator],
+        ]
+
+        for section in SettingsView.Section.allCases {
+            let subtopics = SettingsSubtopic.allCases.filter { $0.section == section }
+            if let expected = expected[section] {
+                XCTAssertEqual(subtopics, expected, "Unexpected subtopics for \(section)")
+                XCTAssertEqual(
+                    subtopics.filter { $0.isDefault }.count,
+                    1,
+                    "\(section) must have exactly one default subtopic"
+                )
+                XCTAssertEqual(
+                    subtopics.first,
+                    subtopics.first(where: { $0.isDefault }),
+                    "\(section) should open to its default subtopic first"
+                )
+            } else {
+                XCTAssertTrue(subtopics.isEmpty, "\(section) must stay single-pane")
+            }
+        }
+    }
+
+    /// Every leaf title must resolve in every shipped language, mirroring the
+    /// category titles. The titles reuse existing group keys, so this also
+    /// guards against a subtopic pointing at a missing localization key.
+    func testSubtopicTitlesLocalizedForAllLanguages() {
+        let name = "StatusTrioCoreTests.SettingsViewTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name) ?? .standard
+        defer { defaults.removeTestSuite(named: name) }
+
+        for lang in AppLanguage.allCases {
+            let localization = Localization(defaults: defaults, preferredLanguages: [lang.rawValue])
+            for subtopic in SettingsSubtopic.allCases {
+                let title = subtopic.title(localization)
+                XCTAssertFalse(
+                    title.isEmpty,
+                    "Subtopic \(subtopic) title should not be empty for \(lang)"
+                )
+            }
+        }
+    }
+
+    /// Each leaf renders on its own without crashing, so a page split cannot
+    /// produce an empty or broken pane.
+    func testEverySubtopicPaneRendersWithoutCrashing() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let localization = Localization(defaults: suite.defaults, preferredLanguages: ["en"])
+        let store = SettingsStore(defaults: suite.defaults)
+        let statusStore = makeStatusStore()
+        let isDark = Binding.constant(true)
+
+        for subtopic in SettingsSubtopic.allCases {
+            let pane: AnyView
+            switch subtopic.section {
+            case .appIcon:
+                pane = AnyView(AppIconSectionView(
+                    store: store,
+                    statusStore: statusStore,
+                    previewIsDark: isDark,
+                    onShowIconGuide: {},
+                    subtopic: subtopic
+                ))
+            case .battery:
+                pane = AnyView(BatterySectionView(
+                    store: store,
+                    statusStore: statusStore,
+                    previewIsDark: isDark,
+                    subtopic: subtopic
+                ))
+            case .audio:
+                pane = AnyView(AudioSectionView(
+                    store: store,
+                    statusStore: statusStore,
+                    previewIsDark: isDark,
+                    subtopic: subtopic
+                ))
+            case .bluetooth:
+                pane = AnyView(BluetoothSectionView(
+                    store: store,
+                    statusStore: statusStore,
+                    bluetoothDevices: statusStore.bluetoothDevices,
+                    appleDeviceDiscovery: statusStore.appleDeviceDiscovery,
+                    previewIsDark: isDark,
+                    subtopic: subtopic
+                ))
+            default:
+                pane = AnyView(EmptyView())
+            }
+
+            let hostingView = NSHostingView(
+                rootView: pane
+                    .environmentObject(localization)
+                    .environmentObject(ChargingEffectClock())
+            )
+            hostingView.frame = NSRect(
+                x: 0,
+                y: 0,
+                width: SettingsView.width - SettingsView.sidebarWidth,
+                height: SettingsView.height
+            )
+            hostingView.layoutSubtreeIfNeeded()
+
+            XCTAssertNotNil(hostingView.subviews, "\(subtopic) pane should host")
+        }
+    }
+
+    /// The sidebar and detail keep a two-level structure: one expandable
+    /// category at a time, leaf selection only, and each complex pane receives
+    /// its subtopic. This guards the navigation shape against drifting back to
+    /// a flat list or to an un-routed full pane.
+    func testSidebarAndDetailRouteTwoLevelNavigation() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+
+        let view = try String(
+            contentsOf: base.appendingPathComponent("SettingsView.swift"),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(view.contains("expandedSection"))
+        XCTAssertTrue(view.contains("selectSubtopic("))
+        XCTAssertTrue(view.contains("subtopicRow("))
+        XCTAssertTrue(view.contains("subtopicIfSelectionMatches"))
+
+        for section in ["appIcon", "battery", "audio", "bluetooth"] {
+            XCTAssertTrue(
+                view.contains("subtopic: subtopicIfSelectionMatches(.\(section))"),
+                "\(section) detail must receive its routed subtopic"
+            )
+        }
+        // The refactor must not replace the window's two-column layout with a
+        // third column or a nested split view.
+        XCTAssertFalse(view.contains("NavigationSplitView"))
+    }
+
+    /// Plan B sidebar: every category carries one monochrome glyph, leaves are
+    /// text only, expandable parents expose a chevron, and the selection stays
+    /// restrained (light accent in the key window, unemphasized when inactive).
+    func testSidebarUsesColoredTilesAndTextOnlyLeaves() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+
+        let view = try String(
+            contentsOf: base.appendingPathComponent("SettingsView.swift"),
+            encoding: .utf8
+        )
+        let chrome = try String(
+            contentsOf: base.appendingPathComponent("SettingsChrome.swift"),
+            encoding: .utf8
+        )
+
+        // A category renders the coloured System-Settings-style tile.
+        XCTAssertTrue(view.contains("SettingsIcon("))
+        XCTAssertTrue(view.contains("tint: section.tint"))
+        XCTAssertFalse(view.contains("SettingsSidebarGlyph(glyph: section.glyph)"))
+
+        // Expandable parents carry a state chevron that rotates while expanding.
+        XCTAssertTrue(view.contains("chevron.right"))
+        XCTAssertTrue(view.contains("rotationEffect(.degrees(isExpanded ? 90 : 0))"))
+
+        // Selection is semantic and weakened when the window is not key.
+        XCTAssertTrue(view.contains("controlActiveState"))
+        XCTAssertTrue(view.contains("unemphasizedSelectedContentBackgroundColor"))
+        XCTAssertTrue(view.contains("activeSelectionOpacity"))
+
+        // The leaf row is text only: no glyph and no image inside it.
+        let leafStart = try XCTUnwrap(view.range(of: "private func subtopicRow"))
+        let detailStart = try XCTUnwrap(view.range(of: "// MARK: - Detail"))
+        let leafBody = view[leafStart.lowerBound..<detailStart.lowerBound]
+        XCTAssertFalse(leafBody.contains("SettingsSidebarGlyph"))
+        XCTAssertFalse(leafBody.contains("SettingsIcon"))
+        XCTAssertFalse(leafBody.contains("Image(systemName"))
+
+        // The About row shows a short single-line version, not the codename
+        // block that used to wrap and truncate.
+        XCTAssertTrue(view.contains("versionShortString"))
+        // The codename still lives in the About tooltip and identity pane; it
+        // must not be rendered as a wrapped sidebar line.
+        XCTAssertTrue(view.contains("aboutSidebarDetail("))
+
+        // Visual numbers live in one place, not scattered through the view.
+        XCTAssertTrue(chrome.contains("enum SettingsSidebarMetrics"))
+        XCTAssertTrue(view.contains("SettingsSidebarMetrics.subtopicIndent"))
+        XCTAssertTrue(view.contains("SettingsSidebarMetrics.categoryRowHeight"))
+    }
+
+    /// Each feature pane offers a quick "show this module in the status panel"
+    /// toggle, like the Bluetooth pane's existing one.
+    func testEachFeaturePaneHasQuickStatusPanelToggle() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+        let expected: [(String, String)] = [
+            ("BatterySectionView.swift", "settingsPanelShowBattery"),
+            ("NetworkSectionView.swift", "settingsPanelShowNetwork"),
+            ("AudioSectionView.swift", "settingsPanelShowAudio"),
+            ("BrightnessSectionView.swift", "settingsPanelShowBrightness"),
+        ]
+        for (file, key) in expected {
+            let source = try String(
+                contentsOf: base.appendingPathComponent(file),
+                encoding: .utf8
+            )
+            XCTAssertTrue(source.contains(key), "\(file) should offer \(key)")
+            XCTAssertTrue(source.contains("setPopupSection"), "\(file) toggle must route through the store")
+        }
+    }
+
+    /// Every icon-affecting feature pane shows the same live status-icon preview
+    /// bar, so the top of the pane is consistent across categories.
+    func testIconAffectingPanesShowLivePreviewBar() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+        for file in [
+            "AppIconSectionView.swift", "BatterySectionView.swift",
+            "NetworkSectionView.swift", "BluetoothSectionView.swift",
+            "AudioSectionView.swift",
+        ] {
+            let source = try String(
+                contentsOf: base.appendingPathComponent(file),
+                encoding: .utf8
+            )
+            XCTAssertTrue(
+                source.contains("StatusIconPreviewCard"),
+                "\(file) should pin the live preview bar"
+            )
+        }
+    }
+
+    /// The visual parameters stay within the Compact Native Sidebar values
+    /// requested for this design, and the sidebar width is 196 pt.
+    func testSidebarMetricsMatchTheRequestedDesign() {
+        XCTAssertEqual(SettingsView.sidebarWidth, 196)
+        XCTAssertEqual(SettingsSidebarMetrics.categoryRowHeight, 32)
+        XCTAssertEqual(SettingsSidebarMetrics.subtopicRowHeight, 26)
+        XCTAssertTrue((16...18).contains(SettingsSidebarMetrics.iconPointSize))
+        XCTAssertTrue((16...18).contains(SettingsSidebarMetrics.iconSlotWidth))
+        XCTAssertEqual(SettingsSidebarMetrics.categoryFontSize, 13)
+        XCTAssertEqual(SettingsSidebarMetrics.subtopicFontSize, 12)
+        XCTAssertTrue((2...4).contains(SettingsSidebarMetrics.categoryGroupSpacing))
+        // Leaf text must line up on the same vertical column as the parent text.
+        let categoryTextX = SettingsSidebarMetrics.horizontalPadding
+            + SettingsSidebarMetrics.rowHorizontalPadding
+            + SettingsSidebarMetrics.tileSize
+            + SettingsSidebarMetrics.iconTextSpacing
+        let leafTextX = SettingsSidebarMetrics.horizontalPadding
+            + SettingsSidebarMetrics.subtopicIndent
+            + SettingsSidebarMetrics.subtopicRowHorizontalPadding
+        XCTAssertEqual(leafTextX, categoryTextX)
+        XCTAssertEqual(SettingsSidebarMetrics.subtopicCornerRadius, 6)
+        XCTAssertEqual(SettingsSidebarMetrics.categoryCornerRadius, 6)
+        XCTAssertTrue((0.16...0.18).contains(SettingsSidebarMetrics.expandAnimationDuration))
+    }
+
+    /// The sidebar keeps its app-wide panes pinned below a divider, scrolls only
+    /// the functional group, and reveals the active row.
+    func testSidebarPinsAppWideGroupAndRevealsSelection() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+
+        let view = try String(
+            contentsOf: base.appendingPathComponent("SettingsView.swift"),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(view.contains("scrollableSections"))
+        XCTAssertTrue(view.contains("pinnedSections"))
+        XCTAssertTrue(view.contains("ScrollViewReader"))
+        XCTAssertTrue(view.contains("revealSelection"))
+        XCTAssertTrue(view.contains(".onChange(of: navigation.selectedSubtopic)"))
+        XCTAssertTrue(view.contains("separatorColor"))
+    }
+
+
+    /// The Bluetooth settings-demand token is owned by the category container,
+    /// never by the content builder. Bluetooth is a single pane now, so there
+    /// is no leaf switch — but the pane body must still not start or stop the
+    /// demand itself, so the listener is not rebuilt.
+    func testBluetoothSettingsDemandStaysOnTheCategoryContainer() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+
+        let bluetooth = try String(
+            contentsOf: base.appendingPathComponent("BluetoothSectionView.swift"),
+            encoding: .utf8
+        )
+
+        func occurrences(of needle: String) -> Int {
+            bluetooth.components(separatedBy: needle).count - 1
+        }
+
+        XCTAssertEqual(occurrences(of: "beginBluetoothSettingsDemand("), 1)
+        // One balanced end in `onAppear` (defensive re-entry) and one in
+        // `onDisappear`.
+        XCTAssertEqual(occurrences(of: "endBluetoothSettingsDemand("), 2)
+
+        // The container owns the lifecycle; the content builder must not.
+        XCTAssertFalse(bluetooth.contains("bluetoothSubpage"))
+        let contentRange = try XCTUnwrap(bluetooth.range(of: "private var fullBluetoothContent"))
+        let tail = bluetooth[contentRange.lowerBound...]
+        let groupRange = try XCTUnwrap(tail.range(of: "private var deviceListGroup"))
+        let contentBody = tail[..<groupRange.lowerBound]
+        XCTAssertFalse(contentBody.contains("beginBluetoothSettingsDemand("))
+        XCTAssertFalse(contentBody.contains("onAppear"))
+        XCTAssertFalse(contentBody.contains("onDisappear"))
+    }
+
     /// #245/#256: the volume-scroll switch and its effect scope stay on the
     /// Audio pane, while the shared scroll direction (used by volume, brightness
     /// and input sliders) lives on the status-panel pane. Guard the split at the
@@ -369,6 +705,17 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(popover.contains("settingsPopupVolumeScrollDirection"))
         XCTAssertTrue(popover.contains("settingsPopupVolumeScrollNatural"))
         XCTAssertTrue(popover.contains("popupVolumeNaturalScrolling"))
+
+        // Audio is a single pane now: the volume-scroll group sits on the same
+        // page as the device groups, so no leaf switch exists any more.
+        XCTAssertFalse(audio.contains("audioSubpage"))
+        let audioBodyStart = try XCTUnwrap(audio.range(of: "private var fullAudioContent"))
+        let audioBody = audio[audioBodyStart.lowerBound...]
+        XCTAssertTrue(audioBody.contains("volumeScrollGroup"))
+        XCTAssertTrue(audioBody.contains("displayRulesGroup"))
+        XCTAssertTrue(audioBody.contains("deviceOrderGroup"))
+        XCTAssertTrue(audioBody.contains("inputDeviceOrderGroup"))
+        XCTAssertTrue(audioBody.contains("externalVolumeGroup"))
         XCTAssertFalse(
             popover.contains("popupScrollAdjustsVolume"),
             "the panel pane must not own the volume-scroll switch"
@@ -499,13 +846,15 @@ private enum SettingsBluetoothTestFactory {
 private func renderAppIconPane(
     store: SettingsStore,
     statusStore: SystemStatusStore,
-    localization: Localization
+    localization: Localization,
+    subtopic: SettingsSubtopic? = nil
 ) -> NSSize {
     let pane = AppIconSectionView(
         store: store,
         statusStore: statusStore,
         previewIsDark: .constant(true),
-        onShowIconGuide: {}
+        onShowIconGuide: {},
+        subtopic: subtopic
     )
     .environmentObject(localization)
     .environmentObject(ChargingEffectClock())
@@ -526,7 +875,8 @@ private func renderBluetoothPane(
     store: SettingsStore,
     storeController: BluetoothDeviceController,
     observedController: BluetoothDeviceController,
-    localization: Localization
+    localization: Localization,
+    subtopic: SettingsSubtopic? = nil
 ) -> NSSize {
     let statusStore = SystemStatusStore(
         batteryMonitor: DummyBatteryMonitor(),
@@ -539,7 +889,8 @@ private func renderBluetoothPane(
         statusStore: statusStore,
         bluetoothDevices: observedController,
         appleDeviceDiscovery: statusStore.appleDeviceDiscovery,
-        previewIsDark: .constant(true)
+        previewIsDark: .constant(true),
+        subtopic: subtopic
     )
     .environmentObject(localization)
     .environmentObject(ChargingEffectClock())
