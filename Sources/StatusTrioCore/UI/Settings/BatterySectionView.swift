@@ -547,10 +547,16 @@ struct BatterySectionView: View {
                     }
                 }
             }
+            SettingsDivider()
             Text(localization.string(.settingsBatteryPowerFlowDescription))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // Give the trailing note its own row padding so it is never
+                // clipped by the card's bottom edge.
+                .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                .padding(.vertical, SettingsMetrics.rowPaddingV)
         }
     }
 
