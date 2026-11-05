@@ -174,3 +174,28 @@ Not run, and not claimed:
   behaviour with a candidate window open, sleep/wake and display changes;
 - macOS 13, 15 and 26 devices. The package still targets macOS 13 and compiles
   against it; only the local macOS 27 machine was exercised.
+
+## English layout letter case (#279)
+
+`InputSourceDescriptor.applying(_:)` turns an explicit English keyboard layout
+(ABC, US, US Extended, British, Australian, Canadian, Irish, Dvorak, Colemak)
+into the drawing descriptor `a`/`A`; the source list keeps the original
+descriptor and selection identity. The case rule is `Caps Lock XOR Shift`:
+neither or both are lowercase, exactly one is uppercase. The system icon URL is
+cleared for these layouts so a shipped icon cannot cover the letter.
+
+`SystemInputSourceModifierObserver` listens only to `.flagsChanged` (never
+keyDown/keyUp and never character data), snapshots `NSEvent.modifierFlags` when
+monitoring starts, application activation, and wake, drops duplicate values, and
+removes both the local and global monitors on stop. It never asks for
+Accessibility/Input Monitoring, creates an event tap, polls, or suppresses
+input. Menu Bar, Dock and the live settings preview receive the same
+`InputSourceState.iconDescriptor`.
+
+Limitation / NOT RUN: AppKit documents that a *global* monitor for key-related
+events can require Accessibility. `.flagsChanged` may receive such an exemption
+in practice, but that is not proven on a clean TCC database. If the global
+monitor is unavailable, changes are still picked up while Status Trio is active
+and at activation/wake; a background app's Caps Lock change may not refresh
+until then. Real Ventura/current-macOS, no-grant, other-app-foreground,
+left/right Shift and external-keyboard behavior remain **NOT RUN**.
