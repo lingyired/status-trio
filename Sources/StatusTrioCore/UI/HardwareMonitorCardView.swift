@@ -212,23 +212,25 @@ private struct HardwareMonitorProgressTrack: View {
         }
         .frame(height: 3)
         .accessibilityHidden(true)
-        .onAppear { updateProgress(animated: false) }
+        .onAppear { updateProgress(presentation, animated: false) }
         .onDisappear { previous = nil }
         // The single-argument overload keeps the macOS 13 deployment contract.
+        // Use the value the modifier hands us: inside `updateProgress`, `self`
+        // can still be the pre-change view, which made the bar stay grey until
+        // the next sensor tick after reopening the panel.
         .onChange(of: presentation) { current in
-            updateProgress(animated: HardwareMetricTilePresentation.shouldAnimateProgress(
+            updateProgress(current, animated: HardwareMetricTilePresentation.shouldAnimateProgress(
                 from: previous, to: current, reduceMotion: reduceMotion
             ))
         }
-        .onChange(of: reduceMotion) { _ in updateProgress(animated: false) }
     }
 
-    private func updateProgress(animated: Bool) {
+    private func updateProgress(_ current: HardwareMetricTilePresentation, animated: Bool) {
         var transaction = Transaction(animation: animated ? .linear(duration: 0.2) : nil)
         transaction.disablesAnimations = !animated
         withTransaction(transaction) {
-            displayedProgress = presentation.progress ?? 0
+            displayedProgress = current.progress ?? 0
         }
-        previous = presentation
+        previous = current
     }
 }
