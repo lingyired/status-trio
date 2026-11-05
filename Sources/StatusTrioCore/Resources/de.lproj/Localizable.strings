@@ -100,7 +100,7 @@
 "settings.bluetooth.batteryLevels" = "Bluetooth-Batteriestände anzeigen";
 "settings.bluetooth.batteryLevelsDescription" = "Liest AirPods-Batteriestände, während der Bluetooth-Eintrag sichtbar ist. Es wird keine zusätzliche Berechtigung angefragt.";
 "settings.bluetooth.listeningModeTitle" = "Hörmodus-Steuerung anzeigen";
-"settings.bluetooth.listeningModeDescription" = "Zeigt Kapseln für Geräuschunterdrückung/Transparenz/Aus auf verbundenen AirPods und einigen HUAWEI-Kopfhörern an. Nur manche HUAWEI-Modelle werden unterstützt; schlägt eine Umschaltung fehl, wird der vorherige Modus wiederhergestellt.";
+"settings.bluetooth.listeningModeDescription" = "Unterstützt AirPods und einige HUAWEI-Kopfhörer: Zeigt Kapseln für Geräuschunterdrückung/Transparenz/Aus auf verbundenen Geräten an. Nur manche HUAWEI-Modelle werden unterstützt; schlägt ein Wechsel fehl, wird der vorherige Modus wiederhergestellt.";
 "settings.bluetooth.listeningModePreview" = "Hörmodus-Umschaltung Vorschau anzeigen";
 "settings.bluetooth.listeningModePreviewDescription" = "Die Vorschau fügt nur synthetische Zeilen für UI-Tests hinzu; das Umschalten einer Vorschauzeile ändert nie deine Kopfhörer. Echte Gerätezeilen, auch HUAWEI, funktionieren weiterhin nach der jeweiligen Geräteunterstützung: Nur einige HUAWEI-Modelle werden unterstützt, und bei einem fehlgeschlagenen Wechsel wird der vorherige Modus wiederhergestellt.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Vorschau-Gerätename";

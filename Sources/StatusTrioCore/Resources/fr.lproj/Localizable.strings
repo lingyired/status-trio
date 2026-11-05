@@ -100,7 +100,7 @@
 "settings.bluetooth.batteryLevels" = "Afficher les niveaux de batterie Bluetooth";
 "settings.bluetooth.batteryLevelsDescription" = "Lit les niveaux de batterie des AirPods lorsque l’entrée Bluetooth est affichée. Aucune autorisation supplémentaire n’est demandée.";
 "settings.bluetooth.listeningModeTitle" = "Afficher les contrôles du mode d’écoute";
-"settings.bluetooth.listeningModeDescription" = "Affiche des pastilles de réduction de bruit/transparence/désactivé sur les AirPods connectés et certains casques HUAWEI. Seuls certains modèles HUAWEI sont pris en charge ; si un changement échoue, le mode précédent est restauré.";
+"settings.bluetooth.listeningModeDescription" = "Prend en charge les AirPods et certains casques HUAWEI : affiche les pastilles de réduction de bruit/transparence/désactivé sur les appareils connectés. Seuls certains modèles HUAWEI sont pris en charge ; si un changement échoue, le mode précédent est restauré.";
 "settings.bluetooth.listeningModePreview" = "Aperçu du sélecteur de mode d'écoute";
 "settings.bluetooth.listeningModePreviewDescription" = "L’aperçu ajoute uniquement des lignes synthétiques pour tester l’interface ; basculer une ligne d’aperçu ne modifie jamais votre casque. Les lignes d’appareils réels, y compris HUAWEI, fonctionnent toujours selon la prise en charge de chaque appareil : seuls certains modèles HUAWEI sont pris en charge, et un changement échoué rétablit le mode précédent.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Nom du périphérique d'aperçu";

@@ -100,7 +100,7 @@
 "settings.bluetooth.batteryLevels" = "Mostra i livelli batteria Bluetooth";
 "settings.bluetooth.batteryLevelsDescription" = "Legge i livelli batteria degli AirPods mentre la voce Bluetooth è visibile. Non viene richiesta un’autorizzazione aggiuntiva.";
 "settings.bluetooth.listeningModeTitle" = "Mostra i controlli della modalità di ascolto";
-"settings.bluetooth.listeningModeDescription" = "Mostra le capsule di cancellazione del rumore/trasparenza/spento sugli AirPods collegati e su alcune cuffie HUAWEI. Solo alcuni modelli HUAWEI sono supportati; se una modifica fallisce, viene ripristinata la modalità precedente.";
+"settings.bluetooth.listeningModeDescription" = "Supporta AirPods e alcune cuffie HUAWEI: mostra le capsule di cancellazione del rumore/trasparenza/spento sui dispositivi collegati. Solo alcuni modelli HUAWEI sono supportati; se un cambio non riesce, viene ripristinata la modalità precedente.";
 "settings.bluetooth.listeningModePreview" = "Anteprima del selettore modalità di ascolto";
 "settings.bluetooth.listeningModePreviewDescription" = "L'anteprima aggiunge solo righe sintetiche per testare l'interfaccia; cambiare una riga di anteprima non modifica mai le cuffie. Le righe dei dispositivi reali, inclusi HUAWEI, continuano a funzionare in base al supporto di ciascun dispositivo: solo alcuni modelli HUAWEI sono supportati e, se un cambio fallisce, viene ripristinata la modalità precedente.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Nome dispositivo anteprima";

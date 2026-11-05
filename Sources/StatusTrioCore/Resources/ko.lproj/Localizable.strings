@@ -100,7 +100,7 @@
 "settings.bluetooth.batteryLevels" = "Bluetooth 배터리 잔량 표시";
 "settings.bluetooth.batteryLevelsDescription" = "Bluetooth 항목이 표시되는 동안 AirPods 배터리 잔량을 읽습니다. 추가 권한 요청은 표시되지 않습니다.";
 "settings.bluetooth.listeningModeTitle" = "청취 모드 컨트롤 표시";
-"settings.bluetooth.listeningModeDescription" = "연결된 AirPods와 일부 HUAWEI 헤드폰에 노이즈 캔슬링/투명/꺼짐 단추를 표시합니다. HUAWEI는 일부 모델만 지원하며, 전환에 실패하면 원래 모드로 복원됩니다.";
+"settings.bluetooth.listeningModeDescription" = "AirPods와 일부 HUAWEI 헤드폰을 지원합니다: 연결된 기기에 노이즈 캔슬링/투명/꺼짐 단추를 표시합니다. HUAWEI는 일부 모델만 지원하며 전환에 실패하면 원래 모드로 복원됩니다.";
 "settings.bluetooth.listeningModePreview" = "청취 모드 전환 미리보기";
 "settings.bluetooth.listeningModePreviewDescription" = "미리보기는 인터페이스 테스트용 합성 행만 추가하며, 미리보기 행을 전환해도 헤드폰은 변경되지 않습니다. 실제 기기 행(HUAWEI 포함)은 각 기기의 지원에 따라 계속 동작합니다. HUAWEI는 일부 모델만 지원하며, 전환에 실패하면 원래 모드로 복원됩니다.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "미리보기 기기 이름";
