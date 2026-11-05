@@ -389,6 +389,40 @@ final class HardwareMetricsServiceTests: XCTestCase {
         service.stopAll()
     }
 
+    func testCollectingFirstTickAfterReopenDoesNotEraseCachedCPU() async {
+        let clock = Clock()
+        var measured = HardwareMetricsSnapshot.empty
+        measured.samples[.cpuUsage] = .init(value: 42, unit: .percent, sampledAt: clock.date,
+                                            source: .mach, availability: .measured)
+        var collecting = HardwareMetricsSnapshot.empty
+        collecting.samples[.cpuUsage] = .init(unit: .percent, source: .mach,
+                                              availability: .collecting)   // baseline rebuild
+        var fresh = HardwareMetricsSnapshot.empty
+        fresh.samples[.cpuUsage] = .init(value: 55, unit: .percent, sampledAt: clock.date,
+                                         source: .mach, availability: .measured)
+        let scripted = ScriptedReader([measured, collecting, fresh])
+        let service = HardwareMetricsService(automaticScheduling: false,
+                                             now: { clock.date },
+                                             reader: scripted.reader())
+        service.begin(.panel, metrics: [.cpuUsage])
+        await awaitSettledUntil(service) { scripted.calls >= 1 }
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.value, 42)
+
+        service.end(.panel)
+        clock.advance(30)
+        service.begin(.panel, metrics: [.cpuUsage])
+        await awaitSettledUntil(service) { scripted.calls >= 2 }
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.value, 42,
+                       "the baseline-rebuild tick must not wipe the cached CPU reading")
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.availability, .stale)
+
+        clock.advance(2)
+        service.refreshIfNeeded(forceFamilies: [])
+        await awaitSettledUntil(service) { scripted.calls >= 3 }
+        XCTAssertEqual(service.observable.snapshot.cpuUsage.value, 55)
+        service.stopAll()
+    }
+
     func testExpiredSnapshotHidesMeasuredValueAndProgressNeverFabricatesUnknown() {
         let sample = HardwareMetricSample(value: 65, unit: .celsius,
                                           sampledAt: Date(timeIntervalSince1970: 0),

@@ -81,7 +81,8 @@ final class HardwareMetricsService: ObservableObject {
         generation &+= 1
         if !isRunning {
             isRunning = true
-            needReaderReset = true
+            // Keep the CPU tick baseline across a close/reopen so the first
+            // frame can still produce a usage delta instead of "collecting".
             lastRead.removeAll()
         }
         // Age the retained frame against the current clock so a long-closed
@@ -139,7 +140,6 @@ final class HardwareMetricsService: ObservableObject {
         isRunning = false
         loopTask?.cancel()
         loopTask = nil
-        needReaderReset = true
         lastRead.removeAll()
         forcedIDs.removeAll()
         observable.markStale(now: now())
@@ -207,14 +207,37 @@ final class HardwareMetricsService: ObservableObject {
             }
             var merged = self.observable.snapshot
             let includesFans = due.contains { if case .fanRPM = $0 { return true }; return false }
+            var previousFanSamples: [HardwareMetricID: HardwareMetricSample] = [:]
             if includesFans {
+                previousFanSamples = merged.samples.filter { if case .fanRPM = $0.key { return true }; return false }
                 merged.samples = merged.samples.filter { if case .fanRPM = $0.key { return false }; return true }
                 if let fanCount = snapshot.fanCount {
                     merged.fanCount = fanCount
                 }
             }
             for (id, sample) in snapshot.samples where self.isRequested(id) {
+                if sample.availability == .collecting, sample.value == nil,
+                   let existing = merged.samples[id],
+                   existing.availability == .measured
+                    || (existing.availability == .stale && existing.value != nil) {
+                    // The CPU baseline rebuilds after a long gap; keep the cached
+                    // reading rather than flashing "—" for this first tick.
+                    continue
+                }
                 merged.samples[id] = sample
+            }
+            if includesFans {
+                // A transient SMC miss must not blank a fan that was reporting a
+                // moment ago; keep the cached reading until a real value arrives.
+                for (id, old) in previousFanSamples where merged.samples[id] == nil {
+                    merged.samples[id] = old
+                }
+            }
+            if includesFans, let count = snapshot.fanCount ?? merged.fanCount {
+                merged.samples = merged.samples.filter { id, _ in
+                    if case let .fanRPM(index) = id { return index < count }
+                    return true
+                }
             }
             self.observable.update(merged, now: self.now())
             self.refreshIfNeeded(forceFamilies: [])
