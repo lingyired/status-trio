@@ -490,7 +490,7 @@ final class SettingsViewTests: XCTestCase {
     /// Plan B sidebar: every category carries one monochrome glyph, leaves are
     /// text only, expandable parents expose a chevron, and the selection stays
     /// restrained (light accent in the key window, unemphasized when inactive).
-    func testSidebarUsesMonochromeGlyphsAndTextOnlyLeaves() throws {
+    func testSidebarUsesColoredTilesAndTextOnlyLeaves() throws {
         let base = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -506,9 +506,10 @@ final class SettingsViewTests: XCTestCase {
             encoding: .utf8
         )
 
-        // A category renders the monochrome sidebar glyph, not the colored tile.
-        XCTAssertTrue(view.contains("SettingsSidebarGlyph(glyph: section.glyph)"))
-        XCTAssertFalse(view.contains("SettingsIcon(glyph: section.glyph"))
+        // A category renders the coloured System-Settings-style tile.
+        XCTAssertTrue(view.contains("SettingsIcon("))
+        XCTAssertTrue(view.contains("tint: section.tint"))
+        XCTAssertFalse(view.contains("SettingsSidebarGlyph(glyph: section.glyph)"))
 
         // Expandable parents carry a state chevron that rotates while expanding.
         XCTAssertTrue(view.contains("chevron.right"))
@@ -524,6 +525,7 @@ final class SettingsViewTests: XCTestCase {
         let detailStart = try XCTUnwrap(view.range(of: "// MARK: - Detail"))
         let leafBody = view[leafStart.lowerBound..<detailStart.lowerBound]
         XCTAssertFalse(leafBody.contains("SettingsSidebarGlyph"))
+        XCTAssertFalse(leafBody.contains("SettingsIcon"))
         XCTAssertFalse(leafBody.contains("Image(systemName"))
 
         // The About row shows a short single-line version, not the codename
@@ -537,25 +539,6 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(chrome.contains("enum SettingsSidebarMetrics"))
         XCTAssertTrue(view.contains("SettingsSidebarMetrics.subtopicIndent"))
         XCTAssertTrue(view.contains("SettingsSidebarMetrics.categoryRowHeight"))
-    }
-
-    /// Sidebar glyphs use outline variants and a gentle per-glyph optical
-    /// scale, so a filled speaker/gear/info no longer reads heavier than a
-    /// thin battery/wifi and the icon column looks like one size.
-    func testSidebarGlyphsAreOpticallyNormalized() {
-        for section in SettingsView.Section.allCases {
-            if case .symbol(let name) = section.glyph {
-                XCTAssertFalse(
-                    name.hasSuffix(".fill"),
-                    "\(section) should use an outline glyph for even weight"
-                )
-            }
-            let scale = SettingsSidebarMetrics.opticalScale(for: section.glyph)
-            XCTAssertTrue(
-                (0.9...1.2).contains(scale),
-                "\(section) optical scale \(scale) should stay gentle"
-            )
-        }
     }
 
     /// The visual parameters stay within the Compact Native Sidebar values
@@ -572,7 +555,7 @@ final class SettingsViewTests: XCTestCase {
         // Leaf text must line up on the same vertical column as the parent text.
         let categoryTextX = SettingsSidebarMetrics.horizontalPadding
             + SettingsSidebarMetrics.rowHorizontalPadding
-            + SettingsSidebarMetrics.iconSlotWidth
+            + SettingsSidebarMetrics.tileSize
             + SettingsSidebarMetrics.iconTextSpacing
         let leafTextX = SettingsSidebarMetrics.horizontalPadding
             + SettingsSidebarMetrics.subtopicIndent

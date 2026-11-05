@@ -41,23 +41,38 @@ struct SettingsView: View {
 
         var id: String { rawValue }
 
-        /// The monochrome mark the sidebar row carries.
+        /// The mark the sidebar tile carries.
         ///
-        /// Every symbol uses its outline (non-`.fill`) variant so filled and
-        /// outlined glyphs carry the same visual weight; `SettingsSidebarGlyph`
-        /// then applies a small per-glyph optical scale. Bluetooth has no SF
-        /// Symbol on any release, so its row keeps the project's custom rune.
+        /// Bluetooth has no SF Symbol on any release, so its tile draws the
+        /// rune. Audio borrows the speaker the Audio page's own rows use, so
+        /// the sidebar and the page it opens agree on one glyph.
         var glyph: SettingsGlyph {
             switch self {
             case .appIcon: return .symbol("macwindow.on.rectangle")
             case .battery: return .symbol(SymbolFallback.name("battery.100percent", "battery.100"))
             case .network: return .symbol("wifi")
             case .bluetooth: return .bluetoothRune
-            case .audio:   return .symbol("speaker.wave.3")
-            case .brightness: return .symbol(SymbolFallback.name("sun.max", "sun.max.fill"))
+            case .audio:   return .symbol("speaker.wave.3.fill")
+            case .brightness: return .symbol(SymbolFallback.name("sun.max.fill", "sun.max"))
             case .popover: return .symbol("list.bullet.rectangle")
-            case .general: return .symbol("gearshape")
-            case .about:   return .symbol("info.circle")
+            case .general: return .symbol("gearshape.fill")
+            case .about:   return .symbol("info.circle.fill")
+            }
+        }
+
+        /// The tile colour for the coloured sidebar icon, matching the old
+        /// System-Settings-style sidebar (one hue per category).
+        var tint: Color {
+            switch self {
+            case .appIcon: return .indigo
+            case .battery: return .green
+            case .network: return .blue
+            case .bluetooth: return .blue
+            case .audio:   return .cyan
+            case .brightness: return .orange
+            case .popover: return .purple
+            case .general: return .gray
+            case .about:   return .orange
             }
         }
 
@@ -242,7 +257,11 @@ struct SettingsView: View {
             select(section)
         } label: {
             HStack(alignment: .center, spacing: SettingsSidebarMetrics.iconTextSpacing) {
-                SettingsSidebarGlyph(glyph: section.glyph)
+                SettingsIcon(
+                    glyph: section.glyph,
+                    tint: section.tint,
+                    size: SettingsSidebarMetrics.tileSize
+                )
 
                 Text(section.title(localization))
                     .font(.system(

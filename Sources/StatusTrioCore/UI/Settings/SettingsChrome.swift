@@ -117,20 +117,24 @@ enum SettingsGlyph: Equatable {
 struct SettingsIcon: View {
     let glyph: SettingsGlyph
     var tint: Color = .accentColor
+    /// Side length of the tinted tile. Defaults to the settings-row size; the
+    /// sidebar passes a smaller value to stay compact.
+    var size: CGFloat = SettingsMetrics.iconSize
 
-    init(glyph: SettingsGlyph, tint: Color = .accentColor) {
+    init(glyph: SettingsGlyph, tint: Color = .accentColor, size: CGFloat = SettingsMetrics.iconSize) {
         self.glyph = glyph
         self.tint = tint
+        self.size = size
     }
 
-    init(symbol: String, tint: Color = .accentColor) {
-        self.init(glyph: .symbol(symbol), tint: tint)
+    init(symbol: String, tint: Color = .accentColor, size: CGFloat = SettingsMetrics.iconSize) {
+        self.init(glyph: .symbol(symbol), tint: tint, size: size)
     }
 
     var body: some View {
-        RoundedRectangle(cornerRadius: SettingsMetrics.iconCorner, style: .continuous)
+        RoundedRectangle(cornerRadius: size * 0.25, style: .continuous)
             .fill(tint.gradient)
-            .frame(width: SettingsMetrics.iconSize, height: SettingsMetrics.iconSize)
+            .frame(width: size, height: size)
             .overlay(mark.foregroundStyle(.white))
     }
 
@@ -139,12 +143,12 @@ struct SettingsIcon: View {
         switch glyph {
         case .symbol(let symbol):
             Image(systemName: SymbolFallback.name(symbol, "questionmark.circle"))
-                .font(.system(size: SettingsMetrics.iconSize * 0.52, weight: .semibold))
+                .font(.system(size: size * 0.52, weight: .semibold))
         case .bluetoothRune:
             BluetoothRuneShape()
                 .stroke(
                     style: StrokeStyle(
-                        lineWidth: SettingsMetrics.iconSize * BluetoothRuneShape.strokeRatio,
+                        lineWidth: size * BluetoothRuneShape.strokeRatio,
                         lineCap: .round,
                         lineJoin: .round
                     )
@@ -931,6 +935,8 @@ enum SettingsSidebarMetrics {
     /// Leading inset of the hairline between the scrollable and pinned groups.
     static let groupSeparatorInset: CGFloat = 18
 
+    /// Side length of the coloured category tile in the sidebar.
+    static let tileSize: CGFloat = 22
     /// Fixed glyph column so every category title starts at the same x.
     static let iconSlotWidth: CGFloat = 18
     static let iconPointSize: CGFloat = 16
@@ -946,9 +952,9 @@ enum SettingsSidebarMetrics {
 
     /// Leading inset of a leaf row from the sidebar content edge. It is chosen so
     /// the leaf *text* lines up on the same vertical column as the parent
-    /// category's *text* (not its icon), so the whole group reads as one aligned
+    /// category's *text* (not its tile), so the whole group reads as one aligned
     /// text grid: outer padding + this indent + leaf row padding = parent text x.
-    static let subtopicIndent: CGFloat = 30
+    static let subtopicIndent: CGFloat = 34
     static let subtopicCornerRadius: CGFloat = 6
     static let categoryCornerRadius: CGFloat = 6
 
