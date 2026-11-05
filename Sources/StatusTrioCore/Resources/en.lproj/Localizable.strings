@@ -110,6 +110,11 @@
 "settings.bluetooth.listeningModePreviewLanguageDescription" = "Render the preview rows' capsule names in a chosen language, leaving the rest of the panel in the system one. Useful for comparing how a long German or a right-to-left Arabic mode name wraps.";
 "settings.bluetooth.showInStatusPanel" = "Show Bluetooth in the status panel";
 "settings.bluetooth.showInStatusPanelDescription" = "Controls the Bluetooth item in the status panel and stays in sync with the Status Panel settings.";
+"settings.panel.showBattery" = "Show Battery in the status panel";
+"settings.panel.showNetwork" = "Show Network in the status panel";
+"settings.panel.showAudio" = "Show Audio in the status panel";
+"settings.panel.showBrightness" = "Show Brightness in the status panel";
+"settings.panel.showItemDescription" = "Control whether this module appears in the status panel.";
 "settings.bluetooth.powerControl" = "Show Bluetooth Power Control";
 "settings.bluetooth.powerControlDescription" = "Adds a Bluetooth power button to the status panel. No extra permission is required.";
 "settings.bluetooth.symbolScale" = "Bluetooth icon size";

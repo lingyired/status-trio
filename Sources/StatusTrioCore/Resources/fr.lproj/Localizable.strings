@@ -110,6 +110,11 @@
 "settings.bluetooth.listeningModePreviewLanguageDescription" = "Affichez les noms des pastilles des lignes d'aperçu dans la langue choisie, en laissant le reste du panneau dans la langue système. Utile pour comparer le retour à la ligne d'un nom long en allemand ou d'une écriture de droite à gauche en arabe.";
 "settings.bluetooth.showInStatusPanel" = "Afficher le Bluetooth dans le panneau d’état";
 "settings.bluetooth.showInStatusPanelDescription" = "Contrôle l’élément Bluetooth du panneau d’état et reste synchronisé avec les réglages du panneau d’état.";
+"settings.panel.showBattery" = "Afficher la batterie dans le panneau d’état";
+"settings.panel.showNetwork" = "Afficher le réseau dans le panneau d’état";
+"settings.panel.showAudio" = "Afficher l’audio dans le panneau d’état";
+"settings.panel.showBrightness" = "Afficher la luminosité dans le panneau d’état";
+"settings.panel.showItemDescription" = "Contrôle si ce module apparaît dans le panneau d’état.";
 "settings.bluetooth.powerControl" = "Afficher le bouton d’alimentation Bluetooth";
 "settings.bluetooth.powerControlDescription" = "Ajoute un bouton d’alimentation Bluetooth au panneau d’état. Aucune autorisation supplémentaire n’est nécessaire.";
 "settings.bluetooth.symbolScale" = "Taille de l’icône Bluetooth";

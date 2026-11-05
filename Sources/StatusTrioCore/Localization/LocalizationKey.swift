@@ -254,6 +254,13 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBluetoothListeningModePreviewLanguageDescription = "settings.bluetooth.listeningModePreviewLanguageDescription"
     case settingsBluetoothShowInStatusPanel = "settings.bluetooth.showInStatusPanel"
     case settingsBluetoothShowInStatusPanelDescription = "settings.bluetooth.showInStatusPanelDescription"
+
+    // Quick "show this module in the status panel" toggles on each pane.
+    case settingsPanelShowBattery = "settings.panel.showBattery"
+    case settingsPanelShowNetwork = "settings.panel.showNetwork"
+    case settingsPanelShowAudio = "settings.panel.showAudio"
+    case settingsPanelShowBrightness = "settings.panel.showBrightness"
+    case settingsPanelShowItemDescription = "settings.panel.showItemDescription"
     case settingsBluetoothPowerControl = "settings.bluetooth.powerControl"
     case settingsBluetoothPowerControlDescription = "settings.bluetooth.powerControlDescription"
     case settingsBluetoothSymbolScale = "settings.bluetooth.symbolScale"

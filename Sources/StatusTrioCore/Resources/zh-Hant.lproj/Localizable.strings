@@ -110,6 +110,11 @@
 "settings.bluetooth.listeningModePreviewLanguageDescription" = "僅讓預試列的模式名以指定語言渲染，面板其他部分維持系統語言。方便比較德語長詞或阿拉伯語由右至左時膠囊如何換行。";
 "settings.bluetooth.showInStatusPanel" = "在狀態面板中顯示藍牙";
 "settings.bluetooth.showInStatusPanelDescription" = "控制狀態面板中的藍牙項目，並與狀態面板設定保持同步。";
+"settings.panel.showBattery" = "在狀態面板中顯示電池";
+"settings.panel.showNetwork" = "在狀態面板中顯示網路";
+"settings.panel.showAudio" = "在狀態面板中顯示音訊";
+"settings.panel.showBrightness" = "在狀態面板中顯示亮度";
+"settings.panel.showItemDescription" = "控制該模組是否顯示在狀態面板中。";
 "settings.bluetooth.powerControl" = "顯示藍牙電源開關";
 "settings.bluetooth.powerControlDescription" = "在狀態面板的藍牙標題列顯示電源開關，不會額外要求權限。";
 "settings.bluetooth.symbolScale" = "藍牙圖示大小";

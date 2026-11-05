@@ -541,6 +541,30 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(view.contains("SettingsSidebarMetrics.categoryRowHeight"))
     }
 
+    /// Each feature pane offers a quick "show this module in the status panel"
+    /// toggle, like the Bluetooth pane's existing one.
+    func testEachFeaturePaneHasQuickStatusPanelToggle() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+        let expected: [(String, String)] = [
+            ("BatterySectionView.swift", "settingsPanelShowBattery"),
+            ("NetworkSectionView.swift", "settingsPanelShowNetwork"),
+            ("AudioSectionView.swift", "settingsPanelShowAudio"),
+            ("BrightnessSectionView.swift", "settingsPanelShowBrightness"),
+        ]
+        for (file, key) in expected {
+            let source = try String(
+                contentsOf: base.appendingPathComponent(file),
+                encoding: .utf8
+            )
+            XCTAssertTrue(source.contains(key), "\(file) should offer \(key)")
+            XCTAssertTrue(source.contains("setPopupSection"), "\(file) toggle must route through the store")
+        }
+    }
+
     /// The visual parameters stay within the Compact Native Sidebar values
     /// requested for this design, and the sidebar width is 196 pt.
     func testSidebarMetricsMatchTheRequestedDesign() {

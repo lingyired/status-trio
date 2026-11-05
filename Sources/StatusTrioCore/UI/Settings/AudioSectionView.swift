@@ -25,12 +25,36 @@ struct AudioSectionView: View {
 
     @ViewBuilder
     private var fullAudioContent: some View {
+        panelVisibilityGroup
         volumeFeedbackGroup
         volumeScrollGroup
         displayRulesGroup
         deviceOrderGroup
         inputDeviceOrderGroup
         externalVolumeGroup
+    }
+
+    /// Quick show/hide of the audio modules (output volume and input) in the
+    /// status panel.
+    private var panelVisibilityGroup: some View {
+        SettingsGroup(localization.string(.settingsNetworkPanelGroup)) {
+            SettingsToggleRow(
+                symbol: "speaker.wave.2",
+                tint: .cyan,
+                title: localization.string(.settingsPanelShowAudio),
+                subtitle: localization.string(.settingsPanelShowItemDescription),
+                isOn: Binding(
+                    get: {
+                        store.enabledPopupSections.contains(.volume)
+                            || store.enabledPopupSections.contains(.audioInput)
+                    },
+                    set: { enabled in
+                        store.setPopupSection(.volume, enabled: enabled)
+                        store.setPopupSection(.audioInput, enabled: enabled)
+                    }
+                )
+            )
+        }
     }
 
     private var volumeFeedbackGroup: some View {

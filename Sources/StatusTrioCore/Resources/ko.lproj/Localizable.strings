@@ -110,6 +110,11 @@
 "settings.bluetooth.listeningModePreviewLanguageDescription" = "미리보기 행의 모드 이름만 선택한 언어로 렌더링하고, 나머지 패널은 시스템 언어를 유지합니다. 독일어의 긴 단어 또는 아라비아어의 RTL 배치에서 캡슐이 어떻게 줄바꿈되는지 비교하기에 좋습니다.";
 "settings.bluetooth.showInStatusPanel" = "상태 패널에 Bluetooth 표시";
 "settings.bluetooth.showInStatusPanelDescription" = "상태 패널의 Bluetooth 항목을 전환하며 상태 패널 설정과 동기화됩니다.";
+"settings.panel.showBattery" = "상태 패널에 배터리 표시";
+"settings.panel.showNetwork" = "상태 패널에 네트워크 표시";
+"settings.panel.showAudio" = "상태 패널에 오디오 표시";
+"settings.panel.showBrightness" = "상태 패널에 밝기 표시";
+"settings.panel.showItemDescription" = "이 모듈을 상태 패널에 표시할지 제어합니다.";
 "settings.bluetooth.powerControl" = "Bluetooth 전원 버튼 표시";
 "settings.bluetooth.powerControlDescription" = "상태 패널에 Bluetooth 전원 버튼을 표시합니다. 추가 권한이 필요하지 않습니다.";
 "settings.bluetooth.symbolScale" = "Bluetooth 아이콘 크기";

@@ -110,6 +110,11 @@
 "settings.bluetooth.listeningModePreviewLanguageDescription" = "プレビュー行のモード名だけを選択言語で表示します。パネルの他部分はシステム言語のまま。ドイツ語の長い単語やアラビア語の RTL 表示でカプセルがどう折り返されるかの比較に便利です。";
 "settings.bluetooth.showInStatusPanel" = "ステータスパネルに Bluetooth を表示";
 "settings.bluetooth.showInStatusPanelDescription" = "ステータスパネルの Bluetooth 項目を切り替え、ステータスパネル設定と同期します。";
+"settings.panel.showBattery" = "ステータスパネルにバッテリーを表示";
+"settings.panel.showNetwork" = "ステータスパネルにネットワークを表示";
+"settings.panel.showAudio" = "ステータスパネルにオーディオを表示";
+"settings.panel.showBrightness" = "ステータスパネルに明るさを表示";
+"settings.panel.showItemDescription" = "このモジュールをステータスパネルに表示するかを制御します。";
 "settings.bluetooth.powerControl" = "Bluetooth 電源ボタンを表示";
 "settings.bluetooth.powerControlDescription" = "ステータスパネルに Bluetooth の電源ボタンを表示します。追加の権限は必要ありません。";
 "settings.bluetooth.symbolScale" = "Bluetooth アイコンサイズ";

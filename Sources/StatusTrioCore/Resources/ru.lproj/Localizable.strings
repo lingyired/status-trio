@@ -110,6 +110,11 @@
 "settings.bluetooth.listeningModePreviewLanguageDescription" = "Отображать названия режимов в тестовых строках на выбранном языке, оставляя остальную панель на системном. Полезно для сравнения переноса длинного немецкого или арабского текста справа налево.";
 "settings.bluetooth.showInStatusPanel" = "Показывать Bluetooth на панели состояния";
 "settings.bluetooth.showInStatusPanelDescription" = "Управляет элементом Bluetooth на панели состояния и синхронизируется с настройками панели состояния.";
+"settings.panel.showBattery" = "Показывать батарею на панели состояния";
+"settings.panel.showNetwork" = "Показывать сеть на панели состояния";
+"settings.panel.showAudio" = "Показывать звук на панели состояния";
+"settings.panel.showBrightness" = "Показывать яркость на панели состояния";
+"settings.panel.showItemDescription" = "Управляет отображением этого модуля на панели состояния.";
 "settings.bluetooth.powerControl" = "Показывать кнопку питания Bluetooth";
 "settings.bluetooth.powerControlDescription" = "Добавляет кнопку питания Bluetooth на панель состояния. Дополнительные разрешения не требуются.";
 "settings.bluetooth.symbolScale" = "Размер значка Bluetooth";

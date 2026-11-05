@@ -27,6 +27,7 @@ struct BatterySectionView: View {
         if !statusStore.snapshot.battery.isPresent {
             noBatteryNoticeGroup
         }
+        panelVisibilityGroup
         chargeManagementGroup
         if helper.isAvailable {
             powerModesGroup
@@ -36,6 +37,26 @@ struct BatterySectionView: View {
             }
         }
         powerFlowGroup
+    }
+
+    /// Quick show/hide of the battery module in the status panel.
+    private var panelVisibilityGroup: some View {
+        SettingsGroup(localization.string(.settingsNetworkPanelGroup)) {
+            SettingsToggleRow(
+                symbol: PopupSection.battery.systemImage,
+                tint: .green,
+                title: localization.string(.settingsPanelShowBattery),
+                subtitle: localization.string(.settingsPanelShowItemDescription),
+                isOn: popupSectionBinding(.battery)
+            )
+        }
+    }
+
+    private func popupSectionBinding(_ section: PopupSection) -> Binding<Bool> {
+        Binding(
+            get: { store.enabledPopupSections.contains(section) },
+            set: { store.setPopupSection(section, enabled: $0) }
+        )
     }
 
     /// A Mac without a battery reports 100 as its level; spell that out at the
