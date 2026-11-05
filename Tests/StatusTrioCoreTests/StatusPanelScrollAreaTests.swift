@@ -74,6 +74,31 @@ final class StatusPanelScrollAreaTests: XCTestCase {
         XCTAssertFalse(scrollView.hasHorizontalScroller)
     }
 
+    func testPanelForcesOverlayChromeWhenTheSystemPrefersLegacyScrollers() throws {
+        let fixture = makeFixture(contentHeight: 600, footerHeight: 40, cap: 300)
+        let scrollView = try XCTUnwrap(scrollViews(in: fixture.host.view).first)
+        let documentView = try XCTUnwrap(scrollView.documentView)
+        let fullWidth = scrollView.bounds.width
+
+        // Reproduce "Show scroll bars: Always". A legacy vertical scroller
+        // removes its own gutter from the scrolling content.
+        scrollView.scrollerStyle = .legacy
+        scrollView.hasVerticalScroller = true
+        scrollView.layoutSubtreeIfNeeded()
+
+        // The panel draws its own 4pt overlay. Re-laying out the bridge must
+        // force overlay chrome before hiding the system scroller, so the page
+        // never keeps the legacy gutter as its horizontal layout.
+        scrollView.needsLayout = true
+        fixture.host.view.needsLayout = true
+        settle(fixture.host)
+
+        XCTAssertEqual(scrollView.scrollerStyle, .overlay)
+        XCTAssertFalse(scrollView.hasVerticalScroller)
+        XCTAssertEqual(scrollView.contentView.frame.width, fullWidth, accuracy: 0.5)
+        XCTAssertEqual(documentView.frame.width, fullWidth, accuracy: 0.5)
+    }
+
     // MARK: - Slim indicator geometry
 
     func testIndicatorIsAbsentWhenThePageFits() {
