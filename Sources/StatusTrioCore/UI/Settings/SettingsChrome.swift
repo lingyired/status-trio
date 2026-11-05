@@ -902,3 +902,84 @@ extension View {
             .modifier(SettingsMenuPickerSizing())
     }
 }
+
+// MARK: - Sidebar visual language
+
+/// Visual parameters for the two-level settings sidebar.
+///
+/// Plan B: every category carries one monochrome glyph, and leaf subtopics are
+/// text only. Keeping the numbers here (instead of scattering them through the
+/// row builders) makes the sidebar easy to retune without touching behaviour.
+enum SettingsSidebarMetrics {
+    /// Space reserved below the traffic-light buttons.
+    static let topInset: CGFloat = 42
+    /// Outer horizontal margin of the scrolling sidebar content.
+    static let horizontalPadding: CGFloat = 10
+    /// Inner horizontal padding of a row's own selection area.
+    static let rowHorizontalPadding: CGFloat = 8
+
+    static let categoryRowHeight: CGFloat = 36
+    static let subtopicRowHeight: CGFloat = 27
+    /// Gap between two category blocks (category plus its leaves).
+    static let categoryGroupSpacing: CGFloat = 6
+
+    /// Fixed glyph column so every category title starts at the same x.
+    static let iconSlotWidth: CGFloat = 18
+    static let iconPointSize: CGFloat = 16
+    static let iconTextSpacing: CGFloat = 10
+    /// Drawn box for the custom Bluetooth rune before it is centered in the slot.
+    static let runeFrame: CGFloat = 26
+    static let runeStroke: CGFloat = 1.8
+
+    static let categoryFontSize: CGFloat = 13
+    static let subtopicFontSize: CGFloat = 12
+    static let aboutVersionFontSize: CGFloat = 10
+    static let chevronPointSize: CGFloat = 10
+
+    /// Leading inset of a leaf row from the sidebar content edge. Larger than
+    /// the category icon column so leaf titles read as nested under the parent.
+    static let subtopicIndent: CGFloat = 44
+    static let subtopicCornerRadius: CGFloat = 6
+    static let categoryCornerRadius: CGFloat = 7
+
+    /// How strongly the accent tint fills a selected row in the key window.
+    static let activeSelectionOpacity: Double = 0.18
+}
+
+/// A monochrome category glyph for the sidebar.
+///
+/// The Bluetooth category keeps the project's custom rune instead of an
+/// inaccurate SF Symbol; it is only re-sized and tinted here. Every glyph is
+/// centered in a fixed-width slot so category titles stay left-aligned.
+struct SettingsSidebarGlyph: View {
+    let glyph: SettingsGlyph
+    var tint: Color = .secondary
+
+    var body: some View {
+        Group {
+            switch glyph {
+            case .symbol(let symbol):
+                Image(systemName: SymbolFallback.name(symbol, "questionmark.circle"))
+                    .font(.system(size: SettingsSidebarMetrics.iconPointSize, weight: .medium))
+            case .bluetoothRune:
+                BluetoothRuneShape()
+                    .stroke(
+                        style: StrokeStyle(
+                            lineWidth: SettingsSidebarMetrics.runeStroke,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+                    .frame(
+                        width: SettingsSidebarMetrics.runeFrame,
+                        height: SettingsSidebarMetrics.runeFrame
+                    )
+            }
+        }
+        .foregroundStyle(tint)
+        .frame(
+            width: SettingsSidebarMetrics.iconSlotWidth,
+            height: SettingsSidebarMetrics.iconSlotWidth
+        )
+    }
+}

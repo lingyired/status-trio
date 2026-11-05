@@ -61,6 +61,30 @@ The new leaf labels live under `settings.subtopic.*` and are translated in all
 twelve shipped languages (`en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de`, `fr`,
 `es`, `it`, `pt-BR`, `ru`, `ar`), covered by `LocalizationParityTests`.
 
+## Sidebar visual language (Plan B)
+
+The sidebar uses one monochrome glyph per category and text-only leaves:
+
+- Category glyphs: SF Symbols at 16 pt in a fixed 18 pt column, `.secondary`
+  tint; the Bluetooth category keeps the project's custom rune (drawn at the
+  same optical size) instead of an inaccurate SF Symbol. The old colored
+  squircle tiles, gradients and shadows are gone.
+- Category rows: 36 pt high, 13 pt title, `.primary`; the selected category is
+  medium weight. Expandable categories show `chevron.down` when open and
+  `chevron.right` when collapsed, and never paint a selection pill (their leaf
+  does).
+- Leaf rows: text only, 12 pt, no icon, indented so the title sits under the
+  parent's title. Selected leaves use `.primary` + medium weight over a 6 pt
+  rounded light accent wash that only covers the row's own inset area.
+- Selection colour: `accentColor` at 18 % in the key window; the system
+  `unemphasizedSelectedContentBackgroundColor` when the window is not focused,
+  so a saturated accent never lingers in the background.
+- About: the row shows only the short marketing version (`v1.2.3`) on one line;
+  the full version + development codename remain in the tooltip and the About
+  pane.
+- All numbers live in `SettingsSidebarMetrics` (row heights, indent, spacing,
+  icon slot, corner radii, selection opacity); the sidebar width stays 190 pt.
+
 ## Invariants that must not drift
 
 - **Store untouched.** No `SettingsStore` key, default, range or setter changed;

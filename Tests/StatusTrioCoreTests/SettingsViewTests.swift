@@ -492,6 +492,73 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertFalse(view.contains("NavigationSplitView"))
     }
 
+    /// Plan B sidebar: every category carries one monochrome glyph, leaves are
+    /// text only, expandable parents expose a chevron, and the selection stays
+    /// restrained (light accent in the key window, unemphasized when inactive).
+    func testSidebarUsesMonochromeGlyphsAndTextOnlyLeaves() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+
+        let view = try String(
+            contentsOf: base.appendingPathComponent("SettingsView.swift"),
+            encoding: .utf8
+        )
+        let chrome = try String(
+            contentsOf: base.appendingPathComponent("SettingsChrome.swift"),
+            encoding: .utf8
+        )
+
+        // A category renders the monochrome sidebar glyph, not the colored tile.
+        XCTAssertTrue(view.contains("SettingsSidebarGlyph(glyph: section.glyph)"))
+        XCTAssertFalse(view.contains("SettingsIcon(glyph: section.glyph"))
+
+        // Expandable parents carry a state chevron.
+        XCTAssertTrue(view.contains("chevron.down"))
+        XCTAssertTrue(view.contains("chevron.right"))
+
+        // Selection is semantic and weakened when the window is not key.
+        XCTAssertTrue(view.contains("controlActiveState"))
+        XCTAssertTrue(view.contains("unemphasizedSelectedContentBackgroundColor"))
+        XCTAssertTrue(view.contains("activeSelectionOpacity"))
+
+        // The leaf row is text only: no glyph and no image inside it.
+        let leafStart = try XCTUnwrap(view.range(of: "private func subtopicRow"))
+        let detailStart = try XCTUnwrap(view.range(of: "// MARK: - Detail"))
+        let leafBody = view[leafStart.lowerBound..<detailStart.lowerBound]
+        XCTAssertFalse(leafBody.contains("SettingsSidebarGlyph"))
+        XCTAssertFalse(leafBody.contains("Image(systemName"))
+
+        // The About row shows a short single-line version, not the codename
+        // block that used to wrap and truncate.
+        XCTAssertTrue(view.contains("versionShortString"))
+        // The codename still lives in the About tooltip and identity pane; it
+        // must not be rendered as a wrapped sidebar line.
+        XCTAssertTrue(view.contains("aboutSidebarDetail("))
+
+        // Visual numbers live in one place, not scattered through the view.
+        XCTAssertTrue(chrome.contains("enum SettingsSidebarMetrics"))
+        XCTAssertTrue(view.contains("SettingsSidebarMetrics.subtopicIndent"))
+        XCTAssertTrue(view.contains("SettingsSidebarMetrics.categoryRowHeight"))
+    }
+
+    /// The visual parameters stay within the values requested for this design,
+    /// and the sidebar width is still the existing 190 pt.
+    func testSidebarMetricsMatchTheRequestedDesign() {
+        XCTAssertEqual(SettingsView.sidebarWidth, 190)
+        XCTAssertTrue((36...38).contains(SettingsSidebarMetrics.categoryRowHeight))
+        XCTAssertTrue((26...28).contains(SettingsSidebarMetrics.subtopicRowHeight))
+        XCTAssertTrue((16...18).contains(SettingsSidebarMetrics.iconPointSize))
+        XCTAssertTrue((16...18).contains(SettingsSidebarMetrics.iconSlotWidth))
+        XCTAssertGreaterThan(
+            SettingsSidebarMetrics.subtopicIndent,
+            SettingsSidebarMetrics.iconSlotWidth
+        )
+        XCTAssertEqual(SettingsSidebarMetrics.subtopicCornerRadius, 6)
+    }
+
     /// The Bluetooth settings-demand token is owned by the category container,
     /// never by a leaf subpage. Switching between Display/Devices/Panel must not
     /// tear down and rebuild the listener, so exactly one `onAppear` may begin

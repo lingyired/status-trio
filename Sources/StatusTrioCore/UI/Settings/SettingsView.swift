@@ -5,6 +5,9 @@ import SwiftUI
 /// Human-centered, multi-column settings window matching modern macOS standards.
 struct SettingsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Drives the restrained, unemphasized selection colour while the window is
+    /// not key.
+    @Environment(\.controlActiveState) private var controlActiveState
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @ObservedObject var localization: Localization
@@ -38,11 +41,12 @@ struct SettingsView: View {
 
         var id: String { rawValue }
 
-        /// The mark the sidebar tile carries.
+        /// The monochrome mark the sidebar row carries.
         ///
-        /// Bluetooth has no SF Symbol on any release, so its tile draws the
-        /// rune. Audio borrows the speaker the Audio page's own rows use, so
-        /// the sidebar and the page it opens agree on one glyph.
+        /// Bluetooth has no SF Symbol on any release, so its row keeps the
+        /// project's custom rune. Audio borrows the speaker the Audio page's
+        /// own rows use, so the sidebar and the page it opens agree on one
+        /// glyph.
         var glyph: SettingsGlyph {
             switch self {
             case .appIcon: return .symbol("macwindow.on.rectangle")
@@ -54,20 +58,6 @@ struct SettingsView: View {
             case .popover: return .symbol("list.bullet.rectangle")
             case .general: return .symbol("gearshape.fill")
             case .about:   return .symbol("info.circle.fill")
-            }
-        }
-
-        var tint: Color {
-            switch self {
-            case .appIcon: return .indigo
-            case .battery: return .green
-            case .network: return .blue
-            case .bluetooth: return .blue
-            case .audio:   return .cyan
-            case .brightness: return .orange
-            case .popover: return .purple
-            case .general: return .gray
-            case .about:   return .orange
             }
         }
 
@@ -139,118 +129,147 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             // Breathing space below traffic lights stays fixed; only the rows
             // below it scroll.
-            Color.clear.frame(height: 42)
+            Color.clear.frame(height: SettingsSidebarMetrics.topInset)
 
             // The sidebar scrolls on its own so a long expanded category can
             // never push the detail page or clip the traffic-light header.
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: SettingsSidebarMetrics.categoryGroupSpacing) {
                     ForEach(Section.allCases) { section in
-                        categoryRow(section)
+                        VStack(alignment: .leading, spacing: 0) {
+                            categoryRow(section)
 
-                        if navigation.expandedSection == section, !subtopics(for: section).isEmpty {
-                            ForEach(subtopics(for: section)) { subtopic in
-                                subtopicRow(subtopic)
+                            if navigation.expandedSection == section, section.hasSubtopics {
+                                ForEach(subtopics(for: section)) { subtopic in
+                                    subtopicRow(subtopic)
+                                }
                             }
                         }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 10)
+                .padding(.horizontal, SettingsSidebarMetrics.horizontalPadding)
                 .padding(.bottom, 8)
             }
         }
     }
 
+    /// A key window uses a light accent wash; a background window uses the
+    /// system's unemphasized selection colour so no saturated accent lingers.
+    private var selectionFill: Color {
+        controlActiveState == .inactive
+            ? Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
+            : Color.accentColor.opacity(SettingsSidebarMetrics.activeSelectionOpacity)
+    }
+
     private func categoryRow(_ section: Section) -> some View {
-        // A simple category paints a filled pill; an expandable category whose
-        // leaf is selected only gets a weight emphasis, so the two highlights
-        // never compete.
-        let showsPill = navigation.selectedSection == section && subtopics(for: section).isEmpty
+        let isSelected = navigation.selectedSection == section
+        let isParent = section.hasSubtopics
+        let isExpanded = navigation.expandedSection == section
+        // A simple category shows its own selection pill. An expandable parent
+        // never paints one: its selected leaf carries the highlight instead.
+        let showsSelection = isSelected && !isParent
+
         return Button {
             select(section)
         } label: {
-            HStack(alignment: .center, spacing: 10) {
-                SettingsIcon(glyph: section.glyph, tint: section.tint)
+            HStack(alignment: .center, spacing: SettingsSidebarMetrics.iconTextSpacing) {
+                SettingsSidebarGlyph(glyph: section.glyph)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(section.title(localization))
-                        .font(.system(size: 13, weight: navigation.selectedSection == section ? .medium : .regular))
-                        .foregroundStyle(showsPill ? Color.white : Color.primary)
+                Text(section.title(localization))
+                    .font(.system(
+                        size: SettingsSidebarMetrics.categoryFontSize,
+                        weight: isSelected ? .medium : .regular
+                    ))
+                    .foregroundStyle(Color.primary)
+                    .lineLimit(1)
+
+                Spacer(minLength: 8)
+
+                if section == .about {
+                    Text("v\(AppMetadata.versionShortString)")
+                        .font(.system(
+                            size: SettingsSidebarMetrics.aboutVersionFontSize,
+                            weight: .regular,
+                            design: .rounded
+                        ))
+                        .foregroundStyle(.tertiary)
+                        .monospacedDigit()
                         .lineLimit(1)
-
-                    if section == .about {
-                        Text(
-                            DevelopmentBuildPresentation.aboutSidebarDetail(
-                                version: AppMetadata.versionDisplayString,
-                                codename: AppMetadata.developmentCodename
-                            )
-                        )
-                            .font(.system(size: 9, weight: .regular, design: .rounded))
-                            .foregroundStyle(
-                                showsPill
-                                    ? Color.white.opacity(0.72)
-                                    : Color.secondary
-                            )
-                            .lineLimit(2)
-                            .truncationMode(.tail)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                        .fixedSize()
                 }
 
-                Spacer(minLength: 0)
+                if isParent {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(
+                            size: SettingsSidebarMetrics.chevronPointSize,
+                            weight: .semibold
+                        ))
+                        .foregroundStyle(.secondary)
+                }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.horizontal, SettingsSidebarMetrics.rowHorizontalPadding)
+            .frame(height: SettingsSidebarMetrics.categoryRowHeight)
             .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(showsPill ? Color.accentColor : Color.clear)
+                RoundedRectangle(
+                    cornerRadius: SettingsSidebarMetrics.categoryCornerRadius,
+                    style: .continuous
+                )
+                .fill(showsSelection ? selectionFill : Color.clear)
             )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityAddTraits(showsPill ? [.isSelected] : [])
+        .accessibilityAddTraits(showsSelection ? [.isSelected] : [])
+        // The About row shows only the short version so it cannot wrap or
+        // truncate; the full identity (version + development codename) stays
+        // available in the tooltip and in the About pane itself.
+        .help(
+            section == .about
+                ? DevelopmentBuildPresentation.aboutSidebarDetail(
+                    version: AppMetadata.versionDisplayString,
+                    codename: AppMetadata.developmentCodename
+                )
+                : section.title(localization)
+        )
     }
 
     private func subtopicRow(_ subtopic: SettingsSubtopic) -> some View {
-        Button {
+        let isSelected = navigation.selectedSubtopic == subtopic
+
+        return Button {
             selectSubtopic(subtopic)
         } label: {
-            HStack(alignment: .center, spacing: 10) {
-                // Leave a matching overhang so the indented leaf aligns with its
-                // category's icon-space and reads as nested beneath it.
+            HStack(spacing: 0) {
                 Text(subtopic.title(localization))
-                    .font(.system(size: 12))
-                    .foregroundStyle(
-                        navigation.selectedSubtopic == subtopic
-                            ? Color.white
-                            : Color.primary.opacity(0.9)
-                    )
-                    // Two lines keep long localized leaf labels readable in
-                    // the fixed 190 pt sidebar; the tooltip carries the full
-                    // text for the rare label that still wraps past that.
+                    .font(.system(
+                        size: SettingsSidebarMetrics.subtopicFontSize,
+                        weight: isSelected ? .medium : .regular
+                    ))
+                    .foregroundStyle(isSelected ? Color.primary : Color.secondary)
                     .lineLimit(2)
                     .truncationMode(.tail)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: 0)
             }
-            .padding(.leading, 40)
-            .padding(.trailing, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, SettingsSidebarMetrics.rowHorizontalPadding)
+            .frame(minHeight: SettingsSidebarMetrics.subtopicRowHeight)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(
-                        navigation.selectedSubtopic == subtopic
-                            ? Color.accentColor
-                            : Color.clear
-                    )
+                RoundedRectangle(
+                    cornerRadius: SettingsSidebarMetrics.subtopicCornerRadius,
+                    style: .continuous
+                )
+                .fill(isSelected ? selectionFill : Color.clear)
             )
+            // Inset the whole row (background included) so the highlight never
+            // spans the full sidebar and the text nests under its parent.
+            .padding(.leading, SettingsSidebarMetrics.subtopicIndent)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help(subtopic.title(localization))
-        .accessibilityAddTraits(navigation.selectedSubtopic == subtopic ? [.isSelected] : [])
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     // MARK: - Detail

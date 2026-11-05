@@ -44,26 +44,49 @@ final class SettingsNavigationModel: ObservableObject {
     /// expandable category opens to its remembered or default leaf and collapses
     /// whichever category was expanded before.
     func select(_ section: SettingsView.Section) {
-        selectedSection = section
-        guard section.hasSubtopics else {
-            expandedSection = nil
-            selectedSubtopic = nil
-            return
+        let nextSubtopic: SettingsSubtopic?
+        if section.hasSubtopics {
+            nextSubtopic = lastSubtopicBySection[section] ?? defaultSubtopic(for: section)
+        } else {
+            nextSubtopic = nil
         }
-        expandedSection = section
-        let subtopic = lastSubtopicBySection[section] ?? defaultSubtopic(for: section)
-        selectedSubtopic = subtopic
-        if let subtopic {
-            lastSubtopicBySection[section] = subtopic
+        if let nextSubtopic {
+            lastSubtopicBySection[section] = nextSubtopic
         }
+        applySelection(
+            section: section,
+            expanded: section.hasSubtopics ? section : nil,
+            subtopic: nextSubtopic
+        )
     }
 
     /// Selects a leaf and expands its parent.
     func selectSubtopic(_ subtopic: SettingsSubtopic) {
-        selectedSection = subtopic.section
-        expandedSection = subtopic.section
-        selectedSubtopic = subtopic
         lastSubtopicBySection[subtopic.section] = subtopic
+        applySelection(
+            section: subtopic.section,
+            expanded: subtopic.section,
+            subtopic: subtopic
+        )
+    }
+
+    /// Assigns only the fields that actually change, so re-clicking the current
+    /// row does not publish an object change and rebuild the detail page for
+    /// nothing.
+    private func applySelection(
+        section: SettingsView.Section,
+        expanded: SettingsView.Section?,
+        subtopic: SettingsSubtopic?
+    ) {
+        if selectedSection != section {
+            selectedSection = section
+        }
+        if expandedSection != expanded {
+            expandedSection = expanded
+        }
+        if selectedSubtopic != subtopic {
+            selectedSubtopic = subtopic
+        }
     }
 
     /// Applies a deep link from the status panel or another window action.
