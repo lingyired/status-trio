@@ -554,15 +554,15 @@ final class SettingsViewTests: XCTestCase {
     /// and the sidebar width is still the existing 190 pt.
     func testSidebarMetricsMatchTheRequestedDesign() {
         XCTAssertEqual(SettingsView.sidebarWidth, 190)
-        XCTAssertTrue((40...46).contains(SettingsSidebarMetrics.categoryRowHeight))
-        XCTAssertTrue((30...34).contains(SettingsSidebarMetrics.subtopicRowHeight))
-        XCTAssertTrue((16...20).contains(SettingsSidebarMetrics.iconPointSize))
-        XCTAssertTrue((18...22).contains(SettingsSidebarMetrics.iconSlotWidth))
+        XCTAssertTrue((30...36).contains(SettingsSidebarMetrics.categoryRowHeight))
+        XCTAssertTrue((24...28).contains(SettingsSidebarMetrics.subtopicRowHeight))
+        XCTAssertTrue((14...18).contains(SettingsSidebarMetrics.iconPointSize))
+        XCTAssertTrue((16...20).contains(SettingsSidebarMetrics.iconSlotWidth))
         XCTAssertGreaterThan(
             SettingsSidebarMetrics.subtopicIndent,
             SettingsSidebarMetrics.iconSlotWidth
         )
-        XCTAssertEqual(SettingsSidebarMetrics.subtopicCornerRadius, 7)
+        XCTAssertEqual(SettingsSidebarMetrics.subtopicCornerRadius, 6)
         // The guide line sits left of the leaf highlight, under the icon column.
         XCTAssertLessThan(
             SettingsSidebarMetrics.treeGuideInset,
