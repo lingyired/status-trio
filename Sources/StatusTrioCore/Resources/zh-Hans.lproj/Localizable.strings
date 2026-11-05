@@ -101,6 +101,7 @@
 "settings.bluetooth.batteryLevelsDescription" = "当状态面板显示蓝牙设备时读取 AirPods 电量，不会额外请求权限。";
 "settings.bluetooth.listeningModePreview" = "预览聆听模式开关";
 "settings.bluetooth.listeningModePreviewDescription" = "在每台已连接的 AirPods 上显示模式胶囊，用于界面测试。点击胶囊的动画与真机一致，但不会更改 AirPods 的任何设置。";
+"settings.bluetooth.listeningModePreviewOptions" = "预览参数";
 "settings.bluetooth.listeningModePreviewDeviceName" = "预览设备名";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "预览行显示的名字。留空走默认；填一个超长的可以测截断。";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "预览行数";
@@ -166,6 +167,8 @@
 "settings.battery.group.charging" = "充电";
 "settings.battery.group.powerModes" = "电量模式";
 "settings.battery.group.power" = "功耗";
+"settings.battery.group.topMarkers" = "顶部标记";
+"settings.battery.group.progress" = "进度";
 "settings.battery.noBatteryNotice" = "当前设备没有电池，所以电量显示默认为 100。";
 "settings.battery.showPercentage" = "显示电量数字";
 "settings.battery.showChargingIndicator" = "充电/连接电源时显示指示图标";
@@ -757,16 +760,16 @@
 "battery.powerMode.highRequiresPower" = "高电量模式需要连接电源后才会生效。";
 
 // Settings subpage labels
-"settings.subtopic.appIcon.placementSize" = "位置与尺寸";
-"settings.subtopic.appIcon.ringAndDock" = "圆弧与 Dock";
+"settings.subtopic.appIcon.appearance" = "整体外观";
+"settings.subtopic.appIcon.ring" = "圆弧";
+"settings.subtopic.appIcon.bottomIndicator" = "底部指示器";
 "settings.subtopic.appIcon.middleIcon" = "中间图标";
-"settings.subtopic.battery.iconDisplay" = "图标显示";
-"settings.subtopic.battery.colorsAndAnimation" = "颜色与动画";
-"settings.subtopic.battery.chargeManagement" = "充电管理";
-"settings.subtopic.battery.powerAndEnergy" = "电源与能耗";
-"settings.subtopic.audio.displayAndInteraction" = "显示与交互";
-"settings.subtopic.audio.deviceManagement" = "设备管理";
-"settings.subtopic.audio.externalVolume" = "外部音量";
-"settings.subtopic.bluetooth.displayAndPreview" = "显示与预览";
-"settings.subtopic.bluetooth.deviceAndBattery" = "设备与电量";
-"settings.subtopic.bluetooth.panelAndList" = "面板与列表";
+"settings.subtopic.battery.charging" = "充电";
+"settings.subtopic.battery.powerMode" = "电源模式";
+"settings.subtopic.battery.energy" = "能耗信息";
+"settings.subtopic.audio.volumeControl" = "音量控制";
+"settings.subtopic.audio.audioDevices" = "音频设备";
+"settings.subtopic.audio.displayVolume" = "显示器音量";
+"settings.subtopic.bluetooth.listeningMode" = "聆听模式";
+"settings.subtopic.bluetooth.deviceBattery" = "设备电量";
+"settings.subtopic.bluetooth.deviceManagement" = "设备管理";

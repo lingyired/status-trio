@@ -278,7 +278,7 @@ final class SettingsWindowControllerTests: VisibleUITestCase {
         )
         let request = expectation(forNotification: .settingsSelectSection, object: nil)
 
-        controller.show(subtopic: .batteryChargeManagement)
+        controller.show(subtopic: .batteryCharging)
         wait(for: [request], timeout: 1)
 
         let window = try XCTUnwrap(controller.window)

@@ -101,6 +101,7 @@
 "settings.bluetooth.batteryLevelsDescription" = "Заряд AirPods считывается, пока показан пункт Bluetooth. Дополнительный запрос разрешения не появляется.";
 "settings.bluetooth.listeningModePreview" = "Предпросмотр переключателя режима прослушивания";
 "settings.bluetooth.listeningModePreviewDescription" = "Показывать переключатели режима на всех подключённых AirPods для проверки интерфейса. Нажатие анимируется как на настоящем устройстве, но ничего в AirPods не меняет.";
+"settings.bluetooth.listeningModePreviewOptions" = "Параметры предпросмотра";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Имя устройства предпросмотра";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Имя, отображаемое в тестовых строках. Оставьте пустым, чтобы использовать значение по умолчанию; введите очень длинное имя, чтобы проверить обрезку.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "Количество строк предпросмотра";
@@ -166,6 +167,8 @@
 "settings.battery.group.charging" = "Зарядка";
 "settings.battery.group.powerModes" = "Режимы питания";
 "settings.battery.group.power" = "Энергопотребление";
+"settings.battery.group.topMarkers" = "Верхние маркеры";
+"settings.battery.group.progress" = "Прогресс";
 "settings.battery.noBatteryNotice" = "На этом устройстве нет аккумулятора, поэтому уровень заряда по умолчанию отображается как 100.";
 "settings.battery.showPercentage" = "Показывать процент заряда";
 "settings.battery.showChargingIndicator" = "Показывать значок при зарядке или питании от сети";
@@ -757,16 +760,16 @@
 "battery.powerMode.highRequiresPower" = "Режим высокой мощности вступает в силу при подключённом адаптере питания.";
 
 // Settings subpage labels
-"settings.subtopic.appIcon.placementSize" = "Положение и размер";
-"settings.subtopic.appIcon.ringAndDock" = "Кольцо и Dock";
+"settings.subtopic.appIcon.appearance" = "Общий вид";
+"settings.subtopic.appIcon.ring" = "Кольцо";
+"settings.subtopic.appIcon.bottomIndicator" = "Нижний индикатор";
 "settings.subtopic.appIcon.middleIcon" = "Центральный значок";
-"settings.subtopic.battery.iconDisplay" = "Отображение значка";
-"settings.subtopic.battery.colorsAndAnimation" = "Цвета и анимация";
-"settings.subtopic.battery.chargeManagement" = "Управление зарядкой";
-"settings.subtopic.battery.powerAndEnergy" = "Энергия и расход";
-"settings.subtopic.audio.displayAndInteraction" = "Отображение и взаимодействие";
-"settings.subtopic.audio.deviceManagement" = "Управление устройствами";
-"settings.subtopic.audio.externalVolume" = "Внешняя громкость";
-"settings.subtopic.bluetooth.displayAndPreview" = "Отображение и предпросмотр";
-"settings.subtopic.bluetooth.deviceAndBattery" = "Устройства и батарея";
-"settings.subtopic.bluetooth.panelAndList" = "Панель и список";
+"settings.subtopic.battery.charging" = "Зарядка";
+"settings.subtopic.battery.powerMode" = "Режим питания";
+"settings.subtopic.battery.energy" = "Данные об энергии";
+"settings.subtopic.audio.volumeControl" = "Управление громкостью";
+"settings.subtopic.audio.audioDevices" = "Аудиоустройства";
+"settings.subtopic.audio.displayVolume" = "Громкость дисплея";
+"settings.subtopic.bluetooth.listeningMode" = "Режим прослушивания";
+"settings.subtopic.bluetooth.deviceBattery" = "Батарея устройства";
+"settings.subtopic.bluetooth.deviceManagement" = "Управление устройствами";

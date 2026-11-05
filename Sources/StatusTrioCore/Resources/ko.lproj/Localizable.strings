@@ -101,6 +101,7 @@
 "settings.bluetooth.batteryLevelsDescription" = "Bluetooth 항목이 표시되는 동안 AirPods 배터리 잔량을 읽습니다. 추가 권한 요청은 표시되지 않습니다.";
 "settings.bluetooth.listeningModePreview" = "청취 모드 전환 미리보기";
 "settings.bluetooth.listeningModePreviewDescription" = "인터페이스 테스트를 위해 연결된 모든 AirPods에 모드 전환 단추를 표시합니다. 단추를 누르면 실제 기기와 같은 애니메이션이 재생되지만, AirPods의 설정은 변경되지 않습니다.";
+"settings.bluetooth.listeningModePreviewOptions" = "미리보기 옵션";
 "settings.bluetooth.listeningModePreviewDeviceName" = "미리보기 기기 이름";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "미리보기 행에 표시할 이름입니다. 비워 두면 기본값을 사용하고, 긴 이름을 넣으면 잘림을 확인할 수 있습니다.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "미리보기 행 수";
@@ -166,6 +167,8 @@
 "settings.battery.group.charging" = "충전";
 "settings.battery.group.powerModes" = "전원 모드";
 "settings.battery.group.power" = "전력";
+"settings.battery.group.topMarkers" = "상단 마커";
+"settings.battery.group.progress" = "진행 상황";
 "settings.battery.noBatteryNotice" = "이 기기에는 배터리가 없으므로 배터리 잔량이 기본적으로 100으로 표시됩니다.";
 "settings.battery.showPercentage" = "배터리 잔량 표시";
 "settings.battery.showChargingIndicator" = "충전 또는 전원 연결 시 아이콘 표시";
@@ -757,16 +760,16 @@
 "battery.powerMode.highRequiresPower" = "고전력 모드는 전원 어댑터를 연결해야 적용됩니다.";
 
 // Settings subpage labels
-"settings.subtopic.appIcon.placementSize" = "위치 및 크기";
-"settings.subtopic.appIcon.ringAndDock" = "링 및 Dock";
+"settings.subtopic.appIcon.appearance" = "전체 모양";
+"settings.subtopic.appIcon.ring" = "링";
+"settings.subtopic.appIcon.bottomIndicator" = "하단 표시기";
 "settings.subtopic.appIcon.middleIcon" = "중앙 아이콘";
-"settings.subtopic.battery.iconDisplay" = "아이콘 표시";
-"settings.subtopic.battery.colorsAndAnimation" = "색상 및 애니메이션";
-"settings.subtopic.battery.chargeManagement" = "충전 관리";
-"settings.subtopic.battery.powerAndEnergy" = "전원 및 에너지";
-"settings.subtopic.audio.displayAndInteraction" = "표시 및 상호작용";
-"settings.subtopic.audio.deviceManagement" = "기기 관리";
-"settings.subtopic.audio.externalVolume" = "외부 볼륨";
-"settings.subtopic.bluetooth.displayAndPreview" = "표시 및 미리보기";
-"settings.subtopic.bluetooth.deviceAndBattery" = "기기 및 배터리";
-"settings.subtopic.bluetooth.panelAndList" = "패널 및 목록";
+"settings.subtopic.battery.charging" = "충전";
+"settings.subtopic.battery.powerMode" = "전원 모드";
+"settings.subtopic.battery.energy" = "에너지 정보";
+"settings.subtopic.audio.volumeControl" = "볼륨 제어";
+"settings.subtopic.audio.audioDevices" = "오디오 기기";
+"settings.subtopic.audio.displayVolume" = "디스플레이 볼륨";
+"settings.subtopic.bluetooth.listeningMode" = "청취 모드";
+"settings.subtopic.bluetooth.deviceBattery" = "기기 배터리";
+"settings.subtopic.bluetooth.deviceManagement" = "기기 관리";

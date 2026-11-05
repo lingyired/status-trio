@@ -101,6 +101,7 @@
 "settings.bluetooth.batteryLevelsDescription" = "Liest AirPods-Batteriestände, während der Bluetooth-Eintrag sichtbar ist. Es wird keine zusätzliche Berechtigung angefragt.";
 "settings.bluetooth.listeningModePreview" = "Hörmodus-Umschaltung Vorschau anzeigen";
 "settings.bluetooth.listeningModePreviewDescription" = "Für UI-Tests die Modi-Kapseln auf allen verbundenen AirPods anzeigen. Das Antippen einer Kapsel animiert wie auf einem echten Gerät, ändert aber nichts an den AirPods.";
+"settings.bluetooth.listeningModePreviewOptions" = "Vorschauoptionen";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Vorschau-Gerätename";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Der in den Vorschauzeilen angezeigte Name. Leer lässt den Standardtext, ein langer Name prüft die Kürzung.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "Anzahl Vorschauzeilen";
@@ -166,6 +167,8 @@
 "settings.battery.group.charging" = "Laden";
 "settings.battery.group.powerModes" = "Energiemodi";
 "settings.battery.group.power" = "Leistung";
+"settings.battery.group.topMarkers" = "Obere Markierungen";
+"settings.battery.group.progress" = "Fortschritt";
 "settings.battery.noBatteryNotice" = "Dieses Gerät hat keinen Akku, daher wird der Batteriestand standardmäßig als 100 angezeigt.";
 "settings.battery.showPercentage" = "Batterieprozentsatz anzeigen";
 "settings.battery.showChargingIndicator" = "Symbol beim Laden oder Netzbetrieb anzeigen";
@@ -757,16 +760,16 @@
 "battery.powerMode.highRequiresPower" = "Der Hochenergiemodus wird erst mit angeschlossenem Netzteil wirksam.";
 
 // Settings subpage labels
-"settings.subtopic.appIcon.placementSize" = "Position & Größe";
-"settings.subtopic.appIcon.ringAndDock" = "Ring & Dock";
+"settings.subtopic.appIcon.appearance" = "Allgemeines Erscheinungsbild";
+"settings.subtopic.appIcon.ring" = "Ring";
+"settings.subtopic.appIcon.bottomIndicator" = "Untere Anzeige";
 "settings.subtopic.appIcon.middleIcon" = "Mittleres Symbol";
-"settings.subtopic.battery.iconDisplay" = "Symbolanzeige";
-"settings.subtopic.battery.colorsAndAnimation" = "Farben & Animation";
-"settings.subtopic.battery.chargeManagement" = "Ladeverwaltung";
-"settings.subtopic.battery.powerAndEnergy" = "Energie & Verbrauch";
-"settings.subtopic.audio.displayAndInteraction" = "Anzeige & Interaktion";
-"settings.subtopic.audio.deviceManagement" = "Geräteverwaltung";
-"settings.subtopic.audio.externalVolume" = "Externe Lautstärke";
-"settings.subtopic.bluetooth.displayAndPreview" = "Anzeige & Vorschau";
-"settings.subtopic.bluetooth.deviceAndBattery" = "Geräte & Batterie";
-"settings.subtopic.bluetooth.panelAndList" = "Panel & Liste";
+"settings.subtopic.battery.charging" = "Laden";
+"settings.subtopic.battery.powerMode" = "Energiemodus";
+"settings.subtopic.battery.energy" = "Energieinfos";
+"settings.subtopic.audio.volumeControl" = "Lautstärkeregelung";
+"settings.subtopic.audio.audioDevices" = "Audiogeräte";
+"settings.subtopic.audio.displayVolume" = "Bildschirmlautstärke";
+"settings.subtopic.bluetooth.listeningMode" = "Hörmodus";
+"settings.subtopic.bluetooth.deviceBattery" = "Gerätebatterie";
+"settings.subtopic.bluetooth.deviceManagement" = "Geräteverwaltung";

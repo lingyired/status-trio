@@ -43,20 +43,35 @@ struct AppIconSectionView: View {
         statusIconGroup
         MiddleIconSettingsGroup(store: store, statusStore: statusStore)
         dockGroup
+        AppIconRingView(store: store)
+        AppIconBottomIndicatorView(
+            store: store,
+            statusStore: statusStore,
+            previewIsDark: $previewIsDark
+        )
     }
 
     @ViewBuilder
     private func appIconSubpage(_ subtopic: SettingsSubtopic) -> some View {
         switch subtopic {
-        case .appIconPlacementSize:
+        case .appIconAppearance:
+            // Surface choice, menu-bar size, shared ring stroke, Dock background
+            // and the icon guide all describe the icon as a whole.
             iconGuideGroup
             placementGroup
             menuBarGroup
-        case .appIconRingAndDock:
             statusIconGroup
             dockGroup
+        case .appIconRing:
+            AppIconRingView(store: store)
         case .appIconMiddleIcon:
             MiddleIconSettingsGroup(store: store, statusStore: statusStore)
+        case .appIconBottomIndicator:
+            AppIconBottomIndicatorView(
+                store: store,
+                statusStore: statusStore,
+                previewIsDark: $previewIsDark
+            )
         default:
             fullAppIconContent
         }

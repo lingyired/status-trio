@@ -3,11 +3,11 @@ import XCTest
 
 @MainActor
 final class SettingsNavigationModelTests: XCTestCase {
-    func testInitialSelectionIsAppIconPlacement() {
+    func testInitialSelectionIsAppIconAppearance() {
         let model = SettingsNavigationModel()
         XCTAssertEqual(model.selectedSection, .appIcon)
         XCTAssertEqual(model.expandedSection, .appIcon)
-        XCTAssertEqual(model.selectedSubtopic, .appIconPlacementSize)
+        XCTAssertEqual(model.selectedSubtopic, .appIconAppearance)
     }
 
     func testSelectingComplexCategoryOpensItsDefaultLeaf() {
@@ -15,12 +15,12 @@ final class SettingsNavigationModelTests: XCTestCase {
         model.select(.battery)
         XCTAssertEqual(model.selectedSection, .battery)
         XCTAssertEqual(model.expandedSection, .battery)
-        XCTAssertEqual(model.selectedSubtopic, .batteryIconDisplay)
+        XCTAssertEqual(model.selectedSubtopic, .batteryCharging)
 
         model.select(.audio)
-        XCTAssertEqual(model.selectedSubtopic, .audioDisplayAndInteraction)
+        XCTAssertEqual(model.selectedSubtopic, .audioVolumeControl)
         model.select(.bluetooth)
-        XCTAssertEqual(model.selectedSubtopic, .bluetoothDisplayAndPreview)
+        XCTAssertEqual(model.selectedSubtopic, .bluetoothListeningMode)
     }
 
     func testOnlyOneCategoryStaysExpanded() {
@@ -42,39 +42,39 @@ final class SettingsNavigationModelTests: XCTestCase {
     func testSelectSubtopicExpandsParentAndSetsSection() {
         let model = SettingsNavigationModel()
         model.select(.battery)
-        model.selectSubtopic(.batteryChargeManagement)
+        model.selectSubtopic(.batteryPowerMode)
         XCTAssertEqual(model.selectedSection, .battery)
         XCTAssertEqual(model.expandedSection, .battery)
-        XCTAssertEqual(model.selectedSubtopic, .batteryChargeManagement)
+        XCTAssertEqual(model.selectedSubtopic, .batteryPowerMode)
     }
 
     func testRememberedLeafIsRestoredWhenReenteringACategory() {
         let model = SettingsNavigationModel()
         model.select(.battery)
-        model.selectSubtopic(.batteryPowerAndEnergy)
+        model.selectSubtopic(.batteryEnergy)
         model.select(.network)
         model.select(.battery)
         XCTAssertEqual(
             model.selectedSubtopic,
-            .batteryPowerAndEnergy,
+            .batteryEnergy,
             "re-entering a category should return to the leaf the user last viewed"
         )
     }
 
     func testApplyOpensTheRequestedLeaf() {
         let model = SettingsNavigationModel()
-        model.apply(section: .battery, subtopic: .batteryChargeManagement)
+        model.apply(section: .battery, subtopic: .batteryCharging)
         XCTAssertEqual(model.selectedSection, .battery)
-        XCTAssertEqual(model.selectedSubtopic, .batteryChargeManagement)
+        XCTAssertEqual(model.selectedSubtopic, .batteryCharging)
     }
 
     func testApplyFallsBackToDefaultWhenLeafBelongsToAnotherCategory() {
         let model = SettingsNavigationModel()
-        model.apply(section: .audio, subtopic: .batteryChargeManagement)
+        model.apply(section: .audio, subtopic: .batteryCharging)
         XCTAssertEqual(model.selectedSection, .audio)
         XCTAssertEqual(
             model.selectedSubtopic,
-            .audioDisplayAndInteraction,
+            .audioVolumeControl,
             "a stale leaf must never render the wrong category's page"
         )
     }
@@ -83,7 +83,7 @@ final class SettingsNavigationModelTests: XCTestCase {
         let model = SettingsNavigationModel()
         model.apply(section: .bluetooth, subtopic: nil)
         XCTAssertEqual(model.selectedSection, .bluetooth)
-        XCTAssertEqual(model.selectedSubtopic, .bluetoothDisplayAndPreview)
+        XCTAssertEqual(model.selectedSubtopic, .bluetoothListeningMode)
     }
 
     func testSectionSubtopicsMatchTheLeafOwnership() {
@@ -94,8 +94,20 @@ final class SettingsNavigationModelTests: XCTestCase {
         XCTAssertTrue(SettingsView.Section.about.subtopics.isEmpty)
 
         XCTAssertEqual(
+            SettingsView.Section.appIcon.subtopics,
+            [.appIconAppearance, .appIconRing, .appIconMiddleIcon, .appIconBottomIndicator]
+        )
+        XCTAssertEqual(
             SettingsView.Section.battery.subtopics,
-            [.batteryIconDisplay, .batteryColorsAndAnimation, .batteryChargeManagement, .batteryPowerAndEnergy]
+            [.batteryCharging, .batteryPowerMode, .batteryEnergy]
+        )
+        XCTAssertEqual(
+            SettingsView.Section.audio.subtopics,
+            [.audioVolumeControl, .audioAudioDevices, .audioDisplayVolume]
+        )
+        XCTAssertEqual(
+            SettingsView.Section.bluetooth.subtopics,
+            [.bluetoothListeningMode, .bluetoothDeviceBattery, .bluetoothDeviceManagement]
         )
         XCTAssertTrue(SettingsView.Section.battery.hasSubtopics)
     }

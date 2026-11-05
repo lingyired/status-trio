@@ -19,7 +19,7 @@ final class SettingsNavigationModel: ObservableObject {
 
     init(
         selectedSection: SettingsView.Section = .appIcon,
-        selectedSubtopic: SettingsSubtopic? = .appIconPlacementSize
+        selectedSubtopic: SettingsSubtopic? = .appIconAppearance
     ) {
         self.selectedSection = selectedSection
         self.selectedSubtopic = selectedSubtopic

@@ -84,6 +84,7 @@
 "settings.bluetooth.batteryLevelsDescription" = "تقرأ مستويات بطارية AirPods أثناء عرض إدخال Bluetooth. لن يظهر طلب إذن إضافي.";
 "settings.bluetooth.listeningModePreview" = "معاينة مُبدِّل وضع السمع";
 "settings.bluetooth.listeningModePreviewDescription" = "اعرض كبسولات الوضع على جميع AirPods المتصلة لاختبار الواجهة. النقر على كبسولة يُحركها كما على الجهاز الفعلي لكن دون تغيير أي إعداد في AirPods.";
+"settings.bluetooth.listeningModePreviewOptions" = "خيارات المعاينة";
 "settings.bluetooth.listeningModePreviewDeviceName" = "اسم جهاز المعاينة";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "الاسم الظاهر على صفوف المعاينة. اتركه فارغًا لاستخدام الاسم الافتراضي، أو اكتب اسمًا طويلًا جدًا لاختبار الاقتطاع.";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "عدد صفوف المعاينة";
@@ -149,6 +150,8 @@
 "settings.battery.group.charging" = "الشحن";
 "settings.battery.group.powerModes" = "أوضاع الطاقة";
 "settings.battery.group.power" = "الطاقة";
+"settings.battery.group.topMarkers" = "العلامات العلوية";
+"settings.battery.group.progress" = "التقدم";
 "settings.battery.noBatteryNotice" = "لا يحتوي هذا الجهاز على بطارية، لذا يُعرض مستوى البطارية على أنه 100 افتراضيًا.";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";
@@ -757,16 +760,16 @@
 "battery.powerMode.highRequiresPower" = "لا يسري وضع الطاقة العالية إلا عند توصيل محول الطاقة.";
 
 // Settings subpage labels
-"settings.subtopic.appIcon.placementSize" = "الموضع والحجم";
-"settings.subtopic.appIcon.ringAndDock" = "الحلقة وDock";
+"settings.subtopic.appIcon.appearance" = "المظهر العام";
+"settings.subtopic.appIcon.ring" = "الحلقة";
+"settings.subtopic.appIcon.bottomIndicator" = "المؤشر السفلي";
 "settings.subtopic.appIcon.middleIcon" = "الأيقونة الوسطى";
-"settings.subtopic.battery.iconDisplay" = "عرض الأيقونة";
-"settings.subtopic.battery.colorsAndAnimation" = "الألوان والحركة";
-"settings.subtopic.battery.chargeManagement" = "إدارة الشحن";
-"settings.subtopic.battery.powerAndEnergy" = "الطاقة والاستهلاك";
-"settings.subtopic.audio.displayAndInteraction" = "العرض والتفاعل";
-"settings.subtopic.audio.deviceManagement" = "إدارة الأجهزة";
-"settings.subtopic.audio.externalVolume" = "مستوى الصوت الخارجي";
-"settings.subtopic.bluetooth.displayAndPreview" = "العرض والمعاينة";
-"settings.subtopic.bluetooth.deviceAndBattery" = "الأجهزة والبطارية";
-"settings.subtopic.bluetooth.panelAndList" = "اللوحة والقائمة";
+"settings.subtopic.battery.charging" = "الشحن";
+"settings.subtopic.battery.powerMode" = "وضع الطاقة";
+"settings.subtopic.battery.energy" = "معلومات الطاقة";
+"settings.subtopic.audio.volumeControl" = "التحكم في مستوى الصوت";
+"settings.subtopic.audio.audioDevices" = "أجهزة الصوت";
+"settings.subtopic.audio.displayVolume" = "مستوى صوت الشاشة";
+"settings.subtopic.bluetooth.listeningMode" = "وضع الاستماع";
+"settings.subtopic.bluetooth.deviceBattery" = "بطارية الجهاز";
+"settings.subtopic.bluetooth.deviceManagement" = "إدارة الأجهزة";

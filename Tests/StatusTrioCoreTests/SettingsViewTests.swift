@@ -167,14 +167,14 @@ final class SettingsViewTests: XCTestCase {
             storeController: emptyStoreController,
             observedController: controller,
             localization: Localization(defaults: suite.defaults, preferredLanguages: ["en"]),
-            subtopic: .bluetoothPanelAndList
+            subtopic: .bluetoothDeviceManagement
         )
         let empty = renderBluetoothPane(
             store: SettingsStore(defaults: suite.defaults),
             storeController: emptyStoreController,
             observedController: SettingsBluetoothTestFactory.makeController(devices: []),
             localization: Localization(defaults: suite.defaults, preferredLanguages: ["en"]),
-            subtopic: .bluetoothPanelAndList
+            subtopic: .bluetoothDeviceManagement
         )
 
         XCTAssertGreaterThan(
@@ -348,10 +348,10 @@ final class SettingsViewTests: XCTestCase {
     /// single-pane so the sidebar never grows an empty disclosure.
     func testOnlyComplexCategoriesExposeOrderedSubtopics() {
         let expected: [SettingsView.Section: [SettingsSubtopic]] = [
-            .appIcon: [.appIconPlacementSize, .appIconRingAndDock, .appIconMiddleIcon],
-            .battery: [.batteryIconDisplay, .batteryColorsAndAnimation, .batteryChargeManagement, .batteryPowerAndEnergy],
-            .audio: [.audioDisplayAndInteraction, .audioDeviceManagement, .audioExternalVolume],
-            .bluetooth: [.bluetoothDisplayAndPreview, .bluetoothDeviceAndBattery, .bluetoothPanelAndList],
+            .appIcon: [.appIconAppearance, .appIconRing, .appIconMiddleIcon, .appIconBottomIndicator],
+            .battery: [.batteryCharging, .batteryPowerMode, .batteryEnergy],
+            .audio: [.audioVolumeControl, .audioAudioDevices, .audioDisplayVolume],
+            .bluetooth: [.bluetoothListeningMode, .bluetoothDeviceBattery, .bluetoothDeviceManagement],
         ]
 
         for section in SettingsView.Section.allCases {
@@ -659,15 +659,15 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(popover.contains("settingsPopupVolumeScrollNatural"))
         XCTAssertTrue(popover.contains("popupVolumeNaturalScrolling"))
 
-        // The volume-scroll group is routed to the "display and interaction"
-        // leaf; the device-management leaf must not render it.
-        let displayStart = try XCTUnwrap(audio.range(of: "case .audioDisplayAndInteraction:"))
-        let deviceStart = try XCTUnwrap(audio.range(of: "case .audioDeviceManagement:"))
-        let externalStart = try XCTUnwrap(audio.range(of: "case .audioExternalVolume:"))
-        let displayLeaf = audio[displayStart.lowerBound..<deviceStart.lowerBound]
-        let deviceLeaf = audio[deviceStart.lowerBound..<externalStart.lowerBound]
-        XCTAssertTrue(displayLeaf.contains("volumeScrollGroup"))
-        XCTAssertFalse(deviceLeaf.contains("volumeScrollGroup"))
+        // The volume-scroll group is routed to the "volume control" leaf; the
+        // audio-devices leaf must not render it.
+        let volumeStart = try XCTUnwrap(audio.range(of: "case .audioVolumeControl:"))
+        let devicesStart = try XCTUnwrap(audio.range(of: "case .audioAudioDevices:"))
+        let displayStart = try XCTUnwrap(audio.range(of: "case .audioDisplayVolume:"))
+        let volumeLeaf = audio[volumeStart.lowerBound..<devicesStart.lowerBound]
+        let devicesLeaf = audio[devicesStart.lowerBound..<displayStart.lowerBound]
+        XCTAssertTrue(volumeLeaf.contains("volumeScrollGroup"))
+        XCTAssertFalse(devicesLeaf.contains("volumeScrollGroup"))
         XCTAssertFalse(
             popover.contains("popupScrollAdjustsVolume"),
             "the panel pane must not own the volume-scroll switch"

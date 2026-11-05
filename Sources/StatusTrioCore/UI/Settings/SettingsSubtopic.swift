@@ -4,40 +4,38 @@ import SwiftUI
 ///
 /// Only the complex categories (App Icon, Battery, Audio, Bluetooth) expose
 /// subtopics; the simple categories remain single-pane and never enter this
-/// type. A subtopic carries its own localized title (reused from the existing
-/// group titles so no localization keys are added) and parent category, which
+/// type. A subtopic carries its own localized title and parent category, which
 /// drive both the expanded sidebar rows and the detail-pane routing.
 enum SettingsSubtopic: Hashable, Identifiable, CaseIterable {
-    case appIconPlacementSize
-    case appIconRingAndDock
+    case appIconAppearance
+    case appIconRing
     case appIconMiddleIcon
+    case appIconBottomIndicator
 
-    case batteryIconDisplay
-    case batteryColorsAndAnimation
-    case batteryChargeManagement
-    case batteryPowerAndEnergy
+    case batteryCharging
+    case batteryPowerMode
+    case batteryEnergy
 
-    case audioDisplayAndInteraction
-    case audioDeviceManagement
-    case audioExternalVolume
+    case audioVolumeControl
+    case audioAudioDevices
+    case audioDisplayVolume
 
-    case bluetoothDisplayAndPreview
-    case bluetoothDeviceAndBattery
-    case bluetoothPanelAndList
+    case bluetoothListeningMode
+    case bluetoothDeviceBattery
+    case bluetoothDeviceManagement
 
     var id: SettingsSubtopic { self }
 
     /// The sidebar category that owns this subtopic.
     var section: SettingsView.Section {
         switch self {
-        case .appIconPlacementSize, .appIconRingAndDock, .appIconMiddleIcon:
+        case .appIconAppearance, .appIconRing, .appIconMiddleIcon, .appIconBottomIndicator:
             return .appIcon
-        case .batteryIconDisplay, .batteryColorsAndAnimation,
-             .batteryChargeManagement, .batteryPowerAndEnergy:
+        case .batteryCharging, .batteryPowerMode, .batteryEnergy:
             return .battery
-        case .audioDisplayAndInteraction, .audioDeviceManagement, .audioExternalVolume:
+        case .audioVolumeControl, .audioAudioDevices, .audioDisplayVolume:
             return .audio
-        case .bluetoothDisplayAndPreview, .bluetoothDeviceAndBattery, .bluetoothPanelAndList:
+        case .bluetoothListeningMode, .bluetoothDeviceBattery, .bluetoothDeviceManagement:
             return .bluetooth
         }
     }
@@ -45,8 +43,7 @@ enum SettingsSubtopic: Hashable, Identifiable, CaseIterable {
     /// The first subtopic shown when a category first expands.
     var isDefault: Bool {
         switch self {
-        case .appIconPlacementSize, .batteryIconDisplay,
-             .audioDisplayAndInteraction, .bluetoothDisplayAndPreview:
+        case .appIconAppearance, .batteryCharging, .audioVolumeControl, .bluetoothListeningMode:
             return true
         default:
             return false
@@ -57,25 +54,25 @@ enum SettingsSubtopic: Hashable, Identifiable, CaseIterable {
     func title(_ localization: Localization) -> String {
         switch self {
         // App Icon
-        case .appIconPlacementSize: return localization.string(.settingsSubtopicAppIconPlacementSize)
-        case .appIconRingAndDock:   return localization.string(.settingsSubtopicAppIconRingAndDock)
-        case .appIconMiddleIcon:    return localization.string(.settingsSubtopicAppIconMiddleIcon)
+        case .appIconAppearance:      return localization.string(.settingsSubtopicAppIconAppearance)
+        case .appIconRing:            return localization.string(.settingsSubtopicAppIconRing)
+        case .appIconMiddleIcon:      return localization.string(.settingsSubtopicAppIconMiddleIcon)
+        case .appIconBottomIndicator: return localization.string(.settingsSubtopicAppIconBottomIndicator)
 
         // Battery
-        case .batteryIconDisplay:          return localization.string(.settingsSubtopicBatteryIconDisplay)
-        case .batteryColorsAndAnimation:   return localization.string(.settingsSubtopicBatteryColorsAndAnimation)
-        case .batteryChargeManagement:     return localization.string(.settingsSubtopicBatteryChargeManagement)
-        case .batteryPowerAndEnergy:       return localization.string(.settingsSubtopicBatteryPowerAndEnergy)
+        case .batteryCharging:   return localization.string(.settingsSubtopicBatteryCharging)
+        case .batteryPowerMode:  return localization.string(.settingsSubtopicBatteryPowerMode)
+        case .batteryEnergy:     return localization.string(.settingsSubtopicBatteryEnergy)
 
         // Audio
-        case .audioDisplayAndInteraction:  return localization.string(.settingsSubtopicAudioDisplayAndInteraction)
-        case .audioDeviceManagement:       return localization.string(.settingsSubtopicAudioDeviceManagement)
-        case .audioExternalVolume:         return localization.string(.settingsSubtopicAudioExternalVolume)
+        case .audioVolumeControl:  return localization.string(.settingsSubtopicAudioVolumeControl)
+        case .audioAudioDevices:   return localization.string(.settingsSubtopicAudioAudioDevices)
+        case .audioDisplayVolume:  return localization.string(.settingsSubtopicAudioDisplayVolume)
 
         // Bluetooth
-        case .bluetoothDisplayAndPreview:  return localization.string(.settingsSubtopicBluetoothDisplayAndPreview)
-        case .bluetoothDeviceAndBattery:   return localization.string(.settingsSubtopicBluetoothDeviceAndBattery)
-        case .bluetoothPanelAndList:       return localization.string(.settingsSubtopicBluetoothPanelAndList)
+        case .bluetoothListeningMode:     return localization.string(.settingsSubtopicBluetoothListeningMode)
+        case .bluetoothDeviceBattery:     return localization.string(.settingsSubtopicBluetoothDeviceBattery)
+        case .bluetoothDeviceManagement:  return localization.string(.settingsSubtopicBluetoothDeviceManagement)
         }
     }
 }

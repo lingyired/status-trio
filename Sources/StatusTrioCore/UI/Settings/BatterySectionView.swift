@@ -15,38 +15,12 @@ struct BatterySectionView: View {
 
 
     var body: some View {
-        Group {
-            if showsIconPreview {
-                SettingsPage(pinnedHeader: {
-                    StatusIconPreviewCard(
-                        store: store,
-                        statusStore: statusStore,
-                        isDarkBackground: $previewIsDark
-                    )
-                }) {
-                    batteryContent
-                }
-                .id(subtopic)
-            } else {
-                SettingsPage {
-                    batteryContent
-                }
-                .id(subtopic)
-            }
+        // Battery is now purely about behaviour (charging, power mode, energy),
+        // so no battery subpage pins the icon preview any more.
+        SettingsPage {
+            batteryContent
         }
-    }
-
-    /// Only the pages that paint the icon carry the pinned live preview; the
-    /// charging and power pages need the vertical space for rows instead.
-    private var showsIconPreview: Bool {
-        switch subtopic {
-        case .batteryChargeManagement, .batteryPowerAndEnergy:
-            return false
-        case .batteryIconDisplay, .batteryColorsAndAnimation, .none:
-            return true
-        default:
-            return true
-        }
+        .id(subtopic)
     }
 
     @ViewBuilder
@@ -63,10 +37,7 @@ struct BatterySectionView: View {
         if !statusStore.snapshot.battery.isPresent {
             noBatteryNoticeGroup
         }
-        iconGroup
-        colorsGroup
-        chargingEffectsGroup
-        chargingGroup
+        chargeManagementGroup
         if helper.isAvailable {
             powerModesGroup
         }
@@ -76,22 +47,22 @@ struct BatterySectionView: View {
     @ViewBuilder
     private func batterySubpage(_ subtopic: SettingsSubtopic) -> some View {
         switch subtopic {
-        case .batteryIconDisplay:
+        case .batteryCharging:
             if !statusStore.snapshot.battery.isPresent {
                 noBatteryNoticeGroup
             }
-            iconGroup
-            fullThresholdGroup
-        case .batteryColorsAndAnimation:
-            colorsGroup
-            chargingEffectsGroup
-        case .batteryChargeManagement:
-            chargeManagementGroup
-        case .batteryPowerAndEnergy:
+            // Untitled: the page title already reads "Charging".
+            SettingsGroup { chargeManagementContent }
+        case .batteryPowerMode:
             if helper.isAvailable {
-                powerModesGroup
+                SettingsGroup { lowPowerModeGroup }
+            } else {
+                SettingsGroup {
+                    SettingsHintRow(text: localization.string(.lowPowerModeHelperUnavailable))
+                }
             }
-            powerFlowGroup
+        case .batteryEnergy:
+            SettingsGroup { powerFlowContent }
         default:
             fullBatteryContent
         }
@@ -105,237 +76,28 @@ struct BatterySectionView: View {
         }
     }
 
-    /// Everything that changes how the battery is drawn.
-    private var iconGroup: some View {
-        SettingsGroup(localization.string(.settingsBatteryGroupIcon)) {
-            // Show Percentage Switch
-            SettingsToggleRow(
-                symbol: "percent",
-                tint: .green,
-                title: localization.string(.settingsBatteryShowPercentage),
-                isOn: $store.showsBatteryPercentage
-            )
-
-            SettingsDivider()
-
-            // Charging Bolt Switch
-            SettingsToggleRow(
-                symbol: "bolt.fill",
-                tint: .yellow,
-                title: localization.string(.settingsBatteryShowChargingIndicator),
-                subtitle: localization.string(.settingsBatteryChargingDescription),
-                isOn: $store.showsChargingIndicator
-            )
-
-            SettingsDivider()
-
-            // Split the visible arc when the top gap has content (#205).
-            SettingsToggleRow(
-                symbol: "circle.lefthalf.filled",
-                tint: .blue,
-                title: localization.string(.settingsBatterySplitGapProgress),
-                subtitle: localization.string(.settingsBatterySplitGapProgressDescription),
-                isOn: $store.batterySplitGapProgress
-            )
-
-            SettingsDivider()
-
-
-            if store.showsChargingIndicator && store.showsBatteryPercentage {
-                SettingsDivider()
-
-                SettingsMenuRow(
-                    symbol: "powerplug.portrait.fill",
-                    tint: .teal,
-                    title: localization.string(.settingsBatteryConnectedIndicator),
-                    subtitle: localization.string(
-                        .settingsBatteryConnectedIndicatorDescription
-                    ),
-                    selection: $store.batteryConnectedIndicator,
-                    options: BatteryConnectedIndicator.allCases,
-                    label: connectedIndicatorLabel
-                )
-            }
-
-            SettingsDivider()
-
-            // Symbol Scale (Inline compact slider)
-            if store.isBatterySymbolSizeEnabled {
-                SettingsDivider()
-
-                SettingsRow(
-                    "textformat.size",
-                    tint: .blue,
-                    title: localization.string(.settingsBatterySymbolScale),
-                    subtitle: localization.string(.settingsBatterySymbolScaleDescription)
-                ) {
-                    HStack(spacing: 8) {
-                        Slider(
-                            value: Binding(
-                                get: { store.batterySymbolScale },
-                                set: { store.batterySymbolScale = ($0 * 20).rounded() / 20 }
-                            ),
-                            in: SettingsStore.batterySymbolScaleRange
-                        )
-                        .frame(width: 130)
-                        .controlSize(.small)
-                        .accessibilityLabel(
-                            localization.string(.settingsBatterySymbolScaleAccessibility)
-                        )
-                        .accessibilityValue("\(Int(store.batterySymbolScale * 100))%")
-
-                        Text("\(Int(store.batterySymbolScale * 100))%")
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 44, alignment: .trailing)
-                    }
-                }
-            }
-        }
-    }
-
-    /// The customisable status colours and the level that switches to the
-    /// critical colour.
-    private var colorsGroup: some View {
-        SettingsGroup(localization.string(.settingsBatteryGroupColors)) {
-            // Status Colors Switch
-            SettingsToggleRow(
-                symbol: "paintpalette.fill",
-                tint: .orange,
-                title: localization.string(.settingsBatteryStatusColors),
-                subtitle: localization.string(.settingsBatteryStatusColorsDescription),
-                isOn: $store.usesBatteryStatusColors
-            )
-
-            BatteryStatusColorsView(store: store)
-
-            // Critical Threshold (Inline compact slider)
-            if store.usesBatteryStatusColors {
-                SettingsDivider()
-
-                SettingsRow(
-                    "exclamationmark.triangle.fill",
-                    tint: .red,
-                    title: localization.string(.settingsBatteryCriticalThreshold),
-                    subtitle: localization.string(.settingsBatteryCriticalThresholdDescription)
-                ) {
-                    HStack(spacing: 8) {
-                        Slider(
-                            value: Binding(
-                                get: { store.batteryCriticalThreshold },
-                                set: { store.batteryCriticalThreshold = $0.rounded() }
-                            ),
-                            in: SettingsStore.batteryCriticalThresholdRange
-                        )
-                        .frame(width: 130)
-                        .controlSize(.small)
-                        .accessibilityLabel(
-                            localization.string(.settingsBatteryCriticalThreshold)
-                        )
-                        .accessibilityValue("\(Int(store.batteryCriticalThreshold))%")
-
-                        Text("\(Int(store.batteryCriticalThreshold))%")
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 44, alignment: .trailing)
-                    }
-                }
-            }
-        }
-    }
-
-    /// The charging animations drawn on the menu bar and Dock icons.
-    private var chargingEffectsGroup: some View {
-        SettingsGroup(localization.string(.settingsBatteryGroupChargingEffects)) {
-            SettingsToggleRow(
-                symbol: "menubar.rectangle",
-                tint: .green,
-                title: localization.string(.settingsBatteryMenuBarChargingEffect),
-                subtitle: localization.string(
-                    .settingsBatteryMenuBarChargingEffectDescription
-                ),
-                isOn: $store.showsMenuBarChargingEffect
-            )
-
-            SettingsDivider()
-
-            SettingsToggleRow(
-                symbol: "dock.rectangle",
-                tint: .green,
-                title: localization.string(.settingsBatteryDockChargingEffect),
-                subtitle: localization.string(
-                    .settingsBatteryDockChargingEffectDescription
-                ),
-                isOn: $store.showsDockChargingEffect
-            )
-
-            SettingsDivider()
-
-            SettingsToggleRow(
-                symbol: "bolt.fill",
-                tint: .yellow,
-                title: localization.string(.settingsBatteryChargingBoltHeartbeat),
-                subtitle: localization.string(.settingsBatteryChargingBoltHeartbeatDescription),
-                isOn: $store.showsChargingBoltHeartbeat
-            )
-            .disabled(!store.showsChargingEffect || !store.showsChargingIndicator)
-
-            if ChargingEffectTestMode.isAvailable() {
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: SymbolFallback.name("flask.fill", "testtube.2"),
-                    tint: .orange,
-                    title: localization.string(.settingsBatteryChargingEffectTest),
-                    subtitle: localization.string(.settingsBatteryChargingEffectTestDescription),
-                    isOn: Binding(
-                        get: { store.testsChargingEffect },
-                        set: { store.setChargingEffectTestEnabled($0) }
-                    )
-                )
-                .disabled(!store.showsChargingEffect)
-            }
-        }
-    }
-
-    /// Charging behaviour: the temporary full-charge action, its restore target
-    /// and the level that counts as a full ring.
-    /// The combined charging card shown on the original single-pane layout.
-    private var chargingGroup: some View {
-        SettingsGroup(localization.string(.settingsBatteryGroupCharging)) {
-            chargeToFullNowContent
-            SettingsDivider()
-            fullThresholdContent
-            systemChargeLimitUnavailableNote
-        }
-    }
-
-    /// "Charge Management" subtopic: the "Charge to full now" entry and the
-    /// restore-limit control that cancels it. The full-ring level moved to the
-    /// Icon Display subtopic because it only paints the visual completeness.
+    /// "Charging" subtopic: the temporary full-charge action, its restore-limit
+    /// control, and the note when the system charge limit cannot be read.
     private var chargeManagementGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupCharging)) {
-            if chargeToFullNow?.isSettingAvailable == true {
-                chargeToFullNowContent
-            } else {
-                // Never leave an empty card when the platform does not offer
-                // the temporary full-charge override.
-                SettingsHintRow(
-                    text: localization.string(.batteryActionChargeToFullNowUnavailable)
-                )
-            }
+            chargeManagementContent
         }
     }
 
-    /// "Icon Display" subtopic's second card: the full-ring visual threshold
-    /// (grouped under the icon-title so it reads as part of how the icon is
-    /// drawn, not as a charging behaviour).
-    private var fullThresholdGroup: some View {
-        SettingsGroup(localization.string(.settingsBatteryGroupIcon)) {
-            fullThresholdContent
-            systemChargeLimitUnavailableNote
+    @ViewBuilder
+    private var chargeManagementContent: some View {
+        if chargeToFullNow?.isSettingAvailable == true {
+            chargeToFullNowContent
+        } else {
+            // Never leave an empty card when the platform does not offer
+            // the temporary full-charge override.
+            SettingsHintRow(
+                text: localization.string(.batteryActionChargeToFullNowUnavailable)
+            )
         }
+        systemChargeLimitUnavailableNote
     }
+
 
     @ViewBuilder
     private var chargeToFullNowContent: some View {
@@ -404,62 +166,6 @@ struct BatterySectionView: View {
         }
     }
 
-    @ViewBuilder
-    private var fullThresholdContent: some View {
-        // Full Ring Level (#105)
-        //
-        // The slider row is byte-for-byte the low-battery threshold row
-        // above it, so the percentage lands on the same baseline as every
-        // other slider on the pane.
-        //
-        // The "use the system value" action is a link in the description
-        // rather than a button of its own: it is a one-shot convenience, not
-        // a setting, and a second row for it would spend a whole row on an
-        // action nobody looks for. As a link it reads as part of the
-        // explanation — "here is when you would want this, and here is how
-        // to fill it in".
-        SettingsRow(
-            "battery100.bolt",
-            tint: .green,
-            title: localization.string(.settingsBatteryFullThreshold),
-            subtitle: localization.string(.settingsBatteryFullThresholdDescription),
-            subtitleLink: Text(
-                localization.string(.settingsBatteryFullThresholdUseChargeLimit)
-            )
-            .foregroundColor(Color.accentColor),
-            // Fills the slider in from the system. A one-shot action, not a
-            // mode: the level stays editable afterwards, and nothing
-            // re-reads the plist behind the user's back.
-            //
-            // Accent colour rather than `.link`, which is macOS 14+ and
-            // this app still ships macOS 13.
-            subtitleLinkAction: {
-                store.applySystemChargeLimit()
-            },
-            trailing: {
-                HStack(spacing: 8) {
-                    Slider(
-                        value: Binding(
-                            get: { store.batteryFullThreshold },
-                            set: { store.batteryFullThreshold = $0.rounded() }
-                        ),
-                        in: SettingsStore.batteryFullThresholdRange
-                    )
-                    .frame(width: 130)
-                    .controlSize(.small)
-                    .accessibilityLabel(
-                        localization.string(.settingsBatteryFullThreshold)
-                    )
-                    .accessibilityValue("\(Int(store.batteryFullThreshold))%")
-
-                    Text("\(Int(store.batteryFullThreshold))%")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 44, alignment: .trailing)
-                }
-            }
-        )
-    }
 
     @ViewBuilder
     private var systemChargeLimitUnavailableNote: some View {
@@ -488,13 +194,19 @@ struct BatterySectionView: View {
     /// Power flow and energy rankings.
     private var powerFlowGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupPower)) {
-            SettingsToggleRow(
-                symbol: "chart.bar.fill",
-                tint: .teal,
-                title: localization.string(.settingsBatteryPowerInfoBar),
-                subtitle: localization.string(.settingsBatteryPowerInfoBarDescription),
-                isOn: $store.showsBatteryPowerInfoBar
-            )
+            powerFlowContent
+        }
+    }
+
+    @ViewBuilder
+    private var powerFlowContent: some View {
+        SettingsToggleRow(
+            symbol: "chart.bar.fill",
+            tint: .teal,
+            title: localization.string(.settingsBatteryPowerInfoBar),
+            subtitle: localization.string(.settingsBatteryPowerInfoBarDescription),
+            isOn: $store.showsBatteryPowerInfoBar
+        )
 
             SettingsDivider()
 
@@ -557,7 +269,6 @@ struct BatterySectionView: View {
                 // clipped by the card's bottom edge.
                 .padding(.horizontal, SettingsMetrics.rowPaddingH)
                 .padding(.vertical, SettingsMetrics.rowPaddingV)
-        }
     }
 
     /// The feature opt-in registers the helper if needed. Turning it off stops
@@ -693,15 +404,5 @@ struct BatterySectionView: View {
         .foregroundColor(helper.isReady ? Color.green : Color.secondary)
     }
 
-    private func connectedIndicatorLabel(_ indicator: BatteryConnectedIndicator) -> String {
-        switch indicator {
-        case .plug:
-            localization.string(.settingsBatteryConnectedIndicatorPlug)
-        case .bolt:
-            localization.string(.settingsBatteryConnectedIndicatorBolt)
-        case .percentage:
-            localization.string(.settingsBatteryConnectedIndicatorPercentage)
-        }
-    }
 }
 

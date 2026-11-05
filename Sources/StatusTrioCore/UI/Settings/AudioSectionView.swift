@@ -14,39 +14,13 @@ struct AudioSectionView: View {
         // page below it is rebuilt when the leaf changes, so switching
         // subpages does not re-run the refresh.
         VStack(spacing: 0) {
-            if showsIconPreview {
-                SettingsPage(pinnedHeader: {
-                    StatusIconPreviewCard(
-                        store: store,
-                        statusStore: statusStore,
-                        isDarkBackground: $previewIsDark
-                    )
-                }) {
-                    audioContent
-                }
-                .id(subtopic)
-            } else {
-                SettingsPage {
-                    audioContent
-                }
-                .id(subtopic)
+            SettingsPage {
+                audioContent
             }
+            .id(subtopic)
         }
         .onAppear {
             statusStore.refreshAll()
-        }
-    }
-
-    /// The preview belongs to the page that shows how the icon is drawn; the
-    /// device and external-volume pages use the space for their own rows.
-    private var showsIconPreview: Bool {
-        switch subtopic {
-        case .audioDeviceManagement, .audioExternalVolume:
-            return false
-        case .audioDisplayAndInteraction, .none:
-            return true
-        default:
-            return true
         }
     }
 
@@ -61,7 +35,6 @@ struct AudioSectionView: View {
 
     @ViewBuilder
     private var fullAudioContent: some View {
-        indicatorStyleGroup
         volumeFeedbackGroup
         volumeScrollGroup
         displayRulesGroup
@@ -73,46 +46,17 @@ struct AudioSectionView: View {
     @ViewBuilder
     private func audioSubpage(_ subtopic: SettingsSubtopic) -> some View {
         switch subtopic {
-        case .audioDisplayAndInteraction:
-            indicatorStyleGroup
+        case .audioVolumeControl:
             volumeFeedbackGroup
             volumeScrollGroup
-        case .audioDeviceManagement:
+        case .audioAudioDevices:
             displayRulesGroup
             deviceOrderGroup
             inputDeviceOrderGroup
-        case .audioExternalVolume:
+        case .audioDisplayVolume:
             externalVolumeGroup
         default:
             fullAudioContent
-        }
-    }
-
-    private var indicatorStyleGroup: some View {
-        SettingsGroup(localization.string(.settingsAudioIndicatorStyleTitle)) {
-            SettingsPictureRow(
-                "waveform",
-                tint: .indigo,
-                title: localization.string(.settingsAudioIndicatorStyle),
-                subtitle: localization.string(.settingsAudioIndicatorStyleDescription),
-                selection: $store.volumeDisplayStyle,
-                options: [VolumeDisplayStyle.dots, .arc],
-                previewSize: CGSize(width: 68, height: 44),
-                caption: { style in
-                    switch style {
-                    case .dots: return localization.string(.settingsAudioIndicatorStyleDots)
-                    case .arc: return localization.string(.settingsAudioIndicatorStyleArc)
-                    }
-                },
-                preview: { style in
-                    VolumeIndicatorPreview(
-                        style: style,
-                        isDarkBackground: previewIsDark,
-                        store: store,
-                        statusStore: statusStore
-                    )
-                }
-            )
         }
     }
 

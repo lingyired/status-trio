@@ -101,6 +101,7 @@
 "settings.bluetooth.batteryLevelsDescription" = "Bluetooth 項目の表示中に AirPods の残量を読み取ります。追加の権限確認は表示されません。";
 "settings.bluetooth.listeningModePreview" = "ヒアリングモード切り替えをプレビュー表示";
 "settings.bluetooth.listeningModePreviewDescription" = "UI の確認用に、接続中のすべての AirPods にモード切り替えのボタンを表示します。タップすると実機と同じアニメーションが動きますが、AirPods の設定は変更されません。";
+"settings.bluetooth.listeningModePreviewOptions" = "プレビューのオプション";
 "settings.bluetooth.listeningModePreviewDeviceName" = "プレビュー表示名";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "プレビュー行に表示するデバイス名です。空欄は既定値。長い名前を入力すれば省略表示を確認できます。";
 "settings.bluetooth.listeningModePreviewDeviceCount" = "プレビュー行数";
@@ -166,6 +167,8 @@
 "settings.battery.group.charging" = "充電";
 "settings.battery.group.powerModes" = "電力モード";
 "settings.battery.group.power" = "電力";
+"settings.battery.group.topMarkers" = "上部マーカー";
+"settings.battery.group.progress" = "進行状況";
 "settings.battery.noBatteryNotice" = "このデバイスにはバッテリーがないため、バッテリー残量は既定で 100 と表示されます。";
 "settings.battery.showPercentage" = "バッテリー残量を表示";
 "settings.battery.showChargingIndicator" = "充電中または電源接続時にアイコンを表示";
@@ -757,16 +760,16 @@
 "battery.powerMode.highRequiresPower" = "高電力モードは電源アダプタを接続すると有効になります。";
 
 // Settings subpage labels
-"settings.subtopic.appIcon.placementSize" = "配置とサイズ";
-"settings.subtopic.appIcon.ringAndDock" = "リングと Dock";
+"settings.subtopic.appIcon.appearance" = "全体の外観";
+"settings.subtopic.appIcon.ring" = "リング";
+"settings.subtopic.appIcon.bottomIndicator" = "下部インジケーター";
 "settings.subtopic.appIcon.middleIcon" = "中央アイコン";
-"settings.subtopic.battery.iconDisplay" = "アイコン表示";
-"settings.subtopic.battery.colorsAndAnimation" = "色とアニメーション";
-"settings.subtopic.battery.chargeManagement" = "充電管理";
-"settings.subtopic.battery.powerAndEnergy" = "電源とエネルギー";
-"settings.subtopic.audio.displayAndInteraction" = "表示と操作";
-"settings.subtopic.audio.deviceManagement" = "デバイス管理";
-"settings.subtopic.audio.externalVolume" = "外部音量";
-"settings.subtopic.bluetooth.displayAndPreview" = "表示とプレビュー";
-"settings.subtopic.bluetooth.deviceAndBattery" = "デバイスとバッテリー";
-"settings.subtopic.bluetooth.panelAndList" = "パネルとリスト";
+"settings.subtopic.battery.charging" = "充電";
+"settings.subtopic.battery.powerMode" = "電源モード";
+"settings.subtopic.battery.energy" = "エネルギー情報";
+"settings.subtopic.audio.volumeControl" = "音量コントロール";
+"settings.subtopic.audio.audioDevices" = "オーディオデバイス";
+"settings.subtopic.audio.displayVolume" = "ディスプレイ音量";
+"settings.subtopic.bluetooth.listeningMode" = "リスニングモード";
+"settings.subtopic.bluetooth.deviceBattery" = "デバイスのバッテリー";
+"settings.subtopic.bluetooth.deviceManagement" = "デバイス管理";
