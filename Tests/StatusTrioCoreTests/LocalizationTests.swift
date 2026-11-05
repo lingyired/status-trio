@@ -93,6 +93,22 @@ final class LocalizationTests: XCTestCase {
             XCTAssertTrue(chineseDescription.contains(term), "zh-Hans 缺少 \(term)")
         }
 
+        // The preview switch is a developer-only test aid; its title must say so
+        // in every shipped language, so nobody mistakes it for a real control.
+        let englishPreviewTitle = english.localizedString(
+            forKey: LocalizationKey.settingsBluetoothListeningModePreview.rawValue,
+            value: nil,
+            table: nil
+        )
+        XCTAssertTrue(englishPreviewTitle.localizedCaseInsensitiveContains("test"))
+        let chinesePreviewTitle = chinese.localizedString(
+            forKey: LocalizationKey.settingsBluetoothListeningModePreview.rawValue,
+            value: nil,
+            table: nil
+        )
+        XCTAssertTrue(chinesePreviewTitle.contains("测试"))
+
+
         // The preview description must be accurate: preview/synthetic rows are
         // UI-test-only and switching them changes nothing on the headphones,
         // while real device rows (HUAWEI included) still act on hardware — with

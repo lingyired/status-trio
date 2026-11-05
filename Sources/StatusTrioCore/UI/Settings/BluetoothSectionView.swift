@@ -147,7 +147,10 @@ struct BluetoothSectionView: View {
                     isOn: $store.showsBluetoothListeningMode
                 )
 
-                if store.showsBluetoothListeningMode {
+                // The preview rows inject synthetic AirPods for interface
+                // testing. They are developer-only, so a packaged release never
+                // offers them, and the toggle's title says so.
+                if AppMetadata.isDevelopmentBuild && store.showsBluetoothListeningMode {
                     SettingsDivider()
 
                     SettingsToggleRow(
@@ -159,7 +162,9 @@ struct BluetoothSectionView: View {
                     )
                 }
 
-                if store.showsBluetoothListeningMode && store.previewsBluetoothListeningMode {
+                if AppMetadata.isDevelopmentBuild
+                    && store.showsBluetoothListeningMode
+                    && store.previewsBluetoothListeningMode {
                     SettingsDivider()
 
                     SettingsRow(

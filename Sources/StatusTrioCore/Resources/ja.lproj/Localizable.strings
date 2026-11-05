@@ -101,7 +101,7 @@
 "settings.bluetooth.batteryLevelsDescription" = "Bluetooth 項目の表示中に AirPods の残量を読み取ります。追加の権限確認は表示されません。";
 "settings.bluetooth.listeningModeTitle" = "ヒアリングモードのコントロールを表示";
 "settings.bluetooth.listeningModeDescription" = "AirPods と一部の HUAWEI ヘッドホンをサポート：接続中のデバイスにノイズキャンセリング/外音取り込み/オフのボタンを表示します。HUAWEI は一部のモデルのみ対応しており、切り替えに失敗した場合は元のモードに戻ります。";
-"settings.bluetooth.listeningModePreview" = "ヒアリングモード切り替えをプレビュー表示";
+"settings.bluetooth.listeningModePreview" = "リスニングモードのプレビュー（テスト専用）";
 "settings.bluetooth.listeningModePreviewDescription" = "プレビューは UI 確認用の合成行を追加するだけで、プレビュー行を切り替えてもヘッドホンは変更されません。実際のデバイス行（HUAWEI を含む）は各デバイスの対応に従って動作します。HUAWEI は一部のモデルのみ対応しており、切り替えに失敗した場合は元のモードに戻ります。";
 "settings.bluetooth.listeningModePreviewDeviceName" = "プレビュー表示名";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "プレビュー行に表示するデバイス名です。空欄は既定値。長い名前を入力すれば省略表示を確認できます。";

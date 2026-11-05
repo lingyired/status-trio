@@ -27,6 +27,17 @@ enum AppMetadata {
         developmentCodename(from: Bundle.main.infoDictionary ?? [:])
     }
 
+    /// A development bundle carries `STDevelopmentCodename`; a release bundle
+    /// must not (see AGENTS.md). Developer-only Settings rows key off this flag
+    /// so a packaged release never offers them.
+    static var isDevelopmentBuild: Bool {
+        isDevelopmentBuild(from: Bundle.main.infoDictionary ?? [:])
+    }
+
+    static func isDevelopmentBuild(from infoDictionary: [String: Any]) -> Bool {
+        developmentCodename(from: infoDictionary) != nil
+    }
+
     static func developmentCodename(from infoDictionary: [String: Any]) -> String? {
         validName(infoDictionary[developmentCodenameKey])
     }

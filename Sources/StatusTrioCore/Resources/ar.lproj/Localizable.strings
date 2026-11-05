@@ -84,7 +84,7 @@
 "settings.bluetooth.batteryLevelsDescription" = "تقرأ مستويات بطارية AirPods أثناء عرض إدخال Bluetooth. لن يظهر طلب إذن إضافي.";
 "settings.bluetooth.listeningModeTitle" = "عرض عناصر التحكم في وضع السمع";
 "settings.bluetooth.listeningModeDescription" = "يدعم AirPods وبعض سماعات HUAWEI: يعرض كبسولات إلغاء الضوضاء/الشفافية/إيقاف على الأجهزة المتصلة. لا تُدعم سوى بعض طرز HUAWEI؛ وإذا فشل التبديل فسيُستعاد الوضع السابق.";
-"settings.bluetooth.listeningModePreview" = "معاينة مُبدِّل وضع السمع";
+"settings.bluetooth.listeningModePreview" = "معاينة وضع الاستماع (للاختبار فقط)";
 "settings.bluetooth.listeningModePreviewDescription" = "تضيف المعاينة صفوفًا اصطناعية لاختبار الواجهة فقط؛ تبديل صف المعاينة لا يغيّر سماعاتك. تظل صفوف الأجهزة الفعلية، بما فيها HUAWEI، تعمل وفق دعم كل جهاز: لا تُدعم سوى بعض طرز HUAWEI، وإذا فشل التبديل فسيُستعاد الوضع السابق.";
 "settings.bluetooth.listeningModePreviewDeviceName" = "اسم جهاز المعاينة";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "الاسم الظاهر على صفوف المعاينة. اتركه فارغًا لاستخدام الاسم الافتراضي، أو اكتب اسمًا طويلًا جدًا لاختبار الاقتطاع.";
