@@ -44,24 +44,24 @@
 
 发布 CI 产出的安装页 DMG 在开启「显示隐藏文件」的 Finder 中，卷根 `.background` 与 `.VolumeIcon.icns` 两个隐藏辅助项以默认槽位显示在顶部，遮住标题和说明文字（见 `issue-244-dmg-ci-before.png`，来自 run 41651307172，candidate `66380ee2`）。
 
-- 那次 CI 的安装页脚本只设置了 App 与 Applications 的坐标，没有给两个辅助项传 `--icon` 坐标；Finder 对没有位置记录的项按默认槽位摆放。
+- 那次 CI 的安装页脚本只设置了 App 与 Applications 的坐标，没有给辅助项传 `--icon` 坐标；Finder 对没有位置记录的项按默认槽位摆放。
 - 只在事后 `chflags hidden` 不够：用户 Finder 开启显示隐藏文件时，隐藏项仍会显示。
 - 本地看不出问题的直接原因是本轮尚未把辅助项坐标纳入同一份代码；坐标本身在普通 Finder 中可正常生效。
-- 修复已随 `042b7089` 加入 `scripts/create-installer-dmg.sh`：`.VolumeIcon.icns` 定位 760/470、`.background` 定位 860/470（都在 660pt 窗口之外），再重开镜像设置 hidden 标记。
+- 修复在 `scripts/create-installer-dmg.sh` 中把辅助项定位到窗口外（`.background` 760/470）并重开镜像设置 hidden 标记。
+- 用户复核后进一步决定：不再写自定义卷图标（不传 `--volicon`），因为卷图标容易被误认为 App 本身；最终镜像只保留隐藏的 `.background` 辅助目录，挂载后显示系统通用磁盘图标。
 
 ### runner 证据
 
-- 分支 `fix/244-dmg-ci-layout` 的临时诊断工作流在 macOS `xcode-27` runner 上执行同一安装页脚本，产出 DMG，全程无 secrets：首次 run 41943747364 确认方案可行；最终分支 run 41945534784 在完成后再次确认。
-- 最终 run 的日志直接列出 `.DS_Store` 的四个 Iloc 记录；artifact 中解码为 App (180,230)、Applications (480,230)、`.VolumeIcon.icns` (760,470)、`.background` (860,470)。
-- 下载后挂载检查：`.DS_Store` 中 Applications Iloc = (480,230)、`Status Trio.app` Iloc = (180,230)、`.VolumeIcon.icns` Iloc = (760,470)、`.background` Iloc = (860,470)；两个辅助项带 hidden 标记。
-- 同机挂载截图 `issue-244-dmg-ci-fixed.png`：中文标题、英文说明、第二条中文提示、英文提示、App 图标、箭头、Applications 图标均无遮挡，窗口无额外滚动条。
+- 分支 `fix/244-dmg-ci-layout` 的临时诊断工作流在 macOS `xcode-27` runner 上执行同一安装页脚本，产出 DMG，全程无 secrets。前序 run 41943747364、41945534784 验证了双辅助项定位方案；去掉卷图标后的 run 41960564919 是最终证据。
+- 最终 run 的日志与 artifact 显示 `.DS_Store` 只有三个 Iloc：App (180,230)、Applications (480,230)、`.background` (760,470)；镜像根目录没有 `.VolumeIcon.icns`。
+- 最终截图 `issue-244-dmg-ci-fixed.png` 中卷标题栏是系统通用磁盘图标，说明文字、App 图标、箭头、Applications 图标均无遮挡。
 - 复核环境：本机 macOS 27.2，Finder 开启「显示隐藏文件」，与用户此前看到问题时的条件一致。
 
 ### 代码调整
 
 - `scripts/package-release.sh` 的默认 `DMG_INSTALL_PAGE` 由 `plain` 改为 `styled`；`plain` 仍保留为显式回退，绝不静默回退。
 - `scripts/test-release-notarization.sh` 的默认路径断言改为 create-dmg 安装页，并新增显式 `DMG_INSTALL_PAGE=plain` 分支断言（直接 `hdiutil create`，不调用安装页脚本）。
-- `scripts/test-dmg-installer.sh` 继续断言两个辅助项坐标在 660pt 窗口之外。
+- `scripts/test-dmg-installer.sh` 断言不出现 `--volicon` / `.VolumeIcon.icns`，且 `.background` 坐标在 660pt 窗口之外。
 
 ### 结果
 
