@@ -36,7 +36,7 @@
 
 ## DMG 安装页
 
-package job 准备并检查 `create-dmg 1.3.0`；版本不符或 Finder 布局失败会明确停止，不回退为空白安装页。暂存目录只含 App，由 create-dmg 创建 Applications 拖放链接。背景包含双语拖拽、安装完成及从应用启动台打开的说明。
+package job 准备并检查 `create-dmg 1.3.0`；版本不符或 Finder 布局失败会明确停止，不回退为空白安装页。默认 `DMG_INSTALL_PAGE=styled` 生成双语安装页；`DMG_INSTALL_PAGE=plain` 是仅用于显式回退的旧布局（App + Applications 链接）。暂存目录只含 App，由 create-dmg 创建 Applications 拖放链接。背景包含双语拖拽、安装完成及从应用启动台打开的说明。
 
 背景源是 `scripts/generate-dmg-background.swift`，运行 `swift scripts/generate-dmg-background.swift assets/dmg` 可重建 1x/2x PNG。打包直接使用 1320×840、144 DPI 的 `background@2x.png`，逻辑尺寸为 660×420pt，不依赖 Finder 自动寻找同名资源。需要设计预览时附加 `--preview Support/AppIcon.png`，预览里的图标和标签不进入正式背景。
 

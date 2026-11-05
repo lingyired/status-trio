@@ -417,6 +417,21 @@ ruby -rjson -e '
 ' "$DIAGNOSTIC_MANIFEST"
 grep -q 'Diagnostic package has no Sparkle signature' "$TEST_ROOT/diagnostic-package.log" ||
     { echo 'FAIL: diagnostic package did not explain its missing signature' >&2; exit 1; }
+# The explicit plain opt-out still builds the pre-install-page image directly.
+: > "$TRACE"
+if ! DMG_INSTALL_PAGE=plain run_package > "$TEST_ROOT/plain-package.log" 2>&1; then
+    echo 'FAIL: explicit plain DMG layout failed' >&2
+    cat "$TEST_ROOT/plain-package.log" >&2
+    exit 1
+fi
+grep -q '^hdiutil <create>' "$TRACE" || {
+    echo 'FAIL: plain DMG layout did not create the image directly' >&2
+    exit 1
+}
+if grep -q '^create-dmg <--volname>' "$TRACE"; then
+    echo 'FAIL: plain DMG layout still ran the styled installer' >&2
+    exit 1
+fi
 : > "$TRACE"
 if env VERSION=1.0 BUILD=99 TAG=v1.0 PUBLISH=true NOTARIZE=true UNIVERSAL_BUILD=1 OUTPUT_DIR="$TEST_ROOT/output" \
     SPARKLE_PRIVATE_KEY='' \
@@ -466,7 +481,7 @@ ruby -e '
   operations = [
     ["ditto", "<-c>"], ["xcrun", "<submit>", ".zip>"],
     ["xcrun", "<staple>", ".app>"], ["xcrun", "<validate>", ".app>"],
-    ["hdiutil", "<create>"], ["codesign", "<--sign>", ".dmg>", "<--timestamp>", "<--keychain>", "<test-keychain>"],
+    ["create-dmg", "<--volname>"], ["codesign", "<--sign>", ".dmg>", "<--timestamp>", "<--keychain>", "<test-keychain>"],
     ["codesign", "<--verify>", ".dmg>"], ["xcrun", "<submit>", ".dmg>"],
     ["xcrun", "<staple>", ".dmg>"], ["xcrun", "<validate>", ".dmg>"],
     ["spctl", "<--type>", "<open>", "<context:primary-signature>"],

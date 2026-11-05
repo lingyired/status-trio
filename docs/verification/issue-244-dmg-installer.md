@@ -37,3 +37,34 @@
 低优先级边界：Homebrew 安装最新版、wrapper 精确校验 1.3.0，未来工具升级会明确阻断，未做依赖归档；尚无信号清理回归。公证及 spctl 检查针对原始 App，ditto 后的安装副本未单独验证签名/ticket，真实安装副本检查仍为 NOT RUN。
 
 未进行 Universal 发布打包、Developer ID 签名、公证、线上 appcast 修改、tag、Release、推送、合并或关闭 issue。
+
+## 2026-11-05 发布 runner 复验（fix/244-dmg-ci-layout）
+
+### 现象与根因
+
+发布 CI 产出的安装页 DMG 在开启「显示隐藏文件」的 Finder 中，卷根 `.background` 与 `.VolumeIcon.icns` 两个隐藏辅助项以默认槽位显示在顶部，遮住标题和说明文字（见 `issue-244-dmg-ci-before.png`，来自 run 41651307172，candidate `66380ee2`）。
+
+- 那次 CI 的安装页脚本只设置了 App 与 Applications 的坐标，没有给两个辅助项传 `--icon` 坐标；Finder 对没有位置记录的项按默认槽位摆放。
+- 只在事后 `chflags hidden` 不够：用户 Finder 开启显示隐藏文件时，隐藏项仍会显示。
+- 本地看不出问题的直接原因是本轮尚未把辅助项坐标纳入同一份代码；坐标本身在普通 Finder 中可正常生效。
+- 修复已随 `042b7089` 加入 `scripts/create-installer-dmg.sh`：`.VolumeIcon.icns` 定位 760/470、`.background` 定位 860/470（都在 660pt 窗口之外），再重开镜像设置 hidden 标记。
+
+### runner 证据
+
+- 分支 `fix/244-dmg-ci-layout` 的临时诊断工作流 run 41943747364（macOS `xcode-27` runner，无 secrets）用发布产物中的 App 执行同一安装页脚本，产出 DMG。
+- 下载后挂载检查：`.DS_Store` 中 Applications Iloc = (480,230)、`Status Trio.app` Iloc = (180,230)、`.VolumeIcon.icns` Iloc = (760,470)、`.background` Iloc = (860,470)；两个辅助项带 hidden 标记。
+- 同机挂载截图 `issue-244-dmg-ci-fixed.png`：中文标题、英文说明、第二条中文提示、英文提示、App 图标、箭头、Applications 图标均无遮挡，窗口无额外滚动条。
+- 复核环境：本机 macOS 27.2，Finder 开启「显示隐藏文件」，与用户此前看到问题时的条件一致。
+
+### 代码调整
+
+- `scripts/package-release.sh` 的默认 `DMG_INSTALL_PAGE` 由 `plain` 改为 `styled`；`plain` 仍保留为显式回退，绝不静默回退。
+- `scripts/test-release-notarization.sh` 的默认路径断言改为 create-dmg 安装页，并新增显式 `DMG_INSTALL_PAGE=plain` 分支断言（直接 `hdiutil create`，不调用安装页脚本）。
+- `scripts/test-dmg-installer.sh` 继续断言两个辅助项坐标在 660pt 窗口之外。
+
+### 结果
+
+- PASS：`bash scripts/test-dmg-installer.sh`。
+- PASS：`bash scripts/test-release-notarization.sh`（含新增 plain 回退断言）。
+- PASS：`bash scripts/verify-local.sh full`（提交前最终树）。
+- 本文件中的 CI 截图是 agent 复核，不代替用户对正式发布产物的验收；浅/深外观、真实拖放安装仍待用户验收。
