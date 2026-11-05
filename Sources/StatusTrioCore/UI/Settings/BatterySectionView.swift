@@ -16,8 +16,15 @@ struct BatterySectionView: View {
 
     var body: some View {
         // Battery is a single pane now: icon appearance lives under App Icon,
-        // and the behaviour controls are grouped by card on one page.
-        SettingsPage {
+        // and the behaviour controls are grouped by card on one page. The live
+        // status-icon preview stays pinned at the top like the other icon pages.
+        SettingsPage(pinnedHeader: {
+            StatusIconPreviewCard(
+                store: store,
+                statusStore: statusStore,
+                isDarkBackground: $previewIsDark
+            )
+        }) {
             fullBatteryContent
         }
     }

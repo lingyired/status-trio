@@ -14,7 +14,13 @@ struct AudioSectionView: View {
         // refresh runs once per appearance, not per leaf switch. Audio is a
         // single pane now; device selection lives beside the volume controls.
         VStack(spacing: 0) {
-            SettingsPage {
+            SettingsPage(pinnedHeader: {
+                StatusIconPreviewCard(
+                    store: store,
+                    statusStore: statusStore,
+                    isDarkBackground: $previewIsDark
+                )
+            }) {
                 fullAudioContent
             }
         }

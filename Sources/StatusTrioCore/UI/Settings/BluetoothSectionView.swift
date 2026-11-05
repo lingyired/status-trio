@@ -27,7 +27,13 @@ struct BluetoothSectionView: View {
         // single pane now, so there is no leaf switch to rebuild in the first
         // place.
         VStack(spacing: 0) {
-            SettingsPage {
+            SettingsPage(pinnedHeader: {
+                StatusIconPreviewCard(
+                    store: store,
+                    statusStore: statusStore,
+                    isDarkBackground: $previewIsDark
+                )
+            }) {
                 fullBluetoothContent
             }
         }

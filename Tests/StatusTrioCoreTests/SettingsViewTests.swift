@@ -565,6 +565,30 @@ final class SettingsViewTests: XCTestCase {
         }
     }
 
+    /// Every icon-affecting feature pane shows the same live status-icon preview
+    /// bar, so the top of the pane is consistent across categories.
+    func testIconAffectingPanesShowLivePreviewBar() throws {
+        let base = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/StatusTrioCore/UI/Settings")
+        for file in [
+            "AppIconSectionView.swift", "BatterySectionView.swift",
+            "NetworkSectionView.swift", "BluetoothSectionView.swift",
+            "AudioSectionView.swift",
+        ] {
+            let source = try String(
+                contentsOf: base.appendingPathComponent(file),
+                encoding: .utf8
+            )
+            XCTAssertTrue(
+                source.contains("StatusIconPreviewCard"),
+                "\(file) should pin the live preview bar"
+            )
+        }
+    }
+
     /// The visual parameters stay within the Compact Native Sidebar values
     /// requested for this design, and the sidebar width is 196 pt.
     func testSidebarMetricsMatchTheRequestedDesign() {
