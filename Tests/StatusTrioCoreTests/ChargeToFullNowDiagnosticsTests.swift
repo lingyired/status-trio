@@ -177,7 +177,7 @@ final class ChargeToFullNowDiagnosticsTests: XCTestCase {
     func testPausedChargeWithoutNativeLimitHasNoHiddenReason() {
         // #292: a paused charge with no sub-100% native limit now offers the
         // action, so Settings must not claim a missing limit.
-        let backend = DiagnosticsStubChargeController(deviceState: .disabled)
+        let backend = DiagnosticsStubChargeController(deviceState: .overridablePause)
         let controller = ChargeToFullNowController(backend: backend)
 
         XCTAssertEqual(
@@ -187,7 +187,19 @@ final class ChargeToFullNowDiagnosticsTests: XCTestCase {
             ),
             []
         )
-        XCTAssertEqual(controller.presentation, .hidden)
+    }
+
+    func testNonOverridablePauseReportsAnOverridableReason() {
+        let backend = DiagnosticsStubChargeController(deviceState: .disabled)
+        let controller = ChargeToFullNowController(backend: backend)
+
+        XCTAssertEqual(
+            controller.hiddenReasons(
+                battery: battery(isCharging: false),
+                batterySectionVisible: true
+            ),
+            [.unrecognizedChargeLimitState]
+        )
     }
 
     func testChargingNormallyWithoutNativeLimitKeepsTheNoLimitReason() {
@@ -294,6 +306,14 @@ private extension ChargeToFullNowDeviceState {
         mclEnabledRawValue: 0,
         mclLimit: 80,
         chargingOverrideAllowed: false
+    )
+
+    /// Optimized Battery Charging paused with no sub-100% limit; the system
+    /// reports the pause as overridable.
+    static let overridablePause = ChargeToFullNowDeviceState(
+        mclEnabledRawValue: 0,
+        mclLimit: 100,
+        chargingOverrideAllowed: true
     )
 
     static let temporaryOverride = ChargeToFullNowDeviceState(

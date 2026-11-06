@@ -73,7 +73,11 @@ final class ChargeToFullNowControllerTests: XCTestCase {
 
     func testPausedChargeWithoutNativeLimitStartsTheWrite() async {
         let backend = StubBatteryChargeController(deviceState: .noActiveLimit)
-        let controller = ChargeToFullNowController(backend: backend)
+        let store = VolatileChargeToFullNowSessionStore()
+        let controller = ChargeToFullNowController(
+            backend: backend,
+            sessionStore: store
+        )
         controller.update(demand(isCharging: false))
         XCTAssertEqual(controller.presentation, .available)
 
@@ -82,7 +86,19 @@ final class ChargeToFullNowControllerTests: XCTestCase {
         XCTAssertEqual(backend.writeCount, 1)
 
         backend.finishWrite(.success)
-        await waitUntil { controller.presentation == .chargingToFull }
+        // No native limit to cancel back to, so there is no "cancel" row: the
+        // action hides and stays hidden until charging begins.
+        await waitUntil { controller.presentation == .hidden }
+        XCTAssertNil(store.load())
+    }
+
+    func testNonOverridablePauseDoesNotOfferTheAction() {
+        let backend = StubBatteryChargeController(deviceState: .nonOverridablePause)
+        let controller = ChargeToFullNowController(backend: backend)
+
+        controller.update(demand(isCharging: false))
+
+        XCTAssertEqual(controller.presentation, .hidden)
     }
 
     func testUnsupportedCapabilityNeverReadsOrShowsTheButton() {
@@ -1252,10 +1268,18 @@ private extension ChargeToFullNowDeviceState {
     )
 
     /// Optimized Battery Charging paused the charge with no sub-100% native
-    /// limit: MCL reports "not enabled" and no limit.
+    /// limit: MCL reports "not enabled" and no limit, but the system says the
+    /// pause is overridable.
     static let noActiveLimit = ChargeToFullNowDeviceState(
         mclEnabledRawValue: 0,
         mclLimit: nil,
+        chargingOverrideAllowed: true
+    )
+
+    /// A paused charge the system does not report as overridable.
+    static let nonOverridablePause = ChargeToFullNowDeviceState(
+        mclEnabledRawValue: 0,
+        mclLimit: 100,
         chargingOverrideAllowed: false
     )
 

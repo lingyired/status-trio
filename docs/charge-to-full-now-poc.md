@@ -497,6 +497,45 @@ Do not force discharge or invoke the old exploratory write executable. Capture
 intermediate selector results with an attached debugger during the manual
 button action if needed; automated tests must continue to use fake clients.
 
+## Optimized Battery Charging path (issue #292)
+
+When the user keeps the charge limit at 100% but turns on Optimized Battery
+Charging, macOS pauses at about 80–90% and still shows its own "Charge to Full
+Now". That state has **no sub-100% MCL limit**, so `temporarilyDisableMCL:` is
+the wrong call (our bridge refuses it: `mclEnabledRawValue == 0`,
+`mclLimit == 100`).
+
+Live read-only observation on macOS 27.2 (build 26B123), Apple silicon, at a
+paused 88%:
+
+| Reading | Value |
+| --- | --- |
+| `isMCLCurrentlyEnabled:` raw | `0` |
+| `getMCLLimitWithError:` | `100` |
+| `smartChargingUIState:...` | state `12`, uiLimit `80`, overrideAllowed `true` |
+| `isOBCEngaged:chargeLimit:chargingOverrideAllowed:withError:` | engaged `true`, limit `80`, overrideAllowed `true` |
+| `isSmartChargingCurrentlyEnabled:` | `1` |
+
+`ControlCenter` only references two charge writes: `temporarilyDisableMCL:` and
+`temporarilyEnableCharging:`. The native action therefore uses
+`temporarilyEnableCharging:` for this pause. A single authorized request on the
+same machine returned `YES`, disengaged OBC (`uiState` 12→3, uiLimit 100,
+overrideAllowed false) and charging began **about 60–70 seconds later** — so
+Status Trio must keep the action hidden until charging actually starts rather
+than firing a second request.
+
+Resulting bridge rule (`chargeToFullNow`):
+
+- active sub-100% limit → `temporarilyDisableMCL:` (existing flow, cancellable);
+- otherwise, only when `chargingOverrideAllowed` is true →
+  `temporarilyEnableCharging:` (no cancel row; hide until charging begins);
+- otherwise refuse, so no dead button is exposed.
+
+The display condition without an active limit is gated on
+`chargingOverrideAllowed`, which is exactly the overridable-pause signal; with
+an active limit the existing behaviour (show while charging toward the limit)
+is unchanged.
+
 ## Sources and provenance
 
 - Apple's [About Optimized Battery Charging and Charge Limit on Mac](https://support.apple.com/en-us/102338),

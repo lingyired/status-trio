@@ -76,6 +76,10 @@ static void *STForbiddenLoad(const char *path, int mode) {
     (void)error;
     abort();
 }
+- (BOOL)temporarilyEnableCharging:(NSError **)error {
+    (void)error;
+    abort();
+}
 - (BOOL)setMCLLimit:(unsigned char)limit error:(NSError **)error {
     [self.writes addObject:[NSString stringWithFormat:@"set:%u", limit]];
     self.limit = self.failsVerification ? 100 : limit;

@@ -106,6 +106,11 @@ final class ChargeToFullNowController: ObservableObject {
     private var isCancelling = false
     private var hasObservedTemporaryOverride = false
     private var pendingLimitChange: PendingLimitChange?
+    /// Set after an Optimized-Battery-Charging override is accepted. macOS can
+    /// take up to a minute to actually start charging, so keep the action hidden
+    /// until charging begins instead of letting the user fire duplicates.
+    private var optimizedChargingStartedAt: Date?
+    private static let optimizedChargingGrace: TimeInterval = 150
 
     private struct PendingLimitChange {
         let currentLimit: Int
@@ -142,6 +147,17 @@ final class ChargeToFullNowController: ObservableObject {
         }
 
         let state = backend.readState()
+        if let startedAt = optimizedChargingStartedAt {
+            if demand.battery.isCharging {
+                optimizedChargingStartedAt = nil
+            } else if now().timeIntervalSince(startedAt) < Self.optimizedChargingGrace {
+                // A request was accepted but charging has not begun yet.
+                publish(.hidden)
+                return
+            } else {
+                optimizedChargingStartedAt = nil
+            }
+        }
         if var restored = restoredLimit {
             if demand.battery.isCharging {
                 restored.hasObservedCharging = true
@@ -212,10 +228,11 @@ final class ChargeToFullNowController: ObservableObject {
     ///
     /// A native sub-100% charge limit is *not* required: macOS shows its own
     /// "Charge to Full Now" action whenever the Mac is plugged in, not full and
-    /// not charging, including when only Optimized Battery Charging paused the
-    /// charge (its charge limit setting stays at 100%). Keep the existing
-    /// charge-limit flow unchanged (it also shows while charging toward the
-    /// limit), and never offer the action on an unrecognized raw state.
+    /// can be forced to charge. With an active charge limit the existing flow
+    /// stays unchanged (it also shows while charging toward the limit); without
+    /// one, offer the action only while charging is paused and the system
+    /// reports the pause is overridable (for example Optimized Battery Charging
+    /// at ~80% with the charge limit at 100%).
     private static func offersChargeToFull(
         demand: ChargeToFullNowDemand,
         state: ChargeToFullNowDeviceState
@@ -223,7 +240,7 @@ final class ChargeToFullNowController: ObservableObject {
         guard demand.canStartChargeToFull else { return false }
         if state.hasActiveChargeLimit { return true }
         guard !demand.battery.isCharging else { return false }
-        return !isUnrecognizedChargeLimit(state)
+        return state.chargingOverrideAllowed == true
     }
 
     /// Read-only diagnostics for the Settings pane. Ignores whether the
@@ -293,6 +310,11 @@ final class ChargeToFullNowController: ObservableObject {
         if Self.offersChargeToFull(demand: demand, state: state) { return [] }
 
         if Self.isUnrecognizedChargeLimit(state) {
+            return [.unrecognizedChargeLimitState]
+        }
+        // Paused but the system does not report the pause as overridable, so
+        // offering the action would only produce a dead request.
+        if !battery.isCharging {
             return [.unrecognizedChargeLimitState]
         }
         return [.noActiveChargeLimit]
@@ -401,6 +423,7 @@ final class ChargeToFullNowController: ObservableObject {
             return
         }
 
+        let usesNativeLimit = state.hasActiveChargeLimit
         let originalLimit = state.reportedChargeLimit
         isApplying = true
         publish(.applying)
@@ -409,14 +432,22 @@ final class ChargeToFullNowController: ObservableObject {
             let result = await backend.chargeToFullNow()
             isApplying = false
             if result.succeeded {
-                let accepted = ChargeToFullNowSession(
-                    originalLimit: originalLimit,
-                    acceptedAt: now()
-                )
-                session = accepted
-                sessionNeedsConfirmation = false
-                hasObservedTemporaryOverride = false
-                sessionStore.save(accepted)
+                if usesNativeLimit {
+                    let accepted = ChargeToFullNowSession(
+                        originalLimit: originalLimit,
+                        acceptedAt: now()
+                    )
+                    session = accepted
+                    sessionNeedsConfirmation = false
+                    hasObservedTemporaryOverride = false
+                    sessionStore.save(accepted)
+                } else {
+                    // No native limit to cancel back to: the system override
+                    // simply resumes charging. Suppress the action until the
+                    // battery reports charging so a duplicate request cannot
+                    // fire during the system's startup delay.
+                    optimizedChargingStartedAt = now()
+                }
             }
 
             guard let currentDemand,
@@ -424,7 +455,11 @@ final class ChargeToFullNowController: ObservableObject {
                 publish(.hidden)
                 return
             }
-            publish(result.succeeded ? .chargingToFull : .failed)
+            if usesNativeLimit {
+                publish(result.succeeded ? .chargingToFull : .failed)
+            } else {
+                publish(result.succeeded ? .hidden : .failed)
+            }
         }
     }
 
