@@ -72,6 +72,31 @@ final class InputSourceSettingsTests: XCTestCase {
 /// controller and clicking it routes through `StatusPanelActions`.
 @MainActor
 final class InputSourcePanelTests: XCTestCase {
+    func testApplePinyinRowsUseScriptMarkersEvenWithReadableSystemIcons() throws {
+        let iconURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try Data().write(to: iconURL)
+        defer { try? FileManager.default.removeItem(at: iconURL) }
+        let sources = [
+            ("com.apple.inputmethod.SCIM.ITABC", "简"),
+            ("com.apple.inputmethod.TCIM.Pinyin", "繁"),
+            ("com.example.pinyin", "简")
+        ].map { id, label in
+            InputSourceDescriptor(id: id, localizedName: "Pinyin", primaryLanguage: "zh",
+                                  iconURL: iconURL, shortLabel: label)
+        }
+        let panel = InputSourcePanelMapper.map(
+            state: InputSourceState(selectedID: sources[0].id, sources: sources),
+            failure: nil, localization: makeLocalization()
+        )
+
+        XCTAssertEqual(panel.rows.map(\.marker), ["简", "繁", "简"])
+        XCTAssertNil(panel.rows[0].iconURL)
+        XCTAssertNil(panel.rows[1].iconURL)
+        XCTAssertEqual(panel.rows[2].iconURL, iconURL, "Unknown third-party icons keep precedence")
+        XCTAssertEqual(panel.rows.map(\.id), sources.map(\.id))
+        XCTAssertEqual(panel.rows.map(\.isCurrent), [true, false, false])
+    }
+
     func testPanelRowsMirrorTheControllerStateAndMarkTheCurrentSource() {
         let controller = makeController(
             current: "com.example.pinyin",
