@@ -291,7 +291,6 @@
 "vpn.power.changing" = "Changing VPN status…";
 "vpn.power.failed" = "Unable to change VPN. Check System Settings.";
 "vpn.power.timedOut" = "VPN status was not confirmed. Check again.";
-"vpn.mihomo.off" = "Off";
 "wifi.action.requestNameAccess" = "Allow location to show Wi-Fi networks";
 "wifi.action.openLocationSettings" = "Allow location in Settings";
 "wifi.action.openSettings" = "Open Wi-Fi Settings";

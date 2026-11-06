@@ -291,7 +291,6 @@
 "vpn.power.changing" = "Cambiando el estado del VPN…";
 "vpn.power.failed" = "No se pudo cambiar el VPN. Revisa Ajustes del Sistema.";
 "vpn.power.timedOut" = "No se confirmó el estado del VPN. Vuelve a comprobarlo.";
-"vpn.mihomo.off" = "Desactivado";
 "wifi.action.requestNameAccess" = "Permitir ubicación para mostrar las redes Wi-Fi";
 "wifi.action.openLocationSettings" = "Permitir ubicación en Ajustes";
 "wifi.action.openSettings" = "Abrir ajustes de Wi-Fi";

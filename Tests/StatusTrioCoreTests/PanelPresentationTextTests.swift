@@ -416,20 +416,6 @@ final class PresentationTextMapperTests: XCTestCase {
             "Clash Verge TUN"
         )
 
-        let disabled = VPNStatus(
-            tunnelInterfaces: [],
-            serviceName: nil,
-            services: [],
-            mihomoTunnel: MihomoTunnelInfo(
-                provider: "Clash Verge", device: "", isEnabled: false
-            ),
-            proxy: VPNProxyStatus(kind: .http, host: "127.0.0.1", port: 10808)
-        )
-        XCTAssertEqual(
-            PanelPresentationMapper.vpn(disabled, localization: localization).subtitle,
-            "已关闭 · 127.0.0.1:10808"
-        )
-
         let mismatched = VPNStatus(
             tunnelInterfaces: ["utun5"],
             serviceName: nil,
@@ -442,6 +428,23 @@ final class PresentationTextMapperTests: XCTestCase {
         XCTAssertEqual(
             PanelPresentationMapper.vpnTitle(mismatched, localization: localization),
             "TUN"
+        )
+        let disabledTunWithProxy = VPNStatus(
+            tunnelInterfaces: [],
+            serviceName: nil,
+            services: [],
+            mihomoTunnel: MihomoTunnelInfo(
+                provider: "Clash Verge", device: "", isEnabled: false
+            ),
+            proxy: VPNProxyStatus(kind: .http, host: "127.0.0.1", port: 10808)
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnTitle(disabledTunWithProxy, localization: localization),
+            "系统代理"
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnSubtitle(disabledTunWithProxy, localization: localization),
+            "127.0.0.1:10808"
         )
     }
 

@@ -10,13 +10,10 @@ final class MihomoTunnelTests: XCTestCase {
             ),
             MihomoTunnelInfo(provider: "Clash Verge", device: "utun4", isEnabled: true)
         )
-        XCTAssertEqual(
-            MihomoConfigParser.tunnel(
-                fromJSON: ["tun": ["enable": false, "device": "utun4"]],
-                provider: "Clash Verge"
-            )?.isEnabled,
-            false
-        )
+        XCTAssertNil(MihomoConfigParser.tunnel(
+            fromJSON: ["tun": ["enable": false, "device": "utun4"]],
+            provider: "Clash Verge"
+        ))
         XCTAssertNil(MihomoConfigParser.tunnel(
             fromJSON: ["tun": ["enable": true, "device": ""]],
             provider: "Clash Verge"
@@ -45,9 +42,13 @@ final class MihomoTunnelTests: XCTestCase {
         try XCTSkipUnless(FileManager.default.fileExists(atPath: socket),
                           "No local Clash Verge service socket")
         let info = await SystemMihomoTunnelClient().read()
-        XCTAssertEqual(info?.provider, "Clash Verge")
-        XCTAssertNotNil(info?.device)
-        XCTAssertNotNil(info?.isEnabled)
+        // The parser intentionally returns nil when TUN is disabled; if it is
+        // enabled, the attribution must name the client and device.
+        if let info {
+            XCTAssertEqual(info.provider, "Clash Verge")
+            XCTAssertFalse(info.device.isEmpty)
+            XCTAssertTrue(info.isEnabled)
+        }
     }
 
     @MainActor

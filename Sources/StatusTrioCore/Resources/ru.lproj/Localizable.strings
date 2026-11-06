@@ -291,7 +291,6 @@
 "vpn.power.changing" = "Изменение состояния VPN…";
 "vpn.power.failed" = "Не удалось изменить VPN. Проверьте Системные настройки.";
 "vpn.power.timedOut" = "Состояние VPN не подтверждено. Проверьте ещё раз.";
-"vpn.mihomo.off" = "Выключено";
 "wifi.action.requestNameAccess" = "Разрешить геолокацию для показа сетей Wi‑Fi";
 "wifi.action.openLocationSettings" = "Разрешить геолокацию в Настройках";
 "wifi.action.openSettings" = "Открыть настройки Wi‑Fi";

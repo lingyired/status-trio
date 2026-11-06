@@ -177,13 +177,7 @@ enum PanelPresentationMapper {
         localization: Localization
     ) -> PanelSummaryState {
         let title = vpnTitle(status, localization: localization)
-        let subtitle: String
-        if let mihomo = status.mihomoTunnel, !mihomo.isEnabled {
-            let off = localization.string(.vpnMihomoOff)
-            subtitle = status.proxy?.endpoint.map { "\(off) · \($0)" } ?? off
-        } else {
-            subtitle = vpnSubtitle(status, localization: localization)
-        }
+        let subtitle = vpnSubtitle(status, localization: localization)
         let tint: PanelTint
         if status.isTunnelConnected {
             tint = .positive
@@ -364,7 +358,8 @@ enum PanelPresentationMapper {
         // When Mihomo's read-only API attributes the active interface, name
         // the client too instead of pretending it is a system VPN.
         if let mihomo = vpn.mihomoTunnel,
-           vpn.tunnelInterfaces.isEmpty || vpn.tunnelInterfaces.contains(mihomo.device) {
+           mihomo.isEnabled,
+           vpn.tunnelInterfaces.contains(mihomo.device) {
             return mihomo.provider == "Clash Verge"
                 ? localization.string(.vpnTitleClashVergeTunnel)
                 : localization.string(.vpnTitleTunnel)

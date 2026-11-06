@@ -619,7 +619,6 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case vpnPowerChanging = "vpn.power.changing"
     case vpnPowerFailed = "vpn.power.failed"
     case vpnPowerTimedOut = "vpn.power.timedOut"
-    case vpnMihomoOff = "vpn.mihomo.off"
     case wifiActionRequestNameAccess = "wifi.action.requestNameAccess"
     case wifiActionOpenLocationSettings = "wifi.action.openLocationSettings"
     case wifiActionOpenSettings = "wifi.action.openSettings"

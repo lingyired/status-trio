@@ -43,16 +43,12 @@ final class SystemMihomoTunnelClient: MihomoTunnelReading, @unchecked Sendable {
 enum MihomoConfigParser {
     static func tunnel(fromJSON json: [String: Any], provider: String) -> MihomoTunnelInfo? {
         guard let tun = json["tun"] as? [String: Any],
-              let isEnabled = tun["enable"] as? Bool else {
+              tun["enable"] as? Bool == true,
+              let device = tun["device"] as? String,
+              !device.isEmpty else {
             return nil
         }
-        let device = tun["device"] as? String ?? ""
-        guard !isEnabled || !device.isEmpty else { return nil }
-        return MihomoTunnelInfo(
-            provider: provider,
-            device: device,
-            isEnabled: isEnabled
-        )
+        return MihomoTunnelInfo(provider: provider, device: device, isEnabled: true)
     }
 }
 
