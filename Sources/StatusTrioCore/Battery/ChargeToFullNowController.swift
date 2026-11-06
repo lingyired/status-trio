@@ -204,7 +204,26 @@ final class ChargeToFullNowController: ObservableObject {
             publish(.hidden)
             return
         }
-        publish(state.hasActiveChargeLimit ? .available : .hidden)
+        publish(Self.offersChargeToFull(demand: demand, state: state) ? .available : .hidden)
+    }
+
+    /// Whether the live state means the user can start charging to full right
+    /// now.
+    ///
+    /// A native sub-100% charge limit is *not* required: macOS shows its own
+    /// "Charge to Full Now" action whenever the Mac is plugged in, not full and
+    /// not charging, including when only Optimized Battery Charging paused the
+    /// charge (its charge limit setting stays at 100%). Keep the existing
+    /// charge-limit flow unchanged (it also shows while charging toward the
+    /// limit), and never offer the action on an unrecognized raw state.
+    private static func offersChargeToFull(
+        demand: ChargeToFullNowDemand,
+        state: ChargeToFullNowDeviceState
+    ) -> Bool {
+        guard demand.canStartChargeToFull else { return false }
+        if state.hasActiveChargeLimit { return true }
+        guard !demand.battery.isCharging else { return false }
+        return !isUnrecognizedChargeLimit(state)
     }
 
     /// Read-only diagnostics for the Settings pane. Ignores whether the
@@ -269,7 +288,9 @@ final class ChargeToFullNowController: ObservableObject {
         if session != nil { return [] }
         if state.indicatesTemporaryOverride { return [] }
 
-        if state.hasActiveChargeLimit { return [] }
+        // The action is visible, so there is nothing to explain: this includes
+        // a paused charge without a native sub-100% limit.
+        if Self.offersChargeToFull(demand: demand, state: state) { return [] }
 
         if Self.isUnrecognizedChargeLimit(state) {
             return [.unrecognizedChargeLimitState]
@@ -375,7 +396,7 @@ final class ChargeToFullNowController: ObservableObject {
             publish(.unavailable)
             return
         }
-        guard state.hasActiveChargeLimit else {
+        guard Self.offersChargeToFull(demand: requestedDemand, state: state) else {
             publish(.hidden)
             return
         }

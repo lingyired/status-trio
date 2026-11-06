@@ -174,6 +174,35 @@ final class ChargeToFullNowDiagnosticsTests: XCTestCase {
         )
     }
 
+    func testPausedChargeWithoutNativeLimitHasNoHiddenReason() {
+        // #292: a paused charge with no sub-100% native limit now offers the
+        // action, so Settings must not claim a missing limit.
+        let backend = DiagnosticsStubChargeController(deviceState: .disabled)
+        let controller = ChargeToFullNowController(backend: backend)
+
+        XCTAssertEqual(
+            controller.hiddenReasons(
+                battery: battery(isCharging: false),
+                batterySectionVisible: true
+            ),
+            []
+        )
+        XCTAssertEqual(controller.presentation, .hidden)
+    }
+
+    func testChargingNormallyWithoutNativeLimitKeepsTheNoLimitReason() {
+        let backend = DiagnosticsStubChargeController(deviceState: .disabled)
+        let controller = ChargeToFullNowController(backend: backend)
+
+        XCTAssertEqual(
+            controller.hiddenReasons(
+                battery: battery(isCharging: true),
+                batterySectionVisible: true
+            ),
+            [.noActiveChargeLimit]
+        )
+    }
+
     private func state(raw: UInt, limit: Int?) -> ChargeToFullNowDeviceState {
         ChargeToFullNowDeviceState(
             mclEnabledRawValue: raw,
@@ -185,12 +214,13 @@ final class ChargeToFullNowDiagnosticsTests: XCTestCase {
     private func battery(
         present: Bool = true,
         connected: Bool = true,
-        percentage: Int = 60
+        percentage: Int = 60,
+        isCharging: Bool = true
     ) -> BatteryStatus {
         BatteryStatus(
             rawPercentage: percentage,
             isPresent: present,
-            isCharging: true,
+            isCharging: isCharging,
             isCharged: false,
             isLowPowerMode: false,
             isConnectedToPower: connected

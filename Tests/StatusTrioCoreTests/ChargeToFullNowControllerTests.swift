@@ -24,6 +24,67 @@ final class ChargeToFullNowControllerTests: XCTestCase {
         }
     }
 
+    func testPausedChargeWithoutNativeLimitOffersTheAction() {
+        // #292: macOS shows its own "Charge to Full Now" while Optimized Battery
+        // Charging pauses at ~80% with the charge limit still at 100%. Status
+        // Trio must not require a sub-100% native limit to offer the action.
+        let backend = StubBatteryChargeController(deviceState: .noActiveLimit)
+        let controller = ChargeToFullNowController(backend: backend)
+
+        controller.update(demand(isCharging: false))
+
+        XCTAssertEqual(controller.presentation, .available)
+    }
+
+    func testChargingNormallyWithoutNativeLimitHidesTheAction() {
+        let backend = StubBatteryChargeController(deviceState: .noActiveLimit)
+        let controller = ChargeToFullNowController(backend: backend)
+
+        controller.update(demand(isCharging: true))
+
+        XCTAssertEqual(controller.presentation, .hidden)
+    }
+
+    func testUnrecognizedRawStateStaysHiddenWhenPaused() {
+        let backend = StubBatteryChargeController(
+            deviceState: ChargeToFullNowDeviceState(
+                mclEnabledRawValue: 9,
+                mclLimit: 80,
+                chargingOverrideAllowed: false
+            )
+        )
+        let controller = ChargeToFullNowController(backend: backend)
+
+        controller.update(demand(isCharging: false))
+
+        XCTAssertEqual(controller.presentation, .hidden)
+    }
+
+    func testChargingTowardNativeLimitStillOffersTheAction() {
+        // The existing charge-limit flow must not regress: while charging
+        // toward a sub-100% limit the button stays available.
+        let backend = StubBatteryChargeController(deviceState: .activeLimit)
+        let controller = ChargeToFullNowController(backend: backend)
+
+        controller.update(demand(percentage: 50, isCharging: true))
+
+        XCTAssertEqual(controller.presentation, .available)
+    }
+
+    func testPausedChargeWithoutNativeLimitStartsTheWrite() async {
+        let backend = StubBatteryChargeController(deviceState: .noActiveLimit)
+        let controller = ChargeToFullNowController(backend: backend)
+        controller.update(demand(isCharging: false))
+        XCTAssertEqual(controller.presentation, .available)
+
+        controller.performPrimaryAction()
+        await backend.waitUntilWriteStarts()
+        XCTAssertEqual(backend.writeCount, 1)
+
+        backend.finishWrite(.success)
+        await waitUntil { controller.presentation == .chargingToFull }
+    }
+
     func testUnsupportedCapabilityNeverReadsOrShowsTheButton() {
         let backend = StubBatteryChargeController(
             capability: .unavailable(.unsupportedSystem),
@@ -1187,6 +1248,14 @@ private extension ChargeToFullNowDeviceState {
     static let activeLimit = ChargeToFullNowDeviceState(
         mclEnabledRawValue: 1,
         mclLimit: 80,
+        chargingOverrideAllowed: false
+    )
+
+    /// Optimized Battery Charging paused the charge with no sub-100% native
+    /// limit: MCL reports "not enabled" and no limit.
+    static let noActiveLimit = ChargeToFullNowDeviceState(
+        mclEnabledRawValue: 0,
+        mclLimit: nil,
         chargingOverrideAllowed: false
     )
 
