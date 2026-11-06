@@ -385,7 +385,6 @@
 "settings.refreshInterval" = "فترة تحديث الحالة";
 "settings.refreshInterval.onBattery" = "على البطارية";
 "settings.refreshInterval.onPower" = "متصل بالطاقة";
-"settings.refreshInterval.active" = "قيد الاستخدام";
 "settings.refreshInterval.description" = "عدد مرات تحقق Status Trio من التغييرات. تؤدي التحديثات الأكثر تكرارًا إلى استخدام CPU أكبر.";
 "settings.refreshInterval.value" = "%d ثوانٍ";
 "settings.popup.order" = "عناصر لوحة الحالة";

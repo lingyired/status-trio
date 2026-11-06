@@ -385,7 +385,6 @@
 "settings.refreshInterval" = "Intervallo di aggiornamento";
 "settings.refreshInterval.onBattery" = "A batteria";
 "settings.refreshInterval.onPower" = "Collegato alla corrente";
-"settings.refreshInterval.active" = "In uso";
 "settings.refreshInterval.description" = "Con quale frequenza Status Trio controlla le modifiche. Aggiornamenti più frequenti usano più CPU.";
 "settings.refreshInterval.value" = "%d secondi";
 "settings.popup.order" = "Elementi mostrati";

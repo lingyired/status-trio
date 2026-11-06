@@ -385,7 +385,6 @@
 "settings.refreshInterval" = "ステータス更新間隔";
 "settings.refreshInterval.onBattery" = "バッテリー使用時";
 "settings.refreshInterval.onPower" = "電源接続時";
-"settings.refreshInterval.active" = "使用中";
 "settings.refreshInterval.description" = "Status Trio が変更を確認する頻度です。短いほど CPU 使用率が高くなります。";
 "settings.refreshInterval.value" = "%d 秒";
 "settings.popup.order" = "表示項目";

@@ -113,47 +113,28 @@ struct GeneralSectionView: View {
 
             SettingsDivider()
 
-            // Status refresh interval (#255): one row per power source. The row
-            // whose cadence is currently in effect carries an "In use" marker.
-            // Both sliders move in whole seconds.
+            // Status refresh interval (#255): one row per power source, using
+            // the original settings-row and slider component. The description
+            // stays once on the first row; neither row shows step ticks.
             refreshIntervalRow(
                 title: localization.string(.settingsRefreshIntervalOnBattery),
                 subtitle: localization.string(.settingsRefreshIntervalDescription),
-                value: $store.refreshIntervalOnBatterySeconds,
-                isActive: effectiveRefreshSource == .battery
+                value: $store.refreshIntervalOnBatterySeconds
             )
 
             SettingsDivider()
 
             refreshIntervalRow(
                 title: localization.string(.settingsRefreshIntervalOnPower),
-                value: $store.refreshIntervalOnPowerSeconds,
-                isActive: effectiveRefreshSource == .power
+                value: $store.refreshIntervalOnPowerSeconds
             )
         }
-    }
-
-    private enum RefreshSource {
-        case battery
-        case power
-    }
-
-    /// Which of the two cadences is in effect right now. A Mac with no battery
-    /// has no battery mode, so it falls back to the wall-power cadence.
-    private var effectiveRefreshSource: RefreshSource {
-        guard let battery = statusStore?.snapshot.battery,
-              battery.isPresent,
-              !battery.isConnectedToPower else {
-            return .power
-        }
-        return .battery
     }
 
     private func refreshIntervalRow(
         title: String,
         subtitle: String? = nil,
-        value: Binding<Double>,
-        isActive: Bool
+        value: Binding<Double>
     ) -> some View {
         SettingsRow(
             "arrow.clockwise",
@@ -162,27 +143,12 @@ struct GeneralSectionView: View {
             subtitle: subtitle
         ) {
             HStack(spacing: 8) {
-                if isActive {
-                    Text(localization.string(.settingsRefreshIntervalActive))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.accentColor)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule().fill(Color.accentColor.opacity(0.12))
-                        )
-                        .accessibilityLabel(
-                            localization.string(.settingsRefreshIntervalActive)
-                        )
-                }
-
                 Slider(
                     value: Binding(
                         get: { value.wrappedValue },
                         set: { value.wrappedValue = $0.rounded() }
                     ),
-                    in: SettingsStore.refreshIntervalRange,
-                    step: 1
+                    in: SettingsStore.refreshIntervalRange
                 )
                 .frame(width: 130)
                 .controlSize(.small)

@@ -385,7 +385,6 @@
 "settings.refreshInterval" = "狀態重新整理間隔";
 "settings.refreshInterval.onBattery" = "使用電池時";
 "settings.refreshInterval.onPower" = "連接電源時";
-"settings.refreshInterval.active" = "生效中";
 "settings.refreshInterval.description" = "Status Trio 檢查狀態變化的頻率。重新整理越快，CPU 使用率越高。";
 "settings.refreshInterval.value" = "%d 秒";
 "settings.popup.order" = "顯示項目";

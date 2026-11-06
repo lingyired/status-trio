@@ -92,7 +92,6 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsRefreshInterval = "settings.refreshInterval"
     case settingsRefreshIntervalOnBattery = "settings.refreshInterval.onBattery"
     case settingsRefreshIntervalOnPower = "settings.refreshInterval.onPower"
-    case settingsRefreshIntervalActive = "settings.refreshInterval.active"
     case settingsRefreshIntervalDescription = "settings.refreshInterval.description"
     case settingsRefreshIntervalValue = "settings.refreshInterval.value"
     case menuBarRightClickAction = "settings.menuBarRightClickAction"

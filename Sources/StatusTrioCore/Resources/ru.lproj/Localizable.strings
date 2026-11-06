@@ -385,7 +385,6 @@
 "settings.refreshInterval" = "Интервал обновления";
 "settings.refreshInterval.onBattery" = "От батареи";
 "settings.refreshInterval.onPower" = "От сети";
-"settings.refreshInterval.active" = "Используется";
 "settings.refreshInterval.description" = "Как часто Status Trio проверяет изменения. Более частое обновление увеличивает нагрузку на CPU.";
 "settings.refreshInterval.value" = "%d секунд";
 "settings.popup.order" = "Отображаемые элементы";
