@@ -358,6 +358,21 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
             }
             continuation?.resume(throwing: error)
         }
+
+        /// Fails the operation without it ever running, e.g. when the transport
+        /// thread could not be started. `resume(throwing:)` only completes a
+        /// `.running` operation, so a still-`queued` caller would otherwise never
+        /// be resumed and would await forever.
+        func fail(_ error: any Error) {
+            let continuation: CheckedContinuation<HuaweiNoiseState, any Error>? = lock.withLock {
+                guard phase != .completed else { return nil }
+                phase = .completed
+                let continuation = self.continuation
+                self.continuation = nil
+                return continuation
+            }
+            continuation?.resume(throwing: error)
+        }
     }
 
     private struct PendingOperation: Sendable {
@@ -528,7 +543,7 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
             runLoop = try ensureRunLoop()
         } catch {
             removeActiveOperation(id)
-            operation.resume(throwing: error)
+            operation.fail(error)
             return
         }
         hooks.didAcquireRunLoop?()
@@ -675,6 +690,7 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
                 if stopSignal.isStopped {
                     RunLoop.current.remove(keepAlivePort, forMode: .default)
                     ready.signal()
+                    hooks.didStopTransportThread?()
                     return nil
                 }
                 self.lock.withLock {
@@ -682,18 +698,40 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
                 }
                 hooks.didStartTransportThread?()
                 var shouldScheduleDrain = false
+                var aborted = false
                 self.lock.withLock {
-                    self.transportRunLoop = runLoop
-                    if let closeGeneration = self.deferredCloseGeneration {
-                        self.deferredCloseGeneration = nil
-                        self.pending.append(PendingOperation {
-                            self.closeAllOnTransportThread(through: closeGeneration)
-                        })
+                    // Re-check the stop flag under the same lock that publishes
+                    // `transportRunLoop`. A caller that timed out sets the flag
+                    // before a retry can begin, so either this publish wins and
+                    // the timeout path clears it, or this branch sees the stop
+                    // and never publishes a run loop whose thread is leaving for
+                    // a retry to adopt.
+                    if stopSignal.isStopped {
+                        aborted = true
+                    } else {
+                        self.transportRunLoop = runLoop
+                        if let closeGeneration = self.deferredCloseGeneration {
+                            self.deferredCloseGeneration = nil
+                            self.pending.append(PendingOperation {
+                                self.closeAllOnTransportThread(through: closeGeneration)
+                            })
+                        }
+                        if !self.pending.isEmpty, !self.isDrainScheduled {
+                            self.isDrainScheduled = true
+                            shouldScheduleDrain = true
+                        }
                     }
-                    if !self.pending.isEmpty, !self.isDrainScheduled {
-                        self.isDrainScheduled = true
-                        shouldScheduleDrain = true
+                }
+                if aborted {
+                    RunLoop.current.remove(keepAlivePort, forMode: .default)
+                    self.lock.withLock {
+                        if self.keepAlivePort === keepAlivePort {
+                            self.keepAlivePort = nil
+                        }
                     }
+                    ready.signal()
+                    hooks.didStopTransportThread?()
+                    return nil
                 }
                 ready.signal()
                 if shouldScheduleDrain {
@@ -721,7 +759,7 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
 
         thread.start()
         guard ready.wait(timeout: .now() + Self.startupTimeout) == .success else {
-            stopSignal.requestStop()
+            abandonTimedOutStartup(stopSignal)
             throw HuaweiListeningModeError.transportUnavailable
         }
         lock.lock()
@@ -731,6 +769,34 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
             throw HuaweiListeningModeError.transportUnavailable
         }
         return runLoop
+    }
+
+    /// Releases the state a startup that exceeded `startupTimeout` may hold, so a
+    /// retry cannot adopt the run loop of a thread that is leaving.
+    ///
+    /// The caller still holds `startupLock`, and the thread re-checks the stop
+    /// flag under the publish lock, so between the two no stale run loop can
+    /// survive: either the thread has not published yet and will observe the stop,
+    /// or it published first and is cleared here. A thread that already parked in
+    /// its run loop is woken the same way `deinit` stops it, so it cannot stay
+    /// parked without an owner.
+    private func abandonTimedOutStartup(_ stopSignal: StopSignal) {
+        stopSignal.requestStop()
+        let runLoop: CFRunLoop? = lock.withLock {
+            guard transportStopSignal === stopSignal else { return nil }
+            let runLoop = transportRunLoop
+            transportRunLoop = nil
+            keepAlivePort = nil
+            transportStopSignal = nil
+            transportThread = nil
+            return runLoop
+        }
+        guard let runLoop else { return }
+        CFRunLoopPerformBlock(runLoop, "kCFRunLoopCommonModes" as CFString) {
+            stopSignal.requestStop()
+            CFRunLoopStop(CFRunLoopGetCurrent())
+        }
+        CFRunLoopWakeUp(runLoop)
     }
 
     // MARK: - Transport-thread operations

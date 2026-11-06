@@ -377,6 +377,76 @@ final class HuaweiTransportLifecycleTests: XCTestCase {
         XCTAssertEqual(transport.transportThreadCount, 1)
     }
 
+    func testStartupTimeoutDoesNotHangTheCallerAndAllowsRetryOnFreshThread() async throws {
+        let probe = LifecycleProbe()
+        let gate = DispatchSemaphore(value: 0)
+        let stopRecorder = StopRecorder()
+        let stopped = expectation(description: "timed-out thread stops")
+        let transport = HuaweiRFCOMMTransport(hooks: .init(
+            // `didStart` runs after the first stop check but before the run
+            // loop is published; parking here holds the thread inside that
+            // window so the bounded startup timeout fires before publication.
+            didStartTransportThread: {
+                if probe.noteRunStarted() == 1 {
+                    _ = gate.wait(timeout: .now() + 20)
+                }
+            },
+            didStopTransportThread: {
+                if stopRecorder.record() == 1 { stopped.fulfill() }
+            },
+            runOperation: { request, context in
+                try probe.execute(request, context: context)
+            }
+        ))
+        defer { gate.signal() }
+
+        let firstResult = ModeResultBox()
+        let firstDone = expectation(description: "first call returns")
+        let first = Task.detached {
+            do {
+                _ = try await transport.state(address: "AA:BB:CC:DD:EE:FF")
+                firstResult.set(.failure(TestFailure.unexpectedSuccess))
+            } catch {
+                firstResult.set(.failure(error))
+            }
+            firstDone.fulfill()
+        }
+        // Bounded wait: on a regression the call never returns, and the timeout
+        // reports the failure instead of hanging the whole suite.
+        await fulfillment(of: [firstDone], timeout: 8)
+        if case .failure(let error)? = firstResult.get() {
+            XCTAssertEqual(error as? HuaweiListeningModeError, .transportUnavailable)
+        } else {
+            XCTFail("The first call must fail instead of hanging when startup times out")
+        }
+
+        gate.signal()
+        await fulfillment(of: [stopped], timeout: 5)
+
+        let retryResult = ModeResultBox()
+        let retryDone = expectation(description: "retry completes on a fresh thread")
+        let retry = Task.detached {
+            do {
+                let state = try await transport.state(address: "AA:BB:CC:DD:EE:FF")
+                retryResult.set(.success(state.mode))
+            } catch {
+                retryResult.set(.failure(error))
+            }
+            retryDone.fulfill()
+        }
+        await fulfillment(of: [retryDone], timeout: 5)
+        if case .success(let mode)? = retryResult.get() {
+            XCTAssertEqual(mode, .cancellation)
+        } else {
+            XCTFail("The retry must run on a fresh, live transport thread")
+        }
+
+        retry.cancel()
+        first.cancel()
+        XCTAssertEqual(transport.transportThreadCount, 2)
+        XCTAssertEqual(probe.operationCount, 1)
+    }
+
     func testDeallocationStopsTheTransportThread() async {
         let started = expectation(description: "transport thread started")
         let stopped = expectation(description: "transport thread stopped")
@@ -414,6 +484,35 @@ final class HuaweiTransportLifecycleTests: XCTestCase {
             },
             didCloseSessions: didCloseSessions
         ))
+    }
+}
+
+private final class StopRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func record() -> Int {
+        lock.withLock {
+            count += 1
+            return count
+        }
+    }
+}
+
+private enum TestFailure: Error {
+    case unexpectedSuccess
+}
+
+private final class ModeResultBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var result: Result<HuaweiNoiseMode, any Error>?
+
+    func set(_ result: Result<HuaweiNoiseMode, any Error>) {
+        lock.withLock { self.result = result }
+    }
+
+    func get() -> Result<HuaweiNoiseMode, any Error>? {
+        lock.withLock { result }
     }
 }
 
