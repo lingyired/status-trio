@@ -182,7 +182,7 @@
 "settings.battery.group.power" = "Power";
 "settings.battery.group.topMarkers" = "Top Markers";
 "settings.battery.group.progress" = "Progress";
-"settings.battery.noBatteryNotice" = "This device has no battery, so the battery level is shown as 100 by default.";
+"settings.battery.noBatteryNotice" = "This device has no battery, so the battery percentage is not displayed.";
 "settings.battery.showPercentage" = "Show battery percentage";
 "settings.battery.showChargingIndicator" = "Show an indicator while charging or connected to power";
 "settings.battery.chargingDescription" = "When enabled, the percentage becomes a bolt or plug while charging or connected to power.";

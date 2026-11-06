@@ -57,7 +57,7 @@ struct MiddleIconSettingsGroup: View {
                 Slider(
                     value: Binding(
                         get: { store.wifiSymbolScale },
-                        set: { store.wifiSymbolScale = (round($0 * 20) / 20) }
+                        set: { store.setWiFiSymbolScaleFromSlider(round($0 * 20) / 20) }
                     ),
                     in: SettingsStore.wifiSymbolScaleRange
                 )

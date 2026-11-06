@@ -182,7 +182,7 @@
 "settings.battery.group.power" = "Энергопотребление";
 "settings.battery.group.topMarkers" = "Верхние маркеры";
 "settings.battery.group.progress" = "Прогресс";
-"settings.battery.noBatteryNotice" = "На этом устройстве нет аккумулятора, поэтому уровень заряда по умолчанию отображается как 100.";
+"settings.battery.noBatteryNotice" = "На этом устройстве нет аккумулятора, поэтому процент заряда не отображается.";
 "settings.battery.showPercentage" = "Показывать процент заряда";
 "settings.battery.showChargingIndicator" = "Показывать значок при зарядке или питании от сети";
 "settings.battery.chargingDescription" = "Если включено, процент заменяется молнией или вилкой во время зарядки или при питании от сети.";

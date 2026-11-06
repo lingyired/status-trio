@@ -1,4 +1,5 @@
 import CoreAudio
+import Testing
 import XCTest
 @testable import StatusTrioCore
 
@@ -203,6 +204,45 @@ final class VolumeMonitorTests: XCTestCase {
                 isMuted: true,
                 deviceName: "USB Headset"
             )
+        )
+        monitor.stop()
+    }
+
+    func testPeriodicRefreshReusesDevicesWhileDetailsStayVisible() async throws {
+        let reader = FakeVolumeReader(result: makeReading(scalar: 0.25))
+        let devices = [
+            AudioOutputDevice(
+                id: 42,
+                name: "Speakers",
+                uid: "speakers",
+                isCurrent: true,
+                volume: 0.25
+            )
+        ]
+        let outputController = FakeAudioOutputController(devices: devices)
+        let monitor = VolumeMonitor(
+            statusReader: InlineAudioStatusReader(reader: reader, outputController: outputController),
+            eventMonitor: FakeVolumeEventMonitor(),
+            outputController: outputController
+        )
+        monitor.setDetailsVisible(true)
+        monitor.start()
+        try await Task.sleep(for: .milliseconds(30))
+        XCTAssertEqual(outputController.outputDevicesCallCount, 1)
+        let readsAfterStart = reader.readCount
+
+        // The fallback poll and ordinary refreshes only need the scalar; the
+        // device list changes through listeners that invalidate the cache.
+        monitor.refresh()
+        try await Task.sleep(for: .milliseconds(30))
+        monitor.refresh()
+        try await Task.sleep(for: .milliseconds(30))
+
+        XCTAssertGreaterThan(reader.readCount, readsAfterStart)
+        XCTAssertEqual(
+            outputController.outputDevicesCallCount,
+            1,
+            "a periodic refresh must not re-enumerate every output device"
         )
         monitor.stop()
     }
@@ -962,6 +1002,87 @@ final class VolumeMonitorTests: XCTestCase {
 }
 
 @MainActor
+struct VolumeDeviceListChangeTests {
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true], [false, true])
+    func nonDefaultDeviceChangesRefreshVisibleList(
+        removingDevice: Bool,
+        repairingRegistration: Bool
+    ) async throws {
+        let speakers = AudioOutputDevice(id: 42, name: "Speakers", isCurrent: true, volume: 0.25)
+        let headphones = AudioOutputDevice(id: 84, name: "USB Headphones", isCurrent: false)
+        let client = FakeCoreAudioClient()
+        client.configureDevice(42, scalar: 0.25, isMuted: false, name: "Speakers")
+        if repairingRegistration {
+            let key = client.propertyKey(
+                objectID: AudioObjectID(kAudioObjectSystemObject),
+                selector: kAudioHardwarePropertyDevices,
+                scope: kAudioObjectPropertyScopeGlobal,
+                element: kAudioObjectPropertyElementMain
+            )
+            // start() and its first refresh each reconcile the listeners.
+            client.failNextAdd(for: key)
+            client.failNextAdd(for: key)
+        }
+        let outputs = FakeAudioOutputController(
+            devices: removingDevice ? [speakers, headphones] : [speakers]
+        )
+        let monitor = VolumeMonitor(
+            statusReader: InlineAudioStatusReader(
+                reader: FakeVolumeReader(result: VolumeReading(
+                    scalar: 0.25,
+                    isMuted: false,
+                    deviceName: "Speakers",
+                    currentDevice: speakers
+                )),
+                outputController: outputs
+            ),
+            eventMonitor: CoreAudioVolumeEventMonitor(client: client),
+            outputController: outputs,
+            refreshDebounceSleep: { _ in }
+        )
+        var updates = monitor.updates.makeAsyncIterator()
+        defer { monitor.stop() }
+        monitor.setDetailsVisible(true)
+        monitor.start()
+        // Consume the stream directly: a polling deadline can expire while
+        // unrelated MainActor tests keep a separate consumer task from running.
+        let first = await updates.next()
+        let initial = try #require(first)
+        var statuses = [initial]
+        #expect(initial.outputDevices.map(\.id) == (removingDevice ? [42, 84] : [42]))
+
+        outputs.devices = removingDevice ? [speakers] : [speakers, headphones]
+        if repairingRegistration {
+            // A topology change during a failed registration has no callback.
+            // Reinstalling the listener must also catch up the stale snapshot.
+            monitor.refresh()
+        } else {
+            client.triggerDeviceListChange()
+        }
+
+        let expectedIDs: [AudioDeviceID] = removingDevice ? [42] : [42, 84]
+        while let status = await updates.next() {
+            statuses.append(status)
+            if status.outputDevices.map(\.id) == expectedIDs { break }
+        }
+        #expect(
+            statuses.last?.outputDevices.map(\.id) == expectedIDs,
+            "A non-default device change must refresh the visible device list"
+        )
+        #expect(client.defaultDeviceID == 42)
+        #expect(statuses.allSatisfy { $0.scalar == 0.25 && $0.currentDevice?.id == 42 })
+
+        monitor.refresh()
+        monitor.refresh()
+        #expect(outputs.outputDevicesCallCount == 2, "Ordinary refreshes must still reuse the cache")
+
+        monitor.stop()
+        #expect(client.activeListeners.isEmpty, "Stopping must remove the device-list listener too")
+    }
+
+}
+
+@MainActor
 private final class InlineAudioStatusReader: AudioStatusReadingProviding {
     let reader: FakeVolumeReader
     let outputController: FakeAudioOutputController?
@@ -983,7 +1104,7 @@ private final class InlineAudioStatusReader: AudioStatusReadingProviding {
 
 @MainActor
 private final class FakeAudioOutputController: AudioOutputControlling {
-    let devices: [AudioOutputDevice]
+    var devices: [AudioOutputDevice]
     private(set) var outputDevicesCallCount = 0
 
     init(devices: [AudioOutputDevice]) {
@@ -1054,7 +1175,8 @@ private final class FakeVolumeEventMonitor: VolumeEventMonitoring {
 
     func start(
         onDefaultDeviceChange: @escaping @MainActor @Sendable () -> Void,
-        onVolumeChange: @escaping @MainActor @Sendable () -> Void
+        onVolumeChange: @escaping @MainActor @Sendable () -> Void,
+        onDeviceListChange: @escaping @MainActor @Sendable () -> Void
     ) {
         startCount += 1
         self.onDefaultDeviceChange = onDefaultDeviceChange
@@ -1230,6 +1352,22 @@ private final class FakeCoreAudioClient: CoreAudioClient {
         withUnsafePointer(to: &address) { pointer in
             defaultDeviceListener(1, pointer)
         }
+    }
+
+    func triggerDeviceListChange() {
+        let operation = ListenerOperation(
+            objectID: AudioObjectID(kAudioObjectSystemObject),
+            selector: kAudioHardwarePropertyDevices,
+            scope: kAudioObjectPropertyScopeGlobal,
+            element: kAudioObjectPropertyElementMain
+        )
+        guard let callback = listenerCallbacks[operation] else { return }
+        var address = AudioObjectPropertyAddress(
+            mSelector: operation.selector,
+            mScope: operation.scope,
+            mElement: operation.element
+        )
+        withUnsafePointer(to: &address) { callback(1, $0) }
     }
 
     func triggerDevicePropertyChange(

@@ -66,8 +66,13 @@ final class IconPresentationMapperTests: XCTestCase {
 
         XCTAssertEqual(fullScene.outerRing?.gap, RingGapStyle.value)
         XCTAssertEqual(fullScene.outerRing?.accessory, RingAccessoryState.text(IconTextState(text: "100", color: .primary, scale: 1.8)))
-        XCTAssertEqual(absentScene.outerRing?.gap, RingGapStyle.value)
-        XCTAssertEqual(absentScene.outerRing?.accessory, RingAccessoryState.text(IconTextState(text: "100", color: .primary, scale: 1.8)))
+        XCTAssertEqual(
+            absentScene.outerRing?.segments,
+            [RingSegmentState(progress: 0, color: .primary)],
+            "A Mac with no battery keeps the empty ring track, not a full ring"
+        )
+        XCTAssertEqual(absentScene.outerRing?.gap, .closed)
+        XCTAssertNil(absentScene.outerRing?.accessory)
         XCTAssertNil(absentScene.outerRing?.effect)
     }
 
@@ -361,18 +366,25 @@ final class IconPresentationMapperTests: XCTestCase {
                        "A Mac with no battery must not invent a percentage or a 0 W reading")
     }
 
-    func testBatteryPercentageCenterShowsOneHundredWhenBatteryIsAbsent() {
-        // A Mac with no battery reports 100 through `BatteryStatus.percentage`.
-        // The connection slot must show that same value instead of falling back
-        // to the network glyph, matching the top battery indicator.
+    func testBatteryPercentageCenterFallsBackToTheNetworkGlyphWhenBatteryIsAbsent() {
+        // A Mac with no battery must not invent 100%. The centre slot falls
+        // through to the network glyph, matching how the panel falls back to
+        // `battery.slash` instead of drawing a level.
         let absent = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
                                    isLowPowerMode: false, isConnectedToPower: false)
         let config = ConnectionIconOptions(
             centerSource: .batteryPercentage,
             prioritizesNetworkErrors: false
         )
-        let center = scene(snapshot: snapshot(battery: absent), connectionOptions: config).center
-        XCTAssertEqual(center, .text(IconTextState(text: "100", color: .primary, scale: 1)))
+        let center = scene(
+            snapshot: snapshot(battery: absent, wifi: WiFiStatus(state: .connected, rssi: -75)),
+            connectionOptions: config
+        ).center
+        XCTAssertEqual(center, .symbol(IconSymbolState(
+            source: .symbol(name: "wifi", variableValue: 0.66, fallback: nil),
+            color: .primary,
+            scale: 1
+        )))
     }
 
     func testOffAndUnavailableWifiShareOneVisualState() {
@@ -600,8 +612,10 @@ final class IconPresentationMapperTests: XCTestCase {
         let absent = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
                                    isLowPowerMode: false, isConnectedToPower: true)
         let scene = chargingScene(battery: absent, source: .chargingStatus)
-        // A machine with no battery has no status to invent and no ring to close.
-        XCTAssertNotEqual(scene.outerRing?.gap, .closed)
+        // A machine with no battery has no status to invent: the ring stays an
+        // empty track and the centre falls back to the network glyph.
+        XCTAssertEqual(scene.outerRing?.segments.first?.progress, 0)
+        XCTAssertNil(scene.outerRing?.accessory)
         guard case .symbol? = scene.center else {
             return XCTFail("expected the network glyph fallback")
         }

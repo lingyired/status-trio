@@ -40,6 +40,64 @@ enum PmsetError: LocalizedError {
     }
 }
 
+/// Reads a pipe until EOF or a deadline.
+///
+/// `readDataToEndOfFile()` has no bound: a descendant that inherits the write
+/// end keeps the pipe open long after the child this daemon started has exited.
+/// The drain runs on the cooperative executor, so an unbounded read parks a pool
+/// worker for as long as that descendant lives.
+enum BoundedPipeDrain {
+    static let defaultTimeout: TimeInterval = 1
+
+    static func readToEnd(_ handle: FileHandle, timeout: TimeInterval) -> Data {
+        let descriptor = handle.fileDescriptor
+        let originalFlags = fcntl(descriptor, F_GETFL)
+        guard originalFlags >= 0,
+              fcntl(descriptor, F_SETFL, originalFlags | O_NONBLOCK) >= 0 else {
+            return Data()
+        }
+        defer { _ = fcntl(descriptor, F_SETFL, originalFlags) }
+
+        let deadline = Date().addingTimeInterval(timeout)
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+
+        while data.count < 1_048_576 {
+            let remaining = deadline.timeIntervalSinceNow
+            guard remaining > 0 else { break }
+            var descriptorState = pollfd(
+                fd: descriptor,
+                events: Int16(POLLIN),
+                revents: 0
+            )
+            let ready = poll(
+                &descriptorState,
+                1,
+                Int32(max(1, min(remaining, 0.25) * 1_000))
+            )
+            if ready == 0 { continue }
+            if ready < 0 {
+                if errno == EINTR { continue }
+                break
+            }
+            let count = buffer.withUnsafeMutableBytes { raw -> Int in
+                guard let base = raw.baseAddress else { return 0 }
+                return read(descriptor, base, raw.count)
+            }
+            if count > 0 {
+                data.append(contentsOf: buffer[0..<count])
+            } else if count == 0 {
+                break
+            } else if errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK {
+                continue
+            } else {
+                break
+            }
+        }
+        return data
+    }
+}
+
 /// Production runner: spawns `/usr/bin/pmset` with the argument shape owned by
 /// `LowPowerModeCommand`.
 ///
@@ -185,10 +243,22 @@ struct SystemPmsetRunner: PmsetRunning {
             return Outcome(status: nil, output: "", errorOutput: "")
         }
         let output = stdoutPipe.map {
-            String(data: $0.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            String(
+                data: BoundedPipeDrain.readToEnd(
+                    $0.fileHandleForReading,
+                    timeout: BoundedPipeDrain.defaultTimeout
+                ),
+                encoding: .utf8
+            ) ?? ""
         } ?? ""
         let errorOutput = stderrPipe.map {
-            String(data: $0.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            String(
+                data: BoundedPipeDrain.readToEnd(
+                    $0.fileHandleForReading,
+                    timeout: BoundedPipeDrain.defaultTimeout
+                ),
+                encoding: .utf8
+            ) ?? ""
         } ?? ""
         return Outcome(status: status, output: output, errorOutput: errorOutput)
     }

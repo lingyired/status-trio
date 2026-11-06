@@ -1437,11 +1437,11 @@ final class StatusIconRendererTests: XCTestCase {
         XCTAssertNotEqual(standard.bytes, slotPercentage.bytes)
     }
 
-    /// The slot draws the battery percentage even when the machine reports no
-    /// battery at all (it reads 100), replacing the connection glyph the same
-    /// way it does on a battery Mac, so a desktop Mac stays consistent with the
-    /// top battery indicator.
-    func testBatteryPercentageInConnectionSlotShowsOneHundredWhenBatteryIsAbsent() throws {
+    /// A machine with no battery draws the empty ring track and does not invent
+    /// a level, so the connection slot falls back exactly as an ordinary
+    /// network icon would. The panel already uses `battery.slash` for the same
+    /// state.
+    func testBatteryPercentageInConnectionSlotFallsBackWhenBatteryIsAbsent() throws {
         let snapshot = StatusSnapshot(
             battery: BatteryStatus(
                 rawPercentage: nil,
@@ -1463,7 +1463,7 @@ final class StatusIconRendererTests: XCTestCase {
             )
         )
 
-        XCTAssertNotEqual(standard.bytes, slotPercentage.bytes)
+        XCTAssertEqual(standard.bytes, slotPercentage.bytes)
     }
 
     /// The slot percentage wins over a picked Bluetooth symbol, which is the

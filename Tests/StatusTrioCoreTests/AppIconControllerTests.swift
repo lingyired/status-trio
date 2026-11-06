@@ -17,6 +17,29 @@ struct AppIconControllerTests {
         #expect(harness.log.events == ["policy:regular", "dock:image", "menu:false"])
     }
 
+    @Test func dockIconRerendersAfterSystemAppearanceChange() throws {
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            systemTheme: {
+                SystemIconAppearanceTheme(style: .defaultStyle, appearance: .automatic)
+            }
+        )
+        defer { harness.cleanUp() }
+        harness.controller.start()
+        harness.log.reset()
+        #expect(harness.appearanceObservation.startCount == 1)
+
+        harness.dockAppearance.isDark = true
+        harness.appearanceObservation.fire()
+
+        #expect(harness.log.renderCount == 1)
+        #expect(harness.log.backgroundStyles.last == .dark)
+        #expect(harness.application.applicationIconImage != nil)
+
+        harness.controller.stop()
+        #expect(harness.appearanceObservation.stopCount == 1)
+    }
+
     @Test func rejectedDockActivationKeepsMenuBarVisible() throws {
         let harness = try AppIconControllerHarness(acceptsActivationPolicy: false)
         defer { harness.cleanUp() }
@@ -1303,6 +1326,8 @@ final class AppIconControllerHarness {
     let store: SystemStatusStore
     let controller: AppIconController
     let iconPresentation: IconPresentationViewModel
+    let dockAppearance: MutableDockAppearance
+    let appearanceObservation: AppearanceObservationSpy
 
     private let suiteName: String
     private let defaults: UserDefaults
@@ -1375,6 +1400,11 @@ final class AppIconControllerHarness {
         let activationPolicy = AppActivationPolicy(application: application)
         self.activationPolicy = activationPolicy
 
+        let dockAppearance = MutableDockAppearance(isDark: isDarkAppearance)
+        self.dockAppearance = dockAppearance
+        let appearanceObservation = AppearanceObservationSpy()
+        self.appearanceObservation = appearanceObservation
+
         controller = AppIconController(
             settings: settings,
             iconPresentation: iconPresentation,
@@ -1413,8 +1443,9 @@ final class AppIconControllerHarness {
                 return image
             },
             theme: systemTheme,
-            isDarkAppearance: { isDarkAppearance },
+            isDarkAppearance: { dockAppearance.isDark },
             notificationCenter: notificationCenter,
+            appearanceObservation: appearanceObservation,
             renderCoalescer: renderCoalescer,
             volumeRenderCoalescer: volumeRenderCoalescer,
             imageCache: imageCache
@@ -1589,4 +1620,34 @@ final class AppIconControllableVolumeMonitor: VolumeMonitoring {
     func stop() {}
     func refresh() {}
     func recover() {}
+}
+
+@MainActor
+final class MutableDockAppearance {
+    var isDark: Bool
+
+    init(isDark: Bool) {
+        self.isDark = isDark
+    }
+}
+
+@MainActor
+final class AppearanceObservationSpy: SystemAppearanceObserving {
+    private var onChange: (@MainActor () -> Void)?
+    private(set) var startCount = 0
+    private(set) var stopCount = 0
+
+    func start(onChange: @escaping @MainActor () -> Void) {
+        startCount += 1
+        self.onChange = onChange
+    }
+
+    func stop() {
+        stopCount += 1
+        onChange = nil
+    }
+
+    func fire() {
+        onChange?()
+    }
 }

@@ -182,7 +182,7 @@
 "settings.battery.group.power" = "電力";
 "settings.battery.group.topMarkers" = "上部マーカー";
 "settings.battery.group.progress" = "進行状況";
-"settings.battery.noBatteryNotice" = "このデバイスにはバッテリーがないため、バッテリー残量は既定で 100 と表示されます。";
+"settings.battery.noBatteryNotice" = "このデバイスにはバッテリーがないため、バッテリー残量のパーセンテージは表示されません。";
 "settings.battery.showPercentage" = "バッテリー残量を表示";
 "settings.battery.showChargingIndicator" = "充電中または電源接続時にアイコンを表示";
 "settings.battery.chargingDescription" = "有効にすると、充電中または電源接続時に残量が稲妻またはプラグに変わります。無効の場合は残量を表示します。";

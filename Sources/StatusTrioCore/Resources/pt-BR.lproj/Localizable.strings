@@ -182,7 +182,7 @@
 "settings.battery.group.power" = "Consumo";
 "settings.battery.group.topMarkers" = "Marcadores superiores";
 "settings.battery.group.progress" = "Progresso";
-"settings.battery.noBatteryNotice" = "Este dispositivo não tem bateria, então o nível da bateria é exibido como 100 por padrão.";
+"settings.battery.noBatteryNotice" = "Este dispositivo não tem bateria, por isso a porcentagem da bateria não é exibida.";
 "settings.battery.showPercentage" = "Mostrar porcentagem da bateria";
 "settings.battery.showChargingIndicator" = "Mostrar um indicador ao carregar ou conectar à energia";
 "settings.battery.chargingDescription" = "Quando ativado, a porcentagem vira um raio ou um plugue durante o carregamento ou com energia conectada.";
