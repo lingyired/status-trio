@@ -543,6 +543,7 @@
 "battery.details.adapter" = "Netzteil-Nennleistung";
 "battery.details.remaining" = "Restlaufzeit";
 "battery.details.cycles" = "Ladezyklen";
+"battery.details.uptime" = "Systemlaufzeit";
 "battery.details.maxCapacity" = "Maximale Kapazität";
 "battery.details.batteryCondition" = "Batteriestatus";
 "battery.details.condition.normal" = "Normal";

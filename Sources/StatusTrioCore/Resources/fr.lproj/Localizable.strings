@@ -543,6 +543,7 @@
 "battery.details.adapter" = "Puissance nominale de l’adaptateur";
 "battery.details.remaining" = "Autonomie restante";
 "battery.details.cycles" = "Cycles de charge";
+"battery.details.uptime" = "Temps de fonctionnement";
 "battery.details.maxCapacity" = "Capacité maximale";
 "battery.details.batteryCondition" = "État de la batterie";
 "battery.details.condition.normal" = "Normal";

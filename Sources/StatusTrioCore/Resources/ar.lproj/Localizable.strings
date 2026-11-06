@@ -543,6 +543,7 @@
 "battery.details.adapter" = "القدرة الاسمية للمحوّل";
 "battery.details.remaining" = "الوقت المتبقي";
 "battery.details.cycles" = "عدد دورات الشحن";
+"battery.details.uptime" = "مدة تشغيل النظام";
 "battery.details.maxCapacity" = "أقصى سعة";
 "battery.details.batteryCondition" = "حالة البطارية";
 "battery.details.condition.normal" = "طبيعي";

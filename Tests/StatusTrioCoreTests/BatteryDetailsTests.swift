@@ -485,4 +485,11 @@ final class BatteryDetailsBreakdownRetentionTests: XCTestCase {
         let adapterSplit = split(.adapter, at: now)
         XCTAssertEqual(parse(connected: true, breakdown: adapterSplit, now: now).breakdown, adapterSplit)
     }
+
+    func testSystemUptimeIsAnIndependentlyReadValue() {
+        let uptime = SystemUptimeReader.seconds()
+        XCTAssertNotNil(uptime)
+        XCTAssertGreaterThan(uptime ?? 0, 0)
+        XCTAssertEqual(SystemUptimeReader.seconds(now: Date(timeIntervalSince1970: 0)), nil)
+    }
 }

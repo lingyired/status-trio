@@ -542,6 +542,7 @@
 "battery.details.adapter" = "Adapter rating";
 "battery.details.remaining" = "Time remaining";
 "battery.details.cycles" = "Cycle count";
+"battery.details.uptime" = "System uptime";
 "battery.details.maxCapacity" = "Maximum capacity";
 "battery.details.batteryCondition" = "Battery status";
 "battery.details.condition.normal" = "Normal";

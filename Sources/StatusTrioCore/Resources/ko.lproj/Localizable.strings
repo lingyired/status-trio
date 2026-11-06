@@ -543,6 +543,7 @@
 "battery.details.adapter" = "어댑터 정격 출력";
 "battery.details.remaining" = "남은 시간";
 "battery.details.cycles" = "사이클 수";
+"battery.details.uptime" = "시스템 가동 시간";
 "battery.details.maxCapacity" = "최대 용량";
 "battery.details.batteryCondition" = "배터리 상태";
 "battery.details.condition.normal" = "정상";

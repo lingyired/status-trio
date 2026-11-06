@@ -465,3 +465,21 @@ extension PanelDetailMapperTests {
         XCTAssertEqual(lowPower.map { $0 + 1 }, highPower)
     }
 }
+
+extension PanelDetailMapperTests {
+    func testBatteryDetailsShowsSystemUptimeAsItsOwnRow() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: 80, isPresent: true, isCharging: false,
+            isLowPowerMode: false, isConnectedToPower: false
+        )
+        let details = BatteryDetails(
+            powerAvailability: .available,
+            uptimeSeconds: 2 * 24 * 60 * 60 + 3 * 60 * 60
+        )
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+        let row = state.rows.first { $0.id == LocalizationKey.batteryDetailsUptime.rawValue }
+        XCTAssertEqual(row?.label, localization.string(.batteryDetailsUptime))
+        XCTAssertFalse(row?.value.isEmpty ?? true)
+    }
+}

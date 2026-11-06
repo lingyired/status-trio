@@ -543,6 +543,7 @@
 "battery.details.adapter" = "适配器额定功率";
 "battery.details.remaining" = "剩余时间";
 "battery.details.cycles" = "循环次数";
+"battery.details.uptime" = "系统运行时间";
 "battery.details.maxCapacity" = "最大容量";
 "battery.details.batteryCondition" = "电池状态";
 "battery.details.condition.normal" = "正常";

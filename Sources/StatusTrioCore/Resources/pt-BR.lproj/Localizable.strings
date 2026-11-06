@@ -543,6 +543,7 @@
 "battery.details.adapter" = "Potência nominal do adaptador";
 "battery.details.remaining" = "Tempo restante";
 "battery.details.cycles" = "Contagem de ciclos";
+"battery.details.uptime" = "Tempo de atividade";
 "battery.details.maxCapacity" = "Capacidade máxima";
 "battery.details.batteryCondition" = "Estado da bateria";
 "battery.details.condition.normal" = "Normal";

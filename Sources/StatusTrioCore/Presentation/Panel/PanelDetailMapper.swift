@@ -82,6 +82,12 @@ enum PanelDetailMapper {
             if battery.isPresent, let count = details.cycleCount {
                 rows.append(row(.batteryDetailsCycles, value: count.formatted(.number.locale(localization.resolvedLanguage.locale)), localization: localization))
             }
+            if let uptime = details.uptimeSeconds {
+                let value = Duration.seconds(Int(uptime))
+                    .formatted(.units(allowed: [.days, .hours, .minutes], width: .abbreviated)
+                        .locale(localization.resolvedLanguage.locale))
+                rows.append(row(.batteryDetailsUptime, value: value, localization: localization))
+            }
         }
         rows.append(row(
             .batteryDetailsLowPower,

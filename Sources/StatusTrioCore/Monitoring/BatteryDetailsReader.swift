@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import IOKit
 import IOKit.ps
@@ -37,13 +38,17 @@ struct BatteryDetails: Equatable, Sendable {
     /// High Power Mode support and current state from `pmset`; the helper is
     /// only used for writes, so this row does not require helper opt-in.
     var highPowerMode: HighPowerModeSystemStatus?
+    /// Seconds since the last boot, read from `kern.boottime`. Diagnostic only;
+    /// it is independent of battery presence and never affects battery state.
+    var uptimeSeconds: TimeInterval?
 
     init(adapterWatts: Int? = nil, remainingMinutes: Int? = nil, cycleCount: Int? = nil,
          power: BatteryPowerSample? = nil, powerAvailability: PowerAvailability = .unavailable,
          systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
          breakdown: BatteryPowerBreakdown? = nil,
          health: BatteryHealthSnapshot? = nil,
-         highPowerMode: HighPowerModeSystemStatus? = nil) {
+         highPowerMode: HighPowerModeSystemStatus? = nil,
+         uptimeSeconds: TimeInterval? = nil) {
         self.adapterWatts = adapterWatts
         self.remainingMinutes = remainingMinutes
         self.cycleCount = cycleCount
@@ -54,6 +59,7 @@ struct BatteryDetails: Equatable, Sendable {
         self.powerAvailability = powerAvailability
         self.health = health
         self.highPowerMode = highPowerMode
+        self.uptimeSeconds = uptimeSeconds
     }
 }
 
@@ -137,6 +143,7 @@ struct BatteryDetailsReader: Sendable {
             inputPower: sensors.input, batteryPower: sensors.battery,
             breakdown: breakdown
         )
+        result.uptimeSeconds = SystemUptimeReader.seconds(now: now)
         if state.isPresent {
             result.highPowerMode = HighPowerModeSystemReader.read()
         }
@@ -317,5 +324,23 @@ struct BatteryDetailsReader: Sendable {
     private static func collecting(_ details: inout BatteryDetails) -> BatteryDetails {
         details.powerAvailability = .collecting
         return details
+    }
+}
+
+/// Reads the machine's uptime from the kernel boot timestamp. Not a battery
+/// property; the battery details page exposes it as a read-only diagnostic.
+enum SystemUptimeReader {
+    static func seconds(now: Date = Date()) -> TimeInterval? {
+        var bootTime = timeval()
+        var size = MemoryLayout<timeval>.size
+        guard sysctlbyname("kern.boottime", &bootTime, &size, nil, 0) == 0 else {
+            return nil
+        }
+        let boot = Date(
+            timeIntervalSince1970: TimeInterval(bootTime.tv_sec)
+                + TimeInterval(bootTime.tv_usec) / 1_000_000
+        )
+        let seconds = now.timeIntervalSince(boot)
+        return seconds >= 0 ? seconds : nil
     }
 }

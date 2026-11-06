@@ -543,6 +543,7 @@
 "battery.details.adapter" = "Номинальная мощность адаптера";
 "battery.details.remaining" = "Оставшееся время";
 "battery.details.cycles" = "Число циклов";
+"battery.details.uptime" = "Время работы";
 "battery.details.maxCapacity" = "Максимальная ёмкость";
 "battery.details.batteryCondition" = "Состояние батареи";
 "battery.details.condition.normal" = "Норма";
