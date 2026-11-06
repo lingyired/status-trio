@@ -15,6 +15,28 @@ enum DockIconStateStrip {
         let connectionOptions: ConnectionIconOptions
         let volumeOptions: VolumeIconOptions
         let bluetoothAudioOptions: BluetoothAudioIconOptions
+        let inputSource: InputSourceDescriptor?
+        let systemPower: SystemPowerSample?
+
+        init(
+            backgroundStyle: DockIconBackgroundStyle,
+            status: MenuBarStatus,
+            batteryOptions: BatteryIconOptions,
+            connectionOptions: ConnectionIconOptions,
+            volumeOptions: VolumeIconOptions,
+            bluetoothAudioOptions: BluetoothAudioIconOptions,
+            inputSource: InputSourceDescriptor? = nil,
+            systemPower: SystemPowerSample? = nil
+        ) {
+            self.backgroundStyle = backgroundStyle
+            self.status = status
+            self.batteryOptions = batteryOptions
+            self.connectionOptions = connectionOptions
+            self.volumeOptions = volumeOptions
+            self.bluetoothAudioOptions = bluetoothAudioOptions
+            self.inputSource = inputSource
+            self.systemPower = systemPower
+        }
 
         var volumeStyle: VolumeDisplayStyle { volumeOptions.displayStyle }
 
@@ -33,7 +55,9 @@ enum DockIconStateStrip {
                 batteryOptions: batteryOptions,
                 connectionOptions: connectionOptions,
                 volumeOptions: volumeOptions,
-                bluetoothAudioOptions: bluetoothAudioOptions
+                bluetoothAudioOptions: bluetoothAudioOptions,
+                inputSource: inputSource,
+                systemPower: systemPower
             )
         }
     }
@@ -55,11 +79,45 @@ enum DockIconStateStrip {
         ),
         State(
             backgroundStyle: .light,
-            status: status(battery: battery(76, connected: true), wifi: connectedWiFi, volume: volume(0.75)),
+            status: status(battery: battery(72, charging: true, connected: true), wifi: connectedWiFi, volume: volume(0.5)),
             batteryOptions: .standard,
+            connectionOptions: ConnectionIconOptions(centerSource: .power),
+            volumeOptions: VolumeIconOptions(displayStyle: .arc),
+            bluetoothAudioOptions: .standard,
+            systemPower: SystemPowerSample(watts: 23.6, readAt: Date())
+        ),
+        State(
+            backgroundStyle: .dark,
+            status: status(battery: battery(64), wifi: connectedWiFi, volume: volume(0.4)),
+            batteryOptions: .standard,
+            connectionOptions: ConnectionIconOptions(centerSource: .inputSource),
+            volumeOptions: .standard,
+            bluetoothAudioOptions: .standard,
+            inputSource: pinyinInputSource
+        ),
+        State(
+            backgroundStyle: .light,
+            status: status(battery: battery(76, charging: true, connected: true), wifi: connectedWiFi, volume: volume(0.7)),
+            batteryOptions: .standard,
+            connectionOptions: ConnectionIconOptions(centerSource: .chargingStatus),
+            volumeOptions: .standard,
+            bluetoothAudioOptions: .standard
+        ),
+        State(
+            backgroundStyle: .dark,
+            status: status(battery: battery(88, connected: true), wifi: connectedWiFi, volume: volume(0.75)),
+            batteryOptions: BatteryIconOptions(connectedIndicator: .percentage),
             connectionOptions: .standard,
             volumeOptions: VolumeIconOptions(displayStyle: .arc),
             bluetoothAudioOptions: .standard
+        ),
+        State(
+            backgroundStyle: .light,
+            status: bluetoothStatus(battery: battery(82), volume: volume(0.62)),
+            batteryOptions: .standard,
+            connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+            volumeOptions: VolumeIconOptions(displayStyle: .arc),
+            bluetoothAudioOptions: bluetoothOptions
         ),
         State(
             backgroundStyle: .dark,
@@ -71,42 +129,10 @@ enum DockIconStateStrip {
         ),
         State(
             backgroundStyle: .light,
-            status: status(battery: battery(55, lowPower: true), wifi: WiFiStatus(state: .noInternet, rssi: -58), volume: volume(0.25)),
+            status: status(battery: battery(54, lowPower: true), wifi: WiFiStatus(state: .hotspot, rssi: -48), volume: volume(0.45)),
             batteryOptions: .standard,
             connectionOptions: .standard,
             volumeOptions: .standard,
-            bluetoothAudioOptions: .standard
-        ),
-        State(
-            backgroundStyle: .dark,
-            status: bluetoothStatus(battery: battery(76, charging: true, connected: true), volume: volume(0.75)),
-            batteryOptions: .standard,
-            connectionOptions: .standard,
-            volumeOptions: .standard,
-            bluetoothAudioOptions: bluetoothOptions
-        ),
-        State(
-            backgroundStyle: .light,
-            status: bluetoothStatus(battery: battery(76), volume: volume(0.45)),
-            batteryOptions: BatteryIconOptions(showsPercentage: true),
-            connectionOptions: .standard,
-            volumeOptions: VolumeIconOptions(displayStyle: .arc),
-            bluetoothAudioOptions: bluetoothOptions
-        ),
-        State(
-            backgroundStyle: .dark,
-            status: bluetoothStatus(battery: battery(100, charged: true, connected: true), volume: volume(1)),
-            batteryOptions: .standard,
-            connectionOptions: .standard,
-            volumeOptions: .standard,
-            bluetoothAudioOptions: bluetoothOptions
-        ),
-        State(
-            backgroundStyle: .light,
-            status: status(battery: battery(76), wifi: WiFiStatus(state: .hotspot, rssi: -58), volume: volume(0.65)),
-            batteryOptions: .standard,
-            connectionOptions: .standard,
-            volumeOptions: VolumeIconOptions(displayStyle: .arc),
             bluetoothAudioOptions: .standard
         )
     ]
@@ -154,6 +180,8 @@ enum DockIconStateStrip {
                 connectionOptions: state.connectionOptions,
                 volumeOptions: state.volumeOptions,
                 bluetoothAudioOptions: state.bluetoothAudioOptions,
+                inputSource: state.inputSource,
+                systemPower: state.systemPower,
                 backgroundStyle: state.backgroundStyle
             ) else {
                 throw StripError.iconUnavailable
@@ -177,6 +205,13 @@ enum DockIconStateStrip {
 
     private static let connectedWiFi = WiFiStatus(state: .connected, rssi: -52)
     private static let bluetoothOptions = BluetoothAudioIconOptions(usesVolumeColor: true)
+    private static let pinyinInputSource = InputSourceDescriptor(
+        id: "com.apple.inputmethod.SCIM.ITABC",
+        localizedName: "简体拼音",
+        primaryLanguage: "zh-Hans",
+        iconURL: nil,
+        shortLabel: "拼"
+    )
 
     private static func battery(
         _ percentage: Int,

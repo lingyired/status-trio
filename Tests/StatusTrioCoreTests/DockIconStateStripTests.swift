@@ -19,6 +19,8 @@ final class DockIconStateStripTests: XCTestCase {
         XCTAssertEqual(symmetricStates.map(\.connectionOptions), originalStates.map(\.connectionOptions))
         XCTAssertEqual(symmetricStates.map(\.volumeOptions), originalStates.map(\.volumeOptions))
         XCTAssertEqual(symmetricStates.map(\.bluetoothAudioOptions), originalStates.map(\.bluetoothAudioOptions))
+        XCTAssertEqual(symmetricStates.map(\.inputSource), originalStates.map(\.inputSource))
+        XCTAssertEqual(symmetricStates.map(\.systemPower), originalStates.map(\.systemPower))
     }
 
     func testStripHasEightAlternatingBackgroundStates() {
@@ -30,12 +32,29 @@ final class DockIconStateStripTests: XCTestCase {
             [.dark, .light, .dark, .light, .dark, .light, .dark, .light]
         )
         XCTAssertEqual(
-            states.map(\.volumeStyle),
-            [.dots, .arc, .dots, .dots, .dots, .arc, .dots, .arc]
+            DockIconStateStrip.symmetricStates.map(\.backgroundStyle),
+            [.dark, .light, .dark, .light, .light, .dark, .light, .dark]
         )
-        XCTAssertEqual(states.filter(\.usesBluetoothAudio).count, 3)
+        XCTAssertEqual(
+            states.map(\.volumeStyle),
+            [.dots, .arc, .dots, .dots, .arc, .arc, .dots, .dots]
+        )
+        XCTAssertEqual(states.filter(\.usesBluetoothAudio).count, 1)
         XCTAssertTrue(states[5].usesBluetoothVolumeColor)
-        XCTAssertTrue(states[6].usesBluetoothVolumeColor)
+    }
+
+    func testStripCoversNewMiddleIconSources() {
+        let states = DockIconStateStrip.states
+
+        XCTAssertEqual(
+            states.map(\.connectionOptions.centerSource),
+            [.network, .power, .inputSource, .chargingStatus, .network, .bluetoothDevice, .network, .network]
+        )
+        XCTAssertEqual(states[1].systemPower?.watts, 23.6)
+        XCTAssertTrue(states[1].status.battery.isCharging)
+        XCTAssertEqual(states[2].inputSource?.shortLabel, "拼")
+        XCTAssertEqual(states[4].batteryOptions.connectedIndicator, .percentage)
+        XCTAssertTrue(states[3].status.battery.isCharging)
     }
 
     func testWritesLandscapeStripWithoutText() throws {

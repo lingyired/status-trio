@@ -153,10 +153,16 @@ func dockScene(
     options: BatteryIconOptions = .standard,
     connectionOptions: ConnectionIconOptions = .standard,
     volumeOptions: VolumeIconOptions = .standard,
-    bluetoothAudioOptions: BluetoothAudioIconOptions = .standard
+    bluetoothAudioOptions: BluetoothAudioIconOptions = .standard,
+    inputSource: InputSourceDescriptor? = nil,
+    systemPower: SystemPowerSample? = nil
 ) -> IconSceneState {
     IconPresentationMapper.scene(
-        inputs: IconPresentationResourceResolver.inputs(snapshot: snapshotFromMenuBarStatus(status)),
+        inputs: IconPresentationResourceResolver.inputs(
+            snapshot: snapshotFromMenuBarStatus(status),
+            inputSource: inputSource,
+            systemPower: systemPower
+        ),
         configuration: IconPresentationConfiguration(
             battery: options,
             connection: connectionOptions,
@@ -173,6 +179,8 @@ func renderDockFixture(
     connectionOptions: ConnectionIconOptions = .standard,
     volumeOptions: VolumeIconOptions = .standard,
     bluetoothAudioOptions: BluetoothAudioIconOptions = .standard,
+    inputSource: InputSourceDescriptor? = nil,
+    systemPower: SystemPowerSample? = nil,
     backgroundStyle: DockIconBackgroundStyle = .dark,
     pixelLength: Int = DockIconRenderer.pixelSize
 ) -> NSImage? {
@@ -182,7 +190,9 @@ func renderDockFixture(
             options: options,
             connectionOptions: connectionOptions,
             volumeOptions: volumeOptions,
-            bluetoothAudioOptions: bluetoothAudioOptions
+            bluetoothAudioOptions: bluetoothAudioOptions,
+            inputSource: inputSource,
+            systemPower: systemPower
         ),
         backgroundStyle: backgroundStyle,
         pixelLength: pixelLength
