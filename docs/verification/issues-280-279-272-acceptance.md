@@ -23,8 +23,8 @@ Worktree：`/Users/lingsmbp/Documents/aiwork/status-trio/.agents/worktrees/issue
 ### #279 输入源图标显示 a/A
 
 - 英文键盘布局（ABC、US、US Extended、British、Australian、Canadian、Irish、
-  Dvorak、Colemak）的图标文字按 `Caps Lock XOR Shift` 显示 `a` / `A`：
-  都不按或都按为小写，仅一个按下为大写。
+  Dvorak、Colemak）的图标文字按 `Caps Lock || Shift` 显示 `a` / `A`：
+  任一开启或两者同时开启都是大写，两者都关闭才是小写。
 - 英文布局移除系统图标 URL，避免图标盖住字母；输入源列表仍使用原始描述符和 ID。
 - 新增只监听 `.flagsChanged` 的 `SystemInputSourceModifierObserver`：启动、应用激活、
   唤醒时快照当前修饰键；去重；停止时移除本地/全局监听。不请求辅助功能/输入监控、
@@ -58,7 +58,7 @@ Worktree：`/Users/lingsmbp/Documents/aiwork/status-trio/.agents/worktrees/issue
    `bash scripts/build-worktree.sh release no-open`
 2. **#279**：设置 → 菜单栏/Dock 中间图标来源选「输入源」；保持英文输入源，
    在别的 App 里切换 Caps Lock / Shift，观察菜单栏和 Dock 的字母是否同步为 a/A。
-   特别验证：Caps Lock + Shift 同时按应回到小写；中文/日文等输入源不应改变。
+   特别验证：Caps Lock 锁定大写后再按 Shift，图标仍应保持大写 `A`；中文/日文等输入源不应改变。
 3. **#272**：先在系统设置里添加一个 VPN 配置，打开状态面板 → VPN 行应出现电源按钮：
    未连接时点击应启动第一条配置服务；连接中按钮禁用；已连接点击应断开当前服务；
    系统设置弹认证时 App 不接管，最终以系统状态为准。只有系统代理、没有系统 VPN 时

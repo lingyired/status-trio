@@ -180,8 +180,9 @@ Not run, and not claimed:
 `InputSourceDescriptor.applying(_:)` turns an explicit English keyboard layout
 (ABC, US, US Extended, British, Australian, Canadian, Irish, Dvorak, Colemak)
 into the drawing descriptor `a`/`A`; the source list keeps the original
-descriptor and selection identity. The case rule is `Caps Lock XOR Shift`:
-neither or both are lowercase, exactly one is uppercase. The system icon URL is
+descriptor and selection identity. The case rule is `Caps Lock || Shift`:
+either one produces uppercase (`A`); only both off produce lowercase (`a`).
+Shift does not lowercase text while Caps Lock is on. The system icon URL is
 cleared for these layouts so a shipped icon cannot cover the letter.
 
 `SystemInputSourceModifierObserver` listens only to `.flagsChanged` (never

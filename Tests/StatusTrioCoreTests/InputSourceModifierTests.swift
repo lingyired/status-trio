@@ -10,9 +10,9 @@ final class InputSourceModifierTests: XCTestCase {
         iconURL: URL(fileURLWithPath: "/fixture/abc.pdf"), shortLabel: "A"
     )
 
-    func testEnglishLayoutUsesCapsLockXORShiftAndOverridesIcon() {
+    func testEnglishLayoutKeepsUppercaseWithCapsLockAndShiftAndOverridesIcon() {
         for (caps, shift, expected) in [(false, false, "a"), (false, true, "A"),
-                                       (true, false, "A"), (true, true, "a")] {
+                                       (true, false, "A"), (true, true, "A")] {
             let descriptor = abc.applying(InputSourceModifiers(capsLock: caps, shift: shift))
             XCTAssertEqual(descriptor.shortLabel, expected)
             XCTAssertNil(descriptor.iconURL)
@@ -52,7 +52,7 @@ final class InputSourceModifierTests: XCTestCase {
         modifiers.emit(.init(capsLock: true, shift: true))
         XCTAssertEqual(controller.state, stoppedState, "late events cannot publish after stop")
         controller.start()
-        XCTAssertEqual(controller.state.iconDescriptor?.shortLabel, "a", "restart reads current modifiers")
+        XCTAssertEqual(controller.state.iconDescriptor?.shortLabel, "A", "restart reads current modifiers")
         subscription.cancel()
         controller.stop()
     }

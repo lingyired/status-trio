@@ -4,7 +4,10 @@ struct InputSourceModifiers: Equatable, Sendable {
     var capsLock = false
     var shift = false
 
-    var isUppercase: Bool { capsLock != shift }
+    /// On macOS, Shift does not lowercase letters while Caps Lock is on: the
+    /// native input source keeps producing uppercase. The icon follows the
+    /// resulting text, so either modifier produces `A`.
+    var isUppercase: Bool { capsLock || shift }
 
     init(capsLock: Bool = false, shift: Bool = false) {
         self.capsLock = capsLock
