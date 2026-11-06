@@ -280,6 +280,7 @@
 "wifi.subtitle.unavailable" = "Unable to read network status";
 "vpn.title" = "VPN";
 "vpn.title.tunnel" = "TUN";
+"vpn.title.clashVergeTunnel" = "Clash Verge TUN";
 "vpn.value.connected" = "Connected";
 "vpn.value.disconnected" = "Not connected";
 "vpn.subtitle.systemProxy" = "System proxy";

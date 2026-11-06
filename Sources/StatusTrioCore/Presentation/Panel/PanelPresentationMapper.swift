@@ -355,6 +355,14 @@ enum PanelPresentationMapper {
         if let serviceName = vpn.serviceName, !serviceName.isEmpty { return serviceName }
         // A bare tunnel is not a controllable system VPN service. Label it TUN
         // so the row never implies a VPN switch that does not exist (#272).
+        // When Mihomo's read-only API attributes the active interface, name
+        // the client too instead of pretending it is a system VPN.
+        if let mihomo = vpn.mihomoTunnel,
+           vpn.tunnelInterfaces.contains(mihomo.device) {
+            return mihomo.provider == "Clash Verge"
+                ? localization.string(.vpnTitleClashVergeTunnel)
+                : localization.string(.vpnTitleTunnel)
+        }
         if vpn.isTunnelConnected { return localization.string(.vpnTitleTunnel) }
         if vpn.proxy != nil { return localization.string(.vpnSubtitleSystemProxy) }
         return localization.string(.vpnTitle)

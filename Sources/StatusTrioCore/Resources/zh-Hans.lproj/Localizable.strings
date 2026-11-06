@@ -280,6 +280,7 @@
 "wifi.subtitle.unavailable" = "无法读取网络状态";
 "vpn.title" = "VPN";
 "vpn.title.tunnel" = "TUN";
+"vpn.title.clashVergeTunnel" = "Clash Verge TUN";
 "vpn.value.connected" = "已连接";
 "vpn.value.disconnected" = "未连接";
 "vpn.subtitle.systemProxy" = "系统代理";

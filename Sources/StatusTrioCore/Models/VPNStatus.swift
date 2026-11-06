@@ -48,6 +48,9 @@ struct VPNStatus: Equatable, Sendable {
     /// Configured system VPN services in `SCNetworkServiceCopyAll` order. The
     /// first is the summary row's default connect target (#272).
     var services: [VPNServiceReading] = []
+    /// Set only when Mihomo's read-only control API can attribute an active
+    /// tunnel interface to it. The row still says TUN, with the client name.
+    var mihomoTunnel: MihomoTunnelInfo? = nil
     /// The active system-wide proxy, when one is configured.
     let proxy: VPNProxyStatus?
 

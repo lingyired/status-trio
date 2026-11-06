@@ -307,6 +307,7 @@ final class StatusPanelViewModel: ObservableObject {
         cancelLevelVolumePublish()
         lastLiveVolumeStatus = nil
         sourceDemandCancellables.removeAll()
+        store.mihomoTunnel.deactivate()
         subscribedSourceDemand = nil
         chargeToFullNow?.clearDemand()
         chargeToFullNowPresentation = .hidden
@@ -805,6 +806,7 @@ final class StatusPanelViewModel: ObservableObject {
         subscribedSourceDemand = demand
 
         if demand.contains(.vpn) {
+            store.mihomoTunnel.activate()
             Publishers.CombineLatest(store.$vpnStatus, vpnPower.$state)
                 .dropFirst()
                 .compactMap { [weak self] status, powerState -> PanelSummaryState? in
@@ -820,6 +822,7 @@ final class StatusPanelViewModel: ObservableObject {
                 }
                 .store(in: &sourceDemandCancellables)
         }
+        if !demand.contains(.vpn) { store.mihomoTunnel.deactivate() }
         if demand.contains(.volume) {
             store.$liveVolume
                 .dropFirst()

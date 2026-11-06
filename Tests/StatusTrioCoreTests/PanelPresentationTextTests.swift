@@ -401,6 +401,34 @@ final class PresentationTextMapperTests: XCTestCase {
             PanelPresentationMapper.vpnSubtitle(bareTunnel, localization: localization),
             "已连接"
         )
+
+        let attributed = VPNStatus(
+            tunnelInterfaces: ["utun4"],
+            serviceName: nil,
+            services: [],
+            mihomoTunnel: MihomoTunnelInfo(
+                provider: "Clash Verge", device: "utun4", isEnabled: true
+            ),
+            proxy: nil
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnTitle(attributed, localization: localization),
+            "Clash Verge TUN"
+        )
+
+        let mismatched = VPNStatus(
+            tunnelInterfaces: ["utun5"],
+            serviceName: nil,
+            services: [],
+            mihomoTunnel: MihomoTunnelInfo(
+                provider: "Clash Verge", device: "utun4", isEnabled: true
+            ),
+            proxy: nil
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnTitle(mismatched, localization: localization),
+            "TUN"
+        )
     }
 
     func testVPNRowReportsAProxyWithoutATunnel() {

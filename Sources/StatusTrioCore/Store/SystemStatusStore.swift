@@ -146,6 +146,7 @@ final class SystemStatusStore: ObservableObject {
     /// not a display name, and reports a confirmed transition or a bounded
     /// failure (#272).
     let vpnPower: VPNPowerController
+    let mihomoTunnel: MihomoTunnelController
     let mobileBattery: MobileBatteryController
     let appleDeviceDiscovery: AppleDeviceDiscoveryController
     /// The AirPods listening-mode surface. A separate owner from `bluetoothDevices`
@@ -325,6 +326,7 @@ final class SystemStatusStore: ObservableObject {
         helperReadiness: (any HelperReadinessProviding)? = nil,
         powerModeNotifications: any PowerModeNotificationMonitoring = PowerModeNotificationMonitor(),
         vpnConnectionController: any VPNConnectionControlling = SystemVPNConnectionController(),
+        mihomoTunnel: MihomoTunnelController = MihomoTunnelController(),
         initialSnapshot: StatusSnapshot = .placeholder
     ) {
         self.batteryMonitor = batteryMonitor
@@ -350,6 +352,7 @@ final class SystemStatusStore: ObservableObject {
         self.bluetoothDevices = bluetoothDevices
         self.bluetoothPower = bluetoothPower
         self.vpnPower = VPNPowerController(backend: vpnConnectionController, refresh: {})
+        self.mihomoTunnel = mihomoTunnel
         self.bluetoothProfilerCache = bluetoothProfilerCache
         self.mobileBattery = mobileBattery
         self.appleDeviceDiscovery = appleDeviceDiscovery
@@ -369,6 +372,7 @@ final class SystemStatusStore: ObservableObject {
                 self.reconcileBluetoothDemand()
             }
         vpnPower.refresh = { [weak self] in self?.vpnMonitor?.refresh() }
+        mihomoTunnel.onUpdate = { [weak self] info in self?.applyMihomoTunnel(info) }
     }
 
     deinit {
@@ -1784,10 +1788,21 @@ final class SystemStatusStore: ObservableObject {
     }
 
     private func applyVPN(_ value: VPNStatus) {
-        // The monitor already drops repeats, and this guard keeps an unchanged
-        // value from sending `objectWillChange` to every VPN row observer.
-        if value != vpnStatus {
-            vpnStatus = value
+        // The monitor owns the interface/service reading; the Mihomo
+        // attribution is refreshed by its own controller, so a network tick
+        // must not erase the current attribution.
+        var next = value
+        next.mihomoTunnel = vpnStatus.mihomoTunnel
+        if next != vpnStatus {
+            vpnStatus = next
+        }
+    }
+
+    private func applyMihomoTunnel(_ info: MihomoTunnelInfo?) {
+        var next = vpnStatus
+        next.mihomoTunnel = info
+        if next != vpnStatus {
+            vpnStatus = next
         }
     }
 

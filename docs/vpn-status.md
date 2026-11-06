@@ -13,6 +13,16 @@ of `StatusSnapshot`.
 | System VPN service | `SCNetworkServiceCopyAll` plus `SCNetworkConnectionGetStatus`, for services whose interface type is PPP, IPSec or L2TP | A VPN configured in System Settings is connected. Supplies the name the row leads with. |
 | System-wide proxy | `State:/Network/Global/Proxies` through `SCDynamicStoreCopyValue` | A proxy is set. Not a tunnel — no virtual interface, no new address — so it is reported separately and never reads as a connected VPN. |
 
+Mihomo/Clash Verge service mode exposes a local owner-only Unix control
+socket. `GET /configs` is read-only and reports `tun.enable` plus the concrete
+`tun.device`; when that device matches an active tunnel interface, the row is
+labelled **Clash Verge TUN**. This attribution requires no helper, root,
+Accessibility or Input Monitoring grant, and no secret on the local socket.
+If the socket is absent, the row falls back to **TUN**. The read is
+demand-driven while the VPN row is visible and never sends `PATCH`. A future
+TUN switch would use Mihomo's public `PATCH /configs` (`tun.enable`) only after
+the provider/device attribution is verified; actual control remains **NOT RUN**.
+
 A system VPN service leads with its service name and reads **Connected**. A
 bare tunnel that has no system service is labelled **TUN** (never **VPN**),
 because it is detected but not a controllable system VPN service. A proxy alone

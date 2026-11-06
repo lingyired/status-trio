@@ -280,6 +280,7 @@
 "wifi.subtitle.unavailable" = "네트워크 상태를 읽을 수 없음";
 "vpn.title" = "VPN";
 "vpn.title.tunnel" = "TUN";
+"vpn.title.clashVergeTunnel" = "Clash Verge TUN";
 "vpn.value.connected" = "연결됨";
 "vpn.value.disconnected" = "연결 안 됨";
 "vpn.subtitle.systemProxy" = "시스템 프록시";
