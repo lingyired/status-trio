@@ -14,6 +14,12 @@ final class ChargeToFullNowLayoutTests: XCTestCase {
         XCTAssertGreaterThan(available.height, hidden.height + 20)
     }
 
+    func testUnavailableExplainsInsteadOfReservingEmptySpace() throws {
+        let hidden = try render(.hidden)
+        let unavailable = try render(.unavailable)
+        XCTAssertGreaterThan(unavailable.height, hidden.height + 10)
+    }
+
     func testApplyingAndFailureStatesRemainInsideThePopoverWidth() throws {
         for presentation in [
             ChargeToFullNowPresentation.applying,

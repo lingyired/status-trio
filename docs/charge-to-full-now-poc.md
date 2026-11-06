@@ -508,3 +508,40 @@ button action if needed; automated tests must continue to use fake clients.
 - The user's supplied `StatusTrio_ChargeToFullNow_Codex_Plan.md` provided
   candidate Apple API names. JuiceLeft's license was inspected to confirm
   its restricted terms; its implementation was not read or reused.
+
+## #280 macOS 27.2 visibility diagnosis
+
+`scripts/probe-charge-to-full-now.sh --inspect` is the read-only diagnostic
+path for a machine where the button is missing. It reports the OS build and
+architecture, PowerUI class/signature availability, `isMCLSupported`,
+`mclEnabledRaw`, `mclLimit`, `availableChargeLimits`, the smart-charging UI
+state, `chargingOverrideAllowed`, the battery reading, and a
+`newRequestVisibility` classification such as:
+
+- `available`
+- `hidden:no-battery`
+- `hidden:on-battery`
+- `hidden:battery-full`
+- `hidden:no-active-limit-or-override`
+- `unavailable:state-read-failed`
+- `unknown:battery-read-failed`
+
+The classification covers only a new request with the panel open and the
+capability present. A saved override/cancel session and the #231 summary
+visibility setting are resolved by `ChargeToFullNowController` and are outside
+the probe. The probe never writes a charge limit, never calls
+`temporarilyDisableMCL:`, and never claims a successful charge request.
+
+Measured on this Mac (macOS 27.2, build 26B123, arm64) on 2026-11-06:
+PowerUI loaded, all expected signatures matched, `isMCLSupported = true`, the
+battery was present/connected/charged at 100%, and the visibility was
+`hidden:battery-full`. A later read observed an active 80% limit; it too stays
+hidden at 100% because there is nothing left to charge. That is the existing
+product rule, not a 27.2 capability failure. Other 27 beta builds, Intel Macs,
+and the user's exact battery state at report time remain **NOT RUN**.
+
+The battery details row now renders the existing
+`battery.action.chargeToFullNowUnavailable` explanation for
+`ChargeToFullNowPresentation.unavailable` instead of reserving an empty action
+area. This makes an actually unsupported machine explain itself without
+changing the #231 summary/details visibility rules.

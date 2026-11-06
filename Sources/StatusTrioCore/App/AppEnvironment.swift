@@ -455,7 +455,7 @@ final class AppEnvironment {
             snapshots: store.$snapshot.eraseToAnyPublisher(),
             preferences: settings.iconPresentationPublisher,
             inputSources: inputSourceController.$state
-                .map(\.selectedDescriptor)
+                .map(\.iconDescriptor)
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
             systemPowers: store.powerSampling.$systemPower

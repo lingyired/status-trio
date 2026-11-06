@@ -40,6 +40,37 @@ int main(void) {
         Check(ProbePlatformSupported((NSOperatingSystemVersion){26, 4, 0}, YES), "26.4 accepted");
         Check(ProbePlatformSupported((NSOperatingSystemVersion){27, 0, 1}, YES), "27 accepted");
         Check(!ProbePlatformSupported((NSOperatingSystemVersion){27, 0, 1}, NO), "Intel rejected");
+        NSDictionary *battery = @{ @"readSucceeded": @YES, @"isPresent": @YES,
+            @"isConnectedToPower": @YES, @"isCharged": @NO, @"percentage": @80 };
+        Check([ProbeNewRequestVisibility(battery, YES, 1, 80, @[], NO)
+            isEqual:@"available"], "active limit permits request even when overrideAllowed is false");
+        Check([ProbeNewRequestVisibility(battery, YES, 0, 100, @[], YES)
+            isEqual:@"available"], "system override permits request without active limit");
+        Check([ProbeNewRequestVisibility(battery, YES, 0, 100, @[], NO)
+            isEqual:@"hidden:no-active-limit-or-override"], "no limit and no override hides request");
+        Check([ProbeNewRequestVisibility(battery, NO, 1, 80, @[], YES)
+            isEqual:@"unavailable:state-read-failed"], "failed state read cannot establish eligibility");
+        Check([ProbeNewRequestVisibility(@{}, YES, 1, 80, @[], YES)
+            isEqual:@"unknown:battery-read-failed"], "missing battery does not imply eligibility");
+        NSMutableDictionary *changed = [battery mutableCopy];
+        changed[@"percentage"] = @100;
+        Check([ProbeNewRequestVisibility(changed, YES, 3, 100, @[], NO)
+            isEqual:@"hidden:battery-full"], "issue 280 measured full battery hides new request");
+        changed[@"percentage"] = @80;
+        changed[@"isCharged"] = @YES;
+        Check([ProbeNewRequestVisibility(changed, YES, 1, 80, @[], YES)
+            isEqual:@"hidden:battery-full"], "charged flag also hides request");
+        changed[@"isCharged"] = @NO;
+        changed[@"isConnectedToPower"] = @NO;
+        Check([ProbeNewRequestVisibility(changed, YES, 1, 80, @[], YES)
+            isEqual:@"hidden:on-battery"], "unplugged battery hides new request");
+        changed[@"isPresent"] = @NO;
+        Check([ProbeNewRequestVisibility(changed, YES, 1, 80, @[], YES)
+            isEqual:@"hidden:no-battery"], "desktop has no charging action");
+        Check([ProbeNewRequestVisibility(battery, YES, 1, 82, @[@80, @82, @100], NO)
+            isEqual:@"available"], "system advertised limits remain valid");
+        Check([ProbeNewRequestVisibility(battery, YES, 1, 82, @[], NO)
+            isEqual:@"hidden:no-active-limit-or-override"], "unknown limit without metadata is rejected");
         Class cls = ChargeProbeFixture.class;
         Check(!ProbeSignatureMatches(Nil, @selector(supported), @encode(BOOL), @[]), "missing class rejected");
         Check(!ProbeSignatureMatches(cls, NSSelectorFromString(@"missing"), @encode(BOOL), @[]), "missing selector rejected");

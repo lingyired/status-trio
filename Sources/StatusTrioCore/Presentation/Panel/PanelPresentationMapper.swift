@@ -171,7 +171,11 @@ enum PanelPresentationMapper {
         return value
     }
 
-    static func vpn(_ status: VPNStatus, localization: Localization) -> PanelSummaryState {
+    static func vpn(
+        _ status: VPNStatus,
+        powerState: VPNPowerState = VPNPowerState(),
+        localization: Localization
+    ) -> PanelSummaryState {
         let title = vpnTitle(status, localization: localization)
         let subtitle = vpnSubtitle(status, localization: localization)
         let tint: PanelTint
@@ -182,6 +186,28 @@ enum PanelPresentationMapper {
         } else {
             tint = .secondary
         }
+
+        let service = status.powerControlService
+        let power: VPNPowerPresentation? = status.showsPowerControl
+            ? VPNPowerPresentation(
+                isOn: status.powerControlIsOn,
+                isChanging: powerState.isChanging,
+                canSetPower: !powerState.isChanging
+                    && (service?.isEnabled ?? false)
+                    && service?.state != .invalid
+                    && service?.state != .connecting
+                    && service?.state != .disconnecting,
+                failureMessage: powerState.failure.map {
+                    switch $0 {
+                    case .timedOut: localization.string(.vpnPowerTimedOut)
+                    case .requestRejected, .failed: localization.string(.vpnPowerFailed)
+                    }
+                },
+                turnOnHelp: localization.string(.vpnPowerTurnOn),
+                turnOffHelp: localization.string(.vpnPowerTurnOff),
+                changingHelp: localization.string(.vpnPowerChanging)
+            )
+            : nil
 
         return PanelSummaryState(
             title: title,
@@ -196,7 +222,8 @@ enum PanelPresentationMapper {
             accessibilityLabel: localization.string(.vpnTitle),
             accessibilityValue: "\(title), \(subtitle)",
             showsSettings: false,
-            intent: .none
+            intent: .none,
+            vpnPower: power
         )
     }
 
@@ -326,7 +353,18 @@ enum PanelPresentationMapper {
 
     static func vpnTitle(_ vpn: VPNStatus, localization: Localization) -> String {
         if let serviceName = vpn.serviceName, !serviceName.isEmpty { return serviceName }
-        if vpn.isTunnelConnected { return localization.string(.vpnTitle) }
+        // A bare tunnel is not a controllable system VPN service. Label it TUN
+        // so the row never implies a VPN switch that does not exist (#272).
+        // When Mihomo's read-only API attributes the active interface, name
+        // the client too instead of pretending it is a system VPN.
+        if let mihomo = vpn.mihomoTunnel,
+           mihomo.isEnabled,
+           vpn.tunnelInterfaces.contains(mihomo.device) {
+            return mihomo.provider == "Clash Verge"
+                ? localization.string(.vpnTitleClashVergeTunnel)
+                : localization.string(.vpnTitleTunnel)
+        }
+        if vpn.isTunnelConnected { return localization.string(.vpnTitleTunnel) }
         if vpn.proxy != nil { return localization.string(.vpnSubtitleSystemProxy) }
         return localization.string(.vpnTitle)
     }

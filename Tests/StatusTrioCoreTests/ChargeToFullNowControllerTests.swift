@@ -33,6 +33,19 @@ final class ChargeToFullNowControllerTests: XCTestCase {
 
         controller.update(demand())
 
+        XCTAssertEqual(controller.presentation, .unavailable)
+        XCTAssertEqual(backend.readCount, 0)
+    }
+
+    func testUnsupportedCapabilityHidesWhenTheSurfaceIsNotVisible() {
+        let backend = StubBatteryChargeController(
+            capability: .unavailable(.unsupportedSystem),
+            deviceState: .activeLimit
+        )
+        let controller = ChargeToFullNowController(backend: backend)
+
+        controller.update(demand(popoverVisible: false))
+
         XCTAssertEqual(controller.presentation, .hidden)
         XCTAssertEqual(backend.readCount, 0)
     }

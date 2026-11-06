@@ -395,11 +395,56 @@ final class PresentationTextMapperTests: XCTestCase {
         )
         XCTAssertEqual(
             PanelPresentationMapper.vpnTitle(bareTunnel, localization: localization),
-            "VPN"
+            "TUN"
         )
         XCTAssertEqual(
             PanelPresentationMapper.vpnSubtitle(bareTunnel, localization: localization),
             "已连接"
+        )
+
+        let attributed = VPNStatus(
+            tunnelInterfaces: ["utun4"],
+            serviceName: nil,
+            services: [],
+            mihomoTunnel: MihomoTunnelInfo(
+                provider: "Clash Verge", device: "utun4", isEnabled: true
+            ),
+            proxy: nil
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnTitle(attributed, localization: localization),
+            "Clash Verge TUN"
+        )
+
+        let mismatched = VPNStatus(
+            tunnelInterfaces: ["utun5"],
+            serviceName: nil,
+            services: [],
+            mihomoTunnel: MihomoTunnelInfo(
+                provider: "Clash Verge", device: "utun4", isEnabled: true
+            ),
+            proxy: nil
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnTitle(mismatched, localization: localization),
+            "TUN"
+        )
+        let disabledTunWithProxy = VPNStatus(
+            tunnelInterfaces: [],
+            serviceName: nil,
+            services: [],
+            mihomoTunnel: MihomoTunnelInfo(
+                provider: "Clash Verge", device: "", isEnabled: false
+            ),
+            proxy: VPNProxyStatus(kind: .http, host: "127.0.0.1", port: 10808)
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnTitle(disabledTunWithProxy, localization: localization),
+            "系统代理"
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnSubtitle(disabledTunWithProxy, localization: localization),
+            "127.0.0.1:10808"
         )
     }
 
