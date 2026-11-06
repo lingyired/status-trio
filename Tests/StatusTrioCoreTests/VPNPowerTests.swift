@@ -82,7 +82,15 @@ final class VPNPowerTests: XCTestCase {
         let controller = VPNPowerController(backend: backend, refresh: {})
         let status = VPNStatusResolver.resolve(VPNProbeReading(services: [office]))
         let first = Task { await controller.setPower(true, status: status) }
-        try? await Task.sleep(for: .milliseconds(10))
+        // Wait until the first tap marks the controller busy; a fixed sleep can
+        // race the MainActor scheduler on a loaded runner and let the second tap
+        // through.
+        var spins = 0
+        while !controller.state.isChanging && spins < 2000 {
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(1))
+            spins += 1
+        }
         await controller.setPower(true, status: status)
         await first.value
 

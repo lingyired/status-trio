@@ -453,11 +453,15 @@ final class BrightnessMonitorTests: XCTestCase {
         ])
         monitor.start()
         monitor.setDetailsVisible(true)
-        try? await Task.sleep(for: .milliseconds(120))
+        // Poll until at least two visible reads happen instead of a fixed sleep;
+        // a loaded CI runner can delay the refresh loop past a fixed window.
+        await waitForRequests(client, count: 2)
         let visibleReads = client.requestCount
         XCTAssertGreaterThan(visibleReads, 1, "external changes have no push notification; visible polling must refresh")
 
         monitor.setDetailsVisible(false)
+        // Let an in-flight poll settle before taking the hidden baseline.
+        try? await Task.sleep(for: .milliseconds(50))
         let hiddenReads = client.requestCount
         try? await Task.sleep(for: .milliseconds(120))
         XCTAssertEqual(client.requestCount, hiddenReads, "hiding the panel must stop external polling")

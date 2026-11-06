@@ -502,7 +502,9 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         await waitUntil { manager.isReady }
         let readsAfterReady = service.verificationCallCount
 
-        try? await Task.sleep(for: .milliseconds(150))
+        // Wait for the re-probes instead of a fixed sleep: a loaded CI runner can
+        // starve the poll loop and make a fixed window flaky.
+        await waitUntil { service.verificationCallCount >= readsAfterReady + 2 }
 
         XCTAssertGreaterThanOrEqual(service.verificationCallCount, readsAfterReady + 2)
         XCTAssertTrue(manager.isReady)
