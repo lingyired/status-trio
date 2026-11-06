@@ -30,7 +30,8 @@ enum IconPresentationMapper {
             footer: footerState(inputs.snapshot.volume, options: configuration.volume,
                                 bluetoothOptions: configuration.bluetooth),
             statusColors: configuration.battery.usesStatusColors
-                ? configuration.battery.batteryStatusColors : .standard
+                ? configuration.battery.batteryStatusColors : .standard,
+            bluetoothIconColor: configuration.bluetooth.iconColor
         )
     }
 
@@ -255,7 +256,11 @@ enum IconPresentationMapper {
             } else {
                 source = .symbol(name: "headphones", variableValue: nil, fallback: nil)
             }
-            return .symbol(IconSymbolState(source: source, color: .bluetooth, scale: bluetoothOptions.symbolScale))
+            // Primary draws the label colour directly (and stays template-safe);
+            // blue and custom go through the scene-carried Bluetooth icon colour.
+            let color: IconColorRole = bluetoothOptions.iconColor == .primary
+                ? .primary : .bluetoothIcon
+            return .symbol(IconSymbolState(source: source, color: color, scale: bluetoothOptions.symbolScale))
         }
 
         return networkState(snapshot: snapshot, options: connectionOptions)

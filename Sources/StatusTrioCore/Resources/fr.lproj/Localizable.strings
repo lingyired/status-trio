@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Périphériques Bluetooth";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Aucun appareil Bluetooth lu pour l’instant. Autorisez l’accès Bluetooth ci-dessus ou associez un appareil.";
 "settings.bluetooth.volumeColor" = "Utiliser le bleu pour le volume Bluetooth";
+"settings.bluetooth.iconColor" = "Couleur de l’icône Bluetooth";
+"settings.bluetooth.iconColorDescription" = "Choisissez la couleur de l’icône Bluetooth au centre : bleu par défaut, noir ou blanc de la barre des menus, ou une couleur personnalisée.";
+"settings.bluetooth.iconColor.blue" = "Bleu";
+"settings.bluetooth.iconColor.primary" = "Suivre le système";
+"settings.bluetooth.iconColor.custom" = "Couleur personnalisée";
 "settings.bluetooth.volumeColorDescription" = "Les points de volume actifs ou l’arc deviennent bleus lors d’une sortie audio Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Donner la priorité aux erreurs réseau";
 "settings.bluetooth.networkErrorPriorityDescription" = "Les erreurs de connexion et l’état hors ligne conservent l’icône réseau au lieu du périphérique Bluetooth.";
@@ -378,6 +383,8 @@
 "accessibility.battery" = "Batterie %d%%";
 "accessibility.volume" = "Volume %@";
 "settings.refreshInterval" = "Intervalle d’actualisation";
+"settings.refreshInterval.onBattery" = "Sur batterie";
+"settings.refreshInterval.onPower" = "Branché sur secteur";
 "settings.refreshInterval.description" = "Fréquence à laquelle Status Trio vérifie les changements. Des mises à jour plus fréquentes utilisent plus de CPU.";
 "settings.refreshInterval.value" = "%d secondes";
 "settings.popup.order" = "Éléments affichés";
@@ -529,6 +536,10 @@
 "battery.details.adapter" = "Puissance nominale de l’adaptateur";
 "battery.details.remaining" = "Autonomie restante";
 "battery.details.cycles" = "Cycles de charge";
+"battery.details.maxCapacity" = "Capacité maximale";
+"battery.details.batteryCondition" = "État de la batterie";
+"battery.details.condition.normal" = "Normal";
+"battery.details.condition.service" = "Entretien recommandé";
 "battery.details.lowPower" = "Mode économie d’énergie";
 "battery.details.on" = "Activé";
 "battery.details.off" = "Désactivé";
@@ -775,6 +786,7 @@
 "settings.battery.autoLowPowerThreshold" = "Activer automatiquement le mode économie d’énergie";
 "settings.battery.autoLowPowerThresholdDescription" = "Le mode économie d’énergie s’active automatiquement sous ce niveau lorsque vous êtes sur batterie.";
 "battery.highPowerMode.toggle" = "Mode haute puissance";
+"battery.details.highPower.unsupported" = "Non pris en charge";
 "battery.highPowerMode.toggleDescription" = "Fait tourner les ventilateurs plus vite pour des performances soutenues plus élevées, au prix d’un bruit plus important.";
 "battery.highPowerMode.helperNeedsUpdate" = "L’assistant d’alimentation doit être mis à jour avant de pouvoir utiliser le mode haute puissance.";
 "battery.highPowerMode.failure" = "Impossible de changer le mode haute puissance. Réessayez.";

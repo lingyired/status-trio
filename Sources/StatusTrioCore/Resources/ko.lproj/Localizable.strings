@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth 기기";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "아직 Bluetooth 기기를 읽지 못했습니다. 위에서 Bluetooth 권한을 허용하거나 기기를 페어링하세요.";
 "settings.bluetooth.volumeColor" = "Bluetooth 볼륨을 파란색으로 표시";
+"settings.bluetooth.iconColor" = "Bluetooth 아이콘 색상";
+"settings.bluetooth.iconColorDescription" = "메뉴 막대 가운데 Bluetooth 아이콘의 색상을 선택합니다. 기본 파란색, 메뉴 막대의 검정/흰색 또는 사용자 지정 색상.";
+"settings.bluetooth.iconColor.blue" = "파란색";
+"settings.bluetooth.iconColor.primary" = "시스템 따르기";
+"settings.bluetooth.iconColor.custom" = "사용자 지정 색상";
 "settings.bluetooth.volumeColorDescription" = "Bluetooth 오디오 출력 중에는 활성 볼륨 점 또는 호가 파란색으로 표시됩니다.";
 "settings.bluetooth.networkErrorPriority" = "네트워크 오류 우선";
 "settings.bluetooth.networkErrorPriorityDescription" = "연결 오류나 오프라인 상태에서는 Bluetooth 기기 아이콘 대신 네트워크 아이콘을 유지합니다.";
@@ -378,6 +383,8 @@
 "accessibility.battery" = "배터리 %d%%";
 "accessibility.volume" = "볼륨 %@";
 "settings.refreshInterval" = "상태 새로 고침 간격";
+"settings.refreshInterval.onBattery" = "배터리 사용 시";
+"settings.refreshInterval.onPower" = "전원 연결 시";
 "settings.refreshInterval.description" = "Status Trio가 변경 사항을 확인하는 빈도입니다. 더 자주 확인하면 CPU 사용량이 늘어납니다.";
 "settings.refreshInterval.value" = "%d초";
 "settings.popup.order" = "표시 항목";
@@ -529,6 +536,10 @@
 "battery.details.adapter" = "어댑터 정격 출력";
 "battery.details.remaining" = "남은 시간";
 "battery.details.cycles" = "사이클 수";
+"battery.details.maxCapacity" = "최대 용량";
+"battery.details.batteryCondition" = "배터리 상태";
+"battery.details.condition.normal" = "정상";
+"battery.details.condition.service" = "서비스 권장";
 "battery.details.lowPower" = "저전력 모드";
 "battery.details.on" = "켬";
 "battery.details.off" = "끔";
@@ -775,6 +786,7 @@
 "settings.battery.autoLowPowerThreshold" = "저전력 모드 자동 켜기";
 "settings.battery.autoLowPowerThresholdDescription" = "배터리 사용 중 잔량이 이 값 아래로 떨어지면 저전력 모드를 자동으로 켭니다.";
 "battery.highPowerMode.toggle" = "고전력 모드";
+"battery.details.highPower.unsupported" = "지원 안 됨";
 "battery.highPowerMode.toggleDescription" = "팬 속도를 높여 지속 성능을 끌어올립니다. 팬 소음이 커집니다.";
 "battery.highPowerMode.helperNeedsUpdate" = "고전력 모드를 사용하려면 전원 도우미를 업데이트해야 합니다.";
 "battery.highPowerMode.failure" = "고전력 모드를 전환하지 못했습니다. 다시 시도하십시오.";

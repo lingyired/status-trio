@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth 機器";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Bluetooth 機器をまだ読み取れていません。上部で Bluetooth の権限を許可するか、機器をペアリングしてください。";
 "settings.bluetooth.volumeColor" = "Bluetooth の音量を青色で表示";
+"settings.bluetooth.iconColor" = "Bluetooth アイコンの色";
+"settings.bluetooth.iconColorDescription" = "メニューバー中央の Bluetooth アイコンの色を選択します。既定の青、メニューバーの黒/白、またはカスタム色。";
+"settings.bluetooth.iconColor.blue" = "青";
+"settings.bluetooth.iconColor.primary" = "システムに従う";
+"settings.bluetooth.iconColor.custom" = "カスタム色";
 "settings.bluetooth.volumeColorDescription" = "Bluetooth でオーディオを出力すると、音量の点または円弧のアクティブ部分が青色になります。";
 "settings.bluetooth.networkErrorPriority" = "ネットワークエラーを優先";
 "settings.bluetooth.networkErrorPriorityDescription" = "接続エラーやオフライン状態では、Bluetooth 機器ではなくネットワークアイコンを表示します。";
@@ -378,6 +383,8 @@
 "accessibility.battery" = "バッテリー %d%%";
 "accessibility.volume" = "音量 %@";
 "settings.refreshInterval" = "ステータス更新間隔";
+"settings.refreshInterval.onBattery" = "バッテリー使用時";
+"settings.refreshInterval.onPower" = "電源接続時";
 "settings.refreshInterval.description" = "Status Trio が変更を確認する頻度です。短いほど CPU 使用率が高くなります。";
 "settings.refreshInterval.value" = "%d 秒";
 "settings.popup.order" = "表示項目";
@@ -529,6 +536,10 @@
 "battery.details.adapter" = "アダプタの定格出力";
 "battery.details.remaining" = "残り時間";
 "battery.details.cycles" = "充放電回数";
+"battery.details.maxCapacity" = "最大容量";
+"battery.details.batteryCondition" = "バッテリー状態";
+"battery.details.condition.normal" = "正常";
+"battery.details.condition.service" = "修理をおすすめします";
 "battery.details.lowPower" = "低電力モード";
 "battery.details.on" = "オン";
 "battery.details.off" = "オフ";
@@ -775,6 +786,7 @@
 "settings.battery.autoLowPowerThreshold" = "低電力モードを自動でオン";
 "settings.battery.autoLowPowerThresholdDescription" = "バッテリー使用時に残量がこの値を下回ると低電力モードを自動でオンにします。";
 "battery.highPowerMode.toggle" = "高電力モード";
+"battery.details.highPower.unsupported" = "非対応";
 "battery.highPowerMode.toggleDescription" = "ファンの回転数を上げて高い持続性能を引き出します。ファンの騒音は大きくなります。";
 "battery.highPowerMode.helperNeedsUpdate" = "高電力モードを使用するには、パワーヘルパーを更新する必要があります。";
 "battery.highPowerMode.failure" = "高電力モードを切り替えられませんでした。もう一度お試しください。";

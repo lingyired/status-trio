@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "藍牙裝置";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "尚未讀取到藍牙裝置。請在上方授予藍牙權限，或先配對裝置。";
 "settings.bluetooth.volumeColor" = "藍牙音量使用藍色";
+"settings.bluetooth.iconColor" = "藍牙圖示顏色";
+"settings.bluetooth.iconColorDescription" = "選擇中間藍牙圖示的顏色：預設藍色、跟隨選單列黑白，或自訂顏色。";
+"settings.bluetooth.iconColor.blue" = "藍色";
+"settings.bluetooth.iconColor.primary" = "跟隨系統";
+"settings.bluetooth.iconColor.custom" = "自訂顏色";
 "settings.bluetooth.volumeColorDescription" = "藍牙輸出音訊時，音量點或圓弧的作用部分會顯示為藍色。";
 "settings.bluetooth.networkErrorPriority" = "網路異常優先於藍牙圖示";
 "settings.bluetooth.networkErrorPriorityDescription" = "斷線或無網路時仍顯示網路圖示，不顯示藍牙裝置圖示。";
@@ -378,6 +383,8 @@
 "accessibility.battery" = "電池 %d%%";
 "accessibility.volume" = "音量 %@";
 "settings.refreshInterval" = "狀態重新整理間隔";
+"settings.refreshInterval.onBattery" = "使用電池時";
+"settings.refreshInterval.onPower" = "連接電源時";
 "settings.refreshInterval.description" = "Status Trio 檢查狀態變化的頻率。重新整理越快，CPU 使用率越高。";
 "settings.refreshInterval.value" = "%d 秒";
 "settings.popup.order" = "顯示項目";
@@ -529,6 +536,10 @@
 "battery.details.adapter" = "電源轉接器額定功率";
 "battery.details.remaining" = "剩餘時間";
 "battery.details.cycles" = "循環使用次數";
+"battery.details.maxCapacity" = "最大容量";
+"battery.details.batteryCondition" = "電池狀態";
+"battery.details.condition.normal" = "正常";
+"battery.details.condition.service" = "建議維修";
 "battery.details.lowPower" = "低耗電模式";
 "battery.details.on" = "開啟";
 "battery.details.off" = "關閉";
@@ -775,6 +786,7 @@
 "settings.battery.autoLowPowerThreshold" = "自動開啟低電量模式";
 "settings.battery.autoLowPowerThresholdDescription" = "使用電池時，電量低於此值就自動開啟低電量模式。";
 "battery.highPowerMode.toggle" = "高電量模式";
+"battery.details.highPower.unsupported" = "不支援";
 "battery.highPowerMode.toggleDescription" = "提高風扇轉速以獲得更高的持續效能，風扇噪音會增加。";
 "battery.highPowerMode.helperNeedsUpdate" = "電源 helper 需要更新後才能使用高電量模式。";
 "battery.highPowerMode.failure" = "無法切換高電量模式，請稍後再試。";

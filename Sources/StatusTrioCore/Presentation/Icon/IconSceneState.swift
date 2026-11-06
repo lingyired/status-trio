@@ -7,17 +7,22 @@ struct IconSceneState: Equatable, Hashable, Sendable {
     /// answer and a colour change invalidates the cached raster. `.standard`
     /// keeps the system semantic colours.
     let statusColors: BatteryStatusColors
+    /// The middle Bluetooth glyph colour (#275). It rides the scene so both
+    /// surfaces and every render cache agree on the same colour.
+    let bluetoothIconColor: BluetoothIconColorSelection
 
     init(
         outerRing: OuterRingState? = nil,
         center: CenterState? = nil,
         footer: FooterState? = nil,
-        statusColors: BatteryStatusColors = .standard
+        statusColors: BatteryStatusColors = .standard,
+        bluetoothIconColor: BluetoothIconColorSelection = .default
     ) {
         self.outerRing = outerRing
         self.center = center
         self.footer = footer
         self.statusColors = statusColors
+        self.bluetoothIconColor = bluetoothIconColor
     }
 }
 
@@ -37,7 +42,8 @@ extension IconSceneState {
             ),
             center: center,
             footer: footer,
-            statusColors: statusColors
+            statusColors: statusColors,
+            bluetoothIconColor: bluetoothIconColor
         )
     }
 

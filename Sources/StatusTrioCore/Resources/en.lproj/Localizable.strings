@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth Devices";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "No Bluetooth devices read yet. Grant Bluetooth access above, or pair a device.";
 "settings.bluetooth.volumeColor" = "Use blue for Bluetooth volume";
+"settings.bluetooth.iconColor" = "Bluetooth icon colour";
+"settings.bluetooth.iconColorDescription" = "Choose the middle Bluetooth icon's colour: blue by default, the menu bar's black or white, or a custom colour.";
+"settings.bluetooth.iconColor.blue" = "Blue";
+"settings.bluetooth.iconColor.primary" = "Follow system";
+"settings.bluetooth.iconColor.custom" = "Custom colour";
 "settings.bluetooth.volumeColorDescription" = "The active volume dots or arc turn blue while audio is playing through Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Let network errors take priority";
 "settings.bluetooth.networkErrorPriorityDescription" = "Connection errors and offline states keep the network icon instead of the Bluetooth device icon.";
@@ -377,6 +382,8 @@
 "accessibility.battery" = "Battery %d%%";
 "accessibility.volume" = "Volume %@";
 "settings.refreshInterval" = "Status refresh interval";
+"settings.refreshInterval.onBattery" = "On battery";
+"settings.refreshInterval.onPower" = "Plugged in";
 "settings.refreshInterval.description" = "How often Status Trio checks for changes. Faster updates use more CPU.";
 "settings.refreshInterval.value" = "%d seconds";
 "settings.popup.order" = "Displayed Items";
@@ -528,6 +535,10 @@
 "battery.details.adapter" = "Adapter rating";
 "battery.details.remaining" = "Time remaining";
 "battery.details.cycles" = "Cycle count";
+"battery.details.maxCapacity" = "Maximum capacity";
+"battery.details.batteryCondition" = "Battery status";
+"battery.details.condition.normal" = "Normal";
+"battery.details.condition.service" = "Service recommended";
 "battery.details.lowPower" = "Low Power Mode";
 "battery.details.on" = "On";
 "battery.details.off" = "Off";
@@ -773,6 +784,7 @@
 "settings.battery.autoLowPowerThreshold" = "Auto-enable Low Power Mode";
 "settings.battery.autoLowPowerThresholdDescription" = "Low Power Mode turns on when the battery drops below this level on battery.";
 "battery.highPowerMode.toggle" = "High Power Mode";
+"battery.details.highPower.unsupported" = "Not supported";
 "battery.highPowerMode.toggleDescription" = "Runs the fans faster for higher sustained performance, at the cost of more fan noise.";
 "battery.highPowerMode.helperNeedsUpdate" = "The power helper needs updating before High Power Mode can be used.";
 "battery.highPowerMode.failure" = "Could not switch High Power Mode. Try again.";

@@ -286,7 +286,7 @@ final class IconSceneRendererParityTests: XCTestCase {
         let scene = mappedScene(for: snapshot, configuration: picked)
         XCTAssertEqual(scene.center, .symbol(IconSymbolState(
             source: .symbol(name: symbol, variableValue: nil, fallback: "dot.radiowaves.left.and.right"),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions(networkIconSymbolOverride: symbol).symbolScale
         )))
         let pixels = try menuBarPixels(scene: scene, foreground: CGColor(gray: 1, alpha: 1), size: 28, scale: 2)
@@ -609,7 +609,7 @@ final class IconSceneRendererParityTests: XCTestCase {
              .standard, BluetoothAudioIconOptions(usesVolumeColor: true),
              .dots(DotsState(count: 4, activeCount: 3, color: .bluetooth, strokeScale: 1.25)),
              .symbol(IconSymbolState(source: .symbol(name: "airpods.pro", variableValue: nil, fallback: "headphones"),
-                                     color: .bluetooth, scale: 1.6)))
+                                     color: .bluetoothIcon, scale: 1.6)))
         ]
         for (name, volume, options, bluetooth, expectedFooter, expectedCenter) in volumeCases {
             let wifi = name == "Bluetooth replaced center"
