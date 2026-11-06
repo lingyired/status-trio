@@ -1,3 +1,4 @@
+import AppKit
 import Darwin
 import Foundation
 
@@ -50,6 +51,8 @@ protocol MihomoTunnelControlling: MihomoTunnelReading {
 final class SystemMihomoTunnelClient: MihomoTunnelControlling, @unchecked Sendable {
     private let socketPaths: [(path: String, provider: String)]
     private let settingsStore: ClashVergeSettingsStore
+    private var lastRequestedEnabled: Bool?
+    private var terminationObserver: NSObjectProtocol?
 
     init(
         uid: uid_t = getuid(),
@@ -62,6 +65,28 @@ final class SystemMihomoTunnelClient: MihomoTunnelControlling, @unchecked Sendab
             )
         ]
         self.settingsStore = settingsStore
+        terminationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didTerminateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self,
+                  let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  app.bundleIdentifier == "io.github.clash-verge-rev.clash-verge-rev",
+                  self.lastRequestedEnabled == false else {
+                return
+            }
+            // Clash Verge writes its in-memory settings on quit. Reapply the
+            // user's last Status Trio request after that write so the next
+            // launch does not silently re-enable the TUN.
+            _ = self.settingsStore.setTunMode(false)
+        }
+    }
+
+    deinit {
+        if let terminationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(terminationObserver)
+        }
     }
 
     func read() async -> MihomoTunnelInfo? {
@@ -70,6 +95,8 @@ final class SystemMihomoTunnelClient: MihomoTunnelControlling, @unchecked Sendab
                   let info = MihomoConfigParser.tunnel(fromJSON: json, provider: candidate.provider) else {
                 continue
             }
+            // An external client changing TUN on/off is the latest intent.
+            lastRequestedEnabled = info.isEnabled
             return info
         }
         return nil
@@ -108,6 +135,7 @@ final class SystemMihomoTunnelClient: MihomoTunnelControlling, @unchecked Sendab
             if settingsStore.hasConfig, !settingsStore.setTunMode(enabled) {
                 return .failed
             }
+            lastRequestedEnabled = enabled
             return .updated(updated)
         }
         return .rejected

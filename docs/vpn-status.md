@@ -28,9 +28,12 @@ through `expectedDevice` inside the client so a stale row cannot toggle a
 different client's TUN. After a successful runtime toggle the same action
 updates Clash Verge's persisted `verge.yaml` (`enable_tun_mode`) and regenerated
 `clash-verge.yaml` (`tun.enable`) line-scoped and atomically, so the Clash panel
-and the next launch agree with the runtime. Clash Verge may keep its current
-window's in-memory state until that window is reopened or Clash is restarted;
-the files and Mihomo runtime are already in the requested state. Actual toggle
+and the next launch agree with the runtime. Clash Verge writes its in-memory
+settings on quit; when the last Status Trio request was "off", the app rewrites
+`verge.yaml` to off after Clash terminates so a relaunch does not silently
+re-enable the TUN. Clash Verge may keep its current window's in-memory state
+until that window is reopened or Clash is restarted; the files and Mihomo
+runtime are already in the requested state. Actual toggle
 behavior on this Mac remains **NOT RUN** until the user exercises the control.
 
 A system VPN service leads with its service name and reads **Connected**. A
