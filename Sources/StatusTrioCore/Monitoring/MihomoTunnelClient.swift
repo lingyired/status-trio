@@ -49,14 +49,19 @@ protocol MihomoTunnelControlling: MihomoTunnelReading {
 /// owner-only; no administrator prompt or Accessibility grant is involved.
 final class SystemMihomoTunnelClient: MihomoTunnelControlling, @unchecked Sendable {
     private let socketPaths: [(path: String, provider: String)]
+    private let settingsStore: ClashVergeSettingsStore
 
-    init(uid: uid_t = getuid()) {
+    init(
+        uid: uid_t = getuid(),
+        settingsStore: ClashVergeSettingsStore = .applicationSupport
+    ) {
         socketPaths = [
             (
                 "/var/run/clash-verge-service/users/\(uid)/verge-mihomo.sock",
                 "Clash Verge"
             )
         ]
+        self.settingsStore = settingsStore
     }
 
     func read() async -> MihomoTunnelInfo? {
@@ -86,9 +91,21 @@ final class SystemMihomoTunnelClient: MihomoTunnelControlling, @unchecked Sendab
                 return .rejected
             }
             guard let after = await MihomoUnixHTTP.getJSON(path: "/configs", socketPath: candidate.path),
-                  let updated = MihomoConfigParser.tunnel(fromJSON: after, provider: candidate.provider),
-                  updated.device == expectedDevice,
-                  updated.isEnabled == enabled else {
+                  let afterTun = after["tun"] as? [String: Any],
+                  let afterEnabled = afterTun["enable"] as? Bool,
+                  afterEnabled == enabled else {
+                return .failed
+            }
+            let afterDevice = afterTun["device"] as? String ?? ""
+            let updated = MihomoTunnelInfo(
+                provider: candidate.provider,
+                device: afterDevice.isEmpty ? expectedDevice : afterDevice,
+                isEnabled: enabled
+            )
+            // The runtime toggle alone leaves Clash Verge's own saved setting
+            // untouched, so its panel (and the next launch) can turn TUN back
+            // on. Persist the same state in the app's settings file too.
+            if settingsStore.hasConfig, !settingsStore.setTunMode(enabled) {
                 return .failed
             }
             return .updated(updated)
@@ -97,17 +114,79 @@ final class SystemMihomoTunnelClient: MihomoTunnelControlling, @unchecked Sendab
     }
 }
 
+/// Minimal, line-scoped edits to Clash Verge's own settings. Only the TUN
+/// enable flag is touched; profiles, credentials, rules and proxy endpoints
+/// are preserved byte-for-byte. Writes are atomic so an interrupted write
+/// cannot leave Clash Verge with a truncated config.
+struct ClashVergeSettingsStore: Sendable {
+    let directory: URL
+
+    static var applicationSupport: ClashVergeSettingsStore {
+        ClashVergeSettingsStore(directory: FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/io.github.clash-verge-rev.clash-verge-rev"))
+    }
+
+    var hasConfig: Bool {
+        FileManager.default.fileExists(
+            atPath: directory.appendingPathComponent("verge.yaml").path
+        )
+    }
+
+    func setTunMode(_ enabled: Bool) -> Bool {
+        let value = enabled ? "true" : "false"
+        guard update(
+            file: directory.appendingPathComponent("verge.yaml"),
+            pattern: #"(?m)^enable_tun_mode:\s*(?:true|false)\s*$"#,
+            replacement: "enable_tun_mode: \(value)"
+        ) else {
+            return false
+        }
+        // `clash-verge.yaml` is generated from the settings/profile and is what
+        // the service copies for its runtime. Update the top-level tun block as
+        // a best effort; a missing generated file is not an error.
+        let generated = directory.appendingPathComponent("clash-verge.yaml")
+        if FileManager.default.fileExists(atPath: generated.path) {
+            _ = update(
+                file: generated,
+                pattern: #"(?m)^tun:\n  enable:\s*(?:true|false)\s*$"#,
+                replacement: "tun:\n  enable: \(value)"
+            )
+        }
+        return true
+    }
+
+    private func update(file: URL, pattern: String, replacement: String) -> Bool {
+        guard var text = try? String(contentsOf: file, encoding: .utf8),
+              let regex = try? NSRegularExpression(pattern: pattern),
+              regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil else {
+            return false
+        }
+        text = regex.stringByReplacingMatches(
+            in: text,
+            range: NSRange(text.startIndex..., in: text),
+            withTemplate: replacement
+        )
+        do {
+            try Data(text.utf8).write(to: file, options: .atomic)
+            return true
+        } catch {
+            return false
+        }
+    }
+}
+
 enum MihomoConfigParser {
     static func tunnel(fromJSON json: [String: Any], provider: String) -> MihomoTunnelInfo? {
         guard let tun = json["tun"] as? [String: Any],
-              let device = tun["device"] as? String,
-              !device.isEmpty else {
+              let isEnabled = tun["enable"] as? Bool else {
             return nil
         }
+        let device = tun["device"] as? String ?? ""
+        guard !isEnabled || !device.isEmpty else { return nil }
         return MihomoTunnelInfo(
             provider: provider,
             device: device,
-            isEnabled: tun["enable"] as? Bool == true
+            isEnabled: isEnabled
         )
     }
 }
