@@ -536,8 +536,10 @@
 "battery.details.adapter" = "Potencia nominal del adaptador";
 "battery.details.remaining" = "Tiempo restante";
 "battery.details.cycles" = "Ciclos de carga";
-"battery.details.health" = "Salud de la batería (estimada)";
 "battery.details.maxCapacity" = "Capacidad máxima";
+"battery.details.batteryCondition" = "Estado de la batería";
+"battery.details.condition.normal" = "Normal";
+"battery.details.condition.service" = "Revisión recomendada";
 "battery.details.lowPower" = "Modo de bajo consumo";
 "battery.details.on" = "Activado";
 "battery.details.off" = "Desactivado";

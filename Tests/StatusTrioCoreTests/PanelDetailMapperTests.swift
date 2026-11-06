@@ -382,7 +382,7 @@ extension PanelDetailMapperTests {
         XCTAssertEqual(input?.label, localization.string(.batteryPowerInput))
     }
 
-    func testBatteryHealthRowsReplaceTheDiagnosticReadTime() {
+    func testBatteryCapacityAndConditionRowsReplaceTheDiagnosticReadTime() {
         let localization = makeLocalization()
         let battery = BatteryStatus(
             rawPercentage: 99,
@@ -393,17 +393,19 @@ extension PanelDetailMapperTests {
         )
         var details = BatteryDetails(powerAvailability: .available)
         details.health = BatteryHealthSnapshot(
-            designCapacityMAh: 5_000,
-            maximumCapacityMAh: 4_500,
-            healthPercent: 90
+            designCapacityMAh: 8_579,
+            maximumCapacityMAh: 8_386,
+            maximumCapacityPercent: 100,
+            healthPercent: 97.8,
+            condition: .normal
         )
 
         let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
 
-        let health = state.rows.first { $0.id == LocalizationKey.batteryDetailsHealth.rawValue }
-        XCTAssertEqual(health?.value, "90%")
         let capacity = state.rows.first { $0.id == LocalizationKey.batteryDetailsMaxCapacity.rawValue }
-        XCTAssertEqual(capacity?.value, "4,500 mAh")
+        XCTAssertEqual(capacity?.value, "100%")
+        let condition = state.rows.first { $0.id == LocalizationKey.batteryDetailsBatteryCondition.rawValue }
+        XCTAssertEqual(condition?.value, "Normal")
         XCTAssertFalse(state.rows.contains { $0.id == LocalizationKey.batteryDetailsSystemReadAt.rawValue })
     }
 }

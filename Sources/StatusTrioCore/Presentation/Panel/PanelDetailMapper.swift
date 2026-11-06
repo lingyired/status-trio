@@ -54,21 +54,24 @@ enum PanelDetailMapper {
                 rows.append(row(.batteryDetailsRemaining, value: remaining, localization: localization))
             }
             if battery.isPresent, let health = details.health {
-                let healthText = health.healthPercent.map {
+                let capacityText = health.maximumCapacityPercent.map {
+                    ($0 / 100).formatted(.percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale))
+                } ?? health.healthPercent.map {
                     ($0 / 100).formatted(.percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale))
                 } ?? localization.string(.batteryDetailsUnavailable)
                 rows.append(row(
-                    .batteryDetailsHealth,
-                    value: healthText,
+                    .batteryDetailsMaxCapacity,
+                    value: capacityText,
                     localization: localization
                 ))
-                if let maximum = health.maximumCapacityMAh {
-                    rows.append(row(
-                        .batteryDetailsMaxCapacity,
-                        value: maximum.formatted(.number.locale(localization.resolvedLanguage.locale)) + " mAh",
-                        localization: localization
-                    ))
-                }
+                rows.append(row(
+                    .batteryDetailsBatteryCondition,
+                    value: localization.string(
+                        health.condition == .normal
+                            ? .batteryDetailsConditionNormal : .batteryDetailsConditionService
+                    ),
+                    localization: localization
+                ))
             }
             if battery.isPresent, let count = details.cycleCount {
                 rows.append(row(.batteryDetailsCycles, value: count.formatted(.number.locale(localization.resolvedLanguage.locale)), localization: localization))

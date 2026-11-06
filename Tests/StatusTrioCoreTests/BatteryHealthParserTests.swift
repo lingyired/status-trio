@@ -318,4 +318,22 @@ private extension Float {
             UInt8((bits >> 16) & 0xFF), UInt8((bits >> 24) & 0xFF)
         ]
     }
+
+    func testReportedMaximumCapacityReadsTheSystemPercentage() {
+        let capacity = BatteryHealthParser.parseCapacity(registry: [
+            "BatteryData": [
+                "DesignCapacity": 8_579,
+                "AppleRawMaxCapacity": 8_386,
+                "MaxCapacity": 100
+            ]
+        ])
+        XCTAssertEqual(capacity.maximumPercent, 100)
+        XCTAssertEqual(try XCTUnwrap(capacity.healthPercent), 8_386.0 / 8_579 * 100, accuracy: 0.000_001)
+    }
+
+    func testBatteryConditionUsesThePermanentFailureFlag() {
+        XCTAssertEqual(BatteryHealthParser.condition(registry: [:]), .normal)
+        XCTAssertEqual(BatteryHealthParser.condition(registry: ["PermanentFailureStatus": 0]), .normal)
+        XCTAssertEqual(BatteryHealthParser.condition(registry: ["PermanentFailureStatus": 1]), .service)
+    }
 }

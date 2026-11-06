@@ -536,8 +536,10 @@
 "battery.details.adapter" = "어댑터 정격 출력";
 "battery.details.remaining" = "남은 시간";
 "battery.details.cycles" = "사이클 수";
-"battery.details.health" = "배터리 건강도(추정)";
 "battery.details.maxCapacity" = "최대 용량";
+"battery.details.batteryCondition" = "배터리 상태";
+"battery.details.condition.normal" = "정상";
+"battery.details.condition.service" = "서비스 권장";
 "battery.details.lowPower" = "저전력 모드";
 "battery.details.on" = "켬";
 "battery.details.off" = "끔";

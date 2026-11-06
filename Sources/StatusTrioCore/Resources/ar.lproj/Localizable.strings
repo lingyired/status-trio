@@ -536,8 +536,10 @@
 "battery.details.adapter" = "القدرة الاسمية للمحوّل";
 "battery.details.remaining" = "الوقت المتبقي";
 "battery.details.cycles" = "عدد دورات الشحن";
-"battery.details.health" = "صحة البطارية (تقدير)";
 "battery.details.maxCapacity" = "أقصى سعة";
+"battery.details.batteryCondition" = "حالة البطارية";
+"battery.details.condition.normal" = "طبيعي";
+"battery.details.condition.service" = "يُنصح بالصيانة";
 "battery.details.lowPower" = "نمط الطاقة المنخفضة";
 "battery.details.on" = "مفعّل";
 "battery.details.off" = "متوقف";

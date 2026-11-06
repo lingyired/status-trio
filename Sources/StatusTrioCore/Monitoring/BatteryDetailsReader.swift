@@ -204,9 +204,11 @@ struct BatteryDetailsReader: Sendable {
             health: BatteryHealthSnapshot(
                 designCapacityMAh: capacity.designMAh,
                 maximumCapacityMAh: capacity.maximumMAh,
+                maximumCapacityPercent: capacity.maximumPercent,
                 healthPercent: capacity.healthPercent,
                 temperatureCelsius: temperatureCelsius,
-                chargeTime: chargeTime
+                chargeTime: chargeTime,
+                condition: BatteryHealthParser.condition(registry: registry)
             )
         )
         let registryMatches = (registry["ExternalConnected"] as? Bool) == state.isConnected

@@ -23,26 +23,39 @@ struct BatteryHealthSnapshot: Equatable, Sendable {
         case unavailable
     }
 
+    enum Condition: Equatable, Sendable {
+        case normal
+        case service
+    }
+
     var designCapacityMAh: Int?
     var maximumCapacityMAh: Int?
+    /// The percentage macOS reports as Maximum Capacity (`MaxCapacity`), which
+    /// is normalised differently from the raw capacity ratio below.
+    var maximumCapacityPercent: Double?
     /// Estimated from measured capacities, not the value macOS shows under
-    /// Battery Health. The UI must label it as an estimate.
+    /// Battery Health. Kept as a fallback when the system percentage is absent.
     var healthPercent: Double?
     var temperatureCelsius: Double?
     var chargeTime: ChargeTimeState
+    var condition: Condition
 
     init(
         designCapacityMAh: Int? = nil,
         maximumCapacityMAh: Int? = nil,
+        maximumCapacityPercent: Double? = nil,
         healthPercent: Double? = nil,
         temperatureCelsius: Double? = nil,
-        chargeTime: ChargeTimeState = .unavailable
+        chargeTime: ChargeTimeState = .unavailable,
+        condition: Condition = .normal
     ) {
         self.designCapacityMAh = designCapacityMAh
         self.maximumCapacityMAh = maximumCapacityMAh
+        self.maximumCapacityPercent = maximumCapacityPercent
         self.healthPercent = healthPercent
         self.temperatureCelsius = temperatureCelsius
         self.chargeTime = chargeTime
+        self.condition = condition
     }
 
     /// A health card is only worth showing when at least one capacity or
@@ -69,6 +82,7 @@ enum BatteryHealthParser {
     struct Capacity: Equatable, Sendable {
         var designMAh: Int? = nil
         var maximumMAh: Int? = nil
+        var maximumPercent: Double? = nil
         var healthPercent: Double? = nil
     }
 
@@ -90,12 +104,23 @@ enum BatteryHealthParser {
         let maximum = ["AppleRawMaxCapacity", "FullChargeCapacity", "NominalChargeCapacity"]
             .compactMap { milliampHours(values[$0]) }
             .first
-        guard design != nil || maximum != nil else { return nil }
+        let maximumPercent = integerValue(values["MaxCapacity"])
+            .flatMap { (1...100).contains($0) ? Double($0) : nil }
+        guard design != nil || maximum != nil || maximumPercent != nil else { return nil }
         return Capacity(
             designMAh: design,
             maximumMAh: maximum,
+            maximumPercent: maximumPercent,
             healthPercent: healthPercent(maximumMAh: maximum, designMAh: design)
         )
+    }
+
+    /// The system's own service flag wins; otherwise a normal reading is used.
+    static func condition(registry: [String: Any]) -> BatteryHealthSnapshot.Condition {
+        if let failure = integerValue(registry["PermanentFailureStatus"]), failure != 0 {
+            return .service
+        }
+        return .normal
     }
 
     /// A capacity pair is only credible inside these bounds. An implausible

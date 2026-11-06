@@ -536,8 +536,10 @@
 "battery.details.adapter" = "Номинальная мощность адаптера";
 "battery.details.remaining" = "Оставшееся время";
 "battery.details.cycles" = "Число циклов";
-"battery.details.health" = "Состояние аккумулятора (оценка)";
 "battery.details.maxCapacity" = "Максимальная ёмкость";
+"battery.details.batteryCondition" = "Состояние батареи";
+"battery.details.condition.normal" = "Норма";
+"battery.details.condition.service" = "Рекомендуется обслуживание";
 "battery.details.lowPower" = "Режим энергосбережения";
 "battery.details.on" = "Вкл.";
 "battery.details.off" = "Выкл.";
