@@ -160,7 +160,7 @@
 "settings.battery.group.power" = "الطاقة";
 "settings.battery.group.topMarkers" = "العلامات العلوية";
 "settings.battery.group.progress" = "التقدم";
-"settings.battery.noBatteryNotice" = "لا يحتوي هذا الجهاز على بطارية، لذا يُعرض مستوى البطارية على أنه 100 افتراضيًا.";
+"settings.battery.noBatteryNotice" = "لا يحتوي هذا الجهاز على بطارية، لذا لا تُعرض نسبة شحن البطارية.";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";
 "settings.battery.chargingDescription" = "عند التفعيل، تتحول النسبة إلى رمز برق أو قابس أثناء الشحن أو الاتصال بالطاقة.";

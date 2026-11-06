@@ -400,7 +400,8 @@ private final class AsyncVolumeEvents: VolumeEventMonitoring {
 
     func start(
         onDefaultDeviceChange: @escaping @MainActor @Sendable () -> Void,
-        onVolumeChange: @escaping @MainActor @Sendable () -> Void
+        onVolumeChange: @escaping @MainActor @Sendable () -> Void,
+        onDeviceListChange: @escaping @MainActor @Sendable () -> Void
     ) {
         defaultDeviceChanged = onDefaultDeviceChange
         volumeChanged = onVolumeChange

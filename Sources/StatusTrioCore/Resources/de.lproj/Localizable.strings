@@ -177,7 +177,7 @@
 "settings.battery.group.power" = "Leistung";
 "settings.battery.group.topMarkers" = "Obere Markierungen";
 "settings.battery.group.progress" = "Fortschritt";
-"settings.battery.noBatteryNotice" = "Dieses Gerät hat keinen Akku, daher wird der Batteriestand standardmäßig als 100 angezeigt.";
+"settings.battery.noBatteryNotice" = "Dieses Gerät hat keinen Akku, daher wird kein Akkustand in Prozent angezeigt.";
 "settings.battery.showPercentage" = "Batterieprozentsatz anzeigen";
 "settings.battery.showChargingIndicator" = "Symbol beim Laden oder Netzbetrieb anzeigen";
 "settings.battery.chargingDescription" = "Wenn aktiviert, wird der Prozentsatz beim Laden oder Netzbetrieb durch ein Blitz- oder Steckersymbol ersetzt.";
