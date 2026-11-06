@@ -38,7 +38,8 @@ struct BatteryHealthSnapshot: Equatable, Sendable {
     var healthPercent: Double?
     var temperatureCelsius: Double?
     var chargeTime: ChargeTimeState
-    var condition: Condition
+    /// `nil` means the system exposed no explicit condition evidence.
+    var condition: Condition?
 
     init(
         designCapacityMAh: Int? = nil,
@@ -47,7 +48,7 @@ struct BatteryHealthSnapshot: Equatable, Sendable {
         healthPercent: Double? = nil,
         temperatureCelsius: Double? = nil,
         chargeTime: ChargeTimeState = .unavailable,
-        condition: Condition = .normal
+        condition: Condition? = nil
     ) {
         self.designCapacityMAh = designCapacityMAh
         self.maximumCapacityMAh = maximumCapacityMAh
@@ -115,12 +116,23 @@ enum BatteryHealthParser {
         )
     }
 
-    /// The system's own service flag wins; otherwise a normal reading is used.
-    static func condition(registry: [String: Any]) -> BatteryHealthSnapshot.Condition {
-        if let failure = integerValue(registry["PermanentFailureStatus"]), failure != 0 {
+    /// A missing health value or a zero failure bitmask does not prove the
+    /// battery is healthy. Service evidence wins over a simultaneous Good value.
+    static func condition(registry: [String: Any]) -> BatteryHealthSnapshot.Condition? {
+        var sources = [registry]
+        if let batteryData = registry["BatteryData"] as? [String: Any] {
+            sources.append(batteryData)
+        }
+        let conditions = sources.flatMap { source in
+            [source["BatteryHealth"] as? String, source["BatteryHealthCondition"] as? String]
+                .compactMap { $0 }
+        }
+        if sources.contains(where: {
+            (integerValue($0["PermanentFailureStatus"]) ?? 0) > 0
+        }) || conditions.contains(where: { ["Fair", "Poor", "Check Battery"].contains($0) }) {
             return .service
         }
-        return .normal
+        return conditions.contains("Good") ? .normal : nil
     }
 
     /// A capacity pair is only credible inside these bounds. An implausible

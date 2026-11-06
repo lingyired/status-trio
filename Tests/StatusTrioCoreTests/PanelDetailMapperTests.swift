@@ -409,6 +409,18 @@ extension PanelDetailMapperTests {
         XCTAssertFalse(state.rows.contains { $0.id == LocalizationKey.batteryDetailsSystemReadAt.rawValue })
     }
 
+    func testMissingBatteryConditionIsUnavailableRatherThanNormal() {
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true,
+            isCharging: false, isLowPowerMode: false, isConnectedToPower: true)
+        let details = BatteryDetails(health: BatteryHealthSnapshot(maximumCapacityPercent: 100))
+        let localization = makeLocalization()
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+        XCTAssertEqual(
+            state.rows.first { $0.id == LocalizationKey.batteryDetailsBatteryCondition.rawValue }?.value,
+            localization.string(.batteryDetailsUnavailable)
+        )
+    }
+
     func testHighPowerRowUsesSystemSupportAndState() {
         let localization = makeLocalization()
         let battery = BatteryStatus(
@@ -421,6 +433,7 @@ extension PanelDetailMapperTests {
         for (status, expected) in [
             (HighPowerModeSystemStatus(supported: true, enabled: true), "On"),
             (HighPowerModeSystemStatus(supported: true, enabled: false), "Off"),
+            (HighPowerModeSystemStatus(supported: true, enabled: nil), localization.string(.batteryDetailsUnavailable)),
             (HighPowerModeSystemStatus(supported: false, enabled: nil), "Not supported")
         ] {
             var details = BatteryDetails(powerAvailability: .available)

@@ -295,6 +295,33 @@ final class BatteryHealthParserTests: XCTestCase {
         XCTAssertFalse(BatteryHealthSnapshot(chargeTime: .unavailable).hasDisplayableChargeTime)
     }
 
+    func testReportedMaximumCapacityReadsTheSystemPercentage() throws {
+        let capacity = BatteryHealthParser.parseCapacity(registry: [
+            "BatteryData": [
+                "DesignCapacity": 8_579,
+                "AppleRawMaxCapacity": 8_386,
+                "MaxCapacity": 100
+            ]
+        ])
+        XCTAssertEqual(capacity.maximumPercent, 100)
+        XCTAssertEqual(try XCTUnwrap(capacity.healthPercent), 8_386.0 / 8_579 * 100, accuracy: 0.000_001)
+    }
+
+    func testBatteryConditionUsesOnlyExplicitSystemEvidence() {
+        XCTAssertNil(BatteryHealthParser.condition(registry: [:]))
+        XCTAssertNil(BatteryHealthParser.condition(registry: ["PermanentFailureStatus": "unknown"]))
+        XCTAssertNil(BatteryHealthParser.condition(registry: ["PermanentFailureStatus": 0]))
+        XCTAssertEqual(BatteryHealthParser.condition(registry: [
+            "PermanentFailureStatus": 0, "BatteryHealth": "Poor"
+        ]), .service)
+        XCTAssertEqual(BatteryHealthParser.condition(registry: [
+            "BatteryHealth": "Good", "BatteryData": ["BatteryHealthCondition": "Check Battery"]
+        ]), .service)
+        XCTAssertEqual(BatteryHealthParser.condition(registry: ["PermanentFailureStatus": 1]), .service)
+        XCTAssertEqual(BatteryHealthParser.condition(registry: ["BatteryHealth": "Good"]), .normal)
+        XCTAssertEqual(BatteryHealthParser.condition(registry: ["BatteryHealthCondition": "Check Battery"]), .service)
+    }
+
     private func chargeDescription(
         charging: Bool, charged: Bool, timeToFull: Int, state: String = kIOPSACPowerValue
     ) -> [String: Any] {
@@ -319,21 +346,4 @@ private extension Float {
         ]
     }
 
-    func testReportedMaximumCapacityReadsTheSystemPercentage() {
-        let capacity = BatteryHealthParser.parseCapacity(registry: [
-            "BatteryData": [
-                "DesignCapacity": 8_579,
-                "AppleRawMaxCapacity": 8_386,
-                "MaxCapacity": 100
-            ]
-        ])
-        XCTAssertEqual(capacity.maximumPercent, 100)
-        XCTAssertEqual(try XCTUnwrap(capacity.healthPercent), 8_386.0 / 8_579 * 100, accuracy: 0.000_001)
-    }
-
-    func testBatteryConditionUsesThePermanentFailureFlag() {
-        XCTAssertEqual(BatteryHealthParser.condition(registry: [:]), .normal)
-        XCTAssertEqual(BatteryHealthParser.condition(registry: ["PermanentFailureStatus": 0]), .normal)
-        XCTAssertEqual(BatteryHealthParser.condition(registry: ["PermanentFailureStatus": 1]), .service)
-    }
 }

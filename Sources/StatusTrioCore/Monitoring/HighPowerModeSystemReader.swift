@@ -9,36 +9,24 @@ struct HighPowerModeSystemStatus: Equatable, Sendable {
 }
 
 enum HighPowerModeSystemReader {
-    static func read(timeout: TimeInterval = 3) -> HighPowerModeSystemStatus? {
+    static func read(timeout: Duration = .seconds(3)) -> HighPowerModeSystemStatus? {
         guard let capabilities = run(["-g", "cap"], timeout: timeout) else { return nil }
+        guard !capabilities.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         let supported = HighPowerModeCommand.isSupported(fromCapabilitiesOutput: capabilities)
+        guard supported else { return HighPowerModeSystemStatus(supported: false, enabled: nil) }
+        // A failed `-g` read is reported as unknown, not as Off.
         let enabled = run(["-g"], timeout: timeout)
             .flatMap(HighPowerModeCommand.parseEnabled(fromPmsetOutput:))
         return HighPowerModeSystemStatus(supported: supported, enabled: enabled)
     }
 
-    private static func run(_ arguments: [String], timeout: TimeInterval) -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
-        process.arguments = arguments
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-        } catch {
-            return nil
-        }
-        let deadline = Date().addingTimeInterval(timeout)
-        while process.isRunning, Date() < deadline {
-            Thread.sleep(forTimeInterval: 0.02)
-        }
-        if process.isRunning {
-            process.terminate()
-            return nil
-        }
-        guard process.terminationStatus == 0 else { return nil }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    private static func run(_ arguments: [String], timeout: Duration) -> String? {
+        let outcome = BoundedProcessInvocation.runSync(
+            executableURL: URL(fileURLWithPath: "/usr/bin/pmset"),
+            arguments: arguments,
+            timeout: timeout
+        )
+        guard case let .exited(data) = outcome else { return nil }
         return String(data: data, encoding: .utf8)
     }
 }

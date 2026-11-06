@@ -64,12 +64,18 @@ enum PanelDetailMapper {
                     value: capacityText,
                     localization: localization
                 ))
+                let conditionValue: String
+                switch health.condition {
+                case .normal?:
+                    conditionValue = localization.string(.batteryDetailsConditionNormal)
+                case .service?:
+                    conditionValue = localization.string(.batteryDetailsConditionService)
+                case nil:
+                    conditionValue = localization.string(.batteryDetailsUnavailable)
+                }
                 rows.append(row(
                     .batteryDetailsBatteryCondition,
-                    value: localization.string(
-                        health.condition == .normal
-                            ? .batteryDetailsConditionNormal : .batteryDetailsConditionService
-                    ),
+                    value: conditionValue,
                     localization: localization
                 ))
             }
@@ -84,12 +90,14 @@ enum PanelDetailMapper {
         ))
         if let highPower = details?.highPowerMode {
             let value: String
-            if highPower.supported {
-                value = localization.string(
-                    highPower.enabled == true ? .batteryDetailsOn : .batteryDetailsOff
-                )
-            } else {
+            if !highPower.supported {
                 value = localization.string(.batteryDetailsHighPowerUnsupported)
+            } else {
+                switch highPower.enabled {
+                case true?: value = localization.string(.batteryDetailsOn)
+                case false?: value = localization.string(.batteryDetailsOff)
+                case nil: value = localization.string(.batteryDetailsUnavailable)
+                }
             }
             rows.append(row(
                 .settingsBatteryColorsHighPower,
