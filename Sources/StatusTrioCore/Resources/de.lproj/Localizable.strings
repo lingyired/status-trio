@@ -770,7 +770,6 @@
 "settings.battery.autoLowPowerThreshold" = "Niedrigenergiemodus automatisch aktivieren";
 "settings.battery.autoLowPowerThresholdDescription" = "Der Niedrigenergiemodus wird im Akkubetrieb unterhalb dieses Werts automatisch aktiviert.";
 "battery.highPowerMode.toggle" = "Hochenergiemodus";
-"battery.details.highPower.disabled" = "Deaktiviert";
 "battery.details.highPower.unsupported" = "Nicht unterstützt";
 "battery.highPowerMode.toggleDescription" = "Lässt die Lüfter schneller laufen, um dauerhaft höhere Leistung zu erreichen – auf Kosten lauterer Lüfter.";
 "battery.highPowerMode.helperNeedsUpdate" = "Der Energiehelfer muss aktualisiert werden, bevor der Hochenergiemodus verwendet werden kann.";

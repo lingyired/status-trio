@@ -408,4 +408,28 @@ extension PanelDetailMapperTests {
         XCTAssertEqual(condition?.value, "Normal")
         XCTAssertFalse(state.rows.contains { $0.id == LocalizationKey.batteryDetailsSystemReadAt.rawValue })
     }
+
+    func testHighPowerRowUsesSystemSupportAndState() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: 80,
+            isPresent: true,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: true
+        )
+        for (status, expected) in [
+            (HighPowerModeSystemStatus(supported: true, enabled: true), "On"),
+            (HighPowerModeSystemStatus(supported: true, enabled: false), "Off"),
+            (HighPowerModeSystemStatus(supported: false, enabled: nil), "Not supported")
+        ] {
+            var details = BatteryDetails(powerAvailability: .available)
+            details.highPowerMode = status
+            let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+            XCTAssertEqual(
+                state.rows.first { $0.id == LocalizationKey.settingsBatteryColorsHighPower.rawValue }?.value,
+                expected
+            )
+        }
+    }
 }

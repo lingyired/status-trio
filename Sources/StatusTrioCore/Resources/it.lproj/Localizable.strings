@@ -770,7 +770,6 @@
 "settings.battery.autoLowPowerThreshold" = "Attiva automaticamente la modalità risparmio energetico";
 "settings.battery.autoLowPowerThresholdDescription" = "La modalità risparmio energetico si attiva automaticamente sotto questo livello quando usi la batteria.";
 "battery.highPowerMode.toggle" = "Modalità prestazioni elevate";
-"battery.details.highPower.disabled" = "Disattivato";
 "battery.details.highPower.unsupported" = "Non supportato";
 "battery.highPowerMode.toggleDescription" = "Fa girare le ventole più velocemente per prestazioni sostenute più elevate, a costo di più rumore.";
 "battery.highPowerMode.helperNeedsUpdate" = "L’helper di alimentazione deve essere aggiornato prima di poter usare la modalità prestazioni elevate.";

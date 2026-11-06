@@ -770,7 +770,6 @@
 "settings.battery.autoLowPowerThreshold" = "自動開啟低電量模式";
 "settings.battery.autoLowPowerThresholdDescription" = "使用電池時，電量低於此值就自動開啟低電量模式。";
 "battery.highPowerMode.toggle" = "高電量模式";
-"battery.details.highPower.disabled" = "未啟用";
 "battery.details.highPower.unsupported" = "不支援";
 "battery.highPowerMode.toggleDescription" = "提高風扇轉速以獲得更高的持續效能，風扇噪音會增加。";
 "battery.highPowerMode.helperNeedsUpdate" = "電源 helper 需要更新後才能使用高電量模式。";

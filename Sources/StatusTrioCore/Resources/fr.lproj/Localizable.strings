@@ -770,7 +770,6 @@
 "settings.battery.autoLowPowerThreshold" = "Activer automatiquement le mode économie d’énergie";
 "settings.battery.autoLowPowerThresholdDescription" = "Le mode économie d’énergie s’active automatiquement sous ce niveau lorsque vous êtes sur batterie.";
 "battery.highPowerMode.toggle" = "Mode haute puissance";
-"battery.details.highPower.disabled" = "Désactivé";
 "battery.details.highPower.unsupported" = "Non pris en charge";
 "battery.highPowerMode.toggleDescription" = "Fait tourner les ventilateurs plus vite pour des performances soutenues plus élevées, au prix d’un bruit plus important.";
 "battery.highPowerMode.helperNeedsUpdate" = "L’assistant d’alimentation doit être mis à jour avant de pouvoir utiliser le mode haute puissance.";

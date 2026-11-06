@@ -770,7 +770,6 @@
 "settings.battery.autoLowPowerThreshold" = "Автоматически включать режим низкого энергопотребления";
 "settings.battery.autoLowPowerThresholdDescription" = "Режим низкого энергопотребления включается автоматически ниже этого уровня при работе от аккумулятора.";
 "battery.highPowerMode.toggle" = "Режим высокой мощности";
-"battery.details.highPower.disabled" = "Отключено";
 "battery.details.highPower.unsupported" = "Не поддерживается";
 "battery.highPowerMode.toggleDescription" = "Ускоряет вентиляторы для более высокой длительной производительности ценой большего шума.";
 "battery.highPowerMode.helperNeedsUpdate" = "Помощник питания необходимо обновить, прежде чем использовать режим высокой мощности.";

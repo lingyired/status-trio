@@ -243,8 +243,10 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             health: BatteryHealthSnapshot(
                 designCapacityMAh: 5_000,
                 maximumCapacityMAh: 4_500,
+                maximumCapacityPercent: 100,
                 healthPercent: 90
-            ))
+            ),
+            highPowerMode: HighPowerModeSystemStatus(supported: true, enabled: false))
         let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: charging,
                                     isLowPowerMode: false, isConnectedToPower: connected)
         let panelState = PanelDetailMapper.battery(

@@ -62,22 +62,6 @@ struct BatteryDetailsView: View {
                 LocalizationKey.batteryDetailsCharging.rawValue]
             rows = rows.filter { !diagramKeys.contains($0.id) }
         }
-        if let highPowerMode {
-            let value = BatteryHighPowerRowPresentation.value(
-                hasProbed: highPowerMode.hasProbed,
-                isSupported: highPowerMode.isSupported,
-                isHighPowerMode: highPowerMode.isHighPowerMode,
-                showsControl: showsHighPowerControl,
-                localization: localization
-            )
-            rows.append(PanelDetailRow(
-                id: LocalizationKey.settingsBatteryColorsHighPower.rawValue,
-                label: localization.string(.settingsBatteryColorsHighPower),
-                value: value,
-                accessibilityValue: value,
-                tint: .primary
-            ))
-        }
         return rows
     }
 

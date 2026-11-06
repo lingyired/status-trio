@@ -34,12 +34,16 @@ struct BatteryDetails: Equatable, Sendable {
     /// Read-only capacity telemetry for the health row. Independent of the
     /// power sample lifecycle so an invalid power read cannot discard it.
     var health: BatteryHealthSnapshot?
+    /// High Power Mode support and current state from `pmset`; the helper is
+    /// only used for writes, so this row does not require helper opt-in.
+    var highPowerMode: HighPowerModeSystemStatus?
 
     init(adapterWatts: Int? = nil, remainingMinutes: Int? = nil, cycleCount: Int? = nil,
          power: BatteryPowerSample? = nil, powerAvailability: PowerAvailability = .unavailable,
          systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
          breakdown: BatteryPowerBreakdown? = nil,
-         health: BatteryHealthSnapshot? = nil) {
+         health: BatteryHealthSnapshot? = nil,
+         highPowerMode: HighPowerModeSystemStatus? = nil) {
         self.adapterWatts = adapterWatts
         self.remainingMinutes = remainingMinutes
         self.cycleCount = cycleCount
@@ -49,6 +53,7 @@ struct BatteryDetails: Equatable, Sendable {
         self.breakdown = breakdown
         self.powerAvailability = powerAvailability
         self.health = health
+        self.highPowerMode = highPowerMode
     }
 }
 
@@ -132,6 +137,9 @@ struct BatteryDetailsReader: Sendable {
             inputPower: sensors.input, batteryPower: sensors.battery,
             breakdown: breakdown
         )
+        if state.isPresent {
+            result.highPowerMode = HighPowerModeSystemReader.read()
+        }
         if !options.showsInput { result.inputPower = nil }
         if state.isConnected && !options.showsCharging { result.power = nil }
         return result

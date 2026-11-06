@@ -770,7 +770,6 @@
 "settings.battery.autoLowPowerThreshold" = "تشغيل وضع الطاقة المنخفضة تلقائيًا";
 "settings.battery.autoLowPowerThresholdDescription" = "يتم تشغيل وضع الطاقة المنخفضة تلقائيًا عند انخفاض البطارية عن هذا المستوى أثناء العمل على البطارية.";
 "battery.highPowerMode.toggle" = "وضع الطاقة العالية";
-"battery.details.highPower.disabled" = "معطّل";
 "battery.details.highPower.unsupported" = "غير مدعوم";
 "battery.highPowerMode.toggleDescription" = "يزيد سرعة المراوح لتحقيق أداء مستمر أعلى، مقابل ضجيج أكبر.";
 "battery.highPowerMode.helperNeedsUpdate" = "يلزم تحديث مساعد الطاقة قبل استخدام وضع الطاقة العالية.";
