@@ -12,9 +12,21 @@ final class BrightnessMonitorTests: XCTestCase {
     }
 
     private final class QuietTransport: DDCFeatureTransport, @unchecked Sendable {
+        private let readLock = NSLock()
+        private var readCount = 0
+        var featureReadCount: Int {
+            readLock.lock()
+            defer { readLock.unlock() }
+            return readCount
+        }
         func resolve(uid: String) -> DDCDisplayTarget? { DDCDisplayTarget(uid: uid, service: nil) }
         func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult { .reply(DDCVolumeReply(current: 50, maximum: 100)) }
-        func read(_ target: DDCDisplayTarget, feature: UInt8) -> DDCVolumeReadResult { read(target) }
+        func read(_ target: DDCDisplayTarget, feature: UInt8) -> DDCVolumeReadResult {
+            readLock.lock()
+            readCount += 1
+            readLock.unlock()
+            return read(target)
+        }
         func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool { true }
         func write(_ target: DDCDisplayTarget, value: UInt16, feature: UInt8) -> Bool { true }
     }
@@ -24,6 +36,16 @@ final class BrightnessMonitorTests: XCTestCase {
         func stop() {}
         func request(commands: [String], parameters: [String: String?]) async throws -> String? {
             "0.5,0,1"
+        }
+    }
+
+    private final class CountingBetterDisplayClient: BetterDisplayRequesting {
+        private(set) var requestCount = 0
+        func start(onEvent: @escaping @MainActor (BetterDisplayEvent) -> Void) {}
+        func stop() {}
+        func request(commands: [String], parameters: [String: String?]) async throws -> String? {
+            requestCount += 1
+            return "0.5,0,1"
         }
     }
 
@@ -326,6 +348,82 @@ final class BrightnessMonitorTests: XCTestCase {
         XCTAssertEqual(updates.last?.source, .unavailable(.noBackend))
         XCTAssertEqual(updates.last?.canAdjust, false)
         controller.stop()
+    }
+
+    func testVisibleFallbackLoopLeavesDDCOnItsOwnTimer() async {
+        let transport = QuietTransport()
+        let sleeper = ManualEventSleeper()
+        let client = CountingBetterDisplayClient()
+        var ddc: DDCBrightnessCoordinator?
+        let monitor = BrightnessMonitor(
+            catalog: FakeCatalog([descriptor("DDC"), descriptor("BD")]),
+            makeDDC: { _, onUpdate in
+                let coordinator = DDCBrightnessCoordinator(
+                    transport: transport, pollInterval: .seconds(600), onUpdate: onUpdate
+                )
+                ddc = coordinator
+                return coordinator
+            },
+            makeBetterDisplay: { uuid, update in
+                BetterDisplayBrightnessCoordinator(client: client, displayUUID: uuid, onUpdate: update)
+            },
+            externalRefreshSleep: { await sleeper.sleep($0) }
+        )
+        monitor.setExternalBrightnessConfigurations([
+            "BD": ExternalBrightnessConfiguration(backend: .betterDisplay, betterDisplayUUID: "UUID")
+        ])
+        monitor.start()
+        monitor.setDetailsVisible(true)
+        await ddc?.waitForWorkerIdle()
+        XCTAssertEqual(transport.featureReadCount, 1)
+        let waiting = await sleeper.waitForCallCount(1, timeout: .seconds(1))
+        XCTAssertTrue(waiting)
+        await waitForRequests(client, count: 1)
+        sleeper.releaseOldest()
+        await waitForRequests(client, count: 2)
+        await ddc?.waitForWorkerIdle()
+        XCTAssertEqual(
+            transport.featureReadCount, 1,
+            "the fallback reads BetterDisplay without bypassing DDC's own timer or failure backoff"
+        )
+        monitor.stop()
+        sleeper.releaseAll()
+    }
+
+    func testExternalBackendRefreshesWhileVisibleAndStopsWhenHidden() async {
+        let client = CountingBetterDisplayClient()
+        let external = DisplayDescriptor(id: "EDID", name: "External", isBuiltin: false, displayID: 5)
+        let monitor = BrightnessMonitor(
+            catalog: FakeCatalog([external]),
+            makeBetterDisplay: { uuid, update in
+                BetterDisplayBrightnessCoordinator(client: client, displayUUID: uuid, onUpdate: update)
+            },
+            externalRefreshInterval: .milliseconds(20),
+            externalRefreshSleep: { try await Task.sleep(for: $0) }
+        )
+        monitor.setExternalBrightnessConfigurations([
+            "EDID": ExternalBrightnessConfiguration(backend: .betterDisplay, betterDisplayUUID: "UUID")
+        ])
+        monitor.start()
+        monitor.setDetailsVisible(true)
+        try? await Task.sleep(for: .milliseconds(120))
+        let visibleReads = client.requestCount
+        XCTAssertGreaterThan(visibleReads, 1, "external changes have no push notification; visible polling must refresh")
+
+        monitor.setDetailsVisible(false)
+        let hiddenReads = client.requestCount
+        try? await Task.sleep(for: .milliseconds(120))
+        XCTAssertEqual(client.requestCount, hiddenReads, "hiding the panel must stop external polling")
+        XCTAssertLessThanOrEqual(hiddenReads, visibleReads + 1)
+        monitor.stop()
+    }
+
+    private func waitForRequests(_ client: CountingBetterDisplayClient, count: Int) async {
+        for _ in 0..<1000 {
+            if client.requestCount >= count { return }
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(1))
+        }
     }
 
     private func latestStatus(_ monitor: BrightnessMonitor) -> BrightnessStatus? {

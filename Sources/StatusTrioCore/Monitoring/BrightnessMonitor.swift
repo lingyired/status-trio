@@ -18,8 +18,9 @@ private let brightnessMonitorLogger = Logger(
 /// Reads are demand-driven: no coordinator exists until the brightness section
 /// is visible, and everything is torn down when it is hidden or the display
 /// sleeps. Built-in external changes arrive via DisplayServices' push
-/// notification; backends without a notification keep their bounded refresh
-/// (direct DDC uses its existing visible-only timer). Nothing polls in the
+/// notification. External backends have no comparable system notification, so
+/// the monitor re-reads only those rows while the brightness surface is
+/// visible; the loop stops on hide, sleep and stop. Nothing polls in the
 /// background.
 @MainActor
 final class BrightnessMonitor: BrightnessMonitoring {
@@ -81,6 +82,9 @@ final class BrightnessMonitor: BrightnessMonitoring {
     private var generation: UInt64 = 0
     private var readSequence: UInt64 = 0
     private let notificationCenter: NotificationCenter
+    private let externalRefreshInterval: Duration
+    private let externalRefreshSleep: @Sendable (Duration) async throws -> Void
+    private var externalRefreshTask: Task<Void, Never>?
     private var screenParameterObserver: NSObjectProtocol?
 
     init(
@@ -88,12 +92,20 @@ final class BrightnessMonitor: BrightnessMonitoring {
         makeDDC: DDCMaker? = nil,
         makeDisplayServices: DisplayServicesMaker? = nil,
         makeBetterDisplay: BetterDisplayMaker? = nil,
-        notificationCenter: NotificationCenter = .default
+        notificationCenter: NotificationCenter = .default,
+        externalRefreshInterval: Duration = .seconds(2),
+        externalRefreshSleep: @escaping @Sendable (Duration) async throws -> Void = {
+            try await Task.sleep(for: $0)
+        }
     ) {
         self.catalog = catalog
         self.notificationCenter = notificationCenter
+        self.externalRefreshInterval = externalRefreshInterval
+        self.externalRefreshSleep = externalRefreshSleep
         self.makeDDC = makeDDC ?? { displayID, onUpdate in
-            DDCBrightnessCoordinator(onUpdate: onUpdate)
+            // DDC owns its timer, including failure backoff and the busy gate.
+            // The monitor's fallback loop must never enqueue reads over writes.
+            DDCBrightnessCoordinator(pollInterval: .seconds(2), onUpdate: onUpdate)
         }
         self.makeDisplayServices = makeDisplayServices ?? { displayID, onUpdate in
             DisplayServicesBrightnessController(
@@ -129,6 +141,11 @@ final class BrightnessMonitor: BrightnessMonitoring {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in self?.topologyChanged() }
         }
+        if detailsVisible, !displayAsleep { rebuild() }
+    }
+
+    deinit {
+        externalRefreshTask?.cancel()
     }
 
     func stop() {
@@ -137,6 +154,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
             notificationCenter.removeObserver(observer)
             screenParameterObserver = nil
         }
+        stopExternalRefreshLoop()
         stopCoordinators()
         continuation.finish()
     }
@@ -163,6 +181,57 @@ final class BrightnessMonitor: BrightnessMonitoring {
         refresh()
     }
 
+    private var needsExternalRefreshLoop: Bool {
+        entries.values.contains { entry in
+            guard !entry.descriptor.isBuiltin else { return false }
+            switch entry.backend {
+            case .betterDisplay, .displayServices: return true
+            case .ddc, .unavailable: return false
+            }
+        }
+    }
+
+    /// BetterDisplay OSD dispatch is optional, so visible external rows need a
+    /// read fallback. DDC retains its own timer/backoff; the built-in panel uses
+    /// native notifications. No fallback timer exists without a supported row.
+    private func startExternalRefreshLoop() {
+        guard started, detailsVisible, !displayAsleep, needsExternalRefreshLoop else {
+            stopExternalRefreshLoop()
+            return
+        }
+        guard externalRefreshTask == nil else { return }
+        let interval = externalRefreshInterval
+        let sleep = externalRefreshSleep
+        externalRefreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do { try await sleep(interval) } catch { return }
+                guard let self, !Task.isCancelled else { return }
+                self.refreshExternalDisplays()
+            }
+        }
+    }
+
+    private func stopExternalRefreshLoop() {
+        externalRefreshTask?.cancel()
+        externalRefreshTask = nil
+    }
+
+    private func refreshExternalDisplays() {
+        guard started, detailsVisible, !displayAsleep else { return }
+        guard needsExternalRefreshLoop else {
+            stopExternalRefreshLoop()
+            return
+        }
+        for entry in entries.values where !entry.descriptor.isBuiltin {
+            switch entry.backend {
+            case .ddc: break
+            case .displayServices(let coordinator): coordinator.refresh()
+            case .betterDisplay(let coordinator): coordinator.refresh()
+            case .unavailable: break
+            }
+        }
+    }
+
     func setDetailsVisible(_ visible: Bool) {
         guard detailsVisible != visible else { return }
         detailsVisible = visible
@@ -173,6 +242,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
             // Stop the workers but keep the last published state in `cachedStates`
             // (and therefore in the store snapshot) so reopening the section draws
             // the list instantly instead of blanking first.
+            stopExternalRefreshLoop()
             stopCoordinators()
         }
     }
@@ -190,7 +260,11 @@ final class BrightnessMonitor: BrightnessMonitoring {
             case .unavailable: break
             }
         }
-        if !asleep, detailsVisible { rebuild() }
+        if asleep {
+            stopExternalRefreshLoop()
+        } else if detailsVisible {
+            rebuild()
+        }
     }
 
     func topologyChanged() {
@@ -307,6 +381,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
         }
 
         entries = updated
+        startExternalRefreshLoop()
         publish()
     }
 

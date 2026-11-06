@@ -334,6 +334,25 @@ final class BetterDisplayBrightnessTests: XCTestCase {
         client.stop()
     }
 
+    func testClientRecognizesHardwareBrightnessOSDTarget() async {
+        let bridge = BrightnessFakeBridge()
+        let client = BetterDisplayIntegrationClient(bridge: bridge)
+        var events: [BetterDisplayEvent] = []
+        var hintCount = 0
+        client.start { events.append($0) }
+        client.setBrightnessOSDHandler { hintCount += 1 }
+
+        bridge.send(
+            BrightnessFakeBridge.osd,
+            #"{"controlTarget":"hardwareBrightness","systemIconID":1,"value":0.5}"#
+        )
+        await settle()
+
+        XCTAssertEqual(hintCount, 1)
+        XCTAssertTrue(events.isEmpty)
+        client.stop()
+    }
+
     func testClientKeepsVolumeOSDAsAudioEvent() async {
         let bridge = BrightnessFakeBridge()
         let client = BetterDisplayIntegrationClient(bridge: bridge)

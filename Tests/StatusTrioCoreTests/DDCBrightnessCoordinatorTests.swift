@@ -7,6 +7,82 @@ import XCTest
 /// closed, generation and watchdog.
 @MainActor
 final class DDCBrightnessCoordinatorTests: XCTestCase {
+    func testNativePollingPublishesExternalBrightnessChangeWithoutWriting() async {
+        let transport = FakeBrightnessTransport()
+        transport.enqueue(DDCVolumeReply(current: 20, maximum: 100))
+        transport.enqueue(DDCVolumeReply(current: 70, maximum: 100))
+        let pollSleep = RecordedDDCPollSleep(advancingCount: 1)
+        var updates: [DDCBrightnessUpdate] = []
+        let coordinator = DDCBrightnessCoordinator(
+            transport: transport, pollInterval: .seconds(2),
+            sleep: { try await pollSleep.sleep($0) }
+        ) { updates.append($0) }
+        coordinator.select(displayID: "NATIVE-POLL-\(UUID().uuidString)")
+        await waitUntil("native poll publishes external change") {
+            updates.last?.scalar == 0.7 && pollSleep.durations.count == 2
+        }
+        XCTAssertEqual(updates.compactMap(\.scalar), [0.2, 0.7])
+        XCTAssertEqual(updates.last?.source, .directDDC)
+        XCTAssertTrue(updates.allSatisfy { $0.commandID == nil })
+        XCTAssertEqual(pollSleep.durations, [.seconds(2), .seconds(2)])
+        XCTAssertEqual(transport.readFeatures, [DDCPacket.brightnessVCP, DDCPacket.brightnessVCP])
+        XCTAssertTrue(transport.writeCalls.isEmpty, "External changes must be observed without any slider set")
+        coordinator.stop()
+    }
+
+    func testNativePollingPreservesFailureBackoffAndResetsAfterSuccess() async {
+        let transport = FakeBrightnessTransport()
+        transport.failNextReads(3, with: .replyReadFailed)
+        transport.enqueue(DDCVolumeReply(current: 40, maximum: 100))
+        let pollSleep = RecordedDDCPollSleep(advancingCount: 3)
+        var updates: [DDCBrightnessUpdate] = []
+        let coordinator = DDCBrightnessCoordinator(
+            transport: transport, pollInterval: .seconds(2),
+            sleep: { try await pollSleep.sleep($0) }
+        ) { updates.append($0) }
+        coordinator.select(displayID: "BACKOFF-POLL-\(UUID().uuidString)")
+        await waitUntil("three failures followed by native poll recovery") {
+            updates.last?.scalar == 0.4 && pollSleep.durations.count == 4
+        }
+        XCTAssertEqual(updates.map(\.source), [
+            .unavailable(.readFailed), .unavailable(.readFailed), .unavailable(.readFailed), .directDDC
+        ])
+        XCTAssertEqual(pollSleep.durations, [.seconds(2), .seconds(4), .seconds(8), .seconds(2)],
+                       "The normal two-second interval must not replace the failure backoff")
+        XCTAssertEqual(transport.readFeatures.count, 4)
+        XCTAssertTrue(transport.writeCalls.isEmpty)
+        coordinator.stop()
+    }
+
+    func testSlowNativePollDoesNotRescheduleOrStarveFinalPendingWrite() async {
+        let transport = FakeBrightnessTransport()
+        transport.enqueue(DDCVolumeReply(current: 20, maximum: 100))
+        transport.enqueue(DDCVolumeReply(current: 70, maximum: 100))
+        transport.blockRead(attempt: 2)
+        let pollSleep = RecordedDDCPollSleep(advancingCount: 1)
+        var updates: [DDCBrightnessUpdate] = []
+        let coordinator = DDCBrightnessCoordinator(
+            transport: transport, debounce: .seconds(5), pollInterval: .seconds(2),
+            sleep: { try await pollSleep.sleep($0) }
+        ) { updates.append($0) }
+        coordinator.select(displayID: "SLOW-NATIVE-POLL-\(UUID().uuidString)")
+        await waitUntil("native poll blocked in transport") { transport.hasBlockedRead }
+        let final = coordinator.setBrightness(0.9)
+        coordinator.flushPendingBrightness()
+        try? await Task.sleep(for: .milliseconds(80))
+        XCTAssertEqual(pollSleep.durations, [.seconds(2)], "A busy native poll must not schedule another timer")
+        XCTAssertTrue(transport.writeCalls.isEmpty)
+        transport.releaseBlockedRead()
+        await waitUntil("final write drains after slow native poll", timeout: .milliseconds(500)) {
+            updates.contains { $0.commandID == final && $0.scalar == 0.9 } && pollSleep.durations.count == 2
+        }
+        XCTAssertEqual(transport.writeCalls.map(\.value), [90])
+        XCTAssertEqual(transport.readFeatures.count, 3, "Only initial read, one native poll and write confirmation may run")
+        XCTAssertEqual(updates.compactMap(\.scalar), [0.2, 0.9], "The stale native poll must not pull the slider back")
+        XCTAssertEqual(pollSleep.durations, [.seconds(2), .seconds(2)])
+        coordinator.stop()
+    }
+
     func testRebuiltCoordinatorWaitsForOldReadOnSameStableDisplay() async {
         let uid = "REBUILD-\(UUID().uuidString)"
         let oldTransport = FakeBrightnessTransport()
@@ -540,6 +616,26 @@ final class DDCBrightnessCoordinatorTests: XCTestCase {
             try? await Task.sleep(for: .milliseconds(5))
         }
         XCTFail("Timed out waiting for \(description)", file: file, line: line)
+    }
+}
+
+/// Records requested poll/backoff durations, advances only the bounded number
+/// needed by a scenario, then sleeps cancellably until the coordinator stops.
+private final class RecordedDDCPollSleep: @unchecked Sendable {
+    private let lock = NSLock()
+    private let advancingCount: Int
+    private var recordedDurations: [Duration] = []
+
+    init(advancingCount: Int) { self.advancingCount = advancingCount }
+
+    var durations: [Duration] { lock.withLock { recordedDurations } }
+
+    func sleep(_ duration: Duration) async throws {
+        let index = lock.withLock {
+            recordedDurations.append(duration)
+            return recordedDurations.count - 1
+        }
+        try await Task.sleep(for: index < advancingCount ? .milliseconds(10) : .seconds(600))
     }
 }
 
