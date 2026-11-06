@@ -119,10 +119,6 @@ final class AppEnvironment {
         dockVisibilityMonitor?.onChange = { [weak self] _ in
             self?.updateDockChargingAnimationOwnership()
         }
-        appIconController.systemPollDidFire = { [weak self] in
-            guard let self, isDockVisibilityMonitoring else { return }
-            dockVisibilityMonitor?.refresh()
-        }
         chargingEffectMotionMonitor.onChange = { [weak self] _ in
             self?.updateChargingEffectClock()
         }
@@ -156,6 +152,7 @@ final class AppEnvironment {
     }
 
     func stop() {
+        settings.flushPendingPersists()
         memoryPressureMonitor.stop()
         memoryPressureMonitor.onPressure = nil
         telemetryReporter.stop()
@@ -165,7 +162,6 @@ final class AppEnvironment {
         stopPreviewResourceLifecycle()
         appIconController.dockChargingAnimationEligibilityDidChange = nil
         appIconController.dockContentDidChange = nil
-        appIconController.systemPollDidFire = nil
         dockVisibilityMonitor?.onChange = nil
         if isDockVisibilityMonitoring {
             dockVisibilityMonitor?.stop()

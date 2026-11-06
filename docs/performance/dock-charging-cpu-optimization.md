@@ -143,12 +143,14 @@ a shipped bundle. It exists so the comparison can be repeated.
 ## Hidden Dock handling
 
 The monitor runs only while the Dock effect is enabled, the app really owns a
-Dock tile, and the battery is otherwise eligible to animate. It has no timer of
-its own: it reuses the existing `SystemIconAppearanceMonitor` poll, now shared at
-1 s, and performs two metadata-only window queries:
+Dock tile, and the battery is otherwise eligible to animate. It probes on its own
+1 s timer (with a 0.5 s tolerance) so the animation stops promptly when the Dock
+hides, independently of the slower shared appearance poll, and performs one
+metadata-only window query per probe:
 
-1. The all-window list confirms the Dock process still has a Dock-level window.
-2. The on-screen list confirms that window is currently composited.
+1. The on-screen list confirms the Dock still has a composited Dock-level window.
+2. The all-window list is queried only when the on-screen list is empty, to tell
+   a hidden Dock apart from an environment where window metadata is unavailable.
 
 If the Dock window metadata is unavailable, the monitor fails open rather than
 silently disabling the effect. While hidden, the presenter restores the static

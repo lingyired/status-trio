@@ -1090,7 +1090,11 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     }
 
     func refresh() {
-        performRefresh(includeOutputDevices: detailsVisible)
+        // The periodic refresh only needs the scalar. Device-list invalidation
+        // comes from `setDetailsVisible` and the default-device/topology
+        // listeners, which pass `includeOutputDevices: true`; forcing it here
+        // made the cache unreachable while the details row was visible.
+        performRefresh(includeOutputDevices: false)
     }
 
     func setVolume(_ scalar: Double) {

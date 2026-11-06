@@ -309,13 +309,34 @@ final class SettingsStore: ObservableObject {
     @Published var iconSize: Double {
         didSet {
             let clamped = Self.clampedIconSize(iconSize)
-            // 写入越界值时先夹取再落盘，夹取会再次触发 didSet，一次后收敛。
             guard clamped == iconSize else {
                 iconSize = clamped
                 return
             }
-            defaults.set(clamped, forKey: Self.iconSizeDefaultsKey)
+            persist(clamped, forKey: Self.iconSizeDefaultsKey)
         }
+    }
+
+    /// Slider entry points. A drag publishes per frame; these keep the current
+    /// value in memory (so previews follow) but store the newest value only
+    /// once per coalescing interval. Programmatic writes keep their immediate
+    /// persistence contract.
+    func setIconSizeFromSlider(_ value: Double) {
+        isCoalescingSliderWrite = true
+        iconSize = value
+        isCoalescingSliderWrite = false
+    }
+
+    func setBatterySymbolScaleFromSlider(_ value: Double) {
+        isCoalescingSliderWrite = true
+        batterySymbolScale = value
+        isCoalescingSliderWrite = false
+    }
+
+    func setWiFiSymbolScaleFromSlider(_ value: Double) {
+        isCoalescingSliderWrite = true
+        wifiSymbolScale = value
+        isCoalescingSliderWrite = false
     }
 
     @Published var showsBatteryPercentage: Bool {
@@ -491,7 +512,7 @@ final class SettingsStore: ObservableObject {
                 batterySymbolScale = clamped
                 return
             }
-            defaults.set(clamped, forKey: Self.batterySymbolScaleDefaultsKey)
+            persist(clamped, forKey: Self.batterySymbolScaleDefaultsKey)
         }
     }
 
@@ -844,7 +865,7 @@ final class SettingsStore: ObservableObject {
                 wifiSymbolScale = clamped
                 return
             }
-            defaults.set(clamped, forKey: Self.wifiSymbolScaleDefaultsKey)
+            persist(clamped, forKey: Self.wifiSymbolScaleDefaultsKey)
         }
     }
 
@@ -1598,6 +1619,51 @@ final class SettingsStore: ObservableObject {
     }
 
     private let defaults: UserDefaults
+    private let persistCoalescingInterval: Duration
+    private var pendingPersistValues: [String: Any] = [:]
+    private var pendingPersistTask: Task<Void, Never>?
+    private var isCoalescingSliderWrite = false
+
+    /// Persists any coalesced slider writes now. Called on termination; the
+    /// timer normally drains them.
+    func flushPendingPersists() {
+        pendingPersistTask?.cancel()
+        pendingPersistTask = nil
+        for (key, value) in pendingPersistValues {
+            defaults.set(value, forKey: key)
+        }
+        pendingPersistValues.removeAll(keepingCapacity: false)
+    }
+
+    /// Stores a high-frequency write (a slider that publishes per frame) once
+    /// per coalescing interval. The in-memory property is already current, so
+    /// previews and the icon do not wait for the write.
+    func schedulePersist(_ value: Any, forKey key: String) {
+        pendingPersistValues[key] = value
+        guard pendingPersistTask == nil else { return }
+        let interval = persistCoalescingInterval
+        pendingPersistTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: interval)
+            } catch {
+                return
+            }
+            guard let self else { return }
+            self.pendingPersistTask = nil
+            self.flushPendingPersists()
+        }
+    }
+
+    private func persist(_ value: Any, forKey key: String) {
+        if isCoalescingSliderWrite {
+            schedulePersist(value, forKey: key)
+        } else {
+            // An immediate write is newer than anything a drag left pending;
+            // the timer must not overwrite it.
+            pendingPersistValues.removeValue(forKey: key)
+            defaults.set(value, forKey: key)
+        }
+    }
 
     /// The defaults domain this settings object owns, exposed so panel-level
     /// caches (such as the device-list layout snapshots) persist in the same
@@ -1633,9 +1699,11 @@ final class SettingsStore: ObservableObject {
 
     init(
         defaults: UserDefaults = .standard,
-        systemChargeLimit: () -> Int? = { SystemChargeLimitReader.chargeLimit() }
+        systemChargeLimit: () -> Int? = { SystemChargeLimitReader.chargeLimit() },
+        persistCoalescingInterval: Duration = .milliseconds(250)
     ) {
         self.defaults = defaults
+        self.persistCoalescingInterval = persistCoalescingInterval
         self.statusPanelShortcut = defaults
             .data(forKey: Self.statusPanelShortcutDefaultsKey)
             .flatMap { try? JSONDecoder().decode(StatusPanelShortcut.self, from: $0) }

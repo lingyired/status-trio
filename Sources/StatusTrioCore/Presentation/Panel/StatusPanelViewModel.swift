@@ -17,9 +17,56 @@ private final class YieldingPanelPresentationUpdateScheduler: PanelPresentationU
 }
 
 @MainActor
+private struct PanelSettingsFingerprint: Equatable {
+    let sections: [PopupSection]
+    let showsBatteryPowerInfoBar: Bool
+    let batteryPowerOptions: BatteryPowerDisplayOptions
+    let showsBatteryPowerFlow: Bool
+    let showsHighEnergyApps: Bool
+    let showsLocalIPAddress: Bool
+    let returnsToSummaryOnOpen: Bool
+    let hiddenBrightnessDisplayIDs: Set<String>
+    let showsChargeToFullNowButton: Bool
+    let showsBluetoothListeningMode: Bool
+    let previewsBluetoothListeningMode: Bool
+    let previewDeviceName: String
+    let previewDeviceCount: Int
+    let previewLanguageCode: String
+    let showsBluetoothBatteryLevels: Bool
+    let showsNearbyBluetoothBatteryDevices: Bool
+    let bluetoothDeviceListOptions: BluetoothDeviceListOptions
+    let outputDeviceListPreferences: AudioOutputListPreferences
+    let inputDeviceListPreferences: AudioInputListPreferences
+    let externalVolumeConfigurations: [String: ExternalVolumeConfiguration]
+
+    init(settings: SettingsStore) {
+        sections = settings.visiblePopupSections
+        showsBatteryPowerInfoBar = settings.showsBatteryPowerInfoBar
+        batteryPowerOptions = settings.batteryPowerDisplayOptions
+        showsBatteryPowerFlow = settings.showsBatteryPowerFlow
+        showsHighEnergyApps = settings.showsHighEnergyApps
+        showsLocalIPAddress = settings.showsLocalIPAddress
+        returnsToSummaryOnOpen = settings.returnsToSummaryOnOpen
+        hiddenBrightnessDisplayIDs = settings.hiddenBrightnessDisplayIDs
+        showsChargeToFullNowButton = settings.showsChargeToFullNowButton
+        showsBluetoothListeningMode = settings.showsBluetoothListeningMode
+        previewsBluetoothListeningMode = settings.previewsBluetoothListeningMode
+        previewDeviceName = settings.bluetoothListeningModePreviewDeviceName
+        previewDeviceCount = settings.bluetoothListeningModePreviewDeviceCount
+        previewLanguageCode = settings.bluetoothListeningModePreviewLanguage
+        showsBluetoothBatteryLevels = settings.showsBluetoothBatteryLevels
+        showsNearbyBluetoothBatteryDevices = settings.showsNearbyBluetoothBatteryDevices
+        bluetoothDeviceListOptions = settings.bluetoothDeviceListOptions
+        outputDeviceListPreferences = settings.outputDeviceListPreferences
+        inputDeviceListPreferences = settings.inputDeviceListPreferences
+        externalVolumeConfigurations = settings.externalVolumeConfigurations
+    }
+}
+
+@MainActor
 final class StatusPanelViewModel: ObservableObject {
-    private struct RefreshRegions: OptionSet {
-        let rawValue: UInt8
+    struct RefreshRegions: OptionSet {
+        let rawValue: UInt16
         static let batteryDetails = Self(rawValue: 1 << 0)
         static let wifiDetails = Self(rawValue: 1 << 1)
         static let wiredDetailsAndNetwork = Self(rawValue: 1 << 2)
@@ -126,6 +173,8 @@ final class StatusPanelViewModel: ObservableObject {
     /// gesture responsive in between.
     static let levelVolumePublishInterval: Duration = .milliseconds(100)
     private var pendingRefreshRegions: RefreshRegions = []
+    private var lastPanelSettingsFingerprint: PanelSettingsFingerprint?
+    private var panelSettingsCheckScheduled = false
     private var lifecycleGeneration = 0
 
     /// Tests observe deliveries from the single popup-snapshot subscription
@@ -224,6 +273,8 @@ final class StatusPanelViewModel: ObservableObject {
         guard !isStarted else { return }
         isStarted = true
         lifecycleGeneration &+= 1
+        lastPanelSettingsFingerprint = PanelSettingsFingerprint(settings: settings)
+        panelSettingsCheckScheduled = false
         let sections = settings.visiblePopupSections
         if visiblePopupSections != sections { visiblePopupSections = sections }
         subscribeToPopupPresentationSources()
@@ -286,8 +337,14 @@ final class StatusPanelViewModel: ObservableObject {
         // Non-section settings are delivered from `willSet`; only queue the
         // remap here. The scheduler drains after this mutation commits, so its
         // refresh reads the new stored values.
+        //
+        // `objectWillChange` covers every one of the store's ~90 properties,
+        // including ones no panel row reads (icon size, app icon, telemetry).
+        // A snapshot of the settings the panel actually consumes gates the
+        // remap, so a slider drag that does not affect the panel no longer
+        // re-maps every row while it moves.
         settings.objectWillChange
-            .sink { [weak self] in self?.coalesceControllerUpdate(.all) }
+            .sink { [weak self] in self?.schedulePanelSettingsCheck() }
             .store(in: &cancellables)
         localization.$resolvedLanguage
             .dropFirst()
@@ -300,6 +357,8 @@ final class StatusPanelViewModel: ObservableObject {
         isStarted = false
         lifecycleGeneration &+= 1
         pendingRefreshRegions = []
+        lastPanelSettingsFingerprint = nil
+        panelSettingsCheckScheduled = false
         volumeDeviceRowsLoaded = false
         cancelLevelVolumePublish()
         lastLiveVolumeStatus = nil
@@ -1075,6 +1134,25 @@ final class StatusPanelViewModel: ObservableObject {
         }
     }
 
+
+    /// Queues one settings check per run-loop turn. `objectWillChange` fires
+    /// before the value is stored, so the comparison has to happen after a
+    /// yield; by then a burst of writes has settled and the newest values are
+    /// read once.
+    private func schedulePanelSettingsCheck() {
+        guard isStarted, !panelSettingsCheckScheduled else { return }
+        panelSettingsCheckScheduled = true
+        Task { @MainActor [weak self] in
+            await Task.yield()
+            guard let self else { return }
+            self.panelSettingsCheckScheduled = false
+            guard self.isStarted else { return }
+            let next = PanelSettingsFingerprint(settings: self.settings)
+            guard next != self.lastPanelSettingsFingerprint else { return }
+            self.lastPanelSettingsFingerprint = next
+            self.coalesceControllerUpdate(.all)
+        }
+    }
 
     private func coalesceControllerUpdate(_ regions: RefreshRegions) {
         guard isStarted else { return }

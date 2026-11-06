@@ -144,7 +144,7 @@ struct AppIconSectionView: View {
                     Slider(
                         value: Binding(
                             get: { store.iconSize },
-                            set: { store.iconSize = $0.rounded() }
+                            set: { store.setIconSizeFromSlider($0.rounded()) }
                         ),
                         in: SettingsStore.iconSizeRange
                     )

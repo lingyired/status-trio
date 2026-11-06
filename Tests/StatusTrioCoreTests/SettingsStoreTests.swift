@@ -2043,6 +2043,48 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(store.externalVolumeConfigurations.isEmpty)
     }
 
+    func testContinuousSliderWritesAreCoalesced() async throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(
+            defaults: suite.defaults,
+            persistCoalescingInterval: .milliseconds(20)
+        )
+
+        for value in stride(from: 20.0, through: 35.0, by: 1) {
+            store.setIconSizeFromSlider(value)
+        }
+
+        XCTAssertNil(
+            suite.defaults.object(forKey: SettingsStore.iconSizeDefaultsKey),
+            "a drag must not store one preferences value per frame"
+        )
+
+        store.flushPendingPersists()
+
+        XCTAssertEqual(
+            (suite.defaults.object(forKey: SettingsStore.iconSizeDefaultsKey) as? NSNumber)?.doubleValue,
+            35
+        )
+    }
+
+    func testCoalescedWriteLandsAfterTheIntervalWithoutAnExplicitFlush() async throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(
+            defaults: suite.defaults,
+            persistCoalescingInterval: .milliseconds(20)
+        )
+
+        store.setBatterySymbolScaleFromSlider(1.05)
+        try await Task.sleep(for: .milliseconds(120))
+
+        XCTAssertEqual(
+            (suite.defaults.object(forKey: SettingsStore.batterySymbolScaleDefaultsKey) as? NSNumber)?.doubleValue,
+            1.05
+        )
+    }
+
     private func makeSuite() -> (defaults: UserDefaults, name: String) {
         let name = "StatusTrioCoreTests.SettingsStore.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: name) else {

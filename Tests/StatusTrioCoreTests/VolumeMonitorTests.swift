@@ -207,6 +207,45 @@ final class VolumeMonitorTests: XCTestCase {
         monitor.stop()
     }
 
+    func testPeriodicRefreshReusesDevicesWhileDetailsStayVisible() async throws {
+        let reader = FakeVolumeReader(result: makeReading(scalar: 0.25))
+        let devices = [
+            AudioOutputDevice(
+                id: 42,
+                name: "Speakers",
+                uid: "speakers",
+                isCurrent: true,
+                volume: 0.25
+            )
+        ]
+        let outputController = FakeAudioOutputController(devices: devices)
+        let monitor = VolumeMonitor(
+            statusReader: InlineAudioStatusReader(reader: reader, outputController: outputController),
+            eventMonitor: FakeVolumeEventMonitor(),
+            outputController: outputController
+        )
+        monitor.setDetailsVisible(true)
+        monitor.start()
+        try await Task.sleep(for: .milliseconds(30))
+        XCTAssertEqual(outputController.outputDevicesCallCount, 1)
+        let readsAfterStart = reader.readCount
+
+        // The fallback poll and ordinary refreshes only need the scalar; the
+        // device list changes through listeners that invalidate the cache.
+        monitor.refresh()
+        try await Task.sleep(for: .milliseconds(30))
+        monitor.refresh()
+        try await Task.sleep(for: .milliseconds(30))
+
+        XCTAssertGreaterThan(reader.readCount, readsAfterStart)
+        XCTAssertEqual(
+            outputController.outputDevicesCallCount,
+            1,
+            "a periodic refresh must not re-enumerate every output device"
+        )
+        monitor.stop()
+    }
+
     func testDetailsAreLazyAndLevelRefreshesReuseCachedDevices() async {
         let reader = FakeVolumeReader(result: makeReading(scalar: 0.25))
         let eventMonitor = FakeVolumeEventMonitor()
