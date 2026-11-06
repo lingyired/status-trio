@@ -395,7 +395,7 @@ final class PresentationTextMapperTests: XCTestCase {
         )
         XCTAssertEqual(
             PanelPresentationMapper.vpnTitle(bareTunnel, localization: localization),
-            "VPN"
+            "TUN"
         )
         XCTAssertEqual(
             PanelPresentationMapper.vpnSubtitle(bareTunnel, localization: localization),

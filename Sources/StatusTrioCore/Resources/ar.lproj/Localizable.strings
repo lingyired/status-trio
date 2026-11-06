@@ -279,6 +279,7 @@
 "wifi.subtitle.shared" = "تتم مشاركة الإنترنت";
 "wifi.subtitle.unavailable" = "تعذر قراءة حالة الشبكة";
 "vpn.title" = "VPN";
+"vpn.title.tunnel" = "TUN";
 "vpn.value.connected" = "متصل";
 "vpn.value.disconnected" = "غير متصل";
 "vpn.subtitle.systemProxy" = "وكيل النظام";

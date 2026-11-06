@@ -13,10 +13,12 @@ of `StatusSnapshot`.
 | System VPN service | `SCNetworkServiceCopyAll` plus `SCNetworkConnectionGetStatus`, for services whose interface type is PPP, IPSec or L2TP | A VPN configured in System Settings is connected. Supplies the name the row leads with. |
 | System-wide proxy | `State:/Network/Global/Proxies` through `SCDynamicStoreCopyValue` | A proxy is set. Not a tunnel — no virtual interface, no new address — so it is reported separately and never reads as a connected VPN. |
 
-A tunnel or a connected service makes the row read **Connected**; a proxy alone
+A system VPN service leads with its service name and reads **Connected**. A
+bare tunnel that has no system service is labelled **TUN** (never **VPN**),
+because it is detected but not a controllable system VPN service. A proxy alone
 reads **System proxy** with its endpoint as the detail; neither reads **Not
-connected**. When both are up, the detail carries them together
-(`Connected · proxy 127.0.0.1:10808`).
+connected**. When a tunnel and proxy are both up, the detail carries them
+together (`Connected · proxy 127.0.0.1:10808`).
 
 ## Why an address and not a name list
 

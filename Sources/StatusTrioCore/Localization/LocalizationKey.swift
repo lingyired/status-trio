@@ -607,6 +607,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case wifiSubtitleShared = "wifi.subtitle.shared"
     case wifiSubtitleUnavailable = "wifi.subtitle.unavailable"
     case vpnTitle = "vpn.title"
+    case vpnTitleTunnel = "vpn.title.tunnel"
     case vpnValueConnected = "vpn.value.connected"
     case vpnValueDisconnected = "vpn.value.disconnected"
     case vpnSubtitleSystemProxy = "vpn.subtitle.systemProxy"

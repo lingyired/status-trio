@@ -279,6 +279,7 @@
 "wifi.subtitle.shared" = "Интернет раздаётся";
 "wifi.subtitle.unavailable" = "Не удаётся прочитать состояние сети";
 "vpn.title" = "VPN";
+"vpn.title.tunnel" = "TUN";
 "vpn.value.connected" = "Подключено";
 "vpn.value.disconnected" = "Не подключено";
 "vpn.subtitle.systemProxy" = "Системный прокси";

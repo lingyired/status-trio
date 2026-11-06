@@ -279,6 +279,7 @@
 "wifi.subtitle.shared" = "正在分享網際網路";
 "wifi.subtitle.unavailable" = "無法讀取網路狀態";
 "vpn.title" = "VPN";
+"vpn.title.tunnel" = "TUN";
 "vpn.value.connected" = "已連線";
 "vpn.value.disconnected" = "未連線";
 "vpn.subtitle.systemProxy" = "系統代理";

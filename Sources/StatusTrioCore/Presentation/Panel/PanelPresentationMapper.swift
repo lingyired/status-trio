@@ -353,7 +353,9 @@ enum PanelPresentationMapper {
 
     static func vpnTitle(_ vpn: VPNStatus, localization: Localization) -> String {
         if let serviceName = vpn.serviceName, !serviceName.isEmpty { return serviceName }
-        if vpn.isTunnelConnected { return localization.string(.vpnTitle) }
+        // A bare tunnel is not a controllable system VPN service. Label it TUN
+        // so the row never implies a VPN switch that does not exist (#272).
+        if vpn.isTunnelConnected { return localization.string(.vpnTitleTunnel) }
         if vpn.proxy != nil { return localization.string(.vpnSubtitleSystemProxy) }
         return localization.string(.vpnTitle)
     }

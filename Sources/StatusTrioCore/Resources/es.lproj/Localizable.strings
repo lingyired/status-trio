@@ -279,6 +279,7 @@
 "wifi.subtitle.shared" = "Compartiendo internet";
 "wifi.subtitle.unavailable" = "No se puede leer el estado de la red";
 "vpn.title" = "VPN";
+"vpn.title.tunnel" = "TUN";
 "vpn.value.connected" = "Conectado";
 "vpn.value.disconnected" = "Sin conexión";
 "vpn.subtitle.systemProxy" = "Proxy del sistema";
