@@ -426,6 +426,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBatteryFullThresholdSystemUnavailable = "settings.battery.fullThresholdSystemUnavailable"
     case settingsBatteryShowChargeToFullNow = "settings.battery.showChargeToFullNow"
     case settingsBatteryShowChargeToFullNowDescription = "settings.battery.showChargeToFullNowDescription"
+    case settingsBatteryChargeToFullNowOptimizedNote = "settings.battery.chargeToFullNowOptimizedNote"
     case settingsBatteryChargeHiddenUnsupportedSystem = "settings.battery.chargeHidden.unsupportedSystem"
     case settingsBatteryChargeHiddenUnsupportedArchitecture = "settings.battery.chargeHidden.unsupportedArchitecture"
     case settingsBatteryChargeHiddenFrameworkUnavailable = "settings.battery.chargeHidden.frameworkUnavailable"

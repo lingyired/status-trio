@@ -109,6 +109,9 @@ struct BatterySectionView: View {
                 .padding(.horizontal, SettingsMetrics.rowPaddingH)
                 .padding(.bottom, 8)
         }
+        SettingsHintRow(
+            text: localization.string(.settingsBatteryChargeToFullNowOptimizedNote)
+        )
         if chargeToFullNow?.isSettingAvailable == true {
             chargeToFullNowContent
         }

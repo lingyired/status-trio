@@ -665,6 +665,7 @@
 "battery.energy.monitoringDescription" = "عند التفعيل، يتم قياس نشاط التطبيقات في الخلفية حتى عندما تكون اللوحة مغلقة. يتوقف القياس عند التعطيل أو أثناء سكون النظام أو الشاشة أو عند إنهاء Status Trio.";
 "settings.battery.showChargeToFullNow" = "إظهار زر الشحن حتى الامتلاء الآن";
 "settings.battery.showChargeToFullNowDescription" = "يعرض زرًا في لوحة الحالة لتجاوز حد الشحن في macOS أو إيقاف الشحن المؤقت بسبب الشحن المُحسَّن مؤقتًا والشحن حتى 100%.";
+"settings.battery.chargeToFullNowOptimizedNote" = "عندما يكون حد الشحن 100% ويوقف شحن البطارية المُحسَّن الشحن مؤقتًا، يستأنف زر الشحن حتى الامتلاء الآن الشحن دون إظهار زر إلغاء أو تطبيق حد الاستعادة أدناه.";
 "settings.battery.chargeHidden.unsupportedSystem" = "الزر مخفي: يتطلب macOS 26.4 أو أحدث";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "الزر مخفي: يتطلب Mac بشريحة Apple";
 "settings.battery.chargeHidden.frameworkUnavailable" = "الزر مخفي: إطار عمل الشحن في النظام غير متاح";

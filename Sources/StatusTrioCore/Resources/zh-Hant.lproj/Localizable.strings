@@ -665,6 +665,7 @@
 "battery.energy.monitoringDescription" = "啟用後即使面板關閉也會在背景取樣應用程式活動；關閉開關、系統或螢幕休眠或結束應用程式時停止。";
 "settings.battery.showChargeToFullNow" = "顯示立即完全充電按鈕";
 "settings.battery.showChargeToFullNowDescription" = "在狀態面板中顯示立即完全充電按鈕，允許暫時解除 macOS 的充電上限或最佳化充電暫停，並充至 100%。";
+"settings.battery.chargeToFullNowOptimizedNote" = "充電上限為 100%、因最佳化電池充電而暫緩時，按下「立即完全充電」會繼續充電，不顯示「取消」，也不會套用下方的恢復上限。";
 "settings.battery.chargeHidden.unsupportedSystem" = "按鈕未顯示：需要 macOS 26.4 或更新版本";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "按鈕未顯示：需要 Apple 晶片 Mac";
 "settings.battery.chargeHidden.frameworkUnavailable" = "按鈕未顯示：系統充電框架無法使用";

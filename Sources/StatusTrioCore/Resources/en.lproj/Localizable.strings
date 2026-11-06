@@ -664,6 +664,7 @@
 "battery.energy.monitoringDescription" = "When enabled, samples app activity in the background even while the panel is closed. Sampling pauses during sleep, when disabled, or when Status Trio quits.";
 "settings.battery.showChargeToFullNow" = "Show Charge to Full Now Button";
 "settings.battery.showChargeToFullNowDescription" = "Show a button in the status panel to temporarily override the macOS charge limit or an Optimized Battery Charging pause and charge to 100%.";
+"settings.battery.chargeToFullNowOptimizedNote" = "When the charge limit is 100% and Optimized Battery Charging pauses charging, Charge to Full Now resumes charging without a Cancel button or applying the restore limit below.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Button hidden: Requires macOS 26.4 or later";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Button hidden: Requires a Mac with Apple silicon";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Button hidden: System charging framework unavailable";

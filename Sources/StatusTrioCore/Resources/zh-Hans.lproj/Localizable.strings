@@ -665,6 +665,7 @@
 "battery.energy.monitoringDescription" = "开启后即使面板关闭也会在后台采样应用活动；关闭开关、系统或屏幕休眠或退出应用时停止。";
 "settings.battery.showChargeToFullNow" = "显示立即充满电按钮";
 "settings.battery.showChargeToFullNowDescription" = "在状态面板中显示立即充满电按钮，允许临时解除 macOS 的充电上限或优化充电暂停，并充至 100%。";
+"settings.battery.chargeToFullNowOptimizedNote" = "充电上限为 100%、因优化电池充电而暂缓时，点击「立即充满」会继续充电，不显示「取消」，也不会应用下方的恢复上限。";
 "settings.battery.chargeHidden.unsupportedSystem" = "按钮未显示：需要 macOS 26.4 或更高版本";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "按钮未显示：需要 Apple 芯片 Mac";
 "settings.battery.chargeHidden.frameworkUnavailable" = "按钮未显示：系统充电框架不可用";

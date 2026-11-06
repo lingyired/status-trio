@@ -665,6 +665,7 @@
 "battery.energy.monitoringDescription" = "有効にすると、パネルを閉じている間もバックグラウンドでアプリのアクティビティをサンプリングします。無効化時、システムまたは画面のスリープ中、Status Trio 終了時は停止します。";
 "settings.battery.showChargeToFullNow" = "「今すぐフル充電」ボタンを表示";
 "settings.battery.showChargeToFullNowDescription" = "ステータスパネルに、macOS の充電上限または最適化されたバッテリー充電の一時停止を解除して 100% まで充電するボタンを表示します。";
+"settings.battery.chargeToFullNowOptimizedNote" = "充電上限が 100% で、最適化されたバッテリー充電により一時停止している場合、「今すぐフル充電」で充電を再開します。「キャンセル」は表示されず、下の復元上限も適用されません。";
 "settings.battery.chargeHidden.unsupportedSystem" = "ボタン非表示：macOS 26.4 以降が必要です";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "ボタン非表示：Apple シリコン搭載 Mac が必要です";
 "settings.battery.chargeHidden.frameworkUnavailable" = "ボタン非表示：システムの充電フレームワークを利用できません";
