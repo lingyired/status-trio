@@ -2,41 +2,36 @@
 
 ### Batteria e alimentazione
 
-- I dettagli della batteria ora mostrano la capacità massima del sistema, le condizioni della batteria e il tempo di attività del sistema.
-- La modalità ad alta potenza ora appare sempre come una riga chiara a sé nei dettagli, leggendo lo stato da pmset; gli stati di salute e alta potenza sconosciuti vengono mostrati esplicitamente.
-- Quando «Ricarica ottimizzata della batteria» mette in pausa la ricarica con un limite del 100%, «Ricarica completamente ora» funziona: la richiesta viene inviata come fa macOS e, al completamento, non ripristina il limite di ricarica precedente (#292).
-- Le pagine dei dettagli e Impostazioni ora spiegano perché «Ricarica completamente ora» non è disponibile o è nascosto (#280, #292).
-- In Impostazioni è spiegato che un limite del 100% può comunque mettere in pausa la ricarica a causa della ricarica ottimizzata (#292).
+- I dettagli della batteria ora includono la capacità massima del sistema, le condizioni della batteria, il tempo di attività del sistema e lo stato della modalità ad alta potenza.
+- Quando «Ricarica ottimizzata della batteria» mette in pausa la ricarica con un limite del 100%, ora è disponibile «Ricarica completamente ora»; se non è disponibile, le pagine dei dettagli e Impostazioni ne spiegano il motivo (#292, #280).
 
 ### Luminosità e display
 
-- I display esterni hanno un backend di luminosità Automatico: usa BetterDisplay mentre è in esecuzione, altrimenti DDC diretto; un backend scelto esplicitamente viene ricordato e mai sovrascritto.
+- I display esterni hanno un backend di luminosità «Automatico»: usa BetterDisplay mentre è in esecuzione, altrimenti DDC diretto.
 - Le variazioni di luminosità del display integrato da tasti, Centro di controllo o Impostazioni ora si riflettono subito nel pannello (#286).
-- Mentre il pannello è visibile, la luminosità dei display esterni si aggiorna a un intervallo limitato di 2 secondi, così le modifiche da tastiera arrivano subito al pannello.
-- Corretti gli scatti durante il trascinamento della luminosità DDC e identificati correttamente i display esterni per non pilotare il display integrato come esterno (#284, #285).
+- Mentre il pannello è aperto, anche le regolazioni di luminosità dei display esterni si riflettono prontamente nel pannello.
+- Corretti gli scatti durante il trascinamento della luminosità DDC e identificati correttamente i display esterni (#284, #285).
 
 ### Wi-Fi e rete
 
-- Aggiunto un interruttore di alimentazione per Clash Verge TUN: il TUN viene identificato tramite l'API di sola lettura di Mihomo, i tunnel semplici mostrano «TUN» invece di «VPN» e lo stato dell'interruttore resta sincronizzato (#272).
-- Migliorata la visibilità dell'interruttore di alimentazione nella riga riepilogo Wi-Fi e l'ambito di conferma prima di disattivare una rete (#252).
+- La riga riepilogo dei servizi VPN di sistema ora ha un interruttore di alimentazione; le connessioni TUN di Clash Verge non vengono più mostrate come «VPN» ma correttamente come «TUN» (con il nome del client per Clash Verge), e quella riga resta di sola lettura senza interruttore (#272).
 
 ### Sorgente di input
 
-- Corretto il mancato mantenimento del maiuscolo quando Bloc Maiusc e Maiusc sono entrambi attivi; l'indicatore ora mostra correttamente a/A (#279).
+- L'indicatore della sorgente di input ABC ora mostra a/A in base a maiuscole e minuscole (#279).
 
 ### Bluetooth
 
+- Migliorato il problema dei dispositivi fantasma Bluetooth (#248).
 - Aggiunto il colore personalizzato per l'icona Bluetooth (#275).
-- Le letture della batteria obsolete dei dispositivi Bluetooth disconnessi ora scadono invece di rimanere.
 
 ### Pannello e impostazioni
 
-- Allineata la decorazione al passaggio del mouse della riga delle impostazioni batteria ai limiti del pulsante cliccabile e aggiunto spazio (#281).
-- Ripristinate le schede arrotondate nel diagramma del flusso di energia e mascherato lo sforamento del nastro (#282).
-- Ripristinato il componente slider originale per gli intervalli di aggiornamento nelle Impostazioni (#255).
+- Migliorato l'allineamento tra hover e area cliccabile della riga delle impostazioni batteria (#281).
+- Rifinita la resa degli angoli del diagramma del flusso di energia (#282).
+- L'intervallo di aggiornamento dello stato ora si imposta separatamente per «A batteria / Collegato alla corrente» (#255).
 
 ### Prestazioni e stabilità
 
-- Ridotte le durate dei thread di monitoraggio e la cadenza di polling per diminuire il costo in background e migliorare la stabilità (#294).
-- Aggiornati i dispositivi di output in cache quando cambia la topologia dei dispositivi audio (#293).
-- Risolti problemi di prestazioni e stabilità su icone, pannello, Impostazioni e monitoraggio.
+- Ridotte la frequenza di aggiornamento in background e l'uso delle risorse, per consumare meno e migliorare la stabilità (#294).
+- Corretto il mancato aggiornamento dell'elenco dei dispositivi di output dopo il cambio di dispositivo audio (#293).

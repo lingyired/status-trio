@@ -2,41 +2,36 @@
 
 ### Battery & Power
 
-- Battery details now show system maximum capacity, battery condition, and system uptime.
-- High Power Mode now always appears as its own clear row in battery details, reading its state from pmset; unknown health and high power states are shown explicitly.
-- When "Optimized Battery Charging" pauses charging at a 100% limit, "Charge to Full Now" now works: the request is sent the way macOS does it, and completing it does not restore the previous charge limit (#292).
-- The details and Settings pages now explain why "Charge to Full Now" is unavailable or hidden (#280, #292).
-- Settings explains that a 100% limit can still pause charging because of Optimized Battery Charging (#292).
+- Battery details now include system maximum capacity, battery condition, system uptime, and High Power Mode state.
+- When "Optimized Battery Charging" pauses charging at a 100% limit, you can now "Charge to Full Now"; when it is unavailable, the details and Settings pages explain why (#292, #280).
 
 ### Brightness & Displays
 
-- External displays gain an Automatic brightness backend: use BetterDisplay while it is running, otherwise direct DDC; an explicitly chosen backend is remembered and never overwritten.
-- Built-in display brightness changes from keys, Control Center or Settings are now reflected in the panel immediately (#286).
-- While the panel is visible, external display brightness refreshes at a bounded 2-second interval so keyboard changes reach the panel promptly.
-- Fixed stutter when dragging DDC brightness, and correctly identify external displays so the built-in screen is not driven as an external one (#284, #285).
+- External displays gain an "Automatic" brightness backend: use BetterDisplay while it runs, otherwise direct DDC.
+- Built-in display brightness changes from keys, Control Center or Settings now refresh the panel immediately (#286).
+- While the panel is open, external display brightness adjustments are also reflected in the panel promptly.
+- Fixed stutter when dragging DDC brightness, and correctly identify external displays (#284, #285).
 
 ### Wi-Fi & Network
 
-- Added a Clash Verge TUN power toggle: TUN is identified through the Mihomo read-only API, bare tunnels show as "TUN" instead of "VPN", and the toggle state stays in sync (#272).
-- Refined the Wi-Fi summary row power switch visibility and the confirmation scope before turning a network off (#252).
+- The summary row for system VPN services now has a power switch; Clash Verge TUN connections are no longer shown as "VPN" but correctly as "TUN" (labeled Clash Verge when applicable), and that row stays read-only with no switch (#272).
 
 ### Input Source
 
-- Fixed uppercase not being kept when Caps Lock and Shift are both on; the indicator now correctly shows a/A (#279).
+- The ABC input-source indicator now shows a/A according to letter case (#279).
 
 ### Bluetooth
 
+- Improved the ghost-device issue for Bluetooth devices (#248).
 - Added custom Bluetooth icon colour (#275).
-- Stale battery readings from disconnected Bluetooth devices now expire instead of lingering.
 
 ### Panel & Settings
 
-- Aligned the battery settings row hover decoration with the clickable button bounds and added breathing room (#281).
-- Restored the rounded cards in the power flow diagram and masked the ribbon overflow (#282).
-- Restored the original slider component for refresh intervals in Settings (#255).
+- Refined the battery settings row hover and clickable area (#281).
+- Refined the power flow diagram's corner styling (#282).
+- Status refresh interval is now set separately for "On Battery / Plugged In" (#255).
 
 ### Performance & Stability
 
-- Tightened monitoring thread lifetimes and polling cadence to reduce background cost and improve stability (#294).
-- Refreshed cached output devices when the audio device topology changes (#293).
-- Addressed performance and stability issues across icons, panel, Settings and monitoring.
+- Reduced background refresh frequency and resource usage, lowering power draw and improving stability (#294).
+- Fixed the output device list not refreshing after switching audio devices (#293).

@@ -2,41 +2,36 @@
 
 ### Batterie & Energie
 
-- Batteriedetails zeigen jetzt die maximale Systemkapazität, den Batteriezustand und die Systemlaufzeit.
-- Der Hochleistungsmodus erscheint in den Details nun immer als eigene, klare Zeile und liest seinen Zustand direkt aus pmset; unbekannte Gesundheits- und Hochleistungszustände werden ausdrücklich angezeigt.
-- Wenn „Optimiertes Batterieladen" bei einem Limit von 100 % das Laden pausiert, funktioniert „Jetzt voll laden" nun: Die Anfrage wird wie von macOS üblich gesendet, und nach Abschluss wird das vorherige Ladelimit nicht wiederhergestellt (#292).
-- Detail- und Einstellungsseite erklären jetzt, warum „Jetzt voll laden" nicht verfügbar oder ausgeblendet ist (#280, #292).
-- Die Einstellungen erklären, dass ein Limit von 100 % das Laden wegen des optimierten Batterieladens dennoch pausieren kann (#292).
+- Batteriedetails zeigen jetzt die maximale Systemkapazität, den Batteriezustand, die Systemlaufzeit und den Status des Hochleistungsmodus.
+- Wenn „Optimiertes Batterieladen" bei einem Limit von 100 % das Laden pausiert, kann jetzt „Jetzt voll laden" verwendet werden; ist es nicht verfügbar, erklären Detail- und Einstellungsseite den Grund (#292, #280).
 
 ### Helligkeit & Displays
 
-- Externe Displays erhalten ein automatisches Helligkeits-Backend: BetterDisplay, solange es läuft, sonst direktes DDC; ein ausdrücklich gewähltes Backend wird beibehalten und nie überschrieben.
+- Externe Displays erhalten ein „Automatisches" Helligkeits-Backend: BetterDisplay, solange es läuft, sonst direktes DDC.
 - Änderungen der Helligkeit des integrierten Displays über Tasten, Kontrollzentrum oder Einstellungen werden jetzt sofort im Panel angezeigt (#286).
-- Solange das Panel sichtbar ist, wird die Helligkeit externer Displays in einem begrenzten 2-Sekunden-Intervall aktualisiert, damit Tastaturänderungen das Panel zeitnah erreichen.
-- Ruckeln beim Ziehen der DDC-Helligkeit behoben und externe Displays korrekt erkannt, sodass der integrierte Bildschirm nicht als externes Display angesteuert wird (#284, #285).
+- Solange das Panel geöffnet ist, werden Helligkeitsanpassungen externer Displays ebenfalls zeitnah im Panel angezeigt.
+- Ruckeln beim Ziehen der DDC-Helligkeit behoben und externe Displays korrekt erkannt (#284, #285).
 
 ### WLAN & Netzwerk
 
-- Clash-Verge-TUN-Netzschalter hinzugefügt: TUN wird über die schreibgeschützte Mihomo-API erkannt, reine Tunnel erscheinen als „TUN" statt „VPN", und der Schalterzustand bleibt synchron (#272).
-- Sichtbarkeit des Netzschalters in der WLAN-Zusammenfassungszeile und den Bestätigungsumfang vor dem Ausschalten eines Netzwerks verbessert (#252).
+- Die Zusammenfassungszeile für System-VPN-Dienste hat jetzt einen Netzschalter; Clash-Verge-TUN-Verbindungen werden nicht mehr als „VPN", sondern korrekt als „TUN" angezeigt (bei Clash Verge mit Clientnamen), und diese Zeile bleibt schreibgeschützt ohne Schalter (#272).
 
 ### Eingabequelle
 
-- Behoben, dass Großschreibung nicht beibehalten wurde, wenn Caps Lock und Umschalt gleichzeitig aktiv sind; die Anzeige zeigt jetzt korrekt a/A (#279).
+- Die ABC-Eingabequellenanzeige zeigt jetzt je nach Groß-/Kleinschreibung a/A (#279).
 
 ### Bluetooth
 
+- Das Geistergeräte-Problem bei Bluetooth-Geräten wurde verbessert (#248).
 - Benutzerdefinierte Farbe für das Bluetooth-Symbol hinzugefügt (#275).
-- Veraltete Batteriewerte von getrennten Bluetooth-Geräten laufen jetzt ab, statt zu bleiben.
 
 ### Panel & Einstellungen
 
-- Hover-Dekoration der Batterie-Einstellungszeile an die anklickbaren Schaltflächengrenzen angeglichen und etwas Luft hinzugefügt (#281).
-- Abgerundete Karten im Energieflussdiagramm wiederhergestellt und den Überlauf des Bands maskiert (#282).
-- Ursprüngliche Schieberegler-Komponente für Aktualisierungsintervalle in den Einstellungen wiederhergestellt (#255).
+- Hover- und Klickbereich der Batterie-Einstellungszeile besser abgestimmt (#281).
+- Ecken-Darstellung des Energieflussdiagramms verfeinert (#282).
+- Das Aktualisierungsintervall lässt sich jetzt getrennt für „Im Akkubetrieb / Am Netzteil" einstellen (#255).
 
 ### Leistung & Stabilität
 
-- Lebensdauer der Überwachungs-Threads und Abfrageintervall gestrafft, um Hintergrundlast zu senken und die Stabilität zu verbessern (#294).
-- Zwischengespeicherte Ausgabegeräte werden bei Änderungen der Audiogeräte-Topologie aktualisiert (#293).
-- Leistungs- und Stabilitätsprobleme bei Symbolen, Panel, Einstellungen und Überwachung behoben.
+- Hintergrund-Aktualisierungsrate und Ressourcenverbrauch reduziert, um Stromverbrauch zu senken und die Stabilität zu verbessern (#294).
+- Behoben, dass die Ausgabegeräteliste nach dem Wechsel von Audiogeräten nicht aktualisiert wurde (#293).
