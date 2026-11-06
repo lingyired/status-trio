@@ -225,8 +225,6 @@ struct StatusPopoverView: View {
         case .vpn:
             VPNStatusView(state: panel.vpn) { enabled in
                 panel.actions.setVPNPower(enabled)
-            } onSetMihomoTunnelPower: { enabled in
-                panel.actions.setMihomoTunnelPower(enabled)
             }
         case .bluetooth:
             BluetoothStatusView(

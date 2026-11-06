@@ -1,14 +1,13 @@
 import Foundation
 
 /// Keeps the VPN row's Mihomo attribution fresh while the row is visible.
-/// The read is demand-driven and bounded; writes only happen after an explicit
-/// row action and are verified by reading `/configs` again.
+/// Read-only and demand-driven: it never writes the TUN or Clash's settings.
 @MainActor
 final class MihomoTunnelController: ObservableObject {
     @Published private(set) var info: MihomoTunnelInfo?
     var onUpdate: (@MainActor (MihomoTunnelInfo?) -> Void)?
 
-    private let client: any MihomoTunnelControlling
+    private let client: any MihomoTunnelReading
     private let observer: any NetworkChangeObserving
     private let queue = DispatchQueue(label: "StatusTrio.MihomoTunnel")
     private var active = false
@@ -16,7 +15,7 @@ final class MihomoTunnelController: ObservableObject {
     private var task: Task<Void, Never>?
 
     init(
-        client: any MihomoTunnelControlling = SystemMihomoTunnelClient(),
+        client: any MihomoTunnelReading = SystemMihomoTunnelClient(),
         observer: any NetworkChangeObserving = SystemNetworkChangeObserver()
     ) {
         self.client = client
@@ -55,25 +54,6 @@ final class MihomoTunnelController: ObservableObject {
             let next = await client.read()
             guard let self, !Task.isCancelled, self.active, self.generation == expected else { return }
             self.publish(next)
-        }
-    }
-
-    func setEnabled(_ enabled: Bool) async {
-        guard active, var current = info, !current.isChanging, current.isEnabled != enabled else { return }
-        current.isChanging = true
-        current.failure = nil
-        publish(current)
-
-        let result = await client.setEnabled(enabled, expectedDevice: current.device)
-        guard active else { return }
-        switch result {
-        case .updated(let updated):
-            publish(updated)
-        case .rejected, .failed:
-            var failed = current
-            failed.isChanging = false
-            failed.failure = result == .rejected ? .requestRejected : .failed
-            publish(failed)
         }
     }
 

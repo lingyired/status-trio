@@ -291,10 +291,6 @@
 "vpn.power.changing" = "VPN の状態を変更中…";
 "vpn.power.failed" = "VPN を変更できませんでした。システム設定を確認してください。";
 "vpn.power.timedOut" = "VPN の状態を確認できませんでした。もう一度確認してください。";
-"vpn.mihomo.turnOn" = "Clash Verge TUN をオン";
-"vpn.mihomo.turnOff" = "Clash Verge TUN をオフ";
-"vpn.mihomo.changing" = "Clash Verge TUN を切り替え中…";
-"vpn.mihomo.failed" = "Clash Verge TUN を変更できませんでした。";
 "vpn.mihomo.off" = "オフ";
 "wifi.action.requestNameAccess" = "位置情報を許可してWi-Fiネットワークを表示";
 "wifi.action.openLocationSettings" = "設定で位置情報を許可";

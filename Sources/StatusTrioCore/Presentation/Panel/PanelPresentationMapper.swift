@@ -193,23 +193,6 @@ enum PanelPresentationMapper {
             tint = .secondary
         }
 
-        let mihomo = status.mihomoTunnel
-        let mihomoMatches = mihomo != nil
-            && (status.tunnelInterfaces.isEmpty || status.tunnelInterfaces.contains(mihomo!.device))
-        let mihomoPower: MihomoTunnelPowerPresentation? = mihomoMatches
-            ? MihomoTunnelPowerPresentation(
-                isOn: mihomo?.isEnabled ?? false,
-                isChanging: mihomo?.isChanging ?? false,
-                canSetPower: !(mihomo?.isChanging ?? false),
-                actionLabel: localization.string((mihomo?.isChanging ?? false)
-                    ? .vpnMihomoChanging
-                    : ((mihomo?.isEnabled ?? false) ? .vpnMihomoTurnOff : .vpnMihomoTurnOn)),
-                failureMessage: mihomo?.failure.map { _ in
-                    localization.string(.vpnMihomoFailed)
-                }
-            )
-            : nil
-
         let service = status.powerControlService
         let power: VPNPowerPresentation? = status.showsPowerControl
             ? VPNPowerPresentation(
@@ -246,8 +229,7 @@ enum PanelPresentationMapper {
             accessibilityValue: "\(title), \(subtitle)",
             showsSettings: false,
             intent: .none,
-            vpnPower: power,
-            mihomoTunnelPower: mihomoPower
+            vpnPower: power
         )
     }
 

@@ -291,10 +291,6 @@
 "vpn.power.changing" = "正在切換 VPN…";
 "vpn.power.failed" = "無法切換 VPN，請檢查系統設定。";
 "vpn.power.timedOut" = "未能確認 VPN 狀態，請稍後再試。";
-"vpn.mihomo.turnOn" = "開啟 Clash Verge TUN";
-"vpn.mihomo.turnOff" = "關閉 Clash Verge TUN";
-"vpn.mihomo.changing" = "正在切換 Clash Verge TUN…";
-"vpn.mihomo.failed" = "無法切換 Clash Verge TUN。";
 "vpn.mihomo.off" = "已關閉";
 "wifi.action.requestNameAccess" = "允許定位以顯示 Wi-Fi 網路";
 "wifi.action.openLocationSettings" = "前往設定允許定位";

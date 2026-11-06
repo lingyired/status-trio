@@ -19,22 +19,13 @@ socket. `GET /configs` is read-only and reports `tun.enable` plus the concrete
 labelled **Clash Verge TUN**. This attribution requires no helper, root,
 Accessibility or Input Monitoring grant, and no secret on the local socket.
 If the socket is absent, the row falls back to **TUN**. The read is
-demand-driven while the VPN row is visible. The same row offers a power glyph
-for the attributed TUN: an explicit click sends the public Mihomo
-`PATCH /configs` body `{"tun":{"enable":false}}` (or `true`), re-reads
-`/configs` to confirm the device and state, and shows a localized failure if
-the request is rejected or the readback disagrees. The device is revalidated
-through `expectedDevice` inside the client so a stale row cannot toggle a
-different client's TUN. After a successful runtime toggle the same action
-updates Clash Verge's persisted `verge.yaml` (`enable_tun_mode`) and regenerated
-`clash-verge.yaml` (`tun.enable`) line-scoped and atomically, so the Clash panel
-and the next launch agree with the runtime. Clash Verge writes its in-memory
-settings on quit; when the last Status Trio request was "off", the app rewrites
-`verge.yaml` to off after Clash terminates so a relaunch does not silently
-re-enable the TUN. Clash Verge may keep its current window's in-memory state
-until that window is reopened or Clash is restarted; the files and Mihomo
-runtime are already in the requested state. Actual toggle
-behavior on this Mac remains **NOT RUN** until the user exercises the control.
+demand-driven while the VPN row is visible and is strictly read-only: Status
+Trio does not send `PATCH`, does not toggle the TUN, and does not edit
+Clash Verge's `verge.yaml`. Clash Verge 2.5.8 exposes its own TUN setting only
+through a Tauri-internal command, not a public external API; changing the file
+alone does not refresh its in-memory panel and is overwritten on quit. A TUN
+power control would need either upstream Clash Verge support or UI automation,
+so the row remains status-only for now.
 
 A system VPN service leads with its service name and reads **Connected**. A
 bare tunnel that has no system service is labelled **TUN** (never **VPN**),
@@ -141,8 +132,8 @@ switching the row off sticks.
 | `Models/VPNStatus.swift` | `VPNStatus`, `VPNProxyStatus`, `VPNProbeReading`, `VPNStatusResolver`, `TunnelInterfaceClassifier`, and `VPNServiceReading` identity/state |
 | `Monitoring/VPNProbe.swift` | The three readers and their protocols; the service reader keeps service IDs and connection states |
 | `Monitoring/VPNMonitor.swift` | Lifecycle, the `SCDynamicStore` subscription, the stream |
-| `Monitoring/MihomoTunnelClient.swift` | Read-only Mihomo `/configs` attribution and verified `PATCH` toggle on the local Unix socket |
-| `Monitoring/MihomoTunnelController.swift` | Demand-driven Clash Verge TUN state and in-flight write state |
+| `Monitoring/MihomoTunnelClient.swift` | Read-only Mihomo `/configs` attribution on the local Unix socket |
+| `Monitoring/MihomoTunnelController.swift` | Demand-driven read-only Clash Verge TUN state |
 | `VPN/VPNPowerController.swift` | One in-flight start/stop request, failure copy, refresh and bounded state |
 | `VPN/SystemVPNConnectionController.swift` | Public `SCNetworkConnection` callback-backed start/stop |
 | `UI/VPNStatusView.swift` | The popup row and its power glyph |

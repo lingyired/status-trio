@@ -738,11 +738,6 @@ final class SystemStatusStore: ObservableObject {
     /// #272: the VPN summary row's power switch. The controller resolves the
     /// target from the current service list and confirms through the framework
     /// callback before the row leaves its changing state.
-    func setMihomoTunnelPower(_ enabled: Bool) {
-        guard !hasStopped else { return }
-        Task { [mihomoTunnel] in await mihomoTunnel.setEnabled(enabled) }
-    }
-
     func setVPNPower(_ enabled: Bool) {
         Task { [vpnPower, vpnStatus] in
             await vpnPower.setPower(enabled, status: vpnStatus)

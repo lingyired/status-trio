@@ -415,9 +415,6 @@ final class PresentationTextMapperTests: XCTestCase {
             PanelPresentationMapper.vpnTitle(attributed, localization: localization),
             "Clash Verge TUN"
         )
-        let attributedRow = PanelPresentationMapper.vpn(attributed, localization: localization)
-        XCTAssertEqual(attributedRow.mihomoTunnelPower?.isOn, true)
-        XCTAssertEqual(attributedRow.mihomoTunnelPower?.actionLabel, "关闭 Clash Verge TUN")
 
         let disabled = VPNStatus(
             tunnelInterfaces: [],
