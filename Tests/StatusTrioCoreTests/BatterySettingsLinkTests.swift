@@ -84,4 +84,28 @@ struct BatterySettingsLinkTests {
         #expect(hovered >= 0.95 * Self.width)
         #expect(idle < 0.80 * Self.width)
     }
+
+    @Test func hoverHighlightAddsBreathingRoomAboveAndBelowTheLabel() throws {
+        let content = BatterySettingsLinkRow("Open System Power Settings", isHovered: true) {}
+            .frame(width: Self.width)
+            .background(Color.white)
+            .environment(\.colorScheme, .light)
+        let probe = try render(content)
+        let scale = probe.scale
+
+        func isPainted(x: CGFloat, y: CGFloat) throws -> Bool {
+            let color = try #require(probe.bitmap.colorAt(
+                x: Int(x * scale), y: Int(y * scale)
+            )?.usingColorSpace(.deviceRGB))
+            let luminance = 0.299 * color.redComponent
+                + 0.587 * color.greenComponent
+                + 0.114 * color.blueComponent
+            return luminance < 0.985
+        }
+
+        // The hover fill reaches the padding above and below the text line,
+        // instead of hugging the glyphs' exact height.
+        #expect(try isPainted(x: Self.width / 2, y: 1))
+        #expect(try isPainted(x: Self.width / 2, y: CGFloat(probe.bitmap.pixelsHigh) / probe.scale - 2))
+    }
 }
