@@ -85,6 +85,7 @@ final class SettingsStore: ObservableObject {
     /// Migration-only keys from the split middle-slot settings.
     static let prioritizesNetworkErrorsOverInputSourceDefaultsKey = "prioritizesNetworkErrorsOverInputSource"
     static let replacesNetworkIconWithBluetoothAudioDefaultsKey = "replacesNetworkIconWithBluetoothAudio"
+    static let bluetoothIconColorDefaultsKey = "bluetoothIconColor"
     static let usesBluetoothAudioVolumeColorDefaultsKey = "usesBluetoothAudioVolumeColor"
     static let prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey = "prioritizesNetworkErrorsOverBluetoothAudio"
     static let showsBluetoothBatteryLevelsDefaultsKey = "showsBluetoothBatteryLevels"
@@ -131,6 +132,12 @@ final class SettingsStore: ObservableObject {
     /// `refreshIntervalRange` for anyone who wants the old cadence.
     static let defaultRefreshIntervalSeconds: Double = 15
     static let refreshIntervalDefaultsKey = "statusRefreshIntervalSeconds"
+    /// #255: two independent refresh cadences, one for battery power and one
+    /// for wall power. Both use the same 5...60 range and a 1-second step; the
+    /// legacy single key above stays only as the migration source so an
+    /// existing install does not lose its choice.
+    static let refreshIntervalOnBatteryDefaultsKey = "statusRefreshIntervalOnBatterySeconds"
+    static let refreshIntervalOnPowerDefaultsKey = "statusRefreshIntervalOnPowerSeconds"
 
     static let outputDeviceLimitRange: ClosedRange<Int> = 1...20
     static let defaultMaxVisibleOutputDevices = 5
@@ -633,6 +640,17 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// The centre Bluetooth glyph's colour: default blue, adaptive primary, or
+    /// a user-picked colour (#275). Independent of the volume footer's colour.
+    @Published var bluetoothIconColor: BluetoothIconColorSelection {
+        didSet {
+            defaults.set(
+                bluetoothIconColor.storageValue,
+                forKey: Self.bluetoothIconColorDefaultsKey
+            )
+        }
+    }
+
     @Published var usesBluetoothAudioVolumeColor: Bool {
         didSet {
             defaults.set(
@@ -875,6 +893,33 @@ final class SettingsStore: ObservableObject {
                 return
             }
             defaults.set(clamped, forKey: Self.refreshIntervalDefaultsKey)
+        }
+    }
+
+    /// Refresh cadence while the Mac runs on battery (#255). Kept separate from
+    /// the wall-power cadence so a laptop can poll faster on battery than when
+    /// plugged in, or the other way round.
+    @Published var refreshIntervalOnBatterySeconds: Double {
+        didSet {
+            let clamped = Self.clampedDualRefreshInterval(refreshIntervalOnBatterySeconds)
+            guard clamped == refreshIntervalOnBatterySeconds else {
+                refreshIntervalOnBatterySeconds = clamped
+                return
+            }
+            defaults.set(clamped, forKey: Self.refreshIntervalOnBatteryDefaultsKey)
+        }
+    }
+
+    /// Refresh cadence while the Mac runs on wall power (#255). Desktops with no
+    /// battery always use this value.
+    @Published var refreshIntervalOnPowerSeconds: Double {
+        didSet {
+            let clamped = Self.clampedDualRefreshInterval(refreshIntervalOnPowerSeconds)
+            guard clamped == refreshIntervalOnPowerSeconds else {
+                refreshIntervalOnPowerSeconds = clamped
+                return
+            }
+            defaults.set(clamped, forKey: Self.refreshIntervalOnPowerDefaultsKey)
         }
     }
 
@@ -1164,6 +1209,16 @@ final class SettingsStore: ObservableObject {
 
     var refreshInterval: Duration {
         .seconds(Int(refreshIntervalSeconds.rounded()))
+    }
+
+    /// The effective fallback cadence for a Mac that is (or is not) on wall
+    /// power (#255). A Mac with no battery has no battery mode, so callers pass
+    /// `true` for it and get the wall-power cadence.
+    func refreshInterval(forPluggedIn pluggedIn: Bool) -> Duration {
+        let seconds = pluggedIn
+            ? refreshIntervalOnPowerSeconds
+            : refreshIntervalOnBatterySeconds
+        return .seconds(Int(seconds.rounded()))
     }
 
     var visibleOutputDeviceLimit: Int? {
@@ -1572,6 +1627,7 @@ final class SettingsStore: ObservableObject {
 
     var bluetoothAudioIconOptions: BluetoothAudioIconOptions {
         BluetoothAudioIconOptions(
+            iconColor: bluetoothIconColor,
             usesVolumeColor: usesBluetoothAudioVolumeColor,
             symbolScale: wifiSymbolScale,
             networkIconSymbolOverride: bluetoothNetworkIconSymbolName,
@@ -1712,6 +1768,12 @@ final class SettingsStore: ObservableObject {
             defaults.stringArray(forKey: Self.revealedGhostBluetoothDeviceAddressesDefaultsKey) ?? []
         )
         let storedRefreshInterval = (defaults.object(forKey: Self.refreshIntervalDefaultsKey) as? NSNumber)?.doubleValue
+        let storedRefreshOnBattery = (defaults.object(
+            forKey: Self.refreshIntervalOnBatteryDefaultsKey
+        ) as? NSNumber)?.doubleValue
+        let storedRefreshOnPower = (defaults.object(
+            forKey: Self.refreshIntervalOnPowerDefaultsKey
+        ) as? NSNumber)?.doubleValue
         let storedWifiSymbolScale = (defaults.object(forKey: Self.wifiSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
         let storedVolumeDisplayStyle = defaults.string(forKey: Self.volumeDisplayStyleDefaultsKey)
         let storedRingStrokeStyle = defaults.string(forKey: Self.ringStrokeStyleDefaultsKey)
@@ -1921,6 +1983,18 @@ final class SettingsStore: ObservableObject {
                     Self.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey] {
             defaults.removeObject(forKey: key)
         }
+        if let storedBluetoothIconColor = defaults.string(forKey: Self.bluetoothIconColorDefaultsKey) {
+            self.bluetoothIconColor = BluetoothIconColorSelection(
+                storageValue: storedBluetoothIconColor
+            )
+        } else if let legacyIconColor = defaults.object(
+            forKey: "usesBluetoothAudioIconColor"
+        ) as? Bool {
+            // Migrate the short-lived boolean this branch shipped first.
+            self.bluetoothIconColor = legacyIconColor ? .systemBlue : .primary
+        } else {
+            self.bluetoothIconColor = .default
+        }
         self.usesBluetoothAudioVolumeColor = defaults.object(
             forKey: Self.usesBluetoothAudioVolumeColorDefaultsKey
         ) as? Bool ?? false
@@ -1989,6 +2063,31 @@ final class SettingsStore: ObservableObject {
         self.refreshIntervalSeconds = Self.clampedRefreshInterval(
             storedRefreshInterval ?? Self.defaultRefreshIntervalSeconds
         )
+        // #255 migration: each new key migrates independently from the legacy
+        // single value only when that key is absent. A present new key always
+        // wins, and the legacy key is left untouched as the migration source.
+        let resolvedRefreshOnBattery = Self.resolvedDualRefreshInterval(
+            storedValue: storedRefreshOnBattery,
+            legacyValue: storedRefreshInterval
+        )
+        let resolvedRefreshOnPower = Self.resolvedDualRefreshInterval(
+            storedValue: storedRefreshOnPower,
+            legacyValue: storedRefreshInterval
+        )
+        self.refreshIntervalOnBatterySeconds = resolvedRefreshOnBattery
+        self.refreshIntervalOnPowerSeconds = resolvedRefreshOnPower
+        if storedRefreshOnBattery == nil, storedRefreshInterval != nil {
+            defaults.set(
+                resolvedRefreshOnBattery,
+                forKey: Self.refreshIntervalOnBatteryDefaultsKey
+            )
+        }
+        if storedRefreshOnPower == nil, storedRefreshInterval != nil {
+            defaults.set(
+                resolvedRefreshOnPower,
+                forKey: Self.refreshIntervalOnPowerDefaultsKey
+            )
+        }
         self.maxVisibleOutputDevices = Self.clampedOutputDeviceLimit(
             storedOutputDeviceLimit ?? Self.defaultMaxVisibleOutputDevices
         )
@@ -2241,6 +2340,30 @@ final class SettingsStore: ObservableObject {
         guard value.isFinite else { return defaultRefreshIntervalSeconds }
         let clamped = min(refreshIntervalRange.upperBound, max(refreshIntervalRange.lowerBound, value))
         return (clamped / 5).rounded() * 5
+    }
+
+    /// #255 clamping for the per-power-source cadences. These use the same
+    /// range as the legacy key but a 1-second step, so a user can pick any
+    /// whole second instead of being rounded to a multiple of five.
+    static func clampedDualRefreshInterval(_ value: Double) -> Double {
+        guard value.isFinite else { return defaultRefreshIntervalSeconds }
+        let clamped = min(refreshIntervalRange.upperBound, max(refreshIntervalRange.lowerBound, value))
+        return clamped.rounded()
+    }
+
+    /// Resolves one dual cadence: a stored per-source value wins, otherwise the
+    /// legacy single value is migrated, otherwise the 15-second default.
+    static func resolvedDualRefreshInterval(
+        storedValue: Double?,
+        legacyValue: Double?
+    ) -> Double {
+        if let storedValue {
+            return clampedDualRefreshInterval(storedValue)
+        }
+        if let legacyValue {
+            return clampedDualRefreshInterval(legacyValue)
+        }
+        return defaultRefreshIntervalSeconds
     }
 
     static func clampedHighEnergyAppsRefreshInterval(_ value: Double) -> Double {

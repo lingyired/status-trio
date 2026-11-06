@@ -22,7 +22,10 @@ enum PanelDetailMapper {
             } ?? localization.string(reading.unavailableTitle)
             let showsPowerReading = !battery.isConnectedToPower || powerOptions.showsSystem
             if showsPowerReading { rows.append(row(reading.title, value: watts, localization: localization)) }
-            if showsPowerReading, let timestamp = reading.timestamp {
+            // The system read time is diagnostic only and appears late when the
+            // SMC sample arrives, so it is no longer shown in the details list.
+            if showsPowerReading, let timestamp = reading.timestamp,
+               reading.timestampTitle != .batteryDetailsSystemReadAt {
                 rows.append(row(
                     reading.timestampTitle,
                     value: timestamp.formatted(.dateTime.hour().minute().second().locale(localization.resolvedLanguage.locale)),
@@ -50,6 +53,26 @@ enum PanelDetailMapper {
                 } ?? localization.string(.batteryDetailsUnavailable)
                 rows.append(row(.batteryDetailsRemaining, value: remaining, localization: localization))
             }
+            if battery.isPresent, let health = details.health {
+                let capacityText = health.maximumCapacityPercent.map {
+                    ($0 / 100).formatted(.percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale))
+                } ?? health.healthPercent.map {
+                    ($0 / 100).formatted(.percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale))
+                } ?? localization.string(.batteryDetailsUnavailable)
+                rows.append(row(
+                    .batteryDetailsMaxCapacity,
+                    value: capacityText,
+                    localization: localization
+                ))
+                rows.append(row(
+                    .batteryDetailsBatteryCondition,
+                    value: localization.string(
+                        health.condition == .normal
+                            ? .batteryDetailsConditionNormal : .batteryDetailsConditionService
+                    ),
+                    localization: localization
+                ))
+            }
             if battery.isPresent, let count = details.cycleCount {
                 rows.append(row(.batteryDetailsCycles, value: count.formatted(.number.locale(localization.resolvedLanguage.locale)), localization: localization))
             }
@@ -59,6 +82,21 @@ enum PanelDetailMapper {
             value: localization.string(battery.isLowPowerMode ? .batteryDetailsOn : .batteryDetailsOff),
             localization: localization
         ))
+        if let highPower = details?.highPowerMode {
+            let value: String
+            if highPower.supported {
+                value = localization.string(
+                    highPower.enabled == true ? .batteryDetailsOn : .batteryDetailsOff
+                )
+            } else {
+                value = localization.string(.batteryDetailsHighPowerUnsupported)
+            }
+            rows.append(row(
+                .settingsBatteryColorsHighPower,
+                value: value,
+                localization: localization
+            ))
+        }
         return PanelDetailState(
             title: PanelPresentationMapper.batteryTitle(
                 battery,

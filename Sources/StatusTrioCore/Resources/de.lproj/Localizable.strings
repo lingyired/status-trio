@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth-Geräte";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Noch keine Bluetooth-Geräte gelesen. Erlaube oben den Bluetooth-Zugriff oder kopple ein Gerät.";
 "settings.bluetooth.volumeColor" = "Bluetooth-Lautstärke blau darstellen";
+"settings.bluetooth.iconColor" = "Bluetooth-Symbolfarbe";
+"settings.bluetooth.iconColorDescription" = "Farbe des Bluetooth-Symbols in der Mitte: standardmäßig Blau, die Schwarz-/Weißfarbe der Menüleiste oder eine eigene Farbe.";
+"settings.bluetooth.iconColor.blue" = "Blau";
+"settings.bluetooth.iconColor.primary" = "System folgen";
+"settings.bluetooth.iconColor.custom" = "Eigene Farbe";
 "settings.bluetooth.volumeColorDescription" = "Die aktiven Lautstärkepunkte oder der Bogen werden bei Bluetooth-Audioausgabe blau.";
 "settings.bluetooth.networkErrorPriority" = "Netzwerkfehler priorisieren";
 "settings.bluetooth.networkErrorPriorityDescription" = "Bei Verbindungsfehlern oder Offline-Status bleibt das Netzwerksymbol sichtbar statt des Bluetooth-Gerätesymbols.";
@@ -378,6 +383,8 @@
 "accessibility.battery" = "Batterie %d%%";
 "accessibility.volume" = "Lautstärke %@";
 "settings.refreshInterval" = "Aktualisierungsintervall";
+"settings.refreshInterval.onBattery" = "Im Akkubetrieb";
+"settings.refreshInterval.onPower" = "Am Netzstrom";
 "settings.refreshInterval.description" = "Wie oft Status Trio auf Änderungen prüft. Häufigere Aktualisierungen erhöhen die CPU-Auslastung.";
 "settings.refreshInterval.value" = "%d Sekunden";
 "settings.popup.order" = "Angezeigte Elemente";
@@ -529,6 +536,10 @@
 "battery.details.adapter" = "Netzteil-Nennleistung";
 "battery.details.remaining" = "Restlaufzeit";
 "battery.details.cycles" = "Ladezyklen";
+"battery.details.maxCapacity" = "Maximale Kapazität";
+"battery.details.batteryCondition" = "Batteriestatus";
+"battery.details.condition.normal" = "Normal";
+"battery.details.condition.service" = "Wartung empfohlen";
 "battery.details.lowPower" = "Stromsparmodus";
 "battery.details.on" = "Ein";
 "battery.details.off" = "Aus";
@@ -775,6 +786,7 @@
 "settings.battery.autoLowPowerThreshold" = "Niedrigenergiemodus automatisch aktivieren";
 "settings.battery.autoLowPowerThresholdDescription" = "Der Niedrigenergiemodus wird im Akkubetrieb unterhalb dieses Werts automatisch aktiviert.";
 "battery.highPowerMode.toggle" = "Hochenergiemodus";
+"battery.details.highPower.unsupported" = "Nicht unterstützt";
 "battery.highPowerMode.toggleDescription" = "Lässt die Lüfter schneller laufen, um dauerhaft höhere Leistung zu erreichen – auf Kosten lauterer Lüfter.";
 "battery.highPowerMode.helperNeedsUpdate" = "Der Energiehelfer muss aktualisiert werden, bevor der Hochenergiemodus verwendet werden kann.";
 "battery.highPowerMode.failure" = "Der Hochenergiemodus konnte nicht umgeschaltet werden. Bitte erneut versuchen.";

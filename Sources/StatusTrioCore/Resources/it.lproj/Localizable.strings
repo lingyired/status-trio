@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Dispositivi Bluetooth";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Nessun dispositivo Bluetooth ancora letto. Concedi l’accesso Bluetooth sopra o abbina un dispositivo.";
 "settings.bluetooth.volumeColor" = "Usa il blu per il volume Bluetooth";
+"settings.bluetooth.iconColor" = "Colore dell’icona Bluetooth";
+"settings.bluetooth.iconColorDescription" = "Scegli il colore dell’icona Bluetooth centrale: blu per impostazione predefinita, il nero o bianco della barra dei menu, o un colore personalizzato.";
+"settings.bluetooth.iconColor.blue" = "Blu";
+"settings.bluetooth.iconColor.primary" = "Segui il sistema";
+"settings.bluetooth.iconColor.custom" = "Colore personalizzato";
 "settings.bluetooth.volumeColorDescription" = "I punti del volume attivi o l’arco diventano blu con l’uscita audio Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Dai priorità agli errori di rete";
 "settings.bluetooth.networkErrorPriorityDescription" = "Gli errori di connessione e lo stato offline mantengono l’icona di rete invece del dispositivo Bluetooth.";
@@ -378,6 +383,8 @@
 "accessibility.battery" = "Batteria %d%%";
 "accessibility.volume" = "Volume %@";
 "settings.refreshInterval" = "Intervallo di aggiornamento";
+"settings.refreshInterval.onBattery" = "A batteria";
+"settings.refreshInterval.onPower" = "Collegato alla corrente";
 "settings.refreshInterval.description" = "Con quale frequenza Status Trio controlla le modifiche. Aggiornamenti più frequenti usano più CPU.";
 "settings.refreshInterval.value" = "%d secondi";
 "settings.popup.order" = "Elementi mostrati";
@@ -529,6 +536,10 @@
 "battery.details.adapter" = "Potenza nominale dell’alimentatore";
 "battery.details.remaining" = "Tempo rimanente";
 "battery.details.cycles" = "Cicli di carica";
+"battery.details.maxCapacity" = "Capacità massima";
+"battery.details.batteryCondition" = "Stato della batteria";
+"battery.details.condition.normal" = "Normale";
+"battery.details.condition.service" = "Manutenzione consigliata";
 "battery.details.lowPower" = "Risparmio energetico";
 "battery.details.on" = "Attivo";
 "battery.details.off" = "Disattivo";
@@ -775,6 +786,7 @@
 "settings.battery.autoLowPowerThreshold" = "Attiva automaticamente la modalità risparmio energetico";
 "settings.battery.autoLowPowerThresholdDescription" = "La modalità risparmio energetico si attiva automaticamente sotto questo livello quando usi la batteria.";
 "battery.highPowerMode.toggle" = "Modalità prestazioni elevate";
+"battery.details.highPower.unsupported" = "Non supportato";
 "battery.highPowerMode.toggleDescription" = "Fa girare le ventole più velocemente per prestazioni sostenute più elevate, a costo di più rumore.";
 "battery.highPowerMode.helperNeedsUpdate" = "L’helper di alimentazione deve essere aggiornato prima di poter usare la modalità prestazioni elevate.";
 "battery.highPowerMode.failure" = "Impossibile cambiare la modalità prestazioni elevate. Riprova.";

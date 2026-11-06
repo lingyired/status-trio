@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth-устройства";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Устройства Bluetooth ещё не прочитаны. Разрешите доступ к Bluetooth выше или сопрягите устройство.";
 "settings.bluetooth.volumeColor" = "Показывать громкость Bluetooth синим";
+"settings.bluetooth.iconColor" = "Цвет значка Bluetooth";
+"settings.bluetooth.iconColorDescription" = "Выберите цвет значка Bluetooth в центре: по умолчанию синий, чёрный или белый цвет строки меню либо свой цвет.";
+"settings.bluetooth.iconColor.blue" = "Синий";
+"settings.bluetooth.iconColor.primary" = "Как в системе";
+"settings.bluetooth.iconColor.custom" = "Свой цвет";
 "settings.bluetooth.volumeColorDescription" = "Активные точки громкости или дуга становятся синими при выводе звука через Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Приоритет ошибок сети";
 "settings.bluetooth.networkErrorPriorityDescription" = "При ошибке подключения или отсутствии сети остаётся значок сети вместо устройства Bluetooth.";
@@ -378,6 +383,8 @@
 "accessibility.battery" = "Батарея %d%%";
 "accessibility.volume" = "Громкость %@";
 "settings.refreshInterval" = "Интервал обновления";
+"settings.refreshInterval.onBattery" = "От батареи";
+"settings.refreshInterval.onPower" = "От сети";
 "settings.refreshInterval.description" = "Как часто Status Trio проверяет изменения. Более частое обновление увеличивает нагрузку на CPU.";
 "settings.refreshInterval.value" = "%d секунд";
 "settings.popup.order" = "Отображаемые элементы";
@@ -529,6 +536,10 @@
 "battery.details.adapter" = "Номинальная мощность адаптера";
 "battery.details.remaining" = "Оставшееся время";
 "battery.details.cycles" = "Число циклов";
+"battery.details.maxCapacity" = "Максимальная ёмкость";
+"battery.details.batteryCondition" = "Состояние батареи";
+"battery.details.condition.normal" = "Норма";
+"battery.details.condition.service" = "Рекомендуется обслуживание";
 "battery.details.lowPower" = "Режим энергосбережения";
 "battery.details.on" = "Вкл.";
 "battery.details.off" = "Выкл.";
@@ -775,6 +786,7 @@
 "settings.battery.autoLowPowerThreshold" = "Автоматически включать режим низкого энергопотребления";
 "settings.battery.autoLowPowerThresholdDescription" = "Режим низкого энергопотребления включается автоматически ниже этого уровня при работе от аккумулятора.";
 "battery.highPowerMode.toggle" = "Режим высокой мощности";
+"battery.details.highPower.unsupported" = "Не поддерживается";
 "battery.highPowerMode.toggleDescription" = "Ускоряет вентиляторы для более высокой длительной производительности ценой большего шума.";
 "battery.highPowerMode.helperNeedsUpdate" = "Помощник питания необходимо обновить, прежде чем использовать режим высокой мощности.";
 "battery.highPowerMode.failure" = "Не удалось переключить режим высокой мощности. Повторите попытку.";

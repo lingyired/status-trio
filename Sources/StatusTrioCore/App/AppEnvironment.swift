@@ -434,7 +434,12 @@ final class AppEnvironment {
             vpnMonitor: VPNMonitor(),
             volumeMonitor: VolumeMonitor(outputController: CoreAudioOutputController()),
             inputMonitor: AudioInputMonitor(hardware: CoreAudioInputHardware()),
-            refreshInterval: settings.refreshInterval
+            // #255 production propagation only uses the per-power-source
+            // values. The store starts on a battery-present, unplugged
+            // placeholder snapshot, so seed the initial wait with the battery
+            // cadence; StatusBarController's subscription corrects it as soon
+            // as the first real power snapshot arrives.
+            refreshInterval: settings.refreshInterval(forPluggedIn: false)
         )
         let localization = Localization()
         let inputSourceController = InputSourceController()
