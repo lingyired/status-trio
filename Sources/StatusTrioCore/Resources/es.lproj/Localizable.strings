@@ -770,6 +770,8 @@
 "settings.battery.autoLowPowerThreshold" = "Activar automáticamente el modo de bajo consumo";
 "settings.battery.autoLowPowerThresholdDescription" = "El modo de bajo consumo se activa automáticamente por debajo de este nivel cuando usa la batería.";
 "battery.highPowerMode.toggle" = "Modo de alto consumo";
+"battery.details.highPower.disabled" = "Desactivado";
+"battery.details.highPower.unsupported" = "No compatible";
 "battery.highPowerMode.toggleDescription" = "Hace girar los ventiladores más rápido para lograr un rendimiento sostenido mayor, a costa de más ruido.";
 "battery.highPowerMode.helperNeedsUpdate" = "El asistente de energía debe actualizarse antes de poder usar el modo de alto consumo.";
 "battery.highPowerMode.failure" = "No se pudo cambiar el modo de alto consumo. Inténtalo de nuevo.";

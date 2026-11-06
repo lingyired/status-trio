@@ -770,6 +770,8 @@
 "settings.battery.autoLowPowerThreshold" = "저전력 모드 자동 켜기";
 "settings.battery.autoLowPowerThresholdDescription" = "배터리 사용 중 잔량이 이 값 아래로 떨어지면 저전력 모드를 자동으로 켭니다.";
 "battery.highPowerMode.toggle" = "고전력 모드";
+"battery.details.highPower.disabled" = "사용 안 함";
+"battery.details.highPower.unsupported" = "지원 안 됨";
 "battery.highPowerMode.toggleDescription" = "팬 속도를 높여 지속 성능을 끌어올립니다. 팬 소음이 커집니다.";
 "battery.highPowerMode.helperNeedsUpdate" = "고전력 모드를 사용하려면 전원 도우미를 업데이트해야 합니다.";
 "battery.highPowerMode.failure" = "고전력 모드를 전환하지 못했습니다. 다시 시도하십시오.";

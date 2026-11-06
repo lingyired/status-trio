@@ -768,6 +768,8 @@
 "settings.battery.autoLowPowerThreshold" = "Auto-enable Low Power Mode";
 "settings.battery.autoLowPowerThresholdDescription" = "Low Power Mode turns on when the battery drops below this level on battery.";
 "battery.highPowerMode.toggle" = "High Power Mode";
+"battery.details.highPower.disabled" = "Disabled";
+"battery.details.highPower.unsupported" = "Not supported";
 "battery.highPowerMode.toggleDescription" = "Runs the fans faster for higher sustained performance, at the cost of more fan noise.";
 "battery.highPowerMode.helperNeedsUpdate" = "The power helper needs updating before High Power Mode can be used.";
 "battery.highPowerMode.failure" = "Could not switch High Power Mode. Try again.";
