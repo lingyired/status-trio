@@ -238,9 +238,13 @@ final class ChargeToFullNowController: ObservableObject {
         state: ChargeToFullNowDeviceState
     ) -> Bool {
         guard demand.canStartChargeToFull else { return false }
+        // An overridable pause (Optimized Battery Charging and similar) is its
+        // own case: it resumes charging without changing any user charge limit.
+        if !demand.battery.isCharging, state.chargingOverrideAllowed == true {
+            return true
+        }
         if state.hasActiveChargeLimit { return true }
-        guard !demand.battery.isCharging else { return false }
-        return state.chargingOverrideAllowed == true
+        return false
     }
 
     /// Read-only diagnostics for the Settings pane. Ignores whether the
@@ -425,7 +429,12 @@ final class ChargeToFullNowController: ObservableObject {
             return
         }
 
+        // Cancelling restores a charge limit, so only a genuine limit – not an
+        // overridable pause such as Optimized Battery Charging – creates the
+        // cancellable session. A 100% user limit paused by optimized charging
+        // must never be turned into a sub-100% limit by "Cancel".
         let usesNativeLimit = state.hasActiveChargeLimit
+            && state.chargingOverrideAllowed != true
         let originalLimit = state.reportedChargeLimit
         isApplying = true
         publish(.applying)

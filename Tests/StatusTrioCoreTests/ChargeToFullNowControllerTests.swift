@@ -101,6 +101,30 @@ final class ChargeToFullNowControllerTests: XCTestCase {
         XCTAssertEqual(controller.presentation, .hidden)
     }
 
+    func testOverridablePauseNeverCreatesACancelSession() async {
+        // macOS can report an intermediate 80% limit while Optimized Battery
+        // Charging pauses a 100% charge. Clicking "Charge to Full Now" must not
+        // turn that into a cancellable sub-100% limit.
+        let backend = StubBatteryChargeController(
+            deviceState: .overridableActiveLimit
+        )
+        let store = VolatileChargeToFullNowSessionStore()
+        let controller = ChargeToFullNowController(
+            backend: backend,
+            sessionStore: store
+        )
+        controller.update(demand(isCharging: false))
+        XCTAssertEqual(controller.presentation, .available)
+
+        controller.performPrimaryAction()
+        await backend.waitUntilWriteStarts()
+        backend.finishWrite(.success)
+        await waitUntil { controller.presentation == .hidden }
+
+        XCTAssertNil(store.load())
+        XCTAssertEqual(backend.restoreCount, 0)
+    }
+
     func testUnsupportedCapabilityNeverReadsOrShowsTheButton() {
         let backend = StubBatteryChargeController(
             capability: .unavailable(.unsupportedSystem),
@@ -1281,6 +1305,14 @@ private extension ChargeToFullNowDeviceState {
         mclEnabledRawValue: 0,
         mclLimit: 100,
         chargingOverrideAllowed: false
+    )
+
+    /// Optimized Battery Charging reports an intermediate 80% limit while the
+    /// pause is still overridable (user charge limit remains 100%).
+    static let overridableActiveLimit = ChargeToFullNowDeviceState(
+        mclEnabledRawValue: 1,
+        mclLimit: 80,
+        chargingOverrideAllowed: true
     )
 
     static let temporaryOverride = ChargeToFullNowDeviceState(
