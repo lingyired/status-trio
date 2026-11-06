@@ -2,7 +2,10 @@ import Foundation
 
 /// Which mechanism is allowed to read and write one display's brightness.
 enum BrightnessBackend: String, Codable, CaseIterable, Sendable {
-    /// Direct DDC/CI over I2C. External displays default to this.
+    /// External displays use BetterDisplay while it is running, otherwise DDC.
+    /// Only an explicit user choice is persisted; the automatic default is not.
+    case automatic
+    /// Direct DDC/CI over I2C. External displays default to this fallback.
     case directDDC
     /// Apple's private DisplayServices framework. Built-in displays use this so
     /// no third-party app is required (maintainer-approved private API).
@@ -51,6 +54,9 @@ struct DisplayBrightness: Equatable, Sendable, Identifiable {
     let canAdjust: Bool
     let backend: BrightnessBackend
     let source: BrightnessControlSource
+    /// Ordering of this display's actual backend observations. Aggregating a
+    /// different display never advances it. Not part of visual equality.
+    let readSequence: UInt64?
 
     init(
         id: String,
@@ -59,7 +65,8 @@ struct DisplayBrightness: Equatable, Sendable, Identifiable {
         scalar: Double? = nil,
         canAdjust: Bool = false,
         backend: BrightnessBackend,
-        source: BrightnessControlSource
+        source: BrightnessControlSource,
+        readSequence: UInt64? = nil
     ) {
         self.id = id
         self.name = name
@@ -68,6 +75,13 @@ struct DisplayBrightness: Equatable, Sendable, Identifiable {
         self.canAdjust = canAdjust
         self.backend = backend
         self.source = source
+        self.readSequence = readSequence
+    }
+
+    static func == (lhs: DisplayBrightness, rhs: DisplayBrightness) -> Bool {
+        lhs.id == rhs.id && lhs.name == rhs.name && lhs.isBuiltin == rhs.isBuiltin
+            && lhs.scalar == rhs.scalar && lhs.canAdjust == rhs.canAdjust
+            && lhs.backend == rhs.backend && lhs.source == rhs.source
     }
 
     /// A copy carrying a new scalar but the same backend/source metadata.
@@ -79,7 +93,8 @@ struct DisplayBrightness: Equatable, Sendable, Identifiable {
             scalar: scalar,
             canAdjust: canAdjust,
             backend: backend,
-            source: source
+            source: source,
+            readSequence: readSequence
         )
     }
 }

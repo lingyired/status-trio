@@ -69,6 +69,10 @@ struct BrightnessSectionView: View {
                     }
                     displayRow(for: display)
                 }
+                if displays.contains(where: { !$0.isBuiltin }) {
+                    SettingsDivider()
+                    SettingsHintRow(text: localization.string(.settingsBrightnessAutomaticDescription))
+                }
             }
         }
     }
@@ -180,6 +184,8 @@ struct BrightnessSectionView: View {
 
     private func backendLabel(_ backend: BrightnessBackend) -> String {
         switch backend {
+        case .automatic:
+            return localization.string(.brightnessBackendAutomatic)
         case .directDDC, .displayServices:
             return localization.string(.brightnessBackendDirectDDC)
         case .betterDisplay:
@@ -187,10 +193,9 @@ struct BrightnessSectionView: View {
         }
     }
 
-    /// The choices an external display can store: direct DDC (the default) or
-    /// the optional BetterDisplay backend. DisplayServices is built-in only.
+    /// External displays default to automatic. DisplayServices is built-in only.
     private var externalBackendOptions: [BrightnessBackend] {
-        [.directDDC, .betterDisplay]
+        [.automatic, .directDDC, .betterDisplay]
     }
 
     /// When BetterDisplay is selected but the app is not running (or its

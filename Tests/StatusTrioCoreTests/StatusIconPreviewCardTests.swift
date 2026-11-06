@@ -123,7 +123,7 @@ final class StatusIconPreviewCardTests: XCTestCase {
             mainPreview.scene.center,
             CenterState.symbol(IconSymbolState(
                 source: .symbol(name: "person.crop.circle", variableValue: nil, fallback: "dot.radiowaves.left.and.right"),
-                color: .bluetooth,
+                color: .bluetoothIcon,
                 scale: store.bluetoothAudioIconOptions.symbolScale
             ))
         )

@@ -77,6 +77,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "أجهزة Bluetooth";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "لم تتم قراءة أي أجهزة Bluetooth بعد. امنح إذن Bluetooth أعلاه أو اقترن بجهاز.";
 "settings.bluetooth.volumeColor" = "استخدام اللون الأزرق لمستوى صوت Bluetooth";
+"settings.bluetooth.iconColor" = "لون أيقونة Bluetooth";
+"settings.bluetooth.iconColorDescription" = "اختر لون أيقونة Bluetooth في المنتصف: الأزرق افتراضيًا، أو أسود/أبيض شريط القوائم، أو لون مخصص.";
+"settings.bluetooth.iconColor.blue" = "أزرق";
+"settings.bluetooth.iconColor.primary" = "تبع النظام";
+"settings.bluetooth.iconColor.custom" = "لون مخصص";
 "settings.bluetooth.volumeColorDescription" = "تتحول نقاط مستوى الصوت النشطة أو القوس إلى الأزرق عند الإخراج عبر Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "إعطاء أولوية لأخطاء الشبكة";
 "settings.bluetooth.networkErrorPriorityDescription" = "تبقى أيقونة الشبكة ظاهرة عند انقطاع الاتصال أو غياب الإنترنت بدلًا من أيقونة جهاز Bluetooth.";
@@ -385,6 +390,8 @@
 "accessibility.battery" = "البطارية %d%%";
 "accessibility.volume" = "مستوى الصوت %@";
 "settings.refreshInterval" = "فترة تحديث الحالة";
+"settings.refreshInterval.onBattery" = "على البطارية";
+"settings.refreshInterval.onPower" = "متصل بالطاقة";
 "settings.refreshInterval.description" = "عدد مرات تحقق Status Trio من التغييرات. تؤدي التحديثات الأكثر تكرارًا إلى استخدام CPU أكبر.";
 "settings.refreshInterval.value" = "%d ثوانٍ";
 "settings.popup.order" = "عناصر لوحة الحالة";
@@ -536,6 +543,10 @@
 "battery.details.adapter" = "القدرة الاسمية للمحوّل";
 "battery.details.remaining" = "الوقت المتبقي";
 "battery.details.cycles" = "عدد دورات الشحن";
+"battery.details.maxCapacity" = "أقصى سعة";
+"battery.details.batteryCondition" = "حالة البطارية";
+"battery.details.condition.normal" = "طبيعي";
+"battery.details.condition.service" = "يُنصح بالصيانة";
 "battery.details.lowPower" = "نمط الطاقة المنخفضة";
 "battery.details.on" = "مفعّل";
 "battery.details.off" = "متوقف";
@@ -672,6 +683,20 @@
 "battery.energy.monitoringDescription" = "عند التفعيل، يتم قياس نشاط التطبيقات في الخلفية حتى عندما تكون اللوحة مغلقة. يتوقف القياس عند التعطيل أو أثناء سكون النظام أو الشاشة أو عند إنهاء Status Trio.";
 "settings.battery.showChargeToFullNow" = "إظهار زر الشحن حتى الامتلاء الآن";
 "settings.battery.showChargeToFullNowDescription" = "يعرض زرًا في لوحة الحالة لتجاوز حد الشحن في macOS مؤقتًا والشحن حتى 100%.";
+"settings.battery.chargeHidden.unsupportedSystem" = "الزر مخفي: يتطلب macOS 26.4 أو أحدث";
+"settings.battery.chargeHidden.unsupportedArchitecture" = "الزر مخفي: يتطلب Mac بشريحة Apple";
+"settings.battery.chargeHidden.frameworkUnavailable" = "الزر مخفي: إطار عمل الشحن في النظام غير متاح";
+"settings.battery.chargeHidden.apiUnavailable" = "الزر مخفي: واجهة برمجة الشحن في النظام غير متاحة";
+"settings.battery.chargeHidden.mclUnsupported" = "الزر مخفي: لا يدعم هذا Mac حد الشحن المدمج";
+"settings.battery.chargeHidden.noBattery" = "الزر مخفي: لم يتم اكتشاف بطارية";
+"settings.battery.chargeHidden.batterySectionHidden" = "الزر مخفي: قسم البطارية معطّل في لوحة الحالة";
+"settings.battery.chargeHidden.disconnectedFromPower" = "الزر مخفي: غير متصل بالطاقة";
+"settings.battery.chargeHidden.fullyCharged" = "الزر مخفي: البطارية مشحونة بالكامل";
+"settings.battery.chargeHidden.stateReadFailed" = "الزر مخفي: تعذّرت قراءة حالة شحن النظام. أعد فتح هذه الصفحة لاحقًا";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "الزر مخفي: حد الشحن المحسّن للبطارية هو 100%، لذا لا حاجة لهذا الزر";
+"settings.battery.chargeHidden.unrecognizedChargeLimitState" = "الزر مخفي: لا يمكن تجاوز حد شحن النظام حاليًا";
+"settings.battery.chargeHidden.restoredLimit" = "الزر مخفي: جارٍ استعادة حد %d%%؛ بانتظار استقرار الشحن";
+"settings.battery.chargeHidden.controllerUnavailable" = "الزر مخفي: التحكم في الشحن غير متاح مؤقتًا";
 "settings.battery.restoreLimit" = "حد الشحن بعد الإلغاء";
 "settings.battery.restoreLimitDescription" = "حد الشحن الذي يُستعاد عند إلغاء «الشحن بشكل كامل الآن».";
 "battery.action.chargeToFullNow" = "الشحن بشكل كامل الآن";
@@ -699,6 +724,7 @@
 "brightness.appAbsent" = "يتطلب BetterDisplay";
 "brightness.noBackend" = "لا يوجد تحكم في السطوع";
 "brightness.unresponsive" = "لا يستجيب";
+"brightness.backend.automatic" = "تلقائي";
 "brightness.backend.directDDC" = "DDC مباشر";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "أوقف تشغيل شاشة لإخفاء صف السطوع الخاص بها.";
@@ -756,6 +782,7 @@
 "settings.brightness.builtIn" = "مدمجة";
 "settings.brightness.internalBackend.description" = "يستخدم سطوع الشاشة المدمجة خلفية DisplayServices.";
 "settings.brightness.externalBackend.description" = "اختر كيفية تحكم Status Trio في سطوع هذه الشاشة.";
+"settings.brightness.automatic.description" = "تلقائي: يُفضَّل BetterDisplay عندما يكون قيد التشغيل، وإلا يُستخدم DDC المباشر.";
 "settings.brightness.backend.betterDisplayNeeded" = "تطبيق BetterDisplay غير قيد التشغيل أو أن تكامل الإشعارات فيه معطّل.";
 "settings.brightness.compatibility.title" = "لا يمكن التحكم في السطوع؟";
 "settings.brightness.compatibility.description" = "تختلف طريقة تنفيذ DDC بين مصنّعي الشاشات، لذا لا يمكن لـ Status Trio دعم كل الطُرز. إذا تعذّر ضبط سطوع شاشة من هنا، فبدّل خلفيتها إلى BetterDisplay — وسيتحكم Status Trio بها عبر BetterDisplay. الإصدار المجاني كافٍ، ولا حاجة لشراء Pro.";
@@ -766,6 +793,7 @@
 "settings.battery.autoLowPowerThreshold" = "تشغيل وضع الطاقة المنخفضة تلقائيًا";
 "settings.battery.autoLowPowerThresholdDescription" = "يتم تشغيل وضع الطاقة المنخفضة تلقائيًا عند انخفاض البطارية عن هذا المستوى أثناء العمل على البطارية.";
 "battery.highPowerMode.toggle" = "وضع الطاقة العالية";
+"battery.details.highPower.unsupported" = "غير مدعوم";
 "battery.highPowerMode.toggleDescription" = "يزيد سرعة المراوح لتحقيق أداء مستمر أعلى، مقابل ضجيج أكبر.";
 "battery.highPowerMode.helperNeedsUpdate" = "يلزم تحديث مساعد الطاقة قبل استخدام وضع الطاقة العالية.";
 "battery.highPowerMode.failure" = "تعذّر تبديل وضع الطاقة العالية. حاول مرة أخرى.";

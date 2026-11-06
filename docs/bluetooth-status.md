@@ -54,10 +54,19 @@ An address the normalizer cannot reduce names no device, so entries like it are
 never merged — two of them are not necessarily the same device, and the merge
 would cost a real one its row.
 
-The level map reads in the same order and keeps the same precedence, and it
-needed it more: its keys are addresses, so the disconnected copy of an address —
-read second — overwrote the connected reading, and a row showing the current
-charge fell back to the last value macOS had written down.
+The level map accepts only `device_connected` entries and deduplicates normalized
+addresses across controller sections. `device_not_connected` percentages are
+historical values with no trustworthy measurement timestamp, so even a freshly
+fetched report cannot make them current.
+
+The controller also filters primary readings against its current connected-device
+snapshot before publishing or deciding whether accessory fallback is needed. A
+successful device snapshot immediately removes primary and accessory levels for
+addresses that disappeared or disconnected, even without an active battery claim.
+Late battery completions and repeated warm claims cannot restore those values;
+a reconnect and a new valid connected reading can. Independently verified nearby
+BLE readings keep their existing merge and lifetime policy, including on a
+disconnected classic row. No additional timer or polling is used.
 
 ## Device classes and their glyphs
 
@@ -292,8 +301,8 @@ wait for one) does observe them, so only a real accessory event exercises this p
 ## Device levels in the list
 
 The panel's list renders one level per device the same way the row does, and
-covers every paired device, connected or not. A row shows a level only when the
-report carries one for that device
+covers every paired device, connected or not. A row shows a level only when a
+current battery source supplies one for that device
 (`BluetoothDevicePresentation.batteryLevelSegments(for:batteryLevels:)`); a
 device macOS cannot read stays silent instead of repeating a placeholder on
 every line.

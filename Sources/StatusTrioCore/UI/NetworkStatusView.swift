@@ -20,8 +20,15 @@ struct NetworkStatusView: View {
     @State private var confirmingPowerOff = false
 
     private var isWired: Bool { state.intent == .wiredDetails }
-    private var hasWiFiDetails: Bool { state.intent == .wifiDetails }
-    private var showsPowerToggle: Bool { hasWiFiDetails && showsWiFiPowerControl }
+    /// The power control belongs to the Wi-Fi radio, not to the row's
+    /// destination; the visibility rule lives in `WiFiPowerControlVisibility`
+    /// so permission rows keep it too.
+    private var showsPowerToggle: Bool {
+        WiFiPowerControlVisibility.showsSummaryToggle(
+            intent: state.intent,
+            isEnabled: showsWiFiPowerControl
+        )
+    }
     /// The chevron promises a detail page. A permission row only raises the
     /// system prompt or opens Settings, so it must not advertise navigation.
     private var showsDisclosureChevron: Bool {
@@ -150,7 +157,11 @@ struct NetworkStatusView: View {
     }
 
     private var showPowerFailure: Bool {
-        hasWiFiDetails && wifiPowerFailed
+        WiFiPowerControlVisibility.showsFailureMessage(
+            intent: state.intent,
+            isEnabled: showsWiFiPowerControl,
+            failed: wifiPowerFailed
+        )
     }
 
     private func activateRow() {

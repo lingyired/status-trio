@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "藍牙裝置";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "尚未讀取到藍牙裝置。請在上方授予藍牙權限，或先配對裝置。";
 "settings.bluetooth.volumeColor" = "藍牙音量使用藍色";
+"settings.bluetooth.iconColor" = "藍牙圖示顏色";
+"settings.bluetooth.iconColorDescription" = "選擇中間藍牙圖示的顏色：預設藍色、跟隨選單列黑白，或自訂顏色。";
+"settings.bluetooth.iconColor.blue" = "藍色";
+"settings.bluetooth.iconColor.primary" = "跟隨系統";
+"settings.bluetooth.iconColor.custom" = "自訂顏色";
 "settings.bluetooth.volumeColorDescription" = "藍牙輸出音訊時，音量點或圓弧的作用部分會顯示為藍色。";
 "settings.bluetooth.networkErrorPriority" = "網路異常優先於藍牙圖示";
 "settings.bluetooth.networkErrorPriorityDescription" = "斷線或無網路時仍顯示網路圖示，不顯示藍牙裝置圖示。";
@@ -385,6 +390,8 @@
 "accessibility.battery" = "電池 %d%%";
 "accessibility.volume" = "音量 %@";
 "settings.refreshInterval" = "狀態重新整理間隔";
+"settings.refreshInterval.onBattery" = "使用電池時";
+"settings.refreshInterval.onPower" = "連接電源時";
 "settings.refreshInterval.description" = "Status Trio 檢查狀態變化的頻率。重新整理越快，CPU 使用率越高。";
 "settings.refreshInterval.value" = "%d 秒";
 "settings.popup.order" = "顯示項目";
@@ -536,6 +543,10 @@
 "battery.details.adapter" = "電源轉接器額定功率";
 "battery.details.remaining" = "剩餘時間";
 "battery.details.cycles" = "循環使用次數";
+"battery.details.maxCapacity" = "最大容量";
+"battery.details.batteryCondition" = "電池狀態";
+"battery.details.condition.normal" = "正常";
+"battery.details.condition.service" = "建議維修";
 "battery.details.lowPower" = "低耗電模式";
 "battery.details.on" = "開啟";
 "battery.details.off" = "關閉";
@@ -672,6 +683,20 @@
 "battery.energy.monitoringDescription" = "啟用後即使面板關閉也會在背景取樣應用程式活動；關閉開關、系統或螢幕休眠或結束應用程式時停止。";
 "settings.battery.showChargeToFullNow" = "顯示立即完全充電按鈕";
 "settings.battery.showChargeToFullNowDescription" = "在狀態面板中顯示立即完全充電按鈕，允許暫時解除 macOS 的充電上限並充至 100%。";
+"settings.battery.chargeHidden.unsupportedSystem" = "按鈕未顯示：需要 macOS 26.4 或更新版本";
+"settings.battery.chargeHidden.unsupportedArchitecture" = "按鈕未顯示：需要 Apple 晶片 Mac";
+"settings.battery.chargeHidden.frameworkUnavailable" = "按鈕未顯示：系統充電框架無法使用";
+"settings.battery.chargeHidden.apiUnavailable" = "按鈕未顯示：系統充電介面無法使用";
+"settings.battery.chargeHidden.mclUnsupported" = "按鈕未顯示：這台 Mac 不支援原生充電上限";
+"settings.battery.chargeHidden.noBattery" = "按鈕未顯示：未偵測到電池";
+"settings.battery.chargeHidden.batterySectionHidden" = "按鈕未顯示：狀態面板未啟用電池模組";
+"settings.battery.chargeHidden.disconnectedFromPower" = "按鈕未顯示：未連接電源";
+"settings.battery.chargeHidden.fullyCharged" = "按鈕未顯示：電池已充滿";
+"settings.battery.chargeHidden.stateReadFailed" = "按鈕未顯示：無法讀取系統充電狀態，請稍後重新開啟此頁";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "按鈕未顯示：目前電池優化的充電上限為 100% 不需要這個按鈕";
+"settings.battery.chargeHidden.unrecognizedChargeLimitState" = "按鈕未顯示：系統充電上限目前無法暫時覆寫";
+"settings.battery.chargeHidden.restoredLimit" = "按鈕未顯示：正在恢復至 %d%% 上限，等待充電穩定";
+"settings.battery.chargeHidden.controllerUnavailable" = "按鈕未顯示：充電控制暫時無法使用";
 "settings.battery.restoreLimit" = "取消後恢復的充電上限";
 "settings.battery.restoreLimitDescription" = "取消立即完全充電後要恢復的充電上限。";
 "battery.action.chargeToFullNow" = "立即完全充電";
@@ -699,6 +724,7 @@
 "brightness.appAbsent" = "需要 BetterDisplay";
 "brightness.noBackend" = "無法控制亮度";
 "brightness.unresponsive" = "沒有回應";
+"brightness.backend.automatic" = "自動";
 "brightness.backend.directDDC" = "直接 DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "關閉某台顯示器即從狀態面板中隱藏其亮度列。";
@@ -756,6 +782,7 @@
 "settings.brightness.builtIn" = "內建";
 "settings.brightness.internalBackend.description" = "內建顯示器的亮度使用 DisplayServices 後端。";
 "settings.brightness.externalBackend.description" = "選擇 Status Trio 控制此顯示器亮度的方式。";
+"settings.brightness.automatic.description" = "自動：BetterDisplay 執行時優先使用，未執行時使用直接 DDC。";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay 未執行，或未開啟通知整合。";
 "settings.brightness.compatibility.title" = "顯示器調不了亮度？";
 "settings.brightness.compatibility.description" = "各家顯示器的 DDC 實作並不統一，Status Trio 無法涵蓋所有型號。如果某台顯示器的亮度在這裡調不了，可以把它切到 BetterDisplay 後端——Status Trio 會透過 BetterDisplay 來調節。免費版就夠用，不需要購買 Pro。";
@@ -766,6 +793,7 @@
 "settings.battery.autoLowPowerThreshold" = "自動開啟低電量模式";
 "settings.battery.autoLowPowerThresholdDescription" = "使用電池時，電量低於此值就自動開啟低電量模式。";
 "battery.highPowerMode.toggle" = "高電量模式";
+"battery.details.highPower.unsupported" = "不支援";
 "battery.highPowerMode.toggleDescription" = "提高風扇轉速以獲得更高的持續效能，風扇噪音會增加。";
 "battery.highPowerMode.helperNeedsUpdate" = "電源 helper 需要更新後才能使用高電量模式。";
 "battery.highPowerMode.failure" = "無法切換高電量模式，請稍後再試。";

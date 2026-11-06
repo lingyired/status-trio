@@ -744,6 +744,56 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(source.contains("compatibilityGroup"))
         XCTAssertTrue(source.contains("NSWorkspace.shared.open"))
     }
+
+    /// Every hidden reason must reach a real translated sentence, not the raw
+    /// key, so the settings hint never shows `settings.battery…` to a user.
+    func testChargeToFullNowHiddenReasonTextIsLocalizedForEveryReason() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let localization = Localization(
+            defaults: suite.defaults,
+            preferredLanguages: ["zh-Hans"]
+        )
+
+        let reasons: [ChargeToFullNowHiddenReason] = [
+            .unsupportedSystem,
+            .unsupportedArchitecture,
+            .frameworkUnavailable,
+            .apiUnavailable,
+            .mclUnsupported,
+            .noBattery,
+            .batterySectionHidden,
+            .disconnectedFromPower,
+            .fullyCharged,
+            .stateReadFailed,
+            .noActiveChargeLimit,
+            .unrecognizedChargeLimitState,
+            .restoredLimit(90)
+        ]
+
+        for reason in reasons {
+            let text = ChargeToFullNowHiddenReasonText.text(
+                for: reason,
+                localization: localization
+            )
+            XCTAssertFalse(text.isEmpty, "\(reason) produced empty text")
+            XCTAssertFalse(
+                text.hasPrefix("settings.battery"),
+                "\(reason) fell back to its raw key"
+            )
+            XCTAssertTrue(
+                text.hasPrefix("按钮未显示："),
+                "\(reason) lost the Chinese prefix"
+            )
+        }
+
+        XCTAssertTrue(
+            ChargeToFullNowHiddenReasonText.text(
+                for: .restoredLimit(90),
+                localization: localization
+            ).contains("90%")
+        )
+    }
 }
 
 @MainActor

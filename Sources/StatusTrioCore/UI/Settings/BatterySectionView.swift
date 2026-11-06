@@ -85,14 +85,32 @@ struct BatterySectionView: View {
 
     @ViewBuilder
     private var chargeManagementContent: some View {
+        SettingsToggleRow(
+            symbol: "bolt.badge.clock.fill",
+            tint: .green,
+            title: localization.string(.settingsBatteryShowChargeToFullNow),
+            subtitle: localization.string(.settingsBatteryShowChargeToFullNowDescription),
+            isOn: $store.showsChargeToFullNowButton
+        )
+
+        if let chargeToFullNow {
+            ChargeToFullNowDiagnosticsView(
+                controller: chargeToFullNow,
+                battery: statusStore.snapshot.battery,
+                batterySectionVisible: store.enabledPopupSections.contains(.battery)
+                    && store.popupSectionOrder.contains(.battery),
+                enabled: store.showsChargeToFullNowButton
+            )
+        } else if store.showsChargeToFullNowButton {
+            Text(localization.string(.settingsBatteryChargeHiddenControllerUnavailable))
+                .font(.system(size: 11))
+                .foregroundStyle(.red)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                .padding(.bottom, 8)
+        }
         if chargeToFullNow?.isSettingAvailable == true {
             chargeToFullNowContent
-        } else {
-            // Never leave an empty card when the platform does not offer
-            // the temporary full-charge override.
-            SettingsHintRow(
-                text: localization.string(.batteryActionChargeToFullNowUnavailable)
-            )
         }
         systemChargeLimitUnavailableNote
     }
@@ -101,16 +119,6 @@ struct BatterySectionView: View {
     @ViewBuilder
     private var chargeToFullNowContent: some View {
         if let chargeToFullNow, chargeToFullNow.isSettingAvailable {
-            SettingsToggleRow(
-                symbol: "bolt.badge.clock.fill",
-                tint: .green,
-                title: localization.string(.settingsBatteryShowChargeToFullNow),
-                subtitle: localization.string(
-                    .settingsBatteryShowChargeToFullNowDescription
-                ),
-                isOn: $store.showsChargeToFullNowButton
-            )
-
             SettingsDivider()
 
             // macOS removes the persisted charge limit while the native

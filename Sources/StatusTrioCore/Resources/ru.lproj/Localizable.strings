@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth-устройства";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Устройства Bluetooth ещё не прочитаны. Разрешите доступ к Bluetooth выше или сопрягите устройство.";
 "settings.bluetooth.volumeColor" = "Показывать громкость Bluetooth синим";
+"settings.bluetooth.iconColor" = "Цвет значка Bluetooth";
+"settings.bluetooth.iconColorDescription" = "Выберите цвет значка Bluetooth в центре: по умолчанию синий, чёрный или белый цвет строки меню либо свой цвет.";
+"settings.bluetooth.iconColor.blue" = "Синий";
+"settings.bluetooth.iconColor.primary" = "Как в системе";
+"settings.bluetooth.iconColor.custom" = "Свой цвет";
 "settings.bluetooth.volumeColorDescription" = "Активные точки громкости или дуга становятся синими при выводе звука через Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Приоритет ошибок сети";
 "settings.bluetooth.networkErrorPriorityDescription" = "При ошибке подключения или отсутствии сети остаётся значок сети вместо устройства Bluetooth.";
@@ -385,6 +390,8 @@
 "accessibility.battery" = "Батарея %d%%";
 "accessibility.volume" = "Громкость %@";
 "settings.refreshInterval" = "Интервал обновления";
+"settings.refreshInterval.onBattery" = "От батареи";
+"settings.refreshInterval.onPower" = "От сети";
 "settings.refreshInterval.description" = "Как часто Status Trio проверяет изменения. Более частое обновление увеличивает нагрузку на CPU.";
 "settings.refreshInterval.value" = "%d секунд";
 "settings.popup.order" = "Отображаемые элементы";
@@ -536,6 +543,10 @@
 "battery.details.adapter" = "Номинальная мощность адаптера";
 "battery.details.remaining" = "Оставшееся время";
 "battery.details.cycles" = "Число циклов";
+"battery.details.maxCapacity" = "Максимальная ёмкость";
+"battery.details.batteryCondition" = "Состояние батареи";
+"battery.details.condition.normal" = "Норма";
+"battery.details.condition.service" = "Рекомендуется обслуживание";
 "battery.details.lowPower" = "Режим энергосбережения";
 "battery.details.on" = "Вкл.";
 "battery.details.off" = "Выкл.";
@@ -672,6 +683,20 @@
 "battery.energy.monitoringDescription" = "Если включено, активность приложений измеряется в фоне даже при закрытой панели. Сбор приостанавливается при отключении, во время сна системы или экрана и при выходе из Status Trio.";
 "settings.battery.showChargeToFullNow" = "Показывать кнопку «Зарядить полностью сейчас»";
 "settings.battery.showChargeToFullNowDescription" = "Показывает в панели состояния кнопку, которая временно снимает ограничение зарядки macOS и заряжает до 100 %.";
+"settings.battery.chargeHidden.unsupportedSystem" = "Кнопка скрыта: Требуется macOS 26.4 или новее";
+"settings.battery.chargeHidden.unsupportedArchitecture" = "Кнопка скрыта: Требуется Mac с чипом Apple";
+"settings.battery.chargeHidden.frameworkUnavailable" = "Кнопка скрыта: Системный фреймворк зарядки недоступен";
+"settings.battery.chargeHidden.apiUnavailable" = "Кнопка скрыта: Системный API зарядки недоступен";
+"settings.battery.chargeHidden.mclUnsupported" = "Кнопка скрыта: Этот Mac не поддерживает встроенный предел зарядки";
+"settings.battery.chargeHidden.noBattery" = "Кнопка скрыта: Батарея не обнаружена";
+"settings.battery.chargeHidden.batterySectionHidden" = "Кнопка скрыта: Раздел батареи отключён в панели состояния";
+"settings.battery.chargeHidden.disconnectedFromPower" = "Кнопка скрыта: Питание не подключено";
+"settings.battery.chargeHidden.fullyCharged" = "Кнопка скрыта: Батарея полностью заряжена";
+"settings.battery.chargeHidden.stateReadFailed" = "Кнопка скрыта: Не удалось прочитать состояние зарядки системы. Откройте эту страницу позже";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "Кнопка скрыта: Оптимизированный аккумулятором предел зарядки — 100%, эта кнопка не нужна";
+"settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Кнопка скрыта: Системный предел зарядки сейчас нельзя временно отменить";
+"settings.battery.chargeHidden.restoredLimit" = "Кнопка скрыта: Восстановление предела %d%%; ожидание стабилизации зарядки";
+"settings.battery.chargeHidden.controllerUnavailable" = "Кнопка скрыта: Управление зарядкой временно недоступно";
 "settings.battery.restoreLimit" = "Предел после отмены";
 "settings.battery.restoreLimitDescription" = "Предел зарядки, восстанавливаемый при отмене «Зарядить полностью сейчас».";
 "battery.action.chargeToFullNow" = "Зарядить полностью сейчас";
@@ -699,6 +724,7 @@
 "brightness.appAbsent" = "Требуется BetterDisplay";
 "brightness.noBackend" = "Нет управления яркостью";
 "brightness.unresponsive" = "Не отвечает";
+"brightness.backend.automatic" = "Автоматически";
 "brightness.backend.directDDC" = "Прямой DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Отключите дисплей, чтобы скрыть его строку яркости.";
@@ -756,6 +782,7 @@
 "settings.brightness.builtIn" = "Встроенный";
 "settings.brightness.internalBackend.description" = "Яркость встроенного дисплея использует бэкенд DisplayServices.";
 "settings.brightness.externalBackend.description" = "Выберите, как Status Trio управляет яркостью этого дисплея.";
+"settings.brightness.automatic.description" = "Автоматически: используется BetterDisplay, пока он запущен; иначе — прямой DDC.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay не запущен или его интеграция с уведомлениями отключена.";
 "settings.brightness.compatibility.title" = "Не регулируется яркость?";
 "settings.brightness.compatibility.description" = "Производители реализуют DDC по-разному, поэтому Status Trio не может поддерживать все модели. Если яркость дисплея здесь не регулируется, переключите его на бэкенд BetterDisplay — Status Trio будет управлять им через BetterDisplay. Бесплатной версии достаточно; лицензия Pro не нужна.";
@@ -766,6 +793,7 @@
 "settings.battery.autoLowPowerThreshold" = "Автоматически включать режим низкого энергопотребления";
 "settings.battery.autoLowPowerThresholdDescription" = "Режим низкого энергопотребления включается автоматически ниже этого уровня при работе от аккумулятора.";
 "battery.highPowerMode.toggle" = "Режим высокой мощности";
+"battery.details.highPower.unsupported" = "Не поддерживается";
 "battery.highPowerMode.toggleDescription" = "Ускоряет вентиляторы для более высокой длительной производительности ценой большего шума.";
 "battery.highPowerMode.helperNeedsUpdate" = "Помощник питания необходимо обновить, прежде чем использовать режим высокой мощности.";
 "battery.highPowerMode.failure" = "Не удалось переключить режим высокой мощности. Повторите попытку.";

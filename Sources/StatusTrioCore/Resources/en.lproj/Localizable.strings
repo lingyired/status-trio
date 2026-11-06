@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth Devices";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "No Bluetooth devices read yet. Grant Bluetooth access above, or pair a device.";
 "settings.bluetooth.volumeColor" = "Use blue for Bluetooth volume";
+"settings.bluetooth.iconColor" = "Bluetooth icon colour";
+"settings.bluetooth.iconColorDescription" = "Choose the middle Bluetooth icon's colour: blue by default, the menu bar's black or white, or a custom colour.";
+"settings.bluetooth.iconColor.blue" = "Blue";
+"settings.bluetooth.iconColor.primary" = "Follow system";
+"settings.bluetooth.iconColor.custom" = "Custom colour";
 "settings.bluetooth.volumeColorDescription" = "The active volume dots or arc turn blue while audio is playing through Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Let network errors take priority";
 "settings.bluetooth.networkErrorPriorityDescription" = "Connection errors and offline states keep the network icon instead of the Bluetooth device icon.";
@@ -384,6 +389,8 @@
 "accessibility.battery" = "Battery %d%%";
 "accessibility.volume" = "Volume %@";
 "settings.refreshInterval" = "Status refresh interval";
+"settings.refreshInterval.onBattery" = "On battery";
+"settings.refreshInterval.onPower" = "Plugged in";
 "settings.refreshInterval.description" = "How often Status Trio checks for changes. Faster updates use more CPU.";
 "settings.refreshInterval.value" = "%d seconds";
 "settings.popup.order" = "Displayed Items";
@@ -535,6 +542,10 @@
 "battery.details.adapter" = "Adapter rating";
 "battery.details.remaining" = "Time remaining";
 "battery.details.cycles" = "Cycle count";
+"battery.details.maxCapacity" = "Maximum capacity";
+"battery.details.batteryCondition" = "Battery status";
+"battery.details.condition.normal" = "Normal";
+"battery.details.condition.service" = "Service recommended";
 "battery.details.lowPower" = "Low Power Mode";
 "battery.details.on" = "On";
 "battery.details.off" = "Off";
@@ -671,6 +682,20 @@
 "battery.energy.monitoringDescription" = "When enabled, samples app activity in the background even while the panel is closed. Sampling pauses during sleep, when disabled, or when Status Trio quits.";
 "settings.battery.showChargeToFullNow" = "Show Charge to Full Now Button";
 "settings.battery.showChargeToFullNowDescription" = "Show a button in the status panel to temporarily override the macOS charge limit and charge to 100%.";
+"settings.battery.chargeHidden.unsupportedSystem" = "Button hidden: Requires macOS 26.4 or later";
+"settings.battery.chargeHidden.unsupportedArchitecture" = "Button hidden: Requires a Mac with Apple silicon";
+"settings.battery.chargeHidden.frameworkUnavailable" = "Button hidden: System charging framework unavailable";
+"settings.battery.chargeHidden.apiUnavailable" = "Button hidden: System charging API unavailable";
+"settings.battery.chargeHidden.mclUnsupported" = "Button hidden: This Mac does not support native charge limits";
+"settings.battery.chargeHidden.noBattery" = "Button hidden: No battery detected";
+"settings.battery.chargeHidden.batterySectionHidden" = "Button hidden: Battery section is disabled in the status panel";
+"settings.battery.chargeHidden.disconnectedFromPower" = "Button hidden: Not connected to power";
+"settings.battery.chargeHidden.fullyCharged" = "Button hidden: Battery is fully charged";
+"settings.battery.chargeHidden.stateReadFailed" = "Button hidden: Couldn’t read system charging state. Reopen this page later";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "Button hidden: The battery-optimized charge limit is 100%, so this button isn't needed";
+"settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Button hidden: System charge limit cannot currently be overridden";
+"settings.battery.chargeHidden.restoredLimit" = "Button hidden: Restoring the %d%% limit; waiting for charging to settle";
+"settings.battery.chargeHidden.controllerUnavailable" = "Button hidden: Charging control is temporarily unavailable";
 "settings.battery.restoreLimit" = "Restore Limit After Cancelling";
 "settings.battery.restoreLimitDescription" = "The charge limit to restore when you cancel Charge to Full Now.";
 "battery.action.chargeToFullNow" = "Charge to Full Now";
@@ -697,6 +722,7 @@
 "brightness.appAbsent" = "Requires BetterDisplay";
 "brightness.noBackend" = "No brightness control";
 "brightness.unresponsive" = "Not responding";
+"brightness.backend.automatic" = "Automatic";
 "brightness.backend.directDDC" = "Direct DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Turn a display off to hide its brightness row.";
@@ -754,6 +780,7 @@
 "settings.brightness.builtIn" = "Built-in";
 "settings.brightness.internalBackend.description" = "Built-in display brightness uses the DisplayServices backend.";
 "settings.brightness.externalBackend.description" = "Choose how Status Trio controls this display's brightness.";
+"settings.brightness.automatic.description" = "Automatic prefers BetterDisplay while it is running; otherwise, it uses direct DDC.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay isn't running or its notification integration is off.";
 "settings.brightness.compatibility.title" = "Can't control a display?";
 "settings.brightness.compatibility.description" = "Display vendors implement DDC differently, so Status Trio can't cover every model. If a display's brightness can't be adjusted here, switch it to the BetterDisplay backend — Status Trio will drive it through BetterDisplay. The free version is enough; no Pro license needed.";
@@ -764,6 +791,7 @@
 "settings.battery.autoLowPowerThreshold" = "Auto-enable Low Power Mode";
 "settings.battery.autoLowPowerThresholdDescription" = "Low Power Mode turns on when the battery drops below this level on battery.";
 "battery.highPowerMode.toggle" = "High Power Mode";
+"battery.details.highPower.unsupported" = "Not supported";
 "battery.highPowerMode.toggleDescription" = "Runs the fans faster for higher sustained performance, at the cost of more fan noise.";
 "battery.highPowerMode.helperNeedsUpdate" = "The power helper needs updating before High Power Mode can be used.";
 "battery.highPowerMode.failure" = "Could not switch High Power Mode. Try again.";

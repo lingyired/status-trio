@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Dispositivos Bluetooth";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Aún no se han leído dispositivos Bluetooth. Concede el acceso Bluetooth arriba o empareja un dispositivo.";
 "settings.bluetooth.volumeColor" = "Usar azul para el volumen de Bluetooth";
+"settings.bluetooth.iconColor" = "Color del icono de Bluetooth";
+"settings.bluetooth.iconColorDescription" = "Elige el color del icono de Bluetooth central: azul por defecto, el negro o blanco de la barra de menús, o un color personalizado.";
+"settings.bluetooth.iconColor.blue" = "Azul";
+"settings.bluetooth.iconColor.primary" = "Seguir el sistema";
+"settings.bluetooth.iconColor.custom" = "Color personalizado";
 "settings.bluetooth.volumeColorDescription" = "Los puntos activos o el arco del volumen se vuelven azules al reproducir audio por Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Dar prioridad a los errores de red";
 "settings.bluetooth.networkErrorPriorityDescription" = "Los errores de conexión y el estado sin conexión mantienen el icono de red en lugar del dispositivo Bluetooth.";
@@ -385,6 +390,8 @@
 "accessibility.battery" = "Batería %d%%";
 "accessibility.volume" = "Volumen %@";
 "settings.refreshInterval" = "Intervalo de actualización";
+"settings.refreshInterval.onBattery" = "Con batería";
+"settings.refreshInterval.onPower" = "Conectado a la corriente";
 "settings.refreshInterval.description" = "Con qué frecuencia Status Trio comprueba cambios. Una actualización más frecuente consume más CPU.";
 "settings.refreshInterval.value" = "%d segundos";
 "settings.popup.order" = "Elementos mostrados";
@@ -536,6 +543,10 @@
 "battery.details.adapter" = "Potencia nominal del adaptador";
 "battery.details.remaining" = "Tiempo restante";
 "battery.details.cycles" = "Ciclos de carga";
+"battery.details.maxCapacity" = "Capacidad máxima";
+"battery.details.batteryCondition" = "Estado de la batería";
+"battery.details.condition.normal" = "Normal";
+"battery.details.condition.service" = "Revisión recomendada";
 "battery.details.lowPower" = "Modo de bajo consumo";
 "battery.details.on" = "Activado";
 "battery.details.off" = "Desactivado";
@@ -672,6 +683,20 @@
 "battery.energy.monitoringDescription" = "Al activarlo, se muestrea la actividad de las apps en segundo plano aunque el panel esté cerrado. El muestreo se pausa al desactivarlo, durante la suspensión del sistema o la pantalla y al salir de Status Trio.";
 "settings.battery.showChargeToFullNow" = "Mostrar botón Cargar completamente ahora";
 "settings.battery.showChargeToFullNowDescription" = "Muestra un botón en el panel de estado para omitir temporalmente el límite de carga de macOS y cargar hasta el 100 %.";
+"settings.battery.chargeHidden.unsupportedSystem" = "Botón oculto: Requiere macOS 26.4 o posterior";
+"settings.battery.chargeHidden.unsupportedArchitecture" = "Botón oculto: Requiere un Mac con chip de Apple";
+"settings.battery.chargeHidden.frameworkUnavailable" = "Botón oculto: Framework de carga del sistema no disponible";
+"settings.battery.chargeHidden.apiUnavailable" = "Botón oculto: API de carga del sistema no disponible";
+"settings.battery.chargeHidden.mclUnsupported" = "Botón oculto: Este Mac no admite límites de carga nativos";
+"settings.battery.chargeHidden.noBattery" = "Botón oculto: No se detecta ninguna batería";
+"settings.battery.chargeHidden.batterySectionHidden" = "Botón oculto: Sección Batería desactivada en el panel de estado";
+"settings.battery.chargeHidden.disconnectedFromPower" = "Botón oculto: Sin conexión a la corriente";
+"settings.battery.chargeHidden.fullyCharged" = "Botón oculto: Batería completamente cargada";
+"settings.battery.chargeHidden.stateReadFailed" = "Botón oculto: No se puede leer el estado de carga del sistema. Vuelve a abrir esta página más tarde";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "Botón oculto: El límite de carga optimizado por la batería es del 100%, no se necesita este botón";
+"settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Botón oculto: El límite de carga del sistema no se puede omitir ahora";
+"settings.battery.chargeHidden.restoredLimit" = "Botón oculto: Restaurando el límite al %d%%; esperando a que la carga se estabilice";
+"settings.battery.chargeHidden.controllerUnavailable" = "Botón oculto: Control de carga temporalmente no disponible";
 "settings.battery.restoreLimit" = "Límite restaurado al cancelar";
 "settings.battery.restoreLimitDescription" = "Límite de carga que se restaura al cancelar «Cargar completamente ahora».";
 "battery.action.chargeToFullNow" = "Cargar completamente ahora";
@@ -699,6 +724,7 @@
 "brightness.appAbsent" = "Requiere BetterDisplay";
 "brightness.noBackend" = "Sin control de brillo";
 "brightness.unresponsive" = "No responde";
+"brightness.backend.automatic" = "Automático";
 "brightness.backend.directDDC" = "DDC directo";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Desactiva una pantalla para ocultar su fila de brillo.";
@@ -756,6 +782,7 @@
 "settings.brightness.builtIn" = "Integrada";
 "settings.brightness.internalBackend.description" = "El brillo de la pantalla integrada usa el backend DisplayServices.";
 "settings.brightness.externalBackend.description" = "Elige cómo Status Trio controla el brillo de esta pantalla.";
+"settings.brightness.automatic.description" = "Automático da prioridad a BetterDisplay mientras está en ejecución; si no, utiliza DDC directo.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay no se está ejecutando o su integración de notificaciones está desactivada.";
 "settings.brightness.compatibility.title" = "¿No puedes controlar una pantalla?";
 "settings.brightness.compatibility.description" = "Cada fabricante implementa DDC a su manera, así que Status Trio no puede cubrir todos los modelos. Si el brillo de una pantalla no se puede ajustar aquí, cámbiala al backend BetterDisplay: Status Trio la controlará a través de BetterDisplay. La versión gratuita es suficiente; no hace falta una licencia Pro.";
@@ -766,6 +793,7 @@
 "settings.battery.autoLowPowerThreshold" = "Activar automáticamente el modo de bajo consumo";
 "settings.battery.autoLowPowerThresholdDescription" = "El modo de bajo consumo se activa automáticamente por debajo de este nivel cuando usa la batería.";
 "battery.highPowerMode.toggle" = "Modo de alto consumo";
+"battery.details.highPower.unsupported" = "No compatible";
 "battery.highPowerMode.toggleDescription" = "Hace girar los ventiladores más rápido para lograr un rendimiento sostenido mayor, a costa de más ruido.";
 "battery.highPowerMode.helperNeedsUpdate" = "El asistente de energía debe actualizarse antes de poder usar el modo de alto consumo.";
 "battery.highPowerMode.failure" = "No se pudo cambiar el modo de alto consumo. Inténtalo de nuevo.";

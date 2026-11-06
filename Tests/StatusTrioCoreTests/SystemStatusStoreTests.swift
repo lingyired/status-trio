@@ -42,6 +42,99 @@ final class SystemStatusStoreTests: XCTestCase {
         store.stop()
     }
 
+    // MARK: - #255 refresh interval lifecycle
+
+    func testChangingRefreshIntervalRestartsTheWaitImmediately() async {
+        let sleeper = ManualSleeper()
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            refreshInterval: .seconds(15),
+            sleep: { await sleeper.sleep($0) }
+        )
+
+        store.start()
+        await sleeper.waitForCallCount(1)
+        XCTAssertEqual(sleeper.durations, [.seconds(15)])
+
+        store.setRefreshInterval(.seconds(5))
+        await waitUntil { sleeper.callCount >= 2 }
+
+        XCTAssertEqual(
+            sleeper.durations,
+            [.seconds(15), .seconds(5)],
+            "a cadence change must cancel the old wait and start the new one"
+        )
+        sleeper.releaseAll()
+        store.stop()
+    }
+
+    func testSettingTheSameRefreshIntervalDoesNotRestartTheWait() async {
+        let sleeper = ManualSleeper()
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            refreshInterval: .seconds(15),
+            sleep: { await sleeper.sleep($0) }
+        )
+
+        store.start()
+        await sleeper.waitForCallCount(1)
+
+        store.setRefreshInterval(.seconds(15))
+        await drainMainActorTasks()
+        await drainMainActorTasks()
+
+        XCTAssertEqual(sleeper.callCount, 1, "an unchanged cadence must not rebuild the wait")
+        sleeper.releaseAll()
+        store.stop()
+    }
+
+    func testChangingRefreshIntervalAfterStopDoesNotRestartTheWait() async {
+        let sleeper = ManualSleeper()
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            refreshInterval: .seconds(15),
+            sleep: { await sleeper.sleep($0) }
+        )
+
+        store.start()
+        await sleeper.waitForCallCount(1)
+        store.stop()
+
+        store.setRefreshInterval(.seconds(5))
+        await drainMainActorTasks()
+
+        XCTAssertEqual(sleeper.callCount, 1, "a stopped store must not resurrect polling")
+        sleeper.releaseAll()
+    }
+
+    func testRefreshIntervalSetBeforeStartIsUsedByTheFirstWait() async {
+        let sleeper = ManualSleeper()
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            refreshInterval: .seconds(15),
+            sleep: { await sleeper.sleep($0) }
+        )
+
+        store.setRefreshInterval(.seconds(7))
+        await drainMainActorTasks()
+        XCTAssertEqual(sleeper.callCount, 0, "no wait may run before start()")
+
+        store.start()
+        await sleeper.waitForCallCount(1)
+
+        XCTAssertEqual(sleeper.durations, [.seconds(7)])
+        sleeper.releaseAll()
+        store.stop()
+    }
+
     func testVPNMonitoringFollowsPopoverLifetime() async {
         let vpn = FakeVPNMonitor()
         let sleeper = ManualSleeper()

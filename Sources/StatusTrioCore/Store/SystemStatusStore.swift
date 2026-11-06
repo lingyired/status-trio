@@ -253,6 +253,10 @@ final class SystemStatusStore: ObservableObject {
     private var lastPublishedSnapshot: StatusSnapshot?
     /// Optimistic display brightness while the backend confirms the write.
     private var pendingBrightnessScalars: [String: Double] = [:]
+    /// The monitor's publication sequence when each optimistic target began.
+    /// Any later publication supersedes the target, even if a confirmation was
+    /// coalesced away by the update stream.
+    private var pendingBrightnessSequences: [String: UInt64] = [:]
     /// Optimistic input gain while the input monitor confirms the write.
     private var pendingInputScalar: Double?
     private var pendingInputDeviceID: AudioDeviceID?
@@ -570,6 +574,17 @@ final class SystemStatusStore: ObservableObject {
         monitorTasks = tasks
         reconcileBluetoothDemand()
 
+        startRefreshTask()
+    }
+
+    /// Starts (or restarts) the fallback wait loop with the current interval.
+    ///
+    /// #255: a cadence change must take effect immediately, so changing the
+    /// interval cancels the in-flight wait and starts a fresh one. This only
+    /// touches the wait task — the hardware monitors keep their own tasks and
+    /// are never restarted, and no immediate extra tick is scheduled.
+    private func startRefreshTask() {
+        refreshTask?.cancel()
         refreshTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 guard let sleep = self?.sleep, let interval = self?.refreshInterval else { return }
@@ -1127,6 +1142,11 @@ final class SystemStatusStore: ObservableObject {
     func setRefreshInterval(_ interval: Duration) {
         guard interval != refreshInterval else { return }
         refreshInterval = interval
+        // Only replace the wait when the store is actually running. Called
+        // before start() it just records the value the first wait should use;
+        // called after stop() it must not resurrect polling.
+        guard hasStarted, !hasStopped else { return }
+        startRefreshTask()
     }
 
     func setPopoverVisible(_ visible: Bool) {
@@ -1338,7 +1358,16 @@ final class SystemStatusStore: ObservableObject {
     private func updateBrightnessDetailsVisibility() {
         let needed = needsBrightnessDetails
         brightnessMonitor.setDetailsVisible(needed)
-        if needed { brightnessMonitor.refresh() }
+        if needed {
+            brightnessMonitor.refresh()
+        } else {
+            // The optimistic target only exists to bridge one open panel's write
+            // to its read-back. Once no brightness surface is visible it must
+            // not pin the value, or reopening would keep showing a stale target
+            // instead of the display's actual brightness.
+            pendingBrightnessScalars.removeAll()
+            pendingBrightnessSequences.removeAll()
+        }
     }
 
     func bindInputSettings(_ settings: SettingsStore) {
@@ -1834,20 +1863,36 @@ final class SystemStatusStore: ObservableObject {
         guard !pendingBrightnessScalars.isEmpty else { return value }
         let displayIDs = Set(value.displays.map(\.id))
         pendingBrightnessScalars = pendingBrightnessScalars.filter { displayIDs.contains($0.key) }
+        pendingBrightnessSequences = pendingBrightnessSequences.filter {
+            pendingBrightnessScalars[$0.key] != nil
+        }
         guard !pendingBrightnessScalars.isEmpty else { return value }
 
         var displays = value.displays
         for index in displays.indices {
             let display = displays[index]
             guard let pending = pendingBrightnessScalars[display.id] else { continue }
+            // A publication made after this write began is authoritative, even
+            // if the write's own confirmation was coalesced out of the stream.
+            // Only readings already queued before the target was set are kept
+            // from dragging the slider back.
+            if let sequence = display.readSequence,
+               let baseline = pendingBrightnessSequences[display.id],
+               sequence > baseline {
+                pendingBrightnessScalars.removeValue(forKey: display.id)
+                pendingBrightnessSequences.removeValue(forKey: display.id)
+                continue
+            }
             guard display.canAdjust, let incoming = display.scalar else {
                 // The backend reported the display as unreadable/unavailable:
                 // drop the optimistic value so the failure is visible.
                 pendingBrightnessScalars.removeValue(forKey: display.id)
+                pendingBrightnessSequences.removeValue(forKey: display.id)
                 continue
             }
             if abs(incoming - pending) <= 0.02 {
                 pendingBrightnessScalars.removeValue(forKey: display.id)
+                pendingBrightnessSequences.removeValue(forKey: display.id)
             } else {
                 displays[index] = display.replacingScalar(pending)
             }
@@ -1862,6 +1907,7 @@ final class SystemStatusStore: ObservableObject {
         guard !hasStopped, scalar.isFinite, !displayID.isEmpty else { return }
         let clamped = min(1, max(0, scalar))
         pendingBrightnessScalars[displayID] = clamped
+        pendingBrightnessSequences[displayID] = brightnessMonitor.latestUpdateSequence(forDisplayID: displayID)
         // Publish the target immediately so the panel follows the wheel/drag
         // instead of waiting for the DDC read-back.
         if let index = liveBrightness.displays.firstIndex(where: { $0.id == displayID }) {

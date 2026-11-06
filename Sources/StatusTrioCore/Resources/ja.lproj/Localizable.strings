@@ -94,6 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth 機器";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Bluetooth 機器をまだ読み取れていません。上部で Bluetooth の権限を許可するか、機器をペアリングしてください。";
 "settings.bluetooth.volumeColor" = "Bluetooth の音量を青色で表示";
+"settings.bluetooth.iconColor" = "Bluetooth アイコンの色";
+"settings.bluetooth.iconColorDescription" = "メニューバー中央の Bluetooth アイコンの色を選択します。既定の青、メニューバーの黒/白、またはカスタム色。";
+"settings.bluetooth.iconColor.blue" = "青";
+"settings.bluetooth.iconColor.primary" = "システムに従う";
+"settings.bluetooth.iconColor.custom" = "カスタム色";
 "settings.bluetooth.volumeColorDescription" = "Bluetooth でオーディオを出力すると、音量の点または円弧のアクティブ部分が青色になります。";
 "settings.bluetooth.networkErrorPriority" = "ネットワークエラーを優先";
 "settings.bluetooth.networkErrorPriorityDescription" = "接続エラーやオフライン状態では、Bluetooth 機器ではなくネットワークアイコンを表示します。";
@@ -385,6 +390,8 @@
 "accessibility.battery" = "バッテリー %d%%";
 "accessibility.volume" = "音量 %@";
 "settings.refreshInterval" = "ステータス更新間隔";
+"settings.refreshInterval.onBattery" = "バッテリー使用時";
+"settings.refreshInterval.onPower" = "電源接続時";
 "settings.refreshInterval.description" = "Status Trio が変更を確認する頻度です。短いほど CPU 使用率が高くなります。";
 "settings.refreshInterval.value" = "%d 秒";
 "settings.popup.order" = "表示項目";
@@ -536,6 +543,10 @@
 "battery.details.adapter" = "アダプタの定格出力";
 "battery.details.remaining" = "残り時間";
 "battery.details.cycles" = "充放電回数";
+"battery.details.maxCapacity" = "最大容量";
+"battery.details.batteryCondition" = "バッテリー状態";
+"battery.details.condition.normal" = "正常";
+"battery.details.condition.service" = "修理をおすすめします";
 "battery.details.lowPower" = "低電力モード";
 "battery.details.on" = "オン";
 "battery.details.off" = "オフ";
@@ -672,6 +683,20 @@
 "battery.energy.monitoringDescription" = "有効にすると、パネルを閉じている間もバックグラウンドでアプリのアクティビティをサンプリングします。無効化時、システムまたは画面のスリープ中、Status Trio 終了時は停止します。";
 "settings.battery.showChargeToFullNow" = "「今すぐフル充電」ボタンを表示";
 "settings.battery.showChargeToFullNowDescription" = "ステータスパネルに、macOS の充電上限を一時的に解除して 100% まで充電するボタンを表示します。";
+"settings.battery.chargeHidden.unsupportedSystem" = "ボタン非表示：macOS 26.4 以降が必要です";
+"settings.battery.chargeHidden.unsupportedArchitecture" = "ボタン非表示：Apple シリコン搭載 Mac が必要です";
+"settings.battery.chargeHidden.frameworkUnavailable" = "ボタン非表示：システムの充電フレームワークを利用できません";
+"settings.battery.chargeHidden.apiUnavailable" = "ボタン非表示：システムの充電 API を利用できません";
+"settings.battery.chargeHidden.mclUnsupported" = "ボタン非表示：この Mac は標準の充電上限に対応していません";
+"settings.battery.chargeHidden.noBattery" = "ボタン非表示：バッテリーが検出されません";
+"settings.battery.chargeHidden.batterySectionHidden" = "ボタン非表示：ステータスパネルのバッテリー項目が無効です";
+"settings.battery.chargeHidden.disconnectedFromPower" = "ボタン非表示：電源に接続されていません";
+"settings.battery.chargeHidden.fullyCharged" = "ボタン非表示：バッテリーはフル充電です";
+"settings.battery.chargeHidden.stateReadFailed" = "ボタン非表示：システムの充電状態を読み取れません。後でこのページを開き直してください";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "ボタン非表示：バッテリー最適化の充電上限が 100% のため、このボタンは不要です";
+"settings.battery.chargeHidden.unrecognizedChargeLimitState" = "ボタン非表示：システムの充電上限を一時解除できる状態ではありません";
+"settings.battery.chargeHidden.restoredLimit" = "ボタン非表示：上限を %d%% に復元中です。充電が安定するまでお待ちください";
+"settings.battery.chargeHidden.controllerUnavailable" = "ボタン非表示：充電制御を一時的に利用できません";
 "settings.battery.restoreLimit" = "キャンセル後に復元する充電上限";
 "settings.battery.restoreLimitDescription" = "「今すぐフル充電」をキャンセルしたときに復元する充電上限。";
 "battery.action.chargeToFullNow" = "今すぐフル充電";
@@ -699,6 +724,7 @@
 "brightness.appAbsent" = "BetterDisplay が必要";
 "brightness.noBackend" = "明るさを制御できません";
 "brightness.unresponsive" = "応答なし";
+"brightness.backend.automatic" = "自動";
 "brightness.backend.directDDC" = "ダイレクト DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "ディスプレイをオフにすると、その明るさの行が非表示になります。";
@@ -756,6 +782,7 @@
 "settings.brightness.builtIn" = "内蔵";
 "settings.brightness.internalBackend.description" = "内蔵ディスプレイの明るさは DisplayServices バックエンドを使用します。";
 "settings.brightness.externalBackend.description" = "このディスプレイの明るさを Status Trio が制御する方法を選択します。";
+"settings.brightness.automatic.description" = "自動：BetterDisplay が実行中の場合は優先して使用し、実行されていない場合は直接 DDC を使用します。";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay が実行されていないか、通知連携がオフになっています。";
 "settings.brightness.compatibility.title" = "明るさを調整できない場合";
 "settings.brightness.compatibility.description" = "ディスプレイメーカーごとに DDC の実装が異なるため、Status Trio はすべての機種に対応できません。ここで明るさを調整できないディスプレイは、BetterDisplay バックエンドに切り替えてください。Status Trio が BetterDisplay 経由で制御します。無料版で十分です。Pro ライセンスは不要です。";
@@ -766,6 +793,7 @@
 "settings.battery.autoLowPowerThreshold" = "低電力モードを自動でオン";
 "settings.battery.autoLowPowerThresholdDescription" = "バッテリー使用時に残量がこの値を下回ると低電力モードを自動でオンにします。";
 "battery.highPowerMode.toggle" = "高電力モード";
+"battery.details.highPower.unsupported" = "非対応";
 "battery.highPowerMode.toggleDescription" = "ファンの回転数を上げて高い持続性能を引き出します。ファンの騒音は大きくなります。";
 "battery.highPowerMode.helperNeedsUpdate" = "高電力モードを使用するには、パワーヘルパーを更新する必要があります。";
 "battery.highPowerMode.failure" = "高電力モードを切り替えられませんでした。もう一度お試しください。";

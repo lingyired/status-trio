@@ -212,6 +212,8 @@ private struct MiddleBluetoothIconOptions: View {
                 SettingsDivider()
             }
             networkIconSourceRow
+            SettingsDivider()
+            BluetoothIconColorRow(store: store)
             if selectedOption.source == .audioDevices {
                 SettingsDivider()
                 bluetoothAudioIconChoiceRow
