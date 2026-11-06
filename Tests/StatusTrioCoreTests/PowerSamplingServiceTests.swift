@@ -35,6 +35,26 @@ final class PowerSamplingServiceTests: XCTestCase {
         XCTAssertTrue(service.demands.isEmpty)
     }
 
+    func testIconOnlyDemandSamplesEveryFiveSeconds() {
+        let service = makeService { _ in .empty }
+
+        service.begin(.icon)
+        XCTAssertEqual(service.samplingInterval, .seconds(5))
+        XCTAssertEqual(PowerSamplingService.interval, .seconds(2))
+
+        service.begin(.panel)
+        XCTAssertEqual(service.samplingInterval, .seconds(2))
+
+        service.end(.panel)
+        XCTAssertEqual(
+            service.samplingInterval,
+            .seconds(5),
+            "Closing the panel restores the icon-only cadence"
+        )
+
+        service.end(.icon)
+    }
+
     func testRepeatedBeginIsIdempotent() {
         let service = makeService { _ in .empty }
         service.begin(.icon)

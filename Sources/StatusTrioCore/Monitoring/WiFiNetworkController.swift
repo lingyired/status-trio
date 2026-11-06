@@ -274,10 +274,10 @@ final class WiFiNetworkController: ObservableObject {
     init(
         scanWorker: any WiFiNetworkScanning = CoreWLANNetworkWorker(),
         now: @escaping () -> Date = Date.init,
-        minimumScanInterval: TimeInterval = 30,
-        periodicRefreshInterval: Duration = .seconds(30),
+        minimumScanInterval: TimeInterval = 120,
+        periodicRefreshInterval: Duration = .seconds(60),
         periodicRefreshSleep: @escaping @Sendable (Duration) async throws -> Void = {
-            try await Task.sleep(for: $0)
+            try await Task.sleep(for: $0, tolerance: $0 / 5)
         }
     ) {
         self.worker = scanWorker

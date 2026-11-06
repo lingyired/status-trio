@@ -226,13 +226,13 @@ final class AudioInputMonitorTests: XCTestCase {
     monitor.setVisible(true)
     await fulfillment(of: [initial], timeout: 5)
 
-    let pollScheduled = sleeper.expectCall(.seconds(1), count: 1)
+    let pollScheduled = sleeper.expectCall(.seconds(5), count: 1)
     await fulfillment(of: [pollScheduled], timeout: 5)
     hardware.setUsageReading(AudioInputUsageReading(defaultDeviceID: 11, isDefaultInputInUse: true))
     let becameActive = log.expectStatus("active input stream updates the visible status") {
       $0.isDefaultInputInUse == true
     }
-    XCTAssertTrue(sleeper.releaseNext(.seconds(1)))
+    XCTAssertTrue(sleeper.releaseNext(.seconds(5)))
     await fulfillment(of: [becameActive], timeout: 5)
 
     XCTAssertEqual(hardware.usageReadCount, 1)
