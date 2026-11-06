@@ -28,10 +28,10 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             let charging = try await render(language: language, available: true, connected: true, charging: true)
             XCTAssertLessThan(charging.height, heightBudget, language.rawValue)
             let missing = try await render(language: language, available: true, connected: true, systemAvailable: false)
-            // An unavailable system reading drops the timestamp row, not just
-            // shortens a value, so the page must lose at least one row of height.
-            XCTAssertGreaterThanOrEqual(connected.height - missing.height, 10,
-                                        "\(language.rawValue) kept the system timestamp row")
+            // The diagnostic system read-time row is gone, so a missing SMC
+            // sample no longer changes the row count.
+            XCTAssertLessThanOrEqual(abs(connected.height - missing.height), 1,
+                                     "\(language.rawValue) must not add a read-time row")
         }
     }
 
@@ -239,7 +239,12 @@ final class BatteryDetailsLayoutTests: XCTestCase {
                 display: .init(watts: 8.07, readAt: observedAt),
                 usb: .init(watts: 4.5, readAt: observedAt),
                 system: .init(watts: 13.22, readAt: observedAt),
-                readAt: observedAt) : nil)
+                readAt: observedAt) : nil,
+            health: BatteryHealthSnapshot(
+                designCapacityMAh: 5_000,
+                maximumCapacityMAh: 4_500,
+                healthPercent: 90
+            ))
         let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: charging,
                                     isLowPowerMode: false, isConnectedToPower: connected)
         let panelState = PanelDetailMapper.battery(

@@ -536,6 +536,8 @@
 "battery.details.adapter" = "适配器额定功率";
 "battery.details.remaining" = "剩余时间";
 "battery.details.cycles" = "循环次数";
+"battery.details.health" = "电池健康度（估算）";
+"battery.details.maxCapacity" = "最大容量";
 "battery.details.lowPower" = "低电量模式";
 "battery.details.on" = "开启";
 "battery.details.off" = "关闭";

@@ -56,10 +56,25 @@ struct BatteryDetailsView: View {
     }
 
     private var detailRows: [PanelDetailRow] {
-        guard state.powerFlow != nil else { return state.rows }
-        let diagramKeys: Set<String> = [LocalizationKey.batteryDetailsSystemPower.rawValue,
-            LocalizationKey.batteryDetailsCharging.rawValue]
-        return state.rows.filter { !diagramKeys.contains($0.id) }
+        var rows = state.rows
+        if state.powerFlow != nil {
+            let diagramKeys: Set<String> = [LocalizationKey.batteryDetailsSystemPower.rawValue,
+                LocalizationKey.batteryDetailsCharging.rawValue]
+            rows = rows.filter { !diagramKeys.contains($0.id) }
+        }
+        if let highPowerMode, highPowerMode.hasProbed, highPowerMode.isSupported {
+            let value = localization.string(
+                highPowerMode.isHighPowerMode ? .batteryDetailsOn : .batteryDetailsOff
+            )
+            rows.append(PanelDetailRow(
+                id: LocalizationKey.settingsBatteryColorsHighPower.rawValue,
+                label: localization.string(.settingsBatteryColorsHighPower),
+                value: value,
+                accessibilityValue: value,
+                tint: .primary
+            ))
+        }
+        return rows
     }
 
     var body: some View {

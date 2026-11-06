@@ -22,7 +22,10 @@ enum PanelDetailMapper {
             } ?? localization.string(reading.unavailableTitle)
             let showsPowerReading = !battery.isConnectedToPower || powerOptions.showsSystem
             if showsPowerReading { rows.append(row(reading.title, value: watts, localization: localization)) }
-            if showsPowerReading, let timestamp = reading.timestamp {
+            // The system read time is diagnostic only and appears late when the
+            // SMC sample arrives, so it is no longer shown in the details list.
+            if showsPowerReading, let timestamp = reading.timestamp,
+               reading.timestampTitle != .batteryDetailsSystemReadAt {
                 rows.append(row(
                     reading.timestampTitle,
                     value: timestamp.formatted(.dateTime.hour().minute().second().locale(localization.resolvedLanguage.locale)),
@@ -49,6 +52,23 @@ enum PanelDetailMapper {
                     Duration.seconds($0 * 60).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated).locale(localization.resolvedLanguage.locale))
                 } ?? localization.string(.batteryDetailsUnavailable)
                 rows.append(row(.batteryDetailsRemaining, value: remaining, localization: localization))
+            }
+            if battery.isPresent, let health = details.health {
+                let healthText = health.healthPercent.map {
+                    ($0 / 100).formatted(.percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale))
+                } ?? localization.string(.batteryDetailsUnavailable)
+                rows.append(row(
+                    .batteryDetailsHealth,
+                    value: healthText,
+                    localization: localization
+                ))
+                if let maximum = health.maximumCapacityMAh {
+                    rows.append(row(
+                        .batteryDetailsMaxCapacity,
+                        value: maximum.formatted(.number.locale(localization.resolvedLanguage.locale)) + " mAh",
+                        localization: localization
+                    ))
+                }
             }
             if battery.isPresent, let count = details.cycleCount {
                 rows.append(row(.batteryDetailsCycles, value: count.formatted(.number.locale(localization.resolvedLanguage.locale)), localization: localization))

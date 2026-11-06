@@ -536,6 +536,8 @@
 "battery.details.adapter" = "Puissance nominale de l’adaptateur";
 "battery.details.remaining" = "Autonomie restante";
 "battery.details.cycles" = "Cycles de charge";
+"battery.details.health" = "Santé de la batterie (estimation)";
+"battery.details.maxCapacity" = "Capacité maximale";
 "battery.details.lowPower" = "Mode économie d’énergie";
 "battery.details.on" = "Activé";
 "battery.details.off" = "Désactivé";

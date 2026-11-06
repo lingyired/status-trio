@@ -536,6 +536,8 @@
 "battery.details.adapter" = "Netzteil-Nennleistung";
 "battery.details.remaining" = "Restlaufzeit";
 "battery.details.cycles" = "Ladezyklen";
+"battery.details.health" = "Batteriezustand (geschätzt)";
+"battery.details.maxCapacity" = "Maximale Kapazität";
 "battery.details.lowPower" = "Stromsparmodus";
 "battery.details.on" = "Ein";
 "battery.details.off" = "Aus";

@@ -31,11 +31,15 @@ struct BatteryDetails: Equatable, Sendable {
     var inputPower: SystemPowerSample?
     var breakdown: BatteryPowerBreakdown?
     var powerAvailability: PowerAvailability
+    /// Read-only capacity telemetry for the health row. Independent of the
+    /// power sample lifecycle so an invalid power read cannot discard it.
+    var health: BatteryHealthSnapshot?
 
     init(adapterWatts: Int? = nil, remainingMinutes: Int? = nil, cycleCount: Int? = nil,
          power: BatteryPowerSample? = nil, powerAvailability: PowerAvailability = .unavailable,
          systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
-         breakdown: BatteryPowerBreakdown? = nil) {
+         breakdown: BatteryPowerBreakdown? = nil,
+         health: BatteryHealthSnapshot? = nil) {
         self.adapterWatts = adapterWatts
         self.remainingMinutes = remainingMinutes
         self.cycleCount = cycleCount
@@ -44,6 +48,7 @@ struct BatteryDetails: Equatable, Sendable {
         self.inputPower = inputPower
         self.breakdown = breakdown
         self.powerAvailability = powerAvailability
+        self.health = health
     }
 }
 
@@ -173,7 +178,9 @@ struct BatteryDetailsReader: Sendable {
         registry: [String: Any], adapterWatts: Int?, remainingSeconds: Double,
         state: BatteryPowerState, now: Date, notBefore: Date? = nil,
         systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
-        batteryPower: BatteryPowerSample? = nil, breakdown: BatteryPowerBreakdown? = nil
+        batteryPower: BatteryPowerSample? = nil, breakdown: BatteryPowerBreakdown? = nil,
+        temperatureCelsius: Double? = nil,
+        chargeTime: BatteryHealthSnapshot.ChargeTimeState = .unavailable
     ) -> BatteryDetails {
         guard state.isPresent else {
             // No battery: the system total is the whole page. A missing or stale
@@ -186,13 +193,21 @@ struct BatteryDetailsReader: Sendable {
             }
             return BatteryDetails(powerAvailability: .available, systemPower: systemPower)
         }
+        let capacity = BatteryHealthParser.parseCapacity(registry: registry)
         var result = BatteryDetails(
             adapterWatts: state.isConnected ? adapterWatts.flatMap { $0 > 0 ? $0 : nil } : nil,
             remainingMinutes: !state.isConnected && remainingSeconds.isFinite && remainingSeconds >= 60
                 && remainingSeconds < Double(Int.max) ? Int(remainingSeconds / 60) : nil,
             cycleCount: (registry["CycleCount"] as? Int).flatMap { $0 >= 0 ? $0 : nil },
             systemPower: state.isConnected ? systemPower : nil,
-            breakdown: acceptableBreakdown(breakdown, state: state, now: now)
+            breakdown: acceptableBreakdown(breakdown, state: state, now: now),
+            health: BatteryHealthSnapshot(
+                designCapacityMAh: capacity.designMAh,
+                maximumCapacityMAh: capacity.maximumMAh,
+                healthPercent: capacity.healthPercent,
+                temperatureCelsius: temperatureCelsius,
+                chargeTime: chargeTime
+            )
         )
         let registryMatches = (registry["ExternalConnected"] as? Bool) == state.isConnected
             && (registry["IsCharging"] as? Bool) == state.isCharging

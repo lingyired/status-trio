@@ -535,6 +535,8 @@
 "battery.details.adapter" = "Adapter rating";
 "battery.details.remaining" = "Time remaining";
 "battery.details.cycles" = "Cycle count";
+"battery.details.health" = "Battery health (estimate)";
+"battery.details.maxCapacity" = "Maximum capacity";
 "battery.details.lowPower" = "Low Power Mode";
 "battery.details.on" = "On";
 "battery.details.off" = "Off";
