@@ -750,6 +750,7 @@
 "settings.brightness.builtIn" = "내장";
 "settings.brightness.internalBackend.description" = "내장 디스플레이 밝기는 DisplayServices 백엔드를 사용합니다.";
 "settings.brightness.externalBackend.description" = "Status Trio가 이 디스플레이의 밝기를 제어하는 방식을 선택하세요.";
+"settings.brightness.automatic.description" = "자동: BetterDisplay가 실행 중이면 우선 사용하고, 실행 중이 아니면 직접 DDC를 사용합니다.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay가 실행 중이 아니거나 알림 연동이 꺼져 있습니다.";
 "settings.brightness.compatibility.title" = "밝기를 조절할 수 없나요?";
 "settings.brightness.compatibility.description" = "제조사마다 DDC 구현이 달라 Status Trio가 모든 모델을 지원할 수는 없습니다. 여기서 밝기를 조절할 수 없는 디스플레이는 BetterDisplay 백엔드로 전환하세요. Status Trio가 BetterDisplay를 통해 제어합니다. 무료 버전으로 충분하며 Pro 라이선스는 필요하지 않습니다.";

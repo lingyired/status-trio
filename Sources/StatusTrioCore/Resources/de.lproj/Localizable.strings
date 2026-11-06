@@ -750,6 +750,7 @@
 "settings.brightness.builtIn" = "Integriert";
 "settings.brightness.internalBackend.description" = "Die Helligkeit des integrierten Displays nutzt das DisplayServices-Backend.";
 "settings.brightness.externalBackend.description" = "Wähle, wie Status Trio die Helligkeit dieses Displays steuert.";
+"settings.brightness.automatic.description" = "Automatisch bevorzugt BetterDisplay, solange es läuft; andernfalls wird direktes DDC verwendet.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay läuft nicht oder seine Benachrichtigungsintegration ist deaktiviert.";
 "settings.brightness.compatibility.title" = "Helligkeit nicht steuerbar?";
 "settings.brightness.compatibility.description" = "Hersteller setzen DDC unterschiedlich um, daher kann Status Trio nicht jedes Modell abdecken. Lässt sich die Helligkeit eines Displays hier nicht einstellen, stelle es auf das BetterDisplay-Backend um — Status Trio steuert es dann über BetterDisplay. Die kostenlose Version genügt; eine Pro-Lizenz ist nicht nötig.";

@@ -750,6 +750,7 @@
 "settings.brightness.builtIn" = "内建";
 "settings.brightness.internalBackend.description" = "内建显示器的亮度使用 DisplayServices 后端。";
 "settings.brightness.externalBackend.description" = "选择 Status Trio 控制此显示器亮度的方式。";
+"settings.brightness.automatic.description" = "自动：BetterDisplay 运行时优先使用，未运行时使用直接 DDC。";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay 未运行，或未开启通知集成。";
 "settings.brightness.compatibility.title" = "显示器调不了亮度？";
 "settings.brightness.compatibility.description" = "各家显示器的 DDC 实现并不统一，Status Trio 无法覆盖所有型号。如果某台显示器的亮度在这里调不了，可以把它切到 BetterDisplay 后端——Status Trio 会通过 BetterDisplay 来调节。免费版就够用，不需要购买 Pro。";

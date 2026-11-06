@@ -750,6 +750,7 @@
 "settings.brightness.builtIn" = "內建";
 "settings.brightness.internalBackend.description" = "內建顯示器的亮度使用 DisplayServices 後端。";
 "settings.brightness.externalBackend.description" = "選擇 Status Trio 控制此顯示器亮度的方式。";
+"settings.brightness.automatic.description" = "自動：BetterDisplay 執行時優先使用，未執行時使用直接 DDC。";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay 未執行，或未開啟通知整合。";
 "settings.brightness.compatibility.title" = "顯示器調不了亮度？";
 "settings.brightness.compatibility.description" = "各家顯示器的 DDC 實作並不統一，Status Trio 無法涵蓋所有型號。如果某台顯示器的亮度在這裡調不了，可以把它切到 BetterDisplay 後端——Status Trio 會透過 BetterDisplay 來調節。免費版就夠用，不需要購買 Pro。";

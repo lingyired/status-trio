@@ -750,6 +750,7 @@
 "settings.brightness.builtIn" = "Embutida";
 "settings.brightness.internalBackend.description" = "O brilho da tela embutida usa o backend DisplayServices.";
 "settings.brightness.externalBackend.description" = "Escolha como o Status Trio controla o brilho desta tela.";
+"settings.brightness.automatic.description" = "Automático prioriza o BetterDisplay enquanto ele está em execução; caso contrário, usa DDC direto.";
 "settings.brightness.backend.betterDisplayNeeded" = "O BetterDisplay não está em execução ou sua integração de notificações está desativada.";
 "settings.brightness.compatibility.title" = "Não consegue controlar uma tela?";
 "settings.brightness.compatibility.description" = "Cada fabricante implementa o DDC de um jeito, então o Status Trio não consegue cobrir todos os modelos. Se o brilho de uma tela não puder ser ajustado aqui, mude-a para o backend BetterDisplay — o Status Trio vai controlá-la pelo BetterDisplay. A versão gratuita é suficiente; não é preciso licença Pro.";

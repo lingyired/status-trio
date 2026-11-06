@@ -69,6 +69,10 @@ struct BrightnessSectionView: View {
                     }
                     displayRow(for: display)
                 }
+                if displays.contains(where: { !$0.isBuiltin }) {
+                    SettingsDivider()
+                    SettingsHintRow(text: localization.string(.settingsBrightnessAutomaticDescription))
+                }
             }
         }
     }

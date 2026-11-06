@@ -750,6 +750,7 @@
 "settings.brightness.builtIn" = "مدمجة";
 "settings.brightness.internalBackend.description" = "يستخدم سطوع الشاشة المدمجة خلفية DisplayServices.";
 "settings.brightness.externalBackend.description" = "اختر كيفية تحكم Status Trio في سطوع هذه الشاشة.";
+"settings.brightness.automatic.description" = "تلقائي: يُفضَّل BetterDisplay عندما يكون قيد التشغيل، وإلا يُستخدم DDC المباشر.";
 "settings.brightness.backend.betterDisplayNeeded" = "تطبيق BetterDisplay غير قيد التشغيل أو أن تكامل الإشعارات فيه معطّل.";
 "settings.brightness.compatibility.title" = "لا يمكن التحكم في السطوع؟";
 "settings.brightness.compatibility.description" = "تختلف طريقة تنفيذ DDC بين مصنّعي الشاشات، لذا لا يمكن لـ Status Trio دعم كل الطُرز. إذا تعذّر ضبط سطوع شاشة من هنا، فبدّل خلفيتها إلى BetterDisplay — وسيتحكم Status Trio بها عبر BetterDisplay. الإصدار المجاني كافٍ، ولا حاجة لشراء Pro.";

@@ -750,6 +750,7 @@
 "settings.brightness.builtIn" = "Integrada";
 "settings.brightness.internalBackend.description" = "El brillo de la pantalla integrada usa el backend DisplayServices.";
 "settings.brightness.externalBackend.description" = "Elige cómo Status Trio controla el brillo de esta pantalla.";
+"settings.brightness.automatic.description" = "Automático da prioridad a BetterDisplay mientras está en ejecución; si no, utiliza DDC directo.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay no se está ejecutando o su integración de notificaciones está desactivada.";
 "settings.brightness.compatibility.title" = "¿No puedes controlar una pantalla?";
 "settings.brightness.compatibility.description" = "Cada fabricante implementa DDC a su manera, así que Status Trio no puede cubrir todos los modelos. Si el brillo de una pantalla no se puede ajustar aquí, cámbiala al backend BetterDisplay: Status Trio la controlará a través de BetterDisplay. La versión gratuita es suficiente; no hace falta una licencia Pro.";
