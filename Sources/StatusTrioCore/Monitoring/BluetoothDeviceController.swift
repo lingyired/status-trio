@@ -770,6 +770,9 @@ final class BluetoothDeviceController: ObservableObject {
                         self.appleBluetoothAudioDiagnosticReporter.report($0)
                     }
                     self.devices = devices
+                    // Expire primary and accessory values even without battery
+                    // demand; the next read may be delayed or never requested.
+                    self.batteryLevels = self.connectedBatteryLevels(self.batteryLevels)
                     self.deviceSnapshotGeneration = snapshotGeneration
                     self.cachedDevices = Array(devices.prefix(Self.cachedDeviceLimit))
                     self.hasLoadedDevices = true
@@ -1125,15 +1128,25 @@ final class BluetoothDeviceController: ObservableObject {
                 // `nil` is a report that could not be read, which is a different
                 // state from a report that carries no level for any device: the
                 // panel reports it once instead of staying silent.
+                let connectedLevels = levels.map { self.connectedBatteryLevels($0) }
                 self.batteryLevelsReadFailed = levels == nil
-                self.batteryLevels = levels ?? [:]
+                self.batteryLevels = connectedLevels ?? [:]
                 self.hasCompletedBatteryRead = true
                 // The primary source is published first and on its own. The
                 // second source is an addition to it, never a precondition for
                 // it, so a read that never answers cannot hold the list back.
-                self.readAccessoryLevelsIfNeeded(request: request, levels: levels)
+                self.readAccessoryLevelsIfNeeded(request: request, levels: connectedLevels)
             }
         }
+    }
+
+    private func connectedBatteryLevels(
+        _ levels: [String: BluetoothBatteryLevel]
+    ) -> [String: BluetoothBatteryLevel] {
+        let connectedAddresses = Set(devices.filter(\.isConnected).map {
+            BluetoothBatteryReader.normalizedAddress($0.id)
+        })
+        return levels.filter { connectedAddresses.contains(BluetoothBatteryReader.normalizedAddress($0.key)) }
     }
 
     /// Reads the accessory power sources for the devices the paired-device

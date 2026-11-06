@@ -67,8 +67,7 @@ struct BatterySectionView: View {
         )
     }
 
-    /// A Mac without a battery reports 100 as its level; spell that out at the
-    /// top of the page so nobody reads the placeholder as a real reading.
+    /// Explain why a Mac without a battery does not display a battery percentage.
     private var noBatteryNoticeGroup: some View {
         SettingsGroup {
             SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryNotice))

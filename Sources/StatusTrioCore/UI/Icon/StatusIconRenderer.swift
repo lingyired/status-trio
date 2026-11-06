@@ -296,7 +296,7 @@ enum StatusIconRenderer {
         return color.brightnessComponent < 0.5
     }
 
-    private static func bluetoothColor(foreground: CGColor) -> CGColor {
+    static func bluetoothColor(foreground: CGColor) -> CGColor {
         usesDarkStatusPalette(foreground: foreground)
             ? bluetoothBlueOnLightBackground
             : bluetoothBlueOnDarkBackground
@@ -1040,6 +1040,11 @@ extension StatusIconRenderer {
         let darkInk = (NSColor(cgColor: foreground)?.usingColorSpace(.deviceRGB)?.brightnessComponent ?? 0) >= 0.5
         let palette = (statusPalette ?? .inferred(foreground: foreground, critical: criticalColor))
             .applying(scene.statusColors, darkAppearance: darkInk)
+            .applying(
+                bluetoothIcon: scene.bluetoothIconColor,
+                foreground: foreground,
+                darkAppearance: darkInk
+            )
 
         context.saveGState()
         defer { context.restoreGState() }
@@ -1407,6 +1412,8 @@ extension StatusIconRenderer {
             statusPalette.charging
         case .bluetooth:
             bluetoothColor(foreground: foreground)
+        case .bluetoothIcon:
+            statusPalette.bluetoothIcon
         }
     }
 

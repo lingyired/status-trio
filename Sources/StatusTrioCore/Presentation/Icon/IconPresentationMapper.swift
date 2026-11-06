@@ -30,7 +30,8 @@ enum IconPresentationMapper {
             footer: footerState(inputs.snapshot.volume, options: configuration.volume,
                                 bluetoothOptions: configuration.bluetooth),
             statusColors: configuration.battery.usesStatusColors
-                ? configuration.battery.batteryStatusColors : .standard
+                ? configuration.battery.batteryStatusColors : .standard,
+            bluetoothIconColor: configuration.bluetooth.iconColor
         )
     }
 
@@ -40,7 +41,22 @@ enum IconPresentationMapper {
         options: BatteryIconOptions,
         closesRing: Bool,
         chargingStatusCenter: Bool
-    ) -> OuterRingState {
+    ) -> OuterRingState? {
+        // A Mac with no battery has nothing for this ring to represent. Keep the
+        // ring's fixed artwork footprint as an empty track so the icon does not
+        // change shape between a laptop and a desktop, but draw no fill and no
+        // level: `percentage` reports a placeholder 100, and showing it would
+        // claim a charged battery that does not exist.
+        guard battery.isPresent else {
+            return OuterRingState(
+                segments: [RingSegmentState(progress: 0, color: .primary)],
+                gap: .closed,
+                accessory: nil,
+                effect: nil,
+                strokeScale: options.ringStrokeScale,
+                gapProgressMode: .absorbed
+            )
+        }
         let role = options.usesStatusColors
             ? StatusMappings.batteryColorRole(
                 battery,
@@ -203,12 +219,12 @@ enum IconPresentationMapper {
             }
         }
 
-        if connectionOptions.centerSource == .batteryPercentage {
+        if connectionOptions.centerSource == .batteryPercentage,
+           battery.isPresent {
             // Every numeric centre mode shares the same size rule: the Wi-Fi
             // Icon Size scale, so switching between percentage and watts does
-            // not change the number's size. A Mac with no battery reports 100
-            // through `BatteryStatus.percentage`, so this slot and the top
-            // battery indicator agree on the same value.
+            // not change the number's size. Without a battery the slot falls
+            // through to the network glyph instead of inventing a level.
             return .text(IconTextState(
                 text: "\(battery.percentage)",
                 color: .primary,
@@ -240,7 +256,11 @@ enum IconPresentationMapper {
             } else {
                 source = .symbol(name: "headphones", variableValue: nil, fallback: nil)
             }
-            return .symbol(IconSymbolState(source: source, color: .bluetooth, scale: bluetoothOptions.symbolScale))
+            // Primary draws the label colour directly (and stays template-safe);
+            // blue and custom go through the scene-carried Bluetooth icon colour.
+            let color: IconColorRole = bluetoothOptions.iconColor == .primary
+                ? .primary : .bluetoothIcon
+            return .symbol(IconSymbolState(source: source, color: color, scale: bluetoothOptions.symbolScale))
         }
 
         return networkState(snapshot: snapshot, options: connectionOptions)

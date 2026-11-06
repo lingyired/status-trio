@@ -52,23 +52,27 @@ final class IconSceneRendererParityTests: XCTestCase {
                 let body = pixels.rgba(x: 12, y: 48)
                 switch style {
                 case .dark:
+                    // The tolerance allows for the antialiased peak of a
+                    // glyph-only artwork: a thin symbol reaches ~91% ink at this
+                    // size, while a text accessory reached full white. The
+                    // palette assertion is about which ink the tile carries.
                     XCTAssertGreaterThan(body.alpha, 250, "Dock dark body: \(fixture.name)")
                     XCTAssertEqual(body.red, 21, accuracy: 3)
                     XCTAssertEqual(body.green, 21, accuracy: 3)
                     XCTAssertEqual(body.blue, 23, accuracy: 3)
-                    XCTAssertTrue(pixels.containsColor(red: 1, green: 1, blue: 1, tolerance: 0.08, minimumAlpha: 0.9), fixture.name)
+                    XCTAssertTrue(pixels.containsColor(red: 1, green: 1, blue: 1, tolerance: 0.1, minimumAlpha: 0.9), fixture.name)
                 case .light:
                     XCTAssertGreaterThan(body.alpha, 250, "Dock light body: \(fixture.name)")
                     XCTAssertGreaterThanOrEqual(body.red, 250)
                     XCTAssertGreaterThanOrEqual(body.green, 250)
                     XCTAssertGreaterThanOrEqual(body.blue, 250)
                     XCTAssertTrue(pixels.containsColor(red: 29.0 / 255.0, green: 29.0 / 255.0, blue: 31.0 / 255.0,
-                                                       tolerance: 0.08, minimumAlpha: 0.9), fixture.name)
+                                                       tolerance: 0.1, minimumAlpha: 0.9), fixture.name)
                 case .clear:
                     XCTAssertGreaterThan(body.alpha, 80, "Dock clear body: \(fixture.name)")
                     XCTAssertLessThan(body.alpha, 240, "Dock clear body: \(fixture.name)")
                     XCTAssertTrue(pixels.containsColor(red: 29.0 / 255.0, green: 29.0 / 255.0, blue: 31.0 / 255.0,
-                                                       tolerance: 0.08, minimumAlpha: 0.9), fixture.name)
+                                                       tolerance: 0.1, minimumAlpha: 0.9), fixture.name)
                 }
             }
         }
@@ -282,7 +286,7 @@ final class IconSceneRendererParityTests: XCTestCase {
         let scene = mappedScene(for: snapshot, configuration: picked)
         XCTAssertEqual(scene.center, .symbol(IconSymbolState(
             source: .symbol(name: symbol, variableValue: nil, fallback: "dot.radiowaves.left.and.right"),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions(networkIconSymbolOverride: symbol).symbolScale
         )))
         let pixels = try menuBarPixels(scene: scene, foreground: CGColor(gray: 1, alpha: 1), size: 28, scale: 2)
@@ -460,6 +464,7 @@ final class IconSceneRendererParityTests: XCTestCase {
         let slash = CenterState.symbol(IconSymbolState(source: .symbol(name: "wifi.slash", variableValue: 1, fallback: nil), color: .primary, scale: 1))
         let placeholderRing = ring(progress: 1, color: .primary, gap: .value,
                                    accessory: .text(IconTextState(text: "100", color: .primary, scale: 1.8)))
+        let absentBatteryRing = ring(progress: 0, color: .primary, gap: .closed, accessory: nil)
         let ordinaryFooter = FooterState.dots(DotsState(count: 4, activeCount: 3, color: .primary, strokeScale: 1.25))
         let inactiveFooter = FooterState.dots(DotsState(count: 4, activeCount: 0, color: .primary, strokeScale: 1.25))
 
@@ -518,7 +523,7 @@ final class IconSceneRendererParityTests: XCTestCase {
             ), ring(progress: 0.28, color: .critical, gap: .value, accessory: .text(IconTextState(text: "28", color: .primary, scale: 1.8)), strokeScale: 1)),
             ("absent battery", BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
                                               isLowPowerMode: false, isConnectedToPower: false), .standard,
-             placeholderRing)
+             absentBatteryRing)
         ]
         for (name, status, options, expectedRing) in batteryCases {
             cases.append(visualCase(
@@ -604,7 +609,7 @@ final class IconSceneRendererParityTests: XCTestCase {
              .standard, BluetoothAudioIconOptions(usesVolumeColor: true),
              .dots(DotsState(count: 4, activeCount: 3, color: .bluetooth, strokeScale: 1.25)),
              .symbol(IconSymbolState(source: .symbol(name: "airpods.pro", variableValue: nil, fallback: "headphones"),
-                                     color: .bluetooth, scale: 1.6)))
+                                     color: .bluetoothIcon, scale: 1.6)))
         ]
         for (name, volume, options, bluetooth, expectedFooter, expectedCenter) in volumeCases {
             let wifi = name == "Bluetooth replaced center"

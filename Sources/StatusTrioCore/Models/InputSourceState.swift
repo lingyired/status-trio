@@ -8,6 +8,13 @@ struct InputSourceState: Equatable, Sendable {
     var selectedID: String?
     /// Enabled, select-capable keyboard sources in the order macOS lists them.
     var sources: [InputSourceDescriptor]
+    var modifiers = InputSourceModifiers()
+
+    /// Shared drawing input for Menu Bar, Dock, and live previews. The source
+    /// list keeps its original descriptors and selection identity.
+    var iconDescriptor: InputSourceDescriptor? {
+        selectedDescriptor?.applying(modifiers)
+    }
 
     static let empty = InputSourceState(selectedID: nil, sources: [])
 

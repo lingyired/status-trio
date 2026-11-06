@@ -80,7 +80,7 @@ struct PresentationArchitectureTests {
         let renamedScene = IconPresentationMapper.scene(inputs: renamedInputs, configuration: configuration)
         #expect(originalScene.center == .symbol(IconSymbolState(
             source: .symbol(name: "airpods", variableValue: nil, fallback: "headphones"),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions.defaultSymbolScale
         )))
         #expect(originalScene == renamedScene)

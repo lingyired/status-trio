@@ -1166,6 +1166,36 @@ final class AudioInputMonitorTests: XCTestCase {
     await fulfillment(of: [clearedByAction], timeout: 5)
   }
 
+  func testReleasingTheMonitorStopsItsHardwareObservation() async throws {
+    let hardware = FakeAudioInputHardware(reading: reading(defaultID: 11))
+    var monitor: AudioInputMonitor? = AudioInputMonitor(hardware: hardware)
+    let probe = DeinitProbe.track(monitor)
+    monitor?.setEnabled(true)
+    monitor?.setVisible(true)
+    let observed = await waitUntil { hardware.observationCount == 1 }
+    XCTAssertTrue(observed, "enabling the monitor must install its observation")
+
+    withExtendedLifetime(probe) {
+      monitor = nil
+    }
+
+    let stopped = await waitUntil { hardware.observationStopCount == 1 }
+    XCTAssertTrue(stopped, "releasing the monitor must remove its CoreAudio listeners")
+    XCTAssertNil(probe.value)
+  }
+
+  private func waitUntil(
+    _ condition: @escaping () -> Bool,
+    timeout: TimeInterval = 2
+  ) async -> Bool {
+    let deadline = Date().addingTimeInterval(timeout)
+    while Date() < deadline {
+      if condition() { return true }
+      try? await Task.sleep(for: .milliseconds(10))
+    }
+    return condition()
+  }
+
   private func reading(
     defaultID: AudioDeviceID?,
     scalar: Double? = 0.42,

@@ -142,6 +142,11 @@ final class SystemStatusStore: ObservableObject {
     let localIP: LocalIPController
     let bluetoothDevices: BluetoothDeviceController
     let bluetoothPower: BluetoothRadioPowerController
+    /// The VPN summary row's start/stop path. It holds the system service ID,
+    /// not a display name, and reports a confirmed transition or a bounded
+    /// failure (#272).
+    let vpnPower: VPNPowerController
+    let mihomoTunnel: MihomoTunnelController
     let mobileBattery: MobileBatteryController
     let appleDeviceDiscovery: AppleDeviceDiscoveryController
     /// The AirPods listening-mode surface. A separate owner from `bluetoothDevices`
@@ -324,6 +329,8 @@ final class SystemStatusStore: ObservableObject {
         highPowerMode: HighPowerModeController = HighPowerModeController(),
         helperReadiness: (any HelperReadinessProviding)? = nil,
         powerModeNotifications: any PowerModeNotificationMonitoring = PowerModeNotificationMonitor(),
+        vpnConnectionController: any VPNConnectionControlling = SystemVPNConnectionController(),
+        mihomoTunnel: MihomoTunnelController = MihomoTunnelController(),
         initialSnapshot: StatusSnapshot = .placeholder
     ) {
         self.batteryMonitor = batteryMonitor
@@ -348,6 +355,8 @@ final class SystemStatusStore: ObservableObject {
         self.localIP = localIP
         self.bluetoothDevices = bluetoothDevices
         self.bluetoothPower = bluetoothPower
+        self.vpnPower = VPNPowerController(backend: vpnConnectionController, refresh: {})
+        self.mihomoTunnel = mihomoTunnel
         self.bluetoothProfilerCache = bluetoothProfilerCache
         self.mobileBattery = mobileBattery
         self.appleDeviceDiscovery = appleDeviceDiscovery
@@ -366,6 +375,8 @@ final class SystemStatusStore: ObservableObject {
                 guard let self else { return }
                 self.reconcileBluetoothDemand()
             }
+        vpnPower.refresh = { [weak self] in self?.vpnMonitor?.refresh() }
+        mihomoTunnel.onUpdate = { [weak self] info in self?.applyMihomoTunnel(info) }
     }
 
     deinit {
@@ -563,6 +574,17 @@ final class SystemStatusStore: ObservableObject {
         monitorTasks = tasks
         reconcileBluetoothDemand()
 
+        startRefreshTask()
+    }
+
+    /// Starts (or restarts) the fallback wait loop with the current interval.
+    ///
+    /// #255: a cadence change must take effect immediately, so changing the
+    /// interval cancels the in-flight wait and starts a fresh one. This only
+    /// touches the wait task — the hardware monitors keep their own tasks and
+    /// are never restarted, and no immediate extra tick is scheduled.
+    private func startRefreshTask() {
+        refreshTask?.cancel()
         refreshTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 guard let sleep = self?.sleep, let interval = self?.refreshInterval else { return }
@@ -725,6 +747,15 @@ final class SystemStatusStore: ObservableObject {
             self.wifiPowerIsChanging = false
             self.wifiPowerFailed = !changed
             self.wifiMonitor.refresh()
+        }
+    }
+
+    /// #272: the VPN summary row's power switch. The controller resolves the
+    /// target from the current service list and confirms through the framework
+    /// callback before the row leaves its changing state.
+    func setVPNPower(_ enabled: Bool) {
+        Task { [vpnPower, vpnStatus] in
+            await vpnPower.setPower(enabled, status: vpnStatus)
         }
     }
 
@@ -1111,6 +1142,11 @@ final class SystemStatusStore: ObservableObject {
     func setRefreshInterval(_ interval: Duration) {
         guard interval != refreshInterval else { return }
         refreshInterval = interval
+        // Only replace the wait when the store is actually running. Called
+        // before start() it just records the value the first wait should use;
+        // called after stop() it must not resurrect polling.
+        guard hasStarted, !hasStopped else { return }
+        startRefreshTask()
     }
 
     func setPopoverVisible(_ visible: Bool) {
@@ -1781,10 +1817,21 @@ final class SystemStatusStore: ObservableObject {
     }
 
     private func applyVPN(_ value: VPNStatus) {
-        // The monitor already drops repeats, and this guard keeps an unchanged
-        // value from sending `objectWillChange` to every VPN row observer.
-        if value != vpnStatus {
-            vpnStatus = value
+        // The monitor owns the interface/service reading; the Mihomo
+        // attribution is refreshed by its own controller, so a network tick
+        // must not erase the current attribution.
+        var next = value
+        next.mihomoTunnel = vpnStatus.mihomoTunnel
+        if next != vpnStatus {
+            vpnStatus = next
+        }
+    }
+
+    private func applyMihomoTunnel(_ info: MihomoTunnelInfo?) {
+        var next = vpnStatus
+        next.mihomoTunnel = info
+        if next != vpnStatus {
+            vpnStatus = next
         }
     }
 

@@ -141,8 +141,14 @@ final class ChargeToFullNowController: ObservableObject {
     func update(_ demand: ChargeToFullNowDemand) {
         currentDemand = demand
         guard !isApplying, !isCancelling else { return }
-        guard demand.showsSurface, capability.isAvailable else {
+        guard demand.showsSurface else {
             publish(.hidden)
+            return
+        }
+        // An unsupported machine still gets a details-page explanation instead
+        // of an empty, silent action area (#280).
+        guard capability.isAvailable else {
+            publish(.unavailable)
             return
         }
 

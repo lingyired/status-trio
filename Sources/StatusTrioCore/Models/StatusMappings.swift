@@ -70,7 +70,8 @@ enum StatusMappings {
         _ battery: BatteryStatus,
         options: BatteryIconOptions
     ) -> BatteryGapContent {
-        if battery.isPresent, options.showsChargingIndicator {
+        guard battery.isPresent else { return .empty }
+        if options.showsChargingIndicator {
             if battery.isCharging { return .bolt }
             if battery.isConnectedToPower {
                 switch options.connectedIndicator {

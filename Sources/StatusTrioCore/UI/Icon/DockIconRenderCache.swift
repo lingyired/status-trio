@@ -19,7 +19,8 @@ struct DockIconRenderKey: Hashable {
             ),
             center: scene.center,
             footer: scene.footer,
-            statusColors: scene.statusColors
+            statusColors: scene.statusColors,
+            bluetoothIconColor: scene.bluetoothIconColor
         )
     }
 

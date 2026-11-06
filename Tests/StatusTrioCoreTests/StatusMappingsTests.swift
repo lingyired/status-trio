@@ -175,7 +175,8 @@ final class StatusMappingsTests: XCTestCase {
         )
         XCTAssertEqual(
             StatusMappings.batteryGapContent(absentBattery(), options: .standard),
-            .percentage
+            .empty,
+            "no battery must not claim a percentage"
         )
     }
 
