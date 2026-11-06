@@ -1,65 +1,39 @@
-# 电池详情页交互与功耗图连接 — 验收记录（#281 / #282，2026-11-06）
+# 电池详情页交互与功耗图连接 — 验收记录（#281 / #282）
 
-分支 `overnight-panel-color-refresh`，基线 `origin/main=d4598847`。
-本记录只覆盖 Task 1（#281 电池页底部两行整行交互、#282 功耗图卡片与流带连接）。
+日期：2026-11-06。分支 `overnight-panel-color-refresh`，初始基线 `origin/main=d4598847`。
 
-## 结论
+## 当前方案
 
-**本地自动化：PASS。人工视觉/交互验收：NOT RUN（需人工或后台 UI 流程）。**
-未 commit / merge / push，未启动真实前台 GUI，未启用 `STATUS_TRIO_ALLOW_VISIBLE_UI_TESTS`。
+- #281：底部两行保留整行可点、独立 hover 的实现。
+- #282：按用户本轮反馈，恢复所有卡片原本的四角 12pt 圆角。流带向输入卡片内、分支卡片内各延伸 6pt，卡片绘制在流带上方。
+- 卡片是半透明的，单纯调整层级会出现卡内重叠竖带（浅/深色截图均可复现）。最终对流带层应用原圆角卡片轮廓的反向蒙版，卡内不绘制流带，卡外仍衔接到圆角外沿。不加不透明背景，不改变原卡片色彩与透明度。
+- 取消前版单侧直角 Shape 和对应几何测试，替换为真实像素回归：既检查圆角与流带衔接，又检查半透明卡片内部没有透带。
 
-## 变更边界
+## 本轮文件
 
-本任务仅改动下列文件；未触碰 `SettingsStore`、`localization`、任何 controller、`#275`/`#255` 相关文件。
+- `Sources/StatusTrioCore/UI/BatteryPowerFlowView.swift`：先画流带、应用圆角卡片反向蒙版，再画原圆角卡片。
+- `Sources/StatusTrioCore/UI/PowerFlowCardGeometry.swift`：6pt 延伸几何、圆角蒙版、原圆角表面。替代旧的 `PowerFlowCardShape.swift`。
+- `Tests/StatusTrioCoreTests/BatteryPowerFlowTests.swift`：保留原接口/功率模型回归；连接卡四角保持圆角，流带端点深入卡片。
+- `Tests/StatusTrioCoreTests/PowerFlowOverlapRenderingTests.swift`：浅/深色离屏渲染，比较流带重叠区与卡片内部的背景像素，保证没有透带；检查卡外蓝色流带仍到达交界。
 
-| 文件 | 变更 |
+## 证据
+
+| 范围 | 结果 |
 | --- | --- |
-| `Sources/StatusTrioCore/UI/PowerFlowCardShape.swift` | 新增：单侧圆角 `Shape`/`InsettableShape`、连接判断 `PowerFlowCardConnections`、共用 fill/stroke 的卡片表面 modifier（含 1pt 搭接） |
-| `Sources/StatusTrioCore/UI/BatterySettingsLinkStyle.swift` | 新增：仅这两行使用的 `ButtonStyle` 与整行 `BatterySettingsLinkRow` |
-| `Sources/StatusTrioCore/UI/BatteryDetailsView.swift` | 两行改为整行 `BatterySettingsLinkRow` + 各自 `onHover` 状态（+10 / −4） |
-| `Sources/StatusTrioCore/UI/BatteryPowerFlowView.swift` | 卡片改用 `powerFlowCardSurface`；一次快照解析 live ribbons 与连接（+31 / −23） |
-| `Tests/StatusTrioCoreTests/PowerFlowCardShapeTests.swift` | 新增：真实 `Path` 几何 + 连接判断回归（6 例） |
-| `Tests/StatusTrioCoreTests/BatterySettingsLinkTests.swift` | 新增：离屏渲染整行 hover / 独立高亮回归（2 例） |
-| `Tests/StatusTrioCoreTests/BatteryPowerFlowTests.swift` | 新增：离屏渲染接线测试 `testInputCardSquaresOnlyItsRibbonSideCorners`（1 例） |
+| 行为红：`bash scripts/test.sh 'PowerFlowOverlapRenderingTests'` | FAIL（预期）：浅/深色卡内 RGB 偏差超过 0.02，复现截图中的重叠竖带。日志 `/tmp/status-trio-282-mask-red.log` |
+| 行为绿：`BatteryPowerFlowTests|BatteryDetailsLayoutTests|PowerFlowOverlapRenderingTests` | PASS：XCTest 13 项、Swift Testing 浅/深色两种像素场景通过。日志 `/tmp/status-trio-282-mask-green.log` |
+| 最终交付：`bash scripts/verify-local.sh quick 'BatteryPowerFlowTests|BatteryDetailsLayoutTests|PowerFlowOverlapRenderingTests|BatterySettingsLinkTests'` | PASS：shell/forbidden 检查、XCTest 13 项、Swift Testing 3 个测试（含浅/深色两个参数场景）。日志 `/tmp/status-trio-282-rounded-quick.log` |
+| 离屏图片 | 浅/深色检查：卡片内部重叠竖带消失，四角保持圆角，连接处无明显缝隙。图片保存在 `.agent-artifacts/power-flow-rounded/light.png`、`dark.png` |
 
-保留的接口：`BatteryDetailsView` 的 `onOpenBatterySettings` / `onOpenAppBatterySettings` 回调签名不变；卡片尺寸、布局、颜色、功率分支比例算法、无动画时钟均未改。
+截图由临时离屏渲染测试生成，该临时测试已清理；长期像素行为回归保留。没有启动窗口或启用可见 UI 测试。
 
-## Red / Green
+本轮是电池详情视图局部绘制修正，运行 quick 及对应回归；未重新声明 full/真机运行通过。此前分支的 full 结果见总验收报告，对应当时的树。
 
-所有命令在 worktree 根目录执行，日志在 `/tmp`。
+## 待人工验收
 
-| 阶段 | 命令 | 结果 |
-| --- | --- | --- |
-| Red | `bash scripts/test.sh 'PowerFlowCardShapeTests\|BatterySettingsLinkTests'` | **FAIL（预期）** — 新增测试引用尚未实现的生产类型，编译失败：`cannot find 'PowerFlowCardShape' in scope`（16 处）、`cannot find 'PowerFlowCardConnections' in scope`（8 处）。日志 `/tmp/st-red-battery.log`。 |
-| Green（focused） | `bash scripts/test.sh 'PowerFlowCardShapeTests\|BatterySettingsLinkTests'` | **PASS** — `Test run with 8 tests in 2 suites passed`，EXIT=0。日志 `/tmp/st-green-battery.log`。 |
-| 回归 | `bash scripts/test.sh 'BatteryDetailsLayoutTests\|BatteryPowerFlowTests'` | **PASS** — `Executed 13 tests, with 0 failures`（BatteryDetailsLayoutTests 7 + BatteryPowerFlowTests 6，含新增接线测试）。EXIT=0。日志 `/tmp/st-regress-battery.log`。 |
+1. 电池详情功耗图：四角保持原来的圆角，卡内没有深色竖带，流带与卡片边缘连续。
+2. 单分支、多分支与电池供电的实际状态。
+3. 真实桌面玻璃背景、减少透明度下的观感。
+4. #281 两行 hover 与右侧空白真实点击/键盘行为；macOS 13 真机运行。
 
-诚实说明：Red 阶段的失败是「新类型缺失」的编译级红，而非行为断言红；同一次编译还有其它并行任务当时未完成的改动导致的编译错误，因此该日志不是本任务的孤立行为红证据。真正的行为守卫是下面的几何与渲染断言（实现后为绿）。
-
-`scripts/test.sh` 自带的 forbidden-patterns 检查通过（`No forbidden actor-isolated method references`）。
-
-## 断言覆盖（真实几何 / 离屏渲染，非源码字符串）
-
-`PowerFlowCardShapeTests`（`Path.contains` 真实几何，角点取距角 1pt 的内点：12pt 圆角处该点在形外，直角处该点在形内）：
-
-- `isolatedCardKeepsAllFourCornersRounded`：`.none` 四角都圆、边界框等于卡片矩形。
-- `trailingConnectionSquaresTheRightCorners`：右侧两角直角命中、左侧两角仍圆（输入卡连接右侧）。
-- `leadingConnectionSquaresTheLeftCorners`：左侧两角直角命中、右侧两角仍圆（分支卡连接左侧）。
-- `insetRimStaysConcentricAndKeepsTheConnectionSquare`：`inset(by:)` 后边界为内缩矩形且连接侧仍直角（strokeBorder 与 fill 同轮廓）。
-- `onlyEdgesWithALiveRibbonAreConnected`：只有厚度 > 0.5pt 的流带才判为连接；0 / 0.5 / 0.49 不连；无输入卡时输入边不连；空分支为空。
-- `inputConnectsOnTrailingAndBranchOnLeading`：输入卡接右侧、分支卡接左侧的映射。
-
-`BatterySettingsLinkTests`（`NSHostingView` 离屏截图，窗口不上屏）：
-
-- `hoveredRowReachesTheRightEdgeWhileIdleRowStaysAtItsLabel`：同一容器两行，hovered 行的高亮到达 ≥95% 行宽（右侧空白属于按钮），idle 行只有标签墨迹 <80% 行宽 —— 即整行命中 + 独立 hover。
-- `aSingleHoveredRowPaintsFullWidthAndAnIdleOneDoesNot`：单行对照，hovered 满宽、idle 不满宽。
-
-`BatteryPowerFlowTests.testInputCardSquaresOnlyItsRibbonSideCorners`（离屏截图）：输入卡（62×84）连接侧上/下角有填充（直角），外侧上/下角为背景（圆角）——验证视图确实把连接判断接到了 shape，而不只是 shape 单元测试通过。
-
-## 待人工 / 未覆盖验证
-
-- **视觉未跑**：hover 高亮的具体观感与鼠标移出恢复、两侧空白点击的手感、1pt 搭接在抗锯齿下的接缝是否完全消失、深色模式与 Liquid Glass 透明度/彩度下的对比，以及细分支端点是否露缝/溢出，均需后台 UI 或人工确认（本次未启动 GUI）。
-- **真实鼠标/键盘**：自动化只证明「渲染出的高亮/hit 宽度 = 整行宽」，未做真实点击与 Return/空格激活；按政策 `VisibleUITestCase` 默认跳过，未启用。
-- **macOS 13 运行时**：几何用纯 `Path`，未使用 macOS 14+ API（`onHover`、`InsettableShape`、`Path.addArc(tangent1End:tangent2End:)` 均 macOS 13 可用）；但仅本机 SDK 编译，未在真实 Ventura 上运行验证。
-- **圆角风格微调**：输入卡原来用 `.continuous` 圆角，单侧圆角自定义 `Shape` 使用圆形 12pt 弧；圆角半径与尺寸不变，仅曲率连续性与原实现略有差异，属视觉层，建议人工对照。
-- 未新增轮询、动画或后台工作；卡片功率比例、颜色、布局算法与采样时钟保持不变。
+未合并 main、未推送、未关闭 issue。保留当前隔离工作区供用户验收。

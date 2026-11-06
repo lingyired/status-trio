@@ -132,28 +132,37 @@ struct BatteryPowerFlowView: View {
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
-            // Attach the ribbons to both cards: the input card is 62 wide and
-            // centred at x=31, each branch card is 94 wide at the right edge.
-            let left: CGFloat = state.input == nil ? 0 : 62
-            let right = width - 94
+            // The input card is 62 wide and centred at x=31; each branch card
+            // is 94 wide at the right edge. Ribbons continue underneath their
+            // original rounded outlines; the mask below cuts out card interiors
+            // so the overlap cannot show through their translucent fills.
+            let left: CGFloat = state.input == nil
+                ? 0
+                : PowerFlowCardGeometry.ribbonStartX(inputCardRight: 62)
+            let right = PowerFlowCardGeometry.ribbonEndX(branchCardLeft: width - 94)
             let center = height / 2
-            // A ribbon at or below the drawing floor is not drawn, so the cards
-            // it would have touched must stay fully rounded. Resolve both the
-            // drawn ribbons and the connections from one snapshot.
+            // A ribbon at or below the drawing floor is not drawn.
             let liveRibbons = (state.input != nil && !destinations.isEmpty)
-                ? ribbons().filter { $0.thickness > PowerFlowCardConnections.liveThreshold }
+                ? ribbons().filter { $0.thickness > PowerFlowCardGeometry.liveThreshold }
                 : []
-            let thicknessByIndex = Dictionary(
-                liveRibbons.map { ($0.id, $0.thickness) },
-                uniquingKeysWith: { first, _ in first }
-            )
-            let connections = PowerFlowCardConnections(
-                hasInput: state.input != nil,
-                branchThicknesses: destinations.indices.map { thicknessByIndex[$0] ?? 0 }
-            )
-            ForEach(liveRibbons) { item in
-                ribbon(from: left, to: right, startY: item.startY, endY: item.endY,
-                       thickness: item.thickness, endThickness: item.endThickness, color: item.color)
+            // Mask the ribbon layer with the exact card silhouettes. Drawing
+            // the translucent cards above it is not enough to hide the overlap.
+            let inputFrame = CGRect(x: 0, y: center - Self.inputCardHeight / 2,
+                                    width: 62, height: Self.inputCardHeight)
+            let branchFrames = destinations.indices.map { index in
+                CGRect(x: width - 94, y: centerY(index) - rowHeight(index) / 2,
+                       width: 94, height: rowHeight(index))
+            }
+            ZStack {
+                ForEach(liveRibbons) { item in
+                    ribbon(from: left, to: right, startY: item.startY, endY: item.endY,
+                           thickness: item.thickness, endThickness: item.endThickness, color: item.color)
+                }
+            }
+            .frame(width: width, height: height)
+            .mask {
+                PowerFlowRibbonMask(cardFrames: [inputFrame] + branchFrames)
+                    .fill(style: FillStyle(eoFill: true))
             }
             if let input = state.input {
                 // The source node is the adapter (plug, primary) unless the pack
@@ -172,8 +181,7 @@ struct BatteryPowerFlowView: View {
                     // detail-page text and nearly vanishes over the glass.
                     .powerFlowCardSurface(
                         fill: inputSurface.fill(tint: inputColor, scheme: colorScheme),
-                        stroke: inputSurface.stroke(tint: inputColor, scheme: colorScheme),
-                        connection: PowerFlowCardShape.inputConnection(connected: connections.inputConnected)
+                        stroke: inputSurface.stroke(tint: inputColor, scheme: colorScheme)
                     )
                     .position(x: destinations.isEmpty ? width / 2 : 31, y: center)
             }
@@ -187,8 +195,7 @@ struct BatteryPowerFlowView: View {
                     .frame(width: state.input == nil ? width : 94)
                     .powerFlowCardSurface(
                         fill: Self.color(for: item.kind).opacity(Self.cardFill),
-                        stroke: Self.color(for: item.kind).opacity(Self.cardStroke),
-                        connection: PowerFlowCardShape.branchConnection(connected: connections.branches[index])
+                        stroke: Self.color(for: item.kind).opacity(Self.cardStroke)
                     )
                     .position(x: state.input == nil ? width / 2 : width - 47, y: centerY(index))
             }

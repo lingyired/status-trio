@@ -45,7 +45,7 @@ final class BatteryPowerFlowTests: XCTestCase {
         XCTAssertTrue(source.contains("in: SettingsStore.highEnergyAppsRefreshIntervalRange"))
     }
 
-    func testInputCardSquaresOnlyItsRibbonSideCorners() throws {
+    func testConnectedCardsKeepOriginalRoundedCorners() throws {
         func metric(_ watts: Double, _ kind: BatteryPowerFlowState.Kind, _ label: String)
             -> BatteryPowerFlowState.Metric {
             .init(label: label, value: "\(Int(watts))W", watts: watts, kind: kind)
@@ -77,14 +77,24 @@ final class BatteryPowerFlowTests: XCTestCase {
             return luminance < 0.98
         }
 
-        // The 62x84 input card sits at the leading edge. Only the ribbon side
-        // (right) corners are square; the outer (left) corners stay rounded. The
-        // two vertical extremes are sampled so the assertion does not depend on
-        // the bitmap's y origin.
-        XCTAssertTrue(isInk(60, 2), "connected top-right corner must be square")
-        XCTAssertTrue(isInk(60, 82), "connected bottom-right corner must be square")
-        XCTAssertFalse(isInk(2, 2), "outer top-left corner must stay rounded")
-        XCTAssertFalse(isInk(2, 82), "outer bottom-left corner must stay rounded")
+        // #282: the 62x84 input card keeps its original rounded outline on all
+        // four corners. The ribbon instead runs a few points underneath the card,
+        // which is painted afterwards and covers the overlap. The two vertical
+        // extremes are sampled so the assertion does not depend on the bitmap's
+        // y origin.
+        XCTAssertFalse(isInk(60, 2), "top-right corner must stay rounded")
+        XCTAssertFalse(isInk(60, 82), "bottom-right corner must stay rounded")
+        XCTAssertFalse(isInk(2, 2), "top-left corner must stay rounded")
+        XCTAssertFalse(isInk(2, 82), "bottom-left corner must stay rounded")
+        XCTAssertTrue(isInk(60, 42), "the card's straight right edge still reaches the ribbon")
+        XCTAssertEqual(
+            PowerFlowCardGeometry.ribbonStartX(inputCardRight: 62), 56,
+            "the ribbon starts inside the input card"
+        )
+        XCTAssertEqual(
+            PowerFlowCardGeometry.ribbonEndX(branchCardLeft: 236), 242,
+            "the ribbon continues inside the branch card"
+        )
     }
 
     func testActualInputNeverUsesAdapterRatingAndRejectsStaleOrDisconnectedTelemetry() {
