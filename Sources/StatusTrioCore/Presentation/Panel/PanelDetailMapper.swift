@@ -53,21 +53,6 @@ enum PanelDetailMapper {
                 } ?? localization.string(.batteryDetailsUnavailable)
                 rows.append(row(.batteryDetailsRemaining, value: remaining, localization: localization))
             }
-            if battery.isPresent, let highPower = details.highPowerMode {
-                let value: String
-                if highPower.supported {
-                    value = localization.string(
-                        highPower.enabled == true ? .batteryDetailsOn : .batteryDetailsOff
-                    )
-                } else {
-                    value = localization.string(.batteryDetailsHighPowerUnsupported)
-                }
-                rows.append(row(
-                    .settingsBatteryColorsHighPower,
-                    value: value,
-                    localization: localization
-                ))
-            }
             if battery.isPresent, let health = details.health {
                 let capacityText = health.maximumCapacityPercent.map {
                     ($0 / 100).formatted(.percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale))
@@ -97,6 +82,21 @@ enum PanelDetailMapper {
             value: localization.string(battery.isLowPowerMode ? .batteryDetailsOn : .batteryDetailsOff),
             localization: localization
         ))
+        if let highPower = details?.highPowerMode {
+            let value: String
+            if highPower.supported {
+                value = localization.string(
+                    highPower.enabled == true ? .batteryDetailsOn : .batteryDetailsOff
+                )
+            } else {
+                value = localization.string(.batteryDetailsHighPowerUnsupported)
+            }
+            rows.append(row(
+                .settingsBatteryColorsHighPower,
+                value: value,
+                localization: localization
+            ))
+        }
         return PanelDetailState(
             title: PanelPresentationMapper.batteryTitle(
                 battery,

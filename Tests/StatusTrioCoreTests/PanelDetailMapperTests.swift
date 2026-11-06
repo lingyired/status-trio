@@ -432,4 +432,23 @@ extension PanelDetailMapperTests {
             )
         }
     }
+
+    func testHighPowerRowSitsNextToLowPowerRow() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: 80,
+            isPresent: true,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: true
+        )
+        var details = BatteryDetails(powerAvailability: .available)
+        details.highPowerMode = HighPowerModeSystemStatus(supported: true, enabled: false)
+
+        let ids = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+            .rows.map(\.id)
+        let lowPower = ids.firstIndex(of: LocalizationKey.batteryDetailsLowPower.rawValue)
+        let highPower = ids.firstIndex(of: LocalizationKey.settingsBatteryColorsHighPower.rawValue)
+        XCTAssertEqual(lowPower.map { $0 + 1 }, highPower)
+    }
 }
