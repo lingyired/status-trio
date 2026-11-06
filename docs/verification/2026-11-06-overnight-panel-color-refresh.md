@@ -2,7 +2,7 @@
 
 - 日期：2026-11-06
 - 分支：`overnight-panel-color-refresh`
-- 提交：`f2b61f5c`（基线 `origin/main=d4598847040a5b2d167ec3825c162270eba3492b`）
+- 最终合并提交：`7f75040e`（已推送到 `origin/main`；基线为 `d4598847`，合并前同步过 `ea7c83ce`）
 - 状态：**已在分支提交，未合并 main、未推送、未关闭 issue、未发布**。
 
 ## 一句话
