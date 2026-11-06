@@ -14,6 +14,13 @@ import IOKit
 /// Using the DDC UID for externals matters: `CGDisplayCreateUUIDFromDisplayID`
 /// and the framebuffer `EDID UUID` are *different* strings on Apple Silicon, so
 /// keying DDC by the CG UUID never matches a framebuffer.
+///
+/// `displayID` is the real `CGDirectDisplayID` that BetterDisplay and
+/// DisplayServices need. For externals it is resolved by correlating the EDID
+/// product identity with the online CG display list (`DisplayIDMapper`).
+/// `0` means "not reliably resolvable": callers must then treat any backend
+/// that needs a CG display id as unavailable rather than defaulting to 0, which
+/// CoreGraphics resolves to the built-in display.
 struct DisplayDescriptor: Equatable, Sendable, Identifiable {
     let id: String
     let name: String
@@ -71,6 +78,7 @@ struct LiveDisplayCatalog: DisplayCatalogProviding {
     private static func externalDisplaysFromRegistry() -> [DisplayDescriptor] {
         #if arch(arm64)
         var result: [DisplayDescriptor] = []
+        let online = onlineDisplayIdentities()
         FramebufferEnumeration.forEach { entry in
             guard let ioNameMatched = stringProperty("IONameMatched", entry: entry),
                   ioNameMatched.hasPrefix("dispext")
@@ -82,13 +90,16 @@ struct LiveDisplayCatalog: DisplayCatalogProviding {
                   let edidUUID = stringProperty("EDID UUID", entry: entry, recursive: true)
             else { return }
 
-            let name = productName(entry: entry) ?? "External Display (\(width)×\(height))"
+            let product = productInfo(entry: entry)
+            let name = product?.name ?? "External Display (\(width)×\(height))"
             result.append(
-                DisplayDescriptor(
-                    id: edidUUID,
+                mappedExternalDescriptor(
+                    edidUUID: edidUUID,
                     name: name,
-                    isBuiltin: false,
-                    displayID: 0
+                    vendorID: product?.vendorID ?? 0,
+                    productID: product?.productID ?? 0,
+                    serialNumber: product?.serialNumber ?? 0,
+                    among: online
                 )
             )
         }
@@ -98,8 +109,60 @@ struct LiveDisplayCatalog: DisplayCatalogProviding {
         #endif
     }
 
+    /// Builds an external descriptor, resolving its real `CGDirectDisplayID`
+    /// from the EDID product identity. Pure and testable: `among` is the online
+    /// display snapshot. An unresolved identity keeps the `0` sentinel so the
+    /// monitor can report the display but never guess another screen.
+    static func mappedExternalDescriptor(
+        edidUUID: String,
+        name: String,
+        vendorID: UInt32,
+        productID: UInt32,
+        serialNumber: UInt32,
+        among online: [DisplayIDMapper.OnlineDisplay]
+    ) -> DisplayDescriptor {
+        let identity = DisplayIDMapper.ExternalIdentity(
+            vendorID: vendorID,
+            productID: productID,
+            serialNumber: serialNumber,
+            edidUUID: edidUUID
+        )
+        let displayID = DisplayIDMapper.uniqueDisplayID(for: identity, among: online) ?? 0
+        return DisplayDescriptor(id: edidUUID, name: name, isBuiltin: false, displayID: displayID)
+    }
+
+    /// Snapshot of the online CG displays used to correlate an external
+    /// framebuffer with its CG id. Built-in displays are included so the mapper
+    /// can explicitly exclude them.
+    static func onlineDisplayIdentities() -> [DisplayIDMapper.OnlineDisplay] {
+        var count: UInt32 = 0
+        guard CGGetOnlineDisplayList(0, nil, &count) == .success, count > 0 else {
+            return []
+        }
+        var ids = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        guard CGGetOnlineDisplayList(count, &ids, &count) == .success else {
+            return []
+        }
+        return ids.prefix(Int(count)).map { displayID in
+            DisplayIDMapper.OnlineDisplay(
+                displayID: displayID,
+                vendorID: CGDisplayVendorNumber(displayID),
+                productID: CGDisplayModelNumber(displayID),
+                serialNumber: CGDisplaySerialNumber(displayID),
+                isBuiltin: CGDisplayIsBuiltin(displayID) != 0
+            )
+        }
+    }
+
     #if arch(arm64)
-    private static func productName(entry: io_registry_entry_t) -> String? {
+    private struct ProductInfo {
+        let name: String?
+        let vendorID: UInt32
+        let productID: UInt32
+        let serialNumber: UInt32
+    }
+
+    private static func productInfo(entry: io_registry_entry_t) -> ProductInfo? {
         guard let attributes = IORegistryEntryCreateCFProperty(
             entry,
             "DisplayAttributes" as CFString,
@@ -109,7 +172,18 @@ struct LiveDisplayCatalog: DisplayCatalogProviding {
         guard let product = attributes["ProductAttributes"] as? [String: Any] else {
             return nil
         }
-        return product["ProductName"] as? String
+        return ProductInfo(
+            name: product["ProductName"] as? String,
+            vendorID: unsignedValue(product["LegacyManufacturerID"]),
+            productID: unsignedValue(product["ProductID"]),
+            serialNumber: unsignedValue(product["SerialNumber"])
+        )
+    }
+
+    private static func unsignedValue(_ value: Any?) -> UInt32 {
+        if let number = value as? NSNumber { return number.uint32Value }
+        if let string = value as? String, let parsed = UInt32(string) { return parsed }
+        return 0
     }
 
     private static func stringProperty(
@@ -171,7 +245,10 @@ struct LiveDisplayCatalog: DisplayCatalogProviding {
     }
 
     static func displayUUIDString(_ displayID: CGDirectDisplayID) -> String {
-        guard let uuid = CGDisplayCreateUUIDFromDisplayID(displayID) else {
+        // Zero aliases the main display in CG; never turn an unresolved id into
+        // another screen's UUID, even if a caller bypasses the monitor's guard.
+        guard displayID != 0,
+              let uuid = CGDisplayCreateUUIDFromDisplayID(displayID) else {
             return "display-\(displayID)"
         }
         return CFUUIDCreateString(nil, uuid.takeRetainedValue()) as String

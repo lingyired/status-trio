@@ -665,6 +665,20 @@
 "battery.energy.monitoringDescription" = "Une fois activé, l’activité des apps est échantillonnée en arrière-plan même lorsque le panneau est fermé. L’échantillonnage s’arrête à la désactivation, pendant la veille du système ou de l’écran et à la fermeture de Status Trio.";
 "settings.battery.showChargeToFullNow" = "Afficher le bouton Recharger complètement maintenant";
 "settings.battery.showChargeToFullNowDescription" = "Affiche dans le panneau d’état un bouton pour ignorer temporairement la limite de charge de macOS et recharger jusqu’à 100 %.";
+"settings.battery.chargeHidden.unsupportedSystem" = "Bouton masqué : Nécessite macOS 26.4 ou ultérieur";
+"settings.battery.chargeHidden.unsupportedArchitecture" = "Bouton masqué : Nécessite un Mac avec puce Apple";
+"settings.battery.chargeHidden.frameworkUnavailable" = "Bouton masqué : Framework de recharge système indisponible";
+"settings.battery.chargeHidden.apiUnavailable" = "Bouton masqué : API de recharge système indisponible";
+"settings.battery.chargeHidden.mclUnsupported" = "Bouton masqué : Ce Mac ne prend pas en charge la limite de charge native";
+"settings.battery.chargeHidden.noBattery" = "Bouton masqué : Aucune batterie détectée";
+"settings.battery.chargeHidden.batterySectionHidden" = "Bouton masqué : Section Batterie désactivée dans le panneau d’état";
+"settings.battery.chargeHidden.disconnectedFromPower" = "Bouton masqué : Alimentation non branchée";
+"settings.battery.chargeHidden.fullyCharged" = "Bouton masqué : Batterie complètement chargée";
+"settings.battery.chargeHidden.stateReadFailed" = "Bouton masqué : État de charge système illisible. Rouvrez cette page plus tard";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "Bouton masqué : La limite de charge optimisée par la batterie est de 100 %, ce bouton n'est pas nécessaire";
+"settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Bouton masqué : La limite de charge système ne peut pas être ignorée actuellement";
+"settings.battery.chargeHidden.restoredLimit" = "Bouton masqué : Restauration de la limite à %d%% ; attente de stabilisation de la charge";
+"settings.battery.chargeHidden.controllerUnavailable" = "Bouton masqué : Contrôle de charge temporairement indisponible";
 "settings.battery.restoreLimit" = "Limite restaurée après annulation";
 "settings.battery.restoreLimitDescription" = "Limite de charge restaurée lorsque vous annulez « Recharger complètement maintenant ».";
 "battery.action.chargeToFullNow" = "Recharger complètement maintenant";
@@ -692,6 +706,7 @@
 "brightness.appAbsent" = "Nécessite BetterDisplay";
 "brightness.noBackend" = "Aucun contrôle de luminosité";
 "brightness.unresponsive" = "Ne répond pas";
+"brightness.backend.automatic" = "Automatique";
 "brightness.backend.directDDC" = "DDC direct";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Désactivez un écran pour masquer sa ligne de luminosité.";
@@ -749,6 +764,7 @@
 "settings.brightness.builtIn" = "Intégré";
 "settings.brightness.internalBackend.description" = "La luminosité de l’écran intégré utilise le backend DisplayServices.";
 "settings.brightness.externalBackend.description" = "Choisissez comment Status Trio contrôle la luminosité de cet écran.";
+"settings.brightness.automatic.description" = "Automatique utilise BetterDisplay en priorité lorsqu’il est lancé, sinon le DDC direct.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay n’est pas lancé ou son intégration de notifications est désactivée.";
 "settings.brightness.compatibility.title" = "Luminosité non contrôlable ?";
 "settings.brightness.compatibility.description" = "Chaque fabricant implémente DDC différemment : Status Trio ne peut pas couvrir tous les modèles. Si la luminosité d’un écran n’est pas réglable ici, passez-le au backend BetterDisplay — Status Trio le pilotera alors via BetterDisplay. La version gratuite suffit ; aucune licence Pro n’est nécessaire.";

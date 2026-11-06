@@ -665,6 +665,20 @@
 "battery.energy.monitoringDescription" = "Al activarlo, se muestrea la actividad de las apps en segundo plano aunque el panel esté cerrado. El muestreo se pausa al desactivarlo, durante la suspensión del sistema o la pantalla y al salir de Status Trio.";
 "settings.battery.showChargeToFullNow" = "Mostrar botón Cargar completamente ahora";
 "settings.battery.showChargeToFullNowDescription" = "Muestra un botón en el panel de estado para omitir temporalmente el límite de carga de macOS y cargar hasta el 100 %.";
+"settings.battery.chargeHidden.unsupportedSystem" = "Botón oculto: Requiere macOS 26.4 o posterior";
+"settings.battery.chargeHidden.unsupportedArchitecture" = "Botón oculto: Requiere un Mac con chip de Apple";
+"settings.battery.chargeHidden.frameworkUnavailable" = "Botón oculto: Framework de carga del sistema no disponible";
+"settings.battery.chargeHidden.apiUnavailable" = "Botón oculto: API de carga del sistema no disponible";
+"settings.battery.chargeHidden.mclUnsupported" = "Botón oculto: Este Mac no admite límites de carga nativos";
+"settings.battery.chargeHidden.noBattery" = "Botón oculto: No se detecta ninguna batería";
+"settings.battery.chargeHidden.batterySectionHidden" = "Botón oculto: Sección Batería desactivada en el panel de estado";
+"settings.battery.chargeHidden.disconnectedFromPower" = "Botón oculto: Sin conexión a la corriente";
+"settings.battery.chargeHidden.fullyCharged" = "Botón oculto: Batería completamente cargada";
+"settings.battery.chargeHidden.stateReadFailed" = "Botón oculto: No se puede leer el estado de carga del sistema. Vuelve a abrir esta página más tarde";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "Botón oculto: El límite de carga optimizado por la batería es del 100%, no se necesita este botón";
+"settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Botón oculto: El límite de carga del sistema no se puede omitir ahora";
+"settings.battery.chargeHidden.restoredLimit" = "Botón oculto: Restaurando el límite al %d%%; esperando a que la carga se estabilice";
+"settings.battery.chargeHidden.controllerUnavailable" = "Botón oculto: Control de carga temporalmente no disponible";
 "settings.battery.restoreLimit" = "Límite restaurado al cancelar";
 "settings.battery.restoreLimitDescription" = "Límite de carga que se restaura al cancelar «Cargar completamente ahora».";
 "battery.action.chargeToFullNow" = "Cargar completamente ahora";
@@ -692,6 +706,7 @@
 "brightness.appAbsent" = "Requiere BetterDisplay";
 "brightness.noBackend" = "Sin control de brillo";
 "brightness.unresponsive" = "No responde";
+"brightness.backend.automatic" = "Automático";
 "brightness.backend.directDDC" = "DDC directo";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Desactiva una pantalla para ocultar su fila de brillo.";
@@ -749,6 +764,7 @@
 "settings.brightness.builtIn" = "Integrada";
 "settings.brightness.internalBackend.description" = "El brillo de la pantalla integrada usa el backend DisplayServices.";
 "settings.brightness.externalBackend.description" = "Elige cómo Status Trio controla el brillo de esta pantalla.";
+"settings.brightness.automatic.description" = "Automático da prioridad a BetterDisplay mientras está en ejecución; si no, utiliza DDC directo.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay no se está ejecutando o su integración de notificaciones está desactivada.";
 "settings.brightness.compatibility.title" = "¿No puedes controlar una pantalla?";
 "settings.brightness.compatibility.description" = "Cada fabricante implementa DDC a su manera, así que Status Trio no puede cubrir todos los modelos. Si el brillo de una pantalla no se puede ajustar aquí, cámbiala al backend BetterDisplay: Status Trio la controlará a través de BetterDisplay. La versión gratuita es suficiente; no hace falta una licencia Pro.";

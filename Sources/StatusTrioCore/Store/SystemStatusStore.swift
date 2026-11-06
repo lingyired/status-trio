@@ -248,6 +248,10 @@ final class SystemStatusStore: ObservableObject {
     private var lastPublishedSnapshot: StatusSnapshot?
     /// Optimistic display brightness while the backend confirms the write.
     private var pendingBrightnessScalars: [String: Double] = [:]
+    /// The monitor's publication sequence when each optimistic target began.
+    /// Any later publication supersedes the target, even if a confirmation was
+    /// coalesced away by the update stream.
+    private var pendingBrightnessSequences: [String: UInt64] = [:]
     /// Optimistic input gain while the input monitor confirms the write.
     private var pendingInputScalar: Double?
     private var pendingInputDeviceID: AudioDeviceID?
@@ -1318,7 +1322,16 @@ final class SystemStatusStore: ObservableObject {
     private func updateBrightnessDetailsVisibility() {
         let needed = needsBrightnessDetails
         brightnessMonitor.setDetailsVisible(needed)
-        if needed { brightnessMonitor.refresh() }
+        if needed {
+            brightnessMonitor.refresh()
+        } else {
+            // The optimistic target only exists to bridge one open panel's write
+            // to its read-back. Once no brightness surface is visible it must
+            // not pin the value, or reopening would keep showing a stale target
+            // instead of the display's actual brightness.
+            pendingBrightnessScalars.removeAll()
+            pendingBrightnessSequences.removeAll()
+        }
     }
 
     func bindInputSettings(_ settings: SettingsStore) {
@@ -1803,20 +1816,36 @@ final class SystemStatusStore: ObservableObject {
         guard !pendingBrightnessScalars.isEmpty else { return value }
         let displayIDs = Set(value.displays.map(\.id))
         pendingBrightnessScalars = pendingBrightnessScalars.filter { displayIDs.contains($0.key) }
+        pendingBrightnessSequences = pendingBrightnessSequences.filter {
+            pendingBrightnessScalars[$0.key] != nil
+        }
         guard !pendingBrightnessScalars.isEmpty else { return value }
 
         var displays = value.displays
         for index in displays.indices {
             let display = displays[index]
             guard let pending = pendingBrightnessScalars[display.id] else { continue }
+            // A publication made after this write began is authoritative, even
+            // if the write's own confirmation was coalesced out of the stream.
+            // Only readings already queued before the target was set are kept
+            // from dragging the slider back.
+            if let sequence = display.readSequence,
+               let baseline = pendingBrightnessSequences[display.id],
+               sequence > baseline {
+                pendingBrightnessScalars.removeValue(forKey: display.id)
+                pendingBrightnessSequences.removeValue(forKey: display.id)
+                continue
+            }
             guard display.canAdjust, let incoming = display.scalar else {
                 // The backend reported the display as unreadable/unavailable:
                 // drop the optimistic value so the failure is visible.
                 pendingBrightnessScalars.removeValue(forKey: display.id)
+                pendingBrightnessSequences.removeValue(forKey: display.id)
                 continue
             }
             if abs(incoming - pending) <= 0.02 {
                 pendingBrightnessScalars.removeValue(forKey: display.id)
+                pendingBrightnessSequences.removeValue(forKey: display.id)
             } else {
                 displays[index] = display.replacingScalar(pending)
             }
@@ -1831,6 +1860,7 @@ final class SystemStatusStore: ObservableObject {
         guard !hasStopped, scalar.isFinite, !displayID.isEmpty else { return }
         let clamped = min(1, max(0, scalar))
         pendingBrightnessScalars[displayID] = clamped
+        pendingBrightnessSequences[displayID] = brightnessMonitor.latestUpdateSequence(forDisplayID: displayID)
         // Publish the target immediately so the panel follows the wheel/drag
         // instead of waiting for the DDC read-back.
         if let index = liveBrightness.displays.firstIndex(where: { $0.id == displayID }) {

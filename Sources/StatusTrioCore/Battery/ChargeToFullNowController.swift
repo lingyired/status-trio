@@ -207,6 +207,105 @@ final class ChargeToFullNowController: ObservableObject {
         publish(state.hasActiveChargeLimit ? .available : .hidden)
     }
 
+    /// Read-only diagnostics for the Settings pane. Ignores whether the
+    /// popover is open; the Settings toggle decides whether callers show them.
+    func hiddenReasons(
+        battery: BatteryStatus,
+        batterySectionVisible: Bool
+    ) -> [ChargeToFullNowHiddenReason] {
+        if case let .unavailable(reason) = capability {
+            return [Self.hiddenReason(for: reason)]
+        }
+
+        // Battery, section visibility, power and charge level can block
+        // independently, so report every applicable one. An absent battery
+        // already explains why power/charge reasons are not meaningful.
+        var reasons: [ChargeToFullNowHiddenReason] = []
+        if !battery.isPresent {
+            reasons.append(.noBattery)
+        }
+        if !batterySectionVisible {
+            reasons.append(.batterySectionHidden)
+        }
+        if battery.isPresent {
+            if !battery.isConnectedToPower {
+                reasons.append(.disconnectedFromPower)
+            }
+            if battery.isCharged || battery.percentage >= 100 {
+                reasons.append(.fullyCharged)
+            }
+        }
+        guard reasons.isEmpty else { return reasons }
+
+        // Ignore whether the popover is open: the Settings toggle alone decides
+        // whether the caller shows these diagnostics.
+        let demand = ChargeToFullNowDemand(
+            popoverVisible: true,
+            batterySectionVisible: true,
+            battery: battery
+        )
+        guard demand.canStartChargeToFull else { return reasons }
+
+        // An operation already in flight is not a hidden reason; a transient
+        // missing limit during the write must not be misreported.
+        if isApplying || isCancelling { return [] }
+
+        let state = backend.readState()
+
+        // The restore wait is explained while the system finishes charging
+        // toward the restored limit, using the same live-state rule as the
+        // controller itself rather than the cached presentation.
+        if let restored = restoredLimit,
+           shouldHoldRestoredLimit(restored, demand: demand, state: state) {
+            return [.restoredLimit(restored.limit)]
+        }
+
+        if state.errorMessage != nil {
+            return [.stateReadFailed]
+        }
+
+        // A session or a native temporary override means the limit is
+        // intentionally absent right now; never call that "no limit".
+        if session != nil { return [] }
+        if state.indicatesTemporaryOverride { return [] }
+
+        if state.hasActiveChargeLimit { return [] }
+
+        if Self.isUnrecognizedChargeLimit(state) {
+            return [.unrecognizedChargeLimitState]
+        }
+        return [.noActiveChargeLimit]
+    }
+
+    private static func hiddenReason(
+        for reason: ChargeToFullNowUnavailableReason
+    ) -> ChargeToFullNowHiddenReason {
+        switch reason {
+        case .unsupportedSystem: .unsupportedSystem
+        case .unsupportedArchitecture: .unsupportedArchitecture
+        case .frameworkUnavailable: .frameworkUnavailable
+        case .apiUnavailable: .apiUnavailable
+        case .mclUnsupported: .mclUnsupported
+        }
+    }
+
+    /// A limit value was reported but does not form a usable active limit:
+    /// either an enabled flag without a recognizable limit, or a raw state the
+    /// app does not understand (temporary override was already handled).
+    private static func isUnrecognizedChargeLimit(
+        _ state: ChargeToFullNowDeviceState
+    ) -> Bool {
+        guard state.errorMessage == nil else { return false }
+        switch state.mclEnabledRawValue {
+        case 0:
+            return false
+        case 1:
+            return state.reportedChargeLimit == nil
+        default:
+            return true
+        }
+    }
+
     func clearDemand() {
         currentDemand = nil
         pendingLimitChange = nil

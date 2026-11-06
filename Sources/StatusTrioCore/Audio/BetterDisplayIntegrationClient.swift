@@ -32,10 +32,13 @@ private struct BetterDisplayOSDEnvelope: Decodable, Sendable {
             || controlTarget == "mute"
     }
 
-    /// Brightness OSD hints are recognized separately from audio so the existing
-    /// `isAudioEvent` semantics stay unchanged.
+    /// Accept brightness-specific control names without treating unrelated
+    /// system icon notifications as brightness changes.
     var isBrightnessEvent: Bool {
         controlTarget == "brightness"
+            || controlTarget == "combinedBrightness"
+            || controlTarget == "hardwareBrightness"
+            || controlTarget == "softwareBrightness"
     }
 }
 

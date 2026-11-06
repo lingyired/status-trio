@@ -665,6 +665,20 @@
 "battery.energy.monitoringDescription" = "Если включено, активность приложений измеряется в фоне даже при закрытой панели. Сбор приостанавливается при отключении, во время сна системы или экрана и при выходе из Status Trio.";
 "settings.battery.showChargeToFullNow" = "Показывать кнопку «Зарядить полностью сейчас»";
 "settings.battery.showChargeToFullNowDescription" = "Показывает в панели состояния кнопку, которая временно снимает ограничение зарядки macOS и заряжает до 100 %.";
+"settings.battery.chargeHidden.unsupportedSystem" = "Кнопка скрыта: Требуется macOS 26.4 или новее";
+"settings.battery.chargeHidden.unsupportedArchitecture" = "Кнопка скрыта: Требуется Mac с чипом Apple";
+"settings.battery.chargeHidden.frameworkUnavailable" = "Кнопка скрыта: Системный фреймворк зарядки недоступен";
+"settings.battery.chargeHidden.apiUnavailable" = "Кнопка скрыта: Системный API зарядки недоступен";
+"settings.battery.chargeHidden.mclUnsupported" = "Кнопка скрыта: Этот Mac не поддерживает встроенный предел зарядки";
+"settings.battery.chargeHidden.noBattery" = "Кнопка скрыта: Батарея не обнаружена";
+"settings.battery.chargeHidden.batterySectionHidden" = "Кнопка скрыта: Раздел батареи отключён в панели состояния";
+"settings.battery.chargeHidden.disconnectedFromPower" = "Кнопка скрыта: Питание не подключено";
+"settings.battery.chargeHidden.fullyCharged" = "Кнопка скрыта: Батарея полностью заряжена";
+"settings.battery.chargeHidden.stateReadFailed" = "Кнопка скрыта: Не удалось прочитать состояние зарядки системы. Откройте эту страницу позже";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "Кнопка скрыта: Оптимизированный аккумулятором предел зарядки — 100%, эта кнопка не нужна";
+"settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Кнопка скрыта: Системный предел зарядки сейчас нельзя временно отменить";
+"settings.battery.chargeHidden.restoredLimit" = "Кнопка скрыта: Восстановление предела %d%%; ожидание стабилизации зарядки";
+"settings.battery.chargeHidden.controllerUnavailable" = "Кнопка скрыта: Управление зарядкой временно недоступно";
 "settings.battery.restoreLimit" = "Предел после отмены";
 "settings.battery.restoreLimitDescription" = "Предел зарядки, восстанавливаемый при отмене «Зарядить полностью сейчас».";
 "battery.action.chargeToFullNow" = "Зарядить полностью сейчас";
@@ -692,6 +706,7 @@
 "brightness.appAbsent" = "Требуется BetterDisplay";
 "brightness.noBackend" = "Нет управления яркостью";
 "brightness.unresponsive" = "Не отвечает";
+"brightness.backend.automatic" = "Автоматически";
 "brightness.backend.directDDC" = "Прямой DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Отключите дисплей, чтобы скрыть его строку яркости.";
@@ -749,6 +764,7 @@
 "settings.brightness.builtIn" = "Встроенный";
 "settings.brightness.internalBackend.description" = "Яркость встроенного дисплея использует бэкенд DisplayServices.";
 "settings.brightness.externalBackend.description" = "Выберите, как Status Trio управляет яркостью этого дисплея.";
+"settings.brightness.automatic.description" = "Автоматически: используется BetterDisplay, пока он запущен; иначе — прямой DDC.";
 "settings.brightness.backend.betterDisplayNeeded" = "BetterDisplay не запущен или его интеграция с уведомлениями отключена.";
 "settings.brightness.compatibility.title" = "Не регулируется яркость?";
 "settings.brightness.compatibility.description" = "Производители реализуют DDC по-разному, поэтому Status Trio не может поддерживать все модели. Если яркость дисплея здесь не регулируется, переключите его на бэкенд BetterDisplay — Status Trio будет управлять им через BetterDisplay. Бесплатной версии достаточно; лицензия Pro не нужна.";
