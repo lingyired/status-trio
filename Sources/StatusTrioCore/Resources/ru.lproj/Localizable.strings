@@ -675,7 +675,7 @@
 "settings.battery.chargeHidden.disconnectedFromPower" = "Кнопка скрыта: Питание не подключено";
 "settings.battery.chargeHidden.fullyCharged" = "Кнопка скрыта: Батарея полностью заряжена";
 "settings.battery.chargeHidden.stateReadFailed" = "Кнопка скрыта: Не удалось прочитать состояние зарядки системы. Откройте эту страницу позже";
-"settings.battery.chargeHidden.noActiveChargeLimit" = "Кнопка скрыта: Встроенный предел зарядки ниже 100% не включён";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "Кнопка скрыта: Оптимизированный аккумулятором предел зарядки — 100%, эта кнопка не нужна";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Кнопка скрыта: Системный предел зарядки сейчас нельзя временно отменить";
 "settings.battery.chargeHidden.restoredLimit" = "Кнопка скрыта: Восстановление предела %d%%; ожидание стабилизации зарядки";
 "settings.battery.chargeHidden.controllerUnavailable" = "Кнопка скрыта: Управление зарядкой временно недоступно";

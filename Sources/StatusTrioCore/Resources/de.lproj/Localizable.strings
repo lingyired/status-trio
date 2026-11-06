@@ -675,7 +675,7 @@
 "settings.battery.chargeHidden.disconnectedFromPower" = "Taste ausgeblendet: Nicht mit dem Stromnetz verbunden";
 "settings.battery.chargeHidden.fullyCharged" = "Taste ausgeblendet: Batterie vollständig geladen";
 "settings.battery.chargeHidden.stateReadFailed" = "Taste ausgeblendet: System-Ladestatus nicht lesbar. Diese Seite später erneut öffnen";
-"settings.battery.chargeHidden.noActiveChargeLimit" = "Taste ausgeblendet: Kein natives Ladelimit unter 100% aktiviert";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "Taste ausgeblendet: Das batterieoptimierte Ladelimit ist 100 %, diese Taste wird nicht benötigt";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Taste ausgeblendet: System-Ladelimit kann derzeit nicht aufgehoben werden";
 "settings.battery.chargeHidden.restoredLimit" = "Taste ausgeblendet: Limit von %d%% wird wiederhergestellt; Laden stabilisiert sich";
 "settings.battery.chargeHidden.controllerUnavailable" = "Taste ausgeblendet: Ladesteuerung vorübergehend nicht verfügbar";

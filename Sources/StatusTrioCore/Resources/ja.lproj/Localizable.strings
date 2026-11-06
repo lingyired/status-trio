@@ -675,7 +675,7 @@
 "settings.battery.chargeHidden.disconnectedFromPower" = "ボタン非表示：電源に接続されていません";
 "settings.battery.chargeHidden.fullyCharged" = "ボタン非表示：バッテリーはフル充電です";
 "settings.battery.chargeHidden.stateReadFailed" = "ボタン非表示：システムの充電状態を読み取れません。後でこのページを開き直してください";
-"settings.battery.chargeHidden.noActiveChargeLimit" = "ボタン非表示：100% 未満の標準充電上限が設定されていません";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "ボタン非表示：バッテリー最適化の充電上限が 100% のため、このボタンは不要です";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "ボタン非表示：システムの充電上限を一時解除できる状態ではありません";
 "settings.battery.chargeHidden.restoredLimit" = "ボタン非表示：上限を %d%% に復元中です。充電が安定するまでお待ちください";
 "settings.battery.chargeHidden.controllerUnavailable" = "ボタン非表示：充電制御を一時的に利用できません";

@@ -675,7 +675,7 @@
 "settings.battery.chargeHidden.disconnectedFromPower" = "Botón oculto: Sin conexión a la corriente";
 "settings.battery.chargeHidden.fullyCharged" = "Botón oculto: Batería completamente cargada";
 "settings.battery.chargeHidden.stateReadFailed" = "Botón oculto: No se puede leer el estado de carga del sistema. Vuelve a abrir esta página más tarde";
-"settings.battery.chargeHidden.noActiveChargeLimit" = "Botón oculto: No hay un límite de carga nativo inferior al 100% activado";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "Botón oculto: El límite de carga optimizado por la batería es del 100%, no se necesita este botón";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Botón oculto: El límite de carga del sistema no se puede omitir ahora";
 "settings.battery.chargeHidden.restoredLimit" = "Botón oculto: Restaurando el límite al %d%%; esperando a que la carga se estabilice";
 "settings.battery.chargeHidden.controllerUnavailable" = "Botón oculto: Control de carga temporalmente no disponible";

@@ -675,7 +675,7 @@
 "settings.battery.chargeHidden.disconnectedFromPower" = "按鈕未顯示：未連接電源";
 "settings.battery.chargeHidden.fullyCharged" = "按鈕未顯示：電池已充滿";
 "settings.battery.chargeHidden.stateReadFailed" = "按鈕未顯示：無法讀取系統充電狀態，請稍後重新開啟此頁";
-"settings.battery.chargeHidden.noActiveChargeLimit" = "按鈕未顯示：未啟用低於 100% 的原生充電上限";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "按鈕未顯示：目前電池優化的充電上限為 100% 不需要這個按鈕";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "按鈕未顯示：系統充電上限目前無法暫時覆寫";
 "settings.battery.chargeHidden.restoredLimit" = "按鈕未顯示：正在恢復至 %d%% 上限，等待充電穩定";
 "settings.battery.chargeHidden.controllerUnavailable" = "按鈕未顯示：充電控制暫時無法使用";

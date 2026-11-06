@@ -675,7 +675,7 @@
 "settings.battery.chargeHidden.disconnectedFromPower" = "Pulsante nascosto: Alimentazione non collegata";
 "settings.battery.chargeHidden.fullyCharged" = "Pulsante nascosto: Batteria completamente carica";
 "settings.battery.chargeHidden.stateReadFailed" = "Pulsante nascosto: Impossibile leggere lo stato di carica del sistema. Riapri questa pagina più tardi";
-"settings.battery.chargeHidden.noActiveChargeLimit" = "Pulsante nascosto: Nessun limite di carica nativo inferiore al 100% attivo";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "Pulsante nascosto: Il limite di carica ottimizzato per la batteria è 100%, questo pulsante non serve";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Pulsante nascosto: Il limite di carica del sistema non può essere ignorato ora";
 "settings.battery.chargeHidden.restoredLimit" = "Pulsante nascosto: Ripristino del limite al %d%%; in attesa che la carica si stabilizzi";
 "settings.battery.chargeHidden.controllerUnavailable" = "Pulsante nascosto: Controllo della carica temporaneamente non disponibile";

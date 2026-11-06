@@ -675,7 +675,7 @@
 "settings.battery.chargeHidden.disconnectedFromPower" = "الزر مخفي: غير متصل بالطاقة";
 "settings.battery.chargeHidden.fullyCharged" = "الزر مخفي: البطارية مشحونة بالكامل";
 "settings.battery.chargeHidden.stateReadFailed" = "الزر مخفي: تعذّرت قراءة حالة شحن النظام. أعد فتح هذه الصفحة لاحقًا";
-"settings.battery.chargeHidden.noActiveChargeLimit" = "الزر مخفي: لم يُفعّل حد شحن مدمج أقل من 100%";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "الزر مخفي: حد الشحن المحسّن للبطارية هو 100%، لذا لا حاجة لهذا الزر";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "الزر مخفي: لا يمكن تجاوز حد شحن النظام حاليًا";
 "settings.battery.chargeHidden.restoredLimit" = "الزر مخفي: جارٍ استعادة حد %d%%؛ بانتظار استقرار الشحن";
 "settings.battery.chargeHidden.controllerUnavailable" = "الزر مخفي: التحكم في الشحن غير متاح مؤقتًا";

@@ -675,7 +675,7 @@
 "settings.battery.chargeHidden.disconnectedFromPower" = "버튼 숨김: 전원이 연결되지 않았습니다";
 "settings.battery.chargeHidden.fullyCharged" = "버튼 숨김: 배터리가 완전히 충전되었습니다";
 "settings.battery.chargeHidden.stateReadFailed" = "버튼 숨김: 시스템 충전 상태를 읽을 수 없습니다. 나중에 이 페이지를 다시 여세요";
-"settings.battery.chargeHidden.noActiveChargeLimit" = "버튼 숨김: 100% 미만의 기본 충전 한도가 설정되지 않았습니다";
+"settings.battery.chargeHidden.noActiveChargeLimit" = "버튼 숨김: 배터리 최적화 충전 한도가 100%이므로 이 버튼이 필요하지 않습니다";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "버튼 숨김: 현재 시스템 충전 한도를 일시 해제할 수 없습니다";
 "settings.battery.chargeHidden.restoredLimit" = "버튼 숨김: %d%% 한도로 복원 중입니다. 충전이 안정되기를 기다리는 중입니다";
 "settings.battery.chargeHidden.controllerUnavailable" = "버튼 숨김: 충전 제어를 일시적으로 사용할 수 없습니다";
