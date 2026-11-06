@@ -18,15 +18,21 @@ struct BluetoothBatteryReaderTests {
                         "device_batteryLevelRight": 80,
                         "device_batteryLevelCase": "70 %"
                       }
-                    }
-                  ],
-                  "device_not_connected": [
+                    },
                     {
                       "Keyboard": {
                         "device_address": "D3-6D-6C-40-A3-2E",
                         "device_batteryLevel": "63%"
                       }
                     }
+                  ],
+                  "device_not_connected": [
+                    {"Old AirPods": {
+                      "device_address": "00:11:22:33:44:55",
+                      "device_batteryLevelLeft": 12,
+                      "device_batteryLevelRight": 15,
+                      "device_batteryLevelCase": 20
+                    }}
                   ]
                 }
               ]
@@ -43,6 +49,7 @@ struct BluetoothBatteryReaderTests {
         #expect(airPods.right == 80)
         #expect(airPods.caseLevel == 70)
         #expect(airPods.summary == "95% · L 85% · R 80% · Case 70%")
+        #expect(levels["001122334455"] == nil)
         #expect(keyboard.main == 63)
         #expect(keyboard.summary == "63%")
     }
@@ -73,11 +80,8 @@ struct BluetoothBatteryReaderTests {
         #expect(BluetoothBatteryReader.parse(json: json).isEmpty)
     }
 
-    /// A report that carries one address twice must keep the connected reading.
-    /// The collections are read connected-first, and before this the stale
-    /// `device_not_connected` entry, read second, overwrote the live level — so a
-    /// row showing the current charge silently fell back to the last value macOS
-    /// wrote down.
+    /// Disconnected copies cannot replace a connected reading, and normalized
+    /// duplicates across controller sections still yield one level.
     @Test func aDeviceListedTwiceKeepsTheConnectedLevel() throws {
         let json = try #require(
             """
@@ -92,11 +96,15 @@ struct BluetoothBatteryReaderTests {
                   ],
                   "device_not_connected": [
                     {"AirPods Pro": {
-                      "device_address": "ac:90:85:c2:9c:1f",
+                      "device_address": "ac-90-85-c2-9c-1f",
                       "device_batteryLevelMain": "12%"
                     }}
                   ]
-                }
+                },
+                {"device_connected": [{"Duplicate AirPods": {
+                  "device_address": "ac-90-85-c2-9c-1f",
+                  "device_batteryLevelMain": 0
+                }}]}
               ]
             }
             """.data(using: .utf8)
@@ -110,10 +118,7 @@ struct BluetoothBatteryReaderTests {
         )
     }
 
-    /// Only an entry that actually yields a level takes the address: a connected
-    /// entry macOS reported no level for must not shadow the level the other
-    /// collection carries, or the row would go quiet for a device the report can
-    /// describe.
+    /// Only valid connected readings participate in address deduplication.
     @Test func anEntryWithoutALevelDoesNotShadowOneThatHasIt() throws {
         let json = try #require(
             """
@@ -124,6 +129,14 @@ struct BluetoothBatteryReaderTests {
                     {"AirPods Pro": {
                       "device_address": "AC:90:85:C2:9C:1F",
                       "device_batteryLevelMain": "not available"
+                    }},
+                    {"Keyboard": {
+                      "device_address": "00:11:22:33:44:55"
+                    }},
+                    {"Keyboard": {
+                      "device_address": "00-11-22-33-44-55",
+                      "device_batteryLevelMain": 100,
+                      "device_batteryLevelLeft": 0
                     }}
                   ],
                   "device_not_connected": [
@@ -140,8 +153,10 @@ struct BluetoothBatteryReaderTests {
 
         let levels = BluetoothBatteryReader.parse(json: json)
 
+        #expect(levels["001122334455"]?.main == 100)
+        #expect(levels["001122334455"]?.left == 0)
         #expect(
-            levels[BluetoothBatteryReader.normalizedAddress("AC:90:85:C2:9C:1F")]?.main == 12
+            levels[BluetoothBatteryReader.normalizedAddress("AC:90:85:C2:9C:1F")] == nil
         )
     }
 
@@ -203,6 +218,30 @@ struct BluetoothBatteryReaderTests {
 
         #expect(spawnCount.value == 0, "the battery read spawned a second profiler")
         #expect(levels.value?[BluetoothBatteryReader.normalizedAddress("AC:90:85:C2:9C:1F")]?.main == 95)
+    }
+
+    @Test func cachedDisconnectedReportAnswersWithAnEmptySuccessfulRead() async {
+        let reportCache = BluetoothProfilerReportCache()
+        let data = Data("""
+        {"SPBluetoothDataType": [{"device_not_connected": [{"AirPods": {
+          "device_address": "AC:90:85:C2:9C:1F",
+          "device_batteryLevelLeft": 12,
+          "device_batteryLevelRight": 15,
+          "device_batteryLevelCase": 20
+        }}]}]}
+        """.utf8)
+        #expect(BluetoothBatteryReader.parse(json: data).isEmpty)
+        reportCache.store(data)
+        let spawnCount = ProfilerSpawnCounter()
+        let worker = SystemProfilerBluetoothBatteryWorker(outputProvider: {
+            spawnCount.increment()
+            return nil
+        }, reportCache: reportCache)
+        let levels = BatteryLevelResultBox()
+        worker.read { levels.set($0) }
+        await waitUntil { levels.hasAnswered }
+        #expect(levels.value == [:])
+        #expect(spawnCount.value == 0)
     }
 
     /// A battery read that happens on its own has no fresh report to reuse, so
