@@ -85,7 +85,7 @@ final class SettingsStore: ObservableObject {
     /// Migration-only keys from the split middle-slot settings.
     static let prioritizesNetworkErrorsOverInputSourceDefaultsKey = "prioritizesNetworkErrorsOverInputSource"
     static let replacesNetworkIconWithBluetoothAudioDefaultsKey = "replacesNetworkIconWithBluetoothAudio"
-    static let usesBluetoothAudioIconColorDefaultsKey = "usesBluetoothAudioIconColor"
+    static let bluetoothIconColorDefaultsKey = "bluetoothIconColor"
     static let usesBluetoothAudioVolumeColorDefaultsKey = "usesBluetoothAudioVolumeColor"
     static let prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey = "prioritizesNetworkErrorsOverBluetoothAudio"
     static let showsBluetoothBatteryLevelsDefaultsKey = "showsBluetoothBatteryLevels"
@@ -640,14 +640,13 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    /// Whether the centre Bluetooth glyph uses the Bluetooth status colour. Off
-    /// draws it in the adaptive primary colour instead, so it is not stuck blue
-    /// (#275). Independent of the volume footer's colour below.
-    @Published var usesBluetoothAudioIconColor: Bool {
+    /// The centre Bluetooth glyph's colour: default blue, adaptive primary, or
+    /// a user-picked colour (#275). Independent of the volume footer's colour.
+    @Published var bluetoothIconColor: BluetoothIconColorSelection {
         didSet {
             defaults.set(
-                usesBluetoothAudioIconColor,
-                forKey: Self.usesBluetoothAudioIconColorDefaultsKey
+                bluetoothIconColor.storageValue,
+                forKey: Self.bluetoothIconColorDefaultsKey
             )
         }
     }
@@ -1626,7 +1625,7 @@ final class SettingsStore: ObservableObject {
 
     var bluetoothAudioIconOptions: BluetoothAudioIconOptions {
         BluetoothAudioIconOptions(
-            usesIconColor: usesBluetoothAudioIconColor,
+            iconColor: bluetoothIconColor,
             usesVolumeColor: usesBluetoothAudioVolumeColor,
             symbolScale: wifiSymbolScale,
             networkIconSymbolOverride: bluetoothNetworkIconSymbolName,
@@ -1982,9 +1981,18 @@ final class SettingsStore: ObservableObject {
                     Self.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey] {
             defaults.removeObject(forKey: key)
         }
-        self.usesBluetoothAudioIconColor = defaults.object(
-            forKey: Self.usesBluetoothAudioIconColorDefaultsKey
-        ) as? Bool ?? true
+        if let storedBluetoothIconColor = defaults.string(forKey: Self.bluetoothIconColorDefaultsKey) {
+            self.bluetoothIconColor = BluetoothIconColorSelection(
+                storageValue: storedBluetoothIconColor
+            )
+        } else if let legacyIconColor = defaults.object(
+            forKey: "usesBluetoothAudioIconColor"
+        ) as? Bool {
+            // Migrate the short-lived boolean this branch shipped first.
+            self.bluetoothIconColor = legacyIconColor ? .systemBlue : .primary
+        } else {
+            self.bluetoothIconColor = .default
+        }
         self.usesBluetoothAudioVolumeColor = defaults.object(
             forKey: Self.usesBluetoothAudioVolumeColorDefaultsKey
         ) as? Bool ?? false

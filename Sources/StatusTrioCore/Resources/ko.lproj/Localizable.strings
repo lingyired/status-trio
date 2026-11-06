@@ -94,8 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth 기기";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "아직 Bluetooth 기기를 읽지 못했습니다. 위에서 Bluetooth 권한을 허용하거나 기기를 페어링하세요.";
 "settings.bluetooth.volumeColor" = "Bluetooth 볼륨을 파란색으로 표시";
-"settings.bluetooth.iconColor" = "Bluetooth 아이콘에 파란색 사용";
-"settings.bluetooth.iconColorDescription" = "메뉴 막대 가운데의 Bluetooth 아이콘을 파란색으로 유지합니다. 끄면 검정/흰색을 따릅니다.";
+"settings.bluetooth.iconColor" = "Bluetooth 아이콘 색상";
+"settings.bluetooth.iconColorDescription" = "메뉴 막대 가운데 Bluetooth 아이콘의 색상을 선택합니다. 기본 파란색, 메뉴 막대의 검정/흰색 또는 사용자 지정 색상.";
+"settings.bluetooth.iconColor.blue" = "파란색";
+"settings.bluetooth.iconColor.primary" = "시스템 따르기";
+"settings.bluetooth.iconColor.custom" = "사용자 지정 색상";
 "settings.bluetooth.volumeColorDescription" = "Bluetooth 오디오 출력 중에는 활성 볼륨 점 또는 호가 파란색으로 표시됩니다.";
 "settings.bluetooth.networkErrorPriority" = "네트워크 오류 우선";
 "settings.bluetooth.networkErrorPriorityDescription" = "연결 오류나 오프라인 상태에서는 Bluetooth 기기 아이콘 대신 네트워크 아이콘을 유지합니다.";

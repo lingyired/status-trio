@@ -94,8 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "藍牙裝置";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "尚未讀取到藍牙裝置。請在上方授予藍牙權限，或先配對裝置。";
 "settings.bluetooth.volumeColor" = "藍牙音量使用藍色";
-"settings.bluetooth.iconColor" = "藍牙圖示使用藍色";
-"settings.bluetooth.iconColorDescription" = "狀態圖示中間的藍牙圖示保持藍色；關閉後跟隨選單列的黑/白顯示。";
+"settings.bluetooth.iconColor" = "藍牙圖示顏色";
+"settings.bluetooth.iconColorDescription" = "選擇中間藍牙圖示的顏色：預設藍色、跟隨選單列黑白，或自訂顏色。";
+"settings.bluetooth.iconColor.blue" = "藍色";
+"settings.bluetooth.iconColor.primary" = "跟隨系統";
+"settings.bluetooth.iconColor.custom" = "自訂顏色";
 "settings.bluetooth.volumeColorDescription" = "藍牙輸出音訊時，音量點或圓弧的作用部分會顯示為藍色。";
 "settings.bluetooth.networkErrorPriority" = "網路異常優先於藍牙圖示";
 "settings.bluetooth.networkErrorPriorityDescription" = "斷線或無網路時仍顯示網路圖示，不顯示藍牙裝置圖示。";

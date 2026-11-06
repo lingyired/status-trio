@@ -94,8 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth 機器";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Bluetooth 機器をまだ読み取れていません。上部で Bluetooth の権限を許可するか、機器をペアリングしてください。";
 "settings.bluetooth.volumeColor" = "Bluetooth の音量を青色で表示";
-"settings.bluetooth.iconColor" = "Bluetooth アイコンを青色で表示";
-"settings.bluetooth.iconColorDescription" = "メニューバー中央の Bluetooth アイコンを青色に保ちます。オフにすると黒/白に従います。";
+"settings.bluetooth.iconColor" = "Bluetooth アイコンの色";
+"settings.bluetooth.iconColorDescription" = "メニューバー中央の Bluetooth アイコンの色を選択します。既定の青、メニューバーの黒/白、またはカスタム色。";
+"settings.bluetooth.iconColor.blue" = "青";
+"settings.bluetooth.iconColor.primary" = "システムに従う";
+"settings.bluetooth.iconColor.custom" = "カスタム色";
 "settings.bluetooth.volumeColorDescription" = "Bluetooth でオーディオを出力すると、音量の点または円弧のアクティブ部分が青色になります。";
 "settings.bluetooth.networkErrorPriority" = "ネットワークエラーを優先";
 "settings.bluetooth.networkErrorPriorityDescription" = "接続エラーやオフライン状態では、Bluetooth 機器ではなくネットワークアイコンを表示します。";

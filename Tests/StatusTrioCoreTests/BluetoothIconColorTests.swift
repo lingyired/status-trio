@@ -1,9 +1,9 @@
+import AppKit
 import XCTest
 @testable import StatusTrioCore
 
-/// #275: the centre Bluetooth glyph can stay blue (default) or follow the
-/// system's primary colour, independently of the volume footer's Bluetooth
-/// tint. Both the automatic glyph and an explicitly picked device must obey it.
+/// #275: the middle Bluetooth glyph is blue by default, can follow the system
+/// label colour, or use a custom colour, independently of the volume footer.
 final class BluetoothIconColorTests: XCTestCase {
     private let bluetoothDevice = AudioOutputDevice(
         id: 42,
@@ -15,7 +15,7 @@ final class BluetoothIconColorTests: XCTestCase {
     )
 
     private func scene(
-        usesIconColor: Bool,
+        _ iconColor: BluetoothIconColorSelection,
         override: String? = nil,
         iconChoice: BluetoothAudioIconChoice = .automatic
     ) -> IconSceneState {
@@ -35,7 +35,7 @@ final class BluetoothIconColorTests: XCTestCase {
             connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
             volume: .standard,
             bluetooth: BluetoothAudioIconOptions(
-                usesIconColor: usesIconColor,
+                iconColor: iconColor,
                 usesVolumeColor: false,
                 networkIconSymbolOverride: override,
                 iconChoice: iconChoice
@@ -47,21 +47,23 @@ final class BluetoothIconColorTests: XCTestCase {
         )
     }
 
-    func testIconColourDefaultsToBluetooth() {
-        let scene = self.scene(usesIconColor: true)
-        XCTAssertEqual(scene.center?.colorRole, .bluetooth)
+    func testDefaultIsBlueAndRidesTheScene() {
+        let scene = self.scene(.systemBlue)
+        XCTAssertEqual(scene.center?.colorRole, .bluetoothIcon)
+        XCTAssertEqual(scene.bluetoothIconColor, .systemBlue)
     }
 
-    func testTurningIconColourOffUsesPrimary() {
-        let scene = self.scene(usesIconColor: false)
+    func testPrimaryUsesTheAdaptiveRole() {
+        let scene = self.scene(.primary)
         XCTAssertEqual(scene.center?.colorRole, .primary)
+        XCTAssertEqual(scene.bluetoothIconColor, .primary)
     }
 
-    func testExplicitDeviceFollowsIconColourSetting() {
-        let blue = scene(usesIconColor: true, override: "headphones")
-        let mono = scene(usesIconColor: false, override: "headphones")
-        XCTAssertEqual(blue.center?.colorRole, .bluetooth)
-        XCTAssertEqual(mono.center?.colorRole, .primary)
+    func testCustomColourRidesTheSceneEvenForAPickedDevice() {
+        let components = BatteryStatusColorComponents(hue: 0.8, saturation: 0.9, brightness: 0.8)
+        let scene = self.scene(.custom(components), override: "headphones")
+        XCTAssertEqual(scene.center?.colorRole, .bluetoothIcon)
+        XCTAssertEqual(scene.bluetoothIconColor, .custom(components))
     }
 
     func testIconColourIsIndependentOfVolumeColour() {
@@ -81,7 +83,7 @@ final class BluetoothIconColorTests: XCTestCase {
             connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
             volume: VolumeIconOptions(displayStyle: .arc),
             bluetooth: BluetoothAudioIconOptions(
-                usesIconColor: false,
+                iconColor: .primary,
                 usesVolumeColor: true
             )
         )
@@ -89,7 +91,38 @@ final class BluetoothIconColorTests: XCTestCase {
             inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
             configuration: configuration
         )
-        XCTAssertEqual(scene.center?.colorRole, .primary, "mono glyph")
+        XCTAssertEqual(scene.center?.colorRole, .primary, "mono icon")
         XCTAssertEqual(scene.footer?.colorRole, .bluetooth, "volume stays tinted")
+    }
+
+    func testResolverMapsTheThreeModes() {
+        let foreground = CGColor(gray: 0, alpha: 1)
+        let blue = BluetoothIconColorResolver.resolve(.systemBlue, foreground: foreground, darkAppearance: false)
+        XCTAssertEqual(blue, StatusIconRenderer.bluetoothColor(foreground: foreground))
+        XCTAssertEqual(
+            BluetoothIconColorResolver.resolve(.primary, foreground: foreground, darkAppearance: false),
+            foreground
+        )
+        let custom = BluetoothIconColorResolver.resolve(
+            .custom(BatteryStatusColorComponents(hue: 0.75, saturation: 0.9, brightness: 0.8)),
+            foreground: foreground,
+            darkAppearance: false
+        )
+        XCTAssertNotEqual(custom, blue)
+        XCTAssertNotEqual(custom, foreground)
+    }
+
+    func testStorageRoundTripsAllModes() {
+        for selection: BluetoothIconColorSelection in [
+            .systemBlue,
+            .primary,
+            .custom(BatteryStatusColorComponents(hue: 0.4, saturation: 0.6, brightness: 0.7))
+        ] {
+            XCTAssertEqual(
+                BluetoothIconColorSelection(storageValue: selection.storageValue),
+                selection
+            )
+        }
+        XCTAssertEqual(BluetoothIconColorSelection(storageValue: "garbage"), .systemBlue)
     }
 }

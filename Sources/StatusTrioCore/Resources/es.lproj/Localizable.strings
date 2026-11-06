@@ -94,8 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Dispositivos Bluetooth";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Aún no se han leído dispositivos Bluetooth. Concede el acceso Bluetooth arriba o empareja un dispositivo.";
 "settings.bluetooth.volumeColor" = "Usar azul para el volumen de Bluetooth";
-"settings.bluetooth.iconColor" = "Usar azul para el icono de Bluetooth";
-"settings.bluetooth.iconColorDescription" = "El icono de Bluetooth del centro permanece azul. Desactívalo para dibujarlo en negro o blanco.";
+"settings.bluetooth.iconColor" = "Color del icono de Bluetooth";
+"settings.bluetooth.iconColorDescription" = "Elige el color del icono de Bluetooth central: azul por defecto, el negro o blanco de la barra de menús, o un color personalizado.";
+"settings.bluetooth.iconColor.blue" = "Azul";
+"settings.bluetooth.iconColor.primary" = "Seguir el sistema";
+"settings.bluetooth.iconColor.custom" = "Color personalizado";
 "settings.bluetooth.volumeColorDescription" = "Los puntos activos o el arco del volumen se vuelven azules al reproducir audio por Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Dar prioridad a los errores de red";
 "settings.bluetooth.networkErrorPriorityDescription" = "Los errores de conexión y el estado sin conexión mantienen el icono de red en lugar del dispositivo Bluetooth.";

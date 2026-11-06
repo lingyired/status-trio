@@ -94,8 +94,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth-Geräte";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Noch keine Bluetooth-Geräte gelesen. Erlaube oben den Bluetooth-Zugriff oder kopple ein Gerät.";
 "settings.bluetooth.volumeColor" = "Bluetooth-Lautstärke blau darstellen";
-"settings.bluetooth.iconColor" = "Blaues Bluetooth-Symbol verwenden";
-"settings.bluetooth.iconColorDescription" = "Das Bluetooth-Symbol in der Mitte bleibt blau. Ausschalten zeichnet es in Schwarz oder Weiß der Menüleiste.";
+"settings.bluetooth.iconColor" = "Bluetooth-Symbolfarbe";
+"settings.bluetooth.iconColorDescription" = "Farbe des Bluetooth-Symbols in der Mitte: standardmäßig Blau, die Schwarz-/Weißfarbe der Menüleiste oder eine eigene Farbe.";
+"settings.bluetooth.iconColor.blue" = "Blau";
+"settings.bluetooth.iconColor.primary" = "System folgen";
+"settings.bluetooth.iconColor.custom" = "Eigene Farbe";
 "settings.bluetooth.volumeColorDescription" = "Die aktiven Lautstärkepunkte oder der Bogen werden bei Bluetooth-Audioausgabe blau.";
 "settings.bluetooth.networkErrorPriority" = "Netzwerkfehler priorisieren";
 "settings.bluetooth.networkErrorPriorityDescription" = "Bei Verbindungsfehlern oder Offline-Status bleibt das Netzwerksymbol sichtbar statt des Bluetooth-Gerätesymbols.";

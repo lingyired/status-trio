@@ -121,13 +121,13 @@ extension SettingsStore {
 
     private var bluetoothOptionsPublisher: AnyPublisher<BluetoothAudioIconOptions, Never> {
         Publishers.CombineLatest3(
-            $usesBluetoothAudioIconColor,
+            $bluetoothIconColor,
             $usesBluetoothAudioVolumeColor,
             $bluetoothNetworkIconSymbolName
         )
         .combineLatest($bluetoothAudioIconChoiceRawValue) { values, choiceRawValue in
             BluetoothAudioIconOptions(
-                usesIconColor: values.0,
+                iconColor: values.0,
                 usesVolumeColor: values.1,
                 networkIconSymbolOverride: values.2,
                 iconChoice: BluetoothAudioIconChoice.persisted(choiceRawValue) { symbol in
@@ -192,7 +192,7 @@ private struct IconAppearanceGroups {
             wifiScale: centerScale
         )
         let scaledBluetooth = BluetoothAudioIconOptions(
-            usesIconColor: bluetooth.usesIconColor,
+            iconColor: bluetooth.iconColor,
             usesVolumeColor: bluetooth.usesVolumeColor,
             symbolScale: centerScale,
             networkIconSymbolOverride: bluetooth.networkIconSymbolOverride,

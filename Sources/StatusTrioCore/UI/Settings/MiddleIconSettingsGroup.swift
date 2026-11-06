@@ -213,13 +213,7 @@ private struct MiddleBluetoothIconOptions: View {
             }
             networkIconSourceRow
             SettingsDivider()
-            SettingsToggleRow(
-                symbol: "paintpalette.fill",
-                tint: .blue,
-                title: localization.string(.settingsBluetoothIconColor),
-                subtitle: localization.string(.settingsBluetoothIconColorDescription),
-                isOn: $store.usesBluetoothAudioIconColor
-            )
+            BluetoothIconColorRow(store: store)
             if selectedOption.source == .audioDevices {
                 SettingsDivider()
                 bluetoothAudioIconChoiceRow

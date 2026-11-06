@@ -410,7 +410,7 @@ final class IconPresentationMapperTests: XCTestCase {
             connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
             bluetoothOptions: bluetooth
         ).center
-        XCTAssertEqual(connected, .symbol(IconSymbolState(source: .symbol(name: "custom.device", variableValue: nil, fallback: "dot.radiowaves.left.and.right"), color: .bluetooth, scale: 1.6)))
+        XCTAssertEqual(connected, .symbol(IconSymbolState(source: .symbol(name: "custom.device", variableValue: nil, fallback: "dot.radiowaves.left.and.right"), color: .bluetoothIcon, scale: 1.6)))
 
         let error = scene(
             snapshot: snapshot(wifi: WiFiStatus(state: .noInternet, rssi: nil)),
@@ -434,7 +434,7 @@ final class IconPresentationMapperTests: XCTestCase {
                 bluetooth: options
             )).center,
             .symbol(IconSymbolState(source: .image(url: URL(fileURLWithPath: "/audio.png"), fallbackSymbol: "headphones"),
-                                    color: .bluetooth, scale: 1.6)))
+                                    color: .bluetoothIcon, scale: 1.6)))
 
         let error = snapshot(connection: .wifi, wifi: WiFiStatus(state: .noInternet, rssi: -45),
             volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output", currentDevice: PresentationFixtures.bluetoothDevice))

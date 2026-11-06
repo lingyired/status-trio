@@ -77,8 +77,11 @@
 "settings.bluetooth.networkIconSourceDevices" = "أجهزة Bluetooth";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "لم تتم قراءة أي أجهزة Bluetooth بعد. امنح إذن Bluetooth أعلاه أو اقترن بجهاز.";
 "settings.bluetooth.volumeColor" = "استخدام اللون الأزرق لمستوى صوت Bluetooth";
-"settings.bluetooth.iconColor" = "استخدام اللون الأزرق لأيقونة Bluetooth";
-"settings.bluetooth.iconColorDescription" = "تبقى أيقونة Bluetooth في المنتصف زرقاء. أوقف هذا الخيار لرسمها بالأسود أو الأبيض.";
+"settings.bluetooth.iconColor" = "لون أيقونة Bluetooth";
+"settings.bluetooth.iconColorDescription" = "اختر لون أيقونة Bluetooth في المنتصف: الأزرق افتراضيًا، أو أسود/أبيض شريط القوائم، أو لون مخصص.";
+"settings.bluetooth.iconColor.blue" = "أزرق";
+"settings.bluetooth.iconColor.primary" = "تبع النظام";
+"settings.bluetooth.iconColor.custom" = "لون مخصص";
 "settings.bluetooth.volumeColorDescription" = "تتحول نقاط مستوى الصوت النشطة أو القوس إلى الأزرق عند الإخراج عبر Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "إعطاء أولوية لأخطاء الشبكة";
 "settings.bluetooth.networkErrorPriorityDescription" = "تبقى أيقونة الشبكة ظاهرة عند انقطاع الاتصال أو غياب الإنترنت بدلًا من أيقونة جهاز Bluetooth.";
