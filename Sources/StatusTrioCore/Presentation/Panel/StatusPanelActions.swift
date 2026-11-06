@@ -49,6 +49,7 @@ final class StatusPanelActions {
     private let stopVolumeListeningModes: () -> Void
     private let selectInputSourceCommand: (String) -> Void
     private let setVPNPowerCommand: (Bool) -> Void
+    private let setMihomoTunnelPowerCommand: (Bool) -> Void
 
     private static let summaryBatteryLevelsToken = "bluetooth.summary"
     private static let nearbyBatteryDevicesToken = "bluetooth.summary.nearbyBatteryDevices"
@@ -98,6 +99,7 @@ final class StatusPanelActions {
         closeWiFiDetails: @escaping () -> Void = {},
         setWiFiPower: @escaping (Bool) -> Void = { _ in },
         setVPNPower: @escaping (Bool) -> Void = { _ in },
+        setMihomoTunnelPower: @escaping (Bool) -> Void = { _ in },
         refreshWiFi: @escaping (WiFiNameAccess) -> Void = { _ in },
         openWiredDetails: @escaping () -> Void = {},
         closeWiredDetails: @escaping () -> Void = {},
@@ -153,6 +155,7 @@ final class StatusPanelActions {
         self.stopVolumeListeningModes = stopVolumeListeningModes
         self.selectInputSourceCommand = selectInputSource
         self.setVPNPowerCommand = setVPNPower
+        self.setMihomoTunnelPowerCommand = setMihomoTunnelPower
     }
 
     convenience init(
@@ -224,6 +227,7 @@ final class StatusPanelActions {
             closeWiFiDetails: { store.wifiNetworks.deactivate() },
             setWiFiPower: { store.setWiFiPower($0) },
             setVPNPower: { store.setVPNPower($0) },
+            setMihomoTunnelPower: { store.setMihomoTunnelPower($0) },
             refreshWiFi: { store.wifiNetworks.refreshNow(nameAccess: $0) },
             openWiredDetails: { store.activatePrimaryLinkPanel() },
             closeWiredDetails: { store.closePrimaryLinkPanel() },
@@ -406,6 +410,8 @@ final class StatusPanelActions {
     func setWiFiPower(_ enabled: Bool) { setWiFiPowerCommand(enabled) }
 
     func setVPNPower(_ enabled: Bool) { setVPNPowerCommand(enabled) }
+
+    func setMihomoTunnelPower(_ enabled: Bool) { setMihomoTunnelPowerCommand(enabled) }
     func refreshWiFi() { refreshWiFiCommand(wifiNameAccess()) }
     private func bluetoothDevice(address: String) -> BluetoothDevice? {
         let key = BluetoothBatteryReader.normalizedAddress(address)

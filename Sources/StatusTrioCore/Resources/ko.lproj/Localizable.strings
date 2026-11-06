@@ -291,6 +291,10 @@
 "vpn.power.changing" = "VPN 상태 변경 중…";
 "vpn.power.failed" = "VPN을 변경할 수 없습니다. 시스템 설정을 확인하세요.";
 "vpn.power.timedOut" = "VPN 상태를 확인하지 못했습니다. 다시 확인하세요.";
+"vpn.mihomo.turnOn" = "Clash Verge TUN 켜기";
+"vpn.mihomo.turnOff" = "Clash Verge TUN 끄기";
+"vpn.mihomo.changing" = "Clash Verge TUN 변경 중…";
+"vpn.mihomo.failed" = "Clash Verge TUN을 변경할 수 없습니다.";
 "wifi.action.requestNameAccess" = "위치를 허용하여 Wi-Fi 네트워크 표시";
 "wifi.action.openLocationSettings" = "설정에서 위치 허용";
 "wifi.action.openSettings" = "Wi-Fi 설정 열기";

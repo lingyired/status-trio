@@ -35,4 +35,5 @@ struct PanelSummaryState: Equatable, Sendable {
     /// VPN-only: `nil` keeps the row read-only and is how proxy-only and
     /// tunnel-only rows stay honest about having no service to control.
     var vpnPower: VPNPowerPresentation? = nil
+    var mihomoTunnelPower: MihomoTunnelPowerPresentation? = nil
 }

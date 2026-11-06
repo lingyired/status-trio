@@ -3,20 +3,51 @@ import Foundation
 
 /// A TUN that Mihomo itself reports. The device is the bridge between the
 /// client's runtime configuration and the interfaces `getifaddrs` sees.
+enum MihomoTunnelFailure: Equatable, Sendable {
+    case requestRejected
+    case failed
+}
+
 struct MihomoTunnelInfo: Equatable, Sendable {
     let provider: String
     let device: String
     let isEnabled: Bool
+    var isChanging = false
+    var failure: MihomoTunnelFailure?
+
+    init(
+        provider: String,
+        device: String,
+        isEnabled: Bool,
+        isChanging: Bool = false,
+        failure: MihomoTunnelFailure? = nil
+    ) {
+        self.provider = provider
+        self.device = device
+        self.isEnabled = isEnabled
+        self.isChanging = isChanging
+        self.failure = failure
+    }
+}
+
+enum MihomoTunnelWriteResult: Equatable, Sendable {
+    case updated(MihomoTunnelInfo)
+    case rejected
+    case failed
 }
 
 protocol MihomoTunnelReading: Sendable {
     func read() async -> MihomoTunnelInfo?
 }
 
+protocol MihomoTunnelControlling: MihomoTunnelReading {
+    func setEnabled(_ enabled: Bool, expectedDevice: String) async -> MihomoTunnelWriteResult
+}
+
 /// Reads Clash Verge's Mihomo control socket. This is read-only: it never
 /// sends PATCH and never changes the TUN. Local service-mode sockets are
 /// owner-only; no administrator prompt or Accessibility grant is involved.
-final class SystemMihomoTunnelClient: MihomoTunnelReading, @unchecked Sendable {
+final class SystemMihomoTunnelClient: MihomoTunnelControlling, @unchecked Sendable {
     private let socketPaths: [(path: String, provider: String)]
 
     init(uid: uid_t = getuid()) {
@@ -30,7 +61,7 @@ final class SystemMihomoTunnelClient: MihomoTunnelReading, @unchecked Sendable {
 
     func read() async -> MihomoTunnelInfo? {
         for candidate in socketPaths where FileManager.default.fileExists(atPath: candidate.path) {
-            guard let json = await MihomoUnixHTTP.get(path: "/configs", socketPath: candidate.path),
+            guard let json = await MihomoUnixHTTP.getJSON(path: "/configs", socketPath: candidate.path),
                   let info = MihomoConfigParser.tunnel(fromJSON: json, provider: candidate.provider) else {
                 continue
             }
@@ -38,30 +69,79 @@ final class SystemMihomoTunnelClient: MihomoTunnelReading, @unchecked Sendable {
         }
         return nil
     }
+
+    /// The provider/device check is repeated here, not only in the UI. A stale
+    /// row must not toggle a different client's TUN after the user switches
+    /// networks or clients.
+    func setEnabled(_ enabled: Bool, expectedDevice: String) async -> MihomoTunnelWriteResult {
+        for candidate in socketPaths where FileManager.default.fileExists(atPath: candidate.path) {
+            guard let before = await MihomoUnixHTTP.getJSON(path: "/configs", socketPath: candidate.path),
+                  let current = MihomoConfigParser.tunnel(fromJSON: before, provider: candidate.provider),
+                  current.device == expectedDevice else {
+                continue
+            }
+            let body = try? JSONSerialization.data(withJSONObject: ["tun": ["enable": enabled]])
+            guard let body,
+                  await MihomoUnixHTTP.patch(path: "/configs", body: body, socketPath: candidate.path) else {
+                return .rejected
+            }
+            guard let after = await MihomoUnixHTTP.getJSON(path: "/configs", socketPath: candidate.path),
+                  let updated = MihomoConfigParser.tunnel(fromJSON: after, provider: candidate.provider),
+                  updated.device == expectedDevice,
+                  updated.isEnabled == enabled else {
+                return .failed
+            }
+            return .updated(updated)
+        }
+        return .rejected
+    }
 }
 
 enum MihomoConfigParser {
     static func tunnel(fromJSON json: [String: Any], provider: String) -> MihomoTunnelInfo? {
         guard let tun = json["tun"] as? [String: Any],
-              tun["enable"] as? Bool == true,
               let device = tun["device"] as? String,
               !device.isEmpty else {
             return nil
         }
-        return MihomoTunnelInfo(provider: provider, device: device, isEnabled: true)
+        return MihomoTunnelInfo(
+            provider: provider,
+            device: device,
+            isEnabled: tun["enable"] as? Bool == true
+        )
     }
 }
 
 private enum MihomoUnixHTTP {
-    static func get(path: String, socketPath: String) async -> [String: Any]? {
+    static func getJSON(path: String, socketPath: String) async -> [String: Any]? {
         await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
-                continuation.resume(returning: getSync(path: path, socketPath: socketPath))
+                guard let data = request(method: "GET", path: path, body: nil, socketPath: socketPath),
+                      let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: object)
             }
         }
     }
 
-    private static func getSync(path: String, socketPath: String) -> [String: Any]? {
+    static func patch(path: String, body: Data, socketPath: String) async -> Bool {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .utility).async {
+                continuation.resume(
+                    returning: request(method: "PATCH", path: path, body: body, socketPath: socketPath) != nil
+                )
+            }
+        }
+    }
+
+    private static func request(
+        method: String,
+        path: String,
+        body: Data?,
+        socketPath: String
+    ) -> Data? {
         let bytes = Array(socketPath.utf8)
         guard bytes.count < MemoryLayout.size(ofValue: sockaddr_un().sun_path) else { return nil }
 
@@ -90,11 +170,18 @@ private enum MihomoUnixHTTP {
         }
         guard connected == 0 else { return nil }
 
-        let request = "GET \(path) HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
-        let sent = request.utf8CString.withUnsafeBytes { buffer in
-            send(fd, buffer.baseAddress, request.utf8.count, 0)
+        let bodyLength = body?.count ?? 0
+        var request = "\(method) \(path) HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n"
+        if body != nil {
+            request += "Content-Type: application/json\r\nContent-Length: \(bodyLength)\r\n"
         }
-        guard sent == request.utf8.count else { return nil }
+        request += "\r\n"
+        var requestData = Data(request.utf8)
+        if let body { requestData.append(body) }
+        let sent = requestData.withUnsafeBytes { buffer in
+            send(fd, buffer.baseAddress, requestData.count, 0)
+        }
+        guard sent == requestData.count else { return nil }
 
         var data: [UInt8] = []
         var buffer = [UInt8](repeating: 0, count: 4096)
@@ -108,10 +195,9 @@ private enum MihomoUnixHTTP {
         }
         guard let text = String(bytes: data, encoding: .utf8),
               let separator = text.range(of: "\r\n\r\n"),
-              text.hasPrefix("HTTP/1.1 200") else {
+              text.hasPrefix("HTTP/1.1 2") else {
             return nil
         }
-        let body = String(text[separator.upperBound...])
-        return try? JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any]
+        return Data(text[separator.upperBound...].utf8)
     }
 }

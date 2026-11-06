@@ -291,6 +291,10 @@
 "vpn.power.changing" = "Modification du VPN…";
 "vpn.power.failed" = "Impossible de modifier le VPN. Vérifiez les Réglages Système.";
 "vpn.power.timedOut" = "État du VPN non confirmé. Vérifiez à nouveau.";
+"vpn.mihomo.turnOn" = "Activer le TUN Clash Verge";
+"vpn.mihomo.turnOff" = "Désactiver le TUN Clash Verge";
+"vpn.mihomo.changing" = "Modification du TUN Clash Verge…";
+"vpn.mihomo.failed" = "Impossible de modifier le TUN Clash Verge.";
 "wifi.action.requestNameAccess" = "Autoriser la localisation pour afficher les réseaux Wi‑Fi";
 "wifi.action.openLocationSettings" = "Autoriser la localisation dans Réglages";
 "wifi.action.openSettings" = "Ouvrir les réglages Wi‑Fi";

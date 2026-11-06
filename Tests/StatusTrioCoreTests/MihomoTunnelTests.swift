@@ -10,10 +10,13 @@ final class MihomoTunnelTests: XCTestCase {
             ),
             MihomoTunnelInfo(provider: "Clash Verge", device: "utun4", isEnabled: true)
         )
-        XCTAssertNil(MihomoConfigParser.tunnel(
-            fromJSON: ["tun": ["enable": false, "device": "utun4"]],
-            provider: "Clash Verge"
-        ))
+        XCTAssertEqual(
+            MihomoConfigParser.tunnel(
+                fromJSON: ["tun": ["enable": false, "device": "utun4"]],
+                provider: "Clash Verge"
+            )?.isEnabled,
+            false
+        )
         XCTAssertNil(MihomoConfigParser.tunnel(
             fromJSON: ["tun": ["enable": true, "device": ""]],
             provider: "Clash Verge"
@@ -37,6 +40,21 @@ final class MihomoTunnelTests: XCTestCase {
         XCTAssertNil(controller.info)
     }
 
+    @MainActor
+    func testControllerPublishesAReadbackAfterToggle() async {
+        let client = FakeMihomoReader(info: MihomoTunnelInfo(
+            provider: "Clash Verge", device: "utun4", isEnabled: true
+        ))
+        let controller = MihomoTunnelController(client: client, observer: FakeMihomoObserver())
+        controller.activate()
+        _ = await waitUntil { controller.info != nil }
+        await controller.setEnabled(false)
+        XCTAssertEqual(controller.info?.isEnabled, false)
+        XCTAssertFalse(controller.info?.isChanging ?? true)
+        XCTAssertNil(controller.info?.failure)
+        controller.deactivate()
+    }
+
     func testLocalClashVergeSocketWhenPresent() async throws {
         let socket = "/var/run/clash-verge-service/users/\(getuid())/verge-mihomo.sock"
         try XCTSkipUnless(FileManager.default.fileExists(atPath: socket),
@@ -57,13 +75,19 @@ final class MihomoTunnelTests: XCTestCase {
     }
 }
 
-private final class FakeMihomoReader: MihomoTunnelReading, @unchecked Sendable {
+private final class FakeMihomoReader: MihomoTunnelControlling, @unchecked Sendable {
     let info: MihomoTunnelInfo?
     private(set) var calls = 0
     init(info: MihomoTunnelInfo?) { self.info = info }
     func read() async -> MihomoTunnelInfo? {
         calls += 1
         return info
+    }
+    func setEnabled(_ enabled: Bool, expectedDevice: String) async -> MihomoTunnelWriteResult {
+        guard let info, info.device == expectedDevice else { return .rejected }
+        return .updated(MihomoTunnelInfo(
+            provider: info.provider, device: info.device, isEnabled: enabled
+        ))
     }
 }
 

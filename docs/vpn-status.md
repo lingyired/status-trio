@@ -19,9 +19,14 @@ socket. `GET /configs` is read-only and reports `tun.enable` plus the concrete
 labelled **Clash Verge TUN**. This attribution requires no helper, root,
 Accessibility or Input Monitoring grant, and no secret on the local socket.
 If the socket is absent, the row falls back to **TUN**. The read is
-demand-driven while the VPN row is visible and never sends `PATCH`. A future
-TUN switch would use Mihomo's public `PATCH /configs` (`tun.enable`) only after
-the provider/device attribution is verified; actual control remains **NOT RUN**.
+demand-driven while the VPN row is visible. The same row offers a power glyph
+for the attributed TUN: an explicit click sends the public Mihomo
+`PATCH /configs` body `{"tun":{"enable":false}}` (or `true`), re-reads
+`/configs` to confirm the device and state, and shows a localized failure if
+the request is rejected or the readback disagrees. The device is revalidated
+through `expectedDevice` inside the client so a stale row cannot toggle a
+different client's TUN. Actual toggle behavior on this Mac remains **NOT RUN**
+until the user exercises the control.
 
 A system VPN service leads with its service name and reads **Connected**. A
 bare tunnel that has no system service is labelled **TUN** (never **VPN**),

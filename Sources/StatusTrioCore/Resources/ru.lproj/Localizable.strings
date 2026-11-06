@@ -291,6 +291,10 @@
 "vpn.power.changing" = "Изменение состояния VPN…";
 "vpn.power.failed" = "Не удалось изменить VPN. Проверьте Системные настройки.";
 "vpn.power.timedOut" = "Состояние VPN не подтверждено. Проверьте ещё раз.";
+"vpn.mihomo.turnOn" = "Включить TUN Clash Verge";
+"vpn.mihomo.turnOff" = "Выключить TUN Clash Verge";
+"vpn.mihomo.changing" = "Изменение TUN Clash Verge…";
+"vpn.mihomo.failed" = "Не удалось изменить TUN Clash Verge.";
 "wifi.action.requestNameAccess" = "Разрешить геолокацию для показа сетей Wi‑Fi";
 "wifi.action.openLocationSettings" = "Разрешить геолокацию в Настройках";
 "wifi.action.openSettings" = "Открыть настройки Wi‑Fi";
