@@ -26,3 +26,44 @@ final class PowerModeNotificationMonitorTests: XCTestCase {
         XCTAssertEqual(deliveries, deliveredBeforeStop, "a stopped monitor must release its token")
     }
 }
+
+@MainActor
+final class PowerModeNotificationMonitorThreadingTests: XCTestCase {
+    func testStopFromABackgroundThreadReleasesTheToken() async {
+        let name = "com.lingsmbp.StatusTrioTests.\(UUID().uuidString)"
+        let monitor = PowerModeNotificationMonitor(names: [name])
+        let deliveries = NotificationDeliveryCounter()
+        let first = expectation(description: "first delivery")
+        monitor.start {
+            if deliveries.increment() == 1 {
+                first.fulfill()
+            }
+        }
+
+        notify_post(name)
+        await fulfillment(of: [first], timeout: 2)
+
+        await Task.detached {
+            monitor.stop()
+        }.value
+
+        notify_post(name)
+        try? await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(deliveries.value, 1, "a token released off the main thread must not deliver")
+    }
+}
+
+private final class NotificationDeliveryCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    var value: Int { lock.withLock { count } }
+
+    @discardableResult
+    func increment() -> Int {
+        lock.withLock {
+            count += 1
+            return count
+        }
+    }
+}

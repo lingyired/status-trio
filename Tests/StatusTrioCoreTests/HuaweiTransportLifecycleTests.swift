@@ -377,6 +377,26 @@ final class HuaweiTransportLifecycleTests: XCTestCase {
         XCTAssertEqual(transport.transportThreadCount, 1)
     }
 
+    func testDeallocationStopsTheTransportThread() async {
+        let started = expectation(description: "transport thread started")
+        let stopped = expectation(description: "transport thread stopped")
+        var transport: HuaweiRFCOMMTransport? = HuaweiRFCOMMTransport(
+            hooks: .init(
+                didStartTransportThread: { started.fulfill() },
+                didStopTransportThread: { stopped.fulfill() },
+                pairedDevices: { [] }
+            )
+        )
+
+        _ = try? await transport?.state(address: "AA:BB:CC:DD:EE:FF")
+        await fulfillment(of: [started], timeout: 2)
+        XCTAssertEqual(transport?.transportThreadCount, 1)
+
+        transport = nil
+
+        await fulfillment(of: [stopped], timeout: 2)
+    }
+
     private func makeTransport(
         probe: LifecycleProbe,
         didStartTransportThread: (@Sendable () -> Void)? = nil,

@@ -23,20 +23,27 @@ protocol PowerModeNotificationMonitoring: AnyObject, Sendable {
 /// Production monitor backed by `notify_register_dispatch`.
 ///
 /// Not `@MainActor`: the store owns one for the whole process and its
-/// `nonisolated` `deinit` must be able to cancel the tokens. `tokens` is guarded
-/// by the same convention as the store's own notification observers — it is
-/// only touched from `start`, `stop`, and the process-teardown path.
+/// `nonisolated` `deinit` must be able to cancel the tokens. `start` is called
+/// from the main actor, but `stop` can arrive from any thread; the lock is what
+/// keeps the token array from being read while it is emptied, which would
+/// otherwise cancel a token twice or leak one.
 final class PowerModeNotificationMonitor: PowerModeNotificationMonitoring, @unchecked Sendable {
     static let notificationNames = ["com.apple.system.highpowermode"]
 
     private let names: [String]
-    nonisolated(unsafe) private var tokens: [Int32] = []
+    private let tokenLock = NSLock()
+    /// Guarded by `tokenLock`.
+    private var tokens: [Int32] = []
 
     init(names: [String] = PowerModeNotificationMonitor.notificationNames) {
         self.names = names
     }
 
     func start(handler: @escaping @MainActor () -> Void) {
+        // Registration is serialized with `stop`, but the block only queues a
+        // main-actor task, so it never takes this lock re-entrantly.
+        tokenLock.lock()
+        defer { tokenLock.unlock() }
         guard tokens.isEmpty else { return }
         for name in names {
             var token: Int32 = 0
@@ -50,9 +57,13 @@ final class PowerModeNotificationMonitor: PowerModeNotificationMonitoring, @unch
     }
 
     func stop() {
+        let tokens = tokenLock.withLock {
+            let tokens = self.tokens
+            self.tokens.removeAll()
+            return tokens
+        }
         for token in tokens {
             notify_cancel(token)
         }
-        tokens.removeAll()
     }
 }

@@ -161,6 +161,7 @@ enum HuaweiListeningModeError: Error, Equatable, Sendable {
     case notOpen
     case writeFailed(Int32)
     case timeout
+    case transportUnavailable
     case malformedResponse
     case rejected(UInt8)
 }

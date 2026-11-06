@@ -151,7 +151,8 @@ final class AudioInputMonitor: AudioInputMonitoring {
 
   private var status = AudioInputStatus.empty
   private var isEnabled = false
-  /// Popover surface: owns default-input usage polling and its 1 Hz wakeups.
+  /// Popover surface: owns default-input usage polling on its five-second
+  /// rhythm.
   private var isVisible = false
   /// Settings surface: keeps the inventory live without usage polling.
   private var isDeviceListVisible = false
@@ -182,9 +183,12 @@ final class AudioInputMonitor: AudioInputMonitoring {
   init(
     hardware: any AudioInputHardware = CoreAudioInputHardware(),
     commandTimeout: Duration = .seconds(2),
-    usagePollInterval: Duration = .seconds(1),
+    usagePollInterval: Duration = .seconds(5),
     usageSleep: @escaping @Sendable (Duration) async throws -> Void = { duration in
-      try await Task.sleep(for: duration)
+      // Each tick walks every CoreAudio process object, so the timer may slip by
+      // a fifth of the interval without costing the indicator anything: the
+      // "input in use" dot is a coarse state, not a live meter.
+      try await Task.sleep(for: duration, tolerance: duration / 5)
     },
     sleep: @escaping @Sendable (Duration) async throws -> Void = { duration in
       try await Task.sleep(for: duration)

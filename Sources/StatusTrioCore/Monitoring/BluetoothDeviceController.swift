@@ -426,6 +426,11 @@ final class BluetoothDeviceController: ObservableObject {
     private let readWatchdog: ReadWatchdog
     private var batteryLevelsEnabled = false
     private var periodicRefreshTask: Task<Void, Never>?
+    /// Counts refresh triggers that came from an event, a user action or a
+    /// surface change. The safety net captures it before sleeping and skips its
+    /// own read when one of those already ran, so a connection change is not
+    /// followed by a redundant profiler pass.
+    private var externalRefreshEpoch: UInt64 = 0
     /// Identifies the current safety-net task. A cancelled task's `defer` only
     /// clears the reference while it is still the current generation, so a
     /// stop/start pair in one main-actor turn cannot leave the new task
@@ -511,7 +516,7 @@ final class BluetoothDeviceController: ObservableObject {
         accessoryBatteryReader: (any BluetoothAccessoryBatteryReading)? = nil,
         notificationCenter: NotificationCenter = .default,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
-        safetyNetInterval: Duration = .seconds(30),
+        safetyNetInterval: Duration = .seconds(120),
         safetyNetSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
         },
@@ -734,8 +739,11 @@ final class BluetoothDeviceController: ObservableObject {
         clearDeviceActions()
     }
 
-    func refresh() {
+    func refresh(isSafetyNet: Bool = false) {
         guard isActive, availability == .available else { return }
+        if !isSafetyNet {
+            externalRefreshEpoch &+= 1
+        }
         // Coalesce bursts: at most one read and one follow-up are retained,
         // whatever order the triggers arrive in.
         guard !isDeviceReadInFlight else {
@@ -801,7 +809,7 @@ final class BluetoothDeviceController: ObservableObject {
                 }
                 if self.isRefreshPending {
                     self.isRefreshPending = false
-                    self.refresh()
+                    self.refresh(isSafetyNet: isSafetyNet)
                 }
             }
         }
@@ -1035,7 +1043,7 @@ final class BluetoothDeviceController: ObservableObject {
     /// `BluetoothStatusView`) is released
     /// only from SwiftUI `onDisappear`, and the popover's content view
     /// controller is retained after close: a skipped `onDisappear` would
-    /// otherwise leave the claim set non-empty and restart a 30 s poll for the
+    /// otherwise leave the claim set non-empty and restart a 120 s poll for the
     /// life of the process. A view claim may only narrow this one, never
     /// sustain the poll on its own.
     static let popoverSurfaceToken = "bluetooth.popover"
@@ -1515,6 +1523,7 @@ final class BluetoothDeviceController: ObservableObject {
                 }
             }
             while !Task.isCancelled {
+                let epoch = self?.externalRefreshEpoch
                 do {
                     try await sleep(interval)
                 } catch {
@@ -1523,7 +1532,12 @@ final class BluetoothDeviceController: ObservableObject {
                 guard let self, self.isActive, self.hasVisibleSurface, self.availability == .available else {
                     return
                 }
-                self.refresh()
+                // A connection or accessory notification may have refreshed the
+                // list while this task was parked. Repeating the profiler run
+                // would duplicate work the event already did.
+                if let epoch, self.externalRefreshEpoch == epoch {
+                    self.refresh(isSafetyNet: true)
+                }
             }
         }
     }

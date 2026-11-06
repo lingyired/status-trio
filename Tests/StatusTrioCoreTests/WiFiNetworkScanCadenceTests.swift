@@ -12,7 +12,7 @@ final class WiFiNetworkScanCadenceTests: XCTestCase {
     private func makeController(
         scanner: FakeWiFiNetworkScanner,
         clock: ManualScanClock = ManualScanClock(),
-        minimumScanInterval: TimeInterval = 30,
+        minimumScanInterval: TimeInterval = 120,
         periodicRefreshSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
         }
@@ -87,7 +87,7 @@ final class WiFiNetworkScanCadenceTests: XCTestCase {
             networks: [makeScanNetwork("Guest", known: false)],
             details: .unavailable
         ))
-        clock.advance(by: 29)
+        clock.advance(by: 119)
         controller.refresh(nameAccess: .authorized)
         await Task.yield()
         XCTAssertEqual(scanner.scanCount, 1, "inside the interval the cached list is reused")
@@ -108,7 +108,7 @@ final class WiFiNetworkScanCadenceTests: XCTestCase {
         let controller = makeController(scanner: scanner, clock: clock)
 
         controller.activate(nameAccess: .authorized)
-        clock.advance(by: 60)
+        clock.advance(by: 120)
         controller.refresh(nameAccess: .authorized)
 
         XCTAssertEqual(scanner.scanCount, 1)
@@ -180,8 +180,8 @@ final class WiFiNetworkScanCadenceTests: XCTestCase {
         XCTAssertEqual(scanner.powerValues, [false])
     }
 
-    /// The 30-second periodic loop is a floor, not a second cadence: with the
-    /// injected sleeper it must ask for a scan no more often than the interval.
+    /// The periodic loop wakes every minute but the scan floor is two minutes:
+    /// the loop is a polling heartbeat, not a second cadence.
     func testThePeriodicLoopHonoursTheInterval() async {
         let scanner = FakeWiFiNetworkScanner()
         let clock = ManualScanClock()
@@ -195,15 +195,46 @@ final class WiFiNetworkScanCadenceTests: XCTestCase {
         controller.activate(nameAccess: .authorized)
         await waitUntil { controller.state == .ready }
         _ = await sleeper.waitForCallCount(1, timeout: .seconds(1))
-        XCTAssertEqual(sleeper.durations.first, .seconds(30))
+        XCTAssertEqual(sleeper.durations.first, .seconds(60))
 
         sleeper.releaseAll()
         await Task.yield()
         XCTAssertEqual(scanner.scanCount, 1, "the loop fired inside the interval")
 
-        clock.advance(by: 30)
+        clock.advance(by: 60)
         _ = await sleeper.waitForCallCount(2, timeout: .seconds(1))
         sleeper.releaseAll()
+        await Task.yield()
+        XCTAssertEqual(scanner.scanCount, 1, "one minute is still inside the two-minute floor")
+
+        clock.advance(by: 60)
+        _ = await sleeper.waitForCallCount(3, timeout: .seconds(1))
+        sleeper.releaseAll()
+        await waitUntil { scanner.scanCount == 2 }
+
+        controller.deactivate()
+    }
+
+    /// The production default is the two-minute floor: a fresh controller with no
+    /// injected interval may not scan again after one minute, and must after two.
+    func testTheAutomaticFloorDefaultsToTwoMinutes() async {
+        let scanner = FakeWiFiNetworkScanner()
+        let clock = ManualScanClock()
+        let controller = WiFiNetworkController(
+            scanWorker: scanner,
+            now: { clock.now }
+        )
+        controller.activate(nameAccess: .authorized)
+        await waitUntil { controller.state == .ready }
+        XCTAssertEqual(scanner.scanCount, 1)
+
+        clock.advance(by: 119)
+        controller.refresh(nameAccess: .authorized)
+        await Task.yield()
+        XCTAssertEqual(scanner.scanCount, 1)
+
+        clock.advance(by: 1)
+        controller.refresh(nameAccess: .authorized)
         await waitUntil { scanner.scanCount == 2 }
 
         controller.deactivate()
@@ -240,7 +271,7 @@ final class WiFiNetworkScanCadenceTests: XCTestCase {
     }
 
     /// Backing out of the Wi-Fi page used to leave the controller active: the
-    /// 30-second loop kept scanning while the popover stayed open.
+    /// periodic loop kept scanning while the popover stayed open.
     func testLeavingTheWiFiPageStopsThePeriodicScan() async {
         let scanner = FakeWiFiNetworkScanner()
         let clock = ManualScanClock()
