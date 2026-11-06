@@ -350,6 +350,53 @@ final class BrightnessMonitorTests: XCTestCase {
         controller.stop()
     }
 
+    func testAutomaticBackendFollowsBetterDisplayRunningState() {
+        var running = false
+        var ddcMade = 0
+        var betterDisplayMade = 0
+        let external = DisplayDescriptor(id: "EDID", name: "External", isBuiltin: false, displayID: 5)
+        let monitor = BrightnessMonitor(
+            catalog: FakeCatalog([external]),
+            makeDDC: { _, onUpdate in
+                ddcMade += 1
+                return DDCBrightnessCoordinator(
+                    transport: QuietTransport(), pollInterval: .seconds(600), onUpdate: onUpdate
+                )
+            },
+            makeBetterDisplay: { uuid, update in
+                betterDisplayMade += 1
+                return BetterDisplayBrightnessCoordinator(
+                    client: QuietBetterDisplayClient(), displayUUID: uuid, onUpdate: update
+                )
+            },
+            defaultExternalBackend: .automatic,
+            isBetterDisplayRunning: { running },
+            workspaceNotificationCenter: NotificationCenter()
+        )
+        monitor.setExternalBrightnessConfigurations([
+            "EDID": ExternalBrightnessConfiguration(
+                backend: .automatic, betterDisplayUUID: "EXPLICIT"
+            )
+        ])
+        monitor.start()
+        monitor.setDetailsVisible(true)
+        XCTAssertEqual(ddcMade, 1)
+        XCTAssertEqual(betterDisplayMade, 0)
+        XCTAssertEqual(latestStatus(monitor)?.displays.first?.backend, .directDDC)
+
+        running = true
+        monitor.betterDisplayAvailabilityChanged()
+        XCTAssertEqual(betterDisplayMade, 1)
+        XCTAssertEqual(latestStatus(monitor)?.displays.first?.backend, .betterDisplay)
+
+        running = false
+        monitor.betterDisplayAvailabilityChanged()
+        XCTAssertEqual(ddcMade, 2)
+        XCTAssertEqual(betterDisplayMade, 1)
+        XCTAssertEqual(latestStatus(monitor)?.displays.first?.backend, .directDDC)
+        monitor.stop()
+    }
+
     func testVisibleFallbackLoopLeavesDDCOnItsOwnTimer() async {
         let transport = QuietTransport()
         let sleeper = ManualEventSleeper()

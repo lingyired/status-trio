@@ -1232,8 +1232,8 @@ final class SettingsStore: ObservableObject {
 
     func externalBrightnessConfiguration(for displayID: String) -> ExternalBrightnessConfiguration {
         let displayID = displayID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !displayID.isEmpty else { return .default }
-        return externalBrightnessConfigurations[displayID] ?? .default
+        guard !displayID.isEmpty else { return .automatic }
+        return externalBrightnessConfigurations[displayID] ?? .automatic
     }
 
     func setExternalBrightnessConfiguration(
@@ -1244,7 +1244,9 @@ final class SettingsStore: ObservableObject {
         guard !displayID.isEmpty else { return }
 
         var updated = externalBrightnessConfigurations
-        if let sanitized = configuration.sanitized(), sanitized != .default {
+        if let sanitized = configuration.sanitized() {
+            // Persist every explicit choice, including direct DDC. Removing a
+            // direct-DDC entry would turn the display back into automatic.
             updated[displayID] = sanitized
         } else {
             updated.removeValue(forKey: displayID)
@@ -2121,8 +2123,7 @@ final class SettingsStore: ObservableObject {
         for (rawID, configuration) in decoded {
             let displayID = rawID.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !displayID.isEmpty,
-                  let configuration = configuration.sanitized(),
-                  configuration != .default
+                  let configuration = configuration.sanitized()
             else {
                 continue
             }

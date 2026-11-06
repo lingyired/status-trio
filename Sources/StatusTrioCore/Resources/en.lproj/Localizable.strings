@@ -690,6 +690,7 @@
 "brightness.appAbsent" = "Requires BetterDisplay";
 "brightness.noBackend" = "No brightness control";
 "brightness.unresponsive" = "Not responding";
+"brightness.backend.automatic" = "Automatic";
 "brightness.backend.directDDC" = "Direct DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Turn a display off to hide its brightness row.";

@@ -692,6 +692,7 @@
 "brightness.appAbsent" = "Nécessite BetterDisplay";
 "brightness.noBackend" = "Aucun contrôle de luminosité";
 "brightness.unresponsive" = "Ne répond pas";
+"brightness.backend.automatic" = "Automatique";
 "brightness.backend.directDDC" = "DDC direct";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Désactivez un écran pour masquer sa ligne de luminosité.";

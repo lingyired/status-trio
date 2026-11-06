@@ -692,6 +692,7 @@
 "brightness.appAbsent" = "يتطلب BetterDisplay";
 "brightness.noBackend" = "لا يوجد تحكم في السطوع";
 "brightness.unresponsive" = "لا يستجيب";
+"brightness.backend.automatic" = "تلقائي";
 "brightness.backend.directDDC" = "DDC مباشر";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "أوقف تشغيل شاشة لإخفاء صف السطوع الخاص بها.";

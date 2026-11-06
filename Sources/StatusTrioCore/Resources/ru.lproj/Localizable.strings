@@ -692,6 +692,7 @@
 "brightness.appAbsent" = "Требуется BetterDisplay";
 "brightness.noBackend" = "Нет управления яркостью";
 "brightness.unresponsive" = "Не отвечает";
+"brightness.backend.automatic" = "Автоматически";
 "brightness.backend.directDDC" = "Прямой DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Отключите дисплей, чтобы скрыть его строку яркости.";

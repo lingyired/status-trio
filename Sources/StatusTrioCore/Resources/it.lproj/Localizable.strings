@@ -692,6 +692,7 @@
 "brightness.appAbsent" = "Richiede BetterDisplay";
 "brightness.noBackend" = "Nessun controllo della luminosità";
 "brightness.unresponsive" = "Non risponde";
+"brightness.backend.automatic" = "Automatico";
 "brightness.backend.directDDC" = "DDC diretto";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Disattiva un display per nascondere la relativa riga della luminosità.";

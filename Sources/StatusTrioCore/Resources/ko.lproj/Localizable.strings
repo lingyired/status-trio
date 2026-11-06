@@ -692,6 +692,7 @@
 "brightness.appAbsent" = "BetterDisplay 필요";
 "brightness.noBackend" = "밝기 제어 없음";
 "brightness.unresponsive" = "응답 없음";
+"brightness.backend.automatic" = "자동";
 "brightness.backend.directDDC" = "직접 DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "디스플레이를 끄면 해당 밝기 행이 숨겨집니다.";

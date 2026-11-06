@@ -692,6 +692,7 @@
 "brightness.appAbsent" = "Erfordert BetterDisplay";
 "brightness.noBackend" = "Keine Helligkeitssteuerung";
 "brightness.unresponsive" = "Reagiert nicht";
+"brightness.backend.automatic" = "Automatisch";
 "brightness.backend.directDDC" = "Direktes DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Schalte ein Display aus, um seine Helligkeitszeile auszublenden.";

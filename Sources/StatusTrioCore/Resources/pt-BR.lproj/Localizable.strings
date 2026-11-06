@@ -692,6 +692,7 @@
 "brightness.appAbsent" = "Requer o BetterDisplay";
 "brightness.noBackend" = "Sem controle de brilho";
 "brightness.unresponsive" = "Não responde";
+"brightness.backend.automatic" = "Automático";
 "brightness.backend.directDDC" = "DDC direto";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "Desative uma tela para ocultar sua linha de brilho.";

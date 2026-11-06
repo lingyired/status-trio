@@ -2,7 +2,10 @@ import Foundation
 
 /// Which mechanism is allowed to read and write one display's brightness.
 enum BrightnessBackend: String, Codable, CaseIterable, Sendable {
-    /// Direct DDC/CI over I2C. External displays default to this.
+    /// External displays use BetterDisplay while it is running, otherwise DDC.
+    /// Only an explicit user choice is persisted; the automatic default is not.
+    case automatic
+    /// Direct DDC/CI over I2C. External displays default to this fallback.
     case directDDC
     /// Apple's private DisplayServices framework. Built-in displays use this so
     /// no third-party app is required (maintainer-approved private API).

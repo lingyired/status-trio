@@ -82,10 +82,14 @@ final class BrightnessMonitor: BrightnessMonitoring {
     private var generation: UInt64 = 0
     private var readSequence: UInt64 = 0
     private let notificationCenter: NotificationCenter
+    private let defaultExternalBackend: BrightnessBackend
+    private let isBetterDisplayRunning: @MainActor () -> Bool
+    private let workspaceNotificationCenter: NotificationCenter
     private let externalRefreshInterval: Duration
     private let externalRefreshSleep: @Sendable (Duration) async throws -> Void
     private var externalRefreshTask: Task<Void, Never>?
     private var screenParameterObserver: NSObjectProtocol?
+    private var betterDisplayObservers: [NSObjectProtocol] = []
 
     init(
         catalog: DisplayCatalogProviding = LiveDisplayCatalog(),
@@ -93,6 +97,13 @@ final class BrightnessMonitor: BrightnessMonitoring {
         makeDisplayServices: DisplayServicesMaker? = nil,
         makeBetterDisplay: BetterDisplayMaker? = nil,
         notificationCenter: NotificationCenter = .default,
+        defaultExternalBackend: BrightnessBackend = .directDDC,
+        isBetterDisplayRunning: @escaping @MainActor () -> Bool = {
+            !NSRunningApplication.runningApplications(
+                withBundleIdentifier: "pro.betterdisplay.BetterDisplay"
+            ).isEmpty
+        },
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
         externalRefreshInterval: Duration = .seconds(2),
         externalRefreshSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
@@ -100,6 +111,9 @@ final class BrightnessMonitor: BrightnessMonitoring {
     ) {
         self.catalog = catalog
         self.notificationCenter = notificationCenter
+        self.defaultExternalBackend = defaultExternalBackend
+        self.isBetterDisplayRunning = isBetterDisplayRunning
+        self.workspaceNotificationCenter = workspaceNotificationCenter
         self.externalRefreshInterval = externalRefreshInterval
         self.externalRefreshSleep = externalRefreshSleep
         self.makeDDC = makeDDC ?? { displayID, onUpdate in
@@ -141,7 +155,36 @@ final class BrightnessMonitor: BrightnessMonitoring {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in self?.topologyChanged() }
         }
+        observeBetterDisplayLifecycle()
         if detailsVisible, !displayAsleep { rebuild() }
+    }
+
+    private func observeBetterDisplayLifecycle() {
+        let names: [Notification.Name] = [
+            NSWorkspace.didLaunchApplicationNotification,
+            NSWorkspace.didTerminateApplicationNotification
+        ]
+        for name in names {
+            betterDisplayObservers.append(
+                workspaceNotificationCenter.addObserver(
+                    forName: name, object: nil, queue: .main
+                ) { [weak self] notification in
+                    guard
+                        let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                            as? NSRunningApplication,
+                        app.bundleIdentifier == "pro.betterdisplay.BetterDisplay"
+                    else { return }
+                    Task { @MainActor [weak self] in
+                        self?.betterDisplayAvailabilityChanged()
+                    }
+                }
+            )
+        }
+    }
+
+    func betterDisplayAvailabilityChanged() {
+        guard started, detailsVisible, !displayAsleep else { return }
+        rebuild(force: true)
     }
 
     deinit {
@@ -154,6 +197,10 @@ final class BrightnessMonitor: BrightnessMonitoring {
             notificationCenter.removeObserver(observer)
             screenParameterObserver = nil
         }
+        for observer in betterDisplayObservers {
+            workspaceNotificationCenter.removeObserver(observer)
+        }
+        betterDisplayObservers.removeAll()
         stopExternalRefreshLoop()
         stopCoordinators()
         continuation.finish()
@@ -342,18 +389,33 @@ final class BrightnessMonitor: BrightnessMonitoring {
 
         for descriptor in descriptors {
             let configuration = configuration(for: descriptor)
-            let desiredKind: BackendKind
-            switch configuration.backend {
-            case .directDDC: desiredKind = .directDDC
-            case .displayServices: desiredKind = .displayServices
-            case .betterDisplay: desiredKind = .betterDisplay
+            var effectiveBackend = configuration.backend
+            if effectiveBackend == .automatic {
+                effectiveBackend = isBetterDisplayRunning() ? .betterDisplay : .directDDC
             }
-            let desiredBDBUUID = configuration.backend == .betterDisplay
-                ? Self.resolvedBetterDisplayUUID(
+            var desiredKind: BackendKind
+            var desiredBDBUUID: String?
+            switch effectiveBackend {
+            case .automatic:
+                desiredKind = .directDDC
+            case .directDDC:
+                desiredKind = .directDDC
+            case .displayServices:
+                desiredKind = .displayServices
+            case .betterDisplay:
+                let uuid = Self.resolvedBetterDisplayUUID(
                     for: descriptor,
                     explicit: configuration.betterDisplayUUID
                 )
-                : nil
+                if uuid == nil, configuration.backend == .automatic {
+                    // Automatic must still work when BetterDisplay is running
+                    // but cannot address this display: fall back to DDC.
+                    desiredKind = .directDDC
+                } else {
+                    desiredKind = .betterDisplay
+                    desiredBDBUUID = uuid
+                }
+            }
 
             // Reuse only when the backend identity is unchanged. Comparing
             // `displayID` matters for DisplayServices/unavailable rows whose
@@ -386,12 +448,11 @@ final class BrightnessMonitor: BrightnessMonitoring {
     }
 
     private func configuration(for descriptor: DisplayDescriptor) -> ExternalBrightnessConfiguration {
-        // Built-in displays use DisplayServices; external displays use the
-        // configured backend (direct DDC by default).
         if descriptor.isBuiltin {
             return ExternalBrightnessConfiguration(backend: .displayServices, betterDisplayUUID: nil)
         }
-        return configurations[descriptor.id] ?? .default
+        return configurations[descriptor.id]
+            ?? ExternalBrightnessConfiguration(backend: defaultExternalBackend, betterDisplayUUID: nil)
     }
 
     /// The BetterDisplay device UUID for a display.

@@ -130,6 +130,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case brightnessAppAbsent = "brightness.appAbsent"
     case brightnessNoBackend = "brightness.noBackend"
     case brightnessUnresponsive = "brightness.unresponsive"
+    case brightnessBackendAutomatic = "brightness.backend.automatic"
     case brightnessBackendDirectDDC = "brightness.backend.directDDC"
     case brightnessBackendBetterDisplay = "brightness.backend.betterDisplay"
     case settingsBrightnessDescription = "settings.brightness.description"

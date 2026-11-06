@@ -692,6 +692,7 @@
 "brightness.appAbsent" = "BetterDisplay が必要";
 "brightness.noBackend" = "明るさを制御できません";
 "brightness.unresponsive" = "応答なし";
+"brightness.backend.automatic" = "自動";
 "brightness.backend.directDDC" = "ダイレクト DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "ディスプレイをオフにすると、その明るさの行が非表示になります。";

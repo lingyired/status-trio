@@ -692,6 +692,7 @@
 "brightness.appAbsent" = "需要 BetterDisplay";
 "brightness.noBackend" = "无法控制亮度";
 "brightness.unresponsive" = "无响应";
+"brightness.backend.automatic" = "自动";
 "brightness.backend.directDDC" = "直接 DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
 "settings.brightness.description" = "关闭某台显示器即从状态面板中隐藏其亮度行。";
