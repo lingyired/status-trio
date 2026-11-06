@@ -7,8 +7,8 @@ import Testing
 /// page each have to be a full-width target — the blank space to the right of
 /// the text included — and each highlights only while its own row is hovered.
 ///
-/// The original full-width row stays the hit target. Its decorative hover
-/// background extends beyond it without affecting layout or hit testing.
+/// The native button expands both its hover and click area. Compensating outer
+/// padding preserves the original row layout while the highlight extends out.
 /// These are offscreen `NSHostingView` captures: no window is ordered on screen.
 @MainActor
 struct BatterySettingsLinkTests {

@@ -12,32 +12,36 @@ struct BatterySettingsLinkButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             .background {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(Color.primary.opacity(isHovered ? 0.08 : 0))
-                    // Expand only the decoration, preserving the label's
-                    // original layout and the non-overlapping hover targets.
-                    .padding(.horizontal, -8)
-                    .padding(.vertical, -5)
-                    .allowsHitTesting(false)
             }
             .opacity(configuration.isPressed ? 0.6 : 1)
     }
 }
 
-/// One full-width settings action row. The whole row — including the blank space
-/// to the right of the text — is the button's target. Hover state is injected so
-/// the container can give each row its own, and tests can render a row hovered
-/// or idle without a live pointer.
+/// The padded native button supplies the same area for hover and clicks. The
+/// outer negative padding restores the original row height and text position,
+/// allowing adjacent targets to overlap without widening their layout spacing.
+/// The container supplies one shared hover selection for the pair of rows.
 struct BatterySettingsLinkRow: View {
     let title: String
     let isHovered: Bool
+    let onHover: (Bool) -> Void
     let action: () -> Void
 
-    init(_ title: String, isHovered: Bool, action: @escaping () -> Void) {
+    init(
+        _ title: String,
+        isHovered: Bool,
+        onHover: @escaping (Bool) -> Void = { _ in },
+        action: @escaping () -> Void
+    ) {
         self.title = title
         self.isHovered = isHovered
+        self.onHover = onHover
         self.action = action
     }
 
@@ -49,5 +53,8 @@ struct BatterySettingsLinkRow: View {
             }
         }
         .buttonStyle(BatterySettingsLinkButtonStyle(isHovered: isHovered))
+        .onHover(perform: onHover)
+        .padding(.horizontal, -8)
+        .padding(.vertical, -5)
     }
 }

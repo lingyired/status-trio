@@ -20,10 +20,10 @@ struct BatteryDetailsView: View {
     /// The sensor caveats and the energy-ranking caveat live behind the header's
     /// info button instead of taking three lines under the rows.
     @State private var showsInfo = false
-    /// Each settings row owns its hover state so one row never highlights the
-    /// other while the pointer is over just one of them.
-    @State private var hoveringSystemSettings = false
-    @State private var hoveringAppSettings = false
+    private enum SettingsLink { case system, app }
+    /// The expanded button targets overlap, so share one hover selection rather
+    /// than letting two independent tracking regions highlight both rows.
+    @State private var hoveredSettingsLink: SettingsLink?
 
     init(
         state: PanelDetailState,
@@ -124,19 +124,30 @@ struct BatteryDetailsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 BatterySettingsLinkRow(
                     localization.string(.batteryActionOpenSettings),
-                    isHovered: hoveringSystemSettings,
+                    isHovered: hoveredSettingsLink == .system,
+                    onHover: { updateSettingsHover(.system, hovering: $0) },
                     action: onOpenBatterySettings
                 )
-                .onHover { hoveringSystemSettings = $0 }
+                .zIndex(hoveredSettingsLink == .system ? 1 : 0)
                 BatterySettingsLinkRow(
                     localization.string(.batteryActionOpenAppBatterySettings),
-                    isHovered: hoveringAppSettings,
+                    isHovered: hoveredSettingsLink == .app,
+                    onHover: { updateSettingsHover(.app, hovering: $0) },
                     action: onOpenAppBatterySettings
                 )
-                .onHover { hoveringAppSettings = $0 }
+                .zIndex(hoveredSettingsLink == .app ? 1 : 0)
             }
         }
         .task(id: state.lifecycleIdentity) { onAppear() }
+    }
+
+    private func updateSettingsHover(_ link: SettingsLink, hovering: Bool) {
+        if hovering {
+            hoveredSettingsLink = link
+        } else if hoveredSettingsLink == link {
+            // An exit from the previous row must not clear the new selection.
+            hoveredSettingsLink = nil
+        }
     }
 
     private func lowPowerControlRow(_ controller: LowPowerModeController) -> some View {
