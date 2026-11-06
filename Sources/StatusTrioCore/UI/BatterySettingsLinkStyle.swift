@@ -11,14 +11,17 @@ struct BatterySettingsLinkButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
-            .background(
+            .background {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(Color.primary.opacity(isHovered ? 0.08 : 0))
-            )
+                    // Expand only the decoration, preserving the label's
+                    // original layout and the non-overlapping hover targets.
+                    .padding(.horizontal, -8)
+                    .padding(.vertical, -5)
+                    .allowsHitTesting(false)
+            }
             .opacity(configuration.isPressed ? 0.6 : 1)
     }
 }

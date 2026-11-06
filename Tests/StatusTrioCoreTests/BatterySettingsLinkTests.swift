@@ -7,9 +7,9 @@ import Testing
 /// page each have to be a full-width target — the blank space to the right of
 /// the text included — and each highlights only while its own row is hovered.
 ///
-/// The row paints its hover highlight over the same rectangle it uses as its
-/// hit shape, so the rendered highlight width is the clickable width. These are
-/// offscreen `NSHostingView` captures: no window is ordered on screen.
+/// The original full-width row stays the hit target. Its decorative hover
+/// background extends beyond it without affecting layout or hit testing.
+/// These are offscreen `NSHostingView` captures: no window is ordered on screen.
 @MainActor
 struct BatterySettingsLinkTests {
     private static let width: CGFloat = 302
@@ -35,7 +35,10 @@ struct BatterySettingsLinkTests {
             let startY = band * bandHeight
             let endY = band == bandCount - 1 ? bitmap.pixelsHigh : startY + bandHeight
             var maxX = -1
-            for y in startY..<endY {
+            // Sample the middle of each row. Its neighbour's expanded hover
+            // decoration is allowed to overlap the band's edge.
+            let inset = (endY - startY) / 4
+            for y in (startY + inset)..<(endY - inset) {
                 for x in 0..<bitmap.pixelsWide {
                     guard let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB),
                           color.alphaComponent > 0.1 else { continue }
@@ -51,8 +54,25 @@ struct BatterySettingsLinkTests {
         return result
     }
 
+    @Test func hoverDecorationDoesNotChangeOriginalRowHeight() {
+        let title = "Open System Power Settings"
+        let original = NSHostingView(rootView: Button(action: {}) {
+            HStack(spacing: 0) {
+                Text(title)
+                Spacer(minLength: 0)
+            }
+        }.buttonStyle(.plain))
+        for hovered in [false, true] {
+            let row = NSHostingView(rootView: BatterySettingsLinkRow(title, isHovered: hovered) {})
+            #expect(abs(row.fittingSize.height - original.fittingSize.height) < 0.01,
+                    "hover decoration must not increase row height or shift its neighbour")
+        }
+    }
+
     @Test func hoveredRowReachesTheRightEdgeWhileIdleRowStaysAtItsLabel() throws {
-        let content = VStack(spacing: 0) {
+        // Use the battery page's actual 6pt gap. The decorative backgrounds
+        // overlap in that gap, while the labels and hover targets remain apart.
+        let content = VStack(spacing: 6) {
             BatterySettingsLinkRow("Open System Power Settings", isHovered: true) {}
             BatterySettingsLinkRow("Open App Battery Settings", isHovered: false) {}
         }
@@ -88,6 +108,8 @@ struct BatterySettingsLinkTests {
     @Test func hoverHighlightAddsBreathingRoomAboveAndBelowTheLabel() throws {
         let content = BatterySettingsLinkRow("Open System Power Settings", isHovered: true) {}
             .frame(width: Self.width)
+            // Leave capture space outside the row to observe the decoration.
+            .padding(.vertical, 8)
             .background(Color.white)
             .environment(\.colorScheme, .light)
         let probe = try render(content)
@@ -105,7 +127,7 @@ struct BatterySettingsLinkTests {
 
         // The hover fill reaches the padding above and below the text line,
         // instead of hugging the glyphs' exact height.
-        #expect(try isPainted(x: Self.width / 2, y: 1))
-        #expect(try isPainted(x: Self.width / 2, y: CGFloat(probe.bitmap.pixelsHigh) / probe.scale - 2))
+        #expect(try isPainted(x: Self.width / 2, y: 4))
+        #expect(try isPainted(x: Self.width / 2, y: CGFloat(probe.bitmap.pixelsHigh) / probe.scale - 5))
     }
 }
