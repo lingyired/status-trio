@@ -295,6 +295,7 @@
 "vpn.mihomo.turnOff" = "Выключить TUN Clash Verge";
 "vpn.mihomo.changing" = "Изменение TUN Clash Verge…";
 "vpn.mihomo.failed" = "Не удалось изменить TUN Clash Verge.";
+"vpn.mihomo.off" = "Выключено";
 "wifi.action.requestNameAccess" = "Разрешить геолокацию для показа сетей Wi‑Fi";
 "wifi.action.openLocationSettings" = "Разрешить геолокацию в Настройках";
 "wifi.action.openSettings" = "Открыть настройки Wi‑Fi";

@@ -419,6 +419,20 @@ final class PresentationTextMapperTests: XCTestCase {
         XCTAssertEqual(attributedRow.mihomoTunnelPower?.isOn, true)
         XCTAssertEqual(attributedRow.mihomoTunnelPower?.actionLabel, "关闭 Clash Verge TUN")
 
+        let disabled = VPNStatus(
+            tunnelInterfaces: [],
+            serviceName: nil,
+            services: [],
+            mihomoTunnel: MihomoTunnelInfo(
+                provider: "Clash Verge", device: "", isEnabled: false
+            ),
+            proxy: VPNProxyStatus(kind: .http, host: "127.0.0.1", port: 10808)
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpn(disabled, localization: localization).subtitle,
+            "已关闭 · 127.0.0.1:10808"
+        )
+
         let mismatched = VPNStatus(
             tunnelInterfaces: ["utun5"],
             serviceName: nil,

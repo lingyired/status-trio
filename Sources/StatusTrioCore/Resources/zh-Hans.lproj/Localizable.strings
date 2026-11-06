@@ -295,6 +295,7 @@
 "vpn.mihomo.turnOff" = "关闭 Clash Verge TUN";
 "vpn.mihomo.changing" = "正在切换 Clash Verge TUN…";
 "vpn.mihomo.failed" = "无法切换 Clash Verge TUN。";
+"vpn.mihomo.off" = "已关闭";
 "wifi.action.requestNameAccess" = "允许定位以显示 Wi-Fi 网络";
 "wifi.action.openLocationSettings" = "去设置中允许定位";
 "wifi.action.openSettings" = "打开 Wi-Fi 设置";

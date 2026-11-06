@@ -177,7 +177,13 @@ enum PanelPresentationMapper {
         localization: Localization
     ) -> PanelSummaryState {
         let title = vpnTitle(status, localization: localization)
-        let subtitle = vpnSubtitle(status, localization: localization)
+        let subtitle: String
+        if let mihomo = status.mihomoTunnel, !mihomo.isEnabled {
+            let off = localization.string(.vpnMihomoOff)
+            subtitle = status.proxy?.endpoint.map { "\(off) · \($0)" } ?? off
+        } else {
+            subtitle = vpnSubtitle(status, localization: localization)
+        }
         let tint: PanelTint
         if status.isTunnelConnected {
             tint = .positive

@@ -295,6 +295,7 @@
 "vpn.mihomo.turnOff" = "Clash Verge TUN ausschalten";
 "vpn.mihomo.changing" = "Clash Verge TUN wird geändert…";
 "vpn.mihomo.failed" = "Clash Verge TUN konnte nicht geändert werden.";
+"vpn.mihomo.off" = "Aus";
 "wifi.action.requestNameAccess" = "Standort erlauben, um Wi‑Fi-Netzwerke anzuzeigen";
 "wifi.action.openLocationSettings" = "Standort in Einstellungen erlauben";
 "wifi.action.openSettings" = "Wi‑Fi-Einstellungen öffnen";

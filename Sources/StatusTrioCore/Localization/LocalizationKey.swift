@@ -623,6 +623,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case vpnMihomoTurnOff = "vpn.mihomo.turnOff"
     case vpnMihomoChanging = "vpn.mihomo.changing"
     case vpnMihomoFailed = "vpn.mihomo.failed"
+    case vpnMihomoOff = "vpn.mihomo.off"
     case wifiActionRequestNameAccess = "wifi.action.requestNameAccess"
     case wifiActionOpenLocationSettings = "wifi.action.openLocationSettings"
     case wifiActionOpenSettings = "wifi.action.openSettings"
