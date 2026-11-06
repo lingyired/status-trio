@@ -1003,7 +1003,7 @@ final class VolumeMonitorTests: XCTestCase {
 
 @MainActor
 struct VolumeDeviceListChangeTests {
-    @Test(arguments: [false, true], [false, true])
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true], [false, true])
     func nonDefaultDeviceChangesRefreshVisibleList(
         removingDevice: Bool,
         repairingRegistration: Bool
@@ -1040,19 +1040,16 @@ struct VolumeDeviceListChangeTests {
             outputController: outputs,
             refreshDebounceSleep: { _ in }
         )
-        var statuses: [VolumeStatus] = []
-        let updates = monitor.updates
-        let consumer = Task { @MainActor in
-            for await status in updates { statuses.append(status) }
-        }
-        defer {
-            monitor.stop()
-            consumer.cancel()
-        }
+        var updates = monitor.updates.makeAsyncIterator()
+        defer { monitor.stop() }
         monitor.setDetailsVisible(true)
         monitor.start()
-        let receivedInitial = await waitUntil { !statuses.isEmpty }
-        #expect(receivedInitial)
+        // Consume the stream directly: a polling deadline can expire while
+        // unrelated MainActor tests keep a separate consumer task from running.
+        let first = await updates.next()
+        let initial = try #require(first)
+        var statuses = [initial]
+        #expect(initial.outputDevices.map(\.id) == (removingDevice ? [42, 84] : [42]))
 
         outputs.devices = removingDevice ? [speakers] : [speakers, headphones]
         if repairingRegistration {
@@ -1064,11 +1061,14 @@ struct VolumeDeviceListChangeTests {
         }
 
         let expectedIDs: [AudioDeviceID] = removingDevice ? [42] : [42, 84]
-        let receivedChange = await waitUntil {
-            statuses.last?.outputDevices.map(\.id) == expectedIDs
+        while let status = await updates.next() {
+            statuses.append(status)
+            if status.outputDevices.map(\.id) == expectedIDs { break }
         }
-        #expect(receivedChange, "A non-default device change must refresh the visible device list")
-        #expect(statuses.last?.outputDevices.map(\.id) == expectedIDs)
+        #expect(
+            statuses.last?.outputDevices.map(\.id) == expectedIDs,
+            "A non-default device change must refresh the visible device list"
+        )
         #expect(client.defaultDeviceID == 42)
         #expect(statuses.allSatisfy { $0.scalar == 0.25 && $0.currentDevice?.id == 42 })
 
@@ -1080,13 +1080,6 @@ struct VolumeDeviceListChangeTests {
         #expect(client.activeListeners.isEmpty, "Stopping must remove the device-list listener too")
     }
 
-    private func waitUntil(_ condition: @MainActor () -> Bool) async -> Bool {
-        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
-        while !condition(), ContinuousClock.now < deadline {
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-        return condition()
-    }
 }
 
 @MainActor
