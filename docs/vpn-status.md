@@ -133,6 +133,8 @@ switching the row off sticks.
 | `Models/VPNStatus.swift` | `VPNStatus`, `VPNProxyStatus`, `VPNProbeReading`, `VPNStatusResolver`, `TunnelInterfaceClassifier`, and `VPNServiceReading` identity/state |
 | `Monitoring/VPNProbe.swift` | The three readers and their protocols; the service reader keeps service IDs and connection states |
 | `Monitoring/VPNMonitor.swift` | Lifecycle, the `SCDynamicStore` subscription, the stream |
+| `Monitoring/MihomoTunnelClient.swift` | Read-only Mihomo `/configs` attribution and verified `PATCH` toggle on the local Unix socket |
+| `Monitoring/MihomoTunnelController.swift` | Demand-driven Clash Verge TUN state and in-flight write state |
 | `VPN/VPNPowerController.swift` | One in-flight start/stop request, failure copy, refresh and bounded state |
 | `VPN/SystemVPNConnectionController.swift` | Public `SCNetworkConnection` callback-backed start/stop |
 | `UI/VPNStatusView.swift` | The popup row and its power glyph |
