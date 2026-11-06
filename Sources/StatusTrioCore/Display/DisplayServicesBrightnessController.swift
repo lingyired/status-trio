@@ -29,12 +29,48 @@ struct DisplayServicesBrightnessUpdate: Equatable, Sendable {
 /// The read/write calls are synchronous and cheap, so they run on the main
 /// actor. Every failure is fail-closed; a write is only reported adjustable
 /// after a read-back confirms it.
+///
+/// External changes (brightness keys, Control Center, Settings) are pushed by
+/// `DisplayServicesRegisterForBrightnessChangeNotifications` rather than polled.
+/// The callback only says "brightness changed"; the controller then reads the
+/// new value back through the same fail-closed path as a manual refresh.
+///
+/// The narrow DisplayServices surface the brightness controller needs. A
+/// protocol keeps read/write and change-notification behaviour testable without
+/// touching the private framework in unit tests.
+protocol DisplayServicesBrightnessAPI: AnyObject, Sendable {
+    var isAvailable: Bool { get }
+    func getBrightness(
+        _ displayID: CGDirectDisplayID,
+        _ value: UnsafeMutablePointer<Float>
+    ) -> Int32
+    func setBrightness(_ displayID: CGDirectDisplayID, _ value: Float) -> Int32
+    /// `observerID` identifies this subscription, independent of the display id.
+    /// A previous controller must never unregister a newer controller's callback.
+    func startBrightnessChangeNotifications(
+        for displayID: CGDirectDisplayID, observerID: UInt32
+    ) -> Bool
+    func stopBrightnessChangeNotifications(for displayID: CGDirectDisplayID, observerID: UInt32)
+}
+
+/// Posted by the capture-free C callback. `object` is the subscription's
+/// passthrough observer id as an `NSNumber`, rather than a CoreGraphics display
+/// id. Old callbacks cannot reach a replacement controller after a restart.
+extension Notification.Name {
+    static let displayServicesBrightnessDidChange = Notification.Name(
+        "com.lingsmbp.StatusTrio.displayServicesBrightnessDidChange"
+    )
+}
+
 @MainActor
 final class DisplayServicesBrightnessController {
     private let displayID: CGDirectDisplayID
     private let onUpdate: @MainActor (DisplayServicesBrightnessUpdate) -> Void
-    private let api = DisplayServicesAPI.shared
+    private let api: any DisplayServicesBrightnessAPI
     private var isStarted = false
+    private var notificationGeneration: UInt64 = 0
+    private var brightnessObservation: DisplayServicesBrightnessObservation?
+    private static var nextObserverID: UInt32 = 0
 
     /// Read-back tolerance: a built-in panel can quantize one step on a 0...1
     /// scale, so 2% absorbs that without hiding a real mismatch.
@@ -42,20 +78,56 @@ final class DisplayServicesBrightnessController {
 
     init(
         displayID: CGDirectDisplayID,
+        api: any DisplayServicesBrightnessAPI = DisplayServicesAPI.shared,
         onUpdate: @escaping @MainActor (DisplayServicesBrightnessUpdate) -> Void
     ) {
         self.displayID = displayID
+        self.api = api
         self.onUpdate = onUpdate
     }
 
     func start() {
         guard !isStarted else { return }
         isStarted = true
+        startObservingBrightnessChanges()
         refresh()
     }
 
     func stop() {
+        guard isStarted else { return }
         isStarted = false
+        notificationGeneration &+= 1
+        // The token also unregisters if the controller is simply released.
+        brightnessObservation = nil
+    }
+
+    /// Notifications exist only while the owning brightness surface is visible.
+    /// No timer is added if this optional native registration is unavailable.
+    private func startObservingBrightnessChanges() {
+        guard displayID != 0, api.isAvailable else { return }
+        Self.nextObserverID &+= 1
+        if Self.nextObserverID == 0 { Self.nextObserverID &+= 1 }
+        let observerID = Self.nextObserverID
+        let generation = notificationGeneration
+        let observer = NotificationCenter.default.addObserver(
+            forName: .displayServicesBrightnessDidChange,
+            object: nil,
+            queue: nil
+        ) { [weak self] notification in
+            guard (notification.object as? NSNumber)?.uint32Value == observerID else { return }
+            Task { @MainActor [weak self] in
+                guard let self, self.isStarted,
+                      self.notificationGeneration == generation else { return }
+                self.refresh()
+            }
+        }
+        guard api.startBrightnessChangeNotifications(for: displayID, observerID: observerID) else {
+            NotificationCenter.default.removeObserver(observer)
+            return
+        }
+        brightnessObservation = DisplayServicesBrightnessObservation(
+            api: api, displayID: displayID, observerID: observerID, observer: observer
+        )
     }
 
     func refresh() {
@@ -121,16 +193,48 @@ final class DisplayServicesBrightnessController {
     }
 }
 
+/// Immutable subscription owner. NotificationCenter removal and the native
+/// unregister operation are safe from teardown, without an actor-isolated
+/// deinitializer or a task that extends the native subscription's lifetime.
+private final class DisplayServicesBrightnessObservation {
+    private let api: any DisplayServicesBrightnessAPI
+    private let displayID: CGDirectDisplayID
+    private let observerID: UInt32
+    private let observer: NSObjectProtocol
+
+    init(api: any DisplayServicesBrightnessAPI, displayID: CGDirectDisplayID,
+         observerID: UInt32, observer: NSObjectProtocol) {
+        self.api = api
+        self.displayID = displayID
+        self.observerID = observerID
+        self.observer = observer
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(observer)
+        api.stopBrightnessChangeNotifications(for: displayID, observerID: observerID)
+    }
+}
+
 /// Lazily resolves the DisplayServices symbols. Immutable after init, so
 /// `@unchecked Sendable` is safe.
-private final class DisplayServicesAPI: @unchecked Sendable {
+private final class DisplayServicesAPI: DisplayServicesBrightnessAPI, @unchecked Sendable {
     typealias GetBrightnessFn = @convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32
     typealias SetBrightnessFn = @convention(c) (CGDirectDisplayID, Float) -> Int32
+    typealias BrightnessChangeHandler = CFNotificationCallback
+    typealias RegisterBrightnessChangeFn = @convention(c) (
+        CGDirectDisplayID,
+        UInt32,
+        BrightnessChangeHandler
+    ) -> Int32
+    typealias UnregisterBrightnessChangeFn = @convention(c) (CGDirectDisplayID, UInt32) -> Int32
 
     static let shared = DisplayServicesAPI()
 
     private let getFunction: GetBrightnessFn?
     private let setFunction: SetBrightnessFn?
+    private let registerBrightnessChangeFunction: RegisterBrightnessChangeFn?
+    private let unregisterBrightnessChangeFunction: UnregisterBrightnessChangeFn?
 
     var isAvailable: Bool { getFunction != nil && setFunction != nil }
 
@@ -139,12 +243,22 @@ private final class DisplayServicesAPI: @unchecked Sendable {
         guard let handle = dlopen(path, RTLD_NOW) else {
             getFunction = nil
             setFunction = nil
+            registerBrightnessChangeFunction = nil
+            unregisterBrightnessChangeFunction = nil
             return
         }
         getFunction = dlsym(handle, "DisplayServicesGetBrightness")
             .map { unsafeBitCast($0, to: GetBrightnessFn.self) }
         setFunction = dlsym(handle, "DisplayServicesSetBrightness")
             .map { unsafeBitCast($0, to: SetBrightnessFn.self) }
+        registerBrightnessChangeFunction = dlsym(
+            handle,
+            "DisplayServicesRegisterForBrightnessChangeNotifications"
+        ).map { unsafeBitCast($0, to: RegisterBrightnessChangeFn.self) }
+        unregisterBrightnessChangeFunction = dlsym(
+            handle,
+            "DisplayServicesUnregisterForBrightnessChangeNotifications"
+        ).map { unsafeBitCast($0, to: UnregisterBrightnessChangeFn.self) }
         if getFunction == nil || setFunction == nil {
             displayServicesLogger.notice("DisplayServices symbols unavailable")
         }
@@ -161,4 +275,38 @@ private final class DisplayServicesAPI: @unchecked Sendable {
     func setBrightness(_ displayID: CGDirectDisplayID, _ value: Float) -> Int32 {
         setFunction?(displayID, value) ?? -1
     }
+
+    func startBrightnessChangeNotifications(
+        for displayID: CGDirectDisplayID, observerID: UInt32
+    ) -> Bool {
+        // A registration without its stop function would leak native callbacks.
+        guard let registerBrightnessChangeFunction,
+              unregisterBrightnessChangeFunction != nil else { return false }
+        return registerBrightnessChangeFunction(
+            displayID, observerID, displayServicesBrightnessChanged
+        ) == 0
+    }
+
+    func stopBrightnessChangeNotifications(for displayID: CGDirectDisplayID, observerID: UInt32) {
+        _ = unregisterBrightnessChangeFunction?(displayID, observerID)
+    }
+}
+
+/// DisplayServices uses CFNotificationCallback's argument order: the second
+/// argument carries the observer id supplied at registration, not brightness.
+private func displayServicesBrightnessChanged(
+    _ center: CFNotificationCenter?,
+    _ observer: UnsafeMutableRawPointer?,
+    _ name: CFNotificationName?,
+    _ object: UnsafeRawPointer?,
+    _ userInfo: CFDictionary?
+) {
+    guard let observer else { return }
+    // The API passes our registration passthrough back as the observer pointer.
+    let raw = UInt(bitPattern: observer)
+    guard raw <= UInt32.max else { return }
+    NotificationCenter.default.post(
+        name: .displayServicesBrightnessDidChange,
+        object: NSNumber(value: UInt32(raw))
+    )
 }

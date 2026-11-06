@@ -13,11 +13,14 @@ private let brightnessMonitorLogger = Logger(
 ///
 /// Backend choice per display:
 /// - External displays default to direct DDC (`VCP 0x10`).
-/// - Built-in displays use BetterDisplay (only it can drive them).
+/// - Built-in displays use DisplayServices (only it can drive them).
 ///
 /// Reads are demand-driven: no coordinator exists until the brightness section
 /// is visible, and everything is torn down when it is hidden or the display
-/// sleeps. Nothing polls on a timer.
+/// sleeps. Built-in external changes arrive via DisplayServices' push
+/// notification; backends without a notification keep their bounded refresh
+/// (direct DDC uses its existing visible-only timer). Nothing polls in the
+/// background.
 @MainActor
 final class BrightnessMonitor: BrightnessMonitoring {
     typealias DDCMaker = @MainActor (
@@ -76,6 +79,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
     private var displayAsleep = false
     private var started = false
     private var generation: UInt64 = 0
+    private var readSequence: UInt64 = 0
     private let notificationCenter: NotificationCenter
     private var screenParameterObserver: NSObjectProtocol?
 
@@ -138,7 +142,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
     }
 
     func refresh() {
-        guard started, detailsVisible else { return }
+        guard started, detailsVisible, !displayAsleep else { return }
         if entries.isEmpty {
             rebuild()
         } else {
@@ -243,6 +247,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
     // MARK: - Rebuild
 
     private func rebuild(force: Bool = false) {
+        guard started, detailsVisible, !displayAsleep else { return }
         generation &+= 1
         let descriptors = catalog.currentDisplays()
         var updated = entries
@@ -369,7 +374,8 @@ final class BrightnessMonitor: BrightnessMonitoring {
             backend: backend,
             source: allowsCachedAdjustability
                 ? (cached?.source ?? .unavailable(.readFailed))
-                : .unavailable(.readFailed)
+                : .unavailable(.readFailed),
+            readSequence: cached?.readSequence
         )
         let displayID = descriptor.id
 
@@ -464,6 +470,15 @@ final class BrightnessMonitor: BrightnessMonitoring {
 
     // MARK: - Update application
 
+    func latestUpdateSequence(forDisplayID displayID: String) -> UInt64 {
+        entries[displayID]?.state.readSequence ?? 0
+    }
+
+    private func nextReadSequence() -> UInt64 {
+        readSequence &+= 1
+        return readSequence
+    }
+
     private func apply(_ update: DDCBrightnessUpdate, systemDisplayID: String) {
         guard var entry = entries[systemDisplayID], entry.backendKind == .directDDC else { return }
         entry.state = DisplayBrightness(
@@ -473,7 +488,8 @@ final class BrightnessMonitor: BrightnessMonitoring {
             scalar: update.scalar,
             canAdjust: update.canAdjust,
             backend: .directDDC,
-            source: update.source
+            source: update.source,
+            readSequence: nextReadSequence()
         )
         entries[systemDisplayID] = entry
         publish()
@@ -493,7 +509,8 @@ final class BrightnessMonitor: BrightnessMonitoring {
             scalar: update.scalar,
             canAdjust: update.canAdjust,
             backend: .displayServices,
-            source: update.source
+            source: update.source,
+            readSequence: nextReadSequence()
         )
         entries[systemDisplayID] = entry
         publish()
@@ -512,7 +529,8 @@ final class BrightnessMonitor: BrightnessMonitoring {
             scalar: update.scalar,
             canAdjust: update.canSet,
             backend: .betterDisplay,
-            source: update.source
+            source: update.source,
+            readSequence: nextReadSequence()
         )
         entries[systemDisplayID] = entry
         publish()
