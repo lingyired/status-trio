@@ -663,7 +663,7 @@
 "battery.energy.activityExplanation" = "Insufficient energy data; ranked by CPU activity as an estimate. GPU and system processes may be missing.";
 "battery.energy.monitoringDescription" = "When enabled, samples app activity in the background even while the panel is closed. Sampling pauses during sleep, when disabled, or when Status Trio quits.";
 "settings.battery.showChargeToFullNow" = "Show Charge to Full Now Button";
-"settings.battery.showChargeToFullNowDescription" = "Show a button in the status panel to temporarily override the macOS charge limit and charge to 100%.";
+"settings.battery.showChargeToFullNowDescription" = "Show a button in the status panel to temporarily override the macOS charge limit or an Optimized Battery Charging pause and charge to 100%.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Button hidden: Requires macOS 26.4 or later";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Button hidden: Requires a Mac with Apple silicon";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Button hidden: System charging framework unavailable";

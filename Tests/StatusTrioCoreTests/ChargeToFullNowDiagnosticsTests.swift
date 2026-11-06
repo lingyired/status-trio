@@ -60,7 +60,7 @@ final class ChargeToFullNowDiagnosticsTests: XCTestCase {
         backend.deviceState = .disabled
         XCTAssertEqual(
             controller.hiddenReasons(battery: battery(), batterySectionVisible: true),
-            [.noActiveChargeLimit]
+            []
         )
         backend.deviceState = state(raw: 1, limit: 82)
         XCTAssertEqual(
@@ -202,7 +202,7 @@ final class ChargeToFullNowDiagnosticsTests: XCTestCase {
         )
     }
 
-    func testChargingNormallyWithoutNativeLimitKeepsTheNoLimitReason() {
+    func testChargingNormallyWithoutNativeLimitHasNoHiddenReason() {
         let backend = DiagnosticsStubChargeController(deviceState: .disabled)
         let controller = ChargeToFullNowController(backend: backend)
 
@@ -211,7 +211,7 @@ final class ChargeToFullNowDiagnosticsTests: XCTestCase {
                 battery: battery(isCharging: true),
                 batterySectionVisible: true
             ),
-            [.noActiveChargeLimit]
+            []
         )
     }
 

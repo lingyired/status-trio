@@ -312,12 +312,14 @@ final class ChargeToFullNowController: ObservableObject {
         if Self.isUnrecognizedChargeLimit(state) {
             return [.unrecognizedChargeLimitState]
         }
-        // Paused but the system does not report the pause as overridable, so
-        // offering the action would only produce a dead request.
+        // Paused but the system does not report the pause as overridable.
         if !battery.isCharging {
             return [.unrecognizedChargeLimitState]
         }
-        return [.noActiveChargeLimit]
+        // Charging normally with no native limit: nothing is hidden that the
+        // user needs to act on. The action returns once charging pauses and the
+        // system reports the pause as overridable (Optimized Battery Charging).
+        return []
     }
 
     private static func hiddenReason(

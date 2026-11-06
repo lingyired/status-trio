@@ -664,7 +664,7 @@
 "battery.energy.activityExplanation" = "بيانات الطاقة غير كافية؛ تقدير حسب نشاط المعالج. قد لا يشمل معالج الرسومات وعمليات النظام.";
 "battery.energy.monitoringDescription" = "عند التفعيل، يتم قياس نشاط التطبيقات في الخلفية حتى عندما تكون اللوحة مغلقة. يتوقف القياس عند التعطيل أو أثناء سكون النظام أو الشاشة أو عند إنهاء Status Trio.";
 "settings.battery.showChargeToFullNow" = "إظهار زر الشحن حتى الامتلاء الآن";
-"settings.battery.showChargeToFullNowDescription" = "يعرض زرًا في لوحة الحالة لتجاوز حد الشحن في macOS مؤقتًا والشحن حتى 100%.";
+"settings.battery.showChargeToFullNowDescription" = "يعرض زرًا في لوحة الحالة لتجاوز حد الشحن في macOS أو إيقاف الشحن المؤقت بسبب الشحن المُحسَّن مؤقتًا والشحن حتى 100%.";
 "settings.battery.chargeHidden.unsupportedSystem" = "الزر مخفي: يتطلب macOS 26.4 أو أحدث";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "الزر مخفي: يتطلب Mac بشريحة Apple";
 "settings.battery.chargeHidden.frameworkUnavailable" = "الزر مخفي: إطار عمل الشحن في النظام غير متاح";

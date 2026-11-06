@@ -664,7 +664,7 @@
 "battery.energy.activityExplanation" = "Unzureichende Energiedaten: Schätzung anhand der CPU-Aktivität. GPU und Systemprozesse können fehlen.";
 "battery.energy.monitoringDescription" = "Wenn aktiviert, werden App-Aktivitäten auch bei geschlossenem Panel im Hintergrund erfasst. Die Erfassung pausiert beim Deaktivieren, bei System- oder Bildschirmruhezustand und beim Beenden von Status Trio.";
 "settings.battery.showChargeToFullNow" = "„Jetzt vollständig laden“-Taste anzeigen";
-"settings.battery.showChargeToFullNowDescription" = "Zeigt im Statusfeld eine Taste an, die das macOS-Ladelimit vorübergehend aufhebt und bis 100 % lädt.";
+"settings.battery.showChargeToFullNowDescription" = "Zeigt im Statusfeld eine Taste an, die das macOS-Ladelimit oder eine Pause der optimierten Batterieladung vorübergehend aufhebt und bis 100 % lädt.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Taste ausgeblendet: macOS 26.4 oder neuer erforderlich";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Taste ausgeblendet: Mac mit Apple Chip erforderlich";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Taste ausgeblendet: System-Ladeframework nicht verfügbar";

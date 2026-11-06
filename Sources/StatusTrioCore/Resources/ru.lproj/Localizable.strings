@@ -664,7 +664,7 @@
 "battery.energy.activityExplanation" = "Недостаточно данных об энергии: оценка по активности CPU. GPU и системные процессы могут не учитываться.";
 "battery.energy.monitoringDescription" = "Если включено, активность приложений измеряется в фоне даже при закрытой панели. Сбор приостанавливается при отключении, во время сна системы или экрана и при выходе из Status Trio.";
 "settings.battery.showChargeToFullNow" = "Показывать кнопку «Зарядить полностью сейчас»";
-"settings.battery.showChargeToFullNowDescription" = "Показывает в панели состояния кнопку, которая временно снимает ограничение зарядки macOS и заряжает до 100 %.";
+"settings.battery.showChargeToFullNowDescription" = "Показывает в панели состояния кнопку, которая временно снимает ограничение зарядки macOS или паузу оптимизированной зарядки аккумулятора и заряжает до 100 %.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Кнопка скрыта: Требуется macOS 26.4 или новее";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Кнопка скрыта: Требуется Mac с чипом Apple";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Кнопка скрыта: Системный фреймворк зарядки недоступен";

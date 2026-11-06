@@ -664,7 +664,7 @@
 "battery.energy.activityExplanation" = "Datos de energía insuficientes: estimación por actividad de CPU. Pueden faltar GPU y procesos del sistema.";
 "battery.energy.monitoringDescription" = "Al activarlo, se muestrea la actividad de las apps en segundo plano aunque el panel esté cerrado. El muestreo se pausa al desactivarlo, durante la suspensión del sistema o la pantalla y al salir de Status Trio.";
 "settings.battery.showChargeToFullNow" = "Mostrar botón Cargar completamente ahora";
-"settings.battery.showChargeToFullNowDescription" = "Muestra un botón en el panel de estado para omitir temporalmente el límite de carga de macOS y cargar hasta el 100 %.";
+"settings.battery.showChargeToFullNowDescription" = "Muestra un botón en el panel de estado para omitir temporalmente el límite de carga de macOS o una pausa de la carga optimizada de la batería y cargar hasta el 100 %.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Botón oculto: Requiere macOS 26.4 o posterior";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Botón oculto: Requiere un Mac con chip de Apple";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Botón oculto: Framework de carga del sistema no disponible";
