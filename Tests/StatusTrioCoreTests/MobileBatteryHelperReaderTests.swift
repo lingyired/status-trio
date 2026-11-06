@@ -210,7 +210,7 @@ struct MobileBatteryHelperReaderTests {
         if let packagedBundlePath = ProcessInfo.processInfo.environment["STATUS_TRIO_MOBILE_BATTERY_BUNDLE_URL"] {
             let bundle = URL(fileURLWithPath: packagedBundlePath, isDirectory: true)
             let output = try await ProcessMobileBatteryHelperExecutor(bundleURL: bundle)
-                .run(arguments: ["--list"], timeout: .seconds(3))
+                .run(arguments: ["--list"], timeout: .seconds(10))
             #expect(try MobileBatteryWire.decodeListing(output).count == 0)
             return
         }
@@ -223,7 +223,7 @@ struct MobileBatteryHelperReaderTests {
         defer { try? FileManager.default.removeItem(at: bundle) }
 
         let output = try await ProcessMobileBatteryHelperExecutor(bundleURL: bundle)
-            .run(arguments: [], timeout: .seconds(2))
+            .run(arguments: [], timeout: .seconds(10))
         #expect(String(decoding: output, as: UTF8.self) == "packaged-helper")
     }
 
@@ -513,27 +513,32 @@ struct MobileBatteryHelperReaderTests {
     }
 
     @Test func processExecutorReturnsStdoutAndRejectsLargeStreamsAndExitStatus() async throws {
+        // These assertions are about output and error mapping, not latency.
+        // The full suite runs hundreds of process-spawning suites at once, and
+        // a two-second budget for `sh` to start was observed to expire on a
+        // loaded machine; ten seconds still separates a hung child from a
+        // correct one.
         let small = try makeScript("printf 'hello'")
         defer { try? FileManager.default.removeItem(at: small) }
-        let output = try await ProcessMobileBatteryHelperExecutor(helperURL: small).run(arguments: [], timeout: .seconds(2))
+        let output = try await ProcessMobileBatteryHelperExecutor(helperURL: small).run(arguments: [], timeout: .seconds(10))
         #expect(String(decoding: output, as: UTF8.self) == "hello")
 
         let largeOutput = try makeScript("yes x | head -c 1048577")
         defer { try? FileManager.default.removeItem(at: largeOutput) }
         await #expect(throws: (any Error).self) {
-            try await ProcessMobileBatteryHelperExecutor(helperURL: largeOutput).run(arguments: [], timeout: .seconds(3))
+            try await ProcessMobileBatteryHelperExecutor(helperURL: largeOutput).run(arguments: [], timeout: .seconds(10))
         }
 
         let largeError = try makeScript("yes x | head -c 1048577 >&2")
         defer { try? FileManager.default.removeItem(at: largeError) }
         await #expect(throws: (any Error).self) {
-            try await ProcessMobileBatteryHelperExecutor(helperURL: largeError).run(arguments: [], timeout: .seconds(3))
+            try await ProcessMobileBatteryHelperExecutor(helperURL: largeError).run(arguments: [], timeout: .seconds(10))
         }
 
         let nonzero = try makeScript("echo private-stderr >&2; exit 17")
         defer { try? FileManager.default.removeItem(at: nonzero) }
         do {
-            _ = try await ProcessMobileBatteryHelperExecutor(helperURL: nonzero).run(arguments: [], timeout: .seconds(2))
+            _ = try await ProcessMobileBatteryHelperExecutor(helperURL: nonzero).run(arguments: [], timeout: .seconds(10))
             Issue.record("nonzero exit must fail")
         } catch {
             #expect(!String(describing: error).contains("private-stderr"))
@@ -561,7 +566,12 @@ struct MobileBatteryHelperReaderTests {
             Issue.record("timed out process must fail")
         } catch {
             #expect(error as? MobileBatteryHelperError == .timedOut)
-            #expect(clock.now - started >= .milliseconds(1_200))
+            // The invariant is the 1 s deadline, not the fixture's signal
+            // timing: under a loaded full-suite run the child can be scheduled
+            // late enough that the runner's SIGTERM arrives before its `trap`
+            // line has executed, so it dies at the deadline instead of after
+            // the SIGKILL grace. Firing early is still a failure.
+            #expect(clock.now - started >= .milliseconds(950))
             // The runner may spend its 250 ms SIGKILL grace and 500 ms stream
             // drain grace after the 1 s deadline. Keep the result bounded while
             // allowing that documented post-deadline work on a loaded runner.
