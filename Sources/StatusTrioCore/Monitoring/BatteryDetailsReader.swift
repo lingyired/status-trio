@@ -146,6 +146,9 @@ struct BatteryDetailsReader: Sendable {
         result.uptimeSeconds = SystemUptimeReader.seconds(now: now)
         if state.isPresent {
             result.highPowerMode = HighPowerModeSystemReader.read()
+            if result.health?.condition == nil {
+                result.health?.condition = BatteryConditionSystemReader.read(now: now)
+            }
         }
         if !options.showsInput { result.inputPower = nil }
         if state.isConnected && !options.showsCharging { result.power = nil }
