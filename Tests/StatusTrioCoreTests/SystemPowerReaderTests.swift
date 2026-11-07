@@ -108,6 +108,8 @@ final class SystemPowerReaderTests: XCTestCase {
                        "A dark backlight is a real zero, not a missing reading")
         XCTAssertNil(read(.display, key: [0x52, 0x42, 0x44, 0x50],
                           payload: [0, 0, 0x7a, 0x43]), "250 W is outside any backlight rail")
+        XCTAssertEqual(read(.displayBacklight, key: [0x52, 0x4C, 0x42, 0x50],
+                            payload: [0, 0, 0x90, 0x40]), 4.5) // PBLR
     }
 
     func testPortRailsMultiplyVoltageByCurrentAndIgnoreSilentChannels() {

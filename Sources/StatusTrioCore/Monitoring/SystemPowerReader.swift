@@ -17,8 +17,8 @@ struct PowerSensorReadings: Equatable, Sendable {
     var system: SystemPowerSample?
     var input: SystemPowerSample?
     var battery: BatteryPowerSample?
-    /// Built-in display backlight power (`PDBR`); `PBwo` on newer chips is not
-    /// read yet, so machines without `PDBR` simply report nil.
+    /// Built-in display backlight power (`PDBR`, else `PBLR`). Machines with
+    /// neither report nil.
     var display: SystemPowerSample?
     /// Accessory output on SMC channels D1–D4 (`DnJV` volts × `DnJI` amps).
     var portRails: PortOutputRails = .unavailable
@@ -76,7 +76,10 @@ struct SystemPowerReader: Sendable {
         // backlight key hides that branch. Port keys that do not answer stay
         // `.unavailable` so the caller can fall back to PowerOutDetails.
         if breakdown {
-            if let watts = Self.readValue(sensor: .display, exchange: exchange) {
+            // PBLR stands in only when PDBR does not exist. A PDBR that exists
+            // but decodes out of range hides the branch, as it always has.
+            let hasPDBR = Self.readScalar(key: Sensor.display.rawValue, exchange: exchange).acknowledged
+            if let watts = Self.readValue(sensor: hasPDBR ? .display : .displayBacklight, exchange: exchange) {
                 readings.display = SystemPowerSample(watts: watts, readAt: readAt)
             }
             readings.portRails = Self.readPortOutput(exchange: exchange, readAt: readAt)
@@ -88,6 +91,10 @@ struct SystemPowerReader: Sendable {
         case system = 0x50535452 // PSTR, system total
         case input = 0x50445452 // PDTR, adapter input
         case display = 0x50444252 // PDBR, built-in display backlight
+        /// PBLR, the backlight rail on Macs without PDBR. Measured on Mac18,1
+        /// (M6, macOS 27): 0.19 W at minimum brightness, 1.78 W mid, 4.5 W at
+        /// maximum, while PDBR and PBwo are absent and PPBR stays flat at 2 W.
+        case displayBacklight = 0x50424C52
         case batteryCurrent = 0x42304143 // B0AC
         case batteryVoltage = 0x42304156 // B0AV
     }
@@ -136,7 +143,7 @@ struct SystemPowerReader: Sendable {
         case .batteryVoltage: return (1...30).contains(watts) ? watts : nil
         // A closed lid or a dark backlight can legitimately read 0 W; anything
         // outside the plausible rail range means the key is not this reading.
-        case .display: return (0...150).contains(watts) ? watts : nil
+        case .display, .displayBacklight: return (0...150).contains(watts) ? watts : nil
         }
     }
 
