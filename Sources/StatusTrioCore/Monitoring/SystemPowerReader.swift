@@ -22,6 +22,8 @@ struct PowerSensorReadings: Equatable, Sendable {
     var display: SystemPowerSample?
     /// Accessory output on SMC channels D1–D4 (`DnJV` volts × `DnJI` amps).
     var portRails: PortOutputRails = .unavailable
+    /// Battery temperature from `TB0T`, decoded by `BatteryHealthParser`.
+    var batteryTemperatureCelsius: Double?
 
     static let empty = Self()
 }
@@ -35,9 +37,10 @@ struct SystemPowerReader: Sendable {
     }
 
     /// One short-lived connection per refresh; fixed read-only keys, no scanning.
-    func readSensors(system: Bool, input: Bool, battery: Bool, breakdown: Bool = false) -> PowerSensorReadings {
+    func readSensors(system: Bool, input: Bool, battery: Bool, breakdown: Bool = false,
+                     temperature: Bool = false) -> PowerSensorReadings {
         var readings = PowerSensorReadings.empty
-        guard system || input || battery || breakdown else { return readings }
+        guard system || input || battery || breakdown || temperature else { return readings }
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"))
         guard service != 0 else { return readings }
         defer { IOObjectRelease(service) }
@@ -84,7 +87,27 @@ struct SystemPowerReader: Sendable {
             }
             readings.portRails = Self.readPortOutput(exchange: exchange, readAt: readAt)
         }
+        if temperature, let raw = Self.readRaw(key: Self.batteryTemperatureKey, exchange: exchange) {
+            readings.batteryTemperatureCelsius = BatteryHealthParser.temperatureCelsius(
+                smcType: raw.type, bytes: raw.bytes)
+        }
         return readings
+    }
+
+    static let batteryTemperatureKey: UInt32 = 0x54423054 // TB0T
+
+    /// The key's SMC type and payload, undecoded, for parsers that own their
+    /// encoding rules. Read-only: commands 9 (key info) and 5 (read bytes).
+    static func readRaw(key: UInt32, exchange: ([UInt8]) -> [UInt8]?) -> (type: UInt32, bytes: [UInt8])? {
+        var request = [UInt8](repeating: 0, count: 80)
+        for offset in 0..<4 { request[offset] = UInt8(truncatingIfNeeded: key >> (offset * 8)) }
+        request[42] = 9
+        guard let info = exchange(request), info.count == 80, info[40] == 0 else { return nil }
+        let size = Int(min(32, littleEndianUInt32(info, at: 28)))
+        request.replaceSubrange(28..<32, with: info[28..<32])
+        request[42] = 5
+        guard let response = exchange(request), response.count == 80, response[40] == 0 else { return nil }
+        return (littleEndianUInt32(info, at: 32), Array(response[48..<(48 + size)]))
     }
 
     enum Sensor: UInt32 {

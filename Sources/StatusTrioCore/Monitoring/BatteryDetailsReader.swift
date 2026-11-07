@@ -107,7 +107,8 @@ struct BatteryDetailsReader: Sendable {
             // The breakdown residual also needs it even when the branch is hidden.
             battery: state.isPresent && (state.isConnected || options.showsBreakdown)
                 && (options.showsCharging || options.showsBreakdown),
-            breakdown: Self.readsBreakdown(for: state) && options.showsBreakdown
+            breakdown: Self.readsBreakdown(for: state) && options.showsBreakdown,
+            temperature: state.isPresent
         )
         let now = Date()
         var breakdown: BatteryPowerBreakdown?
@@ -141,7 +142,8 @@ struct BatteryDetailsReader: Sendable {
             notBefore: notBefore,
             systemPower: sharedSystemPower ?? sensors.system,
             inputPower: sensors.input, batteryPower: sensors.battery,
-            breakdown: breakdown
+            breakdown: breakdown,
+            temperatureCelsius: sensors.batteryTemperatureCelsius
         )
         result.uptimeSeconds = SystemUptimeReader.seconds(now: now)
         if state.isPresent {
