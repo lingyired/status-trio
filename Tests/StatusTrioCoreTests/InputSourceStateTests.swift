@@ -2,6 +2,27 @@ import XCTest
 @testable import StatusTrioCore
 
 final class InputSourceStateTests: XCTestCase {
+    func testDrawingResolutionKeepsApplePinyinScriptLabelsAndThirdPartyIcons() {
+        let iconURL = URL(fileURLWithPath: "/fixture/menu_icon.pdf")
+        for (id, label) in [("com.apple.inputmethod.SCIM.ITABC", "简"),
+                            ("com.apple.inputmethod.TCIM.Pinyin", "繁")] {
+            let source = InputSourceDescriptor(
+                id: id, localizedName: "Pinyin", primaryLanguage: "zh",
+                iconURL: iconURL, shortLabel: label
+            )
+            let drawing = source.resolvedForDrawing(fileExists: { _ in true })
+            XCTAssertNil(drawing.iconURL)
+            XCTAssertEqual(drawing.shortLabel, label)
+            XCTAssertEqual(drawing.id, source.id)
+        }
+
+        let thirdParty = InputSourceDescriptor(
+            id: "com.example.pinyin", localizedName: "Pinyin", primaryLanguage: "zh-Hans",
+            iconURL: iconURL, shortLabel: "简"
+        )
+        XCTAssertEqual(thirdParty.resolvedForDrawing(fileExists: { _ in true }), thirdParty)
+    }
+
     func testResolvedKeepsOnlyEnabledSelectCapableSourcesInOrder() {
         let state = InputSourceState.resolved(
             selectedID: "com.apple.keylayout.ABC",
@@ -28,7 +49,7 @@ final class InputSourceStateTests: XCTestCase {
         let descriptor = try XCTUnwrap(state.selectedDescriptor)
         XCTAssertEqual(descriptor.primaryLanguage, "zh-Hans")
         XCTAssertEqual(descriptor.iconURL, url)
-        XCTAssertEqual(descriptor.shortLabel, "拼")
+        XCTAssertEqual(descriptor.shortLabel, "简")
     }
 
     func testSelectedDescriptorIsNilWhenSelectionIsNotInTheEnabledList() {

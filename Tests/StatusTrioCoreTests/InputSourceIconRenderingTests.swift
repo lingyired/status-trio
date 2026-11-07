@@ -11,6 +11,36 @@ final class InputSourceIconRenderingTests: XCTestCase {
     private let menuBarSize: CGFloat = 120
     private let menuBarScale: CGFloat = 8
 
+    func testApplePinyinSystemIconRendersAsScriptMarkerOnMenuBarAndDock() throws {
+        let url = try InputSourceIconFixtures.writeIcon(
+            pixelWidth: 64, pixelHeight: 64, inkRect: CGRect(x: 8, y: 8, width: 48, height: 48)
+        )
+        defer { try? FileManager.default.removeItem(at: url) }
+        let configuration = IconPresentationConfiguration(
+            battery: .standard,
+            connection: ConnectionIconOptions(centerSource: .inputSource, prioritizesNetworkErrors: false),
+            volume: .standard, bluetooth: .standard
+        )
+        for (id, label) in [("com.apple.inputmethod.SCIM.ITABC", "简"),
+                            ("com.apple.inputmethod.TCIM.Pinyin", "繁")] {
+            let source = InputSourceDescriptor(id: id, localizedName: "Pinyin", primaryLanguage: "zh",
+                                               iconURL: url, shortLabel: label)
+            let scene = IconPresentationMapper.scene(
+                inputs: IconPresentationInputs(snapshot: .placeholder, audioIcon: nil, inputSource: source),
+                configuration: configuration
+            )
+            let expectedCenter = CenterState.text(IconTextState(text: label, color: .primary, scale: 1))
+            let actual = IconSceneState(center: scene.center)
+            let expected = IconSceneState(center: expectedCenter)
+            XCTAssertEqual(try renderedCenterPixels(for: actual).bytes,
+                           try renderedCenterPixels(for: expected).bytes)
+            for style in [DockIconBackgroundStyle.dark, .light, .clear] {
+                XCTAssertEqual(try dockPixels(scene: actual, style: style).bytes,
+                               try dockPixels(scene: expected, style: style).bytes)
+            }
+        }
+    }
+
     func testIconInkLandsOnTheCentreLineAcrossShapesScalesAndBackgrounds() throws {
         let fixtures: [(name: String, width: Int, height: Int, ink: CGRect, background: InputSourceIconFixtures.Background)] = [
             ("square", 64, 64, CGRect(x: 38, y: 12, width: 18, height: 30), .transparent),
