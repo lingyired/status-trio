@@ -106,7 +106,7 @@ final class BrightnessMonitor: BrightnessMonitoring {
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
         externalRefreshInterval: Duration = .seconds(2),
         externalRefreshSleep: @escaping @Sendable (Duration) async throws -> Void = {
-            try await Task.sleep(for: $0)
+            try await Task.sleep(for: $0, tolerance: $0 / 5)
         }
     ) {
         self.catalog = catalog

@@ -177,6 +177,52 @@ final class PowerSamplingServiceTests: XCTestCase {
         XCTAssertTrue(service.demands.isEmpty)
     }
 
+    func testSuspensionStopsTheLoopWithoutForgettingDemands() async {
+        let sample = SystemPowerSample(watts: 12, readAt: now)
+        let service = makeService { _ in PowerSamplingReading(system: sample) }
+        service.begin(.icon)
+        await waitForSample(service)
+
+        service.setSuspended(true)
+        XCTAssertFalse(service.isRunning, "sleep must stop the SMC loop")
+        XCTAssertEqual(service.demands, [.icon], "sleep must not forget the icon's demand")
+        XCTAssertNil(service.systemPower, "a suspended sampler leaves no stale reading behind")
+
+        service.setSuspended(false)
+        XCTAssertTrue(service.isRunning, "resume restarts the loop for the surviving demand")
+        await waitForSample(service)
+        XCTAssertEqual(service.systemPower, sample)
+
+        service.end(.icon)
+    }
+
+    func testBeginWhileSuspendedRegistersDemandWithoutStartingTheLoop() {
+        let service = makeService { _ in .empty }
+        service.setSuspended(true)
+
+        service.begin(.icon)
+        XCTAssertFalse(service.isRunning, "no surface can show watts while suspended")
+        XCTAssertEqual(service.demands, [.icon], "the demand survives until resume")
+
+        service.setSuspended(false)
+        XCTAssertTrue(service.isRunning, "resume restarts the loop for the accumulated demand")
+        service.end(.icon)
+    }
+
+    func testRepeatedSuspensionCallsAreIdempotent() {
+        let service = makeService { _ in .empty }
+        service.setSuspended(true)
+        service.setSuspended(true)
+        service.begin(.icon)
+        XCTAssertFalse(service.isRunning)
+
+        service.setSuspended(false)
+        service.setSuspended(false)
+        XCTAssertTrue(service.isRunning)
+        service.end(.icon)
+        XCTAssertFalse(service.isRunning)
+    }
+
     private func waitForSample(_ service: PowerSamplingService) async {
         await waitFor { service.systemPower != nil }
     }

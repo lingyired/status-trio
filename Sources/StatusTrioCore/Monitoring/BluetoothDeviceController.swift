@@ -470,6 +470,7 @@ final class BluetoothDeviceController: ObservableObject {
     private var nearbyBLEBackgroundSelectedIDs: Set<UUID> = []
     private var nearbyBLEBackgroundRefreshInterval: Duration?
     private var nearbyBLESystemSleeping = false
+    private var nearbyBLEDisplaySleeping = false
     private var visibleNearbyBLERequests: [String: Set<UUID>] = [:]
     private var nearbyScannerGeneration: UInt64 = 0
     private var nearbyScannerCallbackIsInstalled = false
@@ -518,7 +519,9 @@ final class BluetoothDeviceController: ObservableObject {
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
         safetyNetInterval: Duration = .seconds(120),
         safetyNetSleep: @escaping @Sendable (Duration) async throws -> Void = {
-            try await Task.sleep(for: $0)
+            // Tolerance lets the system coalesce the safety-net wake with
+            // whatever else the process is doing; precision is irrelevant.
+            try await Task.sleep(for: $0, tolerance: $0 / 5)
         },
         systemObservers: SystemEventObserverBag? = nil,
         connectionEvents: (any BluetoothConnectionEventMonitoring)? = nil,
@@ -979,6 +982,22 @@ final class BluetoothDeviceController: ObservableObject {
         }
     }
 
+    /// Display sleep pauses nearby BLE work for the same reason system sleep
+    /// does: the screen is off, so no surface can show a battery level, and
+    /// the radio would keep waking for scans nothing reads. A display wake
+    /// restores whatever demand remains; the store's popover-visible path
+    /// repairs a missed screensDidWake.
+    func setDisplaySleeping(_ sleeping: Bool) {
+        guard nearbyBLEDisplaySleeping != sleeping else { return }
+        nearbyBLEDisplaySleeping = sleeping
+        if sleeping {
+            nearbyBatteryScanner?.stop()
+            isDiscoveringNearbyBLEDevices = false
+        } else {
+            updateNearbyBatteryScanner()
+        }
+    }
+
     var backgroundReadNearbyBLEDeviceIDs: Set<UUID> {
         nearbyBLEBackgroundRefreshEnabled
             ? nearbyBLEBackgroundSelectedIDs.subtracting(nearbyBLEHiddenIDs)
@@ -1219,6 +1238,7 @@ final class BluetoothDeviceController: ObservableObject {
               isActive,
               availability == .available,
               !nearbyBLESystemSleeping,
+              !nearbyBLEDisplaySleeping,
               (hasVisibleSurface && hasBluetoothSummarySurface || nearbyBLEBackgroundRefreshEnabled) else { return [] }
         let visible = visibleNearbyBLERequests.values.reduce(into: Set<UUID>()) { $0.formUnion($1) }
         let permitted = nearbyBLEBackgroundRefreshEnabled
@@ -1230,6 +1250,7 @@ final class BluetoothDeviceController: ObservableObject {
     private var isNearbyBLEScannerDemanded: Bool {
         isActive && availability == .available && nearbyBLEEnabled
             && !nearbyBLESystemSleeping
+            && !nearbyBLEDisplaySleeping
             && (hasVisibleSurface && hasBluetoothSummarySurface || nearbyBLEBackgroundRefreshEnabled)
     }
 
@@ -1241,6 +1262,7 @@ final class BluetoothDeviceController: ObservableObject {
         guard nearbyBLEEnabled, nearbyBatteryLevelsEnabled, nearbyBLEListVisible,
               isActive, availability == .available,
               !nearbyBLESystemSleeping,
+              !nearbyBLEDisplaySleeping,
               (hasActiveNearbyBLEDiscoverySurface || nearbyBLEBackgroundRefreshEnabled),
               let nearbyBatteryScanner else { return [] }
         let now = Date()
