@@ -499,6 +499,23 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
             || lowered.contains("freelace")
             || lowered.contains("freeclip")
     }
+
+    /// Whether the device speaks the Redmi / Xiaomi vendor SPP noise-control
+    /// protocol (`FD2D` control service).
+    ///
+    /// Same policy as `isHuaweiAudio`: the Bluetooth SIG company ID is primary,
+    /// the name covers a report without one, and a wrong guess fails closed — a
+    /// device that never answers the `FD2D` handshake shows no control at all.
+    /// The 0x2717 company ID belongs to Xiaomi; Redmi-branded earbuds pair under
+    /// names such as "Redmi Buds 8".
+    var isRedmiAudio: Bool {
+        guard kind.isAudio else { return false }
+        if let vendorID { return vendorID == 0x2717 }
+        let lowered = name.lowercased()
+        return lowered.contains("redmi")
+            || lowered.contains("xiaomi")
+            || lowered.contains("buds 8")
+    }
 }
 
 /// What tapping the Bluetooth row does. The Wi-Fi row has the same shape — its

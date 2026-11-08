@@ -136,6 +136,18 @@ final class BluetoothListeningModeController: ObservableObject {
     private var huaweiRefreshTasks: [String: Task<Void, Never>] = [:]
     private var huaweiReadTokens: [String: DeviceOperationToken] = [:]
 
+    /// Redmi / Xiaomi earbuds speak a different vendor SPP protocol over their
+    /// `FD2D` control service, so they get their own transport seam, exactly as
+    /// the HUAWEI family does. Neither family's guarantees bleed into the other.
+    private let redmiTransport: any RedmiListeningModeTransporting
+    /// Addresses whose controls are backed by the Redmi transport. `setMode`
+    /// branches on this rather than re-reading the device.
+    private var redmiAddresses: Set<String> = []
+    /// One in-flight state read per device, so repeated panel refreshes do not
+    /// stack queries on the same channel.
+    private var redmiRefreshTasks: [String: Task<Void, Never>] = [:]
+    private var redmiReadTokens: [String: DeviceOperationToken] = [:]
+
     init(
         hal: BluetoothListeningModeHAL = BluetoothListeningModeHAL(),
         endpointProvider: any CoreAudioBluetoothEndpointProviding = CoreAudioBluetoothListeningModeEndpointProvider(),
@@ -143,6 +155,7 @@ final class BluetoothListeningModeController: ObservableObject {
         huaweiTransport: any HuaweiListeningModeTransporting = HuaweiRFCOMMTransport(),
         huaweiEndpointProvider: any HuaweiAudioEndpointProviding = CoreAudioHuaweiAudioEndpointProvider(),
         huaweiReadRetryDelays: [Duration] = [.milliseconds(150), .milliseconds(450)],
+        redmiTransport: any RedmiListeningModeTransporting = RedmiRFCOMMTransport(),
         airPodsDiscoveryRetryDelays: [Duration] = [.milliseconds(150), .milliseconds(450), .seconds(1)],
         airPodsDiscoverySleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
@@ -156,6 +169,7 @@ final class BluetoothListeningModeController: ObservableObject {
         self.huaweiTransport = huaweiTransport
         self.huaweiEndpointProvider = huaweiEndpointProvider
         self.huaweiFirstReadRetryDelays = huaweiReadRetryDelays
+        self.redmiTransport = redmiTransport
         self.airPodsDiscoveryRetryDelays = airPodsDiscoveryRetryDelays
         self.airPodsDiscoverySleep = airPodsDiscoverySleep
         self.failureClearDelay = failureClearDelay
@@ -176,6 +190,7 @@ final class BluetoothListeningModeController: ObservableObject {
         }
         let needsRetry = refreshAirPods(devices: devices)
         refreshHuawei(devices: devices)
+        refreshRedmi(devices: devices)
         if needsRetry { retryAirPodsDiscovery(devices: devices) }
     }
 
@@ -210,12 +225,13 @@ final class BluetoothListeningModeController: ObservableObject {
         }
 
         let airPodsEndpointIDs = Set(nextResolved.values)
-        preserveHuaweiPresentations(in: &next, endpoints: &nextResolved, devices: devices)
+        preserveVendorPresentations(in: &next, endpoints: &nextResolved, devices: devices)
 
         // Anything no longer resolved has its tasks cancelled and its token
-        // retired, so a late completion cannot resurrect it. HUAWEI addresses are
-        // handled by `refreshHuawei` below, which owns their tasks.
-        for address in presentations.keys where next[address] == nil && !huaweiAddresses.contains(address) {
+        // retired, so a late completion cannot resurrect it. HUAWEI / Redmi
+        // addresses are handled by their refresh methods, which own the tasks.
+        for address in presentations.keys where next[address] == nil
+            && !huaweiAddresses.contains(address) && !redmiAddresses.contains(address) {
             cancelTasks(for: address)
             retireChangeToken(for: address)
         }
@@ -340,18 +356,85 @@ final class BluetoothListeningModeController: ObservableObject {
         }
     }
 
+    /// Discovers Redmi / Xiaomi controls by Bluetooth address and reads their
+    /// current mode over the `FD2D` vendor SPP channel.
+    ///
+    /// Unlike AirPods, Redmi devices have no usable CoreAudio `lstm` endpoint, so
+    /// their control always renders on the connected Bluetooth-device row. The
+    /// transport opens a session per read, so there is no persistent channel to
+    /// keep warm between refreshes.
+    private func refreshRedmi(devices: [BluetoothDevice]) {
+        let eligible = devices.filter {
+            $0.isConnected && $0.isRedmiAudio && !$0.id.hasPrefix(Self.previewAddressPrefix)
+        }
+        let addresses = Set(eligible.map { BluetoothBatteryReader.normalizedAddress($0.id) })
+            .filter { !$0.isEmpty }
+        let removed = redmiAddresses.subtracting(addresses)
+
+        for address in removed {
+            redmiRefreshTasks[address]?.cancel()
+            redmiRefreshTasks[address] = nil
+            redmiReadTokens[address] = nil
+            cancelTasks(for: address)
+            retireChangeToken(for: address)
+            presentations[address] = nil
+            resolvedEndpoints[address] = nil
+        }
+        redmiAddresses = addresses
+
+        for device in eligible {
+            let address = BluetoothBatteryReader.normalizedAddress(device.id)
+            guard !address.isEmpty else { continue }
+            // A write owns the presentation until its read-back settles; a
+            // concurrent discovery read would race that result.
+            if presentations[address]?.isChanging == true { continue }
+            if redmiRefreshTasks[address] != nil { continue }
+
+            let token = DeviceOperationToken()
+            redmiReadTokens[address] = token
+            redmiRefreshTasks[address] = Task { [weak self] in
+                guard let self else { return }
+                defer {
+                    if self.redmiReadTokens[address] == token {
+                        self.redmiRefreshTasks[address] = nil
+                        self.redmiReadTokens[address] = nil
+                    }
+                }
+                do {
+                    let state = try await self.redmiTransport.state(address: address)
+                    guard !Task.isCancelled,
+                          self.redmiReadTokens[address] == token else { return }
+                    let modes = RedmiNoiseState.selectableListeningModes
+                    let presentation = BluetoothListeningModePresentation(
+                        availableModes: modes,
+                        selectedMode: state.listeningMode
+                    )
+                    self.presentations[address] = presentation
+                } catch {
+                    guard !Task.isCancelled,
+                          self.redmiReadTokens[address] == token else { return }
+                    // A device that never answers the handshake shows no control
+                    // at all — fail closed, exactly as the HUAWEI path does.
+                    self.presentations[address] = nil
+                }
+            }
+        }
+    }
+
     /// Keeps an existing HUAWEI presentation while AirPods or preview rows are
-    /// rebuilt. HUAWEI mode state is keyed by Bluetooth address, independent of
-    /// whether CoreAudio currently exposes an output endpoint.
-    private func preserveHuaweiPresentations(
+    /// rebuilt. HUAWEI / Redmi mode state is keyed by Bluetooth address,
+    /// independent of whether CoreAudio currently exposes an output endpoint.
+    private func preserveVendorPresentations(
         in next: inout [String: BluetoothListeningModePresentation],
         endpoints nextEndpoints: inout [String: AudioDeviceID],
         devices: [BluetoothDevice]
     ) {
-        for device in devices where device.isConnected && device.isHuaweiAudio
-            && !device.id.hasPrefix(Self.previewAddressPrefix) {
+        for device in devices where device.isConnected && !device.id.hasPrefix(Self.previewAddressPrefix) {
             let address = BluetoothBatteryReader.normalizedAddress(device.id)
-            guard !address.isEmpty, huaweiAddresses.contains(address) else { continue }
+            guard !address.isEmpty else { continue }
+            let isVendor = (device.isHuaweiAudio && huaweiAddresses.contains(address))
+                || (device.isRedmiAudio && redmiAddresses.contains(address))
+            guard isVendor else { continue }
             if let presentation = presentations[address] {
                 next[address] = presentation
             }
@@ -399,12 +482,12 @@ final class BluetoothListeningModeController: ObservableObject {
             }
         }
 
-        preserveHuaweiPresentations(in: &next, endpoints: &nextEndpoints, devices: devices)
-        // HUAWEI addresses are owned by `refreshHuawei` below, exactly as they
-        // are in the live path: a preview refresh must not cancel a vendor write
-        // whose SPP frame has already gone out.
+        preserveVendorPresentations(in: &next, endpoints: &nextEndpoints, devices: devices)
+        // HUAWEI / Redmi addresses are owned by their refresh methods, exactly as
+        // they are in the live path: a preview refresh must not cancel a vendor
+        // write whose SPP frame has already gone out.
         for address in presentations.keys where next[address] == nil
-            && !huaweiAddresses.contains(address) {
+            && !huaweiAddresses.contains(address) && !redmiAddresses.contains(address) {
             cancelTasks(for: address)
             retireChangeToken(for: address)
         }
@@ -413,6 +496,7 @@ final class BluetoothListeningModeController: ObservableObject {
         resolvedEndpoints = nextEndpoints
         syncSubscriptions(to: [])
         refreshHuawei(devices: devices)
+        refreshRedmi(devices: devices)
     }
 
     /// Asks a device to switch to `mode`, publishing the in-flight state and
@@ -427,6 +511,10 @@ final class BluetoothListeningModeController: ObservableObject {
     func setMode(_ mode: BluetoothListeningMode, forAddress address: String) {
         if huaweiAddresses.contains(address) {
             setHuaweiMode(mode, forAddress: address)
+            return
+        }
+        if redmiAddresses.contains(address) {
+            setRedmiMode(mode, forAddress: address)
             return
         }
         if previewMode {
@@ -498,6 +586,45 @@ final class BluetoothListeningModeController: ObservableObject {
         }
     }
 
+    /// Writes a Redmi / Xiaomi noise mode over the `FD2D` SPP channel and only
+    /// marks success when the read-back confirms it, never on the write alone.
+    /// A transport error rolls back to the last confirmed selection and shows the
+    /// same failure mark as the other vendor paths.
+    private func setRedmiMode(_ mode: BluetoothListeningMode, forAddress address: String) {
+        guard var presentation = presentations[address],
+              presentation.availableModes.contains(mode) else {
+            return
+        }
+        guard !presentation.isChanging else { return }
+        let target = presentation.requestedMode(forTapped: mode)
+        guard target != presentation.selectedMode,
+              let redmiMode = redmiMode(for: target) else {
+            return
+        }
+
+        presentation = presentation.changing(to: target)
+        presentations[address] = presentation
+        let token = issueChangeToken(for: address)
+
+        changeTasks[address] = Task { [weak self, transport = self.redmiTransport] in
+            do {
+                let state = try await transport.setMode(redmiMode, address: address)
+                guard let self, !Task.isCancelled, self.changeTokens[address] == token else { return }
+                self.changeTasks[address] = nil
+                if state.listeningMode == target {
+                    self.retireChangeToken(for: address)
+                    self.presentations[address] = presentation.settled(on: target)
+                } else {
+                    self.showFailure(state.listeningMode, previous: presentation, at: address)
+                }
+            } catch {
+                guard let self, !Task.isCancelled, self.changeTokens[address] == token else { return }
+                self.changeTasks[address] = nil
+                self.showFailure(presentation.selectedMode, previous: presentation, at: address)
+            }
+        }
+    }
+
     /// The control, if any, that belongs to a CoreAudio output endpoint. The audio
     /// output list asks this for each row: a hit means the row is an AirPods whose
     /// listening mode is switchable here, so the row renders the capsules under it.
@@ -521,7 +648,7 @@ final class BluetoothListeningModeController: ObservableObject {
         forBluetoothAddress address: String
     ) -> BluetoothListeningModePresentation? {
         let key = BluetoothBatteryReader.normalizedAddress(address)
-        guard huaweiAddresses.contains(key),
+        guard huaweiAddresses.contains(key) || redmiAddresses.contains(key),
               resolvedEndpoints[key] == nil,
               let presentation = presentations[key],
               presentation.isControllable else {
@@ -531,10 +658,10 @@ final class BluetoothListeningModeController: ObservableObject {
     }
 
 
-    /// HUAWEI presentations with no audio endpoint; render these under the
-    /// corresponding connected Bluetooth row instead of hiding them.
+    /// Vendor (HUAWEI + Redmi) presentations with no audio endpoint; render these
+    /// under the corresponding connected Bluetooth row instead of hiding them.
     var huaweiBluetoothRowPresentations: [String: BluetoothListeningModePresentation] {
-        huaweiAddresses.reduce(into: [:]) { result, address in
+        (huaweiAddresses.union(redmiAddresses)).reduce(into: [:]) { result, address in
             guard resolvedEndpoints[address] == nil,
                   let presentation = presentations[address],
                   presentation.isControllable else {
@@ -592,6 +719,13 @@ final class BluetoothListeningModeController: ObservableObject {
         huaweiRefreshTasks.removeAll()
         huaweiReadTokens.removeAll()
         huaweiAddresses.removeAll()
+        for address in redmiAddresses {
+            redmiRefreshTasks[address]?.cancel()
+            redmiReadTokens[address] = nil
+        }
+        redmiRefreshTasks.removeAll()
+        redmiReadTokens.removeAll()
+        redmiAddresses.removeAll()
         changeTasks.removeAll()
         failureClearTasks.removeAll()
         presentations = [:]
@@ -601,6 +735,7 @@ final class BluetoothListeningModeController: ObservableObject {
         // with an empty set removes every registered block.
         syncSubscriptions(to: [])
         huaweiTransport.closeAll()
+        redmiTransport.closeAll()
     }
 
     // MARK: - External `lstm` changes
