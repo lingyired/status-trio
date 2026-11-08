@@ -59,6 +59,11 @@ final class PowerSamplingService: ObservableObject {
     /// Exposed for tests and diagnostics.
     private(set) var demands: Set<Demand> = []
     private(set) var isRunning = false
+    /// Set while the display or the system is asleep. No surface can show
+    /// watts then, so the loop stops instead of waking the SMC for readings
+    /// nothing displays. Registered demands survive so a resume restores the
+    /// exact surfaces that existed before sleep.
+    private var isSuspended = false
 
     /// The cadence the next tick uses. The panel and details page need live
     /// watts; an icon-only demand does not.
@@ -96,6 +101,9 @@ final class PowerSamplingService: ObservableObject {
     /// Idempotent: calling `begin` for a demand already registered does nothing.
     func begin(_ demand: Demand) {
         guard demands.insert(demand).inserted else { return }
+        // While suspended the loop stays stopped; the resume path restarts it
+        // for the demands that have accumulated in the meantime.
+        guard !isSuspended else { return }
         if !isRunning {
             isRunning = true
             startLoop()
@@ -117,6 +125,22 @@ final class PowerSamplingService: ObservableObject {
     func stopAll() {
         demands.removeAll()
         stopLoop()
+    }
+
+    /// Mirrors `ApplicationEnergyController.setSuspended`: sleep pauses the
+    /// loop without forgetting demands. A missed wake notification is repaired
+    /// by the store's popover-visible path, which clears the sleep flags and
+    /// calls this with `false`.
+    func setSuspended(_ suspended: Bool) {
+        guard isSuspended != suspended else { return }
+        isSuspended = suspended
+        if suspended {
+            if isRunning { stopLoop() }
+        } else if !demands.isEmpty {
+            isRunning = true
+            startLoop()
+            refresh()
+        }
     }
 
     /// Reads now instead of waiting for the next tick. Tests use it; production
