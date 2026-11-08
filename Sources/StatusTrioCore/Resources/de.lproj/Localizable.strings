@@ -810,6 +810,8 @@
 
 "settings.network.powerControl" = "Wi-Fi-Ein-/Ausschalter anzeigen";
 "settings.network.powerControlDescription" = "Fügt dem Statusbereich einen Ein-/Ausschalter für Wi-Fi hinzu.";
+"settings.network.confirmBeforePowerOff" = "Vor dem Ausschalten von Wi-Fi bestätigen";
+"settings.network.confirmBeforePowerOffDescription" = "Vor dem Ausschalten von Wi-Fi bei bestehender Verbindung nachfragen.";
 "wifi.power.turnOn" = "Wi-Fi einschalten";
 "wifi.power.turnOff" = "Wi-Fi ausschalten";
 "wifi.power.unknown" = "Der Wi-Fi-Status ist nicht verfügbar.";

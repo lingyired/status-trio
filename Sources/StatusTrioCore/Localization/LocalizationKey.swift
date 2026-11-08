@@ -1,6 +1,8 @@
 enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsNetworkPowerControl = "settings.network.powerControl"
     case settingsNetworkPowerControlDescription = "settings.network.powerControlDescription"
+    case settingsNetworkConfirmBeforePowerOff = "settings.network.confirmBeforePowerOff"
+    case settingsNetworkConfirmBeforePowerOffDescription = "settings.network.confirmBeforePowerOffDescription"
     case wifiPowerTurnOn = "wifi.power.turnOn"
     case wifiPowerTurnOff = "wifi.power.turnOff"
     case wifiPowerUnknown = "wifi.power.unknown"

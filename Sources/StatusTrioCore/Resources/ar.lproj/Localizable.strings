@@ -810,6 +810,8 @@
 
 "settings.network.powerControl" = "إظهار زر طاقة Wi-Fi";
 "settings.network.powerControlDescription" = "يضيف زر طاقة Wi-Fi إلى لوحة الحالة.";
+"settings.network.confirmBeforePowerOff" = "تأكيد قبل إيقاف Wi-Fi";
+"settings.network.confirmBeforePowerOffDescription" = "اطلب التأكيد قبل إيقاف Wi-Fi أثناء الاتصال.";
 "wifi.power.turnOn" = "تشغيل Wi-Fi";
 "wifi.power.turnOff" = "إيقاف Wi-Fi";
 "wifi.power.unknown" = "حالة Wi-Fi غير متاحة.";

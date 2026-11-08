@@ -95,6 +95,10 @@ struct StatusPopoverView: View {
                     onOpenWiFiSettings: openWiFiSettings,
                     onOpenLocationSettings: openLocationSettings,
                     onSetPower: { panel.actions.setWiFiPower($0) },
+                    wifiPowerRequiresConfirmation: WiFiPowerTogglePolicy.requiresConfirmation(
+                        for: panel.store.popupSnapshot.wifi.state,
+                        confirmsPowerOff: panel.settings.confirmsWiFiPowerOff
+                    ),
                     onRefresh: { panel.actions.refreshWiFi() },
                     onOpenSharingSettings: openSharingSettings,
                     onCopyValue: { copyValue($0) },
@@ -320,7 +324,8 @@ private struct WiFiPowerSummaryView: View {
             wifiPowerIsOn: WiFiPowerControlVisibility.isRadioOn(state: store.popupSnapshot.wifi.state),
             wifiPowerCanSet: !store.wifiPowerIsChanging,
             wifiPowerRequiresConfirmation: WiFiPowerTogglePolicy.requiresConfirmation(
-                for: store.popupSnapshot.wifi.state
+                for: store.popupSnapshot.wifi.state,
+                confirmsPowerOff: panel.settings.confirmsWiFiPowerOff
             ),
             wifiPowerFailed: store.wifiPowerFailed,
             onSetWiFiPower: { store.setWiFiPower($0) },

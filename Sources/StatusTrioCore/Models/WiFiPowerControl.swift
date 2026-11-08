@@ -14,8 +14,14 @@ enum WiFiPowerTogglePolicy {
     /// associated state counts, not just a healthy link: a no-internet,
     /// temporary or shared (Internet Sharing) association still drops when the
     /// radio goes off.
-    static func requiresConfirmation(for state: WiFiState) -> Bool {
-        state.isNetworkAssociated
+    ///
+    /// `confirmsPowerOff` mirrors the user's "Confirm Before Turning Off Wi-Fi"
+    /// setting (#305): when they turn it off, every associated state switches
+    /// off directly too. The unassociated states never asked in the first
+    /// place, so they are unaffected either way.
+    static func requiresConfirmation(for state: WiFiState, confirmsPowerOff: Bool = true) -> Bool {
+        guard confirmsPowerOff else { return false }
+        return state.isNetworkAssociated
     }
 
     static func decision(isOn: Bool, requiresConfirmation: Bool) -> WiFiPowerToggleDecision {

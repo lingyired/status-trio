@@ -810,6 +810,8 @@
 
 "settings.network.powerControl" = "Wi-Fi 電源ボタンを表示";
 "settings.network.powerControlDescription" = "ステータスパネルに Wi-Fi の電源ボタンを表示します。";
+"settings.network.confirmBeforePowerOff" = "Wi-Fi をオフにする前に確認";
+"settings.network.confirmBeforePowerOffDescription" = "接続中に Wi-Fi をオフにする前に確認します。";
 "wifi.power.turnOn" = "Wi-Fiをオンにする";
 "wifi.power.turnOff" = "Wi-Fiをオフにする";
 "wifi.power.unknown" = "Wi-Fiの状態を取得できません。";

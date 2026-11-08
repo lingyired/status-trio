@@ -808,6 +808,8 @@
 
 "settings.network.powerControl" = "Show Wi-Fi Power Control";
 "settings.network.powerControlDescription" = "Adds a Wi-Fi power button to the status panel.";
+"settings.network.confirmBeforePowerOff" = "Confirm Before Turning Off Wi-Fi";
+"settings.network.confirmBeforePowerOffDescription" = "Ask before turning Wi-Fi off while connected.";
 "wifi.power.turnOn" = "Turn Wi-Fi on";
 "wifi.power.turnOff" = "Turn Wi-Fi off";
 "wifi.power.unknown" = "Wi-Fi status is unavailable.";

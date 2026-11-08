@@ -810,6 +810,8 @@
 
 "settings.network.powerControl" = "显示 Wi-Fi 电源开关";
 "settings.network.powerControlDescription" = "在状态面板的 Wi-Fi 行显示电源开关。";
+"settings.network.confirmBeforePowerOff" = "关闭 Wi-Fi 前先确认";
+"settings.network.confirmBeforePowerOffDescription" = "关闭已连接的 Wi-Fi 前先询问。";
 "wifi.power.turnOn" = "打开 Wi-Fi";
 "wifi.power.turnOff" = "关闭 Wi-Fi";
 "wifi.power.unknown" = "Wi-Fi 状态不可用。";

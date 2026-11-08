@@ -810,6 +810,8 @@
 
 "settings.network.powerControl" = "Mostra il controllo di accensione Wi-Fi";
 "settings.network.powerControlDescription" = "Aggiunge un pulsante di accensione Wi-Fi al pannello di stato.";
+"settings.network.confirmBeforePowerOff" = "Conferma prima di disattivare il Wi-Fi";
+"settings.network.confirmBeforePowerOffDescription" = "Chiedi conferma prima di disattivare il Wi-Fi durante la connessione.";
 "wifi.power.turnOn" = "Attiva Wi-Fi";
 "wifi.power.turnOff" = "Disattiva Wi-Fi";
 "wifi.power.unknown" = "Lo stato Wi-Fi non è disponibile.";

@@ -810,6 +810,8 @@
 
 "settings.network.powerControl" = "Показывать кнопку питания Wi-Fi";
 "settings.network.powerControlDescription" = "Добавляет кнопку питания Wi-Fi на панель состояния.";
+"settings.network.confirmBeforePowerOff" = "Подтверждать перед отключением Wi-Fi";
+"settings.network.confirmBeforePowerOffDescription" = "Спрашивать подтверждение перед отключением Wi-Fi при активном подключении.";
 "wifi.power.turnOn" = "Включить Wi-Fi";
 "wifi.power.turnOff" = "Выключить Wi-Fi";
 "wifi.power.unknown" = "Состояние Wi-Fi недоступно.";

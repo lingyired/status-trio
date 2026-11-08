@@ -810,6 +810,8 @@
 
 "settings.network.powerControl" = "Wi-Fi 전원 버튼 표시";
 "settings.network.powerControlDescription" = "상태 패널에 Wi-Fi 전원 버튼을 표시합니다.";
+"settings.network.confirmBeforePowerOff" = "Wi-Fi 끄기 전 확인";
+"settings.network.confirmBeforePowerOffDescription" = "연결된 상태에서 Wi-Fi를 끄기 전에 확인합니다.";
 "wifi.power.turnOn" = "Wi-Fi 켜기";
 "wifi.power.turnOff" = "Wi-Fi 끄기";
 "wifi.power.unknown" = "Wi-Fi 상태를 사용할 수 없습니다.";

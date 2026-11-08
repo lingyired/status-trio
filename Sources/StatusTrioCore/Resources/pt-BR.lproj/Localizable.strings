@@ -810,6 +810,8 @@
 
 "settings.network.powerControl" = "Mostrar controle de energia do Wi-Fi";
 "settings.network.powerControlDescription" = "Adiciona um botão de energia do Wi-Fi ao painel de status.";
+"settings.network.confirmBeforePowerOff" = "Confirmar antes de desativar o Wi-Fi";
+"settings.network.confirmBeforePowerOffDescription" = "Pede confirmação antes de desativar o Wi-Fi enquanto estiver conectado.";
 "wifi.power.turnOn" = "Ativar Wi-Fi";
 "wifi.power.turnOff" = "Desativar Wi-Fi";
 "wifi.power.unknown" = "O estado do Wi-Fi não está disponível.";
