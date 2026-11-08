@@ -87,7 +87,7 @@ final class WiFiPowerSummaryTests: XCTestCase {
     }
 
     func testTurningOffSkipsConfirmationWhenTheSettingIsOff() {
-        for state: WiFiState in [.connected, .hotspot] {
+        for state: WiFiState in [.connected, .noInternet, .hotspot, .temporary, .shared] {
             XCTAssertFalse(
                 WiFiPowerTogglePolicy.requiresConfirmation(for: state, confirmsPowerOff: false),
                 "\(state) must switch off directly when the confirm setting is off (#305)"
@@ -107,7 +107,7 @@ final class WiFiPowerSummaryTests: XCTestCase {
     }
 
     func testSettingDoesNotAffectStatesThatNeverAsked() {
-        for state: WiFiState in [.notAssociated, .off, .noInternet, .temporary, .shared, .unavailable] {
+        for state: WiFiState in [.notAssociated, .off, .unavailable] {
             XCTAssertFalse(
                 WiFiPowerTogglePolicy.requiresConfirmation(for: state, confirmsPowerOff: true)
             )
