@@ -793,7 +793,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
                 guard let self else { return }
                 let interval = self.backgroundRefreshInterval
                     ?? .seconds(Int(BluetoothLEBatteryScanPolicy.automaticScanInterval))
-                try await Task.sleep(for: interval)
+                try await Task.sleep(for: interval, tolerance: interval / 5)
             } catch {
                 return
             }
@@ -851,7 +851,10 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
         scanWindowTask?.cancel()
         scanWindowTask = Task { @MainActor [weak self] in
             do {
-                try await Task.sleep(for: BluetoothLEBatteryScanPolicy.scanWindow)
+                // A slightly late scan-window close is harmless; precision
+                // here only buys extra radio wakeups.
+                try await Task.sleep(for: BluetoothLEBatteryScanPolicy.scanWindow,
+                                     tolerance: BluetoothLEBatteryScanPolicy.scanWindow / 5)
             } catch {
                 return
             }
