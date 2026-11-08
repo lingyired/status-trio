@@ -542,6 +542,7 @@
 "battery.details.current" = "Courant de la batterie";
 "battery.details.sampled" = "Mesure de la batterie";
 "battery.details.adapter" = "Puissance nominale de l’adaptateur";
+"battery.details.inputPort" = "Port de charge";
 "battery.details.remaining" = "Autonomie restante";
 "battery.details.cycles" = "Cycles de charge";
 "battery.details.uptime" = "Temps de fonctionnement";

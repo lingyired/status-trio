@@ -187,9 +187,10 @@ struct SystemPowerReader: Sendable {
     /// or undecodable reply must stay `.measured` (that channel skipped) instead
     /// of falling back to the frozen `PowerOutDetails` value. `.unavailable`
     /// means none of the eight fixed keys answered at all. The SMC read start
-    /// travels with the rails.
+    /// travels with the rails, and each rail keeps its channel number so the
+    /// panel can name the port it belongs to.
     static func readPortOutput(exchange: ([UInt8]) -> [UInt8]?, readAt: Date = Date()) -> PortOutputRails {
-        var rails: [Double] = []
+        var rails: [PortRail] = []
         var answered = false
         for channel in 1...4 {
             let volts = readScalar(key: portRailKey(channel: channel, voltage: true), exchange: exchange)
@@ -198,9 +199,9 @@ struct SystemPowerReader: Sendable {
             guard let volts = volts.value, let amps = amps.value else { continue }
             let watts = volts * amps
             guard watts.isFinite, (0...150).contains(watts) else { continue }
-            rails.append(watts)
+            rails.append(PortRail(channel: channel, watts: watts))
         }
-        return answered ? .measured(watts: rails, readAt: readAt) : .unavailable
+        return answered ? .measured(rails: rails, readAt: readAt) : .unavailable
     }
 
     static func portRailKey(channel: Int, voltage: Bool) -> UInt32 {

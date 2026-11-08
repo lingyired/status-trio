@@ -11,7 +11,7 @@ final class BatteryPowerBreakdownTests: XCTestCase {
     }
 
     private func usb(_ watts: Double, at offset: TimeInterval = 0) -> USBOutputSample {
-        USBOutputSample(watts: watts, readAt: now.addingTimeInterval(offset), portCount: 1)
+        USBOutputSample(watts: watts, readAt: now.addingTimeInterval(offset), ports: [USBPortOutput(channel: 1, watts: watts)])
     }
 
     func testSplitsAdapterInputIntoMeasuredBranchesAndSystemResidual() throws {
@@ -128,12 +128,12 @@ final class BatteryPowerBreakdownTests: XCTestCase {
         let frozen: [String: Any] = ["PowerOutDetails": [["PortIndex": 1, "Watts": 9_000]]]
         let readAt = Date(timeIntervalSince1970: 1_000)
         let live = USBOutputReader.resolve(
-            portRails: .measured(watts: [4.208, 0.14, 0.07], readAt: readAt), registry: frozen)
+            portRails: .measured(rails: [PortRail(channel: 1, watts: 4.208), PortRail(channel: 2, watts: 0.14), PortRail(channel: 3, watts: 0.07)], readAt: readAt), registry: frozen)
         XCTAssertEqual(live?.watts ?? -1, 4.208, accuracy: 0.0001)
         XCTAssertEqual(live?.portCount, 1)
         XCTAssertEqual(live?.readAt, readAt, "a measured rail keeps the SMC read time")
         XCTAssertNil(USBOutputReader.resolve(
-            portRails: .measured(watts: [0.05, 0.14], readAt: readAt), registry: frozen),
+            portRails: .measured(rails: [PortRail(channel: 1, watts: 0.05), PortRail(channel: 2, watts: 0.14)], readAt: readAt), registry: frozen),
             "an answered idle rail must not fall back to a frozen registry value")
         XCTAssertEqual(USBOutputReader.resolve(portRails: .unavailable, registry: [
             "PowerOutDetails": [["PortIndex": 1, "Watts": 7_000]]
@@ -146,10 +146,95 @@ final class BatteryPowerBreakdownTests: XCTestCase {
         let readAt = Date(timeIntervalSince1970: 1_000)
         let observedAt = readAt.addingTimeInterval(120)
         let sample = USBOutputReader.resolve(
-            portRails: .measured(watts: [4.2], readAt: readAt), registry: [:], now: observedAt)
+            portRails: .measured(rails: [PortRail(channel: 1, watts: 4.2)], readAt: readAt), registry: [:], now: observedAt)
         XCTAssertEqual(sample?.readAt, readAt)
         XCTAssertEqual(sample?.isFresh(at: observedAt), false,
                        "a rail read 120 s ago must not pass the freshness window")
+    }
+}
+
+final class USBPortOutputTests: XCTestCase {
+    private let readAt = Date(timeIntervalSince1970: 1_000)
+
+    /// Mac16,1 as measured: Watch charger on @1, display adapter on @2 (with a
+    /// Billboard device), the Fanxiang SSD on @4, adapter on MagSafe.
+    private func topology(input: USBPortTopology.PortNode? = .init(
+        portDescription: "Port-MagSafe 3@1", portNumber: 1, typeDescription: "MagSafe 3")) -> USBPortTopology {
+        let ports: [USBPortTopology.PortNode] = [
+            .init(portDescription: "Port-USB-C@4", portNumber: 4, typeDescription: "USB-C"),
+            .init(portDescription: "Port-USB-C@1", portNumber: 1, typeDescription: "USB-C"),
+            .init(portDescription: "Port-USB-C@2", portNumber: 2, typeDescription: "USB-C")
+        ]
+        let devices: [USBPortTopology.DeviceNode] = [
+            .init(portDescription: "Port-USB-C@1", name: "Apple Watch Magnetic Charging Cable",
+                  deviceClass: 0, locationID: 0x0010_0000),
+            .init(portDescription: "Port-USB-C@2", name: "Generic Billboard Device",
+                  deviceClass: 0x11, locationID: 0x0110_0000),
+            .init(portDescription: "Port-USB-C@4", name: "RB", deviceClass: 0, locationID: 0x0320_0000)
+        ]
+        return USBPortTopology.make(usbCPorts: ports, devices: devices, inputPort: input)
+    }
+
+    func testChannelsFollowUSBCPortNumberOrder() {
+        let topology = topology()
+        XCTAssertEqual(topology.ports.map(\.portDescription), ["Port-USB-C@1", "Port-USB-C@2", "Port-USB-C@4"])
+        XCTAssertEqual(topology.ports.map(\.channel), [1, 2, 3])
+        XCTAssertEqual(topology.name(forChannel: 1), "Apple Watch Magnetic Charging Cable")
+        XCTAssertNil(topology.name(forChannel: 2), "a Billboard device is plumbing, not the accessory")
+        XCTAssertEqual(topology.name(forChannel: 3), "RB")
+        XCTAssertNil(topology.name(forChannel: 4))
+        XCTAssertEqual(topology.inputPortType, "MagSafe 3")
+        XCTAssertNil(topology.inputChannel, "MagSafe is not an output channel")
+    }
+
+    func testHubChildrenCollapseIntoOneNameWithACount() {
+        let topology = USBPortTopology.make(
+            usbCPorts: [.init(portDescription: "Port-USB-C@1", portNumber: 1, typeDescription: "USB-C")],
+            devices: [
+                .init(portDescription: "Port-USB-C@1", name: "USB3.1 Hub", deviceClass: 9, locationID: 1),
+                .init(portDescription: "Port-USB-C@1", name: "Portable SSD", deviceClass: 0, locationID: 2),
+                .init(portDescription: "Port-USB-C@1", name: "Keyboard", deviceClass: 0, locationID: 3)
+            ],
+            inputPort: nil)
+        XCTAssertEqual(topology.name(forChannel: 1), "Portable SSD +1")
+        XCTAssertNil(topology.inputPortType)
+    }
+
+    func testRailsKeepTheirChannelAndPickUpAccessoryNames() throws {
+        let sample = try XCTUnwrap(USBOutputReader.resolve(
+            portRails: .measured(rails: [PortRail(channel: 1, watts: 5.12), PortRail(channel: 2, watts: 0.13),
+                                         PortRail(channel: 3, watts: 0.85), PortRail(channel: 4, watts: 0)],
+                                 readAt: readAt),
+            registry: [:], topology: topology()))
+        XCTAssertEqual(sample.ports, [
+            USBPortOutput(channel: 1, watts: 5.12, name: "Apple Watch Magnetic Charging Cable"),
+            USBPortOutput(channel: 3, watts: 0.85, name: "RB")
+        ], "idle rails stay hidden; each live rail keeps its own reading")
+        XCTAssertEqual(sample.watts, 5.97, accuracy: 0.0001)
+        XCTAssertEqual(sample.readAt, readAt)
+    }
+
+    func testTheChargingUSBCPortIsNotAnOutput() throws {
+        let charger = USBPortTopology.PortNode(portDescription: "Port-USB-C@4", portNumber: 4, typeDescription: "USB-C")
+        let topology = topology(input: charger)
+        XCTAssertEqual(topology.inputChannel, 3)
+        let sample = try XCTUnwrap(USBOutputReader.resolve(
+            portRails: .measured(rails: [PortRail(channel: 1, watts: 5), PortRail(channel: 3, watts: 9)],
+                                 readAt: readAt),
+            registry: [:], topology: topology))
+        XCTAssertEqual(sample.ports.map(\.channel), [1])
+        XCTAssertEqual(sample.watts, 5)
+        XCTAssertNil(USBOutputReader.resolve(
+            portRails: .measured(rails: [PortRail(channel: 3, watts: 9)], readAt: readAt),
+            registry: [:], topology: topology), "only the sink port answered, so nothing is output")
+    }
+
+    func testRegistryFallbackUsesPortIndexAsTheChannel() throws {
+        let sample = try XCTUnwrap(USBOutputReader.resolve(portRails: .unavailable, registry: [
+            "PowerOutDetails": [["PortIndex": 3, "Watts": 850], ["PortIndex": 1, "Watts": 4_762]]
+        ], topology: topology()))
+        XCTAssertEqual(sample.ports.map(\.channel), [3, 1])
+        XCTAssertEqual(sample.ports.map(\.name), ["RB", "Apple Watch Magnetic Charging Cable"])
     }
 }
 
@@ -237,6 +322,51 @@ final class BatteryPowerBreakdownPresentationTests: XCTestCase {
         let system = try XCTUnwrap(state.powerFlow?.destinations.first { $0.kind == .system })
         XCTAssertEqual(system.label, "System power")
         XCTAssertEqual(system.help, localization.string(.batteryPowerSystemHelp))
+    }
+
+    func testEachPoweredPortGetsItsOwnBranchAndNamedRow() throws {
+        let (localization, defaults, suite) = try localization()
+        defer { defaults.removeTestSuite(named: suite) }
+        var split = breakdown()
+        split.usbPorts = [
+            USBPortOutput(channel: 1, watts: 4.15, name: "Apple Watch Magnetic Charging Cable"),
+            USBPortOutput(channel: 3, watts: 0.85, name: "RB"),
+            USBPortOutput(channel: 2, watts: 0.4)
+        ]
+        split.inputPortType = "MagSafe 3"
+        let status = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: true,
+            isLowPowerMode: false, isConnectedToPower: true)
+        let state = PanelDetailMapper.battery(status: status, details: details(breakdown: split),
+            localization: localization,
+            powerOptions: BatteryPowerDisplayOptions(showsInput: true, showsCharging: true,
+                showsSystem: true, showsBreakdown: true))
+        let flow = try XCTUnwrap(state.powerFlow)
+        XCTAssertEqual(flow.destinations.map(\.kind), [.charging, .display, .usb, .usb, .usb, .system])
+        let usb = flow.destinations.filter { $0.kind == .usb }
+        XCTAssertEqual(usb.map(\.watts), [4.15, 0.85, 0.4])
+        XCTAssertEqual(usb.map(\.label), ["Apple Watch Magnetic Charging Cable", "RB", "USB out"])
+        XCTAssertEqual(usb.map(\.help), ["USB out · Apple Watch Magnetic Charging Cable", "USB out · RB", "USB out"])
+        XCTAssertEqual(flow.input?.detail, "MagSafe 3")
+
+        let rows = state.rows.map { "\($0.label)=\($0.value)" }
+        XCTAssertTrue(rows.contains("Charging port=MagSafe 3"), "\(rows)")
+        XCTAssertTrue(rows.contains("USB out · RB=0.85 W"), "\(rows)")
+        XCTAssertTrue(rows.contains("USB out · Apple Watch Magnetic Charging Cable=4.15 W"), "\(rows)")
+        XCTAssertEqual(Set(state.rows.map(\.id)).count, state.rows.count, "row ids stay unique per port")
+    }
+
+    func testSplitWithoutPortDataKeepsTheSummedUSBNode() throws {
+        let (localization, defaults, suite) = try localization()
+        defer { defaults.removeTestSuite(named: suite) }
+        let status = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: true,
+            isLowPowerMode: false, isConnectedToPower: true)
+        let state = PanelDetailMapper.battery(status: status, details: details(breakdown: breakdown()),
+            localization: localization,
+            powerOptions: BatteryPowerDisplayOptions(showsInput: true, showsCharging: true,
+                showsSystem: true, showsBreakdown: true))
+        XCTAssertEqual(state.powerFlow?.destinations.filter { $0.kind == .usb }.map(\.label), ["USB out"])
+        XCTAssertNil(state.powerFlow?.input?.detail)
+        XCTAssertFalse(state.rows.contains { $0.label == "Charging port" })
     }
 
     func testSwitchOffOrMissingSplitKeepsTheLegacyDiagram() throws {

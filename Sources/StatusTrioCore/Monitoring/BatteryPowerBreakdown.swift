@@ -32,8 +32,13 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
     let sourceWatts: Double
     /// Built-in display backlight (`PDBR`, else `PBLR`). Nil when this Mac exposes neither.
     let display: Component?
-    /// Power sourced to accessories over USB / Thunderbolt.
+    /// Power sourced to accessories over USB / Thunderbolt, all ports summed.
     let usb: Component?
+    /// The same output, one entry per port, named when the accessory is known.
+    var usbPorts: [USBPortOutput] = []
+    /// Type of the port the adapter feeds ("MagSafe 3", "USB-C"); nil when the
+    /// port could not be identified.
+    var inputPortType: String? = nil
     /// Everything else the source supplies: `source - charging - display - usb`.
     let system: Component
     let readAt: Date
@@ -58,6 +63,7 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
         discharge: Double?,
         display: SystemPowerSample?,
         usb: USBOutputSample?,
+        inputPortType: String? = nil,
         now: Date = Date()
     ) -> BatteryPowerBreakdown? {
         // The source total is the branch's own numerator, so an unknown source
@@ -66,8 +72,10 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
         if let adapterWatts, adapterWatts >= adapterFloor {
             // Unknown charge is enough to make the residual wrong.
             guard let charging, charging.isFinite, charging >= 0 else { return nil }
-            return make(source: .adapter, sourceWatts: adapterWatts, subtractCharging: charging,
-                        display: display, usb: usb, now: now)
+            var split = make(source: .adapter, sourceWatts: adapterWatts, subtractCharging: charging,
+                             display: display, usb: usb, now: now)
+            split?.inputPortType = inputPortType
+            return split
         }
         guard let discharge, discharge.isFinite, discharge >= batteryFloor else { return nil }
         return make(source: .battery, sourceWatts: discharge, subtractCharging: 0,
@@ -94,6 +102,7 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
             sourceWatts: sourceWatts,
             display: display.map { Component(watts: $0.watts, readAt: $0.readAt) },
             usb: usb.map { Component(watts: $0.watts, readAt: $0.readAt) },
+            usbPorts: usb?.ports ?? [],
             system: Component(watts: max(0, residual), readAt: now),
             readAt: now
         )

@@ -47,6 +47,21 @@ enum PanelDetailMapper {
             if battery.isPresent, let watts = details.adapterWatts {
                 rows.append(row(.batteryDetailsAdapter, value: watts.formatted(.number.locale(localization.resolvedLanguage.locale)) + " W", localization: localization))
             }
+            // One row per powered port, named after its accessory, so two
+            // cables stay apart even when their flow cards are too small for a
+            // label. Only with the split, which is what reads the ports.
+            if powerOptions.showsBreakdown, let split = details.breakdown {
+                if battery.isConnectedToPower, let port = split.inputPortType {
+                    rows.append(row(.batteryDetailsInputPort, value: port, localization: localization))
+                }
+                for port in split.usbPorts {
+                    let label = usbPortLabel(port, localization: localization)
+                    let value = port.watts.formatted(.number.precision(.fractionLength(2))
+                        .locale(localization.resolvedLanguage.locale)) + " W"
+                    rows.append(PanelDetailRow(id: "\(LocalizationKey.batteryPowerUSB.rawValue).\(port.channel)",
+                                               label: label, value: value, accessibilityValue: value, tint: .primary))
+                }
+            }
             if battery.isPresent, !battery.isConnectedToPower {
                 // Same source and A-style formatting as the summary subtitle:
                 // the remaining time comes from kIOPSTimeToEmptyKey, carried on
@@ -189,9 +204,13 @@ enum PanelDetailMapper {
         let sourceLabel: LocalizationKey = sourceIsBattery
             ? .batteryPowerBatterySource : .batteryPowerInput
         let sourceWatts = details.breakdown?.sourceWatts ?? details.inputPower?.watts
-        let input = options.showsInput
+        var input = options.showsInput
             ? metric(sourceLabel, sourceWatts, kind: sourceIsBattery ? .batterySource : .input)
             : nil
+        // Name the cable the adapter is on ("MagSafe 3") under the input label.
+        if !sourceIsBattery, options.showsBreakdown, let port = details.breakdown?.inputPortType {
+            input?.detail = port
+        }
         // A verified split replaces the single system node. Without one the
         // legacy two-branch diagram stays exactly as it was.
         if options.showsBreakdown, let split = details.breakdown {
@@ -205,8 +224,17 @@ enum PanelDetailMapper {
             if let display = split.display {
                 destinations.append(metric(.batteryPowerDisplay, display.watts, kind: .display))
             }
-            if let usb = split.usb {
+            // One branch per powered port. A split without per-port data (an
+            // older sample) keeps the single summed node.
+            if split.usbPorts.isEmpty, let usb = split.usb {
                 destinations.append(metric(.batteryPowerUSB, usb.watts, kind: .usb))
+            }
+            for port in split.usbPorts {
+                var item = metric(.batteryPowerUSB, port.watts, kind: .usb)
+                item = BatteryPowerFlowState.Metric(
+                    label: port.name ?? item.label, value: item.value, watts: item.watts, kind: .usb,
+                    help: usbPortLabel(port, localization: localization))
+                destinations.append(item)
             }
             // The residual covers the SoC and every DC load not measured above,
             // so it takes the system node's place and its switch.
@@ -378,6 +406,12 @@ enum PanelDetailMapper {
             tint: .primary,
             isCopyable: row.isCopyable
         )
+    }
+
+    /// "USB out · Fanxiang RB", or just "USB out" when the accessory is unnamed.
+    private static func usbPortLabel(_ port: USBPortOutput, localization: Localization) -> String {
+        let base = localization.string(.batteryPowerUSB)
+        return port.name.map { "\(base) · \($0)" } ?? base
     }
 
     private static func row(

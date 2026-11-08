@@ -535,6 +535,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case batteryDetailsCurrent = "battery.details.current"
     case batteryDetailsSampled = "battery.details.sampled"
     case batteryDetailsAdapter = "battery.details.adapter"
+    case batteryDetailsInputPort = "battery.details.inputPort"
     case batteryDetailsRemaining = "battery.details.remaining"
     case batteryDetailsCycles = "battery.details.cycles"
     case batteryDetailsUptime = "battery.details.uptime"

@@ -542,6 +542,7 @@
 "battery.details.current" = "電池電流";
 "battery.details.sampled" = "電池取樣時間";
 "battery.details.adapter" = "電源轉接器額定功率";
+"battery.details.inputPort" = "充電埠";
 "battery.details.remaining" = "剩餘時間";
 "battery.details.cycles" = "循環使用次數";
 "battery.details.uptime" = "系統執行時間";

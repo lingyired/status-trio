@@ -542,6 +542,7 @@
 "battery.details.current" = "Corrente della batteria";
 "battery.details.sampled" = "Campione della batteria";
 "battery.details.adapter" = "Potenza nominale dell’alimentatore";
+"battery.details.inputPort" = "Porta di ricarica";
 "battery.details.remaining" = "Tempo rimanente";
 "battery.details.cycles" = "Cicli di carica";
 "battery.details.uptime" = "Tempo di attività";
