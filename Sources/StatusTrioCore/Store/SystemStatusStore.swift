@@ -448,8 +448,11 @@ final class SystemStatusStore: ObservableObject {
             Task { @MainActor [weak self] in
                 self?.isApplicationEnergySystemAsleep = true
                 self?.updateApplicationEnergyDemand()
+                // The system gate alone pauses nearby BLE here. The display
+                // gate is a real display signal: only `screensDidSleep` sets
+                // it, so a wake cycle that never sends `screensDidWake` does
+                // not strand the scanner behind a stale display flag.
                 self?.bluetoothDevices.setSystemSleeping(true)
-                self?.bluetoothDevices.setDisplaySleeping(true)
                 self?.reconcileBluetoothDemand()
             }
         }
@@ -483,6 +486,9 @@ final class SystemStatusStore: ObservableObject {
                 self.isApplicationEnergySystemAsleep = false
                 self.updateApplicationEnergyDemand()
                 self.bluetoothDevices.setDisplaySleeping(false)
+                // The display wake proves the system is awake, so clear both
+                // gates even when the separate system wake was missed.
+                self.bluetoothDevices.setSystemSleeping(false)
                 self.volumeMonitor.setDisplayAsleep(false)
                 self.brightnessMonitor.setDisplayAsleep(false)
                 self.brightnessMonitor.topologyChanged()
@@ -1168,8 +1174,10 @@ final class SystemStatusStore: ObservableObject {
             isApplicationEnergyDisplayAsleep = false
             updateApplicationEnergyDemand()
             // The popover being visible proves the display is on, so a missed
-            // screensDidWake must not leave nearby BLE paused either.
+            // screensDidWake must not leave nearby BLE paused either; it also
+            // proves the system is awake, so clear both gates.
             bluetoothDevices.setDisplaySleeping(false)
+            bluetoothDevices.setSystemSleeping(false)
             lowPowerMode.refresh()
             highPowerMode.refresh()
         }
