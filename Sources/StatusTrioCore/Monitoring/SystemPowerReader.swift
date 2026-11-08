@@ -79,10 +79,7 @@ struct SystemPowerReader: Sendable {
         // backlight key hides that branch. Port keys that do not answer stay
         // `.unavailable` so the caller can fall back to PowerOutDetails.
         if breakdown {
-            // PBLR stands in only when PDBR does not exist. A PDBR that exists
-            // but decodes out of range hides the branch, as it always has.
-            let hasPDBR = Self.readScalar(key: Sensor.display.rawValue, exchange: exchange).acknowledged
-            if let watts = Self.readValue(sensor: hasPDBR ? .display : .displayBacklight, exchange: exchange) {
+            if let watts = Self.readDisplay(exchange: exchange) {
                 readings.display = SystemPowerSample(watts: watts, readAt: readAt)
             }
             readings.portRails = Self.readPortOutput(exchange: exchange, readAt: readAt)
@@ -128,6 +125,20 @@ struct SystemPowerReader: Sendable {
     // on supported Macs; fixed-point sensor payloads are big-endian.
     static func readWatts(exchange: ([UInt8]) -> [UInt8]?) -> Double? {
         readValue(sensor: .system, exchange: exchange)
+    }
+
+    /// Built-in backlight wattage, reading `PDBR` only once. `readScalar`
+    /// already returns both "the key exists" (`acknowledged`) and the decoded
+    /// value, so a machine that exposes `PDBR` no longer pays a second read.
+    /// A `PDBR` that exists but decodes out of range still hides the branch
+    /// (no `PBLR` fallback); only a missing `PDBR` falls back to `PBLR`.
+    static func readDisplay(exchange: ([UInt8]) -> [UInt8]?) -> Double? {
+        let primary = readScalar(key: Sensor.display.rawValue, exchange: exchange)
+        if primary.acknowledged {
+            guard let watts = primary.value, (0...150).contains(watts) else { return nil }
+            return watts
+        }
+        return readValue(sensor: .displayBacklight, exchange: exchange)
     }
 
     static func readValue(sensor: Sensor, exchange: ([UInt8]) -> [UInt8]?) -> Double? {
