@@ -177,6 +177,105 @@ final class PowerSamplingServiceTests: XCTestCase {
         XCTAssertTrue(service.demands.isEmpty)
     }
 
+    func testSuspensionStopsTheLoopWithoutForgettingDemands() async {
+        let sample = SystemPowerSample(watts: 12, readAt: now)
+        let service = makeService { _ in PowerSamplingReading(system: sample) }
+        service.begin(.icon)
+        await waitForSample(service)
+
+        service.setSuspended(true)
+        XCTAssertFalse(service.isRunning, "sleep must stop the SMC loop")
+        XCTAssertEqual(service.demands, [.icon], "sleep must not forget the icon's demand")
+        XCTAssertNil(service.systemPower, "a suspended sampler leaves no stale reading behind")
+
+        service.setSuspended(false)
+        XCTAssertTrue(service.isRunning, "resume restarts the loop for the surviving demand")
+        await waitForSample(service)
+        XCTAssertEqual(service.systemPower, sample)
+
+        service.end(.icon)
+    }
+
+    func testBeginWhileSuspendedRegistersDemandWithoutStartingTheLoop() {
+        let service = makeService { _ in .empty }
+        service.setSuspended(true)
+
+        service.begin(.icon)
+        XCTAssertFalse(service.isRunning, "no surface can show watts while suspended")
+        XCTAssertEqual(service.demands, [.icon], "the demand survives until resume")
+
+        service.setSuspended(false)
+        XCTAssertTrue(service.isRunning, "resume restarts the loop for the accumulated demand")
+        service.end(.icon)
+    }
+
+    func testRepeatedSuspensionCallsAreIdempotent() {
+        let service = makeService { _ in .empty }
+        service.setSuspended(true)
+        service.setSuspended(true)
+        service.begin(.icon)
+        XCTAssertFalse(service.isRunning)
+
+        service.setSuspended(false)
+        service.setSuspended(false)
+        XCTAssertTrue(service.isRunning)
+        service.end(.icon)
+        XCTAssertFalse(service.isRunning)
+    }
+
+    func testRemovingLastDemandWhileSuspendedDoesNotRestartOnWake() {
+        let service = makeService { _ in .empty }
+        service.begin(.icon)
+        service.setSuspended(true)
+        service.end(.icon)
+
+        service.setSuspended(false)
+
+        XCTAssertTrue(service.demands.isEmpty)
+        XCTAssertFalse(service.isRunning, "wake must not restore a surface that closed during sleep")
+        XCTAssertNil(service.systemPower)
+    }
+
+    func testResumeRejectsPreSleepReadAndImmediatelyReadsCurrentDemand() async {
+        let stale = SystemPowerSample(watts: 18, readAt: now)
+        let fresh = SystemPowerSample(watts: 24, readAt: now.addingTimeInterval(1))
+        let started = expectation(description: "pre-sleep read started")
+        let delivered = expectation(description: "fresh resume sample delivered")
+        let gate = DispatchSemaphore(value: 0)
+        let service = makeService { auxiliary in
+            if auxiliary {
+                started.fulfill()
+                gate.wait()
+                return PowerSamplingReading(system: stale, input: stale)
+            }
+            return PowerSamplingReading(system: fresh)
+        }
+        var samples: [SystemPowerSample] = []
+        let subscription = service.$systemPower.compactMap { $0 }.sink { sample in
+            samples.append(sample)
+            if sample == fresh { delivered.fulfill() }
+        }
+        defer {
+            gate.signal()
+            service.stopAll()
+            subscription.cancel()
+        }
+
+        service.begin(.powerInfoBar)
+        await fulfillment(of: [started], timeout: 1)
+        service.setSuspended(true)
+        service.end(.powerInfoBar)
+        service.begin(.icon)
+        service.setSuspended(false)
+        gate.signal()
+        await fulfillment(of: [delivered], timeout: 1)
+
+        XCTAssertEqual(samples, [fresh], "an in-flight pre-sleep result must never reach a resumed surface")
+        XCTAssertNil(service.inputPower)
+        XCTAssertEqual(service.demands, [.icon])
+        XCTAssertTrue(service.isRunning)
+    }
+
     private func waitForSample(_ service: PowerSamplingService) async {
         await waitFor { service.systemPower != nil }
     }

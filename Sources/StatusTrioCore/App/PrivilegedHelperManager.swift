@@ -584,7 +584,7 @@ final class PrivilegedHelperManager: ObservableObject {
                 // the manager alive for the whole interval even after its last
                 // owner released it.
                 guard let interval = self?.currentStatusPollInterval else { return }
-                try? await Task.sleep(for: interval)
+                try? await Task.sleep(for: interval, tolerance: interval / 5)
                 guard !Task.isCancelled, let self else { return }
                 self.refresh()
             }

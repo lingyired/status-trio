@@ -546,6 +546,7 @@
 "battery.details.uptime" = "Tiempo de actividad";
 "battery.details.maxCapacity" = "Capacidad máxima";
 "battery.details.batteryCondition" = "Estado de la batería";
+"battery.details.temperature" = "Temperatura de la batería";
 "battery.details.condition.normal" = "Normal";
 "battery.details.condition.service" = "Revisión recomendada";
 "battery.details.lowPower" = "Modo de bajo consumo";
