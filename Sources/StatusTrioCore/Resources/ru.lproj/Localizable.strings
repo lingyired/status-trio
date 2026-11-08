@@ -546,6 +546,7 @@
 "battery.details.uptime" = "Время работы";
 "battery.details.maxCapacity" = "Максимальная ёмкость";
 "battery.details.batteryCondition" = "Состояние батареи";
+"battery.details.temperature" = "Температура батареи";
 "battery.details.condition.normal" = "Норма";
 "battery.details.condition.service" = "Рекомендуется обслуживание";
 "battery.details.lowPower" = "Режим энергосбережения";

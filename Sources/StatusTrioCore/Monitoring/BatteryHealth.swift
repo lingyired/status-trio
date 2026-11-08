@@ -129,10 +129,32 @@ enum BatteryHealthParser {
         }
         if sources.contains(where: {
             (integerValue($0["PermanentFailureStatus"]) ?? 0) > 0
-        }) || conditions.contains(where: { ["Fair", "Poor", "Check Battery"].contains($0) }) {
+        }) || conditions.contains(where: { condition(named: $0) == .service }) {
             return .service
         }
-        return conditions.contains("Good") ? .normal : nil
+        return conditions.contains { condition(named: $0) == .normal } ? .normal : nil
+    }
+
+    /// The raw health strings powerd publishes. Anything else stays unknown.
+    /// system_profiler's JSON carries the same raw strings: its loctable maps
+    /// Good to "Normal" and Fair, Poor and Check Battery to "Service
+    /// Recommended" only for display (SPPowerReporter, macOS 27).
+    static func condition(named value: String) -> BatteryHealthSnapshot.Condition? {
+        if ["Fair", "Poor", "Check Battery"].contains(value) { return .service }
+        return value == "Good" ? .normal : nil
+    }
+
+    /// `system_profiler SPPowerDataType -json` output. Apple Silicon Macs on
+    /// recent macOS (measured: Mac18,1, macOS 27) no longer publish the
+    /// condition in AppleSmartBattery or the public IOPS description; the
+    /// private API that carries it needs an Apple entitlement.
+    static func condition(systemProfilerJSON data: Data) -> BatteryHealthSnapshot.Condition? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let items = root["SPPowerDataType"] as? [[String: Any]] else { return nil }
+        return items.lazy
+            .compactMap { ($0["sppower_battery_health_info"] as? [String: Any])?["sppower_battery_health"] as? String }
+            .first
+            .flatMap(condition(named:))
     }
 
     /// A capacity pair is only credible inside these bounds. An implausible
