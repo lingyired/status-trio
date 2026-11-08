@@ -254,6 +254,41 @@ final class StatusPanelViewModelTests: XCTestCase {
         )
     }
 
+    func testBatteryRuntimeUpdatesTheOpenPanelWithoutPercentageChanges() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+
+        let cases: [(Int?, String)] = [
+            (85, "About 1 hour, 25 minutes remaining"),
+            (80, "About 1 hour, 20 minutes remaining"),
+            (nil, "On battery")
+        ]
+        for (minutes, expected) in cases {
+            let expectedSleeps = fixture.popupSleeper.callCount + 1
+            fixture.battery.send(BatteryStatus(
+                rawPercentage: 72,
+                isPresent: true,
+                isCharging: false,
+                timeToEmptyMinutes: minutes,
+                isLowPowerMode: false,
+                isConnectedToPower: false
+            ))
+            let queued = await fixture.popupSleeper.waitForCallCount(
+                expectedSleeps, timeout: .seconds(1)
+            )
+            XCTAssertTrue(queued)
+            fixture.popupSleeper.releaseAll()
+            let updated = await waitForYields { panel.battery.subtitle == expected }
+            XCTAssertTrue(updated, expected)
+            XCTAssertEqual(panel.battery.title, "Battery · 72%")
+            XCTAssertEqual(panel.battery.accessibilityValue, expected)
+        }
+    }
+
     func testPopupBatteryAndNetworkUpdateThroughTheirDebouncedSource() async throws {
         let fixture = PanelStoreFixture()
         let panel = fixture.makePanel()

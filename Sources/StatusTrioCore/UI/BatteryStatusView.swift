@@ -64,8 +64,7 @@ struct BatteryStatusView: View {
                             Text(state.subtitle)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
 
@@ -148,8 +147,7 @@ private struct BatterySummaryLabel: View {
             )
             .font(.caption)
             .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .truncationMode(.middle)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
