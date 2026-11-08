@@ -4,6 +4,23 @@ import Foundation
 enum StatusIconGeometry {
     static let canvas = CGRect(x: 0, y: 0, width: 120, height: 120)
 
+    /// The one content rect both menu-bar surfaces use for a status button.
+    ///
+    /// The system draws `NSStatusBarButton.image` centred in `bounds`
+    /// (`NSButtonCell.imageRect(forBounds:)` reports a zero mid-X offset), so
+    /// both the template view and the coloured layer must use exactly this rect
+    /// and follow `bounds` whenever AppKit resizes the button. No extra pixel
+    /// rounding: matching the system's own centred rect is what keeps the two
+    /// surfaces on one grid.
+    static func contentFrame(in bounds: CGRect, contentSize: CGSize) -> CGRect {
+        CGRect(
+            x: bounds.midX - contentSize.width / 2,
+            y: bounds.midY - contentSize.height / 2,
+            width: contentSize.width,
+            height: contentSize.height
+        )
+    }
+
     /// The x coordinate every element of the icon is centred on.
     ///
     /// This is deliberately **not** `canvas.midX`. The artwork is drawn on a
