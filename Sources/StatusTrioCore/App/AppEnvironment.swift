@@ -455,7 +455,8 @@ final class AppEnvironment {
             snapshots: store.$snapshot.eraseToAnyPublisher(),
             preferences: settings.iconPresentationPublisher,
             inputSources: inputSourceController.$state
-                .map(\.iconDescriptor)
+                .combineLatest(settings.$inputSourceMarkerStyle)
+                .map { state, markerStyle in state.iconDescriptor(markerStyle: markerStyle) }
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
             systemPowers: store.powerSampling.$systemPower

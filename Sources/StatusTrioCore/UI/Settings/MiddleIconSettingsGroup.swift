@@ -31,6 +31,11 @@ struct MiddleIconSettingsGroup: View {
                                            bluetoothDevices: statusStore.bluetoothDevices)
             }
 
+            if store.connectionCenterSource == .inputSource {
+                SettingsDivider()
+                inputSourceMarkerRow
+            }
+
             if store.connectionCenterSource != .network {
                 SettingsDivider()
                 SettingsToggleRow(
@@ -194,6 +199,34 @@ struct MiddleIconSettingsGroup: View {
         case .chargingStatus: .settingsMiddleIconChargingStatus
         }
         return localization.string(key)
+    }
+
+    /// How Apple's two Pinyin input sources draw their middle marker. Defaults
+    /// to the system image (pre-#297); 简/繁 and 中 are opt-in.
+    private var inputSourceMarkerRow: some View {
+        SettingsRow(
+            "keyboard",
+            tint: .blue,
+            title: localization.string(.settingsInputSourceMarker),
+            subtitle: localization.string(.settingsInputSourceMarkerDescription)
+        ) {
+            Picker(
+                localization.string(.settingsInputSourceMarker),
+                selection: Binding(
+                    get: { store.inputSourceMarkerStyle },
+                    set: { store.inputSourceMarkerStyle = $0 }
+                )
+            ) {
+                ForEach(InputSourceMarkerStyle.allCases) { style in
+                    Text(localization.string(style.titleKey)).tag(style)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .settingsMenuPickerWidth()
+            .accessibilityLabel(localization.string(.settingsInputSourceMarker))
+            .accessibilityIdentifier("appIcon.inputSourceMarker")
+        }
     }
 }
 

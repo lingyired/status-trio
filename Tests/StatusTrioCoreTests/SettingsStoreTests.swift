@@ -86,6 +86,23 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(reopened.bluetoothAudioIconOptions.iconChoice, .airpods)
     }
 
+    func testInputSourceMarkerStyleDefaultsToSystemIconAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(first.inputSourceMarkerStyle, .systemIcon)
+
+        first.inputSourceMarkerStyle = .zhong
+        let reopened = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(reopened.inputSourceMarkerStyle, .zhong)
+
+        // An unknown stored raw value falls back to the system icon rather than
+        // silently turning the marker on.
+        suite.defaults.set("some-future-marker", forKey: SettingsStore.inputSourceMarkerStyleDefaultsKey)
+        XCTAssertEqual(SettingsStore(defaults: suite.defaults).inputSourceMarkerStyle, .systemIcon)
+    }
+
     func testRefreshIntervalDefaultsAndRange() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 

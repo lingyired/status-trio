@@ -70,6 +70,11 @@
 "settings.appIcon.middleIcon.size.description" = "중앙에 표시되는 모든 내용(Wi-Fi, Bluetooth, 입력 소스, 숫자)에 공통으로 적용되는 크기입니다.";
 "settings.appIcon.middleIcon.networkWarnings" = "네트워크 문제 우선 표시";
 "settings.appIcon.middleIcon.networkWarnings.description" = "Mac이 실제로 오프라인일 때 중앙에 선택한 소스 대신 네트워크 상태를 표시합니다.";
+"settings.appIcon.middleIcon.inputSourceMarker" = "병음 아이콘";
+"settings.appIcon.middleIcon.inputSourceMarker.description" = "Apple 간체/번체 병음 입력 소스가 중앙 아이콘을 표시하는 방식입니다.";
+"settings.appIcon.middleIcon.inputSourceMarker.systemIcon" = "시스템 아이콘";
+"settings.appIcon.middleIcon.inputSourceMarker.script" = "简 / 繁";
+"settings.appIcon.middleIcon.inputSourceMarker.zhong" = "中";
 "settings.network.connectionIcons" = "연결 아이콘 스타일";
 "settings.network.connectionIcons.description" = "활성화하면 선택한 상태가 전용 표시 대신 표준 Wi-Fi 신호 아이콘으로 표시됩니다.";
 "settings.network.wifiIconForEthernet" = "Ethernet에 Wi-Fi 아이콘 사용";

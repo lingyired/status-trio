@@ -53,6 +53,11 @@
 "settings.appIcon.middleIcon.size.description" = "حجم واحد لكل محتوى المنتصف: Wi-Fi وBluetooth ومصدر الإدخال والأرقام.";
 "settings.appIcon.middleIcon.networkWarnings" = "إعطاء أولوية لمشاكل الشبكة";
 "settings.appIcon.middleIcon.networkWarnings.description" = "عندما يكون Mac غير متصل فعليًا، يعرض المنتصف حالة الشبكة بدلًا من المصدر المحدد.";
+"settings.appIcon.middleIcon.inputSourceMarker" = "أيقونة البينيين";
+"settings.appIcon.middleIcon.inputSourceMarker.description" = "كيف تعرض مصادر إدخال بينيين الصينية المبسطة والتقليدية من Apple أيقونتها الوسطى.";
+"settings.appIcon.middleIcon.inputSourceMarker.systemIcon" = "أيقونة النظام";
+"settings.appIcon.middleIcon.inputSourceMarker.script" = "简 / 繁";
+"settings.appIcon.middleIcon.inputSourceMarker.zhong" = "中";
 "settings.network.connectionIcons" = "نمط أيقونات الاتصال";
 "settings.network.connectionIcons.description" = "عند التمكين، تستخدم الحالة المحددة أيقونة إشارة Wi-Fi القياسية بدلًا من علامتها الخاصة.";
 "settings.network.wifiIconForEthernet" = "استخدام أيقونة Wi-Fi لإيثرنت";

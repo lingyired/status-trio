@@ -70,6 +70,11 @@
 "settings.appIcon.middleIcon.size.description" = "中間顯示的所有內容（Wi‑Fi、藍牙、輸入法、數字）共用這個大小。";
 "settings.appIcon.middleIcon.networkWarnings" = "優先顯示網路異常";
 "settings.appIcon.middleIcon.networkWarnings.description" = "當 Mac 確實離線時，中間位置改為顯示網路狀態，而不是所選來源。";
+"settings.appIcon.middleIcon.inputSourceMarker" = "拼音圖示";
+"settings.appIcon.middleIcon.inputSourceMarker.description" = "Apple 簡體/繁體拼音輸入法在中間位置如何顯示圖示。";
+"settings.appIcon.middleIcon.inputSourceMarker.systemIcon" = "系統圖示";
+"settings.appIcon.middleIcon.inputSourceMarker.script" = "简 / 繁";
+"settings.appIcon.middleIcon.inputSourceMarker.zhong" = "中";
 "settings.network.connectionIcons" = "連線圖示樣式";
 "settings.network.connectionIcons.description" = "啟用後，對應狀態會改用一般 Wi‑Fi 訊號圖示，不再顯示專用標記。";
 "settings.network.wifiIconForEthernet" = "有線連線使用 Wi‑Fi 圖示";
