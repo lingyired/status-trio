@@ -9,6 +9,24 @@ final class InputSourceIconPresentationTests: XCTestCase {
     private let wifiScale = 1.6
     private let iconURL = URL(fileURLWithPath: "/fixture/menu_icon.pdf")
 
+    func testApplePinyinScriptLabelsOverrideTheirSystemIconURLs() {
+        for (id, label) in [("com.apple.inputmethod.SCIM.ITABC", "简"),
+                            ("com.apple.inputmethod.TCIM.Pinyin", "繁")] {
+            let source = InputSourceDescriptor(
+                id: id, localizedName: "Pinyin", primaryLanguage: "zh",
+                iconURL: iconURL, shortLabel: label
+            )
+            let result = scene(
+                snapshot: snapshot(), inputSource: source,
+                configuration: configuration(centerSource: .inputSource)
+            )
+
+            XCTAssertEqual(result.center, .text(IconTextState(
+                text: label, color: .primary, scale: wifiScale
+            )), "The explicit script marker must survive a system-provided icon")
+        }
+    }
+
     func testInputSourceIconWinsWhenItCanBeRead() {
         let scene = scene(
             snapshot: snapshot(),

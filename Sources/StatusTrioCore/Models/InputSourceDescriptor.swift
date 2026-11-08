@@ -19,6 +19,16 @@ struct InputSourceDescriptor: Equatable, Hashable, Sendable {
 }
 
 extension InputSourceDescriptor {
+    /// Only Apple's known Pinyin modes replace their shared system image with
+    /// our explicit script marker. Third-party IMEs retain their own icons.
+    var prefersShortLabel: Bool {
+        switch id.lowercased() {
+        case "com.apple.inputmethod.scim.itabc": return shortLabel == "简"
+        case "com.apple.inputmethod.tcim.pinyin": return shortLabel == "繁"
+        default: return false
+        }
+    }
+
     /// Explicit English keyboard layouts only. An IME's language metadata does
     /// not establish its internal Latin mode, so its icon remains untouched.
     func applying(_ modifiers: InputSourceModifiers) -> InputSourceDescriptor {
@@ -46,7 +56,7 @@ extension InputSourceDescriptor {
     func resolvedForDrawing(
         fileExists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) }
     ) -> InputSourceDescriptor {
-        guard let iconURL, !fileExists(iconURL) else { return self }
+        guard let iconURL, prefersShortLabel || !fileExists(iconURL) else { return self }
         return InputSourceDescriptor(
             id: id,
             localizedName: localizedName,
@@ -70,8 +80,15 @@ enum InputSourceShortLabel {
         if let layout = appleLayoutLabel(normalizedID) {
             return layout
         }
-        if normalizedID.contains("pinyin") || localizedName.contains("拼音") {
-            return "拼"
+        if normalizedID == "com.apple.inputmethod.scim.itabc" {
+            return "简"
+        }
+        if normalizedID == "com.apple.inputmethod.tcim.pinyin" {
+            return "繁"
+        }
+        if normalizedID.contains("pinyin") || localizedName.contains("拼音")
+            || localizedName.lowercased().contains("pinyin") {
+            return pinyinScriptLabel(localizedName: localizedName, languages: languages) ?? "拼"
         }
         if normalizedID.contains("zhuyin") || localizedName.contains("注音")
             || localizedName.contains("注音輸入") {
@@ -95,6 +112,28 @@ enum InputSourceShortLabel {
         let trimmed = localizedName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let first = trimmed.first, !first.isWhitespace else { return nil }
         return String(first)
+    }
+
+    /// Script evidence applies only after identifying Pinyin, so other Chinese
+    /// input methods keep their own markers. Ambiguous metadata stays generic.
+    private static func pinyinScriptLabel(localizedName: String, languages: [String]) -> String? {
+        let scripts = Set(languages.compactMap { language -> String? in
+            let subtags = language.lowercased().replacingOccurrences(of: "_", with: "-").split(separator: "-")
+            guard subtags.count > 1, subtags[0] == "zh" else { return nil }
+            switch subtags[1] {
+            case "hans": return "简"
+            case "hant": return "繁"
+            default: return nil
+            }
+        })
+        if scripts.count == 1 { return scripts.first }
+        if scripts.count > 1 { return nil }
+
+        let name = localizedName.lowercased()
+        let isSimplified = name.contains("简体") || name.contains("簡體") || name.contains("simplified")
+        let isTraditional = name.contains("繁体") || name.contains("繁體") || name.contains("traditional")
+        guard isSimplified != isTraditional else { return nil }
+        return isSimplified ? "简" : "繁"
     }
 
     /// ASCII keyboard layouts read best as a single upper-case initial: the
