@@ -119,6 +119,9 @@ enum USBOutputReader {
             guard let milliwatts = number(port["Watts"]) else { continue }
             let watts = milliwatts / 1_000
             guard watts.isFinite, (0...150).contains(watts) else { continue }
+            // Same idle floor as the live rails: a quiescent port must not be
+            // drawn, or named, as an accessory drawing power.
+            guard watts >= chargingFloorWatts else { continue }
             // `PortIndex` is 1-based and matched the SMC channel numbers on
             // Mac16,1 (index 1 and D1 both carried the Watch charger).
             let channel = number(port["PortIndex"]).map { Int($0) } ?? offset + 1

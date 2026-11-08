@@ -78,8 +78,11 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
             return split
         }
         guard let discharge, discharge.isFinite, discharge >= batteryFloor else { return nil }
-        return make(source: .battery, sourceWatts: discharge, subtractCharging: 0,
-                    display: display, usb: usb, now: now)
+        // A connected but idle adapter still has a port worth naming.
+        var split = make(source: .battery, sourceWatts: discharge, subtractCharging: 0,
+                         display: display, usb: usb, now: now)
+        split?.inputPortType = inputPortType
+        return split
     }
 
     private static func make(

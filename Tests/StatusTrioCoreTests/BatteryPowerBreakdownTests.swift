@@ -122,6 +122,16 @@ final class BatteryPowerBreakdownTests: XCTestCase {
         XCTAssertNil(USBOutputReader.parse(registry: ["PowerOutDetails": [["PortIndex": 1]]]),
                      "a port without a power value is not a zero-watt output")
         XCTAssertNil(USBOutputReader.parse(registry: ["PowerOutDetails": [["Watts": 900_000]]]))
+        XCTAssertNil(USBOutputReader.parse(registry: ["PowerOutDetails": [["PortIndex": 2, "Watts": 143]]]),
+                     "a registry port below the idle floor is quiescent current, not an output")
+    }
+
+    func testIdleAdapterKeepsItsPortOnABatterySourceSplit() throws {
+        let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
+            adapterInput: sample(0.17), charging: 0, discharge: 12,
+            display: sample(3), usb: nil, inputPortType: "MagSafe 3", now: now))
+        XCTAssertEqual(split.source, .battery)
+        XCTAssertEqual(split.inputPortType, "MagSafe 3")
     }
 
     func testLivePortRailsReplaceAFrozenRegistryReading() {
@@ -353,6 +363,25 @@ final class BatteryPowerBreakdownPresentationTests: XCTestCase {
         XCTAssertTrue(rows.contains("USB out · RB=0.85 W"), "\(rows)")
         XCTAssertTrue(rows.contains("USB out · Apple Watch Magnetic Charging Cable=4.15 W"), "\(rows)")
         XCTAssertEqual(Set(state.rows.map(\.id)).count, state.rows.count, "row ids stay unique per port")
+    }
+
+    func testConnectedIdleAdapterStillListsItsChargingPort() throws {
+        let (localization, defaults, suite) = try localization()
+        defer { defaults.removeTestSuite(named: suite) }
+        let now = Date()
+        var onBattery = BatteryPowerBreakdown(
+            source: .battery, sourceWatts: 12,
+            display: .init(watts: 3, readAt: now), usb: nil,
+            system: .init(watts: 9, readAt: now), readAt: now)
+        onBattery.inputPortType = "MagSafe 3"
+        let status = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
+            isLowPowerMode: false, isConnectedToPower: true)
+        let state = PanelDetailMapper.battery(status: status, details: details(breakdown: onBattery),
+            localization: localization,
+            powerOptions: BatteryPowerDisplayOptions(showsInput: true, showsCharging: true,
+                showsSystem: true, showsBreakdown: true))
+        XCTAssertTrue(state.rows.contains { $0.label == "Charging port" && $0.value == "MagSafe 3" })
+        XCTAssertNil(state.powerFlow?.input?.detail, "the left node is the battery, not the adapter port")
     }
 
     func testSplitWithoutPortDataKeepsTheSummedUSBNode() throws {
