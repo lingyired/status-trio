@@ -319,6 +319,23 @@ final class PanelDetailMapperTests: XCTestCase {
         )
     }
 
+    func testBatteryDetailsRemainingUsesTimeToEmptyKeyInSummaryFormat() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: 80, isPresent: true, isCharging: false,
+            timeToEmptyMinutes: 214,
+            isLowPowerMode: false, isConnectedToPower: false
+        )
+        let details = BatteryDetails(cycleCount: 12, powerAvailability: .available)
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+        let row = state.rows.first { $0.id == LocalizationKey.batteryDetailsRemaining.rawValue }
+        XCTAssertNotNil(row)
+        // Same source (kIOPSTimeToEmptyKey via BatteryStatus) and same A-style
+        // format as the summary subtitle.
+        XCTAssertEqual(row?.value, PanelPresentationMapper.batteryRuntimeText(battery, localization: localization))
+        XCTAssertEqual(row?.value, "About 3 hours, 34 minutes remaining")
+    }
+
     private func makeLocalization() -> Localization {
         let suite = "PanelDetailMapperTests.\(UUID().uuidString)"
         return Localization(defaults: UserDefaults(suiteName: suite) ?? .standard, preferredLanguages: ["en"])
@@ -340,8 +357,7 @@ extension PanelDetailMapperTests {
         // Go through the real parser so the power-source gate is exercised,
         // not just the display layer with a pre-built breakdown.
         let details = BatteryDetailsReader.parse(
-            registry: [:], adapterWatts: nil, remainingSeconds: -1,
-            state: BatteryPowerState(battery), now: timestamp, breakdown: split
+            registry: [:], adapterWatts: nil,             state: BatteryPowerState(battery), now: timestamp, breakdown: split
         )
 
         var options = BatteryPowerDisplayOptions.default

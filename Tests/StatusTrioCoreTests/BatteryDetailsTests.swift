@@ -14,8 +14,8 @@ final class BatteryDetailsTests: XCTestCase {
          "ExternalConnected": false, "IsCharging": false, "CycleCount": 43]
     }
     private func parse(_ values: [String: Any], state: BatteryPowerState? = nil,
-                       notBefore: Date? = nil, seconds: Double = -1) -> BatteryDetails {
-        BatteryDetailsReader.parse(registry: values, adapterWatts: 90, remainingSeconds: seconds,
+                       notBefore: Date? = nil) -> BatteryDetails {
+        BatteryDetailsReader.parse(registry: values, adapterWatts: 90,
                                    state: state ?? self.state(), now: now, notBefore: notBefore)
     }
 
@@ -26,7 +26,6 @@ final class BatteryDetailsTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(details.power).watts, -18.762312, accuracy: 0.000001)
         XCTAssertEqual(details.cycleCount, 43)
         XCTAssertNil(details.adapterWatts, "Disconnected power must not show a residual adapter rating")
-        XCTAssertNil(details.remainingMinutes, "IOPS unknown (-1) is not zero minutes")
     }
 
     func testUnsigned64BitNegativeCurrentIsDecodedAndBounded() throws {
@@ -74,8 +73,7 @@ final class BatteryDetailsTests: XCTestCase {
         let details = BatteryDetailsReader.parse(
             registry: values,
             adapterWatts: 140,
-            remainingSeconds: -1,
-            state: state(connected: true, charging: false),
+                        state: state(connected: true, charging: false),
             now: now,
             systemPower: SystemPowerSample(watts: 10.6, readAt: now),
             inputPower: SystemPowerSample(watts: 61.56, readAt: now),
@@ -96,8 +94,7 @@ final class BatteryDetailsTests: XCTestCase {
         let details = BatteryDetailsReader.parse(
             registry: values,
             adapterWatts: 90,
-            remainingSeconds: -1,
-            state: state(connected: true),
+                        state: state(connected: true),
             now: now,
             systemPower: systemPower
         )
@@ -118,8 +115,7 @@ final class BatteryDetailsTests: XCTestCase {
         let details = BatteryDetailsReader.parse(
             registry: values,
             adapterWatts: 90,
-            remainingSeconds: -1,
-            state: state(connected: true),
+                        state: state(connected: true),
             now: now,
             systemPower: systemPower
         )
@@ -134,8 +130,7 @@ final class BatteryDetailsTests: XCTestCase {
             var values = registry
             _ = values.removeValue(forKey: key)
             let details = BatteryDetailsReader.parse(
-                registry: values, adapterWatts: 90, remainingSeconds: -1,
-                state: state(), now: now)
+                registry: values, adapterWatts: 90,                 state: state(), now: now)
             XCTAssertNil(details.power, key)
             XCTAssertEqual(details.powerAvailability, .unavailable, key)
         }
@@ -172,14 +167,12 @@ final class BatteryDetailsTests: XCTestCase {
         idle["ExternalConnected"] = true
         idle["Amperage"] = 0
         let pluggedIn = BatteryDetailsReader.parse(
-            registry: idle, adapterWatts: 90, remainingSeconds: -1,
-            state: state(connected: true), now: now, systemPower: system)
+            registry: idle, adapterWatts: 90,             state: state(connected: true), now: now, systemPower: system)
         XCTAssertNil(pluggedIn.power, "Connected Macs show whole-system power, not battery net power")
         XCTAssertEqual(pluggedIn.systemPower?.watts, 17.25)
         XCTAssertEqual(pluggedIn.powerAvailability, .available)
         let missingBattery = BatteryDetailsReader.parse(
-            registry: [:], adapterWatts: 90, remainingSeconds: -1,
-            state: state(connected: true), now: now, systemPower: system)
+            registry: [:], adapterWatts: 90,             state: state(connected: true), now: now, systemPower: system)
         XCTAssertNil(missingBattery.power)
         XCTAssertEqual(missingBattery.systemPower?.watts, 17.25)
         let withoutSMC = parse(registry)
@@ -203,18 +196,15 @@ final class BatteryDetailsTests: XCTestCase {
                                                      isConnectedToPower: false))
         let sample = SystemPowerSample(watts: 18.4, readAt: now)
         let details = BatteryDetailsReader.parse(
-            registry: [:], adapterWatts: 90, remainingSeconds: -1,
-            state: absent, now: now, systemPower: sample)
+            registry: [:], adapterWatts: 90,             state: absent, now: now, systemPower: sample)
         XCTAssertEqual(details.systemPower, sample)
         XCTAssertEqual(details.powerAvailability, .available)
         XCTAssertNil(details.adapterWatts)
-        XCTAssertNil(details.remainingMinutes)
         XCTAssertNil(details.cycleCount)
         XCTAssertNil(details.power)
 
         let collecting = BatteryDetailsReader.parse(
-            registry: [:], adapterWatts: 90, remainingSeconds: -1,
-            state: absent, now: now)
+            registry: [:], adapterWatts: 90,             state: absent, now: now)
         XCTAssertEqual(collecting.powerAvailability, .collecting)
     }
 
@@ -230,16 +220,6 @@ final class BatteryDetailsTests: XCTestCase {
             values["UpdateTime"] = timestamp
             XCTAssertNil(parse(values).power)
         }
-    }
-
-    func testPublicRemainingTimeUsesSecondsAndUnknownDoesNotFallBackToRegistry() {
-        var values = registry
-        values["TimeRemaining"] = 177
-        for invalid in [-2.0, -1, 0, Double.nan, Double.infinity, Double(Int.max)] {
-            XCTAssertNil(parse(values, seconds: invalid).remainingMinutes)
-        }
-        XCTAssertEqual(parse(values, seconds: 7260).remainingMinutes, 121)
-        XCTAssertNil(parse(values, state: state(connected: true), seconds: 7260).remainingMinutes)
     }
 }
 
@@ -461,8 +441,7 @@ final class BatteryDetailsBreakdownRetentionTests: XCTestCase {
 
     private func parse(connected: Bool, breakdown: BatteryPowerBreakdown?, now: Date) -> BatteryDetails {
         BatteryDetailsReader.parse(
-            registry: [:], adapterWatts: nil, remainingSeconds: -1,
-            state: state(connected: connected), now: now, breakdown: breakdown
+            registry: [:], adapterWatts: nil,             state: state(connected: connected), now: now, breakdown: breakdown
         )
     }
 

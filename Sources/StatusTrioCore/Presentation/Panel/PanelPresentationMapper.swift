@@ -262,7 +262,7 @@ enum PanelPresentationMapper {
         return localization.format(.batteryTimeToFullHoursMinutes, hours, remainingMinutes)
     }
 
-    private static func batteryRuntimeText(
+    static func batteryRuntimeText(
         _ battery: BatteryStatus,
         localization: Localization
     ) -> String? {

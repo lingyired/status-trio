@@ -251,7 +251,6 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         let observedAt = Date(timeIntervalSince1970: 1_700_000_000)
         let fixture = BatteryDetails(
             adapterWatts: connected ? 90 : nil,
-            remainingMinutes: available ? 121 : nil,
             cycleCount: 43,
             power: available ? BatteryPowerSample(volts: allPower ? 12.5 : 12.279,
                 amps: allPower ? 3.2968 : (connected ? (charging ? 1.528 : 0) : -1.528), updatedAt: observedAt) : nil,
@@ -274,6 +273,7 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             ),
             highPowerMode: HighPowerModeSystemStatus(supported: true, enabled: false))
         let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: charging,
+                                    timeToEmptyMinutes: (!connected && available) ? 121 : nil,
                                     isLowPowerMode: false, isConnectedToPower: connected)
         let panelState = PanelDetailMapper.battery(
             status: battery,
