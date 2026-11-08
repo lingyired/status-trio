@@ -111,12 +111,19 @@ struct BatteryDetailsReader: Sendable {
         let now = Date()
         var breakdown: BatteryPowerBreakdown?
         if options.showsBreakdown, state.isPresent {
+            // Port names come from IORegistry on the same open-page refresh as
+            // the rails, with no observer or cache of their own. Skipped when
+            // there is neither an adapter port to name nor an output to label.
+            let topology = state.isConnected || USBOutputReader.hasOutput(sensors.portRails, registry: registry)
+                ? USBPortTopologyReader.read() : nil
             let resolved = BatteryPowerBreakdown.resolve(
                 adapterInput: sensors.input,
                 charging: sensors.battery.map { max(0, $0.watts) },
                 discharge: sensors.battery.map { max(0, -$0.watts) },
                 display: sensors.display,
-                usb: USBOutputReader.resolve(portRails: sensors.portRails, registry: registry, now: now),
+                usb: USBOutputReader.resolve(portRails: sensors.portRails, registry: registry,
+                                             topology: topology, now: now),
+                inputPortType: topology?.inputPortType,
                 now: now
             )
             // One overall refresh can catch the rails mid-update and show a

@@ -542,6 +542,7 @@
 "battery.details.current" = "배터리 전류";
 "battery.details.sampled" = "배터리 측정 시각";
 "battery.details.adapter" = "어댑터 정격 출력";
+"battery.details.inputPort" = "충전 포트";
 "battery.details.remaining" = "남은 시간";
 "battery.details.cycles" = "사이클 수";
 "battery.details.uptime" = "시스템 가동 시간";

@@ -542,6 +542,7 @@
 "battery.details.current" = "Ток батареи";
 "battery.details.sampled" = "Время замера батареи";
 "battery.details.adapter" = "Номинальная мощность адаптера";
+"battery.details.inputPort" = "Порт зарядки";
 "battery.details.remaining" = "Оставшееся время";
 "battery.details.cycles" = "Число циклов";
 "battery.details.uptime" = "Время работы";

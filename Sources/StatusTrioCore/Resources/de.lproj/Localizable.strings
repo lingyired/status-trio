@@ -542,6 +542,7 @@
 "battery.details.current" = "Batteriestrom";
 "battery.details.sampled" = "Batterie gemessen um";
 "battery.details.adapter" = "Netzteil-Nennleistung";
+"battery.details.inputPort" = "Ladeanschluss";
 "battery.details.remaining" = "Restlaufzeit";
 "battery.details.cycles" = "Ladezyklen";
 "battery.details.uptime" = "Systemlaufzeit";

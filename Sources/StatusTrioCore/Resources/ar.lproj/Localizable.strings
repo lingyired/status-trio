@@ -542,6 +542,7 @@
 "battery.details.current" = "تيار البطارية";
 "battery.details.sampled" = "وقت قياس البطارية";
 "battery.details.adapter" = "القدرة الاسمية للمحوّل";
+"battery.details.inputPort" = "منفذ الشحن";
 "battery.details.remaining" = "الوقت المتبقي";
 "battery.details.cycles" = "عدد دورات الشحن";
 "battery.details.uptime" = "مدة تشغيل النظام";

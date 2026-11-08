@@ -542,6 +542,7 @@
 "battery.details.current" = "バッテリー電流";
 "battery.details.sampled" = "バッテリー計測時刻";
 "battery.details.adapter" = "アダプタの定格出力";
+"battery.details.inputPort" = "充電ポート";
 "battery.details.remaining" = "残り時間";
 "battery.details.cycles" = "充放電回数";
 "battery.details.uptime" = "起動からの経過時間";

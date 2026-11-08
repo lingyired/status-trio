@@ -319,6 +319,13 @@ struct BatteryPowerFlowView: View {
                         .minimumScaleFactor(0.85)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
+                    if let detail = value.detail {
+                        Text(detail)
+                            .font(.system(size: 9))
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
                 }
             }
         }
@@ -326,8 +333,13 @@ struct BatteryPowerFlowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: height)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel((value.help ?? value.label) + ": " + value.value)
-        .help(value.help ?? value.label)
+        .accessibilityLabel(accessibilityText(value) + ": " + value.value)
+        .help(accessibilityText(value))
+    }
+
+    private func accessibilityText(_ value: BatteryPowerFlowState.Metric) -> String {
+        let base = value.help ?? value.label
+        return value.detail.map { "\(base) · \($0)" } ?? base
     }
 
     private func ribbon(from start: CGFloat, to end: CGFloat, startY: CGFloat,

@@ -542,6 +542,7 @@
 "battery.details.current" = "Corrente da bateria";
 "battery.details.sampled" = "Amostra da bateria";
 "battery.details.adapter" = "Potência nominal do adaptador";
+"battery.details.inputPort" = "Porta de carregamento";
 "battery.details.remaining" = "Tempo restante";
 "battery.details.cycles" = "Contagem de ciclos";
 "battery.details.uptime" = "Tempo de atividade";

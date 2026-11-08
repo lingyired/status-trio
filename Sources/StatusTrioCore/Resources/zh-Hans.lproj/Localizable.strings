@@ -542,6 +542,7 @@
 "battery.details.current" = "电池电流";
 "battery.details.sampled" = "电池采样时间";
 "battery.details.adapter" = "适配器额定功率";
+"battery.details.inputPort" = "充电接口";
 "battery.details.remaining" = "剩余时间";
 "battery.details.cycles" = "循环次数";
 "battery.details.uptime" = "系统运行时间";

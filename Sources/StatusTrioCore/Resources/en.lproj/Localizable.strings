@@ -541,6 +541,7 @@
 "battery.details.current" = "Battery current";
 "battery.details.sampled" = "Battery sampled at";
 "battery.details.adapter" = "Adapter rating";
+"battery.details.inputPort" = "Charging port";
 "battery.details.remaining" = "Time remaining";
 "battery.details.cycles" = "Cycle count";
 "battery.details.uptime" = "System uptime";
