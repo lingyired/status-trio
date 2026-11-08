@@ -246,6 +246,40 @@ final class USBPortOutputTests: XCTestCase {
         XCTAssertEqual(sample.ports.map(\.channel), [3, 1])
         XCTAssertEqual(sample.ports.map(\.name), ["RB", "Apple Watch Magnetic Charging Cable"])
     }
+
+    func testMeasuredSinkRailAboveTheCapStillKeepsTheRealOutput() throws {
+        // The charging port is @2 (channel 2). Its rail plus the two accessory
+        // rails sum past the 300 W sanity cap; dropping the sink channel first
+        // must leave the 200 W of real output instead of nil.
+        let charger = USBPortTopology.PortNode(
+            portDescription: "Port-USB-C@2", portNumber: 2, typeDescription: "USB-C")
+        let sample = try XCTUnwrap(USBOutputReader.resolve(
+            portRails: .measured(rails: [
+                PortRail(channel: 1, watts: 100),
+                PortRail(channel: 2, watts: 140),
+                PortRail(channel: 3, watts: 100),
+            ], readAt: readAt),
+            registry: [:], topology: topology(input: charger)))
+        XCTAssertEqual(sample.ports.map(\.channel), [1, 3])
+        XCTAssertEqual(sample.watts, 200, accuracy: 0.0001)
+    }
+
+    func testFallbackSinkPortAboveTheCapStillKeepsTheRealOutput() throws {
+        // Same ordering rule on the PowerOutDetails fallback: sink @1 plus two
+        // accessories sum past 300 W, so the sink must come out before the cap.
+        let charger = USBPortTopology.PortNode(
+            portDescription: "Port-USB-C@1", portNumber: 1, typeDescription: "USB-C")
+        let sample = try XCTUnwrap(USBOutputReader.resolve(
+            portRails: .unavailable,
+            registry: ["PowerOutDetails": [
+                ["PortIndex": 1, "Watts": 150_000],
+                ["PortIndex": 2, "Watts": 150_000],
+                ["PortIndex": 3, "Watts": 150_000],
+            ]],
+            topology: topology(input: charger)))
+        XCTAssertEqual(sample.ports.map(\.channel), [2, 3])
+        XCTAssertEqual(sample.watts, 300, accuracy: 0.0001)
+    }
 }
 
 @MainActor

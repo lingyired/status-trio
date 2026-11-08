@@ -74,26 +74,33 @@ enum USBOutputReader {
     /// to an accessory, whatever it reads.
     static func resolve(portRails: PortOutputRails, registry: [String: Any],
                         topology: USBPortTopology? = nil, now: Date = Date()) -> USBOutputSample? {
-        let sample: USBOutputSample?
+        let ports: [USBPortOutput]
+        let readAt: Date
         switch portRails {
         case .unavailable:
-            sample = parse(registry: registry, now: now)
-        case .measured(let rails, let readAt):
-            let active = rails.filter { $0.watts >= chargingFloorWatts }
+            guard let parsed = parsePorts(registry: registry) else { return nil }
+            ports = parsed
+            readAt = now
+        case .measured(let rails, let smcReadAt):
+            ports = rails.filter { $0.watts >= chargingFloorWatts }
                 .map { USBPortOutput(channel: $0.channel, watts: $0.watts) }
             // Keep the SMC read-start, not `now`, so a stalled refresh cannot
             // pass this reading off as fresh to the breakdown's staleness check.
-            sample = make(active, readAt: readAt)
+            readAt = smcReadAt
         }
-        guard let sample, let topology else { return sample }
-        let labelled = sample.ports
-            .filter { $0.channel != topology.inputChannel }
-            .map { port -> USBPortOutput in
-                var port = port
-                port.name = topology.name(forChannel: port.channel)
-                return port
-            }
-        return make(labelled, readAt: sample.readAt)
+        // Drop the charging (sink) port and name the rest *before* the 300 W
+        // sanity cap. A sink rail can read high enough to push the raw sum over
+        // the cap; excluding it first keeps the real accessory branches instead
+        // of discarding the whole sample.
+        let labelled = topology.map { topology in
+            ports.filter { $0.channel != topology.inputChannel }
+                .map { port -> USBPortOutput in
+                    var port = port
+                    port.name = topology.name(forChannel: port.channel)
+                    return port
+                }
+        } ?? ports
+        return make(labelled, readAt: readAt)
     }
 
     /// Whether a refresh has any output worth naming, before labels are read.
@@ -113,6 +120,14 @@ enum USBOutputReader {
     /// the PD contract. Values outside a plausible single-port envelope are
     /// treated as "this key is not a live output reading" rather than as power.
     static func parse(registry: [String: Any], now: Date = Date()) -> USBOutputSample? {
+        guard let outputs = parsePorts(registry: registry) else { return nil }
+        return make(outputs, readAt: now)
+    }
+
+    /// Raw per-port outputs from `PowerOutDetails`, floored and range-checked but
+    /// not yet summed, so a caller can drop the sink channel before applying the
+    /// 300 W cap. `nil` only when the registry carries no port list at all.
+    private static func parsePorts(registry: [String: Any]) -> [USBPortOutput]? {
         guard let ports = registry["PowerOutDetails"] as? [[String: Any]], !ports.isEmpty else { return nil }
         var outputs: [USBPortOutput] = []
         for (offset, port) in ports.enumerated() {
@@ -127,7 +142,7 @@ enum USBOutputReader {
             let channel = number(port["PortIndex"]).map { Int($0) } ?? offset + 1
             outputs.append(USBPortOutput(channel: channel, watts: watts))
         }
-        return make(outputs, readAt: now)
+        return outputs
     }
 
     private static func number(_ value: Any?) -> Double? {
