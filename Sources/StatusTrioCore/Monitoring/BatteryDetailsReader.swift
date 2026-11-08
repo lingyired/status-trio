@@ -25,7 +25,6 @@ struct BatteryDetails: Equatable, Sendable {
     }
 
     var adapterWatts: Int?
-    var remainingMinutes: Int?
     var cycleCount: Int?
     var power: BatteryPowerSample?
     var systemPower: SystemPowerSample?
@@ -42,7 +41,7 @@ struct BatteryDetails: Equatable, Sendable {
     /// it is independent of battery presence and never affects battery state.
     var uptimeSeconds: TimeInterval?
 
-    init(adapterWatts: Int? = nil, remainingMinutes: Int? = nil, cycleCount: Int? = nil,
+    init(adapterWatts: Int? = nil, cycleCount: Int? = nil,
          power: BatteryPowerSample? = nil, powerAvailability: PowerAvailability = .unavailable,
          systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
          breakdown: BatteryPowerBreakdown? = nil,
@@ -50,7 +49,6 @@ struct BatteryDetails: Equatable, Sendable {
          highPowerMode: HighPowerModeSystemStatus? = nil,
          uptimeSeconds: TimeInterval? = nil) {
         self.adapterWatts = adapterWatts
-        self.remainingMinutes = remainingMinutes
         self.cycleCount = cycleCount
         self.power = power
         self.systemPower = systemPower
@@ -136,7 +134,6 @@ struct BatteryDetailsReader: Sendable {
         var result = Self.parse(
             registry: registry,
             adapterWatts: adapter?[kIOPSPowerAdapterWattsKey] as? Int,
-            remainingSeconds: IOPSGetTimeRemainingEstimate(),
             state: state,
             now: now,
             notBefore: notBefore,
@@ -195,7 +192,7 @@ struct BatteryDetailsReader: Sendable {
     /// IORegistry is public, but these AppleSmartBattery properties are best-effort,
     /// not a stable cross-model API. Never combine values from nested telemetry sources.
     static func parse(
-        registry: [String: Any], adapterWatts: Int?, remainingSeconds: Double,
+        registry: [String: Any], adapterWatts: Int?,
         state: BatteryPowerState, now: Date, notBefore: Date? = nil,
         systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
         batteryPower: BatteryPowerSample? = nil, breakdown: BatteryPowerBreakdown? = nil,
@@ -216,8 +213,6 @@ struct BatteryDetailsReader: Sendable {
         let capacity = BatteryHealthParser.parseCapacity(registry: registry)
         var result = BatteryDetails(
             adapterWatts: state.isConnected ? adapterWatts.flatMap { $0 > 0 ? $0 : nil } : nil,
-            remainingMinutes: !state.isConnected && remainingSeconds.isFinite && remainingSeconds >= 60
-                && remainingSeconds < Double(Int.max) ? Int(remainingSeconds / 60) : nil,
             cycleCount: (registry["CycleCount"] as? Int).flatMap { $0 >= 0 ? $0 : nil },
             systemPower: state.isConnected ? systemPower : nil,
             breakdown: acceptableBreakdown(breakdown, state: state, now: now),

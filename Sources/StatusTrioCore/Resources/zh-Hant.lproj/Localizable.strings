@@ -241,6 +241,7 @@
 "battery.state.notPresent" = "無電池裝置";
 "battery.state.charged" = "已充滿";
 "battery.state.calculatingTimeToFull" = "正在計算充滿時間";
+"battery.timeRemaining" = "約 %@可用";
 "battery.timeToFull.minutes" = "預計 %d 分鐘充滿";
 "battery.timeToFull.hours" = "預計 %d 小時充滿";
 "battery.timeToFull.hoursMinutes" = "預計 %d 小時 %d 分鐘充滿";

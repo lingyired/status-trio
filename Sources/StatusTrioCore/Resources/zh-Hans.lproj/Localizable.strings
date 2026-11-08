@@ -241,6 +241,7 @@
 "battery.state.notPresent" = "无电池设备";
 "battery.state.charged" = "已充满";
 "battery.state.calculatingTimeToFull" = "正在计算充满时间";
+"battery.timeRemaining" = "约 %@可用";
 "battery.timeToFull.minutes" = "预计 %d 分钟充满";
 "battery.timeToFull.hours" = "预计 %d 小时充满";
 "battery.timeToFull.hoursMinutes" = "预计 %d 小时 %d 分钟充满";

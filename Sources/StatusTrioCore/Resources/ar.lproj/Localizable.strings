@@ -224,6 +224,7 @@
 "battery.state.notPresent" = "لا توجد بطارية";
 "battery.state.charged" = "ممتلئة بالكامل";
 "battery.state.calculatingTimeToFull" = "جارٍ حساب الوقت حتى الامتلاء";
+"battery.timeRemaining" = "الوقت المتبقي: حوالي %@";
 "battery.timeToFull.minutes" = "نحو %d دقيقة حتى الامتلاء";
 "battery.timeToFull.hours" = "نحو %d ساعة حتى الامتلاء";
 "battery.timeToFull.hoursMinutes" = "نحو %d ساعة و%d دقيقة حتى الامتلاء";

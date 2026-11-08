@@ -48,9 +48,11 @@ enum PanelDetailMapper {
                 rows.append(row(.batteryDetailsAdapter, value: watts.formatted(.number.locale(localization.resolvedLanguage.locale)) + " W", localization: localization))
             }
             if battery.isPresent, !battery.isConnectedToPower {
-                let remaining = details.remainingMinutes.map {
-                    Duration.seconds($0 * 60).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated).locale(localization.resolvedLanguage.locale))
-                } ?? localization.string(.batteryDetailsUnavailable)
+                // Same source and A-style formatting as the summary subtitle:
+                // the remaining time comes from kIOPSTimeToEmptyKey, carried on
+                // BatteryStatus, so both surfaces always agree.
+                let remaining = PanelPresentationMapper.batteryRuntimeText(battery, localization: localization)
+                    ?? localization.string(.batteryDetailsUnavailable)
                 rows.append(row(.batteryDetailsRemaining, value: remaining, localization: localization))
             }
             if battery.isPresent, let health = details.health {

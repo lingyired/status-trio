@@ -241,6 +241,7 @@
 "battery.state.notPresent" = "バッテリーなし";
 "battery.state.charged" = "充電完了";
 "battery.state.calculatingTimeToFull" = "満充電までの時間を計算中";
+"battery.timeRemaining" = "残り約%@";
 "battery.timeToFull.minutes" = "満充電まで約 %d 分";
 "battery.timeToFull.hours" = "満充電まで約 %d 時間";
 "battery.timeToFull.hoursMinutes" = "満充電まで約 %d 時間 %d 分";

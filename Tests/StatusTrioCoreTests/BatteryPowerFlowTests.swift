@@ -106,7 +106,7 @@ final class BatteryPowerFlowTests: XCTestCase {
             "PowerTelemetryData": ["SystemPowerIn": 67000]]
         func parse(_ state: BatteryPowerState = connected) -> BatteryDetails {
             BatteryDetailsReader.parse(registry: values, adapterWatts: 140,
-                remainingSeconds: -1, state: state, now: now)
+                state: state, now: now)
         }
         XCTAssertEqual(parse().inputPower?.watts, 67)
         values["PowerTelemetryData"] = [:]

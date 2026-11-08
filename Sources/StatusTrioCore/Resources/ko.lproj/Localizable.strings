@@ -241,6 +241,7 @@
 "battery.state.notPresent" = "배터리 없음";
 "battery.state.charged" = "충전 완료";
 "battery.state.calculatingTimeToFull" = "완전 충전 시간 계산 중";
+"battery.timeRemaining" = "약 %@ 사용 가능";
 "battery.timeToFull.minutes" = "완전 충전까지 약 %d분";
 "battery.timeToFull.hours" = "완전 충전까지 약 %d시간";
 "battery.timeToFull.hoursMinutes" = "완전 충전까지 약 %d시간 %d분";
