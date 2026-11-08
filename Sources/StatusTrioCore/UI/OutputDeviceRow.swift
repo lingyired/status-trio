@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 struct OutputDeviceRow: View {
@@ -5,29 +6,24 @@ struct OutputDeviceRow: View {
     let state: PanelAudioDeviceRow
     let onSelect: () -> Void
     let onSelectListeningMode: (BluetoothListeningMode) -> Void
+    var controlsFactory: ((PanelAudioDeviceRow) -> AirPodsSystemControlsModel)? = nil
 
     @Environment(\.airPodsConversationCache) private var conversationCache
+    @Environment(\.statusPanelVisibility) private var panelVisibility
+    @Environment(\.statusPanelAnimatesDisclosures) private var animatesDisclosures
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.displayScale) private var displayScale
+    @StateObject private var disclosure = StatusPanelResizeCoordinator()
+    @State private var isPresented = true
+    @State private var controlsHeight: CGFloat = 0
     /// The user's intent: whether the disclosure is logically open.
     @State private var expanded = false
-    /// Whether the controls view is kept mounted. It stays mounted briefly while
-    /// collapsing so the content can fade out; unmounting at the same instant as
-    /// the tap is what made the panel drop while content was still on screen.
-    @State private var shouldMountControls = false
-    /// Whether the controls are fully shown. Drives the draw-only opacity and
-    /// offset transition, which must not feed the layout measurement.
-    @State private var contentVisible = false
+    // Retain the model for this stable row identity. Only the clipped container's
+    // actual layout height animates; hardware demand follows user intent.
     @State private var controls: AirPodsSystemControlsModel?
-    /// Bumped on every toggle so a pending unmount from an earlier collapse does
-    /// not tear down controls a later expand just mounted.
-    @State private var transitionGeneration = 0
-
-    /// Opacity/offset duration. Slightly shorter than the window curve so the
-    /// content is in place as the panel finishes growing.
-    private static let contentTransition: TimeInterval = 0.17
-    private static let contentOffset: CGFloat = 5
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
                 selectionButton
                 if state.supportsAirPodsSystemControls {
@@ -40,15 +36,21 @@ struct OutputDeviceRow: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel(localization.string(.airPodsControls))
                     .accessibilityValue(expanded ? localization.string(.commonExpanded) : localization.string(.commonCollapsed))
-                    .animation(Self.reducedMotion ? nil : .easeOut(duration: Self.contentTransition), value: expanded)
                 }
             }
 
-            if shouldMountControls, state.supportsAirPodsSystemControls, let controls {
+            if state.supportsAirPodsSystemControls, let controls {
                 AirPodsSystemControlsView(model: controls, listeningMode: state.listeningMode, onSelectListeningMode: onSelectListeningMode)
-                    .opacity(contentVisible ? 1 : 0)
-                    .offset(y: contentVisible ? 0 : -Self.contentOffset)
-                    .onAppear { controls.start() }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 2)
+                    .background(GeometryReader { geometry in
+                        Color.clear.preference(key: AirPodsControlsHeightKey.self, value: geometry.size.height)
+                    })
+                    .frame(height: disclosure.presentedHeight, alignment: .top)
+                    .clipped()
+                    .transaction { $0.animation = nil }
+                    .allowsHitTesting(expanded)
+                    .accessibilityHidden(!expanded)
             }
 
             if !state.supportsAirPodsSystemControls, let listeningMode = state.listeningMode, listeningMode.isControllable {
@@ -57,14 +59,33 @@ struct OutputDeviceRow: View {
                     onSelect: onSelectListeningMode
                 )
                 .padding(.leading, Self.modeLeadingInset)
+                .padding(.top, 2)
             }
         }
+        .onPreferenceChange(AirPodsControlsHeightKey.self) { height in
+            controlsHeight = height
+            updateDisclosureTarget()
+        }
+        .onChange(of: displayScale) { scale in
+            disclosure.pixelScale = scale
+            updateDisclosureTarget()
+        }
         .onChange(of: state.key) { _ in resetControls() }
-        .onChange(of: state.name) { _ in resetControls() }
+        .onChange(of: state.name) { _ in
+            // The backend verifies the current route's name as well as its ID.
+            // Refresh that meaningful dependency without discarding user intent.
+            guard controls != nil else { return }
+            controls?.stop()
+            controls = makeControls()
+            if expanded, isPresented { controls?.start() }
+        }
         .onChange(of: state.supportsAirPodsSystemControls) { supported in
             if !supported { resetControls() }
         }
         .onAppear {
+            disclosure.pixelScale = displayScale
+            if expanded, isPresented { controls?.start() }
+            updateDisclosureTarget()
             // Development aid: lets a resize/jitter investigation drive the
             // expansion without a pointer. Ignored outside `.dev.` bundles.
             guard Self.expandsForResizeProbe,
@@ -72,50 +93,41 @@ struct OutputDeviceRow: View {
                   !expanded else { return }
             toggle()
         }
+        .onDisappear {
+            controls?.stop()
+            disclosure.cancel()
+        }
+        .onReceive(panelVisibility) { visible in
+            isPresented = visible
+            if visible {
+                if expanded { controls?.start() }
+                updateDisclosureTarget()
+            } else {
+                controls?.stop()
+                disclosure.markSettled(at: expanded ? controlsHeight : 0)
+            }
+        }
     }
 
-    /// Expands or collapses the disclosure.
-    ///
-    /// Expanding mounts the controls immediately, then reveals them with a short
-    /// draw-only transition while the window grows towards the new layout.
-    /// Collapsing fades them out first and unmounts after the fade, so the
-    /// content never disappears while the panel is still tall.
     private func toggle() {
-        transitionGeneration += 1
-        let generation = transitionGeneration
         if expanded {
             expanded = false
-            reveal(false)
-            // Unmount after the visual exit so the window shrinks continuously
-            // with the fading content rather than snapping under a full-height
-            // body.
-            let delay = Self.reducedMotion ? 0 : Self.contentTransition
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                guard generation == transitionGeneration, !expanded else { return }
-                shouldMountControls = false
-                contentVisible = false
-                controls?.stop()
-            }
+            controls?.stop()
         } else {
             expanded = true
             if controls == nil { controls = makeControls() }
-            shouldMountControls = true
-            reveal(true)
+            if isPresented { controls?.start() }
         }
+        updateDisclosureTarget()
     }
 
-    private func reveal(_ visible: Bool) {
-        guard !Self.reducedMotion else {
-            contentVisible = visible
-            return
+    private func updateDisclosureTarget() {
+        let target = expanded ? controlsHeight : 0
+        if !isPresented || reduceMotion || !animatesDisclosures {
+            disclosure.markSettled(at: target)
+        } else if !disclosure.isAtTarget(target) {
+            disclosure.retarget(to: target, fromHeight: disclosure.presentedHeight)
         }
-        withAnimation(.easeOut(duration: Self.contentTransition)) {
-            contentVisible = visible
-        }
-    }
-
-    private static var reducedMotion: Bool {
-        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
 
     static var expandsForResizeProbe: Bool {
@@ -124,7 +136,8 @@ struct OutputDeviceRow: View {
     }
 
     private func makeControls() -> AirPodsSystemControlsModel {
-        AirPodsSystemControlsModel(
+        if let controlsFactory { return controlsFactory(state) }
+        return AirPodsSystemControlsModel(
             deviceID: state.key,
             deviceName: state.name,
             conversationCache: state.isPreview ? nil : conversationCache,
@@ -133,12 +146,10 @@ struct OutputDeviceRow: View {
     }
 
     private func resetControls() {
-        transitionGeneration += 1
         controls?.stop()
         controls = nil
         expanded = false
-        shouldMountControls = false
-        contentVisible = false
+        disclosure.markSettled(at: 0)
     }
 
     private var selectionButton: some View {
@@ -175,4 +186,11 @@ struct OutputDeviceRow: View {
 
     private static let modeLeadingInset: CGFloat =
         BluetoothPanelMetrics.iconColumnWidth + BluetoothPanelMetrics.iconTextSpacing
+}
+
+private struct AirPodsControlsHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
 }

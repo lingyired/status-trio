@@ -1,15 +1,7 @@
 import QuartzCore
 
-/// The pure, AppKit-free math behind the status panel's height resize animation.
-///
-/// The window owner drives the animation through this value type so the easing,
-/// retarget and settle rules can be unit-tested without a window. The panel keeps
-/// one `Snapshot` for the grow/collapse that is currently in flight and recomputes
-/// the presented height on every tick from the elapsed time alone.
-///
-/// Retargeting never jumps: replacing the snapshot uses the live presented height
-/// and the current time as the origin of a fresh curve, so a second toggle while
-/// the first is mid-flight continues smoothly from where the panel actually is.
+/// One critically damped position/velocity trajectory. Retargeting carries
+/// momentum; pixel alignment belongs to the window writer, not this state.
 @MainActor
 struct StatusPanelResizeAnimation {
     enum Direction: Equatable {
@@ -23,58 +15,56 @@ struct StatusPanelResizeAnimation {
         var targetHeight: CGFloat
         var startTime: CFTimeInterval
         var direction: Direction
+        var startVelocity: CGFloat
+        var response: CFTimeInterval
 
         var delta: CGFloat { targetHeight - startHeight }
     }
 
-    /// The curve currently in flight. `nil` means no animation is running.
     private(set) var snapshot: Snapshot?
+    var isAnimating: Bool { snapshot != nil }
 
-    /// Starts or retargets the animation towards `targetHeight`, taking the
-    /// current presented height `fromHeight` and wall-clock `time` as the new
-    /// origin so the curve continues from the live position.
-    ///
-    /// `direction` only describes intent (expand vs collapse vs settle); it does
-    /// not change the eased path, which always runs from `fromHeight` to
-    /// `targetHeight`.
     mutating func retarget(
         to targetHeight: CGFloat,
         from fromHeight: CGFloat,
         time: CFTimeInterval,
-        direction: Direction
+        direction: Direction,
+        duration: CFTimeInterval = 0.22,
+        velocity: CGFloat? = nil
     ) {
+        let velocity = velocity ?? state(at: time).velocity
         snapshot = Snapshot(
-            startHeight: fromHeight,
-            targetHeight: targetHeight,
-            startTime: time,
-            direction: direction
+            startHeight: fromHeight, targetHeight: targetHeight,
+            startTime: time, direction: direction,
+            startVelocity: velocity, response: max(duration, 0.001)
         )
     }
 
-    /// Ends any animation, keeping the presented height where it currently sits.
-    mutating func finish() {
-        snapshot = nil
+    mutating func finish() { snapshot = nil }
+
+    private func state(at time: CFTimeInterval) -> (height: CGFloat, velocity: CGFloat, finished: Bool) {
+        guard let snapshot else { return (0, 0, true) }
+        let elapsed = CGFloat(max(0, time - snapshot.startTime))
+        let omega = CGFloat(10 / snapshot.response)
+        let offset = snapshot.startHeight - snapshot.targetHeight
+        let coefficient = snapshot.startVelocity + omega * offset
+        // If a nearby new target lies inside the old momentum's stopping
+        // distance, stop on first arrival rather than crossing and ringing.
+        if offset * coefficient < 0, elapsed >= -offset / coefficient {
+            return (snapshot.targetHeight, 0, true)
+        }
+        let decay = exp(-omega * elapsed)
+        let displacement = (offset + coefficient * elapsed) * decay
+        let velocity = (snapshot.startVelocity - omega * coefficient * elapsed) * decay
+        let finished = abs(displacement) < 0.01 && abs(velocity) < 0.5
+        return (finished ? snapshot.targetHeight : snapshot.targetHeight + displacement,
+                finished ? 0 : velocity, finished)
     }
 
-    /// Whether an animation is currently advancing towards a target.
-    var isAnimating: Bool { snapshot != nil }
+    func velocity(at time: CFTimeInterval) -> CGFloat { state(at: time).velocity }
 
-    /// The presented height at `time` for a curve of `duration`, plus whether the
-    /// curve has reached its end.
-    ///
-    /// Heights snap to whole points every tick: a fractional window height makes
-    /// AppKit round the window's origin and size independently, so the anchored
-    /// edge wobbles by up to a point while the panel grows. The final height is
-    /// exactly the target, never the eased value a few ticks short of it.
-    func presentedHeight(at time: CFTimeInterval, duration: CFTimeInterval) -> (height: CGFloat, finished: Bool) {
-        guard let snapshot else {
-            return (0, true)
-        }
-        let progress = min(1, (time - snapshot.startTime) / max(duration, 0.001))
-        let finished = progress >= 1
-        let eased = 1 - pow(1 - progress, 3)
-        let delta = snapshot.delta
-        let height = (snapshot.startHeight + delta * CGFloat(eased)).rounded()
-        return (finished ? snapshot.targetHeight : height, finished)
+    func presentedHeight(at time: CFTimeInterval) -> (height: CGFloat, finished: Bool) {
+        let value = state(at: time)
+        return (value.height, value.finished)
     }
 }

@@ -1,5 +1,9 @@
 # AirPods 行展开/折叠抖动与动画重构
 
+> 本文为上一轮历史记录。快速点击仍存在的问题、后续修复与真实 NSPanel 测试，
+> 见 [2026-11-05 修复记录](airpods-rapid-disclosure-fix.md)；不要将下文的数学
+> Coordinator 测试误作实际按钮/窗口集成验证。
+
 分支：`feat/airpods-inline-toggle`
 基线提交：`b0a3d6f7`
 本文记录根因、改动、验收与遗留项。

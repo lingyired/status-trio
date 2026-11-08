@@ -37,13 +37,18 @@ struct StatusPopoverView: View {
         // at its natural height and only scrolls once the screen budget cannot
         // hold it, so a short page still hugs its content. The summary footer
         // stays outside the scroll view so it is always reachable.
-        StatusPanelScrollArea(maximumHeight: layoutMetrics.maximumPanelHeight) {
+        StatusPanelScrollArea(
+            maximumHeight: layoutMetrics.maximumPanelHeight,
+            fillsWindow: layoutMetrics.fillsWindow,
+            onNaturalHeight: { layoutMetrics.measure(contentHeight: $0) }
+        ) {
             routeContent
                 // Inside the panel there must be exactly one scroller. The
                 // detail pages and Bluetooth lists keep their own scroll views
                 // for other hosts, but disable them here.
                 .environment(\.statusPanelManagesScrolling, true)
                 .environment(\.airPodsConversationCache, panel.store.airPodsConversationCache)
+                .environment(\.statusPanelVisibility, layoutMetrics.visibilityPublisher)
         } footer: {
             if panel.route == .summary {
                 pinnedFooter

@@ -117,6 +117,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
     private let deviceID: PanelAudioDeviceID
     private let listenerBackend: any BluetoothListeningModePropertyListening
     private let spatialReader: (@MainActor () throws -> [AirPodsSystemOption])?
+    private let readSnapshot: Reader?
     private var observation: AirPodsSpatialObservation?
     private var observationGeneration = 0
     private var spatialRevision = 0
@@ -136,6 +137,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
     init(deviceID: PanelAudioDeviceID, deviceName: String, snapshot: AirPodsSystemSnapshot = .init(),
          listenerBackend: any BluetoothListeningModePropertyListening = CoreAudioBluetoothListeningModeListenerBackend(),
          spatialReader: (@MainActor () throws -> [AirPodsSystemOption])? = nil,
+         readSnapshot: Reader? = nil,
          conversationCache: AirPodsConversationCache? = nil,
          preview: AirPodsSystemSnapshot? = nil) {
         self.conversationCache = conversationCache
@@ -143,6 +145,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
         self.deviceID = deviceID
         self.listenerBackend = listenerBackend
         self.spatialReader = spatialReader
+        self.readSnapshot = readSnapshot
         self.previewSnapshot = preview
         self.snapshot = preview ?? snapshot
         controls = AirPodsSystemControls(target: deviceID, name: deviceName)
@@ -223,6 +226,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
             return
         }
         run(.refresh) {
+            let read = read ?? self.readSnapshot
             let revision = self.spatialRevision
             let publish: @MainActor (AirPodsSystemSnapshot) -> Void = { [weak self] snapshot in
                 guard !Task.isCancelled else { return }

@@ -1,138 +1,186 @@
-import AppKit
+import Combine
 import XCTest
 @testable import StatusTrioCore
 
-/// Headless tests for the resize coordinator: the single driver behind the
-/// panel's animated grow/collapse. A fake clock and a manual tick driver replace
-/// the real timer so the tests never touch a display.
+/// The same driver used by OutputDeviceRow, with a deterministic clock. Real
+/// button/layout/window coverage lives in AirPodsDisclosureIntegrationTests.
 @MainActor
 final class StatusPanelResizeCoordinatorTests: XCTestCase {
-    /// A manually driven tick source.
+    @MainActor
     private final class TickDriver {
-        private(set) var tick: (() -> Void)?
-        private(set) var startCount = 0
-        var isRunning: Bool { tick != nil }
-
-        func schedule(_ block: @escaping () -> Void) -> () -> Void {
+        var tick: (@MainActor @Sendable () -> Void)?
+        var startCount = 0
+        func schedule(_ block: @escaping @MainActor @Sendable () -> Void) -> () -> Void {
             startCount += 1
             tick = block
             return { [weak self] in self?.tick = nil }
         }
-
         func fire() { tick?() }
-        func stop() { tick = nil }
     }
 
-    private func makeCoordinator(
-        clock: @escaping () -> CFTimeInterval
-    ) -> (StatusPanelResizeCoordinator, TickDriver) {
+    private func makeCoordinator(clock: @escaping () -> CFTimeInterval) -> (StatusPanelResizeCoordinator, TickDriver) {
         let driver = TickDriver()
         let coordinator = StatusPanelResizeCoordinator()
         coordinator.clock = clock
-        coordinator.scheduleTicks = { [weak driver] block in
-            driver?.schedule(block) ?? {}
-        }
+        coordinator.scheduleTicks = { [weak driver] in driver?.schedule($0) ?? {} }
         return (coordinator, driver)
     }
 
-    func testExpandAnimatesFromTheLiveHeightAndSettlesAtTarget() {
+    func testExpandPresentsIntermediateHeightsAndStopsAtTheExactTarget() {
         var now: CFTimeInterval = 1000
-        let (coordinator, driver) = makeCoordinator(clock: { now })
-        var frames: [(CGFloat, Bool)] = []
-        coordinator.place = { NSRect(x: 0, y: 0, width: 300, height: $0) }
-        coordinator.writeFrame = { rect, display in frames.append((rect.height, display)) }
-
-        coordinator.retarget(to: 400, fromHeight: 200)
-        XCTAssertEqual(coordinator.phase, .expanding)
-        XCTAssertTrue(coordinator.isAnimating)
-        XCTAssertTrue(driver.isRunning, "an expand must start exactly one tick source")
-
-        // Mid-flight.
-        now += 0.10
+        let (c, driver) = makeCoordinator(clock: { now })
+        c.retarget(to: 200, fromHeight: 0)
+        XCTAssertEqual(c.phase, .expanding)
+        XCTAssertNotNil(driver.tick)
+        now += 0.05
         driver.fire()
-        XCTAssertTrue(coordinator.phase == .expanding)
-        XCTAssertGreaterThan(coordinator.presentedHeight, 200)
-        XCTAssertLessThan(coordinator.presentedHeight, 400)
-
-        // Past the duration: settle at exactly the target.
-        now += 0.30
+        XCTAssertGreaterThan(c.presentedHeight, 0)
+        XCTAssertLessThan(c.presentedHeight, 200)
+        now += 0.4
         driver.fire()
-        XCTAssertEqual(coordinator.phase, .idle)
-        XCTAssertEqual(coordinator.presentedHeight, 400)
-        XCTAssertFalse(driver.isRunning, "the tick source must be torn down once settled")
-        XCTAssertEqual(frames.last?.0, 400)
-        XCTAssertEqual(frames.last?.1, true, "only the settling tick forces a display")
+        XCTAssertEqual(c.presentedHeight, 200)
+        XCTAssertEqual(c.phase, .idle)
+        XCTAssertNil(driver.tick)
+        XCTAssertNil(c.animation.snapshot)
     }
 
-    func testRetargetDuringAnimationContinuesFromTheLiveHeight() {
+    func testReversalCarriesVelocityAndKeepsOneTickSource() {
         var now: CFTimeInterval = 1000
-        let (coordinator, driver) = makeCoordinator(clock: { now })
-        coordinator.place = { NSRect(x: 0, y: 0, width: 300, height: $0) }
-        coordinator.writeFrame = { _, _ in }
-
-        coordinator.retarget(to: 400, fromHeight: 200)
-        now += 0.10
+        let (c, driver) = makeCoordinator(clock: { now })
+        c.retarget(to: 200, fromHeight: 0)
+        now += 0.05
         driver.fire()
-        let live = coordinator.presentedHeight
-        XCTAssertGreaterThan(live, 200)
-
-        // Reverse mid-flight. The new curve starts at the live height.
-        coordinator.retarget(to: 200, fromHeight: live)
-        XCTAssertEqual(coordinator.phase, .collapsing)
-        XCTAssertEqual(coordinator.retargetCount, 1)
-        XCTAssertEqual(coordinator.animation.snapshot?.startHeight, live)
-        XCTAssertEqual(coordinator.animation.snapshot?.targetHeight, 200)
-
-        // It still uses a single tick source across the retarget.
-        XCTAssertEqual(driver.startCount, 1, "retargeting must not start a second driver")
-
-        now += 0.30
+        let live = c.presentedHeight
+        c.retarget(to: 0, fromHeight: live)
+        XCTAssertEqual(c.presentedHeight, live)
+        XCTAssertGreaterThan(c.animation.snapshot?.startVelocity ?? 0, 0)
+        XCTAssertEqual(c.phase, .collapsing)
+        XCTAssertEqual(driver.startCount, 1)
+        now += 0.4
         driver.fire()
-        XCTAssertEqual(coordinator.presentedHeight, 200)
-        XCTAssertEqual(coordinator.phase, .idle)
+        XCTAssertEqual(c.presentedHeight, 0)
+        XCTAssertNil(driver.tick)
     }
 
-    func testPinIsAppliedOnStartAndReleasedOnSettle() {
+    func testReversalToTheCurrentHeightCancelsBeforeTheFirstTick() {
         var now: CFTimeInterval = 1000
-        let (coordinator, driver) = makeCoordinator(clock: { now })
-        coordinator.place = { NSRect(x: 0, y: 0, width: 300, height: $0) }
-        coordinator.writeFrame = { _, _ in }
-        var pins: [CGFloat?] = []
-        coordinator.pinContent = { pins.append($0) }
+        let (c, driver) = makeCoordinator(clock: { now })
+        c.retarget(to: 200, fromHeight: 0)
+        let staleTick = driver.tick
+        c.retarget(to: 0, fromHeight: 0)
+        XCTAssertEqual(c.phase, .idle)
+        XCTAssertNil(driver.tick)
+        now += 0.5
+        staleTick?()
+        XCTAssertEqual(c.presentedHeight, 0)
+        XCTAssertEqual(c.targetHeight, 0)
+    }
 
-        coordinator.retarget(to: 400, fromHeight: 200)
-        XCTAssertEqual(pins, [400], "the content is pinned to the target height while growing")
-
-        now += 0.30
+    func testRepeatedTargetsDoNotRestartTheCurve() {
+        var now: CFTimeInterval = 1000
+        let (c, driver) = makeCoordinator(clock: { now })
+        c.retarget(to: 200, fromHeight: 0)
+        now += 0.05
         driver.fire()
-        XCTAssertEqual(pins, [400, nil], "settling must release the pin")
+        let snapshot = c.animation.snapshot
+        c.retarget(to: 200, fromHeight: c.presentedHeight)
+        XCTAssertEqual(c.animation.snapshot, snapshot)
+        XCTAssertEqual(c.retargetCount, 0)
+        XCTAssertEqual(driver.startCount, 1)
+        c.cancel()
     }
 
-    func testCancelStopsTheTickSourceAndLeavesThePhaseIdle() {
+    func testDelayedRetargetUsesVelocityFromTheSamePresentedPosition() {
         var now: CFTimeInterval = 1000
-        let (coordinator, driver) = makeCoordinator(clock: { now })
-        coordinator.place = { NSRect(x: 0, y: 0, width: 300, height: $0) }
-        coordinator.writeFrame = { _, _ in }
-        coordinator.pinContent = { _ in }
-
-        coordinator.retarget(to: 400, fromHeight: 200)
-        XCTAssertTrue(driver.isRunning)
-        coordinator.cancel()
-        XCTAssertFalse(driver.isRunning, "cancel must tear down the tick source")
-        XCTAssertEqual(coordinator.phase, .idle)
-        XCTAssertFalse(coordinator.isAnimating)
+        let (c, driver) = makeCoordinator(clock: { now })
+        c.retarget(to: 200, fromHeight: 0)
+        now += 0.004
+        driver.fire()
+        let velocity = c.animation.velocity(at: now)
+        let position = c.presentedHeight
+        now += 0.04 // no displayed tick during this main-thread interval
+        c.retarget(to: 0, fromHeight: position)
+        XCTAssertEqual(c.animation.snapshot?.startVelocity, velocity)
+        XCTAssertEqual(c.animation.snapshot?.startHeight, position)
+        c.cancel()
     }
 
-    func testNoTickSourceIsStartedForAnImmediateSettle() {
+    func testThirtyRapidTargetsConvergeOnTheLastIntentWithoutOvershooting() {
         var now: CFTimeInterval = 1000
-        let (coordinator, driver) = makeCoordinator(clock: { now })
-        coordinator.place = { NSRect(x: 0, y: 0, width: 300, height: $0) }
-        coordinator.writeFrame = { _, _ in }
+        let (c, driver) = makeCoordinator(clock: { now })
+        for index in 0..<30 {
+            c.retarget(to: index % 2 == 0 ? 200 : 0, fromHeight: c.presentedHeight)
+            for _ in 0..<(index % 4 + 2) {
+                now += 0.01
+                driver.fire()
+                XCTAssertGreaterThanOrEqual(c.presentedHeight, 0)
+                XCTAssertLessThanOrEqual(c.presentedHeight, 200)
+            }
+        }
+        now += 0.5
+        driver.fire()
+        XCTAssertEqual(c.presentedHeight, 0)
+        XCTAssertEqual(c.targetHeight, 0)
+        XCTAssertNil(driver.tick)
+    }
 
-        coordinator.markSettled(at: 222)
-        XCTAssertFalse(driver.isRunning)
-        XCTAssertEqual(coordinator.phase, .idle)
-        XCTAssertEqual(coordinator.presentedHeight, 222)
+    func testDisplayPixelHeightsAreDeduplicatedAndUseHalfPoints() {
+        var now: CFTimeInterval = 1000
+        let (c, driver) = makeCoordinator(clock: { now })
+        c.pixelScale = 2
+        var heights: [CGFloat] = []
+        let subscription = c.$presentedHeight.sink { heights.append($0) }
+        defer { subscription.cancel() }
+        c.retarget(to: 200.5, fromHeight: 0)
+        for _ in 0..<1000 {
+            now += 0.0005
+            driver.fire()
+        }
+        XCTAssertTrue(heights.contains { $0 != $0.rounded() })
+        XCTAssertTrue(heights.allSatisfy { $0 * 2 == ($0 * 2).rounded() })
+        XCTAssertFalse(zip(heights, heights.dropFirst()).contains { $0 == $1 })
+        XCTAssertEqual(heights.last, 200.5)
+        XCTAssertNil(driver.tick)
+    }
+
+    func testChangingPixelScaleRealignsAnInFlightAndSettledTarget() {
+        var now: CFTimeInterval = 1000
+        let (c, driver) = makeCoordinator(clock: { now })
+        c.pixelScale = 2
+        c.retarget(to: 200.5, fromHeight: 0)
+        now += 0.05
+        driver.fire()
+        c.pixelScale = 1
+        XCTAssertEqual(c.targetHeight, 201)
+        now += 0.4
+        driver.fire()
+        XCTAssertEqual(c.presentedHeight, 201)
+        XCTAssertNil(driver.tick)
+        c.pixelScale = 2
+        c.markSettled(at: 100.5)
+        c.pixelScale = 1
+        XCTAssertEqual(c.presentedHeight, 101)
+        XCTAssertEqual(c.targetHeight, 101)
+    }
+
+    func testCancelAndImmediateSettlementClearEveryTransientState() {
+        let (c, driver) = makeCoordinator(clock: { 1000 })
+        c.retarget(to: 200, fromHeight: 0)
+        c.cancel()
+        XCTAssertNil(driver.tick)
+        XCTAssertNil(c.animation.snapshot)
+        XCTAssertEqual(c.phase, .idle)
+        XCTAssertEqual(c.targetHeight, c.presentedHeight)
+        c.retarget(to: 200, fromHeight: 0)
+        let staleTick = driver.tick
+        c.markSettled(at: 120.5)
+        let settled = c.presentedHeight
+        staleTick?()
+        XCTAssertEqual(c.presentedHeight, settled, "an invalidated tick cannot replay movement")
+        XCTAssertNil(driver.tick)
+        XCTAssertNil(c.animation.snapshot)
+        XCTAssertEqual(c.phase, .idle)
+        XCTAssertEqual(c.presentedHeight, c.targetHeight)
     }
 }
 #if DEBUG

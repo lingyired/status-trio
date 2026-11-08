@@ -515,12 +515,8 @@ final class StatusBarController: NSObject {
             )
         }
         let hostingController = StatusPanelHostingController(rootView: rootView)
-        if #available(macOS 14.0, *) {
-            // The Ventura hosting pass can recurse while AppKit installs the
-            // panel content. Leave sizing to the measured content there, and
-            // keep preferred sizing on the newer path.
-            hostingController.sizingOptions = [.preferredContentSize]
-        }
+        // StatusPanelLayoutMetrics owns the panel height; preferred sizing here
+        // would add a second owner and can reset the measured window frame.
         popover.installContent(hostingController, backgroundStyle: settings.panelBackgroundStyle)
     }
 
