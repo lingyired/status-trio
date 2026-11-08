@@ -547,6 +547,7 @@
 "battery.details.uptime" = "مدة تشغيل النظام";
 "battery.details.maxCapacity" = "أقصى سعة";
 "battery.details.batteryCondition" = "حالة البطارية";
+"battery.details.temperature" = "درجة حرارة البطارية";
 "battery.details.condition.normal" = "طبيعي";
 "battery.details.condition.service" = "يُنصح بالصيانة";
 "battery.details.lowPower" = "نمط الطاقة المنخفضة";

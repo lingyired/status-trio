@@ -378,6 +378,147 @@ final class SystemStatusStoreTests: XCTestCase {
         store.stop()
     }
 
+    // MARK: - Sleep gating through the real notification wiring
+
+    /// A wake that delivers only `didWake` must restore the pause that
+    /// `willSleep` created. The display gate is only a real display signal; it
+    /// must not be synthesised by system sleep, or a wake cycle without
+    /// `screensDidWake` leaves nearby BLE stopped for the session.
+    func testNearbyBLEScanningResumesWhenOnlySystemWakeFollowsSystemSleep() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        await waitUntil { fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        await waitUntil { !fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.didWakeNotification, object: nil)
+        await waitUntil { fixture.scanner.isRunning }
+        XCTAssertTrue(
+            fixture.scanner.isRunning,
+            "a system wake without screensDidWake must restart background BLE"
+        )
+    }
+
+    /// A display wake also proves the system is awake. If the separate system
+    /// wake notification is lost, `screensDidWake` has to clear both gates.
+    func testNearbyBLEScanningResumesFromDisplayWakeAfterSleepLosesSystemWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        await waitUntil { fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        fixture.notifications.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
+        await waitUntil { !fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        await waitUntil { fixture.scanner.isRunning }
+        XCTAssertTrue(
+            fixture.scanner.isRunning,
+            "the display wake proves the system is awake and must clear the system gate too"
+        )
+    }
+
+    /// Opening the popover is a visible surface that repairs a missed wake. It
+    /// must clear both gates, not only the display one.
+    func testNearbyBLEScanningResumesFromPopoverAfterSleepLosesSystemWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        await waitUntil { fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        fixture.notifications.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
+        await waitUntil { !fixture.scanner.isRunning }
+
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.scanner.isRunning }
+        XCTAssertTrue(
+            fixture.scanner.isRunning,
+            "a visible popover must repair both sleep gates, not only the display one"
+        )
+    }
+
+    /// A dark wake still has the screen off, so a real display sleep must keep
+    /// scanning paused through `didWake`; only `screensDidWake` may resume it.
+    func testNearbyBLEScanningStaysPausedThroughDarkWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        await waitUntil { fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
+        await waitUntil { !fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.didWakeNotification, object: nil)
+        try? await Task.sleep(for: .milliseconds(20))
+        XCTAssertFalse(
+            fixture.scanner.isRunning,
+            "a dark wake with the screen still off must not restart the radio"
+        )
+
+        fixture.notifications.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        await waitUntil { fixture.scanner.isRunning }
+    }
+
+    /// The store-owned power sampler is suspended by the same flags. A system
+    /// wake or a display wake restores the registered demand.
+    func testPowerSamplingSuspendsAcrossSystemSleepAndResumesOnWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        fixture.powerSampling.begin(.icon)
+        XCTAssertTrue(fixture.powerSampling.isRunning)
+
+        fixture.notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        await waitUntil { !fixture.powerSampling.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.didWakeNotification, object: nil)
+        await waitUntil { fixture.powerSampling.isRunning }
+        XCTAssertEqual(fixture.powerSampling.demands, [.icon], "the demand must survive sleep")
+    }
+
+    /// A dark wake keeps the power sampler paused, because no surface can show
+    /// watts while the display is off; the display wake resumes it.
+    func testPowerSamplingStaysSuspendedThroughDarkWakeAndResumesOnDisplayWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        fixture.powerSampling.begin(.icon)
+        XCTAssertTrue(fixture.powerSampling.isRunning)
+
+        fixture.notifications.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
+        await waitUntil { !fixture.powerSampling.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.didWakeNotification, object: nil)
+        try? await Task.sleep(for: .milliseconds(20))
+        XCTAssertFalse(
+            fixture.powerSampling.isRunning,
+            "a dark wake must not restart the SMC reads"
+        )
+
+        fixture.notifications.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        await waitUntil { fixture.powerSampling.isRunning }
+    }
+
+    /// The popover-visible path repairs a missed wake for the power sampler too.
+    func testPowerSamplingResumesFromPopoverAfterSleepLosesSystemWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        fixture.powerSampling.begin(.icon)
+        XCTAssertTrue(fixture.powerSampling.isRunning)
+
+        fixture.notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        fixture.notifications.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
+        await waitUntil { !fixture.powerSampling.isRunning }
+
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.powerSampling.isRunning }
+    }
+
     func testHiddenAliasRevokesBothBackgroundReadRoutesAndRestoreReenablesThem() async throws {
         let trustedReader = ControlledMobileBatteryReader()
         let discoveryReader = ControlledMobileBatteryReader()
@@ -2640,6 +2781,46 @@ final class SystemStatusStoreTests: XCTestCase {
         )
     }
 
+    /// Store with a real `BluetoothDeviceController` over a spy state monitor and
+    /// spy scanner, plus an injectable power sampler. Settings demand the
+    /// background nearby-BLE route, so the scanner is running without a panel.
+    private func makeBluetoothSleepFixture() -> (
+        store: SystemStatusStore,
+        scanner: StoreIntervalScannerSpy,
+        monitor: StoreBluetoothStateMonitorSpy,
+        powerSampling: PowerSamplingService,
+        notifications: NotificationCenter,
+        suite: (defaults: UserDefaults, name: String)
+    ) {
+        let scanner = StoreIntervalScannerSpy()
+        let monitor = StoreBluetoothStateMonitorSpy()
+        let bluetooth = BluetoothDeviceController(
+            stateMonitor: monitor,
+            nearbyBatteryScanner: scanner
+        )
+        let powerSampling = PowerSamplingService(reader: { _ in .empty })
+        let notifications = NotificationCenter()
+        let suite = makeSuite()
+        let settings = SettingsStore(defaults: suite.defaults)
+        settings.showsAppleDevicesAndBattery = true
+        settings.showsBluetoothBatteryLevels = true
+        settings.showsBluetoothDeviceList = true
+        settings.refreshesAppleBatteriesInBackground = true
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            wakeNotificationCenter: notifications,
+            powerSampling: powerSampling,
+            bluetoothDevices: bluetooth
+        )
+        store.bindBluetoothSettings(settings)
+        store.bindMobileBatterySettings(settings)
+        store.start()
+        monitor.emit(authorization: .allowed, state: .poweredOn)
+        return (store, scanner, monitor, powerSampling, notifications, suite)
+    }
+
     private func makeSuite() -> (defaults: UserDefaults, name: String) {
         let name = "StatusTrioCoreTests.SystemStatusStore.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: name) else {
@@ -2835,6 +3016,8 @@ private final class StoreIntervalScannerSpy: BluetoothLEBatteryScanning {
     private(set) var allowedReadDeviceIDs: Set<UUID> = []
     private(set) var isRunning = false
     private(set) var isScanning = false
+    private(set) var startCount = 0
+    private(set) var stopCount = 0
     private(set) var backgroundRefreshIntervals: [Duration?] = []
 
     func setAllowedReadDeviceIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
@@ -2847,9 +3030,9 @@ private final class StoreIntervalScannerSpy: BluetoothLEBatteryScanning {
         return [:]
     }
     func setBackgroundRefreshInterval(_ interval: Duration?) { backgroundRefreshIntervals.append(interval) }
-    func start() { isRunning = true }
+    func start() { isRunning = true; startCount += 1 }
     func refresh() {}
-    func stop() { isRunning = false; isScanning = false }
+    func stop() { isRunning = false; isScanning = false; stopCount += 1 }
 }
 
 @MainActor

@@ -1327,10 +1327,46 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
 
     private func receive(_ result: AudioStatusReading) {
         guard let reading = result.volume else {
+            // A failed volume read (typically a transiently invalid default
+            // output while the system switches to a Bluetooth/AirPlay/aggregate
+            // device) must not wipe the whole status. Always keep the last known
+            // device list so the panel does not collapse into an empty skeleton
+            // (#296).
+            let previousBackend = externalBackend
             invalidateDDCSelection()
             invalidateBetterDisplaySelection()
             externalBackend = .none
-            latestStatus = .placeholder
+            let devices: [AudioOutputDevice]
+            if !detailsVisible {
+                cachedOutputDevices = []
+                outputDevicesCacheValid = true
+                devices = []
+            } else if let outputDevices = result.outputDevices {
+                cachedOutputDevices = outputDevices
+                outputDevicesCacheValid = true
+                devices = cachedOutputDevices
+            } else {
+                devices = cachedOutputDevices
+            }
+            // Carry over the last known level only for a native CoreAudio output,
+            // where a nil read means the default device is transiently invalid
+            // (a switch), not that it vanished. DDC/BetterDisplay levels are
+            // optimistic drafts owned by their coordinators; a CoreAudio read
+            // failure must still clear them so a real device disappearance drops
+            // the slider instead of showing a stale value.
+            let carriesLevel = previousBackend == .native
+            latestStatus = VolumeStatus(
+                scalar: carriesLevel ? latestStatus.scalar : nil,
+                isMuted: carriesLevel ? latestStatus.isMuted : false,
+                deviceName: carriesLevel ? latestStatus.deviceName : nil,
+                currentDevice: carriesLevel ? latestStatus.currentDevice : nil,
+                outputDevices: devices,
+                canSetVolume: false,
+                canMute: false,
+                muteState: .unknown,
+                externalVolumeTransitionGeneration:
+                    latestStatus.externalVolumeTransitionGeneration
+            )
             publish(latestStatus)
             return
         }

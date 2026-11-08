@@ -540,6 +540,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case batteryDetailsUptime = "battery.details.uptime"
     case batteryDetailsMaxCapacity = "battery.details.maxCapacity"
     case batteryDetailsBatteryCondition = "battery.details.batteryCondition"
+    case batteryDetailsTemperature = "battery.details.temperature"
     case batteryDetailsHighPowerUnsupported = "battery.details.highPower.unsupported"
     case batteryDetailsConditionNormal = "battery.details.condition.normal"
     case batteryDetailsConditionService = "battery.details.condition.service"

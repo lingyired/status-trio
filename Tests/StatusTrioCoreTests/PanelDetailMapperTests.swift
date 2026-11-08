@@ -437,6 +437,19 @@ extension PanelDetailMapperTests {
         )
     }
 
+    func testBatteryTemperatureRowAppearsOnlyWithAReading() {
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true,
+            isCharging: false, isLowPowerMode: false, isConnectedToPower: true)
+        let localization = makeLocalization()
+        func temperature(_ celsius: Double?) -> String? {
+            let details = BatteryDetails(health: BatteryHealthSnapshot(temperatureCelsius: celsius))
+            return PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+                .rows.first { $0.id == LocalizationKey.batteryDetailsTemperature.rawValue }?.value
+        }
+        XCTAssertEqual(temperature(28.5), "28.5 °C")
+        XCTAssertNil(temperature(nil))
+    }
+
     func testHighPowerRowUsesSystemSupportAndState() {
         let localization = makeLocalization()
         let battery = BatteryStatus(

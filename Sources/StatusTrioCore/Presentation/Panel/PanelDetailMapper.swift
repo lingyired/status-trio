@@ -80,6 +80,18 @@ enum PanelDetailMapper {
                     value: conditionValue,
                     localization: localization
                 ))
+                // Absent when TB0T is missing or fails the decoder's type and
+                // range checks, rather than an "unavailable" row on every such
+                // Mac. The value is shown as decoded; only Mac18,1 (flt) was
+                // checked against a live reading.
+                if let celsius = health.temperatureCelsius {
+                    rows.append(row(
+                        .batteryDetailsTemperature,
+                        value: celsius.formatted(.number.precision(.fractionLength(1))
+                            .locale(localization.resolvedLanguage.locale)) + " °C",
+                        localization: localization
+                    ))
+                }
             }
             if battery.isPresent, let count = details.cycleCount {
                 rows.append(row(.batteryDetailsCycles, value: count.formatted(.number.locale(localization.resolvedLanguage.locale)), localization: localization))
