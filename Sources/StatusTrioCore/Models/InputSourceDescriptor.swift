@@ -19,14 +19,34 @@ struct InputSourceDescriptor: Equatable, Hashable, Sendable {
 }
 
 extension InputSourceDescriptor {
-    /// Only Apple's known Pinyin modes replace their shared system image with
-    /// our explicit script marker. Third-party IMEs retain their own icons.
-    var prefersShortLabel: Bool {
-        switch id.lowercased() {
-        case "com.apple.inputmethod.scim.itabc": return shortLabel == "简"
-        case "com.apple.inputmethod.tcim.pinyin": return shortLabel == "繁"
-        default: return false
-        }
+    /// Apple's known Pinyin modes draw an explicit 简/繁 marker instead of the
+    /// shared system image; every other source — including third-party IMEs —
+    /// keeps its own icon. Decided by the stable input-source ID alone, so it
+    /// never depends on the marker text.
+    var overridesSystemIcon: Bool {
+        Self.systemIconOverrideIDs.contains(id.lowercased())
+    }
+
+    /// The Apple input-source IDs whose system image is replaced by `shortLabel`.
+    private static let systemIconOverrideIDs: Set<String> = [
+        "com.apple.inputmethod.scim.itabc",
+        "com.apple.inputmethod.tcim.pinyin",
+    ]
+
+    /// The icon this source may draw, or `nil` to fall back to `shortLabel`.
+    ///
+    /// This is the single source of truth for the menu bar, Dock, settings
+    /// previews and the input-source list. Rendering paths that already hold a
+    /// resolved descriptor, or that decode the icon lazily, apply only the
+    /// override; resolution additionally checks the file on disk.
+    func drawingIconURL() -> URL? {
+        guard !overridesSystemIcon else { return nil }
+        return iconURL
+    }
+
+    func drawingIconURL(fileExists: (URL) -> Bool) -> URL? {
+        guard let iconURL = drawingIconURL(), fileExists(iconURL) else { return nil }
+        return iconURL
     }
 
     /// Explicit English keyboard layouts only. An IME's language metadata does
@@ -56,7 +76,7 @@ extension InputSourceDescriptor {
     func resolvedForDrawing(
         fileExists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) }
     ) -> InputSourceDescriptor {
-        guard let iconURL, prefersShortLabel || !fileExists(iconURL) else { return self }
+        guard iconURL != nil, drawingIconURL(fileExists: fileExists) == nil else { return self }
         return InputSourceDescriptor(
             id: id,
             localizedName: localizedName,
