@@ -188,6 +188,9 @@
 "settings.battery.group.topMarkers" = "Верхние маркеры";
 "settings.battery.group.progress" = "Прогресс";
 "settings.battery.noBatteryNotice" = "На этом устройстве нет аккумулятора, поэтому процент заряда не отображается.";
+"settings.battery.noBatteryTopIndicator" = "Верхний индикатор";
+"settings.battery.noBatteryTopIndicatorDescription" = "На этом Mac нет аккумулятора, поэтому этот значок только декоративный: он рисует молнию или вилку в разрыве кольца и не отражает реальную зарядку.";
+"settings.battery.noBatteryGapIcon" = "Значок разрыва";
 "settings.battery.showPercentage" = "Показывать процент заряда";
 "settings.battery.showChargingIndicator" = "Показывать значок при зарядке или питании от сети";
 "settings.battery.chargingDescription" = "Если включено, процент заменяется молнией или вилкой во время зарядки или при питании от сети.";

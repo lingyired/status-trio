@@ -98,7 +98,7 @@ struct VolumeControlsView: View {
                     .accessibilityHidden(true)
 
                 Button(action: onOpenSoundSettings) {
-                    PanelActionGlyph(systemName: "gearshape")
+                    PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
                         .foregroundStyle(.secondary)
                         .contentShape(Rectangle())
                 }

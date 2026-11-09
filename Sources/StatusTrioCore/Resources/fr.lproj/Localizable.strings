@@ -188,6 +188,9 @@
 "settings.battery.group.topMarkers" = "Repères supérieurs";
 "settings.battery.group.progress" = "Progression";
 "settings.battery.noBatteryNotice" = "Cet appareil n’a pas de batterie, le pourcentage de batterie n’est donc pas affiché.";
+"settings.battery.noBatteryTopIndicator" = "Indicateur supérieur";
+"settings.battery.noBatteryTopIndicatorDescription" = "Ce Mac n’a pas de batterie ; cette icône est purement décorative : elle affiche un éclair ou une prise dans l’ouverture de l’anneau et ne reflète pas une charge réelle.";
+"settings.battery.noBatteryGapIcon" = "Icône de l’ouverture";
 "settings.battery.showPercentage" = "Afficher le pourcentage de batterie";
 "settings.battery.showChargingIndicator" = "Afficher un indicateur pendant la charge ou sur secteur";
 "settings.battery.chargingDescription" = "Lorsque cette option est activée, le pourcentage devient un éclair ou une prise pendant la charge ou sur secteur.";

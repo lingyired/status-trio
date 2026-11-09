@@ -188,6 +188,9 @@
 "settings.battery.group.topMarkers" = "顶部标记";
 "settings.battery.group.progress" = "进度";
 "settings.battery.noBatteryNotice" = "当前设备没有电池，不显示电量百分比。";
+"settings.battery.noBatteryTopIndicator" = "顶部指示图标";
+"settings.battery.noBatteryTopIndicatorDescription" = "当前设备没有电池，这个图标只作装饰：在圆环缺口画闪电或插头，不代表真实充电状态。";
+"settings.battery.noBatteryGapIcon" = "缺口图标";
 "settings.battery.showPercentage" = "显示电量数字";
 "settings.battery.showChargingIndicator" = "充电/连接电源时显示指示图标";
 "settings.battery.chargingDescription" = "开启后，正在充电或已连接电源时，电量数字会替换为闪电或插头图标；关闭则继续显示数字。";

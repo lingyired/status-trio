@@ -188,6 +188,9 @@
 "settings.battery.group.topMarkers" = "Obere Markierungen";
 "settings.battery.group.progress" = "Fortschritt";
 "settings.battery.noBatteryNotice" = "Dieses Gerät hat keinen Akku, daher wird kein Akkustand in Prozent angezeigt.";
+"settings.battery.noBatteryTopIndicator" = "Obere Anzeige";
+"settings.battery.noBatteryTopIndicatorDescription" = "Dieser Mac hat keinen Akku. Das Symbol ist nur dekorativ: Es zeichnet einen Blitz oder Stecker in die Lücke des Rings und zeigt keinen echten Ladezustand an.";
+"settings.battery.noBatteryGapIcon" = "Lückensymbol";
 "settings.battery.showPercentage" = "Batterieprozentsatz anzeigen";
 "settings.battery.showChargingIndicator" = "Symbol beim Laden oder Netzbetrieb anzeigen";
 "settings.battery.chargingDescription" = "Wenn aktiviert, wird der Prozentsatz beim Laden oder Netzbetrieb durch ein Blitz- oder Steckersymbol ersetzt.";

@@ -171,6 +171,9 @@
 "settings.battery.group.topMarkers" = "العلامات العلوية";
 "settings.battery.group.progress" = "التقدم";
 "settings.battery.noBatteryNotice" = "لا يحتوي هذا الجهاز على بطارية، لذا لا تُعرض نسبة شحن البطارية.";
+"settings.battery.noBatteryTopIndicator" = "مؤشر علوي";
+"settings.battery.noBatteryTopIndicatorDescription" = "هذا الـ Mac بلا بطارية، لذا فإن هذا الرمز للزينة فقط: يرسم صاعقة أو قابسًا في فجوة الحلقة ولا يعكس حالة شحن حقيقية.";
+"settings.battery.noBatteryGapIcon" = "رمز الفجوة";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";
 "settings.battery.chargingDescription" = "عند التفعيل، تتحول النسبة إلى رمز برق أو قابس أثناء الشحن أو الاتصال بالطاقة.";
