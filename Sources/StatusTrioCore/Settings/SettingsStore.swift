@@ -867,6 +867,17 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Whether the synthetic listening-mode preview is actually allowed to run.
+    ///
+    /// Developer-only: a packaged release never previews, regardless of any stale
+    /// value in `UserDefaults`. Every consumer gates on this one property so the
+    /// release rule lives in a single place.
+    var isListeningModePreviewActive: Bool {
+        isDevelopmentBuild
+            && showsBluetoothListeningMode
+            && previewsBluetoothListeningMode
+    }
+
     /// Optional override for the synthetic preview rows' device name. Empty means
     /// "use the built-in default", which already contains the string "AirPods"
     /// — an override without that substring still works because the synthetic
@@ -1728,6 +1739,11 @@ final class SettingsStore: ObservableObject {
 
     private let defaults: UserDefaults
     private let persistCoalescingInterval: Duration
+    /// Whether this bundle is a development build (carries a
+    /// `STDevelopmentCodename`). Injectable so tests can exercise both the
+    /// development and the packaged-release behaviour of developer-only features
+    /// such as the listening-mode preview.
+    let isDevelopmentBuild: Bool
     private var pendingPersistValues: [String: Any] = [:]
     private var pendingPersistTask: Task<Void, Never>?
     private var isCoalescingSliderWrite = false
@@ -1808,10 +1824,12 @@ final class SettingsStore: ObservableObject {
     init(
         defaults: UserDefaults = .standard,
         systemChargeLimit: () -> Int? = { SystemChargeLimitReader.chargeLimit() },
-        persistCoalescingInterval: Duration = .milliseconds(250)
+        persistCoalescingInterval: Duration = .milliseconds(250),
+        isDevelopmentBuild: Bool = AppMetadata.isDevelopmentBuild
     ) {
         self.defaults = defaults
         self.persistCoalescingInterval = persistCoalescingInterval
+        self.isDevelopmentBuild = isDevelopmentBuild
         self.statusPanelShortcut = defaults
             .data(forKey: Self.statusPanelShortcutDefaultsKey)
             .flatMap { try? JSONDecoder().decode(StatusPanelShortcut.self, from: $0) }
@@ -2184,6 +2202,27 @@ final class SettingsStore: ObservableObject {
         self.bluetoothListeningModePreviewLanguage = defaults.string(
             forKey: Self.bluetoothListeningModePreviewLanguageDefaultsKey
         ) ?? ""
+        // The listening-mode preview is developer-only. A packaged release must
+        // never show it, so scrub any preview state a user may have set while a
+        // development build offered the toggle — removing the demo/synthetic
+        // rows and the fake device name/count/language from storage. Property
+        // observers do not fire during initialization, so reset the in-memory
+        // values here and delete the persisted keys afterwards.
+        if !isDevelopmentBuild {
+            self.previewsBluetoothListeningMode = false
+            self.bluetoothListeningModePreviewDeviceName = ""
+            self.bluetoothListeningModePreviewDeviceCount =
+                Self.defaultBluetoothListeningModePreviewDeviceCount
+            self.bluetoothListeningModePreviewLanguage = ""
+            for key in [
+                Self.previewsBluetoothListeningModeDefaultsKey,
+                Self.bluetoothListeningModePreviewDeviceNameDefaultsKey,
+                Self.bluetoothListeningModePreviewDeviceCountDefaultsKey,
+                Self.bluetoothListeningModePreviewLanguageDefaultsKey,
+            ] {
+                defaults.removeObject(forKey: key)
+            }
+        }
         self.wifiSymbolScale = Self.clampedWifiSymbolScale(
             storedWifiSymbolScale
                 ?? (defaults.object(forKey: Self.bluetoothSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue

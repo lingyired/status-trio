@@ -202,7 +202,7 @@ final class StatusPanelActions {
                     return store.bluetoothDevices.devices
                 }
                 let config = ListeningModePreview.Configuration(
-                    isEnabled: settings.previewsBluetoothListeningMode,
+                    isEnabled: settings.isListeningModePreviewActive,
                     deviceName: settings.bluetoothListeningModePreviewDeviceName,
                     deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
                     languageCode: settings.bluetoothListeningModePreviewLanguage
@@ -240,7 +240,7 @@ final class StatusPanelActions {
                     return
                 }
                 let config = ListeningModePreview.Configuration(
-                    isEnabled: settings.previewsBluetoothListeningMode,
+                    isEnabled: settings.isListeningModePreviewActive,
                     deviceName: settings.bluetoothListeningModePreviewDeviceName,
                     deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
                     languageCode: settings.bluetoothListeningModePreviewLanguage

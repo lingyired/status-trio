@@ -562,6 +562,22 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertFalse(panel.volume.listeningModeTaskID.hasPrefix("off::"))
     }
 
+    /// A packaged release must never inject the synthetic preview rows, even if a
+    /// stale developer toggle is set on the settings. The build flag gates it.
+    func testReleaseBuildNeverShowsListeningModePreviewRows() {
+        let fixture = PanelStoreFixture(isDevelopmentBuild: false)
+        fixture.settings.setPopupSection(.volume, enabled: true)
+        fixture.settings.previewsBluetoothListeningMode = true
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        XCTAssertFalse(fixture.settings.isListeningModePreviewActive)
+        XCTAssertTrue(panel.volume.previewRows.isEmpty)
+        XCTAssertFalse(panel.volume.listeningModeTaskID.contains("|preview"))
+    }
+
     /// `volumeListChanged()` drives the real controller. With the master switch
     /// off it must stop discovery/SPP and clear presentations; turning it back
     /// on reruns discovery and republishes controls.
@@ -1041,12 +1057,13 @@ final class PanelStoreFixture {
     init(
         outputDevices: [AudioOutputDevice] = [],
         pairedDevices: [BluetoothDevice] = [],
-        wifiScanner: PanelWiFiScanner = PanelWiFiScanner()
+        wifiScanner: PanelWiFiScanner = PanelWiFiScanner(),
+        isDevelopmentBuild: Bool = true
     ) {
         let suiteName = "StatusPanelViewModelTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         let sleeper = ManualEventSleeper()
-        settings = SettingsStore(defaults: defaults)
+        settings = SettingsStore(defaults: defaults, isDevelopmentBuild: isDevelopmentBuild)
         localization = Localization(defaults: defaults, preferredLanguages: ["en"])
         popupSleeper = sleeper
         bluetoothWorker = PanelBluetoothWorker(devices: pairedDevices)

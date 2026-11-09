@@ -612,7 +612,7 @@ final class StatusPanelViewModel: ObservableObject {
 
     private var currentPreviewConfiguration: ListeningModePreview.Configuration {
         ListeningModePreview.Configuration(
-            isEnabled: settings.showsBluetoothListeningMode && settings.previewsBluetoothListeningMode,
+            isEnabled: settings.isListeningModePreviewActive,
             deviceName: settings.bluetoothListeningModePreviewDeviceName,
             deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
             languageCode: settings.bluetoothListeningModePreviewLanguage
@@ -621,7 +621,7 @@ final class StatusPanelViewModel: ObservableObject {
 
     private func makeListeningModeTaskID(outputDevices: [AudioOutputDevice]) -> String {
         let configuration = ListeningModePreview.Configuration(
-            isEnabled: settings.showsBluetoothListeningMode && settings.previewsBluetoothListeningMode,
+            isEnabled: settings.isListeningModePreviewActive,
             deviceName: settings.bluetoothListeningModePreviewDeviceName,
             deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
             languageCode: settings.bluetoothListeningModePreviewLanguage

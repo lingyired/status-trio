@@ -330,6 +330,57 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertFalse(second.previewsBluetoothListeningMode)
     }
 
+    func testListeningModePreviewIsPurgedInReleaseBuild() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        // Simulate a user who turned the developer preview on while a dev build
+        // offered it, including the demo device name/count/language.
+        suite.defaults.set(true, forKey: SettingsStore.previewsBluetoothListeningModeDefaultsKey)
+        suite.defaults.set("Fake AirPods", forKey: SettingsStore.bluetoothListeningModePreviewDeviceNameDefaultsKey)
+        suite.defaults.set(3, forKey: SettingsStore.bluetoothListeningModePreviewDeviceCountDefaultsKey)
+        suite.defaults.set("ja", forKey: SettingsStore.bluetoothListeningModePreviewLanguageDefaultsKey)
+
+        let store = SettingsStore(defaults: suite.defaults, isDevelopmentBuild: false)
+
+        // A packaged release never previews...
+        XCTAssertFalse(store.previewsBluetoothListeningMode)
+        XCTAssertFalse(store.isListeningModePreviewActive)
+        // ...and the demo data is gone from memory and from storage.
+        XCTAssertEqual(store.bluetoothListeningModePreviewDeviceName, "")
+        XCTAssertEqual(store.bluetoothListeningModePreviewDeviceCount, SettingsStore.defaultBluetoothListeningModePreviewDeviceCount)
+        XCTAssertEqual(store.bluetoothListeningModePreviewLanguage, "")
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.previewsBluetoothListeningModeDefaultsKey))
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.bluetoothListeningModePreviewDeviceNameDefaultsKey))
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.bluetoothListeningModePreviewDeviceCountDefaultsKey))
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.bluetoothListeningModePreviewLanguageDefaultsKey))
+    }
+
+    func testListeningModePreviewRemainsAvailableInDevelopmentBuild() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(true, forKey: SettingsStore.previewsBluetoothListeningModeDefaultsKey)
+        suite.defaults.set("Fake AirPods", forKey: SettingsStore.bluetoothListeningModePreviewDeviceNameDefaultsKey)
+
+        let store = SettingsStore(defaults: suite.defaults, isDevelopmentBuild: true)
+
+        XCTAssertTrue(store.previewsBluetoothListeningMode)
+        XCTAssertEqual(store.bluetoothListeningModePreviewDeviceName, "Fake AirPods")
+        // The master listening-mode switch defaults to on, so preview is active.
+        XCTAssertTrue(store.showsBluetoothListeningMode)
+        XCTAssertTrue(store.isListeningModePreviewActive)
+    }
+
+    func testListeningModePreviewActiveRequiresMasterSwitch() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(defaults: suite.defaults, isDevelopmentBuild: true)
+        store.previewsBluetoothListeningMode = true
+        store.showsBluetoothListeningMode = false
+        XCTAssertFalse(store.isListeningModePreviewActive)
+        store.showsBluetoothListeningMode = true
+        XCTAssertTrue(store.isListeningModePreviewActive)
+    }
+
     func testBluetoothNetworkIconDeviceDefaultsToTheAudioDevice() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
