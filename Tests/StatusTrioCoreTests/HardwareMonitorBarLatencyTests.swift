@@ -10,7 +10,7 @@ import XCTest
 final class HardwareMonitorBarLatencyTests: XCTestCase {
     private func makeHost(_ model: HardwareMonitorObservable,
                           localization: Localization) -> NSHostingView<AnyView> {
-        let host = NSHostingView(rootView: AnyView(HardwareMonitorCardView(model: model)
+        let host = NSHostingView(rootView: AnyView(HardwareMonitorCardView(model: model, metrics: HardwareMonitorMetric.allCases)
             .environmentObject(localization)
             .frame(width: 302)))
         host.frame = NSRect(x: 0, y: 0, width: 302, height: 120)

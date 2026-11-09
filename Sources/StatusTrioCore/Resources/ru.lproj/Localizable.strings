@@ -771,3 +771,8 @@
 "hardware.monitor.memory" = "Память";
 "hardware.monitor.batteryTemperature" = "Темп. батареи";
 "hardware.monitor.batteryTemperature.help" = "Температура батареи. Полоса использует визуальную шкалу 20–60 °C, а не процент безопасности.";
+"settings.tab.monitor" = "Монитор";
+"hardware.monitor.settings.showInPanel" = "Показывать в панели";
+"hardware.monitor.settings.showInPanel.description" = "Добавляет карточку монитора оборудования в панель состояния.";
+"hardware.monitor.settings.metrics" = "Метрики";
+"hardware.monitor.settings.metrics.description" = "Выберите метрики и перетащите для сортировки. Последнюю нельзя отключить.";

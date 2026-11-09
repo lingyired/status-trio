@@ -3,7 +3,11 @@ import SwiftUI
 /// A separately observed, fixed-size leaf: metric ticks never invalidate the
 /// surrounding status panel or change its measured content height.
 struct HardwareMonitorCardView: View {
-    static let height: CGFloat = 120
+    /// Card height for `count` visible tiles: two per row, fixed 24pt rows.
+    static func height(for count: Int) -> CGFloat {
+        let rows = max(1, (count + 1) / 2)
+        return CGFloat(rows * 24 + (rows - 1) * 12 + 24)
+    }
 
     /// The card's own fill is an overlay on the panel material, not a separate
     /// surface. Reduce Transparency raises it so the card keeps a visible edge
@@ -13,28 +17,31 @@ struct HardwareMonitorCardView: View {
     }
 
     @ObservedObject var model: HardwareMonitorObservable
+    /// Visible tiles in the user's order; driven by Settings → 监控.
+    let metrics: [HardwareMonitorMetric]
     @EnvironmentObject private var localization: Localization
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
-        let tiles = HardwareMetricTilePresentation.tiles(snapshot: model.snapshot, localization: localization)
+        let tiles = HardwareMetricTilePresentation.tiles(metrics: metrics, snapshot: model.snapshot,
+                                                          localization: localization)
         VStack(spacing: 12) {
-            HStack(spacing: 14) {
-                HardwareMonitorTileView(presentation: tiles[0])
-                HardwareMonitorTileView(presentation: tiles[1])
-            }
-            HStack(spacing: 14) {
-                HardwareMonitorTileView(presentation: tiles[2])
-                HardwareMonitorTileView(presentation: tiles[3])
-            }
-            HStack(spacing: 14) {
-                HardwareMonitorTileView(presentation: tiles[4])
-                HardwareMonitorTileView(presentation: tiles[5])
+            ForEach(Array(stride(from: 0, to: max(tiles.count, 1), by: 2)), id: \.self) { index in
+                HStack(spacing: 14) {
+                    if index < tiles.count {
+                        HardwareMonitorTileView(presentation: tiles[index])
+                    }
+                    if index + 1 < tiles.count {
+                        HardwareMonitorTileView(presentation: tiles[index + 1])
+                    } else {
+                        Color.clear.frame(maxWidth: .infinity)
+                    }
+                }
             }
         }
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity)
-        .frame(height: Self.height)
+        .frame(height: Self.height(for: metrics.count))
         .background {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Color.primary.opacity(Self.backgroundOpacity(reduceTransparency: reduceTransparency)))
@@ -87,14 +94,29 @@ struct HardwareMetricTilePresentation: Equatable {
 
     @MainActor
     static func tiles(snapshot: HardwareMetricsSnapshot, localization: Localization) -> [Self] {
-        [
-            make(metric: .cpu, sample: snapshot.cpuUsage, localization: localization),
-            make(metric: .gpu, sample: snapshot.gpuUsage, localization: localization),
-            make(metric: .memory, sample: snapshot.memoryUsage, localization: localization),
-            make(metric: .temperature, sample: snapshot.cpuTemperature, localization: localization),
-            make(metric: .batteryTemperature, sample: snapshot.batteryTemperature, localization: localization),
-            make(metric: .fan, sample: snapshot.fanSummarySample, localization: localization)
-        ]
+        tiles(metrics: HardwareMonitorMetric.allCases, snapshot: snapshot, localization: localization)
+    }
+
+    @MainActor
+    static func tiles(metrics: [HardwareMonitorMetric], snapshot: HardwareMetricsSnapshot,
+                      localization: Localization) -> [Self] {
+        metrics.map { metric in
+            switch metric {
+            case .cpuUsage:
+                return make(metric: .cpu, sample: snapshot.cpuUsage, localization: localization)
+            case .gpuUsage:
+                return make(metric: .gpu, sample: snapshot.gpuUsage, localization: localization)
+            case .memoryUsage:
+                return make(metric: .memory, sample: snapshot.memoryUsage, localization: localization)
+            case .cpuTemperature:
+                return make(metric: .temperature, sample: snapshot.cpuTemperature, localization: localization)
+            case .batteryTemperature:
+                return make(metric: .batteryTemperature, sample: snapshot.batteryTemperature,
+                            localization: localization)
+            case .fan:
+                return make(metric: .fan, sample: snapshot.fanSummarySample, localization: localization)
+            }
+        }
     }
 
     @MainActor

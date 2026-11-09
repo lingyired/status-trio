@@ -87,6 +87,29 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         XCTAssertFalse(service.isRunning)
     }
 
+    func testCardMetricsFollowSettingsOrderAndEnabledSet() {
+        let fixture = makeFixture()
+        fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)
+        fixture.settings.moveHardwareMonitorMetrics(fromOffsets: IndexSet(integer: 4), toOffset: 0)
+        fixture.settings.setHardwareMonitorMetric(.cpuUsage, enabled: false)
+        let panel = fixture.makePanel()
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        defer {
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        let expected = fixture.settings.visibleHardwareMetrics
+        XCTAssertEqual(panel.hardwareMonitorMetrics, expected)
+        XCTAssertEqual(expected.first, .batteryTemperature,
+                       "reordering is reflected in the panel")
+        XCTAssertEqual(fixture.store.hardwareMetrics.demands[.panel],
+                       Set(expected.map(\.metricID)))
+    }
+
     func testDefaultSettingsKeepCardOffAndSampleNothing() {
         let fixture = makeFixture()
         // No explicit enable: a fresh install must not sample hardware at all.

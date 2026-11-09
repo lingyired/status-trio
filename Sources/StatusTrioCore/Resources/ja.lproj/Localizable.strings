@@ -771,3 +771,8 @@
 "hardware.monitor.memory" = "メモリ";
 "hardware.monitor.batteryTemperature" = "バッテリー温度";
 "hardware.monitor.batteryTemperature.help" = "バッテリー温度です。バーは 20〜60°C の目安スケールで、安全率ではありません。";
+"settings.tab.monitor" = "モニター";
+"hardware.monitor.settings.showInPanel" = "ステータスパネルに表示";
+"hardware.monitor.settings.showInPanel.description" = "ハードウェアモニターカードをステータスパネルに追加します。";
+"hardware.monitor.settings.metrics" = "項目";
+"hardware.monitor.settings.metrics.description" = "表示する項目を選択し、ドラッグで並べ替えます。最後の1つはオフにできません。";

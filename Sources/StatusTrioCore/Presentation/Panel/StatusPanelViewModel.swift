@@ -112,6 +112,8 @@ final class StatusPanelViewModel: ObservableObject {
     /// panel's @Published snapshot: a 2-second tick must not re-render other
     /// sections or the icon.
     var hardwareMonitor: HardwareMonitorObservable { store.hardwareMetrics.observable }
+    /// Card tiles in the user's chosen order, filtered to enabled metrics.
+    @Published private(set) var hardwareMonitorMetrics: [HardwareMonitorMetric]
 
     private var isStarted = false
     private var bluetoothIsExpanded = false
@@ -158,6 +160,7 @@ final class StatusPanelViewModel: ObservableObject {
         self.updateScheduler = updateScheduler
         self.actions = actions
         visiblePopupSections = settings.visiblePopupSections
+        hardwareMonitorMetrics = settings.visibleHardwareMetrics
         battery = PanelPresentationMapper.battery(
             store.popupSnapshot.battery,
             powerSample: store.powerSampling.systemPower,
@@ -231,6 +234,8 @@ final class StatusPanelViewModel: ObservableObject {
         lifecycleGeneration &+= 1
         let sections = settings.visiblePopupSections
         if visiblePopupSections != sections { visiblePopupSections = sections }
+        let metrics = settings.visibleHardwareMetrics
+        if hardwareMonitorMetrics != metrics { hardwareMonitorMetrics = metrics }
         subscribeToPopupPresentationSources()
         subscribeToChargeToFullNow()
         reconcileSourceSubscriptions()
@@ -288,6 +293,19 @@ final class StatusPanelViewModel: ObservableObject {
             .dropFirst()
             .sink { [weak self] order, enabled in
                 self?.settingsSectionsChanged(order: order, enabled: enabled)
+            }
+            .store(in: &cancellables)
+
+        Publishers.CombineLatest(
+            settings.$hardwareMonitorMetricOrder,
+            settings.$enabledHardwareMonitorMetrics
+        )
+            .removeDuplicates { $0.0 == $1.0 && $0.1 == $1.1 }
+            .sink { [weak self] _, _ in
+                guard let self else { return }
+                let metrics = self.settings.visibleHardwareMetrics
+                if self.hardwareMonitorMetrics != metrics { self.hardwareMonitorMetrics = metrics }
+                self.updateHardwareMetricsDemand()
             }
             .store(in: &cancellables)
         // Non-section settings are delivered from `willSet`; only queue the
@@ -732,7 +750,7 @@ final class StatusPanelViewModel: ObservableObject {
             && route == .summary
             && visiblePopupSections.contains(.hardwareMonitor)
         if visible {
-            store.hardwareMetrics.begin(.panel, metrics: HardwareMetricsService.defaultMetricIDs)
+            store.hardwareMetrics.begin(.panel, metrics: Set(hardwareMonitorMetrics.map(\.metricID)))
         } else {
             store.hardwareMetrics.end(.panel)
         }

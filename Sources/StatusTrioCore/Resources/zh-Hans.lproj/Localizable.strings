@@ -771,3 +771,8 @@
 "hardware.monitor.memory" = "内存";
 "hardware.monitor.batteryTemperature" = "电池温度";
 "hardware.monitor.batteryTemperature.help" = "电池组温度。进度条使用 20–60°C 视觉刻度，不代表安全百分比。";
+"settings.tab.monitor" = "监控";
+"hardware.monitor.settings.showInPanel" = "在状态面板显示";
+"hardware.monitor.settings.showInPanel.description" = "将硬件监控卡片加入状态面板。";
+"hardware.monitor.settings.metrics" = "指标";
+"hardware.monitor.settings.metrics.description" = "选择要显示的指标，拖动可排序；最后一项不能关闭。";

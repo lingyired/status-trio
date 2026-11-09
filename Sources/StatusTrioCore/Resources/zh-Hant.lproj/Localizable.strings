@@ -771,3 +771,8 @@
 "hardware.monitor.memory" = "記憶體";
 "hardware.monitor.batteryTemperature" = "電池溫度";
 "hardware.monitor.batteryTemperature.help" = "電池組溫度。進度條使用 20–60°C 視覺刻度，不代表安全百分比。";
+"settings.tab.monitor" = "監控";
+"hardware.monitor.settings.showInPanel" = "在狀態面板顯示";
+"hardware.monitor.settings.showInPanel.description" = "將硬體監控卡片加入狀態面板。";
+"hardware.monitor.settings.metrics" = "指標";
+"hardware.monitor.settings.metrics.description" = "選擇要顯示的指標，拖曳可排序；最後一項不能關閉。";

@@ -771,3 +771,8 @@
 "hardware.monitor.memory" = "메모리";
 "hardware.monitor.batteryTemperature" = "배터리 온도";
 "hardware.monitor.batteryTemperature.help" = "배터리 온도입니다. 막대는 20~60°C 시각 척도이며 안전 비율이 아닙니다.";
+"settings.tab.monitor" = "모니터";
+"hardware.monitor.settings.showInPanel" = "상태 패널에 표시";
+"hardware.monitor.settings.showInPanel.description" = "하드웨어 모니터 카드를 상태 패널에 추가합니다.";
+"hardware.monitor.settings.metrics" = "항목";
+"hardware.monitor.settings.metrics.description" = "표시할 항목을 선택하고 드래그하여 순서를 바꿉니다. 마지막 항목은 끌 수 없습니다.";

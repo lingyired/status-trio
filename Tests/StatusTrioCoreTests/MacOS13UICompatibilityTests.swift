@@ -181,6 +181,7 @@ final class MacOS13UICompatibilityTests: XCTestCase {
         "beats.solobuds",
         "beats.studiobuds.plus",
         "flask.fill",
+        "gauge.with.dots.needle.bottom.50percent",
         "headphones.over.ear",
         "headset",
         "homepod.mini",

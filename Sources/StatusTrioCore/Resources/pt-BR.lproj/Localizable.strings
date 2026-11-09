@@ -771,3 +771,8 @@
 "hardware.monitor.memory" = "Memória";
 "hardware.monitor.batteryTemperature" = "Temp. bateria";
 "hardware.monitor.batteryTemperature.help" = "Temperatura da bateria. A barra usa uma escala visual de 20–60 °C, não uma porcentagem de segurança.";
+"settings.tab.monitor" = "Monitor";
+"hardware.monitor.settings.showInPanel" = "Mostrar no painel";
+"hardware.monitor.settings.showInPanel.description" = "Adiciona o cartão de monitor de hardware ao painel de status.";
+"hardware.monitor.settings.metrics" = "Métricas";
+"hardware.monitor.settings.metrics.description" = "Escolha as métricas e arraste para reordenar. A última não pode ser desativada.";

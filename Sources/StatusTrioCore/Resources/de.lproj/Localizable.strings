@@ -771,3 +771,8 @@
 "hardware.monitor.memory" = "Speicher";
 "hardware.monitor.batteryTemperature" = "Akkutemperatur";
 "hardware.monitor.batteryTemperature.help" = "Akkutemperatur. Der Balken nutzt eine visuelle Skala von 20–60 °C, keinen Sicherheitsprozentsatz.";
+"settings.tab.monitor" = "Monitor";
+"hardware.monitor.settings.showInPanel" = "Im Statusfenster anzeigen";
+"hardware.monitor.settings.showInPanel.description" = "Fügt die Hardware-Monitor-Karte zum Statusfenster hinzu.";
+"hardware.monitor.settings.metrics" = "Messwerte";
+"hardware.monitor.settings.metrics.description" = "Wähle die Messwerte und ziehe zum Sortieren. Der letzte aktive Wert kann nicht deaktiviert werden.";
