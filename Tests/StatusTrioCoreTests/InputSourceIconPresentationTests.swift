@@ -9,21 +9,39 @@ final class InputSourceIconPresentationTests: XCTestCase {
     private let wifiScale = 1.6
     private let iconURL = URL(fileURLWithPath: "/fixture/menu_icon.pdf")
 
-    func testApplePinyinScriptLabelsOverrideTheirSystemIconURLs() {
+    func testApplePinyinMarkersFollowTheChosenMarkerStyle() {
         for (id, label) in [("com.apple.inputmethod.SCIM.ITABC", "简"),
                             ("com.apple.inputmethod.TCIM.Pinyin", "繁")] {
             let source = InputSourceDescriptor(
                 id: id, localizedName: "Pinyin", primaryLanguage: "zh",
                 iconURL: iconURL, shortLabel: label
             )
-            let result = scene(
-                snapshot: snapshot(), inputSource: source,
+
+            let script = scene(
+                snapshot: snapshot(), inputSource: source.applying(markerStyle: .script),
                 configuration: configuration(centerSource: .inputSource)
             )
-
-            XCTAssertEqual(result.center, .text(IconTextState(
+            XCTAssertEqual(script.center, .text(IconTextState(
                 text: label, color: .primary, scale: wifiScale
-            )), "The explicit script marker must survive a system-provided icon")
+            )), "The 简/繁 marker replaces a system-provided icon")
+
+            let zhong = scene(
+                snapshot: snapshot(), inputSource: source.applying(markerStyle: .zhong),
+                configuration: configuration(centerSource: .inputSource)
+            )
+            XCTAssertEqual(zhong.center, .text(IconTextState(
+                text: "中", color: .primary, scale: wifiScale
+            )), "The 中 marker replaces a system-provided icon")
+
+            let system = scene(
+                snapshot: snapshot(), inputSource: source.applying(markerStyle: .systemIcon),
+                configuration: configuration(centerSource: .inputSource)
+            )
+            XCTAssertEqual(system.center, .symbol(IconSymbolState(
+                source: .image(url: iconURL, fallbackSymbol: "keyboard"),
+                color: .primary,
+                scale: wifiScale
+            )), "System icon keeps the source's own image")
         }
     }
 

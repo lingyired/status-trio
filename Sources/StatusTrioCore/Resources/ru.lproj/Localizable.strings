@@ -70,6 +70,11 @@
 "settings.appIcon.middleIcon.size.description" = "Единый размер для всего содержимого в центре: Wi-Fi, Bluetooth, источник ввода и числа.";
 "settings.appIcon.middleIcon.networkWarnings" = "Сначала проблемы сети";
 "settings.appIcon.middleIcon.networkWarnings.description" = "Когда Mac действительно офлайн, в центре показывается состояние сети вместо выбранного источника.";
+"settings.appIcon.middleIcon.inputSourceMarker" = "Значок пиньиня";
+"settings.appIcon.middleIcon.inputSourceMarker.description" = "Как источники ввода пиньиня (упрощённый и традиционный) от Apple отображают центральный значок.";
+"settings.appIcon.middleIcon.inputSourceMarker.systemIcon" = "Системный значок";
+"settings.appIcon.middleIcon.inputSourceMarker.script" = "简 / 繁";
+"settings.appIcon.middleIcon.inputSourceMarker.zhong" = "中";
 "settings.network.connectionIcons" = "Стиль значков подключения";
 "settings.network.connectionIcons.description" = "Если включено, выбранное состояние отображается стандартным значком сигнала Wi-Fi вместо специального обозначения.";
 "settings.network.wifiIconForEthernet" = "Использовать значок Wi-Fi для Ethernet";

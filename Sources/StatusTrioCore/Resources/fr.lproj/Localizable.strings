@@ -70,6 +70,11 @@
 "settings.appIcon.middleIcon.size.description" = "Une seule taille pour tout le contenu central : Wi-Fi, Bluetooth, source de saisie et nombres.";
 "settings.appIcon.middleIcon.networkWarnings" = "Prioriser les problèmes réseau";
 "settings.appIcon.middleIcon.networkWarnings.description" = "Quand le Mac est réellement hors ligne, le centre affiche l’état du réseau plutôt que la source choisie.";
+"settings.appIcon.middleIcon.inputSourceMarker" = "Icône pinyin";
+"settings.appIcon.middleIcon.inputSourceMarker.description" = "Comment les sources de saisie pinyin simplifié et traditionnel d’Apple dessinent leur icône centrale.";
+"settings.appIcon.middleIcon.inputSourceMarker.systemIcon" = "Icône système";
+"settings.appIcon.middleIcon.inputSourceMarker.script" = "简 / 繁";
+"settings.appIcon.middleIcon.inputSourceMarker.zhong" = "中";
 "settings.network.connectionIcons" = "Style des icônes de connexion";
 "settings.network.connectionIcons.description" = "Lorsque cette option est activée, l’état sélectionné utilise l’icône de signal Wi-Fi standard au lieu de son symbole spécifique.";
 "settings.network.wifiIconForEthernet" = "Utiliser l’icône Wi-Fi pour Ethernet";

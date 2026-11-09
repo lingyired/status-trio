@@ -36,17 +36,40 @@ extension InputSourceDescriptor {
     /// The icon this source may draw, or `nil` to fall back to `shortLabel`.
     ///
     /// This is the single source of truth for the menu bar, Dock, settings
-    /// previews and the input-source list. Rendering paths that already hold a
-    /// resolved descriptor, or that decode the icon lazily, apply only the
-    /// override; resolution additionally checks the file on disk.
-    func drawingIconURL() -> URL? {
-        guard !overridesSystemIcon else { return nil }
+    /// previews and the input-source list. The Apple Pinyin override is applied
+    /// only when `style` asks for a text marker; `.systemIcon` keeps the source's
+    /// own image, which is the pre-#297 behaviour.
+    func drawingIconURL(style: InputSourceMarkerStyle) -> URL? {
+        guard overridesSystemIcon, style.drawsTextMarker else { return iconURL }
+        return nil
+    }
+
+    func drawingIconURL(style: InputSourceMarkerStyle, fileExists: (URL) -> Bool) -> URL? {
+        guard let iconURL = drawingIconURL(style: style), fileExists(iconURL) else {
+            return nil
+        }
         return iconURL
     }
 
-    func drawingIconURL(fileExists: (URL) -> Bool) -> URL? {
-        guard let iconURL = drawingIconURL(), fileExists(iconURL) else { return nil }
-        return iconURL
+    /// The marker drawn for this source under `style`. Only the Apple Pinyin
+    /// override changes it: `.script` keeps 简/繁, `.zhong` draws 中, and
+    /// `.systemIcon` (or any non-override source) keeps the label as-is.
+    func drawingShortLabel(style: InputSourceMarkerStyle) -> String? {
+        guard overridesSystemIcon, style.drawsTextMarker else { return shortLabel }
+        return style == .zhong ? "中" : shortLabel
+    }
+
+    /// The descriptor with `style` baked into `iconURL` / `shortLabel`, so a
+    /// renderer that only reads those two fields — or that re-resolves the value
+    /// with the default style — still draws the same thing.
+    func applying(markerStyle: InputSourceMarkerStyle) -> InputSourceDescriptor {
+        InputSourceDescriptor(
+            id: id,
+            localizedName: localizedName,
+            primaryLanguage: primaryLanguage,
+            iconURL: drawingIconURL(style: markerStyle),
+            shortLabel: drawingShortLabel(style: markerStyle)
+        )
     }
 
     /// Explicit English keyboard layouts only. An IME's language metadata does
@@ -74,15 +97,20 @@ extension InputSourceDescriptor {
     /// the settings previews, which resolve their own inputs, all degrade the
     /// same way instead of depending on which path assembled the inputs.
     func resolvedForDrawing(
+        style: InputSourceMarkerStyle = .systemIcon,
         fileExists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) }
     ) -> InputSourceDescriptor {
-        guard iconURL != nil, drawingIconURL(fileExists: fileExists) == nil else { return self }
+        let resolvedIconURL = drawingIconURL(style: style, fileExists: fileExists)
+        let resolvedShortLabel = drawingShortLabel(style: style)
+        guard resolvedIconURL != iconURL || resolvedShortLabel != shortLabel else {
+            return self
+        }
         return InputSourceDescriptor(
             id: id,
             localizedName: localizedName,
             primaryLanguage: primaryLanguage,
-            iconURL: nil,
-            shortLabel: shortLabel
+            iconURL: resolvedIconURL,
+            shortLabel: resolvedShortLabel
         )
     }
 }

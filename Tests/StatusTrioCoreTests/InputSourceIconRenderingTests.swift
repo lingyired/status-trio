@@ -26,7 +26,10 @@ final class InputSourceIconRenderingTests: XCTestCase {
             let source = InputSourceDescriptor(id: id, localizedName: "Pinyin", primaryLanguage: "zh",
                                                iconURL: url, shortLabel: label)
             let scene = IconPresentationMapper.scene(
-                inputs: IconPresentationInputs(snapshot: .placeholder, audioIcon: nil, inputSource: source),
+                inputs: IconPresentationInputs(
+                    snapshot: .placeholder, audioIcon: nil,
+                    inputSource: source.applying(markerStyle: .script)
+                ),
                 configuration: configuration
             )
             let expectedCenter = CenterState.text(IconTextState(text: label, color: .primary, scale: 1))

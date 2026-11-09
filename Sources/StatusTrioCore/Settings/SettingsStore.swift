@@ -84,6 +84,10 @@ final class SettingsStore: ObservableObject {
     /// to `.network`, so a downgrade or corrupted default never changes the
     /// shipped icon behaviour.
     static let connectionCenterSourceDefaultsKey = "connectionCenterSource"
+    /// Raw value of `InputSourceMarkerStyle`. Missing or unknown values decode
+    /// to `.systemIcon`, so the Apple Pinyin 简/繁 marker stays opt-in and a
+    /// downgrade never changes the shipped icon behaviour.
+    static let inputSourceMarkerStyleDefaultsKey = "inputSourceMarkerStyle"
     /// Raw value of `PanelBackgroundStyle`. Missing or unknown values derive
     /// from the running OS, and a stored `.liquidGlass` on macOS < 26 resolves
     /// to `.classicMaterial` so a downgrade never selects an unavailable
@@ -678,6 +682,18 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 connectionCenterSource.rawValue,
                 forKey: Self.connectionCenterSourceDefaultsKey
+            )
+        }
+    }
+
+    /// How Apple's two Pinyin input sources draw their middle marker: the
+    /// system image (default, pre-#297), 简/繁, or 中. See
+    /// `InputSourceMarkerStyle`.
+    @Published var inputSourceMarkerStyle: InputSourceMarkerStyle {
+        didSet {
+            defaults.set(
+                inputSourceMarkerStyle.rawValue,
+                forKey: Self.inputSourceMarkerStyleDefaultsKey
             )
         }
     }
@@ -2079,6 +2095,12 @@ final class SettingsStore: ObservableObject {
             source = .network
         }
         self.connectionCenterSource = source
+        let storedMarkerStyle = defaults.string(
+            forKey: Self.inputSourceMarkerStyleDefaultsKey
+        )
+        self.inputSourceMarkerStyle = storedMarkerStyle
+            .flatMap(InputSourceMarkerStyle.init(rawValue:))
+            ?? .systemIcon
         let legacyPriorityKey: String? = switch source {
         case .inputSource: Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey
         case .bluetoothDevice: Self.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey
