@@ -42,22 +42,13 @@ enum IconPresentationMapper {
         closesRing: Bool,
         chargingStatusCenter: Bool
     ) -> OuterRingState? {
-        // A Mac with no battery has nothing for this ring to represent. Keep the
-        // ring's fixed artwork footprint as an empty track so the icon does not
-        // change shape between a laptop and a desktop, but draw no fill and no
-        // level: `percentage` reports a placeholder 100, and showing it would
-        // claim a charged battery that does not exist.
-        guard battery.isPresent else {
-            return OuterRingState(
-                segments: [RingSegmentState(progress: 0, color: .primary)],
-                gap: .closed,
-                accessory: nil,
-                effect: nil,
-                strokeScale: options.ringStrokeScale,
-                gapProgressMode: .absorbed
-            )
-        }
-        let role = options.usesStatusColors
+        // A Mac with no battery has no real level. Its ring is decorative: a
+        // full ring drawn in the plain foreground colour (never the critical /
+        // low / high / charging status colours) that never shows the placeholder
+        // 100% as a percentage. The top gap may carry the user's chosen
+        // decorative bolt or plug marker instead (see `batteryGapContent`).
+        let isPresent = battery.isPresent
+        let role = isPresent && options.usesStatusColors
             ? StatusMappings.batteryColorRole(
                 battery,
                 criticalThreshold: options.criticalThreshold,
@@ -71,6 +62,13 @@ enum IconPresentationMapper {
         case .highPower: .highPower
         case .charging: .powered
         }
+
+        // A Mac with no battery always reads as a full, complete ring; a real
+        // battery follows `fullThreshold`. Either way the placeholder 100% never
+        // becomes a number.
+        let progress = isPresent
+            ? StatusMappings.batteryProgress(battery, fullThreshold: options.fullThreshold)
+            : 1
 
         let naturalGapContent = StatusMappings.batteryGapContent(battery, options: options)
         // The "inside the ring" mode draws its status in the middle slot. When the
@@ -133,10 +131,7 @@ enum IconPresentationMapper {
         return OuterRingState(
             segments: [
                 RingSegmentState(
-                    progress: StatusMappings.batteryProgress(
-                        battery,
-                        fullThreshold: options.fullThreshold
-                    ),
+                    progress: progress,
                     color: color
                 )
             ],

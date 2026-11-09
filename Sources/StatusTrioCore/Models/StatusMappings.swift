@@ -70,7 +70,20 @@ enum StatusMappings {
         _ battery: BatteryStatus,
         options: BatteryIconOptions
     ) -> BatteryGapContent {
-        guard battery.isPresent else { return .empty }
+        // A Mac with no battery has no real level or charging state, so the top
+        // gap never shows the placeholder 100% as a percentage. It may only carry
+        // the user's chosen decorative marker: the lightning bolt or the plug.
+        // Any legacy `.percentage` choice falls back to the plug, and turning the
+        // top indicator off closes the ring into a plain full circle.
+        guard battery.isPresent else {
+            guard options.showsChargingIndicator else { return .empty }
+            switch options.connectedIndicator {
+            case .bolt:
+                return .bolt
+            case .plug, .percentage:
+                return .plug
+            }
+        }
         if options.showsChargingIndicator {
             if battery.isCharging { return .bolt }
             if battery.isConnectedToPower {

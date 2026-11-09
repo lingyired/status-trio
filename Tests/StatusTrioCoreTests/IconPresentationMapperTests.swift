@@ -68,12 +68,43 @@ final class IconPresentationMapperTests: XCTestCase {
         XCTAssertEqual(fullScene.outerRing?.accessory, RingAccessoryState.text(IconTextState(text: "100", color: .primary, scale: 1.8)))
         XCTAssertEqual(
             absentScene.outerRing?.segments,
-            [RingSegmentState(progress: 0, color: .primary)],
-            "A Mac with no battery keeps the empty ring track, not a full ring"
+            [RingSegmentState(progress: 1, color: .primary)],
+            "A Mac with no battery reads as a full, complete ring"
         )
-        XCTAssertEqual(absentScene.outerRing?.gap, .closed)
-        XCTAssertNil(absentScene.outerRing?.accessory)
+        // With no battery a legacy `.percentage` marker falls back to the plug,
+        // never to a number.
+        XCTAssertEqual(absentScene.outerRing?.gap, .indicator)
+        XCTAssertEqual(absentScene.outerRing?.accessory, .symbol(IconSymbolState(
+            source: .primitive(.plug), color: .primary, scale: 1.8)))
         XCTAssertNil(absentScene.outerRing?.effect)
+    }
+
+    func testABatteryLessMacDrawsAFullForegroundRingRegardlessOfStatusColours() {
+        // No battery: the ring must read full in the plain foreground colour, even
+        // if the snapshot claims charging/low-power and status colours are on. It
+        // must never borrow the charging green or any other status hue.
+        let stranger = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: true,
+                                     isCharged: false, isLowPowerMode: true, isConnectedToPower: true)
+        let options = BatteryIconOptions(
+            showsPercentage: true, showsChargingIndicator: false,
+            usesStatusColors: true, criticalThreshold: 95, connectedIndicator: .bolt
+        )
+        let ring = scene(snapshot: snapshot(battery: stranger), batteryOptions: options).outerRing
+        XCTAssertEqual(ring?.segments, [RingSegmentState(progress: 1, color: .primary)])
+        XCTAssertEqual(ring?.gap, .closed, "no top marker keeps the ring closed")
+        XCTAssertNil(ring?.accessory)
+        XCTAssertNil(ring?.effect)
+    }
+
+    func testABatteryLessMacCanShowTheChosenBoltMarker() {
+        let absent = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                   isLowPowerMode: false, isConnectedToPower: false)
+        let options = BatteryIconOptions(showsPercentage: true, showsChargingIndicator: true,
+                                         usesStatusColors: false, connectedIndicator: .bolt)
+        let ring = scene(snapshot: snapshot(battery: absent), batteryOptions: options).outerRing
+        XCTAssertEqual(ring?.gap, .indicator)
+        XCTAssertEqual(ring?.accessory, .symbol(IconSymbolState(
+            source: .primitive(.bolt), color: .primary, scale: 1.8)))
     }
 
     func testBatteryUsesPlugWhenConnectedPercentageIsDisabledAndCanHidePercentage() {
@@ -612,10 +643,12 @@ final class IconPresentationMapperTests: XCTestCase {
         let absent = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
                                    isLowPowerMode: false, isConnectedToPower: true)
         let scene = chargingScene(battery: absent, source: .chargingStatus)
-        // A machine with no battery has no status to invent: the ring stays an
-        // empty track and the centre falls back to the network glyph.
-        XCTAssertEqual(scene.outerRing?.segments.first?.progress, 0)
-        XCTAssertNil(scene.outerRing?.accessory)
+        // A machine with no battery has no status to invent: the ring stays a
+        // plain full ring and the centre falls back to the network glyph.
+        XCTAssertEqual(scene.outerRing?.segments.first?.progress, 1)
+        XCTAssertEqual(scene.outerRing?.gap, .indicator)
+        XCTAssertEqual(scene.outerRing?.accessory, .symbol(IconSymbolState(
+            source: .primitive(.plug), color: .primary, scale: 1.8)))
         guard case .symbol? = scene.center else {
             return XCTFail("expected the network glyph fallback")
         }

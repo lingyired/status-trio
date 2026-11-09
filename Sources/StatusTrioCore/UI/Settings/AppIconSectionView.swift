@@ -43,7 +43,7 @@ struct AppIconSectionView: View {
         statusIconGroup
         MiddleIconSettingsGroup(store: store, statusStore: statusStore)
         dockGroup
-        AppIconRingView(store: store)
+        AppIconRingView(store: store, hasBattery: statusStore.snapshot.battery.isPresent)
         AppIconBottomIndicatorView(
             store: store,
             statusStore: statusStore,
@@ -63,7 +63,7 @@ struct AppIconSectionView: View {
             statusIconGroup
             dockGroup
         case .appIconRing:
-            AppIconRingView(store: store)
+            AppIconRingView(store: store, hasBattery: statusStore.snapshot.battery.isPresent)
         case .appIconMiddleIcon:
             MiddleIconSettingsGroup(store: store, statusStore: statusStore,
                                     showsGroupTitle: false)
