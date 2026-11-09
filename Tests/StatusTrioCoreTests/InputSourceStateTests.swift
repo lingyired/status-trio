@@ -2,7 +2,7 @@ import XCTest
 @testable import StatusTrioCore
 
 final class InputSourceStateTests: XCTestCase {
-    func testDrawingResolutionKeepsApplePinyinScriptLabelsAndThirdPartyIcons() {
+    func testDrawingResolutionKeepsSystemIconUntilAMarkerStyleIsChosen() {
         let iconURL = URL(fileURLWithPath: "/fixture/menu_icon.pdf")
         for (id, label) in [("com.apple.inputmethod.SCIM.ITABC", "简"),
                             ("com.apple.inputmethod.TCIM.Pinyin", "繁")] {
@@ -10,17 +10,30 @@ final class InputSourceStateTests: XCTestCase {
                 id: id, localizedName: "Pinyin", primaryLanguage: "zh",
                 iconURL: iconURL, shortLabel: label
             )
-            let drawing = source.resolvedForDrawing(fileExists: { _ in true })
-            XCTAssertNil(drawing.iconURL)
-            XCTAssertEqual(drawing.shortLabel, label)
-            XCTAssertEqual(drawing.id, source.id)
+
+            // Default (system icon): the source keeps its own image, exactly
+            // like before #297.
+            let system = source.resolvedForDrawing(style: .systemIcon, fileExists: { _ in true })
+            XCTAssertEqual(system.iconURL, iconURL)
+            XCTAssertEqual(system.shortLabel, label)
+
+            // 简/繁: the system image is replaced by the script marker.
+            let script = source.resolvedForDrawing(style: .script, fileExists: { _ in true })
+            XCTAssertNil(script.iconURL)
+            XCTAssertEqual(script.shortLabel, label)
+            XCTAssertEqual(script.id, source.id)
+
+            // 中: both scripts collapse to a single 中 glyph.
+            let zhong = source.resolvedForDrawing(style: .zhong, fileExists: { _ in true })
+            XCTAssertNil(zhong.iconURL)
+            XCTAssertEqual(zhong.shortLabel, "中")
         }
 
         let thirdParty = InputSourceDescriptor(
             id: "com.example.pinyin", localizedName: "Pinyin", primaryLanguage: "zh-Hans",
             iconURL: iconURL, shortLabel: "简"
         )
-        XCTAssertEqual(thirdParty.resolvedForDrawing(fileExists: { _ in true }), thirdParty)
+        XCTAssertEqual(thirdParty.resolvedForDrawing(style: .script, fileExists: { _ in true }), thirdParty)
     }
 
     /// The override is decided by the stable input-source ID, not by the marker
@@ -33,15 +46,16 @@ final class InputSourceStateTests: XCTestCase {
             primaryLanguage: "zh", iconURL: iconURL, shortLabel: "拼"
         )
         XCTAssertTrue(apple.overridesSystemIcon)
-        XCTAssertNil(apple.drawingIconURL(fileExists: { _ in true }))
-        XCTAssertNil(apple.resolvedForDrawing(fileExists: { _ in true }).iconURL)
+        XCTAssertEqual(apple.drawingIconURL(style: .systemIcon, fileExists: { _ in true }), iconURL)
+        XCTAssertNil(apple.drawingIconURL(style: .script, fileExists: { _ in true }))
+        XCTAssertNil(apple.resolvedForDrawing(style: .script, fileExists: { _ in true }).iconURL)
 
         let thirdParty = InputSourceDescriptor(
             id: "com.example.pinyin", localizedName: "Pinyin",
             primaryLanguage: "zh-Hans", iconURL: iconURL, shortLabel: "简"
         )
         XCTAssertFalse(thirdParty.overridesSystemIcon)
-        XCTAssertEqual(thirdParty.drawingIconURL(fileExists: { _ in true }), iconURL)
+        XCTAssertEqual(thirdParty.drawingIconURL(style: .script, fileExists: { _ in true }), iconURL)
     }
 
     func testResolvedKeepsOnlyEnabledSelectCapableSourcesInOrder() {

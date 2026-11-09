@@ -35,13 +35,13 @@ final class InputSourceModifierTests: XCTestCase {
         controller.start()
         controller.start()
         XCTAssertEqual(modifiers.startCount, 1)
-        XCTAssertEqual(controller.state.iconDescriptor?.shortLabel, "a")
+        XCTAssertEqual(controller.state.iconDescriptor(markerStyle: .systemIcon)?.shortLabel, "a")
         XCTAssertEqual(controller.selectedDescriptor?.shortLabel, "A", "panel identity stays unchanged")
         let reads = reader.reads
         var emissions = 0
         let subscription = controller.$state.sink { _ in emissions += 1 }
         modifiers.emit(.init(capsLock: false, shift: true))
-        XCTAssertEqual(controller.state.iconDescriptor?.shortLabel, "A")
+        XCTAssertEqual(controller.state.iconDescriptor(markerStyle: .systemIcon)?.shortLabel, "A")
         XCTAssertEqual(reader.reads, reads)
         let afterChange = emissions
         modifiers.emit(.init(capsLock: false, shift: true))
@@ -52,7 +52,7 @@ final class InputSourceModifierTests: XCTestCase {
         modifiers.emit(.init(capsLock: true, shift: true))
         XCTAssertEqual(controller.state, stoppedState, "late events cannot publish after stop")
         controller.start()
-        XCTAssertEqual(controller.state.iconDescriptor?.shortLabel, "A", "restart reads current modifiers")
+        XCTAssertEqual(controller.state.iconDescriptor(markerStyle: .systemIcon)?.shortLabel, "A", "restart reads current modifiers")
         subscription.cancel()
         controller.stop()
     }

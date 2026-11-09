@@ -38,6 +38,7 @@ private struct PanelSettingsFingerprint: Equatable {
     let outputDeviceListPreferences: AudioOutputListPreferences
     let inputDeviceListPreferences: AudioInputListPreferences
     let externalVolumeConfigurations: [String: ExternalVolumeConfiguration]
+    let inputSourceMarkerStyle: InputSourceMarkerStyle
 
     init(settings: SettingsStore) {
         sections = settings.visiblePopupSections
@@ -60,6 +61,7 @@ private struct PanelSettingsFingerprint: Equatable {
         outputDeviceListPreferences = settings.outputDeviceListPreferences
         inputDeviceListPreferences = settings.inputDeviceListPreferences
         externalVolumeConfigurations = settings.externalVolumeConfigurations
+        inputSourceMarkerStyle = settings.inputSourceMarkerStyle
     }
 }
 
@@ -250,7 +252,8 @@ final class StatusPanelViewModel: ObservableObject {
         inputSource = InputSourcePanelMapper.map(
             state: resolvedInputSourceController.state,
             failure: resolvedInputSourceController.selectionFailure,
-            localization: localization
+            localization: localization,
+            markerStyle: settings.inputSourceMarkerStyle
         )
         brightness = BrightnessPanelMapper.map(
             store.popupSnapshot.brightness,
@@ -1288,7 +1291,12 @@ final class StatusPanelViewModel: ObservableObject {
         state: InputSourceState,
         failure: InputSourceController.SelectionFailure?
     ) {
-        let next = InputSourcePanelMapper.map(state: state, failure: failure, localization: localization)
+        let next = InputSourcePanelMapper.map(
+            state: state,
+            failure: failure,
+            localization: localization,
+            markerStyle: settings.inputSourceMarkerStyle
+        )
         guard inputSource != next else { return }
         inputSource = next
     }
