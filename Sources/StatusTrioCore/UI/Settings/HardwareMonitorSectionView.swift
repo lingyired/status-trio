@@ -15,14 +15,14 @@ struct HardwareMonitorSectionView: View {
 
     private var placementGroup: some View {
         SettingsGroup(
-            localization.string(.hardwareMonitorSettingsShowInPanel),
+            localization.string(.settingsTabPanel),
             footnote: localization.string(.hardwareMonitorSettingsShowInPanelDescription)
         ) {
             SettingsToggleRow(
                 symbol: "rectangle.bottomthird.inset.filled",
                 tint: .blue,
                 title: localization.string(.hardwareMonitorSettingsShowInPanel),
-                subtitle: localization.string(.hardwareMonitorSettingsShowInPanelDescription),
+                subtitle: nil,
                 isOn: Binding(
                     get: { store.enabledPopupSections.contains(.hardwareMonitor) },
                     set: { store.setPopupSection(.hardwareMonitor, enabled: $0) }
