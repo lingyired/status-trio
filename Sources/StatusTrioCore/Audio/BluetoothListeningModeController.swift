@@ -140,6 +140,12 @@ final class BluetoothListeningModeController: ObservableObject {
     /// `FD2D` control service, so they get their own transport seam, exactly as
     /// the HUAWEI family does. Neither family's guarantees bleed into the other.
     private let redmiTransport: any RedmiListeningModeTransporting
+    /// Resolves the CoreAudio output endpoint a Redmi device is playing through,
+    /// so its control can render inline on the volume row (the redesigned UI's
+    /// primary listening-mode surface) exactly like a HUAWEI device. The matcher
+    /// is model-agnostic (address/name → output UID), so the HUAWEI resolver is
+    /// reused rather than duplicated.
+    private let redmiEndpointProvider: any HuaweiAudioEndpointProviding
     /// Addresses whose controls are backed by the Redmi transport. `setMode`
     /// branches on this rather than re-reading the device.
     private var redmiAddresses: Set<String> = []
@@ -156,6 +162,7 @@ final class BluetoothListeningModeController: ObservableObject {
         huaweiEndpointProvider: any HuaweiAudioEndpointProviding = CoreAudioHuaweiAudioEndpointProvider(),
         huaweiReadRetryDelays: [Duration] = [.milliseconds(150), .milliseconds(450)],
         redmiTransport: any RedmiListeningModeTransporting = RedmiRFCOMMTransport(),
+        redmiEndpointProvider: any HuaweiAudioEndpointProviding = CoreAudioHuaweiAudioEndpointProvider(),
         airPodsDiscoveryRetryDelays: [Duration] = [.milliseconds(150), .milliseconds(450), .seconds(1)],
         airPodsDiscoverySleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
@@ -170,6 +177,7 @@ final class BluetoothListeningModeController: ObservableObject {
         self.huaweiEndpointProvider = huaweiEndpointProvider
         self.huaweiFirstReadRetryDelays = huaweiReadRetryDelays
         self.redmiTransport = redmiTransport
+        self.redmiEndpointProvider = redmiEndpointProvider
         self.airPodsDiscoveryRetryDelays = airPodsDiscoveryRetryDelays
         self.airPodsDiscoverySleep = airPodsDiscoverySleep
         self.failureClearDelay = failureClearDelay
@@ -385,6 +393,11 @@ final class BluetoothListeningModeController: ObservableObject {
         for device in eligible {
             let address = BluetoothBatteryReader.normalizedAddress(device.id)
             guard !address.isEmpty else { continue }
+            // Resolve the CoreAudio output endpoint so the control renders inline
+            // on the volume row (the redesigned UI's primary surface); when no
+            // endpoint resolves it falls back to the connected Bluetooth row.
+            let endpointID = redmiEndpointProvider.endpointID(for: device)
+            resolvedEndpoints[address] = endpointID
             // A write owns the presentation until its read-back settles; a
             // concurrent discovery read would race that result.
             if presentations[address]?.isChanging == true { continue }

@@ -1,3 +1,4 @@
+import CoreAudio
 import XCTest
 
 @testable import StatusTrioCore
@@ -256,6 +257,12 @@ private struct EmptyRedmiCoreAudioEndpoints: CoreAudioBluetoothEndpointProviding
     func discoverEndpoints(using hal: BluetoothListeningModeHAL) -> [BluetoothListeningModeEndpoint] { [] }
 }
 
+/// A scripted CoreAudio output endpoint resolver for the Redmi family.
+private struct ScriptedRedmiEndpointProvider: HuaweiAudioEndpointProviding {
+    var endpointID: AudioDeviceID?
+    func endpointID(for device: BluetoothDevice) -> AudioDeviceID? { endpointID }
+}
+
 @MainActor
 final class RedmiControllerTests: XCTestCase {
     private let address = "AA:BB:CC:DD:EE:FF"
@@ -271,7 +278,10 @@ final class RedmiControllerTests: XCTestCase {
         )
     }
 
-    private func makeController(_ transport: FakeRedmiTransport) -> BluetoothListeningModeController {
+    private func makeController(
+        _ transport: FakeRedmiTransport,
+        endpoint: AudioDeviceID? = nil
+    ) -> BluetoothListeningModeController {
         BluetoothListeningModeController(
             hal: BluetoothListeningModeHAL(
                 backend: CoreAudioBluetoothListeningModeBackend(),
@@ -282,6 +292,7 @@ final class RedmiControllerTests: XCTestCase {
             endpointProvider: EmptyRedmiCoreAudioEndpoints(),
             listenerBackend: CoreAudioBluetoothListeningModeListenerBackend(),
             redmiTransport: transport,
+            redmiEndpointProvider: ScriptedRedmiEndpointProvider(endpointID: endpoint),
             airPodsDiscoveryRetryDelays: [],
             failureClearDelay: .milliseconds(1),
             previewSettleDelay: .milliseconds(1)
@@ -312,6 +323,23 @@ final class RedmiControllerTests: XCTestCase {
         XCTAssertEqual(Set(control?.availableModes ?? []), Set([.noiseCancellation, .transparency, .off]))
         XCTAssertEqual(controller.huaweiBluetoothRowPresentations[key]?.selectedMode, .noiseCancellation)
         XCTAssertEqual(transport.stateCalls, [key])
+    }
+
+    func testRedmiControlRendersOnVolumeRowWhenEndpointResolves() async {
+        let transport = FakeRedmiTransport(stateResult: RedmiNoiseState(mode: .cancellation))
+        let controller = makeController(transport, endpoint: 42)
+        controller.refresh(devices: [device()])
+
+        await waitUntil { controller.control(forEndpoint: 42)?.presentation != nil }
+
+        // With an endpoint resolved, the volume row owns the control and the
+        // Bluetooth row must not draw a duplicate.
+        let rowControl = controller.control(forEndpoint: 42)
+        XCTAssertNotNil(rowControl)
+        XCTAssertEqual(rowControl?.address, key)
+        XCTAssertEqual(rowControl?.presentation.selectedMode, .noiseCancellation)
+        XCTAssertNil(controller.control(forBluetoothAddress: address))
+        XCTAssertTrue(controller.huaweiBluetoothRowPresentations.isEmpty)
     }
 
     func testRedmiSetModeRoutesThroughTransportAndConfirms() async {

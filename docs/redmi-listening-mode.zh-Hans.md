@@ -28,8 +28,17 @@
 | 控制会话 | `Sources/StatusTrioCore/Audio/RedmiControlSession.swift` | 把 IOBluetooth 事件回调桥接成一次性的 `async` 结果：SDP 找 `FD2D` 服务 → 开 RFCOMM → 挑战握手 → 读/写模式 → 关通道 |
 | 传输层 | `Sources/StatusTrioCore/Audio/RedmiListeningModeTransport.swift` | 实现与华为对称的 `state/setMode/closeAll` 接口；设备查找、错误类型、模式映射 |
 | 设备识别 | `Models/WiFiNetworkModels.swift` 的 `isRedmiAudio` | Xiaomi 公司 ID `0x2717` 为主，名称（redmi/xiaomi/buds 8）兜底，失败即不显示控制 |
-| 面板接入 | `Audio/BluetoothListeningModeController.swift` | 新增 `refreshRedmi` / `setRedmiMode` / `redmiAddresses` / `stop()` 清理，写法照华为分支 |
-| UI | `UI/BluetoothDeviceRow.swift`、`UI/BluetoothDeviceList.swift`、`Presentation/Panel/StatusPanelViewModel.swift` | 让红米设备像华为一样在蓝牙设备行下渲染模式胶囊，并参与刷新触发 |
+| 面板接入 | `Audio/BluetoothListeningModeController.swift` | 新增 `refreshRedmi` / `setRedmiMode` / `redmiAddresses` / `stop()` 清理，写法照华为分支；红米也做 CoreAudio 输出端点解析，从而在新版 UI 上像华为一样内联显示在音量行 |
+| UI | `UI/BluetoothDeviceRow.swift`、`UI/BluetoothDeviceList.swift`、`Presentation/Panel/StatusPanelViewModel.swift` | 红米复用新版胶囊聆听控件（`BluetoothListeningModeControl`）；有输出端点时显示在音量行，无端点时回退到蓝牙设备行；并参与刷新触发 |
+
+## 与新版聆听 UI 的兼容
+
+`main` 已经把聆听模式控件重做成**胶囊式**，并且 AirPods 在音量（输出）行内联展开。红米这次对着新 UI 做了对齐：
+
+- 红米复用同一套胶囊控件 `BluetoothListeningModeControl`，不再有旧样式。
+- 增加 CoreAudio 输出端点解析（复用与华为同一个按地址/名称匹配的解析器）。当红米耳机正作为系统输出时，控制**内联显示在音量行**（和新 UI 一致）；解析不到端点时回退到蓝牙设备行。
+- 端点解析到后，音量行独占该控制，蓝牙行不再重复显示（与华为语义一致）。
+- `supportsAirPodsSystemControls` 只对真正的 AirPods 机型为真，红米不会误走到 AirPods 专属的空间音频/对话感知分支，只显示三模式胶囊。
 
 ## 协议要点（与红米源码一致）
 
