@@ -65,6 +65,45 @@ final class NearbyBLEControllerDemandTests: XCTestCase {
         controller.deactivate()
     }
 
+    func testBackgroundScannerStopsDuringDisplaySleepAndResumesOnWake() {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        monitor.emit(.poweredOn)
+        let selected = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [selected], hiddenIDs: [])
+        controller.setNearbyBLEBackgroundRefresh(enabled: true, selectedIDs: [selected], interval: .seconds(120))
+        XCTAssertTrue(scanner.isRunning)
+
+        controller.setDisplaySleeping(true)
+        XCTAssertFalse(scanner.isRunning, "a dark screen must not keep the radio scanning")
+
+        controller.setDisplaySleeping(false)
+        XCTAssertTrue(scanner.isRunning)
+        controller.deactivate()
+    }
+
+    func testSystemWakeWithDisplayStillOffKeepsNearbyScannerStopped() {
+        // A dark wake delivers didWake (which self-heals the system-sleeping
+        // flag) while the display is still off. The display-sleep gate must
+        // hold until screensDidWake or a visible surface repairs it.
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        monitor.emit(.poweredOn)
+        let selected = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [selected], hiddenIDs: [])
+        controller.setNearbyBLEBackgroundRefresh(enabled: true, selectedIDs: [selected], interval: .seconds(120))
+        XCTAssertTrue(scanner.isRunning)
+
+        controller.setSystemSleeping(true)
+        controller.setDisplaySleeping(true)
+        controller.setSystemSleeping(false)
+        XCTAssertFalse(
+            scanner.isRunning,
+            "a dark wake must not resume background scanning while the display is still off"
+        )
+        controller.deactivate()
+    }
+
     func testGlobalBatteryOffRevokesPermitWithoutRemovingConsentOrSettingsDiscovery() async {
         let (controller, scanner, monitor) = makeController()
         controller.activate()

@@ -31,6 +31,7 @@ struct BatterySectionView: View {
 
     @ViewBuilder
     private var fullBatteryContent: some View {
+        // Any notice comes first, then the panel show/hide group.
         if !statusStore.snapshot.battery.isPresent {
             noBatteryNoticeGroup
         }
@@ -66,8 +67,7 @@ struct BatterySectionView: View {
         )
     }
 
-    /// A Mac without a battery reports 100 as its level; spell that out at the
-    /// top of the page so nobody reads the placeholder as a real reading.
+    /// Explain why a Mac without a battery does not display a battery percentage.
     private var noBatteryNoticeGroup: some View {
         SettingsGroup {
             SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryNotice))
@@ -84,14 +84,35 @@ struct BatterySectionView: View {
 
     @ViewBuilder
     private var chargeManagementContent: some View {
+        SettingsToggleRow(
+            symbol: "bolt.badge.clock.fill",
+            tint: .green,
+            title: localization.string(.settingsBatteryShowChargeToFullNow),
+            subtitle: localization.string(.settingsBatteryShowChargeToFullNowDescription),
+            isOn: $store.showsChargeToFullNowButton
+        )
+
+        if let chargeToFullNow {
+            ChargeToFullNowDiagnosticsView(
+                controller: chargeToFullNow,
+                battery: statusStore.snapshot.battery,
+                batterySectionVisible: store.enabledPopupSections.contains(.battery)
+                    && store.popupSectionOrder.contains(.battery),
+                enabled: store.showsChargeToFullNowButton
+            )
+        } else if store.showsChargeToFullNowButton {
+            Text(localization.string(.settingsBatteryChargeHiddenControllerUnavailable))
+                .font(.system(size: 11))
+                .foregroundStyle(.red)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                .padding(.bottom, 8)
+        }
+        SettingsHintRow(
+            text: localization.string(.settingsBatteryChargeToFullNowOptimizedNote)
+        )
         if chargeToFullNow?.isSettingAvailable == true {
             chargeToFullNowContent
-        } else {
-            // Never leave an empty card when the platform does not offer
-            // the temporary full-charge override.
-            SettingsHintRow(
-                text: localization.string(.batteryActionChargeToFullNowUnavailable)
-            )
         }
         systemChargeLimitUnavailableNote
     }
@@ -100,16 +121,6 @@ struct BatterySectionView: View {
     @ViewBuilder
     private var chargeToFullNowContent: some View {
         if let chargeToFullNow, chargeToFullNow.isSettingAvailable {
-            SettingsToggleRow(
-                symbol: "bolt.badge.clock.fill",
-                tint: .green,
-                title: localization.string(.settingsBatteryShowChargeToFullNow),
-                subtitle: localization.string(
-                    .settingsBatteryShowChargeToFullNowDescription
-                ),
-                isOn: $store.showsChargeToFullNowButton
-            )
-
             SettingsDivider()
 
             // macOS removes the persisted charge limit while the native

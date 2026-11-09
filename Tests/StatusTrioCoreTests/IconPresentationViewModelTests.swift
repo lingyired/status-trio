@@ -589,4 +589,40 @@ final class IconPresentationViewModelTests: XCTestCase {
                        .text(IconTextState(text: "24", color: .primary, scale: 1)))
         model.stop()
     }
+
+    func testHighPowerModeTurnsTheBatteryRingBlue() {
+        let snapshot = PresentationFixtures.snapshot()
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(snapshot)
+        let settings = IconPresentationSettings(
+            configuration: .standard,
+            menuBarSize: 24,
+            testsChargingEffect: false
+        )
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let highPowerModes = CurrentValueSubject<Bool, Never>(false)
+        let scheduler = ManualIconPresentationScheduler()
+        let model = IconPresentationViewModel(
+            snapshot: snapshot,
+            settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(),
+            preferences: preferences.eraseToAnyPublisher(),
+            highPowerModes: highPowerModes.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            snapshotScheduler: scheduler
+        )
+
+        // A normal battery keeps the primary ring colour; High Power Mode is a
+        // separate, higher-priority colour role (#235).
+        let baselineColors = model.output.scene.outerRing?.segments.map(\.color) ?? []
+        XCTAssertFalse(baselineColors.contains(.highPower))
+
+        model.start()
+        snapshots.send(snapshot)
+        preferences.send(settings)
+        highPowerModes.send(true)
+
+        let highPowerColors = model.output.scene.outerRing?.segments.map(\.color) ?? []
+        XCTAssertTrue(highPowerColors.contains(.highPower))
+        model.stop()
+    }
 }

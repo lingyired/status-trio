@@ -1,6 +1,7 @@
 import Combine
 import CoreGraphics
 import SwiftUI
+import Foundation
 
 /// The height budget the status panel currently has on the screen it hangs
 /// from (issue #237).
@@ -26,9 +27,11 @@ final class StatusPanelLayoutMetrics: ObservableObject {
     @Published private(set) var maximumPanelHeight: CGFloat?
     private(set) var contentHeight: CGFloat?
     @Published private(set) var fillsWindow = false
+    private var contentMeasurementID: UUID?
     private var onContentHeightChange: ((CGFloat) -> Void)?
 
-    func measure(contentHeight: CGFloat) {
+    func measure(contentHeight: CGFloat, from measurementID: UUID? = nil) {
+        guard measurementID == contentMeasurementID else { return }
         guard contentHeight > 0, contentHeight.isFinite, self.contentHeight != contentHeight else { return }
         self.contentHeight = contentHeight
         onContentHeightChange?(contentHeight)
@@ -36,8 +39,12 @@ final class StatusPanelLayoutMetrics: ObservableObject {
 
     /// Only a real panel supplies a finite viewport. Standalone Settings and
     /// preview hosts still ask for an ideal size with an unbounded proposal.
-    func attachWindow(onContentHeightChange: @escaping (CGFloat) -> Void) {
+    func attachWindow(
+        measurementID: UUID? = nil,
+        onContentHeightChange: @escaping (CGFloat) -> Void
+    ) {
         contentHeight = nil
+        contentMeasurementID = measurementID
         self.onContentHeightChange = onContentHeightChange
         fillsWindow = true
     }

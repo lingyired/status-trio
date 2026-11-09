@@ -36,7 +36,10 @@ struct BoundedProcessDualStreamTests {
         let elapsed = ContinuousClock.now - started
 
         #expect(outcome == .exited(Data(Self.payload("out").utf8)))
-        #expect(elapsed < .seconds(3), "took \(elapsed), which is the deadline path")
+        // A shared IO queue deadlocks until the 10 s deadline, so anything well
+        // under that proves the streams were read concurrently. Eight seconds
+        // leaves room for a loaded full-suite run; 4.2 s was observed there.
+        #expect(elapsed < .seconds(8), "took \(elapsed), which is the deadline path")
     }
 
     /// The blocking entry point the Wi-Fi and Bluetooth readers use, same shape.
@@ -53,7 +56,7 @@ struct BoundedProcessDualStreamTests {
         let elapsed = ContinuousClock.now - started
 
         #expect(outcome == .exited(Data(Self.payload("out").utf8)))
-        #expect(elapsed < .seconds(3), "took \(elapsed), which is the deadline path")
+        #expect(elapsed < .seconds(8), "took \(elapsed), which is the deadline path")
     }
 
     /// `BoundedProcessOutcome` carries stdout only, so stderr is observed through

@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
      chargingOverrideAllowed:(BOOL *)allowed
                    withError:(NSError **)error;
 - (BOOL)temporarilyDisableMCL:(NSError **)error;
+- (BOOL)temporarilyEnableCharging:(NSError **)error;
 - (BOOL)setMCLLimit:(unsigned char)limit error:(NSError **)error;
 - (BOOL)enableMCL:(NSError **)error;
 @end
@@ -566,6 +567,82 @@ static STPowerUIChargeWriteResult *STRestoreChargeLimit(
     STPowerUIChargeState *state = STReadState(client, &failure);
     STReleaseIfNeeded(client);
     return state;
+}
+
+- (STPowerUIChargeWriteResult *)chargeToFullNow {
+    STPowerUIRuntime runtime = STLoadRuntime();
+    if (runtime.reason != STPowerUIChargeAvailabilityReasonAvailable) {
+        return [[STPowerUIChargeWriteResult alloc]
+            initWithSucceeded:NO
+                 errorMessage:@"PowerUI is unavailable."];
+    }
+
+    id<STPowerUIChargeClient> client = STCreateClient(runtime);
+    if (client == nil) {
+        return [[STPowerUIChargeWriteResult alloc]
+            initWithSucceeded:NO
+                 errorMessage:@"PowerUI client is unavailable."];
+    }
+
+    NSString *failure = nil;
+    STPowerUIChargeState *state = STReadState(client, &failure);
+    if (!state.validState) {
+        STReleaseIfNeeded(client);
+        return [[STPowerUIChargeWriteResult alloc]
+            initWithSucceeded:NO
+                 errorMessage:failure ?: @"Unable to read the charging state."];
+    }
+
+    // The native action uses a charge-limit override when a sub-100% limit is
+    // active, and a plain charging override when the system pauses charging for
+    // another overridable reason (Optimized Battery Charging). Both are the
+    // same private path ControlCenter itself uses.
+    BOOL hasActiveLimit = state.mclEnabledRawValue != 0
+        && state.mclLimit >= 0
+        && state.mclLimit < 100;
+    SEL enableSelector = sel_registerName("temporarilyEnableCharging:");
+    BOOL canEnableCharging = !hasActiveLimit
+        && state.chargingOverrideAllowed
+        && STSignatureMatches(
+               object_getClass(client),
+               enableSelector,
+               @encode(BOOL),
+               @[@(@encode(NSError *__autoreleasing *))]
+           );
+
+    if (!hasActiveLimit && !canEnableCharging) {
+        STReleaseIfNeeded(client);
+        return [[STPowerUIChargeWriteResult alloc]
+            initWithSucceeded:NO
+                 errorMessage:@"No overridable charge pause is active."];
+    }
+
+    NSError *writeError = nil;
+    BOOL wrote = NO;
+    @try {
+        // Exactly one charging request is sent. There is no retry.
+        if (hasActiveLimit) {
+            wrote = [client temporarilyDisableMCL:&writeError];
+        } else {
+            wrote = [client temporarilyEnableCharging:&writeError];
+        }
+    } @catch (NSException *exception) {
+        STReleaseIfNeeded(client);
+        return [[STPowerUIChargeWriteResult alloc]
+            initWithSucceeded:NO
+                 errorMessage:exception.reason ?: @"PowerUI raised an exception."];
+    }
+    STReleaseIfNeeded(client);
+
+    NSString *errorMessage = STErrorDescription(writeError);
+    if (!wrote || errorMessage != nil) {
+        return [[STPowerUIChargeWriteResult alloc]
+            initWithSucceeded:NO
+                 failure:STPowerUIChargeWriteFailureRejected
+             errorMessage:errorMessage ?: @"PowerUI rejected the request."];
+    }
+    return [[STPowerUIChargeWriteResult alloc] initWithSucceeded:YES
+                                                    errorMessage:nil];
 }
 
 - (STPowerUIChargeWriteResult *)temporarilyDisableMCL {

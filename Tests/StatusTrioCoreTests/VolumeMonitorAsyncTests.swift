@@ -37,8 +37,10 @@ final class VolumeMonitorAsyncTests: XCTestCase {
     }
 
     func testOrdinaryRefreshBurstPublishesBothCompletedReadings() async {
-        // `refresh()` passes `detailsVisible`, which defaults to true, so this
-        // burst enumerates devices and is not a level-only refresh.
+        // `detailsVisible` defaults to true, so the first read enumerates the
+        // device list. The follow-up reuses that list: a periodic refresh is a
+        // level read, and the visible row updates through the default-device and
+        // topology listeners that invalidate the cache.
         let reader = DeferredAudioStatusReader()
         let monitor = makeMonitor(reader: reader)
         monitor.start()
@@ -49,12 +51,13 @@ final class VolumeMonitorAsyncTests: XCTestCase {
         var iterator = monitor.updates.makeAsyncIterator()
         let first = await iterator.next()
         XCTAssertEqual(first?.scalar, 0.2)
-        XCTAssertEqual(reader.requests, [true, true])
+        XCTAssertEqual(first?.outputDevices, [device])
+        XCTAssertEqual(reader.requests, [true, false])
 
         reader.complete(reading(scalar: 0.7, devices: [device]))
         let second = await iterator.next()
         XCTAssertEqual(second?.scalar, 0.7)
-        XCTAssertEqual(reader.requests, [true, true])
+        XCTAssertEqual(reader.requests, [true, false])
         monitor.stop()
     }
 
@@ -240,7 +243,9 @@ final class VolumeMonitorAsyncTests: XCTestCase {
         events.volumeChanged?()
         let upgradeDebounce = await sleeper.waitForCallCount(2, timeout: .seconds(5))
         XCTAssertTrue(upgradeDebounce, "The second level event must schedule a debounced refresh")
-        monitor.refresh()
+        // A cache invalidation while details stay visible is the same upgrade:
+        // the debounced follow-up must carry it rather than becoming level-only.
+        monitor.setDetailsVisible(true)
         XCTAssertEqual(reader.requests, [true, false])
         // The second volume event bumped the read generation, so the level read
         // that was already in flight is discarded. `bufferingNewest(1)` would hide
@@ -395,7 +400,8 @@ private final class AsyncVolumeEvents: VolumeEventMonitoring {
 
     func start(
         onDefaultDeviceChange: @escaping @MainActor @Sendable () -> Void,
-        onVolumeChange: @escaping @MainActor @Sendable () -> Void
+        onVolumeChange: @escaping @MainActor @Sendable () -> Void,
+        onDeviceListChange: @escaping @MainActor @Sendable () -> Void
     ) {
         defaultDeviceChanged = onDefaultDeviceChange
         volumeChanged = onVolumeChange

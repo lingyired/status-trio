@@ -245,12 +245,213 @@ final class LowPowerAutoEnableWiringTests: XCTestCase {
         store.stop()
     }
 
+    func testHelperApprovalRefreshesBothModesWithoutANewSnapshot() async {
+        let battery = FakeBatterySource()
+        let settings = makeSettings()
+        settings.controlsLowPowerMode = true
+        let readiness = FakeHelperReadiness(isReady: false)
+        let low = RecordingLowPowerClient(reads: false)
+        let high = RecordingHighPowerClient()
+        high.isAvailable = false
+        let store = makeStore(battery: battery, client: low, readiness: readiness, highClient: high)
+        store.bindLowPowerModeSettings(settings)
+        store.start()
+        defer { store.stop() }
+        await waitUntil { store.highPowerMode.hasProbed }
+        XCTAssertFalse(store.highPowerMode.isSupported)
+
+        high.isAvailable = true
+        high.reads = true
+        low.reads = true
+        readiness.isReady = true
+        await settle()
+
+        XCTAssertTrue(store.highPowerMode.isSupported)
+        XCTAssertTrue(store.highPowerMode.isHighPowerMode)
+        XCTAssertTrue(store.lowPowerMode.isLowPowerMode)
+    }
+
+    func testPowerStateNotificationRefreshesBothModesEvenWithAnUnchangedSnapshot() async {
+        let battery = FakeBatterySource()
+        let settings = makeSettings()
+        settings.controlsLowPowerMode = true
+        let low = RecordingLowPowerClient(reads: false)
+        let high = RecordingHighPowerClient()
+        let store = makeStore(battery: battery, client: low, highClient: high)
+        store.bindLowPowerModeSettings(settings)
+        store.start()
+        defer { store.stop() }
+        let status = batteryStatus(percent: 60, connectedToPower: false)
+        battery.send(status)
+        await waitUntil { store.highPowerMode.hasProbed && store.snapshot.battery.percentage == 60 }
+        // Establish the helper as authoritative: ProcessInfo seeds can now lag.
+        store.lowPowerMode.refresh()
+        await waitUntil { low.readCallCount > 0 }
+        let snapshot = store.snapshot
+        high.reads = true
+        low.reads = true
+        battery.send(status)
+        NotificationCenter.default.post(name: .NSProcessInfoPowerStateDidChange, object: nil)
+        await settle()
+
+        XCTAssertEqual(store.snapshot, snapshot)
+        XCTAssertTrue(store.highPowerMode.isHighPowerMode)
+        XCTAssertTrue(store.lowPowerMode.isLowPowerMode)
+    }
+
+    func testHighPowerNotifyKeyRefreshesBothModesWhenTheSnapshotIsUnchanged() async {
+        let battery = FakeBatterySource()
+        let settings = makeSettings()
+        settings.controlsLowPowerMode = true
+        let low = RecordingLowPowerClient(reads: false)
+        let high = RecordingHighPowerClient()
+        let notifications = FakePowerModeNotifications()
+        let store = makeStore(
+            battery: battery, client: low, highClient: high, notifications: notifications
+        )
+        store.bindLowPowerModeSettings(settings)
+        store.start()
+        defer { store.stop() }
+        let status = batteryStatus(percent: 60, connectedToPower: false)
+        battery.send(status)
+        await waitUntil { store.highPowerMode.hasProbed && store.snapshot.battery.percentage == 60 }
+        store.lowPowerMode.refresh()
+        await waitUntil { low.readCallCount > 0 }
+        let snapshot = store.snapshot
+        high.reads = true
+        low.reads = true
+
+        // High Power Mode has no public Foundation notification: a system-side
+        // change only reaches the app through powerd's notify key.
+        notifications.fire()
+        await settle()
+
+        XCTAssertEqual(store.snapshot, snapshot, "the notify key must not require a new snapshot")
+        XCTAssertTrue(store.highPowerMode.isHighPowerMode)
+        XCTAssertTrue(store.lowPowerMode.isLowPowerMode)
+    }
+
+    func testBatteryPowerSourceAndLowPowerChangesRefreshButPercentageChangesDoNot() async {
+        let battery = FakeBatterySource()
+        let settings = makeSettings()
+        settings.controlsLowPowerMode = true
+        let low = RecordingLowPowerClient(reads: false)
+        let high = RecordingHighPowerClient()
+        let store = makeStore(battery: battery, client: low, highClient: high)
+        store.bindLowPowerModeSettings(settings)
+        store.start()
+        defer { store.stop() }
+        battery.send(batteryStatus(percent: 60, connectedToPower: false))
+        await settle()
+        let highReads = high.readCallCount
+        let lowReads = low.readCallCount
+        battery.send(batteryStatus(percent: 59, connectedToPower: false))
+        await settle()
+        XCTAssertEqual(high.readCallCount, highReads)
+        XCTAssertEqual(low.readCallCount, lowReads)
+
+        high.reads = true
+        low.reads = true
+        battery.send(batteryStatus(percent: 59, connectedToPower: true))
+        await settle()
+        XCTAssertTrue(store.highPowerMode.isHighPowerMode)
+        XCTAssertTrue(store.lowPowerMode.isLowPowerMode)
+
+        high.reads = false
+        low.reads = false
+        battery.send(batteryStatus(percent: 59, connectedToPower: true, isLowPowerMode: true))
+        await settle()
+        XCTAssertFalse(store.highPowerMode.isHighPowerMode)
+        XCTAssertFalse(store.lowPowerMode.isLowPowerMode, "helper read must supersede the lagging system seed")
+    }
+
+    func testAutomaticLowPowerSuccessRefreshesHighPowerWithoutANotification() async {
+        let battery = FakeBatterySource()
+        let settings = makeSettings()
+        settings.controlsLowPowerMode = true
+        settings.autoEnablesLowPowerMode = true
+        settings.autoLowPowerThreshold = 20
+        let low = RecordingLowPowerClient(reads: false)
+        let high = RecordingHighPowerClient()
+        high.reads = true
+        let store = makeStore(battery: battery, client: low, highClient: high)
+        store.bindLowPowerModeSettings(settings)
+        store.start()
+        defer { store.stop() }
+        await waitUntil { store.highPowerMode.hasProbed }
+        XCTAssertTrue(store.highPowerMode.isHighPowerMode)
+        // Model the helper's successful mutually-exclusive switch.
+        low.onSet = { high.reads = false }
+        battery.send(batteryStatus(percent: 10, connectedToPower: false))
+        await waitUntil { low.setCallCount == 1 && !store.lowPowerMode.isApplying }
+        await settle()
+
+        XCTAssertTrue(store.lowPowerMode.isLowPowerMode)
+        XCTAssertFalse(store.highPowerMode.isHighPowerMode)
+    }
+
+    func testAutomaticLowPowerFailureOrObservedOffDoesNotClearHighPower() async {
+        for fails in [true, false] {
+            let battery = FakeBatterySource()
+            let settings = makeSettings()
+            settings.controlsLowPowerMode = true
+            settings.autoEnablesLowPowerMode = true
+            settings.autoLowPowerThreshold = 20
+            let low = RecordingLowPowerClient(reads: false)
+            low.fails = fails
+            low.setResult = false
+            let high = RecordingHighPowerClient()
+            high.reads = true
+            let store = makeStore(battery: battery, client: low, highClient: high)
+            store.bindLowPowerModeSettings(settings)
+            store.start()
+            await waitUntil { store.highPowerMode.hasProbed }
+            let highReads = high.readCallCount
+            battery.send(batteryStatus(percent: 10, connectedToPower: false))
+            await waitUntil { low.setCallCount == 1 && !store.lowPowerMode.isApplying }
+            await settle()
+
+            XCTAssertTrue(store.highPowerMode.isHighPowerMode)
+            XCTAssertEqual(high.readCallCount, highReads)
+            XCTAssertFalse(store.lowPowerMode.isLowPowerMode)
+            store.stop()
+        }
+    }
+
+    func testStoppedOrOptedOutStoreDoesNotRefreshForPowerEvents() async {
+        for stopped in [false, true] {
+            let battery = FakeBatterySource()
+            let settings = makeSettings()
+            settings.controlsLowPowerMode = true
+            let readiness = FakeHelperReadiness(isReady: false)
+            let low = RecordingLowPowerClient(reads: false)
+            let high = RecordingHighPowerClient()
+            let store = makeStore(battery: battery, client: low, readiness: readiness, highClient: high)
+            store.bindLowPowerModeSettings(settings)
+            store.start()
+            await waitUntil { store.highPowerMode.hasProbed }
+            if stopped { store.stop() } else { settings.controlsLowPowerMode = false }
+            let lowReads = low.readCallCount
+            let highReads = high.readCallCount
+            readiness.isReady = true
+            battery.send(batteryStatus(percent: 10, connectedToPower: true))
+            NotificationCenter.default.post(name: .NSProcessInfoPowerStateDidChange, object: nil)
+            await settle()
+
+            XCTAssertEqual(low.readCallCount, lowReads)
+            XCTAssertEqual(high.readCallCount, highReads)
+            store.stop()
+        }
+    }
+
     // MARK: - Helpers
 
     private func makeStore(
         battery: FakeBatterySource,
         client: RecordingLowPowerClient,
-        readiness: FakeHelperReadiness = FakeHelperReadiness(isReady: true)
+        readiness: FakeHelperReadiness = FakeHelperReadiness(isReady: true),
+        highClient: RecordingHighPowerClient = RecordingHighPowerClient(),
+        notifications: FakePowerModeNotifications? = nil
     ) -> SystemStatusStore {
         SystemStatusStore(
             batteryMonitor: battery,
@@ -261,7 +462,12 @@ final class LowPowerAutoEnableWiringTests: XCTestCase {
                 client: client,
                 initialIsLowPowerMode: false
             ),
-            helperReadiness: readiness
+            highPowerMode: HighPowerModeController(
+                client: highClient,
+                platformSupported: true
+            ),
+            helperReadiness: readiness,
+            powerModeNotifications: notifications ?? PowerModeNotificationMonitor(names: [])
         )
     }
 
@@ -276,12 +482,16 @@ final class LowPowerAutoEnableWiringTests: XCTestCase {
         return SettingsStore(defaults: defaults)
     }
 
-    private func batteryStatus(percent: Int, connectedToPower: Bool) -> BatteryStatus {
+    private func batteryStatus(
+        percent: Int,
+        connectedToPower: Bool,
+        isLowPowerMode: Bool = false
+    ) -> BatteryStatus {
         BatteryStatus(
             rawPercentage: percent,
             isPresent: true,
             isCharging: false,
-            isLowPowerMode: false,
+            isLowPowerMode: isLowPowerMode,
             isConnectedToPower: connectedToPower
         )
     }
@@ -374,6 +584,10 @@ private final class FakeVolumeSource: VolumeMonitoring {
 
 private final class RecordingLowPowerClient: LowPowerModeClienting, @unchecked Sendable {
     var reads: Bool
+    var fails = false
+    var setResult: Bool?
+    var onSet: (() -> Void)?
+    private(set) var readCallCount = 0
     private(set) var setCallCount = 0
     private(set) var lastSetValue: Bool?
 
@@ -381,14 +595,70 @@ private final class RecordingLowPowerClient: LowPowerModeClienting, @unchecked S
         self.reads = reads
     }
 
-    func readLowPowerMode() async throws -> Bool { reads }
+    func readLowPowerMode() async throws -> Bool {
+        readCallCount += 1
+        return reads
+    }
 
     func setLowPowerMode(_ enabled: Bool) async throws -> Bool {
         setCallCount += 1
         lastSetValue = enabled
+        if fails { throw NSError(domain: "test", code: 1) }
+        onSet?()
+        let observed = setResult ?? enabled
+        reads = observed
+        return observed
+    }
+}
+
+private final class FakePowerModeNotifications:
+    PowerModeNotificationMonitoring, @unchecked Sendable
+{
+    nonisolated(unsafe) private var handler: (@MainActor () -> Void)?
+
+    func start(handler: @escaping @MainActor () -> Void) {
+        self.handler = handler
+    }
+
+    func stop() {
+        handler = nil
+    }
+
+    @MainActor
+    func fire() {
+        handler?()
+    }
+}
+
+private final class RecordingHighPowerClient: HighPowerModeClienting, @unchecked Sendable {
+    var isAvailable = true
+    var reads = false
+    var supported = true
+    private(set) var readCallCount = 0
+
+    func protocolVersion() async throws -> Int {
+        guard isAvailable else { throw NSError(domain: "test", code: 1) }
+        return 2
+    }
+
+    func highPowerModeSupported() async throws -> Bool {
+        guard isAvailable else { throw NSError(domain: "test", code: 1) }
+        return supported
+    }
+
+    func readHighPowerMode() async throws -> Bool {
+        guard isAvailable else { throw NSError(domain: "test", code: 1) }
+        readCallCount += 1
+        return reads
+    }
+
+    func setHighPowerMode(_ enabled: Bool) async throws -> Bool {
+        guard isAvailable else { throw NSError(domain: "test", code: 1) }
         reads = enabled
         return enabled
     }
+
+    func canReadLowPowerMode() async -> Bool { isAvailable }
 }
 
 @MainActor

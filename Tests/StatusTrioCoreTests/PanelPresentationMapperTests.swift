@@ -679,6 +679,42 @@ final class PanelPresentationMapperTests: XCTestCase {
         XCTAssertEqual(proxyOnly.title, "System proxy")
         XCTAssertEqual(proxyOnly.subtitle, "Automatic configuration")
         XCTAssertEqual(proxyOnly.tint, .caution)
+        XCTAssertNil(proxyOnly.vpnPower)
+    }
+
+    func testVPNPowerControlUsesServiceStateAndShowsFailure() {
+        let localization = makeLocalization(.english)
+        let status = VPNStatus(
+            tunnelInterfaces: [],
+            serviceName: "Home",
+            services: [
+                VPNServiceReading(serviceID: "office", name: "Office", state: .disconnected, isEnabled: true),
+                VPNServiceReading(serviceID: "home", name: "Home", state: .connected, isEnabled: true)
+            ],
+            proxy: nil
+        )
+        var powerState = VPNPowerState()
+        powerState.failure = .timedOut
+        let row = PanelPresentationMapper.vpn(
+            status, powerState: powerState, localization: localization
+        )
+        let power = try! XCTUnwrap(row.vpnPower)
+        XCTAssertTrue(power.isOn)
+        XCTAssertTrue(power.canSetPower)
+        XCTAssertEqual(power.failureMessage, "VPN status was not confirmed. Check again.")
+        XCTAssertEqual(power.turnOnHelp, "Connect VPN")
+        XCTAssertEqual(power.turnOffHelp, "Disconnect VPN")
+
+        let disconnected = VPNStatus(
+            tunnelInterfaces: [], serviceName: nil,
+            services: [VPNServiceReading(
+                serviceID: "office", name: "Office", state: .disconnected, isEnabled: true
+            )],
+            proxy: nil
+        )
+        let offRow = PanelPresentationMapper.vpn(disconnected, localization: localization)
+        XCTAssertFalse(offRow.vpnPower?.isOn ?? true)
+        XCTAssertTrue(offRow.vpnPower?.canSetPower ?? false)
     }
 
     func testPanelSummaryUsesSelectedLanguageForTheSameBatteryInput() {

@@ -12,20 +12,24 @@ struct BatteryStatusColorPalette {
     let lowPower: CGColor
     let highPower: CGColor
     let critical: CGColor
+    /// The middle Bluetooth glyph colour, resolved from the scene selection.
+    let bluetoothIcon: CGColor
 
     static func resolved(appearance: NSAppearance) -> Self {
         var result = Self(
             charging: CGColor(gray: 1, alpha: 1),
             lowPower: CGColor(gray: 1, alpha: 1),
             highPower: CGColor(gray: 1, alpha: 1),
-            critical: CGColor.redFallback
+            critical: CGColor.redFallback,
+            bluetoothIcon: CGColor(gray: 0, alpha: 1)
         )
         appearance.performAsCurrentDrawingAppearance {
             result = Self(
                 charging: rgb(.systemGreen),
                 lowPower: rgb(.systemYellow),
                 highPower: rgb(.systemBlue),
-                critical: rgb(.systemRed)
+                critical: rgb(.systemRed),
+                bluetoothIcon: rgb(.systemBlue)
             )
         }
         return result
@@ -45,7 +49,12 @@ struct BatteryStatusColorPalette {
             charging: resolved.charging,
             lowPower: resolved.lowPower,
             highPower: resolved.highPower,
-            critical: critical
+            critical: critical,
+            bluetoothIcon: BluetoothIconColorResolver.resolve(
+                .systemBlue,
+                foreground: foreground,
+                darkAppearance: brightness >= 0.5
+            )
         )
     }
 
@@ -74,7 +83,29 @@ struct BatteryStatusColorPalette {
             charging: resolve(.charging, charging),
             lowPower: resolve(.lowPower, lowPower),
             highPower: resolve(.highPower, highPower),
-            critical: resolve(.critical, critical)
+            critical: resolve(.critical, critical),
+            bluetoothIcon: bluetoothIcon
+        )
+    }
+
+    /// Replaces the Bluetooth icon colour with the scene's own selection. Kept
+    /// separate from the battery status colours because the two settings are
+    /// independent.
+    func applying(
+        bluetoothIcon selection: BluetoothIconColorSelection,
+        foreground: CGColor,
+        darkAppearance: Bool
+    ) -> Self {
+        Self(
+            charging: charging,
+            lowPower: lowPower,
+            highPower: highPower,
+            critical: critical,
+            bluetoothIcon: BluetoothIconColorResolver.resolve(
+                selection,
+                foreground: foreground,
+                darkAppearance: darkAppearance
+            )
         )
     }
 

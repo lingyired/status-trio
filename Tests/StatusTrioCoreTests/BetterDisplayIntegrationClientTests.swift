@@ -404,6 +404,21 @@ struct BetterDisplayIntegrationClientTests {
         #expect(bridge.activeObserverCount == 0)
     }
 
+    @Test("Deallocation from a background thread cleans up on the main actor")
+    func backgroundDeallocationCleansUpOnMainActor() async {
+        let bridge = FakeBetterDisplayNotificationBridge()
+        let box = ClientReleaseBox(makeClient(bridge: bridge))
+        box.client?.start { _ in }
+        #expect(bridge.activeObserverCount > 0)
+
+        await Task.detached {
+            box.client = nil
+        }.value
+
+        await bridge.waitForActiveObserverCount(0)
+        #expect(bridge.cancelThreads.allOnMainThread)
+    }
+
     @Test("Launch and termination notifications map without reading their object")
     func lifecycleNotificationsMapToEvents() async throws {
         let bridge = FakeBetterDisplayNotificationBridge()
@@ -541,6 +556,8 @@ private final class FakeBetterDisplayNotificationBridge: BetterDisplayNotificati
         case removeObserver(String)
     }
 
+    nonisolated let cancelThreads = CancelThreadRecorder()
+
     private struct HandlerRecord {
         let name: Notification.Name
         let handler: @Sendable (String?) -> Void
@@ -572,7 +589,9 @@ private final class FakeBetterDisplayNotificationBridge: BetterDisplayNotificati
         let id = UUID()
         handlers[id] = HandlerRecord(name: name, handler: handler)
         operations.append(.addObserver(name.rawValue))
-        return FakeBetterDisplayNotificationObservation { [weak self] in
+        let cancelThreads = self.cancelThreads
+        return FakeBetterDisplayNotificationObservation {
+            cancelThreads.record()
             Task { @MainActor [weak self] in
                 self?.removeObserver(id: id, name: name)
             }
@@ -675,5 +694,30 @@ private struct ParkedDeadlineSleeper: Sendable {
         let (stream, keepAlive) = AsyncStream<Void>.makeStream()
         defer { keepAlive.finish() }
         for await _ in stream {}
+    }
+}
+
+/// Records the thread on which a notification observation is cancelled. The
+/// client's cleanup domain is the main actor, so every value must be `true`.
+private final class CancelThreadRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [Bool] = []
+
+    func record() {
+        lock.withLock { values.append(Thread.isMainThread) }
+    }
+
+    var allOnMainThread: Bool {
+        lock.withLock { !values.isEmpty && values.allSatisfy { $0 } }
+    }
+}
+
+/// Test-only transfer of a main-actor object to another thread so the release
+/// (and therefore `deinit`) happens off the main actor.
+private final class ClientReleaseBox: @unchecked Sendable {
+    var client: BetterDisplayIntegrationClient?
+
+    init(_ client: BetterDisplayIntegrationClient?) {
+        self.client = client
     }
 }

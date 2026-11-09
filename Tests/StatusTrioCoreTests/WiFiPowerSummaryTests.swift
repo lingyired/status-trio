@@ -20,6 +20,22 @@ final class WiFiPowerSummaryTests: XCTestCase {
         XCTAssertFalse(second.showsWiFiPowerControl, "the choice must survive a new store")
     }
 
+    func testConfirmBeforeTurnOffDefaultsOnAndPersists() {
+        let suite = makeDefaultsSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertTrue(first.confirmsWiFiPowerOff, "confirmation is on by default (#305)")
+
+        first.confirmsWiFiPowerOff = false
+
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(
+            second.confirmsWiFiPowerOff,
+            "the opt-out must survive a new store"
+        )
+    }
+
     // MARK: - Visibility
 
     func testControlIsHiddenWithoutWiFiHardware() {
@@ -56,12 +72,47 @@ final class WiFiPowerSummaryTests: XCTestCase {
     // MARK: - Toggle decision
 
     func testTurningOffAsksOnlyWhileANetworkIsAssociated() {
-        XCTAssertTrue(WiFiPowerTogglePolicy.requiresConfirmation(for: .connected))
-        XCTAssertTrue(WiFiPowerTogglePolicy.requiresConfirmation(for: .hotspot))
-        for state: WiFiState in [.notAssociated, .off, .noInternet, .temporary, .shared, .unavailable] {
+        for state: WiFiState in [.connected, .hotspot, .noInternet, .temporary, .shared] {
+            XCTAssertTrue(
+                WiFiPowerTogglePolicy.requiresConfirmation(for: state),
+                "\(state) is associated with a network, so turning Wi-Fi off drops it"
+            )
+        }
+        for state: WiFiState in [.notAssociated, .off, .unavailable] {
             XCTAssertFalse(
                 WiFiPowerTogglePolicy.requiresConfirmation(for: state),
                 "\(state) must turn off without asking"
+            )
+        }
+    }
+
+    func testTurningOffSkipsConfirmationWhenTheSettingIsOff() {
+        for state: WiFiState in [.connected, .noInternet, .hotspot, .temporary, .shared] {
+            XCTAssertFalse(
+                WiFiPowerTogglePolicy.requiresConfirmation(for: state, confirmsPowerOff: false),
+                "\(state) must switch off directly when the confirm setting is off (#305)"
+            )
+            XCTAssertEqual(
+                WiFiPowerTogglePolicy.decision(
+                    isOn: true,
+                    requiresConfirmation: WiFiPowerTogglePolicy.requiresConfirmation(
+                        for: state,
+                        confirmsPowerOff: false
+                    )
+                ),
+                .set(false),
+                "\(state) writes the radio off without a confirmation step"
+            )
+        }
+    }
+
+    func testSettingDoesNotAffectStatesThatNeverAsked() {
+        for state: WiFiState in [.notAssociated, .off, .unavailable] {
+            XCTAssertFalse(
+                WiFiPowerTogglePolicy.requiresConfirmation(for: state, confirmsPowerOff: true)
+            )
+            XCTAssertFalse(
+                WiFiPowerTogglePolicy.requiresConfirmation(for: state, confirmsPowerOff: false)
             )
         }
     }
@@ -140,6 +191,67 @@ final class WiFiPowerSummaryTests: XCTestCase {
         )
         let wiredGlyphs = wired.trailingGlyphRects(count: 3, minimumX: 150)
         XCTAssertEqual(wiredGlyphs.count, 2, "the wired row must not draw a Wi-Fi power control")
+    }
+
+    func testPermissionRowsKeepPowerControlWithoutDisclosureChevron() throws {
+        for intent: PanelSummaryIntent in [.requestWiFiNameAccess, .locationSettings] {
+            let row = try render(makeView(
+                intent: intent, showsWiFiPowerControl: true, wifiPowerIsOn: true,
+                title: "A", subtitle: " "
+            ))
+            XCTAssertEqual(
+                row.trailingGlyphRects(count: 3, minimumX: 150).count, 2,
+                "\(intent) must keep power and Settings without a disclosure chevron"
+            )
+        }
+    }
+
+    func testSummaryToggleFollowsTheWiFiIntentNotTheRowDestination() {
+        for intent: PanelSummaryIntent in [.wifiDetails, .requestWiFiNameAccess, .locationSettings] {
+            XCTAssertTrue(
+                WiFiPowerControlVisibility.showsSummaryToggle(intent: intent, isEnabled: true),
+                "\(intent) is a Wi-Fi row and must offer the radio control"
+            )
+        }
+        for intent: PanelSummaryIntent in [
+            .none, .batteryDetails, .wiredDetails,
+            .requestBluetoothAuthorization, .openBluetoothPermissionSettings,
+        ] {
+            XCTAssertFalse(
+                WiFiPowerControlVisibility.showsSummaryToggle(intent: intent, isEnabled: true),
+                "\(intent) is not a Wi-Fi row"
+            )
+        }
+        XCTAssertFalse(
+            WiFiPowerControlVisibility.showsSummaryToggle(intent: .wifiDetails, isEnabled: false),
+            "the user's off preference hides the control"
+        )
+    }
+
+    func testFailureMessageOnlyAppearsWhereTheControlDoes() {
+        for intent: PanelSummaryIntent in [.wifiDetails, .requestWiFiNameAccess, .locationSettings] {
+            XCTAssertTrue(
+                WiFiPowerControlVisibility.showsFailureMessage(
+                    intent: intent, isEnabled: true, failed: true
+                ),
+                "\(intent) can switch the radio, so it must be able to report a failure"
+            )
+        }
+        XCTAssertFalse(
+            WiFiPowerControlVisibility.showsFailureMessage(
+                intent: .wiredDetails, isEnabled: true, failed: true
+            )
+        )
+        XCTAssertFalse(
+            WiFiPowerControlVisibility.showsFailureMessage(
+                intent: .wifiDetails, isEnabled: true, failed: false
+            )
+        )
+        XCTAssertFalse(
+            WiFiPowerControlVisibility.showsFailureMessage(
+                intent: .wifiDetails, isEnabled: false, failed: true
+            )
+        )
     }
 
     func testPowerControlRendersForOnOffAndUnavailable() throws {

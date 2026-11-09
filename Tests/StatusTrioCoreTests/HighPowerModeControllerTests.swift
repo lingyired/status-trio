@@ -118,6 +118,53 @@ final class HighPowerModeControllerTests: XCTestCase {
         XCTAssertFalse(controller.isSupported)
     }
 
+    func testSuccessfulTurnOnNotifiesTheCoordinator() async {
+        let client = FakeHighPowerClient(version: .success(2), supported: true, reads: false)
+        client.setResult = true
+        let controller = HighPowerModeController(client: client, platformSupported: true)
+        controller.setEnabled(true)
+        await waitUntil { controller.hasProbed }
+        var notifications = 0
+        controller.onSuccessfulWrite = { notifications += 1 }
+
+        controller.setHighPowerMode(true)
+        await waitUntil { !controller.isApplying }
+        XCTAssertEqual(notifications, 1)
+
+        client.setResult = false
+        controller.setHighPowerMode(false)
+        await waitUntil { !controller.isApplying }
+        XCTAssertEqual(notifications, 1, "turning the mode off cannot have cleared the other mode")
+    }
+
+    func testFailedWriteDoesNotNotifyTheCoordinator() async {
+        let client = FakeHighPowerClient(version: .success(2), supported: true, reads: false)
+        client.setError = FakeError.missingSelector
+        let controller = HighPowerModeController(client: client, platformSupported: true)
+        controller.setEnabled(true)
+        await waitUntil { controller.hasProbed }
+        var notifications = 0
+        controller.onSuccessfulWrite = { notifications += 1 }
+
+        controller.setHighPowerMode(true)
+        await waitUntil { controller.lastError != nil }
+        XCTAssertEqual(notifications, 0)
+    }
+
+    func testRefreshDoesNotSupersedeAQueuedWrite() async {
+        let client = FakeHighPowerClient(version: .success(2), supported: true, reads: false)
+        let controller = HighPowerModeController(client: client, platformSupported: true)
+        controller.setEnabled(true)
+        await waitUntil { controller.hasProbed && client.readCallCount == 1 }
+
+        controller.setHighPowerMode(true)
+        controller.refresh()
+        await waitUntil { !controller.isApplying }
+        XCTAssertEqual(client.setCallCount, 1)
+        XCTAssertEqual(client.readCallCount, 1)
+        XCTAssertTrue(controller.isHighPowerMode)
+    }
+
     func testCurrentDaemonProbeErrorIsNotReportedAsOutdated() async {
         let client = FakeHighPowerClient(legacyAnswers: true)
         client.supportError = FakeError.missingSelector

@@ -10,9 +10,18 @@ enum WiFiPowerToggleDecision: Equatable, Sendable {
 
 enum WiFiPowerTogglePolicy {
     /// Turning the radio off while a network is associated asks first; the
-    /// Bluetooth radio uses the same rule for connected peripherals.
-    static func requiresConfirmation(for state: WiFiState) -> Bool {
-        state == .connected || state == .hotspot
+    /// Bluetooth radio uses the same rule for connected peripherals. Every
+    /// associated state counts, not just a healthy link: a no-internet,
+    /// temporary or shared (Internet Sharing) association still drops when the
+    /// radio goes off.
+    ///
+    /// `confirmsPowerOff` mirrors the user's "Confirm Before Turning Off Wi-Fi"
+    /// setting (#305): when they turn it off, every associated state switches
+    /// off directly too. The unassociated states never asked in the first
+    /// place, so they are unaffected either way.
+    static func requiresConfirmation(for state: WiFiState, confirmsPowerOff: Bool = true) -> Bool {
+        guard confirmsPowerOff else { return false }
+        return state.isNetworkAssociated
     }
 
     static func decision(isOn: Bool, requiresConfirmation: Bool) -> WiFiPowerToggleDecision {
@@ -45,6 +54,34 @@ enum WiFiPowerControlVisibility {
 
     static func showsSummaryToggle(state: WiFiState, isEnabled: Bool) -> Bool {
         isEnabled && canConfigure(state: state)
+    }
+
+    /// The summary row carries the radio control for every Wi-Fi intent,
+    /// including the permission rows. Granting location access is only about
+    /// reading the network name; switching the radio never needs it, so hiding
+    /// the control there would take away the in-panel power switch.
+    static func showsSummaryToggle(intent: PanelSummaryIntent, isEnabled: Bool) -> Bool {
+        isEnabled && isWiFiSummaryIntent(intent)
+    }
+
+    /// A failed write is only reported on a row that offered the control, so the
+    /// message never appears without the button that caused it.
+    static func showsFailureMessage(
+        intent: PanelSummaryIntent,
+        isEnabled: Bool,
+        failed: Bool
+    ) -> Bool {
+        failed && showsSummaryToggle(intent: intent, isEnabled: isEnabled)
+    }
+
+    private static func isWiFiSummaryIntent(_ intent: PanelSummaryIntent) -> Bool {
+        switch intent {
+        case .wifiDetails, .requestWiFiNameAccess, .locationSettings:
+            return true
+        case .none, .batteryDetails, .wiredDetails,
+             .requestBluetoothAuthorization, .openBluetoothPermissionSettings:
+            return false
+        }
     }
 
     /// The radio is on for every state except an explicit `.off`; `.unavailable`

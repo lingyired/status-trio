@@ -84,6 +84,9 @@ final class StatusBarController: NSObject {
     private let chargingFrameCache = StatusBarChargingFrameCache()
     private let animationLayerPresenter = StatusBarAnimationLayerPresenter()
     private let templateImagePresenter = StatusBarTemplateImagePresenter()
+    #if DEBUG
+    private let alignmentDiagnostics = StatusBarAlignmentDiagnostics()
+    #endif
     private let renderCoalescer = IconRenderCoalescer()
     /// The template base and button footprint, kept so a custom-raster fallback
     /// can restore the independent template presentation.
@@ -264,6 +267,11 @@ final class StatusBarController: NSObject {
 
         statusItem.isVisible = isVisible
         configureButton()
+        #if DEBUG
+        alignmentDiagnostics?.didChange = { [weak self] in
+            self?.renderLatestScene()
+        }
+        #endif
         configurePopover()
         observeApplicationFocusChanges()
         observeAppWindowFrontmostChanges()
@@ -302,11 +310,26 @@ final class StatusBarController: NSObject {
             self?.scheduleAccessibilityUpdate()
         }
 
-        refreshIntervalCancellable = settings.$refreshIntervalSeconds
-            .removeDuplicates()
-            .sink { [weak self] seconds in
-                self?.store.setRefreshInterval(.seconds(Int(seconds.rounded())))
-            }
+        // #255: the effective cadence depends on the two per-power-source
+        // settings and the deduplicated power source. Mapping the snapshot to a
+        // single Bool first means an unrelated snapshot update (battery percent,
+        // Wi-Fi, volume) never rebuilds the wait.
+        refreshIntervalCancellable = Publishers.CombineLatest3(
+            settings.$refreshIntervalOnBatterySeconds,
+            settings.$refreshIntervalOnPowerSeconds,
+            store.$snapshot
+                .map { Self.effectivePluggedIn(battery: $0.battery) }
+                .removeDuplicates()
+        )
+        .map { batterySeconds, powerSeconds, pluggedIn in
+            pluggedIn
+                ? Duration.seconds(Int(powerSeconds.rounded()))
+                : Duration.seconds(Int(batterySeconds.rounded()))
+        }
+        .removeDuplicates()
+        .sink { [weak self] interval in
+            self?.store.setRefreshInterval(interval)
+        }
 
         // The icon is the surface that keeps wanting watts while the panel is
         // closed. Its demand keeps the shared sampler at the idle cadence; the
@@ -338,6 +361,15 @@ final class StatusBarController: NSObject {
         .sink { [weak self] _ in
             self?.renderLatestScene()
         }
+    }
+
+    /// Whether the effective refresh cadence should use the wall-power value.
+    ///
+    /// #255: a Mac with no battery has no battery mode, so it is treated as
+    /// plugged in. Charging state is deliberately ignored — an unplugged Mac
+    /// that happens to report charging must still use the battery cadence.
+    static func effectivePluggedIn(battery: BatteryStatus) -> Bool {
+        !battery.isPresent || battery.isConnectedToPower
     }
 
     static func clickKind(eventType: NSEvent.EventType, modifiers: NSEvent.ModifierFlags) -> ClickKind? {
@@ -490,6 +522,7 @@ final class StatusBarController: NSObject {
 
     private func installPopoverContentIfNeeded() {
         guard popover.contentViewController == nil else { return }
+        let measurementID = UUID()
         let rootView = LocalizedRootView(localization: localization) {
             StatusPopoverView(
                 panel: panelViewModel,
@@ -511,13 +544,16 @@ final class StatusBarController: NSObject {
                 openDisplaySettings: { self.handleOpenDisplaySettings() },
                 openKeyboardSettings: { self.handleOpenKeyboardSettings() },
                 quit: quitAction,
-                dismissPanel: { [weak self] in self?.closePopover() }
+                dismissPanel: { [weak self] in self?.closePopover() },
+                contentMeasurementID: measurementID
             )
         }
         let hostingController = StatusPanelHostingController(rootView: rootView)
         // StatusPanelLayoutMetrics owns the panel height; preferred sizing here
         // would add a second owner and can reset the measured window frame.
-        popover.installContent(hostingController, backgroundStyle: settings.panelBackgroundStyle)
+        popover.installContent(hostingController,
+                               backgroundStyle: settings.panelBackgroundStyle,
+                               measurementID: measurementID)
     }
 
     func togglePopover() {
@@ -1331,11 +1367,20 @@ final class StatusBarController: NSObject {
     private func presentMenuBar(phase: ChargingEffectPhase?) {
         guard isStatusItemVisible, let button = statusItem.button else { return }
 
-        let scene = (latestIconOutput.menuBarTestScene ?? latestIconOutput.scene)
+        var scene = (latestIconOutput.menuBarTestScene ?? latestIconOutput.scene)
             .withChargingEffectEnabled(isMenuBarChargingEffectEnabled)
-        let iconSize = latestIconOutput.menuBarSize
+        var iconSize = latestIconOutput.menuBarSize
+        var effectivePhase = isMenuBarChargingEffectEnabled ? phase : nil
+        var forcesSplitPresentation = false
+        #if DEBUG
+        if let request = alignmentDiagnostics?.request {
+            scene = request.scene
+            iconSize = request.size
+            effectivePhase = request.animated ? ChargingEffectPhase(step: request.phaseStep, stepsPerCycle: 40, kind: .steady) : nil
+            forcesSplitPresentation = true
+        }
+        #endif
         guard iconSize.isFinite, iconSize > 0 else { return }
-        let effectivePhase = isMenuBarChargingEffectEnabled ? phase : nil
 
         let scaleResolution = Self.resolveBackingScale(
             windowScale: button.window?.backingScaleFactor,
@@ -1343,6 +1388,19 @@ final class StatusBarController: NSObject {
         )
         let backingScale = scaleResolution.scale
         let appearance = appearanceProvider?() ?? button.effectiveAppearance
+        #if DEBUG
+        if let diagnostics = alignmentDiagnostics {
+            // One deferred observation per explicit fixture request/presentation;
+            // wait for AppKit's image-driven button resize, without polling.
+            DispatchQueue.main.async { [weak self, weak button] in
+                guard let self, let button else { return }
+                diagnostics.write(button: button, scale: backingScale, size: iconSize,
+                                  overlayFrame: self.animationLayerPresenter.frameForDiagnostics,
+                                  statusItemLength: self.statusItem.length,
+                                  overlayContentsScale: self.animationLayerPresenter.contentsScaleForDiagnostics)
+            }
+        }
+        #endif
         let staticKey = StatusBarRenderKey(
             scene: scene,
             iconSize: iconSize,
@@ -1363,7 +1421,7 @@ final class StatusBarController: NSObject {
                 return
             }
             let buttonImage: NSImage
-            if scene.chromaticRegions.isEmpty {
+            if scene.chromaticRegions.isEmpty && !forcesSplitPresentation {
                 buttonImage = base
             } else {
                 guard let placeholder = StatusIconRenderer.transparentMenuBarImage(
@@ -1572,7 +1630,8 @@ final class StatusBarController: NSObject {
             size: context.iconSize,
             scale: context.backingScale,
             appearance: context.appearance,
-            phase: phase
+            phase: phase,
+            supersample: 2
         ) else {
             return
         }

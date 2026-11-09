@@ -51,7 +51,12 @@ typedef NS_ENUM(NSInteger, STPowerUIChargeWriteFailure) {
 - (STPowerUIChargeCapability *)capability;
 - (STPowerUIChargeState *)readState;
 /// Sends one request. The caller owns user intent, revalidation, and de-duplication.
-- (STPowerUIChargeWriteResult *)temporarilyDisableMCL;
+///
+/// Chooses the native path: `temporarilyDisableMCL:` when a sub-100% charge
+/// limit is active, otherwise `temporarilyEnableCharging:` when the system
+/// reports the current charge pause is overridable (for example Optimized
+/// Battery Charging paused at ~80% with the charge limit at 100%).
+- (STPowerUIChargeWriteResult *)chargeToFullNow;
 /// Restores the charge limit to `limit` (80...99), using
 /// `setMCLLimit:error:` only when required.
 ///

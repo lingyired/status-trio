@@ -226,13 +226,13 @@ final class AudioInputMonitorTests: XCTestCase {
     monitor.setVisible(true)
     await fulfillment(of: [initial], timeout: 5)
 
-    let pollScheduled = sleeper.expectCall(.seconds(1), count: 1)
+    let pollScheduled = sleeper.expectCall(.seconds(5), count: 1)
     await fulfillment(of: [pollScheduled], timeout: 5)
     hardware.setUsageReading(AudioInputUsageReading(defaultDeviceID: 11, isDefaultInputInUse: true))
     let becameActive = log.expectStatus("active input stream updates the visible status") {
       $0.isDefaultInputInUse == true
     }
-    XCTAssertTrue(sleeper.releaseNext(.seconds(1)))
+    XCTAssertTrue(sleeper.releaseNext(.seconds(5)))
     await fulfillment(of: [becameActive], timeout: 5)
 
     XCTAssertEqual(hardware.usageReadCount, 1)
@@ -1164,6 +1164,36 @@ final class AudioInputMonitorTests: XCTestCase {
     }
     monitor.setScalar(0.6)
     await fulfillment(of: [clearedByAction], timeout: 5)
+  }
+
+  func testReleasingTheMonitorStopsItsHardwareObservation() async throws {
+    let hardware = FakeAudioInputHardware(reading: reading(defaultID: 11))
+    var monitor: AudioInputMonitor? = AudioInputMonitor(hardware: hardware)
+    let probe = DeinitProbe.track(monitor)
+    monitor?.setEnabled(true)
+    monitor?.setVisible(true)
+    let observed = await waitUntil { hardware.observationCount == 1 }
+    XCTAssertTrue(observed, "enabling the monitor must install its observation")
+
+    withExtendedLifetime(probe) {
+      monitor = nil
+    }
+
+    let stopped = await waitUntil { hardware.observationStopCount == 1 }
+    XCTAssertTrue(stopped, "releasing the monitor must remove its CoreAudio listeners")
+    XCTAssertNil(probe.value)
+  }
+
+  private func waitUntil(
+    _ condition: @escaping () -> Bool,
+    timeout: TimeInterval = 2
+  ) async -> Bool {
+    let deadline = Date().addingTimeInterval(timeout)
+    while Date() < deadline {
+      if condition() { return true }
+      try? await Task.sleep(for: .milliseconds(10))
+    }
+    return condition()
   }
 
   private func reading(

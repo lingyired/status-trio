@@ -7,22 +7,31 @@ enum IconPresentationMapper {
         now: Date = Date()
     ) -> IconSceneState {
         // #253: the "charging status inside the ring" middle-icon mode draws the
-        // battery/charging status in the centre, so the top gap closes and the
-        // percentage/bolt/plug moves out of it (never drawn twice).
-        let closesRing = configuration.connection.centerSource == .chargingStatus
-            && inputs.snapshot.battery.isPresent
+        // battery/charging status in the centre. The level percentage lives there
+        // while on battery, so the top gap closes to keep that number from being
+        // drawn twice. While charging / on power the centre shows the bolt or
+        // plug instead, so the top gap stays available and keeps the level
+        // percentage visible (see `batteryState`).
+        let battery = inputs.snapshot.battery
+        let chargingStatusCenter = configuration.connection.centerSource == .chargingStatus
+            && battery.isPresent
+        let closesRing = chargingStatusCenter
+            && !battery.isCharging
+            && !battery.isConnectedToPower
         return IconSceneState(
             outerRing: batteryState(
-                inputs.snapshot.battery,
+                battery,
                 isHighPowerMode: inputs.isHighPowerMode,
                 options: configuration.battery,
-                closesRing: closesRing
+                closesRing: closesRing,
+                chargingStatusCenter: chargingStatusCenter
             ),
             center: centerState(inputs: inputs, configuration: configuration, now: now),
             footer: footerState(inputs.snapshot.volume, options: configuration.volume,
                                 bluetoothOptions: configuration.bluetooth),
             statusColors: configuration.battery.usesStatusColors
-                ? configuration.battery.batteryStatusColors : .standard
+                ? configuration.battery.batteryStatusColors : .standard,
+            bluetoothIconColor: configuration.bluetooth.iconColor
         )
     }
 
@@ -30,8 +39,24 @@ enum IconPresentationMapper {
         _ battery: BatteryStatus,
         isHighPowerMode: Bool,
         options: BatteryIconOptions,
-        closesRing: Bool
-    ) -> OuterRingState {
+        closesRing: Bool,
+        chargingStatusCenter: Bool
+    ) -> OuterRingState? {
+        // A Mac with no battery has nothing for this ring to represent. Keep the
+        // ring's fixed artwork footprint as an empty track so the icon does not
+        // change shape between a laptop and a desktop, but draw no fill and no
+        // level: `percentage` reports a placeholder 100, and showing it would
+        // claim a charged battery that does not exist.
+        guard battery.isPresent else {
+            return OuterRingState(
+                segments: [RingSegmentState(progress: 0, color: .primary)],
+                gap: .closed,
+                accessory: nil,
+                effect: nil,
+                strokeScale: options.ringStrokeScale,
+                gapProgressMode: .absorbed
+            )
+        }
         let role = options.usesStatusColors
             ? StatusMappings.batteryColorRole(
                 battery,
@@ -47,7 +72,20 @@ enum IconPresentationMapper {
         case .charging: .powered
         }
 
-        let gapContent = StatusMappings.batteryGapContent(battery, options: options)
+        let naturalGapContent = StatusMappings.batteryGapContent(battery, options: options)
+        // The "inside the ring" mode draws its status in the middle slot. When the
+        // centre carries the level percentage (on battery) the top gap closes so
+        // the same number is not drawn twice. When the centre carries the bolt or
+        // plug instead, the top gap shows the level percentage, so the battery
+        // percentage is never lost while charging or connected to power.
+        let gapContent: BatteryGapContent
+        if closesRing {
+            gapContent = naturalGapContent
+        } else if chargingStatusCenter {
+            gapContent = options.showsPercentage ? .percentage : .empty
+        } else {
+            gapContent = naturalGapContent
+        }
         let gapStyle: RingGapStyle = switch gapContent {
         case .empty: .closed
         case .percentage: .value
@@ -181,12 +219,12 @@ enum IconPresentationMapper {
             }
         }
 
-        if connectionOptions.centerSource == .batteryPercentage {
+        if connectionOptions.centerSource == .batteryPercentage,
+           battery.isPresent {
             // Every numeric centre mode shares the same size rule: the Wi-Fi
             // Icon Size scale, so switching between percentage and watts does
-            // not change the number's size. A Mac with no battery reports 100
-            // through `BatteryStatus.percentage`, so this slot and the top
-            // battery indicator agree on the same value.
+            // not change the number's size. Without a battery the slot falls
+            // through to the network glyph instead of inventing a level.
             return .text(IconTextState(
                 text: "\(battery.percentage)",
                 color: .primary,
@@ -218,7 +256,11 @@ enum IconPresentationMapper {
             } else {
                 source = .symbol(name: "headphones", variableValue: nil, fallback: nil)
             }
-            return .symbol(IconSymbolState(source: source, color: .bluetooth, scale: bluetoothOptions.symbolScale))
+            // Primary draws the label colour directly (and stays template-safe);
+            // blue and custom go through the scene-carried Bluetooth icon colour.
+            let color: IconColorRole = bluetoothOptions.iconColor == .primary
+                ? .primary : .bluetoothIcon
+            return .symbol(IconSymbolState(source: source, color: color, scale: bluetoothOptions.symbolScale))
         }
 
         return networkState(snapshot: snapshot, options: connectionOptions)
@@ -247,7 +289,7 @@ enum IconPresentationMapper {
         _ source: InputSourceDescriptor,
         scale: Double
     ) -> CenterState {
-        if let iconURL = source.iconURL {
+        if let iconURL = source.drawingIconURL() {
             return .symbol(IconSymbolState(
                 source: .image(url: iconURL, fallbackSymbol: "keyboard"),
                 color: .primary,

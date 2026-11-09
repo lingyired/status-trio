@@ -443,7 +443,8 @@ private final class CapabilityWiFiMonitor: WiFiMonitoring {
 @MainActor
 private final class PresentationVolumeEvents: VolumeEventMonitoring {
     func start(onDefaultDeviceChange: @escaping @MainActor @Sendable () -> Void,
-               onVolumeChange: @escaping @MainActor @Sendable () -> Void) {}
+               onVolumeChange: @escaping @MainActor @Sendable () -> Void,
+               onDeviceListChange: @escaping @MainActor @Sendable () -> Void) {}
     func reconcile() {}
     func recover() {}
     func stop() {}

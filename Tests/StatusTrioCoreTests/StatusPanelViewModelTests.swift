@@ -28,6 +28,39 @@ final class StatusPanelViewModelTests: XCTestCase {
         panel.stop()
     }
 
+    func testIrrelevantSettingChangeDoesNotRemapThePanel() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        fixture.updateScheduler.runScheduled()
+        let schedules = fixture.updateScheduler.scheduleCount
+
+        // The icon size is not read by any panel presentation. A write to it
+        // used to mark every refresh region dirty and remap the whole panel.
+        fixture.settings.iconSize += 1
+        _ = await waitForYields { fixture.updateScheduler.pendingCount > 0 }
+        fixture.updateScheduler.runScheduled()
+
+        XCTAssertEqual(fixture.updateScheduler.scheduleCount, schedules)
+    }
+
+    func testRelevantSettingChangeRemapsThePanel() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        fixture.updateScheduler.runScheduled()
+        let schedules = fixture.updateScheduler.scheduleCount
+
+        fixture.settings.showsBatteryPowerInfoBar = true
+        let didSchedule = await waitForYields { fixture.updateScheduler.pendingCount > 0 }
+        XCTAssertTrue(didSchedule)
+        fixture.updateScheduler.runScheduled()
+
+        XCTAssertGreaterThan(fixture.updateScheduler.scheduleCount, schedules)
+    }
+
     func testStoppingPanelReleasesPowerInfoBarAndStopsWithoutOtherDemands() {
         let fixture = PanelStoreFixture()
         fixture.settings.showsBatteryPowerInfoBar = true
@@ -219,6 +252,41 @@ final class StatusPanelViewModelTests: XCTestCase {
             levels.count,
             "level-only readings must coalesce instead of publishing one per tick"
         )
+    }
+
+    func testBatteryRuntimeUpdatesTheOpenPanelWithoutPercentageChanges() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+
+        let cases: [(Int?, String)] = [
+            (85, "About 1 hour, 25 minutes remaining"),
+            (80, "About 1 hour, 20 minutes remaining"),
+            (nil, "On battery")
+        ]
+        for (minutes, expected) in cases {
+            let expectedSleeps = fixture.popupSleeper.callCount + 1
+            fixture.battery.send(BatteryStatus(
+                rawPercentage: 72,
+                isPresent: true,
+                isCharging: false,
+                timeToEmptyMinutes: minutes,
+                isLowPowerMode: false,
+                isConnectedToPower: false
+            ))
+            let queued = await fixture.popupSleeper.waitForCallCount(
+                expectedSleeps, timeout: .seconds(1)
+            )
+            XCTAssertTrue(queued)
+            fixture.popupSleeper.releaseAll()
+            let updated = await waitForYields { panel.battery.subtitle == expected }
+            XCTAssertTrue(updated, expected)
+            XCTAssertEqual(panel.battery.title, "Battery · 72%")
+            XCTAssertEqual(panel.battery.accessibilityValue, expected)
+        }
     }
 
     func testPopupBatteryAndNetworkUpdateThroughTheirDebouncedSource() async throws {
@@ -464,7 +532,7 @@ final class StatusPanelViewModelTests: XCTestCase {
     /// with it off, the preview rows and any real capsules disappear even when
     /// the preview toggle is on, and the discovery identity is marked closed so
     /// the summary task stops the controller.
-    func testListeningModeMasterSwitchOffHidesPreviewAndVolumeCapsules() {
+    func testListeningModeMasterSwitchOffHidesPreviewAndVolumeCapsules() async throws {
         let fixture = PanelStoreFixture()
         fixture.settings.setPopupSection(.volume, enabled: true)
         fixture.settings.previewsBluetoothListeningMode = true
@@ -477,6 +545,8 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertFalse(panel.volume.listeningModeTaskID.hasPrefix("off::"))
 
         fixture.settings.showsBluetoothListeningMode = false
+        let queuedOff = await waitForYields { fixture.updateScheduler.pendingCount > 0 }
+        XCTAssertTrue(queuedOff)
         fixture.updateScheduler.runScheduled()
 
         XCTAssertTrue(panel.volume.previewRows.isEmpty)
@@ -485,6 +555,8 @@ final class StatusPanelViewModelTests: XCTestCase {
 
         // Turning it back on restores the preview rows and a live discovery tag.
         fixture.settings.showsBluetoothListeningMode = true
+        let queuedOn = await waitForYields { fixture.updateScheduler.pendingCount > 0 }
+        XCTAssertTrue(queuedOn)
         fixture.updateScheduler.runScheduled()
         XCTAssertFalse(panel.volume.previewRows.isEmpty)
         XCTAssertFalse(panel.volume.listeningModeTaskID.hasPrefix("off::"))
@@ -630,7 +702,8 @@ final class StatusPanelViewModelTests: XCTestCase {
         let oldLimit = panel.volume.visibleLimit
 
         fixture.settings.alwaysShowsAllOutputDevices = true
-        XCTAssertEqual(fixture.updateScheduler.pendingCount, 1)
+        let queued = await waitForYields { fixture.updateScheduler.pendingCount == 1 }
+        XCTAssertTrue(queued, "a relevant setting change must queue one remap")
         panel.stop()
         fixture.updateScheduler.runScheduled()
         await Task.yield()
@@ -731,7 +804,8 @@ final class StatusPanelViewModelTests: XCTestCase {
         fixture.settings.alwaysShowsAllOutputDevices = true
         XCTAssertNil(fixture.settings.visibleOutputDeviceLimit)
         XCTAssertGreaterThan(settingsChanges, 0)
-        XCTAssertEqual(fixture.updateScheduler.pendingCount, 1)
+        let queued = await waitForYields { fixture.updateScheduler.pendingCount == 1 }
+        XCTAssertTrue(queued, "a relevant setting change must queue one remap")
         fixture.updateScheduler.runScheduled()
         XCTAssertNil(panel.volume.visibleLimit)
         await fulfillment(of: [volumeUpdated], timeout: 1)
@@ -1158,8 +1232,10 @@ final class ManualPanelUpdateScheduler: PanelPresentationUpdateScheduling {
     private var pendingUpdates: [@MainActor () -> Void] = []
     var pendingCount: Int { pendingUpdates.count }
     var hasPendingUpdate: Bool { !pendingUpdates.isEmpty }
+    private(set) var scheduleCount = 0
 
     func schedule(_ update: @escaping @MainActor () -> Void) {
+        scheduleCount += 1
         pendingUpdates.append(update)
     }
 

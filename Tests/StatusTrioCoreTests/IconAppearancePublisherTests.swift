@@ -200,6 +200,9 @@ final class IconAppearancePublisherTests: XCTestCase {
         IconMutation(name: "connectionCenterSourceBluetoothDevice") {
             $0.connectionCenterSource = .bluetoothDevice
         },
+        IconMutation(name: "bluetoothIconColor") {
+            $0.bluetoothIconColor = .primary
+        },
         IconMutation(name: "usesBluetoothAudioVolumeColor") {
             $0.usesBluetoothAudioVolumeColor = true
         },

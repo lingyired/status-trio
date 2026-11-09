@@ -153,9 +153,10 @@ final class AnchoredStatusPanel: NSPanel {
     /// intrinsic size changes when a row expands.
     func installContent<Content: View>(
         _ hostingController: StatusPanelHostingController<Content>,
-        backgroundStyle: PanelBackgroundStyle
+        backgroundStyle: PanelBackgroundStyle,
+        measurementID: UUID? = nil
     ) {
-        layoutMetrics.attachWindow { [weak self] height in
+        layoutMetrics.attachWindow(measurementID: measurementID) { [weak self] height in
             guard let self else { return }
             self.requestContentSize(NSSize(width: 330, height: height))
         }

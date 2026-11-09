@@ -31,6 +31,8 @@ struct StatusPopoverView: View {
     let quit: () -> Void
     /// The footer's Actions menu closes the panel before opening another window.
     var dismissPanel: () -> Void = {}
+    /// Reject measurements from a retained tree after its hosting controller is replaced.
+    var contentMeasurementID: UUID? = nil
 
     var body: some View {
         // One scroll surface for every route (#237). The area measures the page
@@ -40,7 +42,9 @@ struct StatusPopoverView: View {
         StatusPanelScrollArea(
             maximumHeight: layoutMetrics.maximumPanelHeight,
             fillsWindow: layoutMetrics.fillsWindow,
-            onNaturalHeight: { layoutMetrics.measure(contentHeight: $0) }
+            onNaturalHeight: {
+                layoutMetrics.measure(contentHeight: $0, from: contentMeasurementID)
+            }
         ) {
             routeContent
                 // Inside the panel there must be exactly one scroller. The
@@ -93,6 +97,10 @@ struct StatusPopoverView: View {
                     onOpenWiFiSettings: openWiFiSettings,
                     onOpenLocationSettings: openLocationSettings,
                     onSetPower: { panel.actions.setWiFiPower($0) },
+                    wifiPowerRequiresConfirmation: WiFiPowerTogglePolicy.requiresConfirmation(
+                        for: panel.store.popupSnapshot.wifi.state,
+                        confirmsPowerOff: panel.settings.confirmsWiFiPowerOff
+                    ),
                     onRefresh: { panel.actions.refreshWiFi() },
                     onOpenSharingSettings: openSharingSettings,
                     onCopyValue: { copyValue($0) },
@@ -221,7 +229,9 @@ struct StatusPopoverView: View {
                 onOpenLocationSettings: openLocationSettings
             )
         case .vpn:
-            VPNStatusView(state: panel.vpn)
+            VPNStatusView(state: panel.vpn) { enabled in
+                panel.actions.setVPNPower(enabled)
+            }
         case .bluetooth:
             BluetoothStatusView(
                 controller: panel.store.bluetoothDevices,
@@ -316,7 +326,8 @@ private struct WiFiPowerSummaryView: View {
             wifiPowerIsOn: WiFiPowerControlVisibility.isRadioOn(state: store.popupSnapshot.wifi.state),
             wifiPowerCanSet: !store.wifiPowerIsChanging,
             wifiPowerRequiresConfirmation: WiFiPowerTogglePolicy.requiresConfirmation(
-                for: store.popupSnapshot.wifi.state
+                for: store.popupSnapshot.wifi.state,
+                confirmsPowerOff: panel.settings.confirmsWiFiPowerOff
             ),
             wifiPowerFailed: store.wifiPowerFailed,
             onSetWiFiPower: { store.setWiFiPower($0) },
