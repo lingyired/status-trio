@@ -241,6 +241,7 @@
 "battery.state.notPresent" = "バッテリーなし";
 "battery.state.charged" = "充電完了";
 "battery.state.calculatingTimeToFull" = "満充電までの時間を計算中";
+"battery.timeRemaining" = "残り約%@";
 "battery.timeToFull.minutes" = "満充電まで約 %d 分";
 "battery.timeToFull.hours" = "満充電まで約 %d 時間";
 "battery.timeToFull.hoursMinutes" = "満充電まで約 %d 時間 %d 分";
@@ -541,11 +542,13 @@
 "battery.details.current" = "バッテリー電流";
 "battery.details.sampled" = "バッテリー計測時刻";
 "battery.details.adapter" = "アダプタの定格出力";
+"battery.details.inputPort" = "充電ポート";
 "battery.details.remaining" = "残り時間";
 "battery.details.cycles" = "充放電回数";
 "battery.details.uptime" = "起動からの経過時間";
 "battery.details.maxCapacity" = "最大容量";
 "battery.details.batteryCondition" = "バッテリー状態";
+"battery.details.temperature" = "バッテリー温度";
 "battery.details.condition.normal" = "正常";
 "battery.details.condition.service" = "修理をおすすめします";
 "battery.details.lowPower" = "低電力モード";
@@ -807,6 +810,8 @@
 
 "settings.network.powerControl" = "Wi-Fi 電源ボタンを表示";
 "settings.network.powerControlDescription" = "ステータスパネルに Wi-Fi の電源ボタンを表示します。";
+"settings.network.confirmBeforePowerOff" = "Wi-Fi をオフにする前に確認";
+"settings.network.confirmBeforePowerOffDescription" = "接続中に Wi-Fi をオフにする前に確認します。";
 "wifi.power.turnOn" = "Wi-Fiをオンにする";
 "wifi.power.turnOff" = "Wi-Fiをオフにする";
 "wifi.power.unknown" = "Wi-Fiの状態を取得できません。";

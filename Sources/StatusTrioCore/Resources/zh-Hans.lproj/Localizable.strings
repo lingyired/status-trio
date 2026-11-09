@@ -241,6 +241,7 @@
 "battery.state.notPresent" = "无电池设备";
 "battery.state.charged" = "已充满";
 "battery.state.calculatingTimeToFull" = "正在计算充满时间";
+"battery.timeRemaining" = "约 %@可用";
 "battery.timeToFull.minutes" = "预计 %d 分钟充满";
 "battery.timeToFull.hours" = "预计 %d 小时充满";
 "battery.timeToFull.hoursMinutes" = "预计 %d 小时 %d 分钟充满";
@@ -541,11 +542,13 @@
 "battery.details.current" = "电池电流";
 "battery.details.sampled" = "电池采样时间";
 "battery.details.adapter" = "适配器额定功率";
+"battery.details.inputPort" = "充电接口";
 "battery.details.remaining" = "剩余时间";
 "battery.details.cycles" = "循环次数";
 "battery.details.uptime" = "系统运行时间";
 "battery.details.maxCapacity" = "最大容量";
 "battery.details.batteryCondition" = "电池状态";
+"battery.details.temperature" = "电池温度";
 "battery.details.condition.normal" = "正常";
 "battery.details.condition.service" = "建议维修";
 "battery.details.lowPower" = "低电量模式";
@@ -807,6 +810,8 @@
 
 "settings.network.powerControl" = "显示 Wi-Fi 电源开关";
 "settings.network.powerControlDescription" = "在状态面板的 Wi-Fi 行显示电源开关。";
+"settings.network.confirmBeforePowerOff" = "关闭 Wi-Fi 前先确认";
+"settings.network.confirmBeforePowerOffDescription" = "关闭已连接的 Wi-Fi 前先询问。";
 "wifi.power.turnOn" = "打开 Wi-Fi";
 "wifi.power.turnOff" = "关闭 Wi-Fi";
 "wifi.power.unknown" = "Wi-Fi 状态不可用。";

@@ -264,8 +264,7 @@ final class BatteryHealthParserTests: XCTestCase {
         var values = registry
         values["BatteryData"] = ["DesignCapacity": 8_579, "AppleRawMaxCapacity": 8_413]
         let details = BatteryDetailsReader.parse(
-            registry: values, adapterWatts: nil, remainingSeconds: -1,
-            state: state(), now: now,
+            registry: values, adapterWatts: nil,             state: state(), now: now,
             temperatureCelsius: 36.4,
             chargeTime: .estimated(minutes: 80))
         XCTAssertEqual(details.health?.designCapacityMAh, 8_579)
@@ -281,8 +280,7 @@ final class BatteryHealthParserTests: XCTestCase {
             rawPercentage: 0, isPresent: false, isCharging: false,
             isLowPowerMode: false, isConnectedToPower: false))
         let details = BatteryDetailsReader.parse(
-            registry: registry, adapterWatts: nil, remainingSeconds: -1,
-            state: noBattery, now: now, temperatureCelsius: 36.4,
+            registry: registry, adapterWatts: nil,             state: noBattery, now: now, temperatureCelsius: 36.4,
             chargeTime: .estimated(minutes: 80))
         XCTAssertNil(details.health)
     }
@@ -320,6 +318,24 @@ final class BatteryHealthParserTests: XCTestCase {
         XCTAssertEqual(BatteryHealthParser.condition(registry: ["PermanentFailureStatus": 1]), .service)
         XCTAssertEqual(BatteryHealthParser.condition(registry: ["BatteryHealth": "Good"]), .normal)
         XCTAssertEqual(BatteryHealthParser.condition(registry: ["BatteryHealthCondition": "Check Battery"]), .service)
+    }
+
+    /// Shape captured from `system_profiler SPPowerDataType -json -detailLevel mini`
+    /// on a Mac18,1 / macOS 27 whose registry has no condition key.
+    func testBatteryConditionFromSystemProfilerJSON() {
+        func json(_ health: String) -> Data {
+            Data("""
+            {"SPPowerDataType":[{"_name":"spbattery_information",
+              "sppower_battery_health_info":{"sppower_battery_cycle_count":3,
+                "sppower_battery_health":"\(health)","sppower_battery_health_maximum_capacity":"100%"}},
+              {"_name":"sppower_information"}]}
+            """.utf8)
+        }
+        XCTAssertEqual(BatteryHealthParser.condition(systemProfilerJSON: json("Good")), .normal)
+        XCTAssertEqual(BatteryHealthParser.condition(systemProfilerJSON: json("Poor")), .service)
+        XCTAssertNil(BatteryHealthParser.condition(systemProfilerJSON: json("Unknown")))
+        XCTAssertNil(BatteryHealthParser.condition(systemProfilerJSON: Data(#"{"SPPowerDataType":[]}"#.utf8)))
+        XCTAssertNil(BatteryHealthParser.condition(systemProfilerJSON: Data("not json".utf8)))
     }
 
     private func chargeDescription(

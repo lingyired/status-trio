@@ -241,6 +241,7 @@
 "battery.state.notPresent" = "배터리 없음";
 "battery.state.charged" = "충전 완료";
 "battery.state.calculatingTimeToFull" = "완전 충전 시간 계산 중";
+"battery.timeRemaining" = "약 %@ 사용 가능";
 "battery.timeToFull.minutes" = "완전 충전까지 약 %d분";
 "battery.timeToFull.hours" = "완전 충전까지 약 %d시간";
 "battery.timeToFull.hoursMinutes" = "완전 충전까지 약 %d시간 %d분";
@@ -541,11 +542,13 @@
 "battery.details.current" = "배터리 전류";
 "battery.details.sampled" = "배터리 측정 시각";
 "battery.details.adapter" = "어댑터 정격 출력";
+"battery.details.inputPort" = "충전 포트";
 "battery.details.remaining" = "남은 시간";
 "battery.details.cycles" = "사이클 수";
 "battery.details.uptime" = "시스템 가동 시간";
 "battery.details.maxCapacity" = "최대 용량";
 "battery.details.batteryCondition" = "배터리 상태";
+"battery.details.temperature" = "배터리 온도";
 "battery.details.condition.normal" = "정상";
 "battery.details.condition.service" = "서비스 권장";
 "battery.details.lowPower" = "저전력 모드";
@@ -807,6 +810,8 @@
 
 "settings.network.powerControl" = "Wi-Fi 전원 버튼 표시";
 "settings.network.powerControlDescription" = "상태 패널에 Wi-Fi 전원 버튼을 표시합니다.";
+"settings.network.confirmBeforePowerOff" = "Wi-Fi 끄기 전 확인";
+"settings.network.confirmBeforePowerOffDescription" = "연결된 상태에서 Wi-Fi를 끄기 전에 확인합니다.";
 "wifi.power.turnOn" = "Wi-Fi 켜기";
 "wifi.power.turnOff" = "Wi-Fi 끄기";
 "wifi.power.unknown" = "Wi-Fi 상태를 사용할 수 없습니다.";

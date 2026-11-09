@@ -289,7 +289,7 @@ enum IconPresentationMapper {
         _ source: InputSourceDescriptor,
         scale: Double
     ) -> CenterState {
-        if let iconURL = source.iconURL {
+        if let iconURL = source.drawingIconURL() {
             return .symbol(IconSymbolState(
                 source: .image(url: iconURL, fallbackSymbol: "keyboard"),
                 color: .primary,

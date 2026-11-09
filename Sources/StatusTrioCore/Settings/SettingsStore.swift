@@ -90,6 +90,7 @@ final class SettingsStore: ObservableObject {
     static let prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey = "prioritizesNetworkErrorsOverBluetoothAudio"
     static let showsBluetoothBatteryLevelsDefaultsKey = "showsBluetoothBatteryLevels"
     static let showsWiFiPowerControlDefaultsKey = "showsWiFiPowerControl"
+    static let confirmsWiFiPowerOffDefaultsKey = "confirmsWiFiPowerOff"
     static let showsBluetoothPowerControlDefaultsKey = "showsBluetoothPowerControl"
     static let controlsLowPowerModeDefaultsKey = "controlsLowPowerMode"
     static let autoEnablesLowPowerModeDefaultsKey = "autoEnablesLowPowerMode"
@@ -694,6 +695,15 @@ final class SettingsStore: ObservableObject {
     /// default and only hides the panel affordance when explicitly turned off.
     @Published var showsWiFiPowerControl: Bool {
         didSet { defaults.set(showsWiFiPowerControl, forKey: Self.showsWiFiPowerControlDefaultsKey) }
+    }
+
+    /// Ask before turning the Wi-Fi radio off while a network is associated
+    /// (#305). On by default so upgrades keep the existing confirmation; the
+    /// user can opt out to switch off directly from the panel.
+    @Published var confirmsWiFiPowerOff: Bool {
+        didSet {
+            defaults.set(confirmsWiFiPowerOff, forKey: Self.confirmsWiFiPowerOffDefaultsKey)
+        }
     }
 
     /// The Bluetooth radio switch uses private IOBluetooth symbols, but needs
@@ -2070,6 +2080,7 @@ final class SettingsStore: ObservableObject {
             forKey: Self.showsBluetoothBatteryLevelsDefaultsKey
         ) as? Bool ?? true
         self.showsWiFiPowerControl = defaults.object(forKey: Self.showsWiFiPowerControlDefaultsKey) as? Bool ?? true
+        self.confirmsWiFiPowerOff = defaults.object(forKey: Self.confirmsWiFiPowerOffDefaultsKey) as? Bool ?? true
         self.showsBluetoothPowerControl = defaults.object(
             forKey: Self.showsBluetoothPowerControlDefaultsKey
         ) as? Bool ?? true

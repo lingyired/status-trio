@@ -43,7 +43,7 @@ final class InputSourceControllerTests: XCTestCase {
         notifications.emit(InputSourceNotifications.selectedSourceChanged)
 
         XCTAssertEqual(controller.state.selectedID, pinyin.id)
-        XCTAssertEqual(controller.selectedDescriptor?.shortLabel, "拼")
+        XCTAssertEqual(controller.selectedDescriptor?.shortLabel, "简")
     }
 
     func testSelectedSourceNotificationRetriesOnceWhenTISHasNotCaughtUp() {

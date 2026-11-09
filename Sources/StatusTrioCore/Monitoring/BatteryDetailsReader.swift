@@ -25,7 +25,6 @@ struct BatteryDetails: Equatable, Sendable {
     }
 
     var adapterWatts: Int?
-    var remainingMinutes: Int?
     var cycleCount: Int?
     var power: BatteryPowerSample?
     var systemPower: SystemPowerSample?
@@ -42,7 +41,7 @@ struct BatteryDetails: Equatable, Sendable {
     /// it is independent of battery presence and never affects battery state.
     var uptimeSeconds: TimeInterval?
 
-    init(adapterWatts: Int? = nil, remainingMinutes: Int? = nil, cycleCount: Int? = nil,
+    init(adapterWatts: Int? = nil, cycleCount: Int? = nil,
          power: BatteryPowerSample? = nil, powerAvailability: PowerAvailability = .unavailable,
          systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
          breakdown: BatteryPowerBreakdown? = nil,
@@ -50,7 +49,6 @@ struct BatteryDetails: Equatable, Sendable {
          highPowerMode: HighPowerModeSystemStatus? = nil,
          uptimeSeconds: TimeInterval? = nil) {
         self.adapterWatts = adapterWatts
-        self.remainingMinutes = remainingMinutes
         self.cycleCount = cycleCount
         self.power = power
         self.systemPower = systemPower
@@ -107,17 +105,25 @@ struct BatteryDetailsReader: Sendable {
             // The breakdown residual also needs it even when the branch is hidden.
             battery: state.isPresent && (state.isConnected || options.showsBreakdown)
                 && (options.showsCharging || options.showsBreakdown),
-            breakdown: Self.readsBreakdown(for: state) && options.showsBreakdown
+            breakdown: Self.readsBreakdown(for: state) && options.showsBreakdown,
+            temperature: state.isPresent
         )
         let now = Date()
         var breakdown: BatteryPowerBreakdown?
         if options.showsBreakdown, state.isPresent {
+            // Port names come from IORegistry on the same open-page refresh as
+            // the rails, with no observer or cache of their own. Skipped when
+            // there is neither an adapter port to name nor an output to label.
+            let topology = state.isConnected || USBOutputReader.hasOutput(sensors.portRails, registry: registry)
+                ? USBPortTopologyReader.read() : nil
             let resolved = BatteryPowerBreakdown.resolve(
                 adapterInput: sensors.input,
                 charging: sensors.battery.map { max(0, $0.watts) },
                 discharge: sensors.battery.map { max(0, -$0.watts) },
                 display: sensors.display,
-                usb: USBOutputReader.resolve(portRails: sensors.portRails, registry: registry, now: now),
+                usb: USBOutputReader.resolve(portRails: sensors.portRails, registry: registry,
+                                             topology: topology, now: now),
+                inputPortType: topology?.inputPortType,
                 now: now
             )
             // One overall refresh can catch the rails mid-update and show a
@@ -135,17 +141,20 @@ struct BatteryDetailsReader: Sendable {
         var result = Self.parse(
             registry: registry,
             adapterWatts: adapter?[kIOPSPowerAdapterWattsKey] as? Int,
-            remainingSeconds: IOPSGetTimeRemainingEstimate(),
             state: state,
             now: now,
             notBefore: notBefore,
             systemPower: sharedSystemPower ?? sensors.system,
             inputPower: sensors.input, batteryPower: sensors.battery,
-            breakdown: breakdown
+            breakdown: breakdown,
+            temperatureCelsius: sensors.batteryTemperatureCelsius
         )
         result.uptimeSeconds = SystemUptimeReader.seconds(now: now)
         if state.isPresent {
             result.highPowerMode = HighPowerModeSystemReader.read()
+            if result.health?.condition == nil {
+                result.health?.condition = BatteryConditionSystemReader.read(now: now)
+            }
         }
         if !options.showsInput { result.inputPower = nil }
         if state.isConnected && !options.showsCharging { result.power = nil }
@@ -190,7 +199,7 @@ struct BatteryDetailsReader: Sendable {
     /// IORegistry is public, but these AppleSmartBattery properties are best-effort,
     /// not a stable cross-model API. Never combine values from nested telemetry sources.
     static func parse(
-        registry: [String: Any], adapterWatts: Int?, remainingSeconds: Double,
+        registry: [String: Any], adapterWatts: Int?,
         state: BatteryPowerState, now: Date, notBefore: Date? = nil,
         systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
         batteryPower: BatteryPowerSample? = nil, breakdown: BatteryPowerBreakdown? = nil,
@@ -211,8 +220,6 @@ struct BatteryDetailsReader: Sendable {
         let capacity = BatteryHealthParser.parseCapacity(registry: registry)
         var result = BatteryDetails(
             adapterWatts: state.isConnected ? adapterWatts.flatMap { $0 > 0 ? $0 : nil } : nil,
-            remainingMinutes: !state.isConnected && remainingSeconds.isFinite && remainingSeconds >= 60
-                && remainingSeconds < Double(Int.max) ? Int(remainingSeconds / 60) : nil,
             cycleCount: (registry["CycleCount"] as? Int).flatMap { $0 >= 0 ? $0 : nil },
             systemPower: state.isConnected ? systemPower : nil,
             breakdown: acceptableBreakdown(breakdown, state: state, now: now),

@@ -12,7 +12,7 @@ enum InputSourcePanelMapper {
             InputSourcePanelState.Row(
                 id: source.id,
                 name: source.localizedName,
-                iconURL: source.iconURL,
+                iconURL: source.drawingIconURL(),
                 marker: source.shortLabel,
                 isCurrent: source.id == state.selectedID
             )

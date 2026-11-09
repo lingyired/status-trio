@@ -224,6 +224,7 @@
 "battery.state.notPresent" = "لا توجد بطارية";
 "battery.state.charged" = "ممتلئة بالكامل";
 "battery.state.calculatingTimeToFull" = "جارٍ حساب الوقت حتى الامتلاء";
+"battery.timeRemaining" = "الوقت المتبقي: حوالي %@";
 "battery.timeToFull.minutes" = "نحو %d دقيقة حتى الامتلاء";
 "battery.timeToFull.hours" = "نحو %d ساعة حتى الامتلاء";
 "battery.timeToFull.hoursMinutes" = "نحو %d ساعة و%d دقيقة حتى الامتلاء";
@@ -541,11 +542,13 @@
 "battery.details.current" = "تيار البطارية";
 "battery.details.sampled" = "وقت قياس البطارية";
 "battery.details.adapter" = "القدرة الاسمية للمحوّل";
+"battery.details.inputPort" = "منفذ الشحن";
 "battery.details.remaining" = "الوقت المتبقي";
 "battery.details.cycles" = "عدد دورات الشحن";
 "battery.details.uptime" = "مدة تشغيل النظام";
 "battery.details.maxCapacity" = "أقصى سعة";
 "battery.details.batteryCondition" = "حالة البطارية";
+"battery.details.temperature" = "درجة حرارة البطارية";
 "battery.details.condition.normal" = "طبيعي";
 "battery.details.condition.service" = "يُنصح بالصيانة";
 "battery.details.lowPower" = "نمط الطاقة المنخفضة";
@@ -807,6 +810,8 @@
 
 "settings.network.powerControl" = "إظهار زر طاقة Wi-Fi";
 "settings.network.powerControlDescription" = "يضيف زر طاقة Wi-Fi إلى لوحة الحالة.";
+"settings.network.confirmBeforePowerOff" = "تأكيد قبل إيقاف Wi-Fi";
+"settings.network.confirmBeforePowerOffDescription" = "اطلب التأكيد قبل إيقاف Wi-Fi أثناء الاتصال.";
 "wifi.power.turnOn" = "تشغيل Wi-Fi";
 "wifi.power.turnOff" = "إيقاف Wi-Fi";
 "wifi.power.unknown" = "حالة Wi-Fi غير متاحة.";

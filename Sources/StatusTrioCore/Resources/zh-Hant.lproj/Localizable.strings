@@ -241,6 +241,7 @@
 "battery.state.notPresent" = "無電池裝置";
 "battery.state.charged" = "已充滿";
 "battery.state.calculatingTimeToFull" = "正在計算充滿時間";
+"battery.timeRemaining" = "約 %@可用";
 "battery.timeToFull.minutes" = "預計 %d 分鐘充滿";
 "battery.timeToFull.hours" = "預計 %d 小時充滿";
 "battery.timeToFull.hoursMinutes" = "預計 %d 小時 %d 分鐘充滿";
@@ -541,11 +542,13 @@
 "battery.details.current" = "電池電流";
 "battery.details.sampled" = "電池取樣時間";
 "battery.details.adapter" = "電源轉接器額定功率";
+"battery.details.inputPort" = "充電埠";
 "battery.details.remaining" = "剩餘時間";
 "battery.details.cycles" = "循環使用次數";
 "battery.details.uptime" = "系統執行時間";
 "battery.details.maxCapacity" = "最大容量";
 "battery.details.batteryCondition" = "電池狀態";
+"battery.details.temperature" = "電池溫度";
 "battery.details.condition.normal" = "正常";
 "battery.details.condition.service" = "建議維修";
 "battery.details.lowPower" = "低耗電模式";
@@ -807,6 +810,8 @@
 
 "settings.network.powerControl" = "顯示 Wi-Fi 電源開關";
 "settings.network.powerControlDescription" = "在狀態面板的 Wi-Fi 標題列顯示電源開關。";
+"settings.network.confirmBeforePowerOff" = "關閉 Wi-Fi 前先確認";
+"settings.network.confirmBeforePowerOffDescription" = "關閉已連線的 Wi-Fi 前先詢問。";
 "wifi.power.turnOn" = "開啟 Wi-Fi";
 "wifi.power.turnOff" = "關閉 Wi-Fi";
 "wifi.power.unknown" = "Wi-Fi 狀態無法取得。";

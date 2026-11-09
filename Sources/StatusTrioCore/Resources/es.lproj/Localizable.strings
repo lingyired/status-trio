@@ -241,6 +241,7 @@
 "battery.state.notPresent" = "Sin batería";
 "battery.state.charged" = "Carga completa";
 "battery.state.calculatingTimeToFull" = "Calculando tiempo para carga completa";
+"battery.timeRemaining" = "Autonomía estimada: %@";
 "battery.timeToFull.minutes" = "Unos %d min para carga completa";
 "battery.timeToFull.hours" = "Unas %d h para carga completa";
 "battery.timeToFull.hoursMinutes" = "Unas %d h %d min para carga completa";
@@ -541,11 +542,13 @@
 "battery.details.current" = "Corriente de la batería";
 "battery.details.sampled" = "Muestra de la batería";
 "battery.details.adapter" = "Potencia nominal del adaptador";
+"battery.details.inputPort" = "Puerto de carga";
 "battery.details.remaining" = "Tiempo restante";
 "battery.details.cycles" = "Ciclos de carga";
 "battery.details.uptime" = "Tiempo de actividad";
 "battery.details.maxCapacity" = "Capacidad máxima";
 "battery.details.batteryCondition" = "Estado de la batería";
+"battery.details.temperature" = "Temperatura de la batería";
 "battery.details.condition.normal" = "Normal";
 "battery.details.condition.service" = "Revisión recomendada";
 "battery.details.lowPower" = "Modo de bajo consumo";
@@ -807,6 +810,8 @@
 
 "settings.network.powerControl" = "Mostrar el control de encendido de Wi-Fi";
 "settings.network.powerControlDescription" = "Añade un botón de encendido de Wi-Fi al panel de estado.";
+"settings.network.confirmBeforePowerOff" = "Confirmar antes de desactivar el Wi-Fi";
+"settings.network.confirmBeforePowerOffDescription" = "Pide confirmación antes de desactivar el Wi-Fi mientras hay conexión.";
 "wifi.power.turnOn" = "Activar Wi-Fi";
 "wifi.power.turnOff" = "Desactivar Wi-Fi";
 "wifi.power.unknown" = "El estado de Wi-Fi no está disponible.";

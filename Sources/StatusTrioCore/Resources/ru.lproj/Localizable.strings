@@ -241,6 +241,7 @@
 "battery.state.notPresent" = "Батарея отсутствует";
 "battery.state.charged" = "Полностью заряжена";
 "battery.state.calculatingTimeToFull" = "Расчёт времени до полного заряда";
+"battery.timeRemaining" = "Примерно %@ до разрядки";
 "battery.timeToFull.minutes" = "До полного заряда около %d мин";
 "battery.timeToFull.hours" = "До полного заряда около %d ч";
 "battery.timeToFull.hoursMinutes" = "До полного заряда около %d ч %d мин";
@@ -541,11 +542,13 @@
 "battery.details.current" = "Ток батареи";
 "battery.details.sampled" = "Время замера батареи";
 "battery.details.adapter" = "Номинальная мощность адаптера";
+"battery.details.inputPort" = "Порт зарядки";
 "battery.details.remaining" = "Оставшееся время";
 "battery.details.cycles" = "Число циклов";
 "battery.details.uptime" = "Время работы";
 "battery.details.maxCapacity" = "Максимальная ёмкость";
 "battery.details.batteryCondition" = "Состояние батареи";
+"battery.details.temperature" = "Температура батареи";
 "battery.details.condition.normal" = "Норма";
 "battery.details.condition.service" = "Рекомендуется обслуживание";
 "battery.details.lowPower" = "Режим энергосбережения";
@@ -807,6 +810,8 @@
 
 "settings.network.powerControl" = "Показывать кнопку питания Wi-Fi";
 "settings.network.powerControlDescription" = "Добавляет кнопку питания Wi-Fi на панель состояния.";
+"settings.network.confirmBeforePowerOff" = "Подтверждать перед отключением Wi-Fi";
+"settings.network.confirmBeforePowerOffDescription" = "Спрашивать подтверждение перед отключением Wi-Fi при активном подключении.";
 "wifi.power.turnOn" = "Включить Wi-Fi";
 "wifi.power.turnOff" = "Выключить Wi-Fi";
 "wifi.power.unknown" = "Состояние Wi-Fi недоступно.";

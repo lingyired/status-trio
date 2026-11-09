@@ -93,6 +93,65 @@ final class BatteryMonitorTests: XCTestCase {
         monitor.stop()
     }
 
+    func testParserReadsPositiveTimeToEmptyAndRejectsUnknownEstimates() {
+        for time in [nil, 0, -1, -20, 1, 85] as [Int?] {
+            var description: [String: Any] = [
+                kIOPSTypeKey: kIOPSInternalBatteryType,
+                kIOPSCurrentCapacityKey: 68,
+                kIOPSMaxCapacityKey: 100,
+                kIOPSIsChargingKey: false,
+                kIOPSPowerSourceStateKey: kIOPSBatteryPowerValue
+            ]
+            description[kIOPSTimeToEmptyKey] = time.map { NSNumber(value: $0) }
+
+            XCTAssertEqual(
+                IOPSBatteryReader.parse(description)?.timeToEmptyMinutes,
+                time.flatMap { $0 > 0 ? $0 : nil }
+            )
+        }
+    }
+
+    func testMonitorUpdatesRuntimeWithoutPercentageChangeAndClearsItOnPowerTransitions() async {
+        let reader = FakeBatteryReader(result: makeReading(percentage: 68))
+        let monitor = BatteryMonitor(
+            reader: reader,
+            lowPowerModeProvider: { false },
+            iopsRunLoopSourceFactory: { _, _ in nil }
+        )
+        defer { monitor.stop() }
+        var iterator = monitor.updates.makeAsyncIterator()
+
+        // Every transition has the same percentage, including fresh estimates,
+        // external power, inconsistent charging flags, and battery removal.
+        let cases: [(Int?, Bool, Bool, Bool, Int?)] = [
+            (85, false, false, true, 85),
+            (80, false, false, true, 80),
+            (nil, false, false, true, nil),
+            (0, false, false, true, nil),
+            (-1, false, false, true, nil),
+            (80, true, false, true, nil),
+            (80, true, true, true, nil),
+            (80, false, true, true, nil),
+            (80, false, false, false, nil),
+            (70, false, false, true, 70)
+        ]
+        for (minutes, connected, charging, present, expected) in cases {
+            var reading = makeReading(percentage: 68)
+            reading.timeToEmptyMinutes = minutes
+            reading.isConnectedToPower = connected
+            reading.isCharging = charging
+            reading.isPresent = present
+            reader.result = reading
+            monitor.refresh()
+            let status = await iterator.next()
+            XCTAssertEqual(status?.timeToEmptyMinutes, expected)
+        }
+        reader.result = nil
+        monitor.refresh()
+        let unavailable = await iterator.next()
+        XCTAssertNil(unavailable?.timeToEmptyMinutes)
+    }
+
     func testParserRejectsInvalidInternalBatteryDescription() {
         let description: [String: Any] = [
             kIOPSTypeKey: kIOPSInternalBatteryType,
