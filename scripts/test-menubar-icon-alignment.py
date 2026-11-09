@@ -239,7 +239,7 @@ def main():
                     help="X0,Y0,X1,Y1 physical pixels (exclusive right/bottom)")
     ap.add_argument("--scale", type=float, required=True)
     ap.add_argument("--icon-size", type=float, required=True)
-    ap.add_argument("--mode", choices=["both", "ring", "symbol", "accessory", "ink"], default="both")
+    ap.add_argument("--mode", choices=["both", "ring", "symbol", "accessory", "topaccessory", "ink"], default="both")
     ap.add_argument("--reference", default=None, help="blank-reference screenshot for --mode ink")
     ap.add_argument("--ink-threshold", type=float, default=60.0)
     ap.add_argument("--ink", choices=["white", "blue", "auto"], default="auto")
@@ -278,7 +278,7 @@ def main():
     guides = [(container_center_x, (0, 255, 0))]
     checks = []
 
-    if args.mode in ("both", "ring"):
+    if args.mode in ("both", "ring", "topaccessory"):
         if ring is None:
             result.update({"status": "INCONCLUSIVE", "reason": "ring not detected"})
             emit(result, args)
@@ -316,6 +316,35 @@ def main():
         result["symbolOffsetPt"] = symbol_offset / args.scale
         guides.append((symbol["center_x"], (0, 220, 255)))
         checks.append(("glyph", abs(symbol_offset)))
+
+    if args.mode == "topaccessory":
+        # The top-gap accessory sits above the ring centre; the centre glyph sits
+        # on the ring centre and the footer dots below it. Union every white
+        # component that is clearly above the ring centre and inside the ring's
+        # x extent — that is the accessory ink, measured from the *same* image as
+        # the ring so both share one coordinate mapping.
+        comps = label_components(glyph, min_pixels=4)
+        ring_cy = (ring["min_y"] + ring["max_y"] + 1) / 2.0
+        sel = []
+        for c in comps:
+            cx = c["cx"] + bx0
+            cy = c["cy"] + by0
+            if cy < ring_cy - 1 and ring["min_x"] + 1 <= cx <= ring["max_x"] - 1:
+                d = dict(c)
+                d["min_x"] += bx0; d["max_x"] += bx0
+                d["min_y"] += by0; d["max_y"] += by0
+                sel.append(d)
+        symbol = bbox_of_components(sel, 0, 0) if sel else None
+        if symbol is None:
+            result.update({"status": "INCONCLUSIVE", "reason": "no top accessory ink"})
+            emit(result, args)
+            return 3
+        result["symbol"] = symbol
+        result["symbolCenterX"] = symbol["center_x"]
+        result["symbolToRingOffsetPx"] = symbol["center_x"] - result["ringCenterX"]
+        result["symbolToRingOffsetPt"] = result["symbolToRingOffsetPx"] / args.scale
+        guides.append((symbol["center_x"], (0, 220, 255)))
+        checks.append(("accessoryToRing", abs(result["symbolToRingOffsetPx"])))
 
     if args.mode == "both":
         result["symbolToRingOffsetPx"] = result["symbolCenterX"] - result["ringCenterX"]

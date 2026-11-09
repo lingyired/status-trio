@@ -1461,13 +1461,17 @@ extension StatusIconRenderer {
         in context: CGContext
     ) {
         let line = sceneTextLine(text, color: color, fontSize: fontSize)
-        var ascent: CGFloat = 0
-        var descent: CGFloat = 0
-        var leading: CGFloat = 0
-        let width = CGFloat(CTLineGetTypographicBounds(line, &ascent, &descent, &leading))
+        // Centre the *visible ink*, not the typographic advance box. The advance
+        // width includes the first glyph's left bearing and the last glyph's
+        // trailing bearing plus the negative `.kern`, so centring on it made each
+        // percentage value drift by its own amount — "50" further than "8" and
+        // "100" (measurements in RingAccessoryAlignmentTests). The glyph-path
+        // bounds give the actual ink extent, so 1/2/3 digit values share one
+        // centre on the artwork axis.
+        let inkBounds = CTLineGetBoundsWithOptions(line, [.useGlyphPathBounds])
         context.setFillColor(color)
         context.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
-        context.textPosition = CGPoint(x: baseline.x - width / 2, y: baseline.y)
+        context.textPosition = CGPoint(x: baseline.x - inkBounds.midX, y: baseline.y)
         CTLineDraw(line, context)
     }
 

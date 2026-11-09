@@ -9,6 +9,10 @@ import Combine
 struct StatusBarAlignmentRequest: Equatable {
     enum Scenario: String {
         case wifi, weakWifi, bluetooth, charging, plug, inputSource, animatedWifi
+        /// Top-gap battery percentage at three ink widths (Issue #30: the
+        /// percentage must be centred on its *visible ink*, not the glyph
+        /// advance box, so 1/2/3 digit values are exercised).
+        case percent8, percent50, percent100
     }
     enum Isolation: String { case composite, ring, center, accessory, blank }
 
@@ -60,10 +64,22 @@ struct StatusBarAlignmentRequest: Equatable {
         case .plug:
             accessory = .symbol(IconSymbolState(
                 source: .primitive(.plug), color: .primary, scale: 1.8))
+        case .percent8:
+            accessory = .text(IconTextState(text: "8", color: .primary, scale: 1.8))
+        case .percent50:
+            accessory = .text(IconTextState(text: "50", color: .primary, scale: 1.8))
+        case .percent100:
+            accessory = .text(IconTextState(text: "100", color: .primary, scale: 1.8))
         default:
             accessory = nil
         }
-        let gap: RingGapStyle = accessory == nil ? .closed : .indicator
+        let gap: RingGapStyle
+        switch scenario {
+        case .percent8, .percent50, .percent100:
+            gap = .value
+        default:
+            gap = accessory == nil ? .closed : .indicator
+        }
         let animated = scenario == .animatedWifi
         let ring = OuterRingState(
             segments: [RingSegmentState(progress: 1, color: .powered)],

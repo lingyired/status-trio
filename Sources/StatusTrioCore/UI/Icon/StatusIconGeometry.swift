@@ -54,13 +54,17 @@ enum StatusIconGeometry {
     /// carry the same visual weight in the gap.
     static let batteryPlugHeightScale: CGFloat = 1.2
 
-    /// The bolt scales away from its tip, so any other glyph in the top gap
-    /// shares the scaled bolt's center to stay optically aligned with it.
+    /// The top-gap accessory shares the artwork centre axis. Only its vertical
+    /// position follows the bolt's scaling; horizontally it is pinned to
+    /// `artworkCenterX`, so neither the plug nor a fallback glyph inherits the
+    /// bolt's asymmetric bounding box — which sits ~0.05 units left of centre and
+    /// would otherwise drift further left as the glyph is scaled up (Issue #30
+    /// top accessory: "插头看着偏左").
     static func batteryTopIndicatorCenter(boltScale: CGFloat) -> CGPoint {
         let bolt = batteryChargingBolt().boundingBoxOfPath
         let pivot = batteryChargingBoltPivot
         return CGPoint(
-            x: pivot.x + (bolt.midX - pivot.x) * boltScale,
+            x: artworkCenterX,
             y: pivot.y + (bolt.midY - pivot.y) * boltScale
         )
     }
