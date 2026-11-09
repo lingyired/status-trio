@@ -36,7 +36,7 @@ struct NetworkStatusView: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: PanelSummaryActionMetrics.iconGap) {
+        HStack(alignment: .center, spacing: PanelSummaryActionMetrics.actionSpacing) {
             Button(action: { activateRow() }) {
                 HStack(alignment: .center, spacing: 10) {
                     PanelSymbolView(source: state.symbol)
@@ -73,7 +73,8 @@ struct NetworkStatusView: View {
                 Button(action: { activateRow() }) {
                     PanelActionGlyph(
                         systemName: "chevron.right",
-                        font: .caption.weight(.semibold)
+                        font: .caption.weight(.semibold),
+                        size: PanelSummaryActionMetrics.actionSlot
                     )
                 }
                 .buttonStyle(.plain)
@@ -83,7 +84,7 @@ struct NetworkStatusView: View {
 
             if state.showsSettings {
                 Button(action: isWired ? onOpenNetworkSettings : onOpenWiFiSettings) {
-                    PanelActionGlyph(systemName: "gearshape")
+                    PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.plain)
@@ -119,7 +120,7 @@ struct NetworkStatusView: View {
                 confirmingPowerOff = true
             }
         } label: {
-            PanelActionGlyph(systemName: "power")
+            PanelActionGlyph(systemName: "power", size: PanelSummaryActionMetrics.actionSlot)
         }
         .buttonStyle(.plain)
         .foregroundStyle(wifiPowerIsOn ? Color.accentColor : Color.secondary)
