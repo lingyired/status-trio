@@ -15,6 +15,10 @@ struct BrightnessSectionView: View {
     /// The BetterDisplay project site, linked from the compatibility note.
     static let betterDisplayWebsiteURL = URL(string: "https://betterdisplay.pro")
 
+    /// Fixed width shared by the visibility toggle and the refresh button so the
+    /// two trailing controls in one display block line up column-for-column.
+    private static let secondaryControlWidth: CGFloat = 40
+
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @EnvironmentObject private var localization: Localization
@@ -153,6 +157,7 @@ struct BrightnessSectionView: View {
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .labelsHidden()
+                .frame(width: Self.secondaryControlWidth)
                 .accessibilityIdentifier("settings.brightness.display.\(display.id)")
             }
         }
@@ -183,7 +188,7 @@ struct BrightnessSectionView: View {
             tint: .blue,
             title: localization.string(.settingsBrightnessBetterDisplayDisplay)
         ) {
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 Picker(
                     localization.string(.settingsBrightnessBetterDisplayDisplay),
                     selection: betterDisplayUUIDBinding(for: display)
@@ -197,10 +202,16 @@ struct BrightnessSectionView: View {
                 .settingsMenuPickerWidth()
                 .accessibilityIdentifier("settings.brightness.betterDisplay.display.\(display.id)")
 
-                Button(localization.string(.settingsBrightnessBetterDisplayRefresh)) {
+                Button {
                     statusStore.refreshBetterDisplayDevices()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
                 }
+                .buttonStyle(.bordered)
                 .controlSize(.small)
+                .frame(width: Self.secondaryControlWidth)
+                .help(localization.string(.settingsBrightnessBetterDisplayRefresh))
+                .accessibilityLabel(localization.string(.settingsBrightnessBetterDisplayRefresh))
                 .accessibilityIdentifier("settings.brightness.betterDisplay.refresh.\(display.id)")
             }
         }
