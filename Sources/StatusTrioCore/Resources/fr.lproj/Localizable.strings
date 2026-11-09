@@ -211,6 +211,10 @@
 "settings.battery.connectedIndicator.plug" = "Prise";
 "settings.battery.connectedIndicator.bolt" = "Éclair";
 "settings.battery.connectedIndicator.percentage" = "Pourcentage";
+"settings.battery.marker.onBattery" = "Sur batterie";
+"settings.battery.marker.charging" = "En charge";
+"settings.battery.marker.connected" = "Branché, sans charge";
+"settings.battery.marker.hidden" = "Masqué";
 "settings.battery.symbolScale" = "Taille du pourcentage/de l’éclair";
 "settings.battery.symbolScaleAccessibility" = "Taille du pourcentage et de l’éclair";
 "settings.battery.symbolScaleDescription" = "Le pourcentage et l’éclair utilisent la même taille.";

@@ -211,6 +211,10 @@
 "settings.battery.connectedIndicator.plug" = "Enchufe";
 "settings.battery.connectedIndicator.bolt" = "Rayo";
 "settings.battery.connectedIndicator.percentage" = "Porcentaje";
+"settings.battery.marker.onBattery" = "Con batería";
+"settings.battery.marker.charging" = "Cargando";
+"settings.battery.marker.connected" = "Conectado, sin cargar";
+"settings.battery.marker.hidden" = "Oculto";
 "settings.battery.symbolScale" = "Tamaño del porcentaje/rayo";
 "settings.battery.symbolScaleAccessibility" = "Tamaño del porcentaje y el rayo de la batería";
 "settings.battery.symbolScaleDescription" = "El porcentaje y el rayo comparten este tamaño.";

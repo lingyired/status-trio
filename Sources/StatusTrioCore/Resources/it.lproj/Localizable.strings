@@ -211,6 +211,10 @@
 "settings.battery.connectedIndicator.plug" = "Spina";
 "settings.battery.connectedIndicator.bolt" = "Fulmine";
 "settings.battery.connectedIndicator.percentage" = "Percentuale";
+"settings.battery.marker.onBattery" = "A batteria";
+"settings.battery.marker.charging" = "In carica";
+"settings.battery.marker.connected" = "Collegato, non in carica";
+"settings.battery.marker.hidden" = "Nascosto";
 "settings.battery.symbolScale" = "Dimensione percentuale/fulmine";
 "settings.battery.symbolScaleAccessibility" = "Dimensione percentuale batteria e fulmine";
 "settings.battery.symbolScaleDescription" = "Percentuale e fulmine usano la stessa dimensione.";

@@ -426,6 +426,11 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBatteryConnectedIndicatorPlug = "settings.battery.connectedIndicator.plug"
     case settingsBatteryConnectedIndicatorBolt = "settings.battery.connectedIndicator.bolt"
     case settingsBatteryConnectedIndicatorPercentage = "settings.battery.connectedIndicator.percentage"
+    // #315: per-power-state top marker rows and the "hidden" option.
+    case settingsBatteryMarkerOnBattery = "settings.battery.marker.onBattery"
+    case settingsBatteryMarkerCharging = "settings.battery.marker.charging"
+    case settingsBatteryMarkerConnected = "settings.battery.marker.connected"
+    case settingsBatteryMarkerHidden = "settings.battery.marker.hidden"
     case settingsBatterySymbolScale = "settings.battery.symbolScale"
     case settingsBatterySymbolScaleAccessibility = "settings.battery.symbolScaleAccessibility"
     case settingsBatterySymbolScaleDescription = "settings.battery.symbolScaleDescription"

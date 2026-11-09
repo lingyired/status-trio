@@ -211,6 +211,10 @@
 "settings.battery.connectedIndicator.plug" = "Вилка";
 "settings.battery.connectedIndicator.bolt" = "Молния";
 "settings.battery.connectedIndicator.percentage" = "Процент";
+"settings.battery.marker.onBattery" = "От батареи";
+"settings.battery.marker.charging" = "Зарядка";
+"settings.battery.marker.connected" = "Подключено, не заряжается";
+"settings.battery.marker.hidden" = "Скрыто";
 "settings.battery.symbolScale" = "Размер процента и молнии";
 "settings.battery.symbolScaleAccessibility" = "Размер процента батареи и молнии";
 "settings.battery.symbolScaleDescription" = "Процент и молния используют один размер.";

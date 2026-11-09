@@ -211,6 +211,10 @@
 "settings.battery.connectedIndicator.plug" = "Stecker";
 "settings.battery.connectedIndicator.bolt" = "Blitz";
 "settings.battery.connectedIndicator.percentage" = "Prozentwert";
+"settings.battery.marker.onBattery" = "Im Akkubetrieb";
+"settings.battery.marker.charging" = "Wird geladen";
+"settings.battery.marker.connected" = "Angeschlossen, lädt nicht";
+"settings.battery.marker.hidden" = "Ausgeblendet";
 "settings.battery.symbolScale" = "Größe von Prozentsatz/Blitz";
 "settings.battery.symbolScaleAccessibility" = "Größe von Batterieprozentsatz und Blitz";
 "settings.battery.symbolScaleDescription" = "Prozentsatz und Blitz verwenden dieselbe Größe.";

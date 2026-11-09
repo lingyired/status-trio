@@ -62,43 +62,37 @@ enum StatusMappings {
         return .foreground
     }
 
-    /// A charging battery keeps the bolt. A connected power source that is not
-    /// charging — including a battery that is already full — shows whatever the
-    /// user picked for that state: the plug (the default), the bolt, or the
-    /// percentage when the percentage is shown at all.
+    /// Each power state carries its own top-gap marker (#315): a charging
+    /// battery, a connected-but-not-charging one, and plain battery use can each
+    /// show the percentage, the bolt, the plug, or nothing. A battery-less Mac
+    /// has no real level, so its decorative plug/bolt is drawn from
+    /// `noBatteryMarker` and a percentage choice falls back to the plug.
     static func batteryGapContent(
         _ battery: BatteryStatus,
         options: BatteryIconOptions
     ) -> BatteryGapContent {
-        // A Mac with no battery has no real level or charging state, so the top
-        // gap never shows the placeholder 100% as a percentage. It may only carry
-        // the user's chosen decorative marker: the lightning bolt or the plug.
-        // Any legacy `.percentage` choice falls back to the plug, and turning the
-        // top indicator off closes the ring into a plain full circle.
-        guard battery.isPresent else {
-            guard options.showsChargingIndicator else { return .empty }
-            switch options.connectedIndicator {
-            case .bolt:
-                return .bolt
-            case .plug, .percentage:
-                return .plug
-            }
-        }
-        if options.showsChargingIndicator {
-            if battery.isCharging { return .bolt }
-            if battery.isConnectedToPower {
-                switch options.connectedIndicator {
-                case .plug:
-                    return .plug
-                case .bolt:
-                    return .bolt
-                case .percentage:
-                    return options.showsPercentage ? .percentage : .plug
-                }
-            }
+        let marker: BatteryTopMarker
+        if !battery.isPresent {
+            marker = options.noBatteryMarker
+        } else if battery.isCharging {
+            marker = options.chargingMarker
+        } else if battery.isConnectedToPower {
+            marker = options.connectedMarker
+        } else {
+            marker = options.onBatteryMarker
         }
 
-        return options.showsPercentage ? .percentage : .empty
+        switch marker {
+        case .percentage:
+            // A battery-less Mac never claims the placeholder 100% as a number.
+            return battery.isPresent ? .percentage : .plug
+        case .bolt:
+            return .bolt
+        case .plug:
+            return .plug
+        case .hidden:
+            return .empty
+        }
     }
 
     /// How far around the ring the battery arc is drawn.

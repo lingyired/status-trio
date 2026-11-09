@@ -211,6 +211,10 @@
 "settings.battery.connectedIndicator.plug" = "Plug";
 "settings.battery.connectedIndicator.bolt" = "Bolt";
 "settings.battery.connectedIndicator.percentage" = "Percentage";
+"settings.battery.marker.onBattery" = "On battery";
+"settings.battery.marker.charging" = "Charging";
+"settings.battery.marker.connected" = "Connected, not charging";
+"settings.battery.marker.hidden" = "Hidden";
 "settings.battery.symbolScale" = "Percentage/bolt size";
 "settings.battery.symbolScaleAccessibility" = "Battery percentage and bolt size";
 "settings.battery.symbolScaleDescription" = "The percentage and bolt share this size.";

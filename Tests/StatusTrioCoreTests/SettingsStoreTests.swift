@@ -17,7 +17,7 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
         XCTAssertEqual(store.batteryConnectedIndicator, .plug)
-        XCTAssertEqual(store.batteryIconOptions.connectedIndicator, .plug)
+        XCTAssertEqual(store.batteryIconOptions.connectedMarker, .plug)
     }
 
     func testConnectedPowerIndicatorChoicePersists() {
@@ -29,7 +29,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let second = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(second.batteryConnectedIndicator, .bolt)
-        XCTAssertEqual(second.batteryIconOptions.connectedIndicator, .bolt)
+        XCTAssertEqual(second.batteryIconOptions.connectedMarker, .bolt)
     }
 
     func testSplitGapProgressDefaultsOffAndPersists() {
@@ -613,16 +613,17 @@ final class SettingsStoreTests: XCTestCase {
     func testBatterySymbolSizeIsEnabledWhenEitherSymbolIsVisible() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
-        store.showsBatteryPercentage = true
-        store.showsChargingIndicator = false
+        store.batteryOnBatteryMarker = .percentage
+        store.batteryChargingMarker = .hidden
+        store.batteryConnectedMarker = .hidden
+        store.batteryNoBatteryMarker = .hidden
         XCTAssertTrue(store.isBatterySymbolSizeEnabled)
 
-        store.showsBatteryPercentage = false
-        store.showsChargingIndicator = true
+        store.batteryOnBatteryMarker = .hidden
+        store.batteryChargingMarker = .bolt
         XCTAssertTrue(store.isBatterySymbolSizeEnabled)
 
-        store.showsBatteryPercentage = false
-        store.showsChargingIndicator = false
+        store.batteryChargingMarker = .hidden
         XCTAssertFalse(store.isBatterySymbolSizeEnabled)
     }
 
