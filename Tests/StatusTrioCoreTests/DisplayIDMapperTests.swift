@@ -103,4 +103,53 @@ final class DisplayIDMapperTests: XCTestCase {
         let displays = [online(5, vendor: 0, product: 0, serial: 0)]
         XCTAssertNil(DisplayIDMapper.uniqueDisplayID(for: identity(vendor: 0, product: 0, serial: 0), among: displays))
     }
+
+    // MARK: - Safe single-external fallback (#313)
+
+    func testZeroSerialSingleExternalFallsBackToItsOnlyDisplayID() {
+        // Mac mini + one external panel whose EDID serial is 0: the strict match
+        // cannot work, but there is exactly one external and no built-in display,
+        // so the fallback must resolve it instead of reporting "unavailable".
+        let displays = [online(7, serial: 0)]
+        XCTAssertEqual(
+            DisplayIDMapper.resolvedDisplayID(for: identity(serial: 0), among: displays),
+            7
+        )
+    }
+
+    func testFallbackStillReturnsStrictMatchFirst() {
+        // When the identity matches uniquely, the strict result wins and the
+        // fallback path is irrelevant.
+        let displays = [online(5), online(9, serial: 0)]
+        XCTAssertEqual(
+            DisplayIDMapper.resolvedDisplayID(for: identity(), among: displays),
+            5,
+            "The unique identity match must take priority over the fallback"
+        )
+    }
+
+    func testFallbackRefusesWhenABuiltInDisplayIsOnline() {
+        // #285 guard: with a built-in online, a second ambiguous external must
+        // stay unavailable rather than being guessed.
+        let displays = [
+            online(1, builtin: true),
+            online(7, serial: 0),
+        ]
+        XCTAssertNil(DisplayIDMapper.resolvedDisplayID(for: identity(serial: 0), among: displays))
+    }
+
+    func testFallbackRefusesWithTwoExternalDisplays() {
+        let displays = [online(7, serial: 0), online(9, serial: 0)]
+        XCTAssertNil(DisplayIDMapper.resolvedDisplayID(for: identity(serial: 0), among: displays))
+    }
+
+    func testFallbackRefusesWithOnlyABuiltInDisplay() {
+        let displays = [online(1, builtin: true)]
+        XCTAssertNil(DisplayIDMapper.resolvedDisplayID(for: identity(serial: 0), among: displays))
+    }
+
+    func testFallbackRefusesWithZeroDisplayIDExternal() {
+        let displays = [online(0, serial: 0)]
+        XCTAssertNil(DisplayIDMapper.resolvedDisplayID(for: identity(serial: 0), among: displays))
+    }
 }
