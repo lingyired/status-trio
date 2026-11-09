@@ -818,6 +818,12 @@
 "settings.brightness.compatibility.title" = "Helligkeit nicht steuerbar?";
 "settings.brightness.compatibility.description" = "Hersteller setzen DDC unterschiedlich um, daher kann Status Trio nicht jedes Modell abdecken. Lässt sich die Helligkeit eines Displays hier nicht einstellen, stelle es auf das BetterDisplay-Backend um — Status Trio steuert es dann über BetterDisplay. Die kostenlose Version genügt; eine Pro-Lizenz ist nicht nötig.";
 "settings.brightness.compatibility.link" = "BetterDisplay herunterladen (kostenlos)";
+"settings.brightness.betterDisplay.display" = "BetterDisplay-Bildschirm";
+"settings.brightness.betterDisplay.automatic" = "Automatisch (nach Systembildschirm)";
+"settings.brightness.betterDisplay.unnamed" = "Unbenannter Bildschirm";
+"settings.brightness.betterDisplay.saved" = "Gespeichert";
+"settings.brightness.betterDisplay.unavailable" = "Nicht verfügbar";
+"settings.brightness.betterDisplay.refresh" = "Geräte aktualisieren";
 "settings.battery.colors.highPower" = "Hochenergiemodus";
 "battery.lowPowerMode.autoEnable" = "Niedrigenergiemodus automatisch aktivieren";
 "battery.lowPowerMode.autoEnableDescription" = "Ohne Netzteil schaltet sich der Niedrigenergiemodus automatisch ein, sobald der Akkustand unter den Schwellenwert für niedrigen Akkustand fällt. Einmal pro Niedrigakkupyklus.";

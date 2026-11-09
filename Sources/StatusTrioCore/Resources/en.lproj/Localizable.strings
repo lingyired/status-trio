@@ -817,6 +817,12 @@
 "settings.brightness.compatibility.title" = "Can't control a display?";
 "settings.brightness.compatibility.description" = "Display vendors implement DDC differently, so Status Trio can't cover every model. If a display's brightness can't be adjusted here, switch it to the BetterDisplay backend — Status Trio will drive it through BetterDisplay. The free version is enough; no Pro license needed.";
 "settings.brightness.compatibility.link" = "Download BetterDisplay (free)";
+"settings.brightness.betterDisplay.display" = "BetterDisplay Display";
+"settings.brightness.betterDisplay.automatic" = "Automatic (match by system display)";
+"settings.brightness.betterDisplay.unnamed" = "Unnamed display";
+"settings.brightness.betterDisplay.saved" = "Saved";
+"settings.brightness.betterDisplay.unavailable" = "Unavailable";
+"settings.brightness.betterDisplay.refresh" = "Refresh devices";
 "settings.battery.colors.highPower" = "High Power Mode";
 "battery.lowPowerMode.autoEnable" = "Auto-enable Low Power Mode";
 "battery.lowPowerMode.autoEnableDescription" = "When unplugged, Low Power Mode turns on automatically once the battery drops below the low-battery threshold. Once per low-battery cycle.";

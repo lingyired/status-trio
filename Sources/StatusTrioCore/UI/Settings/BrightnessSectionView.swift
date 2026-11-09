@@ -29,6 +29,8 @@ struct BrightnessSectionView: View {
             // Reading brightness is demand-gated: keep it alive only while this
             // tab is on screen, so browsing another tab stops the DDC reads.
             statusStore.setBrightnessSettingsVisible(true)
+            // Load the BetterDisplay device list for the optional manual picker.
+            statusStore.refreshBetterDisplayDevices()
         }
         .onDisappear {
             statusStore.setBrightnessSettingsVisible(false)
@@ -155,11 +157,96 @@ struct BrightnessSectionView: View {
             }
         }
 
+        if !display.isBuiltin, betterDisplayState(for: display).showsDisplayPicker {
+            SettingsDivider()
+            betterDisplayDisplayRow(for: display)
+        }
+
         if !display.isBuiltin, shouldShowBetterDisplayHint(for: display) {
             SettingsDivider()
             SettingsHintRow(
                 text: localization.string(.settingsBrightnessBackendBetterDisplayNeeded)
             )
+        }
+    }
+
+    /// Manual BetterDisplay display picker (#313).
+    ///
+    /// The automatic mapper cannot resolve some panels (serial `0`, duplicate
+    /// same-model units). Pinning an explicit UUID here bypasses the heuristic
+    /// so those displays can still be driven through BetterDisplay.
+    @ViewBuilder
+    private func betterDisplayDisplayRow(for display: DisplayBrightness) -> some View {
+        let state = betterDisplayState(for: display)
+        SettingsRow(
+            "display",
+            tint: .blue,
+            title: localization.string(.settingsBrightnessBetterDisplayDisplay)
+        ) {
+            HStack(spacing: 8) {
+                Picker(
+                    localization.string(.settingsBrightnessBetterDisplayDisplay),
+                    selection: betterDisplayUUIDBinding(for: display)
+                ) {
+                    ForEach(state.pickerOptions) { option in
+                        Text(displayOptionLabel(option, state: state)).tag(option.uuid)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .settingsMenuPickerWidth()
+                .accessibilityIdentifier("settings.brightness.betterDisplay.display.\(display.id)")
+
+                Button(localization.string(.settingsBrightnessBetterDisplayRefresh)) {
+                    statusStore.refreshBetterDisplayDevices()
+                }
+                .controlSize(.small)
+                .accessibilityIdentifier("settings.brightness.betterDisplay.refresh.\(display.id)")
+            }
+        }
+    }
+
+    private func betterDisplayState(
+        for display: DisplayBrightness
+    ) -> BetterDisplayBrightnessSettingsState {
+        let availability = statusStore.betterDisplayAvailability
+        let loaded = availability == .available || availability == .deviceUnassociated
+        return BetterDisplayBrightnessSettingsState(
+            configuration: store.externalBrightnessConfiguration(for: display.id),
+            devices: statusStore.betterDisplayDevices,
+            hasLoadedCatalog: loaded
+        )
+    }
+
+    private func betterDisplayUUIDBinding(for display: DisplayBrightness) -> Binding<String?> {
+        Binding(
+            get: { store.externalBrightnessConfiguration(for: display.id).betterDisplayUUID },
+            set: { uuid in
+                store.setExternalBrightnessConfiguration(
+                    ExternalBrightnessConfiguration(
+                        backend: .betterDisplay,
+                        betterDisplayUUID: uuid
+                    ),
+                    for: display.id
+                )
+            }
+        )
+    }
+
+    private func displayOptionLabel(
+        _ option: BetterDisplayDisplayPickerOption,
+        state: BetterDisplayBrightnessSettingsState
+    ) -> String {
+        switch option {
+        case .unassociated:
+            return localization.string(.settingsBrightnessBetterDisplayAutomatic)
+        case .device(let uuid, let name):
+            return state.deviceLabel(uuid: uuid, name: name)
+                ?? "\(localization.string(.settingsBrightnessBetterDisplayUnnamed)) · \(uuid.prefix(8))"
+        case .unavailable(let uuid):
+            return "\(localization.string(.settingsBrightnessBetterDisplayUnavailable)) · \(uuid.prefix(8))"
+        case .saved(let uuid):
+            return "\(localization.string(.settingsBrightnessBetterDisplaySaved)) · \(uuid.prefix(8))"
         }
     }
 
@@ -178,6 +265,10 @@ struct BrightnessSectionView: View {
                         : nil
                 )
                 store.setExternalBrightnessConfiguration(updated, for: display.id)
+                if backend == .betterDisplay {
+                    // The manual picker needs a fresh device catalog.
+                    statusStore.refreshBetterDisplayDevices()
+                }
             }
         )
     }

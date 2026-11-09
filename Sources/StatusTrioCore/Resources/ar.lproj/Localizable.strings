@@ -818,6 +818,12 @@
 "settings.brightness.compatibility.title" = "لا يمكن التحكم في السطوع؟";
 "settings.brightness.compatibility.description" = "تختلف طريقة تنفيذ DDC بين مصنّعي الشاشات، لذا لا يمكن لـ Status Trio دعم كل الطُرز. إذا تعذّر ضبط سطوع شاشة من هنا، فبدّل خلفيتها إلى BetterDisplay — وسيتحكم Status Trio بها عبر BetterDisplay. الإصدار المجاني كافٍ، ولا حاجة لشراء Pro.";
 "settings.brightness.compatibility.link" = "نزّل BetterDisplay (مجانًا)";
+"settings.brightness.betterDisplay.display" = "شاشة BetterDisplay";
+"settings.brightness.betterDisplay.automatic" = "تلقائي (المطابقة حسب شاشة النظام)";
+"settings.brightness.betterDisplay.unnamed" = "شاشة بدون اسم";
+"settings.brightness.betterDisplay.saved" = "محفوظ";
+"settings.brightness.betterDisplay.unavailable" = "غير متاح";
+"settings.brightness.betterDisplay.refresh" = "تحديث الأجهزة";
 "settings.battery.colors.highPower" = "وضع الطاقة العالية";
 "battery.lowPowerMode.autoEnable" = "تشغيل وضع الطاقة المنخفضة تلقائيًا";
 "battery.lowPowerMode.autoEnableDescription" = "بعد فصل الطاقة، يتم تشغيل وضع الطاقة المنخفضة تلقائيًا عندما ينخفض مستوى البطارية إلى ما دون حد البطارية المنخفضة. مرة واحدة لكل دورة بطارية منخفضة.";

@@ -818,6 +818,12 @@
 "settings.brightness.compatibility.title" = "顯示器調不了亮度？";
 "settings.brightness.compatibility.description" = "各家顯示器的 DDC 實作並不統一，Status Trio 無法涵蓋所有型號。如果某台顯示器的亮度在這裡調不了，可以把它切到 BetterDisplay 後端——Status Trio 會透過 BetterDisplay 來調節。免費版就夠用，不需要購買 Pro。";
 "settings.brightness.compatibility.link" = "下載 BetterDisplay（免費）";
+"settings.brightness.betterDisplay.display" = "BetterDisplay 顯示器";
+"settings.brightness.betterDisplay.automatic" = "自動（按系統顯示器匹配）";
+"settings.brightness.betterDisplay.unnamed" = "未命名顯示器";
+"settings.brightness.betterDisplay.saved" = "已儲存";
+"settings.brightness.betterDisplay.unavailable" = "無法使用";
+"settings.brightness.betterDisplay.refresh" = "重新整理裝置";
 "settings.battery.colors.highPower" = "高電量模式";
 "battery.lowPowerMode.autoEnable" = "自動開啟低電量模式";
 "battery.lowPowerMode.autoEnableDescription" = "拔掉電源後，電量低於低電量閾值會自動開啟低電量模式；每次低電只開一次。";
