@@ -17,12 +17,7 @@ final class StatusBarTemplateImagePresenter {
             imageView = view
         }
         imageView?.image = image
-        imageView?.frame = NSRect(
-            x: host.bounds.midX - contentSize.width / 2,
-            y: host.bounds.midY - contentSize.height / 2,
-            width: contentSize.width,
-            height: contentSize.height
-        )
+        imageView?.frame = StatusIconGeometry.contentFrame(in: host.bounds, contentSize: contentSize)
     }
 
     func clear() {

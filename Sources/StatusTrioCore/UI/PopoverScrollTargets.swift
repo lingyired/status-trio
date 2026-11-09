@@ -1,6 +1,25 @@
 import AppKit
 import SwiftUI
 
+/// Marker for an AppKit control that handles the scroll wheel itself. The panel
+/// wheel monitor leaves the event for such a view instead of turning it into a
+/// panel-wide volume change.
+@MainActor
+protocol ScrollWheelHandlingView: AnyObject {}
+
+extension NSView {
+    /// True when this view or any ancestor handles the scroll wheel itself.
+    @MainActor
+    var handlesScrollWheelItself: Bool {
+        var current: NSView? = self
+        while let view = current {
+            if view is ScrollWheelHandlingView { return true }
+            current = view.superview
+        }
+        return false
+    }
+}
+
 /// What a registered panel slider adjusts when the wheel rolls over it.
 @MainActor
 enum PanelLevelScrollTarget: Equatable {

@@ -38,6 +38,7 @@ struct AudioSectionView: View {
         deviceOrderGroup
         inputDeviceOrderGroup
         externalVolumeGroup
+        airPodsInlineControlsGroup
     }
 
     /// Quick show/hide of the audio modules (output volume and input) in the
@@ -499,6 +500,32 @@ struct AudioSectionView: View {
 
     private func orderListHeight(for count: Int) -> CGFloat {
         min(max(CGFloat(count) * 32 + 12, 48), 180)
+    }
+
+    private var airPodsInlineControlsGroup: some View {
+        SettingsGroup(localization.string(.settingsAudioAirPodsInlineControlsTitle)) {
+            AirPodsListeningModeSettingsRows(store: store)
+
+            SettingsDivider()
+
+            SettingsToggleRow(
+                symbol: "airpodspro",
+                tint: .blue,
+                title: localization.string(.settingsAudioSpatialAudioControlsTitle),
+                subtitle: localization.string(.settingsAudioSpatialAudioControlsDescription),
+                isOn: $store.showsSpatialAudioControls
+            )
+
+            SettingsDivider()
+
+            SettingsToggleRow(
+                symbol: "person.wave.2.fill",
+                tint: .blue,
+                title: localization.string(.settingsAudioConversationAwarenessControlsTitle),
+                subtitle: localization.string(.settingsAudioConversationAwarenessControlsDescription),
+                isOn: $store.showsConversationAwarenessControls
+            )
+        }
     }
 }
 

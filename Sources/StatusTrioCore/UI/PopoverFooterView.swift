@@ -4,13 +4,9 @@ import SwiftUI
 /// The state-dependent parts of the popover footer, kept as plain data so the
 /// settings label can be asserted without rendering a view.
 enum PopoverFooterPresentation {
-    /// The settings button carries the development codename inline, where it has
-    /// always been. The running version is deliberately not part of this label:
-    /// it now lives in the standard About panel, so the button stays short and
-    /// readable in every language.
-    static func settingsLabel(title: String, developmentSuffix: String?) -> String {
-        guard let developmentSuffix, !developmentSuffix.isEmpty else { return title }
-        return "\(title) · \(developmentSuffix)"
+    /// Keep development identity in Settings About, not in the compact menu.
+    static func settingsLabel(title: String, developmentSuffix _: String?) -> String {
+        title
     }
 
     /// Opens the Menu Bar pane in System Settings. One extension serves the pane
@@ -47,14 +43,28 @@ struct PopoverFooterView: View {
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
             Button(action: openSettings) {
-                Label(settingsTitle, systemImage: "gearshape")
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
-                    .contentShape(Rectangle())
+                HStack(spacing: 6) {
+                    Label(settingsTitle, systemImage: "gearshape")
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    if let developmentCodename = AppMetadata.developmentCodename {
+                        Text(developmentCodename)
+                            .font(.caption2)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .layoutPriority(1)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .keyboardShortcut(",", modifiers: .command)
+            .accessibilityLabel(settingsTitle)
 
             // The version sits at the trailing edge rather than inside the
             // button's label, which has to stay readable in every language.

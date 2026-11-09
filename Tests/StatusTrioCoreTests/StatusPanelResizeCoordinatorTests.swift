@@ -2,8 +2,8 @@ import Combine
 import XCTest
 @testable import StatusTrioCore
 
-/// Deterministic coverage for the reusable disclosure height driver. Real
-/// button/layout/window coverage lives in StatusPanelLayoutIntegrationTests.
+/// The same driver used by OutputDeviceRow, with a deterministic clock. Real
+/// button/layout/window coverage lives in AirPodsDisclosureIntegrationTests.
 @MainActor
 final class StatusPanelResizeCoordinatorTests: XCTestCase {
     @MainActor
@@ -183,3 +183,29 @@ final class StatusPanelResizeCoordinatorTests: XCTestCase {
         XCTAssertEqual(c.presentedHeight, c.targetHeight)
     }
 }
+#if DEBUG
+/// The DEBUG diagnostic snapshot must describe geometry and counters only, so it
+/// is safe to log from a development build.
+@MainActor
+final class StatusPanelResizeDiagnosticsTests: XCTestCase {
+    func testDiagnosticDescriptionHasNoDeviceIdentity() {
+        let snapshot = StatusPanelResizeDiagnostics(
+            phase: .expanding,
+            windowHeight: 500,
+            anchoredEdgeY: 880,
+            targetHeight: 520,
+            presentedHeight: 500,
+            frameWriteCount: 7,
+            retargetCount: 2,
+            pinCount: 1,
+            unpinCount: 0
+        )
+        let text = snapshot.debugDescription
+        XCTAssertTrue(text.contains("phase=expanding"))
+        XCTAssertTrue(text.contains("retargets=2"))
+        // No device name / UID / address can appear in this shape.
+        XCTAssertFalse(text.lowercased().contains("airpods"))
+        XCTAssertFalse(text.contains(":"))
+    }
+}
+#endif

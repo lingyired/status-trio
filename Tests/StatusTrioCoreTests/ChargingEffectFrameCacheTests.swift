@@ -243,6 +243,10 @@ struct ChargingEffectFrameCacheTests {
             scale: 2,
             foreground: foreground,
             criticalColor: criticalColor,
+            // preRenderedMenuBarImage renders the menu-bar path, which now
+            // supersamples once before the final pixel grid; the direct reference
+            // must use the same environment to compare like with like.
+            supersample: 2
         )
         let directCGImage = try #require(StatusIconRenderer.render(
             scene: scene,

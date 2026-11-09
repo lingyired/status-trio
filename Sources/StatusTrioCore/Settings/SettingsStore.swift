@@ -69,6 +69,14 @@ final class SettingsStore: ObservableObject {
     /// Draws the private LAN address on the network row's second line. Off by
     /// default: the address is a diagnostic, not something every panel needs.
     static let showsLocalIPAddressDefaultsKey = "showsLocalIPAddress"
+    /// Whether the Spatial Audio group is shown on the volume panel's AirPods
+    /// output row. On by default; AirPods-only.
+    static let showsSpatialAudioControlsDefaultsKey = "showsSpatialAudioControls"
+    /// Whether the Conversation Awareness group is shown on the volume panel's
+    /// AirPods output row. On by default; AirPods-only.
+    static let showsConversationAwarenessControlsDefaultsKey = "showsConversationAwarenessControls"
+    /// Migration-only: the old single switch, now split into the two above.
+    static let showsInlineAirPodsControlsDefaultsKey = "showsInlineAirPodsControls"
     /// Migration-only: superseded by `connectionCenterSource`. Read once at
     /// launch, then removed so it can never override a later selection.
     static let showsBatteryPercentageInConnectionSlotDefaultsKey = "showsBatteryPercentageInConnectionSlot"
@@ -643,6 +651,24 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 showsLocalIPAddress,
                 forKey: Self.showsLocalIPAddressDefaultsKey
+            )
+        }
+    }
+
+    @Published var showsSpatialAudioControls: Bool {
+        didSet {
+            defaults.set(
+                showsSpatialAudioControls,
+                forKey: Self.showsSpatialAudioControlsDefaultsKey
+            )
+        }
+    }
+
+    @Published var showsConversationAwarenessControls: Bool {
+        didSet {
+            defaults.set(
+                showsConversationAwarenessControls,
+                forKey: Self.showsConversationAwarenessControlsDefaultsKey
             )
         }
     }
@@ -2028,6 +2054,15 @@ final class SettingsStore: ObservableObject {
         self.showsLocalIPAddress = defaults.object(
             forKey: Self.showsLocalIPAddressDefaultsKey
         ) as? Bool ?? false
+        let legacyInlineAirPodsControls = defaults.object(
+            forKey: Self.showsInlineAirPodsControlsDefaultsKey
+        ) as? Bool
+        self.showsSpatialAudioControls = defaults.object(
+            forKey: Self.showsSpatialAudioControlsDefaultsKey
+        ) as? Bool ?? legacyInlineAirPodsControls ?? true
+        self.showsConversationAwarenessControls = defaults.object(
+            forKey: Self.showsConversationAwarenessControlsDefaultsKey
+        ) as? Bool ?? legacyInlineAirPodsControls ?? true
         // Resolve the effective legacy choice once, then remove competing keys.
         // Persist the new choice even at default so old flags cannot revive.
         let legacyPercentageInSlot = defaults.bool(forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey)

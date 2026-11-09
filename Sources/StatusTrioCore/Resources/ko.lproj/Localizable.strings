@@ -529,6 +529,9 @@
 "settings.audio.indicatorStyleDescription" = "상태 링 하단에 네 개의 점 또는 연속된 호 모양 막대 중 표시 방식을 선택합니다.";
 "settings.audio.indicatorStyle.dots" = "네 개의 점";
 "settings.audio.indicatorStyle.arc" = "호 막대";
+"settings.audio.airPodsInlineControlsTitle" = "헤드폰 제어";
+"settings.audio.airPodsInlineControls" = "볼륨 패널에 AirPods 제어 표시";
+"settings.audio.airPodsInlineControlsDescription" = "AirPods 출력 옆에 대화 인식, 공간 오디오, 적응형 제어를 표시합니다. 비공개 API 기반의 이러한 제어를 숨기려면 끕니다.";
 
 // On-demand battery details.
 "battery.details.title" = "배터리 세부 정보";
@@ -721,6 +724,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "시스템 충전 상태가 변경되었을 수 있습니다. 계속하려면 다시 클릭하십시오.";
 "battery.action.cancelChargeToFullNowPending" = "시스템이 임시 완전 충전 상태를 아직 확인하지 못했습니다. 잠시 후 다시 시도하세요.";
 
+// AirPods system controls
+"airPods.controls" = "AirPods 제어…";
+"airPods.adaptive" = "적응형 오디오";
+"airPods.lessNoise" = "소음 줄이기";
+"airPods.moreNoise" = "소음 늘리기";
+"airPods.adaptiveUnavailable" = "Bluetooth를 통한 적응형 오디오 조절을 사용할 수 없습니다.";
+"airPods.spatial" = "스테레오 공간화";
+"airPods.conversation" = "대화 인지";
+"airPods.routeChanged" = "선택한 AirPods가 변경되었거나 연결이 끊겼습니다. 현재 출력의 제어기를 다시 여세요.";
+"airPods.unconfirmed" = "macOS에서 변경을 확인하지 못했습니다. 새로 고쳐 실제 설정을 확인하세요.";
+"airPods.unavailable" = "Bluetooth 직접 제어를 사용할 수 없습니다.";
+"airPods.notAvailable" = "사용 불가";
+"airPods.apply" = "적용";
+
+"airPods.spatialFixed" = "고정";
+"airPods.spatialHeadTracked" = "머리 추적";
+
+"airpods.retry" = "다시 시도";
 "settings.popup.order.brightness" = "밝기";
 "brightness.row.accessibility" = "%@의 밝기, %@";
 "brightness.row.accessibilityUnavailable" = "%@의 밝기, %@";
@@ -833,3 +854,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "청취 모드";
 "settings.subtopic.bluetooth.deviceBattery" = "기기 배터리";
 "settings.subtopic.bluetooth.deviceManagement" = "기기 관리";
+"settings.audio.spatialAudioControlsTitle" = "공간 음향 제어 표시";
+"settings.audio.spatialAudioControlsDescription" = "AirPods 출력 행에 공간 음향 옵션(끔/고정/머리 추적)을 표시합니다. 현재 AirPods만 지원합니다.";
+"settings.audio.conversationAwarenessControlsTitle" = "대화 인식 제어 표시";
+"settings.audio.conversationAwarenessControlsDescription" = "AirPods 출력 행에 대화 인식 스위치를 표시합니다. 현재 AirPods만 지원합니다.";

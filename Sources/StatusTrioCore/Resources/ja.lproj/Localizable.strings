@@ -529,6 +529,9 @@
 "settings.audio.indicatorStyleDescription" = "ステータスリング下部に4つのドットまたは連続する円弧バーのいずれで表示するかを選択します。";
 "settings.audio.indicatorStyle.dots" = "4つのドット";
 "settings.audio.indicatorStyle.arc" = "円弧バー";
+"settings.audio.airPodsInlineControlsTitle" = "ヘッドフォンコントロール";
+"settings.audio.airPodsInlineControls" = "音量パネルに AirPods コントロールを表示";
+"settings.audio.airPodsInlineControlsDescription" = "AirPods 出力の横に会話認識・空間オーディオ・アダプティブのコントロールを表示します。私的 API ベースのこれらのコントロールを隠すにはオフにします。";
 
 // On-demand battery details.
 "battery.details.title" = "バッテリーの詳細";
@@ -721,6 +724,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "システムの充電状態が変更された可能性があります。もう一度クリックして続行してください。";
 "battery.action.cancelChargeToFullNowPending" = "システムが一時的なフル充電をまだ確認できていません。少し待ってから再試行してください。";
 
+// AirPods system controls
+"airPods.controls" = "AirPods コントロール…";
+"airPods.adaptive" = "適応型オーディオ";
+"airPods.lessNoise" = "ノイズを減らす";
+"airPods.moreNoise" = "ノイズを増やす";
+"airPods.adaptiveUnavailable" = "Bluetooth経由の適応型オーディオ調整は利用できません。";
+"airPods.spatial" = "ステレオを空間化";
+"airPods.conversation" = "会話感知";
+"airPods.routeChanged" = "選択した AirPods が変更されたか切断されました。現在の出力のコントロールを開き直してください。";
+"airPods.unconfirmed" = "macOS で変更を確認できませんでした。更新して実際の設定を確認してください。";
+"airPods.unavailable" = "Bluetoothによる直接操作は利用できません。";
+"airPods.notAvailable" = "利用不可";
+"airPods.apply" = "適用";
+
+"airPods.spatialFixed" = "固定";
+"airPods.spatialHeadTracked" = "ヘッドトラッキング";
+
+"airpods.retry" = "再試行";
 "settings.popup.order.brightness" = "明るさ";
 "brightness.row.accessibility" = "%@ の明るさ、%@";
 "brightness.row.accessibilityUnavailable" = "%@ の明るさ、%@";
@@ -833,3 +854,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "リスニングモード";
 "settings.subtopic.bluetooth.deviceBattery" = "デバイスのバッテリー";
 "settings.subtopic.bluetooth.deviceManagement" = "デバイス管理";
+"settings.audio.spatialAudioControlsTitle" = "空間オーディオのコントロールを表示";
+"settings.audio.spatialAudioControlsDescription" = "AirPods の出力行に空間オーディオのオプション（オフ/固定/頭部トラッキング）を表示します。現在は AirPods のみ対応。";
+"settings.audio.conversationAwarenessControlsTitle" = "会話認識のコントロールを表示";
+"settings.audio.conversationAwarenessControlsDescription" = "AirPods の出力行に会話認識のスイッチを表示します。現在は AirPods のみ対応。";
