@@ -821,6 +821,13 @@
 "settings.brightness.compatibility.title" = "Não consegue controlar uma tela?";
 "settings.brightness.compatibility.description" = "Cada fabricante implementa o DDC de um jeito, então o Status Trio não consegue cobrir todos os modelos. Se o brilho de uma tela não puder ser ajustado aqui, mude-a para o backend BetterDisplay — o Status Trio vai controlá-la pelo BetterDisplay. A versão gratuita é suficiente; não é preciso licença Pro.";
 "settings.brightness.compatibility.link" = "Baixar o BetterDisplay (grátis)";
+"settings.brightness.betterDisplay.manualHint" = "Se o brilho desta tela ainda não estiver disponível, troque manualmente a tela BetterDisplay acima.";
+"settings.brightness.betterDisplay.display" = "Tela BetterDisplay";
+"settings.brightness.betterDisplay.automatic" = "Automático (corresponder à tela do sistema)";
+"settings.brightness.betterDisplay.unnamed" = "Tela sem nome";
+"settings.brightness.betterDisplay.saved" = "Salvo";
+"settings.brightness.betterDisplay.unavailable" = "Indisponível";
+"settings.brightness.betterDisplay.refresh" = "Atualizar dispositivos";
 "settings.battery.colors.highPower" = "Modo de Alto Desempenho";
 "battery.lowPowerMode.autoEnable" = "Ativar Modo de Baixo Consumo automaticamente";
 "battery.lowPowerMode.autoEnableDescription" = "Ao desconectar a energia, o Modo de Baixo Consumo é ativado automaticamente quando a bateria fica abaixo do limite de bateria fraca. Uma vez por ciclo de bateria fraca.";

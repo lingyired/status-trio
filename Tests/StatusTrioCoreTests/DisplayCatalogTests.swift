@@ -58,4 +58,23 @@ final class DisplayCatalogTests: XCTestCase {
         )
         XCTAssertEqual(descriptor.displayID, 0)
     }
+
+    func testZeroSerialSingleExternalDescriptorResolvesViaFallback() {
+        // Issue #313: Mac mini with one external panel reporting serial 0.
+        let descriptor = LiveDisplayCatalog.mappedExternalDescriptor(
+            edidUUID: "EDID", name: "Redmi 27 NU", vendorID: 0, productID: 0,
+            serialNumber: 0, among: [online(7, serial: 0)]
+        )
+        XCTAssertEqual(descriptor.displayID, 7, "Single external must resolve via the safe fallback")
+        XCTAssertFalse(descriptor.isBuiltin)
+    }
+
+    func testZeroSerialWithBuiltinDescriptorStaysUnresolved() {
+        let descriptor = LiveDisplayCatalog.mappedExternalDescriptor(
+            edidUUID: "EDID", name: "Redmi 27 NU", vendorID: 0, productID: 0,
+            serialNumber: 0,
+            among: [online(1, builtin: true), online(7, serial: 0)]
+        )
+        XCTAssertEqual(descriptor.displayID, 0, "A built-in online must keep the fail-closed sentinel")
+    }
 }

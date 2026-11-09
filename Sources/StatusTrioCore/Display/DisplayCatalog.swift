@@ -111,8 +111,9 @@ struct LiveDisplayCatalog: DisplayCatalogProviding {
 
     /// Builds an external descriptor, resolving its real `CGDirectDisplayID`
     /// from the EDID product identity. Pure and testable: `among` is the online
-    /// display snapshot. An unresolved identity keeps the `0` sentinel so the
-    /// monitor can report the display but never guess another screen.
+    /// display snapshot. When the identity cannot be matched (e.g. serial `0`),
+    /// a safe single-external fallback applies; otherwise the `0` sentinel is
+    /// kept so the monitor reports the display but never guesses another screen.
     static func mappedExternalDescriptor(
         edidUUID: String,
         name: String,
@@ -127,7 +128,7 @@ struct LiveDisplayCatalog: DisplayCatalogProviding {
             serialNumber: serialNumber,
             edidUUID: edidUUID
         )
-        let displayID = DisplayIDMapper.uniqueDisplayID(for: identity, among: online) ?? 0
+        let displayID = DisplayIDMapper.resolvedDisplayID(for: identity, among: online) ?? 0
         return DisplayDescriptor(id: edidUUID, name: name, isBuiltin: false, displayID: displayID)
     }
 

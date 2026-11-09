@@ -140,7 +140,7 @@ final class PmsetAccessoryBatteryWorker: @unchecked Sendable, BluetoothAccessory
     private let outputProvider: OutputProvider
 
     init(
-        outputProvider: @escaping OutputProvider = PmsetAccessoryBatteryWorker.readAccessoryPowerSources
+        outputProvider: @escaping OutputProvider = { PmsetAccessoryBatteryWorker.readAccessoryPowerSources() }
     ) {
         self.outputProvider = outputProvider
     }
@@ -179,23 +179,31 @@ final class PmsetAccessoryBatteryWorker: @unchecked Sendable, BluetoothAccessory
         }
     }
 
-    static func readAccessoryPowerSources() -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
-        process.arguments = ["-g", "accps", "-xml"]
+    /// Comfortably under the controller's read cadence; `pmset -g accps` is a
+    /// quick query, so a deadline shorter than the profiler's is plenty.
+    static let readTimeout: Duration = .seconds(4)
 
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-            let data = output.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else { return nil }
-            return String(data: data, encoding: .utf8)
-        } catch {
-            return nil
-        }
+    /// The one bounded `pmset` accessory read in the app.
+    ///
+    /// `pmset -g accps` talks to the power manager and can hang the same way
+    /// `/usr/sbin/system_profiler` can: `readDataToEndOfFile()` plus
+    /// `waitUntilExit()` has no deadline, so a child that never exits — or a
+    /// descendant that inherits the pipe — would block this worker's serial
+    /// queue for the rest of the process. It runs through the shared bounded
+    /// runner instead, so a stuck read ends itself and reports no accessory
+    /// rather than stalling the chain. Parameters are injectable so the bound
+    /// can be exercised with a fake child in tests.
+    static func readAccessoryPowerSources(
+        executableURL: URL = URL(fileURLWithPath: "/usr/bin/pmset"),
+        arguments: [String] = ["-g", "accps", "-xml"],
+        timeout: Duration = PmsetAccessoryBatteryWorker.readTimeout
+    ) -> String? {
+        let outcome = BoundedProcessInvocation.runSync(
+            executableURL: executableURL,
+            arguments: arguments,
+            timeout: timeout
+        )
+        guard case .exited(let data) = outcome else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 }

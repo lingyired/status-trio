@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1440" viewBox="0 0 1240 1440">
+<rect x="0" y="0" width="1240" height="1440" fill="#f6f8fb"/>
+<text x="620.0" y="50" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="29" font-weight="800" fill="#0f172a">Status Trio · 蓝牙耳机电量获取流程</text>
+<text x="620.0" y="80" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="15.5" font-weight="500" fill="#64748b">配对耳机电量来自系统报告；右侧虚线为可选/次要来源。左侧是刷新节奏与时间戳现状。</text>
+<rect x="340.0" y="110" width="560" height="82" rx="14" ry="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="620.0" y="131.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="20" font-weight="600" fill="#2563eb">① 触发</text>
+<text x="620.0" y="157.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">打开面板 → SystemStatusStore</text>
+<text x="620.0" y="183.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">activate() + refresh() + requestBatteryLevels</text>
+<rect x="340.0" y="232" width="560" height="76" rx="14" ry="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="620.0" y="263.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="20" font-weight="600" fill="#2563eb">② 读设备</text>
+<text x="620.0" y="289.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">system_profiler -json SPBluetoothDataType（4s 超时）</text>
+<rect x="340.0" y="348" width="560" height="76" rx="14" ry="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="620.0" y="366.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="20" font-weight="600" fill="#2563eb">③ 解析</text>
+<text x="620.0" y="392.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">device_connected / device_not_connected</text>
+<text x="620.0" y="418.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">→ [BluetoothDevice]（含 isConnected）</text>
+<rect x="340.0" y="464" width="560" height="76" rx="14" ry="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="620.0" y="495.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="20" font-weight="600" fill="#2563eb">④ 缓存同一份报告</text>
+<text x="620.0" y="521.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">BluetoothProfilerReportCache：storedAt = 现在，5 秒内有效</text>
+<rect x="340.0" y="580" width="560" height="76" rx="14" ry="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="620.0" y="598.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="20" font-weight="600" fill="#2563eb">⑤ 发布设备</text>
+<text x="620.0" y="624.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">devices 更新；connectedBatteryLevels</text>
+<text x="620.0" y="650.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">把已断开设备的旧电量过滤掉</text>
+<rect x="340.0" y="696" width="560" height="58" rx="14" ry="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/>
+<text x="620.0" y="731.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="20" font-weight="600" fill="#2563eb">⑥ refreshBatteryLevels()</text>
+<rect x="340.0" y="794" width="560" height="76" rx="14" ry="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="620.0" y="825.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="20" font-weight="600" fill="#2563eb">⑦ 取电量数据</text>
+<text x="620.0" y="851.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">缓存 &lt; 5 秒 → 直接复用；否则再跑一次 system_profiler</text>
+<rect x="340.0" y="910" width="560" height="92" rx="14" ry="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="620.0" y="936.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="20" font-weight="600" fill="#2563eb">⑧ BluetoothBatteryReader.parse</text>
+<text x="620.0" y="962.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">只取 device_connected 段</text>
+<text x="620.0" y="988.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">→ main / left / right / case</text>
+<rect x="340.0" y="1042" width="560" height="74" rx="14" ry="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="620.0" y="1072.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="20" font-weight="600" fill="#2563eb">⑨ 过滤并发布</text>
+<text x="620.0" y="1098.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">只留当前已连接地址 → batteryLevels</text>
+<polygon points="620,1130.0 800.0,1178 620,1226.0 440.0,1178" fill="#eef2ff" stroke="#818cf8" stroke-width="2"/>
+<text x="620" y="1184.12" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="18" font-weight="600" fill="#3730a3">profiler 有该设备电量？</text>
+<rect x="340.0" y="1290" width="560" height="74" rx="14" ry="14" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="2"/>
+<text x="620.0" y="1320.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="20" font-weight="600" fill="#2563eb">⑪ 展示</text>
+<text x="620.0" y="1346.46" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="19" font-weight="600" fill="#1e293b">行 / 摘要渲染（segments）</text>
+<rect x="950" y="1120" width="230" height="120" rx="14" ry="14" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
+<text x="1065.0" y="1152.1" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="600" fill="#2563eb">⑩ 补缺来源</text>
+<text x="1065.0" y="1174.1" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="15" font-weight="600" fill="#1e293b">BluetoothAccessory</text>
+<text x="1065.0" y="1196.1" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="15" font-weight="600" fill="#1e293b">BatteryReader · pmset -g accps</text>
+<text x="1065.0" y="1218.1" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="15" font-weight="600" fill="#1e293b">按 Identifier 补左/右/仓</text>
+<rect x="950" y="560" width="230" height="126" rx="14" ry="14" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="2"/>
+<text x="1065.0" y="595.1" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="600" fill="#2563eb">另一条：Nearby BLE</text>
+<text x="1065.0" y="617.1" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="15" font-weight="600" fill="#1e293b">BluetoothLEBattery</text>
+<text x="1065.0" y="639.1" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="15" font-weight="600" fill="#1e293b">Scanner · 广播/GATT 读电量</text>
+<text x="1065.0" y="661.1" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="15" font-weight="600" fill="#1e293b">带 lastUpdated · 180 秒过期</text>
+<line x1="620" y1="192" x2="620" y2="232" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<line x1="620" y1="308" x2="620" y2="348" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<line x1="620" y1="424" x2="620" y2="464" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<line x1="620" y1="540" x2="620" y2="580" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<line x1="620" y1="656" x2="620" y2="696" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<line x1="620" y1="754" x2="620" y2="794" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<line x1="620" y1="870" x2="620" y2="910" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<line x1="620" y1="1002" x2="620" y2="1042" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<line x1="620" y1="1116" x2="620" y2="1130" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<line x1="620" y1="1226" x2="620" y2="1290" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<text x="642" y="1252" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="15" font-weight="700" fill="#64748b">有</text>
+<path d="M 800 1178 L 950 1178" fill="none" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<text x="880" y="1174" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="15" font-weight="700" fill="#64748b">无</text>
+<path d="M 1065.0 1240 L 1065.0 1305 L 900.0 1305" fill="none" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrow)"/>
+<path d="M 1065.0 686 L 1205 686 L 1205 1345 L 900.0 1345" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<text x="1065.0" y="708" text-anchor="middle" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="13.5" font-weight="600" fill="#6d28d9">仅在「附近设备」界面需要时</text>
+<rect x="24" y="232" width="268" height="300" rx="12" ry="12" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="40" y="262" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="17" font-weight="700" fill="#b45309">刷新节奏</text>
+<text x="40" y="290" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">· 打开面板：立即读一次</text>
+<text x="40" y="314" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">· 可见期间靠：</text>
+<text x="40" y="338" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">   连接事件</text>
+<text x="40" y="362" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">   配件电量通知</text>
+<text x="40" y="386" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">   120s 安全网轮询</text>
+<text x="40" y="410" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">· 电量随设备刷新一起刷</text>
+<text x="40" y="434" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">· 关面板 / 设备断开 → 清空</text>
+<path d="M 292 382 L 316 382 L 316 725 L 340.0 725" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="24" y="860" width="268" height="270" rx="12" ry="12" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="40" y="890" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="17" font-weight="700" fill="#b45309">时间戳现状</text>
+<text x="40" y="918" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">· storedAt = App 执行命令时刻</text>
+<text x="40" y="942" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">  （≈现在，不能反映旧值多旧）</text>
+<text x="40" y="966" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">· 只有 BLE 读数有真实 lastUpdated</text>
+<text x="40" y="990" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">· profiler / pmset accps 的电量</text>
+<text x="40" y="1014" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">  都没有「设备测量时间」</text>
+<text x="40" y="1038" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f"></text>
+<text x="40" y="1062" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">⇒ 想「按旧值时间丢弃」，只能</text>
+<text x="40" y="1086" font-family="'PingFang SC','Hiragino Sans GB','Helvetica Neue',sans-serif" font-size="16" font-weight="500" fill="#78350f">  记「数值最后一次变化的时刻」</text>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+</marker>
+</defs>
+</svg>

@@ -43,10 +43,20 @@ final class IOBluetoothConnectionEventMonitor: NSObject, BluetoothConnectionEven
             forConnectNotifications: self,
             selector: #selector(deviceConnected(_:device:))
         )
-        return lock.withLock {
+        let accepted = lock.withLock {
             connectNotification = notification
             return notification != nil
         }
+        // A device that was already connected when monitoring began never
+        // delivers a connect notification, so under the connect path alone
+        // nothing would register its per-device disconnect. Such a device would
+        // then only be seen to leave by the deliberately slow safety-net poll,
+        // leaving the panel showing "connected" (and its last battery) for up to
+        // a whole poll interval after it was put away. Adopting the connections
+        // that already exist turns that departure into a notification like any
+        // other.
+        adoptConnectedDevices(currentlyConnectedDevices())
+        return accepted
     }
 
     func stop() {
@@ -122,5 +132,58 @@ final class IOBluetoothConnectionEventMonitor: NSObject, BluetoothConnectionEven
         let removed = lock.withLock { disconnectNotifications.removeValue(forKey: identity) }
         removed?.unregister()
         lock.withLock { handler }?()
+    }
+
+    /// A paired device that is already connected when monitoring starts, and so
+    /// has to be handed a disconnect observation without a connect callback to
+    /// build it from.
+    ///
+    /// `registerDisconnect` performs the SDK registration, so the adoption loop
+    /// can be counted with fake tokens instead of the system's Bluetooth
+    /// service, exactly like `handleDeviceConnected`.
+    struct ConnectedDevice {
+        let identity: String
+        let registerDisconnect: () -> (any BluetoothNotificationToken)?
+    }
+
+    /// Adopts a snapshot of the devices that were connected before monitoring
+    /// began. This is not a state change — the caller is already loading the
+    /// current state — so the handler is deliberately not invoked; only the
+    /// per-device disconnect registration is installed.
+    func adoptConnectedDevices(_ devices: [ConnectedDevice]) {
+        for device in devices {
+            adoptConnectedDevice(identity: device.identity, registerDisconnect: device.registerDisconnect)
+        }
+    }
+
+    /// Bookkeeping for adopting one already-connected device, with the
+    /// registration supplied by the caller so it can be counted without touching
+    /// the system's Bluetooth service.
+    func adoptConnectedDevice(
+        identity: String,
+        registerDisconnect: () -> (any BluetoothNotificationToken)?
+    ) {
+        guard !identity.isEmpty, let token = registerDisconnect() else { return }
+        let replaced = lock.withLock { disconnectNotifications.updateValue(token, forKey: identity) }
+        replaced?.unregister()
+    }
+
+    /// The paired devices that are connected right now, each paired with the
+    /// registration that observes its disconnect. A device with no address and
+    /// no name cannot be keyed, so it is left out and behaves as before (poll
+    /// only).
+    private func currentlyConnectedDevices() -> [ConnectedDevice] {
+        let paired = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] ?? []
+        return paired.compactMap { device in
+            guard device.isConnected() else { return nil }
+            let identity = Self.deviceIdentity(addressString: device.addressString, name: device.name)
+            guard !identity.isEmpty else { return nil }
+            return ConnectedDevice(identity: identity) {
+                device.register(
+                    forDisconnectNotification: self,
+                    selector: #selector(self.deviceDisconnected(_:device:))
+                )
+            }
+        }
     }
 }
