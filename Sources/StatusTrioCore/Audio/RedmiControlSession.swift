@@ -73,6 +73,11 @@ final class RedmiControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate, @un
         await acquireOperation()
         defer { releaseOperation() }
         try await ensureConnected()
+        // Notifications keep the cached state live while the session is held, so a
+        // refresh is free once we have a mode. Only a fresh session needs a read.
+        if let cached = cachedMode() {
+            return RedmiNoiseState(mode: cached)
+        }
         return try await runRead()
     }
 
@@ -168,6 +173,7 @@ final class RedmiControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate, @un
         do {
             let record = try await resolveRecord()
             let id = try openChannelID(for: record)
+            resetProtocolForConnection()
             let status = device.openControlChannel(id: id, delegate: self)
             guard status == kIOReturnSuccess else {
                 throw RedmiListeningModeError.channelConnectionFailed(status)
@@ -176,6 +182,23 @@ final class RedmiControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate, @un
         } catch {
             finishConnectFailure(error)
         }
+    }
+
+    /// Clears any receive state from a previous connection before a new one is
+    /// opened, so a reconnect authenticates from scratch instead of trusting the
+    /// old session's `authenticated` flag and stale mode.
+    private func resetProtocolForConnection() {
+        lock.lock()
+        engine = RedmiBudsProtocol()
+        decoder = RedmiBudsFrameDecoder()
+        writes.removeAll()
+        lock.unlock()
+    }
+
+    private func cachedMode() -> RedmiNoiseMode? {
+        lock.lock()
+        defer { lock.unlock() }
+        return engine.state.mode
     }
 
     /// Synchronous critical section: validates we are still allowed to open and
@@ -452,7 +475,24 @@ final class RedmiControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate, @un
         let wasStopped = stopped
         lock.unlock()
         guard !wasStopped else { return }
+        // Putting the buds back in the case (lid closed) disconnects them, which
+        // arrives here. Mark the session dead and release its channel; a later
+        // request reconnects when the buds come back.
         finishConnectFailure(RedmiListeningModeError.connectionClosedByDevice)
+    }
+
+    func rfcommChannelWriteComplete(
+        _ rfcommChannel: IOBluetoothRFCOMMChannel!,
+        refcon: UnsafeMutableRawPointer!,
+        status error: IOReturn
+    ) {
+        lock.lock()
+        if let refcon { writes.removeValue(forKey: refcon) }
+        let wasStopped = stopped
+        lock.unlock()
+        if error != kIOReturnSuccess, !wasStopped {
+            finishConnectFailure(RedmiListeningModeError.writeFailed(error))
+        }
     }
 
     // MARK: - SDP + writes
@@ -479,7 +519,9 @@ final class RedmiControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate, @un
         let data = NSData(bytes: bytes, length: bytes.count)
         let pointer = UnsafeMutableRawPointer(mutating: data.bytes)
         writes[pointer] = data
-        let result = channel.writeSync(pointer, length: UInt16(bytes.count))
+        // Async write like the reference implementation: never block the caller
+        // (which may be the main thread or a callback thread) on RFCOMM I/O.
+        let result = channel.writeAsync(pointer, length: UInt16(bytes.count), refcon: pointer)
         if result != kIOReturnSuccess {
             writes.removeValue(forKey: pointer)
             return false

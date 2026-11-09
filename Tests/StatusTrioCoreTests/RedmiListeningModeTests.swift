@@ -227,6 +227,7 @@ private final class FakeRedmiTransport: RedmiListeningModeTransporting, @uncheck
     private(set) var stateCalls: [String] = []
     private(set) var setModeCalls: [(RedmiNoiseMode, String)] = []
     private(set) var closeAllCount = 0
+    private(set) var closedAddresses: [String] = []
 
     var stateResult: RedmiNoiseState
     var setModeResult: RedmiNoiseState?
@@ -251,6 +252,10 @@ private final class FakeRedmiTransport: RedmiListeningModeTransporting, @uncheck
 
     func closeAll() {
         closeAllCount += 1
+    }
+
+    func close(address: String) {
+        closedAddresses.append(address)
     }
 }
 
@@ -394,6 +399,19 @@ final class RedmiControllerTests: XCTestCase {
         // ...but the long-lived Redmi control session is kept so a phone cannot
         // steal the channel between panel visits.
         XCTAssertEqual(transport.closeAllCount, 0)
+    }
+
+    func testDeviceLeavingEligibleSetClosesItsSession() async {
+        let transport = FakeRedmiTransport()
+        let controller = makeController(transport)
+        controller.refresh(devices: [device()])
+        await waitUntil { controller.control(forBluetoothAddress: self.address) != nil }
+        XCTAssertTrue(transport.closedAddresses.isEmpty)
+
+        // Simulate the buds going back into the case: they disappear from the
+        // connected list. The next refresh must drop that device's session.
+        controller.refresh(devices: [])
+        XCTAssertEqual(transport.closedAddresses, [key])
     }
 
     func testShutdownReleasesPersistentSessions() async {
