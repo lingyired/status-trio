@@ -176,7 +176,7 @@ struct HardwareMonitorPresentationTests {
         let fixture = HardwareMonitorTestFixture()
         defer { fixture.cleanup() }
         let keys = LocalizationKey.allCases.filter { $0.rawValue.hasPrefix("hardware.monitor.") }
-        #expect(keys.count == 20)
+        #expect(keys.count == 21)
         for language in AppLanguage.allCases {
             let bundle = try #require(Localization.resourceBundle(for: language))
             for key in keys {
@@ -220,6 +220,51 @@ struct HardwareMonitorCardLayoutTests {
         #expect(host.window == nil)
     }
 
+    @Test func valueAndAvailabilityChangesNeverResizeTheCard() {
+        let fixture = HardwareMonitorTestFixture()
+        defer { fixture.cleanup() }
+        let model = HardwareMonitorObservable()
+        let metrics: [HardwareMonitorMetric] = [.cpuUsage, .gpuUsage]
+        let host = NSHostingView(rootView: HardwareMonitorCardView(model: model, metrics: metrics)
+            .environmentObject(fixture.localization)
+            .frame(width: 302))
+        let expectedHeight = HardwareMonitorCardView.height(for: metrics.count)
+        func assertStable(_ label: String) {
+            host.layoutSubtreeIfNeeded()
+            #expect(abs(host.fittingSize.width - 302) < 0.5, "\(label) width")
+            #expect(abs(host.fittingSize.height - expectedHeight) < 0.5, "\(label) height")
+        }
+        assertStable("empty")
+        var sample = HardwareMetricsSnapshot.empty
+        sample.samples[.cpuUsage] = .init(value: 0, unit: .percent, sampledAt: Date(), source: .mach,
+                                          availability: .measured)
+        sample.samples[.gpuUsage] = .init(value: 0, unit: .percent, sampledAt: Date(), source: .ioAccelerator,
+                                          availability: .measured)
+        model.update(sample); assertStable("0%")
+        sample.samples[.cpuUsage]?.value = 100
+        sample.samples[.gpuUsage]?.value = 100
+        model.update(sample); assertStable("100%")
+        sample.samples[.cpuUsage]?.availability = .unsupported
+        sample.samples[.cpuUsage]?.value = nil
+        model.update(sample); assertStable("unsupported")
+        model.update(.empty); assertStable("cleared")
+    }
+
+    @Test func subsetMetricsUseTheirOwnFixedHeight() {
+        let fixture = HardwareMonitorTestFixture()
+        defer { fixture.cleanup() }
+        for count in 1...HardwareMonitorMetric.allCases.count {
+            let metrics = Array(HardwareMonitorMetric.allCases.prefix(count))
+            let model = HardwareMonitorObservable()
+            let host = NSHostingView(rootView: HardwareMonitorCardView(model: model, metrics: metrics)
+                .environmentObject(fixture.localization)
+                .frame(width: 302))
+            host.layoutSubtreeIfNeeded()
+            #expect(abs(host.fittingSize.height - HardwareMonitorCardView.height(for: count)) < 0.5,
+                    "count \(count)")
+        }
+    }
+
     @Test func snapshotsRenderOffscreen() throws {
         let fixture = HardwareMonitorTestFixture()
         defer { fixture.cleanup() }
@@ -227,7 +272,8 @@ struct HardwareMonitorCardLayoutTests {
         for language in [AppLanguage.english, .simplifiedChinese, .german, .arabic] {
             fixture.localization.setPreference(.language(language))
             for dark in [false, true] {
-                for availability in [HardwareMetricAvailability.measured, .collecting, .stale] {
+                for availability in [HardwareMetricAvailability.measured, .collecting, .unsupported,
+                                     .temporarilyUnavailable, .stale] {
                     let host = makeHost(snapshot: fixture.snapshot(availability: availability), fixture: fixture, dark: dark)
                     let size = host.fittingSize
                     #expect(abs(size.width - 302) < 0.5)

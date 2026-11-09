@@ -776,3 +776,4 @@
 "hardware.monitor.settings.showInPanel.description" = "하드웨어 모니터 카드를 상태 패널에 추가합니다.";
 "hardware.monitor.settings.metrics" = "항목";
 "hardware.monitor.settings.metrics.description" = "표시할 항목을 선택하고 드래그하여 순서를 바꿉니다. 마지막 항목은 끌 수 없습니다.";
+"hardware.monitor.battery" = "배터리";

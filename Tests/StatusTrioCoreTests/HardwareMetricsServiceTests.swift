@@ -95,6 +95,22 @@ final class HardwareMetricsServiceTests: XCTestCase {
         for _ in 0..<count { await Task.yield() }
     }
 
+    func testTickIntervalFollowsFastestDemandedMetric() async {
+        let clock = Clock()
+        let service = HardwareMetricsService(automaticScheduling: false,
+                                             now: { clock.date },
+                                             reader: { _, _ in .empty })
+        service.begin(.panel, metrics: [.cpuTemperature])
+        XCTAssertEqual(service.currentTickIntervalForTesting, 4,
+                       "sensors alone need only wake every 4s")
+        service.begin(.menuBarArc, metrics: [.cpuUsage])
+        XCTAssertEqual(service.currentTickIntervalForTesting, 2,
+                       "a 2s usage consumer raises the loop frequency")
+        service.end(.menuBarArc)
+        XCTAssertEqual(service.currentTickIntervalForTesting, 4)
+        service.stopAll()
+    }
+
     func testNoDemandDoesNotReadAndRepeatedBeginIsDeduplicated() async {
         let clock = Clock()
         let recorder = Recorder()

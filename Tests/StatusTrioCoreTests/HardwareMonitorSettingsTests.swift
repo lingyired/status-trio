@@ -65,6 +65,16 @@ final class HardwareMonitorSettingsTests: XCTestCase {
         XCTAssertEqual(store.enabledHardwareMonitorMetrics, [.fan])
     }
 
+    func testEmptyStoredEnabledSetFallsBackToDefaults() {
+        let (defaults, name) = makeSuite()
+        defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set([String](), forKey: SettingsStore.enabledHardwareMonitorMetricsDefaultsKey)
+        let store = SettingsStore(defaults: defaults)
+        XCTAssertEqual(store.enabledHardwareMonitorMetrics,
+                       SettingsStore.defaultEnabledHardwareMonitorMetrics,
+                       "an empty/corrupt set must not leave the card with no metric")
+    }
+
     func testShowInPanelToggleUsesPopupSection() {
         let (defaults, name) = makeSuite()
         defer { defaults.removePersistentDomain(forName: name) }

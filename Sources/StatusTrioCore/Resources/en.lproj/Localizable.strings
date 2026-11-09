@@ -774,3 +774,4 @@
 "hardware.monitor.settings.showInPanel.description" = "Adds the hardware monitor card to the status panel.";
 "hardware.monitor.settings.metrics" = "Metrics";
 "hardware.monitor.settings.metrics.description" = "Choose which metrics to show and drag to reorder. The last enabled metric can’t be turned off.";
+"hardware.monitor.battery" = "Battery";

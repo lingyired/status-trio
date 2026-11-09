@@ -45,6 +45,9 @@ final class HardwareMetricsService: ObservableObject {
     private(set) var isRunning = false
     private(set) var isAsleep = false
     var isAwaitingReadForTesting: Bool { inFlight }
+    /// The loop only needs to wake as often as the fastest demanded metric.
+    /// With only slow sensors visible this doubles the sleep and halves wakeups.
+    var currentTickIntervalForTesting: TimeInterval { tickInterval }
 
     private let reader: Reader?
     private let now: () -> Date
@@ -150,7 +153,8 @@ final class HardwareMetricsService: ObservableObject {
         guard automaticScheduling, isRunning, !isAsleep, loopTask == nil else { return }
         loopTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                let interval = self?.tickInterval ?? 2
+                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
                 guard !Task.isCancelled, let self else { return }
                 self.refreshIfNeeded(forceFamilies: [])
             }
@@ -254,6 +258,12 @@ final class HardwareMetricsService: ObservableObject {
             forcedIDs.formUnion(requestedIDs)
             refreshIfNeeded(forceFamilies: [])
         }
+    }
+
+    private var tickInterval: TimeInterval {
+        let ids = requestedIDs
+        guard !ids.isEmpty else { return 2 }
+        return ids.map(interval(for:)).min() ?? 2
     }
 
     private func interval(for id: HardwareMetricID) -> TimeInterval {

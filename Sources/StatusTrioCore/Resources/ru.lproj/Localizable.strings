@@ -776,3 +776,4 @@
 "hardware.monitor.settings.showInPanel.description" = "Добавляет карточку монитора оборудования в панель состояния.";
 "hardware.monitor.settings.metrics" = "Метрики";
 "hardware.monitor.settings.metrics.description" = "Выберите метрики и перетащите для сортировки. Последнюю нельзя отключить.";
+"hardware.monitor.battery" = "Батарея";

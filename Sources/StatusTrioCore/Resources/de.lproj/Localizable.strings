@@ -776,3 +776,4 @@
 "hardware.monitor.settings.showInPanel.description" = "Fügt die Hardware-Monitor-Karte zum Statusfenster hinzu.";
 "hardware.monitor.settings.metrics" = "Messwerte";
 "hardware.monitor.settings.metrics.description" = "Wähle die Messwerte und ziehe zum Sortieren. Der letzte aktive Wert kann nicht deaktiviert werden.";
+"hardware.monitor.battery" = "Akku";

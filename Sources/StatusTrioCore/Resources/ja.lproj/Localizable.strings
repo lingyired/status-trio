@@ -776,3 +776,4 @@
 "hardware.monitor.settings.showInPanel.description" = "ハードウェアモニターカードをステータスパネルに追加します。";
 "hardware.monitor.settings.metrics" = "項目";
 "hardware.monitor.settings.metrics.description" = "表示する項目を選択し、ドラッグで並べ替えます。最後の1つはオフにできません。";
+"hardware.monitor.battery" = "バッテリー";

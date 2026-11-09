@@ -2326,7 +2326,10 @@ final class SettingsStore: ObservableObject {
 
     static func sanitizedEnabledHardwareMonitorMetrics(_ rawValues: [String]?) -> Set<HardwareMonitorMetric> {
         guard let rawValues else { return Self.defaultEnabledHardwareMonitorMetrics }
-        return Set(rawValues.compactMap(HardwareMonitorMetric.init(rawValue:)))
+        let parsed = Set(rawValues.compactMap(HardwareMonitorMetric.init(rawValue:)))
+        // An empty/corrupt stored set would leave an enabled card with nothing to
+        // draw; fall back to the defaults instead of an empty section.
+        return parsed.isEmpty ? Self.defaultEnabledHardwareMonitorMetrics : parsed
     }
 
     static func sanitizedPopupSectionOrder(_ rawValues: [String]) -> [PopupSection] {

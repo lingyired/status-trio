@@ -776,3 +776,4 @@
 "hardware.monitor.settings.showInPanel.description" = "Adiciona o cartão de monitor de hardware ao painel de status.";
 "hardware.monitor.settings.metrics" = "Métricas";
 "hardware.monitor.settings.metrics.description" = "Escolha as métricas e arraste para reordenar. A última não pode ser desativada.";
+"hardware.monitor.battery" = "Bateria";

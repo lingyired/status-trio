@@ -776,3 +776,4 @@
 "hardware.monitor.settings.showInPanel.description" = "Ajoute la carte de surveillance matérielle au panneau d’état.";
 "hardware.monitor.settings.metrics" = "Indicateurs";
 "hardware.monitor.settings.metrics.description" = "Choisissez les indicateurs et faites glisser pour les réordonner. Le dernier ne peut pas être désactivé.";
+"hardware.monitor.battery" = "Batterie";

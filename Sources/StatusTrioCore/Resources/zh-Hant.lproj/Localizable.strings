@@ -776,3 +776,4 @@
 "hardware.monitor.settings.showInPanel.description" = "將硬體監控卡片加入狀態面板。";
 "hardware.monitor.settings.metrics" = "指標";
 "hardware.monitor.settings.metrics.description" = "選擇要顯示的指標，拖曳可排序；最後一項不能關閉。";
+"hardware.monitor.battery" = "電池溫度";

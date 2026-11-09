@@ -776,3 +776,4 @@
 "hardware.monitor.settings.showInPanel.description" = "Añade la tarjeta de monitor de hardware al panel de estado.";
 "hardware.monitor.settings.metrics" = "Métricas";
 "hardware.monitor.settings.metrics.description" = "Elige las métricas y arrastra para ordenarlas. La última no se puede desactivar.";
+"hardware.monitor.battery" = "Batería";

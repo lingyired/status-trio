@@ -115,6 +115,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case hardwareMonitorMemory = "hardware.monitor.memory"
     case hardwareMonitorTemperature = "hardware.monitor.temperature"
     case hardwareMonitorBatteryTemperature = "hardware.monitor.batteryTemperature"
+    case hardwareMonitorBattery = "hardware.monitor.battery"
     case hardwareMonitorFan = "hardware.monitor.fan"
     case hardwareMonitorCollecting = "hardware.monitor.collecting"
     case hardwareMonitorUnsupported = "hardware.monitor.unsupported"

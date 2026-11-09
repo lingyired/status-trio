@@ -776,3 +776,4 @@
 "hardware.monitor.settings.showInPanel.description" = "يضيف بطاقة مراقبة العتاد إلى لوحة الحالة.";
 "hardware.monitor.settings.metrics" = "المؤشرات";
 "hardware.monitor.settings.metrics.description" = "اختر المؤشرات واسحب لإعادة الترتيب. لا يمكن إيقاف الأخير.";
+"hardware.monitor.battery" = "البطارية";

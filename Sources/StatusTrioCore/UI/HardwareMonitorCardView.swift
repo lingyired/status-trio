@@ -60,7 +60,7 @@ enum HardwareMonitorTile: CaseIterable, Equatable {
         case .gpu: .hardwareMonitorGPU
         case .memory: .hardwareMonitorMemory
         case .temperature: .hardwareMonitorTemperature
-        case .batteryTemperature: .hardwareMonitorBatteryTemperature
+        case .batteryTemperature: .hardwareMonitorBattery
         case .fan: .hardwareMonitorFan
         }
     }
