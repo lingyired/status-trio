@@ -216,6 +216,11 @@
 "settings.battery.symbolScaleDescription" = "잔량과 번개는 같은 크기를 사용합니다.";
 "settings.battery.statusColors" = "배터리 상태에 따라 원호 색상 변경";
 "settings.battery.statusColorsDescription" = "기본 색상은 전원 연결 시 초록색, 저전력 모드 시 노란색, 배터리 부족 시 빨간색이며 아래에서 변경할 수 있습니다. 끄면 저장된 사용자 지정 색상은 적용되지 않습니다.";
+
+"settings.battery.monochromeArc" = "단색 배터리 호";
+"settings.battery.monochromeArcDescription" = "배터리 호를 검정 또는 흰색 전경색으로만 표시하며 충전, 저전력, 고전력 상태 색을 사용하지 않습니다. 상단 표시, 중앙 아이콘, 하단 표시기는 각자의 설정을 그대로 따릅니다.";
+"settings.battery.monochromeArcApply" = "적용";
+"settings.battery.monochromeArcApplied" = "적용됨";
 "settings.battery.colors.charging" = "충전 중 / 전원 연결";
 "settings.battery.colors.lowPower" = "저전력 모드";
 "settings.battery.colors.critical" = "배터리 잔량 매우 부족";

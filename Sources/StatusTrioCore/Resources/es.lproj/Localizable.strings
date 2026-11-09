@@ -216,6 +216,11 @@
 "settings.battery.symbolScaleDescription" = "El porcentaje y el rayo comparten este tamaño.";
 "settings.battery.statusColors" = "Colorear el arco según el estado de la batería";
 "settings.battery.statusColorsDescription" = "Por defecto, corriente en verde, bajo consumo en amarillo y batería baja en rojo. Puedes cambiarlos abajo. Al desactivar, se ignoran los colores personalizados guardados.";
+
+"settings.battery.monochromeArc" = "Arco de batería monocromo";
+"settings.battery.monochromeArcDescription" = "Dibuja el arco de la batería solo en negro o blanco, sin los colores de estado de carga, batería baja o batería alta. El marcador superior, el icono central y el indicador inferior siguen sus propios ajustes.";
+"settings.battery.monochromeArcApply" = "Aplicar";
+"settings.battery.monochromeArcApplied" = "Aplicado";
 "settings.battery.colors.charging" = "Carga / corriente conectada";
 "settings.battery.colors.lowPower" = "Modo de bajo consumo";
 "settings.battery.colors.critical" = "Batería críticamente baja";

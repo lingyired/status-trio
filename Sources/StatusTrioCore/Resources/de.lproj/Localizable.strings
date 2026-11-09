@@ -216,6 +216,11 @@
 "settings.battery.symbolScaleDescription" = "Prozentsatz und Blitz verwenden dieselbe Größe.";
 "settings.battery.statusColors" = "Bogen nach Batteriestatus einfärben";
 "settings.battery.statusColorsDescription" = "Standard: Netzbetrieb grün, Stromsparmodus gelb, niedriger Ladestand rot. Unten änderbar. Beim Ausschalten werden gespeicherte eigene Farben nicht angewendet.";
+
+"settings.battery.monochromeArc" = "Einfarbiger Batteriebogen";
+"settings.battery.monochromeArcDescription" = "Zeichnet den Batteriebogen nur in Schwarz oder Weiß, ohne Farben für Lade-, Niedrig- oder Hochstatus. Obere Markierung, mittleres Symbol und untere Anzeige folgen weiterhin ihren eigenen Einstellungen.";
+"settings.battery.monochromeArcApply" = "Anwenden";
+"settings.battery.monochromeArcApplied" = "Angewendet";
 "settings.battery.colors.charging" = "Laden / Netzbetrieb";
 "settings.battery.colors.lowPower" = "Stromsparmodus";
 "settings.battery.colors.critical" = "Kritisch niedriger Ladestand";

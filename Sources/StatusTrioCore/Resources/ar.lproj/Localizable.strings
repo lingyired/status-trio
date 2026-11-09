@@ -199,6 +199,11 @@
 "settings.battery.symbolScaleDescription" = "تستخدم النسبة ورمز البرق الحجم نفسه.";
 "settings.battery.statusColors" = "تلوين القوس حسب حالة البطارية";
 "settings.battery.statusColorsDescription" = "الألوان الافتراضية هي الأخضر للطاقة والأصفر لوضع الطاقة المنخفضة والأحمر لانخفاض البطارية. يمكنك تغييرها أدناه. عند التعطيل لا تُطبّق الألوان المخصصة المحفوظة.";
+
+"settings.battery.monochromeArc" = "قوس بطارية أحادي اللون";
+"settings.battery.monochromeArcDescription" = "يرسم قوس البطارية باللون الأسود أو الأبيض فقط، دون ألوان حالة الشحن أو انخفاض البطارية أو ارتفاعها. تظل العلامة العلوية والأيقونة الوسطى والمؤشر السفلي تتبع إعداداتها الخاصة.";
+"settings.battery.monochromeArcApply" = "تطبيق";
+"settings.battery.monochromeArcApplied" = "تم التطبيق";
 "settings.battery.colors.charging" = "الشحن / الاتصال بالطاقة";
 "settings.battery.colors.lowPower" = "وضع الطاقة المنخفضة";
 "settings.battery.colors.critical" = "انخفاض حرج في البطارية";

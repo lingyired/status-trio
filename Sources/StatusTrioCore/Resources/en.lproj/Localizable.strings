@@ -216,6 +216,11 @@
 "settings.battery.symbolScaleDescription" = "The percentage and bolt share this size.";
 "settings.battery.statusColors" = "Color the arc by battery state";
 "settings.battery.statusColorsDescription" = "Defaults are green for power, yellow for Low Power Mode, and red for low battery. Change them below. Turning this off ignores saved custom colors.";
+
+"settings.battery.monochromeArc" = "Monochrome battery arc";
+"settings.battery.monochromeArcDescription" = "Draw the battery arc in black or white only, without charging, low-battery, or high-battery state colours. The top marker, centre icon, and bottom indicator still follow their own settings.";
+"settings.battery.monochromeArcApply" = "Apply";
+"settings.battery.monochromeArcApplied" = "Applied";
 "settings.battery.colors.charging" = "Charging / connected power";
 "settings.battery.colors.lowPower" = "Low Power Mode";
 "settings.battery.colors.critical" = "Critically low battery";

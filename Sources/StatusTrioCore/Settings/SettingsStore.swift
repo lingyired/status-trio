@@ -1680,6 +1680,22 @@ final class SettingsStore: ObservableObject {
         chargeToFullRestoreLimit = Double(limit)
     }
 
+    /// #309: the "Monochrome battery arc" preset. Turning the state colouring
+    /// off is the whole change — the arc then draws in the label colour and
+    /// stops following the charging/low/high state palette. The top marker, the
+    /// centre icon and the bottom indicator keep their own settings, so this
+    /// does not touch them. Idempotent, so the settings button can call it
+    /// freely.
+    func applyMonochromeBatteryArcPreset() {
+        usesBatteryStatusColors = false
+    }
+
+    /// Whether the arc is currently in the monochrome look, i.e. state colouring
+    /// is off. Drives the preset row's "Applied" state.
+    var isMonochromeBatteryArcActive: Bool {
+        !usesBatteryStatusColors
+    }
+
     var batteryIconOptions: BatteryIconOptions {
         BatteryIconOptions(
             showsPercentage: showsBatteryPercentage,

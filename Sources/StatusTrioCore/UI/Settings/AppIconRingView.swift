@@ -211,6 +211,29 @@ struct AppIconRingView: View {
 
     private var colorsGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupColors)) {
+            // #309: a one-tap way to reach the monochrome look instead of
+            // asking the user to piece together several switches. It only
+            // turns the state colouring off; the top marker, centre icon and
+            // bottom indicator keep their own settings.
+            SettingsRow(
+                "circle.lefthalf.filled",
+                tint: .gray,
+                title: localization.string(.settingsBatteryMonochromeArc),
+                subtitle: localization.string(.settingsBatteryMonochromeArcDescription)
+            ) {
+                Button(
+                    store.isMonochromeBatteryArcActive
+                        ? localization.string(.settingsBatteryMonochromeArcApplied)
+                        : localization.string(.settingsBatteryMonochromeArcApply)
+                ) {
+                    store.applyMonochromeBatteryArcPreset()
+                }
+                .buttonStyle(.bordered)
+                .disabled(store.isMonochromeBatteryArcActive)
+            }
+
+            SettingsDivider()
+
             SettingsToggleRow(
                 symbol: "paintpalette.fill",
                 tint: .orange,

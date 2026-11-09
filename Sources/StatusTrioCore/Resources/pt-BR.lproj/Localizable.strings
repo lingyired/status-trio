@@ -216,6 +216,11 @@
 "settings.battery.symbolScaleDescription" = "A porcentagem e o raio usam o mesmo tamanho.";
 "settings.battery.statusColors" = "Colorir o arco conforme o estado da bateria";
 "settings.battery.statusColorsDescription" = "Por padrão: energia em verde, Pouca Energia em amarelo e bateria fraca em vermelho. Altere abaixo. Ao desativar, as cores personalizadas salvas não são aplicadas.";
+
+"settings.battery.monochromeArc" = "Arco de bateria monocromático";
+"settings.battery.monochromeArcDescription" = "Desenha o arco da bateria apenas em preto ou branco, sem as cores de estado de carga, bateria fraca ou bateria alta. O marcador superior, o ícone central e o indicador inferior seguem as próprias configurações.";
+"settings.battery.monochromeArcApply" = "Aplicar";
+"settings.battery.monochromeArcApplied" = "Aplicado";
 "settings.battery.colors.charging" = "Carregamento / energia conectada";
 "settings.battery.colors.lowPower" = "Modo de Pouca Energia";
 "settings.battery.colors.critical" = "Bateria muito fraca";

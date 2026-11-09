@@ -216,6 +216,11 @@
 "settings.battery.symbolScaleDescription" = "Le pourcentage et l’éclair utilisent la même taille.";
 "settings.battery.statusColors" = "Colorer l’arc selon l’état de la batterie";
 "settings.battery.statusColorsDescription" = "Par défaut : secteur en vert, économie d’énergie en jaune et batterie faible en rouge. Modifiez-les ci-dessous. Désactiver cette option ignore les couleurs personnalisées enregistrées.";
+
+"settings.battery.monochromeArc" = "Arc de batterie monochrome";
+"settings.battery.monochromeArcDescription" = "Dessine l’arc de la batterie uniquement en noir ou blanc, sans les couleurs d’état de charge, de batterie faible ou de batterie élevée. Le repère supérieur, l’icône centrale et l’indicateur inférieur suivent toujours leurs propres réglages.";
+"settings.battery.monochromeArcApply" = "Appliquer";
+"settings.battery.monochromeArcApplied" = "Appliqué";
 "settings.battery.colors.charging" = "Charge / alimentation secteur";
 "settings.battery.colors.lowPower" = "Mode économie d’énergie";
 "settings.battery.colors.critical" = "Batterie très faible";

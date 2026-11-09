@@ -216,6 +216,11 @@
 "settings.battery.symbolScaleDescription" = "数字和闪电使用同一尺寸，调整这里会同步改变两者。";
 "settings.battery.statusColors" = "根据状态改变圆弧颜色";
 "settings.battery.statusColorsDescription" = "默认连接电源为绿色、低电量模式为黄色、低电量为红色，可在下方更改。关闭后忽略已保存的自定颜色。";
+
+"settings.battery.monochromeArc" = "单色电量弧";
+"settings.battery.monochromeArcDescription" = "电量弧只使用黑/白前景色，不随充电、低电量或高电量状态变色。顶部图标、中间图标和底部指示仍按各自设置显示。";
+"settings.battery.monochromeArcApply" = "应用";
+"settings.battery.monochromeArcApplied" = "已应用";
 "settings.battery.colors.charging" = "充电 / 连接电源";
 "settings.battery.colors.lowPower" = "低电量模式";
 "settings.battery.colors.critical" = "临界低电量";
