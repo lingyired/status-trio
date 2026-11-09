@@ -818,6 +818,7 @@
 "settings.brightness.compatibility.title" = "Helligkeit nicht steuerbar?";
 "settings.brightness.compatibility.description" = "Hersteller setzen DDC unterschiedlich um, daher kann Status Trio nicht jedes Modell abdecken. Lässt sich die Helligkeit eines Displays hier nicht einstellen, stelle es auf das BetterDisplay-Backend um — Status Trio steuert es dann über BetterDisplay. Die kostenlose Version genügt; eine Pro-Lizenz ist nicht nötig.";
 "settings.brightness.compatibility.link" = "BetterDisplay herunterladen (kostenlos)";
+"settings.brightness.betterDisplay.manualHint" = "Wenn die Helligkeit dieses Bildschirms weiterhin nicht verfügbar ist, wechsle oben den BetterDisplay-Bildschirm manuell.";
 "settings.brightness.betterDisplay.display" = "BetterDisplay-Bildschirm";
 "settings.brightness.betterDisplay.automatic" = "Automatisch (nach Systembildschirm)";
 "settings.brightness.betterDisplay.unnamed" = "Unbenannter Bildschirm";

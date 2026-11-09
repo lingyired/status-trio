@@ -818,6 +818,7 @@
 "settings.brightness.compatibility.title" = "밝기를 조절할 수 없나요?";
 "settings.brightness.compatibility.description" = "제조사마다 DDC 구현이 달라 Status Trio가 모든 모델을 지원할 수는 없습니다. 여기서 밝기를 조절할 수 없는 디스플레이는 BetterDisplay 백엔드로 전환하세요. Status Trio가 BetterDisplay를 통해 제어합니다. 무료 버전으로 충분하며 Pro 라이선스는 필요하지 않습니다.";
 "settings.brightness.compatibility.link" = "BetterDisplay 다운로드(무료)";
+"settings.brightness.betterDisplay.manualHint" = "이 디스플레이의 밝기를 여전히 사용할 수 없으면 위의 BetterDisplay 디스플레이를 수동으로 전환하세요.";
 "settings.brightness.betterDisplay.display" = "BetterDisplay 디스플레이";
 "settings.brightness.betterDisplay.automatic" = "자동(시스템 디스플레이로 일치)";
 "settings.brightness.betterDisplay.unnamed" = "이름 없는 디스플레이";

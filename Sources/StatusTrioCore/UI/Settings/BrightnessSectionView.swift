@@ -215,6 +215,11 @@ struct BrightnessSectionView: View {
                 .accessibilityIdentifier("settings.brightness.betterDisplay.refresh.\(display.id)")
             }
         }
+
+        SettingsDivider()
+        SettingsHintRow(
+            text: localization.string(.settingsBrightnessBetterDisplayManualHint)
+        )
     }
 
     private func betterDisplayState(

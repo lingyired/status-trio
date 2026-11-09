@@ -818,6 +818,7 @@
 "settings.brightness.compatibility.title" = "Не регулируется яркость?";
 "settings.brightness.compatibility.description" = "Производители реализуют DDC по-разному, поэтому Status Trio не может поддерживать все модели. Если яркость дисплея здесь не регулируется, переключите его на бэкенд BetterDisplay — Status Trio будет управлять им через BetterDisplay. Бесплатной версии достаточно; лицензия Pro не нужна.";
 "settings.brightness.compatibility.link" = "Скачать BetterDisplay (бесплатно)";
+"settings.brightness.betterDisplay.manualHint" = "Если яркость этого дисплея по-прежнему недоступна, вручную переключите дисплей BetterDisplay выше.";
 "settings.brightness.betterDisplay.display" = "Дисплей BetterDisplay";
 "settings.brightness.betterDisplay.automatic" = "Автоматически (по системному дисплею)";
 "settings.brightness.betterDisplay.unnamed" = "Дисплей без имени";

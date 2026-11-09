@@ -818,6 +818,7 @@
 "settings.brightness.compatibility.title" = "¿No puedes controlar una pantalla?";
 "settings.brightness.compatibility.description" = "Cada fabricante implementa DDC a su manera, así que Status Trio no puede cubrir todos los modelos. Si el brillo de una pantalla no se puede ajustar aquí, cámbiala al backend BetterDisplay: Status Trio la controlará a través de BetterDisplay. La versión gratuita es suficiente; no hace falta una licencia Pro.";
 "settings.brightness.compatibility.link" = "Descargar BetterDisplay (gratis)";
+"settings.brightness.betterDisplay.manualHint" = "Si el brillo de esta pantalla sigue sin estar disponible, cambia manualmente la pantalla BetterDisplay de arriba.";
 "settings.brightness.betterDisplay.display" = "Pantalla BetterDisplay";
 "settings.brightness.betterDisplay.automatic" = "Automático (coincidir con la pantalla del sistema)";
 "settings.brightness.betterDisplay.unnamed" = "Pantalla sin nombre";

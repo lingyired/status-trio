@@ -818,6 +818,7 @@
 "settings.brightness.compatibility.title" = "Luminosità non controllabile?";
 "settings.brightness.compatibility.description" = "Ogni produttore implementa DDC a modo suo, quindi Status Trio non può coprire tutti i modelli. Se la luminosità di un display non è regolabile qui, passalo al backend BetterDisplay: Status Trio lo controllerà tramite BetterDisplay. La versione gratuita è sufficiente; non serve una licenza Pro.";
 "settings.brightness.compatibility.link" = "Scarica BetterDisplay (gratis)";
+"settings.brightness.betterDisplay.manualHint" = "Se la luminosità di questo display è ancora non disponibile, cambia manualmente il display BetterDisplay qui sopra.";
 "settings.brightness.betterDisplay.display" = "Display BetterDisplay";
 "settings.brightness.betterDisplay.automatic" = "Automatico (abbina al display di sistema)";
 "settings.brightness.betterDisplay.unnamed" = "Display senza nome";

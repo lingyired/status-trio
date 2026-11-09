@@ -817,6 +817,7 @@
 "settings.brightness.compatibility.title" = "Can't control a display?";
 "settings.brightness.compatibility.description" = "Display vendors implement DDC differently, so Status Trio can't cover every model. If a display's brightness can't be adjusted here, switch it to the BetterDisplay backend — Status Trio will drive it through BetterDisplay. The free version is enough; no Pro license needed.";
 "settings.brightness.compatibility.link" = "Download BetterDisplay (free)";
+"settings.brightness.betterDisplay.manualHint" = "If this display's brightness is still unavailable, switch the BetterDisplay display above manually.";
 "settings.brightness.betterDisplay.display" = "BetterDisplay Display";
 "settings.brightness.betterDisplay.automatic" = "Automatic (match by system display)";
 "settings.brightness.betterDisplay.unnamed" = "Unnamed display";

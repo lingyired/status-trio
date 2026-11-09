@@ -155,6 +155,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBrightnessBetterDisplaySaved = "settings.brightness.betterDisplay.saved"
     case settingsBrightnessBetterDisplayUnavailable = "settings.brightness.betterDisplay.unavailable"
     case settingsBrightnessBetterDisplayRefresh = "settings.brightness.betterDisplay.refresh"
+    case settingsBrightnessBetterDisplayManualHint = "settings.brightness.betterDisplay.manualHint"
     case settingsPopupVolumeScrollGroup = "settings.popup.volumeScroll.group"
     case settingsAudioVolumeScrollGroup = "settings.audio.volumeScroll.group"
     case settingsPopupVolumeScroll = "settings.popup.volumeScroll"

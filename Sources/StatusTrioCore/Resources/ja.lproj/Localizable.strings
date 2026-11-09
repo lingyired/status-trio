@@ -818,6 +818,7 @@
 "settings.brightness.compatibility.title" = "明るさを調整できない場合";
 "settings.brightness.compatibility.description" = "ディスプレイメーカーごとに DDC の実装が異なるため、Status Trio はすべての機種に対応できません。ここで明るさを調整できないディスプレイは、BetterDisplay バックエンドに切り替えてください。Status Trio が BetterDisplay 経由で制御します。無料版で十分です。Pro ライセンスは不要です。";
 "settings.brightness.compatibility.link" = "BetterDisplay をダウンロード（無料）";
+"settings.brightness.betterDisplay.manualHint" = "このディスプレイの明るさがまだ利用できない場合は、上の BetterDisplay ディスプレイを手動で切り替えてください。";
 "settings.brightness.betterDisplay.display" = "BetterDisplay ディスプレイ";
 "settings.brightness.betterDisplay.automatic" = "自動（システムディスプレイで照合）";
 "settings.brightness.betterDisplay.unnamed" = "名称未設定のディスプレイ";
