@@ -78,6 +78,7 @@ enum RedmiListeningModeError: Error, Equatable {
     case notOpen
     case maxTransmissionUnitTooSmall
     case connectionClosedByDevice
+    case timeout
 }
 
 /// The mode state a Redmi transport operation returns. A thread-safe value type.
@@ -108,18 +109,31 @@ protocol RedmiListeningModeTransporting: Sendable {
     func state(address: String) async throws -> RedmiNoiseState
     func setMode(_ mode: RedmiNoiseMode, address: String) async throws -> RedmiNoiseState
     func closeAll()
+    /// Drops the persistent session for one device (it disconnected or the panel
+    /// stopped owning it) without disturbing the others.
+    func close(address: String)
+}
+
+extension RedmiListeningModeTransporting {
+    /// Default no-op so simple conformers (e.g. test fakes) need not implement it.
+    func close(address: String) {}
 }
 
 /// IOBluetooth-backed Redmi control transport over the vendor `FD2D` SPP channel.
 ///
-/// Each `state`/`setMode` runs one owned control session: look up the control
-/// service, open the RFCOMM channel, complete the challenge handshake, perform
-/// the read/write, then release the channel.
+/// Holds one persistent control session per device for the life of the
+/// listening-mode surface: the first `state`/`setMode` opens the channel and
+/// completes the handshake, subsequent calls reuse the same authenticated
+/// channel (which stays open receiving notifications), and the session
+/// reconnects on its own if the link drops. `closeAll()`/`close(address:)` are
+/// driven by the controller when the panel stops owning the controls.
 final class RedmiRFCOMMTransport: RedmiListeningModeTransporting, @unchecked Sendable {
     /// Resolves a paired IOBluetooth device for a normalized address.
     private let resolveDevice: @Sendable (String) -> (any RedmiBluetoothDevice)?
     /// Builds a session for a resolved device + transport address.
     private let sessionFactory: @Sendable (any RedmiBluetoothDevice, String) -> RedmiControlSession
+    private let lock = NSLock()
+    private var sessions: [String: RedmiControlSession] = [:]
 
     init(
         resolveDevice: @escaping @Sendable (String) -> (any RedmiBluetoothDevice)?,
@@ -150,27 +164,51 @@ final class RedmiRFCOMMTransport: RedmiListeningModeTransporting, @unchecked Sen
     }
 
     func state(address: String) async throws -> RedmiNoiseState {
-        guard let device = resolveDevice(address) else {
-            throw RedmiListeningModeError.controlServiceNotFound
-        }
-        let session = sessionFactory(device, address)
-        let state = try await session.readState()
-        session.close()
-        return state
+        let session = try session(for: address)
+        return try await session.readState()
     }
 
     func setMode(_ mode: RedmiNoiseMode, address: String) async throws -> RedmiNoiseState {
-        guard let device = resolveDevice(address) else {
-            throw RedmiListeningModeError.controlServiceNotFound
-        }
-        let session = sessionFactory(device, address)
-        let state = try await session.setMode(mode)
-        session.close()
-        return state
+        let session = try session(for: address)
+        return try await session.setMode(mode)
+    }
+
+    func close(address: String) {
+        lock.lock()
+        let session = sessions.removeValue(forKey: address)
+        lock.unlock()
+        session?.close()
     }
 
     func closeAll() {
-        // Sessions are per-operation and self-owned; there is nothing retained
-        // between calls. This is a no-op satisfying the seam.
+        lock.lock()
+        let all = Array(sessions.values)
+        sessions.removeAll()
+        lock.unlock()
+        all.forEach { $0.close() }
+    }
+
+    /// Returns the persistent session for `address`, creating it on first use.
+    private func session(for address: String) throws -> RedmiControlSession {
+        lock.lock()
+        if let existing = sessions[address] {
+            lock.unlock()
+            return existing
+        }
+        lock.unlock()
+
+        guard let device = resolveDevice(address) else {
+            throw RedmiListeningModeError.controlServiceNotFound
+        }
+
+        lock.lock()
+        if let existing = sessions[address] {
+            lock.unlock()
+            return existing
+        }
+        let session = sessionFactory(device, address)
+        sessions[address] = session
+        lock.unlock()
+        return session
     }
 }

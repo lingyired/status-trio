@@ -1,19 +1,24 @@
 import Foundation
 import IOBluetooth
 
-/// Owns one Redmi control-channel lifecycle and coerces the device's
-/// event-driven RFCOMM callbacks into the single `async` value the transport
-/// exposes.
+/// One long-lived Redmi control channel, owned by the transport for the lifetime
+/// of the listening-mode surface.
 ///
-/// Concurrency model: a session is created per transport operation and is never
-/// shared between operations. `IOBluetooth` may deliver callbacks on arbitrary
-/// threads, so all mutable receive state is guarded by `lock`. Every delegate
-/// path follows one discipline: mutate under the lock, decide whether to finish,
-/// then unlock and resume the outstanding continuation exactly once, outside the
-/// lock. No helper unlocks and re-locks.
-final class RedmiControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate {
+/// This mirrors the reference `BudsConnection`: the RFCOMM channel is opened
+/// once, the `0x50`/`0x51` challenge handshake is completed once, and the session
+/// then stays connected — receiving state notifications and replying ACK — until
+/// the surface goes away. Read and write requests reuse the live channel instead
+/// of opening and closing a fresh one per operation, which is what let a phone
+/// that connects to the earbuds steal the single control slot between our reads.
+/// If the connection drops, the next request reconnects.
+///
+/// Concurrency: `IOBluetooth` delivers callbacks on arbitrary threads, so all
+/// receive state is guarded by `lock`. Locked critical sections never span an
+/// `await`; delegate paths mutate under the lock, unlock, then resume
+/// continuations exactly once.
+final class RedmiControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate, @unchecked Sendable {
+    let address: String
     private let device: any RedmiBluetoothDevice
-    private let address: String
     private let lock = NSLock()
 
     private var channel: IOBluetoothRFCOMMChannel?
@@ -21,85 +26,350 @@ final class RedmiControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate {
     private var engine = RedmiBudsProtocol()
     private var writes: [UnsafeMutableRawPointer: NSData] = [:]
     private var stopped = false
-    private var finished = false
+    private var ready = false
+    private var connecting = false
 
-    /// How the current operation should complete.
-    private enum Operation {
+    // Connection setup waiters, resumed together once authenticated or on failure.
+    private var connectWaiters: [CheckedContinuation<Void, any Error>] = []
+    private var connectTimeout: Task<Void, Never>?
+
+    // The one in-flight operation (the controller serialises reads/writes per
+    // device, and `acquireOperation` orders them here regardless).
+    private enum PendingKind {
         case read
         case set(RedmiNoiseMode)
     }
+    private var pendingKind: PendingKind?
+    private var pendingContinuation: CheckedContinuation<RedmiNoiseState, any Error>?
+    private var pendingToken: UInt64 = 0
+    private var pendingTimeout: Task<Void, Never>?
 
-    private var operation: Operation?
-    private var completion: CheckedContinuation<RedmiNoiseState, any Error>?
-    /// Set once auth finished and the operation has issued its read/write, so the
-    /// target frames are sent exactly once.
-    private var issuedTarget = false
+    // Serialises operations without blocking a thread.
+    private var operationBusy = false
+    private var operationWaiters: [CheckedContinuation<Void, Never>] = []
 
-    init(device: any RedmiBluetoothDevice, address: String) {
+    private let readTimeoutSeconds: TimeInterval
+    private let setTimeoutSeconds: TimeInterval
+    private let connectTimeoutSeconds: TimeInterval
+
+    init(
+        device: any RedmiBluetoothDevice,
+        address: String,
+        readTimeoutSeconds: TimeInterval = 2.0,
+        setTimeoutSeconds: TimeInterval = 5.0,
+        connectTimeoutSeconds: TimeInterval = 15.0
+    ) {
         self.device = device
         self.address = address
+        self.readTimeoutSeconds = readTimeoutSeconds
+        self.setTimeoutSeconds = setTimeoutSeconds
+        self.connectTimeoutSeconds = connectTimeoutSeconds
         super.init()
     }
 
     // MARK: - Async API
 
     func readState() async throws -> RedmiNoiseState {
-        try await runOperation(.read)
+        await acquireOperation()
+        defer { releaseOperation() }
+        try await ensureConnected()
+        return try await runRead()
     }
 
     func setMode(_ mode: RedmiNoiseMode) async throws -> RedmiNoiseState {
-        try await runOperation(.set(mode))
+        await acquireOperation()
+        defer { releaseOperation() }
+        try await ensureConnected()
+        return try await runSet(mode)
     }
 
-    func cancel() {
-        lock.lock()
-        stopped = true
-        let completion = self.completion
-        self.completion = nil
-        let channel = self.channel
-        lock.unlock()
-        channel?.close()
-        completion?.resume(throwing: CancellationError())
-    }
-
+    /// Closes the channel and fails any waiters. Idempotent.
     func close() {
         lock.lock()
         stopped = true
+        ready = false
+        connecting = false
         let channel = self.channel
         self.channel = nil
+        let connectWaiters = self.connectWaiters
+        self.connectWaiters.removeAll()
+        let pending = pendingContinuation
+        pendingContinuation = nil
+        pendingKind = nil
+        let connectTimeout = self.connectTimeout; self.connectTimeout = nil
+        let pendingTimeout = self.pendingTimeout; self.pendingTimeout = nil
+        let opWaiters = self.operationWaiters
+        self.operationWaiters.removeAll()
+        self.operationBusy = false
         lock.unlock()
+
+        connectTimeout?.cancel()
+        pendingTimeout?.cancel()
         channel?.close()
+        connectWaiters.forEach { $0.resume(throwing: CancellationError()) }
+        pending?.resume(throwing: CancellationError())
+        opWaiters.forEach { $0.resume() }
     }
 
-    // MARK: - Operation driver
+    // MARK: - Operation serialisation
 
-    private func runOperation(_ operation: Operation) async throws -> RedmiNoiseState {
-        // SDP lookup may await without holding the channel lock. The channel open
-        // and the protocol exchange are then driven entirely by delegate callbacks.
-        let record: IOBluetoothSDPServiceRecord
-        if let cached = device.cachedControlService() {
-            record = cached
-        } else {
-            record = try await queryForControlService()
+    private func acquireOperation() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            lock.lock()
+            if operationBusy {
+                operationWaiters.append(continuation)
+                lock.unlock()
+            } else {
+                operationBusy = true
+                lock.unlock()
+                continuation.resume()
+            }
         }
+    }
+
+    private func releaseOperation() {
+        lock.lock()
+        if operationWaiters.isEmpty {
+            operationBusy = false
+            lock.unlock()
+        } else {
+            let next = operationWaiters.removeFirst()
+            lock.unlock()
+            next.resume()
+        }
+    }
+
+    // MARK: - Connection lifecycle
+
+    private func ensureConnected() async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+            lock.lock()
+            if ready {
+                lock.unlock()
+                continuation.resume()
+                return
+            }
+            if stopped {
+                lock.unlock()
+                continuation.resume(throwing: CancellationError())
+                return
+            }
+            connectWaiters.append(continuation)
+            let shouldStart = !connecting
+            connecting = true
+            lock.unlock()
+            if shouldStart {
+                Task { await self.performConnect() }
+            }
+        }
+    }
+
+    private func performConnect() async {
+        do {
+            let record = try await resolveRecord()
+            let id = try openChannelID(for: record)
+            let status = device.openControlChannel(id: id, delegate: self)
+            guard status == kIOReturnSuccess else {
+                throw RedmiListeningModeError.channelConnectionFailed(status)
+            }
+            armConnectTimeout()
+        } catch {
+            finishConnectFailure(error)
+        }
+    }
+
+    /// Synchronous critical section: validates we are still allowed to open and
+    /// resolves the RFCOMM channel id. Kept out of the async function so `NSLock`
+    /// is only ever taken in synchronous code.
+    private func openChannelID(for record: IOBluetoothSDPServiceRecord) throws -> BluetoothRFCOMMChannelID {
+        lock.lock()
+        defer { lock.unlock() }
+        if stopped { throw CancellationError() }
         guard let id = device.rfcommChannelID(for: record) else {
             throw RedmiListeningModeError.noRFCOMMChannel
         }
+        return id
+    }
 
-        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<RedmiNoiseState, Error>) in
-            lock.lock()
-            self.operation = operation
-            self.completion = continuation
-            self.engine = RedmiBudsProtocol()
-            self.decoder = RedmiBudsFrameDecoder()
-            self.stopped = false
-            self.finished = false
-            self.issuedTarget = false
+    private func armConnectTimeout() {
+        let seconds = connectTimeoutSeconds
+        let task = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard let self, !Task.isCancelled else { return }
+            self.finishConnectFailure(RedmiListeningModeError.authenticationTimeout)
+        }
+        lock.lock()
+        if ready || stopped {
             lock.unlock()
+            task.cancel()
+        } else {
+            connectTimeout?.cancel()
+            connectTimeout = task
+            lock.unlock()
+        }
+    }
 
-            let status = device.openControlChannel(id: id, delegate: self)
-            if status != kIOReturnSuccess {
-                finish(.failure(RedmiListeningModeError.channelConnectionFailed(status)))
+    private func finishConnectFailure(_ error: any Error) {
+        lock.lock()
+        ready = false
+        connecting = false
+        let waiters = connectWaiters
+        connectWaiters.removeAll()
+        let timeout = connectTimeout
+        connectTimeout = nil
+        let channel = self.channel
+        self.channel = nil
+        let pending = pendingContinuation
+        pendingContinuation = nil
+        pendingKind = nil
+        let pendingTimeout = self.pendingTimeout
+        self.pendingTimeout = nil
+        lock.unlock()
+        timeout?.cancel()
+        pendingTimeout?.cancel()
+        channel?.close()
+        waiters.forEach { $0.resume(throwing: error) }
+        pending?.resume(throwing: error)
+    }
+
+    // MARK: - Read / set
+
+    private func runRead() async throws -> RedmiNoiseState {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<RedmiNoiseState, any Error>) in
+            lock.lock()
+            if stopped || !ready {
+                lock.unlock()
+                continuation.resume(throwing: RedmiListeningModeError.notOpen)
+                return
+            }
+            beginPendingLocked(.read, continuation: continuation)
+            if !sendLocked(engine.readMode()) {
+                failPendingLocked(RedmiListeningModeError.writeFailed(-1))
+                lock.unlock()
+                return
+            }
+            armPendingTimeoutLocked(seconds: readTimeoutSeconds)
+            lock.unlock()
+        }
+    }
+
+    private func runSet(_ mode: RedmiNoiseMode) async throws -> RedmiNoiseState {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<RedmiNoiseState, any Error>) in
+            lock.lock()
+            if stopped || !ready {
+                lock.unlock()
+                continuation.resume(throwing: RedmiListeningModeError.notOpen)
+                return
+            }
+            beginPendingLocked(.set(mode), continuation: continuation)
+            if !sendLocked(engine.setMode(mode)) {
+                failPendingLocked(RedmiListeningModeError.writeFailed(-1))
+                lock.unlock()
+                return
+            }
+            // Ask for a read-back shortly after the write so a device that only
+            // answers explicit reads still confirms the change.
+            let token = pendingToken
+            Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                guard let self else { return }
+                self.sendReadBackIfStillPending(token)
+            }
+            armPendingTimeoutLocked(seconds: setTimeoutSeconds)
+            lock.unlock()
+        }
+    }
+
+    private func sendReadBackIfStillPending(_ token: UInt64) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard pendingToken == token, pendingContinuation != nil, ready, !stopped else { return }
+        _ = sendLocked(engine.readMode())
+    }
+
+    // MARK: - Pending operation helpers (lock held by caller)
+
+    private func beginPendingLocked(
+        _ kind: PendingKind,
+        continuation: CheckedContinuation<RedmiNoiseState, any Error>
+    ) {
+        pendingToken &+= 1
+        pendingKind = kind
+        pendingContinuation = continuation
+    }
+
+    private func armPendingTimeoutLocked(seconds: TimeInterval) {
+        let token = pendingToken
+        let task = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard let self, !Task.isCancelled else { return }
+            self.timeoutPending(token)
+        }
+        pendingTimeout?.cancel()
+        pendingTimeout = task
+    }
+
+    /// Completes the pending operation from the current confirmed engine state if
+    /// its completion condition is met. Caller must hold the lock.
+    private func evaluatePendingLocked() {
+        guard let kind = pendingKind, let continuation = pendingContinuation else { return }
+        let satisfied: Bool
+        switch kind {
+        case .read:
+            satisfied = engine.state.mode != nil
+        case .set(let target):
+            satisfied = engine.state.mode == target
+        }
+        guard satisfied, let mode = engine.state.mode else { return }
+        pendingContinuation = nil
+        pendingKind = nil
+        let timeout = pendingTimeout
+        pendingTimeout = nil
+        lock.unlock()
+        timeout?.cancel()
+        continuation.resume(returning: RedmiNoiseState(mode: mode))
+        lock.lock()
+    }
+
+    private func failPendingLocked(_ error: any Error) {
+        guard let continuation = pendingContinuation else { return }
+        pendingContinuation = nil
+        pendingKind = nil
+        let timeout = pendingTimeout
+        pendingTimeout = nil
+        lock.unlock()
+        timeout?.cancel()
+        continuation.resume(throwing: error)
+        lock.lock()
+    }
+
+    private func timeoutPending(_ token: UInt64) {
+        lock.lock()
+        guard pendingToken == token, let continuation = pendingContinuation, let kind = pendingKind else {
+            lock.unlock()
+            return
+        }
+        let mode = engine.state.mode
+        pendingContinuation = nil
+        pendingKind = nil
+        pendingTimeout = nil
+        lock.unlock()
+
+        switch kind {
+        case .read:
+            if let mode {
+                continuation.resume(returning: RedmiNoiseState(mode: mode))
+            } else {
+                continuation.resume(throwing: RedmiListeningModeError.timeout)
+            }
+        case .set:
+            // Return whatever the device last reported; the controller treats a
+            // mismatch with the requested mode as an unconfirmed write and rolls
+            // the UI back. No report at all is a hard timeout.
+            if let mode {
+                continuation.resume(returning: RedmiNoiseState(mode: mode))
+            } else {
+                continuation.resume(throwing: RedmiListeningModeError.timeout)
             }
         }
     }
@@ -108,17 +378,21 @@ final class RedmiControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate {
 
     func rfcommChannelOpenComplete(_ rfcommChannel: IOBluetoothRFCOMMChannel!, status error: IOReturn) {
         lock.lock()
-        guard !stopped, !finished else { lock.unlock(); _ = rfcommChannel.close(); return }
+        if stopped {
+            lock.unlock()
+            _ = rfcommChannel.close()
+            return
+        }
         guard error == kIOReturnSuccess else {
             lock.unlock()
-            finish(.failure(RedmiListeningModeError.channelConnectionFailed(error)))
+            finishConnectFailure(RedmiListeningModeError.channelConnectionFailed(error))
             return
         }
         channel = rfcommChannel
-        let started = sendLocked(engine.begin())
+        let sent = sendLocked(engine.begin())
         lock.unlock()
-        if !started {
-            finish(.failure(RedmiListeningModeError.writeFailed(-1)))
+        if !sent {
+            finishConnectFailure(RedmiListeningModeError.writeFailed(-1))
         }
     }
 
@@ -129,105 +403,65 @@ final class RedmiControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate {
     ) {
         guard dataLength > 0, let dataPointer else { return }
 
-        var outcome: Result<RedmiNoiseState, any Error>?
-
         lock.lock()
-        if stopped || finished { lock.unlock(); return }
+        guard !stopped else { lock.unlock(); return }
         let input = Array(UnsafeBufferPointer(
             start: dataPointer.assumingMemoryBound(to: UInt8.self),
             count: dataLength
         ))
 
-        loop: for frame in decoder.append(input) {
-            // A rejected handshake fails the operation immediately.
+        for frame in decoder.append(input) {
             if !engine.authenticated,
                [UInt8(0x50), 0x51].contains(frame.opcode),
                frame.type == 0x04, frame.status != 0 {
-                outcome = .failure(RedmiListeningModeError.authenticationRejected(frame.status))
-                break loop
+                lock.unlock()
+                finishConnectFailure(RedmiListeningModeError.authenticationRejected(frame.status))
+                return
             }
-
             let replies = engine.receive(frame)
             for reply in replies {
                 if !sendLocked(reply) {
-                    outcome = .failure(RedmiListeningModeError.writeFailed(-1))
-                    break loop
+                    // A write failure means the link is unusable; reconnect on
+                    // the next request rather than half-surviving.
+                    lock.unlock()
+                    finishConnectFailure(RedmiListeningModeError.writeFailed(-1))
+                    return
                 }
             }
-
-            // Once authentication completes, issue the operation's target frames
-            // exactly once: a mode write (for `set`) and a mode read-back.
-            if engine.authenticated, !issuedTarget {
-                issuedTarget = true
-                if case .set(let mode) = operation {
-                    if !sendLocked(engine.setMode(mode)) {
-                        outcome = .failure(RedmiListeningModeError.writeFailed(-1))
-                        break loop
-                    }
-                }
-                if !sendLocked(engine.readMode()) {
-                    outcome = .failure(RedmiListeningModeError.writeFailed(-1))
-                    break loop
-                }
+            if engine.authenticated, !ready {
+                // Inline (lock held): NSLock is not reentrant, so we cannot call
+                // the locking `becomeReady()` here. Resume waiters outside the lock.
+                ready = true
+                connecting = false
+                let waiters = connectWaiters
+                connectWaiters.removeAll()
+                let timeout = connectTimeout
+                connectTimeout = nil
+                lock.unlock()
+                timeout?.cancel()
+                waiters.forEach { $0.resume() }
+                lock.lock()
             }
-
-            // Complete from the latest confirmed state.
-            switch operation {
-            case .set(let desired):
-                if engine.state.mode == desired {
-                    outcome = .success(RedmiNoiseState(mode: desired))
-                    break loop
-                }
-            case .read:
-                if let mode = engine.state.mode {
-                    outcome = .success(RedmiNoiseState(mode: mode))
-                    break loop
-                }
-            case nil:
-                break
-            }
+            evaluatePendingLocked()
         }
         lock.unlock()
-
-        if let outcome { finish(outcome) }
     }
 
     func rfcommChannelClosed(_ rfcommChannel: IOBluetoothRFCOMMChannel!) {
         lock.lock()
-        let stop = stopped || finished
+        let wasStopped = stopped
         lock.unlock()
-        if stop { return }
-        finish(.failure(RedmiListeningModeError.connectionClosedByDevice))
-    }
-
-    // MARK: - Finishing (resumes exactly once)
-
-    /// Resumes the outstanding continuation with `outcome` if this session has not
-    /// already finished. Safe to call from any thread.
-    private func finish(_ outcome: Result<RedmiNoiseState, any Error>) {
-        lock.lock()
-        guard !finished else { lock.unlock(); return }
-        finished = true
-        stopped = true
-        let completion = self.completion
-        self.completion = nil
-        lock.unlock()
-        guard let completion else { return }
-        switch outcome {
-        case .success(let state): completion.resume(returning: state)
-        case .failure(let error): completion.resume(throwing: error)
-        }
+        guard !wasStopped else { return }
+        finishConnectFailure(RedmiListeningModeError.connectionClosedByDevice)
     }
 
     // MARK: - SDP + writes
 
-    private func queryForControlService() async throws -> IOBluetoothSDPServiceRecord {
+    private func resolveRecord() async throws -> IOBluetoothSDPServiceRecord {
+        if let cached = device.cachedControlService() { return cached }
         guard device.queryForControlService() else {
             throw RedmiListeningModeError.serviceQueryFailed
         }
-        // `performSDPQuery` resolves the record asynchronously; re-poll the system
-        // cache over a bounded window. This matches the HUAWEI transport's fixed
-        // settle before opening the channel.
         for _ in 0..<24 {
             if let record = device.cachedControlService() { return record }
             try await Task.sleep(nanoseconds: 50_000_000)
@@ -236,8 +470,8 @@ final class RedmiControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate {
     }
 
     /// Sends one frame. Returns `false` if the channel is unavailable, the MTU is
-    /// too small, or the synchronous write reports an error. Callers translate a
-    /// `false` into a failure outcome.
+    /// too small, or the synchronous write reports an error. Caller holds the lock;
+    /// on `false` the caller fails the pending operation/connection.
     private func sendLocked(_ frame: RedmiBudsFrame) -> Bool {
         guard let channel, channel.isOpen() else { return false }
         let bytes = frame.bytes
