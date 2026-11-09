@@ -529,6 +529,9 @@
 "settings.audio.indicatorStyleDescription" = "Wählen Sie, ob die Lautstärke als vier Punkte oder als durchgehender Bogen dargestellt wird.";
 "settings.audio.indicatorStyle.dots" = "Punkte";
 "settings.audio.indicatorStyle.arc" = "Bogen";
+"settings.audio.airPodsInlineControlsTitle" = "Kopfhörer-Steuerung";
+"settings.audio.airPodsInlineControls" = "AirPods-Steuerung im Lautstärke-Panel anzeigen";
+"settings.audio.airPodsInlineControlsDescription" = "Zeigt Steuerung für Dialogwahrnehmung, räumliches Audio und adaptiven Modus neben deinem AirPods-Ausgabegerät. Deaktivieren blendet diese Steuerung auf Basis privater APIs aus.";
 
 // On-demand battery details.
 "battery.details.title" = "Batteriedetails";
@@ -721,6 +724,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "Der System-Ladestatus hat sich möglicherweise geändert. Zum Fortfahren erneut klicken.";
 "battery.action.cancelChargeToFullNowPending" = "Das System hat das vorübergehende Laden auf 100 % noch nicht bestätigt. Bitte gleich erneut versuchen.";
 
+// AirPods system controls
+"airPods.controls" = "AirPods-Steuerung…";
+"airPods.adaptive" = "Adaptives Audio";
+"airPods.lessNoise" = "Weniger Geräusche";
+"airPods.moreNoise" = "Mehr Geräusche";
+"airPods.adaptiveUnavailable" = "Adaptive Anpassung über Bluetooth ist nicht verfügbar.";
+"airPods.spatial" = "Stereo zu 3D";
+"airPods.conversation" = "Konversationserkennung";
+"airPods.routeChanged" = "Die ausgewählten AirPods wurden gewechselt oder getrennt. Steuerung für die aktuelle Ausgabe erneut öffnen.";
+"airPods.unconfirmed" = "macOS hat die Änderung nicht bestätigt. Aktualisieren, um die tatsächliche Einstellung zu lesen.";
+"airPods.unavailable" = "Direkte Bluetooth-Steuerung ist nicht verfügbar.";
+"airPods.notAvailable" = "Nicht verfügbar";
+"airPods.apply" = "Anwenden";
+
+"airPods.spatialFixed" = "Fixiert";
+"airPods.spatialHeadTracked" = "Kopferfassung";
+
+"airpods.retry" = "Erneut versuchen";
 "settings.popup.order.brightness" = "Helligkeit";
 "brightness.row.accessibility" = "Helligkeit für %@, %@";
 "brightness.row.accessibilityUnavailable" = "Helligkeit für %@, %@";
@@ -833,3 +854,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "Hörmodus";
 "settings.subtopic.bluetooth.deviceBattery" = "Gerätebatterie";
 "settings.subtopic.bluetooth.deviceManagement" = "Geräteverwaltung";
+"settings.audio.spatialAudioControlsTitle" = "Räumliche Audio-Steuerung anzeigen";
+"settings.audio.spatialAudioControlsDescription" = "Zeigt die Optionen für räumliches Audio (Aus/Fixiert/Kopftracking) in der AirPods-Ausgabezeile. Derzeit nur AirPods.";
+"settings.audio.conversationAwarenessControlsTitle" = "Sprachbewusstsein-Steuerung anzeigen";
+"settings.audio.conversationAwarenessControlsDescription" = "Zeigt den Schalter für Sprachbewusstsein in der AirPods-Ausgabezeile. Derzeit nur AirPods.";

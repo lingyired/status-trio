@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import QuartzCore
 import SwiftUI
 
 /// The status panel window.
@@ -79,6 +80,16 @@ final class AnchoredStatusPanel: NSPanel {
         frameWriteCount = 0
     }
 
+    /// The window follows measured layout; it has no separate animation or pin.
+    var resizeDiagnostics: StatusPanelResizeDiagnostics {
+        StatusPanelResizeDiagnostics(
+            windowHeight: frame.height,
+            anchoredEdgeY: lockedResizeEdge == .maxY ? frame.minY : frame.maxY,
+            targetHeight: layoutMetrics.contentHeight ?? frame.height,
+            presentedHeight: frame.height,
+            frameWriteCount: frameWriteCount
+        )
+    }
 #endif
     /// Coalesces the three things that can change the window's frame: a content
     /// measurement, the window's own resize, and a screen / Dock / Space change
@@ -215,6 +226,7 @@ final class AnchoredStatusPanel: NSPanel {
         // while invisible and then fading the panel in hides the jump that read
         // as a flash on open.
         alphaValue = 0
+        layoutMetrics.setPresented(true)
         if avoidsOrderFrontRegardlessForTesting {
             orderFront(nil)
         } else {
@@ -258,6 +270,7 @@ final class AnchoredStatusPanel: NSPanel {
         // A hidden window has nothing to tear down; callers rely on `isShown`
         // before they act on a close.
         guard isVisible else { return }
+        layoutMetrics.setPresented(false)
         pendingReveal = false
         lockedResizeAnchor = nil
         lockedResizeFrame = nil

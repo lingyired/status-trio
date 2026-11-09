@@ -51,6 +51,8 @@ struct StatusPopoverView: View {
                 // detail pages and Bluetooth lists keep their own scroll views
                 // for other hosts, but disable them here.
                 .environment(\.statusPanelManagesScrolling, true)
+                .environment(\.airPodsConversationCache, panel.store.airPodsConversationCache)
+                .environment(\.statusPanelVisibility, layoutMetrics.visibilityPublisher)
         } footer: {
             if panel.route == .summary {
                 pinnedFooter

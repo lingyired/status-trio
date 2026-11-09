@@ -528,6 +528,9 @@
 "settings.audio.indicatorStyleDescription" = "Choose whether volume displays as four discrete dots or a continuous bottom arc.";
 "settings.audio.indicatorStyle.dots" = "Dots";
 "settings.audio.indicatorStyle.arc" = "Arc";
+"settings.audio.airPodsInlineControlsTitle" = "Headphone Controls";
+"settings.audio.airPodsInlineControls" = "Show AirPods controls on the volume panel";
+"settings.audio.airPodsInlineControlsDescription" = "Show Conversation Awareness, Spatial Audio, and Adaptive controls beside your AirPods output. Disable to hide these private-API controls.";
 
 // On-demand battery details.
 "battery.details.title" = "Battery Details";
@@ -719,6 +722,25 @@
 "battery.action.cancelChargeToFullNowConfirmFallback" = "Confirm Set to %d%%";
 "battery.action.cancelChargeToFullNowConfirmation" = "The system charge state may have changed. Click again to continue.";
 "battery.action.cancelChargeToFullNowPending" = "The system has not confirmed the temporary override yet. Try again shortly.";
+
+// AirPods system controls
+"airPods.controls" = "AirPods Controls…";
+"airPods.adaptive" = "Adaptive Audio";
+"airPods.lessNoise" = "Less Noise";
+"airPods.moreNoise" = "More Noise";
+"airPods.adaptiveUnavailable" = "Adaptive adjustment is unavailable over Bluetooth.";
+"airPods.spatial" = "Spatialize Stereo";
+"airPods.conversation" = "Conversation Awareness";
+"airPods.routeChanged" = "The selected AirPods changed or disconnected. Reopen controls for the current output.";
+"airPods.unconfirmed" = "macOS did not confirm the change. Refresh to read the actual setting.";
+"airPods.unavailable" = "Direct Bluetooth control is unavailable.";
+"airPods.notAvailable" = "Unavailable";
+"airPods.apply" = "Apply";
+
+"airPods.spatialFixed" = "Fixed";
+"airPods.spatialHeadTracked" = "Head Tracked";
+
+"airpods.retry" = "Retry";
 "settings.popup.order.brightness" = "Brightness";
 "brightness.row.accessibility" = "Brightness for %@, %@";
 "brightness.row.accessibilityUnavailable" = "Brightness for %@, %@";
@@ -831,3 +853,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "Listening Mode";
 "settings.subtopic.bluetooth.deviceBattery" = "Device Battery";
 "settings.subtopic.bluetooth.deviceManagement" = "Device Management";
+"settings.audio.spatialAudioControlsTitle" = "Show Spatial Audio controls";
+"settings.audio.spatialAudioControlsDescription" = "Shows the Spatial Audio options (Off/Fixed/Head Tracking) on the AirPods output row. Currently AirPods only.";
+"settings.audio.conversationAwarenessControlsTitle" = "Show Conversation Awareness controls";
+"settings.audio.conversationAwarenessControlsDescription" = "Shows the Conversation Awareness toggle on the AirPods output row. Currently AirPods only.";

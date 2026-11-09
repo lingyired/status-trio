@@ -1077,6 +1077,13 @@ final class StatusBarController: NSObject {
             return consumeScroll(target: target, event: event)
         }
 
+        // 1b. A control that handles the wheel itself (e.g. the compact Adaptive
+        //     strength bar) keeps the event, so the panel-wide volume fallback
+        //     never turns its scroll into a volume change.
+        if let hit = window?.contentView?.hitTest(point), hit.handlesScrollWheelItself {
+            return false
+        }
+
         // 2. A scrollable scroll view under the pointer owns the wheel.
         if isPointerOverScrollableScrollView(event) { return false }
 

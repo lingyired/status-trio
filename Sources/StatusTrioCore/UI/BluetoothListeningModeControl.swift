@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// Shared metrics for the compact AirPods capsule controls. The capsule height is
+/// fixed so a shrunken (long-language) label never changes the pill's height, and
+/// the Adaptive strength bar matches it exactly.
+enum AirPodsControlMetrics {
+    static let capsuleHeight: CGFloat = 20
+}
+
 /// The AirPods listening-mode quick switch: one capsule per supported mode, the
 /// current one marked, the tapped one busy until the read-back confirms it.
 ///
@@ -54,16 +61,30 @@ struct BluetoothListeningModeControl: View {
         Button {
             onSelect(mode)
         } label: {
-            HStack(spacing: 4) {
-                if isTarget {
-                    busyMark
+            HStack(spacing: 3) {
+                // The busy spinner takes over the icon slot instead of sitting
+                // beside it, so tapping a capsule never changes its width/position.
+                Group {
+                    if isTarget {
+                        busyMark
+                    } else {
+                        Image(nsImage: AirPodsControlSymbols.image(symbol(for: mode)))
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .accessibilityHidden(true)
+                    }
                 }
+                .frame(width: 13, height: 13)
                 Text(localization.string(mode.titleKey))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .allowsTightening(true)
             }
             .font(.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
+            .frame(height: AirPodsControlMetrics.capsuleHeight)
             .background(
                 Capsule().fill(
                     isSelected
@@ -112,6 +133,17 @@ struct BluetoothListeningModeControl: View {
             ProgressView()
                 .controlSize(.mini)
                 .progressViewStyle(.circular)
+        }
+    }
+
+    /// Control Center's private listening-mode artwork, matching the option
+    /// icons the full panel uses.
+    private func symbol(for mode: BluetoothListeningMode) -> String {
+        switch mode {
+        case .transparency: return "person.open.fill"
+        case .adaptive: return "person.and.sparkles.fill"
+        case .noiseCancellation: return "person.closed.fill"
+        case .off: return "nosign"
         }
     }
 }

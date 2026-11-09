@@ -62,7 +62,12 @@ struct OutputDeviceList: View {
     }
 
     private func deviceRows(_ rows: [PanelAudioDeviceRow]) -> some View {
-        LazyVStack(spacing: 2) {
+        // The output device list is small, so a plain stack is cheaper and more
+        // stable than a lazy one: a lazy stack may recycle a row that owns an
+        // open AirPods disclosure, tearing down its controls model and restarting
+        // the async read when the row scrolls back in. A plain stack keeps every
+        // row's identity and its local expansion state alive.
+        VStack(spacing: 2) {
             ForEach(rows) { row in deviceRow(row) }
         }
     }

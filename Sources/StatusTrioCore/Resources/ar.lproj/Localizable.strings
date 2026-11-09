@@ -529,6 +529,9 @@
 "settings.audio.indicatorStyleDescription" = "اختر ما إذا كان مستوى الصوت يظهر كأربع نقاط أو كقوس متصل.";
 "settings.audio.indicatorStyle.dots" = "نقاط";
 "settings.audio.indicatorStyle.arc" = "قوس";
+"settings.audio.airPodsInlineControlsTitle" = "عناصر تحكم السماعات";
+"settings.audio.airPodsInlineControls" = "عرض عناصر تحكم AirPods في لوحة الصوت";
+"settings.audio.airPodsInlineControlsDescription" = "يعرض أدوات التحكم في إدراك المحادثة والصوت المكاني والتكيّف بجانب مخرج AirPods. عطّل لإخفاء هذه الأدوات القائمة على واجهات برمجية خاصة.";
 
 // On-demand battery details.
 "battery.details.title" = "تفاصيل البطارية";
@@ -721,6 +724,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "قد تكون حالة شحن النظام قد تغيّرت. انقر مرة أخرى للمتابعة.";
 "battery.action.cancelChargeToFullNowPending" = "لم يؤكد النظام تجاوز حد الشحن المؤقت بعد. حاول مرة أخرى بعد قليل.";
 
+// AirPods system controls
+"airPods.controls" = "عناصر تحكم AirPods…";
+"airPods.adaptive" = "الصوت التكيفي";
+"airPods.lessNoise" = "ضوضاء أقل";
+"airPods.moreNoise" = "ضوضاء أكثر";
+"airPods.adaptiveUnavailable" = "ضبط الصوت التكيفي عبر Bluetooth غير متاح.";
+"airPods.spatial" = "جعل الاستريو مكانيًا";
+"airPods.conversation" = "إدراك المحادثة";
+"airPods.routeChanged" = "تغيرت سماعات AirPods المحددة أو انقطع اتصالها. أعد فتح عناصر تحكم الإخراج الحالي.";
+"airPods.unconfirmed" = "لم يؤكد macOS التغيير. حدّث لقراءة الإعداد الفعلي.";
+"airPods.unavailable" = "التحكم المباشر عبر Bluetooth غير متاح.";
+"airPods.notAvailable" = "غير متاح";
+"airPods.apply" = "تطبيق";
+
+"airPods.spatialFixed" = "ثابت";
+"airPods.spatialHeadTracked" = "تتبع الرأس";
+
+"airpods.retry" = "إعادة المحاولة";
 "settings.popup.order.brightness" = "السطوع";
 "brightness.row.accessibility" = "السطوع لـ %@، %@";
 "brightness.row.accessibilityUnavailable" = "السطوع لـ %@، %@";
@@ -833,3 +854,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "وضع الاستماع";
 "settings.subtopic.bluetooth.deviceBattery" = "بطارية الجهاز";
 "settings.subtopic.bluetooth.deviceManagement" = "إدارة الأجهزة";
+"settings.audio.spatialAudioControlsTitle" = "إظهار عناصر تحكم الصوت المكاني";
+"settings.audio.spatialAudioControlsDescription" = "يعرض خيارات الصوت المكاني (إيقاف/ثابت/تتبع الرأس) في صف إخراج AirPods. يدعم AirPods فقط حالياً.";
+"settings.audio.conversationAwarenessControlsTitle" = "إظهار عناصر تحكم الوعي بالمحادثة";
+"settings.audio.conversationAwarenessControlsDescription" = "يعرض مفتاح الوعي بالمحادثة في صف إخراج AirPods. يدعم AirPods فقط حالياً.";

@@ -235,6 +235,10 @@ final class StatusPanelViewModel: ObservableObject {
                     settings: settings
                 ),
                 deviceList: settings.outputDeviceListPreferences,
+                showsAirPodsSystemControls: settings.showsSpatialAudioControls
+                    || settings.showsConversationAwarenessControls,
+                showsSpatialAudioControls: settings.showsSpatialAudioControls,
+                showsConversationAwarenessControls: settings.showsConversationAwarenessControls,
                 localization: localization
             )
         )
@@ -580,6 +584,10 @@ final class StatusPanelViewModel: ObservableObject {
             previewLanguageCode: previewConfiguration.languageCode,
             previewLocalization: PreviewLocalization.forCode(previewConfiguration.languageCode),
             deviceListPlaceholder: deviceListPlaceholder,
+            showsAirPodsSystemControls: settings.showsSpatialAudioControls
+                || settings.showsConversationAwarenessControls,
+            showsSpatialAudioControls: settings.showsSpatialAudioControls,
+            showsConversationAwarenessControls: settings.showsConversationAwarenessControls,
             localization: localization
         )
     }
