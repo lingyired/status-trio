@@ -249,7 +249,7 @@ struct BluetoothStatusView: View {
         let showsBluetoothSkeleton = !isShowingCachedDevices && (bluetoothPlaceholder?.rowCount ?? 0) > 0
 
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: PanelSummaryActionMetrics.iconGap) {
+            HStack(alignment: .center, spacing: PanelSummaryActionMetrics.actionSpacing) {
                 titleBlock
 
                 let powerPresentation = BluetoothRadioPowerPresentation.make(
@@ -403,7 +403,7 @@ struct BluetoothStatusView: View {
             refreshDevices: { controller.refreshFromUser() },
             refreshMobileBatteries: { mobileBatteryController.refresh() }
         )) {
-            PanelActionGlyph(systemName: "arrow.clockwise")
+            PanelActionGlyph(systemName: "arrow.clockwise", size: PanelSummaryActionMetrics.actionSlot)
         }
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
@@ -417,7 +417,7 @@ struct BluetoothStatusView: View {
 
     private var settingsButton: some View {
         Button(action: onOpenBluetoothSettings) {
-            PanelActionGlyph(systemName: "gearshape")
+            PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.plain)
@@ -439,7 +439,7 @@ struct BluetoothStatusView: View {
                 onSetRadioPower(enabled)
             }
         } label: {
-            PanelActionGlyph(systemName: presentation.symbolName)
+            PanelActionGlyph(systemName: presentation.symbolName, size: PanelSummaryActionMetrics.actionSlot)
         }
         .buttonStyle(.plain)
         .foregroundStyle(powerIconColor(for: presentation.iconState))

@@ -97,7 +97,7 @@ private struct BrightnessRowView: View {
                 .accessibilityHidden(true)
 
             Button(action: onOpenDisplaySettings) {
-                PanelActionGlyph(systemName: "gearshape")
+                PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
                     .foregroundStyle(.secondary)
                     .contentShape(Rectangle())
             }

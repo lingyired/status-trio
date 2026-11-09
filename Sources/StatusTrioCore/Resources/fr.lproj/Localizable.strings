@@ -821,6 +821,13 @@
 "settings.brightness.compatibility.title" = "Luminosité non contrôlable ?";
 "settings.brightness.compatibility.description" = "Chaque fabricant implémente DDC différemment : Status Trio ne peut pas couvrir tous les modèles. Si la luminosité d’un écran n’est pas réglable ici, passez-le au backend BetterDisplay — Status Trio le pilotera alors via BetterDisplay. La version gratuite suffit ; aucune licence Pro n’est nécessaire.";
 "settings.brightness.compatibility.link" = "Télécharger BetterDisplay (gratuit)";
+"settings.brightness.betterDisplay.manualHint" = "Si la luminosité de cet écran reste indisponible, changez manuellement l’écran BetterDisplay ci-dessus.";
+"settings.brightness.betterDisplay.display" = "Écran BetterDisplay";
+"settings.brightness.betterDisplay.automatic" = "Automatique (associer à l’écran système)";
+"settings.brightness.betterDisplay.unnamed" = "Écran sans nom";
+"settings.brightness.betterDisplay.saved" = "Enregistré";
+"settings.brightness.betterDisplay.unavailable" = "Indisponible";
+"settings.brightness.betterDisplay.refresh" = "Actualiser les appareils";
 "settings.battery.colors.highPower" = "Mode haute puissance";
 "battery.lowPowerMode.autoEnable" = "Activer automatiquement le mode économie d’énergie";
 "battery.lowPowerMode.autoEnableDescription" = "Une fois l’alimentation débranchée, le mode économie d’énergie s’active automatiquement dès que la batterie passe sous le seuil de batterie faible. Une fois par cycle de batterie faible.";

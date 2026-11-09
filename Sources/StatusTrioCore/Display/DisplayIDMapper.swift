@@ -24,6 +24,14 @@ import CoreGraphics
 ///   which bypasses this heuristic.
 /// This is not claimed to be the only possible correlation method, only the
 /// conservative one used here.
+///
+/// Safe fallback (issue #313): many panels (including several Redmi models)
+/// publish EDID serial `0`, so the identity match above never succeeds for them.
+/// When the identity match fails we fall back to the *only* online external
+/// display, but only under a condition that cannot repeat #285: there must be no
+/// built-in display online at all and exactly one online external display. In
+/// that shape the single external id is unambiguous and cannot be the built-in
+/// panel. Multiple externals, or any built-in present, still fail closed.
 enum DisplayIDMapper {
     /// Identity as published by the external framebuffer's `DisplayAttributes`.
     struct ExternalIdentity: Equatable, Sendable {
@@ -69,5 +77,35 @@ enum DisplayIDMapper {
         }
         guard matches.count == 1 else { return nil }
         return matches[0].displayID
+    }
+
+    /// Resolves the display id for `identity`, preferring the strict identity
+    /// match and falling back to the single-external case when that fails.
+    ///
+    /// The fallback exists because an EDID serial of `0` (common on several
+    /// panel models) makes the strict match impossible, which regressed these
+    /// displays from adjustable to "unavailable" in 1.9.4. It stays safe against
+    /// #285 by requiring that no built-in display be online at all and that
+    /// exactly one online external display exist; anything else fails closed.
+    static func resolvedDisplayID(
+        for identity: ExternalIdentity,
+        among displays: [OnlineDisplay]
+    ) -> CGDirectDisplayID? {
+        uniqueDisplayID(for: identity, among: displays)
+            ?? soleExternalDisplayID(among: displays)
+    }
+
+    /// The id of the only online external display, or `nil`.
+    ///
+    /// Only returns a value when there is no built-in display online and exactly
+    /// one online external display with a non-zero id. That shape cannot alias
+    /// the built-in panel (#285) and cannot be ambiguous.
+    static func soleExternalDisplayID(
+        among displays: [OnlineDisplay]
+    ) -> CGDirectDisplayID? {
+        guard !displays.contains(where: { $0.isBuiltin }) else { return nil }
+        let externals = displays.filter { !$0.isBuiltin && $0.displayID != 0 }
+        guard externals.count == 1 else { return nil }
+        return externals[0].displayID
     }
 }

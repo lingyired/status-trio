@@ -168,6 +168,41 @@ struct BluetoothBatteryControllerTests {
         #expect(controller.batteryLevelsReadFailed == false)
     }
 
+    /// A level is published exactly as read: an unchanged percentage and a
+    /// one-point drift are both fresh readings, not a signal to suppress or
+    /// "correct". Pins that the controller never invents staleness from a value
+    /// merely repeating, and never dedupes consecutive reads away.
+    @Test func everyReadPublishesEvenWhenTheLevelRepeatsOrBarelyChanges() async {
+        let batteryReader = BluetoothBatteryReaderStub(result: batteryLevel(30))
+        let controller = makeController(batteryReader: batteryReader)
+
+        controller.requestBatteryLevels("test")
+        controller.activate()
+        await waitUntil { controller.batteryLevels[batteryKey]?.main == 30 }
+
+        // Same value again: still a fresh read, still published.
+        batteryReader.result = batteryLevel(30)
+        controller.requestBatteryLevels("test")
+        await waitUntil { batteryReader.readCount >= 2 }
+        await waitUntil { controller.batteryLevels[batteryKey]?.main == 30 }
+
+        // A one-point change is published too (30, 30, 29 in a row).
+        batteryReader.result = batteryLevel(29)
+        controller.requestBatteryLevels("test")
+        await waitUntil { controller.batteryLevels[batteryKey]?.main == 29 }
+
+        controller.deactivate()
+    }
+
+    // MARK: - Helpers
+
+    private var batteryKey: String { "AC9085C29C1F" }
+
+    private func batteryLevel(_ main: Int) -> [String: BluetoothBatteryLevel] {
+        [batteryKey: BluetoothBatteryLevel(
+            deviceAddress: "AC:90:85:C2:9C:1F", main: main, left: nil, right: nil, caseLevel: nil)]
+    }
+
     /// Releasing the last claim drops the failure together with the levels it
     /// belonged to.
     @Test func releasingTheClaimClearsTheFailure() async {

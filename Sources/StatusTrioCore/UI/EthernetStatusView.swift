@@ -13,7 +13,7 @@ struct EthernetStatusView: View {
     let onOpenNetworkSettings: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: PanelSummaryActionMetrics.iconGap) {
+        HStack(alignment: .center, spacing: PanelSummaryActionMetrics.actionSpacing) {
             Button {
                 onOpenDetails()
             } label: {
@@ -33,7 +33,8 @@ struct EthernetStatusView: View {
                     Spacer()
                     PanelActionGlyph(
                         systemName: "chevron.right",
-                        font: .caption.weight(.semibold)
+                        font: .caption.weight(.semibold),
+                        size: PanelSummaryActionMetrics.actionSlot
                     )
                         .foregroundStyle(.tertiary)
                 }
@@ -44,7 +45,7 @@ struct EthernetStatusView: View {
             .accessibilityValue(subtitle)
 
             Button(action: onOpenNetworkSettings) {
-                PanelActionGlyph(systemName: "gearshape")
+                PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
             }
             .labelStyle(.iconOnly)
             .buttonStyle(.plain)

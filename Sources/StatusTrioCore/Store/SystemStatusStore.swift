@@ -702,7 +702,7 @@ final class SystemStatusStore: ObservableObject {
         localIP.deactivate()
         bluetoothDevices.releaseTransientState()
         releaseBluetoothProfilerReader()
-        bluetoothListeningModes.stop()
+        bluetoothListeningModes.shutdown()
     }
 
     var isVolumeControlAvailable: Bool {

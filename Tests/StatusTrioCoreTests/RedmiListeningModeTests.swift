@@ -1,4 +1,5 @@
 import CoreAudio
+import IOBluetooth
 import XCTest
 
 @testable import StatusTrioCore
@@ -226,6 +227,7 @@ private final class FakeRedmiTransport: RedmiListeningModeTransporting, @uncheck
     private(set) var stateCalls: [String] = []
     private(set) var setModeCalls: [(RedmiNoiseMode, String)] = []
     private(set) var closeAllCount = 0
+    private(set) var closedAddresses: [String] = []
 
     var stateResult: RedmiNoiseState
     var setModeResult: RedmiNoiseState?
@@ -250,6 +252,10 @@ private final class FakeRedmiTransport: RedmiListeningModeTransporting, @uncheck
 
     func closeAll() {
         closeAllCount += 1
+    }
+
+    func close(address: String) {
+        closedAddresses.append(address)
     }
 }
 
@@ -380,15 +386,42 @@ final class RedmiControllerTests: XCTestCase {
         XCTAssertTrue(controller.huaweiBluetoothRowPresentations.isEmpty)
     }
 
-    func testStopClearsRedmiStateAndClosesTransport() async {
+    func testStopClearsSurfaceButKeepsPersistentSessions() async {
         let transport = FakeRedmiTransport()
         let controller = makeController(transport)
         controller.refresh(devices: [device()])
         await waitUntil { controller.control(forBluetoothAddress: self.address) != nil }
 
         controller.stop()
+        // The panel surface is cleared...
         XCTAssertNil(controller.control(forBluetoothAddress: address))
         XCTAssertTrue(controller.huaweiBluetoothRowPresentations.isEmpty)
+        // ...but the long-lived Redmi control session is kept so a phone cannot
+        // steal the channel between panel visits.
+        XCTAssertEqual(transport.closeAllCount, 0)
+    }
+
+    func testDeviceLeavingEligibleSetClosesItsSession() async {
+        let transport = FakeRedmiTransport()
+        let controller = makeController(transport)
+        controller.refresh(devices: [device()])
+        await waitUntil { controller.control(forBluetoothAddress: self.address) != nil }
+        XCTAssertTrue(transport.closedAddresses.isEmpty)
+
+        // Simulate the buds going back into the case: they disappear from the
+        // connected list. The next refresh must drop that device's session.
+        controller.refresh(devices: [])
+        XCTAssertEqual(transport.closedAddresses, [key])
+    }
+
+    func testShutdownReleasesPersistentSessions() async {
+        let transport = FakeRedmiTransport()
+        let controller = makeController(transport)
+        controller.refresh(devices: [device()])
+        await waitUntil { controller.control(forBluetoothAddress: self.address) != nil }
+
+        controller.shutdown()
+        XCTAssertNil(controller.control(forBluetoothAddress: address))
         XCTAssertGreaterThanOrEqual(transport.closeAllCount, 1)
     }
 }
@@ -416,6 +449,73 @@ final class RedmiTransportFailClosedTests: XCTestCase {
             RedmiControlSession(device: $0, address: $1)
         })
         transport.closeAll()
+        transport.closeAll()
+    }
+}
+
+// MARK: - Persistent-session transport
+
+private final class CountingRedmiSessionFactory: @unchecked Sendable {
+    private let lock = NSLock()
+    private var creations = 0
+    func bump() { lock.lock(); creations += 1; lock.unlock() }
+    var count: Int { lock.lock(); defer { lock.unlock() }; return creations }
+}
+
+/// A device whose control service can never be resolved, so a session connect
+/// fails fast without IOBluetooth or real hardware.
+private final class UnresolvableRedmiDevice: RedmiBluetoothDevice, @unchecked Sendable {
+    var addressString: String? { "AA:BB:CC:DD:EE:FF" }
+    func isConnected() -> Bool { true }
+    func cachedControlService() -> IOBluetoothSDPServiceRecord? { nil }
+    func queryForControlService() -> Bool { false }
+    func openControlChannel(
+        id: BluetoothRFCOMMChannelID,
+        delegate: IOBluetoothRFCOMMChannelDelegate
+    ) -> IOReturn { kIOReturnError }
+}
+
+/// The transport must hold one persistent session per device across requests and
+/// only re-create it after an explicit close — this is the behaviour that keeps
+/// the control channel held (so a connecting phone cannot take it over).
+final class RedmiPersistentTransportTests: XCTestCase {
+    func testSessionIsReusedAcrossRequestsAndRecreatedAfterClose() async {
+        let factory = CountingRedmiSessionFactory()
+        let device = UnresolvableRedmiDevice()
+        let transport = RedmiRFCOMMTransport(
+            resolveDevice: { _ in device },
+            sessionFactory: { d, a in
+                factory.bump()
+                return RedmiControlSession(device: d, address: a, connectTimeoutSeconds: 0.1)
+            }
+        )
+        let address = "AA:BB:CC:DD:EE:FF"
+
+        _ = try? await transport.state(address: address)
+        _ = try? await transport.state(address: address)
+        XCTAssertEqual(factory.count, 1, "the same session must back repeated requests")
+
+        transport.close(address: address)
+        _ = try? await transport.state(address: address)
+        XCTAssertEqual(factory.count, 2, "closing drops the session so the next request reconnects")
+
+        transport.closeAll()
+    }
+
+    func testCloseAllDropsEverySession() async {
+        let factory = CountingRedmiSessionFactory()
+        let device = UnresolvableRedmiDevice()
+        let transport = RedmiRFCOMMTransport(
+            resolveDevice: { _ in device },
+            sessionFactory: { d, a in
+                factory.bump()
+                return RedmiControlSession(device: d, address: a, connectTimeoutSeconds: 0.1)
+            }
+        )
+        _ = try? await transport.state(address: "AA:BB:CC:DD:EE:FF")
+        transport.closeAll()
+        _ = try? await transport.state(address: "AA:BB:CC:DD:EE:FF")
+        XCTAssertEqual(factory.count, 2)
         transport.closeAll()
     }
 }
