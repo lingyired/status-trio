@@ -768,3 +768,6 @@
 "battery.powerMode.low" = "低电量";
 "battery.powerMode.high" = "高电量";
 "battery.powerMode.highRequiresPower" = "高电量模式需要连接电源后才会生效。";
+"hardware.monitor.memory" = "内存";
+"hardware.monitor.batteryTemperature" = "电池温度";
+"hardware.monitor.batteryTemperature.help" = "电池组温度。进度条使用 20–60°C 视觉刻度，不代表安全百分比。";

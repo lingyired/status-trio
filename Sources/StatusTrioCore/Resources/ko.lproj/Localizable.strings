@@ -768,3 +768,6 @@
 "battery.powerMode.low" = "저전력";
 "battery.powerMode.high" = "고전력";
 "battery.powerMode.highRequiresPower" = "고전력 모드는 전원 어댑터를 연결해야 적용됩니다.";
+"hardware.monitor.memory" = "메모리";
+"hardware.monitor.batteryTemperature" = "배터리 온도";
+"hardware.monitor.batteryTemperature.help" = "배터리 온도입니다. 막대는 20~60°C 시각 척도이며 안전 비율이 아닙니다.";

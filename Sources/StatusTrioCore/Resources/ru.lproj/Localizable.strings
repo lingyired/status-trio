@@ -768,3 +768,6 @@
 "battery.powerMode.low" = "Низкое энергопотребление";
 "battery.powerMode.high" = "Высокая мощность";
 "battery.powerMode.highRequiresPower" = "Режим высокой мощности вступает в силу при подключённом адаптере питания.";
+"hardware.monitor.memory" = "Память";
+"hardware.monitor.batteryTemperature" = "Темп. батареи";
+"hardware.monitor.batteryTemperature.help" = "Температура батареи. Полоса использует визуальную шкалу 20–60 °C, а не процент безопасности.";

@@ -13,13 +13,13 @@ final class HardwareMonitorBarLatencyTests: XCTestCase {
         let host = NSHostingView(rootView: AnyView(HardwareMonitorCardView(model: model)
             .environmentObject(localization)
             .frame(width: 302)))
-        host.frame = NSRect(x: 0, y: 0, width: 302, height: 84)
+        host.frame = NSRect(x: 0, y: 0, width: 302, height: 120)
         host.layoutSubtreeIfNeeded()
         return host
     }
 
-    /// Count accent-coloured (blue) pixels in the lower-left quadrant, which is
-    /// the temperature tile's progress track.
+    /// Count accent-coloured (blue) pixels anywhere in the card. These cases only
+    /// provide a measured temperature sample, so any fill is that tile's bar.
     private func temperatureFillPixels(_ host: NSHostingView<AnyView>) throws -> Int {
         host.layoutSubtreeIfNeeded()
         let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
@@ -27,8 +27,8 @@ final class HardwareMonitorBarLatencyTests: XCTestCase {
         let width = bitmap.pixelsWide
         let height = bitmap.pixelsHigh
         var count = 0
-        for y in (height / 2)..<height {
-            for x in 0..<(width / 2) {
+        for y in 0..<height {
+            for x in 0..<width {
                 guard let color = bitmap.colorAt(x: x, y: y)?
                     .usingColorSpace(.deviceRGB) else { continue }
                 // System accent blue: clearly more blue than red/green.

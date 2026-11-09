@@ -768,3 +768,6 @@
 "battery.powerMode.low" = "Niedrigenergie";
 "battery.powerMode.high" = "Hochenergie";
 "battery.powerMode.highRequiresPower" = "Der Hochenergiemodus wird erst mit angeschlossenem Netzteil wirksam.";
+"hardware.monitor.memory" = "Speicher";
+"hardware.monitor.batteryTemperature" = "Akkutemperatur";
+"hardware.monitor.batteryTemperature.help" = "Akkutemperatur. Der Balken nutzt eine visuelle Skala von 20–60 °C, keinen Sicherheitsprozentsatz.";

@@ -36,7 +36,7 @@ final class HardwareMetricsService: ObservableObject {
     }
 
     static let defaultMetricIDs: Set<HardwareMetricID> = [
-        .cpuUsage, .gpuUsage, .cpuTemperature, .fanRPM(index: 0)
+        .cpuUsage, .gpuUsage, .memoryUsage, .cpuTemperature, .batteryTemperature, .fanRPM(index: 0)
     ]
     typealias Reader = @Sendable (Set<HardwareMetricID>, Date) async -> HardwareMetricsSnapshot
 
@@ -258,8 +258,8 @@ final class HardwareMetricsService: ObservableObject {
 
     private func interval(for id: HardwareMetricID) -> TimeInterval {
         switch id {
-        case .cpuUsage, .gpuUsage: 2
-        case .cpuTemperature, .gpuTemperature, .fanRPM: 4
+        case .cpuUsage, .gpuUsage, .memoryUsage: 2
+        case .cpuTemperature, .gpuTemperature, .batteryTemperature, .fanRPM: 4
         }
     }
 

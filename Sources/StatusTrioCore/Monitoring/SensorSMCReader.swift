@@ -18,6 +18,8 @@ struct SensorReading: Equatable, Sendable {
     let cpuTemperature: Double?
     let cpuTemperatureSource: CPUTemperatureSource?
     let gpuTemperature: Double?
+    /// Battery pack temperature (°C) from the TB*T keys, when present.
+    var batteryTemperature: Double? = nil
     let fans: [FanReading]
     /// nil: unreadable/unknown; 0: explicitly fanless.
     let fanCount: Int?
@@ -70,6 +72,10 @@ enum SensorPlatform: Equatable, Sendable {
 /// A mapped key is still capability-probed on every read. M3 Max/Mac15,9 was
 /// measured locally; these tables are not runtime certification of other Macs.
 struct SensorSMCReader: Sendable {
+    /// Battery pack temperature keys; present on Apple Silicon (all flt here) and
+    /// most Intel Macs. Probed on every read, never scanned.
+    static let batteryTemperatureKeys = ["TB0T", "TB1T", "TB2T"]
+
     private let platform: SensorPlatform
 
     init() {
@@ -77,13 +83,16 @@ struct SensorSMCReader: Sendable {
     }
 
     func read(includeTemperature: Bool, includeGPUTemperature: Bool = false,
+              includeBatteryTemperature: Bool = false,
               includeFans: Bool, at date: Date = Date()) -> SensorReading {
-        guard includeTemperature || includeGPUTemperature || includeFans else {
+        guard includeTemperature || includeGPUTemperature || includeBatteryTemperature || includeFans else {
             return Self.read(platform: platform, includeTemperature: false, includeFans: false, at: date) { _ in nil }
         }
         return SMCReadOnlyClient.withConnection { exchange in
             Self.read(platform: platform, includeTemperature: includeTemperature,
-                      includeGPUTemperature: includeGPUTemperature, includeFans: includeFans,
+                      includeGPUTemperature: includeGPUTemperature,
+                      includeBatteryTemperature: includeBatteryTemperature,
+                      includeFans: includeFans,
                       at: date, nameProvider: { key in
                 guard let code = SMCReadOnlyClient.key(key),
                       let data = SMCReadOnlyClient.read(key: code, exchange: exchange) else { return nil }
@@ -102,7 +111,8 @@ struct SensorSMCReader: Sendable {
     }
 
     static func read(platform: SensorPlatform, includeTemperature: Bool,
-                     includeGPUTemperature: Bool = false, includeFans: Bool, at date: Date,
+                     includeGPUTemperature: Bool = false, includeBatteryTemperature: Bool = false,
+                     includeFans: Bool, at date: Date,
                      nameProvider: (String) -> String? = { _ in nil },
                      valueProvider: (String) -> Double?) -> SensorReading {
         var cpuValues: [Double] = []
@@ -123,6 +133,10 @@ struct SensorSMCReader: Sendable {
         }
         if includeGPUTemperature {
             gpuValues = keys.gpu.compactMap { validTemperature(valueProvider($0)) }
+        }
+        var batteryValues: [Double] = []
+        if includeBatteryTemperature {
+            batteryValues = Self.batteryTemperatureKeys.compactMap { validTemperature(valueProvider($0)) }
         }
         var fans: [FanReading] = []
         var fanCount: Int?
@@ -147,7 +161,8 @@ struct SensorSMCReader: Sendable {
             source = .average(cpuValues.count)
         }
         return SensorReading(cpuTemperature: average(cpuValues), cpuTemperatureSource: source,
-                             gpuTemperature: average(gpuValues), fans: fans,
+                             gpuTemperature: average(gpuValues),
+                             batteryTemperature: average(batteryValues), fans: fans,
                              fanCount: fanCount, sampledAt: date)
     }
 

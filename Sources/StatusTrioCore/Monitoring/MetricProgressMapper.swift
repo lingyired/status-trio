@@ -32,8 +32,9 @@ enum MetricProgressMapper {
 
     static func progress(for id: HardwareMetricID, sample: HardwareMetricSample) -> Double? {
         switch id {
-        case .cpuUsage, .gpuUsage: percent(sample)
+        case .cpuUsage, .gpuUsage, .memoryUsage: percent(sample)
         case .cpuTemperature: temperature(sample)
+        case .batteryTemperature: temperature(sample, range: 20...60)
         case .gpuTemperature: nil
         case .fanRPM: rpm(sample)
         }

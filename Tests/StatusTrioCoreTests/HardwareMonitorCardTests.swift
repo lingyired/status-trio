@@ -11,7 +11,7 @@ struct HardwareMonitorPresentationTests {
         for availability in [HardwareMetricAvailability.collecting, .unsupported, .temporarilyUnavailable] {
             let snapshot = fixture.snapshot(availability: availability)
             let tiles = HardwareMetricTilePresentation.tiles(snapshot: snapshot, localization: fixture.localization)
-            #expect(tiles.map(\.metric) == [.cpu, .gpu, .temperature, .fan])
+            #expect(tiles.map(\.metric) == [.cpu, .gpu, .memory, .temperature, .batteryTemperature, .fan])
             #expect(tiles.allSatisfy { $0.valueText == "—" && $0.progress == nil })
             #expect(tiles[0].availability == availability)
             #expect(!tiles[0].accessibilityValue.isEmpty)
@@ -48,14 +48,32 @@ struct HardwareMonitorPresentationTests {
     @Test func loadingFanIsDistinctFromConfirmedFanlessMac() {
         let fixture = HardwareMonitorTestFixture()
         defer { fixture.cleanup() }
-        let loading = HardwareMetricTilePresentation.tiles(snapshot: .empty, localization: fixture.localization)[3]
+        let loading = HardwareMetricTilePresentation.tiles(snapshot: .empty, localization: fixture.localization)[5]
         #expect(loading.accessibilityValue == fixture.localization.string(.hardwareMonitorCollecting))
         let fanless = HardwareMetricTilePresentation.tiles(
             snapshot: .init(fanCount: 0), localization: fixture.localization
-        )[3]
+        )[5]
         #expect(fanless.valueText == "—")
         #expect(fanless.progress == nil)
         #expect(fanless.accessibilityValue == fixture.localization.string(.hardwareMonitorFanless))
+    }
+
+    @Test func memoryAndBatteryTemperatureRenderWithTheirOwnSemantics() {
+        let fixture = HardwareMonitorTestFixture()
+        defer { fixture.cleanup() }
+        let snapshot = fixture.snapshot()
+        let tiles = HardwareMetricTilePresentation.tiles(snapshot: snapshot, localization: fixture.localization)
+        let memory = tiles[2]
+        #expect(memory.metric == .memory)
+        #expect(memory.valueText == "45%")
+        #expect(memory.progress == 0.45)
+        #expect(memory.label == fixture.localization.string(.hardwareMonitorMemory))
+
+        let battery = tiles[4]
+        #expect(battery.metric == .batteryTemperature)
+        #expect(battery.valueText == "32°C")
+        #expect(battery.progress != nil)
+        #expect(battery.help.contains("20–60°C"))
     }
 
     @Test func fanShowsHighestCurrentRPMAndUsesThatFansOwnMaximum() {
@@ -64,13 +82,13 @@ struct HardwareMonitorPresentationTests {
         var snapshot = fixture.snapshot()
         snapshot.samples[.fanRPM(index: 0)] = fixture.sample(value: 2_000, unit: .rpm, maximum: 9_000)
         snapshot.samples[.fanRPM(index: 1)] = fixture.sample(value: 4_200, unit: .rpm, maximum: 5_000)
-        let fan = HardwareMetricTilePresentation.tiles(snapshot: snapshot, localization: fixture.localization)[3]
+        let fan = HardwareMetricTilePresentation.tiles(snapshot: snapshot, localization: fixture.localization)[5]
         #expect(fan.valueText == "4,200")
         #expect(fan.accessibilityValue == "4,200 RPM")
         #expect(fan.progress == 0.84)
 
         snapshot.samples[.fanRPM(index: 1)]?.metadata.maximum = nil
-        let unknownMaximum = HardwareMetricTilePresentation.tiles(snapshot: snapshot, localization: fixture.localization)[3]
+        let unknownMaximum = HardwareMetricTilePresentation.tiles(snapshot: snapshot, localization: fixture.localization)[5]
         #expect(unknownMaximum.valueText == "4,200")
         #expect(unknownMaximum.progress == nil)
     }
@@ -83,13 +101,13 @@ struct HardwareMonitorPresentationTests {
         snapshot.samples[.fanRPM(index: 0)] = fixture.sample(value: 0, unit: .rpm, maximum: 5_000)
         snapshot.samples.removeValue(forKey: .fanRPM(index: 1))
         let tiles = HardwareMetricTilePresentation.tiles(snapshot: snapshot, localization: fixture.localization)
-        #expect(tiles[2].valueText == "125°C")
-        #expect(tiles[2].progress == 1)
-        #expect(tiles[2].help.contains("30–100°C"))
-        #expect(tiles[2].help.contains("Average"))
-        #expect(tiles[3].valueText == "0")
-        #expect(tiles[3].progress == 0)
-        #expect(tiles[3].accessibilityValue == "0 RPM")
+        #expect(tiles[3].valueText == "125°C")
+        #expect(tiles[3].progress == 1)
+        #expect(tiles[3].help.contains("30–100°C"))
+        #expect(tiles[3].help.contains("Average"))
+        #expect(tiles[5].valueText == "0")
+        #expect(tiles[5].progress == 0)
+        #expect(tiles[5].accessibilityValue == "0 RPM")
     }
 
     @Test func invalidMeasuredValuesRemainUnavailable() {
@@ -139,7 +157,7 @@ struct HardwareMonitorPresentationTests {
         let fixture = HardwareMonitorTestFixture()
         defer { fixture.cleanup() }
         let keys = LocalizationKey.allCases.filter { $0.rawValue.hasPrefix("hardware.monitor.") }
-        #expect(keys.count == 13)
+        #expect(keys.count == 16)
         for language in AppLanguage.allCases {
             let bundle = try #require(Localization.resourceBundle(for: language))
             for key in keys {
@@ -163,7 +181,7 @@ struct HardwareMonitorCardLayoutTests {
                 for availability in [HardwareMetricAvailability.collecting, .measured, .unsupported, .temporarilyUnavailable, .stale] {
                     let host = makeHost(snapshot: fixture.snapshot(availability: availability), fixture: fixture, dark: dark)
                     #expect(abs(host.fittingSize.width - 302) < 0.5, "\(language) \(availability)")
-                    #expect(abs(host.fittingSize.height - 84) < 0.5, "\(language) \(availability)")
+                    #expect(abs(host.fittingSize.height - 120) < 0.5, "\(language) \(availability)")
                     #expect(host.window == nil)
                 }
             }
@@ -179,7 +197,7 @@ struct HardwareMonitorCardLayoutTests {
             .frame(width: 302))
         host.layoutSubtreeIfNeeded()
         #expect(abs(host.fittingSize.width - 302) < 0.5)
-        #expect(abs(host.fittingSize.height - 84) < 0.5)
+        #expect(abs(host.fittingSize.height - 120) < 0.5)
         #expect(host.window == nil)
     }
 
@@ -194,7 +212,7 @@ struct HardwareMonitorCardLayoutTests {
                     let host = makeHost(snapshot: fixture.snapshot(availability: availability), fixture: fixture, dark: dark)
                     let size = host.fittingSize
                     #expect(abs(size.width - 302) < 0.5)
-                    #expect(abs(size.height - 84) < 0.5)
+                    #expect(abs(size.height - 120) < 0.5)
                     #expect(host.window == nil)
                     guard let outputDirectory else { continue }
                     host.frame = NSRect(origin: .zero, size: size)
@@ -224,7 +242,7 @@ struct HardwareMonitorCardLayoutTests {
             .environment(\.colorScheme, dark ? .dark : .light)
             .frame(width: 302)))
         host.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-        host.frame = NSRect(x: 0, y: 0, width: 302, height: 84)
+        host.frame = NSRect(x: 0, y: 0, width: 302, height: 120)
         host.layoutSubtreeIfNeeded()
         return host
     }
@@ -253,7 +271,9 @@ private struct HardwareMonitorTestFixture {
         .init(samples: [
             .cpuUsage: sample(value: 99, unit: .percent, availability: availability),
             .gpuUsage: sample(value: 8, unit: .percent, availability: availability),
+            .memoryUsage: sample(value: 45, unit: .percent, availability: availability),
             .cpuTemperature: sample(value: 62, unit: .celsius, availability: availability),
+            .batteryTemperature: sample(value: 32, unit: .celsius, availability: availability),
             .fanRPM(index: 0): sample(value: 2_450, unit: .rpm, maximum: 5_000, availability: availability),
             .fanRPM(index: 1): sample(value: 2_400, unit: .rpm, maximum: 6_000, availability: availability)
         ], fanCount: 2)

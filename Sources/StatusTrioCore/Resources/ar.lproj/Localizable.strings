@@ -768,3 +768,6 @@
 "battery.powerMode.low" = "طاقة منخفضة";
 "battery.powerMode.high" = "طاقة عالية";
 "battery.powerMode.highRequiresPower" = "لا يسري وضع الطاقة العالية إلا عند توصيل محول الطاقة.";
+"hardware.monitor.memory" = "الذاكرة";
+"hardware.monitor.batteryTemperature" = "حرارة البطارية";
+"hardware.monitor.batteryTemperature.help" = "درجة حرارة البطارية. يستخدم الشريط مقياسًا مرئيًا من 20 إلى 60 درجة مئوية وليس نسبة أمان.";

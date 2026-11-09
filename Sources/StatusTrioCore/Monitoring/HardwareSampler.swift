@@ -6,6 +6,7 @@ final class HardwareSampler: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.lingsmbp.StatusTrio.hardware-sampler", qos: .utility)
     private var cpuReader = CPUReader()
     private let gpuReader = GPUReader()
+    private let memoryReader = MemoryReader()
     private let sensorReader = SensorSMCReader()
     private var hasAttemptedCPURead = false
 
@@ -26,8 +27,11 @@ final class HardwareSampler: @unchecked Sendable {
                 let snapshot = Self.collect(ids: ids, isFirstCPURead: first, at: date,
                                             cpuProvider: { self.cpuReader.read(at: $0) },
                                             gpuProvider: { self.gpuReader.read(at: $0) },
-                                            sensorProvider: { temperature, gpuTemperature, fans, date in
-                    self.sensorReader.read(includeTemperature: temperature, includeGPUTemperature: gpuTemperature,
+                                            memoryProvider: { self.memoryReader.read(at: $0) },
+                                            sensorProvider: { temperature, gpuTemperature, batteryTemperature, fans, date in
+                    self.sensorReader.read(includeTemperature: temperature,
+                                           includeGPUTemperature: gpuTemperature,
+                                           includeBatteryTemperature: batteryTemperature,
                                            includeFans: fans, at: date)
                 })
                 if ids.contains(.cpuUsage) { self.hasAttemptedCPURead = true }
@@ -41,14 +45,19 @@ final class HardwareSampler: @unchecked Sendable {
     static func collect(ids: Set<HardwareMetricID>, isFirstCPURead: Bool, at date: Date,
                         cpuProvider: (Date) -> CPUReading?,
                         gpuProvider: (Date) -> GPUReading?,
-                        sensorProvider: (Bool, Bool, Bool, Date) -> SensorReading) -> HardwareMetricsSnapshot {
+                        memoryProvider: (Date) -> MemoryReader.Reading?,
+                        sensorProvider: (Bool, Bool, Bool, Bool, Date) -> SensorReading) -> HardwareMetricsSnapshot {
         let temperature = ids.contains(.cpuTemperature)
         let gpuTemperature = ids.contains(.gpuTemperature)
+        let batteryTemperature = ids.contains(.batteryTemperature)
         let fans = ids.contains { if case .fanRPM = $0 { return true }; return false }
         let cpu = ids.contains(.cpuUsage) ? cpuProvider(date) : nil
         let gpu = ids.contains(.gpuUsage) ? gpuProvider(date) : nil
-        let sensors = temperature || gpuTemperature || fans ? sensorProvider(temperature, gpuTemperature, fans, date) : nil
-        return map(ids: ids, cpu: cpu, gpu: gpu, sensors: sensors, isFirstCPURead: isFirstCPURead, at: date)
+        let memory = ids.contains(.memoryUsage) ? memoryProvider(date) : nil
+        let sensors = temperature || gpuTemperature || batteryTemperature || fans
+            ? sensorProvider(temperature, gpuTemperature, batteryTemperature, fans, date) : nil
+        return map(ids: ids, cpu: cpu, gpu: gpu, memory: memory, sensors: sensors,
+                   isFirstCPURead: isFirstCPURead, at: date)
     }
 
     /// Pure mapping of one read attempt. Reader nil alone cannot establish lack
@@ -56,7 +65,8 @@ final class HardwareSampler: @unchecked Sendable {
     /// first baseline attempt remains collecting; only an explicit FNum==0 is
     /// fanless. Fan-family demand includes all per-fan values and limits.
     static func map(ids: Set<HardwareMetricID>, cpu: CPUReading?, gpu: GPUReading?,
-                    sensors: SensorReading?, isFirstCPURead: Bool, at date: Date) -> HardwareMetricsSnapshot {
+                    memory: MemoryReader.Reading? = nil, sensors: SensorReading?,
+                    isFirstCPURead: Bool, at date: Date) -> HardwareMetricsSnapshot {
         var snapshot = HardwareMetricsSnapshot.empty
         for id in ids {
             switch id {
@@ -71,14 +81,24 @@ final class HardwareSampler: @unchecked Sendable {
                     value: value, unit: .percent, sampledAt: gpu?.sampledAt ?? date, source: .ioAccelerator,
                     availability: value != nil ? .measured : .temporarilyUnavailable,
                     sensorLabel: gpu?.deviceName)
-            case .cpuTemperature, .gpuTemperature:
-                let isCPU = id == .cpuTemperature
-                let value = finite(isCPU ? sensors?.cpuTemperature : sensors?.gpuTemperature, in: 0...150)
+            case .memoryUsage:
+                let value = finite(memory?.percent, in: 0...100)
+                snapshot.samples[id] = HardwareMetricSample(
+                    value: value, unit: .percent, sampledAt: memory?.sampledAt ?? date, source: .mach,
+                    availability: value != nil ? .measured : .temporarilyUnavailable)
+            case .cpuTemperature, .gpuTemperature, .batteryTemperature:
+                let value: Double?
+                switch id {
+                case .cpuTemperature: value = finite(sensors?.cpuTemperature, in: 0...150)
+                case .gpuTemperature: value = finite(sensors?.gpuTemperature, in: 0...150)
+                default: value = finite(sensors?.batteryTemperature, in: -20...90)
+                }
                 snapshot.samples[id] = HardwareMetricSample(
                     value: value, unit: .celsius, sampledAt: sensors?.sampledAt ?? date, source: .smc,
                     availability: value != nil ? .measured : .temporarilyUnavailable,
-                    sensorLabel: isCPU ? sensors?.cpuTemperatureLabel : "GPU area",
-                    metadata: HardwareMetricMetadata(sourceCount: isCPU ? sensors?.cpuTemperatureCount : nil))
+                    sensorLabel: id == .cpuTemperature ? sensors?.cpuTemperatureLabel
+                        : (id == .gpuTemperature ? "GPU area" : "Battery"),
+                    metadata: HardwareMetricMetadata(sourceCount: id == .cpuTemperature ? sensors?.cpuTemperatureCount : nil))
             case .fanRPM:
                 // Fill requested slots even when FNum or a fan read failed.
                 snapshot.samples[id] = HardwareMetricSample(

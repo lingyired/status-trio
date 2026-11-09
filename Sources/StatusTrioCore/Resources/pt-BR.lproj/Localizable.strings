@@ -768,3 +768,6 @@
 "battery.powerMode.low" = "Baixo Consumo";
 "battery.powerMode.high" = "Alto Desempenho";
 "battery.powerMode.highRequiresPower" = "O Modo de Alto Desempenho passa a valer com o adaptador de energia conectado.";
+"hardware.monitor.memory" = "Memória";
+"hardware.monitor.batteryTemperature" = "Temp. bateria";
+"hardware.monitor.batteryTemperature.help" = "Temperatura da bateria. A barra usa uma escala visual de 20–60 °C, não uma porcentagem de segurança.";

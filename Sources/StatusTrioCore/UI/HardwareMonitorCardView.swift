@@ -3,7 +3,7 @@ import SwiftUI
 /// A separately observed, fixed-size leaf: metric ticks never invalidate the
 /// surrounding status panel or change its measured content height.
 struct HardwareMonitorCardView: View {
-    static let height: CGFloat = 84
+    static let height: CGFloat = 120
 
     /// The card's own fill is an overlay on the panel material, not a separate
     /// surface. Reduce Transparency raises it so the card keeps a visible edge
@@ -27,6 +27,10 @@ struct HardwareMonitorCardView: View {
                 HardwareMonitorTileView(presentation: tiles[2])
                 HardwareMonitorTileView(presentation: tiles[3])
             }
+            HStack(spacing: 14) {
+                HardwareMonitorTileView(presentation: tiles[4])
+                HardwareMonitorTileView(presentation: tiles[5])
+            }
         }
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity)
@@ -41,13 +45,15 @@ struct HardwareMonitorCardView: View {
 }
 
 enum HardwareMonitorTile: CaseIterable, Equatable {
-    case cpu, gpu, temperature, fan
+    case cpu, gpu, memory, temperature, batteryTemperature, fan
 
     var labelKey: LocalizationKey {
         switch self {
         case .cpu: .hardwareMonitorCPU
         case .gpu: .hardwareMonitorGPU
+        case .memory: .hardwareMonitorMemory
         case .temperature: .hardwareMonitorTemperature
+        case .batteryTemperature: .hardwareMonitorBatteryTemperature
         case .fan: .hardwareMonitorFan
         }
     }
@@ -56,7 +62,9 @@ enum HardwareMonitorTile: CaseIterable, Equatable {
         switch self {
         case .cpu: "cpu"
         case .gpu: "display"
+        case .memory: "memorychip"
         case .temperature: "thermometer.medium"
+        case .batteryTemperature: SymbolFallback.name("battery.100percent", "battery.100")
         case .fan: "fanblades"
         }
     }
@@ -82,7 +90,9 @@ struct HardwareMetricTilePresentation: Equatable {
         [
             make(metric: .cpu, sample: snapshot.cpuUsage, localization: localization),
             make(metric: .gpu, sample: snapshot.gpuUsage, localization: localization),
+            make(metric: .memory, sample: snapshot.memoryUsage, localization: localization),
             make(metric: .temperature, sample: snapshot.cpuTemperature, localization: localization),
+            make(metric: .batteryTemperature, sample: snapshot.batteryTemperature, localization: localization),
             make(metric: .fan, sample: snapshot.fanSummarySample, localization: localization)
         ]
     }
@@ -104,7 +114,7 @@ struct HardwareMetricTilePresentation: Equatable {
             let locale = localization.resolvedLanguage.locale
             let number = value.formatted(.number.precision(.fractionLength(0)).locale(locale))
             switch metric {
-            case .cpu, .gpu:
+            case .cpu, .gpu, .memory:
                 valueText = (value / 100).formatted(.percent.precision(.fractionLength(0)).locale(locale))
                 accessibilityValue = valueText
                 progress = MetricProgressMapper.percent(sample)
@@ -112,6 +122,11 @@ struct HardwareMetricTilePresentation: Equatable {
                 valueText = "\(number)°C"
                 accessibilityValue = valueText
                 progress = MetricProgressMapper.temperature(sample)
+            case .batteryTemperature:
+                valueText = "\(number)°C"
+                accessibilityValue = valueText
+                // Battery runs near ambient: use a lower visual scale than CPU.
+                progress = MetricProgressMapper.temperature(sample, range: 20...60)
             case .fan:
                 valueText = number
                 accessibilityValue = localization.format(.hardwareMonitorRPM, number)
@@ -139,8 +154,9 @@ struct HardwareMetricTilePresentation: Equatable {
         let explanation: String
         switch metric {
         case .temperature: explanation = localization.string(.hardwareMonitorTemperatureHelp)
+        case .batteryTemperature: explanation = localization.string(.hardwareMonitorBatteryTemperatureHelp)
         case .fan: explanation = localization.string(.hardwareMonitorFanHelp)
-        case .cpu, .gpu: explanation = ""
+        case .cpu, .gpu, .memory: explanation = ""
         }
         let help = ["\(label): \(accessibilityValue)", explanation].filter { !$0.isEmpty }.joined(separator: "\n")
         return Self(metric: metric, label: label, valueText: valueText,

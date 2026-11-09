@@ -768,3 +768,6 @@
 "battery.powerMode.low" = "Risparmio";
 "battery.powerMode.high" = "Prestazioni elevate";
 "battery.powerMode.highRequiresPower" = "La modalità prestazioni elevate si attiva solo con l’alimentatore collegato.";
+"hardware.monitor.memory" = "Memoria";
+"hardware.monitor.batteryTemperature" = "Temp. batteria";
+"hardware.monitor.batteryTemperature.help" = "Temperatura della batteria. La barra usa una scala visiva 20–60 °C, non una percentuale di sicurezza.";

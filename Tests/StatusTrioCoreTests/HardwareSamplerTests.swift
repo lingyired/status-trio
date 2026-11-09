@@ -72,7 +72,8 @@ final class HardwareSamplerTests: XCTestCase {
         let snapshot = HardwareSampler.collect(ids: [.cpuUsage], isFirstCPURead: true, at: date,
                                                cpuProvider: { _ in cpuCalls += 1; return CPUReading(usage: 25, perCoreUsage: [25], sampledAt: self.date) },
                                                gpuProvider: { _ in XCTFail("CPUOnly must not read GPU"); return nil },
-                                               sensorProvider: { _, _, _, _ in XCTFail("CPUOnly must not read SMC"); return self.sensors() })
+                                               memoryProvider: { _ in XCTFail("CPUOnly must not read memory"); return nil },
+                                               sensorProvider: { _, _, _, _, _ in XCTFail("CPUOnly must not read SMC"); return self.sensors() })
         XCTAssertEqual(cpuCalls, 1)
         XCTAssertEqual(Set(snapshot.samples.keys), [.cpuUsage])
         XCTAssertEqual(snapshot[.cpuUsage].value, 25)
@@ -85,12 +86,14 @@ final class HardwareSamplerTests: XCTestCase {
             let snapshot = HardwareSampler.collect(ids: [id], isFirstCPURead: true, at: date,
                                                    cpuProvider: { _ in XCTFail("temperature must not read CPU usage"); return nil },
                                                    gpuProvider: { _ in XCTFail("temperature must not read GPU usage"); return nil },
-                                                   sensorProvider: { temperature, gpuTemperature, fans, _ in
+                                                   memoryProvider: { _ in XCTFail("temperature must not read memory"); return nil },
+                                                   sensorProvider: { temperature, gpuTemperature, batteryTemperature, fans, _ in
                 sensorCalls += 1
                 XCTAssertEqual(temperature, id == .cpuTemperature)
                 XCTAssertEqual(gpuTemperature, id == .gpuTemperature)
+                XCTAssertEqual(batteryTemperature, id == .batteryTemperature)
                 XCTAssertFalse(fans)
-                return self.sensors(cpu: 60, gpu: 50)
+                return self.sensors(cpu: 60, gpu: 50, battery: 32)
             })
             XCTAssertEqual(sensorCalls, 1)
             XCTAssertEqual(Set(snapshot.samples.keys), [id])
@@ -108,8 +111,32 @@ final class HardwareSamplerTests: XCTestCase {
         XCTAssertEqual(snapshot[.cpuTemperature].sensorLabel, "CPU average")
     }
 
-    private func sensors(cpu: Double? = nil, gpu: Double? = nil, fanCount: Int? = nil, fans: [FanReading] = []) -> SensorReading {
+    func testMemoryAndBatteryTemperatureMapToTheirOwnMetrics() {
+        let memory = MemoryReader.Reading(percent: 38.5, usedBytes: 50_000, totalBytes: 131_072, sampledAt: date)
+        let snapshot = HardwareSampler.map(ids: [.memoryUsage, .batteryTemperature], cpu: nil, gpu: nil,
+                                           memory: memory, sensors: sensors(battery: 32.3),
+                                           isFirstCPURead: false, at: date)
+        XCTAssertEqual(Set(snapshot.samples.keys), [.memoryUsage, .batteryTemperature])
+        XCTAssertEqual(snapshot[.memoryUsage].value, 38.5)
+        XCTAssertEqual(snapshot[.memoryUsage].unit, .percent)
+        XCTAssertEqual(snapshot[.memoryUsage].availability, .measured)
+        XCTAssertEqual(snapshot[.batteryTemperature].value ?? 0, 32.3, accuracy: 0.001)
+        XCTAssertEqual(snapshot[.batteryTemperature].unit, .celsius)
+    }
+
+    func testMemoryOnlyDoesNotTouchCPUOrSMC() {
+        let snapshot = HardwareSampler.collect(ids: [.memoryUsage], isFirstCPURead: true, at: date,
+                                               cpuProvider: { _ in XCTFail("memory must not read CPU"); return nil },
+                                               gpuProvider: { _ in XCTFail("memory must not read GPU"); return nil },
+                                               memoryProvider: { _ in MemoryReader.Reading(percent: 20, usedBytes: 1, totalBytes: 10, sampledAt: self.date) },
+                                               sensorProvider: { _, _, _, _, _ in XCTFail("memory must not read SMC"); return self.sensors() })
+        XCTAssertEqual(snapshot[.memoryUsage].value, 20)
+    }
+
+    private func sensors(cpu: Double? = nil, gpu: Double? = nil, battery: Double? = nil,
+                         fanCount: Int? = nil, fans: [FanReading] = []) -> SensorReading {
         SensorReading(cpuTemperature: cpu, cpuTemperatureSource: cpu == nil ? nil : .average(2),
-                      gpuTemperature: gpu, fans: fans, fanCount: fanCount, sampledAt: date)
+                      gpuTemperature: gpu, batteryTemperature: battery,
+                      fans: fans, fanCount: fanCount, sampledAt: date)
     }
 }

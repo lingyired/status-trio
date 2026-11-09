@@ -768,3 +768,6 @@
 "battery.powerMode.low" = "Économie";
 "battery.powerMode.high" = "Haute puissance";
 "battery.powerMode.highRequiresPower" = "Le mode haute puissance prend effet une fois l’adaptateur secteur connecté.";
+"hardware.monitor.memory" = "Mémoire";
+"hardware.monitor.batteryTemperature" = "Temp. batterie";
+"hardware.monitor.batteryTemperature.help" = "Température de la batterie. La barre utilise une échelle visuelle de 20 à 60 °C, pas un pourcentage de sécurité.";

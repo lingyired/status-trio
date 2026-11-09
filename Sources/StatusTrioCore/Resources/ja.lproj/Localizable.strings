@@ -768,3 +768,6 @@
 "battery.powerMode.low" = "低電力";
 "battery.powerMode.high" = "高電力";
 "battery.powerMode.highRequiresPower" = "高電力モードは電源アダプタを接続すると有効になります。";
+"hardware.monitor.memory" = "メモリ";
+"hardware.monitor.batteryTemperature" = "バッテリー温度";
+"hardware.monitor.batteryTemperature.help" = "バッテリー温度です。バーは 20〜60°C の目安スケールで、安全率ではありません。";

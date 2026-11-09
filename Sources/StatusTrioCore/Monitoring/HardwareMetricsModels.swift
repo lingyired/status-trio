@@ -4,8 +4,10 @@ import Foundation
 enum HardwareMetricID: Hashable, Sendable {
     case cpuUsage
     case gpuUsage
+    case memoryUsage
     case cpuTemperature
     case gpuTemperature
+    case batteryTemperature
     case fanRPM(index: Int)
 }
 
@@ -136,8 +138,10 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
 
     var cpuUsage: HardwareMetricSample { self[.cpuUsage] }
     var gpuUsage: HardwareMetricSample { self[.gpuUsage] }
+    var memoryUsage: HardwareMetricSample { self[.memoryUsage] }
     var cpuTemperature: HardwareMetricSample { self[.cpuTemperature] }
     var gpuTemperature: HardwareMetricSample { self[.gpuTemperature] }
+    var batteryTemperature: HardwareMetricSample { self[.batteryTemperature] }
 
     /// Per-fan samples sorted by index, for a future details expansion.
     var fanSamples: [HardwareMetricSample] {
@@ -200,8 +204,8 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
 
     static func unit(for id: HardwareMetricID) -> HardwareMetricUnit {
         switch id {
-        case .cpuUsage, .gpuUsage: .percent
-        case .cpuTemperature, .gpuTemperature: .celsius
+        case .cpuUsage, .gpuUsage, .memoryUsage: .percent
+        case .cpuTemperature, .gpuTemperature, .batteryTemperature: .celsius
         case .fanRPM: .rpm
         }
     }
@@ -218,8 +222,8 @@ enum HardwareMetricFamily: Hashable, Sendable, CaseIterable {
         var result: Set<HardwareMetricFamily> = []
         for id in ids {
             switch id {
-            case .cpuUsage, .gpuUsage: result.insert(.usage)
-            case .cpuTemperature, .gpuTemperature: result.insert(.temperature)
+            case .cpuUsage, .gpuUsage, .memoryUsage: result.insert(.usage)
+            case .cpuTemperature, .gpuTemperature, .batteryTemperature: result.insert(.temperature)
             case .fanRPM: result.insert(.fan)
             }
         }
