@@ -513,7 +513,7 @@
 "settings.audio.indicatorStyleDescription" = "ステータスリング下部に4つのドットまたは連続する円弧バーのいずれで表示するかを選択します。";
 "settings.audio.indicatorStyle.dots" = "4つのドット";
 "settings.audio.indicatorStyle.arc" = "円弧バー";
-"settings.audio.airPodsInlineControlsTitle" = "AirPods インラインコントロール";
+"settings.audio.airPodsInlineControlsTitle" = "ヘッドフォンコントロール";
 "settings.audio.airPodsInlineControls" = "音量パネルに AirPods コントロールを表示";
 "settings.audio.airPodsInlineControlsDescription" = "AirPods 出力の横に会話認識・空間オーディオ・アダプティブのコントロールを表示します。私的 API ベースのこれらのコントロールを隠すにはオフにします。";
 
@@ -811,3 +811,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "リスニングモード";
 "settings.subtopic.bluetooth.deviceBattery" = "デバイスのバッテリー";
 "settings.subtopic.bluetooth.deviceManagement" = "デバイス管理";
+"settings.audio.spatialAudioControlsTitle" = "空間オーディオのコントロールを表示";
+"settings.audio.spatialAudioControlsDescription" = "AirPods の出力行に空間オーディオのオプション（オフ/固定/頭部トラッキング）を表示します。現在は AirPods のみ対応。";
+"settings.audio.conversationAwarenessControlsTitle" = "会話認識のコントロールを表示";
+"settings.audio.conversationAwarenessControlsDescription" = "AirPods の出力行に会話認識のスイッチを表示します。現在は AirPods のみ対応。";

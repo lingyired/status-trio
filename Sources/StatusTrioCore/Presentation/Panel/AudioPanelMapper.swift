@@ -15,6 +15,8 @@ enum AudioPanelMapper {
         previewLocalization: Localization? = nil,
         deviceListPlaceholder: PanelListLayoutSnapshot? = nil,
         showsAirPodsSystemControls: Bool = true,
+        showsSpatialAudioControls: Bool = true,
+        showsConversationAwarenessControls: Bool = true,
         localization: Localization
     ) -> VolumePanelState {
         let scalar = readableScalar(status.scalar)
@@ -73,6 +75,8 @@ enum AudioPanelMapper {
         )
         let rows = outputRows(orderedDevices, listeningModes: listeningModes,
                               showsAirPodsSystemControls: showsAirPodsSystemControls,
+                              showsSpatialAudioControls: showsSpatialAudioControls,
+                              showsConversationAwarenessControls: showsConversationAwarenessControls,
                               localization: localization)
         // A lone row is not a choice, unless the panel kept it because it is the active
         // output: hiding every device must never hide what is playing right now.
@@ -212,6 +216,8 @@ enum AudioPanelMapper {
         listeningModes: BluetoothListeningModeController?,
         isPreview: Bool = false,
         showsAirPodsSystemControls: Bool = true,
+        showsSpatialAudioControls: Bool = true,
+        showsConversationAwarenessControls: Bool = true,
         localization: Localization
     ) -> [PanelAudioDeviceRow] {
         devices.enumerated().map { index, device in
@@ -232,6 +238,11 @@ enum AudioPanelMapper {
             ) { first, second in
                 localization.format(.commonParenthetical, first, second)
             }
+            let supportsSystemControls = showsAirPodsSystemControls
+                && device.isCurrent && device.isBluetoothAudio
+                && AirPodsModel(modelUID: device.modelUID) != nil && device.uid != nil
+                && (!isPreview || ListeningModePreview.isSyntheticPreviewUID(device.uid))
+            let featureSupport = AirPodsFeatureSupport(modelUID: device.modelUID)
             return PanelAudioDeviceRow(
                 key: PanelAudioDeviceID(id: device.id, uid: device.uid),
                 name: name,
@@ -249,10 +260,11 @@ enum AudioPanelMapper {
                 listeningModeAddress: listeningModes?.control(forEndpoint: device.id)?.address,
                 listeningMode: listeningModes?.control(forEndpoint: device.id)?.presentation,
                 isPreview: isPreview,
-                supportsAirPodsSystemControls: showsAirPodsSystemControls
-                    && device.isCurrent && device.isBluetoothAudio
-                    && AirPodsModel(modelUID: device.modelUID) != nil && device.uid != nil
-                    && (!isPreview || ListeningModePreview.isSyntheticPreviewUID(device.uid))
+                supportsAirPodsSystemControls: supportsSystemControls,
+                airPodsSpatialSupported: supportsSystemControls
+                    && showsSpatialAudioControls && (featureSupport.spatial ?? true),
+                airPodsConversationSupported: supportsSystemControls
+                    && showsConversationAwarenessControls && (featureSupport.conversation ?? true)
             )
         }
     }

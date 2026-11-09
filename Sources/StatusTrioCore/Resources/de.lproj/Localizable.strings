@@ -513,7 +513,7 @@
 "settings.audio.indicatorStyleDescription" = "Wählen Sie, ob die Lautstärke als vier Punkte oder als durchgehender Bogen dargestellt wird.";
 "settings.audio.indicatorStyle.dots" = "Punkte";
 "settings.audio.indicatorStyle.arc" = "Bogen";
-"settings.audio.airPodsInlineControlsTitle" = "AirPods-Inline-Steuerung";
+"settings.audio.airPodsInlineControlsTitle" = "Kopfhörer-Steuerung";
 "settings.audio.airPodsInlineControls" = "AirPods-Steuerung im Lautstärke-Panel anzeigen";
 "settings.audio.airPodsInlineControlsDescription" = "Zeigt Steuerung für Dialogwahrnehmung, räumliches Audio und adaptiven Modus neben deinem AirPods-Ausgabegerät. Deaktivieren blendet diese Steuerung auf Basis privater APIs aus.";
 
@@ -811,3 +811,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "Hörmodus";
 "settings.subtopic.bluetooth.deviceBattery" = "Gerätebatterie";
 "settings.subtopic.bluetooth.deviceManagement" = "Geräteverwaltung";
+"settings.audio.spatialAudioControlsTitle" = "Räumliche Audio-Steuerung anzeigen";
+"settings.audio.spatialAudioControlsDescription" = "Zeigt die Optionen für räumliches Audio (Aus/Fixiert/Kopftracking) in der AirPods-Ausgabezeile. Derzeit nur AirPods.";
+"settings.audio.conversationAwarenessControlsTitle" = "Sprachbewusstsein-Steuerung anzeigen";
+"settings.audio.conversationAwarenessControlsDescription" = "Zeigt den Schalter für Sprachbewusstsein in der AirPods-Ausgabezeile. Derzeit nur AirPods.";

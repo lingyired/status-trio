@@ -513,7 +513,7 @@
 "settings.audio.indicatorStyleDescription" = "상태 링 하단에 네 개의 점 또는 연속된 호 모양 막대 중 표시 방식을 선택합니다.";
 "settings.audio.indicatorStyle.dots" = "네 개의 점";
 "settings.audio.indicatorStyle.arc" = "호 막대";
-"settings.audio.airPodsInlineControlsTitle" = "AirPods 인라인 제어";
+"settings.audio.airPodsInlineControlsTitle" = "헤드폰 제어";
 "settings.audio.airPodsInlineControls" = "볼륨 패널에 AirPods 제어 표시";
 "settings.audio.airPodsInlineControlsDescription" = "AirPods 출력 옆에 대화 인식, 공간 오디오, 적응형 제어를 표시합니다. 비공개 API 기반의 이러한 제어를 숨기려면 끕니다.";
 
@@ -811,3 +811,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "청취 모드";
 "settings.subtopic.bluetooth.deviceBattery" = "기기 배터리";
 "settings.subtopic.bluetooth.deviceManagement" = "기기 관리";
+"settings.audio.spatialAudioControlsTitle" = "공간 음향 제어 표시";
+"settings.audio.spatialAudioControlsDescription" = "AirPods 출력 행에 공간 음향 옵션(끔/고정/머리 추적)을 표시합니다. 현재 AirPods만 지원합니다.";
+"settings.audio.conversationAwarenessControlsTitle" = "대화 인식 제어 표시";
+"settings.audio.conversationAwarenessControlsDescription" = "AirPods 출력 행에 대화 인식 스위치를 표시합니다. 현재 AirPods만 지원합니다.";

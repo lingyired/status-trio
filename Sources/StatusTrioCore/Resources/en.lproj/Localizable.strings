@@ -512,7 +512,7 @@
 "settings.audio.indicatorStyleDescription" = "Choose whether volume displays as four discrete dots or a continuous bottom arc.";
 "settings.audio.indicatorStyle.dots" = "Dots";
 "settings.audio.indicatorStyle.arc" = "Arc";
-"settings.audio.airPodsInlineControlsTitle" = "AirPods Inline Controls";
+"settings.audio.airPodsInlineControlsTitle" = "Headphone Controls";
 "settings.audio.airPodsInlineControls" = "Show AirPods controls on the volume panel";
 "settings.audio.airPodsInlineControlsDescription" = "Show Conversation Awareness, Spatial Audio, and Adaptive controls beside your AirPods output. Disable to hide these private-API controls.";
 
@@ -810,3 +810,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "Listening Mode";
 "settings.subtopic.bluetooth.deviceBattery" = "Device Battery";
 "settings.subtopic.bluetooth.deviceManagement" = "Device Management";
+"settings.audio.spatialAudioControlsTitle" = "Show Spatial Audio controls";
+"settings.audio.spatialAudioControlsDescription" = "Shows the Spatial Audio options (Off/Fixed/Head Tracking) on the AirPods output row. Currently AirPods only.";
+"settings.audio.conversationAwarenessControlsTitle" = "Show Conversation Awareness controls";
+"settings.audio.conversationAwarenessControlsDescription" = "Shows the Conversation Awareness toggle on the AirPods output row. Currently AirPods only.";

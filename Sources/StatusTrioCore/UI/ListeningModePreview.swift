@@ -74,7 +74,7 @@ enum ListeningModePreview {
     static func outputRows(for config: Configuration, volume: Double? = nil) -> [AudioOutputDevice] {
         guard config.isEnabled, clampedDeviceCount(config.deviceCount) > 0 else { return [] }
         let name = resolvedDeviceName(config)
-        return (1...clampedDeviceCount(config.deviceCount)).compactMap { index in
+        return (1...clampedDeviceCount(config.deviceCount)).compactMap { index -> AudioOutputDevice? in
             let id = "\(BluetoothListeningModeController.previewAddressPrefix)\(index)"
             guard let endpoint = BluetoothListeningModeController.syntheticEndpoint(for: id) else {
                 return nil

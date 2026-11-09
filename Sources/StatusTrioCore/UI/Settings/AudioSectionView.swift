@@ -504,15 +504,26 @@ struct AudioSectionView: View {
 
     private var airPodsInlineControlsGroup: some View {
         SettingsGroup(localization.string(.settingsAudioAirPodsInlineControlsTitle)) {
+            AirPodsListeningModeSettingsRows(store: store)
+
+            SettingsDivider()
+
             SettingsToggleRow(
-                symbol: "airpods",
+                symbol: "airpodspro",
                 tint: .blue,
-                title: localization.string(.settingsAudioAirPodsInlineControls),
-                subtitle: localization.string(.settingsAudioAirPodsInlineControlsDescription),
-                isOn: Binding(
-                    get: { store.showsInlineAirPodsControls },
-                    set: { store.showsInlineAirPodsControls = $0 }
-                )
+                title: localization.string(.settingsAudioSpatialAudioControlsTitle),
+                subtitle: localization.string(.settingsAudioSpatialAudioControlsDescription),
+                isOn: $store.showsSpatialAudioControls
+            )
+
+            SettingsDivider()
+
+            SettingsToggleRow(
+                symbol: "person.wave.2.fill",
+                tint: .blue,
+                title: localization.string(.settingsAudioConversationAwarenessControlsTitle),
+                subtitle: localization.string(.settingsAudioConversationAwarenessControlsDescription),
+                isOn: $store.showsConversationAwarenessControls
             )
         }
     }

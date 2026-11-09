@@ -513,7 +513,7 @@
 "settings.audio.indicatorStyleDescription" = "Выберите отображение громкости четырьмя точками или сплошной дугой.";
 "settings.audio.indicatorStyle.dots" = "Точки";
 "settings.audio.indicatorStyle.arc" = "Дуга";
-"settings.audio.airPodsInlineControlsTitle" = "Встроенные элементы управления AirPods";
+"settings.audio.airPodsInlineControlsTitle" = "Управление наушниками";
 "settings.audio.airPodsInlineControls" = "Показывать элементы управления AirPods на панели громкости";
 "settings.audio.airPodsInlineControlsDescription" = "Показывает элементы управления распознаванием разговора, пространственным и адаптивным звуком рядом с вашим выводом AirPods. Отключите, чтобы скрыть эти элементы на основе приватных API.";
 
@@ -811,3 +811,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "Режим прослушивания";
 "settings.subtopic.bluetooth.deviceBattery" = "Батарея устройства";
 "settings.subtopic.bluetooth.deviceManagement" = "Управление устройствами";
+"settings.audio.spatialAudioControlsTitle" = "Показывать элементы управления пространственным звуком";
+"settings.audio.spatialAudioControlsDescription" = "Показывает параметры пространственного звука (Выкл/Фиксированный/Отслеживание головы) в строке вывода AirPods. Сейчас только AirPods.";
+"settings.audio.conversationAwarenessControlsTitle" = "Показывать элементы управления распознаванием речи";
+"settings.audio.conversationAwarenessControlsDescription" = "Показывает переключатель распознавания речи в строке вывода AirPods. Сейчас только AirPods.";

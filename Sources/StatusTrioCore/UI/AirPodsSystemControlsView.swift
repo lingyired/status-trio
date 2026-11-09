@@ -584,21 +584,56 @@ struct AirPodsSystemControlsView: View {
     }
 }
 
+/// A compact Adaptive Audio strength bar shown under the listening-mode row
+/// whenever the Adaptive mode is selected. It mirrors the Control Center slider
+/// without the surrounding section chrome, applies on release, and never reads
+/// the device itself — the model owns the write and the read-back.
+struct AirPodsAdaptiveBar: View {
+    @ObservedObject var model: AirPodsSystemControlsModel
+    @EnvironmentObject private var localization: Localization
+    @State private var draft: Double = 50
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if let value = model.snapshot.adaptive {
+                // Non-continuous: the slider sends one value when the drag ends,
+                // so releasing anywhere applies immediately without a separate
+                // Apply button and without spamming the device mid-drag.
+                AirPodsAdaptiveSlider(value: $draft, label: localization.string(.airPodsAdaptive), continuous: false)
+                    .frame(height: AirPodsControlMetrics.capsuleHeight)
+                    .disabled(model.busy || model.spatialWriting)
+                    .onAppear { draft = Double(value) }
+                    .onChange(of: value) { draft = Double($0) }
+                    .onChange(of: draft) { newDraft in
+                        let target = Int(newDraft)
+                        if target != model.snapshot.adaptive { model.setAdaptive(target) }
+                    }
+            } else if !model.snapshot.loaded {
+                ProgressView().controlSize(.mini)
+                    .accessibilityLabel(localization.string(.batteryDetailsLoading))
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(localization.string(.airPodsAdaptive))
+    }
+}
+
 /// NSSlider preserves keyboard and VoiceOver adjustment while its cell draws
 /// the compact monochrome track and wide thumb used by Control Center.
 private struct AirPodsAdaptiveSlider: NSViewRepresentable {
     @Binding var value: Double
     let label: String
+    var continuous: Bool = true
     @Environment(\.isEnabled) private var isEnabled
 
     func makeNSView(context: Context) -> NSSlider {
-        let slider = NSSlider()
+        let slider = ScrollableAdaptiveSlider()
         slider.cell = AirPodsAdaptiveSliderCell()
         slider.minValue = 0
         slider.maxValue = 100
         slider.numberOfTickMarks = 11
         slider.allowsTickMarkValuesOnly = true
-        slider.isContinuous = true
+        slider.isContinuous = continuous
         slider.target = context.coordinator
         slider.action = #selector(Coordinator.changed(_:))
         return slider
@@ -621,31 +656,61 @@ private struct AirPodsAdaptiveSlider: NSViewRepresentable {
     }
 }
 
+/// NSSlider that also responds to the mouse wheel / trackpad scroll: each notch
+/// moves one tick mark (10%) and fires the action, so the Adaptive strength can be
+/// nudged without dragging. A disabled slider passes the event through so the
+/// panel keeps scrolling normally.
+private final class ScrollableAdaptiveSlider: NSSlider, ScrollWheelHandlingView {
+    override func scrollWheel(with event: NSEvent) {
+        guard isEnabled else {
+            super.scrollWheel(with: event)
+            return
+        }
+        let delta = event.scrollingDeltaY
+        guard delta != 0 else { return }
+        let direction: Double = delta > 0 ? 1 : -1
+        let stepped = ((doubleValue / 10).rounded() + direction) * 10
+        let clamped = min(max(stepped, minValue), maxValue)
+        guard clamped != doubleValue else { return }
+        doubleValue = clamped
+        sendAction(action, to: target)
+    }
+}
+
 private final class AirPodsAdaptiveSliderCell: NSSliderCell {
     override func drawTickMarks() {}
 
+    /// Track and knob scale to the actual control height so the bar can match the
+    /// compact capsule height without the drawing running past its bounds.
+    private var barHeight: CGFloat { min(26, controlView?.bounds.height ?? 26) }
+
     override func drawBar(inside rect: NSRect, flipped: Bool) {
         guard let view = controlView else { return }
-        let track = NSRect(x: 0, y: (view.bounds.height - 26) / 2, width: view.bounds.width, height: 26)
+        let height = barHeight
+        let radius = height / 2
+        let track = NSRect(x: 0, y: (view.bounds.height - height) / 2, width: view.bounds.width, height: height)
         NSColor.labelColor.withAlphaComponent(0.12).setFill()
-        NSBezierPath(roundedRect: track, xRadius: 13, yRadius: 13).fill()
-        for (symbol, x) in [("circle.dotted", track.minX + 10), ("circle", track.maxX - 22)] {
+        NSBezierPath(roundedRect: track, xRadius: radius, yRadius: radius).fill()
+        let icon = min(12, height * 12 / 26)
+        for (symbol, x) in [("circle.dotted", track.minX + 8), ("circle", track.maxX - icon - 8)] {
             NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
                 .withSymbolConfiguration(.init(paletteColors: [.labelColor]))?
-                .draw(in: NSRect(x: x, y: track.midY - 6, width: 12, height: 12))
+                .draw(in: NSRect(x: x, y: track.midY - icon / 2, width: icon, height: icon))
         }
     }
 
     override func knobRect(flipped: Bool) -> NSRect {
         guard let view = controlView else { return super.knobRect(flipped: flipped) }
-        let width: CGFloat = 40
+        let height = barHeight
+        let width = height * 40 / 26
         return NSRect(x: (view.bounds.width - width) * CGFloat(doubleValue / 100),
-                      y: (view.bounds.height - 26) / 2, width: width, height: 26)
+                      y: (view.bounds.height - height) / 2, width: width, height: height)
     }
 
     override func drawKnob(_ knobRect: NSRect) {
         NSColor.white.setFill()
-        NSBezierPath(roundedRect: knobRect.insetBy(dx: 1, dy: 1), xRadius: 12, yRadius: 12).fill()
+        let radius = min(12, (knobRect.height - 2) / 2)
+        NSBezierPath(roundedRect: knobRect.insetBy(dx: 1, dy: 1), xRadius: radius, yRadius: radius).fill()
         AirPodsControlSymbols.image("person.and.sparkles.fill")
             .withSymbolConfiguration(.init(paletteColors: [.black]))?
             .draw(in: NSRect(x: knobRect.midX - 8, y: knobRect.midY - 8, width: 16, height: 16))

@@ -22,43 +22,54 @@ struct OutputDeviceRow: View {
     // actual layout height animates; hardware demand follows user intent.
     @State private var controls: AirPodsSystemControlsModel?
 
+    /// Spatial Audio and Conversation Awareness are the groups behind the
+    /// chevron. They only exist on AirPods rows that can render system controls.
+    private var hasExtraGroups: Bool {
+        state.supportsAirPodsSystemControls
+            && (state.airPodsSpatialSupported || state.airPodsConversationSupported)
+    }
+
+    /// With two groups the chevron discloses them; with one group it is drawn
+    /// inline and no chevron is shown; with none there is nothing extra.
+    private var showsExtraToggle: Bool {
+        state.supportsAirPodsSystemControls
+            && state.airPodsSpatialSupported && state.airPodsConversationSupported
+    }
+
+    private var showsInlineExtraGroup: Bool {
+        hasExtraGroups && !showsExtraToggle
+    }
+
+    /// AirPods controls align with the device icon's left edge (no text-column
+    /// inset). This is deliberate: it frees horizontal width so longer localized
+    /// labels (e.g. English) fit without truncation.
+    private var contentLeading: CGFloat { 0 }
+
+    /// A compact Adaptive Audio strength bar appears below the listening row
+    /// whenever the Adaptive mode is the selected one.
+    private var showsAdaptiveBar: Bool {
+        state.supportsAirPodsSystemControls
+            && state.listeningMode?.selectedMode == .adaptive
+    }
+
+    /// Rows that start their model as soon as the panel is visible rather than on
+    /// an explicit expansion: the inline single group and the adaptive bar.
+    private var wantsInlineModel: Bool {
+        showsInlineExtraGroup || showsAdaptiveBar
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 6) {
-                selectionButton
-                if state.supportsAirPodsSystemControls {
-                    Button(action: { toggle() }) {
-                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                            .font(.caption.weight(.semibold))
-                            .frame(width: 24, height: 28)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(localization.string(.airPodsControls))
-                    .accessibilityValue(expanded ? localization.string(.commonExpanded) : localization.string(.commonCollapsed))
-                }
-            }
+            selectionButton
 
-            if state.supportsAirPodsSystemControls, let controls {
-                AirPodsSystemControlsView(model: controls, listeningMode: state.listeningMode, onSelectListeningMode: onSelectListeningMode)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 2)
-                    .background(GeometryReader { geometry in
-                        Color.clear.preference(key: AirPodsControlsHeightKey.self, value: geometry.size.height)
-                    })
-                    .frame(height: disclosure.presentedHeight, alignment: .top)
-                    .clipped()
-                    .transaction { $0.animation = nil }
-                    .allowsHitTesting(expanded)
-                    .accessibilityHidden(!expanded)
-            }
-
-            if !state.supportsAirPodsSystemControls, let listeningMode = state.listeningMode, listeningMode.isControllable {
+            if state.supportsAirPodsSystemControls {
+                airPodsControls
+            } else if let listeningMode = state.listeningMode, listeningMode.isControllable {
                 BluetoothListeningModeControl(
                     presentation: listeningMode,
                     onSelect: onSelectListeningMode
                 )
-                .padding(.leading, Self.modeLeadingInset)
+                .padding(.leading, contentLeading)
                 .padding(.top, 2)
             }
         }
@@ -77,19 +88,32 @@ struct OutputDeviceRow: View {
             guard controls != nil else { return }
             controls?.stop()
             controls = makeControls()
-            if expanded, isPresented { controls?.start() }
+            if (expanded || wantsInlineModel), isPresented { controls?.start() }
         }
         .onChange(of: state.supportsAirPodsSystemControls) { supported in
             if !supported { resetControls() }
         }
+        .onChange(of: state.listeningMode?.selectedMode) { mode in
+            // The Adaptive bar needs the model (strength read/write) as soon as
+            // Adaptive becomes the selected mode, even before any expansion.
+            if mode == .adaptive, isPresented {
+                ensureControlsStarted()
+            } else if !expanded, !showsInlineExtraGroup {
+                controls?.stop()
+            }
+        }
         .onAppear {
             disclosure.pixelScale = displayScale
-            if expanded, isPresented { controls?.start() }
+            if wantsInlineModel, isPresented {
+                ensureControlsStarted()
+            } else if expanded, isPresented {
+                ensureControlsStarted()
+            }
             updateDisclosureTarget()
             // Development aid: lets a resize/jitter investigation drive the
             // expansion without a pointer. Ignored outside `.dev.` bundles.
             guard Self.expandsForResizeProbe,
-                  state.supportsAirPodsSystemControls,
+                  showsExtraToggle,
                   !expanded else { return }
             toggle()
         }
@@ -100,7 +124,7 @@ struct OutputDeviceRow: View {
         .onReceive(panelVisibility) { visible in
             isPresented = visible
             if visible {
-                if expanded { controls?.start() }
+                if wantsInlineModel || expanded { ensureControlsStarted() }
                 updateDisclosureTarget()
             } else {
                 controls?.stop()
@@ -109,14 +133,88 @@ struct OutputDeviceRow: View {
         }
     }
 
+    /// The listening-mode quick switch stays visible at all times. When two
+    /// extra groups are available a chevron sits at the right end of this row;
+    /// otherwise the row is the whole control.
+    @ViewBuilder private var airPodsControls: some View {
+        if let listeningMode = state.listeningMode, listeningMode.isControllable {
+            HStack(alignment: .center, spacing: 6) {
+                BluetoothListeningModeControl(
+                    presentation: listeningMode,
+                    onSelect: onSelectListeningMode
+                )
+                if showsExtraToggle {
+                    Spacer(minLength: 6)
+                    expandButton
+                }
+            }
+            .padding(.leading, contentLeading)
+            .padding(.top, 2)
+        } else if showsExtraToggle {
+            HStack {
+                Spacer(minLength: 0)
+                expandButton
+            }
+            .padding(.leading, contentLeading)
+            .padding(.top, 2)
+        }
+
+        if showsAdaptiveBar, let controls {
+            AirPodsAdaptiveBar(model: controls)
+                .padding(.leading, contentLeading)
+                .padding(.top, 2)
+        }
+
+        if showsExtraToggle, let controls {
+            AirPodsSpatialConversationView(model: controls)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, contentLeading)
+                .padding(.top, 4)
+                .padding(.bottom, 6)
+                .background(GeometryReader { geometry in
+                    Color.clear.preference(key: AirPodsControlsHeightKey.self, value: geometry.size.height)
+                })
+                .frame(height: disclosure.presentedHeight, alignment: .top)
+                .clipped()
+                .transaction { $0.animation = nil }
+                .allowsHitTesting(expanded)
+                .accessibilityHidden(!expanded)
+        } else if showsInlineExtraGroup, let controls {
+            AirPodsSpatialConversationView(model: controls)
+                .fixedSize(horizontal: false, vertical: true)
+                // No listening-mode row above: align the group with the device
+                // name's text column and give it room to read as its own block.
+                .padding(.leading, contentLeading)
+                .padding(.top, 6)
+                .padding(.bottom, 6)
+        }
+    }
+
+    private var expandButton: some View {
+        Button(action: { toggle() }) {
+            Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                .font(.caption.weight(.semibold))
+                .frame(width: 24, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(localization.string(.airPodsControls))
+        .accessibilityValue(expanded ? localization.string(.commonExpanded) : localization.string(.commonCollapsed))
+    }
+
+    private func ensureControlsStarted() {
+        if controls == nil { controls = makeControls() }
+        controls?.start()
+    }
+
     private func toggle() {
+        guard showsExtraToggle else { return }
         if expanded {
             expanded = false
             controls?.stop()
         } else {
             expanded = true
-            if controls == nil { controls = makeControls() }
-            if isPresented { controls?.start() }
+            ensureControlsStarted()
         }
         updateDisclosureTarget()
     }

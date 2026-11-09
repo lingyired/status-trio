@@ -513,7 +513,7 @@
 "settings.audio.indicatorStyleDescription" = "Escolha se o volume é exibido como quatro pontos ou um arco contínuo.";
 "settings.audio.indicatorStyle.dots" = "Pontos";
 "settings.audio.indicatorStyle.arc" = "Arco";
-"settings.audio.airPodsInlineControlsTitle" = "Controles AirPods integrados";
+"settings.audio.airPodsInlineControlsTitle" = "Controles de fones";
 "settings.audio.airPodsInlineControls" = "Mostrar controles de AirPods no painel de volume";
 "settings.audio.airPodsInlineControlsDescription" = "Mostra controles de percepção de conversa, áudio espacial e adaptativo ao lado da sua saída de AirPods. Desative para ocultar esses controles baseados em APIs privadas.";
 
@@ -811,3 +811,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "Modo de escuta";
 "settings.subtopic.bluetooth.deviceBattery" = "Bateria do dispositivo";
 "settings.subtopic.bluetooth.deviceManagement" = "Gerenciamento de dispositivos";
+"settings.audio.spatialAudioControlsTitle" = "Mostrar controles de áudio espacial";
+"settings.audio.spatialAudioControlsDescription" = "Mostra as opções de áudio espacial (Desligado/Fixo/Rastreamento de cabeça) na linha de saída dos AirPods. Atualmente apenas AirPods.";
+"settings.audio.conversationAwarenessControlsTitle" = "Mostrar controles de Consciência de Conversa";
+"settings.audio.conversationAwarenessControlsDescription" = "Mostra o interruptor de Consciência de Conversa na linha de saída dos AirPods. Atualmente apenas AirPods.";

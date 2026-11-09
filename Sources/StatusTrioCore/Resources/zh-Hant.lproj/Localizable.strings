@@ -513,7 +513,7 @@
 "settings.audio.indicatorStyleDescription" = "選擇在狀態環底部顯示為四個離散點或連續圓弧條。";
 "settings.audio.indicatorStyle.dots" = "四個點";
 "settings.audio.indicatorStyle.arc" = "圓弧條";
-"settings.audio.airPodsInlineControlsTitle" = "AirPods 內聯控制";
+"settings.audio.airPodsInlineControlsTitle" = "耳機控制";
 "settings.audio.airPodsInlineControls" = "在音量面板中顯示 AirPods 控制";
 "settings.audio.airPodsInlineControlsDescription" = "在你的 AirPods 輸出旁顯示對話感知、空間音訊和自適應控制。關閉可隱藏這些基於私有 API 的控制。";
 
@@ -811,3 +811,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "聆聽模式";
 "settings.subtopic.bluetooth.deviceBattery" = "裝置電量";
 "settings.subtopic.bluetooth.deviceManagement" = "裝置管理";
+"settings.audio.spatialAudioControlsTitle" = "顯示空間音訊控制";
+"settings.audio.spatialAudioControlsDescription" = "在 AirPods 輸出列顯示空間音訊選項（關閉/固定/頭部追蹤）。目前僅支援 AirPods。";
+"settings.audio.conversationAwarenessControlsTitle" = "顯示對話感知控制";
+"settings.audio.conversationAwarenessControlsDescription" = "在 AirPods 輸出列顯示對話感知開關。目前僅支援 AirPods。";

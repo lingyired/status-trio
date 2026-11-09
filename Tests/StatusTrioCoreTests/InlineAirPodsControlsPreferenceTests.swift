@@ -2,8 +2,9 @@ import Foundation
 import XCTest
 @testable import StatusTrioCore
 
-/// The AirPods inline-control preference is a persisted SettingsStore toggle,
+/// The AirPods inline-control preferences are persisted SettingsStore toggles,
 /// defaulting to on so the private-API helper-backed controls ship by default.
+/// Spatial Audio and Conversation Awareness are now separate switches.
 @MainActor
 final class InlineAirPodsControlsPreferenceTests: XCTestCase {
     private func makeDefaults() throws -> (String, UserDefaults) {
@@ -16,27 +17,33 @@ final class InlineAirPodsControlsPreferenceTests: XCTestCase {
     func testDefaultsToOnWhenNeverSet() throws {
         let (_, defaults) = try makeDefaults()
         let settings = SettingsStore(defaults: defaults)
-        XCTAssertTrue(settings.showsInlineAirPodsControls)
+        XCTAssertTrue(settings.showsSpatialAudioControls)
+        XCTAssertTrue(settings.showsConversationAwarenessControls)
     }
 
-    func testReadsPersistedOffValue() throws {
+    func testMigratesLegacySingleSwitchToBothWhenUnset() throws {
         let (_, defaults) = try makeDefaults()
         defaults.set(false, forKey: SettingsStore.showsInlineAirPodsControlsDefaultsKey)
         let settings = SettingsStore(defaults: defaults)
-        XCTAssertFalse(settings.showsInlineAirPodsControls)
+        XCTAssertFalse(settings.showsSpatialAudioControls)
+        XCTAssertFalse(settings.showsConversationAwarenessControls)
     }
 
-    func testWriteRoundTripsThroughUserDefaults() throws {
+    func testEachSwitchPersistsIndependently() throws {
         let (suite, defaults) = try makeDefaults()
-        var settings = SettingsStore(defaults: defaults)
-        settings.showsInlineAirPodsControls = false
-        XCTAssertFalse(defaults.bool(forKey: SettingsStore.showsInlineAirPodsControlsDefaultsKey))
-        // A fresh store sharing the same suite sees the persisted value.
-        let reloaded = SettingsStore(defaults: UserDefaults(suiteName: suite)!)
-        XCTAssertFalse(reloaded.showsInlineAirPodsControls)
+        let settings = SettingsStore(defaults: defaults)
+        settings.showsSpatialAudioControls = false
+        XCTAssertFalse(defaults.bool(forKey: SettingsStore.showsSpatialAudioControlsDefaultsKey))
+        XCTAssertTrue(settings.showsConversationAwarenessControls)
 
-        settings.showsInlineAirPodsControls = true
+        settings.showsConversationAwarenessControls = false
+        let reloaded = SettingsStore(defaults: UserDefaults(suiteName: suite)!)
+        XCTAssertFalse(reloaded.showsSpatialAudioControls)
+        XCTAssertFalse(reloaded.showsConversationAwarenessControls)
+
+        reloaded.showsSpatialAudioControls = true
         let reloadedOn = SettingsStore(defaults: UserDefaults(suiteName: suite)!)
-        XCTAssertTrue(reloadedOn.showsInlineAirPodsControls)
+        XCTAssertTrue(reloadedOn.showsSpatialAudioControls)
+        XCTAssertFalse(reloadedOn.showsConversationAwarenessControls)
     }
 }

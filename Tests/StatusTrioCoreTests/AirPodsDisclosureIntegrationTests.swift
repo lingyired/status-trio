@@ -231,7 +231,8 @@ final class AirPodsDisclosureIntegrationTests: VisibleUITestCase {
         let original = f.data.rows[0]
         f.data.rows = [.init(key: original.key, name: "Renamed AirPods", symbol: original.symbol,
                              selected: true, enabled: true, accessibilityLabel: "Renamed AirPods",
-                             isPreview: true, supportsAirPodsSystemControls: true)]
+                             isPreview: true, supportsAirPodsSystemControls: true,
+                             airPodsSpatialSupported: true, airPodsConversationSupported: true)]
         let writes = f.panel.frameWriteCount
         f.pump(0.3)
         XCTAssertEqual(source.backend.activeCount, 0, "a hidden retained row must not restart hardware")
@@ -418,7 +419,9 @@ final class AirPodsDisclosureIntegrationTests: VisibleUITestCase {
                 symbol: .symbol(name: "airpodspro", variableValue: nil, fallback: nil),
                 selected: true, enabled: true, accessibilityLabel: "AirPods Pro",
                 isPreview: true,
-                supportsAirPodsSystemControls: true
+                supportsAirPodsSystemControls: true,
+                airPodsSpatialSupported: true,
+                airPodsConversationSupported: true
             )
             data = RowData(rows: [row])
             host = StatusPanelHostingController(rootView: AnyView(

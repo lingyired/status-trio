@@ -513,7 +513,7 @@
 "settings.audio.indicatorStyleDescription" = "اختر ما إذا كان مستوى الصوت يظهر كأربع نقاط أو كقوس متصل.";
 "settings.audio.indicatorStyle.dots" = "نقاط";
 "settings.audio.indicatorStyle.arc" = "قوس";
-"settings.audio.airPodsInlineControlsTitle" = "عناصر تحكم AirPods المضمّنة";
+"settings.audio.airPodsInlineControlsTitle" = "عناصر تحكم السماعات";
 "settings.audio.airPodsInlineControls" = "عرض عناصر تحكم AirPods في لوحة الصوت";
 "settings.audio.airPodsInlineControlsDescription" = "يعرض أدوات التحكم في إدراك المحادثة والصوت المكاني والتكيّف بجانب مخرج AirPods. عطّل لإخفاء هذه الأدوات القائمة على واجهات برمجية خاصة.";
 
@@ -811,3 +811,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "وضع الاستماع";
 "settings.subtopic.bluetooth.deviceBattery" = "بطارية الجهاز";
 "settings.subtopic.bluetooth.deviceManagement" = "إدارة الأجهزة";
+"settings.audio.spatialAudioControlsTitle" = "إظهار عناصر تحكم الصوت المكاني";
+"settings.audio.spatialAudioControlsDescription" = "يعرض خيارات الصوت المكاني (إيقاف/ثابت/تتبع الرأس) في صف إخراج AirPods. يدعم AirPods فقط حالياً.";
+"settings.audio.conversationAwarenessControlsTitle" = "إظهار عناصر تحكم الوعي بالمحادثة";
+"settings.audio.conversationAwarenessControlsDescription" = "يعرض مفتاح الوعي بالمحادثة في صف إخراج AirPods. يدعم AirPods فقط حالياً.";
