@@ -163,6 +163,23 @@ final class HardwareReaderTests: XCTestCase {
         XCTAssertNil(bad.fans.first?.maxRPM)
     }
 
+    func testTransientZeroFanIsConfirmedWithASecondRead() {
+        var fanReads = 0
+        let reading = SensorSMCReader.read(platform: .appleSilicon("Apple M3 Max"),
+                                           includeTemperature: false, includeFans: true, at: start) { key in
+            switch key {
+            case "FNum": return 1
+            case "F0Ac":
+                fanReads += 1
+                return fanReads == 1 ? 0 : 1_500   // first read false zero
+            case "F0Mx": return 5_000
+            default: return nil
+            }
+        }
+        XCTAssertEqual(reading.fans.first?.rpm, 1_500,
+                       "a single false zero from SMC contention is re-read, not published")
+    }
+
     func testLiveSensorPipelineMatchesThisMacWhenSMCIsAvailable() throws {
         let reading = SensorSMCReader().read(includeTemperature: true, includeFans: true)
         guard reading.cpuTemperature != nil || reading.fanCount != nil else {

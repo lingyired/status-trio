@@ -145,7 +145,12 @@ struct SensorSMCReader: Sendable {
             fanCount = Int(count)
             for index in 0..<Int(count) {
                 let prefix = "F\(String(index, radix: 16, uppercase: true))"
-                let rpm = validRPM(valueProvider(prefix + "Ac"), allowZero: true)
+                // A transient SMC contention can return a false zero; confirm a
+                // zero with a second read before reporting a stopped fan.
+                var rpm = validRPM(valueProvider(prefix + "Ac"), allowZero: true)
+                if rpm == 0 {
+                    rpm = validRPM(valueProvider(prefix + "Ac"), allowZero: true)
+                }
                 let min = validRPM(valueProvider(prefix + "Mn"), allowZero: true)
                 let max = validRPM(valueProvider(prefix + "Mx"), allowZero: false)
                 fans.append(FanReading(index: index, rpm: rpm, minRPM: min,
