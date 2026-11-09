@@ -258,6 +258,53 @@ final class BluetoothConnectionEventTests: XCTestCase {
         )
     }
 
+    /// A device that was already connected when monitoring began never fires a
+    /// connect callback, so under the connect path alone it got no disconnect
+    /// observation and its departure was only noticed by the slow safety-net
+    /// poll. Adoption installs that observation up front; this pins the
+    /// bookkeeping it relies on.
+    func testAdoptedConnectedDevicesGetTheSameDisconnectBookkeepingAsAConnect() {
+        let monitor = IOBluetoothConnectionEventMonitor()
+        var tokens: [CountingBluetoothNotificationToken] = []
+
+        func adopt(_ identity: String) -> IOBluetoothConnectionEventMonitor.ConnectedDevice {
+            let token = CountingBluetoothNotificationToken()
+            tokens.append(token)
+            return IOBluetoothConnectionEventMonitor.ConnectedDevice(identity: identity) { token }
+        }
+
+        monitor.adoptConnectedDevices([adopt("AA:BB:CC:DD:EE:01")])
+        monitor.handleDeviceDisconnected(identity: "AA:BB:CC:DD:EE:01")
+        XCTAssertTrue(
+            tokens[0].isUnregistered,
+            "an adopted device's disconnect must unregister its registration"
+        )
+
+        // A device that was adopted and then re-connects replaces the entry; the
+        // superseded adopted token has to be unregistered too.
+        monitor.adoptConnectedDevices([adopt("AA:BB:CC:DD:EE:02")])
+        monitor.handleDeviceConnected(identity: "AA:BB:CC:DD:EE:02") { CountingBluetoothNotificationToken() }
+        XCTAssertTrue(tokens[1].isUnregistered, "a reconnect must unregister the adopted registration")
+
+        // Teardown releases what is still live, including an adopted device that
+        // never disconnected.
+        monitor.adoptConnectedDevices([adopt("AA:BB:CC:DD:EE:03")])
+        monitor.stop()
+        XCTAssertTrue(tokens[2].isUnregistered, "stop() must unregister an adopted, still-live registration")
+
+        // A registration the SDK refuses (nil) must not create an entry; a later
+        // disconnect on that identity is a harmless no-op.
+        var refused = 0
+        monitor.adoptConnectedDevices([
+            IOBluetoothConnectionEventMonitor.ConnectedDevice(identity: "AA:BB:CC:DD:EE:04") {
+                refused += 1
+                return nil
+            }
+        ])
+        XCTAssertEqual(refused, 1)
+        monitor.handleDeviceDisconnected(identity: "AA:BB:CC:DD:EE:04")
+    }
+
     private func waitUntil(_ condition: () -> Bool) async {
         for _ in 0..<1_000 {
             if condition() { return }
