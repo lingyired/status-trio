@@ -111,13 +111,18 @@ struct BatterySectionView: View {
         SettingsHintRow(
             text: localization.string(.settingsBatteryChargeToFullNowOptimizedNote)
         )
-        if chargeToFullNow?.isSettingAvailable == true {
-            chargeToFullNowContent
-        }
-        systemChargeLimitUnavailableNote
+        // Restore-limit feature turned off for now: the "Restore Limit After
+        // Cancelling" row and its "cannot read the charge limit" note are
+        // commented out because the system does not report a usable limit.
+        // if chargeToFullNow?.isSettingAvailable == true {
+        //     chargeToFullNowContent
+        // }
+        // systemChargeLimitUnavailableNote
     }
 
 
+    // Commented out with the restore-limit feature (see chargeManagementContent).
+    #if false
     @ViewBuilder
     private var chargeToFullNowContent: some View {
         if let chargeToFullNow, chargeToFullNow.isSettingAvailable {
@@ -192,6 +197,7 @@ struct BatterySectionView: View {
             .padding(.bottom, 6)
         }
     }
+    #endif
 
     /// The privileged power-mode control and the low-battery automation.
     private var powerModesGroup: some View {

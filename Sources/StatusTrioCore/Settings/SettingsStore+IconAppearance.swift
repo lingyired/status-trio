@@ -81,7 +81,8 @@ extension SettingsStore {
                     showsChargingBoltHeartbeat: appearanceInputs.3,
                     splitGapProgress: effects.2,
                     fullThreshold: Self.defaultBatteryFullThreshold,
-                    batteryStatusColors: .standard
+                    batteryStatusColors: .standard,
+                    monochromeChargingRing: nil
                 )
             }
             .combineLatest($batteryFullThreshold) { inputs, fullThreshold in
@@ -92,6 +93,11 @@ extension SettingsStore {
             .combineLatest($batteryStatusColors) { inputs, colors in
                 var updated = inputs
                 updated.batteryStatusColors = colors
+                return updated
+            }
+            .combineLatest($monochromeChargingRing) { inputs, monochromeCharging in
+                var updated = inputs
+                updated.monochromeChargingRing = monochromeCharging
                 return updated
             }
             .eraseToAnyPublisher()
@@ -158,6 +164,7 @@ private struct BatteryAppearanceInputs {
     var splitGapProgress: Bool
     var fullThreshold: Double
     var batteryStatusColors: BatteryStatusColors
+    var monochromeChargingRing: Bool?
 
     func options(ringStrokeScale: Double) -> BatteryIconOptions {
         BatteryIconOptions(
@@ -173,7 +180,8 @@ private struct BatteryAppearanceInputs {
             onBatteryMarker: onBatteryMarker,
             chargingMarker: chargingMarker,
             connectedMarker: connectedMarker,
-            noBatteryMarker: noBatteryMarker
+            noBatteryMarker: noBatteryMarker,
+            monochromeCharging: monochromeChargingRing
         )
     }
 }

@@ -19,5 +19,4 @@ enum ChargeToFullNowHiddenReason: Equatable, Sendable {
     case stateReadFailed
     case noActiveChargeLimit
     case unrecognizedChargeLimitState
-    case restoredLimit(Int)
 }

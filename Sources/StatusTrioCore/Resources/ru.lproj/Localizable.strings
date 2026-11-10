@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "На этом Mac нет аккумулятора, поэтому этот значок только декоративный: он рисует молнию или вилку в разрыве кольца и не отражает реальную зарядку.";
 "settings.battery.noBatteryGapIcon" = "Значок разрыва";
 "settings.battery.showPercentage" = "Показывать процент заряда";
+"settings.battery.showPercentageNoBattery" = "У этого устройства нет батареи";
 "settings.battery.showChargingIndicator" = "Показывать значок при зарядке или питании от сети";
 "settings.battery.chargingDescription" = "Если включено, процент заменяется молнией или вилкой во время зарядки или при питании от сети.";
 "settings.battery.splitGapProgress" = "Делить прогресс при заполненном верхнем разрыве";
@@ -220,6 +221,13 @@
 "settings.battery.symbolScaleDescription" = "Процент и молния используют один размер.";
 "settings.battery.statusColors" = "Окрашивать дугу по состоянию батареи";
 "settings.battery.statusColorsDescription" = "По умолчанию: питание от сети — зелёный, энергосбережение — жёлтый, низкий заряд — красный. Цвета можно изменить ниже. При выключении сохранённые свои цвета не применяются.";
+"settings.battery.monochromeCharging" = "Чёрно-белый при зарядке или питании";
+"settings.battery.monochromeChargingDescription" = "Рисует кольцо чёрно-белым при зарядке или питании. Режимы энергосбережения и высокой мощности сохраняют свои цвета. На Mac без батареи включено по умолчанию.";
+
+"settings.battery.developerPreview" = "Предпросмотр для разработчиков";
+"settings.battery.simulateNoBattery" = "Имитировать отсутствие батареи";
+"settings.battery.simulateNoBatteryDescription" = "Показывает эту страницу так, как она выглядит на Mac без батареи. Только в сборках для разработки.";
+"settings.battery.noBatteryHiddenOptions" = "На этом Mac нет батареи: процент и индикатор зарядки не применяются. Кольцо по умолчанию чёрно-белое; выключите выше, чтобы использовать цвет питания. Режимы энергосбережения и высокой мощности сохраняют цвета.";
 "settings.battery.colors.charging" = "Зарядка / питание от сети";
 "settings.battery.colors.lowPower" = "Режим энергосбережения";
 "settings.battery.colors.critical" = "Критически низкий заряд";
@@ -241,9 +249,10 @@
 "settings.battery.criticalThreshold" = "Критический уровень аккумулятора";
 "settings.battery.criticalThresholdDescription" = "Ниже этого уровня значок аккумулятора окрашивается в цвет критического заряда.";
 "settings.battery.fullThreshold" = "Уровень полного кольца";
-"settings.battery.fullThresholdDescription" = "Кольцо батареи считается заполненным на этом уровне. Полезно, когда ограничение заряда удерживает батарею ниже 100%.";
+"settings.battery.fullThresholdDescription" = "Только при подключённом питании: кольцо заполнено на этом уровне. От батареи используется реальный уровень.";
 "settings.battery.fullThresholdUseChargeLimit" = "Взять ограничение заряда";
-"settings.battery.fullThresholdSystemUnavailable" = "Этот Mac не сообщает ограничение заряда, поэтому значение прочитать нельзя.";
+"settings.battery.fullThresholdSystemUnavailable" = "Не удалось прочитать текущий системный лимит зарядки. Проверьте его в «Системные настройки → Аккумулятор → Зарядка», в ⓘ справа.";
+"settings.battery.fullThresholdOpenSystemSettings" = "Открыть Системные настройки";
 "settings.updates.title" = "Обновления";
 "settings.updates.automatic" = "Автоматически проверять обновления";
 "settings.updates.check" = "Проверить обновления…";
@@ -918,7 +927,7 @@
 "battery.energy.monitoringDescription" = "Если включено, активность приложений измеряется в фоне даже при закрытой панели. Сбор приостанавливается при отключении, во время сна системы или экрана и при выходе из Status Trio.";
 "settings.battery.showChargeToFullNow" = "Показывать кнопку «Зарядить полностью сейчас»";
 "settings.battery.showChargeToFullNowDescription" = "Показывает в панели состояния кнопку, которая временно снимает ограничение зарядки macOS или паузу оптимизированной зарядки аккумулятора и заряжает до 100 %.";
-"settings.battery.chargeToFullNowOptimizedNote" = "Если предел установлен на 100 %, а оптимизированная зарядка аккумулятора приостановила зарядку, «Зарядить полностью сейчас» возобновит её без кнопки отмены и без применения указанного ниже предела восстановления.";
+"settings.battery.chargeToFullNowOptimizedNote" = "Эта кнопка соответствует действию «Зарядить полностью сейчас» в меню аккумулятора macOS.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Кнопка скрыта: Требуется macOS 26.4 или новее";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Кнопка скрыта: Требуется Mac с чипом Apple";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Кнопка скрыта: Системный фреймворк зарядки недоступен";
@@ -931,7 +940,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "Кнопка скрыта: Не удалось прочитать состояние зарядки системы. Откройте эту страницу позже";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "Кнопка скрыта: Оптимизированный аккумулятором предел зарядки — 100%, эта кнопка не нужна";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Кнопка скрыта: Системный предел зарядки сейчас нельзя временно отменить";
-"settings.battery.chargeHidden.restoredLimit" = "Кнопка скрыта: Восстановление предела %d%%; ожидание стабилизации зарядки";
 "settings.battery.chargeHidden.controllerUnavailable" = "Кнопка скрыта: Управление зарядкой временно недоступно";
 "settings.battery.restoreLimit" = "Предел после отмены";
 "settings.battery.restoreLimitDescription" = "Предел зарядки, восстанавливаемый при отмене «Зарядить полностью сейчас».";

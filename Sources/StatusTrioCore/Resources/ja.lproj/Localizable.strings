@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "このMacにはバッテリーがないため、このアイコンは装飾用です。リングの隙間に稲妻またはプラグを表示しますが、実際の充電状態を示すものではありません。";
 "settings.battery.noBatteryGapIcon" = "隙間のアイコン";
 "settings.battery.showPercentage" = "バッテリー残量を表示";
+"settings.battery.showPercentageNoBattery" = "このデバイスにはバッテリーがありません";
 "settings.battery.showChargingIndicator" = "充電中または電源接続時にアイコンを表示";
 "settings.battery.chargingDescription" = "有効にすると、充電中または電源接続時に残量が稲妻またはプラグに変わります。無効の場合は残量を表示します。";
 "settings.battery.splitGapProgress" = "上部のすき間があるときに進捗を分割";
@@ -220,6 +221,13 @@
 "settings.battery.symbolScaleDescription" = "残量と稲妻は同じサイズを使用します。";
 "settings.battery.statusColors" = "バッテリー状態で円弧を色分け";
 "settings.battery.statusColorsDescription" = "初期設定は電源接続時が緑、低電力モードが黄、低残量が赤です。下で変更できます。オフにすると保存済みのカスタム色は適用されません。";
+"settings.battery.monochromeCharging" = "充電・電源接続時は白黒";
+"settings.battery.monochromeChargingDescription" = "充電中・電源接続中はリングを白黒で描画します。低電力モードと高電力モードはそれぞれの色を使います。バッテリーのない Mac は既定でオンです。";
+
+"settings.battery.developerPreview" = "開発者プレビュー";
+"settings.battery.simulateNoBattery" = "バッテリーなしをシミュレート";
+"settings.battery.simulateNoBatteryDescription" = "バッテリーのない Mac での表示を再現します。開発ビルドのみ。";
+"settings.battery.noBatteryHiddenOptions" = "この Mac にはバッテリーがありません。残量パーセントと充電インジケーターは適用されません。リングは既定で白黒です。上でオフにすると電源接続色になります。低電力モードと高電力モードはそれぞれの色を保ちます。";
 "settings.battery.colors.charging" = "充電中 / 電源接続中";
 "settings.battery.colors.lowPower" = "低電力モード";
 "settings.battery.colors.critical" = "バッテリー残量がわずか";
@@ -241,9 +249,10 @@
 "settings.battery.criticalThreshold" = "クリティカル残量しきい値";
 "settings.battery.criticalThresholdDescription" = "この値を下回ると、バッテリーアイコンがクリティカル低バッテリー色になります。";
 "settings.battery.fullThreshold" = "リング満充電の基準";
-"settings.battery.fullThresholdDescription" = "この电量に達した時点でリングを満充電として表示します。充電上限が100%未満に設定されている場合に便利です。";
+"settings.battery.fullThresholdDescription" = "電源接続時のみ有効：この値でリングが満杯になります。バッテリー使用時は実際の残量で表示します。";
 "settings.battery.fullThresholdUseChargeLimit" = "充電上限を使用";
-"settings.battery.fullThresholdSystemUnavailable" = "この Mac は充電上限を報告しないため、その値を読み取れません。";
+"settings.battery.fullThresholdSystemUnavailable" = "現在のシステム充電上限を取得できませんでした。「システム設定 → バッテリー → 充電」の右側の ⓘ で確認してください。";
+"settings.battery.fullThresholdOpenSystemSettings" = "システム設定を開く";
 "settings.updates.title" = "アップデート";
 "settings.updates.automatic" = "自動的にアップデートを確認";
 "settings.updates.check" = "アップデートを確認…";
@@ -918,7 +927,7 @@
 "battery.energy.monitoringDescription" = "有効にすると、パネルを閉じている間もバックグラウンドでアプリのアクティビティをサンプリングします。無効化時、システムまたは画面のスリープ中、Status Trio 終了時は停止します。";
 "settings.battery.showChargeToFullNow" = "「今すぐフル充電」ボタンを表示";
 "settings.battery.showChargeToFullNowDescription" = "ステータスパネルに、macOS の充電上限または最適化されたバッテリー充電の一時停止を解除して 100% まで充電するボタンを表示します。";
-"settings.battery.chargeToFullNowOptimizedNote" = "充電上限が 100% で、最適化されたバッテリー充電により一時停止している場合、「今すぐフル充電」で充電を再開します。「キャンセル」は表示されず、下の復元上限も適用されません。";
+"settings.battery.chargeToFullNowOptimizedNote" = "このボタンは、macOS のバッテリーメニューにある「今すぐフル充電」と同じ動作です。";
 "settings.battery.chargeHidden.unsupportedSystem" = "ボタン非表示：macOS 26.4 以降が必要です";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "ボタン非表示：Apple シリコン搭載 Mac が必要です";
 "settings.battery.chargeHidden.frameworkUnavailable" = "ボタン非表示：システムの充電フレームワークを利用できません";
@@ -931,7 +940,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "ボタン非表示：システムの充電状態を読み取れません。後でこのページを開き直してください";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "ボタン非表示：バッテリー最適化の充電上限が 100% のため、このボタンは不要です";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "ボタン非表示：システムの充電上限を一時解除できる状態ではありません";
-"settings.battery.chargeHidden.restoredLimit" = "ボタン非表示：上限を %d%% に復元中です。充電が安定するまでお待ちください";
 "settings.battery.chargeHidden.controllerUnavailable" = "ボタン非表示：充電制御を一時的に利用できません";
 "settings.battery.restoreLimit" = "キャンセル後に復元する充電上限";
 "settings.battery.restoreLimitDescription" = "「今すぐフル充電」をキャンセルしたときに復元する充電上限。";

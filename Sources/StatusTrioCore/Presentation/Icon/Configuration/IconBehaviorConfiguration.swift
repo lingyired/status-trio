@@ -85,6 +85,10 @@ struct SystemBatteryRingBehavior: Codable, Equatable, Sendable {
     var fullThreshold: Int = BatteryIconOptions.defaultFullThreshold
     /// What the connected-without-charging gap shows (#195).
     var connectedIndicator: BatteryConnectedIndicator = .plug
+    /// #309: nil = automatic (black/white on a battery-less Mac, connected
+    /// colour when a battery is present); explicit `false` forces the coloured
+    /// ring even without a battery.
+    var monochromeCharging: Bool? = nil
 
     static let classic = Self(
         showsPercentage: true,

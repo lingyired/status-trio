@@ -848,6 +848,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(store.batteryFullThreshold, 80, accuracy: 0.001)
         XCTAssertEqual(store.batteryIconOptions.fullThreshold, 80)
+        XCTAssertFalse(store.batteryFullThresholdReadFailed)
     }
 
     /// The value is a one-shot fill, not a mode: the slider keeps working
@@ -892,6 +893,14 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(store.batteryFullThreshold, 75, accuracy: 0.001)
         XCTAssertFalse(store.canReadSystemChargeLimit)
+        XCTAssertTrue(
+            store.batteryFullThresholdReadFailed,
+            "A failed press is what surfaces the note."
+        )
+
+        // Taking manual control clears the note.
+        store.batteryFullThreshold = 70
+        XCTAssertFalse(store.batteryFullThresholdReadFailed)
     }
 
     func testSystemValueIsReportedUnavailableWhenNoLimitIsStored() throws {

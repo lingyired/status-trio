@@ -175,6 +175,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "هذا الـ Mac بلا بطارية، لذا فإن هذا الرمز للزينة فقط: يرسم صاعقة أو قابسًا في فجوة الحلقة ولا يعكس حالة شحن حقيقية.";
 "settings.battery.noBatteryGapIcon" = "رمز الفجوة";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
+"settings.battery.showPercentageNoBattery" = "هذا الجهاز لا يحتوي على بطارية";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";
 "settings.battery.chargingDescription" = "عند التفعيل، تتحول النسبة إلى رمز برق أو قابس أثناء الشحن أو الاتصال بالطاقة.";
 "settings.battery.splitGapProgress" = "تقسيم التقدم عندما تكون الفجوة العليا ممتلئة";
@@ -203,6 +204,13 @@
 "settings.battery.symbolScaleDescription" = "تستخدم النسبة ورمز البرق الحجم نفسه.";
 "settings.battery.statusColors" = "تلوين القوس حسب حالة البطارية";
 "settings.battery.statusColorsDescription" = "الألوان الافتراضية هي الأخضر للطاقة والأصفر لوضع الطاقة المنخفضة والأحمر لانخفاض البطارية. يمكنك تغييرها أدناه. عند التعطيل لا تُطبّق الألوان المخصصة المحفوظة.";
+"settings.battery.monochromeCharging" = "أبيض وأسود أثناء الشحن أو توصيل الطاقة";
+"settings.battery.monochromeChargingDescription" = "يرسم الحلقة بالأبيض والأسود أثناء الشحن أو توصيل الطاقة. يحتفظ وضعا الطاقة المنخفضة والعالية بألوانهما. يُفعَّل افتراضيًا على Mac بدون بطارية.";
+
+"settings.battery.developerPreview" = "معاينة المطوّر";
+"settings.battery.simulateNoBattery" = "محاكاة عدم وجود بطارية";
+"settings.battery.simulateNoBatteryDescription" = "يعرض هذه الصفحة كما تظهر على Mac بدون بطارية. في إصدارات التطوير فقط.";
+"settings.battery.noBatteryHiddenOptions" = "لا توجد بطارية في هذا الـ Mac: النسبة المئوية ومؤشر الشحن لا ينطبقان. الحلقة أبيض وأسود افتراضيًا؛ أوقفه أعلى لاستخدام لون توصيل الطاقة. يحتفظ وضعا الطاقة المنخفضة والعالية بألوانهما.";
 "settings.battery.colors.charging" = "الشحن / الاتصال بالطاقة";
 "settings.battery.colors.lowPower" = "وضع الطاقة المنخفضة";
 "settings.battery.colors.critical" = "انخفاض حرج في البطارية";
@@ -224,9 +232,10 @@
 "settings.battery.criticalThreshold" = "حد البطارية الحرج";
 "settings.battery.criticalThresholdDescription" = "تحت هذا المستوى يستخدم رمز البطارية لون البطارية الحرج.";
 "settings.battery.fullThreshold" = "مستوى اكتمال الحلقة";
-"settings.battery.fullThresholdDescription" = "تُعتبر حلقة البطارية ممتلئة عند هذا المستوى. مفيد عندما يحد تحديد الشحن من البطارية دون 100%.";
+"settings.battery.fullThresholdDescription" = "يُطبَّق فقط أثناء الاتصال بالطاقة: تمتلئ الحلقة عند هذا المستوى، وأثناء استخدام البطارية تُستخدم النسبة الحقيقية.";
 "settings.battery.fullThresholdUseChargeLimit" = "استخدام حد الشحن";
-"settings.battery.fullThresholdSystemUnavailable" = "لا يُفصح هذا الجهاز عن حد الشحن، لذا لا يمكن قراءة القيمة.";
+"settings.battery.fullThresholdSystemUnavailable" = "تعذّرت قراءة حد الشحن الحالي للنظام. تحقّق منه في «إعدادات النظام → البطارية → الشحن» عبر زر ⓘ على اليمين.";
+"settings.battery.fullThresholdOpenSystemSettings" = "فتح إعدادات النظام";
 "settings.updates.title" = "التحديثات";
 "settings.updates.automatic" = "التحقق تلقائيًا من وجود تحديثات";
 "settings.updates.check" = "التحقق من وجود تحديثات…";
@@ -918,7 +927,7 @@
 "battery.energy.monitoringDescription" = "عند التفعيل، يتم قياس نشاط التطبيقات في الخلفية حتى عندما تكون اللوحة مغلقة. يتوقف القياس عند التعطيل أو أثناء سكون النظام أو الشاشة أو عند إنهاء Status Trio.";
 "settings.battery.showChargeToFullNow" = "إظهار زر الشحن حتى الامتلاء الآن";
 "settings.battery.showChargeToFullNowDescription" = "يعرض زرًا في لوحة الحالة لتجاوز حد الشحن في macOS أو إيقاف الشحن المؤقت بسبب الشحن المُحسَّن مؤقتًا والشحن حتى 100%.";
-"settings.battery.chargeToFullNowOptimizedNote" = "عندما يكون حد الشحن 100% ويوقف شحن البطارية المُحسَّن الشحن مؤقتًا، يستأنف زر الشحن حتى الامتلاء الآن الشحن دون إظهار زر إلغاء أو تطبيق حد الاستعادة أدناه.";
+"settings.battery.chargeToFullNowOptimizedNote" = "هذا الزر مطابق لإجراء «الشحن بشكل كامل الآن» في قائمة البطارية في macOS.";
 "settings.battery.chargeHidden.unsupportedSystem" = "الزر مخفي: يتطلب macOS 26.4 أو أحدث";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "الزر مخفي: يتطلب Mac بشريحة Apple";
 "settings.battery.chargeHidden.frameworkUnavailable" = "الزر مخفي: إطار عمل الشحن في النظام غير متاح";
@@ -931,7 +940,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "الزر مخفي: تعذّرت قراءة حالة شحن النظام. أعد فتح هذه الصفحة لاحقًا";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "الزر مخفي: حد الشحن المحسّن للبطارية هو 100%، لذا لا حاجة لهذا الزر";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "الزر مخفي: لا يمكن تجاوز حد شحن النظام حاليًا";
-"settings.battery.chargeHidden.restoredLimit" = "الزر مخفي: جارٍ استعادة حد %d%%؛ بانتظار استقرار الشحن";
 "settings.battery.chargeHidden.controllerUnavailable" = "الزر مخفي: التحكم في الشحن غير متاح مؤقتًا";
 "settings.battery.restoreLimit" = "حد الشحن بعد الإلغاء";
 "settings.battery.restoreLimitDescription" = "حد الشحن الذي يُستعاد عند إلغاء «الشحن بشكل كامل الآن».";

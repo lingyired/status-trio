@@ -58,7 +58,7 @@ Status Trio ist eine native macOS-Status-App, die Wi-Fi, Batterie und Lautstärk
 
 - **Ein Symbol, drei Signale** — Batterie, Wi-Fi und Lautstärke teilen sich ein Symbol in der Menüleiste, im Dock oder an beiden Orten, und ein Bluetooth-Gerät, das gerade wiedergibt, kann mit seinem eigenen Symbol den mittleren Platz einnehmen.
 - **Bluetooth** — die Lautstärkeanzeige wird blau, während der Wiedergabe. Der Bluetooth-Bereich listet gekoppelte Geräte auf, die Sie antippen können, um sie zu verbinden oder zu trennen, zeigt standardmäßig die Batteriestände und bleibt aus, bis Sie ihn aktivieren.
-- **Batterie** — Prozentsatz, Laden oder Netzbetrieb, Zeit bis voll und eine Farbe, wenn der Ladestand niedrig wird. Öffnen Sie die Zeile für Netzteil-Nennleistung, Batteriespannung, Batteriestrom, Ladezyklen und Stromsparmodus.
+- **Batterie** — Prozentsatz, Laden oder Netzbetrieb, Zeit bis voll und eine Farbe, wenn der Ladestand niedrig wird. Öffnen Sie die Zeile für Netzteil-Nennleistung, Batteriespannung, Batteriestrom, Ladezyklen und Stromsparmodus, dazu optionaler geschätzter Leistungsfluss und eine CPU-Energieauslastungsliste; unterstützte Apple-Silicon-Macs (ab macOS 26.4) können das Ladelimit zudem mit **Jetzt vollständig laden** aufheben.
 - **Wi-Fi** — das Netzwerk, mit dem Sie verbunden sind, und die Signalstärke. Öffnen Sie es, um Netzwerke in der Nähe zu sehen, die Verbindungsdetails zu prüfen oder Wi-Fi auszuschalten. Der Wechsel zwischen Netzwerken findet im Wi-Fi-Bereich der Systemeinstellungen statt.
 - **Lautstärke** — Pegel, Stummschaltung und das Ausgabegerät, dargestellt als Punkte oder Bogen. Scrollen Sie im ganzen Bereich oder nur im Lautstärkeregler, und wählen Sie, in welche Richtung die Lautstärke erhöht wird.
 - **Nach Ihren Wünschen** — Symbolgröße, Symbolskalierung, Stärke des äußeren Rings, Statusfarben und welche Elemente das Popover zeigt, in der Reihenfolge Ihrer Wahl.
@@ -92,13 +92,6 @@ Die offizielle Version ist mit Developer ID signiert und von Apple notarisiert. 
 - **Bluetooth-Steuerung**: Bluetooth ein- oder ausschalten, Geräte verbinden oder trennen und Hörmodi unterstützter AirPods und HUAWEI FreeBuds wechseln. Optionale Apple-Gerätebatterien werden in den Bluetooth-Einstellungen konfiguriert; die Verfügbarkeit hängt von Gerät und Verbindung ab.
 - **Audioeingabe und -ausgabe**: Lautsprecher oder Mikrofone auswählen und Pegel anpassen. Kompatible externe Monitorlautsprecher lassen sich über DDC steuern; die Unterstützung hängt von Hardware und Verbindung ab.
 - **Laden und Darstellung**: Ladeeffekte in Menüleiste und Dock. Ab macOS 26 folgt auch das App-Symbol in Finder und Launchpad der hellen oder dunklen Systemdarstellung.
-
-## Neu auf main (unveröffentlicht)
-
-Diese Funktionen sind im Quellcode auf `main`, aber nicht in der aktuellen öffentlichen GitHub-/Homebrew-Version **1.7.5** enthalten:
-
-- **Leistungsfluss und CPU-Energieeinfluss**: Schätzwerte für Ladegeräteingang, Batterieladung und Systemleistung. Eine optionale Liste sortiert bis zu fünf Apps nach CPU-Energie oder ersatzweise CPU-Aktivität. Dies ist weder der gesamte App-Verbrauch noch die native macOS-Liste. Aktivieren startet regelmäßige Hintergrundmessungen, Deaktivieren beendet sie. [Details](docs/battery-power-flow.md).
-- **Jetzt vollständig laden und abbrechen**: Standardmäßig ausgeschaltete Option für unterstützte Apple-Silicon-Macs ab macOS 26.4. Sie hebt das Ladelimit über eine private PowerUI-Schnittstelle auf. **Das Limit kann nach dem Laden oder erneutem Anschließen bei 100 % bleiben; es wird nicht automatisch wiederhergestellt.** Über Abbrechen die Wiederherstellung anfordern oder das Limit in den Systemeinstellungen prüfen und wiederherstellen. Das Verhalten hängt von macOS ab. [Verhalten und Prüfung](docs/charge-to-full-now-poc.md).
 
 ## Bluetooth-Audio
 
@@ -197,7 +190,7 @@ Das ad-hoc-signierte Bundle ist für die lokale persönliche Nutzung gedacht. Ga
 Zwei Grenzen, die macOS und dieses Projekt bewusst ziehen. Beide sind in [Bekannte Einschränkungen](docs/known-limitations.md) erklärt.
 
 - **Der Wechsel zwischen Netzwerken findet in den Systemeinstellungen statt.** Die Auswahl eines Netzwerks im Popover öffnet den Wi-Fi-Bereich; Status Trio liest oder speichert niemals Wi-Fi-Passwörter, denn macOS bietet keine öffentliche API, um sich mit einem gespeicherten Passwort zu verbinden, und jede Alternative endet damit, dass die App sie aufbewahrt.
-- **Die Ladelimit-Steuerung hängt von der Version ab.** Version 1.7.5 öffnet die Systemeinstellungen. Die optionale Funktion auf `main` verwendet eine private Schnittstelle und erfordert einen ausdrücklichen Abbruch zur Wiederherstellung. [Details](docs/charge-to-full-now-poc.md). Der Stromsparmodus verwendet einen separaten [optionalen privilegierten Helper](docs/privileged-helper.md).
+- **Die Ladelimit-Steuerung nutzt eine private Schnittstelle.** Die optionale Aktion **Jetzt vollständig laden** erscheint nur auf unterstützten Apple-Silicon-Macs ab macOS 26.4, nutzt eine private PowerUI-Schnittstelle und lässt sich in den Batterie-Einstellungen abschalten; Verfügbarkeit und Verhalten hängen von macOS ab. Das Limit kann nach dem Laden oder Abstecken bei 100 % bleiben und wird nicht automatisch wiederhergestellt; stelle es bei Bedarf in den Systemeinstellungen wieder her. Der Stromsparmodus verwendet einen separaten [optionalen privilegierten Helper](docs/privileged-helper.md).
 
 ## Sprachen
 
@@ -205,7 +198,7 @@ Status Trio folgt standardmäßig der bevorzugten Sprache von macOS und enthält
 
 ## Datenschutz
 
-Status Trio liest den Systemstatus lokal. Anonyme Nutzungsstatistiken werden nur nach Aktivierung an den eigenen Dienst gesendet; bei Upgrades sind sie aus, bei Neuinstallationen wird gefragt. Enthalten sind eine zufällige Installations-ID, App- und macOS-Version, Sprache und Symbolposition, ohne Namen, Konten, Netzwerkdetails oder Hardwarekennungen. Siehe [Telemetrie und Datenschutz](docs/privacy-telemetry.md). Die App liest oder speichert keine WLAN-Passwörter und fordert keinen Schlüsselbundzugriff an. Standortzugriff ist für WLAN-Name und Details optional; Bluetooth-Zugriff wird beim Aktivieren des Panels angefordert. Auf `main` nutzt die optionale Vollladefunktion nur bei Aktivierung eine private PowerUI-Schnittstelle; ihre Grenzen stehen oben.
+Status Trio liest den Systemstatus lokal. Anonyme Nutzungsstatistiken werden nur nach Aktivierung an den eigenen Dienst gesendet; bei Upgrades sind sie aus, bei Neuinstallationen wird gefragt. Enthalten sind eine zufällige Installations-ID, App- und macOS-Version, Sprache und Symbolposition, ohne Namen, Konten, Netzwerkdetails oder Hardwarekennungen. Siehe [Telemetrie und Datenschutz](docs/privacy-telemetry.md). Die App liest oder speichert keine WLAN-Passwörter und fordert keinen Schlüsselbundzugriff an. Standortzugriff ist für WLAN-Name und Details optional; Bluetooth-Zugriff wird beim Aktivieren des Panels angefordert. Die optionale Vollladefunktion nutzt nur bei Aktivierung eine private PowerUI-Schnittstelle; Verhalten und Grenzen stehen unter [bekannte Einschränkungen](docs/known-limitations.md).
 
 ## Entwicklung
 
@@ -260,6 +253,11 @@ Die Sperre für einzelne Instanzen richtet sich nach der Bundle-ID, sodass Build
 Copyright 2026 lingyired.
 
 Lizenziert unter der Apache License, Version 2.0. Siehe [LICENSE](LICENSE) und [NOTICE](NOTICE).
+
+Mitgelieferte Drittanbieter-Komponenten unterliegen ihren eigenen Lizenzen und ändern nichts an der Apache-2.0-Lizenz des Projekts:
+
+- [Lizenzen und Abhängigkeitshinweise von Drittanbietern](docs/legal/third-party-licenses.md)
+- [Quellcode und Build-/Ersetzungsanleitung von Drittanbietern](Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md)
 
 ## Autor
 

@@ -679,7 +679,8 @@ struct IconGuideView: View {
             fullThreshold: configured.fullThreshold,
             textScale: configured.textScale,
             ringStrokeScale: configured.ringStrokeScale,
-            batteryStatusColors: configured.batteryStatusColors
+            batteryStatusColors: configured.batteryStatusColors,
+            monochromeCharging: configured.monochromeCharging
         )
     }
 

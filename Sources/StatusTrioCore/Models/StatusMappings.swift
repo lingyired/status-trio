@@ -52,13 +52,23 @@ enum StatusMappings {
     static func batteryColorRole(
         _ battery: BatteryStatus,
         criticalThreshold: Int = 20,
-        isHighPowerMode: Bool = false
+        isHighPowerMode: Bool = false,
+        /// A battery-less Mac is always on AC power, so its decorative ring still
+        /// reflects the "connected to power" colour (#309). Charging and
+        /// Low/High Power Mode keep their usual precedence.
+        treatAsConnected: Bool = false,
+        /// When on, the charging / connected-to-power state draws in the plain
+        /// foreground colour instead of the charging colour (#309). Low, High
+        /// Power Mode and critical keep their own colours.
+        monochromeCharging: Bool = false
     ) -> BatteryColorRole {
         let threshold = min(100, max(0, criticalThreshold))
         if battery.percentage < threshold { return .critical }
         if battery.isLowPowerMode { return .lowPower }
         if isHighPowerMode { return .highPower }
-        if battery.isCharging || battery.isConnectedToPower { return .charging }
+        if battery.isCharging || battery.isConnectedToPower || treatAsConnected {
+            return monochromeCharging ? .foreground : .charging
+        }
         return .foreground
     }
 
@@ -97,15 +107,20 @@ enum StatusMappings {
 
     /// How far around the ring the battery arc is drawn.
     ///
-    /// The arc is measured against `fullThreshold`, not against a fixed 100%,
-    /// so a level-limited battery can close the ring at the level the user
-    /// picked (#105). `fullThreshold` defaults to 100 and therefore keeps the
-    /// raw-percentage behaviour for every caller with no opinion of its own.
+    /// The full-ring level only applies while the Mac is on power. A charge
+    /// limit holds the battery below 100%, so on power the ring closes at the
+    /// level the user picked (#105). On battery the limit is irrelevant — the
+    /// Mac is running off the pack — so the arc falls back to the real 100%
+    /// scale; otherwise a 29% charge drawn against an 80% threshold would look
+    /// far fuller than the number (#318). `fullThreshold` defaults to 100, so
+    /// callers with no opinion keep the raw-percentage behaviour.
     static func batteryProgress(
         _ battery: BatteryStatus,
         fullThreshold: Int = BatteryIconOptions.defaultFullThreshold
     ) -> Double {
-        let threshold = min(100, max(1, fullThreshold))
+        let threshold = battery.isConnectedToPower
+            ? min(100, max(1, fullThreshold))
+            : 100
         return min(1, max(0, Double(battery.percentage) / Double(threshold)))
     }
 

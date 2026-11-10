@@ -60,4 +60,53 @@ final class IconV1MainSceneParityTests: XCTestCase {
         }
         XCTAssertEqual(mismatches, 0)
     }
+
+    /// #309: the monochrome-charging ring choice and the battery-less ring must
+    /// resolve identically through the V1 path and the legacy/main mapper.
+    func testBatteryRing309ChoicesMatchMainMapper() throws {
+        let suite = "zz309parity.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = SettingsStore(defaults: defaults)
+        store.connectionCenterSource = .network
+
+        for present in [true, false] {
+            for monochrome in [nil, true, false] as [Bool?] {
+                store.monochromeChargingRing = monochrome
+                let snapshot = StatusSnapshot(
+                    battery: BatteryStatus(
+                        rawPercentage: present ? 80 : 100,
+                        isPresent: present,
+                        isCharging: false,
+                        isLowPowerMode: false,
+                        isConnectedToPower: false
+                    ),
+                    wifi: WiFiStatus(state: .connected, rssi: -50),
+                    connection: .wifi,
+                    volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output", currentDevice: nil)
+                )
+                let v1 = IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(
+                        system: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+                        sources: .empty
+                    ),
+                    configuration: store.derivedIconConfigurationFromSettings()
+                ).scene
+                let main = IconPresentationMapper.scene(
+                    inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+                    configuration: IconPresentationConfiguration(
+                        battery: store.batteryIconOptions,
+                        connection: store.connectionIconOptions,
+                        volume: store.volumeIconOptions,
+                        bluetooth: store.bluetoothAudioIconOptions
+                    )
+                )
+                XCTAssertEqual(
+                    v1.outerRing, main.outerRing,
+                    "batteryPresent=\(present) monochrome=\(String(describing: monochrome))"
+                )
+            }
+        }
+    }
 }

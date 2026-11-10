@@ -63,6 +63,7 @@ extension SettingsStore {
             criticalThreshold: battery.criticalThreshold,
             textScale: battery.textScale
         )
+        configuration.behaviors.systemBatteryRing.monochromeCharging = battery.monochromeCharging
         configuration.behaviors.batteryMarkers = BatteryMarkerBehavior(
             onBattery: battery.onBatteryMarker,
             charging: battery.chargingMarker,

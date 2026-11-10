@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "Este Mac no tiene batería, así que este icono es solo decorativo: dibuja un rayo o un enchufe en el hueco del anillo y no refleja una carga real.";
 "settings.battery.noBatteryGapIcon" = "Icono del hueco";
 "settings.battery.showPercentage" = "Mostrar porcentaje de batería";
+"settings.battery.showPercentageNoBattery" = "Este dispositivo no tiene batería";
 "settings.battery.showChargingIndicator" = "Mostrar un indicador al cargar o conectar a la corriente";
 "settings.battery.chargingDescription" = "Al activarlo, el porcentaje se convierte en un rayo o un enchufe mientras se carga o está conectado a la corriente.";
 "settings.battery.splitGapProgress" = "Dividir el progreso cuando el hueco superior tiene contenido";
@@ -220,6 +221,13 @@
 "settings.battery.symbolScaleDescription" = "El porcentaje y el rayo comparten este tamaño.";
 "settings.battery.statusColors" = "Colorear el arco según el estado de la batería";
 "settings.battery.statusColorsDescription" = "Por defecto, corriente en verde, bajo consumo en amarillo y batería baja en rojo. Puedes cambiarlos abajo. Al desactivar, se ignoran los colores personalizados guardados.";
+"settings.battery.monochromeCharging" = "Blanco y negro al cargar o con corriente";
+"settings.battery.monochromeChargingDescription" = "Dibuja el anillo en blanco o negro al cargar o con corriente. Los modos de bajo consumo y alto rendimiento mantienen sus colores. Un Mac sin batería lo activa por defecto.";
+
+"settings.battery.developerPreview" = "Vista previa de desarrollo";
+"settings.battery.simulateNoBattery" = "Simular sin batería";
+"settings.battery.simulateNoBatteryDescription" = "Muestra esta página como se ve en un Mac sin batería. Solo en compilaciones de desarrollo.";
+"settings.battery.noBatteryHiddenOptions" = "Este Mac no tiene batería: el porcentaje y el indicador de carga no se aplican. El anillo es blanco y negro por defecto; desactívalo arriba para usar el color de alimentación. Los modos de bajo consumo y alto rendimiento mantienen sus colores.";
 "settings.battery.colors.charging" = "Carga / corriente conectada";
 "settings.battery.colors.lowPower" = "Modo de bajo consumo";
 "settings.battery.colors.critical" = "Batería críticamente baja";
@@ -241,9 +249,10 @@
 "settings.battery.criticalThreshold" = "Umbral crítico de batería";
 "settings.battery.criticalThresholdDescription" = "Por debajo de este nivel, el icono de batería usa el color de batería crítica.";
 "settings.battery.fullThreshold" = "Nivel de anillo lleno";
-"settings.battery.fullThresholdDescription" = "El anillo de batería se considera lleno a este nivel. Útil cuando la limitación de carga mantiene la batería por debajo del 100%.";
+"settings.battery.fullThresholdDescription" = "Solo con la alimentación conectada: el anillo se llena a este nivel. Con batería usa el nivel real.";
 "settings.battery.fullThresholdUseChargeLimit" = "Usar el límite de carga";
-"settings.battery.fullThresholdSystemUnavailable" = "Este Mac no informa de su límite de carga, así que no se puede leer el valor.";
+"settings.battery.fullThresholdSystemUnavailable" = "No se pudo leer el límite de carga actual del sistema. Compruébalo en Ajustes del Sistema → Batería → Carga, en el ⓘ de la derecha.";
+"settings.battery.fullThresholdOpenSystemSettings" = "Abrir Ajustes del Sistema";
 "settings.updates.title" = "Actualizaciones";
 "settings.updates.automatic" = "Buscar actualizaciones automáticamente";
 "settings.updates.check" = "Buscar actualizaciones…";
@@ -918,7 +927,7 @@
 "battery.energy.monitoringDescription" = "Al activarlo, se muestrea la actividad de las apps en segundo plano aunque el panel esté cerrado. El muestreo se pausa al desactivarlo, durante la suspensión del sistema o la pantalla y al salir de Status Trio.";
 "settings.battery.showChargeToFullNow" = "Mostrar botón Cargar completamente ahora";
 "settings.battery.showChargeToFullNowDescription" = "Muestra un botón en el panel de estado para omitir temporalmente el límite de carga de macOS o una pausa de la carga optimizada de la batería y cargar hasta el 100 %.";
-"settings.battery.chargeToFullNowOptimizedNote" = "Si el límite de carga es del 100 % y la carga optimizada de la batería pausa la carga, Cargar completamente ahora la reanuda sin mostrar Cancelar ni aplicar el límite de restauración indicado abajo.";
+"settings.battery.chargeToFullNowOptimizedNote" = "Este botón coincide con la acción «Cargar completamente ahora» del menú de batería de macOS.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Botón oculto: Requiere macOS 26.4 o posterior";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Botón oculto: Requiere un Mac con chip de Apple";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Botón oculto: Framework de carga del sistema no disponible";
@@ -931,7 +940,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "Botón oculto: No se puede leer el estado de carga del sistema. Vuelve a abrir esta página más tarde";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "Botón oculto: El límite de carga optimizado por la batería es del 100%, no se necesita este botón";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Botón oculto: El límite de carga del sistema no se puede omitir ahora";
-"settings.battery.chargeHidden.restoredLimit" = "Botón oculto: Restaurando el límite al %d%%; esperando a que la carga se estabilice";
 "settings.battery.chargeHidden.controllerUnavailable" = "Botón oculto: Control de carga temporalmente no disponible";
 "settings.battery.restoreLimit" = "Límite restaurado al cancelar";
 "settings.battery.restoreLimitDescription" = "Límite de carga que se restaura al cancelar «Cargar completamente ahora».";

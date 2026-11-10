@@ -43,6 +43,28 @@ struct BatteryStatus: Equatable, Sendable {
         isLowPowerMode: false,
         isConnectedToPower: false
     )
+
+    /// A battery-less reading, used by the developer-only no-battery preview so
+    /// the settings pane can show how the UI looks on a Mac with no battery.
+    static let absent = BatteryStatus(
+        rawPercentage: nil,
+        isPresent: false,
+        isCharging: false,
+        isLowPowerMode: false,
+        isConnectedToPower: false
+    )
+
+    /// A battery-less reading that keeps the current Low Power Mode, used by the
+    /// no-battery preview so the ring can still show the Low Power Mode colour.
+    static func absent(lowPowerMode: Bool) -> BatteryStatus {
+        BatteryStatus(
+            rawPercentage: nil,
+            isPresent: false,
+            isCharging: false,
+            isLowPowerMode: lowPowerMode,
+            isConnectedToPower: false
+        )
+    }
 }
 
 enum WiFiState: Equatable, Sendable {

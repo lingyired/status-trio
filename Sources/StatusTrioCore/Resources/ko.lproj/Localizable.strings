@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "이 Mac에는 배터리가 없으므로 이 아이콘은 장식용입니다. 링의 틈에 번개 또는 플러그를 표시할 뿐 실제 충전 상태를 나타내지 않습니다.";
 "settings.battery.noBatteryGapIcon" = "틈 아이콘";
 "settings.battery.showPercentage" = "배터리 잔량 표시";
+"settings.battery.showPercentageNoBattery" = "이 기기에는 배터리가 없습니다";
 "settings.battery.showChargingIndicator" = "충전 또는 전원 연결 시 아이콘 표시";
 "settings.battery.chargingDescription" = "활성화하면 충전 중이거나 전원에 연결되었을 때 잔량이 번개 또는 플러그로 바뀝니다. 비활성화하면 잔량을 계속 표시합니다.";
 "settings.battery.splitGapProgress" = "상단 틈에 내용이 있을 때 진행률 분할";
@@ -220,6 +221,13 @@
 "settings.battery.symbolScaleDescription" = "잔량과 번개는 같은 크기를 사용합니다.";
 "settings.battery.statusColors" = "배터리 상태에 따라 원호 색상 변경";
 "settings.battery.statusColorsDescription" = "기본 색상은 전원 연결 시 초록색, 저전력 모드 시 노란색, 배터리 부족 시 빨간색이며 아래에서 변경할 수 있습니다. 끄면 저장된 사용자 지정 색상은 적용되지 않습니다.";
+"settings.battery.monochromeCharging" = "충전·전원 연결 시 흑백";
+"settings.battery.monochromeChargingDescription" = "충전 중이거나 전원에 연결됐을 때 링을 흑백으로 표시합니다. 저전력 모드와 고전력 모드는 각자의 색을 유지합니다. 배터리가 없는 Mac은 기본적으로 켜집니다.";
+
+"settings.battery.developerPreview" = "개발자 미리보기";
+"settings.battery.simulateNoBattery" = "배터리 없음 시뮬레이션";
+"settings.battery.simulateNoBatteryDescription" = "배터리가 없는 Mac에서의 모습으로 이 페이지를 표시합니다. 개발 빌드 전용입니다.";
+"settings.battery.noBatteryHiddenOptions" = "이 Mac에는 배터리가 없습니다. 잔량 퍼센트와 충전 표시기는 적용되지 않습니다. 링은 기본적으로 흑백이며, 위에서 끄면 전원 연결 색을 사용합니다. 저전력·고전력 모드는 각자의 색을 유지합니다.";
 "settings.battery.colors.charging" = "충전 중 / 전원 연결";
 "settings.battery.colors.lowPower" = "저전력 모드";
 "settings.battery.colors.critical" = "배터리 잔량 매우 부족";
@@ -241,9 +249,10 @@
 "settings.battery.criticalThreshold" = "위험 배터리 임계값";
 "settings.battery.criticalThresholdDescription" = "이 값 아래로 떨어지면 배터리 아이콘이 위험 배터리 색으로 표시됩니다.";
 "settings.battery.fullThreshold" = "링 full 충전 기준";
-"settings.battery.fullThresholdDescription" = "배터리 링이 이 수준에 도달하면 가득 찬 것으로 표시합니다. 충전 상한이 100% 미만으로 설정된 경우에 유용합니다.";
+"settings.battery.fullThresholdDescription" = "전원 연결 시에만 적용: 이 값에서 링이 가득 참이 됩니다. 배터리 사용 시에는 실제 잔량으로 표시합니다.";
 "settings.battery.fullThresholdUseChargeLimit" = "충전 상한 사용";
-"settings.battery.fullThresholdSystemUnavailable" = "이 Mac은 충전 상한을 보고하지 않으므로 해당 값을 읽을 수 없습니다.";
+"settings.battery.fullThresholdSystemUnavailable" = "현재 시스템 충전 한도를 읽을 수 없습니다. '시스템 설정 → 배터리 → 충전' 오른쪽의 ⓘ에서 확인하세요.";
+"settings.battery.fullThresholdOpenSystemSettings" = "시스템 설정 열기";
 "settings.updates.title" = "업데이트";
 "settings.updates.automatic" = "자동으로 업데이트 확인";
 "settings.updates.check" = "업데이트 확인…";
@@ -918,7 +927,7 @@
 "battery.energy.monitoringDescription" = "활성화하면 패널이 닫혀 있어도 백그라운드에서 앱 활동을 샘플링합니다. 비활성화하거나 시스템 또는 화면이 잠들 때, Status Trio를 종료할 때 중지합니다.";
 "settings.battery.showChargeToFullNow" = "지금 완전히 충전 버튼 표시";
 "settings.battery.showChargeToFullNowDescription" = "상태 패널에 macOS 충전 한도 또는 최적화 배터리 충전 일시 중지를 해제하고 100%까지 충전하는 버튼을 표시합니다.";
-"settings.battery.chargeToFullNowOptimizedNote" = "충전 한도가 100%이고 최적화된 배터리 충전으로 일시 중지된 경우, 지금 완전히 충전을 누르면 충전이 재개됩니다. 취소 버튼은 표시되지 않으며 아래 복원 한도도 적용되지 않습니다.";
+"settings.battery.chargeToFullNowOptimizedNote" = "이 버튼은 macOS 배터리 메뉴의 ‘지금 완전히 충전’ 기능과 동일합니다.";
 "settings.battery.chargeHidden.unsupportedSystem" = "버튼 숨김: macOS 26.4 이상이 필요합니다";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "버튼 숨김: Apple Silicon Mac이 필요합니다";
 "settings.battery.chargeHidden.frameworkUnavailable" = "버튼 숨김: 시스템 충전 프레임워크를 사용할 수 없습니다";
@@ -931,7 +940,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "버튼 숨김: 시스템 충전 상태를 읽을 수 없습니다. 나중에 이 페이지를 다시 여세요";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "버튼 숨김: 배터리 최적화 충전 한도가 100%이므로 이 버튼이 필요하지 않습니다";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "버튼 숨김: 현재 시스템 충전 한도를 일시 해제할 수 없습니다";
-"settings.battery.chargeHidden.restoredLimit" = "버튼 숨김: %d%% 한도로 복원 중입니다. 충전이 안정되기를 기다리는 중입니다";
 "settings.battery.chargeHidden.controllerUnavailable" = "버튼 숨김: 충전 제어를 일시적으로 사용할 수 없습니다";
 "settings.battery.restoreLimit" = "취소 후 복원할 충전 한도";
 "settings.battery.restoreLimitDescription" = "‘지금 완전히 충전’을 취소할 때 복원할 충전 한도입니다.";

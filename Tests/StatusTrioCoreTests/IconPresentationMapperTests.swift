@@ -69,7 +69,7 @@ final class IconPresentationMapperTests: XCTestCase {
         XCTAssertEqual(
             absentScene.outerRing?.segments,
             [RingSegmentState(progress: 1, color: .primary)],
-            "A Mac with no battery reads as a full, complete ring"
+            "A Mac with no battery defaults to a full black/white ring"
         )
         // With no battery a legacy `.percentage` marker falls back to the plug,
         // never to a number.
@@ -79,21 +79,34 @@ final class IconPresentationMapperTests: XCTestCase {
         XCTAssertNil(absentScene.outerRing?.effect)
     }
 
-    func testABatteryLessMacDrawsAFullForegroundRingRegardlessOfStatusColours() {
-        // No battery: the ring must read full in the plain foreground colour, even
-        // if the snapshot claims charging/low-power and status colours are on. It
-        // must never borrow the charging green or any other status hue.
-        let stranger = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: true,
-                                     isCharged: false, isLowPowerMode: true, isConnectedToPower: true)
+    func testABatteryLessMacDefaultsToMonochromeAndKeepsPowerModeColours() {
+        // A battery-less Mac keeps a full decorative ring. With no explicit
+        // choice it defaults to black/white, but Low/High Power Mode still win.
         let options = BatteryIconOptions(
             showsPercentage: true, showsChargingIndicator: false,
             usesStatusColors: true, criticalThreshold: 95, connectedIndicator: .bolt
         )
+        let plain = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
+                                  isLowPowerMode: false, isConnectedToPower: false)
+        let plainRing = scene(snapshot: snapshot(battery: plain), batteryOptions: options).outerRing
+        XCTAssertEqual(plainRing?.segments, [RingSegmentState(progress: 1, color: .primary)])
+
+        let stranger = BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: true,
+                                     isCharged: false, isLowPowerMode: true, isConnectedToPower: true)
         let ring = scene(snapshot: snapshot(battery: stranger), batteryOptions: options).outerRing
-        XCTAssertEqual(ring?.segments, [RingSegmentState(progress: 1, color: .primary)])
+        XCTAssertEqual(ring?.segments, [RingSegmentState(progress: 1, color: .lowPower)])
         XCTAssertEqual(ring?.gap, .closed, "no top marker keeps the ring closed")
         XCTAssertNil(ring?.accessory)
         XCTAssertNil(ring?.effect)
+
+        // An explicit "off" opts into the connected-to-power colour instead.
+        let connectedOptions = BatteryIconOptions(
+            showsPercentage: true, showsChargingIndicator: false,
+            usesStatusColors: true, criticalThreshold: 95, connectedIndicator: .bolt,
+            monochromeCharging: false
+        )
+        let connectedRing = scene(snapshot: snapshot(battery: plain), batteryOptions: connectedOptions).outerRing
+        XCTAssertEqual(connectedRing?.segments, [RingSegmentState(progress: 1, color: .powered)])
     }
 
     func testABatteryLessMacCanShowTheChosenBoltMarker() {

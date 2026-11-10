@@ -76,7 +76,8 @@ enum IconConfigurationMigration {
             criticalThreshold: legacy.battery.criticalThreshold,
             textScale: legacy.battery.textScale,
             fullThreshold: legacy.battery.fullThreshold,
-            connectedIndicator: legacy.battery.connectedIndicator
+            connectedIndicator: legacy.battery.connectedIndicator,
+            monochromeCharging: legacy.battery.monochromeCharging
         )
         value.appearance.batteryStatusColors = BatteryStatusColorsConfiguration(legacy.battery.batteryStatusColors)
         value.appearance.bluetoothIconColor = BluetoothIconColorConfiguration(legacy.bluetooth.iconColor)
@@ -202,7 +203,8 @@ extension IconConfigurationV1 {
                 onBatteryMarker: behaviors.batteryMarkers == .classic ? nil : behaviors.batteryMarkers.onBattery,
                 chargingMarker: behaviors.batteryMarkers == .classic ? nil : behaviors.batteryMarkers.charging,
                 connectedMarker: behaviors.batteryMarkers == .classic ? nil : behaviors.batteryMarkers.connected,
-                noBatteryMarker: behaviors.batteryMarkers == .classic ? nil : behaviors.batteryMarkers.noBattery
+                noBatteryMarker: behaviors.batteryMarkers == .classic ? nil : behaviors.batteryMarkers.noBattery,
+                monochromeCharging: behaviors.systemBatteryRing.monochromeCharging
             ),
             connection: ConnectionIconOptions(
                 showsWiFiIconForEthernet: behaviors.networkCenter.showsWiFiIconForEthernet,

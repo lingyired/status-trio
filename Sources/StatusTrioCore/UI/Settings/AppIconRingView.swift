@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The "Ring" leaf under **App Icon**: how the battery arc / ring is drawn.
@@ -13,15 +14,53 @@ struct AppIconRingView: View {
     var hasBattery: Bool = true
     @EnvironmentObject private var localization: Localization
 
+    /// The battery presence this page draws with. In a development build the
+    /// no-battery simulation forces the battery-less look so the UI can be
+    /// checked on a Mac that has a battery.
+    private var effectiveHasBattery: Bool {
+        hasBattery && !store.isNoBatterySimulationActive
+    }
+
     var body: some View {
+        if store.isDevelopmentBuild {
+            noBatterySimulationGroup
+        }
+        if !effectiveHasBattery {
+            noBatteryHintGroup
+        }
+        // #309: every ring control stays visible without a battery. The settings
+        // are kept; the ring colour still follows connected power and Low/High
+        // Power Mode, while the level and charging marker do not apply. The hint
+        // above says so.
         topMarkersGroup
-        if hasBattery {
-            // Progress, colour and charging-effect controls all address a real
-            // battery level, so a battery-less Mac (e.g. Mac mini) shows only the
-            // decorative top-marker control.
-            progressGroup
-            colorsGroup
-            effectsGroup
+        progressGroup
+        colorsGroup
+        effectsGroup
+    }
+
+    // MARK: Developer preview
+
+    /// Developer-only helper: force the battery-less look so a Mac with a
+    /// battery can preview this page without one. A packaged release never shows
+    /// this and never simulates.
+    private var noBatterySimulationGroup: some View {
+        SettingsGroup(localization.string(.settingsBatteryDeveloperPreview)) {
+            SettingsToggleRow(
+                symbol: "eyeglasses",
+                tint: .gray,
+                title: localization.string(.settingsBatterySimulateNoBattery),
+                subtitle: localization.string(.settingsBatterySimulateNoBatteryDescription),
+                isOn: $store.simulatesNoBattery
+            )
+        }
+    }
+
+    /// Explains what still applies on a battery-less Mac (ring colour follows
+    /// connected power and Low/High Power Mode) and what does not (percentage,
+    /// charging marker), so the kept controls are not misleading.
+    private var noBatteryHintGroup: some View {
+        SettingsGroup {
+            SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryHiddenOptions))
         }
     }
 
@@ -29,7 +68,7 @@ struct AppIconRingView: View {
 
     private var topMarkersGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupTopMarkers)) {
-            if hasBattery {
+            if effectiveHasBattery {
                 // #315: one plain choice per power state, so the plug and bolt no
                 // longer hide behind a "show percentage" toggle or a combined
                 // "connected without charging" option.
@@ -198,18 +237,44 @@ struct AppIconRingView: View {
 
     @ViewBuilder
     private var systemChargeLimitUnavailableNote: some View {
-        if !store.canReadSystemChargeLimit {
+        // Shown only after the user pressed “使用充电上限” and the private plist
+        // could not be read. Not proactive: an idle page stays quiet.
+        if store.batteryFullThresholdReadFailed {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(.secondary)
-                Text(localization.string(
-                    .settingsBatteryFullThresholdSystemUnavailable
-                ))
+                (
+                    Text(localization.string(
+                        .settingsBatteryFullThresholdSystemUnavailable
+                    ))
+                    + Text(" ")
+                    + Text(localization.string(
+                        .settingsBatteryFullThresholdOpenSystemSettings
+                    ))
+                    .foregroundColor(Color.accentColor)
+                )
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .onTapGesture { openBatteryChargeSettings() }
+                .accessibilityAddTraits(.isLink)
             }
             .padding(.horizontal, SettingsMetrics.rowPaddingH)
             .padding(.bottom, 6)
+        }
+    }
+
+    /// Opens System Settings at Battery → Charging, where the user can read the
+    /// real charge limit that this machine does not expose through a public API.
+    private func openBatteryChargeSettings() {
+        let candidates = [
+            "x-apple.systempreferences:com.apple.Battery-Settings.extension",
+            "x-apple.systempreferences:com.apple.preference.battery"
+        ]
+        for candidate in candidates {
+            if let url = URL(string: candidate), NSWorkspace.shared.open(url) {
+                return
+            }
         }
     }
 
@@ -217,6 +282,22 @@ struct AppIconRingView: View {
 
     private var colorsGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupColors)) {
+            // #309: use black/white for the charging / connected state, while
+            // Low/High Power Mode and critical keep their own colours. nil means
+            // automatic — on by default on a battery-less Mac, off otherwise.
+            SettingsToggleRow(
+                symbol: "circle.lefthalf.filled",
+                tint: .gray,
+                title: localization.string(.settingsBatteryMonochromeCharging),
+                subtitle: localization.string(.settingsBatteryMonochromeChargingDescription),
+                isOn: Binding(
+                    get: { store.monochromeChargingRing ?? !effectiveHasBattery },
+                    set: { store.monochromeChargingRing = $0 }
+                )
+            )
+
+            SettingsDivider()
+
             SettingsToggleRow(
                 symbol: "paintpalette.fill",
                 tint: .orange,

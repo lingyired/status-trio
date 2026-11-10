@@ -93,11 +93,6 @@ enum ChargeToFullNowHiddenReasonText {
             return localization.string(
                 .settingsBatteryChargeHiddenUnrecognizedChargeLimitState
             )
-        case let .restoredLimit(limit):
-            return localization.format(
-                .settingsBatteryChargeHiddenRestoredLimit,
-                limit
-            )
         }
     }
 }

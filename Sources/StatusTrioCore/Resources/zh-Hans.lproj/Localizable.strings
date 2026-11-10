@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "当前设备没有电池，这个图标只作装饰：在圆环缺口画闪电或插头，不代表真实充电状态。";
 "settings.battery.noBatteryGapIcon" = "缺口图标";
 "settings.battery.showPercentage" = "显示电量数字";
+"settings.battery.showPercentageNoBattery" = "当前设备无电池";
 "settings.battery.showChargingIndicator" = "充电/连接电源时显示指示图标";
 "settings.battery.chargingDescription" = "开启后，正在充电或已连接电源时，电量数字会替换为闪电或插头图标；关闭则继续显示数字。";
 "settings.battery.splitGapProgress" = "顶部有图标时左右两边平分";
@@ -220,6 +221,13 @@
 "settings.battery.symbolScaleDescription" = "数字和闪电使用同一尺寸，调整这里会同步改变两者。";
 "settings.battery.statusColors" = "根据状态改变圆弧颜色";
 "settings.battery.statusColorsDescription" = "默认连接电源为绿色、低电量模式为黄色、低电量为红色，可在下方更改。关闭后忽略已保存的自定颜色。";
+"settings.battery.monochromeCharging" = "充电 / 连接电源时用黑白";
+"settings.battery.monochromeChargingDescription" = "充电或连接电源时，圆环用黑/白。低电量和高电量模式仍用各自颜色。没有电池的 Mac 默认开启。";
+
+"settings.battery.developerPreview" = "开发者预览";
+"settings.battery.simulateNoBattery" = "模拟无电池";
+"settings.battery.simulateNoBatteryDescription" = "按 Mac 没有电池时的样子显示本页。仅开发版可用。";
+"settings.battery.noBatteryHiddenOptions" = "这台 Mac 没有电池：电量百分比和充电指示不适用。圆环默认黑白，可在上面关闭以使用连接电源色；低电量和高电量模式仍用各自颜色。";
 "settings.battery.colors.charging" = "充电 / 连接电源";
 "settings.battery.colors.lowPower" = "低电量模式";
 "settings.battery.colors.critical" = "临界低电量";
@@ -241,9 +249,10 @@
 "settings.battery.criticalThreshold" = "临界电量阈值";
 "settings.battery.criticalThresholdDescription" = "电量低于该值时，电池图标使用临界低电量颜色。";
 "settings.battery.fullThreshold" = "圆环满格电量";
-"settings.battery.fullThresholdDescription" = "电量达到该值时圆环即视为满格。适合充电上限设置在 100% 以下的场景。";
+"settings.battery.fullThresholdDescription" = "仅在连接电源时生效：达到该值圆环即满格；用电池时按真实电量显示。";
 "settings.battery.fullThresholdUseChargeLimit" = "使用充电上限";
-"settings.battery.fullThresholdSystemUnavailable" = "这台 Mac 未上报充电上限，无法读取该值。";
+"settings.battery.fullThresholdSystemUnavailable" = "无法获取当前系统充电上限，请自行到「系统设置 → 电池 → 充电」右侧的感叹号中查看。";
+"settings.battery.fullThresholdOpenSystemSettings" = "打开系统设置";
 "settings.updates.title" = "更新";
 "settings.updates.automatic" = "自动检查更新";
 "settings.updates.check" = "检查更新…";
@@ -918,7 +927,7 @@
 "battery.energy.monitoringDescription" = "开启后即使面板关闭也会在后台采样应用活动；关闭开关、系统或屏幕休眠或退出应用时停止。";
 "settings.battery.showChargeToFullNow" = "显示立即充满电按钮";
 "settings.battery.showChargeToFullNowDescription" = "在状态面板中显示立即充满电按钮，允许临时解除 macOS 的充电上限或优化充电暂停，并充至 100%。";
-"settings.battery.chargeToFullNowOptimizedNote" = "充电上限为 100%、因优化电池充电而暂缓时，点击「立即充满」会继续充电，不显示「取消」，也不会应用下方的恢复上限。";
+"settings.battery.chargeToFullNowOptimizedNote" = "此按钮与 macOS 电池菜单栏自带的「立即充满电」功能一致。";
 "settings.battery.chargeHidden.unsupportedSystem" = "按钮未显示：需要 macOS 26.4 或更高版本";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "按钮未显示：需要 Apple 芯片 Mac";
 "settings.battery.chargeHidden.frameworkUnavailable" = "按钮未显示：系统充电框架不可用";
@@ -931,7 +940,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "按钮未显示：无法读取系统充电状态，请稍后重新打开此页";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "按钮未显示：当前电池优化的充电上限为 100% 不需要这个按钮";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "按钮未显示：系统充电上限当前未处于可覆盖状态";
-"settings.battery.chargeHidden.restoredLimit" = "按钮未显示：正在恢复到 %d%% 上限，等待充电稳定";
 "settings.battery.chargeHidden.controllerUnavailable" = "按钮未显示：充电控制暂不可用";
 "settings.battery.restoreLimit" = "取消后恢复的充电上限";
 "settings.battery.restoreLimitDescription" = "取消立即充满后要恢复的充电上限。";

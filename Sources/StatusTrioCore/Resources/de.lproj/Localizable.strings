@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "Dieser Mac hat keinen Akku. Das Symbol ist nur dekorativ: Es zeichnet einen Blitz oder Stecker in die Lücke des Rings und zeigt keinen echten Ladezustand an.";
 "settings.battery.noBatteryGapIcon" = "Lückensymbol";
 "settings.battery.showPercentage" = "Batterieprozentsatz anzeigen";
+"settings.battery.showPercentageNoBattery" = "Dieses Gerät hat keine Batterie";
 "settings.battery.showChargingIndicator" = "Symbol beim Laden oder Netzbetrieb anzeigen";
 "settings.battery.chargingDescription" = "Wenn aktiviert, wird der Prozentsatz beim Laden oder Netzbetrieb durch ein Blitz- oder Steckersymbol ersetzt.";
 "settings.battery.splitGapProgress" = "Fortschritt bei gefüllter oberer Lücke aufteilen";
@@ -220,6 +221,13 @@
 "settings.battery.symbolScaleDescription" = "Prozentsatz und Blitz verwenden dieselbe Größe.";
 "settings.battery.statusColors" = "Bogen nach Batteriestatus einfärben";
 "settings.battery.statusColorsDescription" = "Standard: Netzbetrieb grün, Stromsparmodus gelb, niedriger Ladestand rot. Unten änderbar. Beim Ausschalten werden gespeicherte eigene Farben nicht angewendet.";
+"settings.battery.monochromeCharging" = "Schwarz-weiß beim Laden oder am Netz";
+"settings.battery.monochromeChargingDescription" = "Zeichnet den Ring beim Laden oder am Netz schwarz-weiß. Energiespar- und Hohe-Leistung-Modus behalten ihre Farben. Ein Mac ohne Batterie aktiviert dies standardmäßig.";
+
+"settings.battery.developerPreview" = "Entwicklervorschau";
+"settings.battery.simulateNoBattery" = "Keine Batterie simulieren";
+"settings.battery.simulateNoBatteryDescription" = "Zeigt diese Seite so, wie sie auf einem Mac ohne Batterie aussieht. Nur Entwicklungsbuilds.";
+"settings.battery.noBatteryHiddenOptions" = "Dieser Mac hat keine Batterie: Prozentwert und Ladeanzeige gelten nicht. Der Ring ist standardmäßig schwarz-weiß; oben ausschalten für die Netzfarbe. Energiespar- und Hohe-Leistung-Modus behalten ihre Farben.";
 "settings.battery.colors.charging" = "Laden / Netzbetrieb";
 "settings.battery.colors.lowPower" = "Stromsparmodus";
 "settings.battery.colors.critical" = "Kritisch niedriger Ladestand";
@@ -241,9 +249,10 @@
 "settings.battery.criticalThreshold" = "Kritischer Akkustand";
 "settings.battery.criticalThresholdDescription" = "Unterhalb dieses Werts verwendet das Batteriesymbol die Farbe für kritischen Akkustand.";
 "settings.battery.fullThreshold" = "Ladestand für vollen Ring";
-"settings.battery.fullThresholdDescription" = "Ab diesem Ladestand gilt der Batteriering als voll. Nützlich, wenn die Ladebegrenzung die Batterie unter 100% hält.";
+"settings.battery.fullThresholdDescription" = "Gilt nur am Netzteil: Der Ring ist bei diesem Stand voll. Im Akkubetrieb gilt der echte Ladestand.";
 "settings.battery.fullThresholdUseChargeLimit" = "Ladebegrenzung übernehmen";
-"settings.battery.fullThresholdSystemUnavailable" = "Dieser Mac meldet keine Ladebegrenzung, daher kann der Wert nicht gelesen werden.";
+"settings.battery.fullThresholdSystemUnavailable" = "Das aktuelle Ladelimit des Systems konnte nicht gelesen werden. Prüfe es in Systemeinstellungen → Batterie → Laden, im ⓘ rechts.";
+"settings.battery.fullThresholdOpenSystemSettings" = "Systemeinstellungen öffnen";
 "settings.updates.title" = "Updates";
 "settings.updates.automatic" = "Automatisch nach Updates suchen";
 "settings.updates.check" = "Nach Updates suchen…";
@@ -918,7 +927,7 @@
 "battery.energy.monitoringDescription" = "Wenn aktiviert, werden App-Aktivitäten auch bei geschlossenem Panel im Hintergrund erfasst. Die Erfassung pausiert beim Deaktivieren, bei System- oder Bildschirmruhezustand und beim Beenden von Status Trio.";
 "settings.battery.showChargeToFullNow" = "„Jetzt vollständig laden“-Taste anzeigen";
 "settings.battery.showChargeToFullNowDescription" = "Zeigt im Statusfeld eine Taste an, die das macOS-Ladelimit oder eine Pause der optimierten Batterieladung vorübergehend aufhebt und bis 100 % lädt.";
-"settings.battery.chargeToFullNowOptimizedNote" = "Wenn das Ladelimit 100 % beträgt und optimiertes Laden den Ladevorgang pausiert, setzt „Jetzt vollständig laden“ das Laden fort. Es gibt keine Abbrechen-Taste und das unten eingestellte Wiederherstellungslimit wird nicht angewendet.";
+"settings.battery.chargeToFullNowOptimizedNote" = "Diese Taste entspricht der Aktion „Jetzt vollständig laden“ in der macOS-Batteriemenüleiste.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Taste ausgeblendet: macOS 26.4 oder neuer erforderlich";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Taste ausgeblendet: Mac mit Apple Chip erforderlich";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Taste ausgeblendet: System-Ladeframework nicht verfügbar";
@@ -931,7 +940,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "Taste ausgeblendet: System-Ladestatus nicht lesbar. Diese Seite später erneut öffnen";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "Taste ausgeblendet: Das batterieoptimierte Ladelimit ist 100 %, diese Taste wird nicht benötigt";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Taste ausgeblendet: System-Ladelimit kann derzeit nicht aufgehoben werden";
-"settings.battery.chargeHidden.restoredLimit" = "Taste ausgeblendet: Limit von %d%% wird wiederhergestellt; Laden stabilisiert sich";
 "settings.battery.chargeHidden.controllerUnavailable" = "Taste ausgeblendet: Ladesteuerung vorübergehend nicht verfügbar";
 "settings.battery.restoreLimit" = "Ladelimit nach Abbruch wiederherstellen";
 "settings.battery.restoreLimitDescription" = "Das Ladelimit, das beim Abbrechen von „Jetzt vollständig laden“ wiederhergestellt wird.";

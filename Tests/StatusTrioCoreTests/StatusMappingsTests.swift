@@ -36,10 +36,11 @@ final class StatusMappingsTests: XCTestCase {
         XCTAssertEqual(StatusMappings.batteryProgress(makeBattery(rawPercentage: 101)), 1.0)
     }
 
-    /// Issue #105: charge limiting holds a plugged-in battery below 100%, so the
-    /// ring has to close at the level the user picked instead of a fixed 100%.
+    /// Issue #105: charge limiting holds a plugged-in battery below 100%, so on
+    /// power the ring has to close at the level the user picked instead of a
+    /// fixed 100%.
     func testBatteryProgressRescalesAgainstTheFullThreshold() {
-        let capped = makeBattery(rawPercentage: 80)
+        let capped = makeBattery(rawPercentage: 80, connected: true)
 
         XCTAssertEqual(
             StatusMappings.batteryProgress(capped, fullThreshold: 100),
@@ -53,12 +54,16 @@ final class StatusMappingsTests: XCTestCase {
             "The level the user calls full must close the ring."
         )
         XCTAssertEqual(
-            StatusMappings.batteryProgress(makeBattery(rawPercentage: 60), fullThreshold: 80),
+            StatusMappings.batteryProgress(
+                makeBattery(rawPercentage: 60, connected: true), fullThreshold: 80
+            ),
             0.75,
             accuracy: 0.0001
         )
         XCTAssertEqual(
-            StatusMappings.batteryProgress(makeBattery(rawPercentage: 90), fullThreshold: 80),
+            StatusMappings.batteryProgress(
+                makeBattery(rawPercentage: 90, connected: true), fullThreshold: 80
+            ),
             1.0,
             accuracy: 0.0001,
             "Above the threshold the arc is clamped, never overfull."
@@ -70,10 +75,39 @@ final class StatusMappingsTests: XCTestCase {
             "A degenerate threshold is clamped, never a division by zero."
         )
         XCTAssertEqual(
-            StatusMappings.batteryProgress(makeBattery(rawPercentage: nil), fullThreshold: 80),
+            StatusMappings.batteryProgress(
+                makeBattery(rawPercentage: nil, connected: true), fullThreshold: 80
+            ),
             1.0,
             accuracy: 0.0001,
             "A missing battery reports full, matching BatteryStatus.percentage."
+        )
+    }
+
+    /// Issue #318: on battery the charge limit does not apply, so the arc must
+    /// use the real 100% scale and agree with the number.
+    func testBatteryProgressIgnoresFullThresholdWhileOnBattery() {
+        XCTAssertEqual(
+            StatusMappings.batteryProgress(
+                makeBattery(rawPercentage: 29, connected: false), fullThreshold: 80
+            ),
+            0.29,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            StatusMappings.batteryProgress(
+                makeBattery(rawPercentage: 34, connected: false), fullThreshold: 80
+            ),
+            0.34,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            StatusMappings.batteryProgress(
+                makeBattery(rawPercentage: 34, connected: true), fullThreshold: 85
+            ),
+            0.4,
+            accuracy: 0.0001,
+            "On power the same charge is drawn against the chosen cap."
         )
     }
 
@@ -384,13 +418,13 @@ final class StatusMappingsTests: XCTestCase {
         )
     }
 
-    private func makeBattery(rawPercentage: Int?) -> BatteryStatus {
+    private func makeBattery(rawPercentage: Int?, connected: Bool = false) -> BatteryStatus {
         BatteryStatus(
             rawPercentage: rawPercentage,
             isPresent: true,
             isCharging: false,
             isLowPowerMode: false,
-            isConnectedToPower: false
+            isConnectedToPower: connected
         )
     }
 

@@ -315,8 +315,7 @@ enum PanelPresentationMapper {
              .cancelConfirmationRequired,
              .cancelPending,
              .cancelFailed,
-             .cancelLimitChangedConfirmation,
-             .limitRestored:
+             .cancelLimitChangedConfirmation:
             break
         }
         let runtime = batteryRuntimeText(battery, localization: localization)

@@ -767,8 +767,7 @@ final class SettingsViewTests: XCTestCase {
             .fullyCharged,
             .stateReadFailed,
             .noActiveChargeLimit,
-            .unrecognizedChargeLimitState,
-            .restoredLimit(90)
+            .unrecognizedChargeLimitState
         ]
 
         for reason in reasons {
@@ -786,13 +785,6 @@ final class SettingsViewTests: XCTestCase {
                 "\(reason) lost the Chinese prefix"
             )
         }
-
-        XCTAssertTrue(
-            ChargeToFullNowHiddenReasonText.text(
-                for: .restoredLimit(90),
-                localization: localization
-            ).contains("90%")
-        )
     }
 }
 

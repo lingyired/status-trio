@@ -274,7 +274,8 @@ struct RingStrokeStylePreview: View {
                     onBatteryMarker: store.batteryOnBatteryMarker,
                     chargingMarker: store.batteryChargingMarker,
                     connectedMarker: store.batteryConnectedMarker,
-                    noBatteryMarker: store.batteryNoBatteryMarker
+                    noBatteryMarker: store.batteryNoBatteryMarker,
+                    monochromeCharging: store.monochromeChargingRing
                 ),
                 connection: store.connectionIconOptions,
                 volume: VolumeIconOptions(
@@ -282,7 +283,8 @@ struct RingStrokeStylePreview: View {
                     ringStrokeScale: style.scale
                 ),
                 bluetooth: .standard
-            )
+            ),
+            isHighPowerMode: statusStore.highPowerMode.isHighPowerMode
         )
     }
 

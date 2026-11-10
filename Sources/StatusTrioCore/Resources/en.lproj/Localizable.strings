@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "This Mac has no battery, so this icon is only decorative: it draws a lightning bolt or plug in the ring's gap and does not reflect real charging.";
 "settings.battery.noBatteryGapIcon" = "Gap icon";
 "settings.battery.showPercentage" = "Show battery percentage";
+"settings.battery.showPercentageNoBattery" = "This device has no battery.";
 "settings.battery.showChargingIndicator" = "Show an indicator while charging or connected to power";
 "settings.battery.chargingDescription" = "When enabled, the percentage becomes a bolt or plug while charging or connected to power.";
 "settings.battery.splitGapProgress" = "Split progress when the top gap is filled";
@@ -220,6 +221,13 @@
 "settings.battery.symbolScaleDescription" = "The percentage and bolt share this size.";
 "settings.battery.statusColors" = "Color the arc by battery state";
 "settings.battery.statusColorsDescription" = "Defaults are green for power, yellow for Low Power Mode, and red for low battery. Change them below. Turning this off ignores saved custom colors.";
+"settings.battery.monochromeCharging" = "Black & white when charging or on power";
+"settings.battery.monochromeChargingDescription" = "Draw the ring in black or white while charging or connected to power. Low Power Mode and High Power Mode keep their own colours. A Mac with no battery defaults to this.";
+
+"settings.battery.developerPreview" = "Developer preview";
+"settings.battery.simulateNoBattery" = "Simulate no battery";
+"settings.battery.simulateNoBatteryDescription" = "Show this page as it looks on a Mac with no battery. Development builds only.";
+"settings.battery.noBatteryHiddenOptions" = "This Mac has no battery: the percentage and charging indicator do not apply. The ring is black and white by default; turn it off above to use the connected-power colour. Low Power Mode and High Power Mode keep their colours.";
 "settings.battery.colors.charging" = "Charging / connected power";
 "settings.battery.colors.lowPower" = "Low Power Mode";
 "settings.battery.colors.critical" = "Critically low battery";
@@ -241,9 +249,10 @@
 "settings.battery.criticalThreshold" = "Critical Battery Threshold";
 "settings.battery.criticalThresholdDescription" = "Below this level the battery icon uses the critical battery colour.";
 "settings.battery.fullThreshold" = "Full ring level";
-"settings.battery.fullThresholdDescription" = "The battery ring counts as full at this level. Useful when charge limiting holds the battery below 100%.";
+"settings.battery.fullThresholdDescription" = "Only while on power: the ring is full at this level. On battery it uses the real level.";
 "settings.battery.fullThresholdUseChargeLimit" = "Use the charge limit";
-"settings.battery.fullThresholdSystemUnavailable" = "This Mac does not report its charge limit, so the value cannot be read.";
+"settings.battery.fullThresholdSystemUnavailable" = "Couldn't read the current system charge limit. Check it in System Settings → Battery → Charging, in the ⓘ on the right.";
+"settings.battery.fullThresholdOpenSystemSettings" = "Open System Settings";
 "settings.updates.title" = "Updates";
 "settings.updates.automatic" = "Automatically check for updates";
 "settings.updates.check" = "Check for Updates…";
@@ -917,7 +926,7 @@
 "battery.energy.monitoringDescription" = "When enabled, samples app activity in the background even while the panel is closed. Sampling pauses during sleep, when disabled, or when Status Trio quits.";
 "settings.battery.showChargeToFullNow" = "Show Charge to Full Now Button";
 "settings.battery.showChargeToFullNowDescription" = "Show a button in the status panel to temporarily override the macOS charge limit or an Optimized Battery Charging pause and charge to 100%.";
-"settings.battery.chargeToFullNowOptimizedNote" = "When the charge limit is 100% and Optimized Battery Charging pauses charging, Charge to Full Now resumes charging without a Cancel button or applying the restore limit below.";
+"settings.battery.chargeToFullNowOptimizedNote" = "This button matches the “Charge to Full Now” action built into the macOS battery menu.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Button hidden: Requires macOS 26.4 or later";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Button hidden: Requires a Mac with Apple silicon";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Button hidden: System charging framework unavailable";
@@ -930,7 +939,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "Button hidden: Couldn’t read system charging state. Reopen this page later";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "Button hidden: The battery-optimized charge limit is 100%, so this button isn't needed";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Button hidden: System charge limit cannot currently be overridden";
-"settings.battery.chargeHidden.restoredLimit" = "Button hidden: Restoring the %d%% limit; waiting for charging to settle";
 "settings.battery.chargeHidden.controllerUnavailable" = "Button hidden: Charging control is temporarily unavailable";
 "settings.battery.restoreLimit" = "Restore Limit After Cancelling";
 "settings.battery.restoreLimitDescription" = "The charge limit to restore when you cancel Charge to Full Now.";

@@ -85,6 +85,8 @@ final class SettingsStore: ObservableObject {
     static let batteryConnectedMarkerDefaultsKey = "batteryConnectedMarker"
     static let batteryNoBatteryMarkerDefaultsKey = "batteryNoBatteryMarker"
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
+    static let simulatesNoBatteryDefaultsKey = "simulatesNoBattery"
+    static let monochromeChargingRingDefaultsKey = "monochromeChargingRing"
     static let batteryStatusColorsChargingDefaultsKey = "batteryStatusColors.charging"
     static let batteryStatusColorsLowPowerDefaultsKey = "batteryStatusColors.lowPower"
     static let batteryStatusColorsHighPowerDefaultsKey = "batteryStatusColors.highPower"
@@ -583,6 +585,33 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// nil = automatic: black/white on a battery-less Mac, the connected colour
+    /// when a battery is present. An explicit value fixes the user's choice.
+    @Published var monochromeChargingRing: Bool? {
+        didSet {
+            if let value = monochromeChargingRing {
+                defaults.set(value, forKey: Self.monochromeChargingRingDefaultsKey)
+            } else {
+                defaults.removeObject(forKey: Self.monochromeChargingRingDefaultsKey)
+            }
+        }
+    }
+
+    /// Developer-only: preview the icon and settings as if the Mac had no battery.
+    /// Never takes effect in a packaged release; see `isNoBatterySimulationActive`.
+    @Published var simulatesNoBattery: Bool {
+        didSet {
+            defaults.set(simulatesNoBattery, forKey: Self.simulatesNoBatteryDefaultsKey)
+        }
+    }
+
+    /// Whether the no-battery preview is actually allowed to run. Developer-only:
+    /// a packaged release never simulates, regardless of any stale value in
+    /// `UserDefaults`, so the release rule lives in one place.
+    var isNoBatterySimulationActive: Bool {
+        isDevelopmentBuild && simulatesNoBattery
+    }
+
     /// Per-role colour overrides for the charging, low-power and critical states.
     /// Edited in place by the settings UI, so a nested mutation still triggers
     /// this `didSet` and publishes one fresh value.
@@ -649,6 +678,9 @@ final class SettingsStore: ObservableObject {
     /// ring close at the cap the user actually reaches.
     @Published var batteryFullThreshold: Double {
         didSet {
+            // Dragging the slider is the user taking manual control; a note
+            // about a failed “使用充电上限” press no longer applies.
+            batteryFullThresholdReadFailed = false
             let clamped = Self.clampedBatteryFullThreshold(batteryFullThreshold)
             guard clamped == batteryFullThreshold else {
                 batteryFullThreshold = clamped
@@ -696,6 +728,12 @@ final class SettingsStore: ObservableObject {
         }
         return SystemChargeLimitReader.chargeLimit() != nil
     }
+
+    /// Whether the last “使用充电上限” press failed to read the private plist.
+    /// Drives the ring page's "check System Settings" note, which is shown only
+    /// after a failed attempt rather than proactively. Any manual threshold
+    /// change or successful read clears it again.
+    @Published private(set) var batteryFullThresholdReadFailed = false
 
     @Published var showsWiFiIconForEthernet: Bool {
         didSet {
@@ -1746,8 +1784,12 @@ final class SettingsStore: ObservableObject {
         let url = url ?? chargeLimitURLForTesting
         let limit = url.map { SystemChargeLimitReader.chargeLimit(from: $0) }
             ?? SystemChargeLimitReader.chargeLimit()
-        guard let limit else { return }
+        guard let limit else {
+            batteryFullThresholdReadFailed = true
+            return
+        }
         batteryFullThreshold = Double(limit)
+        batteryFullThresholdReadFailed = false
     }
 
     /// Fills the restore-limit slider in from the system. Like
@@ -1778,7 +1820,8 @@ final class SettingsStore: ObservableObject {
             onBatteryMarker: batteryOnBatteryMarker,
             chargingMarker: batteryChargingMarker,
             connectedMarker: batteryConnectedMarker,
-            noBatteryMarker: batteryNoBatteryMarker
+            noBatteryMarker: batteryNoBatteryMarker,
+            monochromeCharging: monochromeChargingRing
         )
     }
 
@@ -2173,6 +2216,9 @@ final class SettingsStore: ObservableObject {
             defaults.set(noBatteryMarker.rawValue, forKey: Self.batteryNoBatteryMarkerDefaultsKey)
         }
         self.usesBatteryStatusColors = defaults.object(forKey: Self.usesBatteryStatusColorsDefaultsKey) as? Bool ?? true
+        self.monochromeChargingRing =
+            defaults.object(forKey: Self.monochromeChargingRingDefaultsKey) as? Bool
+        self.simulatesNoBattery = defaults.object(forKey: Self.simulatesNoBatteryDefaultsKey) as? Bool ?? false
         self.batteryStatusColors = BatteryStatusColors(
             charging: BatteryStatusColorSelection(
                 storageValue: defaults.string(forKey: Self.batteryStatusColorsChargingDefaultsKey) ?? "system"
@@ -2350,6 +2396,8 @@ final class SettingsStore: ObservableObject {
         // observers do not fire during initialization, so reset the in-memory
         // values here and delete the persisted keys afterwards.
         if !isDevelopmentBuild {
+            self.simulatesNoBattery = false
+            defaults.removeObject(forKey: Self.simulatesNoBatteryDefaultsKey)
             self.previewsBluetoothListeningMode = false
             self.bluetoothListeningModePreviewDeviceName = ""
             self.bluetoothListeningModePreviewDeviceCount =
