@@ -53,6 +53,11 @@ final class SettingsStore: ObservableObject {
     /// Legacy boolean replaced by `batteryConnectedIndicator`; read once for
     /// migration and never written again (#195).
     static let showsPercentageWhenConnectedDefaultsKey = "showsPercentageWhenConnected"
+    // #315: per-power-state top markers.
+    static let batteryOnBatteryMarkerDefaultsKey = "batteryOnBatteryMarker"
+    static let batteryChargingMarkerDefaultsKey = "batteryChargingMarker"
+    static let batteryConnectedMarkerDefaultsKey = "batteryConnectedMarker"
+    static let batteryNoBatteryMarkerDefaultsKey = "batteryNoBatteryMarker"
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
     static let simulatesNoBatteryDefaultsKey = "simulatesNoBattery"
     static let batteryStatusColorsChargingDefaultsKey = "batteryStatusColors.charging"
@@ -360,10 +365,49 @@ final class SettingsStore: ObservableObject {
         isCoalescingSliderWrite = false
     }
 
-    @Published var showsBatteryPercentage: Bool {
+    // #315: the top marker is stored per power state, replacing the old
+    // "show percentage" + "show charging indicator" + "connected indicator"
+    // trio. Each state can carry its own marker so the settings surface reads as
+    // three plain choices.
+    @Published var batteryOnBatteryMarker: BatteryTopMarker {
         didSet {
-            defaults.set(showsBatteryPercentage, forKey: Self.showsBatteryPercentageDefaultsKey)
+            defaults.set(
+                batteryOnBatteryMarker.rawValue,
+                forKey: Self.batteryOnBatteryMarkerDefaultsKey
+            )
         }
+    }
+    @Published var batteryChargingMarker: BatteryTopMarker {
+        didSet {
+            defaults.set(
+                batteryChargingMarker.rawValue,
+                forKey: Self.batteryChargingMarkerDefaultsKey
+            )
+        }
+    }
+    @Published var batteryConnectedMarker: BatteryTopMarker {
+        didSet {
+            defaults.set(
+                batteryConnectedMarker.rawValue,
+                forKey: Self.batteryConnectedMarkerDefaultsKey
+            )
+        }
+    }
+    /// A battery-less Mac's decorative top marker (plug / bolt / nothing).
+    @Published var batteryNoBatteryMarker: BatteryTopMarker {
+        didSet {
+            defaults.set(
+                batteryNoBatteryMarker.rawValue,
+                forKey: Self.batteryNoBatteryMarkerDefaultsKey
+            )
+        }
+    }
+
+    /// Legacy-shaped accessor retained for older call sites. In the new model it
+    /// simply reports whether the on-battery state shows the percentage.
+    var showsBatteryPercentage: Bool {
+        get { batteryOnBatteryMarker == .percentage }
+        set { batteryOnBatteryMarker = newValue ? .percentage : .hidden }
     }
 
     /// The single switch for the details page's power flow diagram. When on it
@@ -411,9 +455,13 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var showsChargingIndicator: Bool {
-        didSet {
-            defaults.set(showsChargingIndicator, forKey: Self.showsChargingIndicatorDefaultsKey)
+    /// Legacy-shaped accessor: reports whether the charging state shows the bolt.
+    var showsChargingIndicator: Bool {
+        get { batteryChargingMarker == .bolt }
+        set {
+            batteryChargingMarker = newValue
+                ? .bolt
+                : (batteryOnBatteryMarker == .percentage ? .percentage : .hidden)
         }
     }
 
@@ -486,12 +534,21 @@ final class SettingsStore: ObservableObject {
         testsChargingEffect = enabled
     }
 
-    @Published var batteryConnectedIndicator: BatteryConnectedIndicator {
-        didSet {
-            defaults.set(
-                batteryConnectedIndicator.rawValue,
-                forKey: Self.batteryConnectedIndicatorDefaultsKey
-            )
+    /// Legacy-shaped accessor for the connected-without-charging marker.
+    var batteryConnectedIndicator: BatteryConnectedIndicator {
+        get {
+            switch batteryConnectedMarker {
+            case .percentage: return .percentage
+            case .bolt: return .bolt
+            case .plug, .hidden: return .plug
+            }
+        }
+        set {
+            switch newValue {
+            case .plug: batteryConnectedMarker = .plug
+            case .bolt: batteryConnectedMarker = .bolt
+            case .percentage: batteryConnectedMarker = .percentage
+            }
         }
     }
 
@@ -1659,7 +1716,8 @@ final class SettingsStore: ObservableObject {
     }
 
     var isBatterySymbolSizeEnabled: Bool {
-        showsBatteryPercentage || showsChargingIndicator
+        [batteryOnBatteryMarker, batteryChargingMarker, batteryConnectedMarker, batteryNoBatteryMarker]
+            .contains { $0 != .hidden }
     }
 
     /// Re-reads the macOS charge limit into the full-ring level.
@@ -1721,18 +1779,19 @@ final class SettingsStore: ObservableObject {
 
     var batteryIconOptions: BatteryIconOptions {
         BatteryIconOptions(
-            showsPercentage: showsBatteryPercentage,
-            showsChargingIndicator: showsChargingIndicator,
             showsChargingEffect: showsChargingEffect,
             showsChargingBoltHeartbeat: showsChargingBoltHeartbeat,
             splitGapProgress: batterySplitGapProgress,
             usesStatusColors: usesBatteryStatusColors,
             criticalThreshold: Int(batteryCriticalThreshold.rounded()),
-            connectedIndicator: batteryConnectedIndicator,
             fullThreshold: Int(batteryFullThreshold.rounded()),
             textScale: batterySymbolScale * BatteryIconOptions.defaultTextScale,
             ringStrokeScale: ringStrokeStyle.scale,
-            batteryStatusColors: batteryStatusColors
+            batteryStatusColors: batteryStatusColors,
+            onBatteryMarker: batteryOnBatteryMarker,
+            chargingMarker: batteryChargingMarker,
+            connectedMarker: batteryConnectedMarker,
+            noBatteryMarker: batteryNoBatteryMarker
         )
     }
 
@@ -2007,7 +2066,8 @@ final class SettingsStore: ObservableObject {
             .flatMap(MenuBarRightClickAction.init(rawValue:))
             ?? .contextMenu
         self.iconSize = Self.clampedIconSize(storedIconSize ?? Self.defaultIconSize)
-        self.showsBatteryPercentage = defaults.object(forKey: Self.showsBatteryPercentageDefaultsKey) as? Bool ?? true
+        // #315 migration inputs: the old two booleans plus the connected choice.
+        let legacyShowsPercentage = defaults.object(forKey: Self.showsBatteryPercentageDefaultsKey) as? Bool ?? true
         self.showsBatteryPowerFlow = defaults.object(forKey: Self.showsBatteryPowerFlowDefaultsKey) as? Bool ?? true
         self.showsBatteryPowerInfoBar = defaults.object(forKey: Self.showsBatteryPowerInfoBarDefaultsKey) as? Bool ?? false
         self.showsHighEnergyApps = defaults.object(forKey: Self.showsHighEnergyAppsDefaultsKey) as? Bool ?? false
@@ -2018,7 +2078,7 @@ final class SettingsStore: ObservableObject {
         self.showsChargeToFullNowButton = defaults.object(
             forKey: Self.showsChargeToFullNowButtonDefaultsKey
         ) as? Bool ?? true
-        self.showsChargingIndicator = defaults.object(forKey: Self.showsChargingIndicatorDefaultsKey) as? Bool ?? true
+        let legacyShowsCharging = defaults.object(forKey: Self.showsChargingIndicatorDefaultsKey) as? Bool ?? true
         let legacyChargingEffect = defaults.object(
             forKey: Self.showsChargingEffectDefaultsKey
         ) as? Bool
@@ -2052,23 +2112,78 @@ final class SettingsStore: ObservableObject {
         self.batterySplitGapProgress = defaults.object(
             forKey: Self.batterySplitGapProgressDefaultsKey
         ) as? Bool ?? false
-        if let storedConnectedIndicator = defaults
-            .string(forKey: Self.batteryConnectedIndicatorDefaultsKey)
-            .flatMap(BatteryConnectedIndicator.init(rawValue:)) {
-            self.batteryConnectedIndicator = storedConnectedIndicator
-        } else {
+        // #315: resolve the three per-state markers. Read the new keys first; if
+        // they are absent (an upgrade from the old build) derive them from the
+        // legacy booleans + connected choice so the current look is preserved,
+        // then persist them so this migration runs once.
+        func legacyMarker(
+            _ connected: BatteryConnectedIndicator,
+            showsPercentage: Bool
+        ) -> BatteryTopMarker {
+            switch connected {
+            case .plug: return .plug
+            case .bolt: return .bolt
+            case .percentage: return showsPercentage ? .percentage : .plug
+            }
+        }
+        let storedConnectedIndicator: BatteryConnectedIndicator = {
+            if let stored = defaults
+                .string(forKey: Self.batteryConnectedIndicatorDefaultsKey)
+                .flatMap(BatteryConnectedIndicator.init(rawValue:)) {
+                return stored
+            }
             // Migrate the old boolean once: false was the plug, true meant the
-            // percentage. Persist the result so the legacy key is not read
-            // again on later launches (#195).
+            // percentage. Persist the result so the legacy key is not read again
+            // on later launches (#195).
             let showedPercentage = defaults.object(
                 forKey: Self.showsPercentageWhenConnectedDefaultsKey
             ) as? Bool ?? false
             let migrated: BatteryConnectedIndicator = showedPercentage ? .percentage : .plug
-            self.batteryConnectedIndicator = migrated
             defaults.set(
                 migrated.rawValue,
                 forKey: Self.batteryConnectedIndicatorDefaultsKey
             )
+            return migrated
+        }()
+        let storedOnBatteryMarker = defaults
+            .string(forKey: Self.batteryOnBatteryMarkerDefaultsKey)
+            .flatMap(BatteryTopMarker.init(rawValue:))
+        let storedChargingMarker = defaults
+            .string(forKey: Self.batteryChargingMarkerDefaultsKey)
+            .flatMap(BatteryTopMarker.init(rawValue:))
+        let storedConnectedMarker = defaults
+            .string(forKey: Self.batteryConnectedMarkerDefaultsKey)
+            .flatMap(BatteryTopMarker.init(rawValue:))
+        let storedNoBatteryMarker = defaults
+            .string(forKey: Self.batteryNoBatteryMarkerDefaultsKey)
+            .flatMap(BatteryTopMarker.init(rawValue:))
+        let onBatteryMarker = storedOnBatteryMarker
+            ?? (legacyShowsPercentage ? .percentage : .hidden)
+        let chargingMarker = storedChargingMarker
+            ?? (legacyShowsCharging ? .bolt : (legacyShowsPercentage ? .percentage : .hidden))
+        let connectedMarker = storedConnectedMarker
+            ?? (
+                legacyShowsCharging
+                    ? legacyMarker(storedConnectedIndicator, showsPercentage: legacyShowsPercentage)
+                    : (legacyShowsPercentage ? .percentage : .hidden)
+            )
+        let noBatteryMarker = storedNoBatteryMarker
+            ?? (legacyShowsCharging ? (storedConnectedIndicator == .bolt ? .bolt : .plug) : .hidden)
+        self.batteryOnBatteryMarker = onBatteryMarker
+        self.batteryChargingMarker = chargingMarker
+        self.batteryConnectedMarker = connectedMarker
+        self.batteryNoBatteryMarker = noBatteryMarker
+        if storedOnBatteryMarker == nil {
+            defaults.set(onBatteryMarker.rawValue, forKey: Self.batteryOnBatteryMarkerDefaultsKey)
+        }
+        if storedChargingMarker == nil {
+            defaults.set(chargingMarker.rawValue, forKey: Self.batteryChargingMarkerDefaultsKey)
+        }
+        if storedConnectedMarker == nil {
+            defaults.set(connectedMarker.rawValue, forKey: Self.batteryConnectedMarkerDefaultsKey)
+        }
+        if storedNoBatteryMarker == nil {
+            defaults.set(noBatteryMarker.rawValue, forKey: Self.batteryNoBatteryMarkerDefaultsKey)
         }
         self.usesBatteryStatusColors = defaults.object(forKey: Self.usesBatteryStatusColorsDefaultsKey) as? Bool ?? true
         self.simulatesNoBattery = defaults.object(forKey: Self.simulatesNoBatteryDefaultsKey) as? Bool ?? false

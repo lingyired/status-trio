@@ -212,6 +212,10 @@
 "settings.battery.connectedIndicator.plug" = "플러그";
 "settings.battery.connectedIndicator.bolt" = "번개";
 "settings.battery.connectedIndicator.percentage" = "백분율";
+"settings.battery.marker.onBattery" = "배터리 사용 시";
+"settings.battery.marker.charging" = "충전 중";
+"settings.battery.marker.connected" = "전원 연결, 충전 안 함";
+"settings.battery.marker.hidden" = "숨김";
 "settings.battery.symbolScale" = "잔량/번개 크기";
 "settings.battery.symbolScaleAccessibility" = "배터리 잔량 및 번개 크기";
 "settings.battery.symbolScaleDescription" = "잔량과 번개는 같은 크기를 사용합니다.";

@@ -80,7 +80,12 @@ enum IconPresentationMapper {
         if closesRing {
             gapContent = naturalGapContent
         } else if chargingStatusCenter {
-            gapContent = options.showsPercentage ? .percentage : .empty
+            // Keep the level percentage in the gap whenever the user wants
+            // numerals anywhere (on battery, or for this power state), so the
+            // centre can carry the bolt/plug without losing the level.
+            let wantsPercentage = options.onBatteryMarker == .percentage
+                || (battery.isCharging ? options.chargingMarker : options.connectedMarker) == .percentage
+            gapContent = wantsPercentage ? .percentage : .empty
         } else {
             gapContent = naturalGapContent
         }

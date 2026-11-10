@@ -212,6 +212,10 @@
 "settings.battery.connectedIndicator.plug" = "插頭";
 "settings.battery.connectedIndicator.bolt" = "閃電";
 "settings.battery.connectedIndicator.percentage" = "電量數字";
+"settings.battery.marker.onBattery" = "使用電池";
+"settings.battery.marker.charging" = "充電中";
+"settings.battery.marker.connected" = "連接電源但未充電";
+"settings.battery.marker.hidden" = "隱藏";
 "settings.battery.symbolScale" = "電量數字/閃電大小";
 "settings.battery.symbolScaleAccessibility" = "電量數字和閃電大小";
 "settings.battery.symbolScaleDescription" = "數字和閃電使用相同尺寸，調整這裡會同步改變兩者。";

@@ -14,7 +14,7 @@ struct AppIconRingView: View {
     @EnvironmentObject private var localization: Localization
 
     /// The battery presence this page draws with. In a development build the
-    /// no-battery simulation forces the battery-less layout so the UI can be
+    /// no-battery simulation forces the battery-less look so the UI can be
     /// checked on a Mac that has a battery.
     private var effectiveHasBattery: Bool {
         hasBattery && !store.isNoBatterySimulationActive
@@ -27,28 +27,20 @@ struct AppIconRingView: View {
         if !effectiveHasBattery {
             noBatteryHintGroup
         }
-        // Every ring control stays visible without a battery: the settings are
-        // kept, only the icon's level/charging/state-colour drawing does not
-        // apply. The hint above says so.
+        // #309: every ring control stays visible without a battery. The settings
+        // are kept, only the icon's level/charging/state-colour drawing does not
+        // apply, and the hint above says so.
         topMarkersGroup
         progressGroup
         colorsGroup
         effectsGroup
     }
 
-    /// Explains that a battery-less Mac keeps the controls but not their effect
-    /// on the icon, so the page never silently hides options.
-    private var noBatteryHintGroup: some View {
-        SettingsGroup {
-            SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryHiddenOptions))
-        }
-    }
-
     // MARK: Developer preview
 
-    /// Developer-only helper: force the battery-less layout so a Mac with a
-    /// battery can preview how this page looks without one. A packaged release
-    /// never shows this (`store.isDevelopmentBuild`) and never simulates.
+    /// Developer-only helper: force the battery-less look so a Mac with a
+    /// battery can preview this page without one. A packaged release never shows
+    /// this and never simulates.
     private var noBatterySimulationGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryDeveloperPreview)) {
             SettingsToggleRow(
@@ -61,44 +53,58 @@ struct AppIconRingView: View {
         }
     }
 
+    /// Explains that a battery-less Mac keeps the controls but not their effect on
+    /// the icon, so the page never silently hides options.
+    private var noBatteryHintGroup: some View {
+        SettingsGroup {
+            SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryHiddenOptions))
+        }
+    }
+
     // MARK: Top markers
 
     private var topMarkersGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupTopMarkers)) {
-            SettingsToggleRow(
-                symbol: "percent",
-                tint: .green,
-                title: localization.string(.settingsBatteryShowPercentage),
-                // The percentage has nothing to show on a battery-less Mac, so
-                // say so under the switch while it is on instead of silently
-                // drawing nothing.
-                subtitle: store.showsBatteryPercentage && !effectiveHasBattery
-                    ? localization.string(.settingsBatteryShowPercentageNoBattery)
-                    : nil,
-                isOn: $store.showsBatteryPercentage
-            )
+            if effectiveHasBattery {
+                // #315: one plain choice per power state, so the plug and bolt no
+                // longer hide behind a "show percentage" toggle or a combined
+                // "connected without charging" option.
+                markerRow(
+                    symbol: "percent",
+                    tint: .green,
+                    title: .settingsBatteryMarkerOnBattery,
+                    selection: $store.batteryOnBatteryMarker,
+                    options: BatteryTopMarker.onBatteryOptions
+                )
 
-            SettingsDivider()
-
-            SettingsToggleRow(
-                symbol: "bolt.fill",
-                tint: .yellow,
-                title: localization.string(.settingsBatteryShowChargingIndicator),
-                subtitle: localization.string(.settingsBatteryChargingDescription),
-                isOn: $store.showsChargingIndicator
-            )
-
-            if showsConnectedIndicatorMenu {
                 SettingsDivider()
 
-                SettingsMenuRow(
+                markerRow(
+                    symbol: "bolt.fill",
+                    tint: .yellow,
+                    title: .settingsBatteryMarkerCharging,
+                    selection: $store.batteryChargingMarker,
+                    options: BatteryTopMarker.onPowerOptions
+                )
+
+                SettingsDivider()
+
+                markerRow(
                     symbol: "powerplug.portrait.fill",
                     tint: .teal,
-                    title: localization.string(.settingsBatteryConnectedIndicator),
-                    subtitle: localization.string(.settingsBatteryConnectedIndicatorDescription),
-                    selection: $store.batteryConnectedIndicator,
-                    options: BatteryConnectedIndicator.allCases,
-                    label: connectedIndicatorLabel
+                    title: .settingsBatteryMarkerConnected,
+                    selection: $store.batteryConnectedMarker,
+                    options: BatteryTopMarker.onPowerOptions
+                )
+            } else {
+                // A Mac with no battery: the only top marker to configure is a
+                // decorative plug / bolt (or nothing).
+                markerRow(
+                    symbol: "bolt.fill",
+                    tint: .yellow,
+                    title: .settingsBatteryNoBatteryTopIndicator,
+                    selection: $store.batteryNoBatteryMarker,
+                    options: BatteryTopMarker.noBatteryOptions
                 )
             }
 
@@ -136,10 +142,34 @@ struct AppIconRingView: View {
         }
     }
 
-    /// The connected-indicator picker is only meaningful while the top marker is
-    /// on, so it follows the percentage toggle.
-    private var showsConnectedIndicatorMenu: Bool {
-        store.showsChargingIndicator && store.showsBatteryPercentage
+    private func markerRow(
+        symbol: String,
+        tint: Color,
+        title: LocalizationKey,
+        selection: Binding<BatteryTopMarker>,
+        options: [BatteryTopMarker]
+    ) -> some View {
+        SettingsMenuRow(
+            symbol: symbol,
+            tint: tint,
+            title: localization.string(title),
+            selection: selection,
+            options: options,
+            label: markerLabel
+        )
+    }
+
+    private func markerLabel(_ marker: BatteryTopMarker) -> String {
+        switch marker {
+        case .percentage:
+            localization.string(.settingsBatteryConnectedIndicatorPercentage)
+        case .bolt:
+            localization.string(.settingsBatteryConnectedIndicatorBolt)
+        case .plug:
+            localization.string(.settingsBatteryConnectedIndicatorPlug)
+        case .hidden:
+            localization.string(.settingsBatteryMarkerHidden)
+        }
     }
 
     // MARK: Progress
@@ -223,19 +253,15 @@ struct AppIconRingView: View {
 
     private var colorsGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupColors)) {
-            // #309: a one-tap way to reach the monochrome look instead of
-            // asking the user to piece together several switches. It only
-            // turns the state colouring off; the top marker, centre icon and
-            // bottom indicator keep their own settings.
+            // #309: a reversible one-tap preset. It only turns the state
+            // colouring off; the top marker, centre icon and bottom indicator
+            // keep their own settings.
             SettingsRow(
                 "circle.lefthalf.filled",
                 tint: .gray,
                 title: localization.string(.settingsBatteryMonochromeArc),
                 subtitle: localization.string(.settingsBatteryMonochromeArcDescription)
             ) {
-                // Reversible: while the monochrome look is active the button
-                // becomes "Cancel" and turns the state colouring back on, so the
-                // preset is never a one-way switch.
                 Button(
                     store.isMonochromeBatteryArcActive
                         ? localization.string(.settingsBatteryMonochromeArcCancel)
@@ -332,7 +358,7 @@ struct AppIconRingView: View {
                 subtitle: localization.string(.settingsBatteryChargingBoltHeartbeatDescription),
                 isOn: $store.showsChargingBoltHeartbeat
             )
-            .disabled(!store.showsChargingEffect || !store.showsChargingIndicator)
+            .disabled(!store.showsChargingEffect || store.batteryChargingMarker != .bolt)
 
             if ChargingEffectTestMode.isAvailable() {
                 SettingsDivider()
@@ -349,17 +375,6 @@ struct AppIconRingView: View {
                 )
                 .disabled(!store.showsChargingEffect)
             }
-        }
-    }
-
-    private func connectedIndicatorLabel(_ indicator: BatteryConnectedIndicator) -> String {
-        switch indicator {
-        case .plug:
-            localization.string(.settingsBatteryConnectedIndicatorPlug)
-        case .bolt:
-            localization.string(.settingsBatteryConnectedIndicatorBolt)
-        case .percentage:
-            localization.string(.settingsBatteryConnectedIndicatorPercentage)
         }
     }
 }

@@ -212,6 +212,10 @@
 "settings.battery.connectedIndicator.plug" = "プラグ";
 "settings.battery.connectedIndicator.bolt" = "稲妻";
 "settings.battery.connectedIndicator.percentage" = "パーセント";
+"settings.battery.marker.onBattery" = "バッテリー駆動時";
+"settings.battery.marker.charging" = "充電中";
+"settings.battery.marker.connected" = "電源接続（充電なし）";
+"settings.battery.marker.hidden" = "非表示";
 "settings.battery.symbolScale" = "残量/稲妻のサイズ";
 "settings.battery.symbolScaleAccessibility" = "バッテリー残量と稲妻のサイズ";
 "settings.battery.symbolScaleDescription" = "残量と稲妻は同じサイズを使用します。";

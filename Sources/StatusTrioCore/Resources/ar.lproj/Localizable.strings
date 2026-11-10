@@ -195,6 +195,10 @@
 "settings.battery.connectedIndicator.plug" = "قابس";
 "settings.battery.connectedIndicator.bolt" = "برق";
 "settings.battery.connectedIndicator.percentage" = "نسبة مئوية";
+"settings.battery.marker.onBattery" = "على البطارية";
+"settings.battery.marker.charging" = "أثناء الشحن";
+"settings.battery.marker.connected" = "متصل بالطاقة دون شحن";
+"settings.battery.marker.hidden" = "مخفي";
 "settings.battery.symbolScale" = "حجم النسبة/البرق";
 "settings.battery.symbolScaleAccessibility" = "حجم نسبة البطارية ورمز البرق";
 "settings.battery.symbolScaleDescription" = "تستخدم النسبة ورمز البرق الحجم نفسه.";
