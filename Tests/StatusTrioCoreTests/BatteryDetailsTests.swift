@@ -28,6 +28,21 @@ final class BatteryDetailsTests: XCTestCase {
         XCTAssertNil(details.adapterWatts, "Disconnected power must not show a residual adapter rating")
     }
 
+    func testRegistryMaxCapacityIsNotPublishedAsTheHealthPercentage() throws {
+        // The registry MaxCapacity counter can stay pinned at 100 while the
+        // battery has degraded to ~94%. It must never become the displayed
+        // Maximum Capacity; only system_profiler's value may fill that field.
+        var values = registry
+        values["BatteryData"] = [
+            "DesignCapacity": 8_579,
+            "AppleRawMaxCapacity": 8_386,
+            "MaxCapacity": 100
+        ]
+        let details = try XCTUnwrap(parse(values).health)
+        XCTAssertNil(details.maximumCapacityPercent)
+        XCTAssertEqual(try XCTUnwrap(details.healthPercent), 8_386.0 / 8_579 * 100, accuracy: 0.000_001)
+    }
+
     func testUnsigned64BitNegativeCurrentIsDecodedAndBounded() throws {
         var values = registry
         values["Amperage"] = NSNumber(value: UInt64(bitPattern: -1528))

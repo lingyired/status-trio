@@ -71,9 +71,11 @@ enum PanelDetailMapper {
                 rows.append(row(.batteryDetailsRemaining, value: remaining, localization: localization))
             }
             if battery.isPresent, let health = details.health {
+                // Maximum Capacity is whatever macOS itself reports; the
+                // measured AppleRawMaxCapacity ratio can differ (e.g. 98% vs
+                // the system's 100%), so it is not a valid stand-in. With no
+                // system value we say unavailable instead of guessing.
                 let capacityText = health.maximumCapacityPercent.map {
-                    ($0 / 100).formatted(.percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale))
-                } ?? health.healthPercent.map {
                     ($0 / 100).formatted(.percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale))
                 } ?? localization.string(.batteryDetailsUnavailable)
                 rows.append(row(
