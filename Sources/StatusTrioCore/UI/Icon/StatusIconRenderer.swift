@@ -1371,6 +1371,35 @@ extension StatusIconRenderer {
         }
     }
 
+    /// Reference-calibrated multiplier for an explicitly-sized centre.
+    ///
+    /// The V1 schema sizes the centre by *visible ink height* percentage
+    /// (`IconCenterSizingPolicy`), not by the raw point-size multiplier the
+    /// legacy path uses. The multiplier is derived from the policy's shared
+    /// raster calibration so every source (battery text, Wi-Fi, glyphs) lands on
+    /// the same visible height.
+    static func normalizedCenterCalibration(
+        for center: CenterState,
+        percentage: Double,
+        environment: StatusIconRenderEnvironment
+    ) -> (identity: String, multiplier: CGFloat)? {
+        _ = environment
+        guard percentage.isFinite else { return nil }
+        let policyPercentage = IconCenterSizingPolicy.normalizedPercentage(percentage)
+        let multiplier = IconCenterSizingPolicy.drawingMultiplier(
+            percentage: policyPercentage,
+            referenceVisibleHeight: IconCenterSizingPolicy.baselineVisibleHeight
+        )
+        guard multiplier.isFinite, multiplier > 0 else { return nil }
+        let identity = [
+            "normalized",
+            center.kindIdentity,
+            "p=" + String(policyPercentage.bitPattern, radix: 16),
+            "baseline=" + String(IconCenterSizingPolicy.baselineVisibleHeight.bitPattern, radix: 16)
+        ].joined(separator: "|")
+        return (identity: identity, multiplier: CGFloat(multiplier))
+    }
+
     private static func drawSceneCenter(
         _ center: CenterState,
         in context: CGContext,
@@ -1379,7 +1408,7 @@ extension StatusIconRenderer {
     ) {
         switch center {
         case let .text(text):
-            let fontSize = centerTextPointSize(for: text.scale)
+            let fontSize = centerTextPointSize(for: centerScale(of: text.scale, normalized: text.normalizedSizePercentage))
             let color = sceneColor(for: text.color, foreground: foreground, statusPalette: statusPalette)
             let line = sceneTextLine(text.text, color: color, fontSize: fontSize)
             let bounds = CTLineGetBoundsWithOptions(line, [.useGlyphPathBounds])
@@ -1399,9 +1428,20 @@ extension StatusIconRenderer {
                 center: wifiSymbolCenter,
                 foreground: foreground,
                 statusPalette: statusPalette,
-                in: context
+                in: context,
+                normalizedSizePercentage: symbol.normalizedSizePercentage
             )
         }
+    }
+
+    /// Applies the V1 explicit visible-size percentage when present, otherwise
+    /// keeps the legacy raw scale.
+    private static func centerScale(of scale: Double, normalized: Double?) -> Double {
+        guard let normalized else { return scale }
+        return IconCenterSizingPolicy.drawingMultiplier(
+            percentage: normalized,
+            referenceVisibleHeight: IconCenterSizingPolicy.baselineVisibleHeight
+        )
     }
 
     private static func drawSceneSymbol(
@@ -1409,10 +1449,13 @@ extension StatusIconRenderer {
         center: CGPoint,
         foreground: CGColor,
         statusPalette: BatteryStatusColorPalette,
-        in context: CGContext
+        in context: CGContext,
+        normalizedSizePercentage: Double? = nil
     ) {
         let tint = sceneColor(for: symbol.color, foreground: foreground, statusPalette: statusPalette)
-        let pointSize = centerSymbolPointSize(for: symbol.scale)
+        let pointSize = centerSymbolPointSize(
+            for: centerScale(of: symbol.scale, normalized: normalizedSizePercentage)
+        )
         switch symbol.source {
         case let .primitive(primitive):
             switch primitive {

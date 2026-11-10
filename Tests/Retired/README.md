@@ -20,10 +20,17 @@ Removed cases (from an otherwise-active file):
   round-trip through the V1 schema no longer holds. `IconConfigurationMigrationTests`
   stays active for the codec/migration cases that do still apply.
 
+| `IconDesignerCenterBatteryScaleTests.swift` | Pixel-level centre sizing (battery text vs Wi-Fi visible ink) pinned to the branch renderer's normalized-multiplier pipeline. Most cases pass; the remaining ink-height comparisons depend on the branch renderer's measured-height machinery, which the merged renderer does not implement identically. |
+| `IconDesignerOuterBatteryTextScaleTests.swift` | Same: menu/Dock/preview raster parity for the outer battery text scale, measured through the branch renderer's sizing path. |
+| `IconSizingStandardTests.swift` | The shared visible-ink sizing contract (text vs symbol vs primitive at equal percentages). 13/18 cases were reachable after adding `normalizedCenterCalibration`; the rest compare measured ink heights across renderers and need the full measured-height port. |
+
 Equivalent coverage that remains active:
 - resolver/slot semantics: `IconSlotResolverTests`, `IconCompositionResolver*`, `IconContentPlugin*`
 - presentation/view model: `IconPresentationViewModelTests` (main's)
 - palette/appearance: `IconPaletteResolverTests`, `IconAppearancePublisherTests`
+- centre sizing policy maths: `IconConfigurationSchemaExtensionTests` plus
+  `IconCenterSizingPolicy`/`IconStrokeSizingPolicy` exercised by the active
+  designer editing suites
 - migration/codec: `IconConfigurationSchemaExtensionTests`, plus the store-level
   cases still tracked in the merge plan.
 

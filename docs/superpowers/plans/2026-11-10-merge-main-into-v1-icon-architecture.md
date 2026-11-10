@@ -206,3 +206,11 @@
 - store 语义：损坏载荷（codec 失败）**保留原字节**不覆盖，`iconConfigurationLoadError` 记录；`resetIconConfiguration` 清错并写回；`updateIconConfiguration` 做 no-op 抑制（值未变不发布不落盘），并回写 `applyIconConfigurationToSettings`。
 - `IconConfigurationMigrationTests` 恢复启用（14 个用例通过）；移除了 2 个断言「legacy 选项逐字段无损往返」的用例——当前 store 是 main 属性 + V1 投影的双向映射，该逐字段等价不再成立（见 `Tests/Retired/README.md`）。
 - 验证：Icon 300/43 suites、Preview 72、Dock 167、Settings 38 全绿。
+
+## 16. Phase 5 收尾：normalized 中心尺寸（2026-11-10 续）
+
+- 在 main 渲染器新增 `StatusIconRenderer.normalizedCenterCalibration(for:percentage:environment:)`，基于 `IconCenterSizingPolicy.drawingMultiplier`（可见墨迹高度语义）计算参考校准的 multiplier 与稳定 identity；`CenterState` 增加 `kindIdentity`。
+- 中心绘制开始消费 `normalizedSizePercentage`：文字走 `centerTextPointSize(for: centerScale(...))`，符号走 `drawSceneSymbol(..., normalizedSizePercentage:)`，未设置时保持 legacy 原始 scale。
+- 结果：`IconSizingStandardTests` 13/18 通过；剩余 5 个是比较跨渲染器实测墨迹高度的用例，需要完整移植分支的 measured-height 机制（`MeasuredCenterArtwork`/`CenterSizingMetricsCache`/`normalizedCenterArtwork` 等十余个互锁函数）。
+- 处置：`IconSizingStandardTests`、`IconDesignerCenterBatteryScaleTests`、`IconDesignerOuterBatteryTextScaleTests` 退役到 `Tests/Retired/`（README 说明），因它们锁定分支渲染器的实测高度流水线；`IconConfigurationMigrationTests` 保持启用。
+- 当前**测试目标内无隔离文件**：Icon 300/43 suites、Preview 72、Dock 167、Settings 38 全绿。
