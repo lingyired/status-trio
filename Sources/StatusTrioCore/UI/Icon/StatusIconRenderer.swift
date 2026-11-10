@@ -208,7 +208,7 @@ enum StatusIconRenderer {
                 miterLimit: 10
             )
             let transparent = highlightColor.copy(alpha: 0) ?? highlightColor
-            let bright = highlightColor.copy(alpha: min(1, max(0, frame.tailAlpha))) ?? highlightColor
+            let bright = highlightColor.copy(alpha: min(1, max(0, frame.tailAlpha)) * highlightColor.alpha) ?? highlightColor
             if let gradient = CGGradient(
                 colorsSpace: CGColorSpaceCreateDeviceRGB(),
                 colors: [transparent, bright, transparent] as CFArray,
@@ -230,7 +230,7 @@ enum StatusIconRenderer {
         if frame.headIsVisible, frame.beadAlpha > 0 {
             let center = StatusIconGeometry.batteryPoint(forProgress: frame.headProgress)
             let radius = lineWidth * 0.5 * 1.18
-            context.setFillColor(highlightColor.copy(alpha: min(1, frame.beadAlpha)) ?? highlightColor)
+            context.setFillColor(highlightColor.copy(alpha: min(1, frame.beadAlpha) * highlightColor.alpha) ?? highlightColor)
             context.fillEllipse(in: CGRect(
                 x: center.x - radius,
                 y: center.y - radius,
@@ -242,7 +242,7 @@ enum StatusIconRenderer {
         if frame.headIsVisible, frame.heartbeatAlpha > 0 {
             let center = StatusIconGeometry.batteryPoint(forProgress: frame.headProgress)
             let radius = lineWidth * 0.95 * frame.heartbeatScale
-            context.setFillColor(highlightColor.copy(alpha: min(1, frame.heartbeatAlpha)) ?? highlightColor)
+            context.setFillColor(highlightColor.copy(alpha: min(1, frame.heartbeatAlpha) * highlightColor.alpha) ?? highlightColor)
             context.fillEllipse(in: CGRect(
                 x: center.x - radius,
                 y: center.y - radius,
@@ -318,7 +318,13 @@ enum StatusIconRenderer {
     /// half-height. Anchoring the ink centre itself makes the position
     /// independent of the text's size, which is what a label that follows the
     /// Wi-Fi size control needs.
-    private static let centerTextInkCenter = wifiSymbolCenter
+    // Centre text is aligned to the canvas midpoint so its ink bounds stay
+    // optically centred at every scale; SF Symbols keep the artwork anchor
+    // (`wifiSymbolCenter`) which #30 tuned for horizontal alignment.
+    private static let centerTextInkCenter = CGPoint(
+        x: StatusIconGeometry.artworkCenterX,
+        y: 64.0
+    )
 
     /// Uses the middle connection position for a large, label-free percentage.
 
@@ -1170,7 +1176,7 @@ extension StatusIconRenderer {
 
         if regions.contains(.ringTrack) {
             context.setLineWidth(lineWidth)
-            context.setStrokeColor(foreground.copy(alpha: inactiveTrackAlpha) ?? foreground)
+            context.setStrokeColor(sceneColor(for: ring.inactiveColor, foreground: foreground, statusPalette: statusPalette))
             context.addPath(StatusIconGeometry.batteryTrack(hasTopGap: hasTopGap, topGapWidth: topGapWidth))
             context.strokePath()
         }
@@ -1395,7 +1401,7 @@ extension StatusIconRenderer {
             let dotRadiusScale = 1 + (dots.strokeScale - 1) * 0.5
             let radius = StatusIconGeometry.volumeDotRadius * CGFloat(dotRadiusScale)
             let active = sceneColor(for: dots.color, foreground: foreground, statusPalette: statusPalette)
-            let inactive = foreground.copy(alpha: inactiveTrackAlpha) ?? foreground
+            let inactive = sceneColor(for: dots.inactiveColor, foreground: foreground, statusPalette: statusPalette)
             for (index, point) in points.prefix(dots.count).enumerated() {
                 let isActive = index < dots.activeCount
                 guard isActive ? regions.contains(.footerFill) : regions.contains(.footerTrack) else {
@@ -1410,7 +1416,7 @@ extension StatusIconRenderer {
                 ))
             }
         case let .arc(arc):
-            let hidden = foreground.copy(alpha: inactiveTrackAlpha) ?? foreground
+            let hidden = sceneColor(for: arc.inactiveColor, foreground: foreground, statusPalette: statusPalette)
             let active = sceneColor(for: arc.color, foreground: foreground, statusPalette: statusPalette)
             if regions.contains(.footerTrack) {
                 context.setLineWidth(7 * CGFloat(arc.strokeScale))
