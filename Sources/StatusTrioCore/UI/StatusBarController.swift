@@ -15,6 +15,10 @@ private struct StatusBarAccessibilityKey: Equatable {
 @MainActor
 final class StatusBarController: NSObject {
     static let popoverToggleLockoutInterval: TimeInterval = 0.25
+    /// Bounds the "this close came from the current click's mouse-down" record
+    /// so a later opening click is not suppressed. Kept short: a same-click
+    /// mouse-up follows its mouse-down within the physical press.
+    static let popoverReopenSuppressionInterval: TimeInterval = 0.35
     static let popoverContentReleaseDelay: TimeInterval = 5
 
     /// Draws the monochrome template base the menu bar hands to the system.
@@ -157,6 +161,9 @@ final class StatusBarController: NSObject {
     private var popoverAnchorWindow: NSWindow?
     private var popoverToggleGate = PopoverToggleGate(
         lockout: StatusBarController.popoverToggleLockoutInterval
+    )
+    private var reopenSuppression = PopoverReopenSuppression(
+        window: StatusBarController.popoverReopenSuppressionInterval
     )
     private var popoverContentReleaseTask: Task<Void, Never>?
     private var popoverContentGeneration: UInt64 = 0
@@ -572,6 +579,13 @@ final class StatusBarController: NSObject {
     }
 
     func togglePopover() {
+        // Issue #224 follow-up 2: if this same click's mouse-down already closed
+        // the panel (the outside-click monitor, or a focus-loss close while the
+        // button was held), the click intended to close — never reopen on the
+        // following mouse-up.
+        if !popover.isShown, reopenSuppression.shouldSuppressReopen(at: Date()) {
+            return
+        }
         guard popoverToggleGate.shouldAccept(at: Date()) else { return }
         guard let button = statusItem.button else { return }
         if popover.isShown {
@@ -723,6 +737,8 @@ final class StatusBarController: NSObject {
         dockInset: NSEdgeInsets = DockReveal.noInset
     ) {
         cancelPopoverContentRelease()
+        // A fresh presentation is not the tail of a mouse-down dismissal.
+        reopenSuppression.reset()
         store.setPopoverVisible(true)
         // A retained route is lightweight. Re-enter its detail source before
         // installing or laying out content so the first frame uses fresh data.
@@ -1035,6 +1051,11 @@ final class StatusBarController: NSObject {
                 // outside click. Dismissing here would close on mouse-down and
                 // the item's mouse-up toggle would reopen it (issue #224).
                 guard policy.shouldDismiss(at: clickLocation) else { return }
+                // Even when the geometry check cannot recognise the item (some
+                // multi-display / OS setups), remember that this mouse-down
+                // closed the panel so the same click's mouse-up will not reopen
+                // it (issue #224 follow-up 2).
+                self.reopenSuppression.recordClose(at: Date(), mouseButtonDown: true)
                 self.popover.performClose(nil)
             }
         }
@@ -1242,6 +1263,14 @@ final class StatusBarController: NSObject {
     }
 
     private func handlePanelDidClose() {
+        // A close while a mouse button is held is a mouse-down dismissal (the
+        // outside-click monitor or a focus-loss close during the press). The
+        // same click's mouse-up must not reopen the panel (issue #224 follow-up
+        // 2). The item's own toggle closes on mouse-up, so it is not recorded.
+        reopenSuppression.recordClose(
+            at: Date(),
+            mouseButtonDown: NSEvent.pressedMouseButtons != 0
+        )
         let popoverWindow = popover.contentViewController?.view.window
         dockActivationLogger.notice(
             """

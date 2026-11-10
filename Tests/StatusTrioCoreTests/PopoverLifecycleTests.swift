@@ -175,3 +175,91 @@ struct PopoverFocusLossDismissalPolicyTests {
         #expect(panelVisible == false)
     }
 }
+
+/// Issue #224 follow-up 2: when the mouse-down already closed the panel, the
+/// same click's mouse-up must not reopen it — the coordinate-free safety net for
+/// setups where the status-item hit test misjudges the item.
+struct PopoverReopenSuppressionTests {
+    private let window: TimeInterval = 0.35
+
+    @Test func suppressesReopenAfterAMouseDownClose() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let close = Date()
+        suppression.recordClose(at: close, mouseButtonDown: true)
+
+        let suppressed = suppression.shouldSuppressReopen(
+            at: close.addingTimeInterval(0.05)
+        )
+        #expect(suppressed)
+    }
+
+    @Test func doesNotSuppressWhenTheCloseWasNotAMouseDown() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let close = Date()
+        // The item's own toggle closes on mouse-up: a legitimate close.
+        suppression.recordClose(at: close, mouseButtonDown: false)
+
+        let suppressed = suppression.shouldSuppressReopen(
+            at: close.addingTimeInterval(0.05)
+        )
+        #expect(suppressed == false)
+    }
+
+    @Test func doesNotSuppressALaterOpeningClick() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let close = Date()
+        suppression.recordClose(at: close, mouseButtonDown: true)
+
+        let suppressed = suppression.shouldSuppressReopen(
+            at: close.addingTimeInterval(window + 0.01)
+        )
+        #expect(suppressed == false)
+    }
+
+    @Test func consumesTheRecordSoOnlyOneToggleIsSuppressed() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let close = Date()
+        suppression.recordClose(at: close, mouseButtonDown: true)
+
+        let first = suppression.shouldSuppressReopen(at: close.addingTimeInterval(0.05))
+        let second = suppression.shouldSuppressReopen(at: close.addingTimeInterval(0.06))
+        #expect(first)
+        #expect(second == false)
+    }
+
+    @Test func resetClearsAPendingRecord() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let close = Date()
+        suppression.recordClose(at: close, mouseButtonDown: true)
+
+        suppression.reset()
+
+        let suppressed = suppression.shouldSuppressReopen(
+            at: close.addingTimeInterval(0.05)
+        )
+        #expect(suppressed == false)
+    }
+
+    /// The whole failing gesture: mouse-down closes the panel (outside-click
+    /// monitor), then the status item's mouse-up toggle must keep it closed
+    /// instead of reopening it.
+    @Test func mouseDownCloseThenMouseUpToggleKeepsThePanelClosed() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let mouseDown = Date()
+        var panelVisible = true
+
+        // Mouse-down: the outside-click monitor closes the panel.
+        panelVisible = false
+        suppression.recordClose(at: mouseDown, mouseButtonDown: true)
+
+        // Mouse-up: the status item's toggle runs but is suppressed.
+        let mouseUp = mouseDown.addingTimeInterval(0.08)
+        if !panelVisible, suppression.shouldSuppressReopen(at: mouseUp) {
+            // stay closed
+        } else {
+            panelVisible.toggle()
+        }
+
+        #expect(panelVisible == false)
+    }
+}

@@ -106,3 +106,28 @@ policy to `NSEvent.mouseLocation` and `NSEvent.pressedMouseButtons`.
 Covered by `PopoverFocusLossDismissalPolicyTests` (headless). The real click in
 regular mode is `NOT RUN` in this checkout (no permitted Computer Use provider
 for a status-item click); it needs an authorized foreground/manual pass.
+
+## Follow-up 3: pure menu-bar (accessory) users still saw a reopen
+
+A reporter on macOS 27.0.1, v1.9.4, with **no Dock icon and no Settings window
+open**, still saw a single status-item click "refresh" the panel instead of
+closing it. In that accessory state the app never becomes active, so neither
+`didResignActive` nor another app activating applies — the only close path is the
+**outside-click monitor's status-item hit test**. If that hit test misjudges the
+item (multi-display / notch / menu-bar geometry, or an OS-build difference), the
+monitor closes on mouse-down and the item's mouse-up toggle reopens it.
+
+Fix: a coordinate-free safety net, `PopoverReopenSuppression`. Any panel close
+that happens **while a mouse button is held down** is recorded; the immediately
+following status-item toggle then refuses to reopen. This does not depend on the
+item's screen rectangle, so it holds when the hit test is wrong. A genuine
+outside click (no toggle follows), a normal close from the item's own mouse-up
+toggle (button not held), Escape, and a real focus loss (no button held) are all
+unaffected. The record is bounded by
+`StatusBarController.popoverReopenSuppressionInterval` (0.35 s) so a much later
+opening click is not mistaken for the closing one; the trade-off is that a
+deliberate reopen within 0.35 s of a mouse-down dismissal is ignored once.
+
+Covered by `PopoverReopenSuppressionTests` (headless). The real accessory-mode
+click is still `NOT RUN` here (no permitted status-item click provider) and needs
+the reporter's manual confirmation on macOS 27.
