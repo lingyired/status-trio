@@ -263,3 +263,101 @@ struct PopoverReopenSuppressionTests {
         #expect(panelVisible == false)
     }
 }
+
+/// Issue #224 (reported again on v1.9.4 / macOS 27.0.1, pure menu-bar mode):
+/// clicking the status item's **very edge** reopened the panel instead of
+/// closing it. `NSRect.contains` is half-open, so a click exactly on `maxX` or
+/// `maxY` counted as an outside click: the monitor closed on mouse-down and the
+/// item's mouse-up toggle reopened it.
+struct PopoverDismissalPolicyEdgeTests {
+    private let frame = NSRect(x: 100, y: 900, width: 30, height: 22)
+
+    @Test func ignoresMouseDownOnTheRightEdge() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let rightEdge = NSPoint(x: frame.maxX, y: frame.midY)
+
+        #expect(policy.shouldDismiss(at: rightEdge) == false)
+    }
+
+    @Test func ignoresMouseDownOnTheTopEdge() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let topEdge = NSPoint(x: frame.midX, y: frame.maxY)
+
+        #expect(policy.shouldDismiss(at: topEdge) == false)
+    }
+
+    @Test func ignoresMouseDownOnEveryCorner() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let corners = [
+            NSPoint(x: frame.minX, y: frame.minY),
+            NSPoint(x: frame.maxX, y: frame.minY),
+            NSPoint(x: frame.minX, y: frame.maxY),
+            NSPoint(x: frame.maxX, y: frame.maxY)
+        ]
+
+        for corner in corners {
+            #expect(policy.shouldDismiss(at: corner) == false)
+        }
+    }
+
+    /// The inclusive edge must not swallow a genuine outside click just past it.
+    @Test func stillDismissesImmediatelyOutsideTheEdges() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let pastRight = NSPoint(x: frame.maxX + 0.5, y: frame.midY)
+        let aboveTop = NSPoint(x: frame.midX, y: frame.maxY + 0.5)
+        let pastLeft = NSPoint(x: frame.minX - 0.5, y: frame.midY)
+        let belowBottom = NSPoint(x: frame.midX, y: frame.minY - 0.5)
+
+        #expect(policy.shouldDismiss(at: pastRight))
+        #expect(policy.shouldDismiss(at: aboveTop))
+        #expect(policy.shouldDismiss(at: pastLeft))
+        #expect(policy.shouldDismiss(at: belowBottom))
+    }
+
+    /// The focus-loss path had the same half-open bug.
+    @Test func ignoresFocusLossPressingTheRightEdge() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let rightEdge = NSPoint(x: frame.maxX, y: frame.midY)
+
+        let shouldDismiss = policy.shouldDismissOnFocusLoss(
+            at: rightEdge,
+            isMouseButtonDown: true
+        )
+        #expect(shouldDismiss == false)
+    }
+
+    @Test func ignoresFocusLossPressingTheTopEdge() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let topEdge = NSPoint(x: frame.midX, y: frame.maxY)
+
+        let shouldDismiss = policy.shouldDismissOnFocusLoss(
+            at: topEdge,
+            isMouseButtonDown: true
+        )
+        #expect(shouldDismiss == false)
+    }
+
+    /// `NSRect.contains` really is half-open — the assumption this fix rests on.
+    /// If a future SDK changed it, the explicit inclusive test stays correct but
+    /// this documents why the helper exists.
+    @Test func nsRectContainsIsHalfOpenOnMaxEdges() {
+        let point = NSPoint(x: frame.maxX, y: frame.midY)
+
+        #expect(frame.contains(point) == false)
+        #expect(PopoverDismissalPolicy.containsInclusive(frame, point))
+    }
+
+    /// The reported gesture at the edge: monitor decision then item toggle.
+    @Test func edgeClickClosesExactlyOnce() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        var panelVisible = true
+
+        let click = NSPoint(x: frame.maxX, y: frame.midY)
+        if policy.shouldDismiss(at: click) {
+            panelVisible = false
+        }
+        panelVisible.toggle()
+
+        #expect(panelVisible == false)
+    }
+}

@@ -21,7 +21,24 @@ struct PopoverDismissalPolicy: Equatable {
 
     func shouldDismiss(at point: NSPoint) -> Bool {
         guard let statusItemFrame else { return true }
-        return !statusItemFrame.contains(point)
+        return !Self.containsInclusive(statusItemFrame, point)
+    }
+
+    /// Whether `frame` covers `point` **including its right and top edges**.
+    ///
+    /// `NSRect.contains(_:)` (and `NSPointInRect` / `NSMouseInRect`) treat the
+    /// rectangle as half-open: `maxX` and `maxY` fall *outside* it. A click on
+    /// the status item's rightmost or topmost pixel therefore looked like an
+    /// outside click, so the panel closed on mouse-down and the item's mouse-up
+    /// toggle reopened it — the "click the very edge and it refreshes instead of
+    /// closing" report on v1.9.4 (issue #224).
+    ///
+    /// Menu-bar items are small and are clicked at their edges, so the inclusive
+    /// test is the correct one. The frame is compared as-is: widening it would
+    /// swallow a real outside click on the neighbouring menu-bar item.
+    static func containsInclusive(_ frame: NSRect, _ point: NSPoint) -> Bool {
+        point.x >= frame.minX && point.x <= frame.maxX
+            && point.y >= frame.minY && point.y <= frame.maxY
     }
 
     /// Decides whether a *focus-loss* dismissal should go ahead.
@@ -44,7 +61,8 @@ struct PopoverDismissalPolicy: Equatable {
         at point: NSPoint,
         isMouseButtonDown: Bool
     ) -> Bool {
-        if isMouseButtonDown, let statusItemFrame, statusItemFrame.contains(point) {
+        if isMouseButtonDown, let statusItemFrame,
+           Self.containsInclusive(statusItemFrame, point) {
             return false
         }
         return true
