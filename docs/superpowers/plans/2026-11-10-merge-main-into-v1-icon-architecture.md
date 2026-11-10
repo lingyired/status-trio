@@ -154,3 +154,15 @@
   - 依赖旧 V1 store/编辑模型：`IconConfigurationMigrationTests`、`IconDesignerCenterBatteryScaleTests`、`IconDesignerEditingTests`、`IconDesignerEditorModelTests`、`IconDesignerOuterBatteryTextScaleTests`、`IconDesignerReviewRegressionTests`、`IconLegacyCompatibilityTests`、`IconPaletteResolverTests`、`IconSlotResolverTests`、`IconDesignerMenuBarColorPropagationTests`、`StatusIconCenterTextAlignmentTests`
   - 依赖旧 VM/渲染器：`IconRuntimePresentationOptionsTests`、`IconSizingStandardTests`、`IconPreviewInputBuilderTests`、`AirPodsRingGeometryTests`
 - 结论：Phase 1 交付的是「main 全量更新 + 可编译的 V1 架构库」基线；V1 接管运行时与 main 图标特性移植从 Phase 2 开始。
+
+## 10. Phase 2–4 进展（2026-11-10 续）
+
+- **Phase 2 完成**：`IconConfigurationV1` 新增并持久化 `batteryMarkers`（#315，四态 BatteryTopMarker）、`splitGapProgress`（#205）、`bluetoothIconColor`（#275）、`inputSourceMarkerStyle`（#297）、`bluetoothSymbolScale`、`batteryStatusColors`；全部 `decodeIfPresent` 向后兼容，配套 `IconConfigurationSchemaExtensionTests`（往返 + 旧数据解码）。
+- **Phase 3/4 接线（进行中）**：
+  - `IconPresentationInputs.sources` 携带 `IconSourceSnapshot`；`AppEnvironment` 从 `SystemStatusStore` 构造并注入。
+  - `AppEnvironment` 的 `mapScene` 改为调用 `IconCompositionResolver`（V1 架构驱动运行时场景），`settings.iconConfiguration` 作为输入。
+  - `SettingsStore+IconCompatibility.iconConfiguration` 从 main 设置全量映射（电池标记/分段/网络/蓝牙/音量/描边/蓝牙色/电池状态色/输入源标记）。
+  - V1→legacy 投影补齐 #315/#205/#275/电池状态色，场景携带 `statusColors`/`bluetoothIconColor`。
+  - 验证：Icon 300/43 suites、Preview 72、Settings 38、Dock 167 全绿。
+- **测试状态变化**：`AirPodsRingGeometryTests` 已恢复并通过；`IconPreviewInputBuilderTests` 因 wifi 信号样例与 main 快照模型不符继续隔离（Phase 4 处理）。其余禁用清单见 §9。
+- **待办**：V1 的 `automaticLegacy` 行为需与 main 的 legacy runtime 语义对齐（`IconSlotResolverTests`/`IconLegacyCompatibilityTests`/`IconPaletteResolverTests` 仍隔离）；`StatusIconCenterTextAlignmentTests` 仍待尺寸策略对齐；随后 Phase 5 渲染器与 Phase 6 设置页。
