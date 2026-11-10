@@ -625,4 +625,43 @@ final class IconPresentationViewModelTests: XCTestCase {
         XCTAssertTrue(highPowerColors.contains(.highPower))
         model.stop()
     }
+
+    /// The view model must pass `runtimeOptions` and `sources` from
+    /// `resolveInputs` through to the mapper. Dropping `runtimeOptions` made the
+    /// Bluetooth-audio glyph choice change the preview but not the menu bar.
+    func testMapperReceivesRuntimeOptionsAndSourcesFromResolveInputs() throws {
+        let snapshot = PresentationFixtures.snapshot(rssi: -55, scalar: 0.4)
+        let runtimeOptions = IconPresentationRuntimeOptions(
+            connectionCenterSource: .bluetoothDevice,
+            prioritizesNetworkErrorsOverInputSource: false,
+            batteryFullThreshold: 100,
+            bluetoothAudioIconChoice: .headphones
+        )
+        let sources = IconSourceSnapshot(
+            availability: [CenterSource.connectedBluetoothDevice.rawValue: .available],
+            airPodsBattery: nil,
+            connectedBluetoothDeviceSymbol: "airpods",
+            connectedBluetoothDeviceIsAudio: true
+        )
+        var mappedInputs: IconPresentationInputs?
+        let model = IconPresentationViewModel(
+            snapshot: snapshot,
+            settings: IconPresentationSettings(configuration: .standard, menuBarSize: 28, testsChargingEffect: false),
+            snapshots: Just(snapshot).eraseToAnyPublisher(),
+            preferences: Just(IconPresentationSettings(configuration: .standard, menuBarSize: 28, testsChargingEffect: false)).eraseToAnyPublisher(),
+            resolveInputs: { snap in
+                IconPresentationInputs(snapshot: snap, audioIcon: nil, runtimeOptions: runtimeOptions, sources: sources)
+            },
+            mapScene: { inputs, _, _ in
+                mappedInputs = inputs
+                return IconSceneState(center: .text(IconTextState(text: "X", color: .primary, scale: 1)))
+            },
+            snapshotScheduler: ManualIconPresentationScheduler()
+        )
+        model.start()
+        let received = try XCTUnwrap(mappedInputs)
+        XCTAssertEqual(received.runtimeOptions, runtimeOptions)
+        XCTAssertEqual(received.sources.connectedBluetoothDeviceSymbol, "airpods")
+        model.stop()
+    }
 }

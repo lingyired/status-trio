@@ -321,12 +321,17 @@ final class IconPresentationViewModel: ObservableObject {
         resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs
     ) -> IconPresentationInputs {
         let inputs = resolveInputs(snapshot)
+        // Carry every field the resolver needs: dropping `runtimeOptions` is why
+        // the Bluetooth-audio glyph choice changed the preview but not the menu
+        // bar, and dropping `sources` lost Bluetooth/AirPods availability.
         return IconPresentationInputs(
             snapshot: inputs.snapshot,
             audioIcon: inputs.audioIcon,
             inputSource: inputSource?.resolvedForDrawing(),
+            runtimeOptions: inputs.runtimeOptions,
             systemPower: systemPower,
-            isHighPowerMode: isHighPowerMode
+            isHighPowerMode: isHighPowerMode,
+            sources: inputs.sources
         )
     }
 }
