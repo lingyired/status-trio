@@ -171,7 +171,11 @@ enum PanelPresentationMapper {
         return value
     }
 
-    static func vpn(_ status: VPNStatus, localization: Localization) -> PanelSummaryState {
+    static func vpn(
+        _ status: VPNStatus,
+        powerState: VPNPowerState = VPNPowerState(),
+        localization: Localization
+    ) -> PanelSummaryState {
         let title = vpnTitle(status, localization: localization)
         let subtitle = vpnSubtitle(status, localization: localization)
         let tint: PanelTint
@@ -182,6 +186,28 @@ enum PanelPresentationMapper {
         } else {
             tint = .secondary
         }
+
+        let service = status.powerControlService
+        let power: VPNPowerPresentation? = status.showsPowerControl
+            ? VPNPowerPresentation(
+                isOn: status.powerControlIsOn,
+                isChanging: powerState.isChanging,
+                canSetPower: !powerState.isChanging
+                    && (service?.isEnabled ?? false)
+                    && service?.state != .invalid
+                    && service?.state != .connecting
+                    && service?.state != .disconnecting,
+                failureMessage: powerState.failure.map {
+                    switch $0 {
+                    case .timedOut: localization.string(.vpnPowerTimedOut)
+                    case .requestRejected, .failed: localization.string(.vpnPowerFailed)
+                    }
+                },
+                turnOnHelp: localization.string(.vpnPowerTurnOn),
+                turnOffHelp: localization.string(.vpnPowerTurnOff),
+                changingHelp: localization.string(.vpnPowerChanging)
+            )
+            : nil
 
         return PanelSummaryState(
             title: title,
@@ -196,7 +222,8 @@ enum PanelPresentationMapper {
             accessibilityLabel: localization.string(.vpnTitle),
             accessibilityValue: "\(title), \(subtitle)",
             showsSettings: false,
-            intent: .none
+            intent: .none,
+            vpnPower: power
         )
     }
 
@@ -233,6 +260,26 @@ enum PanelPresentationMapper {
             return localization.format(.batteryTimeToFullHours, hours)
         }
         return localization.format(.batteryTimeToFullHoursMinutes, hours, remainingMinutes)
+    }
+
+    static func batteryRuntimeText(
+        _ battery: BatteryStatus,
+        localization: Localization
+    ) -> String? {
+        guard !battery.isConnectedToPower, !battery.isCharging,
+              let minutes = battery.timeToEmptyMinutes, minutes > 0 else { return nil }
+
+        let formatter = DateComponentsFormatter()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = localization.resolvedLanguage.locale
+        formatter.calendar = calendar
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .full
+        formatter.zeroFormattingBehavior = .dropAll
+        guard let duration = formatter.string(from: DateComponents(minute: minutes)) else {
+            return nil
+        }
+        return localization.format(.batteryTimeRemaining, duration)
     }
 
     static func batterySubtitle(
@@ -272,13 +319,15 @@ enum PanelPresentationMapper {
              .limitRestored:
             break
         }
+        let runtime = batteryRuntimeText(battery, localization: localization)
         if battery.isLowPowerMode {
-            return localization.string(.batteryStateLowPowerMode)
+            let state = localization.string(.batteryStateLowPowerMode)
+            return runtime.map { "\(state) · \($0)" } ?? state
         }
         if battery.isConnectedToPower {
             return localization.string(.batteryStateConnectedToPower)
         }
-        return localization.string(.batteryStateOnBattery)
+        return runtime ?? localization.string(.batteryStateOnBattery)
     }
 
     static func wifiValue(_ wifi: WiFiStatus, localization: Localization) -> String {
@@ -326,7 +375,18 @@ enum PanelPresentationMapper {
 
     static func vpnTitle(_ vpn: VPNStatus, localization: Localization) -> String {
         if let serviceName = vpn.serviceName, !serviceName.isEmpty { return serviceName }
-        if vpn.isTunnelConnected { return localization.string(.vpnTitle) }
+        // A bare tunnel is not a controllable system VPN service. Label it TUN
+        // so the row never implies a VPN switch that does not exist (#272).
+        // When Mihomo's read-only API attributes the active interface, name
+        // the client too instead of pretending it is a system VPN.
+        if let mihomo = vpn.mihomoTunnel,
+           mihomo.isEnabled,
+           vpn.tunnelInterfaces.contains(mihomo.device) {
+            return mihomo.provider == "Clash Verge"
+                ? localization.string(.vpnTitleClashVergeTunnel)
+                : localization.string(.vpnTitleTunnel)
+        }
+        if vpn.isTunnelConnected { return localization.string(.vpnTitleTunnel) }
         if vpn.proxy != nil { return localization.string(.vpnSubtitleSystemProxy) }
         return localization.string(.vpnTitle)
     }
@@ -357,47 +417,69 @@ enum PanelPresentationMapper {
             connection: connection,
             localization: localization
         )
+        // The link is up but macOS is withholding its name because the app lacks
+        // the location permission CoreLocation needs to read an SSID.
+        let permissionHidesName = connection == .wifi
+            && wifi.state.isNetworkAssociated
+            && (wifi.ssid?.isEmpty ?? true)
+            && wifi.nameAccess != .authorized
+
+        // Without permission the row keeps a short connection-state title and
+        // turns the second line into an invitation to grant access. Clicking it
+        // raises the system prompt (or opens Privacy settings when access was
+        // already denied), because the detail page cannot show a name either.
+        let title: String
         let subtitle: String
-        if summarySSID != nil {
-            subtitle = linkSubtitle ?? localization.string(
-                wifi.state == .hotspot ? .wifiSubtitleHotspot : .wifiSubtitleConnected
-            )
-        } else if let ssid = wifi.ssid, !ssid.isEmpty {
-            subtitle = ssid
-        } else if isResolvingName {
-            subtitle = " "
+        let measurements: String?
+        let intent: PanelSummaryIntent
+        if permissionHidesName {
+            title = wifiSubtitle(wifi, localization: localization)
+            subtitle = localization.string(.wifiSummaryNameAccessHint)
+            measurements = nil
+            intent = wifi.nameAccess == .denied || wifi.nameAccess == .restricted
+                ? .locationSettings
+                : .requestWiFiNameAccess
         } else {
-            // A missing network name is not a connection state. The row keeps
-            // the connection state, and its link measurements when the radio
-            // still reports them; the detail page owns the permission action.
-            let stateText = wifiSubtitle(wifi, localization: localization)
-            subtitle = NetworkRowSubtitle.prepending(stateText, to: linkSubtitle) ?? stateText
+            let baseSubtitle: String
+            if summarySSID != nil {
+                baseSubtitle = linkSubtitle ?? localization.string(
+                    wifi.state == .hotspot ? .wifiSubtitleHotspot : .wifiSubtitleConnected
+                )
+            } else if let ssid = wifi.ssid, !ssid.isEmpty {
+                baseSubtitle = ssid
+            } else if isResolvingName {
+                baseSubtitle = " "
+            } else {
+                // A missing network name is not a connection state. The row keeps
+                // the connection state, and its link measurements when the radio
+                // still reports them.
+                let stateText = wifiSubtitle(wifi, localization: localization)
+                baseSubtitle = NetworkRowSubtitle.prepending(stateText, to: linkSubtitle) ?? stateText
+            }
+
+            // The address leads the second line, and the measurement value keeps
+            // only the link facts: the connection state is already in the label,
+            // so VoiceOver must not hear it twice. The placeholder line describes
+            // no link at all.
+            measurements = baseSubtitle == " "
+                ? nil
+                : NetworkRowSubtitle.prepending(localIPAddress, to: linkSubtitle)
+            // The single-space subtitle is the row holding its line height while
+            // the Wi-Fi name resolves. An address fills that line on its own
+            // rather than trailing the placeholder's blank.
+            if baseSubtitle == " " {
+                subtitle = localIPAddress ?? baseSubtitle
+            } else {
+                subtitle = NetworkRowSubtitle.prepending(localIPAddress, to: baseSubtitle) ?? baseSubtitle
+            }
+            title = summarySSID ?? localization.string(.wifiTitle)
+            intent = .wifiDetails
         }
 
-        // The address leads the second line, and the measurement value keeps
-        // only the link facts: the connection state is already in the label, so
-        // VoiceOver must not hear it twice. The placeholder line describes no
-        // link at all.
-        let measurements = subtitle == " "
-            ? nil
-            : NetworkRowSubtitle.prepending(localIPAddress, to: linkSubtitle)
-        // The single-space subtitle is the row holding its line height while the
-        // Wi-Fi name resolves. An address fills that line on its own rather than
-        // trailing the placeholder's blank.
-        let displayedSubtitle: String
-        if subtitle == " " {
-            displayedSubtitle = localIPAddress ?? subtitle
-        } else {
-            displayedSubtitle = NetworkRowSubtitle.prepending(localIPAddress, to: subtitle) ?? subtitle
-        }
-
-        // The row itself is always the way into the Wi-Fi details, where the
-        // network-name permission action lives.
-        let intent: PanelSummaryIntent = .wifiDetails
-
-        let title = summarySSID ?? localization.string(.wifiTitle)
         let accessibilityLabel: String
-        if let ssid = wifi.ssid, !ssid.isEmpty {
+        if permissionHidesName {
+            accessibilityLabel = localization.format(.commonLabelValue, title, subtitle)
+        } else if let ssid = wifi.ssid, !ssid.isEmpty {
             accessibilityLabel = localization.format(
                 .wifiAccessibilityWithSSID,
                 ssid,
@@ -406,14 +488,14 @@ enum PanelPresentationMapper {
         } else {
             accessibilityLabel = localization.format(
                 .commonLabelValue,
-                localization.string(.wifiTitle),
+                title,
                 wifiValue(wifi, localization: localization)
             )
         }
 
         return PanelSummaryState(
             title: title,
-            subtitle: displayedSubtitle,
+            subtitle: subtitle,
             measurements: measurements,
             symbol: wifiSymbol(wifi),
             tint: .secondary,

@@ -4,6 +4,84 @@ import XCTest
 
 @MainActor
 final class BetterDisplayBrightnessTests: XCTestCase {
+    func testPendingTargetSuppressesSupersededReadSuccessAndFailure() async {
+        for oldResponse: Result<String?, BetterDisplayIntegrationError> in [
+            .success("0.40,0,1"), .failure(.timedOut)
+        ] {
+            for latestResponse: Result<String?, BetterDisplayIntegrationError> in [
+                .success("0.90,0,1"), .failure(.timedOut)
+            ] {
+                let client = DelayedBrightnessClient(responses: [
+                    .success("0.40,0,1"), oldResponse, .success(nil), latestResponse
+                ], heldRequestIndex: 1)
+                var updates: [BetterDisplayBrightnessCoordinator.Update] = []
+                let coordinator = BetterDisplayBrightnessCoordinator(
+                    client: client, displayUUID: "read-uuid"
+                ) { updates.append($0) }
+                coordinator.start()
+                await waitUntil { updates.count == 1 }
+                coordinator.refresh()
+                await waitUntil { client.hasHeldRequest }
+                coordinator.setBrightness(0.9)
+                client.releaseRequest()
+                await waitUntil { client.requests.count == 4 && updates.count >= 2 }
+                XCTAssertEqual(client.requests, [["get"], ["get"], ["set"], ["get"]])
+                XCTAssertEqual(updates.count, 2, "The superseded read must publish neither its old scalar nor its failure")
+                assertLatestResponse(latestResponse, update: updates.last)
+                coordinator.stop()
+            }
+        }
+    }
+
+    func testPendingTargetSuppressesSupersededWriteSuccessAndFailure() async {
+        for oldSetResponse: Result<String?, BetterDisplayIntegrationError> in [
+            .success(nil), .failure(.timedOut)
+        ] {
+            for latestResponse: Result<String?, BetterDisplayIntegrationError> in [
+                .success("0.90,0,1"), .failure(.timedOut)
+            ] {
+                var responses: [Result<String?, BetterDisplayIntegrationError>] = [
+                    .success("0.40,0,1"), oldSetResponse
+                ]
+                if case .success = oldSetResponse { responses.append(.success("0.60,0,1")) }
+                responses.append(contentsOf: [.success(nil), latestResponse])
+                let client = DelayedBrightnessClient(responses: responses, heldRequestIndex: 1)
+                var updates: [BetterDisplayBrightnessCoordinator.Update] = []
+                let coordinator = BetterDisplayBrightnessCoordinator(
+                    client: client, displayUUID: "write-uuid"
+                ) { updates.append($0) }
+                coordinator.start()
+                await waitUntil { updates.count == 1 }
+                coordinator.setBrightness(0.6)
+                await waitUntil { client.hasHeldRequest }
+                coordinator.setBrightness(0.9)
+                client.releaseRequest()
+                await waitUntil { client.requests.count == responses.count && updates.count >= 2 }
+                XCTAssertEqual(updates.count, 2, "The superseded write must publish neither its old confirmation nor its failure")
+                XCTAssertEqual(client.writtenScalars, [0.6, 0.9])
+                assertLatestResponse(latestResponse, update: updates.last)
+                coordinator.stop()
+            }
+        }
+    }
+
+    private func assertLatestResponse(
+        _ response: Result<String?, BetterDisplayIntegrationError>,
+        update: BetterDisplayBrightnessCoordinator.Update?,
+        file: StaticString = #filePath, line: UInt = #line
+    ) {
+        switch response {
+        case .success:
+            XCTAssertEqual(update?.scalar ?? -1, 0.9, accuracy: 0.0001, file: file, line: line)
+            XCTAssertEqual(update?.source, .betterDisplay, file: file, line: line)
+            XCTAssertEqual(update?.canSet, true, file: file, line: line)
+        case .failure:
+            XCTAssertNil(update?.scalar, file: file, line: line)
+            XCTAssertEqual(update?.source, .unavailable(.timeout), file: file, line: line)
+            XCTAssertEqual(update?.canSet, false, file: file, line: line)
+        }
+    }
+
     // MARK: - Read
 
     func testReadUsesGetKeyedByDisplayUUID() async {
@@ -256,6 +334,25 @@ final class BetterDisplayBrightnessTests: XCTestCase {
         client.stop()
     }
 
+    func testClientRecognizesHardwareBrightnessOSDTarget() async {
+        let bridge = BrightnessFakeBridge()
+        let client = BetterDisplayIntegrationClient(bridge: bridge)
+        var events: [BetterDisplayEvent] = []
+        var hintCount = 0
+        client.start { events.append($0) }
+        client.setBrightnessOSDHandler { hintCount += 1 }
+
+        bridge.send(
+            BrightnessFakeBridge.osd,
+            #"{"controlTarget":"hardwareBrightness","systemIconID":1,"value":0.5}"#
+        )
+        await settle()
+
+        XCTAssertEqual(hintCount, 1)
+        XCTAssertTrue(events.isEmpty)
+        client.stop()
+    }
+
     func testClientKeepsVolumeOSDAsAudioEvent() async {
         let bridge = BrightnessFakeBridge()
         let client = BetterDisplayIntegrationClient(bridge: bridge)
@@ -322,6 +419,48 @@ private final class Box<Value> {
     init(_ value: Value) {
         self.value = value
     }
+}
+
+/// Holds one selected get/set request until the test supplies its completion.
+/// The other scripted responses make superseded and latest failures independent.
+@MainActor
+private final class DelayedBrightnessClient: BetterDisplayRequesting {
+    private let responses: [Result<String?, BetterDisplayIntegrationError>]
+    private let heldRequestIndex: Int
+    private var continuation: CheckedContinuation<String?, Error>?
+    private(set) var requests: [[String]] = []
+    private(set) var writtenScalars: [Double] = []
+    var hasHeldRequest: Bool { continuation != nil }
+
+    init(responses: [Result<String?, BetterDisplayIntegrationError>], heldRequestIndex: Int) {
+        self.responses = responses
+        self.heldRequestIndex = heldRequestIndex
+    }
+
+    func request(commands: [String], parameters: [String: String?]) async throws -> String? {
+        let index = requests.count
+        requests.append(commands)
+        if commands == ["set"], let raw = parameters["brightness"] ?? nil, let value = Double(raw) {
+            writtenScalars.append(value)
+        }
+        guard index < responses.count else {
+            XCTFail("Unexpected BetterDisplay request at index \(index)")
+            throw BetterDisplayIntegrationError.timedOut
+        }
+        if index == heldRequestIndex {
+            return try await withCheckedThrowingContinuation { continuation = $0 }
+        }
+        return try responses[index].get()
+    }
+
+    func releaseRequest() {
+        guard let continuation else { return }
+        self.continuation = nil
+        continuation.resume(with: responses[heldRequestIndex].mapError { $0 as Error })
+    }
+
+    func start(onEvent: @escaping @MainActor (BetterDisplayEvent) -> Void) {}
+    func stop() {}
 }
 
 @MainActor

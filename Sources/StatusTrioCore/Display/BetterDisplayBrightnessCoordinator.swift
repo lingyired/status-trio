@@ -352,12 +352,17 @@ final class BetterDisplayBrightnessCoordinator {
     ) {
         guard accepts(requestGeneration) else { return }
         requestInFlight = false
-        emit(
-            scalar: scalar,
-            canSet: canSet,
-            source: source,
-            commandID: commandID
-        )
+        // A newer target is already waiting: publishing this superseded result
+        // would pull the slider back to the old value (or an old failure).
+        // The pending write still runs and publishes its own result.
+        if pendingScalar == nil {
+            emit(
+                scalar: scalar,
+                canSet: canSet,
+                source: source,
+                commandID: commandID
+            )
+        }
         drainPendingWrite()
     }
 

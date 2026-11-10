@@ -134,7 +134,7 @@ final class LocalIPController: ObservableObject {
         reader: any LocalIPReading = SystemLocalIPReader(),
         periodicRefreshInterval: Duration = .seconds(30),
         periodicRefreshSleep: @escaping @Sendable (Duration) async throws -> Void = {
-            try await Task.sleep(for: $0)
+            try await Task.sleep(for: $0, tolerance: $0 / 5)
         }
     ) {
         self.reader = reader

@@ -154,7 +154,9 @@ struct StatusIconPreviewCard: View {
             isDarkBackground: isDarkBackground,
             phase: phase,
             showsChargingEffect: store.showsMenuBarChargingEffect,
-            inputSource: inputSourceController?.selectedDescriptor
+            inputSource: inputSourceController?.state.iconDescriptor(
+                markerStyle: store.inputSourceMarkerStyle
+            )
         ) {
             appearanceToggle
         }
@@ -243,7 +245,9 @@ struct DockIconPreviewTile: View {
             bluetoothAudioOptions: store.bluetoothAudioIconOptions,
             backgroundStyle: resolvedBackgroundStyle,
             size: size,
-            inputSource: inputSourceController?.selectedDescriptor,
+            inputSource: inputSourceController?.state.iconDescriptor(
+                markerStyle: store.inputSourceMarkerStyle
+            ),
             previewCache: previewCache
         )
     }

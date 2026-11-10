@@ -17,7 +17,7 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
         XCTAssertEqual(store.batteryConnectedIndicator, .plug)
-        XCTAssertEqual(store.batteryIconOptions.connectedIndicator, .plug)
+        XCTAssertEqual(store.batteryIconOptions.connectedMarker, .plug)
     }
 
     func testConnectedPowerIndicatorChoicePersists() {
@@ -29,7 +29,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let second = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(second.batteryConnectedIndicator, .bolt)
-        XCTAssertEqual(second.batteryIconOptions.connectedIndicator, .bolt)
+        XCTAssertEqual(second.batteryIconOptions.connectedMarker, .bolt)
     }
 
     func testSplitGapProgressDefaultsOffAndPersists() {
@@ -84,6 +84,23 @@ final class SettingsStoreTests: XCTestCase {
         let reopened = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(reopened.bluetoothAudioIconChoice, .airpods)
         XCTAssertEqual(reopened.bluetoothAudioIconOptions.iconChoice, .airpods)
+    }
+
+    func testInputSourceMarkerStyleDefaultsToSystemIconAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(first.inputSourceMarkerStyle, .systemIcon)
+
+        first.inputSourceMarkerStyle = .zhong
+        let reopened = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(reopened.inputSourceMarkerStyle, .zhong)
+
+        // An unknown stored raw value falls back to the system icon rather than
+        // silently turning the marker on.
+        suite.defaults.set("some-future-marker", forKey: SettingsStore.inputSourceMarkerStyleDefaultsKey)
+        XCTAssertEqual(SettingsStore(defaults: suite.defaults).inputSourceMarkerStyle, .systemIcon)
     }
 
     func testRefreshIntervalDefaultsAndRange() {
@@ -294,6 +311,74 @@ final class SettingsStoreTests: XCTestCase {
 
         let second = SettingsStore(defaults: suite.defaults)
         XCTAssertFalse(second.showsBluetoothPowerControl)
+    }
+
+    func testListeningModeMasterSwitchDefaultsOnAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        // The real listening-mode master switch must default to on so real
+        // AirPods/HUAWEI devices keep working out of the box.
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertTrue(first.showsBluetoothListeningMode)
+
+        first.showsBluetoothListeningMode = false
+
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(second.showsBluetoothListeningMode)
+        // Previewing stays independent and is off by default.
+        XCTAssertFalse(second.previewsBluetoothListeningMode)
+    }
+
+    func testListeningModePreviewIsPurgedInReleaseBuild() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        // Simulate a user who turned the developer preview on while a dev build
+        // offered it, including the demo device name/count/language.
+        suite.defaults.set(true, forKey: SettingsStore.previewsBluetoothListeningModeDefaultsKey)
+        suite.defaults.set("Fake AirPods", forKey: SettingsStore.bluetoothListeningModePreviewDeviceNameDefaultsKey)
+        suite.defaults.set(3, forKey: SettingsStore.bluetoothListeningModePreviewDeviceCountDefaultsKey)
+        suite.defaults.set("ja", forKey: SettingsStore.bluetoothListeningModePreviewLanguageDefaultsKey)
+
+        let store = SettingsStore(defaults: suite.defaults, isDevelopmentBuild: false)
+
+        // A packaged release never previews...
+        XCTAssertFalse(store.previewsBluetoothListeningMode)
+        XCTAssertFalse(store.isListeningModePreviewActive)
+        // ...and the demo data is gone from memory and from storage.
+        XCTAssertEqual(store.bluetoothListeningModePreviewDeviceName, "")
+        XCTAssertEqual(store.bluetoothListeningModePreviewDeviceCount, SettingsStore.defaultBluetoothListeningModePreviewDeviceCount)
+        XCTAssertEqual(store.bluetoothListeningModePreviewLanguage, "")
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.previewsBluetoothListeningModeDefaultsKey))
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.bluetoothListeningModePreviewDeviceNameDefaultsKey))
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.bluetoothListeningModePreviewDeviceCountDefaultsKey))
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.bluetoothListeningModePreviewLanguageDefaultsKey))
+    }
+
+    func testListeningModePreviewRemainsAvailableInDevelopmentBuild() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(true, forKey: SettingsStore.previewsBluetoothListeningModeDefaultsKey)
+        suite.defaults.set("Fake AirPods", forKey: SettingsStore.bluetoothListeningModePreviewDeviceNameDefaultsKey)
+
+        let store = SettingsStore(defaults: suite.defaults, isDevelopmentBuild: true)
+
+        XCTAssertTrue(store.previewsBluetoothListeningMode)
+        XCTAssertEqual(store.bluetoothListeningModePreviewDeviceName, "Fake AirPods")
+        // The master listening-mode switch defaults to on, so preview is active.
+        XCTAssertTrue(store.showsBluetoothListeningMode)
+        XCTAssertTrue(store.isListeningModePreviewActive)
+    }
+
+    func testListeningModePreviewActiveRequiresMasterSwitch() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(defaults: suite.defaults, isDevelopmentBuild: true)
+        store.previewsBluetoothListeningMode = true
+        store.showsBluetoothListeningMode = false
+        XCTAssertFalse(store.isListeningModePreviewActive)
+        store.showsBluetoothListeningMode = true
+        XCTAssertTrue(store.isListeningModePreviewActive)
     }
 
     func testBluetoothNetworkIconDeviceDefaultsToTheAudioDevice() {
@@ -528,16 +613,17 @@ final class SettingsStoreTests: XCTestCase {
     func testBatterySymbolSizeIsEnabledWhenEitherSymbolIsVisible() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
-        store.showsBatteryPercentage = true
-        store.showsChargingIndicator = false
+        store.batteryOnBatteryMarker = .percentage
+        store.batteryChargingMarker = .hidden
+        store.batteryConnectedMarker = .hidden
+        store.batteryNoBatteryMarker = .hidden
         XCTAssertTrue(store.isBatterySymbolSizeEnabled)
 
-        store.showsBatteryPercentage = false
-        store.showsChargingIndicator = true
+        store.batteryOnBatteryMarker = .hidden
+        store.batteryChargingMarker = .bolt
         XCTAssertTrue(store.isBatterySymbolSizeEnabled)
 
-        store.showsBatteryPercentage = false
-        store.showsChargingIndicator = false
+        store.batteryChargingMarker = .hidden
         XCTAssertFalse(store.isBatterySymbolSizeEnabled)
     }
 
@@ -2067,6 +2153,48 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(store.externalVolumeConfiguration(for: "audio-benq"), .default)
         XCTAssertTrue(store.externalVolumeConfigurations.isEmpty)
+    }
+
+    func testContinuousSliderWritesAreCoalesced() async throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(
+            defaults: suite.defaults,
+            persistCoalescingInterval: .milliseconds(20)
+        )
+
+        for value in stride(from: 20.0, through: 35.0, by: 1) {
+            store.setIconSizeFromSlider(value)
+        }
+
+        XCTAssertNil(
+            suite.defaults.object(forKey: SettingsStore.iconSizeDefaultsKey),
+            "a drag must not store one preferences value per frame"
+        )
+
+        store.flushPendingPersists()
+
+        XCTAssertEqual(
+            (suite.defaults.object(forKey: SettingsStore.iconSizeDefaultsKey) as? NSNumber)?.doubleValue,
+            35
+        )
+    }
+
+    func testCoalescedWriteLandsAfterTheIntervalWithoutAnExplicitFlush() async throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(
+            defaults: suite.defaults,
+            persistCoalescingInterval: .milliseconds(20)
+        )
+
+        store.setBatterySymbolScaleFromSlider(1.05)
+        try await Task.sleep(for: .milliseconds(120))
+
+        XCTAssertEqual(
+            (suite.defaults.object(forKey: SettingsStore.batterySymbolScaleDefaultsKey) as? NSNumber)?.doubleValue,
+            1.05
+        )
     }
 
     private func makeSuite() -> (defaults: UserDefaults, name: String) {

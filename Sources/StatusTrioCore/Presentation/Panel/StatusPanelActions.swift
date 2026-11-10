@@ -48,6 +48,7 @@ final class StatusPanelActions {
     private let refreshVolumeListeningModes: () -> Void
     private let stopVolumeListeningModes: () -> Void
     private let selectInputSourceCommand: (String) -> Void
+    private let setVPNPowerCommand: (Bool) -> Void
 
     private static let summaryBatteryLevelsToken = "bluetooth.summary"
     private static let nearbyBatteryDevicesToken = "bluetooth.summary.nearbyBatteryDevices"
@@ -96,6 +97,7 @@ final class StatusPanelActions {
         activateWiFiDetails: @escaping (WiFiNameAccess) -> Void = { _ in },
         closeWiFiDetails: @escaping () -> Void = {},
         setWiFiPower: @escaping (Bool) -> Void = { _ in },
+        setVPNPower: @escaping (Bool) -> Void = { _ in },
         refreshWiFi: @escaping (WiFiNameAccess) -> Void = { _ in },
         openWiredDetails: @escaping () -> Void = {},
         closeWiredDetails: @escaping () -> Void = {},
@@ -150,6 +152,7 @@ final class StatusPanelActions {
         self.refreshVolumeListeningModes = refreshVolumeListeningModes
         self.stopVolumeListeningModes = stopVolumeListeningModes
         self.selectInputSourceCommand = selectInputSource
+        self.setVPNPowerCommand = setVPNPower
     }
 
     convenience init(
@@ -187,11 +190,19 @@ final class StatusPanelActions {
             releaseBatteryLevels: { store.bluetoothDevices.releaseBatteryLevels($0) },
             requestNearbyBatteryDevices: { store.bluetoothDevices.requestNearbyBatteryDevices($0) },
             releaseNearbyBatteryDevices: { store.bluetoothDevices.releaseNearbyBatteryDevices($0, keepingResults: $1) },
-            setListeningMode: { store.bluetoothListeningModes.setMode($0, forAddress: $1) },
-            listeningModePresentations: { store.bluetoothListeningModes.presentations },
+            setListeningMode: { mode, address in
+                guard settings.showsBluetoothListeningMode else { return }
+                store.bluetoothListeningModes.setMode(mode, forAddress: address)
+            },
+            listeningModePresentations: {
+                store.bluetoothListeningModes.presentations
+            },
             listeningModeDevices: {
+                guard settings.showsBluetoothListeningMode else {
+                    return store.bluetoothDevices.devices
+                }
                 let config = ListeningModePreview.Configuration(
-                    isEnabled: settings.previewsBluetoothListeningMode,
+                    isEnabled: settings.isListeningModePreviewActive,
                     deviceName: settings.bluetoothListeningModePreviewDeviceName,
                     deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
                     languageCode: settings.bluetoothListeningModePreviewLanguage
@@ -211,7 +222,8 @@ final class StatusPanelActions {
             wifiNameAccess: { store.popupSnapshot.wifi.nameAccess },
             activateWiFiDetails: { store.wifiNetworks.activate(nameAccess: $0) },
             closeWiFiDetails: { store.wifiNetworks.deactivate() },
-            setWiFiPower: { store.wifiNetworks.setPower($0) },
+            setWiFiPower: { store.setWiFiPower($0) },
+            setVPNPower: { store.setVPNPower($0) },
             refreshWiFi: { store.wifiNetworks.refreshNow(nameAccess: $0) },
             openWiredDetails: { store.activatePrimaryLinkPanel() },
             closeWiredDetails: { store.closePrimaryLinkPanel() },
@@ -219,8 +231,18 @@ final class StatusPanelActions {
             releaseBluetoothSummary: { store.bluetoothDevices.releaseVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken) },
             refreshVolumeListeningModes: {
                 guard store.isPopoverVisible else { return }
+                // The real listening-mode master switch is off: stop discovery,
+                // drop every presentation and clear parked HUAWEI/SPP device
+                // state so no controls are presented anywhere. Re-enabling it
+                // reruns this same refresh path to rediscover live devices.
+                guard settings.showsBluetoothListeningMode else {
+                    // Master switch off: release the kept-alive Redmi control
+                    // sessions too, not just the panel-scoped state.
+                    store.bluetoothListeningModes.shutdown()
+                    return
+                }
                 let config = ListeningModePreview.Configuration(
-                    isEnabled: settings.previewsBluetoothListeningMode,
+                    isEnabled: settings.isListeningModePreviewActive,
                     deviceName: settings.bluetoothListeningModePreviewDeviceName,
                     deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
                     languageCode: settings.bluetoothListeningModePreviewLanguage
@@ -384,6 +406,9 @@ final class StatusPanelActions {
     func volumeListChanged() { refreshVolumeListeningModes() }
     func volumeListDisappeared() { stopVolumeListeningModes() }
     func setWiFiPower(_ enabled: Bool) { setWiFiPowerCommand(enabled) }
+
+    func setVPNPower(_ enabled: Bool) { setVPNPowerCommand(enabled) }
+
     func refreshWiFi() { refreshWiFiCommand(wifiNameAccess()) }
     private func bluetoothDevice(address: String) -> BluetoothDevice? {
         let key = BluetoothBatteryReader.normalizedAddress(address)

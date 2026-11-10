@@ -84,6 +84,9 @@ final class StatusBarController: NSObject {
     private let chargingFrameCache = StatusBarChargingFrameCache()
     private let animationLayerPresenter = StatusBarAnimationLayerPresenter()
     private let templateImagePresenter = StatusBarTemplateImagePresenter()
+    #if DEBUG
+    private let alignmentDiagnostics = StatusBarAlignmentDiagnostics()
+    #endif
     private let renderCoalescer = IconRenderCoalescer()
     /// The template base and button footprint, kept so a custom-raster fallback
     /// can restore the independent template presentation.
@@ -160,6 +163,9 @@ final class StatusBarController: NSObject {
     private var isPopoverClosing = false
     private var popoverWindowFocusCancellables: Set<AnyCancellable> = []
     private var applicationFocusCancellables: Set<AnyCancellable> = []
+    /// Observes other app windows coming to the front so the panel closes when
+    /// the user clicks a real window such as Settings (issue #267).
+    private var appWindowFrontmostCancellables: Set<AnyCancellable> = []
     private let inputSourceController: InputSourceController
     /// How a presentation resolves the appearance it rasterizes in.
     ///
@@ -261,8 +267,14 @@ final class StatusBarController: NSObject {
 
         statusItem.isVisible = isVisible
         configureButton()
+        #if DEBUG
+        alignmentDiagnostics?.didChange = { [weak self] in
+            self?.renderLatestScene()
+        }
+        #endif
         configurePopover()
         observeApplicationFocusChanges()
+        observeAppWindowFrontmostChanges()
         observeAppearanceChanges()
         scheduleInitialRender()
 
@@ -298,11 +310,26 @@ final class StatusBarController: NSObject {
             self?.scheduleAccessibilityUpdate()
         }
 
-        refreshIntervalCancellable = settings.$refreshIntervalSeconds
-            .removeDuplicates()
-            .sink { [weak self] seconds in
-                self?.store.setRefreshInterval(.seconds(Int(seconds.rounded())))
-            }
+        // #255: the effective cadence depends on the two per-power-source
+        // settings and the deduplicated power source. Mapping the snapshot to a
+        // single Bool first means an unrelated snapshot update (battery percent,
+        // Wi-Fi, volume) never rebuilds the wait.
+        refreshIntervalCancellable = Publishers.CombineLatest3(
+            settings.$refreshIntervalOnBatterySeconds,
+            settings.$refreshIntervalOnPowerSeconds,
+            store.$snapshot
+                .map { Self.effectivePluggedIn(battery: $0.battery) }
+                .removeDuplicates()
+        )
+        .map { batterySeconds, powerSeconds, pluggedIn in
+            pluggedIn
+                ? Duration.seconds(Int(powerSeconds.rounded()))
+                : Duration.seconds(Int(batterySeconds.rounded()))
+        }
+        .removeDuplicates()
+        .sink { [weak self] interval in
+            self?.store.setRefreshInterval(interval)
+        }
 
         // The icon is the surface that keeps wanting watts while the panel is
         // closed. Its demand keeps the shared sampler at the idle cadence; the
@@ -334,6 +361,15 @@ final class StatusBarController: NSObject {
         .sink { [weak self] _ in
             self?.renderLatestScene()
         }
+    }
+
+    /// Whether the effective refresh cadence should use the wall-power value.
+    ///
+    /// #255: a Mac with no battery has no battery mode, so it is treated as
+    /// plugged in. Charging state is deliberately ignored — an unplugged Mac
+    /// that happens to report charging must still use the battery cadence.
+    static func effectivePluggedIn(battery: BatteryStatus) -> Bool {
+        !battery.isPresent || battery.isConnectedToPower
     }
 
     static func clickKind(eventType: NSEvent.EventType, modifiers: NSEvent.ModifierFlags) -> ClickKind? {
@@ -486,6 +522,7 @@ final class StatusBarController: NSObject {
 
     private func installPopoverContentIfNeeded() {
         guard popover.contentViewController == nil else { return }
+        let measurementID = UUID()
         let rootView = LocalizedRootView(localization: localization) {
             StatusPopoverView(
                 panel: panelViewModel,
@@ -507,17 +544,16 @@ final class StatusBarController: NSObject {
                 openDisplaySettings: { self.handleOpenDisplaySettings() },
                 openKeyboardSettings: { self.handleOpenKeyboardSettings() },
                 quit: quitAction,
-                dismissPanel: { [weak self] in self?.closePopover() }
+                dismissPanel: { [weak self] in self?.closePopover() },
+                contentMeasurementID: measurementID
             )
         }
         let hostingController = StatusPanelHostingController(rootView: rootView)
-        if #available(macOS 14.0, *) {
-            // The Ventura hosting pass can recurse while AppKit installs the
-            // panel content. Leave sizing to the measured content there, and
-            // keep preferred sizing on the newer path.
-            hostingController.sizingOptions = [.preferredContentSize]
-        }
-        popover.installContent(hostingController, backgroundStyle: settings.panelBackgroundStyle)
+        // StatusPanelLayoutMetrics owns the panel height; preferred sizing here
+        // would add a second owner and can reset the measured window frame.
+        popover.installContent(hostingController,
+                               backgroundStyle: settings.panelBackgroundStyle,
+                               measurementID: measurementID)
     }
 
     func togglePopover() {
@@ -783,6 +819,57 @@ final class StatusBarController: NSObject {
             .store(in: &applicationFocusCancellables)
     }
 
+    /// The panel is a non-activating borderless `NSPanel`, so clicking another of
+    /// this app's windows (the Settings window that was already key before the
+    /// panel opened) never reaches `addGlobalMonitorForEvents`, which only sees
+    /// events outside the app. Without this, the panel stays on top of Settings
+    /// (issue #267). An `NSPopover` would close by itself here because it tracks
+    /// its own window; a custom panel must react to the key/main handoff.
+    private func observeAppWindowFrontmostChanges() {
+        let center = NotificationCenter.default
+        let policy = PanelFocusDismissPolicy()
+        // AppKit posts these window notifications synchronously on the main
+        // thread. Handle them synchronously so a run-loop hop cannot deliver a
+        // stale key change after the panel has re-keyed itself and close it
+        // spuriously (e.g. when app activation keys Settings just before the
+        // panel is ordered in).
+        let handle: (Notification) -> Void = { [weak self] notification in
+            MainActor.assumeIsolated {
+                self?.dismissPanelIfExternalWindowCameForward(notification, policy: policy)
+            }
+        }
+        center.publisher(for: NSWindow.didBecomeKeyNotification)
+            .sink(receiveValue: handle)
+            .store(in: &appWindowFrontmostCancellables)
+        center.publisher(for: NSWindow.didBecomeMainNotification)
+            .sink(receiveValue: handle)
+            .store(in: &appWindowFrontmostCancellables)
+    }
+
+    /// Closes the panel when a real, independent window (Settings) is brought to
+    /// the front. This mirrors the app's existing close paths so focus falls on
+    /// the clicked window without activating the app or stealing focus.
+    private func dismissPanelIfExternalWindowCameForward(
+        _ notification: Notification,
+        policy: PanelFocusDismissPolicy
+    ) {
+        guard popover.isShown, !isPopoverClosing,
+              // The Debug background-testing route intentionally keeps the panel
+              // up while the user works; it must not be closed by a focus change.
+              !popover.disablesDismissOnResignForTesting,
+              let candidateWindow = notification.object as? NSWindow else { return }
+        let panelWindow = popover.contentViewController?.view.window
+        let candidate = PanelFocusDismissPolicy.FocusedWindow(
+            isPanel: candidateWindow === panelWindow,
+            isVisible: candidateWindow.isVisible,
+            level: candidateWindow.level,
+            hasSheetParent: candidateWindow.sheetParent != nil,
+            hasParent: candidateWindow.parent != nil
+        )
+        guard policy.shouldDismiss(for: candidate) else { return }
+        popover.performClose(nil)
+    }
+
     private func installPopoverWindowFocusObservers(_ window: NSWindow?) {
         popoverWindowFocusCancellables.removeAll()
         guard let window else { return }
@@ -988,6 +1075,13 @@ final class StatusBarController: NSObject {
         //    before any scroll view or the panel-wide fallback (issue #256).
         if let target = popoverScrollTargets.target(at: point, in: window) {
             return consumeScroll(target: target, event: event)
+        }
+
+        // 1b. A control that handles the wheel itself (e.g. the compact Adaptive
+        //     strength bar) keeps the event, so the panel-wide volume fallback
+        //     never turns its scroll into a volume change.
+        if let hit = window?.contentView?.hitTest(point), hit.handlesScrollWheelItself {
+            return false
         }
 
         // 2. A scrollable scroll view under the pointer owns the wheel.
@@ -1273,11 +1367,20 @@ final class StatusBarController: NSObject {
     private func presentMenuBar(phase: ChargingEffectPhase?) {
         guard isStatusItemVisible, let button = statusItem.button else { return }
 
-        let scene = (latestIconOutput.menuBarTestScene ?? latestIconOutput.scene)
+        var scene = (latestIconOutput.menuBarTestScene ?? latestIconOutput.scene)
             .withChargingEffectEnabled(isMenuBarChargingEffectEnabled)
-        let iconSize = latestIconOutput.menuBarSize
+        var iconSize = latestIconOutput.menuBarSize
+        var effectivePhase = isMenuBarChargingEffectEnabled ? phase : nil
+        var forcesSplitPresentation = false
+        #if DEBUG
+        if let request = alignmentDiagnostics?.request {
+            scene = request.scene
+            iconSize = request.size
+            effectivePhase = request.animated ? ChargingEffectPhase(step: request.phaseStep, stepsPerCycle: 40, kind: .steady) : nil
+            forcesSplitPresentation = true
+        }
+        #endif
         guard iconSize.isFinite, iconSize > 0 else { return }
-        let effectivePhase = isMenuBarChargingEffectEnabled ? phase : nil
 
         let scaleResolution = Self.resolveBackingScale(
             windowScale: button.window?.backingScaleFactor,
@@ -1285,6 +1388,19 @@ final class StatusBarController: NSObject {
         )
         let backingScale = scaleResolution.scale
         let appearance = appearanceProvider?() ?? button.effectiveAppearance
+        #if DEBUG
+        if let diagnostics = alignmentDiagnostics {
+            // One deferred observation per explicit fixture request/presentation;
+            // wait for AppKit's image-driven button resize, without polling.
+            DispatchQueue.main.async { [weak self, weak button] in
+                guard let self, let button else { return }
+                diagnostics.write(button: button, scale: backingScale, size: iconSize,
+                                  overlayFrame: self.animationLayerPresenter.frameForDiagnostics,
+                                  statusItemLength: self.statusItem.length,
+                                  overlayContentsScale: self.animationLayerPresenter.contentsScaleForDiagnostics)
+            }
+        }
+        #endif
         let staticKey = StatusBarRenderKey(
             scene: scene,
             iconSize: iconSize,
@@ -1305,7 +1421,7 @@ final class StatusBarController: NSObject {
                 return
             }
             let buttonImage: NSImage
-            if scene.chromaticRegions.isEmpty {
+            if scene.chromaticRegions.isEmpty && !forcesSplitPresentation {
                 buttonImage = base
             } else {
                 guard let placeholder = StatusIconRenderer.transparentMenuBarImage(
@@ -1514,7 +1630,8 @@ final class StatusBarController: NSObject {
             size: context.iconSize,
             scale: context.backingScale,
             appearance: context.appearance,
-            phase: phase
+            phase: phase,
+            supersample: 2
         ) else {
             return
         }

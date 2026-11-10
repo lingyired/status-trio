@@ -17,6 +17,13 @@ struct PanelAudioDeviceRow: Equatable, Identifiable, Sendable {
     var listeningModeAddress: String? = nil
     var listeningMode: BluetoothListeningModePresentation? = nil
     var isPreview: Bool = false
+    var supportsAirPodsSystemControls: Bool = false
+    /// Whether this AirPods row has Spatial Audio / Conversation Awareness
+    /// groups to disclose behind the listening-mode row. Unknown (runtime
+    /// reported) capabilities are treated as supported so the chevron shows and
+    /// the group can report "not available" once the read settles.
+    var airPodsSpatialSupported: Bool = false
+    var airPodsConversationSupported: Bool = false
 
     var id: PanelAudioDeviceID { key }
 }

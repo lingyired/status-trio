@@ -701,6 +701,91 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
 
     /// Builds the panel's Bluetooth row with its layout settled, so a test can
     /// measure what actually rendered instead of what the code intended.
+    /// Issue #314: the Wi-Fi and Bluetooth summary rows sit one above the
+    /// other, so their trailing action glyphs must fall on the same vertical
+    /// columns even though the middle button is a caption-weight chevron on one
+    /// row and a body-weight refresh arrow on the other.
+    func testWiFiAndBluetoothTrailingActionsShareColumns() async throws {
+        let (bluetoothHosting, controller) = try await makeHosting(
+            language: .english,
+            authorization: .allowed,
+            devices: [],
+            batteryLevels: [:],
+            listOptions: BluetoothDeviceListOptions(
+                showsList: false,
+                maxVisibleDevices: 5,
+                order: []
+            )
+        )
+        defer { controller.deactivate() }
+
+        let bluetooth = try XCTUnwrap(SummaryActionAlignmentProbe(bluetoothHosting))
+        let bluetoothActions = bluetooth.trailingGlyphRects(count: 3, minimumX: 150)
+        XCTAssertEqual(bluetoothActions.count, 3, "power, refresh and Settings must render")
+
+        let wifi = try renderWiFiRow()
+        let wifiActions = wifi.trailingGlyphRects(count: 3, minimumX: 150)
+        XCTAssertEqual(wifiActions.count, 3, "power, chevron and Settings must render")
+
+        guard bluetoothActions.count == 3, wifiActions.count == 3 else { return }
+
+        // Both clusters are right-anchored: gear, middle button, then power.
+        let names = ["gear", "middle action", "power"]
+        let bluetoothColumns = Array(bluetoothActions.reversed())
+        let wifiColumns = Array(wifiActions.reversed())
+        for index in 0..<3 {
+            XCTAssertEqual(
+                bluetoothColumns[index].midX, wifiColumns[index].midX, accuracy: 0.5,
+                "the \(names[index]) must sit in the same column on the Wi-Fi and Bluetooth rows"
+            )
+        }
+    }
+
+    private func renderWiFiRow() throws -> SummaryActionAlignmentProbe {
+        let suite = "StatusTrioCoreTests.BluetoothSummary.WiFi.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removeTestSuite(named: suite) }
+        let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+
+        let view = NetworkStatusView(
+            showsWiFiPowerControl: true,
+            wifiPowerIsOn: true,
+            wifiPowerCanSet: true,
+            wifiPowerRequiresConfirmation: false,
+            wifiPowerFailed: false,
+            state: PanelSummaryState(
+                title: "Example Network",
+                subtitle: "192.168.1.20 · 5 GHz",
+                measurements: nil,
+                symbol: .symbol(name: "wifi", variableValue: nil, fallback: nil),
+                tint: .secondary,
+                accessibilityLabel: "Network",
+                accessibilityValue: "Connected",
+                showsSettings: true,
+                intent: .wifiDetails
+            ),
+            onOpenWiFiDetails: { _ in },
+            onOpenWiredDetails: {},
+            onRequestNameAccess: {},
+            onOpenWiFiSettings: {},
+            onOpenNetworkSettings: {},
+            onOpenLocationSettings: {}
+        )
+        .padding(14)
+        .frame(width: 330)
+        .background(Color(white: 0.96))
+        .environmentObject(localization)
+        .environment(\.colorScheme, .light)
+
+        let hosting = NSHostingView(rootView: view)
+        hosting.appearance = NSAppearance(named: .aqua)
+        hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
+        hosting.layoutSubtreeIfNeeded()
+        hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
+        hosting.layoutSubtreeIfNeeded()
+        return try XCTUnwrap(SummaryActionAlignmentProbe(hosting))
+    }
+
     private func makeHosting(
         language: AppLanguage,
         authorization: BluetoothAuthorizationStatus,

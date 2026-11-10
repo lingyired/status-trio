@@ -184,6 +184,9 @@ final class DockChargingAnimationPresenter: DockChargingAnimationPresenting {
         if failedBaseKey == key, failedBaseEffectKey == DockChargingEffectKey(key) { return false }
 
         guard ensureBase(key: key, scene: scene) else { return false }
+        // The tile can change size (Dock icon-size setting) without changing the
+        // raster identity, so the view must follow the tile even on a cached base.
+        let didResize = syncContentViewToTile()
 
         let frameKey = OverlayFrameKey(
             baseKey: key,
@@ -193,7 +196,7 @@ final class DockChargingAnimationPresenter: DockChargingAnimationPresenting {
             stepsPerCycle: phase.stepsPerCycle,
             heartbeatMultiplier: phase.heartbeatMultiplier
         )
-        guard frameKey != overlayFrameKey else { return true }
+        if frameKey == overlayFrameKey, !didResize { return true }
 
         let image: CGImage?
         switch phase.kind {
@@ -284,14 +287,30 @@ final class DockChargingAnimationPresenter: DockChargingAnimationPresenting {
         rootView.overlayImage = nil
         overlayFrameKey = nil
 
-        // The Dock scales a content view to its own tile, so the rasters are
-        // pixel-length based; the view only has to cover the tile's design box.
-        tileContentSize = CGSize(
-            width: CGFloat(key.pixelLength) / DockIconRenderer.scale,
-            height: CGFloat(key.pixelLength) / DockIconRenderer.scale
-        )
-        rootView.frame = CGRect(origin: .zero, size: tileContentSize)
+        syncContentViewToTile()
+        return true
+    }
+
+    /// Sizes the content view to the tile's own point size.
+    ///
+    /// The Dock draws a `contentView` over its tile, so the view must match the
+    /// tile's points — the raster's pixel length only decides sharpness. Deriving
+    /// the points from `pixelLength / 2` halved the icon on a 1x display
+    /// (issue #303). Returns `true` when the size actually changed.
+    @discardableResult
+    private func syncContentViewToTile() -> Bool {
+        let size = dockTile.size
+        let isValid = size.width.isFinite && size.width > 0
+            && size.height.isFinite && size.height > 0
+        let target = isValid
+            ? size
+            : (tileContentSize == .zero
+                ? CGSize(width: DockIconRenderer.logicalSize, height: DockIconRenderer.logicalSize)
+                : tileContentSize)
         rootView.autoresizingMask = [.width, .height]
+        guard target != tileContentSize else { return false }
+        tileContentSize = target
+        rootView.frame = CGRect(origin: .zero, size: target)
         return true
     }
 

@@ -175,7 +175,43 @@ final class StatusMappingsTests: XCTestCase {
         )
         XCTAssertEqual(
             StatusMappings.batteryGapContent(absentBattery(), options: .standard),
-            .percentage
+            .plug,
+            "no battery must not claim a percentage; the default plug marker is decorative"
+        )
+    }
+
+    func testBatteryGapContentForABatteryLessMacOffersOnlyBoltOrPlug() {
+        // A Mac with no battery may show the user's decorative top marker, but
+        // never the placeholder percentage.
+        XCTAssertEqual(
+            StatusMappings.batteryGapContent(
+                absentBattery(),
+                options: batteryOptions(connectedIndicator: .bolt)
+            ),
+            .bolt
+        )
+        XCTAssertEqual(
+            StatusMappings.batteryGapContent(
+                absentBattery(),
+                options: batteryOptions(connectedIndicator: .plug)
+            ),
+            .plug
+        )
+        XCTAssertEqual(
+            StatusMappings.batteryGapContent(
+                absentBattery(),
+                options: batteryOptions(connectedIndicator: .percentage)
+            ),
+            .plug,
+            "a legacy percentage choice falls back to the plug"
+        )
+        XCTAssertEqual(
+            StatusMappings.batteryGapContent(
+                absentBattery(),
+                options: batteryOptions(showsIndicator: false)
+            ),
+            .empty,
+            "turning the top marker off keeps the ring closed"
         )
     }
 

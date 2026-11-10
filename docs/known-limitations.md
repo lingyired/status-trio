@@ -251,9 +251,15 @@ behaviours are intentionally not reproduced:
   item frame while it is open.
 - There is no popover show/close animation and no detach-by-drag interaction.
 - Clicking another window of this app (for example an already-open Settings
-  window) does not dismiss the panel. Clicking another app, the status item,
-  pressing Escape, or choosing any panel action closes it; actions that open
-  Settings close it explicitly.
+  window) dismisses the panel (issue #267). Clicking another app, the status
+  item, pressing Escape, or choosing any panel action still closes it; actions
+  that open Settings close it explicitly. The dismissal decision and the
+  notification wiring are covered by tests, but the real click/key handoff is
+  `NOT RUN` in this checkout: the only available session was screen-locked, so
+  this is not yet a live-click acceptance. The Debug background-testing panel
+  route disables focus-loss dismissal by design and therefore cannot prove this
+  behaviour. See
+  [the issue #267 verification record](verification/issue-267-panel-dismiss.md).
 - While the app is regular (the Settings or first-run window is open, so the Dock
   icon is visible) the panel presents without force-activating the app. That
   keeps it usable over another app's full-screen Space instead of switching

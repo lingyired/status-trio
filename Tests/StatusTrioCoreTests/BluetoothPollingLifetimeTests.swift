@@ -393,7 +393,7 @@ final class BluetoothPollingLifetimeTests: XCTestCase {
         controller.holdVisibleSurface("bluetooth.popover")
         _ = await sleeper.waitForCallCount(1, timeout: .seconds(1))
         XCTAssertTrue(controller.isSafetyNetPolling)
-        XCTAssertEqual(sleeper.durations.first, .seconds(30))
+        XCTAssertEqual(sleeper.durations.first, .seconds(120))
 
         sleeper.releaseAll()
         await waitUntil { reader.readCount == 2 }
@@ -407,6 +407,48 @@ final class BluetoothPollingLifetimeTests: XCTestCase {
         await Task.yield()
         XCTAssertEqual(sleeper.callCount, callCountWhenReleased, "a released surface must stop polling")
         XCTAssertEqual(reader.readCount, 2)
+
+        controller.deactivate()
+    }
+
+    /// A connection or accessory notification already refreshes the list. The
+    /// safety net must not repeat that read just because its own interval
+    /// elapsed; the next full interval still performs its own refresh.
+    func testSafetyNetSkipsACycleAnEventRefreshAlreadyCovered() async {
+        let reader = DeferredBluetoothDeviceReader()
+        let sleeper = ManualEventSleeper()
+        let controller = makeController(
+            reader: reader,
+            safetyNetSleep: { duration in await sleeper.sleep(duration) }
+        )
+        controller.activate()
+        await waitUntil { reader.readCount == 1 }
+        reader.complete(.success([]))
+        await waitUntil { !reader.hasPendingRead }
+
+        controller.holdVisibleSurface("bluetooth.popover")
+        _ = await sleeper.waitForCallCount(1, timeout: .seconds(1))
+        XCTAssertEqual(sleeper.durations.first, .seconds(120))
+
+        // An event-driven refresh lands while the safety net is parked.
+        controller.refresh()
+        await waitUntil { reader.readCount == 2 }
+        reader.complete(.success([]))
+        await waitUntil { !reader.hasPendingRead }
+
+        sleeper.releaseOldest()
+        await settle()
+        XCTAssertEqual(
+            reader.readCount,
+            2,
+            "the safety net must not duplicate an event refresh"
+        )
+
+        _ = await sleeper.waitForCallCount(2, timeout: .seconds(1))
+        sleeper.releaseOldest()
+        await waitUntil { reader.readCount == 3 }
+        reader.complete(.success([]))
+        await waitUntil { !reader.hasPendingRead }
 
         controller.deactivate()
     }
@@ -524,7 +566,7 @@ final class BluetoothPollingLifetimeTests: XCTestCase {
     /// tokens are released only from SwiftUI `onDisappear`. The popover's
     /// content view controller is retained after close, so a skipped
     /// `onDisappear` left a claim held forever and the next
-    /// `activate()`/`receiveSystemState(.available)` restarted a 30 s poll for
+    /// `activate()`/`receiveSystemState(.available)` restarted a 120 s poll for
     /// the life of the process. Only the popover claim sustains the poll; a
     /// view claim may only narrow it.
     func testALeakedViewClaimCannotSustainThePoll() async {
@@ -681,7 +723,7 @@ final class BluetoothPollingLifetimeTests: XCTestCase {
         XCTAssertEqual(events.stopCount, 1, "a refused registration was never stopped")
     }
 
-    /// The safety net is a 30 s loop, so releasing the last reference must
+    /// The safety net is a 120 s loop, so releasing the last reference must
     /// cancel it rather than leave it parked for one more wakeup. The task's
     /// sleep records whether it was cancelled, because `isSafetyNetPolling` is
     /// no longer readable once the controller is gone.

@@ -32,10 +32,13 @@ private struct BetterDisplayOSDEnvelope: Decodable, Sendable {
             || controlTarget == "mute"
     }
 
-    /// Brightness OSD hints are recognized separately from audio so the existing
-    /// `isAudioEvent` semantics stay unchanged.
+    /// Accept brightness-specific control names without treating unrelated
+    /// system icon notifications as brightness changes.
     var isBrightnessEvent: Bool {
         controlTarget == "brightness"
+            || controlTarget == "combinedBrightness"
+            || controlTarget == "hardwareBrightness"
+            || controlTarget == "softwareBrightness"
     }
 }
 
@@ -162,12 +165,23 @@ final class BetterDisplayIntegrationClient: BetterDisplayRequesting,
     }
 
     deinit {
-        for observation in observations {
-            observation.cancel()
-        }
-        for pendingRequest in pendingRequests.values {
-            pendingRequest.timeoutTask.cancel()
-            pendingRequest.continuation.resume(throwing: BetterDisplayIntegrationError.stopped)
+        // `deinit` is nonisolated and can run on whatever thread drops the last
+        // reference. The observations and pending requests belong to the main
+        // actor, so the cleanup is handed there instead of mutating or resuming
+        // them from the releasing thread. Once the last owner is gone, the
+        // copies are immutable.
+        let observations = observations
+        let pendingRequests = pendingRequests
+        Task { @MainActor in
+            for observation in observations {
+                observation.cancel()
+            }
+            for pendingRequest in pendingRequests.values {
+                pendingRequest.timeoutTask.cancel()
+                pendingRequest.continuation.resume(
+                    throwing: BetterDisplayIntegrationError.stopped
+                )
+            }
         }
     }
 

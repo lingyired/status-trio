@@ -1,8 +1,15 @@
 import Foundation
 
 struct BatteryIconOptions: Equatable, Hashable, Sendable {
-    let showsPercentage: Bool
-    let showsChargingIndicator: Bool
+    /// What the top gap shows while on battery (not on power) — the level
+    /// percentage or nothing (#315).
+    let onBatteryMarker: BatteryTopMarker
+    /// What the top gap shows while charging — percentage / bolt / plug / nothing.
+    let chargingMarker: BatteryTopMarker
+    /// What the top gap shows while connected to power without charging.
+    let connectedMarker: BatteryTopMarker
+    /// The decorative marker on a battery-less Mac (plug / bolt / nothing).
+    let noBatteryMarker: BatteryTopMarker
     let showsChargingEffect: Bool
     let showsChargingBoltHeartbeat: Bool
     /// When the top gap shows content (bolt, plug or percentage), draw the arc so
@@ -11,8 +18,6 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
     /// default so the historical "gap consumes progress" look is preserved.
     let splitGapProgress: Bool
     let usesStatusColors: Bool
-    /// What the top gap shows while connected to power but not charging (#195).
-    let connectedIndicator: BatteryConnectedIndicator
     let criticalThreshold: Int
     /// The level at which the ring counts as full (#105).
     ///
@@ -49,6 +54,13 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         ringStrokeScale: defaultRingStrokeScale
     )
 
+    /// Legacy-shaped initializer. The #315 redesign stores the three power states
+    /// separately, but older call sites (renderers, previews, tests) still speak
+    /// in terms of the two booleans plus the connected-indicator choice. Passing
+    /// only the legacy arguments reproduces their previous behaviour exactly:
+    /// `showsPercentage` is the on-battery marker, `showsChargingIndicator`
+    /// decides whether charging shows the bolt, and the connected state follows
+    /// `connectedIndicator`. New call sites pass the marker arguments directly.
     init(
         showsPercentage: Bool = true,
         showsChargingIndicator: Bool = true,
@@ -61,19 +73,43 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         fullThreshold: Int = defaultFullThreshold,
         textScale: Double = defaultTextScale,
         ringStrokeScale: Double = defaultRingStrokeScale,
-        batteryStatusColors: BatteryStatusColors = .standard
+        batteryStatusColors: BatteryStatusColors = .standard,
+        onBatteryMarker: BatteryTopMarker? = nil,
+        chargingMarker: BatteryTopMarker? = nil,
+        connectedMarker: BatteryTopMarker? = nil,
+        noBatteryMarker: BatteryTopMarker? = nil
     ) {
-        self.showsPercentage = showsPercentage
-        self.showsChargingIndicator = showsChargingIndicator
+        let legacyOnBattery: BatteryTopMarker = showsPercentage ? .percentage : .hidden
+        self.onBatteryMarker = onBatteryMarker ?? legacyOnBattery
+        self.chargingMarker = chargingMarker
+            ?? (showsChargingIndicator ? .bolt : legacyOnBattery)
+        self.connectedMarker = connectedMarker
+            ?? (
+                showsChargingIndicator
+                    ? Self.legacyMarker(for: connectedIndicator, showsPercentage: showsPercentage)
+                    : legacyOnBattery
+            )
+        self.noBatteryMarker = noBatteryMarker
+            ?? (showsChargingIndicator ? (connectedIndicator == .bolt ? .bolt : .plug) : .hidden)
         self.showsChargingEffect = showsChargingEffect
         self.showsChargingBoltHeartbeat = showsChargingBoltHeartbeat
         self.splitGapProgress = splitGapProgress
         self.usesStatusColors = usesStatusColors
-        self.connectedIndicator = connectedIndicator
         self.criticalThreshold = min(100, max(0, criticalThreshold))
         self.fullThreshold = min(100, max(1, fullThreshold))
         self.textScale = textScale.isFinite ? min(3, max(1, textScale)) : Self.defaultTextScale
         self.ringStrokeScale = ringStrokeScale.isFinite ? min(2.5, max(0.5, ringStrokeScale)) : Self.defaultRingStrokeScale
         self.batteryStatusColors = batteryStatusColors
+    }
+
+    private static func legacyMarker(
+        for connected: BatteryConnectedIndicator,
+        showsPercentage: Bool
+    ) -> BatteryTopMarker {
+        switch connected {
+        case .plug: return .plug
+        case .bolt: return .bolt
+        case .percentage: return showsPercentage ? .percentage : .plug
+        }
     }
 }

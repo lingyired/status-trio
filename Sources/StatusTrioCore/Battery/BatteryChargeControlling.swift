@@ -139,7 +139,7 @@ final class PowerUIChargeController: BatteryChargeControlling {
                 failure: .unavailable
             )
         }
-        let result = bridge.temporarilyDisableMCL()
+        let result = bridge.chargeToFullNow()
         return ChargeToFullNowWriteResult(
             succeeded: result.didSucceed,
             errorMessage: result.didSucceed ? nil : result.errorMessage,

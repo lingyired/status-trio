@@ -7,6 +7,9 @@ struct AppIconSectionView: View {
     var inputSourceController: InputSourceController? = nil
     @Binding var previewIsDark: Bool
     let onShowIconGuide: () -> Void
+    /// When non-`nil` the pane shows only that leaf subtopic beneath the App
+    /// Icon category; `nil` keeps the original full-pane layout.
+    var subtopic: SettingsSubtopic? = nil
     @EnvironmentObject private var localization: Localization
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -21,34 +24,74 @@ struct AppIconSectionView: View {
                 isDarkBackground: $previewIsDark
             )
         }) {
-            SettingsGroup {
-                SettingsRow(
-                    "questionmark.circle",
-                    tint: .indigo,
-                    title: localization.string(.guideTitle)
-                ) {
-                    Button(action: onShowIconGuide) {
-                        Label(
-                            localization.string(.guideOpen),
-                            systemImage: "macwindow"
-                        )
-                    }
+            if let subtopic {
+                appIconSubpage(subtopic)
+            } else {
+                fullAppIconContent
+            }
+        }
+        // Every app-icon page keeps the live preview, but a leaf switch should
+        // still start at the top of the new page.
+        .id(subtopic)
+    }
+
+    @ViewBuilder
+    private var fullAppIconContent: some View {
+        iconGuideGroup
+        placementGroup
+        menuBarGroup
+        statusIconGroup
+        MiddleIconSettingsGroup(store: store, statusStore: statusStore)
+        dockGroup
+        AppIconRingView(store: store, hasBattery: statusStore.snapshot.battery.isPresent)
+        AppIconBottomIndicatorView(
+            store: store,
+            statusStore: statusStore,
+            previewIsDark: $previewIsDark
+        )
+    }
+
+    @ViewBuilder
+    private func appIconSubpage(_ subtopic: SettingsSubtopic) -> some View {
+        switch subtopic {
+        case .appIconAppearance:
+            // Surface choice, menu-bar size, shared ring stroke, Dock background
+            // and the icon guide all describe the icon as a whole.
+            iconGuideGroup
+            placementGroup
+            menuBarGroup
+            statusIconGroup
+            dockGroup
+        case .appIconRing:
+            AppIconRingView(store: store, hasBattery: statusStore.snapshot.battery.isPresent)
+        case .appIconMiddleIcon:
+            MiddleIconSettingsGroup(store: store, statusStore: statusStore,
+                                    showsGroupTitle: false)
+        case .appIconBottomIndicator:
+            AppIconBottomIndicatorView(
+                store: store,
+                statusStore: statusStore,
+                previewIsDark: $previewIsDark
+            )
+        default:
+            fullAppIconContent
+        }
+    }
+
+    private var iconGuideGroup: some View {
+        SettingsGroup {
+            SettingsRow(
+                "questionmark.circle",
+                tint: .indigo,
+                title: localization.string(.guideTitle)
+            ) {
+                Button(action: onShowIconGuide) {
+                    Label(
+                        localization.string(.guideOpen),
+                        systemImage: "macwindow"
+                    )
                 }
             }
-
-            // 2. Where the icon lives
-            placementGroup
-
-            // 3. Menu bar surface
-            menuBarGroup
-
-            // 4. Ring thickness, shared by the menu bar and the Dock icons
-            statusIconGroup
-
-            MiddleIconSettingsGroup(store: store, statusStore: statusStore)
-
-            // 5. Dock surface
-            dockGroup
         }
     }
 
@@ -101,7 +144,7 @@ struct AppIconSectionView: View {
                     Slider(
                         value: Binding(
                             get: { store.iconSize },
-                            set: { store.iconSize = $0.rounded() }
+                            set: { store.setIconSizeFromSlider($0.rounded()) }
                         ),
                         in: SettingsStore.iconSizeRange
                     )

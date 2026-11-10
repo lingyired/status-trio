@@ -26,7 +26,9 @@ struct GeneralSectionView: View {
     }
 
     private var systemGroup: some View {
-        SettingsGroup(localization.string(.settingsPageGeneral)) {
+        // The pane is already "General", so the first card carries no repeated
+        // section title.
+        SettingsGroup {
             // Language
             SettingsRow(
                 title: localization.string(.settingsLanguage),
@@ -111,41 +113,62 @@ struct GeneralSectionView: View {
 
             SettingsDivider()
 
-            // Status refresh interval
-            SettingsRow(
-                "arrow.clockwise",
-                tint: .orange,
-                title: localization.string(.settingsRefreshInterval),
-                subtitle: localization.string(.settingsRefreshIntervalDescription)
-            ) {
-                HStack(spacing: 8) {
-                    Slider(
-                        value: Binding(
-                            get: { store.refreshIntervalSeconds },
-                            set: { store.refreshIntervalSeconds = ($0 / 5).rounded() * 5 }
-                        ),
-                        in: SettingsStore.refreshIntervalRange
-                    )
-                    .frame(width: 130)
-                    .controlSize(.small)
-                    .accessibilityLabel(localization.string(.settingsRefreshInterval))
-                    .accessibilityValue(
-                        localization.format(
-                            .settingsRefreshIntervalValue,
-                            Int(store.refreshIntervalSeconds)
-                        )
-                    )
+            // Status refresh interval (#255): one row per power source, using
+            // the original settings-row and slider component. The description
+            // stays once on the first row; neither row shows step ticks.
+            refreshIntervalRow(
+                title: localization.string(.settingsRefreshIntervalOnBattery),
+                subtitle: localization.string(.settingsRefreshIntervalDescription),
+                value: $store.refreshIntervalOnBatterySeconds
+            )
 
-                    Text(
-                        localization.format(
-                            .settingsRefreshIntervalValue,
-                            Int(store.refreshIntervalSeconds)
-                        )
+            SettingsDivider()
+
+            refreshIntervalRow(
+                title: localization.string(.settingsRefreshIntervalOnPower),
+                value: $store.refreshIntervalOnPowerSeconds
+            )
+        }
+    }
+
+    private func refreshIntervalRow(
+        title: String,
+        subtitle: String? = nil,
+        value: Binding<Double>
+    ) -> some View {
+        SettingsRow(
+            "arrow.clockwise",
+            tint: .orange,
+            title: title,
+            subtitle: subtitle
+        ) {
+            HStack(spacing: 8) {
+                Slider(
+                    value: Binding(
+                        get: { value.wrappedValue },
+                        set: { value.wrappedValue = $0.rounded() }
+                    ),
+                    in: SettingsStore.refreshIntervalRange
+                )
+                .frame(width: 130)
+                .controlSize(.small)
+                .accessibilityLabel(title)
+                .accessibilityValue(
+                    localization.format(
+                        .settingsRefreshIntervalValue,
+                        Int(value.wrappedValue)
                     )
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 50, alignment: .trailing)
-                }
+                )
+
+                Text(
+                    localization.format(
+                        .settingsRefreshIntervalValue,
+                        Int(value.wrappedValue)
+                    )
+                )
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .frame(width: 50, alignment: .trailing)
             }
         }
     }

@@ -265,6 +265,31 @@ final class SettingsWindowControllerTests: VisibleUITestCase {
         XCTAssertTrue(window.isVisible)
     }
 
+    func testShowWithSubtopicAnnouncesAndQueuesOneLeafRequest() throws {
+        let suiteName = "StatusTrioCoreTests.SettingsSubtopicRoute.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removeTestSuite(named: suiteName) }
+        let controller = SettingsWindowController(
+            store: SettingsStore(defaults: defaults),
+            statusStore: makeStatusStore(),
+            localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
+            activationPolicy: AppActivationPolicy(application: SettingsActivationPolicyApplicationSpy()),
+            showIconGuide: {}
+        )
+        let request = expectation(forNotification: .settingsSelectSection, object: nil)
+
+        controller.show(subtopic: .appIconRing)
+        wait(for: [request], timeout: 1)
+
+        let window = try XCTUnwrap(controller.window)
+        defer { window.close() }
+        XCTAssertTrue(window.isVisible)
+        // The category and its leaf are consumed together, so a second read
+        // yields nothing rather than leaking a stale request into the next open.
+        XCTAssertNil(controller.takePendingSection())
+        XCTAssertNil(controller.takePendingSubtopic())
+    }
+
     #if DEBUG
     func testBackgroundPresentationReusesClosesAndRebuildsWithoutRegularPolicy() throws {
         var presentations: [SettingsWindowPresentation] = []

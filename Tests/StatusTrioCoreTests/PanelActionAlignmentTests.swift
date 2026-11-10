@@ -247,6 +247,58 @@ final class PanelActionAlignmentTests: XCTestCase {
         }
     }
 
+    /// Issue #314: the trailing action cluster has to stay on shared columns
+    /// even when one row shows the optional power button and another does not.
+    /// Rows are right-anchored, so the gear and the chevron must keep the same
+    /// horizontal centre whether or not the power button is present.
+    func testWiFiTrailingColumnsStayAlignedWhenPowerButtonIsOptional() throws {
+        let withPower = try render(makeNetworkRow(showsPower: true))
+        let withoutPower = try render(makeNetworkRow(showsPower: false))
+
+        let powered = withPower.trailingGlyphRects(count: 3, minimumX: 150)
+        let unpowered = withoutPower.trailingGlyphRects(count: 2, minimumX: 150)
+        XCTAssertEqual(powered.count, 3, "Wi-Fi row with power must draw power, chevron and Settings")
+        XCTAssertEqual(unpowered.count, 2, "the row without power must draw chevron and Settings")
+        guard powered.count == 3, unpowered.count == 2 else { return }
+
+        // Right to left the two rows share the gear and chevron columns.
+        XCTAssertEqual(
+            powered[2].midX, unpowered[1].midX, accuracy: 0.5,
+            "the gear must stay in the same column when the power button is removed"
+        )
+        XCTAssertEqual(
+            powered[1].midX, unpowered[0].midX, accuracy: 0.5,
+            "the chevron must stay in the same column when the power button is removed"
+        )
+    }
+
+    private func makeNetworkRow(showsPower: Bool) -> NetworkStatusView {
+        NetworkStatusView(
+            showsWiFiPowerControl: showsPower,
+            wifiPowerIsOn: true,
+            wifiPowerCanSet: true,
+            wifiPowerRequiresConfirmation: false,
+            wifiPowerFailed: false,
+            state: PanelSummaryState(
+                title: "Example Network",
+                subtitle: "192.168.1.20 · 5 GHz",
+                measurements: nil,
+                symbol: .symbol(name: "wifi", variableValue: nil, fallback: nil),
+                tint: .secondary,
+                accessibilityLabel: "Network",
+                accessibilityValue: "Connected",
+                showsSettings: true,
+                intent: .wifiDetails
+            ),
+            onOpenWiFiDetails: { _ in },
+            onOpenWiredDetails: {},
+            onRequestNameAccess: {},
+            onOpenWiFiSettings: {},
+            onOpenNetworkSettings: {},
+            onOpenLocationSettings: {}
+        )
+    }
+
     private func render<V: View>(_ view: V) throws -> SummaryActionAlignmentProbe {
         let suite = "StatusTrioCoreTests.PanelActionAlignment.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

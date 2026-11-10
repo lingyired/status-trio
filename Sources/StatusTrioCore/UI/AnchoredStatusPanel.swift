@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import QuartzCore
 import SwiftUI
 
 /// The status panel window.
@@ -64,6 +65,11 @@ final class AnchoredStatusPanel: NSPanel {
     /// Set by `show` between ordering the window in transparent and revealing it
     /// once the first layout has settled, so a size correction never flashes.
     private var pendingReveal = false
+    /// Lock the actual selected side for this presentation. Intermediate layout
+    /// heights cannot flip it; only a placement-environment change renews it.
+    private var lockedResizeAnchor: StatusPanelAnchor?
+    private var lockedResizeFrame: NSRect?
+    private var lockedResizeEdge: NSRectEdge?
 #if DEBUG
     /// Number of window frame writes since the last reset. Issue #259 uses it in
     /// the convergence regression and in the live diagnostic; release builds
@@ -72,6 +78,17 @@ final class AnchoredStatusPanel: NSPanel {
 
     func resetFrameWriteCount() {
         frameWriteCount = 0
+    }
+
+    /// The window follows measured layout; it has no separate animation or pin.
+    var resizeDiagnostics: StatusPanelResizeDiagnostics {
+        StatusPanelResizeDiagnostics(
+            windowHeight: frame.height,
+            anchoredEdgeY: lockedResizeEdge == .maxY ? frame.minY : frame.maxY,
+            targetHeight: layoutMetrics.contentHeight ?? frame.height,
+            presentedHeight: frame.height,
+            frameWriteCount: frameWriteCount
+        )
     }
 #endif
     /// Coalesces the three things that can change the window's frame: a content
@@ -136,15 +153,20 @@ final class AnchoredStatusPanel: NSPanel {
     /// intrinsic size changes when a row expands.
     func installContent<Content: View>(
         _ hostingController: StatusPanelHostingController<Content>,
-        backgroundStyle: PanelBackgroundStyle
+        backgroundStyle: PanelBackgroundStyle,
+        measurementID: UUID? = nil
     ) {
+        layoutMetrics.attachWindow(measurementID: measurementID) { [weak self] height in
+            guard let self else { return }
+            self.requestContentSize(NSSize(width: 330, height: height))
+        }
         contentHost = hostingController
         hostingController.onLayout = { [weak self, weak hostingController] size in
             guard let self, let hostingController else { return }
             // A replaced host can still finish a delayed layout pass. Only the
             // content that is installed now may drive the window (issue #259).
             guard self.isCurrentContentHost(hostingController) else { return }
-            self.requestContentSize(size)
+            self.requestContentSize(NSSize(width: size.width, height: self.layoutMetrics.contentHeight ?? size.height))
         }
         invalidateContentMeasurement = { [weak hostingController] in
             guard let hostingController else { return }
@@ -204,6 +226,7 @@ final class AnchoredStatusPanel: NSPanel {
         // while invisible and then fading the panel in hides the jump that read
         // as a flash on open.
         alphaValue = 0
+        layoutMetrics.setPresented(true)
         if avoidsOrderFrontRegardlessForTesting {
             orderFront(nil)
         } else {
@@ -247,7 +270,11 @@ final class AnchoredStatusPanel: NSPanel {
         // A hidden window has nothing to tear down; callers rely on `isShown`
         // before they act on a close.
         guard isVisible else { return }
+        layoutMetrics.setPresented(false)
         pendingReveal = false
+        lockedResizeAnchor = nil
+        lockedResizeFrame = nil
+        lockedResizeEdge = nil
         layoutCoordinator.invalidate()
         removeShowObservers()
         super.close()
@@ -275,7 +302,8 @@ final class AnchoredStatusPanel: NSPanel {
         guard let content = contentViewController as? StatusPanelContentViewController else {
             return
         }
-        let size = content.intrinsicContentSize
+        var size = content.intrinsicContentSize
+        size.height = layoutMetrics.contentHeight ?? size.height
         guard size.width > 0, size.height > 0 else { return }
         applyContentFrame(cappedContentSize(size))
     }
@@ -283,7 +311,8 @@ final class AnchoredStatusPanel: NSPanel {
     private func applyContentSize(_ size: NSSize) {
         guard size.width > 0, size.height > 0 else { return }
         let capped = cappedContentSize(size)
-        let rounded = NSSize(width: ceil(capped.width), height: ceil(capped.height))
+        let scale = max(backingScaleFactor, 1)
+        let rounded = NSSize(width: ceil(capped.width * scale) / scale, height: ceil(capped.height * scale) / scale)
         applyContentFrame(rounded)
     }
 
@@ -292,18 +321,77 @@ final class AnchoredStatusPanel: NSPanel {
     /// displayed synchronously: forcing a display here re-enters layout while a
     /// layout pass is still running (issue #259).
     private func applyContentFrame(_ contentSize: NSSize) {
-        guard let target = StatusPanelPlacement.contentFrameUpdate(
-            from: frame,
-            contentSize: contentSize,
-            anchor: currentAnchor(),
-            screens: NSScreen.screens.map { StatusPanelScreen($0) },
-            dockInset: dockInset
-        ) else { return }
+        // Content already presents its intermediate disclosure height. Starting
+        // another window animation here would put layout and chrome on different
+        // clocks. Apply only the latest coalesced measurement, once per pixel.
+        if isVisible, !pendingReveal, lockedResizeFrame == nil {
+            lockResizePlacement()
+        }
+        let capped = cappedContentSize(contentSize)
+        let scale = max(backingScaleFactor, 1)
+        let size = NSSize(width: ceil(capped.width * scale) / scale,
+                          height: ceil(capped.height * scale) / scale)
+        let target = placementFrame(for: size)
+        guard target != frame else { return }
         setFrame(target, display: false)
 #if DEBUG
         frameWriteCount += 1
 #endif
         invalidateShadow()
+    }
+
+    /// The placed frame for a presented height during an animated resize. The
+    /// anchor is the one locked when the animation began, so intermediate
+    /// heights cannot flip the panel to the other side of the menu bar / Dock.
+    private func placementFrameForPresentedHeight(_ height: CGFloat) -> NSRect {
+        if let locked = lockedResizeFrame {
+            // Lock the edge of the actual selected placement, including flips
+            // and screen clamping, rather than rerunning preferredEdge.
+            let y: CGFloat
+            switch lockedResizeEdge {
+            case .maxY: y = locked.minY
+            case .minX, .maxX: y = locked.midY - height / 2
+            default: y = locked.maxY - height
+            }
+            return NSRect(x: locked.minX, y: y,
+                          width: locked.width, height: height)
+        }
+        let width = frame.width
+        let size = NSSize(width: width, height: height)
+        if let anchor = lockedResizeAnchor ?? currentAnchor() {
+            return StatusPanelPlacement.frame(
+                contentSize: size,
+                anchor: anchor,
+                screens: NSScreen.screens.map { StatusPanelScreen($0) },
+                dockInset: dockInset
+            )
+        }
+        return NSRect(origin: frame.origin, size: size)
+    }
+
+    /// Keep the side already visible to the user, including an initial flip.
+    /// If the expanded page would need the other side's larger budget, scroll
+    /// on the selected side instead of flipping or growing off screen.
+    private func lockResizePlacement() {
+        lockedResizeAnchor = currentAnchor()
+        lockedResizeFrame = frame
+        switch lockedResizeAnchor?.preferredEdge {
+        case .minX, .maxX: lockedResizeEdge = .minX
+        default:
+            lockedResizeEdge = frame.midY > (lockedResizeAnchor?.screenRect.midY ?? frame.maxY) ? .maxY : .minY
+        }
+        guard let screen = screen else { return }
+        let lower = screen.visibleFrame.minY + max(0, dockInset.bottom) + StatusPanelPlacement.edgeMargin
+        let upper = screen.visibleFrame.maxY - max(0, dockInset.top) - StatusPanelPlacement.edgeMargin
+        let available: CGFloat
+        switch lockedResizeEdge {
+        case .maxY: available = upper - frame.minY
+        case .minX, .maxX: available = 2 * min(frame.midY - lower, upper - frame.midY)
+        default: available = frame.maxY - lower
+        }
+        layoutMetrics.update(maximumPanelHeight: max(1, min(
+            layoutMetrics.maximumPanelHeight ?? available, available
+        )))
     }
 
     // MARK: - Layout scheduling
@@ -317,13 +405,21 @@ final class AnchoredStatusPanel: NSPanel {
     }
 
     private func handleWindowResize() {
-        guard isVisible else { return }
+        guard isVisible, lockedResizeFrame == nil else { return }
         layoutCoordinator.windowDidResize()
     }
 
     private func handlePlacementEnvironmentChange() {
         guard isVisible else { return }
+        lockedResizeAnchor = nil
+        lockedResizeFrame = nil
+        lockedResizeEdge = nil
         updateLayoutMetrics()
+        // Move to the new anchor before locking a side again. Otherwise the old
+        // on-screen frame could be mistaken for a flipped placement at the new
+        // anchor while a fresh content measurement is still queued.
+        repositionPlacementOnly()
+        lockResizePlacement()
         layoutCoordinator.placementEnvironmentChanged()
     }
 
@@ -342,7 +438,7 @@ final class AnchoredStatusPanel: NSPanel {
     /// (issue #259).
     private func repositionPlacementOnly() {
         guard isVisible else { return }
-        let target = placementFrame(for: frame.size)
+        let target = placementFrame(for: cappedContentSize(frame.size))
         guard target != frame else { return }
         setFrame(target, display: false)
 #if DEBUG
@@ -381,6 +477,9 @@ final class AnchoredStatusPanel: NSPanel {
     }
 
     private func placementFrame(for contentSize: NSSize) -> NSRect {
+        if let locked = lockedResizeFrame, locked.width == contentSize.width {
+            return placementFrameForPresentedHeight(contentSize.height)
+        }
         guard let currentAnchor = currentAnchor() else {
             return NSRect(origin: frame.origin, size: contentSize)
         }
@@ -598,7 +697,16 @@ final class StatusPanelHostingController<Content: View>: NSHostingController<Con
         let proposed = NSSize(width: max(width, 1), height: .greatestFiniteMagnitude)
         let measured = sizeThatFits(in: proposed)
         let size = measured.width > 0 && measured.height > 0 ? measured : view.fittingSize
-        guard size.width > 0, size.height > 0, size != lastReportedSize else { return }
+        guard size.width > 0, size.height > 0 else { return }
+        // Compare with a display-pixel tolerance: a re-layout that differs only
+        // by a fraction of a physical pixel is the same presented size. Without
+        // it a sub-point wobble republishes on every pass and fights the window
+        // animation. A real change of a pixel still gets through.
+        let scale = max(view.window?.backingScaleFactor ?? 1, 1)
+        let tolerance = 1.0 / scale
+        let unchanged = abs(size.width - lastReportedSize.width) < tolerance
+            && abs(size.height - lastReportedSize.height) < tolerance
+        guard !unchanged else { return }
         lastReportedSize = size
         onLayout?(size)
     }
@@ -763,15 +871,18 @@ final class StatusPanelContentViewController: NSViewController {
 
     override func viewDidLayout() {
         super.viewDidLayout()
+        let container: NSView
         if #available(macOS 26.0, *), let glass = backgroundView as? NSGlassEffectView {
             // The hosting view now lives inside a plain container inside the
             // glass; match that container, not the glass view itself, so any
             // glass content insets cannot clip the content's top edge.
-            hostingController.view.frame = hostingController.view.superview?.bounds
-                ?? glass.bounds
+            container = hostingController.view.superview ?? glass
         } else {
-            hostingController.view.frame = view.bounds
+            container = view
         }
+        // Always fill the actual window. A final-height pin would move the
+        // content before the measured disclosure and window have reached it.
+        hostingController.view.frame = container.bounds
     }
 
     var intrinsicContentSize: NSSize {

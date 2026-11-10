@@ -158,6 +158,47 @@ struct BluetoothAccessoryBatteryTests {
         #expect(result.value?.count == 2)
     }
 
+    // MARK: - Bounded subprocess
+
+    /// The reader must not inherit the raw `readDataToEndOfFile()` +
+    /// `waitUntilExit()` hang: a child that never exits has to be killed near the
+    /// deadline and read as "no accessory", not block the serial queue for good.
+    @Test("The pmset read is bounded: a hung child times out and answers nil")
+    func hungChildTimesOut() {
+        let started = Date()
+        let output = PmsetAccessoryBatteryWorker.readAccessoryPowerSources(
+            executableURL: URL(fileURLWithPath: "/bin/sleep"),
+            arguments: ["30"],
+            timeout: .milliseconds(300)
+        )
+        let elapsed = Date().timeIntervalSince(started)
+
+        #expect(output == nil)
+        #expect(elapsed < 10, "a hung child must be killed near the deadline, not block for good")
+    }
+
+    @Test("A non-zero exit answers nil, not an empty report")
+    func nonZeroExitAnswersNil() {
+        let output = PmsetAccessoryBatteryWorker.readAccessoryPowerSources(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "exit 3"],
+            timeout: .seconds(4)
+        )
+
+        #expect(output == nil)
+    }
+
+    @Test("The bounded read returns what the child wrote on success")
+    func boundedReadReturnsStdout() {
+        let output = PmsetAccessoryBatteryWorker.readAccessoryPowerSources(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "printf 'hello'"],
+            timeout: .seconds(4)
+        )
+
+        #expect(output == "hello")
+    }
+
     // MARK: - Fixtures
 
     /// Three documents in the shape the system prints them: the Mac's own

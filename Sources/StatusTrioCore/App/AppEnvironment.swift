@@ -119,10 +119,6 @@ final class AppEnvironment {
         dockVisibilityMonitor?.onChange = { [weak self] _ in
             self?.updateDockChargingAnimationOwnership()
         }
-        appIconController.systemPollDidFire = { [weak self] in
-            guard let self, isDockVisibilityMonitoring else { return }
-            dockVisibilityMonitor?.refresh()
-        }
         chargingEffectMotionMonitor.onChange = { [weak self] _ in
             self?.updateChargingEffectClock()
         }
@@ -156,6 +152,7 @@ final class AppEnvironment {
     }
 
     func stop() {
+        settings.flushPendingPersists()
         memoryPressureMonitor.stop()
         memoryPressureMonitor.onPressure = nil
         telemetryReporter.stop()
@@ -165,7 +162,6 @@ final class AppEnvironment {
         stopPreviewResourceLifecycle()
         appIconController.dockChargingAnimationEligibilityDidChange = nil
         appIconController.dockContentDidChange = nil
-        appIconController.systemPollDidFire = nil
         dockVisibilityMonitor?.onChange = nil
         if isDockVisibilityMonitoring {
             dockVisibilityMonitor?.stop()
@@ -389,7 +385,7 @@ final class AppEnvironment {
         connectionMonitor: (any NetworkConnectionMonitoring)? = nil,
         vpnMonitor: (any VPNMonitoring)? = nil,
         volumeMonitor: any VolumeMonitoring,
-        brightnessMonitor: any BrightnessMonitoring = BrightnessMonitor(),
+        brightnessMonitor: any BrightnessMonitoring = BrightnessMonitor(defaultExternalBackend: .automatic),
         inputMonitor: (any AudioInputMonitoring)? = nil,
         refreshInterval: Duration = .seconds(15)
     ) -> SystemStatusStore {
@@ -434,7 +430,12 @@ final class AppEnvironment {
             vpnMonitor: VPNMonitor(),
             volumeMonitor: VolumeMonitor(outputController: CoreAudioOutputController()),
             inputMonitor: AudioInputMonitor(hardware: CoreAudioInputHardware()),
-            refreshInterval: settings.refreshInterval
+            // #255 production propagation only uses the per-power-source
+            // values. The store starts on a battery-present, unplugged
+            // placeholder snapshot, so seed the initial wait with the battery
+            // cadence; StatusBarController's subscription corrects it as soon
+            // as the first real power snapshot arrives.
+            refreshInterval: settings.refreshInterval(forPluggedIn: false)
         )
         let localization = Localization()
         let inputSourceController = InputSourceController()
@@ -454,10 +455,14 @@ final class AppEnvironment {
             snapshots: store.$snapshot.eraseToAnyPublisher(),
             preferences: settings.iconPresentationPublisher,
             inputSources: inputSourceController.$state
-                .map(\.selectedDescriptor)
+                .combineLatest(settings.$inputSourceMarkerStyle)
+                .map { state, markerStyle in state.iconDescriptor(markerStyle: markerStyle) }
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
             systemPowers: store.powerSampling.$systemPower
+                .removeDuplicates()
+                .eraseToAnyPublisher(),
+            highPowerModes: store.highPowerMode.$isHighPowerMode
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
             resolveInputs: { snapshot in

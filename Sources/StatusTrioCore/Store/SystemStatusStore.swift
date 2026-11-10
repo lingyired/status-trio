@@ -69,6 +69,8 @@ extension PrivilegedHelperManager: HelperReadinessProviding {
 
 @MainActor
 final class SystemStatusStore: ObservableObject {
+    let airPodsConversationCache = AirPodsConversationCache()
+
     static let popupDebounceInterval: Duration = .milliseconds(500)
 
     /// The fallback poll refreshes the battery on every tick: its percentage and
@@ -100,6 +102,13 @@ final class SystemStatusStore: ObservableObject {
         interval / 5
     }
 
+    @Published private(set) var wifiPowerIsChanging = false
+    @Published private(set) var wifiPowerFailed = false
+    /// The radio state the most recent summary/quick power request asked for.
+    /// A failed write stays visible until a snapshot reports this state, since
+    /// macOS can also change the radio from System Settings while the panel is
+    /// open. A mismatched or missing interface leaves the failure in place.
+    private var requestedWiFiPowerState: Bool?
     @Published private(set) var snapshot: StatusSnapshot
     @Published private(set) var popupSnapshot: StatusSnapshot
     /// The VPN row's value. Deliberately not part of `StatusSnapshot`: nothing
@@ -139,6 +148,11 @@ final class SystemStatusStore: ObservableObject {
     let localIP: LocalIPController
     let bluetoothDevices: BluetoothDeviceController
     let bluetoothPower: BluetoothRadioPowerController
+    /// The VPN summary row's start/stop path. It holds the system service ID,
+    /// not a display name, and reports a confirmed transition or a bounded
+    /// failure (#272).
+    let vpnPower: VPNPowerController
+    let mihomoTunnel: MihomoTunnelController
     let mobileBattery: MobileBatteryController
     let appleDeviceDiscovery: AppleDeviceDiscoveryController
     /// The AirPods listening-mode surface. A separate owner from `bluetoothDevices`
@@ -228,9 +242,27 @@ final class SystemStatusStore: ObservableObject {
     nonisolated(unsafe) private var systemSleepObserver: NSObjectProtocol?
     nonisolated(unsafe) private var displaySleepObserver: NSObjectProtocol?
     nonisolated(unsafe) private var displayWakeObserver: NSObjectProtocol?
+    /// A Low Power Mode change can leave the rest of the battery reading
+    /// identical, so `BatteryMonitor`'s re-read publishes no new snapshot and
+    /// the controllers would stay stale. This documented Foundation event
+    /// refreshes them directly; High Power Mode, which Foundation does not
+    /// report, is covered by `powerModeNotifications`.
+    nonisolated(unsafe) private var powerStateObserver: NSObjectProtocol?
+    /// High Power Mode has no public Foundation notification; `powerd`'s notify
+    /// key is the only event the app can observe for a system-side change.
+    private let powerModeNotifications: any PowerModeNotificationMonitoring
+    /// The last battery snapshot values the power-mode controllers were told
+    /// about, so a power-source or Low Power Mode change re-reads both modes
+    /// without polling the helper on every ordinary percentage update.
+    private var lastBatteryLowPowerMode: Bool?
+    private var lastBatteryConnectedToPower: Bool?
     private var lastPublishedSnapshot: StatusSnapshot?
     /// Optimistic display brightness while the backend confirms the write.
     private var pendingBrightnessScalars: [String: Double] = [:]
+    /// The monitor's publication sequence when each optimistic target began.
+    /// Any later publication supersedes the target, even if a confirmation was
+    /// coalesced away by the update stream.
+    private var pendingBrightnessSequences: [String: UInt64] = [:]
     /// Optimistic input gain while the input monitor confirms the write.
     private var pendingInputScalar: Double?
     private var pendingInputDeviceID: AudioDeviceID?
@@ -303,6 +335,9 @@ final class SystemStatusStore: ObservableObject {
         lowPowerMode: LowPowerModeController = LowPowerModeController(),
         highPowerMode: HighPowerModeController = HighPowerModeController(),
         helperReadiness: (any HelperReadinessProviding)? = nil,
+        powerModeNotifications: any PowerModeNotificationMonitoring = PowerModeNotificationMonitor(),
+        vpnConnectionController: any VPNConnectionControlling = SystemVPNConnectionController(),
+        mihomoTunnel: MihomoTunnelController = MihomoTunnelController(),
         initialSnapshot: StatusSnapshot = .placeholder
     ) {
         self.batteryMonitor = batteryMonitor
@@ -328,6 +363,8 @@ final class SystemStatusStore: ObservableObject {
         self.localIP = localIP
         self.bluetoothDevices = bluetoothDevices
         self.bluetoothPower = bluetoothPower
+        self.vpnPower = VPNPowerController(backend: vpnConnectionController, refresh: {})
+        self.mihomoTunnel = mihomoTunnel
         self.bluetoothProfilerCache = bluetoothProfilerCache
         self.mobileBattery = mobileBattery
         self.appleDeviceDiscovery = appleDeviceDiscovery
@@ -335,16 +372,21 @@ final class SystemStatusStore: ObservableObject {
         self.lowPowerMode = lowPowerMode
         self.highPowerMode = highPowerMode
         self.helperReadiness = helperReadiness ?? SharedHelperReadiness()
+        self.powerModeNotifications = powerModeNotifications
         self.snapshot = initialSnapshot
         self.popupSnapshot = initialSnapshot
         self.vpnStatus = .placeholder
         self.liveVolume = initialSnapshot.volume
+        let initialOutput = initialSnapshot.volume.outputDevices.first(where: \.isCurrent) ?? initialSnapshot.volume.currentDevice
+        airPodsConversationCache.updateRoute(initialOutput.map { PanelAudioDeviceID(id: $0.id, uid: $0.uid) })
         self.liveBrightness = initialSnapshot.brightness
         bluetoothAuthorizationCancellable = bluetoothDevices.$authorizationStatus
             .sink { [weak self] _ in
                 guard let self else { return }
                 self.reconcileBluetoothDemand()
             }
+        vpnPower.refresh = { [weak self] in self?.vpnMonitor?.refresh() }
+        mihomoTunnel.onUpdate = { [weak self] info in self?.applyMihomoTunnel(info) }
     }
 
     deinit {
@@ -360,6 +402,10 @@ final class SystemStatusStore: ObservableObject {
         if let displayWakeObserver {
             wakeNotificationCenter.removeObserver(displayWakeObserver)
         }
+        if let powerStateObserver {
+            NotificationCenter.default.removeObserver(powerStateObserver)
+        }
+        powerModeNotifications.stop()
         monitorTasks.forEach { $0.cancel() }
         inputUpdateTask?.cancel()
         refreshTask?.cancel()
@@ -415,6 +461,10 @@ final class SystemStatusStore: ObservableObject {
             Task { @MainActor [weak self] in
                 self?.isApplicationEnergySystemAsleep = true
                 self?.updateApplicationEnergyDemand()
+                // The system gate alone pauses nearby BLE here. The display
+                // gate is a real display signal: only `screensDidSleep` sets
+                // it, so a wake cycle that never sends `screensDidWake` does
+                // not strand the scanner behind a stale display flag.
                 self?.bluetoothDevices.setSystemSleeping(true)
                 self?.reconcileBluetoothDemand()
                 // Stop hardware sampling and discard any in-flight read while
@@ -432,6 +482,7 @@ final class SystemStatusStore: ObservableObject {
                 self?.isDisplayAsleep = true
                 self?.isApplicationEnergyDisplayAsleep = true
                 self?.updateApplicationEnergyDemand()
+                self?.bluetoothDevices.setDisplaySleeping(true)
                 self?.volumeMonitor.setDisplayAsleep(true)
                 self?.brightnessMonitor.setDisplayAsleep(true)
             }
@@ -450,6 +501,10 @@ final class SystemStatusStore: ObservableObject {
                 // when its separate system-wake notification was missed.
                 self.isApplicationEnergySystemAsleep = false
                 self.updateApplicationEnergyDemand()
+                self.bluetoothDevices.setDisplaySleeping(false)
+                // The display wake proves the system is awake, so clear both
+                // gates even when the separate system wake was missed.
+                self.bluetoothDevices.setSystemSleeping(false)
                 self.volumeMonitor.setDisplayAsleep(false)
                 self.brightnessMonitor.setDisplayAsleep(false)
                 self.brightnessMonitor.topologyChanged()
@@ -458,6 +513,19 @@ final class SystemStatusStore: ObservableObject {
                 self.recoverAll()
                 self.refreshAll()
             }
+        }
+
+        powerStateObserver = NotificationCenter.default.addObserver(
+            forName: .NSProcessInfoPowerStateDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.refreshPowerModeControllers()
+            }
+        }
+        powerModeNotifications.start { [weak self] in
+            self?.refreshPowerModeControllers()
         }
 
         batteryMonitor.start()
@@ -531,6 +599,17 @@ final class SystemStatusStore: ObservableObject {
         monitorTasks = tasks
         reconcileBluetoothDemand()
 
+        startRefreshTask()
+    }
+
+    /// Starts (or restarts) the fallback wait loop with the current interval.
+    ///
+    /// #255: a cadence change must take effect immediately, so changing the
+    /// interval cancels the in-flight wait and starts a fresh one. This only
+    /// touches the wait task — the hardware monitors keep their own tasks and
+    /// are never restarted, and no immediate extra tick is scheduled.
+    private func startRefreshTask() {
+        refreshTask?.cancel()
         refreshTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 guard let sleep = self?.sleep, let interval = self?.refreshInterval else { return }
@@ -603,6 +682,13 @@ final class SystemStatusStore: ObservableObject {
             wakeNotificationCenter.removeObserver(displayWakeObserver)
             self.displayWakeObserver = nil
         }
+        if let powerStateObserver {
+            NotificationCenter.default.removeObserver(powerStateObserver)
+            self.powerStateObserver = nil
+        }
+        powerModeNotifications.stop()
+        lowPowerMode.onSuccessfulWrite = nil
+        highPowerMode.onSuccessfulWrite = nil
 
         powerSampling.stopAll()
         batteryDetails.deactivate()
@@ -628,7 +714,7 @@ final class SystemStatusStore: ObservableObject {
         localIP.deactivate()
         bluetoothDevices.releaseTransientState()
         releaseBluetoothProfilerReader()
-        bluetoothListeningModes.stop()
+        bluetoothListeningModes.shutdown()
     }
 
     var isVolumeControlAvailable: Bool {
@@ -671,13 +757,40 @@ final class SystemStatusStore: ObservableObject {
         volumeController?.toggleMute()
     }
 
+    /// Set the Wi-Fi radio from a surface that is not the Wi-Fi list demand,
+    /// such as the status-panel summary row or the menu-bar right-click quick
+    /// action. The write goes through the quick-action path so it does not
+    /// require an active detail list, and the monitor is refreshed on
+    /// completion instead of waiting for the next poll.
+    func setWiFiPower(_ enabled: Bool) {
+        guard !hasStopped, snapshot.wifi.state != .unavailable, !wifiPowerIsChanging else { return }
+        wifiPowerIsChanging = true
+        wifiPowerFailed = false
+        requestedWiFiPowerState = enabled
+        wifiNetworks.setPowerFromQuickAction(enabled) { [weak self] changed in
+            guard let self, !self.hasStopped else { return }
+            self.wifiPowerIsChanging = false
+            self.wifiPowerFailed = !changed
+            self.wifiMonitor.refresh()
+        }
+    }
+
+    /// #272: the VPN summary row's power switch. The controller resolves the
+    /// target from the current service list and confirms through the framework
+    /// callback before the row leaves its changing state.
+    func setVPNPower(_ enabled: Bool) {
+        Task { [vpnPower, vpnStatus] in
+            await vpnPower.setPower(enabled, status: vpnStatus)
+        }
+    }
+
     /// Menu-bar quick action: toggle the Wi-Fi radio while the panel is closed.
     /// No confirmation step (unlike Bluetooth), so it just flips the current
     /// radio state. `.unavailable` means there is no Wi-Fi interface to toggle.
     func toggleWiFiPower() {
         guard !hasStopped, snapshot.wifi.state != .unavailable else { return }
         let isOff = snapshot.wifi.state == .off
-        wifiNetworks.setPowerFromQuickAction(!isOff)
+        setWiFiPower(isOff)
     }
 
     func selectOutputDevice(_ device: AudioOutputDevice) {
@@ -1054,6 +1167,11 @@ final class SystemStatusStore: ObservableObject {
     func setRefreshInterval(_ interval: Duration) {
         guard interval != refreshInterval else { return }
         refreshInterval = interval
+        // Only replace the wait when the store is actually running. Called
+        // before start() it just records the value the first wait should use;
+        // called after stop() it must not resurrect polling.
+        guard hasStarted, !hasStopped else { return }
+        startRefreshTask()
     }
 
     func setPopoverVisible(_ visible: Bool) {
@@ -1071,6 +1189,11 @@ final class SystemStatusStore: ObservableObject {
             isApplicationEnergySystemAsleep = false
             isApplicationEnergyDisplayAsleep = false
             updateApplicationEnergyDemand()
+            // The popover being visible proves the display is on, so a missed
+            // screensDidWake must not leave nearby BLE paused either; it also
+            // proves the system is awake, so clear both gates.
+            bluetoothDevices.setDisplaySleeping(false)
+            bluetoothDevices.setSystemSleeping(false)
             lowPowerMode.refresh()
             highPowerMode.refresh()
         }
@@ -1265,7 +1388,16 @@ final class SystemStatusStore: ObservableObject {
     private func updateBrightnessDetailsVisibility() {
         let needed = needsBrightnessDetails
         brightnessMonitor.setDetailsVisible(needed)
-        if needed { brightnessMonitor.refresh() }
+        if needed {
+            brightnessMonitor.refresh()
+        } else {
+            // The optimistic target only exists to bridge one open panel's write
+            // to its read-back. Once no brightness surface is visible it must
+            // not pin the value, or reopening would keep showing a stale target
+            // instead of the display's actual brightness.
+            pendingBrightnessScalars.removeAll()
+            pendingBrightnessSequences.removeAll()
+        }
     }
 
     func bindInputSettings(_ settings: SettingsStore) {
@@ -1310,8 +1442,18 @@ final class SystemStatusStore: ObservableObject {
     }
 
     private func updateApplicationEnergyDemand() {
-        batteryDetails.energyApps.setSuspended(isApplicationEnergySystemAsleep || isApplicationEnergyDisplayAsleep)
+        updateSleepSuspension()
         batteryDetails.energyApps.setBackgroundMonitoringEnabled(hasStarted && !hasStopped && isApplicationEnergyEnabled)
+    }
+
+    /// Shared sleep gate for the samplers the store owns: while the system or
+    /// the display is asleep, no surface can show what they read. Registered
+    /// demands survive, so a resume restores exactly the surfaces that existed
+    /// before sleep. A missed wake is repaired by the popover-visible path.
+    private func updateSleepSuspension() {
+        let suspended = isApplicationEnergySystemAsleep || isApplicationEnergyDisplayAsleep
+        batteryDetails.energyApps.setSuspended(suspended)
+        powerSampling.setSuspended(suspended)
     }
 
     func bindMobileBatterySettings(_ settings: SettingsStore) {
@@ -1429,9 +1571,18 @@ final class SystemStatusStore: ObservableObject {
             .map(\.battery)
             .removeDuplicates()
             .sink { [weak self] battery in
-                self?.lowPowerMode.updateFromSystemRead(battery.isLowPowerMode)
-                self?.evaluateLowPowerAutoEnable(battery: battery)
+                guard let self else { return }
+                self.handleBatteryPowerModeSnapshot(battery)
+                self.evaluateLowPowerAutoEnable(battery: battery)
             }
+        // The daemon clears the other mode itself, so a successful switch must
+        // re-read the counterpart instead of leaving its old state on screen.
+        lowPowerMode.onSuccessfulWrite = { [weak self] in
+            self?.highPowerMode.refresh()
+        }
+        highPowerMode.onSuccessfulWrite = { [weak self] in
+            self?.lowPowerMode.refresh()
+        }
         lowPowerAutoEnableCancellable = settings.$autoEnablesLowPowerMode
             .removeDuplicates()
             .sink { [weak self] enabled in
@@ -1464,7 +1615,36 @@ final class SystemStatusStore: ObservableObject {
                 self.evaluateLowPowerAutoEnable(
                     battery: self.snapshot.battery, readinessOverride: ready
                 )
+                // Helper approval changes which state is readable: before it,
+                // the probes fail quietly; afterwards they can report the real
+                // mode. Re-read both without waiting for a battery snapshot.
+                if ready { self.refreshPowerModeControllers() }
             }
+    }
+
+    /// Re-reads both power-mode controllers on a system signal. The helper is
+    /// only contacted when the opt-in enabled the controllers.
+    private func refreshPowerModeControllers() {
+        guard !hasStopped else { return }
+        lowPowerMode.refresh()
+        highPowerMode.refresh()
+    }
+
+    /// Battery-sourced power-mode signals only: a power source or Low Power
+    /// Mode change means the exclusive High Power Mode may have flipped too.
+    /// Ordinary percentage ticks stay out of the helper, and this never adds a
+    /// timer — `BatteryMonitor` already emits these snapshots.
+    private func handleBatteryPowerModeSnapshot(_ battery: BatteryStatus) {
+        lowPowerMode.updateFromSystemRead(battery.isLowPowerMode)
+        let previousLowPower = lastBatteryLowPowerMode
+        let previousPowerSource = lastBatteryConnectedToPower
+        lastBatteryLowPowerMode = battery.isLowPowerMode
+        lastBatteryConnectedToPower = battery.isConnectedToPower
+        guard let previousLowPower, let previousPowerSource,
+              battery.isLowPowerMode != previousLowPower
+                || battery.isConnectedToPower != previousPowerSource
+        else { return }
+        refreshPowerModeControllers()
     }
 
     /// #246: Low Power Mode follows the existing low-battery threshold, but
@@ -1677,14 +1857,27 @@ final class SystemStatusStore: ObservableObject {
     }
 
     private func applyVPN(_ value: VPNStatus) {
-        // The monitor already drops repeats, and this guard keeps an unchanged
-        // value from sending `objectWillChange` to every VPN row observer.
-        if value != vpnStatus {
-            vpnStatus = value
+        // The monitor owns the interface/service reading; the Mihomo
+        // attribution is refreshed by its own controller, so a network tick
+        // must not erase the current attribution.
+        var next = value
+        next.mihomoTunnel = vpnStatus.mihomoTunnel
+        if next != vpnStatus {
+            vpnStatus = next
+        }
+    }
+
+    private func applyMihomoTunnel(_ info: MihomoTunnelInfo?) {
+        var next = vpnStatus
+        next.mihomoTunnel = info
+        if next != vpnStatus {
+            vpnStatus = next
         }
     }
 
     private func applyVolume(_ value: VolumeStatus) {
+        let current = value.outputDevices.first(where: \.isCurrent) ?? value.currentDevice
+        airPodsConversationCache.updateRoute(current.map { PanelAudioDeviceID(id: $0.id, uid: $0.uid) })
         // `liveVolume` drives the popover's volume section through
         // `objectWillChange`, and `publish` only dedupes the snapshot. Writing an
         // unchanged reading here re-rendered every volume observer on every
@@ -1712,20 +1905,36 @@ final class SystemStatusStore: ObservableObject {
         guard !pendingBrightnessScalars.isEmpty else { return value }
         let displayIDs = Set(value.displays.map(\.id))
         pendingBrightnessScalars = pendingBrightnessScalars.filter { displayIDs.contains($0.key) }
+        pendingBrightnessSequences = pendingBrightnessSequences.filter {
+            pendingBrightnessScalars[$0.key] != nil
+        }
         guard !pendingBrightnessScalars.isEmpty else { return value }
 
         var displays = value.displays
         for index in displays.indices {
             let display = displays[index]
             guard let pending = pendingBrightnessScalars[display.id] else { continue }
+            // A publication made after this write began is authoritative, even
+            // if the write's own confirmation was coalesced out of the stream.
+            // Only readings already queued before the target was set are kept
+            // from dragging the slider back.
+            if let sequence = display.readSequence,
+               let baseline = pendingBrightnessSequences[display.id],
+               sequence > baseline {
+                pendingBrightnessScalars.removeValue(forKey: display.id)
+                pendingBrightnessSequences.removeValue(forKey: display.id)
+                continue
+            }
             guard display.canAdjust, let incoming = display.scalar else {
                 // The backend reported the display as unreadable/unavailable:
                 // drop the optimistic value so the failure is visible.
                 pendingBrightnessScalars.removeValue(forKey: display.id)
+                pendingBrightnessSequences.removeValue(forKey: display.id)
                 continue
             }
             if abs(incoming - pending) <= 0.02 {
                 pendingBrightnessScalars.removeValue(forKey: display.id)
+                pendingBrightnessSequences.removeValue(forKey: display.id)
             } else {
                 displays[index] = display.replacingScalar(pending)
             }
@@ -1740,6 +1949,7 @@ final class SystemStatusStore: ObservableObject {
         guard !hasStopped, scalar.isFinite, !displayID.isEmpty else { return }
         let clamped = min(1, max(0, scalar))
         pendingBrightnessScalars[displayID] = clamped
+        pendingBrightnessSequences[displayID] = brightnessMonitor.latestUpdateSequence(forDisplayID: displayID)
         // Publish the target immediately so the panel follows the wheel/drag
         // instead of waiting for the DDC read-back.
         if let index = liveBrightness.displays.firstIndex(where: { $0.id == displayID }) {
@@ -1785,6 +1995,7 @@ final class SystemStatusStore: ObservableObject {
 
     private func publish(_ next: StatusSnapshot, immediately: Bool = false) {
         guard !hasStopped else { return }
+        reconcileWiFiPowerFailure(with: next.wifi)
         let changed = next != lastPublishedSnapshot
         if changed {
             lastPublishedSnapshot = next
@@ -1801,6 +2012,17 @@ final class SystemStatusStore: ObservableObject {
         popupPublishTask?.cancel()
         popupPublishTask = nil
         if popupSnapshot != next { applyPopupSnapshot(next) }
+    }
+
+    /// Clears a stale power-change failure once the snapshot reports the radio
+    /// state the last request asked for. The single snapshot-update entry point
+    /// runs this, so a system-side change or a later successful write clears the
+    /// message without waiting for another power action.
+    private func reconcileWiFiPowerFailure(with wifi: WiFiStatus) {
+        guard let requested = requestedWiFiPowerState, wifi.state != .unavailable else { return }
+        guard WiFiPowerControlVisibility.isRadioOn(state: wifi.state) == requested else { return }
+        requestedWiFiPowerState = nil
+        wifiPowerFailed = false
     }
 
     private func schedulePopupSnapshot(_ next: StatusSnapshot) {

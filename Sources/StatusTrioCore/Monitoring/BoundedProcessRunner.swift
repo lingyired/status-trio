@@ -203,11 +203,23 @@ final class BoundedProcessInvocation: @unchecked Sendable {
                     // still in each pipe before letting the invocation finish,
                     // on that stream's queue: draining them in sequence would
                     // reintroduce the deadlock the queues exist to prevent.
+                    //
+                    // Read `onFinish` here, on the state-machine queue. The
+                    // stream queues must never touch it: `finish` nils it from
+                    // this queue, and a read racing that write was undefined
+                    // behaviour in a path that also runs on the blocked path.
+                    let hasPendingWork = invocation.onFinish != nil
                     invocation.stdoutQueue.async { [invocation] in
-                        invocation.drainPipesAfterProcessExit(.stdout)
+                        invocation.drainPipesAfterProcessExit(
+                            .stdout,
+                            hasPendingWork: hasPendingWork
+                        )
                     }
                     invocation.stderrQueue.async { [invocation] in
-                        invocation.drainPipesAfterProcessExit(.stderr)
+                        invocation.drainPipesAfterProcessExit(
+                            .stderr,
+                            hasPendingWork: hasPendingWork
+                        )
                     }
                     invocation.completeIfReady()
                 }
@@ -281,7 +293,7 @@ final class BoundedProcessInvocation: @unchecked Sendable {
 
     /// Reads one stream to EOF after the child is gone. Called once per stream,
     /// each on that stream's own queue.
-    private func drainPipesAfterProcessExit(_ stream: Stream) {
+    private func drainPipesAfterProcessExit(_ stream: Stream, hasPendingWork: Bool) {
         // The pipe stays alive because this block holds `self` strongly (and
         // `self` holds the pipe); read its handle once and drain it locally
         // rather than reaching through a mutable property twice.
@@ -310,8 +322,6 @@ final class BoundedProcessInvocation: @unchecked Sendable {
             }
         }
     }
-
-    private var hasPendingWork: Bool { onFinish != nil }
 
     private func markIOStreamEnded(_ stream: Stream) {
         switch stream {

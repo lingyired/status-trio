@@ -497,6 +497,45 @@ Do not force discharge or invoke the old exploratory write executable. Capture
 intermediate selector results with an attached debugger during the manual
 button action if needed; automated tests must continue to use fake clients.
 
+## Optimized Battery Charging path (issue #292)
+
+When the user keeps the charge limit at 100% but turns on Optimized Battery
+Charging, macOS pauses at about 80–90% and still shows its own "Charge to Full
+Now". That state has **no sub-100% MCL limit**, so `temporarilyDisableMCL:` is
+the wrong call (our bridge refuses it: `mclEnabledRawValue == 0`,
+`mclLimit == 100`).
+
+Live read-only observation on macOS 27.2 (build 26B123), Apple silicon, at a
+paused 88%:
+
+| Reading | Value |
+| --- | --- |
+| `isMCLCurrentlyEnabled:` raw | `0` |
+| `getMCLLimitWithError:` | `100` |
+| `smartChargingUIState:...` | state `12`, uiLimit `80`, overrideAllowed `true` |
+| `isOBCEngaged:chargeLimit:chargingOverrideAllowed:withError:` | engaged `true`, limit `80`, overrideAllowed `true` |
+| `isSmartChargingCurrentlyEnabled:` | `1` |
+
+`ControlCenter` only references two charge writes: `temporarilyDisableMCL:` and
+`temporarilyEnableCharging:`. The native action therefore uses
+`temporarilyEnableCharging:` for this pause. A single authorized request on the
+same machine returned `YES`, disengaged OBC (`uiState` 12→3, uiLimit 100,
+overrideAllowed false) and charging began **about 60–70 seconds later** — so
+Status Trio must keep the action hidden until charging actually starts rather
+than firing a second request.
+
+Resulting bridge rule (`chargeToFullNow`):
+
+- active sub-100% limit → `temporarilyDisableMCL:` (existing flow, cancellable);
+- otherwise, only when `chargingOverrideAllowed` is true →
+  `temporarilyEnableCharging:` (no cancel row; hide until charging begins);
+- otherwise refuse, so no dead button is exposed.
+
+The display condition without an active limit is gated on
+`chargingOverrideAllowed`, which is exactly the overridable-pause signal; with
+an active limit the existing behaviour (show while charging toward the limit)
+is unchanged.
+
 ## Sources and provenance
 
 - Apple's [About Optimized Battery Charging and Charge Limit on Mac](https://support.apple.com/en-us/102338),
@@ -508,3 +547,40 @@ button action if needed; automated tests must continue to use fake clients.
 - The user's supplied `StatusTrio_ChargeToFullNow_Codex_Plan.md` provided
   candidate Apple API names. JuiceLeft's license was inspected to confirm
   its restricted terms; its implementation was not read or reused.
+
+## #280 macOS 27.2 visibility diagnosis
+
+`scripts/probe-charge-to-full-now.sh --inspect` is the read-only diagnostic
+path for a machine where the button is missing. It reports the OS build and
+architecture, PowerUI class/signature availability, `isMCLSupported`,
+`mclEnabledRaw`, `mclLimit`, `availableChargeLimits`, the smart-charging UI
+state, `chargingOverrideAllowed`, the battery reading, and a
+`newRequestVisibility` classification such as:
+
+- `available`
+- `hidden:no-battery`
+- `hidden:on-battery`
+- `hidden:battery-full`
+- `hidden:no-active-limit-or-override`
+- `unavailable:state-read-failed`
+- `unknown:battery-read-failed`
+
+The classification covers only a new request with the panel open and the
+capability present. A saved override/cancel session and the #231 summary
+visibility setting are resolved by `ChargeToFullNowController` and are outside
+the probe. The probe never writes a charge limit, never calls
+`temporarilyDisableMCL:`, and never claims a successful charge request.
+
+Measured on this Mac (macOS 27.2, build 26B123, arm64) on 2026-11-06:
+PowerUI loaded, all expected signatures matched, `isMCLSupported = true`, the
+battery was present/connected/charged at 100%, and the visibility was
+`hidden:battery-full`. A later read observed an active 80% limit; it too stays
+hidden at 100% because there is nothing left to charge. That is the existing
+product rule, not a 27.2 capability failure. Other 27 beta builds, Intel Macs,
+and the user's exact battery state at report time remain **NOT RUN**.
+
+The battery details row now renders the existing
+`battery.action.chargeToFullNowUnavailable` explanation for
+`ChargeToFullNowPresentation.unavailable` instead of reserving an empty action
+area. This makes an actually unsupported machine explain itself without
+changing the #231 summary/details visibility rules.

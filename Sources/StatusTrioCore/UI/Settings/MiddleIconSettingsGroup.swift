@@ -4,14 +4,20 @@ import SwiftUI
 struct MiddleIconSettingsGroup: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
+    /// Omitted on the dedicated "Middle Icon" page, where the page title already
+    /// names the section; kept when the group sits among the other icon groups.
+    var showsGroupTitle: Bool = true
     @EnvironmentObject private var localization: Localization
     @State private var showsNetworkIconOptions = false
 
     var body: some View {
-        SettingsGroup(localization.string(.settingsMiddleIconTitle)) {
+        SettingsGroup(showsGroupTitle ? localization.string(.settingsMiddleIconTitle) : nil) {
             sourcePicker
 
-            SettingsDivider()
+            // This divider follows the full-width picker (no leading icon
+            // column), so align it with the picker's content edge instead of the
+            // icon-row inset that would leave a gap on the left.
+            SettingsDivider(inset: SettingsMetrics.rowPaddingH)
             middleIconSizeRow
 
             if store.connectionCenterSource == .network {
@@ -23,6 +29,11 @@ struct MiddleIconSettingsGroup: View {
                 SettingsDivider()
                 MiddleBluetoothIconOptions(store: store, statusStore: statusStore,
                                            bluetoothDevices: statusStore.bluetoothDevices)
+            }
+
+            if store.connectionCenterSource == .inputSource {
+                SettingsDivider()
+                inputSourceMarkerRow
             }
 
             if store.connectionCenterSource != .network {
@@ -51,7 +62,7 @@ struct MiddleIconSettingsGroup: View {
                 Slider(
                     value: Binding(
                         get: { store.wifiSymbolScale },
-                        set: { store.wifiSymbolScale = (round($0 * 20) / 20) }
+                        set: { store.setWiFiSymbolScaleFromSlider(round($0 * 20) / 20) }
                     ),
                     in: SettingsStore.wifiSymbolScaleRange
                 )
@@ -123,13 +134,6 @@ struct MiddleIconSettingsGroup: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if store.connectionCenterSource == .chargingStatus {
-                Text(localization.string(.settingsMiddleIconChargingStatusDescription))
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
             HStack(alignment: .top, spacing: 8) {
                 ForEach(ConnectionCenterSource.allCases) { source in
                     let selected = store.connectionCenterSource == source
@@ -162,6 +166,23 @@ struct MiddleIconSettingsGroup: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(localization.string(.settingsMiddleIconSource))
+
+            if store.connectionCenterSource == .chargingStatus {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Image(systemName: "exclamationmark.circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+
+                    Text(localization.string(.settingsMiddleIconChargingStatusDescription))
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .padding(.horizontal, SettingsMetrics.rowPaddingH)
         .padding(.vertical, SettingsMetrics.rowPaddingV)
@@ -178,6 +199,34 @@ struct MiddleIconSettingsGroup: View {
         case .chargingStatus: .settingsMiddleIconChargingStatus
         }
         return localization.string(key)
+    }
+
+    /// How Apple's two Pinyin input sources draw their middle marker. Defaults
+    /// to the system image (pre-#297); 简/繁 and 中 are opt-in.
+    private var inputSourceMarkerRow: some View {
+        SettingsRow(
+            "keyboard",
+            tint: .blue,
+            title: localization.string(.settingsInputSourceMarker),
+            subtitle: localization.string(.settingsInputSourceMarkerDescription)
+        ) {
+            Picker(
+                localization.string(.settingsInputSourceMarker),
+                selection: Binding(
+                    get: { store.inputSourceMarkerStyle },
+                    set: { store.inputSourceMarkerStyle = $0 }
+                )
+            ) {
+                ForEach(InputSourceMarkerStyle.allCases) { style in
+                    Text(localization.string(style.titleKey)).tag(style)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .settingsMenuPickerWidth()
+            .accessibilityLabel(localization.string(.settingsInputSourceMarker))
+            .accessibilityIdentifier("appIcon.inputSourceMarker")
+        }
     }
 }
 
@@ -196,6 +245,8 @@ private struct MiddleBluetoothIconOptions: View {
                 SettingsDivider()
             }
             networkIconSourceRow
+            SettingsDivider()
+            BluetoothIconColorRow(store: store)
             if selectedOption.source == .audioDevices {
                 SettingsDivider()
                 bluetoothAudioIconChoiceRow

@@ -139,26 +139,32 @@ final class SystemVPNServiceReader: @unchecked Sendable, VPNServiceReadingProvid
                 return nil
             }
             let name = (SCNetworkServiceGetName(service) as String?) ?? ""
-            guard !name.isEmpty else { return nil }
+            guard !name.isEmpty,
+                  let serviceID = SCNetworkServiceGetServiceID(service) else {
+                return nil
+            }
             return VPNServiceReading(
+                serviceID: serviceID as String,
                 name: name,
-                isConnected: Self.isConnected(service: service)
+                state: Self.connectionState(serviceID: serviceID),
+                isEnabled: SCNetworkServiceGetEnabled(service)
             )
         }
     }
 
-    private static func isConnected(service: SCNetworkService) -> Bool {
-        guard let serviceID = SCNetworkServiceGetServiceID(service),
-              let connection = SCNetworkConnectionCreateWithServiceID(
-                  nil,
-                  serviceID,
-                  nil,
-                  nil
-              ) else {
-            return false
+    private static func connectionState(serviceID: CFString) -> VPNConnectionState {
+        guard let connection = SCNetworkConnectionCreateWithServiceID(
+            nil, serviceID, nil, nil
+        ) else {
+            return .invalid
         }
-        return SCNetworkConnectionGetStatus(connection).rawValue
-            == SCNetworkConnectionStatus.connected.rawValue
+        switch SCNetworkConnectionGetStatus(connection).rawValue {
+        case SCNetworkConnectionStatus.connected.rawValue: return .connected
+        case SCNetworkConnectionStatus.connecting.rawValue: return .connecting
+        case SCNetworkConnectionStatus.disconnecting.rawValue: return .disconnecting
+        case SCNetworkConnectionStatus.disconnected.rawValue: return .disconnected
+        default: return .invalid
+        }
     }
 }
 

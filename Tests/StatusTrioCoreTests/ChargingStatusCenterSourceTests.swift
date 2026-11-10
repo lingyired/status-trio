@@ -5,11 +5,13 @@ import Testing
 @testable import StatusTrioCore
 
 /// #253: the "charging status inside the ring" middle-icon source draws the
-/// battery/charging status in the centre slot and closes the ring, so the same
-/// value is never drawn twice. These tests lock the raster consequences the
-/// mapper alone cannot: the vector charge glyphs must land on the ring centre,
-/// the closed ring must really lose its top gap, and the Dock's static/effect
-/// split must stay on the same scene.
+/// battery/charging status in the centre slot. While on battery the level
+/// percentage sits in the centre and the ring closes (drawn once); while
+/// charging / on power the centre shows the bolt or plug and the top gap keeps
+/// the level percentage visible, so the number is never lost. These tests lock
+/// the raster consequences the mapper alone cannot: the vector charge glyphs
+/// must land on the ring centre, the ring's top gap must open or close by state,
+/// and the Dock's static/effect split must stay on the same scene.
 @MainActor
 struct ChargingStatusCenterSourceTests {
     private let size: CGFloat = 120
@@ -151,28 +153,31 @@ struct ChargingStatusCenterSourceTests {
 
     // MARK: - Ring closure
 
-    @Test func chargingStatusClosesTheTopGapAndTheDefaultKeepsIt() throws {
+    @Test func chargingStatusKeepsTheTopGapOpenWhileChargingAndClosesItOnBattery() throws {
         let charging = battery(76, charging: true, charged: false, connected: true)
-        let closed = try pixels(scene(snapshot(charging)), regions: .ringTrack)
-        let open = try pixels(
-            scene(snapshot(charging), source: .network),
-            regions: .ringTrack
-        )
-        // The historical indicator gap is 50 units wide, so its centre is empty;
-        // a closed ring draws the track straight across the top.
+        let onBattery = battery(76, charging: false, charged: false, connected: false)
+        // While charging the centre shows the bolt, so the top gap stays open for
+        // the level percentage. On battery the centre carries the percentage, so
+        // the ring closes and the same number is not drawn twice.
+        let open = try pixels(scene(snapshot(charging)), regions: .ringTrack)
+        let closed = try pixels(scene(snapshot(onBattery)), regions: .ringTrack)
         let topPoint = CGPoint(x: ringCentre.x, y: 10)
-        #expect(closed.alpha(atSVGPoint: topPoint, size: size, scale: scale) > 0)
         #expect(open.alpha(atSVGPoint: topPoint, size: size, scale: scale) == 0)
+        #expect(closed.alpha(atSVGPoint: topPoint, size: size, scale: scale) > 0)
     }
 
-    @Test func chargingStatusDrawsNoTopGapAccessory() throws {
+    @Test func chargingStatusDrawsThePercentageInTheTopGapWhileCharging() throws {
         let scene = scene(snapshot(battery(76, charging: true, charged: false, connected: true)))
-        // The bolt must live in the centre slot only: the ring's own accessory
-        // (which draws in the top gap) stays nil.
-        #expect(scene.outerRing?.accessory == nil)
-        // Rendering only the accessory region paints nothing.
+        // The bolt lives in the centre slot, so the top gap carries the level
+        // percentage instead of a second indicator.
+        guard case let .text(text)? = scene.outerRing?.accessory else {
+            Issue.record("expected the level percentage in the top gap")
+            return
+        }
+        #expect(text.text == "76")
+        // Rendering only the accessory region paints the percentage.
         let accessoryPixels = try pixels(scene, regions: .ringAccessory)
-        #expect(inkBounds(accessoryPixels) == nil)
+        #expect(inkBounds(accessoryPixels) != nil)
     }
 
     // MARK: - Dock split parity
@@ -220,7 +225,14 @@ struct ChargingStatusCenterSourceTests {
     // MARK: - Static fingerprint
 
     @Test func centredChargingStaticFingerprint() throws {
-        let scene = scene(snapshot(battery(76, charging: true, charged: false, connected: true)))
+        // Percentage numerals use the system font, which varies with the display's
+        // type metrics; the fingerprint pins the vector-only baseline instead, so
+        // it renders with `showsPercentage` off (the ring closes and only the
+        // vector bolt, ring and footer are drawn).
+        let scene = scene(
+            snapshot(battery(76, charging: true, charged: false, connected: true)),
+            batteryOptions: BatteryIconOptions(showsPercentage: false)
+        )
         let rendered = try pixels(scene)
         let fingerprint = SHA256.hash(data: Data(rendered.bytes))
             .map { String(format: "%02x", $0) }

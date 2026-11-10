@@ -160,6 +160,7 @@ enum IconGuideState: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .bluetoothHeadphones, .bluetoothAirPods, .wifiVolumeTint:
             return BluetoothAudioIconOptions(
+                iconColor: configured.iconColor,
                 usesVolumeColor: true,
                 symbolScale: configured.symbolScale,
                 networkIconSymbolOverride: configured.networkIconSymbolOverride,

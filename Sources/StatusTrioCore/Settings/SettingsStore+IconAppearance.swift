@@ -46,52 +46,55 @@ extension SettingsStore {
     }
 
     private var batteryInputsPublisher: AnyPublisher<BatteryAppearanceInputs, Never> {
-        Publishers.CombineLatest4(
-            $showsBatteryPercentage,
-            $showsChargingIndicator,
+        let states = Publishers.CombineLatest4(
+            $batteryOnBatteryMarker,
+            $batteryChargingMarker,
+            $batteryConnectedMarker,
+            $batteryNoBatteryMarker
+        )
+        let appearance = Publishers.CombineLatest4(
             $usesBatteryStatusColors,
-            $batteryCriticalThreshold
+            $batteryCriticalThreshold,
+            $batterySymbolScale,
+            $showsChargingBoltHeartbeat
         )
-        .combineLatest(
-            Publishers.CombineLatest4(
-                $batteryConnectedIndicator,
-                $batterySymbolScale,
-                $showsChargingBoltHeartbeat,
-                $showsMenuBarChargingEffect
-            )
+        let effects = Publishers.CombineLatest3(
+            $showsMenuBarChargingEffect,
+            $showsDockChargingEffect,
+            $batterySplitGapProgress
         )
-        .combineLatest($showsDockChargingEffect)
-        .combineLatest($batterySplitGapProgress)
-        .map { values, splitGapProgress -> BatteryAppearanceInputs in
-            let primaryInputs = values.0.0
-            let additionalInputs = values.0.1
-            let showsDockChargingEffect = values.1
-            return BatteryAppearanceInputs(
-                showsPercentage: primaryInputs.0,
-                showsChargingIndicator: primaryInputs.1,
-                usesStatusColors: primaryInputs.2,
-                criticalThreshold: primaryInputs.3,
-                connectedIndicator: additionalInputs.0,
-                symbolScale: additionalInputs.1,
-                showsChargingEffect:
-                    additionalInputs.3 || showsDockChargingEffect,
-                showsChargingBoltHeartbeat: additionalInputs.2,
-                splitGapProgress: splitGapProgress,
-                fullThreshold: Self.defaultBatteryFullThreshold,
-                batteryStatusColors: .standard
-            )
-        }
-        .combineLatest($batteryFullThreshold) { inputs, fullThreshold in
-            var updated = inputs
-            updated.fullThreshold = fullThreshold
-            return updated
-        }
-        .combineLatest($batteryStatusColors) { inputs, colors in
-            var updated = inputs
-            updated.batteryStatusColors = colors
-            return updated
-        }
-        .eraseToAnyPublisher()
+        return states
+            .combineLatest(appearance)
+            .combineLatest(effects)
+            .map { pair, effects -> BatteryAppearanceInputs in
+                let state = pair.0
+                let appearanceInputs = pair.1
+                return BatteryAppearanceInputs(
+                    onBatteryMarker: state.0,
+                    chargingMarker: state.1,
+                    connectedMarker: state.2,
+                    noBatteryMarker: state.3,
+                    usesStatusColors: appearanceInputs.0,
+                    criticalThreshold: appearanceInputs.1,
+                    symbolScale: appearanceInputs.2,
+                    showsChargingEffect: effects.0 || effects.1,
+                    showsChargingBoltHeartbeat: appearanceInputs.3,
+                    splitGapProgress: effects.2,
+                    fullThreshold: Self.defaultBatteryFullThreshold,
+                    batteryStatusColors: .standard
+                )
+            }
+            .combineLatest($batteryFullThreshold) { inputs, fullThreshold in
+                var updated = inputs
+                updated.fullThreshold = fullThreshold
+                return updated
+            }
+            .combineLatest($batteryStatusColors) { inputs, colors in
+                var updated = inputs
+                updated.batteryStatusColors = colors
+                return updated
+            }
+            .eraseToAnyPublisher()
     }
 
     private var connectionOptionsPublisher: AnyPublisher<ConnectionIconOptions, Never> {
@@ -120,14 +123,16 @@ extension SettingsStore {
     }
 
     private var bluetoothOptionsPublisher: AnyPublisher<BluetoothAudioIconOptions, Never> {
-        Publishers.CombineLatest(
+        Publishers.CombineLatest3(
+            $bluetoothIconColor,
             $usesBluetoothAudioVolumeColor,
             $bluetoothNetworkIconSymbolName
         )
         .combineLatest($bluetoothAudioIconChoiceRawValue) { values, choiceRawValue in
             BluetoothAudioIconOptions(
-                usesVolumeColor: values.0,
-                networkIconSymbolOverride: values.1,
+                iconColor: values.0,
+                usesVolumeColor: values.1,
+                networkIconSymbolOverride: values.2,
                 iconChoice: BluetoothAudioIconChoice.persisted(choiceRawValue) { symbol in
                     NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
                 }
@@ -141,11 +146,12 @@ extension SettingsStore {
 /// The battery settings that are not shared with another option group, carried
 /// with names so the `CombineLatest` chain never destructures nested tuples.
 private struct BatteryAppearanceInputs {
-    var showsPercentage: Bool
-    var showsChargingIndicator: Bool
+    var onBatteryMarker: BatteryTopMarker
+    var chargingMarker: BatteryTopMarker
+    var connectedMarker: BatteryTopMarker
+    var noBatteryMarker: BatteryTopMarker
     var usesStatusColors: Bool
     var criticalThreshold: Double
-    var connectedIndicator: BatteryConnectedIndicator
     var symbolScale: Double
     var showsChargingEffect: Bool
     var showsChargingBoltHeartbeat: Bool
@@ -155,18 +161,19 @@ private struct BatteryAppearanceInputs {
 
     func options(ringStrokeScale: Double) -> BatteryIconOptions {
         BatteryIconOptions(
-            showsPercentage: showsPercentage,
-            showsChargingIndicator: showsChargingIndicator,
             showsChargingEffect: showsChargingEffect,
             showsChargingBoltHeartbeat: showsChargingBoltHeartbeat,
             splitGapProgress: splitGapProgress,
             usesStatusColors: usesStatusColors,
             criticalThreshold: Int(criticalThreshold.rounded()),
-            connectedIndicator: connectedIndicator,
             fullThreshold: Int(fullThreshold.rounded()),
             textScale: symbolScale * BatteryIconOptions.defaultTextScale,
             ringStrokeScale: ringStrokeScale,
-            batteryStatusColors: batteryStatusColors
+            batteryStatusColors: batteryStatusColors,
+            onBatteryMarker: onBatteryMarker,
+            chargingMarker: chargingMarker,
+            connectedMarker: connectedMarker,
+            noBatteryMarker: noBatteryMarker
         )
     }
 }
@@ -190,6 +197,7 @@ private struct IconAppearanceGroups {
             wifiScale: centerScale
         )
         let scaledBluetooth = BluetoothAudioIconOptions(
+            iconColor: bluetooth.iconColor,
             usesVolumeColor: bluetooth.usesVolumeColor,
             symbolScale: centerScale,
             networkIconSymbolOverride: bluetooth.networkIconSymbolOverride,
