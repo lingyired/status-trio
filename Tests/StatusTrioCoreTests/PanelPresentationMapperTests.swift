@@ -315,7 +315,7 @@ final class PanelPresentationMapperTests: XCTestCase {
             PanelPresentationMapper.battery(
                 connectedNotYetCharging,
                 localization: localization,
-                chargeToFullNow: .limitRestored(limit: 95)
+                chargeToFullNow: .available
             ).subtitle,
             localization.string(.batteryStateConnectedToPower)
         )

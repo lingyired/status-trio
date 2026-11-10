@@ -685,7 +685,7 @@
 "battery.energy.monitoringDescription" = "Если включено, активность приложений измеряется в фоне даже при закрытой панели. Сбор приостанавливается при отключении, во время сна системы или экрана и при выходе из Status Trio.";
 "settings.battery.showChargeToFullNow" = "Показывать кнопку «Зарядить полностью сейчас»";
 "settings.battery.showChargeToFullNowDescription" = "Показывает в панели состояния кнопку, которая временно снимает ограничение зарядки macOS или паузу оптимизированной зарядки аккумулятора и заряжает до 100 %.";
-"settings.battery.chargeToFullNowOptimizedNote" = "Если предел установлен на 100 %, а оптимизированная зарядка аккумулятора приостановила зарядку, «Зарядить полностью сейчас» возобновит её без кнопки отмены и без применения указанного ниже предела восстановления.";
+"settings.battery.chargeToFullNowOptimizedNote" = "Эта кнопка соответствует действию «Зарядить полностью сейчас» в меню аккумулятора macOS.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Кнопка скрыта: Требуется macOS 26.4 или новее";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Кнопка скрыта: Требуется Mac с чипом Apple";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Кнопка скрыта: Системный фреймворк зарядки недоступен";
@@ -698,7 +698,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "Кнопка скрыта: Не удалось прочитать состояние зарядки системы. Откройте эту страницу позже";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "Кнопка скрыта: Оптимизированный аккумулятором предел зарядки — 100%, эта кнопка не нужна";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Кнопка скрыта: Системный предел зарядки сейчас нельзя временно отменить";
-"settings.battery.chargeHidden.restoredLimit" = "Кнопка скрыта: Восстановление предела %d%%; ожидание стабилизации зарядки";
 "settings.battery.chargeHidden.controllerUnavailable" = "Кнопка скрыта: Управление зарядкой временно недоступно";
 "settings.battery.restoreLimit" = "Предел после отмены";
 "settings.battery.restoreLimitDescription" = "Предел зарядки, восстанавливаемый при отмене «Зарядить полностью сейчас».";

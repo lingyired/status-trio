@@ -685,7 +685,7 @@
 "battery.energy.monitoringDescription" = "Quando ativado, amostra a atividade dos apps em segundo plano mesmo com o painel fechado. A amostragem pausa ao desativar, durante a suspensão do sistema ou da tela e ao encerrar o Status Trio.";
 "settings.battery.showChargeToFullNow" = "Mostrar botão Carregar Completamente Agora";
 "settings.battery.showChargeToFullNowDescription" = "Mostra um botão no painel de status para ignorar temporariamente o limite de carga do macOS ou uma pausa do Carregamento Otimizado da Bateria e carregar até 100%.";
-"settings.battery.chargeToFullNowOptimizedNote" = "Se o limite for 100% e o Carregamento Otimizado da Bateria pausar a carga, Carregar Completamente Agora retoma a carga sem mostrar Cancelar nem aplicar o limite de restauração abaixo.";
+"settings.battery.chargeToFullNowOptimizedNote" = "Este botão corresponde à ação “Carregar Completamente Agora” do menu de bateria do macOS.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Botão oculto: Requer macOS 26.4 ou posterior";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Botão oculto: Requer um Mac com Apple Silicon";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Botão oculto: Framework de carga do sistema indisponível";
@@ -698,7 +698,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "Botão oculto: Não foi possível ler o estado de carga do sistema. Reabra esta página mais tarde";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "Botão oculto: O limite de carga otimizado pela bateria é 100%, então este botão não é necessário";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Botão oculto: O limite de carga do sistema não pode ser ignorado agora";
-"settings.battery.chargeHidden.restoredLimit" = "Botão oculto: Restaurando o limite de %d%%; aguardando a carga estabilizar";
 "settings.battery.chargeHidden.controllerUnavailable" = "Botão oculto: Controle de carga temporariamente indisponível";
 "settings.battery.restoreLimit" = "Limite restaurado após cancelar";
 "settings.battery.restoreLimitDescription" = "Limite de carga restaurado quando você cancela “Carregar Completamente Agora”.";

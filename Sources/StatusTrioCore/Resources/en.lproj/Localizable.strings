@@ -684,7 +684,7 @@
 "battery.energy.monitoringDescription" = "When enabled, samples app activity in the background even while the panel is closed. Sampling pauses during sleep, when disabled, or when Status Trio quits.";
 "settings.battery.showChargeToFullNow" = "Show Charge to Full Now Button";
 "settings.battery.showChargeToFullNowDescription" = "Show a button in the status panel to temporarily override the macOS charge limit or an Optimized Battery Charging pause and charge to 100%.";
-"settings.battery.chargeToFullNowOptimizedNote" = "When the charge limit is 100% and Optimized Battery Charging pauses charging, Charge to Full Now resumes charging without a Cancel button or applying the restore limit below.";
+"settings.battery.chargeToFullNowOptimizedNote" = "This button matches the “Charge to Full Now” action built into the macOS battery menu.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Button hidden: Requires macOS 26.4 or later";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Button hidden: Requires a Mac with Apple silicon";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Button hidden: System charging framework unavailable";
@@ -697,7 +697,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "Button hidden: Couldn’t read system charging state. Reopen this page later";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "Button hidden: The battery-optimized charge limit is 100%, so this button isn't needed";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Button hidden: System charge limit cannot currently be overridden";
-"settings.battery.chargeHidden.restoredLimit" = "Button hidden: Restoring the %d%% limit; waiting for charging to settle";
 "settings.battery.chargeHidden.controllerUnavailable" = "Button hidden: Charging control is temporarily unavailable";
 "settings.battery.restoreLimit" = "Restore Limit After Cancelling";
 "settings.battery.restoreLimitDescription" = "The charge limit to restore when you cancel Charge to Full Now.";

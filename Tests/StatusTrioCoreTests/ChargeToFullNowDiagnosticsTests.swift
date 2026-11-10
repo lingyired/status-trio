@@ -127,7 +127,7 @@ final class ChargeToFullNowDiagnosticsTests: XCTestCase {
         for _ in 0..<20 { await Task.yield() }
     }
 
-    func testRestoredWaitingUsesCurrentBatteryAndBackendState() async {
+    func testRestoreReturnsStraightToTheActionWithoutHiddenReason() async {
         let backend = DiagnosticsStubChargeController(deviceState: .temporaryOverride)
         backend.restoreState = state(raw: 1, limit: 90)
         let store = VolatileChargeToFullNowSessionStore(
@@ -148,25 +148,17 @@ final class ChargeToFullNowDiagnosticsTests: XCTestCase {
         )
         controller.performPrimaryAction()
         for _ in 0..<100 {
-            if controller.presentation == .limitRestored(limit: 90) { break }
+            if controller.presentation == .available { break }
             await Task.yield()
         }
-        XCTAssertEqual(controller.presentation, .limitRestored(limit: 90))
+        // The restore-limit feature is off: after a verified restore the action
+        // follows the live state again, so Settings has nothing to explain.
+        XCTAssertEqual(controller.presentation, .available)
         XCTAssertEqual(
             controller.hiddenReasons(battery: battery(), batterySectionVisible: true),
-            [.restoredLimit(90)]
-        )
-
-        // At the restored limit there is nothing left to wait for, so the
-        // explanatory reason disappears even though the presentation is
-        // still showing the restored state until the next update.
-        XCTAssertEqual(
-            controller.hiddenReasons(
-                battery: battery(percentage: 90),
-                batterySectionVisible: true
-            ),
             []
         )
+
         backend.deviceState = .unavailable
         XCTAssertEqual(
             controller.hiddenReasons(battery: battery(), batterySectionVisible: true),

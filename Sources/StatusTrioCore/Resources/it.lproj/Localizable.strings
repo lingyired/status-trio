@@ -685,7 +685,7 @@
 "battery.energy.monitoringDescription" = "Se attivato, campiona l’attività delle app in background anche a pannello chiuso. Il campionamento si interrompe quando lo disattivi, durante la sospensione del sistema o dello schermo e all’uscita da Status Trio.";
 "settings.battery.showChargeToFullNow" = "Mostra pulsante Completa carica ora";
 "settings.battery.showChargeToFullNowDescription" = "Mostra nel pannello di stato un pulsante per ignorare temporaneamente il limite di carica di macOS o una pausa della ricarica ottimizzata della batteria e caricare fino al 100%.";
-"settings.battery.chargeToFullNowOptimizedNote" = "Se il limite è al 100% e la ricarica ottimizzata della batteria sospende la carica, Completa carica ora la riprende senza mostrare Annulla né applicare il limite di ripristino qui sotto.";
+"settings.battery.chargeToFullNowOptimizedNote" = "Questo pulsante corrisponde all’azione «Completa carica ora» del menu batteria di macOS.";
 "settings.battery.chargeHidden.unsupportedSystem" = "Pulsante nascosto: Richiede macOS 26.4 o successivo";
 "settings.battery.chargeHidden.unsupportedArchitecture" = "Pulsante nascosto: Richiede un Mac con chip Apple";
 "settings.battery.chargeHidden.frameworkUnavailable" = "Pulsante nascosto: Framework di ricarica del sistema non disponibile";
@@ -698,7 +698,6 @@
 "settings.battery.chargeHidden.stateReadFailed" = "Pulsante nascosto: Impossibile leggere lo stato di carica del sistema. Riapri questa pagina più tardi";
 "settings.battery.chargeHidden.noActiveChargeLimit" = "Pulsante nascosto: Il limite di carica ottimizzato per la batteria è 100%, questo pulsante non serve";
 "settings.battery.chargeHidden.unrecognizedChargeLimitState" = "Pulsante nascosto: Il limite di carica del sistema non può essere ignorato ora";
-"settings.battery.chargeHidden.restoredLimit" = "Pulsante nascosto: Ripristino del limite al %d%%; in attesa che la carica si stabilizzi";
 "settings.battery.chargeHidden.controllerUnavailable" = "Pulsante nascosto: Controllo della carica temporaneamente non disponibile";
 "settings.battery.restoreLimit" = "Limite ripristinato dopo l’annullamento";
 "settings.battery.restoreLimitDescription" = "Limite di carica ripristinato quando annulli «Completa carica ora».";

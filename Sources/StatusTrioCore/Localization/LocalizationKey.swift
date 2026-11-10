@@ -446,7 +446,6 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBatteryChargeHiddenStateReadFailed = "settings.battery.chargeHidden.stateReadFailed"
     case settingsBatteryChargeHiddenNoActiveChargeLimit = "settings.battery.chargeHidden.noActiveChargeLimit"
     case settingsBatteryChargeHiddenUnrecognizedChargeLimitState = "settings.battery.chargeHidden.unrecognizedChargeLimitState"
-    case settingsBatteryChargeHiddenRestoredLimit = "settings.battery.chargeHidden.restoredLimit"
     case settingsBatteryChargeHiddenControllerUnavailable = "settings.battery.chargeHidden.controllerUnavailable"
     case settingsBatteryRestoreLimit = "settings.battery.restoreLimit"
     case settingsBatteryRestoreLimitDescription = "settings.battery.restoreLimitDescription"
