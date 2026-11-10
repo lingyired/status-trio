@@ -166,3 +166,11 @@
   - 验证：Icon 300/43 suites、Preview 72、Settings 38、Dock 167 全绿。
 - **测试状态变化**：`AirPodsRingGeometryTests` 已恢复并通过；`IconPreviewInputBuilderTests` 因 wifi 信号样例与 main 快照模型不符继续隔离（Phase 4 处理）。其余禁用清单见 §9。
 - **待办**：V1 的 `automaticLegacy` 行为需与 main 的 legacy runtime 语义对齐（`IconSlotResolverTests`/`IconLegacyCompatibilityTests`/`IconPaletteResolverTests` 仍隔离）；`StatusIconCenterTextAlignmentTests` 仍待尺寸策略对齐；随后 Phase 5 渲染器与 Phase 6 设置页。
+
+## 11. Phase 5 渲染器差异（2026-11-10 续）
+
+- 发现：`StatusIconRenderer` 在分支与 main 上是两套实现（分支版净多约 786 行），差异不是简单补丁。main 版已包含 #253 充电符号居中，并新增 `BatteryStatusColorPalette`/`BluetoothIconColorResolver`/`StatusIconPreviewCache` 等。
+- 决策：当前集成分支**使用 main 渲染器**（生产实现、含 #253）作为基线；V1 Resolver 产出的 `IconSceneState` 直接由它渲染。分支渲染器的独有能力（normalized sizing、inactive 轨道色、自定义 alpha 充电效果等）作为 Phase 5 的移植项，需逐项并入 main 渲染器。
+- 因渲染器差异隔离的测试：`IconPaletteResolverTests`（inactive/custom alpha）、`StatusIconCenterTextAlignmentTests`（分支渲染器居中）、`AirPodsRingGeometryTests`（分支几何）；另 `IconLegacyCompatibilityTests`/`IconSlotResolverTests` 属 legacy 语义待 Phase 4 收尾。
+- 已修：`NetworkIconPlugin` 构造 legacy `ConnectionIconOptions` 时强制 `centerSource: .network`，保证全局网络故障覆盖在 `automaticLegacy` 场景下也能正确取到网络图标。
+- 验证：Icon 300/43 suites、Preview 72、Settings 38、Dock 167 全绿。
