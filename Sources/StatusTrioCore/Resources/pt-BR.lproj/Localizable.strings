@@ -221,16 +221,13 @@
 "settings.battery.symbolScaleDescription" = "A porcentagem e o raio usam o mesmo tamanho.";
 "settings.battery.statusColors" = "Colorir o arco conforme o estado da bateria";
 "settings.battery.statusColorsDescription" = "Por padrão: energia em verde, Pouca Energia em amarelo e bateria fraca em vermelho. Altere abaixo. Ao desativar, as cores personalizadas salvas não são aplicadas.";
+"settings.battery.monochromeCharging" = "Preto e branco ao carregar ou na tomada";
+"settings.battery.monochromeChargingDescription" = "Desenha o anel em preto e branco ao carregar ou na tomada. Os modos de baixo consumo e alto desempenho mantêm as próprias cores. Um Mac sem bateria ativa isso por padrão.";
 
-"settings.battery.monochromeArc" = "Arco de bateria monocromático";
-"settings.battery.monochromeArcDescription" = "Desenha o arco da bateria apenas em preto ou branco, sem as cores de estado de carga, bateria fraca ou bateria alta. O marcador superior, o ícone central e o indicador inferior seguem as próprias configurações.";
-"settings.battery.monochromeArcApply" = "Aplicar";
-"settings.battery.monochromeArcApplied" = "Aplicado";
-"settings.battery.monochromeArcCancel" = "Cancelar";
 "settings.battery.developerPreview" = "Pré-visualização de desenvolvedor";
 "settings.battery.simulateNoBattery" = "Simular sem bateria";
 "settings.battery.simulateNoBatteryDescription" = "Mostra esta página como ela fica em um Mac sem bateria. Somente builds de desenvolvimento.";
-"settings.battery.noBatteryHiddenOptions" = "Este Mac não tem bateria: a porcentagem e o indicador de carga não se aplicam, mas a cor do anel segue a alimentação, o modo de baixo consumo e o modo de alto desempenho.";
+"settings.battery.noBatteryHiddenOptions" = "Este Mac não tem bateria: a porcentagem e o indicador de carga não se aplicam. O anel é preto e branco por padrão; desative acima para usar a cor da alimentação. Os modos de baixo consumo e alto desempenho mantêm as cores.";
 "settings.battery.colors.charging" = "Carregamento / energia conectada";
 "settings.battery.colors.lowPower" = "Modo de Pouca Energia";
 "settings.battery.colors.critical" = "Bateria muito fraca";

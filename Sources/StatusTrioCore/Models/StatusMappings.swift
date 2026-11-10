@@ -56,13 +56,19 @@ enum StatusMappings {
         /// A battery-less Mac is always on AC power, so its decorative ring still
         /// reflects the "connected to power" colour (#309). Charging and
         /// Low/High Power Mode keep their usual precedence.
-        treatAsConnected: Bool = false
+        treatAsConnected: Bool = false,
+        /// When on, the charging / connected-to-power state draws in the plain
+        /// foreground colour instead of the charging colour (#309). Low, High
+        /// Power Mode and critical keep their own colours.
+        monochromeCharging: Bool = false
     ) -> BatteryColorRole {
         let threshold = min(100, max(0, criticalThreshold))
         if battery.percentage < threshold { return .critical }
         if battery.isLowPowerMode { return .lowPower }
         if isHighPowerMode { return .highPower }
-        if battery.isCharging || battery.isConnectedToPower || treatAsConnected { return .charging }
+        if battery.isCharging || battery.isConnectedToPower || treatAsConnected {
+            return monochromeCharging ? .foreground : .charging
+        }
         return .foreground
     }
 

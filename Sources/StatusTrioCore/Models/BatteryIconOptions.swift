@@ -32,6 +32,9 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
     /// The user's per-role colour overrides. `.standard` selects the system
     /// semantic colours (the #188 baseline, which itself changed those colours).
     let batteryStatusColors: BatteryStatusColors
+    /// nil = automatic: black/white on a battery-less Mac, the connected colour
+    /// when a battery is present (#309).
+    let monochromeCharging: Bool?
 
     static let defaultTextScale = 1.8
     /// Kept in step with the stroke-style default so tuning the enum cannot
@@ -77,7 +80,8 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         onBatteryMarker: BatteryTopMarker? = nil,
         chargingMarker: BatteryTopMarker? = nil,
         connectedMarker: BatteryTopMarker? = nil,
-        noBatteryMarker: BatteryTopMarker? = nil
+        noBatteryMarker: BatteryTopMarker? = nil,
+        monochromeCharging: Bool? = nil
     ) {
         let legacyOnBattery: BatteryTopMarker = showsPercentage ? .percentage : .hidden
         self.onBatteryMarker = onBatteryMarker ?? legacyOnBattery
@@ -100,6 +104,7 @@ struct BatteryIconOptions: Equatable, Hashable, Sendable {
         self.textScale = textScale.isFinite ? min(3, max(1, textScale)) : Self.defaultTextScale
         self.ringStrokeScale = ringStrokeScale.isFinite ? min(2.5, max(0.5, ringStrokeScale)) : Self.defaultRingStrokeScale
         self.batteryStatusColors = batteryStatusColors
+        self.monochromeCharging = monochromeCharging
     }
 
     private static func legacyMarker(

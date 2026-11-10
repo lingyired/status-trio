@@ -221,16 +221,13 @@
 "settings.battery.symbolScaleDescription" = "Le pourcentage et l’éclair utilisent la même taille.";
 "settings.battery.statusColors" = "Colorer l’arc selon l’état de la batterie";
 "settings.battery.statusColorsDescription" = "Par défaut : secteur en vert, économie d’énergie en jaune et batterie faible en rouge. Modifiez-les ci-dessous. Désactiver cette option ignore les couleurs personnalisées enregistrées.";
+"settings.battery.monochromeCharging" = "Noir et blanc en charge ou sur secteur";
+"settings.battery.monochromeChargingDescription" = "Dessine l’anneau en noir ou blanc pendant la charge ou sur secteur. Les modes économie d’énergie et haute performance gardent leurs couleurs. Un Mac sans batterie l’active par défaut.";
 
-"settings.battery.monochromeArc" = "Arc de batterie monochrome";
-"settings.battery.monochromeArcDescription" = "Dessine l’arc de la batterie uniquement en noir ou blanc, sans les couleurs d’état de charge, de batterie faible ou de batterie élevée. Le repère supérieur, l’icône centrale et l’indicateur inférieur suivent toujours leurs propres réglages.";
-"settings.battery.monochromeArcApply" = "Appliquer";
-"settings.battery.monochromeArcApplied" = "Appliqué";
-"settings.battery.monochromeArcCancel" = "Annuler";
 "settings.battery.developerPreview" = "Aperçu développeur";
 "settings.battery.simulateNoBattery" = "Simuler l’absence de batterie";
 "settings.battery.simulateNoBatteryDescription" = "Affiche cette page comme sur un Mac sans batterie. Compilations de développement uniquement.";
-"settings.battery.noBatteryHiddenOptions" = "Ce Mac n’a pas de batterie : le pourcentage et l’indicateur de charge ne s’appliquent pas, mais la couleur de l’anneau suit l’alimentation secteur, le mode économie d’énergie et le mode haute performance.";
+"settings.battery.noBatteryHiddenOptions" = "Ce Mac n’a pas de batterie : le pourcentage et l’indicateur de charge ne s’appliquent pas. L’anneau est noir et blanc par défaut ; désactivez-le ci-dessus pour la couleur secteur. Les modes économie d’énergie et haute performance gardent leurs couleurs.";
 "settings.battery.colors.charging" = "Charge / alimentation secteur";
 "settings.battery.colors.lowPower" = "Mode économie d’énergie";
 "settings.battery.colors.critical" = "Batterie très faible";

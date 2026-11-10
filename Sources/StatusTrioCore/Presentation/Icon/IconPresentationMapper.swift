@@ -49,12 +49,16 @@ enum IconPresentationMapper {
         // their precedence. The top gap may carry the chosen decorative bolt or
         // plug marker (see `batteryGapContent`).
         let isPresent = battery.isPresent
+        // nil means automatic: a battery-less Mac defaults to black/white, a Mac
+        // with a battery defaults to the connected colour.
+        let monochromeCharging = options.monochromeCharging ?? !isPresent
         let role: BatteryColorRole = options.usesStatusColors
             ? StatusMappings.batteryColorRole(
                 battery,
                 criticalThreshold: options.criticalThreshold,
                 isHighPowerMode: isHighPowerMode,
-                treatAsConnected: !isPresent
+                treatAsConnected: !isPresent,
+                monochromeCharging: monochromeCharging
             )
             : .foreground
         let color: IconColorRole = switch role {

@@ -221,16 +221,13 @@
 "settings.battery.symbolScaleDescription" = "Процент и молния используют один размер.";
 "settings.battery.statusColors" = "Окрашивать дугу по состоянию батареи";
 "settings.battery.statusColorsDescription" = "По умолчанию: питание от сети — зелёный, энергосбережение — жёлтый, низкий заряд — красный. Цвета можно изменить ниже. При выключении сохранённые свои цвета не применяются.";
+"settings.battery.monochromeCharging" = "Чёрно-белый при зарядке или питании";
+"settings.battery.monochromeChargingDescription" = "Рисует кольцо чёрно-белым при зарядке или питании. Режимы энергосбережения и высокой мощности сохраняют свои цвета. На Mac без батареи включено по умолчанию.";
 
-"settings.battery.monochromeArc" = "Монохромная дуга батареи";
-"settings.battery.monochromeArcDescription" = "Рисует дугу батареи только чёрным или белым цветом, без цветов состояния зарядки, низкого или высокого заряда. Верхний маркер, центральный значок и нижний индикатор по-прежнему подчиняются своим настройкам.";
-"settings.battery.monochromeArcApply" = "Применить";
-"settings.battery.monochromeArcApplied" = "Применено";
-"settings.battery.monochromeArcCancel" = "Отмена";
 "settings.battery.developerPreview" = "Предпросмотр для разработчиков";
 "settings.battery.simulateNoBattery" = "Имитировать отсутствие батареи";
 "settings.battery.simulateNoBatteryDescription" = "Показывает эту страницу так, как она выглядит на Mac без батареи. Только в сборках для разработки.";
-"settings.battery.noBatteryHiddenOptions" = "На этом Mac нет батареи: процент и индикатор зарядки не применяются, но цвет кольца по-прежнему следует за подключением к сети, режимом энергосбережения и режимом высокой мощности.";
+"settings.battery.noBatteryHiddenOptions" = "На этом Mac нет батареи: процент и индикатор зарядки не применяются. Кольцо по умолчанию чёрно-белое; выключите выше, чтобы использовать цвет питания. Режимы энергосбережения и высокой мощности сохраняют цвета.";
 "settings.battery.colors.charging" = "Зарядка / питание от сети";
 "settings.battery.colors.lowPower" = "Режим энергосбережения";
 "settings.battery.colors.critical" = "Критически низкий заряд";

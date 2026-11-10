@@ -221,16 +221,13 @@
 "settings.battery.symbolScaleDescription" = "残量と稲妻は同じサイズを使用します。";
 "settings.battery.statusColors" = "バッテリー状態で円弧を色分け";
 "settings.battery.statusColorsDescription" = "初期設定は電源接続時が緑、低電力モードが黄、低残量が赤です。下で変更できます。オフにすると保存済みのカスタム色は適用されません。";
+"settings.battery.monochromeCharging" = "充電・電源接続時は白黒";
+"settings.battery.monochromeChargingDescription" = "充電中・電源接続中はリングを白黒で描画します。低電力モードと高電力モードはそれぞれの色を使います。バッテリーのない Mac は既定でオンです。";
 
-"settings.battery.monochromeArc" = "モノクロのバッテリーアーク";
-"settings.battery.monochromeArcDescription" = "バッテリーの弧を黒または白の前景色のみで描画し、充電・低電力・高電力の状態色を使いません。上部マーカー、中央アイコン、下部インジケーターはそれぞれの設定に従います。";
-"settings.battery.monochromeArcApply" = "適用";
-"settings.battery.monochromeArcApplied" = "適用済み";
-"settings.battery.monochromeArcCancel" = "キャンセル";
 "settings.battery.developerPreview" = "開発者プレビュー";
 "settings.battery.simulateNoBattery" = "バッテリーなしをシミュレート";
 "settings.battery.simulateNoBatteryDescription" = "バッテリーのない Mac での表示を再現します。開発ビルドのみ。";
-"settings.battery.noBatteryHiddenOptions" = "この Mac にはバッテリーがありません。残量パーセントと充電インジケーターは適用されませんが、リングの色は電源接続・低電力モード・高電力モードに従います。";
+"settings.battery.noBatteryHiddenOptions" = "この Mac にはバッテリーがありません。残量パーセントと充電インジケーターは適用されません。リングは既定で白黒です。上でオフにすると電源接続色になります。低電力モードと高電力モードはそれぞれの色を保ちます。";
 "settings.battery.colors.charging" = "充電中 / 電源接続中";
 "settings.battery.colors.lowPower" = "低電力モード";
 "settings.battery.colors.critical" = "バッテリー残量がわずか";

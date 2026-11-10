@@ -204,16 +204,13 @@
 "settings.battery.symbolScaleDescription" = "تستخدم النسبة ورمز البرق الحجم نفسه.";
 "settings.battery.statusColors" = "تلوين القوس حسب حالة البطارية";
 "settings.battery.statusColorsDescription" = "الألوان الافتراضية هي الأخضر للطاقة والأصفر لوضع الطاقة المنخفضة والأحمر لانخفاض البطارية. يمكنك تغييرها أدناه. عند التعطيل لا تُطبّق الألوان المخصصة المحفوظة.";
+"settings.battery.monochromeCharging" = "أبيض وأسود أثناء الشحن أو توصيل الطاقة";
+"settings.battery.monochromeChargingDescription" = "يرسم الحلقة بالأبيض والأسود أثناء الشحن أو توصيل الطاقة. يحتفظ وضعا الطاقة المنخفضة والعالية بألوانهما. يُفعَّل افتراضيًا على Mac بدون بطارية.";
 
-"settings.battery.monochromeArc" = "قوس بطارية أحادي اللون";
-"settings.battery.monochromeArcDescription" = "يرسم قوس البطارية باللون الأسود أو الأبيض فقط، دون ألوان حالة الشحن أو انخفاض البطارية أو ارتفاعها. تظل العلامة العلوية والأيقونة الوسطى والمؤشر السفلي تتبع إعداداتها الخاصة.";
-"settings.battery.monochromeArcApply" = "تطبيق";
-"settings.battery.monochromeArcApplied" = "تم التطبيق";
-"settings.battery.monochromeArcCancel" = "إلغاء";
 "settings.battery.developerPreview" = "معاينة المطوّر";
 "settings.battery.simulateNoBattery" = "محاكاة عدم وجود بطارية";
 "settings.battery.simulateNoBatteryDescription" = "يعرض هذه الصفحة كما تظهر على Mac بدون بطارية. في إصدارات التطوير فقط.";
-"settings.battery.noBatteryHiddenOptions" = "لا توجد بطارية في هذا الـ Mac: النسبة المئوية ومؤشر الشحن لا ينطبقان، لكن لون الحلقة يتبع توصيل الطاقة ووضع الطاقة المنخفضة ووضع الطاقة العالية.";
+"settings.battery.noBatteryHiddenOptions" = "لا توجد بطارية في هذا الـ Mac: النسبة المئوية ومؤشر الشحن لا ينطبقان. الحلقة أبيض وأسود افتراضيًا؛ أوقفه أعلى لاستخدام لون توصيل الطاقة. يحتفظ وضعا الطاقة المنخفضة والعالية بألوانهما.";
 "settings.battery.colors.charging" = "الشحن / الاتصال بالطاقة";
 "settings.battery.colors.lowPower" = "وضع الطاقة المنخفضة";
 "settings.battery.colors.critical" = "انخفاض حرج في البطارية";

@@ -221,16 +221,13 @@
 "settings.battery.symbolScaleDescription" = "Prozentsatz und Blitz verwenden dieselbe Größe.";
 "settings.battery.statusColors" = "Bogen nach Batteriestatus einfärben";
 "settings.battery.statusColorsDescription" = "Standard: Netzbetrieb grün, Stromsparmodus gelb, niedriger Ladestand rot. Unten änderbar. Beim Ausschalten werden gespeicherte eigene Farben nicht angewendet.";
+"settings.battery.monochromeCharging" = "Schwarz-weiß beim Laden oder am Netz";
+"settings.battery.monochromeChargingDescription" = "Zeichnet den Ring beim Laden oder am Netz schwarz-weiß. Energiespar- und Hohe-Leistung-Modus behalten ihre Farben. Ein Mac ohne Batterie aktiviert dies standardmäßig.";
 
-"settings.battery.monochromeArc" = "Einfarbiger Batteriebogen";
-"settings.battery.monochromeArcDescription" = "Zeichnet den Batteriebogen nur in Schwarz oder Weiß, ohne Farben für Lade-, Niedrig- oder Hochstatus. Obere Markierung, mittleres Symbol und untere Anzeige folgen weiterhin ihren eigenen Einstellungen.";
-"settings.battery.monochromeArcApply" = "Anwenden";
-"settings.battery.monochromeArcApplied" = "Angewendet";
-"settings.battery.monochromeArcCancel" = "Abbrechen";
 "settings.battery.developerPreview" = "Entwicklervorschau";
 "settings.battery.simulateNoBattery" = "Keine Batterie simulieren";
 "settings.battery.simulateNoBatteryDescription" = "Zeigt diese Seite so, wie sie auf einem Mac ohne Batterie aussieht. Nur Entwicklungsbuilds.";
-"settings.battery.noBatteryHiddenOptions" = "Dieser Mac hat keine Batterie: Prozentwert und Ladeanzeige gelten nicht, aber die Ringfarbe folgt weiterhin Netzstrom, Energiesparmodus und Hoher Leistung.";
+"settings.battery.noBatteryHiddenOptions" = "Dieser Mac hat keine Batterie: Prozentwert und Ladeanzeige gelten nicht. Der Ring ist standardmäßig schwarz-weiß; oben ausschalten für die Netzfarbe. Energiespar- und Hohe-Leistung-Modus behalten ihre Farben.";
 "settings.battery.colors.charging" = "Laden / Netzbetrieb";
 "settings.battery.colors.lowPower" = "Stromsparmodus";
 "settings.battery.colors.critical" = "Kritisch niedriger Ladestand";

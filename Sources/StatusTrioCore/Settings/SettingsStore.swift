@@ -60,6 +60,7 @@ final class SettingsStore: ObservableObject {
     static let batteryNoBatteryMarkerDefaultsKey = "batteryNoBatteryMarker"
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
     static let simulatesNoBatteryDefaultsKey = "simulatesNoBattery"
+    static let monochromeChargingRingDefaultsKey = "monochromeChargingRing"
     static let batteryStatusColorsChargingDefaultsKey = "batteryStatusColors.charging"
     static let batteryStatusColorsLowPowerDefaultsKey = "batteryStatusColors.lowPower"
     static let batteryStatusColorsHighPowerDefaultsKey = "batteryStatusColors.highPower"
@@ -555,6 +556,18 @@ final class SettingsStore: ObservableObject {
     @Published var usesBatteryStatusColors: Bool {
         didSet {
             defaults.set(usesBatteryStatusColors, forKey: Self.usesBatteryStatusColorsDefaultsKey)
+        }
+    }
+
+    /// nil = automatic: black/white on a battery-less Mac, the connected colour
+    /// when a battery is present. An explicit value fixes the user's choice.
+    @Published var monochromeChargingRing: Bool? {
+        didSet {
+            if let value = monochromeChargingRing {
+                defaults.set(value, forKey: Self.monochromeChargingRingDefaultsKey)
+            } else {
+                defaults.removeObject(forKey: Self.monochromeChargingRingDefaultsKey)
+            }
         }
     }
 
@@ -1754,29 +1767,6 @@ final class SettingsStore: ObservableObject {
         chargeToFullRestoreLimit = Double(limit)
     }
 
-    /// #309: the "Monochrome battery arc" preset. Turning the state colouring
-    /// off is the whole change — the arc then draws in the label colour and
-    /// stops following the charging/low/high state palette. The top marker, the
-    /// centre icon and the bottom indicator keep their own settings, so this
-    /// does not touch them. Idempotent, so the settings button can call it
-    /// freely.
-    func applyMonochromeBatteryArcPreset() {
-        usesBatteryStatusColors = false
-    }
-
-    /// Undoes `applyMonochromeBatteryArcPreset` by turning the state colouring
-    /// back on, so the preset row's button can act as a reversible toggle.
-    /// Idempotent.
-    func clearMonochromeBatteryArcPreset() {
-        usesBatteryStatusColors = true
-    }
-
-    /// Whether the arc is currently in the monochrome look, i.e. state colouring
-    /// is off. Drives the preset row's "Applied" state.
-    var isMonochromeBatteryArcActive: Bool {
-        !usesBatteryStatusColors
-    }
-
     var batteryIconOptions: BatteryIconOptions {
         BatteryIconOptions(
             showsChargingEffect: showsChargingEffect,
@@ -1791,7 +1781,8 @@ final class SettingsStore: ObservableObject {
             onBatteryMarker: batteryOnBatteryMarker,
             chargingMarker: batteryChargingMarker,
             connectedMarker: batteryConnectedMarker,
-            noBatteryMarker: batteryNoBatteryMarker
+            noBatteryMarker: batteryNoBatteryMarker,
+            monochromeCharging: monochromeChargingRing
         )
     }
 
@@ -2186,6 +2177,8 @@ final class SettingsStore: ObservableObject {
             defaults.set(noBatteryMarker.rawValue, forKey: Self.batteryNoBatteryMarkerDefaultsKey)
         }
         self.usesBatteryStatusColors = defaults.object(forKey: Self.usesBatteryStatusColorsDefaultsKey) as? Bool ?? true
+        self.monochromeChargingRing =
+            defaults.object(forKey: Self.monochromeChargingRingDefaultsKey) as? Bool
         self.simulatesNoBattery = defaults.object(forKey: Self.simulatesNoBatteryDefaultsKey) as? Bool ?? false
         self.batteryStatusColors = BatteryStatusColors(
             charging: BatteryStatusColorSelection(

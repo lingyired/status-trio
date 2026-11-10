@@ -255,28 +255,19 @@ struct AppIconRingView: View {
 
     private var colorsGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupColors)) {
-            // #309: a reversible one-tap preset. It only turns the state
-            // colouring off; the top marker, centre icon and bottom indicator
-            // keep their own settings.
-            SettingsRow(
-                "circle.lefthalf.filled",
+            // #309: use black/white for the charging / connected state, while
+            // Low/High Power Mode and critical keep their own colours. nil means
+            // automatic — on by default on a battery-less Mac, off otherwise.
+            SettingsToggleRow(
+                symbol: "circle.lefthalf.filled",
                 tint: .gray,
-                title: localization.string(.settingsBatteryMonochromeArc),
-                subtitle: localization.string(.settingsBatteryMonochromeArcDescription)
-            ) {
-                Button(
-                    store.isMonochromeBatteryArcActive
-                        ? localization.string(.settingsBatteryMonochromeArcCancel)
-                        : localization.string(.settingsBatteryMonochromeArcApply)
-                ) {
-                    if store.isMonochromeBatteryArcActive {
-                        store.clearMonochromeBatteryArcPreset()
-                    } else {
-                        store.applyMonochromeBatteryArcPreset()
-                    }
-                }
-                .buttonStyle(.bordered)
-            }
+                title: localization.string(.settingsBatteryMonochromeCharging),
+                subtitle: localization.string(.settingsBatteryMonochromeChargingDescription),
+                isOn: Binding(
+                    get: { store.monochromeChargingRing ?? !effectiveHasBattery },
+                    set: { store.monochromeChargingRing = $0 }
+                )
+            )
 
             SettingsDivider()
 

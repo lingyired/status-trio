@@ -221,16 +221,13 @@
 "settings.battery.symbolScaleDescription" = "The percentage and bolt share this size.";
 "settings.battery.statusColors" = "Color the arc by battery state";
 "settings.battery.statusColorsDescription" = "Defaults are green for power, yellow for Low Power Mode, and red for low battery. Change them below. Turning this off ignores saved custom colors.";
+"settings.battery.monochromeCharging" = "Black & white when charging or on power";
+"settings.battery.monochromeChargingDescription" = "Draw the ring in black or white while charging or connected to power. Low Power Mode and High Power Mode keep their own colours. A Mac with no battery defaults to this.";
 
-"settings.battery.monochromeArc" = "Monochrome battery arc";
-"settings.battery.monochromeArcDescription" = "Draw the battery arc in black or white only, without charging, low-battery, or high-battery state colours. The top marker, centre icon, and bottom indicator still follow their own settings.";
-"settings.battery.monochromeArcApply" = "Apply";
-"settings.battery.monochromeArcApplied" = "Applied";
-"settings.battery.monochromeArcCancel" = "Cancel";
 "settings.battery.developerPreview" = "Developer preview";
 "settings.battery.simulateNoBattery" = "Simulate no battery";
 "settings.battery.simulateNoBatteryDescription" = "Show this page as it looks on a Mac with no battery. Development builds only.";
-"settings.battery.noBatteryHiddenOptions" = "This Mac has no battery: the percentage and charging indicator do not apply, but the ring colour still follows connected power, Low Power Mode and High Power Mode.";
+"settings.battery.noBatteryHiddenOptions" = "This Mac has no battery: the percentage and charging indicator do not apply. The ring is black and white by default; turn it off above to use the connected-power colour. Low Power Mode and High Power Mode keep their colours.";
 "settings.battery.colors.charging" = "Charging / connected power";
 "settings.battery.colors.lowPower" = "Low Power Mode";
 "settings.battery.colors.critical" = "Critically low battery";

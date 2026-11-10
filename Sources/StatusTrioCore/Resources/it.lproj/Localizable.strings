@@ -221,16 +221,13 @@
 "settings.battery.symbolScaleDescription" = "Percentuale e fulmine usano la stessa dimensione.";
 "settings.battery.statusColors" = "Colora l’arco in base allo stato della batteria";
 "settings.battery.statusColorsDescription" = "Per impostazione predefinita: alimentazione in verde, risparmio energetico in giallo e batteria scarica in rosso. Modificabili sotto. Disattivando, i colori personalizzati salvati non vengono applicati.";
+"settings.battery.monochromeCharging" = "Bianco e nero in carica o con alimentazione";
+"settings.battery.monochromeChargingDescription" = "Disegna l’anello in bianco e nero durante la carica o con alimentazione. I modi risparmio energetico e alta potenza mantengono i propri colori. Un Mac senza batteria lo attiva per impostazione predefinita.";
 
-"settings.battery.monochromeArc" = "Arco batteria monocromatico";
-"settings.battery.monochromeArcDescription" = "Disegna l’arco della batteria solo in nero o bianco, senza i colori di stato di carica, batteria scarica o batteria alta. L’indicatore superiore, l’icona centrale e l’indicatore inferiore seguono le rispettive impostazioni.";
-"settings.battery.monochromeArcApply" = "Applica";
-"settings.battery.monochromeArcApplied" = "Applicato";
-"settings.battery.monochromeArcCancel" = "Annulla";
 "settings.battery.developerPreview" = "Anteprima sviluppatore";
 "settings.battery.simulateNoBattery" = "Simula assenza di batteria";
 "settings.battery.simulateNoBatteryDescription" = "Mostra questa pagina come appare su un Mac senza batteria. Solo build di sviluppo.";
-"settings.battery.noBatteryHiddenOptions" = "Questo Mac non ha una batteria: percentuale e indicatore di carica non si applicano, ma il colore dell’anello segue l’alimentazione, il risparmio energetico e l’alta potenza.";
+"settings.battery.noBatteryHiddenOptions" = "Questo Mac non ha una batteria: percentuale e indicatore di carica non si applicano. L’anello è bianco e nero per impostazione predefinita; disattivalo sopra per il colore alimentazione. I modi risparmio energetico e alta potenza mantengono i loro colori.";
 "settings.battery.colors.charging" = "Ricarica / alimentazione collegata";
 "settings.battery.colors.lowPower" = "Risparmio energetico";
 "settings.battery.colors.critical" = "Batteria quasi esaurita";
