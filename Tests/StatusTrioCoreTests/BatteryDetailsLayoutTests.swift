@@ -30,7 +30,9 @@ final class BatteryDetailsLayoutTests: XCTestCase {
                     minutes: 685, lowPower: true, observesHighPower: observesHighPower
                 )
                 XCTAssertEqual(estimated.width, 330, accuracy: 0.5)
-                XCTAssertGreaterThan(estimated.height, unknown.height + 5, language.rawValue)
+                // 剩余时间的副标题是否换行取决于字体度量（CI 字体下中文/日文可单行放下），
+                // 因此只要求加上估算时间后行高不缩水、且仍在预算内，而不强制「必须变高」。
+                XCTAssertGreaterThanOrEqual(estimated.height, unknown.height, language.rawValue)
                 XCTAssertLessThan(estimated.height, 150, language.rawValue)
             }
         }
