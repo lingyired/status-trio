@@ -227,15 +227,21 @@ struct AppIconRingView: View {
                 title: localization.string(.settingsBatteryMonochromeArc),
                 subtitle: localization.string(.settingsBatteryMonochromeArcDescription)
             ) {
+                // Reversible: while the monochrome look is active the button
+                // becomes "Cancel" and turns the state colouring back on, so the
+                // preset is never a one-way switch.
                 Button(
                     store.isMonochromeBatteryArcActive
-                        ? localization.string(.settingsBatteryMonochromeArcApplied)
+                        ? localization.string(.settingsBatteryMonochromeArcCancel)
                         : localization.string(.settingsBatteryMonochromeArcApply)
                 ) {
-                    store.applyMonochromeBatteryArcPreset()
+                    if store.isMonochromeBatteryArcActive {
+                        store.clearMonochromeBatteryArcPreset()
+                    } else {
+                        store.applyMonochromeBatteryArcPreset()
+                    }
                 }
                 .buttonStyle(.bordered)
-                .disabled(store.isMonochromeBatteryArcActive)
             }
 
             SettingsDivider()

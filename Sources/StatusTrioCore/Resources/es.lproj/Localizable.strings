@@ -221,6 +221,7 @@
 "settings.battery.monochromeArcDescription" = "Dibuja el arco de la batería solo en negro o blanco, sin los colores de estado de carga, batería baja o batería alta. El marcador superior, el icono central y el indicador inferior siguen sus propios ajustes.";
 "settings.battery.monochromeArcApply" = "Aplicar";
 "settings.battery.monochromeArcApplied" = "Aplicado";
+"settings.battery.monochromeArcCancel" = "Cancelar";
 "settings.battery.developerPreview" = "Vista previa de desarrollo";
 "settings.battery.simulateNoBattery" = "Simular sin batería";
 "settings.battery.simulateNoBatteryDescription" = "Muestra esta página como se ve en un Mac sin batería. Solo en compilaciones de desarrollo.";

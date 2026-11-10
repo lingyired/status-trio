@@ -114,6 +114,13 @@ final class MonochromeBatteryArcTests: XCTestCase {
         XCTAssertEqual(store.batteryConnectedIndicator, .plug)
         XCTAssertTrue(store.showsBatteryPercentage)
         XCTAssertFalse(store.batteryIconOptions.usesStatusColors)
+
+        // The preset is reversible: cancelling turns the state colouring back on
+        // so the row's button is not a one-way switch.
+        store.clearMonochromeBatteryArcPreset()
+        XCTAssertTrue(store.usesBatteryStatusColors)
+        XCTAssertFalse(store.isMonochromeBatteryArcActive)
+        XCTAssertTrue(store.batteryIconOptions.usesStatusColors)
     }
 
     func testNoBatteryRingStaysForegroundWithStateColoursOn() {

@@ -221,6 +221,7 @@
 "settings.battery.monochromeArcDescription" = "電量弧只使用黑/白前景色，不隨充電、低電量或高電量狀態變色。頂部圖示、中間圖示與底部指示仍依各自設定顯示。";
 "settings.battery.monochromeArcApply" = "套用";
 "settings.battery.monochromeArcApplied" = "已套用";
+"settings.battery.monochromeArcCancel" = "取消";
 "settings.battery.developerPreview" = "開發者預覽";
 "settings.battery.simulateNoBattery" = "模擬無電池";
 "settings.battery.simulateNoBatteryDescription" = "依 Mac 沒有電池時的樣子顯示本頁。僅開發版可用。";

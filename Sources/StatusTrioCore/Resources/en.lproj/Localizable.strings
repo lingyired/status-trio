@@ -221,6 +221,7 @@
 "settings.battery.monochromeArcDescription" = "Draw the battery arc in black or white only, without charging, low-battery, or high-battery state colours. The top marker, centre icon, and bottom indicator still follow their own settings.";
 "settings.battery.monochromeArcApply" = "Apply";
 "settings.battery.monochromeArcApplied" = "Applied";
+"settings.battery.monochromeArcCancel" = "Cancel";
 "settings.battery.developerPreview" = "Developer preview";
 "settings.battery.simulateNoBattery" = "Simulate no battery";
 "settings.battery.simulateNoBatteryDescription" = "Show this page as it looks on a Mac with no battery. Development builds only.";

@@ -435,6 +435,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBatteryMonochromeArcDescription = "settings.battery.monochromeArcDescription"
     case settingsBatteryMonochromeArcApply = "settings.battery.monochromeArcApply"
     case settingsBatteryMonochromeArcApplied = "settings.battery.monochromeArcApplied"
+    case settingsBatteryMonochromeArcCancel = "settings.battery.monochromeArcCancel"
     case settingsBatteryDeveloperPreview = "settings.battery.developerPreview"
     case settingsBatterySimulateNoBattery = "settings.battery.simulateNoBattery"
     case settingsBatterySimulateNoBatteryDescription = "settings.battery.simulateNoBatteryDescription"

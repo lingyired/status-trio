@@ -1706,6 +1706,13 @@ final class SettingsStore: ObservableObject {
         usesBatteryStatusColors = false
     }
 
+    /// Undoes `applyMonochromeBatteryArcPreset` by turning the state colouring
+    /// back on, so the preset row's button can act as a reversible toggle.
+    /// Idempotent.
+    func clearMonochromeBatteryArcPreset() {
+        usesBatteryStatusColors = true
+    }
+
     /// Whether the arc is currently in the monochrome look, i.e. state colouring
     /// is off. Drives the preset row's "Applied" state.
     var isMonochromeBatteryArcActive: Bool {
