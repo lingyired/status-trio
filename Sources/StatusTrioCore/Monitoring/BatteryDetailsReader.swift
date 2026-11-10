@@ -152,8 +152,15 @@ struct BatteryDetailsReader: Sendable {
         result.uptimeSeconds = SystemUptimeReader.seconds(now: now)
         if state.isPresent {
             result.highPowerMode = HighPowerModeSystemReader.read()
+            // Both the condition and macOS's Maximum Capacity live only in
+            // `system_profiler` on recent Macs, so one cached read fills both.
+            // The registry `MaxCapacity` counter is never used as a stand-in.
+            let systemHealth = BatteryHealthSystemReader.read(now: now)
             if result.health?.condition == nil {
-                result.health?.condition = BatteryConditionSystemReader.read(now: now)
+                result.health?.condition = systemHealth?.condition
+            }
+            if let maximum = systemHealth?.maximumCapacityPercent {
+                result.health?.maximumCapacityPercent = maximum
             }
         }
         if !options.showsInput { result.inputPower = nil }
@@ -226,7 +233,6 @@ struct BatteryDetailsReader: Sendable {
             health: BatteryHealthSnapshot(
                 designCapacityMAh: capacity.designMAh,
                 maximumCapacityMAh: capacity.maximumMAh,
-                maximumCapacityPercent: capacity.maximumPercent,
                 healthPercent: capacity.healthPercent,
                 temperatureCelsius: temperatureCelsius,
                 chargeTime: chargeTime,

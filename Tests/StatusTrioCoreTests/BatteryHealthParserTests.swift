@@ -293,7 +293,11 @@ final class BatteryHealthParserTests: XCTestCase {
         XCTAssertFalse(BatteryHealthSnapshot(chargeTime: .unavailable).hasDisplayableChargeTime)
     }
 
-    func testReportedMaximumCapacityReadsTheSystemPercentage() throws {
+    /// AppleSmartBattery's `MaxCapacity` counter can stay pinned at 100 while
+    /// the battery has actually degraded, so it is never a display value. The
+    /// parser keeps the measured capacity ratio for internal fallback and the
+    /// details row reads macOS's percentage from `system_profiler` instead.
+    func testRegistryMaxCapacityIsNotReadAsADisplayPercentage() throws {
         let capacity = BatteryHealthParser.parseCapacity(registry: [
             "BatteryData": [
                 "DesignCapacity": 8_579,
@@ -301,7 +305,6 @@ final class BatteryHealthParserTests: XCTestCase {
                 "MaxCapacity": 100
             ]
         ])
-        XCTAssertEqual(capacity.maximumPercent, 100)
         XCTAssertEqual(try XCTUnwrap(capacity.healthPercent), 8_386.0 / 8_579 * 100, accuracy: 0.000_001)
     }
 

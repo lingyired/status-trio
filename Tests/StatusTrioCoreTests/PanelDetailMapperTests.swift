@@ -425,6 +425,21 @@ extension PanelDetailMapperTests {
         XCTAssertFalse(state.rows.contains { $0.id == LocalizationKey.batteryDetailsSystemReadAt.rawValue })
     }
 
+    func testMaximumCapacityIsUnavailableRatherThanAnEstimateWithoutASystemValue() {
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true,
+            isCharging: false, isLowPowerMode: false, isConnectedToPower: true)
+        // healthPercent is a measured-capacity estimate, not macOS's Maximum
+        // Capacity, so it must not stand in for the missing system value.
+        let details = BatteryDetails(
+            health: BatteryHealthSnapshot(maximumCapacityMAh: 8_386, healthPercent: 97.8))
+        let localization = makeLocalization()
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+        XCTAssertEqual(
+            state.rows.first { $0.id == LocalizationKey.batteryDetailsMaxCapacity.rawValue }?.value,
+            localization.string(.batteryDetailsUnavailable)
+        )
+    }
+
     func testMissingBatteryConditionIsUnavailableRatherThanNormal() {
         let battery = BatteryStatus(rawPercentage: 80, isPresent: true,
             isCharging: false, isLowPowerMode: false, isConnectedToPower: true)
