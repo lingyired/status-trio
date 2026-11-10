@@ -204,6 +204,9 @@
 "settings.battery.monochromeArcDescription" = "يرسم قوس البطارية باللون الأسود أو الأبيض فقط، دون ألوان حالة الشحن أو انخفاض البطارية أو ارتفاعها. تظل العلامة العلوية والأيقونة الوسطى والمؤشر السفلي تتبع إعداداتها الخاصة.";
 "settings.battery.monochromeArcApply" = "تطبيق";
 "settings.battery.monochromeArcApplied" = "تم التطبيق";
+"settings.battery.developerPreview" = "معاينة المطوّر";
+"settings.battery.simulateNoBattery" = "محاكاة عدم وجود بطارية";
+"settings.battery.simulateNoBatteryDescription" = "يعرض هذه الصفحة كما تظهر على Mac بدون بطارية. في إصدارات التطوير فقط.";
 "settings.battery.colors.charging" = "الشحن / الاتصال بالطاقة";
 "settings.battery.colors.lowPower" = "وضع الطاقة المنخفضة";
 "settings.battery.colors.critical" = "انخفاض حرج في البطارية";

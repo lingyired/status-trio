@@ -221,6 +221,9 @@
 "settings.battery.monochromeArcDescription" = "Рисует дугу батареи только чёрным или белым цветом, без цветов состояния зарядки, низкого или высокого заряда. Верхний маркер, центральный значок и нижний индикатор по-прежнему подчиняются своим настройкам.";
 "settings.battery.monochromeArcApply" = "Применить";
 "settings.battery.monochromeArcApplied" = "Применено";
+"settings.battery.developerPreview" = "Предпросмотр для разработчиков";
+"settings.battery.simulateNoBattery" = "Имитировать отсутствие батареи";
+"settings.battery.simulateNoBatteryDescription" = "Показывает эту страницу так, как она выглядит на Mac без батареи. Только в сборках для разработки.";
 "settings.battery.colors.charging" = "Зарядка / питание от сети";
 "settings.battery.colors.lowPower" = "Режим энергосбережения";
 "settings.battery.colors.critical" = "Критически низкий заряд";

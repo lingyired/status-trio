@@ -13,9 +13,19 @@ struct AppIconRingView: View {
     var hasBattery: Bool = true
     @EnvironmentObject private var localization: Localization
 
+    /// The battery presence this page draws with. In a development build the
+    /// no-battery simulation forces the battery-less layout so the UI can be
+    /// checked on a Mac that has a battery.
+    private var effectiveHasBattery: Bool {
+        hasBattery && !store.isNoBatterySimulationActive
+    }
+
     var body: some View {
+        if store.isDevelopmentBuild {
+            noBatterySimulationGroup
+        }
         topMarkersGroup
-        if hasBattery {
+        if effectiveHasBattery {
             // Progress, colour and charging-effect controls all address a real
             // battery level, so a battery-less Mac (e.g. Mac mini) shows only the
             // decorative top-marker control.
@@ -25,11 +35,28 @@ struct AppIconRingView: View {
         }
     }
 
+    // MARK: Developer preview
+
+    /// Developer-only helper: force the battery-less layout so a Mac with a
+    /// battery can preview how this page looks without one. A packaged release
+    /// never shows this (`store.isDevelopmentBuild`) and never simulates.
+    private var noBatterySimulationGroup: some View {
+        SettingsGroup(localization.string(.settingsBatteryDeveloperPreview)) {
+            SettingsToggleRow(
+                symbol: "eyeglasses",
+                tint: .gray,
+                title: localization.string(.settingsBatterySimulateNoBattery),
+                subtitle: localization.string(.settingsBatterySimulateNoBatteryDescription),
+                isOn: $store.simulatesNoBattery
+            )
+        }
+    }
+
     // MARK: Top markers
 
     private var topMarkersGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupTopMarkers)) {
-            if hasBattery {
+            if effectiveHasBattery {
                 SettingsToggleRow(
                     symbol: "percent",
                     tint: .green,
@@ -67,13 +94,13 @@ struct AppIconRingView: View {
                     symbol: "powerplug.portrait.fill",
                     tint: .teal,
                     title: localization.string(
-                        hasBattery ? .settingsBatteryConnectedIndicator : .settingsBatteryNoBatteryGapIcon
+                        effectiveHasBattery ? .settingsBatteryConnectedIndicator : .settingsBatteryNoBatteryGapIcon
                     ),
-                    subtitle: hasBattery
+                    subtitle: effectiveHasBattery
                         ? localization.string(.settingsBatteryConnectedIndicatorDescription)
                         : nil,
                     selection: $store.batteryConnectedIndicator,
-                    options: hasBattery ? BatteryConnectedIndicator.allCases : [.plug, .bolt],
+                    options: effectiveHasBattery ? BatteryConnectedIndicator.allCases : [.plug, .bolt],
                     label: connectedIndicatorLabel
                 )
             }
@@ -120,7 +147,7 @@ struct AppIconRingView: View {
     /// gate the picker the way it does for a real battery.
     private var showsConnectedIndicatorMenu: Bool {
         guard store.showsChargingIndicator else { return false }
-        return hasBattery ? store.showsBatteryPercentage : true
+        return effectiveHasBattery ? store.showsBatteryPercentage : true
     }
 
     /// A no-battery Mac never offers the percentage marker. Coerce a legacy

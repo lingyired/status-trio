@@ -54,6 +54,7 @@ final class SettingsStore: ObservableObject {
     /// migration and never written again (#195).
     static let showsPercentageWhenConnectedDefaultsKey = "showsPercentageWhenConnected"
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
+    static let simulatesNoBatteryDefaultsKey = "simulatesNoBattery"
     static let batteryStatusColorsChargingDefaultsKey = "batteryStatusColors.charging"
     static let batteryStatusColorsLowPowerDefaultsKey = "batteryStatusColors.lowPower"
     static let batteryStatusColorsHighPowerDefaultsKey = "batteryStatusColors.highPower"
@@ -498,6 +499,21 @@ final class SettingsStore: ObservableObject {
         didSet {
             defaults.set(usesBatteryStatusColors, forKey: Self.usesBatteryStatusColorsDefaultsKey)
         }
+    }
+
+    /// Developer-only: preview the icon and settings as if the Mac had no battery.
+    /// Never takes effect in a packaged release; see `isNoBatterySimulationActive`.
+    @Published var simulatesNoBattery: Bool {
+        didSet {
+            defaults.set(simulatesNoBattery, forKey: Self.simulatesNoBatteryDefaultsKey)
+        }
+    }
+
+    /// Whether the no-battery preview is actually allowed to run. Developer-only:
+    /// a packaged release never simulates, regardless of any stale value in
+    /// `UserDefaults`, so the release rule lives in one place.
+    var isNoBatterySimulationActive: Bool {
+        isDevelopmentBuild && simulatesNoBattery
     }
 
     /// Per-role colour overrides for the charging, low-power and critical states.
@@ -2048,6 +2064,7 @@ final class SettingsStore: ObservableObject {
             )
         }
         self.usesBatteryStatusColors = defaults.object(forKey: Self.usesBatteryStatusColorsDefaultsKey) as? Bool ?? true
+        self.simulatesNoBattery = defaults.object(forKey: Self.simulatesNoBatteryDefaultsKey) as? Bool ?? false
         self.batteryStatusColors = BatteryStatusColors(
             charging: BatteryStatusColorSelection(
                 storageValue: defaults.string(forKey: Self.batteryStatusColorsChargingDefaultsKey) ?? "system"
@@ -2225,6 +2242,8 @@ final class SettingsStore: ObservableObject {
         // observers do not fire during initialization, so reset the in-memory
         // values here and delete the persisted keys afterwards.
         if !isDevelopmentBuild {
+            self.simulatesNoBattery = false
+            defaults.removeObject(forKey: Self.simulatesNoBatteryDefaultsKey)
             self.previewsBluetoothListeningMode = false
             self.bluetoothListeningModePreviewDeviceName = ""
             self.bluetoothListeningModePreviewDeviceCount =

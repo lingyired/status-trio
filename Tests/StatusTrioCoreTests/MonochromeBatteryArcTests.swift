@@ -115,4 +115,25 @@ final class MonochromeBatteryArcTests: XCTestCase {
         XCTAssertTrue(store.showsBatteryPercentage)
         XCTAssertFalse(store.batteryIconOptions.usesStatusColors)
     }
+
+    @MainActor
+    func testNoBatterySimulationOnlyRunsInDevelopmentBuilds() {
+        let name = "NoBatterySimulationTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        defer { defaults.removePersistentDomain(forName: name) }
+
+        // A packaged release must ignore a stale value and scrub the key.
+        defaults.set(true, forKey: SettingsStore.simulatesNoBatteryDefaultsKey)
+        let release = SettingsStore(defaults: defaults, isDevelopmentBuild: false)
+        XCTAssertFalse(release.simulatesNoBattery)
+        XCTAssertFalse(release.isNoBatterySimulationActive)
+        XCTAssertNil(defaults.object(forKey: SettingsStore.simulatesNoBatteryDefaultsKey))
+
+        // A development build honours the toggle.
+        defaults.set(true, forKey: SettingsStore.simulatesNoBatteryDefaultsKey)
+        let dev = SettingsStore(defaults: defaults, isDevelopmentBuild: true)
+        XCTAssertTrue(dev.simulatesNoBattery)
+        XCTAssertTrue(dev.isNoBatterySimulationActive)
+    }
 }

@@ -74,7 +74,7 @@ struct StatusIconPreviewCard: View {
     private var menuBarPreview: some View {
         if let phase = liveChargingPhase {
             previewBar(status: currentStatus, phase: phase)
-        } else if previewPlayback.isPlaying {
+        } else if previewPlayback.isPlaying && !store.isNoBatterySimulationActive {
             TimelineView(.animation(
                 minimumInterval: 1 / Double(ChargingEffectTimeline.framesPerSecond),
                 paused: false
@@ -90,9 +90,18 @@ struct StatusIconPreviewCard: View {
         }
     }
 
+    /// The snapshot the preview draws. A development build's no-battery
+    /// simulation swaps the battery out so the menu-bar preview shows the
+    /// battery-less layout (a full closed ring plus the decorative marker).
+    private var displaySnapshot: StatusSnapshot {
+        store.isNoBatterySimulationActive
+            ? statusStore.snapshot.replacingBattery(.absent)
+            : statusStore.snapshot
+    }
+
     private var currentStatus: MenuBarStatus {
         ChargingEffectTestMode.status(
-            MenuBarStatus(snapshot: statusStore.snapshot),
+            MenuBarStatus(snapshot: displaySnapshot),
             enabled: store.testsChargingEffect
         )
     }
@@ -100,7 +109,7 @@ struct StatusIconPreviewCard: View {
     private var liveChargingPhase: ChargingEffectPhase? {
         Self.livePhase(
             battery: ChargingEffectTestMode.battery(
-                statusStore.snapshot.battery,
+                displaySnapshot.battery,
                 enabled: store.testsChargingEffect
             ),
             enabled: store.showsMenuBarChargingEffect,

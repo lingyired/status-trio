@@ -221,6 +221,9 @@
 "settings.battery.monochromeArcDescription" = "バッテリーの弧を黒または白の前景色のみで描画し、充電・低電力・高電力の状態色を使いません。上部マーカー、中央アイコン、下部インジケーターはそれぞれの設定に従います。";
 "settings.battery.monochromeArcApply" = "適用";
 "settings.battery.monochromeArcApplied" = "適用済み";
+"settings.battery.developerPreview" = "開発者プレビュー";
+"settings.battery.simulateNoBattery" = "バッテリーなしをシミュレート";
+"settings.battery.simulateNoBatteryDescription" = "バッテリーのない Mac での表示を再現します。開発ビルドのみ。";
 "settings.battery.colors.charging" = "充電中 / 電源接続中";
 "settings.battery.colors.lowPower" = "低電力モード";
 "settings.battery.colors.critical" = "バッテリー残量がわずか";
