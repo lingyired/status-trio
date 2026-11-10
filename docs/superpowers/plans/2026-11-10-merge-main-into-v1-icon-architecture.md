@@ -180,3 +180,13 @@
 - 在 main 渲染器上补齐分支的 AirPods 双段环渲染：`supports` 放行 `leftRight` 两段（左右各一），移植 `drawAirPodsRing`、`drawAirPodsTopSymbol`、`airPodsTopSymbolPointSize`/高度表、`resolvedCenterSymbolName`，颜色走 `statusPalette`。
 - 结果：`AirPodsRingGeometryTests`（12 项）全部通过；Icon 300/43 suites、Preview 72、Settings 38、Dock 167 全绿。
 - 渲染器现已覆盖：单段电池环、AirPods 双段环、inactive 轨道色、custom alpha、文字居中。
+
+## 13. Phase 3 完成：V1 配置持久化（2026-11-10 续）
+
+- `SettingsStore` 重新拥有 `iconConfiguration`（`@Published`，持久化到 `iconConfigurationDefaultsKey`）与 `iconConfigurationLoadError`；`init` 末尾调用 `bootstrapIconConfiguration()`：读取已存 V1（含 codec 错误记录），否则由 legacy defaults 迁移，再应用中心兼容迁移并写回一次。
+- `updateIconConfiguration` / `resetIconConfiguration(to:)` 真正写回：编码持久化 + `applyIconConfigurationToSettings` 镜像到 main 的各个 `@Published` 设置；播种阶段**不回写**（避免覆盖 main 已持久化的用户设置）。
+- 运行时的 `mapScene` 使用 `derivedIconConfigurationFromSettings()`（从设置派生），保证设置页编辑即时反映到渲染；设计器/测试读写 `iconConfiguration`。
+- 恢复 AirPods 设备地址三项真实存取（`airPodsIconDeviceAddress` / `connectedBluetoothIconDeviceAddress` / `refreshesAirPodsBatteryForIcon`，独立 defaults 键）。
+- 恢复并通过：`IconDesignerEditingTests`、`IconDesignerEditorModelTests`（含事务/撤销/槽位重置）、`IconDesignerReviewRegressionTests`。
+- 仍隔离：`IconConfigurationMigrationTests`（5 个 store 级语义/精度用例）、`IconDesignerCenterBatteryScaleTests`、`IconDesignerOuterBatteryTextScaleTests`、`IconSizingStandardTests`（依赖分支渲染器的 normalized 尺寸 API）、`IconRuntimePresentationOptionsTests`、`IconDesignerMenuBarColorPropagationTests`（依赖已删的 real-icon override 桥）、`IconLegacyCompatibilityTests`、`IconSlotResolverTests`。
+- 验证：Icon 300/43 suites、Preview 72、Dock 167、Settings 38 全绿。

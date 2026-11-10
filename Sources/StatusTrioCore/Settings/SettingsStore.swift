@@ -4,6 +4,32 @@ import Foundation
 
 @MainActor
 final class SettingsStore: ObservableObject {
+    /// Authoritative V1 icon configuration. Persisted under
+    /// `iconConfigurationDefaultsKey`; the runtime renders from the projection
+    /// derived from the individual settings, while the editor/tests read and
+    /// write this value.
+    @Published var iconConfiguration: IconConfigurationV1 = .classic {
+        didSet {
+            guard canPersistIconConfiguration,
+                  !isSyncingIconConfiguration,
+                  let data = try? IconConfigurationCodec.encode(iconConfiguration) else { return }
+            defaults.set(data, forKey: Self.iconConfigurationDefaultsKey)
+        }
+    }
+    @Published var _airPodsIconDeviceAddress: String? {
+        didSet { defaults.set(_airPodsIconDeviceAddress, forKey: "airPodsIconDeviceAddress") }
+    }
+    @Published var _connectedBluetoothIconDeviceAddress: String? {
+        didSet { defaults.set(_connectedBluetoothIconDeviceAddress, forKey: "connectedBluetoothIconDeviceAddress") }
+    }
+    @Published var _refreshesAirPodsBatteryForIcon: Bool = false {
+        didSet { defaults.set(_refreshesAirPodsBatteryForIcon, forKey: "refreshesAirPodsBatteryForIcon") }
+    }
+
+    @Published var iconConfigurationLoadError: IconConfigurationCodecError?
+    var canPersistIconConfiguration = false
+    var isSyncingIconConfiguration = false
+
     static let hasCompletedIconGuideOnboardingDefaultsKey = "hasCompletedIconGuideOnboarding.v1"
     static let hasSeenIconGuideDefaultsKey = "hasSeenIconGuide"
     static let sharesAnonymousAnalyticsDefaultsKey = "sharesAnonymousAnalytics"
@@ -1796,7 +1822,7 @@ final class SettingsStore: ObservableObject {
         )
     }
 
-    private let defaults: UserDefaults
+    let defaults: UserDefaults
     private let persistCoalescingInterval: Duration
     /// Whether this bundle is a development build (carries a
     /// `STDevelopmentCodename`). Injectable so tests can exercise both the
@@ -2459,6 +2485,10 @@ final class SettingsStore: ObservableObject {
         self.popupVolumeScrollFeedbackOverride = defaults.object(
             forKey: Self.popupVolumeScrollFeedbackDefaultsKey
         ) as? Bool
+        self._airPodsIconDeviceAddress = defaults.string(forKey: "airPodsIconDeviceAddress")
+        self._connectedBluetoothIconDeviceAddress = defaults.string(forKey: "connectedBluetoothIconDeviceAddress")
+        self._refreshesAirPodsBatteryForIcon = defaults.bool(forKey: "refreshesAirPodsBatteryForIcon")
+        bootstrapIconConfiguration()
     }
 
     private static func decodedNearbyBLESelections(_ data: Data?) -> [NearbyBLEDeviceSelection] {

@@ -1,24 +1,22 @@
 import Combine
 import Foundation
 
-/// Phase-1 compatibility bridge between the merged main settings surface and
-/// the retained V1 icon architecture.
+/// Bridge between the merged main settings surface and the V1 icon architecture.
 ///
-/// After merging `origin/main`, `SettingsStore` is main's implementation: the
-/// legacy option structs (`batteryIconOptions`, `connectionIconOptions`, …) are
-/// the stored settings. The V1 `IconConfigurationV1` / resolver / plugin layer
-/// is kept compiled during Phase 1 by deriving a read-only configuration from
-/// those settings. Later phases make `iconConfiguration` the single source of
-/// truth and move this mapping in the other direction.
+/// The individual `@Published` icon settings on `SettingsStore` remain the
+/// values the settings UI edits. `iconConfiguration` is the V1 representation
+/// that the editor/tests read and write, persisted under
+/// `iconConfigurationDefaultsKey`. `updateIconConfiguration` writes a mutated
+/// V1 config back into the individual settings; the runtime renders from the
+/// projection derived from those individual settings so the UI stays the
+/// source of truth for what is on screen.
 @MainActor
 extension SettingsStore {
-    /// Read-only V1 projection of the current main settings.
-    ///
-    /// This is the single translation point from the merged store vocabulary to
-    /// the V1 icon schema: every main icon setting that has a V1 field is
-    /// mirrored here so the V1 resolver/plugin layer renders what the settings
-    /// surface shows.
-    var iconConfiguration: IconConfigurationV1 {
+    static let iconConfigurationDefaultsKey = "iconConfigurationV1"
+
+    /// V1 projection of the current individual icon settings. Used by the
+    /// runtime (`AppEnvironment`'s mapScene) so settings-surface edits render.
+    func derivedIconConfigurationFromSettings() -> IconConfigurationV1 {
         var configuration = IconConfigurationV1.classic
         let battery = batteryIconOptions
         let connection = connectionIconOptions
@@ -82,15 +80,11 @@ extension SettingsStore {
         return configuration
     }
 
-    /// Emits the derived configuration whenever any setting changes.
     var iconConfigurationPublisher: AnyPublisher<IconConfigurationV1, Never> {
-        objectWillChange
-            .map { _ in self.iconConfiguration }
-            .eraseToAnyPublisher()
+        $iconConfiguration.eraseToAnyPublisher()
     }
 
-    /// Runtime-only options that have no V1 schema field, mirroring the values
-    /// the merged store keeps for the legacy presentation pipeline.
+    /// Runtime-only options that have no V1 schema field.
     var iconRuntimePresentationOptions: IconPresentationRuntimeOptions {
         IconPresentationRuntimeOptions(
             connectionCenterSource: connectionIconOptions.centerSource,
@@ -100,7 +94,6 @@ extension SettingsStore {
         )
     }
 
-    /// Legacy presentation options assembled from the merged store.
     var legacyPresentationConfiguration: IconPresentationConfiguration {
         IconPresentationConfiguration(
             battery: batteryIconOptions,
@@ -109,39 +102,7 @@ extension SettingsStore {
             bluetooth: bluetoothAudioIconOptions
         )
     }
-}
 
-@MainActor
-extension SettingsStore {
-    /// Phase-1 compatibility: the designer editing model still calls this API,
-    /// but the merged store owns the settings during Phase 1. Writes are
-    /// intentionally ignored until the V1 store becomes the source of truth.
-    func updateIconConfiguration(_ update: (inout IconConfigurationV1) -> Void) {}
-    func resetIconConfiguration(to configuration: IconConfigurationV1 = .classic) {}
-
-    /// Phase-1 compatibility: the retained designer model still reads/writes
-    /// these legacy AirPods demand fields. They are not persisted while main
-    /// owns the runtime; Phase 4 moves them into the V1 configuration/plugins.
-    var airPodsIconDeviceAddress: String? {
-        get { nil }
-        set {}
-    }
-    var connectedBluetoothIconDeviceAddress: String? {
-        get { nil }
-        set {}
-    }
-    var refreshesAirPodsBatteryForIcon: Bool {
-        get { false }
-        set {}
-    }
-}
-
-
-@MainActor
-extension SettingsStore {
-    static let iconConfigurationDefaultsKey = "iconConfigurationV1"
-
-    var iconConfigurationLoadError: IconConfigurationCodecError? { nil }
     var iconPresentationConfiguration: IconPresentationConfiguration { legacyPresentationConfiguration }
 
     var showsBatteryPercentageInConnectionSlot: Bool {
@@ -149,7 +110,125 @@ extension SettingsStore {
         set {}
     }
     var replacesNetworkIconWithBluetoothAudio: Bool {
-        get { false }
+        get { bluetoothAudioIconOptions.replacesNetworkIcon }
         set {}
+    }
+
+    /// AirPods icon device selection, persisted so the retained designer model
+    /// and the resolver demand bridge can read the same value.
+    private static let airPodsIconDeviceAddressDefaultsKey = "airPodsIconDeviceAddress"
+    private static let connectedBluetoothIconDeviceAddressDefaultsKey = "connectedBluetoothIconDeviceAddress"
+    private static let refreshesAirPodsBatteryForIconDefaultsKey = "refreshesAirPodsBatteryForIcon"
+
+    var airPodsIconDeviceAddress: String? {
+        get { _airPodsIconDeviceAddress }
+        set { _airPodsIconDeviceAddress = newValue }
+    }
+    var connectedBluetoothIconDeviceAddress: String? {
+        get { _connectedBluetoothIconDeviceAddress }
+        set { _connectedBluetoothIconDeviceAddress = newValue }
+    }
+    var refreshesAirPodsBatteryForIcon: Bool {
+        get { _refreshesAirPodsBatteryForIcon }
+        set { _refreshesAirPodsBatteryForIcon = newValue }
+    }
+
+    // MARK: - V1 persistence
+
+    /// Seeds `iconConfiguration` from stored V1 data or migrates the legacy
+    /// defaults, then mirrors it onto the individual settings.
+    func bootstrapIconConfiguration() {
+        let stored = defaults.data(forKey: Self.iconConfigurationDefaultsKey)
+        var resolved: IconConfigurationV1
+        var loadError: IconConfigurationCodecError?
+        if let stored {
+            do {
+                resolved = try IconConfigurationCodec.decode(stored)
+            } catch {
+                loadError = (error as? IconConfigurationCodecError) ?? .malformedData
+                resolved = IconConfigurationMigration.makeConfiguration(
+                    from: IconConfigurationMigration.legacyConfiguration(defaults: defaults)
+                )
+            }
+        } else {
+            resolved = IconConfigurationMigration.makeConfiguration(
+                from: IconConfigurationMigration.legacyConfiguration(defaults: defaults)
+            )
+        }
+        resolved = IconConfigurationMigration.applyingCenterCompatibility(
+            IconConfigurationMigration.LegacyCenterPreferences.read(from: defaults),
+            to: resolved,
+            hadStoredV1: stored != nil
+        )
+        iconConfigurationLoadError = loadError
+        isSyncingIconConfiguration = true
+        iconConfiguration = resolved
+        isSyncingIconConfiguration = false
+        canPersistIconConfiguration = true
+        // Do not write the seeded configuration back onto the individual
+        // settings: those are main's persisted values and are the source the
+        // runtime projection reads. Only explicit editor writes mirror back.
+        if stored == nil, let data = try? IconConfigurationCodec.encode(resolved) {
+            defaults.set(data, forKey: Self.iconConfigurationDefaultsKey)
+        }
+    }
+
+    /// Mutates the V1 configuration, persists it, and mirrors the result onto the
+    /// individual settings so the UI and runtime see the same values.
+    func updateIconConfiguration(_ update: (inout IconConfigurationV1) -> Void) {
+        var configuration = iconConfiguration
+        update(&configuration)
+        configuration = configuration.normalized()
+        isSyncingIconConfiguration = true
+        iconConfiguration = configuration
+        isSyncingIconConfiguration = false
+        canPersistIconConfiguration = true
+        if let data = try? IconConfigurationCodec.encode(configuration) {
+            defaults.set(data, forKey: Self.iconConfigurationDefaultsKey)
+        }
+        applyIconConfigurationToSettings(configuration)
+    }
+
+    func resetIconConfiguration(to configuration: IconConfigurationV1 = .classic) {
+        updateIconConfiguration { $0 = configuration }
+    }
+
+    /// Mirrors a V1 configuration into the individual `@Published` settings.
+    func applyIconConfigurationToSettings(_ configuration: IconConfigurationV1) {
+        let behaviors = configuration.behaviors
+        let appearance = configuration.appearance
+
+        batteryOnBatteryMarker = behaviors.batteryMarkers.onBattery
+        batteryChargingMarker = behaviors.batteryMarkers.charging
+        batteryConnectedMarker = behaviors.batteryMarkers.connected
+        batteryNoBatteryMarker = behaviors.batteryMarkers.noBattery
+        batterySplitGapProgress = behaviors.splitGapProgress
+        batteryCriticalThreshold = Double(behaviors.systemBatteryRing.criticalThreshold)
+        batteryStatusColors = appearance.batteryStatusColors.colors
+
+        switch configuration.composition.center.primary {
+        case .inputSource:
+            connectionCenterSource = .inputSource
+        case .systemBatteryPercentage:
+            connectionCenterSource = .batteryPercentage
+        case .bluetoothAudioOutput, .pinnedBluetoothGlyph, .connectedBluetoothDevice:
+            connectionCenterSource = .bluetoothDevice
+        case .network, .automaticLegacy, .none:
+            connectionCenterSource = .network
+        }
+        showsWiFiIconForEthernet = behaviors.networkCenter.showsWiFiIconForEthernet
+        showsWiFiIconForHotspot = behaviors.networkCenter.showsWiFiIconForHotspot
+        showsWiFiIconForTemporaryConnection = behaviors.networkCenter.showsWiFiIconForTemporaryConnection
+        showsWiFiIconForInternetSharing = behaviors.networkCenter.showsWiFiIconForInternetSharing
+
+        bluetoothIconColor = appearance.bluetoothIconColor.selection
+        bluetoothSymbolScale = appearance.bluetoothSymbolScale
+        bluetoothNetworkIconSymbolName = behaviors.bluetoothAudioCenter.networkIconSymbolOverride
+        inputSourceMarkerStyle = appearance.inputSourceMarkerStyle
+        volumeDisplayStyle = behaviors.systemVolumeFooter.displayStyle
+        ringStrokeStyle = RingStrokeStyle.allCases.min {
+            abs($0.scale - appearance.outerRing.strokeScale)
+                < abs($1.scale - appearance.outerRing.strokeScale)
+        } ?? .regular
     }
 }
