@@ -14,8 +14,11 @@ struct SystemBatteryIconPlugin: IconContentPlugin {
         case "ring":
             return .available(.outerRing(IconPresentationMapper.scene(inputs: context.inputs.system, configuration: context.legacy).outerRing))
         case "percentage":
+            // Numeric centre modes share one size rule on main: the Wi-Fi Icon
+            // Size scale, so switching between percentage/watts does not resize
+            // the number. Use the same source the legacy mapper does.
             return .available(.center(battery.isPresent ? .text(IconTextState(text: "\(battery.percentage)", color: .primary,
-                scale: context.configuration.behaviors.systemBatteryRing.textScale)) : nil))
+                scale: context.legacy.connection.wifiScale)) : nil))
         default: return .unavailable(.unavailable)
         }
     }

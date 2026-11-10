@@ -3,7 +3,8 @@ import Foundation
 
 typealias IconSceneMapper = @MainActor (
     IconPresentationInputs,
-    IconPresentationConfiguration
+    IconPresentationConfiguration,
+    IconConfigurationV1
 ) -> IconSceneState
 
 @MainActor
@@ -40,6 +41,14 @@ struct IconPresentationSettings: Equatable, Sendable {
     let configuration: IconPresentationConfiguration
     let menuBarSize: Double
     let testsChargingEffect: Bool
+    /// The V1 icon configuration this settings snapshot was built from.
+    ///
+    /// The merged runtime renders through `IconCompositionResolver`, which needs
+    /// the V1 schema. Carrying it in the published settings (rather than reading
+    /// the store from inside `mapScene`) keeps the scene and the settings that
+    /// produced it in the same snapshot, so a settings change is rendered once
+    /// instead of showing a stale scene first.
+    var iconConfiguration: IconConfigurationV1 = .classic
 }
 
 struct IconPresentationOutput: Equatable, Sendable {
@@ -86,7 +95,7 @@ final class IconPresentationViewModel: ObservableObject {
         systemPowers: AnyPublisher<SystemPowerSample?, Never> = Empty<SystemPowerSample?, Never>().eraseToAnyPublisher(),
         highPowerModes: AnyPublisher<Bool, Never> = Empty<Bool, Never>().eraseToAnyPublisher(),
         resolveInputs: @escaping @MainActor (StatusSnapshot) -> IconPresentationInputs,
-        mapScene: @escaping IconSceneMapper = { inputs, configuration in
+        mapScene: @escaping IconSceneMapper = { inputs, configuration, _ in
             IconPresentationMapper.scene(inputs: inputs, configuration: configuration)
         },
         snapshotScheduler: any IconPresentationScheduling = TaskIconPresentationScheduler()
@@ -271,7 +280,8 @@ final class IconPresentationViewModel: ObservableObject {
                 isHighPowerMode: isHighPowerMode,
                 resolveInputs: resolveInputs
             ),
-            settings.configuration
+            settings.configuration,
+            settings.iconConfiguration
         )
         let menuBarTestScene: IconSceneState?
         if settings.testsChargingEffect {
@@ -284,7 +294,8 @@ final class IconPresentationViewModel: ObservableObject {
                     isHighPowerMode: isHighPowerMode,
                     resolveInputs: resolveInputs
                 ),
-                settings.configuration
+                settings.configuration,
+                settings.iconConfiguration
             )
         } else {
             menuBarTestScene = nil

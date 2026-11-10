@@ -1431,8 +1431,12 @@ extension StatusIconRenderer {
         }
     }
 
-    /// Applies the V1 explicit visible-size percentage when present, otherwise
-    /// keeps the legacy raw scale.
+    /// Applies the V1 explicit visible-size percentage when present.
+    ///
+    /// The scale arriving here is already the final one: `IconPaletteResolver`
+    /// multiplied it by the appearance's centre factor. Only an explicit
+    /// `normalizedSizePercentage` replaces it (that is an absolute visible-ink
+    /// height), so the legacy path must not scale again.
     private static func centerScale(of scale: Double, normalized: Double?) -> Double {
         guard let normalized else { return scale }
         return IconCenterSizingPolicy.drawingMultiplier(

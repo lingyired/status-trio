@@ -17,21 +17,40 @@ extension SettingsStore {
     /// V1 projection of the current individual icon settings. Used by the
     /// runtime (`AppEnvironment`'s mapScene) so settings-surface edits render.
     func derivedIconConfigurationFromSettings() -> IconConfigurationV1 {
-        var configuration = IconConfigurationV1.classic
-        let battery = batteryIconOptions
-        let connection = connectionIconOptions
-        let bluetooth = bluetoothAudioIconOptions
-        let volume = volumeIconOptions
+        Self.iconConfiguration(
+            from: StatusIconAppearance(settings: self),
+            inputSourceMarkerStyle: inputSourceMarkerStyle
+        )
+    }
 
+    /// The single derivation from the settings the icon surface actually edits.
+    ///
+    /// The settings pane mutates the individual `@Published` icon settings, not
+    /// the persisted V1 payload, so the runtime configuration must be derived
+    /// from those values on every publish; reading the persisted payload would
+    /// leave the menu bar on a stale scene.
+    static func iconConfiguration(
+        from appearance: StatusIconAppearance,
+        inputSourceMarkerStyle: InputSourceMarkerStyle
+    ) -> IconConfigurationV1 {
+        var configuration = IconConfigurationV1.classic
+        let battery = appearance.batteryOptions
+        let connection = appearance.connectionOptions
+        let bluetooth = appearance.bluetoothAudioOptions
+        let volume = appearance.volumeOptions
+
+        // Every non-network centre falls back to the network glyph. The legacy
+        // mapper always showed Wi-Fi when the chosen source was unavailable, so
+        // without this the slot goes blank instead of reverting to Wi-Fi.
         switch connection.centerSource {
         case .inputSource:
-            configuration.composition.center = SlotSelection(primary: .inputSource)
+            configuration.composition.center = SlotSelection(primary: .inputSource, fallback: .network)
         case .batteryPercentage, .chargingStatus:
-            configuration.composition.center = SlotSelection(primary: .systemBatteryPercentage)
+            configuration.composition.center = SlotSelection(primary: .systemBatteryPercentage, fallback: .network)
         case .bluetoothDevice:
-            configuration.composition.center = SlotSelection(primary: .connectedBluetoothDevice)
+            configuration.composition.center = SlotSelection(primary: .connectedBluetoothDevice, fallback: .network)
         case .network, .power:
-            configuration.composition.center = SlotSelection(primary: .automaticLegacy)
+            configuration.composition.center = SlotSelection(primary: .automaticLegacy, fallback: .network)
         }
 
         configuration.behaviors.systemBatteryRing = SystemBatteryRingBehavior(
@@ -69,13 +88,15 @@ extension SettingsStore {
         configuration.behaviors.systemVolumeFooter = SystemVolumeFooterBehavior(
             displayStyle: volume.displayStyle
         )
-        configuration.appearance.outerRing.strokeScale = ringStrokeStyle.scale
+        // Stroke scales are already baked into the appearance's options, so the
+        // V1 ring/footer scales must come from there rather than from the store.
+        configuration.appearance.outerRing.strokeScale = battery.ringStrokeScale
         configuration.appearance.footer.strokeScale = volume.ringStrokeScale
         configuration.appearance.bluetoothIconColor = BluetoothIconColorConfiguration(bluetooth.iconColor)
         configuration.appearance.inputSourceMarkerStyle = inputSourceMarkerStyle
         configuration.appearance.bluetoothSymbolScale = bluetooth.symbolScale
-        // Keep the unified centre size in step with the legacy Wi-Fi scale so a
-        // `wifiSymbolScale` edit is reflected in `iconConfiguration`.
+        // The palette applies `symbolScale / classic` as a centre factor over the
+        // neutral legacy scale, so the absolute centre size is classic × wifi.
         configuration.appearance.center.symbolScale =
             CenterAppearance.classic.symbolScale * connection.wifiScale
         configuration.appearance.batteryStatusColors = BatteryStatusColorsConfiguration(

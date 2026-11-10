@@ -18,7 +18,7 @@ final class IconPresentationViewModelTests: XCTestCase {
             snapshots: snapshots.eraseToAnyPublisher(),
             preferences: preferences.eraseToAnyPublisher(),
             resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapScene: { inputs, configuration in
+            mapScene: { inputs, configuration, _ in
                 mapped.append((inputs, configuration))
                 return customScene
             },
@@ -74,7 +74,7 @@ final class IconPresentationViewModelTests: XCTestCase {
             snapshots: snapshots.eraseToAnyPublisher(),
             preferences: preferences.eraseToAnyPublisher(),
             resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapScene: { inputs, _ in
+            mapScene: { inputs, _, _ in
                 mappedSnapshots.append(inputs.snapshot)
                 return customScene
             }
@@ -125,7 +125,7 @@ final class IconPresentationViewModelTests: XCTestCase {
             snapshots: snapshots.eraseToAnyPublisher(),
             preferences: preferences.eraseToAnyPublisher(),
             resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapScene: { inputs, _ in
+            mapScene: { inputs, _, _ in
                 mappedSnapshots.append(inputs.snapshot)
                 return constantScene
             },

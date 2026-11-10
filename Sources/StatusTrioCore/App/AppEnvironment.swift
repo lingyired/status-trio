@@ -476,10 +476,10 @@ final class AppEnvironment {
                 )
                 return inputs
             },
-            mapScene: { [settings] inputs, _ in
+            mapScene: { inputs, _, iconConfiguration in
                 IconCompositionResolver.resolve(
                     inputs: IconResolutionInputs(system: inputs, sources: inputs.sources),
-                    configuration: settings.derivedIconConfigurationFromSettings()
+                    configuration: iconConfiguration
                 ).scene
             }
         )
