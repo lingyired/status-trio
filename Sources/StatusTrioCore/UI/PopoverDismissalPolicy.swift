@@ -23,4 +23,30 @@ struct PopoverDismissalPolicy: Equatable {
         guard let statusItemFrame else { return true }
         return !statusItemFrame.contains(point)
     }
+
+    /// Decides whether a *focus-loss* dismissal should go ahead.
+    ///
+    /// Issue #224 follow-up: while the app itself is active (it is `regular`
+    /// because the Settings or first-run window is open, or the Dock icon is
+    /// shown), a click on the status item makes the app resign active. The
+    /// panel's `didResignActive` and `another app activated` observers then
+    /// close it on mouse-down, and the status item's own mouse-up toggle
+    /// re-presents it — the same "looks like it refreshed instead of closing"
+    /// bug, now on a second close path the outside-click monitor does not cover
+    /// (the monitor ignores events delivered to this app while it is active).
+    ///
+    /// Defer the close while a mouse button is actually held down on the status
+    /// item, so the item's own toggle owns the click. A genuine focus loss with
+    /// no button pressed — Cmd-Tab, a Space switch, clicking another app — still
+    /// dismisses, even if the pointer happens to rest over the item, so the
+    /// #183 full-screen / Cmd-Tab dismissal stays intact.
+    func shouldDismissOnFocusLoss(
+        at point: NSPoint,
+        isMouseButtonDown: Bool
+    ) -> Bool {
+        if isMouseButtonDown, let statusItemFrame, statusItemFrame.contains(point) {
+            return false
+        }
+        return true
+    }
 }

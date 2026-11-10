@@ -77,3 +77,32 @@ confirmed repeated open/close/reopen, Settings-open behavior, Cmd-Tab, Escape,
 and outside clicks. CUA could inspect windows but could not click the status item.
 Full local verification is recorded in the PR; macOS 13 runtime is NOT RUN.
 Shortcut activation is unchanged; shortcut-open → status-click is unvalidated.
+
+## Follow-up 2: focus-loss paths still reopened while the app is active
+
+The v1.9.2 follow-up fixed the *inactive* case, but the panel still had two
+unconditional focus-loss close paths that the global-click exclusion does not
+cover:
+
+- `AnchoredStatusPanel` closes on `NSApplication.didResignActiveNotification`.
+- `AnchoredStatusPanel` closes when another app activates
+  (`NSWorkspace.didActivateApplicationNotification`).
+
+Both fire when the app is **active/regular** — Dock icon shown, or the Settings,
+first-run or manual-update window open — and the user clicks the status item to
+close the panel: the app resigns active on the mouse-down, the panel closes, and
+the item's mouse-up `togglePopover` sees `popover.isShown == false` and presents
+it again. That is the same "looks like it refreshed instead of closing" symptom,
+now on a second close path.
+
+Fix: `PopoverDismissalPolicy.shouldDismissOnFocusLoss(at:isMouseButtonDown:)`
+defers a focus-loss close while a mouse button is held down inside the status
+item rectangle, letting the item's own toggle own the click. A genuine focus
+loss with no button pressed (Cmd-Tab, Space switch, clicking another app) still
+dismisses even if the pointer rests over the item, so the #183 full-screen and
+Cmd-Tab dismissal is preserved. `StatusBarController.configurePopover()` wires the
+policy to `NSEvent.mouseLocation` and `NSEvent.pressedMouseButtons`.
+
+Covered by `PopoverFocusLossDismissalPolicyTests` (headless). The real click in
+regular mode is `NOT RUN` in this checkout (no permitted Computer Use provider
+for a status-item click); it needs an authorized foreground/manual pass.

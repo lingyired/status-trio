@@ -518,6 +518,21 @@ final class StatusBarController: NSObject {
         popover.onClose = { [weak self] in
             self?.handlePanelDidClose()
         }
+        // Issue #224 follow-up: while the app is active (regular mode), the
+        // panel's focus-loss observers would close it on the status-item
+        // mouse-down and the item's mouse-up toggle would reopen it. Defer that
+        // close when the pointer is pressing the item so the toggle owns the
+        // click; a genuine focus loss (no button pressed) still dismisses.
+        popover.shouldDeferDismissalOnFocusLoss = { [weak self] in
+            guard let self else { return false }
+            let policy = PopoverDismissalPolicy(
+                statusItemFrame: self.statusItemButtonScreenFrame()
+            )
+            return !policy.shouldDismissOnFocusLoss(
+                at: NSEvent.mouseLocation,
+                isMouseButtonDown: NSEvent.pressedMouseButtons != 0
+            )
+        }
     }
 
     private func installPopoverContentIfNeeded() {

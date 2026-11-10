@@ -36,6 +36,14 @@ final class AnchoredStatusPanel: NSPanel {
     /// value and leaves it false for normal interaction.
     var disablesDismissOnResignForTesting: Bool = false
 
+    /// Consulted by the focus-loss observers (`didResignActive` and another app
+    /// activating). Returning `true` defers the close for this notification so
+    /// a click on the status item is left to the item's own toggle instead of
+    /// closing on mouse-down and reopening on mouse-up (issue #224 follow-up).
+    /// The controller wires it to the current pointer and mouse-button state;
+    /// `nil` keeps the native "always dismiss on focus loss" behaviour.
+    var shouldDeferDismissalOnFocusLoss: (() -> Bool)?
+
     /// Set only for the Debug background-testing route. A visible nonactivating
     /// panel can still become key when AppKit orders it in; refusing key status
     /// keeps application activation and keyboard focus with the user's app.
@@ -551,8 +559,7 @@ final class AnchoredStatusPanel: NSPanel {
             center.publisher(for: NSApplication.didResignActiveNotification)
                 .receive(on: RunLoop.main)
                 .sink { [weak self] _ in
-                    guard let self, self.isVisible else { return }
-                    self.performClose(nil)
+                    self?.dismissForFocusLossIfNeeded()
                 }
                 .store(in: &showCancellables)
             // A nonactivating panel can own keyboard focus while another app stays
@@ -562,15 +569,24 @@ final class AnchoredStatusPanel: NSPanel {
                 .publisher(for: NSWorkspace.didActivateApplicationNotification)
                 .receive(on: RunLoop.main)
                 .sink { [weak self] notification in
-                    guard let self, self.isVisible,
-                          let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                    guard
+                        let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
                             as? NSRunningApplication,
-                          app.processIdentifier != ProcessInfo.processInfo.processIdentifier
+                        app.processIdentifier != ProcessInfo.processInfo.processIdentifier
                     else { return }
-                    self.performClose(nil)
+                    self?.dismissForFocusLossIfNeeded()
                 }
                 .store(in: &showCancellables)
         }
+    }
+
+    /// Closes the panel for a focus-loss notification unless the controller says
+    /// this loss is a click on the status item, which the item's own mouse-up
+    /// toggle will handle (issue #224 follow-up).
+    private func dismissForFocusLossIfNeeded() {
+        guard isVisible else { return }
+        if shouldDeferDismissalOnFocusLoss?() == true { return }
+        performClose(nil)
     }
 
     private func removeShowObservers() {

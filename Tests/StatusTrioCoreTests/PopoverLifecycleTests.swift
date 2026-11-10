@@ -100,3 +100,78 @@ struct PopoverDismissalPolicyTests {
     }
 }
 
+
+/// Issue #224 follow-up: while the app itself is active (regular mode), a status
+/// item click makes the app resign active. The focus-loss close paths must leave
+/// that click to the item's own mouse-up toggle instead of closing on mouse-down
+/// and reopening on mouse-up.
+struct PopoverFocusLossDismissalPolicyTests {
+    private let statusItemFrame = NSRect(x: 100, y: 900, width: 30, height: 24)
+    private var itemCenter: NSPoint {
+        NSPoint(x: statusItemFrame.midX, y: statusItemFrame.midY)
+    }
+
+    @Test func defersFocusLossWhilePressingTheStatusItem() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+
+        #expect(
+            policy.shouldDismissOnFocusLoss(
+                at: itemCenter,
+                isMouseButtonDown: true
+            ) == false
+        )
+    }
+
+    @Test func dismissesFocusLossWhenPressingOutsideTheItem() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+        let elsewhere = NSPoint(x: 10, y: 10)
+
+        #expect(
+            policy.shouldDismissOnFocusLoss(
+                at: elsewhere,
+                isMouseButtonDown: true
+            )
+        )
+    }
+
+    /// Cmd-Tab away with the pointer parked over the menu bar item must still
+    /// dismiss (issue #183 keeps working): no button is pressed.
+    @Test func dismissesFocusLossWithNoButtonPressedEvenOverTheItem() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+
+        #expect(
+            policy.shouldDismissOnFocusLoss(
+                at: itemCenter,
+                isMouseButtonDown: false
+            )
+        )
+    }
+
+    @Test func dismissesFocusLossWhenTheItemFrameIsUnknown() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: nil)
+
+        #expect(
+            policy.shouldDismissOnFocusLoss(
+                at: NSPoint(x: 0, y: 0),
+                isMouseButtonDown: true
+            )
+        )
+    }
+
+    /// Composes the active-app gesture: the focus-loss notification arrives on
+    /// mouse-down and must defer, then the item's mouse-up toggle closes the
+    /// panel exactly once instead of the panel closing then reopening.
+    @Test func activeAppStatusItemClickClosesExactlyOnce() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+        var panelVisible = true
+
+        // Mouse-down: the focus-loss observer runs and defers.
+        if policy.shouldDismissOnFocusLoss(at: itemCenter, isMouseButtonDown: true) {
+            panelVisible = false
+        }
+        // Mouse-up: the status item's own toggle flips the panel.
+        panelVisible.toggle()
+
+        #expect(panelVisible == false)
+    }
+}
