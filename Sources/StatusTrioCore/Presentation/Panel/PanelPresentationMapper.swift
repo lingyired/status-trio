@@ -262,6 +262,26 @@ enum PanelPresentationMapper {
         return localization.format(.batteryTimeToFullHoursMinutes, hours, remainingMinutes)
     }
 
+    static func batteryRuntimeText(
+        _ battery: BatteryStatus,
+        localization: Localization
+    ) -> String? {
+        guard !battery.isConnectedToPower, !battery.isCharging,
+              let minutes = battery.timeToEmptyMinutes, minutes > 0 else { return nil }
+
+        let formatter = DateComponentsFormatter()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = localization.resolvedLanguage.locale
+        formatter.calendar = calendar
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .full
+        formatter.zeroFormattingBehavior = .dropAll
+        guard let duration = formatter.string(from: DateComponents(minute: minutes)) else {
+            return nil
+        }
+        return localization.format(.batteryTimeRemaining, duration)
+    }
+
     static func batterySubtitle(
         _ battery: BatteryStatus,
         localization: Localization,
@@ -298,13 +318,15 @@ enum PanelPresentationMapper {
              .cancelLimitChangedConfirmation:
             break
         }
+        let runtime = batteryRuntimeText(battery, localization: localization)
         if battery.isLowPowerMode {
-            return localization.string(.batteryStateLowPowerMode)
+            let state = localization.string(.batteryStateLowPowerMode)
+            return runtime.map { "\(state) · \($0)" } ?? state
         }
         if battery.isConnectedToPower {
             return localization.string(.batteryStateConnectedToPower)
         }
-        return localization.string(.batteryStateOnBattery)
+        return runtime ?? localization.string(.batteryStateOnBattery)
     }
 
     static func wifiValue(_ wifi: WiFiStatus, localization: Localization) -> String {

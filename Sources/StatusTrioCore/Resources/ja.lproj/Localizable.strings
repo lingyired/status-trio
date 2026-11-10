@@ -70,6 +70,11 @@
 "settings.appIcon.middleIcon.size.description" = "中央に表示するすべての内容（Wi-Fi、Bluetooth、入力ソース、数字）で共通のサイズです。";
 "settings.appIcon.middleIcon.networkWarnings" = "ネットワークの問題を優先";
 "settings.appIcon.middleIcon.networkWarnings.description" = "Mac が実際にオフラインのときは、選択したソースの代わりにネットワークの状態を表示します。";
+"settings.appIcon.middleIcon.inputSourceMarker" = "ピンインのアイコン";
+"settings.appIcon.middleIcon.inputSourceMarker.description" = "Apple の簡体字/繁体字ピンイン入力ソースが中央のアイコンをどう表示するか。";
+"settings.appIcon.middleIcon.inputSourceMarker.systemIcon" = "システムアイコン";
+"settings.appIcon.middleIcon.inputSourceMarker.script" = "简 / 繁";
+"settings.appIcon.middleIcon.inputSourceMarker.zhong" = "中";
 "settings.network.connectionIcons" = "接続アイコンのスタイル";
 "settings.network.connectionIcons.description" = "有効にすると、選択した状態は専用マークではなく標準の Wi-Fi シグナルアイコンで表示されます。";
 "settings.network.wifiIconForEthernet" = "Ethernet に Wi-Fi アイコンを使用";
@@ -183,7 +188,11 @@
 "settings.battery.group.topMarkers" = "上部マーカー";
 "settings.battery.group.progress" = "進行状況";
 "settings.battery.noBatteryNotice" = "このデバイスにはバッテリーがないため、バッテリー残量のパーセンテージは表示されません。";
+"settings.battery.noBatteryTopIndicator" = "上部インジケーター";
+"settings.battery.noBatteryTopIndicatorDescription" = "このMacにはバッテリーがないため、このアイコンは装飾用です。リングの隙間に稲妻またはプラグを表示しますが、実際の充電状態を示すものではありません。";
+"settings.battery.noBatteryGapIcon" = "隙間のアイコン";
 "settings.battery.showPercentage" = "バッテリー残量を表示";
+"settings.battery.showPercentageNoBattery" = "このデバイスにはバッテリーがありません";
 "settings.battery.showChargingIndicator" = "充電中または電源接続時にアイコンを表示";
 "settings.battery.chargingDescription" = "有効にすると、充電中または電源接続時に残量が稲妻またはプラグに変わります。無効の場合は残量を表示します。";
 "settings.battery.splitGapProgress" = "上部のすき間があるときに進捗を分割";
@@ -203,11 +212,22 @@
 "settings.battery.connectedIndicator.plug" = "プラグ";
 "settings.battery.connectedIndicator.bolt" = "稲妻";
 "settings.battery.connectedIndicator.percentage" = "パーセント";
+"settings.battery.marker.onBattery" = "バッテリー駆動時";
+"settings.battery.marker.charging" = "充電中";
+"settings.battery.marker.connected" = "電源接続（充電なし）";
+"settings.battery.marker.hidden" = "非表示";
 "settings.battery.symbolScale" = "残量/稲妻のサイズ";
 "settings.battery.symbolScaleAccessibility" = "バッテリー残量と稲妻のサイズ";
 "settings.battery.symbolScaleDescription" = "残量と稲妻は同じサイズを使用します。";
 "settings.battery.statusColors" = "バッテリー状態で円弧を色分け";
 "settings.battery.statusColorsDescription" = "初期設定は電源接続時が緑、低電力モードが黄、低残量が赤です。下で変更できます。オフにすると保存済みのカスタム色は適用されません。";
+"settings.battery.monochromeCharging" = "充電・電源接続時は白黒";
+"settings.battery.monochromeChargingDescription" = "充電中・電源接続中はリングを白黒で描画します。低電力モードと高電力モードはそれぞれの色を使います。バッテリーのない Mac は既定でオンです。";
+
+"settings.battery.developerPreview" = "開発者プレビュー";
+"settings.battery.simulateNoBattery" = "バッテリーなしをシミュレート";
+"settings.battery.simulateNoBatteryDescription" = "バッテリーのない Mac での表示を再現します。開発ビルドのみ。";
+"settings.battery.noBatteryHiddenOptions" = "この Mac にはバッテリーがありません。残量パーセントと充電インジケーターは適用されません。リングは既定で白黒です。上でオフにすると電源接続色になります。低電力モードと高電力モードはそれぞれの色を保ちます。";
 "settings.battery.colors.charging" = "充電中 / 電源接続中";
 "settings.battery.colors.lowPower" = "低電力モード";
 "settings.battery.colors.critical" = "バッテリー残量がわずか";
@@ -241,6 +261,7 @@
 "battery.state.notPresent" = "バッテリーなし";
 "battery.state.charged" = "充電完了";
 "battery.state.calculatingTimeToFull" = "満充電までの時間を計算中";
+"battery.timeRemaining" = "残り約%@";
 "battery.timeToFull.minutes" = "満充電まで約 %d 分";
 "battery.timeToFull.hours" = "満充電まで約 %d 時間";
 "battery.timeToFull.hoursMinutes" = "満充電まで約 %d 時間 %d 分";
@@ -528,6 +549,9 @@
 "settings.audio.indicatorStyleDescription" = "ステータスリング下部に4つのドットまたは連続する円弧バーのいずれで表示するかを選択します。";
 "settings.audio.indicatorStyle.dots" = "4つのドット";
 "settings.audio.indicatorStyle.arc" = "円弧バー";
+"settings.audio.airPodsInlineControlsTitle" = "ヘッドフォンコントロール";
+"settings.audio.airPodsInlineControls" = "音量パネルに AirPods コントロールを表示";
+"settings.audio.airPodsInlineControlsDescription" = "AirPods 出力の横に会話認識・空間オーディオ・アダプティブのコントロールを表示します。私的 API ベースのこれらのコントロールを隠すにはオフにします。";
 
 // On-demand battery details.
 "battery.details.title" = "バッテリーの詳細";
@@ -541,6 +565,7 @@
 "battery.details.current" = "バッテリー電流";
 "battery.details.sampled" = "バッテリー計測時刻";
 "battery.details.adapter" = "アダプタの定格出力";
+"battery.details.inputPort" = "充電ポート";
 "battery.details.remaining" = "残り時間";
 "battery.details.cycles" = "充放電回数";
 "battery.details.uptime" = "起動からの経過時間";
@@ -718,6 +743,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "システムの充電状態が変更された可能性があります。もう一度クリックして続行してください。";
 "battery.action.cancelChargeToFullNowPending" = "システムが一時的なフル充電をまだ確認できていません。少し待ってから再試行してください。";
 
+// AirPods system controls
+"airPods.controls" = "AirPods コントロール…";
+"airPods.adaptive" = "適応型オーディオ";
+"airPods.lessNoise" = "ノイズを減らす";
+"airPods.moreNoise" = "ノイズを増やす";
+"airPods.adaptiveUnavailable" = "Bluetooth経由の適応型オーディオ調整は利用できません。";
+"airPods.spatial" = "ステレオを空間化";
+"airPods.conversation" = "会話感知";
+"airPods.routeChanged" = "選択した AirPods が変更されたか切断されました。現在の出力のコントロールを開き直してください。";
+"airPods.unconfirmed" = "macOS で変更を確認できませんでした。更新して実際の設定を確認してください。";
+"airPods.unavailable" = "Bluetoothによる直接操作は利用できません。";
+"airPods.notAvailable" = "利用不可";
+"airPods.apply" = "適用";
+
+"airPods.spatialFixed" = "固定";
+"airPods.spatialHeadTracked" = "ヘッドトラッキング";
+
+"airpods.retry" = "再試行";
 "settings.popup.order.brightness" = "明るさ";
 "brightness.row.accessibility" = "%@ の明るさ、%@";
 "brightness.row.accessibilityUnavailable" = "%@ の明るさ、%@";
@@ -789,6 +832,13 @@
 "settings.brightness.compatibility.title" = "明るさを調整できない場合";
 "settings.brightness.compatibility.description" = "ディスプレイメーカーごとに DDC の実装が異なるため、Status Trio はすべての機種に対応できません。ここで明るさを調整できないディスプレイは、BetterDisplay バックエンドに切り替えてください。Status Trio が BetterDisplay 経由で制御します。無料版で十分です。Pro ライセンスは不要です。";
 "settings.brightness.compatibility.link" = "BetterDisplay をダウンロード（無料）";
+"settings.brightness.betterDisplay.manualHint" = "このディスプレイの明るさがまだ利用できない場合は、上の BetterDisplay ディスプレイを手動で切り替えてください。";
+"settings.brightness.betterDisplay.display" = "BetterDisplay ディスプレイ";
+"settings.brightness.betterDisplay.automatic" = "自動（システムディスプレイで照合）";
+"settings.brightness.betterDisplay.unnamed" = "名称未設定のディスプレイ";
+"settings.brightness.betterDisplay.saved" = "保存済み";
+"settings.brightness.betterDisplay.unavailable" = "利用不可";
+"settings.brightness.betterDisplay.refresh" = "デバイスを更新";
 "settings.battery.colors.highPower" = "高電力モード";
 "battery.lowPowerMode.autoEnable" = "低電力モードを自動でオン";
 "battery.lowPowerMode.autoEnableDescription" = "電源を外すと、バッテリー残量が低バッテリーしきい値を下回ったときに低電力モードが自動でオンになります。低バッテリーごとに 1 回だけです。";
@@ -807,6 +857,8 @@
 
 "settings.network.powerControl" = "Wi-Fi 電源ボタンを表示";
 "settings.network.powerControlDescription" = "ステータスパネルに Wi-Fi の電源ボタンを表示します。";
+"settings.network.confirmBeforePowerOff" = "Wi-Fi をオフにする前に確認";
+"settings.network.confirmBeforePowerOffDescription" = "接続中に Wi-Fi をオフにする前に確認します。";
 "wifi.power.turnOn" = "Wi-Fiをオンにする";
 "wifi.power.turnOff" = "Wi-Fiをオフにする";
 "wifi.power.unknown" = "Wi-Fiの状態を取得できません。";
@@ -828,3 +880,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "リスニングモード";
 "settings.subtopic.bluetooth.deviceBattery" = "デバイスのバッテリー";
 "settings.subtopic.bluetooth.deviceManagement" = "デバイス管理";
+"settings.audio.spatialAudioControlsTitle" = "空間オーディオのコントロールを表示";
+"settings.audio.spatialAudioControlsDescription" = "AirPods の出力行に空間オーディオのオプション（オフ/固定/頭部トラッキング）を表示します。現在は AirPods のみ対応。";
+"settings.audio.conversationAwarenessControlsTitle" = "会話認識のコントロールを表示";
+"settings.audio.conversationAwarenessControlsDescription" = "AirPods の出力行に会話認識のスイッチを表示します。現在は AirPods のみ対応。";

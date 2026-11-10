@@ -70,6 +70,11 @@
 "settings.appIcon.middleIcon.size.description" = "중앙에 표시되는 모든 내용(Wi-Fi, Bluetooth, 입력 소스, 숫자)에 공통으로 적용되는 크기입니다.";
 "settings.appIcon.middleIcon.networkWarnings" = "네트워크 문제 우선 표시";
 "settings.appIcon.middleIcon.networkWarnings.description" = "Mac이 실제로 오프라인일 때 중앙에 선택한 소스 대신 네트워크 상태를 표시합니다.";
+"settings.appIcon.middleIcon.inputSourceMarker" = "병음 아이콘";
+"settings.appIcon.middleIcon.inputSourceMarker.description" = "Apple 간체/번체 병음 입력 소스가 중앙 아이콘을 표시하는 방식입니다.";
+"settings.appIcon.middleIcon.inputSourceMarker.systemIcon" = "시스템 아이콘";
+"settings.appIcon.middleIcon.inputSourceMarker.script" = "简 / 繁";
+"settings.appIcon.middleIcon.inputSourceMarker.zhong" = "中";
 "settings.network.connectionIcons" = "연결 아이콘 스타일";
 "settings.network.connectionIcons.description" = "활성화하면 선택한 상태가 전용 표시 대신 표준 Wi-Fi 신호 아이콘으로 표시됩니다.";
 "settings.network.wifiIconForEthernet" = "Ethernet에 Wi-Fi 아이콘 사용";
@@ -183,7 +188,11 @@
 "settings.battery.group.topMarkers" = "상단 마커";
 "settings.battery.group.progress" = "진행 상황";
 "settings.battery.noBatteryNotice" = "이 기기에는 배터리가 없으므로 배터리 잔량 백분율이 표시되지 않습니다.";
+"settings.battery.noBatteryTopIndicator" = "상단 표시기";
+"settings.battery.noBatteryTopIndicatorDescription" = "이 Mac에는 배터리가 없으므로 이 아이콘은 장식용입니다. 링의 틈에 번개 또는 플러그를 표시할 뿐 실제 충전 상태를 나타내지 않습니다.";
+"settings.battery.noBatteryGapIcon" = "틈 아이콘";
 "settings.battery.showPercentage" = "배터리 잔량 표시";
+"settings.battery.showPercentageNoBattery" = "이 기기에는 배터리가 없습니다";
 "settings.battery.showChargingIndicator" = "충전 또는 전원 연결 시 아이콘 표시";
 "settings.battery.chargingDescription" = "활성화하면 충전 중이거나 전원에 연결되었을 때 잔량이 번개 또는 플러그로 바뀝니다. 비활성화하면 잔량을 계속 표시합니다.";
 "settings.battery.splitGapProgress" = "상단 틈에 내용이 있을 때 진행률 분할";
@@ -203,11 +212,22 @@
 "settings.battery.connectedIndicator.plug" = "플러그";
 "settings.battery.connectedIndicator.bolt" = "번개";
 "settings.battery.connectedIndicator.percentage" = "백분율";
+"settings.battery.marker.onBattery" = "배터리 사용 시";
+"settings.battery.marker.charging" = "충전 중";
+"settings.battery.marker.connected" = "전원 연결, 충전 안 함";
+"settings.battery.marker.hidden" = "숨김";
 "settings.battery.symbolScale" = "잔량/번개 크기";
 "settings.battery.symbolScaleAccessibility" = "배터리 잔량 및 번개 크기";
 "settings.battery.symbolScaleDescription" = "잔량과 번개는 같은 크기를 사용합니다.";
 "settings.battery.statusColors" = "배터리 상태에 따라 원호 색상 변경";
 "settings.battery.statusColorsDescription" = "기본 색상은 전원 연결 시 초록색, 저전력 모드 시 노란색, 배터리 부족 시 빨간색이며 아래에서 변경할 수 있습니다. 끄면 저장된 사용자 지정 색상은 적용되지 않습니다.";
+"settings.battery.monochromeCharging" = "충전·전원 연결 시 흑백";
+"settings.battery.monochromeChargingDescription" = "충전 중이거나 전원에 연결됐을 때 링을 흑백으로 표시합니다. 저전력 모드와 고전력 모드는 각자의 색을 유지합니다. 배터리가 없는 Mac은 기본적으로 켜집니다.";
+
+"settings.battery.developerPreview" = "개발자 미리보기";
+"settings.battery.simulateNoBattery" = "배터리 없음 시뮬레이션";
+"settings.battery.simulateNoBatteryDescription" = "배터리가 없는 Mac에서의 모습으로 이 페이지를 표시합니다. 개발 빌드 전용입니다.";
+"settings.battery.noBatteryHiddenOptions" = "이 Mac에는 배터리가 없습니다. 잔량 퍼센트와 충전 표시기는 적용되지 않습니다. 링은 기본적으로 흑백이며, 위에서 끄면 전원 연결 색을 사용합니다. 저전력·고전력 모드는 각자의 색을 유지합니다.";
 "settings.battery.colors.charging" = "충전 중 / 전원 연결";
 "settings.battery.colors.lowPower" = "저전력 모드";
 "settings.battery.colors.critical" = "배터리 잔량 매우 부족";
@@ -241,6 +261,7 @@
 "battery.state.notPresent" = "배터리 없음";
 "battery.state.charged" = "충전 완료";
 "battery.state.calculatingTimeToFull" = "완전 충전 시간 계산 중";
+"battery.timeRemaining" = "약 %@ 사용 가능";
 "battery.timeToFull.minutes" = "완전 충전까지 약 %d분";
 "battery.timeToFull.hours" = "완전 충전까지 약 %d시간";
 "battery.timeToFull.hoursMinutes" = "완전 충전까지 약 %d시간 %d분";
@@ -528,6 +549,9 @@
 "settings.audio.indicatorStyleDescription" = "상태 링 하단에 네 개의 점 또는 연속된 호 모양 막대 중 표시 방식을 선택합니다.";
 "settings.audio.indicatorStyle.dots" = "네 개의 점";
 "settings.audio.indicatorStyle.arc" = "호 막대";
+"settings.audio.airPodsInlineControlsTitle" = "헤드폰 제어";
+"settings.audio.airPodsInlineControls" = "볼륨 패널에 AirPods 제어 표시";
+"settings.audio.airPodsInlineControlsDescription" = "AirPods 출력 옆에 대화 인식, 공간 오디오, 적응형 제어를 표시합니다. 비공개 API 기반의 이러한 제어를 숨기려면 끕니다.";
 
 // On-demand battery details.
 "battery.details.title" = "배터리 세부 정보";
@@ -541,6 +565,7 @@
 "battery.details.current" = "배터리 전류";
 "battery.details.sampled" = "배터리 측정 시각";
 "battery.details.adapter" = "어댑터 정격 출력";
+"battery.details.inputPort" = "충전 포트";
 "battery.details.remaining" = "남은 시간";
 "battery.details.cycles" = "사이클 수";
 "battery.details.uptime" = "시스템 가동 시간";
@@ -718,6 +743,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "시스템 충전 상태가 변경되었을 수 있습니다. 계속하려면 다시 클릭하십시오.";
 "battery.action.cancelChargeToFullNowPending" = "시스템이 임시 완전 충전 상태를 아직 확인하지 못했습니다. 잠시 후 다시 시도하세요.";
 
+// AirPods system controls
+"airPods.controls" = "AirPods 제어…";
+"airPods.adaptive" = "적응형 오디오";
+"airPods.lessNoise" = "소음 줄이기";
+"airPods.moreNoise" = "소음 늘리기";
+"airPods.adaptiveUnavailable" = "Bluetooth를 통한 적응형 오디오 조절을 사용할 수 없습니다.";
+"airPods.spatial" = "스테레오 공간화";
+"airPods.conversation" = "대화 인지";
+"airPods.routeChanged" = "선택한 AirPods가 변경되었거나 연결이 끊겼습니다. 현재 출력의 제어기를 다시 여세요.";
+"airPods.unconfirmed" = "macOS에서 변경을 확인하지 못했습니다. 새로 고쳐 실제 설정을 확인하세요.";
+"airPods.unavailable" = "Bluetooth 직접 제어를 사용할 수 없습니다.";
+"airPods.notAvailable" = "사용 불가";
+"airPods.apply" = "적용";
+
+"airPods.spatialFixed" = "고정";
+"airPods.spatialHeadTracked" = "머리 추적";
+
+"airpods.retry" = "다시 시도";
 "settings.popup.order.brightness" = "밝기";
 "brightness.row.accessibility" = "%@의 밝기, %@";
 "brightness.row.accessibilityUnavailable" = "%@의 밝기, %@";
@@ -789,6 +832,13 @@
 "settings.brightness.compatibility.title" = "밝기를 조절할 수 없나요?";
 "settings.brightness.compatibility.description" = "제조사마다 DDC 구현이 달라 Status Trio가 모든 모델을 지원할 수는 없습니다. 여기서 밝기를 조절할 수 없는 디스플레이는 BetterDisplay 백엔드로 전환하세요. Status Trio가 BetterDisplay를 통해 제어합니다. 무료 버전으로 충분하며 Pro 라이선스는 필요하지 않습니다.";
 "settings.brightness.compatibility.link" = "BetterDisplay 다운로드(무료)";
+"settings.brightness.betterDisplay.manualHint" = "이 디스플레이의 밝기를 여전히 사용할 수 없으면 위의 BetterDisplay 디스플레이를 수동으로 전환하세요.";
+"settings.brightness.betterDisplay.display" = "BetterDisplay 디스플레이";
+"settings.brightness.betterDisplay.automatic" = "자동(시스템 디스플레이로 일치)";
+"settings.brightness.betterDisplay.unnamed" = "이름 없는 디스플레이";
+"settings.brightness.betterDisplay.saved" = "저장됨";
+"settings.brightness.betterDisplay.unavailable" = "사용 불가";
+"settings.brightness.betterDisplay.refresh" = "기기 새로 고침";
 "settings.battery.colors.highPower" = "고전력 모드";
 "battery.lowPowerMode.autoEnable" = "저전력 모드 자동 켜기";
 "battery.lowPowerMode.autoEnableDescription" = "전원을 분리하면 배터리 잔량이 저배터리 임계값 아래로 떨어질 때 저전력 모드가 자동으로 켜집니다. 저배터리마다 한 번만 실행됩니다.";
@@ -807,6 +857,8 @@
 
 "settings.network.powerControl" = "Wi-Fi 전원 버튼 표시";
 "settings.network.powerControlDescription" = "상태 패널에 Wi-Fi 전원 버튼을 표시합니다.";
+"settings.network.confirmBeforePowerOff" = "Wi-Fi 끄기 전 확인";
+"settings.network.confirmBeforePowerOffDescription" = "연결된 상태에서 Wi-Fi를 끄기 전에 확인합니다.";
 "wifi.power.turnOn" = "Wi-Fi 켜기";
 "wifi.power.turnOff" = "Wi-Fi 끄기";
 "wifi.power.unknown" = "Wi-Fi 상태를 사용할 수 없습니다.";
@@ -828,3 +880,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "청취 모드";
 "settings.subtopic.bluetooth.deviceBattery" = "기기 배터리";
 "settings.subtopic.bluetooth.deviceManagement" = "기기 관리";
+"settings.audio.spatialAudioControlsTitle" = "공간 음향 제어 표시";
+"settings.audio.spatialAudioControlsDescription" = "AirPods 출력 행에 공간 음향 옵션(끔/고정/머리 추적)을 표시합니다. 현재 AirPods만 지원합니다.";
+"settings.audio.conversationAwarenessControlsTitle" = "대화 인식 제어 표시";
+"settings.audio.conversationAwarenessControlsDescription" = "AirPods 출력 행에 대화 인식 스위치를 표시합니다. 현재 AirPods만 지원합니다.";

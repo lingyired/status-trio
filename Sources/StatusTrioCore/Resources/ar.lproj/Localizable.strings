@@ -53,6 +53,11 @@
 "settings.appIcon.middleIcon.size.description" = "حجم واحد لكل محتوى المنتصف: Wi-Fi وBluetooth ومصدر الإدخال والأرقام.";
 "settings.appIcon.middleIcon.networkWarnings" = "إعطاء أولوية لمشاكل الشبكة";
 "settings.appIcon.middleIcon.networkWarnings.description" = "عندما يكون Mac غير متصل فعليًا، يعرض المنتصف حالة الشبكة بدلًا من المصدر المحدد.";
+"settings.appIcon.middleIcon.inputSourceMarker" = "أيقونة البينيين";
+"settings.appIcon.middleIcon.inputSourceMarker.description" = "كيف تعرض مصادر إدخال بينيين الصينية المبسطة والتقليدية من Apple أيقونتها الوسطى.";
+"settings.appIcon.middleIcon.inputSourceMarker.systemIcon" = "أيقونة النظام";
+"settings.appIcon.middleIcon.inputSourceMarker.script" = "简 / 繁";
+"settings.appIcon.middleIcon.inputSourceMarker.zhong" = "中";
 "settings.network.connectionIcons" = "نمط أيقونات الاتصال";
 "settings.network.connectionIcons.description" = "عند التمكين، تستخدم الحالة المحددة أيقونة إشارة Wi-Fi القياسية بدلًا من علامتها الخاصة.";
 "settings.network.wifiIconForEthernet" = "استخدام أيقونة Wi-Fi لإيثرنت";
@@ -166,7 +171,11 @@
 "settings.battery.group.topMarkers" = "العلامات العلوية";
 "settings.battery.group.progress" = "التقدم";
 "settings.battery.noBatteryNotice" = "لا يحتوي هذا الجهاز على بطارية، لذا لا تُعرض نسبة شحن البطارية.";
+"settings.battery.noBatteryTopIndicator" = "مؤشر علوي";
+"settings.battery.noBatteryTopIndicatorDescription" = "هذا الـ Mac بلا بطارية، لذا فإن هذا الرمز للزينة فقط: يرسم صاعقة أو قابسًا في فجوة الحلقة ولا يعكس حالة شحن حقيقية.";
+"settings.battery.noBatteryGapIcon" = "رمز الفجوة";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
+"settings.battery.showPercentageNoBattery" = "هذا الجهاز لا يحتوي على بطارية";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";
 "settings.battery.chargingDescription" = "عند التفعيل، تتحول النسبة إلى رمز برق أو قابس أثناء الشحن أو الاتصال بالطاقة.";
 "settings.battery.splitGapProgress" = "تقسيم التقدم عندما تكون الفجوة العليا ممتلئة";
@@ -186,11 +195,22 @@
 "settings.battery.connectedIndicator.plug" = "قابس";
 "settings.battery.connectedIndicator.bolt" = "برق";
 "settings.battery.connectedIndicator.percentage" = "نسبة مئوية";
+"settings.battery.marker.onBattery" = "على البطارية";
+"settings.battery.marker.charging" = "أثناء الشحن";
+"settings.battery.marker.connected" = "متصل بالطاقة دون شحن";
+"settings.battery.marker.hidden" = "مخفي";
 "settings.battery.symbolScale" = "حجم النسبة/البرق";
 "settings.battery.symbolScaleAccessibility" = "حجم نسبة البطارية ورمز البرق";
 "settings.battery.symbolScaleDescription" = "تستخدم النسبة ورمز البرق الحجم نفسه.";
 "settings.battery.statusColors" = "تلوين القوس حسب حالة البطارية";
 "settings.battery.statusColorsDescription" = "الألوان الافتراضية هي الأخضر للطاقة والأصفر لوضع الطاقة المنخفضة والأحمر لانخفاض البطارية. يمكنك تغييرها أدناه. عند التعطيل لا تُطبّق الألوان المخصصة المحفوظة.";
+"settings.battery.monochromeCharging" = "أبيض وأسود أثناء الشحن أو توصيل الطاقة";
+"settings.battery.monochromeChargingDescription" = "يرسم الحلقة بالأبيض والأسود أثناء الشحن أو توصيل الطاقة. يحتفظ وضعا الطاقة المنخفضة والعالية بألوانهما. يُفعَّل افتراضيًا على Mac بدون بطارية.";
+
+"settings.battery.developerPreview" = "معاينة المطوّر";
+"settings.battery.simulateNoBattery" = "محاكاة عدم وجود بطارية";
+"settings.battery.simulateNoBatteryDescription" = "يعرض هذه الصفحة كما تظهر على Mac بدون بطارية. في إصدارات التطوير فقط.";
+"settings.battery.noBatteryHiddenOptions" = "لا توجد بطارية في هذا الـ Mac: النسبة المئوية ومؤشر الشحن لا ينطبقان. الحلقة أبيض وأسود افتراضيًا؛ أوقفه أعلى لاستخدام لون توصيل الطاقة. يحتفظ وضعا الطاقة المنخفضة والعالية بألوانهما.";
 "settings.battery.colors.charging" = "الشحن / الاتصال بالطاقة";
 "settings.battery.colors.lowPower" = "وضع الطاقة المنخفضة";
 "settings.battery.colors.critical" = "انخفاض حرج في البطارية";
@@ -224,6 +244,7 @@
 "battery.state.notPresent" = "لا توجد بطارية";
 "battery.state.charged" = "ممتلئة بالكامل";
 "battery.state.calculatingTimeToFull" = "جارٍ حساب الوقت حتى الامتلاء";
+"battery.timeRemaining" = "الوقت المتبقي: حوالي %@";
 "battery.timeToFull.minutes" = "نحو %d دقيقة حتى الامتلاء";
 "battery.timeToFull.hours" = "نحو %d ساعة حتى الامتلاء";
 "battery.timeToFull.hoursMinutes" = "نحو %d ساعة و%d دقيقة حتى الامتلاء";
@@ -528,6 +549,9 @@
 "settings.audio.indicatorStyleDescription" = "اختر ما إذا كان مستوى الصوت يظهر كأربع نقاط أو كقوس متصل.";
 "settings.audio.indicatorStyle.dots" = "نقاط";
 "settings.audio.indicatorStyle.arc" = "قوس";
+"settings.audio.airPodsInlineControlsTitle" = "عناصر تحكم السماعات";
+"settings.audio.airPodsInlineControls" = "عرض عناصر تحكم AirPods في لوحة الصوت";
+"settings.audio.airPodsInlineControlsDescription" = "يعرض أدوات التحكم في إدراك المحادثة والصوت المكاني والتكيّف بجانب مخرج AirPods. عطّل لإخفاء هذه الأدوات القائمة على واجهات برمجية خاصة.";
 
 // On-demand battery details.
 "battery.details.title" = "تفاصيل البطارية";
@@ -541,6 +565,7 @@
 "battery.details.current" = "تيار البطارية";
 "battery.details.sampled" = "وقت قياس البطارية";
 "battery.details.adapter" = "القدرة الاسمية للمحوّل";
+"battery.details.inputPort" = "منفذ الشحن";
 "battery.details.remaining" = "الوقت المتبقي";
 "battery.details.cycles" = "عدد دورات الشحن";
 "battery.details.uptime" = "مدة تشغيل النظام";
@@ -718,6 +743,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "قد تكون حالة شحن النظام قد تغيّرت. انقر مرة أخرى للمتابعة.";
 "battery.action.cancelChargeToFullNowPending" = "لم يؤكد النظام تجاوز حد الشحن المؤقت بعد. حاول مرة أخرى بعد قليل.";
 
+// AirPods system controls
+"airPods.controls" = "عناصر تحكم AirPods…";
+"airPods.adaptive" = "الصوت التكيفي";
+"airPods.lessNoise" = "ضوضاء أقل";
+"airPods.moreNoise" = "ضوضاء أكثر";
+"airPods.adaptiveUnavailable" = "ضبط الصوت التكيفي عبر Bluetooth غير متاح.";
+"airPods.spatial" = "جعل الاستريو مكانيًا";
+"airPods.conversation" = "إدراك المحادثة";
+"airPods.routeChanged" = "تغيرت سماعات AirPods المحددة أو انقطع اتصالها. أعد فتح عناصر تحكم الإخراج الحالي.";
+"airPods.unconfirmed" = "لم يؤكد macOS التغيير. حدّث لقراءة الإعداد الفعلي.";
+"airPods.unavailable" = "التحكم المباشر عبر Bluetooth غير متاح.";
+"airPods.notAvailable" = "غير متاح";
+"airPods.apply" = "تطبيق";
+
+"airPods.spatialFixed" = "ثابت";
+"airPods.spatialHeadTracked" = "تتبع الرأس";
+
+"airpods.retry" = "إعادة المحاولة";
 "settings.popup.order.brightness" = "السطوع";
 "brightness.row.accessibility" = "السطوع لـ %@، %@";
 "brightness.row.accessibilityUnavailable" = "السطوع لـ %@، %@";
@@ -789,6 +832,13 @@
 "settings.brightness.compatibility.title" = "لا يمكن التحكم في السطوع؟";
 "settings.brightness.compatibility.description" = "تختلف طريقة تنفيذ DDC بين مصنّعي الشاشات، لذا لا يمكن لـ Status Trio دعم كل الطُرز. إذا تعذّر ضبط سطوع شاشة من هنا، فبدّل خلفيتها إلى BetterDisplay — وسيتحكم Status Trio بها عبر BetterDisplay. الإصدار المجاني كافٍ، ولا حاجة لشراء Pro.";
 "settings.brightness.compatibility.link" = "نزّل BetterDisplay (مجانًا)";
+"settings.brightness.betterDisplay.manualHint" = "إذا كانت سطوع هذه الشاشة لا يزال غير متاح، فبدّل شاشة BetterDisplay أعلاه يدويًا.";
+"settings.brightness.betterDisplay.display" = "شاشة BetterDisplay";
+"settings.brightness.betterDisplay.automatic" = "تلقائي (المطابقة حسب شاشة النظام)";
+"settings.brightness.betterDisplay.unnamed" = "شاشة بدون اسم";
+"settings.brightness.betterDisplay.saved" = "محفوظ";
+"settings.brightness.betterDisplay.unavailable" = "غير متاح";
+"settings.brightness.betterDisplay.refresh" = "تحديث الأجهزة";
 "settings.battery.colors.highPower" = "وضع الطاقة العالية";
 "battery.lowPowerMode.autoEnable" = "تشغيل وضع الطاقة المنخفضة تلقائيًا";
 "battery.lowPowerMode.autoEnableDescription" = "بعد فصل الطاقة، يتم تشغيل وضع الطاقة المنخفضة تلقائيًا عندما ينخفض مستوى البطارية إلى ما دون حد البطارية المنخفضة. مرة واحدة لكل دورة بطارية منخفضة.";
@@ -807,6 +857,8 @@
 
 "settings.network.powerControl" = "إظهار زر طاقة Wi-Fi";
 "settings.network.powerControlDescription" = "يضيف زر طاقة Wi-Fi إلى لوحة الحالة.";
+"settings.network.confirmBeforePowerOff" = "تأكيد قبل إيقاف Wi-Fi";
+"settings.network.confirmBeforePowerOffDescription" = "اطلب التأكيد قبل إيقاف Wi-Fi أثناء الاتصال.";
 "wifi.power.turnOn" = "تشغيل Wi-Fi";
 "wifi.power.turnOff" = "إيقاف Wi-Fi";
 "wifi.power.unknown" = "حالة Wi-Fi غير متاحة.";
@@ -828,3 +880,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "وضع الاستماع";
 "settings.subtopic.bluetooth.deviceBattery" = "بطارية الجهاز";
 "settings.subtopic.bluetooth.deviceManagement" = "إدارة الأجهزة";
+"settings.audio.spatialAudioControlsTitle" = "إظهار عناصر تحكم الصوت المكاني";
+"settings.audio.spatialAudioControlsDescription" = "يعرض خيارات الصوت المكاني (إيقاف/ثابت/تتبع الرأس) في صف إخراج AirPods. يدعم AirPods فقط حالياً.";
+"settings.audio.conversationAwarenessControlsTitle" = "إظهار عناصر تحكم الوعي بالمحادثة";
+"settings.audio.conversationAwarenessControlsDescription" = "يعرض مفتاح الوعي بالمحادثة في صف إخراج AirPods. يدعم AirPods فقط حالياً.";

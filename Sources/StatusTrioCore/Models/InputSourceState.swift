@@ -10,10 +10,13 @@ struct InputSourceState: Equatable, Sendable {
     var sources: [InputSourceDescriptor]
     var modifiers = InputSourceModifiers()
 
-    /// Shared drawing input for Menu Bar, Dock, and live previews. The source
-    /// list keeps its original descriptors and selection identity.
-    var iconDescriptor: InputSourceDescriptor? {
-        selectedDescriptor?.applying(modifiers)
+    /// Shared drawing input for Menu Bar, Dock, and live previews, with
+    /// `markerStyle` baked in. The source list keeps its original descriptors
+    /// and selection identity.
+    func iconDescriptor(markerStyle: InputSourceMarkerStyle) -> InputSourceDescriptor? {
+        selectedDescriptor?
+            .applying(modifiers)
+            .applying(markerStyle: markerStyle)
     }
 
     static let empty = InputSourceState(selectedID: nil, sources: [])

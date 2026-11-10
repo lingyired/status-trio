@@ -464,7 +464,9 @@ final class IconSceneRendererParityTests: XCTestCase {
         let slash = CenterState.symbol(IconSymbolState(source: .symbol(name: "wifi.slash", variableValue: 1, fallback: nil), color: .primary, scale: 1))
         let placeholderRing = ring(progress: 1, color: .primary, gap: .value,
                                    accessory: .text(IconTextState(text: "100", color: .primary, scale: 1.8)))
-        let absentBatteryRing = ring(progress: 0, color: .primary, gap: .closed, accessory: nil)
+        let absentBatteryRing = ring(progress: 1, color: .primary, gap: .indicator,
+                                     accessory: .symbol(IconSymbolState(
+                                        source: .primitive(.plug), color: .primary, scale: 1.8)))
         let ordinaryFooter = FooterState.dots(DotsState(count: 4, activeCount: 3, color: .primary, strokeScale: 1.25))
         let inactiveFooter = FooterState.dots(DotsState(count: 4, activeCount: 0, color: .primary, strokeScale: 1.25))
 

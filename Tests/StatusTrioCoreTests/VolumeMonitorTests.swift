@@ -186,6 +186,74 @@ final class VolumeMonitorTests: XCTestCase {
         monitor.stop()
     }
 
+    func testFailedReadAfterSuccessKeepsDeviceListAndLevelButMarksVolumeUnavailable() async {
+        // #296: while the system switches to a device whose default output is
+        // transiently invalid, the volume read fails. The device list and the
+        // last known level must survive; only the volume is marked unavailable.
+        let devices = [
+            AudioOutputDevice(
+                id: 42,
+                name: "Speakers",
+                uid: "speakers",
+                isCurrent: true,
+                volume: 0.42
+            )
+        ]
+        let reader = FakeVolumeReader(
+            result: VolumeReading(scalar: 0.42, isMuted: false, deviceName: "Speakers")
+        )
+        let outputController = FakeAudioOutputController(devices: devices)
+        let monitor = VolumeMonitor(
+            statusReader: InlineAudioStatusReader(reader: reader, outputController: outputController),
+            eventMonitor: FakeVolumeEventMonitor(),
+            outputController: outputController
+        )
+
+        monitor.refresh()
+        var firstIterator = monitor.updates.makeAsyncIterator()
+        let first = await firstIterator.next()
+        XCTAssertEqual(first?.outputDevices, devices, "Baseline read enumerates the device list")
+        XCTAssertEqual(first?.scalar, 0.42)
+
+        reader.result = nil
+        monitor.refresh()
+        var degradedIterator = monitor.updates.makeAsyncIterator()
+        let degraded = await degradedIterator.next()
+
+        XCTAssertEqual(degraded?.outputDevices, devices, "A failed read must retain the last device list")
+        XCTAssertEqual(degraded?.scalar, 0.42, "The last known level is retained so the slider dot does not jump to 0")
+        XCTAssertEqual(degraded?.deviceName, "Speakers")
+        XCTAssertFalse(degraded?.canSetVolume ?? true, "Volume is marked unavailable")
+        XCTAssertFalse(degraded?.canMute ?? true)
+        XCTAssertEqual(degraded?.controlSource, .unavailable)
+        monitor.stop()
+    }
+
+    func testFailedReadStillEnumeratesDevicesWhenFirstOpened() async {
+        // #296: reopening the panel while the default output is still invalid
+        // must not leave the list stuck on the loading skeleton. Enumeration is
+        // independent of the failing volume read.
+        let devices = [
+            AudioOutputDevice(id: 42, name: "Speakers", uid: "speakers", isCurrent: false)
+        ]
+        let reader = FakeVolumeReader(result: nil)
+        let outputController = FakeAudioOutputController(devices: devices)
+        let monitor = VolumeMonitor(
+            statusReader: InlineAudioStatusReader(reader: reader, outputController: outputController),
+            eventMonitor: FakeVolumeEventMonitor(),
+            outputController: outputController
+        )
+
+        monitor.refresh()
+        var iterator = monitor.updates.makeAsyncIterator()
+        let status = await iterator.next()
+
+        XCTAssertNil(status?.scalar)
+        XCTAssertEqual(status?.outputDevices, devices, "Enumeration keeps the list populated even without a readable level")
+        XCTAssertFalse(status?.canSetVolume ?? true)
+        monitor.stop()
+    }
+
     func testNilScalarWithValidDeviceMapsToStatusInsteadOfPlaceholder() async {
         let monitor = makeMonitor(reader: FakeVolumeReader(result: VolumeReading(
             scalar: nil,
@@ -1097,7 +1165,9 @@ private final class InlineAudioStatusReader: AudioStatusReadingProviding {
         completion: @escaping @MainActor @Sendable (AudioStatusReading) -> Void
     ) {
         let volume = reader.read()
-        let devices = includeOutputDevices && volume != nil ? outputController?.outputDevices() ?? [] : nil
+        // Mirror the production read: enumeration is requested independently of
+        // whether the volume read succeeded (#296).
+        let devices = includeOutputDevices ? outputController?.outputDevices() ?? [] : nil
         completion(AudioStatusReading(volume: volume, outputDevices: devices))
     }
 }

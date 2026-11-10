@@ -8,13 +8,15 @@ enum IconPreviewScene {
         snapshot: StatusSnapshot,
         configuration: IconPresentationConfiguration,
         inputSource: InputSourceDescriptor? = nil,
-        systemPower: SystemPowerSample? = nil
+        systemPower: SystemPowerSample? = nil,
+        isHighPowerMode: Bool = false
     ) -> IconSceneState {
         IconPresentationMapper.scene(
             inputs: IconPresentationResourceResolver.inputs(
                 snapshot: snapshot,
                 inputSource: inputSource,
-                systemPower: systemPower
+                systemPower: systemPower,
+                isHighPowerMode: isHighPowerMode
             ),
             configuration: configuration
         )
@@ -24,13 +26,15 @@ enum IconPreviewScene {
         status: MenuBarStatus,
         configuration: IconPresentationConfiguration,
         inputSource: InputSourceDescriptor? = nil,
-        systemPower: SystemPowerSample? = nil
+        systemPower: SystemPowerSample? = nil,
+        isHighPowerMode: Bool = false
     ) -> IconSceneState {
         make(
             snapshot: snapshot(from: status),
             configuration: configuration,
             inputSource: inputSource,
-            systemPower: systemPower
+            systemPower: systemPower,
+            isHighPowerMode: isHighPowerMode
         )
     }
 
@@ -65,6 +69,8 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
     /// Live input source for previews that mirror the current centre-slot
     /// choice; static guide artwork leaves it `nil`.
     var inputSource: InputSourceDescriptor?
+    /// The live High Power Mode state, so a preview can show its ring colour.
+    var isHighPowerMode = false
     /// Rendered after `rightContext` inside the same `HStack`, so a caller's
     /// control takes part in the bar's standard 14 pt element spacing instead of
     /// needing a reserved trailing inset that its localized width cannot match.
@@ -79,7 +85,8 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
                 volume: volumeOptions,
                 bluetooth: bluetoothAudioOptions
             ),
-            inputSource: inputSource
+            inputSource: inputSource,
+            isHighPowerMode: isHighPowerMode
         )
         .withChargingEffectEnabled(showsChargingEffect)
     }
@@ -97,6 +104,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         phase: ChargingEffectPhase? = nil,
         showsChargingEffect: Bool = true,
         inputSource: InputSourceDescriptor? = nil,
+        isHighPowerMode: Bool = false,
         @ViewBuilder trailingAccessory: @escaping () -> TrailingAccessory
     ) {
         self.status = status
@@ -111,6 +119,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         self.phase = phase
         self.showsChargingEffect = showsChargingEffect
         self.inputSource = inputSource
+        self.isHighPowerMode = isHighPowerMode
         self.trailingAccessory = trailingAccessory
     }
 

@@ -30,11 +30,14 @@ struct BatteryHealthSnapshot: Equatable, Sendable {
 
     var designCapacityMAh: Int?
     var maximumCapacityMAh: Int?
-    /// The percentage macOS reports as Maximum Capacity (`MaxCapacity`), which
-    /// is normalised differently from the raw capacity ratio below.
+    /// macOS's own Maximum Capacity percentage, read from
+    /// `system_profiler`'s `sppower_battery_health_maximum_capacity` so the
+    /// details row matches System Settings › Battery. Not the registry
+    /// `MaxCapacity` counter, which can stay pinned at 100.
     var maximumCapacityPercent: Double?
     /// Estimated from measured capacities, not the value macOS shows under
-    /// Battery Health. Kept as a fallback when the system percentage is absent.
+    /// Battery Health. Kept as diagnostic/derived data, but never substituted
+    /// for the system-reported Maximum Capacity (the two can disagree).
     var healthPercent: Double?
     var temperatureCelsius: Double?
     var chargeTime: ChargeTimeState
@@ -83,13 +86,11 @@ enum BatteryHealthParser {
     struct Capacity: Equatable, Sendable {
         var designMAh: Int? = nil
         var maximumMAh: Int? = nil
-        var maximumPercent: Double? = nil
         var healthPercent: Double? = nil
     }
 
     /// Capacities are paired inside one dictionary only. A nested telemetry
-    /// value is never divided by an unrelated top-level value, and the
-    /// percentage-valued `MaxCapacity` key is never read as milliamp hours.
+    /// value is never divided by an unrelated top-level value.
     static func parseCapacity(registry: [String: Any]) -> Capacity {
         if let batteryData = registry["BatteryData"] as? [String: Any],
            let capacity = capacities(in: batteryData) {
@@ -100,18 +101,21 @@ enum BatteryHealthParser {
 
     /// Maximum-capacity keys are tried in measured-then-reported order. The
     /// design capacity must come from the same dictionary as the maximum.
+    ///
+    /// AppleSmartBattery's percentage-valued `MaxCapacity` is deliberately not
+    /// read here. It is a relative counter that can stay pinned at 100 while
+    /// the real battery health (macOS「最大容量」) has dropped to ~94%, so it is
+    /// never a trustworthy display value. The macOS-consistent percentage is
+    /// read from `system_profiler` instead (`maximumCapacityPercent(systemProfilerJSON:)`).
     private static func capacities(in values: [String: Any]) -> Capacity? {
         let design = milliampHours(values["DesignCapacity"])
         let maximum = ["AppleRawMaxCapacity", "FullChargeCapacity", "NominalChargeCapacity"]
             .compactMap { milliampHours(values[$0]) }
             .first
-        let maximumPercent = integerValue(values["MaxCapacity"])
-            .flatMap { (1...100).contains($0) ? Double($0) : nil }
-        guard design != nil || maximum != nil || maximumPercent != nil else { return nil }
+        guard design != nil || maximum != nil else { return nil }
         return Capacity(
             designMAh: design,
             maximumMAh: maximum,
-            maximumPercent: maximumPercent,
             healthPercent: healthPercent(maximumMAh: maximum, designMAh: design)
         )
     }
@@ -155,6 +159,31 @@ enum BatteryHealthParser {
             .compactMap { ($0["sppower_battery_health_info"] as? [String: Any])?["sppower_battery_health"] as? String }
             .first
             .flatMap(condition(named:))
+    }
+
+    /// The same `system_profiler SPPowerDataType -json` object carries macOS's
+    /// own「最大容量」as `sppower_battery_health_maximum_capacity`, e.g. `"94%"`.
+    /// That is the value shown in System Settings › Battery, so it is the only
+    /// source the details row may present as Maximum Capacity. Anything that is
+    /// not a plain `NN%` in `1...100` stays unknown instead of guessing.
+    static func maximumCapacityPercent(systemProfilerJSON data: Data) -> Double? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let items = root["SPPowerDataType"] as? [[String: Any]] else { return nil }
+        return items.lazy
+            .compactMap { ($0["sppower_battery_health_info"] as? [String: Any])?["sppower_battery_health_maximum_capacity"] as? String }
+            .first
+            .flatMap(percent(fromReported:))
+    }
+
+    /// Parses a reported `"94%"` (whitespace tolerated) into `94`. A bare
+    /// number without `%`, or one outside a credible range, is rejected so a
+    /// mislabelled field can never masquerade as a health percentage.
+    static func percent(fromReported raw: String) -> Double? {
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasSuffix("%") else { return nil }
+        let digits = trimmed.dropLast().trimmingCharacters(in: .whitespaces)
+        guard let value = Double(digits), value.isFinite, (1...100).contains(value) else { return nil }
+        return value
     }
 
     /// A capacity pair is only credible inside these bounds. An implausible

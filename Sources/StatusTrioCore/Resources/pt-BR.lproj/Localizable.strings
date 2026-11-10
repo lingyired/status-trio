@@ -70,6 +70,11 @@
 "settings.appIcon.middleIcon.size.description" = "Um único tamanho para todo o conteúdo central: Wi-Fi, Bluetooth, fonte de entrada e números.";
 "settings.appIcon.middleIcon.networkWarnings" = "Priorizar problemas de rede";
 "settings.appIcon.middleIcon.networkWarnings.description" = "Quando o Mac está realmente offline, o centro mostra o estado da rede em vez da fonte escolhida.";
+"settings.appIcon.middleIcon.inputSourceMarker" = "Ícone de pinyin";
+"settings.appIcon.middleIcon.inputSourceMarker.description" = "Como as fontes de entrada pinyin simplificado e tradicional da Apple desenham o ícone central.";
+"settings.appIcon.middleIcon.inputSourceMarker.systemIcon" = "Ícone do sistema";
+"settings.appIcon.middleIcon.inputSourceMarker.script" = "简 / 繁";
+"settings.appIcon.middleIcon.inputSourceMarker.zhong" = "中";
 "settings.network.connectionIcons" = "Estilo dos ícones de conexão";
 "settings.network.connectionIcons.description" = "Quando ativado, o estado selecionado usa o ícone padrão de sinal de Wi-Fi em vez da marca especial.";
 "settings.network.wifiIconForEthernet" = "Usar o ícone de Wi-Fi para Ethernet";
@@ -183,7 +188,11 @@
 "settings.battery.group.topMarkers" = "Marcadores superiores";
 "settings.battery.group.progress" = "Progresso";
 "settings.battery.noBatteryNotice" = "Este dispositivo não tem bateria, por isso a porcentagem da bateria não é exibida.";
+"settings.battery.noBatteryTopIndicator" = "Indicador superior";
+"settings.battery.noBatteryTopIndicatorDescription" = "Este Mac não tem bateria, então este ícone é apenas decorativo: desenha um raio ou um plugue no vão do anel e não reflete o carregamento real.";
+"settings.battery.noBatteryGapIcon" = "Ícone do vão";
 "settings.battery.showPercentage" = "Mostrar porcentagem da bateria";
+"settings.battery.showPercentageNoBattery" = "Este dispositivo não tem bateria";
 "settings.battery.showChargingIndicator" = "Mostrar um indicador ao carregar ou conectar à energia";
 "settings.battery.chargingDescription" = "Quando ativado, a porcentagem vira um raio ou um plugue durante o carregamento ou com energia conectada.";
 "settings.battery.splitGapProgress" = "Dividir o progresso quando o espaço superior tem conteúdo";
@@ -203,11 +212,22 @@
 "settings.battery.connectedIndicator.plug" = "Plugue";
 "settings.battery.connectedIndicator.bolt" = "Raio";
 "settings.battery.connectedIndicator.percentage" = "Porcentagem";
+"settings.battery.marker.onBattery" = "Na bateria";
+"settings.battery.marker.charging" = "Carregando";
+"settings.battery.marker.connected" = "Conectado, sem carregar";
+"settings.battery.marker.hidden" = "Oculto";
 "settings.battery.symbolScale" = "Tamanho da porcentagem/raio";
 "settings.battery.symbolScaleAccessibility" = "Tamanho da porcentagem e do raio da bateria";
 "settings.battery.symbolScaleDescription" = "A porcentagem e o raio usam o mesmo tamanho.";
 "settings.battery.statusColors" = "Colorir o arco conforme o estado da bateria";
 "settings.battery.statusColorsDescription" = "Por padrão: energia em verde, Pouca Energia em amarelo e bateria fraca em vermelho. Altere abaixo. Ao desativar, as cores personalizadas salvas não são aplicadas.";
+"settings.battery.monochromeCharging" = "Preto e branco ao carregar ou na tomada";
+"settings.battery.monochromeChargingDescription" = "Desenha o anel em preto e branco ao carregar ou na tomada. Os modos de baixo consumo e alto desempenho mantêm as próprias cores. Um Mac sem bateria ativa isso por padrão.";
+
+"settings.battery.developerPreview" = "Pré-visualização de desenvolvedor";
+"settings.battery.simulateNoBattery" = "Simular sem bateria";
+"settings.battery.simulateNoBatteryDescription" = "Mostra esta página como ela fica em um Mac sem bateria. Somente builds de desenvolvimento.";
+"settings.battery.noBatteryHiddenOptions" = "Este Mac não tem bateria: a porcentagem e o indicador de carga não se aplicam. O anel é preto e branco por padrão; desative acima para usar a cor da alimentação. Os modos de baixo consumo e alto desempenho mantêm as cores.";
 "settings.battery.colors.charging" = "Carregamento / energia conectada";
 "settings.battery.colors.lowPower" = "Modo de Pouca Energia";
 "settings.battery.colors.critical" = "Bateria muito fraca";
@@ -241,6 +261,7 @@
 "battery.state.notPresent" = "Sem bateria";
 "battery.state.charged" = "Totalmente carregada";
 "battery.state.calculatingTimeToFull" = "Calculando tempo para carga total";
+"battery.timeRemaining" = "Autonomia estimada: %@";
 "battery.timeToFull.minutes" = "Cerca de %d min para carga total";
 "battery.timeToFull.hours" = "Cerca de %d h para carga total";
 "battery.timeToFull.hoursMinutes" = "Cerca de %d h %d min para carga total";
@@ -528,6 +549,9 @@
 "settings.audio.indicatorStyleDescription" = "Escolha se o volume é exibido como quatro pontos ou um arco contínuo.";
 "settings.audio.indicatorStyle.dots" = "Pontos";
 "settings.audio.indicatorStyle.arc" = "Arco";
+"settings.audio.airPodsInlineControlsTitle" = "Controles de fones";
+"settings.audio.airPodsInlineControls" = "Mostrar controles de AirPods no painel de volume";
+"settings.audio.airPodsInlineControlsDescription" = "Mostra controles de percepção de conversa, áudio espacial e adaptativo ao lado da sua saída de AirPods. Desative para ocultar esses controles baseados em APIs privadas.";
 
 // On-demand battery details.
 "battery.details.title" = "Detalhes da bateria";
@@ -541,6 +565,7 @@
 "battery.details.current" = "Corrente da bateria";
 "battery.details.sampled" = "Amostra da bateria";
 "battery.details.adapter" = "Potência nominal do adaptador";
+"battery.details.inputPort" = "Porta de carregamento";
 "battery.details.remaining" = "Tempo restante";
 "battery.details.cycles" = "Contagem de ciclos";
 "battery.details.uptime" = "Tempo de atividade";
@@ -718,6 +743,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "O estado de carga do sistema pode ter mudado. Clique novamente para continuar.";
 "battery.action.cancelChargeToFullNowPending" = "O sistema ainda não confirmou a carga completa temporária. Tente novamente em instantes.";
 
+// AirPods system controls
+"airPods.controls" = "Controles dos AirPods…";
+"airPods.adaptive" = "Áudio Adaptativo";
+"airPods.lessNoise" = "Menos ruído";
+"airPods.moreNoise" = "Mais ruído";
+"airPods.adaptiveUnavailable" = "O ajuste adaptativo por Bluetooth está indisponível.";
+"airPods.spatial" = "Transformar em Estéreo Espacial";
+"airPods.conversation" = "Detecção de Conversa";
+"airPods.routeChanged" = "Os AirPods selecionados mudaram ou desconectaram. Reabra os controles da saída atual.";
+"airPods.unconfirmed" = "O macOS não confirmou a alteração. Atualize para ler o ajuste real.";
+"airPods.unavailable" = "O controle direto por Bluetooth está indisponível.";
+"airPods.notAvailable" = "Indisponível";
+"airPods.apply" = "Aplicar";
+
+"airPods.spatialFixed" = "Fixo";
+"airPods.spatialHeadTracked" = "Rastreamento da Cabeça";
+
+"airpods.retry" = "Tentar novamente";
 "settings.popup.order.brightness" = "Brilho";
 "brightness.row.accessibility" = "Brilho de %@, %@";
 "brightness.row.accessibilityUnavailable" = "Brilho de %@, %@";
@@ -789,6 +832,13 @@
 "settings.brightness.compatibility.title" = "Não consegue controlar uma tela?";
 "settings.brightness.compatibility.description" = "Cada fabricante implementa o DDC de um jeito, então o Status Trio não consegue cobrir todos os modelos. Se o brilho de uma tela não puder ser ajustado aqui, mude-a para o backend BetterDisplay — o Status Trio vai controlá-la pelo BetterDisplay. A versão gratuita é suficiente; não é preciso licença Pro.";
 "settings.brightness.compatibility.link" = "Baixar o BetterDisplay (grátis)";
+"settings.brightness.betterDisplay.manualHint" = "Se o brilho desta tela ainda não estiver disponível, troque manualmente a tela BetterDisplay acima.";
+"settings.brightness.betterDisplay.display" = "Tela BetterDisplay";
+"settings.brightness.betterDisplay.automatic" = "Automático (corresponder à tela do sistema)";
+"settings.brightness.betterDisplay.unnamed" = "Tela sem nome";
+"settings.brightness.betterDisplay.saved" = "Salvo";
+"settings.brightness.betterDisplay.unavailable" = "Indisponível";
+"settings.brightness.betterDisplay.refresh" = "Atualizar dispositivos";
 "settings.battery.colors.highPower" = "Modo de Alto Desempenho";
 "battery.lowPowerMode.autoEnable" = "Ativar Modo de Baixo Consumo automaticamente";
 "battery.lowPowerMode.autoEnableDescription" = "Ao desconectar a energia, o Modo de Baixo Consumo é ativado automaticamente quando a bateria fica abaixo do limite de bateria fraca. Uma vez por ciclo de bateria fraca.";
@@ -807,6 +857,8 @@
 
 "settings.network.powerControl" = "Mostrar controle de energia do Wi-Fi";
 "settings.network.powerControlDescription" = "Adiciona um botão de energia do Wi-Fi ao painel de status.";
+"settings.network.confirmBeforePowerOff" = "Confirmar antes de desativar o Wi-Fi";
+"settings.network.confirmBeforePowerOffDescription" = "Pede confirmação antes de desativar o Wi-Fi enquanto estiver conectado.";
 "wifi.power.turnOn" = "Ativar Wi-Fi";
 "wifi.power.turnOff" = "Desativar Wi-Fi";
 "wifi.power.unknown" = "O estado do Wi-Fi não está disponível.";
@@ -828,3 +880,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "Modo de escuta";
 "settings.subtopic.bluetooth.deviceBattery" = "Bateria do dispositivo";
 "settings.subtopic.bluetooth.deviceManagement" = "Gerenciamento de dispositivos";
+"settings.audio.spatialAudioControlsTitle" = "Mostrar controles de áudio espacial";
+"settings.audio.spatialAudioControlsDescription" = "Mostra as opções de áudio espacial (Desligado/Fixo/Rastreamento de cabeça) na linha de saída dos AirPods. Atualmente apenas AirPods.";
+"settings.audio.conversationAwarenessControlsTitle" = "Mostrar controles de Consciência de Conversa";
+"settings.audio.conversationAwarenessControlsDescription" = "Mostra o interruptor de Consciência de Conversa na linha de saída dos AirPods. Atualmente apenas AirPods.";

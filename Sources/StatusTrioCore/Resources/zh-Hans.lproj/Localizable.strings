@@ -70,6 +70,11 @@
 "settings.appIcon.middleIcon.size.description" = "中间显示的所有内容（Wi‑Fi、蓝牙、输入法、数字）共用这个大小。";
 "settings.appIcon.middleIcon.networkWarnings" = "优先显示网络异常";
 "settings.appIcon.middleIcon.networkWarnings.description" = "当 Mac 确实离线时，中间位置改为显示网络状态，而不是所选来源。";
+"settings.appIcon.middleIcon.inputSourceMarker" = "拼音图标";
+"settings.appIcon.middleIcon.inputSourceMarker.description" = "Apple 简体/繁体拼音输入法在中间位置如何显示图标。";
+"settings.appIcon.middleIcon.inputSourceMarker.systemIcon" = "系统图标";
+"settings.appIcon.middleIcon.inputSourceMarker.script" = "简 / 繁";
+"settings.appIcon.middleIcon.inputSourceMarker.zhong" = "中";
 "settings.network.connectionIcons" = "连接图标样式";
 "settings.network.connectionIcons.description" = "启用后，对应状态改用普通 Wi‑Fi 信号图标，不再显示其专用标记。";
 "settings.network.wifiIconForEthernet" = "有线连接使用 Wi‑Fi 图标";
@@ -183,7 +188,11 @@
 "settings.battery.group.topMarkers" = "顶部标记";
 "settings.battery.group.progress" = "进度";
 "settings.battery.noBatteryNotice" = "当前设备没有电池，不显示电量百分比。";
+"settings.battery.noBatteryTopIndicator" = "顶部指示图标";
+"settings.battery.noBatteryTopIndicatorDescription" = "当前设备没有电池，这个图标只作装饰：在圆环缺口画闪电或插头，不代表真实充电状态。";
+"settings.battery.noBatteryGapIcon" = "缺口图标";
 "settings.battery.showPercentage" = "显示电量数字";
+"settings.battery.showPercentageNoBattery" = "当前设备无电池";
 "settings.battery.showChargingIndicator" = "充电/连接电源时显示指示图标";
 "settings.battery.chargingDescription" = "开启后，正在充电或已连接电源时，电量数字会替换为闪电或插头图标；关闭则继续显示数字。";
 "settings.battery.splitGapProgress" = "顶部有图标时左右两边平分";
@@ -203,11 +212,22 @@
 "settings.battery.connectedIndicator.plug" = "插头";
 "settings.battery.connectedIndicator.bolt" = "闪电";
 "settings.battery.connectedIndicator.percentage" = "电量数字";
+"settings.battery.marker.onBattery" = "使用电池";
+"settings.battery.marker.charging" = "充电中";
+"settings.battery.marker.connected" = "连接电源但未充电";
+"settings.battery.marker.hidden" = "隐藏";
 "settings.battery.symbolScale" = "电量数字/闪电大小";
 "settings.battery.symbolScaleAccessibility" = "电量数字和闪电大小";
 "settings.battery.symbolScaleDescription" = "数字和闪电使用同一尺寸，调整这里会同步改变两者。";
 "settings.battery.statusColors" = "根据状态改变圆弧颜色";
 "settings.battery.statusColorsDescription" = "默认连接电源为绿色、低电量模式为黄色、低电量为红色，可在下方更改。关闭后忽略已保存的自定颜色。";
+"settings.battery.monochromeCharging" = "充电 / 连接电源时用黑白";
+"settings.battery.monochromeChargingDescription" = "充电或连接电源时，圆环用黑/白。低电量和高电量模式仍用各自颜色。没有电池的 Mac 默认开启。";
+
+"settings.battery.developerPreview" = "开发者预览";
+"settings.battery.simulateNoBattery" = "模拟无电池";
+"settings.battery.simulateNoBatteryDescription" = "按 Mac 没有电池时的样子显示本页。仅开发版可用。";
+"settings.battery.noBatteryHiddenOptions" = "这台 Mac 没有电池：电量百分比和充电指示不适用。圆环默认黑白，可在上面关闭以使用连接电源色；低电量和高电量模式仍用各自颜色。";
 "settings.battery.colors.charging" = "充电 / 连接电源";
 "settings.battery.colors.lowPower" = "低电量模式";
 "settings.battery.colors.critical" = "临界低电量";
@@ -241,6 +261,7 @@
 "battery.state.notPresent" = "无电池设备";
 "battery.state.charged" = "已充满";
 "battery.state.calculatingTimeToFull" = "正在计算充满时间";
+"battery.timeRemaining" = "约 %@可用";
 "battery.timeToFull.minutes" = "预计 %d 分钟充满";
 "battery.timeToFull.hours" = "预计 %d 小时充满";
 "battery.timeToFull.hoursMinutes" = "预计 %d 小时 %d 分钟充满";
@@ -528,6 +549,9 @@
 "settings.audio.indicatorStyleDescription" = "选择在状态环底部显示为四个离散点还是连续圆弧条。";
 "settings.audio.indicatorStyle.dots" = "四个点";
 "settings.audio.indicatorStyle.arc" = "圆弧条";
+"settings.audio.airPodsInlineControlsTitle" = "耳机控制";
+"settings.audio.airPodsInlineControls" = "在音量面板中显示 AirPods 控制";
+"settings.audio.airPodsInlineControlsDescription" = "在你的 AirPods 输出旁显示对话感知、空间音频和自适应控制。关闭可隐藏这些基于私有 API 的控制。";
 
 // On-demand battery details.
 "battery.details.title" = "电池详情";
@@ -541,6 +565,7 @@
 "battery.details.current" = "电池电流";
 "battery.details.sampled" = "电池采样时间";
 "battery.details.adapter" = "适配器额定功率";
+"battery.details.inputPort" = "充电接口";
 "battery.details.remaining" = "剩余时间";
 "battery.details.cycles" = "循环次数";
 "battery.details.uptime" = "系统运行时间";
@@ -718,6 +743,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "系统充电状态可能已更改。再次点击以继续。";
 "battery.action.cancelChargeToFullNowPending" = "系统尚未确认临时充满状态，请稍后重试。";
 
+// AirPods system controls
+"airPods.controls" = "AirPods 控制…";
+"airPods.adaptive" = "自适应音频";
+"airPods.lessNoise" = "更少噪声";
+"airPods.moreNoise" = "更多噪声";
+"airPods.adaptiveUnavailable" = "暂无法通过蓝牙调整自适应音频。";
+"airPods.spatial" = "空间化立体声";
+"airPods.conversation" = "对话感知";
+"airPods.routeChanged" = "所选 AirPods 已更改或断开连接。请重新打开当前输出设备的控制。";
+"airPods.unconfirmed" = "macOS 未确认更改。请刷新以读取实际设置。";
+"airPods.unavailable" = "蓝牙直连控制暂不可用。";
+"airPods.notAvailable" = "不可用";
+"airPods.apply" = "应用";
+
+"airPods.spatialFixed" = "固定";
+"airPods.spatialHeadTracked" = "头部跟踪";
+
+"airpods.retry" = "重试";
 "settings.popup.order.brightness" = "亮度";
 "brightness.row.accessibility" = "%@ 的亮度，%@";
 "brightness.row.accessibilityUnavailable" = "%@ 的亮度，%@";
@@ -789,6 +832,13 @@
 "settings.brightness.compatibility.title" = "显示器调不了亮度？";
 "settings.brightness.compatibility.description" = "各家显示器的 DDC 实现并不统一，Status Trio 无法覆盖所有型号。如果某台显示器的亮度在这里调不了，可以把它切到 BetterDisplay 后端——Status Trio 会通过 BetterDisplay 来调节。免费版就够用，不需要购买 Pro。";
 "settings.brightness.compatibility.link" = "下载 BetterDisplay（免费）";
+"settings.brightness.betterDisplay.manualHint" = "若此显示器亮度仍不可用，请手动切换上方的 BetterDisplay 显示器。";
+"settings.brightness.betterDisplay.display" = "BetterDisplay 显示器";
+"settings.brightness.betterDisplay.automatic" = "自动（按系统显示器匹配）";
+"settings.brightness.betterDisplay.unnamed" = "未命名显示器";
+"settings.brightness.betterDisplay.saved" = "已保存";
+"settings.brightness.betterDisplay.unavailable" = "不可用";
+"settings.brightness.betterDisplay.refresh" = "刷新设备";
 "settings.battery.colors.highPower" = "高电量模式";
 "battery.lowPowerMode.autoEnable" = "自动开启低电量模式";
 "battery.lowPowerMode.autoEnableDescription" = "拔掉电源后，电量低于低电量阈值会自动开启低电量模式；每次低电只开一次。";
@@ -807,6 +857,8 @@
 
 "settings.network.powerControl" = "显示 Wi-Fi 电源开关";
 "settings.network.powerControlDescription" = "在状态面板的 Wi-Fi 行显示电源开关。";
+"settings.network.confirmBeforePowerOff" = "关闭 Wi-Fi 前先确认";
+"settings.network.confirmBeforePowerOffDescription" = "关闭已连接的 Wi-Fi 前先询问。";
 "wifi.power.turnOn" = "打开 Wi-Fi";
 "wifi.power.turnOff" = "关闭 Wi-Fi";
 "wifi.power.unknown" = "Wi-Fi 状态不可用。";
@@ -828,3 +880,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "聆听模式";
 "settings.subtopic.bluetooth.deviceBattery" = "设备电量";
 "settings.subtopic.bluetooth.deviceManagement" = "设备管理";
+"settings.audio.spatialAudioControlsTitle" = "显示空间音频控制";
+"settings.audio.spatialAudioControlsDescription" = "在 AirPods 输出行显示空间音频选项（关闭/固定/头部跟踪）。目前仅支持 AirPods。";
+"settings.audio.conversationAwarenessControlsTitle" = "显示对话感知控制";
+"settings.audio.conversationAwarenessControlsDescription" = "在 AirPods 输出行显示对话感知开关。目前仅支持 AirPods。";

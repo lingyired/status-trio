@@ -550,4 +550,68 @@ final class AudioPanelMapperListeningControlTests: XCTestCase {
         XCTAssertTrue(state.showsDeviceList,
                       "The list must stay visible so the surviving listening-mode control is reachable")
     }
+
+    func testDisablingInlineAirPodsControlsHidesTheSystemControlSection() {
+        let localization = makeLocalization()
+        let airPods = AudioOutputDevice(
+            id: AudioDeviceID(42),
+            name: "AirPods",
+            uid: "AA-BB-CC-DD-EE-FF:output",
+            isCurrent: true,
+            transport: .bluetooth,
+            modelUID: "2024 4c"
+        )
+        let status = VolumeStatus(
+            scalar: 0.5, isMuted: false, deviceName: "AirPods",
+            currentDevice: airPods, outputDevices: [airPods],
+            canSetVolume: true, canMute: true
+        )
+
+        let enabled = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            localization: localization
+        )
+        XCTAssertEqual(enabled.rows.first?.supportsAirPodsSystemControls, true)
+
+        let disabled = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            showsAirPodsSystemControls: false,
+            localization: localization
+        )
+        XCTAssertEqual(disabled.rows.first?.supportsAirPodsSystemControls, false,
+                       "Turning the preference off must hide the inline AirPods controls")
+    }
+
+    func testAirPodsPreviewRowCarriesInlineControlsUnlessThePreferenceIsOff() {
+        let localization = makeLocalization()
+        let previewDevices = ListeningModePreview.outputRows(
+            for: .init(isEnabled: true, deviceName: "AirPods Pro", deviceCount: 1, languageCode: "en")
+        )
+        XCTAssertEqual(previewDevices.count, 1)
+        let status = VolumeStatus(
+            scalar: 0.4, isMuted: false, deviceName: "AirPods Pro",
+            outputDevices: previewDevices, canSetVolume: true, canMute: true
+        )
+
+        let enabled = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            previewDevices: previewDevices,
+            localization: localization
+        )
+        XCTAssertEqual(enabled.rows.first?.supportsAirPodsSystemControls, true,
+                       "The Settings preview must be able to show the inline controls without hardware")
+
+        let disabled = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            previewDevices: previewDevices,
+            showsAirPodsSystemControls: false,
+            localization: localization
+        )
+        XCTAssertEqual(disabled.rows.first?.supportsAirPodsSystemControls, false,
+                       "The preference must also hide the preview's inline controls")
+    }
 }

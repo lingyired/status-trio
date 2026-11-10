@@ -15,6 +15,10 @@ struct BrightnessSectionView: View {
     /// The BetterDisplay project site, linked from the compatibility note.
     static let betterDisplayWebsiteURL = URL(string: "https://betterdisplay.pro")
 
+    /// Fixed width shared by the visibility toggle and the refresh button so the
+    /// two trailing controls in one display block line up column-for-column.
+    private static let secondaryControlWidth: CGFloat = 40
+
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @EnvironmentObject private var localization: Localization
@@ -29,6 +33,8 @@ struct BrightnessSectionView: View {
             // Reading brightness is demand-gated: keep it alive only while this
             // tab is on screen, so browsing another tab stops the DDC reads.
             statusStore.setBrightnessSettingsVisible(true)
+            // Load the BetterDisplay device list for the optional manual picker.
+            statusStore.refreshBetterDisplayDevices()
         }
         .onDisappear {
             statusStore.setBrightnessSettingsVisible(false)
@@ -151,8 +157,14 @@ struct BrightnessSectionView: View {
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .labelsHidden()
+                .frame(width: Self.secondaryControlWidth)
                 .accessibilityIdentifier("settings.brightness.display.\(display.id)")
             }
+        }
+
+        if !display.isBuiltin, betterDisplayState(for: display).showsDisplayPicker {
+            SettingsDivider()
+            betterDisplayDisplayRow(for: display)
         }
 
         if !display.isBuiltin, shouldShowBetterDisplayHint(for: display) {
@@ -160,6 +172,97 @@ struct BrightnessSectionView: View {
             SettingsHintRow(
                 text: localization.string(.settingsBrightnessBackendBetterDisplayNeeded)
             )
+        }
+    }
+
+    /// Manual BetterDisplay display picker (#313).
+    ///
+    /// The automatic mapper cannot resolve some panels (serial `0`, duplicate
+    /// same-model units). Pinning an explicit UUID here bypasses the heuristic
+    /// so those displays can still be driven through BetterDisplay.
+    @ViewBuilder
+    private func betterDisplayDisplayRow(for display: DisplayBrightness) -> some View {
+        let state = betterDisplayState(for: display)
+        SettingsRow(
+            "display",
+            tint: .blue,
+            title: localization.string(.settingsBrightnessBetterDisplayDisplay)
+        ) {
+            HStack(spacing: 12) {
+                Picker(
+                    localization.string(.settingsBrightnessBetterDisplayDisplay),
+                    selection: betterDisplayUUIDBinding(for: display)
+                ) {
+                    ForEach(state.pickerOptions) { option in
+                        Text(displayOptionLabel(option, state: state)).tag(option.uuid)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .settingsMenuPickerWidth()
+                .accessibilityIdentifier("settings.brightness.betterDisplay.display.\(display.id)")
+
+                Button {
+                    statusStore.refreshBetterDisplayDevices()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .frame(width: Self.secondaryControlWidth)
+                .help(localization.string(.settingsBrightnessBetterDisplayRefresh))
+                .accessibilityLabel(localization.string(.settingsBrightnessBetterDisplayRefresh))
+                .accessibilityIdentifier("settings.brightness.betterDisplay.refresh.\(display.id)")
+            }
+        }
+
+        SettingsDivider()
+        SettingsHintRow(
+            text: localization.string(.settingsBrightnessBetterDisplayManualHint)
+        )
+    }
+
+    private func betterDisplayState(
+        for display: DisplayBrightness
+    ) -> BetterDisplayBrightnessSettingsState {
+        let availability = statusStore.betterDisplayAvailability
+        let loaded = availability == .available || availability == .deviceUnassociated
+        return BetterDisplayBrightnessSettingsState(
+            configuration: store.externalBrightnessConfiguration(for: display.id),
+            devices: statusStore.betterDisplayDevices,
+            hasLoadedCatalog: loaded
+        )
+    }
+
+    private func betterDisplayUUIDBinding(for display: DisplayBrightness) -> Binding<String?> {
+        Binding(
+            get: { store.externalBrightnessConfiguration(for: display.id).betterDisplayUUID },
+            set: { uuid in
+                store.setExternalBrightnessConfiguration(
+                    ExternalBrightnessConfiguration(
+                        backend: .betterDisplay,
+                        betterDisplayUUID: uuid
+                    ),
+                    for: display.id
+                )
+            }
+        )
+    }
+
+    private func displayOptionLabel(
+        _ option: BetterDisplayDisplayPickerOption,
+        state: BetterDisplayBrightnessSettingsState
+    ) -> String {
+        switch option {
+        case .unassociated:
+            return localization.string(.settingsBrightnessBetterDisplayAutomatic)
+        case .device(let uuid, let name):
+            return state.deviceLabel(uuid: uuid, name: name)
+                ?? "\(localization.string(.settingsBrightnessBetterDisplayUnnamed)) · \(uuid.prefix(8))"
+        case .unavailable(let uuid):
+            return "\(localization.string(.settingsBrightnessBetterDisplayUnavailable)) · \(uuid.prefix(8))"
+        case .saved(let uuid):
+            return "\(localization.string(.settingsBrightnessBetterDisplaySaved)) · \(uuid.prefix(8))"
         }
     }
 
@@ -178,6 +281,10 @@ struct BrightnessSectionView: View {
                         : nil
                 )
                 store.setExternalBrightnessConfiguration(updated, for: display.id)
+                if backend == .betterDisplay {
+                    // The manual picker needs a fresh device catalog.
+                    statusStore.refreshBetterDisplayDevices()
+                }
             }
         )
     }

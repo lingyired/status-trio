@@ -810,7 +810,8 @@ extension StatusIconRenderer {
             scale: scale,
             appearance: appearance,
             phase: nil,
-            regions: scene.templateRegions
+            regions: scene.templateRegions,
+            supersample: 2
         ) else {
             return nil
         }
@@ -836,7 +837,7 @@ extension StatusIconRenderer {
         guard !regions.isEmpty else { return nil }
         return render(
             scene: scene,
-            environment: renderEnvironment(size: size, scale: scale, appearance: appearance),
+            environment: renderEnvironment(size: size, scale: scale, appearance: appearance, supersample: 2),
             phase: phase,
             regions: regions
         )
@@ -862,7 +863,8 @@ extension StatusIconRenderer {
             scale: scale,
             appearance: appearance,
             phase: phase,
-            regions: regions
+            regions: regions,
+            supersample: 2
         ) else {
             return nil
         }
@@ -892,7 +894,7 @@ extension StatusIconRenderer {
     ) -> NSImage? {
         guard let cgImage = render(
             scene: scene,
-            environment: renderEnvironment(size: size, scale: scale, appearance: appearance),
+            environment: renderEnvironment(size: size, scale: scale, appearance: appearance, supersample: 2),
             phase: phase,
             regions: regions
         ) else {
@@ -912,7 +914,16 @@ extension StatusIconRenderer {
         let scale = environment.scale
         guard size.isFinite, scale.isFinite, size > 0, scale > 0 else { return nil }
 
-        let pixelLength = (size * scale).rounded(.up)
+        // Menu-bar output supersamples (environment.supersample > 1): draw onto a
+        // larger grid, then resample once to the target pixel size. Rasterising
+        // the SF Symbol straight at the final ~12-18 pt size snapped its
+        // anti-aliased ink to the pixel grid by up to a physical pixel, varying
+        // with icon size (the #30 size-dependent residual). One high-quality
+        // downsample removes that per-size snapping and puts the glyph on the
+        // same pixel grid as the ring.
+        let supersample = max(1, min(4, environment.supersample))
+        let workingScale = scale * CGFloat(supersample)
+        let pixelLength = (size * workingScale).rounded(.up)
         guard pixelLength.isFinite,
               let pixelDimension = Int(exactly: pixelLength),
               pixelDimension > 0,
@@ -930,7 +941,7 @@ extension StatusIconRenderer {
             return nil
         }
 
-        context.scaleBy(x: scale, y: scale)
+        context.scaleBy(x: workingScale, y: workingScale)
         guard draw(
             scene: scene,
             in: context,
@@ -943,7 +954,29 @@ extension StatusIconRenderer {
         ) else {
             return nil
         }
-        return context.makeImage()
+        guard let hiImage = context.makeImage() else { return nil }
+        guard supersample > 1 else { return hiImage }
+
+        let finalLength = (size * scale).rounded(.up)
+        guard finalLength.isFinite,
+              let finalDimension = Int(exactly: finalLength),
+              finalDimension > 0,
+              finalDimension <= Int.max / 4,
+              let finalContext = CGContext(
+                  data: nil,
+                  width: finalDimension,
+                  height: finalDimension,
+                  bitsPerComponent: 8,
+                  bytesPerRow: finalDimension * 4,
+                  space: CGColorSpaceCreateDeviceRGB(),
+                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              )
+        else {
+            return hiImage
+        }
+        finalContext.interpolationQuality = .high
+        finalContext.draw(hiImage, in: CGRect(x: 0, y: 0, width: finalDimension, height: finalDimension))
+        return finalContext.makeImage() ?? hiImage
     }
 
     static func image(
@@ -952,7 +985,8 @@ extension StatusIconRenderer {
         scale: CGFloat,
         appearance: NSAppearance? = nil,
         phase: ChargingEffectPhase? = nil,
-        regions: IconSceneRegion = .all
+        regions: IconSceneRegion = .all,
+        supersample: Int = 1
     ) -> NSImage? {
         guard size.isFinite, scale.isFinite, size > 0, scale > 0 else { return nil }
 
@@ -960,7 +994,7 @@ extension StatusIconRenderer {
         // drawing handler so automatic appearances resolve again on every draw.
         guard render(
             scene: scene,
-            environment: renderEnvironment(size: size, scale: scale, appearance: appearance),
+            environment: renderEnvironment(size: size, scale: scale, appearance: appearance, supersample: supersample),
             phase: phase,
             regions: regions
         ) != nil else {
@@ -973,7 +1007,7 @@ extension StatusIconRenderer {
                 guard let context = NSGraphicsContext.current?.cgContext,
                       let cgImage = render(
                           scene: scene,
-                          environment: renderEnvironment(size: size, scale: scale, appearance: nil),
+                          environment: renderEnvironment(size: size, scale: scale, appearance: nil, supersample: supersample),
                           phase: phase,
                           regions: regions
                       ) else {
@@ -996,7 +1030,8 @@ extension StatusIconRenderer {
     static func renderEnvironment(
         size: CGFloat,
         scale: CGFloat,
-        appearance: NSAppearance?
+        appearance: NSAppearance?,
+        supersample: Int = 1
     ) -> StatusIconRenderEnvironment {
         let resolvedAppearance = appearance ?? NSAppearance.currentDrawing()
         let match = resolvedAppearance.bestMatch(from: [.aqua, .darkAqua])
@@ -1017,7 +1052,8 @@ extension StatusIconRenderer {
             scale: scale,
             foreground: CGColor(gray: isDark ? 1 : 0, alpha: 1),
             criticalColor: palette.critical,
-            statusPalette: palette
+            statusPalette: palette,
+            supersample: supersample
         )
     }
 
@@ -1425,13 +1461,17 @@ extension StatusIconRenderer {
         in context: CGContext
     ) {
         let line = sceneTextLine(text, color: color, fontSize: fontSize)
-        var ascent: CGFloat = 0
-        var descent: CGFloat = 0
-        var leading: CGFloat = 0
-        let width = CGFloat(CTLineGetTypographicBounds(line, &ascent, &descent, &leading))
+        // Centre the *visible ink*, not the typographic advance box. The advance
+        // width includes the first glyph's left bearing and the last glyph's
+        // trailing bearing plus the negative `.kern`, so centring on it made each
+        // percentage value drift by its own amount — "50" further than "8" and
+        // "100" (measurements in RingAccessoryAlignmentTests). The glyph-path
+        // bounds give the actual ink extent, so 1/2/3 digit values share one
+        // centre on the artwork axis.
+        let inkBounds = CTLineGetBoundsWithOptions(line, [.useGlyphPathBounds])
         context.setFillColor(color)
         context.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
-        context.textPosition = CGPoint(x: baseline.x - width / 2, y: baseline.y)
+        context.textPosition = CGPoint(x: baseline.x - inkBounds.midX, y: baseline.y)
         CTLineDraw(line, context)
     }
 

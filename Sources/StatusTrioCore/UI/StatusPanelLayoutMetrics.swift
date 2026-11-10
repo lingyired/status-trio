@@ -1,5 +1,6 @@
 import Combine
 import CoreGraphics
+import SwiftUI
 import Foundation
 
 /// The height budget the status panel currently has on the screen it hangs
@@ -12,6 +13,15 @@ import Foundation
 /// change re-computes the cap.
 @MainActor
 final class StatusPanelLayoutMetrics: ObservableObject {
+    private let visibilityChanges = CurrentValueSubject<Bool, Never>(false)
+    var visibilityPublisher: AnyPublisher<Bool, Never> { visibilityChanges.eraseToAnyPublisher() }
+
+    /// The retained hosting tree does not disappear when NSPanel closes.
+    /// Deliver demand changes synchronously, independently of SwiftUI layout.
+    func setPresented(_ presented: Bool) {
+        guard visibilityChanges.value != presented else { return }
+        visibilityChanges.send(presented)
+    }
     /// The tallest the panel content may become, in points. `nil` before the
     /// first placement, which leaves the content unconstrained.
     @Published private(set) var maximumPanelHeight: CGFloat?
@@ -42,5 +52,27 @@ final class StatusPanelLayoutMetrics: ObservableObject {
     func update(maximumPanelHeight: CGFloat?) {
         guard self.maximumPanelHeight != maximumPanelHeight else { return }
         self.maximumPanelHeight = maximumPanelHeight
+    }
+}
+
+private struct StatusPanelVisibilityKey: EnvironmentKey {
+    static var defaultValue: AnyPublisher<Bool, Never> { Empty().eraseToAnyPublisher() }
+}
+
+extension EnvironmentValues {
+    var statusPanelVisibility: AnyPublisher<Bool, Never> {
+        get { self[StatusPanelVisibilityKey.self] }
+        set { self[StatusPanelVisibilityKey.self] = newValue }
+    }
+}
+
+private struct StatusPanelAnimatesDisclosuresKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var statusPanelAnimatesDisclosures: Bool {
+        get { self[StatusPanelAnimatesDisclosuresKey.self] }
+        set { self[StatusPanelAnimatesDisclosuresKey.self] = newValue }
     }
 }

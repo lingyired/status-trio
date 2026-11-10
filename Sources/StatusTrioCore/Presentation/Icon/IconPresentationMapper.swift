@@ -42,26 +42,23 @@ enum IconPresentationMapper {
         closesRing: Bool,
         chargingStatusCenter: Bool
     ) -> OuterRingState? {
-        // A Mac with no battery has nothing for this ring to represent. Keep the
-        // ring's fixed artwork footprint as an empty track so the icon does not
-        // change shape between a laptop and a desktop, but draw no fill and no
-        // level: `percentage` reports a placeholder 100, and showing it would
-        // claim a charged battery that does not exist.
-        guard battery.isPresent else {
-            return OuterRingState(
-                segments: [RingSegmentState(progress: 0, color: .primary)],
-                gap: .closed,
-                accessory: nil,
-                effect: nil,
-                strokeScale: options.ringStrokeScale,
-                gapProgressMode: .absorbed
-            )
-        }
-        let role = options.usesStatusColors
+        // A Mac with no battery has no real level, so its ring is a full
+        // decorative circle that never shows the placeholder 100%. Its colour
+        // still follows the status palette: a battery-less Mac is always on AC
+        // power, so the connected colour applies, and Low/High Power Mode keep
+        // their precedence. The top gap may carry the chosen decorative bolt or
+        // plug marker (see `batteryGapContent`).
+        let isPresent = battery.isPresent
+        // nil means automatic: a battery-less Mac defaults to black/white, a Mac
+        // with a battery defaults to the connected colour.
+        let monochromeCharging = options.monochromeCharging ?? !isPresent
+        let role: BatteryColorRole = options.usesStatusColors
             ? StatusMappings.batteryColorRole(
                 battery,
                 criticalThreshold: options.criticalThreshold,
-                isHighPowerMode: isHighPowerMode
+                isHighPowerMode: isHighPowerMode,
+                treatAsConnected: !isPresent,
+                monochromeCharging: monochromeCharging
             )
             : .foreground
         let color: IconColorRole = switch role {
@@ -71,6 +68,13 @@ enum IconPresentationMapper {
         case .highPower: .highPower
         case .charging: .powered
         }
+
+        // A Mac with no battery always reads as a full, complete ring; a real
+        // battery follows `fullThreshold`. Either way the placeholder 100% never
+        // becomes a number.
+        let progress = isPresent
+            ? StatusMappings.batteryProgress(battery, fullThreshold: options.fullThreshold)
+            : 1
 
         let naturalGapContent = StatusMappings.batteryGapContent(battery, options: options)
         // The "inside the ring" mode draws its status in the middle slot. When the
@@ -82,7 +86,12 @@ enum IconPresentationMapper {
         if closesRing {
             gapContent = naturalGapContent
         } else if chargingStatusCenter {
-            gapContent = options.showsPercentage ? .percentage : .empty
+            // Keep the level percentage in the gap whenever the user wants
+            // numerals anywhere (on battery, or for this power state), so the
+            // centre can carry the bolt/plug without losing the level.
+            let wantsPercentage = options.onBatteryMarker == .percentage
+                || (battery.isCharging ? options.chargingMarker : options.connectedMarker) == .percentage
+            gapContent = wantsPercentage ? .percentage : .empty
         } else {
             gapContent = naturalGapContent
         }
@@ -133,10 +142,7 @@ enum IconPresentationMapper {
         return OuterRingState(
             segments: [
                 RingSegmentState(
-                    progress: StatusMappings.batteryProgress(
-                        battery,
-                        fullThreshold: options.fullThreshold
-                    ),
+                    progress: progress,
                     color: color
                 )
             ],

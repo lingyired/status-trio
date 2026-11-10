@@ -72,6 +72,52 @@ final class InputSourceSettingsTests: XCTestCase {
 /// controller and clicking it routes through `StatusPanelActions`.
 @MainActor
 final class InputSourcePanelTests: XCTestCase {
+    func testApplePinyinRowsFollowTheChosenMarkerStyle() throws {
+        let iconURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try Data().write(to: iconURL)
+        defer { try? FileManager.default.removeItem(at: iconURL) }
+        let sources = [
+            ("com.apple.inputmethod.SCIM.ITABC", "简"),
+            ("com.apple.inputmethod.TCIM.Pinyin", "繁"),
+            ("com.example.pinyin", "简")
+        ].map { id, label in
+            InputSourceDescriptor(id: id, localizedName: "Pinyin", primaryLanguage: "zh",
+                                  iconURL: iconURL, shortLabel: label)
+        }
+        let state = InputSourceState(selectedID: sources[0].id, sources: sources)
+
+        // Default: system icons win, no marker override.
+        let system = InputSourcePanelMapper.map(
+            state: state, failure: nil, localization: makeLocalization(),
+            markerStyle: .systemIcon
+        )
+        XCTAssertEqual(system.rows.map(\.marker), ["简", "繁", "简"])
+        XCTAssertEqual(system.rows[0].iconURL, iconURL)
+        XCTAssertEqual(system.rows[1].iconURL, iconURL)
+
+        // 简/繁: the two Apple sources lose their icon, the third party keeps it.
+        let script = InputSourcePanelMapper.map(
+            state: state, failure: nil, localization: makeLocalization(),
+            markerStyle: .script
+        )
+        XCTAssertEqual(script.rows.map(\.marker), ["简", "繁", "简"])
+        XCTAssertNil(script.rows[0].iconURL)
+        XCTAssertNil(script.rows[1].iconURL)
+        XCTAssertEqual(script.rows[2].iconURL, iconURL, "Unknown third-party icons keep precedence")
+        XCTAssertEqual(script.rows.map(\.id), sources.map(\.id))
+        XCTAssertEqual(script.rows.map(\.isCurrent), [true, false, false])
+
+        // 中: both Apple sources collapse to a single 中, the third party is unchanged.
+        let zhong = InputSourcePanelMapper.map(
+            state: state, failure: nil, localization: makeLocalization(),
+            markerStyle: .zhong
+        )
+        XCTAssertEqual(zhong.rows.map(\.marker), ["中", "中", "简"])
+        XCTAssertNil(zhong.rows[0].iconURL)
+        XCTAssertNil(zhong.rows[1].iconURL)
+        XCTAssertEqual(zhong.rows[2].iconURL, iconURL)
+    }
+
     func testPanelRowsMirrorTheControllerStateAndMarkTheCurrentSource() {
         let controller = makeController(
             current: "com.example.pinyin",
@@ -82,7 +128,7 @@ final class InputSourcePanelTests: XCTestCase {
         let state = InputSourcePanelMapper.map(
             state: controller.state,
             failure: nil,
-            localization: makeLocalization()
+            localization: makeLocalization(), markerStyle: .systemIcon
         )
 
         XCTAssertEqual(state.rows.map(\.id), [abcRaw.id, pinyinRaw.id])
@@ -98,7 +144,7 @@ final class InputSourcePanelTests: XCTestCase {
         let state = InputSourcePanelMapper.map(
             state: controller.state,
             failure: nil,
-            localization: makeLocalization()
+            localization: makeLocalization(), markerStyle: .systemIcon
         )
 
         XCTAssertTrue(state.rows.isEmpty)
@@ -128,7 +174,7 @@ final class InputSourcePanelTests: XCTestCase {
         let panel = InputSourcePanelMapper.map(
             state: state,
             failure: nil,
-            localization: makeLocalization()
+            localization: makeLocalization(), markerStyle: .systemIcon
         )
 
         XCTAssertEqual(panel.rows.map(\.id), ["com.example.a", "com.example.b"])
@@ -143,7 +189,7 @@ final class InputSourcePanelTests: XCTestCase {
                 sourceID: pinyinRaw.id,
                 reason: .notConfirmed
             ),
-            localization: makeLocalization()
+            localization: makeLocalization(), markerStyle: .systemIcon
         )
         let refused = InputSourcePanelMapper.map(
             state: InputSourceState.resolved(selectedID: abcRaw.id, rawSources: [abcRaw, pinyinRaw]),
@@ -151,7 +197,7 @@ final class InputSourcePanelTests: XCTestCase {
                 sourceID: pinyinRaw.id,
                 reason: .systemRefused(osStatus: -50)
             ),
-            localization: makeLocalization()
+            localization: makeLocalization(), markerStyle: .systemIcon
         )
 
         XCTAssertNotEqual(unconfirmed.failureText, refused.failureText)

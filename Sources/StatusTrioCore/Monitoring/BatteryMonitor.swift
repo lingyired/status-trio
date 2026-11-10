@@ -13,6 +13,7 @@ struct BatteryReading: Equatable {
     var isCharging: Bool
     var isCharged: Bool = false
     var timeToFullChargeMinutes: Int? = nil
+    var timeToEmptyMinutes: Int? = nil
     var isConnectedToPower: Bool
     var isPresent: Bool
 }
@@ -67,12 +68,16 @@ final class IOPSBatteryReader: BatteryReadingProviding {
         let rawTimeToFullCharge = integerValue(description[kIOPSTimeToFullChargeKey])
         let timeToFullCharge = rawTimeToFullCharge.flatMap { $0 > 0 ? $0 : nil }
 
+        let timeToEmpty = integerValue(description[kIOPSTimeToEmptyKey])
+            .flatMap { $0 > 0 ? $0 : nil }
+
         return BatteryReading(
             currentCapacity: current,
             maxCapacity: maximum,
             isCharging: description[kIOPSIsChargingKey] as? Bool ?? false,
             isCharged: description[kIOPSIsChargedKey] as? Bool ?? false,
             timeToFullChargeMinutes: timeToFullCharge,
+            timeToEmptyMinutes: timeToEmpty,
             isConnectedToPower: description[kIOPSPowerSourceStateKey] as? String == kIOPSACPowerValue,
             isPresent: description[kIOPSIsPresentKey] as? Bool ?? true
         )
@@ -210,6 +215,10 @@ final class BatteryMonitor: BatteryMonitoring {
                 isCharged: reading.isCharged,
                 timeToFullChargeMinutes: reading.isCharging
                     ? reading.timeToFullChargeMinutes
+                    : nil,
+                // IOKit runtime estimates are valid only while discharging.
+                timeToEmptyMinutes: !reading.isConnectedToPower && !reading.isCharging
+                    ? reading.timeToEmptyMinutes.flatMap { $0 > 0 ? $0 : nil }
                     : nil,
                 isLowPowerMode: lowPowerModeProvider(),
                 isConnectedToPower: reading.isConnectedToPower

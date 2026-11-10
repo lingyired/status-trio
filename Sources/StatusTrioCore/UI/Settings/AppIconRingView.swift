@@ -8,49 +8,105 @@ import SwiftUI
 /// (temporary full charge, restore limit) stay in Battery → Charging.
 struct AppIconRingView: View {
     @ObservedObject var store: SettingsStore
+    /// Whether the Mac actually has a battery. A desktop (e.g. Mac mini) has no
+    /// real level, so the ring controls collapse to a decorative top marker.
+    var hasBattery: Bool = true
     @EnvironmentObject private var localization: Localization
 
+    /// The battery presence this page draws with. In a development build the
+    /// no-battery simulation forces the battery-less look so the UI can be
+    /// checked on a Mac that has a battery.
+    private var effectiveHasBattery: Bool {
+        hasBattery && !store.isNoBatterySimulationActive
+    }
+
     var body: some View {
+        if store.isDevelopmentBuild {
+            noBatterySimulationGroup
+        }
+        if !effectiveHasBattery {
+            noBatteryHintGroup
+        }
+        // #309: every ring control stays visible without a battery. The settings
+        // are kept; the ring colour still follows connected power and Low/High
+        // Power Mode, while the level and charging marker do not apply. The hint
+        // above says so.
         topMarkersGroup
         progressGroup
         colorsGroup
         effectsGroup
     }
 
+    // MARK: Developer preview
+
+    /// Developer-only helper: force the battery-less look so a Mac with a
+    /// battery can preview this page without one. A packaged release never shows
+    /// this and never simulates.
+    private var noBatterySimulationGroup: some View {
+        SettingsGroup(localization.string(.settingsBatteryDeveloperPreview)) {
+            SettingsToggleRow(
+                symbol: "eyeglasses",
+                tint: .gray,
+                title: localization.string(.settingsBatterySimulateNoBattery),
+                subtitle: localization.string(.settingsBatterySimulateNoBatteryDescription),
+                isOn: $store.simulatesNoBattery
+            )
+        }
+    }
+
+    /// Explains what still applies on a battery-less Mac (ring colour follows
+    /// connected power and Low/High Power Mode) and what does not (percentage,
+    /// charging marker), so the kept controls are not misleading.
+    private var noBatteryHintGroup: some View {
+        SettingsGroup {
+            SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryHiddenOptions))
+        }
+    }
+
     // MARK: Top markers
 
     private var topMarkersGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupTopMarkers)) {
-            SettingsToggleRow(
-                symbol: "percent",
-                tint: .green,
-                title: localization.string(.settingsBatteryShowPercentage),
-                isOn: $store.showsBatteryPercentage
-            )
+            if effectiveHasBattery {
+                // #315: one plain choice per power state, so the plug and bolt no
+                // longer hide behind a "show percentage" toggle or a combined
+                // "connected without charging" option.
+                markerRow(
+                    symbol: "percent",
+                    tint: .green,
+                    title: .settingsBatteryMarkerOnBattery,
+                    selection: $store.batteryOnBatteryMarker,
+                    options: BatteryTopMarker.onBatteryOptions
+                )
 
-            SettingsDivider()
-
-            SettingsToggleRow(
-                symbol: "bolt.fill",
-                tint: .yellow,
-                title: localization.string(.settingsBatteryShowChargingIndicator),
-                subtitle: localization.string(.settingsBatteryChargingDescription),
-                isOn: $store.showsChargingIndicator
-            )
-
-            if store.showsChargingIndicator && store.showsBatteryPercentage {
                 SettingsDivider()
 
-                SettingsMenuRow(
+                markerRow(
+                    symbol: "bolt.fill",
+                    tint: .yellow,
+                    title: .settingsBatteryMarkerCharging,
+                    selection: $store.batteryChargingMarker,
+                    options: BatteryTopMarker.onPowerOptions
+                )
+
+                SettingsDivider()
+
+                markerRow(
                     symbol: "powerplug.portrait.fill",
                     tint: .teal,
-                    title: localization.string(.settingsBatteryConnectedIndicator),
-                    subtitle: localization.string(
-                        .settingsBatteryConnectedIndicatorDescription
-                    ),
-                    selection: $store.batteryConnectedIndicator,
-                    options: BatteryConnectedIndicator.allCases,
-                    label: connectedIndicatorLabel
+                    title: .settingsBatteryMarkerConnected,
+                    selection: $store.batteryConnectedMarker,
+                    options: BatteryTopMarker.onPowerOptions
+                )
+            } else {
+                // A Mac with no battery: the only top marker to configure is a
+                // decorative plug / bolt (or nothing).
+                markerRow(
+                    symbol: "bolt.fill",
+                    tint: .yellow,
+                    title: .settingsBatteryNoBatteryTopIndicator,
+                    selection: $store.batteryNoBatteryMarker,
+                    options: BatteryTopMarker.noBatteryOptions
                 )
             }
 
@@ -85,6 +141,36 @@ struct AppIconRingView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func markerRow(
+        symbol: String,
+        tint: Color,
+        title: LocalizationKey,
+        selection: Binding<BatteryTopMarker>,
+        options: [BatteryTopMarker]
+    ) -> some View {
+        SettingsMenuRow(
+            symbol: symbol,
+            tint: tint,
+            title: localization.string(title),
+            selection: selection,
+            options: options,
+            label: markerLabel
+        )
+    }
+
+    private func markerLabel(_ marker: BatteryTopMarker) -> String {
+        switch marker {
+        case .percentage:
+            localization.string(.settingsBatteryConnectedIndicatorPercentage)
+        case .bolt:
+            localization.string(.settingsBatteryConnectedIndicatorBolt)
+        case .plug:
+            localization.string(.settingsBatteryConnectedIndicatorPlug)
+        case .hidden:
+            localization.string(.settingsBatteryMarkerHidden)
         }
     }
 
@@ -169,6 +255,22 @@ struct AppIconRingView: View {
 
     private var colorsGroup: some View {
         SettingsGroup(localization.string(.settingsBatteryGroupColors)) {
+            // #309: use black/white for the charging / connected state, while
+            // Low/High Power Mode and critical keep their own colours. nil means
+            // automatic — on by default on a battery-less Mac, off otherwise.
+            SettingsToggleRow(
+                symbol: "circle.lefthalf.filled",
+                tint: .gray,
+                title: localization.string(.settingsBatteryMonochromeCharging),
+                subtitle: localization.string(.settingsBatteryMonochromeChargingDescription),
+                isOn: Binding(
+                    get: { store.monochromeChargingRing ?? !effectiveHasBattery },
+                    set: { store.monochromeChargingRing = $0 }
+                )
+            )
+
+            SettingsDivider()
+
             SettingsToggleRow(
                 symbol: "paintpalette.fill",
                 tint: .orange,
@@ -249,7 +351,7 @@ struct AppIconRingView: View {
                 subtitle: localization.string(.settingsBatteryChargingBoltHeartbeatDescription),
                 isOn: $store.showsChargingBoltHeartbeat
             )
-            .disabled(!store.showsChargingEffect || !store.showsChargingIndicator)
+            .disabled(!store.showsChargingEffect || store.batteryChargingMarker != .bolt)
 
             if ChargingEffectTestMode.isAvailable() {
                 SettingsDivider()
@@ -266,17 +368,6 @@ struct AppIconRingView: View {
                 )
                 .disabled(!store.showsChargingEffect)
             }
-        }
-    }
-
-    private func connectedIndicatorLabel(_ indicator: BatteryConnectedIndicator) -> String {
-        switch indicator {
-        case .plug:
-            localization.string(.settingsBatteryConnectedIndicatorPlug)
-        case .bolt:
-            localization.string(.settingsBatteryConnectedIndicatorBolt)
-        case .percentage:
-            localization.string(.settingsBatteryConnectedIndicatorPercentage)
         }
     }
 }

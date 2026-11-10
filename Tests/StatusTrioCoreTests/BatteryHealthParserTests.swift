@@ -264,8 +264,7 @@ final class BatteryHealthParserTests: XCTestCase {
         var values = registry
         values["BatteryData"] = ["DesignCapacity": 8_579, "AppleRawMaxCapacity": 8_413]
         let details = BatteryDetailsReader.parse(
-            registry: values, adapterWatts: nil, remainingSeconds: -1,
-            state: state(), now: now,
+            registry: values, adapterWatts: nil,             state: state(), now: now,
             temperatureCelsius: 36.4,
             chargeTime: .estimated(minutes: 80))
         XCTAssertEqual(details.health?.designCapacityMAh, 8_579)
@@ -281,8 +280,7 @@ final class BatteryHealthParserTests: XCTestCase {
             rawPercentage: 0, isPresent: false, isCharging: false,
             isLowPowerMode: false, isConnectedToPower: false))
         let details = BatteryDetailsReader.parse(
-            registry: registry, adapterWatts: nil, remainingSeconds: -1,
-            state: noBattery, now: now, temperatureCelsius: 36.4,
+            registry: registry, adapterWatts: nil,             state: noBattery, now: now, temperatureCelsius: 36.4,
             chargeTime: .estimated(minutes: 80))
         XCTAssertNil(details.health)
     }
@@ -295,7 +293,11 @@ final class BatteryHealthParserTests: XCTestCase {
         XCTAssertFalse(BatteryHealthSnapshot(chargeTime: .unavailable).hasDisplayableChargeTime)
     }
 
-    func testReportedMaximumCapacityReadsTheSystemPercentage() throws {
+    /// AppleSmartBattery's `MaxCapacity` counter can stay pinned at 100 while
+    /// the battery has actually degraded, so it is never a display value. The
+    /// parser keeps the measured capacity ratio for internal fallback and the
+    /// details row reads macOS's percentage from `system_profiler` instead.
+    func testRegistryMaxCapacityIsNotReadAsADisplayPercentage() throws {
         let capacity = BatteryHealthParser.parseCapacity(registry: [
             "BatteryData": [
                 "DesignCapacity": 8_579,
@@ -303,7 +305,6 @@ final class BatteryHealthParserTests: XCTestCase {
                 "MaxCapacity": 100
             ]
         ])
-        XCTAssertEqual(capacity.maximumPercent, 100)
         XCTAssertEqual(try XCTUnwrap(capacity.healthPercent), 8_386.0 / 8_579 * 100, accuracy: 0.000_001)
     }
 

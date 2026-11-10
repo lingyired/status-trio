@@ -178,8 +178,8 @@ final class SystemPowerReaderTests: XCTestCase {
         guard case .measured(let watts, _) = rails else {
             return XCTFail("expected measured rails")
         }
-        XCTAssertEqual(watts.count, 2)
-        XCTAssertEqual(watts[0], 5.222 * 0.806, accuracy: 0.001)
+        XCTAssertEqual(watts.map(\.channel), [1, 2], "each rail keeps its SMC channel")
+        XCTAssertEqual(watts[0].watts, 5.222 * 0.806, accuracy: 0.001)
     }
 
     func testPortRailsTreatPartialReplyAsAnsweredInsteadOfUnavailable() {

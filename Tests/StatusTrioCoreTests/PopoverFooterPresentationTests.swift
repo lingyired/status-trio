@@ -13,13 +13,13 @@ final class PopoverFooterPresentationTests: XCTestCase {
         )
     }
 
-    func testSettingsLabelAppendsOnlyTheDevelopmentCodename() {
+    func testSettingsLabelOmitsTheDevelopmentCodename() {
         XCTAssertEqual(
             PopoverFooterPresentation.settingsLabel(
                 title: "Settings…",
                 developmentSuffix: "Apple Link"
             ),
-            "Settings… · Apple Link"
+            "Settings…"
         )
     }
 

@@ -254,6 +254,41 @@ final class StatusPanelViewModelTests: XCTestCase {
         )
     }
 
+    func testBatteryRuntimeUpdatesTheOpenPanelWithoutPercentageChanges() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+
+        let cases: [(Int?, String)] = [
+            (85, "About 1 hour, 25 minutes remaining"),
+            (80, "About 1 hour, 20 minutes remaining"),
+            (nil, "On battery")
+        ]
+        for (minutes, expected) in cases {
+            let expectedSleeps = fixture.popupSleeper.callCount + 1
+            fixture.battery.send(BatteryStatus(
+                rawPercentage: 72,
+                isPresent: true,
+                isCharging: false,
+                timeToEmptyMinutes: minutes,
+                isLowPowerMode: false,
+                isConnectedToPower: false
+            ))
+            let queued = await fixture.popupSleeper.waitForCallCount(
+                expectedSleeps, timeout: .seconds(1)
+            )
+            XCTAssertTrue(queued)
+            fixture.popupSleeper.releaseAll()
+            let updated = await waitForYields { panel.battery.subtitle == expected }
+            XCTAssertTrue(updated, expected)
+            XCTAssertEqual(panel.battery.title, "Battery · 72%")
+            XCTAssertEqual(panel.battery.accessibilityValue, expected)
+        }
+    }
+
     func testPopupBatteryAndNetworkUpdateThroughTheirDebouncedSource() async throws {
         let fixture = PanelStoreFixture()
         let panel = fixture.makePanel()
@@ -525,6 +560,22 @@ final class StatusPanelViewModelTests: XCTestCase {
         fixture.updateScheduler.runScheduled()
         XCTAssertFalse(panel.volume.previewRows.isEmpty)
         XCTAssertFalse(panel.volume.listeningModeTaskID.hasPrefix("off::"))
+    }
+
+    /// A packaged release must never inject the synthetic preview rows, even if a
+    /// stale developer toggle is set on the settings. The build flag gates it.
+    func testReleaseBuildNeverShowsListeningModePreviewRows() {
+        let fixture = PanelStoreFixture(isDevelopmentBuild: false)
+        fixture.settings.setPopupSection(.volume, enabled: true)
+        fixture.settings.previewsBluetoothListeningMode = true
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        XCTAssertFalse(fixture.settings.isListeningModePreviewActive)
+        XCTAssertTrue(panel.volume.previewRows.isEmpty)
+        XCTAssertFalse(panel.volume.listeningModeTaskID.contains("|preview"))
     }
 
     /// `volumeListChanged()` drives the real controller. With the master switch
@@ -1006,12 +1057,13 @@ final class PanelStoreFixture {
     init(
         outputDevices: [AudioOutputDevice] = [],
         pairedDevices: [BluetoothDevice] = [],
-        wifiScanner: PanelWiFiScanner = PanelWiFiScanner()
+        wifiScanner: PanelWiFiScanner = PanelWiFiScanner(),
+        isDevelopmentBuild: Bool = true
     ) {
         let suiteName = "StatusPanelViewModelTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         let sleeper = ManualEventSleeper()
-        settings = SettingsStore(defaults: defaults)
+        settings = SettingsStore(defaults: defaults, isDevelopmentBuild: isDevelopmentBuild)
         localization = Localization(defaults: defaults, preferredLanguages: ["en"])
         popupSleeper = sleeper
         bluetoothWorker = PanelBluetoothWorker(devices: pairedDevices)

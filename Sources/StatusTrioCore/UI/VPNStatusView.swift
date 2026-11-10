@@ -44,7 +44,7 @@ struct VPNStatusView: View {
         Button {
             onSetPower(!power.isOn)
         } label: {
-            PanelActionGlyph(systemName: "power")
+            PanelActionGlyph(systemName: "power", size: PanelSummaryActionMetrics.actionSlot)
         }
         .buttonStyle(.plain)
         .foregroundStyle(power.isOn ? Color.accentColor : Color.secondary)

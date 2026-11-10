@@ -20,6 +20,22 @@ final class WiFiPowerSummaryTests: XCTestCase {
         XCTAssertFalse(second.showsWiFiPowerControl, "the choice must survive a new store")
     }
 
+    func testConfirmBeforeTurnOffDefaultsOnAndPersists() {
+        let suite = makeDefaultsSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertTrue(first.confirmsWiFiPowerOff, "confirmation is on by default (#305)")
+
+        first.confirmsWiFiPowerOff = false
+
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(
+            second.confirmsWiFiPowerOff,
+            "the opt-out must survive a new store"
+        )
+    }
+
     // MARK: - Visibility
 
     func testControlIsHiddenWithoutWiFiHardware() {
@@ -66,6 +82,37 @@ final class WiFiPowerSummaryTests: XCTestCase {
             XCTAssertFalse(
                 WiFiPowerTogglePolicy.requiresConfirmation(for: state),
                 "\(state) must turn off without asking"
+            )
+        }
+    }
+
+    func testTurningOffSkipsConfirmationWhenTheSettingIsOff() {
+        for state: WiFiState in [.connected, .noInternet, .hotspot, .temporary, .shared] {
+            XCTAssertFalse(
+                WiFiPowerTogglePolicy.requiresConfirmation(for: state, confirmsPowerOff: false),
+                "\(state) must switch off directly when the confirm setting is off (#305)"
+            )
+            XCTAssertEqual(
+                WiFiPowerTogglePolicy.decision(
+                    isOn: true,
+                    requiresConfirmation: WiFiPowerTogglePolicy.requiresConfirmation(
+                        for: state,
+                        confirmsPowerOff: false
+                    )
+                ),
+                .set(false),
+                "\(state) writes the radio off without a confirmation step"
+            )
+        }
+    }
+
+    func testSettingDoesNotAffectStatesThatNeverAsked() {
+        for state: WiFiState in [.notAssociated, .off, .unavailable] {
+            XCTAssertFalse(
+                WiFiPowerTogglePolicy.requiresConfirmation(for: state, confirmsPowerOff: true)
+            )
+            XCTAssertFalse(
+                WiFiPowerTogglePolicy.requiresConfirmation(for: state, confirmsPowerOff: false)
             )
         }
     }

@@ -202,7 +202,7 @@ final class StatusPanelActions {
                     return store.bluetoothDevices.devices
                 }
                 let config = ListeningModePreview.Configuration(
-                    isEnabled: settings.previewsBluetoothListeningMode,
+                    isEnabled: settings.isListeningModePreviewActive,
                     deviceName: settings.bluetoothListeningModePreviewDeviceName,
                     deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
                     languageCode: settings.bluetoothListeningModePreviewLanguage
@@ -236,11 +236,13 @@ final class StatusPanelActions {
                 // state so no controls are presented anywhere. Re-enabling it
                 // reruns this same refresh path to rediscover live devices.
                 guard settings.showsBluetoothListeningMode else {
-                    store.bluetoothListeningModes.stop()
+                    // Master switch off: release the kept-alive Redmi control
+                    // sessions too, not just the panel-scoped state.
+                    store.bluetoothListeningModes.shutdown()
                     return
                 }
                 let config = ListeningModePreview.Configuration(
-                    isEnabled: settings.previewsBluetoothListeningMode,
+                    isEnabled: settings.isListeningModePreviewActive,
                     deviceName: settings.bluetoothListeningModePreviewDeviceName,
                     deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
                     languageCode: settings.bluetoothListeningModePreviewLanguage

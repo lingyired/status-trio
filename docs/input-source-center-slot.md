@@ -76,6 +76,17 @@ keeps their chosen content (`StatusMappings.isNetworkOffline`).
 
 ## Icon rendering
 
+Apple's Simplified Pinyin (`com.apple.inputmethod.SCIM.ITABC`) uses `简`, and
+Traditional Pinyin (`com.apple.inputmethod.TCIM.Pinyin`) uses `繁`. These markers
+take precedence over their system icon files in the menu bar, Dock, previews,
+and input-source list so the two modes remain distinguishable.
+
+Other Pinyin sources derive a fallback marker from an explicit `zh-Hans` or
+`zh-Hant` language tag, then a Simplified/Traditional name. Ambiguous Pinyin
+remains `拼`; third-party icon files and other input methods keep their existing
+priority. This identifies the selected source; it does not convert text or
+change an input method's internal Simplified/Traditional mode.
+
 Input-source icons are files (usually PDF or PNG), and their visible ink is not
 centred in the box `NSImage.size` reports. `StatusIconRenderer` measures the ink
 centre the same way it does for SF Symbols and anchors that, so a lopsided icon
@@ -123,12 +134,12 @@ draws no per-source target.
 Every row in the opened list draws one flat mark in the row's own colour, so the
 list stays readable on a dark panel:
 
-- a source that ships an icon file goes through `InputSourceIconMask`, which
+- except for the Apple Pinyin script markers above, a source that ships an icon
+  file goes through `InputSourceIconMask`, which
   keeps the icon's *ink* rather than its palette — the WeChat input method's
-  black disc with a light glyph becomes a light disc with the glyph knocked out,
-  and the system's dark Pinyin art becomes a light glyph;
-- a source with no icon file gets the rounded chip macOS itself shows for ABC,
-  with the layout's letter inside it.
+  black disc with a light glyph becomes a light disc with the glyph knocked out;
+- a source with no icon file, or a known Apple Pinyin mode, gets a rounded chip
+  with its short label inside it.
 
 Both are cached per URL, so a panel redraw never re-reads or re-rasterises the
 file.

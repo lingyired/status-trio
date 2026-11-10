@@ -70,6 +70,11 @@
 "settings.appIcon.middleIcon.size.description" = "Единый размер для всего содержимого в центре: Wi-Fi, Bluetooth, источник ввода и числа.";
 "settings.appIcon.middleIcon.networkWarnings" = "Сначала проблемы сети";
 "settings.appIcon.middleIcon.networkWarnings.description" = "Когда Mac действительно офлайн, в центре показывается состояние сети вместо выбранного источника.";
+"settings.appIcon.middleIcon.inputSourceMarker" = "Значок пиньиня";
+"settings.appIcon.middleIcon.inputSourceMarker.description" = "Как источники ввода пиньиня (упрощённый и традиционный) от Apple отображают центральный значок.";
+"settings.appIcon.middleIcon.inputSourceMarker.systemIcon" = "Системный значок";
+"settings.appIcon.middleIcon.inputSourceMarker.script" = "简 / 繁";
+"settings.appIcon.middleIcon.inputSourceMarker.zhong" = "中";
 "settings.network.connectionIcons" = "Стиль значков подключения";
 "settings.network.connectionIcons.description" = "Если включено, выбранное состояние отображается стандартным значком сигнала Wi-Fi вместо специального обозначения.";
 "settings.network.wifiIconForEthernet" = "Использовать значок Wi-Fi для Ethernet";
@@ -183,7 +188,11 @@
 "settings.battery.group.topMarkers" = "Верхние маркеры";
 "settings.battery.group.progress" = "Прогресс";
 "settings.battery.noBatteryNotice" = "На этом устройстве нет аккумулятора, поэтому процент заряда не отображается.";
+"settings.battery.noBatteryTopIndicator" = "Верхний индикатор";
+"settings.battery.noBatteryTopIndicatorDescription" = "На этом Mac нет аккумулятора, поэтому этот значок только декоративный: он рисует молнию или вилку в разрыве кольца и не отражает реальную зарядку.";
+"settings.battery.noBatteryGapIcon" = "Значок разрыва";
 "settings.battery.showPercentage" = "Показывать процент заряда";
+"settings.battery.showPercentageNoBattery" = "У этого устройства нет батареи";
 "settings.battery.showChargingIndicator" = "Показывать значок при зарядке или питании от сети";
 "settings.battery.chargingDescription" = "Если включено, процент заменяется молнией или вилкой во время зарядки или при питании от сети.";
 "settings.battery.splitGapProgress" = "Делить прогресс при заполненном верхнем разрыве";
@@ -203,11 +212,22 @@
 "settings.battery.connectedIndicator.plug" = "Вилка";
 "settings.battery.connectedIndicator.bolt" = "Молния";
 "settings.battery.connectedIndicator.percentage" = "Процент";
+"settings.battery.marker.onBattery" = "От батареи";
+"settings.battery.marker.charging" = "Зарядка";
+"settings.battery.marker.connected" = "Подключено, не заряжается";
+"settings.battery.marker.hidden" = "Скрыто";
 "settings.battery.symbolScale" = "Размер процента и молнии";
 "settings.battery.symbolScaleAccessibility" = "Размер процента батареи и молнии";
 "settings.battery.symbolScaleDescription" = "Процент и молния используют один размер.";
 "settings.battery.statusColors" = "Окрашивать дугу по состоянию батареи";
 "settings.battery.statusColorsDescription" = "По умолчанию: питание от сети — зелёный, энергосбережение — жёлтый, низкий заряд — красный. Цвета можно изменить ниже. При выключении сохранённые свои цвета не применяются.";
+"settings.battery.monochromeCharging" = "Чёрно-белый при зарядке или питании";
+"settings.battery.monochromeChargingDescription" = "Рисует кольцо чёрно-белым при зарядке или питании. Режимы энергосбережения и высокой мощности сохраняют свои цвета. На Mac без батареи включено по умолчанию.";
+
+"settings.battery.developerPreview" = "Предпросмотр для разработчиков";
+"settings.battery.simulateNoBattery" = "Имитировать отсутствие батареи";
+"settings.battery.simulateNoBatteryDescription" = "Показывает эту страницу так, как она выглядит на Mac без батареи. Только в сборках для разработки.";
+"settings.battery.noBatteryHiddenOptions" = "На этом Mac нет батареи: процент и индикатор зарядки не применяются. Кольцо по умолчанию чёрно-белое; выключите выше, чтобы использовать цвет питания. Режимы энергосбережения и высокой мощности сохраняют цвета.";
 "settings.battery.colors.charging" = "Зарядка / питание от сети";
 "settings.battery.colors.lowPower" = "Режим энергосбережения";
 "settings.battery.colors.critical" = "Критически низкий заряд";
@@ -241,6 +261,7 @@
 "battery.state.notPresent" = "Батарея отсутствует";
 "battery.state.charged" = "Полностью заряжена";
 "battery.state.calculatingTimeToFull" = "Расчёт времени до полного заряда";
+"battery.timeRemaining" = "Примерно %@ до разрядки";
 "battery.timeToFull.minutes" = "До полного заряда около %d мин";
 "battery.timeToFull.hours" = "До полного заряда около %d ч";
 "battery.timeToFull.hoursMinutes" = "До полного заряда около %d ч %d мин";
@@ -528,6 +549,9 @@
 "settings.audio.indicatorStyleDescription" = "Выберите отображение громкости четырьмя точками или сплошной дугой.";
 "settings.audio.indicatorStyle.dots" = "Точки";
 "settings.audio.indicatorStyle.arc" = "Дуга";
+"settings.audio.airPodsInlineControlsTitle" = "Управление наушниками";
+"settings.audio.airPodsInlineControls" = "Показывать элементы управления AirPods на панели громкости";
+"settings.audio.airPodsInlineControlsDescription" = "Показывает элементы управления распознаванием разговора, пространственным и адаптивным звуком рядом с вашим выводом AirPods. Отключите, чтобы скрыть эти элементы на основе приватных API.";
 
 // On-demand battery details.
 "battery.details.title" = "Сведения об аккумуляторе";
@@ -541,6 +565,7 @@
 "battery.details.current" = "Ток батареи";
 "battery.details.sampled" = "Время замера батареи";
 "battery.details.adapter" = "Номинальная мощность адаптера";
+"battery.details.inputPort" = "Порт зарядки";
 "battery.details.remaining" = "Оставшееся время";
 "battery.details.cycles" = "Число циклов";
 "battery.details.uptime" = "Время работы";
@@ -718,6 +743,24 @@
 "battery.action.cancelChargeToFullNowConfirmation" = "Состояние зарядки системы могло измениться. Нажмите ещё раз, чтобы продолжить.";
 "battery.action.cancelChargeToFullNowPending" = "Система ещё не подтвердила временную зарядку до 100 %. Повторите попытку через несколько секунд.";
 
+// AirPods system controls
+"airPods.controls" = "Управление AirPods…";
+"airPods.adaptive" = "Адаптивное аудио";
+"airPods.lessNoise" = "Меньше шума";
+"airPods.moreNoise" = "Больше шума";
+"airPods.adaptiveUnavailable" = "Настройка адаптивного аудио по Bluetooth недоступна.";
+"airPods.spatial" = "Сделать стерео пространственным";
+"airPods.conversation" = "Распознавание разговора";
+"airPods.routeChanged" = "Выбранные AirPods изменились или отключились. Откройте управление текущим выходом заново.";
+"airPods.unconfirmed" = "macOS не подтвердила изменение. Обновите, чтобы прочитать фактическую настройку.";
+"airPods.unavailable" = "Прямое управление по Bluetooth недоступно.";
+"airPods.notAvailable" = "Недоступно";
+"airPods.apply" = "Применить";
+
+"airPods.spatialFixed" = "Фиксированное";
+"airPods.spatialHeadTracked" = "Отслеживание головы";
+
+"airpods.retry" = "Повторить";
 "settings.popup.order.brightness" = "Яркость";
 "brightness.row.accessibility" = "Яркость %@, %@";
 "brightness.row.accessibilityUnavailable" = "Яркость %@, %@";
@@ -789,6 +832,13 @@
 "settings.brightness.compatibility.title" = "Не регулируется яркость?";
 "settings.brightness.compatibility.description" = "Производители реализуют DDC по-разному, поэтому Status Trio не может поддерживать все модели. Если яркость дисплея здесь не регулируется, переключите его на бэкенд BetterDisplay — Status Trio будет управлять им через BetterDisplay. Бесплатной версии достаточно; лицензия Pro не нужна.";
 "settings.brightness.compatibility.link" = "Скачать BetterDisplay (бесплатно)";
+"settings.brightness.betterDisplay.manualHint" = "Если яркость этого дисплея по-прежнему недоступна, вручную переключите дисплей BetterDisplay выше.";
+"settings.brightness.betterDisplay.display" = "Дисплей BetterDisplay";
+"settings.brightness.betterDisplay.automatic" = "Автоматически (по системному дисплею)";
+"settings.brightness.betterDisplay.unnamed" = "Дисплей без имени";
+"settings.brightness.betterDisplay.saved" = "Сохранено";
+"settings.brightness.betterDisplay.unavailable" = "Недоступно";
+"settings.brightness.betterDisplay.refresh" = "Обновить устройства";
 "settings.battery.colors.highPower" = "Режим высокой мощности";
 "battery.lowPowerMode.autoEnable" = "Автоматически включать режим низкого энергопотребления";
 "battery.lowPowerMode.autoEnableDescription" = "После отключения питания режим низкого энергопотребления включается автоматически, когда заряд аккумулятора опускается ниже порога низкого заряда. Один раз за цикл низкого заряда.";
@@ -807,6 +857,8 @@
 
 "settings.network.powerControl" = "Показывать кнопку питания Wi-Fi";
 "settings.network.powerControlDescription" = "Добавляет кнопку питания Wi-Fi на панель состояния.";
+"settings.network.confirmBeforePowerOff" = "Подтверждать перед отключением Wi-Fi";
+"settings.network.confirmBeforePowerOffDescription" = "Спрашивать подтверждение перед отключением Wi-Fi при активном подключении.";
 "wifi.power.turnOn" = "Включить Wi-Fi";
 "wifi.power.turnOff" = "Выключить Wi-Fi";
 "wifi.power.unknown" = "Состояние Wi-Fi недоступно.";
@@ -828,3 +880,7 @@
 "settings.subtopic.bluetooth.listeningMode" = "Режим прослушивания";
 "settings.subtopic.bluetooth.deviceBattery" = "Батарея устройства";
 "settings.subtopic.bluetooth.deviceManagement" = "Управление устройствами";
+"settings.audio.spatialAudioControlsTitle" = "Показывать элементы управления пространственным звуком";
+"settings.audio.spatialAudioControlsDescription" = "Показывает параметры пространственного звука (Выкл/Фиксированный/Отслеживание головы) в строке вывода AirPods. Сейчас только AirPods.";
+"settings.audio.conversationAwarenessControlsTitle" = "Показывать элементы управления распознаванием речи";
+"settings.audio.conversationAwarenessControlsDescription" = "Показывает переключатель распознавания речи в строке вывода AirPods. Сейчас только AirPods.";

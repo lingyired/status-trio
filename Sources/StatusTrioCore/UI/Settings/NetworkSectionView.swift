@@ -83,6 +83,14 @@ struct NetworkSectionView: View {
                     subtitle: localization.string(.settingsNetworkPowerControlDescription),
                     isOn: $store.showsWiFiPowerControl
                 )
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "exclamationmark.circle",
+                    tint: .blue,
+                    title: localization.string(.settingsNetworkConfirmBeforePowerOff),
+                    subtitle: localization.string(.settingsNetworkConfirmBeforePowerOffDescription),
+                    isOn: $store.confirmsWiFiPowerOff
+                )
             }
 
             SettingsDivider()

@@ -51,6 +51,8 @@ struct StatusPopoverView: View {
                 // detail pages and Bluetooth lists keep their own scroll views
                 // for other hosts, but disable them here.
                 .environment(\.statusPanelManagesScrolling, true)
+                .environment(\.airPodsConversationCache, panel.store.airPodsConversationCache)
+                .environment(\.statusPanelVisibility, layoutMetrics.visibilityPublisher)
         } footer: {
             if panel.route == .summary {
                 pinnedFooter
@@ -95,6 +97,10 @@ struct StatusPopoverView: View {
                     onOpenWiFiSettings: openWiFiSettings,
                     onOpenLocationSettings: openLocationSettings,
                     onSetPower: { panel.actions.setWiFiPower($0) },
+                    wifiPowerRequiresConfirmation: WiFiPowerTogglePolicy.requiresConfirmation(
+                        for: panel.store.popupSnapshot.wifi.state,
+                        confirmsPowerOff: panel.settings.confirmsWiFiPowerOff
+                    ),
                     onRefresh: { panel.actions.refreshWiFi() },
                     onOpenSharingSettings: openSharingSettings,
                     onCopyValue: { copyValue($0) },
@@ -320,7 +326,8 @@ private struct WiFiPowerSummaryView: View {
             wifiPowerIsOn: WiFiPowerControlVisibility.isRadioOn(state: store.popupSnapshot.wifi.state),
             wifiPowerCanSet: !store.wifiPowerIsChanging,
             wifiPowerRequiresConfirmation: WiFiPowerTogglePolicy.requiresConfirmation(
-                for: store.popupSnapshot.wifi.state
+                for: store.popupSnapshot.wifi.state,
+                confirmsPowerOff: panel.settings.confirmsWiFiPowerOff
             ),
             wifiPowerFailed: store.wifiPowerFailed,
             onSetWiFiPower: { store.setWiFiPower($0) },
