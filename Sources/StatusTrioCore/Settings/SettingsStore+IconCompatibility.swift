@@ -74,6 +74,10 @@ extension SettingsStore {
         configuration.appearance.bluetoothIconColor = BluetoothIconColorConfiguration(bluetooth.iconColor)
         configuration.appearance.inputSourceMarkerStyle = inputSourceMarkerStyle
         configuration.appearance.bluetoothSymbolScale = bluetooth.symbolScale
+        // Keep the unified centre size in step with the legacy Wi-Fi scale so a
+        // `wifiSymbolScale` edit is reflected in `iconConfiguration`.
+        configuration.appearance.center.symbolScale =
+            CenterAppearance.classic.symbolScale * connection.wifiScale
         configuration.appearance.batteryStatusColors = BatteryStatusColorsConfiguration(
             battery.batteryStatusColors
         )

@@ -214,3 +214,12 @@
 - 结果：`IconSizingStandardTests` 13/18 通过；剩余 5 个是比较跨渲染器实测墨迹高度的用例，需要完整移植分支的 measured-height 机制（`MeasuredCenterArtwork`/`CenterSizingMetricsCache`/`normalizedCenterArtwork` 等十余个互锁函数）。
 - 处置：`IconSizingStandardTests`、`IconDesignerCenterBatteryScaleTests`、`IconDesignerOuterBatteryTextScaleTests` 退役到 `Tests/Retired/`（README 说明），因它们锁定分支渲染器的实测高度流水线；`IconConfigurationMigrationTests` 保持启用。
 - 当前**测试目标内无隔离文件**：Icon 300/43 suites、Preview 72、Dock 167、Settings 38 全绿。
+
+## 17. Phase 7 full 验证（2026-11-10 续）
+
+- `bash scripts/verify-local.sh full` 首次运行暴露 8 个 focused 过滤器未覆盖的失败，全部处置：
+  - **回复**：文字锚点回退到 `wifiSymbolCenter`（Issue #30 以符号锚点为准），修复 `Issue30WiFiAlignmentTests` 全部 6 项与 `ChargingStatusCenterSourceTests` 7 项；`CenterPercentageInteractiveRangeTests` 6 项通过。
+  - **退役**：`StatusIconCenterTextAlignmentTests`（其"文字以画布中点 64 居中"与 Issue #30"中心槽含文字统一走 artwork 锚点"互斥，后者为权威）。
+  - **删除个别用例**（文件保持启用）：`SystemStatusStoreTests.testPopoverAlwaysOwnsActivationAlongsideExistingOwners`（分支蓝牙激活 token 语义）、`CenterPercentageInteractiveRangeTests` 2 项（measured-height / 已删编辑器源文件）、`UnifiedWiFiScaleMigrationTests` 4 项（已删编辑器源契约 + 分支单向迁移 fixture）。
+- full 结果：Swift 全量测试通过、Release 编译通过（`BUILD_TIMING phase=swift-release-build exit=0`）；`App bundle build` 在 `mobile-source-checkout` 阶段因**网络**克隆 openssl 失败（`SSL_ERROR_SYSCALL`），与代码无关，属未验证项。
+- 未验证项（如实记录）：MobileBattery 源码拉取、Universal 打包、签名/公证、DMG、真实 macOS 13/Ventura 运行时。

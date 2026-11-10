@@ -318,13 +318,10 @@ enum StatusIconRenderer {
     /// half-height. Anchoring the ink centre itself makes the position
     /// independent of the text's size, which is what a label that follows the
     /// Wi-Fi size control needs.
-    // Centre text is aligned to the canvas midpoint so its ink bounds stay
-    // optically centred at every scale; SF Symbols keep the artwork anchor
-    // (`wifiSymbolCenter`) which #30 tuned for horizontal alignment.
-    private static let centerTextInkCenter = CGPoint(
-        x: StatusIconGeometry.artworkCenterX,
-        y: 64.0
-    )
+    // Centre text shares the SF Symbol anchor so a label sits on the same slot
+    // centre as the Wi-Fi glyph at every scale (issue #30). The ink-bounds
+    // compensation below then keeps it optically centred.
+    private static let centerTextInkCenter = wifiSymbolCenter
 
     /// Uses the middle connection position for a large, label-free percentage.
 

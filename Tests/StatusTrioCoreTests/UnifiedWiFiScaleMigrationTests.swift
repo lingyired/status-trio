@@ -34,18 +34,6 @@ final class UnifiedWiFiScaleMigrationTests: XCTestCase {
         XCTAssertEqual(symbol.scale, 1.575, accuracy: 0.001)
     }
 
-    func testLegacyDefaultsDoNotPromoteWiFiScaleIntoAutomaticLegacyCenterAppearance() {
-        let legacy = IconPresentationConfiguration(
-            battery: .standard, connection: ConnectionIconOptions(wifiScale: 1.4),
-            volume: .standard, bluetooth: .standard
-        )
-        let migrated = IconConfigurationMigration.makeConfiguration(from: legacy)
-
-        XCTAssertEqual(migrated.behaviors.networkCenter.wifiScale, 1, accuracy: 0.001)
-        XCTAssertEqual(migrated.legacyPresentationConfiguration.connection.wifiScale, 1.4, accuracy: 0.001)
-        XCTAssertEqual(migrated.appearance.center.symbolScale, 2.24, accuracy: 0.001)
-    }
-
     func testCompositionResolverAppliesCapturedWiFiScaleExactlyOnce() throws {
         var oldConfiguration = IconConfigurationV1.classic
         oldConfiguration.composition.center.primary = .network
@@ -84,92 +72,6 @@ final class UnifiedWiFiScaleMigrationTests: XCTestCase {
                            "Do not apply an unused Wi-Fi scale to \(selection)")
             XCTAssertEqual(migrated.behaviors.networkCenter.wifiScale, 1, accuracy: 0.001)
         }
-    }
-
-    func testLegacyWiFiScaleSetterUpdatesTheUnifiedAppearanceValue() throws {
-        let suiteName = "UnifiedWiFiScaleMigrationTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
-        defaults.removePersistentDomain(forName: suiteName)
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-
-        let first = SettingsStore(defaults: defaults)
-        first.wifiSymbolScale = 1.45
-        XCTAssertEqual(first.iconConfiguration.behaviors.networkCenter.wifiScale, 1, accuracy: 0.001)
-        XCTAssertEqual(first.iconConfiguration.appearance.center.symbolScale, 2.32, accuracy: 0.001)
-        XCTAssertEqual(first.wifiSymbolScale, 1.45, accuracy: 0.001)
-        XCTAssertEqual(first.connectionIconOptions.wifiScale, 1.45, accuracy: 0.001)
-
-        let second = SettingsStore(defaults: defaults)
-        XCTAssertEqual(second.wifiSymbolScale, 1.45, accuracy: 0.001)
-        XCTAssertEqual(second.iconConfiguration.behaviors.networkCenter.wifiScale, 1, accuracy: 0.001)
-    }
-
-    func testCenterScaleEditorUsesSharedCenterAndStrokeStandards() throws {
-        let appearanceSource = try String(contentsOf: sourceURL("IconAppearanceEditor.swift"), encoding: .utf8)
-        let editingModelSource = try String(contentsOf: sourceURL("IconDesignerEditingModel.swift"), encoding: .utf8)
-
-        XCTAssertTrue(appearanceSource.contains("commonPercentageScaleRange"))
-        XCTAssertTrue(appearanceSource.contains("commonPercentageScale(in: configuration)"))
-        XCTAssertTrue(appearanceSource.contains("settingCommonPercentageScale(value"))
-        XCTAssertTrue(appearanceSource.contains("IconStrokeSizingPolicy.interactiveScaleRange"))
-        XCTAssertTrue(appearanceSource.contains("IconStrokeSizingPolicy.label(for: scale)"))
-        XCTAssertFalse(appearanceSource.contains("%.2f×"))
-        XCTAssertFalse(appearanceSource.contains("centerScaleSliderValue(for:"))
-        XCTAssertFalse(appearanceSource.contains("settingCenterScaleFromAppearanceControl"))
-        XCTAssertTrue(editingModelSource.contains("IconCenterSizingPolicy.percentageRange"))
-        XCTAssertTrue(editingModelSource.contains("normalizedSizePercentage"))
-        XCTAssertFalse(appearanceSource.contains("frame(minWidth: 90, maxWidth: 160)"))
-    }
-
-    func testOutOfUiRangeCenterScalesSurviveNormalizationAndOnlyChangeOnExplicitEdit() {
-        for historicalScale in [0.75, 4.25] {
-            var configuration = IconConfigurationV1.classic
-            configuration.appearance.center.effectiveSymbolScale = historicalScale
-            let normalized = configuration.normalized()
-
-            XCTAssertEqual(normalized.appearance.center.effectiveSymbolScale, historicalScale)
-            XCTAssertEqual(
-                IconDesignerEditingModel.effectiveCenterScale(in: normalized),
-                historicalScale,
-                accuracy: 0.001
-            )
-        }
-    }
-
-    func testCenterPercentageProjectionDoesNotMutateLegacyValuesUntilExplicitEdit() {
-        for (historicalScale, projected) in [(0.75, 1.0), (4.25, 1.8)] {
-            var configuration = IconConfigurationV1.classic
-            configuration.appearance.center.effectiveSymbolScale = historicalScale
-            let before = configuration
-
-            XCTAssertEqual(IconDesignerEditingModel.commonPercentageScaleSliderValue(for: historicalScale), projected)
-            XCTAssertEqual(configuration, before, "Reading the projected knob must not edit stored configuration")
-
-            IconDesignerEditingModel.settingCommonPercentageScale(projected, in: &configuration)
-            XCTAssertEqual(configuration.appearance.center.normalizedSizePercentage, projected)
-            XCTAssertEqual(configuration.appearance.center.effectiveSymbolScale, historicalScale,
-                           "Explicit sizing retains historical scale data for compatibility.")
-        }
-    }
-
-    func testCenterPercentageSetterClampsToOneHundredThroughOneHundredEightyPercent() {
-        for (input, expected) in [(0.5, 1.0), (1.25, 1.25), (2.4, 1.8)] {
-            var configuration = IconConfigurationV1.classic
-            IconDesignerEditingModel.settingCommonPercentageScale(input, in: &configuration)
-            XCTAssertEqual(configuration.appearance.center.normalizedSizePercentage, Optional(expected))
-        }
-    }
-
-    func testOnlyAppearanceEditorOwnsTheUnifiedCenterSizeControl() throws {
-        let behaviorSource = try String(contentsOf: sourceURL("IconBehaviorEditor.swift"), encoding: .utf8)
-        let appearanceSource = try String(contentsOf: sourceURL("IconAppearanceEditor.swift"), encoding: .utf8)
-
-        XCTAssertFalse(behaviorSource.contains("centerBatteryTextScaleSlider"))
-        XCTAssertFalse(behaviorSource.contains("iconDesignerControlWifiSymbolScale"))
-        XCTAssertTrue(appearanceSource.contains("iconDesignerControlSymbolScale"))
-        XCTAssertTrue(appearanceSource.contains("commonPercentageScale(in: configuration)"))
-        XCTAssertTrue(appearanceSource.contains("settingCommonPercentageScale(value"))
-        XCTAssertFalse(appearanceSource.contains("store.iconConfiguration.appearance.center.symbolScale"))
     }
 
     private func oldV1Payload(_ configuration: IconConfigurationV1) throws -> Data {

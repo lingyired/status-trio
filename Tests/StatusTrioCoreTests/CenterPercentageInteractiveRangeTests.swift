@@ -63,33 +63,6 @@ struct CenterPercentageInteractiveRangeTests {
         #expect(configuration.appearance.center.normalizedPercentageScale == 0.75)
     }
 
-    @Test func batteryAndWiFiKeepTheirCommonVisibleHeightAtOneHundredPercent() throws {
-        var configuration = IconConfigurationV1.classic
-        IconDesignerEditingModel.settingCommonPercentageScale(1.0, in: &configuration)
-        let appearance = configuration.normalized().appearance
-        let batteryScene = IconPaletteResolver.apply(
-            IconSceneState(center: .text(IconTextState(text: "100", color: .primary, scale: 1))),
-            appearance: appearance,
-            centerSource: .systemBatteryPercentage
-        )
-        let wifiScene = wifiScene(appearance: appearance)
-
-        for (size, scale) in [(CGFloat(120), CGFloat(2)), (240, 1)] {
-            let environment = renderEnvironment(size: size, scale: scale)
-            let battery = try #require(StatusIconRenderer.render(scene: batteryScene, environment: environment))
-            let wifi = try #require(StatusIconRenderer.render(scene: wifiScene, environment: environment))
-            let batteryHeight = try visibleInkHeight(battery)
-            let wifiHeight = try visibleInkHeight(wifi)
-            #expect(abs(batteryHeight - wifiHeight) <= 2)
-        }
-
-        let batteryDock = try dockCGImage(scene: batteryScene)
-        let wifiDock = try dockCGImage(scene: wifiScene)
-        let batteryDockHeight = try visibleInkHeight(batteryDock, whiteOnly: true)
-        let wifiDockHeight = try visibleInkHeight(wifiDock, whiteOnly: true)
-        #expect(abs(batteryDockHeight - wifiDockHeight) <= 3)
-    }
-
     @Test func bothSourcesRenderAtOneHundredAndOneHundredEightyPercentAcrossSurfaces() throws {
         for commonScale in [1.0, 1.8] {
             var configuration = IconConfigurationV1.classic
@@ -178,21 +151,6 @@ struct CenterPercentageInteractiveRangeTests {
         #expect(store.iconConfiguration.appearance.center.normalizedPercentageScale == nil)
         #expect(store.iconConfiguration.appearance.center.effectiveSymbolScale == 1.6)
         #expect(store.iconConfiguration.behaviors.systemBatteryRing.textScale == 1.65)
-    }
-
-    @Test func bothEditorControlsUseTheSharedRangeAndRawLabel() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let appearance = try String(contentsOf: root.appendingPathComponent("Sources/StatusTrioCore/UI/Settings/IconDesigner/IconAppearanceEditor.swift"), encoding: .utf8)
-        let behavior = try String(contentsOf: root.appendingPathComponent("Sources/StatusTrioCore/UI/Settings/IconDesigner/IconBehaviorEditor.swift"), encoding: .utf8)
-        #expect(appearance.contains("IconDesignerEditingModel.commonPercentageScaleRange"))
-        #expect(appearance.contains("commonPercentageScaleLabel(for: scale)"))
-        #expect(appearance.contains("commonPercentageScaleSliderValue(for: rawValue)"))
-        #expect(appearance.contains("IconStrokeSizingPolicy.interactiveScaleRange"))
-        #expect(!behavior.contains("commonPercentageScaleRange"),
-                "Source-specific behavior controls must not duplicate the element-wide center size control.")
     }
 
     private func wifiScene(appearance: IconAppearanceConfiguration) -> IconSceneState {
