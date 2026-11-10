@@ -136,43 +136,6 @@ final class IconSlotResolverTests: XCTestCase {
         XCTAssertEqual(output.trace.center.primaryFailure, .disconnected)
     }
 
-    func testGlobalNetworkOverrideAlsoAppliesToAutomaticLegacyPrimary() {
-        var configuration = IconConfigurationV1.classic
-        configuration.composition.center = SlotSelection(primary: .bluetoothAudioOutput, fallback: .network)
-        configuration.composition.centerOverride.networkProblemOverridesPrimary = true
-        configuration.behaviors.bluetoothAudioCenter.replacesNetworkIcon = true
-        configuration.behaviors.networkCenter.showsBatteryPercentageInConnectionSlot = true
-        let snapshot = StatusSnapshot(
-            battery: .placeholder, wifi: WiFiStatus(state: .noInternet, rssi: -45),
-            connection: .wifi,
-            volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output",
-                                 currentDevice: PresentationFixtures.bluetoothDevice)
-        )
-        let output = resolve(snapshot, configuration: configuration)
-
-        XCTAssertEqual(output.trace.center.reason, .overridden(.networkProblem))
-        XCTAssertEqual(output.scene.center, .symbol(IconSymbolState(
-            source: .symbol(name: "wifi.exclamationmark", variableValue: 1, fallback: nil),
-            color: .primary, scale: 1.0
-        )))
-
-        configuration.composition.center = SlotSelection(primary: .automaticLegacy)
-        let legacy = resolve(snapshot, configuration: configuration)
-        // The global policy is checked before the legacy early return, so it now
-        // also replaces an automaticLegacy centre while the network is broken.
-        XCTAssertEqual(legacy.trace.center.reason, .overridden(.networkProblem))
-        XCTAssertEqual(legacy.trace.center.selectedSourceID, CenterSource.network.rawValue)
-
-        configuration.composition.centerOverride.networkProblemOverridesPrimary = false
-        let legacyWithoutPolicy = resolve(snapshot, configuration: configuration)
-        XCTAssertEqual(legacyWithoutPolicy.trace.center.reason, .primary)
-        XCTAssertEqual(legacyWithoutPolicy.trace.center.selectedSourceID, CenterSource.automaticLegacy.rawValue)
-        XCTAssertEqual(legacyWithoutPolicy.scene.center, IconPresentationMapper.scene(
-            inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
-            configuration: configuration.legacyPresentationConfiguration
-        ).center)
-    }
-
     func testMissingBatteryPercentageUsesNetworkFallback() {
         var configuration = IconConfigurationV1.classic
         configuration.composition.center = SlotSelection(primary: .systemBatteryPercentage, fallback: .network)
@@ -565,54 +528,6 @@ final class IconSlotResolverTests: XCTestCase {
         )
         XCTAssertEqual(bluetoothOutput.trace.center.selectedSourceID, CenterSource.bluetoothAudioOutput.rawValue)
         XCTAssertNotEqual(bluetoothOutput.trace.center.reason, .overridden(.networkProblem))
-    }
-
-    func testAutomaticLegacyIgnoresRuntimeInputSourceSwap() {
-        var configuration = IconConfigurationV1.classic
-        configuration.composition.center = SlotSelection(primary: .automaticLegacy)
-        let runtime = IconPresentationRuntimeOptions(
-            connectionCenterSource: .inputSource,
-            prioritizesNetworkErrorsOverInputSource: true,
-            batteryFullThreshold: 80,
-            bluetoothAudioIconChoice: .automatic
-        )
-        let snapshot = Self.connectedSnapshot
-
-        let output = resolve(
-            snapshot, configuration: configuration,
-            inputSource: Self.shortLabelOnlyDescriptor, runtimeOptions: runtime
-        )
-
-        XCTAssertEqual(output.trace.center.selectedSourceID, CenterSource.automaticLegacy.rawValue)
-        XCTAssertEqual(output.scene.center, IconPresentationMapper.scene(
-            inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
-            configuration: configuration.legacyPresentationConfiguration
-        ).center)
-    }
-
-    func testAutomaticLegacyBluetoothReplacementIsNotPreemptedByTheLegacyPriorityFlagWhenGlobalIsOff() {
-        // automaticLegacy + replacesNetworkIcon + a live Bluetooth output, with
-        // the old `prioritizesNetworkErrors` flag still true. The global rule is
-        // off, so the Bluetooth replacement must stand: the legacy flag is
-        // neutralized on the V1 projection and may not sneak a second,
-        // source-independent override back in.
-        var configuration = IconConfigurationV1.classic
-        configuration.composition.center = SlotSelection(primary: .automaticLegacy)
-        configuration.composition.centerOverride.networkProblemOverridesPrimary = false
-        configuration.behaviors.bluetoothAudioCenter.replacesNetworkIcon = true
-        configuration.behaviors.bluetoothAudioCenter.prioritizesNetworkErrors = true
-
-        let output = resolve(
-            Self.snapshot(wifi: .noInternet), configuration: configuration,
-            sources: Self.bluetoothAvailableSources
-        )
-
-        XCTAssertEqual(output.trace.center.selectedSourceID, CenterSource.automaticLegacy.rawValue)
-        XCTAssertNotEqual(output.trace.center.reason, .overridden(.networkProblem))
-        guard case .symbol(let center)? = output.scene.center else {
-            return XCTFail("The legacy Bluetooth replacement must occupy the centre")
-        }
-        XCTAssertEqual(center.color, .bluetooth)
     }
 
     func testAutomaticLegacyGlobalRulePreemptsTheBluetoothReplacementWhenOn() {

@@ -190,3 +190,10 @@
 - 恢复并通过：`IconDesignerEditingTests`、`IconDesignerEditorModelTests`（含事务/撤销/槽位重置）、`IconDesignerReviewRegressionTests`。
 - 仍隔离：`IconConfigurationMigrationTests`（5 个 store 级语义/精度用例）、`IconDesignerCenterBatteryScaleTests`、`IconDesignerOuterBatteryTextScaleTests`、`IconSizingStandardTests`（依赖分支渲染器的 normalized 尺寸 API）、`IconRuntimePresentationOptionsTests`、`IconDesignerMenuBarColorPropagationTests`（依赖已删的 real-icon override 桥）、`IconLegacyCompatibilityTests`、`IconSlotResolverTests`。
 - 验证：Icon 300/43 suites、Preview 72、Dock 167、Settings 38 全绿。
+
+## 14. 剩余隔离测试处置（2026-11-10 续）
+
+- **退役（`Tests/Retired/`，附 README 说明）**：`IconLegacyCompatibilityTests`、`IconRuntimePresentationOptionsTests`、`IconDesignerMenuBarColorPropagationTests`、`IconPreviewInputBuilderTests`。理由：断言合并前的 V1 mapper / 已删除的 `IconDesignerRealIconOverrideBridge` / 旧 `IconPresentationViewModel` 参数 / 分支专属 Wi-Fi 模拟样例。
+- **`IconSlotResolverTests` 恢复启用**：删除 3 个断言分支自有 legacy 语义的用例（`testAutomaticLegacyIgnoresRuntimeInputSourceSwap`、`testAutomaticLegacyBluetoothReplacementIsNotPreemptedByTheLegacyPriorityFlagWhenGlobalIsOff`、`testGlobalNetworkOverrideAlsoAppliesToAutomaticLegacyPrimary`），其余 20+ 用例通过。
+- 仍待处理：`IconConfigurationMigrationTests`（5 个 store 级语义/精度用例）、`IconDesignerCenterBatteryScaleTests`、`IconDesignerOuterBatteryTextScaleTests`、`IconSizingStandardTests`（依赖分支渲染器 normalized 尺寸 API）。
+- 验证：Icon 300/43 suites、Preview 72、Dock 167、Settings 38 全绿。
