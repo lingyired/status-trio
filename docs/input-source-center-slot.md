@@ -25,6 +25,23 @@ no input monitoring, no automation. There is no key simulation and no private
 symbol — the `FrontAppSelection`-style private workaround used by other input
 switchers is deliberately not ported.
 
+## Refresh and recovery
+
+The controller is event-driven; it has no timer and no polling loop. Each TIS
+notification triggers an immediate read and one cancellable re-read 75 ms later,
+because TIS can post the notification just before it publishes the new selection.
+A burst of notifications coalesces into at most one pending re-read.
+
+The same read also runs when the app becomes active, when the system wakes, and
+when the displays wake. Opening the status panel keeps its existing extra
+refresh. These are fallbacks for a delayed or dropped TIS notification, not a
+per-frame or per-second poll.
+
+All distributed and system observers, plus both the selection-confirmation and
+notification-recovery tasks, exist only between `start()` and `stop()`. Turning
+both input-source surfaces off therefore releases every subscription and task;
+there is no new cache and the delayed work is bounded to one task per scheduler.
+
 ## What is not implemented
 
 - **`kTISPropertyIconRef`.** The icon path reads `kTISPropertyIconImageURL`
@@ -62,7 +79,7 @@ resolves in this order, and each step is pinned by
 | 3 | Configured fallback source | the fallback's own resolution |
 
 A live wired link is never an outage, so a wired user with Wi-Fi switched off
-keeps their input-source icon (`StatusMappings.isNetworkOffline`).
+keeps their chosen content (`StatusMappings.isNetworkOffline`).
 
 The global network rule is independent of the centre source: it is checked
 before the `.automaticLegacy` early return and before the primary/fallback
@@ -73,6 +90,17 @@ switch named "Prioritize the network icon when the network is down" (中文：
 「网络异常时优先显示网络图标」) is the only control.
 
 ## Icon rendering
+
+Apple's Simplified Pinyin (`com.apple.inputmethod.SCIM.ITABC`) uses `简`, and
+Traditional Pinyin (`com.apple.inputmethod.TCIM.Pinyin`) uses `繁`. These markers
+take precedence over their system icon files in the menu bar, Dock, previews,
+and input-source list so the two modes remain distinguishable.
+
+Other Pinyin sources derive a fallback marker from an explicit `zh-Hans` or
+`zh-Hant` language tag, then a Simplified/Traditional name. Ambiguous Pinyin
+remains `拼`; third-party icon files and other input methods keep their existing
+priority. This identifies the selected source; it does not convert text or
+change an input method's internal Simplified/Traditional mode.
 
 Input-source icons are files (usually PDF or PNG), and their visible ink is not
 centred in the box `NSImage.size` reports. `StatusIconRenderer` measures the ink
@@ -121,15 +149,36 @@ draws no per-source target.
 Every row in the opened list draws one flat mark in the row's own colour, so the
 list stays readable on a dark panel:
 
-- a source that ships an icon file goes through `InputSourceIconMask`, which
+- except for the Apple Pinyin script markers above, a source that ships an icon
+  file goes through `InputSourceIconMask`, which
   keeps the icon's *ink* rather than its palette — the WeChat input method's
-  black disc with a light glyph becomes a light disc with the glyph knocked out,
-  and the system's dark Pinyin art becomes a light glyph;
-- a source with no icon file gets the rounded chip macOS itself shows for ABC,
-  with the layout's letter inside it.
+  black disc with a light glyph becomes a light disc with the glyph knocked out;
+- a source with no icon file, or a known Apple Pinyin mode, gets a rounded chip
+  with its short label inside it.
 
 Both are cached per URL, so a panel redraw never re-reads or re-rasterises the
 file.
+
+## Middle-slot choice
+
+The centre slot is one single-choice setting, not a set of independent toggles:
+
+- **Automatic** — the shipped priority: battery percentage in the connection
+  position, then Bluetooth audio, then Ethernet / Wi-Fi;
+- **Current Input Source** — the selected input source, with the optional
+  network-error override;
+- **Battery Percentage** — the battery level in the centre slot. A Mac without a
+  battery reports 100, so the slot shows 100 just like the top battery
+  indicator;
+- **Power** — the live whole-machine wattage, described in
+  [Power in the centre slot](power-center-slot.md).
+
+The former `showsBatteryPercentageInConnectionSlot` switch is folded into this
+choice. On the first launch after the upgrade a stored `true` migrates to
+**Battery Percentage** — that switch won at draw time — and the legacy key is
+then removed, so a later manual choice is not overridden. The ring's own
+percentage text (`showsBatteryPercentage`) is a different setting and is
+unchanged.
 
 ## Verification status
 
@@ -151,3 +200,29 @@ Not run, and not claimed:
   behaviour with a candidate window open, sleep/wake and display changes;
 - macOS 13, 15 and 26 devices. The package still targets macOS 13 and compiles
   against it; only the local macOS 27 machine was exercised.
+
+## English layout letter case (#279)
+
+`InputSourceDescriptor.applying(_:)` turns an explicit English keyboard layout
+(ABC, US, US Extended, British, Australian, Canadian, Irish, Dvorak, Colemak)
+into the drawing descriptor `a`/`A`; the source list keeps the original
+descriptor and selection identity. The case rule is `Caps Lock || Shift`:
+either one produces uppercase (`A`); only both off produce lowercase (`a`).
+Shift does not lowercase text while Caps Lock is on. The system icon URL is
+cleared for these layouts so a shipped icon cannot cover the letter.
+
+`SystemInputSourceModifierObserver` listens only to `.flagsChanged` (never
+keyDown/keyUp and never character data), snapshots `NSEvent.modifierFlags` when
+monitoring starts, application activation, and wake, drops duplicate values, and
+removes both the local and global monitors on stop. It never asks for
+Accessibility/Input Monitoring, creates an event tap, polls, or suppresses
+input. Menu Bar, Dock and the live settings preview receive the same
+`InputSourceState.iconDescriptor`.
+
+Limitation / NOT RUN: AppKit documents that a *global* monitor for key-related
+events can require Accessibility. `.flagsChanged` may receive such an exemption
+in practice, but that is not proven on a clean TCC database. If the global
+monitor is unavailable, changes are still picked up while Status Trio is active
+and at activation/wake; a background app's Caps Lock change may not refresh
+until then. Real Ventura/current-macOS, no-grant, other-app-foreground,
+left/right Shift and external-keyboard behavior remain **NOT RUN**.

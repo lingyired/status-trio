@@ -18,6 +18,41 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         XCTAssertEqual(service.recoveryUnregisterCallCount, 0)
     }
 
+    func testEnabledHelperIsNotPolledAtTheApprovalCadence() async {
+        // Once the system reports `.enabled`, the status only changes through a
+        // user action. The 2 s approval poll exists to catch the
+        // `requiresApproval → enabled` transition, not to re-read a settled
+        // helper; and each read costs an SMAppService XPC plus, before the
+        // support cache, a code-signature decode.
+        let service = FakePrivilegedHelperService(status: .enabled)
+        let manager = PrivilegedHelperManager(
+            service: service,
+            pollInterval: .milliseconds(10),
+            enabledStatusPollInterval: .seconds(30)
+        )
+        await waitUntil { manager.isReady }
+        // Let the tick that was already scheduled at the approval cadence
+        // finish before measuring; the interval is chosen before each sleep.
+        try? await Task.sleep(for: .milliseconds(50))
+        let readsAfterReady = service.statusReadCount
+        try? await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(
+            service.statusReadCount,
+            readsAfterReady,
+            "an enabled helper must not be polled at the approval cadence"
+        )
+        _ = manager.isEnabled
+    }
+
+    func testHelperSupportIsResolvedOncePerProcess() {
+        let service = FakePrivilegedHelperService(status: .enabled)
+        let manager = PrivilegedHelperManager(service: service, pollInterval: .milliseconds(20))
+        manager.refresh()
+        manager.refresh()
+        manager.refresh()
+        XCTAssertEqual(service.isSupportedReadCount, 1)
+    }
+
     func testPendingHelperCanBecomeReachableWithoutANativeStatusChange() async {
         let service = FakePrivilegedHelperService(status: .requiresApproval)
         let manager = PrivilegedHelperManager(
@@ -467,7 +502,9 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         await waitUntil { manager.isReady }
         let readsAfterReady = service.verificationCallCount
 
-        try? await Task.sleep(for: .milliseconds(150))
+        // Wait for the re-probes instead of a fixed sleep: a loaded CI runner can
+        // starve the poll loop and make a fixed window flaky.
+        await waitUntil { service.verificationCallCount >= readsAfterReady + 2 }
 
         XCTAssertGreaterThanOrEqual(service.verificationCallCount, readsAfterReady + 2)
         XCTAssertTrue(manager.isReady)
@@ -848,7 +885,6 @@ final class PrivilegedHelperManagerTests: XCTestCase {
 
 @MainActor
 final class FakePrivilegedHelperService: PrivilegedHelperServicing {
-    var status: PrivilegedHelperStatus
     var statusAfterRegister: PrivilegedHelperStatus?
     var registerError: Error?
     var unregisterError: Error?
@@ -864,11 +900,29 @@ final class FakePrivilegedHelperService: PrivilegedHelperServicing {
     private(set) var registerCallCount = 0
     private(set) var unregisterCallCount = 0
     private(set) var openLoginItemsCallCount = 0
-    let isSupported: Bool
+    private(set) var statusReadCount = 0
+    private(set) var isSupportedReadCount = 0
+    private var storedStatus: PrivilegedHelperStatus
+    private let supported: Bool
+
+    var status: PrivilegedHelperStatus {
+        get {
+            statusReadCount += 1
+            return storedStatus
+        }
+        set {
+            storedStatus = newValue
+        }
+    }
+
+    var isSupported: Bool {
+        isSupportedReadCount += 1
+        return supported
+    }
 
     init(status: PrivilegedHelperStatus, isSupported: Bool = true) {
-        self.status = status
-        self.isSupported = isSupported
+        self.storedStatus = status
+        self.supported = isSupported
     }
 
     func register() throws {

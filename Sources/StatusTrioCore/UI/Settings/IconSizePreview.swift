@@ -6,7 +6,7 @@ struct IconSizePreview: View {
     let options: BatteryIconOptions
 
     var body: some View {
-        Image(nsImage: StatusIconRenderer.image(
+        Image(nsImage: StatusIconPreviewCache.shared.image(
             scene: IconPreviewScene.make(
                 status: .placeholder,
                 configuration: IconPresentationConfiguration(

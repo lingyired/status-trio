@@ -3,21 +3,17 @@ import Combine
 extension SettingsStore {
     var iconPresentationPublisher: AnyPublisher<IconPresentationSettings, Never> {
         iconAppearancePublisher
-            .combineLatest($iconConfiguration, $testsChargingEffect)
-            .map { appearance, configuration, testsChargingEffect in
-                let runtimeOptions = appearance.runtimeOptions ?? IconPresentationRuntimeOptions(
-                    connectionCenterSource: .automatic,
-                    prioritizesNetworkErrorsOverInputSource: true,
-                    batteryFullThreshold: Int(appearance.batteryOptions.fullThreshold),
-                    bluetoothAudioIconChoice: appearance.bluetoothAudioOptions.iconChoice
-                )
-                let legacy = runtimeOptions.applying(to: configuration.legacyPresentationConfiguration)
-                return IconPresentationSettings(
-                    configuration: legacy,
+            .combineLatest($testsChargingEffect)
+            .map { appearance, testsChargingEffect in
+                IconPresentationSettings(
+                    configuration: IconPresentationConfiguration(
+                        battery: appearance.batteryOptions,
+                        connection: appearance.connectionOptions,
+                        volume: appearance.volumeOptions,
+                        bluetooth: appearance.bluetoothAudioOptions
+                    ),
                     menuBarSize: appearance.iconSize,
-                    testsChargingEffect: testsChargingEffect,
-                    designerConfiguration: configuration,
-                    runtimeOptions: runtimeOptions
+                    testsChargingEffect: testsChargingEffect
                 )
             }
             .removeDuplicates()

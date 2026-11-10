@@ -16,14 +16,11 @@ final class IconDesignerEditorModel: ObservableObject {
 
     init(store: SettingsStore) {
         self.store = store
-        let relevantChanges = Publishers.MergeMany(
-            store.$iconConfiguration.map { _ in () }.eraseToAnyPublisher(),
-            store.$airPodsIconDeviceAddress.map { _ in () }.eraseToAnyPublisher(),
-            store.$connectedBluetoothIconDeviceAddress.map { _ in () }.eraseToAnyPublisher(),
-            store.$bluetoothNetworkIconDeviceAddress.map { _ in () }.eraseToAnyPublisher(),
-            store.$refreshesAirPodsBatteryForIcon.map { _ in () }.eraseToAnyPublisher(),
-            store.$bluetoothAudioIconChoiceRawValue.map { _ in () }.eraseToAnyPublisher()
-        )
+        // Phase-1 bridge: iconConfigurationPublisher is derived from the whole
+        // settings surface, so it already covers every relevant change.
+        let relevantChanges = store.iconConfigurationPublisher
+            .map { _ in () }
+            .eraseToAnyPublisher()
         cancellable = relevantChanges.dropFirst().sink { [weak self] _ in
             guard let self, !self.isPerformingTransaction else { return }
             let hadHistory = self.history.count > 0

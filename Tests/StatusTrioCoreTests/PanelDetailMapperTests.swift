@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class PanelDetailMapperTests: XCTestCase {
-    func testBatteryMapperKeepsPowerTintTimestampAndExplanation() {
+    func testBatteryMapperKeepsPowerTintAndExplanationWithoutReadTime() {
         let localization = makeLocalization()
         let timestamp = Date(timeIntervalSince1970: 1_700_000_000)
         let battery = BatteryStatus(
@@ -21,7 +21,6 @@ final class PanelDetailMapperTests: XCTestCase {
 
         XCTAssertEqual(state.rows.map(\.id), [
             LocalizationKey.batteryDetailsSystemPower.rawValue,
-            LocalizationKey.batteryDetailsSystemReadAt.rawValue,
             LocalizationKey.batteryDetailsCharging.rawValue,
             LocalizationKey.batteryDetailsVoltage.rawValue,
             LocalizationKey.batteryDetailsCurrent.rawValue,
@@ -31,10 +30,115 @@ final class PanelDetailMapperTests: XCTestCase {
         ])
         XCTAssertEqual(state.rows[0].value, "18.2 W")
         XCTAssertEqual(state.rows[0].tint, .primary)
-        XCTAssertTrue(state.rows[1].value.contains(":20"))
-        XCTAssertEqual(state.rows[2].tint, .positive)
+        XCTAssertEqual(state.rows[1].tint, .positive)
+        XCTAssertFalse(state.rows.contains { $0.id == LocalizationKey.batteryDetailsSystemReadAt.rawValue })
         XCTAssertEqual(state.explanation, localization.string(.batteryDetailsExplanation))
         XCTAssertFalse(state.isLoading)
+    }
+
+    func testNoBatteryDetailsHideBatteryOnlyRows() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: nil,
+            isPresent: false,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: false
+        )
+        var details = BatteryDetails(adapterWatts: 90, cycleCount: 12, powerAvailability: .available)
+        details.systemPower = SystemPowerSample(watts: 18.4, readAt: Date())
+
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+
+        XCTAssertEqual(state.rows.map(\.id), [
+            LocalizationKey.batteryDetailsWatt.rawValue,
+            LocalizationKey.batteryDetailsLowPower.rawValue
+        ])
+        XCTAssertEqual(state.rows[0].value, "18.4 W")
+        XCTAssertEqual(state.title, "Power · 18 W")
+        XCTAssertNil(state.powerFlow)
+    }
+
+    func testNoBatteryDetailsSayCollectingInsteadOfZero() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: nil,
+            isPresent: false,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: false
+        )
+        let state = PanelDetailMapper.battery(
+            status: battery,
+            details: BatteryDetails(powerAvailability: .collecting),
+            localization: localization
+        )
+
+        XCTAssertEqual(state.rows.map(\.id), [
+            LocalizationKey.batteryDetailsWatt.rawValue,
+            LocalizationKey.batteryDetailsLowPower.rawValue
+        ])
+        XCTAssertEqual(state.rows[0].value, localization.string(.batteryDetailsCollecting))
+        XCTAssertEqual(state.title, "Power · Unavailable")
+    }
+
+    func testPowerFlowDropsFractionAtThreeDigitWatts() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: 80,
+            isPresent: true,
+            isCharging: true,
+            isLowPowerMode: false,
+            isConnectedToPower: true
+        )
+        var options = BatteryPowerDisplayOptions.default
+        options.showsInput = true
+        let readAt = Date(timeIntervalSince1970: 1_700_000_000)
+
+        func powerFlow(input watts: Double) -> BatteryPowerFlowState? {
+            var details = BatteryDetails(adapterWatts: 140, powerAvailability: .available)
+            details.inputPower = SystemPowerSample(watts: watts, readAt: readAt)
+            details.systemPower = SystemPowerSample(watts: 25.59, readAt: readAt)
+            return PanelDetailMapper.battery(
+                status: battery,
+                details: details,
+                localization: localization,
+                powerOptions: options
+            ).powerFlow
+        }
+
+        XCTAssertEqual(powerFlow(input: 99.9)?.input?.value, "99.90 W")
+        XCTAssertEqual(powerFlow(input: 100)?.input?.value, "100 W")
+        XCTAssertEqual(powerFlow(input: 110.23)?.input?.value, "110 W")
+        XCTAssertEqual(powerFlow(input: 99.996)?.input?.value, "100 W")
+    }
+
+    func testPowerFlowUsesLiveBatterySampleWhenChargingFlagLags() {
+        let localization = makeLocalization()
+        let readAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let battery = BatteryStatus(
+            rawPercentage: 80,
+            isPresent: true,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: true
+        )
+        var options = BatteryPowerDisplayOptions.default
+        options.showsInput = true
+        var details = BatteryDetails(adapterWatts: 140, powerAvailability: .available)
+        details.power = BatteryPowerSample(volts: 12.4, amps: 4.2, updatedAt: readAt)
+        details.inputPower = SystemPowerSample(watts: 61.56, readAt: readAt)
+        details.systemPower = SystemPowerSample(watts: 10.6, readAt: readAt)
+
+        let state = PanelDetailMapper.battery(
+            status: battery,
+            details: details,
+            localization: localization,
+            powerOptions: options
+        )
+
+        XCTAssertEqual(state.powerFlow?.battery?.value, "52.08 W")
+        XCTAssertEqual(state.powerFlow?.battery?.watts ?? 0, 52.08, accuracy: 0.001)
     }
 
     func testBatteryMapperRepresentsMissingDetailsAsLoadingAndWiredUnavailableKeepsFiveRows() {
@@ -169,8 +273,41 @@ final class PanelDetailMapperTests: XCTestCase {
         XCTAssertEqual(denied.messageIntent, .locationSettings)
         XCTAssertEqual(off.message, localization.string(.wifiPanelOff))
         XCTAssertFalse(off.powerIsOn)
-        XCTAssertEqual(empty.message, localization.string(.wifiNoNetworks))
+        XCTAssertEqual(empty.message, localization.string(.wifiPermissionDenied))
         XCTAssertTrue(empty.canRefresh)
+    }
+
+    func testWiFiMapperPrefersTheNameRequestOverAnEmptyUnauthorizedList() {
+        let localization = makeLocalization()
+        // CoreWLAN can answer an unauthorized scan with an empty list and no
+        // error. That is "no permission", not "no networks in range".
+        let notDetermined = WiFiStatus(state: .connected, rssi: -50, nameAccess: .notDetermined)
+        let state = PanelDetailMapper.wifi(
+            status: notDetermined,
+            networks: [],
+            details: .unavailable,
+            listState: .ready,
+            localization: localization
+        )
+        XCTAssertEqual(state.message, localization.string(.wifiActionRequestNameAccess))
+        XCTAssertEqual(state.messageIntent, .requestWiFiNameAccess)
+    }
+
+    func testWiFiMapperOffersTheNameRequestWhenUnauthorizedScanFails() {
+        let localization = makeLocalization()
+        // A never-authorized app (for example after Location Services was
+        // turned off and on again) cannot scan, so the list state is `failed`.
+        // That must still offer the explicit request instead of "scan failed".
+        let status = WiFiStatus(state: .connected, rssi: -50, nameAccess: .notDetermined)
+        let state = PanelDetailMapper.wifi(
+            status: status,
+            networks: [],
+            details: .unavailable,
+            listState: .failed,
+            localization: localization
+        )
+        XCTAssertEqual(state.message, localization.string(.wifiActionRequestNameAccess))
+        XCTAssertEqual(state.messageIntent, .requestWiFiNameAccess)
     }
 
     private func network(ssid: String, security: WiFiSecurityKind, bssid: String, known: Bool) -> WiFiNetwork {
@@ -182,8 +319,211 @@ final class PanelDetailMapperTests: XCTestCase {
         )
     }
 
+    func testBatteryDetailsRemainingUsesTimeToEmptyKeyInSummaryFormat() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: 80, isPresent: true, isCharging: false,
+            timeToEmptyMinutes: 214,
+            isLowPowerMode: false, isConnectedToPower: false
+        )
+        let details = BatteryDetails(cycleCount: 12, powerAvailability: .available)
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+        let row = state.rows.first { $0.id == LocalizationKey.batteryDetailsRemaining.rawValue }
+        XCTAssertNotNil(row)
+        // Same source (kIOPSTimeToEmptyKey via BatteryStatus) and same A-style
+        // format as the summary subtitle.
+        XCTAssertEqual(row?.value, PanelPresentationMapper.batteryRuntimeText(battery, localization: localization))
+        XCTAssertEqual(row?.value, "About 3 hours, 34 minutes remaining")
+    }
+
     private func makeLocalization() -> Localization {
         let suite = "PanelDetailMapperTests.\(UUID().uuidString)"
         return Localization(defaults: UserDefaults(suiteName: suite) ?? .standard, preferredLanguages: ["en"])
+    }
+}
+
+extension PanelDetailMapperTests {
+    func testUnpluggedBatterySplitRendersPowerFlow() {
+        let localization = makeLocalization()
+        let timestamp = Date(timeIntervalSince1970: 1_700_000_000)
+        let battery = BatteryStatus(
+            rawPercentage: 60, isPresent: true, isCharging: false,
+            isLowPowerMode: false, isConnectedToPower: false
+        )
+        let split = BatteryPowerBreakdown(
+            source: .battery, sourceWatts: 30, display: nil, usb: nil,
+            system: .init(watts: 30, readAt: timestamp), readAt: timestamp
+        )
+        // Go through the real parser so the power-source gate is exercised,
+        // not just the display layer with a pre-built breakdown.
+        let details = BatteryDetailsReader.parse(
+            registry: [:], adapterWatts: nil,             state: BatteryPowerState(battery), now: timestamp, breakdown: split
+        )
+
+        var options = BatteryPowerDisplayOptions.default
+        options.showsInput = true
+        let state = PanelDetailMapper.battery(
+            status: battery, details: details, localization: localization, powerOptions: options
+        )
+
+        XCTAssertNotNil(state.powerFlow, "A verified battery split must keep the flow diagram while unplugged")
+        // The pack is the source while discharging, so its card must take the
+        // discharging style (plain battery, orange) instead of the adapter feed.
+        XCTAssertEqual(state.powerFlow?.input?.kind, .batterySource)
+        XCTAssertEqual(state.powerFlow?.input?.label, localization.string(.batteryPowerBatterySource))
+        XCTAssertEqual(state.powerFlow?.input?.value, "30.00 W")
+    }
+
+    func testConnectedPowerFlowUsesAdapterInputStyle() {
+        let localization = makeLocalization()
+        let timestamp = Date(timeIntervalSince1970: 1_700_000_000)
+        let battery = BatteryStatus(
+            rawPercentage: 60, isPresent: true, isCharging: true,
+            isLowPowerMode: false, isConnectedToPower: true
+        )
+        var options = BatteryPowerDisplayOptions.default
+        options.showsInput = true
+        var details = BatteryDetails(adapterWatts: 140, powerAvailability: .available)
+        details.inputPower = SystemPowerSample(watts: 61.5, readAt: timestamp)
+        details.systemPower = SystemPowerSample(watts: 10.6, readAt: timestamp)
+
+        let input = PanelDetailMapper.battery(
+            status: battery,
+            details: details,
+            localization: localization,
+            powerOptions: options
+        ).powerFlow?.input
+
+        XCTAssertEqual(input?.kind, .input, "A fed diagram's source is the adapter, not the pack")
+        XCTAssertEqual(input?.label, localization.string(.batteryPowerInput))
+    }
+
+    func testBatteryCapacityAndConditionRowsReplaceTheDiagnosticReadTime() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: 99,
+            isPresent: true,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: false
+        )
+        var details = BatteryDetails(powerAvailability: .available)
+        details.health = BatteryHealthSnapshot(
+            designCapacityMAh: 8_579,
+            maximumCapacityMAh: 8_386,
+            maximumCapacityPercent: 100,
+            healthPercent: 97.8,
+            condition: .normal
+        )
+
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+
+        let capacity = state.rows.first { $0.id == LocalizationKey.batteryDetailsMaxCapacity.rawValue }
+        XCTAssertEqual(capacity?.value, "100%")
+        let condition = state.rows.first { $0.id == LocalizationKey.batteryDetailsBatteryCondition.rawValue }
+        XCTAssertEqual(condition?.value, "Normal")
+        XCTAssertFalse(state.rows.contains { $0.id == LocalizationKey.batteryDetailsSystemReadAt.rawValue })
+    }
+
+    func testMaximumCapacityIsUnavailableRatherThanAnEstimateWithoutASystemValue() {
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true,
+            isCharging: false, isLowPowerMode: false, isConnectedToPower: true)
+        // healthPercent is a measured-capacity estimate, not macOS's Maximum
+        // Capacity, so it must not stand in for the missing system value.
+        let details = BatteryDetails(
+            health: BatteryHealthSnapshot(maximumCapacityMAh: 8_386, healthPercent: 97.8))
+        let localization = makeLocalization()
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+        XCTAssertEqual(
+            state.rows.first { $0.id == LocalizationKey.batteryDetailsMaxCapacity.rawValue }?.value,
+            localization.string(.batteryDetailsUnavailable)
+        )
+    }
+
+    func testMissingBatteryConditionIsUnavailableRatherThanNormal() {
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true,
+            isCharging: false, isLowPowerMode: false, isConnectedToPower: true)
+        let details = BatteryDetails(health: BatteryHealthSnapshot(maximumCapacityPercent: 100))
+        let localization = makeLocalization()
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+        XCTAssertEqual(
+            state.rows.first { $0.id == LocalizationKey.batteryDetailsBatteryCondition.rawValue }?.value,
+            localization.string(.batteryDetailsUnavailable)
+        )
+    }
+
+    func testBatteryTemperatureRowAppearsOnlyWithAReading() {
+        let battery = BatteryStatus(rawPercentage: 80, isPresent: true,
+            isCharging: false, isLowPowerMode: false, isConnectedToPower: true)
+        let localization = makeLocalization()
+        func temperature(_ celsius: Double?) -> String? {
+            let details = BatteryDetails(health: BatteryHealthSnapshot(temperatureCelsius: celsius))
+            return PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+                .rows.first { $0.id == LocalizationKey.batteryDetailsTemperature.rawValue }?.value
+        }
+        XCTAssertEqual(temperature(28.5), "28.5 °C")
+        XCTAssertNil(temperature(nil))
+    }
+
+    func testHighPowerRowUsesSystemSupportAndState() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: 80,
+            isPresent: true,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: true
+        )
+        for (status, expected) in [
+            (HighPowerModeSystemStatus(supported: true, enabled: true), "On"),
+            (HighPowerModeSystemStatus(supported: true, enabled: false), "Off"),
+            (HighPowerModeSystemStatus(supported: true, enabled: nil), localization.string(.batteryDetailsUnavailable)),
+            (HighPowerModeSystemStatus(supported: false, enabled: nil), "Not supported")
+        ] {
+            var details = BatteryDetails(powerAvailability: .available)
+            details.highPowerMode = status
+            let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+            XCTAssertEqual(
+                state.rows.first { $0.id == LocalizationKey.settingsBatteryColorsHighPower.rawValue }?.value,
+                expected
+            )
+        }
+    }
+
+    func testHighPowerRowSitsNextToLowPowerRow() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: 80,
+            isPresent: true,
+            isCharging: false,
+            isLowPowerMode: false,
+            isConnectedToPower: true
+        )
+        var details = BatteryDetails(powerAvailability: .available)
+        details.highPowerMode = HighPowerModeSystemStatus(supported: true, enabled: false)
+
+        let ids = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+            .rows.map(\.id)
+        let lowPower = ids.firstIndex(of: LocalizationKey.batteryDetailsLowPower.rawValue)
+        let highPower = ids.firstIndex(of: LocalizationKey.settingsBatteryColorsHighPower.rawValue)
+        XCTAssertEqual(lowPower.map { $0 + 1 }, highPower)
+    }
+}
+
+extension PanelDetailMapperTests {
+    func testBatteryDetailsShowsSystemUptimeAsItsOwnRow() {
+        let localization = makeLocalization()
+        let battery = BatteryStatus(
+            rawPercentage: 80, isPresent: true, isCharging: false,
+            isLowPowerMode: false, isConnectedToPower: false
+        )
+        let details = BatteryDetails(
+            powerAvailability: .available,
+            uptimeSeconds: 2 * 24 * 60 * 60 + 3 * 60 * 60
+        )
+        let state = PanelDetailMapper.battery(status: battery, details: details, localization: localization)
+        let row = state.rows.first { $0.id == LocalizationKey.batteryDetailsUptime.rawValue }
+        XCTAssertEqual(row?.label, localization.string(.batteryDetailsUptime))
+        XCTAssertFalse(row?.value.isEmpty ?? true)
     }
 }

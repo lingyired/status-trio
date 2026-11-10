@@ -1,0 +1,108 @@
+import AppKit
+import Foundation
+import Testing
+@testable import StatusTrioCore
+
+@MainActor
+struct Review190DeviceProbes {
+    @Test func topologyInvalidatesRetainedDDCTarget() throws {
+        let catalog = Review190Catalog()
+        var coordinators: [DDCBrightnessCoordinator] = []
+        let monitor = BrightnessMonitor(catalog: catalog, makeDDC: { _, onUpdate in
+            let coordinator = DDCBrightnessCoordinator(
+                transport: Review190Transport(), pollInterval: .seconds(600), onUpdate: onUpdate
+            )
+            coordinators.append(coordinator)
+            return coordinator
+        })
+        monitor.start()
+        monitor.setDetailsVisible(true)
+        defer { monitor.stop() }
+        let coordinator = try #require(coordinators.first)
+        let before = coordinator.generation
+        monitor.topologyChanged()
+        #expect(coordinator.generation > before || coordinators.count > 1)
+    }
+
+    @Test func mismatchPreservesVisibleError() async throws {
+        let stream = AsyncStream<DDCBrightnessUpdate>.makeStream()
+        var iterator = stream.stream.makeAsyncIterator()
+        let coordinator = DDCBrightnessCoordinator(
+            transport: Review190Transport(), pollInterval: .seconds(600),
+            onUpdate: { stream.continuation.yield($0) }
+        )
+        defer { coordinator.stop(); stream.continuation.finish() }
+        coordinator.select(displayID: "A")
+        let first = try #require(await iterator.next())
+        #expect(first.scalar == 0.3)
+        coordinator.setBrightness(0.7)
+        coordinator.flushPendingBrightness()
+        let mismatch = try #require(await iterator.next())
+        #expect(mismatch.source == .unavailable(.writeNotConfirmed))
+        #expect(!mismatch.canAdjust)
+        let fixture = PanelStoreFixture()
+        defer { fixture.store.stop() }
+        let panel = BrightnessPanelMapper.map(BrightnessStatus(displays: [DisplayBrightness(
+            id: "A", name: "Display A", isBuiltin: false, scalar: mismatch.scalar,
+            canAdjust: mismatch.canAdjust, backend: .directDDC, source: mismatch.source
+        )]), localization: fixture.localization)
+        #expect(panel.rows.first?.unavailableText != nil)
+    }
+
+    @Test func hidingOtherOutputsKeepsAirPodsListeningControls() throws {
+        let endpoint = BluetoothListeningModeEndpoint(
+            audioDeviceID: 42,
+            capability: BluetoothListeningModeCapability(
+                audioDeviceID: 42, availableModes: [.noiseCancellation, .transparency],
+                currentMode: .noiseCancellation, canSet: true
+            ),
+            isDefaultOutput: true, bluetoothAddress: "aa:bb:cc:dd:ee:ff"
+        )
+        let controller = BluetoothListeningModeController(
+            hal: BluetoothListeningModeHAL(
+                backend: FakeListeningModeBackend(), sleeper: ImmediateListeningModeSleeper(),
+                retryAttempts: 1, retryDelay: .milliseconds(1)
+            ),
+            endpointProvider: Review190EndpointProvider(endpoints: [endpoint]),
+            listenerBackend: FakeListeningModeListenerBackend()
+        )
+        controller.refresh(devices: [BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:FF", name: "AirPods Pro", kind: .audio, isConnected: true
+        )])
+        let pods = AudioOutputDevice(id: 42, name: "AirPods Pro", uid: "pods", isCurrent: true, transport: .bluetooth)
+        let speaker = AudioOutputDevice(id: 1, name: "Speakers", uid: "speaker", isCurrent: false)
+        let status = VolumeStatus(
+            scalar: 0.5, isMuted: false, deviceName: "AirPods Pro", currentDevice: pods,
+            outputDevices: [speaker, pods], canSetVolume: true, canMute: true
+        )
+        let fixture = PanelStoreFixture()
+        defer { controller.stop(); fixture.store.stop() }
+        let panel = AudioPanelMapper.volume(
+            status, controllerAvailable: true, deviceList: .init(hiddenUIDs: ["speaker"]),
+            listeningModes: controller, localization: fixture.localization
+        )
+        let row = try #require(panel.rows.first)
+        #expect(panel.rows.count == 1)
+        #expect(row.listeningMode?.isControllable == true)
+        #expect(panel.showsDeviceList)
+    }
+}
+
+private struct Review190Catalog: DisplayCatalogProviding {
+    func currentDisplays() -> [DisplayDescriptor] {
+        [DisplayDescriptor(id: "A", name: "Display A", isBuiltin: false, displayID: 1)]
+    }
+}
+
+private final class Review190Transport: DDCFeatureTransport {
+    func resolve(uid: String) -> DDCDisplayTarget? { DDCDisplayTarget(uid: uid, service: nil) }
+    func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult { .reply(.init(current: 30, maximum: 100)) }
+    func read(_ target: DDCDisplayTarget, feature: UInt8) -> DDCVolumeReadResult { read(target) }
+    func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool { true }
+    func write(_ target: DDCDisplayTarget, value: UInt16, feature: UInt8) -> Bool { true }
+}
+
+private struct Review190EndpointProvider: CoreAudioBluetoothEndpointProviding {
+    let endpoints: [BluetoothListeningModeEndpoint]
+    func discoverEndpoints(using hal: BluetoothListeningModeHAL) -> [BluetoothListeningModeEndpoint] { endpoints }
+}

@@ -314,6 +314,28 @@ discover_release_by_exact_tag() {
         die "Release list id $expected_id changed to $RELEASE_ID during lookup."
 }
 
+discover_release_after_creation() {
+    local attempts="${DRAFT_DISCOVERY_ATTEMPTS:-10}"
+    local delay="${DRAFT_DISCOVERY_DELAY_SECONDS:-3}"
+    local attempt
+    [[ "$attempts" =~ ^[1-9][0-9]*$ ]] ||
+        die "DRAFT_DISCOVERY_ATTEMPTS must be a positive integer."
+    [[ "$delay" =~ ^[0-9]+$ ]] ||
+        die "DRAFT_DISCOVERY_DELAY_SECONDS must be a non-negative integer."
+
+    for ((attempt = 1; attempt <= attempts; attempt++)); do
+        if discover_release_by_exact_tag; then
+            return 0
+        fi
+        if ((attempt < attempts)); then
+            printf 'Draft Release discovery attempt %d/%d did not find %s; retrying in %ss.\n' \
+                "$attempt" "$attempts" "$TAG" "$delay" >&2
+            sleep "$delay"
+        fi
+    done
+    die "Created draft Release $TAG but could not discover it in the release list after $attempts attempts."
+}
+
 RELEASE_JSON="$(api_get_or_empty "repos/$RELEASE_REPO/releases/tags/$TAG")"
 RELEASE_EXISTS=false
 RELEASE_DRAFT=""
@@ -458,9 +480,9 @@ ensure_draft_release() {
             --notes-file "$PACKAGE_DIR/$RELEASE_BODY_FILE" >/dev/null
         # gh release create has no JSON-output flag in the release CLI. Resolve
         # the draft through the authenticated exact-tag listing, then use its
-        # stable database id for every subsequent read.
-        discover_release_by_exact_tag ||
-            die "Created draft Release $TAG but could not discover it in the release list."
+        # stable database id for every subsequent read. GitHub's release list
+        # can lag briefly after creation, so retry with a bounded deadline.
+        discover_release_after_creation
         [[ "$RELEASE_DRAFT" == "true" ]] ||
             die "Release $TAG was not a draft after creation."
     fi

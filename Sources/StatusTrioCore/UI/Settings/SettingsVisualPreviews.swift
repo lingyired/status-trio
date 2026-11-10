@@ -89,7 +89,7 @@ struct VolumeIndicatorPreview: View {
         ZStack {
             MenuBarPreviewBackdrop(isDarkBackground: isDarkBackground)
 
-            Image(nsImage: StatusIconRenderer.image(
+            Image(nsImage: StatusIconPreviewCache.shared.image(
                 scene: previewScene,
                 size: 28,
                 scale: NSScreen.main?.backingScaleFactor ?? 2,
@@ -264,14 +264,17 @@ struct RingStrokeStylePreview: View {
             status: menuBarPreviewStatus(from: statusStore),
             configuration: IconPresentationConfiguration(
                 battery: BatteryIconOptions(
-                    showsPercentage: store.showsBatteryPercentage,
-                    showsChargingIndicator: store.showsChargingIndicator,
+                    splitGapProgress: store.batterySplitGapProgress,
                     usesStatusColors: store.usesBatteryStatusColors,
                     criticalThreshold: Int(store.batteryCriticalThreshold.rounded()),
-                    showsPercentageWhenConnected: store.showsPercentageWhenConnected,
                     fullThreshold: Int(store.batteryFullThreshold.rounded()),
                     textScale: store.batterySymbolScale * BatteryIconOptions.defaultTextScale,
-                    ringStrokeScale: style.scale
+                    ringStrokeScale: style.scale,
+                    batteryStatusColors: store.batteryStatusColors,
+                    onBatteryMarker: store.batteryOnBatteryMarker,
+                    chargingMarker: store.batteryChargingMarker,
+                    connectedMarker: store.batteryConnectedMarker,
+                    noBatteryMarker: store.batteryNoBatteryMarker
                 ),
                 connection: store.connectionIconOptions,
                 volume: VolumeIconOptions(
@@ -287,7 +290,7 @@ struct RingStrokeStylePreview: View {
         ZStack {
             MenuBarPreviewBackdrop(isDarkBackground: isDarkBackground)
 
-            Image(nsImage: StatusIconRenderer.image(
+            Image(nsImage: StatusIconPreviewCache.shared.image(
                 scene: previewScene,
                 size: 28,
                 scale: NSScreen.main?.backingScaleFactor ?? 2,

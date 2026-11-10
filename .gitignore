@@ -22,3 +22,6 @@ marketing/
 output/
 
 dist-dev/
+# Issue #30 alignment evidence (screenshots/logs) stays local, not in Git.
+artifacts/
+ISSUE30-WORK-LEDGER.md

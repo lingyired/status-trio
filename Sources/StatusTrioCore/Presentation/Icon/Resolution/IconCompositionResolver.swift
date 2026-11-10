@@ -92,16 +92,14 @@ enum IconCompositionResolver {
                 showsWiFiIconForHotspot: connection.showsWiFiIconForHotspot,
                 showsWiFiIconForTemporaryConnection: connection.showsWiFiIconForTemporaryConnection,
                 showsWiFiIconForInternetSharing: connection.showsWiFiIconForInternetSharing,
-                showsBatteryPercentageInConnectionSlot: connection.showsBatteryPercentageInConnectionSlot,
-                centerSource: .automatic,
-                prioritizesNetworkErrorsOverInputSource: false,
+                centerSource: connection.centerSource,
+                prioritizesNetworkErrors: false,
                 wifiScale: connection.wifiScale
             ),
             volume: configuration.volume,
             bluetooth: BluetoothAudioIconOptions(
-                replacesNetworkIcon: bluetooth.replacesNetworkIcon,
+                iconColor: bluetooth.iconColor,
                 usesVolumeColor: bluetooth.usesVolumeColor,
-                prioritizesNetworkErrors: false,
                 symbolScale: bluetooth.symbolScale,
                 networkIconSymbolOverride: bluetooth.networkIconSymbolOverride,
                 iconChoice: bluetooth.iconChoice

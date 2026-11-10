@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class StatusBarContentLifecycleTests: XCTestCase {
+final class StatusBarContentLifecycleTests: VisibleUITestCase {
     func testCloseStopsSubscriptionsImmediatelyAndReopenStartsSynchronouslyWithLatestValues() async throws {
         let harness = try ContentLifecycleHarness()
         defer { harness.cleanUp() }
@@ -127,6 +127,33 @@ final class StatusBarContentLifecycleTests: XCTestCase {
         XCTAssertNotEqual(harness.controller.popoverForTesting.contentViewController, content)
         XCTAssertEqual(harness.releaseSleeper.callCount, 0)
         XCTAssertEqual(harness.contentReleaseCount, 1)
+    }
+
+    func testBatteryRouteReopensAfterDetailCloseReleasesContent() async throws {
+        let harness = try ContentLifecycleHarness()
+        defer { harness.cleanUp() }
+
+        harness.open()
+        harness.controller.panelForTesting.showBatteryPage()
+        XCTAssertEqual(harness.controller.panelForTesting.route, .battery)
+        XCTAssertTrue(harness.store.batteryDetails.isActive)
+
+        await closeNativePopover(harness.controller.popoverForTesting)
+
+        XCTAssertNil(harness.controller.popoverForTesting.contentViewController)
+        XCTAssertFalse(harness.store.batteryDetails.isActive)
+        XCTAssertEqual(
+            harness.controller.panelForTesting.route,
+            .battery,
+            "closing the popover keeps only the lightweight route"
+        )
+
+        harness.controller.resetPopoverToggleGateForTesting()
+        harness.open()
+
+        XCTAssertEqual(harness.controller.panelForTesting.route, .battery)
+        XCTAssertTrue(harness.store.batteryDetails.isActive)
+        XCTAssertNotNil(harness.controller.popoverForTesting.contentViewController)
     }
 
     func testTwentyNativeCloseReopenCyclesKeepLatestValuesWithoutDuplicateSourceSubscriptions() throws {
@@ -259,10 +286,9 @@ final class StatusBarContentLifecycleTests: XCTestCase {
         }
     }
 
-    private func closeNativePopover(_ popover: NSPopover) async {
+    private func closeNativePopover(_ popover: AnchoredStatusPanel) async {
         guard popover.isShown else { return }
-        let didClose = expectation(forNotification: NSPopover.didCloseNotification, object: popover)
-        popover.animates = false
+        let didClose = expectation(forNotification: AnchoredStatusPanel.didCloseNotification, object: popover)
         popover.performClose(nil)
         await fulfillment(of: [didClose], timeout: 2)
     }
@@ -277,13 +303,12 @@ final class StatusBarContentLifecycleTests: XCTestCase {
     }
 
     private func closeNativePopover(
-        _ popover: NSPopover,
+        _ popover: AnchoredStatusPanel,
         cycle: Int,
         phase: String
     ) {
         guard popover.isShown else { return }
-        let didClose = expectation(forNotification: NSPopover.didCloseNotification, object: popover)
-        popover.animates = false
+        let didClose = expectation(forNotification: AnchoredStatusPanel.didCloseNotification, object: popover)
         popover.performClose(nil)
         waitFor(didClose, cycle: cycle, phase: phase)
     }

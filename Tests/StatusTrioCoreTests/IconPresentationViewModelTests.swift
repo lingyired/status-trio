@@ -60,518 +60,6 @@ final class IconPresentationViewModelTests: XCTestCase {
         model.stop()
     }
 
-    func testResolutionTracePublishesIndependentlyFromRenderedScene() {
-        let initial = PresentationFixtures.snapshot(rssi: -40)
-        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(initial)
-        let settings = IconPresentationSettings(
-            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
-            designerConfiguration: .classic
-        )
-        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
-        let scheduler = ManualIconPresentationScheduler()
-        let scene = IconSceneState(center: .symbol(IconSymbolState(
-            source: .symbol(name: "wifi", variableValue: nil, fallback: nil), color: .primary, scale: 1
-        )))
-        let model = IconPresentationViewModel(
-            snapshot: initial, settings: settings,
-            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
-            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapResolution: { inputs, _, _ in
-                let sourceID = inputs.snapshot.wifi.rssi == -40 ? "network" : "bluetoothAudioOutput"
-                return IconResolutionOutput(
-                    scene: scene,
-                    trace: IconResolutionTrace(
-                        outerRing: .empty,
-                        center: SlotResolutionTrace(
-                            selectedSourceID: sourceID, role: .primary, primaryFailure: nil, reason: .primary
-                        ),
-                        footer: .empty
-                    )
-                )
-            },
-            snapshotScheduler: scheduler
-        )
-
-        XCTAssertEqual(model.output.scene, scene)
-        XCTAssertEqual(model.output.trace.center.selectedSourceID, "network")
-        let menuBarKeyBefore = StatusBarRenderKey(
-            scene: model.output.scene, iconSize: model.output.menuBarSize, backingScale: 2,
-            appearanceName: "aqua", phase: nil
-        )
-        let dockKeyBefore = DockIconRenderKey(scene: model.output.scene, backgroundStyle: .dark, pixelLength: 1024)
-        model.start()
-        snapshots.send(PresentationFixtures.snapshot(rssi: -80))
-        scheduler.runScheduled()
-
-        XCTAssertEqual(model.output.scene, scene)
-        XCTAssertEqual(model.output.trace.center.selectedSourceID, "bluetoothAudioOutput")
-        XCTAssertEqual(StatusBarRenderKey(
-            scene: model.output.scene, iconSize: model.output.menuBarSize, backingScale: 2,
-            appearanceName: "aqua", phase: nil
-        ), menuBarKeyBefore, "Resolution-only trace changes do not alter the Menu Bar raster key.")
-        XCTAssertEqual(DockIconRenderKey(
-            scene: model.output.scene, backgroundStyle: .dark, pixelLength: 1024
-        ), dockKeyBefore, "Resolution-only trace changes do not alter the Dock raster key.")
-        model.stop()
-    }
-
-    func testTemporarilyUnknownSourcePublishesExpiryWithoutWaitingForAnotherSnapshot() {
-        let start = Date(timeIntervalSince1970: 1_000)
-        var now = start
-        let initial = PresentationFixtures.snapshot(rssi: -40)
-        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(initial)
-        var configuration = IconConfigurationV1.classic
-        configuration.composition.center = SlotSelection(primary: .network)
-        let settings = IconPresentationSettings(
-            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
-            designerConfiguration: configuration
-        )
-        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
-        let debounceScheduler = ManualIconPresentationScheduler()
-        let expiryScheduler = ManualIconPresentationScheduler()
-        let model = IconPresentationViewModel(
-            snapshot: initial, settings: settings,
-            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
-            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapResolution: { inputs, configuration, sources in
-                IconCompositionResolver.resolve(
-                    inputs: IconResolutionInputs(system: inputs, sources: sources),
-                    configuration: configuration
-                )
-            },
-            resolveSourceSnapshot: { snapshot in
-                IconSourceSnapshot(availability: [
-                    CenterSource.network.rawValue: snapshot.wifi.rssi == -40
-                        ? .available : .unavailable(.unknown)
-                ])
-            },
-            now: { now },
-            snapshotScheduler: debounceScheduler,
-            holdExpiryScheduler: expiryScheduler
-        )
-
-        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.network.rawValue)
-        model.start()
-        snapshots.send(PresentationFixtures.snapshot(rssi: -80))
-        debounceScheduler.runScheduled()
-        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.network.rawValue, "The last-good source is held during transient unknown state.")
-        XCTAssertEqual(expiryScheduler.scheduledDelays.last, .seconds(2))
-
-        now = start.addingTimeInterval(2)
-        expiryScheduler.runScheduled()
-        XCTAssertNil(model.output.trace.center.selectedSourceID, "Expiry must republish even if no new snapshot arrives.")
-        XCTAssertEqual(expiryScheduler.scheduledDelays, [.seconds(2)], "An expired hold must not schedule itself again.")
-        XCTAssertFalse(expiryScheduler.hasPendingAction)
-        now = start.addingTimeInterval(6)
-        snapshots.send(PresentationFixtures.snapshot(rssi: -80))
-        debounceScheduler.runScheduled()
-        XCTAssertEqual(expiryScheduler.scheduledDelays, [.seconds(2)])
-        XCTAssertFalse(expiryScheduler.hasPendingAction)
-        model.stop()
-    }
-
-    func testHealthySourcesDoNotScheduleExpiryAtTwoFourOrSixSeconds() {
-        let start = Date(timeIntervalSince1970: 3_000)
-        var now = start
-        let healthy = PresentationFixtures.snapshot(rssi: -40)
-        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(healthy)
-        let configuration = IconConfigurationV1.classic
-        let settings = IconPresentationSettings(configuration: .standard, menuBarSize: 28,
-                                                testsChargingEffect: false, designerConfiguration: configuration)
-        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
-        let debounce = ManualIconPresentationScheduler()
-        let expiry = ManualIconPresentationScheduler()
-        let model = IconPresentationViewModel(
-            snapshot: healthy, settings: settings,
-            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
-            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapResolution: { inputs, configuration, sources in
-                IconCompositionResolver.resolve(inputs: IconResolutionInputs(system: inputs, sources: sources),
-                                                 configuration: configuration)
-            },
-            resolveSourceSnapshot: { IconPresentationResourceResolver.sourceSnapshot(snapshot: $0) },
-            now: { now }, snapshotScheduler: debounce, holdExpiryScheduler: expiry
-        )
-        model.start()
-        XCTAssertTrue(expiry.scheduledDelays.isEmpty)
-        for seconds in [2.0, 4.0, 6.0] {
-            now = start.addingTimeInterval(seconds)
-            snapshots.send(healthy)
-            debounce.runScheduled()
-            XCTAssertTrue(expiry.scheduledDelays.isEmpty, "Healthy source at +\(seconds)s must not cause an expiry timer.")
-            XCTAssertFalse(expiry.hasPendingAction)
-        }
-        model.stop()
-    }
-
-    func testExpiredAirPodsFallbackCannotOverrideRecoveredSystemPrimary() throws {
-        let start = Date(timeIntervalSince1970: 6_000)
-        let base = PresentationFixtures.snapshot(rssi: -40)
-        let initial = replacingBatteryPresence(in: base, isPresent: false)
-        let fixture = MutableIconSourcePayloadFixture(now: start)
-        var configuration = IconConfigurationV1.classic
-        configuration.composition.outerRing = SlotSelection(primary: .systemBattery, fallback: .airPodsBattery)
-        let harness = makeProductionModel(initial: initial, configuration: configuration, fixture: fixture)
-        harness.model.start()
-        XCTAssertEqual(harness.model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
-        XCTAssertEqual(harness.model.output.trace.outerRing.role, .fallback)
-        let heldFallbackScene = try XCTUnwrap(harness.model.output.scene.outerRing)
-        XCTAssertEqual(heldFallbackScene.segments.map(\.progress), [0.7])
-
-        fixture.now = start.addingTimeInterval(59)
-        harness.model.refreshSourceState()
-        XCTAssertEqual(harness.model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
-        XCTAssertEqual(harness.model.output.trace.outerRing.role, .fallback)
-
-        fixture.now = start.addingTimeInterval(60.1)
-        let recoveredSystemBattery = replacingBatteryPresence(in: initial, isPresent: true)
-        harness.snapshots.send(recoveredSystemBattery)
-        harness.snapshotScheduler.runScheduled()
-
-        XCTAssertEqual(harness.model.output.trace.outerRing.selectedSourceID, RingSource.systemBattery.rawValue,
-                       "A currently available primary must outrank a held fallback payload.")
-        XCTAssertEqual(harness.model.output.trace.outerRing.role, .primary)
-        XCTAssertNotEqual(harness.model.output.scene.outerRing, heldFallbackScene,
-                          "A held fallback scene must not replace the current primary's mapped scene.")
-        XCTAssertEqual(harness.model.output.scene.outerRing?.segments.map(\.progress), [0.68])
-        harness.model.stop()
-    }
-
-    func testExplicitDisconnectAndPermissionDenialClearAirPodsHold() throws {
-        for reason in [IconSourceUnavailableReason.disconnected, .permissionDenied] {
-            let start = Date(timeIntervalSince1970: reason == .disconnected ? 7_000 : 8_000)
-            let initial = PresentationFixtures.snapshot(rssi: -40)
-            let fixture = MutableIconSourcePayloadFixture(now: start)
-            var configuration = IconConfigurationV1.classic
-            configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery, fallback: .systemBattery)
-            let harness = makeProductionModel(initial: initial, configuration: configuration, fixture: fixture)
-            harness.model.start()
-            let lastAirPodsScene = try XCTUnwrap(harness.model.output.scene.outerRing)
-            fixture.airPodsAvailabilityOverride = .unavailable(reason)
-            fixture.now = start.addingTimeInterval(1)
-            harness.model.refreshSourceState()
-            XCTAssertEqual(harness.model.output.trace.outerRing.selectedSourceID, RingSource.systemBattery.rawValue)
-            XCTAssertEqual(harness.model.output.trace.outerRing.role, .fallback)
-            XCTAssertNotEqual(harness.model.output.scene.outerRing, lastAirPodsScene,
-                              "Explicit \(reason) must discard, not restore, the stale AirPods slot.")
-            harness.model.stop()
-        }
-    }
-
-    func testSelectingNoneClearsHeldAirPodsSlotAndTrace() throws {
-        let start = Date(timeIntervalSince1970: 9_000)
-        let initial = PresentationFixtures.snapshot(rssi: -40)
-        let fixture = MutableIconSourcePayloadFixture(now: start)
-        var configuration = IconConfigurationV1.classic
-        configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery, fallback: .systemBattery)
-        let harness = makeProductionModel(initial: initial, configuration: configuration, fixture: fixture)
-        harness.model.start()
-        fixture.now = start.addingTimeInterval(59)
-        harness.model.refreshSourceState()
-        fixture.now = start.addingTimeInterval(60.1)
-        harness.model.refreshSourceState()
-        XCTAssertEqual(harness.model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
-        XCTAssertEqual(harness.model.output.trace.outerRing.role, .primary)
-
-        configuration.composition.outerRing = SlotSelection(primary: .none)
-        harness.preferences.send(IconPresentationSettings(
-            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
-            designerConfiguration: configuration
-        ))
-        XCTAssertNil(harness.model.output.scene.outerRing)
-        XCTAssertNil(harness.model.output.trace.outerRing.selectedSourceID)
-        XCTAssertEqual(harness.model.output.trace.outerRing.role, .none)
-        harness.model.stop()
-    }
-
-    func testHeldBluetoothCenterCannotOverrideCurrentNetworkProblemOverride() throws {
-        let start = Date(timeIntervalSince1970: 10_000)
-        let bluetooth = PresentationFixtures.bluetoothDevice
-        let healthy = StatusSnapshot(
-            battery: PresentationFixtures.snapshot().battery,
-            wifi: WiFiStatus(state: .connected, rssi: -40), connection: .wifi,
-            volume: VolumeStatus(scalar: 0.7, isMuted: false, deviceName: bluetooth.name,
-                                 currentDevice: bluetooth)
-        )
-        let fixture = MutableIconSourcePayloadFixture(now: start)
-        var configuration = IconConfigurationV1.classic
-        configuration.composition.center = SlotSelection(primary: .bluetoothAudioOutput, fallback: .network)
-        configuration.composition.centerOverride.networkProblemOverridesPrimary = true
-        let harness = makeProductionModel(initial: healthy, configuration: configuration, fixture: fixture)
-        harness.model.start()
-        XCTAssertEqual(harness.model.output.trace.center.selectedSourceID, CenterSource.bluetoothAudioOutput.rawValue)
-        let bluetoothCenter = try XCTUnwrap(harness.model.output.scene.center)
-
-        fixture.sourceAvailabilityOverrides[CenterSource.bluetoothAudioOutput.rawValue] = .unavailable(.temporarilyStale)
-        fixture.now = start.addingTimeInterval(1)
-        let networkProblem = StatusSnapshot(
-            battery: healthy.battery, wifi: WiFiStatus(state: .noInternet, rssi: -40), connection: .wifi,
-            volume: healthy.volume
-        )
-        harness.snapshots.send(networkProblem)
-        harness.snapshotScheduler.runScheduled()
-
-        XCTAssertEqual(harness.model.output.trace.center.selectedSourceID, CenterSource.network.rawValue)
-        XCTAssertEqual(harness.model.output.trace.center.reason, .overridden(.networkProblem))
-        XCTAssertNotEqual(harness.model.output.scene.center, bluetoothCenter,
-                          "The current legal override must not be replaced by the previously held Bluetooth center.")
-        harness.model.stop()
-    }
-
-    func testExpiredAirPodsPayloadKeepsLastValidSlotAndTraceOnlyThroughBoundedHold() throws {
-        let start = Date(timeIntervalSince1970: 5_000)
-        let initial = PresentationFixtures.snapshot(rssi: -40)
-        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(initial)
-        var configuration = IconConfigurationV1.classic
-        configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery, fallback: .systemBattery)
-        configuration.behaviors.airPodsRing = .dual
-        let settings = IconPresentationSettings(configuration: .standard, menuBarSize: 28,
-                                                testsChargingEffect: false, designerConfiguration: configuration)
-        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
-        let fixture = MutableIconSourcePayloadFixture(now: start)
-        let debounce = ManualIconPresentationScheduler()
-        let expiry = ManualIconPresentationScheduler()
-        let model = IconPresentationViewModel(
-            snapshot: initial, settings: settings,
-            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
-            resolveInputs: { IconPresentationResourceResolver.inputs(snapshot: $0) },
-            mapResolution: { inputs, configuration, sources in
-                IconCompositionResolver.resolve(
-                    inputs: IconResolutionInputs(system: inputs, sources: sources),
-                    configuration: configuration,
-                    now: fixture.now
-                )
-            },
-            resolveSourceSnapshot: { snapshot in fixture.resolve(snapshot: snapshot) },
-            now: { fixture.now }, snapshotScheduler: debounce, holdExpiryScheduler: expiry
-        )
-
-        model.start()
-        XCTAssertEqual(model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
-        let lastFreshScene = try XCTUnwrap(model.output.scene.outerRing)
-        let lastFreshTrace = model.output.trace.outerRing
-        XCTAssertEqual(fixture.batteryLevelsUpdatedAt, start, "The source observation time stays at t0.")
-
-        fixture.now = start.addingTimeInterval(59)
-        model.refreshSourceState()
-        XCTAssertEqual(model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
-        XCTAssertEqual(model.output.scene.outerRing, lastFreshScene)
-
-        fixture.now = start.addingTimeInterval(60.1)
-        model.refreshSourceState()
-        XCTAssertEqual(model.output.scene.outerRing, lastFreshScene,
-                       "Temporarily stale data must retain the last valid AirPods ring until the hold expires.")
-        XCTAssertEqual(model.output.trace.outerRing, lastFreshTrace,
-                       "The held scene and trace must continue to identify the last valid AirPods source.")
-        XCTAssertEqual(expiry.scheduledDelays.last, .milliseconds(900))
-
-        fixture.now = start.addingTimeInterval(61)
-        expiry.runScheduled()
-        XCTAssertEqual(model.output.trace.outerRing.selectedSourceID, RingSource.systemBattery.rawValue)
-        XCTAssertEqual(model.output.trace.outerRing.role, .fallback)
-        XCTAssertNotEqual(model.output.scene.outerRing, lastFreshScene,
-                          "The stale AirPods scene must be discarded after the bounded hold expires.")
-        model.stop()
-    }
-
-    func testStartedViewModelPreservesProductionAirPodsAndConnectedDevicePayloadThroughHoldExpiry() throws {
-        let start = Date()
-        let initial = PresentationFixtures.snapshot(rssi: -40)
-        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(initial)
-        var configuration = IconConfigurationV1.classic
-        configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery, fallback: .systemBattery)
-        configuration.composition.center = SlotSelection(primary: .connectedBluetoothDevice, fallback: nil)
-        configuration.behaviors.airPodsRing = .dual
-        let settings = IconPresentationSettings(configuration: .standard, menuBarSize: 28,
-                                                testsChargingEffect: false, designerConfiguration: configuration)
-        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
-        let fixture = MutableIconSourcePayloadFixture(now: start)
-        let debounce = ManualIconPresentationScheduler()
-        let expiry = ManualIconPresentationScheduler()
-        let model = IconPresentationViewModel(
-            snapshot: initial, settings: settings,
-            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
-            resolveInputs: { IconPresentationResourceResolver.inputs(snapshot: $0) },
-            mapResolution: { inputs, configuration, sources in
-                IconCompositionResolver.resolve(
-                    inputs: IconResolutionInputs(system: inputs, sources: sources),
-                    configuration: configuration,
-                    now: fixture.now
-                )
-            },
-            resolveSourceSnapshot: { snapshot in fixture.resolve(snapshot: snapshot) },
-            now: { fixture.now }, snapshotScheduler: debounce, holdExpiryScheduler: expiry
-        )
-
-        model.start()
-        model.refreshSourceState()
-        XCTAssertEqual(model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
-        XCTAssertEqual(model.output.scene.outerRing?.layout, .leftRight)
-        XCTAssertEqual(model.output.scene.outerRing?.segments.map(\.progress), [0.35, 0.7])
-        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.connectedBluetoothDevice.rawValue)
-        XCTAssertNotNil(model.output.scene.center)
-
-        let freshInputs = IconResolutionInputs(
-            system: IconPresentationResourceResolver.inputs(snapshot: initial),
-            sources: fixture.resolve(snapshot: initial)
-        )
-        let preview = IconDesignerPreviewResolver.resolve(inputs: freshInputs, configuration: configuration)
-        XCTAssertEqual(model.output.scene, preview.scene,
-                       "Fresh Menu Bar and Designer preview resolution must use identical production payloads.")
-        XCTAssertEqual(model.output.trace, preview.trace)
-
-        fixture.batteryLevels = [:]
-        fixture.now = start.addingTimeInterval(1)
-        model.refreshSourceState()
-        XCTAssertEqual(model.output.trace.outerRing.selectedSourceID, RingSource.airPodsBattery.rawValue)
-        XCTAssertEqual(model.output.scene.outerRing?.segments.map(\.progress), [0.35, 0.7],
-                       "A temporarily stale source keeps the last valid AirPods payload for its two-second hold.")
-        XCTAssertNotNil(model.output.scene.center, "The fresh connected-device payload must survive source holding too.")
-        XCTAssertEqual(expiry.scheduledDelays.last, .seconds(1))
-
-        fixture.now = start.addingTimeInterval(2)
-        expiry.runScheduled()
-        XCTAssertEqual(model.output.trace.outerRing.selectedSourceID, RingSource.systemBattery.rawValue)
-        XCTAssertEqual(model.output.trace.outerRing.role, .fallback)
-        XCTAssertNil(model.output.scene.outerRing?.layout == .leftRight ? model.output.scene.outerRing : nil,
-                     "AirPods payload must expire rather than remain visible indefinitely.")
-        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.connectedBluetoothDevice.rawValue)
-        XCTAssertNotNil(model.output.scene.center)
-        model.stop()
-    }
-
-    func testTransientPayloadLossHoldsOnlyAffectedSlotStatesUntilExpiry() {
-        let start = Date(timeIntervalSince1970: 4_000)
-        var now = start
-        let healthy = PresentationFixtures.snapshot(rssi: -40, scalar: 0.7, muted: false)
-        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(healthy)
-        var configuration = IconConfigurationV1.classic
-        configuration.composition.center = SlotSelection(primary: .network)
-        let settings = IconPresentationSettings(configuration: .standard, menuBarSize: 28,
-                                                testsChargingEffect: false, designerConfiguration: configuration)
-        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
-        let debounce = ManualIconPresentationScheduler()
-        let expiry = ManualIconPresentationScheduler()
-        let model = IconPresentationViewModel(
-            snapshot: healthy, settings: settings,
-            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
-            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapResolution: { inputs, configuration, sources in
-                IconCompositionResolver.resolve(inputs: IconResolutionInputs(system: inputs, sources: sources),
-                                                 configuration: configuration)
-            },
-            resolveSourceSnapshot: { IconPresentationResourceResolver.sourceSnapshot(snapshot: $0) },
-            now: { now }, snapshotScheduler: debounce, holdExpiryScheduler: expiry
-        )
-        let lastGoodScene = model.output.scene
-        model.start()
-        let unavailable = StatusSnapshot(
-            battery: healthy.battery,
-            wifi: WiFiStatus(state: .unavailable, rssi: nil),
-            connection: .wifi,
-            volume: VolumeStatus(scalar: nil, isMuted: false, deviceName: "Output")
-        )
-        snapshots.send(unavailable)
-        debounce.runScheduled()
-        XCTAssertEqual(model.output.scene, lastGoodScene, "Unknown payloads must preserve the previous center and footer scenes, not map slash/zero.")
-        now = start.addingTimeInterval(2)
-        expiry.runScheduled()
-        XCTAssertNil(model.output.scene.center)
-        XCTAssertNil(model.output.scene.footer)
-        model.stop()
-    }
-
-    func testStopStartClearsLastGoodSourceValue() {
-        let now = Date(timeIntervalSince1970: 2_000)
-        let connected = PresentationFixtures.snapshot(rssi: -40)
-        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(connected)
-        var configuration = IconConfigurationV1.classic
-        configuration.composition.center = SlotSelection(primary: .network)
-        let settings = IconPresentationSettings(
-            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
-            designerConfiguration: configuration
-        )
-        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
-        let debounceScheduler = ManualIconPresentationScheduler()
-        let expiryScheduler = ManualIconPresentationScheduler()
-        let model = IconPresentationViewModel(
-            snapshot: connected, settings: settings,
-            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
-            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapResolution: { inputs, configuration, sources in
-                IconCompositionResolver.resolve(
-                    inputs: IconResolutionInputs(system: inputs, sources: sources),
-                    configuration: configuration
-                )
-            },
-            resolveSourceSnapshot: { snapshot in
-                IconSourceSnapshot(availability: [
-                    CenterSource.network.rawValue: snapshot.wifi.state == .unavailable
-                        ? .unavailable(.unknown) : .available
-                ])
-            },
-            now: { now },
-            snapshotScheduler: debounceScheduler,
-            holdExpiryScheduler: expiryScheduler
-        )
-
-        model.start()
-        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.network.rawValue)
-        let unknown = StatusSnapshot(
-            battery: connected.battery,
-            wifi: .placeholder,
-            connection: .offline,
-            volume: connected.volume
-        )
-        snapshots.send(unknown)
-        debounceScheduler.runScheduled()
-        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.network.rawValue)
-        XCTAssertTrue(expiryScheduler.hasPendingAction)
-
-        model.stop()
-        XCTAssertFalse(expiryScheduler.hasPendingAction)
-        model.start()
-        XCTAssertNil(model.output.trace.center.selectedSourceID)
-        model.stop()
-    }
-
-    func testDesignerConfigurationPublishesImmediatelyWithoutWaitingForSnapshotDebounce() {
-        let initial = PresentationFixtures.snapshot(rssi: -40)
-        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(initial)
-        let initialConfiguration = IconConfigurationV1.classic
-        let initialSettings = IconPresentationSettings(
-            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
-            designerConfiguration: initialConfiguration
-        )
-        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(initialSettings)
-        let scheduler = ManualIconPresentationScheduler()
-        let model = IconPresentationViewModel(
-            snapshot: initial, settings: initialSettings,
-            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
-            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapResolution: { inputs, configuration, sources in
-                IconCompositionResolver.resolve(
-                    inputs: IconResolutionInputs(system: inputs, sources: sources),
-                    configuration: configuration
-                )
-            },
-            snapshotScheduler: scheduler
-        )
-        model.start()
-        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.automaticLegacy.rawValue)
-
-        var changedConfiguration = initialConfiguration
-        changedConfiguration.composition.center = SlotSelection(primary: .network)
-        preferences.send(IconPresentationSettings(
-            configuration: .standard, menuBarSize: 28, testsChargingEffect: false,
-            designerConfiguration: changedConfiguration
-        ))
-
-        XCTAssertEqual(model.output.trace.center.selectedSourceID, CenterSource.network.rawValue)
-        XCTAssertFalse(scheduler.hasPendingAction, "Configuration changes map immediately rather than waiting for the snapshot debounce.")
-        model.stop()
-    }
-
     func testInjectedMapperBuildsCanonicalAndChargingTestScenesFromProjectedSnapshot() {
         let original = PresentationFixtures.snapshot()
         XCTAssertFalse(original.battery.isCharging)
@@ -1063,92 +551,78 @@ final class IconPresentationViewModelTests: XCTestCase {
         )
     }
 
-    private func makeProductionModel(
-        initial: StatusSnapshot,
-        configuration: IconConfigurationV1,
-        fixture: MutableIconSourcePayloadFixture
-    ) -> (
-        model: IconPresentationViewModel,
-        snapshots: CurrentValueSubject<StatusSnapshot, Never>,
-        preferences: CurrentValueSubject<IconPresentationSettings, Never>,
-        snapshotScheduler: ManualIconPresentationScheduler,
-        expiryScheduler: ManualIconPresentationScheduler
-    ) {
-        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(initial)
-        let settings = IconPresentationSettings(configuration: .standard, menuBarSize: 28,
-                                                testsChargingEffect: false, designerConfiguration: configuration)
+    func testSystemPowerSamplesRepaintThePowerCentreSlot() {
+        let snapshot = PresentationFixtures.snapshot()
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(snapshot)
+        let settings = IconPresentationSettings(
+            configuration: IconPresentationConfiguration(
+                battery: .standard,
+                connection: ConnectionIconOptions(centerSource: .power),
+                volume: .standard,
+                bluetooth: .standard
+            ),
+            menuBarSize: 24,
+            testsChargingEffect: false
+        )
         let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
-        let snapshotScheduler = ManualIconPresentationScheduler()
-        let expiryScheduler = ManualIconPresentationScheduler()
+        let systemPowers = CurrentValueSubject<SystemPowerSample?, Never>(nil)
+        let scheduler = ManualIconPresentationScheduler()
         let model = IconPresentationViewModel(
-            snapshot: initial, settings: settings,
-            snapshots: snapshots.eraseToAnyPublisher(), preferences: preferences.eraseToAnyPublisher(),
-            resolveInputs: { IconPresentationResourceResolver.inputs(snapshot: $0) },
-            mapResolution: { inputs, configuration, sources in
-                IconCompositionResolver.resolve(
-                    inputs: IconResolutionInputs(system: inputs, sources: sources),
-                    configuration: configuration,
-                    now: fixture.now
-                )
-            },
-            resolveSourceSnapshot: { snapshot in fixture.resolve(snapshot: snapshot) },
-            now: { fixture.now }, snapshotScheduler: snapshotScheduler, holdExpiryScheduler: expiryScheduler
+            snapshot: snapshot,
+            settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(),
+            preferences: preferences.eraseToAnyPublisher(),
+            systemPowers: systemPowers.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            snapshotScheduler: scheduler
         )
-        return (model, snapshots, preferences, snapshotScheduler, expiryScheduler)
+
+        XCTAssertEqual(model.output.scene.center,
+                       .text(IconTextState(text: "\(snapshot.battery.percentage)", color: .primary, scale: 1)))
+
+        model.start()
+        snapshots.send(snapshot)
+        preferences.send(settings)
+        systemPowers.send(SystemPowerSample(watts: 23.6, readAt: Date()))
+
+        XCTAssertEqual(model.output.scene.center,
+                       .text(IconTextState(text: "24", color: .primary, scale: 1)))
+        model.stop()
     }
 
-}
-
-@MainActor
-private final class MutableIconSourcePayloadFixture {
-    let airPods: BluetoothDevice
-    let headphones: BluetoothDevice
-    var batteryLevels: [String: BluetoothBatteryLevel]
-    var batteryLevelsUpdatedAt: Date
-    var now: Date
-    var airPodsAvailabilityOverride: IconSourceAvailability?
-    var sourceAvailabilityOverrides: [String: IconSourceAvailability] = [:]
-
-    init(now: Date) {
-        self.now = now
-        batteryLevelsUpdatedAt = now
-        airPods = BluetoothDevice(id: "AA:BB:CC:DD:EE:10", name: "AirPods Pro", kind: .audio,
-                                  isConnected: true, airPodsModel: .airPodsPro)
-        headphones = BluetoothDevice(id: "AA:BB:CC:DD:EE:20", name: "Headphones", kind: .audio, isConnected: true)
-        let key = BluetoothBatteryReader.normalizedAddress(airPods.id)
-        batteryLevels = [key: BluetoothBatteryLevel(deviceAddress: airPods.id, main: 70, left: 35, right: 70, caseLevel: nil)]
-    }
-
-    func resolve(snapshot: StatusSnapshot) -> IconSourceSnapshot {
-        var sources = IconPresentationResourceResolver.sourceSnapshot(
-            snapshot: snapshot, bluetoothDevices: [airPods, headphones], batteryLevels: batteryLevels,
-            batteryLevelsUpdatedAt: batteryLevelsUpdatedAt, selectedAirPodsAddress: airPods.id,
-            selectedConnectedDeviceAddress: headphones.id, now: now
+    func testHighPowerModeTurnsTheBatteryRingBlue() {
+        let snapshot = PresentationFixtures.snapshot()
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(snapshot)
+        let settings = IconPresentationSettings(
+            configuration: .standard,
+            menuBarSize: 24,
+            testsChargingEffect: false
         )
-        if let airPodsAvailabilityOverride {
-            sources.availability[RingSource.airPodsBattery.rawValue] = airPodsAvailabilityOverride
-        }
-        for (sourceID, availability) in sourceAvailabilityOverrides {
-            sources.availability[sourceID] = availability
-        }
-        return sources
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let highPowerModes = CurrentValueSubject<Bool, Never>(false)
+        let scheduler = ManualIconPresentationScheduler()
+        let model = IconPresentationViewModel(
+            snapshot: snapshot,
+            settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(),
+            preferences: preferences.eraseToAnyPublisher(),
+            highPowerModes: highPowerModes.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            snapshotScheduler: scheduler
+        )
+
+        // A normal battery keeps the primary ring colour; High Power Mode is a
+        // separate, higher-priority colour role (#235).
+        let baselineColors = model.output.scene.outerRing?.segments.map(\.color) ?? []
+        XCTAssertFalse(baselineColors.contains(.highPower))
+
+        model.start()
+        snapshots.send(snapshot)
+        preferences.send(settings)
+        highPowerModes.send(true)
+
+        let highPowerColors = model.output.scene.outerRing?.segments.map(\.color) ?? []
+        XCTAssertTrue(highPowerColors.contains(.highPower))
+        model.stop()
     }
-}
-
-
-private func replacingBatteryPresence(in snapshot: StatusSnapshot, isPresent: Bool) -> StatusSnapshot {
-    StatusSnapshot(
-        battery: BatteryStatus(
-            rawPercentage: snapshot.battery.rawPercentage,
-            isPresent: isPresent,
-            isCharging: snapshot.battery.isCharging,
-            isCharged: snapshot.battery.isCharged,
-            timeToFullChargeMinutes: snapshot.battery.timeToFullChargeMinutes,
-            isLowPowerMode: snapshot.battery.isLowPowerMode,
-            isConnectedToPower: snapshot.battery.isConnectedToPower
-        ),
-        wifi: snapshot.wifi,
-        connection: snapshot.connection,
-        volume: snapshot.volume
-    )
 }

@@ -2,42 +2,70 @@ import SwiftUI
 
 struct WiFiNetworkListView: View {
     @EnvironmentObject private var localization: Localization
+    @Environment(\.colorScheme) private var colorScheme
     let state: WiFiPanelState
     let onBack: () -> Void
     let onRequestNameAccess: () -> Void
     let onOpenWiFiSettings: () -> Void
     let onOpenLocationSettings: () -> Void
     let onSetPower: (Bool) -> Void
+    /// Mirrors the "Confirm Before Turning Off Wi-Fi" setting (#305) so the
+    /// detail page and the summary row behave the same. Defaults to false for
+    /// previews and fixtures that do not exercise the confirmation.
+    var wifiPowerRequiresConfirmation: Bool = false
     let onRefresh: () -> Void
     let onOpenSharingSettings: () -> Void
     let onCopyValue: (String) -> Void
-    let showsDetailsInitially: Bool
+    let showsDetails: Bool
+    let showsMore: Bool
+    let onSetShowsDetails: (Bool) -> Void
+    let onSetShowsMore: (Bool) -> Void
 
-    @State private var showsDetails = false
-    @State private var showsMore = false
+    /// The panel owns one outer scroll surface (#237); this page must not add a
+    /// second one on top of it.
+    @Environment(\.statusPanelManagesScrolling) private var statusPanelManagesScrolling
+
+    @State private var confirmingPowerOff = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
             Toggle(
                 localization.string(.wifiPower),
-                isOn: Binding(get: { state.powerIsOn }, set: { onSetPower($0) })
+                isOn: Binding(
+                    get: { state.powerIsOn },
+                    set: { requested in
+                        // Turning off while associated asks first, unless the
+                        // user turned the confirmation setting off (#305).
+                        if !requested && wifiPowerRequiresConfirmation {
+                            confirmingPowerOff = true
+                        } else {
+                            onSetPower(requested)
+                        }
+                    }
+                )
             )
             .disabled(!state.canSetPower)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    personalHotspotSection
-                    knownNetworksSection
-                    otherNetworksSection
-                    stateMessage(
-                        hasVisibleNetworks: !state.personalHotspotRows.isEmpty
-                            || !state.knownRows.isEmpty
-                            || !state.otherRows.isEmpty
-                    )
+            .alert(
+                localization.string(.wifiPowerOffConfirmTitle),
+                isPresented: $confirmingPowerOff
+            ) {
+                Button(localization.string(.wifiPowerOffConfirmAction), role: .destructive) {
+                    onSetPower(false)
                 }
+                Button(localization.string(.commonCancel), role: .cancel) {}
+            } message: {
+                Text(localization.string(.wifiPowerOffConfirmMessage))
             }
-            .frame(maxHeight: 330)
+
+            if statusPanelManagesScrolling {
+                networkSections
+            } else {
+                ScrollView {
+                    networkSections
+                }
+                .frame(maxHeight: 330)
+            }
 
             Divider()
             Text(localization.string(.wifiActionSwitchingHint))
@@ -53,8 +81,18 @@ struct WiFiNetworkListView: View {
                 .buttonStyle(.plain)
                 .help(localization.string(.networkActionShareInternetHelp))
         }
-        .onAppear {
-            showsDetails = showsDetails || showsDetailsInitially
+    }
+
+    private var networkSections: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            personalHotspotSection
+            knownNetworksSection
+            otherNetworksSection
+            stateMessage(
+                hasVisibleNetworks: !state.personalHotspotRows.isEmpty
+                    || !state.knownRows.isEmpty
+                    || !state.otherRows.isEmpty
+            )
         }
     }
 
@@ -112,15 +150,29 @@ struct WiFiNetworkListView: View {
 
     @ViewBuilder
     private var detailsToggle: some View {
-        WiFiDetailsToggleRow(isExpanded: $showsDetails)
+        WiFiDetailsToggleRow(isExpanded: showsDetailsBinding)
 
         if showsDetails {
             WiFiDetailsView(
                 state: state,
-                showsMore: $showsMore,
+                showsMore: showsMoreBinding,
                 onCopyValue: onCopyValue
             )
         }
+    }
+
+    private var showsDetailsBinding: Binding<Bool> {
+        Binding(
+            get: { showsDetails },
+            set: { value in onSetShowsDetails(value) }
+        )
+    }
+
+    private var showsMoreBinding: Binding<Bool> {
+        Binding(
+            get: { showsMore },
+            set: { value in onSetShowsMore(value) }
+        )
     }
 
     private func sectionTitle(_ title: String) -> some View {
@@ -139,15 +191,17 @@ struct WiFiNetworkListView: View {
         if let message = state.message {
             switch state.messageIntent {
             case .requestWiFiNameAccess:
-                Button(message, action: onRequestNameAccess)
-                    .buttonStyle(.plain)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                WiFiPermissionActionButton(
+                    icon: "location.fill",
+                    title: message,
+                    action: onRequestNameAccess
+                )
             case .locationSettings:
-                Button(message, action: onOpenLocationSettings)
-                    .buttonStyle(.plain)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                WiFiPermissionActionButton(
+                    icon: "location.fill",
+                    title: message,
+                    action: onOpenLocationSettings
+                )
             default:
                 HStack(spacing: 8) {
                     if state.isScanning { ProgressView().controlSize(.small) }
@@ -159,6 +213,10 @@ struct WiFiNetworkListView: View {
         }
     }
 
+    private var connectedMarkerColor: Color {
+        WiFiConnectedMarkerPalette.resolved(dark: colorScheme == .dark).color
+    }
+
     private func networkRow(_ row: PanelWiFiNetworkRow) -> some View {
         Button {
             if row.opensSettings { onOpenWiFiSettings() }
@@ -167,7 +225,11 @@ struct WiFiNetworkListView: View {
                 if row.selected {
                     Image(systemName: "checkmark")
                         .frame(width: 16, height: 16, alignment: .center)
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(connectedMarkerColor)
+                        .opacity(row.opensSettings ? 1 : 0)
+                        // The button's accessibility label already says
+                        // "Connected"; the marker is decoration.
+                        .accessibilityHidden(true)
                 } else {
                     Image(systemName: "wifi")
                         .frame(width: 16, height: 16, alignment: .center)
@@ -200,6 +262,19 @@ struct WiFiNetworkListView: View {
         }
         .buttonStyle(.plain)
         .disabled(!row.opensSettings)
+        .overlay(alignment: .leading) {
+            if row.selected && !row.opensSettings {
+                // A disabled button dims its whole label, but connection state
+                // is not a control — draw the marker again outside that dimming.
+                // Keep this frame and leading alignment in sync with the marker
+                // inside the label above.
+                Image(systemName: "checkmark")
+                    .frame(width: 16, height: 16, alignment: .center)
+                    .foregroundStyle(connectedMarkerColor)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
         .accessibilityLabel(row.accessibilityLabel)
     }
 }

@@ -84,9 +84,11 @@ struct AudioInputControlsView: View {
 
     let state: AudioInputPanelState
     let actions: StatusPanelActions
+    let scrollTargets: PopoverScrollTargets
     let onOpenSoundSettings: () -> Void
 
     @State private var volumeDraft = AudioInputVolumeDraft()
+    @State private var isDeviceListExpanded = false
 
     private var sliderAccessibilityValue: String {
         volumeDraft.accessibilityValue(
@@ -135,8 +137,8 @@ struct AudioInputControlsView: View {
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(state.muteTint.color())
                         .frame(
-                            width: PanelSummaryActionMetrics.hitTarget,
-                            height: PanelSummaryActionMetrics.hitTarget
+                            width: PanelSummaryActionMetrics.leadingGlyphSlot,
+                            height: PanelSummaryActionMetrics.leadingGlyphSlot
                         )
                         .accessibilityHidden(true)
 
@@ -160,23 +162,24 @@ struct AudioInputControlsView: View {
             )
 
             ZStack {
-                Slider(
+                PanelLevelSlider(
                     value: sliderValue,
-                    in: 0...1,
+                    isEnabled: state.canAdjust,
+                    tint: state.muteState == .muted ? Color.secondary : Color.accentColor,
+                    accessibilityLabel: state.sliderLabel,
+                    accessibilityValue: sliderAccessibilityValue,
+                    accessibilityHint: state.canAdjust
+                        ? ""
+                        : localization.string(.audioInputVolumeUnavailable),
                     onEditingChanged: { editing in
                         volumeDraft.setEditing(editing)
-                    }
+                    },
+                    height: PanelLevelSliderMetrics.compactSlotHeight,
+                    barHeight: PanelLevelSliderMetrics.compactBarHeight
                 )
-                .tint(state.muteState == .muted ? Color.secondary : Color.accentColor)
-                .disabled(!state.canAdjust)
                 .help(state.canAdjust
                     ? localization.string(.audioInputVolume)
                     : localization.string(.audioInputVolumeUnavailable))
-                .accessibilityLabel(state.sliderLabel)
-                .accessibilityValue(sliderAccessibilityValue)
-                .accessibilityHint(
-                    state.canAdjust ? "" : localization.string(.audioInputVolumeUnavailable)
-                )
 
                 if state.scalar == nil {
                     Text("—")
@@ -188,6 +191,12 @@ struct AudioInputControlsView: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            .background(
+                LevelSliderScrollTarget(
+                    targets: scrollTargets,
+                    target: .audioInput
+                )
+            )
 
             Text(sliderAccessibilityValue)
                 .font(.caption.monospacedDigit())
@@ -196,7 +205,7 @@ struct AudioInputControlsView: View {
                 .accessibilityHidden(true)
 
             Button(action: onOpenSoundSettings) {
-                PanelActionGlyph(systemName: "gearshape")
+                PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
                     .foregroundStyle(.secondary)
                     .contentShape(Rectangle())
                     .opacity(state.isBusy ? 0 : 1)
@@ -238,7 +247,7 @@ struct AudioInputControlsView: View {
                 .padding(.top, 2)
 
             VStack(spacing: 2) {
-                ForEach(state.rows) { row in
+                ForEach(state.visibleRows(expanded: isDeviceListExpanded)) { row in
                     Button {
                         guard !row.selected else { return }
                         actions.selectInput(row.key)
@@ -274,6 +283,14 @@ struct AudioInputControlsView: View {
                     .accessibilityLabel(row.accessibilityLabel)
                     .accessibilityValue(row.selected ? state.usageText ?? "" : "")
                     .accessibilityHint(row.selected ? "" : row.helpText)
+                }
+
+                if state.hasHiddenRows {
+                    DeviceListExpansionButton(
+                        isExpanded: $isDeviceListExpanded,
+                        expandLabel: state.expandLabel,
+                        collapseLabel: state.collapseLabel
+                    )
                 }
             }
         } else {

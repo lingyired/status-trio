@@ -43,16 +43,14 @@ struct IconPresentationRuntimeOptions: Equatable, Sendable {
                 showsWiFiIconForHotspot: connection.showsWiFiIconForHotspot,
                 showsWiFiIconForTemporaryConnection: connection.showsWiFiIconForTemporaryConnection,
                 showsWiFiIconForInternetSharing: connection.showsWiFiIconForInternetSharing,
-                showsBatteryPercentageInConnectionSlot: connection.showsBatteryPercentageInConnectionSlot,
                 centerSource: connectionCenterSource,
-                prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrorsOverInputSource,
+                prioritizesNetworkErrors: prioritizesNetworkErrorsOverInputSource,
                 wifiScale: connection.wifiScale
             ),
             volume: configuration.volume,
             bluetooth: BluetoothAudioIconOptions(
-                replacesNetworkIcon: bluetooth.replacesNetworkIcon,
+                iconColor: bluetooth.iconColor,
                 usesVolumeColor: bluetooth.usesVolumeColor,
-                prioritizesNetworkErrors: bluetooth.prioritizesNetworkErrors,
                 symbolScale: bluetooth.symbolScale,
                 networkIconSymbolOverride: bluetooth.networkIconSymbolOverride,
                 iconChoice: bluetoothAudioIconChoice
@@ -65,21 +63,34 @@ struct IconPresentationInputs: Equatable, Sendable {
     let snapshot: StatusSnapshot
     let audioIcon: IconSymbolSource?
     /// The selected input source, already filtered to an enabled, select-capable
-    /// source. `nil` whenever the centre slot must fall back to `.automatic`.
+    /// source. `nil` whenever the centre slot must fall back to `.network`.
     let inputSource: InputSourceDescriptor?
     /// Runtime-only main settings missing from the V1 schema, carried through
     /// the same input value used by live and preview resolution.
     let runtimeOptions: IconPresentationRuntimeOptions?
+    /// The shared whole-machine power sample when the centre slot is set to
+    /// `.power`. `nil` until the sampler has a fresh reading.
+    let systemPower: SystemPowerSample?
+    /// Whether the system Power Mode switch is in High Power Mode (#235).
+    ///
+    /// It comes from the privileged helper rather than the IOKit snapshot, so
+    /// it is carried alongside the snapshot and drives the battery ring colour
+    /// on both the menu bar and the Dock, which share this scene.
+    let isHighPowerMode: Bool
 
     init(
         snapshot: StatusSnapshot,
         audioIcon: IconSymbolSource?,
         inputSource: InputSourceDescriptor? = nil,
-        runtimeOptions: IconPresentationRuntimeOptions? = nil
+        runtimeOptions: IconPresentationRuntimeOptions? = nil,
+        systemPower: SystemPowerSample? = nil,
+        isHighPowerMode: Bool = false
     ) {
         self.snapshot = snapshot
         self.audioIcon = audioIcon
         self.inputSource = inputSource
         self.runtimeOptions = runtimeOptions
+        self.systemPower = systemPower
+        self.isHighPowerMode = isHighPowerMode
     }
 }

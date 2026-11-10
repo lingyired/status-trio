@@ -15,7 +15,9 @@ protocol DockVisibilityMonitoring: AnyObject {
 @MainActor
 final class DockVisibilityMonitor: DockVisibilityMonitoring {
     private let probe: @MainActor () -> Bool
+    private let pollingInterval: TimeInterval
     private var isMonitoring = false
+    private var pollTimer: Timer?
 
     private(set) var isDockVisible = true
     var onChange: ((Bool) -> Void)?
@@ -23,19 +25,35 @@ final class DockVisibilityMonitor: DockVisibilityMonitoring {
     init(
         probe: @escaping @MainActor () -> Bool = {
             DockVisibilityMonitor.liveVisibility()
-        }
+        },
+        pollingInterval: TimeInterval = 1
     ) {
         self.probe = probe
+        self.pollingInterval = pollingInterval
     }
 
     func start() {
         guard !isMonitoring else { return }
         isMonitoring = true
         refresh()
+        // This probes the Dock on its own cadence instead of borrowing the
+        // shared appearance poll. The animation needs to stop when the Dock
+        // hides, which is one second, while the appearance preference does not
+        // need to be re-read that often.
+        let timer = Timer.scheduledTimer(
+            withTimeInterval: pollingInterval,
+            repeats: true
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refresh() }
+        }
+        timer.tolerance = pollingInterval / 2
+        pollTimer = timer
     }
 
     func stop() {
         isMonitoring = false
+        pollTimer?.invalidate()
+        pollTimer = nil
         // A stopped monitor must not leave the Dock permanently considered
         // hidden. The next start performs a fresh probe immediately.
         isDockVisible = true
@@ -64,6 +82,11 @@ final class DockVisibilityMonitor: DockVisibilityMonitoring {
         if !dockWindows(in: onScreenWindows, dockPID: dockPID).isEmpty {
             return true
         }
+        // No Dock window on screen means the Dock is hidden. The full window
+        // list is only needed to tell that apart from a restricted environment
+        // that reports no windows at all; paying for it on every probe made an
+        // auto-hidden Dock cost two system-wide enumerations per second.
+        guard onScreenWindows.isEmpty else { return false }
         let allWindows = CGWindowListCopyWindowInfo(
             [.optionAll, .excludeDesktopElements],
             kCGNullWindowID

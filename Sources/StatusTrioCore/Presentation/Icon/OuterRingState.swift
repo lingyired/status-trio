@@ -14,6 +14,17 @@ enum RingGapStyle: Equatable, Hashable, Sendable {
     case value
 }
 
+/// How a top gap with content treats progress (#205).
+enum GapProgressMode: Equatable, Hashable, Sendable {
+    /// The historical look: the gap occupies its share of the ring, so progress
+    /// falling inside it collapses onto the gap's leading edge.
+    case absorbed
+    /// The visible arc carries the whole 0–100% scale: the left visible half is
+    /// 0–50% and the right visible half is 50–100%, so the gap no longer hides
+    /// any progress.
+    case split
+}
+
 enum RingAccessoryState: Equatable, Hashable, Sendable {
     case symbol(IconSymbolState)
     case text(IconTextState)
@@ -50,6 +61,8 @@ struct OuterRingState: Equatable, Hashable, Sendable {
     let effect: RingEffectState?
     let strokeScale: Double
     let inactiveColor: IconColorRole
+    /// Whether a top gap absorbs progress or the visible arc is split across it.
+    let gapProgressMode: GapProgressMode
 
     init(
         segments: [RingSegmentState],
@@ -59,7 +72,8 @@ struct OuterRingState: Equatable, Hashable, Sendable {
         accessory: RingAccessoryState? = nil,
         effect: RingEffectState? = nil,
         strokeScale: Double = 1.25,
-        inactiveColor: IconColorRole = .inactive
+        inactiveColor: IconColorRole = .inactive,
+        gapProgressMode: GapProgressMode = .absorbed
     ) {
         self.segments = segments
         self.layout = layout
@@ -69,6 +83,7 @@ struct OuterRingState: Equatable, Hashable, Sendable {
         self.effect = effect
         self.strokeScale = Self.normalizedStrokeScale(strokeScale)
         self.inactiveColor = inactiveColor
+        self.gapProgressMode = gapProgressMode
     }
 
     static func normalizedStrokeScale(_ scale: Double) -> Double {

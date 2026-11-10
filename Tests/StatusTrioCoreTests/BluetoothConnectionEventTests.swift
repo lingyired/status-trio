@@ -44,6 +44,114 @@ final class BluetoothConnectionEventTests: XCTestCase {
         XCTAssertFalse(events.isRunning)
     }
 
+    // MARK: - Invalidating the battery gate before the next snapshot
+
+    func testConnectionEventBlocksWarmReadsUntilAFreshSnapshotArrives() async {
+        let rig = ConnectionBatteryRig()
+        await load(rig)
+        rig.controller.requestBatteryLevels("battery")
+        await waitUntil { !rig.controller.batteryLevels.isEmpty }
+        rig.events.emit()
+        let received = await rig.sleeper.waitForCallCount(1, timeout: .seconds(2))
+        XCTAssertTrue(received)
+        XCTAssertTrue(rig.controller.batteryLevels.isEmpty)
+        let reads = rig.battery.readCount
+        rig.controller.requestBatteryLevels("battery")
+        XCTAssertEqual(rig.battery.readCount, reads, "old devices must not warm a new battery read")
+
+        rig.sleeper.releaseOldest()
+        await waitUntil { rig.worker.readCount == 2 }
+        rig.worker.completeNext(name: "Fresh")
+        await waitUntil { rig.controller.devices.first?.name == "Fresh" }
+        await waitUntil { !rig.controller.batteryLevels.isEmpty }
+        rig.controller.deactivate()
+    }
+
+    func testPreEventProfilerCompletionCannotUnlockBatteryReads() async {
+        let rig = ConnectionBatteryRig()
+        await load(rig)
+        rig.controller.requestBatteryLevels("battery")
+        await waitUntil { !rig.controller.batteryLevels.isEmpty }
+        rig.controller.refresh()
+        XCTAssertEqual(rig.worker.readCount, 2)
+        rig.events.emit()
+        let received = await rig.sleeper.waitForCallCount(1, timeout: .seconds(2))
+        XCTAssertTrue(received)
+        let reads = rig.battery.readCount
+        rig.worker.completeNext(name: "Pre-event")
+        await waitUntil { rig.controller.devices.first?.name == "Pre-event" }
+        XCTAssertEqual(rig.battery.readCount, reads, "old generation profiler must not unlock battery reads")
+        rig.controller.requestBatteryLevels("battery")
+        XCTAssertEqual(rig.battery.readCount, reads)
+
+        rig.sleeper.releaseOldest()
+        await waitUntil { rig.worker.readCount == 3 }
+        rig.worker.completeNext(name: "Fresh")
+        await waitUntil { rig.controller.devices.first?.name == "Fresh" }
+        await waitUntil { !rig.controller.batteryLevels.isEmpty }
+        rig.controller.deactivate()
+    }
+
+    func testEveryEventInOneDebouncedBurstInvalidatesTheNewSnapshot() async {
+        let rig = ConnectionBatteryRig()
+        await load(rig)
+        rig.controller.requestBatteryLevels("battery")
+        await waitUntil { !rig.controller.batteryLevels.isEmpty }
+        rig.events.emit()
+        let received = await rig.sleeper.waitForCallCount(1, timeout: .seconds(2))
+        XCTAssertTrue(received)
+        // Another existing refresh may finish before the debounce expires.
+        rig.controller.refresh()
+        rig.worker.completeNext(name: "Between events")
+        await waitUntil { rig.controller.devices.first?.name == "Between events" }
+        await waitUntil { !rig.controller.batteryLevels.isEmpty }
+
+        rig.events.emit()
+        // Clearing is synchronous in the event handler; the wait only lets the
+        // MainActor task that carries the notification run.
+        await waitUntil { rig.controller.batteryLevels.isEmpty }
+        let reads = rig.battery.readCount
+        rig.controller.requestBatteryLevels("battery")
+        XCTAssertEqual(rig.battery.readCount, reads, "the second event must invalidate even while a refresh is scheduled")
+        rig.sleeper.releaseOldest()
+        await waitUntil { rig.worker.readCount == 3 }
+        rig.worker.completeNext(name: "After burst")
+        await waitUntil { rig.controller.devices.first?.name == "After burst" }
+        await waitUntil { !rig.controller.batteryLevels.isEmpty }
+        rig.controller.deactivate()
+    }
+
+    func testConnectionEventRejectsOldAccessoryBeforeTheNextProfilerCompletes() async {
+        let rig = ConnectionBatteryRig(accessoryOnly: true)
+        await load(rig)
+        rig.controller.requestBatteryLevels("battery")
+        await waitUntil { rig.accessory.readCount == 1 }
+        rig.events.emit()
+        let received = await rig.sleeper.waitForCallCount(1, timeout: .seconds(2))
+        XCTAssertTrue(received)
+        rig.accessory.completeNext()
+        await settle()
+        XCTAssertTrue(rig.controller.batteryLevels.isEmpty, "old accessory callback must fail the gate immediately after the event")
+        // New profiler has not even started: this is the pre-snapshot window.
+        XCTAssertEqual(rig.worker.readCount, 1)
+        rig.sleeper.releaseOldest()
+        await waitUntil { rig.worker.readCount == 2 }
+        rig.worker.completeNext(name: "Fresh")
+        await waitUntil { rig.accessory.readCount == 2 }
+        rig.accessory.completeNext()
+        await waitUntil { !rig.controller.batteryLevels.isEmpty }
+        rig.controller.deactivate()
+    }
+
+    private func load(_ rig: ConnectionBatteryRig) async {
+        rig.controller.activate()
+        await waitUntil { rig.worker.readCount == 1 }
+        rig.worker.completeNext(name: "Initial")
+        await waitUntil { rig.controller.hasLoadedDevices }
+        rig.controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        XCTAssertTrue(rig.events.isRunning)
+    }
+
     /// The event source is optional: without it the safety-net poll is the only
     /// source, and holding a surface must not crash or spin.
     func testAnUnavailableEventSourceLeavesTheSafetyNetAsTheOnlySource() async {
@@ -150,12 +258,134 @@ final class BluetoothConnectionEventTests: XCTestCase {
         )
     }
 
+    /// A device that was already connected when monitoring began never fires a
+    /// connect callback, so under the connect path alone it got no disconnect
+    /// observation and its departure was only noticed by the slow safety-net
+    /// poll. Adoption installs that observation up front; this pins the
+    /// bookkeeping it relies on.
+    func testAdoptedConnectedDevicesGetTheSameDisconnectBookkeepingAsAConnect() {
+        let monitor = IOBluetoothConnectionEventMonitor()
+        var tokens: [CountingBluetoothNotificationToken] = []
+
+        func adopt(_ identity: String) -> IOBluetoothConnectionEventMonitor.ConnectedDevice {
+            let token = CountingBluetoothNotificationToken()
+            tokens.append(token)
+            return IOBluetoothConnectionEventMonitor.ConnectedDevice(identity: identity) { token }
+        }
+
+        monitor.adoptConnectedDevices([adopt("AA:BB:CC:DD:EE:01")])
+        monitor.handleDeviceDisconnected(identity: "AA:BB:CC:DD:EE:01")
+        XCTAssertTrue(
+            tokens[0].isUnregistered,
+            "an adopted device's disconnect must unregister its registration"
+        )
+
+        // A device that was adopted and then re-connects replaces the entry; the
+        // superseded adopted token has to be unregistered too.
+        monitor.adoptConnectedDevices([adopt("AA:BB:CC:DD:EE:02")])
+        monitor.handleDeviceConnected(identity: "AA:BB:CC:DD:EE:02") { CountingBluetoothNotificationToken() }
+        XCTAssertTrue(tokens[1].isUnregistered, "a reconnect must unregister the adopted registration")
+
+        // Teardown releases what is still live, including an adopted device that
+        // never disconnected.
+        monitor.adoptConnectedDevices([adopt("AA:BB:CC:DD:EE:03")])
+        monitor.stop()
+        XCTAssertTrue(tokens[2].isUnregistered, "stop() must unregister an adopted, still-live registration")
+
+        // A registration the SDK refuses (nil) must not create an entry; a later
+        // disconnect on that identity is a harmless no-op.
+        var refused = 0
+        monitor.adoptConnectedDevices([
+            IOBluetoothConnectionEventMonitor.ConnectedDevice(identity: "AA:BB:CC:DD:EE:04") {
+                refused += 1
+                return nil
+            }
+        ])
+        XCTAssertEqual(refused, 1)
+        monitor.handleDeviceDisconnected(identity: "AA:BB:CC:DD:EE:04")
+    }
+
     private func waitUntil(_ condition: () -> Bool) async {
         for _ in 0..<1_000 {
             if condition() { return }
             try? await Task.sleep(for: .milliseconds(2))
         }
         XCTFail("Timed out waiting for the Bluetooth controller")
+    }
+
+    /// Let the MainActor jobs a callback dispatched run, without a wall-clock
+    /// sleep: the same shape the other lifecycle suites use.
+    private func settle() async {
+        for _ in 0..<8 { await Task.yield() }
+    }
+}
+
+/// One fixture for all event/snapshot windows. Only the debounce is suspended;
+/// the two readers complete through callbacks under test control.
+@MainActor
+private final class ConnectionBatteryRig {
+    let worker = ConnectionSnapshotReader()
+    let events = FakeBluetoothConnectionEventMonitor(isAvailable: true)
+    let sleeper = ManualEventSleeper()
+    let battery: ConnectionCountingBatteryReader
+    let accessory = ConnectionControlledAccessoryReader()
+    let controller: BluetoothDeviceController
+
+    init(accessoryOnly: Bool = false) {
+        let battery = ConnectionCountingBatteryReader(empty: accessoryOnly)
+        self.battery = battery
+        let sleeper = self.sleeper
+        controller = BluetoothDeviceController(
+            worker: worker, stateMonitor: ConnectionEventStateMonitor(), batteryReader: battery,
+            accessoryBatteryReader: accessory,
+            notificationCenter: NotificationCenter(), workspaceNotificationCenter: NotificationCenter(),
+            connectionEvents: events,
+            connectionEventDebounceSleep: { duration in await sleeper.sleep(duration) }
+        )
+    }
+}
+
+private final class ConnectionSnapshotReader: BluetoothPairedDeviceReading, @unchecked Sendable {
+    private let lock = NSLock()
+    private var completions: [@Sendable (BluetoothWorkerResult) -> Void] = []
+    private var count = 0
+    var readCount: Int { lock.withLock { count } }
+    func read(completion: @escaping @Sendable (BluetoothWorkerResult) -> Void) {
+        lock.withLock { count += 1; completions.append(completion) }
+    }
+    func completeNext(name: String) {
+        let callback = lock.withLock { completions.removeFirst() }
+        callback(.success([BluetoothDevice(id: "11:22:33:44:55:66", name: name, kind: .audio,
+                                            isConnected: true, vendorID: 76, productID: 8207)]))
+    }
+}
+
+private final class ConnectionCountingBatteryReader: BluetoothBatteryReading, @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    private let empty: Bool
+    init(empty: Bool) { self.empty = empty }
+    var readCount: Int { lock.withLock { count } }
+    func read(completion: @escaping @Sendable ([String: BluetoothBatteryLevel]?) -> Void) {
+        lock.withLock { count += 1 }
+        let address = "11:22:33:44:55:66"
+        completion(empty ? [:] : [BluetoothBatteryReader.normalizedAddress(address):
+            BluetoothBatteryLevel(deviceAddress: address, main: 55, left: nil, right: nil, caseLevel: nil)])
+    }
+}
+
+private final class ConnectionControlledAccessoryReader: BluetoothAccessoryBatteryReading, @unchecked Sendable {
+    private let lock = NSLock()
+    private var completions: [@Sendable ([BluetoothAccessoryBatteryLevel]?) -> Void] = []
+    private var count = 0
+    var readCount: Int { lock.withLock { count } }
+    func read(completion: @escaping @Sendable ([BluetoothAccessoryBatteryLevel]?) -> Void) {
+        lock.withLock { count += 1; completions.append(completion) }
+    }
+    func completeNext() {
+        let callback = lock.withLock { completions.removeFirst() }
+        callback([BluetoothAccessoryBatteryLevel(identifier: "one", name: "AirPods", vendorID: 76,
+                                                 productID: 8207, part: .left, percentage: 93)])
     }
 }
 

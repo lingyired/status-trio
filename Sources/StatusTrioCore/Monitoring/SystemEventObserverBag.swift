@@ -23,16 +23,18 @@ final class SystemEventObserverBag: @unchecked Sendable {
         lock.withLock { registrations.isEmpty }
     }
 
-    /// Installs both observers. Installing again while they are registered is a
-    /// no-op, so a repeated `activate()` cannot stack duplicates that only one
-    /// `removeAll()` would release.
+    /// Installs the standard observers plus the optional display-wake one.
+    /// Installing again while they are registered is a no-op, so a repeated
+    /// `activate()` cannot stack duplicates that only one `removeAll()` would
+    /// release.
     func install(
         applicationActivated: @escaping @Sendable () -> Void,
-        didWake: @escaping @Sendable () -> Void
+        didWake: @escaping @Sendable () -> Void,
+        screensDidWake: (@Sendable () -> Void)? = nil
     ) {
         lock.withLock {
             guard registrations.isEmpty else { return }
-            registrations = [
+            var next = [
                 (
                     notificationCenter,
                     notificationCenter.addObserver(
@@ -50,6 +52,19 @@ final class SystemEventObserverBag: @unchecked Sendable {
                     ) { _ in didWake() }
                 )
             ]
+            if let screensDidWake {
+                next.append(
+                    (
+                        workspaceNotificationCenter,
+                        workspaceNotificationCenter.addObserver(
+                            forName: NSWorkspace.screensDidWakeNotification,
+                            object: nil,
+                            queue: .main
+                        ) { _ in screensDidWake() }
+                    )
+                )
+            }
+            registrations = next
         }
     }
 

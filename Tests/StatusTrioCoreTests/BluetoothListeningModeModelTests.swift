@@ -137,4 +137,34 @@ final class BluetoothListeningModeModelTests: XCTestCase {
         let settled = base.settled(on: .adaptive)
         XCTAssertNil(settled.selectedMode)
     }
+
+    // MARK: - Re-tap resolves to Off
+
+    func testTapOnSelectedModeRequestsOff() {
+        let presentation = BluetoothListeningModePresentation(
+            availableModes: [.noiseCancellation, .transparency, .adaptive],
+            selectedMode: .noiseCancellation
+        )
+        XCTAssertEqual(
+            presentation.requestedMode(forTapped: .noiseCancellation),
+            .off,
+            "re-tapping the highlighted mode turns the device off"
+        )
+    }
+
+    func testTapOnAnotherModeRequestsThatMode() {
+        let presentation = BluetoothListeningModePresentation(
+            availableModes: [.noiseCancellation, .transparency, .adaptive],
+            selectedMode: .noiseCancellation
+        )
+        XCTAssertEqual(presentation.requestedMode(forTapped: .transparency), .transparency)
+    }
+
+    func testTapWithNoSelectionRequestsTheTappedMode() {
+        let presentation = BluetoothListeningModePresentation(
+            availableModes: [.noiseCancellation, .transparency],
+            selectedMode: nil
+        )
+        XCTAssertEqual(presentation.requestedMode(forTapped: .transparency), .transparency)
+    }
 }

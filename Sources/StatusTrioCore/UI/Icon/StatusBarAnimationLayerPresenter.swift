@@ -51,6 +51,13 @@ final class StatusBarAnimationLayerPresenter {
 
             let layer = CALayer()
             layer.contentsGravity = .resize
+            // The ring fill must cover its monochrome track, including when
+            // AppKit reorders the template image view's backing layer.
+            layer.zPosition = 1
+            // AppKit can resize the status button after a presentation; keep the
+            // coloured layer centred on the same content rect as the template
+            // view instead of leaving it at the pre-resize frame.
+            layer.autoresizingMask = [.layerMinXMargin, .layerMaxXMargin, .layerMinYMargin, .layerMaxYMargin]
             layer.actions = [
                 "bounds": NSNull(),
                 "contents": NSNull(),
@@ -81,6 +88,10 @@ final class StatusBarAnimationLayerPresenter {
     }
 
     var isInstalled: Bool { contentsLayer != nil }
+    #if DEBUG
+    var frameForDiagnostics: CGRect? { contentsLayer?.frame }
+    var contentsScaleForDiagnostics: CGFloat? { contentsLayer?.contentsScale }
+    #endif
 
     func clear() {
         let previousHostView = hostView
@@ -100,6 +111,11 @@ final class StatusBarAnimationLayerPresenter {
         shouldRestoreLayerBacking = false
     }
 
+    private static func framesMatch(_ lhs: CGRect, _ rhs: CGRect) -> Bool {
+        abs(lhs.minX - rhs.minX) <= 0.01 && abs(lhs.minY - rhs.minY) <= 0.01
+            && abs(lhs.width - rhs.width) <= 0.01 && abs(lhs.height - rhs.height) <= 0.01
+    }
+
     private func update(
         _ layer: CALayer,
         image: CGImage,
@@ -110,14 +126,10 @@ final class StatusBarAnimationLayerPresenter {
         // The status item centres its image in the button, so anchor the overlay
         // to the same centre. Using the icon's own size instead of the button's
         // bounds keeps the two aligned even before AppKit has resized the item.
-        let bounds = view.bounds
-        let frame = CGRect(
-            x: bounds.midX - contentSize.width / 2,
-            y: bounds.midY - contentSize.height / 2,
-            width: contentSize.width,
-            height: contentSize.height
-        )
-        let frameChanged = presentedFrame != frame
+        let frame = StatusIconGeometry.contentFrame(in: view.bounds, contentSize: contentSize)
+        // CALayer autoresizing can move the layer without an explicit update;
+        // compare the actual frame too so a resize still counts as a change.
+        let frameChanged = presentedFrame != frame || !Self.framesMatch(layer.frame, frame)
         let scaleChanged = presentedBackingScale != backingScale
         let contentsChanged = presentedImage.map { $0 !== image } ?? true
         guard frameChanged || scaleChanged || contentsChanged else { return false }

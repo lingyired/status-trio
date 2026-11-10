@@ -1,0 +1,2 @@
+[memload] label=03b-memory-bandwidth threads=4 mib_each=256 seconds=40.000 start_mono=200177.730008 pid=86058
+[memload] stopped mono=200217.740841 elapsed=40.011 bytes_read_write=7617984331776 effective_GBps=190.398

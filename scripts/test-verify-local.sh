@@ -80,6 +80,16 @@ SH
 set -euo pipefail
 printf 'release-policy\n' >> "${VERIFY_TRACE:?}"
 SH
+    for script in test-mobile-battery-build-cache.sh test-ci-diagnostics.sh \
+        test-ci-workflow.sh test-build-timing.sh test-launch-computer-use.sh \
+        test-background-ui-configuration.sh test-ui-focus-coverage.sh; do
+        printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/$script"
+    done
+    cat > "$fixture/scripts/test-powerui-charge-restore.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'powerui-restore\n' >> "${VERIFY_TRACE:?}"
+SH
     cat > "$fixture/scripts/test-release-pipeline.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -89,6 +99,11 @@ SH
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'release-notarization\n' >> "${VERIFY_TRACE:?}"
+SH
+    cat > "$fixture/scripts/test-dmg-installer.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'dmg-installer\n' >> "${VERIFY_TRACE:?}"
 SH
     cat > "$fixture/scripts/test-mobile-battery-clang-version.sh" <<'SH'
 #!/usr/bin/env bash
@@ -109,6 +124,11 @@ SH
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'bundle\n' >> "${VERIFY_TRACE:?}"
+SH
+    cat > "$fixture/scripts/test-app-icon-contract.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'app-icon-contract\n' >> "${VERIFY_TRACE:?}"
 SH
     cat > "$fixture/scripts/test-verify-local-bundle.sh" <<'SH'
 #!/usr/bin/env bash
@@ -196,6 +216,7 @@ SH
         "$fixture/scripts/verify-platform-version.sh" \
         "$fixture/scripts/verify-mobile-battery-bundle.sh" \
         "$fixture/scripts/verify-privileged-helper-bundle.sh" \
+        "$fixture/scripts/test-app-icon-contract.sh" \
         "$fixture/scripts/test-verify-local-bundle.sh"
 }
 
@@ -295,10 +316,10 @@ grep -Fq "mode: docs" "$WORK/docs.log" ||
 : > "$VERIFY_TRACE"
 bash "$WORK/repo/scripts/verify-local.sh" full >"$WORK/full.log" 2>&1 ||
     fail "full verification failed"
-for expected in forbidden "swift test" "swift build -c release" deployment deployment-regressions \
+for expected in forbidden "swift test" "swift build -c release" powerui-restore deployment deployment-regressions \
     appcast helper-contract mobile-helper mobile-rpaths otool sparkle mobile-source-cache release-policy \
-    release-pipeline release-notarization clang self-test \
-    workflow-policy bundle-self-test bundle "build-app release no-open" \
+    release-pipeline release-notarization dmg-installer clang self-test \
+    workflow-policy bundle-self-test bundle app-icon-contract "build-app release no-open" \
     "BUNDLE_ID=com.lingsmbp.StatusTrio.dev.verify-local" \
     "APP_NAME=Status Trio (Verify Local)" "UNIVERSAL_BUILD=0" \
     "platform dist/StatusTrio.app/Contents/MacOS/StatusTrio 13.0 26" \
@@ -332,5 +353,17 @@ SWIFT_BUILD_STATUS=9 expect_failure "a failing full build" \
     bash "$WORK/repo/scripts/verify-local.sh" full
 grep -Fq "Release build" "$WORK/repo/.build/local-verification/status.txt" ||
     fail "failed full verification did not record the Release build step"
+
+# Bash parses only its first script argument; a later broken script must fail too.
+printf 'if then\n' > "$WORK/repo/scripts/zzzz-invalid-syntax.sh"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$WORK/repo/scripts/zzzzz-valid-syntax.sh"
+: > "$VERIFY_TRACE"
+expect_failure "a syntax error after the first script" \
+    bash "$WORK/repo/scripts/verify-local.sh" quick
+grep -Fq "step=Shell syntax" "$WORK/repo/.build/local-verification/status.txt" ||
+    fail "syntax failure did not record the syntax step"
+if grep -Fq "swift test" "$VERIFY_TRACE"; then
+    fail "Swift tests ran after a shell syntax failure"
+fi
 
 echo "verify-local contract passed"

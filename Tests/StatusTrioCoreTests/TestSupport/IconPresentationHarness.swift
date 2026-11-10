@@ -7,25 +7,18 @@ func makeTestIconPresentation(
     snapshotScheduler: any IconPresentationScheduling = TestTaskIconPresentationScheduler(),
     resolveSourceSnapshot: @escaping @MainActor @Sendable (StatusSnapshot) -> IconSourceSnapshot = { _ in .empty }
 ) -> IconPresentationViewModel {
+    _ = resolveSourceSnapshot
     let appearance = StatusIconAppearance(settings: settings)
     return IconPresentationViewModel(
         snapshot: store.snapshot,
         settings: IconPresentationSettings(
-            configuration: settings.iconConfiguration.legacyPresentationConfiguration,
+            configuration: settings.legacyPresentationConfiguration,
             menuBarSize: appearance.iconSize,
-            testsChargingEffect: settings.testsChargingEffect,
-            designerConfiguration: settings.iconConfiguration
+            testsChargingEffect: settings.testsChargingEffect
         ),
         snapshots: store.$snapshot.eraseToAnyPublisher(),
         preferences: settings.iconPresentationPublisher,
         resolveInputs: { IconPresentationResourceResolver.inputs(snapshot: $0) },
-        mapResolution: { inputs, configuration, sources in
-            IconCompositionResolver.resolve(
-                inputs: IconResolutionInputs(system: inputs, sources: sources),
-                configuration: configuration
-            )
-        },
-        resolveSourceSnapshot: resolveSourceSnapshot,
         snapshotScheduler: snapshotScheduler
     )
 }

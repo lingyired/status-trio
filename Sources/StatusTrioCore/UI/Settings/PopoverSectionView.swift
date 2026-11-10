@@ -8,8 +8,69 @@ struct PopoverSectionView: View {
 
     var body: some View {
         SettingsPage {
+            backgroundStyleGroup
+            scrollDirectionGroup
             popupOrderGroup
-            volumeScrollGroup
+            openBehaviorGroup
+        }
+    }
+
+    private var scrollDirectionGroup: some View {
+        SettingsGroup(
+            localization.string(.settingsPopupVolumeScrollDirection),
+            footnote: localization.string(.settingsPopupVolumeScrollDirectionDescription)
+        ) {
+            SettingsToggleRow(
+                symbol: "arrow.up.arrow.down",
+                tint: .indigo,
+                title: localization.string(.settingsPopupVolumeScrollNatural),
+                subtitle: localization.string(.settingsPopupVolumeScrollNaturalDescription),
+                isOn: $store.popupVolumeNaturalScrolling
+            )
+        }
+    }
+
+    private var openBehaviorGroup: some View {
+        SettingsGroup(localization.string(.settingsPanelOpenBehaviorTitle)) {
+            SettingsToggleRow(
+                symbol: "arrow.uturn.backward",
+                tint: .purple,
+                title: localization.string(.settingsPanelReturnsToSummaryOnOpen),
+                subtitle: localization.string(.settingsPanelReturnsToSummaryOnOpenDescription),
+                isOn: $store.returnsToSummaryOnOpen
+            )
+        }
+    }
+
+    private var backgroundStyleGroup: some View {
+        SettingsGroup(
+            localization.string(.settingsPanelBackgroundTitle),
+            footnote: PanelBackgroundStyle.isLiquidGlassAvailable
+                ? nil
+                : localization.string(.settingsPanelBackgroundStyleLiquidGlassUnavailable)
+        ) {
+            SettingsPictureRow(
+                "square.on.square",
+                tint: .purple,
+                title: localization.string(.settingsPanelBackgroundStyle),
+                subtitle: localization.string(.settingsPanelBackgroundStyleDescription),
+                selection: $store.panelBackgroundStyle,
+                options: PanelBackgroundStyle.availableStyles,
+                previewSize: CGSize(width: 72, height: 48),
+                caption: { style in
+                    switch style {
+                    case .liquidGlass:
+                        return localization.string(.settingsPanelBackgroundStyleLiquidGlass)
+                    case .classicMaterial:
+                        return localization.string(.settingsPanelBackgroundStyleClassicMaterial)
+                    case .solid:
+                        return localization.string(.settingsPanelBackgroundStyleSolid)
+                    }
+                },
+                preview: { style in
+                    PanelBackgroundStylePreview(style: style)
+                }
+            )
         }
     }
 
@@ -71,51 +132,6 @@ struct PopoverSectionView: View {
         )
     }
 
-    private var volumeScrollGroup: some View {
-        SettingsGroup(localization.string(.settingsPopupVolumeScrollGroup)) {
-            SettingsToggleRow(
-                symbol: "speaker.wave.2.fill",
-                tint: .cyan,
-                title: localization.string(.settingsPopupVolumeScroll),
-                subtitle: localization.string(.settingsPopupVolumeScrollDescription),
-                isOn: $store.popupScrollAdjustsVolume
-            )
-
-            if store.popupScrollAdjustsVolume {
-                SettingsDivider()
-
-                SettingsMenuRow(
-                    symbol: "aspectratio",
-                    tint: .teal,
-                    title: localization.string(.settingsPopupVolumeScrollScope),
-                    subtitle: localization.string(.settingsPopupVolumeScrollScopeDescription),
-                    selection: $store.popupVolumeScrollScope,
-                    options: PopupVolumeScrollScope.allCases,
-                    label: scrollScopeLabel
-                )
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "arrow.up.arrow.down",
-                    tint: .indigo,
-                    title: localization.string(.settingsPopupVolumeScrollNatural),
-                    subtitle: localization.string(.settingsPopupVolumeScrollNaturalDescription),
-                    isOn: $store.popupVolumeNaturalScrolling
-                )
-            }
-        }
-    }
-
-    private func scrollScopeLabel(_ scope: PopupVolumeScrollScope) -> String {
-        switch scope {
-        case .panel:
-            localization.string(.settingsPopupVolumeScrollScopePanel)
-        case .volumeControl:
-            localization.string(.settingsPopupVolumeScrollScopeVolumeControl)
-        }
-    }
-
     @ViewBuilder
     private func popupSectionIcon(_ section: PopupSection) -> some View {
         if section == .bluetooth {
@@ -128,5 +144,60 @@ struct PopoverSectionView: View {
 
     private var popupOrderListHeight: CGFloat {
         min(max(CGFloat(store.popupSectionOrder.count) * 32 + 12, 48), 180)
+    }
+}
+
+/// A miniature status panel used as the background-style preview card. The card
+/// shows the actual material for Liquid Glass and the classic popover style,
+/// and the system window fill (which tracks light / dark) for Solid.
+private struct PanelBackgroundStylePreview: View {
+    let style: PanelBackgroundStyle
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            background
+            VStack(alignment: .leading, spacing: 4) {
+                Capsule()
+                    .fill(Color.primary.opacity(0.55))
+                    .frame(width: 30, height: 4)
+                Capsule()
+                    .fill(Color.primary.opacity(0.28))
+                    .frame(width: 22, height: 3)
+                Capsule()
+                    .fill(Color.primary.opacity(0.28))
+                    .frame(width: 26, height: 3)
+            }
+            .padding(9)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.14), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private var background: some View {
+        switch style {
+        case .liquidGlass:
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [.white.opacity(0.35), .clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+        case .classicMaterial:
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.regularMaterial)
+        case .solid:
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color(nsColor: .windowBackgroundColor))
+        }
     }
 }

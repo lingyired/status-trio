@@ -5,8 +5,11 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct SystemIconAppearanceMonitorTests {
-    @Test func defaultsToAOneSecondSharedPoll() {
-        #expect(SystemIconAppearanceMonitor.defaultPollingInterval == 1)
+    @Test func defaultsToASlowSharedPoll() {
+        // The poll exists only to pick up the undocumented system icon-style
+        // preference change; five seconds is fast enough for a Settings toggle
+        // and costs a fifth of the wakeups the old one-second cadence did.
+        #expect(SystemIconAppearanceMonitor.defaultPollingInterval == 5)
     }
 
     @Test func reportsOnlyRealThemeChanges() {

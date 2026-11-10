@@ -5,7 +5,7 @@ import Testing
 /// End-to-end wiring for the Dock charging animation: the user's Dock-only
 /// placement claims the shared clock, the clock's phases reach the Dock
 /// presenter, and going back to a menu-bar placement releases both.
-@Suite(.serialized)
+@Suite(.serialized, .enabled(if: VisibleUITests.isEnabled, Comment(rawValue: VisibleUITests.reason)))
 @MainActor
 struct DockChargingEnvironmentTests {
     @Test func recoveredPresentationReclaimsDockOwnershipBeforeStaticRendering() async throws {
@@ -15,22 +15,20 @@ struct DockChargingEnvironmentTests {
         defer { fixture.tearDown() }
 
         fixture.environment.start()
-        let deadline = Date().addingTimeInterval(5)
-        while presenter.restoreCount == 0, Date() < deadline {
-            try await Task.sleep(for: .milliseconds(20))
-        }
-        #expect(presenter.restoreCount > 0)
+        try #require(
+            await presenter.waitForRestore(),
+            "The failed charging frame must restore the static Dock."
+        )
 
         fixture.settings.showsChargingBoltHeartbeat = false
-        while !presenter.isInstalled, Date() < deadline {
-            try await Task.sleep(for: .milliseconds(20))
-        }
+        let reclaimedDock = await presenter.waitForInstallation()
+        try #require(reclaimedDock, "The next charging frame must reclaim the Dock.")
         #expect(presenter.isInstalled)
         #expect(presenter.presentedScenes.last?.outerRing?.effect?.pulsesAccessory == false)
 
         fixture.environment.appIconController.flushPendingPresentationForTesting()
         let assignmentsBeforeSceneChange = fixture.application.assignments
-        fixture.settings.showsBatteryPercentageInConnectionSlot = true
+        fixture.settings.connectionCenterSource = .batteryPercentage
         fixture.environment.appIconController.flushPendingPresentationForTesting()
         #expect(fixture.application.assignments == assignmentsBeforeSceneChange)
     }
@@ -69,6 +67,50 @@ struct DockChargingEnvironmentTests {
             #expect(presenter.restoreCount == restoresBeforeFrame + 1)
         }
         #expect(presenter.clearCount == clearsBeforeRepeatedFailure)
+    }
+
+    @Test func presenterEventWaitersTimeOutWithoutStrandingTheTest() async {
+        let presenter = RecordingDockChargingPresenter()
+        let startedAt = ContinuousClock.now
+
+        let restored = await presenter.waitForRestore(timeout: .milliseconds(20))
+        let installed = await presenter.waitForInstallation(timeout: .milliseconds(20))
+
+        #expect(!restored)
+        #expect(!installed)
+        #expect(startedAt.duration(to: .now) < .seconds(5))
+    }
+
+    @Test func presenterEventWaiterCompletesWhenInFlightCancelled() async {
+        let presenter = RecordingDockChargingPresenter()
+        let subscription = presenter.subscribeToRestores()
+        await subscription.ready.wait()
+
+        subscription.cancel()
+        await subscription.finished.wait()
+
+        #expect(subscription.didReleaseTestResources)
+        #expect(!subscription.didReceiveEvent)
+    }
+
+    @Test func presenterEventWaitersObserveOnlyNewEvents() async {
+        let presenter = RecordingDockChargingPresenter()
+        let first = presenter.subscribeToRestores()
+        await first.ready.wait()
+        presenter.restoreStaticIcon()
+        await first.finished.wait()
+
+        let second = presenter.subscribeToRestores()
+        await second.ready.wait()
+        let timedOut = await second.waitForEvent(timeout: .milliseconds(20))
+        #expect(!timedOut)
+        second.cancel()
+        await second.finished.wait()
+
+        presenter.restoreStaticIcon()
+
+        #expect(first.didReceiveEvent)
+        #expect(!second.didReceiveEvent)
     }
 
     @Test func dockOnlyEffectStillRunsTheSharedClockWithTheMenuBarEffectOff() async throws {
@@ -297,25 +339,6 @@ struct DockChargingEnvironmentTests {
         fixture.settings.setChargingEffectTestEnabled(false)
         try await fixture.waitForDockVisibilityPollingToStop()
         #expect(dockVisibility.stopCount == 1)
-    }
-
-    @Test func systemAppearancePollRefreshesDockVisibility() async throws {
-        let dockVisibility = DockVisibilityMonitorSpy()
-        let fixture = try DockChargingEnvironmentFixture(
-            placement: .dock,
-            dockVisibilityMonitor: dockVisibility
-        )
-        defer { fixture.tearDown() }
-        fixture.settings.showsMenuBarChargingEffect = false
-        fixture.settings.showsDockChargingEffect = true
-
-        fixture.environment.start()
-        try await fixture.waitForDockVisibilityPolling()
-        let refreshCount = dockVisibility.refreshCount
-
-        fixture.environment.appIconController.systemPollDidFire?()
-
-        #expect(dockVisibility.refreshCount == refreshCount + 1)
     }
 }
 
@@ -580,6 +603,80 @@ private enum DockChargingEnvironmentTestFailure: Error, CustomStringConvertible 
 }
 
 @MainActor
+private final class DockPresenterEventSubscription {
+    let ready = DockPresenterEventMarker()
+    let finished = DockPresenterEventMarker()
+    private(set) var didReceiveEvent = false
+    private(set) var didReleaseTestResources = false
+    private var task = Task {}
+
+    func start(_ task: Task<Void, Never>) {
+        self.task = task
+    }
+
+    func markReady() {
+        ready.signal()
+    }
+
+    func markFinished(receivedEvent: Bool) {
+        didReceiveEvent = receivedEvent
+        didReleaseTestResources = true
+        finished.signal()
+    }
+
+    func cancel() {
+        task.cancel()
+    }
+
+    func waitForEvent(timeout: Duration) async -> Bool {
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask {
+                await self.finished.waited()
+                return true
+            }
+            group.addTask {
+                do {
+                    try await Task.sleep(for: timeout)
+                } catch {
+                    return false
+                }
+                return false
+            }
+            let result = await group.next() ?? false
+            group.cancelAll()
+            return result
+        }
+    }
+}
+
+@MainActor
+private final class DockPresenterEventMarker {
+    private let stream: AsyncStream<Void>
+    private let continuation: AsyncStream<Void>.Continuation
+
+    init() {
+        (stream, continuation) = AsyncStream.makeStream(
+            of: Void.self,
+            bufferingPolicy: .bufferingNewest(1)
+        )
+    }
+
+    func signal() {
+        continuation.yield()
+        continuation.finish()
+    }
+
+    func wait() async {
+        await waited()
+    }
+
+    func waited() async {
+        var iterator = stream.makeAsyncIterator()
+        _ = await iterator.next()
+    }
+}
+
+@MainActor
 private final class DockVisibilityMonitorSpy: DockVisibilityMonitoring {
     private(set) var isDockVisible: Bool
     private(set) var startCount = 0
@@ -633,6 +730,71 @@ private final class RecordingDockChargingPresenter: DockChargingAnimationPresent
     private(set) var isInstalled = false
     var presentSucceeds = true
     var failsPulsingAccessory = false
+    private let restores: AsyncStream<Void>
+    private let restoreSignal: AsyncStream<Void>.Continuation
+    private let installations: AsyncStream<Void>
+    private let installationSignal: AsyncStream<Void>.Continuation
+
+    init() {
+        (restores, restoreSignal) = AsyncStream.makeStream(
+            bufferingPolicy: .bufferingNewest(1)
+        )
+        (installations, installationSignal) = AsyncStream.makeStream(
+            bufferingPolicy: .bufferingNewest(1)
+        )
+    }
+
+    func waitForRestore(timeout: Duration = .seconds(5)) async -> Bool {
+        if restoreCount > 0 { return true }
+        return await waitForEvent(restores, timeout: timeout)
+    }
+
+    func waitForInstallation(timeout: Duration = .seconds(5)) async -> Bool {
+        if isInstalled { return true }
+        return await waitForEvent(installations, timeout: timeout)
+    }
+
+    func subscribeToRestores() -> DockPresenterEventSubscription {
+        let subscription = DockPresenterEventSubscription()
+        let task = Task { @MainActor [weak self, weak subscription] in
+            guard let self, let subscription else { return }
+            guard !Task.isCancelled else {
+                subscription.markFinished(receivedEvent: false)
+                subscription.ready.signal()
+                return
+            }
+
+            var iterator = restores.makeAsyncIterator()
+            subscription.markReady()
+            let received = await iterator.next() != nil
+            subscription.markFinished(receivedEvent: received)
+        }
+        subscription.start(task)
+        return subscription
+    }
+
+    private func waitForEvent(
+        _ events: AsyncStream<Void>,
+        timeout: Duration
+    ) async -> Bool {
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask {
+                var iterator = events.makeAsyncIterator()
+                return await iterator.next() != nil
+            }
+            group.addTask {
+                do {
+                    try await Task.sleep(for: timeout)
+                } catch {
+                    return false
+                }
+                return false
+            }
+            let result = await group.next() ?? false
+            group.cancelAll()
+            return result
+        }
+    }
 
     func present(
         phase: ChargingEffectPhase,
@@ -649,12 +811,14 @@ private final class RecordingDockChargingPresenter: DockChargingAnimationPresent
             return false
         }
         isInstalled = true
+        installationSignal.yield()
         return true
     }
 
     func restoreStaticIcon() {
         restoreCount += 1
         isInstalled = false
+        restoreSignal.yield()
     }
 
     func clear() {

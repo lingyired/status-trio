@@ -2,15 +2,27 @@ struct IconSceneState: Equatable, Hashable, Sendable {
     let outerRing: OuterRingState?
     let center: CenterState?
     let footer: FooterState?
+    /// The per-role colour overrides carried with the scene so every copy — the
+    /// render caches, the Dock key, the menu-bar overlay — resolves the same
+    /// answer and a colour change invalidates the cached raster. `.standard`
+    /// keeps the system semantic colours.
+    let statusColors: BatteryStatusColors
+    /// The middle Bluetooth glyph colour (#275). It rides the scene so both
+    /// surfaces and every render cache agree on the same colour.
+    let bluetoothIconColor: BluetoothIconColorSelection
 
     init(
         outerRing: OuterRingState? = nil,
         center: CenterState? = nil,
-        footer: FooterState? = nil
+        footer: FooterState? = nil,
+        statusColors: BatteryStatusColors = .standard,
+        bluetoothIconColor: BluetoothIconColorSelection = .default
     ) {
         self.outerRing = outerRing
         self.center = center
         self.footer = footer
+        self.statusColors = statusColors
+        self.bluetoothIconColor = bluetoothIconColor
     }
 }
 
@@ -25,10 +37,13 @@ extension IconSceneState {
                 gap: ring.gap,
                 accessory: ring.accessory,
                 effect: nil,
-                strokeScale: ring.strokeScale
+                strokeScale: ring.strokeScale,
+                gapProgressMode: ring.gapProgressMode
             ),
             center: center,
-            footer: footer
+            footer: footer,
+            statusColors: statusColors,
+            bluetoothIconColor: bluetoothIconColor
         )
     }
 
@@ -130,6 +145,36 @@ extension FooterState {
         switch self {
         case let .dots(dots): dots.color
         case let .arc(arc): arc.color
+        }
+    }
+}
+
+extension IconSceneState {
+    /// Tells a continuous volume *value* change apart from every other scene
+    /// change. The Dock uses this to coalesce continuous volume adjustment
+    /// without delaying settings or non-volume scene updates.
+    ///
+    /// It is a value change only when the ring, centre and per-role colours are
+    /// untouched and the footer kept its kind, colour and stroke: a dots↔arc
+    /// switch, a stroke change, a colour change, or any ring/centre change is
+    /// a settings or device change and stays on the immediate path.
+    func isVolumeValueChange(from previous: IconSceneState) -> Bool {
+        guard outerRing == previous.outerRing,
+              center == previous.center,
+              statusColors == previous.statusColors,
+              footer != previous.footer else {
+            return false
+        }
+        switch (previous.footer, footer) {
+        case let (.some(.dots(old)), .some(.dots(new))):
+            return old.count == new.count
+                && old.color == new.color
+                && old.strokeScale == new.strokeScale
+        case let (.some(.arc(old)), .some(.arc(new))):
+            return old.color == new.color
+                && old.strokeScale == new.strokeScale
+        default:
+            return false
         }
     }
 }

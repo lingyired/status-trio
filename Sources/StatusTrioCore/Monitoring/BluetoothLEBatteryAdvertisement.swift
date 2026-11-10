@@ -75,15 +75,56 @@ enum BluetoothLEBatteryAdvertisement {
     /// `name` is the name the system already knows for the peripheral, taken
     /// from the advertisement when it carries one and from CoreBluetooth's cache
     /// otherwise. An absent or blank one is what a stranger's device looks like.
+    ///
+    /// `allowsAppleMobileDevices` follows the Apple-device master setting.
+    /// An iOS device may ask to pair before it answers a read; matching the
+    /// system's known names below does not bypass that device-owned prompt.
+    /// The standard Battery Service route is unaffected: a keyboard or a mouse
+    /// advertises `180F` and answers without asking for anything.
+    ///
+    /// `knownAppleMobileNames` is the system's own device list — the names
+    /// `system_profiler SPBluetoothDataType` reports for this Mac. The
+    /// Continuity route requires a match: every iPhone in radio range broadcasts
+    /// the same payload, and the prompt one raises carries its own name
+    /// ("iPhone"), so the payload alone would connect a stranger's phone and
+    /// raise a prompt the user could neither answer nor identify (issue `#152`).
+    /// Matching against the system list keeps the route on devices this Mac
+    /// already has a record for, and needs no typing from the user.
     static func isCandidate(
         serviceUUIDs: [CBUUID]?,
         manufacturerData: Data?,
         name: String?,
-        batteryService: CBUUID
+        batteryService: CBUUID,
+        allowsAppleMobileDevices: Bool,
+        knownAppleMobileNames: Set<String>
     ) -> Bool {
         if advertisesBatteryService(serviceUUIDs, batteryService: batteryService) {
             return true
         }
-        return isAppleMobileDevice(manufacturerData: manufacturerData)
+        guard allowsAppleMobileDevices else { return false }
+        guard isAppleMobileDevice(manufacturerData: manufacturerData) else { return false }
+        return matchesKnownAppleMobileName(name, knownNames: knownAppleMobileNames)
+    }
+
+    /// Whether a discovered name matches one the system list carries.
+    ///
+    /// The comparison folds case and whitespace because the two sides come from
+    /// different layers — the advertisement carries the phone's GAP name, the
+    /// system list carries the record macOS stores — and they can disagree on
+    /// nothing more than that. A blank name never matches anything: it is what a
+    /// device this Mac has no record of looks like.
+    static func matchesKnownAppleMobileName(_ name: String?, knownNames: Set<String>) -> Bool {
+        let candidate = normalizedAppleMobileName(name)
+        guard !candidate.isEmpty else { return false }
+        return knownNames.contains { normalizedAppleMobileName($0) == candidate }
+    }
+
+    static func normalizedAppleMobileName(_ name: String?) -> String {
+        (name ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(
+                options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive],
+                locale: Locale(identifier: "en_US_POSIX")
+            )
     }
 }

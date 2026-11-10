@@ -1,4 +1,5 @@
 import CoreAudio
+import Combine
 import os
 import XCTest
 
@@ -327,7 +328,7 @@ final class HuaweiListeningModeControllerTests: XCTestCase {
             huaweiTransport: transport,
             huaweiEndpointProvider: FakeHuaweiEndpointProvider(endpointID: endpoint),
             huaweiReadRetryDelays: [retryDelay],
-            failureClearDelay: .milliseconds(20),
+            failureClearDelay: .milliseconds(1),
             previewSettleDelay: .milliseconds(1)
         )
     }
@@ -448,15 +449,38 @@ final class HuaweiListeningModeControllerTests: XCTestCase {
         await waitUntil { controller.control(forEndpoint: self.endpointID) != nil }
         transport.failure = .timeout
 
+        let failurePublished = expectation(description: "the failed rollback presentation is delivered")
+        let failureCleared = expectation(description: "the failed presentation returns to idle")
+        var deliveredFailure: BluetoothListeningModePresentation?
+        var deliveredIdle: BluetoothListeningModePresentation?
+        var hasSeenFailure = false
+        var cancellables: Set<AnyCancellable> = []
+        controller.$presentations
+            .dropFirst()
+            .sink { presentations in
+                guard let presentation = presentations[self.key] else { return }
+                if case .failed = presentation.actionState {
+                    deliveredFailure = presentation
+                    hasSeenFailure = true
+                    failurePublished.fulfill()
+                } else if hasSeenFailure, presentation.actionState == .idle {
+                    deliveredIdle = presentation
+                    failureCleared.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+
         controller.setMode(.transparency, forAddress: key)
-        await waitUntil { controller.control(forEndpoint: self.endpointID)?.presentation.isFailed == true }
+        await fulfillment(of: [failurePublished], timeout: 1)
         XCTAssertEqual(
             controller.control(forEndpoint: self.endpointID)?.presentation.selectedMode,
             .noiseCancellation
         )
-        await waitUntil(timeout: .milliseconds(200)) {
-            controller.control(forEndpoint: self.endpointID)?.presentation.isFailed == false
-        }
+        XCTAssertTrue(deliveredFailure?.isFailed == true)
+
+        await fulfillment(of: [failureCleared], timeout: 3)
+        XCTAssertEqual(deliveredIdle?.selectedMode, .noiseCancellation)
+        XCTAssertEqual(deliveredIdle?.actionState, .idle)
     }
 
     func testStopClosesTransport() {

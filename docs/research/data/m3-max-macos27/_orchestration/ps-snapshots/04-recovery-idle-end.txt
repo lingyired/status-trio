@@ -1,0 +1,30 @@
+# ps snapshot: 04-recovery-idle-end  wall=2026-10-30T23:08:22+0800 mono=200289.969376
+# --- top 25 by cpu ---
+  PID  PPID  %CPU %MEM COMM
+81860     1 112.9  6.9 /Applications/BlueStacks.app/Contents/MacOS/BlueStacks
+  619     1  65.1  0.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+59342 59341  43.0  0.1 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper.app/Contents/MacOS/DeepSeek Harness Helper
+ 9460  9342  39.1  0.0 /usr/sbin/lsof
+59354 59341  38.8  0.4 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper (Renderer).app/Contents/MacOS/DeepSeek Harness Helper (Renderer)
+75058  1300  15.5  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+ 1345  1300  12.0  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper
+18255 17803  10.1  0.0 /Users/lingsmbp/Downloads/macpow
+ 9511  9460   8.4  0.0 /usr/sbin/lsof
+  808     1   7.6  0.1 /usr/sbin/coreaudiod
+ 5090     1   7.5  0.0 /usr/libexec/diagnosticd
+17763     1   7.4  0.1 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+84549 84507   5.8  0.0 /usr/bin/log
+ 3846     1   4.9  0.0 /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemd
+ 1300     1   3.7  1.2 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
+ 1318     1   3.0  0.4 /Applications/UURemote.app/Contents/MacOS/UURemote
+82473     1   3.0  0.3 /Applications/WorkBuddy.app/Contents/MacOS/Electron
+ 1310     1   2.5  0.7 /Applications/WeChat.app/Contents/MacOS/WeChat
+  623     1   2.3  0.1 /System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow
+  723     1   2.2  0.0 /System/Library/PrivateFrameworks/BackgroundTaskManagement.framework/Resources/backgroundtaskmanagementd
+40411 38968   2.0  0.2 /Applications/OpenBot.app/Contents/Frameworks/OpenBot Helper (Renderer).app/Contents/MacOS/OpenBot Helper (Renderer)
+  762     1   1.9  0.0 /System/Library/DriverExtensions/com.apple.DriverKit-AppleBCMWLAN.dext/com.apple.DriverKit-AppleBCMWLAN
+ 1309     1   1.6  0.1 /System/Applications/Utilities/Activity Monitor.app/Contents/MacOS/Activity Monitor
+38968     1   1.5  0.4 /Applications/OpenBot.app/Contents/MacOS/OpenBot
+  789     1   1.4  0.0 /usr/sbin/BTLEServer
+# --- our loaders / sampler ---
+(none)

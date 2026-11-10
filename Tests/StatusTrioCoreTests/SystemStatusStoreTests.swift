@@ -42,6 +42,99 @@ final class SystemStatusStoreTests: XCTestCase {
         store.stop()
     }
 
+    // MARK: - #255 refresh interval lifecycle
+
+    func testChangingRefreshIntervalRestartsTheWaitImmediately() async {
+        let sleeper = ManualSleeper()
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            refreshInterval: .seconds(15),
+            sleep: { await sleeper.sleep($0) }
+        )
+
+        store.start()
+        await sleeper.waitForCallCount(1)
+        XCTAssertEqual(sleeper.durations, [.seconds(15)])
+
+        store.setRefreshInterval(.seconds(5))
+        await waitUntil { sleeper.callCount >= 2 }
+
+        XCTAssertEqual(
+            sleeper.durations,
+            [.seconds(15), .seconds(5)],
+            "a cadence change must cancel the old wait and start the new one"
+        )
+        sleeper.releaseAll()
+        store.stop()
+    }
+
+    func testSettingTheSameRefreshIntervalDoesNotRestartTheWait() async {
+        let sleeper = ManualSleeper()
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            refreshInterval: .seconds(15),
+            sleep: { await sleeper.sleep($0) }
+        )
+
+        store.start()
+        await sleeper.waitForCallCount(1)
+
+        store.setRefreshInterval(.seconds(15))
+        await drainMainActorTasks()
+        await drainMainActorTasks()
+
+        XCTAssertEqual(sleeper.callCount, 1, "an unchanged cadence must not rebuild the wait")
+        sleeper.releaseAll()
+        store.stop()
+    }
+
+    func testChangingRefreshIntervalAfterStopDoesNotRestartTheWait() async {
+        let sleeper = ManualSleeper()
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            refreshInterval: .seconds(15),
+            sleep: { await sleeper.sleep($0) }
+        )
+
+        store.start()
+        await sleeper.waitForCallCount(1)
+        store.stop()
+
+        store.setRefreshInterval(.seconds(5))
+        await drainMainActorTasks()
+
+        XCTAssertEqual(sleeper.callCount, 1, "a stopped store must not resurrect polling")
+        sleeper.releaseAll()
+    }
+
+    func testRefreshIntervalSetBeforeStartIsUsedByTheFirstWait() async {
+        let sleeper = ManualSleeper()
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            refreshInterval: .seconds(15),
+            sleep: { await sleeper.sleep($0) }
+        )
+
+        store.setRefreshInterval(.seconds(7))
+        await drainMainActorTasks()
+        XCTAssertEqual(sleeper.callCount, 0, "no wait may run before start()")
+
+        store.start()
+        await sleeper.waitForCallCount(1)
+
+        XCTAssertEqual(sleeper.durations, [.seconds(7)])
+        sleeper.releaseAll()
+        store.stop()
+    }
+
     func testVPNMonitoringFollowsPopoverLifetime() async {
         let vpn = FakeVPNMonitor()
         let sleeper = ManualSleeper()
@@ -99,6 +192,42 @@ final class SystemStatusStoreTests: XCTestCase {
         await waitForMobileReader { await reader.cancellationCount == 1 }
         store.stop()
         await reader.finishAll()
+    }
+
+    func testAppleMasterControlsBluetoothReadsRegardlessOfLegacyReadPreference() {
+        for legacyReadPreference in [false, true] {
+            let suite = makeSuite()
+            defer { suite.defaults.removeTestSuite(named: suite.name) }
+            suite.defaults.set(legacyReadPreference, forKey: "readsAppleDevicesOverBluetooth")
+            let settings = SettingsStore(defaults: suite.defaults)
+            settings.showsAppleDevicesAndBattery = false
+            let scanner = NearbyBatteryScannerSpy()
+            let bluetooth = BluetoothDeviceController(
+                stateMonitor: DeniedBluetoothStateMonitor(),
+                nearbyBatteryScanner: scanner
+            )
+            let store = SystemStatusStore(
+                batteryMonitor: FakeBatteryMonitor(),
+                wifiMonitor: FakeWiFiMonitor(),
+                volumeMonitor: FakeVolumeMonitor(),
+                bluetoothDevices: bluetooth
+            )
+            store.bindMobileBatterySettings(settings)
+            XCTAssertFalse(scanner.appleMobileReadsEnabled)
+
+            settings.showsAppleDevicesAndBattery = true
+            XCTAssertTrue(scanner.appleMobileReadsEnabled)
+            XCTAssertFalse(scanner.isRunning, "a settings change alone cannot start a scan")
+            XCTAssertTrue(scanner.allowedReadDeviceIDs.isEmpty)
+            XCTAssertTrue(scanner.initialReadDeviceIDs.isEmpty)
+
+            settings.showsAppleDevicesAndBattery = false
+            XCTAssertFalse(scanner.appleMobileReadsEnabled)
+
+            settings.showsAppleDevicesAndBattery = true
+            XCTAssertTrue(scanner.appleMobileReadsEnabled)
+            store.stop()
+        }
     }
 
     func testSettingsMasterToggleDoesNotStartAppleDiscoveryOrBatteryReads() async {
@@ -247,6 +376,147 @@ final class SystemStatusStoreTests: XCTestCase {
         await waitUntil { !scanner.backgroundRefreshIntervals.isEmpty && scanner.backgroundRefreshIntervals[scanner.backgroundRefreshIntervals.count - 1] == nil }
         XCTAssertNil(scanner.backgroundRefreshIntervals[scanner.backgroundRefreshIntervals.count - 1])
         store.stop()
+    }
+
+    // MARK: - Sleep gating through the real notification wiring
+
+    /// A wake that delivers only `didWake` must restore the pause that
+    /// `willSleep` created. The display gate is only a real display signal; it
+    /// must not be synthesised by system sleep, or a wake cycle without
+    /// `screensDidWake` leaves nearby BLE stopped for the session.
+    func testNearbyBLEScanningResumesWhenOnlySystemWakeFollowsSystemSleep() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        await waitUntil { fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        await waitUntil { !fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.didWakeNotification, object: nil)
+        await waitUntil { fixture.scanner.isRunning }
+        XCTAssertTrue(
+            fixture.scanner.isRunning,
+            "a system wake without screensDidWake must restart background BLE"
+        )
+    }
+
+    /// A display wake also proves the system is awake. If the separate system
+    /// wake notification is lost, `screensDidWake` has to clear both gates.
+    func testNearbyBLEScanningResumesFromDisplayWakeAfterSleepLosesSystemWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        await waitUntil { fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        fixture.notifications.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
+        await waitUntil { !fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        await waitUntil { fixture.scanner.isRunning }
+        XCTAssertTrue(
+            fixture.scanner.isRunning,
+            "the display wake proves the system is awake and must clear the system gate too"
+        )
+    }
+
+    /// Opening the popover is a visible surface that repairs a missed wake. It
+    /// must clear both gates, not only the display one.
+    func testNearbyBLEScanningResumesFromPopoverAfterSleepLosesSystemWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        await waitUntil { fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        fixture.notifications.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
+        await waitUntil { !fixture.scanner.isRunning }
+
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.scanner.isRunning }
+        XCTAssertTrue(
+            fixture.scanner.isRunning,
+            "a visible popover must repair both sleep gates, not only the display one"
+        )
+    }
+
+    /// A dark wake still has the screen off, so a real display sleep must keep
+    /// scanning paused through `didWake`; only `screensDidWake` may resume it.
+    func testNearbyBLEScanningStaysPausedThroughDarkWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        await waitUntil { fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
+        await waitUntil { !fixture.scanner.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.didWakeNotification, object: nil)
+        try? await Task.sleep(for: .milliseconds(20))
+        XCTAssertFalse(
+            fixture.scanner.isRunning,
+            "a dark wake with the screen still off must not restart the radio"
+        )
+
+        fixture.notifications.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        await waitUntil { fixture.scanner.isRunning }
+    }
+
+    /// The store-owned power sampler is suspended by the same flags. A system
+    /// wake or a display wake restores the registered demand.
+    func testPowerSamplingSuspendsAcrossSystemSleepAndResumesOnWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        fixture.powerSampling.begin(.icon)
+        XCTAssertTrue(fixture.powerSampling.isRunning)
+
+        fixture.notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        await waitUntil { !fixture.powerSampling.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.didWakeNotification, object: nil)
+        await waitUntil { fixture.powerSampling.isRunning }
+        XCTAssertEqual(fixture.powerSampling.demands, [.icon], "the demand must survive sleep")
+    }
+
+    /// A dark wake keeps the power sampler paused, because no surface can show
+    /// watts while the display is off; the display wake resumes it.
+    func testPowerSamplingStaysSuspendedThroughDarkWakeAndResumesOnDisplayWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        fixture.powerSampling.begin(.icon)
+        XCTAssertTrue(fixture.powerSampling.isRunning)
+
+        fixture.notifications.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
+        await waitUntil { !fixture.powerSampling.isRunning }
+
+        fixture.notifications.post(name: NSWorkspace.didWakeNotification, object: nil)
+        try? await Task.sleep(for: .milliseconds(20))
+        XCTAssertFalse(
+            fixture.powerSampling.isRunning,
+            "a dark wake must not restart the SMC reads"
+        )
+
+        fixture.notifications.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        await waitUntil { fixture.powerSampling.isRunning }
+    }
+
+    /// The popover-visible path repairs a missed wake for the power sampler too.
+    func testPowerSamplingResumesFromPopoverAfterSleepLosesSystemWake() async {
+        let fixture = makeBluetoothSleepFixture()
+        defer { fixture.suite.defaults.removeTestSuite(named: fixture.suite.name) }
+        defer { fixture.store.stop() }
+        fixture.powerSampling.begin(.icon)
+        XCTAssertTrue(fixture.powerSampling.isRunning)
+
+        fixture.notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        fixture.notifications.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
+        await waitUntil { !fixture.powerSampling.isRunning }
+
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.powerSampling.isRunning }
     }
 
     func testHiddenAliasRevokesBothBackgroundReadRoutesAndRestoreReenablesThem() async throws {
@@ -634,6 +904,94 @@ final class SystemStatusStoreTests: XCTestCase {
         XCTAssertEqual(input.enabledValues.last, false)
 
         store.stop()
+        XCTAssertEqual(input.stopCount, 1)
+    }
+
+    func testSettingsWindowKeepsInputListCurrentWhileThePopoverIsClosed() async {
+        let input = FakeAudioInputMonitor()
+        let suite = makeSuite()
+        defer { suite.defaults.removeTestSuite(named: suite.name) }
+        let settings = SettingsStore(defaults: suite.defaults)
+        let store = makeStore(
+            battery: FakeBatteryMonitor(),
+            wifi: FakeWiFiMonitor(),
+            volume: FakeVolumeMonitor(),
+            inputMonitor: input
+        )
+        store.bindInputSettings(settings)
+        store.start()
+        settings.setPopupSection(.audioInput, enabled: true)
+        XCTAssertEqual(input.visibleValues, [false])
+
+        store.setSettingsVisible(true)
+        XCTAssertEqual(input.visibleValues.last, false, "Settings must not request popover usage polling")
+        XCTAssertEqual(input.deviceListVisibleValues.last, true)
+
+        let listed = AudioInputStatus(
+            devices: [AudioInputDevice(id: AudioDeviceID(42), uid: "input-42", name: "USB Mic")],
+            defaultDeviceID: AudioDeviceID(42),
+            deviceName: "USB Mic",
+            scalar: 0.5,
+            canSetVolume: true,
+            muteState: .unmuted,
+            canSetMute: true,
+            isRefreshing: false,
+            isBusy: false,
+            error: nil
+        )
+        input.send(listed)
+        await waitUntil { store.liveInput == listed }
+        XCTAssertEqual(store.liveInput.defaultDeviceID, AudioDeviceID(42))
+
+        // Closing the popover stops usage polling while Settings keeps inventory live.
+        store.setPopoverVisible(true)
+        XCTAssertEqual(input.visibleValues.last, true)
+        store.setPopoverVisible(false)
+        XCTAssertEqual(input.visibleValues.last, false)
+        XCTAssertEqual(input.deviceListVisibleValues.last, true)
+
+        store.setSettingsVisible(false)
+        XCTAssertEqual(input.visibleValues.last, false)
+        XCTAssertEqual(input.deviceListVisibleValues.last, false)
+        store.stop()
+    }
+
+    func testInputEnableAndStartRestoreSeparatePanelAndDeviceListDemand() {
+        let input = FakeAudioInputMonitor()
+        let suite = makeSuite()
+        defer { suite.defaults.removeTestSuite(named: suite.name) }
+        let settings = SettingsStore(defaults: suite.defaults)
+        let store = makeStore(
+            battery: FakeBatteryMonitor(),
+            wifi: FakeWiFiMonitor(),
+            volume: FakeVolumeMonitor(),
+            inputMonitor: input
+        )
+        store.bindInputSettings(settings)
+        store.setSettingsVisible(true)
+        settings.setPopupSection(.audioInput, enabled: true)
+        store.start()
+        XCTAssertEqual(input.enabledValues.last, true)
+        XCTAssertEqual(input.visibleValues.last, false)
+        XCTAssertEqual(input.deviceListVisibleValues.last, true)
+
+        settings.setPopupSection(.audioInput, enabled: false)
+        store.setPopoverVisible(true)
+        settings.setPopupSection(.audioInput, enabled: true)
+        XCTAssertEqual(input.visibleValues.last, true)
+        XCTAssertEqual(input.deviceListVisibleValues.last, true)
+        store.setSettingsVisible(false)
+        XCTAssertEqual(input.visibleValues.last, true)
+        XCTAssertEqual(input.deviceListVisibleValues.last, false)
+
+        store.stop()
+        let panelCalls = input.visibleValues
+        let listCalls = input.deviceListVisibleValues
+        store.setPopoverVisible(false)
+        store.setSettingsVisible(true)
+        settings.setPopupSection(.audioInput, enabled: false)
+        XCTAssertEqual(input.visibleValues, panelCalls)
+        XCTAssertEqual(input.deviceListVisibleValues, listCalls)
         XCTAssertEqual(input.stopCount, 1)
     }
 
@@ -1326,6 +1684,36 @@ final class SystemStatusStoreTests: XCTestCase {
         store.setSettingsVisible(false)
         XCTAssertEqual(volume.detailsVisibility, [false, true, true, true, false])
         store.stop()
+    }
+
+    func testOptimisticVolumeAndMutePreserveControlSource() async {
+        for source in [VolumeControlSource.native, .betterDisplay, .directDDC] {
+            let volume = FakeVolumeMonitor()
+            let store = SystemStatusStore(
+                batteryMonitor: FakeBatteryMonitor(), wifiMonitor: FakeWiFiMonitor(),
+                volumeMonitor: volume, volumeFeedback: FakeVolumeFeedbackPlayer(),
+                refreshInterval: .seconds(60)
+            )
+            store.start()
+            volume.send(VolumeStatus(
+                scalar: 0.4, isMuted: false, deviceName: "Speaker",
+                controlSource: source
+            ))
+            await waitUntil { store.liveVolume.scalar == 0.4 }
+
+            store.setVolume(0.7)
+            XCTAssertEqual(store.liveVolume.controlSource, source)
+            XCTAssertEqual(store.snapshot.volume.controlSource, source)
+            XCTAssertEqual(store.liveVolume.scalar, 0.7)
+            XCTAssertEqual(volume.setVolumeValues, [0.7])
+
+            store.toggleMute()
+            XCTAssertEqual(store.liveVolume.controlSource, source)
+            XCTAssertEqual(store.snapshot.volume.controlSource, source)
+            XCTAssertTrue(store.liveVolume.isMuted)
+            XCTAssertEqual(volume.toggleMuteCount, 1)
+            store.stop()
+        }
     }
 
     func testSetVolumeUpdatesVisibleVolumeImmediately() async {
@@ -2439,6 +2827,46 @@ final class SystemStatusStoreTests: XCTestCase {
         )
     }
 
+    /// Store with a real `BluetoothDeviceController` over a spy state monitor and
+    /// spy scanner, plus an injectable power sampler. Settings demand the
+    /// background nearby-BLE route, so the scanner is running without a panel.
+    private func makeBluetoothSleepFixture() -> (
+        store: SystemStatusStore,
+        scanner: StoreIntervalScannerSpy,
+        monitor: StoreBluetoothStateMonitorSpy,
+        powerSampling: PowerSamplingService,
+        notifications: NotificationCenter,
+        suite: (defaults: UserDefaults, name: String)
+    ) {
+        let scanner = StoreIntervalScannerSpy()
+        let monitor = StoreBluetoothStateMonitorSpy()
+        let bluetooth = BluetoothDeviceController(
+            stateMonitor: monitor,
+            nearbyBatteryScanner: scanner
+        )
+        let powerSampling = PowerSamplingService(reader: { _ in .empty })
+        let notifications = NotificationCenter()
+        let suite = makeSuite()
+        let settings = SettingsStore(defaults: suite.defaults)
+        settings.showsAppleDevicesAndBattery = true
+        settings.showsBluetoothBatteryLevels = true
+        settings.showsBluetoothDeviceList = true
+        settings.refreshesAppleBatteriesInBackground = true
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: FakeVolumeMonitor(),
+            wakeNotificationCenter: notifications,
+            powerSampling: powerSampling,
+            bluetoothDevices: bluetooth
+        )
+        store.bindBluetoothSettings(settings)
+        store.bindMobileBatterySettings(settings)
+        store.start()
+        monitor.emit(authorization: .allowed, state: .poweredOn)
+        return (store, scanner, monitor, powerSampling, notifications, suite)
+    }
+
     private func makeSuite() -> (defaults: UserDefaults, name: String) {
         let name = "StatusTrioCoreTests.SystemStatusStore.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: name) else {
@@ -2634,6 +3062,8 @@ private final class StoreIntervalScannerSpy: BluetoothLEBatteryScanning {
     private(set) var allowedReadDeviceIDs: Set<UUID> = []
     private(set) var isRunning = false
     private(set) var isScanning = false
+    private(set) var startCount = 0
+    private(set) var stopCount = 0
     private(set) var backgroundRefreshIntervals: [Duration?] = []
 
     func setAllowedReadDeviceIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
@@ -2646,9 +3076,9 @@ private final class StoreIntervalScannerSpy: BluetoothLEBatteryScanning {
         return [:]
     }
     func setBackgroundRefreshInterval(_ interval: Duration?) { backgroundRefreshIntervals.append(interval) }
-    func start() { isRunning = true }
+    func start() { isRunning = true; startCount += 1 }
     func refresh() {}
-    func stop() { isRunning = false; isScanning = false }
+    func stop() { isRunning = false; isScanning = false; stopCount += 1 }
 }
 
 private final class StoreBluetoothPairedDeviceReader: BluetoothPairedDeviceReading {
@@ -2802,6 +3232,7 @@ private final class FakeAudioInputMonitor: AudioInputMonitoring {
     private let continuation: AsyncStream<AudioInputStatus>.Continuation
     private(set) var enabledValues: [Bool] = []
     private(set) var visibleValues: [Bool] = []
+    private(set) var deviceListVisibleValues: [Bool] = []
     private(set) var recoverCount = 0
     private(set) var stopCount = 0
     private(set) var selectedDeviceIDs: [AudioDeviceID] = []
@@ -2815,6 +3246,7 @@ private final class FakeAudioInputMonitor: AudioInputMonitoring {
 
     func setEnabled(_ enabled: Bool) { enabledValues.append(enabled) }
     func setVisible(_ visible: Bool) { visibleValues.append(visible) }
+    func setDeviceListVisible(_ visible: Bool) { deviceListVisibleValues.append(visible) }
     func recover() { recoverCount += 1 }
     func select(_ id: AudioDeviceID) { selectedDeviceIDs.append(id) }
     func setScalar(_ value: Double, requestID: UUID) {

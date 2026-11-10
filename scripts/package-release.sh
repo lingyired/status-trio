@@ -4,6 +4,9 @@
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/scripts/build-timing.sh"
+trap 'build_timing_finish "$?"' EXIT
+build_phase package-preflight
 OUTPUT_DIR="${OUTPUT_DIR:-$ROOT/dist/release-package}"
 SOURCE_SHA="${SOURCE_SHA:?SOURCE_SHA is required}"
 VERSION="${VERSION:?VERSION is required}"
@@ -87,6 +90,7 @@ WORKTREE_STATUS="$(
 for command in git ruby shasum swift xcrun hdiutil plutil /usr/libexec/PlistBuddy; do
     command -v "$command" >/dev/null 2>&1 || die "required command '$command' is not available."
 done
+bash "$ROOT/scripts/create-installer-dmg.sh" --check
 
 SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
 XCODE_VERSION="$(xcodebuild -version | tr '\n' ' ' | sed 's/ $//')"
@@ -139,6 +143,7 @@ MINIMUM_SYSTEM_VERSION="$(
 )"
 
 printf 'Building %s %s (%s) at %s...\n' "$APP_NAME" "$VERSION" "$BUILD" "$SOURCE_SHA"
+build_phase app-build-sign-and-verify
 env -u GH_TOKEN -u SPARKLE_PRIVATE_KEY \
     APP_VERSION="$VERSION" \
     BUILD_NUMBER="$BUILD" \
@@ -153,6 +158,7 @@ env -u GH_TOKEN -u SPARKLE_PRIVATE_KEY \
     bash "$ROOT/scripts/build-app.sh" release no-open
 
 APP_DIR="$ROOT/dist/StatusTrio.app"
+build_phase universal-package-contracts
 for binary in \
     "$APP_DIR/Contents/MacOS/StatusTrio" \
     "$APP_DIR/Contents/Helpers/StatusTrioPowerHelper"; do
@@ -168,18 +174,16 @@ UNIVERSAL_BUILD=1 bash "$ROOT/scripts/verify-privileged-helper-bundle.sh" "$APP_
 bash "$ROOT/scripts/test-macos13-sparkle-metadata.sh" "$APP_DIR"
 
 TEMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/StatusTrioPackage.XXXXXX")"
-trap 'rm -rf "$TEMP_ROOT"' EXIT
-STAGING_DIR="$TEMP_ROOT/dmg"
-mkdir -p "$STAGING_DIR"
-ditto "$APP_DIR" "$STAGING_DIR/$APP_NAME.app"
-ln -s /Applications "$STAGING_DIR/Applications"
+trap 'build_timing_finish "$?"; rm -rf "$TEMP_ROOT"' EXIT
+build_phase dmg-staging
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
+    build_phase app-notarization
     if [[ "${CODE_SIGN_IDENTITY:--}" == "-" ]]; then
         die "NOTARY_PROFILE requires a Developer ID signature."
     fi
     APP_ARCHIVE="$TEMP_ROOT/app.zip"
-    ditto -c -k --keepParent "$STAGING_DIR/$APP_NAME.app" "$APP_ARCHIVE"
+    ditto -c -k --keepParent "$APP_DIR" "$APP_ARCHIVE"
     APP_NOTARY_ARGS=(--keychain-profile "$NOTARY_PROFILE")
     if [[ -n "${KEYCHAIN_PATH:-}" ]]; then
         APP_NOTARY_ARGS+=(--keychain "$KEYCHAIN_PATH")
@@ -191,16 +195,40 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
         result = JSON.parse(File.read(ARGV[0]))
         abort("App notarization status was #{result["status"]}.") unless result["status"] == "Accepted"
     ' "$TEMP_ROOT/app-notary.json"
-    xcrun stapler staple "$STAGING_DIR/$APP_NAME.app"
-    xcrun stapler validate "$STAGING_DIR/$APP_NAME.app"
+    xcrun stapler staple "$APP_DIR"
+    xcrun stapler validate "$APP_DIR"
 fi
 
 DMG_PATH="$OUTPUT_DIR/$DMG_BASENAME-$VERSION.dmg"
-rm -f "$DMG_PATH" "$DMG_PATH.sha256"
-hdiutil create -quiet -volname "$APP_NAME" -srcfolder "$STAGING_DIR" \
-    -ov -format UDZO "$DMG_PATH"
+build_phase dmg-creation
+# Preserve the package command's existing rerun behavior for its explicit output.
+RESOLVED_OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd -P)"
+[[ "$(cd "$(dirname "$DMG_PATH")" && pwd -P)" == "$RESOLVED_OUTPUT_DIR" ]] ||
+    die 'DMG output escaped OUTPUT_DIR.'
+[[ "$(basename "$DMG_PATH")" == "$DMG_BASENAME-$VERSION.dmg" ]] || die 'Unexpected DMG output name.'
+rm -f -- "$DMG_PATH" "$DMG_PATH.sha256"
+# DMG_INSTALL_PAGE=styled (default) draws the bilingual install page through
+# create-dmg. DMG_INSTALL_PAGE=plain is an explicit opt-out that ships the
+# pre-install-page layout: the app and an Applications symlink only. The plain
+# layout is never chosen silently, and either layout keeps the DMG
+# signing/notarization order unchanged.
+DMG_INSTALL_PAGE="${DMG_INSTALL_PAGE:-styled}"
+case "$DMG_INSTALL_PAGE" in
+    styled)
+        DMG_APP_NAME="$APP_NAME" bash "$ROOT/scripts/create-installer-dmg.sh" "$APP_DIR" "$DMG_PATH" ;;
+    plain)
+        STAGING_DIR="$TEMP_ROOT/dmg"
+        mkdir -p "$STAGING_DIR"
+        ditto "$APP_DIR" "$STAGING_DIR/$APP_NAME.app"
+        ln -s /Applications "$STAGING_DIR/Applications"
+        hdiutil create -quiet -volname "$APP_NAME" -srcfolder "$STAGING_DIR" \
+            -ov -format UDZO "$DMG_PATH" ;;
+    *)
+        die 'DMG_INSTALL_PAGE must be styled or plain.' ;;
+esac
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
+    build_phase dmg-codesign
     DMG_SIGN_ARGS=(--force --sign "${CODE_SIGN_IDENTITY:?}" --timestamp)
     if [[ -n "${KEYCHAIN_PATH:-}" ]]; then
         DMG_SIGN_ARGS+=(--keychain "$KEYCHAIN_PATH")
@@ -211,6 +239,7 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     if [[ -n "${KEYCHAIN_PATH:-}" ]]; then
         DMG_NOTARY_ARGS+=(--keychain "$KEYCHAIN_PATH")
     fi
+    build_phase dmg-notarization
     xcrun notarytool submit "$DMG_PATH" "${DMG_NOTARY_ARGS[@]}" \
         --wait --output-format json > "$TEMP_ROOT/dmg-notary.json"
     ruby -rjson -e '
@@ -220,10 +249,11 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     xcrun stapler staple "$DMG_PATH"
     xcrun stapler validate "$DMG_PATH"
     spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG_PATH"
-    spctl --assess --type execute --verbose=2 "$STAGING_DIR/$APP_NAME.app"
+    spctl --assess --type execute --verbose=2 "$APP_DIR"
 fi
 
 DMG_FILENAME="$(basename "$DMG_PATH")"
+build_phase sparkle-signature-and-manifest
 ACTUAL_DMG_LENGTH="$(stat -f '%z' "$DMG_PATH")"
 if [[ -n "${SPARKLE_PRIVATE_KEY:-}" ]]; then
     SIGN_UPDATE="$ROOT/.build/artifacts/sparkle/Sparkle/bin/sign_update"

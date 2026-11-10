@@ -69,12 +69,12 @@ struct SystemBatteryRingBehavior: Codable, Equatable, Sendable {
     var textScale: Double
 
     static let classic = Self(
-        showsPercentage: BatteryIconOptions.standard.showsPercentage,
-        showsChargingIndicator: BatteryIconOptions.standard.showsChargingIndicator,
+        showsPercentage: true,
+        showsChargingIndicator: true,
         showsChargingEffect: BatteryIconOptions.standard.showsChargingEffect,
         showsChargingBoltHeartbeat: BatteryIconOptions.standard.showsChargingBoltHeartbeat,
         usesStatusColors: BatteryIconOptions.standard.usesStatusColors,
-        showsPercentageWhenConnected: BatteryIconOptions.standard.showsPercentageWhenConnected,
+        showsPercentageWhenConnected: false,
         criticalThreshold: BatteryIconOptions.standard.criticalThreshold,
         textScale: BatteryIconOptions.standard.textScale
     )

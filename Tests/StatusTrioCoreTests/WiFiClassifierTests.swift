@@ -475,10 +475,62 @@ final class WiFiClassifierTests: XCTestCase {
         _ = await iterator.next()
 
         reader.result = makeReading(mode: .station, rssi: 0)
-        eventMonitor.delegate?.bssidDidChangeForWiFiInterface?(withName: "en0")
+        eventMonitor.deliver(.bssidChanged)
         let afterChange = await iterator.next()
 
         XCTAssertEqual(afterChange?.rssi, nil)
+        monitor.stop()
+    }
+
+    func testAssociationChangeDiscardsAnInFlightReadBeforeCachingOldRSSI() async {
+        let reader = DeferredWiFiStatusReader()
+        let eventMonitor = FakeWiFiEventMonitor()
+        let sleeper = ManualEventSleeper()
+        let monitor = makeMonitor(
+            statusReader: reader,
+            eventMonitor: eventMonitor,
+            refreshDebounceSleep: { duration in
+                await sleeper.sleep(duration)
+            }
+        )
+        var iterator = monitor.updates.makeAsyncIterator()
+        monitor.start()
+        XCTAssertEqual(reader.includeSSIDRequests.count, 1)
+
+        eventMonitor.deliver(.bssidChanged)
+        await sleeper.waitForCallCount(1)
+        reader.complete(makeReading(rssi: -52))
+        sleeper.releaseAll()
+        await sleeper.waitForCompletionCount(1)
+        await waitUntil { reader.includeSSIDRequests.count == 2 }
+
+        reader.complete(makeReading(rssi: nil))
+        let status = await iterator.next()
+        XCTAssertNil(
+            status?.rssi,
+            "a read started before the association change must not restore the old RSSI"
+        )
+        monitor.stop()
+    }
+
+    func testRecoverAppliesPendingAssociationBeforeReusingCachedRSSI() async {
+        let reader = FakeWiFiSystemReader(result: makeReading(rssi: -52))
+        let eventMonitor = FakeWiFiEventMonitor()
+        let monitor = makeMonitor(reader: reader, eventMonitor: eventMonitor)
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        reader.result = makeReading(rssi: nil)
+        eventMonitor.deliver(.bssidChanged)
+        monitor.recover()
+        monitor.refresh()
+
+        let status = await iterator.next()
+        XCTAssertNil(
+            status?.rssi,
+            "recover must not clear a pending association event and reuse its old RSSI"
+        )
         monitor.stop()
     }
 
@@ -521,7 +573,7 @@ final class WiFiClassifierTests: XCTestCase {
         let unknown = await iterator.next()
         XCTAssertEqual(unknown?.rssi, nil)
 
-        monitor.linkQualityDidChangeForWiFiInterface(withName: "en0", rssi: -60, transmitRate: 0)
+        eventMonitor.deliver(.linkQuality(rssi: -60))
         let bridged = await iterator.next()
         XCTAssertEqual(bridged?.rssi, -60)
         monitor.stop()
@@ -811,14 +863,16 @@ final class WiFiClassifierTests: XCTestCase {
         XCTAssertEqual(WiFiInterfaceMode(coreWLANMode: .hostAP), .hostAP)
     }
 
-    func testCoreWLANEventMonitorRestartRecreatesClientAndRegistersEvents() {
-        let firstClient = FakeCoreWLANClient()
-        let secondClient = FakeCoreWLANClient()
-        var clients = [firstClient, secondClient]
+    func testCoreWLANEventMonitorReregisterReusesClientAndRegistersEvents() {
+        let client = FakeCoreWLANClient()
+        var factoryCallCount = 0
         let eventMonitor = CoreWLANWiFiEventMonitor(
-            clientFactory: { clients.removeFirst() }
+            clientFactory: {
+                factoryCallCount += 1
+                return client
+            }
         )
-        let delegate = FakeCWEventDelegate()
+        let receiver = FakeWiFiEventReceiver()
         let events: [CWEventType] = [
             .powerDidChange,
             .ssidDidChange,
@@ -826,13 +880,56 @@ final class WiFiClassifierTests: XCTestCase {
             .linkDidChange
         ]
 
-        eventMonitor.start(delegate: delegate, events: events)
-        eventMonitor.restart(delegate: delegate, events: events)
+        eventMonitor.start(receiver: receiver, generation: 1, events: events)
+        eventMonitor.restart(
+            receiver: receiver,
+            generation: 2,
+            events: events,
+            recreateClient: false
+        )
+
+        XCTAssertEqual(factoryCallCount, 1)
+        XCTAssertEqual(client.stopAllCount, 1)
+        XCTAssertEqual(client.registeredEvents, events + events)
+    }
+
+    func testCoreWLANEventMonitorReplacementCreatesFreshGeneration() {
+        let firstClient = FakeCoreWLANClient()
+        let secondClient = FakeCoreWLANClient()
+        var clients = [firstClient, secondClient]
+        let eventMonitor = CoreWLANWiFiEventMonitor(
+            clientFactory: { clients.removeFirst() }
+        )
+        let receiver = FakeWiFiEventReceiver()
+        let events: [CWEventType] = [
+            .powerDidChange,
+            .ssidDidChange,
+            .bssidDidChange,
+            .linkDidChange
+        ]
+
+        eventMonitor.start(receiver: receiver, generation: 1, events: events)
+        let firstDelegate = firstClient.delegate
+        eventMonitor.restart(
+            receiver: receiver,
+            generation: 2,
+            events: events,
+            recreateClient: true
+        )
 
         XCTAssertEqual(firstClient.stopAllCount, 1)
-        XCTAssertNil(firstClient.delegate)
-        XCTAssertTrue(secondClient.delegate === delegate)
+        XCTAssertNotNil(secondClient.delegate)
         XCTAssertEqual(secondClient.events, events)
+
+        (firstDelegate as? CWEventDelegate)?.clientConnectionInterrupted?()
+        XCTAssertEqual(
+            receiver.interruptedCount,
+            0,
+            "A superseded client must not reach the current monitor"
+        )
+        (secondClient.delegate as? CWEventDelegate)?.clientConnectionInterrupted?()
+        XCTAssertEqual(receiver.interruptedCount, 1)
+        XCTAssertEqual(receiver.generations, [2])
     }
 
     func testStartRegistersEventsStartsPathMonitorAndRefreshesImmediately() {
@@ -863,7 +960,7 @@ final class WiFiClassifierTests: XCTestCase {
                 .modeDidChange
             ]
         )
-        XCTAssertTrue(eventMonitor.delegate === monitor)
+        XCTAssertTrue(eventMonitor.receiver === monitor)
         XCTAssertEqual(pathMonitor.startCount, 1)
         monitor.stop()
     }
@@ -899,11 +996,12 @@ final class WiFiClassifierTests: XCTestCase {
         var iterator = monitor.updates.makeAsyncIterator()
         _ = await iterator.next()
 
-        eventMonitor.delegate?.clientConnectionInterrupted?()
+        eventMonitor.deliver(.connectionInterrupted)
         _ = await iterator.next()
 
         XCTAssertEqual(reader.readCount, 2)
         XCTAssertEqual(eventMonitor.restartCount, 0)
+        XCTAssertEqual(eventMonitor.replaceCount, 0)
         XCTAssertEqual(pathMonitor.cancelCount, 0)
         XCTAssertEqual(pathMonitor.startCount, 1)
         monitor.stop()
@@ -922,15 +1020,477 @@ final class WiFiClassifierTests: XCTestCase {
         var iterator = monitor.updates.makeAsyncIterator()
         _ = await iterator.next()
 
-        eventMonitor.delegate?.clientConnectionInvalidated?()
+        eventMonitor.deliver(.connectionInvalidated)
         _ = await iterator.next()
 
         XCTAssertEqual(reader.readCount, 2)
         XCTAssertEqual(eventMonitor.restartCount, 1)
+        XCTAssertEqual(eventMonitor.replaceCount, 1)
         XCTAssertEqual(eventMonitor.restartEvents, eventMonitor.events)
-        XCTAssertTrue(eventMonitor.delegate === monitor)
+        XCTAssertTrue(eventMonitor.receiver === monitor)
         XCTAssertEqual(pathMonitor.cancelCount, 1)
         XCTAssertEqual(pathMonitor.startCount, 2)
+        monitor.stop()
+    }
+
+    func testInvalidationDoesNotSkipCoalescedAssociationRSSIClear() async {
+        let reader = FakeWiFiSystemReader(result: makeReading(rssi: -50))
+        let eventMonitor = FakeWiFiEventMonitor()
+        let monitor = makeMonitor(reader: reader, eventMonitor: eventMonitor)
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        reader.result = makeReading(rssi: nil)
+        eventMonitor.deliver(.linkQuality(rssi: -50))
+        eventMonitor.deliver(.bssidChanged)
+        eventMonitor.deliver(.connectionInvalidated)
+
+        let status = await iterator.next()
+        XCTAssertEqual(status?.state, .connected)
+        XCTAssertNil(
+            status?.rssi,
+            "an association change must clear its previous RSSI even when invalidation is coalesced"
+        )
+        monitor.stop()
+    }
+
+    func testRSSIAfterAssociationChangeSurvivesCoalescedInvalidation() async {
+        let reader = FakeWiFiSystemReader(result: makeReading(rssi: -50))
+        let eventMonitor = FakeWiFiEventMonitor()
+        let monitor = makeMonitor(reader: reader, eventMonitor: eventMonitor)
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        reader.result = makeReading(rssi: nil)
+        eventMonitor.deliver(.bssidChanged)
+        eventMonitor.deliver(.linkQuality(rssi: -61))
+        eventMonitor.deliver(.connectionInvalidated)
+
+        let status = await iterator.next()
+        XCTAssertEqual(
+            status?.rssi,
+            -61,
+            "an RSSI delivered after the association change must survive coalesced invalidation"
+        )
+        monitor.stop()
+    }
+
+    func testConnectionInvalidationBurstSchedulesSingleReplacement() async {
+        let reader = FakeWiFiSystemReader(result: makeReading())
+        let eventMonitor = FakeWiFiEventMonitor()
+        let sleeper = ManualEventSleeper()
+        let monitor = makeMonitor(
+            reader: reader,
+            eventMonitor: eventMonitor,
+            invalidationRecoveryBackoff: [.seconds(5)],
+            invalidationRecoverySleep: { duration in
+                await sleeper.sleep(duration)
+            }
+        )
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        let replaced = expectation(description: "client replaced")
+        eventMonitor.onRestart = { replaced.fulfill() }
+        for _ in 0..<100 {
+            eventMonitor.deliver(.connectionInvalidated)
+        }
+
+        let scheduledRecovery = await sleeper.waitForCallCount(
+            1,
+            timeout: .seconds(1)
+        )
+        XCTAssertTrue(
+            scheduledRecovery,
+            "one recovery delay must represent the whole invalidation burst"
+        )
+        XCTAssertEqual(eventMonitor.replaceCount, 0)
+
+        sleeper.releaseAll()
+        await fulfillment(of: [replaced], timeout: 1)
+        XCTAssertEqual(eventMonitor.restartCount, 1)
+        XCTAssertEqual(eventMonitor.replaceCount, 1)
+        monitor.stop()
+    }
+
+    func testExternalRecoverWhileInvalidationIsPendingRecreatesTheInvalidatedClient() async {
+        let reader = FakeWiFiSystemReader(result: makeReading())
+        let eventMonitor = FakeWiFiEventMonitor()
+        let sleeper = ManualEventSleeper()
+        let monitor = makeMonitor(
+            reader: reader,
+            eventMonitor: eventMonitor,
+            invalidationRecoveryBackoff: [.seconds(5)],
+            invalidationRecoverySleep: { duration in
+                await sleeper.sleep(duration)
+            }
+        )
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        eventMonitor.deliver(.connectionInvalidated)
+        let scheduledRecovery = await sleeper.waitForCallCount(
+            1,
+            timeout: .seconds(1)
+        )
+        XCTAssertTrue(scheduledRecovery)
+
+        monitor.recover()
+        XCTAssertEqual(eventMonitor.restartCount, 1)
+        XCTAssertEqual(
+            eventMonitor.replaceCount,
+            1,
+            "an external recovery after invalidation must replace the invalid client"
+        )
+
+        sleeper.releaseAll()
+        await sleeper.waitForCompletionCount(1)
+        for _ in 0..<10 {
+            await Task.yield()
+        }
+        XCTAssertEqual(
+            eventMonitor.replaceCount,
+            1,
+            "the canceled delayed recovery must not replace the client a second time"
+        )
+        monitor.stop()
+    }
+
+    func testImmediateExternalRecoverAfterInvalidationStillReplacesTheClient() async {
+        let reader = FakeWiFiSystemReader(result: makeReading())
+        let eventMonitor = FakeWiFiEventMonitor()
+        let monitor = makeMonitor(
+            reader: reader,
+            eventMonitor: eventMonitor
+        )
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        eventMonitor.deliver(.connectionInvalidated)
+        monitor.recover()
+
+        XCTAssertEqual(
+            eventMonitor.replaceCount,
+            1,
+            "recover must not discard an invalidation before its MainActor drain"
+        )
+        for _ in 0..<10 {
+            await Task.yield()
+        }
+        XCTAssertEqual(eventMonitor.replaceCount, 1)
+        monitor.stop()
+    }
+
+    func testInterfaceAbsentRecoveryDoesNotRacePendingInvalidationReplacement() async {
+        let clock = ManualWiFiClock(now: Date(timeIntervalSinceReferenceDate: 9_000))
+        let reader = FakeWiFiSystemReader(result: makeReading())
+        let eventMonitor = FakeWiFiEventMonitor()
+        let sleeper = ManualEventSleeper()
+        let monitor = makeMonitor(
+            reader: reader,
+            eventMonitor: eventMonitor,
+            clock: clock,
+            invalidationRecoveryBackoff: [.seconds(5)],
+            invalidationRecoverySleep: { duration in
+                await sleeper.sleep(duration)
+            }
+        )
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        eventMonitor.deliver(.connectionInvalidated)
+        let scheduledRecovery = await sleeper.waitForCallCount(
+            1,
+            timeout: .seconds(1)
+        )
+        XCTAssertTrue(scheduledRecovery)
+
+        reader.result = nil
+        clock.advance(by: 30.001)
+        monitor.refresh()
+        _ = await iterator.next()
+        XCTAssertEqual(
+            eventMonitor.replaceCount,
+            0,
+            "the scheduled invalidation replacement owns the client transition"
+        )
+
+        sleeper.releaseAll()
+        await waitUntil { eventMonitor.replaceCount == 1 }
+        XCTAssertEqual(eventMonitor.replaceCount, 1)
+        monitor.stop()
+    }
+
+    func testSupersededGenerationCallbackCannotSeedRSSIOrScheduleRefresh() async {
+        let reader = FakeWiFiSystemReader(result: makeReading(rssi: -50))
+        let eventMonitor = FakeWiFiEventMonitor()
+        let refreshSleeper = ManualEventSleeper()
+        let monitor = makeMonitor(
+            reader: reader,
+            eventMonitor: eventMonitor,
+            refreshDebounceSleep: { duration in
+                await refreshSleeper.sleep(duration)
+            },
+            invalidationRecoveryBackoff: [.zero]
+        )
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        let supersededGeneration = eventMonitor.generation
+        reader.result = makeReading(rssi: nil)
+        eventMonitor.deliver(.connectionInvalidated)
+        await waitUntil { eventMonitor.replaceCount == 1 }
+        XCTAssertNotEqual(eventMonitor.generation, supersededGeneration)
+
+        let currentGeneration = eventMonitor.generation
+        let deliveredBefore = monitor.eventDiagnosticsSnapshot.deliveredBatches
+        eventMonitor.deliver(.bssidChanged, generation: currentGeneration)
+        eventMonitor.deliver(
+            .linkQuality(rssi: -61),
+            generation: supersededGeneration
+        )
+        await waitUntil {
+            monitor.eventDiagnosticsSnapshot.deliveredBatches > deliveredBefore
+        }
+
+        refreshSleeper.releaseAll()
+        let status = await iterator.next()
+        XCTAssertNil(
+            status?.rssi,
+            "a callback from the invalidated client must be dropped before batching"
+        )
+        monitor.stop()
+    }
+
+    func testInvalidationRecoverySuspendsAfterTheWindowLimit() async {
+        let reader = FakeWiFiSystemReader(result: makeReading())
+        let eventMonitor = FakeWiFiEventMonitor()
+        let monitor = makeMonitor(
+            reader: reader,
+            eventMonitor: eventMonitor,
+            invalidationRecoveryBackoff: [.zero, .zero, .zero],
+            invalidationRecoveryWindow: 300,
+            invalidationRecoveryLimit: 2
+        )
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        for expectedCount in 1...2 {
+            eventMonitor.deliver(.connectionInvalidated)
+            await waitUntil { eventMonitor.replaceCount == expectedCount }
+        }
+
+        eventMonitor.deliver(.connectionInvalidated)
+        await waitUntil { monitor.eventMonitoringSuspended }
+
+        XCTAssertEqual(eventMonitor.replaceCount, 2)
+        XCTAssertEqual(eventMonitor.stopCount, 1)
+        monitor.stop()
+        XCTAssertEqual(eventMonitor.stopCount, 2)
+    }
+
+    func testInvalidationRecoveryUsesTheBoundedBackoffTable() async {
+        let reader = FakeWiFiSystemReader(result: makeReading())
+        let eventMonitor = FakeWiFiEventMonitor()
+        let sleeper = ManualEventSleeper()
+        let expectedDurations: [Duration] = [
+            .seconds(1),
+            .seconds(2),
+            .seconds(5),
+            .seconds(15),
+            .seconds(30)
+        ]
+        let monitor = makeMonitor(
+            reader: reader,
+            eventMonitor: eventMonitor,
+            invalidationRecoveryBackoff: expectedDurations,
+            invalidationRecoveryLimit: expectedDurations.count,
+            invalidationRecoverySleep: { duration in
+                await sleeper.sleep(duration)
+            }
+        )
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        for expectedCount in 1...expectedDurations.count {
+            eventMonitor.deliver(.connectionInvalidated)
+            let scheduled = await sleeper.waitForCallCount(
+                expectedCount,
+                timeout: .seconds(1)
+            )
+            XCTAssertTrue(scheduled)
+
+            sleeper.releaseAll()
+            let recovered = await waitUntil {
+                eventMonitor.replaceCount == expectedCount
+                    && monitor.invalidationRecoveryTaskCompletionCount
+                        == UInt64(expectedCount)
+            }
+            XCTAssertTrue(recovered)
+        }
+
+        XCTAssertEqual(sleeper.durations, expectedDurations)
+        monitor.stop()
+    }
+
+    func testExternalRecoverResetsInvalidationSuspension() async {
+        let reader = FakeWiFiSystemReader(result: makeReading())
+        let eventMonitor = FakeWiFiEventMonitor()
+        let monitor = makeMonitor(
+            reader: reader,
+            eventMonitor: eventMonitor,
+            invalidationRecoveryBackoff: [.zero, .zero],
+            invalidationRecoveryLimit: 1
+        )
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        eventMonitor.deliver(.connectionInvalidated)
+        await waitUntil { eventMonitor.replaceCount == 1 }
+        eventMonitor.deliver(.connectionInvalidated)
+        await waitUntil { monitor.eventMonitoringSuspended }
+
+        monitor.recover()
+        await waitUntil {
+            !monitor.eventMonitoringSuspended
+                && eventMonitor.replaceCount == 2
+        }
+
+        XCTAssertEqual(eventMonitor.stopCount, 1)
+        monitor.stop()
+    }
+
+    func testSuspendedEventMonitoringResumesAfterWindowOnSuccessfulRead() async {
+        let clock = ManualWiFiClock(now: Date(timeIntervalSinceReferenceDate: 8_000))
+        let reader = FakeWiFiSystemReader(result: makeReading())
+        let eventMonitor = FakeWiFiEventMonitor()
+        let monitor = makeMonitor(
+            reader: reader,
+            eventMonitor: eventMonitor,
+            clock: clock,
+            refreshDebounceSleep: { _ in },
+            invalidationRecoveryBackoff: [.zero],
+            invalidationRecoveryLimit: 1
+        )
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        eventMonitor.deliver(.connectionInvalidated)
+        await waitUntil { eventMonitor.replaceCount == 1 }
+        eventMonitor.deliver(.connectionInvalidated)
+        await waitUntil { monitor.eventMonitoringSuspended }
+
+        clock.advance(by: 300.001)
+        monitor.refresh()
+        await waitUntil {
+            !monitor.eventMonitoringSuspended
+                && eventMonitor.replaceCount == 2
+        }
+
+        XCTAssertEqual(eventMonitor.stopCount, 1)
+        monitor.stop()
+    }
+
+    func testStopCancelsPendingInvalidationRecovery() async {
+        let reader = FakeWiFiSystemReader(result: makeReading())
+        let eventMonitor = FakeWiFiEventMonitor()
+        let sleeper = ManualEventSleeper()
+        let monitor = makeMonitor(
+            reader: reader,
+            eventMonitor: eventMonitor,
+            invalidationRecoveryBackoff: [.seconds(5)],
+            invalidationRecoverySleep: { duration in
+                await sleeper.sleep(duration)
+            }
+        )
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        eventMonitor.deliver(.connectionInvalidated)
+        let scheduledRecovery = await sleeper.waitForCallCount(
+            1,
+            timeout: .seconds(1)
+        )
+        XCTAssertTrue(scheduledRecovery)
+
+        monitor.stop()
+        sleeper.releaseAll()
+        await sleeper.waitForCompletionCount(1)
+        for _ in 0..<10 {
+            await Task.yield()
+        }
+
+        XCTAssertEqual(eventMonitor.replaceCount, 0)
+        XCTAssertEqual(eventMonitor.stopCount, 1)
+    }
+
+    func testCancelledRecoveryCannotClobberANewerRecoveryTask() async {
+        let reader = FakeWiFiSystemReader(result: makeReading())
+        let eventMonitor = FakeWiFiEventMonitor()
+        let sleeper = ManualEventSleeper()
+        let monitor = makeMonitor(
+            reader: reader,
+            eventMonitor: eventMonitor,
+            invalidationRecoveryBackoff: [.seconds(5)],
+            invalidationRecoveryLimit: 10,
+            invalidationRecoverySleep: { duration in
+                await sleeper.sleep(duration)
+            }
+        )
+        monitor.start()
+        var iterator = monitor.updates.makeAsyncIterator()
+        _ = await iterator.next()
+
+        eventMonitor.deliver(.connectionInvalidated)
+        let firstRecoveryScheduled = await sleeper.waitForCallCount(
+            1,
+            timeout: .seconds(1)
+        )
+        XCTAssertTrue(firstRecoveryScheduled)
+
+        // Cancel the first delayed recovery, then schedule a second one before
+        // the cancelled task gets a chance to run its cleanup.
+        monitor.recover()
+        eventMonitor.deliver(.connectionInvalidated)
+        let secondRecoveryScheduled = await sleeper.waitForCallCount(
+            2,
+            timeout: .seconds(1)
+        )
+        XCTAssertTrue(secondRecoveryScheduled)
+
+        let completedBeforeRelease = monitor.invalidationRecoveryTaskCompletionCount
+        sleeper.releaseOldest()
+        await waitUntil {
+            monitor.invalidationRecoveryTaskCompletionCount == completedBeforeRelease + 1
+        }
+
+        // The stale task's cleanup must not clear the second task's ownership.
+        XCTAssertTrue(monitor.hasPendingInvalidationRecovery)
+
+        sleeper.releaseAll()
+        let secondRecoveryCompleted = await waitUntil {
+            monitor.invalidationRecoveryTaskCompletionCount
+                == completedBeforeRelease + 2
+                && eventMonitor.replaceCount == 2
+                && !monitor.hasPendingInvalidationRecovery
+        }
+        XCTAssertTrue(
+            secondRecoveryCompleted,
+            "the newer recovery must replace the client after the stale task exits"
+        )
+        XCTAssertEqual(eventMonitor.replaceCount, 2)
         monitor.stop()
     }
 
@@ -950,11 +1510,7 @@ final class WiFiClassifierTests: XCTestCase {
         _ = await iterator.next()
 
         for rssi in stride(from: -50, through: -69, by: -1) {
-            monitor.linkQualityDidChangeForWiFiInterface(
-                withName: "en0",
-                rssi: rssi,
-                transmitRate: 0
-            )
+            eventMonitor.deliver(.linkQuality(rssi: rssi))
         }
 
         await sleeper.waitForCallCount(1)
@@ -975,16 +1531,16 @@ final class WiFiClassifierTests: XCTestCase {
         var iterator = monitor.updates.makeAsyncIterator()
         _ = await iterator.next()
 
-        eventMonitor.delegate?.ssidDidChangeForWiFiInterface?(withName: "en0")
+        eventMonitor.deliver(.ssidChanged)
         _ = await iterator.next()
-        eventMonitor.delegate?.bssidDidChangeForWiFiInterface?(withName: "en0")
+        eventMonitor.deliver(.bssidChanged)
         _ = await iterator.next()
 
         XCTAssertEqual(reader.readCount, 3)
         monitor.stop()
     }
 
-    func testRecoverRestartsMonitoringWithoutFinishingStream() async {
+    func testRoutineRecoverReusesHealthyClientWithoutFinishingStream() async {
         let reader = FakeWiFiSystemReader(result: makeReading(rssi: -50))
         let eventMonitor = FakeWiFiEventMonitor()
         let pathMonitor = FakeWiFiPathMonitor()
@@ -1001,6 +1557,7 @@ final class WiFiClassifierTests: XCTestCase {
 
         XCTAssertEqual(reader.readCount, 1)
         XCTAssertEqual(eventMonitor.restartCount, 1)
+        XCTAssertEqual(eventMonitor.replaceCount, 0)
         XCTAssertEqual(pathMonitor.cancelCount, 1)
         XCTAssertEqual(pathMonitor.startCount, 2)
 
@@ -1332,14 +1889,33 @@ final class WiFiClassifierTests: XCTestCase {
 
     func testInvalidationBeforeDebounceCoalescesTheObsoleteReadFollowUp() async {
         let reader = DeferredWiFiStatusReader()
+        let eventMonitor = FakeWiFiEventMonitor()
         let sleeper = ManualEventSleeper()
+        let recoverySleeper = ManualEventSleeper()
         let monitor = makeMonitor(
             statusReader: reader,
-            refreshDebounceSleep: { duration in await sleeper.sleep(duration) }
+            eventMonitor: eventMonitor,
+            refreshDebounceSleep: { duration in await sleeper.sleep(duration) },
+            invalidationRecoveryBackoff: [.seconds(5)],
+            invalidationRecoverySleep: { duration in
+                await recoverySleeper.sleep(duration)
+            }
         )
         monitor.start()
-        monitor.clientConnectionInvalidated()
+        eventMonitor.deliver(.connectionInvalidated)
         await sleeper.waitForCallCount(1)
+        await recoverySleeper.waitForCallCount(1)
+
+        // Retire the in-flight read before it completes. Releasing the recovery
+        // explicitly (instead of leaving its real `Task.sleep` backoff to race
+        // this test) makes the invalidation-then-complete ordering deterministic:
+        // the recovery's generation bump must land first, or `-40` later wins the
+        // buffered stream and the test misreports the coalescing under test.
+        let restarted = expectation(description: "event monitoring restarted")
+        eventMonitor.onRestart = { restarted.fulfill() }
+        recoverySleeper.releaseAll()
+        await fulfillment(of: [restarted], timeout: 1)
+        eventMonitor.onRestart = nil
 
         reader.complete(makeReading(rssi: -40))
         XCTAssertEqual(reader.includeSSIDRequests.count, 1, "The scheduled refresh owns the follow-up")
@@ -1362,22 +1938,40 @@ final class WiFiClassifierTests: XCTestCase {
 
     func testInvalidationAfterDebounceKeepsOnePendingRefresh() async {
         let reader = DeferredWiFiStatusReader()
+        let eventMonitor = FakeWiFiEventMonitor()
         let sleeper = ManualEventSleeper()
+        let recoverySleeper = ManualEventSleeper()
         let monitor = makeMonitor(
             statusReader: reader,
-            refreshDebounceSleep: { duration in await sleeper.sleep(duration) }
+            eventMonitor: eventMonitor,
+            refreshDebounceSleep: { duration in await sleeper.sleep(duration) },
+            invalidationRecoveryBackoff: [.seconds(5)],
+            invalidationRecoverySleep: { duration in
+                await recoverySleeper.sleep(duration)
+            }
         )
         monitor.start()
-        monitor.clientConnectionInvalidated()
+        eventMonitor.deliver(.connectionInvalidated)
         await sleeper.waitForCallCount(1)
+        await recoverySleeper.waitForCallCount(1)
         sleeper.releaseAll()
         await sleeper.waitForCompletionCount(1)
         // Drain the scheduled main-actor refresh while the system read stays blocked.
         for _ in 0..<20 { await Task.yield() }
         XCTAssertEqual(reader.includeSSIDRequests.count, 1)
 
+        let followUpStarted = expectation(description: "debounced follow-up read starts")
+        reader.onRead = {
+            if reader.includeSSIDRequests.count == 2 {
+                followUpStarted.fulfill()
+            }
+        }
         reader.complete(makeReading(rssi: -40))
-        XCTAssertEqual(reader.includeSSIDRequests.count, 2)
+        await fulfillment(
+            of: [followUpStarted],
+            timeout: 1
+        )
+        reader.onRead = nil
         reader.complete(makeReading(rssi: -65))
         XCTAssertEqual(reader.includeSSIDRequests.count, 2)
         monitor.stop()
@@ -1385,14 +1979,16 @@ final class WiFiClassifierTests: XCTestCase {
 
     func testStopCancelsScheduledRecoveryWithoutStartingAnotherRead() async {
         let reader = DeferredWiFiStatusReader()
+        let eventMonitor = FakeWiFiEventMonitor()
         let sleeper = ManualEventSleeper()
         let monitor = makeMonitor(
             statusReader: reader,
+            eventMonitor: eventMonitor,
             refreshDebounceSleep: { duration in await sleeper.sleep(duration) }
         )
         monitor.start()
         monitor.refresh()
-        monitor.clientConnectionInvalidated()
+        eventMonitor.deliver(.connectionInvalidated)
         await sleeper.waitForCallCount(1)
         monitor.stop()
         reader.complete(makeReading())
@@ -1421,6 +2017,24 @@ final class WiFiClassifierTests: XCTestCase {
         XCTAssertNil(obsolete)
         reader.complete(makeReading())
         XCTAssertEqual(reader.includeSSIDRequests.count, 2)
+    }
+
+    func testDeniedNameAccessStillPublishesConnectionStateAndMeasurements() async {
+        let reader = DeferredWiFiStatusReader()
+        let monitor = makeMonitor(
+            statusReader: reader,
+            nameAuthorizer: FakeWiFiNameAuthorizer(access: .denied)
+        )
+        var iterator = monitor.updates.makeAsyncIterator()
+        monitor.start()
+        reader.complete(makeReading(rssi: -50, ssid: "Hidden network", band: .fiveGHz))
+        let status = await iterator.next()
+        XCTAssertEqual(status?.state, .connected)
+        XCTAssertEqual(status?.rssi, -50)
+        XCTAssertEqual(status?.band, .fiveGHz)
+        XCTAssertNil(status?.ssid)
+        XCTAssertEqual(status?.nameAccess, .denied)
+        monitor.stop()
     }
 
     func testPermissionChangeDiscardsInFlightRead() async {
@@ -1614,6 +2228,12 @@ final class WiFiClassifierTests: XCTestCase {
         refreshDebounceSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
         },
+        invalidationRecoveryBackoff: [Duration] = [.zero],
+        invalidationRecoveryWindow: TimeInterval = 300,
+        invalidationRecoveryLimit: Int = 5,
+        invalidationRecoverySleep: @escaping @Sendable (Duration) async throws -> Void = {
+            try await Task.sleep(for: $0)
+        },
         readTimeout: Duration = .seconds(5),
         readTimeoutSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
@@ -1629,10 +2249,26 @@ final class WiFiClassifierTests: XCTestCase {
             initialPath: initialPath,
             now: { clock.now },
             refreshDebounceSleep: refreshDebounceSleep,
+            invalidationRecoveryBackoff: invalidationRecoveryBackoff,
+            invalidationRecoveryWindow: invalidationRecoveryWindow,
+            invalidationRecoveryLimit: invalidationRecoveryLimit,
+            invalidationRecoverySleep: invalidationRecoverySleep,
             noInterfaceRecoveryLimit: noInterfaceRecoveryLimit,
             readTimeout: readTimeout,
             readTimeoutSleep: readTimeoutSleep
         )
+    }
+
+    @discardableResult
+    private func waitUntil(
+        timeout: Duration = .seconds(1),
+        _ condition: @MainActor () -> Bool
+    ) async -> Bool {
+        let deadline = ContinuousClock.now + timeout
+        while !condition(), ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        return condition()
     }
 }
 
@@ -1652,7 +2288,16 @@ private final class DeferredWiFiStatusReader: WiFiStatusReadingProviding {
     }
 
     func complete(_ reading: WiFiSystemReading?) {
-        completions.removeFirst()(WiFiStatusReading(interface: reading, sharingActive: false))
+        guard !completions.isEmpty else {
+            XCTFail(
+                "complete() called with no read in flight; includeSSID requests: "
+                    + "\(includeSSIDRequests)"
+            )
+            return
+        }
+        completions.removeFirst()(
+            WiFiStatusReading(interface: reading, sharingActive: false)
+        )
     }
 
     /// Completes the newest outstanding read, leaving older ones pending. Used
@@ -1689,6 +2334,7 @@ private final class InlineWiFiStatusReader: WiFiStatusReadingProviding {
 
 private final class FakeCoreWLANClient: CWWiFiClient {
     var events: [CWEventType] = []
+    var registeredEvents: [CWEventType] = []
     var stopAllCount = 0
     weak var storedDelegate: AnyObject?
 
@@ -1699,6 +2345,7 @@ private final class FakeCoreWLANClient: CWWiFiClient {
 
     override func startMonitoringEvent(with event: CWEventType) throws {
         events.append(event)
+        registeredEvents.append(event)
     }
 
     override func stopMonitoringAllEvents() throws {
@@ -1706,7 +2353,17 @@ private final class FakeCoreWLANClient: CWWiFiClient {
     }
 }
 
-private final class FakeCWEventDelegate: NSObject, CWEventDelegate {}
+private final class FakeWiFiEventReceiver: WiFiEventReceiving {
+    private(set) var interruptedCount = 0
+    private(set) var generations: [UInt64] = []
+
+    func receive(_ event: WiFiEventSignal, generation: UInt64) {
+        generations.append(generation)
+        if event == .connectionInterrupted {
+            interruptedCount += 1
+        }
+    }
+}
 
 private final class FakeWiFiSystemReader: WiFiSystemReadingProviding {
     var result: WiFiSystemReading?
@@ -1778,26 +2435,52 @@ private final class FakeWiFiNameAuthorizer: WiFiNameAuthorizing {
 private final class FakeWiFiEventMonitor: WiFiEventMonitoring {
     private(set) var startCount = 0
     private(set) var restartCount = 0
+    private(set) var replaceCount = 0
     private(set) var stopCount = 0
     private(set) var events: [CWEventType] = []
     private(set) var restartEvents: [CWEventType] = []
-    weak var delegate: (any CWEventDelegate)?
+    private(set) var generation: UInt64 = 0
+    weak var receiver: (any WiFiEventReceiving)?
+    var onRestart: (() -> Void)?
 
-    func start(delegate: any CWEventDelegate, events: [CWEventType]) {
+    func prepareForRestart() {
+        receiver = nil
+    }
+
+    func start(
+        receiver: any WiFiEventReceiving,
+        generation: UInt64,
+        events: [CWEventType]
+    ) {
         startCount += 1
-        self.delegate = delegate
+        self.receiver = receiver
+        self.generation = generation
         self.events = events
     }
 
-    func restart(delegate: any CWEventDelegate, events: [CWEventType]) {
+    func restart(
+        receiver: any WiFiEventReceiving,
+        generation: UInt64,
+        events: [CWEventType],
+        recreateClient: Bool
+    ) {
         restartCount += 1
-        self.delegate = delegate
+        if recreateClient {
+            replaceCount += 1
+        }
+        self.receiver = receiver
+        self.generation = generation
         restartEvents = events
+        onRestart?()
     }
 
     func stop() {
         stopCount += 1
-        delegate = nil
+        receiver = nil
+    }
+
+    func deliver(_ event: WiFiEventSignal, generation: UInt64? = nil) {
+        receiver?.receive(event, generation: generation ?? self.generation)
     }
 }
 

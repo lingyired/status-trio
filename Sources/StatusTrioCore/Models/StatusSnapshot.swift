@@ -6,6 +6,7 @@ struct BatteryStatus: Equatable, Sendable {
     let isCharging: Bool
     let isCharged: Bool
     let timeToFullChargeMinutes: Int?
+    let timeToEmptyMinutes: Int?
     let isLowPowerMode: Bool
     let isConnectedToPower: Bool
 
@@ -15,6 +16,7 @@ struct BatteryStatus: Equatable, Sendable {
         isCharging: Bool,
         isCharged: Bool = false,
         timeToFullChargeMinutes: Int? = nil,
+        timeToEmptyMinutes: Int? = nil,
         isLowPowerMode: Bool,
         isConnectedToPower: Bool
     ) {
@@ -23,6 +25,7 @@ struct BatteryStatus: Equatable, Sendable {
         self.isCharging = isCharging
         self.isCharged = isCharged
         self.timeToFullChargeMinutes = timeToFullChargeMinutes
+        self.timeToEmptyMinutes = timeToEmptyMinutes
         self.isLowPowerMode = isLowPowerMode
         self.isConnectedToPower = isConnectedToPower
     }
@@ -104,14 +107,24 @@ extension WiFiStatus {
     }
 }
 
+enum VolumeControlSource: Equatable, Sendable {
+    case unavailable
+    case native
+    case directDDC
+    case betterDisplay
+}
+
 struct VolumeStatus: Equatable, Sendable {
     let scalar: Double?
     let isMuted: Bool
+    let muteState: VolumeMuteState
     let deviceName: String?
     let currentDevice: AudioOutputDevice?
     let outputDevices: [AudioOutputDevice]
     let canSetVolume: Bool
     let canMute: Bool
+    let controlSource: VolumeControlSource
+    let externalVolumeTransitionGeneration: UInt64
 
     init(
         scalar: Double?,
@@ -120,15 +133,22 @@ struct VolumeStatus: Equatable, Sendable {
         currentDevice: AudioOutputDevice? = nil,
         outputDevices: [AudioOutputDevice] = [],
         canSetVolume: Bool? = nil,
-        canMute: Bool? = nil
+        canMute: Bool? = nil,
+        muteState: VolumeMuteState? = nil,
+        externalVolumeTransitionGeneration: UInt64 = 0,
+        controlSource: VolumeControlSource = .unavailable
     ) {
         self.scalar = scalar
         self.isMuted = isMuted
+        self.muteState = muteState ?? (isMuted ? .muted : .unmuted)
         self.deviceName = deviceName
         self.currentDevice = currentDevice
         self.outputDevices = outputDevices
         self.canSetVolume = canSetVolume ?? (scalar != nil)
         self.canMute = canMute ?? (scalar != nil)
+        self.controlSource = controlSource
+        self.externalVolumeTransitionGeneration =
+            externalVolumeTransitionGeneration
     }
 
     static let placeholder = VolumeStatus(
@@ -138,22 +158,68 @@ struct VolumeStatus: Equatable, Sendable {
     )
 }
 
+extension VolumeStatus {
+    /// Whether two readings differ only in the live level (`scalar`).
+    ///
+    /// A drag emits a new level many times a second. The panel coalesces those
+    /// pure level changes so the volume row does not invalidate SwiftUI on every
+    /// tick (#263). Everything else — mute, the device set, availability, the
+    /// control source, an external transition — must publish immediately.
+    ///
+    /// Device entries carry their own volume, and the native reader stamps the
+    /// current device with the live scalar, so the comparison ignores the
+    /// per-device volume fields and keeps only device identity.
+    func changesOnlyLevel(comparedTo other: VolumeStatus) -> Bool {
+        isMuted == other.isMuted
+            && muteState == other.muteState
+            && deviceName == other.deviceName
+            && currentDevice?.replacingVolume(nil) == other.currentDevice?.replacingVolume(nil)
+            && outputDevices.map { $0.replacingVolume(nil) }
+                == other.outputDevices.map { $0.replacingVolume(nil) }
+            && canSetVolume == other.canSetVolume
+            && canMute == other.canMute
+            && controlSource == other.controlSource
+            && externalVolumeTransitionGeneration == other.externalVolumeTransitionGeneration
+    }
+
+    func replacingExternalVolumeTransitionGeneration(
+        _ generation: UInt64,
+        controlSource: VolumeControlSource? = nil
+    ) -> VolumeStatus {
+        VolumeStatus(
+            scalar: scalar,
+            isMuted: isMuted,
+            deviceName: deviceName,
+            currentDevice: currentDevice,
+            outputDevices: outputDevices,
+            canSetVolume: canSetVolume,
+            canMute: canMute,
+            muteState: muteState,
+            externalVolumeTransitionGeneration: generation,
+            controlSource: controlSource ?? self.controlSource
+        )
+    }
+}
+
 struct StatusSnapshot: Equatable, Sendable {
     let battery: BatteryStatus
     let wifi: WiFiStatus
     let connection: NetworkConnection
     let volume: VolumeStatus
+    let brightness: BrightnessStatus
 
     init(
         battery: BatteryStatus,
         wifi: WiFiStatus,
         connection: NetworkConnection = .unknown,
-        volume: VolumeStatus
+        volume: VolumeStatus,
+        brightness: BrightnessStatus = .placeholder
     ) {
         self.battery = battery
         self.wifi = wifi
         self.connection = connection
         self.volume = volume
+        self.brightness = brightness
     }
 
     static let placeholder = StatusSnapshot(

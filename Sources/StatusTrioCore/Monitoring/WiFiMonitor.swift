@@ -86,9 +86,23 @@ protocol InternetSharingDetecting: AnyObject {
     func isActive() -> Bool?
 }
 
+protocol WiFiEventReceiving: AnyObject {
+    func receive(_ event: WiFiEventSignal, generation: UInt64)
+}
+
 protocol WiFiEventMonitoring: AnyObject {
-    func start(delegate: any CWEventDelegate, events: [CWEventType])
-    func restart(delegate: any CWEventDelegate, events: [CWEventType])
+    func prepareForRestart()
+    func start(
+        receiver: any WiFiEventReceiving,
+        generation: UInt64,
+        events: [CWEventType]
+    )
+    func restart(
+        receiver: any WiFiEventReceiving,
+        generation: UInt64,
+        events: [CWEventType],
+        recreateClient: Bool
+    )
     func stop()
 }
 
@@ -112,6 +126,70 @@ protocol WiFiPathMonitoring: AnyObject {
 }
 
 typealias WiFiClientFactory = () -> CWWiFiClient
+
+/// Ignores callbacks delivered by a superseded CoreWLAN client generation.
+final class CoreWLANEventDelegateProxy: NSObject, CWEventDelegate, @unchecked Sendable {
+    private let lock = NSLock()
+    private weak var target: (any WiFiEventReceiving)?
+    private let generation: UInt64
+    private var isActive = true
+
+    init(target: any WiFiEventReceiving, generation: UInt64) {
+        self.target = target
+        self.generation = generation
+        super.init()
+    }
+
+    func invalidate() {
+        lock.withLock {
+            isActive = false
+            target = nil
+        }
+    }
+
+    func clientConnectionInterrupted() {
+        deliver(.connectionInterrupted)
+    }
+
+    func clientConnectionInvalidated() {
+        deliver(.connectionInvalidated)
+    }
+
+    func powerStateDidChangeForWiFiInterface(withName interfaceName: String) {
+        deliver(.powerChanged)
+    }
+
+    func ssidDidChangeForWiFiInterface(withName interfaceName: String) {
+        deliver(.ssidChanged)
+    }
+
+    func bssidDidChangeForWiFiInterface(withName interfaceName: String) {
+        deliver(.bssidChanged)
+    }
+
+    func linkDidChangeForWiFiInterface(withName interfaceName: String) {
+        deliver(.linkChanged)
+    }
+
+    func linkQualityDidChangeForWiFiInterface(
+        withName interfaceName: String,
+        rssi: Int,
+        transmitRate: Double
+    ) {
+        deliver(.linkQuality(rssi: rssi))
+    }
+
+    func modeDidChangeForWiFiInterface(withName interfaceName: String) {
+        deliver(.modeChanged)
+    }
+
+    private func deliver(_ event: WiFiEventSignal) {
+        lock.withLock {
+            guard isActive, let target else { return }
+            target.receive(event, generation: generation)
+        }
+    }
+}
 
 final class CoreWLANWiFiSystemReader: WiFiSystemReadingProviding {
     private let client: CWWiFiClient
@@ -147,28 +225,56 @@ final class CoreWLANWiFiSystemReader: WiFiSystemReadingProviding {
 final class CoreWLANWiFiEventMonitor: WiFiEventMonitoring {
     private let clientFactory: WiFiClientFactory
     private var client: CWWiFiClient
+    private var delegateProxy: CoreWLANEventDelegateProxy?
+    private var isConfigured = false
 
     init(clientFactory: @escaping WiFiClientFactory = { CWWiFiClient() }) {
         self.clientFactory = clientFactory
         self.client = clientFactory()
     }
 
-    func start(delegate: any CWEventDelegate, events: [CWEventType]) {
-        configure(delegate: delegate, events: events)
+    func start(
+        receiver: any WiFiEventReceiving,
+        generation: UInt64,
+        events: [CWEventType]
+    ) {
+        configure(receiver: receiver, generation: generation, events: events)
     }
 
-    func restart(delegate: any CWEventDelegate, events: [CWEventType]) {
+    func prepareForRestart() {
         clear()
-        client = clientFactory()
-        configure(delegate: delegate, events: events)
+    }
+
+    func restart(
+        receiver: any WiFiEventReceiving,
+        generation: UInt64,
+        events: [CWEventType],
+        recreateClient: Bool
+    ) {
+        clear()
+        if recreateClient {
+            client = clientFactory()
+        }
+        configure(receiver: receiver, generation: generation, events: events)
     }
 
     func stop() {
         clear()
     }
 
-    private func configure(delegate: any CWEventDelegate, events: [CWEventType]) {
-        client.delegate = delegate
+    private func configure(
+        receiver: any WiFiEventReceiving,
+        generation: UInt64,
+        events: [CWEventType]
+    ) {
+        delegateProxy?.invalidate()
+        let proxy = CoreWLANEventDelegateProxy(
+            target: receiver,
+            generation: generation
+        )
+        delegateProxy = proxy
+        client.delegate = proxy
+        isConfigured = true
         for event in events {
             do {
                 try client.startMonitoringEvent(with: event)
@@ -181,7 +287,11 @@ final class CoreWLANWiFiEventMonitor: WiFiEventMonitoring {
     }
 
     private func clear() {
+        delegateProxy?.invalidate()
+        delegateProxy = nil
         client.delegate = nil
+        guard isConfigured else { return }
+        isConfigured = false
         do {
             try client.stopMonitoringAllEvents()
         } catch {
@@ -287,7 +397,7 @@ final class SystemInternetSharingDetector: InternetSharingDetecting {
 }
 
 @MainActor
-final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
+final class WiFiMonitor: NSObject, WiFiMonitoring, WiFiEventReceiving {
     private enum Lifecycle {
         case idle
         case running
@@ -318,7 +428,21 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
     private let now: () -> Date
     private let refreshDebounceInterval: Duration
     private let refreshDebounceSleep: @Sendable (Duration) async throws -> Void
+    private let eventMailbox = WiFiEventMailbox()
+    private var eventGeneration: UInt64 = 0
     private var scheduledRefreshTask: Task<Void, Never>?
+    private let invalidationRecoveryBackoff: [Duration]
+    private let invalidationRecoveryWindow: TimeInterval
+    private let invalidationRecoveryLimit: Int
+    private let invalidationRecoverySleep: @Sendable (Duration) async throws -> Void
+    private var invalidationRecoveryTask: Task<Void, Never>?
+    private var invalidationRecoveryAttemptID: UInt64 = 0
+    private(set) var invalidationRecoveryTaskCompletionCount: UInt64 = 0
+    private var invalidationRecoveryDates: [Date] = []
+    private var eventClientNeedsReplacement = false
+    private(set) var eventMonitoringSuspended = false
+    private let diagnosticsEnabled: Bool
+    private var lastDiagnosticsLog: Date?
     private var detailsVisible = true
     private var readInFlight = false
     private var refreshPending = false
@@ -346,6 +470,14 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
     private let noInterfaceRecoveryLimit: Int
     private var lifecycle = Lifecycle.idle
 
+    var eventDiagnosticsSnapshot: WiFiEventDiagnosticsSnapshot {
+        eventMailbox.diagnosticsSnapshot()
+    }
+
+    var hasPendingInvalidationRecovery: Bool {
+        invalidationRecoveryTask != nil
+    }
+
     init(
         statusReader: any WiFiStatusReadingProviding = CoreWLANStatusReader(),
         nameAuthorizer: any WiFiNameAuthorizing = CoreLocationWiFiNameAuthorizer(),
@@ -359,6 +491,21 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         refreshDebounceSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
         },
+        invalidationRecoveryBackoff: [Duration] = [
+            .seconds(1),
+            .seconds(2),
+            .seconds(5),
+            .seconds(15),
+            .seconds(30)
+        ],
+        invalidationRecoveryWindow: TimeInterval = 300,
+        invalidationRecoveryLimit: Int = 5,
+        invalidationRecoverySleep: @escaping @Sendable (Duration) async throws -> Void = {
+            try await Task.sleep(for: $0)
+        },
+        diagnosticsEnabled: Bool = ProcessInfo.processInfo.environment[
+            "STATUS_TRIO_WIFI_DIAGNOSTICS"
+        ] == "1",
         noInterfaceRecoveryLimit: Int = 3,
         readTimeout: Duration = .seconds(5),
         readTimeoutSleep: @escaping @Sendable (Duration) async throws -> Void = {
@@ -375,6 +522,13 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         self.now = now
         self.refreshDebounceInterval = refreshDebounceInterval
         self.refreshDebounceSleep = refreshDebounceSleep
+        self.invalidationRecoveryBackoff = invalidationRecoveryBackoff.isEmpty
+            ? [.zero]
+            : invalidationRecoveryBackoff
+        self.invalidationRecoveryWindow = invalidationRecoveryWindow
+        self.invalidationRecoveryLimit = max(1, invalidationRecoveryLimit)
+        self.invalidationRecoverySleep = invalidationRecoverySleep
+        self.diagnosticsEnabled = diagnosticsEnabled
         self.noInterfaceRecoveryLimit = noInterfaceRecoveryLimit
         readWatchdog = ReadWatchdog(
             baseTimeout: readTimeout,
@@ -391,6 +545,8 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
 
     deinit {
         scheduledRefreshTask?.cancel()
+        invalidationRecoveryTask?.cancel()
+        eventMailbox.close()
         if lifecycle != .stopped {
             eventMonitor.stop()
             pathMonitor.cancel()
@@ -401,8 +557,14 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
     func start() {
         guard lifecycle == .idle else { return }
         lifecycle = .running
+        eventClientNeedsReplacement = false
 
-        eventMonitor.start(delegate: self, events: Self.monitoredEvents)
+        let activation = activateNextEventGeneration()
+        eventMonitor.start(
+            receiver: self,
+            generation: activation.generation,
+            events: Self.monitoredEvents
+        )
         startPathMonitoring()
         refresh()
     }
@@ -412,7 +574,9 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
     func recover() {
         guard lifecycle == .running else { return }
         interfaceAbsentStreak = 0
-        restartMonitoring()
+        let wasSuspended = eventMonitoringSuspended
+        resetInvalidationRecoveryState()
+        restartMonitoring(recreateClient: wasSuspended)
     }
 
     @discardableResult
@@ -457,6 +621,8 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         lifecycle = .stopped
         scheduledRefreshTask?.cancel()
         scheduledRefreshTask = nil
+        invalidationRecoveryTask?.cancel()
+        invalidationRecoveryTask = nil
         readWatchdog.cancel()
         teardown()
     }
@@ -516,6 +682,8 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         interfaceAbsentStreak = 0
         lastRecoveryAttempt = nil
         isPersistentReadFailure = false
+        let currentDate = now()
+        resumeSuspendedEventMonitoringIfPossible(at: currentDate)
 
         let input = WiFiClassificationInput(
             powerOn: reading.powerOn,
@@ -528,7 +696,6 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         )
         let nameAccess = nameAuthorizer.access
         let state = WiFiClassifier.classify(input)
-        let currentDate = now()
         publish(
             state,
             rssi: resolveRSSI(normalizedRSSI(reading.rssi), state: state, at: currentDate),
@@ -538,71 +705,34 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         )
     }
 
-    nonisolated func clientConnectionInterrupted() {
+    nonisolated func receive(_ event: WiFiEventSignal, generation: UInt64) {
+        guard eventMailbox.enqueue(event, generation: generation) else { return }
         Task { @MainActor [weak self] in
-            guard let self, self.lifecycle == .running else { return }
-            self.scheduleRefresh()
+            self?.drainWiFiEvents()
         }
     }
 
-    nonisolated func clientConnectionInvalidated() {
-        Task { @MainActor [weak self] in
-            guard let self, self.lifecycle == .running else { return }
-            self.recover()
-            self.scheduleRefresh()
-        }
-    }
+    private func drainWiFiEvents() {
+        guard lifecycle == .running, let batch = eventMailbox.take() else { return }
 
-    nonisolated func powerStateDidChangeForWiFiInterface(withName interfaceName: String) {
-        Task { @MainActor [weak self] in
-            self?.handleAssociationChange()
+        if batch.associationChanged {
+            clearCachedRSSI()
+            readGeneration &+= 1
         }
-    }
-
-    nonisolated func ssidDidChangeForWiFiInterface(withName interfaceName: String) {
-        Task { @MainActor [weak self] in
-            self?.handleAssociationChange()
+        if let rssi = batch.latestRSSI {
+            noteEventRSSI(rssi)
         }
-    }
-
-    nonisolated func bssidDidChangeForWiFiInterface(withName interfaceName: String) {
-        Task { @MainActor [weak self] in
-            self?.handleAssociationChange()
+        if batch.connectionInvalidated {
+            eventClientNeedsReplacement = true
+            scheduleInvalidationRecovery()
+            logWiFiDiagnosticsIfNeeded()
+            return
         }
-    }
 
-    nonisolated func linkDidChangeForWiFiInterface(withName interfaceName: String) {
-        Task { @MainActor [weak self] in
-            self?.handleAssociationChange()
+        if batch.needsRefresh {
+            scheduleRefresh()
         }
-    }
-
-    nonisolated func linkQualityDidChangeForWiFiInterface(
-        withName interfaceName: String,
-        rssi: Int,
-        transmitRate: Double
-    ) {
-        Task { @MainActor [weak self] in
-            guard let self, self.lifecycle == .running else { return }
-            // The event carries the associated network's signal strength; keep it
-            // as a fallback for a poll that comes back invalid before the refresh.
-            self.noteEventRSSI(rssi)
-            self.scheduleRefresh()
-        }
-    }
-
-    nonisolated func modeDidChangeForWiFiInterface(withName interfaceName: String) {
-        Task { @MainActor [weak self] in
-            self?.scheduleRefresh()
-        }
-    }
-
-    /// An association identity change (roam, join, leave, radio toggle). The
-    /// last network's signal must never be reused for the next one, so the
-    /// cached RSSI is dropped before the fresh read is scheduled.
-    private func handleAssociationChange() {
-        clearCachedRSSI()
-        scheduleRefresh()
+        logWiFiDiagnosticsIfNeeded()
     }
 
     /// Records a known-good signal strength delivered by a link-quality event so
@@ -637,6 +767,12 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
     }
 
     private func teardown() {
+        invalidationRecoveryTask?.cancel()
+        invalidationRecoveryTask = nil
+        invalidationRecoveryDates.removeAll()
+        eventClientNeedsReplacement = false
+        eventMonitoringSuspended = false
+        eventMailbox.close()
         eventMonitor.stop()
         pathMonitor.cancel()
         latestPath = nil
@@ -711,7 +847,12 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         // `noInterfaceRecoveryLimit` rebuilds whatever the read cadence. The gate
         // also absorbs the fix-up read a rebuild triggers, so a rebuild can never
         // re-trigger itself.
-        guard interfaceAbsentStreak < noInterfaceRecoveryLimit else { return }
+        guard
+            invalidationRecoveryTask == nil,
+            !eventClientNeedsReplacement,
+            !eventMonitoringSuspended,
+            interfaceAbsentStreak < noInterfaceRecoveryLimit
+        else { return }
         if
             let lastRecoveryAttempt,
             date.timeIntervalSince(lastRecoveryAttempt) < staleInterval
@@ -720,15 +861,168 @@ final class WiFiMonitor: NSObject, WiFiMonitoring, CWEventDelegate {
         }
 
         interfaceAbsentStreak += 1
-        restartMonitoring()
+        restartMonitoring(recreateClient: false)
     }
 
-    private func restartMonitoring() {
+    private func scheduleInvalidationRecovery() {
+        guard lifecycle == .running else { return }
+        scheduleRefresh()
+
+        guard invalidationRecoveryTask == nil, !eventMonitoringSuspended else {
+            return
+        }
+
+        let currentDate = now()
+        pruneInvalidationRecoveryDates(at: currentDate)
+        guard invalidationRecoveryDates.count < invalidationRecoveryLimit else {
+            suspendEventMonitoring()
+            return
+        }
+
+        invalidationRecoveryDates.append(currentDate)
+        let delayIndex = min(
+            invalidationRecoveryDates.count - 1,
+            invalidationRecoveryBackoff.count - 1
+        )
+        let delay = invalidationRecoveryBackoff[delayIndex]
+        let sleep = invalidationRecoverySleep
+        invalidationRecoveryAttemptID &+= 1
+        let attemptID = invalidationRecoveryAttemptID
+        invalidationRecoveryTask = Task { @MainActor [weak self] in
+            do {
+                try await sleep(delay)
+            } catch {
+                self?.finishInvalidationRecoveryTask(attemptID)
+                return
+            }
+
+            guard
+                !Task.isCancelled,
+                let self,
+                self.lifecycle == .running,
+                !self.eventMonitoringSuspended
+            else {
+                self?.finishInvalidationRecoveryTask(attemptID)
+                return
+            }
+
+            self.finishInvalidationRecoveryTask(attemptID)
+            self.restartMonitoring(recreateClient: true)
+            self.scheduleRefresh()
+            self.logWiFiDiagnosticsIfNeeded(force: true)
+        }
+    }
+
+    private func suspendEventMonitoring() {
+        guard !eventMonitoringSuspended else { return }
+        eventMonitoringSuspended = true
+        invalidationRecoveryTask?.cancel()
+        invalidationRecoveryTask = nil
+        invalidationRecoveryAttemptID &+= 1
+        eventMonitor.stop()
+        wifiMonitorLogger.error(
+            "CoreWLAN invalidation recovery suspended after \(self.invalidationRecoveryLimit, privacy: .public) attempts in \(self.invalidationRecoveryWindow, privacy: .public) seconds"
+        )
+        logWiFiDiagnosticsIfNeeded(force: true)
+    }
+
+    private func resumeSuspendedEventMonitoringIfPossible(at date: Date) {
+        guard eventMonitoringSuspended else { return }
+
+        pruneInvalidationRecoveryDates(at: date)
+        guard invalidationRecoveryDates.count < invalidationRecoveryLimit else {
+            return
+        }
+
+        invalidationRecoveryDates.append(date)
+        eventMonitoringSuspended = false
+        restartMonitoring(recreateClient: true)
+        logWiFiDiagnosticsIfNeeded(force: true)
+    }
+
+    private func pruneInvalidationRecoveryDates(at date: Date) {
+        invalidationRecoveryDates.removeAll {
+            date.timeIntervalSince($0) >= invalidationRecoveryWindow
+        }
+    }
+
+    private func resetInvalidationRecoveryState() {
+        invalidationRecoveryTask?.cancel()
+        invalidationRecoveryTask = nil
+        invalidationRecoveryAttemptID &+= 1
+        invalidationRecoveryDates.removeAll()
+        eventMonitoringSuspended = false
+    }
+
+    private func finishInvalidationRecoveryTask(_ attemptID: UInt64) {
+        invalidationRecoveryTaskCompletionCount &+= 1
+        guard invalidationRecoveryAttemptID == attemptID else { return }
+        invalidationRecoveryTask = nil
+        invalidationRecoveryAttemptID &+= 1
+    }
+
+    private func restartMonitoring(recreateClient: Bool) {
         readGeneration &+= 1
         lastRecoveryAttempt = now()
-        eventMonitor.restart(delegate: self, events: Self.monitoredEvents)
+        // Retire callbacks before clearing the mailbox. The proxy keeps its lock
+        // through delivery, so this wait makes every accepted callback visible to
+        // the activation below; none can be lost behind a reused invalid client.
+        eventMonitor.prepareForRestart()
+        let activation = activateNextEventGeneration()
+        if activation.pendingBatch?.associationChanged == true {
+            clearCachedRSSI()
+        }
+        if let rssi = activation.pendingBatch?.latestRSSI {
+            noteEventRSSI(rssi)
+        }
+        let shouldRecreateClient =
+            recreateClient ||
+            eventClientNeedsReplacement ||
+            activation.pendingBatch?.connectionInvalidated == true
+        if shouldRecreateClient {
+            eventClientNeedsReplacement = false
+        }
+        eventMonitor.restart(
+            receiver: self,
+            generation: activation.generation,
+            events: Self.monitoredEvents,
+            recreateClient: shouldRecreateClient
+        )
         pathMonitor.cancel()
         startPathMonitoring()
+        if activation.pendingBatch?.needsRefresh == true {
+            scheduleRefresh()
+        }
+    }
+
+    private func activateNextEventGeneration() -> (
+        generation: UInt64,
+        pendingBatch: WiFiEventBatch?
+    ) {
+        eventGeneration &+= 1
+        let generation = eventGeneration
+        let pendingBatch = eventMailbox.activate(generation: generation)
+        return (generation, pendingBatch)
+    }
+
+    private func logWiFiDiagnosticsIfNeeded(force: Bool = false) {
+        guard diagnosticsEnabled else { return }
+
+        let currentDate = now()
+        if
+            !force,
+            let lastDiagnosticsLog,
+            currentDate.timeIntervalSince(lastDiagnosticsLog) < 5
+        {
+            return
+        }
+        lastDiagnosticsLog = currentDate
+
+        let snapshot = eventDiagnosticsSnapshot
+        let counts = snapshot.counts
+        wifiMonitorLogger.notice(
+            "CoreWLAN callbacks generation=\(snapshot.activeGeneration, privacy: .public) interrupted=\(counts.connectionInterrupted, privacy: .public) invalidated=\(counts.connectionInvalidated, privacy: .public) power=\(counts.powerChanged, privacy: .public) ssid=\(counts.ssidChanged, privacy: .public) bssid=\(counts.bssidChanged, privacy: .public) link=\(counts.linkChanged, privacy: .public) quality=\(counts.linkQualityChanged, privacy: .public) mode=\(counts.modeChanged, privacy: .public) batches=\(snapshot.deliveredBatches, privacy: .public) max-pending=\(snapshot.maximumPendingSignals, privacy: .public) replacements=\(self.invalidationRecoveryDates.count, privacy: .public) suspended=\(self.eventMonitoringSuspended, privacy: .public)"
+        )
     }
 
     /// Resolves the signal strength to publish for an associated interface.

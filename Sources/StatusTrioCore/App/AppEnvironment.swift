@@ -26,9 +26,9 @@ final class AppEnvironment {
     private let lowPowerModeControlSynchronizer = LowPowerModeControlSynchronizer()
     private let memoryPressureMonitor: MemoryPressureMonitor
     private let previewResourceLifecycle: PreviewResourceLifecycle
+    let backgroundUITesting: BackgroundUITestingConfiguration
 
     private var chargingEffectCancellables = Set<AnyCancellable>()
-    private var iconSourceDemandBridge = IconSourceDemandBridge()
     private var inputSourceLifecycleCancellables = Set<AnyCancellable>()
     private var previewResourceLifecycleCancellables = Set<AnyCancellable>()
     private var hasSubscribedToChargingEffectInputs = false
@@ -58,7 +58,8 @@ final class AppEnvironment {
         telemetryReporter: any TelemetryReporting,
         memoryPressureMonitor: MemoryPressureMonitor? = nil,
         bluetoothProfilerCache: BluetoothProfilerReportCache = .shared,
-        previewResourceLifecycle: PreviewResourceLifecycle? = nil
+        previewResourceLifecycle: PreviewResourceLifecycle? = nil,
+        backgroundUITesting: BackgroundUITestingConfiguration = .disabled
     ) {
         self.store = store
         self.settings = settings
@@ -80,6 +81,7 @@ final class AppEnvironment {
         self.memoryPressureMonitor = memoryPressureMonitor ?? MemoryPressureMonitor()
         self.bluetoothProfilerCache = bluetoothProfilerCache
         self.previewResourceLifecycle = previewResourceLifecycle ?? PreviewResourceLifecycle()
+        self.backgroundUITesting = backgroundUITesting
         self.menuBarChargingEffectEnabled = settings.showsMenuBarChargingEffect
         self.dockChargingEffectEnabled = settings.showsDockChargingEffect
     }
@@ -92,7 +94,19 @@ final class AppEnvironment {
         memoryPressureMonitor.start()
         iconPresentation.start()
         startInputSourceMonitoringIfNeeded()
-        onboardingWindowController.showIfNeeded()
+        // A panel test must not be blocked by first-run onboarding. The
+        // Settings background route keeps its existing onboarding policy.
+        let presentedOnboarding =
+            backgroundUITesting.isEnabled && backgroundUITesting.opensStatusPanel
+            ? false
+            : onboardingWindowController.showIfNeeded()
+        if backgroundUITesting.isEnabled, !presentedOnboarding {
+            if backgroundUITesting.opensStatusPanel {
+                statusBarController.presentStatusPanelForBackgroundTesting()
+            } else {
+                settingsWindowController.show()
+            }
+        }
         statusBarController.visibilityDidChange = { [weak self] in
             self?.updateChargingEffectClock()
         }
@@ -104,10 +118,6 @@ final class AppEnvironment {
         }
         dockVisibilityMonitor?.onChange = { [weak self] _ in
             self?.updateDockChargingAnimationOwnership()
-        }
-        appIconController.systemPollDidFire = { [weak self] in
-            guard let self, isDockVisibilityMonitoring else { return }
-            dockVisibilityMonitor?.refresh()
         }
         chargingEffectMotionMonitor.onChange = { [weak self] _ in
             self?.updateChargingEffectClock()
@@ -131,15 +141,18 @@ final class AppEnvironment {
         )
         store.bindInputSettings(settings)
         store.bindLocalIPSettings(settings)
+        store.bindApplicationEnergySettings(settings)
         store.bindMobileBatterySettings(settings)
         store.bindLowPowerModeSettings(settings)
         store.bindBluetoothSettings(settings)
+        store.bindExternalVolumeSettings(settings)
+        store.bindExternalBrightnessSettings(settings)
         store.start()
-        subscribeToIconSourceDemand()
         telemetryReporter.start()
     }
 
     func stop() {
+        settings.flushPendingPersists()
         memoryPressureMonitor.stop()
         memoryPressureMonitor.onPressure = nil
         telemetryReporter.stop()
@@ -149,7 +162,6 @@ final class AppEnvironment {
         stopPreviewResourceLifecycle()
         appIconController.dockChargingAnimationEligibilityDidChange = nil
         appIconController.dockContentDidChange = nil
-        appIconController.systemPollDidFire = nil
         dockVisibilityMonitor?.onChange = nil
         if isDockVisibilityMonitoring {
             dockVisibilityMonitor?.stop()
@@ -159,14 +171,6 @@ final class AppEnvironment {
         chargingEffectMotionMonitor.onChange = nil
         chargingEffectMotionMonitor.stop()
         chargingEffectCancellables.removeAll()
-        iconSourceDemandBridge.releaseAll(
-            releaseActivation: { [bluetoothDevices = store.bluetoothDevices] token in
-                bluetoothDevices.releaseActivation(token)
-            },
-            releaseBatteryLevels: { [bluetoothDevices = store.bluetoothDevices] token in
-                bluetoothDevices.releaseBackgroundBatteryLevels(token)
-            }
-        )
         bluetoothAudioIconOverrideSynchronizer.stop()
         bluetoothNearbyBatteryOptOutSynchronizer.stop()
         lowPowerModeControlSynchronizer.stop()
@@ -220,79 +224,9 @@ final class AppEnvironment {
         dockChargingAnimationPresenter?.trimForMemoryPressure()
         previewResourceLifecycle.releaseIfIdle()
         IconImageDecodeCache.shared.reset()
+        ApplicationEnergyIconCache.shared.reset()
         DockIconRenderer.resetScratchContexts()
         StatusIconRenderer.resetInkOffsetCaches()
-    }
-
-    private func subscribeToIconSourceDemand() {
-        Publishers.CombineLatest4(
-            settings.$iconConfiguration.removeDuplicates(),
-            settings.$refreshesAirPodsBatteryForIcon.removeDuplicates(),
-            settings.$airPodsIconDeviceAddress.removeDuplicates(),
-            settings.$connectedBluetoothIconDeviceAddress.removeDuplicates()
-        )
-        .receive(on: DispatchQueue.main)
-        .sink { [weak self] _, _, _, _ in
-            guard let self else { return }
-            // Deferred publications invalidate demand; historical tuples must
-            // not replay an opt-in that was revoked before the queue drained.
-            self.reconcileIconSourceDemand(
-                configuration: self.settings.iconConfiguration,
-                batteryOptIn: self.settings.refreshesAirPodsBatteryForIcon,
-                selectedAirPodsAddress: self.settings.airPodsIconDeviceAddress
-            )
-            self.iconPresentation.refreshSourceState()
-        }
-        .store(in: &chargingEffectCancellables)
-
-        Publishers.CombineLatest3(
-            store.bluetoothDevices.$devices.removeDuplicates(),
-            store.bluetoothDevices.$batteryLevels.removeDuplicates(),
-            store.bluetoothDevices.$batteryLevelsUpdatedAt.removeDuplicates()
-        )
-        .receive(on: DispatchQueue.main)
-        .sink { [weak self] _, _, _ in
-            guard let self else { return }
-            self.reconcileIconSourceDemand(
-                configuration: self.settings.iconConfiguration,
-                batteryOptIn: self.settings.refreshesAirPodsBatteryForIcon,
-                selectedAirPodsAddress: self.settings.airPodsIconDeviceAddress
-            )
-            self.iconPresentation.refreshSourceState()
-        }
-        .store(in: &chargingEffectCancellables)
-
-        store.bluetoothDevices.$availability
-            .removeDuplicates()
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self else { return }
-                self.reconcileIconSourceDemand(
-                    configuration: self.settings.iconConfiguration,
-                    batteryOptIn: self.settings.refreshesAirPodsBatteryForIcon,
-                    selectedAirPodsAddress: self.settings.airPodsIconDeviceAddress
-                )
-                self.iconPresentation.refreshSourceState()
-            }
-            .store(in: &chargingEffectCancellables)
-    }
-
-    private func reconcileIconSourceDemand(
-        configuration: IconConfigurationV1,
-        batteryOptIn: Bool,
-        selectedAirPodsAddress: String?
-    ) {
-        let bluetoothDevices = store.bluetoothDevices
-        iconSourceDemandBridge.reconcile(
-            configuration: configuration,
-            userOptedInToBackgroundBattery: batteryOptIn,
-            bluetoothDevices: bluetoothDevices.devices,
-            selectedAirPodsAddress: selectedAirPodsAddress,
-            requestActivation: { bluetoothDevices.requestActivation($0) },
-            releaseActivation: { bluetoothDevices.releaseActivation($0) },
-            requestBatteryLevels: { bluetoothDevices.requestBackgroundBatteryLevels($0) },
-            releaseBatteryLevels: { bluetoothDevices.releaseBackgroundBatteryLevels($0) }
-        )
     }
 
     /// Input-source observers exist only while a feature that draws them is
@@ -301,17 +235,12 @@ final class AppEnvironment {
     private func startInputSourceMonitoringIfNeeded() {
         guard inputSourceLifecycleCancellables.isEmpty else { return }
         Publishers.CombineLatest(
-            settings.$iconConfiguration
-                .map { configuration in
-                    let selection = configuration.composition.center
-                    return selection.primary == .inputSource || selection.fallback == .inputSource
-                }
-                .removeDuplicates(),
+            settings.$connectionCenterSource.removeDuplicates(),
             settings.$enabledPopupSections.removeDuplicates()
         )
         .sink { [weak self] centerSource, enabledSections in
             guard let self else { return }
-            let isNeeded = centerSource || enabledSections.contains(.inputSource)
+            let isNeeded = centerSource == .inputSource || enabledSections.contains(.inputSource)
             if isNeeded {
                 inputSourceController.start()
             } else {
@@ -456,6 +385,7 @@ final class AppEnvironment {
         connectionMonitor: (any NetworkConnectionMonitoring)? = nil,
         vpnMonitor: (any VPNMonitoring)? = nil,
         volumeMonitor: any VolumeMonitoring,
+        brightnessMonitor: any BrightnessMonitoring = BrightnessMonitor(defaultExternalBackend: .automatic),
         inputMonitor: (any AudioInputMonitoring)? = nil,
         refreshInterval: Duration = .seconds(15)
     ) -> SystemStatusStore {
@@ -465,6 +395,7 @@ final class AppEnvironment {
             connectionMonitor: connectionMonitor,
             vpnMonitor: vpnMonitor,
             volumeMonitor: volumeMonitor,
+            brightnessMonitor: brightnessMonitor,
             inputMonitor: inputMonitor,
             refreshInterval: refreshInterval,
             bluetoothDevices: BluetoothDeviceController(
@@ -483,7 +414,9 @@ final class AppEnvironment {
         )
     }
 
-    static func live() -> AppEnvironment {
+    static func live(
+        backgroundUITesting: BackgroundUITestingConfiguration = .disabled
+    ) -> AppEnvironment {
         let settings = SettingsStore()
         // A measurement launch can force the synthetic charging input so the
         // animation can be compared on and off on a machine that is not charging.
@@ -497,7 +430,12 @@ final class AppEnvironment {
             vpnMonitor: VPNMonitor(),
             volumeMonitor: VolumeMonitor(outputController: CoreAudioOutputController()),
             inputMonitor: AudioInputMonitor(hardware: CoreAudioInputHardware()),
-            refreshInterval: settings.refreshInterval
+            // #255 production propagation only uses the per-power-source
+            // values. The store starts on a battery-present, unplugged
+            // placeholder snapshot, so seed the initial wait with the battery
+            // cadence; StatusBarController's subscription corrects it as soon
+            // as the first real power snapshot arrives.
+            refreshInterval: settings.refreshInterval(forPluggedIn: false)
         )
         let localization = Localization()
         let inputSourceController = InputSourceController()
@@ -505,41 +443,43 @@ final class AppEnvironment {
         let iconPresentation = IconPresentationViewModel(
             snapshot: store.snapshot,
             settings: IconPresentationSettings(
-                configuration: settings.iconPresentationConfiguration,
+                configuration: IconPresentationConfiguration(
+                    battery: appearance.batteryOptions,
+                    connection: appearance.connectionOptions,
+                    volume: appearance.volumeOptions,
+                    bluetooth: appearance.bluetoothAudioOptions
+                ),
                 menuBarSize: appearance.iconSize,
-                testsChargingEffect: settings.testsChargingEffect,
-                designerConfiguration: settings.iconConfiguration,
-                runtimeOptions: settings.iconRuntimePresentationOptions
+                testsChargingEffect: settings.testsChargingEffect
             ),
             snapshots: store.$snapshot.eraseToAnyPublisher(),
             preferences: settings.iconPresentationPublisher,
             inputSources: inputSourceController.$state
-                .map(\.selectedDescriptor)
+                .combineLatest(settings.$inputSourceMarkerStyle)
+                .map { state, markerStyle in state.iconDescriptor(markerStyle: markerStyle) }
+                .removeDuplicates()
+                .eraseToAnyPublisher(),
+            systemPowers: store.powerSampling.$systemPower
+                .removeDuplicates()
+                .eraseToAnyPublisher(),
+            highPowerModes: store.highPowerMode.$isHighPowerMode
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
             resolveInputs: { snapshot in
                 IconPresentationResourceResolver.inputs(snapshot: snapshot)
-            },
-            mapResolution: { inputs, configuration, sources in
-                IconCompositionResolver.resolve(
-                    inputs: IconResolutionInputs(system: inputs, sources: sources),
-                    configuration: configuration
-                )
-            },
-            resolveSourceSnapshot: { snapshot in
-                IconPresentationResourceResolver.sourceSnapshot(
-                    snapshot: snapshot,
-                    bluetoothDevices: store.bluetoothDevices.devices,
-                    batteryLevels: store.bluetoothDevices.batteryLevels,
-                    batteryLevelsUpdatedAt: store.bluetoothDevices.batteryLevelsUpdatedAt,
-                    selectedAirPodsAddress: settings.airPodsIconDeviceAddress,
-                    selectedConnectedDeviceAddress: settings.connectedBluetoothIconDeviceAddress,
-                    bluetoothAvailability: store.bluetoothDevices.availability
-                )
             }
         )
         let chargingEffectClock = ChargingEffectClock()
         let chargingEffectMotionMonitor = ChargingEffectMotionMonitor()
+        let chargeToFullNow = ChargeToFullNowController(
+            backend: PowerUIChargeController(),
+            sessionStore: UserDefaultsChargeToFullNowSessionStore(
+                defaults: .standard
+            ),
+            restoreLimit: {
+                Int(settings.chargeToFullRestoreLimit.rounded())
+            }
+        )
         let dockChargingAnimationPresenter: any DockChargingAnimationPresenting =
             DockChargingAnimationRendererMode.usesApplicationIconFrames()
                 ? DockApplicationIconChargingPresenter()
@@ -549,7 +489,8 @@ final class AppEnvironment {
         let onboardingWindowController = OnboardingWindowController(
             settings: settings,
             localization: localization,
-            activationPolicy: activationPolicy
+            activationPolicy: activationPolicy,
+            backgroundUITesting: backgroundUITesting
         )
         var settingsWindowController: SettingsWindowController?
         let controller = StatusBarController(
@@ -559,9 +500,14 @@ final class AppEnvironment {
             localization: localization,
             isVisible: settings.appIconPlacement.showsMenuBarIcon,
             openSettings: { settingsWindowController?.show() },
+            openAppBatterySettings: {
+                settingsWindowController?.show(section: .battery)
+            },
             quitAction: { NSApplication.shared.terminate(nil) },
             chargingEffectClock: chargingEffectClock,
-            inputSourceController: inputSourceController
+            backgroundUITesting: backgroundUITesting,
+            inputSourceController: inputSourceController,
+            chargeToFullNow: chargeToFullNow
         )
         let globalShortcutController = GlobalShortcutController(
             settings: settings,
@@ -580,7 +526,9 @@ final class AppEnvironment {
             },
             chargingEffectClock: chargingEffectClock,
             inputSourceController: inputSourceController,
-            globalShortcutController: globalShortcutController
+            globalShortcutController: globalShortcutController,
+            chargeToFullNow: chargeToFullNow,
+            backgroundUITesting: backgroundUITesting
         )
         settingsWindowController = resolvedSettingsWindowController
         onboardingWindowController.openSettings = { [weak resolvedSettingsWindowController] in
@@ -653,7 +601,8 @@ final class AppEnvironment {
             globalShortcutController: globalShortcutController,
             dockChargingAnimationPresenter: dockChargingAnimationPresenter,
             dockVisibilityMonitor: dockVisibilityMonitor,
-            telemetryReporter: telemetryReporter
+            telemetryReporter: telemetryReporter,
+            backgroundUITesting: backgroundUITesting
         )
     }
 

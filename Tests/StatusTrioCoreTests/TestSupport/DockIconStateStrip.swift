@@ -176,10 +176,7 @@ enum DockIconStateStrip {
     }
 
     private static let connectedWiFi = WiFiStatus(state: .connected, rssi: -52)
-    private static let bluetoothOptions = BluetoothAudioIconOptions(
-        replacesNetworkIcon: true,
-        usesVolumeColor: true
-    )
+    private static let bluetoothOptions = BluetoothAudioIconOptions(usesVolumeColor: true)
 
     private static func battery(
         _ percentage: Int,

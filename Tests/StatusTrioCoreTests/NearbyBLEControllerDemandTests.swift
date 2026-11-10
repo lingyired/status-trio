@@ -4,6 +4,50 @@ import XCTest
 
 @MainActor
 final class NearbyBLEControllerDemandTests: XCTestCase {
+    func testAppleMasterToggleControlsMobileBluetoothReads() {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        monitor.emit(.poweredOn)
+        let id = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [id], hiddenIDs: [])
+
+        XCTAssertEqual(
+            scanner.appleMobileReadsEnabledValues.last,
+            true,
+            "enabling Apple devices permits the known-device mobile route"
+        )
+
+        controller.configureNearbyBLEDevices(
+            enabled: false, knownIDs: [id], hiddenIDs: []
+        )
+        XCTAssertEqual(scanner.appleMobileReadsEnabledValues.last, false)
+
+        controller.configureNearbyBLEDevices(
+            enabled: true, knownIDs: [id], hiddenIDs: []
+        )
+        XCTAssertEqual(scanner.appleMobileReadsEnabledValues.last, true)
+        controller.deactivate()
+    }
+
+    func testUserRefreshResumesSuspendedNearbyReads() {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        monitor.emit(.poweredOn)
+        let id = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [id], hiddenIDs: [])
+        controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+
+        controller.refreshFromUser()
+
+        XCTAssertGreaterThanOrEqual(
+            scanner.resumeSuspendedReadsCount,
+            1,
+            "an explicit refresh is the only path that may retry a suspended device"
+        )
+        controller.deactivate()
+    }
+
     func testBackgroundScannerStopsDuringSystemSleepAndResumesOnWake() {
         let (controller, scanner, monitor) = makeController()
         controller.activate()
@@ -18,6 +62,45 @@ final class NearbyBLEControllerDemandTests: XCTestCase {
 
         controller.setSystemSleeping(false)
         XCTAssertTrue(scanner.isRunning)
+        controller.deactivate()
+    }
+
+    func testBackgroundScannerStopsDuringDisplaySleepAndResumesOnWake() {
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        monitor.emit(.poweredOn)
+        let selected = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [selected], hiddenIDs: [])
+        controller.setNearbyBLEBackgroundRefresh(enabled: true, selectedIDs: [selected], interval: .seconds(120))
+        XCTAssertTrue(scanner.isRunning)
+
+        controller.setDisplaySleeping(true)
+        XCTAssertFalse(scanner.isRunning, "a dark screen must not keep the radio scanning")
+
+        controller.setDisplaySleeping(false)
+        XCTAssertTrue(scanner.isRunning)
+        controller.deactivate()
+    }
+
+    func testSystemWakeWithDisplayStillOffKeepsNearbyScannerStopped() {
+        // A dark wake delivers didWake (which self-heals the system-sleeping
+        // flag) while the display is still off. The display-sleep gate must
+        // hold until screensDidWake or a visible surface repairs it.
+        let (controller, scanner, monitor) = makeController()
+        controller.activate()
+        monitor.emit(.poweredOn)
+        let selected = UUID()
+        controller.configureNearbyBLEDevices(enabled: true, knownIDs: [selected], hiddenIDs: [])
+        controller.setNearbyBLEBackgroundRefresh(enabled: true, selectedIDs: [selected], interval: .seconds(120))
+        XCTAssertTrue(scanner.isRunning)
+
+        controller.setSystemSleeping(true)
+        controller.setDisplaySleeping(true)
+        controller.setSystemSleeping(false)
+        XCTAssertFalse(
+            scanner.isRunning,
+            "a dark wake must not resume background scanning while the display is still off"
+        )
         controller.deactivate()
     }
 
@@ -650,6 +733,12 @@ private final class DemandScannerSpy: BluetoothLEBatteryScanning {
         }
         return result
     }
+    private(set) var appleMobileReadsEnabledValues: [Bool] = []
+    private(set) var resumeSuspendedReadsCount = 0
+    func setAppleMobileBatteryReadsEnabled(_ enabled: Bool) {
+        appleMobileReadsEnabledValues.append(enabled)
+    }
+    func resumeSuspendedReads() { resumeSuspendedReadsCount += 1 }
     func start() { isRunning = true }
     func refresh() {}
     func stop() {

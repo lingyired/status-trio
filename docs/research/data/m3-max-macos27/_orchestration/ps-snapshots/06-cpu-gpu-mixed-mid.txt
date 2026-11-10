@@ -1,0 +1,32 @@
+# ps snapshot: 06-cpu-gpu-mixed-mid  wall=2026-10-30T23:10:12+0800 mono=200399.993036
+# --- top 25 by cpu ---
+  PID  PPID  %CPU %MEM COMM
+25760 49315 398.4  0.0 /tmp/soc-power-research/lab/bin/cpuload
+  619     1  43.9  0.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+31204  9342  41.2  0.0 /usr/sbin/lsof
+ 1345  1300  40.9  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper
+81860     1  40.0  6.9 /Applications/BlueStacks.app/Contents/MacOS/BlueStacks
+    1     0  19.4  0.0 /sbin/launchd
+ 1300     1  16.4  1.2 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
+18255 17803  11.2  0.0 /Users/lingsmbp/Downloads/macpow
+67995  1300  10.4  0.2 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+ 5090     1   9.3  0.0 /usr/libexec/diagnosticd
+17763     1   7.8  0.1 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+  808     1   7.6  0.1 /usr/sbin/coreaudiod
+ 3846     1   7.5  0.0 /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemd
+84549 84507   6.5  0.0 /usr/bin/log
+25761 49315   6.4  0.0 /tmp/soc-power-research/lab/bin/gpuload
+ 1318     1   5.6  0.4 /Applications/UURemote.app/Contents/MacOS/UURemote
+  993     1   4.3  0.0 /System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager
+  623     1   4.3  0.1 /System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow
+  590     1   3.4  0.0 /System/Library/CoreServices/launchservicesd
+16696     1   3.3  0.1 /Applications/BestDock.app/Contents/MacOS/BestDock
+  789     1   2.4  0.0 /usr/sbin/BTLEServer
+ 1409  1313   1.9  0.4 /Applications/Doubao.app/Contents/Helpers/Doubao Browser.app/Contents/MacOS/Doubao Browser
+ 4129     1   1.7  0.0 /System/Library/PrivateFrameworks/TextInputUIMacHelper.framework/Versions/A/XPCServices/CursorUIViewService.xpc/Contents/MacOS/CursorUIViewService
+  595     1   1.7  0.0 /usr/libexec/locationd
+  612     1   1.6  0.0 /usr/sbin/bluetoothd
+# --- our loaders / sampler ---
+25755 49315   0.6 /tmp/soc-power-research/harness/power-sampler
+25760 49315 398.4 /tmp/soc-power-research/lab/bin/cpuload
+25761 49315   6.4 /tmp/soc-power-research/lab/bin/gpuload

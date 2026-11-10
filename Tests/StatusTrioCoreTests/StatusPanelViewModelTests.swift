@@ -28,6 +28,122 @@ final class StatusPanelViewModelTests: XCTestCase {
         panel.stop()
     }
 
+    func testIrrelevantSettingChangeDoesNotRemapThePanel() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        fixture.updateScheduler.runScheduled()
+        let schedules = fixture.updateScheduler.scheduleCount
+
+        // The icon size is not read by any panel presentation. A write to it
+        // used to mark every refresh region dirty and remap the whole panel.
+        fixture.settings.iconSize += 1
+        _ = await waitForYields { fixture.updateScheduler.pendingCount > 0 }
+        fixture.updateScheduler.runScheduled()
+
+        XCTAssertEqual(fixture.updateScheduler.scheduleCount, schedules)
+    }
+
+    func testRelevantSettingChangeRemapsThePanel() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        fixture.updateScheduler.runScheduled()
+        let schedules = fixture.updateScheduler.scheduleCount
+
+        fixture.settings.showsBatteryPowerInfoBar = true
+        let didSchedule = await waitForYields { fixture.updateScheduler.pendingCount > 0 }
+        XCTAssertTrue(didSchedule)
+        fixture.updateScheduler.runScheduled()
+
+        XCTAssertGreaterThan(fixture.updateScheduler.scheduleCount, schedules)
+    }
+
+    func testStoppingPanelReleasesPowerInfoBarAndStopsWithoutOtherDemands() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.showsBatteryPowerInfoBar = true
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel, .powerInfoBar])
+
+        panel.stop()
+
+        XCTAssertTrue(fixture.store.powerSampling.demands.isEmpty)
+        XCTAssertFalse(fixture.store.powerSampling.isRunning)
+    }
+
+    func testEnablingPowerInfoBarUsesDeliveredPreferenceBeforeSettingsCommit() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel])
+
+        fixture.settings.showsBatteryPowerInfoBar = true
+
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel, .powerInfoBar])
+        fixture.updateScheduler.runScheduled()
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel, .powerInfoBar])
+    }
+
+    func testDisablingPowerInfoBarReleasesAuxiliaryDemandImmediately() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.showsBatteryPowerInfoBar = true
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        fixture.settings.showsBatteryPowerInfoBar = false
+
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel])
+        fixture.updateScheduler.runScheduled()
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel])
+    }
+
+    func testStoppingPanelPreservesIconDemandAndTwoSecondCadence() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.showsBatteryPowerInfoBar = true
+        let service = fixture.store.powerSampling
+        service.begin(.icon)
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.stop()
+
+        XCTAssertEqual(service.demands, [.icon])
+        XCTAssertTrue(service.isRunning)
+        XCTAssertEqual(PowerSamplingService.interval, .seconds(2))
+        service.end(.icon)
+        XCTAssertTrue(service.demands.isEmpty)
+        XCTAssertFalse(service.isRunning)
+    }
+
+    func testRapidPowerInfoBarChangesAndPanelReopenLeaveNoDemandBehind() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        fixture.settings.showsBatteryPowerInfoBar = true
+        fixture.settings.showsBatteryPowerInfoBar = false
+        fixture.settings.showsBatteryPowerInfoBar = true
+        panel.stop()
+        fixture.updateScheduler.runScheduled()
+        XCTAssertTrue(fixture.store.powerSampling.demands.isEmpty)
+
+        panel.start()
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel, .powerInfoBar])
+        fixture.settings.showsBatteryPowerInfoBar = false
+        XCTAssertEqual(fixture.store.powerSampling.demands, [.panel])
+        panel.stop()
+        XCTAssertTrue(fixture.store.powerSampling.demands.isEmpty)
+        XCTAssertFalse(fixture.store.powerSampling.isRunning)
+    }
+
     func testLiveVolumeUpdatesPanelImmediatelyWithoutPublishingOtherRegions() async throws {
         let fixture = PanelStoreFixture()
         let panel = StatusPanelViewModel(
@@ -42,7 +158,7 @@ final class StatusPanelViewModelTests: XCTestCase {
 
         let volumeChanged = expectation(description: "volume panel receives live volume")
         var cancellables: Set<AnyCancellable> = []
-        panel.$volume
+        panel.volumeControl.$volume
             .dropFirst()
             .sink { state in
                 guard state.scalar == 0.83 else { return }
@@ -56,6 +172,121 @@ final class StatusPanelViewModelTests: XCTestCase {
 
         XCTAssertEqual(panel.volume.scalar, 0.83)
         XCTAssertEqual(panel.battery.title, "Battery · 72%")
+    }
+
+    /// #263: while the panel observes the whole view model, a volume tick must
+    /// invalidate only the volume row. If `volume` were still `@Published` on
+    /// `StatusPanelViewModel`, this tick would publish `objectWillChange` for
+    /// every panel section and force a window layout pass.
+    func testLiveVolumePublishesTheVolumeModelWithoutInvalidatingThePanel() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = StatusPanelViewModel(
+            store: fixture.store,
+            settings: fixture.settings,
+            localization: fixture.localization,
+            actions: StatusPanelActions(),
+            updateScheduler: fixture.updateScheduler
+        )
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        var panelPublications = 0
+        var cancellables: Set<AnyCancellable> = []
+        panel.objectWillChange
+            .sink { _ in panelPublications += 1 }
+            .store(in: &cancellables)
+        let volumeChanged = expectation(description: "the volume row receives live volume")
+        panel.volumeControl.$volume
+            .dropFirst()
+            .sink { state in
+                guard state.scalar == 0.83 else { return }
+                volumeChanged.fulfill()
+            }
+            .store(in: &cancellables)
+
+        fixture.store.start()
+        fixture.volume.send(VolumeStatus(scalar: 0.83, isMuted: false, deviceName: "Desk speakers"))
+        await fulfillment(of: [volumeChanged], timeout: 1)
+
+        XCTAssertEqual(panel.volume.scalar, 0.83)
+        XCTAssertEqual(
+            panelPublications,
+            0,
+            "a scalar volume tick must not invalidate the whole panel view model"
+        )
+    }
+
+    /// #263: a drag emits levels far faster than the row can draw them. A rapid
+    /// series of level-only readings must reach the model as the latest value,
+    /// not as one publication per reading.
+    func testRapidLevelChangesCoalesceToTheLatestVolume() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+        fixture.store.start()
+
+        var publications: [Double] = []
+        var cancellables: Set<AnyCancellable> = []
+        panel.volumeControl.$volume
+            .sink { state in
+                if let scalar = state.scalar { publications.append(scalar) }
+            }
+            .store(in: &cancellables)
+
+        let levels = stride(from: 0.50, through: 0.99, by: 0.01).map { $0 }
+        for level in levels {
+            fixture.volume.send(
+                VolumeStatus(scalar: level, isMuted: false, deviceName: "Desk speakers")
+            )
+        }
+
+        let latest = try XCTUnwrap(levels.last)
+        let deadline = ContinuousClock.now + .seconds(3)
+        while panel.volume.scalar != latest, ContinuousClock.now < deadline {
+            await Task.yield()
+        }
+        XCTAssertEqual(panel.volume.scalar, latest, "the latest level must still land")
+        XCTAssertLessThan(
+            publications.count,
+            levels.count,
+            "level-only readings must coalesce instead of publishing one per tick"
+        )
+    }
+
+    func testBatteryRuntimeUpdatesTheOpenPanelWithoutPercentageChanges() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+
+        let cases: [(Int?, String)] = [
+            (85, "About 1 hour, 25 minutes remaining"),
+            (80, "About 1 hour, 20 minutes remaining"),
+            (nil, "On battery")
+        ]
+        for (minutes, expected) in cases {
+            let expectedSleeps = fixture.popupSleeper.callCount + 1
+            fixture.battery.send(BatteryStatus(
+                rawPercentage: 72,
+                isPresent: true,
+                isCharging: false,
+                timeToEmptyMinutes: minutes,
+                isLowPowerMode: false,
+                isConnectedToPower: false
+            ))
+            let queued = await fixture.popupSleeper.waitForCallCount(
+                expectedSleeps, timeout: .seconds(1)
+            )
+            XCTAssertTrue(queued)
+            fixture.popupSleeper.releaseAll()
+            let updated = await waitForYields { panel.battery.subtitle == expected }
+            XCTAssertTrue(updated, expected)
+            XCTAssertEqual(panel.battery.title, "Battery · 72%")
+            XCTAssertEqual(panel.battery.accessibilityValue, expected)
+        }
     }
 
     func testPopupBatteryAndNetworkUpdateThroughTheirDebouncedSource() async throws {
@@ -297,6 +528,112 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertEqual(panel.volume.listeningModeTaskID, "BBCCDDEEFF01|outputs:|current:|visible:true|open:1")
     }
 
+    /// The listening-mode master switch must be a real gate on the volume rows:
+    /// with it off, the preview rows and any real capsules disappear even when
+    /// the preview toggle is on, and the discovery identity is marked closed so
+    /// the summary task stops the controller.
+    func testListeningModeMasterSwitchOffHidesPreviewAndVolumeCapsules() async throws {
+        let fixture = PanelStoreFixture()
+        fixture.settings.setPopupSection(.volume, enabled: true)
+        fixture.settings.previewsBluetoothListeningMode = true
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        XCTAssertFalse(panel.volume.previewRows.isEmpty)
+        XCTAssertFalse(panel.volume.listeningModeTaskID.hasPrefix("off::"))
+
+        fixture.settings.showsBluetoothListeningMode = false
+        let queuedOff = await waitForYields { fixture.updateScheduler.pendingCount > 0 }
+        XCTAssertTrue(queuedOff)
+        fixture.updateScheduler.runScheduled()
+
+        XCTAssertTrue(panel.volume.previewRows.isEmpty)
+        XCTAssertTrue(panel.volume.rows.allSatisfy { $0.listeningMode == nil })
+        XCTAssertTrue(panel.volume.listeningModeTaskID.hasPrefix("off::"))
+
+        // Turning it back on restores the preview rows and a live discovery tag.
+        fixture.settings.showsBluetoothListeningMode = true
+        let queuedOn = await waitForYields { fixture.updateScheduler.pendingCount > 0 }
+        XCTAssertTrue(queuedOn)
+        fixture.updateScheduler.runScheduled()
+        XCTAssertFalse(panel.volume.previewRows.isEmpty)
+        XCTAssertFalse(panel.volume.listeningModeTaskID.hasPrefix("off::"))
+    }
+
+    /// A packaged release must never inject the synthetic preview rows, even if a
+    /// stale developer toggle is set on the settings. The build flag gates it.
+    func testReleaseBuildNeverShowsListeningModePreviewRows() {
+        let fixture = PanelStoreFixture(isDevelopmentBuild: false)
+        fixture.settings.setPopupSection(.volume, enabled: true)
+        fixture.settings.previewsBluetoothListeningMode = true
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        XCTAssertFalse(fixture.settings.isListeningModePreviewActive)
+        XCTAssertTrue(panel.volume.previewRows.isEmpty)
+        XCTAssertFalse(panel.volume.listeningModeTaskID.contains("|preview"))
+    }
+
+    /// `volumeListChanged()` drives the real controller. With the master switch
+    /// off it must stop discovery/SPP and clear presentations; turning it back
+    /// on reruns discovery and republishes controls.
+    func testListeningModeMasterSwitchStopsAndRestoresControllerDiscovery() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.previewsBluetoothListeningMode = true
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        let actions = StatusPanelActions(store: fixture.store, settings: fixture.settings)
+        fixture.store.setPopoverVisible(true)
+        defer {
+            fixture.store.setPopoverVisible(false)
+            fixture.bluetoothListeningModes.stop()
+            fixture.store.stop()
+        }
+
+        actions.volumeListChanged()
+        XCTAssertFalse(fixture.bluetoothListeningModes.presentations.isEmpty)
+
+        fixture.settings.showsBluetoothListeningMode = false
+        actions.volumeListChanged()
+        XCTAssertTrue(fixture.bluetoothListeningModes.presentations.isEmpty)
+
+        fixture.settings.showsBluetoothListeningMode = true
+        actions.volumeListChanged()
+        XCTAssertFalse(fixture.bluetoothListeningModes.presentations.isEmpty)
+    }
+
+    /// With the master switch off, a listening-mode tap routed from a stale
+    /// preview presentation must be ignored.
+    func testListeningModeMasterSwitchOffIgnoresSetMode() {
+        let fixture = PanelStoreFixture()
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        let actions = StatusPanelActions(store: fixture.store, settings: fixture.settings)
+        fixture.store.setPopoverVisible(true)
+        defer {
+            fixture.store.setPopoverVisible(false)
+            fixture.bluetoothListeningModes.stop()
+            fixture.store.stop()
+        }
+
+        fixture.settings.previewsBluetoothListeningMode = true
+        fixture.settings.showsBluetoothListeningMode = true
+        actions.volumeListChanged()
+        let address = try! XCTUnwrap(fixture.bluetoothListeningModes.presentations.keys.first)
+        let before = try! XCTUnwrap(fixture.bluetoothListeningModes.presentations[address])
+
+        fixture.settings.showsBluetoothListeningMode = false
+        actions.setListeningMode(address: address, mode: .transparency)
+
+        XCTAssertEqual(
+            fixture.bluetoothListeningModes.presentations[address]?.selectedMode,
+            before.selectedMode
+        )
+    }
+
+
     func testReviewPR124OutputListIdentityUsesDeliveredVolume() async {
         let original = AudioOutputDevice(id: 1, name: "Built-in", uid: "builtin", isCurrent: true)
         let added = AudioOutputDevice(id: 42, name: "FreeBuds", uid: "buds", isCurrent: false)
@@ -350,7 +687,7 @@ final class StatusPanelViewModelTests: XCTestCase {
         }.store(in: &cancellables)
         panel.$battery.dropFirst().sink { _ in otherRegionUpdates += 1 }.store(in: &cancellables)
         panel.$network.dropFirst().sink { _ in otherRegionUpdates += 1 }.store(in: &cancellables)
-        panel.$volume.dropFirst().sink { _ in otherRegionUpdates += 1 }.store(in: &cancellables)
+        panel.volumeControl.$volume.dropFirst().sink { _ in otherRegionUpdates += 1 }.store(in: &cancellables)
 
         fixture.input.send(AudioInputStatus(
             devices: [
@@ -381,7 +718,8 @@ final class StatusPanelViewModelTests: XCTestCase {
         let oldLimit = panel.volume.visibleLimit
 
         fixture.settings.alwaysShowsAllOutputDevices = true
-        XCTAssertEqual(fixture.updateScheduler.pendingCount, 1)
+        let queued = await waitForYields { fixture.updateScheduler.pendingCount == 1 }
+        XCTAssertTrue(queued, "a relevant setting change must queue one remap")
         panel.stop()
         fixture.updateScheduler.runScheduled()
         await Task.yield()
@@ -421,7 +759,7 @@ final class StatusPanelViewModelTests: XCTestCase {
 
         let firstRead = expectation(description: "owner receives live volume while started")
         var cancellables: Set<AnyCancellable> = []
-        panel.$volume.dropFirst().sink { state in
+        panel.volumeControl.$volume.dropFirst().sink { state in
             if state.scalar == 0.83 { firstRead.fulfill() }
         }.store(in: &cancellables)
         fixture.volume.send(VolumeStatus(scalar: 0.83, isMuted: false, deviceName: "Desk speakers"))
@@ -476,13 +814,14 @@ final class StatusPanelViewModelTests: XCTestCase {
         panel.$audioInput.dropFirst().sink { _ in inputPublishes += 1 }.store(in: &cancellables)
 
         let volumeUpdated = expectation(description: "new settings reach the volume region")
-        panel.$volume.dropFirst().sink { state in
+        panel.volumeControl.$volume.dropFirst().sink { state in
             if state.visibleLimit == nil { volumeUpdated.fulfill() }
         }.store(in: &cancellables)
         fixture.settings.alwaysShowsAllOutputDevices = true
         XCTAssertNil(fixture.settings.visibleOutputDeviceLimit)
         XCTAssertGreaterThan(settingsChanges, 0)
-        XCTAssertEqual(fixture.updateScheduler.pendingCount, 1)
+        let queued = await waitForYields { fixture.updateScheduler.pendingCount == 1 }
+        XCTAssertTrue(queued, "a relevant setting change must queue one remap")
         fixture.updateScheduler.runScheduled()
         XCTAssertNil(panel.volume.visibleLimit)
         await fulfillment(of: [volumeUpdated], timeout: 1)
@@ -514,6 +853,27 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertEqual(panel.bluetooth.summary.title, fixture.localization.string(.bluetoothTitle))
     }
 
+    func testBrightnessSectionIsDroppedOnlyWhenEveryDisplayIsHidden() {
+        let visible: [PopupSection] = [.battery, .volume, .brightness, .inputSource]
+
+        XCTAssertEqual(
+            StatusPanelViewModel.displayedSummarySections(
+                visible: visible,
+                brightnessIsEmpty: false
+            ),
+            visible,
+            "with a visible display the section stays where it is ordered"
+        )
+        XCTAssertEqual(
+            StatusPanelViewModel.displayedSummarySections(
+                visible: visible,
+                brightnessIsEmpty: true
+            ),
+            [.battery, .volume, .inputSource],
+            "an all-hidden list must not leave an empty brightness section or divider"
+        )
+    }
+
     private func waitForYields(
         _ condition: @MainActor () -> Bool,
         count: Int = 100
@@ -538,7 +898,7 @@ struct AirPodsDiscoveryTriggerTests {
         fixture.store.start()
         defer { panel.stop(); fixture.store.stop() }
         let originalIdentity = panel.volume.listeningModeTaskID
-        let events = observeDiscoveryUpdates(panel.$volume)
+        let events = observeDiscoveryUpdates(panel.volumeControl.$volume)
         defer { events.observation.cancel() }
 
         let selectedAirPods = AudioOutputDevice(id: 42, name: "AirPods Pro 2", uid: "buds", isCurrent: true)
@@ -663,7 +1023,7 @@ struct AirPodsDiscoveryTriggerTests {
         fixture.store.start()
         defer { panel.stop(); fixture.store.stop() }
         let originalIdentity = panel.volume.listeningModeTaskID
-        let events = observeDiscoveryUpdates(panel.$volume)
+        let events = observeDiscoveryUpdates(panel.volumeControl.$volume)
         defer { events.observation.cancel() }
 
         fixture.volume.send(VolumeStatus(
@@ -697,12 +1057,13 @@ final class PanelStoreFixture {
     init(
         outputDevices: [AudioOutputDevice] = [],
         pairedDevices: [BluetoothDevice] = [],
-        wifiScanner: PanelWiFiScanner = PanelWiFiScanner()
+        wifiScanner: PanelWiFiScanner = PanelWiFiScanner(),
+        isDevelopmentBuild: Bool = true
     ) {
         let suiteName = "StatusPanelViewModelTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         let sleeper = ManualEventSleeper()
-        settings = SettingsStore(defaults: defaults)
+        settings = SettingsStore(defaults: defaults, isDevelopmentBuild: isDevelopmentBuild)
         localization = Localization(defaults: defaults, preferredLanguages: ["en"])
         popupSleeper = sleeper
         bluetoothWorker = PanelBluetoothWorker(devices: pairedDevices)
@@ -741,6 +1102,7 @@ final class PanelStoreFixture {
             volumeMonitor: volume,
             inputMonitor: input,
             popupDebounceSleep: { duration in await sleeper.sleep(duration) },
+            powerSampling: PowerSamplingService(reader: { _ in .empty }),
             wifiNetworks: WiFiNetworkController(scanWorker: wifiScanner),
             bluetoothDevices: bluetoothDevices,
             bluetoothListeningModes: bluetoothListeningModes,
@@ -751,7 +1113,8 @@ final class PanelStoreFixture {
 
     func makePanel(
         actions: StatusPanelActions? = nil,
-        inputSourceController: InputSourceController? = nil
+        inputSourceController: InputSourceController? = nil,
+        chargeToFullNow: ChargeToFullNowController? = nil
     ) -> StatusPanelViewModel {
         StatusPanelViewModel(
             store: store,
@@ -759,7 +1122,8 @@ final class PanelStoreFixture {
             localization: localization,
             actions: actions ?? StatusPanelActions(),
             updateScheduler: updateScheduler,
-            inputSourceController: inputSourceController
+            inputSourceController: inputSourceController,
+            chargeToFullNow: chargeToFullNow
         )
     }
 }
@@ -808,6 +1172,7 @@ final class PanelInputMonitor: AudioInputMonitoring {
     private(set) var enabledValues: [Bool] = []
     func setEnabled(_ enabled: Bool) { enabledValues.append(enabled) }
     func setVisible(_ visible: Bool) {}
+    func setDeviceListVisible(_ visible: Bool) {}
     func recover() {}
     func select(_ id: AudioDeviceID) {}
     func setScalar(_ value: Double, requestID: UUID) {}
@@ -884,8 +1249,10 @@ final class ManualPanelUpdateScheduler: PanelPresentationUpdateScheduling {
     private var pendingUpdates: [@MainActor () -> Void] = []
     var pendingCount: Int { pendingUpdates.count }
     var hasPendingUpdate: Bool { !pendingUpdates.isEmpty }
+    private(set) var scheduleCount = 0
 
     func schedule(_ update: @escaping @MainActor () -> Void) {
+        scheduleCount += 1
         pendingUpdates.append(update)
     }
 

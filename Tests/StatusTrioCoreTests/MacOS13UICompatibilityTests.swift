@@ -28,13 +28,18 @@ final class MacOS13UICompatibilityTests: XCTestCase {
         }
     }
 
-    func testStatusPopoverUsesVenturaSafeHostingSizing() throws {
-        let source = try String(
+    func testStatusPanelUsesLayoutMetricsAsItsOnlyWindowSizingSource() throws {
+        let statusBarSource = try String(
             contentsOf: packageRoot.appendingPathComponent("Sources/StatusTrioCore/UI/StatusBarController.swift"),
             encoding: .utf8
         )
-        XCTAssertTrue(source.contains("if #available(macOS 14.0, *)"))
-        XCTAssertTrue(source.contains("hostingController.sizingOptions = [.preferredContentSize]"))
+        let panelSource = try String(
+            contentsOf: packageRoot.appendingPathComponent("Sources/StatusTrioCore/UI/AnchoredStatusPanel.swift"),
+            encoding: .utf8
+        )
+        XCTAssertFalse(statusBarSource.contains("hostingController.sizingOptions = [.preferredContentSize]"))
+        XCTAssertFalse(statusBarSource.contains("window.setContentSize(hostingController.preferredContentSize)"))
+        XCTAssertTrue(panelSource.contains("size.height = layoutMetrics.contentHeight ?? size.height"))
     }
 
     func testOnboardingUsesVenturaSafeHostingSizing() throws {
@@ -42,8 +47,11 @@ final class MacOS13UICompatibilityTests: XCTestCase {
             contentsOf: packageRoot.appendingPathComponent("Sources/StatusTrioCore/UI/OnboardingWindowController.swift"),
             encoding: .utf8
         )
-        XCTAssertTrue(source.contains("if #available(macOS 14.0, *)"))
-        XCTAssertTrue(source.contains("hostingController.sizingOptions = [.preferredContentSize]"))
+        XCTAssertTrue(source.contains("hostingView.sizingOptions = []"))
+        XCTAssertTrue(source.contains("hostingView.autoresizingMask = [.width, .height]"))
+        XCTAssertTrue(source.contains("window.contentView = hostingView"))
+        XCTAssertFalse(source.contains(".sizingOptions = [.preferredContentSize]"))
+        XCTAssertFalse(source.contains("window.setContentSize(hostingController.preferredContentSize)"))
         XCTAssertFalse(source.contains("hostingController.view.layoutSubtreeIfNeeded()"))
     }
 
@@ -186,6 +194,8 @@ final class MacOS13UICompatibilityTests: XCTestCase {
         "macmini.gen2",
         "microphone",
         "powerplug.portrait.fill",
+        "person.spatialaudio.fill",
+        "person.spatialaudio.stereo.fill",
         "right",
         "smartphone",
         "translate",

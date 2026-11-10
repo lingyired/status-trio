@@ -263,6 +263,192 @@ final class AudioPanelMapperTests: XCTestCase {
         XCTAssertEqual(state.rows[2].name, "Unknown output device")
     }
 
+    func testHiddenOutputRowsAreDroppedExceptTheActiveOutput() {
+        let localization = makeLocalization(.english)
+        let speakers = AudioOutputDevice(id: 1, name: "Speakers", uid: "speakers", isCurrent: false)
+        let display = AudioOutputDevice(id: 2, name: "Display", uid: "display", isCurrent: true)
+        let airPods = AudioOutputDevice(id: 3, name: "AirPods", uid: "airpods", isCurrent: false)
+        let status = VolumeStatus(
+            scalar: 0.5,
+            isMuted: false,
+            deviceName: nil,
+            currentDevice: display,
+            outputDevices: [speakers, display, airPods],
+            canSetVolume: true,
+            canMute: true
+        )
+
+        let state = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            deviceList: AudioOutputListPreferences(hiddenUIDs: ["speakers", "display"]),
+            localization: localization
+        )
+
+        XCTAssertEqual(state.rows.map(\.key.uid), ["display", "airpods"])
+        XCTAssertTrue(state.showsDeviceList)
+
+        let single = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            deviceList: AudioOutputListPreferences(hiddenUIDs: ["speakers", "airpods"]),
+            localization: localization
+        )
+
+        XCTAssertEqual(single.rows.map(\.key.uid), ["display"])
+        XCTAssertFalse(single.showsDeviceList, "one remaining row is not a choice")
+    }
+
+    func testHiddenActiveOutputKeepsTheListEvenWhenItIsTheOnlyRow() {
+        let localization = makeLocalization(.english)
+        let speakers = AudioOutputDevice(id: 1, name: "Speakers", uid: "speakers", isCurrent: false)
+        let display = AudioOutputDevice(id: 2, name: "Display", uid: "display", isCurrent: true)
+        let airPods = AudioOutputDevice(id: 3, name: "AirPods", uid: "airpods", isCurrent: false)
+        let status = VolumeStatus(
+            scalar: 0.5,
+            isMuted: false,
+            deviceName: nil,
+            currentDevice: display,
+            outputDevices: [speakers, display, airPods],
+            canSetVolume: true,
+            canMute: true
+        )
+
+        let state = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            deviceList: AudioOutputListPreferences(hiddenUIDs: ["speakers", "display", "airpods"]),
+            localization: localization
+        )
+
+        XCTAssertEqual(state.rows.map(\.key.uid), ["display"])
+        XCTAssertTrue(
+            state.showsDeviceList,
+            "hiding every device must still show the active output the panel keeps"
+        )
+    }
+
+    func testInputRowsFollowTheSavedOrderAndDropHiddenDevicesExceptTheCurrentInput() {
+        let localization = makeLocalization(.english)
+        let builtIn = AudioInputDevice(id: AudioDeviceID(1), uid: "built-in", name: "MacBook Pro Microphone")
+        let airPods = AudioInputDevice(id: AudioDeviceID(2), uid: "airpods", name: "AirPods")
+        let usb = AudioInputDevice(id: AudioDeviceID(3), uid: "usb", name: "USB Mic")
+        let camera = AudioInputDevice(id: AudioDeviceID(4), uid: "camera", name: "Camera Mic")
+        let status = makeInputStatus(
+            devices: [builtIn, airPods, usb, camera],
+            defaultDeviceID: builtIn.id
+        )
+
+        let unordered = AudioPanelMapper.input(status, localization: localization)
+        XCTAssertEqual(
+            unordered.rows.map(\.key.uid),
+            ["built-in", "airpods", "camera", "usb"],
+            "without a saved order the current input leads, then names sort"
+        )
+
+        let state = AudioPanelMapper.input(
+            status,
+            deviceList: AudioInputListPreferences(
+                order: ["usb", "airpods"],
+                hiddenUIDs: ["airpods", "built-in"]
+            ),
+            localization: localization
+        )
+
+        // built-in is hidden but stays as the current input; camera is not in
+        // the saved order, so it follows the ordered devices.
+        XCTAssertEqual(state.rows.map(\.key.uid), ["usb", "built-in", "camera"])
+        XCTAssertEqual(state.rows.filter(\.selected).map(\.key.uid), ["built-in"])
+    }
+
+    func testInputHidesTheDeviceListWhenNoDefaultExistsAndEveryDeviceIsHidden() {
+        let localization = makeLocalization(.english)
+        let devices = [
+            AudioInputDevice(id: AudioDeviceID(1), uid: "built-in", name: "MacBook Pro Microphone"),
+            AudioInputDevice(id: AudioDeviceID(2), uid: "usb", name: "USB Mic")
+        ]
+        let status = makeInputStatus(devices: devices, defaultDeviceID: nil)
+
+        let state = AudioPanelMapper.input(
+            status,
+            deviceList: AudioInputListPreferences(hiddenUIDs: ["built-in", "usb"]),
+            localization: localization
+        )
+
+        XCTAssertTrue(state.rows.isEmpty)
+        XCTAssertFalse(state.showsDeviceList, "an empty list has nothing to show")
+    }
+
+    func testInputKeepsTheDeviceListWhenOneUnhiddenRowRemains() {
+        let localization = makeLocalization(.english)
+        let devices = [
+            AudioInputDevice(id: AudioDeviceID(1), uid: "built-in", name: "MacBook Pro Microphone"),
+            AudioInputDevice(id: AudioDeviceID(2), uid: "usb", name: "USB Mic")
+        ]
+        let status = makeInputStatus(devices: devices, defaultDeviceID: nil)
+
+        let state = AudioPanelMapper.input(
+            status,
+            deviceList: AudioInputListPreferences(hiddenUIDs: ["usb"]),
+            localization: localization
+        )
+
+        XCTAssertEqual(state.rows.map(\.key.uid), ["built-in"])
+        XCTAssertTrue(state.showsDeviceList, "input keeps the list for a single row")
+    }
+
+    func testInputRowsHonorTheVisibleLimitWithLocalExpansion() {
+        let localization = makeLocalization(.english)
+        let devices = (1...4).map {
+            AudioInputDevice(id: AudioDeviceID($0), uid: "mic-\($0)", name: "Mic \($0)")
+        }
+        let status = makeInputStatus(devices: devices, defaultDeviceID: devices[0].id)
+
+        let limited = AudioPanelMapper.input(
+            status,
+            deviceList: AudioInputListPreferences(visibleLimit: 2),
+            localization: localization
+        )
+
+        XCTAssertEqual(limited.rows.count, 4, "rows stay complete; only the view collapses them")
+        XCTAssertTrue(limited.hasHiddenRows)
+        XCTAssertEqual(limited.visibleRows(expanded: false).map(\.key.uid), ["mic-1", "mic-2"])
+        XCTAssertEqual(limited.visibleRows(expanded: true).count, 4)
+        XCTAssertEqual(limited.expandLabel, "Expand")
+        XCTAssertEqual(limited.collapseLabel, "Collapse")
+
+        let unlimited = AudioPanelMapper.input(
+            status,
+            deviceList: AudioInputListPreferences(visibleLimit: nil),
+            localization: localization
+        )
+
+        XCTAssertFalse(unlimited.hasHiddenRows)
+        XCTAssertEqual(unlimited.visibleRows(expanded: false).count, 4)
+    }
+
+    func testInputSettingsListKeepsTheSavedOrderForHiddenDevices() {
+        let devices = [
+            AudioInputDevice(id: AudioDeviceID(1), uid: "a", name: "A"),
+            AudioInputDevice(id: AudioDeviceID(2), uid: "b", name: "B"),
+            AudioInputDevice(id: AudioDeviceID(3), uid: nil, name: "C")
+        ]
+
+        let listed = AudioInputPresentation.ordered(
+            devices,
+            currentID: AudioDeviceID(1),
+            order: ["b", "a"],
+            locale: Locale(identifier: "en_US"),
+            unknownName: "Unknown"
+        )
+
+        XCTAssertEqual(
+            listed.map(\.id),
+            [2, 1, 3],
+            "the Settings list follows the saved order whether or not a device is hidden"
+        )
+    }
+
     private func makeLocalization(_ language: AppLanguage) -> Localization {
         let suiteName = "AudioPanelMapperTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -296,5 +482,136 @@ final class AudioPanelMapperTests: XCTestCase {
             error: error,
             isDefaultInputInUse: isDefaultInputInUse
         )
+    }
+}
+
+@MainActor
+final class AudioPanelMapperListeningControlTests: XCTestCase {
+    private final class EndpointProvider: CoreAudioBluetoothEndpointProviding {
+        let endpoints: [BluetoothListeningModeEndpoint]
+        init(_ endpoints: [BluetoothListeningModeEndpoint]) { self.endpoints = endpoints }
+        func discoverEndpoints(using hal: BluetoothListeningModeHAL) -> [BluetoothListeningModeEndpoint] { endpoints }
+    }
+
+    private func makeLocalization() -> Localization {
+        let suiteName = "AudioPanelMapperListeningControlTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        addTeardownBlock { TestUserDefaults.removeSuite(named: suiteName) }
+        return Localization(defaults: defaults, preferredLanguages: ["en"])
+    }
+
+    func testHidingOtherOutputsKeepsCurrentAirPodsListeningControls() {
+        let localization = makeLocalization()
+        let endpoint = BluetoothListeningModeEndpoint(
+            audioDeviceID: 42,
+            capability: BluetoothListeningModeCapability(
+                audioDeviceID: 42,
+                availableModes: [.noiseCancellation, .transparency],
+                currentMode: .noiseCancellation,
+                canSet: true
+            ),
+            isDefaultOutput: true,
+            bluetoothAddress: "aa:bb:cc:dd:ee:ff"
+        )
+        let controller = BluetoothListeningModeController(
+            hal: BluetoothListeningModeHAL(
+                backend: FakeListeningModeBackend(),
+                sleeper: ImmediateListeningModeSleeper(),
+                retryAttempts: 1,
+                retryDelay: .milliseconds(1)
+            ),
+            endpointProvider: EndpointProvider([endpoint]),
+            listenerBackend: FakeListeningModeListenerBackend(),
+            failureClearDelay: .milliseconds(1)
+        )
+        controller.refresh(devices: [BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:FF", name: "AirPods Pro", kind: .audio, isConnected: true
+        )])
+        defer { controller.stop() }
+
+        let airPods = AudioOutputDevice(id: 42, name: "AirPods Pro", uid: "pods", isCurrent: true, transport: .bluetooth)
+        let speakers = AudioOutputDevice(id: 1, name: "Speakers", uid: "speaker", isCurrent: false)
+        let status = VolumeStatus(
+            scalar: 0.5, isMuted: false, deviceName: "AirPods Pro",
+            currentDevice: airPods, outputDevices: [speakers, airPods],
+            canSetVolume: true, canMute: true
+        )
+
+        let state = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            deviceList: AudioOutputListPreferences(hiddenUIDs: ["speaker"]),
+            listeningModes: controller,
+            localization: localization
+        )
+
+        XCTAssertEqual(state.rows.count, 1, "Only the current AirPods remain after hiding others")
+        XCTAssertEqual(state.rows.first?.listeningMode?.isControllable, true)
+        XCTAssertTrue(state.showsDeviceList,
+                      "The list must stay visible so the surviving listening-mode control is reachable")
+    }
+
+    func testDisablingInlineAirPodsControlsHidesTheSystemControlSection() {
+        let localization = makeLocalization()
+        let airPods = AudioOutputDevice(
+            id: AudioDeviceID(42),
+            name: "AirPods",
+            uid: "AA-BB-CC-DD-EE-FF:output",
+            isCurrent: true,
+            transport: .bluetooth,
+            modelUID: "2024 4c"
+        )
+        let status = VolumeStatus(
+            scalar: 0.5, isMuted: false, deviceName: "AirPods",
+            currentDevice: airPods, outputDevices: [airPods],
+            canSetVolume: true, canMute: true
+        )
+
+        let enabled = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            localization: localization
+        )
+        XCTAssertEqual(enabled.rows.first?.supportsAirPodsSystemControls, true)
+
+        let disabled = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            showsAirPodsSystemControls: false,
+            localization: localization
+        )
+        XCTAssertEqual(disabled.rows.first?.supportsAirPodsSystemControls, false,
+                       "Turning the preference off must hide the inline AirPods controls")
+    }
+
+    func testAirPodsPreviewRowCarriesInlineControlsUnlessThePreferenceIsOff() {
+        let localization = makeLocalization()
+        let previewDevices = ListeningModePreview.outputRows(
+            for: .init(isEnabled: true, deviceName: "AirPods Pro", deviceCount: 1, languageCode: "en")
+        )
+        XCTAssertEqual(previewDevices.count, 1)
+        let status = VolumeStatus(
+            scalar: 0.4, isMuted: false, deviceName: "AirPods Pro",
+            outputDevices: previewDevices, canSetVolume: true, canMute: true
+        )
+
+        let enabled = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            previewDevices: previewDevices,
+            localization: localization
+        )
+        XCTAssertEqual(enabled.rows.first?.supportsAirPodsSystemControls, true,
+                       "The Settings preview must be able to show the inline controls without hardware")
+
+        let disabled = AudioPanelMapper.volume(
+            status,
+            controllerAvailable: true,
+            previewDevices: previewDevices,
+            showsAirPodsSystemControls: false,
+            localization: localization
+        )
+        XCTAssertEqual(disabled.rows.first?.supportsAirPodsSystemControls, false,
+                       "The preference must also hide the preview's inline controls")
     }
 }

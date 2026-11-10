@@ -1,5 +1,10 @@
 import Darwin
 import Foundation
+import OSLog
+
+private let mobileDiscoveryLogger = Logger(
+    subsystem: "com.lingsmbp.StatusTrio", category: "apple-device-discovery"
+)
 
 protocol MobileBatteryHelperExecuting: Sendable {
     func run(arguments: [String], timeout: Duration) async throws -> Data
@@ -16,19 +21,28 @@ enum MobileBatteryHelperError: Error, Equatable {
 
 struct ProcessMobileBatteryHelperExecutor: MobileBatteryHelperExecuting {
     private let helperURL: URL
+    private let onProcessStarted: (@Sendable (Int32) -> Void)?
 
-    init(bundleURL: URL = Bundle.main.bundleURL) {
+    init(
+        bundleURL: URL = Bundle.main.bundleURL,
+        onProcessStarted: (@Sendable (Int32) -> Void)? = nil
+    ) {
         helperURL = bundleURL.appendingPathComponent("Contents/Helpers/StatusTrioMobileBatteryHelper", isDirectory: false)
+        self.onProcessStarted = onProcessStarted
     }
 
-    init(helperURL: URL) { self.helperURL = helperURL }
+    init(helperURL: URL, onProcessStarted: (@Sendable (Int32) -> Void)? = nil) {
+        self.helperURL = helperURL
+        self.onProcessStarted = onProcessStarted
+    }
 
     func run(arguments: [String], timeout: Duration) async throws -> Data {
         guard FileManager.default.isExecutableFile(atPath: helperURL.path) else { throw MobileBatteryHelperError.unavailable }
         let outcome = await BoundedProcessInvocation.run(
             executableURL: helperURL,
             arguments: arguments,
-            timeout: timeout
+            timeout: timeout,
+            onProcessStarted: onProcessStarted
         )
         switch outcome {
         case .exited(let data): return data
@@ -43,31 +57,102 @@ struct ProcessMobileBatteryHelperExecutor: MobileBatteryHelperExecuting {
 struct MobileBatteryHelperReader: MobileBatteryReading {
     private let executor: any MobileBatteryHelperExecuting
     private let cycleTimeout: Duration
+    /// Receives the identifier-free cycle summary once per discovery. Production
+    /// keeps the bounded debug log; tests use this to assert the counts directly.
+    private let discoverySummarySink: @Sendable (MobileBatteryDiscoverySummary) -> Void
 
     init(
         executor: any MobileBatteryHelperExecuting = ProcessMobileBatteryHelperExecutor(),
-        cycleTimeout: Duration = .seconds(25)
+        cycleTimeout: Duration = .seconds(25),
+        discoverySummarySink: @escaping @Sendable (MobileBatteryDiscoverySummary) -> Void = { _ in }
     ) {
         self.executor = executor
         self.cycleTimeout = cycleTimeout
+        self.discoverySummarySink = discoverySummarySink
     }
 
+    /// Discovery bounds: at most eight iPhone routes are probed, and at most
+    /// eight candidates are kept from their discovery groups, except the first
+    /// group may contain nine (one phone plus eight Watches).
+    ///
+    /// A cycle runs at most 8 routes × 2 transports = 16 --discover-device
+    /// invocations plus one --list invocation. The controller owns discovery
+    /// demand through active claims; releasing demand cancels this work.
+    private static let maximumDiscoveryPhones = 8
+    private static let maximumDiscoveryCandidates = 8
+
     func discover() async throws -> [AppleDeviceCandidate] {
+        try await discoverWithDiagnostics().candidates
+    }
+
+    func discoverWithDiagnostics() async throws -> MobileBatteryDiscoveryResult {
+        try Task.checkCancellation()
         let listingData = try await executor.run(arguments: ["--list"], timeout: .seconds(3))
-        let phones = try MobileBatteryWire.decodeListing(listingData).prefix(8)
-        return await withTaskGroup(of: [AppleDeviceCandidate].self, returning: [AppleDeviceCandidate].self) { group in
+        let listedRoutes = try MobileBatteryWire.decodeListing(listingData)
+        let phones = listedRoutes
+            .sorted { $0.id < $1.id }
+            .prefix(Self.maximumDiscoveryPhones)
+        let groups = try await withThrowingTaskGroup(
+            of: PhoneDiscoveryGroup.self,
+            returning: [PhoneDiscoveryGroup].self
+        ) { group in
             for phone in phones {
-                guard !Task.isCancelled else { break }
-                group.addTask { await discover(phone) }
+                try Task.checkCancellation()
+                group.addTask { try await discover(phone) }
             }
-            var candidates: [AppleDeviceCandidate] = []
-            while let values = await group.next() {
-                candidates.append(contentsOf: values)
-                let merged = Self.mergeCandidates(candidates)
-                if merged.count >= 8 { return Array(merged.prefix(8)) }
-            }
-            return Array(Self.mergeCandidates(candidates).prefix(8))
+            var results: [PhoneDiscoveryGroup] = []
+            while let value = try await group.next() { results.append(value) }
+            return results
         }
+        try Task.checkCancellation()
+        // Keep each phone's discovery group whole. A Watch is only discoverable
+        // through its paired iPhone's companion route, so truncating the merged
+        // phone and Watch list by hashed row ID can drop a Watch while keeping
+        // its phone (or keep a Watch whose phone was cut). Adding groups in
+        // phone-ID order also keeps the kept set stable between refreshes
+        // instead of following nondeterministic task-completion order.
+        let orderedGroups = groups.sorted(by: { $0.phoneID < $1.phoneID })
+        // Count identities, not transport observations: one phone seen on both
+        // USB and network is one discovered device, not two. This view only
+        // feeds the summary; the returned candidates and the cap still use the
+        // original group/merge path.
+        let groupShapes = orderedGroups.map { group -> (candidateCount: Int, watchCount: Int) in
+            var identities: Set<AppleDeviceID> = []
+            var watchCount = 0
+            for candidate in group.candidates where identities.insert(candidate.id).inserted {
+                if case .trustedWatch = candidate.id { watchCount += 1 }
+            }
+            return (candidateCount: identities.count, watchCount: watchCount)
+        }
+        var merged: [AppleDeviceCandidate] = []
+        var includedGroups = 0
+        for group in orderedGroups {
+            let next = Self.mergeCandidates(merged + group.candidates)
+            if !merged.isEmpty, next.count > Self.maximumDiscoveryCandidates { break }
+            merged = next
+            includedGroups += 1
+        }
+        // Summarize before returning: the controller only sees post-cap
+        // candidates, so a dropped group and its Watches would otherwise be
+        // invisible. Identifier-free; one line per cycle.
+        let summary = MobileBatteryDiscoverySummary.make(
+            listedPhones: listedRoutes.count,
+            // Completed scheduled groups; a cancelled task may have exited
+            // before invoking the helper, so this is not a process count.
+            probedPhones: groups.count,
+            groups: groupShapes,
+            includedGroups: includedGroups,
+            retainedCandidates: merged.count
+        )
+        mobileDiscoveryLogger.debug("discovery \(summary.logDescription, privacy: .public)")
+        discoverySummarySink(summary)
+        var routes = MobileBatteryDiscoveryRouteDiagnostics()
+        for group in groups {
+            routes.attemptedRouteCount += group.routeDiagnostics.attemptedRouteCount
+            routes.failedRouteCount += group.routeDiagnostics.failedRouteCount
+            routes.failureCategories.formUnion(group.routeDiagnostics.failureCategories)
+        }
+        return MobileBatteryDiscoveryResult(candidates: merged, routeDiagnostics: routes)
     }
 
     func read(selectedIDs: Set<AppleDeviceID>) async throws -> MobileBatteryReadResult {
@@ -132,22 +217,50 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
         return await accumulator.snapshot()
     }
 
-    private func discover(_ phone: PhoneRoute) async -> [AppleDeviceCandidate] {
+    private func discover(_ phone: PhoneRoute) async throws -> PhoneDiscoveryGroup {
         var candidates: [AppleDeviceCandidate] = []
+        var routes = MobileBatteryDiscoveryRouteDiagnostics()
         for transport in phone.transports {
+            try Task.checkCancellation()
+            routes.attemptedRouteCount += 1
             do {
                 let data = try await executor.run(
                     arguments: ["--discover-device", phone.id, "--transport", transport.rawValue],
                     timeout: .seconds(5)
                 )
+                try Task.checkCancellation()
                 let decoded = try MobileBatteryWire.decodeDiscovery(data, expectedParentID: phone.id)
+                let failures = MobileBatteryWire.decodeDiscoveryFailures(data)
+                let routeCategories = Set(failures.map {
+                    MobileBatteryDiscoveryFailureCategory(rawValue: $0.category) ?? .other
+                })
+                if !failures.isEmpty {
+                    routes.failedRouteCount += 1
+                    routes.failureCategories.formUnion(routeCategories)
+                }
+                let categories = routeCategories.map(\.rawValue).sorted().joined(separator: ",")
+                let companion = decoded.contains { candidate in
+                    if case .trustedWatch = candidate.id { return true }
+                    return false
+                } ? "watch-found" : "companion-empty-or-unavailable"
+                mobileDiscoveryLogger.debug("route=\(transport.rawValue, privacy: .public) candidates=\(decoded.count, privacy: .public) companion=\(companion, privacy: .public) failures=\(categories, privacy: .public)")
                 candidates.append(contentsOf: decoded)
-                if !decoded.isEmpty { break }
+                // Phone metadata can succeed while the companion service fails.
+                // In that case try the other already-listed route for Watches.
+                if decoded.contains(where: {
+                    if case .trustedWatch = $0.id { return true }
+                    return false
+                }) { break }
             } catch {
-                if Task.isCancelled { return candidates }
+                if Task.isCancelled || error is CancellationError
+                    || (error as? MobileBatteryHelperError) == .cancelled {
+                    throw CancellationError()
+                }
+                routes.failedRouteCount += 1
+                routes.failureCategories.insert(.from(error))
             }
         }
-        return candidates
+        return PhoneDiscoveryGroup(phoneID: phone.id, candidates: candidates, routeDiagnostics: routes)
     }
 
     private func readJobs(_ jobs: [MobileBatteryHelperReadJob], accumulator: MobileBatteryReadAccumulator) async {
@@ -209,19 +322,30 @@ struct MobileBatteryHelperReader: MobileBatteryReading {
         return collected
     }
 
+    /// Reserve an equal share of the remaining execution budget for each route.
+    /// Callers must supply a positive budget and at least one remaining route.
+    static func watchRouteTimeout(remaining: Duration, remainingRouteCount: Int) -> Duration {
+        remaining / remainingRouteCount
+    }
+
     private func readWatch(_ candidate: WatchCandidate) async -> MobileBatteryReadResult {
         var collected = MobileBatteryReadResult()
         let transports = candidate.transports.contains(candidate.route.transport)
             ? [candidate.route.transport] + candidate.transports.filter { $0 != candidate.route.transport }
             : candidate.transports
         let deadline = ContinuousClock.now + .seconds(5)
-        for transport in transports {
+        for (index, transport) in transports.enumerated() {
+            guard !Task.isCancelled else { break }
             let remainingBudget = ContinuousClock.now.duration(to: deadline)
             guard remainingBudget > .zero else { break }
+            let routeTimeout = Self.watchRouteTimeout(
+                remaining: remainingBudget,
+                remainingRouteCount: transports.count - index
+            )
             do {
                 let data = try await executor.run(
                     arguments: ["--read-watch", candidate.route.parentID, "--watch-id", candidate.route.id, "--transport", transport.rawValue],
-                    timeout: remainingBudget
+                    timeout: routeTimeout
                 )
                 let decoded = try MobileBatteryWire.decode(data, expectedParentID: candidate.route.parentID, observedAt: Date())
                 var returnedWatch = false
@@ -292,6 +416,52 @@ private enum MobileBatteryHelperReadJob: Sendable {
 private struct WatchCandidate: Sendable {
     let route: WatchRoute
     let transports: [MobileBatteryTransport]
+}
+
+/// Identifier-free summary of one discovery cycle. The controller only sees
+/// post-cap candidates, so a dropped phone group and the Watches inside it would
+/// otherwise never appear in diagnostics. Counts only; no device identifiers.
+struct MobileBatteryDiscoverySummary: Equatable, Sendable {
+    let listedPhones: Int
+    let probedPhones: Int
+    let discoveredCandidates: Int
+    let retainedCandidates: Int
+    let droppedGroups: Int
+    let droppedWatchCandidates: Int
+
+    /// `groups` are the phone groups in the order the candidate cap visits
+    /// them; `includedGroups` is how many fit before the budget was reached.
+    static func make(
+        listedPhones: Int,
+        probedPhones: Int,
+        groups: [(candidateCount: Int, watchCount: Int)],
+        includedGroups: Int,
+        retainedCandidates: Int
+    ) -> Self {
+        let included = max(0, min(includedGroups, groups.count))
+        let dropped = groups.dropFirst(included)
+        return Self(
+            listedPhones: listedPhones,
+            probedPhones: probedPhones,
+            discoveredCandidates: groups.reduce(0) { $0 + $1.candidateCount },
+            retainedCandidates: retainedCandidates,
+            droppedGroups: dropped.count,
+            droppedWatchCandidates: dropped.reduce(0) { $0 + $1.watchCount }
+        )
+    }
+
+    var logDescription: String {
+        "listedPhones=\(listedPhones) probedPhones=\(probedPhones) discoveredCandidates=\(discoveredCandidates) retainedCandidates=\(retainedCandidates) droppedGroups=\(droppedGroups) droppedWatchCandidates=\(droppedWatchCandidates)"
+    }
+}
+
+/// One iPhone route's discovery result: the phone candidate plus any Watch
+/// candidates reached through its companion service. The group is the unit the
+/// candidate cap keeps or drops so a Watch never outlives its phone.
+private struct PhoneDiscoveryGroup: Sendable {
+    let phoneID: String
+    let candidates: [AppleDeviceCandidate]
+    let routeDiagnostics: MobileBatteryDiscoveryRouteDiagnostics
 }
 
 private actor MobileBatteryReadAccumulator {

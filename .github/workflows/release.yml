@@ -65,6 +65,8 @@ jobs:
       BUILD_INPUT: ${{ inputs.build }}
       TAG_INPUT: ${{ inputs.tag }}
       WORKFLOW_SHA: ${{ github.workflow_sha }}
+      CI_TOOLS_ROOT: ${{ inputs.package_run_id != '' && format('{0}/release-tools', github.workspace) || github.workspace }}
+      CI_LOG_DIR: ${{ github.workspace }}/.build/ci-logs
 
     steps:
       - name: Check out repository
@@ -174,24 +176,14 @@ jobs:
           }
           bash release-tools/scripts/validate-release-recovery.sh
 
-      - name: Run tests
+      - name: Run static release preflight
         run: |
-          set +e
-          bash scripts/test.sh
-          TEST_EXIT_CODE=$?
-          set -e
-
-          if [[ "${TEST_EXIT_CODE}" -ne 0 ]]; then
-            echo "SwiftPM resource bundle diagnostics:"
-            find .build -name 'StatusTrio_StatusTrioCore.bundle' -type d -print
-            find .build -name 'StatusTrio_StatusTrioCore.bundle' -type d -exec find {} -maxdepth 4 -print \;
-            find .build -name 'Localizable.strings' -print | head -n 50
-          fi
-          exit "${TEST_EXIT_CODE}"
-
-      - name: Run native and release-contract tests
-        run: |
-          set -euo pipefail
+          bash "$CI_TOOLS_ROOT/scripts/ci-run-stage.sh" preflight bash -euo pipefail <<'PREFLIGHT'
+          for script in scripts/*.sh; do bash -n "$script"; done
+          bash scripts/check-forbidden-patterns.sh
+          bash "$CI_TOOLS_ROOT/scripts/check-release-workflow-policy.sh"
+          bash "$CI_TOOLS_ROOT/scripts/test-release-workflow-policy.sh"
+          bash "$CI_TOOLS_ROOT/scripts/test-ci-workflow.sh"
           if [[ "${PUBLISH_MODE}" == "true" ]]; then
             VERSION="$VERSION" BUILD="$BUILD" PUBLISH=true NOTES_MODE=publish \
               RELEASE_NOTES_DIR="$GITHUB_WORKSPACE/release-notes/$VERSION" \
@@ -201,6 +193,94 @@ jobs:
               RELEASE_NOTES_DIR="$GITHUB_WORKSPACE/release-notes/$VERSION" \
               bash scripts/validate-appcast-notes.sh
           fi
+          PREFLIGHT
+
+      - name: Run tests
+        run: bash "$CI_TOOLS_ROOT/scripts/ci-run-stage.sh" tests bash scripts/test.sh
+
+      - name: Run trusted release recovery regressions
+        if: ${{ inputs.package_run_id != '' }}
+        run: |
+          set -euo pipefail
+          bash release-tools/scripts/test-release-recovery.sh
+          bash release-tools/scripts/test-release-pipeline.sh
+
+      - name: Summarize verify diagnostics
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [[ -f "$CI_TOOLS_ROOT/scripts/ci-diagnostics.py" ]]; then
+            python3 "$CI_TOOLS_ROOT/scripts/ci-diagnostics.py" summary "$CI_LOG_DIR"
+          else
+            echo 'Verify stopped before diagnostic tooling was available. See the first failed step.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload verify diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-diagnostics
+          path: .build/ci-logs/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  native:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+      CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      PACKAGE_RUN_ID: ${{ inputs.package_run_id }}
+      WORKFLOW_SHA: ${{ github.workflow_sha }}
+      CI_TOOLS_ROOT: ${{ inputs.package_run_id != '' && format('{0}/release-tools', github.workspace) || github.workspace }}
+      CI_LOG_DIR: ${{ github.workspace }}/.build/ci-logs
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.candidate_sha }}
+
+      - name: Reassert frozen candidate
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          [[ "${ACTUAL_SHA}" == "${CANDIDATE_SHA}" ]] || {
+            echo "::error::Native checkout ${ACTUAL_SHA} differs from ${CANDIDATE_SHA}."
+            exit 1
+          }
+          git fetch --quiet origin main
+          if ! git merge-base --is-ancestor "${CANDIDATE_SHA}" origin/main; then
+            echo "::error::Native candidate ${CANDIDATE_SHA} is not part of origin/main."
+            exit 1
+          fi
+          swift --version
+          xcodebuild -version
+          printf 'macOS SDK: %s\n' "$(xcrun --sdk macosx --show-sdk-version)"
+
+      - name: Check out trusted release recovery tooling
+        if: ${{ inputs.package_run_id != '' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.workflow_sha }}
+          path: release-tools
+
+      - name: Verify trusted release recovery tooling
+        if: ${{ inputs.package_run_id != '' }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git -C release-tools rev-parse HEAD)"
+          [[ "${ACTUAL_SHA}" == "${WORKFLOW_SHA}" ]] || {
+            echo "::error::Trusted native tooling ${ACTUAL_SHA} differs from ${WORKFLOW_SHA}."
+            exit 1
+          }
+
+      - name: Run native and release-contract tests
+        run: |
+          bash "$CI_TOOLS_ROOT/scripts/ci-run-stage.sh" native bash -euo pipefail <<'NATIVE'
           bash scripts/test-macos13-deployment-contract-regressions.sh
           bash scripts/test-macos13-deployment-contract.sh
           bash scripts/test-appcast-minimum-system-version.sh
@@ -211,29 +291,46 @@ jobs:
           bash scripts/test-otool-dependencies.sh
           bash scripts/test-macos13-sparkle-contract.sh
           bash scripts/test-mobile-battery-source-cache.sh
-          bash scripts/test-release-workflow-policy.sh
+          bash "$CI_TOOLS_ROOT/scripts/test-mobile-battery-build-cache.sh"
+          bash "$CI_TOOLS_ROOT/scripts/test-ci-diagnostics.sh"
+          bash "$CI_TOOLS_ROOT/scripts/test-build-timing.sh"
           bash scripts/test-release-pipeline.sh
           bash scripts/test-release-notarization.sh
+          bash scripts/test-dmg-installer.sh
           bash scripts/test-mobile-battery-clang-version.sh
           bash scripts/test-verify-local.sh
           bash scripts/test-verify-local-bundle.sh
           bash scripts/test-workflow-policy.sh
+          NATIVE
 
-      - name: Run trusted release recovery regressions
-        if: ${{ inputs.package_run_id != '' }}
+      - name: Summarize native diagnostics
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          CI_DIAGNOSTIC_JOB: native
         run: |
-          set -euo pipefail
-          bash release-tools/scripts/test-release-recovery.sh
-          bash release-tools/scripts/test-release-workflow-policy.sh
-          bash release-tools/scripts/test-release-pipeline.sh
+          if [[ -f "$CI_TOOLS_ROOT/scripts/ci-diagnostics.py" ]]; then
+            python3 "$CI_TOOLS_ROOT/scripts/ci-diagnostics.py" summary "$CI_LOG_DIR"
+          else
+            echo 'Native verification stopped before diagnostic tooling was available. See the first failed step.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload native diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-diagnostics
+          path: .build/ci-logs/
+          if-no-files-found: ignore
+          retention-days: 14
 
   package:
-    needs: verify
+    needs: [verify, native]
     runs-on: xcode-27
     if: ${{ inputs.package_run_id == '' }}
     timeout-minutes: 75
     environment:
-      name: distribution
+      name: ${{ (inputs.publish || github.triggering_actor != 'lingyired') && 'distribution' || 'distribution-owner-signing' }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
       CANDIDATE_SHA: ${{ needs.verify.outputs.candidate_sha || inputs.candidate_sha }}
@@ -244,6 +341,7 @@ jobs:
       NOTARIZE: ${{ inputs.notarize }}
       RESOLVED_RELEASE_REPO: ${{ vars.RELEASE_REPO || 'lingyired/status-trio' }}
       RESOLVED_RELEASE_BRANCH: ${{ vars.RELEASE_BRANCH || 'main' }}
+      BUILD_TIMING_FILE: ${{ github.workspace }}/.build/ci-logs/package-build-timings.tsv
 
     steps:
       - name: Check out the frozen candidate
@@ -263,6 +361,13 @@ jobs:
           swift --version
           xcodebuild -version
           printf 'macOS SDK: %s\n' "$(xcrun --sdk macosx --show-sdk-version)"
+
+      - name: Prepare DMG installer tool
+        run: |
+          if ! command -v create-dmg >/dev/null 2>&1; then
+            HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 brew install create-dmg
+          fi
+          bash scripts/create-installer-dmg.sh --check
 
       - name: Validate publishing secrets and notarization mode
         env:
@@ -402,6 +507,56 @@ jobs:
       - name: Install mobile helper build tools
         run: brew install autoconf automake libtool pkg-config
 
+      - name: Resolve exact native dependency cache keys
+        id: native-cache-keys
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$BUILD_TIMING_FILE")"
+          python3 scripts/mobile-battery-cache.py prepare-key \
+            --root "$GITHUB_WORKSPACE" --arch arm64 --minimum-macos 13.0 \
+            --github-output "$GITHUB_OUTPUT" --output-name key_arm64
+          python3 scripts/mobile-battery-cache.py prepare-key \
+            --root "$GITHUB_WORKSPACE" --arch x86_64 --minimum-macos 13.0 \
+            --github-output "$GITHUB_OUTPUT" --output-name key_x86_64
+          echo "CACHE_RESTORE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Restore arm64 native dependencies
+        id: native-cache-arm64
+        if: github.ref == 'refs/heads/main'
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ steps.native-cache-keys.outputs.key_arm64 }}
+          path: |
+            .build/mobile-battery/arm64/prefix
+            .build/mobile-battery/arm64/.dependencies-cache.json
+
+      - name: Restore x86_64 native dependencies
+        id: native-cache-x86_64
+        if: github.ref == 'refs/heads/main'
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ steps.native-cache-keys.outputs.key_x86_64 }}
+          path: |
+            .build/mobile-battery/x86_64/prefix
+            .build/mobile-battery/x86_64/.dependencies-cache.json
+
+      - name: Record native cache restore
+        env:
+          ARM64_RESTORED_KEY: ${{ steps.native-cache-arm64.outputs.cache-matched-key }}
+          X86_64_RESTORED_KEY: ${{ steps.native-cache-x86_64.outputs.cache-matched-key }}
+        run: |
+          set -euo pipefail
+          printf 'native-cache-restore\t%s\t0\n' \
+            "$(( $(date +%s) - CACHE_RESTORE_STARTED ))" >> "$BUILD_TIMING_FILE"
+          printf 'Cache restored: arm64=%s x86_64=%s\n' \
+            "${ARM64_RESTORED_KEY:-miss}" "${X86_64_RESTORED_KEY:-miss}"
+          echo "Restored prefixes are validated by the build script before reuse."
+          for arch in arm64 x86_64; do
+            if [[ -d ".build/mobile-battery/$arch/prefix" ]]; then
+              du -sk ".build/mobile-battery/$arch/prefix"
+            fi
+          done
+
       - name: Build, sign, notarize, and package once
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
@@ -422,6 +577,57 @@ jobs:
           path: dist/release-package/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Validate native dependency caches before saving
+        env:
+          ARM64_KEY: ${{ steps.native-cache-keys.outputs.key_arm64 }}
+          X86_64_KEY: ${{ steps.native-cache-keys.outputs.key_x86_64 }}
+        run: |
+          set -euo pipefail
+          python3 scripts/mobile-battery-cache.py validate \
+            --root "$GITHUB_WORKSPACE" --arch arm64 --minimum-macos 13.0 \
+            --expected-key "$ARM64_KEY"
+          python3 scripts/mobile-battery-cache.py validate \
+            --root "$GITHUB_WORKSPACE" --arch x86_64 --minimum-macos 13.0 \
+            --expected-key "$X86_64_KEY"
+          echo "CACHE_SAVE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Save arm64 native dependencies
+        if: github.ref == 'refs/heads/main' && steps.native-cache-arm64.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ steps.native-cache-keys.outputs.key_arm64 }}
+          path: |
+            .build/mobile-battery/arm64/prefix
+            .build/mobile-battery/arm64/.dependencies-cache.json
+
+      - name: Save x86_64 native dependencies
+        if: github.ref == 'refs/heads/main' && steps.native-cache-x86_64.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ steps.native-cache-keys.outputs.key_x86_64 }}
+          path: |
+            .build/mobile-battery/x86_64/prefix
+            .build/mobile-battery/x86_64/.dependencies-cache.json
+
+      - name: Record native cache save
+        run: |
+          set -euo pipefail
+          printf 'native-cache-save\t%s\t0\n' \
+            "$(( $(date +%s) - CACHE_SAVE_STARTED ))" >> "$BUILD_TIMING_FILE"
+
+      - name: Summarize package diagnostics
+        if: always()
+        run: python3 scripts/ci-diagnostics.py timings "$BUILD_TIMING_FILE"
+
+      - name: Upload package build timings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-build-timings
+          path: ${{ env.BUILD_TIMING_FILE }}
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Clean up signing keychain
         if: always() && env.KEYCHAIN_PATH != ''
@@ -459,8 +665,8 @@ jobs:
           exit "${CLEANUP_STATUS}"
 
   publish:
-    if: ${{ !cancelled() && inputs.publish && needs.verify.result == 'success' && (inputs.package_run_id != '' || needs.package.result == 'success') }}
-    needs: [verify, package]
+    if: ${{ !cancelled() && inputs.publish && needs.verify.result == 'success' && needs.native.result == 'success' && (inputs.package_run_id != '' || needs.package.result == 'success') }}
+    needs: [verify, native, package]
     runs-on: xcode-27
     timeout-minutes: 30
     environment:

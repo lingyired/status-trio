@@ -1,0 +1,30 @@
+# ps snapshot: 02-cpu-light-end  wall=2026-10-30T23:05:03+0800 mono=200090.842575
+# --- top 25 by cpu ---
+  PID  PPID  %CPU %MEM COMM
+81860     1  68.8  6.9 /Applications/BlueStacks.app/Contents/MacOS/BlueStacks
+  619     1  61.2  0.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+59342 59341  42.5  0.1 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper.app/Contents/MacOS/DeepSeek Harness Helper
+59354 59341  38.1  0.5 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper (Renderer).app/Contents/MacOS/DeepSeek Harness Helper (Renderer)
+61862  1300  23.2  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+ 3846     1  16.2  0.0 /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemd
+18255 17803  13.5  0.0 /Users/lingsmbp/Downloads/macpow
+ 1345  1300  11.9  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper
+ 5090     1   9.2  0.0 /usr/libexec/diagnosticd
+17763     1   9.2  0.1 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+ 1300     1   8.2  1.2 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
+  808     1   7.5  0.1 /usr/sbin/coreaudiod
+84549 84507   7.0  0.0 /usr/bin/log
+  624     1   4.3  0.0 /usr/libexec/runningboardd
+  762     1   3.1  0.0 /System/Library/DriverExtensions/com.apple.DriverKit-AppleBCMWLAN.dext/com.apple.DriverKit-AppleBCMWLAN
+82473     1   2.7  0.3 /Applications/WorkBuddy.app/Contents/MacOS/Electron
+ 1318     1   2.5  0.4 /Applications/UURemote.app/Contents/MacOS/UURemote
+63065     1   2.3  0.7 /Applications/magpie.app/Contents/MacOS/magpie
+46070     1   2.3  0.1 /System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService
+  623     1   2.1  0.1 /System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow
+40411 38968   1.8  0.2 /Applications/OpenBot.app/Contents/Frameworks/OpenBot Helper (Renderer).app/Contents/MacOS/OpenBot Helper (Renderer)
+38968     1   1.4  0.4 /Applications/OpenBot.app/Contents/MacOS/OpenBot
+ 1409  1313   1.3  0.4 /Applications/Doubao.app/Contents/Helpers/Doubao Browser.app/Contents/MacOS/Doubao Browser
+  613     1   1.2  0.0 /usr/sbin/notifyd
+  545     1   1.2  0.1 /usr/libexec/logd
+# --- our loaders / sampler ---
+(none)

@@ -1,4 +1,5 @@
 import AppKit
+import CryptoKit
 import XCTest
 @testable import StatusTrioCore
 
@@ -8,8 +9,54 @@ import XCTest
 /// STATUS_TRIO_APP_ICON_PREVIEW=/tmp/status-trio-app-icon-preview.png \
 ///   swift test --filter AppIconPreviewTests
 /// ```
+///
+/// The Icon Composer artwork for the bundle icon's light and dark appearances
+/// is written to `Support/AppIcon.icon/Assets` the same way:
+///
+/// ```bash
+/// STATUS_TRIO_APP_ICON_ARTWORK_DIR=Support/AppIcon.icon/Assets \
+///   swift test --filter AppIconPreviewTests
+/// ```
 @MainActor
 final class AppIconPreviewTests: XCTestCase {
+    private static let artworkStyles: [(style: DockIconBackgroundStyle, fileName: String)] = [
+        (.light, "AppIcon-light.png"),
+        (.dark, "AppIcon-dark.png")
+    ]
+
+    private struct ArtworkFingerprint: Hashable {
+        let committed: String
+        let rendered: String
+    }
+
+    // The committed artwork is regenerated from the renderer, so on a given
+    // environment its decoded pixels equal the rendered pixels. CI's headless
+    // CoreGraphics antialiasing renders the same committed bytes differently,
+    // so its exact rendered pair is recorded alongside the local pair. Every
+    // entry still pins the decoded pixels; a deliberate artwork change fails.
+    private static let approvedArtworkFingerprints: [String: Set<ArtworkFingerprint>] = [
+        "AppIcon-light.png": [
+            ArtworkFingerprint(
+                committed: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981",
+                rendered: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981"
+            ),
+            ArtworkFingerprint(
+                committed: "9baf1717eded52a1253362e1d7d10f288109c3c6d7f11a145b67dabff2cf5981",
+                rendered: "3b2f6ba5835c645e88e9238d0adec31bbfd1232e92991fe3fdc907a496ef6aa7"
+            )
+        ],
+        "AppIcon-dark.png": [
+            ArtworkFingerprint(
+                committed: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63",
+                rendered: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63"
+            ),
+            ArtworkFingerprint(
+                committed: "a29cba2760415d0de093df7dbb9bccc71d22028bea89eb8af64e2d67fdfecb63",
+                rendered: "8fb28729b1f064541dc0b7236d6408c45055aa40e6c5c94ffc0f33419bdc1f93"
+            )
+        ]
+    ]
+
     func testPreviewUsesTheChargingWiFiStateWithBluetoothVolumeColor() {
         let state = AppIconPreview.state
 
@@ -17,7 +64,6 @@ final class AppIconPreviewTests: XCTestCase {
         XCTAssertEqual(state.status.wifi.state, .connected)
         XCTAssertEqual(state.status.volume.currentDevice, SheetFixtures.bluetoothDevice)
         XCTAssertTrue(state.bluetoothAudioOptions.usesVolumeColor)
-        XCTAssertFalse(state.bluetoothAudioOptions.replacesNetworkIcon)
         XCTAssertEqual(state.backgroundStyle, .dark)
     }
 
@@ -41,15 +87,126 @@ final class AppIconPreviewTests: XCTestCase {
 
         XCTAssertTrue(
             FileManager.default.fileExists(atPath: appIconURL.path),
-            "The app bundle must be built from Support/AppIcon.png."
+            "Support/AppIcon.png is the approved 1024 px preview used by the READMEs."
         )
         guard FileManager.default.fileExists(atPath: appIconURL.path) else { return }
 
         XCTAssertEqual(
             try Data(contentsOf: appIconURL),
             try Data(contentsOf: approvedPreviewURL),
-            "The bundled App Icon must exactly match the approved Bluetooth-colored preview."
+            "The approved app icon preview must exactly match the Bluetooth-colored render."
         )
+    }
+
+    func testIconComposerArtworkIsAFullBleedSquareForBothAppearances() throws {
+        var lightData: Data?
+        for entry in Self.artworkStyles {
+            let data = try AppIconPreview.artworkPNGData(backgroundStyle: entry.style)
+            let image = try XCTUnwrap(NSImage(data: data))
+            let representation = try XCTUnwrap(image.representations.first)
+            let bitmap = try XCTUnwrap(representation as? NSBitmapImageRep)
+
+            XCTAssertEqual(bitmap.pixelsWide, 1024)
+            XCTAssertEqual(bitmap.pixelsHigh, 1024)
+
+            // The corner is opaque because the system clips the square to its
+            // own icon shape; a transparent corner would show through there.
+            let corner = try XCTUnwrap(bitmap.colorAt(x: 4, y: 4))
+            XCTAssertEqual(corner.alphaComponent, 1, accuracy: 0.01)
+
+            if entry.style == .light {
+                lightData = data
+            }
+        }
+
+        let darkData = try AppIconPreview.artworkPNGData(backgroundStyle: .dark)
+        XCTAssertNotEqual(lightData, darkData, "Light and dark artwork must differ.")
+    }
+
+    func testCommittedIconComposerArtworkMatchesTheRenderer() throws {
+        for entry in Self.artworkStyles {
+            let url = URL(fileURLWithPath: "Support/AppIcon.icon/Assets/\(entry.fileName)")
+            XCTAssertTrue(
+                FileManager.default.fileExists(atPath: url.path),
+                "The bundle icon is built from \(url.path)."
+            )
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+
+            let committed = try Self.decodedPixels(in: Data(contentsOf: url))
+            let rendered = try Self.decodedPixels(
+                in: AppIconPreview.artworkPNGData(backgroundStyle: entry.style)
+            )
+
+            XCTAssertEqual(
+                committed.width,
+                rendered.width,
+                "\(entry.fileName) must have the renderer's pixel width."
+            )
+            XCTAssertEqual(
+                committed.height,
+                rendered.height,
+                "\(entry.fileName) must have the renderer's pixel height."
+            )
+            let fingerprint = ArtworkFingerprint(
+                committed: SHA256.hash(data: committed.bytes).hexString,
+                rendered: SHA256.hash(data: rendered.bytes).hexString
+            )
+            XCTAssertTrue(
+                Self.approvedArtworkFingerprints[entry.fileName]?.contains(fingerprint) == true,
+                "\(entry.fileName) must match an approved \(entry.style.rawValue) artwork pair. "
+                    + "committed=\(fingerprint.committed) rendered=\(fingerprint.rendered)"
+            )
+        }
+    }
+
+    private static func decodedPixels(in data: Data) throws -> (
+        width: Int,
+        height: Int,
+        bytes: Data
+    ) {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            throw XCTSkip("The PNG could not be decoded.")
+        }
+
+        var bytes = Data(count: image.width * image.height * 4)
+        let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)
+            ?? CGColorSpaceCreateDeviceRGB()
+        let decoded = bytes.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(
+                data: buffer.baseAddress,
+                width: image.width,
+                height: image.height,
+                bitsPerComponent: 8,
+                bytesPerRow: image.width * 4,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return false }
+            context.draw(
+                image,
+                in: CGRect(x: 0, y: 0, width: image.width, height: image.height)
+            )
+            return true
+        }
+        guard decoded else {
+            throw XCTSkip("The PNG could not be normalized for comparison.")
+        }
+        return (image.width, image.height, bytes)
+    }
+
+    func testWritesRequestedArtworkWhenEnvironmentIsSet() throws {
+        guard let directory = ProcessInfo.processInfo.environment["STATUS_TRIO_APP_ICON_ARTWORK_DIR"] else {
+            throw XCTSkip("Set STATUS_TRIO_APP_ICON_ARTWORK_DIR to write the Icon Composer artwork.")
+        }
+
+        let directoryURL = URL(fileURLWithPath: directory)
+        try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+        for entry in Self.artworkStyles {
+            let data = try AppIconPreview.artworkPNGData(backgroundStyle: entry.style)
+            XCTAssertGreaterThan(data.count, 10_000)
+            try data.write(to: directoryURL.appendingPathComponent(entry.fileName))
+            print("Wrote \(data.count) bytes to \(entry.fileName)")
+        }
     }
 
     func testWritesRequestedOutputWhenEnvironmentIsSet() throws {
@@ -61,5 +218,11 @@ final class AppIconPreviewTests: XCTestCase {
         try data.write(to: URL(fileURLWithPath: outputPath))
         XCTAssertGreaterThan(data.count, 10_000)
         print("Wrote \(data.count) bytes to \(outputPath)")
+    }
+}
+
+private extension SHA256.Digest {
+    var hexString: String {
+        map { String(format: "%02x", $0) }.joined()
     }
 }

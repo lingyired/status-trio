@@ -8,8 +8,6 @@ struct NetworkSectionView: View {
     @Binding var previewIsDark: Bool
     @EnvironmentObject private var localization: Localization
 
-    @State private var showsNetworkIconOptions: Bool = false
-
     var body: some View {
         SettingsPage(pinnedHeader: {
             StatusIconPreviewCard(
@@ -19,8 +17,43 @@ struct NetworkSectionView: View {
                 isDarkBackground: $previewIsDark
             )
         }) {
-            connectionIconsGroup
+            // Permission notices come first, then the panel show/hide group.
+            if statusStore.snapshot.wifi.nameAccess != .authorized {
+                wifiPermissionNotice
+            }
             panelGroup
+        }
+    }
+
+    /// Shown at the top of the pane whenever Wi-Fi name access is not granted.
+    /// macOS reads a Wi-Fi name through location services, so the notice mirrors
+    /// the Bluetooth permission banner's look; `.notDetermined` offers to raise
+    /// the system prompt, `.denied`/`.restricted` send the user to Settings.
+    @ViewBuilder
+    private var wifiPermissionNotice: some View {
+        switch statusStore.snapshot.wifi.nameAccess {
+        case .authorized:
+            EmptyView()
+        case .notDetermined:
+            SettingsPermissionNotice(
+                title: localization.string(.settingsNetworkPermissionNotDeterminedTitle),
+                description: .settingsNetworkPermissionNotDeterminedDescription,
+                buttonKey: .wifiActionRequestNameAccess,
+                action: { requestLocationPermission() }
+            )
+        case .denied, .restricted:
+            SettingsPermissionNotice(
+                title: localization.string(.settingsNetworkPermissionDeniedTitle),
+                description: .settingsNetworkPermissionDeniedDescription,
+                buttonKey: .wifiActionOpenLocationSettings,
+                action: { statusStore.openLocationSettings() }
+            )
+        }
+    }
+
+    private func requestLocationPermission() {
+        if statusStore.requestWiFiNameAccess() == .openLocationSettings {
+            statusStore.openLocationSettings()
         }
     }
 
@@ -29,6 +62,39 @@ struct NetworkSectionView: View {
     /// the menu bar artwork and this decides the panel's second line.
     private var panelGroup: some View {
         SettingsGroup(localization.string(.settingsNetworkPanelGroup)) {
+            // The "show in status panel" toggle leads the pane.
+            SettingsToggleRow(
+                symbol: PopupSection.network.systemImage,
+                tint: .blue,
+                title: localization.string(.settingsPanelShowNetwork),
+                subtitle: localization.string(.settingsPanelShowItemDescription),
+                isOn: Binding(
+                    get: { store.enabledPopupSections.contains(.network) },
+                    set: { store.setPopupSection(.network, enabled: $0) }
+                )
+            )
+
+            if WiFiPowerControlVisibility.showsSettingsControl(state: statusStore.snapshot.wifi.state) {
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "power.circle",
+                    tint: .blue,
+                    title: localization.string(.settingsNetworkPowerControl),
+                    subtitle: localization.string(.settingsNetworkPowerControlDescription),
+                    isOn: $store.showsWiFiPowerControl
+                )
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "exclamationmark.circle",
+                    tint: .blue,
+                    title: localization.string(.settingsNetworkConfirmBeforePowerOff),
+                    subtitle: localization.string(.settingsNetworkConfirmBeforePowerOffDescription),
+                    isOn: $store.confirmsWiFiPowerOff
+                )
+            }
+
+            SettingsDivider()
+
             SettingsToggleRow(
                 symbol: "network",
                 tint: .cyan,
@@ -39,122 +105,4 @@ struct NetworkSectionView: View {
         }
     }
 
-    private var connectionIconsGroup: some View {
-        SettingsGroup(localization.string(.settingsNetworkConnectionIcons)) {
-            SettingsMenuRow(
-                symbol: "keyboard",
-                tint: .indigo,
-                title: localization.string(.settingsNetworkCenterSource),
-                subtitle: localization.string(.settingsNetworkCenterSourceDescription),
-                selection: $store.connectionCenterSource,
-                options: ConnectionCenterSource.allCases,
-                label: centerSourceLabel
-            )
-
-            if store.connectionCenterSource == .inputSource {
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "wifi.exclamationmark",
-                    tint: .orange,
-                    title: localization.string(.settingsNetworkCenterSourceNetworkWarnings),
-                    subtitle: localization.string(.settingsNetworkCenterSourceNetworkWarningsDescription),
-                    isOn: $store.prioritizesNetworkErrorsOverInputSource
-                )
-
-                SettingsDivider()
-
-                SettingsHintRow(
-                    text: localization.string(.settingsNetworkCenterSourceBluetoothFallback)
-                )
-            }
-
-            SettingsDivider()
-
-            SettingsRow(
-                "wifi",
-                tint: .blue,
-                title: localization.string(.settingsWiFiSymbolScale),
-                subtitle: localization.string(.settingsWiFiSymbolScaleDescription)
-            ) {
-                HStack(spacing: 8) {
-                    Slider(
-                        value: Binding(
-                            get: { store.wifiSymbolScale },
-                            set: { store.wifiSymbolScale = (round($0 * 20) / 20) }
-                        ),
-                        in: SettingsStore.wifiSymbolScaleRange
-                    )
-                    .frame(width: 130)
-                    .controlSize(.small)
-                    .accessibilityLabel(localization.string(.settingsWiFiSymbolScale))
-                    .accessibilityValue("\(Int(round(store.wifiSymbolScale * 100)))%")
-
-                    Text("\(Int(round(store.wifiSymbolScale * 100)))%")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 44, alignment: .trailing)
-                }
-            }
-
-            SettingsDivider()
-
-            SettingsDisclosureRow(
-                "cable.connector",
-                tint: .teal,
-                title: localization.string(.settingsNetworkConnectionIcons),
-                subtitle: localization.string(.settingsNetworkConnectionIconsDescription),
-                isExpanded: $showsNetworkIconOptions
-            )
-
-            if showsNetworkIconOptions {
-                VStack(spacing: 0) {
-                    SettingsDivider()
-
-                    SettingsToggleRow(
-                        symbol: "cable.connector",
-                        tint: .teal,
-                        title: localization.string(.settingsNetworkWiFiIconForEthernet),
-                        isOn: $store.showsWiFiIconForEthernet
-                    )
-
-                    SettingsDivider()
-
-                    SettingsToggleRow(
-                        symbol: "personalhotspot",
-                        tint: .blue,
-                        title: localization.string(.settingsNetworkWiFiIconForHotspot),
-                        isOn: $store.showsWiFiIconForHotspot
-                    )
-
-                    SettingsDivider()
-
-                    SettingsToggleRow(
-                        symbol: "network",
-                        tint: .purple,
-                        title: localization.string(.settingsNetworkWiFiIconForTemporaryConnection),
-                        isOn: $store.showsWiFiIconForTemporaryConnection
-                    )
-
-                    SettingsDivider()
-
-                    SettingsToggleRow(
-                        symbol: "antenna.radiowaves.left.and.right",
-                        tint: .indigo,
-                        title: localization.string(.settingsNetworkWiFiIconForInternetSharing),
-                        isOn: $store.showsWiFiIconForInternetSharing
-                    )
-                }
-            }
-        }
-    }
-
-    private func centerSourceLabel(_ source: ConnectionCenterSource) -> String {
-        switch source {
-        case .automatic:
-            localization.string(.settingsNetworkCenterSourceAutomatic)
-        case .inputSource:
-            localization.string(.settingsNetworkCenterSourceInputSource)
-        }
-    }
 }

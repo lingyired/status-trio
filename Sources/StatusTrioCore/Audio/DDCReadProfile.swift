@@ -53,6 +53,8 @@ enum DDCPacket {
     static let chipAddress: UInt32 = 0x37
     static let dataAddress: UInt32 = 0x51
     static let volumeVCP: UInt8 = 0x62
+    /// MCCS brightness VCP. Same packet shape as volume, different feature code.
+    static let brightnessVCP: UInt8 = 0x10
 
     /// Get VCP Feature request. Body is always `82 01 <vcp>`; only the
     /// trailing checksum changes with the mode.

@@ -1,0 +1,30 @@
+# ps snapshot: 03b-memory-bandwidth-mid  wall=2026-10-30T23:06:50+0800 mono=200198.114940
+# --- top 25 by cpu ---
+  PID  PPID  %CPU %MEM COMM
+86058 49315 366.0  0.8 /tmp/soc-power-research/lab/bin/memload
+81860     1  91.9  6.9 /Applications/BlueStacks.app/Contents/MacOS/BlueStacks
+  619     1  82.1  0.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+59342 59341  50.4  0.1 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper.app/Contents/MacOS/DeepSeek Harness Helper
+75058  1300  45.0  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+59354 59341  43.9  0.4 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper (Renderer).app/Contents/MacOS/DeepSeek Harness Helper (Renderer)
+ 1092     1  36.7  0.1 /System/Library/CoreServices/MenuBarAgent.app/Contents/MacOS/MenuBarAgent
+90234     1  35.9  0.1 /Applications/AlDente.app/Contents/MacOS/AlDente
+  704     1  22.5  0.1 /usr/libexec/syspolicyd
+ 1328     1  19.9  0.3 /System/Applications/Siri AI.app/Contents/MacOS/Siri AI
+ 6574     1  18.3  0.0 /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemagent
+  629     1  17.1  0.0 /usr/libexec/trustd
+ 1176     1  15.8  0.2 /System/Library/CoreServices/iconservicesagent
+ 1300     1  14.8  1.2 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
+ 1345  1300  13.4  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper
+16696     1  11.0  0.1 /Applications/BestDock.app/Contents/MacOS/BestDock
+ 1077     1  10.9  0.0 /usr/libexec/siriknowledged
+ 1321     1  10.7  0.3 /System/Library/CoreServices/Finder.app/Contents/MacOS/Finder
+ 1026     1   9.5  0.2 /usr/libexec/linkd
+18255 17803   9.4  0.0 /Users/lingsmbp/Downloads/macpow
+  590     1   9.4  0.0 /System/Library/CoreServices/launchservicesd
+ 1234     1   8.8  0.0 /System/Library/Frameworks/QuickLookThumbnailing.framework/Support/com.apple.quicklook.ThumbnailsAgent
+  808     1   8.4  0.1 /usr/sbin/coreaudiod
+48032     1   8.3  0.1 /System/Applications/System Settings.app/Contents/MacOS/System Settings
+ 5090     1   8.2  0.0 /usr/libexec/diagnosticd
+# --- our loaders / sampler ---
+86052 49315   0.6 /tmp/soc-power-research/harness/power-sampler

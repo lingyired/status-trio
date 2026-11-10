@@ -3,6 +3,37 @@ import SwiftUI
 
 enum PanelSummaryActionMetrics {
     static let hitTarget: CGFloat = 24
+    /// Fixed horizontal slot for the leading (mute/input/brightness) glyph so
+    /// the volume, mic, and brightness sliders all start on the same x.
+    ///
+    /// The three panel rows use different SF Symbols (speaker / mic / sun) whose
+    /// natural ink widths differ; without a shared slot width the sliders'
+    /// leading edge drifts between rows. Equal slots keep every slider's
+    /// leading edge aligned.
+    static let leadingGlyphSlot: CGFloat = 24
+    /// One fixed square slot for every *trailing* action glyph in a summary row.
+    ///
+    /// Sizing each action to a fixed slot — instead of its SF Symbol's natural
+    /// ink width — is what keeps one row's action columns on the same vertical
+    /// lines as another row's. A caption-weight `chevron.right` and a
+    /// body-weight `arrow.clockwise` have very different natural widths; without
+    /// a shared slot the middle button shifts the whole cluster, so the gear
+    /// lands in a different column on the Wi-Fi and Bluetooth rows.
+    ///
+    /// 30 equals the widest trailing glyph (the gear's ink) plus the two
+    /// `iconInset` paddings the natural-width path used to add, so switching to
+    /// fixed slots keeps every row's previous edge-to-edge rhythm and leaves the
+    /// same width for its text and sliders. A tighter slot would widen those
+    /// columns and re-wrap the battery runtime subtitle; a wider one would drift
+    /// from the established spacing budget.
+    static let actionSlot: CGFloat = 30
+    /// The one gap between trailing action slots. Every summary row uses it, so
+    /// a two-icon row and the four-icon battery row share a single rhythm.
+    static let actionSpacing: CGFloat = 2
+    /// Horizontal padding around a natural-width glyph. Only the non-summary
+    /// glyph path uses it (disclosure rows, section headers); summary rows size
+    /// their trailing actions with `actionSlot` instead.
+    static let iconInset: CGFloat = 6
 }
 
 /// One optical and hit-target container for every trailing status-panel action.
@@ -11,20 +42,31 @@ enum PanelSummaryActionMetrics {
 struct PanelActionGlyph: View {
     let systemName: String
     var font: Font = .body
-    var size: CGFloat = PanelSummaryActionMetrics.hitTarget
+    /// An explicit square slot for callers that align on a fixed size. Every
+    /// summary-row trailing action passes `actionSlot` so its column matches the
+    /// other rows; `nil` keeps the natural-glyph sizing used outside the summary
+    /// rows (disclosure rows, section headers).
+    var size: CGFloat? = nil
     /// A row may pin the symbol to its measured centre when a taller neighbouring
     /// text block makes the default optical correction unnecessary.
     var verticalOpticalOffset: CGFloat? = nil
 
     var body: some View {
-        Image(systemName: systemName)
-            .font(font)
-            .frame(
-                width: size,
-                height: size,
-                alignment: .center
-            )
-            .offset(y: verticalOpticalOffset ?? defaultOpticalOffsetY)
+        Group {
+            if let size {
+                Image(systemName: systemName)
+                    .font(font)
+                    .frame(width: size, height: size, alignment: .center)
+            } else {
+                // Natural glyph width with one shared inset: a narrow chevron
+                // and a wide gear then read the same distance apart.
+                Image(systemName: systemName)
+                    .font(font)
+                    .padding(.horizontal, PanelSummaryActionMetrics.iconInset)
+                    .frame(height: PanelSummaryActionMetrics.hitTarget)
+            }
+        }
+        .offset(y: verticalOpticalOffset ?? defaultOpticalOffsetY)
     }
 
     /// SF Symbols keep their own ink bounds inside an equal frame. The gear's

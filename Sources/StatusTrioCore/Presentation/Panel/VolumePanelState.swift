@@ -17,16 +17,25 @@ struct PanelAudioDeviceRow: Equatable, Identifiable, Sendable {
     var listeningModeAddress: String? = nil
     var listeningMode: BluetoothListeningModePresentation? = nil
     var isPreview: Bool = false
+    var supportsAirPodsSystemControls: Bool = false
+    /// Whether this AirPods row has Spatial Audio / Conversation Awareness
+    /// groups to disclose behind the listening-mode row. Unknown (runtime
+    /// reported) capabilities are treated as supported so the chevron shows and
+    /// the group can report "not available" once the read settles.
+    var airPodsSpatialSupported: Bool = false
+    var airPodsConversationSupported: Bool = false
 
     var id: PanelAudioDeviceID { key }
 }
 
 struct AudioOutputListPreferences: Equatable, Sendable {
     let order: [String]
+    let hiddenUIDs: Set<String>
     let visibleLimit: Int?
 
-    init(order: [String] = [], visibleLimit: Int? = 5) {
+    init(order: [String] = [], hiddenUIDs: Set<String> = [], visibleLimit: Int? = 5) {
         self.order = order
+        self.hiddenUIDs = hiddenUIDs
         self.visibleLimit = visibleLimit.map { max(0, $0) }
     }
 
@@ -37,13 +46,20 @@ struct VolumePanelState: Equatable, Sendable {
     let summary: PanelSummaryState
     let scalar: Double?
     let percentageText: String
+    let outputIdentity: PanelAudioDeviceID?
+    let interactionIdentity: VolumeControlInteractionIdentity
     let muted: Bool
+    let muteState: VolumeMuteState
     let canAdjust: Bool
     let canMute: Bool
     let muteSymbol: String
     let muteHelp: String
     let sliderLabel: String
     let showsDeviceList: Bool
+    /// An equal-height skeleton to draw while the real rows are being re-read
+    /// after the panel reopens. Nil once real data is available (or when no
+    /// layout was ever recorded).
+    let deviceListPlaceholder: PanelListLayoutSnapshot?
     /// Complete rows stay resolved in display order. The view owns only whether
     /// its local disclosure is expanded.
     let rows: [PanelAudioDeviceRow]
@@ -64,5 +80,15 @@ struct VolumePanelState: Equatable, Sendable {
             limit: visibleLimit,
             isExpanded: expanded
         )
+    }
+}
+
+enum VolumePanelActionGate {
+    static func toggleMute(
+        in state: VolumePanelState,
+        action: () -> Void
+    ) {
+        guard state.canMute, state.muteState != .unknown else { return }
+        action()
     }
 }

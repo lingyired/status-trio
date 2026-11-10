@@ -14,12 +14,8 @@ enum BluetoothListeningMode: UInt32, CaseIterable, Equatable, Hashable, Sendable
     case transparency = 3
     case adaptive = 4
 
-    /// The modes a user is allowed to switch to in V1.
-    ///
-    /// `off` is deliberately excluded: the plan reads it as an observable current
-    /// state but never offers it as a target. Keeping the exclusion in the model
-    /// — not sprinkled through the views — means "is this selectable?" has one
-    /// answer everywhere.
+    /// Legacy capsule modes represented by lsms bits. Off is added separately
+    /// by the HAL capability reader because it has no support-mask bit.
     static let v1Selectable: [BluetoothListeningMode] = [
         .noiseCancellation,
         .transparency,
@@ -31,8 +27,8 @@ enum BluetoothListeningMode: UInt32, CaseIterable, Equatable, Hashable, Sendable
     /// as the support mask changes.
     static let displayOrder: [BluetoothListeningMode] = [.noiseCancellation, .transparency, .adaptive]
 
-    /// Whether the user may pick this mode. `off` reads `false`: it can be the
-    /// mode the device is in, but the control never offers it as a destination.
+    /// Whether this mode uses the legacy support-mask path. Off is validated
+    /// separately by the HAL writer.
     var isUserSelectable: Bool {
         Self.v1Selectable.contains(self)
     }
@@ -108,7 +104,7 @@ struct BluetoothListeningModeCapability: Equatable, Sendable {
     /// and in `displayOrder`. Fewer than two means the control stays hidden —
     /// a single-mode device has nothing to switch between.
     let availableModes: [BluetoothListeningMode]
-    /// The mode the device is in right now, or `nil` when it reports `off` or an
+    /// The mode the device is in right now, or `nil` when it reports an
     /// unknown value. `nil` is not "no selection"; it is "the current mode is not
     /// one of the buttons", so no capsule is highlighted.
     let currentMode: BluetoothListeningMode?
@@ -172,7 +168,7 @@ enum BluetoothListeningModeActionState: Equatable, Sendable {
 /// the `AudioDeviceID` behind it.
 struct BluetoothListeningModePresentation: Equatable, Sendable {
     let availableModes: [BluetoothListeningMode]
-    /// The mode to highlight, or `nil` when the device is off/unknown or in the
+    /// The mode to highlight, or `nil` when the device reports an unknown mode or in the
     /// middle of a change to a mode the read-back has not confirmed yet.
     let selectedMode: BluetoothListeningMode?
     let actionState: BluetoothListeningModeActionState
@@ -197,7 +193,7 @@ struct BluetoothListeningModePresentation: Equatable, Sendable {
     /// The presentation a capability maps to before any user action.
     init(capability: BluetoothListeningModeCapability) {
         // The current mode is only highlighted when it is one of the selectable
-        // buttons; `off` or an unknown value shows no selection.
+        // buttons; an unavailable or unknown value shows no selection.
         let highlighted = capability.currentMode.flatMap { mode in
             capability.availableModes.contains(mode) ? mode : nil
         }
@@ -219,7 +215,7 @@ struct BluetoothListeningModePresentation: Equatable, Sendable {
     }
 
     /// The presentation after a change settles on `mode`: the selection moves to
-    /// the observed value and the busy state clears. A `nil` mode (off/unknown)
+    /// the observed value and the busy state clears. A `nil` mode (unknown)
     /// clears the highlight rather than inventing a selection.
     func settled(on mode: BluetoothListeningMode?) -> BluetoothListeningModePresentation {
         BluetoothListeningModePresentation(
@@ -231,6 +227,17 @@ struct BluetoothListeningModePresentation: Equatable, Sendable {
 }
 
 extension BluetoothListeningModePresentation {
+    /// The mode a tap on `mode` should request from the device.
+    ///
+    /// Tapping the capsule that is already the confirmed selection asks the
+    /// device to turn its listening mode *off*; tapping any other capsule selects
+    /// it. Off can also be selected explicitly. Keeping the rule here means
+    /// both the CoreAudio and HUAWEI write
+    /// paths — and the preview — resolve a tap identically.
+    func requestedMode(forTapped mode: BluetoothListeningMode) -> BluetoothListeningMode {
+        selectedMode == mode ? .off : mode
+    }
+
     /// Whether a write to this device is currently in flight.
     var isChanging: Bool {
         if case .changing = actionState { return true }

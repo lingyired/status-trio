@@ -8,7 +8,7 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
     func testOrdinaryPanelOpenDoesNotStartBluetoothWhenNoConsumerNeedsIt() {
         let fixture = makeFixture(authorization: .allowed)
         fixture.settings.setPopupSection(.bluetooth, enabled: false)
-        fixture.settings.replacesNetworkIconWithBluetoothAudio = false
+        fixture.settings.connectionCenterSource = .network
         fixture.settings.setBluetoothNetworkIconDevice(address: nil, symbolName: nil)
         fixture.settings.refreshesAppleBatteriesInBackground = false
         fixture.store.bindBluetoothSettings(fixture.settings)
@@ -178,7 +178,7 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
     func testSelectedPairedIconKeepsReadAfterOtherDemandsDisappear() {
         let fixture = makeFixture(authorization: .allowed)
         fixture.settings.setPopupSection(.bluetooth, enabled: true)
-        fixture.settings.replacesNetworkIconWithBluetoothAudio = true
+        fixture.settings.connectionCenterSource = .bluetoothDevice
         fixture.settings.setBluetoothNetworkIconDevice(
             address: "AA-BB-CC-DD-EE-FF",
             symbolName: "keyboard"
@@ -198,7 +198,7 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
 
     func testCoreAudioOnlyIconDoesNotStartPairedDeviceRead() {
         let fixture = makeFixture(authorization: .allowed)
-        fixture.settings.replacesNetworkIconWithBluetoothAudio = true
+        fixture.settings.connectionCenterSource = .bluetoothDevice
         fixture.settings.setBluetoothNetworkIconDevice(address: nil, symbolName: nil)
         fixture.store.bindBluetoothSettings(fixture.settings)
         fixture.store.start()
@@ -415,6 +415,123 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
         fixture.store.stop()
     }
 
+    func testLastReadStaysInMemoryForTheNextOpen() async {
+        let fixture = makeFixture(authorization: .allowed)
+        fixture.settings.setPopupSection(.bluetooth, enabled: true)
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.reader.readCount == 1 }
+
+        let device = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:FF",
+            name: "AirPods Pro",
+            kind: .audio,
+            isConnected: true
+        )
+        fixture.reader.complete(.success([device]))
+        await waitUntil { fixture.store.bluetoothDevices.devices.count == 1 }
+        XCTAssertEqual(fixture.store.bluetoothDevices.cachedDevices, [device])
+
+        fixture.store.setPopoverVisible(false)
+        await waitUntil { fixture.store.bluetoothDevices.devices.isEmpty }
+
+        XCTAssertEqual(
+            fixture.store.bluetoothDevices.cachedDevices,
+            [device],
+            "The last read stays in memory so a reopen can draw its rows immediately"
+        )
+        XCTAssertFalse(fixture.store.bluetoothDevices.hasLoadedDevices)
+        fixture.store.stop()
+    }
+
+    func testPoweringOffClearsCachedDevicesSoNoStaleDeviceRowsShow() async {
+        let fixture = makeFixture(authorization: .allowed)
+        fixture.settings.setPopupSection(.bluetooth, enabled: true)
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.reader.readCount == 1 }
+
+        let device = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:FF",
+            name: "AirPods Pro",
+            kind: .audio,
+            isConnected: true
+        )
+        fixture.reader.complete(.success([device]))
+        await waitUntil { fixture.store.bluetoothDevices.devices.count == 1 }
+        XCTAssertEqual(fixture.store.bluetoothDevices.cachedDevices, [device])
+
+        // Now power the radio off. Monitoring is suspended with no read coming
+        // to overwrite the cache, so the stale cached rows — with their
+        // connected marker — must be dropped, not left for the next open.
+        await fixture.store.setBluetoothPower(false)
+
+        XCTAssertTrue(
+            fixture.store.bluetoothDevices.cachedDevices.isEmpty,
+            "powering off must clear the cached device rows that would otherwise render as live"
+        )
+        XCTAssertEqual(fixture.store.bluetoothPower.power, .off)
+        fixture.store.stop()
+    }
+
+    func testPoweringBackOnDoesNotRestoreTheClearedCache() async {
+        let fixture = makeFixture(authorization: .allowed)
+        fixture.settings.setPopupSection(.bluetooth, enabled: true)
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.reader.readCount == 1 }
+
+        let device = BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:FF",
+            name: "AirPods Pro",
+            kind: .audio,
+            isConnected: true
+        )
+        fixture.reader.complete(.success([device]))
+        await waitUntil { fixture.store.bluetoothDevices.devices.count == 1 }
+        XCTAssertEqual(fixture.store.bluetoothDevices.cachedDevices, [device])
+
+        await fixture.store.setBluetoothPower(false)
+        XCTAssertTrue(fixture.store.bluetoothDevices.cachedDevices.isEmpty)
+
+        // Re-enabling must not surface the cleared cache on the instant reopen:
+        // a fresh read has to repopulate the list, not the stale rows from
+        // before the power-off.
+        await fixture.store.setBluetoothPower(true)
+        XCTAssertTrue(
+            fixture.store.bluetoothDevices.cachedDevices.isEmpty,
+            "re-opening after power off must not draw the pre-power-off cache"
+        )
+        fixture.store.stop()
+    }
+
+    func testBatteryRequestWhileTheDeviceReadIsInFlightStillReadsLevels() async {
+        let fixture = makeFixture(authorization: .allowed)
+        fixture.settings.setPopupSection(.bluetooth, enabled: true)
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        await waitUntil { fixture.reader.readCount == 1 }
+
+        // The panel asks for levels as soon as cached rows are on screen, before
+        // the fresh paired-device read returns.
+        fixture.store.bluetoothDevices.requestBatteryLevels("bluetooth.summary")
+        fixture.reader.complete(.success([
+            BluetoothDevice(
+                id: "AA:BB:CC:DD:EE:FF",
+                name: "AirPods Pro",
+                kind: .audio,
+                isConnected: true
+            )
+        ]))
+        await waitUntil { fixture.batteryReader.readCount > 0 }
+        XCTAssertGreaterThan(fixture.batteryReader.readCount, 0)
+        fixture.store.stop()
+    }
+
     func testProfilerCacheResetWaitsForEveryReaderToRelease() {
         let cache = BluetoothProfilerReportCache()
         let first = cache.acquireReader()
@@ -439,7 +556,7 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
         let settings = SettingsStore(defaults: suite.defaults)
         settings.setPopupSection(.bluetooth, enabled: false)
         settings.setPopupSection(.volume, enabled: true)
-        settings.replacesNetworkIconWithBluetoothAudio = false
+        settings.connectionCenterSource = .network
         settings.setBluetoothNetworkIconDevice(address: nil, symbolName: nil)
         settings.showsAppleDevicesAndBattery = false
         settings.refreshesAppleBatteriesInBackground = false
@@ -456,11 +573,13 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
             workspaceNotificationCenter: NotificationCenter()
         )
         let volumeMonitor = DemandVolumeMonitor()
+        let radioPowerBackend = DemandBluetoothRadioPowerBackend()
         let store = SystemStatusStore(
             batteryMonitor: DemandBatteryMonitor(),
             wifiMonitor: DemandWiFiMonitor(),
             volumeMonitor: volumeMonitor,
             bluetoothDevices: bluetoothController,
+            bluetoothPower: BluetoothRadioPowerController(backend: radioPowerBackend),
             bluetoothProfilerCache: cache
         )
         addTeardownBlock {
@@ -474,7 +593,8 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
             stateMonitor: stateMonitor,
             reader: reader,
             volumeMonitor: volumeMonitor,
-            cache: cache
+            cache: cache,
+            batteryReader: batteryReader
         )
     }
 
@@ -523,6 +643,7 @@ private struct DemandFixture {
     let reader: DemandBluetoothReader
     let volumeMonitor: DemandVolumeMonitor
     let cache: BluetoothProfilerReportCache
+    let batteryReader: DemandBluetoothBatteryReader
 }
 
 private struct UserDefaultsSuite {
@@ -588,8 +709,30 @@ private final class DemandBluetoothReader: BluetoothPairedDeviceReading, @unchec
     }
 }
 
+@MainActor
+private final class DemandBluetoothRadioPowerBackend: BluetoothRadioPowerBacking {
+    var isAvailable: Bool { true }
+    private(set) var power: BluetoothRadioPower
+
+    init(power: BluetoothRadioPower = .on) {
+        self.power = power
+    }
+
+    func readPower() -> BluetoothRadioPower { power }
+
+    func setPower(_ enabled: Bool) async -> Bool {
+        power = enabled ? .on : .off
+        return true
+    }
+}
+
 private final class DemandBluetoothBatteryReader: BluetoothBatteryReading {
+    private let lock = NSLock()
+    private var count = 0
+    var readCount: Int { lock.withLock { count } }
+
     func read(completion: @escaping @Sendable ([String: BluetoothBatteryLevel]?) -> Void) {
+        lock.withLock { count += 1 }
         completion([:])
     }
 }

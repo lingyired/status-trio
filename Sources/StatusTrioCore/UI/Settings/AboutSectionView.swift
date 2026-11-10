@@ -33,6 +33,19 @@ struct AboutSectionView: View {
                                         Capsule()
                                             .fill(Color.primary.opacity(0.06))
                                     )
+
+                                if let developmentCodename = AppMetadata.developmentCodename {
+                                    Text(developmentCodename)
+                                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(.orange)
+                                        .lineLimit(1)
+                                        .padding(.horizontal, 7)
+                                        .padding(.vertical, 2.5)
+                                        .background(
+                                            Capsule()
+                                                .fill(Color.orange.opacity(0.12))
+                                        )
+                                }
                             }
 
                             Text(localization.string(.settingsAboutDescription))
@@ -57,6 +70,22 @@ struct AboutSectionView: View {
                 }
                 .padding(.horizontal, SettingsMetrics.rowPaddingH)
                 .padding(.vertical, 14)
+            }
+
+            SettingsGroup(localization.string(.settingsAboutSocialTitle)) {
+                AboutSocialLinksView()
+                    .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                    .padding(.vertical, 12)
+            }
+
+            if localization.resolvedLanguage.isChinese {
+                SettingsGroup(localization.string(.settingsAboutCommunityTitle)) {
+                    AboutCommunityView()
+                }
+            }
+
+            SettingsGroup(localization.string(.settingsAboutMoreAppsTitle)) {
+                AboutMoreAppsView()
             }
         }
     }

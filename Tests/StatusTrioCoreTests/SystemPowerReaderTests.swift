@@ -64,4 +64,200 @@ final class SystemPowerReaderTests: XCTestCase {
         }
         XCTAssertNil(read(info: info(type: [0x38, 0x37, 0x70, 0x73], size: 2), value: value([255, 0])))
     }
+
+    func testAdapterAndBatterySensorsUseTheirOwnKeysAndUnits() throws {
+        var keys: [[UInt8]] = []
+        let input = SystemPowerReader.readValue(sensor: .input) { request in
+            keys.append(Array(request.prefix(4)))
+            return request[42] == 9 ? self.info() : self.value([0, 0, 0x86, 0x42]) // 67 W
+        }
+        XCTAssertEqual(input, 67)
+        XCTAssertTrue(keys.allSatisfy { $0 == [0x52, 0x54, 0x44, 0x50] }) // PDTR
+        let current = SystemPowerReader.readValue(sensor: .batteryCurrent) { request in
+            XCTAssertEqual(Array(request.prefix(4)), [0x43, 0x41, 0x30, 0x42]) // B0AC
+            return request[42] == 9 ? self.info(type: [0x36, 0x31, 0x69, 0x73], size: 2)
+                : self.value([0xe8, 0x03]) // 1000 mA
+        }
+        XCTAssertEqual(current, 1)
+        let voltage = SystemPowerReader.readValue(sensor: .batteryVoltage) { request in
+            return request[42] == 9 ? self.info(type: [0x36, 0x31, 0x69, 0x75], size: 2)
+                : self.value([0x48, 0x31]) // 12616 mV, captured Apple Silicon layout
+        }
+        XCTAssertEqual(try XCTUnwrap(voltage), 12.616, accuracy: 0.000001)
+        let negative = SystemPowerReader.readValue(sensor: .batteryCurrent) { request in
+            request[42] == 9 ? self.info(type: [0x36, 0x31, 0x69, 0x73], size: 2)
+                : self.value([0x18, 0xfc]) // -1000 mA
+        }
+        XCTAssertEqual(negative, -1)
+        XCTAssertNil(SystemPowerReader.readValue(sensor: .input) { request in
+            request[42] == 9 ? self.info(type: [0x36, 0x31, 0x69, 0x73], size: 2) : self.value([1, 0])
+        }, "A battery-current type must never be interpreted as adapter watts")
+    }
+
+    func testBacklightRailUsesItsOwnKeyAndRange() throws {
+        func read(_ sensor: SystemPowerReader.Sensor, key: [UInt8], payload: [UInt8]) -> Double? {
+            SystemPowerReader.readValue(sensor: sensor) { request in
+                XCTAssertEqual(Array(request.prefix(4)), key)
+                return request[42] == 9 ? self.info() : self.value(payload)
+            }
+        }
+        // PDBR travels as a little-endian key word, like PSTR/PDTR.
+        XCTAssertEqual(read(.display, key: [0x52, 0x42, 0x44, 0x50],
+                            payload: [0, 0, 0x04, 0x41]), 8.25) // PDBR
+        XCTAssertEqual(read(.display, key: [0x52, 0x42, 0x44, 0x50], payload: [0, 0, 0, 0]), 0,
+                       "A dark backlight is a real zero, not a missing reading")
+        XCTAssertNil(read(.display, key: [0x52, 0x42, 0x44, 0x50],
+                          payload: [0, 0, 0x7a, 0x43]), "250 W is outside any backlight rail")
+        XCTAssertEqual(read(.displayBacklight, key: [0x52, 0x4C, 0x42, 0x50],
+                            payload: [0, 0, 0x90, 0x40]), 4.5) // PBLR
+    }
+
+    func testDisplayReadsPDBROnceAndFallsBackToPBLROnlyWhenAbsent() throws {
+        let pdbrKey: [UInt8] = [0x52, 0x42, 0x44, 0x50]
+
+        // PDBR present and valid: returns its value, PBLR is never consulted.
+        let pdbr = SystemPowerReader.readDisplay { request in
+            XCTAssertEqual(Array(request.prefix(4)), pdbrKey, "Only PDBR is read here")
+            return request[42] == 9 ? self.info() : self.value(self.floatPayload(8.25))
+        }
+        XCTAssertEqual(pdbr, 8.25)
+
+        // PDBR present but out of range: the branch is hidden and PBLR is not
+        // used as a fallback (the key existing is the fallback boundary).
+        let tooHigh = SystemPowerReader.readDisplay { request in
+            XCTAssertEqual(Array(request.prefix(4)), pdbrKey)
+            return request[42] == 9 ? self.info() : self.value(self.floatPayload(250))
+        }
+        XCTAssertNil(tooHigh)
+
+        // PDBR absent (key-info fails): fall back to PBLR.
+        let pblrKey: [UInt8] = [0x52, 0x4C, 0x42, 0x50]
+        let pblr = SystemPowerReader.readDisplay { request in
+            let key = Array(request.prefix(4))
+            if key == pdbrKey {
+                var failure = [UInt8](repeating: 0, count: 80)
+                failure[40] = 0x84 // key-info request did not succeed
+                return failure
+            }
+            XCTAssertEqual(key, pblrKey, "Only PBLR is read once PDBR is absent")
+            return request[42] == 9 ? self.info() : self.value(self.floatPayload(4.5))
+        }
+        XCTAssertEqual(pblr, 4.5)
+    }
+
+    func testReadsBatteryTemperatureFromTB0T() throws {
+        // TB0T travels as a little-endian key word, like PSTR/PDBR: the key
+        // constant is big-endian 'T','B','0','T', so the wire bytes are its
+        // little-endian serialization 'T','0','B','T'.
+        let raw = try XCTUnwrap(SystemPowerReader.readRaw(key: SystemPowerReader.batteryTemperatureKey) { request in
+            XCTAssertEqual(Array(request.prefix(4)), [0x54, 0x30, 0x42, 0x54], "Read TB0T")
+            return request[42] == 9 ? self.info() : self.value(self.floatPayload(28.5))
+        })
+        XCTAssertEqual(raw.type, 0x666c7420, "TB0T is a flt here")
+        XCTAssertEqual(BatteryHealthParser.temperatureCelsius(smcType: raw.type, bytes: raw.bytes), 28.5)
+    }
+
+    func testPortRailsMultiplyVoltageByCurrentAndIgnoreSilentChannels() {
+        let rails = SystemPowerReader.readPortOutput { request in
+            XCTAssertNotEqual(request[42], 6)
+            let key = Array(request.prefix(4))
+            let known: [[UInt8]: [UInt8]] = [
+                [0x56, 0x4A, 0x31, 0x44]: self.floatPayload(5.222), // D1JV
+                [0x49, 0x4A, 0x31, 0x44]: self.floatPayload(0.806), // D1JI
+                [0x56, 0x4A, 0x32, 0x44]: self.floatPayload(5.25),  // D2JV
+                [0x49, 0x4A, 0x32, 0x44]: self.floatPayload(0.027)  // D2JI, about 0.14 W
+            ]
+            guard let payload = known[key] else {
+                XCTAssertEqual(request[42], 9, "A missing channel is refused at key info")
+                var missing = self.info()
+                missing[40] = 0x84
+                return missing
+            }
+            return request[42] == 9 ? self.info() : self.value(payload)
+        }
+        guard case .measured(let watts, _) = rails else {
+            return XCTFail("expected measured rails")
+        }
+        XCTAssertEqual(watts.map(\.channel), [1, 2], "each rail keeps its SMC channel")
+        XCTAssertEqual(watts[0].watts, 5.222 * 0.806, accuracy: 0.001)
+    }
+
+    func testPortRailsTreatPartialReplyAsAnsweredInsteadOfUnavailable() {
+        // D1JV answers but D1JI is silent: the channel cannot be multiplied, so
+        // it is skipped, yet a single answered key still means "answered". It
+        // must not fall back to the frozen registry value.
+        let voltageOnly = SystemPowerReader.readPortOutput { request in
+            if Array(request.prefix(4)) == [0x56, 0x4A, 0x31, 0x44] { // D1JV
+                return request[42] == 9 ? self.info() : self.value(self.floatPayload(5.0))
+            }
+            XCTAssertEqual(request[42], 9)
+            var missing = self.info()
+            missing[40] = 0x84
+            return missing
+        }
+        guard case .measured(let rails, _) = voltageOnly else {
+            return XCTFail("a voltage-only reply must stay measured, not fall back")
+        }
+        XCTAssertTrue(rails.isEmpty)
+
+        // The mirror case: only a current key answers.
+        let currentOnly = SystemPowerReader.readPortOutput { request in
+            if Array(request.prefix(4)) == [0x49, 0x4A, 0x31, 0x44] { // D1JI
+                return request[42] == 9 ? self.info() : self.value(self.floatPayload(0.5))
+            }
+            XCTAssertEqual(request[42], 9)
+            var missing = self.info()
+            missing[40] = 0x84
+            return missing
+        }
+        guard case .measured(let mirrorRails, _) = currentOnly else {
+            return XCTFail("a current-only reply must stay measured, not fall back")
+        }
+        XCTAssertTrue(mirrorRails.isEmpty)
+    }
+
+    func testPortRailsTreatAcknowledgedButUndecodableKeyAsMeasured() {
+        // Key info succeeds (the key exists) but the value read fails, so no
+        // channel decodes. The keys still answered; do not fall back to the
+        // frozen registry value.
+        let rails = SystemPowerReader.readPortOutput { request in
+            if request[42] == 9 { return self.info() } // recognized key, `flt`
+            var failed = self.value([0, 0, 0, 0])
+            failed[40] = 0x84 // value read error
+            return failed
+        }
+        guard case .measured(let watts, _) = rails else {
+            return XCTFail("acknowledged keys must stay measured, not fall back")
+        }
+        XCTAssertTrue(watts.isEmpty)
+    }
+
+    func testPortRailsCarryTheSMCReadStartTime() {
+        let readAt = Date(timeIntervalSince1970: 1_000)
+        let rails = SystemPowerReader.readPortOutput(exchange: { request in
+            request[42] == 9 ? self.info() : self.value(self.floatPayload(1.0))
+        }, readAt: readAt)
+        guard case .measured(_, let carried) = rails else {
+            return XCTFail("expected measured rails")
+        }
+        XCTAssertEqual(carried, readAt)
+    }
+
+    func testPortRailsAreUnavailableWhenNoChannelAnswers() {
+        let rails = SystemPowerReader.readPortOutput { request in
+            XCTAssertEqual(request[42], 9)
+            var missing = self.info()
+            missing[40] = 0x84
+            return missing
+        }
+        XCTAssertEqual(rails, .unavailable)
+    }
+
+    private func floatPayload(_ number: Float) -> [UInt8] {
+        let bits = number.bitPattern
+        return [UInt8(truncatingIfNeeded: bits),
+                UInt8(truncatingIfNeeded: bits >> 8),
+                UInt8(truncatingIfNeeded: bits >> 16),
+                UInt8(truncatingIfNeeded: bits >> 24)]
+    }
 }

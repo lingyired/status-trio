@@ -4,6 +4,7 @@
 set -euo pipefail
 
 WORKFLOW_PATH=".github/workflows/release.yml"
+CANDIDATE_WORKFLOW_PATH="${GITHUB_WORKSPACE:-$(pwd)}/$WORKFLOW_PATH"
 ARTIFACT_NAME="status-trio-release-package"
 
 REPOSITORY="${REPOSITORY:-}"
@@ -81,14 +82,16 @@ ruby -rjson -rtime - "$RUN_PATH" "$WORKFLOW_JSON_PATH" "$JOBS_PATH" \
     "$ARTIFACTS_PATH" "$MANIFEST_PATH" "$REPOSITORY" "$WORKFLOW_PATH" \
     "$SOURCE_RUN_ID" "$CANDIDATE_SHA" "$EXPECTED_VERSION" "$EXPECTED_BUILD" \
     "$EXPECTED_TAG" "$EXPECTED_ARTIFACT_ID" "$EXPECTED_ARTIFACT_DIGEST" \
-    "$ARTIFACT_NAME" "$METADATA_PATH" <<'RUBY'
+    "$ARTIFACT_NAME" "$METADATA_PATH" "$CANDIDATE_WORKFLOW_PATH" <<'RUBY'
 require "json"
 require "time"
+require "yaml"
 
 run_path, workflow_file, jobs_file, artifacts_file, manifest_path,
   repository, expected_workflow_path, source_run_id, candidate_sha,
   expected_version, expected_build, expected_tag, expected_artifact_id,
-  expected_artifact_digest, artifact_name, metadata_path = ARGV
+  expected_artifact_digest, artifact_name, metadata_path,
+  candidate_workflow_path = ARGV
 
 def fail!(message)
   abort("Release recovery error: #{message}")
@@ -108,6 +111,11 @@ run = read_json(run_path, "source run")
 workflow = read_json(workflow_file, "workflow")
 jobs_payload = read_json(jobs_file, "source jobs")
 artifacts_payload = read_json(artifacts_file, "source artifacts")
+candidate_workflow = begin
+  YAML.safe_load(File.read(candidate_workflow_path), aliases: true)
+rescue StandardError => error
+  fail!("candidate workflow is not readable YAML: #{error.message}")
+end
 
 fail!("source run ID does not match.") unless value(run, "id", "source run").to_s == source_run_id
 fail!("source run repository is not #{repository}.") unless
@@ -127,24 +135,62 @@ fail!("source run branch is not main.") unless value(run, "head_branch", "source
 fail!("source run head SHA is not the frozen candidate.") unless
   value(run, "head_sha", "source run") == candidate_sha
 fail!("source run is not completed.") unless value(run, "status", "source run") == "completed"
-fail!("source run did not conclude with the expected publish failure.") unless
-  value(run, "conclusion", "source run") == "failure"
+run_conclusion = value(run, "conclusion", "source run")
+fail!("source run did not succeed or fail during publication.") unless
+  %w[success failure].include?(run_conclusion)
 
 run_attempt = value(run, "run_attempt", "source run")
 fail!("source run attempt is invalid.") unless run_attempt.is_a?(Integer) && run_attempt.positive?
 
+candidate_jobs = candidate_workflow.is_a?(Hash) && candidate_workflow["jobs"]
+fail!("candidate workflow does not contain a jobs object.") unless candidate_jobs.is_a?(Hash)
+candidate_job_names = candidate_jobs.keys
+# The candidate workflow distinguishes historical source runs from parallel ones.
+accepted_job_shapes = [
+  { names: %w[verify package publish], package_needs: %w[verify] },
+  { names: %w[verify native package publish], package_needs: %w[verify native] }
+]
+expected_job_shape = accepted_job_shapes.find do |shape|
+  shape.fetch(:names).sort == candidate_job_names.sort
+end
+fail!(
+  "candidate workflow job shape is unsupported: #{candidate_job_names.inspect}"
+) unless expected_job_shape
+
+package_job = candidate_jobs["package"]
+fail!("candidate workflow package job is not an object.") unless package_job.is_a?(Hash)
+raw_package_needs = package_job["needs"]
+actual_package_needs = case raw_package_needs
+                       when String then [raw_package_needs]
+                       when Array then raw_package_needs
+                       else []
+                       end
+unless actual_package_needs.all? { |need| need.is_a?(String) } &&
+    actual_package_needs.sort == expected_job_shape.fetch(:package_needs).sort
+  fail!(
+    "candidate workflow package job needs do not match " \
+    "#{expected_job_shape.fetch(:names).inspect}: " \
+    "expected #{expected_job_shape.fetch(:package_needs).inspect}, " \
+    "got #{raw_package_needs.inspect}."
+  )
+end
+expected_job_names = expected_job_shape.fetch(:names)
+
 jobs = value(jobs_payload, "jobs", "source jobs")
 fail!("source jobs response is not a complete page.") unless
   value(jobs_payload, "total_count", "source jobs") == jobs.length
-fail!("source run must contain exactly verify, package, and publish jobs.") unless
-  jobs.length == 3
+actual_job_names = jobs.map { |job| value(job, "name", "source job") }
+fail!(
+  "source run job shape does not match candidate workflow " \
+  "(expected #{expected_job_names.inspect}, got #{actual_job_names.inspect})."
+) unless actual_job_names.sort == expected_job_names.sort
 
 jobs_by_name = {}
 jobs.each do |job|
   jobs_by_name[job["name"]] ||= []
   jobs_by_name[job["name"]] << job
 end
-%w[verify package publish].each do |name|
+expected_job_names.each do |name|
   matches = jobs_by_name.fetch(name, [])
   fail!("source run must contain exactly one #{name} job.") unless matches.length == 1
   job = matches.first
@@ -162,8 +208,21 @@ fail!("verify job did not succeed.") unless
   value(jobs_by_name.fetch("verify").first, "conclusion", "verify job") == "success"
 fail!("package job did not succeed.") unless
   value(jobs_by_name.fetch("package").first, "conclusion", "package job") == "success"
-fail!("publish job did not fail.") unless
-  value(jobs_by_name.fetch("publish").first, "conclusion", "publish job") == "failure"
+if expected_job_names.include?("native")
+  fail!("native job did not succeed.") unless
+    value(jobs_by_name.fetch("native").first, "conclusion", "native job") == "success"
+end
+publish_conclusion = value(
+  jobs_by_name.fetch("publish").first,
+  "conclusion",
+  "publish job"
+)
+if run_conclusion == "failure"
+  fail!("publish job did not fail.") unless publish_conclusion == "failure"
+else
+  fail!("source run succeeded without skipping publication.") unless
+    publish_conclusion == "skipped"
+end
 
 artifacts = value(artifacts_payload, "artifacts", "source artifacts")
 fail!("source artifacts response is not a complete page.") unless
@@ -233,6 +292,7 @@ File.write(
   metadata_path,
   [
     "source_run_id=#{source_run_id}",
+    "source_mode=#{run_conclusion == "success" ? "package_only" : "failed_publish"}",
     "artifact_id=#{artifact_id}",
     "artifact_digest=#{digest}",
     "artifact_size=#{value(artifact, "size_in_bytes", "artifact")}",
@@ -241,8 +301,13 @@ File.write(
 )
 RUBY
 
-printf 'Validated source run %s and artifact from %s.\n' \
-    "$SOURCE_RUN_ID" "$CANDIDATE_SHA"
+if grep -Fqx 'source_mode=failed_publish' "$METADATA_PATH"; then
+    source_label="failed-publish source run"
+else
+    source_label="package-only source run"
+fi
+printf 'Validated %s %s and artifact from %s.\n' \
+    "$source_label" "$SOURCE_RUN_ID" "$CANDIDATE_SHA"
 while IFS='=' read -r key value; do
     printf '  %s: %s\n' "$key" "$value"
     if [[ -n "${GITHUB_OUTPUT:-}" ]]; then

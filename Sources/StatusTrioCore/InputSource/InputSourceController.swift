@@ -69,10 +69,12 @@ final class TaskInputSourceConfirmationScheduler: InputSourceConfirmationSchedul
 /// The single source of truth for input-source state, shared by the centre
 /// icon and the status panel.
 ///
-/// Reads once at `start()` and then follows the two TIS change notifications;
-/// there is no polling. The menu bar / Dock lifecycle calls `start()` only
-/// while a feature that needs it is enabled, so a user who never turns the
-/// feature on never pays for an observer.
+/// Reads once at `start()`, follows the two TIS change notifications, and
+/// re-reads on app activation or system/display wake. Each notification gets
+/// one short, bounded follow-up read because TIS can deliver it just before it
+/// publishes the new selected source. There is no polling. The menu bar / Dock
+/// lifecycle calls `start()` only while a feature that needs it is enabled, so
+/// a user who never turns the feature on never pays for an observer.
 @MainActor
 final class InputSourceController: ObservableObject {
     /// Why a click on a source row did not end in the source being selected.
@@ -98,6 +100,9 @@ final class InputSourceController: ObservableObject {
     /// the icon considers true.
     static let confirmationAttempts = 4
     static let confirmationInterval: Duration = .milliseconds(80)
+    /// One follow-up read covers the notification/TIS publication race without
+    /// turning a lost or bursty notification into a polling loop.
+    static let notificationRefreshDelay: Duration = .milliseconds(75)
 
     @Published private(set) var state: InputSourceState = .empty
     @Published private(set) var selectionFailure: SelectionFailure?
@@ -110,6 +115,10 @@ final class InputSourceController: ObservableObject {
     private let switcher: any InputSourceSwitching
     private let notifications: any InputSourceNotificationObserving
     private let confirmationScheduler: any InputSourceConfirmationScheduling
+    private let modifierObserver: any InputSourceModifierObserving
+    private var modifierGeneration = 0
+    private let notificationRefreshScheduler: any InputSourceConfirmationScheduling
+    private let systemEvents: SystemEventObserverBag
     private var observationTokens: [NSObjectProtocol] = []
     private var confirmationGeneration = 0
     private var isStarted = false
@@ -118,30 +127,48 @@ final class InputSourceController: ObservableObject {
         reader: any InputSourceReading = SystemInputSourceReader(),
         switcher: any InputSourceSwitching = SystemInputSourceSwitcher(),
         notifications: (any InputSourceNotificationObserving)? = nil,
-        confirmationScheduler: any InputSourceConfirmationScheduling = TaskInputSourceConfirmationScheduler()
+        confirmationScheduler: any InputSourceConfirmationScheduling = TaskInputSourceConfirmationScheduler(),
+        notificationRefreshScheduler: any InputSourceConfirmationScheduling = TaskInputSourceConfirmationScheduler(),
+        systemEvents: SystemEventObserverBag? = nil,
+        modifierObserver: any InputSourceModifierObserving = SystemInputSourceModifierObserver()
     ) {
         self.reader = reader
+        self.modifierObserver = modifierObserver
         self.switcher = switcher
         self.notifications = notifications ?? SystemInputSourceNotificationObserver()
         self.confirmationScheduler = confirmationScheduler
+        self.notificationRefreshScheduler = notificationRefreshScheduler
+        self.systemEvents = systemEvents ?? SystemEventObserverBag()
     }
 
     func start() {
         guard !isStarted else { return }
         isStarted = true
         observeNotifications()
+        observeSystemEvents()
         refresh()
+        modifierGeneration &+= 1
+        let generation = modifierGeneration
+        modifierObserver.start { [weak self] modifiers in
+            guard let self, self.isStarted, self.modifierGeneration == generation,
+                  self.state.modifiers != modifiers else { return }
+            self.state.modifiers = modifiers
+        }
     }
 
     func stop() {
         guard isStarted else { return }
         isStarted = false
+        modifierGeneration &+= 1
+        modifierObserver.stop()
         confirmationGeneration &+= 1
         confirmationScheduler.cancel()
+        notificationRefreshScheduler.cancel()
         for token in observationTokens {
             notifications.remove(token)
         }
         observationTokens = []
+        systemEvents.removeAll()
         selectionFailure = nil
     }
 
@@ -189,13 +216,38 @@ final class InputSourceController: ObservableObject {
     private func handleSystemChange() {
         guard isStarted else { return }
         refresh()
+        notificationRefreshScheduler.schedule(after: Self.notificationRefreshDelay) { [weak self] in
+            guard let self, isStarted else { return }
+            refresh()
+        }
+    }
+
+    private func observeSystemEvents() {
+        systemEvents.install(
+            applicationActivated: { [weak self] in
+                Task { @MainActor in self?.refreshAfterSystemEvent() }
+            },
+            didWake: { [weak self] in
+                Task { @MainActor in self?.refreshAfterSystemEvent() }
+            },
+            screensDidWake: { [weak self] in
+                Task { @MainActor in self?.refreshAfterSystemEvent() }
+            }
+        )
+    }
+
+    private func refreshAfterSystemEvent() {
+        guard isStarted else { return }
+        refresh()
     }
 
     private func readState() -> InputSourceState {
-        InputSourceState.resolved(
+        var result = InputSourceState.resolved(
             selectedID: reader.currentKeyboardInputSourceID(),
             rawSources: reader.keyboardInputSources()
         )
+        result.modifiers = state.modifiers
+        return result
     }
 
     private func publish(_ next: InputSourceState) {

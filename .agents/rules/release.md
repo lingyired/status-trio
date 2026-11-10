@@ -11,8 +11,9 @@ generation, signing, notarization, or versioning.
 - Release CI runs only when a maintainer explicitly dispatches `release.yml`
   for a frozen lowercase 40-character `candidate_sha` from `main`. Ordinary
   commits, pull requests, and merges do not run it.
-- The verify job runs the full tests and native contracts on that SHA. The
-  package job builds one Universal artifact on `xcode-27`; the publish job
+- The `verify` job runs the full Swift suite, while the parallel `native` job
+  runs the native and offline release contracts on the same SHA. The package
+  job waits for both and builds one Universal artifact on `xcode-27`; publish
   downloads that artifact and must not rebuild, repackage, sign, or notarize.
 - The candidate SHA, manifest `source_sha`, Release Tag, DMG SHA-256, appcast
   enclosure, and public download must all refer to the same artifact. Tag

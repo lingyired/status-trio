@@ -10,6 +10,14 @@ import Foundation
 /// the device-wide level. That is what keeps one bud's charge from being shown
 /// as the whole device's.
 struct BluetoothAccessoryBatteryLevel: Equatable, Sendable {
+    /// The accessory this reading describes, as the power manager names it.
+    ///
+    /// Unlike the vendor/product pair, which every set of one model shares, this
+    /// distinguishes two sets of the same model. It is the only safe way to
+    /// attribute a reading to a device: `nil` means the source did not identify
+    /// the accessory, and such a reading is never used rather than guessed onto
+    /// whichever device happens to share its model or name.
+    let identifier: String?
     let name: String
     let vendorID: Int?
     let productID: Int?
@@ -72,6 +80,7 @@ enum BluetoothAccessoryBatteryReader {
             return nil
         }
         return BluetoothAccessoryBatteryLevel(
+            identifier: identifier(of: document),
             name: (document["Name"] as? String)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
             vendorID: document["Vendor ID"] as? Int,
@@ -79,6 +88,19 @@ enum BluetoothAccessoryBatteryReader {
             part: BluetoothAccessoryPart(identifier: document["Part Identifier"] as? String),
             percentage: percentage
         )
+    }
+
+    /// The accessory's own identity, as the power manager writes it.
+    ///
+    /// This is a UUID from the power manager, not the device's Bluetooth address,
+    /// so it is never compared to a device directly. It is kept because it is the
+    /// only value that tells two sets of one model apart: the vendor/product pair
+    /// and the name are shared by both. A source that omits it, or writes an
+    /// empty string, is reported as `nil` and cannot be attributed by the caller.
+    private static func identifier(of document: [String: Any]) -> String? {
+        guard let identifier = document["Accessory Identifier"] as? String else { return nil }
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     /// `Current Capacity` is the charge left and `Max Capacity` the full charge,
@@ -118,7 +140,7 @@ final class PmsetAccessoryBatteryWorker: @unchecked Sendable, BluetoothAccessory
     private let outputProvider: OutputProvider
 
     init(
-        outputProvider: @escaping OutputProvider = PmsetAccessoryBatteryWorker.readAccessoryPowerSources
+        outputProvider: @escaping OutputProvider = { PmsetAccessoryBatteryWorker.readAccessoryPowerSources() }
     ) {
         self.outputProvider = outputProvider
     }
@@ -157,23 +179,31 @@ final class PmsetAccessoryBatteryWorker: @unchecked Sendable, BluetoothAccessory
         }
     }
 
-    static func readAccessoryPowerSources() -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
-        process.arguments = ["-g", "accps", "-xml"]
+    /// Comfortably under the controller's read cadence; `pmset -g accps` is a
+    /// quick query, so a deadline shorter than the profiler's is plenty.
+    static let readTimeout: Duration = .seconds(4)
 
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-            let data = output.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else { return nil }
-            return String(data: data, encoding: .utf8)
-        } catch {
-            return nil
-        }
+    /// The one bounded `pmset` accessory read in the app.
+    ///
+    /// `pmset -g accps` talks to the power manager and can hang the same way
+    /// `/usr/sbin/system_profiler` can: `readDataToEndOfFile()` plus
+    /// `waitUntilExit()` has no deadline, so a child that never exits — or a
+    /// descendant that inherits the pipe — would block this worker's serial
+    /// queue for the rest of the process. It runs through the shared bounded
+    /// runner instead, so a stuck read ends itself and reports no accessory
+    /// rather than stalling the chain. Parameters are injectable so the bound
+    /// can be exercised with a fake child in tests.
+    static func readAccessoryPowerSources(
+        executableURL: URL = URL(fileURLWithPath: "/usr/bin/pmset"),
+        arguments: [String] = ["-g", "accps", "-xml"],
+        timeout: Duration = PmsetAccessoryBatteryWorker.readTimeout
+    ) -> String? {
+        let outcome = BoundedProcessInvocation.runSync(
+            executableURL: executableURL,
+            arguments: arguments,
+            timeout: timeout
+        )
+        guard case .exited(let data) = outcome else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 }

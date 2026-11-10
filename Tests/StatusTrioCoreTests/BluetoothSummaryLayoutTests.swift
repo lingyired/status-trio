@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import XCTest
 @testable import StatusTrioCore
@@ -292,6 +293,67 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
 
         XCTAssertEqual(withSettingOn.width, 330, accuracy: 0.5)
         XCTAssertLessThan(withSettingOn.height, 120)
+    }
+
+    /// Powering the radio off must collapse the device list to the powered-off
+    /// row even though devices are still in memory. The cache exists so a reopen
+    /// draws last-known rows instantly, but that only makes sense while the
+    /// radio is reachable: after power-off monitoring is suspended and no read
+    /// will overwrite them, so the cached connected rows (with their blue
+    /// marker) would otherwise stay on screen until the radio turns back on.
+    func testPoweringOffCollapsesTheDeviceList() async throws {
+        let devices = [
+            BluetoothDevice(
+                id: "AA", name: "AirPods Pro",
+                kind: .audio, isConnected: true
+            ),
+            BluetoothDevice(
+                id: "BB", name: "MX Master 3",
+                kind: .peripheral(.mouse), isConnected: true
+            ),
+        ]
+        let listOn = BluetoothDeviceListOptions(
+            showsList: true, maxVisibleDevices: 3, order: []
+        )
+
+        let withListRadioOn = try await render(
+            language: .english,
+            authorization: .allowed,
+            devices: devices,
+            listOptions: listOn,
+            radioPower: .on,
+            showsBatteryLevels: false,
+            named: "bluetooth-radio-on-list"
+        )
+        let radioOff = try await render(
+            language: .english,
+            authorization: .allowed,
+            devices: devices,
+            listOptions: listOn,
+            radioPower: .off,
+            showsBatteryLevels: false,
+            named: "bluetooth-radio-off-list"
+        )
+        let noListRadioOn = try await render(
+            language: .english,
+            authorization: .allowed,
+            devices: devices,
+            listOptions: BluetoothDeviceListOptions(
+                showsList: false, maxVisibleDevices: 3, order: []
+            ),
+            radioPower: .on,
+            showsBatteryLevels: false,
+            named: "bluetooth-radio-on-nolist"
+        )
+
+        // The radio-off row collapses to the same single-line powered-off row
+        // as hiding the list entirely: the in-memory connected devices must not
+        // keep rendering a device list while the radio shows powered off.
+        XCTAssertEqual(radioOff.height, noListRadioOn.height, accuracy: 1.5)
+        XCTAssertLessThan(
+            radioOff.height, withListRadioOn.height,
+            "powering off must collapse the device list, not render cached connected devices"
+        )
     }
 
     func testAppleMasterDoesNotPromoteNearbyBLEReadingsToOwnedRows() async throws {
@@ -611,6 +673,8 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
         devices: [BluetoothDevice],
         batteryLevels: [String: BluetoothBatteryLevel] = [:],
         listOptions: BluetoothDeviceListOptions = .standard,
+        radioPower: BluetoothRadioPower = .on,
+        showsBatteryLevels: Bool = true,
         named name: String
     ) async throws -> NSSize {
         let (hosting, controller) = try await makeHosting(
@@ -618,7 +682,9 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
             authorization: authorization,
             devices: devices,
             batteryLevels: batteryLevels,
-            listOptions: listOptions
+            listOptions: listOptions,
+            showsBatteryLevels: showsBatteryLevels,
+            radioPower: radioPower
         )
         defer { controller.deactivate() }
 
@@ -635,6 +701,91 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
 
     /// Builds the panel's Bluetooth row with its layout settled, so a test can
     /// measure what actually rendered instead of what the code intended.
+    /// Issue #314: the Wi-Fi and Bluetooth summary rows sit one above the
+    /// other, so their trailing action glyphs must fall on the same vertical
+    /// columns even though the middle button is a caption-weight chevron on one
+    /// row and a body-weight refresh arrow on the other.
+    func testWiFiAndBluetoothTrailingActionsShareColumns() async throws {
+        let (bluetoothHosting, controller) = try await makeHosting(
+            language: .english,
+            authorization: .allowed,
+            devices: [],
+            batteryLevels: [:],
+            listOptions: BluetoothDeviceListOptions(
+                showsList: false,
+                maxVisibleDevices: 5,
+                order: []
+            )
+        )
+        defer { controller.deactivate() }
+
+        let bluetooth = try XCTUnwrap(SummaryActionAlignmentProbe(bluetoothHosting))
+        let bluetoothActions = bluetooth.trailingGlyphRects(count: 3, minimumX: 150)
+        XCTAssertEqual(bluetoothActions.count, 3, "power, refresh and Settings must render")
+
+        let wifi = try renderWiFiRow()
+        let wifiActions = wifi.trailingGlyphRects(count: 3, minimumX: 150)
+        XCTAssertEqual(wifiActions.count, 3, "power, chevron and Settings must render")
+
+        guard bluetoothActions.count == 3, wifiActions.count == 3 else { return }
+
+        // Both clusters are right-anchored: gear, middle button, then power.
+        let names = ["gear", "middle action", "power"]
+        let bluetoothColumns = Array(bluetoothActions.reversed())
+        let wifiColumns = Array(wifiActions.reversed())
+        for index in 0..<3 {
+            XCTAssertEqual(
+                bluetoothColumns[index].midX, wifiColumns[index].midX, accuracy: 0.5,
+                "the \(names[index]) must sit in the same column on the Wi-Fi and Bluetooth rows"
+            )
+        }
+    }
+
+    private func renderWiFiRow() throws -> SummaryActionAlignmentProbe {
+        let suite = "StatusTrioCoreTests.BluetoothSummary.WiFi.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removeTestSuite(named: suite) }
+        let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+
+        let view = NetworkStatusView(
+            showsWiFiPowerControl: true,
+            wifiPowerIsOn: true,
+            wifiPowerCanSet: true,
+            wifiPowerRequiresConfirmation: false,
+            wifiPowerFailed: false,
+            state: PanelSummaryState(
+                title: "Example Network",
+                subtitle: "192.168.1.20 · 5 GHz",
+                measurements: nil,
+                symbol: .symbol(name: "wifi", variableValue: nil, fallback: nil),
+                tint: .secondary,
+                accessibilityLabel: "Network",
+                accessibilityValue: "Connected",
+                showsSettings: true,
+                intent: .wifiDetails
+            ),
+            onOpenWiFiDetails: { _ in },
+            onOpenWiredDetails: {},
+            onRequestNameAccess: {},
+            onOpenWiFiSettings: {},
+            onOpenNetworkSettings: {},
+            onOpenLocationSettings: {}
+        )
+        .padding(14)
+        .frame(width: 330)
+        .background(Color(white: 0.96))
+        .environmentObject(localization)
+        .environment(\.colorScheme, .light)
+
+        let hosting = NSHostingView(rootView: view)
+        hosting.appearance = NSAppearance(named: .aqua)
+        hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
+        hosting.layoutSubtreeIfNeeded()
+        hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
+        hosting.layoutSubtreeIfNeeded()
+        return try XCTUnwrap(SummaryActionAlignmentProbe(hosting))
+    }
+
     private func makeHosting(
         language: AppLanguage,
         authorization: BluetoothAuthorizationStatus,
@@ -666,13 +817,59 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
             workspaceNotificationCenter: notifications,
             nearbyBatteryScanner: nearbyScanner
         )
+        if !nearbyDevices.isEmpty {
+            controller.configureNearbyBLEDevices(
+                enabled: true,
+                knownIDs: Set(nearbyDevices.map(\.id)),
+                hiddenIDs: []
+            )
+            controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+            controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+            controller.setVisibleNearbyBLEDevices(
+                Set(nearbyDevices.map(\.id)),
+                for: "bluetooth.summary.layout.test"
+            )
+        }
+        let devicesWaiter = SummaryPublishedStateWaiter(
+            controller.$devices,
+            description: "devices to publish \(devices.count) fixture device(s)"
+        ) { $0 == devices }
+        let expectedAvailability: BluetoothAvailability = switch authorization {
+        case .allowed: .available
+        case .notDetermined: .authorizationNotDetermined
+        case .denied: .authorizationDenied
+        case .restricted: .authorizationRestricted
+        }
+        let availabilityWaiter = SummaryPublishedStateWaiter(
+            controller.$availability,
+            description: "availability to publish \(expectedAvailability)"
+        ) { $0 == expectedAvailability }
+        let batteryLevelsWaiter = SummaryPublishedStateWaiter(
+            controller.$batteryLevels,
+            description: "batteryLevels to publish \(batteryLevels.count) fixture level(s)"
+        ) { $0 == batteryLevels }
+        let nearbyDevicesWaiter = SummaryPublishedStateWaiter(
+            controller.$nearbyBatteryDevices,
+            description: "nearbyBatteryDevices to publish \(nearbyDevices.count) fixture device(s)"
+        ) { $0 == nearbyDevices }
+        // A connected AirPods row reserves its battery line until the first read
+        // settles. Layout tests measure the settled row, so wait for that too —
+        // otherwise the placeholder line can still be on screen.
+        let batteryReadCompletedWaiter = SummaryPublishedStateWaiter(
+            controller.$hasCompletedBatteryRead,
+            description: "the first battery read to complete"
+        ) { $0 }
+
         if authorization == .allowed {
             controller.activate()
         } else {
             controller.prepareForPresentation()
         }
+        try await devicesWaiter.wait()
+        try await availabilityWaiter.wait()
         if !nearbyDevices.isEmpty {
-            controller.holdVisibleSurface(BluetoothDeviceController.popoverSurfaceToken)
+            nearbyScanner.publish(nearbyDevices)
+            try await nearbyDevicesWaiter.wait()
         }
 
         let view = BluetoothStatusView(
@@ -701,10 +898,13 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
         hosting.appearance = NSAppearance(named: .aqua)
         hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
         hosting.layoutSubtreeIfNeeded()
-        // Let the controller publish the fixture and the row settle.
-        try await Task.sleep(for: .milliseconds(50))
-        nearbyScanner.publish(nearbyDevices)
-        try await Task.sleep(for: .milliseconds(50))
+        if !batteryLevels.isEmpty {
+            try await batteryLevelsWaiter.wait()
+        } else if showsBatteryLevels,
+                  authorization == .allowed,
+                  devices.contains(where: \.isConnected) {
+            try await batteryReadCompletedWaiter.wait()
+        }
         let size = hosting.fittingSize
         hosting.frame = NSRect(origin: .zero, size: size)
         hosting.layoutSubtreeIfNeeded()
@@ -787,6 +987,91 @@ final class BluetoothSummaryLayoutTests: XCTestCase {
     }
 }
 
+private enum SummaryPublishedStateError: Error, CustomStringConvertible {
+    case timedOut(description: String, lastValue: String)
+
+    var description: String {
+        switch self {
+        case let .timedOut(description, lastValue):
+            return "Timed out after 2 seconds waiting for \(description); last value: \(lastValue)"
+        }
+    }
+}
+
+@MainActor
+private final class SummaryPublishedStateWaiter<Value: Sendable> {
+    private let description: String
+    private let predicate: @MainActor (Value) -> Bool
+    private let timeout: Duration
+    private var latestValue = "<none published>"
+    private var finished = false
+    private var cancellation: AnyCancellable?
+    private var continuation: CheckedContinuation<Void, any Error>?
+    private var timeoutTask: Task<Void, Never>?
+
+    init(
+        _ publisher: Published<Value>.Publisher,
+        description: String,
+        timeout: Duration = .seconds(2),
+        predicate: @escaping @MainActor (Value) -> Bool
+    ) {
+        self.description = description
+        self.predicate = predicate
+        self.timeout = timeout
+        cancellation = publisher.sink { [weak self] value in
+            Task { @MainActor [weak self] in
+                self?.receive(value)
+            }
+        }
+    }
+
+    func wait() async throws {
+        guard !finished else { return }
+        try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+            timeoutTask = Task { @MainActor [weak self] in
+                guard let self else { return }
+                do {
+                    try await Task.sleep(for: self.timeout)
+                } catch {
+                    return
+                }
+                self.timeOut()
+            }
+        }
+    }
+
+    private func receive(_ value: Value) {
+        guard !finished else { return }
+        latestValue = String(describing: value)
+        guard predicate(value) else { return }
+        finished = true
+        cancellation?.cancel()
+        cancellation = nil
+        timeoutTask?.cancel()
+        timeoutTask = nil
+        let continuation = self.continuation
+        self.continuation = nil
+        continuation?.resume()
+    }
+
+    private func timeOut() {
+        guard !finished else { return }
+        finished = true
+        cancellation?.cancel()
+        cancellation = nil
+        timeoutTask = nil
+        let continuation = self.continuation
+        self.continuation = nil
+        continuation?.resume(
+            throwing: SummaryPublishedStateError.timedOut(
+                description: description,
+                lastValue: latestValue
+            )
+        )
+    }
+}
+
 private final class SummaryBluetoothDeviceReader: BluetoothPairedDeviceReading {
     private let result: BluetoothWorkerResult
 
@@ -820,14 +1105,17 @@ private final class SummaryNearbyBatteryScanner: BluetoothLEBatteryScanning {
     var discoveredCandidates: [NearbyBLEDeviceCandidate] = []
     private(set) var isRunning = false
     private(set) var isScanning = false
+    private var readTokens: [UUID: DeviceOperationToken] = [:]
 
     func setAllowedReadDeviceIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
-        _ = ids
-        return [:]
+        readTokens = readTokens.filter { ids.contains($0.key) }
+        for id in ids where readTokens[id] == nil {
+            readTokens[id] = DeviceOperationToken()
+        }
+        return readTokens
     }
     func setInitialReadCandidateIDs(_ ids: Set<UUID>) -> [UUID: DeviceOperationToken] {
-        _ = ids
-        return [:]
+        setAllowedReadDeviceIDs(ids)
     }
 
     func start() { isRunning = true }

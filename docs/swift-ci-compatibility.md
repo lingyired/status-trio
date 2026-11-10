@@ -16,6 +16,27 @@ Swift 6.1.2 上。
 `isolated deinit`、`weak let`、`Bundle.module` 资源布局、IRGen 崩溃这些具体
 症状属于旧编译器，而由它们归纳出的规则至今有效。
 
+## CI 计时路径的表达式上下文（2026-10-27）
+
+PR #156 合并后，首次非发布诊断在派发时被 GitHub 拒绝，未启动诊断 job：
+`release.yml:269` 的 job 级 `BUILD_TIMING_FILE` 使用了
+`${{ runner.temp }}`，但该层只允许 `github`、`inputs`、`matrix`、`needs`、
+`secrets`、`strategy` 和 `vars`。普通 YAML 解析与原有结构策略未覆盖表达式
+上下文，因此本地完整验证未发现该问题。官方 `actionlint` v1.7.12 独立复现了
+同一错误。
+
+GitHub 另外为分支 push 和合并 push 记录了
+[`40416143054`](https://github.com/lingyired/status-trio/actions/runs/40416143054)
+和 [`40424624520`](https://github.com/lingyired/status-trio/actions/runs/40424624520)
+两条配置校验失败，均为 `event=push`、0 个 job。它们与拒绝的手动派发属于同一
+工作流解析问题，不是已经运行的 Swift 测试或冷缓存构建。
+
+计时文件改为 `${{ github.workspace }}/.build/ci-logs/package-build-timings.tsv`，
+在 cache-key 步骤中先创建父目录，上传步骤引用同一个环境变量。工作流策略增加
+job 级 `runner` 上下文拒绝检查；负例在修复前确定性失败。远端验证结果随冷／热
+诊断记录到 `docs/ci/ci-performance-report.md`，不把派发拒绝计为测试失败或冷缓存
+构建。
+
 ## 1.7.1 非发布预检：系统符号与测试采样（2026-10-23）
 
 预检 [`39809532587`](https://github.com/lingyired/status-trio/actions/runs/39809532587)
@@ -116,6 +137,56 @@ CI 工具链（`macos-26` / Xcode 26.6 / Swift 6.3.3）上全绿，耗时 15m27s
 `EnableTransactions` 也不会），测量方法与结果记在 [privileged helper](privileged-helper.md)。
 
 ## 失败记录
+
+### DDC topology observation follow-up (2026-10-27)
+
+Diagnostic [`40530484687`](https://github.com/lingyired/status-trio/actions/runs/40530484687)
+at frozen `aa15b78c28561901fa8f4848f56405fea4c7d258` repeated the four
+`DDCVolumePresentationTests.testTopologyChangeClearsConfirmedDDCVolumeAndSelectedRowImmediately`
+failures first recorded in `37416172832`: after topology invalidation, the
+test's next stream element contained `0.75` and writable state.
+
+The observation boundary matters: `VolumeMonitor.topologyChanged()` publishes
+the cleared state synchronously, then starts a new-generation read.
+`MonitorStream` deliberately retains only the newest element. An instant fake
+transport can therefore publish a legitimate fresh `0.75` before the consumer
+resumes. The four failures alone do not establish stale-generation acceptance;
+the coordinator and monitor already reject mismatched generations.
+
+The test now holds the next transport read behind an explicit gate, observes
+the cleared scalar, current device, selected row and disabled control, then
+releases that read and requires fresh writable confirmation. Expectation
+events replace the next-element ordering assumption; the one-slot production
+stream, production timing, and generation checks are unchanged. A temporary
+mutation removing immediate invalidation fails the updated test. The focused
+test passed 20 consecutive runs through `bash scripts/test.sh`; the DDC
+presentation, coordinator, and stream focused suites also passed.
+
+The temporary `testProbeTopologyFreshUpdateOverwritesUnconsumedInvalidation`
+deterministically reproduced the overwrite before it was removed. Focused
+evidence is retained in `.build/task1-ddc-repetitions-20261027-234906/`
+and `.build/task1-ddc-evidence-20261027-235313/`.
+
+Independent review found no actionable issues. On 2026-10-28 (Asia/Shanghai),
+`bash scripts/verify-local.sh full` passed on base
+`a9ee5cab352b6464d3a6b5a2a4cb51a5bd6c99b9` with this test patch:
+1,928 Core XCTest tests (eight existing skips), 15 Helper XCTest tests,
+763 Swift Testing tests, Release compilation, the local non-Universal
+bundle, native/cache contracts, and offline release simulations. The log is
+`.build/ci-optimization-evidence/ddc-stability-2026-10-27/verify-local-ddc-full.log`.
+Post-fix diagnostic
+[`40538437122`](https://github.com/lingyired/status-trio/actions/runs/40538437122)
+and final frozen-source diagnostic
+[`40542058689`](https://github.com/lingyired/status-trio/actions/runs/40542058689)
+plus its same-SHA repeat
+[`40544097423`](https://github.com/lingyired/status-trio/actions/runs/40544097423)
+all passed the full test and native/package chain; the topology case took
+0.001s, 0.002s and 0.003s respectively. All used `publish=false`,
+`notarize=false`.
+The downloaded artifacts passed digest, architecture, platform and Ad-hoc
+signature checks. Timings and repeat-run evidence are in
+[the CI report](ci/ci-performance-report.md). Hardware and GUI acceptance
+remain unexercised.
 
 | Run | 失败阶段 | 根因 | 修复方式 |
 | --- | --- | --- | --- |
@@ -1293,3 +1364,48 @@ distribution due to environment protection rules.
   证明本次华为代码没有引入这些计数失败。按本条记录的测试调度原则，后续以已有可控
   presentation 调度器替换固定 sleep，保留“静止呈现只栅格化一次、稳态 tick 不重建基础层”
   的全部计数与对象身份断言，再运行完整本地测试和非发布 CI 预检。
+
+## 40333652240 至 40339829287：CI 图标渲染的 Wi-Fi 抗锯齿差异
+
+1.7.5 的发布预检在 `AppIconPreviewTests.testCommittedIconComposerArtworkMatchesTheRenderer`
+首次暴露 CI 与本机不同的图标输出。以下 Run 使用同一套工具链声明
+（macOS 27 / Xcode 27 / Swift 6.4 / SDK 27 / `xcode-27-arm64`）：
+
+- [`40333652240`](https://github.com/lingyired/status-trio/actions/runs/40333652240)
+  比较 PNG 文件字节，失败；
+- [`40335449161`](https://github.com/lingyired/status-trio/actions/runs/40335449161)
+  改为比较解码后的 RGBA，仍失败；
+- [`40339420559`](https://github.com/lingyired/status-trio/actions/runs/40339420559)
+  输出差异统计：light 有 12 501 个通道不同、最大通道差 226；dark 有 12 081 个
+  通道不同、最大通道差 234；
+- [`40339829287`](https://github.com/lingyired/status-trio/actions/runs/40339829287)
+  仅用于抓取 CI 的 light/dark 原图，临时工作流以 `|| true` 上传 artifact；该 Run
+  的成功不表示测试通过。
+
+差异边界为 `(394, 435)–(665, 636)`，只覆盖 Wi-Fi 图形的抗锯齿边缘；圆环、闪电、
+三个音量点、背景和中心颜色一致。解码统计为：light 有 4 307 个像素不同，其中
+3 175 个通道差大于 8/255；dark 有 4 029 个像素不同，其中 3 171 个通道差大于
+8/255。本机渲染与仓库中的 PNG 完全一致。该差异来自 headless CI 与本机 Retina
+CoreGraphics 上下文的栅格化，不是产品渲染分支、工具链版本或文件解码不同。
+
+修复没有引入像素容差。测试保留 1024×1024 尺寸检查，并为每种外观批准两组完整的
+decoded-RGBA SHA-256 配对：本机/仓库与 CI。未知的 committed 或 rendered 指纹、
+任一新的配对组合都会失败，因此普通渲染漂移仍可见。固定指纹沿用
+`StaticSymbolRasterDiagnostics` 的封闭基线做法，不跳过或放宽断言。
+
+## 40341717461：有界进程测试漏算终止与排空宽限
+
+图标指纹修复后的非发布预检在冻结候选 `07ed1ab2` 的 `Run tests` 阶段中止，尚未进入
+`package`，因此没有签名、公证或 artifact。唯一失败是既有
+`MobileBatteryHelperReaderTests.processExecutorKillsAChildThatIgnoresTermination`：
+
+- 测试启动一个忽略 `SIGTERM` 的子进程，传入 1 秒 deadline；
+- CI 实测从启动到调用完成耗时 2.081 378 792 秒，超过测试写死的 `< 2 秒`；
+- 但同一测试的 `>= 1.2 秒` 与 `kill(pid, 0) == -1 && errno == ESRCH` 均通过，
+  证明 deadline 生效、子进程已被 `SIGKILL` 并回收。
+
+根因是测试预算漏算 `BoundedProcessInvocation` 已声明的 250 ms `SIGKILL` 宽限和
+500 ms 流排空宽限；1 秒 deadline 加两段宽限的理论上限已超过 2 秒。CI 的调度延迟
+只是让本来错误的边界稳定暴露。修复把上界改为 5 秒，保留 1.2 秒下界、超时类型和
+`SIGKILL` 后 `ESRCH` 断言；没有跳过测试、放宽为任意成功，也没有修改产品终止逻辑。
+修正后两条进程生命周期定向测试通过（2 tests / 1 suite）。

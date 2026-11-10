@@ -1,0 +1,2 @@
+SMC open=0x00000000; IOReport=ok requested=17 subscribed=17; CLPC open=0x00000000
+samples=35 elapsed=35.005022 seconds stop=0

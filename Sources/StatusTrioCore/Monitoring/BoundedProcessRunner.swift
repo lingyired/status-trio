@@ -53,6 +53,7 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     private let executableURL: URL
     private let arguments: [String]
     private let outputLimit: Int
+    private let onProcessStarted: (@Sendable (Int32) -> Void)?
 
     private var process: Process?
     private var stdoutPipe: Pipe?
@@ -73,10 +74,16 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     private var failure: BoundedProcessOutcome?
     private var onFinish: (@Sendable (BoundedProcessOutcome) -> Void)?
 
-    init(executableURL: URL, arguments: [String], outputLimit: Int = BoundedProcessInvocation.defaultOutputLimit) {
+    init(
+        executableURL: URL,
+        arguments: [String],
+        outputLimit: Int = BoundedProcessInvocation.defaultOutputLimit,
+        onProcessStarted: (@Sendable (Int32) -> Void)? = nil
+    ) {
         self.executableURL = executableURL
         self.arguments = arguments
         self.outputLimit = outputLimit
+        self.onProcessStarted = onProcessStarted
     }
 
     // MARK: - Entry points
@@ -86,12 +93,14 @@ final class BoundedProcessInvocation: @unchecked Sendable {
         executableURL: URL,
         arguments: [String],
         timeout: Duration,
-        outputLimit: Int = BoundedProcessInvocation.defaultOutputLimit
+        outputLimit: Int = BoundedProcessInvocation.defaultOutputLimit,
+        onProcessStarted: (@Sendable (Int32) -> Void)? = nil
     ) async -> BoundedProcessOutcome {
         let invocation = BoundedProcessInvocation(
             executableURL: executableURL,
             arguments: arguments,
-            outputLimit: outputLimit
+            outputLimit: outputLimit,
+            onProcessStarted: onProcessStarted
         )
         return await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
@@ -194,11 +203,23 @@ final class BoundedProcessInvocation: @unchecked Sendable {
                     // still in each pipe before letting the invocation finish,
                     // on that stream's queue: draining them in sequence would
                     // reintroduce the deadlock the queues exist to prevent.
+                    //
+                    // Read `onFinish` here, on the state-machine queue. The
+                    // stream queues must never touch it: `finish` nils it from
+                    // this queue, and a read racing that write was undefined
+                    // behaviour in a path that also runs on the blocked path.
+                    let hasPendingWork = invocation.onFinish != nil
                     invocation.stdoutQueue.async { [invocation] in
-                        invocation.drainPipesAfterProcessExit(.stdout)
+                        invocation.drainPipesAfterProcessExit(
+                            .stdout,
+                            hasPendingWork: hasPendingWork
+                        )
                     }
                     invocation.stderrQueue.async { [invocation] in
-                        invocation.drainPipesAfterProcessExit(.stderr)
+                        invocation.drainPipesAfterProcessExit(
+                            .stderr,
+                            hasPendingWork: hasPendingWork
+                        )
                     }
                     invocation.completeIfReady()
                 }
@@ -207,6 +228,7 @@ final class BoundedProcessInvocation: @unchecked Sendable {
             do {
                 try child.run()
                 self.hasStarted = true
+                self.onProcessStarted?(child.processIdentifier)
                 self.queue.asyncAfter(deadline: .now() + Self.seconds(timeout)) {
                     guard self.onFinish != nil else { return }
                     self.failure = self.failure ?? .timedOut
@@ -271,11 +293,16 @@ final class BoundedProcessInvocation: @unchecked Sendable {
 
     /// Reads one stream to EOF after the child is gone. Called once per stream,
     /// each on that stream's own queue.
-    private func drainPipesAfterProcessExit(_ stream: Stream) {
+    private func drainPipesAfterProcessExit(_ stream: Stream, hasPendingWork: Bool) {
+        // The pipe stays alive because this block holds `self` strongly (and
+        // `self` holds the pipe); read its handle once and drain it locally
+        // rather than reaching through a mutable property twice.
         switch stream {
         case .stdout:
-            stdoutPipe?.fileHandleForReading.readabilityHandler = nil
-            guard hasPendingWork, !stdoutIOEnded, let handle = stdoutPipe?.fileHandleForReading else { return }
+            guard let pipe = stdoutPipe else { return }
+            let handle = pipe.fileHandleForReading
+            handle.readabilityHandler = nil
+            guard hasPendingWork, !stdoutIOEnded else { return }
             let data = handle.readDataToEndOfFile()
             markIOStreamEnded(.stdout)
             queue.async { [self] in
@@ -283,8 +310,10 @@ final class BoundedProcessInvocation: @unchecked Sendable {
                 received(Data(), stream: .stdout)
             }
         case .stderr:
-            stderrPipe?.fileHandleForReading.readabilityHandler = nil
-            guard hasPendingWork, !stderrIOEnded, let handle = stderrPipe?.fileHandleForReading else { return }
+            guard let pipe = stderrPipe else { return }
+            let handle = pipe.fileHandleForReading
+            handle.readabilityHandler = nil
+            guard hasPendingWork, !stderrIOEnded else { return }
             let data = handle.readDataToEndOfFile()
             markIOStreamEnded(.stderr)
             queue.async { [self] in
@@ -293,8 +322,6 @@ final class BoundedProcessInvocation: @unchecked Sendable {
             }
         }
     }
-
-    private var hasPendingWork: Bool { onFinish != nil }
 
     private func markIOStreamEnded(_ stream: Stream) {
         switch stream {
@@ -365,12 +392,11 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     private func finish(_ outcome: BoundedProcessOutcome) {
         guard let onFinish else { return }
         self.onFinish = nil
-        stdoutPipe?.fileHandleForReading.readabilityHandler = nil
-        stderrPipe?.fileHandleForReading.readabilityHandler = nil
-        try? stdoutPipe?.fileHandleForReading.close()
-        try? stderrPipe?.fileHandleForReading.close()
-        stdoutPipe = nil
-        stderrPipe = nil
+        // The pipes are left to ARC. `drainPipesAfterProcessExit` reads the
+        // handlers on their own streams' queues; nilling the pipe properties
+        // here would release the NSPipe while that other queue was in the
+        // middle of touching it (a use-after-free crash). Every closure that
+        // holds the pipes releases them once it returns.
         process?.terminationHandler = nil
         process = nil
         onFinish(outcome)

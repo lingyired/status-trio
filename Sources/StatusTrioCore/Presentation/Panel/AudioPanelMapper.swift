@@ -6,17 +6,34 @@ enum AudioPanelMapper {
     static func volume(
         _ status: VolumeStatus,
         controllerAvailable: Bool,
+        externalVolumeConfiguration: ExternalVolumeConfiguration = .default,
         deviceList: AudioOutputListPreferences = .default,
         listeningModes: BluetoothListeningModeController? = nil,
         listeningModeTaskID: String = "",
         previewDevices: [AudioOutputDevice] = [],
         previewLanguageCode: String = "",
         previewLocalization: Localization? = nil,
+        deviceListPlaceholder: PanelListLayoutSnapshot? = nil,
+        showsAirPodsSystemControls: Bool = true,
+        showsSpatialAudioControls: Bool = true,
+        showsConversationAwarenessControls: Bool = true,
         localization: Localization
     ) -> VolumePanelState {
         let scalar = readableScalar(status.scalar)
         let percentageText = percentage(scalar, locale: localization.resolvedLanguage.locale)
         let currentDevice = status.outputDevices.first(where: \.isCurrent)
+        let currentOutput = status.currentDevice ?? currentDevice
+        let outputIdentity = currentOutput.map {
+            PanelAudioDeviceID(id: $0.id, uid: $0.uid)
+        }
+        let interactionIdentity = VolumeControlInteractionIdentity(
+            output: outputIdentity,
+            configuration: externalVolumeConfiguration.sanitized() ?? .default,
+            transitionGeneration: status.externalVolumeTransitionGeneration
+        )
+        let canMute = controllerAvailable
+            && status.canMute
+            && status.muteState != .unknown
         let summaryIconDevice: AudioOutputDevice?
         if let currentDevice,
            let liveName = status.deviceName,
@@ -51,29 +68,53 @@ enum AudioPanelMapper {
             intent: .none
         )
 
-        let orderedDevices = OutputDeviceListPresentation.orderedDevices(
+        let orderedDevices = OutputDeviceListPresentation.panelDevices(
             status.outputDevices,
-            using: deviceList.order
+            order: deviceList.order,
+            hiddenUIDs: deviceList.hiddenUIDs
         )
-        let rows = outputRows(orderedDevices, listeningModes: listeningModes, localization: localization)
+        let rows = outputRows(orderedDevices, listeningModes: listeningModes,
+                              showsAirPodsSystemControls: showsAirPodsSystemControls,
+                              showsSpatialAudioControls: showsSpatialAudioControls,
+                              showsConversationAwarenessControls: showsConversationAwarenessControls,
+                              localization: localization)
+        // A lone row is not a choice, unless the panel kept it because it is the active
+        // output: hiding every device must never hide what is playing right now.
+        let keepsHiddenActiveDevice = orderedDevices.count == 1
+            && OutputDeviceListPresentation.isHidden(orderedDevices[0], in: deviceList.hiddenUIDs)
         let previewRows = outputRows(
             previewDevices,
             listeningModes: listeningModes,
             isPreview: true,
             localization: previewLocalization ?? localization
         )
+        // A lone row may still carry the only listening-mode control (AirPods
+        // noise control). Hiding the other outputs must not take that control
+        // away with the list, so a row that can change a listening mode keeps
+        // the list visible even when it is the only device left.
+        let hasListeningControls = rows.contains { $0.listeningMode?.isControllable == true }
 
         return VolumePanelState(
             summary: summary,
             scalar: scalar,
             percentageText: percentageText,
+            outputIdentity: outputIdentity,
+            interactionIdentity: interactionIdentity,
             muted: status.isMuted,
+            muteState: status.muteState,
             canAdjust: controllerAvailable && status.canSetVolume && scalar != nil,
-            canMute: controllerAvailable && status.canMute,
+            canMute: canMute,
             muteSymbol: volumeSymbol(scalar: scalar, muted: status.isMuted),
-            muteHelp: localization.string(status.isMuted ? .volumeUnmuted : .volumeMuted),
+            muteHelp: localization.string(
+                canMute
+                    ? (status.isMuted ? .volumeUnmuted : .volumeMuted)
+                    : .volumeMuteUnavailable
+            ),
             sliderLabel: localization.string(.volumeAccessibilityLabel),
-            showsDeviceList: status.outputDevices.count > 1 || !previewRows.isEmpty,
+            showsDeviceList: orderedDevices.count > 1 || keepsHiddenActiveDevice
+                || hasListeningControls || !previewRows.isEmpty
+                || (deviceListPlaceholder?.showsDeviceList == true),
+            deviceListPlaceholder: deviceListPlaceholder,
             rows: rows,
             previewRows: previewRows,
             visibleLimit: deviceList.visibleLimit,
@@ -86,6 +127,7 @@ enum AudioPanelMapper {
 
     static func input(
         _ status: AudioInputStatus,
+        deviceList: AudioInputListPreferences = .default,
         localization: Localization
     ) -> AudioInputPanelState {
         let presentation = AudioInputPresentation(
@@ -93,9 +135,10 @@ enum AudioPanelMapper {
             locale: localization.resolvedLanguage.locale
         )
         let unknownName = localization.string(.audioInputUnknownDevice)
-        let orderedDevices = AudioInputPresentation.ordered(
+        let orderedDevices = AudioInputPresentation.panelDevices(
             status.devices,
             currentID: status.defaultDeviceID,
+            preferences: deviceList,
             locale: presentation.locale,
             unknownName: unknownName
         )
@@ -157,8 +200,11 @@ enum AudioPanelMapper {
             canMute: presentation.muteEnabled,
             isBusy: presentation.blocksControls,
             errorText: errorText,
-            showsDeviceList: presentation.showsDeviceList,
+            showsDeviceList: !orderedDevices.isEmpty,
             rows: rows,
+            visibleLimit: deviceList.visibleLimit,
+            expandLabel: localization.string(.audioInputExpand),
+            collapseLabel: localization.string(.audioInputCollapse),
             sliderLabel: localization.string(.audioInputVolume),
             usageText: usageText,
             completedScalarRequestID: status.completedScalarRequestID
@@ -169,6 +215,9 @@ enum AudioPanelMapper {
         _ devices: [AudioOutputDevice],
         listeningModes: BluetoothListeningModeController?,
         isPreview: Bool = false,
+        showsAirPodsSystemControls: Bool = true,
+        showsSpatialAudioControls: Bool = true,
+        showsConversationAwarenessControls: Bool = true,
         localization: Localization
     ) -> [PanelAudioDeviceRow] {
         devices.enumerated().map { index, device in
@@ -189,6 +238,11 @@ enum AudioPanelMapper {
             ) { first, second in
                 localization.format(.commonParenthetical, first, second)
             }
+            let supportsSystemControls = showsAirPodsSystemControls
+                && device.isCurrent && device.isBluetoothAudio
+                && AirPodsModel(modelUID: device.modelUID) != nil && device.uid != nil
+                && (!isPreview || ListeningModePreview.isSyntheticPreviewUID(device.uid))
+            let featureSupport = AirPodsFeatureSupport(modelUID: device.modelUID)
             return PanelAudioDeviceRow(
                 key: PanelAudioDeviceID(id: device.id, uid: device.uid),
                 name: name,
@@ -205,7 +259,12 @@ enum AudioPanelMapper {
                 },
                 listeningModeAddress: listeningModes?.control(forEndpoint: device.id)?.address,
                 listeningMode: listeningModes?.control(forEndpoint: device.id)?.presentation,
-                isPreview: isPreview
+                isPreview: isPreview,
+                supportsAirPodsSystemControls: supportsSystemControls,
+                airPodsSpatialSupported: supportsSystemControls
+                    && showsSpatialAudioControls && (featureSupport.spatial ?? true),
+                airPodsConversationSupported: supportsSystemControls
+                    && showsConversationAwarenessControls && (featureSupport.conversation ?? true)
             )
         }
     }
@@ -331,6 +390,43 @@ struct AudioInputPresentation {
         }
     }
 
+    /// The saved order first. Devices it doesn't name follow in the default
+    /// order: the current input, then by name.
+    static func ordered(
+        _ devices: [AudioInputDevice],
+        currentID: AudioDeviceID?,
+        order: [String],
+        locale: Locale,
+        unknownName: String
+    ) -> [AudioInputDevice] {
+        AudioDeviceOrder.ordered(
+            ordered(devices, currentID: currentID, locale: locale, unknownName: unknownName),
+            using: order,
+            uid: \.uid
+        )
+    }
+
+    /// The status-panel list. The current input stays even when it is hidden,
+    /// so the list never loses its selected row.
+    static func panelDevices(
+        _ devices: [AudioInputDevice],
+        currentID: AudioDeviceID?,
+        preferences: AudioInputListPreferences,
+        locale: Locale,
+        unknownName: String
+    ) -> [AudioInputDevice] {
+        ordered(
+            devices,
+            currentID: currentID,
+            order: preferences.order,
+            locale: locale,
+            unknownName: unknownName
+        )
+        .filter {
+            $0.id == currentID || !AudioDeviceOrder.isHidden(uid: $0.uid, in: preferences.hiddenUIDs)
+        }
+    }
+
     static func displayName(for device: AudioInputDevice, unknownName: String) -> String {
         guard let name = device.name?.trimmingCharacters(in: .whitespacesAndNewlines),
               !name.isEmpty else { return unknownName }
@@ -400,8 +496,6 @@ struct AudioInputPresentation {
         case .timedOut: .audioInputTimedOut
         }
     }
-
-    var showsDeviceList: Bool { !status.devices.isEmpty }
 
     var blocksControls: Bool { status.isBusy && !status.isAdjustingScalar }
 

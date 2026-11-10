@@ -111,15 +111,12 @@ final class StatusBarRenderCacheTests: XCTestCase {
     func testAppleWatchDeviceOverrideChangesSceneIdentity() {
         let snapshot = bluetoothSnapshot()
         let withoutGlyph = makeScene(
-            configuration: configuration(bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true)),
+            configuration: configuration(bluetooth: BluetoothAudioIconOptions()),
             snapshot: snapshot
         )
         let appleWatchGlyph = makeScene(
             configuration: configuration(
-                bluetooth: BluetoothAudioIconOptions(
-                    replacesNetworkIcon: true,
-                    networkIconSymbolOverride: "applewatch"
-                )
+                bluetooth: BluetoothAudioIconOptions(networkIconSymbolOverride: "applewatch")
             ),
             snapshot: snapshot
         )
@@ -132,12 +129,12 @@ final class StatusBarRenderCacheTests: XCTestCase {
     func testBluetoothSymbolScaleChangeChangesSceneIdentity() {
         let snapshot = bluetoothSnapshot()
         let standard = makeScene(
-            configuration: configuration(bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true)),
+            configuration: configuration(bluetooth: BluetoothAudioIconOptions()),
             snapshot: snapshot
         )
         let scaled = makeScene(
             configuration: configuration(
-                bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true, symbolScale: 1.45)
+                bluetooth: BluetoothAudioIconOptions(symbolScale: 1.45)
             ),
             snapshot: snapshot
         )
@@ -150,7 +147,7 @@ final class StatusBarRenderCacheTests: XCTestCase {
     ) -> IconPresentationConfiguration {
         IconPresentationConfiguration(
             battery: .standard,
-            connection: .standard,
+            connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
             volume: .standard,
             bluetooth: bluetooth
         )

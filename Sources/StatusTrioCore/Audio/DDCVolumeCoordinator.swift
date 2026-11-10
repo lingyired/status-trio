@@ -17,12 +17,16 @@ struct DDCVolumeUpdate: Sendable {
 @MainActor
 final class DDCVolumeCoordinator {
     typealias Sleep = @Sendable (Duration) async throws -> Void
+    typealias WatchdogSleep = @Sendable (Duration) async throws -> Void
+    typealias WatchdogTimeoutHandler = @MainActor (_ generation: UInt64, _ commandID: UInt64?) -> Void
 
     private let worker: DDCWorker
     private let sleep: Sleep
+    private let watchdogSleep: WatchdogSleep
     private let onUpdate: @MainActor (DDCVolumeUpdate) -> Void
     private let debounce: Duration
     private let readWatchdog: Duration
+    private let onWatchdogTimeout: WatchdogTimeoutHandler
     private let onReadCompletion: @MainActor (AudioDeviceID, String, UInt64) -> Void
     private let onDebounceSettled: @MainActor () -> Void
     private var outputID: AudioDeviceID?
@@ -48,6 +52,8 @@ final class DDCVolumeCoordinator {
         transport: DDCVolumeTransport = DDCDisplayTransport(),
         debounce: Duration = .milliseconds(150),
         readWatchdog: Duration = .seconds(2),
+        watchdogSleep: @escaping WatchdogSleep = { try await Task.sleep(for: $0) },
+        onWatchdogTimeout: @escaping WatchdogTimeoutHandler = { _, _ in },
         beforeReadValidation: @escaping @Sendable () -> Void = {},
         onReadCompletion: @escaping @MainActor (AudioDeviceID, String, UInt64) -> Void = { _, _, _ in },
         onDebounceSettled: @escaping @MainActor () -> Void = {},
@@ -57,6 +63,8 @@ final class DDCVolumeCoordinator {
         self.worker = DDCWorker(transport: transport, beforeReadValidation: beforeReadValidation)
         self.debounce = debounce
         self.readWatchdog = readWatchdog
+        self.watchdogSleep = watchdogSleep
+        self.onWatchdogTimeout = onWatchdogTimeout
         self.onReadCompletion = onReadCompletion
         self.onDebounceSettled = onDebounceSettled
         self.sleep = sleep
@@ -273,13 +281,14 @@ final class DDCVolumeCoordinator {
     private func scheduleWatchdog(request: UInt64, outputID: AudioDeviceID, uid: String, generation: UInt64,
                                   commandID: UInt64? = nil) {
         watchdogTask?.cancel()
-        let sleep = self.sleep
+        let sleep = watchdogSleep
         let interval = readWatchdog
         watchdogTask = Task { [weak self] in
             do { try await sleep(interval) } catch { return }
             guard !Task.isCancelled, let self, self.readToken == request,
                   self.readInFlight, self.accepts(outputID: outputID, uid: uid, generation: generation) else { return }
             self.emit(.unavailable(.timeout), commandID: commandID)
+            self.onWatchdogTimeout(generation, commandID)
         }
     }
 

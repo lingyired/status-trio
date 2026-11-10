@@ -105,6 +105,8 @@ private extension IconColorRole {
         case .lowPower: .lowPower
         case .powered: .powered
         case .bluetooth: .bluetooth
+        case .bluetoothIcon: .bluetooth
+        case .highPower: .powered
         case .custom: nil
         }
     }

@@ -168,7 +168,7 @@ final class StatusPanelDemandTests: XCTestCase {
 
         let hiddenVolume = panel.volume
         var volumePublications = 0
-        let volumeObservation = panel.$volume
+        let volumeObservation = panel.volumeControl.$volume
             .dropFirst()
             .sink { _ in volumePublications += 1 }
         defer { volumeObservation.cancel() }
@@ -385,9 +385,11 @@ final class StatusPanelDemandTests: XCTestCase {
         XCTAssertFalse(panel.audioInput.rows.isEmpty)
 
         // Queue generation 1. `stop()` clears the panel's pending region set,
-        // but the deliberately manual scheduler retains this callback.
+        // but the deliberately manual scheduler retains this callback. The
+        // settings check is deferred by one run-loop turn, so wait for it.
         fixture.settings.alwaysShowsAllOutputDevices = true
-        XCTAssertEqual(scheduler.pendingCount, 1)
+        let queuedFirst = await waitForPendingCount(scheduler, 1)
+        XCTAssertTrue(queuedFirst)
         panel.stop()
         panel.releaseInactivePresentationState()
         XCTAssertEqual(scheduler.pendingCount, 1)
@@ -419,7 +421,8 @@ final class StatusPanelDemandTests: XCTestCase {
         // callbacks are now in the scheduler, but only the new callback may
         // consume the new `.all` region.
         fixture.settings.alwaysShowsAllOutputDevices = true
-        XCTAssertEqual(scheduler.pendingCount, 2)
+        let queuedSecond = await waitForPendingCount(scheduler, 2)
+        XCTAssertTrue(queuedSecond)
 
         XCTAssertTrue(scheduler.runNextScheduled())
         XCTAssertEqual(scheduler.pendingCount, 1)
@@ -485,6 +488,17 @@ final class StatusPanelDemandTests: XCTestCase {
         XCTAssertFalse(fixture.store.hasOpenPopoverPanel)
         panel.releaseInactivePresentationState()
         XCTAssertTrue(panel.audioInput.rows.isEmpty)
+    }
+
+    private func waitForPendingCount(
+        _ scheduler: DemandPanelUpdateScheduler,
+        _ expected: Int
+    ) async -> Bool {
+        for _ in 0..<200 {
+            if scheduler.pendingCount == expected { return true }
+            await Task.yield()
+        }
+        return scheduler.pendingCount == expected
     }
 
     private func expectDelivery<T>(

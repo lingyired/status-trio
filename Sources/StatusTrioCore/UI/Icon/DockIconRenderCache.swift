@@ -17,10 +17,13 @@ struct DockIconRenderKey: Hashable {
                 accessory: ring.accessory,
                 effect: nil,
                 strokeScale: ring.strokeScale,
-                inactiveColor: ring.inactiveColor
+                inactiveColor: ring.inactiveColor,
+                gapProgressMode: ring.gapProgressMode
             ),
             center: scene.center,
-            footer: scene.footer
+            footer: scene.footer,
+            statusColors: scene.statusColors,
+            bluetoothIconColor: scene.bluetoothIconColor
         )
     }
 

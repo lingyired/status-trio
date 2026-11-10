@@ -45,6 +45,38 @@ final class DockIconRendererTests: XCTestCase {
         XCTAssertLessThanOrEqual(abs(Int(body.blue) - 23), 3)
     }
 
+    /// #260: the Dock tile is a free-standing bitmap, so macOS does not apply
+    /// the icon-grid safe area the way it does to the bundle icon. The
+    /// renderer has to draw that margin itself, or the white plate reads
+    /// larger than the system apps beside it in the Dock.
+    func testDockBodyFillsAppleIconGrid() throws {
+        let pixels = try pixels(for: .placeholder)
+
+        var minX = pixels.width
+        var maxX = -1
+        var minY = pixels.height
+        var maxY = -1
+        for y in 0..<pixels.height {
+            for x in 0..<pixels.width where pixels.rgba(x: x, y: y).alpha >= 128 {
+                minX = min(minX, x)
+                maxX = max(maxX, x)
+                minY = min(minY, y)
+                maxY = max(maxY, y)
+            }
+        }
+
+        let bodyWidth = CGFloat(maxX - minX + 1)
+        let expected = DockIconGlyphLayout.artworkSide
+            / DockIconGlyphLayout.designLength
+            * CGFloat(pixels.width)
+        // 824/1024 of the raster, within a pixel of antialiasing.
+        XCTAssertEqual(bodyWidth, expected, accuracy: 1)
+        XCTAssertEqual(CGFloat(maxY - minY + 1), expected, accuracy: 1)
+        // A symmetric 100/1024 design-unit margin on every side.
+        XCTAssertEqual(minX, pixels.width - 1 - maxX, accuracy: 1)
+        XCTAssertEqual(minY, pixels.height - 1 - maxY, accuracy: 1)
+    }
+
     func testChargingStatusPreservesGreenAccent() throws {
         let status = MenuBarStatus(snapshot: StatusSnapshot(
             battery: BatteryStatus(
@@ -106,13 +138,17 @@ final class DockIconRendererTests: XCTestCase {
         ))
     }
 
-    func testLightStyleUsesDarkChargingPalette() throws {
+    func testLightStyleUsesLightAppearanceSemanticGreen() throws {
         let pixels = try pixels(for: chargingStatus(), backgroundStyle: .light)
+        var lightSemanticGreen = NSColor.systemGreen
+        NSAppearance(named: .aqua)!.performAsCurrentDrawingAppearance {
+            lightSemanticGreen = NSColor.systemGreen.usingColorSpace(.deviceRGB)!
+        }
 
         XCTAssertTrue(pixels.containsColor(
-            red: 31.0 / 255.0,
-            green: 143.0 / 255.0,
-            blue: 61.0 / 255.0,
+            red: lightSemanticGreen.redComponent,
+            green: lightSemanticGreen.greenComponent,
+            blue: lightSemanticGreen.blueComponent,
             tolerance: 0.08,
             minimumAlpha: 0.9
         ))
@@ -254,10 +290,8 @@ final class DockIconRendererTests: XCTestCase {
         let standard = try pixels(for: status)
         let overridden = try pixels(
             for: status,
-            bluetoothAudioOptions: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true,
-                networkIconSymbolOverride: "keyboard"
-            )
+            connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+            bluetoothAudioOptions: BluetoothAudioIconOptions(networkIconSymbolOverride: "keyboard")
         )
 
         XCTAssertNotEqual(standard.bytes, overridden.bytes)
@@ -292,7 +326,8 @@ final class DockIconRendererTests: XCTestCase {
                     currentDevice: device
                 )
             )),
-            bluetoothAudioOptions: BluetoothAudioIconOptions(replacesNetworkIcon: true)
+            connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice),
+            bluetoothAudioOptions: BluetoothAudioIconOptions()
         )
     }
 
@@ -318,6 +353,26 @@ final class DockIconRendererTests: XCTestCase {
         return try PixelBuffer(image: try XCTUnwrap(representation.cgImage))
     }
 
+    /// #188: the Dock now resolves `.critical` through the same semantic palette
+    /// as charging and low power, so a dark tile draws the dark-appearance system
+    /// red rather than the old fixed #FF3B30. This is intentional three-role
+    /// semantic parity, documented in the implementation report.
+    func testDarkStyleUsesDarkAppearanceSemanticRed() throws {
+        let pixels = try pixels(for: criticalStatus(), backgroundStyle: .dark)
+        var expected = NSColor.systemRed
+        NSAppearance(named: .darkAqua)!.performAsCurrentDrawingAppearance {
+            expected = NSColor.systemRed.usingColorSpace(.deviceRGB)!
+        }
+
+        XCTAssertTrue(pixels.containsColor(
+            red: expected.redComponent,
+            green: expected.greenComponent,
+            blue: expected.blueComponent,
+            tolerance: 0.08,
+            minimumAlpha: 0.9
+        ))
+    }
+
     private func chargingStatus() -> MenuBarStatus {
         MenuBarStatus(snapshot: StatusSnapshot(
             battery: BatteryStatus(
@@ -326,6 +381,20 @@ final class DockIconRendererTests: XCTestCase {
                 isCharging: true,
                 isLowPowerMode: false,
                 isConnectedToPower: true
+            ),
+            wifi: .placeholder,
+            volume: .placeholder
+        ))
+    }
+
+    private func criticalStatus() -> MenuBarStatus {
+        MenuBarStatus(snapshot: StatusSnapshot(
+            battery: BatteryStatus(
+                rawPercentage: 10,
+                isPresent: true,
+                isCharging: false,
+                isLowPowerMode: false,
+                isConnectedToPower: false
             ),
             wifi: .placeholder,
             volume: .placeholder

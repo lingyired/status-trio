@@ -15,7 +15,9 @@ ruby -ryaml -rjson -e '
   abort "notarize must be boolean, default false" unless input["type"] == "boolean" && input["default"] == false
   job = workflow.fetch("jobs").fetch("package")
   abort "NOTARIZE must be wired from dispatch" unless job.fetch("env").fetch("NOTARIZE").include?("inputs.notarize")
-  abort "package must use the protected distribution environment" unless job.fetch("environment").fetch("name") == "distribution"
+  expected_environment = "\${{ (inputs.publish || github.triggering_actor != \x27lingyired\x27) && \x27distribution\x27 || \x27distribution-owner-signing\x27 }}"
+  abort "package must keep formal and non-owner builds reviewed while allowing owner diagnostics" unless
+    job.fetch("environment").fetch("name") == expected_environment
   steps = job.fetch("steps")
   ["Validate publishing secrets and notarization mode", "Configure Developer ID signing", "Configure Apple notarization"].each do |name|
     step = steps.find { |candidate| candidate["name"] == name }
@@ -69,7 +71,10 @@ mkdir -p "$TEST_ROOT/repo/scripts" "$TEST_ROOT/bin"
 # Keep the wrapper real; copy its delegated scripts so absolute tool names can
 # be redirected inside the disposable fixture only.
 cp "$ROOT/scripts/release.sh" "$TEST_ROOT/repo/scripts/release.sh"
-for script in package-release.sh publish-release.sh prepare-release-body.sh validate-appcast-notes.sh update-appcast.rb; do
+cp "$ROOT/scripts/build-timing.sh" "$TEST_ROOT/repo/scripts/build-timing.sh"
+mkdir -p "$TEST_ROOT/repo/assets/dmg"
+cp "$ROOT/assets/dmg/background@2x.png" "$TEST_ROOT/repo/assets/dmg/"
+for script in create-installer-dmg.sh package-release.sh publish-release.sh prepare-release-body.sh validate-appcast-notes.sh update-appcast.rb; do
     sed -e 's@/usr/bin/codesign@codesign@g' -e 's@/usr/bin/xcrun@xcrun@g' \
         "$ROOT/scripts/$script" > "$TEST_ROOT/repo/scripts/$script"
 done
@@ -88,7 +93,8 @@ cat > "$TEST_ROOT/repo/scripts/build-app.sh" <<'BUILD'
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'build\n' >> "$TRACE"
-mkdir -p dist/StatusTrio.app/Contents/MacOS dist/StatusTrio.app/Contents/Helpers
+mkdir -p dist/StatusTrio.app/Contents/MacOS dist/StatusTrio.app/Contents/Helpers dist/StatusTrio.app/Contents/Resources
+touch dist/StatusTrio.app/Contents/Resources/AppIcon.icns
 printf fixture > dist/StatusTrio.app/Contents/MacOS/StatusTrio
 printf fixture > dist/StatusTrio.app/Contents/Helpers/StatusTrioPowerHelper
 BUILD
@@ -150,7 +156,42 @@ case "$name" in
         esac ;;
     codesign)
         if [[ "${SMOKE_CODESIGN_FAIL:-false}" == true && "$*" == *codesign-smoke* ]]; then exit 42; fi ;;
-    hdiutil) touch "${!#}" ;;
+    hdiutil)
+        case "$1" in
+            info) printf '<plist><dict><key>images</key><array/></dict></plist>' ;;
+            convert)
+                shift
+                destination=''
+                source=''
+                previous_argument=''
+                for argument in "$@"; do
+                    if [[ "$previous_argument" == -o ]]; then destination="$argument"; fi
+                    source="$argument"
+                    previous_argument="$argument"
+                done
+                [[ -n "$destination" ]] || exit 88
+                cp "$source" "$destination" ;;
+            attach)
+                # The installer re-opens the image to hide its helper dotfiles;
+                # provide a real directory so chflags can record the request.
+                mkdir -p "$TEST_ROOT/hide-mount"
+                : > "$TEST_ROOT/hide-mount/.VolumeIcon.icns"
+                : > "$TEST_ROOT/hide-mount/.background"
+                printf '/dev/disk998s1\tApple_HFS\t%s\n' "$TEST_ROOT/hide-mount" ;;
+            detach) : ;;
+            create)
+                # The plain installer layout builds the image directly from a
+                # staging folder; record a fixture image at the output path.
+                for argument in "$@"; do output_path="$argument"; done
+                printf 'fixture disk image' > "$output_path" ;;
+            *) exit 88 ;;
+        esac ;;
+    chflags) : ;;
+    create-dmg)
+        if [[ "$1" == --version ]]; then echo 'create-dmg 1.3.0'; else
+            args=("$@")
+            printf fixture > "${args[${#args[@]}-2]}"
+        fi ;;
     ditto)
         if [[ "$1" != '-c' ]]; then cp -R "$1" "$2"; else touch "${!#}"; fi ;;
     xcrun)
@@ -170,7 +211,7 @@ case "$name" in
 esac
 TOOL
 chmod +x "$TEST_ROOT/bin/tool"
-for command in swift xcodebuild hdiutil ditto codesign xcrun spctl plutil xmllint gh sign_update shasum security openssl lipo; do
+for command in create-dmg swift xcodebuild hdiutil chflags ditto codesign xcrun spctl plutil xmllint gh sign_update shasum security openssl lipo; do
     ln -s tool "$TEST_ROOT/bin/$command"
 done
 ln -s /bin/bash "$TEST_ROOT/bin/bash"
@@ -376,6 +417,21 @@ ruby -rjson -e '
 ' "$DIAGNOSTIC_MANIFEST"
 grep -q 'Diagnostic package has no Sparkle signature' "$TEST_ROOT/diagnostic-package.log" ||
     { echo 'FAIL: diagnostic package did not explain its missing signature' >&2; exit 1; }
+# The explicit plain opt-out still builds the pre-install-page image directly.
+: > "$TRACE"
+if ! DMG_INSTALL_PAGE=plain run_package > "$TEST_ROOT/plain-package.log" 2>&1; then
+    echo 'FAIL: explicit plain DMG layout failed' >&2
+    cat "$TEST_ROOT/plain-package.log" >&2
+    exit 1
+fi
+grep -q '^hdiutil <create>' "$TRACE" || {
+    echo 'FAIL: plain DMG layout did not create the image directly' >&2
+    exit 1
+}
+if grep -q '^create-dmg <--volname>' "$TRACE"; then
+    echo 'FAIL: plain DMG layout still ran the styled installer' >&2
+    exit 1
+fi
 : > "$TRACE"
 if env VERSION=1.0 BUILD=99 TAG=v1.0 PUBLISH=true NOTARIZE=true UNIVERSAL_BUILD=1 OUTPUT_DIR="$TEST_ROOT/output" \
     SPARKLE_PRIVATE_KEY='' \
@@ -425,7 +481,7 @@ ruby -e '
   operations = [
     ["ditto", "<-c>"], ["xcrun", "<submit>", ".zip>"],
     ["xcrun", "<staple>", ".app>"], ["xcrun", "<validate>", ".app>"],
-    ["hdiutil", "<create>"], ["codesign", "<--sign>", ".dmg>", "<--timestamp>", "<--keychain>", "<test-keychain>"],
+    ["create-dmg", "<--volname>"], ["codesign", "<--sign>", ".dmg>", "<--timestamp>", "<--keychain>", "<test-keychain>"],
     ["codesign", "<--verify>", ".dmg>"], ["xcrun", "<submit>", ".dmg>"],
     ["xcrun", "<staple>", ".dmg>"], ["xcrun", "<validate>", ".dmg>"],
     ["spctl", "<--type>", "<open>", "<context:primary-signature>"],
@@ -467,12 +523,12 @@ ruby -e '
   package = wrapper.index("scripts/package-release.sh") or abort "missing package delegation"
   publish = wrapper.index("scripts/publish-release.sh") or abort "missing publish delegation"
   abort "publish delegation must follow package" unless package < publish
-  ["gh release", "update-appcast.rb", "swift build", "hdiutil create"].each do |action|
+  ["gh release", "update-appcast.rb", "swift build", "hdiutil create", "scripts/create-installer-dmg.sh"].each do |action|
     abort "wrapper retained #{action}" if wrapper.include?(action)
   end
 
   publisher = File.read(ARGV[1])
-  ["swift build", "scripts/build-app.sh", "hdiutil create", "notarytool submit", "codesign"].each do |action|
+  ["swift build", "scripts/build-app.sh", "hdiutil create", "scripts/create-installer-dmg.sh", "notarytool submit", "codesign"].each do |action|
     abort "publisher can rebuild or sign via #{action}" if publisher.include?(action)
   end
 ' "$ROOT/scripts/release.sh" "$ROOT/scripts/publish-release.sh"

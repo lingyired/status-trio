@@ -3,7 +3,7 @@ import Foundation
 
 enum PresentationFixtures {
     static func snapshot(
-        rssi: Int = -61,
+        rssi: Int = -75,
         scalar: Double? = 0.51,
         muted: Bool = false
     ) -> StatusSnapshot {

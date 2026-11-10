@@ -12,6 +12,36 @@ final class DDCDisplayTransportTests: XCTestCase {
         XCTAssertNil(DDCDisplayTransport.branchToken(fromIONameMatched: nil))
     }
 
+    func testKnownFramebufferClassNamesCoverTheCommunityCorpus() {
+        // AppleCLCD2 (M1 family, M2, M3) plus IOMobileFramebufferShim (M2
+        // Pro/Max/Ultra, M3 Pro/Max, M4/M5): the two names Monitor Control,
+        // Lunar and AppleSiliconDDC all accept. The fallback handles a rename
+        // beyond these.
+        XCTAssertEqual(
+            FramebufferEnumeration.nodeNames,
+            ["IOMobileFramebufferShim", "AppleCLCD2"]
+        )
+    }
+
+    func testExternalFramebufferPredicateIgnoresClassName() {
+        // Name-agnostic: a connected external framebuffer is identified by its
+        // `dispextN` match plus a non-zero size, whatever the class is called.
+        XCTAssertTrue(FramebufferEnumeration.isExternalFramebuffer(
+            ioNameMatched: "dispext0,t603x", displayWidth: 2560, displayHeight: 1440
+        ))
+        // Empty external slot: `dispextN` with no size.
+        XCTAssertFalse(FramebufferEnumeration.isExternalFramebuffer(
+            ioNameMatched: "dispext2,t603x", displayWidth: nil, displayHeight: nil
+        ))
+        // The internal panel is never treated as an external framebuffer.
+        XCTAssertFalse(FramebufferEnumeration.isExternalFramebuffer(
+            ioNameMatched: "disp0,t603x", displayWidth: 3456, displayHeight: 2234
+        ))
+        XCTAssertFalse(FramebufferEnumeration.isExternalFramebuffer(
+            ioNameMatched: nil, displayWidth: 2560, displayHeight: 1440
+        ))
+    }
+
     func testServiceBranchTokenComesFromTheDcpavServiceEpicAncestor() {
         // Real macOS 27 sample: the external proxy sits under
         // `dispext0:dcpav-service-epic:0` inside the `dcpext0` branch.

@@ -1,0 +1,30 @@
+# ps snapshot: 02-cpu-light-start  wall=2026-10-30T23:04:13+0800 mono=200040.363164
+# --- top 25 by cpu ---
+  PID  PPID  %CPU %MEM COMM
+  619     1  66.9  0.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+81860     1  66.0  6.9 /Applications/BlueStacks.app/Contents/MacOS/BlueStacks
+ 1300     1  64.5  1.2 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
+58795  9342  42.7  0.0 /usr/sbin/lsof
+28282  1300  36.9  0.3 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+ 1345  1300  35.6  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper
+59342 59341  33.9  0.1 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper.app/Contents/MacOS/DeepSeek Harness Helper
+59354 59341  31.4  0.5 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper (Renderer).app/Contents/MacOS/DeepSeek Harness Helper (Renderer)
+63065     1  21.2  0.7 /Applications/magpie.app/Contents/MacOS/magpie
+58524  1300  19.4  0.2 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+ 1357  1300  19.1  0.2 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+ 1346  1300  13.0  0.2 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper
+ 5613   839  12.5  0.1 /Library/Application Support/clash-verge-service/cores/verge-mihomo
+  993     1  12.5  0.0 /System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager
+17763     1  10.7  0.1 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+58435  1300   8.9  0.2 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+  762     1   8.4  0.0 /System/Library/DriverExtensions/com.apple.DriverKit-AppleBCMWLAN.dext/com.apple.DriverKit-AppleBCMWLAN
+ 5090     1   8.0  0.0 /usr/libexec/diagnosticd
+18255 17803   7.7  0.0 /Users/lingsmbp/Downloads/macpow
+  808     1   7.6  0.1 /usr/sbin/coreaudiod
+84549 84507   7.0  0.0 /usr/bin/log
+16696     1   6.4  0.1 /Applications/BestDock.app/Contents/MacOS/BestDock
+67995  1300   5.8  0.2 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+  595     1   4.8  0.0 /usr/libexec/locationd
+58793  1300   4.8  0.1 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+# --- our loaders / sampler ---
+(none)

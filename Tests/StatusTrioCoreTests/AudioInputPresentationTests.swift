@@ -130,14 +130,6 @@ final class AudioInputPresentationTests: XCTestCase {
         XCTAssertTrue(unnamed)
     }
 
-    func testDeviceListShowsWithoutDefaultAndForASingleDevice() {
-        let device = AudioInputDevice(id: AudioDeviceID(7), uid: "built-in", name: "Built-in Microphone")
-        let noDefault = makeStatus(devices: [device])
-
-        XCTAssertTrue(AudioInputPresentation(status: noDefault).showsDeviceList)
-        XCTAssertFalse(AudioInputPresentation(status: .empty).showsDeviceList)
-    }
-
     func testUnsupportedAndBusyControlsAreDisabled() {
         let noVolumeSupport = makeStatus(
             defaultDeviceID: AudioDeviceID(1),

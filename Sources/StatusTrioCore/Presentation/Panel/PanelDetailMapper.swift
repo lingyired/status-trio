@@ -5,23 +5,34 @@ enum PanelDetailMapper {
     static func battery(
         status battery: BatteryStatus,
         details: BatteryDetails?,
-        localization: Localization
+        localization: Localization,
+        powerOptions: BatteryPowerDisplayOptions = .default,
+        showsPowerFlow: Bool = true,
+        energyApps: ApplicationEnergyRanking? = nil
     ) -> PanelDetailState {
         var rows: [PanelDetailRow] = []
         if let details {
-            let reading = BatteryPowerPresentation(details: details, isConnectedToPower: battery.isConnectedToPower)
+            let reading = BatteryPowerPresentation(
+                details: details,
+                isConnectedToPower: battery.isConnectedToPower,
+                isBatteryPresent: battery.isPresent
+            )
             let watts = reading.watts.map {
                 $0.formatted(.number.precision(.fractionLength(1)).locale(localization.resolvedLanguage.locale)) + " W"
             } ?? localization.string(reading.unavailableTitle)
-            rows.append(row(reading.title, value: watts, localization: localization))
-            if let timestamp = reading.timestamp {
+            let showsPowerReading = !battery.isConnectedToPower || powerOptions.showsSystem
+            if showsPowerReading { rows.append(row(reading.title, value: watts, localization: localization)) }
+            // The system read time is diagnostic only and appears late when the
+            // SMC sample arrives, so it is no longer shown in the details list.
+            if showsPowerReading, let timestamp = reading.timestamp,
+               reading.timestampTitle != .batteryDetailsSystemReadAt {
                 rows.append(row(
                     reading.timestampTitle,
                     value: timestamp.formatted(.dateTime.hour().minute().second().locale(localization.resolvedLanguage.locale)),
                     localization: localization
                 ))
             }
-            if let charging = reading.chargingWatts {
+            if powerOptions.showsCharging, let charging = reading.chargingWatts {
                 rows.append(row(
                     .batteryDetailsCharging,
                     value: charging.formatted(.number.precision(.fractionLength(1)).locale(localization.resolvedLanguage.locale)) + " W",
@@ -29,21 +40,84 @@ enum PanelDetailMapper {
                     localization: localization
                 ))
             }
-            if let power = details.power {
+            if battery.isPresent, let power = details.power {
                 rows.append(row(.batteryDetailsVoltage, value: power.volts.formatted(.number.precision(.fractionLength(2)).locale(localization.resolvedLanguage.locale)) + " V", localization: localization))
                 rows.append(row(.batteryDetailsCurrent, value: power.amps.formatted(.number.precision(.fractionLength(2)).locale(localization.resolvedLanguage.locale)) + " A", localization: localization))
             }
-            if let watts = details.adapterWatts {
+            if battery.isPresent, let watts = details.adapterWatts {
                 rows.append(row(.batteryDetailsAdapter, value: watts.formatted(.number.locale(localization.resolvedLanguage.locale)) + " W", localization: localization))
             }
-            if !battery.isConnectedToPower {
-                let remaining = details.remainingMinutes.map {
-                    Duration.seconds($0 * 60).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated).locale(localization.resolvedLanguage.locale))
-                } ?? localization.string(.batteryDetailsUnavailable)
+            // One row per powered port, named after its accessory, so two
+            // cables stay apart even when their flow cards are too small for a
+            // label. Only with the split, which is what reads the ports.
+            if powerOptions.showsBreakdown, let split = details.breakdown {
+                if battery.isConnectedToPower, let port = split.inputPortType {
+                    rows.append(row(.batteryDetailsInputPort, value: port, localization: localization))
+                }
+                for port in split.usbPorts {
+                    let label = usbPortLabel(port, localization: localization)
+                    let value = port.watts.formatted(.number.precision(.fractionLength(2))
+                        .locale(localization.resolvedLanguage.locale)) + " W"
+                    rows.append(PanelDetailRow(id: "\(LocalizationKey.batteryPowerUSB.rawValue).\(port.channel)",
+                                               label: label, value: value, accessibilityValue: value, tint: .primary))
+                }
+            }
+            if battery.isPresent, !battery.isConnectedToPower {
+                // Same source and A-style formatting as the summary subtitle:
+                // the remaining time comes from kIOPSTimeToEmptyKey, carried on
+                // BatteryStatus, so both surfaces always agree.
+                let remaining = PanelPresentationMapper.batteryRuntimeText(battery, localization: localization)
+                    ?? localization.string(.batteryDetailsUnavailable)
                 rows.append(row(.batteryDetailsRemaining, value: remaining, localization: localization))
             }
-            if let count = details.cycleCount {
+            if battery.isPresent, let health = details.health {
+                // Maximum Capacity is whatever macOS itself reports; the
+                // measured AppleRawMaxCapacity ratio can differ (e.g. 98% vs
+                // the system's 100%), so it is not a valid stand-in. With no
+                // system value we say unavailable instead of guessing.
+                let capacityText = health.maximumCapacityPercent.map {
+                    ($0 / 100).formatted(.percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale))
+                } ?? localization.string(.batteryDetailsUnavailable)
+                rows.append(row(
+                    .batteryDetailsMaxCapacity,
+                    value: capacityText,
+                    localization: localization
+                ))
+                let conditionValue: String
+                switch health.condition {
+                case .normal?:
+                    conditionValue = localization.string(.batteryDetailsConditionNormal)
+                case .service?:
+                    conditionValue = localization.string(.batteryDetailsConditionService)
+                case nil:
+                    conditionValue = localization.string(.batteryDetailsUnavailable)
+                }
+                rows.append(row(
+                    .batteryDetailsBatteryCondition,
+                    value: conditionValue,
+                    localization: localization
+                ))
+                // Absent when TB0T is missing or fails the decoder's type and
+                // range checks, rather than an "unavailable" row on every such
+                // Mac. The value is shown as decoded; only Mac18,1 (flt) was
+                // checked against a live reading.
+                if let celsius = health.temperatureCelsius {
+                    rows.append(row(
+                        .batteryDetailsTemperature,
+                        value: celsius.formatted(.number.precision(.fractionLength(1))
+                            .locale(localization.resolvedLanguage.locale)) + " °C",
+                        localization: localization
+                    ))
+                }
+            }
+            if battery.isPresent, let count = details.cycleCount {
                 rows.append(row(.batteryDetailsCycles, value: count.formatted(.number.locale(localization.resolvedLanguage.locale)), localization: localization))
+            }
+            if let uptime = details.uptimeSeconds {
+                let value = Duration.seconds(Int(uptime))
+                    .formatted(.units(allowed: [.days, .hours, .minutes], width: .abbreviated)
+                        .locale(localization.resolvedLanguage.locale))
+                rows.append(row(.batteryDetailsUptime, value: value, localization: localization))
             }
         }
         rows.append(row(
@@ -51,13 +125,131 @@ enum PanelDetailMapper {
             value: localization.string(battery.isLowPowerMode ? .batteryDetailsOn : .batteryDetailsOff),
             localization: localization
         ))
+        if let highPower = details?.highPowerMode {
+            let value: String
+            if !highPower.supported {
+                value = localization.string(.batteryDetailsHighPowerUnsupported)
+            } else {
+                switch highPower.enabled {
+                case true?: value = localization.string(.batteryDetailsOn)
+                case false?: value = localization.string(.batteryDetailsOff)
+                case nil: value = localization.string(.batteryDetailsUnavailable)
+                }
+            }
+            rows.append(row(
+                .settingsBatteryColorsHighPower,
+                value: value,
+                localization: localization
+            ))
+        }
         return PanelDetailState(
-            title: PanelPresentationMapper.batteryTitle(battery, localization: localization),
+            title: PanelPresentationMapper.batteryTitle(
+                battery,
+                powerSample: details?.systemPower,
+                localization: localization
+            ),
             rows: rows,
             isLoading: details == nil,
             errorText: nil,
             explanation: localization.string(.batteryDetailsExplanation),
-            lifecycleIdentity: "\(battery.isPresent)-\(battery.isConnectedToPower)-\(battery.isCharging)"
+            lifecycleIdentity: "\(battery.isPresent)-\(battery.isConnectedToPower)-\(battery.isCharging)",
+            powerFlow: details.flatMap { details -> BatteryPowerFlowState? in
+                // On battery the diagram still has a source (the pack), but only
+                // when a verified split exists; otherwise the legacy flow stays
+                // adapter-only.
+                guard showsPowerFlow, powerOptions.showsAnyPower,
+                      battery.isConnectedToPower || details.breakdown != nil else { return nil }
+                let flow = powerFlow(status: battery, details: details,
+                                     options: powerOptions, localization: localization)
+                // Every switch can be off while the split still requests
+                // sampling; an empty diagram is not a diagram.
+                return flow.input == nil && flow.destinations.isEmpty ? nil : flow
+            },
+            energyApps: energyApps
+        )
+    }
+
+    private static func powerFlow(status: BatteryStatus, details: BatteryDetails,
+                                  options: BatteryPowerDisplayOptions, localization: Localization) -> BatteryPowerFlowState {
+        func metric(_ label: LocalizationKey, _ watts: Double?,
+                    kind: BatteryPowerFlowState.Kind = .system,
+                    help: LocalizationKey? = nil) -> BatteryPowerFlowState.Metric {
+            let value = watts.map { watts -> String in
+                // The flow cards are only 62 pt wide. Three-digit values with
+                // two decimals wrap onto a second line, so drop the fraction
+                // from 100 W upward. Round to the displayed precision first so
+                // 99.996 does not become the equally wide "100.00 W".
+                let roundedMagnitude = (abs(watts) * 100).rounded() / 100
+                let fractionDigits = roundedMagnitude >= 100 ? 0 : 2
+                let number = watts.formatted(
+                    .number
+                        .precision(.fractionLength(fractionDigits))
+                        .locale(localization.resolvedLanguage.locale)
+                )
+                return number + " W"
+            } ?? localization.string(.batteryDetailsUnavailable)
+            return BatteryPowerFlowState.Metric(
+                label: localization.string(label), value: value, watts: watts, kind: kind,
+                help: help.map { localization.string($0) })
+        }
+        // A live positive sample wins over the snapshot's charging flag: during
+        // a charge-limit pulse macOS can keep `isCharging` false for tens of
+        // seconds while the pack is already taking current. Without the flag,
+        // keep showing "—" (unknown) instead of claiming a real 0 W.
+        let sampledCharging = details.power.flatMap { $0.watts > 0 ? $0.watts : nil }
+        let charging: Double? = sampledCharging ?? (status.isCharging ? nil : 0)
+        // The left node names whichever rail feeds the diagram: the adapter
+        // input, or the pack when it is discharging into the machine. The pack
+        // is styled like the outer power bar's discharging card (plain battery,
+        // orange) so a discharge never reads as an adapter feed.
+        let sourceIsBattery = details.breakdown?.source == .battery
+        let sourceLabel: LocalizationKey = sourceIsBattery
+            ? .batteryPowerBatterySource : .batteryPowerInput
+        let sourceWatts = details.breakdown?.sourceWatts ?? details.inputPower?.watts
+        var input = options.showsInput
+            ? metric(sourceLabel, sourceWatts, kind: sourceIsBattery ? .batterySource : .input)
+            : nil
+        // Name the cable the adapter is on ("MagSafe 3") under the input label.
+        if !sourceIsBattery, options.showsBreakdown, let port = details.breakdown?.inputPortType {
+            input?.detail = port
+        }
+        // A verified split replaces the single system node. Without one the
+        // legacy two-branch diagram stays exactly as it was.
+        if options.showsBreakdown, let split = details.breakdown {
+            var destinations: [BatteryPowerFlowState.Metric] = []
+            // A battery that is not taking current has no flow to draw: showing
+            // a 0.00 W node would claim a branch that does not exist. The pack is
+            // the source, not a destination, when it is discharging.
+            if options.showsCharging, split.source == .adapter, let charging, charging > 0.05 {
+                destinations.append(metric(.batteryPowerCharging, charging, kind: .charging))
+            }
+            if let display = split.display {
+                destinations.append(metric(.batteryPowerDisplay, display.watts, kind: .display))
+            }
+            // One branch per powered port. A split without per-port data (an
+            // older sample) keeps the single summed node.
+            if split.usbPorts.isEmpty, let usb = split.usb {
+                destinations.append(metric(.batteryPowerUSB, usb.watts, kind: .usb))
+            }
+            for port in split.usbPorts {
+                var item = metric(.batteryPowerUSB, port.watts, kind: .usb)
+                item = BatteryPowerFlowState.Metric(
+                    label: port.name ?? item.label, value: item.value, watts: item.watts, kind: .usb,
+                    help: usbPortLabel(port, localization: localization))
+                destinations.append(item)
+            }
+            // The residual covers the SoC and every DC load not measured above,
+            // so it takes the system node's place and its switch.
+            if options.showsSystem {
+                destinations.append(metric(.batteryPowerSystem, split.system.watts, kind: .system,
+                                           help: .batteryPowerSystemHelp))
+            }
+            return BatteryPowerFlowState(input: input, destinations: destinations)
+        }
+        return BatteryPowerFlowState(
+            input: input,
+            battery: options.showsCharging ? metric(.batteryPowerCharging, charging, kind: .charging) : nil,
+            system: options.showsSystem ? metric(.batteryPowerSystem, details.systemPower?.watts) : nil
         )
     }
 
@@ -98,9 +290,6 @@ enum PanelDetailMapper {
         case .scanning:
             message = localization.string(.wifiScanning)
             intent = .none
-        case .ready where !hasVisibleNetworks:
-            message = localization.string(.wifiNoNetworks)
-            intent = .none
         case .poweredOff:
             message = localization.string(.wifiPanelOff)
             intent = .none
@@ -110,13 +299,34 @@ enum PanelDetailMapper {
         case .permissionDenied:
             message = localization.string(.wifiPermissionDenied)
             intent = .locationSettings
+        case .failed where status.nameAccess == .notDetermined:
+            // The scan needs location access the app was never granted, so the
+            // failure is the permission prompt's job, not "scan failed".
+            message = localization.string(.wifiActionRequestNameAccess)
+            intent = .requestWiFiNameAccess
         case .failed:
             message = localization.string(.wifiScanFailed)
             intent = .none
         case .idle where status.nameAccess == .notDetermined,
-             .ready where status.nameAccess == .notDetermined:
+             .ready where status.nameAccess == .notDetermined
+                && !hasVisibleNetworks:
+            // CoreWLAN can answer an unauthorized scan with an empty list and no
+            // error, so this must precede the empty-list message: the missing
+            // permission is the cause, not the range.
             message = localization.string(.wifiActionRequestNameAccess)
             intent = .requestWiFiNameAccess
+        case .ready where !hasVisibleNetworks && status.nameAccess != .authorized:
+            // Without authorization an empty scan says nothing about the range,
+            // so only an authorized scan may claim there are no networks.
+            message = status.nameAccess == .denied || status.nameAccess == .restricted
+                ? localization.string(.wifiPermissionDenied)
+                : localization.string(.wifiActionRequestNameAccess)
+            intent = status.nameAccess == .denied || status.nameAccess == .restricted
+                ? .locationSettings
+                : .requestWiFiNameAccess
+        case .ready where !hasVisibleNetworks:
+            message = localization.string(.wifiNoNetworks)
+            intent = .none
         case .idle, .ready:
             message = nil
             intent = .none
@@ -198,6 +408,12 @@ enum PanelDetailMapper {
             tint: .primary,
             isCopyable: row.isCopyable
         )
+    }
+
+    /// "USB out · Fanxiang RB", or just "USB out" when the accessory is unnamed.
+    private static func usbPortLabel(_ port: USBPortOutput, localization: Localization) -> String {
+        let base = localization.string(.batteryPowerUSB)
+        return port.name.map { "\(base) · \($0)" } ?? base
     }
 
     private static func row(

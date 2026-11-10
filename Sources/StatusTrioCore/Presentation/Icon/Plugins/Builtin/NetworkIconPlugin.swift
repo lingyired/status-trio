@@ -26,7 +26,6 @@ struct NetworkIconPlugin: IconContentPlugin {
                 showsWiFiIconForHotspot: legacyConnection.showsWiFiIconForHotspot,
                 showsWiFiIconForTemporaryConnection: legacyConnection.showsWiFiIconForTemporaryConnection,
                 showsWiFiIconForInternetSharing: legacyConnection.showsWiFiIconForInternetSharing,
-                showsBatteryPercentageInConnectionSlot: false,
                 wifiScale: legacyConnection.wifiScale
             ),
             volume: legacy.volume,

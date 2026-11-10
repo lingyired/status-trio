@@ -788,9 +788,11 @@ final class BluetoothDeviceRowLayoutTests: XCTestCase {
 
         let hosting = NSHostingView(rootView: view)
         hosting.appearance = NSAppearance(named: .aqua)
+        // The row consumes immutable fixtures; no appearance task publishes
+        // another state. Flush layout before capturing instead of sleeping
+        // for every fixture in the device/language/battery matrix.
         hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
         hosting.layoutSubtreeIfNeeded()
-        try await Task.sleep(for: .milliseconds(50))
         hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
         hosting.layoutSubtreeIfNeeded()
 

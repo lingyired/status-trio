@@ -209,15 +209,23 @@ final class DDCVolumePresentationTests: XCTestCase {
         observer.cancel()
     }
 
+    func testProductionDDCReadWatchdogDefaultIsTwoSeconds() {
+        XCTAssertEqual(VolumeMonitor.defaultDDCReadWatchdog, .seconds(2))
+    }
+
     func testWatchdogAndLateReadCannotReplacePendingDDCTarget() async {
         let row = AudioOutputDevice(id: 42, name: "XV272U", uid: "DISPLAY-A", isCurrent: true)
         let reader = FixedAudioStatusReader(reading: VolumeReading(
             scalar: nil, isMuted: false, deviceName: "XV272U", currentDevice: row,
             canSetVolume: false, canMute: false
         ), devices: [row])
-        let transport = SlowFirstReadPresentationDDCTransport()
+        let transport = GatedFirstReadPresentationDDCTransport()
+        let watchdogGate = WatchdogSleepGate()
+        let watchdogObservation = WatchdogTimeoutObservation()
         let monitor = VolumeMonitor(statusReader: reader, eventMonitor: PresentationVolumeEvents(),
-                                   ddcTransport: transport)
+                                   ddcTransport: transport, ddcReadWatchdog: .milliseconds(20),
+                                   ddcWatchdogSleep: { try await watchdogGate.sleep($0) },
+                                   onDDCWatchdogTimeout: { watchdogObservation.receive($0, $1) })
         let history = PendingDDCCommandHistory()
         let observer = Task { @MainActor in
             for await status in monitor.updates {
@@ -227,10 +235,30 @@ final class DDCVolumePresentationTests: XCTestCase {
 
         monitor.start()
         monitor.setVolume(0.4)
-        await fulfillment(of: [history.optimisticTarget, history.confirmedReadback], timeout: 4)
+        await fulfillment(of: [
+            history.optimisticTarget,
+            transport.firstReadStarted,
+            watchdogGate.sleepStarted
+        ], timeout: 1)
+        defer {
+            transport.releaseFirstRead()
+            watchdogGate.release()
+        }
+
+        watchdogGate.release()
+        await fulfillment(of: [watchdogObservation.completed], timeout: 1)
+        XCTAssertEqual(history.updatesDuringPending.map(\.scalar), [])
+        XCTAssertEqual(transport.releaseSignalCount, 0, "The physical read must remain gated through the timeout")
+
+        transport.releaseFirstRead()
+        await fulfillment(of: [history.confirmedReadback], timeout: 1)
 
         XCTAssertEqual(history.updatesDuringPending.map(\.scalar), [])
         XCTAssertTrue(history.confirmedReadbackStatus?.canSetVolume == true)
+        XCTAssertEqual(transport.gatedReadCount, 1)
+        XCTAssertEqual(transport.releaseSignalCount, 1, "The first-read gate must be released exactly once")
+        XCTAssertEqual(watchdogGate.releaseSignalCount, 1, "The watchdog gate must be released exactly once")
+        XCTAssertEqual(watchdogObservation.count, 1)
         monitor.stop()
         observer.cancel()
     }
@@ -241,27 +269,47 @@ final class DDCVolumePresentationTests: XCTestCase {
             scalar: nil, isMuted: false, deviceName: "XV272U", currentDevice: row,
             canSetVolume: false, canMute: false
         ), devices: [row])
+        let transport = TopologyGatedPresentationDDCTransport()
         let monitor = VolumeMonitor(statusReader: reader, eventMonitor: PresentationVolumeEvents(),
-                                   ddcTransport: PresentationDDCTransport())
+                                   ddcTransport: transport)
+        let observation = TopologyPresentationObservation()
+        let observer = Task { @MainActor in
+            for await status in monitor.updates {
+                observation.receive(status)
+            }
+        }
         monitor.start()
-        var iterator = monitor.updates.makeAsyncIterator()
-        _ = await iterator.next()
-        let confirmed = await iterator.next()
-        XCTAssertEqual(confirmed?.scalar, 0.75)
+        await fulfillment(of: [observation.confirmed], timeout: 1)
+        XCTAssertEqual(observation.confirmedStatus?.scalar, 0.75)
 
+        // The instant initial read can otherwise race the topology invalidation
+        // into `bufferingNewest(1)`. Hold the later read so this test observes
+        // the invalidation before a legitimate fresh confirmation.
+        transport.blockNextRead()
+        defer { transport.releaseBlockedRead() }
         monitor.setVolume(0.4)
-        let pending = await iterator.next()
-        XCTAssertEqual(pending?.scalar, 0.4)
-        XCTAssertTrue(pending?.canSetVolume == true)
+        await fulfillment(of: [observation.pending], timeout: 1)
+        XCTAssertEqual(observation.pendingStatus?.scalar, 0.4)
+        XCTAssertTrue(observation.pendingStatus?.canSetVolume == true)
 
         monitor.topologyChanged()
-        let invalidated = await iterator.next()
+        await fulfillment(of: [transport.blockedReadStarted], timeout: 1)
+        await fulfillment(of: [observation.invalidated], timeout: 1)
+        let invalidated = observation.invalidatedStatus
 
+        XCTAssertEqual(observation.invalidationCount, 1)
         XCTAssertNil(invalidated?.scalar)
         XCTAssertNil(invalidated?.currentDevice?.volume)
         XCTAssertFalse(invalidated?.canSetVolume == true)
         XCTAssertNil(invalidated?.outputDevices.first(where: { $0.isCurrent })?.volume)
+
+        transport.releaseBlockedRead()
+        await fulfillment(of: [transport.blockedReadFinished], timeout: 1)
+        await fulfillment(of: [observation.confirmedAgain], timeout: 1)
+        XCTAssertEqual(observation.confirmedAgainStatus?.scalar, 0.75)
+        XCTAssertTrue(observation.confirmedAgainStatus?.canSetVolume == true)
         monitor.stop()
+        observer.cancel()
     }
 
     func testMuteCapabilityRemainsAvailableWithoutVolumeCapability() async {
@@ -395,7 +443,8 @@ private final class CapabilityWiFiMonitor: WiFiMonitoring {
 @MainActor
 private final class PresentationVolumeEvents: VolumeEventMonitoring {
     func start(onDefaultDeviceChange: @escaping @MainActor @Sendable () -> Void,
-               onVolumeChange: @escaping @MainActor @Sendable () -> Void) {}
+               onVolumeChange: @escaping @MainActor @Sendable () -> Void,
+               onDeviceListChange: @escaping @MainActor @Sendable () -> Void) {}
     func reconcile() {}
     func recover() {}
     func stop() {}
@@ -404,6 +453,46 @@ private final class PresentationVolumeEvents: VolumeEventMonitoring {
 private final class PresentationDDCTransport: DDCVolumeTransport {
     func resolve(uid: String) -> DDCDisplayTarget? { DDCDisplayTarget(uid: uid, service: nil) }
     func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult { .reply(DDCVolumeReply(current: 75, maximum: 100)) }
+    func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool { true }
+}
+
+private final class TopologyGatedPresentationDDCTransport: DDCVolumeTransport, @unchecked Sendable {
+    private let lock = NSLock()
+    private let blockedRead = DispatchSemaphore(value: 0)
+    private var gateNextRead = false
+    private var didRelease = false
+    let blockedReadStarted = XCTestExpectation(description: "topology DDC read starts")
+    let blockedReadFinished = XCTestExpectation(description: "topology DDC read finishes")
+
+    func blockNextRead() {
+        lock.withLock { gateNextRead = true }
+    }
+
+    func releaseBlockedRead() {
+        let shouldSignal = lock.withLock { () -> Bool in
+            guard !didRelease else { return false }
+            didRelease = true
+            return true
+        }
+        if shouldSignal { blockedRead.signal() }
+    }
+
+    func resolve(uid: String) -> DDCDisplayTarget? { DDCDisplayTarget(uid: uid, service: nil) }
+
+    func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult {
+        let shouldBlock = lock.withLock { () -> Bool in
+            guard gateNextRead else { return false }
+            gateNextRead = false
+            return true
+        }
+        if shouldBlock {
+            blockedReadStarted.fulfill()
+            blockedRead.wait()
+            blockedReadFinished.fulfill()
+        }
+        return .reply(DDCVolumeReply(current: 75, maximum: 100))
+    }
+
     func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool { true }
 }
 
@@ -441,6 +530,44 @@ private final class PendingDDCVolumeObservation {
 }
 
 @MainActor
+private final class TopologyPresentationObservation {
+    let confirmed = XCTestExpectation(description: "initial DDC volume is confirmed")
+    let pending = XCTestExpectation(description: "optimistic DDC target is published")
+    let invalidated = XCTestExpectation(description: "topology invalidation is published")
+    let confirmedAgain = XCTestExpectation(description: "fresh DDC volume is confirmed")
+    private var didConfirm = false
+    private var didPend = false
+    private var didInvalidate = false
+    private(set) var confirmedStatus: VolumeStatus?
+    private(set) var pendingStatus: VolumeStatus?
+    private(set) var invalidatedStatus: VolumeStatus?
+    private(set) var confirmedAgainStatus: VolumeStatus?
+    private(set) var invalidationCount = 0
+
+    func receive(_ status: VolumeStatus) {
+        if status.scalar == 0.75, !didConfirm {
+            didConfirm = true
+            confirmedStatus = status
+            confirmed.fulfill()
+        } else if status.scalar == 0.4, !didPend {
+            didPend = true
+            pendingStatus = status
+            pending.fulfill()
+        } else if didConfirm, status.scalar == nil {
+            invalidationCount += 1
+            if !didInvalidate {
+                didInvalidate = true
+                invalidatedStatus = status
+                invalidated.fulfill()
+            }
+        } else if didInvalidate, status.scalar == 0.75, confirmedAgainStatus == nil {
+            confirmedAgainStatus = status
+            confirmedAgain.fulfill()
+        }
+    }
+}
+
+@MainActor
 private final class PendingDDCCommandHistory {
     let optimisticTarget = XCTestExpectation(description: "DDC target remains optimistic")
     let confirmedReadback = XCTestExpectation(description: "DDC write readback is confirmed")
@@ -467,28 +594,141 @@ private final class PendingDDCCommandHistory {
     }
 }
 
+@MainActor
+private final class WatchdogSleepGate {
+    let sleepStarted = XCTestExpectation(description: "DDC watchdog sleep starts")
+    private var continuation: CheckedContinuation<Void, any Error>?
+    private var releaseRequested = false
+    private var didGateFirstSleep = false
+    private var releaseSignals = 0
+
+    var releaseSignalCount: Int { releaseSignals }
+
+    func sleep(_ duration: Duration) async throws {
+        guard duration == .milliseconds(20) else {
+            XCTFail("Unexpected watchdog duration: \(duration)")
+            return
+        }
+
+        if didGateFirstSleep {
+            try await waitForCancellation()
+            return
+        }
+
+        didGateFirstSleep = true
+        sleepStarted.fulfill()
+        try await withTaskCancellationHandler(
+            operation: { try await self.waitForRelease() },
+            onCancel: {
+                Task { @MainActor [weak self] in self?.cancel() }
+            }
+        )
+    }
+
+    func release() {
+        guard releaseSignals == 0 else { return }
+        releaseSignals = 1
+        if let continuation {
+            self.continuation = nil
+            continuation.resume()
+        } else {
+            releaseRequested = true
+        }
+    }
+
+    private func waitForCancellation() async throws {
+        try await withTaskCancellationHandler(
+            operation: { try await self.suspendUntilCancelled() },
+            onCancel: {
+                Task { @MainActor [weak self] in self?.cancel() }
+            }
+        )
+    }
+
+    private func waitForRelease() async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+            if Task.isCancelled {
+                continuation.resume(throwing: CancellationError())
+            } else if releaseRequested {
+                releaseRequested = false
+                continuation.resume()
+            } else {
+                self.continuation = continuation
+            }
+        }
+    }
+
+    private func suspendUntilCancelled() async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+            if Task.isCancelled {
+                continuation.resume(throwing: CancellationError())
+            } else {
+                self.continuation = continuation
+            }
+        }
+    }
+
+    private func cancel() {
+        guard let continuation else { return }
+        self.continuation = nil
+        continuation.resume(throwing: CancellationError())
+    }
+}
+
+@MainActor
+private final class WatchdogTimeoutObservation {
+    let completed = XCTestExpectation(description: "DDC watchdog timeout emit completes")
+    private(set) var count = 0
+
+    func receive(_ generation: UInt64, _ commandID: UInt64?) {
+        _ = generation
+        _ = commandID
+        count += 1
+        if count == 1 { completed.fulfill() }
+    }
+}
+
 private final class FailingWritePresentationDDCTransport: DDCVolumeTransport {
     func resolve(uid: String) -> DDCDisplayTarget? { DDCDisplayTarget(uid: uid, service: nil) }
     func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult { .reply(DDCVolumeReply(current: 75, maximum: 100)) }
     func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool { false }
 }
 
-private final class SlowFirstReadPresentationDDCTransport: DDCVolumeTransport, @unchecked Sendable {
+private final class GatedFirstReadPresentationDDCTransport: DDCVolumeTransport, @unchecked Sendable {
     private let lock = NSLock()
+    private let firstReadGate = DispatchSemaphore(value: 0)
     private var readCount = 0
+    private var gatedReads = 0
+    private var releaseSignals = 0
     private var currentValue: UInt16 = 75
+    let firstReadStarted = XCTestExpectation(description: "first DDC read starts")
+
+    var gatedReadCount: Int { lock.withLock { gatedReads } }
+    var releaseSignalCount: Int { lock.withLock { releaseSignals } }
 
     func resolve(uid: String) -> DDCDisplayTarget? { DDCDisplayTarget(uid: uid, service: nil) }
 
-    func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult {
-        lock.lock()
-        readCount += 1
-        let isFirstRead = readCount == 1
-        let initialValue = currentValue
-        lock.unlock()
+    func releaseFirstRead() {
+        let shouldSignal = lock.withLock { () -> Bool in
+            guard releaseSignals == 0 else { return false }
+            releaseSignals = 1
+            return true
+        }
+        if shouldSignal { firstReadGate.signal() }
+    }
 
-        if isFirstRead { Thread.sleep(forTimeInterval: 2.2) }
-        return .reply(DDCVolumeReply(current: isFirstRead ? initialValue : currentValueSnapshot(), maximum: 100))
+    func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult {
+        let isFirstRead = lock.withLock { () -> Bool in
+            readCount += 1
+            guard readCount == 1 else { return false }
+            gatedReads += 1
+            return true
+        }
+        if isFirstRead {
+            firstReadStarted.fulfill()
+            firstReadGate.wait()
+        }
+        return .reply(DDCVolumeReply(current: currentValueSnapshot(), maximum: 100))
     }
 
     func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool {

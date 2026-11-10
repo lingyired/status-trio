@@ -4,8 +4,24 @@ For an associated Wi-Fi connection with an available SSID, the summary uses the
 SSID as its title and shows the current radio band and RSSI below it. Either
 measurement may be absent; missing values are omitted, never replaced by zero.
 If both are absent, the subtitle simply says Connected (or Personal Hotspot).
-Existing permission actions remain visible when the network name is unavailable.
 The technical connection panel remains available through the same disclosure.
+
+When the network name is unavailable, the row keeps describing the connection.
+The title stays Wi-Fi and the subtitle shows the connection state (Connected,
+Not associated, Off, No internet, and so on) followed by any band and RSSI the
+radio still reports. A missing name never replaces that state: no
+location-permission prompt occupies the summary line, and clicking the row
+always opens the Wi-Fi details. The detail page owns the explicit action that
+requests location access or opens Location settings, so the permission route
+stays reachable one level in. On the tested macOS 27.2 machine, the app process
+read RSSI and the channel band with global Location Services disabled, and the
+popover rendered them; SSID/BSSID stayed unavailable and scanning needs the
+permission. A separate in-process probe also saw noise, PHY mode and transmit
+rate, which the summary does not display. This is evidence for this machine and
+these states only, not for other macOS versions, and not for the
+not-associated/radio-off states. Valid measurements may appear without a name;
+missing or zero RSSI remains unknown, subject to the existing bounded cache. See
+[the capability evidence and remaining gaps](research/issue-184-wifi-without-location.md).
 
 `CoreWLANWiFiSystemReader` reads
 [`CWInterface.wlanChannel()`](https://developer.apple.com/documentation/corewlan/cwinterface/wlanchannel())
@@ -24,12 +40,16 @@ never extends that window, and any association change (join, roam, leave, radio
 toggle) drops the cache so a previous network's strength is never shown. A
 link-quality event's RSSI seeds the same cache. An associated interface with no
 known reading renders at full contrast instead of a faded, disabled glyph.
-The enhanced title and measurements require the primary path to be Wi-Fi,
-a connected/hotspot radio, and a nonempty SSID. They are suppressed while the
-primary path is Ethernet, offline, other, or unknown. VoiceOver shares the same
-visibility gate, so permission prompts never announce visually hidden measurements.
-A hotspot using a Wi-Fi primary path remains eligible. The existing technical
-panel can still expose radio details separately from this primary-path summary.
+The enhanced title and the measurements require the primary path to be Wi-Fi and
+a connected/hotspot radio. The SSID title additionally requires a name, but the
+measurements do not: without Location access the row still shows the connection
+state with the readable band and RSSI. Both are suppressed while the primary path
+is Ethernet, offline, other, or unknown. VoiceOver's value carries the address,
+band and signal, while its label already names the state. A hotspot using a Wi-Fi
+primary path remains eligible. The association state itself still comes from the
+existing classifier (radio power, service state, interface mode, network path);
+this change did not alter or re-verify that rule, and the not-associated and
+radio-off states were not exercised on the test machine.
 
 Suppressing them on Ethernet is not the section going blank: the row is the
 network section's single slot, and a wired primary path hands it to the wired row,

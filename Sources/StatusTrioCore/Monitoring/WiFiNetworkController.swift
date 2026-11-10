@@ -47,7 +47,14 @@ enum WiFiScanWorkerResult: Sendable {
 /// without sweeping every channel.
 protocol WiFiNetworkScanning: AnyObject {
     func scan(completion: @escaping @Sendable (WiFiScanWorkerResult) -> Void)
+    func readBasicDetails(completion: @escaping @Sendable (WiFiScanWorkerResult) -> Void)
     func setPower(_ isOn: Bool, completion: @escaping @Sendable (Bool) -> Void)
+}
+
+extension WiFiNetworkScanning {
+    func readBasicDetails(completion: @escaping @Sendable (WiFiScanWorkerResult) -> Void) {
+        completion(.success(WiFiScanPayload(networks: [], details: .unavailable)))
+    }
 }
 
 /// CoreWLAN exposes synchronous scan APIs. This worker owns a serial queue so
@@ -68,6 +75,10 @@ private final class CoreWLANNetworkWorker: @unchecked Sendable, WiFiNetworkScann
         }
     }
 
+    func readBasicDetails(completion: @escaping @Sendable (WiFiScanWorkerResult) -> Void) {
+        queue.async { [self] in completion(scanSynchronously(includeIdentity: false)) }
+    }
+
     func setPower(
         _ isOn: Bool,
         completion: @escaping @Sendable (Bool) -> Void
@@ -86,10 +97,16 @@ private final class CoreWLANNetworkWorker: @unchecked Sendable, WiFiNetworkScann
         }
     }
 
-    private func scanSynchronously() -> WiFiScanWorkerResult {
+    private func scanSynchronously(includeIdentity: Bool = true) -> WiFiScanWorkerResult {
         guard let interface = CWWiFiClient.shared().interface() else { return .noInterface }
         guard interface.powerOn() else { return .poweredOff }
 
+        if !includeIdentity {
+            return .success(WiFiScanPayload(
+                networks: [],
+                details: makeDetails(interface: interface, actualNetwork: nil, includeIdentity: false)
+            ))
+        }
         do {
             let rawNetworks = try interface.scanForNetworks(withSSID: nil)
             let associatedBSSID = interface.bssid()
@@ -150,7 +167,8 @@ private final class CoreWLANNetworkWorker: @unchecked Sendable, WiFiNetworkScann
 
     private func makeDetails(
         interface: CWInterface,
-        actualNetwork: CWNetwork?
+        actualNetwork: CWNetwork?,
+        includeIdentity: Bool = true
     ) -> WiFiConnectionDetails {
         let interfaceName = interface.interfaceName
         let configuration = interfaceName.map(networkConfiguration(interface:)) ?? .unavailable
@@ -158,8 +176,8 @@ private final class CoreWLANNetworkWorker: @unchecked Sendable, WiFiNetworkScann
         let transmitRate = interface.transmitRate()
 
         return WiFiConnectionDetails(
-            ssid: interface.ssid(),
-            bssid: interface.bssid(),
+            ssid: includeIdentity ? interface.ssid() : nil,
+            bssid: includeIdentity ? interface.bssid() : nil,
             band: displayBand(channel?.channelBand.rawValue),
             channel: channel?.channelNumber,
             channelWidth: displayChannelWidth(channel?.channelWidth.rawValue),
@@ -256,10 +274,10 @@ final class WiFiNetworkController: ObservableObject {
     init(
         scanWorker: any WiFiNetworkScanning = CoreWLANNetworkWorker(),
         now: @escaping () -> Date = Date.init,
-        minimumScanInterval: TimeInterval = 30,
-        periodicRefreshInterval: Duration = .seconds(30),
+        minimumScanInterval: TimeInterval = 120,
+        periodicRefreshInterval: Duration = .seconds(60),
         periodicRefreshSleep: @escaping @Sendable (Duration) async throws -> Void = {
-            try await Task.sleep(for: $0)
+            try await Task.sleep(for: $0, tolerance: $0 / 5)
         }
     ) {
         self.worker = scanWorker
@@ -273,10 +291,10 @@ final class WiFiNetworkController: ObservableObject {
     }
 
     func activate(nameAccess: WiFiNameAccess) {
+        guard !isActive else { refresh(nameAccess: nameAccess); return }
         lastNameAccess = nameAccess
-        guard !isActive else { return }
         isActive = true
-        schedulePeriodicRefresh()
+        if nameAccess == .authorized { schedulePeriodicRefresh() }
         refresh()
     }
     func deactivate() {
@@ -302,8 +320,19 @@ final class WiFiNetworkController: ObservableObject {
     /// list only changes when the radio changes, and that path calls
     /// `refreshNow(nameAccess:)`.
     func refresh(nameAccess: WiFiNameAccess? = nil) {
+        let permissionChanged = nameAccess.map { $0 != lastNameAccess } ?? false
         if let nameAccess { lastNameAccess = nameAccess }
-        guard hasScanElapsed else { return }
+        if permissionChanged {
+            _ = scanGate.advance()
+            networks = []
+            details = .unavailable
+            state = .idle
+            lastScanStartedAt = nil
+            periodicRefreshTask?.cancel()
+            periodicRefreshTask = nil
+            if isActive, lastNameAccess == .authorized { schedulePeriodicRefresh() }
+        }
+        guard permissionChanged || hasScanElapsed else { return }
         startScan()
     }
 
@@ -325,11 +354,16 @@ final class WiFiNetworkController: ObservableObject {
         let request = scanGate.advance()
         lastScanStartedAt = now()
         state = .scanning
-        worker.scan { [weak self] result in
+        let completion: @Sendable (WiFiScanWorkerResult) -> Void = { [weak self] result in
             Task { @MainActor [weak self] in
                 guard let self, self.isActive, self.scanGate.accepts(request) else { return }
                 self.receiveScanResult(result)
             }
+        }
+        if lastNameAccess == .authorized {
+            worker.scan(completion: completion)
+        } else {
+            worker.readBasicDetails(completion: completion)
         }
     }
     func setPower(_ enabled: Bool) {
@@ -345,6 +379,29 @@ final class WiFiNetworkController: ObservableObject {
                 } else {
                     self.state = .failed
                 }
+            }
+        }
+    }
+
+    /// One-shot radio power change for a surface that is not the Wi-Fi list
+    /// demand, such as the menu-bar right-click quick action. Unlike `setPower`
+    /// it does not require `isActive`; when the list happens to be active it
+    /// still refreshes the cached scan as the normal path does. The snapshot is
+    /// refreshed by the regular monitor cadence afterward.
+    func setPowerFromQuickAction(_ enabled: Bool, completion: @escaping @MainActor (Bool) -> Void = { _ in }) {
+        _ = scanGate.advance()
+        worker.setPower(enabled) { [weak self] changed in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if self.isActive {
+                    if changed {
+                        self.state = .ready
+                        self.refreshNow()
+                    } else {
+                        self.state = .failed
+                    }
+                }
+                completion(changed)
             }
         }
     }

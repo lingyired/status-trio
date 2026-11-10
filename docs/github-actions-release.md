@@ -3,9 +3,11 @@
 `.github/workflows/release.yml` 只有 `workflow_dispatch` 入口，不再由
 `v*` Tag push、PR 或 `main` push 自动触发。正式发布分三步：
 
-1. `verify`：检出冻结的 `candidate_sha`，运行完整 Swift 测试、Native
-   契约测试和离线发布回归；此 Job 不接收签名或公证 secrets。
-2. `package`：在 `xcode-27` 上对同一 SHA 做一次 Universal 构建，完成
+1. `verify` 与 `native`：分别检出冻结的 `candidate_sha`，并行运行完整
+   Swift 测试，以及 Native 契约测试和离线发布回归；两者都不接收签名或
+   公证 secrets。
+2. `package`：等待上述两个 Job 均成功后，在 `xcode-27` 上对同一 SHA
+   做一次 Universal 构建，完成
    Helper/MobileBattery 验证、签名、可选公证、DMG、Sparkle EdDSA 签名和
    manifest。
 3. `publish`：只下载上一步的 Actions artifact，校验 SHA-256、manifest、
@@ -31,6 +33,14 @@
 
 `merged`、`built` 和 `released` 不是同义词；只有公开 Release 与 appcast 都
 核验完成，才可称为 `released`。
+
+## DMG 安装页
+
+package job 准备并检查 `create-dmg 1.3.0`；版本不符或 Finder 布局失败会明确停止，不回退为空白安装页。默认 `DMG_INSTALL_PAGE=styled` 生成双语安装页；`DMG_INSTALL_PAGE=plain` 是仅用于显式回退的旧布局（App + Applications 链接）。暂存目录只含 App，由 create-dmg 创建 Applications 拖放链接。背景包含双语拖拽、安装完成及从应用启动台打开的说明。
+
+背景源是 `scripts/generate-dmg-background.swift`，运行 `swift scripts/generate-dmg-background.swift assets/dmg` 可重建 1x/2x PNG。打包直接使用 1320×840、144 DPI 的 `background@2x.png`，逻辑尺寸为 660×420pt，不依赖 Finder 自动寻找同名资源。需要设计预览时附加 `--preview Support/AppIcon.png`，预览里的图标和标签不进入正式背景。
+
+`scripts/create-installer-dmg.sh` 在独占临时目录创建镜像；失败时根据 `hdiutil info -plist` 的 image-path 归属清理本次挂载，清理失败保留文件并报错。真实执行会使用 Finder AppleScript，需单独评估对用户桌面的影响。日常 `test-dmg-installer.sh`、公证回归和 full profile 都使用离线工具，不打开 Finder，不创建真实 DMG。真实 Finder 的 Retina、浅/深外观、拖放安装及启动入口仍需人工验收。
 
 ## 触发方式
 
@@ -72,19 +82,58 @@ Developer ID 凭据存在时，`publish=true` 必须成功完成公证；若 Dev
 `APPSTORE_CONNECT_API_KEY_ID`、`APPSTORE_CONNECT_API_ISSUER_ID` 和
 `APPSTORE_CONNECT_API_PRIVATE_KEY`。
 
-`package` 和 `publish` 都使用受保护的 `distribution` Environment；Environment
-应只允许 `main` 并配置 reviewer。`verify` 在无签名 secrets 的独立 Job 中运行。
-Environment 审批不能替代 SHA 冻结和 artifact 校验。
+### 审批边界与 Environment
 
-将签名和公证凭据配置为 `distribution` Environment secrets（通过标准输入传入，不要把值写进命令或仓库）：
+`package` 根据发布模式和当前触发者选择 Environment：
+
+- `publish=true`：始终使用有 reviewer 的 `distribution`。
+- `publish=false` 且触发者是仓库所有者 `lingyired`：使用无 reviewer 的
+  `distribution-owner-signing`。
+- `publish=false` 但触发者是其他人，或由其他人重新运行：使用有 reviewer 的
+  `distribution`。
+
+选择条件使用 `github.triggering_actor`，不是最初的 `github.actor`，因此他人
+不能通过重新运行所有者的 workflow 绕过审批。`publish` Job 始终使用
+`distribution`。`verify` 和 `native` 不访问 Environment，也不接收签名或公证
+secrets。Environment 审批不能替代 SHA 冻结和 artifact 校验。
+
+两个 signing Environment 都只允许 `main`。`distribution` 必须保留 reviewer；
+`distribution-owner-signing` 不配置 reviewer，但必须保持同一 `main` 分支限制。
+创建 owner Environment 的命令：
 
 ```bash
-base64 -i DeveloperIDApplication.p12 | gh secret set DEVELOPER_ID_CERTIFICATE_P12 --env distribution --repo lingyired/status-trio
-gh secret set DEVELOPER_ID_CERTIFICATE_PASSWORD --env distribution --repo lingyired/status-trio
-gh secret set APPSTORE_CONNECT_API_KEY_ID --env distribution --repo lingyired/status-trio
-gh secret set APPSTORE_CONNECT_API_ISSUER_ID --env distribution --repo lingyired/status-trio
-gh secret set APPSTORE_CONNECT_API_PRIVATE_KEY --env distribution --repo lingyired/status-trio < AuthKey_XXXXXXXXXX.p8
+gh api --method PUT \
+  repos/lingyired/status-trio/environments/distribution-owner-signing \
+  --input - <<'JSON'
+{"deployment_branch_policy":{"custom_branch_policies":true,"protected_branches":false}}
+JSON
+
+gh api --method POST \
+  repos/lingyired/status-trio/environments/distribution-owner-signing/deployment-branch-policies \
+  --input - <<'JSON'
+{"name":"main","type":"branch"}
+JSON
 ```
+
+五个签名和公证 secrets 必须同时存在于 `distribution` 和
+`distribution-owner-signing`。GitHub 不支持 Environment secret 继承，也不能
+通过 API 读取旧值；轮换时必须同时更新两个 Environment。以下命令通过标准输入
+设置，不要把值写进命令或仓库：
+
+```bash
+for environment in distribution distribution-owner-signing; do
+  base64 -i DeveloperIDApplication.p12 |
+    gh secret set DEVELOPER_ID_CERTIFICATE_P12 --env "$environment" --repo lingyired/status-trio
+  gh secret set DEVELOPER_ID_CERTIFICATE_PASSWORD --env "$environment" --repo lingyired/status-trio
+  gh secret set APPSTORE_CONNECT_API_KEY_ID --env "$environment" --repo lingyired/status-trio
+  gh secret set APPSTORE_CONNECT_API_ISSUER_ID --env "$environment" --repo lingyired/status-trio
+  gh secret set APPSTORE_CONNECT_API_PRIVATE_KEY --env "$environment" --repo lingyired/status-trio < AuthKey_XXXXXXXXXX.p8
+done
+```
+
+无 reviewer 的 Environment 只适用于所有者信任自己触发的 `main` workflow。
+如果以后授予其他人写权限，必须同时要求 `.github/workflows/` 的改动经过所有者
+审查；否则有写权限的人可以修改 actor 条件并选择 owner Environment。
 
 在最后一条命令中，`AuthKey_XXXXXXXXXX.p8` 是本机私钥文件路径，不是 secret 值。不要读取或打印私钥来验证配置。GitHub Environment 审批控制 job 何时获得 Environment secrets，不会让它们在 runner 中保持加密：获批后，工作流及同一 job 中执行的 action/code 可以使用它们，日志脱敏也不能防止所有泄漏。只允许可信的 `main` 工作流使用该 Environment，并审查会改动这些工作流的变更。
 
@@ -96,7 +145,72 @@ dispatch 会运行 `scripts/validate-appcast-notes.sh`，打印语言覆盖表�
 
 正式发布统一使用手动 workflow。workflow 必须将 checkout、构建 artifact、manifest 和 Release Tag 绑定到同一个冻结 SHA；Tag 已存在但 SHA 不同必须失败。
 
+## CI 预检、诊断与原生依赖缓存
+
+`verify` 在 Swift 测试之前逐文件检查 shell 语法、禁止模式、工作流策略和
+Release Notes。Swift 测试仍只通过 `scripts/test.sh` 执行一次，并同时启动
+独立的 `native` Job 运行 Native 和离线发布回归；`package` 必须等待两者都
+成功。该拆分不缩短单项检查，只移除两个互不依赖阶段的串行等待。失败时各自
+的 Job Summary 记录阶段、观测到的失败类别、首个断言或编译位置、原始退出码
+和耗时。未知原因标为 `unknown`，不会把慢 runner 推断为根因。原始日志分别
+存入 `verify-diagnostics` 和 `native-diagnostics` artifact；只有资源加载类
+失败才附加 Bundle 路径诊断。
+
+恢复旧 package 时，新诊断脚本来自已有的 `release-tools` 可信 checkout，
+测试仍在原始 candidate checkout 执行。原产物、SHA、digest 和发布恢复校验
+保持原有边界，不重建 package。
+
+`package` 只在可信 `main` 手动流程中恢复/保存 `actions/cache@v4` 的两份
+独立依赖缓存。每份只含一个架构的 `prefix` 与 `.dependencies-cache.json`；
+不缓存 Helper、app、DMG、签名凭据或整个 `.build`。key 包含 schema、
+OS/架构、Xcode/Swift/Clang/SDK、构建工具版本、最低系统版本、依赖清单、已审核
+许可证文件集及内容摘要、构建脚本与配置。安装的 `.pc` / `.la` 和 dylib 引用
+绝对路径，因此 key 也绑定
+canonical prefix 路径；不同 checkout 路径会安全 miss，不尝试未经验证的迁移。
+没有宽泛的 `restore-keys`。
+
+恢复成功后，构建脚本仍验证完整文件 inventory/SHA-256、Header、metadata、
+symlink、Mach-O 架构、deployment target 和动态依赖。缓存 key 和 marker 已绑定
+依赖清单、许可证摘要、构建脚本及 canonical prefix；只有真正重建时才 checkout pinned
+sources 并再次验证 source pins。日志区分 `restored`、`validated` 和
+`build skipped`。缺失/损坏的缓存会从 pinned sources 重建，检查工具失败则直接
+失败。
+
+已审核的第三方 license 文本提交在
+`Support/MobileBatteryHelper/ThirdPartyNotices/`。精确缓存命中且不重建依赖时，
+构建不 checkout 完整源码树，直接使用这些文本；修改许可证内容或文件集会使缓存
+失效。发生冷构建时，在封存缓存前逐文件比较上游 license 与已审核副本，比较会
+归一化换行与行尾空白，内容不一致即失败。失败的许可证验证不得留下可复用的新
+marker。Helper 每次重新编译，最终 Universal
+bundle、签名、公证及产物身份契约仍全部执行。
+
+GitHub cache 的同 key 内容不可覆盖。若精确命中的条目损坏，当前运行会安全重建；
+维护者应删除该条目或递增 `scripts/mobile-battery-cache.py` 的 schema，使后续
+运行保存新条目。缓存保存发生在正式 package artifact 上传之后，恢复发布仍可
+使用已经上传的原产物。
+
+`package-build-timings` artifact 和 package Job Summary 记录 TSV 阶段耗时。
+父阶段含子阶段，不能把全部行相加；公证包含 Apple/network 等待。cache restore
+与 save 的区间包含 Action 调度开销，压缩大小和传输信息见对应 Action 日志，
+解压后的 prefix 大小由 `du -sk` 记录。Artifact upload 的步骤耗时见 Actions
+元数据。净收益需同 candidate/工具链的一次冷、一次热远程运行才能计算；
+本次本地验证不替代该测量，也未启用 SwiftPM 编译产物缓存。
+
+基线、故障分类和实际验证记录见
+[CI stability baseline](ci/ci-stability-baseline.md)、
+[CI performance report](ci/ci-performance-report.md)。
+
 ## 发布恢复
+
+`package_run_id` 仍要求显式 `publish=true`、`notarize=true` 和版本、
+构建号、Tag。非发布诊断不会进入线上恢复发布路径；恢复校验的正反例通过
+离线 fixture 验证，不应为测试关闭这些入口保护。
+
+源 workflow 可以是历史的 `verify/package/publish` 三 Job 结构，或当前的
+`verify/native/package/publish` 四 Job 结构。源 run 的 Job 集合和依赖必须与
+冻结候选中的 workflow 相符；四 Job 结构还必须有成功的 `native`，缺失、
+失败或跳过都不能退回按旧结构接受。Artifact、manifest、SHA 和 digest 的
+原有绑定继续执行。
 
 所有重试必须复用同一次 `package` 产生的 artifact：
 
@@ -239,7 +353,11 @@ gh secret set RELEASE_TOKEN
 xattr -dr com.apple.quarantine "/Applications/Status Trio.app"
 ```
 
-配置 Developer ID 后无需这一步。签名和公证 secrets 必须放在有 reviewer 保护的 `distribution` Environment 中，不要配置到 repository secrets。`distribution` 的审批人、绕过和 `main` 分支限制见上文。Environment secrets 名称为：
+配置 Developer ID 后无需这一步。签名和公证 secrets 只能放在
+`distribution` 和 `distribution-owner-signing` 两个 Environment 中，不要配置
+到 repository secrets。`distribution` 保留 reviewer；
+`distribution-owner-signing` 仅允许所有者诊断时无 reviewer 使用。两者的
+`main` 分支限制和安全前提见上文。Environment secrets 名称为：
 
 | Secret | 内容 |
 | --- | --- |
@@ -251,15 +369,9 @@ xattr -dr com.apple.quarantine "/Applications/Status Trio.app"
 
 生成证书 secret 的准确命令：
 
-```bash
-base64 -i DeveloperIDApplication.p12 | gh secret set DEVELOPER_ID_CERTIFICATE_P12 --env distribution --repo lingyired/status-trio
-gh secret set DEVELOPER_ID_CERTIFICATE_PASSWORD --env distribution --repo lingyired/status-trio
-gh secret set APPSTORE_CONNECT_API_KEY_ID --env distribution --repo lingyired/status-trio
-gh secret set APPSTORE_CONNECT_API_ISSUER_ID --env distribution --repo lingyired/status-trio
-gh secret set APPSTORE_CONNECT_API_PRIVATE_KEY --env distribution --repo lingyired/status-trio < AuthKey_XXXXXXXXXX.p8
-```
-
-这些 Apple credentials 属于 `distribution` Environment，不属于 repository secrets。不要在本地通过读取 keychain、打印 secret 或检查私钥内容来确认它们。
+使用上文“审批边界与 Environment”中的循环命令，将五个值分别写入两个
+Environment。这些 Apple credentials 不属于 repository secrets。不要在本地
+通过读取 keychain、打印 secret 或检查私钥内容来确认它们。
 
 `SPARKLE_PRIVATE_KEY` 只传入 `package` Job 的 `Build, sign, notarize, and package once` 步骤；`publish` Job 不接收它。`publish=true` 没有该 secret 会失败，`publish=false` 且未提供时只生成带诊断标记、不可发布的 package。Environment 对 Apple secrets 的隔离不改变 repository secret 的作用域，审查仓库 workflow 变更及其权限仍然必要。
 

@@ -76,6 +76,17 @@ final class PanelActionRoutingTests: XCTestCase {
         XCTAssertEqual(inputMuteToggles, 1)
     }
 
+    func testChargeToFullNowRoutesExactlyOnce() {
+        var requests = 0
+        let actions = StatusPanelActions(
+            requestChargeToFullNow: { requests += 1 }
+        )
+
+        actions.requestChargeToFullNow()
+
+        XCTAssertEqual(requests, 1)
+    }
+
     func testBluetoothPowerCommandRoutesOnceAndGuardsInputConfirmation() {
         var powerRequests: [Bool] = []
         let keyboard = BluetoothDevice(

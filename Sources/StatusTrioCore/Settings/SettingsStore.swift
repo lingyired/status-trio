@@ -14,26 +14,57 @@ final class SettingsStore: ObservableObject {
     static let iconSizeRange: ClosedRange<Double> = 16...36
     static let defaultIconSize: Double = 24
     static let iconSizeDefaultsKey = "menuBarIconSize"
-    static let iconConfigurationDefaultsKey = "iconConfigurationV1"
 
     static let batteryCriticalThresholdRange: ClosedRange<Double> = 0...100
+    /// The battery level at which the automation (#246) switches Low Power Mode
+    /// on. Kept separate from the critical colour threshold: the colour marks a
+    /// genuinely low battery, while the automation threshold may be much higher
+    /// (for example 90%) without turning the icon red at 90%.
+    static let autoLowPowerThresholdRange: ClosedRange<Double> = 0...100
+    static let defaultAutoLowPowerThreshold: Double = 20
     static let defaultBatteryCriticalThreshold: Double = 20
     /// The ring closes at the level the user picks. The floor keeps the arc a
     /// usable fraction of the circle instead of a hairline at 1%.
     static let batteryFullThresholdRange: ClosedRange<Double> = 50...100
     static let defaultBatteryFullThreshold: Double = Double(BatteryIconOptions.defaultFullThreshold)
+    /// The charge limit restored when the user cancels Charge to Full Now.
+    /// 100 means "no limit", so cancelling re-enables normal charging to 100%.
+    static let chargeToFullRestoreLimitRange: ClosedRange<Double> = 80...95
+    static let defaultChargeToFullRestoreLimit: Double = 95
+    static let chargeToFullRestoreLimitDefaultsKey = "chargeToFullRestoreLimit"
     static let batterySymbolScaleRange: ClosedRange<Double> = 0.9...1.1
     static let defaultBatterySymbolScale: Double = 1
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
+    static let showsBatteryPowerFlowDefaultsKey = "showsBatteryPowerFlow"
+    static let showsBatteryPowerInfoBarDefaultsKey = "showsBatteryPowerInfoBar"
+    static let showsHighEnergyAppsDefaultsKey = "showsHighEnergyApps"
+    static let highEnergyAppsRefreshIntervalDefaultsKey = "highEnergyAppsRefreshIntervalSeconds"
+    static let highEnergyAppsRefreshIntervalRange: ClosedRange<Double> = 10...60
+    static let defaultHighEnergyAppsRefreshIntervalSeconds: Double = 10
+    static let showsChargeToFullNowButtonDefaultsKey = "showsChargeToFullNowButton"
     static let showsChargingIndicatorDefaultsKey = "showsChargingIndicator"
     /// Legacy single-surface preference retained only for migration.
     static let showsChargingEffectDefaultsKey = "showsChargingEffect"
     static let showsMenuBarChargingEffectDefaultsKey = "showsMenuBarChargingEffect"
     static let showsDockChargingEffectDefaultsKey = "showsDockChargingEffect"
     static let showsChargingBoltHeartbeatDefaultsKey = "showsChargingBoltHeartbeat"
+    static let batterySplitGapProgressDefaultsKey = "batterySplitGapProgress"
+    static let batteryConnectedIndicatorDefaultsKey = "batteryConnectedIndicator"
+    /// Legacy boolean replaced by `batteryConnectedIndicator`; read once for
+    /// migration and never written again (#195).
     static let showsPercentageWhenConnectedDefaultsKey = "showsPercentageWhenConnected"
+    // #315: per-power-state top markers.
+    static let batteryOnBatteryMarkerDefaultsKey = "batteryOnBatteryMarker"
+    static let batteryChargingMarkerDefaultsKey = "batteryChargingMarker"
+    static let batteryConnectedMarkerDefaultsKey = "batteryConnectedMarker"
+    static let batteryNoBatteryMarkerDefaultsKey = "batteryNoBatteryMarker"
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
+    static let batteryStatusColorsChargingDefaultsKey = "batteryStatusColors.charging"
+    static let batteryStatusColorsLowPowerDefaultsKey = "batteryStatusColors.lowPower"
+    static let batteryStatusColorsHighPowerDefaultsKey = "batteryStatusColors.highPower"
+    static let batteryStatusColorsCriticalDefaultsKey = "batteryStatusColors.critical"
     static let batteryCriticalThresholdDefaultsKey = "batteryCriticalThreshold"
+    static let autoLowPowerThresholdDefaultsKey = "autoLowPowerThreshold"
     static let batteryFullThresholdDefaultsKey = "batteryFullThreshold"
     static let batterySymbolScaleDefaultsKey = "batterySymbolScale"
     static let showsWiFiIconForEthernetDefaultsKey = "showsWiFiIconForEthernet"
@@ -43,22 +74,44 @@ final class SettingsStore: ObservableObject {
     /// Draws the private LAN address on the network row's second line. Off by
     /// default: the address is a diagnostic, not something every panel needs.
     static let showsLocalIPAddressDefaultsKey = "showsLocalIPAddress"
+    /// Whether the Spatial Audio group is shown on the volume panel's AirPods
+    /// output row. On by default; AirPods-only.
+    static let showsSpatialAudioControlsDefaultsKey = "showsSpatialAudioControls"
+    /// Whether the Conversation Awareness group is shown on the volume panel's
+    /// AirPods output row. On by default; AirPods-only.
+    static let showsConversationAwarenessControlsDefaultsKey = "showsConversationAwarenessControls"
+    /// Migration-only: the old single switch, now split into the two above.
+    static let showsInlineAirPodsControlsDefaultsKey = "showsInlineAirPodsControls"
+    /// Migration-only: superseded by `connectionCenterSource`. Read once at
+    /// launch, then removed so it can never override a later selection.
     static let showsBatteryPercentageInConnectionSlotDefaultsKey = "showsBatteryPercentageInConnectionSlot"
     /// Raw value of `ConnectionCenterSource`. Missing or unknown values decode
-    /// to `.automatic`, so a downgrade or corrupted default never changes the
+    /// to `.network`, so a downgrade or corrupted default never changes the
     /// shipped icon behaviour.
     static let connectionCenterSourceDefaultsKey = "connectionCenterSource"
+    /// Raw value of `InputSourceMarkerStyle`. Missing or unknown values decode
+    /// to `.systemIcon`, so the Apple Pinyin 简/繁 marker stays opt-in and a
+    /// downgrade never changes the shipped icon behaviour.
+    static let inputSourceMarkerStyleDefaultsKey = "inputSourceMarkerStyle"
+    /// Raw value of `PanelBackgroundStyle`. Missing or unknown values derive
+    /// from the running OS, and a stored `.liquidGlass` on macOS < 26 resolves
+    /// to `.classicMaterial` so a downgrade never selects an unavailable
+    /// background (issue #233).
+    static let panelBackgroundStyleDefaultsKey = "panelBackgroundStyle"
+    static let prioritizesNetworkErrorsDefaultsKey = "prioritizesNetworkErrors"
+    /// Migration-only keys from the split middle-slot settings.
     static let prioritizesNetworkErrorsOverInputSourceDefaultsKey = "prioritizesNetworkErrorsOverInputSource"
     static let replacesNetworkIconWithBluetoothAudioDefaultsKey = "replacesNetworkIconWithBluetoothAudio"
+    static let bluetoothIconColorDefaultsKey = "bluetoothIconColor"
     static let usesBluetoothAudioVolumeColorDefaultsKey = "usesBluetoothAudioVolumeColor"
     static let prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey = "prioritizesNetworkErrorsOverBluetoothAudio"
     static let showsBluetoothBatteryLevelsDefaultsKey = "showsBluetoothBatteryLevels"
+    static let showsWiFiPowerControlDefaultsKey = "showsWiFiPowerControl"
+    static let confirmsWiFiPowerOffDefaultsKey = "confirmsWiFiPowerOff"
     static let showsBluetoothPowerControlDefaultsKey = "showsBluetoothPowerControl"
     static let controlsLowPowerModeDefaultsKey = "controlsLowPowerMode"
+    static let autoEnablesLowPowerModeDefaultsKey = "autoEnablesLowPowerMode"
     static let showsNearbyBluetoothBatteryDevicesDefaultsKey = "showsNearbyBluetoothBatteryDevices"
-    static let refreshesAirPodsBatteryForIconDefaultsKey = "refreshesAirPodsBatteryForIcon"
-    static let airPodsIconDeviceAddressDefaultsKey = "airPodsIconDeviceAddress"
-    static let connectedBluetoothIconDeviceAddressDefaultsKey = "connectedBluetoothIconDeviceAddress"
     static let showsMobileDeviceBatteryLevelsDefaultsKey = "showsMobileDeviceBatteryLevels"
     static let showsAppleDevicesAndBatteryDefaultsKey = "showsAppleDevicesAndBattery"
     static let refreshesAppleBatteriesInBackgroundDefaultsKey = "refreshesAppleBatteriesInBackground"
@@ -69,6 +122,7 @@ final class SettingsStore: ObservableObject {
     static let appleDeviceSettingsMigrationVersionDefaultsKey = "appleDeviceSettingsMigrationVersion"
     static let archivedLegacyNearbyBLESelectionsDefaultsKey = "archivedLegacyNearbyBLESelections"
     static let trustedAppleDeviceMetadataDefaultsKey = "trustedAppleDeviceMetadata.v1"
+    static let showsBluetoothListeningModeDefaultsKey = "showsBluetoothListeningMode"
     static let previewsBluetoothListeningModeDefaultsKey = "previewsBluetoothListeningMode"
     static let bluetoothListeningModePreviewDeviceNameDefaultsKey = "bluetoothListeningModePreviewDeviceName"
     static let bluetoothListeningModePreviewDeviceCountDefaultsKey = "bluetoothListeningModePreviewDeviceCount"
@@ -96,10 +150,20 @@ final class SettingsStore: ObservableObject {
     /// `refreshIntervalRange` for anyone who wants the old cadence.
     static let defaultRefreshIntervalSeconds: Double = 15
     static let refreshIntervalDefaultsKey = "statusRefreshIntervalSeconds"
+    /// #255: two independent refresh cadences, one for battery power and one
+    /// for wall power. Both use the same 5...60 range and a 1-second step; the
+    /// legacy single key above stays only as the migration source so an
+    /// existing install does not lose its choice.
+    static let refreshIntervalOnBatteryDefaultsKey = "statusRefreshIntervalOnBatterySeconds"
+    static let refreshIntervalOnPowerDefaultsKey = "statusRefreshIntervalOnPowerSeconds"
 
     static let outputDeviceLimitRange: ClosedRange<Int> = 1...20
     static let defaultMaxVisibleOutputDevices = 5
     static let maxVisibleOutputDevicesDefaultsKey = "maxVisibleOutputDevices"
+    static let inputDeviceLimitRange: ClosedRange<Int> = 1...20
+    static let defaultMaxVisibleInputDevices = 5
+    static let maxVisibleInputDevicesDefaultsKey = "maxVisibleInputDevices"
+    static let alwaysShowsAllInputDevicesDefaultsKey = "alwaysShowsAllInputDevices"
     static let defaultMaxVisibleBluetoothDevices = 5
     static let maxVisibleBluetoothDevicesDefaultsKey = "maxVisibleBluetoothDevices"
     static let showsBluetoothDeviceListDefaultsKey = "showsBluetoothDeviceList"
@@ -115,8 +179,21 @@ final class SettingsStore: ObservableObject {
     static let bluetoothDeviceLimitRange: ClosedRange<Int> = 1...20
     static let alwaysShowsAllOutputDevicesDefaultsKey = "alwaysShowsAllOutputDevices"
     static let outputDeviceOrderDefaultsKey = "outputDeviceOrder"
+    static let hiddenOutputDeviceUIDsDefaultsKey = "hiddenOutputDeviceUIDs"
+    static let inputDeviceOrderDefaultsKey = "inputDeviceOrder"
+    static let hiddenInputDeviceUIDsDefaultsKey = "hiddenInputDeviceUIDs"
+    static let externalVolumeConfigurationsDefaultsKey = "externalVolumeConfigurations.v1"
+    static let externalBrightnessConfigurationsDefaultsKey = "externalBrightnessConfigurations.v1"
+    /// Display IDs the user unchecked in the new Brightness settings tab. The
+    /// status panel's brightness section leaves those displays out.
+    static let hiddenBrightnessDisplayIDsDefaultsKey = "hiddenBrightnessDisplayIDs"
     static let popupSectionOrderDefaultsKey = "popupSectionOrder"
     static let enabledPopupSectionsDefaultsKey = "enabledPopupSections"
+    /// Default order of the status-panel sections. Display brightness sits below
+    /// the audio-input row so the two device-level controls stay together.
+    static let defaultPopupSectionOrder: [PopupSection] = [
+        .battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource
+    ]
     static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .vpn, .volume]
     /// Set once the VPN row has been offered to a stored section list.
     ///
@@ -133,9 +210,17 @@ final class SettingsStore: ObservableObject {
     static let defaultPopupVolumeScrollDirection: PopupVolumeScrollDirection = .up
     static let popupVolumeNaturalScrollingDefaultsKey = "popupVolumeNaturalScrolling"
     static let defaultPopupVolumeNaturalScrolling = false
+    /// App-level switch for the scroll-to-change-volume tick (#194). Absent
+    /// means "follow the macOS system switch"; present is an explicit choice.
+    static let popupVolumeScrollFeedbackDefaultsKey = VolumeScrollFeedbackPreference.key
 
     static let appIconPlacementDefaultsKey = "appIconPlacement"
     static let dockIconBackgroundPreferenceDefaultsKey = "dockIconBackgroundPreference"
+    static let menuBarRightClickActionDefaultsKey = "menuBarRightClickAction.v1"
+
+    /// Issue #262: when on, reopening the status panel starts on the summary
+    /// page instead of the last-opened detail page.
+    static let returnsToSummaryOnOpenDefaultsKey = "returnsToSummaryOnOpen"
 
     @Published private(set) var sharesAnonymousAnalytics: Bool
     @Published private(set) var telemetryConsentVersion: Int
@@ -222,118 +307,320 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Background drawn behind the status panel. Defaults to Liquid Glass on
+    /// macOS 26+ and to the classic popover material on older systems. Reduce
+    /// Transparency overrides this at render time (issue #233).
+    @Published var panelBackgroundStyle: PanelBackgroundStyle {
+        didSet {
+            defaults.set(
+                panelBackgroundStyle.rawValue,
+                forKey: Self.panelBackgroundStyleDefaultsKey
+            )
+        }
+    }
+
+    /// The action performed when the user right-clicks the menu-bar icon.
+    /// Defaults to the historical context menu; an unknown stored raw value
+    /// falls back to it as well.
+    @Published var menuBarRightClickAction: MenuBarRightClickAction {
+        didSet {
+            defaults.set(
+                menuBarRightClickAction.rawValue,
+                forKey: Self.menuBarRightClickActionDefaultsKey
+            )
+        }
+    }
+
     @Published var iconSize: Double {
         didSet {
             let clamped = Self.clampedIconSize(iconSize)
-            // 写入越界值时先夹取再落盘，夹取会再次触发 didSet，一次后收敛。
             guard clamped == iconSize else {
                 iconSize = clamped
                 return
             }
-            defaults.set(clamped, forKey: Self.iconSizeDefaultsKey)
+            persist(clamped, forKey: Self.iconSizeDefaultsKey)
         }
     }
 
-    @Published private(set) var iconConfiguration: IconConfigurationV1 {
+    /// Slider entry points. A drag publishes per frame; these keep the current
+    /// value in memory (so previews follow) but store the newest value only
+    /// once per coalescing interval. Programmatic writes keep their immediate
+    /// persistence contract.
+    func setIconSizeFromSlider(_ value: Double) {
+        isCoalescingSliderWrite = true
+        iconSize = value
+        isCoalescingSliderWrite = false
+    }
+
+    func setBatterySymbolScaleFromSlider(_ value: Double) {
+        isCoalescingSliderWrite = true
+        batterySymbolScale = value
+        isCoalescingSliderWrite = false
+    }
+
+    func setWiFiSymbolScaleFromSlider(_ value: Double) {
+        isCoalescingSliderWrite = true
+        wifiSymbolScale = value
+        isCoalescingSliderWrite = false
+    }
+
+    // #315: the top marker is stored per power state, replacing the old
+    // "show percentage" + "show charging indicator" + "connected indicator"
+    // trio. Each state can carry its own marker so the settings surface reads as
+    // three plain choices.
+    @Published var batteryOnBatteryMarker: BatteryTopMarker {
         didSet {
-            guard canPersistIconConfiguration,
-                  let data = try? IconConfigurationCodec.encode(iconConfiguration) else { return }
-            defaults.set(data, forKey: Self.iconConfigurationDefaultsKey)
+            defaults.set(
+                batteryOnBatteryMarker.rawValue,
+                forKey: Self.batteryOnBatteryMarkerDefaultsKey
+            )
         }
     }
-    @Published private(set) var iconConfigurationLoadError: IconConfigurationCodecError?
-    private var canPersistIconConfiguration = false
+    @Published var batteryChargingMarker: BatteryTopMarker {
+        didSet {
+            defaults.set(
+                batteryChargingMarker.rawValue,
+                forKey: Self.batteryChargingMarkerDefaultsKey
+            )
+        }
+    }
+    @Published var batteryConnectedMarker: BatteryTopMarker {
+        didSet {
+            defaults.set(
+                batteryConnectedMarker.rawValue,
+                forKey: Self.batteryConnectedMarkerDefaultsKey
+            )
+        }
+    }
+    /// A battery-less Mac's decorative top marker (plug / bolt / nothing).
+    @Published var batteryNoBatteryMarker: BatteryTopMarker {
+        didSet {
+            defaults.set(
+                batteryNoBatteryMarker.rawValue,
+                forKey: Self.batteryNoBatteryMarkerDefaultsKey
+            )
+        }
+    }
 
+    /// Legacy-shaped accessor retained for older call sites. In the new model it
+    /// simply reports whether the on-battery state shows the percentage.
     var showsBatteryPercentage: Bool {
-        get { iconConfiguration.behaviors.systemBatteryRing.showsPercentage }
-        set { updateIconConfiguration { $0.behaviors.systemBatteryRing.showsPercentage = newValue } }
+        get { batteryOnBatteryMarker == .percentage }
+        set { batteryOnBatteryMarker = newValue ? .percentage : .hidden }
     }
+
+    /// The single switch for the details page's power flow diagram. When on it
+    /// draws the full diagram (input, battery, breakdown/system); when off the
+    /// diagram is hidden. The old per-rail switches were folded into this one.
+    @Published var showsBatteryPowerFlow: Bool {
+        didSet { defaults.set(showsBatteryPowerFlow, forKey: Self.showsBatteryPowerFlowDefaultsKey) }
+    }
+    /// Provisional: shows input/battery/system power under the panel's battery
+    /// module. Off by default; not yet an accepted specification.
+    @Published var showsBatteryPowerInfoBar: Bool {
+        didSet { defaults.set(showsBatteryPowerInfoBar, forKey: Self.showsBatteryPowerInfoBarDefaultsKey) }
+    }
+    @Published var showsHighEnergyApps: Bool {
+        didSet { defaults.set(showsHighEnergyApps, forKey: Self.showsHighEnergyAppsDefaultsKey) }
+    }
+    @Published var highEnergyAppsRefreshIntervalSeconds: Double {
+        didSet {
+            let clamped = Self.clampedHighEnergyAppsRefreshInterval(highEnergyAppsRefreshIntervalSeconds)
+            guard clamped == highEnergyAppsRefreshIntervalSeconds else {
+                highEnergyAppsRefreshIntervalSeconds = clamped
+                return
+            }
+            defaults.set(clamped, forKey: Self.highEnergyAppsRefreshIntervalDefaultsKey)
+        }
+    }
+
+    var batteryPowerDisplayOptions: BatteryPowerDisplayOptions {
+        // One switch drives every rail; the reader still only samples what the
+        // diagram needs.
+        BatteryPowerDisplayOptions(
+            showsInput: showsBatteryPowerFlow,
+            showsCharging: showsBatteryPowerFlow,
+            showsSystem: showsBatteryPowerFlow,
+            showsBreakdown: showsBatteryPowerFlow
+        )
+    }
+
+    @Published var showsChargeToFullNowButton: Bool {
+        didSet {
+            defaults.set(
+                showsChargeToFullNowButton,
+                forKey: Self.showsChargeToFullNowButtonDefaultsKey
+            )
+        }
+    }
+
+    /// Legacy-shaped accessor: reports whether the charging state shows the bolt.
     var showsChargingIndicator: Bool {
-        get { iconConfiguration.behaviors.systemBatteryRing.showsChargingIndicator }
-        set { updateIconConfiguration { $0.behaviors.systemBatteryRing.showsChargingIndicator = newValue } }
-    }
-    var showsChargingBoltHeartbeat: Bool {
-        get { iconConfiguration.behaviors.systemBatteryRing.showsChargingBoltHeartbeat }
-        set { updateIconConfiguration { $0.behaviors.systemBatteryRing.showsChargingBoltHeartbeat = newValue } }
-    }
-    var showsPercentageWhenConnected: Bool {
-        get { iconConfiguration.behaviors.systemBatteryRing.showsPercentageWhenConnected }
-        set { updateIconConfiguration { $0.behaviors.systemBatteryRing.showsPercentageWhenConnected = newValue } }
-    }
-    var usesBatteryStatusColors: Bool {
-        get { iconConfiguration.behaviors.systemBatteryRing.usesStatusColors }
-        set { updateIconConfiguration { $0.behaviors.systemBatteryRing.usesStatusColors = newValue } }
-    }
-    var batterySymbolScale: Double {
-        get { iconConfiguration.behaviors.systemBatteryRing.textScale / BatteryIconOptions.defaultTextScale }
+        get { batteryChargingMarker == .bolt }
         set {
-            let value = Self.clampedBatterySymbolScale(newValue) * BatteryIconOptions.defaultTextScale
-            updateIconConfiguration { $0.behaviors.systemBatteryRing.textScale = value }
+            batteryChargingMarker = newValue
+                ? .bolt
+                : (batteryOnBatteryMarker == .percentage ? .percentage : .hidden)
         }
     }
-    var batteryCriticalThreshold: Double {
-        get { Double(iconConfiguration.behaviors.systemBatteryRing.criticalThreshold) }
-        set {
-            let value = Int(Self.clampedBatteryCriticalThreshold(newValue))
-            updateIconConfiguration { $0.behaviors.systemBatteryRing.criticalThreshold = value }
+
+    @Published var showsMenuBarChargingEffect: Bool {
+        didSet {
+            defaults.set(
+                showsMenuBarChargingEffect,
+                forKey: Self.showsMenuBarChargingEffectDefaultsKey
+            )
+            if !showsMenuBarChargingEffect && !showsDockChargingEffect {
+                testsChargingEffect = false
+            }
         }
     }
-    var showsWiFiIconForEthernet: Bool {
-        get { iconConfiguration.behaviors.networkCenter.showsWiFiIconForEthernet }
-        set { updateIconConfiguration { $0.behaviors.networkCenter.showsWiFiIconForEthernet = newValue } }
-    }
-    var showsWiFiIconForHotspot: Bool {
-        get { iconConfiguration.behaviors.networkCenter.showsWiFiIconForHotspot }
-        set { updateIconConfiguration { $0.behaviors.networkCenter.showsWiFiIconForHotspot = newValue } }
-    }
-    var showsWiFiIconForTemporaryConnection: Bool {
-        get { iconConfiguration.behaviors.networkCenter.showsWiFiIconForTemporaryConnection }
-        set { updateIconConfiguration { $0.behaviors.networkCenter.showsWiFiIconForTemporaryConnection = newValue } }
-    }
-    var showsWiFiIconForInternetSharing: Bool {
-        get { iconConfiguration.behaviors.networkCenter.showsWiFiIconForInternetSharing }
-        set { updateIconConfiguration { $0.behaviors.networkCenter.showsWiFiIconForInternetSharing = newValue } }
-    }
-    var showsBatteryPercentageInConnectionSlot: Bool {
-        get { iconConfiguration.behaviors.networkCenter.showsBatteryPercentageInConnectionSlot }
-        set { updateIconConfiguration { $0.behaviors.networkCenter.showsBatteryPercentageInConnectionSlot = newValue } }
-    }
-    var replacesNetworkIconWithBluetoothAudio: Bool {
-        get { iconConfiguration.behaviors.bluetoothAudioCenter.replacesNetworkIcon }
-        set { updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.replacesNetworkIcon = newValue } }
-    }
-    var usesBluetoothAudioVolumeColor: Bool {
-        get { iconConfiguration.behaviors.bluetoothAudioCenter.usesVolumeColor }
-        set { updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.usesVolumeColor = newValue } }
-    }
-    var prioritizesNetworkErrorsOverBluetoothAudio: Bool {
-        get { iconConfiguration.behaviors.bluetoothAudioCenter.prioritizesNetworkErrors }
-        set { updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.prioritizesNetworkErrors = newValue } }
-    }
-    var bluetoothNetworkIconSymbolName: String? {
-        get { iconConfiguration.behaviors.bluetoothAudioCenter.networkIconSymbolOverride }
-        set { updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = newValue } }
+
+    @Published var showsDockChargingEffect: Bool {
+        didSet {
+            defaults.set(
+                showsDockChargingEffect,
+                forKey: Self.showsDockChargingEffectDefaultsKey
+            )
+            if !showsMenuBarChargingEffect && !showsDockChargingEffect {
+                testsChargingEffect = false
+            }
+        }
     }
 
-    func updateIconConfiguration(_ edit: (inout IconConfigurationV1) -> Void) {
-        guard iconConfigurationLoadError == nil else { return }
-        var updated = iconConfiguration
-        edit(&updated)
-        updated = updated.normalized()
-        guard updated != iconConfiguration else { return }
-        iconConfiguration = updated
+    /// The shared scene carries the effect when either surface can animate.
+    /// Each renderer removes it independently for a surface that is switched off.
+    var showsChargingEffect: Bool {
+        get { showsMenuBarChargingEffect || showsDockChargingEffect }
+        set {
+            showsMenuBarChargingEffect = newValue
+            showsDockChargingEffect = newValue
+        }
     }
 
-    func resetIconConfiguration() {
-        resetIconConfiguration(to: .classic)
+    @Published var showsChargingBoltHeartbeat: Bool {
+        didSet {
+            defaults.set(
+                showsChargingBoltHeartbeat,
+                forKey: Self.showsChargingBoltHeartbeatDefaultsKey
+            )
+        }
     }
 
-    func resetIconConfiguration(to configuration: IconConfigurationV1) {
-        canPersistIconConfiguration = true
-        iconConfigurationLoadError = nil
-        iconConfiguration = configuration.normalized()
+    /// When the top gap shows an icon or the percentage, make the visible arc
+    /// carry the whole 0–100% scale (left half 0–50%, right half 50–100%) so the
+    /// gap no longer hides progress (#205). Off by default.
+    @Published var batterySplitGapProgress: Bool {
+        didSet {
+            defaults.set(
+                batterySplitGapProgress,
+                forKey: Self.batterySplitGapProgressDefaultsKey
+            )
+        }
     }
 
+    @Published private(set) var testsChargingEffect = false
+
+    func setChargingEffectTestEnabled(_ enabled: Bool) {
+        testsChargingEffect = enabled
+    }
+
+    /// Development-only: turns on the synthetic charging input without touching
+    /// the animation preference, so a measurement run can compare the animation
+    /// on and off against the same charging state. See
+    /// `ChargingEffectTestMode.forceChargingInputEnvironmentKey`.
+    func setChargingEffectTestInputEnabled(_ enabled: Bool) {
+        testsChargingEffect = enabled
+    }
+
+    /// Legacy-shaped accessor for the connected-without-charging marker.
+    var batteryConnectedIndicator: BatteryConnectedIndicator {
+        get {
+            switch batteryConnectedMarker {
+            case .percentage: return .percentage
+            case .bolt: return .bolt
+            case .plug, .hidden: return .plug
+            }
+        }
+        set {
+            switch newValue {
+            case .plug: batteryConnectedMarker = .plug
+            case .bolt: batteryConnectedMarker = .bolt
+            case .percentage: batteryConnectedMarker = .percentage
+            }
+        }
+    }
+
+    @Published var usesBatteryStatusColors: Bool {
+        didSet {
+            defaults.set(usesBatteryStatusColors, forKey: Self.usesBatteryStatusColorsDefaultsKey)
+        }
+    }
+
+    /// Per-role colour overrides for the charging, low-power and critical states.
+    /// Edited in place by the settings UI, so a nested mutation still triggers
+    /// this `didSet` and publishes one fresh value.
+    @Published var batteryStatusColors: BatteryStatusColors {
+        didSet {
+            guard batteryStatusColors != oldValue else { return }
+            defaults.set(
+                batteryStatusColors.charging.storageValue,
+                forKey: Self.batteryStatusColorsChargingDefaultsKey
+            )
+            defaults.set(
+                batteryStatusColors.lowPower.storageValue,
+                forKey: Self.batteryStatusColorsLowPowerDefaultsKey
+            )
+            defaults.set(
+                batteryStatusColors.highPower.storageValue,
+                forKey: Self.batteryStatusColorsHighPowerDefaultsKey
+            )
+            defaults.set(
+                batteryStatusColors.critical.storageValue,
+                forKey: Self.batteryStatusColorsCriticalDefaultsKey
+            )
+        }
+    }
+
+    @Published var batterySymbolScale: Double {
+        didSet {
+            let clamped = Self.clampedBatterySymbolScale(batterySymbolScale)
+            guard clamped == batterySymbolScale else {
+                batterySymbolScale = clamped
+                return
+            }
+            persist(clamped, forKey: Self.batterySymbolScaleDefaultsKey)
+        }
+    }
+
+    @Published var batteryCriticalThreshold: Double {
+        didSet {
+            let clamped = Self.clampedBatteryCriticalThreshold(batteryCriticalThreshold)
+            guard clamped == batteryCriticalThreshold else {
+                batteryCriticalThreshold = clamped
+                return
+            }
+            defaults.set(clamped, forKey: Self.batteryCriticalThresholdDefaultsKey)
+        }
+    }
+
+    /// The level at which #246 switches Low Power Mode on by itself.
+    @Published var autoLowPowerThreshold: Double {
+        didSet {
+            let clamped = Self.clampedAutoLowPowerThreshold(autoLowPowerThreshold)
+            guard clamped == autoLowPowerThreshold else {
+                autoLowPowerThreshold = clamped
+                return
+            }
+            defaults.set(clamped, forKey: Self.autoLowPowerThresholdDefaultsKey)
+        }
+    }
+
+    /// The level at which the battery ring counts as full (#105).
+    ///
+    /// Charge limiting holds a plugged-in battery below 100%, so a ring scaled
+    /// to a fixed 100% never closes. Rescaling the arc to this level makes the
+    /// ring close at the cap the user actually reaches.
     @Published var batteryFullThreshold: Double {
         didSet {
             let clamped = Self.clampedBatteryFullThreshold(batteryFullThreshold)
@@ -345,8 +632,38 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// The charge limit restored when the user cancels Charge to Full Now.
+    ///
+    /// macOS removes the persisted limit while its own temporary override runs,
+    /// so an explicit setting is more reliable than guessing the old value.
+    /// 100 means "no limit": cancelling simply resumes normal charging to 100%.
+    @Published var chargeToFullRestoreLimit: Double {
+        didSet {
+            let clamped = Self.clampedChargeToFullRestoreLimit(
+                chargeToFullRestoreLimit
+            )
+            guard clamped == chargeToFullRestoreLimit else {
+                chargeToFullRestoreLimit = clamped
+                return
+            }
+            defaults.set(
+                clamped,
+                forKey: Self.chargeToFullRestoreLimitDefaultsKey
+            )
+        }
+    }
+
+    /// Test seam: a recorded plist to read instead of the live one, so the
+    /// follow path is tested against a known limit rather than whatever this
+    /// Mac happens to be set to. `nil` in the app, which reads the real file.
     var chargeLimitURLForTesting: URL?
 
+    /// Whether the macOS charge limit can be read at all (#105).
+    ///
+    /// The value lives in a private, root-owned plist that no public API
+    /// exposes. It is readable on an unsandboxed build, but it is not guaranteed
+    /// to be there, so the button that fills the slider in from it is hidden
+    /// behind this rather than failing silently when pressed.
     var canReadSystemChargeLimit: Bool {
         if let url = chargeLimitURLForTesting {
             return SystemChargeLimitReader.chargeLimit(from: url) != nil
@@ -354,16 +671,114 @@ final class SettingsStore: ObservableObject {
         return SystemChargeLimitReader.chargeLimit() != nil
     }
 
+    @Published var showsWiFiIconForEthernet: Bool {
+        didSet {
+            defaults.set(
+                showsWiFiIconForEthernet,
+                forKey: Self.showsWiFiIconForEthernetDefaultsKey
+            )
+        }
+    }
+
+    @Published var showsWiFiIconForHotspot: Bool {
+        didSet {
+            defaults.set(
+                showsWiFiIconForHotspot,
+                forKey: Self.showsWiFiIconForHotspotDefaultsKey
+            )
+        }
+    }
+
+    @Published var showsWiFiIconForTemporaryConnection: Bool {
+        didSet {
+            defaults.set(
+                showsWiFiIconForTemporaryConnection,
+                forKey: Self.showsWiFiIconForTemporaryConnectionDefaultsKey
+            )
+        }
+    }
+
+    @Published var showsWiFiIconForInternetSharing: Bool {
+        didSet {
+            defaults.set(
+                showsWiFiIconForInternetSharing,
+                forKey: Self.showsWiFiIconForInternetSharingDefaultsKey
+            )
+        }
+    }
+
     @Published var showsLocalIPAddress: Bool {
-        didSet { defaults.set(showsLocalIPAddress, forKey: Self.showsLocalIPAddressDefaultsKey) }
+        didSet {
+            defaults.set(
+                showsLocalIPAddress,
+                forKey: Self.showsLocalIPAddressDefaultsKey
+            )
+        }
+    }
+
+    @Published var showsSpatialAudioControls: Bool {
+        didSet {
+            defaults.set(
+                showsSpatialAudioControls,
+                forKey: Self.showsSpatialAudioControlsDefaultsKey
+            )
+        }
+    }
+
+    @Published var showsConversationAwarenessControls: Bool {
+        didSet {
+            defaults.set(
+                showsConversationAwarenessControls,
+                forKey: Self.showsConversationAwarenessControlsDefaultsKey
+            )
+        }
     }
 
     @Published var connectionCenterSource: ConnectionCenterSource {
-        didSet { defaults.set(connectionCenterSource.rawValue, forKey: Self.connectionCenterSourceDefaultsKey) }
+        didSet {
+            defaults.set(
+                connectionCenterSource.rawValue,
+                forKey: Self.connectionCenterSourceDefaultsKey
+            )
+        }
     }
 
-    @Published var prioritizesNetworkErrorsOverInputSource: Bool {
-        didSet { defaults.set(prioritizesNetworkErrorsOverInputSource, forKey: Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey) }
+    /// How Apple's two Pinyin input sources draw their middle marker: the
+    /// system image (default, pre-#297), 简/繁, or 中. See
+    /// `InputSourceMarkerStyle`.
+    @Published var inputSourceMarkerStyle: InputSourceMarkerStyle {
+        didSet {
+            defaults.set(
+                inputSourceMarkerStyle.rawValue,
+                forKey: Self.inputSourceMarkerStyleDefaultsKey
+            )
+        }
+    }
+
+    @Published var prioritizesNetworkErrors: Bool {
+        didSet {
+            defaults.set(prioritizesNetworkErrors, forKey: Self.prioritizesNetworkErrorsDefaultsKey)
+        }
+    }
+
+    /// The centre Bluetooth glyph's colour: default blue, adaptive primary, or
+    /// a user-picked colour (#275). Independent of the volume footer's colour.
+    @Published var bluetoothIconColor: BluetoothIconColorSelection {
+        didSet {
+            defaults.set(
+                bluetoothIconColor.storageValue,
+                forKey: Self.bluetoothIconColorDefaultsKey
+            )
+        }
+    }
+
+    @Published var usesBluetoothAudioVolumeColor: Bool {
+        didSet {
+            defaults.set(
+                usesBluetoothAudioVolumeColor,
+                forKey: Self.usesBluetoothAudioVolumeColorDefaultsKey
+            )
+        }
     }
 
     @Published var showsBluetoothBatteryLevels: Bool {
@@ -375,18 +790,19 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var refreshesAirPodsBatteryForIcon: Bool {
-        didSet { defaults.set(refreshesAirPodsBatteryForIcon, forKey: Self.refreshesAirPodsBatteryForIconDefaultsKey) }
+    /// The Wi-Fi radio switch needs no helper or extra permission. It is on by
+    /// default and only hides the panel affordance when explicitly turned off.
+    @Published var showsWiFiPowerControl: Bool {
+        didSet { defaults.set(showsWiFiPowerControl, forKey: Self.showsWiFiPowerControlDefaultsKey) }
     }
 
-    /// Explicit user selections are stored by Bluetooth identity, never by the
-    /// mutable display name.
-    @Published var airPodsIconDeviceAddress: String? {
-        didSet { defaults.set(airPodsIconDeviceAddress, forKey: Self.airPodsIconDeviceAddressDefaultsKey) }
-    }
-
-    @Published var connectedBluetoothIconDeviceAddress: String? {
-        didSet { defaults.set(connectedBluetoothIconDeviceAddress, forKey: Self.connectedBluetoothIconDeviceAddressDefaultsKey) }
+    /// Ask before turning the Wi-Fi radio off while a network is associated
+    /// (#305). On by default so upgrades keep the existing confirmation; the
+    /// user can opt out to switch off directly from the panel.
+    @Published var confirmsWiFiPowerOff: Bool {
+        didSet {
+            defaults.set(confirmsWiFiPowerOff, forKey: Self.confirmsWiFiPowerOffDefaultsKey)
+        }
     }
 
     /// The Bluetooth radio switch uses private IOBluetooth symbols, but needs
@@ -407,7 +823,21 @@ final class SettingsStore: ObservableObject {
     }
 
     @Published var controlsLowPowerMode: Bool {
-        didSet { defaults.set(controlsLowPowerMode, forKey: Self.controlsLowPowerModeDefaultsKey) }
+        didSet {
+            defaults.set(controlsLowPowerMode, forKey: Self.controlsLowPowerModeDefaultsKey)
+        }
+    }
+
+    /// Whether the app switches Low Power Mode on by itself when the battery
+    /// drops below `batteryCriticalThreshold` while running on battery (#246).
+    /// Off by default: silently changing the power profile is opt-in.
+    @Published var autoEnablesLowPowerMode: Bool {
+        didSet {
+            defaults.set(
+                autoEnablesLowPowerMode,
+                forKey: Self.autoEnablesLowPowerModeDefaultsKey
+            )
+        }
     }
 
     @Published var showsNearbyBluetoothBatteryDevices: Bool {
@@ -461,13 +891,30 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// The real listening-mode master switch. When on, the app discovers and
+    /// shows noise-cancelling/transparency/off capsules for connected AirPods
+    /// and supported HUAWEI headphones while the Bluetooth or volume section is
+    /// visible. When off, no real discovery, SPP session, or control capsules
+    /// are presented anywhere (the synthetic interface preview is a separate,
+    /// test-only toggle gated behind this one). Defaults to on so real devices
+    /// keep working out of the box.
+    @Published var showsBluetoothListeningMode: Bool {
+        didSet {
+            defaults.set(
+                showsBluetoothListeningMode,
+                forKey: Self.showsBluetoothListeningModeDefaultsKey
+            )
+        }
+    }
+
     /// Interface preview for the AirPods listening-mode switch. When on, every
     /// connected AirPods row shows the three mode capsules and tapping them
     /// drives the same busy → settled animation, but no CoreAudio write is
     /// issued. The toggle exists so the row's layout, focus order, and tap
     /// feedback can be exercised on a Mac that has no controllable AirPods
     /// attached; it is off by default so a normal user never sees a
-    /// non-functional capsule.
+    /// non-functional capsule. Only has effect while `showsBluetoothListeningMode`
+    /// is also on.
     @Published var previewsBluetoothListeningMode: Bool {
         didSet {
             defaults.set(
@@ -475,6 +922,17 @@ final class SettingsStore: ObservableObject {
                 forKey: Self.previewsBluetoothListeningModeDefaultsKey
             )
         }
+    }
+
+    /// Whether the synthetic listening-mode preview is actually allowed to run.
+    ///
+    /// Developer-only: a packaged release never previews, regardless of any stale
+    /// value in `UserDefaults`. Every consumer gates on this one property so the
+    /// release rule lives in a single place.
+    var isListeningModePreviewActive: Bool {
+        isDevelopmentBuild
+            && showsBluetoothListeningMode
+            && previewsBluetoothListeningMode
     }
 
     /// Optional override for the synthetic preview rows' device name. Empty means
@@ -524,40 +982,6 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    var bluetoothSymbolScale: Double {
-        get { iconConfiguration.behaviors.bluetoothAudioCenter.symbolScale }
-        set {
-            let value = Self.clampedBluetoothSymbolScale(newValue)
-            updateIconConfiguration { $0.behaviors.bluetoothAudioCenter.symbolScale = value }
-        }
-    }
-    var wifiSymbolScale: Double {
-        get { iconConfiguration.appearance.center.symbolScale / CenterAppearance.classic.symbolScale }
-        set {
-            let value = Self.clampedWifiSymbolScale(newValue)
-            updateIconConfiguration {
-                $0.appearance.center.symbolScale = value * CenterAppearance.classic.symbolScale
-            }
-        }
-    }
-    var volumeDisplayStyle: VolumeDisplayStyle {
-        get { iconConfiguration.behaviors.systemVolumeFooter.displayStyle }
-        set { updateIconConfiguration { $0.behaviors.systemVolumeFooter.displayStyle = newValue } }
-    }
-    var ringStrokeStyle: RingStrokeStyle {
-        get {
-            RingStrokeStyle.allCases.min {
-                abs($0.scale - iconConfiguration.appearance.outerRing.strokeScale)
-                    < abs($1.scale - iconConfiguration.appearance.outerRing.strokeScale)
-            } ?? Self.defaultRingStrokeStyle
-        }
-        set {
-            updateIconConfiguration {
-                $0.appearance.outerRing.strokeScale = newValue.scale
-                $0.appearance.footer.strokeScale = newValue.scale
-            }
-        }
-    }
 
     @Published var bluetoothAudioIconChoiceRawValue: String {
         didSet { defaults.set(bluetoothAudioIconChoiceRawValue, forKey: Self.bluetoothAudioIconChoiceDefaultsKey) }
@@ -572,6 +996,36 @@ final class SettingsStore: ObservableObject {
         set { bluetoothAudioIconChoiceRawValue = newValue.rawValue }
     }
 
+    @Published var wifiSymbolScale: Double {
+        didSet {
+            let clamped = Self.clampedWifiSymbolScale(wifiSymbolScale)
+            guard clamped == wifiSymbolScale else {
+                wifiSymbolScale = clamped
+                return
+            }
+            persist(clamped, forKey: Self.wifiSymbolScaleDefaultsKey)
+        }
+    }
+
+    /// Unified middle-icon size: the Bluetooth centre glyph now shares the same
+    /// scale as the Wi-Fi glyph, input-source icon and numeric content.
+    var bluetoothSymbolScale: Double {
+        get { wifiSymbolScale }
+        set { wifiSymbolScale = newValue }
+    }
+
+    @Published var volumeDisplayStyle: VolumeDisplayStyle {
+        didSet {
+            defaults.set(volumeDisplayStyle.rawValue, forKey: Self.volumeDisplayStyleDefaultsKey)
+        }
+    }
+
+    @Published var ringStrokeStyle: RingStrokeStyle {
+        didSet {
+            defaults.set(ringStrokeStyle.rawValue, forKey: Self.ringStrokeStyleDefaultsKey)
+        }
+    }
+
     @Published var refreshIntervalSeconds: Double {
         didSet {
             let clamped = Self.clampedRefreshInterval(refreshIntervalSeconds)
@@ -580,6 +1034,33 @@ final class SettingsStore: ObservableObject {
                 return
             }
             defaults.set(clamped, forKey: Self.refreshIntervalDefaultsKey)
+        }
+    }
+
+    /// Refresh cadence while the Mac runs on battery (#255). Kept separate from
+    /// the wall-power cadence so a laptop can poll faster on battery than when
+    /// plugged in, or the other way round.
+    @Published var refreshIntervalOnBatterySeconds: Double {
+        didSet {
+            let clamped = Self.clampedDualRefreshInterval(refreshIntervalOnBatterySeconds)
+            guard clamped == refreshIntervalOnBatterySeconds else {
+                refreshIntervalOnBatterySeconds = clamped
+                return
+            }
+            defaults.set(clamped, forKey: Self.refreshIntervalOnBatteryDefaultsKey)
+        }
+    }
+
+    /// Refresh cadence while the Mac runs on wall power (#255). Desktops with no
+    /// battery always use this value.
+    @Published var refreshIntervalOnPowerSeconds: Double {
+        didSet {
+            let clamped = Self.clampedDualRefreshInterval(refreshIntervalOnPowerSeconds)
+            guard clamped == refreshIntervalOnPowerSeconds else {
+                refreshIntervalOnPowerSeconds = clamped
+                return
+            }
+            defaults.set(clamped, forKey: Self.refreshIntervalOnPowerDefaultsKey)
         }
     }
 
@@ -603,9 +1084,86 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var maxVisibleInputDevices: Int {
+        didSet {
+            let clamped = Self.clampedInputDeviceLimit(maxVisibleInputDevices)
+            guard clamped == maxVisibleInputDevices else {
+                maxVisibleInputDevices = clamped
+                return
+            }
+            defaults.set(clamped, forKey: Self.maxVisibleInputDevicesDefaultsKey)
+        }
+    }
+
+    @Published var alwaysShowsAllInputDevices: Bool {
+        didSet {
+            defaults.set(
+                alwaysShowsAllInputDevices,
+                forKey: Self.alwaysShowsAllInputDevicesDefaultsKey
+            )
+        }
+    }
+
     @Published private(set) var outputDeviceOrder: [String] {
         didSet {
             defaults.set(outputDeviceOrder, forKey: Self.outputDeviceOrderDefaultsKey)
+        }
+    }
+
+    /// UIDs of output devices the user unchecked in Settings. The status panel
+    /// leaves them out unless one is the active output.
+    @Published private(set) var hiddenOutputDeviceUIDs: Set<String> {
+        didSet {
+            defaults.set(Array(hiddenOutputDeviceUIDs), forKey: Self.hiddenOutputDeviceUIDsDefaultsKey)
+        }
+    }
+
+    @Published private(set) var inputDeviceOrder: [String] {
+        didSet {
+            defaults.set(inputDeviceOrder, forKey: Self.inputDeviceOrderDefaultsKey)
+        }
+    }
+
+    /// UIDs of input devices the user unchecked in Settings. The Audio Input
+    /// section leaves them out unless one is the current input.
+    @Published private(set) var hiddenInputDeviceUIDs: Set<String> {
+        didSet {
+            defaults.set(Array(hiddenInputDeviceUIDs), forKey: Self.hiddenInputDeviceUIDsDefaultsKey)
+        }
+    }
+
+    @Published private(set) var externalVolumeConfigurations: [String: ExternalVolumeConfiguration] {
+        didSet {
+            guard !externalVolumeConfigurations.isEmpty,
+                  let data = try? JSONEncoder().encode(externalVolumeConfigurations)
+            else {
+                defaults.removeObject(forKey: Self.externalVolumeConfigurationsDefaultsKey)
+                return
+            }
+            defaults.set(data, forKey: Self.externalVolumeConfigurationsDefaultsKey)
+        }
+    }
+
+    @Published private(set) var externalBrightnessConfigurations: [String: ExternalBrightnessConfiguration] {
+        didSet {
+            guard !externalBrightnessConfigurations.isEmpty,
+                  let data = try? JSONEncoder().encode(externalBrightnessConfigurations)
+            else {
+                defaults.removeObject(forKey: Self.externalBrightnessConfigurationsDefaultsKey)
+                return
+            }
+            defaults.set(data, forKey: Self.externalBrightnessConfigurationsDefaultsKey)
+        }
+    }
+
+    /// Display IDs the user unchecked in the Brightness settings tab. The
+    /// status panel's brightness section leaves those displays out entirely.
+    @Published private(set) var hiddenBrightnessDisplayIDs: Set<String> {
+        didSet {
+            defaults.set(
+                Array(hiddenBrightnessDisplayIDs),
+                forKey: Self.hiddenBrightnessDisplayIDsDefaultsKey
+            )
         }
     }
 
@@ -680,6 +1238,20 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// The SF Symbol the picked device resolved to when it was chosen, stored
+    /// so the icon pipeline needs no live device list: `iconAppearancePublisher`
+    /// stays settings-only, and the menu bar and the Dock draw what the picker
+    /// showed. Set together with the address through
+    /// `setBluetoothNetworkIconDevice(address:symbolName:)`.
+    @Published var bluetoothNetworkIconSymbolName: String? {
+        didSet {
+            defaults.set(
+                bluetoothNetworkIconSymbolName,
+                forKey: Self.bluetoothNetworkIconSymbolNameDefaultsKey
+            )
+        }
+    }
+
     @Published private(set) var popupSectionOrder: [PopupSection] {
         didSet {
             defaults.set(
@@ -703,6 +1275,15 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 popupScrollAdjustsVolume,
                 forKey: Self.popupScrollAdjustsVolumeDefaultsKey
+            )
+        }
+    }
+
+    @Published var returnsToSummaryOnOpen: Bool {
+        didSet {
+            defaults.set(
+                returnsToSummaryOnOpen,
+                forKey: Self.returnsToSummaryOnOpenDefaultsKey
             )
         }
     }
@@ -734,6 +1315,35 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// The stored app-level choice for the scroll-to-change-volume tick.
+    ///
+    /// `nil` means the user has never toggled it, and the effective value
+    /// follows the macOS system switch. Once they toggle it, this holds an
+    /// explicit value that wins over the system switch (#194).
+    @Published var popupVolumeScrollFeedbackOverride: Bool? {
+        didSet {
+            if let popupVolumeScrollFeedbackOverride {
+                defaults.set(
+                    popupVolumeScrollFeedbackOverride,
+                    forKey: Self.popupVolumeScrollFeedbackDefaultsKey
+                )
+            } else {
+                defaults.removeObject(forKey: Self.popupVolumeScrollFeedbackDefaultsKey)
+            }
+        }
+    }
+
+    /// The switch value the settings row and the player should use.
+    var popupVolumeScrollFeedback: Bool {
+        popupVolumeScrollFeedbackOverride
+            ?? SystemVolumeFeedbackPreference.isEnabled(in: defaults)
+    }
+
+    /// Records an explicit choice, leaving the "follow the system" state behind.
+    func setPopupVolumeScrollFeedbackOverride(_ enabled: Bool) {
+        popupVolumeScrollFeedbackOverride = enabled
+    }
+
     var visiblePopupSections: [PopupSection] {
         popupSectionOrder.filter { enabledPopupSections.contains($0) }
     }
@@ -742,8 +1352,22 @@ final class SettingsStore: ObservableObject {
         .seconds(Int(refreshIntervalSeconds.rounded()))
     }
 
+    /// The effective fallback cadence for a Mac that is (or is not) on wall
+    /// power (#255). A Mac with no battery has no battery mode, so callers pass
+    /// `true` for it and get the wall-power cadence.
+    func refreshInterval(forPluggedIn pluggedIn: Bool) -> Duration {
+        let seconds = pluggedIn
+            ? refreshIntervalOnPowerSeconds
+            : refreshIntervalOnBatterySeconds
+        return .seconds(Int(seconds.rounded()))
+    }
+
     var visibleOutputDeviceLimit: Int? {
         alwaysShowsAllOutputDevices ? nil : maxVisibleOutputDevices
+    }
+
+    var visibleInputDeviceLimit: Int? {
+        alwaysShowsAllInputDevices ? nil : maxVisibleInputDevices
     }
 
     var bluetoothDeviceListOptions: BluetoothDeviceListOptions {
@@ -757,8 +1381,87 @@ final class SettingsStore: ObservableObject {
         )
     }
 
+    var outputDeviceListPreferences: AudioOutputListPreferences {
+        AudioOutputListPreferences(
+            order: outputDeviceOrder,
+            hiddenUIDs: hiddenOutputDeviceUIDs,
+            visibleLimit: visibleOutputDeviceLimit
+        )
+    }
+
+    var inputDeviceListPreferences: AudioInputListPreferences {
+        AudioInputListPreferences(
+            order: inputDeviceOrder,
+            hiddenUIDs: hiddenInputDeviceUIDs,
+            visibleLimit: visibleInputDeviceLimit
+        )
+    }
+
+    /// The Settings order list, in the saved order. Hidden devices keep their
+    /// place here; only the status panel filters them out.
     func orderedOutputDevices(_ devices: [AudioOutputDevice]) -> [AudioOutputDevice] {
         OutputDeviceListPresentation.orderedDevices(devices, using: outputDeviceOrder)
+    }
+
+    func externalVolumeConfiguration(for uid: String) -> ExternalVolumeConfiguration {
+        let uid = uid.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !uid.isEmpty else { return .default }
+        return externalVolumeConfigurations[uid] ?? .default
+    }
+
+    func setExternalVolumeConfiguration(
+        _ configuration: ExternalVolumeConfiguration,
+        for uid: String
+    ) {
+        let uid = uid.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !uid.isEmpty else { return }
+
+        var updated = externalVolumeConfigurations
+        if let sanitized = configuration.sanitized(), sanitized != .default {
+            updated[uid] = sanitized
+        } else {
+            updated.removeValue(forKey: uid)
+        }
+        guard updated != externalVolumeConfigurations else { return }
+        externalVolumeConfigurations = updated
+    }
+
+    func externalBrightnessConfiguration(for displayID: String) -> ExternalBrightnessConfiguration {
+        let displayID = displayID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !displayID.isEmpty else { return .automatic }
+        return externalBrightnessConfigurations[displayID] ?? .automatic
+    }
+
+    func setExternalBrightnessConfiguration(
+        _ configuration: ExternalBrightnessConfiguration,
+        for displayID: String
+    ) {
+        let displayID = displayID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !displayID.isEmpty else { return }
+
+        var updated = externalBrightnessConfigurations
+        if let sanitized = configuration.sanitized() {
+            // Persist every explicit choice, including direct DDC. Removing a
+            // direct-DDC entry would turn the display back into automatic.
+            updated[displayID] = sanitized
+        } else {
+            updated.removeValue(forKey: displayID)
+        }
+        guard updated != externalBrightnessConfigurations else { return }
+        externalBrightnessConfigurations = updated
+    }
+
+    func setBrightnessDisplayHidden(_ displayID: String, hidden: Bool) {
+        let displayID = displayID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !displayID.isEmpty else { return }
+        var updated = hiddenBrightnessDisplayIDs
+        if hidden {
+            updated.insert(displayID)
+        } else {
+            updated.remove(displayID)
+        }
+        guard updated != hiddenBrightnessDisplayIDs else { return }
+        hiddenBrightnessDisplayIDs = updated
     }
 
     func moveOutputDevices(
@@ -766,24 +1469,87 @@ final class SettingsStore: ObservableObject {
         toOffset destination: Int,
         in devices: [AudioOutputDevice]
     ) {
+        guard let reordered = Self.movedDeviceUIDs(
+            devices.map(\.uid),
+            fromOffsets: source,
+            toOffset: destination
+        ) else { return }
+        outputDeviceOrder = Self.mergedDeviceOrder(reordered, previous: outputDeviceOrder)
+    }
+
+    /// Shows or hides one output device in the status panel. Hiding never
+    /// reorders the list, so the saved order stays independent of the checkbox.
+    func setOutputDeviceHidden(_ uid: String, hidden: Bool) {
+        guard !uid.isEmpty else { return }
+        if hidden {
+            hiddenOutputDeviceUIDs.insert(uid)
+        } else {
+            hiddenOutputDeviceUIDs.remove(uid)
+        }
+    }
+
+    func moveInputDevices(
+        fromOffsets source: IndexSet,
+        toOffset destination: Int,
+        in devices: [AudioInputDevice]
+    ) {
+        guard let reordered = Self.movedDeviceUIDs(
+            devices.map(\.uid),
+            fromOffsets: source,
+            toOffset: destination
+        ) else { return }
+        inputDeviceOrder = Self.mergedDeviceOrder(reordered, previous: inputDeviceOrder)
+    }
+
+    /// Shows or hides one input device in the Audio Input section. Hiding never
+    /// reorders the list, so the saved order stays independent of the checkbox.
+    func setInputDeviceHidden(_ uid: String, hidden: Bool) {
+        guard !uid.isEmpty else { return }
+        if hidden {
+            hiddenInputDeviceUIDs.insert(uid)
+        } else {
+            hiddenInputDeviceUIDs.remove(uid)
+        }
+    }
+
+    /// The UIDs of `devices` after a drag, or `nil` for an out-of-range move.
+    /// Devices without a UID take part in the move but are not saved.
+    private static func movedDeviceUIDs(
+        _ uids: [String?],
+        fromOffsets source: IndexSet,
+        toOffset destination: Int
+    ) -> [String]? {
         guard !source.isEmpty,
-              source.allSatisfy({ devices.indices.contains($0) }),
-              (0...devices.count).contains(destination) else {
-            return
+              source.allSatisfy({ uids.indices.contains($0) }),
+              (0...uids.count).contains(destination) else {
+            return nil
         }
 
-        let movedDevices = source.map { devices[$0] }
-        let remainingDevices = devices.enumerated()
+        let moved = source.map { uids[$0] }
+        var reordered = uids.enumerated()
             .filter { !source.contains($0.offset) }
             .map(\.element)
         let insertionOffset = destination - source.filter { $0 < destination }.count
+        reordered.insert(contentsOf: moved, at: min(insertionOffset, reordered.count))
+        return reordered.compactMap { $0 }
+    }
 
-        var reorderedDevices = remainingDevices
-        reorderedDevices.insert(
-            contentsOf: movedDevices,
-            at: min(insertionOffset, reorderedDevices.count)
-        )
-        outputDeviceOrder = reorderedDevices.compactMap(\.uid)
+    /// Rebuilds a saved device order from the devices on screen. A remembered
+    /// device that is absent right now stays right after the device it followed
+    /// before, so AirPods that are disconnected while the list is rearranged
+    /// keep their place instead of dropping to the end when they reconnect.
+    static func mergedDeviceOrder(_ displayed: [String], previous: [String]) -> [String] {
+        var merged = displayed
+        var placed = Set(displayed)
+        var anchor: String?
+        for uid in previous {
+            if placed.insert(uid).inserted {
+                let index = anchor.flatMap { merged.firstIndex(of: $0) }.map { $0 + 1 } ?? 0
+                merged.insert(uid, at: index)
+            }
+            anchor = uid
+        }
+        return merged
     }
 
     func moveBluetoothDevices(
@@ -934,23 +1700,23 @@ final class SettingsStore: ObservableObject {
     }
 
     var isBatterySymbolSizeEnabled: Bool {
-        showsBatteryPercentage || showsChargingIndicator
+        [batteryOnBatteryMarker, batteryChargingMarker, batteryConnectedMarker, batteryNoBatteryMarker]
+            .contains { $0 != .hidden }
     }
 
-    var iconPresentationConfiguration: IconPresentationConfiguration {
-        iconRuntimePresentationOptions.applying(to: iconConfiguration.legacyPresentationConfiguration)
-    }
-
-    var iconRuntimePresentationOptions: IconPresentationRuntimeOptions {
-        IconPresentationRuntimeOptions(
-            connectionCenterSource: connectionCenterSource,
-            prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrorsOverInputSource,
-            batteryFullThreshold: Int(batteryFullThreshold.rounded()),
-            bluetoothAudioIconChoice: bluetoothAudioIconChoice
-        )
-    }
-
+    /// Re-reads the macOS charge limit into the full-ring level.
+    ///
+    /// Called on launch and whenever the follow toggle is switched on. A limit
+    /// the plist does not carry, or a plist that no longer parses, leaves the
+    /// level exactly where it was: the setting follows the system when it can
+    /// and silently stays manual when it cannot, rather than resetting the
+    /// user's level on a read failure.
+    ///
+    /// - Parameter url: The plist to read. Injectable so tests can record one
+    ///   instead of depending on what this Mac happens to be set to.
     func applySystemChargeLimit(from url: URL? = nil) {
+        // The test seam wins when it is set, so a test never reads whatever
+        // limit the machine running it happens to be set to.
         let url = url ?? chargeLimitURLForTesting
         let limit = url.map { SystemChargeLimitReader.chargeLimit(from: $0) }
             ?? SystemChargeLimitReader.chargeLimit()
@@ -958,18 +1724,35 @@ final class SettingsStore: ObservableObject {
         batteryFullThreshold = Double(limit)
     }
 
+    /// Fills the restore-limit slider in from the system. Like
+    /// `applySystemChargeLimit`, this is a one-shot convenience: nothing
+    /// re-reads the plist behind the user's back afterwards.
+    func applySystemChargeToFullRestoreLimit(from url: URL? = nil) {
+        let url = url ?? chargeLimitURLForTesting
+        let limit = url.map { SystemChargeLimitReader.chargeLimit(from: $0) }
+            ?? SystemChargeLimitReader.chargeLimit()
+        guard let limit,
+              Self.chargeToFullRestoreLimitRange.contains(Double(limit)) else {
+            return
+        }
+        chargeToFullRestoreLimit = Double(limit)
+    }
+
     var batteryIconOptions: BatteryIconOptions {
         BatteryIconOptions(
-            showsPercentage: showsBatteryPercentage,
-            showsChargingIndicator: showsChargingIndicator,
             showsChargingEffect: showsChargingEffect,
             showsChargingBoltHeartbeat: showsChargingBoltHeartbeat,
+            splitGapProgress: batterySplitGapProgress,
             usesStatusColors: usesBatteryStatusColors,
             criticalThreshold: Int(batteryCriticalThreshold.rounded()),
-            showsPercentageWhenConnected: showsPercentageWhenConnected,
             fullThreshold: Int(batteryFullThreshold.rounded()),
             textScale: batterySymbolScale * BatteryIconOptions.defaultTextScale,
-            ringStrokeScale: ringStrokeStyle.scale
+            ringStrokeScale: ringStrokeStyle.scale,
+            batteryStatusColors: batteryStatusColors,
+            onBatteryMarker: batteryOnBatteryMarker,
+            chargingMarker: batteryChargingMarker,
+            connectedMarker: batteryConnectedMarker,
+            noBatteryMarker: batteryNoBatteryMarker
         )
     }
 
@@ -979,19 +1762,17 @@ final class SettingsStore: ObservableObject {
             showsWiFiIconForHotspot: showsWiFiIconForHotspot,
             showsWiFiIconForTemporaryConnection: showsWiFiIconForTemporaryConnection,
             showsWiFiIconForInternetSharing: showsWiFiIconForInternetSharing,
-            showsBatteryPercentageInConnectionSlot: showsBatteryPercentageInConnectionSlot,
             centerSource: connectionCenterSource,
-            prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrorsOverInputSource,
+            prioritizesNetworkErrors: prioritizesNetworkErrors,
             wifiScale: wifiSymbolScale
         )
     }
 
     var bluetoothAudioIconOptions: BluetoothAudioIconOptions {
         BluetoothAudioIconOptions(
-            replacesNetworkIcon: replacesNetworkIconWithBluetoothAudio,
+            iconColor: bluetoothIconColor,
             usesVolumeColor: usesBluetoothAudioVolumeColor,
-            prioritizesNetworkErrors: prioritizesNetworkErrorsOverBluetoothAudio,
-            symbolScale: bluetoothSymbolScale,
+            symbolScale: wifiSymbolScale,
             networkIconSymbolOverride: bluetoothNetworkIconSymbolName,
             iconChoice: bluetoothAudioIconChoice
         )
@@ -1015,59 +1796,62 @@ final class SettingsStore: ObservableObject {
         )
     }
 
-    @Published var showsMenuBarChargingEffect: Bool {
-        didSet {
-            defaults.set(
-                showsMenuBarChargingEffect,
-                forKey: Self.showsMenuBarChargingEffectDefaultsKey
-            )
-            if !showsMenuBarChargingEffect && !showsDockChargingEffect {
-                testsChargingEffect = false
-            }
-        }
-    }
-
-    @Published var showsDockChargingEffect: Bool {
-        didSet {
-            defaults.set(
-                showsDockChargingEffect,
-                forKey: Self.showsDockChargingEffectDefaultsKey
-            )
-            if !showsMenuBarChargingEffect && !showsDockChargingEffect {
-                testsChargingEffect = false
-            }
-        }
-    }
-
-    /// Compatibility for callers that previously treated charging as a single
-    /// scene option. The two surface switches remain the source of truth.
-    var showsChargingEffect: Bool {
-        get { showsMenuBarChargingEffect || showsDockChargingEffect }
-        set {
-            showsMenuBarChargingEffect = newValue
-            showsDockChargingEffect = newValue
-            updateIconConfiguration {
-                $0.behaviors.systemBatteryRing.showsChargingEffect = newValue
-            }
-        }
-    }
-
-    @Published private(set) var testsChargingEffect = false
-
-    func setChargingEffectTestEnabled(_ enabled: Bool) {
-        if enabled { showsChargingEffect = true }
-        testsChargingEffect = enabled
-    }
-
-    /// Development-only: turns on the synthetic charging input without touching
-    /// the animation preference, so a measurement run can compare the animation
-    /// on and off against the same charging state. See
-    /// `ChargingEffectTestMode.forceChargingInputEnvironmentKey`.
-    func setChargingEffectTestInputEnabled(_ enabled: Bool) {
-        testsChargingEffect = enabled
-    }
-
     private let defaults: UserDefaults
+    private let persistCoalescingInterval: Duration
+    /// Whether this bundle is a development build (carries a
+    /// `STDevelopmentCodename`). Injectable so tests can exercise both the
+    /// development and the packaged-release behaviour of developer-only features
+    /// such as the listening-mode preview.
+    let isDevelopmentBuild: Bool
+    private var pendingPersistValues: [String: Any] = [:]
+    private var pendingPersistTask: Task<Void, Never>?
+    private var isCoalescingSliderWrite = false
+
+    /// Persists any coalesced slider writes now. Called on termination; the
+    /// timer normally drains them.
+    func flushPendingPersists() {
+        pendingPersistTask?.cancel()
+        pendingPersistTask = nil
+        for (key, value) in pendingPersistValues {
+            defaults.set(value, forKey: key)
+        }
+        pendingPersistValues.removeAll(keepingCapacity: false)
+    }
+
+    /// Stores a high-frequency write (a slider that publishes per frame) once
+    /// per coalescing interval. The in-memory property is already current, so
+    /// previews and the icon do not wait for the write.
+    func schedulePersist(_ value: Any, forKey key: String) {
+        pendingPersistValues[key] = value
+        guard pendingPersistTask == nil else { return }
+        let interval = persistCoalescingInterval
+        pendingPersistTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: interval)
+            } catch {
+                return
+            }
+            guard let self else { return }
+            self.pendingPersistTask = nil
+            self.flushPendingPersists()
+        }
+    }
+
+    private func persist(_ value: Any, forKey key: String) {
+        if isCoalescingSliderWrite {
+            schedulePersist(value, forKey: key)
+        } else {
+            // An immediate write is newer than anything a drag left pending;
+            // the timer must not overwrite it.
+            pendingPersistValues.removeValue(forKey: key)
+            defaults.set(value, forKey: key)
+        }
+    }
+
+    /// The defaults domain this settings object owns, exposed so panel-level
+    /// caches (such as the device-list layout snapshots) persist in the same
+    /// domain and tests get isolated suites for free.
+    var userDefaults: UserDefaults { defaults }
 
     func updateTrustedAppleDeviceMetadata(_ candidates: [AppleDeviceCandidate]) {
         var values = Dictionary(
@@ -1096,61 +1880,18 @@ final class SettingsStore: ObservableObject {
         trustedAppleDeviceMetadata = updated
     }
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        systemChargeLimit: () -> Int? = { SystemChargeLimitReader.chargeLimit() },
+        persistCoalescingInterval: Duration = .milliseconds(250),
+        isDevelopmentBuild: Bool = AppMetadata.isDevelopmentBuild
+    ) {
         self.defaults = defaults
+        self.persistCoalescingInterval = persistCoalescingInterval
+        self.isDevelopmentBuild = isDevelopmentBuild
         self.statusPanelShortcut = defaults
             .data(forKey: Self.statusPanelShortcutDefaultsKey)
             .flatMap { try? JSONDecoder().decode(StatusPanelShortcut.self, from: $0) }
-        let legacyConfiguration = IconConfigurationMigration.legacyConfiguration(defaults: defaults)
-        let legacyCenterPreferences = IconConfigurationMigration.LegacyCenterPreferences.read(from: defaults)
-        let storedConfiguration = defaults.data(forKey: Self.iconConfigurationDefaultsKey)
-        let migratedConfiguration = IconConfigurationMigration.makeConfiguration(from: legacyConfiguration)
-        let resolvedConfiguration: IconConfigurationV1
-        let configurationError: IconConfigurationCodecError?
-        let shouldPersistConfiguration: Bool
-        if let storedConfiguration {
-            do {
-                resolvedConfiguration = IconConfigurationMigration.applyingCenterCompatibility(
-                    legacyCenterPreferences,
-                    to: try IconConfigurationCodec.decode(storedConfiguration),
-                    hadStoredV1: true
-                )
-                configurationError = nil
-                shouldPersistConfiguration = true
-            } catch let error as IconConfigurationCodecError {
-                resolvedConfiguration = IconConfigurationMigration.applyingCenterCompatibility(
-                    legacyCenterPreferences,
-                    to: migratedConfiguration,
-                    hadStoredV1: false
-                )
-                configurationError = error
-                shouldPersistConfiguration = false
-            } catch {
-                resolvedConfiguration = IconConfigurationMigration.applyingCenterCompatibility(
-                    legacyCenterPreferences,
-                    to: migratedConfiguration,
-                    hadStoredV1: false
-                )
-                configurationError = .malformedData
-                shouldPersistConfiguration = false
-            }
-        } else {
-            resolvedConfiguration = IconConfigurationMigration.applyingCenterCompatibility(
-                legacyCenterPreferences,
-                to: migratedConfiguration,
-                hadStoredV1: false
-            )
-            configurationError = nil
-            shouldPersistConfiguration = true
-        }
-        self.iconConfiguration = resolvedConfiguration
-        self.iconConfigurationLoadError = configurationError
-        self.canPersistIconConfiguration = shouldPersistConfiguration
-        if shouldPersistConfiguration,
-           let data = try? IconConfigurationCodec.encode(resolvedConfiguration),
-           data != storedConfiguration {
-            defaults.set(data, forKey: Self.iconConfigurationDefaultsKey)
-        }
         let appleMigration = AppleDeviceSettingsMigration.migrate(defaults: defaults)
         let hadLegacyInstallMarker =
             defaults.bool(forKey: Self.sparkleHasLaunchedBeforeDefaultsKey)
@@ -1197,8 +1938,14 @@ final class SettingsStore: ObservableObject {
             )
         }
         let storedIconSize = (defaults.object(forKey: Self.iconSizeDefaultsKey) as? NSNumber)?.doubleValue
+        let storedCriticalThreshold = (defaults.object(forKey: Self.batteryCriticalThresholdDefaultsKey) as? NSNumber)?.doubleValue
         let storedFullThreshold = (defaults.object(forKey: Self.batteryFullThresholdDefaultsKey) as? NSNumber)?.doubleValue
+        let storedRestoreLimit = (defaults.object(
+            forKey: Self.chargeToFullRestoreLimitDefaultsKey
+        ) as? NSNumber)?.doubleValue
+        let storedBatterySymbolScale = (defaults.object(forKey: Self.batterySymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
         let storedOutputDeviceLimit = (defaults.object(forKey: Self.maxVisibleOutputDevicesDefaultsKey) as? NSNumber)?.intValue
+        let storedInputDeviceLimit = (defaults.object(forKey: Self.maxVisibleInputDevicesDefaultsKey) as? NSNumber)?.intValue
         let storedBluetoothDeviceLimit = (defaults.object(
             forKey: Self.maxVisibleBluetoothDevicesDefaultsKey
         ) as? NSNumber)?.intValue
@@ -1218,7 +1965,32 @@ final class SettingsStore: ObservableObject {
             defaults.stringArray(forKey: Self.revealedGhostBluetoothDeviceAddressesDefaultsKey) ?? []
         )
         let storedRefreshInterval = (defaults.object(forKey: Self.refreshIntervalDefaultsKey) as? NSNumber)?.doubleValue
+        let storedRefreshOnBattery = (defaults.object(
+            forKey: Self.refreshIntervalOnBatteryDefaultsKey
+        ) as? NSNumber)?.doubleValue
+        let storedRefreshOnPower = (defaults.object(
+            forKey: Self.refreshIntervalOnPowerDefaultsKey
+        ) as? NSNumber)?.doubleValue
+        let storedWifiSymbolScale = (defaults.object(forKey: Self.wifiSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
+        let storedVolumeDisplayStyle = defaults.string(forKey: Self.volumeDisplayStyleDefaultsKey)
+        let storedRingStrokeStyle = defaults.string(forKey: Self.ringStrokeStyleDefaultsKey)
         let storedOutputDeviceOrder = defaults.stringArray(forKey: Self.outputDeviceOrderDefaultsKey) ?? []
+        let storedHiddenOutputDeviceUIDs = Set(
+            defaults.stringArray(forKey: Self.hiddenOutputDeviceUIDsDefaultsKey) ?? []
+        )
+        let storedInputDeviceOrder = defaults.stringArray(forKey: Self.inputDeviceOrderDefaultsKey) ?? []
+        let storedHiddenInputDeviceUIDs = Set(
+            defaults.stringArray(forKey: Self.hiddenInputDeviceUIDsDefaultsKey) ?? []
+        )
+        let storedHiddenBrightnessDisplayIDs = Set(
+            defaults.stringArray(forKey: Self.hiddenBrightnessDisplayIDsDefaultsKey) ?? []
+        )
+        let storedExternalVolumeConfigurations = Self.decodedExternalVolumeConfigurations(
+            defaults.data(forKey: Self.externalVolumeConfigurationsDefaultsKey)
+        )
+        let storedExternalBrightnessConfigurations = Self.decodedExternalBrightnessConfigurations(
+            defaults.data(forKey: Self.externalBrightnessConfigurationsDefaultsKey)
+        )
         let storedPopupSectionOrder = defaults.stringArray(
             forKey: Self.popupSectionOrderDefaultsKey
         ) ?? []
@@ -1242,7 +2014,32 @@ final class SettingsStore: ObservableObject {
         self.dockIconBackgroundPreference = storedDockIconBackgroundPreference
             .flatMap(DockIconBackgroundPreference.init(rawValue:))
             ?? .system
+        let storedPanelBackgroundStyle = defaults.string(
+            forKey: Self.panelBackgroundStyleDefaultsKey
+        )
+        self.panelBackgroundStyle = PanelBackgroundStyle.resolved(
+            storedPanelBackgroundStyle.flatMap(PanelBackgroundStyle.init(rawValue:))
+        )
+        let storedMenuBarRightClickAction = defaults.string(
+            forKey: Self.menuBarRightClickActionDefaultsKey
+        )
+        self.menuBarRightClickAction = storedMenuBarRightClickAction
+            .flatMap(MenuBarRightClickAction.init(rawValue:))
+            ?? .contextMenu
         self.iconSize = Self.clampedIconSize(storedIconSize ?? Self.defaultIconSize)
+        // #315 migration inputs: the old two booleans plus the connected choice.
+        let legacyShowsPercentage = defaults.object(forKey: Self.showsBatteryPercentageDefaultsKey) as? Bool ?? true
+        self.showsBatteryPowerFlow = defaults.object(forKey: Self.showsBatteryPowerFlowDefaultsKey) as? Bool ?? true
+        self.showsBatteryPowerInfoBar = defaults.object(forKey: Self.showsBatteryPowerInfoBarDefaultsKey) as? Bool ?? false
+        self.showsHighEnergyApps = defaults.object(forKey: Self.showsHighEnergyAppsDefaultsKey) as? Bool ?? false
+        self.highEnergyAppsRefreshIntervalSeconds = Self.clampedHighEnergyAppsRefreshInterval(
+            defaults.object(forKey: Self.highEnergyAppsRefreshIntervalDefaultsKey) as? Double
+                ?? Self.defaultHighEnergyAppsRefreshIntervalSeconds
+        )
+        self.showsChargeToFullNowButton = defaults.object(
+            forKey: Self.showsChargeToFullNowButtonDefaultsKey
+        ) as? Bool ?? true
+        let legacyShowsCharging = defaults.object(forKey: Self.showsChargingIndicatorDefaultsKey) as? Bool ?? true
         let legacyChargingEffect = defaults.object(
             forKey: Self.showsChargingEffectDefaultsKey
         ) as? Bool
@@ -1270,35 +2067,222 @@ final class SettingsStore: ObservableObject {
                 forKey: Self.showsDockChargingEffectDefaultsKey
             )
         }
+        self.showsChargingBoltHeartbeat = defaults.object(
+            forKey: Self.showsChargingBoltHeartbeatDefaultsKey
+        ) as? Bool ?? true
+        self.batterySplitGapProgress = defaults.object(
+            forKey: Self.batterySplitGapProgressDefaultsKey
+        ) as? Bool ?? false
+        // #315: resolve the three per-state markers. Read the new keys first; if
+        // they are absent (an upgrade from the old build) derive them from the
+        // legacy booleans + connected choice so the current look is preserved,
+        // then persist them so this migration runs once.
+        func legacyMarker(
+            _ connected: BatteryConnectedIndicator,
+            showsPercentage: Bool
+        ) -> BatteryTopMarker {
+            switch connected {
+            case .plug: return .plug
+            case .bolt: return .bolt
+            case .percentage: return showsPercentage ? .percentage : .plug
+            }
+        }
+        let storedConnectedIndicator: BatteryConnectedIndicator = {
+            if let stored = defaults
+                .string(forKey: Self.batteryConnectedIndicatorDefaultsKey)
+                .flatMap(BatteryConnectedIndicator.init(rawValue:)) {
+                return stored
+            }
+            // Migrate the old boolean once: false was the plug, true meant the
+            // percentage. Persist the result so the legacy key is not read again
+            // on later launches (#195).
+            let showedPercentage = defaults.object(
+                forKey: Self.showsPercentageWhenConnectedDefaultsKey
+            ) as? Bool ?? false
+            let migrated: BatteryConnectedIndicator = showedPercentage ? .percentage : .plug
+            defaults.set(
+                migrated.rawValue,
+                forKey: Self.batteryConnectedIndicatorDefaultsKey
+            )
+            return migrated
+        }()
+        let storedOnBatteryMarker = defaults
+            .string(forKey: Self.batteryOnBatteryMarkerDefaultsKey)
+            .flatMap(BatteryTopMarker.init(rawValue:))
+        let storedChargingMarker = defaults
+            .string(forKey: Self.batteryChargingMarkerDefaultsKey)
+            .flatMap(BatteryTopMarker.init(rawValue:))
+        let storedConnectedMarker = defaults
+            .string(forKey: Self.batteryConnectedMarkerDefaultsKey)
+            .flatMap(BatteryTopMarker.init(rawValue:))
+        let storedNoBatteryMarker = defaults
+            .string(forKey: Self.batteryNoBatteryMarkerDefaultsKey)
+            .flatMap(BatteryTopMarker.init(rawValue:))
+        let onBatteryMarker = storedOnBatteryMarker
+            ?? (legacyShowsPercentage ? .percentage : .hidden)
+        let chargingMarker = storedChargingMarker
+            ?? (legacyShowsCharging ? .bolt : (legacyShowsPercentage ? .percentage : .hidden))
+        let connectedMarker = storedConnectedMarker
+            ?? (
+                legacyShowsCharging
+                    ? legacyMarker(storedConnectedIndicator, showsPercentage: legacyShowsPercentage)
+                    : (legacyShowsPercentage ? .percentage : .hidden)
+            )
+        let noBatteryMarker = storedNoBatteryMarker
+            ?? (legacyShowsCharging ? (storedConnectedIndicator == .bolt ? .bolt : .plug) : .hidden)
+        self.batteryOnBatteryMarker = onBatteryMarker
+        self.batteryChargingMarker = chargingMarker
+        self.batteryConnectedMarker = connectedMarker
+        self.batteryNoBatteryMarker = noBatteryMarker
+        if storedOnBatteryMarker == nil {
+            defaults.set(onBatteryMarker.rawValue, forKey: Self.batteryOnBatteryMarkerDefaultsKey)
+        }
+        if storedChargingMarker == nil {
+            defaults.set(chargingMarker.rawValue, forKey: Self.batteryChargingMarkerDefaultsKey)
+        }
+        if storedConnectedMarker == nil {
+            defaults.set(connectedMarker.rawValue, forKey: Self.batteryConnectedMarkerDefaultsKey)
+        }
+        if storedNoBatteryMarker == nil {
+            defaults.set(noBatteryMarker.rawValue, forKey: Self.batteryNoBatteryMarkerDefaultsKey)
+        }
+        self.usesBatteryStatusColors = defaults.object(forKey: Self.usesBatteryStatusColorsDefaultsKey) as? Bool ?? true
+        self.batteryStatusColors = BatteryStatusColors(
+            charging: BatteryStatusColorSelection(
+                storageValue: defaults.string(forKey: Self.batteryStatusColorsChargingDefaultsKey) ?? "system"
+            ),
+            lowPower: BatteryStatusColorSelection(
+                storageValue: defaults.string(forKey: Self.batteryStatusColorsLowPowerDefaultsKey) ?? "system"
+            ),
+            highPower: BatteryStatusColorSelection(
+                storageValue: defaults.string(forKey: Self.batteryStatusColorsHighPowerDefaultsKey) ?? "system"
+            ),
+            critical: BatteryStatusColorSelection(
+                storageValue: defaults.string(forKey: Self.batteryStatusColorsCriticalDefaultsKey) ?? "system"
+            )
+        )
+        self.batterySymbolScale = Self.clampedBatterySymbolScale(
+            storedBatterySymbolScale ?? Self.defaultBatterySymbolScale
+        )
+        let clampedCritical = Self.clampedBatteryCriticalThreshold(
+            storedCriticalThreshold ?? Self.defaultBatteryCriticalThreshold
+        )
+        let storedAutoThreshold = (defaults.object(
+            forKey: Self.autoLowPowerThresholdDefaultsKey
+        ) as? NSNumber)?.doubleValue
+        // No automatic migration: a raised critical threshold may have been the
+        // user's colour choice rather than an automation setting, and moving it
+        // would silently change their icon colours.
+        self.autoLowPowerThreshold = Self.clampedAutoLowPowerThreshold(
+            storedAutoThreshold ?? Self.defaultAutoLowPowerThreshold
+        )
+        self.batteryCriticalThreshold = clampedCritical
         self.batteryFullThreshold = Self.clampedBatteryFullThreshold(
             storedFullThreshold ?? Self.defaultBatteryFullThreshold
         )
+        let resolvedRestoreLimit = Self.resolvedChargeToFullRestoreLimit(
+            stored: storedRestoreLimit,
+            system: Self.systemChargeToFullRestoreLimit(read: systemChargeLimit)
+        )
+        self.chargeToFullRestoreLimit = resolvedRestoreLimit
+        // Initialization does not call didSet; keep the initial restore target
+        // even when macOS removes its charge-limit policy during an override.
+        defaults.set(resolvedRestoreLimit, forKey: Self.chargeToFullRestoreLimitDefaultsKey)
+        self.showsWiFiIconForEthernet = defaults.object(
+            forKey: Self.showsWiFiIconForEthernetDefaultsKey
+        ) as? Bool ?? false
+        self.showsWiFiIconForHotspot = defaults.object(
+            forKey: Self.showsWiFiIconForHotspotDefaultsKey
+        ) as? Bool ?? false
+        self.showsWiFiIconForTemporaryConnection = defaults.object(
+            forKey: Self.showsWiFiIconForTemporaryConnectionDefaultsKey
+        ) as? Bool ?? false
+        self.showsWiFiIconForInternetSharing = defaults.object(
+            forKey: Self.showsWiFiIconForInternetSharingDefaultsKey
+        ) as? Bool ?? false
         self.showsLocalIPAddress = defaults.object(
             forKey: Self.showsLocalIPAddressDefaultsKey
         ) as? Bool ?? false
-        self.connectionCenterSource = defaults.string(
-            forKey: Self.connectionCenterSourceDefaultsKey
-        ).flatMap(ConnectionCenterSource.init(rawValue:)) ?? .automatic
-        self.prioritizesNetworkErrorsOverInputSource = defaults.object(
-            forKey: Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey
-        ) as? Bool ?? true
+        let legacyInlineAirPodsControls = defaults.object(
+            forKey: Self.showsInlineAirPodsControlsDefaultsKey
+        ) as? Bool
+        self.showsSpatialAudioControls = defaults.object(
+            forKey: Self.showsSpatialAudioControlsDefaultsKey
+        ) as? Bool ?? legacyInlineAirPodsControls ?? true
+        self.showsConversationAwarenessControls = defaults.object(
+            forKey: Self.showsConversationAwarenessControlsDefaultsKey
+        ) as? Bool ?? legacyInlineAirPodsControls ?? true
+        // Resolve the effective legacy choice once, then remove competing keys.
+        // Persist the new choice even at default so old flags cannot revive.
+        let legacyPercentageInSlot = defaults.bool(forKey: Self.showsBatteryPercentageInConnectionSlotDefaultsKey)
+        let storedCenterSource = defaults.string(forKey: Self.connectionCenterSourceDefaultsKey)
+        let source: ConnectionCenterSource
+        if legacyPercentageInSlot {
+            source = .batteryPercentage
+        } else if let stored = storedCenterSource.flatMap(ConnectionCenterSource.init(rawValue:)) {
+            source = stored
+        } else if (storedCenterSource == nil || storedCenterSource == "automatic"),
+                  defaults.bool(forKey: Self.replacesNetworkIconWithBluetoothAudioDefaultsKey) {
+            source = .bluetoothDevice
+        } else {
+            source = .network
+        }
+        self.connectionCenterSource = source
+        let storedMarkerStyle = defaults.string(
+            forKey: Self.inputSourceMarkerStyleDefaultsKey
+        )
+        self.inputSourceMarkerStyle = storedMarkerStyle
+            .flatMap(InputSourceMarkerStyle.init(rawValue:))
+            ?? .systemIcon
+        let legacyPriorityKey: String? = switch source {
+        case .inputSource: Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey
+        case .bluetoothDevice: Self.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey
+        default: nil
+        }
+        let legacyPriority = legacyPriorityKey.flatMap { defaults.object(forKey: $0) as? Bool } ?? true
+        let unifiedPriority = defaults.object(forKey: Self.prioritizesNetworkErrorsDefaultsKey) as? Bool
+            ?? legacyPriority
+        self.prioritizesNetworkErrors = unifiedPriority
+        defaults.set(source.rawValue, forKey: Self.connectionCenterSourceDefaultsKey)
+        defaults.set(unifiedPriority, forKey: Self.prioritizesNetworkErrorsDefaultsKey)
+        for key in [Self.showsBatteryPercentageInConnectionSlotDefaultsKey,
+                    Self.replacesNetworkIconWithBluetoothAudioDefaultsKey,
+                    Self.prioritizesNetworkErrorsOverInputSourceDefaultsKey,
+                    Self.prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey] {
+            defaults.removeObject(forKey: key)
+        }
+        if let storedBluetoothIconColor = defaults.string(forKey: Self.bluetoothIconColorDefaultsKey) {
+            self.bluetoothIconColor = BluetoothIconColorSelection(
+                storageValue: storedBluetoothIconColor
+            )
+        } else if let legacyIconColor = defaults.object(
+            forKey: "usesBluetoothAudioIconColor"
+        ) as? Bool {
+            // Migrate the short-lived boolean this branch shipped first.
+            self.bluetoothIconColor = legacyIconColor ? .systemBlue : .primary
+        } else {
+            self.bluetoothIconColor = .default
+        }
+        self.usesBluetoothAudioVolumeColor = defaults.object(
+            forKey: Self.usesBluetoothAudioVolumeColorDefaultsKey
+        ) as? Bool ?? false
         self.showsBluetoothBatteryLevels = defaults.object(
             forKey: Self.showsBluetoothBatteryLevelsDefaultsKey
         ) as? Bool ?? true
+        self.showsWiFiPowerControl = defaults.object(forKey: Self.showsWiFiPowerControlDefaultsKey) as? Bool ?? true
+        self.confirmsWiFiPowerOff = defaults.object(forKey: Self.confirmsWiFiPowerOffDefaultsKey) as? Bool ?? true
         self.showsBluetoothPowerControl = defaults.object(
             forKey: Self.showsBluetoothPowerControlDefaultsKey
         ) as? Bool ?? true
         self.controlsLowPowerMode = defaults.object(
             forKey: Self.controlsLowPowerModeDefaultsKey
         ) as? Bool ?? false
+        self.autoEnablesLowPowerMode = defaults.object(
+            forKey: Self.autoEnablesLowPowerModeDefaultsKey
+        ) as? Bool ?? false
         self.showsNearbyBluetoothBatteryDevices = defaults.object(
             forKey: Self.showsNearbyBluetoothBatteryDevicesDefaultsKey
         ) as? Bool ?? false
-        self.refreshesAirPodsBatteryForIcon = defaults.object(
-            forKey: Self.refreshesAirPodsBatteryForIconDefaultsKey
-        ) as? Bool ?? false
-        self.airPodsIconDeviceAddress = defaults.string(forKey: Self.airPodsIconDeviceAddressDefaultsKey)
-        self.connectedBluetoothIconDeviceAddress = defaults.string(forKey: Self.connectedBluetoothIconDeviceAddressDefaultsKey)
         self.showsMobileDeviceBatteryLevels = defaults.object(
             forKey: Self.showsMobileDeviceBatteryLevelsDefaultsKey
         ) as? Bool ?? false
@@ -1312,6 +2296,9 @@ final class SettingsStore: ObservableObject {
         )
         self.archivedLegacyNearbyBLESelections = appleMigration.archivedLegacyBLESelections
         self.trustedAppleDeviceMetadata = storedTrustedMetadata
+        self.showsBluetoothListeningMode = defaults.object(
+            forKey: Self.showsBluetoothListeningModeDefaultsKey
+        ) as? Bool ?? true
         self.previewsBluetoothListeningMode = defaults.object(
             forKey: Self.previewsBluetoothListeningModeDefaultsKey
         ) as? Bool ?? false
@@ -1330,12 +2317,76 @@ final class SettingsStore: ObservableObject {
         self.bluetoothListeningModePreviewLanguage = defaults.string(
             forKey: Self.bluetoothListeningModePreviewLanguageDefaultsKey
         ) ?? ""
+        // The listening-mode preview is developer-only. A packaged release must
+        // never show it, so scrub any preview state a user may have set while a
+        // development build offered the toggle — removing the demo/synthetic
+        // rows and the fake device name/count/language from storage. Property
+        // observers do not fire during initialization, so reset the in-memory
+        // values here and delete the persisted keys afterwards.
+        if !isDevelopmentBuild {
+            self.previewsBluetoothListeningMode = false
+            self.bluetoothListeningModePreviewDeviceName = ""
+            self.bluetoothListeningModePreviewDeviceCount =
+                Self.defaultBluetoothListeningModePreviewDeviceCount
+            self.bluetoothListeningModePreviewLanguage = ""
+            for key in [
+                Self.previewsBluetoothListeningModeDefaultsKey,
+                Self.bluetoothListeningModePreviewDeviceNameDefaultsKey,
+                Self.bluetoothListeningModePreviewDeviceCountDefaultsKey,
+                Self.bluetoothListeningModePreviewLanguageDefaultsKey,
+            ] {
+                defaults.removeObject(forKey: key)
+            }
+        }
+        self.wifiSymbolScale = Self.clampedWifiSymbolScale(
+            storedWifiSymbolScale
+                ?? (defaults.object(forKey: Self.bluetoothSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
+                ?? Self.defaultWifiSymbolScale
+        )
+        defaults.removeObject(forKey: Self.bluetoothSymbolScaleDefaultsKey)
+        self.volumeDisplayStyle = storedVolumeDisplayStyle
+            .flatMap(VolumeDisplayStyle.init(rawValue:))
+            ?? Self.defaultVolumeDisplayStyle
+        self.ringStrokeStyle = storedRingStrokeStyle
+            .flatMap(RingStrokeStyle.init(rawValue:))
+            ?? Self.defaultRingStrokeStyle
         self.refreshIntervalSeconds = Self.clampedRefreshInterval(
             storedRefreshInterval ?? Self.defaultRefreshIntervalSeconds
         )
+        // #255 migration: each new key migrates independently from the legacy
+        // single value only when that key is absent. A present new key always
+        // wins, and the legacy key is left untouched as the migration source.
+        let resolvedRefreshOnBattery = Self.resolvedDualRefreshInterval(
+            storedValue: storedRefreshOnBattery,
+            legacyValue: storedRefreshInterval
+        )
+        let resolvedRefreshOnPower = Self.resolvedDualRefreshInterval(
+            storedValue: storedRefreshOnPower,
+            legacyValue: storedRefreshInterval
+        )
+        self.refreshIntervalOnBatterySeconds = resolvedRefreshOnBattery
+        self.refreshIntervalOnPowerSeconds = resolvedRefreshOnPower
+        if storedRefreshOnBattery == nil, storedRefreshInterval != nil {
+            defaults.set(
+                resolvedRefreshOnBattery,
+                forKey: Self.refreshIntervalOnBatteryDefaultsKey
+            )
+        }
+        if storedRefreshOnPower == nil, storedRefreshInterval != nil {
+            defaults.set(
+                resolvedRefreshOnPower,
+                forKey: Self.refreshIntervalOnPowerDefaultsKey
+            )
+        }
         self.maxVisibleOutputDevices = Self.clampedOutputDeviceLimit(
             storedOutputDeviceLimit ?? Self.defaultMaxVisibleOutputDevices
         )
+        self.maxVisibleInputDevices = Self.clampedInputDeviceLimit(
+            storedInputDeviceLimit ?? Self.defaultMaxVisibleInputDevices
+        )
+        self.alwaysShowsAllInputDevices = defaults.object(
+            forKey: Self.alwaysShowsAllInputDevicesDefaultsKey
+        ) as? Bool ?? false
         self.showsBluetoothDeviceList = defaults.object(
             forKey: Self.showsBluetoothDeviceListDefaultsKey
         ) as? Bool ?? true
@@ -1350,6 +2401,9 @@ final class SettingsStore: ObservableObject {
         self.bluetoothNetworkIconDeviceAddress = defaults.string(
             forKey: Self.bluetoothNetworkIconDeviceAddressDefaultsKey
         )
+        self.bluetoothNetworkIconSymbolName = defaults.string(
+            forKey: Self.bluetoothNetworkIconSymbolNameDefaultsKey
+        )
         self.bluetoothAudioIconChoiceRawValue = defaults.string(
             forKey: Self.bluetoothAudioIconChoiceDefaultsKey
         ) ?? BluetoothAudioIconChoice.automatic.rawValue
@@ -1357,6 +2411,12 @@ final class SettingsStore: ObservableObject {
             forKey: Self.alwaysShowsAllOutputDevicesDefaultsKey
         ) as? Bool ?? false
         self.outputDeviceOrder = storedOutputDeviceOrder
+        self.hiddenOutputDeviceUIDs = storedHiddenOutputDeviceUIDs
+        self.inputDeviceOrder = storedInputDeviceOrder
+        self.hiddenInputDeviceUIDs = storedHiddenInputDeviceUIDs
+        self.hiddenBrightnessDisplayIDs = storedHiddenBrightnessDisplayIDs
+        self.externalVolumeConfigurations = storedExternalVolumeConfigurations
+        self.externalBrightnessConfigurations = storedExternalBrightnessConfigurations
         self.popupSectionOrder = Self.sanitizedPopupSectionOrder(
             storedPopupSectionOrder
         )
@@ -1384,6 +2444,9 @@ final class SettingsStore: ObservableObject {
         self.popupScrollAdjustsVolume = defaults.object(
             forKey: Self.popupScrollAdjustsVolumeDefaultsKey
         ) as? Bool ?? Self.defaultPopupScrollAdjustsVolume
+        self.returnsToSummaryOnOpen = defaults.object(
+            forKey: Self.returnsToSummaryOnOpenDefaultsKey
+        ) as? Bool ?? false
         self.popupVolumeScrollScope = storedPopupVolumeScrollScope
             .flatMap(PopupVolumeScrollScope.init(rawValue:))
             ?? Self.defaultPopupVolumeScrollScope
@@ -1393,6 +2456,9 @@ final class SettingsStore: ObservableObject {
         self.popupVolumeNaturalScrolling = defaults.object(
             forKey: Self.popupVolumeNaturalScrollingDefaultsKey
         ) as? Bool ?? Self.defaultPopupVolumeNaturalScrolling
+        self.popupVolumeScrollFeedbackOverride = defaults.object(
+            forKey: Self.popupVolumeScrollFeedbackDefaultsKey
+        ) as? Bool
     }
 
     private static func decodedNearbyBLESelections(_ data: Data?) -> [NearbyBLEDeviceSelection] {
@@ -1402,6 +2468,57 @@ final class SettingsStore: ObservableObject {
         }
         var seen: Set<UUID> = []
         return decoded.filter { seen.insert($0.id).inserted }
+    }
+
+    private static func decodedExternalVolumeConfigurations(
+        _ data: Data?
+    ) -> [String: ExternalVolumeConfiguration] {
+        guard let data,
+              let decoded = try? JSONDecoder().decode(
+                  [String: ExternalVolumeConfiguration].self,
+                  from: data
+              )
+        else {
+            return [:]
+        }
+
+        var sanitized: [String: ExternalVolumeConfiguration] = [:]
+        for (rawUID, configuration) in decoded {
+            let uid = rawUID.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !uid.isEmpty,
+                  let configuration = configuration.sanitized(),
+                  configuration != .default
+            else {
+                continue
+            }
+            sanitized[uid] = configuration
+        }
+        return sanitized
+    }
+
+    private static func decodedExternalBrightnessConfigurations(
+        _ data: Data?
+    ) -> [String: ExternalBrightnessConfiguration] {
+        guard let data,
+              let decoded = try? JSONDecoder().decode(
+                  [String: ExternalBrightnessConfiguration].self,
+                  from: data
+              )
+        else {
+            return [:]
+        }
+
+        var sanitized: [String: ExternalBrightnessConfiguration] = [:]
+        for (rawID, configuration) in decoded {
+            let displayID = rawID.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !displayID.isEmpty,
+                  let configuration = configuration.sanitized()
+            else {
+                continue
+            }
+            sanitized[displayID] = configuration
+        }
+        return sanitized
     }
 
     private static func decodedTrustedAppleDeviceMetadata(_ data: Data?) -> [AppleDeviceCandidate] {
@@ -1445,6 +2562,14 @@ final class SettingsStore: ObservableObject {
         )
     }
 
+    static func clampedAutoLowPowerThreshold(_ value: Double) -> Double {
+        guard value.isFinite else { return defaultAutoLowPowerThreshold }
+        return min(
+            autoLowPowerThresholdRange.upperBound,
+            max(autoLowPowerThresholdRange.lowerBound, value)
+        ).rounded()
+    }
+
     static func clampedBatteryCriticalThreshold(_ value: Double) -> Double {
         guard value.isFinite else { return defaultBatteryCriticalThreshold }
         return min(
@@ -1461,9 +2586,82 @@ final class SettingsStore: ObservableObject {
         ).rounded()
     }
 
+    /// Resolves the stored restore limit into the supported 80...95 range.
+    ///
+    /// An older build allowed 100% ("no limit"). That choice is gone, so a
+    /// stored 100 resolves to the system's current limit, or 95 when none is
+    /// readable, instead of silently installing 95 over a known 80.
+    static func resolvedChargeToFullRestoreLimit(
+        stored: Double?,
+        system: Double
+    ) -> Double {
+        guard let stored, stored.isFinite else {
+            return clampedChargeToFullRestoreLimit(system)
+        }
+        if chargeToFullRestoreLimitRange.contains(stored.rounded()) {
+            return clampedChargeToFullRestoreLimit(stored)
+        }
+        return clampedChargeToFullRestoreLimit(system)
+    }
+
+    static func clampedChargeToFullRestoreLimit(_ value: Double) -> Double {
+        guard value.isFinite else { return defaultChargeToFullRestoreLimit }
+        let clamped = min(
+            chargeToFullRestoreLimitRange.upperBound,
+            max(chargeToFullRestoreLimitRange.lowerBound, value)
+        )
+        // PowerUI only accepts the standard five-percent steps.
+        return (clamped / 5).rounded() * 5
+    }
+
+    /// The first-run default: the limit macOS currently enforces, or 95 when
+    /// the system has no readable 80...95 limit.
+    static func systemChargeToFullRestoreLimit(
+        read: () -> Int? = { SystemChargeLimitReader.chargeLimit() }
+    ) -> Double {
+        guard let limit = read(),
+              chargeToFullRestoreLimitRange.contains(Double(limit)) else {
+            return defaultChargeToFullRestoreLimit
+        }
+        return Double(limit)
+    }
+
     static func clampedRefreshInterval(_ value: Double) -> Double {
         guard value.isFinite else { return defaultRefreshIntervalSeconds }
         let clamped = min(refreshIntervalRange.upperBound, max(refreshIntervalRange.lowerBound, value))
+        return (clamped / 5).rounded() * 5
+    }
+
+    /// #255 clamping for the per-power-source cadences. These use the same
+    /// range as the legacy key but a 1-second step, so a user can pick any
+    /// whole second instead of being rounded to a multiple of five.
+    static func clampedDualRefreshInterval(_ value: Double) -> Double {
+        guard value.isFinite else { return defaultRefreshIntervalSeconds }
+        let clamped = min(refreshIntervalRange.upperBound, max(refreshIntervalRange.lowerBound, value))
+        return clamped.rounded()
+    }
+
+    /// Resolves one dual cadence: a stored per-source value wins, otherwise the
+    /// legacy single value is migrated, otherwise the 15-second default.
+    static func resolvedDualRefreshInterval(
+        storedValue: Double?,
+        legacyValue: Double?
+    ) -> Double {
+        if let storedValue {
+            return clampedDualRefreshInterval(storedValue)
+        }
+        if let legacyValue {
+            return clampedDualRefreshInterval(legacyValue)
+        }
+        return defaultRefreshIntervalSeconds
+    }
+
+    static func clampedHighEnergyAppsRefreshInterval(_ value: Double) -> Double {
+        guard value.isFinite else { return defaultHighEnergyAppsRefreshIntervalSeconds }
+        let clamped = min(
+            highEnergyAppsRefreshIntervalRange.upperBound,
+            max(highEnergyAppsRefreshIntervalRange.lowerBound, value)
+        )
         return (clamped / 5).rounded() * 5
     }
 
@@ -1478,6 +2676,10 @@ final class SettingsStore: ObservableObject {
         min(outputDeviceLimitRange.upperBound, max(outputDeviceLimitRange.lowerBound, value))
     }
 
+    static func clampedInputDeviceLimit(_ value: Int) -> Int {
+        min(inputDeviceLimitRange.upperBound, max(inputDeviceLimitRange.lowerBound, value))
+    }
+
     static func clampedBluetoothDeviceLimit(_ value: Int) -> Int {
         min(bluetoothDeviceLimitRange.upperBound, max(bluetoothDeviceLimitRange.lowerBound, value))
     }
@@ -1487,7 +2689,7 @@ final class SettingsStore: ObservableObject {
         let storedSections = rawValues
             .compactMap(PopupSection.init(rawValue:))
             .filter { seen.insert($0).inserted }
-        return storedSections + PopupSection.allCases.filter { !seen.contains($0) }
+        return storedSections + Self.defaultPopupSectionOrder.filter { !seen.contains($0) }
     }
 
     /// Adds `.vpn` to a list that predates the row, once.

@@ -11,7 +11,7 @@ final class InputSourceShortLabelTests: XCTestCase {
     func testKnownIMEKindsUseTheirMarker() {
         XCTAssertEqual(
             InputSourceShortLabel.make(id: "com.tencent.inputmethod.wetype.pinyin", localizedName: "微信输入法", languages: ["zh-Hans"]),
-            "拼"
+            "简"
         )
         XCTAssertEqual(
             InputSourceShortLabel.make(id: "com.apple.inputmethod.TCIM.Zhuyin", localizedName: "注音", languages: ["zh-Hant"]),
@@ -27,6 +27,37 @@ final class InputSourceShortLabelTests: XCTestCase {
         )
         XCTAssertEqual(InputSourceShortLabel.make(id: "com.sogou.inputmethod.sogou.wubi", localizedName: "搜狗五笔", languages: ["zh-Hans"]), "五")
         XCTAssertEqual(InputSourceShortLabel.make(id: "com.apple.inputmethod.TCIM.Cangjie", localizedName: "倉頡", languages: ["zh-Hant"]), "倉")
+    }
+
+    func testApplePinyinIDsDisambiguateScriptWithoutLanguageMetadata() {
+        XCTAssertEqual(InputSourceShortLabel.make(id: "com.apple.inputmethod.SCIM.ITABC", localizedName: "Pinyin", languages: []), "简")
+        XCTAssertEqual(InputSourceShortLabel.make(id: "com.apple.inputmethod.TCIM.Pinyin", localizedName: "Pinyin", languages: []), "繁")
+    }
+
+    func testPinyinLanguageScriptTagsDistinguishSimplifiedAndTraditional() {
+        XCTAssertEqual(InputSourceShortLabel.make(id: "com.example.pinyin", localizedName: "Pinyin", languages: ["zh-Hans"]), "简")
+        XCTAssertEqual(InputSourceShortLabel.make(id: "com.example.pinyin", localizedName: "Pinyin", languages: ["zh-Hant-TW"]), "繁")
+        XCTAssertEqual(InputSourceShortLabel.make(id: "com.example.pinyin", localizedName: "Pinyin", languages: ["ZH_hAnS_CN"]), "简")
+    }
+
+    func testPinyinNamesDisambiguateScriptWhenMetadataHasNoScript() {
+        for name in ["拼音－简体", "拼音－簡體", "Pinyin - Simplified"] {
+            XCTAssertEqual(InputSourceShortLabel.make(id: "com.example.ime", localizedName: name, languages: ["zh"]), "简", name)
+        }
+        for name in ["拼音－繁体", "拼音－繁體", "Pinyin - Traditional"] {
+            XCTAssertEqual(InputSourceShortLabel.make(id: "com.example.ime", localizedName: name, languages: ["zh"]), "繁", name)
+        }
+    }
+
+    func testPinyinWithoutUnambiguousScriptEvidenceKeepsGenericMarker() {
+        for languages in [[], ["zh"], ["en-Hant"], ["zh-Hans", "zh-Hant"]] {
+            XCTAssertEqual(InputSourceShortLabel.make(id: "com.example.pinyin", localizedName: "Pinyin", languages: languages), "拼")
+        }
+    }
+
+    func testChineseScriptMetadataDoesNotReplaceOtherInputMethodMarkers() {
+        XCTAssertEqual(InputSourceShortLabel.make(id: "com.example.wubi", localizedName: "五笔－简体", languages: ["zh-Hans"]), "五")
+        XCTAssertEqual(InputSourceShortLabel.make(id: "com.apple.inputmethod.TCIM.Cangjie", localizedName: "倉頡－繁體", languages: ["zh-Hant"]), "倉")
     }
 
     func testLanguageTagFallsBackToCJKIdeographMarker() {

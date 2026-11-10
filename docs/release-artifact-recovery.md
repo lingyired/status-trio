@@ -14,9 +14,11 @@ Recovery is accepted only when all of these are true:
 - `publish=true` and `notarize=true`.
 - `version`, `build`, and `tag` are explicit and match the original manifest.
 - The source run used this repository and the current `release.yml` workflow.
-- The source run was a `workflow_dispatch` from `main`, checked out the same
-  candidate SHA, and completed as a failure caused by the publish job.
-- Its `verify` and `package` jobs succeeded and its `publish` job failed.
+- The source run was a `workflow_dispatch` from `main` and checked out the
+  same candidate SHA.
+- Its `verify` and `package` jobs succeeded.
+- The source run is either a failed publication attempt whose `publish` job
+  failed, or a package-only run whose `publish` job was skipped.
 - The run has exactly one unexpired `status-trio-release-package` artifact,
   and that artifact is correlated with the same run, branch, and commit.
 

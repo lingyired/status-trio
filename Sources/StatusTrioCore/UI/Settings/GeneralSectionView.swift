@@ -4,8 +4,13 @@ struct GeneralSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var localization: Localization
     var globalShortcutController: GlobalShortcutController? = nil
+    /// Used only to report which quick actions are available right now. Optional
+    /// so previews/tests can render the pane without the full app graph.
+    var statusStore: SystemStatusStore? = nil
+    var chargeToFullNow: ChargeToFullNowController? = nil
     @ObservedObject private var launchAtLogin: LaunchAtLoginManager = .shared
     @ObservedObject private var updaterManager: UpdaterManager = .shared
+    @ObservedObject private var helper: PrivilegedHelperManager = .shared
 
     var body: some View {
         SettingsPage {
@@ -21,7 +26,9 @@ struct GeneralSectionView: View {
     }
 
     private var systemGroup: some View {
-        SettingsGroup(localization.string(.settingsPageGeneral)) {
+        // The pane is already "General", so the first card carries no repeated
+        // section title.
+        SettingsGroup {
             // Language
             SettingsRow(
                 title: localization.string(.settingsLanguage),
@@ -44,7 +51,7 @@ struct GeneralSectionView: View {
                         }
                     }
                     .labelsHidden()
-                    .fixedSize()
+                    .settingsMenuPickerWidth()
                 }
             )
 
@@ -102,41 +109,104 @@ struct GeneralSectionView: View {
                 SettingsDivider()
             }
 
-            // Status refresh interval
-            SettingsRow(
-                "arrow.clockwise",
-                tint: .orange,
-                title: localization.string(.settingsRefreshInterval),
-                subtitle: localization.string(.settingsRefreshIntervalDescription)
-            ) {
-                HStack(spacing: 8) {
-                    Slider(
-                        value: Binding(
-                            get: { store.refreshIntervalSeconds },
-                            set: { store.refreshIntervalSeconds = ($0 / 5).rounded() * 5 }
-                        ),
-                        in: SettingsStore.refreshIntervalRange
-                    )
-                    .frame(width: 130)
-                    .controlSize(.small)
-                    .accessibilityLabel(localization.string(.settingsRefreshInterval))
-                    .accessibilityValue(
-                        localization.format(
-                            .settingsRefreshIntervalValue,
-                            Int(store.refreshIntervalSeconds)
-                        )
-                    )
+            rightClickActionRow
 
-                    Text(
-                        localization.format(
-                            .settingsRefreshIntervalValue,
-                            Int(store.refreshIntervalSeconds)
-                        )
+            SettingsDivider()
+
+            // Status refresh interval (#255): one row per power source, using
+            // the original settings-row and slider component. The description
+            // stays once on the first row; neither row shows step ticks.
+            refreshIntervalRow(
+                title: localization.string(.settingsRefreshIntervalOnBattery),
+                subtitle: localization.string(.settingsRefreshIntervalDescription),
+                value: $store.refreshIntervalOnBatterySeconds
+            )
+
+            SettingsDivider()
+
+            refreshIntervalRow(
+                title: localization.string(.settingsRefreshIntervalOnPower),
+                value: $store.refreshIntervalOnPowerSeconds
+            )
+        }
+    }
+
+    private func refreshIntervalRow(
+        title: String,
+        subtitle: String? = nil,
+        value: Binding<Double>
+    ) -> some View {
+        SettingsRow(
+            "arrow.clockwise",
+            tint: .orange,
+            title: title,
+            subtitle: subtitle
+        ) {
+            HStack(spacing: 8) {
+                Slider(
+                    value: Binding(
+                        get: { value.wrappedValue },
+                        set: { value.wrappedValue = $0.rounded() }
+                    ),
+                    in: SettingsStore.refreshIntervalRange
+                )
+                .frame(width: 130)
+                .controlSize(.small)
+                .accessibilityLabel(title)
+                .accessibilityValue(
+                    localization.format(
+                        .settingsRefreshIntervalValue,
+                        Int(value.wrappedValue)
                     )
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 50, alignment: .trailing)
+                )
+
+                Text(
+                    localization.format(
+                        .settingsRefreshIntervalValue,
+                        Int(value.wrappedValue)
+                    )
+                )
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .frame(width: 50, alignment: .trailing)
+            }
+        }
+    }
+
+    private var rightClickActionAvailability: MenuBarQuickActionAvailability {
+        MenuBarQuickActionAvailability(
+            lowPowerMode: store.controlsLowPowerMode && helper.isReady,
+            chargeToFullNow: chargeToFullNow?.isSettingAvailable ?? false,
+            mute: statusStore?.liveVolume.canMute ?? false,
+            wifi: (statusStore?.snapshot.wifi.state ?? .unavailable) != .unavailable
+        )
+    }
+
+    /// Single-select right-click action (#209). The selected action's glyph is
+    /// the row's tile; an unavailable selection shows a hint that a right-click
+    /// will fall back to the menu rather than doing nothing.
+    private var rightClickActionRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SettingsRow(
+                store.menuBarRightClickAction.settingsSymbol,
+                tint: .blue,
+                title: localization.string(.menuBarRightClickAction),
+                subtitle: localization.string(.menuBarRightClickActionDescription)
+            ) {
+                Picker(
+                    localization.string(.menuBarRightClickAction),
+                    selection: $store.menuBarRightClickAction
+                ) {
+                    ForEach(MenuBarRightClickAction.allCases) { action in
+                        Text(localization.string(action.titleKey)).tag(action)
+                    }
                 }
+                .labelsHidden()
+                .settingsMenuPickerWidth()
+            }
+
+            if !rightClickActionAvailability.isAvailable(store.menuBarRightClickAction) {
+                SettingsHintRow(text: localization.string(.menuBarRightClickUnavailableHint))
             }
         }
     }

@@ -182,7 +182,11 @@ struct BluetoothListeningModeHAL {
         let canSet = backend.isSettable(deviceID, BluetoothListeningModeProperty.listeningMode)
         return BluetoothListeningModeCapability(
             audioDeviceID: deviceID,
-            availableModes: BluetoothListeningModeSupport.availableModes(from: supportMask),
+            // lsms describes supported modes, not the user's permission to use
+            // Off. Until that separate setting is readable, expose Off only when
+            // the headset reports it as current; never infer permission from lsms.
+            availableModes: (rawMode == BluetoothListeningMode.off.rawValue ? [.off] : [])
+                + BluetoothListeningModeSupport.availableModes(from: supportMask),
             currentMode: BluetoothListeningModeRawValue.mode(from: rawMode),
             canSet: canSet
         )
@@ -218,7 +222,9 @@ struct BluetoothListeningModeHAL {
         _ mode: BluetoothListeningMode,
         for deviceID: AudioDeviceID
     ) async -> BluetoothListeningModeWriteResult {
-        guard mode.isUserSelectable else {
+        // Off has no lsms bit but is a valid lstm write target, both from its
+        // explicit row and from re-tapping an active legacy capsule.
+        guard mode.isUserSelectable || mode == .off else {
             return .failed(.modeUnsupported)
         }
 
@@ -227,15 +233,16 @@ struct BluetoothListeningModeHAL {
               let currentRaw = backend.readUInt32(deviceID, BluetoothListeningModeProperty.listeningMode) else {
             return .failed(.propertyUnavailable)
         }
-        guard supports(mode, for: deviceID) else {
+        // `off` has no `lsms` bit, so it needs no support-mask check; every device
+        // that exposes `lstm` can be switched off.
+        guard mode == .off || supports(mode, for: deviceID) else {
             return .failed(.modeUnsupported)
         }
         guard backend.isSettable(deviceID, BluetoothListeningModeProperty.listeningMode) else {
             return .failed(.notSettable)
         }
 
-        // Already on target: no write, and nothing to read back. This is what keeps
-        // a re-tap of the selected capsule from issuing a redundant request.
+        // Already on target: no write, and nothing to read back.
         if BluetoothListeningModeRawValue.mode(from: currentRaw) == mode {
             return .confirmed(mode)
         }

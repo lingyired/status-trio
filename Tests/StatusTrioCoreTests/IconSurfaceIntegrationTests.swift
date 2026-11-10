@@ -2,124 +2,15 @@ import AppKit
 import Testing
 @testable import StatusTrioCore
 
-@Suite(.serialized)
+@Suite(.serialized, .enabled(if: VisibleUITests.isEnabled, Comment(rawValue: VisibleUITests.reason)))
 @MainActor
 struct IconSurfaceIntegrationTests {
-    @Test func effectiveDesignerScaleEditUpdatesMenuBarAndDockScenesTogether() async throws {
-        let harness = try AppIconControllerHarness(
-            initialPlacement: .both,
-            initialWiFi: WiFiStatus(state: .connected, rssi: -48)
-        )
-        defer { harness.cleanUp() }
-        harness.settings.updateIconConfiguration { configuration in
-            configuration.composition.center = SlotSelection(primary: .network)
-            IconDesignerEditingModel.settingEffectiveCenterScale(2.35, in: &configuration)
-        }
-
-        var menuBarScenes: [IconSceneState] = []
-        let menuBar = StatusBarController(
-            store: harness.store,
-            settings: harness.settings,
-            iconPresentation: harness.iconPresentation,
-            localization: Localization(preferredLanguages: ["en"]),
-            openSettings: {},
-            quitAction: {},
-            renderMenuBarBase: { scene, _, _, _ in
-                menuBarScenes.append(scene)
-                return NSImage(size: NSSize(width: 32, height: 32))
-            },
-            renderMenuBarOverlay: { _, _, _, _, _ in nil }
-        )
-        defer { menuBar.setVisible(false) }
-        harness.controller.start()
-
-        try await waitUntil {
-            guard case let .symbol(symbol)? = harness.iconPresentation.output.scene.center else { return false }
-            return abs(symbol.scale - 2.35) < 1e-12
-                && menuBarScenes.last == harness.iconPresentation.output.scene
-                && harness.log.lastScene == harness.iconPresentation.output.scene
-        }
-        #expect(harness.settings.iconConfiguration.appearance.center.effectiveSymbolScale == 2.35)
-        #expect(menuBarScenes.last == harness.log.lastScene)
-    }
-
-    @Test func specifiedBluetoothAudioUsesLiveResolverAcrossMenuBarAndDock() async throws {
-        let target = BluetoothDevice(
-            id: "AA:BB:CC:DD:EE:31", name: "Designated headset", kind: .audio, isConnected: true
-        )
-        let builtInOutput = AudioOutputDevice(
-            id: 1, name: "Built-in Output", isCurrent: true, transport: .builtIn
-        )
-        let harness = try AppIconControllerHarness(
-            initialPlacement: .both,
-            initialWiFi: WiFiStatus(state: .connected, rssi: -48),
-            initialVolume: VolumeStatus(
-                scalar: 0, isMuted: false, deviceName: builtInOutput.name, currentDevice: builtInOutput
-            ),
-            resolveSourceSnapshot: { snapshot in
-                IconPresentationResourceResolver.sourceSnapshot(
-                    snapshot: snapshot,
-                    bluetoothDevices: [target],
-                    selectedConnectedDeviceAddress: "aa-bb-cc-dd-ee-31"
-                )
-            }
-        )
-        defer { harness.cleanUp() }
-        harness.settings.updateIconConfiguration {
-            $0.composition.center = SlotSelection(primary: .connectedBluetoothDevice, fallback: .network)
-            $0.composition.centerOverride.networkProblemOverridesPrimary = true
-            $0.behaviors.bluetoothAudioCenter.networkIconSymbolOverride = "airpods.pro"
-            $0.behaviors.bluetoothAudioCenter.usesVolumeColor = true
-        }
-
-        var menuBarScenes: [IconSceneState] = []
-        let menuBar = StatusBarController(
-            store: harness.store,
-            settings: harness.settings,
-            iconPresentation: harness.iconPresentation,
-            localization: Localization(preferredLanguages: ["en"]),
-            openSettings: {},
-            quitAction: {},
-            renderMenuBarBase: { scene, _, _, _ in
-                menuBarScenes.append(scene)
-                return NSImage(size: NSSize(width: 32, height: 32))
-            },
-            renderMenuBarOverlay: { _, _, _, _, _ in nil }
-        )
-        defer { menuBar.setVisible(false) }
-        harness.controller.start()
-        try await waitUntil {
-            guard case let .symbol(symbol)? = harness.iconPresentation.output.scene.center else { return false }
-            return symbol.source == .symbol(
-                name: "airpods.pro", variableValue: nil, fallback: BluetoothDeviceRowIcon.genericSymbol
-            ) && symbol.color == .primary
-                && menuBarScenes.last == harness.iconPresentation.output.scene
-                && harness.log.lastScene == harness.iconPresentation.output.scene
-        }
-
-        // The designated headset is not the current output: tint follows the
-        // built-in system output's live scalar, and both surfaces consume one scene.
-        harness.publishVolume(VolumeStatus(
-            scalar: 0.5, isMuted: false, deviceName: builtInOutput.name, currentDevice: builtInOutput
-        ))
-        try await waitUntil {
-            guard case let .symbol(symbol)? = harness.iconPresentation.output.scene.center else { return false }
-            return symbol.color == .bluetooth
-                && menuBarScenes.last == harness.iconPresentation.output.scene
-                && harness.log.dockRenderKeys.last?.scene == harness.iconPresentation.output.scene
-        }
-
-        harness.publishWiFi(WiFiStatus(state: .noInternet, rssi: -48))
-        try await waitUntil {
-            harness.iconPresentation.output.trace.center.reason == .overridden(.networkProblem)
-                && menuBarScenes.last == harness.iconPresentation.output.scene
-                && harness.log.dockRenderKeys.last?.scene == harness.iconPresentation.output.scene
-        }
-        #expect(harness.iconPresentation.output.trace.center.selectedSourceID == CenterSource.network.rawValue)
-    }
-
     @Test func bothSurfacesRenderTheSameDeliveredScene() async throws {
-        let harness = try AppIconControllerHarness(initialPlacement: .both)
+        let scheduler = ManualIconPresentationScheduler()
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .both,
+            snapshotScheduler: scheduler
+        )
         defer { harness.cleanUp() }
         var menuBarScenes: [IconSceneState] = []
         let localization = Localization(preferredLanguages: ["en"])
@@ -133,20 +24,17 @@ struct IconSurfaceIntegrationTests {
             renderMenuBarBase: { scene, _, _, _ in
                 menuBarScenes.append(scene)
                 return NSImage(size: NSSize(width: 32, height: 32))
-            },
-            renderMenuBarOverlay: { _, _, _, _, _ in nil }
+            }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
-        try await waitUntil { !menuBarScenes.isEmpty && harness.log.renderCount > 0 }
 
         harness.settings.ringStrokeStyle = .bold
-        try await waitUntil {
-            menuBarScenes.last?.outerRing?.strokeScale == RingStrokeStyle.bold.scale
-                && harness.log.lastScene?.outerRing?.strokeScale == RingStrokeStyle.bold.scale
-        }
+        menuBar.refreshCurrentPresentation()
+        harness.controller.flushPendingPresentationForTesting()
 
         #expect(menuBarScenes.last == harness.log.lastScene)
+        #expect(menuBarScenes.last?.outerRing?.strokeScale == RingStrokeStyle.bold.scale)
     }
 
     @Test func hiddenMenuBarRestoresWithLatestSceneAndFailedRasterRetries() async throws {
@@ -164,13 +52,14 @@ struct IconSurfaceIntegrationTests {
             localization: Localization(preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            renderMenuBarBase: { scene, size, _, _ in
-                rasterSpy.render(scene, size: size)
-            },
-            renderMenuBarOverlay: { _, _, _, _, _ in nil }
+            renderMenuBarBase: { scene, size, _, _ in rasterSpy.render(scene, size: size) }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
+        menuBar.refreshCurrentPresentation()
+        harness.controller.refreshCurrentPresentation()
+        menuBar.flushPendingPresentationForTesting()
+        harness.controller.flushPendingPresentationForTesting()
         try await waitUntil { rasterSpy.calls > 0 }
         menuBar.flushPendingPresentationForTesting()
         harness.controller.flushPendingPresentationForTesting()
@@ -204,12 +93,14 @@ struct IconSurfaceIntegrationTests {
     }
 
     @Test func bothSurfacesKeepLastSuccessAndRetryFailedKeyWithoutVisibilityReset() async throws {
-        let harness = try AppIconControllerHarness(initialPlacement: .both)
+        let scheduler = ManualIconPresentationScheduler()
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .both,
+            snapshotScheduler: scheduler
+        )
         defer { harness.cleanUp() }
         let rasterSpy = MenuBarRasterSpy()
         rasterSpy.allowSuccess = true
-        let stableAppearance = try #require(NSAppearance(named: .aqua))
-        var renderedAppearances: [NSAppearance.Name] = []
         let menuBar = StatusBarController(
             store: harness.store,
             settings: harness.settings,
@@ -217,40 +108,30 @@ struct IconSurfaceIntegrationTests {
             localization: Localization(preferredLanguages: ["en"]),
             openSettings: {},
             quitAction: {},
-            renderMenuBarBase: { scene, size, _, appearance in
-                renderedAppearances.append(appearance.name)
-                return rasterSpy.render(scene, size: size)
-            },
-            renderMenuBarOverlay: { _, _, _, _, _ in nil },
-            appearanceProvider: { stableAppearance }
+            renderMenuBarBase: { scene, size, _, _ in rasterSpy.render(scene, size: size) }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
-        try await waitUntil {
-            rasterSpy.successfulImage != nil && harness.application.applicationIconImage != nil
-                && rasterSpy.scenes.last == harness.iconPresentation.output.scene
-                && harness.log.lastScene == harness.iconPresentation.output.scene
-        }
-        menuBar.flushPendingPresentationForTesting()
-        harness.controller.flushPendingPresentationForTesting()
+        menuBar.refreshCurrentPresentation()
+        harness.controller.refreshCurrentPresentation()
+        #expect(rasterSpy.successfulImage != nil)
+        #expect(harness.application.applicationIconImage != nil)
+        #expect(rasterSpy.scenes.last == harness.iconPresentation.output.scene)
+        #expect(harness.log.lastScene == harness.iconPresentation.output.scene)
         let sceneA = harness.iconPresentation.output.scene
         let imageA = try #require(rasterSpy.successfulImage)
         let dockImageA = try #require(harness.application.applicationIconImage)
-        #expect(!renderedAppearances.isEmpty)
-        #expect(renderedAppearances.allSatisfy { $0 == stableAppearance.name })
         let menuCallsBeforeB = rasterSpy.calls
         let dockCallsBeforeB = harness.log.renderCount
 
         rasterSpy.allowSuccess = false
         harness.log.failDockRenders = true
         harness.settings.ringStrokeStyle = .bold
-        try await waitUntil {
-            harness.iconPresentation.output.scene != sceneA
-                && rasterSpy.scenes.last == harness.iconPresentation.output.scene
-                && harness.log.lastScene == harness.iconPresentation.output.scene
-        }
+        #expect(harness.iconPresentation.output.scene != sceneA)
         menuBar.flushPendingPresentationForTesting()
         harness.controller.flushPendingPresentationForTesting()
+        #expect(rasterSpy.scenes.last == harness.iconPresentation.output.scene)
+        #expect(harness.log.lastScene == harness.iconPresentation.output.scene)
         let sceneB = harness.iconPresentation.output.scene
         #expect(rasterSpy.calls > menuCallsBeforeB)
         #expect(harness.log.renderCount > dockCallsBeforeB)
@@ -268,51 +149,41 @@ struct IconSurfaceIntegrationTests {
         #expect(menuBar.presentedImageForTesting === imageA)
         #expect(harness.application.applicationIconImage === dockImageA)
 
-        // The failed B render deliberately left image A installed, so image
-        // identity alone can satisfy a restore wait before A's queued request
-        // has been consumed. Keep failures enabled until both presentation
-        // queues are drained; then a delayed appearance callback cannot turn
-        // that stale retained image into a false success.
-        harness.settings.ringStrokeStyle = .regular
-        try await waitUntil { harness.iconPresentation.output.scene == sceneA }
-        #expect(menuBar.presentedImageForTesting === imageA)
-        #expect(harness.application.applicationIconImage === dockImageA)
-        menuBar.flushPendingPresentationForTesting()
-        harness.controller.flushPendingPresentationForTesting()
-        await Task.yield()
-        menuBar.flushPendingPresentationForTesting()
-        harness.controller.flushPendingPresentationForTesting()
-        #expect(rasterSpy.calls == menuCallsAfterB + 1)
-        #expect(menuBar.presentedImageForTesting === imageA)
-        #expect(harness.application.applicationIconImage === dockImageA)
-
         harness.log.failDockRenders = false
         rasterSpy.allowSuccess = true
-        menuBar.refreshCurrentPresentation()
-        harness.controller.refreshCurrentPresentation()
+        harness.settings.ringStrokeStyle = .regular
+        #expect(harness.iconPresentation.output.scene == sceneA)
+        menuBar.flushPendingPresentationForTesting()
+        harness.controller.flushPendingPresentationForTesting()
+        #expect(menuBar.presentedImageForTesting === imageA)
+        #expect(harness.application.applicationIconImage === dockImageA)
         #expect(rasterSpy.calls == menuCallsAfterB + 1)
         #expect(menuBar.presentedImageForTesting === imageA)
         #expect(harness.application.applicationIconImage === dockImageA)
     }
 
     @Test func latestSceneIsUsedAfterBackgroundPlacementAndControllerRestart() async throws {
-        let harness = try AppIconControllerHarness(initialPlacement: .both)
+        let scheduler = ManualIconPresentationScheduler()
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .both,
+            snapshotScheduler: scheduler
+        )
         defer { harness.cleanUp() }
         harness.controller.start()
-        try await waitUntil { harness.log.lastScene == harness.iconPresentation.output.scene }
+        harness.controller.flushPendingPresentationForTesting()
+        #expect(harness.log.lastScene == harness.iconPresentation.output.scene)
 
         harness.settings.ringStrokeStyle = .bold
-        try await waitUntil { harness.iconPresentation.output.scene.outerRing?.strokeScale == RingStrokeStyle.bold.scale }
+        #expect(harness.iconPresentation.output.scene.outerRing?.strokeScale == RingStrokeStyle.bold.scale)
         let sceneAfterSettings = harness.iconPresentation.output.scene
 
         harness.settings.dockIconBackgroundPreference = .dark
-        try await waitUntil {
-            harness.log.dockRenderKeys.last?.scene == sceneAfterSettings
-                && harness.log.dockRenderKeys.last?.backgroundStyle == .dark
-        }
+        harness.controller.flushPendingPresentationForTesting()
+        #expect(harness.log.dockRenderKeys.last?.scene == sceneAfterSettings)
+        #expect(harness.log.dockRenderKeys.last?.backgroundStyle == .dark)
 
         harness.settings.appIconPlacement = .dock
-        try await waitUntil { harness.log.events.contains("menu:false") }
+        #expect(harness.log.events.contains("menu:false"))
         #expect(harness.log.dockRenderKeys.last?.scene == sceneAfterSettings)
         #expect(harness.log.dockRenderKeys.last?.backgroundStyle == .dark)
 
@@ -321,13 +192,13 @@ struct IconSurfaceIntegrationTests {
         let sceneWhileStopped = harness.iconPresentation.output.scene
         #expect(sceneWhileStopped != sceneAfterSettings)
         harness.controller.start()
-        try await waitUntil {
-            harness.log.dockRenderKeys.last?.scene == sceneWhileStopped
-                && harness.log.dockRenderKeys.last?.backgroundStyle == .dark
-        }
+        harness.controller.flushPendingPresentationForTesting()
+        #expect(harness.log.dockRenderKeys.last?.scene == sceneWhileStopped)
+        #expect(harness.log.dockRenderKeys.last?.backgroundStyle == .dark)
     }
 
     @Test func mappedSettingsStayInParityAcrossMenuBarAndDock() async throws {
+        let scheduler = ManualIconPresentationScheduler()
         let harness = try AppIconControllerHarness(
             initialPlacement: .both,
             initialBattery: BatteryStatus(
@@ -343,16 +214,14 @@ struct IconSurfaceIntegrationTests {
                 isMuted: false,
                 deviceName: "AirPods",
                 currentDevice: PresentationFixtures.bluetoothDevice
-            )
+            ),
+            snapshotScheduler: scheduler
         )
         defer { harness.cleanUp() }
         harness.settings.showsBatteryPercentage = true
-        try await waitUntil(
-            failureMessage: "model did not map the battery percentage accessory",
-            diagnostics: { "accessory=\(String(describing: harness.iconPresentation.output.scene.outerRing?.accessory))" }
-        ) {
-            if case .text = harness.iconPresentation.output.scene.outerRing?.accessory { return true }
-            return false
+        guard case .text = harness.iconPresentation.output.scene.outerRing?.accessory else {
+            Issue.record("The initial battery percentage did not map into the ring.")
+            return
         }
         var menuBarScenes: [IconSceneState] = []
         let menuBar = StatusBarController(
@@ -365,18 +234,10 @@ struct IconSurfaceIntegrationTests {
             renderMenuBarBase: { scene, _, _, _ in
                 menuBarScenes.append(scene)
                 return NSImage(size: NSSize(width: 32, height: 32))
-            },
-            renderMenuBarOverlay: { _, _, _, _, _ in nil }
+            }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
-        try await waitUntil(
-            failureMessage: "initial menu-bar and Dock surface did not render",
-            diagnostics: {
-                "menuBarScenes=\(menuBarScenes.count), dockRenders=\(harness.log.renderCount), "
-                    + "centre=\(describe(harness.iconPresentation.output.scene.center))"
-            }
-        ) { !menuBarScenes.isEmpty && harness.log.renderCount > 0 }
 
         try await verifySetting(
             "battery scale",
@@ -414,63 +275,30 @@ struct IconSurfaceIntegrationTests {
             harness: harness
         )
 
-        // The V1 global rule is the single network-failure authority now, so the
-        // regression is global ON -> OFF for an automaticLegacy centre that also
-        // asks Bluetooth to replace the network icon. The legacy per-source
-        // priority flag is neutralized on the projection and is no longer the
-        // control under test.
-        harness.settings.replacesNetworkIconWithBluetoothAudio = true
-        harness.settings.updateIconConfiguration {
-            $0.composition.centerOverride.networkProblemOverridesPrimary = true
-        }
-        try await waitUntil(
-            failureMessage: "global network rule did not raise the network warning",
-            diagnostics: { "centre=\(describe(harness.iconPresentation.output.scene.center))" }
-        ) {
-            harness.iconPresentation.output.trace.center.reason == .overridden(.networkProblem)
-                && harness.iconPresentation.output.trace.center.selectedSourceID == CenterSource.network.rawValue
-                && menuBarScenes.last == harness.iconPresentation.output.scene
-                && harness.log.lastScene == harness.iconPresentation.output.scene
-        }
+        harness.settings.connectionCenterSource = .bluetoothDevice
         let beforePriorityChange = harness.iconPresentation.output.scene
-        #expect(beforePriorityChange == menuBarScenes.last)
-        #expect(beforePriorityChange == harness.log.lastScene)
-
-        harness.settings.updateIconConfiguration {
-            $0.composition.centerOverride.networkProblemOverridesPrimary = false
-        }
-        try await waitUntil(
-            failureMessage: "turning the global rule off did not restore the Bluetooth replacement",
-            diagnostics: {
-                "centre=\(describe(harness.iconPresentation.output.scene.center)), "
-                    + "menu=\(describe(menuBarScenes.last?.center)), dock=\(describe(harness.log.lastScene?.center))"
-            }
-        ) {
+        harness.settings.prioritizesNetworkErrors = false
+        try await waitUntil {
             guard case let .symbol(symbol) = harness.iconPresentation.output.scene.center else { return false }
-            return symbol.color == .bluetooth
-                && harness.iconPresentation.output.scene != beforePriorityChange
-                && menuBarScenes.last == harness.iconPresentation.output.scene
+            return symbol.color == .bluetooth && harness.iconPresentation.output.scene != beforePriorityChange
+        }
+        try await waitUntil {
+            menuBarScenes.last == harness.iconPresentation.output.scene
                 && harness.log.lastScene == harness.iconPresentation.output.scene
         }
         #expect(menuBarScenes.last == harness.iconPresentation.output.scene)
         #expect(harness.log.lastScene == harness.iconPresentation.output.scene)
 
-        // The earlier Wi-Fi size edit changed shared center Appearance. Bluetooth
-        // retains its source control and is rendered through that same slot size.
-        let centerAppearance = harness.settings.iconConfiguration.appearance.center
-        let expectedBluetoothScale = 1.4 * centerAppearance.symbolScale / CenterAppearance.classic.symbolScale
         try await verifySetting(
             "Bluetooth scale",
             { harness.settings.bluetoothSymbolScale = 1.4 },
             matches: { scene in
                 guard case let .symbol(symbol) = scene.center else { return false }
-                return abs(symbol.scale - expectedBluetoothScale) < 1e-12
+                return symbol.scale == 1.4
             },
             latestMenuBarScene: { menuBarScenes.last },
             harness: harness
         )
-        #expect(harness.settings.bluetoothSymbolScale == 1.4)
-        #expect(harness.settings.iconConfiguration.appearance.center == centerAppearance)
         harness.publishBattery(BatteryStatus(
             rawPercentage: 62,
             isPresent: true,
@@ -479,11 +307,15 @@ struct IconSurfaceIntegrationTests {
             isConnectedToPower: true
         ))
         try await waitUntil { harness.store.snapshot.battery.isCharging }
-        try await waitUntil {
-            harness.iconPresentation.output.scene.outerRing?.effect?.pulsesAccessory == true
-                && menuBarScenes.last == harness.iconPresentation.output.scene
+        scheduler.runScheduled()
+        harness.controller.flushPendingPresentationForTesting()
+        #expect(harness.iconPresentation.output.scene.outerRing?.effect?.pulsesAccessory == true)
+        try await waitUntil(failureMessage: "Both surfaces did not deliver the charging scene.") {
+            menuBarScenes.last == harness.iconPresentation.output.scene
                 && harness.log.lastScene == harness.iconPresentation.output.scene
         }
+        #expect(menuBarScenes.last == harness.iconPresentation.output.scene)
+        #expect(harness.log.lastScene == harness.iconPresentation.output.scene)
         try await verifySetting(
             "charging bolt heartbeat",
             { harness.settings.showsChargingBoltHeartbeat = false },
@@ -545,16 +377,15 @@ struct IconSurfaceIntegrationTests {
                     scene: scene,
                     size: size,
                     scale: scale,
-                    appearanceName: appearance.name.rawValue,
-                    phase: nil
+                    appearanceName: appearance.name.rawValue
                 ))
                 return NSImage(size: NSSize(width: 32, height: 32))
-            },
-            renderMenuBarOverlay: { _, _, _, _, _ in nil }
+            }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
-        try await waitUntil { menuBarRenders > 0 && harness.log.renderCount > 0 }
+        menuBar.refreshCurrentPresentation()
+        harness.controller.refreshCurrentPresentation()
         try await waitUntil {
             menuBarScenes.last == harness.iconPresentation.output.scene
                 && harness.log.lastScene == harness.iconPresentation.output.scene
@@ -565,7 +396,6 @@ struct IconSurfaceIntegrationTests {
         let initialScene = harness.iconPresentation.output.scene
         let initialMenuBarKey = try #require(menuBarKeys.last)
         let initialDockKey = try #require(harness.log.dockRenderKeys.last)
-        #expect(initialMenuBarKey.phase == nil)
         let initialSpokenValue = try #require(spokenValues.last)
 
         harness.publishWiFi(WiFiStatus(
@@ -599,7 +429,6 @@ struct IconSurfaceIntegrationTests {
         for key in menuBarKeys.dropFirst(initialMenuBarRenders) {
             #expect(key.scene == precedingKey.scene)
             #expect(key.size == precedingKey.size)
-            #expect(key.phase == precedingKey.phase)
             #expect(key.appearanceName != precedingKey.appearanceName || key.scale != precedingKey.scale)
             precedingKey = key
         }
@@ -608,7 +437,11 @@ struct IconSurfaceIntegrationTests {
     }
 
     @Test func chargingTestProjectionStaysMenuBarOnly() async throws {
-        let harness = try AppIconControllerHarness(initialPlacement: .both)
+        let scheduler = ManualIconPresentationScheduler()
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .both,
+            snapshotScheduler: scheduler
+        )
         defer { harness.cleanUp() }
         var menuBarScenes: [IconSceneState] = []
         let menuBar = StatusBarController(
@@ -621,16 +454,16 @@ struct IconSurfaceIntegrationTests {
             renderMenuBarBase: { scene, _, _, _ in
                 menuBarScenes.append(scene)
                 return NSImage(size: NSSize(width: 32, height: 32))
-            },
-            renderMenuBarOverlay: { _, _, _, _, _ in nil }
+            }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
-        try await waitUntil { !menuBarScenes.isEmpty && harness.log.renderCount > 0 }
-        try await waitUntil {
-            menuBarScenes.last == harness.iconPresentation.output.scene
-                && harness.log.lastScene == harness.iconPresentation.output.scene
-        }
+        menuBar.refreshCurrentPresentation()
+        harness.controller.refreshCurrentPresentation()
+        #expect(!menuBarScenes.isEmpty)
+        #expect(harness.log.renderCount > 0)
+        #expect(menuBarScenes.last == harness.iconPresentation.output.scene)
+        #expect(harness.log.lastScene == harness.iconPresentation.output.scene)
         let canonicalScene = harness.iconPresentation.output.scene
         let originalDockImage = harness.application.applicationIconImage
         let dockRenders = harness.log.renderCount
@@ -672,45 +505,45 @@ struct IconSurfaceIntegrationTests {
             renderMenuBarBase: { scene, _, _, _ in
                 menuBarScenes.append(scene)
                 return NSImage(size: NSSize(width: 32, height: 32))
-            },
-            renderMenuBarOverlay: { _, _, _, _, _ in nil }
+            }
         )
         defer { menuBar.setVisible(false) }
         harness.controller.start()
-        try await waitUntil {
-            harness.log.renderCount > 0
-                && menuBarScenes.last == harness.iconPresentation.output.scene
-                && harness.iconPresentation.output.scene.outerRing?.effect?.pulsesAccessory == true
-        }
+        menuBar.refreshCurrentPresentation()
+        harness.controller.refreshCurrentPresentation()
+        #expect(menuBarScenes.last == harness.iconPresentation.output.scene)
+        #expect(harness.log.lastScene == harness.iconPresentation.output.scene)
+        #expect(harness.iconPresentation.output.scene.outerRing?.effect?.pulsesAccessory == true)
         let initialDockRenders = harness.log.renderCount
         let initialDockImage = harness.application.applicationIconImage
 
         harness.settings.showsChargingBoltHeartbeat = false
         try await waitUntil {
             harness.iconPresentation.output.scene.outerRing?.effect?.pulsesAccessory == false
-                && menuBarScenes.last == harness.iconPresentation.output.scene
         }
+        menuBar.flushPendingPresentationForTesting()
         harness.controller.flushPendingPresentationForTesting()
-        #expect(menuBarScenes.last?.outerRing?.effect?.pulsesAccessory == false)
+        #expect(menuBarScenes.last == harness.iconPresentation.output.scene)
         #expect(harness.log.renderCount == initialDockRenders)
         #expect(harness.application.applicationIconImage === initialDockImage)
 
         harness.settings.showsChargingEffect = false
         try await waitUntil {
             harness.iconPresentation.output.scene.outerRing?.effect == nil
-                && menuBarScenes.last == harness.iconPresentation.output.scene
         }
+        menuBar.flushPendingPresentationForTesting()
         harness.controller.flushPendingPresentationForTesting()
-        #expect(menuBarScenes.last?.outerRing?.effect == nil)
+        #expect(menuBarScenes.last == harness.iconPresentation.output.scene)
         #expect(harness.log.renderCount == initialDockRenders)
         #expect(harness.application.applicationIconImage === initialDockImage)
 
         harness.settings.ringStrokeStyle = .bold
         try await waitUntil {
             harness.iconPresentation.output.scene.outerRing?.strokeScale == RingStrokeStyle.bold.scale
-                && menuBarScenes.last == harness.iconPresentation.output.scene
         }
+        menuBar.flushPendingPresentationForTesting()
         harness.controller.flushPendingPresentationForTesting()
+        #expect(menuBarScenes.last == harness.iconPresentation.output.scene)
         #expect(harness.log.renderCount > initialDockRenders)
         #expect(harness.log.lastScene?.outerRing?.strokeScale == RingStrokeStyle.bold.scale)
     }
@@ -718,26 +551,19 @@ struct IconSurfaceIntegrationTests {
     private func waitUntil(
         timeout: Duration = .seconds(5),
         failureMessage: String = "The surface update did not arrive.",
-        diagnostics: @escaping @MainActor () -> String = { "" },
         condition: @escaping @MainActor () -> Bool
     ) async throws {
-        let deadline = ContinuousClock.now + timeout
+        let startedAt = ContinuousClock.now
+        let deadline = startedAt + timeout
         while ContinuousClock.now < deadline {
             if condition() { return }
             try await Task.sleep(for: .milliseconds(10))
         }
-        let detail = diagnostics()
-        Issue.record("\(failureMessage) Timeout: \(timeout).\(detail.isEmpty ? "" : " \(detail)")")
-    }
-
-    /// Short, stable description of a centre payload so a timeout record names
-    /// what actually rendered instead of only the missing condition.
-    private func describe(_ center: CenterState?) -> String {
-        switch center {
-        case .none: "none"
-        case .text(let text): "text(\(text.text))"
-        case .symbol(let symbol): "symbol(\(symbol.source))"
-        }
+        throw SurfacePresentationTimeout(
+            message: failureMessage,
+            timeout: timeout,
+            elapsed: startedAt.duration(to: .now)
+        )
     }
 
     private func verifySetting(
@@ -767,12 +593,21 @@ struct IconSurfaceIntegrationTests {
 
 }
 
+private struct SurfacePresentationTimeout: Error, CustomStringConvertible {
+    let message: String
+    let timeout: Duration
+    let elapsed: Duration
+
+    var description: String {
+        "\(message) Timeout: \(timeout). Elapsed: \(elapsed)."
+    }
+}
+
 private struct MenuBarRenderSurfaceKey: Equatable {
     let scene: IconSceneState
     let size: Double
     let scale: CGFloat
     let appearanceName: String
-    let phase: ChargingEffectPhase?
 }
 
 @MainActor

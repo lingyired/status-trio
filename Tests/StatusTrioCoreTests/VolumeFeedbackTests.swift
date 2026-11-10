@@ -48,6 +48,17 @@ struct VolumeFeedbackTests {
         #expect(!SystemVolumeFeedbackPreference.isEnabled(storedValue: false))
     }
 
+    /// The app switch follows the system switch until the user stores a value,
+    /// then that explicit value wins over the system switch either way (#194).
+    @Test func appSwitchFollowsSystemUntilAnExplicitValueIsStored() {
+        #expect(VolumeScrollFeedbackPreference.isEnabled(storedValue: nil, systemEnabled: true))
+        #expect(!VolumeScrollFeedbackPreference.isEnabled(storedValue: nil, systemEnabled: false))
+        #expect(VolumeScrollFeedbackPreference.isEnabled(storedValue: true, systemEnabled: false))
+        #expect(!VolumeScrollFeedbackPreference.isEnabled(storedValue: false, systemEnabled: true))
+        // A non-boolean stored value is treated as "not set" and follows the system.
+        #expect(VolumeScrollFeedbackPreference.isEnabled(storedValue: "yes", systemEnabled: true))
+    }
+
     @Test func throttleCoalescesABurstIntoOneTickPerInterval() {
         var throttle = VolumeFeedbackThrottle()
 
@@ -96,6 +107,38 @@ struct VolumeFeedbackTests {
         player.playVolumeChangeFeedback()
 
         #expect(played == 0)
+    }
+
+    /// The app switch can turn the tick on even when the macOS switch is off,
+    /// and off even when the macOS switch is on (#194).
+    @Test func playerObeysTheAppSwitchRegardlessOfTheSystemSwitch() throws {
+        let (defaults, name) = try isolatedDefaults(#function)
+        defer { TestUserDefaults.removeSuite(named: name) }
+        defaults.set(false, forKey: SystemVolumeFeedbackPreference.key)
+        defaults.set(true, forKey: VolumeScrollFeedbackPreference.key)
+
+        var played = 0
+        let player = VolumeFeedbackPlayer(
+            defaults: defaults,
+            now: { 0 },
+            soundURL: VolumeFeedbackPlayer.bundledSoundURL,
+            playback: { _ in played += 1 }
+        )
+
+        player.playVolumeChangeFeedback()
+        #expect(played == 1)
+
+        defaults.set(true, forKey: SystemVolumeFeedbackPreference.key)
+        defaults.set(false, forKey: VolumeScrollFeedbackPreference.key)
+
+        let muted = VolumeFeedbackPlayer(
+            defaults: defaults,
+            now: { 0 },
+            soundURL: VolumeFeedbackPlayer.bundledSoundURL,
+            playback: { _ in played += 1 }
+        )
+        muted.playVolumeChangeFeedback()
+        #expect(played == 1)
     }
 
     @Test func playerPlaysOneTickPerInterval() throws {

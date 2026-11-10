@@ -6,8 +6,25 @@ struct BluetoothLEBatteryScanPolicy {
     static let automaticScanInterval: TimeInterval = 60
     static let successfulConnectionCooldown: TimeInterval = 60
     static let failedConnectionCooldown: TimeInterval = 60
+    /// The cooldowns a device earns by failing again and again, in order.
+    ///
+    /// One flat cooldown is what made a device that can never answer — a phone
+    /// that asks for a pairing the user keeps declining — come back on the same
+    /// minute forever. Each consecutive failure moves the device to the next
+    /// entry instead.
+    static let failedConnectionCooldowns: [TimeInterval] = [60, 300]
+    /// How many consecutive failed sessions a device may have before automatic
+    /// retries stop. A pairing prompt cannot be accepted for the user, so a
+    /// device that keeps failing is left alone until the user asks again.
+    static let failedConnectionSuspensionThreshold = 3
     /// A verified row disappears after this long without a successful read.
-    static let resultLifetime: TimeInterval = 1200
+    ///
+    /// Kept to a few minutes rather than tens: a nearby device's battery is only
+    /// trusted while a fresh reading backs it, so a row that stops reporting
+    /// should clear promptly instead of lingering as a plausible-looking stale
+    /// number. Three minutes still spans several 60-second automatic scans, so a
+    /// single missed pass does not flicker the row away.
+    static let resultLifetime: TimeInterval = 180
     static let maxQueuedCandidates = 8
     static let maxConcurrentConnections = 2
     static let connectionTimeout: Duration = .seconds(8)
@@ -21,6 +38,13 @@ struct BluetoothLEBatteryScanPolicy {
     private var queuedCandidates: [UUID] = []
     private var inFlightConnections: Set<UUID> = []
     private var retryAfter: [UUID: Date] = [:]
+    /// Consecutive failed sessions per device. Cleared by a session that ends
+    /// with a reading, so one success resets the whole escalation.
+    private var failureStreak: [UUID: Int] = [:]
+    /// Devices that used up the failure budget. Automatic scans leave them
+    /// alone for the rest of the scanner's life; only an explicit user refresh
+    /// puts them back in rotation.
+    private(set) var suspendedRetryIDs: Set<UUID> = []
 
     mutating func beginScan(at date: Date, manual: Bool) -> Bool {
         if !manual,
@@ -43,7 +67,8 @@ struct BluetoothLEBatteryScanPolicy {
     }
 
     mutating func enqueueCandidate(_ id: UUID, at date: Date) -> Bool {
-        guard !discoveredCandidates.contains(id),
+        guard !suspendedRetryIDs.contains(id),
+              !discoveredCandidates.contains(id),
               !inFlightConnections.contains(id),
               discoveredCandidates.count < Self.maxQueuedCandidates else {
             return false
@@ -92,9 +117,37 @@ struct BluetoothLEBatteryScanPolicy {
 
     mutating func completeConnection(_ id: UUID, succeeded: Bool, at date: Date) {
         guard inFlightConnections.remove(id) != nil else { return }
-        let cooldown = succeeded ? Self.successfulConnectionCooldown : Self.failedConnectionCooldown
-        retryAfter[id] = date.addingTimeInterval(cooldown)
+        if succeeded {
+            failureStreak.removeValue(forKey: id)
+            suspendedRetryIDs.remove(id)
+            retryAfter[id] = date.addingTimeInterval(Self.successfulConnectionCooldown)
+        } else {
+            let streak = (failureStreak[id] ?? 0) + 1
+            failureStreak[id] = streak
+            if streak >= Self.failedConnectionSuspensionThreshold {
+                // Out of budget: no date the scan cadence can reach.
+                suspendedRetryIDs.insert(id)
+                retryAfter.removeValue(forKey: id)
+            } else {
+                let cooldown = Self.failedConnectionCooldowns[
+                    min(streak, Self.failedConnectionCooldowns.count) - 1
+                ]
+                retryAfter[id] = date.addingTimeInterval(cooldown)
+            }
+        }
         inFlightConnectionCount = inFlightConnections.count
+    }
+
+    /// Re-arms the devices automatic retries gave up on. Only an explicit user
+    /// action reaches this: an ordinary scan must never undo the suspension, or
+    /// the prompt loop comes straight back.
+    mutating func resumeSuspendedRetries() {
+        guard !suspendedRetryIDs.isEmpty else { return }
+        for id in suspendedRetryIDs {
+            retryAfter.removeValue(forKey: id)
+        }
+        suspendedRetryIDs.removeAll()
+        failureStreak.removeAll()
     }
 
     func acceptsCallback(from generation: UInt64) -> Bool {
@@ -166,8 +219,19 @@ protocol BluetoothLEBatteryScanning: AnyObject {
         _ ids: Set<UUID>
     ) -> [UUID: DeviceOperationToken]
     func setBackgroundRefreshInterval(_ interval: Duration?)
+    /// Whether an iPhone or an iPad may be connected to for its battery. Off by
+    /// default: the device answers only after a pairing prompt, which the app
+    /// must not trigger without the user asking for it.
+    func setAppleMobileBatteryReadsEnabled(_ enabled: Bool)
+    /// The device names the system lists for this Mac. An Apple phone is only
+    /// read when its advertised name matches one of them.
+    func setKnownAppleMobileDeviceNames(_ names: Set<String>)
     func start()
     func refresh()
+    /// Puts the devices automatic retries gave up on back in rotation. Reached
+    /// only from an explicit user refresh: an ordinary scan must never undo the
+    /// suspension, or the pairing prompt it exists to stop comes straight back.
+    func resumeSuspendedReads()
     func stop()
 }
 
@@ -189,6 +253,9 @@ extension BluetoothLEBatteryScanning {
     }
     func revokeReadDeviceIDs(_ ids: Set<UUID>) { _ = ids }
     func setBackgroundRefreshInterval(_ interval: Duration?) { _ = interval }
+    func setAppleMobileBatteryReadsEnabled(_ enabled: Bool) { _ = enabled }
+    func setKnownAppleMobileDeviceNames(_ names: Set<String>) { _ = names }
+    func resumeSuspendedReads() {}
 }
 
 @MainActor
@@ -295,10 +362,13 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
     private var candidateNames: [UUID: String] = [:]
     private var candidateCache = NearbyBLECandidateCache()
     private var cancellingPeripherals: [UUID: CancellingPeripheral] = [:]
+    private let cancellationTimeouts = BLECancellationTimeoutRegistry()
     private var readFailures: Set<UUID> = []
     private var nearbyDevices: [UUID: NearbyBluetoothBatteryDevice] = [:]
     private var currentScanGeneration: UInt64 = 0
     private var backgroundRefreshInterval: Duration?
+    private var appleMobileReadsEnabled = false
+    private var knownAppleMobileNames: Set<String> = []
 
     deinit {
         scanWindowTask?.cancel()
@@ -354,14 +424,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
             candidateNames.removeValue(forKey: id)
             if let session = sessions.removeValue(forKey: id),
                sessionCancellationGate.retire(id, session: session.sessionID) {
-                session.timeoutTask?.cancel()
-                cancellingPeripherals[id] = CancellingPeripheral(
-                    sessionID: session.sessionID,
-                    peripheral: session.peripheral,
-                    delegate: session.delegate,
-                    central: centralManager
-                )
-                centralManager?.cancelPeripheralConnection(session.peripheral)
+                retireSession(session)
             }
         }
         let oldFailures = readFailures
@@ -392,14 +455,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
             candidateNames.removeValue(forKey: id)
             if let session = sessions.removeValue(forKey: id),
                sessionCancellationGate.retire(id, session: session.sessionID) {
-                session.timeoutTask?.cancel()
-                cancellingPeripherals[id] = CancellingPeripheral(
-                    sessionID: session.sessionID,
-                    peripheral: session.peripheral,
-                    delegate: session.delegate,
-                    central: centralManager
-                )
-                centralManager?.cancelPeripheralConnection(session.peripheral)
+                retireSession(session)
             }
         }
         onDevicesChanged?(nearbyDevices.values.sorted { $0.id.uuidString < $1.id.uuidString })
@@ -424,12 +480,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
             candidateNames.removeValue(forKey: id)
             if let session = sessions.removeValue(forKey: id),
                sessionCancellationGate.retire(id, session: session.sessionID) {
-                session.timeoutTask?.cancel()
-                cancellingPeripherals[id] = CancellingPeripheral(
-                    sessionID: session.sessionID, peripheral: session.peripheral,
-                    delegate: session.delegate, central: centralManager
-                )
-                centralManager?.cancelPeripheralConnection(session.peripheral)
+                retireSession(session)
             }
         }
         for id in initialReadCandidateIDs.subtracting(old) where isScanning {
@@ -450,6 +501,21 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
         if isRunning { scheduleAutomaticRefresh() }
     }
 
+    func setKnownAppleMobileDeviceNames(_ names: Set<String>) {
+        knownAppleMobileNames = names
+    }
+
+    func setAppleMobileBatteryReadsEnabled(_ enabled: Bool) {
+        guard appleMobileReadsEnabled != enabled else { return }
+        appleMobileReadsEnabled = enabled
+        guard !enabled else { return }
+        // Disabling Apple devices revokes their sessions immediately; a GATT
+        // connection can make the phone request pairing.
+        revokeReadDeviceIDs(
+            Set(candidateCache.candidates.filter { $0.vendor == .apple }.map(\.id))
+        )
+    }
+
     func refresh() {
         guard isRunning else {
             start()
@@ -457,6 +523,11 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
         }
         guard !isScanning else { return }
         startScanWindow(manual: true)
+    }
+
+    func resumeSuspendedReads() {
+        guard !policy.suspendedRetryIDs.isEmpty else { return }
+        policy.resumeSuspendedRetries()
     }
 
     func stop() {
@@ -490,13 +561,20 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
     ) {
         guard central === centralManager else { return }
         let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+        // The identity check reads the name the system caches for the
+        // peripheral first: that is the spelling the paired-device report
+        // carries, so it is the one the known-name list can match. The advertised
+        // local name is the fallback.
+        let identityName = peripheral.name ?? advertisedName
         guard isRunning,
               isScanning,
               BluetoothLEBatteryAdvertisement.isCandidate(
                   serviceUUIDs: advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID],
                   manufacturerData: advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data,
-                  name: advertisedName ?? peripheral.name,
-                  batteryService: Self.batteryServiceUUID
+                  name: identityName,
+                  batteryService: Self.batteryServiceUUID,
+                  allowsAppleMobileDevices: appleMobileReadsEnabled,
+                  knownAppleMobileNames: knownAppleMobileNames
               ),
               policy.acceptsCallback(from: currentScanGeneration) else {
             return
@@ -715,7 +793,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
                 guard let self else { return }
                 let interval = self.backgroundRefreshInterval
                     ?? .seconds(Int(BluetoothLEBatteryScanPolicy.automaticScanInterval))
-                try await Task.sleep(for: interval)
+                try await Task.sleep(for: interval, tolerance: interval / 5)
             } catch {
                 return
             }
@@ -773,7 +851,10 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
         scanWindowTask?.cancel()
         scanWindowTask = Task { @MainActor [weak self] in
             do {
-                try await Task.sleep(for: BluetoothLEBatteryScanPolicy.scanWindow)
+                // A slightly late scan-window close is harmless; precision
+                // here only buys extra radio wakeups.
+                try await Task.sleep(for: BluetoothLEBatteryScanPolicy.scanWindow,
+                                     tolerance: BluetoothLEBatteryScanPolicy.scanWindow / 5)
             } catch {
                 return
             }
@@ -901,13 +982,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
             _ = sessionCancellationGate.finishActive(identifier, session: session.sessionID)
             session.peripheral.delegate = nil
         } else if sessionCancellationGate.retire(identifier, session: session.sessionID) {
-            cancellingPeripherals[identifier] = CancellingPeripheral(
-                sessionID: session.sessionID,
-                peripheral: session.peripheral,
-                delegate: session.delegate,
-                central: centralManager
-            )
-            centralManager?.cancelPeripheralConnection(session.peripheral)
+            retireSession(session)
         }
         candidatePeripherals.removeValue(forKey: identifier)
         candidateNames.removeValue(forKey: identifier)
@@ -1037,10 +1112,39 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
               cancelling.central === central,
               sessionCancellationGate.finishCancellation(id, session: cancelling.sessionID) else { return false }
         cancellingPeripherals.removeValue(forKey: id)
+        cancellationTimeouts.finish(id: id)
         peripheral.delegate = nil
         releaseCentralIfIdle()
         if isRunning, isScanning { startQueuedConnections() }
         return true
+    }
+
+    /// Moves a retired session into the cancellation set and bounds the wait for
+    /// `didDisconnect`. A lost callback would otherwise keep the session, its
+    /// delegate and the central manager alive for the life of the process.
+    private func retireSession(_ session: PeripheralSession) {
+        let id = session.peripheral.identifier
+        session.timeoutTask?.cancel()
+        cancellingPeripherals[id] = CancellingPeripheral(
+            sessionID: session.sessionID,
+            peripheral: session.peripheral,
+            delegate: session.delegate,
+            central: centralManager
+        )
+        cancellationTimeouts.begin(id: id, sessionID: session.sessionID) { [weak self] in
+            self?.timeOutCancellation(id: id, sessionID: session.sessionID)
+        }
+        centralManager?.cancelPeripheralConnection(session.peripheral)
+    }
+
+    private func timeOutCancellation(id: UUID, sessionID: UUID) {
+        guard let cancelling = cancellingPeripherals[id],
+              cancelling.sessionID == sessionID else { return }
+        cancellingPeripherals.removeValue(forKey: id)
+        _ = sessionCancellationGate.finishCancellation(id, session: sessionID)
+        cancelling.peripheral.delegate = nil
+        releaseCentralIfIdle()
+        if isRunning, isScanning { startQueuedConnections() }
     }
 
     private func releaseCentralIfIdle() {
@@ -1081,13 +1185,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
         for session in activeSessions {
             session.timeoutTask?.cancel()
             if sessionCancellationGate.retire(session.peripheral.identifier, session: session.sessionID) {
-                cancellingPeripherals[session.peripheral.identifier] = CancellingPeripheral(
-                    sessionID: session.sessionID,
-                    peripheral: session.peripheral,
-                    delegate: session.delegate,
-                    central: centralManager
-                )
-                centralManager?.cancelPeripheralConnection(session.peripheral)
+                retireSession(session)
             }
         }
         policy.stop()

@@ -4,6 +4,23 @@ import Foundation
 enum StatusIconGeometry {
     static let canvas = CGRect(x: 0, y: 0, width: 120, height: 120)
 
+    /// The one content rect both menu-bar surfaces use for a status button.
+    ///
+    /// The system draws `NSStatusBarButton.image` centred in `bounds`
+    /// (`NSButtonCell.imageRect(forBounds:)` reports a zero mid-X offset), so
+    /// both the template view and the coloured layer must use exactly this rect
+    /// and follow `bounds` whenever AppKit resizes the button. No extra pixel
+    /// rounding: matching the system's own centred rect is what keeps the two
+    /// surfaces on one grid.
+    static func contentFrame(in bounds: CGRect, contentSize: CGSize) -> CGRect {
+        CGRect(
+            x: bounds.midX - contentSize.width / 2,
+            y: bounds.midY - contentSize.height / 2,
+            width: contentSize.width,
+            height: contentSize.height
+        )
+    }
+
     /// The x coordinate every element of the icon is centred on.
     ///
     /// This is deliberately **not** `canvas.midX`. The artwork is drawn on a
@@ -16,7 +33,10 @@ enum StatusIconGeometry {
 
     // Derived from the SVG battery endpoints and radius.
     private static let batteryRadius: CGFloat = 51.5
-    private static let batteryCenter = CGPoint(x: artworkCenterX, y: 61.48715261785473)
+    /// Vertical centre of the battery ring. The centre slot shares it so the
+    /// glyph sits on the circle's centre instead of slightly below it.
+    static let batteryCenterY: CGFloat = 61.48715261785473
+    private static let batteryCenter = CGPoint(x: artworkCenterX, y: batteryCenterY)
     private static let batteryStart: CGFloat = 148.69008689281117 * .pi / 180
     private static let batterySweep: CGFloat = 242.6198262143777 * .pi / 180
     static let batteryValueTopGapWidth: CGFloat = 64
@@ -34,13 +54,17 @@ enum StatusIconGeometry {
     /// carry the same visual weight in the gap.
     static let batteryPlugHeightScale: CGFloat = 1.2
 
-    /// The bolt scales away from its tip, so any other glyph in the top gap
-    /// shares the scaled bolt's center to stay optically aligned with it.
+    /// The top-gap accessory shares the artwork centre axis. Only its vertical
+    /// position follows the bolt's scaling; horizontally it is pinned to
+    /// `artworkCenterX`, so neither the plug nor a fallback glyph inherits the
+    /// bolt's asymmetric bounding box — which sits ~0.05 units left of centre and
+    /// would otherwise drift further left as the glyph is scaled up (Issue #30
+    /// top accessory: "插头看着偏左").
     static func batteryTopIndicatorCenter(boltScale: CGFloat) -> CGPoint {
         let bolt = batteryChargingBolt().boundingBoxOfPath
         let pivot = batteryChargingBoltPivot
         return CGPoint(
-            x: pivot.x + (bolt.midX - pivot.x) * boltScale,
+            x: artworkCenterX,
             y: pivot.y + (bolt.midY - pivot.y) * boltScale
         )
     }
@@ -55,6 +79,26 @@ enum StatusIconGeometry {
             x: artworkCenterX,
             y: referenceBaseline + (fontSize - referenceFontSize) * slope
         )
+    }
+
+    /// A bolt scaled to `targetHeight` and moved so its ink centre lands on
+    /// `target`. The centre slot uses this so the charge glyph sits on the same
+    /// optical anchor as the Wi-Fi / input-source glyph it replaces (#253).
+    static func batteryChargingBolt(centeredAt target: CGPoint, targetHeight: CGFloat) -> CGPath {
+        let base = batteryChargingBolt()
+        let bounds = base.boundingBoxOfPath
+        guard bounds.height.isFinite, bounds.height > 0,
+              targetHeight.isFinite, targetHeight > 0 else { return base }
+        let scale = targetHeight / bounds.height
+        var transform = CGAffineTransform(
+            a: scale,
+            b: 0,
+            c: 0,
+            d: scale,
+            tx: target.x - bounds.midX * scale,
+            ty: target.y - bounds.midY * scale
+        )
+        return base.copy(using: &transform) ?? base
     }
 
     private static let wifiOuterCenter = CGPoint(x: artworkCenterX, y: 78.3)
@@ -174,6 +218,30 @@ enum StatusIconGeometry {
             return clampedProgress
         }
         return gapStart
+    }
+
+    /// Maps battery progress to the progress-space arc end for a `.split` top
+    /// gap (#205). The gap carries no progress, so the visible arc spans the
+    /// whole 0–100% scale: the left visible half is 0–50% and the right visible
+    /// half is 50–100%. Feeding the result to `batteryFill` fills exactly the
+    /// requested fraction of the visible arc, so 51 and 59 no longer look alike.
+    static func splitFillProgress(
+        forProgress progress: Double,
+        hasTopGap: Bool,
+        topGapWidth: CGFloat = batteryChargingBoltTopGapWidth
+    ) -> Double {
+        let clampedProgress = clampedUnit(progress)
+        guard hasTopGap else { return clampedProgress }
+        let visibleArcLength = visibleFraction(
+            forProgress: 1,
+            hasTopGap: true,
+            topGapWidth: topGapWidth
+        )
+        return Self.progress(
+            forVisibleFraction: clampedProgress * visibleArcLength,
+            hasTopGap: true,
+            topGapWidth: topGapWidth
+        )
     }
 
     private static func clampedUnit(_ value: Double) -> Double {

@@ -264,7 +264,19 @@ if [[ "$1" == "api" ]]; then
                 printf 'release listing must use --paginate --slurp\n' >&2
                 exit 89
             fi
-            if [[ -f "$state/releases-pages.json" ]]; then
+            if [[ -f "$state/draft-list-misses-left" ]]; then
+                misses="$(<"$state/draft-list-misses-left")"
+                if ((misses > 0)); then
+                    printf '%s\n' "$((misses - 1))" > "$state/draft-list-misses-left"
+                    body='[[]]'
+                elif [[ -f "$state/releases-pages.json" ]]; then
+                    body="$(<"$state/releases-pages.json")"
+                elif [[ -f "$state/release" ]]; then
+                    body="[[$(release_json "$(cat "$state/release-draft")")]]"
+                else
+                    body='[[]]'
+                fi
+            elif [[ -f "$state/releases-pages.json" ]]; then
                 body="$(<"$state/releases-pages.json")"
             elif [[ -f "$state/release" ]]; then
                 body="[[$(release_json "$(cat "$state/release-draft")")]]"
@@ -565,6 +577,38 @@ APPCAST_AFTER="$(sha256 "$WORK/github/appcast")"
 FAKE_PUBLIC_DMG_MODE=invalid PUBLIC_VERIFY_ATTEMPTS=2 expect_failure \
     "public DMG mismatch" run_publish
 assert_contains "$WORK/output.log" "Public DMG or appcast did not match"
+
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+printf '3\n' > "$WORK/github/draft-list-misses-left"
+DRAFT_DISCOVERY_ATTEMPTS=3 DRAFT_DISCOVERY_DELAY_SECONDS=0 \
+    run_publish >"$WORK/eventual-draft-discovery.log" 2>&1
+[[ "$(cat "$WORK/github/release-draft")" == "false" ]] ||
+    fail "eventual draft discovery did not publish"
+assert_contains "$WORK/eventual-draft-discovery.log" \
+    "Draft Release discovery attempt 1/3 did not find v1.0.0"
+assert_contains "$WORK/eventual-draft-discovery.log" \
+    "Draft Release discovery attempt 2/3 did not find v1.0.0"
+[[ "$(grep -c '^release create ' "$WORK/github/writes")" -eq 1 ]] ||
+    fail "eventual draft discovery created a duplicate release"
+[[ "$(grep -c '^release upload ' "$WORK/github/writes")" -eq 1 ]] ||
+    fail "eventual draft discovery did not upload the verified artifacts"
+
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+printf '100\n' > "$WORK/github/draft-list-misses-left"
+DRAFT_DISCOVERY_ATTEMPTS=3 DRAFT_DISCOVERY_DELAY_SECONDS=0 \
+    expect_failure "exhausted draft discovery" run_publish
+assert_contains "$WORK/output.log" \
+    "Created draft Release v1.0.0 but could not discover it in the release list after 3 attempts."
+[[ "$(cat "$WORK/github/release-draft")" == "true" ]] ||
+    fail "exhausted draft discovery published an unverified release"
+[[ "$(grep -c '^release create ' "$WORK/github/writes")" -eq 1 ]] ||
+    fail "exhausted draft discovery created a duplicate release"
+[[ "$(grep -c '^release upload ' "$WORK/github/writes")" -eq 0 ]] ||
+    fail "exhausted draft discovery uploaded assets without a stable release id"
 
 reset_state
 make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \

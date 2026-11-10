@@ -17,7 +17,9 @@ struct BluetoothLEBatteryAdvertisementTests {
             serviceUUIDs: [batteryService],
             manufacturerData: nil,
             name: nil,
-            batteryService: batteryService
+            batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+            knownAppleMobileNames: ["Ling's iPhone", "AirPods"]
         ))
     }
 
@@ -47,21 +49,40 @@ struct BluetoothLEBatteryAdvertisementTests {
                 serviceUUIDs: nil,
                 manufacturerData: appleManufacturerData(messageType: messageType),
                 name: "Ling's iPhone",
-                batteryService: batteryService
+                batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+                knownAppleMobileNames: ["Ling's iPhone", "AirPods"]
             ))
         }
     }
 
-    /// Names are for display only; an empty name cannot suppress discovery.
-    @Test func unnamedAppleBroadcastsRemainCandidates() {
+    /// A stranger's phone broadcasts the same payload, and the prompt it would
+    /// raise shows its own name — "iPhone", not the user's name for it. The
+    /// missing name is what keeps the route on this Mac's own devices.
+    @Test func unnamedAppleBroadcastsAreNotCandidates() {
         for name: String? in [nil, "", "   ", "\n"] {
-            #expect(BluetoothLEBatteryAdvertisement.isCandidate(
+            #expect(!BluetoothLEBatteryAdvertisement.isCandidate(
                 serviceUUIDs: nil,
                 manufacturerData: appleManufacturerData(messageType: 0x10),
                 name: name,
-                batteryService: batteryService
+                batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+                knownAppleMobileNames: ["Ling's iPhone", "AirPods"]
             ))
         }
+    }
+
+    /// The service route does not need a name: a keyboard or a mouse reaches the
+    /// scanner with whatever the advertisement carried.
+    @Test func unnamedBatteryServiceDeviceStaysACandidate() {
+        #expect(BluetoothLEBatteryAdvertisement.isCandidate(
+            serviceUUIDs: [batteryService],
+            manufacturerData: nil,
+            name: nil,
+            batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+            knownAppleMobileNames: ["Ling's iPhone", "AirPods"]
+        ))
     }
 
     /// AirPods send their own Continuity message types, and their battery is
@@ -72,7 +93,9 @@ struct BluetoothLEBatteryAdvertisementTests {
                 serviceUUIDs: nil,
                 manufacturerData: appleManufacturerData(messageType: messageType),
                 name: "AirPods",
-                batteryService: batteryService
+                batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+                knownAppleMobileNames: ["Ling's iPhone", "AirPods"]
             ))
         }
     }
@@ -82,7 +105,9 @@ struct BluetoothLEBatteryAdvertisementTests {
             serviceUUIDs: nil,
             manufacturerData: Data([0x06, 0x00, 0x10]),
             name: "Some Sensor",
-            batteryService: batteryService
+            batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+            knownAppleMobileNames: ["Ling's iPhone", "AirPods"]
         ))
     }
 
@@ -101,7 +126,9 @@ struct BluetoothLEBatteryAdvertisementTests {
                 serviceUUIDs: nil,
                 manufacturerData: payload,
                 name: "Ling's iPhone",
-                batteryService: batteryService
+                batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+                knownAppleMobileNames: ["Ling's iPhone", "AirPods"]
             ))
         }
     }
@@ -116,12 +143,87 @@ struct BluetoothLEBatteryAdvertisementTests {
         #expect(BluetoothLEBatteryAdvertisement.isAppleMobileDevice(manufacturerData: slice))
     }
 
+    /// The Apple-device feature gates the Continuity
+    /// route with it. A device that advertises the Battery Service is still a
+    /// candidate — it answers without asking the user anything.
+    @Test func appleMobileRouteRequiresTheAppleDeviceFeature() {
+        let phone = appleManufacturerData(messageType: 0x10)
+        #expect(!BluetoothLEBatteryAdvertisement.isCandidate(
+            serviceUUIDs: nil,
+            manufacturerData: phone,
+            name: "Ling's iPhone",
+            batteryService: batteryService,
+            allowsAppleMobileDevices: false,
+            knownAppleMobileNames: ["Ling's iPhone", "AirPods"]
+        ))
+        #expect(BluetoothLEBatteryAdvertisement.isCandidate(
+            serviceUUIDs: [batteryService],
+            manufacturerData: nil,
+            name: "MX Keys",
+            batteryService: batteryService,
+            allowsAppleMobileDevices: false,
+            knownAppleMobileNames: ["Ling's iPhone", "AirPods"]
+        ))
+    }
+
+    /// The system list is the identity gate: a phone broadcasting the payload
+    /// under a name this Mac has no record of — including a stranger's default
+    /// "iPhone" — is not opened.
+    @Test func phoneNotInTheSystemListIsNotACandidate() {
+        #expect(!BluetoothLEBatteryAdvertisement.isCandidate(
+            serviceUUIDs: nil,
+            manufacturerData: appleManufacturerData(messageType: 0x10),
+            name: "iPhone",
+            batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+            knownAppleMobileNames: ["Ling's iPhone"]
+        ))
+    }
+
+    @Test func systemListMatchFoldsCaseAndSurroundingWhitespace() {
+        #expect(BluetoothLEBatteryAdvertisement.isCandidate(
+            serviceUUIDs: nil,
+            manufacturerData: appleManufacturerData(messageType: 0x0C),
+            name: "  ling's IPHONE ",
+            batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+            knownAppleMobileNames: ["Ling's iPhone"]
+        ))
+        #expect(BluetoothLEBatteryAdvertisement.matchesKnownAppleMobileName(
+            nil,
+            knownNames: ["Ling's iPhone"]
+        ) == false)
+    }
+
+    /// With no system record to match, no phone is read — the master alone is
+    /// not enough. A keyboard that advertises the Battery Service still is.
+    @Test func emptySystemListReadsNoPhonesButKeepsTheServiceRoute() {
+        #expect(!BluetoothLEBatteryAdvertisement.isCandidate(
+            serviceUUIDs: nil,
+            manufacturerData: appleManufacturerData(messageType: 0x10),
+            name: "Ling's iPhone",
+            batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+            knownAppleMobileNames: []
+        ))
+        #expect(BluetoothLEBatteryAdvertisement.isCandidate(
+            serviceUUIDs: [batteryService],
+            manufacturerData: nil,
+            name: "MX Keys",
+            batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+            knownAppleMobileNames: []
+        ))
+    }
+
     @Test func deviceInformationAloneIsNotACandidate() {
         #expect(!BluetoothLEBatteryAdvertisement.isCandidate(
             serviceUUIDs: [CBUUID(string: "180A")],
             manufacturerData: nil,
             name: "MX Keys",
-            batteryService: batteryService
+            batteryService: batteryService,
+            allowsAppleMobileDevices: true,
+            knownAppleMobileNames: ["Ling's iPhone", "AirPods"]
         ))
     }
 }

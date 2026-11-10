@@ -26,8 +26,8 @@ struct ChargingEffectRenderingTests {
         // pixels; battery and volume pixels are identical. Select one exact
         // baseline from those independent system metrics, preserving the #30
         // measured-ink correction. Unknown environments must fail explicitly.
-        let baseline = staticSymbolRasterBaselineFingerprint()
-        if fingerprint != baseline
+        let baselines = staticSymbolRasterBaselineFingerprints()
+        if !(baselines?.contains(fingerprint) ?? false)
             || ProcessInfo.processInfo.environment["STATUS_TRIO_STATIC_ICON_DIAGNOSTICS"] == "1" {
             print(
                 "STATIC_ICON_DIAGNOSTIC os=\(ProcessInfo.processInfo.operatingSystemVersionString)"
@@ -37,8 +37,11 @@ struct ChargingEffectRenderingTests {
             )
             printStaticSymbolRasterDiagnostics()
         }
-        let expected = try #require(baseline, "Unrecorded system symbol metrics; inspect raster diagnostics")
-        #expect(fingerprint == expected)
+        let expected = try #require(
+            baselines,
+            "Unrecorded system symbol metrics; inspect raster diagnostics"
+        )
+        #expect(expected.contains(fingerprint))
     }
 
     @Test func nonChargingBatteryIgnoresSuppliedChargingPhase() throws {
@@ -204,7 +207,10 @@ struct ChargingEffectRenderingTests {
         let animatedPixels = try renderPixels(
             snapshot: chargingSnapshot,
             options: arcEffectOptions,
-            phase: .init(step: 24, stepsPerCycle: 36, kind: .steady)
+            // A step whose head has cleared the top gap onto the right visible
+            // side, so the arc animation draws while the (heartbeat-disabled)
+            // foreground bolt stays static.
+            phase: .init(step: 30, stepsPerCycle: 36, kind: .steady)
         )
         let boltPoint = CGPoint(x: 61, y: 11)
         let boltBounds = CGRect(x: 51.3, y: 2.1, width: 15.9, height: 19.9)

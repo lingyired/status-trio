@@ -13,12 +13,19 @@ final class PreviewResourceLifecycle {
     }
 
     private let previewCache: DockIconPreviewCache
+    /// The menu-bar preview bitmaps a Settings pane draws. Bounded like the Dock
+    /// cache and released with it once no preview surface is visible.
+    private let statusPreviewCache: StatusIconPreviewCache
     private var visibleOwners: Set<Owner> = []
     private var popoverContentOwned = false
     private var isStarted = false
 
-    init(previewCache: DockIconPreviewCache = .shared) {
+    init(
+        previewCache: DockIconPreviewCache = .shared,
+        statusPreviewCache: StatusIconPreviewCache = .shared
+    ) {
         self.previewCache = previewCache
+        self.statusPreviewCache = statusPreviewCache
     }
 
     func start() {
@@ -54,5 +61,6 @@ final class PreviewResourceLifecycle {
     func releaseIfIdle() {
         guard isStarted, visibleOwners.isEmpty, !popoverContentOwned else { return }
         previewCache.reset()
+        statusPreviewCache.reset()
     }
 }

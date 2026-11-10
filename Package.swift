@@ -6,6 +6,8 @@ let package = Package(
     defaultLocalization: "en",
     platforms: [.macOS(.v13)],
     products: [
+        .executable(name: "StatusTrioAirPodsHelper", targets: ["StatusTrioAirPodsHelper"]),
+        .library(name: "AirPodsAudioContext", type: .dynamic, targets: ["AirPodsAudioContext"]),
         .executable(name: "StatusTrio", targets: ["StatusTrio"]),
         .executable(name: "StatusTrioPowerHelper", targets: ["StatusTrioPowerHelper"])
     ],
@@ -13,11 +15,14 @@ let package = Package(
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.0.0")
     ],
     targets: [
+        .executableTarget(name: "StatusTrioAirPodsHelper", linkerSettings: [.linkedFramework("Foundation"), .linkedFramework("CoreAudio"), .linkedFramework("Security")]),
+        .target(name: "AirPodsAudioContext", exclude: ["LICENSE"], publicHeadersPath: "include", linkerSettings: [.linkedFramework("CoreFoundation"), .linkedFramework("Security")]),
         .target(
             name: "StatusTrioCore",
             dependencies: [
                 .product(name: "Sparkle", package: "Sparkle"),
                 "DDCPrivateAPI",
+                "PowerUIPrivateAPI",
                 "PowerHelperProtocol"
             ],
             path: "Sources/StatusTrioCore",
@@ -56,6 +61,11 @@ let package = Package(
         .target(
             name: "DDCPrivateAPI",
             path: "Sources/DDCPrivateAPI",
+            publicHeadersPath: "include"
+        ),
+        .target(
+            name: "PowerUIPrivateAPI",
+            path: "Sources/PowerUIPrivateAPI",
             publicHeadersPath: "include"
         ),
         .executableTarget(

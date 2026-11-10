@@ -35,7 +35,7 @@ NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
 ## What the audit checked
 
 Every string literal under `Sources` was matched against the table. The source
-uses 166 SF Symbol names. Of those, 26 were introduced after macOS 13.0.
+uses 165 SF Symbol names. Of those, 26 were introduced after macOS 13.0.
 
 Three are not icons at all:
 
@@ -82,6 +82,7 @@ symbol:
 | `airpods.pro.gen3` | 27.0 | `airpods.pro` -> `airpodspro` -> `headphones` |
 | `headset` | 15.0 | Omitted from the explicit picker; still parsed as a Bluetooth class name |
 | `headphones.over.ear` | 26.0 | Omitted from the explicit Bluetooth icon picker |
+| `person.spatialaudio.fill` | 26.0 | `AirPodsControlSymbols.image` checks public and guarded private lookup, then falls back to `person.fill` (macOS 10.15) |
 
 `headset` also remains a Bluetooth class-name-to-kind value; unlike the prior
 audit, it is now displayed as a picker choice on systems that provide the
@@ -132,5 +133,18 @@ The CSVs used while auditing live outside the repository, in
 reproducible on any Mac that still carries the bundle.
 
 ## Icon content plugin identifiers (2026-10-19)
-
 The literal `ring` is an internal presentation ID in `Presentation/Icon/Plugins`, not a name passed to SF Symbols. The source-literal availability audit also sees this ID because CoreGlyphs contains a newer symbol with the same name. It is listed in `auditedPostVenturaSymbols` for this non-rendering use, like the existing parse/class literals. Rendering still uses the established geometric ring and existing Ventura-safe symbols; no `ring` SF Symbol is drawn.
+## AirPods native control symbols (2026-10-30)
+Control Center uses private names `person.open.fill`, `person.closed.fill`, and
+`person.and.sparkles.fill`. The AirPods menu resolves these from the installed
+system using the runtime-checked `imageWithPrivateSystemSymbolName:` selector.
+If the selector or image is missing, it uses the public Ventura-safe symbols
+`person.and.background.dotted`, `person.crop.circle`, and `person.fill.badge.plus`
+respectively. Unknown names, including unavailable Spatial Audio artwork, fall
+back to `person.fill`. The menu never passes these newer/private names directly
+to SwiftUI `Image(systemName:)`. This is a static/runtime fallback audit, not a
+Ventura hardware test.
+The inline Spatial Audio rows use `person.spatialaudio.stereo.fill` when available,
+with a `person.fill` (macOS 10.15) fallback. Head Tracked loads the installed
+Control Center `spatialize-stereo-head-tracked` template asset at runtime; if the
+asset is absent, it also falls back to `person.fill`. No system artwork is bundled.

@@ -25,6 +25,8 @@ enum SettingsMetrics {
     /// Shared preview dimensions for the three-choice app icon settings.
     static let appIconPictureOptionPreviewSize = CGSize(width: 64, height: 42)
     static let appIconPictureOptionSpacing: CGFloat = 6
+    /// Every pop-up menu in Settings keeps one width, independent of its items.
+    static let menuPickerWidth: CGFloat = 160
 }
 
 /// A titled, rounded card group for settings rows.
@@ -99,20 +101,96 @@ struct SettingsHintRow: View {
     }
 }
 
+/// The mark a settings tile draws.
+///
+/// Most rows hand the tile an SF Symbol. Bluetooth cannot: no macOS release
+/// ships a Bluetooth symbol, and the two nearest stand-ins misread at tile
+/// size — `wave.3.right.circle.fill` fills the squircle with a disc, and
+/// `wave.3.right` repeats the Wi-Fi fan drawn one row above it. The rune is
+/// stroked here instead so the tile carries the mark System Settings carries.
+enum SettingsGlyph: Equatable {
+    case symbol(String)
+    case bluetoothRune
+}
+
 /// The rounded, tinted squircle icon that carries a row's symbol, matching System Settings.
 struct SettingsIcon: View {
-    let symbol: String
+    let glyph: SettingsGlyph
     var tint: Color = .accentColor
+    /// Side length of the tinted tile. Defaults to the settings-row size; the
+    /// sidebar passes a smaller value to stay compact.
+    var size: CGFloat = SettingsMetrics.iconSize
+
+    init(glyph: SettingsGlyph, tint: Color = .accentColor, size: CGFloat = SettingsMetrics.iconSize) {
+        self.glyph = glyph
+        self.tint = tint
+        self.size = size
+    }
+
+    init(symbol: String, tint: Color = .accentColor, size: CGFloat = SettingsMetrics.iconSize) {
+        self.init(glyph: .symbol(symbol), tint: tint, size: size)
+    }
 
     var body: some View {
-        RoundedRectangle(cornerRadius: SettingsMetrics.iconCorner, style: .continuous)
+        RoundedRectangle(cornerRadius: size * 0.25, style: .continuous)
             .fill(tint.gradient)
-            .frame(width: SettingsMetrics.iconSize, height: SettingsMetrics.iconSize)
-            .overlay(
-                Image(systemName: SymbolFallback.name(symbol, "questionmark.circle"))
-                    .font(.system(size: SettingsMetrics.iconSize * 0.52, weight: .semibold))
-                    .foregroundStyle(.white)
-            )
+            .frame(width: size, height: size)
+            .overlay(mark.foregroundStyle(.white))
+    }
+
+    @ViewBuilder
+    private var mark: some View {
+        switch glyph {
+        case .symbol(let symbol):
+            Image(systemName: SymbolFallback.name(symbol, "questionmark.circle"))
+                .font(.system(size: size * 0.52, weight: .semibold))
+        case .bluetoothRune:
+            BluetoothRuneShape()
+                .stroke(
+                    style: StrokeStyle(
+                        lineWidth: size * BluetoothRuneShape.strokeRatio,
+                        lineCap: .round,
+                        lineJoin: .round
+                    )
+                )
+        }
+    }
+}
+
+/// The Bluetooth rune as one continuous stroke: down the stem, then through
+/// both chevrons, which is how the mark is drawn rather than an outline of it.
+///
+/// The path is normalized inside a box smaller than the tile so the mark holds
+/// the same optical size as the 13.5 pt SF Symbols beside it.
+private struct BluetoothRuneShape: Shape {
+    /// How much of the tile's side the rune spans.
+    static let widthRatio: CGFloat = 0.50
+    static let heightRatio: CGFloat = 0.58
+    /// Stroke width as a fraction of the tile, tuned against the tile size
+    /// rather than the box so it stays legible at 26 pt. Wider reads heavy:
+    /// the chevrons close up and the mark turns into a blob.
+    static let strokeRatio: CGFloat = 0.070
+
+    func path(in rect: CGRect) -> Path {
+        let box = CGRect(
+            x: rect.midX - rect.width * Self.widthRatio / 2,
+            y: rect.midY - rect.height * Self.heightRatio / 2,
+            width: rect.width * Self.widthRatio,
+            height: rect.height * Self.heightRatio
+        )
+
+        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: box.minX + box.width * x, y: box.minY + box.height * y)
+        }
+
+        var path = Path()
+        path.move(to: point(0.16, 0.28))
+        path.addLine(to: point(0.84, 0.72))
+        path.addLine(to: point(0.50, 1.00))
+        path.addLine(to: point(0.50, 0.00))
+        path.addLine(to: point(0.84, 0.28))
+        path.addLine(to: point(0.16, 0.72))
+        return path
     }
 }
 
@@ -187,9 +265,32 @@ extension SettingsRow where Leading == SettingsIcon {
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.init(
+            glyph: .symbol(symbol),
+            tint: tint,
             title: title,
             subtitle: subtitle,
-            leading: { SettingsIcon(symbol: symbol, tint: tint) },
+            subtitleStatus: subtitleStatus,
+            subtitleLink: subtitleLink,
+            subtitleLinkAction: subtitleLinkAction,
+            trailing: trailing
+        )
+    }
+
+    /// The same row with a tile that is not an SF Symbol, such as the rune.
+    init(
+        glyph: SettingsGlyph,
+        tint: Color = .accentColor,
+        title: String,
+        subtitle: String? = nil,
+        subtitleStatus: Text? = nil,
+        subtitleLink: Text? = nil,
+        subtitleLinkAction: (() -> Void)? = nil,
+        @ViewBuilder trailing: () -> Trailing
+    ) {
+        self.init(
+            title: title,
+            subtitle: subtitle,
+            leading: { SettingsIcon(glyph: glyph, tint: tint) },
             trailing: trailing,
             subtitleLink: subtitleLink,
             subtitleLinkAction: subtitleLinkAction,
@@ -221,16 +322,51 @@ extension SettingsRow where Leading == EmptyView {
 
 /// A convenient row with an SF symbol, title, and a switch toggle.
 struct SettingsToggleRow: View {
-    let symbol: String
+    let glyph: SettingsGlyph
     var tint: Color = .accentColor
     let title: String
     var subtitle: String? = nil
     var subtitleStatus: Text? = nil
     @Binding var isOn: Bool
 
+    init(
+        symbol: String,
+        tint: Color = .accentColor,
+        title: String,
+        subtitle: String? = nil,
+        subtitleStatus: Text? = nil,
+        isOn: Binding<Bool>
+    ) {
+        self.init(
+            glyph: .symbol(symbol),
+            tint: tint,
+            title: title,
+            subtitle: subtitle,
+            subtitleStatus: subtitleStatus,
+            isOn: isOn
+        )
+    }
+
+    /// The same row whose tile is not an SF Symbol, such as the rune.
+    init(
+        glyph: SettingsGlyph,
+        tint: Color = .accentColor,
+        title: String,
+        subtitle: String? = nil,
+        subtitleStatus: Text? = nil,
+        isOn: Binding<Bool>
+    ) {
+        self.glyph = glyph
+        self.tint = tint
+        self.title = title
+        self.subtitle = subtitle
+        self.subtitleStatus = subtitleStatus
+        self._isOn = isOn
+    }
+
     var body: some View {
         SettingsRow(
-            symbol,
+            glyph: glyph,
             tint: tint,
             title: title,
             subtitle: subtitle,
@@ -270,7 +406,7 @@ struct SettingsMenuRow<T: Hashable & Identifiable>: View {
                     }
                 }
                 .labelsHidden()
-                .fixedSize()
+                .settingsMenuPickerWidth()
             }
         )
     }
@@ -749,4 +885,145 @@ struct SidebarMaterial: NSViewRepresentable {
     }
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+}
+
+/// macOS 26's `.buttonSizing(.flexible)` makes a menu picker fill its frame
+/// instead of sizing to its current menu items. Older systems keep the frame.
+private struct SettingsMenuPickerSizing: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.buttonSizing(.flexible)
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    func settingsMenuPickerWidth() -> some View {
+        frame(width: SettingsMetrics.menuPickerWidth)
+            .modifier(SettingsMenuPickerSizing())
+    }
+}
+
+// MARK: - Sidebar visual language
+
+/// Visual parameters for the two-level settings sidebar.
+///
+/// Plan B: every category carries one monochrome glyph, and leaf subtopics are
+/// text only. Keeping the numbers here (instead of scattering them through the
+/// row builders) makes the sidebar easy to retune without touching behaviour.
+enum SettingsSidebarMetrics {
+    /// Space reserved below the traffic-light buttons.
+    static let topInset: CGFloat = 42
+    /// Outer horizontal margin of the scrolling sidebar content.
+    static let horizontalPadding: CGFloat = 10
+    /// Inner horizontal padding of a category row's own selection area.
+    static let rowHorizontalPadding: CGFloat = 8
+    /// Slightly tighter inner padding for leaf rows so their text keeps a usable
+    /// width despite the extra indent.
+    static let subtopicRowHorizontalPadding: CGFloat = 6
+
+    static let categoryRowHeight: CGFloat = 32
+    static let subtopicRowHeight: CGFloat = 26
+    /// Gap between two category blocks (category plus its leaves). Kept in the
+    /// 2–4 pt band so the list reads denser than the old 6 pt layout.
+    static let categoryGroupSpacing: CGFloat = 4
+    /// Vertical breathing room around the pinned app-wide group at the bottom.
+    static let pinnedGroupVerticalPadding: CGFloat = 6
+    /// Leading inset of the hairline between the scrollable and pinned groups.
+    static let groupSeparatorInset: CGFloat = 18
+
+    /// Side length of the coloured category tile in the sidebar.
+    static let tileSize: CGFloat = 22
+    /// Fixed glyph column so every category title starts at the same x.
+    static let iconSlotWidth: CGFloat = 18
+    static let iconPointSize: CGFloat = 16
+    static let iconTextSpacing: CGFloat = 10
+    /// Drawn box for the custom Bluetooth rune before it is centered in the slot.
+    static let runeFrame: CGFloat = 26
+    static let runeStroke: CGFloat = 1.8
+
+    static let categoryFontSize: CGFloat = 13
+    static let subtopicFontSize: CGFloat = 12
+    static let aboutVersionFontSize: CGFloat = 10
+    static let chevronPointSize: CGFloat = 10
+
+    /// Leading inset of a leaf row from the sidebar content edge. It is chosen so
+    /// the leaf *text* lines up on the same vertical column as the parent
+    /// category's *text* (not its tile), so the whole group reads as one aligned
+    /// text grid: outer padding + this indent + leaf row padding = parent text x.
+    static let subtopicIndent: CGFloat = 34
+    static let subtopicCornerRadius: CGFloat = 6
+    static let categoryCornerRadius: CGFloat = 6
+
+    /// Lightweight expand/collapse and selection animation (0.16–0.18 s).
+    static let expandAnimationDuration: Double = 0.17
+
+    /// How strongly the accent tint fills a selected row in the key window.
+    static let activeSelectionOpacity: Double = 0.18
+
+    /// Per-glyph optical scale so the sidebar icon column reads as one size.
+    /// Derived by measuring each glyph's rendered bounding box; wide glyphs
+    /// (battery, app icon) are trimmed slightly, narrow/tall ones (wifi, the
+    /// Bluetooth rune) and the small outlined round glyphs are nudged up.
+    static func opticalScale(for glyph: SettingsGlyph) -> CGFloat {
+        switch glyph {
+        case .symbol(let name):
+            if name.hasPrefix("battery") { return 1.06 }
+            if name == "wifi" { return 1.06 }
+            if name.hasPrefix("speaker") { return 0.94 }
+            if name.hasPrefix("sun.max") { return 1.0 }
+            if name.hasPrefix("macwindow") { return 0.96 }
+            if name.hasPrefix("list.bullet.rectangle") { return 1.0 }
+            if name.hasPrefix("gearshape") { return 1.02 }
+            if name.hasPrefix("info.circle") { return 1.04 }
+            return 1.0
+        case .bluetoothRune:
+            return 1.18
+        }
+    }
+}
+
+/// A monochrome category glyph for the sidebar.
+///
+/// The Bluetooth category keeps the project's custom rune instead of an
+/// inaccurate SF Symbol; it is only re-sized and tinted here. Every glyph is
+/// centered in a fixed-width slot so category titles stay left-aligned.
+struct SettingsSidebarGlyph: View {
+    let glyph: SettingsGlyph
+    var tint: Color = .secondary
+
+    var body: some View {
+        Group {
+            switch glyph {
+            case .symbol(let symbol):
+                Image(systemName: SymbolFallback.name(symbol, "questionmark.circle"))
+                    .font(.system(size: SettingsSidebarMetrics.iconPointSize, weight: .medium))
+            case .bluetoothRune:
+                BluetoothRuneShape()
+                    .stroke(
+                        style: StrokeStyle(
+                            lineWidth: SettingsSidebarMetrics.runeStroke,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+                    .frame(
+                        width: SettingsSidebarMetrics.runeFrame,
+                        height: SettingsSidebarMetrics.runeFrame
+                    )
+            }
+        }
+        // SF Symbols of different aspect ratios render at noticeably different
+        // apparent sizes in a fixed slot (a wide battery reads small, a narrow
+        // rune reads thin). Nudge each one optically so the column looks even.
+        .scaleEffect(SettingsSidebarMetrics.opticalScale(for: glyph))
+        .foregroundStyle(tint)
+        .frame(
+            width: SettingsSidebarMetrics.iconSlotWidth,
+            height: SettingsSidebarMetrics.iconSlotWidth
+        )
+    }
 }

@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class SettingsRowHitAreaTests: XCTestCase {
+final class SettingsRowHitAreaTests: VisibleUITestCase {
     func testPopupSettingsButtonUsesFullRowHitArea() {
         let localization = makeLocalization()
         let settings = makeSettings()
@@ -22,9 +22,11 @@ final class SettingsRowHitAreaTests: XCTestCase {
         let view = StatusPopoverView(
             panel: panel,
             scrollTargets: PopoverScrollTargets(),
+            layoutMetrics: StatusPanelLayoutMetrics(),
             requestWiFiNameAccess: {},
             requestBluetoothAuthorization: {},
             openBatterySettings: {},
+            openAppBatterySettings: {},
             openWiFiSettings: {},
             openNetworkSettings: {},
             openSharingSettings: {},
@@ -41,7 +43,8 @@ final class SettingsRowHitAreaTests: XCTestCase {
 
         let hitAreaWidths = interactiveSubViewWidths(
             for: view,
-            size: NSSize(width: 300, height: 600)
+            size: NSSize(width: 300, height: 600),
+            expectedHitAreaWidth: 268
         )
 
         XCTAssertTrue(
@@ -60,7 +63,8 @@ final class SettingsRowHitAreaTests: XCTestCase {
 
         let hitAreaWidths = interactiveSubViewWidths(
             for: view,
-            size: NSSize(width: 300, height: 40)
+            size: NSSize(width: 300, height: 40),
+            expectedHitAreaWidth: 300
         )
 
         XCTAssertTrue(
@@ -83,7 +87,8 @@ final class SettingsRowHitAreaTests: XCTestCase {
 
         let hitAreaWidths = interactiveSubViewWidths(
             for: view,
-            size: NSSize(width: 300, height: 80)
+            size: NSSize(width: 300, height: 80),
+            expectedHitAreaWidth: 300
         )
 
         XCTAssertTrue(
@@ -100,7 +105,8 @@ final class SettingsRowHitAreaTests: XCTestCase {
 
         let hitAreaWidths = interactiveSubViewWidths(
             for: view,
-            size: NSSize(width: 260, height: 40)
+            size: NSSize(width: 260, height: 40),
+            expectedHitAreaWidth: 260
         )
 
         XCTAssertTrue(
@@ -119,7 +125,8 @@ final class SettingsRowHitAreaTests: XCTestCase {
 
         let hitAreas = interactiveSubViewSizes(
             for: view,
-            size: NSSize(width: 300, height: 60)
+            size: NSSize(width: 300, height: 60),
+            expectedHitAreaWidth: 300
         )
 
         XCTAssertTrue(
@@ -130,14 +137,21 @@ final class SettingsRowHitAreaTests: XCTestCase {
 
     private func interactiveSubViewWidths<V: View>(
         for view: V,
-        size: NSSize
+        size: NSSize,
+        expectedHitAreaWidth: CGFloat
     ) -> [CGFloat] {
-        interactiveSubViewSizes(for: view, size: size).map(\.width)
+        interactiveSubViewSizes(
+            for: view,
+            size: size,
+            expectedHitAreaWidth: expectedHitAreaWidth
+        )
+        .map(\.width)
     }
 
     private func interactiveSubViewSizes<V: View>(
         for view: V,
-        size: NSSize
+        size: NSSize,
+        expectedHitAreaWidth: CGFloat
     ) -> [NSSize] {
         let hostingView = NSHostingView(rootView: view)
         hostingView.frame = NSRect(origin: .zero, size: size)
@@ -172,7 +186,8 @@ final class SettingsRowHitAreaTests: XCTestCase {
         // sleeps that lost exactly this kind of layout race.
         let deadline = Date().addingTimeInterval(2)
         var sizes = qualifyingSubViewSizes(of: hostingView)
-        while !sizes.contains(where: { abs($0.width - size.width) < 0.5 }), Date() < deadline {
+        while !sizes.contains(where: { abs($0.width - expectedHitAreaWidth) < 0.5 }),
+              Date() < deadline {
             RunLoop.current.run(until: Date().addingTimeInterval(0.01))
             hostingView.layoutSubtreeIfNeeded()
             sizes = qualifyingSubViewSizes(of: hostingView)

@@ -2,9 +2,38 @@ import AppKit
 import CoreGraphics
 
 enum DockIconGlyphLayout {
+    /// The design canvas the renderer draws into.
     static let designLength: CGFloat = 1024
-    static let glyphSVGOrigin = CGPoint(x: 194.8, y: 171.84)
-    static let glyphSVGSize: CGFloat = 672
+
+    /// Apple's macOS icon grid: a full-bleed icon occupies 824 of the 1024
+    /// design units, leaving a 100-unit transparent margin on every side.
+    /// macOS applies that grid to the bundle icon itself; the Dock tile is a
+    /// free-standing bitmap, so the renderer has to draw the margin too.
+    ///
+    /// Issue #260: the tile used to fill 896 of the 1024 units (87.5%), which
+    /// made the Dock icon read larger than the system apps beside it. Every
+    /// value below is the original 896-unit artwork scaled into the grid
+    /// about the canvas centre, so the artwork's internal proportions — and
+    /// the bundle icon it also generates — stay unchanged.
+    static let artworkSide: CGFloat = 824
+    /// The 896-unit square the artwork was originally authored in.
+    private static let referenceArtworkSide: CGFloat = 896
+    static let artworkScale = artworkSide / referenceArtworkSide
+
+    /// The glyph frame, authored in the reference artwork's coordinates and
+    /// scaled into the icon grid.
+    private static let referenceGlyphOrigin = CGPoint(x: 194.8, y: 171.84)
+    private static let referenceGlyphSize: CGFloat = 672
+    static let glyphSVGOrigin = scaledPoint(referenceGlyphOrigin)
+    static let glyphSVGSize: CGFloat = referenceGlyphSize * artworkScale
+
+    private static func scaledPoint(_ point: CGPoint) -> CGPoint {
+        let centre = designLength / 2
+        return CGPoint(
+            x: centre + (point.x - centre) * artworkScale,
+            y: centre + (point.y - centre) * artworkScale
+        )
+    }
 
     static func frame(in bounds: CGRect) -> CGRect {
         guard bounds.width > 0, bounds.height > 0 else { return .zero }
@@ -27,12 +56,35 @@ enum DockIconRenderer {
     static let scale: CGFloat = 2
     static let logicalSize: CGFloat = 256
     nonisolated static let pixelSize = 512
+    /// The bundle icon's Icon Composer artwork is authored at 1024 px.
+    nonisolated static let appIconArtworkPixelSize = 1024
 
-    // Geometry mirrors Support/AppIcon.svg.
-    private static let bodyRect = CGRect(x: 64, y: 64, width: 896, height: 896)
-    private static let bodyCornerRadius: CGFloat = 210
-    private static let borderRect = CGRect(x: 65, y: 65, width: 894, height: 894)
-    private static let borderCornerRadius: CGFloat = 209
+    /// How the tile draws its own background.
+    ///
+    /// The Dock tile is a rounded body with a hairline border because it is a
+    /// free-standing bitmap. The bundle icon is composed by Icon Composer and
+    /// clipped to the system's icon shape, so its artwork is a square: a
+    /// second rounded edge drawn inside that shape would double the border.
+    private enum TileBody {
+        case rounded
+        case square
+    }
+
+    // Geometry mirrors Support/AppIcon.svg, scaled uniformly from the 896-unit
+    // artwork into Apple's 824-unit icon grid (see DockIconGlyphLayout). The
+    // hairline border sits one design unit inside the body, as it did in the
+    // reference artwork; its 2-unit stroke is deliberately left unscaled so it
+    // stays exactly one pixel in the 512 px Dock raster instead of blurring.
+    private static let bodyRect = CGRect(
+        x: (DockIconGlyphLayout.designLength - DockIconGlyphLayout.artworkSide) / 2,
+        y: (DockIconGlyphLayout.designLength - DockIconGlyphLayout.artworkSide) / 2,
+        width: DockIconGlyphLayout.artworkSide,
+        height: DockIconGlyphLayout.artworkSide
+    )
+    private static let bodyCornerRadius: CGFloat = 210 * DockIconGlyphLayout.artworkScale
+    private static let borderRect = bodyRect.insetBy(dx: 1, dy: 1)
+    private static let borderCornerRadius: CGFloat =
+        209 * DockIconGlyphLayout.artworkScale
 
     // Build colors in the bitmap's own space so AppIcon.svg's hex values survive
     // without a Generic RGB to Device RGB conversion.
@@ -119,6 +171,28 @@ enum DockIconRenderer {
             pixelLength: pixelLength,
             crop: nil,
             drawsTileBackground: true
+        )
+    }
+
+    /// The bundle icon's artwork for one appearance.
+    ///
+    /// The Icon Composer document owns the system icon shape, so this variant
+    /// is a full-bleed square without the Dock tile's rounded body and border.
+    /// Only the icon build and its preview test call it.
+    static func appIconArtwork(
+        scene: IconSceneState,
+        backgroundStyle: DockIconBackgroundStyle,
+        pixelLength: Int = DockIconRenderer.appIconArtworkPixelSize
+    ) -> CGImage? {
+        render(
+            scene: scene,
+            backgroundStyle: backgroundStyle,
+            phase: nil,
+            regions: .all,
+            pixelLength: pixelLength,
+            crop: nil,
+            drawsTileBackground: true,
+            body: .square
         )
     }
 
@@ -235,9 +309,11 @@ enum DockIconRenderer {
         regions: IconSceneRegion,
         pixelLength: Int,
         crop: CGRect?,
-        drawsTileBackground: Bool
+        drawsTileBackground: Bool,
+        body: TileBody = .rounded
     ) -> CGImage? {
-        guard pixelLength > 0, pixelLength <= pixelSize else { return nil }
+        let maximumPixelLength = body == .square ? appIconArtworkPixelSize : pixelSize
+        guard pixelLength > 0, pixelLength <= maximumPixelLength else { return nil }
 
         let tileLength = CGFloat(pixelLength)
         let bitmap = crop ?? CGRect(x: 0, y: 0, width: tileLength, height: tileLength)
@@ -262,16 +338,39 @@ enum DockIconRenderer {
         )
 
         if drawsTileBackground {
-            context.addPath(roundedRect(bodyRect, cornerRadius: bodyCornerRadius))
-            context.setFillColor(palette.body)
-            context.fillPath()
-            context.addPath(roundedRect(borderRect, cornerRadius: borderCornerRadius))
-            context.setStrokeColor(palette.border)
-            context.setLineWidth(2)
-            context.strokePath()
+            switch body {
+            case .rounded:
+                context.addPath(roundedRect(bodyRect, cornerRadius: bodyCornerRadius))
+                context.setFillColor(palette.body)
+                context.fillPath()
+                context.addPath(roundedRect(borderRect, cornerRadius: borderCornerRadius))
+                context.setStrokeColor(palette.border)
+                context.setLineWidth(2)
+                context.strokePath()
+            case .square:
+                context.setFillColor(palette.body)
+                context.fill(CGRect(
+                    x: 0,
+                    y: 0,
+                    width: DockIconGlyphLayout.designLength,
+                    height: DockIconGlyphLayout.designLength
+                ))
+            }
         }
 
         context.saveGState()
+        if body == .square {
+            // The Dock tile's artwork is 824 of the 1024-unit canvas; the
+            // bundle icon's tile is the whole canvas, so the glyph is scaled
+            // about the tile centre to keep the artwork's proportion to the
+            // tile itself. `glyphSVGSize` is already grid-scaled, so this
+            // factor restores the reference artwork's glyph size.
+            let glyphScale = DockIconGlyphLayout.designLength / bodyRect.width
+            let center = CGPoint(x: bodyRect.midX, y: bodyRect.midY)
+            context.translateBy(x: center.x, y: center.y)
+            context.scaleBy(x: glyphScale, y: glyphScale)
+            context.translateBy(x: -center.x, y: -center.y)
+        }
         context.translateBy(
             x: DockIconGlyphLayout.glyphSVGOrigin.x,
             y: DockIconGlyphLayout.designLength
@@ -284,6 +383,7 @@ enum DockIconRenderer {
             size: DockIconGlyphLayout.glyphSVGSize,
             foreground: palette.foreground,
             criticalColor: StatusIconRenderer.defaultCriticalColor,
+            statusPalette: .resolved(dark: backgroundStyle == .dark),
             phase: phase,
             regions: regions
         )

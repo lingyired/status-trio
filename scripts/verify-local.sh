@@ -81,7 +81,8 @@ run_step "macOS SDK version" xcrun --sdk macosx --show-sdk-version
 
 shopt -s nullglob
 SYNTAX_FILES=("scripts/"*.sh)
-run_step "Shell syntax" bash -n "${SYNTAX_FILES[@]}"
+run_step "Shell syntax" bash -e -c 'for script; do bash -n "$script"; done' \
+    bash "${SYNTAX_FILES[@]}"
 
 if [[ "$MODE" == "quick" ]]; then
     echo "quick filter: $FILTER"
@@ -116,19 +117,29 @@ else
     run_step "Privileged helper bundle" bash scripts/verify-privileged-helper-bundle.sh dist/StatusTrio.app
 
     NATIVE_CHECKS=(
+        "scripts/test-powerui-charge-restore.sh"
         "scripts/test-macos13-deployment-contract-regressions.sh"
         "scripts/test-macos13-deployment-contract.sh"
         "scripts/test-appcast-minimum-system-version.sh"
         "scripts/test-macos13-bundle-contract.sh"
+        "scripts/test-app-icon-contract.sh"
         "scripts/test-privileged-helper-bundle-contract.sh"
         "scripts/test-mobile-battery-helper.sh"
         "scripts/test-mobile-battery-rpaths.sh"
         "scripts/test-otool-dependencies.sh"
         "scripts/test-macos13-sparkle-contract.sh"
         "scripts/test-mobile-battery-source-cache.sh"
+        "scripts/test-mobile-battery-build-cache.sh"
+        "scripts/test-ci-diagnostics.sh"
+        "scripts/test-ci-workflow.sh"
+        "scripts/test-build-timing.sh"
+        "scripts/test-launch-computer-use.sh"
+        "scripts/test-background-ui-configuration.sh"
+        "scripts/test-ui-focus-coverage.sh"
         "scripts/test-release-workflow-policy.sh"
         "scripts/test-release-pipeline.sh"
         "scripts/test-release-notarization.sh"
+        "scripts/test-dmg-installer.sh"
         "scripts/test-mobile-battery-clang-version.sh"
         "scripts/test-verify-local.sh"
         "scripts/test-verify-local-bundle.sh"

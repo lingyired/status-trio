@@ -27,11 +27,15 @@ final class AppIconController {
     private let renderDockIcon: DockRenderer
     private let theme: () -> SystemIconAppearanceTheme
     private let isDarkAppearance: () -> Bool
+    private let appearanceObservation: any SystemAppearanceObserving
     private let monitor: SystemIconAppearanceMonitor
     private var cancellables: Set<AnyCancellable> = []
     private var renderCache = DockIconRenderCache()
     private let imageCache: DockIconImageCache
     private let renderCoalescer: IconRenderCoalescer
+    /// Dock-only coalescer for continuous volume adjustment. Other scene and
+    /// settings changes render through `renderCoalescer` or immediately.
+    private let volumeRenderCoalescer: DockVolumeRenderCoalescer
     private var hasRenderedDockIcon = false
     private var currentPlacement: AppIconPlacement
     private var currentBackgroundPreference: DockIconBackgroundPreference
@@ -48,8 +52,6 @@ final class AppIconController {
     var dockChargingAnimationEligibilityDidChange: (@MainActor () -> Void)?
     /// Fires when the scene or resolved tile style the Dock should draw changes.
     var dockContentDidChange: (@MainActor () -> Void)?
-    /// Re-exposes the existing system-appearance poll to AppEnvironment.
-    var systemPollDidFire: (@MainActor () -> Void)?
     private var reportedDockAnimationEligibility: Bool?
     /// The placement is the user's own choice; a window that temporarily makes
     /// the app regular must not claim the animation's only surface.
@@ -80,7 +82,9 @@ final class AppIconController {
                 .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         },
         notificationCenter: NotificationCenter = .default,
+        appearanceObservation: (any SystemAppearanceObserving)? = nil,
         renderCoalescer: IconRenderCoalescer? = nil,
+        volumeRenderCoalescer: DockVolumeRenderCoalescer? = nil,
         imageCache: DockIconImageCache? = nil
     ) {
         self.settings = settings
@@ -90,9 +94,12 @@ final class AppIconController {
         self.setMenuBarVisible = setMenuBarVisible
         self.renderDockIcon = renderDockIcon
         self.renderCoalescer = renderCoalescer ?? IconRenderCoalescer()
+        self.volumeRenderCoalescer = volumeRenderCoalescer ?? DockVolumeRenderCoalescer()
         self.imageCache = imageCache ?? DockIconImageCache()
         self.theme = theme
         self.isDarkAppearance = isDarkAppearance
+        self.appearanceObservation = appearanceObservation
+            ?? ApplicationAppearanceObservation()
         self.monitor = SystemIconAppearanceMonitor(
             readTheme: theme,
             notificationCenter: notificationCenter
@@ -129,10 +136,10 @@ final class AppIconController {
             self?.renderLatestDockIcon()
             self?.dockContentDidChange?()
         }
-        monitor.onPoll = { [weak self] in
-            self?.systemPollDidFire?()
-        }
         monitor.start()
+        appearanceObservation.start { [weak self] in
+            self?.systemAppearanceDidChange()
+        }
         subscribeToPlacement()
         subscribeToIconPresentation()
         subscribeToBackgroundStyle()
@@ -147,12 +154,12 @@ final class AppIconController {
         isStarted = false
         cancellables.removeAll()
         renderCoalescer.cancel()
+        volumeRenderCoalescer.cancel()
         monitor.onChange = nil
-        monitor.onPoll = nil
         monitor.stop()
+        appearanceObservation.stop()
         dockChargingAnimationEligibilityDidChange = nil
         dockContentDidChange = nil
-        systemPollDidFire = nil
         isDockChargingAnimationActive = false
         reportedDockAnimationEligibility = nil
         clearDockIcon()
@@ -163,6 +170,7 @@ final class AppIconController {
     }
 
     func flushPendingPresentationForTesting() {
+        volumeRenderCoalescer.flushPending()
         renderCoalescer.flushPending()
     }
 
@@ -213,10 +221,22 @@ final class AppIconController {
             .dropFirst()
             .sink { [weak self] output in
                 guard let self else { return }
+                let previousScene = latestIconOutput.scene
                 latestIconOutput = output
                 dockContentDidChange?()
-                renderCoalescer.submit { [weak self] in
-                    self?.renderLatestDockIcon()
+                if output.scene.isVolumeValueChange(from: previousScene) {
+                    // Issue #263: a continuous volume adjustment may repaint the
+                    // Dock at a bounded rate; the newest value always lands.
+                    volumeRenderCoalescer.submit(footer: output.scene.footer) { [weak self] in
+                        self?.renderLatestDockIcon()
+                    }
+                } else {
+                    // Settings and non-volume scene changes must not wait behind
+                    // a volume burst.
+                    volumeRenderCoalescer.cancel()
+                    renderCoalescer.submit { [weak self] in
+                        self?.renderLatestDockIcon()
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -267,6 +287,16 @@ final class AppIconController {
             _ = activationPolicy.setDockIconVisible(false)
             isDockTileVisible = activationPolicy.isRegularApp
         }
+    }
+
+    /// Follows a system light/dark switch. The resolved background style is part
+    /// of `DockIconRenderKey`, so re-rendering here invalidates the cached raster
+    /// and the tile picks up the new palette. The menu bar already follows its
+    /// own button's appearance.
+    private func systemAppearanceDidChange() {
+        guard isStarted else { return }
+        renderLatestDockIcon()
+        dockContentDidChange?()
     }
 
     private func renderLatestDockIcon() {
