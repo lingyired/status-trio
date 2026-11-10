@@ -1223,7 +1223,8 @@ final class StatusBarController: NSObject {
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
-            usesNaturalScrolling: settings.popupVolumeNaturalScrolling
+            usesNaturalScrolling: settings.popupVolumeNaturalScrolling,
+            wheelStep: PopupVolumeScrollAdjustment.volumeWheelStep
         )
         guard let delta else { return true }
 
@@ -1231,6 +1232,9 @@ final class StatusBarController: NSObject {
             delta: delta,
             to: currentScalar
         )
+        // Publish this wheel step on the current runloop instead of waiting for
+        // the drag coalescer, so the row tracks the wheel without a visible lag.
+        panelViewModel.beginWheelVolumeAdjustment()
         if volumeScrollSession.shouldUnmute(
             in: volumeState,
             isIncreasing: delta > 0
@@ -1238,6 +1242,7 @@ final class StatusBarController: NSObject {
             store.toggleMute()
         }
         store.setVolume(nextScalar)
+        panelViewModel.endWheelVolumeAdjustment()
         return true
     }
 

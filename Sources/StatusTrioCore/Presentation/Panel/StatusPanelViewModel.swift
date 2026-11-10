@@ -170,6 +170,10 @@ final class StatusPanelViewModel: ObservableObject {
     /// The newest level-only reading waiting for the next coalesced publish.
     private var pendingLevelVolumeStatus: VolumeStatus?
     private var levelVolumePublishTask: Task<Void, Never>?
+    /// True while the wheel is driving the volume. Wheel events arrive slowly
+    /// enough that the drag-tuning coalescer would only make the row lag behind
+    /// the pointer, so those level changes publish on the same runloop.
+    private var isWheelAdjustingVolume = false
     /// A drag emits levels far faster than the row can usefully draw them.
     /// Coalescing to 10 Hz stops the panel hosting view from laying out the
     /// whole tree on every tick (#263); the slider's local draft keeps the
@@ -1231,12 +1235,24 @@ final class StatusPanelViewModel: ObservableObject {
     private func receiveLiveVolume(_ status: VolumeStatus) {
         let previous = lastLiveVolumeStatus
         lastLiveVolumeStatus = status
-        if let previous, status.changesOnlyLevel(comparedTo: previous) {
+        if let previous,
+           status.changesOnlyLevel(comparedTo: previous),
+           !isWheelAdjustingVolume {
             pendingLevelVolumeStatus = status
             scheduleLevelVolumePublish()
         } else {
             publishVolume(mapVolume(status))
         }
+    }
+
+    /// Marks a wheel-driven volume change so the level publish skips the drag
+    /// coalescer for the duration of one event.
+    func beginWheelVolumeAdjustment() {
+        isWheelAdjustingVolume = true
+    }
+
+    func endWheelVolumeAdjustment() {
+        isWheelAdjustingVolume = false
     }
 
     private func scheduleLevelVolumePublish() {

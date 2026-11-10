@@ -2,19 +2,27 @@ import Foundation
 
 struct PopupVolumeScrollAdjustment {
     private static let preciseVolumePerPoint = 0.002
-    private static let discreteVolumePerLine = 0.02
+    static let discreteVolumePerLine = 0.02
+
+    /// Volume step for one mouse-wheel notch. A physical wheel loses the
+    /// trackpad's continuous feel and only fires discrete lines, so the
+    /// per-point trackpad constant leaves it moving ~2% a notch — many turns
+    /// to cross the slider. Matching the system volume keys' 1/16 increment
+    /// (~6%) keeps the wheel snappy without changing the smooth trackpad mapping.
+    static let volumeWheelStep = 1.0 / 16.0
 
     func volumeDelta(
         deltaY: Double,
         isPrecise: Bool,
         isDirectionInverted: Bool,
-        usesNaturalScrolling: Bool
+        usesNaturalScrolling: Bool,
+        wheelStep: Double = PopupVolumeScrollAdjustment.discreteVolumePerLine
     ) -> Double? {
         guard deltaY.isFinite, deltaY != 0 else { return nil }
 
         let volumePerUnit = isPrecise
             ? Self.preciseVolumePerPoint
-            : Self.discreteVolumePerLine
+            : wheelStep
         let scrollUpDelta = usesNaturalScrolling
             ? (isDirectionInverted ? -deltaY : deltaY)
             : deltaY

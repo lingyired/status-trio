@@ -28,6 +28,10 @@ enum PanelLevelSliderMetrics {
     static let labelFontSize: CGFloat = 9
     /// How long the label takes to move between the two sides.
     static let labelAnimationDuration: TimeInterval = 0.16
+    /// How long a programmatic value change (wheel, system echo) takes to glide
+    /// to its target instead of jumping. Kept short so it still feels attached
+    /// to the gesture.
+    static let valueAnimationDuration: TimeInterval = 0.11
     /// Room reserved around the knob raster for its baked shadow.
     static let knobRasterMargin: CGFloat = 6
 
@@ -232,11 +236,10 @@ private extension PanelLevelSlider {
             // the gesture; a late system echo outside a drag applies normally
             // (the panel-level state owns echo suppression).
             if !nsView.isTracking {
-                let target = clamped(currentValue)
-                if abs(nsView.doubleValue - target) > 0.0001 {
-                    nsView.doubleValue = target
-                    nsView.needsDisplay = true
-                }
+                // Glide to the new target instead of snapping, so a stream of
+                // discrete wheel notches (or a system echo) reads as continuous
+                // motion rather than a stutter.
+                nsView.animateValue(to: clamped(currentValue))
             }
             nsView.refreshLabel(animated: true)
         }
@@ -297,6 +300,15 @@ final class PanelLevelSliderView: NSSlider {
         var side: PanelLevelSliderLabelLayout.Side
     }
 
+    private struct ValueAnimation {
+        var fromValue: Double
+        var toValue: Double
+        let startTime: TimeInterval
+    }
+
+    private var valueAnimation: ValueAnimation?
+    private var valueAnimationTimer: Timer?
+
     /// Marks tracking session boundaries so `mouseDown`/`mouseUp` around a
     /// super call always pair, including for keyboard navigation.
     private var isGestureActive = false
@@ -321,6 +333,7 @@ final class PanelLevelSliderView: NSSlider {
         super.viewWillMove(toWindow: newWindow)
         if newWindow == nil {
             stopLabelAnimationTimer()
+            stopValueAnimationTimer()
         }
     }
 
@@ -463,6 +476,92 @@ final class PanelLevelSliderView: NSSlider {
     private func stopLabelAnimationTimer() {
         labelAnimationTimer?.invalidate()
         labelAnimationTimer = nil
+    }
+
+    // MARK: Value animation.
+
+    /// Eases the drawn position toward a programmatic target. Drags never use
+    /// this — the pointer owns the position while `isTracking` — so only wheel
+    /// and system-echo updates glide.
+    func animateValue(to target: Double) {
+        let target = min(1, max(0, target))
+        if let animation = valueAnimation,
+           abs(animation.toValue - target) < 0.000_1 {
+            return
+        }
+        if abs(clampedDoubleValue - target) <= 0.000_1 {
+            valueAnimation = nil
+            stopValueAnimationTimer()
+            doubleValue = target
+            refreshLabel(animated: true)
+            needsDisplay = true
+            return
+        }
+
+        let from = currentDisplayedValue()
+        valueAnimation = ValueAnimation(
+            fromValue: from,
+            toValue: target,
+            startTime: ProcessInfo.processInfo.systemUptime
+        )
+        doubleValue = from
+        startValueAnimationTimerIfNeeded()
+        needsDisplay = true
+    }
+
+    /// Stops any in-flight glide and leaves the native value where it is. Used
+    /// when a pointer/keyboard gesture takes over the control.
+    func cancelValueAnimation() {
+        valueAnimation = nil
+        stopValueAnimationTimer()
+    }
+
+    private func currentDisplayedValue() -> Double {
+        guard let animation = valueAnimation else { return clampedDoubleValue }
+        let elapsed = ProcessInfo.processInfo.systemUptime - animation.startTime
+        let progress = min(1, max(0, elapsed / PanelLevelSliderMetrics.valueAnimationDuration))
+        return animation.fromValue + (animation.toValue - animation.fromValue) * Self.easeOut(progress)
+    }
+
+    private func startValueAnimationTimerIfNeeded() {
+        guard valueAnimationTimer == nil else { return }
+        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] timer in
+            guard let self else { timer.invalidate(); return }
+            self.stepValueAnimation()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        valueAnimationTimer = timer
+    }
+
+    private func stepValueAnimation() {
+        guard let animation = valueAnimation else {
+            stopValueAnimationTimer()
+            return
+        }
+        let elapsed = ProcessInfo.processInfo.systemUptime - animation.startTime
+        let progress = min(1, max(0, elapsed / PanelLevelSliderMetrics.valueAnimationDuration))
+        let value = animation.fromValue
+            + (animation.toValue - animation.fromValue) * Self.easeOut(progress)
+        doubleValue = value
+        refreshLabel(animated: true)
+        needsDisplay = true
+        if progress >= 1 {
+            doubleValue = animation.toValue
+            valueAnimation = nil
+            stopValueAnimationTimer()
+            refreshLabel(animated: true)
+            needsDisplay = true
+        }
+    }
+
+    private func stopValueAnimationTimer() {
+        valueAnimationTimer?.invalidate()
+        valueAnimationTimer = nil
+    }
+
+    /// Cubic ease-out: quick initial movement that settles gently on the target.
+    private static func easeOut(_ progress: Double) -> Double {
+        1 - pow(1 - min(1, max(0, progress)), 3)
     }
 
     // MARK: Drawing.
@@ -737,6 +836,7 @@ final class PanelLevelSliderView: NSSlider {
 
     override func mouseDown(with event: NSEvent) {
         guard !isGestureActive else { return }
+        cancelValueAnimation()
         isGestureActive = true
         onEditingChanged?(true)
         super.mouseDown(with: event)
@@ -767,6 +867,7 @@ final class PanelLevelSliderView: NSSlider {
             super.keyDown(with: event)
             return
         }
+        cancelValueAnimation()
         isGestureActive = true
         onEditingChanged?(true)
         super.keyDown(with: event)

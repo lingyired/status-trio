@@ -118,6 +118,47 @@ final class PopupVolumeScrollAdjustmentTests: XCTestCase {
         XCTAssertEqual(decrease, -0.04, accuracy: 0.000_001)
     }
 
+    func testVolumeWheelStepMatchesSystemVolumeKeyIncrement() throws {
+        // A physical mouse-wheel notch (non-precise, one line) should move the
+        // same 1/16 step as the system volume keys instead of the old 2%.
+        XCTAssertEqual(PopupVolumeScrollAdjustment.volumeWheelStep, 1.0 / 16.0, accuracy: 0.000_001)
+
+        let increase = try XCTUnwrap(
+            adjustment.volumeDelta(
+                deltaY: 1,
+                isPrecise: false,
+                isDirectionInverted: false,
+                usesNaturalScrolling: false,
+                wheelStep: PopupVolumeScrollAdjustment.volumeWheelStep
+            )
+        )
+        XCTAssertEqual(increase, 1.0 / 16.0, accuracy: 0.000_001)
+
+        let decrease = try XCTUnwrap(
+            adjustment.volumeDelta(
+                deltaY: -1,
+                isPrecise: false,
+                isDirectionInverted: false,
+                usesNaturalScrolling: false,
+                wheelStep: PopupVolumeScrollAdjustment.volumeWheelStep
+            )
+        )
+        XCTAssertEqual(decrease, -1.0 / 16.0, accuracy: 0.000_001)
+    }
+
+    func testVolumeWheelStepLeavesTrackpadPreciseMappingUnchanged() throws {
+        let delta = try XCTUnwrap(
+            adjustment.volumeDelta(
+                deltaY: 4,
+                isPrecise: true,
+                isDirectionInverted: false,
+                usesNaturalScrolling: false,
+                wheelStep: PopupVolumeScrollAdjustment.volumeWheelStep
+            )
+        )
+        XCTAssertEqual(delta, 0.008, accuracy: 0.000_001)
+    }
+
     func testInvalidAndZeroDeltasAreIgnored() {
         XCTAssertNil(
             adjustment.volumeDelta(
