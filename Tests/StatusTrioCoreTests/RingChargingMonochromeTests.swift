@@ -120,6 +120,25 @@ final class RingChargingMonochromeTests: XCTestCase {
         )
     }
 
+    /// The settings preview must carry High Power Mode too, or the ring looks
+    /// white there even when the mode is on (the preview does not use the live
+    /// icon view model).
+    @MainActor
+    func testPreviewSceneHonoursHighPowerMode() {
+        let configuration = IconPresentationConfiguration(
+            battery: options(monochromeCharging: true),
+            connection: .standard,
+            volume: .standard,
+            bluetooth: .standard
+        )
+        let scene = IconPreviewScene.make(
+            status: MenuBarStatus(snapshot: snapshot(.absent)),
+            configuration: configuration,
+            isHighPowerMode: true
+        )
+        XCTAssertEqual(scene.outerRing?.segments.first?.color, .highPower)
+    }
+
     @MainActor
     func testSettingDefaultsNilAndPersistsExplicitChoice() {
         let name = "RingChargingMonochromeTests.\(UUID().uuidString)"

@@ -20,6 +20,8 @@ struct StatusIconPreviewCard: View {
     /// Identifies this card's claim on the shared clock, so a Dock-only menu bar
     /// still animates the preview while it is visible.
     @State private var clockConsumerToken = UUID()
+    /// Mirrors the live High Power Mode state so the preview shows its ring colour.
+    @State private var isHighPowerMode = false
 
     var body: some View {
         InputSourceLivePreview(controller: inputSourceController) {
@@ -36,8 +38,10 @@ struct StatusIconPreviewCard: View {
                 .foregroundStyle(.tertiary)
         }
         .onAppear {
+            isHighPowerMode = statusStore.highPowerMode.isHighPowerMode
             setClockClaim(enabled: store.showsMenuBarChargingEffect)
         }
+        .onReceive(statusStore.highPowerMode.$isHighPowerMode) { isHighPowerMode = $0 }
         .onChange(of: store.showsMenuBarChargingEffect) { isEnabled in
             setClockClaim(enabled: isEnabled)
             if isEnabled {
@@ -166,7 +170,8 @@ struct StatusIconPreviewCard: View {
             showsChargingEffect: store.showsMenuBarChargingEffect,
             inputSource: inputSourceController?.state.iconDescriptor(
                 markerStyle: store.inputSourceMarkerStyle
-            )
+            ),
+            isHighPowerMode: isHighPowerMode
         ) {
             appearanceToggle
         }

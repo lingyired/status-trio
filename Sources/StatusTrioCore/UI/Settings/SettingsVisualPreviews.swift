@@ -283,7 +283,8 @@ struct RingStrokeStylePreview: View {
                     ringStrokeScale: style.scale
                 ),
                 bluetooth: .standard
-            )
+            ),
+            isHighPowerMode: statusStore.highPowerMode.isHighPowerMode
         )
     }
 
