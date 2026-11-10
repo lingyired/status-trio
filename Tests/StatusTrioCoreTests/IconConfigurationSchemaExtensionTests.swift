@@ -15,6 +15,12 @@ final class IconConfigurationSchemaExtensionTests: XCTestCase {
         configuration.appearance.bluetoothIconColor = BluetoothIconColorConfiguration(storageValue: "primary")
         configuration.appearance.inputSourceMarkerStyle = .script
         configuration.appearance.bluetoothSymbolScale = 1.9
+        configuration.appearance.batteryStatusColors = BatteryStatusColorsConfiguration(
+            charging: "preset:mint",
+            lowPower: "system",
+            highPower: "custom:0.5,0.5,0.5",
+            critical: "system"
+        )
 
         let decoded = try IconConfigurationCodec.decode(try IconConfigurationCodec.encode(configuration))
         XCTAssertEqual(decoded.behaviors.batteryMarkers, configuration.behaviors.batteryMarkers)
@@ -22,6 +28,7 @@ final class IconConfigurationSchemaExtensionTests: XCTestCase {
         XCTAssertEqual(decoded.appearance.bluetoothIconColor, configuration.appearance.bluetoothIconColor)
         XCTAssertEqual(decoded.appearance.inputSourceMarkerStyle, .script)
         XCTAssertEqual(decoded.appearance.bluetoothSymbolScale, 1.9, accuracy: 0.0001)
+        XCTAssertEqual(decoded.appearance.batteryStatusColors, configuration.appearance.batteryStatusColors)
     }
 
     func testLegacyPayloadWithoutNewFieldsDecodesToClassicDefaults() throws {
@@ -34,6 +41,7 @@ final class IconConfigurationSchemaExtensionTests: XCTestCase {
         appearance.removeValue(forKey: "bluetoothIconColor")
         appearance.removeValue(forKey: "inputSourceMarkerStyle")
         appearance.removeValue(forKey: "bluetoothSymbolScale")
+        appearance.removeValue(forKey: "batteryStatusColors")
         root["behaviors"] = behaviors
         root["appearance"] = appearance
 
@@ -48,5 +56,6 @@ final class IconConfigurationSchemaExtensionTests: XCTestCase {
             BluetoothAudioIconOptions.defaultSymbolScale,
             accuracy: 0.0001
         )
+        XCTAssertEqual(decoded.appearance.batteryStatusColors, .classic)
     }
 }

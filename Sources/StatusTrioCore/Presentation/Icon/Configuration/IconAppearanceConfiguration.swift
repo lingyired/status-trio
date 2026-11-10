@@ -118,9 +118,12 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
     /// The Bluetooth glyph scale, carried separately from the generic centre
     /// scale so a pinned glyph keeps its own size.
     var bluetoothSymbolScale: Double
+    /// User colour overrides for battery status roles (#235 palette).
+    var batteryStatusColors: BatteryStatusColorsConfiguration
 
     enum CodingKeys: String, CodingKey {
         case outerRing, center, footer, bluetoothIconColor, inputSourceMarkerStyle, bluetoothSymbolScale
+        case batteryStatusColors
     }
 
     static let classic = Self(
@@ -129,7 +132,8 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
         footer: .classic,
         bluetoothIconColor: .classic,
         inputSourceMarkerStyle: .systemIcon,
-        bluetoothSymbolScale: BluetoothAudioIconOptions.defaultSymbolScale
+        bluetoothSymbolScale: BluetoothAudioIconOptions.defaultSymbolScale,
+        batteryStatusColors: .classic
     )
 
     init(
@@ -138,7 +142,8 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
         footer: FooterAppearance,
         bluetoothIconColor: BluetoothIconColorConfiguration = .classic,
         inputSourceMarkerStyle: InputSourceMarkerStyle = .systemIcon,
-        bluetoothSymbolScale: Double = BluetoothAudioIconOptions.defaultSymbolScale
+        bluetoothSymbolScale: Double = BluetoothAudioIconOptions.defaultSymbolScale,
+        batteryStatusColors: BatteryStatusColorsConfiguration = .classic
     ) {
         self.outerRing = outerRing
         self.center = center
@@ -146,6 +151,7 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
         self.bluetoothIconColor = bluetoothIconColor
         self.inputSourceMarkerStyle = inputSourceMarkerStyle
         self.bluetoothSymbolScale = bluetoothSymbolScale
+        self.batteryStatusColors = batteryStatusColors
     }
 
     init(from decoder: Decoder) throws {
@@ -162,6 +168,9 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
         bluetoothSymbolScale = try container.decodeIfPresent(
             Double.self, forKey: .bluetoothSymbolScale
         ) ?? BluetoothAudioIconOptions.defaultSymbolScale
+        batteryStatusColors = try container.decodeIfPresent(
+            BatteryStatusColorsConfiguration.self, forKey: .batteryStatusColors
+        ) ?? .classic
     }
 
     func resetting(_ slot: IconSlot) -> Self {
@@ -197,3 +206,47 @@ struct BluetoothIconColorConfiguration: Codable, Equatable, Sendable {
 }
 
 extension InputSourceMarkerStyle: Codable {}
+
+
+/// Codable storage for `BatteryStatusColors`. Each role stores the same
+/// hand-parseable value the settings model persists (`system`, `preset:<name>`
+/// or `custom:<hue>,<saturation>,<brightness>`).
+struct BatteryStatusColorsConfiguration: Codable, Equatable, Sendable {
+    var charging: String
+    var lowPower: String
+    var highPower: String
+    var critical: String
+
+    static let classic = Self(
+        charging: "system",
+        lowPower: "system",
+        highPower: "system",
+        critical: "system"
+    )
+
+    init(charging: String = "system", lowPower: String = "system",
+         highPower: String = "system", critical: String = "system") {
+        self.charging = charging
+        self.lowPower = lowPower
+        self.highPower = highPower
+        self.critical = critical
+    }
+
+    init(_ colors: BatteryStatusColors) {
+        self.init(
+            charging: colors.charging.storageValue,
+            lowPower: colors.lowPower.storageValue,
+            highPower: colors.highPower.storageValue,
+            critical: colors.critical.storageValue
+        )
+    }
+
+    var colors: BatteryStatusColors {
+        BatteryStatusColors(
+            charging: BatteryStatusColorSelection(storageValue: charging),
+            lowPower: BatteryStatusColorSelection(storageValue: lowPower),
+            highPower: BatteryStatusColorSelection(storageValue: highPower),
+            critical: BatteryStatusColorSelection(storageValue: critical)
+        )
+    }
+}
