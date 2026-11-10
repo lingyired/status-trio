@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "На этом Mac нет аккумулятора, поэтому этот значок только декоративный: он рисует молнию или вилку в разрыве кольца и не отражает реальную зарядку.";
 "settings.battery.noBatteryGapIcon" = "Значок разрыва";
 "settings.battery.showPercentage" = "Показывать процент заряда";
+"settings.battery.showPercentageNoBattery" = "У этого устройства нет батареи";
 "settings.battery.showChargingIndicator" = "Показывать значок при зарядке или питании от сети";
 "settings.battery.chargingDescription" = "Если включено, процент заменяется молнией или вилкой во время зарядки или при питании от сети.";
 "settings.battery.splitGapProgress" = "Делить прогресс при заполненном верхнем разрыве";

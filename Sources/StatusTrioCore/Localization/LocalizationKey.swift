@@ -407,6 +407,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBatteryNoBatteryTopIndicatorDescription = "settings.battery.noBatteryTopIndicatorDescription"
     case settingsBatteryNoBatteryGapIcon = "settings.battery.noBatteryGapIcon"
     case settingsBatteryShowPercentage = "settings.battery.showPercentage"
+    case settingsBatteryShowPercentageNoBattery = "settings.battery.showPercentageNoBattery"
     case settingsBatteryShowChargingIndicator = "settings.battery.showChargingIndicator"
     case settingsBatteryChargingDescription = "settings.battery.chargingDescription"
     case settingsBatterySplitGapProgress = "settings.battery.splitGapProgress"

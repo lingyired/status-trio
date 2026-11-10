@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "This Mac has no battery, so this icon is only decorative: it draws a lightning bolt or plug in the ring's gap and does not reflect real charging.";
 "settings.battery.noBatteryGapIcon" = "Gap icon";
 "settings.battery.showPercentage" = "Show battery percentage";
+"settings.battery.showPercentageNoBattery" = "This device has no battery.";
 "settings.battery.showChargingIndicator" = "Show an indicator while charging or connected to power";
 "settings.battery.chargingDescription" = "When enabled, the percentage becomes a bolt or plug while charging or connected to power.";
 "settings.battery.splitGapProgress" = "Split progress when the top gap is filled";

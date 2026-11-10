@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "Questo Mac non ha una batteria, quindi questa icona è solo decorativa: disegna un fulmine o una spina nello spazio dell’anello e non riflette una carica reale.";
 "settings.battery.noBatteryGapIcon" = "Icona dello spazio";
 "settings.battery.showPercentage" = "Mostra percentuale batteria";
+"settings.battery.showPercentageNoBattery" = "Questo dispositivo non ha una batteria";
 "settings.battery.showChargingIndicator" = "Mostra un indicatore durante la carica o con alimentazione collegata";
 "settings.battery.chargingDescription" = "Se attivato, la percentuale diventa un fulmine o una spina durante la carica o con alimentazione collegata.";
 "settings.battery.splitGapProgress" = "Dividi l’avanzamento quando lo spazio superiore è pieno";

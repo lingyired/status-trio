@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "Este Mac não tem bateria, então este ícone é apenas decorativo: desenha um raio ou um plugue no vão do anel e não reflete o carregamento real.";
 "settings.battery.noBatteryGapIcon" = "Ícone do vão";
 "settings.battery.showPercentage" = "Mostrar porcentagem da bateria";
+"settings.battery.showPercentageNoBattery" = "Este dispositivo não tem bateria";
 "settings.battery.showChargingIndicator" = "Mostrar um indicador ao carregar ou conectar à energia";
 "settings.battery.chargingDescription" = "Quando ativado, a porcentagem vira um raio ou um plugue durante o carregamento ou com energia conectada.";
 "settings.battery.splitGapProgress" = "Dividir o progresso quando o espaço superior tem conteúdo";

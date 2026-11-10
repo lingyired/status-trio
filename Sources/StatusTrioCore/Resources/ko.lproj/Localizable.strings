@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "이 Mac에는 배터리가 없으므로 이 아이콘은 장식용입니다. 링의 틈에 번개 또는 플러그를 표시할 뿐 실제 충전 상태를 나타내지 않습니다.";
 "settings.battery.noBatteryGapIcon" = "틈 아이콘";
 "settings.battery.showPercentage" = "배터리 잔량 표시";
+"settings.battery.showPercentageNoBattery" = "이 기기에는 배터리가 없습니다";
 "settings.battery.showChargingIndicator" = "충전 또는 전원 연결 시 아이콘 표시";
 "settings.battery.chargingDescription" = "활성화하면 충전 중이거나 전원에 연결되었을 때 잔량이 번개 또는 플러그로 바뀝니다. 비활성화하면 잔량을 계속 표시합니다.";
 "settings.battery.splitGapProgress" = "상단 틈에 내용이 있을 때 진행률 분할";

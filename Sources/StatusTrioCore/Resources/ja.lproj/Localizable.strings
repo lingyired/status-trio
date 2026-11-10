@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "このMacにはバッテリーがないため、このアイコンは装飾用です。リングの隙間に稲妻またはプラグを表示しますが、実際の充電状態を示すものではありません。";
 "settings.battery.noBatteryGapIcon" = "隙間のアイコン";
 "settings.battery.showPercentage" = "バッテリー残量を表示";
+"settings.battery.showPercentageNoBattery" = "このデバイスにはバッテリーがありません";
 "settings.battery.showChargingIndicator" = "充電中または電源接続時にアイコンを表示";
 "settings.battery.chargingDescription" = "有効にすると、充電中または電源接続時に残量が稲妻またはプラグに変わります。無効の場合は残量を表示します。";
 "settings.battery.splitGapProgress" = "上部のすき間があるときに進捗を分割";

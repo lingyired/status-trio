@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "此裝置沒有電池，這個圖示只作裝飾：在圓環缺口畫閃電或插頭，不代表真實充電狀態。";
 "settings.battery.noBatteryGapIcon" = "缺口圖示";
 "settings.battery.showPercentage" = "顯示電量數字";
+"settings.battery.showPercentageNoBattery" = "目前裝置沒有電池";
 "settings.battery.showChargingIndicator" = "充電/連接電源時顯示指示圖示";
 "settings.battery.chargingDescription" = "開啟後，正在充電或已連接電源時，電量數字會替換為閃電或插頭圖示；關閉則繼續顯示數字。";
 "settings.battery.splitGapProgress" = "頂部有圖示時左右兩邊平分";

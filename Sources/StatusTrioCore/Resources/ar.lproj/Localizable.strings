@@ -175,6 +175,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "هذا الـ Mac بلا بطارية، لذا فإن هذا الرمز للزينة فقط: يرسم صاعقة أو قابسًا في فجوة الحلقة ولا يعكس حالة شحن حقيقية.";
 "settings.battery.noBatteryGapIcon" = "رمز الفجوة";
 "settings.battery.showPercentage" = "إظهار نسبة البطارية";
+"settings.battery.showPercentageNoBattery" = "هذا الجهاز لا يحتوي على بطارية";
 "settings.battery.showChargingIndicator" = "إظهار رمز أثناء الشحن أو الاتصال بالطاقة";
 "settings.battery.chargingDescription" = "عند التفعيل، تتحول النسبة إلى رمز برق أو قابس أثناء الشحن أو الاتصال بالطاقة.";
 "settings.battery.splitGapProgress" = "تقسيم التقدم عندما تكون الفجوة العليا ممتلئة";

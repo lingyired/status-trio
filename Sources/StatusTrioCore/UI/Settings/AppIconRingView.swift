@@ -69,6 +69,12 @@ struct AppIconRingView: View {
                 symbol: "percent",
                 tint: .green,
                 title: localization.string(.settingsBatteryShowPercentage),
+                // The percentage has nothing to show on a battery-less Mac, so
+                // say so under the switch while it is on instead of silently
+                // drawing nothing.
+                subtitle: store.showsBatteryPercentage && !effectiveHasBattery
+                    ? localization.string(.settingsBatteryShowPercentageNoBattery)
+                    : nil,
                 isOn: $store.showsBatteryPercentage
             )
 

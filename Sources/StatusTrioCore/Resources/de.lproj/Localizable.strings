@@ -192,6 +192,7 @@
 "settings.battery.noBatteryTopIndicatorDescription" = "Dieser Mac hat keinen Akku. Das Symbol ist nur dekorativ: Es zeichnet einen Blitz oder Stecker in die Lücke des Rings und zeigt keinen echten Ladezustand an.";
 "settings.battery.noBatteryGapIcon" = "Lückensymbol";
 "settings.battery.showPercentage" = "Batterieprozentsatz anzeigen";
+"settings.battery.showPercentageNoBattery" = "Dieses Gerät hat keine Batterie";
 "settings.battery.showChargingIndicator" = "Symbol beim Laden oder Netzbetrieb anzeigen";
 "settings.battery.chargingDescription" = "Wenn aktiviert, wird der Prozentsatz beim Laden oder Netzbetrieb durch ein Blitz- oder Steckersymbol ersetzt.";
 "settings.battery.splitGapProgress" = "Fortschritt bei gefüllter oberer Lücke aufteilen";
