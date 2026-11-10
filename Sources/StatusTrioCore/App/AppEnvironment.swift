@@ -440,8 +440,16 @@ final class AppEnvironment {
         let localization = Localization()
         let inputSourceController = InputSourceController()
         let appearance = StatusIconAppearance(settings: settings)
+        // Dev-only no-battery preview (#309): feed the shared icon view model a
+        // battery-absent snapshot so the real menu-bar and Dock icons draw the
+        // battery-less look too. The real store snapshot and battery automation
+        // stay untouched; turning the toggle off restores the live battery.
+        let noBatteryPreview = settings.isNoBatterySimulationActive
+        let isDevelopmentBuild = settings.isDevelopmentBuild
         let iconPresentation = IconPresentationViewModel(
-            snapshot: store.snapshot,
+            snapshot: noBatteryPreview
+                ? store.snapshot.replacingBattery(.absent)
+                : store.snapshot,
             settings: IconPresentationSettings(
                 configuration: IconPresentationConfiguration(
                     battery: appearance.batteryOptions,
@@ -452,7 +460,14 @@ final class AppEnvironment {
                 menuBarSize: appearance.iconSize,
                 testsChargingEffect: settings.testsChargingEffect
             ),
-            snapshots: store.$snapshot.eraseToAnyPublisher(),
+            snapshots: store.$snapshot
+                .combineLatest(settings.$simulatesNoBattery)
+                .map { snapshot, simulatesNoBattery in
+                    isDevelopmentBuild && simulatesNoBattery
+                        ? snapshot.replacingBattery(.absent)
+                        : snapshot
+                }
+                .eraseToAnyPublisher(),
             preferences: settings.iconPresentationPublisher,
             inputSources: inputSourceController.$state
                 .combineLatest(settings.$inputSourceMarkerStyle)
