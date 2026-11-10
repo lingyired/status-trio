@@ -1,11 +1,10 @@
 import SwiftUI
 
+/// Settings for how the battery indicator is drawn in the status icon.
 struct BatterySectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
-    var inputSourceController: InputSourceController? = nil
     @Binding var previewIsDark: Bool
-    var onOpenIconDesigner: (IconSlot) -> Void = { _ in }
     @EnvironmentObject private var localization: Localization
     @ObservedObject private var helper: PrivilegedHelperManager = .shared
 
@@ -14,27 +13,25 @@ struct BatterySectionView: View {
             StatusIconPreviewCard(
                 store: store,
                 statusStore: statusStore,
-                isDarkBackground: $previewIsDark,
-                inputSourceController: inputSourceController,
-                content: .menuBarOnly
+                isDarkBackground: $previewIsDark
             )
         }) {
-            IconDesignerEntryRow(title: localization.string(.settingsBatteryDesignerEntry)) {
-                onOpenIconDesigner(.outerRing)
-            }
-
-            macBatteryBehaviorGroup
+            batteryGroup
         }
     }
 
-    private var macBatteryBehaviorGroup: some View {
-        SettingsGroup(localization.string(.settingsBatteryMacBehavior)) {
-            SettingsHintRow(text: localization.string(.settingsBatteryMacBehaviorDescription))
-            SettingsDivider()
+    private var batteryGroup: some View {
+        SettingsGroup(localization.string(.settingsBatteryTitle)) {
+            // Low Power Mode control is offered only when this build bundled the
+            // privileged helper, so an App-Store-style build never shows a
+            // toggle it cannot honour.
             if helper.isAvailable {
                 lowPowerModeGroup
+
                 SettingsDivider()
             }
+
+            // Show Percentage Switch
             SettingsToggleRow(
                 symbol: "percent",
                 tint: .green,
@@ -44,6 +41,19 @@ struct BatterySectionView: View {
 
             SettingsDivider()
 
+            SettingsToggleRow(
+                symbol: "number",
+                tint: .teal,
+                title: localization.string(.settingsBatteryShowPercentageInConnectionSlot),
+                subtitle: localization.string(
+                    .settingsBatteryShowPercentageInConnectionSlotDescription
+                ),
+                isOn: $store.showsBatteryPercentageInConnectionSlot
+            )
+
+            SettingsDivider()
+
+            // Charging Bolt Switch
             SettingsToggleRow(
                 symbol: "bolt.fill",
                 tint: .yellow,
@@ -76,6 +86,16 @@ struct BatterySectionView: View {
                 isOn: $store.showsDockChargingEffect
             )
 
+            SettingsDivider()
+
+            SettingsToggleRow(
+                symbol: "bolt.fill",
+                tint: .yellow,
+                title: localization.string(.settingsBatteryChargingBoltHeartbeat),
+                subtitle: localization.string(.settingsBatteryChargingBoltHeartbeatDescription),
+                isOn: $store.showsChargingBoltHeartbeat
+            )
+            .disabled(!store.showsChargingEffect || !store.showsChargingIndicator)
 
             if ChargingEffectTestMode.isAvailable() {
                 SettingsDivider()
@@ -105,6 +125,39 @@ struct BatterySectionView: View {
                     ),
                     isOn: $store.showsPercentageWhenConnected
                 )
+            }
+
+            // Symbol Scale (Inline compact slider)
+            if store.isBatterySymbolSizeEnabled {
+                SettingsDivider()
+
+                SettingsRow(
+                    "textformat.size",
+                    tint: .blue,
+                    title: localization.string(.settingsBatterySymbolScale),
+                    subtitle: localization.string(.settingsBatterySymbolScaleDescription)
+                ) {
+                    HStack(spacing: 8) {
+                        Slider(
+                            value: Binding(
+                                get: { store.batterySymbolScale },
+                                set: { store.batterySymbolScale = ($0 * 20).rounded() / 20 }
+                            ),
+                            in: SettingsStore.batterySymbolScaleRange
+                        )
+                        .frame(width: 130)
+                        .controlSize(.small)
+                        .accessibilityLabel(
+                            localization.string(.settingsBatterySymbolScaleAccessibility)
+                        )
+                        .accessibilityValue("\(Int(store.batterySymbolScale * 100))%")
+
+                        Text("\(Int(store.batterySymbolScale * 100))%")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                }
             }
 
             SettingsDivider()

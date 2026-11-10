@@ -203,13 +203,6 @@ final class PreviewResourceLifecycleTests: XCTestCase {
             showIconGuide: {},
             chargingEffectClock: clock
         )
-        let iconDesignerWindow = IconDesignerWindowController(
-            store: settings,
-            statusStore: store,
-            localization: localization,
-            activationPolicy: activationPolicy,
-            chargingEffectClock: clock
-        )
         let statusBar = StatusBarController(
             store: store,
             settings: settings,
@@ -243,7 +236,6 @@ final class PreviewResourceLifecycleTests: XCTestCase {
             iconPresentation: iconPresentation,
             statusBarController: statusBar,
             settingsWindowController: settingsWindow,
-            iconDesignerWindowController: iconDesignerWindow,
             onboardingWindowController: onboarding,
             activationPolicy: activationPolicy,
             appIconController: appIcon,

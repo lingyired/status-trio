@@ -5,54 +5,6 @@ import XCTest
 
 @MainActor
 final class StatusIconPreviewCardTests: XCTestCase {
-    func testCompactPreviewKeepsPermissionReasonWithoutFullPermissionNoticeRow() throws {
-        let projectURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let previewSource = try String(contentsOf: projectURL.appendingPathComponent(
-            "Sources/StatusTrioCore/UI/Settings/StatusIconPreviewCard.swift"
-        ), encoding: .utf8)
-
-        XCTAssertFalse(
-            previewSource.contains("BluetoothPermissionNoticeRow("),
-            "The compact fixed preview header must not contain the full permission notice row."
-        )
-        XCTAssertTrue(previewSource.contains("permissionBlockedSlots: permissionBlockedSlots"))
-    }
-
-    func testLargePreviewSharesClockAndPlaybackPhaseButNotAirPodsScenarios() {
-        let clockPhase = ChargingEffectPhase(step: 3, stepsPerCycle: 36, kind: .steady)
-        let playbackPhase = ChargingEffectPhase(step: 9, stepsPerCycle: 36, kind: .steady)
-
-        XCTAssertEqual(
-            StatusIconPreviewCard.largePreviewChargingPhase(
-                scenario: .live, livePhase: clockPhase, playbackPhase: playbackPhase
-            ),
-            clockPhase
-        )
-        XCTAssertEqual(
-            StatusIconPreviewCard.largePreviewChargingPhase(
-                scenario: .live, livePhase: nil, playbackPhase: playbackPhase
-            ),
-            playbackPhase
-        )
-        XCTAssertEqual(
-            StatusIconPreviewCard.largePreviewChargingPhase(
-                scenario: .batteryCharging, livePhase: nil, playbackPhase: playbackPhase
-            ),
-            playbackPhase
-        )
-        for scenario in [IconPreviewScenario.airPodsConnected, .airPodsDisconnected, .airPodsCustom] {
-            XCTAssertNil(
-                StatusIconPreviewCard.largePreviewChargingPhase(
-                    scenario: scenario, livePhase: clockPhase, playbackPhase: playbackPhase
-                ),
-                "AirPods scenarios must not inherit battery charging animation"
-            )
-        }
-    }
-
     func testMenuBarPreviewBarRendersWithoutTrailingAccessory() {
         let size = fittingSize(of: previewBar())
 
@@ -91,19 +43,6 @@ final class StatusIconPreviewCardTests: XCTestCase {
 
         XCTAssertEqual(explicitEmptyView.width, withoutAccessory.width, accuracy: 0.5)
         XCTAssertEqual(explicitEmptyView.height, withoutAccessory.height, accuracy: 0.5)
-    }
-
-    func testEmptyAccessoryInitializerForwardsPreviewSlotSelection() {
-        var selectedByPreview: IconSlot?
-        let preview = MenuBarPreviewBar(
-            status: IconGuideView.example,
-            selectedSlot: .center,
-            onSelectSlot: { selectedByPreview = $0 }
-        )
-
-        XCTAssertEqual(preview.selectedSlot, .center)
-        preview.onSelectSlot?(.footer)
-        XCTAssertEqual(selectedByPreview, .footer)
     }
 
     func testStatusIconPreviewCardRendersWithToggle() throws {

@@ -3,9 +3,7 @@ import SwiftUI
 struct AudioSectionView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
-    var inputSourceController: InputSourceController? = nil
     @Binding var previewIsDark: Bool
-    var onOpenIconDesigner: (IconSlot) -> Void = { _ in }
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
@@ -13,14 +11,10 @@ struct AudioSectionView: View {
             StatusIconPreviewCard(
                 store: store,
                 statusStore: statusStore,
-                isDarkBackground: $previewIsDark,
-                inputSourceController: inputSourceController,
-                content: .menuBarOnly
+                isDarkBackground: $previewIsDark
             )
         }) {
-            IconDesignerEntryRow(title: localization.string(.settingsAudioDesignerEntry)) {
-                onOpenIconDesigner(.footer)
-            }
+            indicatorStyleGroup
             displayRulesGroup
             deviceOrderGroup
         }
@@ -29,25 +23,36 @@ struct AudioSectionView: View {
         }
     }
 
+    private var indicatorStyleGroup: some View {
+        SettingsGroup(localization.string(.settingsAudioIndicatorStyleTitle)) {
+            SettingsPictureRow(
+                "waveform",
+                tint: .indigo,
+                title: localization.string(.settingsAudioIndicatorStyle),
+                subtitle: localization.string(.settingsAudioIndicatorStyleDescription),
+                selection: $store.volumeDisplayStyle,
+                options: [VolumeDisplayStyle.dots, .arc],
+                previewSize: CGSize(width: 68, height: 44),
+                caption: { style in
+                    switch style {
+                    case .dots: return localization.string(.settingsAudioIndicatorStyleDots)
+                    case .arc: return localization.string(.settingsAudioIndicatorStyleArc)
+                    }
+                },
+                preview: { style in
+                    VolumeIndicatorPreview(
+                        style: style,
+                        isDarkBackground: previewIsDark,
+                        store: store,
+                        statusStore: statusStore
+                    )
+                }
+            )
+        }
+    }
+
     private var displayRulesGroup: some View {
         SettingsGroup(localization.string(.settingsAudioDisplayRules)) {
-            SettingsRow(
-                "speaker.wave.2",
-                tint: .cyan,
-                title: localization.string(.settingsAudioIndicatorStyle),
-                subtitle: localization.string(.settingsAudioIndicatorStyleDescription)
-            ) {
-                Picker(localization.string(.settingsAudioIndicatorStyle), selection: $store.volumeDisplayStyle) {
-                    Text(localization.string(.settingsAudioIndicatorStyleDots)).tag(VolumeDisplayStyle.dots)
-                    Text(localization.string(.settingsAudioIndicatorStyleArc)).tag(VolumeDisplayStyle.arc)
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .fixedSize()
-            }
-
-            SettingsDivider()
-
             SettingsToggleRow(
                 symbol: "speaker.wave.3.fill",
                 tint: .cyan,

@@ -13,8 +13,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let globalShortcutController: GlobalShortcutController?
     private let activationPolicy: AppActivationPolicy
     private let showIconGuide: () -> Void
-    private let openIconDesigner: (IconSlot) -> Void
-    private let previewSession: IconDesignerPreviewSession
     private var localizationCancellable: AnyCancellable?
     private var authorizationCancellable: AnyCancellable?
     private var ownsActivationPolicy = false
@@ -30,9 +28,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         localization: Localization,
         activationPolicy: AppActivationPolicy,
         showIconGuide: @escaping () -> Void,
-        openIconDesigner: @escaping (IconSlot) -> Void = { _ in },
         chargingEffectClock: ChargingEffectClock = ChargingEffectClock(),
-        previewSession: IconDesignerPreviewSession = IconDesignerPreviewSession(),
         inputSourceController: InputSourceController? = nil,
         globalShortcutController: GlobalShortcutController? = nil
     ) {
@@ -44,8 +40,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         self.globalShortcutController = globalShortcutController
         self.activationPolicy = activationPolicy
         self.showIconGuide = showIconGuide
-        self.openIconDesigner = openIconDesigner
-        self.previewSession = previewSession
         self.lastBluetoothAuthorization = statusStore.bluetoothDevices.authorizationStatus
         super.init(window: nil)
 
@@ -90,7 +84,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         dockActivationLogger.notice("Settings.show existing=\(self.window != nil)")
         let window = window ?? makeWindow()
         self.window = window
-        statusStore.setSettingsVisible(true, owner: SettingsSurfaceVisibility.settingsOwner)
+        statusStore.setSettingsVisible(true)
         applyLocalization()
         enterActivationPolicyIfNeeded()
         // The user may have approved the power helper in System Settings since
@@ -104,7 +98,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         globalShortcutController?.endRecording()
-        statusStore.setSettingsVisible(false, owner: SettingsSurfaceVisibility.settingsOwner)
+        statusStore.setSettingsVisible(false)
         leaveActivationPolicyIfNeeded()
         setPreviewWindowVisible(false)
         window = nil
@@ -163,9 +157,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 localization: localization,
                 inputSourceController: inputSourceController,
                 globalShortcutController: globalShortcutController,
-                onShowIconGuide: showIconGuide,
-                onOpenIconDesigner: openIconDesigner,
-                previewSession: previewSession
+                onShowIconGuide: showIconGuide
             )
             .environmentObject(chargingEffectClock)
         }

@@ -11,9 +11,7 @@ struct BluetoothSectionView: View {
     /// would leave the pane showing whatever it read first — usually nothing.
     @ObservedObject var bluetoothDevices: BluetoothDeviceController
     @ObservedObject var appleDeviceDiscovery: AppleDeviceDiscoveryController
-    var inputSourceController: InputSourceController? = nil
     @Binding var previewIsDark: Bool
-    var onOpenIconDesigner: (IconSlot) -> Void = { _ in }
     @EnvironmentObject private var localization: Localization
     @State private var settingsDemandToken: BluetoothSettingsDemandToken?
 
@@ -22,18 +20,12 @@ struct BluetoothSectionView: View {
             StatusIconPreviewCard(
                 store: store,
                 statusStore: statusStore,
-                isDarkBackground: $previewIsDark,
-                inputSourceController: inputSourceController,
-                content: .menuBarOnly
+                isDarkBackground: $previewIsDark
             )
         }) {
             if bluetoothDevices.authorization != .allowed {
                 bluetoothPermissionBanner
                 SettingsDivider()
-            }
-
-            IconDesignerEntryRow(title: localization.string(.settingsBluetoothDesignerEntry)) {
-                onOpenIconDesigner(.center)
             }
 
             SettingsGroup(localization.string(.settingsBluetoothTitle)) {
@@ -62,9 +54,85 @@ struct BluetoothSectionView: View {
 
                 SettingsDivider()
 
-                SettingsDivider()
+                SettingsRow(
+                    "wave.3.right.circle.fill",
+                    tint: .blue,
+                    title: localization.string(.settingsBluetoothSymbolScale),
+                    subtitle: localization.string(.settingsBluetoothSymbolScaleDescription)
+                ) {
+                    HStack(spacing: 8) {
+                        Slider(
+                            value: Binding(
+                                get: { store.bluetoothSymbolScale },
+                                set: { store.bluetoothSymbolScale = (round($0 * 20) / 20) }
+                            ),
+                            in: SettingsStore.bluetoothSymbolScaleRange
+                        )
+                        .frame(width: 130)
+                        .controlSize(.small)
+                        .accessibilityLabel(localization.string(.settingsBluetoothSymbolScale))
+                        .accessibilityValue(
+                            "\(Int(round(store.bluetoothSymbolScale * 100)))%"
+                        )
+
+                        Text("\(Int(round(store.bluetoothSymbolScale * 100)))%")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                }
 
                 SettingsDivider()
+
+                SettingsToggleRow(
+                    symbol: "wave.3.right.circle.fill",
+                    tint: .blue,
+                    title: localization.string(.settingsBluetoothReplaceNetworkIcon),
+                    subtitle: localization.string(.settingsBluetoothReplaceNetworkIconDescription),
+                    isOn: $store.replacesNetworkIconWithBluetoothAudio
+                )
+
+                if store.replacesNetworkIconWithBluetoothAudio {
+                    SettingsDivider()
+
+                    networkIconSourceRow
+
+                    if BluetoothNetworkIconSource.shouldShowAudioIconChoice(
+                        replacingNetworkIcon: store.replacesNetworkIconWithBluetoothAudio,
+                        selectedSource: selectedOption.source
+                    ) {
+                        SettingsDivider()
+                        bluetoothAudioIconChoiceRow
+                    }
+
+                    if !sourceOptionsOffersDevices {
+                        SettingsDivider()
+
+                        SettingsHintRow(
+                            text: localization.string(.settingsBluetoothNetworkIconSourceDevicesEmpty)
+                        )
+                    }
+                }
+
+                SettingsDivider()
+
+                SettingsToggleRow(
+                    symbol: "speaker.wave.2.fill",
+                    tint: .cyan,
+                    title: localization.string(.settingsBluetoothVolumeColor),
+                    subtitle: localization.string(.settingsBluetoothVolumeColorDescription),
+                    isOn: $store.usesBluetoothAudioVolumeColor
+                )
+
+                SettingsDivider()
+
+                SettingsToggleRow(
+                    symbol: "wifi.exclamationmark",
+                    tint: .orange,
+                    title: localization.string(.settingsBluetoothNetworkErrorPriority),
+                    subtitle: localization.string(.settingsBluetoothNetworkErrorPriorityDescription),
+                    isOn: $store.prioritizesNetworkErrorsOverBluetoothAudio
+                )
 
                 SettingsDivider()
 
@@ -208,13 +276,6 @@ struct BluetoothSectionView: View {
                 }
             }
 
-            let primary = store.iconConfiguration.composition.center.primary
-            if primary == .automaticLegacy || primary == .bluetoothAudioOutput {
-                sourceBehaviorGroup
-                if primary == .automaticLegacy {
-                    legacyBluetoothAudioBehaviorGroup
-                }
-            }
             deviceListGroup
             deviceOrderGroup
         }
@@ -228,26 +289,6 @@ struct BluetoothSectionView: View {
             guard let settingsDemandToken else { return }
             statusStore.endBluetoothSettingsDemand(settingsDemandToken)
             self.settingsDemandToken = nil
-        }
-    }
-
-    private var sourceBehaviorGroup: some View {
-        SettingsGroup(localization.string(.settingsBluetoothNetworkIconSourceGroup)) {
-            if store.iconConfiguration.composition.center.primary == .automaticLegacy {
-                SettingsToggleRow(
-                    symbol: "wave.3.right",
-                    tint: .blue,
-                    title: localization.string(.settingsBluetoothReplaceNetworkIcon),
-                    subtitle: localization.string(.settingsBluetoothReplaceNetworkIconDescription),
-                    isOn: $store.replacesNetworkIconWithBluetoothAudio
-                )
-                SettingsDivider()
-            }
-            networkIconSourceRow
-            if !sourceOptionsOffersDevices {
-                SettingsDivider()
-                SettingsHintRow(text: localization.string(.settingsBluetoothNetworkIconSourceDevicesEmpty))
-            }
         }
     }
 
@@ -274,65 +315,9 @@ struct BluetoothSectionView: View {
                 }
             }
             .pickerStyle(.menu)
-            .fixedSize()
             .labelsHidden()
             .accessibilityLabel(localization.string(.settingsBluetoothIconChoice))
             .accessibilityIdentifier("bluetooth.audioIconChoice")
-        }
-    }
-
-    private var legacyBluetoothAudioBehaviorGroup: some View {
-        SettingsGroup(localization.string(.settingsBluetoothTitle)) {
-            SettingsRow(
-                "wave.3.right.circle.fill",
-                tint: .blue,
-                title: localization.string(.settingsBluetoothSymbolScale),
-                subtitle: localization.string(.settingsBluetoothSymbolScaleDescription)
-            ) {
-                HStack(spacing: 8) {
-                    Slider(
-                        value: Binding(
-                            get: { store.bluetoothSymbolScale },
-                            set: { store.bluetoothSymbolScale = (round($0 * 20) / 20) }
-                        ),
-                        in: SettingsStore.bluetoothSymbolScaleRange
-                    )
-                    .frame(width: 130)
-                    .controlSize(.small)
-                    .accessibilityLabel(localization.string(.settingsBluetoothSymbolScale))
-                    .accessibilityValue(
-                        "\(Int(round(store.bluetoothSymbolScale * 100)))%"
-                    )
-
-                    Text("\(Int(round(store.bluetoothSymbolScale * 100)))%")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 44, alignment: .trailing)
-                }
-            }
-            if BluetoothNetworkIconSource.shouldShowAudioIconChoice(
-                replacingNetworkIcon: true,
-                selectedSource: selectedOption.source
-            ) {
-                SettingsDivider()
-                bluetoothAudioIconChoiceRow
-            }
-            SettingsDivider()
-            SettingsToggleRow(
-                symbol: "speaker.wave.2.fill",
-                tint: .cyan,
-                title: localization.string(.settingsBluetoothVolumeColor),
-                subtitle: localization.string(.settingsBluetoothVolumeColorDescription),
-                isOn: $store.usesBluetoothAudioVolumeColor
-            )
-            SettingsDivider()
-            SettingsToggleRow(
-                symbol: "wifi.exclamationmark",
-                tint: .orange,
-                title: localization.string(.settingsBluetoothNetworkErrorPriority),
-                subtitle: localization.string(.settingsBluetoothNetworkErrorPriorityDescription),
-                isOn: $store.prioritizesNetworkErrorsOverBluetoothAudio
-            )
         }
     }
 
@@ -538,15 +523,45 @@ struct BluetoothSectionView: View {
         }
     }
 
-    /// Shown when Bluetooth access is not granted so the user can request or restore it.
+    /// Shown at the top of the pane whenever Bluetooth access is not granted, so
+    /// the user sees why the device list is empty and can resolve it from here
+    /// instead of hunting for a prompt. `.notDetermined` offers to raise the
+    /// system prompt; `.denied`/`.restricted` send the user to the pane that
+    /// gives a refused grant back. Hidden once `.allowed`.
     @ViewBuilder
     private var bluetoothPermissionBanner: some View {
-        if bluetoothDevices.authorization != .allowed {
-            SettingsGroup {
-                BluetoothPermissionNoticeRow(
-                    bluetoothDevices: bluetoothDevices,
-                    statusStore: statusStore
-                )
+        switch bluetoothDevices.authorization {
+        case .allowed:
+            EmptyView()
+        case .notDetermined:
+            permissionNotice(
+                description: .settingsBluetoothPermissionNotDeterminedDescription,
+                buttonKey: .bluetoothActionRequestAuthorization,
+                action: { statusStore.requestBluetoothAuthorization() }
+            )
+        case .denied, .restricted:
+            permissionNotice(
+                description: .settingsBluetoothPermissionDeniedDescription,
+                buttonKey: .bluetoothActionOpenPermissionSettings,
+                action: { statusStore.openBluetoothPermissionSettings() }
+            )
+        }
+    }
+
+    private func permissionNotice(
+        description: LocalizationKey,
+        buttonKey: LocalizationKey,
+        action: @escaping () -> Void
+    ) -> some View {
+        SettingsGroup {
+            SettingsRow(
+                "exclamationmark.triangle.fill",
+                tint: .orange,
+                title: localization.string(.settingsBluetoothPermissionRequired),
+                subtitle: localization.string(description)
+            ) {
+                Button(localization.string(buttonKey), action: action)
+                    .controlSize(.small)
             }
         }
     }

@@ -19,24 +19,6 @@ final class IconDesignerCenterBatteryScaleTests: XCTestCase {
         XCTAssertTrue(paletteSource.contains("wifiScaleForCommonPercentageSize"))
     }
 
-    func testAllCenterSourcesUseOneAppearanceSizeControlAndKeepOuterTextScale() throws {
-        let behaviorSource = try String(contentsOf: sourceURL("Sources/StatusTrioCore/UI/Settings/IconDesigner/IconBehaviorEditor.swift"), encoding: .utf8)
-        let appearanceSource = try String(contentsOf: sourceURL("Sources/StatusTrioCore/UI/Settings/IconDesigner/IconAppearanceEditor.swift"), encoding: .utf8)
-
-        XCTAssertFalse(behaviorSource.contains("centerBatteryTextScaleSlider"))
-        XCTAssertTrue(appearanceSource.contains("commonPercentageScale(in: configuration)"))
-        XCTAssertTrue(appearanceSource.contains("settingCommonPercentageScale(value"))
-        XCTAssertTrue(appearanceSource.contains("commonPercentageScaleRange"))
-        XCTAssertTrue(appearanceSource.contains("IconStrokeSizingPolicy.interactiveScaleRange"))
-        XCTAssertTrue(appearanceSource.contains("IconStrokeSizingPolicy.strokeScale(for: value)"))
-        XCTAssertFalse(appearanceSource.contains("%.2f×"))
-
-        XCTAssertTrue(behaviorSource.contains("batteryTextScaleSlider"))
-        XCTAssertTrue(behaviorSource.contains("batteryTextScaleSliderValue(for: rawTextScale)"))
-        XCTAssertTrue(behaviorSource.contains("settingBatteryTextScale(value"))
-        XCTAssertTrue(behaviorSource.contains("batteryTextScaleLabel(for: rawTextScale)"))
-    }
-
     func testCommonPercentageScaleMapsBatteryAndWiFiToTheSameRelativeSize() throws {
         var configuration = IconConfigurationV1.classic
         configuration.composition.center = SlotSelection(primary: .systemBatteryPercentage)
@@ -512,13 +494,6 @@ final class IconDesignerCenterBatteryScaleTests: XCTestCase {
         IconDesignerEditingModel.settingCommonPercentageScale(1.35, in: &configuration)
         XCTAssertEqual(IconDesignerEditingModel.commonPercentageScale(in: configuration), 1.35)
         XCTAssertEqual(configuration.appearance.center.normalizedSizePercentage, 1.35)
-    }
-
-    func testCenterSizeControlUsesOnePercentageLabelForEverySource() throws {
-        let source = try String(contentsOf: sourceURL("Sources/StatusTrioCore/UI/Settings/IconDesigner/IconAppearanceEditor.swift"), encoding: .utf8)
-        XCTAssertTrue(source.contains("IconDesignerEditingModel.commonPercentageScaleLabel(for: scale)"))
-        XCTAssertFalse(source.contains("%.2f×"))
-        XCTAssertFalse(source.contains("commonPercentageSource =="))
     }
 
     private func centerTextScale(in scene: IconSceneState) throws -> Double {

@@ -12,17 +12,61 @@ struct SettingsView: View {
     var inputSourceController: InputSourceController? = nil
     var globalShortcutController: GlobalShortcutController? = nil
     let onShowIconGuide: () -> Void
-    var onOpenIconDesigner: (IconSlot) -> Void = { _ in }
-    @ObservedObject var previewSession = IconDesignerPreviewSession()
 
-    @State private var navigation = SettingsNavigationModel()
+    @State private var selectedSection: Section = .appIcon
     @State private var previewIsDark: Bool = true
 
-    typealias Section = SettingsNavigationModel.Page
+    enum Section: String, CaseIterable, Identifiable {
+        case appIcon
+        case battery
+        case network
+        case bluetooth
+        case audio
+        case popover
+        case general
+        case about
 
-    private var selectedSection: Section {
-        get { navigation.selection }
-        nonmutating set { navigation.selection = newValue }
+        var id: String { rawValue }
+
+        var symbol: String {
+            switch self {
+            case .appIcon: return "macwindow.on.rectangle"
+            case .battery: return SymbolFallback.name("battery.100percent", "battery.100")
+            case .network: return "wifi"
+            case .bluetooth: return "wave.3.right.circle.fill"
+            case .audio:   return "hifispeaker.fill"
+            case .popover: return "list.bullet.rectangle"
+            case .general: return "gearshape.fill"
+            case .about:   return "info.circle.fill"
+            }
+        }
+
+        var tint: Color {
+            switch self {
+            case .appIcon: return .indigo
+            case .battery: return .green
+            case .network: return .blue
+            case .bluetooth: return .blue
+            case .audio:   return .cyan
+            case .popover: return .purple
+            case .general: return .gray
+            case .about:   return .orange
+            }
+        }
+
+        @MainActor
+        func title(_ localization: Localization) -> String {
+            switch self {
+            case .appIcon: return localization.string(.settingsTabAppIcon)
+            case .battery: return localization.string(.settingsTabBattery)
+            case .network: return localization.string(.settingsTabNetwork)
+            case .bluetooth: return localization.string(.settingsTabBluetooth)
+            case .audio:   return localization.string(.settingsTabAudio)
+            case .popover: return localization.string(.settingsTabPanel)
+            case .general: return localization.string(.settingsPageGeneral)
+            case .about:   return localization.string(.settingsTabAbout)
+            }
+        }
     }
 
     var body: some View {
@@ -97,30 +141,25 @@ struct SettingsView: View {
     @ViewBuilder
     private var detail: some View {
         switch selectedSection {
-        case .iconDesigner:
-            IconDesignerLaunchSectionView(
+        case .appIcon:
+            AppIconSectionView(
                 store: store,
                 statusStore: statusStore,
-                inputSourceController: inputSourceController,
                 previewIsDark: $previewIsDark,
-                onShowIconGuide: onShowIconGuide,
-                onOpenIconDesigner: onOpenIconDesigner
+                onShowIconGuide: onShowIconGuide
             )
         case .battery:
             BatterySectionView(
                 store: store,
                 statusStore: statusStore,
-                inputSourceController: inputSourceController,
-                previewIsDark: $previewIsDark,
-                onOpenIconDesigner: onOpenIconDesigner
+                previewIsDark: $previewIsDark
             )
         case .network:
             NetworkSectionView(
                 store: store,
                 statusStore: statusStore,
                 inputSourceController: inputSourceController,
-                previewIsDark: $previewIsDark,
-                onOpenIconDesigner: onOpenIconDesigner
+                previewIsDark: $previewIsDark
             )
         case .bluetooth:
             BluetoothSectionView(
@@ -128,17 +167,13 @@ struct SettingsView: View {
                 statusStore: statusStore,
                 bluetoothDevices: statusStore.bluetoothDevices,
                 appleDeviceDiscovery: statusStore.appleDeviceDiscovery,
-                inputSourceController: inputSourceController,
-                previewIsDark: $previewIsDark,
-                onOpenIconDesigner: onOpenIconDesigner
+                previewIsDark: $previewIsDark
             )
         case .audio:
             AudioSectionView(
                 store: store,
                 statusStore: statusStore,
-                inputSourceController: inputSourceController,
-                previewIsDark: $previewIsDark,
-                onOpenIconDesigner: onOpenIconDesigner
+                previewIsDark: $previewIsDark
             )
         case .popover:
             PopoverSectionView(store: store, statusStore: statusStore)

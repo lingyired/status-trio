@@ -87,14 +87,6 @@ final class InputSourceMonitoringLifecycleTests: XCTestCase {
                 localization: localization,
                 activationPolicy: activationPolicy,
                 showIconGuide: {},
-                chargingEffectClock: clock,
-                inputSourceController: controller
-            ),
-            iconDesignerWindowController: IconDesignerWindowController(
-                store: settings,
-                statusStore: store,
-                localization: localization,
-                activationPolicy: activationPolicy,
                 chargingEffectClock: clock
             ),
             onboardingWindowController: OnboardingWindowController(

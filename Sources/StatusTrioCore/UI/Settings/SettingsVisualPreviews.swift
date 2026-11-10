@@ -181,42 +181,6 @@ struct DockBackgroundPreview: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
 
-    private var designerScene: IconSceneState {
-        Self.resolveDesignerScene(
-            preference: preference,
-            snapshot: statusStore.snapshot,
-            bluetoothDevices: statusStore.bluetoothDevices.devices,
-            batteryLevels: statusStore.bluetoothDevices.batteryLevels,
-            batteryLevelsUpdatedAt: statusStore.bluetoothDevices.batteryLevelsUpdatedAt,
-            selectedAirPodsAddress: store.airPodsIconDeviceAddress,
-            selectedConnectedDeviceAddress: store.connectedBluetoothIconDeviceAddress,
-            configuration: store.iconConfiguration
-        )
-    }
-
-    @MainActor
-    static func resolveDesignerScene(
-        preference: DockIconBackgroundPreference,
-        snapshot: StatusSnapshot,
-        bluetoothDevices: [BluetoothDevice],
-        batteryLevels: [String: BluetoothBatteryLevel],
-        batteryLevelsUpdatedAt: Date?,
-        selectedAirPodsAddress: String?,
-        selectedConnectedDeviceAddress: String?,
-        configuration: IconConfigurationV1
-    ) -> IconSceneState {
-        _ = preference // All three background choices show the same live icon scene.
-        let inputs = IconResolutionInputs(
-            system: IconPresentationResourceResolver.inputs(snapshot: snapshot),
-            sources: IconPresentationResourceResolver.sourceSnapshot(
-                snapshot: snapshot, bluetoothDevices: bluetoothDevices, batteryLevels: batteryLevels,
-                batteryLevelsUpdatedAt: batteryLevelsUpdatedAt, selectedAirPodsAddress: selectedAirPodsAddress,
-                selectedConnectedDeviceAddress: selectedConnectedDeviceAddress
-            )
-        )
-        return IconDesignerPreviewResolver.resolve(inputs: inputs, configuration: configuration).scene
-    }
-
     var body: some View {
         ZStack {
             LinearGradient(
@@ -236,16 +200,14 @@ struct DockBackgroundPreview: View {
                         store: store,
                         statusStore: statusStore,
                         size: 30,
-                        overrideStyle: .light,
-                        resolvedScene: designerScene
+                        overrideStyle: .light
                     )
 
                     DockIconPreviewTile(
                         store: store,
                         statusStore: statusStore,
                         size: 30,
-                        overrideStyle: .dark,
-                        resolvedScene: designerScene
+                        overrideStyle: .dark
                     )
                     .clipShape(HalfSplitShape())
 
@@ -262,8 +224,7 @@ struct DockBackgroundPreview: View {
                     store: store,
                     statusStore: statusStore,
                     size: 30,
-                    overrideStyle: .dark,
-                    resolvedScene: designerScene
+                    overrideStyle: .dark
                 )
                 .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
 
@@ -272,8 +233,7 @@ struct DockBackgroundPreview: View {
                     store: store,
                     statusStore: statusStore,
                     size: 30,
-                    overrideStyle: .light,
-                    resolvedScene: designerScene
+                    overrideStyle: .light
                 )
                 .shadow(color: .black.opacity(0.10), radius: 2, y: 1)
             }

@@ -130,35 +130,6 @@ final class IconDesignerReviewRegressionTests: XCTestCase {
     }
 
     @MainActor
-    func testChargingPreviewResolvesMockedChargingSceneAndKeepsEffectPhase() {
-        let realSnapshot = StatusSnapshot(
-            battery: BatteryStatus(rawPercentage: 62, isPresent: true, isCharging: false,
-                                   isLowPowerMode: false, isConnectedToPower: false),
-            wifi: .placeholder, connection: .offline, volume: .placeholder
-        )
-        let testModeStatus = ChargingEffectTestMode.status(MenuBarStatus(snapshot: realSnapshot), enabled: true)
-        let testModeOutput = StatusIconPreviewCard.resolveDisplayedPreviewScene(
-            status: testModeStatus, basedOn: realSnapshot, bluetoothDevices: [], batteryLevels: [:], batteryLevelsUpdatedAt: nil,
-            selectedAirPodsAddress: nil, selectedConnectedDeviceAddress: nil,
-            configuration: .classic, scenario: .live
-        )
-        XCTAssertEqual(testModeOutput.scene.outerRing?.segments.first?.progress, 0.62)
-        XCTAssertNotNil(testModeOutput.scene.outerRing?.effect)
-        XCTAssertNotNil(StatusIconPreviewCard.livePhase(
-            battery: testModeStatus.battery, enabled: true, reduceMotion: false,
-            phase: ChargingEffectPhase(step: 1, stepsPerCycle: 10, kind: .steady)
-        ))
-
-        let localPreview = StatusIconPreviewCard.chargingPreviewStatus(for: realSnapshot)
-        let localOutput = StatusIconPreviewCard.resolveDisplayedPreviewScene(
-            status: localPreview, basedOn: realSnapshot, bluetoothDevices: [], batteryLevels: [:], batteryLevelsUpdatedAt: nil,
-            selectedAirPodsAddress: nil, selectedConnectedDeviceAddress: nil,
-            configuration: .classic, scenario: .live
-        )
-        XCTAssertEqual(localOutput.scene.outerRing?.segments.first?.progress, 0.62)
-        XCTAssertNotNil(localOutput.scene.outerRing?.effect)
-    }
-
     func testDesignerPreviewUsesProductionResolverForFallback() {
         let live = IconResolutionInputs(
             system: IconPresentationInputs(snapshot: PresentationFixtures.snapshot(), audioIcon: nil),

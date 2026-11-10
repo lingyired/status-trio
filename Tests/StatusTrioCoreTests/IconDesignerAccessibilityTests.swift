@@ -55,13 +55,6 @@ final class IconDesignerAccessibilityTests: XCTestCase {
         }
     }
 
-    func testBluetoothPermissionNoticeActionMatchesAuthorizationState() {
-        XCTAssertEqual(BluetoothPermissionNoticeAction(authorization: .notDetermined), .requestAuthorization)
-        XCTAssertEqual(BluetoothPermissionNoticeAction(authorization: .denied), .openPermissionSettings)
-        XCTAssertEqual(BluetoothPermissionNoticeAction(authorization: .restricted), .openPermissionSettings)
-        XCTAssertNil(BluetoothPermissionNoticeAction(authorization: .allowed))
-    }
-
     func testBluetoothPermissionFallbackNoticeIsLiveOnlyAndTracksTheConfiguredPrimary() {
         var configuration = IconConfigurationV1.classic
         configuration.composition.center.primary = .connectedBluetoothDevice

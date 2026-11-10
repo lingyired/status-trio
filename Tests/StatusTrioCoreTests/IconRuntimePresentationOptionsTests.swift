@@ -35,17 +35,19 @@ final class IconRuntimePresentationOptionsTests: XCTestCase {
         model.start()
         defer { model.stop() }
 
-        let preview = StatusIconPreviewCard.resolveDesignerScene(
-            for: snapshot,
-            bluetoothDevices: [],
-            batteryLevels: [:],
-            batteryLevelsUpdatedAt: nil,
-            selectedAirPodsAddress: nil,
-            selectedConnectedDeviceAddress: nil,
+        let previewInputs = IconResolutionInputs(
+            system: IconPresentationInputs(
+                snapshot: snapshot,
+                audioIcon: nil,
+                inputSource: descriptor,
+                runtimeOptions: runtimeOptions
+            ),
+            sources: .empty
+        )
+        let preview = IconDesignerPreviewResolver.resolve(
+            liveInputs: previewInputs,
             configuration: configuration,
-            scenario: .live,
-            inputSource: descriptor,
-            runtimeOptions: runtimeOptions
+            scenario: .live
         )
 
         for scene in [model.output.scene, preview.scene] {

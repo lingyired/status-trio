@@ -188,13 +188,6 @@ final class AppEnvironmentTelemetryLifecycleTests: XCTestCase {
             isDarkAppearance: { false },
             notificationCenter: NotificationCenter()
         )
-        let iconDesignerWindow = IconDesignerWindowController(
-            store: settings,
-            statusStore: store,
-            localization: localization,
-            activationPolicy: activationPolicy,
-            chargingEffectClock: clock
-        )
         return AppEnvironment(
             store: store,
             settings: settings,
@@ -202,7 +195,6 @@ final class AppEnvironmentTelemetryLifecycleTests: XCTestCase {
             iconPresentation: iconPresentation,
             statusBarController: statusBar,
             settingsWindowController: settingsWindow,
-            iconDesignerWindowController: iconDesignerWindow,
             onboardingWindowController: onboarding,
             activationPolicy: activationPolicy,
             appIconController: appIcon,

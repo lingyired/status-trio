@@ -9,7 +9,6 @@ final class AppEnvironment {
     let iconPresentation: IconPresentationViewModel
     let statusBarController: StatusBarController
     let settingsWindowController: SettingsWindowController
-    let iconDesignerWindowController: IconDesignerWindowController
     let onboardingWindowController: OnboardingWindowController
     let activationPolicy: AppActivationPolicy
     let appIconController: AppIconController
@@ -30,7 +29,6 @@ final class AppEnvironment {
 
     private var chargingEffectCancellables = Set<AnyCancellable>()
     private var iconSourceDemandBridge = IconSourceDemandBridge()
-    private var realIconOverrideBridge: IconDesignerRealIconOverrideBridge?
     private var inputSourceLifecycleCancellables = Set<AnyCancellable>()
     private var previewResourceLifecycleCancellables = Set<AnyCancellable>()
     private var hasSubscribedToChargingEffectInputs = false
@@ -47,7 +45,6 @@ final class AppEnvironment {
         iconPresentation: IconPresentationViewModel,
         statusBarController: StatusBarController,
         settingsWindowController: SettingsWindowController,
-        iconDesignerWindowController: IconDesignerWindowController,
         onboardingWindowController: OnboardingWindowController,
         activationPolicy: AppActivationPolicy,
         appIconController: AppIconController,
@@ -61,8 +58,7 @@ final class AppEnvironment {
         telemetryReporter: any TelemetryReporting,
         memoryPressureMonitor: MemoryPressureMonitor? = nil,
         bluetoothProfilerCache: BluetoothProfilerReportCache = .shared,
-        previewResourceLifecycle: PreviewResourceLifecycle? = nil,
-        realIconOverrideBridge: IconDesignerRealIconOverrideBridge? = nil
+        previewResourceLifecycle: PreviewResourceLifecycle? = nil
     ) {
         self.store = store
         self.settings = settings
@@ -70,7 +66,6 @@ final class AppEnvironment {
         self.iconPresentation = iconPresentation
         self.statusBarController = statusBarController
         self.settingsWindowController = settingsWindowController
-        self.iconDesignerWindowController = iconDesignerWindowController
         self.onboardingWindowController = onboardingWindowController
         self.activationPolicy = activationPolicy
         self.appIconController = appIconController
@@ -87,7 +82,6 @@ final class AppEnvironment {
         self.previewResourceLifecycle = previewResourceLifecycle ?? PreviewResourceLifecycle()
         self.menuBarChargingEffectEnabled = settings.showsMenuBarChargingEffect
         self.dockChargingEffectEnabled = settings.showsDockChargingEffect
-        self.realIconOverrideBridge = realIconOverrideBridge
     }
 
     func start() {
@@ -97,7 +91,6 @@ final class AppEnvironment {
         }
         memoryPressureMonitor.start()
         iconPresentation.start()
-        realIconOverrideBridge?.start()
         startInputSourceMonitoringIfNeeded()
         onboardingWindowController.showIfNeeded()
         statusBarController.visibilityDidChange = { [weak self] in
@@ -149,7 +142,6 @@ final class AppEnvironment {
     func stop() {
         memoryPressureMonitor.stop()
         memoryPressureMonitor.onPressure = nil
-        realIconOverrideBridge?.stop()
         telemetryReporter.stop()
         globalShortcutController?.stop()
         chargingEffectClock.stop()
@@ -578,21 +570,6 @@ final class AppEnvironment {
                 controller?.openPopoverFromShortcut()
             }
         )
-        let iconDesignerPreviewSession = IconDesignerPreviewSession()
-        let realIconOverrideBridge = IconDesignerRealIconOverrideBridge(
-            session: iconDesignerPreviewSession,
-            settings: settings,
-            iconPresentation: iconPresentation
-        )
-        let iconDesignerWindowController = IconDesignerWindowController(
-            store: settings,
-            statusStore: store,
-            localization: localization,
-            activationPolicy: activationPolicy,
-            chargingEffectClock: chargingEffectClock,
-            previewSession: iconDesignerPreviewSession,
-            inputSourceController: inputSourceController
-        )
         let resolvedSettingsWindowController = SettingsWindowController(
             store: settings,
             statusStore: store,
@@ -601,11 +578,7 @@ final class AppEnvironment {
             showIconGuide: { [weak onboardingWindowController] in
                 onboardingWindowController?.show()
             },
-            openIconDesigner: { [weak iconDesignerWindowController] slot in
-                iconDesignerWindowController?.show(slot: slot)
-            },
             chargingEffectClock: chargingEffectClock,
-            previewSession: iconDesignerPreviewSession,
             inputSourceController: inputSourceController,
             globalShortcutController: globalShortcutController
         )
@@ -670,7 +643,6 @@ final class AppEnvironment {
             iconPresentation: iconPresentation,
             statusBarController: controller,
             settingsWindowController: resolvedSettingsWindowController,
-            iconDesignerWindowController: iconDesignerWindowController,
             onboardingWindowController: onboardingWindowController,
             activationPolicy: activationPolicy,
             appIconController: appIconController,
@@ -681,8 +653,7 @@ final class AppEnvironment {
             globalShortcutController: globalShortcutController,
             dockChargingAnimationPresenter: dockChargingAnimationPresenter,
             dockVisibilityMonitor: dockVisibilityMonitor,
-            telemetryReporter: telemetryReporter,
-            realIconOverrideBridge: realIconOverrideBridge
+            telemetryReporter: telemetryReporter
         )
     }
 

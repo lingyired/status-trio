@@ -16,9 +16,9 @@ final class SettingsViewTests: XCTestCase {
     func testSidebarListsEveryStatusElementBeforeTheAppWidePanes() {
         XCTAssertEqual(
             SettingsView.Section.allCases,
-            [.iconDesigner, .battery, .network, .bluetooth, .audio, .popover, .general, .about]
+            [.appIcon, .battery, .network, .bluetooth, .audio, .popover, .general, .about]
         )
-        XCTAssertEqual(SettingsView.Section.allCases.first, .iconDesigner)
+        XCTAssertEqual(SettingsView.Section.allCases.first, .appIcon)
     }
 
     func testStatusElementPanesRenderWithoutCrashing() {
@@ -31,12 +31,11 @@ final class SettingsViewTests: XCTestCase {
         let isDark = Binding.constant(true)
 
         let panes: [(String, AnyView)] = [
-            ("iconDesigner", AnyView(IconDesignerLaunchSectionView(
+            ("appIcon", AnyView(AppIconSectionView(
                 store: store,
                 statusStore: statusStore,
                 previewIsDark: isDark,
-                onShowIconGuide: {},
-                onOpenIconDesigner: { _ in }
+                onShowIconGuide: {}
             ))),
             ("battery", AnyView(BatterySectionView(
                 store: store,
@@ -135,55 +134,6 @@ final class SettingsViewTests: XCTestCase {
     /// The picker under the replace-network-icon toggle: off hides it, on
     /// draws the audio-device row and every classified paired device, and
     /// picking a device records its address and resolved symbol in the store.
-    func testBluetoothPaneDoesNotDuplicateIconCenterControls() async {
-        let suite = makeSuite()
-        defer { clear(suite) }
-
-        let devices = [
-            BluetoothDevice(id: "AC:90:85:C2:9C:1F", name: "AirPods Pro", kind: .audio, isConnected: true),
-            BluetoothDevice(id: "D3:6D:6C:40:A3:2E", name: "MX Keys", kind: .peripheral(.keyboard), isConnected: false),
-            BluetoothDevice(
-                id: "AA:BB:CC:DD:EE:FF",
-                name: "Ghost",
-                kind: .unknown,
-                isConnected: false,
-                isUnpairedGhost: true
-            )
-        ]
-        let controller = SettingsBluetoothTestFactory.makeController(devices: devices)
-        controller.activate()
-        await waitForDevices(controller)
-        defer { controller.deactivate() }
-
-        let localization = Localization(defaults: suite.defaults, preferredLanguages: ["en"])
-        let store = SettingsStore(defaults: suite.defaults)
-        let emptyStoreController = SettingsBluetoothTestFactory.makeController(devices: [])
-
-        store.replacesNetworkIconWithBluetoothAudio = false
-        let withToggleOff = renderBluetoothPane(
-            store: store,
-            storeController: emptyStoreController,
-            observedController: controller,
-            localization: localization
-        )
-        store.replacesNetworkIconWithBluetoothAudio = true
-        let withToggleOn = renderBluetoothPane(
-            store: store,
-            storeController: emptyStoreController,
-            observedController: controller,
-            localization: localization
-        )
-
-        XCTAssertEqual(
-            withToggleOn.height,
-            withToggleOff.height,
-            "legacy Bluetooth icon preferences must not add controls to the device page"
-        )
-
-        XCTAssertEqual(store.bluetoothNetworkIconDeviceAddress, nil)
-
-    }
-
     func testSettingsViewHostingViewRendersWithoutCrashing() {
         let name = "StatusTrioCoreTests.SettingsViewTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name) ?? .standard
@@ -201,8 +151,7 @@ final class SettingsViewTests: XCTestCase {
             store: store,
             statusStore: statusStore,
             localization: localization,
-            onShowIconGuide: {},
-            previewSession: IconDesignerPreviewSession()
+            onShowIconGuide: {}
         )
 
         let hostingView = NSHostingView(rootView: view.environmentObject(ChargingEffectClock()))
