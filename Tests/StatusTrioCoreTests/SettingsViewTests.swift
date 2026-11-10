@@ -13,6 +13,16 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertEqual(SettingsView.height, 530)
     }
 
+    func testMenuBarPreviewFollowsSystemAppearanceUntilManuallyOverridden() {
+        // #290: the top live preview used to open dark regardless of the real
+        // menu bar. With no manual override it must mirror the system appearance.
+        XCTAssertFalse(SettingsView.previewIsDark(override: nil, systemColorScheme: .light))
+        XCTAssertTrue(SettingsView.previewIsDark(override: nil, systemColorScheme: .dark))
+        // A tap on the card's toggle wins over the system appearance.
+        XCTAssertTrue(SettingsView.previewIsDark(override: true, systemColorScheme: .light))
+        XCTAssertFalse(SettingsView.previewIsDark(override: false, systemColorScheme: .dark))
+    }
+
     func testSidebarListsEveryStatusElementBeforeTheAppWidePanes() {
         XCTAssertEqual(
             SettingsView.Section.allCases,

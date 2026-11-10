@@ -26,7 +26,13 @@ struct SettingsView: View {
     var consumePendingSubtopic: () -> SettingsSubtopic? = { nil }
 
     @StateObject private var navigation = SettingsNavigationModel()
-    @State private var previewIsDark: Bool = true
+    /// The live system appearance, so the menu bar preview starts in the same
+    /// light/dark mode as the real menu bar instead of always opening dark.
+    @Environment(\.colorScheme) private var systemColorScheme
+    /// `nil` means "follow the live system appearance". It only becomes a value
+    /// after the user taps the preview card's dark/light toggle, so that manual
+    /// choice overrides the system for the rest of the window's lifetime.
+    @State private var previewOverrideIsDark: Bool?
 
     enum Section: String, CaseIterable, Identifiable {
         case appIcon
@@ -368,6 +374,31 @@ struct SettingsView: View {
         .id(subtopic)
     }
 
+    // MARK: - Menu bar preview appearance
+
+    /// `true` when the preview should draw the dark menu bar backdrop. It follows
+    /// the live system appearance until the user taps the card's toggle, so the
+    /// preview opens in the same light/dark mode as the real menu bar (#290).
+    private var previewIsDark: Bool {
+        Self.previewIsDark(override: previewOverrideIsDark, systemColorScheme: systemColorScheme)
+    }
+
+    /// Resolves the preview backdrop: a manual override wins, otherwise the live
+    /// system appearance decides. Kept as a static so it can be tested without a
+    /// live window.
+    static func previewIsDark(override: Bool?, systemColorScheme: ColorScheme) -> Bool {
+        override ?? (systemColorScheme == .dark)
+    }
+
+    /// Binding for the section panes: a manual toggle is remembered for this
+    /// window, while an untouched preview keeps tracking the system appearance.
+    private var previewIsDarkBinding: Binding<Bool> {
+        Binding(
+            get: { previewIsDark },
+            set: { previewOverrideIsDark = $0 }
+        )
+    }
+
     // MARK: - Detail
 
     @ViewBuilder
@@ -378,7 +409,7 @@ struct SettingsView: View {
                 store: store,
                 statusStore: statusStore,
                 inputSourceController: inputSourceController,
-                previewIsDark: $previewIsDark,
+                previewIsDark: previewIsDarkBinding,
                 onShowIconGuide: onShowIconGuide,
                 subtopic: subtopicIfSelectionMatches(.appIcon)
             )
@@ -386,7 +417,7 @@ struct SettingsView: View {
             BatterySectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark,
+                previewIsDark: previewIsDarkBinding,
                 chargeToFullNow: chargeToFullNow,
                 subtopic: subtopicIfSelectionMatches(.battery)
             )
@@ -395,7 +426,7 @@ struct SettingsView: View {
                 store: store,
                 statusStore: statusStore,
                 inputSourceController: inputSourceController,
-                previewIsDark: $previewIsDark
+                previewIsDark: previewIsDarkBinding
             )
         case .bluetooth:
             BluetoothSectionView(
@@ -403,14 +434,14 @@ struct SettingsView: View {
                 statusStore: statusStore,
                 bluetoothDevices: statusStore.bluetoothDevices,
                 appleDeviceDiscovery: statusStore.appleDeviceDiscovery,
-                previewIsDark: $previewIsDark,
+                previewIsDark: previewIsDarkBinding,
                 subtopic: subtopicIfSelectionMatches(.bluetooth)
             )
         case .audio:
             AudioSectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark,
+                previewIsDark: previewIsDarkBinding,
                 subtopic: subtopicIfSelectionMatches(.audio)
             )
         case .brightness:
