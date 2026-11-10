@@ -116,6 +116,20 @@ final class MonochromeBatteryArcTests: XCTestCase {
         XCTAssertFalse(store.batteryIconOptions.usesStatusColors)
     }
 
+    func testNoBatteryRingStaysForegroundWithStateColoursOn() {
+        // The Ring page keeps every control without a battery, but the mapper
+        // still draws the battery-less ring in the plain foreground colour and
+        // never adopts a status colour — including Low/High Power Mode. The
+        // settings-page hint states this so the kept controls are not misleading.
+        let scene = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(
+                snapshot: snapshot(.absent), audioIcon: nil, isHighPowerMode: true
+            ),
+            configuration: configuration(usesStatusColors: true)
+        )
+        XCTAssertEqual(scene.outerRing?.segments.first?.color, .primary)
+    }
+
     @MainActor
     func testNoBatterySimulationOnlyRunsInDevelopmentBuilds() {
         let name = "NoBatterySimulationTests.\(UUID().uuidString)"

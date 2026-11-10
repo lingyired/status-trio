@@ -224,6 +224,7 @@
 "settings.battery.developerPreview" = "開發者預覽";
 "settings.battery.simulateNoBattery" = "模擬無電池";
 "settings.battery.simulateNoBatteryDescription" = "依 Mac 沒有電池時的樣子顯示本頁。僅開發版可用。";
+"settings.battery.noBatteryHiddenOptions" = "這台 Mac 沒有電池：以下設定都會保留，但電量、充電與狀態顏色效果不會作用到圖示上。";
 "settings.battery.colors.charging" = "充電 / 連接電源";
 "settings.battery.colors.lowPower" = "低耗電模式";
 "settings.battery.colors.critical" = "臨界低電量";

@@ -224,6 +224,7 @@
 "settings.battery.developerPreview" = "開発者プレビュー";
 "settings.battery.simulateNoBattery" = "バッテリーなしをシミュレート";
 "settings.battery.simulateNoBatteryDescription" = "バッテリーのない Mac での表示を再現します。開発ビルドのみ。";
+"settings.battery.noBatteryHiddenOptions" = "この Mac にはバッテリーがありません。以下の設定はすべて保持されますが、残量・充電・状態色の効果はアイコンに反映されません。";
 "settings.battery.colors.charging" = "充電中 / 電源接続中";
 "settings.battery.colors.lowPower" = "低電力モード";
 "settings.battery.colors.critical" = "バッテリー残量がわずか";

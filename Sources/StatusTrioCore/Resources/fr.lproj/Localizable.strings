@@ -224,6 +224,7 @@
 "settings.battery.developerPreview" = "Aperçu développeur";
 "settings.battery.simulateNoBattery" = "Simuler l’absence de batterie";
 "settings.battery.simulateNoBatteryDescription" = "Affiche cette page comme sur un Mac sans batterie. Compilations de développement uniquement.";
+"settings.battery.noBatteryHiddenOptions" = "Ce Mac n’a pas de batterie : tous ces réglages sont conservés, mais les effets de niveau, de charge et de couleur d’état ne s’appliquent pas à l’icône.";
 "settings.battery.colors.charging" = "Charge / alimentation secteur";
 "settings.battery.colors.lowPower" = "Mode économie d’énergie";
 "settings.battery.colors.critical" = "Batterie très faible";
