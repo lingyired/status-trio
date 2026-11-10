@@ -95,7 +95,8 @@ struct StatusIconPreviewCard: View {
     /// battery-less layout (a full closed ring plus the decorative marker).
     private var displaySnapshot: StatusSnapshot {
         store.isNoBatterySimulationActive
-            ? statusStore.snapshot.replacingBattery(.absent)
+            ? statusStore.snapshot.replacingBattery(
+                .absent(lowPowerMode: statusStore.snapshot.battery.isLowPowerMode))
             : statusStore.snapshot
     }
 

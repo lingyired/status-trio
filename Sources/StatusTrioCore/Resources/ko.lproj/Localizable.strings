@@ -230,7 +230,7 @@
 "settings.battery.developerPreview" = "개발자 미리보기";
 "settings.battery.simulateNoBattery" = "배터리 없음 시뮬레이션";
 "settings.battery.simulateNoBatteryDescription" = "배터리가 없는 Mac에서의 모습으로 이 페이지를 표시합니다. 개발 빌드 전용입니다.";
-"settings.battery.noBatteryHiddenOptions" = "이 Mac에는 배터리가 없습니다. 아래 설정은 모두 유지되지만, 잔량·충전·상태 색상 효과는 아이콘에 적용되지 않습니다.";
+"settings.battery.noBatteryHiddenOptions" = "이 Mac에는 배터리가 없습니다. 잔량 퍼센트와 충전 표시기는 적용되지 않지만, 링 색상은 전원 연결·저전력 모드·고전력 모드를 따릅니다.";
 "settings.battery.colors.charging" = "충전 중 / 전원 연결";
 "settings.battery.colors.lowPower" = "저전력 모드";
 "settings.battery.colors.critical" = "배터리 잔량 매우 부족";

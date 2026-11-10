@@ -213,7 +213,7 @@
 "settings.battery.developerPreview" = "معاينة المطوّر";
 "settings.battery.simulateNoBattery" = "محاكاة عدم وجود بطارية";
 "settings.battery.simulateNoBatteryDescription" = "يعرض هذه الصفحة كما تظهر على Mac بدون بطارية. في إصدارات التطوير فقط.";
-"settings.battery.noBatteryHiddenOptions" = "لا توجد بطارية في هذا الـ Mac: تُحفظ كل هذه الإعدادات، لكن تأثيرات المستوى والشحن ولون الحالة لا تُطبَّق على الأيقونة.";
+"settings.battery.noBatteryHiddenOptions" = "لا توجد بطارية في هذا الـ Mac: النسبة المئوية ومؤشر الشحن لا ينطبقان، لكن لون الحلقة يتبع توصيل الطاقة ووضع الطاقة المنخفضة ووضع الطاقة العالية.";
 "settings.battery.colors.charging" = "الشحن / الاتصال بالطاقة";
 "settings.battery.colors.lowPower" = "وضع الطاقة المنخفضة";
 "settings.battery.colors.critical" = "انخفاض حرج في البطارية";

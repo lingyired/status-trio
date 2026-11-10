@@ -123,18 +123,29 @@ final class MonochromeBatteryArcTests: XCTestCase {
         XCTAssertTrue(store.batteryIconOptions.usesStatusColors)
     }
 
-    func testNoBatteryRingStaysForegroundWithStateColoursOn() {
-        // The Ring page keeps every control without a battery, but the mapper
-        // still draws the battery-less ring in the plain foreground colour and
-        // never adopts a status colour — including Low/High Power Mode. The
-        // settings-page hint states this so the kept controls are not misleading.
-        let scene = IconPresentationMapper.scene(
+    func testNoBatteryRingFollowsConnectedAndPowerModeColours() {
+        // A battery-less ring follows the state palette: connected-to-power by
+        // default (a Mac without a battery is always on AC), Low/High Power Mode
+        // when those are on, and the foreground colour when monochrome is chosen.
+        let connected = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(snapshot: snapshot(.absent), audioIcon: nil),
+            configuration: configuration(usesStatusColors: true)
+        )
+        XCTAssertEqual(connected.outerRing?.segments.first?.color, .powered)
+
+        let highPower = IconPresentationMapper.scene(
             inputs: IconPresentationInputs(
                 snapshot: snapshot(.absent), audioIcon: nil, isHighPowerMode: true
             ),
             configuration: configuration(usesStatusColors: true)
         )
-        XCTAssertEqual(scene.outerRing?.segments.first?.color, .primary)
+        XCTAssertEqual(highPower.outerRing?.segments.first?.color, .highPower)
+
+        let monochrome = IconPresentationMapper.scene(
+            inputs: IconPresentationInputs(snapshot: snapshot(.absent), audioIcon: nil),
+            configuration: configuration(usesStatusColors: false)
+        )
+        XCTAssertEqual(monochrome.outerRing?.segments.first?.color, .primary)
     }
 
     @MainActor
@@ -156,5 +167,39 @@ final class MonochromeBatteryArcTests: XCTestCase {
         let dev = SettingsStore(defaults: defaults, isDevelopmentBuild: true)
         XCTAssertTrue(dev.simulatesNoBattery)
         XCTAssertTrue(dev.isNoBatterySimulationActive)
+    }
+
+    /// End-to-end through the real store: the ring colour the icon draws for a
+    /// connected-to-power battery follows the state colours, and the monochrome
+    /// preset turns it into the plain foreground colour.
+    @MainActor
+    func testStoreOptionsDriveConnectedColourAndMonochrome() {
+        let name = "MonochromeStoreIntegration.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        defer { defaults.removePersistentDomain(forName: name) }
+
+        let store = SettingsStore(defaults: defaults)
+        store.usesBatteryStatusColors = true
+        let connected = battery(percentage: 80, connectedToPower: true)
+
+        func ringColor() -> IconColorRole? {
+            let config = IconPresentationConfiguration(
+                battery: store.batteryIconOptions,
+                connection: .standard,
+                volume: .standard,
+                bluetooth: .standard
+            )
+            let scene = IconPresentationMapper.scene(
+                inputs: IconPresentationInputs(snapshot: snapshot(connected), audioIcon: nil),
+                configuration: config
+            )
+            return scene.outerRing?.segments.first?.color
+        }
+
+        XCTAssertEqual(ringColor(), .powered, "connected to power uses the charging colour")
+
+        store.applyMonochromeBatteryArcPreset()
+        XCTAssertEqual(ringColor(), .primary, "monochrome preset forces the foreground colour")
     }
 }

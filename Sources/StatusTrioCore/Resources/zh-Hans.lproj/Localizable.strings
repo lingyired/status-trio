@@ -230,7 +230,7 @@
 "settings.battery.developerPreview" = "开发者预览";
 "settings.battery.simulateNoBattery" = "模拟无电池";
 "settings.battery.simulateNoBatteryDescription" = "按 Mac 没有电池时的样子显示本页。仅开发版可用。";
-"settings.battery.noBatteryHiddenOptions" = "这台 Mac 没有电池：以下设置都会保留，但电量、充电和状态颜色效果不会作用到图标上。";
+"settings.battery.noBatteryHiddenOptions" = "这台 Mac 没有电池：电量百分比和充电指示不适用，但圆环颜色仍会跟随连接电源、低电量模式和高电量模式。";
 "settings.battery.colors.charging" = "充电 / 连接电源";
 "settings.battery.colors.lowPower" = "低电量模式";
 "settings.battery.colors.critical" = "临界低电量";

@@ -53,6 +53,18 @@ struct BatteryStatus: Equatable, Sendable {
         isLowPowerMode: false,
         isConnectedToPower: false
     )
+
+    /// A battery-less reading that keeps the current Low Power Mode, used by the
+    /// no-battery preview so the ring can still show the Low Power Mode colour.
+    static func absent(lowPowerMode: Bool) -> BatteryStatus {
+        BatteryStatus(
+            rawPercentage: nil,
+            isPresent: false,
+            isCharging: false,
+            isLowPowerMode: lowPowerMode,
+            isConnectedToPower: false
+        )
+    }
 }
 
 enum WiFiState: Equatable, Sendable {

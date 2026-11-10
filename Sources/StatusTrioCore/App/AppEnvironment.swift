@@ -448,7 +448,8 @@ final class AppEnvironment {
         let isDevelopmentBuild = settings.isDevelopmentBuild
         let iconPresentation = IconPresentationViewModel(
             snapshot: noBatteryPreview
-                ? store.snapshot.replacingBattery(.absent)
+                ? store.snapshot.replacingBattery(
+                    .absent(lowPowerMode: store.snapshot.battery.isLowPowerMode))
                 : store.snapshot,
             settings: IconPresentationSettings(
                 configuration: IconPresentationConfiguration(
@@ -464,7 +465,8 @@ final class AppEnvironment {
                 .combineLatest(settings.$simulatesNoBattery)
                 .map { snapshot, simulatesNoBattery in
                     isDevelopmentBuild && simulatesNoBattery
-                        ? snapshot.replacingBattery(.absent)
+                        ? snapshot.replacingBattery(
+                            .absent(lowPowerMode: snapshot.battery.isLowPowerMode))
                         : snapshot
                 }
                 .eraseToAnyPublisher(),

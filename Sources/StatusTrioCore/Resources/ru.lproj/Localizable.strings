@@ -230,7 +230,7 @@
 "settings.battery.developerPreview" = "Предпросмотр для разработчиков";
 "settings.battery.simulateNoBattery" = "Имитировать отсутствие батареи";
 "settings.battery.simulateNoBatteryDescription" = "Показывает эту страницу так, как она выглядит на Mac без батареи. Только в сборках для разработки.";
-"settings.battery.noBatteryHiddenOptions" = "На этом Mac нет батареи: все эти настройки сохраняются, но эффекты уровня, зарядки и цвета состояния не применяются к значку.";
+"settings.battery.noBatteryHiddenOptions" = "На этом Mac нет батареи: процент и индикатор зарядки не применяются, но цвет кольца по-прежнему следует за подключением к сети, режимом энергосбережения и режимом высокой мощности.";
 "settings.battery.colors.charging" = "Зарядка / питание от сети";
 "settings.battery.colors.lowPower" = "Режим энергосбережения";
 "settings.battery.colors.critical" = "Критически низкий заряд";

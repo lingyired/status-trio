@@ -28,8 +28,9 @@ struct AppIconRingView: View {
             noBatteryHintGroup
         }
         // #309: every ring control stays visible without a battery. The settings
-        // are kept, only the icon's level/charging/state-colour drawing does not
-        // apply, and the hint above says so.
+        // are kept; the ring colour still follows connected power and Low/High
+        // Power Mode, while the level and charging marker do not apply. The hint
+        // above says so.
         topMarkersGroup
         progressGroup
         colorsGroup
@@ -53,8 +54,9 @@ struct AppIconRingView: View {
         }
     }
 
-    /// Explains that a battery-less Mac keeps the controls but not their effect on
-    /// the icon, so the page never silently hides options.
+    /// Explains what still applies on a battery-less Mac (ring colour follows
+    /// connected power and Low/High Power Mode) and what does not (percentage,
+    /// charging marker), so the kept controls are not misleading.
     private var noBatteryHintGroup: some View {
         SettingsGroup {
             SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryHiddenOptions))
