@@ -18,7 +18,12 @@ enum IconContentLegacyAdapter {
         case .bluetoothAudioOutput: .init(pluginID: "builtin.bluetooth-device", presentationID: "output")
         case .connectedBluetoothDevice: .init(pluginID: "builtin.bluetooth-device", presentationID: "connected")
         case .pinnedBluetoothGlyph: .init(pluginID: "builtin.bluetooth-device", presentationID: "pinned-glyph")
-        case .automaticLegacy: .init(pluginID: "builtin.legacy", presentationID: "center")
+        case .automaticLegacy:
+            .init(pluginID: "builtin.legacy", presentationID: "center")
+        case .chargingStatus:
+            .init(pluginID: "builtin.legacy", presentationID: "charging-status")
+        case .power:
+            .init(pluginID: "builtin.legacy", presentationID: "power")
         case .none: nil
         }
     }

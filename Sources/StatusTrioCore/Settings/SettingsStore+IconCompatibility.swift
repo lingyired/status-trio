@@ -45,11 +45,15 @@ extension SettingsStore {
         switch connection.centerSource {
         case .inputSource:
             configuration.composition.center = SlotSelection(primary: .inputSource, fallback: .network)
-        case .batteryPercentage, .chargingStatus:
+        case .batteryPercentage:
             configuration.composition.center = SlotSelection(primary: .systemBatteryPercentage, fallback: .network)
+        case .chargingStatus:
+            configuration.composition.center = SlotSelection(primary: .chargingStatus, fallback: .network)
+        case .power:
+            configuration.composition.center = SlotSelection(primary: .power, fallback: .network)
         case .bluetoothDevice:
             configuration.composition.center = SlotSelection(primary: .connectedBluetoothDevice, fallback: .network)
-        case .network, .power:
+        case .network:
             configuration.composition.center = SlotSelection(primary: .automaticLegacy, fallback: .network)
         }
 
@@ -246,6 +250,10 @@ extension SettingsStore {
             connectionCenterSource = .inputSource
         case .systemBatteryPercentage:
             connectionCenterSource = .batteryPercentage
+        case .chargingStatus:
+            connectionCenterSource = .chargingStatus
+        case .power:
+            connectionCenterSource = .power
         case .bluetoothAudioOutput, .pinnedBluetoothGlyph, .connectedBluetoothDevice:
             connectionCenterSource = .bluetoothDevice
         case .network, .automaticLegacy, .none:

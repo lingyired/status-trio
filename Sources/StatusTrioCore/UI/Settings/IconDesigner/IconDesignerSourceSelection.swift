@@ -28,7 +28,7 @@ enum IconDesignerSourceSelection {
             .macBatteryPercentage
         case .none:
             IconDesignerCenterChoice.none
-        case .automaticLegacy, .pinnedBluetoothGlyph:
+        case .automaticLegacy, .pinnedBluetoothGlyph, .chargingStatus, .power:
             nil
         }
     }

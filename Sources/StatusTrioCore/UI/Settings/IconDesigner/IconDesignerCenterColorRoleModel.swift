@@ -59,7 +59,7 @@ enum IconDesignerCenterColorRoleModel {
                 add(.bluetooth, .iconDesignerCenterColorMeaningBluetoothVolumeAboveZero, .iconDesignerCenterColorHelpBluetoothVolumeAboveZero, scope)
             case .pinnedBluetoothGlyph:
                 add(.bluetooth, .iconDesignerCenterColorMeaningBluetoothGlyph, .iconDesignerCenterColorHelpBluetoothGlyph, scope)
-            case .systemBatteryPercentage:
+            case .systemBatteryPercentage, .chargingStatus, .power:
                 add(.primary, .iconDesignerCenterColorMeaningBatteryPercentage, .iconDesignerCenterColorHelpBatteryPercentage, scope)
             case .automaticLegacy:
                 add(.primary, .iconDesignerCenterColorMeaningLegacyPrimary, .iconDesignerCenterColorHelpLegacyPrimary, scope)

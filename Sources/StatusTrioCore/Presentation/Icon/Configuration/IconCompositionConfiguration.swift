@@ -24,6 +24,11 @@ enum CenterSource: String, Codable, CaseIterable, Sendable {
     case pinnedBluetoothGlyph
     case connectedBluetoothDevice
     case systemBatteryPercentage
+    /// The battery/charging status drawn in the centre (#253/#195): the level
+    /// while on battery, the bolt while charging, the plug while connected.
+    case chargingStatus
+    /// Whole-machine watts (falls back to the battery level / placeholder).
+    case power
     case none
 }
 

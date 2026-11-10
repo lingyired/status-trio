@@ -128,7 +128,14 @@ final class IconDesignerDefaultsTests: XCTestCase {
     /// (here `.inputSource`) must resolve to its own name, never fall through to
     /// the "None" label the user saw in the GUI.
     func testEverySelectableCenterSourceMapsToItsOwnLocalizedName() throws {
-        for source in CenterSource.allCases {
+        // Only the sources the (retired) designer selector actually displays.
+        // `.chargingStatus` / `.power` are legacy-mapper passthroughs
+        // (`choice(for:)` returns nil) and share the `builtin.legacy` binding, so
+        // they are intentionally absent from the picker and need no own label.
+        let displayable: [CenterSource] = IconDesignerSourceSelection.centerChoices.map {
+            IconDesignerSourceSelection.source(for: $0)
+        }
+        for source in displayable {
             let key = IconDesignerSourceSelection.localizationKey(forRawSourceID: source.rawValue)
             let resolved = try XCTUnwrap(key, "\(source.rawValue) must have a localized name")
             if source != .none {
@@ -136,11 +143,11 @@ final class IconDesignerDefaultsTests: XCTestCase {
                                   "\(source.rawValue) must not be labeled as None")
             }
         }
-        let keys = CenterSource.allCases.map {
+        let keys = displayable.map {
             IconDesignerSourceSelection.localizationKey(forRawSourceID: $0.rawValue)?.rawValue
         }
-        XCTAssertEqual(Set(keys.compactMap { $0 }).count, CenterSource.allCases.count,
-                       "each centre source needs its own label: \(keys)")
+        XCTAssertEqual(Set(keys.compactMap { $0 }).count, displayable.count,
+                       "each displayable centre source needs its own label: \(keys)")
         XCTAssertEqual(
             IconDesignerSourceSelection.localizationKey(forRawSourceID: CenterSource.inputSource.rawValue),
             .iconDesignerSourceInputSource

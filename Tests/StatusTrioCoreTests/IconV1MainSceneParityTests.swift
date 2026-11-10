@@ -109,4 +109,63 @@ final class IconV1MainSceneParityTests: XCTestCase {
             }
         }
     }
+
+    /// The charging-status centre (#253/#195) and whole-machine power are real
+    /// main centre modes; the V1 path must draw the same percentage/bolt/plug
+    /// the legacy mapper does (this was reported as "charging status not
+    /// supported").
+    func testChargingStatusCentreMatchesMainMapper() throws {
+        let suite = "zzcs.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = SettingsStore(defaults: defaults)
+        store.connectionCenterSource = .chargingStatus
+
+        let states: [(String, BatteryStatus)] = [
+            ("onBattery", BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false, isLowPowerMode: false, isConnectedToPower: false)),
+            ("charging", BatteryStatus(rawPercentage: 50, isPresent: true, isCharging: true, isLowPowerMode: false, isConnectedToPower: true)),
+            ("connected", BatteryStatus(rawPercentage: 100, isPresent: true, isCharging: false, isLowPowerMode: false, isConnectedToPower: true))
+        ]
+        for (name, battery) in states {
+            let snapshot = StatusSnapshot(
+                battery: battery,
+                wifi: WiFiStatus(state: .connected, rssi: -50),
+                connection: .wifi,
+                volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Output", currentDevice: nil)
+            )
+            let v1 = IconCompositionResolver.resolve(
+                inputs: IconResolutionInputs(
+                    system: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+                    sources: .empty
+                ),
+                configuration: store.derivedIconConfigurationFromSettings()
+            ).scene.center
+            let main = IconPresentationMapper.scene(
+                inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+                configuration: IconPresentationConfiguration(
+                    battery: store.batteryIconOptions,
+                    connection: store.connectionIconOptions,
+                    volume: store.volumeIconOptions,
+                    bluetooth: store.bluetoothAudioIconOptions
+                )
+            ).center
+            XCTAssertEqual(Self.kind(v1), Self.kind(main), "\(name) centre kind")
+            XCTAssertTrue(Self.approximatelyEqual(Self.scale(v1), Self.scale(main)), "\(name) centre scale")
+        }
+    }
+
+    private static func kind(_ c: CenterState?) -> String {
+        switch c { case .symbol: "symbol"; case .text: "text"; case .none: "nil"; default: "?" }
+    }
+    private static func scale(_ c: CenterState?) -> Double? {
+        switch c { case let .symbol(s): s.scale; case let .text(t): t.scale; default: nil }
+    }
+    private static func approximatelyEqual(_ a: Double?, _ b: Double?) -> Bool {
+        switch (a, b) {
+        case (nil, nil): true
+        case let (x?, y?): abs(x - y) <= 1e-9
+        default: false
+        }
+    }
 }

@@ -47,7 +47,8 @@ enum IconConfigurationMigration {
             case .network, .automaticLegacy:
                 copy.composition.center.primary = .inputSource
             case .inputSource, .bluetoothAudioOutput, .pinnedBluetoothGlyph,
-                 .connectedBluetoothDevice, .systemBatteryPercentage, .none:
+                 .connectedBluetoothDevice, .systemBatteryPercentage,
+                 .chargingStatus, .power, .none:
                 break
             }
         }
@@ -214,6 +215,7 @@ extension IconConfigurationV1 {
                 showsBatteryPercentageInConnectionSlot:
                     composition.center.primary == .systemBatteryPercentage
                     || behaviors.networkCenter.showsBatteryPercentageInConnectionSlot,
+                centerSource: legacyCenterSource,
                 wifiScale: wifiScale
             ),
             volume: VolumeIconOptions(
@@ -227,5 +229,21 @@ extension IconConfigurationV1 {
                 networkIconSymbolOverride: behaviors.bluetoothAudioCenter.networkIconSymbolOverride
             )
         )
+    }
+
+    /// The connection-slot source the legacy mapper branches on. Charging status
+    /// and whole-machine power are real centre modes on main; the mapper only
+    /// draws them when `centerSource` says so, so the projection must carry them.
+    private var legacyCenterSource: ConnectionCenterSource {
+        switch composition.center.primary {
+        case .inputSource: .inputSource
+        case .systemBatteryPercentage: .batteryPercentage
+        case .chargingStatus: .chargingStatus
+        case .power: .power
+        case .connectedBluetoothDevice, .bluetoothAudioOutput, .pinnedBluetoothGlyph:
+            .bluetoothDevice
+        case .network, .automaticLegacy, .none:
+            .network
+        }
     }
 }

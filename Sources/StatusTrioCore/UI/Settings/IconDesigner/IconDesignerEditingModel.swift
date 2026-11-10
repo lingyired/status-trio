@@ -77,9 +77,9 @@ enum IconDesignerEditingModel {
         if let explicit = configuration.appearance.center.effectiveSymbolScale { return explicit }
         let legacyAppearanceFactor = configuration.appearance.center.symbolScale / CenterAppearance.classic.symbolScale
         switch source {
-        case .systemBatteryPercentage:
+        case .systemBatteryPercentage, .chargingStatus:
             return min(6, max(0.5, configuration.behaviors.systemBatteryRing.textScale * legacyAppearanceFactor))
-        case .network, .inputSource:
+        case .network, .inputSource, .power:
             return min(6, max(0.5, configuration.legacyPresentationConfiguration.connection.wifiScale * legacyAppearanceFactor))
         case .bluetoothAudioOutput, .connectedBluetoothDevice, .pinnedBluetoothGlyph:
             return min(6, max(0.5, configuration.behaviors.bluetoothAudioCenter.symbolScale * legacyAppearanceFactor))
@@ -97,10 +97,10 @@ enum IconDesignerEditingModel {
         if let normalized = configuration.appearance.center.normalizedSizePercentage { return normalized }
         let legacyScale = effectiveCenterScale(for: source, in: configuration)
         switch source {
-        case .network, .inputSource:
+        case .network, .inputSource, .power:
             if let legacyPercentage = configuration.appearance.center.normalizedPercentageScale { return legacyPercentage }
             return legacyScale / wifiScaleForCommonPercentageSize
-        case .systemBatteryPercentage:
+        case .systemBatteryPercentage, .chargingStatus:
             if let legacyPercentage = configuration.appearance.center.normalizedPercentageScale { return legacyPercentage }
             return legacyScale / CenterPercentageScaleCalibration.percentageScaleForCommonSize
         default:
