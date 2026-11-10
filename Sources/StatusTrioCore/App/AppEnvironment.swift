@@ -465,8 +465,22 @@ final class AppEnvironment {
             highPowerModes: store.highPowerMode.$isHighPowerMode
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
-            resolveInputs: { snapshot in
-                IconPresentationResourceResolver.inputs(snapshot: snapshot)
+            resolveInputs: { [store, settings] snapshot in
+                var inputs = IconPresentationResourceResolver.inputs(snapshot: snapshot)
+                inputs.sources = IconPresentationResourceResolver.sourceSnapshot(
+                    snapshot: snapshot,
+                    bluetoothDevices: store.bluetoothDevices.devices,
+                    batteryLevels: store.bluetoothDevices.batteryLevels,
+                    batteryLevelsUpdatedAt: store.bluetoothDevices.batteryLevelsUpdatedAt,
+                    selectedConnectedDeviceAddress: settings.bluetoothNetworkIconDeviceAddress
+                )
+                return inputs
+            },
+            mapScene: { [settings] inputs, _ in
+                IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(system: inputs, sources: inputs.sources),
+                    configuration: settings.iconConfiguration
+                ).scene
             }
         )
         let chargingEffectClock = ChargingEffectClock()

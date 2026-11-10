@@ -58,7 +58,13 @@ enum IconCompositionResolver {
         let footer = FooterResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy, now: now, registry: registry)
         return IconResolutionOutput(
             scene: IconPaletteResolver.apply(
-                IconSceneState(outerRing: ring.state, center: center.state, footer: footer.state),
+                IconSceneState(
+                    outerRing: ring.state,
+                    center: center.state,
+                    footer: footer.state,
+                    statusColors: configuration.appearance.batteryStatusColors.colors,
+                    bluetoothIconColor: configuration.appearance.bluetoothIconColor.selection
+                ),
                 appearance: configuration.appearance,
                 centerSource: center.source
             ),

@@ -169,11 +169,18 @@ extension IconConfigurationV1 {
                 showsChargingIndicator: behaviors.systemBatteryRing.showsChargingIndicator,
                 showsChargingEffect: behaviors.systemBatteryRing.showsChargingEffect,
                 showsChargingBoltHeartbeat: behaviors.systemBatteryRing.showsChargingBoltHeartbeat,
+                splitGapProgress: behaviors.splitGapProgress,
                 usesStatusColors: behaviors.systemBatteryRing.usesStatusColors,
                 criticalThreshold: behaviors.systemBatteryRing.criticalThreshold,
-                showsPercentageWhenConnected: behaviors.systemBatteryRing.showsPercentageWhenConnected,
+                connectedIndicator: behaviors.systemBatteryRing.showsPercentageWhenConnected ? .bolt : .plug,
+                fullThreshold: BatteryIconOptions.defaultFullThreshold,
                 textScale: behaviors.systemBatteryRing.textScale,
-                ringStrokeScale: appearance.outerRing.strokeScale
+                ringStrokeScale: appearance.outerRing.strokeScale,
+                batteryStatusColors: appearance.batteryStatusColors.colors,
+                onBatteryMarker: behaviors.batteryMarkers.onBattery,
+                chargingMarker: behaviors.batteryMarkers.charging,
+                connectedMarker: behaviors.batteryMarkers.connected,
+                noBatteryMarker: behaviors.batteryMarkers.noBattery
             ),
             connection: ConnectionIconOptions(
                 showsWiFiIconForEthernet: behaviors.networkCenter.showsWiFiIconForEthernet,
@@ -188,9 +195,8 @@ extension IconConfigurationV1 {
                 ringStrokeScale: appearance.footer.strokeScale
             ),
             bluetooth: BluetoothAudioIconOptions(
-                replacesNetworkIcon: behaviors.bluetoothAudioCenter.replacesNetworkIcon,
+                iconColor: appearance.bluetoothIconColor.selection,
                 usesVolumeColor: behaviors.bluetoothAudioCenter.usesVolumeColor,
-                prioritizesNetworkErrors: behaviors.bluetoothAudioCenter.prioritizesNetworkErrors,
                 symbolScale: behaviors.bluetoothAudioCenter.symbolScale,
                 networkIconSymbolOverride: behaviors.bluetoothAudioCenter.networkIconSymbolOverride
             )

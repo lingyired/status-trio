@@ -77,6 +77,10 @@ struct IconPresentationInputs: Equatable, Sendable {
     /// it is carried alongside the snapshot and drives the battery ring colour
     /// on both the menu bar and the Dock, which share this scene.
     let isHighPowerMode: Bool
+    /// Source availability and Bluetooth/AirPods battery snapshot used by the
+    /// V1 resolver/plugin layer. `.empty` keeps the legacy projection inputs
+    /// usable without BT data.
+    var sources: IconSourceSnapshot = .empty
 
     init(
         snapshot: StatusSnapshot,
@@ -84,7 +88,8 @@ struct IconPresentationInputs: Equatable, Sendable {
         inputSource: InputSourceDescriptor? = nil,
         runtimeOptions: IconPresentationRuntimeOptions? = nil,
         systemPower: SystemPowerSample? = nil,
-        isHighPowerMode: Bool = false
+        isHighPowerMode: Bool = false,
+        sources: IconSourceSnapshot = .empty
     ) {
         self.snapshot = snapshot
         self.audioIcon = audioIcon
@@ -92,5 +97,6 @@ struct IconPresentationInputs: Equatable, Sendable {
         self.runtimeOptions = runtimeOptions
         self.systemPower = systemPower
         self.isHighPowerMode = isHighPowerMode
+        self.sources = sources
     }
 }

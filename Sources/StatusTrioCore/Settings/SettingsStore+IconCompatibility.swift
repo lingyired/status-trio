@@ -13,9 +13,19 @@ import Foundation
 @MainActor
 extension SettingsStore {
     /// Read-only V1 projection of the current main settings.
+    ///
+    /// This is the single translation point from the merged store vocabulary to
+    /// the V1 icon schema: every main icon setting that has a V1 field is
+    /// mirrored here so the V1 resolver/plugin layer renders what the settings
+    /// surface shows.
     var iconConfiguration: IconConfigurationV1 {
         var configuration = IconConfigurationV1.classic
-        switch connectionIconOptions.centerSource {
+        let battery = batteryIconOptions
+        let connection = connectionIconOptions
+        let bluetooth = bluetoothAudioIconOptions
+        let volume = volumeIconOptions
+
+        switch connection.centerSource {
         case .inputSource:
             configuration.composition.center = SlotSelection(primary: .inputSource)
         case .batteryPercentage, .chargingStatus:
@@ -25,10 +35,50 @@ extension SettingsStore {
         case .network, .power:
             configuration.composition.center = SlotSelection(primary: .automaticLegacy)
         }
-        configuration.behaviors.systemBatteryRing.showsPercentage =
-            batteryIconOptions.showsPercentage
-        configuration.behaviors.systemBatteryRing.showsChargingIndicator =
-            batteryIconOptions.showsChargingIndicator
+
+        configuration.behaviors.systemBatteryRing = SystemBatteryRingBehavior(
+            showsPercentage: battery.showsPercentage,
+            showsChargingIndicator: battery.showsChargingIndicator,
+            showsChargingEffect: battery.showsChargingEffect,
+            showsChargingBoltHeartbeat: battery.showsChargingBoltHeartbeat,
+            usesStatusColors: battery.usesStatusColors,
+            showsPercentageWhenConnected: battery.showsPercentageWhenConnected,
+            criticalThreshold: battery.criticalThreshold,
+            textScale: battery.textScale
+        )
+        configuration.behaviors.batteryMarkers = BatteryMarkerBehavior(
+            onBattery: battery.onBatteryMarker,
+            charging: battery.chargingMarker,
+            connected: battery.connectedMarker,
+            noBattery: battery.noBatteryMarker
+        )
+        configuration.behaviors.splitGapProgress = battery.splitGapProgress
+        configuration.behaviors.networkCenter = NetworkCenterBehavior(
+            showsWiFiIconForEthernet: connection.showsWiFiIconForEthernet,
+            showsWiFiIconForHotspot: connection.showsWiFiIconForHotspot,
+            showsWiFiIconForTemporaryConnection: connection.showsWiFiIconForTemporaryConnection,
+            showsWiFiIconForInternetSharing: connection.showsWiFiIconForInternetSharing,
+            showsBatteryPercentageInConnectionSlot: connection.showsBatteryPercentageInConnectionSlot,
+            wifiScale: connection.wifiScale
+        )
+        configuration.behaviors.bluetoothAudioCenter = BluetoothAudioCenterBehavior(
+            replacesNetworkIcon: bluetooth.replacesNetworkIcon,
+            usesVolumeColor: bluetooth.usesVolumeColor,
+            prioritizesNetworkErrors: bluetooth.prioritizesNetworkErrors,
+            symbolScale: bluetooth.symbolScale,
+            networkIconSymbolOverride: bluetooth.networkIconSymbolOverride
+        )
+        configuration.behaviors.systemVolumeFooter = SystemVolumeFooterBehavior(
+            displayStyle: volume.displayStyle
+        )
+        configuration.appearance.outerRing.strokeScale = ringStrokeStyle.scale
+        configuration.appearance.footer.strokeScale = volume.ringStrokeScale
+        configuration.appearance.bluetoothIconColor = BluetoothIconColorConfiguration(bluetooth.iconColor)
+        configuration.appearance.inputSourceMarkerStyle = inputSourceMarkerStyle
+        configuration.appearance.bluetoothSymbolScale = bluetooth.symbolScale
+        configuration.appearance.batteryStatusColors = BatteryStatusColorsConfiguration(
+            battery.batteryStatusColors
+        )
         return configuration
     }
 
