@@ -249,9 +249,10 @@
 "settings.battery.criticalThreshold" = "Umbral crítico de batería";
 "settings.battery.criticalThresholdDescription" = "Por debajo de este nivel, el icono de batería usa el color de batería crítica.";
 "settings.battery.fullThreshold" = "Nivel de anillo lleno";
-"settings.battery.fullThresholdDescription" = "El anillo de batería se considera lleno a este nivel. Útil cuando la limitación de carga mantiene la batería por debajo del 100%.";
+"settings.battery.fullThresholdDescription" = "Solo con la alimentación conectada: el anillo se llena a este nivel. Con batería usa el nivel real.";
 "settings.battery.fullThresholdUseChargeLimit" = "Usar el límite de carga";
-"settings.battery.fullThresholdSystemUnavailable" = "Este Mac no informa de su límite de carga, así que no se puede leer el valor.";
+"settings.battery.fullThresholdSystemUnavailable" = "No se pudo leer el límite de carga actual del sistema. Compruébalo en Ajustes del Sistema → Batería → Carga, en el ⓘ de la derecha.";
+"settings.battery.fullThresholdOpenSystemSettings" = "Abrir Ajustes del Sistema";
 "settings.updates.title" = "Actualizaciones";
 "settings.updates.automatic" = "Buscar actualizaciones automáticamente";
 "settings.updates.check" = "Buscar actualizaciones…";

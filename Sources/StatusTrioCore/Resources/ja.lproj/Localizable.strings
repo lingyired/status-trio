@@ -249,9 +249,10 @@
 "settings.battery.criticalThreshold" = "クリティカル残量しきい値";
 "settings.battery.criticalThresholdDescription" = "この値を下回ると、バッテリーアイコンがクリティカル低バッテリー色になります。";
 "settings.battery.fullThreshold" = "リング満充電の基準";
-"settings.battery.fullThresholdDescription" = "この电量に達した時点でリングを満充電として表示します。充電上限が100%未満に設定されている場合に便利です。";
+"settings.battery.fullThresholdDescription" = "電源接続時のみ有効：この値でリングが満杯になります。バッテリー使用時は実際の残量で表示します。";
 "settings.battery.fullThresholdUseChargeLimit" = "充電上限を使用";
-"settings.battery.fullThresholdSystemUnavailable" = "この Mac は充電上限を報告しないため、その値を読み取れません。";
+"settings.battery.fullThresholdSystemUnavailable" = "現在のシステム充電上限を取得できませんでした。「システム設定 → バッテリー → 充電」の右側の ⓘ で確認してください。";
+"settings.battery.fullThresholdOpenSystemSettings" = "システム設定を開く";
 "settings.updates.title" = "アップデート";
 "settings.updates.automatic" = "自動的にアップデートを確認";
 "settings.updates.check" = "アップデートを確認…";

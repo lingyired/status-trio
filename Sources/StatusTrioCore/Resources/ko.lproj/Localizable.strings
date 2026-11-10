@@ -249,9 +249,10 @@
 "settings.battery.criticalThreshold" = "위험 배터리 임계값";
 "settings.battery.criticalThresholdDescription" = "이 값 아래로 떨어지면 배터리 아이콘이 위험 배터리 색으로 표시됩니다.";
 "settings.battery.fullThreshold" = "링 full 충전 기준";
-"settings.battery.fullThresholdDescription" = "배터리 링이 이 수준에 도달하면 가득 찬 것으로 표시합니다. 충전 상한이 100% 미만으로 설정된 경우에 유용합니다.";
+"settings.battery.fullThresholdDescription" = "전원 연결 시에만 적용: 이 값에서 링이 가득 참이 됩니다. 배터리 사용 시에는 실제 잔량으로 표시합니다.";
 "settings.battery.fullThresholdUseChargeLimit" = "충전 상한 사용";
-"settings.battery.fullThresholdSystemUnavailable" = "이 Mac은 충전 상한을 보고하지 않으므로 해당 값을 읽을 수 없습니다.";
+"settings.battery.fullThresholdSystemUnavailable" = "현재 시스템 충전 한도를 읽을 수 없습니다. '시스템 설정 → 배터리 → 충전' 오른쪽의 ⓘ에서 확인하세요.";
+"settings.battery.fullThresholdOpenSystemSettings" = "시스템 설정 열기";
 "settings.updates.title" = "업데이트";
 "settings.updates.automatic" = "자동으로 업데이트 확인";
 "settings.updates.check" = "업데이트 확인…";

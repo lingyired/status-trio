@@ -249,9 +249,10 @@
 "settings.battery.criticalThreshold" = "Critical Battery Threshold";
 "settings.battery.criticalThresholdDescription" = "Below this level the battery icon uses the critical battery colour.";
 "settings.battery.fullThreshold" = "Full ring level";
-"settings.battery.fullThresholdDescription" = "The battery ring counts as full at this level. Useful when charge limiting holds the battery below 100%.";
+"settings.battery.fullThresholdDescription" = "Only while on power: the ring is full at this level. On battery it uses the real level.";
 "settings.battery.fullThresholdUseChargeLimit" = "Use the charge limit";
-"settings.battery.fullThresholdSystemUnavailable" = "This Mac does not report its charge limit, so the value cannot be read.";
+"settings.battery.fullThresholdSystemUnavailable" = "Couldn't read the current system charge limit. Check it in System Settings → Battery → Charging, in the ⓘ on the right.";
+"settings.battery.fullThresholdOpenSystemSettings" = "Open System Settings";
 "settings.updates.title" = "Updates";
 "settings.updates.automatic" = "Automatically check for updates";
 "settings.updates.check" = "Check for Updates…";

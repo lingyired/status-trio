@@ -249,9 +249,10 @@
 "settings.battery.criticalThreshold" = "Kritischer Akkustand";
 "settings.battery.criticalThresholdDescription" = "Unterhalb dieses Werts verwendet das Batteriesymbol die Farbe für kritischen Akkustand.";
 "settings.battery.fullThreshold" = "Ladestand für vollen Ring";
-"settings.battery.fullThresholdDescription" = "Ab diesem Ladestand gilt der Batteriering als voll. Nützlich, wenn die Ladebegrenzung die Batterie unter 100% hält.";
+"settings.battery.fullThresholdDescription" = "Gilt nur am Netzteil: Der Ring ist bei diesem Stand voll. Im Akkubetrieb gilt der echte Ladestand.";
 "settings.battery.fullThresholdUseChargeLimit" = "Ladebegrenzung übernehmen";
-"settings.battery.fullThresholdSystemUnavailable" = "Dieser Mac meldet keine Ladebegrenzung, daher kann der Wert nicht gelesen werden.";
+"settings.battery.fullThresholdSystemUnavailable" = "Das aktuelle Ladelimit des Systems konnte nicht gelesen werden. Prüfe es in Systemeinstellungen → Batterie → Laden, im ⓘ rechts.";
+"settings.battery.fullThresholdOpenSystemSettings" = "Systemeinstellungen öffnen";
 "settings.updates.title" = "Updates";
 "settings.updates.automatic" = "Automatisch nach Updates suchen";
 "settings.updates.check" = "Nach Updates suchen…";

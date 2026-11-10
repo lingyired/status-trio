@@ -652,6 +652,9 @@ final class SettingsStore: ObservableObject {
     /// ring close at the cap the user actually reaches.
     @Published var batteryFullThreshold: Double {
         didSet {
+            // Dragging the slider is the user taking manual control; a note
+            // about a failed “使用充电上限” press no longer applies.
+            batteryFullThresholdReadFailed = false
             let clamped = Self.clampedBatteryFullThreshold(batteryFullThreshold)
             guard clamped == batteryFullThreshold else {
                 batteryFullThreshold = clamped
@@ -699,6 +702,12 @@ final class SettingsStore: ObservableObject {
         }
         return SystemChargeLimitReader.chargeLimit() != nil
     }
+
+    /// Whether the last “使用充电上限” press failed to read the private plist.
+    /// Drives the ring page's "check System Settings" note, which is shown only
+    /// after a failed attempt rather than proactively. Any manual threshold
+    /// change or successful read clears it again.
+    @Published private(set) var batteryFullThresholdReadFailed = false
 
     @Published var showsWiFiIconForEthernet: Bool {
         didSet {
@@ -1749,8 +1758,12 @@ final class SettingsStore: ObservableObject {
         let url = url ?? chargeLimitURLForTesting
         let limit = url.map { SystemChargeLimitReader.chargeLimit(from: $0) }
             ?? SystemChargeLimitReader.chargeLimit()
-        guard let limit else { return }
+        guard let limit else {
+            batteryFullThresholdReadFailed = true
+            return
+        }
         batteryFullThreshold = Double(limit)
+        batteryFullThresholdReadFailed = false
     }
 
     /// Fills the restore-limit slider in from the system. Like

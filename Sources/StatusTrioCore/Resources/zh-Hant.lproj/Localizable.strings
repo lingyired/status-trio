@@ -249,9 +249,10 @@
 "settings.battery.criticalThreshold" = "臨界電量閾值";
 "settings.battery.criticalThresholdDescription" = "電量低於此值時，電池圖示使用臨界低電量顏色。";
 "settings.battery.fullThreshold" = "圓環滿格電量";
-"settings.battery.fullThresholdDescription" = "電量達到該值時圓環即視為滿格。適合充電上限設定在 100% 以下的場景。";
+"settings.battery.fullThresholdDescription" = "僅在連接電源時生效：達到該值圓環即滿格；用電池時按真實電量顯示。";
 "settings.battery.fullThresholdUseChargeLimit" = "使用充電上限";
-"settings.battery.fullThresholdSystemUnavailable" = "這台 Mac 未上報充電上限，無法讀取該值。";
+"settings.battery.fullThresholdSystemUnavailable" = "無法取得目前系統充電上限，請自行到「系統設定 → 電池 → 充電」右側的驚嘆號中查看。";
+"settings.battery.fullThresholdOpenSystemSettings" = "開啟系統設定";
 "settings.updates.title" = "更新";
 "settings.updates.automatic" = "自動檢查更新";
 "settings.updates.check" = "檢查更新…";

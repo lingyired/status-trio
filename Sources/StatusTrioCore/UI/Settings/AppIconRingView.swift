@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The "Ring" leaf under **App Icon**: how the battery arc / ring is drawn.
@@ -236,18 +237,44 @@ struct AppIconRingView: View {
 
     @ViewBuilder
     private var systemChargeLimitUnavailableNote: some View {
-        if !store.canReadSystemChargeLimit {
+        // Shown only after the user pressed “使用充电上限” and the private plist
+        // could not be read. Not proactive: an idle page stays quiet.
+        if store.batteryFullThresholdReadFailed {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(.secondary)
-                Text(localization.string(
-                    .settingsBatteryFullThresholdSystemUnavailable
-                ))
+                (
+                    Text(localization.string(
+                        .settingsBatteryFullThresholdSystemUnavailable
+                    ))
+                    + Text(" ")
+                    + Text(localization.string(
+                        .settingsBatteryFullThresholdOpenSystemSettings
+                    ))
+                    .foregroundColor(Color.accentColor)
+                )
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .onTapGesture { openBatteryChargeSettings() }
+                .accessibilityAddTraits(.isLink)
             }
             .padding(.horizontal, SettingsMetrics.rowPaddingH)
             .padding(.bottom, 6)
+        }
+    }
+
+    /// Opens System Settings at Battery → Charging, where the user can read the
+    /// real charge limit that this machine does not expose through a public API.
+    private func openBatteryChargeSettings() {
+        let candidates = [
+            "x-apple.systempreferences:com.apple.Battery-Settings.extension",
+            "x-apple.systempreferences:com.apple.preference.battery"
+        ]
+        for candidate in candidates {
+            if let url = URL(string: candidate), NSWorkspace.shared.open(url) {
+                return
+            }
         }
     }
 

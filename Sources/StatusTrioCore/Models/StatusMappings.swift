@@ -107,15 +107,20 @@ enum StatusMappings {
 
     /// How far around the ring the battery arc is drawn.
     ///
-    /// The arc is measured against `fullThreshold`, not against a fixed 100%,
-    /// so a level-limited battery can close the ring at the level the user
-    /// picked (#105). `fullThreshold` defaults to 100 and therefore keeps the
-    /// raw-percentage behaviour for every caller with no opinion of its own.
+    /// The full-ring level only applies while the Mac is on power. A charge
+    /// limit holds the battery below 100%, so on power the ring closes at the
+    /// level the user picked (#105). On battery the limit is irrelevant — the
+    /// Mac is running off the pack — so the arc falls back to the real 100%
+    /// scale; otherwise a 29% charge drawn against an 80% threshold would look
+    /// far fuller than the number (#318). `fullThreshold` defaults to 100, so
+    /// callers with no opinion keep the raw-percentage behaviour.
     static func batteryProgress(
         _ battery: BatteryStatus,
         fullThreshold: Int = BatteryIconOptions.defaultFullThreshold
     ) -> Double {
-        let threshold = min(100, max(1, fullThreshold))
+        let threshold = battery.isConnectedToPower
+            ? min(100, max(1, fullThreshold))
+            : 100
         return min(1, max(0, Double(battery.percentage) / Double(threshold)))
     }
 
