@@ -7,9 +7,15 @@ struct IconBehaviorConfiguration: Codable, Equatable, Sendable {
     var systemVolumeFooter: SystemVolumeFooterBehavior
     var airPodsRing: AirPodsRingBehavior
     var showsAirPodsTopSymbol: Bool
+    /// Per-power-state top marker choices (#315), mirroring the merged
+    /// `BatteryIconOptions` marker model.
+    var batteryMarkers: BatteryMarkerBehavior
+    /// Whether a top gap with content splits the visible arc across it (#205).
+    var splitGapProgress: Bool
 
     enum CodingKeys: String, CodingKey {
         case systemBatteryRing, networkCenter, bluetoothAudioCenter, systemVolumeFooter, airPodsRing, showsAirPodsTopSymbol
+        case batteryMarkers, splitGapProgress
     }
 
     init(
@@ -18,7 +24,9 @@ struct IconBehaviorConfiguration: Codable, Equatable, Sendable {
         bluetoothAudioCenter: BluetoothAudioCenterBehavior,
         systemVolumeFooter: SystemVolumeFooterBehavior,
         airPodsRing: AirPodsRingBehavior = .single,
-        showsAirPodsTopSymbol: Bool = false
+        showsAirPodsTopSymbol: Bool = false,
+        batteryMarkers: BatteryMarkerBehavior = .classic,
+        splitGapProgress: Bool = false
     ) {
         self.systemBatteryRing = systemBatteryRing
         self.networkCenter = networkCenter
@@ -26,6 +34,8 @@ struct IconBehaviorConfiguration: Codable, Equatable, Sendable {
         self.systemVolumeFooter = systemVolumeFooter
         self.airPodsRing = airPodsRing
         self.showsAirPodsTopSymbol = showsAirPodsTopSymbol
+        self.batteryMarkers = batteryMarkers
+        self.splitGapProgress = splitGapProgress
     }
 
     init(from decoder: Decoder) throws {
@@ -36,6 +46,8 @@ struct IconBehaviorConfiguration: Codable, Equatable, Sendable {
         systemVolumeFooter = try container.decode(SystemVolumeFooterBehavior.self, forKey: .systemVolumeFooter)
         airPodsRing = try container.decodeIfPresent(AirPodsRingBehavior.self, forKey: .airPodsRing) ?? .single
         showsAirPodsTopSymbol = try container.decodeIfPresent(Bool.self, forKey: .showsAirPodsTopSymbol) ?? false
+        batteryMarkers = try container.decodeIfPresent(BatteryMarkerBehavior.self, forKey: .batteryMarkers) ?? .classic
+        splitGapProgress = try container.decodeIfPresent(Bool.self, forKey: .splitGapProgress) ?? false
     }
 
     func encode(to encoder: Encoder) throws {
@@ -46,6 +58,8 @@ struct IconBehaviorConfiguration: Codable, Equatable, Sendable {
         try container.encode(systemVolumeFooter, forKey: .systemVolumeFooter)
         try container.encode(airPodsRing, forKey: .airPodsRing)
         try container.encode(showsAirPodsTopSymbol, forKey: .showsAirPodsTopSymbol)
+        try container.encode(batteryMarkers, forKey: .batteryMarkers)
+        try container.encode(splitGapProgress, forKey: .splitGapProgress)
     }
 
     static let classic = Self(
@@ -119,3 +133,21 @@ struct SystemVolumeFooterBehavior: Codable, Equatable, Sendable {
 
     static let classic = Self(displayStyle: .dots)
 }
+
+
+/// Per-power-state top marker choices (#315) carried by the V1 schema.
+struct BatteryMarkerBehavior: Codable, Equatable, Sendable {
+    var onBattery: BatteryTopMarker
+    var charging: BatteryTopMarker
+    var connected: BatteryTopMarker
+    var noBattery: BatteryTopMarker
+
+    static let classic = Self(
+        onBattery: .percentage,
+        charging: .bolt,
+        connected: .plug,
+        noBattery: .plug
+    )
+}
+
+extension BatteryTopMarker: Codable {}

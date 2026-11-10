@@ -111,12 +111,58 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
     var outerRing: RingAppearance
     var center: CenterAppearance
     var footer: FooterAppearance
+    /// The middle Bluetooth glyph colour (#275).
+    var bluetoothIconColor: BluetoothIconColorConfiguration
+    /// The marker style for the input-source centre (#297).
+    var inputSourceMarkerStyle: InputSourceMarkerStyle
+    /// The Bluetooth glyph scale, carried separately from the generic centre
+    /// scale so a pinned glyph keeps its own size.
+    var bluetoothSymbolScale: Double
+
+    enum CodingKeys: String, CodingKey {
+        case outerRing, center, footer, bluetoothIconColor, inputSourceMarkerStyle, bluetoothSymbolScale
+    }
 
     static let classic = Self(
         outerRing: .classic,
         center: .classic,
-        footer: .classic
+        footer: .classic,
+        bluetoothIconColor: .classic,
+        inputSourceMarkerStyle: .systemIcon,
+        bluetoothSymbolScale: BluetoothAudioIconOptions.defaultSymbolScale
     )
+
+    init(
+        outerRing: RingAppearance,
+        center: CenterAppearance,
+        footer: FooterAppearance,
+        bluetoothIconColor: BluetoothIconColorConfiguration = .classic,
+        inputSourceMarkerStyle: InputSourceMarkerStyle = .systemIcon,
+        bluetoothSymbolScale: Double = BluetoothAudioIconOptions.defaultSymbolScale
+    ) {
+        self.outerRing = outerRing
+        self.center = center
+        self.footer = footer
+        self.bluetoothIconColor = bluetoothIconColor
+        self.inputSourceMarkerStyle = inputSourceMarkerStyle
+        self.bluetoothSymbolScale = bluetoothSymbolScale
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        outerRing = try container.decode(RingAppearance.self, forKey: .outerRing)
+        center = try container.decode(CenterAppearance.self, forKey: .center)
+        footer = try container.decode(FooterAppearance.self, forKey: .footer)
+        bluetoothIconColor = try container.decodeIfPresent(
+            BluetoothIconColorConfiguration.self, forKey: .bluetoothIconColor
+        ) ?? .classic
+        inputSourceMarkerStyle = try container.decodeIfPresent(
+            InputSourceMarkerStyle.self, forKey: .inputSourceMarkerStyle
+        ) ?? .systemIcon
+        bluetoothSymbolScale = try container.decodeIfPresent(
+            Double.self, forKey: .bluetoothSymbolScale
+        ) ?? BluetoothAudioIconOptions.defaultSymbolScale
+    }
 
     func resetting(_ slot: IconSlot) -> Self {
         var copy = self
@@ -128,3 +174,26 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
         return copy
     }
 }
+
+
+/// Codable storage for `BluetoothIconColorSelection` (#275). Stores the same
+/// hand-parseable raw value the settings model persists.
+struct BluetoothIconColorConfiguration: Codable, Equatable, Sendable {
+    var storageValue: String
+
+    static let classic = Self(storageValue: "blue")
+
+    init(storageValue: String = "blue") {
+        self.storageValue = storageValue
+    }
+
+    init(_ selection: BluetoothIconColorSelection) {
+        self.storageValue = selection.storageValue
+    }
+
+    var selection: BluetoothIconColorSelection {
+        BluetoothIconColorSelection(storageValue: storageValue)
+    }
+}
+
+extension InputSourceMarkerStyle: Codable {}
