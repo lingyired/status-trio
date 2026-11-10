@@ -223,3 +223,12 @@
   - **删除个别用例**（文件保持启用）：`SystemStatusStoreTests.testPopoverAlwaysOwnsActivationAlongsideExistingOwners`（分支蓝牙激活 token 语义）、`CenterPercentageInteractiveRangeTests` 2 项（measured-height / 已删编辑器源文件）、`UnifiedWiFiScaleMigrationTests` 4 项（已删编辑器源契约 + 分支单向迁移 fixture）。
 - full 结果：Swift 全量测试通过、Release 编译通过（`BUILD_TIMING phase=swift-release-build exit=0`）；`App bundle build` 在 `mobile-source-checkout` 阶段因**网络**克隆 openssl 失败（`SSL_ERROR_SYSCALL`），与代码无关，属未验证项。
 - 未验证项（如实记录）：MobileBattery 源码拉取、Universal 打包、签名/公证、DMG、真实 macOS 13/Ventura 运行时。
+
+## 18. 特性平价测试与两个真实缺陷（2026-11-10 续）
+
+补 `IconMergedFeatureParityTests`，钉住 main 特性在**运行时真正走的 V1 路径**（`AppEnvironment.mapScene` → `IconCompositionResolver`）上生效，避免「只在 legacy mapper 上有效」的静默回归。测试立刻抓到两个真实缺陷：
+
+1. **#275 蓝牙中间图标颜色丢失** — `IconPaletteResolver.apply` 重建 `IconSceneState` 时只传 `outerRing/center/footer`，把场景级的 `statusColors`、`bluetoothIconColor` 丢掉了。修复：`apply` 透传这两个字段（同时修复电池状态色在部分路径丢失）。
+2. **#205 分段进度丢失** — 同一个 `apply` 重建 `OuterRingState` 时没传 `gapProgressMode`，一律落回默认 `.absorbed`，用户开了「分段进度」也不生效。修复：透传 `gapProgressMode`。
+
+验证：`IconMergedFeatureParityTests` 4 项全过（#235 高功率配色、#315 电池标记、#205 分段、#275 蓝牙色）；focused Icon 300 / Preview 72 / Dock 167 / Settings 38 全绿。

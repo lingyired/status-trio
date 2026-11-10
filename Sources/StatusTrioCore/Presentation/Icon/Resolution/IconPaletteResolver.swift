@@ -44,7 +44,9 @@ enum IconPaletteResolver {
                 },
                 effect: ring.effect,
                 strokeScale: appearance.outerRing.strokeScale,
-                inactiveColor: resolve(role: ring.inactiveColor, style: appearance.outerRing.color)
+                inactiveColor: resolve(role: ring.inactiveColor, style: appearance.outerRing.color),
+                // Appearance resolution must not reset the #205 gap-progress mode.
+                gapProgressMode: ring.gapProgressMode
             )
         }
         let centerScaleFactor = appearance.center.symbolScale / CenterAppearance.classic.symbolScale
@@ -92,7 +94,16 @@ enum IconPaletteResolver {
                               inactiveColor: resolve(role: arc.inactiveColor, style: appearance.footer.color)))
             }
         }
-        return IconSceneState(outerRing: outerRing, center: center, footer: footer)
+        // Carry the scene-level payloads through appearance resolution: they are
+        // not slot roles, and dropping them loses the #275 Bluetooth colour and
+        // the battery status palette on the resolved scene.
+        return IconSceneState(
+            outerRing: outerRing,
+            center: center,
+            footer: footer,
+            statusColors: scene.statusColors,
+            bluetoothIconColor: scene.bluetoothIconColor
+        )
     }
 }
 
