@@ -4,6 +4,42 @@ import XCTest
 
 @MainActor
 final class VolumeMonitorAsyncTests: XCTestCase {
+    func testBackgroundPriorityInventorySurvivesClosedDetailsAndStopsOnDisable() async {
+        let reader = DeferredAudioStatusReader()
+        let monitor = makeMonitor(reader: reader)
+        var inventories: [[AudioPriorityDevice]] = []
+        monitor.setPriorityInventoryHandler { devices, _ in inventories.append(devices) }
+        monitor.setDetailsVisible(false)
+        monitor.setPriorityInventoryRequired(true)
+        monitor.start()
+        XCTAssertEqual(reader.requests, [true])
+        reader.complete(reading(scalar: 0.5, devices: [device]))
+        XCTAssertEqual(inventories.last?.map(\.uid), ["airpods"])
+        monitor.refresh()
+        XCTAssertEqual(reader.requests, [true, false], "Ordinary ticks reuse the inventory cache")
+        reader.complete(reading(scalar: 0.6))
+        monitor.setPriorityInventoryRequired(false)
+        monitor.refresh()
+        XCTAssertEqual(reader.requests.last, false)
+        reader.complete(reading(scalar: 0.7))
+        monitor.stop()
+    }
+
+    func testMissingDefaultOutputStillDeliversValidInventoryForRecovery() {
+        let reader = DeferredAudioStatusReader()
+        let monitor = makeMonitor(reader: reader)
+        var current: UInt32? = 99
+        var count = 0
+        monitor.setPriorityInventoryHandler { devices, selected in count = devices.count; current = selected }
+        monitor.setDetailsVisible(false)
+        monitor.setPriorityInventoryRequired(true)
+        monitor.start()
+        reader.complete(AudioStatusReading(volume: nil, outputDevices: [device]))
+        XCTAssertNil(current)
+        XCTAssertEqual(count, 1)
+        monitor.stop()
+    }
+
     func testRefreshBurstRetainsOneFollowUpAndUpgradesToDeviceEnumeration() async {
         let reader = DeferredAudioStatusReader()
         let events = AsyncVolumeEvents()

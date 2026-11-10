@@ -885,3 +885,14 @@
 "settings.audio.spatialAudioControlsDescription" = "يعرض خيارات الصوت المكاني (إيقاف/ثابت/تتبع الرأس) في صف إخراج AirPods. يدعم AirPods فقط حالياً.";
 "settings.audio.conversationAwarenessControlsTitle" = "إظهار عناصر تحكم الوعي بالمحادثة";
 "settings.audio.conversationAwarenessControlsDescription" = "يعرض مفتاح الوعي بالمحادثة في صف إخراج AirPods. يدعم AirPods فقط حالياً.";
+
+// Audio device priority
+"settings.audio.priority.toggle" = "التبديل تلقائيًا حسب الأولوية";
+"settings.audio.priority.description" = "للأجهزة الأعلى في القائمة أولوية. تُستبعد الأجهزة المخفية وتحتفظ الأجهزة غير المتصلة بترتيبها.";
+"settings.audio.priority.manual" = "يبقى الاختيار اليدوي حتى تتغير الاتصالات أو الأولويات أو يُفعّل التبديل التلقائي مجددًا.";
+"settings.audio.priority.stopped" = "يتوقف التبديل التلقائي مؤقتًا أثناء إيقاف وحدة الصوت هذه.";
+"settings.audio.priority.disconnected" = "غير متصل";
+"settings.audio.priority.forget" = "نسيان الجهاز";
+"settings.audio.priority.failed" = "تعذر تبديل الأجهزة. ستُطبّق الأولويات مجددًا عند التغيير التالي للأجهزة أو القواعد.";
+
+"settings.audio.priority.inputManual" = "تتجاوز أولوية الإدخال تغييرات النظام. اختر ميكروفونًا في Status Trio لتجاوزها حتى تتغير الاتصالات أو قواعد الأولوية.";

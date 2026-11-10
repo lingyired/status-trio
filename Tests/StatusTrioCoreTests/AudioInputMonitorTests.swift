@@ -6,6 +6,69 @@ import XCTest
 
 @MainActor
 final class AudioInputMonitorTests: XCTestCase {
+  func testPriorityKeepsInventoryLiveWithAllSurfacesClosedAndStopsWhenDisabled() async throws {
+    let hardware = FakeAudioInputHardware(reading: reading(defaultID: 11))
+    let monitor = AudioInputMonitor(hardware: hardware)
+    let log = AudioInputStatusLog(monitor.updates)
+    defer { monitor.stop() }
+    monitor.setPriorityInventoryRequired(true)
+    let first = log.expectStatus("background inventory") { $0.defaultDeviceID == 11 && !$0.isRefreshing }
+    monitor.setEnabled(true)
+    await fulfillment(of: [first], timeout: 5)
+    XCTAssertEqual(hardware.usageReadCount, 0)
+    let observation = try XCTUnwrap(hardware.waitForObservation(timeout: 5))
+    hardware.setReading(reading(defaultID: 22))
+    let changed = log.expectStatus("background topology event") { $0.defaultDeviceID == 22 && !$0.isRefreshing }
+    observation.emit(.devicesChanged)
+    await fulfillment(of: [changed], timeout: 5)
+    XCTAssertEqual(hardware.usageReadCount, 0)
+    monitor.setPriorityInventoryRequired(false)
+    monitor.setEnabled(false)
+    XCTAssertTrue(observation.waitUntilStopped(timeout: 5))
+    let count = hardware.fullReadCount
+    observation.emit(.devicesChanged, evenIfStopped: true)
+    monitor.recover()
+    XCTAssertEqual(hardware.fullReadCount, count)
+  }
+
+  func testAutomaticInputRejectsRecycledDeviceID() async throws {
+    let hardware = FakeAudioInputHardware(reading: reading(defaultID: 11))
+    let monitor = AudioInputMonitor(hardware: hardware)
+    let log = AudioInputStatusLog(monitor.updates)
+    defer { monitor.stop() }
+    monitor.setPriorityInventoryRequired(true)
+    let first = log.expectStatus("initial inventory") { $0.defaultDeviceID == 11 && !$0.isRefreshing }
+    monitor.setEnabled(true)
+    await fulfillment(of: [first], timeout: 5)
+    let done = expectation(description: "UID mismatch rejected")
+    monitor.selectAutomatically(22, request: AudioPriorityRequest(expectedUID: "different-device")) { success in
+      XCTAssertFalse(success)
+      done.fulfill()
+    }
+    await fulfillment(of: [done], timeout: 5)
+    let unchanged = try hardware.read(includeDevices: false)
+    XCTAssertEqual(unchanged.defaultDeviceID, 11)
+  }
+
+  func testAutomaticInputConfirmsDefaultAfterBackgroundWrite() async throws {
+    let hardware = FakeAudioInputHardware(reading: reading(defaultID: 11))
+    let monitor = AudioInputMonitor(hardware: hardware)
+    let log = AudioInputStatusLog(monitor.updates)
+    defer { monitor.stop() }
+    monitor.setPriorityInventoryRequired(true)
+    let first = log.expectStatus("initial inventory") { $0.defaultDeviceID == 11 && !$0.isRefreshing }
+    monitor.setEnabled(true)
+    await fulfillment(of: [first], timeout: 5)
+    let done = expectation(description: "automatic switch confirmed")
+    monitor.selectAutomatically(22, request: AudioPriorityRequest(expectedUID: "second")) { success in
+      XCTAssertTrue(success)
+      done.fulfill()
+    }
+    await fulfillment(of: [done], timeout: 5)
+    XCTAssertEqual(try hardware.read(includeDevices: false).defaultDeviceID, 22)
+    XCTAssertEqual(hardware.usageReadCount, 0)
+  }
+
   private let firstDevice = AudioInputDevice(id: 11, uid: "first", name: "Built-in Mic")
   private let secondDevice = AudioInputDevice(id: 22, uid: "second", name: "USB Mic")
 

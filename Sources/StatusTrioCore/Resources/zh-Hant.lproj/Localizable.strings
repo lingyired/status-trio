@@ -885,3 +885,14 @@
 "settings.audio.spatialAudioControlsDescription" = "在 AirPods 輸出列顯示空間音訊選項（關閉/固定/頭部追蹤）。目前僅支援 AirPods。";
 "settings.audio.conversationAwarenessControlsTitle" = "顯示對話感知控制";
 "settings.audio.conversationAwarenessControlsDescription" = "在 AirPods 輸出列顯示對話感知開關。目前僅支援 AirPods。";
+
+// Audio device priority
+"settings.audio.priority.toggle" = "依優先順序自動切換";
+"settings.audio.priority.description" = "清單越靠前優先順序越高。隱藏的裝置不參與自動切換，已中斷連線的裝置保留排序。";
+"settings.audio.priority.manual" = "手動選擇會保留，直到裝置連線狀態或優先順序規則變更，或重新啟用自動切換。";
+"settings.audio.priority.stopped" = "此聲音模組已關閉，自動切換已暫停。";
+"settings.audio.priority.disconnected" = "未連線";
+"settings.audio.priority.forget" = "忘記裝置";
+"settings.audio.priority.failed" = "無法切換裝置。下次裝置連線狀態或規則變更時會重新套用優先順序。";
+
+"settings.audio.priority.inputManual" = "輸入優先順序不受系統自動切換影響。在 Status Trio 面板中手動選擇麥克風可暫時覆寫，直到連線狀態或優先順序規則變更。";

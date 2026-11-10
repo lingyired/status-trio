@@ -885,3 +885,14 @@
 "settings.audio.spatialAudioControlsDescription" = "Zeigt die Optionen für räumliches Audio (Aus/Fixiert/Kopftracking) in der AirPods-Ausgabezeile. Derzeit nur AirPods.";
 "settings.audio.conversationAwarenessControlsTitle" = "Sprachbewusstsein-Steuerung anzeigen";
 "settings.audio.conversationAwarenessControlsDescription" = "Zeigt den Schalter für Sprachbewusstsein in der AirPods-Ausgabezeile. Derzeit nur AirPods.";
+
+// Audio device priority
+"settings.audio.priority.toggle" = "Automatisch nach Priorität wechseln";
+"settings.audio.priority.description" = "Geräte weiter oben haben Vorrang. Ausgeblendete Geräte sind ausgeschlossen. Getrennte Geräte behalten ihren Platz.";
+"settings.audio.priority.manual" = "Eine manuelle Auswahl gilt bis sich Verbindungen oder Prioritäten ändern oder die Automatik erneut aktiviert wird.";
+"settings.audio.priority.stopped" = "Der automatische Wechsel pausiert, solange dieses Audiomodul ausgeschaltet ist.";
+"settings.audio.priority.disconnected" = "Nicht verbunden";
+"settings.audio.priority.forget" = "Gerät vergessen";
+"settings.audio.priority.failed" = "Gerätewechsel fehlgeschlagen. Die Prioritäten werden bei der nächsten Geräte- oder Regeländerung erneut angewendet.";
+
+"settings.audio.priority.inputManual" = "Die Eingabepriorität korrigiert Systemänderungen. Eine Mikrofonauswahl in Status Trio gilt bis sich Verbindungen oder Prioritätsregeln ändern.";

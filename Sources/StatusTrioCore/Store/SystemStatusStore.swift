@@ -188,6 +188,12 @@ final class SystemStatusStore: ObservableObject {
     private var isVPNActiveForPopover = false
     private var inputUpdateTask: Task<Void, Never>?
     private var inputSettingsCancellable: AnyCancellable?
+    private var audioPrioritySettingsCancellables: Set<AnyCancellable> = []
+    private weak var audioPrioritySettings: SettingsStore?
+    private let inputPriority = AudioPriorityCoordinator(respectsExternalDefaultChanges: false)
+    private let outputPriority = AudioPriorityCoordinator()
+    @Published private(set) var inputPriorityFailed = false
+    @Published private(set) var outputPriorityFailed = false
     private var externalVolumeSettingsCancellable: AnyCancellable?
     private weak var boundExternalVolumeSettings: SettingsStore?
     private var externalBrightnessSettingsCancellable: AnyCancellable?
@@ -618,6 +624,14 @@ final class SystemStatusStore: ObservableObject {
         isInputEnabled = false
         inputSettingsCancellable?.cancel()
         inputSettingsCancellable = nil
+        audioPrioritySettingsCancellables.removeAll()
+        inputPriority.stop()
+        outputPriority.stop()
+        inputMonitor?.setPriorityInventoryHandler(nil)
+        volumeMonitor.setPriorityInventoryHandler(nil)
+        inputMonitor?.setPriorityErrorHandler(nil)
+        volumeMonitor.setPriorityErrorHandler(nil)
+        audioPrioritySettings = nil
         externalVolumeSettingsCancellable?.cancel()
         externalVolumeSettingsCancellable = nil
         applicationEnergySettingsCancellable?.cancel()
@@ -783,6 +797,7 @@ final class SystemStatusStore: ObservableObject {
 
     func selectOutputDevice(_ device: AudioOutputDevice) {
         guard !hasStopped else { return }
+        outputPriority.manuallySelected()
         volumeController?.selectOutputDevice(device.id)
     }
 
@@ -1398,6 +1413,58 @@ final class SystemStatusStore: ObservableObject {
             }
     }
 
+    func bindAudioPrioritySettings(_ settings: SettingsStore) {
+        guard !hasStopped else { return }
+        audioPrioritySettingsCancellables.removeAll()
+        audioPrioritySettings = settings
+        inputPriority.onFailure = { [weak self] in self?.inputPriorityFailed = $0 }
+        outputPriority.onFailure = { [weak self] in self?.outputPriorityFailed = $0 }
+        inputMonitor?.setPriorityErrorHandler { [weak self] in self?.inputPriority.inventoryFailed() }
+        volumeMonitor.setPriorityErrorHandler { [weak self] in self?.outputPriority.inventoryFailed() }
+        inputPriority.select = { [weak self] id, request, completion in
+            guard let monitor = self?.inputMonitor else { completion(false); return }
+            monitor.selectAutomatically(id, request: request, completion: completion)
+        }
+        outputPriority.select = { [weak self] id, request, completion in
+            guard let controller = self?.volumeController else { completion(false); return }
+            controller.selectOutputAutomatically(id, request: request, completion: completion)
+        }
+        inputMonitor?.setPriorityInventoryHandler { [weak self] devices, currentID in
+            guard let self, !self.hasStopped else { return }
+            self.audioPrioritySettings?.rememberAudioDevices(devices, currentID: currentID, input: true)
+            self.inputPriority.receive(devices: devices, currentID: currentID)
+        }
+        volumeMonitor.setPriorityInventoryHandler { [weak self] devices, currentID in
+            guard let self, !self.hasStopped else { return }
+            self.audioPrioritySettings?.rememberAudioDevices(devices, currentID: currentID, input: false)
+            self.outputPriority.receive(devices: devices, currentID: currentID)
+        }
+        settings.$automaticallySwitchesInput
+            .combineLatest(settings.$enabledPopupSections, settings.$inputDeviceOrder, settings.$hiddenInputDeviceUIDs)
+            .map { enabled, sections, order, hidden in
+                AudioPriorityConfiguration(enabled: enabled && sections.contains(.audioInput), order: order, hiddenUIDs: hidden)
+            }
+            .removeDuplicates()
+            .sink { [weak self] configuration in
+                guard let self else { return }
+                self.inputPriority.configure(configuration)
+                self.inputMonitor?.setPriorityInventoryRequired(configuration.enabled)
+                if configuration.enabled { self.inputMonitor?.recover() }
+            }.store(in: &audioPrioritySettingsCancellables)
+        settings.$automaticallySwitchesOutput
+            .combineLatest(settings.$enabledPopupSections, settings.$outputDeviceOrder, settings.$hiddenOutputDeviceUIDs)
+            .map { enabled, sections, order, hidden in
+                AudioPriorityConfiguration(enabled: enabled && sections.contains(.volume), order: order, hiddenUIDs: hidden)
+            }
+            .removeDuplicates()
+            .sink { [weak self] configuration in
+                guard let self else { return }
+                self.outputPriority.configure(configuration)
+                self.volumeMonitor.setPriorityInventoryRequired(configuration.enabled)
+                if configuration.enabled { self.volumeMonitor.refresh() }
+            }.store(in: &audioPrioritySettingsCancellables)
+    }
+
     /// Binds the Local IP address read to its Settings toggle.
     ///
     /// The read only runs while the toggle is on, so the address is not looked
@@ -1727,6 +1794,7 @@ final class SystemStatusStore: ObservableObject {
 
     func selectInputDevice(_ id: AudioDeviceID) {
         guard !hasStopped else { return }
+        inputPriority.manuallySelected()
         inputMonitor?.select(id)
     }
 
