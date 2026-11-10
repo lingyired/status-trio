@@ -74,10 +74,26 @@ enum IconConfigurationMigration {
             usesStatusColors: legacy.battery.usesStatusColors,
             showsPercentageWhenConnected: legacy.battery.showsPercentageWhenConnected,
             criticalThreshold: legacy.battery.criticalThreshold,
-            textScale: legacy.battery.textScale
+            textScale: legacy.battery.textScale,
+            fullThreshold: legacy.battery.fullThreshold,
+            connectedIndicator: legacy.battery.connectedIndicator
         )
+        value.appearance.batteryStatusColors = BatteryStatusColorsConfiguration(legacy.battery.batteryStatusColors)
+        value.appearance.bluetoothIconColor = BluetoothIconColorConfiguration(legacy.bluetooth.iconColor)
+        value.behaviors.splitGapProgress = legacy.battery.splitGapProgress
+        // Keep the legacy Wi-Fi multiplier: normalization resets
+        // networkCenter.wifiScale, so store it on the centre appearance whose
+        // symbolScale is the shared centre size.
+        value.appearance.center.symbolScale =
+            CenterAppearance.classic.symbolScale * legacy.connection.wifiScale
+        value.appearance.outerRing.strokeScale = legacy.battery.ringStrokeScale
+        value.appearance.footer.strokeScale = legacy.volume.ringStrokeScale
         value.wifiScaleMigrationVersion = nil
         value.centerSourceMigrationVersion = nil
+        // Legacy's "battery in the connection slot" flag is a source preference
+        // inside the legacy mapper, not an explicit V1 centre choice; keep the
+        // automatic slot and let the projection carry the flag back.
+        value.composition.center = SlotSelection(primary: .automaticLegacy)
         value.behaviors.networkCenter = NetworkCenterBehavior(
             showsWiFiIconForEthernet: legacy.connection.showsWiFiIconForEthernet,
             showsWiFiIconForHotspot: legacy.connection.showsWiFiIconForHotspot,
@@ -153,7 +169,11 @@ extension IconConfigurationV1 {
     /// Compatibility projection for callers that render these options without
     /// the center Appearance pass.
     var legacyPresentationConfiguration: IconPresentationConfiguration {
-        makePresentationConfiguration(wifiScale: appearance.center.symbolScale / CenterAppearance.classic.symbolScale)
+        // Migration retains the original legacy Wi-Fi multiplier in
+        // `appearance.center.symbolScale` (networkCenter.wifiScale is reset to
+        // the classic 1 by normalization), so derive it from there.
+        let wifiScale = appearance.center.symbolScale / CenterAppearance.classic.symbolScale
+        return makePresentationConfiguration(wifiScale: wifiScale)
     }
 
     /// The composition resolver applies center Appearance after mapping, so
@@ -172,8 +192,8 @@ extension IconConfigurationV1 {
                 splitGapProgress: behaviors.splitGapProgress,
                 usesStatusColors: behaviors.systemBatteryRing.usesStatusColors,
                 criticalThreshold: behaviors.systemBatteryRing.criticalThreshold,
-                connectedIndicator: behaviors.systemBatteryRing.showsPercentageWhenConnected ? .bolt : .plug,
-                fullThreshold: BatteryIconOptions.defaultFullThreshold,
+                connectedIndicator: behaviors.systemBatteryRing.connectedIndicator,
+                fullThreshold: behaviors.systemBatteryRing.fullThreshold,
                 textScale: behaviors.systemBatteryRing.textScale,
                 ringStrokeScale: appearance.outerRing.strokeScale,
                 batteryStatusColors: appearance.batteryStatusColors.colors,
@@ -187,7 +207,9 @@ extension IconConfigurationV1 {
                 showsWiFiIconForHotspot: behaviors.networkCenter.showsWiFiIconForHotspot,
                 showsWiFiIconForTemporaryConnection: behaviors.networkCenter.showsWiFiIconForTemporaryConnection,
                 showsWiFiIconForInternetSharing: behaviors.networkCenter.showsWiFiIconForInternetSharing,
-                showsBatteryPercentageInConnectionSlot: behaviors.networkCenter.showsBatteryPercentageInConnectionSlot,
+                showsBatteryPercentageInConnectionSlot:
+                    composition.center.primary == .systemBatteryPercentage
+                    || behaviors.networkCenter.showsBatteryPercentageInConnectionSlot,
                 wifiScale: wifiScale
             ),
             volume: VolumeIconOptions(

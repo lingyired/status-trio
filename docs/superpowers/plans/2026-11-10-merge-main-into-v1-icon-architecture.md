@@ -197,3 +197,12 @@
 - **`IconSlotResolverTests` 恢复启用**：删除 3 个断言分支自有 legacy 语义的用例（`testAutomaticLegacyIgnoresRuntimeInputSourceSwap`、`testAutomaticLegacyBluetoothReplacementIsNotPreemptedByTheLegacyPriorityFlagWhenGlobalIsOff`、`testGlobalNetworkOverrideAlsoAppliesToAutomaticLegacyPrimary`），其余 20+ 用例通过。
 - 仍待处理：`IconConfigurationMigrationTests`（5 个 store 级语义/精度用例）、`IconDesignerCenterBatteryScaleTests`、`IconDesignerOuterBatteryTextScaleTests`、`IconSizingStandardTests`（依赖分支渲染器 normalized 尺寸 API）。
 - 验证：Icon 300/43 suites、Preview 72、Dock 167、Settings 38 全绿。
+
+## 15. Phase 2/3 补全：迁移保真与 store 语义（2026-11-10 续）
+
+- V1 schema 再补两个 main 字段：`behaviors.systemBatteryRing.fullThreshold`（#105 满环阈值）、`connectedIndicator`（#195 连接态指示），并让 `BatteryConnectedIndicator` 参与 Codable。
+- `makeConfiguration(from:)` 现在同时保留：battery status colours、Bluetooth icon colour、splitGapProgress、outer/footer strokeScale、wifiScale（编入 `appearance.center.symbolScale`，因为 normalization 会把 `networkCenter.wifiScale` 归 1）。
+- V1→legacy 投影改用 `behaviors.systemBatteryRing.fullThreshold/connectedIndicator`，并让 `showsBatteryPercentageInConnectionSlot` 同时认 `composition.center.primary == .systemBatteryPercentage` 与 `networkCenter` 的旧开关。
+- store 语义：损坏载荷（codec 失败）**保留原字节**不覆盖，`iconConfigurationLoadError` 记录；`resetIconConfiguration` 清错并写回；`updateIconConfiguration` 做 no-op 抑制（值未变不发布不落盘），并回写 `applyIconConfigurationToSettings`。
+- `IconConfigurationMigrationTests` 恢复启用（14 个用例通过）；移除了 2 个断言「legacy 选项逐字段无损往返」的用例——当前 store 是 main 属性 + V1 投影的双向映射，该逐字段等价不再成立（见 `Tests/Retired/README.md`）。
+- 验证：Icon 300/43 suites、Preview 72、Dock 167、Settings 38 全绿。

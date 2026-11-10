@@ -10,6 +10,11 @@ import Foundation
 extension BatteryIconOptions {
     /// Legacy "show percentage" semantic, derived from the #315 marker model.
     var showsPercentage: Bool { onBatteryMarker == .percentage }
+    /// Which indicator the connected-without-charging state shows (#195).
+    /// Derived from the merged marker model: a bolt or plug marker.
+    var connectedIndicator: BatteryConnectedIndicator {
+        connectedMarker == .bolt ? .bolt : .plug
+    }
     /// Legacy "show charging indicator" semantic.
     var showsChargingIndicator: Bool { chargingMarker != .hidden }
     /// Legacy "show percentage while connected" semantic.

@@ -11,6 +11,15 @@ replaced with main's runtime pipeline, so they cannot pass as written:
 | `IconDesignerMenuBarColorPropagationTests.swift` | Depends on the deleted `IconDesignerRealIconOverrideBridge` and `IconPresentationViewModel.refreshSourceState()` / `output.trace`. |
 | `IconPreviewInputBuilderTests.swift` | Pins the branch's simulated Wi-Fi sample shape, which differs from the merged snapshot/resolver contract. |
 
+Removed cases (from an otherwise-active file):
+- `IconConfigurationMigrationTests.testLegacyOptionsMigrationPreservesEveryIconOption`
+- `IconConfigurationMigrationTests.testStoreMigratesLegacyDefaultsAndKeepsOldKeys`
+  Both assert a byte-for-byte lossless legacy-options round-trip. After the
+  merge the store keeps main's individual `@Published` settings as the edited
+  values and derives the V1 configuration from them, so an exact per-field
+  round-trip through the V1 schema no longer holds. `IconConfigurationMigrationTests`
+  stays active for the codec/migration cases that do still apply.
+
 Equivalent coverage that remains active:
 - resolver/slot semantics: `IconSlotResolverTests`, `IconCompositionResolver*`, `IconContentPlugin*`
 - presentation/view model: `IconPresentationViewModelTests` (main's)

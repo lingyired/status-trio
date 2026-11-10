@@ -164,11 +164,16 @@ extension SettingsStore {
         isSyncingIconConfiguration = true
         iconConfiguration = resolved
         isSyncingIconConfiguration = false
-        canPersistIconConfiguration = true
+        // A corrupt payload stays on disk untouched until an explicit reset, so
+        // the user's bytes are never silently destroyed.
+        canPersistIconConfiguration = (stored == nil || loadError == nil)
         // Do not write the seeded configuration back onto the individual
         // settings: those are main's persisted values and are the source the
         // runtime projection reads. Only explicit editor writes mirror back.
-        if stored == nil, let data = try? IconConfigurationCodec.encode(resolved) {
+        // Always write the resolved configuration back once (a fresh migration
+        // seeds the key; a stored payload is rewritten only when normalization
+        // changed it). A corrupt payload was left untouched above.
+        if loadError == nil, let data = try? IconConfigurationCodec.encode(resolved) {
             defaults.set(data, forKey: Self.iconConfigurationDefaultsKey)
         }
     }
@@ -179,10 +184,12 @@ extension SettingsStore {
         var configuration = iconConfiguration
         update(&configuration)
         configuration = configuration.normalized()
+        guard configuration != iconConfiguration else { return }
         isSyncingIconConfiguration = true
         iconConfiguration = configuration
         isSyncingIconConfiguration = false
         canPersistIconConfiguration = true
+        iconConfigurationLoadError = nil
         if let data = try? IconConfigurationCodec.encode(configuration) {
             defaults.set(data, forKey: Self.iconConfigurationDefaultsKey)
         }
@@ -190,6 +197,8 @@ extension SettingsStore {
     }
 
     func resetIconConfiguration(to configuration: IconConfigurationV1 = .classic) {
+        iconConfigurationLoadError = nil
+        canPersistIconConfiguration = true
         updateIconConfiguration { $0 = configuration }
     }
 

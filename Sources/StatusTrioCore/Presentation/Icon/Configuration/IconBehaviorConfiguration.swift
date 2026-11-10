@@ -81,6 +81,10 @@ struct SystemBatteryRingBehavior: Codable, Equatable, Sendable {
     var showsPercentageWhenConnected: Bool
     var criticalThreshold: Int
     var textScale: Double
+    /// The level that counts as a full ring (#105).
+    var fullThreshold: Int = BatteryIconOptions.defaultFullThreshold
+    /// What the connected-without-charging gap shows (#195).
+    var connectedIndicator: BatteryConnectedIndicator = .plug
 
     static let classic = Self(
         showsPercentage: true,
@@ -89,8 +93,10 @@ struct SystemBatteryRingBehavior: Codable, Equatable, Sendable {
         showsChargingBoltHeartbeat: BatteryIconOptions.standard.showsChargingBoltHeartbeat,
         usesStatusColors: BatteryIconOptions.standard.usesStatusColors,
         showsPercentageWhenConnected: false,
-        criticalThreshold: BatteryIconOptions.standard.criticalThreshold,
-        textScale: BatteryIconOptions.standard.textScale
+        criticalThreshold: 20,
+        textScale: 1.8,
+        fullThreshold: BatteryIconOptions.defaultFullThreshold,
+        connectedIndicator: .plug
     )
 }
 
@@ -151,3 +157,4 @@ struct BatteryMarkerBehavior: Codable, Equatable, Sendable {
 }
 
 extension BatteryTopMarker: Codable {}
+extension BatteryConnectedIndicator: Codable {}
