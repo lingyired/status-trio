@@ -226,4 +226,81 @@ final class IconV1MainSceneParityTests: XCTestCase {
         if case let .symbol(s) = c { return "\(s.color)" }
         return nil
     }
+
+    /// Whole-surface pixel parity: every icon setting, every centre source and
+    /// representative power states must render the same through the production
+    /// V1 path as through the legacy/main mapper. This is the guard against a
+    /// setting that changes the preview but not the menu bar (a field dropped in
+    /// the V1 projection or lost when runtime options are applied).
+    func testEveryIconSettingRendersTheSameSceneAsMain() throws {
+        let suite = "zzpixel.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let device = AudioOutputDevice(id: 1, name: "AirPods Pro", isCurrent: true, transport: .bluetooth)
+        let descriptor = InputSourceDescriptor(id: "com.apple.keylayout.ABC", localizedName: "ABC", primaryLanguage: "en", iconURL: nil, shortLabel: "A")
+        let batteries: [(String, BatteryStatus)] = [
+            ("onBattery", BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: false, isLowPowerMode: false, isConnectedToPower: false)),
+            ("charging", BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: true, isLowPowerMode: false, isConnectedToPower: true))
+        ]
+        let mutations: [(String, (SettingsStore) -> Void)] = [
+            ("baseline", { _ in }),
+            ("wifiSymbolScale", { $0.wifiSymbolScale = 1.15 }),
+            ("bluetoothSymbolScale", { $0.bluetoothSymbolScale = 1.15 }),
+            ("bluetoothIconColor", { $0.bluetoothIconColor = .primary }),
+            ("bluetoothAudioIconChoice", { $0.bluetoothAudioIconChoice = .airpodsPro }),
+            ("inputSourceMarkerStyle", { $0.inputSourceMarkerStyle = .zhong }),
+            ("batteryOnBatteryMarker", { $0.batteryOnBatteryMarker = .hidden }),
+            ("batterySplitGapProgress", { $0.batterySplitGapProgress = true }),
+            ("batteryCriticalThreshold", { $0.batteryCriticalThreshold = 33 }),
+            ("monochromeChargingRing", { $0.monochromeChargingRing = false }),
+            ("volumeDisplayStyle", { $0.volumeDisplayStyle = .arc }),
+            ("ringStrokeStyle", { $0.ringStrokeStyle = .bold })
+        ]
+
+        let environment = StatusIconRenderEnvironment(
+            size: 120, scale: 3,
+            foreground: CGColor(gray: 1, alpha: 1),
+            criticalColor: StatusIconRenderer.defaultCriticalColor
+        )
+        func pixels(_ scene: IconSceneState) throws -> [UInt8]? {
+            guard let image = StatusIconRenderer.render(scene: scene, environment: environment) else { return nil }
+            return try PixelBuffer(image: image).bytes
+        }
+
+        for (batteryName, battery) in batteries {
+            for (mutationName, apply) in mutations {
+                let store = SettingsStore(defaults: defaults)
+                apply(store)
+                for source in ConnectionCenterSource.allCases {
+                    store.connectionCenterSource = source
+                    let snapshot = StatusSnapshot(
+                        battery: battery,
+                        wifi: WiFiStatus(state: .connected, rssi: -52),
+                        connection: .wifi,
+                        volume: VolumeStatus(scalar: 0.6, isMuted: false, deviceName: device.name, currentDevice: device)
+                    )
+                    let v1 = IconCompositionResolver.resolve(
+                        inputs: IconResolutionInputs(
+                            system: IconPresentationResourceResolver.inputs(
+                                snapshot: snapshot, inputSource: descriptor,
+                                runtimeOptions: store.iconRuntimePresentationOptions
+                            ),
+                            sources: IconPresentationResourceResolver.sourceSnapshot(snapshot: snapshot)
+                        ),
+                        configuration: store.derivedIconConfigurationFromSettings()
+                    ).scene
+                    let main = IconPresentationMapper.scene(
+                        inputs: IconPresentationResourceResolver.inputs(snapshot: snapshot, inputSource: descriptor),
+                        configuration: store.legacyPresentationConfiguration
+                    )
+                    XCTAssertEqual(
+                        try pixels(v1), try pixels(main),
+                        "rendered icon differs: battery=\(batteryName) mutation=\(mutationName) centre=\(source)"
+                    )
+                }
+            }
+        }
+    }
 }

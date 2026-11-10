@@ -31,12 +31,19 @@ struct IconPresentationRuntimeOptions: Equatable, Sendable {
                 showsChargingIndicator: battery.showsChargingIndicator,
                 showsChargingEffect: battery.showsChargingEffect,
                 showsChargingBoltHeartbeat: battery.showsChargingBoltHeartbeat,
+                splitGapProgress: battery.splitGapProgress,
                 usesStatusColors: battery.usesStatusColors,
                 criticalThreshold: battery.criticalThreshold,
-                showsPercentageWhenConnected: battery.showsPercentageWhenConnected,
+                connectedIndicator: battery.connectedIndicator,
                 fullThreshold: batteryFullThreshold,
                 textScale: battery.textScale,
-                ringStrokeScale: battery.ringStrokeScale
+                ringStrokeScale: battery.ringStrokeScale,
+                batteryStatusColors: battery.batteryStatusColors,
+                onBatteryMarker: battery.onBatteryMarker,
+                chargingMarker: battery.chargingMarker,
+                connectedMarker: battery.connectedMarker,
+                noBatteryMarker: battery.noBatteryMarker,
+                monochromeCharging: battery.monochromeCharging
             ),
             connection: ConnectionIconOptions(
                 showsWiFiIconForEthernet: connection.showsWiFiIconForEthernet,

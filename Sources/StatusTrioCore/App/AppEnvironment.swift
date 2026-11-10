@@ -483,7 +483,10 @@ final class AppEnvironment {
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
             resolveInputs: { [store, settings] snapshot in
-                var inputs = IconPresentationResourceResolver.inputs(snapshot: snapshot)
+                var inputs = IconPresentationResourceResolver.inputs(
+                    snapshot: snapshot,
+                    runtimeOptions: settings.iconRuntimePresentationOptions
+                )
                 inputs.sources = IconPresentationResourceResolver.sourceSnapshot(
                     snapshot: snapshot,
                     bluetoothDevices: store.bluetoothDevices.devices,
