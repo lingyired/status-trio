@@ -210,7 +210,7 @@ final class IconImageDecodeCache: @unchecked Sendable {
         lastKnownFileVersions.removeAll(keepingCapacity: false)
     }
 
-    private func resolvedIdentity(for url: URL) -> IconImageFileIdentity {
+    func resolvedIdentity(for url: URL) -> IconImageFileIdentity {
         let standardizedURL = url.standardizedFileURL
         let current = IconImageFileIdentity(url: standardizedURL)
         lock.lock()

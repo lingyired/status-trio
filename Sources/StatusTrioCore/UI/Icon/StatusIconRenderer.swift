@@ -98,7 +98,10 @@ private final class CenterImageCache: @unchecked Sendable {
     private let limit = 64
 
     func image(for url: URL) -> ResolvedCenterImage? {
-        let identity = IconImageFileIdentity(url: url)
+        // Resolve through the shared cache so a file that transiently
+        // disappears keeps its last-known version identity; otherwise the key
+        // changes on deletion and the cached decode is missed (#reuse test).
+        let identity = IconImageDecodeCache.shared.resolvedIdentity(for: url)
         let key = identity.cacheToken
 
         lock.lock()
@@ -1786,9 +1789,7 @@ extension StatusIconRenderer {
                 in: context
             )
         case let .image(url, fallbackSymbol):
-            if let image = IconImageDecodeCache.shared.decodedImage(
-                for: IconImageFileIdentity(url: url)
-            ) {
+            if let image = IconImageDecodeCache.shared.decodedImage(for: url) {
                 guard let representation = image.representations.first else { return }
                 let inkOffsetX = imageInkOffsetCache.offsetX(
                     for: url,
