@@ -49,7 +49,16 @@ enum IconPaletteResolver {
                 gapProgressMode: ring.gapProgressMode
             )
         }
-        let centerScaleFactor = appearance.center.symbolScale / CenterAppearance.classic.symbolScale
+        // Network/input/text centres are drawn from the neutral legacy scale, so
+        // the appearance factor (Wi-Fi centre size) is applied here. Bluetooth
+        // centres already carry their own absolute symbol scale, so applying the
+        // factor again double-scaled them — skip it for those sources.
+        let bluetoothCentre = centerSource == .bluetoothAudioOutput
+            || centerSource == .connectedBluetoothDevice
+            || centerSource == .pinnedBluetoothGlyph
+        let centerScaleFactor = bluetoothCentre
+            ? 1.0
+            : appearance.center.symbolScale / CenterAppearance.classic.symbolScale
         let effectiveCenterScale = appearance.center.effectiveSymbolScale
         let normalizedPercentageScale = appearance.center.normalizedPercentageScale
         let normalizedSizePercentage = appearance.center.normalizedSizePercentage

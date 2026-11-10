@@ -181,8 +181,8 @@ extension IconConfigurationV1 {
     /// The composition resolver applies center Appearance after mapping, so
     /// source-level Wi-Fi scaling must be neutral to avoid applying it twice.
     var compositionLegacyPresentationConfiguration: IconPresentationConfiguration {
-        // Source-level Wi-Fi scaling is applied by the centre Appearance pass
-        // (`centerScaleFactor`), so keep it neutral here to avoid double-scaling.
+        // Source-level Wi-Fi scaling is applied by the centre Appearance factor,
+        // so keep it neutral here to avoid double-scaling.
         makePresentationConfiguration(wifiScale: NetworkCenterBehavior.classic.wifiScale)
     }
 

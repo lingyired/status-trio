@@ -100,7 +100,7 @@ extension SettingsStore {
         configuration.appearance.bluetoothIconColor = BluetoothIconColorConfiguration(bluetooth.iconColor)
         configuration.appearance.inputSourceMarkerStyle = inputSourceMarkerStyle
         configuration.appearance.bluetoothSymbolScale = bluetooth.symbolScale
-        // The palette applies `symbolScale / classic` as a centre factor over the
+        // The palette applies `symbolScale / classic` as the centre factor over the
         // neutral legacy scale, so the absolute centre size is classic × wifi.
         configuration.appearance.center.symbolScale =
             CenterAppearance.classic.symbolScale * connection.wifiScale

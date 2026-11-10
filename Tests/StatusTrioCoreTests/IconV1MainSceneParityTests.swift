@@ -168,4 +168,62 @@ final class IconV1MainSceneParityTests: XCTestCase {
         default: false
         }
     }
+
+    /// The Bluetooth-device centre must draw the same glyph / colour / size as
+    /// main's `.bluetoothDevice` branch: no separate "selected device" is
+    /// required — the current Bluetooth audio device is enough. Reported as
+    /// "Bluetooth device not supported".
+    func testBluetoothDeviceCentreMatchesMainMapper() throws {
+        let suite = "zzbtp.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = SettingsStore(defaults: defaults)
+        store.connectionCenterSource = .bluetoothDevice
+
+        let device = AudioOutputDevice(id: 1, name: "AirPods Pro", isCurrent: true, transport: .bluetooth)
+        let scenarios: [(String, AudioOutputDevice?, String?)] = [
+            ("bluetooth audio device", device, nil),
+            ("no device", nil, nil),
+            ("glyph override", device, "airpodspro")
+        ]
+        for (name, dev, override) in scenarios {
+            store.bluetoothNetworkIconSymbolName = override
+            let snapshot = StatusSnapshot(
+                battery: BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false, isLowPowerMode: false, isConnectedToPower: false),
+                wifi: WiFiStatus(state: .connected, rssi: -50),
+                connection: .wifi,
+                volume: VolumeStatus(scalar: 0.5, isMuted: false, deviceName: dev?.name ?? "Output", currentDevice: dev)
+            )
+            let v1 = IconCompositionResolver.resolve(
+                inputs: IconResolutionInputs(
+                    system: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+                    sources: IconPresentationResourceResolver.sourceSnapshot(snapshot: snapshot)
+                ),
+                configuration: store.derivedIconConfigurationFromSettings()
+            ).scene.center
+            let main = IconPresentationMapper.scene(
+                inputs: IconPresentationInputs(snapshot: snapshot, audioIcon: nil),
+                configuration: IconPresentationConfiguration(
+                    battery: store.batteryIconOptions,
+                    connection: store.connectionIconOptions,
+                    volume: store.volumeIconOptions,
+                    bluetooth: store.bluetoothAudioIconOptions
+                )
+            ).center
+            XCTAssertEqual(Self.kind(v1), Self.kind(main), "\(name) kind")
+            XCTAssertTrue(Self.approximatelyEqual(Self.scale(v1), Self.scale(main)), "\(name) scale")
+            XCTAssertEqual(Self.sourceName(v1), Self.sourceName(main), "\(name) symbol")
+            XCTAssertEqual(Self.colorRole(v1), Self.colorRole(main), "\(name) colour")
+        }
+    }
+
+    private static func sourceName(_ c: CenterState?) -> String? {
+        if case let .symbol(s) = c, case let .symbol(name, _, _) = s.source { return name }
+        return nil
+    }
+    private static func colorRole(_ c: CenterState?) -> String? {
+        if case let .symbol(s) = c { return "\(s.color)" }
+        return nil
+    }
 }
