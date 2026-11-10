@@ -58,17 +58,17 @@ between the Sharing preferences pane and InternetSharing" and warns its details
 would be a version-sensitive write to a root-owned file that the system can change
 underneath it, so the popover hands this one job back to the pane that owns it.
 
-## Charge-limit controls depend on the app version and macOS
+## Charge-limit controls depend on macOS
 
-The current public GitHub and Homebrew release, **1.7.5**, leaves charge-limit
-overrides to macOS. When charging is paused, it reports the actual state and the
-battery row's gear button opens System Settings.
+By default Status Trio leaves charge-limit overrides to macOS. When charging is
+paused, it reports the actual state and the battery row's gear button opens
+System Settings.
 
-The source on `main` adds a **Charge to Full Now** button for supported Apple
-silicon Macs running macOS 26.4 or later. It is enabled by default only when the
-capability is available and can be turned off in Battery settings. It uses the
-same private PowerUI request observed behind the native action. There is no
-public API or cross-version guarantee for this operation. Unsupported systems
+Status Trio also offers an opt-in **Charge to Full Now** button for supported
+Apple silicon Macs running macOS 26.4 or later. It is enabled by default only
+when the capability is available and can be turned off in Battery settings. It
+uses the same private PowerUI request observed behind the native action. There is
+no public API or cross-version guarantee for this operation. Unsupported systems
 do not offer the action.
 
 **The charge limit may remain at 100% after charging completes or the adapter is
@@ -78,12 +78,12 @@ Full** to request restoration. An ambiguous or restored session can require
 another explicit confirmation. A failed request is not proof of restoration:
 check the charge limit in System Settings and restore it there if needed.
 
-**Cancel Charge to Full restores the limit configured in Settings → Battery
-(“Restore Limit After Cancelling”, 80–95%).** That setting defaults to the
-limit macOS currently enforces, or 95% when the system has no readable limit,
-and its link refills it from the system on demand. A stored 100% from an older
-build migrates to the system limit (or 95%) because "no limit" is no longer a
-restore target.
+**Cancel Charge to Full restores the app's stored restore target (80–95%).** That
+value defaults to the limit macOS currently enforces, or a safe fallback when the
+system has no readable limit. The editable “Restore Limit After Cancelling” row
+in Settings → Battery is currently hidden because the system does not report a
+usable limit; the stored value still drives cancellation, so a target saved from
+an earlier build is kept until it can be edited again.
 
 The override's 100% limit is not restored automatically: a test Mac kept it
 even after charging to full and reconnecting power. Cancelling therefore never

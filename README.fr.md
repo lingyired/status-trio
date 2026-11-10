@@ -58,7 +58,7 @@ Status Trio est une app d’état native macOS qui réunit le Wi-Fi, la batterie
 
 - **Une icône, trois signaux** — la batterie, le Wi-Fi et le volume partagent une seule icône dans la barre des menus, dans le Dock ou dans les deux, et un appareil Bluetooth en cours de lecture peut occuper la place centrale avec son propre symbole.
 - **Bluetooth** — l’indicateur de volume devient bleu pendant la lecture. Le panneau répertorie les appareils jumelés sur lesquels vous cliquez pour les connecter ou les déconnecter, affiche les niveaux de batterie par défaut, et reste désactivé tant que vous ne l’activez pas.
-- **Batterie** — pourcentage, en charge ou sur secteur, temps avant charge complète, et une couleur lorsque la batterie devient faible. Ouvrez la ligne pour la puissance de l’adaptateur, la tension, le courant, le nombre de cycles et le mode économie d’énergie.
+- **Batterie** — pourcentage, en charge ou sur secteur, temps avant charge complète, et une couleur lorsque la batterie devient faible. Ouvrez la ligne pour la puissance de l’adaptateur, la tension, le courant, le nombre de cycles et le mode économie d’énergie, ainsi qu’un flux de puissance estimé et une liste d’impact énergétique CPU facultatifs ; les Mac à puce Apple compatibles (macOS 26.4 ou ultérieur) peuvent aussi annuler la limite de charge avec **Charger complètement maintenant**.
 - **Wi-Fi** — le réseau sur lequel vous êtes et la force du signal. Ouvrez-le pour voir les réseaux à proximité, consulter les détails de la liaison, ou désactiver le Wi-Fi. Le changement de réseau se fait dans le panneau Wi-Fi des Réglages Système.
 - **Volume** — niveau, sourdine et périphérique de sortie, dessinés sous forme de points ou d’un arc. Faites défiler tout le panneau ou seulement le réglage du volume, et choisissez le sens qui augmente le volume.
 - **Personnalisez-le** — taille de l’icône, échelle des symboles, épaisseur de l’anneau, couleurs d’état et éléments affichés dans le panneau d’état, dans l’ordre de votre choix.
@@ -92,13 +92,6 @@ La version officielle est signée avec Developer ID et notarisée par Apple. Ouv
 - **Commandes Bluetooth** : activez ou désactivez Bluetooth, connectez ou déconnectez les appareils et changez le mode d’écoute des AirPods et HUAWEI FreeBuds compatibles. Les lignes facultatives de batterie Apple se configurent dans les réglages Bluetooth ; leur disponibilité dépend de l’appareil et de la connexion.
 - **Entrée et sortie audio** : choisissez les haut-parleurs ou microphones et réglez leurs niveaux. Les haut-parleurs d’écrans externes compatibles sont contrôlés par DDC, selon le matériel et la connexion.
 - **Charge et apparence** : effets de charge dans la barre des menus et le Dock. Sous macOS 26 ou ultérieur, l’icône dans Finder et Launchpad suit aussi l’apparence claire ou sombre du système.
-
-## Nouveautés sur main (non publiées)
-
-Ces fonctions sont dans le code de `main`, mais pas dans la version publique actuelle GitHub / Homebrew, **1.7.5** :
-
-- **Flux de puissance et impact énergétique CPU** : estimations de l’entrée du chargeur, de la charge de la batterie et de la puissance système. Une liste facultative classe jusqu’à cinq apps selon leur énergie CPU, ou leur activité CPU si les compteurs manquent. Ce n’est ni la consommation totale ni la liste native de macOS. L’activer lance un échantillonnage périodique en arrière-plan ; la désactiver l’arrête. [Détails](docs/battery-power-flow.md).
-- **Charger complètement et annuler** : option désactivée par défaut sur les Mac Apple Silicon compatibles sous macOS 26.4 ou ultérieur. Elle utilise une interface privée PowerUI pour lever la limite. **La limite peut rester à 100 % après la charge ou le rebranchement ; elle n’est pas restaurée automatiquement.** Annulez pour demander sa restauration, ou vérifiez-la et rétablissez-la dans Réglages Système. Le comportement dépend de macOS. [Comportement et vérification](docs/charge-to-full-now-poc.md).
 
 ## Audio Bluetooth
 
@@ -197,7 +190,7 @@ Le paquet signé ad hoc est destiné à un usage personnel local. Gatekeeper peu
 Deux limites que macOS et ce projet tracent délibérément. Les deux sont expliquées dans [Limitations connues](docs/known-limitations.md).
 
 - **Le changement de réseau se fait dans les Réglages Système.** Choisir un réseau dans le panneau d’état ouvre le panneau Wi-Fi ; Status Trio ne lit ni ne stocke jamais les mots de passe Wi-Fi, car macOS n’offre aucune API publique pour se connecter avec un mot de passe enregistré et toutes les alternatives finissent par obliger l’app à les conserver.
-- **Le contrôle de la limite de charge dépend de la version.** La version 1.7.5 renvoie aux Réglages Système. L’option de `main` utilise une interface privée et exige une annulation explicite pour demander la restauration. [Détails](docs/charge-to-full-now-poc.md). Le mode économie d’énergie utilise un [helper privilégié facultatif](docs/privileged-helper.md) distinct.
+- **Le contrôle de la limite de charge utilise une interface privée.** L’action facultative **Charger complètement maintenant** n’apparaît que sur les Mac à puce Apple compatibles sous macOS 26.4 ou ultérieur, utilise une interface privée PowerUI et peut être désactivée dans les réglages Batterie ; la disponibilité et le comportement dépendent de macOS. La limite peut rester à 100 % après la charge ou le débranchement et n’est pas restaurée automatiquement ; restaurez-la dans les Réglages Système si nécessaire. Le mode économie d’énergie utilise un [helper privilégié facultatif](docs/privileged-helper.md) distinct.
 
 ## Langues
 
@@ -205,7 +198,7 @@ Status Trio suit par défaut la langue préférée de macOS et inclut English, �
 
 ## Confidentialité
 
-Status Trio lit l’état système localement. Les statistiques anonymes ne sont envoyées au service propriétaire que si vous les activez ; elles sont désactivées lors d’une mise à niveau et proposées à la première installation. Elles contiennent un ID aléatoire, les versions de l’app et de macOS, la langue et l’emplacement de l’icône, sans noms, comptes, détails réseau ni identifiants matériels. Voir [télémétrie et confidentialité](docs/privacy-telemetry.md). L’app ne lit ni ne stocke les mots de passe Wi-Fi et ne demande pas le Trousseau. La localisation est facultative pour le nom et les détails Wi-Fi ; Bluetooth est demandé à l’activation de son panneau. Sur `main`, la commande facultative de charge complète utilise une interface privée PowerUI uniquement lorsqu’elle est activée ; ses limites sont précisées plus haut.
+Status Trio lit l’état système localement. Les statistiques anonymes ne sont envoyées au service propriétaire que si vous les activez ; elles sont désactivées lors d’une mise à niveau et proposées à la première installation. Elles contiennent un ID aléatoire, les versions de l’app et de macOS, la langue et l’emplacement de l’icône, sans noms, comptes, détails réseau ni identifiants matériels. Voir [télémétrie et confidentialité](docs/privacy-telemetry.md). L’app ne lit ni ne stocke les mots de passe Wi-Fi et ne demande pas le Trousseau. La localisation est facultative pour le nom et les détails Wi-Fi ; Bluetooth est demandé à l’activation de son panneau. La commande facultative de charge complète utilise une interface privée PowerUI uniquement lorsqu’elle est activée ; voir les [limites connues](docs/known-limitations.md) pour son comportement et ses limites.
 
 ## Développement
 

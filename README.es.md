@@ -58,7 +58,7 @@ Status Trio es una app de estado nativa de macOS que combina Wi-Fi, batería y v
 
 - **Un icono, tres señales** — la batería, el Wi-Fi y el volumen comparten un solo icono en la barra de menús, en el Dock o en ambos, y un dispositivo Bluetooth que está reproduciendo puede ocupar la posición central con su propio símbolo.
 - **Bluetooth** — el indicador de volumen se vuelve azul mientras se reproduce. El panel muestra los dispositivos emparejados que puedes tocar para conectarlos o desconectarlos, muestra los niveles de batería de forma predeterminada y permanece desactivado hasta que lo actives.
-- **Batería** — porcentaje, carga o conexión a la corriente, tiempo para la carga completa y un color cuando está baja. Abre la fila para ver la potencia del adaptador, el voltaje, la corriente, el número de ciclos y el modo de bajo consumo.
+- **Batería** — porcentaje, carga o conexión a la corriente, tiempo para la carga completa y un color cuando está baja. Abre la fila para ver la potencia del adaptador, el voltaje, la corriente, el número de ciclos y el modo de bajo consumo, además de un flujo de potencia estimado y una lista de impacto energético de CPU opcionales; los Mac con chip Apple compatibles (macOS 26.4 o posterior) también pueden anular el límite de carga con **Cargar completamente ahora**.
 - **Wi-Fi** — la red a la que estás conectado y la intensidad de la señal. Ábrelo para ver las redes cercanas, consultar los detalles del enlace o desactivar el Wi-Fi. Cambiar de red se hace en el panel de Wi-Fi de Ajustes del Sistema.
 - **Volumen** — nivel, silencio y dispositivo de salida, dibujado como puntos o como un arco. Desplázate por todo el panel o solo por el control, y elige en qué dirección sube el volumen.
 - **Hazlo tuyo** — tamaño del icono, escala de los símbolos, grosor del anillo, colores de estado y qué secciones muestra el panel emergente, en el orden que quieras.
@@ -92,13 +92,6 @@ La versión oficial está firmada con Developer ID y notarizada por Apple. Ábre
 - **Controles Bluetooth**: activa o desactiva Bluetooth, conecta o desconecta dispositivos y cambia el modo de escucha de AirPods y HUAWEI FreeBuds compatibles. Las filas opcionales de batería de dispositivos Apple se configuran en los ajustes de Bluetooth; dependen del dispositivo y la conexión.
 - **Entrada y salida de audio**: elige altavoces o micrófonos y ajusta sus niveles. Controla altavoces de monitores externos compatibles mediante DDC; la compatibilidad depende del hardware y la conexión.
 - **Carga y apariencia**: efectos de carga en la barra de menús y el Dock. En macOS 26 o posterior, el icono de Finder y Launchpad también sigue la apariencia clara u oscura del sistema.
-
-## Novedades en main (sin publicar)
-
-Estas funciones están en el código de `main`, pero no en la versión pública actual de GitHub / Homebrew, **1.7.5**:
-
-- **Flujo de potencia e impacto energético de CPU**: estimaciones de entrada del cargador, carga de batería y potencia del sistema. Una lista opcional ordena hasta cinco apps por energía de CPU, o actividad de CPU si faltan contadores. No representa el consumo total ni replica la lista de macOS. Activarla inicia un muestreo periódico en segundo plano; desactivarla lo detiene. [Detalles](docs/battery-power-flow.md).
-- **Cargar completamente ahora y cancelar**: opción desactivada por defecto para Mac con chip Apple compatibles y macOS 26.4 o posterior. Usa una interfaz privada de PowerUI para anular el límite. **El límite puede seguir al 100% tras cargar o reconectar la corriente; no se restaura automáticamente.** Usa la cancelación para solicitar restaurarlo, o compruébalo y restáuralo en Ajustes del Sistema. El comportamiento depende de macOS. [Comportamiento y pruebas](docs/charge-to-full-now-poc.md).
 
 ## Audio por Bluetooth
 
@@ -197,7 +190,7 @@ El paquete firmado de forma ad-hoc está pensado para uso personal local. Gateke
 Dos límites que macOS y este proyecto trazan deliberadamente. Ambos se explican en [Limitaciones conocidas](docs/known-limitations.md).
 
 - **Cambiar de red se hace en Ajustes del Sistema.** Elegir una red en el panel emergente abre el panel de Wi-Fi; Status Trio nunca lee ni guarda las contraseñas de Wi-Fi, porque macOS no ofrece ninguna API pública para conectarse con una contraseña guardada y todas las alternativas acaban con la app guardándolas.
-- **El control del límite de carga depende de la versión.** La versión 1.7.5 remite a Ajustes del Sistema. La opción de `main` usa una interfaz privada y requiere cancelar explícitamente para solicitar la restauración. [Detalles](docs/charge-to-full-now-poc.md). El modo de bajo consumo usa un [helper privilegiado opcional](docs/privileged-helper.md) independiente.
+- **El control del límite de carga usa una interfaz privada.** La acción opcional **Cargar completamente ahora** solo aparece en Mac con chip Apple compatibles y macOS 26.4 o posterior, usa una interfaz privada de PowerUI y puede desactivarse en Ajustes de batería; la disponibilidad y el comportamiento dependen de macOS. El límite puede seguir al 100% tras cargar o desconectar y no se restaura automáticamente, así que restáuralo en Ajustes del Sistema si hace falta. El modo de bajo consumo usa un [helper privilegiado opcional](docs/privileged-helper.md) independiente.
 
 ## Idiomas
 
@@ -205,7 +198,7 @@ Status Trio sigue el idioma preferido de macOS de forma predeterminada e incluye
 
 ## Privacidad
 
-Status Trio lee el estado del sistema localmente. Las estadísticas anónimas solo se envían al servicio propio si las activas; están desactivadas al actualizar y se consultan durante la bienvenida de nuevas instalaciones. Incluyen un ID aleatorio, versiones de la app y macOS, idioma y ubicación del icono, sin nombres, cuentas, detalles de red ni identificadores de hardware. Consulta [telemetría y privacidad](docs/privacy-telemetry.md). No lee ni guarda contraseñas Wi-Fi ni pide acceso al Llavero. La ubicación es opcional para el nombre y los detalles de Wi-Fi; Bluetooth se solicita al activar su panel. En `main`, el control opcional de carga completa usa una interfaz privada de PowerUI solo al habilitarlo; sus límites se explican antes.
+Status Trio lee el estado del sistema localmente. Las estadísticas anónimas solo se envían al servicio propio si las activas; están desactivadas al actualizar y se consultan durante la bienvenida de nuevas instalaciones. Incluyen un ID aleatorio, versiones de la app y macOS, idioma y ubicación del icono, sin nombres, cuentas, detalles de red ni identificadores de hardware. Consulta [telemetría y privacidad](docs/privacy-telemetry.md). No lee ni guarda contraseñas Wi-Fi ni pide acceso al Llavero. La ubicación es opcional para el nombre y los detalles de Wi-Fi; Bluetooth se solicita al activar su panel. El control opcional de carga completa usa una interfaz privada de PowerUI solo al habilitarlo; consulta las [limitaciones conocidas](docs/known-limitations.md) para su comportamiento y límites.
 
 ## Desarrollo
 
