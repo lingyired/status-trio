@@ -177,10 +177,10 @@ extension IconConfigurationV1 {
                 textScale: behaviors.systemBatteryRing.textScale,
                 ringStrokeScale: appearance.outerRing.strokeScale,
                 batteryStatusColors: appearance.batteryStatusColors.colors,
-                onBatteryMarker: behaviors.batteryMarkers.onBattery,
-                chargingMarker: behaviors.batteryMarkers.charging,
-                connectedMarker: behaviors.batteryMarkers.connected,
-                noBatteryMarker: behaviors.batteryMarkers.noBattery
+                onBatteryMarker: behaviors.batteryMarkers == .classic ? nil : behaviors.batteryMarkers.onBattery,
+                chargingMarker: behaviors.batteryMarkers == .classic ? nil : behaviors.batteryMarkers.charging,
+                connectedMarker: behaviors.batteryMarkers == .classic ? nil : behaviors.batteryMarkers.connected,
+                noBatteryMarker: behaviors.batteryMarkers == .classic ? nil : behaviors.batteryMarkers.noBattery
             ),
             connection: ConnectionIconOptions(
                 showsWiFiIconForEthernet: behaviors.networkCenter.showsWiFiIconForEthernet,
