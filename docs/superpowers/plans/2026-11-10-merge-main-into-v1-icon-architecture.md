@@ -174,3 +174,9 @@
 - 因渲染器差异隔离的测试：`IconPaletteResolverTests`（inactive/custom alpha）、`StatusIconCenterTextAlignmentTests`（分支渲染器居中）、`AirPodsRingGeometryTests`（分支几何）；另 `IconLegacyCompatibilityTests`/`IconSlotResolverTests` 属 legacy 语义待 Phase 4 收尾。
 - 已修：`NetworkIconPlugin` 构造 legacy `ConnectionIconOptions` 时强制 `centerSource: .network`，保证全局网络故障覆盖在 `automaticLegacy` 场景下也能正确取到网络图标。
 - 验证：Icon 300/43 suites、Preview 72、Settings 38、Dock 167 全绿。
+
+## 12. Phase 5 续：多段环（AirPods）移植（2026-11-10 续）
+
+- 在 main 渲染器上补齐分支的 AirPods 双段环渲染：`supports` 放行 `leftRight` 两段（左右各一），移植 `drawAirPodsRing`、`drawAirPodsTopSymbol`、`airPodsTopSymbolPointSize`/高度表、`resolvedCenterSymbolName`，颜色走 `statusPalette`。
+- 结果：`AirPodsRingGeometryTests`（12 项）全部通过；Icon 300/43 suites、Preview 72、Settings 38、Dock 167 全绿。
+- 渲染器现已覆盖：单段电池环、AirPods 双段环、inactive 轨道色、custom alpha、文字居中。

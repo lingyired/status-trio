@@ -1123,12 +1123,108 @@ extension StatusIconRenderer {
     }
 
     private static func supports(_ scene: IconSceneState) -> Bool {
-        if let ring = scene.outerRing, ring.segments.count != 1 { return false }
+        if let ring = scene.outerRing {
+            switch ring.layout {
+            case .standard:
+                guard ring.segments.count == 1 else { return false }
+            case .leftRight:
+                let positions = ring.segments.compactMap(\.position)
+                guard ring.segments.count == 2,
+                      positions.count == 2,
+                      Set(positions) == Set([.left, .right]) else { return false }
+            }
+        }
         if case let .dots(dots) = scene.footer,
            dots.count > StatusIconGeometry.volumeDots().count {
             return false
         }
         return true
+    }
+
+    private static func drawAirPodsRing(
+        _ ring: OuterRingState,
+        in context: CGContext,
+        foreground: CGColor,
+        statusPalette: BatteryStatusColorPalette,
+        regions: IconSceneRegion
+    ) {
+        let sharedTopGapWidth: CGFloat? = ring.accessory == nil
+            ? nil
+            : StatusIconGeometry.batteryValueTopGapWidth
+        let lineWidth = min(12, 8 * CGFloat(ring.strokeScale))
+        if regions.contains(.ringTrack) {
+            context.setLineWidth(lineWidth)
+            context.setStrokeColor(sceneColor(for: ring.inactiveColor, foreground: foreground, statusPalette: statusPalette))
+            for position in [RingSegmentPosition.left, .right] {
+                context.addPath(StatusIconGeometry.airPodsTrack(position: position, topGapWidth: sharedTopGapWidth))
+            }
+            context.strokePath()
+        }
+        if regions.contains(.ringFill) {
+            for segment in ring.segments {
+                guard let position = segment.position else { continue }
+                context.setLineWidth(lineWidth)
+                context.setStrokeColor(sceneColor(for: segment.color, foreground: foreground, statusPalette: statusPalette))
+                context.addPath(StatusIconGeometry.airPodsArc(
+                    position: position,
+                    progress: segment.progress,
+                    topGapWidth: sharedTopGapWidth
+                ))
+                context.strokePath()
+            }
+        }
+    }
+
+    private static func resolvedCenterSymbolName(name: String, fallback: String?, color: IconColorRole) -> String {
+        if availableSymbol(name) { return name }
+        if let fallback, availableSymbol(fallback) { return fallback }
+        return color == .bluetooth ? BluetoothDeviceRowIcon.genericSymbol : "wifi"
+    }
+
+    private static let airPodsTopSymbolHeightsPerPoint: [String: CGFloat] = {
+        ["airpods", "headphones"].reduce(into: [:]) { heights, name in
+            let referencePointSize: CGFloat = 200
+            if let height = configuredSymbol(
+                name: name, pointSize: referencePointSize, foreground: .labelColor
+            )?.image.size.height, height.isFinite, height > 0 {
+                heights[name] = height / referencePointSize
+            }
+        }
+    }()
+
+    private static func airPodsTopSymbolPointSize(name: String, targetHeight: CGFloat) -> CGFloat {
+        let heightPerPoint = airPodsTopSymbolHeightsPerPoint[name] ?? 1.34
+        let pointSize = targetHeight / heightPerPoint
+        return pointSize.isFinite && pointSize > 0 ? pointSize : 18
+    }
+
+    private static func drawAirPodsTopSymbol(
+        _ symbol: IconSymbolState,
+        foreground: CGColor,
+        statusPalette: BatteryStatusColorPalette,
+        in context: CGContext
+    ) {
+        guard case let .symbol(name, variableValue, fallback) = symbol.source else { return }
+        let resolvedName = resolvedCenterSymbolName(name: name, fallback: fallback, color: symbol.color)
+        let usesFallback = !availableSymbol(name)
+        let indicatorTextScale = symbol.scale
+        let center = StatusIconGeometry.batteryTopIndicatorCenter(
+            boltScale: batteryChargingBoltScale(textScale: indicatorTextScale)
+        )
+        let calibratedHeight = batteryTopIndicatorHeight(textScale: indicatorTextScale)
+        let availableHeight = max(1, center.y * 2 - 2)
+        let pointSize = airPodsTopSymbolPointSize(
+            name: resolvedName,
+            targetHeight: min(calibratedHeight, availableHeight)
+        )
+        drawOfficialSymbol(
+            name: resolvedName,
+            variableValue: usesFallback ? 1 : (variableValue ?? 1),
+            pointSize: pointSize,
+            center: center,
+            foreground: sceneColor(for: symbol.color, foreground: foreground, statusPalette: statusPalette),
+            in: context
+        )
     }
 
     private static func drawSceneRing(
@@ -1142,6 +1238,14 @@ extension StatusIconRenderer {
         let drawsRing = !regions.isDisjoint(with: [.ringTrack, .ringFill, .ringEffect])
         let drawsAccessory = regions.contains(.ringAccessory) && ring.accessory != nil
         guard drawsRing || drawsAccessory else { return }
+
+        if ring.layout == .leftRight {
+            drawAirPodsRing(ring, in: context, foreground: foreground, statusPalette: statusPalette, regions: regions)
+            if regions.contains(.ringAccessory), case let .symbol(symbol)? = ring.accessory {
+                drawAirPodsTopSymbol(symbol, foreground: foreground, statusPalette: statusPalette, in: context)
+            }
+            return
+        }
 
         guard let segment = ring.segments.first else { return }
         let hasTopGap = ring.gap != .closed
