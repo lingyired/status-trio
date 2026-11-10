@@ -259,6 +259,11 @@ Copyright 2026 lingyired.
 
 Apache License, Version 2.0 に基づいてライセンスされています。[LICENSE](LICENSE) と [NOTICE](NOTICE) をご覧ください。
 
+アプリに同梱されるサードパーティ製コンポーネントはそれぞれ独自のライセンスに従い、プロジェクト全体の Apache License 2.0 を変更するものではありません：
+
+- [サードパーティのライセンスと依存関係の通知](docs/legal/third-party-licenses.md)
+- [サードパーティのソースとビルド／差し替え手順](Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md)
+
 ## 作者
 
 作成・メンテナンス: [lingyired](https://github.com/lingyired)。<br>

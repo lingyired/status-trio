@@ -288,7 +288,12 @@ For the three icon regions, update timing, Swift examples, and extension boundar
 
 Copyright 2026 lingyired.
 
-Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Status Trio is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+Bundled third-party components carry their own licenses and do not change the project's Apache-2.0 license:
+
+- [Third-party licenses and dependency notices](docs/legal/third-party-licenses.md)
+- [Third-party source and build/replacement instructions](Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md)
 
 ## Author
 

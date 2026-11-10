@@ -260,6 +260,11 @@ Copyright 2026 lingyired.
 
 Apache License, Version 2.0에 따라 라이선스가 부여됩니다. [LICENSE](LICENSE) 및 [NOTICE](NOTICE)를 참조하십시오.
 
+앱과 함께 배포되는 타사 구성 요소는 각자의 라이선스를 따르며, 프로젝트 전체의 Apache License 2.0 라이선스를 변경하지 않습니다:
+
+- [타사 라이선스 및 종속성 고지](docs/legal/third-party-licenses.md)
+- [타사 소스 및 빌드／교체 안내](Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md)
+
 ## 작성자
 
 [lingyired](https://github.com/lingyired)가 만들고 유지 관리합니다.<br>

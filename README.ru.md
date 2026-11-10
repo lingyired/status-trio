@@ -261,6 +261,11 @@ bash scripts/build-worktree.sh release
 
 Лицензировано под Apache License, Version 2.0. См. [LICENSE](LICENSE) и [NOTICE](NOTICE).
 
+Сторонние компоненты, поставляемые с приложением, имеют собственные лицензии и не изменяют лицензию Apache 2.0 всего проекта:
+
+- [Лицензии сторонних компонентов и уведомления о зависимостях](docs/legal/third-party-licenses.md)
+- [Исходный код сторонних компонентов и инструкции по сборке/замене](Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md)
+
 ## Автор
 
 Создано и поддерживается [lingyired](https://github.com/lingyired).<br>

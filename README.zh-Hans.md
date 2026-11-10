@@ -279,6 +279,11 @@ Copyright 2026 lingyired。
 
 本项目采用 Apache License 2.0 许可。详见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。
 
+随应用分发的第三方组件采用各自的许可证，不会改变本项目整体的 Apache License 2.0 许可：
+
+- [第三方许可证与依赖声明](docs/legal/third-party-licenses.md)
+- [第三方源码与构建／替换说明](Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md)
+
 ## 作者
 
 由 [lingyired](https://github.com/lingyired) 创建并维护。<br>

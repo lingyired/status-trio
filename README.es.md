@@ -261,6 +261,11 @@ Copyright 2026 lingyired.
 
 Con licencia Apache License, Version 2.0. Consulta [LICENSE](LICENSE) y [NOTICE](NOTICE).
 
+Los componentes de terceros incluidos con la app tienen sus propias licencias y no modifican la licencia Apache 2.0 del proyecto:
+
+- [Licencias de terceros y avisos de dependencias](docs/legal/third-party-licenses.md)
+- [Código fuente de terceros e instrucciones de compilación/sustitución](Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md)
+
 ## Autor
 
 Creado y mantenido por [lingyired](https://github.com/lingyired).<br>

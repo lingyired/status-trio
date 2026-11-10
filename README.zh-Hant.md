@@ -261,6 +261,11 @@ Copyright 2026 lingyired.
 
 依 Apache License, Version 2.0 授權。請參閱 [LICENSE](LICENSE) 與 [NOTICE](NOTICE)。
 
+隨應用程式分發的第三方元件採用各自的授權條款，不會改變本專案整體的 Apache License 2.0 授權：
+
+- [第三方授權與相依性聲明](docs/legal/third-party-licenses.md)
+- [第三方原始碼與建置／替換說明](Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md)
+
 ## 作者
 
 由 [lingyired](https://github.com/lingyired) 建立並維護。<br>

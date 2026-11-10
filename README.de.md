@@ -261,6 +261,11 @@ Copyright 2026 lingyired.
 
 Lizenziert unter der Apache License, Version 2.0. Siehe [LICENSE](LICENSE) und [NOTICE](NOTICE).
 
+Mitgelieferte Drittanbieter-Komponenten unterliegen ihren eigenen Lizenzen und ändern nichts an der Apache-2.0-Lizenz des Projekts:
+
+- [Lizenzen und Abhängigkeitshinweise von Drittanbietern](docs/legal/third-party-licenses.md)
+- [Quellcode und Build-/Ersetzungsanleitung von Drittanbietern](Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md)
+
 ## Autor
 
 Erstellt und gepflegt von [lingyired](https://github.com/lingyired).<br>
