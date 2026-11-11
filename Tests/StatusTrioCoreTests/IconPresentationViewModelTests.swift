@@ -664,4 +664,61 @@ final class IconPresentationViewModelTests: XCTestCase {
         XCTAssertEqual(received.sources.connectedBluetoothDeviceSymbol, "airpods")
         model.stop()
     }
+
+    /// Changing a runtime-only option (the Bluetooth-audio glyph choice) must
+    /// re-render immediately. `@Published` emits during willSet, so a mapper that
+    /// reads the store live publishes the previous value one edit late; the
+    /// settings snapshot must carry the runtime options instead.
+    func testRuntimeOptionChangeRendersImmediatelyWithoutALag() throws {
+        let suite = "StatusTrioCoreTests.VMLive.\\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+
+        let store = SettingsStore(defaults: defaults)
+        store.connectionCenterSource = .bluetoothDevice
+        let device = AudioOutputDevice(id: 1, name: "AirPods Pro", isCurrent: true, transport: .bluetooth)
+        let snapshot = StatusSnapshot(
+            battery: BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: false, isLowPowerMode: false, isConnectedToPower: false),
+            wifi: WiFiStatus(state: .connected, rssi: -52),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.6, isMuted: false, deviceName: device.name, currentDevice: device)
+        )
+        func centerSymbol(_ scene: IconSceneState) -> String? {
+            if case let .symbol(symbol) = scene.center, case let .symbol(name, _, _) = symbol.source { return name }
+            return nil
+        }
+        var initial: IconPresentationSettings?
+        let seed = store.iconPresentationPublisher.first().sink { initial = $0 }
+        seed.cancel()
+
+        let model = IconPresentationViewModel(
+            snapshot: snapshot,
+            settings: try XCTUnwrap(initial),
+            snapshots: CurrentValueSubject(snapshot).eraseToAnyPublisher(),
+            preferences: store.iconPresentationPublisher,
+            resolveInputs: { [store] snap in
+                var inputs = IconPresentationResourceResolver.inputs(
+                    snapshot: snap,
+                    runtimeOptions: store.iconRuntimePresentationOptions
+                )
+                inputs.sources = IconPresentationResourceResolver.sourceSnapshot(snapshot: snap)
+                return inputs
+            },
+            mapScene: { inputs, _, iconConfiguration in
+                IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(system: inputs, sources: inputs.sources),
+                    configuration: iconConfiguration
+                ).scene
+            },
+            snapshotScheduler: ManualIconPresentationScheduler()
+        )
+        model.start()
+
+        store.bluetoothAudioIconChoiceRawValue = "headset"
+        XCTAssertEqual(centerSymbol(model.output.scene), "headset", "first change must render immediately")
+        store.bluetoothAudioIconChoiceRawValue = "earbuds"
+        XCTAssertEqual(centerSymbol(model.output.scene), "earbuds", "second change must render immediately")
+        model.stop()
+    }
 }

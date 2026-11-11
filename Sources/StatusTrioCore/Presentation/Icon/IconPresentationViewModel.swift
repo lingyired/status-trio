@@ -49,6 +49,11 @@ struct IconPresentationSettings: Equatable, Sendable {
     /// produced it in the same snapshot, so a settings change is rendered once
     /// instead of showing a stale scene first.
     var iconConfiguration: IconConfigurationV1 = .classic
+    /// Runtime-only icon options carried in the same snapshot as the appearance
+    /// they were derived from. Using this (instead of reading the store inside
+    /// `resolveInputs`) avoids the `@Published` willSet race that made a live
+    /// change publish the *previous* value one step late.
+    var runtimeOptions: IconPresentationRuntimeOptions? = nil
 }
 
 struct IconPresentationOutput: Equatable, Sendable {
@@ -278,6 +283,7 @@ final class IconPresentationViewModel: ObservableObject {
                 inputSource: inputSource,
                 systemPower: systemPower,
                 isHighPowerMode: isHighPowerMode,
+                settingsRuntimeOptions: settings.runtimeOptions,
                 resolveInputs: resolveInputs
             ),
             settings.configuration,
@@ -292,6 +298,7 @@ final class IconPresentationViewModel: ObservableObject {
                     inputSource: inputSource,
                     systemPower: systemPower,
                     isHighPowerMode: isHighPowerMode,
+                    settingsRuntimeOptions: settings.runtimeOptions,
                     resolveInputs: resolveInputs
                 ),
                 settings.configuration,
@@ -318,17 +325,19 @@ final class IconPresentationViewModel: ObservableObject {
         inputSource: InputSourceDescriptor?,
         systemPower: SystemPowerSample?,
         isHighPowerMode: Bool,
+        settingsRuntimeOptions: IconPresentationRuntimeOptions?,
         resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs
     ) -> IconPresentationInputs {
         let inputs = resolveInputs(snapshot)
-        // Carry every field the resolver needs: dropping `runtimeOptions` is why
-        // the Bluetooth-audio glyph choice changed the preview but not the menu
-        // bar, and dropping `sources` lost Bluetooth/AirPods availability.
+        // Carry every field the resolver needs. `runtimeOptions` comes from the
+        // published settings snapshot when present: reading them live here would
+        // read the pre-change value during `@Published`'s willSet emission and lag
+        // one edit behind.
         return IconPresentationInputs(
             snapshot: inputs.snapshot,
             audioIcon: inputs.audioIcon,
             inputSource: inputSource?.resolvedForDrawing(),
-            runtimeOptions: inputs.runtimeOptions,
+            runtimeOptions: settingsRuntimeOptions ?? inputs.runtimeOptions,
             systemPower: systemPower,
             isHighPowerMode: isHighPowerMode,
             sources: inputs.sources

@@ -29,6 +29,12 @@ extension SettingsStore {
                 iconConfiguration: SettingsStore.iconConfiguration(
                     from: appearance,
                     inputSourceMarkerStyle: markerStyle
+                ),
+                runtimeOptions: IconPresentationRuntimeOptions(
+                    connectionCenterSource: appearance.connectionOptions.centerSource,
+                    prioritizesNetworkErrorsOverInputSource: appearance.connectionOptions.prioritizesNetworkErrors,
+                    batteryFullThreshold: appearance.batteryOptions.fullThreshold,
+                    bluetoothAudioIconChoice: appearance.bluetoothAudioOptions.iconChoice
                 )
             )
         }
