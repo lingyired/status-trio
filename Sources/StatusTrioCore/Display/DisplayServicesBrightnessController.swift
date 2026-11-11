@@ -153,6 +153,7 @@ final class DisplayServicesBrightnessController {
     }
 
     func setBrightness(_ scalar: Double) {
+        guard scalar.isFinite else { return }
         guard isStarted else { return }
         guard displayID != 0 else {
             emit(scalar: nil, canAdjust: false, source: .unavailable(.noBackend))
@@ -173,7 +174,12 @@ final class DisplayServicesBrightnessController {
            abs(Double(value) - Double(target)) <= Self.confirmationTolerance {
             emit(scalar: Double(min(1, max(0, value))), canAdjust: true, source: .displayServices)
         } else {
-            emit(scalar: nil, canAdjust: false, source: .unavailable(.writeNotConfirmed))
+            // The write was accepted; only the read-back has not confirmed it
+            // yet (or failed). Keep the slider adjustable with the accepted
+            // target instead of tearing it down mid-gesture. A real
+            // notification/read will correct the value later; no retries,
+            // timers, or polling here.
+            emit(scalar: Double(target), canAdjust: true, source: .displayServices)
         }
     }
 
