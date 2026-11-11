@@ -25,9 +25,22 @@ struct SettingsTransferView: View {
             SettingsHintRow(text: localization.string(.settingsTransferDescription))
 
             SettingsDivider()
-            HStack(spacing: 12) {
-                Button(localization.string(.settingsTransferExport)) { beginExport() }
-                Button(localization.string(.settingsTransferImport)) { isImporting = true }
+
+            HStack(spacing: 8) {
+                Button {
+                    beginExport()
+                } label: {
+                    Label(localization.string(.settingsTransferExport), systemImage: "square.and.arrow.up")
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    isImporting = true
+                } label: {
+                    Label(localization.string(.settingsTransferImport), systemImage: "square.and.arrow.down")
+                }
+                .buttonStyle(.bordered)
+
                 Spacer(minLength: 0)
             }
             .controlSize(.small)
@@ -35,44 +48,25 @@ struct SettingsTransferView: View {
             .padding(.vertical, SettingsMetrics.rowPaddingV)
             .disabled(session.preview != nil || isImporting || isExporting)
 
-            SettingsHintRow(text: localization.string(.settingsTransferExclusions))
-
             if let preview = session.preview {
                 SettingsDivider()
                 importPreview(preview)
             }
 
             if let failure {
-                VStack(alignment: .leading, spacing: 4) {
-                    Label(localization.string(.settingsTransferErrorTitle), systemImage: "exclamationmark.triangle")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text(failure)
-                        .font(.system(size: 11))
-                }
-                .foregroundStyle(.red)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(SettingsMetrics.rowPaddingH)
+                SettingsDivider()
+                statusRow(failure, symbol: "exclamationmark.triangle.fill", tint: .red)
             } else if let message, session.preview == nil {
-                SettingsHintRow(text: localization.string(message))
+                SettingsDivider()
+                statusRow(localization.string(message), symbol: "checkmark.circle.fill", tint: .green)
             }
 
             if let backup = session.lastBackupURL {
                 SettingsDivider()
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(localization.string(.settingsTransferBackup))
-                        .font(.system(size: 12, weight: .semibold))
-                    Text(backup.path)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button(localization.string(.settingsTransferUndo)) { undoImport() }
-                        .controlSize(.small)
-                        .disabled(!session.canUndo || session.preview != nil || isImporting || isExporting)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(SettingsMetrics.rowPaddingH)
+                backupRow(backup)
             }
+
+            SettingsHintRow(text: localization.string(.settingsTransferExclusions))
         }
         .fileImporter(isPresented: $isImporting, allowedContentTypes: [.json], allowsMultipleSelection: false) { result in
             receiveImport(result)
@@ -94,57 +88,139 @@ struct SettingsTransferView: View {
         }
     }
 
+    private func statusRow(_ text: String, symbol: String, tint: Color) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 7) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(tint)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.vertical, 10)
+    }
+
+    private func backupRow(_ backup: URL) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(.secondary)
+                .frame(width: 18, height: 18)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(localization.string(.settingsTransferBackup))
+                    .font(.system(size: 12, weight: .semibold))
+                Text(backup.path)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 12)
+
+            Button(localization.string(.settingsTransferUndo)) {
+                undoImport()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(!session.canUndo || session.preview != nil || isImporting || isExporting)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.vertical, SettingsMetrics.rowPaddingV)
+    }
+
     private func importPreview(_ preview: SettingsTransferPreview) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(localization.string(.settingsTransferPreviewTitle))
+            Label(localization.string(.settingsTransferPreviewTitle), systemImage: "doc.text.magnifyingglass")
                 .font(.system(size: 13, weight: .semibold))
             Text(localization.string(.settingsTransferPreviewDescription))
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
-            Text(localization.format(.settingsTransferPreferenceCount, preview.preferenceCount))
-            Text(localization.format(
-                .settingsTransferSource,
-                preview.appVersion,
-                preview.exportedAt.formatted(
-                    .dateTime.year().month().day().hour().minute().locale(localization.resolvedLanguage.locale)
-                )
-            ))
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(localization.format(.settingsTransferPreferenceCount, preview.preferenceCount))
+                Text(localization.format(
+                    .settingsTransferSource,
+                    preview.appVersion,
+                    preview.exportedAt.formatted(
+                        .dateTime.year().month().day().hour().minute().locale(localization.resolvedLanguage.locale)
+                    )
+                ))
+                .foregroundStyle(.secondary)
+            }
             .font(.system(size: 11))
-            .foregroundStyle(.secondary)
 
             if !preview.warnings.isEmpty {
-                Text(localization.string(.settingsTransferWarnings))
-                    .font(.system(size: 12, weight: .semibold))
-                Text(localization.format(.settingsTransferWarningCount, preview.warnings.count))
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 4) {
-                        ForEach(Array(Self.visibleWarnings(preview.warnings).enumerated()), id: \.offset) { _, warning in
-                            Text(verbatim: warning)
-                                .font(.system(size: 11, design: .monospaced))
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.orange)
+                            .accessibilityHidden(true)
+                        Text(localization.string(.settingsTransferWarnings))
+                            .font(.system(size: 12, weight: .semibold))
+                        Spacer(minLength: 0)
+                        Text(localization.format(.settingsTransferWarningCount, preview.warnings.count))
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 4) {
+                            ForEach(Array(Self.visibleWarnings(preview.warnings).enumerated()), id: \.offset) { _, warning in
+                                Text(verbatim: warning)
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
                         }
                     }
+                    .frame(maxHeight: 140)
                 }
-                .frame(maxHeight: 150)
             }
 
-            HStack(spacing: 12) {
-                Button(localization.string(.settingsTransferConfirm)) { applyImport() }
-                    .buttonStyle(.borderedProminent)
+            Divider()
+                .opacity(0.4)
+
+            HStack(spacing: 8) {
+                Button(localization.string(.settingsTransferConfirm)) {
+                    applyImport()
+                }
+                .buttonStyle(.borderedProminent)
+
                 Button(localization.string(.settingsTransferCancel)) {
                     session.cancelImport()
                     failure = nil
                     message = nil
                 }
+                .buttonStyle(.bordered)
+
+                Spacer(minLength: 0)
             }
             .controlSize(.small)
         }
         .font(.system(size: 12))
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(SettingsMetrics.rowPaddingH)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.primary.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+        )
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.vertical, SettingsMetrics.rowPaddingV)
     }
 
     /// Unknown JSON field names are untrusted: bound both row count and per-row text.
