@@ -146,7 +146,7 @@ struct SettingsView: View {
 
     /// Functional status categories shown in the scrollable top group.
     private static let scrollableSections: [Section] = [
-        .appIcon, .battery, .network, .bluetooth, .audio, .brightness, .popover,
+        .appIcon, .battery, .network, .bluetooth, .audio, .brightness, .monitor, .popover,
     ]
 
     /// App-wide panes pinned below the divider so they stay reachable when the
