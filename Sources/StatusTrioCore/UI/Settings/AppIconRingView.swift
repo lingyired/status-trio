@@ -613,8 +613,8 @@ struct AppIconRingView: View {
                 SettingsRow(
                     "textformat.size",
                     tint: .blue,
-                    title: localization.string(.settingsBatterySymbolScale),
-                    subtitle: localization.string(.settingsBatterySymbolScaleDescription)
+                    title: localization.string(.settingsTopMarkerScale),
+                    subtitle: localization.string(.settingsTopMarkerScaleDescription)
                 ) {
                     HStack(spacing: 8) {
                         Slider(
@@ -627,7 +627,7 @@ struct AppIconRingView: View {
                         .frame(width: 130)
                         .controlSize(.small)
                         .accessibilityLabel(
-                            localization.string(.settingsBatterySymbolScaleAccessibility)
+                            localization.string(.settingsTopMarkerScale)
                         )
                         .accessibilityValue("\(Int(store.batterySymbolScale * 100))%")
 
