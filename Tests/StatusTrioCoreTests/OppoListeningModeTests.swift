@@ -555,6 +555,102 @@ final class OppoCapturedEncoX3Tests: XCTestCase {
         XCTAssertEqual(profile?.mode(reportedIndex: 4), .noiseCancellation)
         XCTAssertEqual(profile?.setPayload(for: .noiseCancellation), [0x01, 0x01, 0x02])
     }
+
+    /// The write path, captured on the same model.
+    ///
+    /// Asking for transparency sends the top-level index `2`, and the buds answer
+    /// with sub-index `8` — not `2`. Confirmation therefore has to be decided on
+    /// the normalised mode, not on the index that was written; comparing indices
+    /// would report every successful switch as a failure and roll the UI back.
+    private let writeAnswer: [UInt8] = [
+        0xAA, 0x08, 0x00, 0x00, 0x04, 0x84, 0x06, 0x01, 0x00, 0x00,
+    ]
+    private let transparencyReadBack: [UInt8] = [
+        0xAA, 0x0C, 0x00, 0x00, 0x0C, 0x81, 0x07, 0x05, 0x00, 0x00, 0x01, 0x01, 0x00, 0x01,
+    ]
+
+    func testCapturedWriteIsAcknowledgedAndAnsweredWithASubIndex() {
+        var engine = OppoSessionEngine()
+        _ = engine.handshake()
+        var decoder = OppoFrameDecoder()
+        for frame in decoder.append(handshakeAnswer + productIDAnswer + cycleAnswer + currentModeAnswer) {
+            _ = engine.receive(frame)
+        }
+        XCTAssertEqual(engine.currentMode, .noiseCancellation)
+
+        // Writing transparency yields `[01][01][04]` — the single bit for index 2.
+        let write = engine.setMode(.transparency)
+        XCTAssertEqual(write?.payload, [0x01, 0x01, 0x04])
+
+        let frames = decoder.append(writeAnswer)
+        XCTAssertEqual(frames.map(\.command), [0x8404])
+        XCTAssertEqual(frames[0].payload, [0x00])
+        // The ack alone is not a switch: the engine asks for a fresh read.
+        let followUp = engine.receive(frames[0])
+        XCTAssertEqual(followUp.map(\.command), [OppoCommand.noiseQuery])
+
+        for frame in decoder.append(transparencyReadBack) {
+            _ = engine.receive(frame)
+        }
+        // Sub-index 8 is how this model reports transparency.
+        XCTAssertEqual(engine.currentMode, .transparency)
+    }
+
+    func testMeasuredAliasCoversBothIndicesTheModelReportsForTransparency() {
+        let profile = OppoNoiseProfiles.profile(productID: 0x067410, cycleMask: nil)
+        // 2 is the index written, 8 the one observed. Both must read as transparency.
+        XCTAssertEqual(profile?.mode(reportedIndex: 2), .transparency)
+        XCTAssertEqual(profile?.mode(reportedIndex: 8), .transparency)
+    }
+
+    /// A whole switch cycle, captured on the same model.
+    ///
+    /// Every write is acknowledged with status 0 and every one changes the
+    /// read-back, so the alias table is no longer borrowed from the X4 layout:
+    /// writing `1` reads back `4`, writing `2` reads back `8`, writing `0` reads
+    /// back `3`. Each of those has to normalise to the mode that was asked for,
+    /// or the capsules would highlight nothing after a successful switch.
+    func testCapturedFullCycleMatchesEveryRowOfTheAliasTable() {
+        var engine = OppoSessionEngine()
+        _ = engine.handshake()
+        var decoder = OppoFrameDecoder()
+        for frame in decoder.append(handshakeAnswer + productIDAnswer + cycleAnswer + currentModeAnswer) {
+            _ = engine.receive(frame)
+        }
+
+        let cycle: [(written: BluetoothListeningMode, payload: [UInt8], reported: UInt16)] = [
+            (.noiseCancellation, [0x01, 0x01, 0x02], 0x0010),  // sub-index 4
+            (.transparency, [0x01, 0x01, 0x04], 0x0100),       // sub-index 8
+            (.off, [0x01, 0x01, 0x01], 0x0008),                // sub-index 3
+        ]
+
+        for step in cycle {
+            XCTAssertEqual(engine.setMode(step.written)?.payload, step.payload)
+
+            // On hardware the state push arrives before the write ack.
+            _ = engine.receive(OppoFrame(
+                command: 0x0204,
+                sequence: 59,
+                payload: [0x03, 0x01, 0x01, UInt8(step.reported & 0xFF), UInt8(step.reported >> 8)]
+            ))
+            _ = engine.receive(OppoFrame(
+                command: OppoCommand.noiseSetResponse,
+                sequence: 5,
+                payload: [0x00]
+            ))
+            _ = engine.receive(OppoFrame(
+                command: OppoCommand.noiseQueryResponse,
+                sequence: 6,
+                payload: [0x00, 0x01, 0x01, UInt8(step.reported & 0xFF), UInt8(step.reported >> 8)]
+            ))
+
+            XCTAssertEqual(
+                engine.currentMode,
+                step.written,
+                "写入 \(step.written) 后上报 \(String(format: "0x%04X", step.reported))，必须归一为同一模式"
+            )
+        }
+    }
 }
 
 /// A fixed-seed generator so the malformed-stream test is reproducible.

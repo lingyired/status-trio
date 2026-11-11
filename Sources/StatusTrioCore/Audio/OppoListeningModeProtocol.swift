@@ -312,14 +312,24 @@ enum OppoNoiseProfiles {
         // Observed: handshake `0x8100` (bitmap FF 77 7A EE E6 8F 8E 04), product ID
         // `0x8103` = 0x067410, long-press cycle `0x010C[02]` = 0x0006 (indices 1
         // and 2), current mode `0x010C[01]` = 0x0010 (sub-index 4 → cancellation),
-        // and an event push `03 01 01 10 00` after a mode change. The indices match
+        // and an event push `03 01 01 <mask>` after a mode change. The indices match
         // the documented X4 layout, including "the buds always report the
         // sub-index" — which is why depth/智能 indices 4…7 alias to cancellation.
         //
-        // Not yet observed: the write path (`0x0404`) against this model. Until it
-        // is, the table is the same one the generic fallback uses, so a wrong guess
-        // here would not change behaviour — it only removes the dependency on the
-        // cycle answer.
+        // The write path was measured too: `0x0404 [01][01][04]` (index 2, one
+        // mask byte) is answered with `0x8404 [00]`, and the buds then report
+        // sub-index **8** — not the 2 that was written — which the aliases below
+        // fold back to transparency. Confirmation must therefore compare the
+        // normalised mode, never the index.
+        //
+        // A full cycle confirmed every row of the alias table on hardware:
+        //
+        //   write 1 (cancellation) → reports 0x0010, index 4
+        //   write 2 (transparency) → reports 0x0100, index 8
+        //   write 0 (off)          → reports 0x0008, index 3
+        //
+        // All three writes were acknowledged with status 0 and each one moved the
+        // read-back, so no row here is an inference from another model.
         0x067410: OppoNoiseProfile(
             productID: 0x067410,
             indices: [.off: 0, .cancellation: 1, .transparency: 2],
