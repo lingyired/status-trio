@@ -78,6 +78,10 @@ final class AnchoredStatusPanel: NSPanel {
     private var lockedResizeAnchor: StatusPanelAnchor?
     private var lockedResizeFrame: NSRect?
     private var lockedResizeEdge: NSRectEdge?
+    /// The clamped vertical travel bounds for the current placement, refreshed
+    /// by `lockResizePlacement` so an animated resize can translate the panel
+    /// instead of growing off screen (#321).
+    private var verticalPlacementBounds: ClosedRange<CGFloat>?
 #if DEBUG
     /// Number of window frame writes since the last reset. Issue #259 uses it in
     /// the convergence regression and in the live diagnostic; release builds
@@ -358,7 +362,7 @@ final class AnchoredStatusPanel: NSPanel {
             let y: CGFloat
             switch lockedResizeEdge {
             case .maxY: y = locked.minY
-            case .minX, .maxX: y = locked.midY - height / 2
+            case .minX, .maxX: y = clampedVerticalOrigin(centered: locked.midY, for: height)
             default: y = locked.maxY - height
             }
             return NSRect(x: locked.minX, y: y,
@@ -377,6 +381,22 @@ final class AnchoredStatusPanel: NSPanel {
         return NSRect(origin: frame.origin, size: size)
     }
 
+    /// The clamped y-origin that keeps a side-Dock panel vertically on screen
+    /// for a given presented height. The panel grows from a fixed x-anchor and
+    /// translates vertically instead of being compressed; the horizontal side
+    /// and the upper/lower travel bounds come from `verticalPlacementBounds` so
+    /// the panel never leaves the screen or overlaps the revealed Dock (#321).
+    private func clampedVerticalOrigin(centered center: CGFloat, for height: CGFloat) -> CGFloat {
+        guard let bounds = verticalPlacementBounds else {
+            return center - height / 2
+        }
+        return StatusPanelPlacement.clampedVerticalOrigin(
+            center: center,
+            height: height,
+            bounds: bounds
+        )
+    }
+
     /// Keep the side already visible to the user, including an initial flip.
     /// If the expanded page would need the other side's larger budget, scroll
     /// on the selected side instead of flipping or growing off screen.
@@ -389,17 +409,24 @@ final class AnchoredStatusPanel: NSPanel {
             lockedResizeEdge = frame.midY > (lockedResizeAnchor?.screenRect.midY ?? frame.maxY) ? .maxY : .minY
         }
         guard let screen = screen else { return }
-        let lower = screen.visibleFrame.minY + max(0, dockInset.bottom) + StatusPanelPlacement.edgeMargin
-        let upper = screen.visibleFrame.maxY - max(0, dockInset.top) - StatusPanelPlacement.edgeMargin
+        // Re-derive the budget from the current geometry every time. Never
+        // inherit an old, smaller value with `min`, which permanently stuck a
+        // small budget once one resize happened to lock it small (#321).
+        // The vertical travel bounds span the whole screen for side Docks so
+        // the panel grows to its content height and translates instead of being
+        // squeezed around the click point (#321).
+        let bounds = StatusPanelPlacement.verticalTravelBounds(
+            visibleFrame: screen.visibleFrame,
+            dockInset: dockInset
+        )
         let available: CGFloat
         switch lockedResizeEdge {
-        case .maxY: available = upper - frame.minY
-        case .minX, .maxX: available = 2 * min(frame.midY - lower, upper - frame.midY)
-        default: available = frame.maxY - lower
+        case .maxY: available = bounds.upperBound - frame.minY
+        case .minX, .maxX: available = bounds.upperBound - bounds.lowerBound
+        default: available = frame.maxY - bounds.lowerBound
         }
-        layoutMetrics.update(maximumPanelHeight: max(1, min(
-            layoutMetrics.maximumPanelHeight ?? available, available
-        )))
+        layoutMetrics.update(maximumPanelHeight: max(1, available))
+        verticalPlacementBounds = bounds
     }
 
     // MARK: - Layout scheduling
