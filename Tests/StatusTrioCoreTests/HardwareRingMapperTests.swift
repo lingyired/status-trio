@@ -214,6 +214,17 @@ final class HardwareRingMapperTests: XCTestCase {
         XCTAssertEqual(state.gap, .value)
     }
 
+    func testTopTemperatureValueShowsDegree() {
+        let snap = snapshot([.cpuTemperature: sample(55, unit: .celsius)])
+        let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuTemperature,
+                                               topContent: .value(.cpuTemperature))
+        let state = HardwareRingMapper.resolve(snapshot: snap, configuration: config, now: now)
+        guard case let .text(text)? = state.accessory else {
+            return XCTFail("expected text accessory")
+        }
+        XCTAssertEqual(text.text, "55°")
+    }
+
     func testHiddenTopMarker() {
         let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
         let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage, topContent: .hidden)

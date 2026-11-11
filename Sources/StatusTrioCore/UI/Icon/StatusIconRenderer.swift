@@ -1250,7 +1250,7 @@ extension StatusIconRenderer {
                     drawAirPodsTopSymbol(symbol, foreground: foreground, statusPalette: statusPalette, in: context)
                 case let .text(text):
                     let fontSize = batteryValueFontSize(scale: text.scale)
-                    drawSceneText(
+                    drawSceneAccessoryText(
                         text.text,
                         color: sceneColor(for: text.color, foreground: foreground, statusPalette: statusPalette),
                         fontSize: fontSize,
@@ -1334,7 +1334,7 @@ extension StatusIconRenderer {
 
         switch accessory {
         case let .text(text):
-            drawSceneText(
+            drawSceneAccessoryText(
                 text.text,
                 color: sceneColor(for: text.color, foreground: foreground, statusPalette: statusPalette),
                 fontSize: batteryValueFontSize(scale: text.scale),
@@ -1653,6 +1653,39 @@ extension StatusIconRenderer {
         context.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
         context.textPosition = CGPoint(x: baseline.x - inkBounds.midX, y: baseline.y)
         CTLineDraw(line, context)
+    }
+
+    /// Draws a top-gap accessory value. A trailing degree glyph is split off so
+    /// the numeric part stays optically centred on the artwork axis and the "°"
+    /// sits to its right (it may run slightly toward the gap edge by design).
+    /// Any other string falls back to the ordinary centred draw.
+    private static func drawSceneAccessoryText(
+        _ text: String,
+        color: CGColor,
+        fontSize: CGFloat,
+        baseline: CGPoint,
+        in context: CGContext
+    ) {
+        guard text.count > 1, text.hasSuffix("°") else {
+            drawSceneText(text, color: color, fontSize: fontSize, baseline: baseline, in: context)
+            return
+        }
+        let number = String(text.dropLast())
+        let numberLine = sceneTextLine(number, color: color, fontSize: fontSize)
+        let numberInk = CTLineGetBoundsWithOptions(numberLine, [.useGlyphPathBounds])
+        context.setFillColor(color)
+        context.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
+        let numberX = baseline.x - numberInk.midX
+        context.textPosition = CGPoint(x: numberX, y: baseline.y)
+        CTLineDraw(numberLine, context)
+
+        let degreeFont = fontSize * 0.72
+        let degreeLine = sceneTextLine("°", color: color, fontSize: degreeFont)
+        let degreeInk = CTLineGetBoundsWithOptions(degreeLine, [.useGlyphPathBounds])
+        let gap = fontSize * 0.06
+        let degreeX = numberX + numberInk.maxX + gap - degreeInk.minX
+        context.textPosition = CGPoint(x: degreeX, y: baseline.y)
+        CTLineDraw(degreeLine, context)
     }
 
     private static func sceneTextLine(_ text: String, color: CGColor, fontSize: CGFloat) -> CTLine {
