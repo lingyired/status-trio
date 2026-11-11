@@ -28,14 +28,72 @@ struct AppIconRingView: View {
         if !effectiveHasBattery {
             noBatteryHintGroup
         }
-        // #309: every ring control stays visible without a battery. The settings
-        // are kept; the ring colour still follows connected power and Low/High
-        // Power Mode, while the level and charging marker do not apply. The hint
-        // above says so.
-        topMarkersGroup
-        progressGroup
-        colorsGroup
-        effectsGroup
+        outerRingContentGroup
+        if store.outerRingContent == .airPodsBattery {
+            airPodsRingGroup
+        } else {
+            // #309: every battery ring control stays visible without a battery.
+            // The settings are kept; the ring colour still follows connected
+            // power and Low/High Power Mode, while the level and charging marker
+            // do not apply. The hint above says so.
+            topMarkersGroup
+            progressGroup
+            colorsGroup
+            effectsGroup
+        }
+    }
+
+    // MARK: Outer ring content
+
+    /// Chooses what the ring shows: the Mac battery (with all the existing
+    /// battery options below it) or the AirPods battery.
+    private var outerRingContentGroup: some View {
+        SettingsGroup(localization.string(.settingsRingContentGroupTitle)) {
+            SettingsMenuRow(
+                symbol: "circle.dashed",
+                tint: .green,
+                title: localization.string(.settingsRingContentRowTitle),
+                subtitle: localization.string(.settingsRingContentRowDescription),
+                selection: $store.outerRingContent,
+                options: [OuterRingContent.systemBattery, .airPodsBattery],
+                label: { content in
+                    switch content {
+                    case .systemBattery: return localization.string(.settingsRingContentSystemBattery)
+                    case .airPodsBattery: return localization.string(.settingsRingContentAirPodsBattery)
+                    }
+                }
+            )
+        }
+    }
+
+    /// AirPods-ring options: two-arc layout, the small top glyph, and whether an
+    /// unavailable AirPods ring falls back to the Mac battery ring.
+    private var airPodsRingGroup: some View {
+        SettingsGroup(localization.string(.settingsRingAirPodsGroup)) {
+            SettingsToggleRow(
+                symbol: "airpods",
+                tint: .blue,
+                title: localization.string(.settingsRingAirPodsDualRing),
+                subtitle: localization.string(.settingsRingAirPodsDualRingDescription),
+                isOn: $store.airPodsRingUsesDualRing
+            )
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "airpods",
+                tint: .blue,
+                title: localization.string(.settingsRingAirPodsTopSymbol),
+                subtitle: localization.string(.settingsRingAirPodsTopSymbolDescription),
+                isOn: $store.showsAirPodsTopSymbolInRing
+            )
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "battery.100",
+                tint: .green,
+                title: localization.string(.settingsRingAirPodsFallback),
+                subtitle: localization.string(.settingsRingAirPodsFallbackDescription),
+                isOn: $store.airPodsRingFallsBackToBattery
+            )
+        }
     }
 
     // MARK: Developer preview

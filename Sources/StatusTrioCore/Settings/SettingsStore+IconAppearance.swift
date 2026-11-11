@@ -39,7 +39,22 @@ extension SettingsStore {
             (groups, style.scale)
         }
         .combineLatest($wifiSymbolScale) { pair, centerScale in
-            pair.0.appearance(ringStrokeScale: pair.1, centerScale: centerScale)
+            (pair.0, pair.1, centerScale)
+        }
+        .combineLatest(
+            Publishers.CombineLatest4(
+                $outerRingContent,
+                $airPodsRingUsesDualRing,
+                $showsAirPodsTopSymbolInRing,
+                $airPodsRingFallsBackToBattery
+            )
+        ) { triple, ring in
+            var appearance = triple.0.appearance(ringStrokeScale: triple.1, centerScale: triple.2)
+            appearance.outerRingContent = ring.0
+            appearance.airPodsRingUsesDualRing = ring.1
+            appearance.showsAirPodsTopSymbolInRing = ring.2
+            appearance.airPodsRingFallsBackToBattery = ring.3
+            return appearance
         }
         .removeDuplicates()
         .eraseToAnyPublisher()

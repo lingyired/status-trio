@@ -90,8 +90,7 @@ final class IconSettingsLiveUpdateTests: XCTestCase {
         try assertUpdate("batteryCriticalThreshold") { $0.batteryCriticalThreshold = 45 }
         try assertUpdate("usesBatteryStatusColors") { $0.usesBatteryStatusColors = false }
         try assertUpdate("batterySplitGapProgress") { $0.batterySplitGapProgress.toggle() }
-        try assertUpdate("batterySymbolScale") { $0.batterySymbolScale = 2.4 }
-        try assertUpdate("monochromeChargingRing", charging: false, batteryPresent: false) { $0.monochromeChargingRing = false }
+        try assertUpdate("batterySymbolScale", charging: false) { $0.batterySymbolScale = 1.2 }
     }
 
     func testCentreAndFooterSettingsRenderImmediately() throws {

@@ -166,6 +166,10 @@ final class SettingsStore: ObservableObject {
     static let wifiSymbolScaleRange = statusCenterSymbolScaleRange
     static let defaultWifiSymbolScale = defaultStatusCenterSymbolScale
     static let wifiSymbolScaleDefaultsKey = "wifiSymbolScale"
+    static let outerRingContentDefaultsKey = "outerRingContent"
+    static let airPodsRingUsesDualRingDefaultsKey = "airPodsRingUsesDualRing"
+    static let showsAirPodsTopSymbolInRingDefaultsKey = "showsAirPodsTopSymbolInRing"
+    static let airPodsRingFallsBackToBatteryDefaultsKey = "airPodsRingFallsBackToBattery"
     static let defaultVolumeDisplayStyle: VolumeDisplayStyle = .dots
     static let volumeDisplayStyleDefaultsKey = "volumeDisplayStyle"
     static let defaultRingStrokeStyle: RingStrokeStyle = .regular
@@ -1046,6 +1050,30 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+
+    /// What the outer ring shows: the Mac battery (default) or the AirPods
+    /// battery. See `OuterRingContent`.
+    @Published var outerRingContent: OuterRingContent = .systemBattery {
+        didSet {
+            defaults.set(outerRingContent.rawValue, forKey: Self.outerRingContentDefaultsKey)
+        }
+    }
+
+    /// Whether the AirPods ring is split into two left/right arcs.
+    @Published var airPodsRingUsesDualRing: Bool = true {
+        didSet { defaults.set(airPodsRingUsesDualRing, forKey: Self.airPodsRingUsesDualRingDefaultsKey) }
+    }
+
+    /// Whether the AirPods ring draws the small AirPods glyph at the top.
+    @Published var showsAirPodsTopSymbolInRing: Bool = true {
+        didSet { defaults.set(showsAirPodsTopSymbolInRing, forKey: Self.showsAirPodsTopSymbolInRingDefaultsKey) }
+    }
+
+    /// Whether an unavailable AirPods ring falls back to the system battery ring
+    /// (the "battery as fallback" choice, like the centre's network fallback).
+    @Published var airPodsRingFallsBackToBattery: Bool = true {
+        didSet { defaults.set(airPodsRingFallsBackToBattery, forKey: Self.airPodsRingFallsBackToBatteryDefaultsKey) }
+    }
 
     @Published var bluetoothAudioIconChoiceRawValue: String {
         didSet { defaults.set(bluetoothAudioIconChoiceRawValue, forKey: Self.bluetoothAudioIconChoiceDefaultsKey) }
@@ -2536,6 +2564,18 @@ final class SettingsStore: ObservableObject {
         self._airPodsIconDeviceAddress = defaults.string(forKey: "airPodsIconDeviceAddress")
         self._connectedBluetoothIconDeviceAddress = defaults.string(forKey: "connectedBluetoothIconDeviceAddress")
         self._refreshesAirPodsBatteryForIcon = defaults.bool(forKey: "refreshesAirPodsBatteryForIcon")
+        self.outerRingContent = OuterRingContent(
+            rawValue: defaults.string(forKey: Self.outerRingContentDefaultsKey) ?? ""
+        ) ?? .systemBattery
+        self.airPodsRingUsesDualRing = defaults.object(
+            forKey: Self.airPodsRingUsesDualRingDefaultsKey
+        ) as? Bool ?? true
+        self.showsAirPodsTopSymbolInRing = defaults.object(
+            forKey: Self.showsAirPodsTopSymbolInRingDefaultsKey
+        ) as? Bool ?? true
+        self.airPodsRingFallsBackToBattery = defaults.object(
+            forKey: Self.airPodsRingFallsBackToBatteryDefaultsKey
+        ) as? Bool ?? true
         bootstrapIconConfiguration()
     }
 

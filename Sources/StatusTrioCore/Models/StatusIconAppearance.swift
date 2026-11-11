@@ -13,19 +13,31 @@ struct StatusIconAppearance: Equatable, Sendable {
     var connectionOptions: ConnectionIconOptions
     var volumeOptions: VolumeIconOptions
     var bluetoothAudioOptions: BluetoothAudioIconOptions
+    var outerRingContent: OuterRingContent
+    var airPodsRingUsesDualRing: Bool
+    var showsAirPodsTopSymbolInRing: Bool
+    var airPodsRingFallsBackToBattery: Bool
 
     init(
         iconSize: Double,
         batteryOptions: BatteryIconOptions,
         connectionOptions: ConnectionIconOptions,
         volumeOptions: VolumeIconOptions,
-        bluetoothAudioOptions: BluetoothAudioIconOptions
+        bluetoothAudioOptions: BluetoothAudioIconOptions,
+        outerRingContent: OuterRingContent = .systemBattery,
+        airPodsRingUsesDualRing: Bool = true,
+        showsAirPodsTopSymbolInRing: Bool = true,
+        airPodsRingFallsBackToBattery: Bool = true
     ) {
         self.iconSize = iconSize
         self.batteryOptions = batteryOptions
         self.connectionOptions = connectionOptions
         self.volumeOptions = volumeOptions
         self.bluetoothAudioOptions = bluetoothAudioOptions
+        self.outerRingContent = outerRingContent
+        self.airPodsRingUsesDualRing = airPodsRingUsesDualRing
+        self.showsAirPodsTopSymbolInRing = showsAirPodsTopSymbolInRing
+        self.airPodsRingFallsBackToBattery = airPodsRingFallsBackToBattery
     }
 
     /// Reads every icon input straight from the store. Main-actor isolated
@@ -37,7 +49,11 @@ struct StatusIconAppearance: Equatable, Sendable {
             batteryOptions: settings.batteryIconOptions,
             connectionOptions: settings.connectionIconOptions,
             volumeOptions: settings.volumeIconOptions,
-            bluetoothAudioOptions: settings.bluetoothAudioIconOptions
+            bluetoothAudioOptions: settings.bluetoothAudioIconOptions,
+            outerRingContent: settings.outerRingContent,
+            airPodsRingUsesDualRing: settings.airPodsRingUsesDualRing,
+            showsAirPodsTopSymbolInRing: settings.showsAirPodsTopSymbolInRing,
+            airPodsRingFallsBackToBattery: settings.airPodsRingFallsBackToBattery
         )
     }
 }

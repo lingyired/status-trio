@@ -57,6 +57,22 @@ extension SettingsStore {
             configuration.composition.center = SlotSelection(primary: .automaticLegacy, fallback: .network)
         }
 
+        // Outer ring: the Mac battery by default, or the AirPods battery with the
+        // Mac battery as an optional fallback when no AirPods are connected
+        // (mirroring the centre's network fallback).
+        if appearance.outerRingContent == .airPodsBattery {
+            configuration.composition.outerRing = SlotSelection(
+                primary: .airPodsBattery,
+                fallback: appearance.airPodsRingFallsBackToBattery ? .systemBattery : nil
+            )
+            configuration.behaviors.airPodsRing = appearance.airPodsRingUsesDualRing ? .dual : .single
+            configuration.behaviors.showsAirPodsTopSymbol = appearance.showsAirPodsTopSymbolInRing
+        } else {
+            configuration.composition.outerRing = SlotSelection(primary: .systemBattery)
+            configuration.behaviors.airPodsRing = .single
+            configuration.behaviors.showsAirPodsTopSymbol = false
+        }
+
         configuration.behaviors.systemBatteryRing = SystemBatteryRingBehavior(
             showsPercentage: battery.showsPercentage,
             showsChargingIndicator: battery.showsChargingIndicator,
