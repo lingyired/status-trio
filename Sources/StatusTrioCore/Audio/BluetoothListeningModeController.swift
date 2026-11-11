@@ -848,12 +848,12 @@ final class BluetoothListeningModeController: ObservableObject {
     /// Cancels every outstanding panel-scoped observation and clears the surface.
     /// The view calls this when the panel disappears.
     ///
-    /// Redmi sessions are intentionally NOT closed here: the user asked for a
-    /// long-lived control channel so that a phone connecting to the earbuds cannot
-    /// steal the single control slot between panel visits. The Redmi session is
-    /// closed by `shutdown()` when the listening-mode master switch turns off (or
-    /// on app teardown), and a device's session is dropped from `refreshRedmi`
-    /// when it leaves the eligible set.
+    /// Redmi and OPPO sessions are intentionally NOT closed here: the user asked
+    /// for a long-lived control channel so that a phone connecting to the earbuds
+    /// cannot steal the single control slot between panel visits. These sessions
+    /// are closed by `shutdown()` when the listening-mode master switch turns off
+    /// (or on app teardown), and a device's session is dropped from `refreshRedmi`
+    /// / `refreshOppo` when it leaves the eligible set.
     func stop() {
         cancelAirPodsDiscovery()
         for address in presentations.keys {
@@ -890,8 +890,9 @@ final class BluetoothListeningModeController: ObservableObject {
         huaweiTransport.closeAll()
     }
 
-    /// Full teardown including the kept-alive Redmi control sessions. Called when
-    /// the listening-mode master switch turns off, or when the app is going away.
+    /// Full teardown including the kept-alive Redmi and OPPO control sessions.
+    /// Called when the listening-mode master switch turns off, or when the app is
+    /// going away.
     func shutdown() {
         stop()
         redmiTransport.closeAll()

@@ -463,7 +463,7 @@ struct OppoSessionEngine: Sendable {
                 productID = id
                 resolveProfileIfPossible()
             }
-            return []
+            return emitSubscriptionIfNeeded()
 
         case OppoCommand.noiseQueryResponse:
             return receiveNoiseAnswer(frame)
@@ -496,7 +496,8 @@ struct OppoSessionEngine: Sendable {
                 return []
             }
             cycleMask = mask
-            return resolveProfileIfPossible() ? [subscribeEvents(), queryMode()] : []
+            resolveProfileIfPossible()
+            return emitSubscriptionIfNeeded()
 
         case OppoCommand.noiseSupportSubtype:
             guard let mask = OppoPayload.noiseMask(frame.payload, expecting: OppoCommand.noiseSupportSubtype) else {
@@ -505,25 +506,50 @@ struct OppoSessionEngine: Sendable {
             supportMask = mask
             // Only a fallback: models that answer all zero here (as the measured
             // X4 does) rely on the cycle sub-type instead.
-            if resolveProfileIfPossible(), !subscribed { return [subscribeEvents(), queryMode()] }
-            return []
+            resolveProfileIfPossible()
+            return emitSubscriptionIfNeeded()
 
         default:
             return []
         }
     }
 
-    /// Resolves the profile once both the product ID and a mode mask are known,
-    /// then re-reads any index that arrived before the profile existed.
+    /// Resolves or upgrades the profile from whatever the device has told us so
+    /// far, then re-reads any index that arrived before a profile existed.
+    ///
+    /// A measured table is keyed by the product ID, so it can only be chosen once
+    /// the product-ID answer is in. If the cycle bitmap resolved the generic
+    /// fallback first, a later product-ID answer upgrades it in place instead of
+    /// leaving the device on the guessed table. Returns `true` when the profile
+    /// actually changed.
     @discardableResult
     private mutating func resolveProfileIfPossible() -> Bool {
-        guard profile == nil else { return false }
         guard let resolved = OppoNoiseProfiles.profile(productID: productID, cycleMask: cycleMask ?? supportMask) else {
             return false
+        }
+        if let current = profile {
+            // Only a generic → measured upgrade is meaningful here; an identical
+            // profile, or a measured one already in place, is a no-op.
+            guard !current.isMeasured, resolved.isMeasured else { return false }
         }
         profile = resolved
         if let reportedIndex { currentMode = resolved.mode(reportedIndex: reportedIndex) }
         return true
+    }
+
+    /// Emits the event subscription and the first state read exactly once, as
+    /// soon as a profile is known and the device has declared its mode cycle.
+    ///
+    /// This is deliberately independent of *which* answer resolved the profile.
+    /// Previously the emission lived only in the cycle branch, so a product-ID
+    /// answered before the cycle suppressed the subscription entirely, while a
+    /// cycle answered before the product ID locked in the generic table and
+    /// skipped the measured one. Guarding on `!subscribed` keeps the documented
+    /// handshake → product ID → cycle → subscribe → query order for either
+    /// arrival order, without ever subscribing twice.
+    private mutating func emitSubscriptionIfNeeded() -> [OppoFrame] {
+        guard profile != nil, !subscribed, cycleMask != nil || supportMask != nil else { return [] }
+        return [subscribeEvents(), queryMode()]
     }
 
     /// A device push. The subscribe call is what makes the buds report stem and

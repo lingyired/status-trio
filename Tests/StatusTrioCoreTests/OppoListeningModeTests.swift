@@ -193,6 +193,50 @@ final class OppoListeningModeProtocolTests: XCTestCase {
         _ = engine.receive(OppoFrame(command: 0x0204, sequence: 0xFF, payload: [0x03, 0x03]))
         XCTAssertEqual(engine.currentMode, .noiseCancellation)
     }
+
+    /// A measured model whose product-ID answer lands before the cycle answer must
+    /// still subscribe and issue the first read — previously the emission lived
+    /// only in the cycle branch, so the subscription was skipped entirely.
+    func testMeasuredModelSubscribesWhenTheProductIDAnswerArrivesFirst() {
+        var engine = OppoSessionEngine()
+        _ = engine.handshake()
+        _ = engine.receive(OppoFrame(command: 0x8100, sequence: 0, payload: [0x00]))
+        // Product ID first: resolves the measured table, but with no cycle yet
+        // nothing may be emitted.
+        let afterPID = engine.receive(OppoFrame(command: 0x8103, sequence: 1, payload: [0x00, 0x10, 0x74, 0x06]))
+        XCTAssertEqual(engine.productID, 0x067410)
+        XCTAssertEqual(engine.profile?.isMeasured, true)
+        XCTAssertTrue(afterPID.isEmpty)
+        XCTAssertFalse(engine.subscribed)
+
+        // The cycle answer then drives the subscription and the first state read,
+        // carrying sequence 3 and 4 — the same numbers the captured Enco X3 frames
+        // echo back (its current-mode answer is SEQ 4).
+        let afterCycle = engine.receive(OppoFrame(command: 0x810C, sequence: 2, payload: [0x00, 0x02, 0x00, 0x06, 0x00]))
+        XCTAssertEqual(afterCycle.map(\.command), [OppoCommand.eventsSubscribe, OppoCommand.noiseQuery])
+        XCTAssertEqual(afterCycle.map(\.sequence), [3, 4])
+        XCTAssertTrue(engine.subscribed)
+    }
+
+    /// A cycle answer that arrives before the product ID can only resolve the
+    /// generic table; when the product ID then arrives it must upgrade in place to
+    /// the measured table, without a second subscription.
+    func testCycleAnsweredFirstUpgradesToTheMeasuredTableOnTheProductIDAnswer() {
+        var engine = OppoSessionEngine()
+        _ = engine.handshake()
+        _ = engine.receive(OppoFrame(command: 0x8100, sequence: 0, payload: [0x00]))
+
+        let afterCycle = engine.receive(OppoFrame(command: 0x810C, sequence: 2, payload: [0x00, 0x02, 0x00, 0x06, 0x00]))
+        XCTAssertEqual(afterCycle.map(\.command), [OppoCommand.eventsSubscribe, OppoCommand.noiseQuery])
+        XCTAssertEqual(engine.profile?.isMeasured, false)
+
+        let afterPID = engine.receive(OppoFrame(command: 0x8103, sequence: 1, payload: [0x00, 0x10, 0x74, 0x06]))
+        XCTAssertEqual(engine.productID, 0x067410)
+        XCTAssertEqual(engine.profile?.isMeasured, true)
+        XCTAssertEqual(engine.profile?.indices[.cancellation], 1)
+        XCTAssertTrue(afterPID.isEmpty)
+        XCTAssertTrue(engine.subscribed)
+    }
 }
 
 // MARK: - Profile selection
@@ -265,6 +309,17 @@ final class OppoAudioClassificationTests: XCTestCase {
         XCTAssertFalse(device(name: "Galaxy Buds3 Pro").isOppoAudio)
         XCTAssertFalse(device(name: "Logitech Mouse").isOppoAudio)
         XCTAssertFalse(device(name: "OPPO Enco X3", kind: .unknown).isOppoAudio)
+    }
+
+    func testBrandLookalikeSubstringsAreNotMistakenForOppo() {
+        // `enco` is matched as a whole token, so these are not the Enco family and
+        // must not trigger an SDP/RFCOMM probe.
+        XCTAssertFalse(device(name: "Lenco BT-250").isOppoAudio)
+        XCTAssertFalse(device(name: "Encore Speaker").isOppoAudio)
+        XCTAssertFalse(device(name: "OPPOfind Free").isOppoAudio)
+        // Real sibling-brand earbuds still get in.
+        XCTAssertTrue(device(name: "One Plus Buds").isOppoAudio)
+        XCTAssertTrue(device(name: "OnePlus Buds Pro 3").isOppoAudio)
     }
 }
 

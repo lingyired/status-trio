@@ -524,17 +524,20 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
     /// and earbuds, so it cannot separate an audio device from a handset the way
     /// Xiaomi's does. Name matching is therefore the first gate, and the protocol
     /// is the real one — a device that does not answer the handshake, or answers
-    /// without declaring a noise-control cycle, shows no control at all. Requiring
-    /// `buds` alongside the phone brand is what keeps a OnePlus handset named
-    /// "OnePlus 13" out of this branch.
+    /// without declaring a noise-control cycle, shows no control at all.
+    ///
+    /// Matching is on whole alphanumeric tokens, not substrings: `enco` must be its
+    /// own word so a `Lenco` headset or an `Encore` speaker is not mistaken for the
+    /// family, and a sibling brand must additionally name `buds` so a `OnePlus 13`
+    /// handset stays out.
     var isOppoAudio: Bool {
         guard kind.isAudio else { return false }
-        let lowered = name.lowercased()
-        if lowered.contains("oppo") || lowered.contains("enco") { return true }
-        let isSiblingBrand = lowered.contains("oneplus")
-            || lowered.contains("one plus")
-            || lowered.contains("realme")
-        return isSiblingBrand && lowered.contains("buds")
+        let tokens = Set(name.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init))
+        if tokens.contains("oppo") || tokens.contains("enco") { return true }
+        let isSiblingBrand = tokens.contains("oneplus")
+            || tokens.contains("realme")
+            || (tokens.contains("one") && tokens.contains("plus"))
+        return isSiblingBrand && tokens.contains("buds")
     }
 }
 

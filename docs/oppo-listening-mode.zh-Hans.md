@@ -7,7 +7,7 @@
 
 把 OPPO Enco 系（含一加、realme，同一套 HeyMelody 协议）的**降噪 / 通透 / 关闭**
 三模式切换，接进现有聆听模式面板，作为**第四种设备族**（前三种是 AirPods 的
-CoreAudio、华为 FreeBuds 的 SPP `0x1101`、红米/小黑的 SPP `FD2D`）。
+CoreAudio、华为 FreeBuds 的 SPP `0x1101`、红米/小米的 SPP `FD2D`）。
 
 与红米那族同构：都是 IOBluetooth 的 RFCOMM 厂商通道，只切换耳塞自带的几种模式，
 写成功不当作确认，只认设备回报。区别在于 OPPO **没有认证握手**，但模式索引是
@@ -22,9 +22,9 @@ CoreAudio、华为 FreeBuds 的 SPP `0x1101`、红米/小黑的 SPP `FD2D`）。
 | --- | --- | --- |
 | 协议与状态机 | `Sources/StatusTrioCore/Audio/OppoListeningModeProtocol.swift` | `AA` 帧编解码、命令字、`0x010C` 子类型解析、模式索引归一、`0x0404` 写入载荷 |
 | 型号档案 | 同上（`OppoNoiseProfile` / `OppoNoiseProfiles`） | 每个型号一张索引表 + 别名表；未测量型号靠设备自报的长按循环判定 |
-| 控制会话 | `Sources/StatusTrioCore/Audio/OppoControlSession.swift` | SDP 查 `0x1107`（查不到回落通道 15）→ 握手 → 产品 ID → 长按循环 → 订阅事件 → 读/写；把 IOBluetooth 回调桥接成一次性 `async` 结果 |
+| 控制会话 | `Sources/StatusTrioCore/Audio/OppoControlSession.swift` | SDP 查 `0x1107` → 服务名 `ELNK` → 回落固定通道 15 → 握手 → 产品 ID → 长按循环 → 订阅事件 → 读/写；把 IOBluetooth 回调桥接成一次性 `async` 结果 |
 | 传输层 | `Sources/StatusTrioCore/Audio/OppoListeningModeTransport.swift` | 实现与红米对称的 `state/setMode/closeAll/close(address:)`；持久会话，模型查找，错误类型 |
-| 设备识别 | `Models/WiFiNetworkModels.swift` 的 `isOppoAudio` | 名称判定（oppo / enco；一加与 realme 需同时含 buds），协议层再做一次能力确认 |
+| 设备识别 | `Models/WiFiNetworkModels.swift` 的 `isOppoAudio` | 名称按词匹配（oppo / enco；一加与 realme 需同时含 buds），协议层再做一次能力确认；避免 `Lenco`/`Encore` 之类的子串误判 |
 | 面板接入 | `Audio/BluetoothListeningModeController.swift` | `refreshOppo` / `setOppoMode` / `oppoAddresses` / 清理路径，写法照红米分支；同样做 CoreAudio 输出端点解析，有端点时内联在音量行 |
 | UI | `UI/BluetoothDeviceRow.swift`、`UI/BluetoothDeviceList.swift`、`Presentation/Panel/StatusPanelViewModel.swift` | 复用胶囊控件 `BluetoothListeningModeControl`，无新组件 |
 
@@ -34,8 +34,8 @@ CoreAudio、华为 FreeBuds 的 SPP `0x1101`、红米/小黑的 SPP `FD2D`）。
   而文档里的 X4 用的是 `0x1107`。所以查找顺序是：`0x1107` 记录 → 服务名含 `elnk` 的记录 → 固定通道 15。
 - 帧：`AA | LEN(7bit 变长, LE) | 00 00 | CMD(u16 LE) | SEQ | PLEN(u16 LE) | payload`，
   无校验、无加密。响应 `CMD | 0x8000`，回显 `SEQ`，`payload[0] == 0` 表示成功。
-- 握手：`0x0100` → `0x8100 [00][能力位图…]`；随后 `0x0103` 取产品 ID（3 字节小端，
-  Enco X4 实测为 `0x06EC10`）。
+- 握手：`0x0100` → `0x8100 [00][能力位图…]`；随后 `0x0103` 取产品 ID（3 字节小端；
+  本机实测 Enco X3 为 `0x067410`，公开资料记录的 X4 为 `0x06EC10`，X4 未在本机实测）。
 - 读模式：`0x010C [子类型][01]`，子类型 `1` 当前模式、`2` 长按循环集合、`3` 支持集合；
   答案为 `[00][子类型][类型][掩码 LE…]`，掩码里对应 protocolIndex 的位为 1。
 - 写模式：`0x0404 [01][01][掩码…]`，掩码是目标索引的单 bit，最小字节小端
@@ -139,7 +139,7 @@ swift test --filter Oppo
 ## 已知边界
 
 - 只做三模式切换，不做多档降噪、自适应、EQ、手势、固件升级。
-- 采用持久长连接（对齐红米与华为的选择）：耳机连着就一直握通道，关面板不断开；
+- 采用持久长连接（对齐红米的持久会话；华为在面板隐藏时即关闭，OPPO 与红米一样保留）：耳机连着就一直握通道，关面板不断开；
   释放时机为关闭聆听总开关、应用退出、或耳机断开。
 - 型号覆盖面取决于测量表；当前已实测 Enco X3（PID `0x067410`），其余型号靠设备自报的长按循环做能力门控。
 - 12 语言设置文案目前只更新了 `en` 与 `zh-Hans`，其余语言待补。
