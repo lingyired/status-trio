@@ -12,13 +12,16 @@ enum HardwareRingMapper {
     /// Vertical scale of the top value text. Kept modest so "45%" fits the gap.
     static let topValueTextScale: Double = 1.0
     /// Top glyph scale for a dual ring (drawn by the compact top-marker path).
-    static let topSymbolScale: Double = 1.6
+    static let topSymbolScale: Double = 2.0
     /// Top glyph scale for a single ring. The standard-ring accessory path sizes
-    /// symbols from the centre-symbol base point size, so it needs a much smaller
-    /// multiplier to match the percentage numerals' height.
-    static let singleTopSymbolScale: Double = 0.5
+    /// symbols from the centre-symbol base point size, so it needs a smaller
+    /// multiplier than the dual path to match the percentage numerals' height.
+    static let singleTopSymbolScale: Double = 0.95
     /// Generic monitoring glyph used for automatic top content on a dual ring.
-    static let genericMonitorSymbol = "gauge"
+    /// A solid single-layer bar-chart reads clearly at menu-bar size (the
+    /// hierarchical "gauge" rendered its dial ring in a washed-out secondary
+    /// tint and was hard to make out).
+    static let genericMonitorSymbol = "chart.bar.fill"
 
     static func resolve(
         snapshot: HardwareMetricsSnapshot,
