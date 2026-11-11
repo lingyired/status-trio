@@ -1154,3 +1154,5 @@
 "settings.hardwareRing.range" = "Intervallo di visualizzazione";
 "settings.hardwareRing.reset" = "Ripristina predefiniti";
 "settings.hardwareRing.top.scale" = "Dimensione indicatore superiore";
+"settings.topMarker.scale" = "Dimensione indicatore superiore";
+"settings.topMarker.scale.description" = "Condiviso da livello/fulmine batteria, AirPods e monitoraggio sistema.";

@@ -1154,3 +1154,5 @@
 "settings.hardwareRing.range" = "Диапазон отображения";
 "settings.hardwareRing.reset" = "Сбросить настройки";
 "settings.hardwareRing.top.scale" = "Размер верхнего маркера";
+"settings.topMarker.scale" = "Размер верхнего маркера";
+"settings.topMarker.scale.description" = "Общий размер для уровня/молнии батареи, AirPods и системного монитора.";

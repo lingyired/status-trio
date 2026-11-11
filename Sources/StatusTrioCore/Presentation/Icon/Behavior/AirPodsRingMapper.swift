@@ -11,7 +11,8 @@ enum AirPodsRingMapper {
         behavior: AirPodsRingBehavior,
         now: Date = .now,
         isHeld: Bool = false,
-        showsTopSymbol: Bool = false
+        showsTopSymbol: Bool = false,
+        topSymbolScale: Double = 1.8
     ) -> OuterRingState? {
         guard isHeld || isFresh(snapshot, at: now), hasRenderableBattery(snapshot) else { return nil }
 
@@ -23,7 +24,7 @@ enum AirPodsRingMapper {
                 ],
                 gap: .closed,
                 layout: .leftRight,
-                accessory: topAccessory(showsTopSymbol)
+                accessory: topAccessory(showsTopSymbol, scale: topSymbolScale)
             )
         }
 
@@ -41,7 +42,7 @@ enum AirPodsRingMapper {
                 gap: .closed,
                 layout: .leftRight,
                 isPartial: true,
-                accessory: topAccessory(showsTopSymbol)
+                accessory: topAccessory(showsTopSymbol, scale: topSymbolScale)
             )
         }
 
@@ -79,12 +80,12 @@ enum AirPodsRingMapper {
         return value
     }
 
-    private static func topAccessory(_ isEnabled: Bool) -> RingAccessoryState? {
+    private static func topAccessory(_ isEnabled: Bool, scale: Double) -> RingAccessoryState? {
         guard isEnabled else { return nil }
         return .symbol(IconSymbolState(
             source: .symbol(name: "airpods", variableValue: nil, fallback: "headphones"),
             color: .primary,
-            scale: 1.8
+            scale: scale
         ))
     }
 }

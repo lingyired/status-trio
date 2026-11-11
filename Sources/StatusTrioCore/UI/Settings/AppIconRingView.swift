@@ -132,6 +132,10 @@ struct AppIconRingView: View {
                 subtitle: localization.string(.settingsRingAirPodsTopSymbolDescription),
                 isOn: $store.showsAirPodsTopSymbolInRing
             )
+            if store.showsAirPodsTopSymbolInRing {
+                SettingsDivider()
+                topMarkerSizeRow
+            }
             SettingsDivider()
             SettingsToggleRow(
                 symbol: "battery.100",
@@ -232,31 +236,40 @@ struct AppIconRingView: View {
             }
             if hardwareTopMode != .hidden {
                 SettingsDivider()
-                SettingsRow(
-                    title: localization.string(.settingsHardwareRingTopScale),
-                    subtitle: nil,
-                    leading: { SettingsIcon(symbol: "arrow.up.left.and.arrow.down.right", tint: .gray) },
-                    trailing: {
-                        HStack(spacing: 8) {
-                            Slider(
-                                value: Binding(
-                                    get: { store.hardwareRingConfiguration.topMarkerScale },
-                                    set: { setTopMarkerScale($0) }
-                                ),
-                                in: HardwareRingConfiguration.topMarkerScaleRange
-                            )
-                            .frame(width: 130)
-                            .controlSize(.small)
-                            .accessibilityLabel(localization.string(.settingsHardwareRingTopScale))
-                            Text("\(Int((store.hardwareRingConfiguration.topMarkerScale * 100).rounded()))%")
-                                .font(.system(size: 12, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 44, alignment: .trailing)
-                        }
-                    }
-                )
+                topMarkerSizeRow
             }
         }
+    }
+
+    /// One shared "top marker size" standard: the same value drives the Mac
+    /// battery percentage/bolt, the AirPods top symbol and the hardware top
+    /// marker. Shown wherever a top marker can be configured, editing any of
+    /// them writes this single setting.
+    private var topMarkerSizeRow: some View {
+        SettingsRow(
+            title: localization.string(.settingsTopMarkerScale),
+            subtitle: localization.string(.settingsTopMarkerScaleDescription),
+            leading: { SettingsIcon(symbol: "arrow.up.left.and.arrow.down.right", tint: .gray) },
+            trailing: {
+                HStack(spacing: 8) {
+                    Slider(
+                        value: Binding(
+                            get: { store.batterySymbolScale },
+                            set: { store.setBatterySymbolScaleFromSlider(($0 * 20).rounded() / 20) }
+                        ),
+                        in: SettingsStore.batterySymbolScaleRange
+                    )
+                    .frame(width: 130)
+                    .controlSize(.small)
+                    .accessibilityLabel(localization.string(.settingsTopMarkerScale))
+                    .accessibilityValue("\(Int(store.batterySymbolScale * 100))%")
+                    Text("\(Int(store.batterySymbolScale * 100))%")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, alignment: .trailing)
+                }
+            }
+        )
     }
 
     private var hardwareColorGroup: some View {
@@ -456,12 +469,6 @@ struct AppIconRingView: View {
     private func setColorMode(_ mode: HardwareRingColorMode) {
         var configuration = store.hardwareRingConfiguration
         configuration.color.mode = mode
-        store.hardwareRingConfiguration = configuration
-    }
-
-    private func setTopMarkerScale(_ scale: Double) {
-        var configuration = store.hardwareRingConfiguration
-        configuration.topMarkerScale = HardwareRingConfiguration.normalizedTopMarkerScale(scale)
         store.hardwareRingConfiguration = configuration
     }
 

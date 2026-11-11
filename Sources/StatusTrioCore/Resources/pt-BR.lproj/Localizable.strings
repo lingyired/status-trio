@@ -1154,3 +1154,5 @@
 "settings.hardwareRing.range" = "Intervalo de exibição";
 "settings.hardwareRing.reset" = "Restaurar padrões";
 "settings.hardwareRing.top.scale" = "Tamanho do marcador superior";
+"settings.topMarker.scale" = "Tamanho do marcador superior";
+"settings.topMarker.scale.description" = "Compartilhado por nível/raio da bateria, AirPods e monitoramento do sistema.";

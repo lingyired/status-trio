@@ -79,6 +79,12 @@ extension SettingsStore {
         // Carry the hardware-ring configuration regardless of the current
         // selection so switching sources preserves the user's setup.
         configuration.behaviors.hardwareRing = appearance.hardwareRingConfiguration.normalized()
+        // The top-marker size is one shared standard (the battery symbol scale)
+        // that also drives the battery percentage/bolt and the AirPods top
+        // symbol. Derive the hardware ring's factor from it so all four agree.
+        let sharedTopMarkerFactor = appearance.batteryOptions.textScale / BatteryIconOptions.defaultTextScale
+        configuration.behaviors.hardwareRing.topMarkerScale =
+            HardwareRingConfiguration.normalizedTopMarkerScale(sharedTopMarkerFactor)
 
         configuration.behaviors.systemBatteryRing = SystemBatteryRingBehavior(
             showsPercentage: battery.showsPercentage,

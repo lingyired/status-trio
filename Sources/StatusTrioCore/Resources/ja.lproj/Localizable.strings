@@ -1154,3 +1154,5 @@
 "settings.hardwareRing.range" = "表示範囲";
 "settings.hardwareRing.reset" = "デフォルトに戻す";
 "settings.hardwareRing.top.scale" = "上部マーカーのサイズ";
+"settings.topMarker.scale" = "上部マーカーのサイズ";
+"settings.topMarker.scale.description" = "バッテリー残量/稲妻、AirPods、システムモニターの上部マーカーで共通です。";

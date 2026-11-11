@@ -1154,3 +1154,5 @@
 "settings.hardwareRing.range" = "표시 범위";
 "settings.hardwareRing.reset" = "기본값으로 재설정";
 "settings.hardwareRing.top.scale" = "상단 표시 크기";
+"settings.topMarker.scale" = "상단 표시 크기";
+"settings.topMarker.scale.description" = "배터리 잔량/번개, AirPods, 시스템 모니터 상단 표시가 이 크기를 공유합니다.";

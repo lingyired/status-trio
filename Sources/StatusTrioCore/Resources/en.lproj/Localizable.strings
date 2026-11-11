@@ -1153,3 +1153,5 @@
 "settings.hardwareRing.range" = "Display range";
 "settings.hardwareRing.reset" = "Reset to defaults";
 "settings.hardwareRing.top.scale" = "Top marker size";
+"settings.topMarker.scale" = "Top marker size";
+"settings.topMarker.scale.description" = "Shared by the battery level/bolt, AirPods and system-monitoring top markers.";

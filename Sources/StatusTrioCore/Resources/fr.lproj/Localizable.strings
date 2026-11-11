@@ -1154,3 +1154,5 @@
 "settings.hardwareRing.range" = "Plage d’affichage";
 "settings.hardwareRing.reset" = "Rétablir les valeurs par défaut";
 "settings.hardwareRing.top.scale" = "Taille du repère supérieur";
+"settings.topMarker.scale" = "Taille du repère supérieur";
+"settings.topMarker.scale.description" = "Partagé par le niveau/éclair de la batterie, les AirPods et la surveillance système.";

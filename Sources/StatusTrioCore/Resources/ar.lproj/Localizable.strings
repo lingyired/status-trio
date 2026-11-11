@@ -1154,3 +1154,5 @@
 "settings.hardwareRing.range" = "نطاق العرض";
 "settings.hardwareRing.reset" = "إعادة التعيين إلى الافتراضي";
 "settings.hardwareRing.top.scale" = "حجم العلامة العلوية";
+"settings.topMarker.scale" = "حجم العلامة العلوية";
+"settings.topMarker.scale.description" = "مشترك بين مستوى/برق البطارية وAirPods ومراقبة النظام.";

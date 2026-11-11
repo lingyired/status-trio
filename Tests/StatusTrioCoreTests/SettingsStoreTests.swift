@@ -631,10 +631,10 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
         store.batterySymbolScale = 4
-        XCTAssertEqual(store.batterySymbolScale, 1.1, accuracy: 0.001)
+        XCTAssertEqual(store.batterySymbolScale, 1.6, accuracy: 0.001)
 
         store.batterySymbolScale = 0.5
-        XCTAssertEqual(store.batterySymbolScale, 0.9, accuracy: 0.001)
+        XCTAssertEqual(store.batterySymbolScale, 0.6, accuracy: 0.001)
     }
 
     func testStoredBatterySymbolScaleIsClampedOnLoad() {
@@ -644,7 +644,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let store = SettingsStore(defaults: suite.defaults)
 
-        XCTAssertEqual(store.batterySymbolScale, 1.1, accuracy: 0.001)
+        XCTAssertEqual(store.batterySymbolScale, 1.6, accuracy: 0.001)
     }
 
     func testStoredBatteryCriticalThresholdIsClampedOnLoad() {

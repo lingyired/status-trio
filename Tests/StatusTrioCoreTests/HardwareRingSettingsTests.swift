@@ -164,4 +164,28 @@ final class HardwareRingSettingsTests: XCTestCase {
         XCTAssertEqual(ring.segments.first { $0.position == .right }?.color,
                        .custom(HardwareRingColorConfiguration.recommendedBaseColor(for: .gpuUsage)))
     }
+
+    func testSharedTopMarkerScaleProjectsToBatteryAndHardware() throws {
+        let (store, _, _) = try makeStore()
+        store.batterySymbolScale = 1.3
+        store.outerRingContent = .hardwareMonitor
+        let derived = store.derivedIconConfigurationFromSettings()
+        XCTAssertEqual(derived.behaviors.systemBatteryRing.textScale,
+                       1.3 * BatteryIconOptions.defaultTextScale, accuracy: 0.001)
+        XCTAssertEqual(derived.behaviors.hardwareRing.topMarkerScale, 1.3, accuracy: 0.001)
+    }
+
+    func testAirPodsTopSymbolUsesSharedScale() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let snapshot = AirPodsBatteryIconSnapshot(
+            deviceAddress: "AA:BB:CC:DD:EE:FF", model: .airPodsPro,
+            main: nil, left: 80, right: 60, caseLevel: nil, observedAt: now
+        )
+        let state = AirPodsRingMapper.resolve(
+            snapshot: snapshot, behavior: .dual, now: now,
+            showsTopSymbol: true, topSymbolScale: 2.34
+        )
+        guard case let .symbol(symbol)? = state?.accessory else { return XCTFail("expected symbol") }
+        XCTAssertEqual(symbol.scale, 2.34, accuracy: 0.001)
+    }
 }

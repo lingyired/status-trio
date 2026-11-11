@@ -17,7 +17,8 @@ struct AirPodsBatteryIconPlugin: IconContentPlugin {
               AirPodsRingMapper.hasRenderableBattery(snapshot) else { return .unavailable(.temporarilyStale) }
         return .available(.outerRing(AirPodsRingMapper.resolve(snapshot: snapshot,
             behavior: context.configuration.behaviors.airPodsRing, now: context.now, isHeld: held,
-            showsTopSymbol: context.configuration.behaviors.showsAirPodsTopSymbol)))
+            showsTopSymbol: context.configuration.behaviors.showsAirPodsTopSymbol,
+            topSymbolScale: context.configuration.behaviors.systemBatteryRing.textScale)))
     }
 
     func dependencies(presentationID: String, context: IconContentDependencyContext) -> IconContentDependencies {
