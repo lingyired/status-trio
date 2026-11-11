@@ -162,6 +162,17 @@ final class HardwareRingMapperTests: XCTestCase {
         XCTAssertEqual(state.segments.first { $0.position == .right }?.progress ?? -1, 0.5, accuracy: 0.0001)
     }
 
+    func testMetricColorOverrideFeedsSegment() {
+        let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
+        let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
+                                               color: HardwareRingColorConfiguration(mode: .status))
+        let custom = IconRGBA(red: 1, green: 0, blue: 1, alpha: 1)
+        let state = HardwareRingMapper.resolve(snapshot: snap, configuration: config,
+                                                levels: [.cpuUsage: .normal],
+                                                metricColors: [.cpuUsage: custom], now: now)
+        XCTAssertEqual(state.segments[0].color, .custom(custom))
+    }
+
     // MARK: - Top marker
 
     func testAutomaticTopMarkerForSingleUsesMetricGlyph() {

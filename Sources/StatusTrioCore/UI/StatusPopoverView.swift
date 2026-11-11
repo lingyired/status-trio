@@ -288,7 +288,8 @@ struct StatusPopoverView: View {
         case .hardwareMonitor:
             if !panel.hardwareMonitorMetrics.isEmpty {
                 HardwareMonitorCardView(model: panel.hardwareMonitor,
-                                        metrics: panel.hardwareMonitorMetrics)
+                                        metrics: panel.hardwareMonitorMetrics,
+                                        metricColors: panel.hardwareMonitorMetricColors)
             }
         }
     }

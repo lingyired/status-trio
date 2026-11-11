@@ -250,15 +250,13 @@ struct AppIconRingView: View {
                 SettingsDivider()
                 hardwareColorRow(
                     title: .settingsHardwareRingLeftColor,
-                    metric: store.hardwareRingConfiguration.primaryMetric,
-                    isRight: false
+                    metric: store.hardwareRingConfiguration.primaryMetric
                 )
                 if store.hardwareRingConfiguration.layout == .dual {
                     SettingsDivider()
                     hardwareColorRow(
                         title: .settingsHardwareRingRightColor,
-                        metric: hardwareSecondaryMetric,
-                        isRight: true
+                        metric: hardwareSecondaryMetric
                     )
                 }
             }
@@ -347,16 +345,15 @@ struct AppIconRingView: View {
 
     private func hardwareColorRow(
         title: LocalizationKey,
-        metric: HardwareMonitorMetric,
-        isRight: Bool
+        metric: HardwareMonitorMetric
     ) -> some View {
         SettingsRow(
             title: localization.string(title),
-            subtitle: nil,
+            subtitle: metricLabel(metric),
             leading: { SettingsIcon(symbol: metric.systemImage, tint: .purple) },
             trailing: {
                 IconDesignerColorWell(
-                    selection: hardwareColorBinding(isRight: isRight, metric: metric),
+                    selection: hardwareColorBinding(metric: metric),
                     onEditingChanged: { _ in }
                 )
                 .frame(width: 44, height: 22)
@@ -436,24 +433,14 @@ struct AppIconRingView: View {
         store.hardwareRingConfiguration = configuration
     }
 
-    private func hardwareColorBinding(isRight: Bool, metric: HardwareMonitorMetric) -> Binding<Color> {
+    /// Shared per-metric colour: the same field the status-panel bar uses and the
+    /// monitor tab edits. Switching the side's metric switches which colour this
+    /// well shows and writes.
+    private func hardwareColorBinding(metric: HardwareMonitorMetric) -> Binding<Color> {
         Binding(
-            get: {
-                let base = isRight
-                    ? store.hardwareRingConfiguration.color.rightBaseColor
-                    : store.hardwareRingConfiguration.color.leftBaseColor
-                return IconAppearanceColorConversion.color(
-                    from: base ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric))
-            },
+            get: { IconAppearanceColorConversion.color(from: store.hardwareColor(for: metric)) },
             set: { color in
-                var configuration = store.hardwareRingConfiguration
-                let rgba = IconAppearanceColorConversion.iconRGBA(from: color)
-                if isRight {
-                    configuration.color.rightBaseColor = rgba
-                } else {
-                    configuration.color.leftBaseColor = rgba
-                }
-                store.hardwareRingConfiguration = configuration
+                store.setHardwareColor(IconAppearanceColorConversion.iconRGBA(from: color), for: metric)
             }
         )
     }
@@ -944,7 +931,8 @@ enum RingContentPreviewScene {
             samples: IconPreviewSampleValues(),
             configuration: configuration,
             target: .currentAudioOutput,
-            now: sampleDate
+            now: sampleDate,
+            hardwareMetricColors: store.hardwareMonitorMetricColors
         )
         let scene = IconCompositionResolver.resolve(
             inputs: inputs,

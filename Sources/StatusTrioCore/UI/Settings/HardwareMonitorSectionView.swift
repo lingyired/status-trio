@@ -55,6 +55,15 @@ struct HardwareMonitorSectionView: View {
                                 .font(.system(size: 13))
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
+                            // Shared per-metric colour: also used by the ring arc
+                            // and editable in the ring's colour rows.
+                            IconDesignerColorWell(
+                                selection: colorBinding(for: metric),
+                                onEditingChanged: { _ in }
+                            )
+                            .frame(width: 40, height: 20)
+                            .accessibilityLabel(localization.string(metric.titleKey))
+
                             PanelActionGlyph(systemName: "line.3.horizontal", font: .caption, size: 18)
                                 .foregroundStyle(.tertiary)
                                 .accessibilityHidden(true)
@@ -75,6 +84,14 @@ struct HardwareMonitorSectionView: View {
         Binding(
             get: { store.enabledHardwareMonitorMetrics.contains(metric) },
             set: { store.setHardwareMonitorMetric(metric, enabled: $0) }
+        )
+    }
+
+    /// The shared metric colour, editable here and in the ring's colour rows.
+    private func colorBinding(for metric: HardwareMonitorMetric) -> Binding<Color> {
+        Binding(
+            get: { IconAppearanceColorConversion.color(from: store.hardwareColor(for: metric)) },
+            set: { store.setHardwareColor(IconAppearanceColorConversion.iconRGBA(from: $0), for: metric) }
         )
     }
 

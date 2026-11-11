@@ -167,29 +167,21 @@ struct HardwareMetricRingOptions: Codable, Equatable, Hashable, Sendable {
     }
 }
 
-/// Left/right base colours plus colour strategy. A nil base colour means "use
-/// the metric's recommended base colour", so switching a side's metric also
-/// switches its default colour while an explicit user choice is preserved.
+/// Colour strategy for the hardware ring. The per-metric base colour is *not*
+/// stored here: it is the shared "monitor metric colour" owned by the settings
+/// store, so the status-panel bar and the ring arc always agree and editing the
+/// colour in either place writes the same field.
 struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
     var mode: HardwareRingColorMode
-    var leftBaseColor: IconRGBA?
-    var rightBaseColor: IconRGBA?
 
-    init(mode: HardwareRingColorMode = .status,
-         leftBaseColor: IconRGBA? = nil,
-         rightBaseColor: IconRGBA? = nil) {
+    init(mode: HardwareRingColorMode = .status) {
         self.mode = mode
-        self.leftBaseColor = leftBaseColor
-        self.rightBaseColor = rightBaseColor
     }
 
-    func normalized() -> HardwareRingColorConfiguration {
-        .init(mode: mode,
-              leftBaseColor: leftBaseColor?.normalized(),
-              rightBaseColor: rightBaseColor?.normalized())
-    }
+    func normalized() -> HardwareRingColorConfiguration { self }
 
-    /// The recommended base colour for a metric (used when no override is set).
+    /// The recommended base colour for a metric (the default of the shared
+    /// per-metric colour; used until the user picks a custom one).
     static func recommendedBaseColor(for metric: HardwareMonitorMetric) -> IconRGBA {
         switch metric {
         case .cpuUsage:
@@ -210,14 +202,6 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
     /// Fixed warning / critical tints shared by every metric (whole-arc recolor).
     static let warningColor = IconRGBA(red: 0.98, green: 0.60, blue: 0.10, alpha: 1)
     static let criticalColor = IconRGBA(red: 0.88, green: 0.21, blue: 0.21, alpha: 1)
-
-    func baseColor(for side: RingSegmentPosition?, metric: HardwareMonitorMetric) -> IconRGBA {
-        let override: IconRGBA? = switch side {
-        case .right: rightBaseColor
-        default: leftBaseColor
-        }
-        return override ?? Self.recommendedBaseColor(for: metric)
-    }
 }
 
 /// The complete internal configuration of the `hardwareMonitor` outer-ring

@@ -89,6 +89,54 @@ final class HardwareRingSettingsTests: XCTestCase {
         XCTAssertEqual(output.scene.outerRing?.segments.first?.color, .inactive)
     }
 
+    func testMetricColorsPersistAndShareOneField() throws {
+        let (store, defaults, _) = try makeStore()
+        XCTAssertEqual(store.hardwareColor(for: .cpuUsage),
+                       HardwareRingColorConfiguration.recommendedBaseColor(for: .cpuUsage))
+        let custom = IconRGBA(red: 1, green: 0, blue: 1, alpha: 1)
+        store.setHardwareColor(custom, for: .cpuUsage)
+        XCTAssertEqual(store.hardwareColor(for: .cpuUsage), custom)
+
+        let reopened = SettingsStore(defaults: defaults)
+        XCTAssertEqual(reopened.hardwareColor(for: .cpuUsage), custom)
+        // Other metrics keep the recommended default until edited.
+        XCTAssertEqual(reopened.hardwareColor(for: .gpuUsage),
+                       HardwareRingColorConfiguration.recommendedBaseColor(for: .gpuUsage))
+    }
+
+    func testRingResolverUsesSharedMetricColor() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        var config = IconConfigurationV1.classic
+        config.composition.outerRing = SlotSelection(primary: .hardwareMonitor)
+        config.behaviors.hardwareRing = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
+                                                                  color: HardwareRingColorConfiguration(mode: .status))
+        let custom = IconRGBA(red: 1, green: 0, blue: 1, alpha: 1)
+        let inputs = IconPreviewInputBuilder.simulated(
+            samples: IconPreviewSampleValues(),
+            configuration: config,
+            target: .currentAudioOutput,
+            now: now,
+            hardwareMetricColors: [.cpuUsage: custom]
+        )
+        let output = IconCompositionResolver.resolve(inputs: inputs, configuration: config, now: now)
+        XCTAssertEqual(output.scene.outerRing?.segments.first?.color, .custom(custom))
+    }
+
+    func testCardTilesUseSharedMetricColor() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        var snapshot = HardwareMetricsSnapshot()
+        snapshot.samples = [
+            .cpuUsage: HardwareMetricSample(value: 45, unit: .percent, sampledAt: now,
+                                            source: .mach, availability: .measured)
+        ]
+        let custom = IconRGBA(red: 1, green: 0, blue: 1, alpha: 1)
+        let tiles = HardwareMetricTilePresentation.tiles(
+            metrics: [.cpuUsage], snapshot: snapshot, localization: Localization(),
+            colors: [.cpuUsage: custom]
+        )
+        XCTAssertEqual(tiles.first?.tint, custom)
+    }
+
     // MARK: - Integration: dual ring + palette precedence
 
     func testDualHardwareRingSceneAndPalettePrecedence() {

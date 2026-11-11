@@ -171,6 +171,7 @@ final class SettingsStore: ObservableObject {
     static let showsAirPodsTopSymbolInRingDefaultsKey = "showsAirPodsTopSymbolInRing"
     static let airPodsRingFallsBackToBatteryDefaultsKey = "airPodsRingFallsBackToBattery"
     static let hardwareRingConfigurationDefaultsKey = "hardwareRingConfigurationV1"
+    static let hardwareMonitorMetricColorsDefaultsKey = "hardwareMonitorMetricColorsV1"
     static let defaultVolumeDisplayStyle: VolumeDisplayStyle = .dots
     static let volumeDisplayStyleDefaultsKey = "volumeDisplayStyle"
     static let defaultRingStrokeStyle: RingStrokeStyle = .regular
@@ -1091,6 +1092,32 @@ final class SettingsStore: ObservableObject {
                 defaults.set(data, forKey: Self.hardwareRingConfigurationDefaultsKey)
             }
         }
+    }
+
+    /// Shared per-metric colours: the status-panel bar and the hardware-ring arc
+    /// both read this one field. Missing metrics fall back to the recommended
+    /// colour. Editing in either surface writes here.
+    @Published var hardwareMonitorMetricColors: [HardwareMonitorMetric: IconRGBA] = [:] {
+        didSet {
+            guard !isSyncingIconConfiguration else { return }
+            if let data = try? JSONEncoder().encode(hardwareMonitorMetricColors) {
+                defaults.set(data, forKey: Self.hardwareMonitorMetricColorsDefaultsKey)
+            }
+        }
+    }
+
+    /// The effective base colour for a metric (shared field, else recommended).
+    func hardwareColor(for metric: HardwareMonitorMetric) -> IconRGBA {
+        hardwareMonitorMetricColors[metric]
+            ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
+    }
+
+    /// Write the shared per-metric colour (used by both the monitor tab and the
+    /// ring's colour rows).
+    func setHardwareColor(_ color: IconRGBA, for metric: HardwareMonitorMetric) {
+        var copy = hardwareMonitorMetricColors
+        copy[metric] = color.normalized()
+        hardwareMonitorMetricColors = copy
     }
 
     @Published var bluetoothAudioIconChoiceRawValue: String {
@@ -2668,6 +2695,12 @@ final class SettingsStore: ObservableObject {
             self.hardwareRingConfiguration = decoded.normalized()
         } else {
             self.hardwareRingConfiguration = .default
+        }
+        if let data = defaults.data(forKey: Self.hardwareMonitorMetricColorsDefaultsKey),
+           let decoded = try? JSONDecoder().decode([HardwareMonitorMetric: IconRGBA].self, from: data) {
+            self.hardwareMonitorMetricColors = decoded
+        } else {
+            self.hardwareMonitorMetricColors = [:]
         }
         bootstrapIconConfiguration()
     }

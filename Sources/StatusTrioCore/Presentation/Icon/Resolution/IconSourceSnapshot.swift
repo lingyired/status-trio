@@ -12,6 +12,8 @@ struct IconSourceSnapshot: Equatable, Sendable {
     var hardwareMetrics: HardwareMetricsSnapshot = .empty
     /// Debounced warning/critical levels per metric (status colour mode).
     var hardwareRingLevels: [HardwareMonitorMetric: HardwareLoadLevel] = [:]
+    /// The shared per-metric base colours (same field as the status-panel bars).
+    var hardwareMetricColors: [HardwareMonitorMetric: IconRGBA] = [:]
 
     static let empty = Self(availability: [:])
 

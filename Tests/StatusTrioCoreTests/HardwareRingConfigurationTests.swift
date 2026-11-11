@@ -8,11 +8,7 @@ final class HardwareRingConfigurationTests: XCTestCase {
             primaryMetric: .cpuUsage,
             secondaryMetric: .gpuUsage,
             topContent: .value(.cpuTemperature),
-            color: HardwareRingColorConfiguration(
-                mode: .status,
-                leftBaseColor: IconRGBA(red: 0.1, green: 0.2, blue: 0.3, alpha: 1),
-                rightBaseColor: nil
-            ),
+            color: HardwareRingColorConfiguration(mode: .status),
             overrides: [
                 .cpuUsage: HardwareMetricRingOptions(
                     displayMinimum: 0, displayMaximum: 100,

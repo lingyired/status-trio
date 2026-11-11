@@ -531,6 +531,7 @@ final class AppEnvironment {
                 )
                 let hardwareSnapshot = store.hardwareMetrics.observable.snapshot
                 inputs.sources.hardwareMetrics = hardwareSnapshot
+                inputs.sources.hardwareMetricColors = settings.hardwareMonitorMetricColors
                 inputs.sources.hardwareRingLevels = hardwareRingTracker.levels(
                     snapshot: hardwareSnapshot,
                     configuration: settings.hardwareRingConfiguration,

@@ -19,12 +19,14 @@ struct HardwareMonitorCardView: View {
     @ObservedObject var model: HardwareMonitorObservable
     /// Visible tiles in the user's order; driven by Settings → 监控.
     let metrics: [HardwareMonitorMetric]
+    /// Shared per-metric colours (same field as the hardware ring arc).
+    var metricColors: [HardwareMonitorMetric: IconRGBA] = [:]
     @EnvironmentObject private var localization: Localization
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         let tiles = HardwareMetricTilePresentation.tiles(metrics: metrics, snapshot: model.snapshot,
-                                                          localization: localization)
+                                                          localization: localization, colors: metricColors)
         VStack(spacing: 12) {
             ForEach(Array(stride(from: 0, to: max(tiles.count, 1), by: 2)), id: \.self) { index in
                 HStack(spacing: 14) {
@@ -91,6 +93,8 @@ struct HardwareMetricTilePresentation: Equatable {
     let sensorLabel: String?
     /// True when showing a cached last reading (rendered dimmed + marked expired).
     let isStale: Bool
+    /// Shared per-metric colour (same field as the hardware ring arc).
+    let tint: IconRGBA
 
     @MainActor
     static func tiles(snapshot: HardwareMetricsSnapshot, localization: Localization) -> [Self] {
@@ -99,28 +103,31 @@ struct HardwareMetricTilePresentation: Equatable {
 
     @MainActor
     static func tiles(metrics: [HardwareMonitorMetric], snapshot: HardwareMetricsSnapshot,
-                      localization: Localization) -> [Self] {
+                      localization: Localization,
+                      colors: [HardwareMonitorMetric: IconRGBA] = [:]) -> [Self] {
         metrics.map { metric in
+            let tint = colors[metric] ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
             switch metric {
             case .cpuUsage:
-                return make(metric: .cpu, sample: snapshot.cpuUsage, localization: localization)
+                return make(metric: .cpu, sample: snapshot.cpuUsage, localization: localization, tint: tint)
             case .gpuUsage:
-                return make(metric: .gpu, sample: snapshot.gpuUsage, localization: localization)
+                return make(metric: .gpu, sample: snapshot.gpuUsage, localization: localization, tint: tint)
             case .memoryUsage:
-                return make(metric: .memory, sample: snapshot.memoryUsage, localization: localization)
+                return make(metric: .memory, sample: snapshot.memoryUsage, localization: localization, tint: tint)
             case .cpuTemperature:
-                return make(metric: .temperature, sample: snapshot.cpuTemperature, localization: localization)
+                return make(metric: .temperature, sample: snapshot.cpuTemperature, localization: localization, tint: tint)
             case .batteryTemperature:
                 return make(metric: .batteryTemperature, sample: snapshot.batteryTemperature,
-                            localization: localization)
+                            localization: localization, tint: tint)
             case .fan:
-                return make(metric: .fan, sample: snapshot.fanSummarySample, localization: localization)
+                return make(metric: .fan, sample: snapshot.fanSummarySample, localization: localization, tint: tint)
             }
         }
     }
 
     @MainActor
-    static func make(metric: HardwareMonitorTile, sample: HardwareMetricSample, localization: Localization) -> Self {
+    static func make(metric: HardwareMonitorTile, sample: HardwareMetricSample, localization: Localization,
+                     tint: IconRGBA = .white) -> Self {
         let isStale = sample.availability == .stale
         // A stale sample keeps its last value as a cached reading: show it dimmed
         // rather than flashing "—" until the next fresh sample arrives.
@@ -183,7 +190,7 @@ struct HardwareMetricTilePresentation: Equatable {
         let help = ["\(label): \(accessibilityValue)", explanation].filter { !$0.isEmpty }.joined(separator: "\n")
         return Self(metric: metric, label: label, valueText: valueText,
                     accessibilityValue: accessibilityValue, help: help, explanation: explanation, progress: progress,
-                    availability: availability, sensorLabel: sample.sensorLabel, isStale: isStale)
+                    availability: availability, sensorLabel: sample.sensorLabel, isStale: isStale, tint: tint)
     }
 
     static func shouldAnimateProgress(from previous: Self?, to current: Self, reduceMotion: Bool) -> Bool {
@@ -253,7 +260,7 @@ private struct HardwareMonitorProgressTrack: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.primary.opacity(0.12))
                 Capsule()
-                    .fill(Color.accentColor)
+                    .fill(IconAppearanceColorConversion.color(from: presentation.tint))
                     .frame(width: geometry.size.width * displayedProgress)
                     .opacity(presentation.progress == nil ? 0 : (presentation.isStale ? 0.45 : 1))
             }

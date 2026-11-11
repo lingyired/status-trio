@@ -24,6 +24,7 @@ enum HardwareRingMapper {
         snapshot: HardwareMetricsSnapshot,
         configuration rawConfiguration: HardwareRingConfiguration,
         levels: [HardwareMonitorMetric: HardwareLoadLevel] = [:],
+        metricColors: [HardwareMonitorMetric: IconRGBA] = [:],
         now: Date = .now
     ) -> OuterRingState {
         let configuration = rawConfiguration.normalized()
@@ -33,7 +34,8 @@ enum HardwareRingMapper {
         case .single:
             let metric = configuration.primaryMetric
             let segment = segment(metric: metric, position: nil, snapshot: snapshot,
-                                  configuration: configuration, levels: levels, now: now)
+                                  configuration: configuration, levels: levels,
+                                  metricColors: metricColors, now: now)
             return OuterRingState(
                 segments: [segment],
                 gap: singleGapStyle(for: accessory),
@@ -45,9 +47,11 @@ enum HardwareRingMapper {
             let right = configuration.normalizedSecondaryMetric
                 ?? HardwareMonitorMetric.allCases.first { $0 != left } ?? .gpuUsage
             let leftSegment = segment(metric: left, position: .left, snapshot: snapshot,
-                                      configuration: configuration, levels: levels, now: now)
+                                      configuration: configuration, levels: levels,
+                                      metricColors: metricColors, now: now)
             let rightSegment = segment(metric: right, position: .right, snapshot: snapshot,
-                                       configuration: configuration, levels: levels, now: now)
+                                       configuration: configuration, levels: levels,
+                                       metricColors: metricColors, now: now)
             return OuterRingState(
                 segments: [leftSegment, rightSegment],
                 gap: .closed,
@@ -65,6 +69,7 @@ enum HardwareRingMapper {
         snapshot: HardwareMetricsSnapshot,
         configuration: HardwareRingConfiguration,
         levels: [HardwareMonitorMetric: HardwareLoadLevel],
+        metricColors: [HardwareMonitorMetric: IconRGBA],
         now: Date
     ) -> RingSegmentState {
         let options = configuration.options(for: metric)
@@ -73,22 +78,22 @@ enum HardwareRingMapper {
             return RingSegmentState(progress: 0, color: .inactive, position: position)
         }
         let level = levels[metric] ?? HardwareRingThresholdEngine.immediateLevel(value: sample.value ?? 0, options: options)
-        let color = segmentColor(metric: metric, position: position, level: level, configuration: configuration)
+        let baseColor = metricColors[metric]
+            ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
+        let color = segmentColor(level: level, mode: configuration.color.mode, baseColor: baseColor)
         return RingSegmentState(progress: progress, color: color, position: position)
     }
 
     private static func segmentColor(
-        metric: HardwareMonitorMetric,
-        position: RingSegmentPosition?,
         level: HardwareLoadLevel,
-        configuration: HardwareRingConfiguration
+        mode: HardwareRingColorMode,
+        baseColor: IconRGBA
     ) -> IconColorRole {
-        let color = configuration.color
-        switch color.mode {
+        switch mode {
         case .monochrome:
             return .primary
         case .fixed:
-            return .custom(color.baseColor(for: position, metric: metric))
+            return .custom(baseColor)
         case .status:
             switch level {
             case .critical:
@@ -96,7 +101,7 @@ enum HardwareRingMapper {
             case .warning:
                 return .custom(HardwareRingColorConfiguration.warningColor)
             case .normal:
-                return .custom(color.baseColor(for: position, metric: metric))
+                return .custom(baseColor)
             }
         }
     }

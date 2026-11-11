@@ -164,6 +164,8 @@ final class StatusPanelViewModel: ObservableObject {
     var hardwareMonitor: HardwareMonitorObservable { store.hardwareMetrics.observable }
     /// Card tiles in the user's chosen order, filtered to enabled metrics.
     @Published private(set) var hardwareMonitorMetrics: [HardwareMonitorMetric]
+    /// Shared per-metric colours shown on the card bars (same field as the ring).
+    @Published private(set) var hardwareMonitorMetricColors: [HardwareMonitorMetric: IconRGBA]
 
     private var isStarted = false
     private var bluetoothIsExpanded = false
@@ -215,6 +217,7 @@ final class StatusPanelViewModel: ObservableObject {
         self.actions = actions
         visiblePopupSections = settings.visiblePopupSections
         hardwareMonitorMetrics = settings.visibleHardwareMetrics
+        hardwareMonitorMetricColors = settings.hardwareMonitorMetricColors
         battery = PanelPresentationMapper.battery(
             store.popupSnapshot.battery,
             powerSample: store.powerSampling.systemPower,
@@ -297,6 +300,9 @@ final class StatusPanelViewModel: ObservableObject {
         if visiblePopupSections != sections { visiblePopupSections = sections }
         let metrics = settings.visibleHardwareMetrics
         if hardwareMonitorMetrics != metrics { hardwareMonitorMetrics = metrics }
+        if hardwareMonitorMetricColors != settings.hardwareMonitorMetricColors {
+            hardwareMonitorMetricColors = settings.hardwareMonitorMetricColors
+        }
         subscribeToPopupPresentationSources()
         subscribeToChargeToFullNow()
         reconcileSourceSubscriptions()
@@ -367,6 +373,14 @@ final class StatusPanelViewModel: ObservableObject {
                 let metrics = self.settings.visibleHardwareMetrics
                 if self.hardwareMonitorMetrics != metrics { self.hardwareMonitorMetrics = metrics }
                 self.updateHardwareMetricsDemand()
+            }
+            .store(in: &cancellables)
+
+        settings.$hardwareMonitorMetricColors
+            .removeDuplicates()
+            .sink { [weak self] colors in
+                guard let self else { return }
+                if self.hardwareMonitorMetricColors != colors { self.hardwareMonitorMetricColors = colors }
             }
             .store(in: &cancellables)
         // Non-section settings are delivered from `willSet`; only queue the
