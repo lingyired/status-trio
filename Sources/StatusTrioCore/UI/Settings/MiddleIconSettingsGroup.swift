@@ -124,69 +124,24 @@ struct MiddleIconSettingsGroup: View {
         }
     }
 
-    /// Five options are too many for a pop-up menu to read well, so the middle
-    /// content is a full-width row of picture tiles: each tile shows what the
-    /// slot would draw, and the selected one carries the standard ring.
+    /// The middle content has too many options for a pop-up menu to read well,
+    /// so it is a row of picture tiles: each tile shows what the slot would
+    /// draw, and the selected one carries the standard ring. The row uses the
+    /// shared `SettingsVisualChoicePicker` so it stays identical to the
+    /// ring-content chooser.
     private var sourcePicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(localization.string(.settingsMiddleIconDescription))
-                .font(.system(size: 11.5))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(alignment: .top, spacing: 8) {
-                ForEach(ConnectionCenterSource.allCases) { source in
-                    let selected = store.connectionCenterSource == source
-                    Button {
-                        store.connectionCenterSource = source
-                    } label: {
-                        VStack(spacing: 5) {
-                            MiddleIconSourcePreview(source: source)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 42)
-                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                        .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
-                                )
-                                .selectionRing(selected, cornerRadius: 6)
-                            Text(sourceLabel(source))
-                                .font(.system(size: 11.5, weight: selected ? .semibold : .regular))
-                                .foregroundStyle(selected ? Color.primary : Color.secondary)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityLabel(sourceLabel(source))
-                    .accessibilityAddTraits(selected ? [.isSelected, .isButton] : [.isButton])
-                }
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(localization.string(.settingsMiddleIconSource))
-
-            if store.connectionCenterSource == .chargingStatus {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Image(systemName: "exclamationmark.circle")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-
-                    Text(localization.string(.settingsMiddleIconChargingStatusDescription))
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding(.horizontal, SettingsMetrics.rowPaddingH)
-        .padding(.vertical, SettingsMetrics.rowPaddingV)
-        .accessibilityIdentifier("appIcon.middleSource")
+        SettingsVisualChoicePicker(
+            descriptionText: localization.string(.settingsMiddleIconDescription),
+            choicesAccessibilityLabel: localization.string(.settingsMiddleIconSource),
+            accessibilityIdentifier: "appIcon.middleSource",
+            footnoteText: store.connectionCenterSource == .chargingStatus
+                ? localization.string(.settingsMiddleIconChargingStatusDescription)
+                : nil,
+            selection: $store.connectionCenterSource,
+            options: ConnectionCenterSource.allCases,
+            caption: { sourceLabel($0) },
+            preview: { MiddleIconSourcePreview(source: $0) }
+        )
     }
 
     private func sourceLabel(_ source: ConnectionCenterSource) -> String {

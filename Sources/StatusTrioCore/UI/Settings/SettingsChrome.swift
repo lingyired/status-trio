@@ -27,6 +27,17 @@ enum SettingsMetrics {
     static let appIconPictureOptionSpacing: CGFloat = 6
     /// Every pop-up menu in Settings keeps one width, independent of its items.
     static let menuPickerWidth: CGFloat = 160
+    /// Shared card size for the horizontal picture-card pickers (the middle-icon
+    /// source chooser and the ring-content chooser).
+    ///
+    /// The card is capped at this width instead of `maxWidth: .infinity`: a
+    /// two-option row must not stretch each card to half the pane. It is sized
+    /// to fit the longest caption ("AirPods 电量") on one line; the six-option
+    /// middle row compresses each card to its share of the same content column,
+    /// so the two pickers still read as one control.
+    static let visualChoiceCardWidth: CGFloat = 82
+    static let visualChoiceCardHeight: CGFloat = 42
+    static let visualChoiceSpacing: CGFloat = 8
 }
 
 /// A titled, rounded card group for settings rows.
@@ -418,7 +429,7 @@ struct SettingsMenuRow<T: Hashable & Identifiable>: View {
 /// duplicate system focus effect. Ventura has neither API, so it keeps the
 /// system focus ring and maps arrow keys through `onMoveCommand`; Space and
 /// Return remain native `Button` activation.
-private struct SettingsPictureRowKeyboardBehavior: ViewModifier {
+struct SettingsPictureRowKeyboardBehavior: ViewModifier {
     let backwardStep: Int
     let forwardStep: Int
     let onSelect: () -> Void
@@ -473,7 +484,7 @@ private struct SettingsPictureRowKeyboardBehavior: ViewModifier {
     }
 }
 
-private extension View {
+extension View {
     func settingsPictureRowKeyboardBehavior(
         backwardStep: Int,
         forwardStep: Int,
@@ -514,6 +525,159 @@ extension View {
                 RoundedRectangle(cornerRadius: cornerRadius + gap + width, style: style)
                     .strokeBorder(isOn ? Color.accentColor : Color.clear, lineWidth: width)
             )
+    }
+}
+
+/// A full-width horizontal picture-card picker with the explanatory text above
+/// the cards, shared by the middle-icon source chooser and the ring-content
+/// chooser.
+///
+/// Both surfaces used to carry their own copy of this layout, which drifted: a
+/// two-option row with `maxWidth: .infinity` stretched each card to half the
+/// pane. This component keeps one card size, spacing, corner, border, selection
+/// ring and keyboard/accessibility contract for both, and only the option model
+/// and the preview view differ.
+///
+/// It reuses `SettingsPictureRow`'s keyboard behaviour verbatim (arrow keys with
+/// wrap-around, Space/Return, system focus effect disabled on macOS 14+) without
+/// changing the rows that already use `SettingsPictureRow`.
+struct SettingsVisualChoicePicker<Option: Hashable & Identifiable, Preview: View>: View {
+    let descriptionText: String
+    let choicesAccessibilityLabel: String
+    let accessibilityIdentifier: String
+    var footnoteText: String? = nil
+
+    @Binding var selection: Option
+    let options: [Option]
+    let caption: (Option) -> String
+    let preview: (Option) -> Preview
+
+    @FocusState private var focusedOption: Option?
+    @Environment(\.layoutDirection) private var layoutDirection
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init(
+        descriptionText: String,
+        choicesAccessibilityLabel: String,
+        accessibilityIdentifier: String,
+        footnoteText: String? = nil,
+        selection: Binding<Option>,
+        options: [Option],
+        caption: @escaping (Option) -> String,
+        @ViewBuilder preview: @escaping (Option) -> Preview
+    ) {
+        self.descriptionText = descriptionText
+        self.choicesAccessibilityLabel = choicesAccessibilityLabel
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.footnoteText = footnoteText
+        self._selection = selection
+        self.options = options
+        self.caption = caption
+        self.preview = preview
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(descriptionText)
+                .font(.system(size: 11.5))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(alignment: .top, spacing: SettingsMetrics.visualChoiceSpacing) {
+                ForEach(options) { option in
+                    card(option)
+                        .frame(maxWidth: SettingsMetrics.visualChoiceCardWidth)
+                }
+            }
+            // Cards run from the leading edge and stop at their shared width, so
+            // two options do not spread across the pane.
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(choicesAccessibilityLabel)
+
+            if let footnoteText {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Image(systemName: "exclamationmark.circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+
+                    Text(footnoteText)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.vertical, SettingsMetrics.rowPaddingV)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    private func card(_ option: Option) -> some View {
+        let isSelected = selection == option
+        return Button {
+            selectOption(option)
+        } label: {
+            VStack(spacing: 5) {
+                preview(option)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: SettingsMetrics.visualChoiceCardHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+                    )
+                    .selectionRing(isSelected, cornerRadius: 6)
+                Text(caption(option))
+                    .font(.system(size: 11.5, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .buttonStyle(.plain)
+        .focusable()
+        .focused($focusedOption, equals: option)
+        // Same native keyboard path as `SettingsPictureRow`: macOS 14+ keeps the
+        // arrow-key handling and suppresses the duplicate system focus effect;
+        // Ventura keeps the system focus ring and maps arrows via onMoveCommand.
+        .settingsPictureRowKeyboardBehavior(
+            backwardStep: backwardStep,
+            forwardStep: forwardStep,
+            onSelect: { selectOption(option) },
+            onMove: { selectRelative(offset: $0) }
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(caption(option))
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : [.isButton])
+    }
+
+    private var backwardStep: Int { layoutDirection == .rightToLeft ? 1 : -1 }
+    private var forwardStep: Int { layoutDirection == .rightToLeft ? -1 : 1 }
+
+    /// Selecting the whole card writes the store immediately; the only animation
+    /// is a short ring transition, skipped under Reduce Motion.
+    private func selectOption(_ option: Option) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
+            selection = option
+        }
+        focusedOption = option
+    }
+
+    private func selectRelative(offset: Int) {
+        let current = focusedOption ?? selection
+        guard let next = SettingsPictureRowSelection.wrapped(
+            in: options,
+            from: current,
+            offset: offset
+        ) else { return }
+        selectOption(next)
     }
 }
 

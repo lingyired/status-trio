@@ -12,6 +12,10 @@ struct AppIconRingView: View {
     /// Whether the Mac actually has a battery. A desktop (e.g. Mac mini) has no
     /// real level, so the ring controls collapse to a decorative top marker.
     var hasBattery: Bool = true
+    /// Omitted on the dedicated "Ring" page, where the page title already names
+    /// the section (like the middle-icon group); kept when the ring group sits
+    /// among the other icon groups.
+    var showsRingContentTitle: Bool = true
     @EnvironmentObject private var localization: Localization
 
     /// The battery presence this page draws with. In a development build the
@@ -22,9 +26,6 @@ struct AppIconRingView: View {
     }
 
     var body: some View {
-        if store.isDevelopmentBuild {
-            noBatterySimulationGroup
-        }
         if !effectiveHasBattery {
             noBatteryHintGroup
         }
@@ -36,7 +37,8 @@ struct AppIconRingView: View {
             // The settings are kept; the ring colour still follows connected
             // power and Low/High Power Mode, while the level and charging marker
             // do not apply. The hint above says so.
-            topMarkersGroup
+            // The top-marker rows are folded into `outerRingContentGroup`; the
+            // remaining battery appearance groups stay as their own cards.
             progressGroup
             colorsGroup
             effectsGroup
@@ -46,48 +48,47 @@ struct AppIconRingView: View {
     // MARK: Outer ring content
 
     /// Chooses what the ring shows: the Mac battery (with all the existing
-    /// battery options below it) or the AirPods battery. Presented as a row of
-    /// picture tiles, matching the middle-icon source picker.
+    /// battery options below it) or the AirPods battery. Uses the same shared
+    /// picture-card picker as the middle-icon source chooser so the two rows
+    /// share one layout and interaction contract.
+    ///
+    /// The top-marker options belong to the Mac battery source, so they sit in
+    /// the same card as the picker (like the middle-icon source picker owns its
+    /// sub-options) and only appear while the Mac battery is selected.
     private var outerRingContentGroup: some View {
-        SettingsGroup(localization.string(.settingsRingContentGroupTitle)) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(localization.string(.settingsRingContentRowDescription))
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        // The subtopic already names this page, so the dedicated ring page drops
+        // the extra group heading (matching the middle-icon page); the full App
+        // Icon overview keeps it so the section stays labelled among the others.
+        SettingsGroup(
+            showsRingContentTitle ? localization.string(.settingsRingContentGroupTitle) : nil
+        ) {
+            SettingsVisualChoicePicker(
+                descriptionText: localization.string(.settingsRingContentRowDescription),
+                choicesAccessibilityLabel: localization.string(.settingsRingContentRowTitle),
+                accessibilityIdentifier: "appIcon.outerRingContent",
+                selection: $store.outerRingContent,
+                options: OuterRingContent.allCases,
+                caption: { ringContentLabel($0) },
+                preview: { OuterRingContentPreview(content: $0, store: store) }
+            )
 
-                HStack(alignment: .top, spacing: 8) {
-                    ForEach(OuterRingContent.allCases) { content in
-                        let selected = store.outerRingContent == content
-                        Button {
-                            store.outerRingContent = content
-                        } label: {
-                            VStack(spacing: 5) {
-                                OuterRingContentPreview(content: content)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 42)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
-                                    )
-                                    .selectionRing(selected, cornerRadius: 6)
-                                Text(ringContentLabel(content))
-                                    .font(.system(size: 11.5, weight: selected ? .semibold : .regular))
-                                    .foregroundStyle(selected ? Color.primary : Color.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(2)
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity)
-                        .accessibilityLabel(ringContentLabel(content))
-                        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : [.isButton])
-                    }
+            if store.outerRingContent == .systemBattery {
+                SettingsDivider(inset: SettingsMetrics.rowPaddingH)
+                topMarkersContent
+
+                // Developer-only helper: force the battery-less look so a Mac
+                // with a battery can preview this page without one. It lives in
+                // the Mac battery card and a packaged release never shows it.
+                if store.isDevelopmentBuild {
+                    SettingsDivider(inset: SettingsMetrics.rowPaddingH)
+                    SettingsToggleRow(
+                        symbol: "eyeglasses",
+                        tint: .gray,
+                        title: localization.string(.settingsBatterySimulateNoBattery),
+                        subtitle: localization.string(.settingsBatterySimulateNoBatteryDescription),
+                        isOn: $store.simulatesNoBattery
+                    )
                 }
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel(localization.string(.settingsRingContentRowTitle))
             }
         }
     }
@@ -129,23 +130,6 @@ struct AppIconRingView: View {
         }
     }
 
-    // MARK: Developer preview
-
-    /// Developer-only helper: force the battery-less look so a Mac with a
-    /// battery can preview this page without one. A packaged release never shows
-    /// this and never simulates.
-    private var noBatterySimulationGroup: some View {
-        SettingsGroup(localization.string(.settingsBatteryDeveloperPreview)) {
-            SettingsToggleRow(
-                symbol: "eyeglasses",
-                tint: .gray,
-                title: localization.string(.settingsBatterySimulateNoBattery),
-                subtitle: localization.string(.settingsBatterySimulateNoBatteryDescription),
-                isOn: $store.simulatesNoBattery
-            )
-        }
-    }
-
     /// Explains what still applies on a battery-less Mac (ring colour follows
     /// connected power and Low/High Power Mode) and what does not (percentage,
     /// charging marker), so the kept controls are not misleading.
@@ -157,8 +141,10 @@ struct AppIconRingView: View {
 
     // MARK: Top markers
 
-    private var topMarkersGroup: some View {
-        SettingsGroup(localization.string(.settingsBatteryGroupTopMarkers)) {
+    /// Top-marker rows, without their own card: they are embedded in the
+    /// ring-content card while the Mac battery source is selected.
+    private var topMarkersContent: some View {
+        Group {
             if effectiveHasBattery {
                 // #315: one plain choice per power state, so the plug and bolt no
                 // longer hide behind a "show percentage" toggle or a combined
@@ -488,41 +474,93 @@ struct AppIconRingView: View {
             }
         }
     }
+}
 
-/// A small picture tile for the ring-content picker: a single battery arc, or
-/// two AirPods arcs with the AirPods glyph above them.
+/// A small picture tile for the ring-content picker. It renders the real Status
+/// Trio icon scene for a fixed sample status through `IconCompositionResolver` —
+/// the same path the menu bar and Dock draw — with only the outer-ring source
+/// swapped between the two options. Everything else (the sample status, the
+/// current appearance: stroke width, colours, centre and scale, and the
+/// rendering environment) is identical for both tiles, so they differ only in
+/// the ring.
 private struct OuterRingContentPreview: View {
     let content: OuterRingContent
+    @ObservedObject var store: SettingsStore
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let dark = colorScheme == .dark
         ZStack {
-            switch content {
-            case .systemBattery:
-                Circle()
-                    .trim(from: 0.12, to: 0.88)
-                    .stroke(Color.green, style: StrokeStyle(lineWidth: 4.5, lineCap: .round))
-                    .rotationEffect(.degrees(90))
-                    .padding(6)
-                Image(systemName: "battery.100")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-            case .airPodsBattery:
-                Circle()
-                    .trim(from: 0.06, to: 0.44)
-                    .stroke(Color.green, style: StrokeStyle(lineWidth: 4.5, lineCap: .round))
-                    .rotationEffect(.degrees(90))
-                    .padding(6)
-                Circle()
-                    .trim(from: 0.56, to: 0.94)
-                    .stroke(Color.green, style: StrokeStyle(lineWidth: 4.5, lineCap: .round))
-                    .rotationEffect(.degrees(90))
-                    .padding(6)
-                Image(systemName: "airpods")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
+            MenuBarPreviewBackdrop(isDarkBackground: dark, cornerRadius: 6)
+            if let image = RingContentPreviewScene.image(
+                for: content,
+                store: store,
+                isDarkBackground: dark
+            ) {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .padding(3)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityHidden(true)
     }
 }
+
+/// Builds the still preview for one ring-content option from the runtime
+/// composition resolver — the same path the menu bar and Dock render — using a
+/// fixed sample status so the tile never depends on a live AirPods connection
+/// and switching options triggers no device query or sampling.
+@MainActor
+enum RingContentPreviewScene {
+    static let sampleDate = Date(timeIntervalSince1970: 1_789_555_974)
+
+    /// The configuration a ring-content tile renders. Starts from the live
+    /// appearance so the preview matches the real menu-bar/Dock rendering, then
+    /// swaps only the outer-ring source plus the AirPods ring behaviour the tile
+    /// is meant to preview. Exposed for tests.
+    static func configuration(
+        for content: OuterRingContent,
+        store: SettingsStore
+    ) -> IconConfigurationV1 {
+        var configuration = store.derivedIconConfigurationFromSettings()
+        switch content {
+        case .systemBattery:
+            configuration.composition.outerRing = SlotSelection(primary: .systemBattery)
+        case .airPodsBattery:
+            configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery)
+        }
+        // The derived configuration only carries the AirPods ring behaviour when
+        // the stored selection is already AirPods; the tile must preview the real
+        // design regardless of which option is currently selected.
+        configuration.behaviors.airPodsRing = store.airPodsRingUsesDualRing ? .dual : .single
+        configuration.behaviors.showsAirPodsTopSymbol = store.showsAirPodsTopSymbolInRing
+        return configuration
+    }
+
+    static func image(
+        for content: OuterRingContent,
+        store: SettingsStore,
+        isDarkBackground: Bool
+    ) -> NSImage? {
+        let configuration = configuration(for: content, store: store)
+        let inputs = IconPreviewInputBuilder.simulated(
+            samples: IconPreviewSampleValues(),
+            configuration: configuration,
+            target: .currentAudioOutput,
+            now: sampleDate
+        )
+        let scene = IconCompositionResolver.resolve(
+            inputs: inputs,
+            configuration: configuration,
+            now: sampleDate
+        ).scene
+        return StatusIconPreviewCache.shared.image(
+            scene: scene,
+            size: 28,
+            scale: 2,
+            appearance: MenuBarPreviewBackdrop.appearance(isDarkBackground: isDarkBackground)
+        )
+    }
 }
