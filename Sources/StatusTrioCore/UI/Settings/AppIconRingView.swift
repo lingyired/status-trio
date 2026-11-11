@@ -46,23 +46,56 @@ struct AppIconRingView: View {
     // MARK: Outer ring content
 
     /// Chooses what the ring shows: the Mac battery (with all the existing
-    /// battery options below it) or the AirPods battery.
+    /// battery options below it) or the AirPods battery. Presented as a row of
+    /// picture tiles, matching the middle-icon source picker.
     private var outerRingContentGroup: some View {
         SettingsGroup(localization.string(.settingsRingContentGroupTitle)) {
-            SettingsMenuRow(
-                symbol: "circle.dashed",
-                tint: .green,
-                title: localization.string(.settingsRingContentRowTitle),
-                subtitle: localization.string(.settingsRingContentRowDescription),
-                selection: $store.outerRingContent,
-                options: [OuterRingContent.systemBattery, .airPodsBattery],
-                label: { content in
-                    switch content {
-                    case .systemBattery: return localization.string(.settingsRingContentSystemBattery)
-                    case .airPodsBattery: return localization.string(.settingsRingContentAirPodsBattery)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(localization.string(.settingsRingContentRowDescription))
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(alignment: .top, spacing: 8) {
+                    ForEach(OuterRingContent.allCases) { content in
+                        let selected = store.outerRingContent == content
+                        Button {
+                            store.outerRingContent = content
+                        } label: {
+                            VStack(spacing: 5) {
+                                OuterRingContentPreview(content: content)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 42)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+                                    )
+                                    .selectionRing(selected, cornerRadius: 6)
+                                Text(ringContentLabel(content))
+                                    .font(.system(size: 11.5, weight: selected ? .semibold : .regular))
+                                    .foregroundStyle(selected ? Color.primary : Color.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity)
+                        .accessibilityLabel(ringContentLabel(content))
+                        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : [.isButton])
                     }
                 }
-            )
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(localization.string(.settingsRingContentRowTitle))
+            }
+        }
+    }
+
+    private func ringContentLabel(_ content: OuterRingContent) -> String {
+        switch content {
+        case .systemBattery: return localization.string(.settingsRingContentSystemBattery)
+        case .airPodsBattery: return localization.string(.settingsRingContentAirPodsBattery)
         }
     }
 
@@ -455,4 +488,41 @@ struct AppIconRingView: View {
             }
         }
     }
+
+/// A small picture tile for the ring-content picker: a single battery arc, or
+/// two AirPods arcs with the AirPods glyph above them.
+private struct OuterRingContentPreview: View {
+    let content: OuterRingContent
+
+    var body: some View {
+        ZStack {
+            switch content {
+            case .systemBattery:
+                Circle()
+                    .trim(from: 0.12, to: 0.88)
+                    .stroke(Color.green, style: StrokeStyle(lineWidth: 4.5, lineCap: .round))
+                    .rotationEffect(.degrees(90))
+                    .padding(6)
+                Image(systemName: "battery.100")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            case .airPodsBattery:
+                Circle()
+                    .trim(from: 0.06, to: 0.44)
+                    .stroke(Color.green, style: StrokeStyle(lineWidth: 4.5, lineCap: .round))
+                    .rotationEffect(.degrees(90))
+                    .padding(6)
+                Circle()
+                    .trim(from: 0.56, to: 0.94)
+                    .stroke(Color.green, style: StrokeStyle(lineWidth: 4.5, lineCap: .round))
+                    .rotationEffect(.degrees(90))
+                    .padding(6)
+                Image(systemName: "airpods")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
 }
