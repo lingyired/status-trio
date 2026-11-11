@@ -15,9 +15,12 @@
 /// apart, so a reading is used only when its identifier resolves to *one* device
 /// in the paired list and no other identifier names that device. Disconnected
 /// paired devices take part in that resolution — a retained reading may belong to
-/// one of them — but only a connected device is ever given a level. When the
-/// resolution is ambiguous the fallback is dropped for the whole read: a missing
-/// level is acceptable, and a level borrowed from the wrong device is not.
+/// one of them — but only a connected device is ever given a level. An ambiguous
+/// resolution costs only the device it concerns: that device is given no level,
+/// while readings that resolve uniquely keep supplying theirs. A missing level is
+/// acceptable, a level borrowed from the wrong device is not, and neither one
+/// device's ambiguity nor one unreadable source may hide an unrelated device's
+/// level.
 enum BluetoothBatteryLevelFallback {
     /// Whether the accessory sources are worth reading at all.
     ///
@@ -54,9 +57,7 @@ enum BluetoothBatteryLevelFallback {
         devices: [BluetoothDevice]
     ) -> [String: BluetoothBatteryLevel] {
         var merged = levels
-        guard let attributed = attributedReadings(accessories: accessories, devices: devices) else {
-            return merged
-        }
+        let attributed = attributedReadings(accessories: accessories, devices: devices)
         for device in devices where device.isConnected {
             let address = BluetoothBatteryReader.normalizedAddress(device.id)
             guard !address.isEmpty, merged[address] == nil else { continue }
@@ -82,8 +83,9 @@ enum BluetoothBatteryLevelFallback {
         guard device.isConnected else { return nil }
         let address = BluetoothBatteryReader.normalizedAddress(device.id)
         guard !address.isEmpty else { return nil }
-        guard let attributed = attributedReadings(accessories: accessories, devices: devices),
-              let readings = attributed[address] else { return nil }
+        guard let readings = attributedReadings(accessories: accessories, devices: devices)[address] else {
+            return nil
+        }
         return channelLevel(for: device, readings: readings)
     }
 
@@ -96,21 +98,27 @@ enum BluetoothBatteryLevelFallback {
     /// name the same device. Disconnected devices are included in that resolution
     /// so a reading the power manager still holds for a device that left cannot
     /// be handed to its same-model neighbour; the callers still only publish
-    /// levels for connected devices. When more than one identifier is present and any of them
-    /// cannot be resolved that way, the whole result is `nil` — the caller then
-    /// adds nothing. A single unresolvable source is only ever a reading that
-    /// matches no device, which adds nothing anyway.
+    /// levels for connected devices.
+    ///
+    /// Ambiguity is scoped to the device it concerns. A group that does not name
+    /// exactly one device adds nothing and taints nothing; a device that two
+    /// identifiers both name is dropped, but every other device whose reading
+    /// resolves uniquely keeps it. One unresolvable accessory therefore can no
+    /// longer suppress the levels of unrelated devices.
     private static func attributedReadings(
         accessories: [BluetoothAccessoryBatteryLevel],
         devices: [BluetoothDevice]
-    ) -> [String: [BluetoothAccessoryBatteryLevel]]? {
+    ) -> [String: [BluetoothAccessoryBatteryLevel]] {
         let groups = identifierGroups(accessories)
         guard !groups.isEmpty else { return [:] }
 
         // Disconnected paired devices still participate in ambiguity checks:
         // a retained pmset reading may belong to one of them.
         var attributed: [String: [BluetoothAccessoryBatteryLevel]] = [:]
-        var isAmbiguous = false
+        // A device two identifiers both name owns neither reading: its entry is
+        // removed and never re-added. The loss stays confined to that device —
+        // every other uniquely resolved device keeps its own reading.
+        var ambiguousAddresses: Set<String> = []
 
         for readings in groups {
             // Collect every device any record could describe. Dropping a record
@@ -121,24 +129,28 @@ enum BluetoothBatteryLevelFallback {
             }
             // The group is usable only when that whole set has one member and
             // every record agrees it is the target — one matching part must not
-            // lend its identity to a conflicting part.
+            // lend its identity to a conflicting part. A group that names no
+            // single device adds nothing, but it taints no device either: there
+            // is no device it could have been borrowed by.
             guard namingDevices.count == 1,
                   let device = namingDevices.first,
                   readings.allSatisfy({ identityMatches($0, device) }) else {
-                isAmbiguous = true
                 continue
             }
             let address = BluetoothBatteryReader.normalizedAddress(device.id)
-            guard !address.isEmpty, attributed[address] == nil else {
+            guard !address.isEmpty else { continue }
+            guard !ambiguousAddresses.contains(address), attributed[address] == nil else {
                 // Two identifiers naming one device are as ambiguous as one
                 // identifier naming two: neither tells us whose reading this is.
-                isAmbiguous = true
+                // Withdraw whatever this device already had; other devices stay.
+                ambiguousAddresses.insert(address)
+                attributed[address] = nil
                 continue
             }
             attributed[address] = readings
         }
 
-        return isAmbiguous && groups.count > 1 ? nil : attributed
+        return attributed
     }
 
     /// The readings grouped by the accessory each one names. Readings with no
