@@ -705,9 +705,8 @@ final class SettingsViewTests: XCTestCase {
 
         XCTAssertTrue(audio.contains("volumeScrollGroup"))
         XCTAssertTrue(audio.contains("settingsAudioVolumeScrollGroup"))
-        XCTAssertTrue(audio.contains("scrollScopeLabel"))
-        XCTAssertTrue(audio.contains("popupScrollAdjustsVolume"))
-        XCTAssertTrue(audio.contains("popupVolumeScrollScope"))
+        XCTAssertTrue(audio.contains("popupPanelScrollAdjustsVolume"))
+        XCTAssertTrue(audio.contains("settingsPopupPanelScroll"))
         XCTAssertFalse(audio.contains("popupVolumeNaturalScrolling"))
         XCTAssertFalse(audio.contains("settingsPopupVolumeScrollNatural"))
 
@@ -727,11 +726,9 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(audioBody.contains("inputDeviceOrderGroup"))
         XCTAssertTrue(audioBody.contains("externalVolumeGroup"))
         XCTAssertFalse(
-            popover.contains("popupScrollAdjustsVolume"),
+            popover.contains("popupPanelScrollAdjustsVolume"),
             "the panel pane must not own the volume-scroll switch"
         )
-        XCTAssertFalse(popover.contains("popupVolumeScrollScope"))
-        XCTAssertFalse(popover.contains("scrollScopeLabel"))
     }
 
     /// The compatibility note tells users whose display DDC Status Trio cannot

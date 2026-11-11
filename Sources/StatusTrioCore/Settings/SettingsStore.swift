@@ -204,10 +204,12 @@ final class SettingsStore: ObservableObject {
     /// after that, a stored list without `.vpn` means the user switched the row
     /// off, and that choice has to survive every later launch.
     static let vpnPopupSectionIntroducedDefaultsKey = "vpnPopupSectionIntroduced.v1"
-    static let popupScrollAdjustsVolumeDefaultsKey = "popupScrollAdjustsVolume"
-    static let defaultPopupScrollAdjustsVolume = true
-    static let popupVolumeScrollScopeDefaultsKey = "popupVolumeScrollScope"
-    static let defaultPopupVolumeScrollScope: PopupVolumeScrollScope = .panel
+    /// Legacy keys kept only as migration sources for the single panel-scroll
+    /// option this change introduces. They are never written again.
+    static let legacyPopupScrollAdjustsVolumeDefaultsKey = "popupScrollAdjustsVolume"
+    static let legacyPopupVolumeScrollScopeDefaultsKey = "popupVolumeScrollScope"
+    static let popupPanelScrollAdjustsVolumeDefaultsKey = "popupPanelScrollAdjustsVolume"
+    static let defaultPopupPanelScrollAdjustsVolume = false
     static let popupVolumeScrollDirectionDefaultsKey = "popupVolumeScrollDirection"
     static let defaultPopupVolumeScrollDirection: PopupVolumeScrollDirection = .up
     static let popupVolumeNaturalScrollingDefaultsKey = "popupVolumeNaturalScrolling"
@@ -1308,11 +1310,11 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var popupScrollAdjustsVolume: Bool {
+    @Published var popupPanelScrollAdjustsVolume: Bool {
         didSet {
             defaults.set(
-                popupScrollAdjustsVolume,
-                forKey: Self.popupScrollAdjustsVolumeDefaultsKey
+                popupPanelScrollAdjustsVolume,
+                forKey: Self.popupPanelScrollAdjustsVolumeDefaultsKey
             )
         }
     }
@@ -1322,15 +1324,6 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 returnsToSummaryOnOpen,
                 forKey: Self.returnsToSummaryOnOpenDefaultsKey
-            )
-        }
-    }
-
-    @Published var popupVolumeScrollScope: PopupVolumeScrollScope {
-        didSet {
-            defaults.set(
-                popupVolumeScrollScope.rawValue,
-                forKey: Self.popupVolumeScrollScopeDefaultsKey
             )
         }
     }
@@ -2040,9 +2033,12 @@ final class SettingsStore: ObservableObject {
         let storedEnabledPopupSections = defaults.stringArray(
             forKey: Self.enabledPopupSectionsDefaultsKey
         )
-        let storedPopupVolumeScrollScope = defaults.string(
-            forKey: Self.popupVolumeScrollScopeDefaultsKey
+        let storedLegacyPopupScrollScope = defaults.string(
+            forKey: Self.legacyPopupVolumeScrollScopeDefaultsKey
         )
+        let storedLegacyPopupScrollMaster = defaults.object(
+            forKey: Self.legacyPopupScrollAdjustsVolumeDefaultsKey
+        ) as? Bool
         let storedPopupVolumeScrollDirection = defaults.string(
             forKey: Self.popupVolumeScrollDirectionDefaultsKey
         )
@@ -2489,15 +2485,25 @@ final class SettingsStore: ObservableObject {
             }
             defaults.set(true, forKey: Self.vpnPopupSectionIntroducedDefaultsKey)
         }
-        self.popupScrollAdjustsVolume = defaults.object(
-            forKey: Self.popupScrollAdjustsVolumeDefaultsKey
-        ) as? Bool ?? Self.defaultPopupScrollAdjustsVolume
+        let storedPanelScrollAdjustsVolume = defaults.object(
+            forKey: Self.popupPanelScrollAdjustsVolumeDefaultsKey
+        ) as? Bool
+        let resolvedPanelScrollAdjustsVolume = Self.resolvedPanelScrollAdjustsVolume(
+            storedValue: storedPanelScrollAdjustsVolume,
+            legacyMaster: storedLegacyPopupScrollMaster,
+            legacyScopeRaw: storedLegacyPopupScrollScope,
+            hasExistingInstallation: hadLegacyInstallMarker
+        )
+        self.popupPanelScrollAdjustsVolume = resolvedPanelScrollAdjustsVolume
+        if storedPanelScrollAdjustsVolume == nil {
+            defaults.set(
+                resolvedPanelScrollAdjustsVolume,
+                forKey: Self.popupPanelScrollAdjustsVolumeDefaultsKey
+            )
+        }
         self.returnsToSummaryOnOpen = defaults.object(
             forKey: Self.returnsToSummaryOnOpenDefaultsKey
         ) as? Bool ?? false
-        self.popupVolumeScrollScope = storedPopupVolumeScrollScope
-            .flatMap(PopupVolumeScrollScope.init(rawValue:))
-            ?? Self.defaultPopupVolumeScrollScope
         self.popupVolumeScrollDirection = storedPopupVolumeScrollDirection
             .flatMap(PopupVolumeScrollDirection.init(rawValue:))
             ?? Self.defaultPopupVolumeScrollDirection
@@ -2507,6 +2513,38 @@ final class SettingsStore: ObservableObject {
         self.popupVolumeScrollFeedbackOverride = defaults.object(
             forKey: Self.popupVolumeScrollFeedbackDefaultsKey
         ) as? Bool
+    }
+
+    /// Legacy raw values of the removed `PopupVolumeScrollScope` picker, read
+    /// only to migrate an existing install to the single option.
+    private enum LegacyPopupVolumeScrollScope: String {
+        case panel
+        case volumeControl
+    }
+
+    /// Resolve the single panel-scroll option.
+    ///
+    /// A stored value for the new key always wins. Otherwise an existing install
+    /// keeps its prior preference: panel scrolling stays on unless the user had
+    /// turned the old master switch off or picked slider-only. A fresh install
+    /// gets the new default (off). `hasExistingInstallation` distinguishes "an
+    /// old install that never touched the defaults" from "a brand-new install".
+    static func resolvedPanelScrollAdjustsVolume(
+        storedValue: Bool?,
+        legacyMaster: Bool?,
+        legacyScopeRaw: String?,
+        hasExistingInstallation: Bool
+    ) -> Bool {
+        if let storedValue { return storedValue }
+        let existingInstallation = hasExistingInstallation
+            || legacyMaster != nil
+            || legacyScopeRaw != nil
+        guard existingInstallation else {
+            return Self.defaultPopupPanelScrollAdjustsVolume
+        }
+        let master = legacyMaster ?? true
+        let scope = legacyScopeRaw.flatMap(LegacyPopupVolumeScrollScope.init(rawValue:)) ?? .panel
+        return master && scope == .panel
     }
 
     private static func decodedNearbyBLESelections(_ data: Data?) -> [NearbyBLEDeviceSelection] {

@@ -89,8 +89,7 @@ final class IconAppearancePublisherTests: XCTestCase {
         settings.refreshIntervalSeconds = 30
         settings.showsBluetoothBatteryLevels = true
         settings.hasCompletedIconGuideOnboarding = true
-        settings.popupScrollAdjustsVolume = false
-        settings.popupVolumeScrollScope = .volumeControl
+        settings.popupPanelScrollAdjustsVolume = true
         settings.popupVolumeScrollDirection = .down
         settings.popupVolumeNaturalScrolling = true
         settings.maxVisibleOutputDevices = 8

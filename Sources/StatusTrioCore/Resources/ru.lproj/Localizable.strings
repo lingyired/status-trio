@@ -440,12 +440,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "Когда включено, панель состояния всегда открывается на странице обзора; в противном случае запоминается последняя просмотренная страница.";
 "settings.popup.volumeScroll.group" = "Прокрутка панели";
 "settings.audio.volumeScroll.group" = "Прокрутка громкости";
-"settings.popup.volumeScroll" = "Регулировка прокруткой";
-"settings.popup.volumeScroll.description" = "Прокручивайте внутри панели состояния, чтобы менять громкость вывода. На ползунке прокрутка меняет этот ползунок (громкость, яркость или усиление входа).";
-"settings.popup.volumeScroll.scope" = "Область";
-"settings.popup.volumeScroll.scope.description" = "Выберите, должна ли прокрутка над пустыми областями панели менять громкость вывода.";
-"settings.popup.volumeScroll.scope.panel" = "Вся панель";
-"settings.popup.volumeScroll.scope.volumeControl" = "Только на ползунках";
+"settings.popup.panelScroll" = "Прокрутка панели для изменения громкости";
+"settings.popup.panelScroll.description" = "Прокрутка над пустыми областями страницы обзора меняет громкость вывода. Ползунки всегда регулируются прокруткой.";
 "settings.popup.volumeScroll.natural" = "Естественная прокрутка";
 "settings.popup.volumeScroll.natural.description" = "Если включено, прокрутка вверх увеличивает значение под указателем (громкость, яркость или усиление входа); если выключено, используется направление прокрутки системы. Если значение всё равно уменьшается при прокрутке вверх после включения этой опции, исключите Status Trio в MOS, Scroll Reverser, LinearMouse или похожем приложении, обычно через список исключений/игнорирования.";
 "settings.audio.volumeFeedbackTitle" = "Обратная связь громкости";

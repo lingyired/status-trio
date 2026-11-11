@@ -440,12 +440,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "开启后，每次点开状态面板都从主界面开始；关闭时会保留上次查看的详情页。";
 "settings.popup.volumeScroll.group" = "面板滚动";
 "settings.audio.volumeScroll.group" = "音量滚动";
-"settings.popup.volumeScroll" = "滚动调节";
-"settings.popup.volumeScroll.description" = "在状态面板内滚动调节输出音量；指针位于滑杆上时改为调节该滑杆（音量、亮度或输入增益）。";
-"settings.popup.volumeScroll.scope" = "生效范围";
-"settings.popup.volumeScroll.scope.description" = "选择空白处的滚动是否调节输出音量。";
-"settings.popup.volumeScroll.scope.panel" = "整个面板";
-"settings.popup.volumeScroll.scope.volumeControl" = "仅滑杆";
+"settings.popup.panelScroll" = "在面板中滚动调节音量";
+"settings.popup.panelScroll.description" = "在摘要页空白处滚动可调节输出音量；滑杆始终支持滚动调节。";
 "settings.popup.volumeScroll.natural" = "自然滚动";
 "settings.popup.volumeScroll.natural.description" = "开启后，上滚增大指针下的数值（音量、亮度或输入增益）；关闭后跟随系统的滚动方向。如果开启后上滚仍然减小数值，请在 MOS、Scroll Reverser、LinearMouse 等应用中将 Status Trio 设为不处理，通常可加入例外/忽略列表（部分应用称为白名单）。";
 "settings.audio.volumeFeedbackTitle" = "音量反馈";

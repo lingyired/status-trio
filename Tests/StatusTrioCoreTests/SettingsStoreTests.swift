@@ -1498,30 +1498,84 @@ final class SettingsStoreTests: XCTestCase {
         )
     }
 
-    func testPopupVolumeScrollDefaultsToEverywhereSystemDirectionAndNaturalScrollingOff() {
-        let store = SettingsStore(defaults: makeSuite().defaults)
+    func testPopupPanelScrollDefaultsOffWithSystemDirectionAndNaturalScrollingOff() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(defaults: suite.defaults)
 
-        XCTAssertTrue(store.popupScrollAdjustsVolume)
-        XCTAssertEqual(store.popupVolumeScrollScope, .panel)
+        XCTAssertFalse(store.popupPanelScrollAdjustsVolume)
         XCTAssertEqual(store.popupVolumeScrollDirection, .up)
         XCTAssertFalse(store.popupVolumeNaturalScrolling)
     }
 
-    func testPopupVolumeScrollChoicesPersistAcrossStoreInstances() {
+    func testPopupPanelScrollChoicePersistsAcrossStoreInstances() {
         let suite = makeSuite()
         defer { clear(suite) }
 
         let first = SettingsStore(defaults: suite.defaults)
-        first.popupScrollAdjustsVolume = false
-        first.popupVolumeScrollScope = .volumeControl
+        first.popupPanelScrollAdjustsVolume = true
         first.popupVolumeScrollDirection = .down
         first.popupVolumeNaturalScrolling = true
 
         let second = SettingsStore(defaults: suite.defaults)
-        XCTAssertFalse(second.popupScrollAdjustsVolume)
-        XCTAssertEqual(second.popupVolumeScrollScope, .volumeControl)
+        XCTAssertTrue(second.popupPanelScrollAdjustsVolume)
         XCTAssertEqual(second.popupVolumeScrollDirection, .down)
         XCTAssertTrue(second.popupVolumeNaturalScrolling)
+    }
+
+    func testLegacyPopupScrollMasterOffMigratesToOff() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(false, forKey: SettingsStore.legacyPopupScrollAdjustsVolumeDefaultsKey)
+
+        XCTAssertFalse(SettingsStore(defaults: suite.defaults).popupPanelScrollAdjustsVolume)
+    }
+
+    func testLegacySliderOnlyScopeMigratesToOff() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(true, forKey: SettingsStore.legacyPopupScrollAdjustsVolumeDefaultsKey)
+        suite.defaults.set("volumeControl", forKey: SettingsStore.legacyPopupVolumeScrollScopeDefaultsKey)
+
+        XCTAssertFalse(SettingsStore(defaults: suite.defaults).popupPanelScrollAdjustsVolume)
+    }
+
+    func testLegacyPanelScopeMigratesToOn() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(true, forKey: SettingsStore.legacyPopupScrollAdjustsVolumeDefaultsKey)
+        suite.defaults.set("panel", forKey: SettingsStore.legacyPopupVolumeScrollScopeDefaultsKey)
+
+        XCTAssertTrue(SettingsStore(defaults: suite.defaults).popupPanelScrollAdjustsVolume)
+    }
+
+    func testStoredPanelScrollValueWinsOverLegacyKeys() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(true, forKey: SettingsStore.legacyPopupScrollAdjustsVolumeDefaultsKey)
+        suite.defaults.set("panel", forKey: SettingsStore.legacyPopupVolumeScrollScopeDefaultsKey)
+        suite.defaults.set(false, forKey: SettingsStore.popupPanelScrollAdjustsVolumeDefaultsKey)
+
+        XCTAssertFalse(SettingsStore(defaults: suite.defaults).popupPanelScrollAdjustsVolume)
+    }
+
+    func testUntouchedExistingInstallResolvesPanelScrollOn() {
+        XCTAssertTrue(
+            SettingsStore.resolvedPanelScrollAdjustsVolume(
+                storedValue: nil,
+                legacyMaster: nil,
+                legacyScopeRaw: nil,
+                hasExistingInstallation: true
+            )
+        )
+        XCTAssertFalse(
+            SettingsStore.resolvedPanelScrollAdjustsVolume(
+                storedValue: nil,
+                legacyMaster: nil,
+                legacyScopeRaw: nil,
+                hasExistingInstallation: false
+            )
+        )
     }
 
     func testPopupVolumeScrollFeedbackFollowsTheSystemSwitchUntilToggled() {
@@ -1577,13 +1631,9 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertFalse(store.popupVolumeNaturalScrolling)
     }
 
-    func testUnknownStoredPopupVolumeScrollValuesFallBackToDefaults() {
+    func testUnknownStoredPopupVolumeScrollDirectionFallsBackToDefault() {
         let suite = makeSuite()
         defer { clear(suite) }
-        suite.defaults.set(
-            "nowhere",
-            forKey: SettingsStore.popupVolumeScrollScopeDefaultsKey
-        )
         suite.defaults.set(
             "sideways",
             forKey: SettingsStore.popupVolumeScrollDirectionDefaultsKey
@@ -1591,15 +1641,12 @@ final class SettingsStoreTests: XCTestCase {
 
         let store = SettingsStore(defaults: suite.defaults)
 
-        XCTAssertEqual(store.popupVolumeScrollScope, .panel)
         XCTAssertEqual(store.popupVolumeScrollDirection, .up)
         XCTAssertFalse(store.popupVolumeNaturalScrolling)
     }
 
-    func testPopupVolumeScrollOptionsExposeStableChoices() {
-        XCTAssertEqual(PopupVolumeScrollScope.allCases, [.panel, .volumeControl])
+    func testPopupVolumeScrollDirectionOptionsExposeStableChoices() {
         XCTAssertEqual(PopupVolumeScrollDirection.allCases, [.up, .down])
-        XCTAssertEqual(PopupVolumeScrollScope.panel.id, .panel)
         XCTAssertEqual(PopupVolumeScrollDirection.up.id, .up)
         XCTAssertTrue(PopupVolumeScrollDirection.up.increasesWithScrollUp)
         XCTAssertFalse(PopupVolumeScrollDirection.down.increasesWithScrollUp)
