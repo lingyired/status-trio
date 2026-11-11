@@ -1153,3 +1153,4 @@
 "settings.hardwareRing.critical" = "Критический порог";
 "settings.hardwareRing.range" = "Диапазон отображения";
 "settings.hardwareRing.reset" = "Сбросить настройки";
+"settings.hardwareRing.top.scale" = "Размер верхнего маркера";

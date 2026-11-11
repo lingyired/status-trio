@@ -1153,3 +1153,4 @@
 "settings.hardwareRing.critical" = "الحد الحرج";
 "settings.hardwareRing.range" = "نطاق العرض";
 "settings.hardwareRing.reset" = "إعادة التعيين إلى الافتراضي";
+"settings.hardwareRing.top.scale" = "حجم العلامة العلوية";

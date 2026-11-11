@@ -240,4 +240,19 @@ final class HardwareRingMapperTests: XCTestCase {
         let state = HardwareRingMapper.resolve(snapshot: snap, configuration: config, now: now)
         XCTAssertNil(state.accessory)
     }
+
+    func testTopMarkerScaleMultipliesSymbolAndValueScale() {
+        let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
+        let symbolConfig = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
+                                                     topContent: .automatic, topMarkerScale: 1.5)
+        let symbolState = HardwareRingMapper.resolve(snapshot: snap, configuration: symbolConfig, now: now)
+        guard case let .symbol(symbol)? = symbolState.accessory else { return XCTFail("expected symbol") }
+        XCTAssertEqual(symbol.scale, HardwareRingMapper.singleTopSymbolScale * 1.5, accuracy: 0.0001)
+
+        let valueConfig = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
+                                                    topContent: .value(.cpuUsage), topMarkerScale: 1.5)
+        let valueState = HardwareRingMapper.resolve(snapshot: snap, configuration: valueConfig, now: now)
+        guard case let .text(text)? = valueState.accessory else { return XCTFail("expected text") }
+        XCTAssertEqual(text.scale, HardwareRingMapper.topValueTextScale(for: .percent) * 1.5, accuracy: 0.0001)
+    }
 }

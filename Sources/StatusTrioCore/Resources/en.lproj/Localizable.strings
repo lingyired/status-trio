@@ -1152,3 +1152,4 @@
 "settings.hardwareRing.critical" = "Critical threshold";
 "settings.hardwareRing.range" = "Display range";
 "settings.hardwareRing.reset" = "Reset to defaults";
+"settings.hardwareRing.top.scale" = "Top marker size";

@@ -1153,3 +1153,4 @@
 "settings.hardwareRing.critical" = "Soglia critica";
 "settings.hardwareRing.range" = "Intervallo di visualizzazione";
 "settings.hardwareRing.reset" = "Ripristina predefiniti";
+"settings.hardwareRing.top.scale" = "Dimensione indicatore superiore";

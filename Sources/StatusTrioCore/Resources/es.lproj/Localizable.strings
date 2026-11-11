@@ -1153,3 +1153,4 @@
 "settings.hardwareRing.critical" = "Umbral crítico";
 "settings.hardwareRing.range" = "Rango de visualización";
 "settings.hardwareRing.reset" = "Restablecer valores";
+"settings.hardwareRing.top.scale" = "Tamaño del marcador superior";

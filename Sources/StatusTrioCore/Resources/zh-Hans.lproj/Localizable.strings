@@ -1153,3 +1153,4 @@
 "settings.hardwareRing.critical" = "严重阈值";
 "settings.hardwareRing.range" = "显示范围";
 "settings.hardwareRing.reset" = "恢复默认";
+"settings.hardwareRing.top.scale" = "顶部标识大小";

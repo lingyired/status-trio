@@ -107,4 +107,12 @@ final class HardwareRingConfigurationTests: XCTestCase {
         XCTAssertEqual(options.displayMinimum, 0)
         XCTAssertEqual(options.displayMaximum, 0)
     }
+
+    func testTopMarkerScaleClampsAndDefaultsOnDecode() throws {
+        XCTAssertEqual(HardwareRingConfiguration(topMarkerScale: 5).topMarkerScale, 1.6)
+        XCTAssertEqual(HardwareRingConfiguration(topMarkerScale: 0.1).topMarkerScale, 0.6)
+        let json = Data(#"{"layout":"single","primaryMetric":"cpuUsage"}"#.utf8)
+        let decoded = try JSONDecoder().decode(HardwareRingConfiguration.self, from: json)
+        XCTAssertEqual(decoded.topMarkerScale, 1.0)
+    }
 }

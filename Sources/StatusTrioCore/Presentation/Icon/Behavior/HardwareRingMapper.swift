@@ -168,20 +168,21 @@ enum HardwareRingMapper {
             switch configuration.layout {
             case .single:
                 return .symbol(symbolState(name: configuration.primaryMetric.systemImage,
-                                           scale: Self.singleTopSymbolScale))
+                                           scale: Self.singleTopSymbolScale * configuration.topMarkerScale))
             case .dual:
-                return .symbol(symbolState(name: Self.genericMonitorSymbol, scale: Self.topSymbolScale))
+                return .symbol(symbolState(name: Self.genericMonitorSymbol,
+                                           scale: Self.topSymbolScale * configuration.topMarkerScale))
             }
         case let .symbol(metric):
-            let scale = configuration.layout == .single ? Self.singleTopSymbolScale : Self.topSymbolScale
-            return .symbol(symbolState(name: metric.systemImage, scale: scale))
+            let base = configuration.layout == .single ? Self.singleTopSymbolScale : Self.topSymbolScale
+            return .symbol(symbolState(name: metric.systemImage, scale: base * configuration.topMarkerScale))
         case let .value(metric):
             let sample = sample(for: metric, in: snapshot)
             guard sample.availability == .measured, sample.isFresh(at: now),
                   let value = sample.value, value.isFinite else { return nil }
             let text = formattedValue(value, unit: sample.unit)
             return .text(IconTextState(text: text, color: .primary,
-                                       scale: topValueTextScale(for: sample.unit)))
+                                       scale: topValueTextScale(for: sample.unit) * configuration.topMarkerScale))
         }
     }
 

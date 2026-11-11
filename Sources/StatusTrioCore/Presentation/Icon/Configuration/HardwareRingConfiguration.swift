@@ -214,20 +214,32 @@ struct HardwareRingConfiguration: Codable, Equatable, Hashable, Sendable {
     /// Left/right split for `dual`; ignored (and normalised to nil) for `single`.
     var secondaryMetric: HardwareMonitorMetric?
     var topContent: HardwareRingTopContent
+    /// User scale multiplier for the top marker (symbol or value), 0.6...1.6.
+    var topMarkerScale: Double
     var color: HardwareRingColorConfiguration
     /// Sparse overrides; a missing metric uses `HardwareMetricRingOptions.default`.
     var overrides: [HardwareMonitorMetric: HardwareMetricRingOptions]
+
+    static let topMarkerScaleRange: ClosedRange<Double> = 0.6...1.6
+    static let defaultTopMarkerScale: Double = 1.0
+
+    static func normalizedTopMarkerScale(_ value: Double) -> Double {
+        guard value.isFinite else { return defaultTopMarkerScale }
+        return min(topMarkerScaleRange.upperBound, max(topMarkerScaleRange.lowerBound, value))
+    }
 
     init(layout: HardwareRingLayout = .single,
          primaryMetric: HardwareMonitorMetric = .cpuUsage,
          secondaryMetric: HardwareMonitorMetric? = nil,
          topContent: HardwareRingTopContent = .automatic,
+         topMarkerScale: Double = HardwareRingConfiguration.defaultTopMarkerScale,
          color: HardwareRingColorConfiguration = .init(),
          overrides: [HardwareMonitorMetric: HardwareMetricRingOptions] = [:]) {
         self.layout = layout
         self.primaryMetric = primaryMetric
         self.secondaryMetric = secondaryMetric
         self.topContent = topContent
+        self.topMarkerScale = Self.normalizedTopMarkerScale(topMarkerScale)
         self.color = color
         self.overrides = overrides
     }
@@ -282,6 +294,7 @@ struct HardwareRingConfiguration: Codable, Equatable, Hashable, Sendable {
             copy.secondaryMetric = copy.normalizedSecondaryMetric
         }
         copy.color = color.normalized()
+        copy.topMarkerScale = Self.normalizedTopMarkerScale(topMarkerScale)
         copy.overrides = overrides.mapValues { $0 } // placeholder-normalised below
         for (metric, options) in overrides {
             copy.overrides[metric] = options.normalized(for: metric)
@@ -292,7 +305,7 @@ struct HardwareRingConfiguration: Codable, Equatable, Hashable, Sendable {
     // MARK: - Lenient Codable
 
     private enum CodingKeys: String, CodingKey {
-        case layout, primaryMetric, secondaryMetric, topContent, color, overrides
+        case layout, primaryMetric, secondaryMetric, topContent, topMarkerScale, color, overrides
     }
 
     init(from decoder: Decoder) throws {
@@ -305,10 +318,12 @@ struct HardwareRingConfiguration: Codable, Equatable, Hashable, Sendable {
         let primary = (try? container.decode(HardwareMonitorMetric.self, forKey: .primaryMetric)) ?? fallback.primaryMetric
         let secondary = try? container.decodeIfPresent(HardwareMonitorMetric.self, forKey: .secondaryMetric)
         let top = (try? container.decode(HardwareRingTopContent.self, forKey: .topContent)) ?? fallback.topContent
+        let topScale = (try? container.decodeIfPresent(Double.self, forKey: .topMarkerScale)).flatMap { $0 }
+            ?? fallback.topMarkerScale
         let color = (try? container.decode(HardwareRingColorConfiguration.self, forKey: .color)) ?? fallback.color
         let overrides = (try? container.decode([HardwareMonitorMetric: HardwareMetricRingOptions].self, forKey: .overrides)) ?? [:]
         self.init(layout: layout, primaryMetric: primary, secondaryMetric: secondary,
-                  topContent: top, color: color, overrides: overrides)
+                  topContent: top, topMarkerScale: topScale, color: color, overrides: overrides)
     }
 }
 

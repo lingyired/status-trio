@@ -1153,3 +1153,4 @@
 "settings.hardwareRing.critical" = "Kritische Schwelle";
 "settings.hardwareRing.range" = "Anzeigebereich";
 "settings.hardwareRing.reset" = "Auf Standard zurücksetzen";
+"settings.hardwareRing.top.scale" = "Größe der oberen Markierung";

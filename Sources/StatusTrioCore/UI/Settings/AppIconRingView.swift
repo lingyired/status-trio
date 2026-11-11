@@ -230,6 +230,32 @@ struct AppIconRingView: View {
                     label: { metricLabel($0) }
                 )
             }
+            if hardwareTopMode != .hidden {
+                SettingsDivider()
+                SettingsRow(
+                    title: localization.string(.settingsHardwareRingTopScale),
+                    subtitle: nil,
+                    leading: { SettingsIcon(symbol: "arrow.up.left.and.arrow.down.right", tint: .gray) },
+                    trailing: {
+                        HStack(spacing: 8) {
+                            Slider(
+                                value: Binding(
+                                    get: { store.hardwareRingConfiguration.topMarkerScale },
+                                    set: { setTopMarkerScale($0) }
+                                ),
+                                in: HardwareRingConfiguration.topMarkerScaleRange
+                            )
+                            .frame(width: 130)
+                            .controlSize(.small)
+                            .accessibilityLabel(localization.string(.settingsHardwareRingTopScale))
+                            Text("\(Int((store.hardwareRingConfiguration.topMarkerScale * 100).rounded()))%")
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 44, alignment: .trailing)
+                        }
+                    }
+                )
+            }
         }
     }
 
@@ -430,6 +456,12 @@ struct AppIconRingView: View {
     private func setColorMode(_ mode: HardwareRingColorMode) {
         var configuration = store.hardwareRingConfiguration
         configuration.color.mode = mode
+        store.hardwareRingConfiguration = configuration
+    }
+
+    private func setTopMarkerScale(_ scale: Double) {
+        var configuration = store.hardwareRingConfiguration
+        configuration.topMarkerScale = HardwareRingConfiguration.normalizedTopMarkerScale(scale)
         store.hardwareRingConfiguration = configuration
     }
 

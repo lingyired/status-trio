@@ -1153,3 +1153,4 @@
 "settings.hardwareRing.critical" = "危険しきい値";
 "settings.hardwareRing.range" = "表示範囲";
 "settings.hardwareRing.reset" = "デフォルトに戻す";
+"settings.hardwareRing.top.scale" = "上部マーカーのサイズ";

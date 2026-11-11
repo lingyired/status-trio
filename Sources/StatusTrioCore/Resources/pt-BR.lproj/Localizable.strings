@@ -1153,3 +1153,4 @@
 "settings.hardwareRing.critical" = "Limite crítico";
 "settings.hardwareRing.range" = "Intervalo de exibição";
 "settings.hardwareRing.reset" = "Restaurar padrões";
+"settings.hardwareRing.top.scale" = "Tamanho do marcador superior";

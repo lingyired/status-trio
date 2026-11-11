@@ -1153,3 +1153,4 @@
 "settings.hardwareRing.critical" = "Seuil critique";
 "settings.hardwareRing.range" = "Plage d’affichage";
 "settings.hardwareRing.reset" = "Rétablir les valeurs par défaut";
+"settings.hardwareRing.top.scale" = "Taille du repère supérieur";
