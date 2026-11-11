@@ -883,15 +883,12 @@
 
 "settings.transfer.title" = "Settings transfer";
 "settings.transfer.description" = "Save portable preferences as readable JSON, or preview a settings file before importing.";
-"settings.transfer.includeDevices" = "Include device settings";
-"settings.transfer.devicesDescription" = "Applies to export and import. Device IDs are hashed and must match exactly on this Mac; unmatched entries are skipped. Hashes are not encryption.";
 "settings.transfer.exclusions" = "Login items, Helper installation, privacy consent, analytics consent and global shortcuts are never transferred. Set these up manually after import.";
 "settings.transfer.export" = "Export…";
 "settings.transfer.import" = "Import…";
 "settings.transfer.previewTitle" = "Review import";
 "settings.transfer.previewDescription" = "Nothing changes until you confirm. Missing preferences stay unchanged; invalid values use defaults. A backup is saved before applying.";
 "settings.transfer.preferenceCount" = "Preferences to apply: %d";
-"settings.transfer.deviceCount" = "Device setting groups to apply: %d";
 "settings.transfer.source" = "Version %@ · Exported %@";
 "settings.transfer.warnings" = "Warnings (unknown, invalid or unmatched fields)";
 "settings.transfer.confirm" = "Apply import";

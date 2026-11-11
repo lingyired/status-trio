@@ -5,21 +5,13 @@ import XCTest
 @MainActor
 final class SettingsTransferLocalizationTests: XCTestCase {
     private let keys = [
-        "title", "description", "includeDevices", "devicesDescription", "exclusions",
+        "title", "description", "exclusions",
         "export", "import", "previewTitle", "previewDescription", "preferenceCount",
-        "deviceCount", "source", "warnings", "warningCount", "confirm", "cancel", "undo", "backup",
+        "source", "warnings", "warningCount", "confirm", "cancel", "undo", "backup",
         "exported", "imported", "undone", "errorTitle", "error.malformedFile",
         "error.unsupportedVersion", "error.fileTooLarge", "error.noPendingImport",
         "error.backupFailed", "error.undoUnavailable", "error.fileAccess", "done"
     ].map { "settings.transfer.\($0)" }
-
-    func testDeviceCountDescribesConfigurationGroupsRatherThanIndividualDevices() throws {
-        let english = try XCTUnwrap(Localization.resourceBundle(for: .english))
-        let chinese = try XCTUnwrap(Localization.resourceBundle(for: .simplifiedChinese))
-        let key = "settings.transfer.deviceCount"
-        XCTAssertTrue(english.localizedString(forKey: key, value: nil, table: nil).contains("groups"))
-        XCTAssertTrue(chinese.localizedString(forKey: key, value: nil, table: nil).contains("配置组"))
-    }
 
     func testWarningRowsAreLimitedToFirstFiftyAndKeepOriginalOrder() {
         let warnings = (0..<75).map { "document.future\($0)" }
@@ -62,13 +54,13 @@ final class SettingsTransferLocalizationTests: XCTestCase {
         ).encoded()
         _ = try session.stageImport(data)
         let firstPane = SettingsTransferView(
-            session: session, localization: localization, includeDevices: .constant(false)
+            session: session, localization: localization
         )
         XCTAssertNotNil(firstPane.session.preview)
         XCTAssertEqual(store.iconSize, 22)
         _ = try firstPane.session.applyImport()
         let returnedPane = SettingsTransferView(
-            session: session, localization: localization, includeDevices: .constant(false)
+            session: session, localization: localization
         )
         XCTAssertTrue(returnedPane.session.canUndo)
         XCTAssertEqual(returnedPane.session.lastBackupURL, session.lastBackupURL)
@@ -129,7 +121,6 @@ final class SettingsTransferLocalizationTests: XCTestCase {
     func testEveryLanguagePreservesCountAndMetadataFormatArguments() throws {
         let formats = [
             "preferenceCount": ["%d"],
-            "deviceCount": ["%d"],
             "warningCount": ["%d"],
             "source": ["%@", "%@"],
             "error.unsupportedVersion": ["%d"]

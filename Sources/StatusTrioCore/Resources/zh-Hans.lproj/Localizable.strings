@@ -884,15 +884,12 @@
 
 "settings.transfer.title" = "设置迁移";
 "settings.transfer.description" = "将可迁移的偏好设置保存为易读的 JSON 文件，或在导入前预览设置文件。";
-"settings.transfer.includeDevices" = "包含设备设置";
-"settings.transfer.devicesDescription" = "同时适用于导出和导入。设备标识符经过哈希处理，必须与此 Mac 上的设备精确匹配；不匹配的条目将被跳过。哈希并非加密。";
 "settings.transfer.exclusions" = "登录项、Helper 安装、隐私授权、分析数据共享授权和全局快捷键均不会迁移。请在导入后手动设置。";
 "settings.transfer.export" = "导出…";
 "settings.transfer.import" = "导入…";
 "settings.transfer.previewTitle" = "检查导入内容";
 "settings.transfer.previewDescription" = "确认前不会更改任何设置。文件中缺失的偏好设置保持不变；无效值使用默认值。应用前会保存备份。";
 "settings.transfer.preferenceCount" = "将应用的偏好设置：%d";
-"settings.transfer.deviceCount" = "将应用的设备配置组：%d";
 "settings.transfer.source" = "版本 %@ · 导出于 %@";
 "settings.transfer.warnings" = "警告（未知、无效或不匹配的字段）";
 "settings.transfer.confirm" = "应用导入";

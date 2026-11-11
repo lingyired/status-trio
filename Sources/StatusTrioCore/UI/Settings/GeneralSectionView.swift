@@ -10,8 +10,6 @@ struct GeneralSectionView: View {
     var chargeToFullNow: ChargeToFullNowController? = nil
     /// The Settings root supplies its stable session. Standalone panes own a local fallback.
     @StateObject private var transferSession: SettingsTransferSession
-    var includeTransferDevices: Binding<Bool>? = nil
-    @State private var localIncludeTransferDevices = false
 
     init(
         store: SettingsStore,
@@ -19,15 +17,13 @@ struct GeneralSectionView: View {
         globalShortcutController: GlobalShortcutController? = nil,
         statusStore: SystemStatusStore? = nil,
         chargeToFullNow: ChargeToFullNowController? = nil,
-        transferSession: SettingsTransferSession? = nil,
-        includeTransferDevices: Binding<Bool>? = nil
+        transferSession: SettingsTransferSession? = nil
     ) {
         self.store = store
         self.localization = localization
         self.globalShortcutController = globalShortcutController
         self.statusStore = statusStore
         self.chargeToFullNow = chargeToFullNow
-        self.includeTransferDevices = includeTransferDevices
         _transferSession = StateObject(wrappedValue: transferSession ?? SettingsTransferSession(
             store: store, localization: localization
         ))
@@ -42,9 +38,7 @@ struct GeneralSectionView: View {
             systemGroup
             SettingsTransferView(
                 session: transferSession,
-                localization: localization,
-                statusStore: statusStore,
-                includeDevices: includeTransferDevices ?? $localIncludeTransferDevices
+                localization: localization
             )
             analyticsGroup
             if updaterManager.canCheckForUpdates {

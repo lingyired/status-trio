@@ -884,15 +884,12 @@
 
 "settings.transfer.title" = "設定の移行";
 "settings.transfer.description" = "移行可能な環境設定を読みやすい JSON として保存するか、読み込む前に設定ファイルをプレビューします。";
-"settings.transfer.includeDevices" = "デバイス設定を含める";
-"settings.transfer.devicesDescription" = "書き出しと読み込みの両方に適用されます。デバイス ID はハッシュ化され、この Mac 上のデバイスと完全に一致する必要があります。一致しない項目はスキップされます。ハッシュ化は暗号化ではありません。";
 "settings.transfer.exclusions" = "ログイン項目、Helper のインストール、プライバシーに関する同意、解析データ共有への同意、グローバルショートカットは移行されません。読み込み後に手動で設定してください。";
 "settings.transfer.export" = "書き出す…";
 "settings.transfer.import" = "読み込む…";
 "settings.transfer.previewTitle" = "読み込み内容の確認";
 "settings.transfer.previewDescription" = "確認するまで設定は変更されません。ファイルにない環境設定はそのまま維持され、無効な値にはデフォルト値が使われます。適用前にバックアップが保存されます。";
 "settings.transfer.preferenceCount" = "適用する環境設定：%d";
-"settings.transfer.deviceCount" = "適用するデバイス設定グループ：%d";
 "settings.transfer.source" = "バージョン %@ · 書き出し日時 %@";
 "settings.transfer.warnings" = "警告（不明、無効、または不一致のフィールド）";
 "settings.transfer.confirm" = "読み込みを適用";

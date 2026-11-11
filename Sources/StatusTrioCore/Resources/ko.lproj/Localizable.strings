@@ -884,15 +884,12 @@
 
 "settings.transfer.title" = "설정 이전";
 "settings.transfer.description" = "이전 가능한 환경설정을 읽기 쉬운 JSON으로 저장하거나, 가져오기 전에 설정 파일을 미리 봅니다.";
-"settings.transfer.includeDevices" = "기기 설정 포함";
-"settings.transfer.devicesDescription" = "내보내기와 가져오기에 모두 적용됩니다. 기기 ID는 해시 처리되며 이 Mac의 기기와 정확히 일치해야 합니다. 일치하지 않는 항목은 건너뜁니다. 해시는 암호화가 아닙니다.";
 "settings.transfer.exclusions" = "로그인 항목, Helper 설치, 개인정보 보호 동의, 분석 데이터 공유 동의 및 전역 단축키는 이전되지 않습니다. 가져온 후 수동으로 설정하세요.";
 "settings.transfer.export" = "내보내기…";
 "settings.transfer.import" = "가져오기…";
 "settings.transfer.previewTitle" = "가져올 내용 검토";
 "settings.transfer.previewDescription" = "확인하기 전에는 아무것도 변경되지 않습니다. 파일에 없는 환경설정은 유지되며, 잘못된 값에는 기본값이 사용됩니다. 적용 전에 백업이 저장됩니다.";
 "settings.transfer.preferenceCount" = "적용할 환경설정: %d";
-"settings.transfer.deviceCount" = "적용할 기기 설정 그룹: %d";
 "settings.transfer.source" = "버전 %@ · 내보낸 날짜 %@";
 "settings.transfer.warnings" = "경고(알 수 없거나 잘못되었거나 일치하지 않는 필드)";
 "settings.transfer.confirm" = "가져오기 적용";

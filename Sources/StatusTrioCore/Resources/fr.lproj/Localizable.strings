@@ -884,15 +884,12 @@
 
 "settings.transfer.title" = "Transfert des réglages";
 "settings.transfer.description" = "Enregistrez les préférences transférables dans un fichier JSON lisible, ou examinez un fichier de réglages avant de l’importer.";
-"settings.transfer.includeDevices" = "Inclure les réglages des appareils";
-"settings.transfer.devicesDescription" = "S’applique à l’exportation et à l’importation. Les identifiants des appareils sont hachés et doivent correspondre exactement sur ce Mac ; les entrées sans correspondance sont ignorées. Le hachage n’est pas un chiffrement.";
 "settings.transfer.exclusions" = "Les éléments d’ouverture, l’installation de Helper, les autorisations de confidentialité, le consentement aux analyses et les raccourcis globaux ne sont jamais transférés. Configurez-les manuellement après l’importation.";
 "settings.transfer.export" = "Exporter…";
 "settings.transfer.import" = "Importer…";
 "settings.transfer.previewTitle" = "Examiner l’importation";
 "settings.transfer.previewDescription" = "Rien ne change avant votre confirmation. Les préférences absentes restent inchangées ; les valeurs non valides sont remplacées par les valeurs par défaut. Une sauvegarde est enregistrée avant l’application.";
 "settings.transfer.preferenceCount" = "Préférences à appliquer : %d";
-"settings.transfer.deviceCount" = "Groupes de réglages d’appareils à appliquer : %d";
 "settings.transfer.source" = "Version %@ · Exporté le %@";
 "settings.transfer.warnings" = "Avertissements (champs inconnus, non valides ou sans correspondance)";
 "settings.transfer.confirm" = "Appliquer l’importation";

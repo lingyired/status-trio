@@ -9,8 +9,8 @@ enum SettingsTransferError: Error, Equatable {
     case undoUnavailable
 }
 
-/// Deliberately not a dump of UserDefaults: the two dictionaries are allowlisted
-/// by their respective catalogs before any value reaches a live setter.
+/// Deliberately not a dump of UserDefaults: the preference dictionary is
+/// allowlisted by its catalog before any value reaches a live setter.
 struct SettingsTransferDocument: Codable, Sendable {
     static let currentSchemaVersion = 1
     static let maximumFileSize = 2 * 1024 * 1024
@@ -19,24 +19,21 @@ struct SettingsTransferDocument: Codable, Sendable {
     let exportedAt: Date
     let appVersion: String
     let preferences: [String: SettingsTransferValue]
-    let devices: [String: SettingsTransferValue]?
     private(set) var unknownFields: [String] = []
 
     private enum CodingKeys: String, CodingKey, CaseIterable {
-        case schemaVersion, exportedAt, appVersion, preferences, devices
+        case schemaVersion, exportedAt, appVersion, preferences
     }
 
     init(
         appVersion: String,
         exportedAt: Date = Date(),
-        preferences: [String: SettingsTransferValue],
-        devices: [String: SettingsTransferValue]? = nil
+        preferences: [String: SettingsTransferValue]
     ) {
         self.schemaVersion = Self.currentSchemaVersion
         self.exportedAt = exportedAt
         self.appVersion = appVersion
         self.preferences = preferences
-        self.devices = devices
     }
 
     func encoded() throws -> Data {

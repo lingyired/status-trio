@@ -884,15 +884,12 @@
 
 "settings.transfer.title" = "設定移轉";
 "settings.transfer.description" = "將可移轉的偏好設定儲存為易讀的 JSON 檔案，或在匯入前預覽設定檔案。";
-"settings.transfer.includeDevices" = "包含裝置設定";
-"settings.transfer.devicesDescription" = "同時適用於匯出和匯入。裝置識別碼經過雜湊處理，必須與此 Mac 上的裝置完全相符；不相符的項目將略過。雜湊並非加密。";
 "settings.transfer.exclusions" = "登入項目、Helper 安裝、隱私權授權、分析資料共享授權和全域快速鍵均不會移轉。請在匯入後手動設定。";
 "settings.transfer.export" = "匯出…";
 "settings.transfer.import" = "匯入…";
 "settings.transfer.previewTitle" = "檢查匯入內容";
 "settings.transfer.previewDescription" = "確認前不會更改任何設定。檔案中缺少的偏好設定保持不變；無效值使用預設值。套用前會儲存備份。";
 "settings.transfer.preferenceCount" = "將套用的偏好設定：%d";
-"settings.transfer.deviceCount" = "將套用的裝置配置組：%d";
 "settings.transfer.source" = "版本 %@ · 匯出於 %@";
 "settings.transfer.warnings" = "警告（未知、無效或不相符的欄位）";
 "settings.transfer.confirm" = "套用匯入";
