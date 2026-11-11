@@ -884,15 +884,12 @@
 
 "settings.transfer.title" = "نقل الإعدادات";
 "settings.transfer.description" = "احفظ التفضيلات القابلة للنقل بصيغة JSON مقروءة، أو عاين ملف إعدادات قبل استيراده.";
-"settings.transfer.includeDevices" = "تضمين إعدادات الأجهزة";
-"settings.transfer.devicesDescription" = "ينطبق على التصدير والاستيراد. تُحوَّل معرّفات الأجهزة إلى قيم تجزئة ويجب أن تتطابق تماماً على هذا الـ Mac؛ ويتم تخطي الإدخالات غير المطابقة. التجزئة ليست تشفيراً.";
 "settings.transfer.exclusions" = "لا يتم أبداً نقل عناصر تسجيل الدخول أو تثبيت Helper أو أذونات الخصوصية أو الموافقة على التحليلات أو الاختصارات العامة. قم بإعدادها يدوياً بعد الاستيراد.";
 "settings.transfer.export" = "تصدير…";
 "settings.transfer.import" = "استيراد…";
 "settings.transfer.previewTitle" = "مراجعة الاستيراد";
 "settings.transfer.previewDescription" = "لن يتغير شيء حتى تؤكد. تبقى التفضيلات غير الموجودة دون تغيير؛ وتُستخدم القيم الافتراضية بدلاً من القيم غير الصالحة. تُحفظ نسخة احتياطية قبل التطبيق.";
 "settings.transfer.preferenceCount" = "التفضيلات التي سيتم تطبيقها: %d";
-"settings.transfer.deviceCount" = "مجموعات إعدادات الأجهزة التي سيتم تطبيقها: %d";
 "settings.transfer.source" = "الإصدار %@ · تم التصدير في %@";
 "settings.transfer.warnings" = "تحذيرات (حقول غير معروفة أو غير صالحة أو غير مطابقة)";
 "settings.transfer.confirm" = "تطبيق الاستيراد";

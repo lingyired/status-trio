@@ -28,7 +28,6 @@ struct SettingsView: View {
     @StateObject private var navigation = SettingsNavigationModel()
     /// Kept above the category switch so leaving General does not discard undo or preview.
     @StateObject private var transferSession: SettingsTransferSession
-    @State private var includeTransferDevices = false
 
     init(
         store: SettingsStore,
@@ -481,8 +480,7 @@ struct SettingsView: View {
                 globalShortcutController: globalShortcutController,
                 statusStore: statusStore,
                 chargeToFullNow: chargeToFullNow,
-                transferSession: transferSession,
-                includeTransferDevices: $includeTransferDevices
+                transferSession: transferSession
             )
         case .about:
             AboutSectionView()

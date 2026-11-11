@@ -5,9 +5,7 @@ import UniformTypeIdentifiers
 @MainActor
 struct SettingsTransferView: View {
     @ObservedObject var localization: Localization
-    var statusStore: SystemStatusStore?
     @ObservedObject var session: SettingsTransferSession
-    @Binding var includeDevices: Bool
     @State private var isImporting = false
     @State private var isExporting = false
     @State private var exportFile: TransferJSONFile?
@@ -16,27 +14,15 @@ struct SettingsTransferView: View {
 
     init(
         session: SettingsTransferSession,
-        localization: Localization,
-        statusStore: SystemStatusStore? = nil,
-        includeDevices: Binding<Bool>
+        localization: Localization
     ) {
         self.session = session
         self.localization = localization
-        self.statusStore = statusStore
-        _includeDevices = includeDevices
     }
 
     var body: some View {
         SettingsGroup(localization.string(.settingsTransferTitle)) {
             SettingsHintRow(text: localization.string(.settingsTransferDescription))
-            SettingsToggleRow(
-                symbol: "externaldrive",
-                tint: .blue,
-                title: localization.string(.settingsTransferIncludeDevices),
-                subtitle: localization.string(.settingsTransferDevicesDescription),
-                isOn: $includeDevices
-            )
-            .disabled(session.preview != nil || isImporting || isExporting)
 
             SettingsDivider()
             HStack(spacing: 12) {
@@ -116,7 +102,6 @@ struct SettingsTransferView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
             Text(localization.format(.settingsTransferPreferenceCount, preview.preferenceCount))
-            Text(localization.format(.settingsTransferDeviceCount, preview.deviceSettingCount))
             Text(localization.format(
                 .settingsTransferSource,
                 preview.appVersion,
@@ -171,21 +156,9 @@ struct SettingsTransferView: View {
         }
     }
 
-    /// Reads the already-published inventory; never triggers discovery or permission prompts.
-    private var inventory: SettingsDeviceInventory {
-        guard let statusStore else { return .init() }
-        return SettingsDeviceInventory(
-            outputUIDs: Set(statusStore.snapshot.volume.outputDevices.compactMap(\.uid)),
-            inputUIDs: Set(statusStore.liveInput.devices.compactMap(\.uid)),
-            displayIDs: Set(statusStore.liveBrightness.displays.map(\.id)),
-            bluetoothAddresses: Set(statusStore.bluetoothDevices.devices.map(\.id)),
-            betterDisplayUUIDs: Set(statusStore.betterDisplayDevices.map(\.uuid))
-        )
-    }
-
     private func beginExport() {
         do {
-            exportFile = TransferJSONFile(data: try session.exportData(includeDevices: includeDevices))
+            exportFile = TransferJSONFile(data: try session.exportData())
             isExporting = true
         } catch {
             report(error)
@@ -198,7 +171,7 @@ struct SettingsTransferView: View {
             let accessed = url.startAccessingSecurityScopedResource()
             defer { if accessed { url.stopAccessingSecurityScopedResource() } }
             let data = try Self.readImportData(from: url)
-            _ = try session.stageImport(data, includeDevices: includeDevices, inventory: inventory)
+            _ = try session.stageImport(data)
             // Preview is inline, not an alert: export success cannot replace confirmation.
             failure = nil
             message = nil

@@ -4,15 +4,12 @@ import Foundation
 struct SettingsTransferPreview: Identifiable {
     let id = UUID()
     let preferenceCount: Int
-    let deviceSettingCount: Int
     /// Technical field paths. The view explains their meaning in the selected
     /// language and bounds the displayed list rather than rendering arbitrary JSON.
     let warnings: [String]
     let appVersion: String
     let exportedAt: Date
     fileprivate let preferences: [String: SettingsTransferValue]
-    fileprivate let devices: [String: SettingsTransferValue]
-    fileprivate let deviceArchive: [String: SettingsTransferValue]?
     fileprivate let language: LanguagePreference?
 }
 
@@ -32,7 +29,6 @@ final class SettingsTransferSession: ObservableObject {
     private struct UndoState {
         let preferences: [String: SettingsTransferValue]
         let language: LanguagePreference
-        let devices: SettingsDeviceLocalState
     }
 
     init(store: SettingsStore, localization: Localization, backupDirectory: URL? = nil) {
@@ -43,26 +39,21 @@ final class SettingsTransferSession: ObservableObject {
         )[0].appendingPathComponent("StatusTrio/Settings Backups", isDirectory: true)
     }
 
-    func exportData(includeDevices: Bool = false) throws -> Data {
-        try document(includeDevices: includeDevices).encoded()
+    func exportData() throws -> Data {
+        try document().encoded()
     }
 
-    private func document(includeDevices: Bool) -> SettingsTransferDocument {
+    private func document() -> SettingsTransferDocument {
         var preferences = SettingsPreferenceCatalog.snapshot(store)
         preferences["language"] = .string(localization.preference.id)
         return SettingsTransferDocument(
             appVersion: AppMetadata.versionShortString,
-            preferences: preferences,
-            devices: includeDevices ? SettingsDeviceArchive.snapshot(store) : nil
+            preferences: preferences
         )
     }
 
     @discardableResult
-    func stageImport(
-        _ data: Data,
-        includeDevices: Bool = false,
-        inventory: SettingsDeviceInventory = .init()
-    ) throws -> SettingsTransferPreview {
+    func stageImport(_ data: Data) throws -> SettingsTransferPreview {
         // Failed attempts cannot leave an earlier file's confirmation live.
         preview = nil
         let document = try SettingsTransferDocument.decode(data)
@@ -82,25 +73,12 @@ final class SettingsTransferSession: ObservableObject {
                 warnings.append("language")
             }
         }
-        var devices: [String: SettingsTransferValue] = [:]
-        if let deviceFields = document.devices {
-            if includeDevices {
-                let preparedDevices = SettingsDeviceArchive.prepare(deviceFields, inventory: inventory)
-                devices = preparedDevices.values
-                warnings += preparedDevices.warnings
-            } else if !deviceFields.isEmpty {
-                warnings.append("devices")
-            }
-        }
         let staged = SettingsTransferPreview(
             preferenceCount: prepared.values.count + (language == nil ? 0 : 1),
-            deviceSettingCount: devices.count,
             warnings: warnings.sorted(),
             appVersion: document.appVersion,
             exportedAt: document.exportedAt,
             preferences: prepared.values,
-            devices: devices,
-            deviceArchive: includeDevices ? document.devices : nil,
             language: language
         )
         preview = staged
@@ -112,26 +90,17 @@ final class SettingsTransferSession: ObservableObject {
     }
 
     @discardableResult
-    func applyImport(inventory: SettingsDeviceInventory? = nil) throws -> URL {
+    func applyImport() throws -> URL {
         guard let staged = preview else { throw SettingsTransferError.noPendingImport }
-        // Hardware can disappear while the confirmation is on screen. The UI
-        // supplies its latest published inventory; unavailable entries stay out.
-        let devices: [String: SettingsTransferValue]
-        if let inventory, let archive = staged.deviceArchive {
-            devices = SettingsDeviceArchive.prepare(archive, inventory: inventory).values
-        } else {
-            devices = staged.devices
-        }
         let previous = UndoState(
             preferences: SettingsPreferenceCatalog.snapshot(store),
-            language: localization.preference,
-            devices: SettingsDeviceArchive.captureLocalState(store)
+            language: localization.preference
         )
         // Read live in-memory slider values into the backup, not potentially
         // stale coalesced defaults. No setter or persistent flush before success.
         let backupURL = backupDirectory.appendingPathComponent("StatusTrio-\(UUID().uuidString).json")
         do {
-            let backup = try exportData(includeDevices: true)
+            let backup = try exportData()
             try FileManager.default.createDirectory(
                 at: backupDirectory, withIntermediateDirectories: true,
                 attributes: [.posixPermissions: 0o700]
@@ -144,7 +113,6 @@ final class SettingsTransferSession: ObservableObject {
         // A slider's delayed write must not later overwrite imported values.
         store.flushPendingPersists()
         SettingsPreferenceCatalog.apply(staged.preferences, to: store)
-        SettingsDeviceArchive.apply(devices, to: store)
         if let language = staged.language { localization.setPreference(language) }
         undoState = previous
         lastBackupURL = backupURL
@@ -157,7 +125,6 @@ final class SettingsTransferSession: ObservableObject {
         guard let previous = undoState else { throw SettingsTransferError.undoUnavailable }
         store.flushPendingPersists()
         SettingsPreferenceCatalog.apply(previous.preferences, to: store)
-        SettingsDeviceArchive.restoreLocalState(previous.devices, to: store)
         localization.setPreference(previous.language)
         undoState = nil
         canUndo = false

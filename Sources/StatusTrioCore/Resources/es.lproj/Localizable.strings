@@ -884,15 +884,12 @@
 
 "settings.transfer.title" = "Transferencia de ajustes";
 "settings.transfer.description" = "Guarda las preferencias transferibles como JSON legible o revisa un archivo de ajustes antes de importarlo.";
-"settings.transfer.includeDevices" = "Incluir ajustes de dispositivos";
-"settings.transfer.devicesDescription" = "Se aplica a la exportación y a la importación. Los identificadores de dispositivos se convierten en hashes y deben coincidir exactamente en este Mac; las entradas sin coincidencia se omiten. Los hashes no son cifrado.";
 "settings.transfer.exclusions" = "Los ítems de inicio, la instalación de Helper, los permisos de privacidad, el consentimiento para análisis y los atajos globales nunca se transfieren. Configúralos manualmente después de importar.";
 "settings.transfer.export" = "Exportar…";
 "settings.transfer.import" = "Importar…";
 "settings.transfer.previewTitle" = "Revisar importación";
 "settings.transfer.previewDescription" = "No se cambia nada hasta que confirmes. Las preferencias ausentes se mantienen; los valores no válidos usan los predeterminados. Se guarda una copia de seguridad antes de aplicar los cambios.";
 "settings.transfer.preferenceCount" = "Preferencias que se aplicarán: %d";
-"settings.transfer.deviceCount" = "Grupos de ajustes de dispositivos que se aplicarán: %d";
 "settings.transfer.source" = "Versión %@ · Exportado el %@";
 "settings.transfer.warnings" = "Advertencias (campos desconocidos, no válidos o sin coincidencia)";
 "settings.transfer.confirm" = "Aplicar importación";

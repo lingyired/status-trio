@@ -150,36 +150,18 @@ struct SettingsTransferSessionTests {
         #expect(store.iconSize == 28)
     }
 
-    @Test func confirmationRechecksDevicesThatDisappearAfterPreview() throws {
+    @Test func backupIncludesPendingSliderValuesAndUndoRestoresPreferences() throws {
         let (store, localization, directory, defaults, name) = try fixture()
         defer { defaults.removePersistentDomain(forName: name) }
-        store.setOutputDeviceHidden("attached-output", hidden: true)
-        let devices = SettingsDeviceArchive.snapshot(store)
-        store.setOutputDeviceHidden("attached-output", hidden: false)
-        let session = SettingsTransferSession(store: store, localization: localization, backupDirectory: directory)
-        let data = try SettingsTransferDocument(appVersion: "1", preferences: [:], devices: devices).encoded()
-        _ = try session.stageImport(data, includeDevices: true, inventory: .init(outputUIDs: ["attached-output"]))
-        _ = try session.applyImport(inventory: .init())
-        #expect(!store.hiddenOutputDeviceUIDs.contains("attached-output"))
-    }
-
-    @Test func backupIncludesPendingSliderValuesAndUndoRemovesIntroducedDeviceEntries() throws {
-        let (store, localization, directory, defaults, name) = try fixture()
-        defer { defaults.removePersistentDomain(forName: name) }
-        store.setOutputDeviceHidden("new-output", hidden: true)
-        let devices = SettingsDeviceArchive.snapshot(store)
-        store.setOutputDeviceHidden("new-output", hidden: false)
         store.setIconSizeFromSlider(28)
         let session = SettingsTransferSession(store: store, localization: localization, backupDirectory: directory)
-        let data = try SettingsTransferDocument(appVersion: "1", preferences: ["iconSize": .number(34)], devices: devices).encoded()
-        _ = try session.stageImport(data, includeDevices: true, inventory: .init(outputUIDs: ["new-output"]))
+        let data = try SettingsTransferDocument(appVersion: "1", preferences: ["iconSize": .number(34)]).encoded()
+        _ = try session.stageImport(data)
         let backup = try session.applyImport()
-        #expect(store.hiddenOutputDeviceUIDs.contains("new-output"))
         #expect(try SettingsTransferDocument.decode(Data(contentsOf: backup)).preferences["iconSize"] == .number(28))
         #expect(defaults.double(forKey: SettingsStore.iconSizeDefaultsKey) == 34)
         try session.undoImport()
         #expect(store.iconSize == 28)
-        #expect(store.hiddenOutputDeviceUIDs.isEmpty)
         #expect(defaults.double(forKey: SettingsStore.iconSizeDefaultsKey) == 28)
     }
 
@@ -195,14 +177,13 @@ struct SettingsTransferSessionTests {
         #expect(!FileManager.default.fileExists(atPath: directory.path))
     }
 
-    @Test func exportOmitsDevicesAndPrivatePreferencesByDefault() throws {
+    @Test func exportOmitsPrivatePreferences() throws {
         let (store, localization, directory, defaults, name) = try fixture()
         defer { defaults.removePersistentDomain(forName: name) }
         defaults.set("never-export", forKey: "unrelatedSecret")
         let session = SettingsTransferSession(store: store, localization: localization, backupDirectory: directory)
         let data = try session.exportData()
         let document = try SettingsTransferDocument.decode(data)
-        #expect(document.devices == nil)
         #expect(document.preferences["language"] == .string("system"))
         #expect(document.preferences["iconSize"] == .number(24))
         #expect(!String(decoding: data, as: UTF8.self).contains("never-export"))
