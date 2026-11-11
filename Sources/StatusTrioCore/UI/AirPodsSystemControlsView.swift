@@ -164,13 +164,22 @@ final class AirPodsSystemControlsModel: ObservableObject {
         snapshot = previewSnapshot
     }
 
-    func start(read: Reader? = nil) {
+    /// `includeAdaptive` is forwarded to the first read. It stays false for every
+    /// panel-driven start — passive or expanded — because the panel must never
+    /// open the AACP channel on its own (#323); the channel is opened only from
+    /// `setAdaptive` when the user drags the strength bar.
+    func start(includeAdaptive: Bool = false, read: Reader? = nil) {
         if isPreview {
             // Preview owns no observation and no hardware channel.
             publishPreview()
             return
         }
-        guard observation == nil else { return }
+        guard observation == nil else {
+            // Already running (e.g. an inline start). Expanding adds the
+            // Adaptive read once; never re-open the channel on every re-appear.
+            if includeAdaptive, snapshot.adaptive == nil { refresh(includeAdaptive: true, read: read) }
+            return
+        }
         if let conversationCache {
             conversationGeneration = conversationCache.generation
             snapshot.conversation = conversationCache.options(for: deviceID)
@@ -184,7 +193,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
                 self.spatialChanged()
             }
         }
-        refresh(read: read)
+        refresh(includeAdaptive: includeAdaptive, read: read)
         spatialChanged()
     }
 
@@ -218,9 +227,12 @@ final class AirPodsSystemControlsModel: ObservableObject {
         }
     }
 
-    typealias Reader = (@escaping @MainActor (AirPodsSystemSnapshot) -> Void) async throws -> AirPodsSystemSnapshot
+    /// Receives the read scope so a test can assert a passive panel open never
+    /// asks for the Adaptive strength value (the AACP-channel-gated read, #323).
+    typealias Reader = (_ includeAdaptive: Bool,
+                        _ publish: @escaping @MainActor (AirPodsSystemSnapshot) -> Void) async throws -> AirPodsSystemSnapshot
 
-    func refresh(read: Reader? = nil) {
+    func refresh(includeAdaptive: Bool = false, read: Reader? = nil) {
         if isPreview {
             publishPreview()
             return
@@ -245,8 +257,8 @@ final class AirPodsSystemControlsModel: ObservableObject {
                 self.snapshot = updated
             }
             let result: AirPodsSystemSnapshot
-            if let read { result = try await read(publish) }
-            else { result = try await self.controls.read(onUpdate: publish) }
+            if let read { result = try await read(includeAdaptive, publish) }
+            else { result = try await self.controls.read(includeAdaptive: includeAdaptive, onUpdate: publish) }
             try Task.checkCancellation()
             publish(result)
         }
@@ -595,23 +607,22 @@ struct AirPodsAdaptiveBar: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            if let value = model.snapshot.adaptive {
-                // Non-continuous: the slider sends one value when the drag ends,
-                // so releasing anywhere applies immediately without a separate
-                // Apply button and without spamming the device mid-drag.
-                AirPodsAdaptiveSlider(value: $draft, label: localization.string(.airPodsAdaptive), continuous: false)
-                    .frame(height: AirPodsControlMetrics.capsuleHeight)
-                    .disabled(model.busy || model.spatialWriting)
-                    .onAppear { draft = Double(value) }
-                    .onChange(of: value) { draft = Double($0) }
-                    .onChange(of: draft) { newDraft in
-                        let target = Int(newDraft)
-                        if target != model.snapshot.adaptive { model.setAdaptive(target) }
-                    }
-            } else if !model.snapshot.loaded {
-                ProgressView().controlSize(.mini)
-                    .accessibilityLabel(localization.string(.batteryDetailsLoading))
-            }
+            // The slider is always present, but nothing is read or written until
+            // the user drags it. `setAdaptive` opens the AACP channel only then,
+            // so a passive panel open or a plain expansion never touches the
+            // Bluetooth control plane (#323).
+            AirPodsAdaptiveSlider(value: $draft, label: localization.string(.airPodsAdaptive), continuous: false)
+                .frame(height: AirPodsControlMetrics.capsuleHeight)
+                .disabled(model.busy || model.spatialWriting)
+                .onAppear { if let value = model.snapshot.adaptive { draft = Double(value) } }
+                .onChange(of: model.snapshot.adaptive) { value in
+                    if let value { draft = Double(value) }
+                }
+                .onChange(of: draft) { newDraft in
+                    let target = Int(newDraft)
+                    if let current = model.snapshot.adaptive, target == current { return }
+                    model.setAdaptive(target)
+                }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(localization.string(.airPodsAdaptive))

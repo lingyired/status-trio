@@ -11,7 +11,7 @@ final class AirPodsSpatialObservationTests: XCTestCase {
         let model = AirPodsSystemControlsModel(deviceID: .init(id: 42, uid: "fixture"), deviceName: "AirPods",
             listenerBackend: backend, spatialReader: { spatialReads += 1; return playing })
         var finish: CheckedContinuation<Void, Never>?
-        model.start { publish in
+        model.start { _, publish in
             publish(.init(spatialLoaded: true))
             await withCheckedContinuation { finish = $0 }
             return .init(loaded: true)
@@ -40,7 +40,7 @@ final class AirPodsSpatialObservationTests: XCTestCase {
         for _ in 0..<10 { await Task.yield() }
         XCTAssertEqual(spatialReads, count, "Queued callbacks after dismissal must be ignored")
 
-        model.start { _ in .init(loaded: true) }
+        model.start { _, _ in .init(loaded: true) }
         for _ in 0..<100 where model.busy { try await Task.sleep(for: .milliseconds(5)) }
         backend.emit()
         for _ in 0..<100 where spatialReads == count { try await Task.sleep(for: .milliseconds(5)) }
@@ -66,7 +66,7 @@ final class AirPodsSpatialObservationTests: XCTestCase {
         var reads = 0
         let model = AirPodsSystemControlsModel(deviceID: .init(id: 42, uid: "fixture"), deviceName: "AirPods",
             listenerBackend: backend, spatialReader: { reads += 1; return [] })
-        model.start { _ in .init(conversation: conversation, adaptive: 50, loaded: true) }
+        model.start { _, _ in .init(conversation: conversation, adaptive: 50, loaded: true) }
         for _ in 0..<100 where model.busy { try await Task.sleep(for: .milliseconds(5)) }
         let initialReads = reads
         var finish: CheckedContinuation<Void, Never>?
@@ -81,6 +81,33 @@ final class AirPodsSpatialObservationTests: XCTestCase {
         XCTAssertTrue(model.snapshot.spatial.isEmpty, "Stopping playback may make Spatial Audio unavailable")
         XCTAssertEqual(model.snapshot.conversation, conversation)
         XCTAssertEqual(model.snapshot.adaptive, 50)
+        model.stop()
+    }
+
+    /// #323: opening the panel must not ask for the Adaptive strength value,
+    /// because that read is the one that opens the Bluetooth AACP L2CAP channel
+    /// and can bounce audio to the built-in speakers (or wedge bluetoothd). The
+    /// panel only requests it from an explicit Adaptive read, never passively.
+    @MainActor
+    func testPassiveStartNeverRequestsGatedAdaptiveRead() async throws {
+        let backend = SpatialListenerFixture()
+        let model = AirPodsSystemControlsModel(deviceID: .init(id: 42, uid: "fixture"), deviceName: "AirPods",
+            listenerBackend: backend, spatialReader: { [] })
+        var requested: [Bool] = []
+        model.start { includeAdaptive, _ in
+            requested.append(includeAdaptive)
+            return .init(conversationLoaded: true, spatialLoaded: true)
+        }
+        for _ in 0..<100 where requested.isEmpty { try await Task.sleep(for: .milliseconds(5)) }
+        for _ in 0..<100 where model.busy { try await Task.sleep(for: .milliseconds(5)) }
+        XCTAssertEqual(requested, [false], "A passive panel open must not request the AACP-gated Adaptive read")
+
+        model.refresh(includeAdaptive: true) { includeAdaptive, _ in
+            requested.append(includeAdaptive)
+            return .init(adaptive: 50, loaded: true)
+        }
+        for _ in 0..<100 where requested.count < 2 { try await Task.sleep(for: .milliseconds(5)) }
+        XCTAssertEqual(requested, [false, true], "Only an explicit Adaptive read requests the channel")
         model.stop()
     }
 

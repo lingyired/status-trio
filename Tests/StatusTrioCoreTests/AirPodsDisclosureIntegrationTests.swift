@@ -677,7 +677,7 @@ final class AirPodsDisclosureIntegrationTests: VisibleUITestCase {
             let model = AirPodsSystemControlsModel(
                 deviceID: row.key, deviceName: row.name,
                 listenerBackend: backend, spatialReader: { [] },
-                readSnapshot: { [weak self] publish in
+                readSnapshot: { [weak self] _, publish in
                     guard let self else { return .init() }
                     reads += 1
                     var snapshot = AirPodsSystemSnapshot()
