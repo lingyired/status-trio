@@ -360,6 +360,72 @@ final class BrightnessOptimisticPublishTests: XCTestCase {
             "reopening must show the display's actual brightness, not the stale target"
         )
     }
+
+    func testStaleReadBackDuringGestureDoesNotMoveTheTarget() async {
+        let brightness = FakeBrightnessMonitor()
+        let store = makeStore(brightness)
+        store.start()
+        store.setPopoverVisible(true)
+        defer { store.stop() }
+
+        store.beginBrightnessAdjustment(displayID: displayID)
+        store.setBrightness(0.9, forDisplayID: displayID)
+        // A stale read-back arrives mid-gesture, even with a higher sequence.
+        brightness.send(BrightnessStatus(displays: [makeDisplay(0.1, readSequence: 50)]))
+        await settle()
+
+        let display = store.liveBrightness.displays.first
+        XCTAssertEqual(display?.scalar ?? -1, 0.9, accuracy: 0.0001)
+        XCTAssertEqual(display?.canAdjust, true)
+    }
+
+    func testGestureEndLetsRealHardwareTakeOver() async {
+        let brightness = FakeBrightnessMonitor()
+        let store = makeStore(brightness)
+        store.start()
+        store.setPopoverVisible(true)
+        defer { store.stop() }
+
+        store.beginBrightnessAdjustment(displayID: displayID)
+        store.setBrightness(0.9, forDisplayID: displayID)
+        store.finishBrightnessAdjustment(displayID: displayID)
+        brightness.send(BrightnessStatus(displays: [makeDisplay(0.2, readSequence: 60)]))
+        await settle()
+
+        XCTAssertEqual(
+            store.liveBrightness.displays.first?.scalar ?? -1,
+            0.2,
+            accuracy: 0.0001,
+            "after the gesture ends the real hardware reading must win"
+        )
+    }
+
+    func testRepeatedIdenticalTargetWritesOnce() async {
+        let brightness = FakeBrightnessMonitor()
+        let store = makeStore(brightness)
+        store.start()
+        store.setPopoverVisible(true)
+        defer { store.stop() }
+
+        store.setBrightness(0.5, forDisplayID: displayID)
+        store.setBrightness(0.5, forDisplayID: displayID)
+
+        XCTAssertEqual(brightness.writeCount, 1)
+    }
+
+    func testNonFiniteTargetIsIgnored() async {
+        let brightness = FakeBrightnessMonitor()
+        let store = makeStore(brightness)
+        store.start()
+        store.setPopoverVisible(true)
+        defer { store.stop() }
+
+        let before = store.liveBrightness.displays.first?.scalar
+        store.setBrightness(.nan, forDisplayID: displayID)
+
+        XCTAssertEqual(brightness.writeCount, 0)
+        XCTAssertEqual(store.liveBrightness.displays.first?.scalar, before)
+    }
 }
 
 // MARK: - Minimal monitors
@@ -369,6 +435,7 @@ private final class FakeBrightnessMonitor: BrightnessMonitoring {
     let updates: AsyncStream<BrightnessStatus>
     private let continuation: AsyncStream<BrightnessStatus>.Continuation
     private(set) var lastWrittenScalar: Double = 0
+    private(set) var writeCount = 0
     private var readSequences: [String: UInt64] = [:]
 
     func latestUpdateSequence(forDisplayID displayID: String) -> UInt64 {
@@ -381,6 +448,7 @@ private final class FakeBrightnessMonitor: BrightnessMonitoring {
     func refresh() {}
     func recover() {}
     func setBrightness(_ scalar: Double, forDisplayID displayID: String) {
+        writeCount += 1
         lastWrittenScalar = scalar
     }
     func finishBrightnessAdjustment(displayID: String) {}
