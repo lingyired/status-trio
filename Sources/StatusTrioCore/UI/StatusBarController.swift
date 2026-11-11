@@ -1123,8 +1123,9 @@ final class StatusBarController: NSObject {
         // 2. A scrollable scroll view under the pointer owns the wheel.
         if isPointerOverScrollableScrollView(event) { return false }
 
-        // 3. Panel-wide fallback to the output volume (default preference).
-        guard settings.popupVolumeScrollScope == .panel,
+        // 3. Summary-only fallback to output volume (default preference).
+        //    Detail-page scrolling must never become a volume adjustment.
+        guard settings.popupVolumeScrollScope.allowsPanelAdjustment(on: panelViewModel.route),
               store.isVolumeControlAvailable,
               panelViewModel.volume.canAdjust else {
             return false
