@@ -28,10 +28,7 @@ struct AppIconRingView: View {
     // MARK: Top markers
 
     private var topMarkersGroup: some View {
-        // The subtopic already identifies this page as the top arc; the extra
-        // "Top Markers" heading above the rows was redundant, so the group is
-        // rendered without a title.
-        SettingsGroup {
+        SettingsGroup(localization.string(.settingsBatteryGroupTopMarkers)) {
             if hasBattery {
                 // #315: one plain choice per power state, so the plug and bolt no
                 // longer hide behind a "show percentage" toggle or a combined
