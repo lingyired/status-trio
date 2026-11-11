@@ -492,6 +492,7 @@ final class AppEnvironment {
                     bluetoothDevices: store.bluetoothDevices.devices,
                     batteryLevels: store.bluetoothDevices.batteryLevels,
                     batteryLevelsUpdatedAt: store.bluetoothDevices.batteryLevelsUpdatedAt,
+                    selectedAirPodsAddress: settings.airPodsIconDeviceAddress,
                     selectedConnectedDeviceAddress: settings.bluetoothNetworkIconDeviceAddress
                 )
                 return inputs
