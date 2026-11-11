@@ -1431,6 +1431,25 @@ final class SettingsStore: ObservableObject {
         OutputDeviceListPresentation.orderedDevices(devices, using: outputDeviceOrder)
     }
 
+    /// Exact Published-state replacement for validated transfers and trusted undo.
+    /// The archive owns matching/validation; this bridge never writes defaults directly.
+    func replaceTransferredDeviceLists(
+        outputOrder: [String], hiddenOutputs: Set<String>,
+        inputOrder: [String], hiddenInputs: Set<String>,
+        volumes: [String: ExternalVolumeConfiguration],
+        brightness: [String: ExternalBrightnessConfiguration],
+        hiddenDisplays: Set<String>, bluetoothOrder: [String]
+    ) {
+        if outputDeviceOrder != outputOrder { outputDeviceOrder = outputOrder }
+        if hiddenOutputDeviceUIDs != hiddenOutputs { hiddenOutputDeviceUIDs = hiddenOutputs }
+        if inputDeviceOrder != inputOrder { inputDeviceOrder = inputOrder }
+        if hiddenInputDeviceUIDs != hiddenInputs { hiddenInputDeviceUIDs = hiddenInputs }
+        if externalVolumeConfigurations != volumes { externalVolumeConfigurations = volumes }
+        if externalBrightnessConfigurations != brightness { externalBrightnessConfigurations = brightness }
+        if hiddenBrightnessDisplayIDs != hiddenDisplays { hiddenBrightnessDisplayIDs = hiddenDisplays }
+        if bluetoothDeviceOrder != bluetoothOrder { bluetoothDeviceOrder = bluetoothOrder }
+    }
+
     func externalVolumeConfiguration(for uid: String) -> ExternalVolumeConfiguration {
         let uid = uid.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !uid.isEmpty else { return .default }

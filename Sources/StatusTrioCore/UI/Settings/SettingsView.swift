@@ -26,6 +26,32 @@ struct SettingsView: View {
     var consumePendingSubtopic: () -> SettingsSubtopic? = { nil }
 
     @StateObject private var navigation = SettingsNavigationModel()
+    /// Kept above the category switch so leaving General does not discard undo or preview.
+    @StateObject private var transferSession: SettingsTransferSession
+    @State private var includeTransferDevices = false
+
+    init(
+        store: SettingsStore,
+        statusStore: SystemStatusStore,
+        localization: Localization,
+        inputSourceController: InputSourceController? = nil,
+        globalShortcutController: GlobalShortcutController? = nil,
+        chargeToFullNow: ChargeToFullNowController? = nil,
+        onShowIconGuide: @escaping () -> Void,
+        consumePendingSection: @escaping () -> Section? = { nil },
+        consumePendingSubtopic: @escaping () -> SettingsSubtopic? = { nil }
+    ) {
+        self.store = store
+        self.statusStore = statusStore
+        self.localization = localization
+        self.inputSourceController = inputSourceController
+        self.globalShortcutController = globalShortcutController
+        self.chargeToFullNow = chargeToFullNow
+        self.onShowIconGuide = onShowIconGuide
+        self.consumePendingSection = consumePendingSection
+        self.consumePendingSubtopic = consumePendingSubtopic
+        _transferSession = StateObject(wrappedValue: SettingsTransferSession(store: store, localization: localization))
+    }
     /// The live system appearance, so the menu bar preview starts in the same
     /// light/dark mode as the real menu bar instead of always opening dark.
     @Environment(\.colorScheme) private var systemColorScheme
@@ -454,7 +480,9 @@ struct SettingsView: View {
                 localization: localization,
                 globalShortcutController: globalShortcutController,
                 statusStore: statusStore,
-                chargeToFullNow: chargeToFullNow
+                chargeToFullNow: chargeToFullNow,
+                transferSession: transferSession,
+                includeTransferDevices: $includeTransferDevices
             )
         case .about:
             AboutSectionView()
