@@ -9,8 +9,20 @@ import Foundation
 /// when a metric is unsupported/stale/unavailable, so the slot keeps its shape
 /// instead of inventing a 0% "live" reading.
 enum HardwareRingMapper {
-    /// Vertical scale of the top value text. Kept modest so "45%" fits the gap.
-    static let topValueTextScale: Double = 1.0
+    /// Vertical scale of the top value text, chosen per unit so the string fits
+    /// the top gap at menu-bar size. Percentage values use the battery
+    /// percentage's own scale (1.8) and are drawn as a plain number, exactly like
+    /// the battery percentage — that is why that case is as crisp as the battery.
+    /// Values carrying a wider suffix (degree, thousands) get a slightly smaller
+    /// scale so they do not overflow the gap.
+    static func topValueTextScale(for unit: HardwareMetricUnit) -> Double {
+        switch unit {
+        case .percent: return 1.8
+        case .celsius: return 1.4
+        case .rpm: return 1.2
+        case .none: return 1.4
+        }
+    }
     /// Top glyph scale for a dual ring (drawn by the compact top-marker path).
     static let topSymbolScale: Double = 2.0
     /// Top glyph scale for a single ring. The standard-ring accessory path sizes
@@ -168,7 +180,8 @@ enum HardwareRingMapper {
             guard sample.availability == .measured, sample.isFresh(at: now),
                   let value = sample.value, value.isFinite else { return nil }
             let text = formattedValue(value, unit: sample.unit)
-            return .text(IconTextState(text: text, color: .primary, scale: topValueTextScale))
+            return .text(IconTextState(text: text, color: .primary,
+                                       scale: topValueTextScale(for: sample.unit)))
         }
     }
 
@@ -197,11 +210,13 @@ enum HardwareRingMapper {
         }
     }
 
-    /// Compact accessory text: "45%", "62°", "1.2k RPM".
+    /// Compact accessory text. Percentage values render as a plain number, like
+    /// the battery percentage in the same gap; temperature shows °C; RPM uses a
+    /// compact "1.2k".
     static func formattedValue(_ value: Double, unit: HardwareMetricUnit) -> String {
         switch unit {
         case .percent:
-            return "\(Int(value.rounded()))%"
+            return "\(Int(value.rounded()))"
         case .celsius:
             return "\(Int(value.rounded()))°"
         case .rpm:

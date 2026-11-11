@@ -209,7 +209,8 @@ final class HardwareRingMapperTests: XCTestCase {
         guard case let .text(text)? = state.accessory else {
             return XCTFail("expected text accessory")
         }
-        XCTAssertEqual(text.text, "45%")
+        XCTAssertEqual(text.text, "45")
+        XCTAssertEqual(text.scale, HardwareRingMapper.topValueTextScale(for: .percent))
         XCTAssertEqual(state.gap, .value)
     }
 
