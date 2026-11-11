@@ -11,6 +11,17 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertEqual(SettingsView.sidebarWidth, 196)
         XCTAssertEqual(SettingsView.width, 720)
         XCTAssertEqual(SettingsView.height, 530)
+        // #304: the window is resizable, so the minimums must sit below the
+        // default size and still leave room for the fixed sidebar.
+        XCTAssertEqual(SettingsView.minimumWidth, 640)
+        XCTAssertEqual(SettingsView.minimumHeight, 460)
+        XCTAssertLessThan(SettingsView.minimumWidth, SettingsView.width)
+        XCTAssertLessThan(SettingsView.minimumHeight, SettingsView.height)
+        XCTAssertGreaterThan(
+            SettingsView.minimumWidth - SettingsView.sidebarWidth,
+            320,
+            "The detail column needs room for its widest 180pt control plus a label."
+        )
     }
 
     func testMenuBarPreviewFollowsSystemAppearanceUntilManuallyOverridden() {

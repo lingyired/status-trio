@@ -499,6 +499,16 @@ struct SettingsView: View {
     }
 
     static let sidebarWidth: CGFloat = 196
+    /// Default content size the first time the window opens. Once the user has
+    /// resized or moved it, the window restores its saved frame instead (#304).
     static let width: CGFloat = 720
     static let height: CGFloat = 530
+    /// Smallest content size the user can drag the window down to. The fixed
+    /// 196pt sidebar plus the detail column's widest control (a 180pt pop-up)
+    /// and one line of label copy still fit; narrow rows wrap instead of
+    /// truncating, and pages scroll vertically, so height only needs to stay
+    /// usable rather than exactly fit every page. Keep these below the default
+    /// size so "zoom" and free resizing still have range (#304).
+    static let minimumWidth: CGFloat = 640
+    static let minimumHeight: CGFloat = 460
 }
