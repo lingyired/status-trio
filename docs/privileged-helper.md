@@ -1,8 +1,9 @@
 # Privileged power helper
 
-Status Trio ships one privileged helper. It exists for a single job: turning
-macOS Low Power Mode on or off. That is the only operation it exposes, and the
-only reason it needs root.
+Status Trio ships one privileged helper. It exists for power-management writes
+that no unprivileged process may perform: power mode (Low/High) and, since
+issue #295, the `disablesleep` flag that keeps a Mac awake with the lid closed.
+Those are the only operations it exposes, and the only reason it needs root.
 
 ## Why a helper at all
 
@@ -217,3 +218,25 @@ is false.
   `powermode` rather than `lowpowermode`. The daemon writes
   `pmset -a lowpowermode 0|1`, which remains the accepted argument, and reads the
   state back through `ProcessInfo`.
+
+## `disablesleep` and protocol version 3 (#295)
+
+The "keep awake with the lid closed" quick action needs a second kind of
+power-management write: `pmset -a disablesleep 0|1`. Ordinary `IOPMAssertion`s
+(including `PreventUserIdleSystemSleep`) cannot stop the forced sleep that
+happens when the lid closes, so it goes through the same daemon.
+
+- The protocol gained `readDisableSleep` / `setDisableSleep` and was bumped to
+  `PowerHelperProtocolVersion.disableSleep = 3`. The app reads the version handshake
+  before using these methods and reports an outdated daemon as "helper needs
+  updating" rather than failing silently — the same rule the High Power Mode
+  methods follow.
+- `DisableSleepCommand` owns the argument shape and the `pmset -g` `SleepDisabled`
+  parse as a pure value, so both are unit-tested without root.
+- **Residual safety.** `disablesleep` is a persisted system setting: it survives
+  the app quitting and even a reboot. The app therefore records that *it* turned
+  `disablesleep` on (`sleepControl.ownsDisableSleep`). On launch it only writes
+  `disablesleep 0` when that marker is set and the system still reports
+  `SleepDisabled 1`; a value the user set by hand is never touched. Quitting the
+  app resets the setting through `applicationShouldTerminate` (a `.terminateLater`
+  reply with a timeout) so a normal quit never leaves the Mac unable to sleep.

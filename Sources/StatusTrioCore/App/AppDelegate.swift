@@ -63,6 +63,34 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         environment?.stop()
     }
 
+    /// #295: `pmset -a disablesleep 1` is a persisted system setting, so quitting
+    /// while the lid toggle is on must write it back to 0. `.terminateLater`
+    /// lets the helper call finish first; the delayed reply is a stop path so an
+    /// unreachable helper can never hang quit.
+    public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let environment, environment.store.sleepControl.needsTerminationCleanup else {
+            return .terminateNow
+        }
+        let sleepControl = environment.store.sleepControl
+        Task { @MainActor in
+            await sleepControl.shutdown()
+            self.replyToTermination()
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            self.replyToTermination()
+        }
+        return .terminateLater
+    }
+
+    private var didReplyToTermination = false
+
+    private func replyToTermination() {
+        guard !didReplyToTermination else { return }
+        didReplyToTermination = true
+        NSApplication.shared.reply(toApplicationShouldTerminate: true)
+    }
+
     public func applicationShouldHandleReopen(
         _ sender: NSApplication,
         hasVisibleWindows flag: Bool

@@ -153,3 +153,37 @@ final class XPCPrivilegedHighPowerClient: HighPowerModeClienting, @unchecked Sen
         }
     }
 }
+
+/// The app's view of the helper's `disablesleep` surface (#295). Reuses the same
+/// XPC connection plumbing as the power-mode client; the daemon must be protocol
+/// version `PowerHelperProtocolVersion.disableSleep` or newer.
+protocol DisableSleepClienting: Sendable {
+    /// The XPC protocol version the running daemon reports.
+    func protocolVersion() async throws -> Int
+    /// Whether `pmset -a disablesleep 1` is currently in effect.
+    func readDisableSleep() async throws -> Bool
+    /// Sets `disablesleep` and returns the state the daemon observed afterwards.
+    func setDisableSleep(_ enabled: Bool) async throws -> Bool
+}
+
+extension XPCPrivilegedHighPowerClient: DisableSleepClienting {
+    func readDisableSleep() async throws -> Bool {
+        try await request(
+            timeoutError: HighPowerModeClientError.helperUnavailable
+        ) { proxy, finish in
+            proxy.readDisableSleep { enabled, error in
+                finish(Self.result(enabled, error: error))
+            }
+        }
+    }
+
+    func setDisableSleep(_ enabled: Bool) async throws -> Bool {
+        try await request(
+            timeoutError: HighPowerModeClientError.helperUnavailable
+        ) { proxy, finish in
+            proxy.setDisableSleep(enabled) { observed, error in
+                finish(Self.result(observed, error: error))
+            }
+        }
+    }
+}

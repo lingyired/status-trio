@@ -9,6 +9,8 @@ protocol PmsetRunning: Sendable {
     func highPowerModeSupported() async -> Bool?
     func setHighPowerMode(enabled: Bool) async throws
     func currentHighPowerMode() async -> Bool?
+    func setDisableSleep(enabled: Bool) async throws
+    func currentDisableSleep() async -> Bool?
 }
 
 /// Defaults keep a runner that only models Low Power Mode (the fixtures in the
@@ -19,6 +21,10 @@ extension PmsetRunning {
         throw PmsetError.launchFailed("High Power Mode is not supported")
     }
     func currentHighPowerMode() async -> Bool? { nil }
+    func setDisableSleep(enabled: Bool) async throws {
+        throw PmsetError.launchFailed("Disable sleep is not supported")
+    }
+    func currentDisableSleep() async -> Bool? { nil }
 }
 
 enum PmsetError: LocalizedError {
@@ -175,6 +181,16 @@ struct SystemPmsetRunner: PmsetRunning {
             _ = try? await runWrite(arguments: LowPowerModeCommand.arguments(enabled: false))
         }
         try await runWrite(arguments: HighPowerModeCommand.arguments(enabled: enabled))
+    }
+
+    func currentDisableSleep() async -> Bool? {
+        guard let outcome = try? await run(arguments: ["-g"], capturesOutput: true),
+              outcome.status == 0 else { return nil }
+        return DisableSleepCommand.parseSleepDisabled(fromPmsetOutput: outcome.output)
+    }
+
+    func setDisableSleep(enabled: Bool) async throws {
+        try await runWrite(arguments: DisableSleepCommand.arguments(enabled: enabled))
     }
 
     private func runWrite(arguments: [String]) async throws {
@@ -409,6 +425,34 @@ final class PowerModeService: NSObject, PowerHelperXPCProtocol {
                 return
             }
             reply.send(observed, nil)
+        }
+    }
+
+    func readDisableSleep(withReply reply: @escaping (Bool, String?) -> Void) {
+        let reply = PowerHelperReply(reply)
+        let runner = self.runner
+        Task {
+            guard let enabled = await runner.currentDisableSleep() else {
+                reply.send(false, "Disable sleep state is unavailable.")
+                return
+            }
+            reply.send(enabled, nil)
+        }
+    }
+
+    func setDisableSleep(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void) {
+        let reply = PowerHelperReply(reply)
+        let runner = self.runner
+        Task {
+            do {
+                try await runner.setDisableSleep(enabled: enabled)
+            } catch {
+                reply.send(false, error.localizedDescription)
+                return
+            }
+            // Reply with the state the daemon observes after the change so the app
+            // never has to assume the write took.
+            reply.send(await runner.currentDisableSleep() ?? enabled, nil)
         }
     }
 }

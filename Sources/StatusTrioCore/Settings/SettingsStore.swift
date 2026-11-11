@@ -194,13 +194,13 @@ final class SettingsStore: ObservableObject {
     /// Default order of the status-panel sections. Display brightness sits below
     /// the audio-input row so the two device-level controls stay together.
     static let defaultPopupSectionOrder: [PopupSection] = [
-        .battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource
+        .battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource
     ]
     /// Sections enabled for a fresh install. The VPN row is opt-in now: it is a
     /// regular section but is not part of this default set, so a new install
     /// starts with it switched off. An existing stored selection is honoured
     /// as-is, so a user who already has the row keeps it.
-    static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .volume]
+    static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .quickActions, .network, .volume]
     /// Legacy keys kept only as migration sources for the single panel-scroll
     /// option this change introduces. They are never written again.
     static let legacyPopupScrollAdjustsVolumeDefaultsKey = "popupScrollAdjustsVolume"

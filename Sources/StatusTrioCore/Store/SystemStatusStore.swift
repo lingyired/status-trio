@@ -162,6 +162,9 @@ final class SystemStatusStore: ObservableObject {
     /// The High Power Mode write path (#235). Same helper as `lowPowerMode`,
     /// dormant for the same reason; the two bridges share the one LaunchDaemon.
     let highPowerMode: HighPowerModeController
+    /// Keep-awake quick actions (#295): display assertion plus the helper-backed
+    /// lid-close toggle. Dormant until the user turns one on.
+    let sleepControl: SleepControlController
     /// The low-battery → Low Power Mode automation (#246).
     private let lowPowerAutoEnable = LowPowerAutoEnableController()
     /// Helper readiness for the #246 automation. Production reads the shared
@@ -200,6 +203,7 @@ final class SystemStatusStore: ObservableObject {
     private var mobileBatterySettingsCancellable: AnyCancellable?
     private var lowPowerModeSettingsCancellable: AnyCancellable?
     private var lowPowerModeSnapshotCancellable: AnyCancellable?
+    private var sleepControlPowerCancellable: AnyCancellable?
     private var lowPowerAutoEnableCancellable: AnyCancellable?
     /// The threshold and the helper readiness are preconditions of #246 rather
     /// than battery events, so each has its own subscription to re-evaluate.
@@ -329,6 +333,7 @@ final class SystemStatusStore: ObservableObject {
         bluetoothListeningModes: BluetoothListeningModeController = BluetoothListeningModeController(),
         lowPowerMode: LowPowerModeController = LowPowerModeController(),
         highPowerMode: HighPowerModeController = HighPowerModeController(),
+        sleepControl: SleepControlController = SleepControlController(),
         helperReadiness: (any HelperReadinessProviding)? = nil,
         powerModeNotifications: any PowerModeNotificationMonitoring = PowerModeNotificationMonitor(),
         vpnConnectionController: any VPNConnectionControlling = SystemVPNConnectionController(),
@@ -365,6 +370,7 @@ final class SystemStatusStore: ObservableObject {
         self.bluetoothListeningModes = bluetoothListeningModes
         self.lowPowerMode = lowPowerMode
         self.highPowerMode = highPowerMode
+        self.sleepControl = sleepControl
         self.helperReadiness = helperReadiness ?? SharedHelperReadiness()
         self.powerModeNotifications = powerModeNotifications
         self.snapshot = initialSnapshot
@@ -517,6 +523,16 @@ final class SystemStatusStore: ObservableObject {
         }
 
         batteryMonitor.start()
+        sleepControl.start()
+        sleepControl.updatePowerState(battery: snapshot.battery)
+        sleepControlPowerCancellable = $snapshot
+            .map(\.battery)
+            .removeDuplicates()
+            .sink { [weak self] battery in
+                Task { @MainActor [weak self] in
+                    self?.sleepControl.updatePowerState(battery: battery)
+                }
+            }
         wifiMonitor.start()
         connectionMonitor?.start()
         volumeMonitor.start()
@@ -629,6 +645,9 @@ final class SystemStatusStore: ObservableObject {
         lowPowerModeSettingsCancellable = nil
         lowPowerModeSnapshotCancellable?.cancel()
         lowPowerModeSnapshotCancellable = nil
+        sleepControlPowerCancellable?.cancel()
+        sleepControlPowerCancellable = nil
+        sleepControl.stop()
         lowPowerAutoEnableCancellable?.cancel()
         lowPowerAutoEnableCancellable = nil
         lowPowerAutoEnableThresholdCancellable?.cancel()

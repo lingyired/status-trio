@@ -218,6 +218,8 @@ struct StatusPopoverView: View {
                     panel.actions.requestChargeToFullNow()
                 }
             )
+        case .quickActions:
+            QuickActionsCardView(control: panel.store.sleepControl)
         case .network:
             WiFiPowerSummaryView(panel: panel,
                 state: panel.network,
