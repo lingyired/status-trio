@@ -443,8 +443,8 @@
 "settings.popup.volumeScroll" = "Ajuster par défilement";
 "settings.popup.volumeScroll.description" = "Faites défiler dans le panneau d’état pour changer le volume de sortie. Sur un curseur, le défilement ajuste ce curseur (volume, luminosité ou gain d’entrée).";
 "settings.popup.volumeScroll.scope" = "Zone";
-"settings.popup.volumeScroll.scope.description" = "Choisissez si le défilement sur les zones vides du panneau ajuste le volume de sortie.";
-"settings.popup.volumeScroll.scope.panel" = "Tout le panneau";
+"settings.popup.volumeScroll.scope.description" = "Choisissez si le défilement sur les zones vides de la page de résumé ajuste le volume de sortie.";
+"settings.popup.volumeScroll.scope.panel" = "Page de résumé";
 "settings.popup.volumeScroll.scope.volumeControl" = "Curseurs uniquement";
 "settings.popup.volumeScroll.natural" = "Défilement naturel";
 "settings.popup.volumeScroll.natural.description" = "Lorsque cette option est activée, faire défiler vers le haut augmente la valeur sous le pointeur (volume, luminosité ou gain d’entrée) ; sinon, le défilement suit la direction du système. Si la valeur baisse encore en défilant vers le haut après avoir activé cette option, excluez Status Trio dans MOS, Scroll Reverser, LinearMouse ou une app similaire, généralement via une liste d’exceptions/d’ignorés.";

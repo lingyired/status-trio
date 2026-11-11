@@ -443,8 +443,8 @@
 "settings.popup.volumeScroll" = "Ajustar desplazando";
 "settings.popup.volumeScroll.description" = "Desplázate dentro del panel de estado para cambiar el volumen de salida. Sobre un deslizador, el desplazamiento ajusta ese deslizador (volumen, brillo o ganancia de entrada).";
 "settings.popup.volumeScroll.scope" = "Área";
-"settings.popup.volumeScroll.scope.description" = "Elige si el desplazamiento sobre zonas vacías del panel ajusta el volumen de salida.";
-"settings.popup.volumeScroll.scope.panel" = "Todo el panel";
+"settings.popup.volumeScroll.scope.description" = "Elige si el desplazamiento sobre zonas vacías de la página de resumen ajusta el volumen de salida.";
+"settings.popup.volumeScroll.scope.panel" = "Página de resumen";
 "settings.popup.volumeScroll.scope.volumeControl" = "Solo en deslizadores";
 "settings.popup.volumeScroll.natural" = "Desplazamiento natural";
 "settings.popup.volumeScroll.natural.description" = "Cuando está activado, desplazarse hacia arriba aumenta el valor bajo el puntero (volumen, brillo o ganancia de entrada); si está desactivado, sigue la dirección de desplazamiento del sistema. Si el valor sigue bajando al desplazarte hacia arriba tras activar esta opción, excluye Status Trio en MOS, Scroll Reverser, LinearMouse o una app similar, normalmente mediante una lista de excepciones/omisiones.";

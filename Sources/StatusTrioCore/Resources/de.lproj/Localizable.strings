@@ -443,8 +443,8 @@
 "settings.popup.volumeScroll" = "Durch Scrollen anpassen";
 "settings.popup.volumeScroll.description" = "Im Statusfeld scrollen, um die Ausgangslautstärke zu ändern. Über einem Regler wird stattdessen dieser Regler angepasst (Lautstärke, Helligkeit oder Eingangsverstärkung).";
 "settings.popup.volumeScroll.scope" = "Bereich";
-"settings.popup.volumeScroll.scope.description" = "Wählen Sie, ob Scrollen über leeren Bereichen des Felds die Ausgangslautstärke ändert.";
-"settings.popup.volumeScroll.scope.panel" = "Ganzer Bereich";
+"settings.popup.volumeScroll.scope.description" = "Wählen Sie, ob Scrollen über leeren Bereichen der Übersichtsseite die Ausgangslautstärke ändert.";
+"settings.popup.volumeScroll.scope.panel" = "Übersichtsseite";
 "settings.popup.volumeScroll.scope.volumeControl" = "Nur auf Reglern";
 "settings.popup.volumeScroll.natural" = "Natürliches Scrollen";
 "settings.popup.volumeScroll.natural.description" = "Wenn aktiviert, erhöht Scrollen nach oben den Wert unter dem Zeiger (Lautstärke, Helligkeit oder Eingangsverstärkung); deaktiviert folgt es der Scrollrichtung des Systems. Sinkt der Wert beim Hochscrollen nach dem Aktivieren dieser Option weiterhin, nehmen Sie Status Trio in MOS, Scroll Reverser, LinearMouse o. Ä. über eine Ausnahme-/Ignorierliste aus.";

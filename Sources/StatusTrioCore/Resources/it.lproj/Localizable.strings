@@ -443,8 +443,8 @@
 "settings.popup.volumeScroll" = "Regola scorrendo";
 "settings.popup.volumeScroll.description" = "Scorri all’interno del pannello di stato per cambiare il volume di uscita. Su un cursore, lo scorrimento regola quel cursore (volume, luminosità o guadagno d’ingresso).";
 "settings.popup.volumeScroll.scope" = "Area";
-"settings.popup.volumeScroll.scope.description" = "Scegli se lo scorrimento sulle aree vuote del pannello regola il volume di uscita.";
-"settings.popup.volumeScroll.scope.panel" = "Tutto il pannello";
+"settings.popup.volumeScroll.scope.description" = "Scegli se lo scorrimento sulle aree vuote della pagina di riepilogo regola il volume di uscita.";
+"settings.popup.volumeScroll.scope.panel" = "Pagina di riepilogo";
 "settings.popup.volumeScroll.scope.volumeControl" = "Solo sui cursori";
 "settings.popup.volumeScroll.natural" = "Scorrimento naturale";
 "settings.popup.volumeScroll.natural.description" = "Se attivo, scorrere verso l’alto aumenta il valore sotto il puntatore (volume, luminosità o guadagno d’ingresso); se disattivo, segue la direzione di scorrimento del sistema. Se il valore continua a diminuire scorrendo verso l’alto dopo aver attivato questa opzione, escludi Status Trio in MOS, Scroll Reverser, LinearMouse o un’app simile, di solito tramite un elenco di eccezioni/ignorati.";

@@ -443,8 +443,8 @@
 "settings.popup.volumeScroll" = "Ajustar rolando";
 "settings.popup.volumeScroll.description" = "Role dentro do painel de status para alterar o volume de saída. Sobre um controle, a rolagem ajusta esse controle (volume, brilho ou ganho de entrada).";
 "settings.popup.volumeScroll.scope" = "Área";
-"settings.popup.volumeScroll.scope.description" = "Escolha se a rolagem sobre áreas vazias do painel ajusta o volume de saída.";
-"settings.popup.volumeScroll.scope.panel" = "Painel inteiro";
+"settings.popup.volumeScroll.scope.description" = "Escolha se a rolagem sobre áreas vazias da página de resumo ajusta o volume de saída.";
+"settings.popup.volumeScroll.scope.panel" = "Página de resumo";
 "settings.popup.volumeScroll.scope.volumeControl" = "Somente nos controles";
 "settings.popup.volumeScroll.natural" = "Rolagem natural";
 "settings.popup.volumeScroll.natural.description" = "Quando ativado, rolar para cima aumenta o valor sob o ponteiro (volume, brilho ou ganho de entrada); quando desativado, segue a direção de rolagem do sistema. Se o valor continuar diminuindo ao rolar para cima depois de ativar esta opção, exclua o Status Trio no MOS, Scroll Reverser, LinearMouse ou app semelhante, normalmente por meio de uma lista de exceções/ignorados.";

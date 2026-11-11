@@ -443,8 +443,8 @@
 "settings.popup.volumeScroll" = "الضبط بالتمرير";
 "settings.popup.volumeScroll.description" = "مرّر داخل لوحة الحالة لتغيير مستوى صوت الإخراج. فوق شريط تمرير، يؤدي التمرير إلى ضبط ذلك الشريط (الصوت أو السطوع أو كسب الإدخال).";
 "settings.popup.volumeScroll.scope" = "النطاق";
-"settings.popup.volumeScroll.scope.description" = "اختر ما إذا كان التمرير فوق المناطق الفارغة في اللوحة يضبط مستوى صوت الإخراج.";
-"settings.popup.volumeScroll.scope.panel" = "اللوحة بالكامل";
+"settings.popup.volumeScroll.scope.description" = "اختر ما إذا كان التمرير فوق المناطق الفارغة في صفحة الملخص يضبط مستوى صوت الإخراج.";
+"settings.popup.volumeScroll.scope.panel" = "صفحة الملخص";
 "settings.popup.volumeScroll.scope.volumeControl" = "على أشرطة التمرير فقط";
 "settings.popup.volumeScroll.natural" = "التمرير الطبيعي";
 "settings.popup.volumeScroll.natural.description" = "عند التفعيل، يؤدي التمرير لأعلى إلى زيادة القيمة تحت المؤشر (مستوى الصوت أو السطوع أو كسب الإدخال)؛ وعند الإيقاف يتبع اتجاه التمرير في النظام. إذا استمر انخفاض القيمة عند التمرير لأعلى بعد تشغيل هذا الخيار، فاستثنِ Status Trio في MOS أو Scroll Reverser أو LinearMouse أو تطبيق مشابه، عادةً عبر قائمة استثناءات/تجاهل.";

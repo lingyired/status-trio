@@ -443,8 +443,8 @@
 "settings.popup.volumeScroll" = "滾動調節";
 "settings.popup.volumeScroll.description" = "在狀態面板內滾動調節輸出音量；指標位於滑桿上時改為調節該滑桿（音量、亮度或輸入增益）。";
 "settings.popup.volumeScroll.scope" = "生效範圍";
-"settings.popup.volumeScroll.scope.description" = "選擇空白處的滾動是否調節輸出音量。";
-"settings.popup.volumeScroll.scope.panel" = "整個面板";
+"settings.popup.volumeScroll.scope.description" = "選擇在總覽頁面空白處滾動是否調節輸出音量。";
+"settings.popup.volumeScroll.scope.panel" = "總覽頁面";
 "settings.popup.volumeScroll.scope.volumeControl" = "僅滑桿";
 "settings.popup.volumeScroll.natural" = "自然捲動";
 "settings.popup.volumeScroll.natural.description" = "開啟後，上滾增大指標下的數值（音量、亮度或輸入增益）；關閉後跟隨系統的滾動方向。如果開啟後上滾仍然減小數值，請在 MOS、Scroll Reverser、LinearMouse 等應用中將 Status Trio 設為不處理，通常可加入例外/忽略清單（部分應用稱為白名單）。";

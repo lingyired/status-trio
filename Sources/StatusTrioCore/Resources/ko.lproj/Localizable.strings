@@ -443,8 +443,8 @@
 "settings.popup.volumeScroll" = "스크롤로 조절";
 "settings.popup.volumeScroll.description" = "상태 패널 안에서 스크롤하여 출력 음량을 변경합니다. 슬라이더 위에서는 해당 슬라이더(음량, 밝기, 입력 게인)를 조절합니다.";
 "settings.popup.volumeScroll.scope" = "적용 범위";
-"settings.popup.volumeScroll.scope.description" = "패널의 빈 영역을 스크롤할 때 출력 음량을 조절할지 선택합니다.";
-"settings.popup.volumeScroll.scope.panel" = "패널 전체";
+"settings.popup.volumeScroll.scope.description" = "요약 페이지의 빈 영역을 스크롤할 때 출력 음량을 조절할지 선택합니다.";
+"settings.popup.volumeScroll.scope.panel" = "요약 페이지";
 "settings.popup.volumeScroll.scope.volumeControl" = "슬라이더에서만";
 "settings.popup.volumeScroll.natural" = "자연스러운 스크롤";
 "settings.popup.volumeScroll.natural.description" = "켜면 위로 스크롤할 때 포인터 아래 값(음량, 밝기, 입력 게인)이 커집니다. 끄면 시스템 스크롤 방향을 따릅니다. 이 옵션을 켠 후에도 위로 스크롤할 때 값이 줄어들면 MOS, Scroll Reverser, LinearMouse 등에서 Status Trio를 예외/무시 목록에 추가하세요.";
