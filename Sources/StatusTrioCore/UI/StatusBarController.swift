@@ -1101,8 +1101,7 @@ final class StatusBarController: NSObject {
     }
 
     private func shouldConsumeVolumeScrollWheel(_ event: NSEvent) -> Bool {
-        guard event.window === popover.contentViewController?.view.window,
-              settings.popupScrollAdjustsVolume else { return false }
+        guard event.window === popover.contentViewController?.view.window else { return false }
 
         let point = event.locationInWindow
         let window = event.window
@@ -1123,11 +1122,14 @@ final class StatusBarController: NSObject {
         // 2. A scrollable scroll view under the pointer owns the wheel.
         if isPointerOverScrollableScrollView(event) { return false }
 
-        // 3. Summary-only fallback to output volume (default preference).
-        //    Detail-page scrolling must never become a volume adjustment.
-        guard settings.popupVolumeScrollScope.allowsPanelAdjustment(on: panelViewModel.route),
-              store.isVolumeControlAvailable,
-              panelViewModel.volume.canAdjust else {
+        // 3. Opt-in summary-page fallback to the output volume. Sliders were
+        //    handled above; detail pages never change volume (issue #324).
+        guard PanelScrollVolumeFallback.allows(
+            panelScrollEnabled: settings.popupPanelScrollAdjustsVolume,
+            route: panelViewModel.route,
+            isVolumeControlAvailable: store.isVolumeControlAvailable,
+            canAdjustVolume: panelViewModel.volume.canAdjust
+        ) else {
             return false
         }
         return consumeVolume(event: event)

@@ -228,4 +228,57 @@ final class PopupVolumeScrollAdjustmentTests: XCTestCase {
 
         XCTAssertEqual(nextOutput, 0.7, accuracy: 0.000_001)
     }
+    func testPanelScrollFallbackAllowsSummaryWhenEnabled() {
+        XCTAssertTrue(
+            PanelScrollVolumeFallback.allows(
+                panelScrollEnabled: true,
+                route: .summary,
+                isVolumeControlAvailable: true,
+                canAdjustVolume: true
+            )
+        )
+    }
+
+    func testPanelScrollFallbackRejectsDetailRoutes() {
+        let detailRoutes: [StatusPanelRoute] = [.battery, .wifi, .ethernet, .inputSource]
+        for route in detailRoutes {
+            XCTAssertFalse(
+                PanelScrollVolumeFallback.allows(
+                    panelScrollEnabled: true,
+                    route: route,
+                    isVolumeControlAvailable: true,
+                    canAdjustVolume: true
+                ),
+                "scrolling a \(route) detail page must not change output volume"
+            )
+        }
+    }
+
+    func testPanelScrollFallbackRejectsWhenDisabledOrUnavailable() {
+        XCTAssertFalse(
+            PanelScrollVolumeFallback.allows(
+                panelScrollEnabled: false,
+                route: .summary,
+                isVolumeControlAvailable: true,
+                canAdjustVolume: true
+            )
+        )
+        XCTAssertFalse(
+            PanelScrollVolumeFallback.allows(
+                panelScrollEnabled: true,
+                route: .summary,
+                isVolumeControlAvailable: false,
+                canAdjustVolume: true
+            )
+        )
+        XCTAssertFalse(
+            PanelScrollVolumeFallback.allows(
+                panelScrollEnabled: true,
+                route: .summary,
+                isVolumeControlAvailable: true,
+                canAdjustVolume: false
+            )
+        )
+    }
+
 }

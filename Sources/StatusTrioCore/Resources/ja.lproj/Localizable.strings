@@ -440,12 +440,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "有効にすると、ステータスパネルは常に概要ページで開きます。無効の場合は、最後に表示していたページが保持されます。";
 "settings.popup.volumeScroll.group" = "パネルのスクロール";
 "settings.audio.volumeScroll.group" = "音量スクロール";
-"settings.popup.volumeScroll" = "スクロールで調整";
-"settings.popup.volumeScroll.description" = "ステータスパネル内をスクロールして出力音量を変更します。スライダー上では、そのスライダー（音量・明るさ・入力ゲイン）を調整します。";
-"settings.popup.volumeScroll.scope" = "適用範囲";
-"settings.popup.volumeScroll.scope.description" = "パネルの空白領域をスクロールしたときに出力音量を調整するかを選択します。";
-"settings.popup.volumeScroll.scope.panel" = "パネル全体";
-"settings.popup.volumeScroll.scope.volumeControl" = "スライダーのみ";
+"settings.popup.panelScroll" = "パネルのスクロールで音量を調整";
+"settings.popup.panelScroll.description" = "概要ページの空白領域をスクロールすると出力音量が変わります。スライダーは常にスクロールで調整できます。";
 "settings.popup.volumeScroll.natural" = "ナチュラルスクロール";
 "settings.popup.volumeScroll.natural.description" = "オンにすると、上方向のスクロールでポインタ下の値（音量・明るさ・入力ゲイン）が増えます。オフにするとシステムのスクロール方向に従います。オンにした後も上スクロールで値が下がる場合は、MOS、Scroll Reverser、LinearMouse などで Status Trio を例外/無視リストに追加してください。";
 "settings.audio.volumeFeedbackTitle" = "音量フィードバック";
