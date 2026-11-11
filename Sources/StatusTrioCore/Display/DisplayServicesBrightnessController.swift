@@ -175,10 +175,11 @@ final class DisplayServicesBrightnessController {
             emit(scalar: Double(min(1, max(0, value))), canAdjust: true, source: .displayServices)
         } else {
             // The write was accepted; only the read-back has not confirmed it
-            // yet (or failed). Keep the slider adjustable with the accepted
-            // target instead of tearing it down mid-gesture. A real
-            // notification/read will correct the value later; no retries,
-            // timers, or polling here.
+            // yet (a lagging read) or could not be read. Keep the slider
+            // adjustable with the accepted target instead of tearing it down
+            // mid-gesture. A lagging read-back is corrected by the next change
+            // notification; a *persistent* read failure is still surfaced by
+            // refresh()/.readFailed. No retries, timers, or polling here.
             emit(scalar: Double(target), canAdjust: true, source: .displayServices)
         }
     }

@@ -407,10 +407,28 @@ final class BrightnessOptimisticPublishTests: XCTestCase {
         store.setPopoverVisible(true)
         defer { store.stop() }
 
+        // A pointer held at an edge reports the same value repeatedly during a
+        // live gesture; only the first reaches the hardware.
+        store.beginBrightnessAdjustment(displayID: displayID)
         store.setBrightness(0.5, forDisplayID: displayID)
         store.setBrightness(0.5, forDisplayID: displayID)
 
         XCTAssertEqual(brightness.writeCount, 1)
+    }
+
+    func testDifferentTargetDuringGestureStillWrites() async {
+        let brightness = FakeBrightnessMonitor()
+        let store = makeStore(brightness)
+        store.start()
+        store.setPopoverVisible(true)
+        defer { store.stop() }
+
+        store.beginBrightnessAdjustment(displayID: displayID)
+        store.setBrightness(0.5, forDisplayID: displayID)
+        store.setBrightness(0.6, forDisplayID: displayID)
+
+        XCTAssertEqual(brightness.writeCount, 2, "a real value change must always reach the hardware")
+        XCTAssertEqual(brightness.lastWrittenScalar, 0.6, accuracy: 0.0001)
     }
 
     func testNonFiniteTargetIsIgnored() async {

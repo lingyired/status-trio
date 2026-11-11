@@ -1974,11 +1974,13 @@ final class SystemStatusStore: ObservableObject {
             )
             publish(snapshot.replacingBrightness(liveBrightness), immediately: true)
         }
-        // A pointer held at an edge keeps asking for the same scalar. Repeat
-        // writes of the identical target update the optimistic value as usual
-        // but skip the redundant hardware write. The first write always goes,
-        // and an exact 0/1 first reaches the hardware once, then is deduped.
-        if let previousTarget, abs(previousTarget - clamped) <= 1e-6 {
+        // A pointer held at an edge keeps asking for the same scalar during a
+        // gesture. Repeat writes of the identical target update the optimistic
+        // value as usual but skip the redundant hardware write. Scoped to an
+        // active gesture so a later legitimate rewrite to the same 0/1 value
+        // (wheel, external change, re-seeking the edge) is never swallowed.
+        if brightnessGestureDisplayIDs.contains(displayID),
+           let previousTarget, abs(previousTarget - clamped) <= 1e-6 {
             return
         }
         brightnessMonitor.setBrightness(clamped, forDisplayID: displayID)

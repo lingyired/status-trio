@@ -52,12 +52,12 @@ SwiftUI 在拖动期间仍会因乐观发布而重新布局这一行；一旦布
 - 新增 `PanelLevelSliderTrackingGeometry`：**手势开始时快照轨道矩形**，整个手势期间 `trackRect` 用它；手势外仍用实时 bounds（命中测试不变）。`knobRect` 与 `trackRect` 使用同一冻结宽度，取值与绘制不会打架。
 - `mouseDown`/`keyDown` 进入手势时冻结；`finishActiveGesture()` 统一收尾（flush 最终节流值 + `onEditingChanged(false)` + 解冻）。
 - `viewWillMove(toWindow:nil)` 在手势中被移除时正常结束手势，避免卡在 `isEditing`。
-- `animateValue` 拒绝非有限目标；`valueDidChange` 过滤非有限值（纵深防御）。
+- `animateValue` 拒绝非有限目标（程序化入口防御）。注意：真正的修复是**几何冻结**——`NSSlider` 会把 inf/NaN 内部收敛成有限的 0/1，入口处「拒绝非有限值」挡不住 #331，所以 `valueDidChange` 里的非有限判断只是兜底、并非根因修复。
 
 ### 4.3 旧回读竞争 — `SystemStatusStore.swift` + `StatusPanelActions.swift` + `BrightnessControlsView.swift`
 - 新增 `beginBrightnessAdjustment(displayID:)`；`BrightnessRowView.onEditingChanged(true)` 调用它，`false` 与 `.onDisappear` 收尾。
 - `reconcilePendingBrightness`：**手势活跃期间**，该显示器一律显示 pending 目标且 `canAdjust=true`，不因更高序号的旧读数取消最新目标；手势结束后恢复既有逻辑，让真实硬件状态/外部修改重新接管。
-- `setBrightness`：加入「完全相同目标（≤1e-6）」的重复写去重（首次必写，0/1 不被过滤），避免指针停在边缘逐帧重复写硬件。
+- `setBrightness`：加入「完全相同目标（≤1e-6）」的重复写去重，且**仅在手势活跃期间生效**（首次必写，0/1 不被过滤；限定作用域以免吞掉后续合法的同值重写）。滚轮走 `StatusBarController` 直接调用 `setBrightness`、不进入手势集合，故不受该去重影响，也不受根因 A 影响（不经 `trackRect`）。
 
 ### Phase 2 诊断 — `PanelBrightnessDiagnostics.swift`（DEBUG-only，默认关闭）
 集中开关 `PanelBrightnessDiagnostics.isEnabled`（默认 false，Release 编译为空实现）。可记录手势边界、`bounds` 变化（**关键：证明拖动中是否发生宽度塌缩**）、`trackRect`、`doubleValue`、上报值，均带单调时间戳。正常 Release 不产生任何高频日志。
@@ -65,11 +65,9 @@ SwiftUI 在拖动期间仍会因乐观发布而重新布局这一行；一旦布
 ## 4. 测试结果
 
 ### 单元 / 集成（本地，确定性）
-- 新增/扩展：`PanelLevelSliderTests`（+4：冻结几何、退化起点、cell trackRect 冻结、非有限值 thumb 中心）、`DisplayServicesBrightnessChangeTests`（+3：写成功但回读仍旧、真实写失败、非有限忽略）、`BrightnessOptimisticPublishTests`（+4：手势中旧读不抢目标、手势结束真实值接管、同值只写一次、非有限目标忽略）。
+- 新增/扩展：`PanelLevelSliderTests`（+4：冻结几何、退化起点、cell trackRect 冻结、非有限值 thumb 中心）、`DisplayServicesBrightnessChangeTests`（+4：写成功但回读仍旧、真实写失败、非有限忽略、写后读失败仍可调）、`BrightnessOptimisticPublishTests`（+5：手势中旧读不抢目标、手势结束真实值接管、同值只写一次、非有限目标忽略、手势中异值仍写）。
 - 目标套件聚焦运行：`scripts/test.sh 'DisplayServicesBrightnessChangeTests|BrightnessOptimisticPublishTests|BrightnessMonitorTests|PanelLevelSliderTests|BrightnessPanelMapperTests|StatusPanelViewModelTests|PanelActionRoutingTests|PanelPresentationWiringTests|BrightnessBackendAutomaticTests|BetterDisplayBrightnessTests|DDCBrightnessCoordinatorTests'` → **153 XCTest + 7 Swift Testing，0 失败**。
-- 全量 `scripts/verify-local.sh full`：
-  - Swift 全量测试 **3062 tests / 0 failures / 99 skipped**（skipped 为按策略跳过的可见 UI 测试）。
-  - Release 构建通过。
+- 全量 `scripts/test.sh`（最终树）：**exit 0，全绿 0 失败**（Swift Testing 997 tests / 141 suites 全通过；XCTest 全通过）。全量 `scripts/verify-local.sh full` 早前一轮：Swift 全量测试 3062 tests / 0 failures / 99 skipped（skipped 为按策略跳过的可见 UI 测试），Release 构建通过。
   - **App bundle 阶段 BLOCKED（网络）**：`prepare-mobile-battery-sources` 的 `git clone` 报 `RPC failed; curl 18 Transferred a partial file`，为外部网络/依赖拉取失败，与本改动无关；该阶段标为 NOT RUN，需网络恢复后重跑。
 
 ### 真实设备（NOT RUN）
@@ -82,6 +80,11 @@ SwiftUI 在拖动期间仍会因乐观发布而重新布局这一行；一旦布
 - 共用滑块（音量/麦克风）：`PanelLevelSlider` 仅新增手势冻结与非有限防护，行为对音量/麦克风同样安全；其测试全绿。
 - 手势集合清理依赖 `begin/finish/onDisappear/viewWillMove/hide/stop`；已多路兜底。
 - 手势活跃期间若显示器从列表消失，pending 仍按既有规则被裁掉，仅短暂不影响显示。
+
+### 5.1 已知取舍 / 待人工验证
+- **S1 面板关闭时的 AppKit 手势复位（需人工验证）**：`StatusPanelLayoutMetrics` 记录「面板关闭后 hosting 树仍在」，故 `viewWillMove(toWindow:nil)` / `.onDisappear` 在「关面板」这条路径不一定触发。Store 侧已在面板隐藏时清空 `pending*`/`brightnessGestureDisplayIDs`（安全）；NSSlider 的 `isGestureActive` 正常会在 `super.mouseDown` 返回后由 `finishActiveGesture` 复位，仅在「拖动中关面板且 AppKit 未送回 mouseUp」的极端路径下可能残留。**请人工验证「拖动中按 Esc/Cmd-Tab 关面板再打开」滑块是否卡住；若复现则需补面板关闭显式复位。**
+- **S2 写后读失败也按乐观处理（有界取舍）**：写入被接受但回读失败时，本修复仍显示目标并保持可调，避免瞬时读失败拆滑块；持续读失败仍会由 `refresh()/.readFailed` 暴露（`DisplayServicesBrightnessController.refresh` 未改）。已加 `testReadFailureAfterAcceptedWriteKeepsDisplayAdjustable` 锁定该取舍。
+- **N3/N4（轻微）**：轨道与 bounds 双退化时 `effectiveTrackRect` 仍可能返回零宽（正常命中测试下无法在该状态开始拖动）；`viewWillMove` 中被移除时丢弃 ≤33ms 内的节流末值。均不影响硬件写入正确性。
 
 ## 6. 性能评估
 - 未增加任何常驻轮询/定时器/观察者；未新增后台工作。
